@@ -1,0 +1,17 @@
+node_modules/
+dist/
+.DS_Store
+.env*
+!.env.example
+playwright-report/
+test-results/
+mystic_woods_free_2/
+Desert Tileset 32x32/
+SWAMP TILESET 32x32.png
+
+.venv/
+scripts/source-cache/
+*.tsbuildinfo
+
+__pycache__/
+*.pyc

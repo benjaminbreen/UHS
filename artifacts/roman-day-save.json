@@ -1,0 +1,7358 @@
+{
+  "manifest": {
+    "seed": "tiber-100",
+    "pack": "roman",
+    "schema": 1,
+    "simulation": 1,
+    "generator": 1,
+    "content": 1,
+    "atlas": 1
+  },
+  "clock": 75600,
+  "revision": 154,
+  "randomCounter": 21606,
+  "player": {
+    "id": "player",
+    "name": "Gaius",
+    "role": "Traveler",
+    "kind": "human",
+    "pos": {
+      "x": 17,
+      "y": 10,
+      "space": "outside"
+    },
+    "home": {
+      "x": -5,
+      "y": 5,
+      "space": "outside"
+    },
+    "work": {
+      "x": -5,
+      "y": 5,
+      "space": "outside"
+    },
+    "sprite": "human-0-1",
+    "inventory": {
+      "coin": 10,
+      "bread": 3,
+      "water": 2,
+      "tool": 1,
+      "lizard": 1,
+      "grain": 2
+    },
+    "activity": "Exploring",
+    "fatigue": 17.99083333333331,
+    "hunger": 24.000000000002167,
+    "trust": 0,
+    "memories": [],
+    "direction": 3,
+    "follows": "s0-person-0"
+  },
+  "actors": [
+    {
+      "id": "s0-person-0",
+      "name": "Livia",
+      "role": "Bread seller",
+      "kind": "human",
+      "pos": {
+        "x": -7,
+        "y": -12,
+        "space": "outside"
+      },
+      "home": {
+        "x": -7,
+        "y": -12,
+        "space": "outside"
+      },
+      "work": {
+        "x": 3,
+        "y": 3,
+        "space": "outside"
+      },
+      "sprite": "human-0-0",
+      "inventory": {
+        "bread": 7,
+        "coin": 8,
+        "water": 2
+      },
+      "activity": "Returning to the household",
+      "fatigue": 0,
+      "hunger": 29.000000000002963,
+      "trust": 3,
+      "memories": [
+        "Saw player take s0-house-0-store",
+        "Restitution for s0-house-0-store"
+      ],
+      "direction": 3,
+      "lastUpdated": 75600,
+      "consentUntil": 33336
+    },
+    {
+      "id": "s0-person-1",
+      "name": "Marcus",
+      "role": "Potter",
+      "kind": "human",
+      "pos": {
+        "x": 3,
+        "y": -12,
+        "space": "outside"
+      },
+      "home": {
+        "x": 3,
+        "y": -12,
+        "space": "outside"
+      },
+      "work": {
+        "x": 5,
+        "y": 3,
+        "space": "outside"
+      },
+      "sprite": "human-1-1",
+      "inventory": {
+        "bread": 8,
+        "coin": 6,
+        "water": 2
+      },
+      "activity": "Returning to the household",
+      "fatigue": 0,
+      "hunger": 29.000000000002952,
+      "trust": 1,
+      "memories": [],
+      "direction": 3,
+      "lastUpdated": 75600
+    },
+    {
+      "id": "s0-person-2",
+      "name": "Tertia",
+      "role": "Shepherd",
+      "kind": "human",
+      "pos": {
+        "x": 13,
+        "y": -12,
+        "space": "outside"
+      },
+      "home": {
+        "x": 13,
+        "y": -12,
+        "space": "outside"
+      },
+      "work": {
+        "x": 7,
+        "y": 3,
+        "space": "outside"
+      },
+      "sprite": "human-2-2",
+      "inventory": {
+        "bread": 8,
+        "coin": 6,
+        "water": 2
+      },
+      "activity": "Returning to the household",
+      "fatigue": 0,
+      "hunger": 29.000000000002952,
+      "trust": 1,
+      "memories": [],
+      "direction": 1,
+      "lastUpdated": 75600
+    },
+    {
+      "id": "s0-person-3",
+      "name": "Felix",
+      "role": "Weaver",
+      "kind": "human",
+      "pos": {
+        "x": -8,
+        "y": -1,
+        "space": "outside"
+      },
+      "home": {
+        "x": -8,
+        "y": -1,
+        "space": "outside"
+      },
+      "work": {
+        "x": 9,
+        "y": 3,
+        "space": "outside"
+      },
+      "sprite": "human-0-3",
+      "inventory": {
+        "bread": 8,
+        "coin": 6,
+        "water": 2
+      },
+      "activity": "Returning to the household",
+      "fatigue": 0,
+      "hunger": 29.000000000002952,
+      "trust": 2,
+      "memories": [],
+      "direction": 3,
+      "lastUpdated": 75600
+    },
+    {
+      "id": "s0-person-4",
+      "name": "Sabina",
+      "role": "Farmer",
+      "kind": "human",
+      "pos": {
+        "x": 2,
+        "y": -1,
+        "space": "outside"
+      },
+      "home": {
+        "x": 2,
+        "y": -1,
+        "space": "outside"
+      },
+      "work": {
+        "x": 3,
+        "y": 5,
+        "space": "outside"
+      },
+      "sprite": "human-1-4",
+      "inventory": {
+        "bread": 8,
+        "coin": 6,
+        "water": 2
+      },
+      "activity": "Returning to the household",
+      "fatigue": 0,
+      "hunger": 29.000000000002952,
+      "trust": 1,
+      "memories": [],
+      "direction": 0,
+      "lastUpdated": 75600
+    },
+    {
+      "id": "s0-person-5",
+      "name": "Lucius",
+      "role": "Fisher",
+      "kind": "human",
+      "pos": {
+        "x": 12,
+        "y": -1,
+        "space": "outside"
+      },
+      "home": {
+        "x": 12,
+        "y": -1,
+        "space": "outside"
+      },
+      "work": {
+        "x": 5,
+        "y": 5,
+        "space": "outside"
+      },
+      "sprite": "human-2-5",
+      "inventory": {
+        "bread": 8,
+        "coin": 6,
+        "water": 2
+      },
+      "activity": "Returning to the household",
+      "fatigue": 0,
+      "hunger": 29.000000000002952,
+      "trust": 1,
+      "memories": [],
+      "direction": 1,
+      "lastUpdated": 75600
+    },
+    {
+      "id": "s0-person-6",
+      "name": "Dama",
+      "role": "Bread seller",
+      "kind": "human",
+      "pos": {
+        "x": -8,
+        "y": 16,
+        "space": "outside"
+      },
+      "home": {
+        "x": -8,
+        "y": 16,
+        "space": "outside"
+      },
+      "work": {
+        "x": 7,
+        "y": 5,
+        "space": "outside"
+      },
+      "sprite": "human-0-0",
+      "inventory": {
+        "bread": 8,
+        "coin": 6,
+        "water": 2
+      },
+      "activity": "Returning to the household",
+      "fatigue": 0,
+      "hunger": 29.000000000002952,
+      "trust": 2,
+      "memories": [],
+      "direction": 3,
+      "lastUpdated": 75600
+    },
+    {
+      "id": "s0-person-7",
+      "name": "Aelia",
+      "role": "Potter",
+      "kind": "human",
+      "pos": {
+        "x": 3,
+        "y": 16,
+        "space": "outside"
+      },
+      "home": {
+        "x": 3,
+        "y": 16,
+        "space": "outside"
+      },
+      "work": {
+        "x": 9,
+        "y": 5,
+        "space": "outside"
+      },
+      "sprite": "human-1-1",
+      "inventory": {
+        "bread": 8,
+        "coin": 6,
+        "water": 2
+      },
+      "activity": "Returning to the household",
+      "fatigue": 0,
+      "hunger": 29.000000000002952,
+      "trust": 1,
+      "memories": [],
+      "direction": 3,
+      "lastUpdated": 75600
+    },
+    {
+      "id": "s0-person-8",
+      "name": "Rufus",
+      "role": "Shepherd",
+      "kind": "human",
+      "pos": {
+        "x": 13,
+        "y": 17,
+        "space": "outside"
+      },
+      "home": {
+        "x": 13,
+        "y": 17,
+        "space": "outside"
+      },
+      "work": {
+        "x": 3,
+        "y": 7,
+        "space": "outside"
+      },
+      "sprite": "human-2-2",
+      "inventory": {
+        "bread": 8,
+        "coin": 6,
+        "water": 2
+      },
+      "activity": "Returning to the household",
+      "fatigue": 0,
+      "hunger": 29.000000000002952,
+      "trust": 1,
+      "memories": [],
+      "direction": 1,
+      "lastUpdated": 75600
+    },
+    {
+      "id": "s0-person-9",
+      "name": "Claudia",
+      "role": "Weaver",
+      "kind": "human",
+      "pos": {
+        "x": -8,
+        "y": 26,
+        "space": "outside"
+      },
+      "home": {
+        "x": -8,
+        "y": 26,
+        "space": "outside"
+      },
+      "work": {
+        "x": 5,
+        "y": 7,
+        "space": "outside"
+      },
+      "sprite": "human-0-3",
+      "inventory": {
+        "bread": 8,
+        "coin": 6,
+        "water": 2
+      },
+      "activity": "Returning to the household",
+      "fatigue": 0,
+      "hunger": 29.000000000002952,
+      "trust": 2,
+      "memories": [],
+      "direction": 3,
+      "lastUpdated": 75600
+    },
+    {
+      "id": "s0-animal-0",
+      "name": "Sheep",
+      "role": "Animal",
+      "kind": "sheep",
+      "pos": {
+        "x": 19,
+        "y": 17,
+        "space": "outside"
+      },
+      "home": {
+        "x": 24,
+        "y": 17,
+        "space": "outside"
+      },
+      "work": {
+        "x": 17,
+        "y": 8,
+        "space": "outside"
+      },
+      "sprite": "sheep",
+      "inventory": {},
+      "activity": "Moving toward the enclosure",
+      "fatigue": 0,
+      "hunger": 24.000000000002125,
+      "trust": 0,
+      "owner": "s0-person-2",
+      "memories": [],
+      "direction": 2,
+      "lastUpdated": 75600,
+      "goal": {
+        "x": 24,
+        "y": 17,
+        "space": "outside"
+      }
+    },
+    {
+      "id": "s0-animal-2",
+      "name": "Chicken",
+      "role": "Animal",
+      "kind": "chicken",
+      "pos": {
+        "x": 20,
+        "y": 8,
+        "space": "outside"
+      },
+      "home": {
+        "x": 24,
+        "y": 17,
+        "space": "outside"
+      },
+      "work": {
+        "x": 21,
+        "y": 8,
+        "space": "outside"
+      },
+      "sprite": "chicken",
+      "inventory": {},
+      "activity": "Grazing",
+      "fatigue": 0,
+      "hunger": 24.000000000002125,
+      "trust": 0,
+      "owner": "s0-person-2",
+      "memories": [],
+      "direction": 1,
+      "lastUpdated": 75600
+    },
+    {
+      "id": "s0-animal-3",
+      "name": "Sheep",
+      "role": "Animal",
+      "kind": "sheep",
+      "pos": {
+        "x": 26,
+        "y": 26,
+        "space": "outside"
+      },
+      "home": {
+        "x": 24,
+        "y": 17,
+        "space": "outside"
+      },
+      "work": {
+        "x": 23,
+        "y": 8,
+        "space": "outside"
+      },
+      "sprite": "sheep",
+      "inventory": {},
+      "activity": "Fleeing",
+      "fatigue": 0,
+      "hunger": 24.000000000002125,
+      "trust": 0,
+      "owner": "s0-person-2",
+      "memories": [],
+      "direction": 2,
+      "lastUpdated": 75600
+    },
+    {
+      "id": "s0-animal-4",
+      "name": "Wall lizard",
+      "role": "Animal",
+      "kind": "lizard",
+      "pos": {
+        "x": 27,
+        "y": -10,
+        "space": "outside"
+      },
+      "home": {
+        "x": 24,
+        "y": 17,
+        "space": "outside"
+      },
+      "work": {
+        "x": 17,
+        "y": 11,
+        "space": "outside"
+      },
+      "sprite": "lizard",
+      "inventory": {},
+      "activity": "Fleeing",
+      "fatigue": 0,
+      "hunger": 24.000000000002125,
+      "trust": 0,
+      "owner": "s0-person-2",
+      "memories": [],
+      "direction": 2,
+      "lastUpdated": 75600
+    },
+    {
+      "id": "s0-animal-5",
+      "name": "Chicken",
+      "role": "Animal",
+      "kind": "chicken",
+      "pos": {
+        "x": 14,
+        "y": 18,
+        "space": "outside"
+      },
+      "home": {
+        "x": 24,
+        "y": 17,
+        "space": "outside"
+      },
+      "work": {
+        "x": 19,
+        "y": 11,
+        "space": "outside"
+      },
+      "sprite": "chicken",
+      "inventory": {},
+      "activity": "Grazing",
+      "fatigue": 0,
+      "hunger": 24.000000000002125,
+      "trust": 0,
+      "owner": "s0-person-2",
+      "memories": [],
+      "direction": 0,
+      "lastUpdated": 75600
+    },
+    {
+      "id": "s0-animal-6",
+      "name": "Sheep",
+      "role": "Animal",
+      "kind": "sheep",
+      "pos": {
+        "x": 17,
+        "y": 9,
+        "space": "outside"
+      },
+      "home": {
+        "x": 24,
+        "y": 17,
+        "space": "outside"
+      },
+      "work": {
+        "x": 21,
+        "y": 11,
+        "space": "outside"
+      },
+      "sprite": "sheep",
+      "inventory": {},
+      "activity": "Fleeing",
+      "fatigue": 0,
+      "hunger": 24.000000000002125,
+      "trust": 0,
+      "owner": "s0-person-2",
+      "memories": [],
+      "direction": 2,
+      "lastUpdated": 75600
+    },
+    {
+      "id": "s1-person-0",
+      "name": "Felix",
+      "role": "Bread seller",
+      "kind": "human",
+      "pos": {
+        "x": 87,
+        "y": -97,
+        "space": "outside"
+      },
+      "home": {
+        "x": 87,
+        "y": -97,
+        "space": "outside"
+      },
+      "work": {
+        "x": 98,
+        "y": -82,
+        "space": "outside"
+      },
+      "sprite": "human-0-0",
+      "inventory": {
+        "bread": 8,
+        "coin": 6,
+        "water": 2
+      },
+      "activity": "Walking to the square",
+      "fatigue": 0,
+      "hunger": 5,
+      "trust": 2,
+      "memories": [],
+      "direction": 2,
+      "lastUpdated": 32400
+    },
+    {
+      "id": "s1-person-1",
+      "name": "Sabina",
+      "role": "Potter",
+      "kind": "human",
+      "pos": {
+        "x": 97,
+        "y": -97,
+        "space": "outside"
+      },
+      "home": {
+        "x": 97,
+        "y": -97,
+        "space": "outside"
+      },
+      "work": {
+        "x": 100,
+        "y": -82,
+        "space": "outside"
+      },
+      "sprite": "human-1-1",
+      "inventory": {
+        "bread": 8,
+        "coin": 6,
+        "water": 2
+      },
+      "activity": "Tending household work",
+      "fatigue": 0,
+      "hunger": 5,
+      "trust": 1,
+      "memories": [],
+      "direction": 2,
+      "lastUpdated": 32400
+    },
+    {
+      "id": "s1-person-2",
+      "name": "Lucius",
+      "role": "Shepherd",
+      "kind": "human",
+      "pos": {
+        "x": 108,
+        "y": -96,
+        "space": "outside"
+      },
+      "home": {
+        "x": 108,
+        "y": -96,
+        "space": "outside"
+      },
+      "work": {
+        "x": 102,
+        "y": -82,
+        "space": "outside"
+      },
+      "sprite": "human-2-2",
+      "inventory": {
+        "bread": 8,
+        "coin": 6,
+        "water": 2
+      },
+      "activity": "Walking to the square",
+      "fatigue": 0,
+      "hunger": 5,
+      "trust": 1,
+      "memories": [],
+      "direction": 2,
+      "lastUpdated": 32400
+    },
+    {
+      "id": "s1-person-3",
+      "name": "Dama",
+      "role": "Weaver",
+      "kind": "human",
+      "pos": {
+        "x": 88,
+        "y": -86,
+        "space": "outside"
+      },
+      "home": {
+        "x": 88,
+        "y": -86,
+        "space": "outside"
+      },
+      "work": {
+        "x": 104,
+        "y": -82,
+        "space": "outside"
+      },
+      "sprite": "human-0-3",
+      "inventory": {
+        "bread": 8,
+        "coin": 6,
+        "water": 2
+      },
+      "activity": "Tending household work",
+      "fatigue": 0,
+      "hunger": 5,
+      "trust": 2,
+      "memories": [],
+      "direction": 2,
+      "lastUpdated": 32400
+    },
+    {
+      "id": "s1-person-4",
+      "name": "Aelia",
+      "role": "Farmer",
+      "kind": "human",
+      "pos": {
+        "x": 97,
+        "y": -87,
+        "space": "outside"
+      },
+      "home": {
+        "x": 97,
+        "y": -87,
+        "space": "outside"
+      },
+      "work": {
+        "x": 98,
+        "y": -80,
+        "space": "outside"
+      },
+      "sprite": "human-1-4",
+      "inventory": {
+        "bread": 8,
+        "coin": 6,
+        "water": 2
+      },
+      "activity": "Walking to the square",
+      "fatigue": 0,
+      "hunger": 5,
+      "trust": 1,
+      "memories": [],
+      "direction": 2,
+      "lastUpdated": 32400
+    },
+    {
+      "id": "s1-person-5",
+      "name": "Rufus",
+      "role": "Fisher",
+      "kind": "human",
+      "pos": {
+        "x": 108,
+        "y": -86,
+        "space": "outside"
+      },
+      "home": {
+        "x": 108,
+        "y": -86,
+        "space": "outside"
+      },
+      "work": {
+        "x": 100,
+        "y": -80,
+        "space": "outside"
+      },
+      "sprite": "human-2-5",
+      "inventory": {
+        "bread": 8,
+        "coin": 6,
+        "water": 2
+      },
+      "activity": "Tending household work",
+      "fatigue": 0,
+      "hunger": 5,
+      "trust": 1,
+      "memories": [],
+      "direction": 2,
+      "lastUpdated": 32400
+    },
+    {
+      "id": "s1-animal-0",
+      "name": "Sheep",
+      "role": "Animal",
+      "kind": "sheep",
+      "pos": {
+        "x": 112,
+        "y": -77,
+        "space": "outside"
+      },
+      "home": {
+        "x": 119,
+        "y": -68,
+        "space": "outside"
+      },
+      "work": {
+        "x": 112,
+        "y": -77,
+        "space": "outside"
+      },
+      "sprite": "sheep",
+      "inventory": {},
+      "activity": "Grazing",
+      "fatigue": 0,
+      "hunger": 0,
+      "trust": 0,
+      "owner": "s1-person-2",
+      "memories": [],
+      "direction": 2,
+      "lastUpdated": 32400
+    },
+    {
+      "id": "s1-animal-1",
+      "name": "Wall lizard",
+      "role": "Animal",
+      "kind": "lizard",
+      "pos": {
+        "x": 114,
+        "y": -77,
+        "space": "outside"
+      },
+      "home": {
+        "x": 119,
+        "y": -68,
+        "space": "outside"
+      },
+      "work": {
+        "x": 114,
+        "y": -77,
+        "space": "outside"
+      },
+      "sprite": "lizard",
+      "inventory": {},
+      "activity": "Basking in the sun",
+      "fatigue": 0,
+      "hunger": 0,
+      "trust": 0,
+      "owner": "s1-person-2",
+      "memories": [],
+      "direction": 2,
+      "lastUpdated": 32400
+    },
+    {
+      "id": "s1-animal-2",
+      "name": "Chicken",
+      "role": "Animal",
+      "kind": "chicken",
+      "pos": {
+        "x": 116,
+        "y": -77,
+        "space": "outside"
+      },
+      "home": {
+        "x": 119,
+        "y": -68,
+        "space": "outside"
+      },
+      "work": {
+        "x": 116,
+        "y": -77,
+        "space": "outside"
+      },
+      "sprite": "chicken",
+      "inventory": {},
+      "activity": "Grazing",
+      "fatigue": 0,
+      "hunger": 0,
+      "trust": 0,
+      "owner": "s1-person-2",
+      "memories": [],
+      "direction": 2,
+      "lastUpdated": 32400
+    },
+    {
+      "id": "s1-animal-3",
+      "name": "Sheep",
+      "role": "Animal",
+      "kind": "sheep",
+      "pos": {
+        "x": 118,
+        "y": -77,
+        "space": "outside"
+      },
+      "home": {
+        "x": 119,
+        "y": -68,
+        "space": "outside"
+      },
+      "work": {
+        "x": 118,
+        "y": -77,
+        "space": "outside"
+      },
+      "sprite": "sheep",
+      "inventory": {},
+      "activity": "Grazing",
+      "fatigue": 0,
+      "hunger": 0,
+      "trust": 0,
+      "owner": "s1-person-2",
+      "memories": [],
+      "direction": 2,
+      "lastUpdated": 32400
+    },
+    {
+      "id": "s1-animal-4",
+      "name": "Wall lizard",
+      "role": "Animal",
+      "kind": "lizard",
+      "pos": {
+        "x": 112,
+        "y": -74,
+        "space": "outside"
+      },
+      "home": {
+        "x": 119,
+        "y": -68,
+        "space": "outside"
+      },
+      "work": {
+        "x": 112,
+        "y": -74,
+        "space": "outside"
+      },
+      "sprite": "lizard",
+      "inventory": {},
+      "activity": "Basking in the sun",
+      "fatigue": 0,
+      "hunger": 0,
+      "trust": 0,
+      "owner": "s1-person-2",
+      "memories": [],
+      "direction": 2,
+      "lastUpdated": 32400
+    },
+    {
+      "id": "s1-animal-5",
+      "name": "Chicken",
+      "role": "Animal",
+      "kind": "chicken",
+      "pos": {
+        "x": 114,
+        "y": -74,
+        "space": "outside"
+      },
+      "home": {
+        "x": 119,
+        "y": -68,
+        "space": "outside"
+      },
+      "work": {
+        "x": 114,
+        "y": -74,
+        "space": "outside"
+      },
+      "sprite": "chicken",
+      "inventory": {},
+      "activity": "Grazing",
+      "fatigue": 0,
+      "hunger": 0,
+      "trust": 0,
+      "owner": "s1-person-2",
+      "memories": [],
+      "direction": 2,
+      "lastUpdated": 32400
+    },
+    {
+      "id": "s1-animal-6",
+      "name": "Sheep",
+      "role": "Animal",
+      "kind": "sheep",
+      "pos": {
+        "x": 116,
+        "y": -74,
+        "space": "outside"
+      },
+      "home": {
+        "x": 119,
+        "y": -68,
+        "space": "outside"
+      },
+      "work": {
+        "x": 116,
+        "y": -74,
+        "space": "outside"
+      },
+      "sprite": "sheep",
+      "inventory": {},
+      "activity": "Grazing",
+      "fatigue": 0,
+      "hunger": 0,
+      "trust": 0,
+      "owner": "s1-person-2",
+      "memories": [],
+      "direction": 2,
+      "lastUpdated": 32400
+    },
+    {
+      "id": "s2-person-0",
+      "name": "Dama",
+      "role": "Bread seller",
+      "kind": "human",
+      "pos": {
+        "x": -91,
+        "y": 93,
+        "space": "outside"
+      },
+      "home": {
+        "x": -91,
+        "y": 93,
+        "space": "outside"
+      },
+      "work": {
+        "x": -82,
+        "y": 107,
+        "space": "outside"
+      },
+      "sprite": "human-0-0",
+      "inventory": {
+        "bread": 8,
+        "coin": 6,
+        "water": 2
+      },
+      "activity": "Walking to the square",
+      "fatigue": 0,
+      "hunger": 5,
+      "trust": 2,
+      "memories": [],
+      "direction": 2,
+      "lastUpdated": 32400
+    },
+    {
+      "id": "s2-person-1",
+      "name": "Aelia",
+      "role": "Potter",
+      "kind": "human",
+      "pos": {
+        "x": -83,
+        "y": 93,
+        "space": "outside"
+      },
+      "home": {
+        "x": -83,
+        "y": 93,
+        "space": "outside"
+      },
+      "work": {
+        "x": -80,
+        "y": 107,
+        "space": "outside"
+      },
+      "sprite": "human-1-1",
+      "inventory": {
+        "bread": 8,
+        "coin": 6,
+        "water": 2
+      },
+      "activity": "Tending household work",
+      "fatigue": 0,
+      "hunger": 5,
+      "trust": 1,
+      "memories": [],
+      "direction": 2,
+      "lastUpdated": 32400
+    },
+    {
+      "id": "s2-person-2",
+      "name": "Rufus",
+      "role": "Shepherd",
+      "kind": "human",
+      "pos": {
+        "x": -73,
+        "y": 92,
+        "space": "outside"
+      },
+      "home": {
+        "x": -73,
+        "y": 92,
+        "space": "outside"
+      },
+      "work": {
+        "x": -78,
+        "y": 107,
+        "space": "outside"
+      },
+      "sprite": "human-2-2",
+      "inventory": {
+        "bread": 8,
+        "coin": 6,
+        "water": 2
+      },
+      "activity": "Walking to the square",
+      "fatigue": 0,
+      "hunger": 5,
+      "trust": 1,
+      "memories": [],
+      "direction": 2,
+      "lastUpdated": 32400
+    },
+    {
+      "id": "s2-person-3",
+      "name": "Claudia",
+      "role": "Weaver",
+      "kind": "human",
+      "pos": {
+        "x": -91,
+        "y": 103,
+        "space": "outside"
+      },
+      "home": {
+        "x": -91,
+        "y": 103,
+        "space": "outside"
+      },
+      "work": {
+        "x": -76,
+        "y": 107,
+        "space": "outside"
+      },
+      "sprite": "human-0-3",
+      "inventory": {
+        "bread": 8,
+        "coin": 6,
+        "water": 2
+      },
+      "activity": "Tending household work",
+      "fatigue": 0,
+      "hunger": 5,
+      "trust": 2,
+      "memories": [],
+      "direction": 2,
+      "lastUpdated": 32400
+    },
+    {
+      "id": "s2-person-4",
+      "name": "Secundus",
+      "role": "Farmer",
+      "kind": "human",
+      "pos": {
+        "x": -81,
+        "y": 103,
+        "space": "outside"
+      },
+      "home": {
+        "x": -81,
+        "y": 103,
+        "space": "outside"
+      },
+      "work": {
+        "x": -82,
+        "y": 109,
+        "space": "outside"
+      },
+      "sprite": "human-1-4",
+      "inventory": {
+        "bread": 8,
+        "coin": 6,
+        "water": 2
+      },
+      "activity": "Walking to the square",
+      "fatigue": 0,
+      "hunger": 5,
+      "trust": 1,
+      "memories": [],
+      "direction": 2,
+      "lastUpdated": 32400
+    },
+    {
+      "id": "s2-person-5",
+      "name": "Gaia",
+      "role": "Fisher",
+      "kind": "human",
+      "pos": {
+        "x": -73,
+        "y": 102,
+        "space": "outside"
+      },
+      "home": {
+        "x": -73,
+        "y": 102,
+        "space": "outside"
+      },
+      "work": {
+        "x": -80,
+        "y": 109,
+        "space": "outside"
+      },
+      "sprite": "human-2-5",
+      "inventory": {
+        "bread": 8,
+        "coin": 6,
+        "water": 2
+      },
+      "activity": "Tending household work",
+      "fatigue": 0,
+      "hunger": 5,
+      "trust": 1,
+      "memories": [],
+      "direction": 2,
+      "lastUpdated": 32400
+    },
+    {
+      "id": "s2-animal-0",
+      "name": "Sheep",
+      "role": "Animal",
+      "kind": "sheep",
+      "pos": {
+        "x": -68,
+        "y": 112,
+        "space": "outside"
+      },
+      "home": {
+        "x": -61,
+        "y": 121,
+        "space": "outside"
+      },
+      "work": {
+        "x": -68,
+        "y": 112,
+        "space": "outside"
+      },
+      "sprite": "sheep",
+      "inventory": {},
+      "activity": "Grazing",
+      "fatigue": 0,
+      "hunger": 0,
+      "trust": 0,
+      "owner": "s2-person-2",
+      "memories": [],
+      "direction": 2,
+      "lastUpdated": 32400
+    },
+    {
+      "id": "s2-animal-1",
+      "name": "Wall lizard",
+      "role": "Animal",
+      "kind": "lizard",
+      "pos": {
+        "x": -66,
+        "y": 112,
+        "space": "outside"
+      },
+      "home": {
+        "x": -61,
+        "y": 121,
+        "space": "outside"
+      },
+      "work": {
+        "x": -66,
+        "y": 112,
+        "space": "outside"
+      },
+      "sprite": "lizard",
+      "inventory": {},
+      "activity": "Basking in the sun",
+      "fatigue": 0,
+      "hunger": 0,
+      "trust": 0,
+      "owner": "s2-person-2",
+      "memories": [],
+      "direction": 2,
+      "lastUpdated": 32400
+    },
+    {
+      "id": "s2-animal-2",
+      "name": "Chicken",
+      "role": "Animal",
+      "kind": "chicken",
+      "pos": {
+        "x": -64,
+        "y": 112,
+        "space": "outside"
+      },
+      "home": {
+        "x": -61,
+        "y": 121,
+        "space": "outside"
+      },
+      "work": {
+        "x": -64,
+        "y": 112,
+        "space": "outside"
+      },
+      "sprite": "chicken",
+      "inventory": {},
+      "activity": "Grazing",
+      "fatigue": 0,
+      "hunger": 0,
+      "trust": 0,
+      "owner": "s2-person-2",
+      "memories": [],
+      "direction": 2,
+      "lastUpdated": 32400
+    },
+    {
+      "id": "s2-animal-3",
+      "name": "Sheep",
+      "role": "Animal",
+      "kind": "sheep",
+      "pos": {
+        "x": -62,
+        "y": 112,
+        "space": "outside"
+      },
+      "home": {
+        "x": -61,
+        "y": 121,
+        "space": "outside"
+      },
+      "work": {
+        "x": -62,
+        "y": 112,
+        "space": "outside"
+      },
+      "sprite": "sheep",
+      "inventory": {},
+      "activity": "Grazing",
+      "fatigue": 0,
+      "hunger": 0,
+      "trust": 0,
+      "owner": "s2-person-2",
+      "memories": [],
+      "direction": 2,
+      "lastUpdated": 32400
+    },
+    {
+      "id": "s2-animal-4",
+      "name": "Wall lizard",
+      "role": "Animal",
+      "kind": "lizard",
+      "pos": {
+        "x": -68,
+        "y": 115,
+        "space": "outside"
+      },
+      "home": {
+        "x": -61,
+        "y": 121,
+        "space": "outside"
+      },
+      "work": {
+        "x": -68,
+        "y": 115,
+        "space": "outside"
+      },
+      "sprite": "lizard",
+      "inventory": {},
+      "activity": "Basking in the sun",
+      "fatigue": 0,
+      "hunger": 0,
+      "trust": 0,
+      "owner": "s2-person-2",
+      "memories": [],
+      "direction": 2,
+      "lastUpdated": 32400
+    },
+    {
+      "id": "s2-animal-5",
+      "name": "Chicken",
+      "role": "Animal",
+      "kind": "chicken",
+      "pos": {
+        "x": -66,
+        "y": 115,
+        "space": "outside"
+      },
+      "home": {
+        "x": -61,
+        "y": 121,
+        "space": "outside"
+      },
+      "work": {
+        "x": -66,
+        "y": 115,
+        "space": "outside"
+      },
+      "sprite": "chicken",
+      "inventory": {},
+      "activity": "Grazing",
+      "fatigue": 0,
+      "hunger": 0,
+      "trust": 0,
+      "owner": "s2-person-2",
+      "memories": [],
+      "direction": 2,
+      "lastUpdated": 32400
+    },
+    {
+      "id": "s2-animal-6",
+      "name": "Sheep",
+      "role": "Animal",
+      "kind": "sheep",
+      "pos": {
+        "x": -64,
+        "y": 115,
+        "space": "outside"
+      },
+      "home": {
+        "x": -61,
+        "y": 121,
+        "space": "outside"
+      },
+      "work": {
+        "x": -64,
+        "y": 115,
+        "space": "outside"
+      },
+      "sprite": "sheep",
+      "inventory": {},
+      "activity": "Grazing",
+      "fatigue": 0,
+      "hunger": 0,
+      "trust": 0,
+      "owner": "s2-person-2",
+      "memories": [],
+      "direction": 2,
+      "lastUpdated": 32400
+    },
+    {
+      "id": "s3-person-0",
+      "name": "Claudia",
+      "role": "Bread seller",
+      "kind": "human",
+      "pos": {
+        "x": 142,
+        "y": 113,
+        "space": "outside"
+      },
+      "home": {
+        "x": 142,
+        "y": 113,
+        "space": "outside"
+      },
+      "work": {
+        "x": 153,
+        "y": 128,
+        "space": "outside"
+      },
+      "sprite": "human-0-0",
+      "inventory": {
+        "bread": 8,
+        "coin": 6,
+        "water": 2
+      },
+      "activity": "Walking to the square",
+      "fatigue": 0,
+      "hunger": 5,
+      "trust": 2,
+      "memories": [],
+      "direction": 2,
+      "lastUpdated": 32400
+    },
+    {
+      "id": "s3-person-1",
+      "name": "Secundus",
+      "role": "Potter",
+      "kind": "human",
+      "pos": {
+        "x": 154,
+        "y": 113,
+        "space": "outside"
+      },
+      "home": {
+        "x": 154,
+        "y": 113,
+        "space": "outside"
+      },
+      "work": {
+        "x": 155,
+        "y": 128,
+        "space": "outside"
+      },
+      "sprite": "human-1-1",
+      "inventory": {
+        "bread": 8,
+        "coin": 6,
+        "water": 2
+      },
+      "activity": "Tending household work",
+      "fatigue": 0,
+      "hunger": 5,
+      "trust": 1,
+      "memories": [],
+      "direction": 2,
+      "lastUpdated": 32400
+    },
+    {
+      "id": "s3-person-2",
+      "name": "Gaia",
+      "role": "Shepherd",
+      "kind": "human",
+      "pos": {
+        "x": 163,
+        "y": 113,
+        "space": "outside"
+      },
+      "home": {
+        "x": 163,
+        "y": 113,
+        "space": "outside"
+      },
+      "work": {
+        "x": 157,
+        "y": 128,
+        "space": "outside"
+      },
+      "sprite": "human-2-2",
+      "inventory": {
+        "bread": 8,
+        "coin": 6,
+        "water": 2
+      },
+      "activity": "Walking to the square",
+      "fatigue": 0,
+      "hunger": 5,
+      "trust": 1,
+      "memories": [],
+      "direction": 2,
+      "lastUpdated": 32400
+    },
+    {
+      "id": "s3-person-3",
+      "name": "Livia",
+      "role": "Weaver",
+      "kind": "human",
+      "pos": {
+        "x": 144,
+        "y": 124,
+        "space": "outside"
+      },
+      "home": {
+        "x": 144,
+        "y": 124,
+        "space": "outside"
+      },
+      "work": {
+        "x": 159,
+        "y": 128,
+        "space": "outside"
+      },
+      "sprite": "human-0-3",
+      "inventory": {
+        "bread": 8,
+        "coin": 6,
+        "water": 2
+      },
+      "activity": "Tending household work",
+      "fatigue": 0,
+      "hunger": 5,
+      "trust": 2,
+      "memories": [],
+      "direction": 2,
+      "lastUpdated": 32400
+    },
+    {
+      "id": "s3-person-4",
+      "name": "Marcus",
+      "role": "Farmer",
+      "kind": "human",
+      "pos": {
+        "x": 152,
+        "y": 123,
+        "space": "outside"
+      },
+      "home": {
+        "x": 152,
+        "y": 123,
+        "space": "outside"
+      },
+      "work": {
+        "x": 153,
+        "y": 130,
+        "space": "outside"
+      },
+      "sprite": "human-1-4",
+      "inventory": {
+        "bread": 8,
+        "coin": 6,
+        "water": 2
+      },
+      "activity": "Walking to the square",
+      "fatigue": 0,
+      "hunger": 5,
+      "trust": 1,
+      "memories": [],
+      "direction": 2,
+      "lastUpdated": 32400
+    },
+    {
+      "id": "s3-person-5",
+      "name": "Tertia",
+      "role": "Fisher",
+      "kind": "human",
+      "pos": {
+        "x": 164,
+        "y": 124,
+        "space": "outside"
+      },
+      "home": {
+        "x": 164,
+        "y": 124,
+        "space": "outside"
+      },
+      "work": {
+        "x": 155,
+        "y": 130,
+        "space": "outside"
+      },
+      "sprite": "human-2-5",
+      "inventory": {
+        "bread": 8,
+        "coin": 6,
+        "water": 2
+      },
+      "activity": "Tending household work",
+      "fatigue": 0,
+      "hunger": 5,
+      "trust": 1,
+      "memories": [],
+      "direction": 2,
+      "lastUpdated": 32400
+    },
+    {
+      "id": "s3-animal-0",
+      "name": "Sheep",
+      "role": "Animal",
+      "kind": "sheep",
+      "pos": {
+        "x": 167,
+        "y": 133,
+        "space": "outside"
+      },
+      "home": {
+        "x": 174,
+        "y": 142,
+        "space": "outside"
+      },
+      "work": {
+        "x": 167,
+        "y": 133,
+        "space": "outside"
+      },
+      "sprite": "sheep",
+      "inventory": {},
+      "activity": "Grazing",
+      "fatigue": 0,
+      "hunger": 0,
+      "trust": 0,
+      "owner": "s3-person-2",
+      "memories": [],
+      "direction": 2,
+      "lastUpdated": 32400
+    },
+    {
+      "id": "s3-animal-1",
+      "name": "Wall lizard",
+      "role": "Animal",
+      "kind": "lizard",
+      "pos": {
+        "x": 169,
+        "y": 133,
+        "space": "outside"
+      },
+      "home": {
+        "x": 174,
+        "y": 142,
+        "space": "outside"
+      },
+      "work": {
+        "x": 169,
+        "y": 133,
+        "space": "outside"
+      },
+      "sprite": "lizard",
+      "inventory": {},
+      "activity": "Basking in the sun",
+      "fatigue": 0,
+      "hunger": 0,
+      "trust": 0,
+      "owner": "s3-person-2",
+      "memories": [],
+      "direction": 2,
+      "lastUpdated": 32400
+    },
+    {
+      "id": "s3-animal-2",
+      "name": "Chicken",
+      "role": "Animal",
+      "kind": "chicken",
+      "pos": {
+        "x": 171,
+        "y": 133,
+        "space": "outside"
+      },
+      "home": {
+        "x": 174,
+        "y": 142,
+        "space": "outside"
+      },
+      "work": {
+        "x": 171,
+        "y": 133,
+        "space": "outside"
+      },
+      "sprite": "chicken",
+      "inventory": {},
+      "activity": "Grazing",
+      "fatigue": 0,
+      "hunger": 0,
+      "trust": 0,
+      "owner": "s3-person-2",
+      "memories": [],
+      "direction": 2,
+      "lastUpdated": 32400
+    },
+    {
+      "id": "s3-animal-3",
+      "name": "Sheep",
+      "role": "Animal",
+      "kind": "sheep",
+      "pos": {
+        "x": 173,
+        "y": 133,
+        "space": "outside"
+      },
+      "home": {
+        "x": 174,
+        "y": 142,
+        "space": "outside"
+      },
+      "work": {
+        "x": 173,
+        "y": 133,
+        "space": "outside"
+      },
+      "sprite": "sheep",
+      "inventory": {},
+      "activity": "Grazing",
+      "fatigue": 0,
+      "hunger": 0,
+      "trust": 0,
+      "owner": "s3-person-2",
+      "memories": [],
+      "direction": 2,
+      "lastUpdated": 32400
+    },
+    {
+      "id": "s3-animal-4",
+      "name": "Wall lizard",
+      "role": "Animal",
+      "kind": "lizard",
+      "pos": {
+        "x": 167,
+        "y": 136,
+        "space": "outside"
+      },
+      "home": {
+        "x": 174,
+        "y": 142,
+        "space": "outside"
+      },
+      "work": {
+        "x": 167,
+        "y": 136,
+        "space": "outside"
+      },
+      "sprite": "lizard",
+      "inventory": {},
+      "activity": "Basking in the sun",
+      "fatigue": 0,
+      "hunger": 0,
+      "trust": 0,
+      "owner": "s3-person-2",
+      "memories": [],
+      "direction": 2,
+      "lastUpdated": 32400
+    },
+    {
+      "id": "s3-animal-5",
+      "name": "Chicken",
+      "role": "Animal",
+      "kind": "chicken",
+      "pos": {
+        "x": 169,
+        "y": 136,
+        "space": "outside"
+      },
+      "home": {
+        "x": 174,
+        "y": 142,
+        "space": "outside"
+      },
+      "work": {
+        "x": 169,
+        "y": 136,
+        "space": "outside"
+      },
+      "sprite": "chicken",
+      "inventory": {},
+      "activity": "Grazing",
+      "fatigue": 0,
+      "hunger": 0,
+      "trust": 0,
+      "owner": "s3-person-2",
+      "memories": [],
+      "direction": 2,
+      "lastUpdated": 32400
+    },
+    {
+      "id": "s3-animal-6",
+      "name": "Sheep",
+      "role": "Animal",
+      "kind": "sheep",
+      "pos": {
+        "x": 171,
+        "y": 136,
+        "space": "outside"
+      },
+      "home": {
+        "x": 174,
+        "y": 142,
+        "space": "outside"
+      },
+      "work": {
+        "x": 171,
+        "y": 136,
+        "space": "outside"
+      },
+      "sprite": "sheep",
+      "inventory": {},
+      "activity": "Grazing",
+      "fatigue": 0,
+      "hunger": 0,
+      "trust": 0,
+      "owner": "s3-person-2",
+      "memories": [],
+      "direction": 2,
+      "lastUpdated": 32400
+    }
+  ],
+  "objects": [
+    {
+      "id": "s0-house-0-store",
+      "name": "Storage vessel",
+      "kind": "container",
+      "pos": {
+        "x": -4,
+        "y": -13,
+        "space": "outside"
+      },
+      "sprite": "amphora",
+      "inventory": {
+        "bread": 3
+      },
+      "owner": "s0-person-0",
+      "claim": "roman-house",
+      "depleted": false
+    },
+    {
+      "id": "s0-house-0-bed",
+      "name": "Sleeping place",
+      "kind": "bed",
+      "pos": {
+        "x": 4,
+        "y": 3,
+        "space": "s0-house-0"
+      },
+      "sprite": "bed",
+      "inventory": {},
+      "owner": "s0-person-0"
+    },
+    {
+      "id": "s0-house-0-chest",
+      "name": "Household stores",
+      "kind": "container",
+      "pos": {
+        "x": 8,
+        "y": 3,
+        "space": "s0-house-0"
+      },
+      "sprite": "basket",
+      "inventory": {
+        "grain": 4,
+        "wood": 2
+      },
+      "owner": "s0-person-0"
+    },
+    {
+      "id": "s0-house-0-exit",
+      "name": "Door to the street",
+      "kind": "exit",
+      "pos": {
+        "x": 6,
+        "y": 9,
+        "space": "s0-house-0"
+      },
+      "sprite": "door-open",
+      "inventory": {}
+    },
+    {
+      "id": "s0-house-1-store",
+      "name": "Household basket",
+      "kind": "container",
+      "pos": {
+        "x": 6,
+        "y": -13,
+        "space": "outside"
+      },
+      "sprite": "basket",
+      "inventory": {
+        "grain": 3
+      },
+      "owner": "s0-person-1",
+      "claim": "roman-house"
+    },
+    {
+      "id": "s0-house-1-bed",
+      "name": "Sleeping place",
+      "kind": "bed",
+      "pos": {
+        "x": 4,
+        "y": 3,
+        "space": "s0-house-1"
+      },
+      "sprite": "bed",
+      "inventory": {},
+      "owner": "s0-person-1"
+    },
+    {
+      "id": "s0-house-1-chest",
+      "name": "Household stores",
+      "kind": "container",
+      "pos": {
+        "x": 8,
+        "y": 3,
+        "space": "s0-house-1"
+      },
+      "sprite": "basket",
+      "inventory": {
+        "grain": 4,
+        "wood": 2
+      },
+      "owner": "s0-person-1"
+    },
+    {
+      "id": "s0-house-1-exit",
+      "name": "Door to the street",
+      "kind": "exit",
+      "pos": {
+        "x": 6,
+        "y": 9,
+        "space": "s0-house-1"
+      },
+      "sprite": "door-open",
+      "inventory": {}
+    },
+    {
+      "id": "s0-house-2-store",
+      "name": "Storage vessel",
+      "kind": "container",
+      "pos": {
+        "x": 16,
+        "y": -13,
+        "space": "outside"
+      },
+      "sprite": "amphora",
+      "inventory": {
+        "fish": 3
+      },
+      "owner": "s0-person-2",
+      "claim": "roman-house"
+    },
+    {
+      "id": "s0-house-2-bed",
+      "name": "Sleeping place",
+      "kind": "bed",
+      "pos": {
+        "x": 4,
+        "y": 3,
+        "space": "s0-house-2"
+      },
+      "sprite": "bed",
+      "inventory": {},
+      "owner": "s0-person-2"
+    },
+    {
+      "id": "s0-house-2-chest",
+      "name": "Household stores",
+      "kind": "container",
+      "pos": {
+        "x": 8,
+        "y": 3,
+        "space": "s0-house-2"
+      },
+      "sprite": "basket",
+      "inventory": {
+        "grain": 4,
+        "wood": 2
+      },
+      "owner": "s0-person-2"
+    },
+    {
+      "id": "s0-house-2-exit",
+      "name": "Door to the street",
+      "kind": "exit",
+      "pos": {
+        "x": 6,
+        "y": 9,
+        "space": "s0-house-2"
+      },
+      "sprite": "door-open",
+      "inventory": {}
+    },
+    {
+      "id": "s0-house-3-store",
+      "name": "Household basket",
+      "kind": "container",
+      "pos": {
+        "x": -5,
+        "y": -2,
+        "space": "outside"
+      },
+      "sprite": "basket",
+      "inventory": {
+        "wood": 3
+      },
+      "owner": "s0-person-3",
+      "claim": "roman-house"
+    },
+    {
+      "id": "s0-house-3-bed",
+      "name": "Sleeping place",
+      "kind": "bed",
+      "pos": {
+        "x": 4,
+        "y": 3,
+        "space": "s0-house-3"
+      },
+      "sprite": "bed",
+      "inventory": {},
+      "owner": "s0-person-3"
+    },
+    {
+      "id": "s0-house-3-chest",
+      "name": "Household stores",
+      "kind": "container",
+      "pos": {
+        "x": 8,
+        "y": 3,
+        "space": "s0-house-3"
+      },
+      "sprite": "basket",
+      "inventory": {
+        "grain": 4,
+        "wood": 2
+      },
+      "owner": "s0-person-3"
+    },
+    {
+      "id": "s0-house-3-exit",
+      "name": "Door to the street",
+      "kind": "exit",
+      "pos": {
+        "x": 6,
+        "y": 9,
+        "space": "s0-house-3"
+      },
+      "sprite": "door-open",
+      "inventory": {}
+    },
+    {
+      "id": "s0-house-4-store",
+      "name": "Storage vessel",
+      "kind": "container",
+      "pos": {
+        "x": 5,
+        "y": -2,
+        "space": "outside"
+      },
+      "sprite": "amphora",
+      "inventory": {
+        "wool": 3
+      },
+      "owner": "s0-person-4",
+      "claim": "roman-house"
+    },
+    {
+      "id": "s0-house-4-bed",
+      "name": "Sleeping place",
+      "kind": "bed",
+      "pos": {
+        "x": 4,
+        "y": 3,
+        "space": "s0-house-4"
+      },
+      "sprite": "bed",
+      "inventory": {},
+      "owner": "s0-person-4"
+    },
+    {
+      "id": "s0-house-4-chest",
+      "name": "Household stores",
+      "kind": "container",
+      "pos": {
+        "x": 8,
+        "y": 3,
+        "space": "s0-house-4"
+      },
+      "sprite": "basket",
+      "inventory": {
+        "grain": 4,
+        "wood": 2
+      },
+      "owner": "s0-person-4"
+    },
+    {
+      "id": "s0-house-4-exit",
+      "name": "Door to the street",
+      "kind": "exit",
+      "pos": {
+        "x": 6,
+        "y": 9,
+        "space": "s0-house-4"
+      },
+      "sprite": "door-open",
+      "inventory": {}
+    },
+    {
+      "id": "s0-house-5-store",
+      "name": "Household basket",
+      "kind": "container",
+      "pos": {
+        "x": 15,
+        "y": -2,
+        "space": "outside"
+      },
+      "sprite": "basket",
+      "inventory": {
+        "bread": 3
+      },
+      "owner": "s0-person-5",
+      "claim": "roman-house"
+    },
+    {
+      "id": "s0-house-5-bed",
+      "name": "Sleeping place",
+      "kind": "bed",
+      "pos": {
+        "x": 4,
+        "y": 3,
+        "space": "s0-house-5"
+      },
+      "sprite": "bed",
+      "inventory": {},
+      "owner": "s0-person-5"
+    },
+    {
+      "id": "s0-house-5-chest",
+      "name": "Household stores",
+      "kind": "container",
+      "pos": {
+        "x": 8,
+        "y": 3,
+        "space": "s0-house-5"
+      },
+      "sprite": "basket",
+      "inventory": {
+        "grain": 4,
+        "wood": 2
+      },
+      "owner": "s0-person-5"
+    },
+    {
+      "id": "s0-house-5-exit",
+      "name": "Door to the street",
+      "kind": "exit",
+      "pos": {
+        "x": 6,
+        "y": 9,
+        "space": "s0-house-5"
+      },
+      "sprite": "door-open",
+      "inventory": {}
+    },
+    {
+      "id": "s0-house-6-store",
+      "name": "Storage vessel",
+      "kind": "container",
+      "pos": {
+        "x": -5,
+        "y": 15,
+        "space": "outside"
+      },
+      "sprite": "amphora",
+      "inventory": {
+        "grain": 3
+      },
+      "owner": "s0-person-6",
+      "claim": "roman-house"
+    },
+    {
+      "id": "s0-house-6-bed",
+      "name": "Sleeping place",
+      "kind": "bed",
+      "pos": {
+        "x": 4,
+        "y": 3,
+        "space": "s0-house-6"
+      },
+      "sprite": "bed",
+      "inventory": {},
+      "owner": "s0-person-6"
+    },
+    {
+      "id": "s0-house-6-chest",
+      "name": "Household stores",
+      "kind": "container",
+      "pos": {
+        "x": 8,
+        "y": 3,
+        "space": "s0-house-6"
+      },
+      "sprite": "basket",
+      "inventory": {
+        "grain": 4,
+        "wood": 2
+      },
+      "owner": "s0-person-6"
+    },
+    {
+      "id": "s0-house-6-exit",
+      "name": "Door to the street",
+      "kind": "exit",
+      "pos": {
+        "x": 6,
+        "y": 9,
+        "space": "s0-house-6"
+      },
+      "sprite": "door-open",
+      "inventory": {}
+    },
+    {
+      "id": "s0-house-7-store",
+      "name": "Household basket",
+      "kind": "container",
+      "pos": {
+        "x": 6,
+        "y": 15,
+        "space": "outside"
+      },
+      "sprite": "basket",
+      "inventory": {
+        "fish": 3
+      },
+      "owner": "s0-person-7",
+      "claim": "roman-house"
+    },
+    {
+      "id": "s0-house-7-bed",
+      "name": "Sleeping place",
+      "kind": "bed",
+      "pos": {
+        "x": 4,
+        "y": 3,
+        "space": "s0-house-7"
+      },
+      "sprite": "bed",
+      "inventory": {},
+      "owner": "s0-person-7"
+    },
+    {
+      "id": "s0-house-7-chest",
+      "name": "Household stores",
+      "kind": "container",
+      "pos": {
+        "x": 8,
+        "y": 3,
+        "space": "s0-house-7"
+      },
+      "sprite": "basket",
+      "inventory": {
+        "grain": 4,
+        "wood": 2
+      },
+      "owner": "s0-person-7"
+    },
+    {
+      "id": "s0-house-7-exit",
+      "name": "Door to the street",
+      "kind": "exit",
+      "pos": {
+        "x": 6,
+        "y": 9,
+        "space": "s0-house-7"
+      },
+      "sprite": "door-open",
+      "inventory": {}
+    },
+    {
+      "id": "s0-house-8-store",
+      "name": "Storage vessel",
+      "kind": "container",
+      "pos": {
+        "x": 16,
+        "y": 16,
+        "space": "outside"
+      },
+      "sprite": "amphora",
+      "inventory": {
+        "wood": 3
+      },
+      "owner": "s0-person-8",
+      "claim": "roman-house"
+    },
+    {
+      "id": "s0-house-8-bed",
+      "name": "Sleeping place",
+      "kind": "bed",
+      "pos": {
+        "x": 4,
+        "y": 3,
+        "space": "s0-house-8"
+      },
+      "sprite": "bed",
+      "inventory": {},
+      "owner": "s0-person-8"
+    },
+    {
+      "id": "s0-house-8-chest",
+      "name": "Household stores",
+      "kind": "container",
+      "pos": {
+        "x": 8,
+        "y": 3,
+        "space": "s0-house-8"
+      },
+      "sprite": "basket",
+      "inventory": {
+        "grain": 4,
+        "wood": 2
+      },
+      "owner": "s0-person-8"
+    },
+    {
+      "id": "s0-house-8-exit",
+      "name": "Door to the street",
+      "kind": "exit",
+      "pos": {
+        "x": 6,
+        "y": 9,
+        "space": "s0-house-8"
+      },
+      "sprite": "door-open",
+      "inventory": {}
+    },
+    {
+      "id": "s0-house-9-store",
+      "name": "Household basket",
+      "kind": "container",
+      "pos": {
+        "x": -5,
+        "y": 25,
+        "space": "outside"
+      },
+      "sprite": "basket",
+      "inventory": {
+        "wool": 3
+      },
+      "owner": "s0-person-9",
+      "claim": "roman-house"
+    },
+    {
+      "id": "s0-house-9-bed",
+      "name": "Sleeping place",
+      "kind": "bed",
+      "pos": {
+        "x": 4,
+        "y": 3,
+        "space": "s0-house-9"
+      },
+      "sprite": "bed",
+      "inventory": {},
+      "owner": "s0-person-9"
+    },
+    {
+      "id": "s0-house-9-chest",
+      "name": "Household stores",
+      "kind": "container",
+      "pos": {
+        "x": 8,
+        "y": 3,
+        "space": "s0-house-9"
+      },
+      "sprite": "basket",
+      "inventory": {
+        "grain": 4,
+        "wood": 2
+      },
+      "owner": "s0-person-9"
+    },
+    {
+      "id": "s0-house-9-exit",
+      "name": "Door to the street",
+      "kind": "exit",
+      "pos": {
+        "x": 6,
+        "y": 9,
+        "space": "s0-house-9"
+      },
+      "sprite": "door-open",
+      "inventory": {}
+    },
+    {
+      "id": "s0-well",
+      "name": "Communal well",
+      "kind": "well",
+      "pos": {
+        "x": 2,
+        "y": 0,
+        "space": "outside"
+      },
+      "sprite": "well",
+      "inventory": {},
+      "claim": "landscape"
+    },
+    {
+      "id": "s0-fire",
+      "name": "Shared hearth",
+      "kind": "fire",
+      "pos": {
+        "x": 9,
+        "y": 3,
+        "space": "outside"
+      },
+      "sprite": "fire",
+      "inventory": {}
+    },
+    {
+      "id": "s0-gate",
+      "name": "Flock enclosure gate",
+      "kind": "gate",
+      "pos": {
+        "x": 24,
+        "y": 12,
+        "space": "outside"
+      },
+      "sprite": "gate",
+      "inventory": {},
+      "open": true
+    },
+    {
+      "id": "s0-crop-0",
+      "name": "Ripe grain",
+      "kind": "crop",
+      "pos": {
+        "x": 22,
+        "y": -6,
+        "space": "outside"
+      },
+      "sprite": "wheat",
+      "inventory": {
+        "grain": 0
+      },
+      "claim": "landscape",
+      "depleted": true
+    },
+    {
+      "id": "s0-crop-1",
+      "name": "Ripe grain",
+      "kind": "crop",
+      "pos": {
+        "x": 24,
+        "y": -6,
+        "space": "outside"
+      },
+      "sprite": "wheat",
+      "inventory": {
+        "grain": 3
+      },
+      "claim": "landscape"
+    },
+    {
+      "id": "s0-crop-2",
+      "name": "Ripe grain",
+      "kind": "crop",
+      "pos": {
+        "x": 26,
+        "y": -6,
+        "space": "outside"
+      },
+      "sprite": "wheat",
+      "inventory": {
+        "grain": 3
+      },
+      "claim": "landscape"
+    },
+    {
+      "id": "s0-crop-3",
+      "name": "Ripe grain",
+      "kind": "crop",
+      "pos": {
+        "x": 28,
+        "y": -6,
+        "space": "outside"
+      },
+      "sprite": "wheat",
+      "inventory": {
+        "grain": 3
+      },
+      "claim": "landscape"
+    },
+    {
+      "id": "s0-grove-0",
+      "name": "Olive tree",
+      "kind": "tree",
+      "pos": {
+        "x": -14,
+        "y": 1,
+        "space": "outside"
+      },
+      "sprite": "olive",
+      "inventory": {
+        "wood": 2
+      },
+      "claim": "landscape"
+    },
+    {
+      "id": "s0-grove-1",
+      "name": "Cypress tree",
+      "kind": "tree",
+      "pos": {
+        "x": -4,
+        "y": 1,
+        "space": "outside"
+      },
+      "sprite": "cypress",
+      "inventory": {
+        "wood": 2
+      },
+      "claim": "landscape"
+    },
+    {
+      "id": "s0-grove-2",
+      "name": "Oak tree",
+      "kind": "tree",
+      "pos": {
+        "x": 14,
+        "y": 1,
+        "space": "outside"
+      },
+      "sprite": "oak",
+      "inventory": {
+        "wood": 2
+      },
+      "claim": "landscape"
+    },
+    {
+      "id": "s1-house-0-store",
+      "name": "Storage vessel",
+      "kind": "container",
+      "pos": {
+        "x": 90,
+        "y": -98,
+        "space": "outside"
+      },
+      "sprite": "amphora",
+      "inventory": {
+        "bread": 3
+      },
+      "owner": "s1-person-0",
+      "claim": "roman-house"
+    },
+    {
+      "id": "s1-house-0-bed",
+      "name": "Sleeping place",
+      "kind": "bed",
+      "pos": {
+        "x": 4,
+        "y": 3,
+        "space": "s1-house-0"
+      },
+      "sprite": "bed",
+      "inventory": {},
+      "owner": "s1-person-0"
+    },
+    {
+      "id": "s1-house-0-chest",
+      "name": "Household stores",
+      "kind": "container",
+      "pos": {
+        "x": 8,
+        "y": 3,
+        "space": "s1-house-0"
+      },
+      "sprite": "basket",
+      "inventory": {
+        "grain": 4,
+        "wood": 2
+      },
+      "owner": "s1-person-0"
+    },
+    {
+      "id": "s1-house-0-exit",
+      "name": "Door to the street",
+      "kind": "exit",
+      "pos": {
+        "x": 6,
+        "y": 9,
+        "space": "s1-house-0"
+      },
+      "sprite": "door-open",
+      "inventory": {}
+    },
+    {
+      "id": "s1-house-1-store",
+      "name": "Household basket",
+      "kind": "container",
+      "pos": {
+        "x": 100,
+        "y": -98,
+        "space": "outside"
+      },
+      "sprite": "basket",
+      "inventory": {
+        "grain": 3
+      },
+      "owner": "s1-person-1",
+      "claim": "roman-house"
+    },
+    {
+      "id": "s1-house-1-bed",
+      "name": "Sleeping place",
+      "kind": "bed",
+      "pos": {
+        "x": 4,
+        "y": 3,
+        "space": "s1-house-1"
+      },
+      "sprite": "bed",
+      "inventory": {},
+      "owner": "s1-person-1"
+    },
+    {
+      "id": "s1-house-1-chest",
+      "name": "Household stores",
+      "kind": "container",
+      "pos": {
+        "x": 8,
+        "y": 3,
+        "space": "s1-house-1"
+      },
+      "sprite": "basket",
+      "inventory": {
+        "grain": 4,
+        "wood": 2
+      },
+      "owner": "s1-person-1"
+    },
+    {
+      "id": "s1-house-1-exit",
+      "name": "Door to the street",
+      "kind": "exit",
+      "pos": {
+        "x": 6,
+        "y": 9,
+        "space": "s1-house-1"
+      },
+      "sprite": "door-open",
+      "inventory": {}
+    },
+    {
+      "id": "s1-house-2-store",
+      "name": "Storage vessel",
+      "kind": "container",
+      "pos": {
+        "x": 111,
+        "y": -97,
+        "space": "outside"
+      },
+      "sprite": "amphora",
+      "inventory": {
+        "fish": 3
+      },
+      "owner": "s1-person-2",
+      "claim": "roman-house"
+    },
+    {
+      "id": "s1-house-2-bed",
+      "name": "Sleeping place",
+      "kind": "bed",
+      "pos": {
+        "x": 4,
+        "y": 3,
+        "space": "s1-house-2"
+      },
+      "sprite": "bed",
+      "inventory": {},
+      "owner": "s1-person-2"
+    },
+    {
+      "id": "s1-house-2-chest",
+      "name": "Household stores",
+      "kind": "container",
+      "pos": {
+        "x": 8,
+        "y": 3,
+        "space": "s1-house-2"
+      },
+      "sprite": "basket",
+      "inventory": {
+        "grain": 4,
+        "wood": 2
+      },
+      "owner": "s1-person-2"
+    },
+    {
+      "id": "s1-house-2-exit",
+      "name": "Door to the street",
+      "kind": "exit",
+      "pos": {
+        "x": 6,
+        "y": 9,
+        "space": "s1-house-2"
+      },
+      "sprite": "door-open",
+      "inventory": {}
+    },
+    {
+      "id": "s1-house-3-store",
+      "name": "Household basket",
+      "kind": "container",
+      "pos": {
+        "x": 91,
+        "y": -87,
+        "space": "outside"
+      },
+      "sprite": "basket",
+      "inventory": {
+        "wood": 3
+      },
+      "owner": "s1-person-3",
+      "claim": "roman-house"
+    },
+    {
+      "id": "s1-house-3-bed",
+      "name": "Sleeping place",
+      "kind": "bed",
+      "pos": {
+        "x": 4,
+        "y": 3,
+        "space": "s1-house-3"
+      },
+      "sprite": "bed",
+      "inventory": {},
+      "owner": "s1-person-3"
+    },
+    {
+      "id": "s1-house-3-chest",
+      "name": "Household stores",
+      "kind": "container",
+      "pos": {
+        "x": 8,
+        "y": 3,
+        "space": "s1-house-3"
+      },
+      "sprite": "basket",
+      "inventory": {
+        "grain": 4,
+        "wood": 2
+      },
+      "owner": "s1-person-3"
+    },
+    {
+      "id": "s1-house-3-exit",
+      "name": "Door to the street",
+      "kind": "exit",
+      "pos": {
+        "x": 6,
+        "y": 9,
+        "space": "s1-house-3"
+      },
+      "sprite": "door-open",
+      "inventory": {}
+    },
+    {
+      "id": "s1-house-4-store",
+      "name": "Storage vessel",
+      "kind": "container",
+      "pos": {
+        "x": 100,
+        "y": -88,
+        "space": "outside"
+      },
+      "sprite": "amphora",
+      "inventory": {
+        "wool": 3
+      },
+      "owner": "s1-person-4",
+      "claim": "roman-house"
+    },
+    {
+      "id": "s1-house-4-bed",
+      "name": "Sleeping place",
+      "kind": "bed",
+      "pos": {
+        "x": 4,
+        "y": 3,
+        "space": "s1-house-4"
+      },
+      "sprite": "bed",
+      "inventory": {},
+      "owner": "s1-person-4"
+    },
+    {
+      "id": "s1-house-4-chest",
+      "name": "Household stores",
+      "kind": "container",
+      "pos": {
+        "x": 8,
+        "y": 3,
+        "space": "s1-house-4"
+      },
+      "sprite": "basket",
+      "inventory": {
+        "grain": 4,
+        "wood": 2
+      },
+      "owner": "s1-person-4"
+    },
+    {
+      "id": "s1-house-4-exit",
+      "name": "Door to the street",
+      "kind": "exit",
+      "pos": {
+        "x": 6,
+        "y": 9,
+        "space": "s1-house-4"
+      },
+      "sprite": "door-open",
+      "inventory": {}
+    },
+    {
+      "id": "s1-house-5-store",
+      "name": "Household basket",
+      "kind": "container",
+      "pos": {
+        "x": 111,
+        "y": -87,
+        "space": "outside"
+      },
+      "sprite": "basket",
+      "inventory": {
+        "bread": 3
+      },
+      "owner": "s1-person-5",
+      "claim": "roman-house"
+    },
+    {
+      "id": "s1-house-5-bed",
+      "name": "Sleeping place",
+      "kind": "bed",
+      "pos": {
+        "x": 4,
+        "y": 3,
+        "space": "s1-house-5"
+      },
+      "sprite": "bed",
+      "inventory": {},
+      "owner": "s1-person-5"
+    },
+    {
+      "id": "s1-house-5-chest",
+      "name": "Household stores",
+      "kind": "container",
+      "pos": {
+        "x": 8,
+        "y": 3,
+        "space": "s1-house-5"
+      },
+      "sprite": "basket",
+      "inventory": {
+        "grain": 4,
+        "wood": 2
+      },
+      "owner": "s1-person-5"
+    },
+    {
+      "id": "s1-house-5-exit",
+      "name": "Door to the street",
+      "kind": "exit",
+      "pos": {
+        "x": 6,
+        "y": 9,
+        "space": "s1-house-5"
+      },
+      "sprite": "door-open",
+      "inventory": {}
+    },
+    {
+      "id": "s1-well",
+      "name": "Communal well",
+      "kind": "well",
+      "pos": {
+        "x": 97,
+        "y": -85,
+        "space": "outside"
+      },
+      "sprite": "well",
+      "inventory": {},
+      "claim": "landscape"
+    },
+    {
+      "id": "s1-fire",
+      "name": "Shared hearth",
+      "kind": "fire",
+      "pos": {
+        "x": 104,
+        "y": -82,
+        "space": "outside"
+      },
+      "sprite": "fire",
+      "inventory": {}
+    },
+    {
+      "id": "s1-gate",
+      "name": "Flock enclosure gate",
+      "kind": "gate",
+      "pos": {
+        "x": 119,
+        "y": -73,
+        "space": "outside"
+      },
+      "sprite": "gate",
+      "inventory": {},
+      "open": false
+    },
+    {
+      "id": "s1-crop-0",
+      "name": "Ripe grain",
+      "kind": "crop",
+      "pos": {
+        "x": 117,
+        "y": -91,
+        "space": "outside"
+      },
+      "sprite": "wheat",
+      "inventory": {
+        "grain": 3
+      },
+      "claim": "landscape"
+    },
+    {
+      "id": "s1-crop-1",
+      "name": "Ripe grain",
+      "kind": "crop",
+      "pos": {
+        "x": 119,
+        "y": -91,
+        "space": "outside"
+      },
+      "sprite": "wheat",
+      "inventory": {
+        "grain": 3
+      },
+      "claim": "landscape"
+    },
+    {
+      "id": "s1-crop-2",
+      "name": "Ripe grain",
+      "kind": "crop",
+      "pos": {
+        "x": 121,
+        "y": -91,
+        "space": "outside"
+      },
+      "sprite": "wheat",
+      "inventory": {
+        "grain": 3
+      },
+      "claim": "landscape"
+    },
+    {
+      "id": "s1-crop-3",
+      "name": "Ripe grain",
+      "kind": "crop",
+      "pos": {
+        "x": 123,
+        "y": -91,
+        "space": "outside"
+      },
+      "sprite": "wheat",
+      "inventory": {
+        "grain": 3
+      },
+      "claim": "landscape"
+    },
+    {
+      "id": "s1-grove-0",
+      "name": "Olive tree",
+      "kind": "tree",
+      "pos": {
+        "x": 81,
+        "y": -84,
+        "space": "outside"
+      },
+      "sprite": "olive",
+      "inventory": {
+        "wood": 2
+      },
+      "claim": "landscape"
+    },
+    {
+      "id": "s1-grove-1",
+      "name": "Cypress tree",
+      "kind": "tree",
+      "pos": {
+        "x": 91,
+        "y": -84,
+        "space": "outside"
+      },
+      "sprite": "cypress",
+      "inventory": {
+        "wood": 2
+      },
+      "claim": "landscape"
+    },
+    {
+      "id": "s1-grove-2",
+      "name": "Oak tree",
+      "kind": "tree",
+      "pos": {
+        "x": 101,
+        "y": -84,
+        "space": "outside"
+      },
+      "sprite": "oak",
+      "inventory": {
+        "wood": 2
+      },
+      "claim": "landscape"
+    },
+    {
+      "id": "s2-house-0-store",
+      "name": "Storage vessel",
+      "kind": "container",
+      "pos": {
+        "x": -88,
+        "y": 92,
+        "space": "outside"
+      },
+      "sprite": "amphora",
+      "inventory": {
+        "bread": 3
+      },
+      "owner": "s2-person-0",
+      "claim": "roman-house"
+    },
+    {
+      "id": "s2-house-0-bed",
+      "name": "Sleeping place",
+      "kind": "bed",
+      "pos": {
+        "x": 4,
+        "y": 3,
+        "space": "s2-house-0"
+      },
+      "sprite": "bed",
+      "inventory": {},
+      "owner": "s2-person-0"
+    },
+    {
+      "id": "s2-house-0-chest",
+      "name": "Household stores",
+      "kind": "container",
+      "pos": {
+        "x": 8,
+        "y": 3,
+        "space": "s2-house-0"
+      },
+      "sprite": "basket",
+      "inventory": {
+        "grain": 4,
+        "wood": 2
+      },
+      "owner": "s2-person-0"
+    },
+    {
+      "id": "s2-house-0-exit",
+      "name": "Door to the street",
+      "kind": "exit",
+      "pos": {
+        "x": 6,
+        "y": 9,
+        "space": "s2-house-0"
+      },
+      "sprite": "door-open",
+      "inventory": {}
+    },
+    {
+      "id": "s2-house-1-store",
+      "name": "Household basket",
+      "kind": "container",
+      "pos": {
+        "x": -80,
+        "y": 92,
+        "space": "outside"
+      },
+      "sprite": "basket",
+      "inventory": {
+        "grain": 3
+      },
+      "owner": "s2-person-1",
+      "claim": "roman-house"
+    },
+    {
+      "id": "s2-house-1-bed",
+      "name": "Sleeping place",
+      "kind": "bed",
+      "pos": {
+        "x": 4,
+        "y": 3,
+        "space": "s2-house-1"
+      },
+      "sprite": "bed",
+      "inventory": {},
+      "owner": "s2-person-1"
+    },
+    {
+      "id": "s2-house-1-chest",
+      "name": "Household stores",
+      "kind": "container",
+      "pos": {
+        "x": 8,
+        "y": 3,
+        "space": "s2-house-1"
+      },
+      "sprite": "basket",
+      "inventory": {
+        "grain": 4,
+        "wood": 2
+      },
+      "owner": "s2-person-1"
+    },
+    {
+      "id": "s2-house-1-exit",
+      "name": "Door to the street",
+      "kind": "exit",
+      "pos": {
+        "x": 6,
+        "y": 9,
+        "space": "s2-house-1"
+      },
+      "sprite": "door-open",
+      "inventory": {}
+    },
+    {
+      "id": "s2-house-2-store",
+      "name": "Storage vessel",
+      "kind": "container",
+      "pos": {
+        "x": -70,
+        "y": 91,
+        "space": "outside"
+      },
+      "sprite": "amphora",
+      "inventory": {
+        "fish": 3
+      },
+      "owner": "s2-person-2",
+      "claim": "roman-house"
+    },
+    {
+      "id": "s2-house-2-bed",
+      "name": "Sleeping place",
+      "kind": "bed",
+      "pos": {
+        "x": 4,
+        "y": 3,
+        "space": "s2-house-2"
+      },
+      "sprite": "bed",
+      "inventory": {},
+      "owner": "s2-person-2"
+    },
+    {
+      "id": "s2-house-2-chest",
+      "name": "Household stores",
+      "kind": "container",
+      "pos": {
+        "x": 8,
+        "y": 3,
+        "space": "s2-house-2"
+      },
+      "sprite": "basket",
+      "inventory": {
+        "grain": 4,
+        "wood": 2
+      },
+      "owner": "s2-person-2"
+    },
+    {
+      "id": "s2-house-2-exit",
+      "name": "Door to the street",
+      "kind": "exit",
+      "pos": {
+        "x": 6,
+        "y": 9,
+        "space": "s2-house-2"
+      },
+      "sprite": "door-open",
+      "inventory": {}
+    },
+    {
+      "id": "s2-house-3-store",
+      "name": "Household basket",
+      "kind": "container",
+      "pos": {
+        "x": -88,
+        "y": 102,
+        "space": "outside"
+      },
+      "sprite": "basket",
+      "inventory": {
+        "wood": 3
+      },
+      "owner": "s2-person-3",
+      "claim": "roman-house"
+    },
+    {
+      "id": "s2-house-3-bed",
+      "name": "Sleeping place",
+      "kind": "bed",
+      "pos": {
+        "x": 4,
+        "y": 3,
+        "space": "s2-house-3"
+      },
+      "sprite": "bed",
+      "inventory": {},
+      "owner": "s2-person-3"
+    },
+    {
+      "id": "s2-house-3-chest",
+      "name": "Household stores",
+      "kind": "container",
+      "pos": {
+        "x": 8,
+        "y": 3,
+        "space": "s2-house-3"
+      },
+      "sprite": "basket",
+      "inventory": {
+        "grain": 4,
+        "wood": 2
+      },
+      "owner": "s2-person-3"
+    },
+    {
+      "id": "s2-house-3-exit",
+      "name": "Door to the street",
+      "kind": "exit",
+      "pos": {
+        "x": 6,
+        "y": 9,
+        "space": "s2-house-3"
+      },
+      "sprite": "door-open",
+      "inventory": {}
+    },
+    {
+      "id": "s2-house-4-store",
+      "name": "Storage vessel",
+      "kind": "container",
+      "pos": {
+        "x": -78,
+        "y": 102,
+        "space": "outside"
+      },
+      "sprite": "amphora",
+      "inventory": {
+        "wool": 3
+      },
+      "owner": "s2-person-4",
+      "claim": "roman-house"
+    },
+    {
+      "id": "s2-house-4-bed",
+      "name": "Sleeping place",
+      "kind": "bed",
+      "pos": {
+        "x": 4,
+        "y": 3,
+        "space": "s2-house-4"
+      },
+      "sprite": "bed",
+      "inventory": {},
+      "owner": "s2-person-4"
+    },
+    {
+      "id": "s2-house-4-chest",
+      "name": "Household stores",
+      "kind": "container",
+      "pos": {
+        "x": 8,
+        "y": 3,
+        "space": "s2-house-4"
+      },
+      "sprite": "basket",
+      "inventory": {
+        "grain": 4,
+        "wood": 2
+      },
+      "owner": "s2-person-4"
+    },
+    {
+      "id": "s2-house-4-exit",
+      "name": "Door to the street",
+      "kind": "exit",
+      "pos": {
+        "x": 6,
+        "y": 9,
+        "space": "s2-house-4"
+      },
+      "sprite": "door-open",
+      "inventory": {}
+    },
+    {
+      "id": "s2-house-5-store",
+      "name": "Household basket",
+      "kind": "container",
+      "pos": {
+        "x": -70,
+        "y": 101,
+        "space": "outside"
+      },
+      "sprite": "basket",
+      "inventory": {
+        "bread": 3
+      },
+      "owner": "s2-person-5",
+      "claim": "roman-house"
+    },
+    {
+      "id": "s2-house-5-bed",
+      "name": "Sleeping place",
+      "kind": "bed",
+      "pos": {
+        "x": 4,
+        "y": 3,
+        "space": "s2-house-5"
+      },
+      "sprite": "bed",
+      "inventory": {},
+      "owner": "s2-person-5"
+    },
+    {
+      "id": "s2-house-5-chest",
+      "name": "Household stores",
+      "kind": "container",
+      "pos": {
+        "x": 8,
+        "y": 3,
+        "space": "s2-house-5"
+      },
+      "sprite": "basket",
+      "inventory": {
+        "grain": 4,
+        "wood": 2
+      },
+      "owner": "s2-person-5"
+    },
+    {
+      "id": "s2-house-5-exit",
+      "name": "Door to the street",
+      "kind": "exit",
+      "pos": {
+        "x": 6,
+        "y": 9,
+        "space": "s2-house-5"
+      },
+      "sprite": "door-open",
+      "inventory": {}
+    },
+    {
+      "id": "s2-well",
+      "name": "Communal well",
+      "kind": "well",
+      "pos": {
+        "x": -83,
+        "y": 104,
+        "space": "outside"
+      },
+      "sprite": "well",
+      "inventory": {},
+      "claim": "landscape"
+    },
+    {
+      "id": "s2-fire",
+      "name": "Shared hearth",
+      "kind": "fire",
+      "pos": {
+        "x": -76,
+        "y": 107,
+        "space": "outside"
+      },
+      "sprite": "fire",
+      "inventory": {}
+    },
+    {
+      "id": "s2-gate",
+      "name": "Flock enclosure gate",
+      "kind": "gate",
+      "pos": {
+        "x": -61,
+        "y": 116,
+        "space": "outside"
+      },
+      "sprite": "gate",
+      "inventory": {},
+      "open": false
+    },
+    {
+      "id": "s2-crop-0",
+      "name": "Ripe grain",
+      "kind": "crop",
+      "pos": {
+        "x": -63,
+        "y": 98,
+        "space": "outside"
+      },
+      "sprite": "wheat",
+      "inventory": {
+        "grain": 3
+      },
+      "claim": "landscape"
+    },
+    {
+      "id": "s2-crop-1",
+      "name": "Ripe grain",
+      "kind": "crop",
+      "pos": {
+        "x": -61,
+        "y": 98,
+        "space": "outside"
+      },
+      "sprite": "wheat",
+      "inventory": {
+        "grain": 3
+      },
+      "claim": "landscape"
+    },
+    {
+      "id": "s2-crop-2",
+      "name": "Ripe grain",
+      "kind": "crop",
+      "pos": {
+        "x": -59,
+        "y": 98,
+        "space": "outside"
+      },
+      "sprite": "wheat",
+      "inventory": {
+        "grain": 3
+      },
+      "claim": "landscape"
+    },
+    {
+      "id": "s2-crop-3",
+      "name": "Ripe grain",
+      "kind": "crop",
+      "pos": {
+        "x": -57,
+        "y": 98,
+        "space": "outside"
+      },
+      "sprite": "wheat",
+      "inventory": {
+        "grain": 3
+      },
+      "claim": "landscape"
+    },
+    {
+      "id": "s2-grove-0",
+      "name": "Olive tree",
+      "kind": "tree",
+      "pos": {
+        "x": -99,
+        "y": 105,
+        "space": "outside"
+      },
+      "sprite": "olive",
+      "inventory": {
+        "wood": 2
+      },
+      "claim": "landscape"
+    },
+    {
+      "id": "s2-grove-1",
+      "name": "Cypress tree",
+      "kind": "tree",
+      "pos": {
+        "x": -89,
+        "y": 105,
+        "space": "outside"
+      },
+      "sprite": "cypress",
+      "inventory": {
+        "wood": 2
+      },
+      "claim": "landscape"
+    },
+    {
+      "id": "s2-grove-2",
+      "name": "Oak tree",
+      "kind": "tree",
+      "pos": {
+        "x": -79,
+        "y": 105,
+        "space": "outside"
+      },
+      "sprite": "oak",
+      "inventory": {
+        "wood": 2
+      },
+      "claim": "landscape"
+    },
+    {
+      "id": "s3-house-0-store",
+      "name": "Storage vessel",
+      "kind": "container",
+      "pos": {
+        "x": 145,
+        "y": 112,
+        "space": "outside"
+      },
+      "sprite": "amphora",
+      "inventory": {
+        "bread": 3
+      },
+      "owner": "s3-person-0",
+      "claim": "roman-house"
+    },
+    {
+      "id": "s3-house-0-bed",
+      "name": "Sleeping place",
+      "kind": "bed",
+      "pos": {
+        "x": 4,
+        "y": 3,
+        "space": "s3-house-0"
+      },
+      "sprite": "bed",
+      "inventory": {},
+      "owner": "s3-person-0"
+    },
+    {
+      "id": "s3-house-0-chest",
+      "name": "Household stores",
+      "kind": "container",
+      "pos": {
+        "x": 8,
+        "y": 3,
+        "space": "s3-house-0"
+      },
+      "sprite": "basket",
+      "inventory": {
+        "grain": 4,
+        "wood": 2
+      },
+      "owner": "s3-person-0"
+    },
+    {
+      "id": "s3-house-0-exit",
+      "name": "Door to the street",
+      "kind": "exit",
+      "pos": {
+        "x": 6,
+        "y": 9,
+        "space": "s3-house-0"
+      },
+      "sprite": "door-open",
+      "inventory": {}
+    },
+    {
+      "id": "s3-house-1-store",
+      "name": "Household basket",
+      "kind": "container",
+      "pos": {
+        "x": 157,
+        "y": 112,
+        "space": "outside"
+      },
+      "sprite": "basket",
+      "inventory": {
+        "grain": 3
+      },
+      "owner": "s3-person-1",
+      "claim": "roman-house"
+    },
+    {
+      "id": "s3-house-1-bed",
+      "name": "Sleeping place",
+      "kind": "bed",
+      "pos": {
+        "x": 4,
+        "y": 3,
+        "space": "s3-house-1"
+      },
+      "sprite": "bed",
+      "inventory": {},
+      "owner": "s3-person-1"
+    },
+    {
+      "id": "s3-house-1-chest",
+      "name": "Household stores",
+      "kind": "container",
+      "pos": {
+        "x": 8,
+        "y": 3,
+        "space": "s3-house-1"
+      },
+      "sprite": "basket",
+      "inventory": {
+        "grain": 4,
+        "wood": 2
+      },
+      "owner": "s3-person-1"
+    },
+    {
+      "id": "s3-house-1-exit",
+      "name": "Door to the street",
+      "kind": "exit",
+      "pos": {
+        "x": 6,
+        "y": 9,
+        "space": "s3-house-1"
+      },
+      "sprite": "door-open",
+      "inventory": {}
+    },
+    {
+      "id": "s3-house-2-store",
+      "name": "Storage vessel",
+      "kind": "container",
+      "pos": {
+        "x": 166,
+        "y": 112,
+        "space": "outside"
+      },
+      "sprite": "amphora",
+      "inventory": {
+        "fish": 3
+      },
+      "owner": "s3-person-2",
+      "claim": "roman-house"
+    },
+    {
+      "id": "s3-house-2-bed",
+      "name": "Sleeping place",
+      "kind": "bed",
+      "pos": {
+        "x": 4,
+        "y": 3,
+        "space": "s3-house-2"
+      },
+      "sprite": "bed",
+      "inventory": {},
+      "owner": "s3-person-2"
+    },
+    {
+      "id": "s3-house-2-chest",
+      "name": "Household stores",
+      "kind": "container",
+      "pos": {
+        "x": 8,
+        "y": 3,
+        "space": "s3-house-2"
+      },
+      "sprite": "basket",
+      "inventory": {
+        "grain": 4,
+        "wood": 2
+      },
+      "owner": "s3-person-2"
+    },
+    {
+      "id": "s3-house-2-exit",
+      "name": "Door to the street",
+      "kind": "exit",
+      "pos": {
+        "x": 6,
+        "y": 9,
+        "space": "s3-house-2"
+      },
+      "sprite": "door-open",
+      "inventory": {}
+    },
+    {
+      "id": "s3-house-3-store",
+      "name": "Household basket",
+      "kind": "container",
+      "pos": {
+        "x": 147,
+        "y": 123,
+        "space": "outside"
+      },
+      "sprite": "basket",
+      "inventory": {
+        "wood": 3
+      },
+      "owner": "s3-person-3",
+      "claim": "roman-house"
+    },
+    {
+      "id": "s3-house-3-bed",
+      "name": "Sleeping place",
+      "kind": "bed",
+      "pos": {
+        "x": 4,
+        "y": 3,
+        "space": "s3-house-3"
+      },
+      "sprite": "bed",
+      "inventory": {},
+      "owner": "s3-person-3"
+    },
+    {
+      "id": "s3-house-3-chest",
+      "name": "Household stores",
+      "kind": "container",
+      "pos": {
+        "x": 8,
+        "y": 3,
+        "space": "s3-house-3"
+      },
+      "sprite": "basket",
+      "inventory": {
+        "grain": 4,
+        "wood": 2
+      },
+      "owner": "s3-person-3"
+    },
+    {
+      "id": "s3-house-3-exit",
+      "name": "Door to the street",
+      "kind": "exit",
+      "pos": {
+        "x": 6,
+        "y": 9,
+        "space": "s3-house-3"
+      },
+      "sprite": "door-open",
+      "inventory": {}
+    },
+    {
+      "id": "s3-house-4-store",
+      "name": "Storage vessel",
+      "kind": "container",
+      "pos": {
+        "x": 155,
+        "y": 122,
+        "space": "outside"
+      },
+      "sprite": "amphora",
+      "inventory": {
+        "wool": 3
+      },
+      "owner": "s3-person-4",
+      "claim": "roman-house"
+    },
+    {
+      "id": "s3-house-4-bed",
+      "name": "Sleeping place",
+      "kind": "bed",
+      "pos": {
+        "x": 4,
+        "y": 3,
+        "space": "s3-house-4"
+      },
+      "sprite": "bed",
+      "inventory": {},
+      "owner": "s3-person-4"
+    },
+    {
+      "id": "s3-house-4-chest",
+      "name": "Household stores",
+      "kind": "container",
+      "pos": {
+        "x": 8,
+        "y": 3,
+        "space": "s3-house-4"
+      },
+      "sprite": "basket",
+      "inventory": {
+        "grain": 4,
+        "wood": 2
+      },
+      "owner": "s3-person-4"
+    },
+    {
+      "id": "s3-house-4-exit",
+      "name": "Door to the street",
+      "kind": "exit",
+      "pos": {
+        "x": 6,
+        "y": 9,
+        "space": "s3-house-4"
+      },
+      "sprite": "door-open",
+      "inventory": {}
+    },
+    {
+      "id": "s3-house-5-store",
+      "name": "Household basket",
+      "kind": "container",
+      "pos": {
+        "x": 167,
+        "y": 123,
+        "space": "outside"
+      },
+      "sprite": "basket",
+      "inventory": {
+        "bread": 3
+      },
+      "owner": "s3-person-5",
+      "claim": "roman-house"
+    },
+    {
+      "id": "s3-house-5-bed",
+      "name": "Sleeping place",
+      "kind": "bed",
+      "pos": {
+        "x": 4,
+        "y": 3,
+        "space": "s3-house-5"
+      },
+      "sprite": "bed",
+      "inventory": {},
+      "owner": "s3-person-5"
+    },
+    {
+      "id": "s3-house-5-chest",
+      "name": "Household stores",
+      "kind": "container",
+      "pos": {
+        "x": 8,
+        "y": 3,
+        "space": "s3-house-5"
+      },
+      "sprite": "basket",
+      "inventory": {
+        "grain": 4,
+        "wood": 2
+      },
+      "owner": "s3-person-5"
+    },
+    {
+      "id": "s3-house-5-exit",
+      "name": "Door to the street",
+      "kind": "exit",
+      "pos": {
+        "x": 6,
+        "y": 9,
+        "space": "s3-house-5"
+      },
+      "sprite": "door-open",
+      "inventory": {}
+    },
+    {
+      "id": "s3-well",
+      "name": "Communal well",
+      "kind": "well",
+      "pos": {
+        "x": 152,
+        "y": 125,
+        "space": "outside"
+      },
+      "sprite": "well",
+      "inventory": {},
+      "claim": "landscape"
+    },
+    {
+      "id": "s3-fire",
+      "name": "Shared hearth",
+      "kind": "fire",
+      "pos": {
+        "x": 159,
+        "y": 128,
+        "space": "outside"
+      },
+      "sprite": "fire",
+      "inventory": {}
+    },
+    {
+      "id": "s3-gate",
+      "name": "Flock enclosure gate",
+      "kind": "gate",
+      "pos": {
+        "x": 174,
+        "y": 137,
+        "space": "outside"
+      },
+      "sprite": "gate",
+      "inventory": {},
+      "open": false
+    },
+    {
+      "id": "s3-crop-0",
+      "name": "Ripe grain",
+      "kind": "crop",
+      "pos": {
+        "x": 172,
+        "y": 119,
+        "space": "outside"
+      },
+      "sprite": "wheat",
+      "inventory": {
+        "grain": 3
+      },
+      "claim": "landscape"
+    },
+    {
+      "id": "s3-crop-1",
+      "name": "Ripe grain",
+      "kind": "crop",
+      "pos": {
+        "x": 174,
+        "y": 119,
+        "space": "outside"
+      },
+      "sprite": "wheat",
+      "inventory": {
+        "grain": 3
+      },
+      "claim": "landscape"
+    },
+    {
+      "id": "s3-crop-2",
+      "name": "Ripe grain",
+      "kind": "crop",
+      "pos": {
+        "x": 176,
+        "y": 119,
+        "space": "outside"
+      },
+      "sprite": "wheat",
+      "inventory": {
+        "grain": 3
+      },
+      "claim": "landscape"
+    },
+    {
+      "id": "s3-crop-3",
+      "name": "Ripe grain",
+      "kind": "crop",
+      "pos": {
+        "x": 178,
+        "y": 119,
+        "space": "outside"
+      },
+      "sprite": "wheat",
+      "inventory": {
+        "grain": 3
+      },
+      "claim": "landscape"
+    },
+    {
+      "id": "s3-grove-0",
+      "name": "Olive tree",
+      "kind": "tree",
+      "pos": {
+        "x": 136,
+        "y": 126,
+        "space": "outside"
+      },
+      "sprite": "olive",
+      "inventory": {
+        "wood": 2
+      },
+      "claim": "landscape"
+    },
+    {
+      "id": "s3-grove-1",
+      "name": "Cypress tree",
+      "kind": "tree",
+      "pos": {
+        "x": 148,
+        "y": 126,
+        "space": "outside"
+      },
+      "sprite": "cypress",
+      "inventory": {
+        "wood": 2
+      },
+      "claim": "landscape"
+    },
+    {
+      "id": "s3-grove-2",
+      "name": "Oak tree",
+      "kind": "tree",
+      "pos": {
+        "x": 156,
+        "y": 126,
+        "space": "outside"
+      },
+      "sprite": "oak",
+      "inventory": {
+        "wood": 2
+      },
+      "claim": "landscape"
+    }
+  ],
+  "events": [
+    {
+      "id": 1,
+      "time": 32400,
+      "text": "You arrive as the morning’s work begins. Walk, meet someone, or find your own way.",
+      "kind": "system"
+    },
+    {
+      "id": 2,
+      "time": 32452,
+      "text": "You drink cool water and refill your vessel.",
+      "kind": "action"
+    },
+    {
+      "id": 3,
+      "time": 32580,
+      "text": "Livia: “Salve, traveler. You may visit riverside storehouse for the next few hours.”",
+      "kind": "social"
+    },
+    {
+      "id": 4,
+      "time": 32640,
+      "text": "Livia accepts: 2 bronze coins for 1 bread.",
+      "kind": "social"
+    },
+    {
+      "id": 5,
+      "time": 32656,
+      "text": "You enter riverside storehouse.",
+      "kind": "action"
+    },
+    {
+      "id": 6,
+      "time": 32666,
+      "text": "You return to the open air.",
+      "kind": "action"
+    },
+    {
+      "id": 7,
+      "time": 32680,
+      "text": "You take the contents of storage vessel.",
+      "kind": "action"
+    },
+    {
+      "id": 8,
+      "time": 32680,
+      "text": "Livia saw you take property belonging to the household.",
+      "kind": "social"
+    },
+    {
+      "id": 9,
+      "time": 32690,
+      "text": "You return the goods you still carry.",
+      "kind": "action"
+    },
+    {
+      "id": 10,
+      "time": 32736,
+      "text": "Livia agrees to your company on the way to work. The invitation lasts ten minutes.",
+      "kind": "social"
+    },
+    {
+      "id": 11,
+      "time": 32742,
+      "text": "You wait 6 seconds.",
+      "kind": "action"
+    },
+    {
+      "id": 12,
+      "time": 32748,
+      "text": "You wait 6 seconds.",
+      "kind": "action"
+    },
+    {
+      "id": 13,
+      "time": 32754,
+      "text": "You wait 6 seconds.",
+      "kind": "action"
+    },
+    {
+      "id": 14,
+      "time": 32760,
+      "text": "You wait 6 seconds.",
+      "kind": "action"
+    },
+    {
+      "id": 15,
+      "time": 32850,
+      "text": "You catch the lizard. It is now in your possession.",
+      "kind": "action"
+    },
+    {
+      "id": 16,
+      "time": 33058,
+      "text": "You gather ripe grain. The harvested plot remains bare.",
+      "kind": "action"
+    },
+    {
+      "id": 17,
+      "time": 33118,
+      "text": "You eat some grain.",
+      "kind": "action"
+    },
+    {
+      "id": 18,
+      "time": 33157,
+      "text": "You open the gate.",
+      "kind": "action"
+    },
+    {
+      "id": 19,
+      "time": 33185,
+      "text": "You guide the sheep toward its enclosure. Open the gate to let it through.",
+      "kind": "action"
+    },
+    {
+      "id": 20,
+      "time": 33365,
+      "text": "You wait 3 minutes.",
+      "kind": "action"
+    },
+    {
+      "id": 21,
+      "time": 36965,
+      "text": "You wait 60 minutes.",
+      "kind": "action"
+    },
+    {
+      "id": 22,
+      "time": 40565,
+      "text": "You wait 60 minutes.",
+      "kind": "action"
+    },
+    {
+      "id": 23,
+      "time": 44165,
+      "text": "You wait 60 minutes.",
+      "kind": "action"
+    },
+    {
+      "id": 24,
+      "time": 47765,
+      "text": "You wait 60 minutes.",
+      "kind": "action"
+    },
+    {
+      "id": 25,
+      "time": 51365,
+      "text": "You wait 60 minutes.",
+      "kind": "action"
+    },
+    {
+      "id": 26,
+      "time": 54965,
+      "text": "You wait 60 minutes.",
+      "kind": "action"
+    },
+    {
+      "id": 27,
+      "time": 58565,
+      "text": "You wait 60 minutes.",
+      "kind": "action"
+    },
+    {
+      "id": 28,
+      "time": 62165,
+      "text": "You wait 60 minutes.",
+      "kind": "action"
+    },
+    {
+      "id": 29,
+      "time": 65765,
+      "text": "You wait 60 minutes.",
+      "kind": "action"
+    },
+    {
+      "id": 30,
+      "time": 69365,
+      "text": "You wait 60 minutes.",
+      "kind": "action"
+    },
+    {
+      "id": 31,
+      "time": 72965,
+      "text": "You wait 60 minutes.",
+      "kind": "action"
+    },
+    {
+      "id": 32,
+      "time": 75600,
+      "text": "You wait 44 minutes.",
+      "kind": "action"
+    }
+  ],
+  "notes": [],
+  "visited": [
+    "0,0",
+    "-1,0",
+    "0,-1",
+    "-1,-1"
+  ],
+  "receipts": {
+    "runner-0": {
+      "payload": "{\"dx\":0,\"dy\":-1,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-0",
+        "revision": 1,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-1": {
+      "payload": "{\"dx\":0,\"dy\":-1,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-1",
+        "revision": 2,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-2": {
+      "payload": "{\"dx\":0,\"dy\":-1,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-2",
+        "revision": 3,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-3": {
+      "payload": "{\"dx\":1,\"dy\":0,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-3",
+        "revision": 4,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-4": {
+      "payload": "{\"dx\":1,\"dy\":0,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-4",
+        "revision": 5,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-5": {
+      "payload": "{\"dx\":0,\"dy\":-1,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-5",
+        "revision": 6,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-6": {
+      "payload": "{\"dx\":1,\"dy\":0,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-6",
+        "revision": 7,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-7": {
+      "payload": "{\"dx\":1,\"dy\":0,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-7",
+        "revision": 8,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-8": {
+      "payload": "{\"dx\":1,\"dy\":0,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-8",
+        "revision": 9,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-9": {
+      "payload": "{\"dx\":1,\"dy\":0,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-9",
+        "revision": 10,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-10": {
+      "payload": "{\"dx\":1,\"dy\":0,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-10",
+        "revision": 11,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-11": {
+      "payload": "{\"action\":\"drink\",\"target\":\"s0-well\",\"type\":\"interact\"}",
+      "result": {
+        "actionId": "runner-11",
+        "revision": 12,
+        "status": "completed",
+        "elapsedSeconds": 30,
+        "events": [
+          {
+            "id": 2,
+            "time": 32452,
+            "text": "You drink cool water and refill your vessel.",
+            "kind": "action"
+          }
+        ]
+      }
+    },
+    "runner-12": {
+      "payload": "{\"dx\":0,\"dy\":-1,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-12",
+        "revision": 13,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-13": {
+      "payload": "{\"dx\":0,\"dy\":-1,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-13",
+        "revision": 14,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-14": {
+      "payload": "{\"dx\":0,\"dy\":-1,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-14",
+        "revision": 15,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-15": {
+      "payload": "{\"dx\":-1,\"dy\":0,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-15",
+        "revision": 16,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-16": {
+      "payload": "{\"dx\":-1,\"dy\":0,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-16",
+        "revision": 17,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-17": {
+      "payload": "{\"dx\":-1,\"dy\":0,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-17",
+        "revision": 18,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-18": {
+      "payload": "{\"dx\":0,\"dy\":-1,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-18",
+        "revision": 19,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-19": {
+      "payload": "{\"dx\":0,\"dy\":-1,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-19",
+        "revision": 20,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-20": {
+      "payload": "{\"dx\":0,\"dy\":-1,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-20",
+        "revision": 21,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-21": {
+      "payload": "{\"dx\":0,\"dy\":-1,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-21",
+        "revision": 22,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-22": {
+      "payload": "{\"dx\":0,\"dy\":-1,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-22",
+        "revision": 23,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-23": {
+      "payload": "{\"dx\":0,\"dy\":-1,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-23",
+        "revision": 24,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-24": {
+      "payload": "{\"dx\":0,\"dy\":-1,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-24",
+        "revision": 25,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-25": {
+      "payload": "{\"dx\":-1,\"dy\":0,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-25",
+        "revision": 26,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-26": {
+      "payload": "{\"dx\":-1,\"dy\":0,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-26",
+        "revision": 27,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-27": {
+      "payload": "{\"dx\":-1,\"dy\":0,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-27",
+        "revision": 28,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-28": {
+      "payload": "{\"dx\":-1,\"dy\":0,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-28",
+        "revision": 29,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-29": {
+      "payload": "{\"dx\":-1,\"dy\":0,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-29",
+        "revision": 30,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-30": {
+      "payload": "{\"dx\":-1,\"dy\":0,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-30",
+        "revision": 31,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-31": {
+      "payload": "{\"action\":\"talk\",\"target\":\"s0-person-0\",\"type\":\"interact\"}",
+      "result": {
+        "actionId": "runner-31",
+        "revision": 32,
+        "status": "completed",
+        "elapsedSeconds": 90,
+        "events": [
+          {
+            "id": 3,
+            "time": 32580,
+            "text": "Livia: “Salve, traveler. You may visit riverside storehouse for the next few hours.”",
+            "kind": "social"
+          }
+        ]
+      }
+    },
+    "runner-32": {
+      "payload": "{\"give\":\"coin\",\"giveQuantity\":2,\"take\":\"bread\",\"takeQuantity\":1,\"target\":\"s0-person-0\",\"type\":\"trade\"}",
+      "result": {
+        "actionId": "runner-32",
+        "revision": 33,
+        "status": "completed",
+        "elapsedSeconds": 60,
+        "events": [
+          {
+            "id": 4,
+            "time": 32640,
+            "text": "Livia accepts: 2 bronze coins for 1 bread.",
+            "kind": "social"
+          }
+        ]
+      }
+    },
+    "runner-33": {
+      "payload": "{\"dx\":0,\"dy\":-1,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-33",
+        "revision": 34,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-34": {
+      "payload": "{\"dx\":0,\"dy\":-1,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-34",
+        "revision": 35,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-35": {
+      "payload": "{\"dx\":0,\"dy\":-1,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-35",
+        "revision": 36,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-36": {
+      "payload": "{\"action\":\"enter\",\"target\":\"s0-house-0\",\"type\":\"interact\"}",
+      "result": {
+        "actionId": "runner-36",
+        "revision": 37,
+        "status": "completed",
+        "elapsedSeconds": 10,
+        "events": [
+          {
+            "id": 5,
+            "time": 32656,
+            "text": "You enter riverside storehouse.",
+            "kind": "action"
+          }
+        ]
+      }
+    },
+    "runner-37": {
+      "payload": "{\"action\":\"exit\",\"target\":\"s0-house-0-exit\",\"type\":\"interact\"}",
+      "result": {
+        "actionId": "runner-37",
+        "revision": 38,
+        "status": "completed",
+        "elapsedSeconds": 10,
+        "events": [
+          {
+            "id": 6,
+            "time": 32666,
+            "text": "You return to the open air.",
+            "kind": "action"
+          }
+        ]
+      }
+    },
+    "runner-38": {
+      "payload": "{\"dx\":1,\"dy\":0,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-38",
+        "revision": 39,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-39": {
+      "payload": "{\"dx\":1,\"dy\":0,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-39",
+        "revision": 40,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-40": {
+      "payload": "{\"dx\":1,\"dy\":0,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-40",
+        "revision": 41,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-41": {
+      "payload": "{\"dx\":0,\"dy\":1,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-41",
+        "revision": 42,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-42": {
+      "payload": "{\"action\":\"take\",\"target\":\"s0-house-0-store\",\"type\":\"interact\"}",
+      "result": {
+        "actionId": "runner-42",
+        "revision": 43,
+        "status": "completed",
+        "elapsedSeconds": 6,
+        "events": [
+          {
+            "id": 7,
+            "time": 32680,
+            "text": "You take the contents of storage vessel.",
+            "kind": "action"
+          },
+          {
+            "id": 8,
+            "time": 32680,
+            "text": "Livia saw you take property belonging to the household.",
+            "kind": "social"
+          }
+        ]
+      }
+    },
+    "runner-43": {
+      "payload": "{\"action\":\"return\",\"target\":\"s0-house-0-store\",\"type\":\"interact\"}",
+      "result": {
+        "actionId": "runner-43",
+        "revision": 44,
+        "status": "completed",
+        "elapsedSeconds": 10,
+        "events": [
+          {
+            "id": 9,
+            "time": 32690,
+            "text": "You return the goods you still carry.",
+            "kind": "action"
+          }
+        ]
+      }
+    },
+    "runner-44": {
+      "payload": "{\"dx\":0,\"dy\":1,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-44",
+        "revision": 45,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-45": {
+      "payload": "{\"dx\":0,\"dy\":1,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-45",
+        "revision": 46,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-46": {
+      "payload": "{\"dx\":0,\"dy\":1,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-46",
+        "revision": 47,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-47": {
+      "payload": "{\"dx\":0,\"dy\":1,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-47",
+        "revision": 48,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-48": {
+      "payload": "{\"dx\":0,\"dy\":1,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-48",
+        "revision": 49,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-49": {
+      "payload": "{\"dx\":0,\"dy\":1,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-49",
+        "revision": 50,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-50": {
+      "payload": "{\"dx\":0,\"dy\":1,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-50",
+        "revision": 51,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-51": {
+      "payload": "{\"dx\":-1,\"dy\":0,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-51",
+        "revision": 52,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-52": {
+      "payload": "{\"action\":\"follow\",\"target\":\"s0-person-0\",\"type\":\"interact\"}",
+      "result": {
+        "actionId": "runner-52",
+        "revision": 53,
+        "status": "completed",
+        "elapsedSeconds": 30,
+        "events": [
+          {
+            "id": 10,
+            "time": 32736,
+            "text": "Livia agrees to your company on the way to work. The invitation lasts ten minutes.",
+            "kind": "social"
+          }
+        ]
+      }
+    },
+    "runner-53": {
+      "payload": "{\"seconds\":6,\"type\":\"wait\"}",
+      "result": {
+        "actionId": "runner-53",
+        "revision": 54,
+        "status": "completed",
+        "elapsedSeconds": 6,
+        "events": [
+          {
+            "id": 11,
+            "time": 32742,
+            "text": "You wait 6 seconds.",
+            "kind": "action"
+          }
+        ]
+      }
+    },
+    "runner-54": {
+      "payload": "{\"seconds\":6,\"type\":\"wait\"}",
+      "result": {
+        "actionId": "runner-54",
+        "revision": 55,
+        "status": "completed",
+        "elapsedSeconds": 6,
+        "events": [
+          {
+            "id": 12,
+            "time": 32748,
+            "text": "You wait 6 seconds.",
+            "kind": "action"
+          }
+        ]
+      }
+    },
+    "runner-55": {
+      "payload": "{\"seconds\":6,\"type\":\"wait\"}",
+      "result": {
+        "actionId": "runner-55",
+        "revision": 56,
+        "status": "completed",
+        "elapsedSeconds": 6,
+        "events": [
+          {
+            "id": 13,
+            "time": 32754,
+            "text": "You wait 6 seconds.",
+            "kind": "action"
+          }
+        ]
+      }
+    },
+    "runner-56": {
+      "payload": "{\"seconds\":6,\"type\":\"wait\"}",
+      "result": {
+        "actionId": "runner-56",
+        "revision": 57,
+        "status": "completed",
+        "elapsedSeconds": 6,
+        "events": [
+          {
+            "id": 14,
+            "time": 32760,
+            "text": "You wait 6 seconds.",
+            "kind": "action"
+          }
+        ]
+      }
+    },
+    "runner-57": {
+      "payload": "{\"dx\":1,\"dy\":0,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-57",
+        "revision": 58,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-58": {
+      "payload": "{\"dx\":1,\"dy\":0,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-58",
+        "revision": 59,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-59": {
+      "payload": "{\"dx\":1,\"dy\":0,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-59",
+        "revision": 60,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-60": {
+      "payload": "{\"dx\":1,\"dy\":0,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-60",
+        "revision": 61,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-61": {
+      "payload": "{\"dx\":0,\"dy\":1,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-61",
+        "revision": 62,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-62": {
+      "payload": "{\"dx\":0,\"dy\":1,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-62",
+        "revision": 63,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-63": {
+      "payload": "{\"dx\":0,\"dy\":1,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-63",
+        "revision": 64,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-64": {
+      "payload": "{\"dx\":1,\"dy\":0,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-64",
+        "revision": 65,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-65": {
+      "payload": "{\"dx\":1,\"dy\":0,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-65",
+        "revision": 66,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-66": {
+      "payload": "{\"dx\":1,\"dy\":0,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-66",
+        "revision": 67,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-67": {
+      "payload": "{\"dx\":1,\"dy\":0,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-67",
+        "revision": 68,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-68": {
+      "payload": "{\"dx\":1,\"dy\":0,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-68",
+        "revision": 69,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-69": {
+      "payload": "{\"dx\":1,\"dy\":0,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-69",
+        "revision": 70,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-70": {
+      "payload": "{\"dx\":1,\"dy\":0,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-70",
+        "revision": 71,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-71": {
+      "payload": "{\"dx\":1,\"dy\":0,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-71",
+        "revision": 72,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-72": {
+      "payload": "{\"dx\":1,\"dy\":0,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-72",
+        "revision": 73,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-73": {
+      "payload": "{\"dx\":1,\"dy\":0,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-73",
+        "revision": 74,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-74": {
+      "payload": "{\"dx\":1,\"dy\":0,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-74",
+        "revision": 75,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-75": {
+      "payload": "{\"dx\":1,\"dy\":0,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-75",
+        "revision": 76,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-76": {
+      "payload": "{\"dx\":1,\"dy\":0,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-76",
+        "revision": 77,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-77": {
+      "payload": "{\"dx\":1,\"dy\":0,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-77",
+        "revision": 78,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-78": {
+      "payload": "{\"dx\":1,\"dy\":0,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-78",
+        "revision": 79,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-79": {
+      "payload": "{\"dx\":1,\"dy\":0,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-79",
+        "revision": 80,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-80": {
+      "payload": "{\"dx\":1,\"dy\":0,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-80",
+        "revision": 81,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-81": {
+      "payload": "{\"dx\":1,\"dy\":0,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-81",
+        "revision": 82,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-82": {
+      "payload": "{\"dx\":1,\"dy\":0,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-82",
+        "revision": 83,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-83": {
+      "payload": "{\"dx\":1,\"dy\":0,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-83",
+        "revision": 84,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-84": {
+      "payload": "{\"dx\":1,\"dy\":0,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-84",
+        "revision": 85,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-85": {
+      "payload": "{\"dx\":1,\"dy\":0,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-85",
+        "revision": 86,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-86": {
+      "payload": "{\"dx\":0,\"dy\":1,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-86",
+        "revision": 87,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-87": {
+      "payload": "{\"dx\":0,\"dy\":1,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-87",
+        "revision": 88,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-88": {
+      "payload": "{\"dx\":0,\"dy\":1,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-88",
+        "revision": 89,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-89": {
+      "payload": "{\"dx\":0,\"dy\":1,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-89",
+        "revision": 90,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-90": {
+      "payload": "{\"dx\":0,\"dy\":1,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-90",
+        "revision": 91,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-91": {
+      "payload": "{\"dx\":0,\"dy\":1,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-91",
+        "revision": 92,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-92": {
+      "payload": "{\"dx\":0,\"dy\":1,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-92",
+        "revision": 93,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-93": {
+      "payload": "{\"dx\":0,\"dy\":1,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-93",
+        "revision": 94,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-94": {
+      "payload": "{\"dx\":0,\"dy\":1,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-94",
+        "revision": 95,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-95": {
+      "payload": "{\"dx\":0,\"dy\":1,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-95",
+        "revision": 96,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-96": {
+      "payload": "{\"action\":\"capture\",\"target\":\"s0-animal-1\",\"type\":\"interact\"}",
+      "result": {
+        "actionId": "runner-96",
+        "revision": 97,
+        "status": "completed",
+        "elapsedSeconds": 12,
+        "events": [
+          {
+            "id": 15,
+            "time": 32850,
+            "text": "You catch the lizard. It is now in your possession.",
+            "kind": "action"
+          }
+        ]
+      }
+    },
+    "runner-97": {
+      "payload": "{\"dx\":0,\"dy\":-1,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-97",
+        "revision": 98,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-98": {
+      "payload": "{\"dx\":0,\"dy\":-1,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-98",
+        "revision": 99,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-99": {
+      "payload": "{\"dx\":0,\"dy\":-1,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-99",
+        "revision": 100,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-100": {
+      "payload": "{\"dx\":0,\"dy\":-1,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-100",
+        "revision": 101,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-101": {
+      "payload": "{\"dx\":0,\"dy\":-1,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-101",
+        "revision": 102,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-102": {
+      "payload": "{\"dx\":0,\"dy\":-1,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-102",
+        "revision": 103,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-103": {
+      "payload": "{\"dx\":0,\"dy\":-1,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-103",
+        "revision": 104,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-104": {
+      "payload": "{\"dx\":0,\"dy\":-1,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-104",
+        "revision": 105,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-105": {
+      "payload": "{\"dx\":0,\"dy\":-1,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-105",
+        "revision": 106,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-106": {
+      "payload": "{\"dx\":0,\"dy\":-1,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-106",
+        "revision": 107,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-107": {
+      "payload": "{\"dx\":0,\"dy\":-1,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-107",
+        "revision": 108,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-108": {
+      "payload": "{\"dx\":0,\"dy\":-1,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-108",
+        "revision": 109,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-109": {
+      "payload": "{\"dx\":0,\"dy\":-1,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-109",
+        "revision": 110,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-110": {
+      "payload": "{\"dx\":1,\"dy\":0,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-110",
+        "revision": 111,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-111": {
+      "payload": "{\"action\":\"harvest\",\"target\":\"s0-crop-0\",\"type\":\"interact\"}",
+      "result": {
+        "actionId": "runner-111",
+        "revision": 112,
+        "status": "completed",
+        "elapsedSeconds": 180,
+        "events": [
+          {
+            "id": 16,
+            "time": 33058,
+            "text": "You gather ripe grain. The harvested plot remains bare.",
+            "kind": "action"
+          }
+        ]
+      }
+    },
+    "runner-112": {
+      "payload": "{\"item\":\"grain\",\"type\":\"use\"}",
+      "result": {
+        "actionId": "runner-112",
+        "revision": 113,
+        "status": "completed",
+        "elapsedSeconds": 60,
+        "events": [
+          {
+            "id": 17,
+            "time": 33118,
+            "text": "You eat some grain.",
+            "kind": "action"
+          }
+        ]
+      }
+    },
+    "runner-113": {
+      "payload": "{\"dx\":1,\"dy\":0,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-113",
+        "revision": 114,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-114": {
+      "payload": "{\"dx\":1,\"dy\":0,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-114",
+        "revision": 115,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-115": {
+      "payload": "{\"dx\":0,\"dy\":1,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-115",
+        "revision": 116,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-116": {
+      "payload": "{\"dx\":0,\"dy\":1,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-116",
+        "revision": 117,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-117": {
+      "payload": "{\"dx\":0,\"dy\":1,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-117",
+        "revision": 118,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-118": {
+      "payload": "{\"dx\":0,\"dy\":1,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-118",
+        "revision": 119,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-119": {
+      "payload": "{\"dx\":0,\"dy\":1,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-119",
+        "revision": 120,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-120": {
+      "payload": "{\"dx\":0,\"dy\":1,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-120",
+        "revision": 121,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-121": {
+      "payload": "{\"dx\":0,\"dy\":1,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-121",
+        "revision": 122,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-122": {
+      "payload": "{\"dx\":0,\"dy\":1,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-122",
+        "revision": 123,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-123": {
+      "payload": "{\"dx\":0,\"dy\":1,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-123",
+        "revision": 124,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-124": {
+      "payload": "{\"dx\":0,\"dy\":1,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-124",
+        "revision": 125,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-125": {
+      "payload": "{\"dx\":0,\"dy\":1,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-125",
+        "revision": 126,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-126": {
+      "payload": "{\"dx\":0,\"dy\":1,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-126",
+        "revision": 127,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-127": {
+      "payload": "{\"dx\":0,\"dy\":1,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-127",
+        "revision": 128,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-128": {
+      "payload": "{\"dx\":0,\"dy\":1,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-128",
+        "revision": 129,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-129": {
+      "payload": "{\"dx\":0,\"dy\":1,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-129",
+        "revision": 130,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-130": {
+      "payload": "{\"dx\":0,\"dy\":1,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-130",
+        "revision": 131,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-131": {
+      "payload": "{\"action\":\"open\",\"target\":\"s0-gate\",\"type\":\"interact\"}",
+      "result": {
+        "actionId": "runner-131",
+        "revision": 132,
+        "status": "completed",
+        "elapsedSeconds": 3,
+        "events": [
+          {
+            "id": 18,
+            "time": 33157,
+            "text": "You open the gate.",
+            "kind": "action"
+          }
+        ]
+      }
+    },
+    "runner-132": {
+      "payload": "{\"dx\":0,\"dy\":-1,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-132",
+        "revision": 133,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-133": {
+      "payload": "{\"dx\":-1,\"dy\":0,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-133",
+        "revision": 134,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-134": {
+      "payload": "{\"dx\":-1,\"dy\":0,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-134",
+        "revision": 135,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-135": {
+      "payload": "{\"dx\":-1,\"dy\":0,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-135",
+        "revision": 136,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-136": {
+      "payload": "{\"dx\":-1,\"dy\":0,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-136",
+        "revision": 137,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-137": {
+      "payload": "{\"dx\":-1,\"dy\":0,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-137",
+        "revision": 138,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-138": {
+      "payload": "{\"dx\":-1,\"dy\":0,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-138",
+        "revision": 139,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-139": {
+      "payload": "{\"dx\":-1,\"dy\":0,\"type\":\"move\"}",
+      "result": {
+        "actionId": "runner-139",
+        "revision": 140,
+        "status": "completed",
+        "elapsedSeconds": 2,
+        "events": []
+      }
+    },
+    "runner-140": {
+      "payload": "{\"action\":\"herd\",\"target\":\"s0-animal-0\",\"type\":\"interact\"}",
+      "result": {
+        "actionId": "runner-140",
+        "revision": 141,
+        "status": "completed",
+        "elapsedSeconds": 12,
+        "events": [
+          {
+            "id": 19,
+            "time": 33185,
+            "text": "You guide the sheep toward its enclosure. Open the gate to let it through.",
+            "kind": "action"
+          }
+        ]
+      }
+    },
+    "runner-141": {
+      "payload": "{\"seconds\":180,\"type\":\"wait\"}",
+      "result": {
+        "actionId": "runner-141",
+        "revision": 142,
+        "status": "completed",
+        "elapsedSeconds": 180,
+        "events": [
+          {
+            "id": 20,
+            "time": 33365,
+            "text": "You wait 3 minutes.",
+            "kind": "action"
+          }
+        ]
+      }
+    },
+    "runner-142": {
+      "payload": "{\"seconds\":3600,\"type\":\"wait\"}",
+      "result": {
+        "actionId": "runner-142",
+        "revision": 143,
+        "status": "completed",
+        "elapsedSeconds": 3600,
+        "events": [
+          {
+            "id": 21,
+            "time": 36965,
+            "text": "You wait 60 minutes.",
+            "kind": "action"
+          }
+        ]
+      }
+    },
+    "runner-143": {
+      "payload": "{\"seconds\":3600,\"type\":\"wait\"}",
+      "result": {
+        "actionId": "runner-143",
+        "revision": 144,
+        "status": "completed",
+        "elapsedSeconds": 3600,
+        "events": [
+          {
+            "id": 22,
+            "time": 40565,
+            "text": "You wait 60 minutes.",
+            "kind": "action"
+          }
+        ]
+      }
+    },
+    "runner-144": {
+      "payload": "{\"seconds\":3600,\"type\":\"wait\"}",
+      "result": {
+        "actionId": "runner-144",
+        "revision": 145,
+        "status": "completed",
+        "elapsedSeconds": 3600,
+        "events": [
+          {
+            "id": 23,
+            "time": 44165,
+            "text": "You wait 60 minutes.",
+            "kind": "action"
+          }
+        ]
+      }
+    },
+    "runner-145": {
+      "payload": "{\"seconds\":3600,\"type\":\"wait\"}",
+      "result": {
+        "actionId": "runner-145",
+        "revision": 146,
+        "status": "completed",
+        "elapsedSeconds": 3600,
+        "events": [
+          {
+            "id": 24,
+            "time": 47765,
+            "text": "You wait 60 minutes.",
+            "kind": "action"
+          }
+        ]
+      }
+    },
+    "runner-146": {
+      "payload": "{\"seconds\":3600,\"type\":\"wait\"}",
+      "result": {
+        "actionId": "runner-146",
+        "revision": 147,
+        "status": "completed",
+        "elapsedSeconds": 3600,
+        "events": [
+          {
+            "id": 25,
+            "time": 51365,
+            "text": "You wait 60 minutes.",
+            "kind": "action"
+          }
+        ]
+      }
+    },
+    "runner-147": {
+      "payload": "{\"seconds\":3600,\"type\":\"wait\"}",
+      "result": {
+        "actionId": "runner-147",
+        "revision": 148,
+        "status": "completed",
+        "elapsedSeconds": 3600,
+        "events": [
+          {
+            "id": 26,
+            "time": 54965,
+            "text": "You wait 60 minutes.",
+            "kind": "action"
+          }
+        ]
+      }
+    },
+    "runner-148": {
+      "payload": "{\"seconds\":3600,\"type\":\"wait\"}",
+      "result": {
+        "actionId": "runner-148",
+        "revision": 149,
+        "status": "completed",
+        "elapsedSeconds": 3600,
+        "events": [
+          {
+            "id": 27,
+            "time": 58565,
+            "text": "You wait 60 minutes.",
+            "kind": "action"
+          }
+        ]
+      }
+    },
+    "runner-149": {
+      "payload": "{\"seconds\":3600,\"type\":\"wait\"}",
+      "result": {
+        "actionId": "runner-149",
+        "revision": 150,
+        "status": "completed",
+        "elapsedSeconds": 3600,
+        "events": [
+          {
+            "id": 28,
+            "time": 62165,
+            "text": "You wait 60 minutes.",
+            "kind": "action"
+          }
+        ]
+      }
+    },
+    "runner-150": {
+      "payload": "{\"seconds\":3600,\"type\":\"wait\"}",
+      "result": {
+        "actionId": "runner-150",
+        "revision": 151,
+        "status": "completed",
+        "elapsedSeconds": 3600,
+        "events": [
+          {
+            "id": 29,
+            "time": 65765,
+            "text": "You wait 60 minutes.",
+            "kind": "action"
+          }
+        ]
+      }
+    },
+    "runner-151": {
+      "payload": "{\"seconds\":3600,\"type\":\"wait\"}",
+      "result": {
+        "actionId": "runner-151",
+        "revision": 152,
+        "status": "completed",
+        "elapsedSeconds": 3600,
+        "events": [
+          {
+            "id": 30,
+            "time": 69365,
+            "text": "You wait 60 minutes.",
+            "kind": "action"
+          }
+        ]
+      }
+    },
+    "runner-152": {
+      "payload": "{\"seconds\":3600,\"type\":\"wait\"}",
+      "result": {
+        "actionId": "runner-152",
+        "revision": 153,
+        "status": "completed",
+        "elapsedSeconds": 3600,
+        "events": [
+          {
+            "id": 31,
+            "time": 72965,
+            "text": "You wait 60 minutes.",
+            "kind": "action"
+          }
+        ]
+      }
+    },
+    "runner-153": {
+      "payload": "{\"seconds\":2635,\"type\":\"wait\"}",
+      "result": {
+        "actionId": "runner-153",
+        "revision": 154,
+        "status": "completed",
+        "elapsedSeconds": 2635,
+        "events": [
+          {
+            "id": 32,
+            "time": 75600,
+            "text": "You wait 44 minutes.",
+            "kind": "action"
+          }
+        ]
+      }
+    }
+  },
+  "log": [
+    {
+      "actionId": "runner-0",
+      "expectedRevision": 0,
+      "command": {
+        "type": "move",
+        "dx": 0,
+        "dy": -1
+      }
+    },
+    {
+      "actionId": "runner-1",
+      "expectedRevision": 1,
+      "command": {
+        "type": "move",
+        "dx": 0,
+        "dy": -1
+      }
+    },
+    {
+      "actionId": "runner-2",
+      "expectedRevision": 2,
+      "command": {
+        "type": "move",
+        "dx": 0,
+        "dy": -1
+      }
+    },
+    {
+      "actionId": "runner-3",
+      "expectedRevision": 3,
+      "command": {
+        "type": "move",
+        "dx": 1,
+        "dy": 0
+      }
+    },
+    {
+      "actionId": "runner-4",
+      "expectedRevision": 4,
+      "command": {
+        "type": "move",
+        "dx": 1,
+        "dy": 0
+      }
+    },
+    {
+      "actionId": "runner-5",
+      "expectedRevision": 5,
+      "command": {
+        "type": "move",
+        "dx": 0,
+        "dy": -1
+      }
+    },
+    {
+      "actionId": "runner-6",
+      "expectedRevision": 6,
+      "command": {
+        "type": "move",
+        "dx": 1,
+        "dy": 0
+      }
+    },
+    {
+      "actionId": "runner-7",
+      "expectedRevision": 7,
+      "command": {
+        "type": "move",
+        "dx": 1,
+        "dy": 0
+      }
+    },
+    {
+      "actionId": "runner-8",
+      "expectedRevision": 8,
+      "command": {
+        "type": "move",
+        "dx": 1,
+        "dy": 0
+      }
+    },
+    {
+      "actionId": "runner-9",
+      "expectedRevision": 9,
+      "command": {
+        "type": "move",
+        "dx": 1,
+        "dy": 0
+      }
+    },
+    {
+      "actionId": "runner-10",
+      "expectedRevision": 10,
+      "command": {
+        "type": "move",
+        "dx": 1,
+        "dy": 0
+      }
+    },
+    {
+      "actionId": "runner-11",
+      "expectedRevision": 11,
+      "command": {
+        "type": "interact",
+        "target": "s0-well",
+        "action": "drink"
+      }
+    },
+    {
+      "actionId": "runner-12",
+      "expectedRevision": 12,
+      "command": {
+        "type": "move",
+        "dx": 0,
+        "dy": -1
+      }
+    },
+    {
+      "actionId": "runner-13",
+      "expectedRevision": 13,
+      "command": {
+        "type": "move",
+        "dx": 0,
+        "dy": -1
+      }
+    },
+    {
+      "actionId": "runner-14",
+      "expectedRevision": 14,
+      "command": {
+        "type": "move",
+        "dx": 0,
+        "dy": -1
+      }
+    },
+    {
+      "actionId": "runner-15",
+      "expectedRevision": 15,
+      "command": {
+        "type": "move",
+        "dx": -1,
+        "dy": 0
+      }
+    },
+    {
+      "actionId": "runner-16",
+      "expectedRevision": 16,
+      "command": {
+        "type": "move",
+        "dx": -1,
+        "dy": 0
+      }
+    },
+    {
+      "actionId": "runner-17",
+      "expectedRevision": 17,
+      "command": {
+        "type": "move",
+        "dx": -1,
+        "dy": 0
+      }
+    },
+    {
+      "actionId": "runner-18",
+      "expectedRevision": 18,
+      "command": {
+        "type": "move",
+        "dx": 0,
+        "dy": -1
+      }
+    },
+    {
+      "actionId": "runner-19",
+      "expectedRevision": 19,
+      "command": {
+        "type": "move",
+        "dx": 0,
+        "dy": -1
+      }
+    },
+    {
+      "actionId": "runner-20",
+      "expectedRevision": 20,
+      "command": {
+        "type": "move",
+        "dx": 0,
+        "dy": -1
+      }
+    },
+    {
+      "actionId": "runner-21",
+      "expectedRevision": 21,
+      "command": {
+        "type": "move",
+        "dx": 0,
+        "dy": -1
+      }
+    },
+    {
+      "actionId": "runner-22",
+      "expectedRevision": 22,
+      "command": {
+        "type": "move",
+        "dx": 0,
+        "dy": -1
+      }
+    },
+    {
+      "actionId": "runner-23",
+      "expectedRevision": 23,
+      "command": {
+        "type": "move",
+        "dx": 0,
+        "dy": -1
+      }
+    },
+    {
+      "actionId": "runner-24",
+      "expectedRevision": 24,
+      "command": {
+        "type": "move",
+        "dx": 0,
+        "dy": -1
+      }
+    },
+    {
+      "actionId": "runner-25",
+      "expectedRevision": 25,
+      "command": {
+        "type": "move",
+        "dx": -1,
+        "dy": 0
+      }
+    },
+    {
+      "actionId": "runner-26",
+      "expectedRevision": 26,
+      "command": {
+        "type": "move",
+        "dx": -1,
+        "dy": 0
+      }
+    },
+    {
+      "actionId": "runner-27",
+      "expectedRevision": 27,
+      "command": {
+        "type": "move",
+        "dx": -1,
+        "dy": 0
+      }
+    },
+    {
+      "actionId": "runner-28",
+      "expectedRevision": 28,
+      "command": {
+        "type": "move",
+        "dx": -1,
+        "dy": 0
+      }
+    },
+    {
+      "actionId": "runner-29",
+      "expectedRevision": 29,
+      "command": {
+        "type": "move",
+        "dx": -1,
+        "dy": 0
+      }
+    },
+    {
+      "actionId": "runner-30",
+      "expectedRevision": 30,
+      "command": {
+        "type": "move",
+        "dx": -1,
+        "dy": 0
+      }
+    },
+    {
+      "actionId": "runner-31",
+      "expectedRevision": 31,
+      "command": {
+        "type": "interact",
+        "target": "s0-person-0",
+        "action": "talk"
+      }
+    },
+    {
+      "actionId": "runner-32",
+      "expectedRevision": 32,
+      "command": {
+        "type": "trade",
+        "target": "s0-person-0",
+        "give": "coin",
+        "giveQuantity": 2,
+        "take": "bread",
+        "takeQuantity": 1
+      }
+    },
+    {
+      "actionId": "runner-33",
+      "expectedRevision": 33,
+      "command": {
+        "type": "move",
+        "dx": 0,
+        "dy": -1
+      }
+    },
+    {
+      "actionId": "runner-34",
+      "expectedRevision": 34,
+      "command": {
+        "type": "move",
+        "dx": 0,
+        "dy": -1
+      }
+    },
+    {
+      "actionId": "runner-35",
+      "expectedRevision": 35,
+      "command": {
+        "type": "move",
+        "dx": 0,
+        "dy": -1
+      }
+    },
+    {
+      "actionId": "runner-36",
+      "expectedRevision": 36,
+      "command": {
+        "type": "interact",
+        "target": "s0-house-0",
+        "action": "enter"
+      }
+    },
+    {
+      "actionId": "runner-37",
+      "expectedRevision": 37,
+      "command": {
+        "type": "interact",
+        "target": "s0-house-0-exit",
+        "action": "exit"
+      }
+    },
+    {
+      "actionId": "runner-38",
+      "expectedRevision": 38,
+      "command": {
+        "type": "move",
+        "dx": 1,
+        "dy": 0
+      }
+    },
+    {
+      "actionId": "runner-39",
+      "expectedRevision": 39,
+      "command": {
+        "type": "move",
+        "dx": 1,
+        "dy": 0
+      }
+    },
+    {
+      "actionId": "runner-40",
+      "expectedRevision": 40,
+      "command": {
+        "type": "move",
+        "dx": 1,
+        "dy": 0
+      }
+    },
+    {
+      "actionId": "runner-41",
+      "expectedRevision": 41,
+      "command": {
+        "type": "move",
+        "dx": 0,
+        "dy": 1
+      }
+    },
+    {
+      "actionId": "runner-42",
+      "expectedRevision": 42,
+      "command": {
+        "type": "interact",
+        "target": "s0-house-0-store",
+        "action": "take"
+      }
+    },
+    {
+      "actionId": "runner-43",
+      "expectedRevision": 43,
+      "command": {
+        "type": "interact",
+        "target": "s0-house-0-store",
+        "action": "return"
+      }
+    },
+    {
+      "actionId": "runner-44",
+      "expectedRevision": 44,
+      "command": {
+        "type": "move",
+        "dx": 0,
+        "dy": 1
+      }
+    },
+    {
+      "actionId": "runner-45",
+      "expectedRevision": 45,
+      "command": {
+        "type": "move",
+        "dx": 0,
+        "dy": 1
+      }
+    },
+    {
+      "actionId": "runner-46",
+      "expectedRevision": 46,
+      "command": {
+        "type": "move",
+        "dx": 0,
+        "dy": 1
+      }
+    },
+    {
+      "actionId": "runner-47",
+      "expectedRevision": 47,
+      "command": {
+        "type": "move",
+        "dx": 0,
+        "dy": 1
+      }
+    },
+    {
+      "actionId": "runner-48",
+      "expectedRevision": 48,
+      "command": {
+        "type": "move",
+        "dx": 0,
+        "dy": 1
+      }
+    },
+    {
+      "actionId": "runner-49",
+      "expectedRevision": 49,
+      "command": {
+        "type": "move",
+        "dx": 0,
+        "dy": 1
+      }
+    },
+    {
+      "actionId": "runner-50",
+      "expectedRevision": 50,
+      "command": {
+        "type": "move",
+        "dx": 0,
+        "dy": 1
+      }
+    },
+    {
+      "actionId": "runner-51",
+      "expectedRevision": 51,
+      "command": {
+        "type": "move",
+        "dx": -1,
+        "dy": 0
+      }
+    },
+    {
+      "actionId": "runner-52",
+      "expectedRevision": 52,
+      "command": {
+        "type": "interact",
+        "target": "s0-person-0",
+        "action": "follow"
+      }
+    },
+    {
+      "actionId": "runner-53",
+      "expectedRevision": 53,
+      "command": {
+        "type": "wait",
+        "seconds": 6
+      }
+    },
+    {
+      "actionId": "runner-54",
+      "expectedRevision": 54,
+      "command": {
+        "type": "wait",
+        "seconds": 6
+      }
+    },
+    {
+      "actionId": "runner-55",
+      "expectedRevision": 55,
+      "command": {
+        "type": "wait",
+        "seconds": 6
+      }
+    },
+    {
+      "actionId": "runner-56",
+      "expectedRevision": 56,
+      "command": {
+        "type": "wait",
+        "seconds": 6
+      }
+    },
+    {
+      "actionId": "runner-57",
+      "expectedRevision": 57,
+      "command": {
+        "type": "move",
+        "dx": 1,
+        "dy": 0
+      }
+    },
+    {
+      "actionId": "runner-58",
+      "expectedRevision": 58,
+      "command": {
+        "type": "move",
+        "dx": 1,
+        "dy": 0
+      }
+    },
+    {
+      "actionId": "runner-59",
+      "expectedRevision": 59,
+      "command": {
+        "type": "move",
+        "dx": 1,
+        "dy": 0
+      }
+    },
+    {
+      "actionId": "runner-60",
+      "expectedRevision": 60,
+      "command": {
+        "type": "move",
+        "dx": 1,
+        "dy": 0
+      }
+    },
+    {
+      "actionId": "runner-61",
+      "expectedRevision": 61,
+      "command": {
+        "type": "move",
+        "dx": 0,
+        "dy": 1
+      }
+    },
+    {
+      "actionId": "runner-62",
+      "expectedRevision": 62,
+      "command": {
+        "type": "move",
+        "dx": 0,
+        "dy": 1
+      }
+    },
+    {
+      "actionId": "runner-63",
+      "expectedRevision": 63,
+      "command": {
+        "type": "move",
+        "dx": 0,
+        "dy": 1
+      }
+    },
+    {
+      "actionId": "runner-64",
+      "expectedRevision": 64,
+      "command": {
+        "type": "move",
+        "dx": 1,
+        "dy": 0
+      }
+    },
+    {
+      "actionId": "runner-65",
+      "expectedRevision": 65,
+      "command": {
+        "type": "move",
+        "dx": 1,
+        "dy": 0
+      }
+    },
+    {
+      "actionId": "runner-66",
+      "expectedRevision": 66,
+      "command": {
+        "type": "move",
+        "dx": 1,
+        "dy": 0
+      }
+    },
+    {
+      "actionId": "runner-67",
+      "expectedRevision": 67,
+      "command": {
+        "type": "move",
+        "dx": 1,
+        "dy": 0
+      }
+    },
+    {
+      "actionId": "runner-68",
+      "expectedRevision": 68,
+      "command": {
+        "type": "move",
+        "dx": 1,
+        "dy": 0
+      }
+    },
+    {
+      "actionId": "runner-69",
+      "expectedRevision": 69,
+      "command": {
+        "type": "move",
+        "dx": 1,
+        "dy": 0
+      }
+    },
+    {
+      "actionId": "runner-70",
+      "expectedRevision": 70,
+      "command": {
+        "type": "move",
+        "dx": 1,
+        "dy": 0
+      }
+    },
+    {
+      "actionId": "runner-71",
+      "expectedRevision": 71,
+      "command": {
+        "type": "move",
+        "dx": 1,
+        "dy": 0
+      }
+    },
+    {
+      "actionId": "runner-72",
+      "expectedRevision": 72,
+      "command": {
+        "type": "move",
+        "dx": 1,
+        "dy": 0
+      }
+    },
+    {
+      "actionId": "runner-73",
+      "expectedRevision": 73,
+      "command": {
+        "type": "move",
+        "dx": 1,
+        "dy": 0
+      }
+    },
+    {
+      "actionId": "runner-74",
+      "expectedRevision": 74,
+      "command": {
+        "type": "move",
+        "dx": 1,
+        "dy": 0
+      }
+    },
+    {
+      "actionId": "runner-75",
+      "expectedRevision": 75,
+      "command": {
+        "type": "move",
+        "dx": 1,
+        "dy": 0
+      }
+    },
+    {
+      "actionId": "runner-76",
+      "expectedRevision": 76,
+      "command": {
+        "type": "move",
+        "dx": 1,
+        "dy": 0
+      }
+    },
+    {
+      "actionId": "runner-77",
+      "expectedRevision": 77,
+      "command": {
+        "type": "move",
+        "dx": 1,
+        "dy": 0
+      }
+    },
+    {
+      "actionId": "runner-78",
+      "expectedRevision": 78,
+      "command": {
+        "type": "move",
+        "dx": 1,
+        "dy": 0
+      }
+    },
+    {
+      "actionId": "runner-79",
+      "expectedRevision": 79,
+      "command": {
+        "type": "move",
+        "dx": 1,
+        "dy": 0
+      }
+    },
+    {
+      "actionId": "runner-80",
+      "expectedRevision": 80,
+      "command": {
+        "type": "move",
+        "dx": 1,
+        "dy": 0
+      }
+    },
+    {
+      "actionId": "runner-81",
+      "expectedRevision": 81,
+      "command": {
+        "type": "move",
+        "dx": 1,
+        "dy": 0
+      }
+    },
+    {
+      "actionId": "runner-82",
+      "expectedRevision": 82,
+      "command": {
+        "type": "move",
+        "dx": 1,
+        "dy": 0
+      }
+    },
+    {
+      "actionId": "runner-83",
+      "expectedRevision": 83,
+      "command": {
+        "type": "move",
+        "dx": 1,
+        "dy": 0
+      }
+    },
+    {
+      "actionId": "runner-84",
+      "expectedRevision": 84,
+      "command": {
+        "type": "move",
+        "dx": 1,
+        "dy": 0
+      }
+    },
+    {
+      "actionId": "runner-85",
+      "expectedRevision": 85,
+      "command": {
+        "type": "move",
+        "dx": 1,
+        "dy": 0
+      }
+    },
+    {
+      "actionId": "runner-86",
+      "expectedRevision": 86,
+      "command": {
+        "type": "move",
+        "dx": 0,
+        "dy": 1
+      }
+    },
+    {
+      "actionId": "runner-87",
+      "expectedRevision": 87,
+      "command": {
+        "type": "move",
+        "dx": 0,
+        "dy": 1
+      }
+    },
+    {
+      "actionId": "runner-88",
+      "expectedRevision": 88,
+      "command": {
+        "type": "move",
+        "dx": 0,
+        "dy": 1
+      }
+    },
+    {
+      "actionId": "runner-89",
+      "expectedRevision": 89,
+      "command": {
+        "type": "move",
+        "dx": 0,
+        "dy": 1
+      }
+    },
+    {
+      "actionId": "runner-90",
+      "expectedRevision": 90,
+      "command": {
+        "type": "move",
+        "dx": 0,
+        "dy": 1
+      }
+    },
+    {
+      "actionId": "runner-91",
+      "expectedRevision": 91,
+      "command": {
+        "type": "move",
+        "dx": 0,
+        "dy": 1
+      }
+    },
+    {
+      "actionId": "runner-92",
+      "expectedRevision": 92,
+      "command": {
+        "type": "move",
+        "dx": 0,
+        "dy": 1
+      }
+    },
+    {
+      "actionId": "runner-93",
+      "expectedRevision": 93,
+      "command": {
+        "type": "move",
+        "dx": 0,
+        "dy": 1
+      }
+    },
+    {
+      "actionId": "runner-94",
+      "expectedRevision": 94,
+      "command": {
+        "type": "move",
+        "dx": 0,
+        "dy": 1
+      }
+    },
+    {
+      "actionId": "runner-95",
+      "expectedRevision": 95,
+      "command": {
+        "type": "move",
+        "dx": 0,
+        "dy": 1
+      }
+    },
+    {
+      "actionId": "runner-96",
+      "expectedRevision": 96,
+      "command": {
+        "type": "interact",
+        "target": "s0-animal-1",
+        "action": "capture"
+      }
+    },
+    {
+      "actionId": "runner-97",
+      "expectedRevision": 97,
+      "command": {
+        "type": "move",
+        "dx": 0,
+        "dy": -1
+      }
+    },
+    {
+      "actionId": "runner-98",
+      "expectedRevision": 98,
+      "command": {
+        "type": "move",
+        "dx": 0,
+        "dy": -1
+      }
+    },
+    {
+      "actionId": "runner-99",
+      "expectedRevision": 99,
+      "command": {
+        "type": "move",
+        "dx": 0,
+        "dy": -1
+      }
+    },
+    {
+      "actionId": "runner-100",
+      "expectedRevision": 100,
+      "command": {
+        "type": "move",
+        "dx": 0,
+        "dy": -1
+      }
+    },
+    {
+      "actionId": "runner-101",
+      "expectedRevision": 101,
+      "command": {
+        "type": "move",
+        "dx": 0,
+        "dy": -1
+      }
+    },
+    {
+      "actionId": "runner-102",
+      "expectedRevision": 102,
+      "command": {
+        "type": "move",
+        "dx": 0,
+        "dy": -1
+      }
+    },
+    {
+      "actionId": "runner-103",
+      "expectedRevision": 103,
+      "command": {
+        "type": "move",
+        "dx": 0,
+        "dy": -1
+      }
+    },
+    {
+      "actionId": "runner-104",
+      "expectedRevision": 104,
+      "command": {
+        "type": "move",
+        "dx": 0,
+        "dy": -1
+      }
+    },
+    {
+      "actionId": "runner-105",
+      "expectedRevision": 105,
+      "command": {
+        "type": "move",
+        "dx": 0,
+        "dy": -1
+      }
+    },
+    {
+      "actionId": "runner-106",
+      "expectedRevision": 106,
+      "command": {
+        "type": "move",
+        "dx": 0,
+        "dy": -1
+      }
+    },
+    {
+      "actionId": "runner-107",
+      "expectedRevision": 107,
+      "command": {
+        "type": "move",
+        "dx": 0,
+        "dy": -1
+      }
+    },
+    {
+      "actionId": "runner-108",
+      "expectedRevision": 108,
+      "command": {
+        "type": "move",
+        "dx": 0,
+        "dy": -1
+      }
+    },
+    {
+      "actionId": "runner-109",
+      "expectedRevision": 109,
+      "command": {
+        "type": "move",
+        "dx": 0,
+        "dy": -1
+      }
+    },
+    {
+      "actionId": "runner-110",
+      "expectedRevision": 110,
+      "command": {
+        "type": "move",
+        "dx": 1,
+        "dy": 0
+      }
+    },
+    {
+      "actionId": "runner-111",
+      "expectedRevision": 111,
+      "command": {
+        "type": "interact",
+        "target": "s0-crop-0",
+        "action": "harvest"
+      }
+    },
+    {
+      "actionId": "runner-112",
+      "expectedRevision": 112,
+      "command": {
+        "type": "use",
+        "item": "grain"
+      }
+    },
+    {
+      "actionId": "runner-113",
+      "expectedRevision": 113,
+      "command": {
+        "type": "move",
+        "dx": 1,
+        "dy": 0
+      }
+    },
+    {
+      "actionId": "runner-114",
+      "expectedRevision": 114,
+      "command": {
+        "type": "move",
+        "dx": 1,
+        "dy": 0
+      }
+    },
+    {
+      "actionId": "runner-115",
+      "expectedRevision": 115,
+      "command": {
+        "type": "move",
+        "dx": 0,
+        "dy": 1
+      }
+    },
+    {
+      "actionId": "runner-116",
+      "expectedRevision": 116,
+      "command": {
+        "type": "move",
+        "dx": 0,
+        "dy": 1
+      }
+    },
+    {
+      "actionId": "runner-117",
+      "expectedRevision": 117,
+      "command": {
+        "type": "move",
+        "dx": 0,
+        "dy": 1
+      }
+    },
+    {
+      "actionId": "runner-118",
+      "expectedRevision": 118,
+      "command": {
+        "type": "move",
+        "dx": 0,
+        "dy": 1
+      }
+    },
+    {
+      "actionId": "runner-119",
+      "expectedRevision": 119,
+      "command": {
+        "type": "move",
+        "dx": 0,
+        "dy": 1
+      }
+    },
+    {
+      "actionId": "runner-120",
+      "expectedRevision": 120,
+      "command": {
+        "type": "move",
+        "dx": 0,
+        "dy": 1
+      }
+    },
+    {
+      "actionId": "runner-121",
+      "expectedRevision": 121,
+      "command": {
+        "type": "move",
+        "dx": 0,
+        "dy": 1
+      }
+    },
+    {
+      "actionId": "runner-122",
+      "expectedRevision": 122,
+      "command": {
+        "type": "move",
+        "dx": 0,
+        "dy": 1
+      }
+    },
+    {
+      "actionId": "runner-123",
+      "expectedRevision": 123,
+      "command": {
+        "type": "move",
+        "dx": 0,
+        "dy": 1
+      }
+    },
+    {
+      "actionId": "runner-124",
+      "expectedRevision": 124,
+      "command": {
+        "type": "move",
+        "dx": 0,
+        "dy": 1
+      }
+    },
+    {
+      "actionId": "runner-125",
+      "expectedRevision": 125,
+      "command": {
+        "type": "move",
+        "dx": 0,
+        "dy": 1
+      }
+    },
+    {
+      "actionId": "runner-126",
+      "expectedRevision": 126,
+      "command": {
+        "type": "move",
+        "dx": 0,
+        "dy": 1
+      }
+    },
+    {
+      "actionId": "runner-127",
+      "expectedRevision": 127,
+      "command": {
+        "type": "move",
+        "dx": 0,
+        "dy": 1
+      }
+    },
+    {
+      "actionId": "runner-128",
+      "expectedRevision": 128,
+      "command": {
+        "type": "move",
+        "dx": 0,
+        "dy": 1
+      }
+    },
+    {
+      "actionId": "runner-129",
+      "expectedRevision": 129,
+      "command": {
+        "type": "move",
+        "dx": 0,
+        "dy": 1
+      }
+    },
+    {
+      "actionId": "runner-130",
+      "expectedRevision": 130,
+      "command": {
+        "type": "move",
+        "dx": 0,
+        "dy": 1
+      }
+    },
+    {
+      "actionId": "runner-131",
+      "expectedRevision": 131,
+      "command": {
+        "type": "interact",
+        "target": "s0-gate",
+        "action": "open"
+      }
+    },
+    {
+      "actionId": "runner-132",
+      "expectedRevision": 132,
+      "command": {
+        "type": "move",
+        "dx": 0,
+        "dy": -1
+      }
+    },
+    {
+      "actionId": "runner-133",
+      "expectedRevision": 133,
+      "command": {
+        "type": "move",
+        "dx": -1,
+        "dy": 0
+      }
+    },
+    {
+      "actionId": "runner-134",
+      "expectedRevision": 134,
+      "command": {
+        "type": "move",
+        "dx": -1,
+        "dy": 0
+      }
+    },
+    {
+      "actionId": "runner-135",
+      "expectedRevision": 135,
+      "command": {
+        "type": "move",
+        "dx": -1,
+        "dy": 0
+      }
+    },
+    {
+      "actionId": "runner-136",
+      "expectedRevision": 136,
+      "command": {
+        "type": "move",
+        "dx": -1,
+        "dy": 0
+      }
+    },
+    {
+      "actionId": "runner-137",
+      "expectedRevision": 137,
+      "command": {
+        "type": "move",
+        "dx": -1,
+        "dy": 0
+      }
+    },
+    {
+      "actionId": "runner-138",
+      "expectedRevision": 138,
+      "command": {
+        "type": "move",
+        "dx": -1,
+        "dy": 0
+      }
+    },
+    {
+      "actionId": "runner-139",
+      "expectedRevision": 139,
+      "command": {
+        "type": "move",
+        "dx": -1,
+        "dy": 0
+      }
+    },
+    {
+      "actionId": "runner-140",
+      "expectedRevision": 140,
+      "command": {
+        "type": "interact",
+        "target": "s0-animal-0",
+        "action": "herd"
+      }
+    },
+    {
+      "actionId": "runner-141",
+      "expectedRevision": 141,
+      "command": {
+        "type": "wait",
+        "seconds": 180
+      }
+    },
+    {
+      "actionId": "runner-142",
+      "expectedRevision": 142,
+      "command": {
+        "type": "wait",
+        "seconds": 3600
+      }
+    },
+    {
+      "actionId": "runner-143",
+      "expectedRevision": 143,
+      "command": {
+        "type": "wait",
+        "seconds": 3600
+      }
+    },
+    {
+      "actionId": "runner-144",
+      "expectedRevision": 144,
+      "command": {
+        "type": "wait",
+        "seconds": 3600
+      }
+    },
+    {
+      "actionId": "runner-145",
+      "expectedRevision": 145,
+      "command": {
+        "type": "wait",
+        "seconds": 3600
+      }
+    },
+    {
+      "actionId": "runner-146",
+      "expectedRevision": 146,
+      "command": {
+        "type": "wait",
+        "seconds": 3600
+      }
+    },
+    {
+      "actionId": "runner-147",
+      "expectedRevision": 147,
+      "command": {
+        "type": "wait",
+        "seconds": 3600
+      }
+    },
+    {
+      "actionId": "runner-148",
+      "expectedRevision": 148,
+      "command": {
+        "type": "wait",
+        "seconds": 3600
+      }
+    },
+    {
+      "actionId": "runner-149",
+      "expectedRevision": 149,
+      "command": {
+        "type": "wait",
+        "seconds": 3600
+      }
+    },
+    {
+      "actionId": "runner-150",
+      "expectedRevision": 150,
+      "command": {
+        "type": "wait",
+        "seconds": 3600
+      }
+    },
+    {
+      "actionId": "runner-151",
+      "expectedRevision": 151,
+      "command": {
+        "type": "wait",
+        "seconds": 3600
+      }
+    },
+    {
+      "actionId": "runner-152",
+      "expectedRevision": 152,
+      "command": {
+        "type": "wait",
+        "seconds": 3600
+      }
+    },
+    {
+      "actionId": "runner-153",
+      "expectedRevision": 153,
+      "command": {
+        "type": "wait",
+        "seconds": 2635
+      }
+    }
+  ],
+  "permissions": {
+    "s0-person-0": 43380
+  }
+}

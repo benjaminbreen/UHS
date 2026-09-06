@@ -1,0 +1,123 @@
+{
+  "id": "lower-tiber",
+  "version": 1,
+  "projection": "EPSG:32633",
+  "origin": [
+    273649.217,
+    4627745.517
+  ],
+  "boundsMetres": [
+    -8000,
+    -8000,
+    8000,
+    8000
+  ],
+  "metresPerTile": 2,
+  "upstream": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/ca96624a56bd078437bca8184e78163e5039ad19/geojson/ne_10m_rivers_lake_centerlines.geojson",
+  "sha256": "bb854a900ecbd3b408df46d5e16e3e0f974ba55993f9d8b5c26e855273c0905a",
+  "license": "Public domain \u2014 Natural Earth",
+  "sourceScale": "1:10 million cartographic scale; not 10m resolution",
+  "limitations": "Coarse modern centerline. Local widths, banks, buildings, roads, vegetation, and ancient channel position are inferred. This is not a historical reconstruction or elevation model.",
+  "segments": [
+    [
+      [
+        5335.784,
+        -1717.698
+      ],
+      [
+        3664.708,
+        -1954.039
+      ]
+    ],
+    [
+      [
+        3664.708,
+        -1954.039
+      ],
+      [
+        3131.791,
+        -2119.649
+      ]
+    ],
+    [
+      [
+        3131.791,
+        -2119.649
+      ],
+      [
+        2666.172,
+        -2052.63
+      ]
+    ],
+    [
+      [
+        2666.172,
+        -2052.63
+      ],
+      [
+        2198.196,
+        -1474.749
+      ]
+    ],
+    [
+      [
+        2198.196,
+        -1474.749
+      ],
+      [
+        1510.908,
+        -1898.654
+      ]
+    ],
+    [
+      [
+        1510.908,
+        -1898.654
+      ],
+      [
+        906.682,
+        -1623.684
+      ]
+    ],
+    [
+      [
+        906.682,
+        -1623.684
+      ],
+      [
+        -135.87,
+        -444.538
+      ]
+    ],
+    [
+      [
+        -135.87,
+        -444.538
+      ],
+      [
+        89.871,
+        444.537
+      ]
+    ],
+    [
+      [
+        89.871,
+        444.537
+      ],
+      [
+        -403.17,
+        935.468
+      ]
+    ],
+    [
+      [
+        -403.17,
+        935.468
+      ],
+      [
+        -1902.476,
+        1427.993
+      ]
+    ]
+  ]
+}
