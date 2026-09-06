@@ -114,6 +114,7 @@ export function GraphicsLab() {
           <h1>Graphics lab</h1>
         </div>
         <span>Isolated fixtures · your journey stays saved</span>
+        <a href="/history-lab">History & content lab →</a>
         <a className="action" href="/">
           Return to world →
         </a>
