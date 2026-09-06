@@ -7,8 +7,8 @@ export class ChunkCache {
   private pending = new Set<string>();
   private worldKey = "";
   private regionKey = "";
-  constructor() {
-    if (typeof Worker !== "undefined") {
+  constructor(enabled = true) {
+    if (enabled && typeof Worker !== "undefined") {
       this.worker = new Worker(new URL("../world/worker.ts", import.meta.url), {
         type: "module",
       });

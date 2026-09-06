@@ -5,6 +5,11 @@ import { claimWriter, load, save, preserveRecovery } from "./runtime/storage";
 import "./ui/style.css";
 import { registerWebMCP } from "./agents/webmcp";
 async function start() {
+  if (window.location.pathname === "/graphics-lab") {
+    const { GraphicsLab } = await import("./dev/GraphicsLab");
+    createRoot(document.getElementById("root")!).render(<GraphicsLab />);
+    return;
+  }
   let engine = createSession();
   let notice = "";
   try {

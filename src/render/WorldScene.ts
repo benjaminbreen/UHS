@@ -1,3 +1,5 @@
+import { buildingContains, buildingPlacement } from "./buildings";
+import { terrainVariant, type RenderOptions } from "./appearance";
 import Phaser from "phaser";
 import type { Runtime } from "../runtime/session";
 import type { Position } from "../core/types";
@@ -25,7 +27,10 @@ export class WorldScene extends Phaser.Scene {
   private night?: Phaser.GameObjects.Graphics;
   private cursors?: Phaser.Types.Input.Keyboard.CursorKeys;
   private wasd?: Record<string, Phaser.Input.Keyboard.Key>;
-  constructor(runtime: Runtime) {
+  constructor(
+    runtime: Runtime,
+    private options: RenderOptions = {},
+  ) {
     super("world");
     this.runtime = runtime;
   }
@@ -53,6 +58,7 @@ export class WorldScene extends Phaser.Scene {
     ]);
     this.game.canvas.setAttribute("data-ready", "true");
     this.input.keyboard!.on("keydown", (event: KeyboardEvent) => {
+      if (this.options.lab) return;
       const active = document.activeElement;
       if (
         active instanceof HTMLInputElement ||
@@ -81,7 +87,7 @@ export class WorldScene extends Phaser.Scene {
       }
     });
     this.input.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
-      if (pointer.rightButtonDown()) return;
+      if (pointer.rightButtonDown() || this.options.lab) return;
       const p = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
       const x = Math.floor(p.x / 16),
         y = Math.floor(p.y / 16);
@@ -92,9 +98,7 @@ export class WorldScene extends Phaser.Scene {
       const object = obs.objects.find(
         (o) => Math.abs(o.pos.x - x) <= 0.8 && Math.abs(o.pos.y - y) <= 0.8,
       );
-      const place = obs.places.find(
-        (b) => x >= b.x && x < b.x + b.w && y >= b.y - 2 && y <= b.y + b.h,
-      );
+      const place = obs.places.find((b) => buildingContains(b, p.x, p.y));
       if (actor || object || place)
         this.runtime.select((actor || object || place)!.id);
       else {
@@ -105,13 +109,15 @@ export class WorldScene extends Phaser.Scene {
     this.input.on(
       "wheel",
       (_p: unknown, _g: unknown, _dx: number, dy: number) => {
-        if (dy) this.runtime.setZoom(this.runtime.zoom + (dy < 0 ? 1 : -1));
+        if (dy && !this.options.lab)
+          this.runtime.setZoom(this.runtime.zoom + (dy < 0 ? 1 : -1));
       },
     );
     this.scale.on("resize", () => this.draw());
     this.unsubscribe = this.runtime.subscribe(() => this.draw());
     this.events.once("shutdown", () => this.unsubscribe?.());
     this.draw();
+    this.options.onReady?.();
   }
   private sprite(frame: string, x: number, y: number, depth: number) {
     const image = this.add
@@ -122,6 +128,7 @@ export class WorldScene extends Phaser.Scene {
     return image;
   }
   private shadow(frame: string, x: number, y: number, transient = false) {
+    if (this.options.shadows === false) return undefined;
     const atlas = this.textures.get("atlas");
     if (!atlas.has(`shadow-${frame}`)) return undefined;
     const shadow = atlas.get(`shadow-${frame}`);
@@ -178,19 +185,14 @@ export class WorldScene extends Phaser.Scene {
             p.space === "outside"
               ? surfaceAt(w, x, y, rt.terrainAt(x, y, p.space))
               : rt.terrainAt(x, y, p.space);
-          const variant = Math.floor(
-            random(e.state.manifest.seed, "art", x, y) *
-              (["grass", "dry", "dirt", "sand", "water", "field"].includes(t)
-                ? 8
-                : 4),
-          );
+          const variant = terrainVariant(e.state.manifest.seed, t, x, y);
           return (
             (terrainFrames as Record<string, number>)[
               t === "bridge"
-                ? w.pack.layout === "streets"
+                ? w.pack.landscape.bridge === "stone"
                   ? `paving${variant}`
                   : "bridge"
-                : `${t}${variant}`
+                : `${t === "water" ? w.pack.landscape.water : t}${variant}`
             ] ?? 0
           );
         }),
@@ -294,7 +296,9 @@ export class WorldScene extends Phaser.Scene {
             if (
               w.terrain(x, y) === "sand" &&
               !hasQuay(w, x, y) &&
-              random(e.state.manifest.seed, "reeds", x, y) < 0.09
+              surfaceAt(w, x, y) === "sand" &&
+              random(e.state.manifest.seed, "reeds", x, y) <
+                w.pack.landscape.reeds
             )
               this.sprite("reeds", x * 16 + 8, y * 16 + 16, y * 16 + 11);
             const d = w.decoration(x, y);
@@ -318,24 +322,36 @@ export class WorldScene extends Phaser.Scene {
             b.y > startY - 8 &&
             b.y < startY + height + 8
           ) {
-            this.shadow(b.sprite, (b.x + b.w / 2) * 16, (b.y + b.h) * 16 + 3);
+            const placement = buildingPlacement(b);
+            // The cast texture uses the source canvas's bottom anchor; model owns its offset.
+            this.shadow(
+              b.sprite,
+              placement.x,
+              placement.y +
+                placement.model.bounds[3] -
+                placement.model.anchor[1],
+            );
             const image = this.sprite(
               b.sprite,
-              (b.x + b.w / 2) * 16,
-              (b.y + b.h) * 16 + 3,
-              (b.y + b.h) * 16 - 2,
-            );
+              placement.x,
+              placement.y,
+              placement.depth,
+            ).setOrigin(placement.originX, placement.originY);
             this.buildings.set(b.id, image);
           }
-        for (const s of w.settlements) {
-          if (Math.abs(s.x - p.x) > 100 || Math.abs(s.y - p.y) > 100) continue;
-          for (let x = s.x + 20; x <= s.x + 28; x++)
-            for (const y of [s.y + 12, s.y + 20])
-              if (!(x === s.x + 24 && y === s.y + 12))
+        for (const fence of w.enclosures) {
+          if (Math.abs(fence.x - p.x) > 100 || Math.abs(fence.y - p.y) > 100)
+            continue;
+          for (let x = fence.x; x < fence.x + fence.w; x++)
+            for (let y = fence.y; y < fence.y + fence.h; y++)
+              if (
+                (x === fence.x ||
+                  x === fence.x + fence.w - 1 ||
+                  y === fence.y ||
+                  y === fence.y + fence.h - 1) &&
+                !(x === fence.gate.x && y === fence.gate.y)
+              )
                 this.sprite("fence", x * 16 + 8, y * 16 + 16, y * 16 + 10);
-          for (let y = s.y + 13; y < s.y + 20; y++)
-            for (const x of [s.x + 20, s.x + 28])
-              this.sprite("fence", x * 16 + 8, y * 16 + 16, y * 16 + 10);
         }
       } else {
         const dark = this.add.graphics().setDepth(-50000);
@@ -364,7 +380,7 @@ export class WorldScene extends Phaser.Scene {
     for (const [id, image] of this.buildings) {
       const b = w.place(id)!;
       image.setAlpha(
-        p.x >= b.x - 1 && p.x <= b.x + b.w && p.y < b.y + b.h && p.y >= b.y - 2
+        !this.options.lab && buildingContains(b, p.x * 16 + 8, p.y * 16 + 8)
           ? 0.45
           : 1,
       );
@@ -388,7 +404,7 @@ export class WorldScene extends Phaser.Scene {
         this.entities.set(id, im);
         const shade = this.shadow(frame, tx, ty, true);
         if (shade) this.shadows.set(id, shade);
-        if (id !== "player") {
+        if (id !== "player" && !this.options.lab) {
           im.setInteractive({ pixelPerfect: true, useHandCursor: true });
           im.on(
             "pointerdown",
@@ -494,7 +510,28 @@ export class WorldScene extends Phaser.Scene {
       for (const step of rt.route.filter((_, i) => i % 3 === 0))
         g.fillRect(step.x * 16 + 7, step.y * 16 + 7, 2, 2);
     }
-    const hour = (e.state.clock / 3600) % 24;
+    if (this.options.debug) {
+      for (const place of w.places) {
+        g.lineStyle(1, 0x73d8ed, 0.8);
+        g.strokeRect(place.x * 16, place.y * 16, place.w * 16, place.h * 16);
+        g.fillStyle(0xffcb6e, 1);
+        g.fillRect(place.entrance.x * 16 + 5, place.entrance.y * 16 + 5, 6, 6);
+        const bp = buildingPlacement(place);
+        g.lineStyle(1, 0xf3a6cc, 0.6);
+        g.strokeRect(
+          bp.x - bp.model.anchor[0],
+          bp.y - bp.model.anchor[1],
+          bp.model.bounds[2],
+          bp.model.bounds[3],
+        );
+      }
+    }
+    const hour =
+      this.options.lighting === "dusk"
+        ? 19
+        : this.options.lighting
+          ? 12
+          : (e.state.clock / 3600) % 24;
     const darkness =
       hour < 6 || hour >= 20
         ? 0.42
@@ -504,7 +541,10 @@ export class WorldScene extends Phaser.Scene {
             ? (hour - 17) * 0.1
             : 0;
     this.night!.clear()
-      .fillStyle(0x162833, darkness)
+      .fillStyle(
+        this.options.lighting === "warm" ? 0xbf772e : 0x162833,
+        this.options.lighting === "warm" ? 0.1 : darkness,
+      )
       .fillRect(
         -this.scale.width * 4,
         -this.scale.height * 4,
@@ -514,7 +554,7 @@ export class WorldScene extends Phaser.Scene {
     this.lastRevision = e.state.revision;
   }
   update(time: number) {
-    const phase = Math.floor(time / 800) % 4;
+    const phase = this.options.freeze ? 0 : Math.floor(time / 800) % 4;
     if (phase !== this.rippleTime) {
       this.rippleTime = phase;
       for (const r of this.ripples)
@@ -526,7 +566,7 @@ export class WorldScene extends Phaser.Scene {
       active instanceof HTMLTextAreaElement ||
       active instanceof HTMLSelectElement ||
       !!document.querySelector('[data-modal="true"]');
-    if (!typing && time - this.lastInput > 130) {
+    if (!this.options.lab && !typing && time - this.lastInput > 130) {
       const c = this.cursors!,
         w = this.wasd!;
       let dx = 0,
@@ -540,7 +580,7 @@ export class WorldScene extends Phaser.Scene {
         this.runtime.move(dx, dy);
       }
     }
-    if (time - this.lastTick > 95 && !typing) {
+    if (!this.options.lab && time - this.lastTick > 95 && !typing) {
       this.lastTick = time;
       this.runtime.tick();
     }

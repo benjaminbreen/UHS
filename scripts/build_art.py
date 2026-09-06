@@ -39,29 +39,6 @@ for v in range(4):
 im,d=new(16,16);d.rectangle((0,0,15,15),fill=P['wood']);
 for x in [0,5,10,15]: d.line((x,0,x,15),fill=P['woodL'])
 d.line((0,3,15,3),fill='#665640');d.line((0,12,15,12),fill='#665640');add('bridge',im)
-# Angular leaf masses share an upper-left light; texture follows canopy volume.
-for name in ['oak','olive','cypress','acacia','hackberry']:
- im,d=new(48,64);d.ellipse((8,53,42,60),fill=(24,35,24,90))
- d.polygon([(21,29),(28,29),(28,52),(33,56),(25,56),(19,59),(20,53)],fill='#4c4530')
- d.polygon([(22,35),(25,35),(24,52),(21,56),(22,49)],fill='#a2844b');d.line((25,46,33,35),fill='#76613a',width=2)
- colors=['#263f35','#3a5e3e','#5f7d43','#8b9b50'] if name!='olive' else ['#304d3b','#4c6b45','#76894e','#9ba663']
- if name=='cypress':
-  d.polygon([(23,2),(26,5),(26,13),(29,17),(29,24),(32,30),(31,38),(33,43),(29,49),(24,52),(18,49),(16,43),(18,33),(18,26),(21,17),(21,8)],fill=colors[0])
-  for x,y,w,h in [(22,10,3,12),(21,19,5,13),(20,31,7,13),(23,39,5,8)]:
-   d.polygon([(x,y),(x+w,y+3),(x+w-1,y+h),(x-2,y+h-3)],fill=colors[1]);d.line((x,y+2,x-1,y+h-4),fill=colors[2],width=2)
-  for x,y in [(23,10),(22,21),(21,33),(24,39)]:d.line((x,y,x,y+4),fill=colors[3])
- else:
-  centers=[(21,17,13),(11,30,10),(31,29,13),(23,38,13)] if name not in ['acacia','hackberry'] else [(12,24,10),(23,18,12),(35,25,10),(25,32,12)]
-  rr=random.Random(47+len(name))
-  for x,y,r in centers:
-   shape=[(x-r,y-3),(x-r+3,y-r+3),(x-3,y-r),(x+5,y-r+1),(x+r-2,y-5),(x+r,y+4),(x+r-4,y+r-2),(x+3,y+r),(x-6,y+r-1),(x-r,y+5)]
-   d.polygon(shape,fill=colors[0]);d.polygon([(a,b-1) for a,b in [(x-r+2,y-2),(x-r+4,y-r+4),(x-2,y-r+2),(x+5,y-r+3),(x+r-3,y-3),(x+r-3,y+5),(x+3,y+r-3),(x-5,y+r-3),(x-r+2,y+3)]],fill=colors[1])
-   d.polygon([(x-r+3,y-3),(x-r+5,y-r+5),(x-2,y-r+3),(x+3,y-r+4),(x+5,y-4),(x,y-1),(x-5,y+3),(x-r+4,y+2)],fill=colors[2])
-   for j in range(13):
-    xx=x+rr.randrange(-r+4,r-3);yy=y+rr.randrange(-r+4,r-3)
-    col=colors[3] if xx+yy<x+y-4 else colors[2] if j%3 else colors[0]
-    d.line((xx,yy,xx+2,yy),fill=col);d.point((xx-1,yy+1),fill=col)
- add(name,im)
 for name in ['bush','reeds','rock','flowers','wheat','flax','log','basket','amphora','jug','well','fire','bench','gate','gate-open','fence','ladder','door','door-open','mat','bed','oven','crate','fish','tool','bread','grain','coin','obsidian','wool']:
  w,h=(32,32) if name in ['well','oven'] else (16,24)
  im,d=new(w,h);d.ellipse((2,h-7,w-2,h-2),fill=(39,44,32,65))
@@ -114,26 +91,6 @@ for name in ['bush','reeds','rock','flowers','wheat','flax','log','basket','amph
  elif name=='wool':
   for x,y in [(5,14),(10,13),(9,18),(4,18)]:d.ellipse((x-3,y-3,x+3,y+3),fill='#dbd4b2');d.arc((4,12,11,19),30,300,fill='#aaa888')
  add(name,im)
-# Four orientations and two walk frames; readable tunics, faces, arms and feet.
-for skin_i,skin in enumerate(['#c49468','#a77550','#dbb58a']):
- for cloth_i,cloth in enumerate(['#ded5b4','#9a5c46','#527b7b','#7d8060','#ad8d53','#6b6b86']):
-  for direction in range(4):
-   for frame in range(2):
-    im,d=new(16,24);d.ellipse((3,21,13,23),fill=(25,35,26,75))
-    d.rectangle((5,17,7,21-frame),fill='#5b4e3b');d.rectangle((9,17,11,20+frame),fill='#5b4e3b')
-    d.rectangle((4,10,12,17),fill='#3f463d');d.rectangle((5,10,11,17),fill=cloth);d.rectangle((5,16,11,17),fill='#796744');d.rectangle((3,11,4,15),fill=skin);d.rectangle((12,11,13,15),fill=skin)
-    d.rectangle((5,3,11,9),fill=skin);d.rectangle((4,2,11,5),fill='#493f32');d.rectangle((6,1,10,2),fill='#493f32')
-    if direction==0:d.rectangle((5,5,11,8),fill='#493f32')
-    elif direction==1:d.point((11,6),fill='#333c35');d.rectangle((12,7,12,8),fill=skin)
-    elif direction==3:d.point((5,6),fill='#333c35');d.rectangle((4,7,4,8),fill=skin)
-    else:d.point((6,6),fill='#333c35');d.point((10,6),fill='#333c35');d.line((7,9,9,9),fill='#a37351')
-    for x,y in [(4,3),(4,6),(4,8),(5,9),(3,10),(2,12),(2,15),(3,16),(4,18),(12,18),(13,16),(14,15),(14,12),(13,10),(12,8),(12,5),(11,2)]:d.point((x,y),fill='#30302a')
-    # One-pixel contour and garment folds keep people legible against stone.
-    d.line((5,11,5,15),fill='#f0d3a1' if cloth_i==0 else '#bc8b68');d.line((10,11,10,15),fill='#786146')
-    d.line((5,18,5,20-frame),fill='#292f2b');d.line((11,18,11,20+frame),fill='#292f2b')
-    d.point((5,4),fill='#75624a');d.line((6,2,9,2),fill='#65533d')
-    if direction==2:d.point((8,7),fill='#e1ad7b');d.point((10,9),fill='#765037')
-    add(f'human-{skin_i}-{cloth_i}-{direction}-{frame}',im)
 for name in ['sheep','goat','lizard','chicken']:
  for frame in range(2):
   im,d=new(24,20);d.ellipse((3,16,22,19),fill=(29,39,28,60))
@@ -147,87 +104,10 @@ for name in ['sheep','goat','lizard','chicken']:
    if name=='sheep':
     for x,y in [(6,5),(10,4),(14,6),(9,9)]:d.line((x,y,x+2,y),fill='#eeead0')
   add(f'{name}{frame}',im)
-# Facades vary by module, keeping every collision footprint and entrance unchanged.
-# Taller roof planes and a narrow side wall add depth without increasing tile resolution.
-for style in ['roman','mud']:
- for variant in range(4):
-  w=80 if variant%2==0 else 96;h=(112 if variant==0 else 96) if style=='roman' else 72
-  im,d=new(w,h);r=random.Random(902+variant)
-  d.polygon([(5,35),(w-8,34),(w-1,h-4),(12,h-1)],fill=(23,32,25,85))
-  wall='#ccbb92' if style=='roman' else '#c6a574';shade='#978366' if style=='roman' else '#9b784f'
-  top=38 if style=='roman' else 24
-  d.rectangle((5,top,w-8,h-10),fill='#615240');d.rectangle((6,top,w-14,h-13),fill=wall)
-  d.rectangle((w-14,top,w-8,h-12),fill=shade)
-  d.rectangle((6,h-20,w-14,h-13),fill='#a89777' if style=='roman' else '#ac895b')
-  for yy in range(top+6,h-16,7):
-   for xx in range(9,w-16,11):
-    if r.random()<.4:d.rectangle((xx,yy,xx+3,yy+1),fill='#b8a77f' if style=='roman' else '#b59464')
-  for x in range(7,w-15,12):
-   d.line((x,h-16,x+8,h-16),fill='#d0bea0');d.line((x+9,h-19,x+9,h-14),fill=shade)
-  if style=='roman':
-   # Deep terracotta roof: lit ridges, dark channels and a cast eave shadow.
-   d.rectangle((5,38,w-9,43),fill='#756149');d.rectangle((5,38,w-9,40),fill='#554838')
-   d.polygon([(1,37),(10,5),(w-13,5),(w-4,37)],fill=P['roofD'])
-   for row in range(6):
-    y=6+row*5
-    for x in range(9-row,w-11+row,6):
-     d.rectangle((x,y,x+4,y+4),fill=P['roof']);d.line((x,y,x+3,y),fill=P['roofL']);d.line((x+1,y+1,x+1,y+3),fill='#cb6741');d.line((x+4,y+1,x+4,y+4),fill='#843b2e');d.point((x+3,y+4),fill='#60342b')
-   d.rectangle((2,36,w-5,39),fill='#663d30');d.line((3,36,w-6,36),fill='#b56845');d.line((10,4,w-13,4),fill='#ed9b5f',width=2)
-   def window(x,y):
-    d.rectangle((x-1,y-1,x+10,y+14),fill='#dacaa6');d.rectangle((x,y,x+9,y+12),fill='#71664f');d.rectangle((x+2,y+1,x+8,y+11),fill='#253e49');d.line((x+2,y+2,x+2,y+10),fill='#395767');d.rectangle((x-2,y+13,x+11,y+15),fill='#eee0b7');d.line((x-1,y+16,x+11,y+16),fill='#a99573')
-   for x in [14,w-31]:window(x,49)
-   if variant==0:
-    d.rectangle((6,71,w-14,73),fill='#e0cfaa');d.line((6,74,w-14,74),fill='#9b8869')
-    for x in [14,w-31]:window(x,79)
-   door_top=82 if variant==0 else 64
-   dx=w//2-6;d.rectangle((dx-2,door_top,dx+13,h-13),fill='#e0cda5');d.rectangle((dx,door_top+1,dx+11,h-13),fill='#354044');d.rectangle((dx+2,door_top+3,dx+9,h-14),fill='#6a5138')
-   d.line((dx+5,door_top+4,dx+5,h-15),fill='#8a6b42');d.point((dx+8,door_top+12),fill='#d6ad67');d.rectangle((dx-2,h-12,dx+14,h-10),fill='#d5c9a9')
-   if variant>=2:
-    # Goods and shelves belong to the facade; the selectable container stays separate.
-    for x in [13,w-25]:
-     d.rectangle((x,h-22,x+11,h-10),fill='#513f2e');d.rectangle((x+1,h-21,x+10,h-12),fill='#9e7444');d.line((x+2,h-13,x+9,h-13),fill='#c39b59')
-     for j in range(3):d.rectangle((x+2+j*3,h-24,x+3+j*3,h-20),fill=['#798f40','#b18140','#b44e2f'][j])
-    d.rectangle((8,h-35,w-14,h-32),fill='#624b33')
-    for j,x in enumerate(range(9,w-17,8)):
-     col='#e3d2a6' if variant==3 or j%2 else '#ac4432'
-     d.polygon([(x,h-34),(x+7,h-34),(x+9,h-23),(x-2,h-23)],fill=col)
-     d.line((x-2,h-22,x+9,h-22),fill='#b9a77f' if col=='#e3d2a6' else '#783d31',width=2)
-    for x in [8,w-14]:d.line((x,h-23,x,h-8),fill='#4e422f',width=2);d.line((x+1,h-23,x+1,h-9),fill='#ae8f55')
-   elif variant==1:
-    # Pilasters reuse the wall palette for a more formal street frontage.
-    for x in [8,w-19]:
-     d.rectangle((x,44,x+4,h-14),fill='#e2d3ae');d.line((x+4,44,x+4,h-14),fill='#9d8f73');d.rectangle((x-1,43,x+5,45),fill='#e9dab6');d.rectangle((x-1,h-15,x+5,h-12),fill='#d4c6a6')
-  else:
-   d.polygon([(4,27),(9,6),(w-14,6),(w-7,27)],fill='#785e41');d.polygon([(5,24),(11,6),(w-16,6),(w-9,24)],fill='#d9bb82')
-   d.line((10,5,w-15,5),fill='#f0d69a',width=2);d.rectangle((5,25,w-8,29),fill='#a18155');d.line((6,25,w-9,25),fill='#e6c98d')
-   for x in range(12,w-17,10):d.line((x,27,x+2,27),fill='#725a3f')
-   for j in range(23):
-    x=r.randrange(12,w-18);y=r.randrange(9,22);d.line((x,y,x+2,y),fill='#c4a36d' if j%2 else '#e4c78e')
-   d.rectangle((w-32,12,w-20,23),fill='#9b794e');d.rectangle((w-30,14,w-21,23),fill='#373b30');d.line((w-30,14,w-21,14),fill='#5f503a')
-   for x in [w-28,w-19]:d.line((x,21,x+3,h-7),fill='#52432f',width=3);d.line((x,21,x+3,h-9),fill='#b99a60')
-   for y in range(26,h-7,6):d.line((w-27+(y-21)//17,y,w-19+(y-21)//17,y),fill='#baa06a',width=2);d.line((w-27+(y-21)//17,y+2,w-19+(y-21)//17,y+2),fill='#74583b')
-   if variant%2==0:
-    d.ellipse((13,12,27,20),fill='#ad8859');d.ellipse((14,10,26,18),fill='#dfc790');d.line((15,14,24,14),fill='#bd9e69')
-   else:
-    d.rectangle((12,11,28,19),fill='#ac8253')
-    for y in range(12,20,2):d.line((13,y,26,y),fill='#d8b47a')
-  add(f'house-{style}-{variant}',im)
 # A complete small civic facade, using the same wall/roof colors.
 im,d=new(112,88);d.rectangle((5,72,106,83),fill='#9d9d87');d.rectangle((9,70,102,76),fill='#d3c9a5');d.rectangle((14,33,97,70),fill='#b7a783');d.polygon([(5,33),(55,7),(106,33)],fill='#9b674a');d.polygon([(10,31),(55,11),(101,31)],fill='#d3bf92');d.line((11,33,101,33),fill='#e2d2a7',width=3)
 for x in [17,37,69,89]:d.rectangle((x,37,x+5,69),fill='#d6c9a6');d.line((x+5,38,x+5,69),fill='#a99978');d.rectangle((x-2,35,x+7,38),fill='#e0d3ae');d.rectangle((x-2,68,x+7,71),fill='#e0d3ae')
 d.rectangle((49,45,63,71),fill='#5d5b48');add('hall',im)
-# Transparent transition tiles add irregular grass tips and quiet shoreline edges.
-for material in ['grass','dry','sand']:
- for mask in range(1,16):
-  im,d=new(16,16);color=P['grass'] if material=='grass' else '#a8ad70' if material=='dry' else '#c5b47e'
-  for side in range(4):
-   if not mask&(1<<side):continue
-   for u in range(16):
-    depth=[1,2,1,3,1,1,2,1][u%8]
-    for v in range(depth):
-     x,y=(u,v) if side==0 else (15-v,u) if side==1 else (u,15-v) if side==2 else (v,u)
-     d.point((x,y),fill=color)
-  add(f'edge-{material}-{mask}',im)
 # Portraits use the same identities and cloth palette as world sprites, drawn at 56 x 60.
 # Stepped silhouettes, a fixed upper-left light, and small reusable facial planes.
 for skin_i,(skin,light,shade) in enumerate([('#c49468','#e4b387','#98633f'),('#a77550','#c69a70','#785037'),('#dbb58a','#efcca2','#ad805b')]):
@@ -289,6 +169,10 @@ d.rectangle((0,0,47,3),fill='#d5cdb1');d.line((0,4,47,4),fill='#616b60')
 add('bridge-arch',im)
 from art_world import paint_world
 paint_world(S)
+from art.buildings import build_buildings
+from art.shadows import build_shadows
+buildings = build_buildings(ROOT, S)
+build_shadows(S, buildings)
 shadow_anchors={n:im.info['anchor'] for n,im in S.items() if 'anchor' in im.info}
 (OUT/'shadows.json').write_text(json.dumps(shadow_anchors))
 # Pack named frames into one texture. A 16px grid is a sampling unit, not an asset-size limit.

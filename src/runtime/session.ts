@@ -47,7 +47,7 @@ export class Runtime {
   private follow?: string;
   private steps = 0;
   private serial = 0;
-  private chunks = new ChunkCache();
+  private chunks: ChunkCache;
   replay?: {
     commands: CommandRequest[];
     index: number;
@@ -58,7 +58,8 @@ export class Runtime {
   private subscribers = new Set<() => void>();
   private cached: ReturnType<Runtime["view"]>;
   onChange?: (snapshot: Snapshot) => void;
-  constructor(engine: Engine) {
+  constructor(engine: Engine, options: { cacheTerrain?: boolean } = {}) {
+    this.chunks = new ChunkCache(options.cacheTerrain !== false);
     this.engine = engine;
     this.cached = this.view();
   }
@@ -78,6 +79,11 @@ export class Runtime {
           }
         : undefined,
     };
+  }
+  dispose() {
+    this.stop(false);
+    this.chunks.dispose();
+    this.subscribers.clear();
   }
   getSnapshot = () => this.cached;
   subscribe = (listener: () => void) => {

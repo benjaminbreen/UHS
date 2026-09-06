@@ -1,3 +1,4 @@
+import type { LandscapeStyle } from "../content/graphics/landscapes";
 export type PackId = string;
 export type Point = { x: number; y: number };
 export type Position = Point & { space: string };
@@ -110,7 +111,9 @@ export type Pack = {
   concern: string;
   ground: "grass" | "dry";
   road: "paving" | "dirt";
-  architecture: "roman" | "mud";
+  buildings: string[];
+  buildingClaim: string;
+  landscape: LandscapeStyle;
   layout: "streets" | "clusters";
   trees: string[];
   buildingNames: string[];
@@ -250,6 +253,7 @@ export type Observation = {
 export interface WorldModel {
   pack: Pack;
   settlements: Settlement[];
+  enclosures: { x: number; y: number; w: number; h: number; gate: Point }[];
   places: Place[];
   initialActors: Actor[];
   initialObjects: WorldObject[];

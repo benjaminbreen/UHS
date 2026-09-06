@@ -639,7 +639,7 @@ export function App({
                       }}
                     >
                       <div className={`world-card-art ${pk.id}`}>
-                        <Sprite name={`house-${pk.architecture}-0`} scale={2} />
+                        <Sprite name={pk.buildings[0]} scale={2} />
                         <Sprite name={pk.trees[0]} scale={2} />
                       </div>
                       <span className="world-card-title">
@@ -874,6 +874,14 @@ export function App({
               <>
                 <div className="eyebrow">YOUR WORLD</div>
                 <h2>Settings & saved journeys</h2>
+                <a
+                  className="action"
+                  href="/graphics-lab"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Graphics lab ↗
+                </a>
                 <p>
                   Simulation time moves only when you act. Reading and typing
                   never advance the day.

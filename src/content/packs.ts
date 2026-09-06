@@ -1,3 +1,4 @@
+import { landscapes } from "./graphics/landscapes";
 import type { Pack, ItemDef, ItemId } from "../core/types";
 import tiberGeography from "./generated/tiber-geography.json" with { type: "json" };
 export const items: Record<ItemId, ItemDef> = {
@@ -42,7 +43,14 @@ export const packs: Record<string, Pack> = {
     concern: "A place to stay, a little work, and a road still to follow.",
     ground: "grass",
     road: "paving",
-    architecture: "roman",
+    buildings: [
+      "house-roman-0",
+      "house-roman-1",
+      "house-roman-2",
+      "house-roman-3",
+    ],
+    buildingClaim: "roman-house",
+    landscape: landscapes.riverTown,
     layout: "streets",
     trees: ["olive", "cypress", "oak"],
     buildingNames: [
@@ -134,7 +142,9 @@ export const packs: Record<string, Pack> = {
       "The grain needs tending. There is time to explore beyond the houses.",
     ground: "dry",
     road: "dirt",
-    architecture: "mud",
+    buildings: ["house-mud-0", "house-mud-1", "house-mud-2", "house-mud-3"],
+    buildingClaim: "neolithic-house",
+    landscape: landscapes.meadow,
     layout: "clusters",
     trees: ["hackberry", "oak"],
     buildingNames: [

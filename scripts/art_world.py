@@ -1,4 +1,4 @@
-"""World art recipes for target 3. Integer pixels, explicit ramps, one light direction.
+"""Terrain, vegetation, props and actor source recipes. Integer pixels, explicit ramps, one light direction.
 This module paints source assets; no reference-image pixels enter the atlas.
 """
 from PIL import Image, ImageDraw
@@ -13,8 +13,8 @@ def paint_world(S):
     # Broad color clusters, followed by a few grass blades. Variation is at both
     # the tile and pixel-cluster scale, never a uniform sprinkling of single dots.
     for material,palette in {
-        'grass':['#7e9643','#849b46','#8da24d','#96a952','#78903f'],
-        'dry':['#8b9f4c','#91a34f','#9aad55','#a3b55f','#839947'],
+        'grass':['#829745','#879b48','#8d9f4c','#93a351','#7d9242'],
+        'dry':['#889a49','#8d9f4c','#93a350','#99a755','#839547'],
         'dirt':['#c6a263','#cfad6e','#d9b779','#dfbf81','#b99558'],
         'sand':['#d6b071','#dfba7e','#e8c88d','#f0d398','#bd965d'],
         'water':['#13759b','#167a9e','#197da1','#1c80a2','#117198'],
@@ -23,19 +23,25 @@ def paint_world(S):
         for v in range(8):
             im,d=canvas(16,16);r=random.Random(416+v*53+sum(map(ord,material)))
             d.rectangle((0,0,15,15),fill=palette[0])
-            for j in range(10 if material in ('grass','dry') else 3 if material=='water' else 7):
+            for j in range((2 if v<6 else 7) if material in ('grass','dry') else 2 if material=='water' else 5):
                 x,y=r.randrange(-2,16),r.randrange(-2,16);ww,hh=r.randrange(2,5),r.randrange(1,4)
                 color=palette[r.randrange(1,5)]
                 d.rectangle((x,y,x+ww,y+hh),fill=color)
                 d.line((x-1,y+1,x+ww+1,y+1),fill=color)
             if material in ('grass','dry'):
-                for j in range(5):
+                for j in range(1 if v<6 else 3):
                     x,y=r.randrange(1,15),r.randrange(1,15)
                     d.line((x,y,x-1,y-1),fill=palette[4]);d.line((x+1,y,x+1,y-2),fill=palette[2])
             elif material in ('sand','dirt'):
                 for j in range(4):
                     x,y=r.randrange(1,15),r.randrange(1,15);d.line((x,y,x+1,y),fill=palette[3])
             S[f'{material}{v}']=im
+    for v in range(8):
+        source=S[f'water{v}'];im=source.copy()
+        for y in range(16):
+            for x in range(16):
+                r,g,b,a=source.getpixel((x,y));im.putpixel((x,y),(r+8,g-7,b-30,a))
+        S[f'water-teal{v}']=im
     # Ground-edge masks include diagonals for isolated convex corners.
     # Every tile uses matching edge end points, so chunk seams cannot change them.
     for material in ['grass','dry','sand']:
@@ -68,8 +74,8 @@ def paint_world(S):
                 if mask&2:candidates.append((15-x,'east',y))
                 if mask&4:candidates.append((15-y,'south',x))
                 if mask&8:candidates.append((x,'west',y))
-                for bit,cx,cy in [(16,15,0),(32,15,15),(64,0,15),(128,0,0)]:
-                    if mask&bit:candidates.append((math.hypot(x-cx,y-cy),'north',x+y))
+                for bit,cx,cy,adjacent in [(16,15,0,3),(32,15,15,6),(64,0,15,12),(128,0,0,9)]:
+                    if mask&bit and not mask&adjacent:candidates.append(((abs(x-cx)+abs(y-cy))*.70,'north',x+y))
                 dist,side,u=min(candidates,default=(99,'north',0))
                 variation=[0,0,0,0,0,1,1,0][u%8]
                 depth=dist-variation
@@ -103,30 +109,8 @@ def paint_world(S):
                 z=math.sqrt(max(0,1-rr));light=-.46*nx-.6*ny+.58*z+jitter.get((x//2,y//2),0)
                 level=0 if rr>.92 else 1 if light<.08 else 2 if light<.38 else 3 if light<.63 else 4 if light<.82 else 5
                 d.point((x,y),fill=pal[level])
-    for name in ['oak','olive','hackberry','acacia','cypress']:
-        im,d=canvas(56,72)
-        d.polygon([(25,37),(31,37),(31,63),(36,67),(27,66),(21,69),(23,63)],fill='#493c2d')
-        d.polygon([(25,44),(29,42),(28,62),(25,66),(25,56)],fill='#9d7746');d.line((29,50,38,39),fill='#684d30',width=3)
-        d.line((26,50,18,43),fill='#765738',width=3);d.line((26,53,26,61),fill='#c09553')
-        pal=['#193e30','#2c512f','#426832','#5f8137','#819c40','#a6b64e']
-        if name=='olive':pal=['#2c4935','#40623c','#5b7b43','#7c9650','#a0af60','#bdc67a']
-        if name=='cypress':
-            for cx,cy,rx,ry in [(27,41,11,16),(26,29,8,16),(27,16,5,13)]:crown(im,cx,cy,rx,ry,pal,cy)
-        else:
-            masses=[(25,15,12,11),(36,24,14,13),(15,28,13,12),(26,33,17,15),(40,38,12,11),(20,43,12,10)]
-            if name in ('hackberry','acacia'):masses=[(25,17,13,10),(13,27,12,10),(39,26,13,12),(26,32,16,12)]
-            for i,(cx,cy,rx,ry) in enumerate(masses):crown(im,cx,cy,rx,ry,pal,74+i)
-        # Leaf groups break up smooth masses while preserving their underlying light.
-        rng=random.Random(330+len(name))
-        for j in range(110):
-            x,y=rng.randrange(4,52),rng.randrange(5,51)
-            color=im.getpixel((x,y))
-            ramp=[tuple(bytes.fromhex(c[1:]))+(255,) for c in pal]
-            if color in ramp[1:5]:
-                level=ramp.index(color);level=max(1,min(5,level+rng.choice([-1,-1,1])))
-                for dx,dy in [(0,0),(1,0),(2,0),(0,1)]:
-                    if im.getpixel((x+dx,y+dy)) in ramp[1:]:d.point((x+dx,y+dy),fill=pal[level])
-        S[name]=im
+    from art.vegetation import tree
+    for name in ['oak','olive','hackberry','acacia','cypress']:S[name]=tree(name)
     for name in ['bush','flowers','flax']:
         im,d=canvas(24,26)
         pal=['#294e32','#365f35','#507d37','#73973f','#94b64c','#b7c964']
@@ -201,47 +185,6 @@ def paint_world(S):
                     elif direction==3:d.point((6,8),fill=ink);d.rectangle((4,9,5,10),fill=light);d.rectangle((13,6,14,11),fill=hair)
                     else:d.point((8,8),fill=ink);d.point((13,8),fill=ink);d.point((11,10),fill=light);d.line((9,12,11,12),fill=shadecolor)
                     S[f'human-{si}-{ci}-{direction}-{frame}']=im
-    # Flat-roof houses: the roof is a strongly lit horizontal plane, the facade a
-    # darker vertical plane. All ladders still meet the existing entrance anchor.
-    for variant in range(4):
-        w=80 if variant%2==0 else 96;h=80
-        im,d=canvas(w,h);r=random.Random(502+variant)
-        d.rectangle((5,5,w-9,h-7),fill='#61452e')
-        d.rectangle((6,31,w-14,h-9),fill='#b18a55');d.rectangle((w-14,30,w-8,h-8),fill='#805e3c')
-        d.rectangle((6,32,w-15,35),fill='#94703f');d.rectangle((6,h-17,w-14,h-9),fill='#8d6c42')
-        # Irregular plaster and foundation stones follow wall planes.
-        for j in range(27):
-            x,y=r.randrange(8,w-17),r.randrange(36,h-15)
-            d.rectangle((x,y,x+r.randrange(2,5),y+2),fill=r.choice(['#9c7747','#c19a61','#ac834e']))
-        for x in range(7,w-16,9):
-            d.rectangle((x,h-14,x+6,h-10),fill='#a08050');d.line((x,h-9,x+7,h-9),fill='#604c35')
-        # Bright, slightly chipped roof lip with a shaded right edge.
-        d.rectangle((4,4,w-10,31),fill='#a78047');d.rectangle((5,5,w-12,29),fill='#e1b979')
-        d.line((5,4,w-12,4),fill='#fff0b3');d.line((4,5,4,30),fill='#f3d699');d.line((5,30,w-11,30),fill='#f3d08b');d.line((w-10,5,w-10,31),fill='#704f31')
-        for j in range(21):
-            x,y=r.randrange(8,w-18),r.randrange(8,26)
-            d.rectangle((x,y,x+r.randrange(1,4),y+1),fill=r.choice(['#d5ad6d','#ebc689','#edc88b']))
-        d.rectangle((11,10,14,13),fill='#98713e');d.line((11,9,15,9),fill='#f7d69b');d.point((12,11),fill='#bc9055')
-        # No invented street-level doorway for the roof-entry pack.
-        hx=w-32;d.rectangle((hx-2,10,hx+13,24),fill='#f0cd8b');d.rectangle((hx,11,hx+12,25),fill='#755231');d.rectangle((hx+2,13,hx+11,24),fill='#302d25');d.line((hx+2,13,hx+10,13),fill='#4f3b2a')
-        for x in [hx+2,hx+13]:
-            d.rectangle((x-1,21,x+2,h-5),fill='#443324');d.rectangle((x,21,x+1,h-7),fill='#956533');d.line((x,22,x,h-9),fill='#c39957')
-        for y in range(28,h-7,7):
-            d.rectangle((hx+3,y,hx+12,y+2),fill='#493421');d.line((hx+3,y,hx+12,y),fill='#c49b5c');d.line((hx+3,y+1,hx+12,y+1),fill='#9d743d')
-        # Recessed storage niche, visibly smaller than the roof entrance.
-        d.rectangle((15,47,24,60),fill='#cea265');d.rectangle((16,49,23,60),fill='#433728');d.line((16,61,25,61),fill='#d5ab6e')
-        if variant>=2:
-            d.rectangle((0,43,10,h-7),fill='#8e6b40');d.rectangle((1,43,8,h-11),fill='#b58e53');d.line((0,42,10,42),fill='#f0ca83',width=2);d.line((0,44,0,h-10),fill='#d7ad6b')
-            for yy in [54,65]:d.rectangle((3,yy,5,yy+2),fill='#a17b47')
-        if variant==1:
-            d.ellipse((17,14,30,22),fill='#b28b51');d.ellipse((17,12,30,19),fill='#ebca8d');d.line((20,16,27,16),fill='#c4a064')
-        S[f'house-mud-{variant}']=im
-    # Strengthen existing Roman wall/roof depth without changing facade modules.
-    for v in range(4):
-        im=S[f'house-roman-{v}'];d=ImageDraw.Draw(im);w,h=im.size
-        d.rectangle((w-14,44,w-9,h-14),fill='#887257');d.line((w-8,42,w-8,h-13),fill='#564636')
-        d.rectangle((6,40,w-15,43),fill='#716047');d.line((6,44,w-15,44),fill='#aa916b')
-        d.line((5,45,5,h-14),fill='#e3d0a0');d.line((7,h-10,w-10,h-10),fill='#5f523e')
     # Distinct leafy crops grow in the same field/harvest locations.
     im,d=canvas(20,24)
     d.line((10,21,10,8),fill='#4d682f',width=2)
@@ -249,17 +192,3 @@ def paint_world(S):
         d.polygon([(x,y),(x+side*5,y-2),(x+side*6,y-6),(x+side*2,y-5)],fill='#507c31')
         d.line((x,y-1,x+side*4,y-4),fill='#9bbb4d',width=2)
     d.rectangle((9,4,11,8),fill='#b3c868');S['crop-leafy']=im
-    # All cast shadows use the same projection and a single ground-plane alpha.
-    # Separate textures allow shadows to move with actors and extend past source bounds.
-    world_names=[n for n in S if n.startswith(('human-','house-')) or n in ['oak','olive','hackberry','acacia','cypress','bush','flowers','flax','rock','rock-1','rock-2','reeds','wheat','basket','amphora','jug','well','fire','hall','sheep0','sheep1','goat0','goat1','chicken0','chicken1','lizard0','lizard1','bed','oven','crate','fence','gate','gate-open','crop-leafy']]
-    for name in world_names:
-        source=S[name];w,h=source.size
-        opaque=[(x,y) for y in range(h) for x in range(w) if source.getpixel((x,y))[3]>200]
-        if not opaque:continue
-        bottom=max(y for x,y in opaque);gap=h-bottom
-        im,d=canvas(w+math.ceil(h*.4)+4,math.ceil(h*.22)+8+gap)
-        for x,y in opaque:
-            xx=x+math.floor((bottom-y)*.4);yy=2+math.floor((bottom-y)*.22)
-            d.rectangle((xx,yy,xx+1,yy+1),fill=(27,40,29,88))
-        im.info['anchor']=[w/2,2+gap]
-        S[f'shadow-{name}']=im

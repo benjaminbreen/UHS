@@ -1,3 +1,4 @@
+import { buildingModel } from "../content/graphics/models";
 import {
   CHUNK_SIZE,
   type Pack,
@@ -31,6 +32,13 @@ export function createWorld(pack: Pack, seed: string): WorldModel {
     },
     { id: "s3", name: pack.settlementNames[3], x: 150, y: 125, size: 24 },
   ];
+  const enclosures = settlements.map((s) => ({
+    x: s.x + 20,
+    y: s.y + 12,
+    w: 9,
+    h: 9,
+    gate: { x: s.x + 24, y: s.y + 12 },
+  }));
   // Region-wide channel and road functions are independent of chunk request order.
   const riverX = (y: number) => {
     if (!pack.geography)
@@ -63,27 +71,24 @@ export function createWorld(pack: Pack, seed: string): WorldModel {
         col * (pack.layout === "streets" ? 10 : 8) +
         Math.floor(r(s.id, i, "x") * 2);
       const y = s.y + [-17, -7, 11, 21][row] + Math.floor(r(s.id, i, "y") * 2);
-      const variant = Math.floor(r(s.id, i, "variant") * 4);
-      const w = variant % 2 === 0 ? 5 : 6,
-        h = pack.architecture === "roman" ? 4 : 3;
+      const variant = Math.floor(r(s.id, i, "variant") * pack.buildings.length);
+      const model = buildingModel(pack.buildings[variant]);
+      const [w, h] = model.footprint;
       const id = `${s.id}-house-${i}`,
         owner = `${s.id}-person-${i}`;
       const p: Place = {
         id,
         name: pack.buildingNames[i % pack.buildingNames.length],
-        description:
-          pack.architecture === "roman"
-            ? "Warm plaster, a tiled roof, and the traces of a household at work."
-            : "Sun-dried mudbrick, a flat roof, and a ladder into a household below.",
+        description: model.description,
         x,
         y,
         w,
         h,
-        sprite: `house-${pack.architecture}-${variant}`,
-        entrance: { x: x + Math.floor(w / 2), y: y + h },
+        sprite: model.frame,
+        entrance: { x: x + model.entrance[0], y: y + model.entrance[1] },
         access: i % 3 === 0 ? "public" : "household",
         owner,
-        claim: pack.id === "roman" ? "roman-house" : "neolithic-house",
+        claim: pack.buildingClaim,
         entranceLabel: pack.entryLabel,
       };
       places.push(p);
@@ -142,10 +147,12 @@ export function createWorld(pack: Pack, seed: string): WorldModel {
         {
           id: `${id}-exit`,
           name:
-            pack.architecture === "mud" ? "Roof ladder" : "Door to the street",
+            model.opening === "roof-hatch"
+              ? "Roof ladder"
+              : "Door to the street",
           kind: "exit",
           pos: { x: 6, y: 9, space: id },
-          sprite: pack.architecture === "mud" ? "ladder" : "door-open",
+          sprite: model.opening === "roof-hatch" ? "ladder" : "door-open",
           inventory: {},
         },
       );
@@ -354,17 +361,17 @@ export function createWorld(pack: Pack, seed: string): WorldModel {
       places.some((p) => x >= p.x && x < p.x + p.w && y >= p.y && y < p.y + p.h)
     )
       return true;
-    for (const s of settlements) {
+    for (const fence of enclosures) {
       if (
-        x >= s.x + 20 &&
-        x <= s.x + 28 &&
-        y >= s.y + 12 &&
-        y <= s.y + 20 &&
-        (x === s.x + 20 ||
-          x === s.x + 28 ||
-          y === s.y + 12 ||
-          y === s.y + 20) &&
-        !(x === s.x + 24 && y === s.y + 12)
+        x >= fence.x &&
+        x < fence.x + fence.w &&
+        y >= fence.y &&
+        y < fence.y + fence.h &&
+        (x === fence.x ||
+          x === fence.x + fence.w - 1 ||
+          y === fence.y ||
+          y === fence.y + fence.h - 1) &&
+        !(x === fence.gate.x && y === fence.gate.y)
       )
         return true;
     }
@@ -373,6 +380,7 @@ export function createWorld(pack: Pack, seed: string): WorldModel {
   return {
     pack,
     settlements,
+    enclosures,
     places,
     initialActors: actors,
     initialObjects: objects,

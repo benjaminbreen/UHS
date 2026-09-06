@@ -1,0 +1,253 @@
+.graphics-lab {
+  height: 100dvh;
+  overflow: auto;
+  background: #1d2025;
+  color: #ded3b9;
+  font-family: var(--font-ui, sans-serif);
+}
+.lab-header {
+  min-height: 82px;
+  display: flex;
+  gap: 28px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 24px;
+  border-bottom: 1px solid #766347;
+  background: #23252b;
+}
+.lab-header a {
+  color: #cebb96;
+  text-decoration: none;
+  font-size: 12px;
+  letter-spacing: 0.07em;
+}
+.lab-header h1 {
+  font-family: Georgia, serif;
+  font-size: 25px;
+  margin: 4px 0 0;
+  font-weight: 400;
+}
+.lab-header > span {
+  font-size: 12px;
+  color: #b6b2a5;
+}
+.lab-header .action {
+  font-size: 13px;
+  letter-spacing: 0;
+  padding: 10px;
+}
+.lab-body {
+  display: grid;
+  grid-template-columns: 268px minmax(0, 1fr);
+  min-height: calc(100dvh - 83px);
+}
+.lab-controls {
+  padding: 22px 18px;
+  border-right: 1px solid #514a3d;
+  background: #23262a;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+.lab-controls label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  color: #d7c8ab;
+}
+.lab-controls select,
+.lab-controls input:not([type="checkbox"]) {
+  background: #191c20;
+  color: #e6dbc4;
+  border: 1px solid #655c49;
+  border-radius: 3px;
+  padding: 9px 7px;
+  width: 100%;
+  min-width: 0;
+  font: inherit;
+}
+.lab-note {
+  font-size: 12px;
+  line-height: 1.6;
+  color: #aeb0a5;
+  margin: 0;
+}
+.lab-control-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.lab-controls .lab-check {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+.lab-check input {
+  accent-color: #c6a675;
+}
+.lab-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.lab-buttons button {
+  font-size: 12px;
+  padding: 9px 10px;
+}
+.lab-controls details {
+  border-top: 1px solid #4a493e;
+  padding-top: 14px;
+}
+.lab-controls summary {
+  font-size: 12px;
+  cursor: pointer;
+  margin-bottom: 10px;
+}
+.lab-review {
+  min-width: 0;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.lab-stage {
+  width: 100%;
+  height: min(73dvh, 800px);
+  display: flex;
+  justify-content: center;
+  background: #15191d;
+  border: 1px solid #696044;
+  overflow: hidden;
+}
+.lab-canvas {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  position: relative;
+}
+.lab-canvas canvas {
+  display: block;
+  image-rendering: pixelated;
+}
+.lab-stage[data-format="square"] .lab-canvas {
+  width: min(100%, 73dvh);
+  aspect-ratio: 1;
+}
+.lab-stage[data-format="portrait"] .lab-canvas {
+  width: min(100%, 48dvh);
+}
+.lab-caption {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  font-family: Georgia, serif;
+  font-size: 17px;
+}
+.lab-caption small {
+  font-family: sans-serif;
+  font-size: 12px;
+  color: #a3a99f;
+}
+.lab-caption nav {
+  display: flex;
+  gap: 5px;
+}
+.lab-caption button {
+  border: 1px solid #6b604c;
+  padding: 5px 10px;
+  background: #25282c;
+  color: #d9c9a7;
+  cursor: pointer;
+}
+.lab-models {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+.lab-models article {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  border-top: 1px solid #5e5440;
+  padding: 12px 0;
+  font-size: 12px;
+}
+.lab-models strong {
+  color: #dcc59e;
+  font-weight: 500;
+}
+.lab-models span,
+.lab-models small {
+  color: #afb0a7;
+  line-height: 1.4;
+}
+@media (max-width: 850px) {
+  .lab-body {
+    grid-template-columns: 215px minmax(0, 1fr);
+  }
+  .lab-header > span {
+    display: none;
+  }
+  .lab-models {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .lab-review {
+    padding: 10px;
+  }
+  .lab-caption {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+@media (max-width: 600px) {
+  .lab-body {
+    display: flex;
+    flex-direction: column;
+  }
+  .lab-controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .lab-controls .lab-note,
+  .lab-controls details {
+    grid-column: 1/-1;
+  }
+  .lab-header {
+    padding: 12px;
+    gap: 12px;
+  }
+  .lab-header h1 {
+    font-size: 21px;
+  }
+  .lab-stage {
+    height: 58dvh;
+  }
+  .lab-header .action {
+    white-space: nowrap;
+  }
+  .lab-models {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+/* The frame itself, rather than its child canvas, owns the test aspect ratio. */
+.lab-stage[data-format="square"] {
+  width: min(100%, 73dvh);
+  height: auto;
+  aspect-ratio: 1;
+  align-self: center;
+}
+.lab-stage[data-format="portrait"] {
+  width: min(100%, 41.0625dvh);
+  height: auto;
+  aspect-ratio: 9 / 16;
+  align-self: center;
+}
+.lab-stage[data-format="square"] .lab-canvas,
+.lab-stage[data-format="portrait"] .lab-canvas {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: auto;
+}

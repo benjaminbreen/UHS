@@ -11,15 +11,14 @@ export function settlementPaths(world: WorldModel): ReadonlySet<string> {
   if (paths) return paths;
   paths = new Set<string>();
   for (const place of world.places) {
-    const s = [...world.settlements].sort(
-      (a, b) =>
-        Math.hypot(a.x - place.x, a.y - place.y) -
-        Math.hypot(b.x - place.x, b.y - place.y),
-    )[0];
-    const goal = {
-      x: Math.max(s.x - 15, Math.min(s.x + 17, place.entrance.x)),
-      y: s.y + 5,
-    };
+    const hub = world.initialObjects
+      .filter((o) => o.kind === "well" && o.pos.space === "outside")
+      .sort(
+        (a, b) =>
+          Math.hypot(a.pos.x - place.x, a.pos.y - place.y) -
+          Math.hypot(b.pos.x - place.x, b.pos.y - place.y),
+      )[0];
+    const goal = hub?.pos ?? world.spawn;
     const blocked = (x: number, y: number) =>
       world.blocked(x, y, "outside") || world.terrain(x, y) === "field";
     const route = findPath(place.entrance, goal, blocked, 2500);
@@ -71,7 +70,7 @@ function resolveSurface(
     ].some(([dx, dy]) => world.terrain(x + dx, y + dy) === "water");
     if (!besideWater) return world.pack.ground;
   }
-  if (world.pack.layout === "clusters") {
+  if (world.pack.landscape.settlementSurface === "paths") {
     if (settlementPaths(world).has(`${x},${y}`)) return "dirt";
     if (terrain === "dirt") {
       const parcel = world.places.find(
@@ -91,15 +90,12 @@ function resolveSurface(
       if (edge) return world.pack.ground;
     }
   }
-  if (world.pack.layout !== "streets") return terrain;
+  if (world.pack.landscape.settlementSurface !== "paved") return terrain;
   if (!["grass", "dirt", "sand"].includes(terrain)) return terrain;
-  const town = world.settlements.find(
-    (s) => x >= s.x - 17 && x <= s.x + 17 && y >= s.y - 21 && y <= s.y + 28,
+  const town = districts(world).find(
+    (b) => x >= b.left && x <= b.right && y >= b.top && y <= b.bottom,
   );
-  const waterfront =
-    world.settlements.some(
-      (s) => Math.abs(y - s.y) < 29 && Math.abs(x - s.x) < 35,
-    ) && terrain === "sand";
+  const waterfront = hasQuay(world, x, y) && terrain === "sand";
   if (!town && !waterfront) return terrain;
   // Keep planted courtyards, actual trees and rocks in their original ground.
   if (
@@ -112,16 +108,47 @@ function resolveSurface(
   )
     return terrain;
   if (terrain === "grass" && world.decoration(x, y)?.solid) return terrain;
-  if (town && terrain === "grass" && y < town.y - 9 && x > town.x + 12)
-    return terrain;
-  return "paving";
+  return world.pack.landscape.paving;
 }
 
+type District = { left: number; right: number; top: number; bottom: number };
+const districtCache = new WeakMap<WorldModel, District[]>();
+/** Bounds follow actual parcels. No historical setting or settlement coordinate is baked in. */
+export function districts(world: WorldModel): District[] {
+  let cached = districtCache.get(world);
+  if (cached) return cached;
+  const reach = world.pack.landscape.pavingReach;
+  cached = world.settlements.flatMap((s) => {
+    const places = world.places.filter((p) =>
+      world.settlements.every(
+        (other) =>
+          Math.hypot(p.x - s.x, p.y - s.y) <=
+          Math.hypot(p.x - other.x, p.y - other.y),
+      ),
+    );
+    return places.length
+      ? [
+          {
+            left: Math.min(...places.map((p) => p.x)) - reach,
+            right: Math.max(...places.map((p) => p.x + p.w)) + reach,
+            top: Math.min(...places.map((p) => p.y)) - reach,
+            bottom: Math.max(...places.map((p) => p.y + p.h)) + reach,
+          },
+        ]
+      : [];
+  });
+  districtCache.set(world, cached);
+  return cached;
+}
 export function hasQuay(world: WorldModel, x: number, y: number): boolean {
   return (
-    world.pack.layout === "streets" &&
-    world.settlements.some(
-      (s) => Math.abs(y - s.y) < 29 && Math.abs(x - s.x) < 35,
+    world.pack.landscape.bank === "masonry" &&
+    districts(world).some(
+      (b) =>
+        x >= b.left - world.pack.landscape.bankReach &&
+        x <= b.right + world.pack.landscape.bankReach &&
+        y >= b.top &&
+        y <= b.bottom,
     )
   );
 }

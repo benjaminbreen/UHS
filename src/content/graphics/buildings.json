@@ -1,0 +1,403 @@
+{
+  "materials": {
+    "mud-plaster": {
+      "wall": [
+        "#594530",
+        "#83633f",
+        "#ad8451",
+        "#c19b63",
+        "#e0bc7f"
+      ],
+      "roof": [
+        "#806039",
+        "#bc965d",
+        "#dfbc80",
+        "#f4d99b"
+      ],
+      "foundation": [
+        "#594b37",
+        "#8b7851",
+        "#b19b6b"
+      ]
+    },
+    "lime-plaster": {
+      "wall": [
+        "#4d493b",
+        "#85775c",
+        "#baa67d",
+        "#d4c297",
+        "#eadbb1"
+      ],
+      "roof": [
+        "#66382f",
+        "#a64830",
+        "#c86039",
+        "#eb8b51"
+      ],
+      "foundation": [
+        "#555a51",
+        "#939684",
+        "#c0bea6"
+      ]
+    },
+    "ochre-plaster": {
+      "wall": [
+        "#504334",
+        "#8c714b",
+        "#bf9b60",
+        "#d5b57e",
+        "#f0d59b"
+      ],
+      "roof": [
+        "#66382f",
+        "#a64830",
+        "#c86039",
+        "#eb8b51"
+      ],
+      "foundation": [
+        "#555a51",
+        "#939684",
+        "#c0bea6"
+      ]
+    },
+    "half-timber": {
+      "wall": [
+        "#393933",
+        "#716a53",
+        "#bab199",
+        "#d4cbb0",
+        "#eee4c7"
+      ],
+      "roof": [
+        "#303d46",
+        "#465b66",
+        "#647980",
+        "#8c9d9a"
+      ],
+      "foundation": [
+        "#4d514a",
+        "#7f8779",
+        "#b5b7a0"
+      ]
+    },
+    "white-plaster": {
+      "wall": [
+        "#393c39",
+        "#737b72",
+        "#b8bdae",
+        "#d6d7bf",
+        "#f0e9cb"
+      ],
+      "roof": [
+        "#343b3b",
+        "#505853",
+        "#737c6a",
+        "#a0a389"
+      ],
+      "foundation": [
+        "#4e5551",
+        "#808b7c",
+        "#b8bfaa"
+      ]
+    },
+    "weatherboard": {
+      "wall": [
+        "#4d493f",
+        "#91856c",
+        "#bfae8d",
+        "#d9c9a6",
+        "#eee1be"
+      ],
+      "roof": [
+        "#423c37",
+        "#675246",
+        "#93745a",
+        "#b99872"
+      ],
+      "foundation": [
+        "#535750",
+        "#898e83",
+        "#b7b9a7"
+      ]
+    }
+  },
+  "buildings": {
+    "house-roman-0": {
+      "label": "Tiled courtyard house",
+      "footprint": [
+        5,
+        4
+      ],
+      "entrance": [
+        2,
+        4
+      ],
+      "canvas": [
+        80,
+        112
+      ],
+      "height": 66,
+      "wall": "lime-plaster",
+      "roof": "gable",
+      "roofMaterial": "terracotta",
+      "opening": "door",
+      "attachments": [],
+      "seed": 502,
+      "description": "Warm plaster, a tiled roof, and the traces of a household at work.",
+      "stories": 2
+    },
+    "house-roman-1": {
+      "label": "Market house with canvas awning",
+      "footprint": [
+        6,
+        4
+      ],
+      "entrance": [
+        3,
+        4
+      ],
+      "canvas": [
+        96,
+        96
+      ],
+      "height": 52,
+      "wall": "lime-plaster",
+      "roof": "gable",
+      "roofMaterial": "terracotta",
+      "opening": "door",
+      "attachments": [
+        "awning"
+      ],
+      "seed": 503,
+      "description": "Warm plaster, a tiled roof, and the traces of a household at work."
+    },
+    "house-roman-2": {
+      "label": "Columned house",
+      "footprint": [
+        5,
+        4
+      ],
+      "entrance": [
+        2,
+        4
+      ],
+      "canvas": [
+        80,
+        96
+      ],
+      "height": 52,
+      "wall": "lime-plaster",
+      "roof": "gable",
+      "roofMaterial": "terracotta",
+      "opening": "door",
+      "attachments": [
+        "portico"
+      ],
+      "seed": 504,
+      "description": "Warm plaster, a tiled roof, and the traces of a household at work."
+    },
+    "house-roman-3": {
+      "label": "Ochre workshop",
+      "footprint": [
+        6,
+        4
+      ],
+      "entrance": [
+        3,
+        4
+      ],
+      "canvas": [
+        96,
+        96
+      ],
+      "height": 52,
+      "wall": "ochre-plaster",
+      "roof": "gable",
+      "roofMaterial": "terracotta",
+      "opening": "door",
+      "attachments": [
+        "awning",
+        "wares"
+      ],
+      "seed": 505,
+      "description": "Warm plaster, a tiled roof, and the traces of a household at work."
+    },
+    "house-mud-0": {
+      "label": "Roof-entry household",
+      "footprint": [
+        5,
+        3
+      ],
+      "entrance": [
+        2,
+        3
+      ],
+      "canvas": [
+        80,
+        64
+      ],
+      "height": 33,
+      "wall": "mud-plaster",
+      "roof": "flat",
+      "roofMaterial": "earth",
+      "opening": "roof-hatch",
+      "attachments": [
+        "ladder"
+      ],
+      "seed": 502,
+      "description": "Sun-dried mudbrick, a flat roof, and a ladder into a household below."
+    },
+    "house-mud-1": {
+      "label": "Storage household",
+      "footprint": [
+        6,
+        3
+      ],
+      "entrance": [
+        3,
+        3
+      ],
+      "canvas": [
+        96,
+        64
+      ],
+      "height": 33,
+      "wall": "mud-plaster",
+      "roof": "flat",
+      "roofMaterial": "earth",
+      "opening": "roof-hatch",
+      "attachments": [
+        "ladder"
+      ],
+      "seed": 503,
+      "description": "Sun-dried mudbrick, a flat roof, and a ladder into a household below."
+    },
+    "house-mud-2": {
+      "label": "Household with side wall",
+      "footprint": [
+        5,
+        3
+      ],
+      "entrance": [
+        2,
+        3
+      ],
+      "canvas": [
+        80,
+        64
+      ],
+      "height": 33,
+      "wall": "mud-plaster",
+      "roof": "flat",
+      "roofMaterial": "earth",
+      "opening": "roof-hatch",
+      "attachments": [
+        "ladder",
+        "side-wall"
+      ],
+      "seed": 504,
+      "description": "Sun-dried mudbrick, a flat roof, and a ladder into a household below."
+    },
+    "house-mud-3": {
+      "label": "Plastered work house",
+      "footprint": [
+        6,
+        3
+      ],
+      "entrance": [
+        3,
+        3
+      ],
+      "canvas": [
+        96,
+        64
+      ],
+      "height": 33,
+      "wall": "mud-plaster",
+      "roof": "flat",
+      "roofMaterial": "earth",
+      "opening": "roof-hatch",
+      "attachments": [
+        "ladder",
+        "side-wall"
+      ],
+      "seed": 505,
+      "description": "Sun-dried mudbrick, a flat roof, and a ladder into a household below."
+    },
+    "study-timber": {
+      "label": "Timber & plaster study",
+      "footprint": [
+        6,
+        4
+      ],
+      "entrance": [
+        3,
+        4
+      ],
+      "canvas": [
+        96,
+        96
+      ],
+      "height": 52,
+      "wall": "half-timber",
+      "roof": "gable",
+      "roofMaterial": "slate",
+      "opening": "door",
+      "attachments": [
+        "timber-frame"
+      ],
+      "seed": 23,
+      "description": "Graphics construction study; not an authenticated historical reconstruction."
+    },
+    "study-courtyard": {
+      "label": "Courtyard tile study",
+      "footprint": [
+        6,
+        4
+      ],
+      "entrance": [
+        3,
+        4
+      ],
+      "canvas": [
+        96,
+        96
+      ],
+      "height": 52,
+      "wall": "white-plaster",
+      "roof": "hip",
+      "roofMaterial": "grey-tile",
+      "opening": "door",
+      "attachments": [
+        "veranda"
+      ],
+      "seed": 23,
+      "description": "Graphics construction study; not an authenticated historical reconstruction."
+    },
+    "study-board": {
+      "label": "Weatherboard study",
+      "footprint": [
+        6,
+        4
+      ],
+      "entrance": [
+        3,
+        4
+      ],
+      "canvas": [
+        96,
+        96
+      ],
+      "height": 52,
+      "wall": "weatherboard",
+      "roof": "gable",
+      "roofMaterial": "shingle",
+      "opening": "door",
+      "attachments": [
+        "porch"
+      ],
+      "seed": 23,
+      "description": "Graphics construction study; not an authenticated historical reconstruction."
+    }
+  }
+}

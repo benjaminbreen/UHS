@@ -13,7 +13,8 @@
     "preview": "vite preview --host 127.0.0.1",
     "mcp": "tsx scripts/mcp-server.ts",
     "prepare:geography": ".venv/bin/python scripts/prepare_geography.py",
-    "check": "npm test && npm run build"
+    "check": "npm test && npm run build",
+    "test:graphics": "playwright test tests/browser/graphics-lab.spec.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",
