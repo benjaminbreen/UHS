@@ -12,17 +12,33 @@ import { createWorld } from "../world/generate";
 import { commandSchema, snapshotSchema } from "./schema";
 import { ChunkCache } from "./chunks";
 import { z } from "zod";
+import { settingSchema, type WorldSetting } from "../content/geography/types";
+import { packForSetting } from "../content/geography/pack";
+import { createAtlasWorld } from "../world/v2/generate";
 export function createSession(
   packId = "roman",
-  seed = packs[packId].defaultSeed,
+  seed = packs[packId]?.defaultSeed ?? "earth-2",
   snapshot?: Snapshot,
+  setting?: WorldSetting,
 ) {
-  const pack = packs[packId];
+  const resolved = setting ?? snapshot?.manifest.setting;
+  const pack = resolved
+    ? packForSetting(settingSchema.parse(resolved))
+    : packs[packId];
   if (!pack) throw Error("Unsupported content pack.");
-  const world = createWorld(pack, seed);
+  const world = resolved
+    ? createAtlasWorld(pack, seed)
+    : createWorld(pack, seed);
+  if (snapshot)
+    world.restoreDistricts?.(
+      [...snapshot.actors, ...snapshot.objects].map((e) => e.id),
+    );
   const engine = new Engine(world, items, snapshot);
   if (!snapshot) engine.initialize(seed);
   return engine;
+}
+export function createSettingSession(setting: WorldSetting, seed = "earth-2") {
+  return createSession("atlas", seed, undefined, setting);
 }
 export function restoreSession(value: unknown) {
   const save = snapshotSchema.parse(value);
@@ -98,6 +114,7 @@ export class Runtime {
       this.engine.state.manifest.seed,
       this.engine.state.player.pos.x,
       this.engine.state.player.pos.y,
+      this.engine.state.manifest.setting,
     );
     this.cached = this.view();
     for (const listener of this.subscribers) listener();
@@ -306,7 +323,12 @@ export class Runtime {
       envelope.commands ?? envelope.entries?.map((e) => e.request);
     if (!commands) throw Error("Missing trajectory commands.");
     this.stop(false);
-    this.engine = createSession(envelope.manifest.pack, envelope.manifest.seed);
+    this.engine = createSession(
+      envelope.manifest.pack,
+      envelope.manifest.seed,
+      undefined,
+      envelope.manifest.generator === 2 ? envelope.manifest.setting : undefined,
+    );
     this.selected = undefined;
     this.replay = {
       commands,
@@ -356,7 +378,12 @@ export class Runtime {
     const replay = this.replay;
     if (!replay) return;
     replay.playing = false;
-    this.engine = createSession(replay.manifest.pack, replay.manifest.seed);
+    this.engine = createSession(
+      replay.manifest.pack,
+      replay.manifest.seed,
+      undefined,
+      replay.manifest.setting,
+    );
     replay.index = 0;
     for (
       let i = 0;

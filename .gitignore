@@ -15,3 +15,6 @@ scripts/source-cache/
 
 __pycache__/
 *.pyc
+
+# Regenerable lossless soundtrack listening masters; compact previews are committed.
+artifacts/audio/*.wav

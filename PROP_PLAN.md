@@ -10,39 +10,69 @@ Choose variations that change the readable silhouette: wide mouth versus narrow 
 
 The shared library is an authoring budget. Every era/family selection below is a **candidate for a local profile**, not a blanket statement that it belongs everywhere in that range. Dating and context remain necessary, especially for ritual/elite objects and imported goods.
 
-## First reviewable batch: twelve base appearances
+## Initial shared library: forty key props
 
-| ID | Appearance | Proposed first placement | Proposed interaction after approval |
-| --- | --- | --- | --- |
-| C1 | Small wide-mouth earthen pot | Roman and Konya households; reuse broadly after local review | Inspect contents; pick up when within carrying limits; break with suitable strike |
-| C2 | Large lidded storage jar | Household/storehouse storage in both scenes | Open/close; transfer contents; too heavy to casually carry when full |
-| C3 | Narrow-neck water jug, small handle | Roman household; other regions after form/date check | Carry; inspect/transfer liquid through existing water abstraction |
-| C4 | Two-handled transport amphora | Roman market/storehouse/landing | Inspect seal; open; transfer; break; size/contents restrict pickup |
-| C5 | Shallow open work basket | Both scenes, task-specific contents | Pick up; transfer contents; distinct spill/damage state |
-| C6 | Lidded woven storage basket | Household storage; Konya form reconstructed | Open/close; carry subject to weight |
-| C7 | Tied fabric or hide sack | Storage/work settings after material check | Untie/open; pick up; split/spill distinct from ceramic shards |
-| C8 | Plain low wooden box with lift-off lid | Roman workshop; not automatically Konya | Open; portable at small size |
-| C9 | Bound wooden chest with hinged lid | Roman secure storage candidate, hardware needs reference review | Open/close; ownership; large examples fixed/heavy |
-| U1 | Low stone-lined water source | Refine existing Roman well; Konya placement remains an acknowledged prototype assumption | Draw water; inspect; fixed in place |
-| U2 | Saddle-shaped grinding stone and handstone | Both scenes where local form fits | Inspect initially; later grain-processing work cycle |
-| U3 | Mortar and pestle | Both scenes with locally reviewed material/size | Inspect; portable small version; later pounding work cycle |
+The Roman and Neolithic scenes are test environments, not the boundary of this library. Build these for reuse across the full chronology and cultural-family framework, then select appropriate forms/materials through profiles. This is a judgment about useful coverage, not a measured ranking of historical frequency. Not every prop appears in every combination, and these forty do not by themselves complete all material-culture coverage.
 
-These are twelve silhouettes, not twelve frames: lids/open states, broken states, carried presentation and sparse debris need additional work. Draw the shared parts once. C1/C2/C5/C6 and ceramic debris should prove the system before finishing all twelve. The chest pair proves visible variation; it should not be imposed on Neolithic households just to fill a category.
+The earlier C/U labels were merely proposal shorthand (containers / utilities), not engine IDs, procedural-generation rules or an implemented taxonomy. They are removed here. The row numbers below are reading aids only; eventual definitions should have descriptive IDs such as `storage-jar` or `wooden-chest`.
 
-Do not create the new prop art before this plan is reviewed. The existing clay vessel preview in History lab is old prototype art, not C1–C4 completed.
+| # | Prop | Pixel-art direction |
+| --- | --- | --- |
+| 1 | Plain earthen pot | A squat rounded pot with a thick uneven rim, dark opening and a few clustered firing marks. |
+| 2 | Large storage jar | A broad-bellied jar with a narrow shoulder and removable clay or fiber lid. |
+| 3 | Handled water jug | A narrow-necked jug with one readable loop handle and a bright highlight along its shoulder. |
+| 4 | Transport amphora | An elongated vessel with two strong handles, a small sealed mouth and a visibly supported base. |
+| 5 | Glazed jar | A rounded storage vessel with a darker foot, glossy clustered highlights and an optional simple painted band. |
+| 6 | Metal water vessel | A bulbous vessel with a flared lip and restrained copper, brass or tinned-metal highlights. |
+| 7 | Gourd vessel | An asymmetric natural gourd with a cut opening, mottled surface and optional fiber carrying loop. |
+| 8 | Open work basket | A shallow oval basket with a thick woven rim and large, legible bands of wicker. |
+| 9 | Lidded storage basket | A taller woven container with a distinct fitted lid, binding straps and a shaded lower edge. |
+| 10 | Sack or hide bag | A slumped soft container with gathered folds, a tied neck and material-specific cloth or hide shading. |
+| 11 | Plain wooden box | A low rectangular box with a lift-off lid, broad boards and simple corner joints. |
+| 12 | Bound wooden chest | A heavier chest with a hinged lid, two dark reinforcing bands and a clearly visible fastening. |
+| 13 | Painted wooden chest | A raised or footed chest with colored panels and restrained trim that changes its silhouette from the plain box. |
+| 14 | Barrel | A bulging stave-built barrel with an elliptical top, dark hoops and a small bung or lid. |
+| 15 | Transport crate | An open-slatted rectangular crate with thick corner posts and visible gaps between boards. |
+| 16 | Bucket or pail | A tapered open bucket with a strong handle and distinct wooden, metal or enamel construction variants. |
+| 17 | Water or feed trough | A long low receptacle with a deep shaded interior and separately authored hollowed-wood or masonry forms. |
+| 18 | Low well or cistern mouth | A low raised opening with a dark interior, worn rim and interchangeable stone, brick or plaster construction. |
+| 19 | Timber-framed well | A water opening beneath two posts and a crossbeam, with a clear rope-and-bucket silhouette and optional small roof. |
+| 20 | Hand pump | A compact upright pump with a curved handle, projecting spout and a small stained base. |
+| 21 | Grinding stone and handstone | A low stone slab with a worn hollow and a smaller contrasting handstone resting across it. |
+| 22 | Mortar and pestle | A deep stone or wooden bowl with a thick rim and a pestle angled against its edge. |
+| 23 | Hoe or digging tool | A long worn handle ends in a clearly shaped working head, with separate stone, composite and metal forms. |
+| 24 | Sickle | A short gripped handle supports a strongly curved cutting edge, with distinct composite and metal constructions. |
+| 25 | Shovel or spade | A straight handle ends in a broad readable blade, differentiated through wooden and metal head shapes. |
+| 26 | Firewood pile | A compact stack of irregular logs shows bright cut ends, dark bark and gaps between pieces. |
+| 27 | Harvest bundle | A tied sheaf of crop-specific stalks fans out above and below a narrow binding. |
+| 28 | Drying rack | A lightweight pole frame carries a few separated hanging objects or a shallow woven drying surface. |
+| 29 | Bird-scaring figure or rig | A rough pole structure carries ragged cloth, fiber bundles or hanging strips appropriate to the selected tradition. |
+| 30 | Hearth or firepit | An irregular ring or shallow hearth contains dark coals, pale ash and a small layered flame. |
+| 31 | Small oven or stove | A compact clay dome or masonry body has a dark fire opening, soot staining and a bright worn lip. |
+| 32 | Oil lamp | A small vessel has a distinct wick nozzle, warm flame and a darkened patch around the burning edge. |
+| 33 | Lantern | A framed lamp has a strong carrying loop and a warm central light behind locally appropriate panel construction. |
+| 34 | Low stool | A compact seat rests on visibly separated legs, with wood, woven-seat or later metal variants. |
+| 35 | Bench | A long simple seat has stout supports, a worn upper edge and optional locally selected backrest. |
+| 36 | Table or workbench | A sturdy rectangular surface has clear legs, an overhanging edge and a few task-specific surface marks. |
+| 37 | Sleeping mat or bedroll | A woven mat or rolled bedding has a soft folded edge, restrained stripes and a small raised pillow or bundle. |
+| 38 | Metal canister or tin | A cylindrical or rectangular industrial container has folded seams, a distinct lid and restrained dents or rust. |
+| 39 | Plastic bucket or bin | A molded container has a thick lip, simple handle or lid, and broad clean color blocks with modest scuffing. |
+| 40 | Cardboard carton | A folded box has readable top flaps, dark crease lines and an optional plain packing mark or tape strip. |
 
-## Later shared appearances, added only for a selected scene
+Each row is an object family with a deliberately limited set of useful variants; a wooden bucket and metal pail may share behavior but need different construction pixels. The three wooden-storage entries deliberately establish distinct appearances rather than one universal chest. Particularly localized construction, such as a bentwood box, can later add one shared recipe without copying the whole storage system.
 
-| Family | Deliberately small extension set |
-| --- | --- |
-| Vessels | C10 glazed storage jar; C11 metal water vessel; C12 wooden bucket/tub; C13 stave barrel; C14 metal can/tin; C15 molded plastic bucket/bin |
-| Boxes | C16 painted/joined chest; C17 region-specific bentwood box; C18 slatted transport crate; C19 metal toolbox/trunk |
-| Water/work | U4 timber-framed well; U5 lever/beam lifting arrangement; U6 cistern mouth/spout; U7 hand pump; U8 trough; U9 rotary handmill |
-| Agricultural/day-to-day dressing | U10 drying rack or mat; U11 bundled stalks/sheaves; U12 broom; U13 simple bird-scaring figure/rig; U14 small workbench |
-| Tools | Digging stick, hafted hoe, sickle, knife, wooden shovel/spade: shared handles with genuinely distinct working heads. Stone, composite and metal versions need dated selection, not a global upgrade ladder. |
-| Debris | Ceramic fragments, wood splinters, loose grain, fiber scraps, ashes, organic peelings; modern paper/tin/plastic waste only where appropriate. Derive damaged-state colors from the source object. |
+## Controlled variation
 
-The same bird-scaring recipe could be reused across distant settings when justified. Its specific form and early dating remain a research question; do not assume a European straw person existed everywhere. Props should often be useful, but not every decorative stalk or shard needs a persistent simulated entity.
+- Earthenware: choose among a few approved clay/firing ramps, subtle scorch marks and restrained size/proportion variants; glaze is a selected construction treatment, not a random toggle on every pot.
+- Wood: choose species/material-appropriate light, medium or dark ramps plus modest wear. Binding, hinges and joinery remain structural choices.
+- Baskets and sacks: vary fiber/cloth tones, folds and a small number of weave or binding treatments.
+- Painted chests, cloth and modern plastic: offer the widest color range, selected from the profile's allowed palette. Patterns remain authored options.
+- Metal and masonry: vary weathering and surface tone within the actual material; do not randomly recolor iron into copper or stone into brick.
+- Crop bundles: choose the crop first, then appropriate maturity/dryness. Contents and material must not be randomized merely to match a color.
+
+Select appearance once using a stable object identity/seed, or persist the selection when the object is created. Carrying, dropping, opening, breaking and reloading must retain it. Damaged frames and debris inherit the same palette. Use small prepared color ramps/material masks, not arbitrary RGB noise or continuous per-frame recoloring. Historical eligibility is separate from cosmetic variation.
+
+Open lids, broken ceramics, spilled contents, ash and splinters are state/debris derivatives of these families rather than another forty unrelated props. This list prioritizes reusable everyday objects; vehicles, major machinery, large furniture and complete tool catalogs remain separate work.
 
 ## Era breakdown
 
@@ -51,9 +81,9 @@ Later periods retain appropriate older objects. Entries are additions/directions
 | Fixed era | Portable/storage priorities | Agriculture, water and daily-work priorities |
 | --- | --- | --- |
 | Deep prehistory | Carried fiber/hide/bark containers, wooden containers where plausible; pottery only under a sourced regional/date selection, never an automatic era-wide ban or grant | Digging sticks, hearth materials, pounding/grinding tools, drying arrangements; site/date-specific hypotheses |
-| Early Holocene | C1/C2/C5/C6; sacks and water vessels with locally justified materials/form | U2/U3, hafted/composite tools, storage and drying; farming and wells require local context |
+| Early Holocene | Plain pots, storage jars and baskets; sacks and water vessels with locally justified materials/form | Grinding stones, mortars, hafted/composite tools, storage and drying; farming and wells require local context |
 | 3500–1000 BCE | Shared jars/baskets plus selected tall/sealed forms; wooden boxes or metal vessels where supported | Local irrigation/water-lifting forms, grain processing, work baskets, tool variants |
-| Antiquity | C1–C9 as selected; amphorae in appropriate Mediterranean transport contexts, distinct alternatives elsewhere | Stone water points, regional milling forms, workshop equipment, local agricultural tools |
+| Antiquity | Pots, jugs, baskets and wooden storage as selected; amphorae in appropriate Mediterranean transport contexts, distinct alternatives elsewhere | Stone water points, regional milling forms, workshop equipment, local agricultural tools |
 | 500–1000 | Continue shared jars/baskets/boxes; add selected glazed forms and binding/joinery variants | Locally appropriate mills, lifting arrangements, storage/work racks |
 | 1000–1500 | More differentiated joined/painted chests and glazed vessels where supported; retain simpler storage | Water/work variants selected by settlement and occupation; bird-scaring forms need evidence |
 | 1500–1750 | Regionally selected chests, barrels, traded ceramics and metal vessels | Agricultural and workshop sets; water infrastructure remains local, not era-derived |
@@ -69,7 +99,7 @@ These are the first useful distinctions to research, across the fixed eras above
 
 | Family | Early/ancient priorities | Middle / early-modern priorities | Later / modern priorities |
 | --- | --- | --- | --- |
-| European | Mediterranean C1–C4 plus plain/secured wooden storage; different northern traditions get their own selections | Joined/bound chests, wooden tubs/barrels, pottery; stone/timber water points | Crates, toolboxes, cans and buckets, with household and rural survivals |
+| European | Mediterranean pots, jugs and transport vessels plus plain/secured wooden storage; different northern traditions get their own selections | Joined/bound chests, wooden tubs/barrels, pottery; stone/timber water points | Crates, toolboxes, cans and buckets, with household and rural survivals |
 | North African & West Asian | Konya basket/jar/grinding kit; Egyptian tall/sealed jars as a separate dated selection, not a Konya reskin | Earthen/glazed jars, selected metal vessels, wooden storage, cistern/water-lifting variants | Shared modern additions mixed with local ceramics, baskets and water practices |
 | Inner Eurasian | Portable hide/fiber/wood storage as site-specific hypotheses; do not project later pastoral kits into all prehistory | Portable boxes/bags and selected vessels; oasis households may use a different fixed-water/storage kit | Modern containers alongside locally appropriate portable and settled-household storage |
 | South Asian | Plain earthen storage/water forms and work baskets; regional early contexts need research | Distinct rounded metal water vessels, local chests, jars, mortar/water-lifting variants | Metal/plastic utility forms alongside continuing earthen and woven ones |
@@ -82,7 +112,7 @@ These are the first useful distinctions to research, across the fixed eras above
 | Other Indigenous American | Separate regional fiber/bark/hide/wood/ceramic candidates; no single continental storage kit | Northwest Coast bentwood-box research is separate from Plains, Arctic, Woodland and Amazonian traditions | Dated trade and modern goods; later collected objects are not automatically evidence for ancient forms |
 | Australian & Pacific | Separate named-community bark/wood/fiber/hide traditions; pottery eligibility differs across regions | Distinct Aboriginal Australian, Papuan and island-Pacific selections; avoid copying a generic jar kit across all | Community-specific introduced goods and modern storage alongside continuing local forms |
 
-A gourd/calabash vessel is a useful later silhouette candidate, especially where a named African or American scene warrants it. Add it when that scene is chosen rather than giving every family a fixed quota. The compressed final two families particularly require local research before selection.
+Gourd/calabash vessels are included in the initial shared library; profile selection determines appropriate regional use rather than assigning every family a fixed quota. The compressed final two families particularly require local research before selection.
 
 ## Initial reference anchors and limits
 
@@ -96,7 +126,7 @@ These establish directions for research, not an authenticated complete matrix. A
 - [Met: Indian water vase/lota](https://www.metmuseum.org/art/collection/search/453159): investigate a distinct metal-vessel silhouette. The elaborate example is not proof of an ordinary medieval household's possessions.
 - [Canadian Museum of History: Haida bentwood boxes](https://www.historymuseum.ca/teachers-zone/haida-arts-and-technologies/bentwood-boxes/): a construction tradition worth distinguishing from a European hinged chest; local dates and use matter.
 
-Before drawing a scene's new prop set, assemble a small reference board from archaeological reports, dated museum objects and everyday-life evidence. Label replicas/reconstructions as such. No downloaded reference imagery has been incorporated into our assets in this phase.
+Before drawing each shared object family, assemble a small reference board from archaeological reports, dated museum objects and everyday-life evidence. Label replicas/reconstructions as such. No downloaded reference imagery has been incorporated into our assets in this phase.
 
 ## Interaction MVP after approval
 
@@ -109,3 +139,19 @@ Before drawing a scene's new prop set, assemble a small reference board from arc
 7. Version the save/content schema deliberately. Test pickup → carry → put down → open/transfer → strike/break → save/reload/replay in both initial scenes, with conservation and input-focus checks.
 
 This is the next proposed implementation slice. No new settlement generation, occupation economy, tool physics, or full inventory redesign is bundled into it. Review the twelve-era framework and this art scope with the user before starting.
+
+## Art review gallery (September 6, 2026)
+
+The user authorized pixel-art studies for all 40 proposed families before committing or integrating gameplay. Command+2 (Ctrl+2) opens the gallery from the world, Graphics Lab, or History Lab; `/prop-lab` opens it independently. It includes 117 original variants, integer zoom, material/color choices, character scale, six shadow phases and PNG export. These are visual studies, not an assertion of historically correct eligibility for every combination. Authored historical selection rules and interactive states remain a later reviewed step.
+
+Catalog: `src/content/graphics/props.json`. Small reusable drawing recipes: `scripts/art/props/`. Rebuild the isolated atlas with `npm run art:props`; outputs live in `public/props/` and never replace the playable atlas. No gameplay/save schema changes are needed for the gallery.
+
+### Six-family material proof
+
+The user requested a higher-quality proof before expanding further. `scripts/art/props/proofs.py` redraws earthen pot, metal vessel, open basket, bound chest, stone well and sack at the existing 48×48 source size, with discrete material palettes. The gallery dispatches these six families to the new recipes; other families remain unchanged. `python3 scripts/build_prop_proof.py` builds `artifacts/prop-six-proof.png`, with 6× inspection and 2× previews. The current contact sheet has no ground shadows; the atlas continues using independent time-of-day silhouette shadows. The review does not authorize gameplay integration or committing the art.
+
+The third proof pass corrects circular rims and interior depth, folds the sack mouth, and uses a front-aligned overhead chest view. Static contact shadows were removed from the contact-sheet generator at the user’s request; no ground shadows are baked into the source sprites.
+
+### Next ten review families
+
+Storage jar, water jug, amphora, glazed jar, lidded basket, barrel, crate, wooden pail, trough and roofed well are redrawn in `scripts/art/props/daily.py`. They share the first six proofs’ material ramps and use front-aligned overhead construction views. The pail studies now explicitly use three wood ramps with independent iron fittings. Review sheet: `python3 scripts/build_prop_daily_sheet.py` → `artifacts/prop-next-ten.png`. No ground shadows, gameplay integration, or commits are included.

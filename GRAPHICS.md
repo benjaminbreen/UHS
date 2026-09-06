@@ -68,3 +68,17 @@ The masks occupy one separate atlas (`lighting-shadows.png/json`, around 52 KB P
 The lab's **Light treatment** menu exposes all six bands; **Time-of-day colors** and **Cast & contact shadows** are independent comparison toggles. Old `lighting=day` and `lighting=warm` links resolve to midday and afternoon. `window.graphicsLab.describe()` includes the actual rendered shadow frame names for inspection.
 
 Color treatment multiplies the existing pixel colors and applies a restrained ambient wash, leaving the UI unchanged. Authored highlights and recess shading remain baked into sprites: this is not normal-map relighting or a light-occlusion engine. Shadows are still a 2.5D ground-plane approximation and can overlap; per-surface shadow receiving and local lamp/fire illumination remain possible later improvements. Prefer improving asset silhouettes, material planes and contextual composition before adding a more elaborate renderer.
+
+## Cultural content planning
+
+[Design section 20](UHS_DESIGN.md#20-cultural-content-families-and-dated-local-profiles) defines the planned twelve production families and dated local profiles. A graphics-lab construction study is neither one of those complete families nor a playable historical setting. Profiles should select existing recipes and justify new parts through a concrete scene; family names must not become renderer branches. Everyday housing, clothing, workplaces and props are part of a setting's identity, alongside distinctive large structures.
+
+The next recommended proof is a profile-based reproduction of the two existing packs, then a small Javanese setting; detailed gates are in [PROGRESS.md](PROGRESS.md#recommended-next-milestone-dated-local-content-profiles). Keep physical geometry and save compatibility explicit while adding new visual vocabulary.
+
+## Era framework and next prop review
+
+The executable era/culture/date resolver and `/history-lab` are described in [HISTORY.md](HISTORY.md). The inspector links back to Graphics lab and previews existing atlas sprites; no new prop art was generated. [PROP_PLAN.md](PROP_PLAN.md) proposes a small shared silhouette library with era/family selections and distinct opening/damage states. The user requested review before implementation. Keep art reuse independent of historical availability and shared action behavior.
+
+### Prop art review
+
+Open **Command+2 / Ctrl+2** from the world or graphics/history labs, or visit `/prop-lab`. Browse 40 prop families (117 variants), compare material palettes, inspect at integer zoom with character scale, change shadow phases, and export previews. The gallery is review-only; it does not place props or enable item interactions. Rebuild its separate atlas with `npm run art:props`. See `PROP_PLAN.md`.

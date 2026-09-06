@@ -1352,3 +1352,15 @@ kbd {
     padding: 9px;
   }
 }
+
+/* World creation shares the existing modal and map presentation. */
+.weaver-modes {display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:12px 0;}
+.weaver-modes button,.weaver-examples button {border:1px solid #655e47;border-radius:7px;padding:8px 11px;background:#252923;color:#e0d8c4;cursor:pointer;}
+.weaver-modes button[aria-pressed="true"],.weaver-examples button[aria-pressed="true"] {border-color:#c4a968;background:#444431;color:#fff1c8;}
+.weaver-examples {display:flex;gap:6px;flex-wrap:wrap;margin:12px 0;}
+.weaver-examples button {font-size:12px;}
+.atlas-map {display:block;width:100%;height:auto;border:1px solid #565e49;border-radius:8px;margin:12px 0;}
+.weaver-preview {color:#dcc68d;padding:10px;border-left:2px solid #bda46b;}
+.field-label select {max-width:100%;width:100%;background:#202621;color:#eee4cc;border:1px solid #67634d;padding:10px;border-radius:6px;}
+.field-label small {font-weight:normal;font-size:11px;opacity:.7;}
+button:disabled {opacity:.5;cursor:default;}

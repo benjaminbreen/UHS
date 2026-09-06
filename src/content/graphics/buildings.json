@@ -398,6 +398,77 @@
       ],
       "seed": 23,
       "description": "Graphics construction study; not an authenticated historical reconstruction."
+    },
+    "shelter-hide": {
+      "label": "Hide shelter",
+      "footprint": [
+        4,
+        3
+      ],
+      "entrance": [
+        2,
+        3
+      ],
+      "canvas": [
+        64,
+        64
+      ],
+      "height": 32,
+      "wall": "mud-plaster",
+      "roof": "shelter",
+      "roofMaterial": "hide",
+      "opening": "door",
+      "attachments": [],
+      "seed": 23,
+      "description": "A light shelter of poles and covering, with a sheltered opening."
+    },
+    "shelter-reed": {
+      "label": "Reed shelter",
+      "footprint": [
+        4,
+        3
+      ],
+      "entrance": [
+        2,
+        3
+      ],
+      "canvas": [
+        64,
+        64
+      ],
+      "height": 32,
+      "wall": "mud-plaster",
+      "roof": "shelter",
+      "roofMaterial": "thatch",
+      "opening": "door",
+      "attachments": [],
+      "seed": 23,
+      "description": "A light shelter of poles and covering, with a sheltered opening."
+    },
+    "house-thatch": {
+      "label": "Thatched timber household",
+      "footprint": [
+        6,
+        4
+      ],
+      "entrance": [
+        3,
+        4
+      ],
+      "canvas": [
+        96,
+        96
+      ],
+      "height": 52,
+      "wall": "weatherboard",
+      "roof": "gable",
+      "roofMaterial": "thatch",
+      "opening": "door",
+      "attachments": [
+        "veranda"
+      ],
+      "seed": 23,
+      "description": "A timber household with a broad thatched roof and sheltered work space."
     }
   }
 }

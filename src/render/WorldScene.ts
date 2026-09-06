@@ -2,7 +2,7 @@ import { buildingContains, buildingPlacement } from "./buildings";
 import { terrainVariant, type RenderOptions } from "./appearance";
 import Phaser from "phaser";
 import type { Runtime } from "../runtime/session";
-import type { Position } from "../core/types";
+import type { Position, WorldModel } from "../core/types";
 import { surfaceAt, hasQuay } from "./materials";
 import { random } from "../core/random";
 import { lightingAt, lightingPreset, shadowFrame } from "./lighting";
@@ -19,6 +19,7 @@ export class WorldScene extends Phaser.Scene {
   private selection?: Phaser.GameObjects.Graphics;
   private unsubscribe?: () => void;
   private staticKey = "";
+  private drawnWorld?: WorldModel;
   private buildings = new Map<string, Phaser.GameObjects.Image>();
   private lastInput = 0;
   private lastTick = 0;
@@ -178,7 +179,8 @@ export class WorldScene extends Phaser.Scene {
       this.scale.width,
       this.scale.height,
     ].join(":");
-    if (key !== this.staticKey) {
+    if (key !== this.staticKey || w !== this.drawnWorld) {
+      this.drawnWorld = w;
       this.staticKey = key;
       for (const l of this.layers) l.destroy();
       this.layers = [];
@@ -200,14 +202,22 @@ export class WorldScene extends Phaser.Scene {
             p.space === "outside"
               ? surfaceAt(w, x, y, rt.terrainAt(x, y, p.space))
               : rt.terrainAt(x, y, p.space);
-          const variant = terrainVariant(e.state.manifest.seed, t, x, y);
+          const rendered =
+            t === "snow"
+              ? "sand"
+              : t === "rock"
+                ? "dirt"
+                : t === "marsh"
+                  ? "grass"
+                  : t;
+          const variant = terrainVariant(e.state.manifest.seed, rendered, x, y);
           return (
             (terrainFrames as Record<string, number>)[
               t === "bridge"
                 ? w.pack.landscape.bridge === "stone"
                   ? `paving${variant}`
                   : "bridge"
-                : `${t === "water" ? w.pack.landscape.water : t}${variant}`
+                : `${t === "water" ? w.pack.landscape.water : rendered}${variant}`
             ] ?? 0
           );
         }),
@@ -225,6 +235,21 @@ export class WorldScene extends Phaser.Scene {
         .createLayer(0, ts, startX * 16, startY * 16)!
         .setDepth(-100000)
         .setTint(this.tint);
+      if (w.pack.setting && p.space === "outside") {
+        this.ground.forEachTile((tile) => {
+          const x = startX + tile.x,
+            y = startY + tile.y,
+            t = w.terrain(x, y);
+          tile.tint =
+            t === "snow"
+              ? 0xe6edf3
+              : t === "rock"
+                ? 0x99978b
+                : t === "marsh"
+                  ? 0x668b76
+                  : this.tint;
+        });
+      }
       if (p.space === "outside") {
         const neighbors = [
           [0, -1],

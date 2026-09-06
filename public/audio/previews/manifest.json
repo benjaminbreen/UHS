@@ -1,0 +1,93 @@
+[
+  {
+    "themeId": "first-green",
+    "season": "spring",
+    "period": "day",
+    "era": "pastoral",
+    "title": "The first green",
+    "bpm": 88,
+    "seconds": 91.27274376417233,
+    "peak": 0.384033203125,
+    "rms": 0.08781131145193516,
+    "clippedSamples": 0,
+    "file": "/audio/previews/first-green-day-pastoral.mp3"
+  },
+  {
+    "themeId": "long-light",
+    "season": "summer",
+    "period": "dusk",
+    "era": "pastoral",
+    "title": "Fields of long light",
+    "bpm": 86,
+    "seconds": 93.30233560090703,
+    "peak": 0.390472412109375,
+    "rms": 0.08747532785321296,
+    "clippedSamples": 0,
+    "file": "/audio/previews/long-light-dusk-pastoral.mp3"
+  },
+  {
+    "themeId": "amber-road",
+    "season": "autumn",
+    "period": "day",
+    "era": "pastoral",
+    "title": "The amber road",
+    "bpm": 78,
+    "seconds": 102.46154195011339,
+    "peak": 0.35015869140625,
+    "rms": 0.08757165154181033,
+    "clippedSamples": 0,
+    "file": "/audio/previews/amber-road-day-pastoral.mp3"
+  },
+  {
+    "themeId": "snow-lanterns",
+    "season": "winter",
+    "period": "night",
+    "era": "pastoral",
+    "title": "Lanterns in the snow",
+    "bpm": 53,
+    "seconds": 148.90566893424037,
+    "peak": 0.32452392578125,
+    "rms": 0.055338459086669615,
+    "clippedSamples": 0,
+    "file": "/audio/previews/snow-lanterns-night-pastoral.mp3"
+  },
+  {
+    "themeId": "remembered-road",
+    "season": "spring",
+    "period": "day",
+    "era": "pastoral",
+    "title": "The road remembers",
+    "bpm": 82,
+    "seconds": 97.65854875283446,
+    "peak": 0.3800048828125,
+    "rms": 0.08985854697310149,
+    "clippedSamples": 0,
+    "file": "/audio/previews/remembered-road-day-pastoral.mp3"
+  },
+  {
+    "themeId": "remembered-road",
+    "season": "spring",
+    "period": "day",
+    "era": "chamber",
+    "title": "The road remembers",
+    "bpm": 82,
+    "seconds": 97.65854875283446,
+    "peak": 0.27764892578125,
+    "rms": 0.06071765536427718,
+    "clippedSamples": 0,
+    "file": "/audio/previews/remembered-road-day-chamber.mp3"
+  },
+  {
+    "themeId": "remembered-road",
+    "season": "spring",
+    "period": "day",
+    "era": "electronic",
+    "title": "The road remembers",
+    "bpm": 92,
+    "seconds": 87.47827664399092,
+    "peak": 0.43585205078125,
+    "rms": 0.08855952846311559,
+    "clippedSamples": 0,
+    "file": "/audio/previews/remembered-road-day-electronic.mp3"
+  }
+]

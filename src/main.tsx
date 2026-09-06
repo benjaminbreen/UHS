@@ -4,15 +4,30 @@ import { createSession, restoreSession, Runtime } from "./runtime/session";
 import { claimWriter, load, save, preserveRecovery } from "./runtime/storage";
 import "./ui/style.css";
 import { registerWebMCP } from "./agents/webmcp";
+import { PropLabHost } from "./dev/PropLabHost";
 async function start() {
+  if (window.location.pathname === "/prop-lab") {
+    createRoot(document.getElementById("root")!).render(
+      <PropLabHost standalone />,
+    );
+    return;
+  }
   if (window.location.pathname === "/history-lab") {
     const { HistoryLab } = await import("./dev/HistoryLab");
-    createRoot(document.getElementById("root")!).render(<HistoryLab />);
+    createRoot(document.getElementById("root")!).render(
+      <PropLabHost>
+        <HistoryLab />
+      </PropLabHost>,
+    );
     return;
   }
   if (window.location.pathname === "/graphics-lab") {
     const { GraphicsLab } = await import("./dev/GraphicsLab");
-    createRoot(document.getElementById("root")!).render(<GraphicsLab />);
+    createRoot(document.getElementById("root")!).render(
+      <PropLabHost>
+        <GraphicsLab />
+      </PropLabHost>,
+    );
     return;
   }
   let engine = createSession();
@@ -54,7 +69,9 @@ async function start() {
   registerWebMCP(runtime);
   if (import.meta.env.DEV) Object.assign(window, { __uhs: runtime });
   createRoot(document.getElementById("root")!).render(
-    <App runtime={runtime} writer={writer} />,
+    <PropLabHost onOpen={() => runtime.stop()}>
+      <App runtime={runtime} writer={writer} />
+    </PropLabHost>,
   );
 }
 void start();

@@ -1,4 +1,5 @@
 import type { LandscapeStyle } from "../content/graphics/landscapes";
+import type { WorldSetting } from "../content/geography/types";
 export type PackId = string;
 export type Point = { x: number; y: number };
 export type Position = Point & { space: string };
@@ -97,9 +98,13 @@ export type Terrain =
   | "paving"
   | "bridge"
   | "field"
-  | "floor";
+  | "floor"
+  | "snow"
+  | "rock"
+  | "marsh";
 export type Settlement = Point & { id: string; name: string; size: number };
 export type Pack = {
+  setting?: WorldSetting;
   id: PackId;
   name: string;
   region: string;
@@ -142,11 +147,12 @@ export type Pack = {
 export type WorldManifest = {
   seed: string;
   pack: PackId;
-  schema: 1;
+  schema: 1 | 2;
   simulation: 1;
-  generator: 1;
+  generator: 1 | 2;
   content: 1;
-  atlas: 1;
+  atlas: 1 | 2;
+  setting?: WorldSetting;
 };
 export type GameEvent = {
   id: number;
@@ -251,6 +257,12 @@ export type Observation = {
   manifest: WorldManifest;
 };
 export interface WorldModel {
+  elevation?(x: number, y: number): number;
+  moisture?(x: number, y: number): number;
+  activate?(x: number, y: number): void;
+  restoreDistricts?(entityIds: string[]): void;
+  regionExtent?: number;
+  overview?(x: number, y: number): Terrain;
   pack: Pack;
   settlements: Settlement[];
   enclosures: { x: number; y: number; w: number; h: number; gate: Point }[];

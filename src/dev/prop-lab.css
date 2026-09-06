@@ -1,0 +1,293 @@
+.prop-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: #101719c9;
+  backdrop-filter: blur(5px);
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+.prop-lab {
+  width: min(1500px, 100%);
+  height: calc(100dvh - 40px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid #7f806766;
+  border-radius: 10px;
+  background: #20282b;
+  color: #e5dfce;
+  font:
+    14px/1.45 system-ui,
+    sans-serif;
+  box-shadow: 0 30px 100px #0008;
+}
+.prop-lab * {
+  box-sizing: border-box;
+}
+.prop-header {
+  padding: 20px 26px;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid #515749;
+  background: #252f31;
+}
+.prop-header h1 {
+  font:
+    30px Georgia,
+    serif;
+  margin: 4px 0;
+}
+.prop-header p {
+  margin: 0;
+  color: #a9b4aa;
+  font-size: 13px;
+}
+.prop-eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.13em;
+  color: #d4bc88;
+  text-transform: uppercase;
+}
+.prop-lab button,
+.prop-lab input,
+.prop-lab select {
+  font: inherit;
+  color: inherit;
+  border: 1px solid #656d5b;
+  background: #2b3636;
+  border-radius: 4px;
+  padding: 8px 10px;
+}
+.prop-lab button {
+  cursor: pointer;
+}
+.prop-lab button:hover {
+  border-color: #d1bd8b;
+  background: #364341;
+}
+.prop-lab button[aria-pressed="true"] {
+  border-color: #d2ba83;
+  background: #435046;
+}
+.prop-lab :focus-visible {
+  outline: 2px solid #e2c995;
+  outline-offset: 3px;
+}
+.prop-lab .prop-close {
+  font-size: 30px;
+  padding: 0 12px;
+  align-self: flex-start;
+}
+.prop-toolbar {
+  display: flex;
+  align-items: end;
+  gap: 18px;
+  padding: 14px 26px;
+  border-bottom: 1px solid #485244;
+  flex-wrap: wrap;
+}
+.prop-lab label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  color: #b6beb1;
+  font-size: 12px;
+}
+.prop-toolbar label:first-child {
+  flex: 1;
+  min-width: 150px;
+}
+.prop-toolbar input {
+  width: 100%;
+}
+.prop-toolbar a {
+  color: #dbc390;
+  font-size: 12px;
+  padding-bottom: 10px;
+}
+.prop-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 420px;
+  min-height: 0;
+  flex: 1;
+}
+.prop-browser {
+  overflow: auto;
+  padding: 20px 24px;
+}
+.prop-groups {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+.prop-groups button {
+  font-size: 12px;
+  padding: 7px 10px;
+}
+.prop-count {
+  font-size: 12px;
+  color: #a6b0a3;
+  margin: 14px 0 12px;
+}
+.prop-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(206px, 1fr));
+  gap: 12px;
+}
+.prop-lab .prop-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow: hidden;
+  padding: 7px 6px 10px;
+  background: #293331;
+  text-align: left;
+}
+.prop-card canvas {
+  display: block;
+  image-rendering: pixelated;
+  border-radius: 2px;
+  max-width: none;
+}
+.prop-card > span {
+  width: 100%;
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  margin-top: 8px;
+  font-size: 12px;
+  padding: 0 4px;
+}
+.prop-card small {
+  color: #9aa58e;
+  font-size: 10px;
+}
+.prop-card em {
+  width: 100%;
+  padding-left: 25px;
+  margin-top: 3px;
+  font: 10px system-ui;
+  color: #aab5a5;
+}
+.prop-detail {
+  border-left: 1px solid #515b4c;
+  background: #25302f;
+  padding: 22px 18px;
+  overflow: auto;
+  min-width: 0;
+}
+.prop-detail h2 {
+  font:
+    25px/1.2 Georgia,
+    serif;
+  margin: 8px 0 12px;
+}
+.prop-detail > p {
+  font-size: 13px;
+  color: #bec5b7;
+}
+.prop-detail-stage {
+  width: 100%;
+  overflow: auto;
+  border: 1px solid #79826c;
+  border-radius: 4px;
+  margin: 18px 0 12px;
+}
+.prop-detail-stage canvas {
+  display: block;
+  image-rendering: pixelated;
+  max-width: none;
+}
+.prop-detail > label {
+  margin-top: 10px;
+}
+.prop-detail h3 {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  margin-top: 22px;
+}
+.prop-variants {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+.prop-variants button {
+  font-size: 12px;
+}
+.prop-lab .prop-check {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+.prop-export {
+  width: 100%;
+  margin-top: 20px;
+}
+.prop-detail .prop-note {
+  font-size: 11px;
+  line-height: 1.55;
+  color: #99a695;
+}
+@media (max-width: 1000px) {
+  .prop-body {
+    grid-template-columns: minmax(0, 1fr) 360px;
+  }
+  .prop-grid {
+    grid-template-columns: repeat(auto-fill, minmax(202px, 1fr));
+  }
+  .prop-browser {
+    padding: 16px;
+  }
+}
+@media (max-width: 700px) {
+  .prop-backdrop {
+    padding: 6px;
+  }
+  .prop-lab {
+    height: calc(100dvh - 12px);
+  }
+  .prop-header {
+    padding: 14px;
+  }
+  .prop-header h1 {
+    font-size: 24px;
+  }
+  .prop-toolbar {
+    padding: 10px 14px;
+    gap: 10px;
+  }
+  .prop-body {
+    display: flex;
+    flex-direction: column;
+    overflow: auto;
+  }
+  .prop-browser {
+    overflow: visible;
+  }
+  .prop-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 7px;
+  }
+  .prop-card canvas {
+    width: 192px;
+    height: 144px;
+  }
+  .prop-detail {
+    overflow: visible;
+    border-left: 0;
+    border-top: 1px solid #515b4c;
+  }
+  .prop-lab .prop-card {
+    padding: 4px;
+  }
+  .prop-toolbar a {
+    padding: 0;
+  }
+  .prop-detail-stage {
+    max-width: 100%;
+  }
+}

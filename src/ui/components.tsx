@@ -36,10 +36,12 @@ export function Minimap({
   runtime,
   large = false,
   regional = false,
+  span,
 }: {
   runtime: Runtime;
   large?: boolean;
   regional?: boolean;
+  span?: number;
 }) {
   const ref = useRef<HTMLCanvasElement>(null);
   const e = runtime.engine;
@@ -50,8 +52,10 @@ export function Minimap({
       : { ...e.world.place(local.space)!.entrance, space: "outside" };
   const size = large ? 520 : 256,
     height = large ? 350 : 148;
-  const extent = large || regional ? 320 : 110;
-  const origin = large || regional ? { x: 20, y: 25 } : p;
+  const extent =
+    span ?? (large || regional ? (e.world.regionExtent ?? 320) : 110);
+  const origin =
+    (large || regional) && !e.world.pack.setting ? { x: 20, y: 25 } : p;
   useEffect(() => {
     const canvas = ref.current;
     if (!canvas) return;
@@ -62,6 +66,9 @@ export function Minimap({
       if (cancelled) return;
       c.imageSmoothingEnabled = false;
       const colors: Record<string, string> = {
+        snow: "#d9e4e5",
+        rock: "#8d887d",
+        marsh: "#527e68",
         grass: "#738749",
         dry: "#9ba16a",
         dirt: "#b2a070",
@@ -76,7 +83,12 @@ export function Minimap({
         for (let x = 0; x < size; x += 2) {
           const wx = Math.floor(origin.x + ((x - size / 2) * extent) / size),
             wy = Math.floor(origin.y + ((y - height / 2) * extent) / size);
-          c.fillStyle = colors[surfaceAt(e.world, wx, wy)];
+          c.fillStyle =
+            colors[
+              extent > 3200 && e.world.overview
+                ? e.world.overview(wx, wy)
+                : surfaceAt(e.world, wx, wy)
+            ];
           c.fillRect(x, y, 2, 2);
         }
       const stamp = (name: string, x: number, y: number, width: number) => {
@@ -101,7 +113,7 @@ export function Minimap({
         );
       };
       // Draw actual cover and settlement footprints from the shared world plan.
-      const stride = regional || large ? 6 : 3;
+      const stride = extent > 3200 ? extent : regional || large ? 9 : 3;
       for (
         let wy =
           Math.floor((origin.y - (height * extent) / size / 2) / stride) *

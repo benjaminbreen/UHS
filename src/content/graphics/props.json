@@ -1,0 +1,443 @@
+{
+  "version": 1,
+  "status": "review studies; not gameplay definitions or historical eligibility",
+  "families": [
+    {
+      "id": "earthen-pot",
+      "name": "Plain earthen pot",
+      "group": "Storage & carrying",
+      "description": "A squat rounded pot with a thick uneven rim, dark opening and a few clustered firing marks.",
+      "variants": [
+        "Terracotta",
+        "Buff clay",
+        "Red earth"
+      ]
+    },
+    {
+      "id": "storage-jar",
+      "name": "Large storage jar",
+      "group": "Storage & carrying",
+      "description": "A broad-bellied jar with a narrow shoulder and removable clay or fiber lid.",
+      "variants": [
+        "Terracotta",
+        "Buff clay",
+        "Red earth"
+      ]
+    },
+    {
+      "id": "water-jug",
+      "name": "Handled water jug",
+      "group": "Storage & carrying",
+      "description": "A narrow-necked jug with one readable loop handle and a bright highlight along its shoulder.",
+      "variants": [
+        "Terracotta",
+        "Buff clay",
+        "Red earth"
+      ]
+    },
+    {
+      "id": "amphora",
+      "name": "Transport amphora",
+      "group": "Storage & carrying",
+      "description": "An elongated vessel with two strong handles, a small sealed mouth and a visibly supported base.",
+      "variants": [
+        "Terracotta",
+        "Buff clay",
+        "Red earth"
+      ]
+    },
+    {
+      "id": "glazed-jar",
+      "name": "Glazed jar",
+      "group": "Storage & carrying",
+      "description": "A rounded storage vessel with a darker foot, glossy clustered highlights and an optional simple painted band.",
+      "variants": [
+        "Green glaze",
+        "Blue glaze",
+        "Cream glaze"
+      ]
+    },
+    {
+      "id": "metal-vessel",
+      "name": "Metal water vessel",
+      "group": "Storage & carrying",
+      "description": "A rounded metal vessel with a turned collar, deep opening and sharply contrasting reflected bands.",
+      "variants": [
+        "Brass",
+        "Pewter-toned",
+        "Copper"
+      ]
+    },
+    {
+      "id": "gourd",
+      "name": "Gourd vessel",
+      "group": "Storage & carrying",
+      "description": "An asymmetric natural gourd with a cut opening, mottled surface and optional fiber carrying loop.",
+      "variants": [
+        "Warm rind",
+        "Pale rind",
+        "Russet rind"
+      ]
+    },
+    {
+      "id": "open-basket",
+      "name": "Open work basket",
+      "group": "Storage & carrying",
+      "description": "A shallow oval basket with a thick woven rim and large, legible bands of wicker.",
+      "variants": [
+        "Dry fiber",
+        "Green fiber",
+        "Pale fiber"
+      ]
+    },
+    {
+      "id": "lidded-basket",
+      "name": "Lidded storage basket",
+      "group": "Storage & carrying",
+      "description": "A taller woven container with a distinct fitted lid, binding straps and a shaded lower edge.",
+      "variants": [
+        "Dry fiber",
+        "Green fiber",
+        "Pale fiber"
+      ]
+    },
+    {
+      "id": "sack",
+      "name": "Sack or hide bag",
+      "group": "Storage & carrying",
+      "description": "A slumped soft container with gathered folds, a tied neck and material-specific cloth or hide shading.",
+      "variants": [
+        "Natural",
+        "Rust red",
+        "Muted blue"
+      ]
+    },
+    {
+      "id": "plain-box",
+      "name": "Plain wooden box",
+      "group": "Storage & carrying",
+      "description": "A low rectangular box with a lift-off lid, broad boards and simple corner joints.",
+      "variants": [
+        "Warm wood",
+        "Dark wood",
+        "Pale wood"
+      ]
+    },
+    {
+      "id": "bound-chest",
+      "name": "Bound wooden chest",
+      "group": "Storage & carrying",
+      "description": "A heavier chest with a hinged lid, two dark reinforcing bands and a clearly visible fastening.",
+      "variants": [
+        "Warm wood",
+        "Dark wood",
+        "Pale wood"
+      ]
+    },
+    {
+      "id": "painted-chest",
+      "name": "Painted wooden chest",
+      "group": "Storage & carrying",
+      "description": "A raised or footed chest with colored panels and restrained trim that changes its silhouette from the plain box.",
+      "variants": [
+        "Oxide red",
+        "Muted blue",
+        "Warm cream"
+      ]
+    },
+    {
+      "id": "barrel",
+      "name": "Barrel",
+      "group": "Storage & carrying",
+      "description": "A bulging stave-built barrel with an elliptical top, dark hoops and a small bung or lid.",
+      "variants": [
+        "Warm wood",
+        "Dark wood",
+        "Pale wood"
+      ]
+    },
+    {
+      "id": "crate",
+      "name": "Transport crate",
+      "group": "Storage & carrying",
+      "description": "An open-slatted rectangular crate with thick corner posts and visible gaps between boards.",
+      "variants": [
+        "Warm wood",
+        "Dark wood",
+        "Pale wood"
+      ]
+    },
+    {
+      "id": "bucket",
+      "name": "Bucket or pail",
+      "group": "Storage & carrying",
+      "description": "A stave-built wooden pail with a curved metal handle, wooden grip, open mouth and iron hoops.",
+      "variants": [
+        "Warm wood",
+        "Dark wood",
+        "Pale wood"
+      ]
+    },
+    {
+      "id": "trough",
+      "name": "Water or feed trough",
+      "group": "Water sources",
+      "description": "A long low receptacle with a deep shaded interior and separately authored hollowed-wood or masonry forms.",
+      "variants": [
+        "Hollowed wood",
+        "Sandstone",
+        "Stone"
+      ]
+    },
+    {
+      "id": "well",
+      "name": "Low well or cistern mouth",
+      "group": "Water sources",
+      "description": "A low masonry shaft with staggered stone courses, chipped capstones and a recessed opening.",
+      "variants": [
+        "Grey stone",
+        "Sandstone",
+        "Dark stone"
+      ]
+    },
+    {
+      "id": "framed-well",
+      "name": "Timber-framed well",
+      "group": "Water sources",
+      "description": "A water opening beneath two posts and a crossbeam, with a clear rope-and-bucket silhouette and optional small roof.",
+      "variants": [
+        "Stone blocks",
+        "Sandstone blocks",
+        "Plastered rim"
+      ]
+    },
+    {
+      "id": "pump",
+      "name": "Hand pump",
+      "group": "Water sources",
+      "description": "A compact upright pump with a curved handle, projecting spout and a small stained base.",
+      "variants": [
+        "Copper-toned",
+        "Iron-toned",
+        "Pale enamel"
+      ]
+    },
+    {
+      "id": "grinder",
+      "name": "Grinding stone and handstone",
+      "group": "Work & agriculture",
+      "description": "A low stone slab with a worn hollow and a smaller contrasting handstone resting across it.",
+      "variants": [
+        "Grey stone",
+        "Warm stone"
+      ]
+    },
+    {
+      "id": "mortar",
+      "name": "Mortar and pestle",
+      "group": "Work & agriculture",
+      "description": "A deep stone or wooden bowl with a thick rim and a pestle angled against its edge.",
+      "variants": [
+        "Grey stone",
+        "Warm stone",
+        "Wood"
+      ]
+    },
+    {
+      "id": "hoe",
+      "name": "Hoe or digging tool",
+      "group": "Work & agriculture",
+      "description": "A long worn handle ends in a clearly shaped working head, with separate stone, composite and metal forms.",
+      "variants": [
+        "Stone/composite study",
+        "Iron study",
+        "Pale metal study"
+      ]
+    },
+    {
+      "id": "sickle",
+      "name": "Sickle",
+      "group": "Work & agriculture",
+      "description": "A short gripped handle supports a strongly curved cutting edge, with distinct composite and metal constructions.",
+      "variants": [
+        "Stone/composite study",
+        "Iron study",
+        "Pale metal study"
+      ]
+    },
+    {
+      "id": "spade",
+      "name": "Shovel or spade",
+      "group": "Work & agriculture",
+      "description": "A straight handle ends in a broad readable blade, differentiated through wooden and metal head shapes.",
+      "variants": [
+        "Stone/composite study",
+        "Iron study",
+        "Pale metal study"
+      ]
+    },
+    {
+      "id": "woodpile",
+      "name": "Firewood pile",
+      "group": "Work & agriculture",
+      "description": "A compact stack of irregular logs shows bright cut ends, dark bark and gaps between pieces.",
+      "variants": [
+        "Warm wood",
+        "Dark wood",
+        "Pale wood"
+      ]
+    },
+    {
+      "id": "sheaf",
+      "name": "Harvest bundle",
+      "group": "Work & agriculture",
+      "description": "A tied sheaf of crop-specific stalks fans out above and below a narrow binding.",
+      "variants": [
+        "Dry fiber",
+        "Green fiber",
+        "Pale fiber"
+      ]
+    },
+    {
+      "id": "drying-rack",
+      "name": "Drying rack",
+      "group": "Work & agriculture",
+      "description": "A lightweight pole frame carries a few separated hanging objects or a shallow woven drying surface.",
+      "variants": [
+        "Natural",
+        "Rust red",
+        "Muted blue"
+      ]
+    },
+    {
+      "id": "scarecrow",
+      "name": "Bird-scaring figure or rig",
+      "group": "Work & agriculture",
+      "description": "A rough pole structure carries ragged cloth, fiber bundles or hanging strips appropriate to the selected tradition.",
+      "variants": [
+        "Natural",
+        "Rust red",
+        "Muted blue"
+      ]
+    },
+    {
+      "id": "hearth",
+      "name": "Hearth or firepit",
+      "group": "Household",
+      "description": "An irregular ring or shallow hearth contains dark coals, pale ash and a small layered flame.",
+      "variants": [
+        "Lit hearth"
+      ]
+    },
+    {
+      "id": "oven",
+      "name": "Small oven or stove",
+      "group": "Household",
+      "description": "A compact clay dome or masonry body has a dark fire opening, soot staining and a bright worn lip.",
+      "variants": [
+        "Terracotta",
+        "Buff clay",
+        "Red earth"
+      ]
+    },
+    {
+      "id": "oil-lamp",
+      "name": "Oil lamp",
+      "group": "Household",
+      "description": "A small vessel has a distinct wick nozzle, warm flame and a darkened patch around the burning edge.",
+      "variants": [
+        "Terracotta",
+        "Buff clay",
+        "Red earth"
+      ]
+    },
+    {
+      "id": "lantern",
+      "name": "Lantern",
+      "group": "Household",
+      "description": "A framed lamp has a strong carrying loop and a warm central light behind locally appropriate panel construction.",
+      "variants": [
+        "Copper-toned",
+        "Iron-toned",
+        "Pale enamel"
+      ]
+    },
+    {
+      "id": "stool",
+      "name": "Low stool",
+      "group": "Household",
+      "description": "A compact seat rests on visibly separated legs, with wood, woven-seat or later metal variants.",
+      "variants": [
+        "Warm wood",
+        "Dark wood",
+        "Pale wood"
+      ]
+    },
+    {
+      "id": "bench",
+      "name": "Bench",
+      "group": "Household",
+      "description": "A long simple seat has stout supports, a worn upper edge and optional locally selected backrest.",
+      "variants": [
+        "Warm wood",
+        "Dark wood",
+        "Pale wood"
+      ]
+    },
+    {
+      "id": "workbench",
+      "name": "Table or workbench",
+      "group": "Household",
+      "description": "A sturdy rectangular surface has clear legs, an overhanging edge and a few task-specific surface marks.",
+      "variants": [
+        "Warm wood",
+        "Dark wood",
+        "Pale wood"
+      ]
+    },
+    {
+      "id": "bedroll",
+      "name": "Sleeping mat or bedroll",
+      "group": "Household",
+      "description": "A woven mat or rolled bedding has a soft folded edge, restrained stripes and a small raised pillow or bundle.",
+      "variants": [
+        "Natural",
+        "Rust red",
+        "Muted blue"
+      ]
+    },
+    {
+      "id": "metal-tin",
+      "name": "Metal canister or tin",
+      "group": "Storage & carrying",
+      "description": "A cylindrical or rectangular industrial container has folded seams, a distinct lid and restrained dents or rust.",
+      "variants": [
+        "Copper-toned",
+        "Iron-toned",
+        "Pale enamel"
+      ]
+    },
+    {
+      "id": "plastic-bin",
+      "name": "Plastic bucket or bin",
+      "group": "Storage & carrying",
+      "description": "A molded container has a thick lip, simple handle or lid, and broad clean color blocks with modest scuffing.",
+      "variants": [
+        "Sage green",
+        "Muted blue",
+        "Brick red"
+      ]
+    },
+    {
+      "id": "cardboard-box",
+      "name": "Cardboard carton",
+      "group": "Storage & carrying",
+      "description": "A folded box has readable top flaps, dark crease lines and an optional plain packing mark or tape strip.",
+      "variants": [
+        "Kraft",
+        "Red-brown board",
+        "Blue packing board"
+      ]
+    }
+  ]
+}

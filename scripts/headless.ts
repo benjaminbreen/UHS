@@ -1,6 +1,11 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { createInterface } from "node:readline";
-import { createSession, restoreSession } from "../src/runtime/session";
+import {
+  createSession,
+  createSettingSession,
+  restoreSession,
+} from "../src/runtime/session";
+import { snapshotSchema } from "../src/runtime/schema";
 import { PlayerAdapter } from "../src/agents/player";
 import { findPath } from "../src/core/pathfinding";
 import type { PlayerCommand, Position } from "../src/core/types";
@@ -11,9 +16,15 @@ const flag = (s: string) => {
 };
 const saved = flag("--load"),
   pack = flag("--pack") ?? "roman";
+import { resolveSetting } from "../src/content/geography/resolve";
+const requested = flag("--prompt");
+const resolved = requested ? resolveSetting(requested) : undefined;
+if (resolved && "error" in resolved) throw Error(resolved.error);
 const engine = saved
   ? restoreSession(JSON.parse(readFileSync(saved, "utf8")))
-  : createSession(pack, flag("--seed"));
+  : resolved && "setting" in resolved
+    ? createSettingSession(resolved.setting, flag("--seed"))
+    : createSession(pack, flag("--seed"));
 const adapter = new PlayerAdapter(engine);
 let counter = 0;
 const act = (command: PlayerCommand) =>
@@ -126,7 +137,13 @@ if (args.includes("--demo")) {
   );
 } else if (flag("--replay")) {
   const record = JSON.parse(readFileSync(flag("--replay")!, "utf8"));
-  const replay = createSession(record.manifest.pack, record.manifest.seed);
+  const manifest = snapshotSchema.shape.manifest.parse(record.manifest);
+  const replay = createSession(
+    manifest.pack,
+    manifest.seed,
+    undefined,
+    manifest.generator === 2 ? manifest.setting : undefined,
+  );
   for (const entry of record.entries ??
     record.commands.map((request: unknown) => ({ request })))
     replay.act(entry.request);

@@ -6,6 +6,7 @@ import random
 from PIL import Image, ImageDraw
 
 ROOFS = {
+    'thatch': ['#50452b', '#7c6737', '#aa8b47', '#c7ac62', '#e0c888'],
     'terracotta': ['#52332d', '#8d3d2c', '#b44e31', '#ce6940', '#e78a51'],
     'slate': ['#29383e', '#40505c', '#566e79', '#76888d', '#98a5a1'],
     'grey-tile': ['#2d3939', '#444f4a', '#606f61', '#85927c', '#a9b299'],
@@ -179,6 +180,20 @@ class Building:
         else:raise ValueError('Unknown attachment: '+kind)
 
     def render(self):
+        if self.r['roof']=='shelter':
+            d=self.d
+            colors=['#544333','#82674b','#ac8960','#d1b387'] if self.r['roofMaterial']=='hide' else ['#484b2b','#6b713e','#9a9c52','#c2bd75']
+            d.ellipse((4,45,60,62),fill='#443e31')
+            d.polygon([(5,54),(17,28),(32,8),(48,25),(60,55),(48,59),(19,59)],fill=colors[1],outline=colors[0])
+            d.polygon([(7,52),(19,28),(32,10),(30,48),(23,57)],fill=colors[2])
+            d.polygon([(32,10),(48,27),(58,53),(43,56)],fill=colors[1])
+            for a,b in [((32,7),(8,55)),((32,7),(28,58)),((32,7),(57,56))]: d.line((a,b),fill=colors[0],width=2)
+            d.line((32,5,32,10),fill='#b59a66',width=2)
+            door=self.door_x
+            d.polygon([(door,35),(door-6,58),(door+6,58)],fill='#292c25')
+            d.line((door,35,door+7,57),fill=colors[3])
+            d.line((13,43,23,31),fill=colors[3])
+            return self.im
         self.wall();self.foundation()
         if 'timber-frame' in self.r['attachments']:self.attachment('timber-frame')
         self.openings()

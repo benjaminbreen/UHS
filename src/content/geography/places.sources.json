@@ -1,0 +1,16 @@
+{
+  "sources": [
+    {
+      "url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/ca96624a56bd078437bca8184e78163e5039ad19/geojson/ne_10m_populated_places_simple.geojson",
+      "sha256": "fd3fa867a320cbd5c5b6bb5bc550afeec2939fb2cef688e508007282a55ac42f",
+      "license": "Public domain \u2014 Natural Earth"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/ca96624a56bd078437bca8184e78163e5039ad19/geojson/ne_10m_geography_regions_polys.geojson",
+      "sha256": "b7b26e50ea917d3696aec87f932def2bf5f890f5770e441d59c162c6f4c92a77",
+      "license": "Public domain \u2014 Natural Earth"
+    }
+  ],
+  "legacyRevision": "302c17dd8b2d7c809c7056ee9f7f8ed973a8dffa",
+  "matchedLegacyAreas": 180
+}

@@ -1,6 +1,8 @@
 # Universal History Simulator: design and implementation brief
 
-Version 2 · 6 September 2026 · Implementation brief; revised after asset review
+Version 2 · 6 September 2026 · Implementation brief; revised after asset review and cultural-content planning
+
+Current implementation and recommended next work are tracked in [PROGRESS.md](PROGRESS.md). The accepted cultural-content direction is in [section 20](#20-cultural-content-families-and-dated-local-profiles); it is a design decision, not a claim of implemented world coverage.
 
 ## 1. What to build
 
@@ -73,6 +75,8 @@ These are directory boundaries within the application, not separately published 
 | `src/content/` | Content schemas, loaders, historical rule resolution, source references | Mutable actor state or rendering behavior |
 | `src/runtime/` | Session orchestration, command serialization, loading, worker bridge, save boundaries | Duplicate game rules |
 | `src/render/` | Phaser scenes, tile and sprite presentation, camera, animation | Ownership changes, NPC decisions, trade outcomes |
+| `src/audio/` | Original scores, synthesis, transport, mixing and presentation-time audio selection | Simulation time advancement, inventory changes or cultural-authenticity claims inferred from a timbre |
+| `src/dev/` | Graphics and audio review controls and isolated graphics fixtures | A second implementation of game rules or writes from graphics fixtures to playable saves |
 | `src/ui/` | React panels, controls, accessibility, presentation state | A second copy of the simulation |
 | `src/llm/` | Context assembly, proposal schemas, provider-neutral request contracts | Unvalidated mutation of world state |
 | `api/` | Vercel handlers, secrets, model provider calls, request limits | A continuously running world loop |
@@ -187,65 +191,21 @@ The player may choose their own purposes. An optional character concern—return
 
 ## 8. Geography and scale
 
-Generate local detail from shared geography. Adjacent chunks are windows onto one regional world, and zoomed-out maps derive from that same world.
+The current implementation and user-approved simplification are documented in [WORLDS.md](WORLDS.md). Use a compressed Earth atlas for recognizable coastlines and broad landforms, then generate evocative local detail. Exact GIS fidelity, per-feature citations, regional projection packages, and dated historical corrections are not prerequisites.
 
-Use WGS84 coordinates for atlas locations. Each supported regional pack declares its bounds, a suitable metric projection, a fixed origin, and its resolution. Preproject assets offline. For the first outdoor implementation, use **2 metres per simulation tile and 64 × 64 tiles per chunk**. A chunk therefore spans 128 metres. These are initial engineering choices, adjustable through a versioned migration before broader release. Sixteen sprite pixels do not represent sixteen metres.
+Both local keyword interpretation and optional model interpretation produce the same saved setting. The generator owns geography, settlements, and shared feature IDs. Chunks sample that world and cannot invent their own boundaries. Regional maps use the same landscape. Interiors remain attached local spaces with stable doors.
 
-Within a region, derive chunk and tile coordinates from the same projected lattice. Support negative coordinates correctly. Do not change outdoor tile scale when entering a city. Use sparse generation: a region spanning tens of kilometres does not require allocating every tile. Long-distance travel advances along the real route and clock without requiring thousands of manual key presses.
-
-A detailed 2-metre tile is a gameplay representation, not a claim to possess 2-metre historical data. Elevation and other geographic inputs can be much coarser. Procedural surface detail must be identified as inference where examined.
-
-Begin with one regional projection and explicit pack boundaries. Later, neighboring packs can overlap geographically and resolve feature ownership and transitions through declared connections. Do not promise seamless global projection stitching in the first implementation. The global atlas must preserve destination location, direction, and route length even when travel between supported regions is abstracted. Unsupported detail should be identified clearly rather than replaced by a falsely specific reconstruction.
-
-Bound the first prepared sample to roughly 16 × 16 kilometres, adjusted to the chosen source coverage. Generate local detail only near play. A small collection of chunks is enough for the first visual and seam checks; do not materialize the entire region to satisfy a milestone.
-
-Keep interiors as attached local spaces with their own grid and stable entrance/exit links. Modest spatial expansion is acceptable for readability. Every interior belongs to a persistent building and returns to the correct door. Interior expansion does not distort the outdoor atlas.
-
-The world representation has three levels:
-
-| Level | Stores | Use |
-| --- | --- | --- |
-| Atlas | Coarse land and water, regional bounds, historical place anchors, long routes | Place selection, geographic orientation, travel between supported regions |
-| Regional plan | Elevation field, connected rivers, dated overlays, settlements, roads, land use, large feature footprints | Shared constraints for every local chunk |
-| Local chunk/interior | Walkable terrain, buildings, vegetation, objects, instantiated actors | Immediate play and rendering |
-
-The regional plan is authoritative for rivers, roads, and settlements. Chunk order must never decide where a river goes. Plan all features that span chunks in regional coordinates, then rasterize the requested window, including a margin where neighborhood rules need it. Buildings straddling a boundary have one ID and one owning record.
-
-When dozens of outdoor chunks are stitched, major waterways, roads, settlements, and landforms must agree with the regional plan. The regional map should be generated from these same features; do not draw an attractive independent minimap.
+V2 uses 2,048 tiles per geographic degree and 64 × 64 tile chunks. This preserves broad orientation and recognizable shapes while deliberately compressing travel distances. V1 retains its original regional projection and scale for recordings.
 
 ## 9. Generation and geographic data
 
-The generation sequence is:
+Resolve a setting, establish shared land/water/relief, then place settlements, paths, vegetation, and people. Keep these as ordinary functions and data. The model supplies setting parameters, never tile maps or adjacency graphs.
 
-1. Resolve place, date, role, and supported capabilities into a world specification.
-2. Load the versioned geographic pack and applicable historical rules.
-3. Establish shared terrain, drainage, dated anchors, and regional land use.
-4. Generate plausible settlements and connecting paths under these constraints.
-5. Generate parcels, structures, vegetation, and local detail using stable feature seeds.
-6. Generate households, actors, possessions, routines, and a plausible player.
-7. Validate the result; repair only through deterministic bounded rules or report the failure.
+Natural Earth coastlines and major river lines form the bundled atlas. Simple authored mountain belts and climate rules supply broad environmental character. Local river/coast templates give important settings their recognizable composition and blend into the atlas. Valleys follow channels; a full erosion, drainage-basin, or historical sea-level simulation is not required for this approach.
 
-World generation is independent of the renderer. Return semantic tile and object IDs, then map those to art assets.
+Place settlements on usable ground with valid entrances, and rasterize shared paths and crossings into chunks. Validate coordinate/schema consistency, traversable starts, stable IDs, and save/replay behavior. Richer cultural assets and regional landscape adjustments can be added directly as the user tests the game, without a historical-certification gate.
 
-Use known river geometry where available. Add inferred minor drainage through a regional downslope/catchment procedure, with explicit handling of depressions. Condition coarse elevation and the river network to agree; decorative noise must not move a main channel uphill or erase a confluence. Treat exact historical channel positions as uncertain unless appropriate evidence supports them.
-
-Choose settlements using access to water, slope, usable land, routes, and dated anchors. Generate their morphology from contextual rules: building footprints, spacing, paths, cultivation, access, materials, and shared spaces. A single scatter function with a culture-specific roof color will not be adequate. Start with a few clear generation functions and data parameters; do not build a general-purpose city grammar language.
-
-Use authored modules for reusable construction parts and room layouts. Author geographic anchors when evidence warrants them. Player routes, household combinations, and everyday circumstances remain generated.
-
-Data sources should be selected for a specific purpose:
-
-| Source | Appropriate role | Limitation |
-| --- | --- | --- |
-| [Natural Earth](https://www.naturalearthdata.com/about/terms-of-use/) | Public-domain world overview and coarse land/water context | “1:10m” means a map scale of 1:10 million, not a ten-metre terrain grid. It cannot reconstruct streets. |
-| [HydroRIVERS](https://www.hydrosheds.org/products/hydrorivers) | Connected modern river reaches to constrain regional drainage | Not every small stream; not a historical river survey. Preserve its attribution and applicable terms. |
-| Regional elevation data, selected during pack creation | Coarse topography and slope | Record resolution, provenance, surface-versus-ground meaning, and modern alterations. Do not claim recovered ancient terrain. |
-| [Pleiades](https://pleiades.stoa.org/downloads) | Ancient place identities, locations, names, and temporal information | A place anchor is not a street plan. Check record precision and applicable licensing. |
-| Archaeological plans, historical maps, scholarship, and primary sources | Dated features, buildings, land use, material culture, social practices | Evidence varies by place and period. Record uncertainty and adaptation decisions. |
-
-Use [GDAL](https://gdal.org/) for a reproducible preparation script: clip, reproject, simplify, and export the required fields. [Rasterization](https://gdal.org/en/stable/programs/gdal_rasterize.html) can align vector features with a chosen grid. Ship a small prepared regional sample so a new developer can run the game without downloading global datasets or installing GIS tooling. Record exact upstream releases or checksums and the preparation command.
-
-Pack validation must check coordinate bounds, source references, temporal ranges, missing definitions, legal entrances, settlement access, and content exclusions. Where two rules apply, use an explicit precedence: local dated override, regional dated rule, then declared fallback. Ambiguous conflicts should fail validation rather than silently choose whichever file loaded last.
+Preparation scripts use pinned public-domain inputs and the Python standard library. No GIS installation or network data request is needed to play. See [ASSET_PROVENANCE.md](ASSET_PROVENANCE.md) for source revisions and generated files.
 
 ## 10. Pixel art and interface
 
@@ -253,7 +213,7 @@ Pack validation must check coordinate bounds, source references, temporal ranges
 
 Visual quality and authoring repeatability are joint requirements. The target sits between mockups 1 and 2: the richness of composed places, material distinctions, vegetation, and useful objects, achieved with simple, reproducible individual sprites. Mystic Woods and the supplied desert/swamp sheets guide the design language, not a requirement to copy their assets or their exact pixel dimensions.
 
-First demonstrate original architecture, vegetation, and small props beside one another at gameplay scale. Use 16 × 16 terrain cells initially, people around 16 × 24 pixels, and larger multi-cell buildings and trees. Source sprite dimensions, ground footprints, and the geographic grid are separate. Maintain common light direction, perspective, restrained outlines, small material-specific color ramps, and quiet terrain beneath detailed objects. Use few broad foliage clusters and repeated wall/roof motifs rather than high-frequency noise. Simple two-frame walks are sufficient initially.
+First demonstrate original architecture, vegetation, and small props beside one another at gameplay scale. Use 16 × 16 terrain cells initially, people around 20 × 32 pixels (the current world-character canvas), and larger multi-cell buildings and trees. Source sprite dimensions, ground footprints, and the geographic grid are separate. Maintain common light direction, perspective, restrained outlines, small material-specific color ramps, and quiet terrain beneath detailed objects. Use few broad foliage clusters and repeated wall/roof motifs rather than high-frequency noise. Simple two-frame walks are sufficient initially.
 
 Store original palette-indexed art or deterministic drawing recipes, compile them to a PNG atlas, and keep an original-asset proof sheet. Inspect every new family in the renderer. Reuse construction pieces and vary footprint, roof, openings, material, and surroundings; a new culture must be more than a palette swap. Prefer a small well-finished set over an arbitrary numerical asset quota.
 
@@ -463,3 +423,88 @@ The art direction is a quality target rather than an instruction to reconstruct 
 A `/graphics-lab` review route uses the normal renderer with disposable, non-saving fixtures. Classical/Hellenistic and mudbrick are the first quality targets. Timber, courtyard and weatherboard examples are clearly labeled secondary construction studies. Their purpose is to expose assumptions in the common system before larger era packs are authored. Controls cover landscape, light treatment, source-pixel magnification, viewport aspect, seed, camera, animation freeze and footprint/entrance/bounds overlays. URLs and PNGs are the review artifacts.
 
 This is a graphics refactor, not a migration of existing physical worlds: generator version 1 remains intact. New channel shapes are tested in an isolated contour fixture; changing playable collision geometry must be versioned separately. See `GRAPHICS.md` for the current module boundaries and remaining visual quality checks. Do not interpret passing functional or screenshot-repeatability tests as artistic acceptance of the mockup target.
+
+## 20. Cultural content families and dated local profiles
+
+**Decision recorded September 6, 2026:** use at most twelve broad reusable content families as the initial production budget, with a specific dated local profile underneath each playable setting. Families organize asset creation and reuse; they are not a historical taxonomy, permanent map zones, or NPC identities. This direction is accepted for planning. The twelve-era registry, bounded resolver, two compatibility profiles and historical inspector are now implemented; additional playable settings are not. See [HISTORY.md](HISTORY.md) for the authoritative chronology and extension contract.
+
+The family determines which components we can reuse. Place, date and community determine which components, institutions and capabilities may actually appear. A family alone must never be enough to generate a historical setting. Unresearched combinations retain visible coverage gaps. The user welcomes explicit, source-linked hypotheses and fictional gap-filling for future specifications, including prehistoric languages; do not silently substitute a superficially similar world or confuse a plausible specification with supported gameplay.
+
+### Initial twelve families
+
+| Content family | Distinctions that local profiles must preserve |
+| --- | --- |
+| European | Mediterranean/classical, northern/Atlantic and eastern European traditions; later European-derived settler settings. |
+| North African & West Asian | Egyptian, Maghrebi, Levantine, Mesopotamian, Iranian and Arabian settings. |
+| Inner Eurasian | Steppe, oasis and highland settings; pastoral settlements and trading cities. |
+| South Asian | Northern, southern, eastern and Himalayan settings. |
+| East Asian | Chinese, Korean, Japanese and neighboring regional traditions. |
+| Southeast Asian | Mainland river valleys, maritime trading settlements, Javanese/Balinese and upland communities. |
+| West & Central African | Sahelian, coastal/forest and Congo-region settings. |
+| East & Southern African | Ethiopian/Horn, Swahili coast, Great Lakes and southern African settings. |
+| Mesoamerican | Central Mexican, Maya, Oaxaca and neighboring traditions. |
+| Andean | Coastal, highland and adjoining eastern-slope settings. |
+| Other Indigenous American | Separate woodland, plains, Arctic, Northwest Coast and Amazonian profiles. |
+| Australian & Pacific | Separate Aboriginal Australian, Papuan and island-Pacific profiles. |
+
+The final two groupings are the weakest compression and require particularly strong local distinctions. They share production budgets, not a claim of cultural equivalence. Specific community names replace these umbrella labels in player-facing identity. Examples in this table are planning categories, not ready-made historical definitions.
+
+Keep Mesoamerica and the Andes separate to budget for substantially different agriculture, architecture, transport, clothing and institutions. European periods can share a production family because the dated profile selects different construction and object sets; classical Rome and industrial Britain are not interchangeable. Early Anatolia may reuse earthen-building components without inheriting the institutions, clothing or music of later West Asian societies.
+
+### Independent dimensions and resolution
+
+Start with a small explicit resolution function and plain records, not an unrestricted inheritance system or universal cultural ontology.
+
+| Dimension | Responsibility |
+| --- | --- |
+| Place, date and community | Specific historical identity, applicability, evidence, names and exclusions. Several community profiles may coexist in one region. |
+| Content family | Reusable visual and musical components and authoring conventions. A local profile may explicitly borrow appropriate components from another library. |
+| Technology and institutions | Available tools, infrastructure, occupations, work processes, exchange and access rules, subject to local evidence. |
+| Ecology and seasonal context | Materials, vegetation, crops, terrain, climate and meaningful local seasons. |
+| Dated local overrides | Concrete building recipes, outfits, inventory distributions, work sites, schedules, musical treatment and exceptions. |
+
+Retain the precedence from section 9: **local dated override → regional dated rule → declared fallback**. Apply explicit exclusions and validate the resolved result; inherited content cannot bypass a date or region restriction. Do not derive cultural identity from coordinates alone. Do not use an undifferentiated influence percentage to mix institutions or props; select the particular historically justified contributions.
+
+“Neolithic,” “industrial,” “tropical” and “nomadic” describe aspects of a setting; none replaces local identity. Technologies and practices do not advance everywhere on a single ancient/medieval/modern ladder. A shared date does not imply shared infrastructure, social organization or access to goods.
+
+### Distinction examples and future acceptance cases
+
+| Setting | Proposed assembly | What must not happen |
+| --- | --- | --- |
+| Melbourne, 1950 | European family; Australian urban profile; locally appropriate industrial infrastructure, buildings, jobs and community composition. | Assign it a generic tropical or Oceanian setting because of its continental location. |
+| Java, around 950 | Southeast Asian family; a researched Javanese locality and date; appropriate agriculture, housing, crafts, exchange and temple institutions. | Reuse Melbourne's setting, or turn South Asian connections into wholesale replacement of Javanese identity. |
+| A specific Aboriginal Australian community, 1950 | A named community and place; its own material and social setting, with contemporary colonial institutions and introduced goods where supported. | Replace it automatically with either an industrial suburb or a timeless prehistoric scene. |
+| Konya plain, around 6500 BCE | Existing Neolithic profile, with its own evidence, buildings, goods and access conventions. | Back-project later regional religions, currencies, clothing or instruments onto it. |
+
+These are design tests, not implemented packs or fully sourced scene specifications. The Australian examples are informed by the National Museum of Australia's accounts of [migration](https://www.nma.gov.au/exhibitions/defining-symbols-australia/suitcase) and [First Australians](https://www.nma.gov.au/exhibitions/first-australians). The Met's [early Southeast Asian kingdoms](https://www.metmuseum.org/exhibitions/listings/2014/lost-kingdoms) provides background on regional connections. These sources do not authenticate every proposed object, role or musical choice; pack authoring must supply more specific evidence.
+
+### Reuse across graphics, work, objects and music
+
+- **Graphics:** compose shared walls, roofs, openings, garments and props. Local profiles need distinctive silhouettes and coherent everyday houses, workplaces and interiors. Clothing and household goods deserve the same attention as monuments. Do not implement the twelve families as twelve palette swaps.
+- **Professions:** reuse activities such as cultivation, weaving, transport and trade, while profiles specify titles, equipment, workplaces, inputs/outputs, schedules and social constraints. Renaming an NPC does not implement a different occupation. Add a small shared mechanic only when a supported work cycle requires it.
+- **Inventory:** use a shared catalog with locally and temporally restricted availability. Materials, use and trade introductions affect selection. One basket implementation can serve many settings, but a universally available catalog must not leak inappropriate goods into a world.
+- **Music:** preserve recognizable theme identity while profiles select instruments, tuning, ornament, rhythm, accompaniment and texture. Reuse seasonal/time arrangements rather than composing every combination separately. “Ancient = panpipe and drum” is one sketch, not a universal historical rule. Later technology expands options; it does not require every setting to end in techno. The current five themes and three orchestration previews are groundwork, not authenticated cultural music. See [AUDIO.md](AUDIO.md).
+- **Ecology and time:** keep climate and seasons independent of cultural family. The current four 28-day music seasons are a declared placeholder. Southern-hemisphere and monsoon settings need appropriate local seasonal profiles; a family match does not justify importing northern temperate seasons.
+
+For a new supported setting, author a small **local identity package**: characteristic building and roof forms, clothing details, signature objects, names and roles, institutional rules, one musical treatment, and evidence/exclusions. Reuse remaining components. Do not budget for twelve complete copies of the game or a fully authored family × era × season × time cross-product.
+
+### Delivery order and decision tracking
+
+| Item | Status |
+| --- | --- |
+| Twelve-family production approach, local identity requirement and independent ecology/technology | Accepted design direction; documented here. |
+| Twelve fixed eras, concrete dated profiles and bounded resolver | Delivered for two compatibility profiles and diagnostic research cases; see HISTORY.md. |
+| Existing Roman and Neolithic packs reproduced through resolved definitions | Compatibility gate passes; IDs, contents, random draws and checkpoint results preserved. |
+| Small researched Javanese setting around 950 | Later candidate; current user priority is era review, then approved props/interactions. Generation is reserved for another phase. |
+| Melbourne around 1950 | Later stress test for modern infrastructure and shared European-derived components outside Europe. |
+| Content for all twelve families | Deferred; prove the approach with actual settings before expanding the libraries. |
+
+The proposed test set is Rome, Neolithic Anatolia, Java and Melbourne. Java and Melbourne are recommendations for sequencing, not newly supported world-selector entries. The earlier tropical South American suggestion remains a useful later test. All new playable setting expansion is deferred behind the current user review and prop priorities. Current blockers and implementation acceptance are tracked in [PROGRESS.md](PROGRESS.md#current-handoff-review-eras-before-props).
+
+## 21. Fixed eras and the current review gate
+
+The user accepted the twelve chronological buckets and requested their executable foundation before new generation or props. [HISTORY.md](HISTORY.md) and `src/content/history/dates.ts` are authoritative: deep prehistory, Early Holocene, 3500–1000 BCE, Antiquity, 500–1000, 1000–1500, 1500–1750, 1750–1850, 1850–1914, 1914–1945, 1945–1990, and 1990 onward. Custom dated regional rules refine those buckets; political control is independent of material culture.
+
+Use `/history-lab` to inspect exact dates, evidence, alternatives and selection results. The framework permits ambitious, explicitly labeled prehistoric hypotheses; it does not implement language generation or a global historical atlas. Most culture-era combinations still lack authored content.
+
+The latest user instruction supersedes the earlier Java-first sequencing: stop for their review of eras and the era/culture breakdown in [PROP_PLAN.md](PROP_PLAN.md) before drawing or implementing new props. After that review, the intended interaction MVP includes adjacent portable-container pickup on Space with empty hands, equipped-object use on Space, and persistent container identity/contents/ownership. It is planned, not delivered. Do not change settlement or landscape generation in this phase.

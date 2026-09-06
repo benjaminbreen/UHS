@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1",
     "art": "python3 scripts/build_art.py",
+    "art:props": "python3 scripts/build_props.py",
     "build": "tsc -b && vite build",
     "test": "vitest run",
     "test:browser": "playwright test",
@@ -14,7 +15,8 @@
     "mcp": "tsx scripts/mcp-server.ts",
     "prepare:geography": ".venv/bin/python scripts/prepare_geography.py",
     "check": "npm test && npm run build",
-    "test:graphics": "playwright test tests/browser/graphics-lab.spec.ts tests/browser/lighting.spec.ts"
+    "test:graphics": "playwright test tests/browser/graphics-lab.spec.ts tests/browser/lighting.spec.ts",
+    "prepare:atlas": "python3 scripts/prepare_atlas.py && python3 scripts/prepare_places.py"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",

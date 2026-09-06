@@ -13,7 +13,6 @@ import {
   MessageCircle,
   Minus,
   Plus,
-  RotateCcw,
   Settings,
   Pencil,
   Search,
@@ -27,18 +26,23 @@ import {
   PanelRightClose,
   Play,
   SkipForward,
+  Music2,
 } from "lucide-react";
+import { AudioDirector } from "../audio/director";
+import { AudioLab } from "../dev/AudioLab";
 import type { Runtime } from "../runtime/session";
-import { createSession, restoreSession } from "../runtime/session";
+import { restoreSession } from "../runtime/session";
 import { download, save } from "../runtime/storage";
-import { packs, items, resolvePrompt } from "../content/packs";
+import { items } from "../content/packs";
 import {
   distance,
   type ItemId,
-  type PackId,
   type PlayerCommand,
 } from "../core/types";
 import { WorldScene } from "../render/WorldScene";
+import { WorldSetup } from "./WorldSetup";
+import { AtlasMap } from "./AtlasMap";
+import { toAtlas, fromAtlas } from "../world/v2/atlas";
 import { Sprite, Minimap, timeLabel } from "./components";
 export function App({
   runtime,
@@ -50,18 +54,25 @@ export function App({
   const view = useSyncExternalStore(runtime.subscribe, runtime.getSnapshot);
   const { observation: obs, selection, pack } = view;
   const p = obs.player;
+  const [audio, setAudio] = useState<AudioDirector | null>(null);
+  const [audioOpen, setAudioOpen] = useState(false);
+  useEffect(() => {
+    const director = new AudioDirector();
+    setAudio(director);
+    return () => director.dispose();
+  }, []);
+  useEffect(() => audio?.updateWorld(obs.clock), [audio, obs.clock]);
   const [modal, setModal] = useState<
     "world" | "inventory" | "notebook" | "evidence" | "map" | "settings" | null
   >(null);
-  const [scenePack, setScenePack] = useState<PackId>(pack.id);
-  const [seed, setSeed] = useState(pack.defaultSeed);
-  const [prompt, setPrompt] = useState("");
   const [error, setError] = useState("");
   const [note, setNote] = useState("");
   const [command, setCommand] = useState("");
   const [saved, setSaved] = useState(false);
   const [sidebar, setSidebar] = useState(() => window.innerWidth > 640);
   const [mapRegion, setMapRegion] = useState(false);
+  const [mapSpan, setMapSpan] = useState(1600);
+  const [earthMap, setEarthMap] = useState(false);
   const mount = useRef<HTMLDivElement>(null);
   const upload = useRef<HTMLInputElement>(null);
   const replayUpload = useRef<HTMLInputElement>(null);
@@ -94,7 +105,17 @@ export function App({
   }, [selection?.id]);
   useEffect(() => {
     const listener = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.code === "Digit1") {
+        e.preventDefault();
+        if (!e.repeat) {
+          setAudioOpen((open) => !open);
+          setModal(null);
+          runtime.stop();
+        }
+        return;
+      }
       if (e.key === "Escape") {
+        setAudioOpen(false);
         setModal(null);
         runtime.stop();
         return;
@@ -103,7 +124,11 @@ export function App({
         e.target instanceof HTMLInputElement ||
         e.target instanceof HTMLTextAreaElement ||
         e.target instanceof HTMLSelectElement ||
-        modal
+        modal ||
+        audioOpen ||
+        e.metaKey ||
+        e.ctrlKey ||
+        e.altKey
       )
         return;
       if (e.code === "Space") {
@@ -116,7 +141,7 @@ export function App({
     };
     window.addEventListener("keydown", listener);
     return () => window.removeEventListener("keydown", listener);
-  }, [modal, runtime]);
+  }, [modal, audioOpen, runtime]);
   const day = Math.floor(obs.clock / 86400) + 1;
   const hour = Math.floor(obs.clock / 3600) % 24;
   const period =
@@ -151,24 +176,8 @@ export function App({
     else runtime.command(c);
   };
   const openWorld = () => {
-    setScenePack(pack.id);
-    setSeed(obs.manifest.seed);
     setModal("world");
     setError("");
-  };
-  const start = () => {
-    let id = scenePack;
-    if (prompt.trim()) {
-      const resolved = resolvePrompt(prompt);
-      if ("error" in resolved) {
-        setError(resolved.error);
-        return;
-      }
-      id = resolved.pack.id;
-    }
-    runtime.replace(createSession(id, seed.trim() || packs[id].defaultSeed));
-    setModal(null);
-    setPrompt("");
   };
   const submit = () => {
     const text = command.trim().toLowerCase();
@@ -218,6 +227,18 @@ export function App({
           <Pencil size={17} />
         </button>
         <div className="header-actions">
+          <button
+            className="icon-button"
+            aria-label="Audio studio"
+            title="Audio studio (⌘1 / Ctrl+1)"
+            onClick={() => {
+              runtime.stop();
+              setModal(null);
+              setAudioOpen(true);
+            }}
+          >
+            <Music2 size={19} />
+          </button>
           <button className="quiet-button new-world" onClick={openWorld}>
             <Plus size={16} /> New world
           </button>
@@ -479,7 +500,7 @@ export function App({
                   Region
                 </button>
               </div>
-              <span>{mapRegion ? "640 m" : "220 m"}</span>
+              <span>{mapRegion ? `${(runtime.engine.world.regionExtent ?? 320)*2} m` : "220 m"}</span>
             </div>
           </section>
           <section className="context-section">
@@ -597,6 +618,9 @@ export function App({
         </span>
         <span>Click to walk · Scroll to zoom</span>
       </div>
+      {audioOpen && audio && (
+        <AudioLab director={audio} onClose={() => setAudioOpen(false)} />
+      )}
       {modal && (
         <div
           className="modal-backdrop"
@@ -618,85 +642,7 @@ export function App({
             >
               <X size={20} />
             </button>
-            {modal === "world" && (
-              <>
-                <div className="eyebrow">A DIFFERENT PLACE. ANOTHER LIFE.</div>
-                <h2>Where will you begin?</h2>
-                <p>
-                  Choose a setting, then let the world take shape. Each seed
-                  creates different households, people, and paths.
-                </p>
-                <div className="world-cards">
-                  {Object.values(packs).map((pk) => (
-                    <button
-                      key={pk.id}
-                      className={`world-card ${scenePack === pk.id ? "selected" : ""}`}
-                      onClick={() => {
-                        setScenePack(pk.id);
-                        setSeed(pk.defaultSeed);
-                        setPrompt("");
-                        setError("");
-                      }}
-                    >
-                      <div className={`world-card-art ${pk.id}`}>
-                        <Sprite name={pk.buildings[0]} scale={2} />
-                        <Sprite name={pk.trees[0]} scale={2} />
-                      </div>
-                      <span className="world-card-title">
-                        {pk.subtitle}
-                        {scenePack === pk.id && <Check size={16} />}
-                      </span>
-                      <small>
-                        {pk.region} · {pk.date}
-                      </small>
-                      <p>{pk.description}</p>
-                    </button>
-                  ))}
-                </div>
-                <label className="field-label">
-                  Or describe a supported setting
-                  <input
-                    value={prompt}
-                    onChange={(e) => setPrompt(e.target.value)}
-                    placeholder="A traveler in Roman Italy, 100 CE"
-                  />
-                </label>
-                <div className="seed-row">
-                  <label className="field-label">
-                    World seed
-                    <input
-                      value={seed}
-                      maxLength={100}
-                      onChange={(e) => setSeed(e.target.value)}
-                    />
-                  </label>
-                  <button
-                    className="action"
-                    onClick={() =>
-                      setSeed(
-                        `world-${crypto.getRandomValues(new Uint32Array(1))[0].toString(36)}`,
-                      )
-                    }
-                  >
-                    <RotateCcw size={16} /> Another seed
-                  </button>
-                </div>
-                {error && (
-                  <p className="error" role="alert">
-                    {error}
-                  </p>
-                )}
-                <div className="modal-bottom">
-                  <span>
-                    Current world autosaves locally. Export it to keep a
-                    separate copy.
-                  </span>
-                  <button className="filled-button" onClick={start}>
-                    Enter this world <ArrowRight size={17} />
-                  </button>
-                </div>
-              </>
-            )}
+            {modal === "world" && <WorldSetup initialSeed={obs.manifest.seed} onStart={engine=>{runtime.zoom=engine.world.pack.setting?1:2;runtime.replace(engine);setModal(null);}} />}
             {modal === "inventory" && (
               <>
                 <div className="eyebrow">POSSESSIONS</div>
@@ -835,7 +781,8 @@ export function App({
                   Roads and settlements share the same world as the map beneath
                   your feet.
                 </p>
-                <Minimap runtime={runtime} large />
+                {pack.setting && <div className="weaver-modes"><button aria-pressed={!earthMap} onClick={()=>setEarthMap(false)}>Region</button><button aria-pressed={earthMap} onClick={()=>setEarthMap(true)}>Earth</button>{!earthMap && <><button onClick={()=>setMapSpan(Math.max(800,mapSpan/2))}>Zoom in</button><button onClick={()=>setMapSpan(Math.min(131072,mapSpan*2))}>Zoom out</button><span>{Math.round(mapSpan*2/1000)} game km across</span></>}</div>}
+                {earthMap && pack.setting ? <AtlasMap {...fromAtlas(toAtlas(pack.anchor.lon,pack.anchor.lat).x+p.pos.x,toAtlas(pack.anchor.lon,pack.anchor.lat).y+p.pos.y)} /> : <Minimap runtime={runtime} large span={pack.setting?mapSpan:undefined} />}
                 <div className="destinations">
                   {runtime.engine.world.settlements.map((s) => (
                     <button
@@ -862,18 +809,26 @@ export function App({
                     </button>
                   ))}
                 </div>
-                <p className="map-note">
-                  An invented settlement near {pack.anchor.label}.{" "}
-                  {pack.geography
-                    ? "The Tiber centerline uses coarse modern geographic data; local widths and streets are inferred."
-                    : "Local channels, fields, and street plans are procedural inferences."}
-                </p>
+                <p className="map-note">{pack.setting ? "A compressed Earth atlas with continuous, generated local terrain. Zoom out to follow the same coastlines and waterways." : `An invented settlement near ${pack.anchor.label}.`}</p>
               </>
             )}
             {modal === "settings" && (
               <>
                 <div className="eyebrow">YOUR WORLD</div>
                 <h2>Settings & saved journeys</h2>
+                <button className="action" onClick={() => window.dispatchEvent(new Event("uhs-open-props"))}>
+                  Prop gallery · ⌘2 / Ctrl+2
+                </button>
+                <button
+                  className="action"
+                  onClick={() => {
+                    runtime.stop();
+                    setModal(null);
+                    setAudioOpen(true);
+                  }}
+                >
+                  <Music2 size={16} /> Audio studio · ⌘1 / Ctrl+1
+                </button>
                 <a
                   className="action"
                   href="/graphics-lab"
@@ -881,6 +836,9 @@ export function App({
                   rel="noreferrer"
                 >
                   Graphics lab ↗
+                </a>
+                <a className="action" href="/history-lab" target="_blank" rel="noreferrer">
+                  History & content lab ↗
                 </a>
                 <p>
                   Simulation time moves only when you act. Reading and typing

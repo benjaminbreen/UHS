@@ -115,6 +115,7 @@ export function GraphicsLab() {
         </div>
         <span>Isolated fixtures · your journey stays saved</span>
         <a href="/history-lab">History & content lab →</a>
+        <button className="action" onClick={() => window.dispatchEvent(new Event("uhs-open-props"))}>Prop gallery · ⌘2</button>
         <a className="action" href="/">
           Return to world →
         </a>

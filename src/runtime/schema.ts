@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { settingSchema } from "../content/geography/types";
 const item = z.enum([
   "bread",
   "grain",
@@ -14,8 +15,8 @@ const item = z.enum([
 ]);
 const inventory = z.partialRecord(item, z.number().int().min(0).max(1000000));
 const point = z.object({
-  x: z.number().int().min(-10000).max(10000),
-  y: z.number().int().min(-10000).max(10000),
+  x: z.number().int().min(-1000000).max(1000000),
+  y: z.number().int().min(-1000000).max(1000000),
 });
 const pos = point.extend({ space: z.string().max(100) });
 const actor = z.object({
@@ -129,20 +130,36 @@ const result = z.object({
   reason: z.string().optional(),
 });
 export const snapshotSchema = z.object({
-  manifest: z.object({
-    seed: z.string().min(1).max(100),
-    pack: z.enum(["roman", "neolithic"]),
-    schema: z.literal(1),
-    simulation: z.literal(1),
-    generator: z.literal(1),
-    content: z.literal(1),
-    atlas: z.literal(1),
-  }),
+  manifest: z.discriminatedUnion("generator", [
+    z
+      .object({
+        seed: z.string().min(1).max(100),
+        pack: z.enum(["roman", "neolithic"]),
+        schema: z.literal(1),
+        simulation: z.literal(1),
+        generator: z.literal(1),
+        content: z.literal(1),
+        atlas: z.literal(1),
+      })
+      .strict(),
+    z
+      .object({
+        seed: z.string().min(1).max(100),
+        pack: z.literal("atlas"),
+        schema: z.literal(2),
+        simulation: z.literal(1),
+        generator: z.literal(2),
+        content: z.literal(1),
+        atlas: z.literal(2),
+        setting: settingSchema,
+      })
+      .strict(),
+  ]),
   clock: z.number().int().nonnegative(),
   revision: z.number().int().nonnegative(),
   randomCounter: z.number().int().nonnegative(),
   player: actor,
-  actors: z.array(actor).max(2000),
+  actors: z.array(actor).max(50000),
   objects: z.array(object).max(10000),
   events: z.array(event).max(1000),
   notes: z

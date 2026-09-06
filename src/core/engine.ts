@@ -32,11 +32,14 @@ export class Engine {
           manifest: {
             seed: "",
             pack: world.pack.id,
-            schema: 1,
+            schema: world.pack.setting ? 2 : 1,
             simulation: 1,
-            generator: 1,
+            generator: world.pack.setting ? 2 : 1,
             content: 1,
-            atlas: 1,
+            atlas: world.pack.setting ? 2 : 1,
+            ...(world.pack.setting
+              ? { setting: copy(world.pack.setting) }
+              : {}),
           },
           clock: 9 * 3600,
           revision: 0,
@@ -447,6 +450,27 @@ export class Engine {
     if (!offered?.enabled)
       return offered?.reason ?? "That action is not available.";
   }
+  private populatedDistrict = "";
+  private populateNearby() {
+    if (!this.world.activate) return;
+    const p = this.state.player.pos;
+    if (p.space !== "outside") return;
+    const key = `${Math.floor(p.x / 128)},${Math.floor(p.y / 128)}`;
+    if (key === this.populatedDistrict) return;
+    this.populatedDistrict = key;
+    this.world.activate(p.x, p.y);
+    const ids = new Set(
+      [...this.state.actors, ...this.state.objects].map((o) => o.id),
+    );
+    for (const actor of this.world.initialActors)
+      if (!ids.has(actor.id))
+        this.state.actors.push({
+          ...copy(actor),
+          lastUpdated: this.state.clock,
+        });
+    for (const object of this.world.initialObjects)
+      if (!ids.has(object.id)) this.state.objects.push(copy(object));
+  }
   private execute(c: PlayerCommand) {
     const p = this.state.player;
     if (c.type === "move") {
@@ -454,7 +478,15 @@ export class Engine {
       p.pos.y += c.dy;
       p.direction = c.dy < 0 ? 0 : c.dx > 0 ? 1 : c.dy > 0 ? 2 : 3;
       p.activity = "Exploring";
-      this.advance(2);
+      this.populateNearby();
+      const slope =
+        p.pos.space === "outside" && this.world.elevation
+          ? Math.abs(
+              this.world.elevation(p.pos.x, p.pos.y) -
+                this.world.elevation(p.pos.x - c.dx, p.pos.y - c.dy),
+            )
+          : 0;
+      this.advance(2 + (slope > 1 ? 1 : 0));
       const key = `${Math.floor(p.pos.x / 64)},${Math.floor(p.pos.y / 64)}`;
       if (!this.state.visited.includes(key)) this.state.visited.push(key);
       return;

@@ -41,6 +41,7 @@ export function surfaceAt(
   y: number,
   base?: Terrain,
 ): Terrain {
+  if (world.pack.setting) return base ?? world.terrain(x, y);
   let cache = surfaceCaches.get(world);
   if (!cache) {
     cache = new Map();

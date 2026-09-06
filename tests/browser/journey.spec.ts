@@ -109,11 +109,11 @@ test("input focus does not move the player; unsupported worlds are preserved", a
   expect((await observe(page)).clock).toBe(start.clock);
   await page.getByRole("button", { name: "New world", exact: true }).click();
   await page
-    .getByLabel("Or describe a supported setting")
+    .getByLabel("Describe your starting situation")
     .fill("cosmonaut in orbit");
   await page.getByRole("button", { name: "Enter this world" }).click();
-  await expect(page.getByRole("alert")).toContainText("supports Roman Italy");
-  await expect(page.getByLabel("Or describe a supported setting")).toHaveValue(
+  await expect(page.getByRole("alert")).toContainText("No place or period matched");
+  await expect(page.getByLabel("Describe your starting situation")).toHaveValue(
     "cosmonaut in orbit",
   );
 });

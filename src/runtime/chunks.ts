@@ -1,4 +1,6 @@
 import { CHUNK_SIZE, type Terrain } from "../core/types";
+import type { WorldSetting } from "../content/geography/types";
+import { stateHash } from "../core/random";
 import type { ChunkRequest } from "../world/worker";
 /** The worker is a disposable cache. Its completion order cannot alter the world. */
 export class ChunkCache {
@@ -24,16 +26,22 @@ export class ChunkCache {
       };
     }
   }
-  prefetch(packId: string, seed: string, x: number, y: number) {
-    const key = `${packId}:${seed}`;
+  prefetch(
+    packId: string,
+    seed: string,
+    x: number,
+    y: number,
+    setting?: WorldSetting,
+  ) {
+    const key = `${packId}:${seed}:${setting ? stateHash(setting) : "v1"}`;
     if (key !== this.worldKey) {
       this.worldKey = key;
       this.cache.clear();
       this.pending.clear();
       this.regionKey = "";
     }
-    const cx = Math.floor(x / 64),
-      cy = Math.floor(y / 64),
+    const cx = Math.floor(x / CHUNK_SIZE),
+      cy = Math.floor(y / CHUNK_SIZE),
       region = `${key}|${cx},${cy}`;
     if (region === this.regionKey) return;
     this.regionKey = region;
@@ -47,6 +55,7 @@ export class ChunkCache {
           id,
           packId,
           seed,
+          setting,
           cx: cx + dx,
           cy: cy + dy,
         } satisfies ChunkRequest);

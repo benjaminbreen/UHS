@@ -6,7 +6,7 @@ import json, math
 from PIL import Image, ImageDraw
 from art.atlas import pack_atlas
 
-def build_shadows(root, sprites, buildings):
+def build_shadows(root, sprites, buildings, output=None, atlas_name='lighting-shadows'):
     phases=json.loads((root/'src/content/graphics/lighting.json').read_text())
     props=['oak','olive','hackberry','acacia','cypress','bush','flowers','flax','rock','rock-1','rock-2','reeds','wheat','basket','amphora','jug','well','fire','hall','sheep0','sheep1','goat0','goat1','chicken0','chicken1','lizard0','lizard1','bed','oven','crate','fence','gate','gate-open','crop-leafy']
     result={}
@@ -18,6 +18,7 @@ def build_shadows(root, sprites, buildings):
         bottom=max(y for x,y in opaque)
         # The hearth stones cast a shadow; the flame itself is emissive.
         if name=='fire':opaque=[(x,y) for x,y in opaque if y>=bottom-7]
+        if 'shadowMinY' in source.info:opaque=[(x,y) for x,y in opaque if y>=source.info['shadowMinY']]
         top=min(y for x,y in opaque)
         model=buildings.get(name)
         height=model['shadow']['height'] if model else bottom-top
@@ -55,5 +56,6 @@ def build_shadows(root, sprites, buildings):
                         d.line((x-minx,bottom-miny,x-minx,bottom-miny+1),fill=(29,33,31,83))
             im.info['anchor']=[w/2-minx,h-miny]
             result[f"{phase['id']}:{name}"]=im
-    atlas=pack_atlas(result,root/'public/packs','lighting-shadows',2048)
+    atlas=pack_atlas(result,output or root/'public/packs',atlas_name,2048)
     print(f'Built {len(result)} lighting masks; shadow atlas {atlas.size}.')
+    return result
