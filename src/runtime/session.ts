@@ -143,14 +143,17 @@ export class Runtime {
     };
   };
   emit() {
-    this.chunks.prefetch(
-      this.engine.world.pack.id,
-      this.engine.state.manifest.seed,
-      this.engine.state.player.pos.x,
-      this.engine.state.player.pos.y,
-      this.engine.state.manifest.setting,
-      this.engine.state.manifest.generator,
-    );
+    // Relief rendering streams its own cell data; the legacy tile worker
+    // would otherwise regenerate the same settlement without any consumer.
+    if (!this.engine.world.topography)
+      this.chunks.prefetch(
+        this.engine.world.pack.id,
+        this.engine.state.manifest.seed,
+        this.engine.state.player.pos.x,
+        this.engine.state.player.pos.y,
+        this.engine.state.manifest.setting,
+        this.engine.state.manifest.generator,
+      );
     this.cached = this.view();
     for (const listener of this.subscribers) listener();
   }
@@ -427,8 +430,9 @@ export class Runtime {
   }
   terrainAt(x: number, y: number, space = "outside") {
     return (
-      (space === "outside" ? this.chunks.at(x, y) : undefined) ??
-      this.engine.world.terrain(x, y, space)
+      (space === "outside" && !this.engine.world.topography
+        ? this.chunks.at(x, y)
+        : undefined) ?? this.engine.world.terrain(x, y, space)
     );
   }
   loadReplay(value: unknown) {

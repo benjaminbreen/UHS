@@ -1,3 +1,7 @@
+import {
+  handleTerrainRequest,
+  type TerrainRequest,
+} from "../render/terrain-worker";
 import { createWorld } from "./generate";
 import { packs } from "../content/packs";
 import type { WorldModel } from "../core/types";
@@ -17,7 +21,11 @@ export type ChunkRequest = {
 };
 let world: WorldModel | undefined;
 let key = "";
-self.onmessage = (event: MessageEvent<ChunkRequest>) => {
+self.onmessage = (event: MessageEvent<ChunkRequest | TerrainRequest>) => {
+  if ("pack" in event.data || "region" in event.data) {
+    handleTerrainRequest(event.data);
+    return;
+  }
   const { id, packId, seed, cx, cy, setting, generator } = event.data;
   try {
     const next = `${generator}:${packId}:${seed}:${setting ? stateHash(setting) : "v1"}`;

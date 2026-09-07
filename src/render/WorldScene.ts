@@ -1,4 +1,4 @@
-import { drawTopography } from "./topography";
+import { TerrainStream } from "./terrain-stream";
 import {
   surfaceElevation,
   pickTerrain,
@@ -13,6 +13,7 @@ import { surfaceAt, hasQuay } from "./materials";
 import { random } from "../core/random";
 import { lightingAt, lightingPreset, shadowFrame } from "./lighting";
 import terrainFrames from "./generated/terrain.json" with { type: "json" };
+const SCENERY_CACHE_REACH = 8;
 export class WorldScene extends Phaser.Scene {
   private runtime: Runtime;
   private layers: Phaser.GameObjects.GameObject[] = [];
@@ -27,6 +28,8 @@ export class WorldScene extends Phaser.Scene {
   private actorFrames = new Map<string, string>();
   private unsubscribe?: () => void;
   private staticKey = "";
+  private terrainStream?: TerrainStream;
+  private terrainAnchor?: { x: number; y: number };
   private drawnWorld?: WorldModel;
   private buildings = new Map<string, Phaser.GameObjects.Image>();
   private nextInput = 0;
@@ -174,7 +177,10 @@ export class WorldScene extends Phaser.Scene {
     );
     this.scale.on("resize", () => this.draw());
     this.unsubscribe = this.runtime.subscribe(() => this.draw());
-    this.events.once("shutdown", () => this.unsubscribe?.());
+    this.events.once("shutdown", () => {
+      this.unsubscribe?.();
+      this.terrainStream?.dispose();
+    });
     this.draw();
     this.options.onReady?.();
   }
@@ -229,8 +235,35 @@ export class WorldScene extends Phaser.Scene {
     const c = this.cameras.main;
     c.setZoom(rt.zoom);
     if (!this.entities.has("player")) c.centerOn(p.x * 16 + 8, p.y * 16 + 8);
-    const bx = Math.floor(p.x / 16) * 16,
-      by = Math.floor(p.y / 16) * 16;
+    if (w !== this.drawnWorld || p.space !== "outside") {
+      this.terrainStream?.dispose();
+      this.terrainStream = undefined;
+      this.terrainAnchor = undefined;
+    }
+    if (w.topography && p.space === "outside") {
+      this.terrainStream ??= new TerrainStream(
+        this,
+        w.pack,
+        e.state.manifest.seed,
+      );
+      this.terrainStream.setView(
+        p.x,
+        p.y,
+        Math.ceil(this.scale.width / rt.zoom / 32),
+        Math.ceil(this.scale.height / rt.zoom / 32),
+      );
+    }
+    // Scenery has a small movement allowance; the expensive ground and
+    // contour textures are owned independently by TerrainStream.
+    if (
+      w.topography &&
+      (!this.terrainAnchor ||
+        Math.abs(p.x - this.terrainAnchor.x) > SCENERY_CACHE_REACH ||
+        Math.abs(p.y - this.terrainAnchor.y) > SCENERY_CACHE_REACH)
+    )
+      this.terrainAnchor = { x: p.x, y: p.y };
+    const bx = w.topography ? this.terrainAnchor!.x : Math.floor(p.x / 16) * 16,
+      by = w.topography ? this.terrainAnchor!.y : Math.floor(p.y / 16) * 16;
     const key = [
       e.state.manifest.seed,
       w.pack.id,
@@ -244,7 +277,7 @@ export class WorldScene extends Phaser.Scene {
       this.scale.height,
     ].join(":");
     if (key !== this.staticKey || w !== this.drawnWorld) {
-      const terrainStart = performance.now();
+      const sceneryStart = performance.now();
       this.drawnWorld = w;
       this.staticKey = key;
       for (const l of this.layers) l.destroy();
@@ -253,45 +286,13 @@ export class WorldScene extends Phaser.Scene {
       this.buildings.clear();
       this.ground?.destroy();
       this.tilemap?.destroy();
-      const margin = w.topography ? 6 : 20;
+      const margin = w.topography ? SCENERY_CACHE_REACH + 6 : 20;
       const halfX = Math.ceil(this.scale.width / rt.zoom / 32) + margin,
         halfY = Math.ceil(this.scale.height / rt.zoom / 32) + margin;
       const startX = bx - halfX,
         startY = by - halfY;
       const width = halfX * 2 + 16,
         height = halfY * 2 + 16;
-      if (w.topography && p.space === "outside") {
-        for (const key of this.textures.getTextureKeys())
-          if (key.startsWith("contour-")) this.textures.remove(key);
-        const before = new Set(this.children.list);
-        const cells = new Map<
-          string,
-          ReturnType<NonNullable<WorldModel["topography"]>>
-        >();
-        drawTopography(
-          this,
-          (x, y) => {
-            const k = `${x},${y}`;
-            let cell = cells.get(k);
-            if (!cell) {
-              cell = w.topography!(x + startX, y + startY);
-              cells.set(k, cell);
-            }
-            return cell;
-          },
-          width,
-          height,
-        );
-        for (const obj of this.children.list)
-          if (!before.has(obj)) {
-            const im = obj as Phaser.GameObjects.Image;
-            im.x += startX * 16;
-            im.y += startY * 16;
-            im.depth += startY * 16;
-
-            this.layers.push(im);
-          }
-      }
       if (!w.topography || p.space !== "outside") {
         const data = Array.from({ length: height }, (_, iy) =>
           Array.from({ length: width }, (_, ix) => {
@@ -533,8 +534,11 @@ export class WorldScene extends Phaser.Scene {
         this.sprite("oven", 9 * 16, 7 * 16, 7 * 16);
         this.sprite("mat", 5 * 16, 5 * 16, 5 * 16);
       }
-      this.game.canvas.dataset.terrainDrawMs = String(
-        Math.round(performance.now() - terrainStart),
+      this.game.canvas.dataset.sceneryDrawMs = String(
+        Math.round(performance.now() - sceneryStart),
+      );
+      this.game.canvas.dataset.sceneryDrawCount = String(
+        Number(this.game.canvas.dataset.sceneryDrawCount ?? 0) + 1,
       );
     }
     for (const [id, image] of this.buildings) {
@@ -722,6 +726,7 @@ export class WorldScene extends Phaser.Scene {
     this.game.canvas.dataset.lighting = this.light.id;
   }
   update(time: number) {
+    this.terrainStream?.update();
     const phase = this.options.freeze ? 0 : Math.floor(time / 800) % 4;
     if (phase !== this.rippleTime) {
       this.rippleTime = phase;

@@ -70,6 +70,23 @@ export function terrainStep(
 ): { allowed: boolean; reason: string } {
   const dx = to.x - from.x,
     dy = to.y - from.y;
+  if (Math.abs(dx) === 1 && Math.abs(dy) === 1) {
+    // Both ways around the corner must be legal. In particular a diagonal
+    // cannot hop over a ledge, water tile, or the side of a ramp.
+    for (const via of [
+      { x: to.x, y: from.y },
+      { x: from.x, y: to.y },
+    ]) {
+      for (const [a, b] of [
+        [from, via],
+        [via, to],
+      ]) {
+        const step = terrainStep(sample, a, b);
+        if (!step.allowed) return step;
+      }
+    }
+    return { allowed: true, reason: "Walking diagonally on clear ground." };
+  }
   if (Math.abs(dx) + Math.abs(dy) !== 1)
     return { allowed: false, reason: "Take one cardinal step." };
   const a = sample(from.x, from.y),

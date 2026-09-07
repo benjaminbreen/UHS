@@ -34,3 +34,27 @@ it("generates broad zones with limited slopes and reachable households", () => {
       "found",
     );
 }, 30000);
+
+it("accepts outdoor diagonal commands on flat relief terrain", () => {
+  const e = createSettingSession(setting, "anatolia-relief-1");
+  e.state.player.pos = { x: -10, y: -10, space: "outside" };
+  for (const [dx, dy] of [
+    [1, 1],
+    [-1, -1],
+    [-1, 1],
+    [1, -1],
+  ]) {
+    const before = { ...e.state.player.pos };
+    const result = e.act({
+      actionId: `diagonal-${dx}-${dy}`,
+      expectedRevision: e.state.revision,
+      command: { type: "move", dx, dy },
+    });
+    expect(result.status).not.toBe("rejected");
+    expect(e.state.player.pos).toEqual({
+      ...before,
+      x: before.x + dx,
+      y: before.y + dy,
+    });
+  }
+});

@@ -1,5 +1,6 @@
 import type Phaser from "phaser";
 import type { TopographySample } from "../core/topography";
+import type { TerrainRegion } from "./terrain-region";
 import style from "./generated/topography-style.json";
 const R = style.rise,
   B = 6;
@@ -18,6 +19,7 @@ export type ContourLayer = {
   height: number;
   pixels: Uint8ClampedArray;
 };
+type Cover = { x: number; y: number; width: number; height: number };
 /** Rasterize the UNION of elevated ground, swept down to the lower surface.
  * No tile owns a decorative end cap: touching faces share the same silhouette,
  * bevel and world-coordinate earth texture, including concave/convex turns. */
@@ -25,6 +27,8 @@ export function rasterTerrainContours(
   sample: TopographySample,
   width: number,
   height: number,
+  covers: readonly Cover[] = [],
+  region?: TerrainRegion,
 ): ContourLayer[] {
   const layers = new Map<string, ContourLayer>(),
     w = width * 16 + B * 2,
@@ -35,7 +39,7 @@ export function rasterTerrainContours(
   grid.fill(-1);
   for (let y = -pad; y < height + pad; y++)
     for (let x = -pad; x < width + pad; x++) {
-      const c = sample(Math.max(0, Math.min(width - 1, x)), y);
+      const c = sample(region ? x : Math.max(0, Math.min(width - 1, x)), y);
       grid[(y + pad) * stride + x + pad] = c && !c.bridge ? c.height : -1;
     }
   const high = (x: number, y: number, tier: number) =>
@@ -51,7 +55,7 @@ export function rasterTerrainContours(
     const rows = new Map<number, [number, number][]>();
     spans.set(tier, rows);
     for (let y = -4; y < height + 4; y++)
-      for (let x = 0; x < width; x++) {
+      for (let x = region ? -1 : 0; x < width + (region ? 1 : 0); x++) {
         if (
           !high(x, y, tier) ||
           [
@@ -91,7 +95,16 @@ export function rasterTerrainContours(
     const x = Math.floor(px / 16),
       y = Math.floor((py + tier * R) / 16);
     if (high(x, y, tier)) return true;
-    const spread = 1 + Math.round((Math.sin(px * 0.19 + py * 0.13) + 1) * 0.5);
+    const spread =
+      1 +
+      Math.round(
+        (Math.sin(
+          (px + (region?.x ?? 0) * 16) * 0.19 +
+            (py + (region?.y ?? 0) * 16) * 0.13,
+        ) +
+          1) *
+          0.5,
+      );
     return [
       [spread, 0],
       [-spread, 0],
@@ -122,6 +135,17 @@ export function rasterTerrainContours(
     py: number,
     color: number,
   ) => {
+    if (region && (row < 0 || row >= height || px < 0 || px >= width * 16))
+      return;
+    // Suspended decks cover bank bevels at their abutments. Clip the complete
+    // span, including the small overlap onto dry ground, before depth sorting.
+    if (
+      covers.some(
+        (c) =>
+          px >= c.x && px < c.x + c.width && py >= c.y && py < c.y + c.height,
+      )
+    )
+      return;
     const key = `${row}:${tier}`;
     let layer = layers.get(key);
     if (!layer) {
@@ -145,6 +169,8 @@ export function rasterTerrainContours(
     for (const [py, intervals] of spans.get(tier)!)
       for (const [left, right] of intervals)
         for (let px = left; px < right; px++) {
+          const worldX = px + (region?.x ?? 0) * 16,
+            worldY = py + (region?.y ?? 0) * 16;
           const xx = px + 0.5,
             yy = py + 0.5;
           const onTop = inside(xx, yy, tier);
@@ -153,7 +179,10 @@ export function rasterTerrainContours(
           let near = 99;
           // One shared rounded bevel, with a subtle 0–1px change in thickness.
           const bevel =
-            5 + ((Math.floor(px / 5) + Math.floor(py / 7)) % 5 === 0 ? 1 : 0);
+            5 +
+            ((Math.floor(worldX / 5) + Math.floor(worldY / 7)) % 5 === 0
+              ? 1
+              : 0);
           if (onTop) {
             if (sample(ownerX, row)?.height !== tier) {
               let owner: [number, number] | undefined;
@@ -221,10 +250,10 @@ export function rasterTerrainContours(
           // A continuous turf cap over vertically sculpted earth. The short
           // repeating strata are anchored in world space, not individual tiles.
           const mod = (n: number, m: number) => ((n % m) + m) % m;
-          const column = Math.floor(px / 9);
+          const column = Math.floor(worldX / 9);
           const faceY = py - ((row + 1) * 16 - tier * R);
           const seam = mod(
-            px + Math.floor(Math.sin(py * 0.23 + column) * 1.3),
+            worldX + Math.floor(Math.sin(worldY * 0.23 + column) * 1.3),
             9,
           );
           let color: number;
@@ -238,7 +267,7 @@ export function rasterTerrainContours(
             if (faceY > R - 3 && seam < 5) color = 15;
             if (near === 3) color = 15;
             if (faceY > R - 2) color = seam < 4 ? 14 : 15;
-            if (seam >= 3 && seam <= 5 && mod(py + column * 3, 13) < 2)
+            if (seam >= 3 && seam <= 5 && mod(worldY + column * 3, 13) < 2)
               color = 17;
           }
           paint(row, tier, px, py, color);
@@ -284,9 +313,20 @@ export function drawTerrainContours(
   sample: TopographySample,
   width: number,
   height: number,
+  covers: readonly Cover[] = [],
 ) {
-  for (const layer of rasterTerrainContours(sample, width, height)) {
-    const key = `contour-${layer.row}-${layer.tier}`;
+  drawContourLayers(
+    scene,
+    rasterTerrainContours(sample, width, height, covers),
+  );
+}
+export function drawContourLayers(
+  scene: Phaser.Scene,
+  layers: ContourLayer[],
+  prefix = "contour",
+) {
+  for (const layer of layers) {
+    const key = `${prefix}-${layer.row}-${layer.tier}`;
     const texture = scene.textures.createCanvas(
       key,
       layer.width,

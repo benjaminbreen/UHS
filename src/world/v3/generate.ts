@@ -442,7 +442,6 @@ export function createSettlementWorld(
             from: { x: number; y: number },
             to: { x: number; y: number },
           ) => {
-            if (from.x !== to.x && from.y !== to.y) return false;
             return terrainStep(topography, from, to).allowed;
           },
         }

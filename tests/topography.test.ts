@@ -196,3 +196,78 @@ it("joins the bank through a stepped corner without detached cap islands", () =>
   }
   expect(seen.size).toBe(pixels.size);
 });
+
+it("allows clear diagonals in all directions but validates both edges around every corner", () => {
+  for (const dx of [-1, 1])
+    for (const dy of [-1, 1]) {
+      const from = { x: 0, y: 0 },
+        to = { x: dx, y: dy };
+      const cells = new Map<string, TopographyCell>();
+      const sample = (x: number, y: number): TopographyCell =>
+        cells.get(`${x},${y}`) ?? { height: 1, surface: "grass" };
+      expect(terrainStep(sample, from, to).allowed).toBe(true);
+      for (const point of [from, to, { x: dx, y: 0 }, { x: 0, y: dy }]) {
+        for (const obstacle of [
+          { height: 1, surface: "water" },
+          { height: 1, surface: "grass", solid: true },
+          { height: 2, surface: "grass" },
+          { height: 1, surface: "soil", ramp: "n" },
+        ] satisfies TopographyCell[]) {
+          cells.set(`${point.x},${point.y}`, obstacle);
+          expect(terrainStep(sample, from, to).allowed).toBe(false);
+          expect(terrainStep(sample, to, from).allowed).toBe(false);
+          cells.clear();
+        }
+      }
+    }
+});
+
+it("renders identical contour pixels and depths across positive and negative chunk seams", () => {
+  const sample = (x: number, y: number): TopographyCell => ({
+    height: x < -2 ? 0 : y < 2 ? 2 : 1,
+    surface: x > 2 ? "dry" : "grass",
+  });
+  const render = (ox: number, oy: number, size: number) => {
+    const layers = rasterTerrainContours(
+      (x, y) => sample(x + ox, y + oy),
+      size,
+      size,
+      [],
+      { x: ox, y: oy, prefix: "test" },
+    );
+    const pixels = new Map<string, string>();
+    for (const l of layers)
+      for (let y = 0; y < l.height; y++)
+        for (let x = 0; x < l.width; x++) {
+          const i = (y * l.width + x) * 4;
+          if (l.pixels[i + 3])
+            pixels.set(
+              `${l.row + oy}:${l.tier}:${x + l.x + ox * 16},${y + l.y + oy * 16}`,
+              [...l.pixels.slice(i, i + 4)].join(","),
+            );
+        }
+    return pixels;
+  };
+  const whole = render(-8, -8, 16),
+    chunks = new Map<string, string>();
+  for (const y of [-8, 0])
+    for (const x of [-8, 0])
+      for (const [key, value] of render(x, y, 8)) chunks.set(key, value);
+  expect(chunks.size).toBeGreaterThan(100);
+  expect(chunks).toEqual(whole);
+});
+
+it("discovers a single complete bridge span from either side of a chunk seam", async () => {
+  const { bridgeSpans } = await import("../src/render/bridges");
+  const sample = (x: number, y: number): TopographyCell => ({
+    height: 0,
+    surface: "water",
+    bridge: x >= -3 && x <= 20 && y >= 7 && y <= 9,
+  });
+  const expected = [{ minX: -3, maxX: 20, minY: 7, maxY: 9, elevation: 0 }];
+  expect(bridgeSpans(sample, 16, 16, true)).toEqual(expected);
+  const right = bridgeSpans((x, y) => sample(x + 16, y), 16, 16, true);
+  expect(
+    right.map((s) => ({ ...s, minX: s.minX + 16, maxX: s.maxX + 16 })),
+  ).toEqual(expected);
+});
