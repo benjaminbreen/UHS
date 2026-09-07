@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { resolveSetting, settingFor } from "../src/content/geography/resolve";
 import { places } from "../src/content/geography/places";
 import {
-  createSettingSession,
+  createSession,
   restoreSession,
   Runtime,
 } from "../src/runtime/session";
@@ -11,6 +11,8 @@ import { worldWeaver } from "../server/world-weaver";
 import { createAtlasWorld } from "../src/world/v2/generate";
 import { packForSetting } from "../src/content/geography/pack";
 import { settingSchema } from "../src/content/geography/types";
+// Generator v2 fixtures deliberately stay on v2 as new starts advance to v3.
+const createSettingSession = (setting: import("../src/content/geography/types").WorldSetting, seed="earth-2") => createSession("atlas",seed,undefined,setting,2,2);
 const get = (text: string) => {
   const r = resolveSetting(text);
   if ("error" in r) throw Error(r.error);
@@ -20,12 +22,10 @@ describe("shared World Weaver / procedural geography", () => {
   it("resolves aliases, periods, explicit BCE dates, centuries, roles and climate treatments locally", () => {
     expect(get("Elizabethan London")).toMatchObject({
       placeId: "london",
-      year: 1590,
       water: "river-ew",
     });
     expect(get("Hellenistic Alexandria")).toMatchObject({
       placeId: "alexandria",
-      year: -249,
       water: "coast-n",
     });
     expect(get("ancient roman legionary in umbria")).toMatchObject({
@@ -35,7 +35,6 @@ describe("shared World Weaver / procedural geography", () => {
     });
     expect(get("free black farmer in 19th century Haiti")).toMatchObject({
       placeId: "haiti",
-      year: 1850,
       role: "Farmer",
       community: "Free Black household",
     });
@@ -44,14 +43,16 @@ describe("shared World Weaver / procedural geography", () => {
       settlement: "camp",
     });
     expect(get("Normandy 100 BCE").year).toBe(-99);
-    expect(get("Beijing 14th century").year).toBe(1350);
+    expect(get("Beijing 14th century").year).toBeGreaterThanOrEqual(1301);
+    expect(get("Beijing 14th century").year).toBeLessThanOrEqual(1400);
     expect(get("medieval").placeId).toBe("normandy");
     expect(resolveSetting("a place not in the catalog")).toHaveProperty(
       "error",
     );
     expect(new Set(places.map((p) => p.id)).size).toBe(places.length);
     for (const place of places) expect(() => settingFor(place)).not.toThrow();
-    expect(get("19th-century Haiti").year).toBe(1850);
+    expect(get("19th-century Haiti").year).toBeGreaterThanOrEqual(1801);
+    expect(get("19th-century Haiti").year).toBeLessThanOrEqual(1900);
     expect(get("Roman farmer in Haiti").placeId).toBe("haiti");
   });
   it("keeps north sea and east-west river geometry independent of request order, including negative chunks", () => {
@@ -158,7 +159,7 @@ describe("shared World Weaver / procedural geography", () => {
     ).toThrow();
     expect(() => settingSchema.parse({ ...get("London"), lat: 999 })).toThrow();
   });
-  it("never calls a provider in free mode; protects and validates the optional classroom boundary", async () => {
+  it("never calls a provider in free mode; protects and validates the optional World Weaver boundary", async () => {
     let calls = 0;
     const setting = settingFor(places.find((p) => p.id === "london")!);
     const provider = (async () => {
@@ -174,13 +175,13 @@ describe("shared World Weaver / procedural geography", () => {
     const request = (code = "class") =>
       new Request("http://local/api/world-weaver", {
         method: "POST",
-        headers: { "X-Classroom-Code": code },
+        headers: { "X-World-Weaver-Code": code },
         body: JSON.stringify({ prompt: "Elizabethan London" }),
       });
     const env = {
       UHS_WORLD_WEAVER_ENABLED: "1",
       GEMINI_API_KEY: "test-key",
-      UHS_CLASSROOM_CODE: "class",
+      UHS_WORLD_WEAVER_ACCESS_CODE: "class",
     };
     expect((await worldWeaver(request(), {}, provider)).status).toBe(503);
     expect((await worldWeaver(request("wrong"), env, provider)).status).toBe(
@@ -192,6 +193,24 @@ describe("shared World Weaver / procedural geography", () => {
     const body = await response.json();
     expect(body.setting).toEqual(setting);
     expect(calls).toBe(1);
+    const legacyRequest = new Request("http://local/api/world-weaver", {
+      method: "POST",
+      headers: { "X-Classroom-Code": "class" },
+      body: JSON.stringify({ prompt: "Elizabethan London" }),
+    });
+    expect(
+      (
+        await worldWeaver(
+          legacyRequest,
+          {
+            UHS_WORLD_WEAVER_ENABLED: "1",
+            GEMINI_API_KEY: "test-key",
+            UHS_CLASSROOM_CODE: "class",
+          },
+          provider,
+        )
+      ).status,
+    ).toBe(200);
     const local = createSettingSession(setting, "parity"),
       enhanced = createSettingSession(body.setting, "parity");
     expect(local.hash()).toBe(enhanced.hash());

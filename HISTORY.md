@@ -6,7 +6,7 @@ Decision accepted September 6, 2026. This is the contract for future era, cultur
 
 Implemented: era/date registry; twelve cultural-family IDs; a pure content resolver with explicit precedence, date/place/community scope, exclusions, context and capability gates; qualified historical facts and alternative hypotheses; a read-only inspector; generator-v1 compatibility adapters for the two existing packs.
 
-Not implemented: new settlement/landscape generation, a world political map, historical events advancing across time, new language/dialogue synthesis, new occupation production cycles, new prop art, equipment, pickup, container opening/breakage. The user explicitly reserved generation for another agent and requested review before item/prop implementation. See `PROP_PLAN.md` for the proposed next phase.
+Not implemented: new settlement/landscape generation, a world political map, historical events advancing across time, new language/dialogue synthesis, new occupation production cycles, comprehensive prop research or multi-slot equipment. Shared prop art and the pickup/open/break MVP are now implemented; see `PROPS.md`. The user explicitly reserved generation for another agent and requested review before item/prop implementation. See `PROP_PLAN.md` for the proposed next phase.
 
 ## Permanent chronology
 
@@ -97,7 +97,7 @@ The same date ranges can scope clothing, institutions, tools and introductions. 
 
 ## Compatibility and extension
 
-`src/content/legacy-packs.ts` freezes the old v1 inputs. `catalog.ts` and `profiles/playable.ts` expose those inputs through the framework; `playable.ts` resolves building, role, animal, plant and player-outfit lists and checks required inventory eligibility. Exported packs remain byte-for-byte identical. The original generator, collision geometry, object placement, IDs, PRNG draws and snapshots are not migrated. Existing prop placement and generic NPC inventories are still hard-coded inside generation; do not claim the new catalog controls them yet.
+`src/content/legacy-packs.ts` freezes the old v1 inputs. `catalog.ts` and `profiles/playable.ts` expose those inputs through the framework; `playable.ts` resolves building, role, animal, plant and player-outfit lists and checks required inventory eligibility. Exported packs remain byte-for-byte identical. The original generator, collision geometry, object placement, IDs, PRNG draws and snapshots are not migrated. Content-version-1 prop placement remains unchanged. New content-version-2 worlds apply the prop overlay described in `PROPS.md`, including historical exclusions; generic NPC inventories remain prototype content.
 
 For now, compatibility catalogs are derived from the frozen inputs rather than duplicating every prototype definition by hand. New content belongs in subject-specific definition files and regional profile files. Once new mechanics intentionally change worlds, version and migrate the relevant game content/save contracts; do not silently modify the frozen v1 inputs. Historical registry version 1 is distinct from game manifest `content: 1`. Future worlds that actually depend on new resolved rules must pin their historical registry version (and relevant choices) in their manifest, rather than re-resolving old saves against new research.
 

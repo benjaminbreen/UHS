@@ -1,6 +1,6 @@
 # Universal History Simulator
 
-A playable procedural history prototype with Earth-based landscapes, local place/period/role parsing, and optional model-assisted World Weaver creation. Both modes use the same deterministic TypeScript simulation and original pixel atlas. The original Roman and Neolithic settings remain available for earlier recordings. See [WORLDS.md](WORLDS.md) for world generation and classroom setup.
+A playable procedural history prototype with Earth-based landscapes, local place/period/role parsing, and optional model-assisted World Weaver creation. Both modes use the same deterministic TypeScript simulation and original pixel atlas. The original Roman and Neolithic settings remain available for earlier recordings. See [WORLDS.md](WORLDS.md) for world generation and World Weaver setup.
 
 ## Run
 
@@ -22,7 +22,7 @@ Open the local URL printed by Vite. `npm run build` produces `dist/`; `npm run p
 - Taking household possessions can be witnessed; ownership remains unchanged. Goods still carried can be returned. People may later discover a loss without knowing its cause.
 - Space waits a minute; the Wait button waits five. The text field supports a small explicit parser, such as `wait 10`, `eat bread`, `inventory`, or `map`. It is not an LLM conversation field.
 - Inventory: I. Regional map: M. Notebook: J. On narrow screens the character panel is a drawer opened by selection or its map-toolbar button.
-- New world resolves a place, period, role, and seed locally, or through the optional classroom interpreter. Unrecognized local descriptions remain in the form with an explanation. New worlds replace the current local session; export a world to keep a separate copy.
+- New world resolves a place, period, role, and seed locally, or through the optional World Weaver interpreter. Unrecognized local descriptions remain in the form with an explanation. New worlds replace the current local session; export a world to keep a separate copy.
 
 Time advances only through commands. People follow work/home routines and attend to hunger. The active radius is 80 tiles; distant residents receive bounded schedule catch-up when approached, without moving a visible person instantaneously. This is a declared approximation, not continuous simulation of every distant actor.
 

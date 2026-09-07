@@ -37,11 +37,16 @@ const actor = z.object({
   follows: z.string().optional(),
   consentUntil: z.number().optional(),
   memories: z.array(z.string()),
+  held: z.string().optional(),
   direction: z.number().int().min(0).max(3),
   lastUpdated: z.number().int().optional(),
   goal: pos.optional(),
 });
 const object = z.object({
+  prop: z.string().optional(),
+  carriedBy: z.literal("player").optional(),
+  broken: z.boolean().optional(),
+  damage: z.number().int().min(0).max(3).optional(),
   id: z.string(),
   name: z.string(),
   kind: z.enum([
@@ -101,6 +106,10 @@ export const commandSchema = z.discriminatedUnion("type", [
         "take",
         "rest",
         "return",
+        "pickup",
+        "drop",
+        "strike",
+        "look",
       ]),
     })
     .strict(),
@@ -138,7 +147,7 @@ export const snapshotSchema = z.object({
         schema: z.literal(1),
         simulation: z.literal(1),
         generator: z.literal(1),
-        content: z.literal(1),
+        content: z.union([z.literal(1), z.literal(2)]),
         atlas: z.literal(1),
       })
       .strict(),
@@ -149,7 +158,19 @@ export const snapshotSchema = z.object({
         schema: z.literal(2),
         simulation: z.literal(1),
         generator: z.literal(2),
-        content: z.literal(1),
+        content: z.union([z.literal(1), z.literal(2)]),
+        atlas: z.literal(2),
+        setting: settingSchema,
+      })
+      .strict(),
+    z
+      .object({
+        seed: z.string().min(1).max(100),
+        pack: z.literal("atlas"),
+        schema: z.literal(2),
+        simulation: z.literal(2),
+        generator: z.literal(3),
+        content: z.union([z.literal(1), z.literal(2)]),
         atlas: z.literal(2),
         setting: settingSchema,
       })

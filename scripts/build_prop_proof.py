@@ -1,5 +1,6 @@
 """Review sheet for the six material proofs; no runtime or gameplay dependencies."""
 from pathlib import Path
+from art.props import draw_prop
 from PIL import Image, ImageDraw, ImageFont
 from art.props.proofs import PROOFS
 ROOT=Path(__file__).resolve().parent.parent
@@ -18,7 +19,7 @@ for i,(key,draw) in enumerate(PROOFS.items()):
  x=24+(i%3)*412;y=114+(i//3)*470
  d.rounded_rectangle((x,y,x+388,y+446),radius=8,fill='#d8cba4')
  d.text((x+20,y+16),f'0{i+1}  {names[i]}',font=font(21),fill='#343a32')
- sprite=draw(0)
+ sprite=draw_prop(key,0)
  # Transparent sprite pixels only; shadows are a runtime concern.
  tile=Image.new('RGBA',(48,50))
  tile.alpha_composite(sprite)

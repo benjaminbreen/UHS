@@ -17,20 +17,24 @@ export class WorldScene extends Phaser.Scene {
   private rippleTime = -1;
   private entities = new Map<string, Phaser.GameObjects.Image>();
   private selection?: Phaser.GameObjects.Graphics;
+  private routeOverlay?: Phaser.GameObjects.Graphics;
+  private actorFrames = new Map<string, string>();
   private unsubscribe?: () => void;
   private staticKey = "";
   private drawnWorld?: WorldModel;
   private buildings = new Map<string, Phaser.GameObjects.Image>();
-  private lastInput = 0;
+  private nextInput = 0;
+  private motionDuration = 140;
+  private heldDirections = new Set<string>();
+  private pendingDirection?: [number, number];
+  private destinations = new Map<string, Position>();
   private lastTick = 0;
   private ready = false;
-  private lastRevision = -1;
+
   private light = lightingAt(9 * 3600);
   private tint = 0xffffff;
   private shadowPhase = this.light.id;
   private night?: Phaser.GameObjects.Graphics;
-  private cursors?: Phaser.Types.Input.Keyboard.CursorKeys;
-  private wasd?: Record<string, Phaser.Input.Keyboard.Key>;
   constructor(
     runtime: Runtime,
     private options: RenderOptions = {},
@@ -39,6 +43,12 @@ export class WorldScene extends Phaser.Scene {
     this.runtime = runtime;
   }
   preload() {
+    this.load.atlas("props", "/props/atlas.png", "/props/atlas.json");
+    this.load.atlas(
+      "prop-shadows",
+      "/props/shadows.png",
+      "/props/shadows.json",
+    );
     this.load.atlas("atlas", "/packs/atlas.png", "/packs/atlas.json");
     this.load.atlas(
       "lighting-shadows",
@@ -50,14 +60,10 @@ export class WorldScene extends Phaser.Scene {
   create() {
     this.ready = true;
     this.cameras.main.setBackgroundColor("#819253");
-    this.cameras.main.roundPixels = true;
+    this.cameras.main.roundPixels = !!this.options.lab;
     this.selection = this.add.graphics().setDepth(20000);
+    this.routeOverlay = this.add.graphics().setDepth(20000);
     this.night = this.add.graphics().setDepth(19000).setScrollFactor(0);
-    this.cursors = this.input.keyboard!.createCursorKeys();
-    this.wasd = this.input.keyboard!.addKeys("W,A,S,D") as Record<
-      string,
-      Phaser.Input.Keyboard.Key
-    >;
     this.input.keyboard!.removeCapture([
       "UP",
       "DOWN",
@@ -67,34 +73,47 @@ export class WorldScene extends Phaser.Scene {
     ]);
     this.game.canvas.setAttribute("data-ready", "true");
     this.input.keyboard!.on("keydown", (event: KeyboardEvent) => {
-      if (this.options.lab) return;
+      if (this.options.lab || event.metaKey || event.ctrlKey || event.altKey)
+        return;
       const active = document.activeElement;
       if (
         active instanceof HTMLInputElement ||
         active instanceof HTMLTextAreaElement ||
         active instanceof HTMLSelectElement ||
+        (active instanceof HTMLElement && active.isContentEditable) ||
         document.querySelector('[data-modal="true"]')
       )
         return;
-      const step: Record<string, [number, number]> = {
-        ArrowLeft: [-1, 0],
-        a: [-1, 0],
-        ArrowRight: [1, 0],
-        d: [1, 0],
-        ArrowUp: [0, -1],
-        w: [0, -1],
-        ArrowDown: [0, 1],
-        s: [0, 1],
-      };
-      const direction = step[event.key] ?? step[event.key.toLowerCase()];
-      if (direction) {
+      const key = event.key.toLowerCase();
+      if (
+        [
+          "arrowleft",
+          "arrowright",
+          "arrowup",
+          "arrowdown",
+          "a",
+          "d",
+          "w",
+          "s",
+        ].includes(key)
+      ) {
         event.preventDefault();
-        if (!event.repeat) {
-          this.lastInput = this.time.now;
-          this.runtime.move(...direction);
-        }
+        this.heldDirections.add(key);
+        if (!event.repeat) this.pendingDirection = this.direction();
       }
     });
+    this.input.keyboard!.on("keyup", (event: KeyboardEvent) => {
+      this.heldDirections.delete(event.key.toLowerCase());
+    });
+    const clearInput = () => {
+      this.heldDirections.clear();
+      this.pendingDirection = undefined;
+      this.runtime.stop();
+    };
+    this.game.events.on("blur", clearInput);
+    this.events.once("shutdown", () =>
+      this.game.events.off("blur", clearInput),
+    );
     this.input.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
       if (pointer.rightButtonDown() || this.options.lab) return;
       const p = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
@@ -137,12 +156,19 @@ export class WorldScene extends Phaser.Scene {
     this.layers.push(image);
     return image;
   }
+  private texture(frame: string) {
+    return frame.startsWith("study-prop-") || frame.startsWith("prop-broken-")
+      ? "props"
+      : "atlas";
+  }
   private shadow(frame: string, x: number, y: number, transient = false) {
     if (this.options.shadows === false) return undefined;
     const key = shadowFrame(this.shadowPhase, frame);
-    if (!this.textures.get("lighting-shadows").has(key)) return undefined;
+    const texture =
+      this.texture(frame) === "props" ? "prop-shadows" : "lighting-shadows";
+    if (!this.textures.get(texture).has(key)) return undefined;
     const image = this.add
-      .image(x, y, "lighting-shadows", key)
+      .image(x, y, texture, key)
       .setOriginFromFrame()
       .setDepth(-60000);
     if (!transient) this.layers.push(image);
@@ -428,7 +454,7 @@ export class WorldScene extends Phaser.Scene {
     }
     const obs = e.observe(),
       keep = new Set<string>();
-    const changed = e.state.revision !== this.lastRevision;
+
     const renderEntity = (
       id: string,
       frame: string,
@@ -441,8 +467,12 @@ export class WorldScene extends Phaser.Scene {
       const tx = pos.x * 16 + 8,
         ty = pos.y * 16 + 16;
       if (!im) {
-        im = this.add.image(tx, ty, "atlas", frame).setOrigin(0.5, 1);
+        im = this.add
+          .image(tx, ty, this.texture(frame), frame)
+          .setOrigin(0.5, 1);
         this.entities.set(id, im);
+        if (id === "player" && !this.options.lab)
+          c.startFollow(im, false, 1, 1);
         const shade = this.shadow(frame, tx, ty, true);
         if (shade) this.shadows.set(id, shade);
         if (id !== "player" && !this.options.lab) {
@@ -461,15 +491,26 @@ export class WorldScene extends Phaser.Scene {
           );
         }
       }
-      im.setFrame(frame)
+      // One source pixel is one world pixel, for objects and their shadows.
+      im.setTexture(this.texture(frame), frame)
         .setTint(frame === "fire" ? 0xffffff : this.tint)
         .setDepth(pos.y * 16 + (actor ? 14 : 10));
       const shade = this.shadows.get(id);
       const shadowKey = shadowFrame(this.shadowPhase, frame);
-      if (shade && this.textures.get("lighting-shadows").has(shadowKey))
-        shade.setTexture("lighting-shadows", shadowKey).setOriginFromFrame();
+      const shadowTexture =
+        this.texture(frame) === "props" ? "prop-shadows" : "lighting-shadows";
+      if (shade && this.textures.get(shadowTexture).has(shadowKey))
+        shade.setTexture(shadowTexture, shadowKey).setOriginFromFrame();
+      const previous = this.destinations.get(id);
+      const moved =
+        !previous ||
+        previous.x !== pos.x ||
+        previous.y !== pos.y ||
+        previous.space !== pos.space;
+      if (!moved) return;
+      this.destinations.set(id, { ...pos });
       if (
-        changed &&
+        previous?.space === pos.space &&
         (im.x !== tx || im.y !== ty) &&
         Math.hypot(im.x - tx, im.y - ty) < 65
       ) {
@@ -479,15 +520,18 @@ export class WorldScene extends Phaser.Scene {
           targets: shade ? [im, shade] : im,
           x: tx,
           y: ty,
-          duration: 110,
+          duration: this.motionDuration,
           ease: "Linear",
         });
       } else {
+        this.tweens.killTweensOf(im);
+        if (shade) this.tweens.killTweensOf(shade);
         im.setPosition(tx, ty);
         shade?.setPosition(tx, ty);
       }
     };
     for (const o of obs.objects) {
+      if (o.carriedBy) continue;
       if (o.depleted && o.kind !== "tree") continue;
       if (o.kind === "crop") {
         // Visual clumps share one authoritative harvest target, including depletion.
@@ -511,21 +555,28 @@ export class WorldScene extends Phaser.Scene {
       );
     }
     for (const a of [obs.player, ...obs.actors]) {
+      this.actorFrames.set(
+        a.id,
+        a.kind === "human" ? `${a.sprite}-${a.direction}-` : a.sprite,
+      );
       const frame =
         a.kind === "human"
-          ? `${a.sprite}-${a.direction}-${e.state.revision % 2}`
-          : `${a.sprite}${e.state.revision % 2}`;
+          ? `${a.sprite}-${a.direction}-${this.options.lab ? e.state.revision % 2 : 0}`
+          : `${a.sprite}${this.options.lab ? e.state.revision % 2 : 0}`;
       renderEntity(a.id, frame, a.pos, true);
     }
-    c.startFollow(this.entities.get("player")!, true, 0.4, 0.4);
+    if (this.options.lab)
+      c.startFollow(this.entities.get("player")!, true, 0.4, 0.4);
     for (const [id, image] of this.entities)
       if (!keep.has(id)) {
         image.destroy();
         this.entities.delete(id);
+        this.destinations.delete(id);
+        this.actorFrames.delete(id);
         this.shadows.get(id)?.destroy();
         this.shadows.delete(id);
       }
-    const g = this.selection!;
+    let g = this.selection!;
     g.clear();
     const selected = rt.selected ? e.inspect(rt.selected) : undefined;
     const mark = selected?.pos ?? p;
@@ -541,6 +592,8 @@ export class WorldScene extends Phaser.Scene {
       g.lineBetween(x, y, x + dx * 4, y);
       g.lineBetween(x, y, x, y + dy * 3);
     }
+    g = this.routeOverlay!;
+    g.clear();
     if (rt.route.length) {
       g.fillStyle(0xf2dfb4, 0.45);
       for (const step of rt.route.filter((_, i) => i % 3 === 0))
@@ -574,7 +627,6 @@ export class WorldScene extends Phaser.Scene {
         this.scale.height * 9,
       );
     this.game.canvas.dataset.lighting = this.light.id;
-    this.lastRevision = e.state.revision;
   }
   update(time: number) {
     const phase = this.options.freeze ? 0 : Math.floor(time / 800) % 4;
@@ -588,24 +640,53 @@ export class WorldScene extends Phaser.Scene {
       active instanceof HTMLInputElement ||
       active instanceof HTMLTextAreaElement ||
       active instanceof HTMLSelectElement ||
+      (active instanceof HTMLElement && active.isContentEditable) ||
       !!document.querySelector('[data-modal="true"]');
-    if (!this.options.lab && !typing && time - this.lastInput > 130) {
-      const c = this.cursors!,
-        w = this.wasd!;
-      let dx = 0,
-        dy = 0;
-      if (c.left.isDown || w.A.isDown) dx = -1;
-      else if (c.right.isDown || w.D.isDown) dx = 1;
-      else if (c.up.isDown || w.W.isDown) dy = -1;
-      else if (c.down.isDown || w.S.isDown) dy = 1;
+    if (typing) {
+      this.heldDirections.clear();
+      this.pendingDirection = undefined;
+    }
+    if (!this.options.lab && !typing && time >= this.nextInput) {
+      const held = this.direction();
+      const [dx, dy] = held.some(Boolean)
+        ? held
+        : (this.pendingDirection ?? held);
+      this.pendingDirection = undefined;
       if (dx || dy) {
-        this.lastInput = time;
+        this.motionDuration = 140 * Math.hypot(dx, dy);
+        this.nextInput = time + this.motionDuration;
+        this.lastTick = time;
         this.runtime.move(dx, dy);
       }
     }
-    if (!this.options.lab && time - this.lastTick > 95 && !typing) {
+    if (!this.options.lab && time - this.lastTick >= 140 && !typing) {
       this.lastTick = time;
+      this.motionDuration = 140;
       this.runtime.tick();
     }
+    // Depth and the selection marker follow the displayed position, not the next tile.
+    for (const [id, im] of this.entities) {
+      const frame = this.actorFrames.get(id);
+      im.setDepth(im.y - (frame ? 2 : 6));
+      if (frame && !this.options.lab)
+        im.setFrame(
+          `${frame}${this.tweens.isTweening(im) ? Math.floor(time / 140) % 2 : 0}`,
+        );
+    }
+    const selected = this.runtime.selected;
+    const marker = this.entities.get(selected ?? "player");
+    const destination = this.destinations.get(selected ?? "player");
+    this.selection?.setPosition(
+      marker && destination ? marker.x - (destination.x * 16 + 8) : 0,
+      marker && destination ? marker.y - (destination.y * 16 + 16) : 0,
+    );
+  }
+  private direction(): [number, number] {
+    const has = (arrow: string, letter: string) =>
+      Number(this.heldDirections.has(arrow) || this.heldDirections.has(letter));
+    return [
+      has("arrowright", "d") - has("arrowleft", "a"),
+      has("arrowdown", "s") - has("arrowup", "w"),
+    ];
   }
 }

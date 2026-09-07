@@ -1,10 +1,12 @@
 """Forty original prop families, separate from the game's production atlas."""
+from .compact import COMPACT
 from .proofs import PROOFS
 from .daily import DAILY
 from .containers import vessel, gourd, basket, sack, box, barrel, bucket, modern
 from .utilities import trough, well, pump, grinder, mortar, tool, woodpile, sheaf, rack, scarecrow, fire, oven, lamp, lantern, furniture, bedroll
 
 def draw_prop(key,variant):
+ if key in COMPACT:return COMPACT[key](variant)
  if key in DAILY:return DAILY[key](variant)
  if key in PROOFS:return PROOFS[key](variant)
  if key in ['earthen-pot','storage-jar','water-jug','amphora','glazed-jar','metal-vessel']:return vessel(key,variant)

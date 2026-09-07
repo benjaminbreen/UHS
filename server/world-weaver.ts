@@ -23,10 +23,11 @@ export async function worldWeaver(
   env: Environment = process.env,
   provider: typeof fetch = fetch,
 ): Promise<Response> {
+  const accessCode = env.UHS_WORLD_WEAVER_ACCESS_CODE ?? env.UHS_CLASSROOM_CODE;
   const enabled =
     env.UHS_WORLD_WEAVER_ENABLED === "1" &&
     !!env.GEMINI_API_KEY &&
-    !!env.UHS_CLASSROOM_CODE;
+    !!accessCode;
   if (request.method === "GET") return json({ enabled });
   if (request.method !== "POST") return json({ error: "Use POST." }, 405);
   if (!enabled)
@@ -37,13 +38,16 @@ export async function worldWeaver(
       },
       503,
     );
-  const code = request.headers.get("X-Classroom-Code") ?? "";
+  const code =
+    request.headers.get("X-World-Weaver-Code") ??
+    request.headers.get("X-Classroom-Code") ??
+    "";
   if (
     !code ||
     code.length > 256 ||
-    !timingSafeEqual(digest(code), digest(env.UHS_CLASSROOM_CODE!))
+    !timingSafeEqual(digest(code), digest(accessCode!))
   )
-    return json({ error: "The classroom access code is incorrect." }, 401);
+    return json({ error: "The World Weaver access code is incorrect." }, 401);
   if (inFlight >= 2)
     return json({ error: "World Weaver is busy. Try again shortly." }, 429);
   if (Number(request.headers.get("Content-Length") ?? 0) > 12000)

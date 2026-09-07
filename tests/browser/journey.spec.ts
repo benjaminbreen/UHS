@@ -112,7 +112,9 @@ test("input focus does not move the player; unsupported worlds are preserved", a
     .getByLabel("Describe your starting situation")
     .fill("cosmonaut in orbit");
   await page.getByRole("button", { name: "Enter this world" }).click();
-  await expect(page.getByRole("alert")).toContainText("No place or period matched");
+  await expect(page.getByRole("alert")).toContainText(
+    "No place or period matched",
+  );
   await expect(page.getByLabel("Describe your starting situation")).toHaveValue(
     "cosmonaut in orbit",
   );
@@ -175,8 +177,8 @@ test("a real save import and recorded replay preserve the source journey", async
   );
   await page.getByRole("button", { name: "Continue from here" }).click();
   await expect(page.locator(".replay-bar")).toHaveCount(0);
-  await page.keyboard.press("Space");
-  expect((await observe(page)).clock).toBe(node.state.clock + 60);
+  await page.getByRole("button", { name: "Wait", exact: true }).click();
+  expect((await observe(page)).clock).toBe(node.state.clock + 300);
 });
 
 test("clicking a tree canopy selects the actual object without advancing time", async ({

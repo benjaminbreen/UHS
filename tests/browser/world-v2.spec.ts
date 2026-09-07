@@ -25,7 +25,7 @@ test("free world creation, regional zoom and save/reload make no model requests"
   const state = await page.evaluate(() =>
     (window as any).__uhs.engine.snapshot(),
   );
-  expect(state.manifest.generator).toBe(2);
+  expect(state.manifest.generator).toBe(3);
   await page.keyboard.press("ArrowRight");
   await page.getByRole("button", { name: "Open regional map" }).click();
   await page
@@ -51,7 +51,7 @@ test("classroom interpretation uses the same saved setting and failure preserves
   await page.goto("/");
   await page.getByRole("button", { name: "New world", exact: true }).click();
   await page
-    .getByRole("button", { name: "World Weaver · classroom", exact: true })
+    .getByRole("button", { name: "World Weaver · LLM enabled", exact: true })
     .click();
   await page
     .getByLabel("Describe your starting situation")
@@ -136,12 +136,12 @@ test("invalid manual dates stay usable and a successful classroom response persi
     page.getByRole("heading", { name: "Where will you begin?" }),
   ).toBeVisible();
   await page
-    .getByRole("button", { name: "World Weaver · classroom", exact: true })
+    .getByRole("button", { name: "World Weaver · LLM enabled", exact: true })
     .click();
   await page
     .getByLabel("Describe your starting situation")
     .fill("Life by the Thames under Elizabeth");
-  await page.getByLabel("Classroom access code").fill("test-only");
+  await page.getByLabel("World Weaver access code").fill("test-only");
   await page
     .getByRole("button", { name: "Enter this world", exact: true })
     .click();
@@ -200,4 +200,70 @@ test("switching atlas settings with the same seed replaces the rendered world", 
     );
   }
   expect(errors).toEqual([]);
+});
+
+test("LLM-enabled mode stays local for clear requests and interprets ambiguous ones", async ({
+  page,
+}) => {
+  const { resolveSetting } = await import(
+    "../../src/content/geography/resolve"
+  );
+  const interpreted = resolveSetting(
+    "shaman in Mongolia 350 BCE",
+    "model-example",
+  );
+  if ("error" in interpreted) throw Error(interpreted.error);
+  let requests = 0;
+  await page.route("**/api/world-weaver", (route) => {
+    requests++;
+    expect(route.request().postDataJSON().prompt).toBe("ancient shaman guy");
+    return route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({ setting: interpreted.setting }),
+    });
+  });
+  await page.goto("/");
+  await page.getByRole("button", { name: "New world", exact: true }).click();
+  await page
+    .getByRole("button", { name: "World Weaver · LLM enabled", exact: true })
+    .click();
+  await page
+    .getByLabel("Describe your starting situation")
+    .fill("renaissance Florence weaver");
+  await expect(page.getByLabel("Interpretation route")).toContainText(
+    "Matched locally",
+  );
+  await page
+    .getByRole("button", { name: "Enter this world", exact: true })
+    .click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  const first = await page.evaluate(
+    () => (window as any).__uhs.engine.state.manifest.setting,
+  );
+  expect(first.location).toBe("Florence");
+  expect(first.role).toBe("Weaver");
+  expect(first.characterName).not.toBe("Weaver");
+  expect(first.year).toBeGreaterThanOrEqual(1400);
+  expect(first.year).toBeLessThanOrEqual(1599);
+  expect(requests).toBe(0);
+  await page.getByRole("button", { name: "New world", exact: true }).click();
+  await page
+    .getByRole("button", { name: "World Weaver · LLM enabled", exact: true })
+    .click();
+  await page
+    .getByLabel("Describe your starting situation")
+    .fill("ancient shaman guy");
+  await expect(page.getByLabel("Interpretation route")).toContainText(
+    "will interpret",
+  );
+  await page
+    .getByRole("button", { name: "Enter this world", exact: true })
+    .click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  expect(
+    await page.evaluate(
+      () => (window as any).__uhs.engine.state.manifest.setting,
+    ),
+  ).toEqual(interpreted.setting);
+  expect(requests).toBe(1);
 });

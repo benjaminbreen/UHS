@@ -1,3 +1,51 @@
+## Terrain border repair — September 7, 2026
+
+Removed the independent rectangular contact-shadow strips and aligned contour coverage with the underlying ground. Small outward turf variations preserve coverage; faces now use warm vertical soil planes and tapered recesses instead of block noise. Ground surfaces render before contour walls so the next tile row cannot clip their connecting edges. Movement and height data are unchanged. Browser screenshots were reviewed; this remains a terrain-lab art study, with further visual distance from the reference mockup.
+
+## Terrain relief and continuous banks — September 7, 2026
+
+Revised the stage-one study following the user's comparison images: three readable meadow tiers, one broad northeast rise, two-wide slope, terrain-routed roads, winding two-depth river, pocketed marsh/reeds, and shared 14px projection for tops, actors, shadows and picking. Replaced disconnected side/front caps with a continuous contour silhouette and bevel; world-coordinate texture and subtle pixel variation now carry through bank turns. Retired the unused cap/face atlas pieces. The four-tier diagnostic scene remains. This is still an isolated review fixture, not production procedural hydrology or a world-generation migration.
+
+Validation: seven terrain tests pass, including pixel connectivity around a stepped bank, plateau connectivity, water depths and ramp projection. Two browser tests pass, including elevated clicking, movement, pan/zoom, export and save isolation. Production build passes with the existing bundle advisory. See `TOPOGRAPHY.md`; screenshots are `artifacts/topography-*.png`. Unrelated worktree edits are preserved; no commit or deployment.
+
+## Terrain stage 1 — September 7, 2026
+
+Added isolated `/terrain-lab`: composed river meadow plus all-direction slope/corner fixture, four local height tiers, shared 24-color/16px terrain recipes, grass/damp/dry surfaces, gravel channels/bars, banks, ledges, ramps, and existing building/vegetation sprites. Shared pure crossing rules govern keyboard and click-route movement; controls include height overlay, pan/zoom, reset and PNG export. New optional core/render modules are not consumed by existing generators. See `TOPOGRAPHY.md` for ownership and the stage-two boundary. Existing saves, playable atlases and other worktree edits are preserved.
+
+Validation: three focused terrain tests and two browser checks pass, including traversal, blocked ledges, all-tier reachability, mobile layout, export and save isolation. Production build passes with the existing bundle-size advisory. Reviewed desktop meadow, contour and mobile screenshots. Work remains uncommitted.
+
+## Shared prop pixel grid — September 6, 2026
+
+Removed fractional per-definition sprite/shadow scaling. Sixteen small/medium families now use smaller hand-authored silhouettes on the same world pixel grid, plus a compact runtime stick. Prop Lab and the forty-family contact sheet show actual relative sizes at a common integer zoom. Source canvases remain 48×48 transparent storage; occupied art determines size. Rebuilt all material variants and dynamic silhouette shadows. Collision, saved identities, placement and era/culture rules are unchanged. Validation: production build, eight prop unit tests and six browser checks pass (gallery, keyboard interactions, water and collision).
+
+## Settlement generator 3 — September 6, 2026
+
+Implemented the approved settlement work for new procedural/World Weaver starts: six layout profiles, shared terrain-aware streets and river crossings, oriented buildings with accessible household/work plots, player-owned housing, fields, gated pens/troughs/pasture, and daily household/work/water/common-area activity. Weighted player/NPC routing uses the same collision rules; player gate opening is a recorded command. Generator 1 and 2 worlds retain their earlier generation and simulation. See [SETTLEMENTS.md](SETTLEMENTS.md) for the implementation and extension points.
+
+New-world controls include a settlement-layout override. Florence has a city anchor; Neolithic defaults now generate villages rather than camps. Regional named-content and ecology expansion remain separate work. Browser checks cover six forms, walking into owned houses, pens, free/LLM routing, old journeys, save/replay, movement, props and lighting. The full 60-test suite and production build pass; all eight settlement tests also pass after the final visual changes. The existing large-bundle advisory remains. The legacy full-day test is substantially faster after indexing obstacles during simulation updates; this optimization preserves its hashes.
+
+Screenshots: `artifacts/settlement-*.png`. `scripts/check-settlements.ts` checks six sample settings and reports reachable destinations and layout counts. No provider calls or deployment were needed. Shared unrelated edits remain preserved.
+
+## Prop size and collision correction
+
+Replaced blanket half-size portable rendering with per-definition scale (barrels 1×, chests/crates 0.9×, smaller vessels 0.6–0.75×); shadows match. Intact solid props now block their ground tile through the shared engine query for players, pathfinding and NPCs. Pickup/break clears collision and dropping restores it. Loose sticks/remains stay walkable; empty intact containers remain solid. See `PROPS.md` for replay implications.
+
+## Movement polish — September 6, 2026
+
+Player/NPC sprites retain active interpolation across UI/worker redraws; destinations are tracked independently from displayed positions. Keyboard and click-route steps share a 140 ms presentation cadence, with distance-adjusted diagonal timing, fractional camera following, motion-driven walking frames, moving depth and selection markers. Arrows/WASD combine axes; opposite directions cancel, short taps are buffered, and focus loss clears input/stops routes. Diagonals validate both adjacent cardinal cells to prevent corner cutting and cost three integer simulation seconds (plus the existing slope cost). Cardinal costs, NPC decisions, pathfinding, generation and saved state shape are unchanged. This is additive command support: old successful command logs contain no diagonals; legacy checkpoint hashes still pass. NPC time remains action-driven, as designed.
+
+Validation: 50 existing unit/integration tests plus the new eight-direction/collision test pass; production build passes. Focused browser coverage verifies held arrows/WASD, key release, player/NPC intermediate positions and redraw preservation. Six existing journey browser tests pass, including input focus and browser/Node parity. One existing journey assertion expects Space to wait 60 seconds; the previously implemented prop controls perform a two-second pickup instead. Left untouched as unrelated prop-test maintenance. Visual check: `artifacts/movement-polish.png`. Shared unrelated work remains uncommitted and preserved.
+
+## World Weaver routing clarification
+
+World Weaver is the general LLM-enabled mode, not a classroom-only product. Clear place/culture-zone + period requests resolve locally even in LLM-enabled mode; incomplete or unrecognized requests use World Weaver. Procedural mode never calls a model and shows its fallback choice. Periods/centuries, names and existing starting hunger/fatigue fields now vary by seed; exact dates and saved results remain fixed. Existing settings without generated character fields retain their previous startup state for replay. The endpoint uses `UHS_WORLD_WEAVER_ACCESS_CODE`; earlier classroom-named configuration remains compatible. Prop work in the shared checkout is independent of this change. Validation: production build, 11 focused unit/replay tests and six world-creation browser tests pass; the browser regression verifies zero requests for Renaissance Florence and one mocked interpretation for “ancient shaman guy”. No real model calls were made.
+
+## Interactive prop MVP
+
+Validation: full suite passed at 45 tests before the final two prop tests were added; all 7 prop tests and the 25-test core/world/prop group pass, as do the 5 prop/gallery browser checks. Legacy replay hashes pass. Build passed after implementation, but the final build encountered a concurrently added `src/content/geography/character.ts` referencing a `WorldSetting.character` field not yet in its schema; that unrelated work was left untouched. The interactive implementation remains uncommitted after the requested baseline checkpoint.
+
+Baseline committed as `120f870`. New content-version-2 worlds select shared props by era/culture/context and place them beside buildings; historical resolver exclusions win over defaults. Space picks up or strikes with a held stick, E looks inside/drinks, G puts down. Contents, identity, ownership and damage persist; broken remains expose existing goods. Old save/replay content stays version 1. See `PROPS.md` for scope and known provisional content.
+
 ## Ten additional prop redraws
 
 Redrew storage jar, water jug, amphora, glazed jar, lidded basket, barrel, crate, pail, trough and roofed well, including 30 material variants. Updated Prop Lab and added `artifacts/prop-next-ten.png` contact sheet. Reused palettes, revised mouth construction and well masonry; ground shadows remain separate. All 30 variants pass dimensions/alpha/determinism checks; atlas and sheet regenerate identically. Work remains uncommitted.

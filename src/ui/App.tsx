@@ -34,11 +34,7 @@ import type { Runtime } from "../runtime/session";
 import { restoreSession } from "../runtime/session";
 import { download, save } from "../runtime/storage";
 import { items } from "../content/packs";
-import {
-  distance,
-  type ItemId,
-  type PlayerCommand,
-} from "../core/types";
+import { distance, type ItemId, type PlayerCommand } from "../core/types";
 import { WorldScene } from "../render/WorldScene";
 import { WorldSetup } from "./WorldSetup";
 import { AtlasMap } from "./AtlasMap";
@@ -54,6 +50,7 @@ export function App({
   const view = useSyncExternalStore(runtime.subscribe, runtime.getSnapshot);
   const { observation: obs, selection, pack } = view;
   const p = obs.player;
+  const propControls = runtime.propControls();
   const [audio, setAudio] = useState<AudioDirector | null>(null);
   const [audioOpen, setAudioOpen] = useState(false);
   useEffect(() => {
@@ -126,6 +123,9 @@ export function App({
         e.target instanceof HTMLSelectElement ||
         modal ||
         audioOpen ||
+        document.querySelector('[data-modal="true"]') ||
+        (e.target instanceof HTMLElement &&
+          (e.target.isContentEditable || e.target.tagName === "BUTTON")) ||
         e.metaKey ||
         e.ctrlKey ||
         e.altKey
@@ -133,7 +133,11 @@ export function App({
         return;
       if (e.code === "Space") {
         e.preventDefault();
-        runtime.command({ type: "wait", seconds: 60 });
+        if (!e.repeat) runtime.propAction("Space");
+      }
+      if ((e.code === "KeyE" || e.code === "KeyG") && !e.repeat) {
+        e.preventDefault();
+        runtime.propAction(e.code);
       }
       if (e.key.toLowerCase() === "i") setModal("inventory");
       if (e.key.toLowerCase() === "m") setModal("map");
@@ -259,6 +263,32 @@ export function App({
             aria-label="Playable historical world. Use arrow keys or WASD to walk."
             tabIndex={0}
           />
+          <div className="prop-prompts" data-testid="prop-prompts">
+            {obs.manifest.content === 1 && (
+              <span>
+                This saved world retains legacy props. Start a new world for
+                interactive props.
+              </span>
+            )}
+            {propControls.held && (
+              <span>
+                Holding: {propControls.held!.name}{" "}
+                <button onClick={() => runtime.propAction("KeyG")}>
+                  G · Put down
+                </button>
+              </span>
+            )}
+            {propControls.primary && (
+              <button onClick={() => runtime.propAction("Space")}>
+                Space · {propControls.primaryLabel}
+              </button>
+            )}
+            {propControls.secondary && (
+              <button onClick={() => runtime.propAction("KeyE")}>
+                Press E to {propControls.secondaryLabel?.toLowerCase()}
+              </button>
+            )}
+          </div>
           <div className="map-controls">
             <button
               aria-label="Zoom out"
@@ -425,7 +455,8 @@ export function App({
                 <kbd>W A S D</kbd> walk
               </span>
               <span>
-                <kbd>SPACE</kbd> wait
+                <kbd>SPACE</kbd> pick up / wield · <kbd>E</kbd> interact ·{" "}
+                <kbd>G</kbd> put down
               </span>
               <span>
                 <kbd>M</kbd> map
@@ -500,7 +531,11 @@ export function App({
                   Region
                 </button>
               </div>
-              <span>{mapRegion ? `${(runtime.engine.world.regionExtent ?? 320)*2} m` : "220 m"}</span>
+              <span>
+                {mapRegion
+                  ? `${(runtime.engine.world.regionExtent ?? 320) * 2} m`
+                  : "220 m"}
+              </span>
             </div>
           </section>
           <section className="context-section">
@@ -537,6 +572,15 @@ export function App({
                   >
                     <Footprints size={17} /> Walk closer
                   </button>
+                )}
+                {selection.inventory && (
+                  <p data-testid="container-contents">
+                    Contents:{" "}
+                    {Object.entries(selection.inventory)
+                      .filter(([, n]) => n! > 0)
+                      .map(([id, n]) => `${n} ${items[id as ItemId].name}`)
+                      .join(", ") || "Empty"}
+                  </p>
                 )}
                 <div className="context-actions">
                   {selection.affordances.map((a, i) => (
@@ -642,7 +686,16 @@ export function App({
             >
               <X size={20} />
             </button>
-            {modal === "world" && <WorldSetup initialSeed={obs.manifest.seed} onStart={engine=>{runtime.zoom=engine.world.pack.setting?1:2;runtime.replace(engine);setModal(null);}} />}
+            {modal === "world" && (
+              <WorldSetup
+                initialSeed={obs.manifest.seed}
+                onStart={(engine) => {
+                  runtime.zoom = engine.world.pack.setting ? 1 : 2;
+                  runtime.replace(engine);
+                  setModal(null);
+                }}
+              />
+            )}
             {modal === "inventory" && (
               <>
                 <div className="eyebrow">POSSESSIONS</div>
@@ -651,6 +704,41 @@ export function App({
                   Goods have real quantities. Eating, gathering, and exchanging
                   change this inventory.
                 </p>
+                {propControls.held && (
+                  <div className="inventory-item">
+                    <Sprite name={propControls.held!.sprite} scale={2} />
+                    <strong>Holding: {propControls.held!.name}</strong>
+                    {propControls.held!.prop !== "stick" && (
+                      <button
+                        className="action"
+                        onClick={() =>
+                          runtime.command({
+                            type: "interact",
+                            target: propControls.held!.id,
+                            action: "look",
+                          })
+                        }
+                      >
+                        Look inside
+                      </button>
+                    )}
+                    {propControls.held!.open && (
+                      <p>
+                        Contents:{" "}
+                        {Object.entries(propControls.held!.inventory)
+                          .filter(([, n]) => n! > 0)
+                          .map(([id, n]) => `${n} ${items[id as ItemId].name}`)
+                          .join(", ") || "Empty"}
+                      </p>
+                    )}
+                    <button
+                      className="action"
+                      onClick={() => runtime.propAction("KeyG")}
+                    >
+                      Put down
+                    </button>
+                  </div>
+                )}
                 <div className="inventory-grid">
                   {Object.entries(p.inventory)
                     .filter(([, n]) => n! > 0)
@@ -781,8 +869,55 @@ export function App({
                   Roads and settlements share the same world as the map beneath
                   your feet.
                 </p>
-                {pack.setting && <div className="weaver-modes"><button aria-pressed={!earthMap} onClick={()=>setEarthMap(false)}>Region</button><button aria-pressed={earthMap} onClick={()=>setEarthMap(true)}>Earth</button>{!earthMap && <><button onClick={()=>setMapSpan(Math.max(800,mapSpan/2))}>Zoom in</button><button onClick={()=>setMapSpan(Math.min(131072,mapSpan*2))}>Zoom out</button><span>{Math.round(mapSpan*2/1000)} game km across</span></>}</div>}
-                {earthMap && pack.setting ? <AtlasMap {...fromAtlas(toAtlas(pack.anchor.lon,pack.anchor.lat).x+p.pos.x,toAtlas(pack.anchor.lon,pack.anchor.lat).y+p.pos.y)} /> : <Minimap runtime={runtime} large span={pack.setting?mapSpan:undefined} />}
+                {pack.setting && (
+                  <div className="weaver-modes">
+                    <button
+                      aria-pressed={!earthMap}
+                      onClick={() => setEarthMap(false)}
+                    >
+                      Region
+                    </button>
+                    <button
+                      aria-pressed={earthMap}
+                      onClick={() => setEarthMap(true)}
+                    >
+                      Earth
+                    </button>
+                    {!earthMap && (
+                      <>
+                        <button
+                          onClick={() => setMapSpan(Math.max(800, mapSpan / 2))}
+                        >
+                          Zoom in
+                        </button>
+                        <button
+                          onClick={() =>
+                            setMapSpan(Math.min(131072, mapSpan * 2))
+                          }
+                        >
+                          Zoom out
+                        </button>
+                        <span>
+                          {Math.round((mapSpan * 2) / 1000)} game km across
+                        </span>
+                      </>
+                    )}
+                  </div>
+                )}
+                {earthMap && pack.setting ? (
+                  <AtlasMap
+                    {...fromAtlas(
+                      toAtlas(pack.anchor.lon, pack.anchor.lat).x + p.pos.x,
+                      toAtlas(pack.anchor.lon, pack.anchor.lat).y + p.pos.y,
+                    )}
+                  />
+                ) : (
+                  <Minimap
+                    runtime={runtime}
+                    large
+                    span={pack.setting ? mapSpan : undefined}
+                  />
+                )}
                 <div className="destinations">
                   {runtime.engine.world.settlements.map((s) => (
                     <button
@@ -809,14 +944,23 @@ export function App({
                     </button>
                   ))}
                 </div>
-                <p className="map-note">{pack.setting ? "A compressed Earth atlas with continuous, generated local terrain. Zoom out to follow the same coastlines and waterways." : `An invented settlement near ${pack.anchor.label}.`}</p>
+                <p className="map-note">
+                  {pack.setting
+                    ? "A compressed Earth atlas with continuous, generated local terrain. Zoom out to follow the same coastlines and waterways."
+                    : `An invented settlement near ${pack.anchor.label}.`}
+                </p>
               </>
             )}
             {modal === "settings" && (
               <>
                 <div className="eyebrow">YOUR WORLD</div>
                 <h2>Settings & saved journeys</h2>
-                <button className="action" onClick={() => window.dispatchEvent(new Event("uhs-open-props"))}>
+                <button
+                  className="action"
+                  onClick={() =>
+                    window.dispatchEvent(new Event("uhs-open-props"))
+                  }
+                >
                   Prop gallery · ⌘2 / Ctrl+2
                 </button>
                 <button
@@ -837,7 +981,12 @@ export function App({
                 >
                   Graphics lab ↗
                 </a>
-                <a className="action" href="/history-lab" target="_blank" rel="noreferrer">
+                <a
+                  className="action"
+                  href="/history-lab"
+                  target="_blank"
+                  rel="noreferrer"
+                >
                   History & content lab ↗
                 </a>
                 <p>

@@ -195,7 +195,7 @@ describe("shared deterministic foundation", () => {
     });
   });
   it("records a theft, local witnesses, and real restitution", () => {
-    const e = createSession();
+    const e = createSession("roman", undefined, undefined, undefined, 1);
     const o = e.state.objects.find((o) => o.kind === "container")!;
     o.pos = { ...e.state.player.pos, x: e.state.player.pos.x + 1 };
     const witness = e.state.actors[0];

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { patterns } from "../settlements/profiles";
 import { cultures } from "../history/types";
 export const climates = [
   "temperate",
@@ -56,9 +57,17 @@ export const settingSchema = z
     relief: z.number().min(0).max(1),
     water: z.enum(waters),
     settlement: z.enum(forms),
+    settlementPattern: z.enum(patterns).optional(),
     architecture: z.enum(architectures),
     role: z.string().min(1).max(100),
     characterName: z.string().min(1).max(80),
+    character: z
+      .object({
+        hunger: z.number().int().min(0).max(100),
+        fatigue: z.number().int().min(0).max(100),
+      })
+      .strict()
+      .optional(),
     community: z.string().max(160),
     season: z.enum(["spring", "summer", "autumn", "winter"]),
   })

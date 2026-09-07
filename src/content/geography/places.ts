@@ -30,6 +30,20 @@ const p = (
 });
 const anchors: AtlasPlace[] = [
   p(
+    "city-florence",
+    "Florence",
+    11.25,
+    43.78,
+    "mediterranean",
+    "river-ew",
+    "european",
+    1500,
+    "classical",
+    ["florence", "firenze"],
+    "city",
+    0.2,
+  ),
+  p(
     "rome",
     "Rome",
     12.48,

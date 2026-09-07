@@ -18,7 +18,9 @@ const saved = flag("--load"),
   pack = flag("--pack") ?? "roman";
 import { resolveSetting } from "../src/content/geography/resolve";
 const requested = flag("--prompt");
-const resolved = requested ? resolveSetting(requested) : undefined;
+const resolved = requested
+  ? resolveSetting(requested, flag("--seed") ?? "earth-2")
+  : undefined;
 if (resolved && "error" in resolved) throw Error(resolved.error);
 const engine = saved
   ? restoreSession(JSON.parse(readFileSync(saved, "utf8")))
@@ -142,7 +144,9 @@ if (args.includes("--demo")) {
     manifest.pack,
     manifest.seed,
     undefined,
-    manifest.generator === 2 ? manifest.setting : undefined,
+    manifest.generator !== 1 ? manifest.setting : undefined,
+    manifest.content,
+    manifest.generator,
   );
   for (const entry of record.entries ??
     record.commands.map((request: unknown) => ({ request })))

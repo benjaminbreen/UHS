@@ -1,0 +1,201 @@
+.terrain-lab {
+  height: 100dvh;
+  overflow: auto;
+  background: #202522;
+  color: #ded5bd;
+  font-family: Georgia, serif;
+}
+.terrain-header {
+  height: 76px;
+  box-sizing: border-box;
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #655c46;
+  background: #202323;
+  gap: 20px;
+}
+.terrain-header a {
+  color: #cbbd9c;
+  text-decoration: none;
+  font-size: 13px;
+}
+.terrain-header h1 {
+  font-size: 25px;
+  font-weight: 400;
+  margin: 3px 0;
+}
+.terrain-header > span {
+  font-size: 13px;
+  color: #b6ae99;
+}
+.terrain-layout {
+  display: grid;
+  grid-template-columns: 224px minmax(0, 1fr);
+  height: calc(100dvh - 76px);
+}
+.terrain-controls {
+  padding: 24px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  overflow: auto;
+  border-right: 1px solid #655c46;
+  background: #242823;
+  font-family: Arial, sans-serif;
+  font-size: 12px;
+}
+.terrain-controls p {
+  line-height: 1.65;
+  color: #bdbba9;
+  margin: 0;
+}
+.terrain-controls label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: #ded5bd;
+}
+.terrain-controls select,
+.terrain-controls button {
+  font: inherit;
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #706b52;
+  border-radius: 3px;
+  background: #2b3029;
+  color: #e3d8bd;
+  text-align: left;
+  cursor: pointer;
+}
+.terrain-controls button:hover {
+  background: #3b4333;
+}
+.terrain-controls button:disabled {
+  opacity: 0.5;
+}
+.terrain-controls select:focus-visible,
+.terrain-controls button:focus-visible {
+  outline: 2px solid #dac990;
+  outline-offset: 2px;
+}
+.terrain-eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 10px;
+  color: #d1c298;
+}
+.terrain-rule {
+  border-top: 1px solid #494e40;
+  margin: 3px 0;
+}
+.terrain-stops {
+  display: grid;
+  gap: 6px;
+}
+.terrain-stops button {
+  display: flex;
+  justify-content: space-between;
+}
+.terrain-controls .terrain-check {
+  flex-direction: row;
+  align-items: center;
+}
+.terrain-check input {
+  accent-color: #b2b46b;
+}
+.terrain-controls a {
+  color: #cdbf97;
+}
+.terrain-swatches {
+  display: flex;
+  gap: 5px;
+  margin-top: auto;
+}
+.terrain-swatches i {
+  width: 30px;
+  height: 16px;
+}
+.terrain-controls .terrain-caption {
+  font-size: 11px;
+  color: #959d87;
+}
+.terrain-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.terrain-canvas {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  touch-action: none;
+}
+.terrain-canvas canvas {
+  display: block;
+  image-rendering: pixelated;
+}
+.terrain-status {
+  min-height: 36px;
+  box-sizing: border-box;
+  padding: 10px 16px;
+  background: #202522;
+  border-top: 1px solid #555941;
+  display: flex;
+  gap: 20px;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #c7cbb5;
+}
+.terrain-status strong {
+  font-weight: 400;
+  color: #d6c393;
+  white-space: nowrap;
+}
+@media (max-width: 760px) {
+  .terrain-header {
+    padding: 12px 14px;
+  }
+  .terrain-header > span {
+    display: none;
+  }
+  .terrain-header h1 {
+    font-size: 22px;
+  }
+  .terrain-layout {
+    height: auto;
+    grid-template-columns: 1fr;
+  }
+  .terrain-main {
+    grid-row: 1;
+  }
+  .terrain-canvas {
+    height: 480px;
+    flex: none;
+  }
+  .terrain-controls {
+    border-right: 0;
+    overflow: visible;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  .terrain-controls p,
+  .terrain-rule,
+  .terrain-caption,
+  .terrain-eyebrow {
+    grid-column: 1/-1;
+  }
+  .terrain-stops {
+    grid-column: 1/-1;
+    grid-template-columns: 1fr 1fr;
+  }
+  .terrain-status {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .terrain-swatches {
+    margin-top: 0;
+  }
+}

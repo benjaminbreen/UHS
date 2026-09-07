@@ -1,3 +1,5 @@
+> Update: the user approved the visual baseline, committed the worktree checkpoint, and authorized the interaction MVP. See `PROPS.md` for implemented behavior and limitations. Earlier review gates below are historical planning notes.
+
 # Prop library proposal — awaiting user review
 
 This is an art/interaction plan, not delivered assets, a complete historical catalog, or authorization to start implementation. The user requested an era review first. No prop pixels, pickup, equipment, opening or breakage behavior were added during the historical-framework pass.

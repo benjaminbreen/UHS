@@ -114,6 +114,7 @@ export function GraphicsLab() {
           <h1>Graphics lab</h1>
         </div>
         <span>Isolated fixtures · your journey stays saved</span>
+        <a href="/terrain-lab">Terrain study →</a>
         <a href="/history-lab">History & content lab →</a>
         <button className="action" onClick={() => window.dispatchEvent(new Event("uhs-open-props"))}>Prop gallery · ⌘2</button>
         <a className="action" href="/">

@@ -9,6 +9,8 @@ import {
   settingFor,
 } from "../content/geography/resolve";
 import { settingSchema } from "../content/geography/types";
+import { populateCharacter } from "../content/geography/character";
+import { patterns, type Pattern } from "../content/settlements/profiles";
 import { AtlasMap } from "./AtlasMap";
 export function WorldSetup({
   onStart,
@@ -26,6 +28,7 @@ export function WorldSetup({
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [token, setToken] = useState("");
+  const [pattern, setPattern] = useState<Pattern | "">("");
   const controller = useRef<AbortController | null>(null);
   useEffect(() => () => controller.current?.abort(), []);
   const chosen = places.find((p) => p.id === place)!;
@@ -36,10 +39,11 @@ export function WorldSetup({
     numericYear >= -1000000 &&
     numericYear <= 10000;
   const resolved = prompt.trim()
-    ? resolveSetting(prompt)
+    ? resolveSetting(prompt, seed.trim() || "earth-2")
     : {
         setting: settingFor(chosen, validYear ? numericYear : chosen.year),
         description: "",
+        needsInterpretation: false,
       };
   const candidate =
     "setting" in resolved
@@ -49,6 +53,9 @@ export function WorldSetup({
     candidate?.success && (prompt.trim() || validYear)
       ? candidate.data
       : undefined;
+  const needsModel =
+    !!prompt.trim() &&
+    (!("setting" in resolved) || resolved.needsInterpretation === true);
   const choose = (id: string) => {
     const p = places.find((p) => p.id === id)!;
     setPlace(id);
@@ -68,13 +75,13 @@ export function WorldSetup({
         return;
       }
       let setting = localSetting;
-      if (mode === "model") {
+      if (mode === "model" && needsModel) {
         const response = await fetch("/api/world-weaver", {
           method: "POST",
           signal: controller.current.signal,
           headers: {
             "Content-Type": "application/json",
-            "X-Classroom-Code": token,
+            "X-World-Weaver-Code": token,
           },
           body: JSON.stringify({
             prompt: prompt.trim() || `${chosen.name}, ${year}`,
@@ -82,7 +89,7 @@ export function WorldSetup({
         });
         const result = await response.json().catch(() => {
           throw Error(
-            "World Weaver is not available on this server. Use procedural mode or configure the classroom endpoint.",
+            "World Weaver is not available on this server. Use procedural mode or configure the World Weaver endpoint.",
           );
         });
         if (!response.ok)
@@ -98,7 +105,13 @@ export function WorldSetup({
             ? resolved.error
             : "Enter a whole year between −1,000,000 and 10,000.",
         );
-      const parsed = settingSchema.parse(setting);
+      const parsed = populateCharacter(
+        settingSchema.parse({
+          ...setting,
+          ...(pattern ? { settlementPattern: pattern } : {}),
+        }),
+        worldSeed,
+      );
       const engine = createSettingSession(parsed, worldSeed);
       if (!controller.current.signal.aborted) onStart(engine);
     } catch (err) {
@@ -134,13 +147,13 @@ export function WorldSetup({
             setLegacy("");
           }}
         >
-          World Weaver · classroom
+          World Weaver · LLM enabled
         </button>
       </div>
       <p>
         {mode === "local"
           ? "Places, periods, and roles resolve on your device. No model or account needed."
-          : "Describe a life in your own words. The model chooses a setting; the same procedural engine builds and runs it."}
+          : "Specific requests resolve locally. World Weaver interprets ambiguous or unmatched details, then the procedural engine builds the world."}
       </p>
       <label className="field-label">
         Describe your starting situation
@@ -211,19 +224,52 @@ export function WorldSetup({
           </small>
         </label>
       </div>
+      <label className="field-label">
+        Settlement layout
+        <select
+          value={pattern}
+          disabled={busy || !!legacy}
+          onChange={(e) => setPattern(e.target.value as Pattern | "")}
+        >
+          <option value="">Choose from the setting</option>
+          {patterns.map((p) => (
+            <option key={p} value={p}>
+              {
+                {
+                  farmstead: "Farmstead",
+                  clustered: "Clustered village",
+                  roadside: "Roadside village",
+                  dense: "Dense town",
+                  planned: "Planned streets",
+                  waterfront: "Waterfront settlement",
+                }[p]
+              }
+            </option>
+          ))}
+        </select>
+      </label>
       <AtlasMap
         lon={localSetting?.lon ?? chosen.lon}
         lat={localSetting?.lat ?? chosen.lat}
         onChoose={busy ? undefined : choose}
       />
-      {localSetting && mode === "local" && (
+      {localSetting && (mode === "local" || !needsModel) && (
         <p className="weaver-preview" aria-label="Resolved setting">
           {describeSetting(localSetting)}
         </p>
       )}
-      {mode === "model" && (
+      {prompt.trim() && (
+        <p className="weaver-preview" aria-label="Interpretation route">
+          {needsModel
+            ? mode === "model"
+              ? "World Weaver will interpret this request."
+              : "Using a local fallback. Refine the place and period, or enable World Weaver for interpretation."
+            : "Matched locally — no model request needed."}
+        </p>
+      )}
+      {mode === "model" && needsModel && (
         <label className="field-label">
-          Classroom access code
+          World Weaver access code
           <input
             type="password"
             autoComplete="off"

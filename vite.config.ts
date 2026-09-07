@@ -12,6 +12,7 @@ export default defineConfig({
           "GEMINI_API_KEY",
           "UHS_WORLD_WEAVER_ENABLED",
           "UHS_CLASSROOM_CODE",
+          "UHS_WORLD_WEAVER_ACCESS_CODE",
           "UHS_WORLD_WEAVER_MODEL",
         ])
           if (env[key] && !process.env[key]) process.env[key] = env[key];

@@ -1,3 +1,5 @@
+import { propDefs } from "../content/props/catalog";
+import { propAffordances, heldObject } from "./props";
 import {
   distance,
   SIGHT,
@@ -18,6 +20,8 @@ import {
 } from "./types";
 import { canonical, random, stateHash } from "./random";
 import { findPath } from "./pathfinding";
+import { route, type RouteResult } from "./routing";
+import type { Point } from "./types";
 const copy = <T>(x: T): T => structuredClone(x);
 export class Engine {
   state: Snapshot;
@@ -33,8 +37,8 @@ export class Engine {
             seed: "",
             pack: world.pack.id,
             schema: world.pack.setting ? 2 : 1,
-            simulation: 1,
-            generator: world.pack.setting ? 2 : 1,
+            simulation: world.generatorVersion === 3 ? 2 : 1,
+            generator: world.generatorVersion ?? (world.pack.setting ? 2 : 1),
             content: 1,
             atlas: world.pack.setting ? 2 : 1,
             ...(world.pack.setting
@@ -76,6 +80,11 @@ export class Engine {
   }
   initialize(seed: string) {
     this.state.manifest.seed = seed;
+    const sites = this.world.activitySites?.("player");
+    if (sites) {
+      this.state.player.home = { ...sites.home, space: "outside" };
+      this.state.player.work = { ...sites.work, space: "outside" };
+    }
     this.event(
       "You arrive as the morning’s work begins. Walk, meet someone, or find your own way.",
       "system",
@@ -87,6 +96,61 @@ export class Engine {
   }
   snapshot() {
     return copy(this.state);
+  }
+  private dropSpot(): Position | undefined {
+    const p = this.state.player,
+      dir = [
+        [0, -1],
+        [1, 0],
+        [0, 1],
+        [-1, 0],
+      ][p.direction];
+    return [
+      dir,
+      [0, 1],
+      [1, 0],
+      [0, -1],
+      [-1, 0],
+      [1, 1],
+      [-1, 1],
+      [1, -1],
+      [-1, -1],
+    ]
+      .map(([x, y]) => ({ ...p.pos, x: p.pos.x + x, y: p.pos.y + y }))
+      .find(
+        (pos) =>
+          !this.blocked(pos.x, pos.y, pos.space) &&
+          this.visible(pos) &&
+          !this.state.objects.some(
+            (o) => !o.carriedBy && distance(o.pos, pos) < 1,
+          ) &&
+          !this.state.actors.some((a) => distance(a.pos, pos) < 1) &&
+          !this.world.places.some(
+            (b) =>
+              pos.space === "outside" &&
+              distance({ ...b.entrance, space: "outside" }, pos) < 1.5,
+          ),
+      );
+  }
+  private propOwnership(o: import("./types").WorldObject, action: string) {
+    const p = this.state.player;
+    if (!o.owner || o.owner === "player") return;
+    const memory = `property:${o.id}`;
+    if (p.memories.includes(memory)) return;
+    p.memories.push(memory);
+    for (const witness of this.state.actors.filter(
+      (a) =>
+        a.kind === "human" &&
+        distance(a.pos, p.pos) < 7 &&
+        this.visibleFrom(a.pos, p.pos),
+    )) {
+      witness.trust -= 3;
+      witness.memories.push(`Saw player ${action} ${o.id}`);
+      this.event(
+        `${witness.name} saw you ${action} household property.`,
+        "social",
+      );
+    }
   }
   private rng(purpose: string) {
     return random(
@@ -107,19 +171,98 @@ export class Engine {
     this.state.events.push(e);
     if (this.state.events.length > 160) this.state.events.shift();
   }
+  private tickObstacles?: Map<string, typeof this.state.objects>;
+  private terrainCollision = new Map<string, boolean>();
   blocked(x: number, y: number, space = this.state.player.pos.space) {
+    const key = `${space}:${x},${y}`;
+    let fixed = this.terrainCollision.get(key);
+    if (fixed === undefined) {
+      fixed = this.world.blocked(x, y, space);
+      if (this.terrainCollision.size >= 16384) this.terrainCollision.clear();
+      this.terrainCollision.set(key, fixed);
+    }
     return (
-      this.world.blocked(x, y, space) ||
-      this.state.objects.some(
+      fixed ||
+      (
+        this.tickObstacles?.get(key) ??
+        (this.tickObstacles ? [] : this.state.objects)
+      ).some(
         (o) =>
-          o.kind === "gate" &&
-          !o.open &&
+          ((o.kind === "gate" && !o.open) ||
+            (!!o.prop &&
+              !!propDefs[o.prop]?.solid &&
+              !o.carriedBy &&
+              !o.broken)) &&
           o.pos.space === space &&
           o.pos.x === x &&
           o.pos.y === y,
       )
     );
   }
+  gateAt(p: Point, space = this.state.player.pos.space) {
+    return this.state.objects.find(
+      (o) =>
+        o.kind === "gate" &&
+        !o.open &&
+        o.pos.space === space &&
+        o.pos.x === p.x &&
+        o.pos.y === p.y,
+    );
+  }
+  findRoute(
+    start: Position,
+    target: Point,
+    actorId = "player",
+    maxNodes = 18000,
+  ): RouteResult {
+    return route(
+      start,
+      target,
+      (to) => {
+        if (this.blocked(to.x, to.y, start.space)) {
+          const gate = this.gateAt(to, start.space);
+          // Humans can open a gate; animals must wait for an actual open gate.
+          const human =
+            actorId === "player" ||
+            this.state.actors.some(
+              (a) => a.id === actorId && a.kind === "human",
+            );
+          if (
+            !gate ||
+            !human ||
+            (actorId !== "player" && gate.owner && gate.owner !== actorId) ||
+            this.world.blocked(to.x, to.y, start.space)
+          )
+            return Infinity;
+          return 5;
+        }
+        if (
+          actorId !== "player" &&
+          this.state.actors.some(
+            (a) =>
+              a.id !== actorId &&
+              a.pos.space === start.space &&
+              a.pos.x === to.x &&
+              a.pos.y === to.y,
+          )
+        )
+          return Infinity;
+        return start.space === "outside"
+          ? (this.world.navigationCost?.(to.x, to.y, actorId) ?? 1)
+          : 1;
+      },
+      {
+        maxNodes,
+        bounds: {
+          x: Math.min(start.x, target.x) - 48,
+          y: Math.min(start.y, target.y) - 48,
+          w: Math.abs(start.x - target.x) + 96,
+          h: Math.abs(start.y - target.y) + 96,
+        },
+      },
+    );
+  }
+  private routes = new Map<string, { target: string; path: Point[] }>();
   visible(pos: Position) {
     return this.visibleFrom(this.state.player.pos, pos);
   }
@@ -165,7 +308,13 @@ export class Engine {
         .filter((o) => this.visible(o.pos))
         .map((o) => ({
           ...o,
-          inventory: o.owner && o.owner !== "player" ? {} : o.inventory,
+          inventory: o.prop
+            ? o.open
+              ? o.inventory
+              : {}
+            : o.owner && o.owner !== "player"
+              ? {}
+              : o.inventory,
         })),
       places: this.world.places.filter((p) =>
         this.visible({ ...p.entrance, space: "outside" }),
@@ -244,6 +393,8 @@ export class Engine {
     if (place) {
       const allowed =
         place.access === "public" ||
+        (this.state.manifest.simulation === 2 &&
+          place.owner === this.state.player.id) ||
         (this.state.permissions[place.owner] ?? 0) > this.state.clock;
       interact(
         "enter",
@@ -264,6 +415,57 @@ export class Engine {
       };
     }
     if (!object) return;
+    if (object.prop) {
+      const def = propDefs[object.prop];
+      return {
+        id,
+        name: object.broken
+          ? `Broken ${object.name.toLowerCase()}`
+          : object.name,
+        pos,
+        kind: object.kind,
+        claim: object.claim,
+        description: [
+          object.broken
+            ? "Broken remains; spilled contents can be recovered."
+            : def?.strike
+              ? "A stout branch. Hold it to strike breakable containers."
+              : def?.drink
+                ? "A water source."
+                : def?.container
+                  ? object.open
+                    ? "The contents are visible."
+                    : "Look inside to discover the contents."
+                  : "A household work object.",
+          object.carriedBy ? "You are holding it." : "",
+          object.owner && object.owner !== "player"
+            ? "Household property; carrying it does not change ownership."
+            : "",
+        ]
+          .filter(Boolean)
+          .join(" "),
+        affordances: [
+          ...propAffordances(this.state, object, close),
+          ...(this.state.player.memories.some((m) =>
+            m.startsWith(`theft:${id}:`),
+          )
+            ? [
+                {
+                  label: "Return what you took",
+                  command: {
+                    type: "interact" as const,
+                    target: id,
+                    action: "return" as const,
+                  },
+                  enabled: close,
+                },
+              ]
+            : []),
+        ],
+        inventory: object.open ? copy(object.inventory) : undefined,
+      };
+    }
+
     if (object.kind === "gate")
       interact(
         object.open ? "close" : "open",
@@ -377,6 +579,8 @@ export class Engine {
         };
       else {
         this.execute(request.command);
+        const held = heldObject(this.state);
+        if (held) held.pos = copy(this.state.player.pos);
         this.state.revision++;
         this.state.log.push(copy(request));
         result = {
@@ -397,10 +601,16 @@ export class Engine {
       if (
         !Number.isInteger(c.dx) ||
         !Number.isInteger(c.dy) ||
-        Math.abs(c.dx) + Math.abs(c.dy) !== 1
+        Math.max(Math.abs(c.dx), Math.abs(c.dy)) !== 1
       )
-        return "Move one cardinal step.";
-      if (this.blocked(p.pos.x + c.dx, p.pos.y + c.dy))
+        return "Move one adjacent step.";
+      if (
+        this.blocked(p.pos.x + c.dx, p.pos.y + c.dy) ||
+        (c.dx !== 0 &&
+          c.dy !== 0 &&
+          (this.blocked(p.pos.x + c.dx, p.pos.y) ||
+            this.blocked(p.pos.x, p.pos.y + c.dy)))
+      )
         return "The way is blocked.";
       return;
     }
@@ -412,6 +622,8 @@ export class Engine {
       return this.items[c.item]?.edible && (p.inventory[c.item] ?? 0) > 0
         ? undefined
         : "You cannot eat that item.";
+    if (c.type === "interact" && c.action === "drop" && !this.dropSpot())
+      return "There is no clear adjacent place to put it down.";
     const target = this.inspect(c.target);
     if (!target) return "That target is not visible.";
     if (distance(p.pos, target.pos) > 2.5) return "Move closer first.";
@@ -486,7 +698,7 @@ export class Engine {
                 this.world.elevation(p.pos.x - c.dx, p.pos.y - c.dy),
             )
           : 0;
-      this.advance(2 + (slope > 1 ? 1 : 0));
+      this.advance((c.dx && c.dy ? 3 : 2) + (slope > 1 ? 1 : 0));
       const key = `${Math.floor(p.pos.x / 64)},${Math.floor(p.pos.y / 64)}`;
       if (!this.state.visited.includes(key)) this.state.visited.push(key);
       return;
@@ -504,6 +716,60 @@ export class Engine {
       this.advance(60);
       this.event(`You eat some ${this.items[c.item].name.toLowerCase()}.`);
       return;
+    }
+    if (c.type === "interact") {
+      const prop = this.state.objects.find((o) => o.id === c.target && o.prop);
+      if (prop && ["pickup", "drop", "strike", "look"].includes(c.action)) {
+        const def = propDefs[prop.prop!];
+        if (c.action === "pickup") {
+          prop.carriedBy = "player";
+          p.held = prop.id;
+          prop.pos = copy(p.pos);
+          this.propOwnership(prop, "pick up");
+          this.event(
+            `You pick up ${prop.name.toLowerCase()}. ${def.strike ? "Space strikes a nearby breakable object." : "Press E to look inside; G puts it down."}`,
+          );
+        } else if (c.action === "drop") {
+          const spot = this.dropSpot();
+          if (!spot) throw Error("Drop validation failed");
+          prop.pos = spot;
+          delete prop.carriedBy;
+          delete p.held;
+          this.event(`You put down ${prop.name.toLowerCase()}.`);
+        } else if (c.action === "look") {
+          prop.open = true;
+          const contents = Object.entries(prop.inventory)
+            .filter(([, n]) => n! > 0)
+            .map(
+              ([id, n]) =>
+                `${n} ${this.items[id as ItemId].name.toLowerCase()}`,
+            );
+          this.event(
+            contents.length
+              ? `Inside ${prop.name.toLowerCase()}: ${contents.join(", ")}.`
+              : `${prop.name} is empty.`,
+          );
+        } else if (c.action === "strike") {
+          this.propOwnership(prop, "break");
+          prop.damage = (prop.damage ?? 0) + 1;
+          const resistance =
+            def.breakable === "wood" ? 3 : def.breakable === "fiber" ? 2 : 1;
+          if (prop.damage >= resistance) {
+            prop.broken = true;
+            prop.open = true;
+            prop.depleted = false;
+            prop.sprite = `prop-broken-${def.breakable}`;
+            this.event(
+              `You break ${prop.name.toLowerCase()}. Its contents spill onto the ground.`,
+            );
+          } else
+            this.event(
+              `You strike ${prop.name.toLowerCase()}. It is damaged but still holds together.`,
+            );
+        }
+        this.advance(c.action === "strike" ? 4 : 2);
+        return;
+      }
     }
     const a = this.state.actors.find((a) => a.id === c.target),
       o = this.state.objects.find((o) => o.id === c.target),
@@ -581,7 +847,7 @@ export class Engine {
         }
         break;
       case "drink":
-        p.inventory.water = 2;
+        p.inventory.water = Math.max(p.inventory.water ?? 0, 2);
         p.fatigue = Math.max(0, p.fatigue - 2);
         this.advance(30);
         this.event("You drink cool water and refill your vessel.");
@@ -609,7 +875,7 @@ export class Engine {
         if (o) {
           const taken = copy(o.inventory);
           this.transfer(o.inventory, p.inventory);
-          o.depleted = true;
+          o.depleted = !o.prop;
           this.advance(6);
           this.event(`You take the contents of ${o.name.toLowerCase()}.`);
           if (o.owner) {
@@ -643,7 +909,7 @@ export class Engine {
               o.inventory[item] = (o.inventory[item] ?? 0) + n;
               p.inventory[item] = (p.inventory[item] ?? 0) - n;
             }
-            o.depleted = Object.values(o.inventory).every((v) => !v);
+            o.depleted = !o.prop && Object.values(o.inventory).every((v) => !v);
             p.memories = p.memories.filter((m) => m !== key);
             this.advance(10);
             this.event("You return the goods you still carry.");
@@ -693,6 +959,74 @@ export class Engine {
   }
   private stepToward(a: Actor, target: Position) {
     if (a.pos.space !== target.space) return;
+    if (this.state.manifest.simulation === 2) {
+      if (a.pos.x === target.x && a.pos.y === target.y) return;
+      if (
+        this.state.actors.some(
+          (other) => other.id !== a.id && distance(other.pos, target) < 1,
+        )
+      ) {
+        const alternative = [
+          [0, 1],
+          [1, 0],
+          [0, -1],
+          [-1, 0],
+        ]
+          .map(([x, y]) => ({ ...target, x: target.x + x, y: target.y + y }))
+          .find(
+            (p) =>
+              !this.blocked(p.x, p.y, p.space) &&
+              !this.state.actors.some(
+                (other) => other.id !== a.id && distance(other.pos, p) < 1,
+              ),
+          );
+        if (!alternative) return;
+        target = alternative;
+      }
+      const key = `${target.space}:${target.x},${target.y}`;
+      let cached = this.routes.get(a.id);
+      if (
+        !cached ||
+        cached.target !== key ||
+        !cached.path.length ||
+        (this.blocked(cached.path[0].x, cached.path[0].y, a.pos.space) &&
+          !this.gateAt(cached.path[0], a.pos.space))
+      ) {
+        cached = {
+          target: key,
+          path: this.findRoute(a.pos, target, a.id, 5000).path,
+        };
+        this.routes.set(a.id, cached);
+      }
+      const step = cached.path[0];
+      if (!step) return;
+      const gate = this.gateAt(step, a.pos.space);
+      if (gate && a.kind === "human" && (!gate.owner || gate.owner === a.id)) {
+        gate.open = true;
+        return;
+      }
+      if (this.blocked(step.x, step.y, a.pos.space)) {
+        this.routes.delete(a.id);
+        return;
+      }
+      if (
+        this.state.actors.some(
+          (other) =>
+            other.id !== a.id &&
+            other.pos.space === a.pos.space &&
+            other.pos.x === step.x &&
+            other.pos.y === step.y,
+        )
+      ) {
+        this.routes.delete(a.id);
+        return;
+      }
+      cached.path.shift();
+      a.direction =
+        step.y < a.pos.y ? 0 : step.x > a.pos.x ? 1 : step.y > a.pos.y ? 2 : 3;
+      a.pos = { ...step, space: a.pos.space };
+      return;
+    }
     const dx = Math.sign(target.x - a.pos.x),
       dy = Math.sign(target.y - a.pos.y);
     const steps =
@@ -734,6 +1068,16 @@ export class Engine {
     });
   }
   private advance(seconds: number, heldActor?: string) {
+    // Derived paths never survive a command boundary: saves and replays need no hidden routing state.
+    this.routes.clear();
+    this.tickObstacles = new Map();
+    for (const o of this.state.objects) {
+      if (o.kind !== "gate" && !o.prop) continue;
+      const key = `${o.pos.space}:${o.pos.x},${o.pos.y}`;
+      const at = this.tickObstacles.get(key) ?? [];
+      at.push(o);
+      this.tickObstacles.set(key, at);
+    }
     const end = this.state.clock + seconds;
     const player = this.state.player;
     while (this.state.clock < end) {
@@ -751,12 +1095,27 @@ export class Engine {
         a.id < b.id ? -1 : a.id > b.id ? 1 : 0,
       )) {
         if (a.id === heldActor) continue;
-        if (distance(a.pos, player.pos) > 80) continue; // Same active radius in browser and Node.
+        const focus =
+          this.state.manifest.simulation === 2 && player.pos.space !== "outside"
+            ? {
+                ...(this.world.place(player.pos.space)?.entrance ?? player.pos),
+                space: "outside",
+              }
+            : player.pos;
+        if (
+          distance(a.pos, focus) >
+          (this.state.manifest.simulation === 2 ? 220 : 80)
+        )
+          continue;
         const gap = next - (a.lastUpdated ?? next - 6);
         a.lastUpdated = next;
         a.hunger = Math.min(100, a.hunger + gap / 1800);
         // Catch up returning distant residents before either endpoint becomes visible.
-        if (gap > 600 && a.kind === "human") {
+        if (
+          this.state.manifest.simulation === 1 &&
+          gap > 600 &&
+          a.kind === "human"
+        ) {
           const hour = (next / 3600) % 24,
             target = hour < 7 || hour > 18 ? a.home : a.work;
           if (
@@ -786,6 +1145,50 @@ export class Engine {
                 a.activity = "Eating at home";
               }
             }
+          } else if (this.world.activitySites?.(a.id)) {
+            const sites = this.world.activitySites(a.id)!;
+            const minute = (next / 60 + sites.offset) % 1440;
+            const resting = minute < 420 || minute >= 1080;
+            const fetching = minute >= 660 && minute < 700;
+            const social = minute >= 1020 && minute < 1080;
+            const target = resting
+              ? sites.home
+              : fetching
+                ? sites.water
+                : social
+                  ? sites.social
+                  : sites.work;
+            a.activity = resting
+              ? "Returning to the household"
+              : fetching
+                ? "Fetching water"
+                : social
+                  ? "At the common"
+                  : sites.label;
+            if (sites.gateId) {
+              const gate = this.state.objects.find(
+                (o) => o.id === sites.gateId,
+              );
+              if (gate && distance(a.pos, gate.pos) < 2.5) {
+                if (!resting && !social) gate.open = true;
+                const animals = this.state.actors.filter(
+                  (b) => b.owner === a.id && b.kind !== "human",
+                );
+                if (
+                  resting &&
+                  animals.every((b) => distance(b.pos, b.home) < 2)
+                )
+                  gate.open = false;
+              }
+              // Check the pen before returning home for the night.
+              if (resting && gate?.open) {
+                this.stepToward(a, { ...sites.work, space: "outside" });
+                continue;
+              }
+            }
+            this.stepToward(a, { ...target, space: "outside" });
+            if (resting && distance(a.pos, a.home) < 1)
+              a.activity = "Resting at home";
           } else if (hour < 7 || hour > 18) {
             a.activity = "Returning to the household";
             this.stepToward(a, a.home);
@@ -826,6 +1229,19 @@ export class Engine {
             a.goal = undefined;
             a.activity = "Grazing inside the enclosure";
           }
+        } else if (this.world.activitySites?.(a.id)) {
+          const sites = this.world.activitySites(a.id)!;
+          const gate = this.state.objects.find((o) => o.id === sites.gateId);
+          const hour = (next / 3600) % 24;
+          const grazing = hour >= 8 && hour < 17 && gate?.open;
+          const target = grazing ? sites.work : sites.home;
+          a.activity = grazing
+            ? "Grazing in the pasture"
+            : "Returning to the enclosure";
+          if (next % 18 === 0)
+            this.stepToward(a, { ...target, space: "outside" });
+          if (distance(a.pos, { ...target, space: "outside" }) < 1)
+            a.activity = grazing ? "Grazing" : "Resting in the enclosure";
         } else if (
           (a.kind === "lizard" || a.kind === "sheep" || a.kind === "goat") &&
           distance(a.pos, player.pos) < 2
@@ -839,5 +1255,6 @@ export class Engine {
         }
       }
     }
+    this.tickObstacles = undefined;
   }
 }

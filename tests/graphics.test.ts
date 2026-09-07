@@ -62,7 +62,7 @@ it("checkpoint journeys replay to their original hashes with the refactored cont
       readFileSync(`artifacts/${pack}-day.json`, "utf8"),
     );
     expect(restoreSession(save).snapshot()).toEqual(save);
-    const engine = createSession(save.manifest.pack, save.manifest.seed);
+    const engine = createSession(save.manifest.pack, save.manifest.seed, undefined, undefined, save.manifest.content);
     for (const command of save.log) engine.act(command);
     expect(engine.hash()).toBe(trajectory.finalHash);
   }

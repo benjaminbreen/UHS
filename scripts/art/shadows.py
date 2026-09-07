@@ -11,7 +11,7 @@ def build_shadows(root, sprites, buildings, output=None, atlas_name='lighting-sh
     props=['oak','olive','hackberry','acacia','cypress','bush','flowers','flax','rock','rock-1','rock-2','reeds','wheat','basket','amphora','jug','well','fire','hall','sheep0','sheep1','goat0','goat1','chicken0','chicken1','lizard0','lizard1','bed','oven','crate','fence','gate','gate-open','crop-leafy']
     result={}
     for name,source in sprites.items():
-        if not (name.startswith(('human-','house-','study-')) or name in props):continue
+        if not (name.startswith(('human-','house-','study-','prop-broken-')) or name in props):continue
         w,h=source.size
         opaque=[(x,y) for y in range(h) for x in range(w) if source.getpixel((x,y))[3]>200]
         if not opaque:continue

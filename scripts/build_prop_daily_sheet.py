@@ -1,5 +1,6 @@
 """Contact sheet for the next ten props. Transparent source pixels, no shadows."""
 from pathlib import Path
+from art.props import draw_prop
 from PIL import Image,ImageDraw,ImageFont
 from art.props.daily import DAILY
 ROOT=Path(__file__).resolve().parent.parent
@@ -18,7 +19,7 @@ for i,(key,draw) in enumerate(DAILY.items()):
  x=20+(i%5)*308;y=112+(i//5)*418
  d.rounded_rectangle((x,y,x+288,y+397),radius=7,fill='#d8cba4')
  d.text((x+16,y+16),f'{i+1:02}  {names[i]}',font=font(21),fill='#343a32')
- im=draw(0);large=im.resize((240,240),Image.Resampling.NEAREST)
+ im=draw_prop(key,0);large=im.resize((240,240),Image.Resampling.NEAREST)
  sheet.paste(large,(x+24,y+54),large)
  d.line((x+16,y+306,x+272,y+306),fill='#b5a986')
  d.text((x+16,y+330),notes[i].replace(' / ','\n'),font=font(14),fill='#4d5444',spacing=7)

@@ -2,7 +2,7 @@
 
 Version 2 · 6 September 2026 · Implementation brief; revised after asset review and cultural-content planning
 
-Current implementation and recommended next work are tracked in [PROGRESS.md](PROGRESS.md). The accepted cultural-content direction is in [section 20](#20-cultural-content-families-and-dated-local-profiles); it is a design decision, not a claim of implemented world coverage.
+Current implementation and recommended next work are tracked in [PROGRESS.md](PROGRESS.md). The implemented settlement generator is described in [SETTLEMENTS.md](SETTLEMENTS.md). The accepted cultural-content direction is in [section 20](#20-cultural-content-families-and-dated-local-profiles); it is a design decision, not a claim of implemented world coverage.
 
 ## 1. What to build
 

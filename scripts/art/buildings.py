@@ -25,7 +25,8 @@ class Building:
         self.bottom = self.h - 6
         self.front = self.w - 12
         # This opening axis is also the walkable entrance in the world contract.
-        self.door_x = recipe['entrance'][0] * 16 + 8
+        self.facing = recipe.get('facing', 'south')
+        self.door_x = min(self.w-18,max(18,recipe['entrance'][0] * 16 + 8)) if self.facing != 'south' else recipe['entrance'][0] * 16 + 8
 
     def wall(self):
         d, w, b, t = self.d, self.w, self.bottom, self.top
@@ -74,6 +75,9 @@ class Building:
         d.line((x-1,y+height+3,x+width+2,y+height+3),fill=shade)
 
     def openings(self):
+        if self.facing != 'south':
+            for x in [12,self.w-28]: self.recess(x,self.top+10,7,10)
+            return
         if self.r['opening']=='roof-hatch':
             # Small sealed facade niche; roof entry is drawn after the roof.
             self.recess(12,self.top+12,6,7,niche=True)
@@ -200,14 +204,30 @@ class Building:
         if self.r['roof']=='flat':self.flat_roof()
         else:self.tiled_roof()
         for part in self.r['attachments']:
-            if part!='timber-frame':self.attachment(part)
+            if part!='timber-frame' and not (part=='ladder' and self.facing!='south'):self.attachment(part)
+        # Directional variants redraw openings while retaining the shared light direction.
+        if self.facing in ('east','west'):
+            x=self.w-11 if self.facing=='east' else 3
+            self.d.rectangle((x-2,self.bottom-22,x+3,self.bottom),fill='#332e27')
+            self.d.line((x-3,self.bottom-23,x+3,self.bottom-23),fill=self.p['wall'][3])
+            self.d.line((x-3,self.bottom+1,x+4,self.bottom+1),fill=self.p['wall'][4])
+        elif self.facing=='north':
+            # The rear door is occluded by the roof; show its threshold at the far wall.
+            self.d.rectangle((self.w//2-6,4,self.w//2+6,7),fill=self.p['foundation'][1])
+            self.d.line((self.w//2-6,4,self.w//2+6,4),fill=self.p['foundation'][2])
         return self.im
 
 
 def build_buildings(root, sprites):
     source=json.loads((root/'src/content/graphics/buildings.json').read_text())
     models={}
+    recipes=dict(source['buildings'])
     for name,r in source['buildings'].items():
+        if r['roof']=='shelter': continue
+        fw,fh=r['footprint']
+        for facing,entrance in [('north',[fw//2,-1]),('east',[fw,fh//2]),('west',[-1,fh//2])]:
+            recipes[name+'-'+facing]={**r,'facing':facing,'entrance':entrance,'label':r['label']+' · '+facing}
+    for name,r in recipes.items():
         im=Building(r,source['materials'][r['wall']]).render()
         sprites[name]=im
         w,h=im.size

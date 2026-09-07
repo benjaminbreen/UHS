@@ -1,5 +1,7 @@
 import { formatHistoricalYear } from "../../core/calendar";
 import { eraAt } from "../history/dates";
+import { random } from "../../core/random";
+import { populateCharacter } from "./character";
 import { places } from "./places";
 import { settingSchema, type AtlasPlace, type WorldSetting } from "./types";
 export const normalize = (s: string) =>
@@ -11,24 +13,50 @@ export const normalize = (s: string) =>
     .trim();
 const has = (q: string, word: string) =>
   ` ${q} `.includes(` ${normalize(word)} `);
-const periods: [string[], number][] = [
-  [["paleolithic", "palaeolithic", "ice age"], -14999],
-  [["neolithic", "early farmer"], -6499],
-  [["bronze age"], -1999],
-  [["iron age"], -699],
-  [["hellenistic", "ptolemaic"], -249],
-  [["ancient", "roman", "antiquity"], 100],
-  [["early medieval"], 750],
-  [["medieval", "middle ages"], 1250],
-  [["elizabethan"], 1590],
-  [["tudor"], 1550],
-  [["renaissance"], 1500],
-  [["early modern"], 1650],
-  [["victorian"], 1870],
-  [["modern"], 1950],
-  [["contemporary"], 2000],
+const periods: [string[], number, number][] = [
+  [["paleolithic", "palaeolithic", "ice age"], -39999, -10000],
+  [["neolithic", "early farmer"], -9999, -3500],
+  [["bronze age"], -3299, -1200],
+  [["iron age"], -1199, -500],
+  [["hellenistic", "ptolemaic"], -322, -30],
+  [["ancient", "roman", "antiquity"], -799, 499],
+  [["early medieval"], 500, 999],
+  [["medieval", "middle ages"], 1000, 1499],
+  [["elizabethan"], 1558, 1603],
+  [["tudor"], 1485, 1603],
+  [["renaissance"], 1400, 1599],
+  [["early modern"], 1500, 1749],
+  [["victorian"], 1837, 1901],
+  [["modern"], 1900, 1989],
+  [["contemporary"], 1990, 2026],
 ];
-export function dateFromPrompt(input: string, fallback: number): number {
+const zones: [string[], string[]][] = [
+  [
+    ["european", "europe"],
+    ["rome", "normandy", "london"],
+  ],
+  [
+    ["central asian", "central asia", "inner eurasian"],
+    ["mongolia", "siberia"],
+  ],
+  [
+    ["east asian", "east asia", "chinese"],
+    ["beijing", "kyoto"],
+  ],
+  [
+    ["south asian", "south asia", "indian"],
+    ["bengal", "delhi"],
+  ],
+  [
+    ["southeast asian", "southeast asia"],
+    ["burma", "java"],
+  ],
+];
+export function dateFromPrompt(
+  input: string,
+  fallback: number,
+  seed?: string,
+): number {
   const q = normalize(input).replace(
     /(\d(?:st|nd|rd|th)?)-century/g,
     "$1 century",
@@ -43,13 +71,25 @@ export function dateFromPrompt(input: string, fallback: number): number {
     /\b(\d{1,3})(?:st|nd|rd|th)?\s+century(?:\s+(bce|bc))?\b/.exec(q);
   if (century) {
     if (+century[1] === 0) throw Error("Use a century starting at 1.");
-    const mid = (+century[1] - 1) * 100 + 50;
-    return century[2] ? 1 - mid : mid;
+    const n = +century[1];
+    const first = century[2] ? 1 - n * 100 : (n - 1) * 100 + 1;
+    return (
+      first +
+      (seed === undefined
+        ? 49
+        : Math.floor(random(seed, "starting-year", q) * 100))
+    );
   }
-  const year = /\b(?:year\s+)?(1\d{3}|20\d{2})\b/.exec(q);
+  const year = /(?:^|\s)(-?\d{1,7})(?=\s|$)/.exec(q);
   if (year) return +year[1];
+  const period = periods.find(([words]) => words.some((w) => has(q, w)));
+  if (!period) return fallback;
   return (
-    periods.find(([words]) => words.some((w) => has(q, w)))?.[1] ?? fallback
+    period[1] +
+    Math.floor(
+      (seed === undefined ? 0.5 : random(seed, "starting-year", q)) *
+        (period[2] - period[1] + 1),
+    )
   );
 }
 export function settingFor(place: AtlasPlace, year = place.year): WorldSetting {
@@ -65,7 +105,8 @@ export function settingFor(place: AtlasPlace, year = place.year): WorldSetting {
     climate: year < -9999 && place.lat > 48 ? "tundra" : place.climate,
     relief: place.relief,
     water: place.water,
-    settlement: prehistoric ? "camp" : place.settlement,
+    settlement:
+      year < -9999 ? "camp" : prehistoric ? "village" : place.settlement,
     architecture:
       year < -9999
         ? "shelter"
@@ -86,7 +127,15 @@ export function settingFor(place: AtlasPlace, year = place.year): WorldSetting {
 }
 export function resolveSetting(
   input: string,
-): { setting: WorldSetting; description: string } | { error: string } {
+  seed = "earth-2",
+):
+  | {
+      setting: WorldSetting;
+      description: string;
+      needsInterpretation: boolean;
+      reason?: string;
+    }
+  | { error: string } {
   const q = normalize(input);
   if (!q)
     return {
@@ -106,7 +155,13 @@ export function resolveSetting(
     }))
     .filter((p) => p.score)
     .sort((a, b) => b.score - a.score);
+  const zone = zones.find(([words]) => words.some((w) => has(q, w)));
+  const choices = zone ? places.filter((p) => zone[1].includes(p.id)) : [];
   let place = matches[0]?.place;
+  if ((!place || matches[0].score <= 0.1) && choices.length)
+    place =
+      choices[Math.floor(random(seed, "starting-region", q) * choices.length)];
+  const located = !!zone || (matches[0]?.score ?? 0) > 0.1 || has(q, "roman");
   if (!place) {
     const period = periods.find(([words]) => words.some((w) => has(q, w)));
     if (period)
@@ -128,7 +183,7 @@ export function resolveSetting(
         "No place or period matched. Try a place such as Normandy, Beijing, Haiti, London, or Alexandria; or choose one from the list.",
     };
   try {
-    const s = settingFor(place, dateFromPrompt(input, place.year));
+    const s = settingFor(place, dateFromPrompt(input, place.year, seed));
     const roles: [RegExp, string][] = [
       [/\blegionary\b|\bsoldier\b/, "Legionary"],
       [/\bfarmer\b|\bpeasant\b/, "Farmer"],
@@ -157,7 +212,43 @@ export function resolveSetting(
       s.architecture === "classical"
     )
       s.architecture = s.year >= 1750 ? "board" : "timber";
-    return { setting: s, description: describeSetting(s) };
+    // Recognizing one keyword is not evidence that the whole request was understood.
+    let rest = ` ${q.replace(/-/g, " ")} `;
+    const recognized = [
+      ...places.flatMap((p) => [p.name, ...p.aliases]),
+      ...periods.flatMap(([words]) => words),
+      ...zones.flatMap(([words]) => words),
+      "free black",
+    ];
+    for (const phrase of recognized.sort((a, b) => b.length - a.length))
+      rest = rest.split(` ${normalize(phrase).replace(/-/g, " ")} `).join(" ");
+    rest = rest.replace(
+      /\b\d+(?:st|nd|rd|th)?\b|\b(?:bce|bc|ce|ad|century|year)\b/g,
+      " ",
+    );
+    for (const [pattern] of roles)
+      rest = rest.replace(new RegExp(pattern.source, "g"), " ");
+    rest = rest
+      .replace(
+        /\b(?:a|an|the|in|at|of|from|during|as|and|or|guy|man|woman|person|spring|summer|autumn|winter|camp|life)\b/g,
+        " ",
+      )
+      .trim();
+    const dated = dateFromPrompt(input, -1000001, seed) !== -1000001;
+    const needsInterpretation = !located || !dated || !!rest;
+    const setting = populateCharacter(s, seed);
+    return {
+      setting,
+      description: describeSetting(setting),
+      needsInterpretation,
+      reason: !located
+        ? "No specific place or culture zone was identified."
+        : !dated
+          ? "No period or date was identified."
+          : rest
+            ? "Some details need interpretation."
+            : undefined,
+    };
   } catch (error) {
     return {
       error:

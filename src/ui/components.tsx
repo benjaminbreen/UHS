@@ -1,10 +1,15 @@
 import { useEffect, useRef } from "react";
+import props from "../render/generated/props.json" with { type: "json" };
 import atlas from "../render/generated/atlas.json" with { type: "json" };
 import { surfaceAt } from "../render/materials";
 import type { Runtime } from "../runtime/session";
 export function Sprite({ name, scale = 2 }: { name: string; scale?: number }) {
+  const source =
+    name.startsWith("study-prop-") || name.startsWith("prop-broken-")
+      ? props
+      : atlas;
   const f = (
-    atlas.frames as Record<
+    source.frames as Record<
       string,
       { frame: { x: number; y: number; w: number; h: number } }
     >
@@ -18,9 +23,10 @@ export function Sprite({ name, scale = 2 }: { name: string; scale?: number }) {
         display: "inline-block",
         width: f.w * scale,
         height: f.h * scale,
-        backgroundImage: "url(/packs/atlas.png)",
+        backgroundImage:
+          source === props ? "url(/props/atlas.png)" : "url(/packs/atlas.png)",
         backgroundPosition: `-${f.x * scale}px -${f.y * scale}px`,
-        backgroundSize: `${atlas.meta.size.w * scale}px ${atlas.meta.size.h * scale}px`,
+        backgroundSize: `${source.meta.size.w * scale}px ${source.meta.size.h * scale}px`,
         imageRendering: "pixelated",
         flexShrink: 0,
       }}
@@ -85,7 +91,8 @@ export function Minimap({
             wy = Math.floor(origin.y + ((y - height / 2) * extent) / size);
           c.fillStyle =
             colors[
-              extent > 3200 && e.world.overview
+              extent > (e.world.generatorVersion === 3 ? 320 : 3200) &&
+              e.world.overview
                 ? e.world.overview(wx, wy)
                 : surfaceAt(e.world, wx, wy)
             ];

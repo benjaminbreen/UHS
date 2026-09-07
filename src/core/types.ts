@@ -50,6 +50,7 @@ export type Actor = {
   consentUntil?: number;
   memories: string[];
   direction: number;
+  held?: string;
   lastUpdated?: number;
   goal?: Position;
 };
@@ -69,6 +70,10 @@ export type Place = {
   entranceLabel: string;
 };
 export type WorldObject = {
+  prop?: string;
+  carriedBy?: "player";
+  broken?: boolean;
+  damage?: number;
   id: string;
   name: string;
   kind:
@@ -148,9 +153,9 @@ export type WorldManifest = {
   seed: string;
   pack: PackId;
   schema: 1 | 2;
-  simulation: 1;
-  generator: 1 | 2;
-  content: 1;
+  simulation: 1 | 2;
+  generator: 1 | 2 | 3;
+  content: 1 | 2;
   atlas: 1 | 2;
   setting?: WorldSetting;
 };
@@ -180,7 +185,11 @@ export type PlayerCommand =
         | "follow"
         | "take"
         | "rest"
-        | "return";
+        | "return"
+        | "pickup"
+        | "drop"
+        | "strike"
+        | "look";
     }
   | {
       type: "trade";
@@ -257,6 +266,24 @@ export type Observation = {
   manifest: WorldManifest;
 };
 export interface WorldModel {
+  generatorVersion?: 3;
+  navigationCost?(x: number, y: number, actorId?: string): number;
+  protectedCell?(x: number, y: number): boolean;
+  propSlots?(placeId: string): { yard: Point[]; work: Point[] } | undefined;
+  activitySites?(
+    actorId: string,
+  ):
+    | {
+        home: Point;
+        work: Point;
+        water: Point;
+        social: Point;
+        pasture?: Point;
+        gateId?: string;
+        label: string;
+        offset: number;
+      }
+    | undefined;
   elevation?(x: number, y: number): number;
   moisture?(x: number, y: number): number;
   activate?(x: number, y: number): void;

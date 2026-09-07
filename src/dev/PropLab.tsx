@@ -275,7 +275,7 @@ export default function PropLab({ onClose }: { onClose: () => void }) {
               )}
             </div>
             <p className="prop-count">
-              {visible.length} families · thumbnails at 2× source pixels
+              {visible.length} families · shared world grid · thumbnails at 2×
             </p>
             <div className="prop-grid">
               {visible.map((f) => (

@@ -1,3 +1,6 @@
+import { heldObject, nearbyProp } from "../core/props";
+import { withProps } from "../content/props/place";
+import { propDefs } from "../content/props/catalog";
 import { Engine } from "../core/engine";
 import { findPath } from "../core/pathfinding";
 import {
@@ -14,27 +17,42 @@ import { ChunkCache } from "./chunks";
 import { z } from "zod";
 import { settingSchema, type WorldSetting } from "../content/geography/types";
 import { packForSetting } from "../content/geography/pack";
+import { createSettlementWorld } from "../world/v3/generate";
 import { createAtlasWorld } from "../world/v2/generate";
 export function createSession(
   packId = "roman",
   seed = packs[packId]?.defaultSeed ?? "earth-2",
   snapshot?: Snapshot,
   setting?: WorldSetting,
+  content: 1 | 2 = 2,
+  generator: 1 | 2 | 3 = 3,
 ) {
   const resolved = setting ?? snapshot?.manifest.setting;
   const pack = resolved
     ? packForSetting(settingSchema.parse(resolved))
     : packs[packId];
   if (!pack) throw Error("Unsupported content pack.");
-  const world = resolved
-    ? createAtlasWorld(pack, seed)
+  const generation = snapshot?.manifest.generator ?? generator;
+  let world = resolved
+    ? generation === 3
+      ? createSettlementWorld(pack, seed)
+      : createAtlasWorld(pack, seed)
     : createWorld(pack, seed);
+  const version = snapshot?.manifest.content ?? content;
+  if (version === 2) world = withProps(world, seed);
   if (snapshot)
     world.restoreDistricts?.(
       [...snapshot.actors, ...snapshot.objects].map((e) => e.id),
     );
   const engine = new Engine(world, items, snapshot);
-  if (!snapshot) engine.initialize(seed);
+  if (!snapshot) {
+    engine.state.manifest.content = version;
+    engine.initialize(seed);
+    if (resolved?.character) {
+      engine.state.player.hunger = resolved.character.hunger;
+      engine.state.player.fatigue = resolved.character.fatigue;
+    }
+  }
   return engine;
 }
 export function createSettingSession(setting: WorldSetting, seed = "earth-2") {
@@ -51,6 +69,22 @@ export function restoreSession(value: unknown) {
       throw Error("Unknown interior in save.");
   }
   if (save.player.id !== "player") throw Error("Invalid player identity.");
+  for (const o of save.objects) {
+    if (o.prop && !propDefs[o.prop])
+      throw Error("Unknown prop definition in save.");
+    if (o.carriedBy && (save.player.held !== o.id || o.broken))
+      throw Error("Invalid carried prop in save.");
+  }
+  if (
+    save.player.held &&
+    !save.objects.some(
+      (o) =>
+        o.id === save.player.held &&
+        o.carriedBy === "player" &&
+        propDefs[o.prop ?? ""]?.portable,
+    )
+  )
+    throw Error("Missing carried object in save.");
   return engine;
 }
 export class Runtime {
@@ -115,6 +149,7 @@ export class Runtime {
       this.engine.state.player.pos.x,
       this.engine.state.player.pos.y,
       this.engine.state.manifest.setting,
+      this.engine.state.manifest.generator,
     );
     this.cached = this.view();
     for (const listener of this.subscribers) listener();
@@ -167,6 +202,87 @@ export class Runtime {
     this.emit();
     return { ...result, observation: this.engine.observe() };
   }
+  propControls() {
+    const s = this.engine.state,
+      held = heldObject(s),
+      weapon = !!propDefs[held?.prop ?? ""]?.strike;
+    const target = nearbyProp(
+      s,
+      (p) => this.engine.visible(p),
+      (o) =>
+        held
+          ? weapon && !!propDefs[o.prop!]?.breakable && !o.broken
+          : !!propDefs[o.prop!]?.portable && !o.broken,
+    );
+    const nearby = nearbyProp(
+      s,
+      (p) => this.engine.visible(p),
+      (o) => !!propDefs[o.prop!]?.drink || !!propDefs[o.prop!]?.container,
+    );
+    const context =
+      nearby && propDefs[nearby.prop!]?.drink
+        ? nearby
+        : held && propDefs[held.prop!]?.container
+          ? held
+          : nearby;
+    const primary = target
+      ? {
+          type: "interact" as const,
+          target: target.id,
+          action: held ? ("strike" as const) : ("pickup" as const),
+        }
+      : undefined;
+    const secondary = context
+      ? {
+          type: "interact" as const,
+          target: context.id,
+          action: propDefs[context.prop!]?.drink
+            ? ("drink" as const)
+            : ("look" as const),
+        }
+      : undefined;
+    return {
+      held,
+      primary,
+      secondary,
+      primaryLabel: primary
+        ? `${held ? "Strike" : "Pick up"} ${target!.name.toLowerCase()}`
+        : held
+          ? "G: put down held object"
+          : "Move near a portable object",
+      secondaryLabel: context
+        ? propDefs[context.prop!]?.drink
+          ? "Drink water"
+          : `Look inside ${context.name.toLowerCase()}`
+        : undefined,
+    };
+  }
+  propAction(key: "Space" | "KeyE" | "KeyG") {
+    this.stop(false);
+    const controls = this.propControls();
+    const command =
+      key === "Space"
+        ? controls.primary
+        : key === "KeyE"
+          ? controls.secondary
+          : controls.held
+            ? {
+                type: "interact" as const,
+                target: controls.held.id,
+                action: "drop" as const,
+              }
+            : undefined;
+    if (command) {
+      this.selected = command.target;
+      this.command(command);
+    } else {
+      this.notice =
+        key === "Space"
+          ? controls.primaryLabel
+          : "No contextual action nearby.";
+      this.emit();
+    }
+  }
   move(dx: number, dy: number) {
     this.stop(false);
     return this.command({ type: "move", dx, dy });
@@ -184,7 +300,10 @@ export class Runtime {
       ];
     for (const end of candidates) {
       if (this.engine.blocked(end.x, end.y)) continue;
-      const path = findPath(p, end, (x, y) => this.engine.blocked(x, y));
+      const path =
+        this.engine.state.manifest.simulation === 2
+          ? this.engine.findRoute(p, end).path
+          : findPath(p, end, (x, y) => this.engine.blocked(x, y));
       if (path.length) {
         this.route = path;
         this.running = true;
@@ -211,7 +330,10 @@ export class Runtime {
     );
     for (const end of candidates) {
       if (this.engine.blocked(end.x, end.y)) continue;
-      const path = findPath(p, end, (x, y) => this.engine.blocked(x, y));
+      const path =
+        this.engine.state.manifest.simulation === 2
+          ? this.engine.findRoute(p, end).path
+          : findPath(p, end, (x, y) => this.engine.blocked(x, y));
       if (path.length) {
         this.stop(false);
         this.route = path;
@@ -256,12 +378,32 @@ export class Runtime {
         return;
       }
       if (distance(p, a.pos) > 2.2) {
-        this.route = findPath(p, a.pos, (x, y) =>
-          this.engine.blocked(x, y),
+        this.route = (
+          this.engine.state.manifest.simulation === 2
+            ? this.engine.findRoute(p, a.pos).path
+            : findPath(p, a.pos, (x, y) => this.engine.blocked(x, y))
         ).slice(0, 1);
       } else {
         this.command({ type: "wait", seconds: 6 });
         return;
+      }
+    }
+    const upcoming = this.route[0];
+    if (upcoming && this.engine.state.manifest.simulation === 2) {
+      const gate = this.engine.gateAt(upcoming);
+      if (gate) {
+        const result = this.command({
+          type: "interact",
+          target: gate.id,
+          action: "open",
+        });
+        if (result?.status !== "completed") this.stop();
+        return;
+      }
+      if (this.engine.blocked(upcoming.x, upcoming.y)) {
+        const goal = this.route.at(-1)!;
+        this.route = this.engine.findRoute(p, goal).path;
+        if (!this.route.length) this.notice = "The route is now blocked.";
       }
     }
     const step = this.route.shift();
@@ -327,7 +469,9 @@ export class Runtime {
       envelope.manifest.pack,
       envelope.manifest.seed,
       undefined,
-      envelope.manifest.generator === 2 ? envelope.manifest.setting : undefined,
+      envelope.manifest.generator !== 1 ? envelope.manifest.setting : undefined,
+      envelope.manifest.content,
+      envelope.manifest.generator,
     );
     this.selected = undefined;
     this.replay = {
@@ -383,6 +527,8 @@ export class Runtime {
       replay.manifest.seed,
       undefined,
       replay.manifest.setting,
+      replay.manifest.content,
+      replay.manifest.generator,
     );
     replay.index = 0;
     for (
