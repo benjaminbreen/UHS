@@ -78,7 +78,14 @@ export function createSettlementWorld(
         cy,
         center: p,
         home: isHome,
-        profile: settlementProfile(pack.setting!, isHome),
+        profile: relief
+          ? {
+              ...settlementProfile(pack.setting!, isHome),
+              radius: 48,
+              buildings: 8,
+              frontage: 9,
+            }
+          : settlementProfile(pack.setting!, isHome),
       };
       sites.set(id, s);
       return s;
@@ -135,7 +142,7 @@ export function createSettlementWorld(
     const old = plans.get(s.id);
     if (old) return old;
     const connections: Road[] = [];
-    if (pack.setting!.settlement !== "camp")
+    if (!relief && pack.setting!.settlement !== "camp")
       for (const [dx, dy] of [
         [1, 0],
         [-1, 0],
@@ -182,6 +189,7 @@ export function createSettlementWorld(
   }
   const roadCache = new Map<string, Map<string, Terrain>>();
   function regionalRoads(x: number, y: number) {
+    if (relief) return new Map<string, Terrain>();
     const c = coord(x, y),
       key = cellKey(c.x, c.y),
       old = roadCache.get(key);
@@ -257,7 +265,7 @@ export function createSettlementWorld(
     const k = cellKey(x, y),
       f = land.sample(x, y);
     if (
-      f.water < 4 ||
+      f.water < (relief ? 0 : 4) ||
       nearby(x, y).some(
         (p) =>
           p.reserved.has(k) ||
@@ -281,17 +289,21 @@ export function createSettlementWorld(
       cover = noise(seed, x + land.origin.x, y + land.origin.y, 45, "woods");
     const tree = x % 3 === 0 && y % 3 === 0 && n < f.moisture * cover * 0.38;
     const sprite =
-      relief && f.water < 8 && f.moisture > 0.68 && n < 0.12
-        ? "reeds"
-        : tree
-          ? pack.trees[
-              Math.floor(random(seed, "v3-tree", x, y) * pack.trees.length)
-            ]
-          : n < 0.006
-            ? "rock"
-            : n < 0.015
-              ? "bush"
-              : undefined;
+      relief && f.water < 3 && n < 0.09
+        ? "rock"
+        : relief && f.water < 8 && f.moisture > 0.68 && n < 0.12
+          ? "reeds"
+          : tree
+            ? pack.trees[
+                Math.floor(random(seed, "v3-tree", x, y) * pack.trees.length)
+              ]
+            : n < 0.006
+              ? "rock"
+              : n < 0.015
+                ? "bush"
+                : relief && n < 0.035 && f.moisture > 0.5 && f.moisture < 0.73
+                  ? "flowers"
+                  : undefined;
     return sprite
       ? {
           id: `decor-${x}-${y}`,
@@ -303,64 +315,120 @@ export function createSettlementWorld(
       : undefined;
   }
   const reliefCache = new Map<string, TopographyCell>();
+  const roadCenters = new WeakMap<SettlementPlan, Set<string>>();
+  const bridgeDecks = new WeakMap<SettlementPlan, Set<string>>();
   function rawCell(x: number, y: number): TopographyCell {
     const f = land.sample(x, y),
       t = terrain(x, y);
     let height = Math.round(f.elevation / 14) as HeightTier;
-    // Grade complete plots and the compact settlement core, not individual road ribbons.
     for (const p of nearby(x, y)) {
-      if (
-        Math.hypot(x - p.site.center.x, y - p.site.center.y) < 16 &&
-        f.water >= 3
-      )
-        height = 1;
-      for (const plot of p.plots)
-        if (
-          x >= plot.x - 1 &&
-          x < plot.x + plot.w + 1 &&
-          y >= plot.y - 1 &&
-          y < plot.y + plot.h + 1
-        )
-          height = Math.round(
-            land.sample(plot.x + plot.w / 2, plot.y + plot.h / 2).elevation /
-              14,
-          ) as HeightTier;
+      let deck = bridgeDecks.get(p);
+      if (!deck) {
+        deck = new Set();
+        for (const road of p.roads)
+          if (road.kind === "bridge")
+            roadCells(road, (a, b) => deck!.add(cellKey(a, b)));
+        bridgeDecks.set(p, deck);
+      }
+      if (deck.has(cellKey(x, y))) height = 1;
     }
     if (t === "bridge") height = 1;
     const cell = reliefCell(height, f.water, f.moisture);
+    if (height === 0 && f.water >= 0) cell.surface = "gravel";
     if (t === "bridge") return { ...cell, surface: "soil", bridge: true };
-    if (t === "dirt" || t === "paving" || t === "field") cell.surface = "soil";
+    if (t === "field" || t === "paving") cell.surface = "soil";
+    if (t === "dirt")
+      for (const p of nearby(x, y)) {
+        let center = roadCenters.get(p);
+        if (!center) {
+          center = new Set(
+            p.roads.flatMap((r) => r.points.map((q) => cellKey(q.x, q.y))),
+          );
+          roadCenters.set(p, center);
+        }
+        const doorstep = p.places.some(
+          (b) =>
+            x >= b.x - 1 &&
+            x < b.x + b.w + 1 &&
+            y >= b.y - 1 &&
+            y < b.y + b.h + 1,
+        );
+        if (
+          center.has(cellKey(x, y)) ||
+          doorstep ||
+          Math.hypot(x - p.site.center.x, y - p.site.center.y) < 2
+        )
+          cell.surface = "soil";
+      }
     return cell;
   }
-  function topography(x: number, y: number): TopographyCell {
-    const key = cellKey(x, y),
-      old = reliefCache.get(key);
+  const slopePlans = new Map<string, Map<string, "n" | "s" | "e" | "w">>();
+  function slopesFor(plan: SettlementPlan) {
+    const old = slopePlans.get(plan.site.id);
     if (old) return old;
-    const c = rawCell(x, y);
-    if (c.surface === "water" || c.bridge) return c;
-    // Sparse paired slope openings; roads always request an opening. Each lower
-    // cell owns one axis and has a flat approach behind it.
-    const road = terrain(x, y) === "dirt" || terrain(x, y) === "paving";
-    if (road || (Math.floor(x / 2) + Math.floor(y / 2)) % 7 === 0)
+    const result = new Map<string, "n" | "s" | "e" | "w">();
+    slopePlans.set(plan.site.id, result);
+    const chosen: { x: number; y: number }[] = [];
+    // One opening per nearby group of crossing roads, never one per road pixel.
+    const points = plan.roads
+      .flatMap((r) => r.points)
+      .sort((a, b) => a.y - b.y || a.x - b.x);
+    for (const p of points) {
+      if (chosen.some((q) => Math.hypot(q.x - p.x, q.y - p.y) < 10)) continue;
+      const c = rawCell(p.x, p.y);
+      if (c.surface === "water" || c.bridge) continue;
       for (const [dx, dy, dir] of [
         [0, -1, "n"],
         [1, 0, "e"],
         [0, 1, "s"],
         [-1, 0, "w"],
       ] as const) {
-        const hi = rawCell(x + dx, y + dy),
-          lo = rawCell(x - dx, y - dy);
+        const hi = rawCell(p.x + dx, p.y + dy),
+          lo = rawCell(p.x - dx, p.y - dy);
         if (
-          hi.height === c.height + 1 &&
-          lo.height === c.height &&
-          hi.surface !== "water" &&
-          lo.surface !== "water"
-        ) {
-          const result = { ...c, ramp: dir };
-          reliefCache.set(key, result);
-          return result;
-        }
+          hi.height !== c.height + 1 ||
+          lo.height !== c.height ||
+          hi.surface === "water" ||
+          lo.surface === "water"
+        )
+          continue;
+        const companion = [-1, 1]
+          .map((sign) => ({
+            x: p.x + sign * Math.abs(dy),
+            y: p.y + sign * Math.abs(dx),
+          }))
+          .find(
+            (q) =>
+              rawCell(q.x, q.y).height === c.height &&
+              rawCell(q.x + dx, q.y + dy).height === hi.height &&
+              rawCell(q.x - dx, q.y - dy).height === c.height,
+          );
+        if (!companion) continue;
+        result.set(cellKey(p.x, p.y), dir);
+        result.set(cellKey(companion.x, companion.y), dir);
+        chosen.push(p);
+        break;
       }
+    }
+    return result;
+  }
+  function topography(x: number, y: number): TopographyCell {
+    const key = cellKey(x, y),
+      old = reliefCache.get(key);
+    if (old) return old;
+    const c = rawCell(x, y);
+    if (c.surface === "water" || c.bridge) {
+      reliefCache.set(key, c);
+      return c;
+    }
+    for (const plan of nearby(x, y)) {
+      const slope = slopesFor(plan).get(key);
+      if (slope) {
+        const result = { ...c, ramp: slope };
+        reliefCache.set(key, result);
+        return result;
+      }
+    }
     if (reliefCache.size > 65536) reliefCache.clear();
     reliefCache.set(key, c);
     return c;

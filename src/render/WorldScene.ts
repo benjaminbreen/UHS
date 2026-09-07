@@ -244,6 +244,7 @@ export class WorldScene extends Phaser.Scene {
       this.scale.height,
     ].join(":");
     if (key !== this.staticKey || w !== this.drawnWorld) {
+      const terrainStart = performance.now();
       this.drawnWorld = w;
       this.staticKey = key;
       for (const l of this.layers) l.destroy();
@@ -287,66 +288,77 @@ export class WorldScene extends Phaser.Scene {
             im.x += startX * 16;
             im.y += startY * 16;
             im.depth += startY * 16;
-            im.setTint?.(this.tint);
+
             this.layers.push(im);
           }
       }
-      const data = Array.from({ length: height }, (_, iy) =>
-        Array.from({ length: width }, (_, ix) => {
-          const x = startX + ix,
-            y = startY + iy;
-          const t =
-            p.space === "outside"
-              ? surfaceAt(w, x, y, rt.terrainAt(x, y, p.space))
-              : rt.terrainAt(x, y, p.space);
-          const rendered =
-            t === "snow"
-              ? "sand"
-              : t === "rock"
-                ? "dirt"
-                : t === "marsh"
-                  ? "grass"
-                  : t;
-          const variant = terrainVariant(e.state.manifest.seed, rendered, x, y);
-          return (
-            (terrainFrames as Record<string, number>)[
-              t === "bridge"
-                ? w.pack.landscape.bridge === "stone"
-                  ? `paving${variant}`
-                  : "bridge"
-                : `${t === "water" ? w.pack.landscape.water : rendered}${variant}`
-            ] ?? 0
-          );
-        }),
-      );
-      this.tilemap = this.make.tilemap({ data, tileWidth: 16, tileHeight: 16 });
-      const ts = this.tilemap.addTilesetImage(
-        "terrain",
-        "terrain",
-        16,
-        16,
-        0,
-        0,
-      )!;
-      this.ground = this.tilemap
-        .createLayer(0, ts, startX * 16, startY * 16)!
-        .setDepth(-100000)
-        .setTint(this.tint);
-      if (w.topography && p.space === "outside") this.ground.setVisible(false);
-      if (w.pack.setting && p.space === "outside") {
-        this.ground.forEachTile((tile) => {
-          const x = startX + tile.x,
-            y = startY + tile.y,
-            t = w.terrain(x, y);
-          tile.tint =
-            t === "snow"
-              ? 0xe6edf3
-              : t === "rock"
-                ? 0x99978b
-                : t === "marsh"
-                  ? 0x668b76
-                  : this.tint;
+      if (!w.topography || p.space !== "outside") {
+        const data = Array.from({ length: height }, (_, iy) =>
+          Array.from({ length: width }, (_, ix) => {
+            const x = startX + ix,
+              y = startY + iy;
+            const t =
+              p.space === "outside"
+                ? surfaceAt(w, x, y, rt.terrainAt(x, y, p.space))
+                : rt.terrainAt(x, y, p.space);
+            const rendered =
+              t === "snow"
+                ? "sand"
+                : t === "rock"
+                  ? "dirt"
+                  : t === "marsh"
+                    ? "grass"
+                    : t;
+            const variant = terrainVariant(
+              e.state.manifest.seed,
+              rendered,
+              x,
+              y,
+            );
+            return (
+              (terrainFrames as Record<string, number>)[
+                t === "bridge"
+                  ? w.pack.landscape.bridge === "stone"
+                    ? `paving${variant}`
+                    : "bridge"
+                  : `${t === "water" ? w.pack.landscape.water : rendered}${variant}`
+              ] ?? 0
+            );
+          }),
+        );
+        this.tilemap = this.make.tilemap({
+          data,
+          tileWidth: 16,
+          tileHeight: 16,
         });
+        const ts = this.tilemap.addTilesetImage(
+          "terrain",
+          "terrain",
+          16,
+          16,
+          0,
+          0,
+        )!;
+        this.ground = this.tilemap
+          .createLayer(0, ts, startX * 16, startY * 16)!
+          .setDepth(-100000)
+          .setTint(this.tint);
+
+        if (w.pack.setting && p.space === "outside") {
+          this.ground.forEachTile((tile) => {
+            const x = startX + tile.x,
+              y = startY + tile.y,
+              t = w.terrain(x, y);
+            tile.tint =
+              t === "snow"
+                ? 0xe6edf3
+                : t === "rock"
+                  ? 0x99978b
+                  : t === "marsh"
+                    ? 0x668b76
+                    : this.tint;
+          });
+        }
       }
       if (p.space === "outside") {
         const neighbors = [
@@ -521,6 +533,9 @@ export class WorldScene extends Phaser.Scene {
         this.sprite("oven", 9 * 16, 7 * 16, 7 * 16);
         this.sprite("mat", 5 * 16, 5 * 16, 5 * 16);
       }
+      this.game.canvas.dataset.terrainDrawMs = String(
+        Math.round(performance.now() - terrainStart),
+      );
     }
     for (const [id, image] of this.buildings) {
       const b = w.place(id)!;

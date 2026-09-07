@@ -5,11 +5,11 @@ from PIL import Image, ImageDraw
 import random
 PALETTE=['#365b40','#47724b','#5b8046','#718b40','#839644','#8f9e4b',
  '#a4ae59','#bdc575','#9b9e53','#b0aa64','#c3b678','#4b9faa',
- '#3693a7','#79b9c4','#624c36','#956c40','#bb9356','#d0ab6b',
+ '#3693a7','#79b9c4','#624735','#90633f','#b38b53','#d0ab6b',
  '#e6c384','#ebd8a5','#146c8c','#207e9e','#409bb6','#858875']
 P=PALETTE
 RAMPS={'grass':[4,5,6,3],'damp':[1,2,3,0],'dry':[8,9,10,5],
- 'soil':[16,17,18,15],'gravel':[9,10,17,23],'water':[20,21,22,21],
+ 'soil':[16,17,18,15],'gravel':[17,10,18,23],'water':[20,21,22,21],
  'shallow':[12,11,13,11]}
 RISE=14
 
@@ -33,7 +33,7 @@ def paint_topography():
             im=Image.new('RGBA',(16,16),P[colors[0]]);d=ImageDraw.Draw(im)
             r=random.Random(f'terrain-revision2:{material}:{v}')
             wet=material in ('water','shallow')
-            count=7 if wet else 9 if material=='gravel' else 5 if material=='soil' else 3
+            count=4 if wet else 9 if material=='gravel' else 5 if material=='soil' else 7
             for j in range(count):
                 x,y=r.randrange(16),r.randrange(16)
                 w,h=(r.randrange(2,5),r.choice([1,1,2])) if wet else (r.randrange(2,5),r.randrange(1,3))
@@ -46,6 +46,11 @@ def paint_topography():
             # Sparse blades; most tiles remain quiet enough for actors and relief.
             if material in ('grass','damp','dry') and v==3:
                 d.line((9,12,8,10),fill=P[colors[3]]);d.line((10,12,11,9),fill=P[colors[1]])
+            if material=='gravel':
+                for sx,sy in ([(3+v,4)] if v%2 else [(11,10-v),(5,13)]):
+                    d.rectangle((sx-1,sy,sx+2,sy+2),fill=P[14])
+                    d.polygon([(sx-1,sy),(sx,sy-2),(sx+2,sy-1),(sx+3,sy+1),(sx+1,sy+2)],fill=P[23])
+                    d.line((sx,sy-1,sx+1,sy-1),fill=P[19])
             sprites[f'{material}-{v}']=im
     for material in ('grass','damp','dry','soil','gravel','shallow'):
         for mask in masks:
@@ -62,10 +67,10 @@ def paint_topography():
         for phase in range(4):
             im=Image.new('RGBA',(16,16));d=ImageDraw.Draw(im)
             for x,y,dist,u in edge_pixels(mask,phase):
-                shift=[1,1,2,2,3,3,2,2,1,1,1,2,2,1,1,1][u//2%16]
+                shift=[3,3,4,5,6,6,5,4,3,3,2,3,4,4,3,3][u//2%16]
                 if dist<shift:
                     color=23 if (x*7+y*11)%23<2 else 17 if (x+y)%4 else 16
-                elif dist==shift:color=15
+                elif dist==shift:color=13
                 elif dist==shift+1:color=11
                 else:continue
                 d.point((x,y),fill=P[color])

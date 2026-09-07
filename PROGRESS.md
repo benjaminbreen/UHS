@@ -1,3 +1,9 @@
+## Terrain composition and loading correction — September 7, 2026
+
+User explicitly deprioritized save restoration; current work and tests focus on graphics, generation, movement and speed. Replaced per-cell ramp spawning with separated paired road openings; broad northern/southern uplands expose substantial front faces. Buildings require level plots rather than overwriting the land with rectangular grading patches. Bridge decks include their dry approaches. The test settlement uses eight households, narrower visible paths and smaller bare yards. Gravel beaches, shoreline boulders, irregular shallows, turf shading and warmer earth planes distinguish river margins from uplands.
+
+Performance: the initial preview no longer builds distant inter-settlement roads or samples the full Earth atlas per local cell. Contour rasterization works on exposed-edge spans with typed height lookup; production no longer builds an invisible duplicate tilemap. Measured local generation about 350 ms, browser preview ready about 1.3 seconds and static terrain render about 620 ms. These are local measurements, not device-independent budgets. Terrain tests check slope counts and household access; no save-restoration work was performed.
+
 ## V3 Anatolia terrain preview — September 7, 2026
 
 Checkpointed the full prior worktree as `7eb4d94`. Added an opt-in saved terrain revision to v3, with seeded three-tier relief, wetland/grassland/dry-upland ecology, shallow/deep river water, graded settlement plots and slope-aware player/NPC routing. Playable rendering now projects terrain, objects and actors; minimap ledges and water depths share the same sample. New-world shortcut creates the 6500 BCE Konya preview (`anatolia-relief-1`). Earlier worlds omit the revision and retain their behavior. Details and deliberate hydrology/art limitations are in `TOPOGRAPHY.md`.

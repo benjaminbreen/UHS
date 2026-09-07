@@ -6,3 +6,5 @@
 - The user approved the prop visual baseline and explicitly authorized committing the entire worktree, followed by interactive props. Baseline checkpoint: `120f870`. The shared prop MVP is documented in `PROPS.md`; new content-version-2 worlds use it while old saves/replays retain their original content. Geography/World Weaver remains documented in `WORLDS.md`.
 - `src/content/legacy-packs.ts` preserves generator-v1 inputs. Changes affecting existing generated worlds, saves or replay require deliberate compatibility/version handling. Run relevant tests and verify user-facing changes in the browser.
 - Other agent work may be present in the shared checkout. Inspect Git status; preserve unrelated changes and do not sweep them into a task commit.
+
+- During early development, the user explicitly prioritizes terrain graphics, procedural composition and performance over saves. Do not spend effort on save restoration or save-system tests unless requested.

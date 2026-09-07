@@ -117,11 +117,16 @@ export function planSettlement(
       if (f.water < 4 || (occupied && plan.reserved.has(cellKey(x, y))))
         valid = false;
     });
-    return valid && hi - lo < 28;
+    return valid && (pack.setting?.terrainRevision ? hi === lo : hi - lo < 28);
   };
   // Reserve the common first. Its water/hearth objects sit at the edge, never in the through route.
-  const half =
-    profile.plaza === "court" ? 4 : profile.plaza === "market" ? 7 : 5;
+  const half = pack.setting?.terrainRevision
+    ? 2
+    : profile.plaza === "court"
+      ? 4
+      : profile.plaza === "market"
+        ? 7
+        : 5;
   const publicArea = {
     x: c.x - half,
     y: c.y - half,

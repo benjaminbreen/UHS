@@ -38,6 +38,9 @@ export function drawTopography(
         c.surface === "water" && c.waterDepth === "shallow"
           ? "shallow"
           : c.surface;
+      const shoreline =
+        c.surface === "gravel" &&
+        !!contourMask(sample, x, y, (n) => n.surface === "water");
       if (c.ramp) {
         image(x * 16, top - TERRAIN_RISE, `ramp-${c.ramp}`, y * 16 + 1.9);
         continue;
@@ -45,10 +48,18 @@ export function drawTopography(
       image(
         x * 16,
         c.bridge ? y * 16 : top,
-        `${material === "gravel" ? "grass" : material}-${variant}`,
+        `${material === "gravel" && !shoreline ? "grass" : material}-${variant}`,
         depth,
+      ).setTint(
+        c.surface === "grass"
+          ? c.height === 0
+            ? 0xd2e2be
+            : c.height === 2
+              ? 0xe6e6c0
+              : 0xffffff
+          : 0xffffff,
       );
-      if (c.surface === "gravel") {
+      if (c.surface === "gravel" && !shoreline) {
         const connections =
           contourMask(sample, x, y, (n) => n.surface === "gravel") & 15;
         image(x * 16, top, `channel-${connections}`, depth + 0.15);
@@ -79,10 +90,16 @@ export function drawTopography(
           sample,
           x,
           y,
-          (n) => n.surface !== "water" && n.height > c.height,
+          (n) => n.surface !== "water" && !n.bridge,
         );
         if (banks) image(x * 16, top, `bank-${banks}-${phase}`, depth + 0.2);
       }
+      if (
+        (c.surface === "grass" || c.surface === "damp") &&
+        variant === 3 &&
+        random("flora", x, y) < 0.18
+      )
+        image(x * 16, top, "tuft", depth + 0.3);
       if (c.bridge) {
         scene.add
           .image(x * 16, top, "world-art", "bridge")
