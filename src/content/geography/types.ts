@@ -47,6 +47,7 @@ export type AtlasPlace = {
 export const settingSchema = z
   .object({
     version: z.literal(2),
+    terrainRevision: z.literal(1).optional(),
     placeId: z.string().min(1).max(100),
     location: z.string().min(1).max(120),
     lon: z.number().min(-180).max(180),

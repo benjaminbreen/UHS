@@ -1,4 +1,4 @@
-/** Stage-one terrain contract. Opt-in only; no existing generator consumes it. */
+/** Shared opt-in terrain contract for the study and v3 terrain revision 1. */
 export type HeightTier = 0 | 1 | 2 | 3;
 export type GroundSurface =
   | "grass"
@@ -11,6 +11,8 @@ export type Direction = "n" | "e" | "s" | "w";
 export type TerrainPoint = { x: number; y: number };
 export type TopographyCell = {
   height: HeightTier;
+  biome?: "wetland" | "grassland" | "dry-upland";
+  moisture?: number;
   surface: GroundSurface;
   waterDepth?: "shallow" | "deep";
   /** On the lower tile, pointing toward its one-tier-higher neighbor. */

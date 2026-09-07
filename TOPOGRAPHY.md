@@ -1,3 +1,17 @@
+# Phase two: v3 Anatolia terrain preview
+
+Use New world → Anatolia · 6500 BCE · terrain preview. The seed is `anatolia-relief-1`, internal astronomical year −6499. This is a fictional generated settlement on the Konya plain, not a surveyed reconstruction.
+
+The opt-in `setting.terrainRevision: 1` is saved with generator 3. Omission preserves earlier v3 layouts, replay inputs and rendering. The same setting reaches the worker, restored sessions and headless generation through existing dispatch.
+
+`src/world/v3/topography.ts` supplies seeded low-frequency terraces, a varying-width river, two water depths and moisture pockets. Three local tiers and three ecological presets (wetland, grassland, dry upland) form the initial constrained palette. The settlement planner consumes that landscape; complete plots are graded, and slope openings connect compatible one-tier edges. Core player and NPC routes use the shared terrain crossing rule. Local rendering projects terrain and entities; the minimap shows shallow water and exposed ledges. Terrain fields and cells use bounded derived caches.
+
+This first integration uses a composed valley and seeded river course, not downhill watershed routing, erosion or worldwide climate simulation. Road crossings can produce broad slope openings; further art/layout refinement remains possible. Terrain contours rebuild with the visible region rather than maintaining a persistent GPU chunk atlas.
+
+Validation: `tests/terrain-world.test.ts` covers tiers, water depths, slopes versus blocked ledges, reachable households, saved revision restoration, chunk parity and legacy v3 opt-out. `tests/browser/terrain-world.spec.ts` creates and renders the preset and verifies the owned-house route. Screenshot: `artifacts/anatolia-topography-v3.png`.
+
+---
+
 # Terrain / stage-one visual proof
 
 Open `/terrain-lab` (or follow Terrain study from the Graphics lab). The river meadow is a fixed, fictional composition inspired by the September 7 references, not a reconstruction of Konya and not the stage-two procedural generator. The meadow uses three levels: river/floodplain, settlement terrace and one broad northeast rise. A second slopes-and-corners fixture exercises all four ramp directions, inward corners and the full four-tier range.
@@ -39,7 +53,7 @@ npm run build
 
 Browser tests expect the ordinary local Vite server on port 5173. They cover traversal, blocked ledges, elevated-ground pointer targeting, scene switching, export, narrow-screen pan/zoom and saved-journey isolation. Unit tests also cover connected plateau area, dual water depths, continuous ramp projection and pixel connectivity around a stepped bank corner. Review PNGs are under `artifacts/topography-*.png`.
 
-## Stage two boundary
+## Original stage-two boundary (historical)
 
 Procedural connected landforms, sampled moisture patches, settlement grading, production player/NPC routing, worker/chunk integration, minimap relief and new-world generator versioning remain stage two. The fixture deliberately does not change existing worlds, replays or simulation rules. Its bounded BFS is a review control, not a new production pathfinding system. Integrate the shared crossing contract into production routing when the new generator is introduced.
 

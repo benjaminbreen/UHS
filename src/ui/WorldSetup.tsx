@@ -127,6 +127,24 @@ export function WorldSetup({
     <>
       <div className="eyebrow">WORLD WEAVER · EARTH, REIMAGINED</div>
       <h2>Where will you begin?</h2>
+      <button
+        disabled={busy}
+        onClick={() =>
+          onStart(
+            createSettingSession(
+              {
+                ...settingFor(places.find((p) => p.id === "konya")!, -6499),
+                terrainRevision: 1,
+                role: "Early farmer",
+                characterName: "Early farmer",
+              },
+              "anatolia-relief-1",
+            ),
+          )
+        }
+      >
+        Anatolia · 6500 BCE · terrain preview
+      </button>
       <div
         className="weaver-modes"
         role="group"

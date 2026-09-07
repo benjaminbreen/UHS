@@ -79,11 +79,13 @@ export function packForSetting(setting: WorldSetting): Pack {
       "Farmhouse",
     ],
     names:
-      architecture === "classical"
-        ? packTemplates.roman.names
-        : setting.placeId === "haiti"
-          ? ["Marie", "Jean", "Rose", "Pierre", "Louise", "Joseph"]
-          : (namesByCulture[setting.culture] ?? base.names),
+      setting.terrainRevision && early
+        ? base.names
+        : architecture === "classical"
+          ? packTemplates.roman.names
+          : setting.placeId === "haiti"
+            ? ["Marie", "Jean", "Rose", "Pierre", "Louise", "Joseph"]
+            : (namesByCulture[setting.culture] ?? base.names),
     settlementNames: [
       setting.location,
       "Riverside settlement",

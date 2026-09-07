@@ -188,7 +188,41 @@ export function rasterTerrainContours(
         }
         paint(row, tier, px, py, color);
       }
-  return [...layers.values()];
+  // Tight textures avoid uploading a map-wide transparent rectangle for each
+  // short contour row. Retain the same world origin and painter depth.
+  return [...layers.values()].map((layer) => {
+    let left = layer.width,
+      right = 0,
+      top = layer.height,
+      bottom = 0;
+    for (let y = 0; y < layer.height; y++)
+      for (let x = 0; x < layer.width; x++)
+        if (layer.pixels[(y * layer.width + x) * 4 + 3]) {
+          left = Math.min(left, x);
+          right = Math.max(right, x);
+          top = Math.min(top, y);
+          bottom = Math.max(bottom, y);
+        }
+    const width = right - left + 1,
+      height = bottom - top + 1,
+      pixels = new Uint8ClampedArray(width * height * 4);
+    for (let y = 0; y < height; y++)
+      pixels.set(
+        layer.pixels.subarray(
+          ((y + top) * layer.width + left) * 4,
+          ((y + top) * layer.width + right + 1) * 4,
+        ),
+        y * width * 4,
+      );
+    return {
+      ...layer,
+      x: layer.x + left,
+      y: layer.y + top,
+      width,
+      height,
+      pixels,
+    };
+  });
 }
 export function drawTerrainContours(
   scene: Phaser.Scene,

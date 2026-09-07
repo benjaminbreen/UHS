@@ -1,3 +1,9 @@
+import { createReliefLandscape, reliefCell } from "./topography";
+import {
+  terrainStep,
+  type HeightTier,
+  type TopographyCell,
+} from "../../core/topography";
 import type { Pack, Terrain, WorldModel } from "../../core/types";
 import { CHUNK_SIZE } from "../../core/types";
 import { random } from "../../core/random";
@@ -15,7 +21,10 @@ export function createSettlementWorld(
   pack: Pack,
   seed: string,
 ): SettlementWorld {
-  const land = createLandscape(pack.setting!, seed),
+  const relief = pack.setting?.terrainRevision === 1;
+  const land = relief
+      ? createReliefLandscape(pack.setting!, seed)
+      : createLandscape(pack.setting!, seed),
     sites = new Map<string, Site | null>(),
     plans = new Map<string, SettlementPlan>(),
     links = new Map<string, Road[]>(),
@@ -204,6 +213,14 @@ export function createSettlementWorld(
   }
   function ground(x: number, y: number): Terrain {
     const f = land.sample(x, y);
+    if (relief)
+      return f.water < 0
+        ? "water"
+        : f.moisture > 0.73
+          ? "marsh"
+          : f.moisture < 0.48
+            ? "dry"
+            : "grass";
     return f.water < 0
       ? "water"
       : f.snow
@@ -263,15 +280,18 @@ export function createSettlementWorld(
       ),
       cover = noise(seed, x + land.origin.x, y + land.origin.y, 45, "woods");
     const tree = x % 3 === 0 && y % 3 === 0 && n < f.moisture * cover * 0.38;
-    const sprite = tree
-      ? pack.trees[
-          Math.floor(random(seed, "v3-tree", x, y) * pack.trees.length)
-        ]
-      : n < 0.006
-        ? "rock"
-        : n < 0.015
-          ? "bush"
-          : undefined;
+    const sprite =
+      relief && f.water < 8 && f.moisture > 0.68 && n < 0.12
+        ? "reeds"
+        : tree
+          ? pack.trees[
+              Math.floor(random(seed, "v3-tree", x, y) * pack.trees.length)
+            ]
+          : n < 0.006
+            ? "rock"
+            : n < 0.015
+              ? "bush"
+              : undefined;
     return sprite
       ? {
           id: `decor-${x}-${y}`,
@@ -282,8 +302,83 @@ export function createSettlementWorld(
         }
       : undefined;
   }
+  const reliefCache = new Map<string, TopographyCell>();
+  function rawCell(x: number, y: number): TopographyCell {
+    const f = land.sample(x, y),
+      t = terrain(x, y);
+    let height = Math.round(f.elevation / 14) as HeightTier;
+    // Grade complete plots and the compact settlement core, not individual road ribbons.
+    for (const p of nearby(x, y)) {
+      if (
+        Math.hypot(x - p.site.center.x, y - p.site.center.y) < 16 &&
+        f.water >= 3
+      )
+        height = 1;
+      for (const plot of p.plots)
+        if (
+          x >= plot.x - 1 &&
+          x < plot.x + plot.w + 1 &&
+          y >= plot.y - 1 &&
+          y < plot.y + plot.h + 1
+        )
+          height = Math.round(
+            land.sample(plot.x + plot.w / 2, plot.y + plot.h / 2).elevation /
+              14,
+          ) as HeightTier;
+    }
+    if (t === "bridge") height = 1;
+    const cell = reliefCell(height, f.water, f.moisture);
+    if (t === "bridge") return { ...cell, surface: "soil", bridge: true };
+    if (t === "dirt" || t === "paving" || t === "field") cell.surface = "soil";
+    return cell;
+  }
+  function topography(x: number, y: number): TopographyCell {
+    const key = cellKey(x, y),
+      old = reliefCache.get(key);
+    if (old) return old;
+    const c = rawCell(x, y);
+    if (c.surface === "water" || c.bridge) return c;
+    // Sparse paired slope openings; roads always request an opening. Each lower
+    // cell owns one axis and has a flat approach behind it.
+    const road = terrain(x, y) === "dirt" || terrain(x, y) === "paving";
+    if (road || (Math.floor(x / 2) + Math.floor(y / 2)) % 7 === 0)
+      for (const [dx, dy, dir] of [
+        [0, -1, "n"],
+        [1, 0, "e"],
+        [0, 1, "s"],
+        [-1, 0, "w"],
+      ] as const) {
+        const hi = rawCell(x + dx, y + dy),
+          lo = rawCell(x - dx, y - dy);
+        if (
+          hi.height === c.height + 1 &&
+          lo.height === c.height &&
+          hi.surface !== "water" &&
+          lo.surface !== "water"
+        ) {
+          const result = { ...c, ramp: dir };
+          reliefCache.set(key, result);
+          return result;
+        }
+      }
+    if (reliefCache.size > 65536) reliefCache.clear();
+    reliefCache.set(key, c);
+    return c;
+  }
   const world: SettlementWorld = {
     generatorVersion: 3,
+    ...(relief
+      ? {
+          topography,
+          canCross: (
+            from: { x: number; y: number },
+            to: { x: number; y: number },
+          ) => {
+            if (from.x !== to.x && from.y !== to.y) return false;
+            return terrainStep(topography, from, to).allowed;
+          },
+        }
+      : {}),
     pack,
     settlements: [],
     places: [],

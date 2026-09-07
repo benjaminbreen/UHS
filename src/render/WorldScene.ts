@@ -1,3 +1,9 @@
+import { drawTopography } from "./topography";
+import {
+  surfaceElevation,
+  pickTerrain,
+  TERRAIN_RISE,
+} from "./terrain-projection";
 import { buildingContains, buildingPlacement } from "./buildings";
 import { terrainVariant, type RenderOptions } from "./appearance";
 import Phaser from "phaser";
@@ -55,6 +61,12 @@ export class WorldScene extends Phaser.Scene {
       "/packs/lighting-shadows.png",
       "/packs/lighting-shadows.json",
     );
+    this.load.atlas(
+      "topography",
+      "/topography/atlas.png",
+      "/topography/atlas.json",
+    );
+    this.load.atlas("world-art", "/packs/atlas.png", "/packs/atlas.json");
     this.load.image("terrain", "/packs/terrain.png");
   }
   create() {
@@ -117,8 +129,27 @@ export class WorldScene extends Phaser.Scene {
     this.input.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
       if (pointer.rightButtonDown() || this.options.lab) return;
       const p = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
-      const x = Math.floor(p.x / 16),
+      let x = Math.floor(p.x / 16),
         y = Math.floor(p.y / 16);
+      const world = this.runtime.engine.world;
+      if (
+        world.topography &&
+        this.runtime.engine.state.player.pos.space === "outside"
+      ) {
+        const ox = x - 4,
+          oy = y - 4;
+        const hit = pickTerrain(
+          (a, b) => world.topography!(a + ox, b + oy),
+          9,
+          13,
+          p.x - ox * 16,
+          p.y - oy * 16,
+        );
+        if (hit) {
+          x = hit.x + ox;
+          y = hit.y + oy;
+        }
+      }
       const obs = this.runtime.engine.observe();
       const actor = obs.actors.find(
         (a) => Math.abs(a.pos.x - x) <= 0.7 && Math.abs(a.pos.y - y) <= 0.7,
@@ -147,9 +178,16 @@ export class WorldScene extends Phaser.Scene {
     this.draw();
     this.options.onReady?.();
   }
+  private lift(x: number, y: number) {
+    const w = this.runtime.engine.world;
+    return w.topography &&
+      this.runtime.engine.state.player.pos.space === "outside"
+      ? surfaceElevation(w.topography, x / 16 - 0.5, y / 16 - 1) * TERRAIN_RISE
+      : 0;
+  }
   private sprite(frame: string, x: number, y: number, depth: number) {
     const image = this.add
-      .image(x, y, "atlas", frame)
+      .image(x, y - this.lift(x, y), "atlas", frame)
       .setOrigin(0.5, 1)
       .setTint(this.tint)
       .setDepth(depth);
@@ -168,9 +206,9 @@ export class WorldScene extends Phaser.Scene {
       this.texture(frame) === "props" ? "prop-shadows" : "lighting-shadows";
     if (!this.textures.get(texture).has(key)) return undefined;
     const image = this.add
-      .image(x, y, texture, key)
+      .image(x, transient ? y : y - this.lift(x, y), texture, key)
       .setOriginFromFrame()
-      .setDepth(-60000);
+      .setDepth(this.runtime.engine.world.topography ? -1000 : -60000);
     if (!transient) this.layers.push(image);
     return image;
   }
@@ -214,12 +252,45 @@ export class WorldScene extends Phaser.Scene {
       this.buildings.clear();
       this.ground?.destroy();
       this.tilemap?.destroy();
-      const halfX = Math.ceil(this.scale.width / rt.zoom / 32) + 20,
-        halfY = Math.ceil(this.scale.height / rt.zoom / 32) + 20;
+      const margin = w.topography ? 6 : 20;
+      const halfX = Math.ceil(this.scale.width / rt.zoom / 32) + margin,
+        halfY = Math.ceil(this.scale.height / rt.zoom / 32) + margin;
       const startX = bx - halfX,
         startY = by - halfY;
       const width = halfX * 2 + 16,
         height = halfY * 2 + 16;
+      if (w.topography && p.space === "outside") {
+        for (const key of this.textures.getTextureKeys())
+          if (key.startsWith("contour-")) this.textures.remove(key);
+        const before = new Set(this.children.list);
+        const cells = new Map<
+          string,
+          ReturnType<NonNullable<WorldModel["topography"]>>
+        >();
+        drawTopography(
+          this,
+          (x, y) => {
+            const k = `${x},${y}`;
+            let cell = cells.get(k);
+            if (!cell) {
+              cell = w.topography!(x + startX, y + startY);
+              cells.set(k, cell);
+            }
+            return cell;
+          },
+          width,
+          height,
+        );
+        for (const obj of this.children.list)
+          if (!before.has(obj)) {
+            const im = obj as Phaser.GameObjects.Image;
+            im.x += startX * 16;
+            im.y += startY * 16;
+            im.depth += startY * 16;
+            im.setTint?.(this.tint);
+            this.layers.push(im);
+          }
+      }
       const data = Array.from({ length: height }, (_, iy) =>
         Array.from({ length: width }, (_, ix) => {
           const x = startX + ix,
@@ -261,6 +332,7 @@ export class WorldScene extends Phaser.Scene {
         .createLayer(0, ts, startX * 16, startY * 16)!
         .setDepth(-100000)
         .setTint(this.tint);
+      if (w.topography && p.space === "outside") this.ground.setVisible(false);
       if (w.pack.setting && p.space === "outside") {
         this.ground.forEachTile((tile) => {
           const x = startX + tile.x,
@@ -289,7 +361,7 @@ export class WorldScene extends Phaser.Scene {
         ] as const;
         for (let y = startY; y < startY + height; y++)
           for (let x = startX; x < startX + width; x++) {
-            const t = surfaceAt(w, x, y);
+            const t = w.topography ? "grass" : surfaceAt(w, x, y);
             if (t === "water") {
               let mask = 0;
               neighbors.forEach(([dx, dy], i) => {
@@ -328,6 +400,7 @@ export class WorldScene extends Phaser.Scene {
                 );
             }
             if (
+              !w.topography &&
               w.terrain(x, y) === "water" &&
               w.terrain(x, y - 1) === "bridge" &&
               hasQuay(w, x, y)
@@ -349,7 +422,11 @@ export class WorldScene extends Phaser.Scene {
               )
                 this.sprite("bridge-arch", x * 16 + 24, y * 16 + 30, -65000);
             }
-            if (w.terrain(x, y) === "water" && hasQuay(w, x, y)) {
+            if (
+              !w.topography &&
+              w.terrain(x, y) === "water" &&
+              hasQuay(w, x, y)
+            ) {
               for (const [side, dx, dy] of [
                 ["east", 1, 0],
                 ["west", -1, 0],
@@ -361,6 +438,7 @@ export class WorldScene extends Phaser.Scene {
               }
             }
             if (
+              !w.topography &&
               w.terrain(x, y) === "sand" &&
               !hasQuay(w, x, y) &&
               surfaceAt(w, x, y) === "sand" &&
@@ -465,7 +543,7 @@ export class WorldScene extends Phaser.Scene {
       keep.add(id);
       let im = this.entities.get(id);
       const tx = pos.x * 16 + 8,
-        ty = pos.y * 16 + 16;
+        ty = pos.y * 16 + 16 - this.lift(pos.x * 16 + 8, pos.y * 16 + 16);
       if (!im) {
         im = this.add
           .image(tx, ty, this.texture(frame), frame)
@@ -667,7 +745,11 @@ export class WorldScene extends Phaser.Scene {
     // Depth and the selection marker follow the displayed position, not the next tile.
     for (const [id, im] of this.entities) {
       const frame = this.actorFrames.get(id);
-      im.setDepth(im.y - (frame ? 2 : 6));
+      im.setDepth(
+        im.y +
+          this.lift(im.x, (this.destinations.get(id)?.y ?? 0) * 16 + 16) -
+          (frame ? 2 : 6),
+      );
       if (frame && !this.options.lab)
         im.setFrame(
           `${frame}${this.tweens.isTweening(im) ? Math.floor(time / 140) % 2 : 0}`,

@@ -218,7 +218,13 @@ export class Engine {
     return route(
       start,
       target,
-      (to) => {
+      (to, from) => {
+        if (
+          start.space === "outside" &&
+          this.world.canCross &&
+          !this.world.canCross(from, to)
+        )
+          return Infinity;
         if (this.blocked(to.x, to.y, start.space)) {
           const gate = this.gateAt(to, start.space);
           // Humans can open a gate; animals must wait for an actual open gate.
@@ -605,6 +611,12 @@ export class Engine {
       )
         return "Move one adjacent step.";
       if (
+        (p.pos.space === "outside" &&
+          this.world.canCross &&
+          !this.world.canCross(p.pos, {
+            x: p.pos.x + c.dx,
+            y: p.pos.y + c.dy,
+          })) ||
         this.blocked(p.pos.x + c.dx, p.pos.y + c.dy) ||
         (c.dx !== 0 &&
           c.dy !== 0 &&

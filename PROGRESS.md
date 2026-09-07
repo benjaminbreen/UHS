@@ -1,3 +1,9 @@
+## V3 Anatolia terrain preview — September 7, 2026
+
+Checkpointed the full prior worktree as `7eb4d94`. Added an opt-in saved terrain revision to v3, with seeded three-tier relief, wetland/grassland/dry-upland ecology, shallow/deep river water, graded settlement plots and slope-aware player/NPC routing. Playable rendering now projects terrain, objects and actors; minimap ledges and water depths share the same sample. New-world shortcut creates the 6500 BCE Konya preview (`anatolia-relief-1`). Earlier worlds omit the revision and retain their behavior. Details and deliberate hydrology/art limitations are in `TOPOGRAPHY.md`.
+
+Validation: 30 focused terrain, settlement and legacy core tests passed; production build passed with existing bundle advisory; the new browser preview check passed. Reviewed `artifacts/anatolia-topography-v3.png`. An initial in-app browser crash prompted tighter contour textures and reduced offscreen rendering. The optimized preview then loaded successfully in a fresh in-app tab and was visually reviewed. All three terrain browser checks pass.
+
 ## Terrain border repair — September 7, 2026
 
 Removed the independent rectangular contact-shadow strips and aligned contour coverage with the underlying ground. Small outward turf variations preserve coverage; faces now use warm vertical soil planes and tapered recesses instead of block noise. Ground surfaces render before contour walls so the next tile row cannot clip their connecting edges. Movement and height data are unchanged. Browser screenshots were reviewed; this remains a terrain-lab art study, with further visual distance from the reference mockup.

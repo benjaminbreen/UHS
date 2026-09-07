@@ -96,6 +96,14 @@ export function Minimap({
                 ? e.world.overview(wx, wy)
                 : surfaceAt(e.world, wx, wy)
             ];
+          if (e.world.topography && extent <= 320) {
+            const cell = e.world.topography(wx, wy);
+            if (cell.surface === "water")
+              c.fillStyle =
+                cell.waterDepth === "shallow" ? "#409baa" : "#146c8c";
+            else if (cell.height > e.world.topography(wx, wy + 1).height)
+              c.fillStyle = "#956c40";
+          }
           c.fillRect(x, y, 2, 2);
         }
       const stamp = (name: string, x: number, y: number, width: number) => {

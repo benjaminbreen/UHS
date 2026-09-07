@@ -267,12 +267,12 @@ export type Observation = {
 };
 export interface WorldModel {
   generatorVersion?: 3;
+  topography?(x: number, y: number): import("./topography").TopographyCell;
+  canCross?(from: Point, to: Point): boolean;
   navigationCost?(x: number, y: number, actorId?: string): number;
   protectedCell?(x: number, y: number): boolean;
   propSlots?(placeId: string): { yard: Point[]; work: Point[] } | undefined;
-  activitySites?(
-    actorId: string,
-  ):
+  activitySites?(actorId: string):
     | {
         home: Point;
         work: Point;
