@@ -1,3 +1,6 @@
+import { WorldCharacters } from "./characters/world";
+import { poseTiming, type CharacterPose } from "./characters/poses";
+import type { Actor } from "../core/types";
 import { waterStyle } from "./water-style";
 import { TerrainStream } from "./terrain-stream";
 import {
@@ -17,6 +20,15 @@ import terrainFrames from "./generated/terrain.json" with { type: "json" };
 const SCENERY_CACHE_REACH = 8;
 export class WorldScene extends Phaser.Scene {
   private runtime: Runtime;
+  private characters?: WorldCharacters;
+  private heldSprites = new Map<string, string>();
+  private humanActors = new Map<
+    string,
+    Pick<
+      Actor,
+      "id" | "sprite" | "appearance" | "age" | "direction" | "activity" | "held"
+    >
+  >();
   private layers: Phaser.GameObjects.GameObject[] = [];
   private ground?: Phaser.Tilemaps.TilemapLayer;
   private tilemap?: Phaser.Tilemaps.Tilemap;
@@ -76,6 +88,8 @@ export class WorldScene extends Phaser.Scene {
   }
   create() {
     this.ready = true;
+    this.characters = new WorldCharacters(this);
+    this.events.once("shutdown", () => this.characters?.destroy());
     this.cameras.main.setBackgroundColor("#819253");
     this.cameras.main.roundPixels = !!this.options.lab;
     this.selection = this.add.graphics().setDepth(20000);
@@ -602,7 +616,9 @@ export class WorldScene extends Phaser.Scene {
         this.entities.set(id, im);
         if (id === "player" && !this.options.lab)
           c.startFollow(im, false, 1, 1);
-        const shade = this.shadow(frame, tx, ty, true);
+        const shade = frame.startsWith("human-")
+          ? undefined
+          : this.shadow(frame, tx, ty, true);
         if (shade) this.shadows.set(id, shade);
         if (id !== "player" && !this.options.lab) {
           im.setInteractive({ pixelPerfect: true, useHandCursor: true });
@@ -628,7 +644,11 @@ export class WorldScene extends Phaser.Scene {
       const shadowKey = shadowFrame(this.shadowPhase, frame);
       const shadowTexture =
         this.texture(frame) === "props" ? "prop-shadows" : "lighting-shadows";
-      if (shade && this.textures.get(shadowTexture).has(shadowKey))
+      if (
+        shade &&
+        !frame.startsWith("human-") &&
+        this.textures.get(shadowTexture).has(shadowKey)
+      )
         shade.setTexture(shadowTexture, shadowKey).setOriginFromFrame();
       const previous = this.destinations.get(id);
       const moved =
@@ -697,7 +717,14 @@ export class WorldScene extends Phaser.Scene {
         o.pos,
       );
     }
+    this.heldSprites.clear();
+    for (const object of e.state.objects)
+      if (object.carriedBy)
+        this.heldSprites.set(object.carriedBy, object.sprite);
+    this.humanActors.clear();
     for (const a of [obs.player, ...obs.actors]) {
+      if (a.kind === "human")
+        this.humanActors.set(a.id, { ...a, appearance: rt.appearanceFor(a) });
       this.actorFrames.set(
         a.id,
         a.kind === "human" ? `${a.sprite}-${a.direction}-` : a.sprite,
@@ -816,11 +843,64 @@ export class WorldScene extends Phaser.Scene {
           this.lift(im.x, (this.destinations.get(id)?.y ?? 0) * 16 + 16) -
           (frame ? 2 : 6),
       );
-      if (frame && !this.options.lab)
+      const human = this.humanActors.get(id);
+      if (human && this.characters) {
+        const moving = this.tweens.isTweening(im);
+        const action =
+          id === "player" ? this.runtime.characterAction : undefined;
+        const elapsed = action ? performance.now() - action.at : Infinity;
+        const active = action && elapsed < poseTiming(action.pose) * 4;
+        const heldSprite = this.heldSprites.get(id);
+        let pose: CharacterPose = moving ? "walk" : "idle";
+        if (active) pose = action.pose;
+        else if (!moving && /rest|sleep/i.test(human.activity)) pose = "sit";
+        else if (!moving && /gathering|working/i.test(human.activity))
+          pose = "work";
+        else if (!moving && /eating/i.test(human.activity)) pose = "give";
+        const index = active
+          ? Math.min(3, Math.floor(elapsed / poseTiming(pose)))
+          : this.options.freeze
+            ? 0
+            : Math.floor(
+                (time + [...id].reduce((n, c) => n + c.charCodeAt(0) * 37, 0)) /
+                  poseTiming(pose),
+              ) % 4;
+        const prop =
+          heldSprite ??
+          (active && action.pose === "drop" && index < 2
+            ? action.prop
+            : undefined);
+        const texture = this.characters.frame(human, pose, index, prop);
+        im.setTexture(texture);
+        if (this.options.shadows !== false) {
+          const shadowTexture = this.characters.shadow(
+            texture,
+            this.shadowPhase,
+          );
+          let shade = this.shadows.get(id);
+          if (!shade) {
+            shade = this.add.image(im.x, im.y, shadowTexture);
+            this.shadows.set(id, shade);
+          }
+          shade
+            .setTexture(shadowTexture)
+            .setOrigin(0.5, 32 / 96)
+            .setPosition(im.x, im.y)
+            .setDepth(this.runtime.engine.world.topography ? -1000 : -60000);
+          if (id === "player")
+            this.game.canvas.dataset.characterShadow = this.shadowPhase;
+        }
+        im.setData("characterPose", pose).setData("heldSprite", prop ?? null);
+        if (id === "player") {
+          this.game.canvas.dataset.heldSprite = prop ?? "";
+          this.game.canvas.dataset.characterPose = pose;
+        }
+      } else if (frame && !this.options.lab)
         im.setFrame(
           `${frame}${this.tweens.isTweening(im) ? Math.floor(time / 140) % 2 : 0}`,
         );
     }
+    this.characters?.prune();
     const selected = this.runtime.selected;
     const marker = this.entities.get(selected ?? "player");
     const destination = this.destinations.get(selected ?? "player");

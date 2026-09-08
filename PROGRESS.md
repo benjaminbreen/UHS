@@ -1,3 +1,35 @@
+## Reviewed character checkpoint and v2 integration — September 8, 2026
+
+User requested review, commit and push of the current worktree into `origin/v2`, including the existing `codex/character-lab` checkpoint. Remote `v2` was at `96edf47`; `222f0b7` is its direct descendant and contains the terrain/art work. This checkpoint adds the complete character lab, body/face/clothing variants, carried-object presentation, dynamic human shadows, village study, recipes and captures. It also includes the performance review and the two supplied UI reference mockups. Those mockups remain reference assets, not implemented character/belief panels.
+
+Reviewed the pending code and visual studies. Production TypeScript/Vite build, 20 focused character/prop/movement/rendering/lighting unit tests, nine character/prop/movement browser checks, and whitespace validation passed. The existing bundle advisory and performance-review follow-ups remain; no performance refactor or save-restoration work was included. The branch integrates by fast-forward, preserving the existing history and leaving remote `main` untouched.
+
+## Character silhouettes, faces and time-of-day grounding — September 8, 2026
+
+Added five head/jaw choices, weighted age/physique face defaults with explicit overrides, tapered/rounded bodies, continuous garment shading, eight clothing silhouettes, sleeve/hem/drape choices and six resting postures. Default actor clothing now uses small content-owned generic wardrobe kits; explicit worn appearance remains authoritative. These are qualified art defaults, not researched costume reconstructions. Strength/profile values are appearance metadata rather than a new simulation statistic.
+
+Human shadows now derive from each composed pose and carried object, use the existing six time-of-day directions/opacities, and retain a compact foot contact at night. Frame and shadow textures share bounded scene caches. Character Lab adds all controls plus a six-person production WorldScene study with time-of-day selection. Original adult height and age-limited smaller sizes are preserved. Verified morning/midday/dusk/night captures in `artifacts/characters/village-*.png`.
+
+Validation: production build, 15 character/prop unit tests and eight browser tests passed, including face variety, crisp pixels, live clock-driven shadows, carried-object shadow changes, age sizes, pickup/swing/drop and clothing customization. Character work remains uncommitted for review; unrelated worktree files are untouched.
+
+## Adult height defaults and smaller children — September 8, 2026
+
+Restored the original sprite height as the ordinary adult default. Deterministic adult art weights are 80% original, 10% short (−3px), 9% tall (+3px), 1% tallest (+6px). Added −6px for children under six only, and −3px for older children and short adults. Existing age data now reaches the renderer; cached appearance resolution tracks age. Explicit adult heights remain selectable, but in-game customization and presentation prevent adult use of the under-six size.
+
+The lab has an age input for its preview and generated population, with age-appropriate height choices. Smaller bodies retain the native pixel grid and common foot anchor. Child population studies default to the original width and no beard. See `artifacts/characters/heights.png` and `scripts/capture-character-heights.ts`. Six focused unit tests and five character browser checks passed, covering the age-six boundary, distribution, editor controls and actual pixel-height differences. No generation or simulation-age changes.
+
+## Character lab, appearance and carrying — September 8, 2026
+
+Checkpointed the complete prior worktree as `222f0b7` and pushed it to `origin/codex/character-lab`. Remote `main` contains the older UHS project with unrelated history; it was preserved.
+
+Added `/character-lab` and an in-game editor (Settings or ⌘3/Ctrl+3), seeded batches up to 192 people, independent native-pixel heights/builds, complexion/hair/facial-hair variation, explicit worn garments/colors/accessories, four-direction pose sheets, frame stepping, JSON import/export, PNG exports and recipe links. The lab and world share one pixel painter. All portable props have hand-attached presentations; pickup, strike/air swing and drop are visible. Explicit appearance/clothing can be applied to player or NPCs. Legacy actors retain their tunic palette through a deterministic presentation fallback; generation and historical boundaries are unchanged.
+
+The reference-guided refinement adds actual side-profile anatomy, opposing arm/leg strides, elbow bends, palm clusters, and continuous torso/sleeve masks. Material-colored outlines are strong and hue-preserving. Shoulder pieces are merged before outlining; cuffs do not create detached rectangular caps. Art is original code-authored work, not extracted Stardew assets.
+
+Validation: production build, 12 focused unit tests and six character/prop browser checks passed. Reviewed four-direction walks, the complete carrying study and a green-shirt character in the world. The existing large-bundle build advisory remains.
+
+See `CHARACTERS.md` for controls, architecture, supported gameplay animation, review scripts and limits. Historical wardrobe selection and new action mechanics are not implied by the unrestricted art studies. New character work is uncommitted for review.
+
 ## Habitat, path and material polish — September 8, 2026
 
 Checkpointed the previously integrated work as `96edf47`; no remote is configured, so the requested push could not be completed. The subsequent visual work is uncommitted for review.

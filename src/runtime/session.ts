@@ -1,3 +1,9 @@
+import { wardrobeFor } from "../content/characters/wardrobes";
+import { actorAppearance } from "../core/character";
+import type { Actor } from "../core/types";
+import type { CharacterPose } from "../render/characters/poses";
+import { allowedHeights, type CharacterAppearance } from "../core/character";
+import { characterAppearanceSchema } from "./schema";
 import { heldObject, nearbyProp } from "../core/props";
 import { withProps } from "../content/props/place";
 import { propDefs } from "../content/props/catalog";
@@ -106,6 +112,74 @@ export class Runtime {
     manifest: Snapshot["manifest"];
     expectedHash?: string;
   };
+  private appearanceDefaults = new Map<
+    string,
+    { signature: string; value: CharacterAppearance }
+  >();
+  appearanceFor(
+    actor: Pick<Actor, "id" | "sprite" | "appearance" | "age">,
+  ): CharacterAppearance {
+    if (actor.appearance) return actorAppearance(actor);
+    const pack = this.engine.world.pack;
+    const signature = `${actor.sprite}:${actor.age}:${pack.id}:${pack.year}`;
+    const cached = this.appearanceDefaults.get(actor.id);
+    if (cached?.signature === signature) return cached.value;
+    const base = actorAppearance(actor);
+    const value = {
+      ...base,
+      wearing: wardrobeFor(actor.id, pack, base.wearing),
+    };
+    this.appearanceDefaults.set(actor.id, { signature, value });
+    return value;
+  }
+  characterAction?: {
+    serial: number;
+    pose: CharacterPose;
+    at: number;
+    prop?: string;
+  };
+  private characterSerial = 0;
+  customizeCharacter(id: string, appearance: CharacterAppearance) {
+    const parsed = characterAppearanceSchema.parse(appearance);
+    const actor =
+      id === "player"
+        ? this.engine.state.player
+        : this.engine.state.actors.find((a) => a.id === id);
+    if (!actor || actor.kind !== "human" || this.replay) return;
+    if (!allowedHeights(actor.age).includes(parsed.height))
+      throw Error("That height is not available for this character’s age.");
+    actor.appearance = parsed;
+    this.onChange?.(this.engine.snapshot());
+    this.emit();
+  }
+  private animateCommand(
+    command: PlayerCommand,
+    accepted: boolean,
+    previousProp?: string,
+  ) {
+    if (!accepted) return;
+    const action = command.type === "interact" ? command.action : command.type;
+    const pose: CharacterPose | undefined = (
+      {
+        pickup: "pickup",
+        drop: "drop",
+        strike: "swing",
+        talk: "talk",
+        trade: "give",
+        harvest: "work",
+        drink: "give",
+        rest: "sit",
+        use: "give",
+      } as Record<string, CharacterPose>
+    )[action];
+    if (pose)
+      this.characterAction = {
+        serial: ++this.characterSerial,
+        pose,
+        at: performance.now(),
+        prop: previousProp,
+      };
+  }
   private subscribers = new Set<() => void>();
   private cached: ReturnType<Runtime["view"]>;
   onChange?: (snapshot: Snapshot) => void;
@@ -120,8 +194,20 @@ export class Runtime {
       pos.space === "outside"
         ? pos
         : this.engine.world.place(pos.space)?.entrance;
+    const observation = this.engine.observe();
     return {
-      observation: this.engine.observe(),
+      observation: {
+        ...observation,
+        player: {
+          ...observation.player,
+          appearance: this.appearanceFor(observation.player),
+        },
+        actors: observation.actors.map((actor) =>
+          actor.kind === "human"
+            ? { ...actor, appearance: this.appearanceFor(actor) }
+            : actor,
+        ),
+      },
       selection: this.selected ? this.engine.inspect(this.selected) : undefined,
       notice: this.notice,
       running: this.running,
@@ -195,11 +281,17 @@ export class Runtime {
       this.emit();
       return;
     }
+    const previousProp = heldObject(this.engine.state)?.sprite;
     const result = this.engine.act({
       actionId: `ui-${this.engine.state.revision}-${++this.serial}`,
       expectedRevision: this.engine.state.revision,
       command: parsed.data,
     });
+    this.animateCommand(
+      parsed.data,
+      result.status !== "rejected",
+      previousProp,
+    );
     this.notice = result.reason ?? "";
     if (result.status !== "rejected") this.onChange?.(this.engine.snapshot());
     this.emit();
@@ -209,7 +301,9 @@ export class Runtime {
     if (this.replay)
       throw Error("Continue from this replay point before acting.");
     const command = commandSchema.parse(request.command);
+    const previousProp = heldObject(this.engine.state)?.sprite;
     const result = this.engine.act({ ...request, command });
+    this.animateCommand(command, result.status !== "rejected", previousProp);
     if (result.status !== "rejected") this.onChange?.(this.engine.snapshot());
     this.emit();
     return { ...result, observation: this.engine.observe() };
@@ -288,6 +382,22 @@ export class Runtime {
       this.selected = command.target;
       this.command(command);
     } else {
+      if (
+        key === "Space" &&
+        controls.held &&
+        propDefs[controls.held.prop ?? ""]?.strike &&
+        !this.replay
+      ) {
+        this.characterAction = {
+          serial: ++this.characterSerial,
+          pose: "swing",
+          at: performance.now(),
+          prop: controls.held.sprite,
+        };
+        this.notice = "You swing through the air.";
+        this.emit();
+        return;
+      }
       this.notice =
         key === "Space"
           ? controls.primaryLabel

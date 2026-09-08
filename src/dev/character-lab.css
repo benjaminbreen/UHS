@@ -1,0 +1,325 @@
+.character-lab {
+  --cl-bg: #171e22;
+  --cl-panel: #222c30;
+  --cl-line: #394548;
+  --cl-text: #ede5d3;
+  --cl-dim: #a4b1ac;
+  --cl-accent: #d8b975;
+  background: var(--cl-bg);
+  color: var(--cl-text);
+  font:
+    14px/1.5 system-ui,
+    sans-serif;
+  min-height: 100vh;
+  padding: 30px 38px;
+  box-sizing: border-box;
+}
+.character-lab * {
+  box-sizing: border-box;
+}
+.character-lab[data-modal] {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  overflow: auto;
+}
+.character-lab button,
+.character-lab select,
+.character-lab input:not([type="checkbox"]):not([type="color"]) {
+  font: inherit;
+  background: #293438;
+  color: var(--cl-text);
+  border: 1px solid #4d5a5a;
+  border-radius: 5px;
+  padding: 8px 11px;
+}
+.character-lab button {
+  cursor: pointer;
+}
+.character-lab button:hover {
+  border-color: var(--cl-accent);
+  background: #364343;
+}
+.character-lab a {
+  color: var(--cl-accent);
+}
+.cl-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 30px;
+  align-items: center;
+  border-bottom: 1px solid var(--cl-line);
+  padding-bottom: 25px;
+  margin-bottom: 28px;
+}
+.cl-eyebrow {
+  color: var(--cl-accent);
+  font-size: 10px;
+  letter-spacing: 2px;
+}
+.character-lab h1 {
+  font:
+    42px/1.2 Georgia,
+    serif;
+  margin: 9px 0;
+}
+.character-lab h1 span {
+  font: 14px monospace;
+  color: var(--cl-accent);
+  margin-left: 18px;
+}
+.character-lab p {
+  margin: 4px 0 14px;
+  color: var(--cl-dim);
+}
+.cl-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.cl-layout {
+  display: grid;
+  grid-template-columns: 250px minmax(0, 1fr);
+  gap: 28px;
+  max-width: 1500px;
+  margin: auto;
+}
+.cl-controls {
+  align-self: start;
+  background: var(--cl-panel);
+  border: 1px solid var(--cl-line);
+  border-radius: 8px;
+  padding: 20px;
+}
+.character-lab h2 {
+  font:
+    22px Georgia,
+    serif;
+  margin: 0 0 12px;
+}
+.cl-controls h2:not(:first-child) {
+  margin-top: 25px;
+  border-top: 1px solid var(--cl-line);
+  padding-top: 18px;
+}
+.character-lab label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 12px;
+  font-size: 12px;
+  color: var(--cl-dim);
+  text-transform: capitalize;
+}
+.cl-two {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.character-lab select {
+  width: 100%;
+  text-transform: capitalize;
+}
+.cl-color input {
+  width: 100%;
+  height: 33px;
+  padding: 2px;
+  border: 1px solid var(--cl-line);
+  background: transparent;
+  border-radius: 4px;
+}
+.cl-checks label,
+.cl-generation label:has(input[type="checkbox"]) {
+  flex-direction: row;
+  align-items: center;
+}
+.cl-muted {
+  font-size: 12px;
+}
+.cl-controls > button {
+  width: 100%;
+  margin: 8px 0;
+}
+.cl-stage,
+.cl-section {
+  background: var(--cl-panel);
+  border: 1px solid var(--cl-line);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 22px;
+}
+.cl-stage-top,
+.cl-section-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 22px;
+  gap: 15px;
+}
+.cl-stage-top h2,
+.cl-section-title h2 {
+  margin: 0;
+}
+.cl-stage-top span {
+  font: 11px monospace;
+  color: var(--cl-dim);
+}
+.cl-preview {
+  height: 360px;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 96px;
+}
+.character-lab canvas {
+  image-rendering: pixelated;
+  display: block;
+}
+.cl-preview canvas {
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+}
+.cl-ground-line {
+  position: absolute;
+  bottom: 96px;
+  left: 12%;
+  right: 12%;
+  border-top: 1px solid #ffffff35;
+}
+.cl-preview-label {
+  position: absolute;
+  bottom: 9px;
+  left: 18px;
+  font: 11px monospace;
+  color: #1b2923;
+}
+.cl-playback {
+  display: flex;
+  gap: 10px;
+  padding: 16px 20px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.cl-playback label {
+  margin: 0;
+  min-width: 64px;
+}
+.character-lab .cl-primary,
+.cl-pose-buttons .active {
+  background: #d8b975;
+  color: #232a27;
+  border-color: #d8b975;
+}
+.cl-pose-buttons {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 0 20px 16px;
+}
+.cl-pose-buttons button {
+  text-transform: capitalize;
+  padding: 6px 10px;
+  font-size: 12px;
+}
+.cl-held {
+  padding: 0 20px 12px;
+  max-width: 380px;
+}
+.cl-sheet {
+  display: flex;
+  justify-content: center;
+  background-image:
+    linear-gradient(#ffffff12 1px, transparent 1px),
+    linear-gradient(90deg, #ffffff12 1px, transparent 1px);
+  background-size: 25% 25%;
+}
+.cl-sheet canvas {
+  width: min(100%, 640px);
+  height: auto;
+}
+.cl-generation {
+  padding: 8px 20px 20px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.cl-generation label {
+  margin: 0;
+}
+.cl-generation span {
+  color: var(--cl-dim);
+  font: 12px monospace;
+}
+.cl-gallery canvas {
+  width: 100%;
+  height: auto;
+  cursor: crosshair;
+}
+.cl-gallery {
+  background-image: linear-gradient(90deg, #ffffff15 1px, transparent 1px);
+  background-size: 16.6667% 100%;
+}
+.cl-status {
+  overflow-wrap: anywhere;
+}
+.character-lab details {
+  padding: 18px;
+}
+.character-lab pre {
+  overflow: auto;
+  color: var(--cl-accent);
+  font-size: 12px;
+}
+.character-lab button:focus-visible,
+.character-lab input:focus-visible,
+.character-lab select:focus-visible {
+  outline: 2px solid var(--cl-accent);
+  outline-offset: 3px;
+}
+@media (max-width: 850px) {
+  .character-lab {
+    padding: 18px;
+  }
+  .cl-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .cl-layout {
+    grid-template-columns: 1fr;
+  }
+  .cl-controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .cl-controls h2,
+  .cl-controls > p {
+    grid-column: 1/-1;
+  }
+  .cl-controls h2:not(:first-child) {
+    margin-top: 0;
+  }
+  .cl-stage-top span {
+    display: none;
+  }
+  .cl-preview {
+    height: 320px;
+  }
+}
+
+.cl-preview canvas.cl-shadow {
+  position: absolute;
+  z-index: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+.cl-village {
+  height: 420px;
+  overflow: hidden;
+}

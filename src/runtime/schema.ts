@@ -1,3 +1,15 @@
+import {
+  hairStyles,
+  beardStyles,
+  garments,
+  headwear,
+  headShapes,
+  jawShapes,
+  bodyShapes,
+  postures,
+  sleeveStyles,
+  hemStyles,
+} from "../core/character";
 import { z } from "zod";
 import { settingSchema } from "../content/geography/types";
 const item = z.enum([
@@ -23,7 +35,47 @@ const point = z.object({
   y: z.number().int().min(-1000000).max(1000000),
 });
 const pos = point.extend({ space: z.string().max(100) });
+const pixelColor = z.string().regex(/^#[0-9a-fA-F]{6}$/);
+export const characterAppearanceSchema = z.object({
+  physique: z
+    .object({
+      strength: z.number().int().min(0).max(100),
+      sex: z.enum(["unspecified", "male", "female"]),
+    })
+    .optional(),
+  head: z.enum(headShapes).optional(),
+  jaw: z.enum(jawShapes).optional(),
+  bodyShape: z.enum(bodyShapes).optional(),
+  posture: z.enum(postures).optional(),
+  height: z.union([
+    z.literal(-2),
+    z.literal(-1),
+    z.literal(0),
+    z.literal(1),
+    z.literal(2),
+  ]),
+  build: z.union([z.literal(0), z.literal(1), z.literal(2)]),
+  skin: pixelColor,
+  hairColor: pixelColor,
+  hair: z.enum(hairStyles),
+  beard: z.enum(beardStyles),
+  wearing: z.object({
+    sleeves: z.enum(sleeveStyles).optional(),
+    hem: z.enum(hemStyles).optional(),
+    shoulderCloth: z.boolean().optional(),
+    garment: z.enum(garments),
+    color: pixelColor,
+    lowerColor: pixelColor,
+    trim: pixelColor,
+    cloak: z.boolean(),
+    cloakColor: pixelColor,
+    headwear: z.enum(headwear),
+    necklace: z.boolean(),
+    earrings: z.boolean(),
+  }),
+});
 const actor = z.object({
+  appearance: characterAppearanceSchema.optional(),
   age: z.number().int().min(0).max(120).optional(),
   householdId: z.string().optional(),
   relations: z

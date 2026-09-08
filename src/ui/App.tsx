@@ -1,4 +1,11 @@
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import {
+  lazy,
+  Suspense,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import Phaser from "phaser";
 import {
   ArrowRight,
@@ -40,6 +47,9 @@ import { WorldSetup } from "./WorldSetup";
 import { AtlasMap } from "./AtlasMap";
 import { toAtlas, fromAtlas } from "../world/v2/atlas";
 import { Sprite, Minimap, timeLabel } from "./components";
+const CharacterLab = lazy(() =>
+  import("../dev/CharacterLab").then((m) => ({ default: m.CharacterLab })),
+);
 export function App({
   runtime,
   writer,
@@ -53,6 +63,7 @@ export function App({
   const propControls = runtime.propControls();
   const [audio, setAudio] = useState<AudioDirector | null>(null);
   const [audioOpen, setAudioOpen] = useState(false);
+  const [characterOpen, setCharacterOpen] = useState(false);
   useEffect(() => {
     const director = new AudioDirector();
     setAudio(director);
@@ -102,6 +113,16 @@ export function App({
   }, [selection?.id]);
   useEffect(() => {
     const listener = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.code === "Digit3") {
+        e.preventDefault();
+        if (!e.repeat) {
+          setCharacterOpen((open) => !open);
+          setModal(null);
+          setAudioOpen(false);
+          runtime.stop();
+        }
+        return;
+      }
       if ((e.metaKey || e.ctrlKey) && e.code === "Digit1") {
         e.preventDefault();
         if (!e.repeat) {
@@ -112,6 +133,7 @@ export function App({
         return;
       }
       if (e.key === "Escape") {
+        setCharacterOpen(false);
         setAudioOpen(false);
         setModal(null);
         runtime.stop();
@@ -215,6 +237,14 @@ export function App({
     pack.evidence.find((e) => e.id === selection?.claim) ?? pack.evidence[0];
   return (
     <div className={`app ${!sidebar ? "sidebar-hidden" : ""}`}>
+      {characterOpen && (
+        <Suspense fallback={<div data-modal="true">Loading characters…</div>}>
+          <CharacterLab
+            runtime={runtime}
+            onClose={() => setCharacterOpen(false)}
+          />
+        </Suspense>
+      )}
       <header className="topbar">
         <div className="brand">
           <Compass size={24} />
@@ -955,6 +985,16 @@ export function App({
               <>
                 <div className="eyebrow">YOUR WORLD</div>
                 <h2>Settings & saved journeys</h2>
+                <button
+                  className="action"
+                  onClick={() => {
+                    runtime.stop();
+                    setModal(null);
+                    setCharacterOpen(true);
+                  }}
+                >
+                  Character lab · appearance & clothing
+                </button>
                 <button
                   className="action"
                   onClick={() =>

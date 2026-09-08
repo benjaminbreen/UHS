@@ -1,3 +1,4 @@
+import type { CharacterAppearance } from "./character";
 import type { LandscapeStyle } from "../content/graphics/landscapes";
 import type { WorldSetting } from "../content/geography/types";
 export type PackId = string;
@@ -54,6 +55,7 @@ export type Resource = {
   readyAt: number;
 };
 export type Actor = {
+  appearance?: CharacterAppearance;
   age?: number;
   householdId?: string;
   relations?: SocialRelation[];
@@ -289,6 +291,9 @@ export type Observation = {
     | "sprite"
     | "activity"
     | "direction"
+    | "age"
+    | "appearance"
+    | "held"
   >[];
   objects: WorldObject[];
   places: Place[];

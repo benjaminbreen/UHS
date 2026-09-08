@@ -6,6 +6,11 @@ import "./ui/style.css";
 import { registerWebMCP } from "./agents/webmcp";
 import { PropLabHost } from "./dev/PropLabHost";
 async function start() {
+  if (window.location.pathname === "/character-lab") {
+    const { CharacterLab } = await import("./dev/CharacterLab");
+    createRoot(document.getElementById("root")!).render(<CharacterLab />);
+    return;
+  }
   if (window.location.pathname === "/terrain-lab") {
     const { TerrainLab } = await import("./dev/TerrainLab");
     createRoot(document.getElementById("root")!).render(<TerrainLab />);
