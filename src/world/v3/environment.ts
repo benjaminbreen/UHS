@@ -1,3 +1,4 @@
+import { marshBasin } from "./wet-features";
 import type { WorldSetting } from "../../content/geography/types";
 import { ecologyProfiles } from "../../content/ecology/profiles";
 import { regionalLandforms } from "./landforms";
@@ -111,7 +112,13 @@ export function createEnvironment(
     if (regional) {
       const atlas = earth(x, y);
       const riverWidth = 4 + noise(seed, fx, fy, 130, "atlas-river-width") * 3;
-      const riverWater = atlas.river - riverWidth;
+      const bankShape =
+        (noise(seed, fx, fy, 13, "regional-coves") - 0.5) * 5 +
+        (noise(seed, fx, fy, 37, "regional-bars") - 0.5) * 3;
+      const riverWater = Math.min(
+        atlas.river - riverWidth - bankShape,
+        atlas.river - 2.5,
+      );
       const earthWater = Math.min(atlas.coast, riverWater);
       // Explorer recipes constrain a bounded starting area; beyond it the same
       // generator returns to Earth geography, rather than extending a coast forever.
@@ -141,11 +148,38 @@ export function createEnvironment(
       if (feature) {
         const type = feature.feature.kind;
         if (type === "river" || type === "sea" || type === "lake") {
-          water = feature.distance;
+          const localBank =
+            (noise(seed, fx, fy, 15, "feature-coves") - 0.5) * 5;
+          water =
+            type === "river" && Math.abs(feature.distance) < 9
+              ? feature.distance -
+                localBank * Math.max(0, 1 - Math.max(0, -feature.distance) / 4)
+              : feature.distance;
           kind = type;
           waterFlow = feature.flow;
         } else if (type === "land") water = Math.max(0.1, -feature.distance);
       }
+    }
+    // Real pools join the terrain sample before settlement siting and routing.
+    // A common basin center controls eligibility across every pixel of the pool.
+    const basin = marshBasin(seed, fx, fy, local.environment!.ecology);
+    if (
+      basin &&
+      basin.distance < 2 &&
+      water > shoreWidth + 5 &&
+      profile.moisture > 0.36 &&
+      basin.wet > 0.57 &&
+      field(
+        basin.x - (regional ? origin.x : 0),
+        basin.y - (regional ? origin.y : 0),
+      ) < 0.5 &&
+      !regional?.placeAt(x, y)
+    ) {
+      water = basin.distance;
+      kind = "lake";
+      shoreWidth = 0.5;
+      floodplain = 2.5;
+      waterFlow = [0, 0];
     }
     const moisture = Math.max(
       0.05,
@@ -209,29 +243,12 @@ export function createEnvironment(
 /** Local habitats vary inside the selected climatic envelope. */
 export function localEcology(
   s: WorldSetting,
-  seed: string,
-  x: number,
-  y: number,
-  f: LandSample,
+  _seed: string,
+  _x: number,
+  _y: number,
+  _f: LandSample,
 ) {
-  const base = s.environment!.ecology;
-  if (base === "tundra" || base === "boreal-woodland") return base;
-  if (f.water >= 0 && f.water < 9 && f.moisture > 0.67)
-    return "wetland" as const;
-  const cover = noise(seed, x, y, 45, "woods");
-  if (
-    (base === "temperate-woodland" || base === "tropical-woodland") &&
-    cover < 0.3
-  )
-    return "grassland" as const;
-  if (base === "grassland" && cover > 0.66 && f.moisture > 0.52)
-    return "temperate-woodland" as const;
-  if (
-    (base === "desert" || base === "dry-scrub") &&
-    f.water >= 0 &&
-    f.water < 10 &&
-    f.moisture > 0.28
-  )
-    return "grassland" as const;
-  return base;
+  // Local habitats retain their climatic envelope. Cover/wetness live in
+  // habitat metadata, so a tropical clearing never becomes temperate grassland.
+  return s.environment!.ecology;
 }

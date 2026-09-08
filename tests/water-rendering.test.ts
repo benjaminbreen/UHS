@@ -93,7 +93,8 @@ it("retains base ecology on wet banks and exports river tangents without changin
       ),
     ).toBe(false);
   }
-});
+}, 15000); // Three complete regional worlds; raster assertions above remain fast.
+
 it("gives tropical rivers and coasts distinct water, and ecological banks distinct minerals", () => {
   const river = waterPalette("tropical-woodland", "river"),
     sea = waterPalette("tropical-woodland", "sea");

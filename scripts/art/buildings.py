@@ -57,7 +57,7 @@ class Building:
         for x in range(5,self.front-3,8):
             d.rectangle((x,b-5,min(x+6,self.front),b-2),fill=shade)
             d.line((x+1,b-5,min(x+5,self.front),b-5),fill=light)
-        d.line((5,b+1,self.w-8,b+1),fill=(37,36,29,115))
+        d.line((5,b+1,self.w-8,b+1),fill=(30,34,26,155))
 
     def recess(self,x,y,width,height,door=False,niche=False):
         d=self.d;dark,shade,base,light,hi=self.p['wall']

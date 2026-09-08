@@ -113,7 +113,7 @@ def paint_world(S):
     for name in ['oak','olive','hackberry','acacia','cypress']:S[name]=tree(name)
     for name in ['bush','flowers','flax']:
         im,d=canvas(24,26)
-        pal=['#294e32','#365f35','#507d37','#73973f','#94b64c','#b7c964']
+        pal=['#20452e','#2f5930','#487b31','#759c36','#a3be49','#cdd771']
         for i,(cx,cy,rx,ry) in enumerate([(9,15,7,7),(15,13,6,8),(18,18,5,5)]):crown(im,cx,cy,rx,ry,pal,55+i)
         if name!='bush':
             for x,y in [(5,10),(13,5),(19,12)]:
@@ -123,11 +123,11 @@ def paint_world(S):
     for variant in range(3):
         im,d=canvas(32,28)
         for ox,oy,size in ([(2,8,16),(16,13,12)] if variant!=1 else [(6,5,21)]):
-            d.polygon([(ox,oy+5),(ox+4,oy),(ox+size-3,oy+1),(ox+size,oy+6),(ox+size-1,oy+14),(ox+5,oy+16),(ox,oy+12)],fill='#4d5a4c')
-            d.polygon([(ox+1,oy+5),(ox+5,oy+1),(ox+size-4,oy+2),(ox+size-1,oy+6),(ox+size-5,oy+10),(ox+5,oy+9)],fill='#a5ad91')
-            d.line((ox+5,oy+1,ox+size-4,oy+2),fill='#d2cfad',width=2)
-            d.polygon([(ox+5,oy+10),(ox+size-5,oy+10),(ox+size-2,oy+7),(ox+size-3,oy+14),(ox+6,oy+15)],fill='#77826e')
-            d.line((ox+6,oy+11,ox+6,oy+14),fill='#596450')
+            d.polygon([(ox,oy+5),(ox+4,oy),(ox+size-3,oy+1),(ox+size,oy+6),(ox+size-1,oy+14),(ox+5,oy+16),(ox,oy+12)],fill='#3e514c')
+            d.polygon([(ox+1,oy+5),(ox+5,oy+1),(ox+size-4,oy+2),(ox+size-1,oy+6),(ox+size-5,oy+10),(ox+5,oy+9)],fill='#aab5a6')
+            d.line((ox+5,oy+1,ox+size-4,oy+2),fill='#dde0c3',width=2)
+            d.polygon([(ox+5,oy+10),(ox+size-5,oy+10),(ox+size-2,oy+7),(ox+size-3,oy+14),(ox+6,oy+15)],fill='#73877e')
+            d.line((ox+6,oy+11,ox+6,oy+14),fill='#465f57')
         S['rock' if variant==0 else f'rock-{variant}']=im
     im,d=canvas(24,36)
     for x,y in [(3,14),(7,9),(12,5),(17,11),(21,16)]:

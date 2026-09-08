@@ -1,3 +1,5 @@
+import { paintedGround } from "./material-edges";
+import { rasterHabitatTile, type GroundTileData } from "./habitat-raster";
 import { rasterWaterTile, type WaterTileData } from "./water-raster";
 import {
   addWaterEffects,
@@ -26,6 +28,7 @@ export function drawTopography(
   region?: TerrainRegion,
   bridges?: BridgeSpan[],
   waterTiles?: WaterTileData[],
+  groundTiles?: GroundTileData[],
 ) {
   // Static ground is composed into small canvas pages, rather than keeping
   // tens of thousands of ground/blend GameObjects in every animation frame.
@@ -34,6 +37,8 @@ export function drawTopography(
   const tinted = new Map<string, HTMLCanvasElement>();
   const shoreTiles = new Map<string, HTMLCanvasElement>();
   const effects: WaterEffect[] = [];
+  let groundScratch: HTMLCanvasElement | undefined;
+  const preparedGround = new Map(groundTiles?.map((t) => [`${t.x},${t.y}`, t]));
   let waterScratch: HTMLCanvasElement | undefined;
   const preparedWater = new Map(waterTiles?.map((t) => [`${t.x},${t.y}`, t]));
   const image = (
@@ -218,13 +223,30 @@ export function drawTopography(
           shoreTiles.set(key, painted);
         }
       }
+      if (paintedGround(c)) {
+        const tile =
+          preparedGround.get(`${x},${y}`) ??
+          rasterHabitatTile(sample, x, y, region?.x ?? 0, region?.y ?? 0);
+        groundScratch ??= document.createElement("canvas");
+        groundScratch.width = groundScratch.height = 16;
+        const ctx = groundScratch.getContext("2d")!;
+        const data = ctx.createImageData(16, 16);
+        data.data.set(tile.pixels);
+        ctx.putImageData(data, 0, 0);
+        painted = groundScratch;
+        if (c.waterVisual && c.height === 0 && c.waterVisual.distance < 1)
+          effects.push(
+            rasterWaterTile(sample, x, y, region?.x ?? 0, region?.y ?? 0)
+              .effect,
+          );
+      }
       if (!bakedWater.has(`${x},${y}`))
         image(
           x * 16,
           c.bridge ? y * 16 : top,
           `${c.bridge ? "water" : material === "gravel" && !shoreline ? "grass" : material}-${variant}`,
           depth,
-          c.surface === "grass"
+          !painted && c.surface === "grass"
             ? c.height === 0
               ? 0xd2e2be
               : c.height === 2
@@ -233,12 +255,12 @@ export function drawTopography(
             : 0xffffff,
           painted,
         );
-      if (c.surface === "gravel" && !shoreline) {
+      if (c.surface === "gravel" && !shoreline && !paintedGround(c)) {
         const connections =
           contourMask(sample, x, y, (n) => n.surface === "gravel") & 15;
         image(x * 16, top, `channel-${connections}`, depth + 0.15);
       }
-      if (c.surface !== "water") {
+      if (c.surface !== "water" && !paintedGround(c)) {
         for (const surface of priority
           .slice(priority.indexOf(c.surface) + 1)
           .filter((s) => s !== "gravel")) {
@@ -246,12 +268,17 @@ export function drawTopography(
             sample,
             x,
             y,
-            (n) => n.surface === surface && n.height === c.height && !n.bridge,
+            (n) =>
+              n.surface === surface &&
+              n.height === c.height &&
+              !n.bridge &&
+              !(paintedGround(c) && paintedGround(n)),
           );
           if (mask) image(x * 16, top, `blend-${surface}-${mask}`, depth + 0.1);
         }
       }
       if (
+        !c.habitat &&
         (c.surface === "grass" || c.surface === "damp") &&
         variant === 3 &&
         random("flora", worldX, worldY) < 0.18

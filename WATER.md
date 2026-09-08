@@ -27,3 +27,7 @@ The procedural explorer animates water while keeping its simulation/actors froze
 `tests/water-rendering.test.ts` checks pixel/anchor parity at positive and negative chunk origins, continuous bed interpolation, ecological metadata, downstream tangents, water blocking and distinct materials. `tests/browser/water-rendering.spec.ts` checks five climate/water combinations, animation/pause, unchanged simulation state, camera movement, atlas survival after chunk eviction, 2× detail captures, preview/play teardown and frame timings. The existing bridge browser check covers real-time crossings and painter order. Screenshots are `artifacts/water-*.png`.
 
 No save restoration work or new hydrology model is included. Rocky foam supports raised banks, but the environmental generator still generally creates a low coastal margin; this pass does not create a new cliff-coast landform.
+
+## Local bank and marsh refinement — September 8, 2026
+
+Sparse independent riverbank coves/bars and admitted small marsh basins add local variation before siting. Banks and water share a native-pixel signed edge mask; wash animation follows cached shoreline pixels. Low pool margins use muted wet soil and shallow water. This does not replace the existing reach planner with a watershed simulation. See `TERRAIN_ART.md`.

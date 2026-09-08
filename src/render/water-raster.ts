@@ -1,3 +1,4 @@
+import { shoreDistance, shorePixel } from "./material-edges";
 import type { TopographyCell, TopographySample } from "../core/topography";
 import { TERRAIN_RISE } from "./terrain-projection";
 import {
@@ -17,6 +18,7 @@ export type WaterEffect = {
   cell: TopographyCell;
   palette: WaterPalette;
   edges: { dx: number; dy: number; rocky: boolean }[];
+  shoreline?: { x: number; y: number; distance: number }[];
 };
 export type WaterTileData = {
   x: number;
@@ -62,6 +64,7 @@ export function rasterWaterTile(
     ...palette.stone,
   ].map(rgba);
   const pixels = new Uint8ClampedArray(16 * 16 * 4);
+  const shoreline: { x: number; y: number; distance: number }[] = [];
   for (let py = 0; py < 16; py++)
     for (let px = 0; px < 16; px++) {
       const wx = gx + px,
@@ -86,6 +89,7 @@ export function rasterWaterTile(
         (wy & 3) === ((wx & 7) > 3 ? 1 : 2)
       )
         index += 5;
+      const surfaceIndex = index;
       const edge = Math.min(
         99,
         ...edges.map(({ dx, dy }) =>
@@ -107,6 +111,28 @@ export function rasterWaterTile(
         waterHash(Math.floor(wx / 8), Math.floor(wy / 8), 18) > 0.56
       )
         index = edges.some((e) => e.rocky) ? 13 : 10;
+      if (cell.habitat && !cell.bridge) {
+        const d =
+          distance < -1.2
+            ? distance
+            : shoreDistance(
+                sample,
+                x + (px + 0.5) / 16,
+                y + (py + 0.5) / 16,
+                ox,
+                oy,
+              );
+        if (d > -0.5 && d < 0) shoreline.push({ x: px, y: py, distance: d });
+        // Original grid-aligned lips are superseded by the shared shoreline.
+        index = surfaceIndex;
+        if (
+          d > -0.12 ||
+          (kind === "lake" && (cell.waterVisual?.shoreWidth ?? 3) < 1)
+        ) {
+          pixels.set([...shorePixel(cell, d, wx, wy), 255], (py * 16 + px) * 4);
+          continue;
+        }
+      }
       pixels.set(colors[index], (py * 16 + px) * 4);
     }
   // Submerged stones are deliberately sparse, tinted by the water column.
@@ -153,6 +179,7 @@ export function rasterWaterTile(
       cell,
       palette,
       edges,
+      shoreline: cell.habitat && !cell.bridge ? shoreline : undefined,
     } satisfies WaterEffect,
   };
 }

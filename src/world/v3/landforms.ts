@@ -1,3 +1,4 @@
+import { bankOffset } from "./wet-features";
 import { noise } from "../v2/noise";
 import { random } from "../../core/random";
 import type { WorldSetting } from "../../content/geography/types";
@@ -139,15 +140,19 @@ export function regionalLandforms(
     }
     const bank = noise(seed, nearest + 37, side * 87, 31, "river-bank");
     const width =
-      4 + noise(seed, nearest + 11, 0, 76, "river-width") * 4 + bank * 2;
+      4 +
+      noise(seed, nearest + 11, 0, 76, "river-width") * 4 +
+      bank * 2 +
+      bankOffset(seed, nearest, side);
     return {
       water:
-        distance - width + (noise(seed, x, y, 9, "bank-chips") - 0.5) * 1.3,
+        distance - width + (noise(seed, x, y, 15, "bank-chips") - 0.5) * 0.6,
       waterFlow: (s.water === "river-ew"
         ? [1, tangent]
         : [tangent, 1]) as readonly [number, number],
       floodplain: 0.7 + noise(seed, nearest, side * 131, 47, "floodplain") * 12,
-      shoreWidth: 0.6 + bank * 3.6,
+      shoreWidth:
+        0.8 + bank * 2.8 + Math.max(0, -bankOffset(seed, nearest, side)) * 0.55,
       // A carved longitudinal bed drops monotonically along the selected outflow.
       bed: -nearest * 0.002 - 2,
     };

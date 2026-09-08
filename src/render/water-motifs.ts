@@ -293,7 +293,12 @@ export function waterCharm(e: WaterEffect): WaterMotif | undefined {
 }
 /** At most one surface motif per 2×2 cell block, with additional empty blocks. */
 export function waterMotif(e: WaterEffect): WaterMotif | undefined {
-  if (e.cell.bridge) return;
+  if (
+    e.cell.bridge ||
+    e.cell.surface !== "water" ||
+    (e.cell.habitat && (e.cell.waterVisual?.distance ?? -3) > -0.7)
+  )
+    return;
   const charm = waterCharm(e);
   if (charm) return charm;
   const bx = Math.floor(e.gx / 32),

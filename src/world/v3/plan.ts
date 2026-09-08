@@ -64,11 +64,7 @@ export function planSettlement(
       if (f.water < 0 && !bridges.has(k)) return;
       plan.surface.set(
         k,
-        f.water < 0
-          ? "bridge"
-          : profile.paved && road.width > 0
-            ? "paving"
-            : "dirt",
+        f.water < 0 ? "bridge" : profile.paved ? "paving" : "dirt",
       );
       roads.add(k);
       plan.reserved.add(k);
@@ -230,9 +226,7 @@ export function planSettlement(
           nearest,
           p,
           `neighborhood${accepted}`,
-          accepted === 0 && profile.paved && pack.setting?.settlement !== "camp"
-            ? 1
-            : 0,
+          accepted === 0 && pack.setting?.settlement !== "camp" ? 1 : 0,
         )
       )
         continue;

@@ -11,7 +11,13 @@ export type GroundSurface =
   | "snow";
 export type Direction = "n" | "e" | "s" | "w";
 export type TerrainPoint = { x: number; y: number };
+export type PathStroke = {
+  a: readonly [number, number];
+  b: readonly [number, number];
+  radius: number;
+};
 export type TopographyCell = {
+  pathArt?: PathStroke[];
   height: HeightTier;
   biome?:
     | "wetland"
@@ -19,9 +25,11 @@ export type TopographyCell = {
     | "dry-upland"
     | import("../content/ecology/profiles").Ecology;
   moisture?: number;
+  streetMaterial?: import("../content/settlements/streets").StreetMaterial;
+  habitat?: import("../world/v3/habitats").Habitat;
   surface: GroundSurface;
   /** Continuous gravel ground versus the legacy shallow drainage overlay. */
-  feature?: "bank" | "paving";
+  feature?: "bank" | "paving" | "field";
   waterDepth?: "shallow" | "deep";
   /** Presentation metadata only: does not change water collision or simulation. */
   waterVisual?: {

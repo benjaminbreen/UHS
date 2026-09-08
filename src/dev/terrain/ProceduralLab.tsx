@@ -18,6 +18,7 @@ import { places } from "../../content/geography/places";
 import { App } from "../../ui/App";
 
 type Config = {
+  place?: string;
   seed: string;
   ecology: (typeof ecologies)[number];
   landform: (typeof landforms)[number];
@@ -155,11 +156,16 @@ function readConfig(): Config {
     "season",
   ] as const)
     if (q.has(key)) (c as any)[key] = q.get(key);
+  if (q.has("place") && places.some((p) => p.id === q.get("place")))
+    c.place = q.get("place")!;
   if (q.has("year")) c.year = Number(q.get("year"));
   return c;
 }
 export function labSetting(c: Config): WorldSetting {
-  const base = settingFor(places.find((p) => p.id === "konya")!, c.year);
+  const base = settingFor(
+    places.find((p) => p.id === (c.place ?? "konya"))!,
+    c.year,
+  );
   const climate: Record<Config["ecology"], WorldSetting["climate"]> = {
     grassland: "temperate",
     "temperate-woodland": "temperate",
@@ -172,7 +178,9 @@ export function labSetting(c: Config): WorldSetting {
   };
   return {
     ...base,
-    location: `${ecologyProfiles[c.ecology].label} · procedural study`,
+    location: c.place
+      ? `${base.location} · street study`
+      : `${ecologyProfiles[c.ecology].label} · procedural study`,
     terrainRevision: 2,
     environment: {
       ecology: c.ecology,

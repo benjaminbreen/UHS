@@ -1,3 +1,13 @@
+## Habitat, path and material polish — September 8, 2026
+
+Checkpointed the previously integrated work as `96edf47`; no remote is configured, so the requested push could not be completed. The subsequent visual work is uncommitted for review.
+
+Added ecological habitat fields, clustered vegetation, original native-pixel transition silhouettes and ground clumps. Local riverbanks gain independent coves/bars, and eligible marsh hollows can contain authoritative shallow pools. Ground and water share shoreline masks. Continuous art strokes simplify staircase footpaths without changing the generated route, endpoints or movement rules. Dated content profiles select basalt, cobble, slab or brick paving; the regional-road overlay now preserves paved surfaces.
+
+The final reference-guided pass enriches ecological palettes, gives dirt paths a light worn center and dark shoulder, adds restrained grouped earth texture and grass overlaps, and confines interlocking pixel blends to narrow habitat seams. Original building material ramps, foliage highlights and rock planes have stronger separation; foundation contacts are deeper. Assets were rebuilt from their code recipes. Quiet interiors and the original scale/layout remain. This is not a reconstruction of the dense Roman courtyard layout in the reference.
+
+Review: `artifacts/polish-review/index.html` contains matching rural before/after plus Rome 100 CE, desert, marsh and northern grassland captures. See `TERRAIN_ART.md` for architecture and material interpretation. Twenty-one focused terrain/water/street tests and the production build passed. The broader regional-composition suite had density and timeout failures; the density failure (8 versus 20 households) also reproduces at checkpoint `96edf47`. No save restoration work was performed.
+
 ## Integrated regional world generation — September 8, 2026
 
 Implemented shared production geography for new procedural/World Weaver worlds (`geographyRevision: 1`, terrain revision 2). The explorer now enters the same pipeline with bounded starting overrides. Earth coastlines/rivers and broad relief constrain local terrain; dated regional files can supply named settlement footprints, open land, water geometry and connections. Districts index multiple places/neighborhoods rather than defining one town. Buildings respect shared footprints and land-use exclusions; local roads and regional routes share generation and are reserved before building placement.

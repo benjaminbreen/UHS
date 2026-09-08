@@ -104,6 +104,7 @@ export function settlementProfile(
     p.fields = s.year >= -9999 ? "grouped" : "none";
     p.livestock = s.year >= -9999;
   }
+  if (s.settlement === "city" || s.settlement === "port") p.paved = true;
   if (s.settlement === "camp") {
     p.buildings = 4;
     p.radius = 54;

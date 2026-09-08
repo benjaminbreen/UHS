@@ -1,3 +1,5 @@
+import { paintedGround } from "./material-edges";
+import { rasterHabitatTile, type GroundTileData } from "./habitat-raster";
 import { rasterWaterTile, type WaterTileData } from "./water-raster";
 import type { Pack, WorldModel } from "../core/types";
 import { createSettlementWorld } from "../world/v3/generate";
@@ -19,6 +21,7 @@ export type TerrainResponse = {
   cells: TopographyCell[];
   bridges: BridgeSpan[];
   waterTiles: WaterTileData[];
+  groundTiles: GroundTileData[];
 };
 let world: WorldModel;
 export function handleTerrainRequest(data: TerrainRequest) {
@@ -54,21 +57,34 @@ export function handleTerrainRequest(data: TerrainRequest) {
       }
     const layers = rasterTerrainContours(sample, SIZE, SIZE, covers, region);
     const waterTiles: WaterTileData[] = [];
+    const groundTiles: GroundTileData[] = [];
     const cachedSample = (x: number, y: number) =>
       cells[(y + PAD) * (SIZE + PAD * 2) + x + PAD];
     for (let y = 0; y < SIZE; y++)
       for (let x = 0; x < SIZE; x++) {
         const cell = cachedSample(x, y);
+        if (paintedGround(cell))
+          groundTiles.push(
+            rasterHabitatTile(cachedSample, x, y, region.x, region.y),
+          );
         if (cell.surface === "water" || cell.bridge)
           waterTiles.push(
             rasterWaterTile(cachedSample, x, y, region.x, region.y),
           );
       }
     self.postMessage(
-      { id, layers, cells, bridges, waterTiles } satisfies TerrainResponse,
+      {
+        id,
+        layers,
+        cells,
+        bridges,
+        waterTiles,
+        groundTiles,
+      } satisfies TerrainResponse,
       {
         transfer: [
           ...layers.map((l) => l.pixels.buffer),
+          ...groundTiles.map((t) => t.pixels.buffer),
           ...waterTiles.map((t) => t.pixels.buffer),
         ],
       },

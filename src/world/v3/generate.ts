@@ -1,3 +1,6 @@
+import { pathArt } from "./path-art";
+import { streetMaterial } from "../../content/settlements/streets";
+import { habitatAt, habitatTree } from "./habitats";
 import { createRegionalContext } from "../regional/context";
 import { regionalSettlements } from "../regional/settlements";
 import { regionalTransport } from "../regional/transport";
@@ -345,6 +348,25 @@ export function createSettlementWorld(
     roadCache.set(key, tiles);
     return tiles;
   }
+  const habitatCache = new Map<string, ReturnType<typeof habitatAt>>();
+  function habitat(x: number, y: number) {
+    const key = cellKey(x, y);
+    let value = habitatCache.get(key);
+    if (!value) {
+      const setting = regional?.settingAt(x, y) ?? pack.setting!;
+      value = habitatAt(
+        setting.environment!.ecology,
+        setting.season,
+        seed,
+        x + land.origin.x,
+        y + land.origin.y,
+        land.sample(x, y),
+      );
+      if (habitatCache.size >= 65536) habitatCache.clear();
+      habitatCache.set(key, value);
+    }
+    return value;
+  }
   function ground(x: number, y: number): Terrain {
     const f = land.sample(x, y);
     if (
@@ -456,21 +478,16 @@ export function createSettlementWorld(
       cover = noise(seed, x + land.origin.x, y + land.origin.y, 45, "woods");
     const tree =
       (!regional || ground(x, y) !== "rock") &&
-      x % 3 === 0 &&
-      y % 3 === 0 &&
-      n <
-        (environment
-          ? ecologyProfiles[
-              localEcology(
-                regional?.settingAt(x, y) ?? pack.setting!,
-                seed,
-                x + (regional ? land.origin.x : 0),
-                y + (regional ? land.origin.y : 0),
-                f,
-              )
-            ].trees *
-            (0.4 + cover)
-          : f.moisture * cover * 0.38);
+      (environment
+        ? f.water > (f.shoreWidth ?? 3) &&
+          habitatTree(
+            habitat(x, y),
+            seed,
+            x + land.origin.x,
+            y + land.origin.y,
+            ecologyProfiles[habitat(x, y).ecology].trees,
+          )
+        : x % 3 === 0 && y % 3 === 0 && n < f.moisture * cover * 0.38);
     const sprite =
       relief && f.water < 3 && n < 0.09
         ? "rock"
@@ -490,11 +507,18 @@ export function createSettlementWorld(
               ? pack.trees[
                   Math.floor(random(seed, "v3-tree", x, y) * pack.trees.length)
                 ]
-              : n < 0.006
+              : n <
+                  (environment ? 0.002 + habitat(x, y).exposed * 0.017 : 0.006)
                 ? "rock"
-                : n < (environment ? 0.006 + f.moisture * 0.015 : 0.015)
+                : n <
+                    (environment
+                      ? 0.003 +
+                        Math.max(0, habitat(x, y).cover - 0.35) *
+                          0.16 *
+                          (habitat(x, y).ecology === "desert" ? 0.2 : 1)
+                      : 0.015)
                   ? "bush"
-                  : relief && n < 0.035 && f.moisture > 0.5 && f.moisture < 0.73
+                  : relief && n < 0.016 && f.moisture > 0.5 && f.moisture < 0.73
                     ? "flowers"
                     : undefined;
     return sprite
@@ -508,6 +532,10 @@ export function createSettlementWorld(
       : undefined;
   }
   const reliefCache = new Map<string, TopographyCell>();
+  const pathArtCache = new WeakMap<
+    SettlementPlan,
+    ReturnType<typeof pathArt>
+  >();
   const roadCenters = new WeakMap<SettlementPlan, Set<string>>();
   const bridgeDecks = new WeakMap<SettlementPlan, Set<string>>();
   function rawCell(x: number, y: number): TopographyCell {
@@ -528,6 +556,7 @@ export function createSettlementWorld(
     if (t === "bridge") height = 1;
     const cell = reliefCell(height, f.water, f.moisture);
     if (environment) {
+      cell.habitat = habitat(x, y);
       cell.waterVisual = {
         distance: f.water,
         kind: f.kind,
@@ -561,21 +590,35 @@ export function createSettlementWorld(
       }
     } else if (height === 0 && f.water >= 0) cell.surface = "gravel";
     if (t === "bridge") return { ...cell, surface: "soil", bridge: true };
-    if (t === "field") cell.surface = "soil";
+    if (t === "field") {
+      cell.surface = "soil";
+      cell.feature = "field";
+    }
     if (t === "rock") cell.surface = "gravel";
     if (t === "paving") {
       cell.surface = environment ? "gravel" : "soil";
-      if (environment) cell.feature = "paving";
+      if (environment) {
+        cell.feature = "paving";
+        cell.streetMaterial = streetMaterial(
+          regional?.settingAt(x, y) ?? pack.setting!,
+        );
+      }
     }
-    if (regional && regionalRoads(x, y).has(cellKey(x, y)))
-      cell.surface = "soil";
+    if (regional && regionalRoads(x, y).has(cellKey(x, y)) && t !== "paving") {
+      const local = regional.settingAt(x, y);
+      if (regional.placeAt(x, y) && settlementProfile(local).paved) {
+        cell.surface = "gravel";
+        cell.feature = "paving";
+        cell.streetMaterial = streetMaterial(local);
+      } else cell.surface = "soil";
+    }
     if (t === "dirt")
       for (const p of nearby(x, y)) {
         let center = roadCenters.get(p);
         if (!center) {
-          center = new Set(
-            p.roads.flatMap((r) => r.points.map((q) => cellKey(q.x, q.y))),
-          );
+          center = new Set<string>();
+          for (const road of p.roads)
+            roadCells(road, (a, b) => center!.add(cellKey(a, b)));
           roadCenters.set(p, center);
         }
         const doorstep = p.places.some(
@@ -592,6 +635,27 @@ export function createSettlementWorld(
         )
           cell.surface = "soil";
       }
+    if (
+      environment &&
+      cell.surface !== "water" &&
+      !cell.bridge &&
+      !cell.feature
+    ) {
+      const strokes = nearby(x, y).flatMap((p) => {
+        let index = pathArtCache.get(p);
+        if (!index) {
+          index = pathArt(p.site.profile.paved ? [] : p.roads);
+          pathArtCache.set(p, index);
+        }
+        return index.get(cellKey(x, y)) ?? [];
+      });
+      if (strokes.length)
+        cell.pathArt = strokes.map((s) => ({
+          a: [s.a[0] - x, s.a[1] - y],
+          b: [s.b[0] - x, s.b[1] - y],
+          radius: s.radius,
+        }));
+    }
     return cell;
   }
   const slopePlans = new Map<string, Map<string, "n" | "s" | "e" | "w">>();

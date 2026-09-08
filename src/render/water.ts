@@ -165,7 +165,10 @@ export function addWaterEffects(scene: Phaser.Scene, effects: WaterEffect[]) {
     effects,
     frame: -1,
     active: 0,
-    shores: effects.filter((e) => e.edges.length && !e.cell.bridge),
+    shores: effects.filter(
+      (e) =>
+        (e.shoreline ? e.shoreline.length : e.edges.length) && !e.cell.bridge,
+    ),
     bounds: {
       x: Math.min(...effects.map((e) => e.x)),
       y: Math.min(...effects.map((e) => e.y)),
@@ -197,6 +200,34 @@ function drawEffects(patch: Patch, frame: number) {
     // Suppress the entire crossing tile so foam/current never paint over the deck.
     if (cell.bridge) continue;
     const kind = cell.waterVisual?.kind ?? "river";
+    if (e.shoreline) {
+      // March a sparse broken wash through a precomputed distance band. The
+      // bank pixel and the moving water use exactly the same native-pixel contour.
+      for (const p of e.shoreline) {
+        const wx = gx + p.x,
+          wy = gy + p.y;
+        const group = waterHash(Math.floor(wx / 12), Math.floor(wy / 12), 383);
+        const sea = kind === "sea";
+        if (group < (sea ? 0.43 : 0.79)) continue;
+        const phase = ((frame + Math.floor(group * 60)) % 80) / 80;
+        if (phase > 0.68) continue;
+        const life = Math.sin((phase / 0.68) * Math.PI);
+        const target = -0.1 - (1 - life) * (sea ? 0.26 : 0.08);
+        if (Math.abs(p.distance - target) > 0.045) continue;
+        g.fillStyle(
+          color(
+            cell.waterVisual?.frozenMargin
+              ? "#d8e7e4"
+              : sea
+                ? palette.foam
+                : palette.glint,
+          ),
+          life * (sea ? 0.65 : 0.25),
+        );
+        g.fillRect(x + p.x, y + p.y, 1, 1);
+      }
+      continue;
+    }
     // Two long broken wavelets with substantial quiet gaps; no flashing outline.
     for (const { dx, dy, rocky } of edges) {
       for (let segment = 0; segment < 2; segment++) {

@@ -56,3 +56,7 @@ Settlement sites favor level dry ground with reasonable water proximity. The org
 Generation-only road searches support diagonal steps with four-connected rasterization and full footprint validation. They use a bounded 5,000-node weighted search and memoized ground preferences; ordinary runtime routing defaults are unchanged. Expensive reach/pass results are cached. Renderer chunk ownership and worker dispatch remain shared with playable worlds. Wilderness previews frame nearby water and offer player centering without changing the start position.
 
 `tests/regional-composition.test.ts` verifies reach continuity/order/eviction, connected water and varied margins, and reachable household entrances for rolling, dense plain, ridge and basin worlds. `tests/browser/regional-composition.spec.ts` supplies uninhabited geography review images alongside the six populated/ecological presets in the existing browser check.
+
+## Habitat and edge art — September 8, 2026
+
+Configured terrain now includes connected local habitat fields, ecological ground palettes, original pixel transition silhouettes, clustered grass glyphs and less regular tree placement. Continuous path art follows simplified route strokes while movement uses the generated route. Dated street profiles select shared paving materials. See `TERRAIN_ART.md` for implementation, scope, review captures and known checks.
