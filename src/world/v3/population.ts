@@ -14,7 +14,8 @@ export function populateHouseholds(
   plan: SettlementPlan,
   seed: string,
 ) {
-  const form = world.pack.setting!.environment!.household;
+  const pack = plan.site.pack ?? world.pack;
+  const form = pack.setting!.environment!.household;
   for (const [owner, sites] of plan.work) {
     if (world.households!.some((h) => h.members.includes(owner))) continue;
     const place = plan.places.find((p) => p.owner === owner)!;
@@ -66,8 +67,8 @@ export function populateHouseholds(
             : "partner";
       const a: Actor = {
         id: memberId,
-        name: world.pack.names[
-          Math.floor(random(seed, memberId, "name") * world.pack.names.length)
+        name: pack.names[
+          Math.floor(random(seed, memberId, "name") * pack.names.length)
         ],
         role: child ? "Child" : elder ? "Elder" : "Gatherer",
         kind: "human",
@@ -151,8 +152,6 @@ export function addWildResources(
   x: number,
   y: number,
 ) {
-  const cfg = world.pack.setting!.environment!,
-    eco = ecologyProfiles[cfg.ecology];
   let done = populated.get(world);
   if (!done) {
     done = new Set();
@@ -177,6 +176,8 @@ export function addWildResources(
               iy * 16 +
               3 +
               Math.floor(random(seed, k, ix, iy, "ry") * 9);
+          const localPack = world.geography?.packAt(px, py) ?? world.pack;
+          const eco = ecologyProfiles[localPack.setting!.environment!.ecology];
           if (
             world.blocked(px, py, "outside") ||
             world.protectedCell?.(px, py) ||
@@ -188,7 +189,7 @@ export function addWildResources(
             continue;
           if (
             random(seed, k, ix, iy, "present") >
-            (cfg.ecology === "desert" ? 0.12 : 0.72)
+            (localPack.setting!.environment!.ecology === "desert" ? 0.12 : 0.72)
           )
             continue;
           const local = world.topography?.(px, py).biome;
@@ -202,14 +203,14 @@ export function addWildResources(
             ];
           const item = type === "grazing" ? "fodder" : type;
           const availability =
-            cfg.ecology === "tropical-woodland"
+            localPack.setting!.environment!.ecology === "tropical-woodland"
               ? seasons
               : type === "fruit"
                 ? ["summer", "autumn"]
                 : type === "berries"
                   ? ["summer", "autumn"]
                   : seasons;
-          const available = availability.includes(world.pack.setting!.season);
+          const available = availability.includes(localPack.setting!.season);
           const sprite =
             type === "fruit"
               ? "ecology-fruit-tree"

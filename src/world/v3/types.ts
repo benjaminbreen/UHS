@@ -15,6 +15,10 @@ export type Site = {
   center: Point;
   home: boolean;
   profile: SettlementProfile;
+  name?: string;
+  namedId?: string;
+  pack?: import("../../core/types").Pack;
+  accepts?(x: number, y: number): boolean;
 };
 export type Road = {
   id: string;

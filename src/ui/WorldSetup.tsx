@@ -1,3 +1,5 @@
+import { eras } from "../content/history/dates";
+import { cultures } from "../content/history/types";
 import { useEffect, useRef, useState } from "react";
 import { createSession, createSettingSession } from "../runtime/session";
 import type { Engine } from "../core/engine";
@@ -64,6 +66,19 @@ export function WorldSetup({
     setLegacy("");
     setError("");
   };
+  const randomize = () => {
+    const draws = crypto.getRandomValues(new Uint32Array(5));
+    const family = cultures[draws[0] % cultures.length][0];
+    const candidates = places.filter((p) => p.culture === family);
+    const selected = candidates[draws[1] % candidates.length];
+    const era = eras[draws[2] % eras.length];
+    const low = era.start?.year ?? -39999;
+    const high = era.end?.year ?? new Date().getFullYear() + 1;
+    choose(selected.id);
+    setYear(String(low + (draws[3] % (high - low))));
+    setSeed(`world-${draws[4].toString(36)}`);
+    setPattern("");
+  };
   const begin = async () => {
     setError("");
     setBusy(true);
@@ -127,6 +142,9 @@ export function WorldSetup({
     <>
       <div className="eyebrow">WORLD WEAVER · EARTH, REIMAGINED</div>
       <h2>Where will you begin?</h2>
+      <button disabled={busy} onClick={randomize}>
+        Random place &amp; era
+      </button>
       <button
         disabled={busy}
         onClick={() =>

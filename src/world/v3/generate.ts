@@ -1,3 +1,7 @@
+import { createRegionalContext } from "../regional/context";
+import { regionalSettlements } from "../regional/settlements";
+import { regionalTransport } from "../regional/transport";
+import type { GeographicArea } from "../../core/geography";
 import { createEnvironment, localEcology } from "./environment";
 import { ecologyProfiles } from "../../content/ecology/profiles";
 import { populateHouseholds, addWildResources } from "./population";
@@ -24,11 +28,14 @@ export function createSettlementWorld(
   pack: Pack,
   seed: string,
 ): SettlementWorld {
+  const regional = pack.setting?.geographyRevision
+    ? createRegionalContext(pack.setting)
+    : undefined;
   const relief = !!pack.setting?.terrainRevision;
   const environment =
     pack.setting?.terrainRevision === 2 ? pack.setting.environment : undefined;
   const land = environment
-      ? createEnvironment(pack.setting!, seed)
+      ? createEnvironment(pack.setting!, seed, regional)
       : relief
         ? createReliefLandscape(pack.setting!, seed)
         : createLandscape(pack.setting!, seed),
@@ -36,15 +43,43 @@ export function createSettlementWorld(
     plans = new Map<string, SettlementPlan>(),
     links = new Map<string, Road[]>(),
     active = new Set<string>();
+  const regionalPlanner = regional
+    ? regionalSettlements(regional, land.sample, seed)
+    : undefined;
+  const transport =
+    regional && regionalPlanner
+      ? regionalTransport(regional, regionalPlanner.sitesIn, land.sample)
+      : undefined;
   const home = {
     x: Math.floor(land.origin.x / DISTRICT_SIZE),
     y: Math.floor(land.origin.y / DISTRICT_SIZE),
   };
+  const startingSite = regionalPlanner
+    ? [-1, 0, 1]
+        .flatMap((dy) =>
+          [-1, 0, 1].flatMap((dx) =>
+            regionalPlanner.sitesIn(home.x + dx, home.y + dy),
+          ),
+        )
+        .filter((s) => Math.hypot(s.center.x, s.center.y) < 384)
+        .sort(
+          (a, b) =>
+            Math.hypot(a.center.x, a.center.y) -
+              Math.hypot(b.center.x, b.center.y) || a.id.localeCompare(b.id),
+        )[0]
+    : undefined;
+  if (startingSite) regionalPlanner!.setHome(startingSite.id);
   const coord = (x: number, y: number) => ({
     x: Math.floor((x + land.origin.x) / DISTRICT_SIZE),
     y: Math.floor((y + land.origin.y) / DISTRICT_SIZE),
   });
+  function sitesIn(cx: number, cy: number): Site[] {
+    if (regionalPlanner) return regionalPlanner.sitesIn(cx, cy);
+    const s = site(cx, cy);
+    return s ? [s] : [];
+  }
   function site(cx: number, cy: number): Site | undefined {
+    if (regionalPlanner) return regionalPlanner.sitesIn(cx, cy)[0];
     if (environment?.population === "none") return;
     const id = `s${cx}_${cy}`;
     if (sites.has(id)) return sites.get(id) ?? undefined;
@@ -179,8 +214,12 @@ export function createSettlementWorld(
     links.set(id, result);
     return result;
   }
-  function getPlan(cx: number, cy: number): SettlementPlan | undefined {
-    const s = site(cx, cy);
+  function getPlan(
+    cx: number,
+    cy: number,
+    id?: string,
+  ): SettlementPlan | undefined {
+    const s = id ? sitesIn(cx, cy).find((p) => p.id === id) : site(cx, cy);
     if (!s) return;
     const old = plans.get(s.id);
     if (old) return old;
@@ -192,10 +231,25 @@ export function createSettlementWorld(
         [0, 1],
         [0, -1],
       ]) {
-        const neighbor = site(cx + dx, cy + dy);
-        if (neighbor) connections.push(...link(s, neighbor));
+        for (const neighbor of sitesIn(cx + dx, cy + dy))
+          connections.push(...link(s, neighbor));
       }
-    const plan = planSettlement(s, pack, seed, land.sample, connections);
+    if (transport)
+      connections.push(
+        ...transport.roadsIn({
+          x: s.center.x - s.profile.radius - 40,
+          y: s.center.y - s.profile.radius - 40,
+          w: s.profile.radius * 2 + 80,
+          h: s.profile.radius * 2 + 80,
+        }),
+      );
+    const plan = planSettlement(
+      s,
+      s.pack ?? pack,
+      seed,
+      land.sample,
+      connections,
+    );
     plans.set(s.id, plan);
     if (plans.size > 48)
       for (const id of plans.keys())
@@ -216,15 +270,15 @@ export function createSettlementWorld(
       result: SettlementPlan[] = [];
     for (let dy = -1; dy <= 1; dy++)
       for (let dx = -1; dx <= 1; dx++) {
-        const s = site(c.x + dx, c.y + dy);
-        if (!s) continue;
-        if (
-          Math.abs(s.center.x - (bx * 64 + 32)) > s.profile.radius + 90 ||
-          Math.abs(s.center.y - (by * 64 + 32)) > s.profile.radius + 90
-        )
-          continue;
-        const p = getPlan(s.cx, s.cy);
-        if (p) result.push(p);
+        for (const s of sitesIn(c.x + dx, c.y + dy)) {
+          if (
+            Math.abs(s.center.x - (bx * 64 + 32)) > s.profile.radius + 90 ||
+            Math.abs(s.center.y - (by * 64 + 32)) > s.profile.radius + 90
+          )
+            continue;
+          const p = getPlan(s.cx, s.cy, s.id);
+          if (p) result.push(p);
+        }
       }
     if (neighborCache.size > 96) neighborCache.clear();
     neighborCache.set(key, result);
@@ -232,30 +286,59 @@ export function createSettlementWorld(
   }
   const roadCache = new Map<string, Map<string, Terrain>>();
   function regionalRoads(x: number, y: number) {
-    if (relief) return new Map<string, Terrain>();
+    if (relief && !regional) return new Map<string, Terrain>();
     const c = coord(x, y),
       key = cellKey(c.x, c.y),
       old = roadCache.get(key);
     if (old) return old;
     const tiles = new Map<string, Terrain>();
+    if (transport) {
+      const area = {
+        x: c.x * DISTRICT_SIZE - land.origin.x,
+        y: c.y * DISTRICT_SIZE - land.origin.y,
+        w: DISTRICT_SIZE,
+        h: DISTRICT_SIZE,
+      };
+      for (const r of transport.roadsIn(area))
+        roadCells(r, (px, py) => {
+          if (
+            px >= area.x &&
+            px < area.x + area.w &&
+            py >= area.y &&
+            py < area.y + area.h
+          )
+            tiles.set(cellKey(px, py), r.kind === "bridge" ? "bridge" : "dirt");
+        });
+      if (roadCache.size >= 32) roadCache.clear();
+      roadCache.set(key, tiles);
+      return tiles;
+    }
     for (let dy = -1; dy <= 1; dy++)
       for (let dx = -1; dx <= 1; dx++) {
-        const a = site(c.x + dx, c.y + dy);
-        if (!a) continue;
-        for (const [ex, ey] of [
-          [1, 0],
-          [0, 1],
-        ]) {
-          const b = site(a.cx + ex, a.cy + ey);
-          if (!b) continue;
-          for (const r of link(a, b))
-            roadCells(r, (px, py) => {
-              if (coord(px, py).x === c.x && coord(px, py).y === c.y)
-                tiles.set(
-                  cellKey(px, py),
-                  land.sample(px, py).water < 0 ? "bridge" : "dirt",
-                );
-            });
+        for (const a of sitesIn(c.x + dx, c.y + dy)) {
+          for (const [ex, ey] of [
+            [0, 0],
+            [1, 0],
+            [0, 1],
+          ]) {
+            for (const b of sitesIn(a.cx + ex, a.cy + ey)) {
+              if (a.id === b.id || (ex === 0 && ey === 0 && a.id > b.id))
+                continue;
+              if (
+                (a.pack ?? pack).setting!.settlement === "camp" ||
+                (b.pack ?? pack).setting!.settlement === "camp"
+              )
+                continue;
+              for (const r of link(a, b))
+                roadCells(r, (px, py) => {
+                  if (coord(px, py).x === c.x && coord(px, py).y === c.y)
+                    tiles.set(
+                      cellKey(px, py),
+                      land.sample(px, py).water < 0 ? "bridge" : "dirt",
+                    );
+                });
+            }
+          }
         }
       }
     if (roadCache.size >= 32) roadCache.clear();
@@ -264,9 +347,33 @@ export function createSettlementWorld(
   }
   function ground(x: number, y: number): Terrain {
     const f = land.sample(x, y);
+    if (
+      regional &&
+      f.water >= (f.shoreWidth ?? 3) &&
+      (regional.landUse(x, y) === "rock" ||
+        (f.elevation >= 28 &&
+          f.moisture < 0.6 &&
+          noise(
+            seed,
+            x + land.origin.x,
+            y + land.origin.y,
+            45,
+            "exposed-rock",
+          ) > 0.56))
+    )
+      return "rock";
+    if (regional?.landUse(x, y) === "fields" && f.water >= 0) return "field";
     if (environment) {
       const profile =
-        ecologyProfiles[localEcology(pack.setting!, seed, x, y, f)];
+        ecologyProfiles[
+          localEcology(
+            regional?.settingAt(x, y) ?? pack.setting!,
+            seed,
+            x + (regional ? land.origin.x : 0),
+            y + (regional ? land.origin.y : 0),
+            f,
+          )
+        ];
       return f.water < 0
         ? "water"
         : f.water < (f.shoreWidth ?? 3)
@@ -348,11 +455,20 @@ export function createSettlementWorld(
       ),
       cover = noise(seed, x + land.origin.x, y + land.origin.y, 45, "woods");
     const tree =
+      (!regional || ground(x, y) !== "rock") &&
       x % 3 === 0 &&
       y % 3 === 0 &&
       n <
         (environment
-          ? ecologyProfiles[localEcology(pack.setting!, seed, x, y, f)].trees *
+          ? ecologyProfiles[
+              localEcology(
+                regional?.settingAt(x, y) ?? pack.setting!,
+                seed,
+                x + (regional ? land.origin.x : 0),
+                y + (regional ? land.origin.y : 0),
+                f,
+              )
+            ].trees *
             (0.4 + cover)
           : f.moisture * cover * 0.38);
     const sprite =
@@ -361,7 +477,15 @@ export function createSettlementWorld(
         : relief && f.water < 8 && f.moisture > 0.68 && n < 0.12
           ? "reeds"
           : tree && environment
-            ? ecologyProfiles[localEcology(pack.setting!, seed, x, y, f)].tree
+            ? ecologyProfiles[
+                localEcology(
+                  regional?.settingAt(x, y) ?? pack.setting!,
+                  seed,
+                  x + (regional ? land.origin.x : 0),
+                  y + (regional ? land.origin.y : 0),
+                  f,
+                )
+              ].tree
             : tree
               ? pack.trees[
                   Math.floor(random(seed, "v3-tree", x, y) * pack.trees.length)
@@ -407,16 +531,24 @@ export function createSettlementWorld(
       cell.waterVisual = {
         distance: f.water,
         kind: f.kind,
-        ecology: pack.setting!.environment!.ecology,
+        ecology: (regional?.settingAt(x, y) ?? pack.setting!).environment!
+          .ecology,
         shoreWidth: f.shoreWidth ?? 3,
         flow: f.waterFlow ?? [0, 1],
         frozenMargin: f.snow,
       };
-      cell.biome = localEcology(pack.setting!, seed, x, y, f);
+      cell.biome = localEcology(
+        regional?.settingAt(x, y) ?? pack.setting!,
+        seed,
+        x + (regional ? land.origin.x : 0),
+        y + (regional ? land.origin.y : 0),
+        f,
+      );
       const eco = ecologyProfiles[cell.biome];
       if (f.water >= 0) cell.surface = f.snow ? "snow" : eco.surface;
       if (f.water >= 0 && f.water < (f.shoreWidth ?? 3)) {
-        const shoreEcology = pack.setting!.environment!.ecology;
+        const shoreEcology = (regional?.settingAt(x, y) ?? pack.setting!)
+          .environment!.ecology;
         const stonyShore =
           shoreEcology === "tundra" ||
           shoreEcology === "boreal-woodland" ||
@@ -430,10 +562,13 @@ export function createSettlementWorld(
     } else if (height === 0 && f.water >= 0) cell.surface = "gravel";
     if (t === "bridge") return { ...cell, surface: "soil", bridge: true };
     if (t === "field") cell.surface = "soil";
+    if (t === "rock") cell.surface = "gravel";
     if (t === "paving") {
       cell.surface = environment ? "gravel" : "soil";
       if (environment) cell.feature = "paving";
     }
+    if (regional && regionalRoads(x, y).has(cellKey(x, y)))
+      cell.surface = "soil";
     if (t === "dirt")
       for (const p of nearby(x, y)) {
         let center = roadCenters.get(p);
@@ -585,6 +720,29 @@ export function createSettlementWorld(
       reliefCache.set(key, c);
       return c;
     }
+    if (regional && regionalRoads(x, y).has(key)) {
+      for (const [dx, dy, dir] of [
+        [0, -1, "n"],
+        [1, 0, "e"],
+        [0, 1, "s"],
+        [-1, 0, "w"],
+      ] as const) {
+        if (!regionalRoads(x + dx, y + dy).has(cellKey(x + dx, y + dy)))
+          continue;
+        const hi = rawCell(x + dx, y + dy),
+          lo = rawCell(x - dx, y - dy);
+        if (
+          hi.height === c.height + 1 &&
+          lo.height === c.height &&
+          hi.surface !== "water" &&
+          lo.surface !== "water"
+        ) {
+          const result = { ...c, ramp: dir };
+          reliefCache.set(key, result);
+          return result;
+        }
+      }
+    }
     for (const plan of nearby(x, y)) {
       const slope = slopesFor(plan).get(key);
       if (slope) {
@@ -612,7 +770,82 @@ export function createSettlementWorld(
     reliefCache.set(key, c);
     return c;
   }
+  function planForEntity(id: string) {
+    const m = /^s(-?\d+)_(-?\d+)/.exec(id);
+    if (!m) return;
+    const s = sitesIn(+m[1], +m[2]).find((s) => id.startsWith(`${s.id}-`));
+    return s ? getPlan(s.cx, s.cy, s.id) : undefined;
+  }
+  function areaSites(area: GeographicArea) {
+    const a = coord(area.x, area.y),
+      b = coord(area.x + area.w, area.y + area.h);
+    const out: Site[] = [];
+    // A local query should not accidentally instantiate a continent's population.
+    if ((b.x - a.x + 1) * (b.y - a.y + 1) > 256) return out;
+    for (let cy = a.y; cy <= b.y; cy++)
+      for (let cx = a.x; cx <= b.x; cx++) out.push(...sitesIn(cx, cy));
+    return out;
+  }
   const world: SettlementWorld = {
+    ...(regional
+      ? {
+          geography: {
+            packAt: regional.packAt,
+            placesIn: (area: GeographicArea) => {
+              const named = regional.activePlaces
+                .map((p) => ({
+                  id: p.id,
+                  name: p.name,
+                  ...regional.local(p),
+                  radius: p.radius,
+                  origin: "named" as const,
+                }))
+                .filter(
+                  (p) =>
+                    p.x + p.radius >= area.x &&
+                    p.x - p.radius <= area.x + area.w &&
+                    p.y + p.radius >= area.y &&
+                    p.y - p.radius <= area.y + area.h,
+                );
+              const generated =
+                area.w <= 3200 && area.h <= 3200
+                  ? areaSites(area).map((s) => ({
+                      id: s.id,
+                      parentId: s.namedId,
+                      name: s.name ?? "Unnamed settlement",
+                      ...s.center,
+                      radius: s.profile.radius,
+                      origin: s.namedId
+                        ? ("named" as const)
+                        : ("procedural" as const),
+                    }))
+                  : [];
+              return [...named, ...generated];
+            },
+            connectionsIn: (area: GeographicArea) =>
+              transport!.connectionsIn(area),
+            resourcesAt: (x: number, y: number) => {
+              const f = land.sample(x, y),
+                setting = regional.settingAt(x, y);
+              const habitat = localEcology(
+                setting,
+                seed,
+                x + land.origin.x,
+                y + land.origin.y,
+                f,
+              );
+              return {
+                habitat,
+                water: f.water < 10 ? f.kind : ("none" as const),
+                potentials: [
+                  ...ecologyProfiles[habitat].resources,
+                  ...(ground(x, y) === "rock" ? ["stone"] : []),
+                ],
+              };
+            },
+          },
+        }
+      : {}),
     ...(environment ? { households: [] } : {}),
     generatorVersion: 3,
     ...(relief
@@ -635,11 +868,22 @@ export function createSettlementWorld(
     spawn: { x: 0, y: 0, space: "outside" },
     planAt: (x, y) => {
       const c = coord(x, y);
-      return getPlan(c.x, c.y);
+      const nearest = [...sitesIn(c.x, c.y)].sort(
+        (a, b) =>
+          Math.hypot(a.center.x - x, a.center.y - y) -
+          Math.hypot(b.center.x - x, b.center.y - y),
+      )[0];
+      return nearest ? getPlan(c.x, c.y, nearest.id) : undefined;
     },
     terrain,
     decoration,
     overview: (x, y) => {
+      if (regional)
+        return regional.placeAt(x, y) &&
+          !regional.landUse(x, y) &&
+          land.sample(x, y).water >= 0
+          ? "paving"
+          : ground(x, y);
       const p = coord(x, y),
         s = site(p.x, p.y);
       if (s && Math.hypot(x - s.center.x, y - s.center.y) < 5) return "paving";
@@ -664,22 +908,21 @@ export function createSettlementWorld(
           cy * CHUNK_SIZE + Math.floor(i / CHUNK_SIZE),
         ),
       ),
-    place: (id) => {
-      const m = /^s(-?\d+)_(-?\d+)-h\d+$/.exec(id);
-      return m
-        ? getPlan(+m[1], +m[2])?.places.find((p) => p.id === id)
-        : undefined;
-    },
+    place: (id) => planForEntity(id)?.places.find((p) => p.id === id),
     activitySites: (id) => {
-      if (id === "player") return getPlan(home.x, home.y)?.work.get(id);
-      const m = /^s(-?\d+)_(-?\d+)-/.exec(id);
-      return m ? getPlan(+m[1], +m[2])?.work.get(id) : undefined;
+      if (id === "player")
+        return getPlan(
+          startingSite?.cx ?? home.x,
+          startingSite?.cy ?? home.y,
+          startingSite?.id,
+        )?.work.get(id);
+      return planForEntity(id)?.work.get(id);
     },
     propSlots: (id) => {
-      const m = /^s(-?\d+)_(-?\d+)-/.exec(id);
-      return m ? getPlan(+m[1], +m[2])?.slots.get(id) : undefined;
+      return planForEntity(id)?.slots.get(id);
     },
     protectedCell: (x, y) =>
+      (!!regional && regionalRoads(x, y).has(cellKey(x, y))) ||
       nearby(x, y).some(
         (p) =>
           p.traffic.has(cellKey(x, y)) &&
@@ -712,11 +955,8 @@ export function createSettlementWorld(
     },
     restoreDistricts: (ids) => {
       for (const id of ids) {
-        const m = /^s(-?\d+)_(-?\d+)-/.exec(id);
-        if (m) {
-          const p = getPlan(+m[1], +m[2]);
-          if (p) activate(p);
-        }
+        const p = planForEntity(id);
+        if (p) activate(p);
       }
     },
   };
@@ -725,7 +965,9 @@ export function createSettlementWorld(
     active.add(p.site.id);
     world.settlements.push({
       id: p.site.id,
-      name: p.site.home ? pack.name : `${p.site.profile.pattern} settlement`,
+      name:
+        p.site.name ??
+        (p.site.home ? pack.name : `${p.site.profile.pattern} settlement`),
       ...p.site.center,
       size: p.site.profile.radius,
     });
@@ -735,13 +977,22 @@ export function createSettlementWorld(
     if (environment) populateHouseholds(world, p, seed);
     world.enclosures.push(...p.enclosures);
   }
-  const initial = getPlan(home.x, home.y);
+  const initial = getPlan(
+    startingSite?.cx ?? home.x,
+    startingSite?.cy ?? home.y,
+    startingSite?.id,
+  );
   if (!initial && !environment)
     throw Error("No usable settlement site near this location.");
   world.spawn = { ...(initial?.spawn ?? { x: 0, y: 0 }), space: "outside" };
-  if (environment && (environment.start !== "resident" || !initial)) {
+  if (
+    environment &&
+    (environment.start !== "resident" ||
+      !initial ||
+      (regional && !initial.places.length))
+  ) {
     let found = false;
-    for (let r = 0; r <= 120 && !found; r += 2)
+    for (let r = 0; r <= (regional ? 768 : 120) && !found; r += 2)
       for (let i = 0; i < 24; i++) {
         const x = Math.round(Math.cos((i * Math.PI) / 12) * r),
           y = Math.round(Math.sin((i * Math.PI) / 12) * r);

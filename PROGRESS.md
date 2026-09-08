@@ -1,3 +1,13 @@
+## Integrated regional world generation — September 8, 2026
+
+Implemented shared production geography for new procedural/World Weaver worlds (`geographyRevision: 1`, terrain revision 2). The explorer now enters the same pipeline with bounded starting overrides. Earth coastlines/rivers and broad relief constrain local terrain; dated regional files can supply named settlement footprints, open land, water geometry and connections. Districts index multiple places/neighborhoods rather than defining one town. Buildings respect shared footprints and land-use exclusions; local roads and regional routes share generation and are reserved before building placement.
+
+Regional content resolves by coordinates/date for settlements, households, props, resource availability and the live location display. Regional maps label unvisited named places without activating households. General gazetteer names are restricted to contemporary coverage; dated content files add earlier anchors without projecting modern towns into prehistory. New regional data is intentionally approximate and source-qualified. The World Weaver modal has **Random place & era**, selecting across twelve families and twelve eras with a fresh seed and visible editable result.
+
+`src/world/regional/` owns context, settlement identities and transport; `src/content/geography/regions/` owns data. `WorldModel.geography` exposes places, connections, local content and resource potentials for future traffic/trade. Water connections remain unserved proposals; economic dependencies and moving boats are not implemented. Existing generation dispatch is retained for previously pinned worlds; no save restoration work or new tests were added. User requested to perform gameplay/browser verification themselves. See `WORLDS.md` for scope and extension contracts.
+
+Build checks: TypeScript compilation, production bundling and `git diff --check` passed during implementation. No unit, gameplay or browser test suites were run at the user's request. No commit or deployment.
+
 ## Restrained water animation and palette polish — September 8, 2026
 
 The user-approved full worktree was checkpointed as `dd00761` before this pass. Added an original shared 128×96 pixel atlas with eight-frame ripple, curl, crest, plant, leaf and ring sequences. Surface motifs form, open and dissolve, with quiet intervals and at most one selection per 2×2 cell area. Rare habitat details replace that tile's surface motif. River motion follows the existing tangent; coastal wash now uses fewer, longer broken shapes with gaps. Warm sandy lips stay soft while raised rocky edges retain stronger contact shade.

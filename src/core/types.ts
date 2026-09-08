@@ -296,6 +296,7 @@ export type Observation = {
   manifest: WorldManifest;
 };
 export interface WorldModel {
+  geography?: import("./geography").WorldGeography;
   households?: Household[];
   generatorVersion?: 3;
   topography?(x: number, y: number): import("./topography").TopographyCell;

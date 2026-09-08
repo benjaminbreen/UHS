@@ -108,14 +108,24 @@ export function atlasSample(x: number, y: number) {
   for (const e of landEdges.get(k) ?? [])
     coast = Math.min(coast, segmentDistance(lon, lat, e.a, e.b));
   let river = Infinity;
-  for (const e of riverEdges.get(k) ?? [])
-    river = Math.min(river, segmentDistance(lon, lat, e.a, e.b) * ATLAS_SCALE);
+  let riverFlow: readonly [number, number] = [0, 0];
+  for (const e of riverEdges.get(k) ?? []) {
+    const distance = segmentDistance(lon, lat, e.a, e.b) * ATLAS_SCALE;
+    if (distance < river) {
+      river = distance;
+      const dx = e.b[0] - e.a[0],
+        dy = e.a[1] - e.b[1],
+        length = Math.hypot(dx, dy) || 1;
+      riverFlow = [dx / length, dy / length];
+    }
+  }
   return {
     coast:
       ((coast < 0.36 ? landAt(lon, lat) : mask[row * width + col]) ? 1 : -1) *
       coast *
       ATLAS_SCALE,
     river,
+    riverFlow,
   };
 }
 

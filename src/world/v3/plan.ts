@@ -116,7 +116,11 @@ export function planSettlement(
       const f = sample(x, y);
       lo = Math.min(lo, f.elevation);
       hi = Math.max(hi, f.elevation);
-      if (f.water < 4 || (occupied && plan.reserved.has(cellKey(x, y))))
+      if (
+        f.water < 4 ||
+        (site.accepts && !site.accepts(x, y)) ||
+        (occupied && plan.reserved.has(cellKey(x, y)))
+      )
         valid = false;
     });
     return valid && (pack.setting?.terrainRevision ? hi === lo : hi - lo < 28);
@@ -136,7 +140,7 @@ export function planSettlement(
     h: half * 2 + 1,
   };
   eachCell(publicArea, (x, y) => {
-    if (sample(x, y).water >= 0) {
+    if (sample(x, y).water >= 0 && (!site.accepts || site.accepts(x, y))) {
       plan.surface.set(cellKey(x, y), profile.paved ? "paving" : "dirt");
       plan.reserved.add(cellKey(x, y));
       roads.add(cellKey(x, y));

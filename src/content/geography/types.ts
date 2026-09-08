@@ -54,6 +54,9 @@ export type AtlasPlace = {
 export const settingSchema = z
   .object({
     version: z.literal(2),
+    // Pins the integrated geography rules without changing old generation inputs.
+    geographyRevision: z.literal(1).optional(),
+    geographyMode: z.enum(["earth", "configured"]).optional(),
     terrainRevision: z.union([z.literal(1), z.literal(2)]).optional(),
     environment: z
       .object({
@@ -93,5 +96,13 @@ export const settingSchema = z
   .refine((s) => s.terrainRevision !== 2 || !!s.environment, {
     message: "Terrain revision 2 requires environment settings",
     path: ["environment"],
-  });
+  })
+  .refine(
+    (s) => !s.geographyRevision || (s.terrainRevision === 2 && !!s.environment),
+    {
+      message:
+        "Integrated geography requires terrain revision 2 and environment settings",
+      path: ["geographyRevision"],
+    },
+  );
 export type WorldSetting = z.infer<typeof settingSchema>;

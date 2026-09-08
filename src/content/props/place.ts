@@ -9,8 +9,18 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
   const kit = propKit(world.pack),
     done = new Set<string>(),
     places = new Set<string>();
-  const pick = (id: string, context: PropContext) => {
-    const list = kit.contexts[context];
+  const regionalKits = new WeakMap<object, ReturnType<typeof propKit>>();
+  const pick = (id: string, context: PropContext, pos: Position) => {
+    const entrance =
+      pos.space === "outside" ? pos : world.place(pos.space)?.entrance;
+    const localPack =
+      entrance && world.geography?.packAt(entrance.x, entrance.y);
+    let selected = kit;
+    if (localPack) {
+      selected = regionalKits.get(localPack) ?? propKit(localPack);
+      regionalKits.set(localPack, selected);
+    }
+    const list = selected.contexts[context];
     return list[Math.floor(random(seed, "props-1", id, context) * list.length)];
   };
   const stamp = (o: WorldObject, key: string) => {
@@ -54,8 +64,11 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
       if (o.prop && world.generatorVersion === 3) {
         /* Explicit settlement furniture retains its function. */
       } else if (o.kind === "container")
-        stamp(o, pick(o.id, o.pos.space === "outside" ? "yard" : "household"));
-      else if (o.kind === "well") stamp(o, pick(o.id, "water"));
+        stamp(
+          o,
+          pick(o.id, o.pos.space === "outside" ? "yard" : "household", o.pos),
+        );
+      else if (o.kind === "well") stamp(o, pick(o.id, "water", o.pos));
       if (o.prop && !usable(o.pos, o.id)) {
         const original = { ...o.pos };
         const choices: Position[] = [];
@@ -105,7 +118,7 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
           inventory: {},
           owner: slot === 0 ? b.owner : undefined,
         };
-        stamp(o, pick(o.id, slot === 1 ? "yard" : "work"));
+        stamp(o, pick(o.id, slot === 1 ? "yard" : "work", o.pos));
         world.initialObjects.push(o);
         done.add(o.id);
       }

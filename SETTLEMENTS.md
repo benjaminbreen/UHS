@@ -1,3 +1,5 @@
+> Integrated geography (September 8): new worlds can have multiple named places or neighborhoods per district. Dated footprints/open-land constraints govern placement; regional transport is restored on the shared relief terrain. `src/world/regional/` supplies identities and connections to the existing local planner. See `WORLDS.md` for current coverage and extension contracts.
+
 > **Current explorer composition:** Environment-configured worlds now use terrain-selected anchors, branching routes and variable frontage. Dense towns can be irregular; only the planned profile retains its grid. The original generator baseline described below remains relevant to other settings. See [ECOLOGY.md](ECOLOGY.md#landscape-and-settlement-composition-pass) for the implemented landscape/settlement refinement and its checks.
 
 # Procedural settlements

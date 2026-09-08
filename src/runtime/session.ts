@@ -19,6 +19,7 @@ import { settingSchema, type WorldSetting } from "../content/geography/types";
 import { packForSetting } from "../content/geography/pack";
 import { createSettlementWorld } from "../world/v3/generate";
 import { createAtlasWorld } from "../world/v2/generate";
+import { integratedSetting } from "../content/geography/defaults";
 export function createSession(
   packId = "roman",
   seed = packs[packId]?.defaultSeed ?? "earth-2",
@@ -56,7 +57,7 @@ export function createSession(
   return engine;
 }
 export function createSettingSession(setting: WorldSetting, seed = "earth-2") {
-  return createSession("atlas", seed, undefined, setting);
+  return createSession("atlas", seed, undefined, integratedSetting(setting));
 }
 export function restoreSession(value: unknown) {
   const save = snapshotSchema.parse(value);
@@ -114,13 +115,21 @@ export class Runtime {
     this.cached = this.view();
   }
   private view() {
+    const pos = this.engine.state.player.pos;
+    const outside =
+      pos.space === "outside"
+        ? pos
+        : this.engine.world.place(pos.space)?.entrance;
     return {
       observation: this.engine.observe(),
       selection: this.selected ? this.engine.inspect(this.selected) : undefined,
       notice: this.notice,
       running: this.running,
       zoom: this.zoom,
-      pack: this.engine.world.pack,
+      pack:
+        (outside &&
+          this.engine.world.geography?.packAt(outside.x, outside.y)) ||
+        this.engine.world.pack,
       replay: this.replay
         ? {
             index: this.replay.index,

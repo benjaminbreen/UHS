@@ -147,7 +147,10 @@ export function Minimap({
           wx < origin.x + extent / 2;
           wx += stride
         ) {
-          const prop = e.world.decoration(wx, wy);
+          const prop =
+            e.world.geography && extent > 320
+              ? undefined
+              : e.world.decoration(wx, wy);
           if (prop && e.world.pack.trees.includes(prop.sprite))
             stamp(
               prop.sprite,
@@ -172,7 +175,15 @@ export function Minimap({
       if (large || regional) {
         c.font = `${large ? 13 : 10}px Georgia`;
         c.fillStyle = "#fff2d2";
-        for (const s of e.world.settlements) {
+        const settlements =
+          e.world.geography?.placesIn({
+            x: origin.x - extent / 2,
+            y: origin.y - (height * extent) / size / 2,
+            w: extent,
+            h: (height * extent) / size,
+          }) ?? e.world.settlements;
+        for (const s of settlements) {
+          if ("parentId" in s && s.parentId) continue;
           const x = ((s.x - origin.x) * size) / extent + size / 2,
             y = ((s.y - origin.y) * size) / extent + height / 2;
           if (x < 3 || x > size - 3 || y < 10 || y > height - 3) continue;

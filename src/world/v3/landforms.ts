@@ -7,7 +7,14 @@ const STEP = 12,
   COUNT = REACH / STEP;
 /** One deterministic coarse plan per river reach. Endpoints are shared world-coordinate
  * anchors, so requesting neighboring reaches in any order produces the same channel. */
-export function regionalLandforms(s: WorldSetting, seed: string) {
+export function regionalLandforms(
+  s: WorldSetting,
+  seed: string,
+  formAt?: (
+    x: number,
+    y: number,
+  ) => NonNullable<WorldSetting["environment"]>["landform"],
+) {
   const angle = random(seed, "land-angle") * Math.PI * 2;
   const reaches = new Map<number, number[]>();
   const heights = new Map<string, number>();
@@ -22,7 +29,7 @@ export function regionalLandforms(s: WorldSetting, seed: string) {
     const broad =
       noise(seed, u, v, 105, "landmass") * 0.72 +
       noise(seed, u, v, 43, "shoulders") * 0.28;
-    const form = s.environment!.landform;
+    const form = formAt?.(x, y) ?? s.environment!.landform;
     const h =
       form === "plain"
         ? 0.45 + (broad - 0.5) * 0.23
@@ -32,7 +39,9 @@ export function regionalLandforms(s: WorldSetting, seed: string) {
             (broad - 0.5) * 0.24
           : form === "basin"
             ? 0.28 +
-              Math.min(0.4, Math.hypot(u / 105, v / 82) * 0.22) +
+              (formAt
+                ? noise(seed, u, v, 170, "basins") * 0.4
+                : Math.min(0.4, Math.hypot(u / 105, v / 82) * 0.22)) +
               (broad - 0.5) * 0.38
             : 0.15 + broad * 0.7;
     if (heights.size >= 65536) heights.clear();

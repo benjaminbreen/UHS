@@ -1,3 +1,5 @@
+> New-world integration (September 8): ordinary creation and the explorer now use geography revision 1 through the same terrain pipeline. Earth geography supplies broad constraints; explorer environment controls apply to a bounded starting area. Regional land use and coordinate-based content are described in `WORLDS.md`. The revision-two notes below also document the earlier configured-world baseline.
+
 # Procedural environments and household livelihoods
 
 Implemented September 7, 2026. Open `/terrain-lab` for the procedural explorer. It generates a normal v3 world with `terrainRevision: 2` and an explicit `environment` configuration, renders it with `WorldScene`, and hands the **same Runtime** to the playable UI. This is a testing entry point for shared systems, not a second preview generator. Ordinary New world and the original Anatolia revision-one shortcut retain their existing defaults.
