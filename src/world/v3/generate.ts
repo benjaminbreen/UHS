@@ -1,3 +1,6 @@
+import { createEnvironment, localEcology } from "./environment";
+import { ecologyProfiles } from "../../content/ecology/profiles";
+import { populateHouseholds, addWildResources } from "./population";
 import { createReliefLandscape, reliefCell } from "./topography";
 import {
   terrainStep,
@@ -21,10 +24,14 @@ export function createSettlementWorld(
   pack: Pack,
   seed: string,
 ): SettlementWorld {
-  const relief = pack.setting?.terrainRevision === 1;
-  const land = relief
-      ? createReliefLandscape(pack.setting!, seed)
-      : createLandscape(pack.setting!, seed),
+  const relief = !!pack.setting?.terrainRevision;
+  const environment =
+    pack.setting?.terrainRevision === 2 ? pack.setting.environment : undefined;
+  const land = environment
+      ? createEnvironment(pack.setting!, seed)
+      : relief
+        ? createReliefLandscape(pack.setting!, seed)
+        : createLandscape(pack.setting!, seed),
     sites = new Map<string, Site | null>(),
     plans = new Map<string, SettlementPlan>(),
     links = new Map<string, Road[]>(),
@@ -38,10 +45,15 @@ export function createSettlementWorld(
     y: Math.floor((y + land.origin.y) / DISTRICT_SIZE),
   });
   function site(cx: number, cy: number): Site | undefined {
+    if (environment?.population === "none") return;
     const id = `s${cx}_${cy}`;
     if (sites.has(id)) return sites.get(id) ?? undefined;
     const isHome = cx === home.x && cy === home.y;
-    if (!isHome && random(seed, "settlement-sites", cx, cy) > 0.62) {
+    if (
+      !isHome &&
+      random(seed, "settlement-sites", cx, cy) >
+        (environment?.population === "sparse" ? 0.24 : 0.62)
+    ) {
       sites.set(id, null);
       return;
     }
@@ -78,14 +90,20 @@ export function createSettlementWorld(
         cy,
         center: p,
         home: isHome,
-        profile: relief
-          ? {
-              ...settlementProfile(pack.setting!, isHome),
-              radius: 48,
-              buildings: 8,
-              frontage: 9,
-            }
-          : settlementProfile(pack.setting!, isHome),
+        profile:
+          relief && !environment
+            ? {
+                ...settlementProfile(pack.setting!, isHome),
+                radius: 48,
+                buildings: 8,
+                frontage: 9,
+              }
+            : {
+                ...settlementProfile(pack.setting!, isHome),
+                ...(environment?.population === "sparse"
+                  ? { buildings: 5, radius: 62 }
+                  : {}),
+              },
       };
       sites.set(id, s);
       return s;
@@ -221,6 +239,23 @@ export function createSettlementWorld(
   }
   function ground(x: number, y: number): Terrain {
     const f = land.sample(x, y);
+    if (environment) {
+      const profile =
+        ecologyProfiles[localEcology(pack.setting!, seed, x, y, f)];
+      return f.water < 0
+        ? "water"
+        : f.water < 3
+          ? "sand"
+          : f.snow
+            ? "snow"
+            : profile.surface === "sand"
+              ? "sand"
+              : profile.surface === "damp"
+                ? "marsh"
+                : profile.surface === "dry"
+                  ? "dry"
+                  : "grass";
+    }
     if (relief)
       return f.water < 0
         ? "water"
@@ -287,23 +322,32 @@ export function createSettlementWorld(
         y + land.origin.y,
       ),
       cover = noise(seed, x + land.origin.x, y + land.origin.y, 45, "woods");
-    const tree = x % 3 === 0 && y % 3 === 0 && n < f.moisture * cover * 0.38;
+    const tree =
+      x % 3 === 0 &&
+      y % 3 === 0 &&
+      n <
+        (environment
+          ? ecologyProfiles[localEcology(pack.setting!, seed, x, y, f)].trees *
+            (0.4 + cover)
+          : f.moisture * cover * 0.38);
     const sprite =
       relief && f.water < 3 && n < 0.09
         ? "rock"
         : relief && f.water < 8 && f.moisture > 0.68 && n < 0.12
           ? "reeds"
-          : tree
-            ? pack.trees[
-                Math.floor(random(seed, "v3-tree", x, y) * pack.trees.length)
-              ]
-            : n < 0.006
-              ? "rock"
-              : n < 0.015
-                ? "bush"
-                : relief && n < 0.035 && f.moisture > 0.5 && f.moisture < 0.73
-                  ? "flowers"
-                  : undefined;
+          : tree && environment
+            ? ecologyProfiles[localEcology(pack.setting!, seed, x, y, f)].tree
+            : tree
+              ? pack.trees[
+                  Math.floor(random(seed, "v3-tree", x, y) * pack.trees.length)
+                ]
+              : n < 0.006
+                ? "rock"
+                : n < (environment ? 0.006 + f.moisture * 0.015 : 0.015)
+                  ? "bush"
+                  : relief && n < 0.035 && f.moisture > 0.5 && f.moisture < 0.73
+                    ? "flowers"
+                    : undefined;
     return sprite
       ? {
           id: `decor-${x}-${y}`,
@@ -334,7 +378,12 @@ export function createSettlementWorld(
     }
     if (t === "bridge") height = 1;
     const cell = reliefCell(height, f.water, f.moisture);
-    if (height === 0 && f.water >= 0) cell.surface = "gravel";
+    if (environment) {
+      cell.biome = localEcology(pack.setting!, seed, x, y, f);
+      const eco = ecologyProfiles[cell.biome];
+      if (f.water >= 0) cell.surface = f.snow ? "snow" : eco.surface;
+      if (f.water >= 0 && f.water < 3) cell.surface = "sand";
+    } else if (height === 0 && f.water >= 0) cell.surface = "gravel";
     if (t === "bridge") return { ...cell, surface: "soil", bridge: true };
     if (t === "field" || t === "paving") cell.surface = "soil";
     if (t === "dirt")
@@ -429,11 +478,41 @@ export function createSettlementWorld(
         return result;
       }
     }
+    if (
+      environment &&
+      !c.ramp &&
+      (x % 16 === 0 || x % 16 === 1 || y % 16 === 0 || y % 16 === 1)
+    ) {
+      for (const [dx, dy, dir] of [
+        [0, -1, "n"],
+        [1, 0, "e"],
+        [0, 1, "s"],
+        [-1, 0, "w"],
+      ] as const) {
+        if (
+          (dx && y % 16 !== 0 && y % 16 !== 1) ||
+          (dy && x % 16 !== 0 && x % 16 !== 1)
+        )
+          continue;
+        const hi = rawCell(x + dx, y + dy),
+          lo = rawCell(x - dx, y - dy);
+        if (
+          hi.height === c.height + 1 &&
+          lo.height === c.height &&
+          hi.surface !== "water" &&
+          lo.surface !== "water"
+        ) {
+          c.ramp = dir;
+          break;
+        }
+      }
+    }
     if (reliefCache.size > 65536) reliefCache.clear();
     reliefCache.set(key, c);
     return c;
   }
   const world: SettlementWorld = {
+    ...(environment ? { households: [] } : {}),
     generatorVersion: 3,
     ...(relief
       ? {
@@ -528,6 +607,7 @@ export function createSettlementWorld(
     },
     activate: (x, y) => {
       for (const p of nearby(x, y)) activate(p);
+      if (environment) addWildResources(world, seed, x, y);
     },
     restoreDistricts: (ids) => {
       for (const id of ids) {
@@ -551,11 +631,60 @@ export function createSettlementWorld(
     world.places.push(...p.places);
     world.initialObjects.push(...p.objects);
     world.initialActors.push(...p.actors);
+    if (environment) populateHouseholds(world, p, seed);
     world.enclosures.push(...p.enclosures);
   }
   const initial = getPlan(home.x, home.y);
-  if (!initial) throw Error("No usable settlement site near this location.");
-  world.spawn = { ...initial.spawn, space: "outside" };
+  if (!initial && !environment)
+    throw Error("No usable settlement site near this location.");
+  world.spawn = { ...(initial?.spawn ?? { x: 0, y: 0 }), space: "outside" };
+  if (environment && (environment.start !== "resident" || !initial)) {
+    let found = false;
+    for (let r = 0; r <= 120 && !found; r += 2)
+      for (let i = 0; i < 24; i++) {
+        const x = Math.round(Math.cos((i * Math.PI) / 12) * r),
+          y = Math.round(Math.sin((i * Math.PI) / 12) * r);
+        if (
+          !world.blocked(x, y, "outside") &&
+          land.sample(x, y).water > 3 &&
+          (!initial ||
+            Math.hypot(x - initial.site.center.x, y - initial.site.center.y) >
+              initial.site.profile.radius * 0.75)
+        ) {
+          world.spawn = { x, y, space: "outside" };
+          found = true;
+          break;
+        }
+      }
+    if (!found)
+      throw Error(
+        "No dry starting location found; try another seed or water setting.",
+      );
+  }
   world.activate!(world.spawn.x, world.spawn.y);
+  if (environment?.start === "shepherd") {
+    for (let i = 0; i < 3; i++) {
+      const p = { ...world.spawn, x: world.spawn.x + i + 2 };
+      if (world.blocked(p.x, p.y, "outside")) continue;
+      world.initialActors.push({
+        id: `travel-flock-${i}`,
+        name: `Flock sheep ${i + 1}`,
+        kind: "sheep",
+        role: "Animal",
+        sprite: "sheep",
+        pos: p,
+        home: { ...world.spawn },
+        work: p,
+        owner: "player",
+        inventory: {},
+        activity: "Grazing",
+        fatigue: 0,
+        hunger: 8,
+        trust: 0,
+        memories: [],
+        direction: 0,
+      });
+    }
+  }
   return world;
 }

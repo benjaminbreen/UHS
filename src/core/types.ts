@@ -4,6 +4,10 @@ export type PackId = string;
 export type Point = { x: number; y: number };
 export type Position = Point & { space: string };
 export type ItemId =
+  | "fruit"
+  | "berries"
+  | "reeds"
+  | "fodder"
   | "bread"
   | "grain"
   | "water"
@@ -31,7 +35,30 @@ export type ItemDef = {
   value: number;
   edible?: number;
 };
+export type Household = {
+  id: string;
+  members: string[];
+  residence?: string;
+  home: Position;
+  storeId: string;
+};
+export type SocialRelation = {
+  other: string;
+  kind: "partner" | "parent" | "child" | "co-resident";
+};
+export type Resource = {
+  item: ItemId;
+  capacity: number;
+  regrowSeconds: number;
+  seasons: string[];
+  readyAt: number;
+};
 export type Actor = {
+  age?: number;
+  householdId?: string;
+  relations?: SocialRelation[];
+  knownResources?: string[];
+  task?: { target: string; until: number };
   id: string;
   name: string;
   role: string;
@@ -70,6 +97,7 @@ export type Place = {
   entranceLabel: string;
 };
 export type WorldObject = {
+  resource?: Resource;
   prop?: string;
   carriedBy?: "player";
   broken?: boolean;
@@ -179,6 +207,7 @@ export type PlayerCommand =
         | "open"
         | "close"
         | "drink"
+        | "store"
         | "harvest"
         | "capture"
         | "herd"
@@ -215,6 +244,7 @@ export type CommandResult = {
 };
 export type Receipt = { payload: string; result: CommandResult };
 export type Snapshot = {
+  households?: Household[];
   manifest: WorldManifest;
   clock: number;
   revision: number;
@@ -266,6 +296,7 @@ export type Observation = {
   manifest: WorldManifest;
 };
 export interface WorldModel {
+  households?: Household[];
   generatorVersion?: 3;
   topography?(x: number, y: number): import("./topography").TopographyCell;
   canCross?(from: Point, to: Point): boolean;

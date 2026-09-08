@@ -128,6 +128,8 @@ export function drawTopography(
     "dry",
     "soil",
     "gravel",
+    "sand",
+    "snow",
   ];
   for (let y = region ? 0 : -3; y < height + (region ? 0 : 4); y++)
     for (let x = 0; x < width; x++) {

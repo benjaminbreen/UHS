@@ -1,3 +1,10 @@
+import {
+  ecologies,
+  landforms,
+  populations,
+  starts,
+  householdForms,
+} from "../ecology/profiles";
 import { z } from "zod";
 import { patterns } from "../settlements/profiles";
 import { cultures } from "../history/types";
@@ -47,7 +54,17 @@ export type AtlasPlace = {
 export const settingSchema = z
   .object({
     version: z.literal(2),
-    terrainRevision: z.literal(1).optional(),
+    terrainRevision: z.union([z.literal(1), z.literal(2)]).optional(),
+    environment: z
+      .object({
+        ecology: z.enum(ecologies),
+        landform: z.enum(landforms),
+        population: z.enum(populations),
+        start: z.enum(starts),
+        household: z.enum(householdForms).default("mixed"),
+      })
+      .strict()
+      .optional(),
     placeId: z.string().min(1).max(100),
     location: z.string().min(1).max(120),
     lon: z.number().min(-180).max(180),
@@ -72,5 +89,9 @@ export const settingSchema = z
     community: z.string().max(160),
     season: z.enum(["spring", "summer", "autumn", "winter"]),
   })
-  .strict();
+  .strict()
+  .refine((s) => s.terrainRevision !== 2 || !!s.environment, {
+    message: "Terrain revision 2 requires environment settings",
+    path: ["environment"],
+  });
 export type WorldSetting = z.infer<typeof settingSchema>;

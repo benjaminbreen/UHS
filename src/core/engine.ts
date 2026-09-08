@@ -1,3 +1,11 @@
+import {
+  depositSupplies,
+  harvestResource,
+  householdActivity,
+  refreshResource,
+  seasonAt,
+  grazeActivity,
+} from "./livelihood";
 import { propDefs } from "../content/props/catalog";
 import { propAffordances, heldObject } from "./props";
 import {
@@ -65,6 +73,7 @@ export class Engine {
             memories: [],
             direction: 2,
           },
+          ...(world.households ? { households: copy(world.households) } : {}),
           actors: copy(world.initialActors).map((a) => ({
             ...a,
             lastUpdated: 9 * 3600,
@@ -80,10 +89,38 @@ export class Engine {
   }
   initialize(seed: string) {
     this.state.manifest.seed = seed;
+    if (this.world.pack.setting?.environment) {
+      const season = seasonAt(this.world.pack.setting.season, this.state.clock);
+      for (const o of this.state.objects)
+        refreshResource(o, this.state.clock, season);
+    }
     const sites = this.world.activitySites?.("player");
     if (sites) {
       this.state.player.home = { ...sites.home, space: "outside" };
       this.state.player.work = { ...sites.work, space: "outside" };
+    }
+    const household = this.state.households?.find((h) =>
+      h.members.includes("player"),
+    );
+    if (household) {
+      Object.assign(this.state.player, {
+        householdId: household.id,
+        age: 34,
+        knownResources: [],
+        relations: this.state.actors.flatMap((a) =>
+          (a.relations ?? [])
+            .filter((r) => r.other === "player")
+            .map((r) => ({
+              other: a.id,
+              kind:
+                r.kind === "parent"
+                  ? "child"
+                  : r.kind === "child"
+                    ? "parent"
+                    : r.kind,
+            })),
+        ),
+      });
     }
     this.event(
       "You arrive as the morning’s work begins. Walk, meet someone, or find your own way.",
@@ -389,7 +426,7 @@ export class Engine {
         name: actor.name,
         description:
           actor.kind === "human"
-            ? `${actor.role}. ${actor.activity}. ${actor.trust < 0 ? "They seem wary of you." : "They notice your approach."}`
+            ? `${actor.role}${actor.age !== undefined ? `, age ${actor.age}` : ""}. ${actor.activity}. ${(actor.relations ?? []).map((r) => `${r.kind}: ${[this.state.player, ...this.state.actors].find((a) => a.id === r.other)?.name ?? r.other}`).join("; ")}. ${actor.trust < 0 ? "They seem wary of you." : "They notice your approach."}`
             : `${actor.activity}. ${actor.owner ? "Part of a household’s flock." : "Moving through the landscape."}`,
         kind: actor.kind,
         pos,
@@ -401,6 +438,10 @@ export class Engine {
         place.access === "public" ||
         (this.state.manifest.simulation === 2 &&
           place.owner === this.state.player.id) ||
+        this.state.households?.some(
+          (h) =>
+            h.members.includes("player") && h.members.includes(place.owner),
+        ) ||
         (this.state.permissions[place.owner] ?? 0) > this.state.clock;
       interact(
         "enter",
@@ -452,6 +493,22 @@ export class Engine {
           .join(" "),
         affordances: [
           ...propAffordances(this.state, object, close),
+          ...(this.state.households?.some(
+            (h) => h.storeId === object.id && h.members.includes("player"),
+          )
+            ? [
+                {
+                  label: "Contribute supplies",
+                  command: {
+                    type: "interact" as const,
+                    target: object.id,
+                    action: "store" as const,
+                  },
+                  enabled: close,
+                  reason: close ? undefined : "Walk closer",
+                },
+              ]
+            : []),
           ...(this.state.player.memories.some((m) =>
             m.startsWith(`theft:${id}:`),
           )
@@ -483,7 +540,9 @@ export class Engine {
     if (object.kind === "tree")
       interact(
         "harvest",
-        "Gather fallen branches",
+        object.resource
+          ? `Gather ${this.items[object.resource.item].name.toLowerCase()}`
+          : "Gather fallen branches",
         close && !object.depleted,
         object.depleted ? "The fallen wood has been gathered" : "Walk closer",
       );
@@ -510,8 +569,9 @@ export class Engine {
     return {
       id,
       name: object.name,
-      description:
-        object.kind === "tree"
+      description: object.resource
+        ? `${object.name}. ${object.depleted ? "Currently depleted or out of season." : `${object.inventory[object.resource.item] ?? 0} available.`} Harvest season: ${object.resource.seasons.join(", ")}.`
+        : object.kind === "tree"
           ? object.depleted
             ? "The fallen wood has been gathered. The tree remains."
             : "A little shade. Dry branches lie beneath the canopy."
@@ -683,6 +743,12 @@ export class Engine {
     if (key === this.populatedDistrict) return;
     this.populatedDistrict = key;
     this.world.activate(p.x, p.y);
+    if (this.world.households)
+      for (const h of this.world.households) {
+        this.state.households ??= [];
+        if (!this.state.households.some((old) => old.id === h.id))
+          this.state.households.push(copy(h));
+      }
     const ids = new Set(
       [...this.state.actors, ...this.state.objects].map((o) => o.id),
     );
@@ -693,7 +759,16 @@ export class Engine {
           lastUpdated: this.state.clock,
         });
     for (const object of this.world.initialObjects)
-      if (!ids.has(object.id)) this.state.objects.push(copy(object));
+      if (!ids.has(object.id)) {
+        const next = copy(object);
+        if (this.world.pack.setting?.environment)
+          refreshResource(
+            next,
+            this.state.clock,
+            seasonAt(this.world.pack.setting.season, this.state.clock),
+          );
+        this.state.objects.push(next);
+      }
   }
   private execute(c: PlayerCommand) {
     const p = this.state.player;
@@ -871,15 +946,25 @@ export class Engine {
         p.activity = "Exploring";
         this.event("You rest beside the household’s work. Your fatigue eases.");
         break;
+      case "store":
+        if (o) {
+          const amount = depositSupplies(p, o);
+          this.advance(30);
+          this.event(
+            `You contribute ${amount} supplies to the household stores.`,
+          );
+        }
+        break;
       case "harvest":
         if (o) {
-          this.transfer(o.inventory, p.inventory);
-          o.depleted = true;
+          if (!harvestResource(p, o, this.state.clock)) break;
           this.advance(180);
           this.event(
-            o.kind === "tree"
-              ? "You gather fallen branches for firewood. The tree remains standing."
-              : "You gather ripe grain. The harvested plot remains bare.",
+            o.resource
+              ? `You gather ${this.items[o.resource.item].name.toLowerCase()}. The resource is depleted until it replenishes in season.`
+              : o.kind === "tree"
+                ? "You gather fallen branches for firewood. The tree remains standing."
+                : "You gather ripe grain. The harvested plot remains bare.",
           );
         }
         break;
@@ -974,6 +1059,9 @@ export class Engine {
     if (this.state.manifest.simulation === 2) {
       if (a.pos.x === target.x && a.pos.y === target.y) return;
       if (
+        (a.householdId &&
+          this.blocked(target.x, target.y, target.space) &&
+          !this.gateAt(target, target.space)) ||
         this.state.actors.some(
           (other) => other.id !== a.id && distance(other.pos, target) < 1,
         )
@@ -1000,8 +1088,9 @@ export class Engine {
       if (
         !cached ||
         cached.target !== key ||
-        !cached.path.length ||
-        (this.blocked(cached.path[0].x, cached.path[0].y, a.pos.space) &&
+        (!cached.path.length && !a.householdId) ||
+        (cached.path[0] &&
+          this.blocked(cached.path[0].x, cached.path[0].y, a.pos.space) &&
           !this.gateAt(cached.path[0], a.pos.space))
       ) {
         cached = {
@@ -1103,6 +1192,10 @@ export class Engine {
           elapsed / (player.activity === "Resting" ? 100000 : 2400),
       );
       if (next % 6 !== 0) continue;
+      if (this.world.pack.setting?.environment) {
+        const season = seasonAt(this.world.pack.setting.season, next);
+        for (const o of this.state.objects) refreshResource(o, next, season);
+      }
       for (const a of [...this.state.actors].sort((a, b) =>
         a.id < b.id ? -1 : a.id > b.id ? 1 : 0,
       )) {
@@ -1115,8 +1208,13 @@ export class Engine {
               }
             : player.pos;
         if (
-          distance(a.pos, focus) >
-          (this.state.manifest.simulation === 2 ? 220 : 80)
+          distance(
+            a.pos.space === "outside"
+              ? a.pos
+              : (this.state.households?.find((h) => h.id === a.householdId)
+                  ?.home ?? a.pos),
+            focus,
+          ) > (this.state.manifest.simulation === 2 ? 220 : 80)
         )
           continue;
         const gap = next - (a.lastUpdated ?? next - 6);
@@ -1141,6 +1239,17 @@ export class Engine {
         if (a.kind === "human") {
           if (next % 18 !== 0) continue;
           const hour = (next / 3600) % 24;
+          if (
+            householdActivity(
+              a,
+              this.state,
+              this.items,
+              (target) => this.stepToward(a, target),
+              (target) =>
+                this.findRoute(a.pos, target, a.id, 1500).status === "found",
+            )
+          )
+            continue;
           if (a.hunger > 55) {
             a.activity = "Finding something to eat";
             this.stepToward(a, a.home);
@@ -1241,6 +1350,10 @@ export class Engine {
             a.goal = undefined;
             a.activity = "Grazing inside the enclosure";
           }
+        } else if (
+          grazeActivity(a, this.state, (target) => this.stepToward(a, target))
+        ) {
+          // Food comes from finite, replenishing pasture patches.
         } else if (this.world.activitySites?.(a.id)) {
           const sites = this.world.activitySites(a.id)!;
           const gate = this.state.objects.find((o) => o.id === sites.gateId);

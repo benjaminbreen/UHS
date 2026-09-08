@@ -351,7 +351,10 @@ export function planSettlement(
     }
     const id = `${site.id}-h${i}`,
       owner =
-        site.home && i === 0
+        site.home &&
+        i === 0 &&
+        (!pack.setting?.environment ||
+          pack.setting.environment.start === "resident")
           ? "player"
           : profile.pattern === "farmstead" && i % 3 !== 0
             ? owners.at(-1)!
@@ -547,6 +550,17 @@ export function planSettlement(
             pos: pos({ x, y }),
             sprite: "wheat",
             inventory: { grain: 3 },
+            ...(pack.setting?.environment
+              ? {
+                  resource: {
+                    item: "grain" as const,
+                    capacity: 3,
+                    regrowSeconds: 28 * 86400,
+                    seasons: ["summer", "autumn"],
+                    readyAt: 0,
+                  },
+                }
+              : {}),
             owner,
             claim: "landscape",
           });

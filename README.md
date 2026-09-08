@@ -13,11 +13,15 @@ npm run dev
 
 Open the local URL printed by Vite. `npm run build` produces `dist/`; `npm run preview` serves that production build. A Vercel configuration is included, but this project has not been deployed.
 
+## Procedural explorer
+
+Open `/terrain-lab` to generate local maps from eight ecologies, four landforms, water, population and settlement-pattern controls. Try the six quick studies, change the seed, inspect elevation/moisture and household relationships, then **Play this world** to enter that exact preview. It supports uninhabited regions, wandering/shepherd starts, seasonal resource stocks and household gathering/home routines. See [ECOLOGY.md](ECOLOGY.md) for scope and extension points. The existing fixed art studies remain available through its Art fixtures link.
+
 ## Play
 
 - Arrow keys or WASD walk; clicking clear ground plans a route. Escape stops walking. Scroll or the +/− buttons change magnification.
 - Select people, buildings, trees, or objects. Walk closer to use their contextual actions. Conversations can establish temporary household access. Permission to enter does not transfer ownership.
-- Trade exchanges real quantities. Inventory lets you eat. Wells refill water; grain plots and fallen wood can be gathered. Harvested resources remain depleted.
+- Trade exchanges real quantities. Inventory lets you eat. Wells refill water; grain plots and fallen wood can be gathered. Legacy resources remain depleted; procedural explorer resources have explicit seasonal availability and regrowth.
 - Sheep graze, react to nearby pressure, and can be guided toward an enclosure. Open its gate before bringing them in and close it afterward. Lizards can flee or be captured.
 - Taking household possessions can be witnessed; ownership remains unchanged. Goods still carried can be returned. People may later discover a loss without knowing its cause.
 - Space waits a minute; the Wait button waits five. The text field supports a small explicit parser, such as `wait 10`, `eat bread`, `inventory`, or `map`. It is not an LLM conversation field.

@@ -7,10 +7,11 @@ PALETTE=['#365b40','#47724b','#5b8046','#718b40','#839644','#8f9e4b',
  '#a4ae59','#bdc575','#9b9e53','#b0aa64','#c3b678','#4b9faa',
  '#3693a7','#79b9c4','#624735','#90633f','#b38b53','#d0ab6b',
  '#e6c384','#ebd8a5','#146c8c','#207e9e','#409bb6','#858875']
+PALETTE += ['#bacbd0','#d5dcd0','#edf0dd','#8fa9b2']
 P=PALETTE
 RAMPS={'grass':[4,5,6,3],'damp':[1,2,3,0],'dry':[8,9,10,5],
  'soil':[16,17,18,15],'gravel':[17,10,18,23],'water':[20,21,22,21],
- 'shallow':[12,11,13,11]}
+ 'shallow':[12,11,13,11],'sand':[18,19,17,16],'snow':[25,26,24,27]}
 RISE=14
 
 def canonical_mask(mask):
@@ -52,7 +53,7 @@ def paint_topography():
                     d.polygon([(sx-1,sy),(sx,sy-2),(sx+2,sy-1),(sx+3,sy+1),(sx+1,sy+2)],fill=P[23])
                     d.line((sx,sy-1,sx+1,sy-1),fill=P[19])
             sprites[f'{material}-{v}']=im
-    for material in ('grass','damp','dry','soil','gravel','shallow'):
+    for material in ('grass','damp','dry','soil','gravel','shallow','sand','snow'):
         for mask in masks:
             im=Image.new('RGBA',(16,16));d=ImageDraw.Draw(im)
             for y in range(16):

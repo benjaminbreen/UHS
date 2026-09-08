@@ -9,7 +9,7 @@ test("terrain fixture walks slopes, blocks cliffs, exports and renders both stud
     if (m.type() === "warning" && /frame|texture/i.test(m.text()))
       errors.push(m.text());
   });
-  await page.goto("/terrain-lab");
+  await page.goto("/terrain-lab?study=meadow");
   await expect(page.getByTestId("terrain-canvas")).toHaveAttribute(
     "data-ready",
     "true",
@@ -85,7 +85,7 @@ test("terrain review is independent of saved journeys and usable on a narrow scr
   );
   const before = await page.evaluate(() => (window as any).__uhs.engine.hash());
   await page.waitForTimeout(400);
-  await page.goto("/terrain-lab");
+  await page.goto("/terrain-lab?study=meadow");
   await expect(page.getByTestId("terrain-canvas")).toHaveAttribute(
     "data-ready",
     "true",

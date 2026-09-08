@@ -1,3 +1,9 @@
+# General procedural explorer
+
+`/terrain-lab` now opens the shared v3 procedural explorer: eight ecological envelopes, four landforms, independent water/population/layout/start controls, household inspection, local-map previews and direct play. See [ECOLOGY.md](ECOLOGY.md) for current implementation, ownership and limitations. `terrainRevision: 2` selects this environment model; the original Anatolia shortcut below remains revision 1. The fixed art studies remain at `/terrain-lab?study=meadow` and `/terrain-lab?study=contours`.
+
+---
+
 # Phase two: v3 Anatolia terrain preview
 
 Use New world → Anatolia · 6500 BCE · terrain preview. The seed is `anatolia-relief-1`, internal astronomical year −6499. This is a fictional generated settlement on the Konya plain, not a surveyed reconstruction.
@@ -14,7 +20,7 @@ Validation: `tests/terrain-world.test.ts` covers tiers, water depths, biome cove
 
 # Terrain / stage-one visual proof
 
-Open `/terrain-lab` (or follow Terrain study from the Graphics lab). The river meadow is a fixed, fictional composition inspired by the September 7 references, not a reconstruction of Konya and not the stage-two procedural generator. The meadow uses three levels: river/floodplain, settlement terrace and one broad northeast rise. A second slopes-and-corners fixture exercises all four ramp directions, inward corners and the full four-tier range.
+Open `/terrain-lab?study=meadow` (or choose Art fixtures in the procedural explorer). The river meadow is a fixed, fictional composition inspired by the September 7 references, not a reconstruction of Konya and not the stage-two procedural generator. The meadow uses three levels: river/floodplain, settlement terrace and one broad northeast rise. A second slopes-and-corners fixture exercises all four ramp directions, inward corners and the full four-tier range.
 
 ## Delivered
 

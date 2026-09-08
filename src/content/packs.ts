@@ -1,6 +1,8 @@
 import type { Pack } from "../core/types";
 import { resolvePlayablePacks } from "./history/playable";
-export { items } from "./legacy-packs";
+import { items as baseItems } from "./legacy-packs";
+import { ecologicalItems } from "./ecology/resources";
+export const items = { ...baseItems, ...ecologicalItems } as Record<import("../core/types").ItemId, import("../core/types").ItemDef>;
 export const packs: Record<string, Pack> = resolvePlayablePacks();
 export function resolvePrompt(
   input: string,

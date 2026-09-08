@@ -1,6 +1,10 @@
 import { z } from "zod";
 import { settingSchema } from "../content/geography/types";
 const item = z.enum([
+  "fruit",
+  "berries",
+  "reeds",
+  "fodder",
   "bread",
   "grain",
   "water",
@@ -20,6 +24,18 @@ const point = z.object({
 });
 const pos = point.extend({ space: z.string().max(100) });
 const actor = z.object({
+  age: z.number().int().min(0).max(120).optional(),
+  householdId: z.string().optional(),
+  relations: z
+    .array(
+      z.object({
+        other: z.string(),
+        kind: z.enum(["partner", "parent", "child", "co-resident"]),
+      }),
+    )
+    .optional(),
+  knownResources: z.array(z.string()).optional(),
+  task: z.object({ target: z.string(), until: z.number() }).optional(),
   id: z.string(),
   name: z.string(),
   role: z.string(),
@@ -43,6 +59,15 @@ const actor = z.object({
   goal: pos.optional(),
 });
 const object = z.object({
+  resource: z
+    .object({
+      item,
+      capacity: z.number(),
+      regrowSeconds: z.number(),
+      seasons: z.array(z.string()),
+      readyAt: z.number(),
+    })
+    .optional(),
   prop: z.string().optional(),
   carriedBy: z.literal("player").optional(),
   broken: z.boolean().optional(),
@@ -99,6 +124,7 @@ export const commandSchema = z.discriminatedUnion("type", [
         "open",
         "close",
         "drink",
+        "store",
         "harvest",
         "capture",
         "herd",
@@ -139,6 +165,17 @@ const result = z.object({
   reason: z.string().optional(),
 });
 export const snapshotSchema = z.object({
+  households: z
+    .array(
+      z.object({
+        id: z.string(),
+        members: z.array(z.string()),
+        residence: z.string().optional(),
+        home: pos,
+        storeId: z.string(),
+      }),
+    )
+    .optional(),
   manifest: z.discriminatedUnion("generator", [
     z
       .object({

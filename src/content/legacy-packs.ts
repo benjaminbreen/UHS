@@ -2,7 +2,7 @@
 import { landscapes } from "./graphics/landscapes";
 import type { Pack, ItemDef, ItemId } from "../core/types";
 import tiberGeography from "./generated/tiber-geography.json" with { type: "json" };
-export const items: Record<ItemId, ItemDef> = {
+export const items: Record<Exclude<ItemId, "fruit" | "berries" | "reeds" | "fodder">, ItemDef> = {
   bread: { id: "bread", name: "Bread", sprite: "bread", value: 2, edible: 28 },
   grain: { id: "grain", name: "Grain", sprite: "grain", value: 1, edible: 12 },
   water: { id: "water", name: "Water", sprite: "jug", value: 1 },

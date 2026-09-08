@@ -9,6 +9,8 @@ export type RenderOptions = {
   colorGrade?: boolean;
   shadows?: boolean;
   lab?: boolean;
+  overview?: boolean;
+  center?: { x: number; y: number };
 };
 /** Quiet patches share detail density across several cells; detail is not uniform static. */
 export function terrainVariant(

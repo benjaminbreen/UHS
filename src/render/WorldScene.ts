@@ -52,6 +52,7 @@ export class WorldScene extends Phaser.Scene {
     this.runtime = runtime;
   }
   preload() {
+    this.load.atlas("ecology", "/ecology/atlas.png", "/ecology/atlas.json");
     this.load.atlas("props", "/props/atlas.png", "/props/atlas.json");
     this.load.atlas(
       "prop-shadows",
@@ -175,12 +176,18 @@ export class WorldScene extends Phaser.Scene {
           this.runtime.setZoom(this.runtime.zoom + (dy < 0 ? 1 : -1));
       },
     );
-    this.scale.on("resize", () => this.draw());
+    const onResize = () => this.draw();
+    this.scale.on("resize", onResize);
     this.unsubscribe = this.runtime.subscribe(() => this.draw());
-    this.events.once("shutdown", () => {
+    const cleanup = () => {
+      this.ready = false;
+      this.scale.off("resize", onResize);
       this.unsubscribe?.();
       this.terrainStream?.dispose();
-    });
+      this.terrainStream = undefined;
+    };
+    this.events.once("shutdown", cleanup);
+    this.events.once("destroy", cleanup);
     this.draw();
     this.options.onReady?.();
   }
@@ -201,6 +208,7 @@ export class WorldScene extends Phaser.Scene {
     return image;
   }
   private texture(frame: string) {
+    if (frame.startsWith("ecology-")) return "ecology";
     return frame.startsWith("study-prop-") || frame.startsWith("prop-broken-")
       ? "props"
       : "atlas";
@@ -219,10 +227,13 @@ export class WorldScene extends Phaser.Scene {
     return image;
   }
   draw() {
-    if (!this.ready) return;
+    if (!this.ready || !this.cameras?.main) return;
     const rt = this.runtime,
       e = rt.engine,
-      p = e.state.player.pos,
+      p =
+        this.options.overview && this.options.center
+          ? { ...this.options.center, space: "outside" }
+          : e.state.player.pos,
       w = e.world;
     this.light = this.options.lighting
       ? lightingPreset(this.options.lighting)
@@ -234,7 +245,8 @@ export class WorldScene extends Phaser.Scene {
     this.shadowPhase = p.space === "outside" ? this.light.id : "night";
     const c = this.cameras.main;
     c.setZoom(rt.zoom);
-    if (!this.entities.has("player")) c.centerOn(p.x * 16 + 8, p.y * 16 + 8);
+    if (!this.entities.has("player") && !this.options.overview)
+      c.centerOn(p.x * 16 + 8, p.y * 16 + 8);
     if (w !== this.drawnWorld || p.space !== "outside") {
       this.terrainStream?.dispose();
       this.terrainStream = undefined;
@@ -549,7 +561,13 @@ export class WorldScene extends Phaser.Scene {
           : 1,
       );
     }
-    const obs = e.observe(),
+    const obs = this.options.overview
+        ? {
+            ...e.observe(),
+            actors: e.state.actors.filter((a) => a.pos.space === p.space),
+            objects: e.state.objects.filter((o) => o.pos.space === p.space),
+          }
+        : e.observe(),
       keep = new Set<string>();
 
     const renderEntity = (
@@ -629,7 +647,13 @@ export class WorldScene extends Phaser.Scene {
     };
     for (const o of obs.objects) {
       if (o.carriedBy) continue;
-      if (o.depleted && o.kind !== "tree") continue;
+      if (
+        o.depleted &&
+        (o.kind !== "tree" ||
+          (o.resource &&
+            !["ecology-fruit-tree", "ecology-berry-bush"].includes(o.sprite)))
+      )
+        continue;
       if (o.kind === "crop") {
         // Visual clumps share one authoritative harvest target, including depletion.
         for (const row of [-2, 0, 2]) {
@@ -647,7 +671,15 @@ export class WorldScene extends Phaser.Scene {
       }
       renderEntity(
         o.id,
-        o.kind === "gate" ? (o.open ? "gate-open" : "gate") : o.sprite,
+        o.resource && o.depleted && o.sprite === "ecology-fruit-tree"
+          ? "oak"
+          : o.resource && o.depleted && o.sprite === "ecology-berry-bush"
+            ? "bush"
+            : o.kind === "gate"
+              ? o.open
+                ? "gate-open"
+                : "gate"
+              : o.sprite,
         o.pos,
       );
     }
@@ -662,7 +694,7 @@ export class WorldScene extends Phaser.Scene {
           : `${a.sprite}${this.options.lab ? e.state.revision % 2 : 0}`;
       renderEntity(a.id, frame, a.pos, true);
     }
-    if (this.options.lab)
+    if (this.options.lab && !this.options.overview)
       c.startFollow(this.entities.get("player")!, true, 0.4, 0.4);
     for (const [id, image] of this.entities)
       if (!keep.has(id)) {

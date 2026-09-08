@@ -1,10 +1,11 @@
+import { ProceduralLab } from "./terrain/ProceduralLab";
 import { useEffect, useRef, useState } from "react";
 import Phaser from "phaser";
 import { TerrainScene, type StudyStatus } from "./terrain/TerrainScene";
 import type { TerrainStudy } from "./terrain/fixture";
 import "./terrain-lab.css";
 
-export function TerrainLab() {
+export function FixedTerrainLab() {
   const [study, setStudy] = useState<TerrainStudy>(() =>
     new URLSearchParams(location.search).get("study") === "contours"
       ? "contours"
@@ -66,7 +67,7 @@ export function TerrainLab() {
           <h1>Terrain study</h1>
         </div>
         <span>01 / Ground, water & relief</span>
-        <a href="/">Return to world ↗</a>
+        <a href="/terrain-lab">Procedural explorer ↗</a>
       </header>
       <div className="terrain-layout">
         <aside className="terrain-controls">
@@ -170,5 +171,13 @@ export function TerrainLab() {
         </main>
       </div>
     </div>
+  );
+}
+
+export function TerrainLab() {
+  return new URLSearchParams(location.search).has("study") ? (
+    <FixedTerrainLab />
+  ) : (
+    <ProceduralLab />
   );
 }

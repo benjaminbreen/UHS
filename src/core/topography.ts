@@ -6,12 +6,18 @@ export type GroundSurface =
   | "dry"
   | "soil"
   | "gravel"
-  | "water";
+  | "water"
+  | "sand"
+  | "snow";
 export type Direction = "n" | "e" | "s" | "w";
 export type TerrainPoint = { x: number; y: number };
 export type TopographyCell = {
   height: HeightTier;
-  biome?: "wetland" | "grassland" | "dry-upland";
+  biome?:
+    | "wetland"
+    | "grassland"
+    | "dry-upland"
+    | import("../content/ecology/profiles").Ecology;
   moisture?: number;
   surface: GroundSurface;
   waterDepth?: "shallow" | "deep";

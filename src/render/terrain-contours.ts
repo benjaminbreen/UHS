@@ -246,7 +246,9 @@ export function rasterTerrainContours(
                 break;
               }
           }
-          const dry = sample(ownerX, row)?.surface === "dry";
+          const surface = sample(ownerX, row)?.surface;
+          const dry = surface === "dry" || surface === "sand";
+          const snow = surface === "snow";
           // A continuous turf cap over vertically sculpted earth. The short
           // repeating strata are anchored in world space, not individual tiles.
           const mod = (n: number, m: number) => ((n % m) + m) % m;
@@ -257,9 +259,24 @@ export function rasterTerrainContours(
             9,
           );
           let color: number;
-          if (onTop) color = near === 1 ? (dry ? 10 : 6) : dry ? 9 : 4;
-          else if (near === 1) color = dry ? 10 : 7;
-          else if (near === 2) color = dry ? 9 : 5;
+          if (onTop)
+            color = snow
+              ? near === 1
+                ? 26
+                : 25
+              : surface === "sand"
+                ? near === 1
+                  ? 19
+                  : 18
+                : near === 1
+                  ? dry
+                    ? 10
+                    : 6
+                  : dry
+                    ? 9
+                    : 4;
+          else if (near === 1) color = snow ? 26 : dry ? 10 : 7;
+          else if (near === 2) color = snow ? 24 : dry ? 9 : 5;
           else {
             color = faceY > 6 ? (seam < 3 ? 14 : 15) : seam < 3 ? 15 : 16;
             // Recesses taper; warm shadows stay beneath the cap and at the foot.
