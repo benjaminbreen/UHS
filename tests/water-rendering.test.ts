@@ -1,3 +1,10 @@
+import {
+  motifKinds,
+  motifPixels,
+  motifState,
+  waterMotif,
+  waterCharm,
+} from "../src/render/water-motifs";
 import { expect, it } from "vitest";
 import { rasterWaterTile } from "../src/render/water-raster";
 import { waterDistance, waterPalette } from "../src/render/water-style";
@@ -99,4 +106,93 @@ it("gives tropical rivers and coasts distinct water, and ecological banks distin
   ].map((e) => waterPalette(e as "desert", "sea"));
   expect(new Set(palettes.map((p) => p.depths.join())).size).toBe(4);
   expect(new Set(palettes.map((p) => p.stone.join())).size).toBe(4);
+});
+
+it("keeps animated artwork sparse and inside its water tile for every flow direction", () => {
+  const e = rasterWaterTile(sample, -2, -2, 0, 0).effect;
+  const failures: string[] = [];
+  for (const kind of motifKinds)
+    for (let frame = 0; frame < 8; frame++) {
+      e.cell.waterVisual!.kind = kind === "crest" ? "sea" : "river";
+      const pixels = motifPixels(kind, frame);
+      const occupied = Array.from(pixels.keys()).filter((i) => pixels[i]);
+      expect(occupied.length).toBeLessThan(34);
+      const xs = occupied.map((i) => i % 16),
+        ys = occupied.map((i) => Math.floor(i / 16));
+      for (const flow of [
+        [1, 0],
+        [-1, 0],
+        [0, 1],
+        [0, -1],
+        [1, 1],
+      ] as const) {
+        e.cell.waterVisual!.flow = flow;
+        for (let tick = 0; tick < 80; tick++) {
+          const state = motifState(e, kind, tick);
+          if (
+            !Number.isFinite(state.alpha) ||
+            state.alpha < 0 ||
+            Math.min(...xs) + state.dx < 0 ||
+            Math.max(...xs) + state.dx >= 16 ||
+            Math.min(...ys) + state.dy < 0 ||
+            Math.max(...ys) + state.dy >= 16
+          )
+            failures.push(`${kind}/${frame}/${flow}/${tick}`);
+        }
+      }
+    }
+  expect(failures).toEqual([]);
+});
+it("leaves most surface blocks quiet and limits vegetation to suitable freshwater", () => {
+  let chosen = 0,
+    active = 0;
+  const e = rasterWaterTile(sample, -2, -2, 0, 0).effect;
+  for (let by = -8; by < 8; by++)
+    for (let bx = -8; bx < 8; bx++) {
+      let count = 0;
+      for (let y = 0; y < 2; y++)
+        for (let x = 0; x < 2; x++) {
+          e.gx = bx * 32 + x * 16;
+          e.gy = by * 32 + y * 16;
+          const kind = waterMotif(e);
+          if (kind) {
+            count++;
+            chosen++;
+            if (motifState(e, kind, 0).alpha > 0) active++;
+          }
+          expect(waterCharm(e)).toBeUndefined(); // salt water has no freshwater charms
+        }
+      expect(count).toBeLessThanOrEqual(1);
+    }
+  expect(chosen).toBeGreaterThan(100);
+  expect(active).toBeLessThan(120); // fewer than 12% of 1024 cells at once
+  e.cell.bridge = true;
+  expect(waterMotif(e)).toBeUndefined();
+  e.cell.bridge = false;
+  e.cell.waterVisual!.kind = "river";
+  for (const ecology of ["desert", "tundra", "boreal-woodland"] as const) {
+    e.cell.waterVisual!.ecology = ecology;
+    expect(waterCharm(e)).toBeUndefined();
+  }
+});
+
+it("adds only occasional freshwater plants and leaves, and freezes them out in winter", () => {
+  const e = rasterWaterTile(sample, -2, -2, 0, 0).effect;
+  e.cell.waterVisual!.kind = "river";
+  e.cell.waterVisual!.distance = -1;
+  e.edges = [{ dx: 1, dy: 0, rocky: false }];
+  const counts = { plant: 0, leaf: 0, ring: 0 };
+  for (let x = -16; x < 16; x++)
+    for (let y = -16; y < 16; y++) {
+      e.gx = x * 16;
+      e.gy = y * 16;
+      const charm = waterCharm(e);
+      if (charm && charm in counts) counts[charm as keyof typeof counts]++;
+    }
+  expect(counts.plant).toBeGreaterThan(0);
+  expect(counts.leaf).toBeGreaterThan(0);
+  expect(counts.ring).toBeGreaterThan(0);
+  expect(counts.plant + counts.leaf + counts.ring).toBeLessThan(65);
+  e.cell.waterVisual!.frozenMargin = true;
+  expect(waterCharm(e)).toBeUndefined();
 });

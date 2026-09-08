@@ -4,6 +4,7 @@ import {
   waterBand,
   waterDistance,
   waterHash,
+  waterNoise,
   waterStyle,
   type WaterPalette,
 } from "./water-style";
@@ -79,9 +80,10 @@ export function rasterWaterTile(
       );
       // Quiet horizontal clusters, with long areas of uninterrupted base color.
       if (
-        waterHash(Math.floor(wx / 4), wy, 9) > 0.95 &&
-        (wx & 3) !== 3 &&
-        wy % 2 === 0
+        waterHash(Math.floor(wx / 8), Math.floor(wy / 4), 9) > 0.94 &&
+        (wx & 7) > 1 &&
+        (wx & 7) < 6 &&
+        (wy & 3) === ((wx & 7) > 3 ? 1 : 2)
       )
         index += 5;
       const edge = Math.min(
@@ -90,11 +92,21 @@ export function rasterWaterTile(
           dx === 1 ? 15 - px : dx === -1 ? px : dy === 1 ? 15 - py : py,
         ),
       );
-      const lip =
-        1 +
-        Math.floor(waterHash(Math.floor(wx / 3), Math.floor(wy / 3), 2) * 2);
+      const lip = 1 + Math.floor(waterNoise(wx, wy, 12, 2) * 2);
       if (!cell.bridge && edge < lip) index = 10 + (edge === 0 ? 1 : 0);
-      if (!cell.bridge && edge === 0 && waterHash(wx, wy, 17) > 0.7) index = 12;
+      if (
+        !cell.bridge &&
+        edge === 0 &&
+        waterHash(Math.floor(wx / 4), Math.floor(wy / 4), 17) > 0.66
+      )
+        index = 12;
+      // Interrupted contact shade at the wet lip, leaving most banks softly lit.
+      if (
+        !cell.bridge &&
+        edge === lip &&
+        waterHash(Math.floor(wx / 8), Math.floor(wy / 8), 18) > 0.56
+      )
+        index = edges.some((e) => e.rocky) ? 13 : 10;
       pixels.set(colors[index], (py * 16 + px) * 4);
     }
   // Submerged stones are deliberately sparse, tinted by the water column.
@@ -103,7 +115,8 @@ export function rasterWaterTile(
     !cell.bridge &&
     depth > 0.4 &&
     depth < (kind === "sea" ? 8 : 3.8) &&
-    waterHash(gx, gy, 44) > 0.8
+    waterHash(gx, gy, 44) > 0.86 &&
+    waterHash(gx, gy, 44) < 0.94
   ) {
     const sx = 4 + Math.floor(waterHash(gx, gy, 45) * 7),
       sy = 4 + Math.floor(waterHash(gx, gy, 46) * 7);
@@ -119,10 +132,14 @@ export function rasterWaterTile(
         for (let px = x; px < x + w; px++)
           pixels.set(pixel, (py * 16 + px) * 4);
     };
-    rect(sx - 2, sy, 6, 3, palette.submerged[0]);
-    rect(sx - 1, sy - 1, 4, 5, palette.submerged[0]);
-    rect(sx - 1, sy - 1, 3, 1, palette.submerged[1]);
-    rect(sx - 2, sy, 2, 1, palette.submerged[1]);
+    const wide = waterHash(gx, gy, 47) > 0.5;
+    rect(sx - 2, sy, wide ? 5 : 4, 2, palette.submerged[0]);
+    rect(sx - 1, sy - 1, wide ? 3 : 2, 4, palette.submerged[0]);
+    rect(sx - 1, sy - 1, 2, 1, palette.submerged[1]);
+    if (wide) {
+      rect(sx + 3, sy + 3, 2, 1, palette.submerged[0]);
+      rect(sx + 3, sy + 2, 1, 1, palette.submerged[1]);
+    }
   }
   return {
     x,

@@ -48,6 +48,21 @@ test("ecological water animates, pauses, survives chunk movement and plays", asy
       ),
     ).toBe(hash);
     await canvas.screenshot({ path: `artifacts/water-${name}.png` });
+    const detail = await page.evaluate(() => {
+      const lab = (window as any).terrainLab;
+      const zoom = lab.runtime.zoom;
+      lab.runtime.zoom = 2;
+      lab.scene.draw();
+      return zoom;
+    });
+    await expect(canvas).toHaveAttribute("data-terrain-ready", "true");
+    await canvas.screenshot({ path: `artifacts/water-detail-${name}.png` });
+    await page.evaluate((zoom) => {
+      const lab = (window as any).terrainLab;
+      lab.runtime.zoom = zoom;
+      lab.scene.draw();
+    }, detail);
+    await expect(canvas).toHaveAttribute("data-terrain-ready", "true");
     await page.getByRole("button", { name: "Animate water" }).click();
     await expect
       .poll(() => canvas.getAttribute("data-water-frame"))
@@ -77,7 +92,12 @@ test("ecological water animates, pauses, survives chunk movement and plays", asy
         installMax: Number(canvas.dataset.terrainInstallMaxMs),
       };
     });
-    results.push({ name, ...timing });
+    const density = await page.evaluate(() => {
+      const c = document.querySelector("canvas")!;
+      return Number(c.dataset.waterMotifs) / Number(c.dataset.waterTiles);
+    });
+    expect(density).toBeLessThan(0.2);
+    results.push({ name, ...timing, activeMotifFraction: density });
     expect(timing.p95).toBeLessThan(45);
     expect(timing.waterMax).toBeLessThan(15);
     expect(timing.installMax).toBeLessThan(100);
@@ -106,6 +126,33 @@ test("ecological water animates, pauses, survives chunk movement and plays", asy
     "data-terrain-ready",
     "true",
   );
+  await page.evaluate(() => {
+    const lab = (window as any).terrainLab,
+      scene = lab.scene;
+    scene.options.center.x += 220;
+    scene.draw();
+  });
+  await expect(page.locator("canvas")).toHaveAttribute(
+    "data-terrain-pending",
+    "0",
+    { timeout: 30000 },
+  );
+  expect(
+    await page.evaluate(() =>
+      (window as any).terrainLab.scene.textures.exists("water-motifs-1"),
+    ),
+  ).toBe(true);
+  await page.evaluate(() => {
+    const lab = (window as any).terrainLab,
+      scene = lab.scene;
+    scene.options.center.x -= 220;
+    scene.draw();
+  });
+  await expect(page.locator("canvas")).toHaveAttribute(
+    "data-terrain-ready",
+    "true",
+    { timeout: 30000 },
+  );
   await page.getByRole("button", { name: "Play this world →" }).click();
   await expect(page.locator("canvas[data-terrain-ready]")).toHaveAttribute(
     "data-terrain-ready",
@@ -122,4 +169,38 @@ test("ecological water animates, pauses, survives chunk movement and plays", asy
   );
   console.log("Water performance", JSON.stringify(results));
   expect(errors).toEqual([]);
+});
+
+test("water frame cadence stays within the local browser budget", async ({
+  page,
+}) => {
+  const measure = () =>
+    page.evaluate(async () => {
+      const times: number[] = [];
+      let last = performance.now();
+      await new Promise<void>((resolve) => {
+        const frame = (now: number) => {
+          times.push(now - last);
+          last = now;
+          if (times.length < 120) requestAnimationFrame(frame);
+          else resolve();
+        };
+        requestAnimationFrame(frame);
+      });
+      times.sort((a, b) => a - b);
+      return { p95: times[Math.floor(times.length * 0.95)], max: times.at(-1) };
+    });
+  await page.goto("about:blank");
+  const baseline = await measure();
+  await page.goto(
+    "/terrain-lab?seed=water-review&ecology=tropical-woodland&water=coast-n&landform=plain&population=none&start=wanderer",
+  );
+  await expect(page.locator("canvas")).toHaveAttribute(
+    "data-terrain-pending",
+    "0",
+    { timeout: 30000 },
+  );
+  const water = await measure();
+  console.log("Frame cadence baseline / animated water", { baseline, water });
+  expect(water.p95).toBeLessThan(45);
 });

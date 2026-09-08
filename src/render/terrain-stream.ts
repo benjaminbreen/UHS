@@ -1,3 +1,4 @@
+import { ensureWaterAtlas } from "./water-motifs";
 import type Phaser from "phaser";
 import type { Pack } from "../core/types";
 import { drawTopography } from "./topography";
@@ -35,6 +36,7 @@ export class TerrainStream {
     pack: Pack,
     seed: string,
   ) {
+    ensureWaterAtlas(scene);
     this.worker.postMessage({ pack, seed } satisfies TerrainRequest);
     this.worker.onmessage = ({ data }) => {
       if (data.error) {

@@ -12,8 +12,8 @@ export type WaterPalette = {
   rockTint: number;
 };
 const temperate: WaterPalette = {
-  depths: ["#83b6ad", "#559da6", "#358394", "#246a83", "#205670"],
-  texture: ["#9bc6b9", "#6aabb2", "#43909f", "#30778d", "#28627b"],
+  depths: ["#91baa3", "#5ea59f", "#368794", "#286b86", "#2c5070"],
+  texture: ["#9fc3af", "#6bafa8", "#42949c", "#34768e", "#365d7b"],
   bank: ["#8b8970", "#b4ad86", "#d0c59f"],
   stone: ["#5c6865", "#89938a", "#bcc1a7"],
   submerged: ["#3f777e", "#5e9699"],
@@ -22,8 +22,8 @@ const temperate: WaterPalette = {
   rockTint: 0xd9e2d4,
 };
 const desert: WaterPalette = {
-  depths: ["#adae7d", "#7aab94", "#4c989a", "#337e8b", "#2a687a"],
-  texture: ["#c0bb8e", "#8db8a1", "#5ba5a5", "#408e96", "#357785"],
+  depths: ["#bdb884", "#8ab49b", "#54a09f", "#368596", "#315e7e"],
+  texture: ["#c7c191", "#99bea7", "#60aba8", "#42939d", "#3b6c89"],
   bank: ["#ae8655", "#cfab70", "#e8c78d"],
   stone: ["#877156", "#b09a75", "#d9c298"],
   submerged: ["#678e82", "#94ab8f"],
@@ -32,8 +32,8 @@ const desert: WaterPalette = {
   rockTint: 0xffdaa4,
 };
 const tropical: WaterPalette = {
-  depths: ["#91b391", "#579e8c", "#337f7b", "#246866", "#205355"],
-  texture: ["#a1c0a0", "#69ae9c", "#428d86", "#2d7774", "#29605f"],
+  depths: ["#98b887", "#5daa8e", "#348d80", "#276d70", "#2b505f"],
+  texture: ["#a5c395", "#6ab59a", "#42998c", "#337b7b", "#375f6b"],
   bank: ["#655d42", "#91845a", "#b4a472"],
   stone: ["#434f48", "#677b68", "#95a38a"],
   submerged: ["#386960", "#5a8b77"],
@@ -43,16 +43,16 @@ const tropical: WaterPalette = {
 };
 const tropicalSea: WaterPalette = {
   ...tropical,
-  depths: ["#b0d5bc", "#79c4b9", "#40a9b2", "#27879e", "#206781"],
-  texture: ["#c2ddc9", "#8dcfc4", "#57b7bf", "#3698aa", "#2b758f"],
+  depths: ["#a4d7b7", "#69c8b4", "#369fb0", "#277c9c", "#285b7e"],
+  texture: ["#b4dfc5", "#78d0bf", "#44acb8", "#328aa6", "#336a89"],
   bank: ["#a9a27b", "#d1c79d", "#ece0b8"],
   submerged: ["#4a9394", "#73b3ad"],
   glint: "#bbe9de",
   foam: "#f0f4df",
 };
 const northern: WaterPalette = {
-  depths: ["#acbfc0", "#7d9faa", "#557f94", "#3b627d", "#2a4c69"],
-  texture: ["#bfced0", "#91afb9", "#668fa3", "#49728e", "#355b78"],
+  depths: ["#b1c6c3", "#84aab3", "#5b8ca3", "#3f6f8d", "#354c70"],
+  texture: ["#bed0ce", "#90b5bd", "#6899ad", "#4c7e97", "#415b7d"],
   bank: ["#777f7c", "#a0aaa3", "#c5cbbd"],
   stone: ["#555f68", "#7e9097", "#becbcd"],
   submerged: ["#516f80", "#78929b"],
@@ -100,6 +100,22 @@ export function waterHash(x: number, y: number, salt = 0) {
   n = Math.imul(n ^ (n >>> 13), 1274126177);
   return ((n ^ (n >>> 16)) >>> 0) / 4294967296;
 }
+/** Smooth world-anchored fields; field sampling never depends on chunk boundaries. */
+export function waterNoise(x: number, y: number, scale: number, salt: number) {
+  const ix = Math.floor(x / scale),
+    iy = Math.floor(y / scale);
+  const sx = x / scale - ix,
+    sy = y / scale - iy;
+  const fx = sx * sx * (3 - 2 * sx),
+    fy = sy * sy * (3 - 2 * sy);
+  return (
+    (waterHash(ix, iy, salt) * (1 - fx) + waterHash(ix + 1, iy, salt) * fx) *
+      (1 - fy) +
+    (waterHash(ix, iy + 1, salt) * (1 - fx) +
+      waterHash(ix + 1, iy + 1, salt) * fx) *
+      fy
+  );
+}
 /** Bilinear reconstruction of the continuous bed at native-pixel centers. */
 export function waterDistance(sample: TopographySample, x: number, y: number) {
   const ix = Math.floor(x - 0.5),
@@ -130,14 +146,16 @@ export function waterBand(
   gy: number,
 ) {
   const shelf = kind === "sea" ? 1.1 + shoreWidth * 0.35 : 1;
-  const wobble =
-    Math.sin(gx / 33 + Math.sin(gy / 51)) * 0.16 +
-    Math.sin(gy / 27 + gx / 53) * 0.11;
+  const raw = Math.max(0, -distance / shelf);
+  // Broad, asymmetrical shelves. Small clustered transitions replace pixel speckle.
+  const shelves =
+    (waterNoise(gx, gy, 83, 101) - 0.5) * 2.4 +
+    (waterNoise(gx, gy, 37, 102) - 0.5) * 0.55;
   const depth = Math.max(
     0,
-    -distance / shelf +
-      wobble +
-      (waterHash(Math.floor(gx / 2), Math.floor(gy / 2)) - 0.5) * 0.1,
+    raw +
+      Math.min(1, raw * 0.6) * shelves +
+      (waterHash(Math.floor(gx / 3), Math.floor(gy / 2), 103) - 0.5) * 0.12,
   );
   return depth < 0.35
     ? 0

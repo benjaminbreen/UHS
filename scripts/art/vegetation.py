@@ -2,7 +2,88 @@
 from PIL import Image, ImageDraw
 import random, math
 
+def palm(name='palm'):
+    """Radial fronds over a ringed trunk. Drawn at 1x: no resize, no anti-aliasing."""
+    im=Image.new('RGBA',(56,72));d=ImageDraw.Draw(im)
+    outline='#153320'
+    bark=['#2c2116','#5a412a','#7a5a39','#9c7a4c','#b79a68']
+    leaf=['#1d4526','#2a6330','#3d8036','#5ea043','#8cc258']
+    fruit=['#8a4d13','#c2820f','#e0a520','#f2c94a']
+    cx,cy=28,26
+    rng=random.Random(97+sum(map(ord,name)))
+    # Trunk: stacked leaf scars, each a bark band closed by a dark seam.
+    for i,y in enumerate(range(24,68,4)):
+        t=(y-24)/44.0
+        half=2+int(t*2.6)
+        lean=int(round(math.sin(t*2.1)*1.5))
+        x0,x1=cx-half+lean,cx+half+lean
+        d.rectangle((x0,y,x1,y+3),fill=bark[1])
+        d.rectangle((x0,y,x0+max(0,half-1),y+3),fill=bark[2])
+        d.line((x0+1,y+1,x0+1,y+2),fill=bark[3] if i%2 else bark[2])
+        d.line((x0,y+3,x1,y+3),fill=bark[0])
+        if i%2:d.point((x1-1,y+1),fill=bark[0])
+    # Root flare.
+    d.polygon([(cx-6,64),(cx+7,64),(cx+9,70),(cx+5,68),(cx+2,70),(cx-2,68),(cx-5,70),(cx-8,70)],fill=bark[1])
+    d.line((cx-5,66,cx-7,69),fill=bark[3]);d.line((cx+4,66,cx+6,69),fill=bark[0])
+
+    def frond(ctrl,tip,tone,seed):
+        # Quadratic arc from the crown: rises, then falls to the tip. Leaflets are
+        # short strokes raked toward the tip, alternating length so the edge serrates.
+        r=random.Random(seed)
+        steps=26
+        pts=[]
+        for s in range(steps+1):
+            t=s/steps;u=1-t
+            pts.append((u*u*cx+2*u*t*ctrl[0]+t*t*tip[0],u*u*cy+2*u*t*ctrl[1]+t*t*tip[1]))
+        out=1 if tip[0]>=cx else -1
+        for step in range(2,steps):
+            x,y=pts[step];px,py=pts[step-1]
+            t=step/steps
+            dx,dy=x-px,y-py
+            n=math.hypot(dx,dy) or 1
+            tx,ty=dx/n,dy/n;nx,ny=-ty,tx
+            wide=4.4*math.sin(min(1,t*1.25)*math.pi)**0.5
+            for side in (-1,1):
+                w=wide-(1.7 if step%2 else 0)-(1.0 if r.random()<.3 else 0)
+                if w<1:continue
+                ex,ey=x+(nx*side+tx*0.75)*w,y+(ny*side+ty*0.75)*w+w*0.25
+                lit=tone if side*out<=0 else max(1,tone-1)
+                d.line((round(x),round(y),round(ex),round(ey)),fill=leaf[lit])
+                d.point((round(ex),round(ey)),fill=leaf[max(0,lit-2)])
+        for step in range(steps):
+            a,b=pts[step],pts[step+1]
+            d.line((round(a[0]),round(a[1]),round(b[0]),round(b[1])),
+                   fill=leaf[4] if step<steps*0.6 else leaf[3])
+
+    # ctrl, tip, tone. Upper fronds first; the low side pairs hang over the dates.
+    upper=[((28,10),(28,5),4),((23,9),(18,7),4),((33,9),(38,8),3),
+           ((19,8),(10,13),3),((37,8),(46,14),3)]
+    lower=[((14,13),(4,26),3),((42,13),(52,26),2),((12,19),(7,37),2),((44,19),(49,36),1)]
+    for i,(ctrl,tip,tone) in enumerate(upper):frond(ctrl,tip,tone,11+i)
+    # Date clusters hang in front of the trunk, behind the drooping outer fronds.
+    for bx,by,rows in [(cx-4,31,5),(cx+10,35,4)]:
+        for row in range(rows):
+            w=rows-abs(row-rows//2)
+            for col in range(w):
+                x,y=bx-w+col*2+rng.randrange(0,2),by+row*3
+                d.rectangle((x,y,x+1,y+1),fill=fruit[1+((col+row)%3)])
+        d.line((bx-1,by-3,bx,by),fill=fruit[0])
+    for i,(ctrl,tip,tone) in enumerate(lower):frond(ctrl,tip,tone,31+i)
+
+    # One-pixel dark keyline around the finished silhouette.
+    alpha=im.getchannel('A');edge=Image.new('RGBA',(56,72));ed=ImageDraw.Draw(edge)
+    for y in range(72):
+        for x in range(56):
+            if alpha.getpixel((x,y)):continue
+            if any(0<=x+dx<56 and 0<=y+dy<72 and alpha.getpixel((x+dx,y+dy))>0
+                   for dx,dy in [(1,0),(-1,0),(0,1),(0,-1)]):
+                ed.point((x,y),fill=outline)
+    edge.alpha_composite(im)
+    return edge
+
+
 def tree(name):
+    if name in ('palm','date-palm'):return palm(name)
     im=Image.new('RGBA',(56,72));d=ImageDraw.Draw(im)
     # A substantial trunk, roots and bifurcations anchor the canopy.
     d.polygon([(23,38),(31,37),(31,62),(36,67),(29,66),(24,68),(18,68),(22,62)],fill='#3e392a')

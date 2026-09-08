@@ -1,3 +1,10 @@
+import {
+  WATER_ATLAS,
+  ensureWaterAtlas,
+  waterMotif,
+  motifState,
+  type WaterMotif,
+} from "./water-motifs";
 import type Phaser from "phaser";
 import type { TopographyCell } from "../core/topography";
 import { waterHash, waterStyle } from "./water-style";
@@ -57,9 +64,17 @@ export function shoreTile(
 }
 
 type Patch = {
+  container: Phaser.GameObjects.Container;
   graphics: Phaser.GameObjects.Graphics;
+  sprites: {
+    effect: WaterEffect;
+    kind: WaterMotif;
+    image: Phaser.GameObjects.Image;
+  }[];
   effects: WaterEffect[];
   frame: number;
+  active: number;
+  shores: WaterEffect[];
   bounds: { x: number; y: number; right: number; bottom: number };
 };
 const managers = new WeakMap<
@@ -69,6 +84,7 @@ const managers = new WeakMap<
 const color = (s: string) => parseInt(s.slice(1), 16);
 export function addWaterEffects(scene: Phaser.Scene, effects: WaterEffect[]) {
   if (!effects.length) return;
+  ensureWaterAtlas(scene);
   let manager = managers.get(scene);
   if (!manager) {
     manager = { patches: new Set(), frame: -1 };
@@ -87,10 +103,11 @@ export function addWaterEffects(scene: Phaser.Scene, effects: WaterEffect[]) {
       m.frame = frame;
       const view = scene.cameras.main.worldView;
       let visible = 0,
-        count = 0;
+        count = 0,
+        motifs = 0;
       const start = performance.now();
       for (const patch of m.patches) {
-        const g = patch.graphics;
+        const g = patch.container;
         const inView =
           !view.width ||
           (g.x + patch.bounds.x < view.right + 16 &&
@@ -102,10 +119,12 @@ export function addWaterEffects(scene: Phaser.Scene, effects: WaterEffect[]) {
         visible++;
         count += patch.effects.length;
         drawEffects(patch, frame);
+        motifs += patch.active;
       }
       scene.game.canvas.dataset.waterPatches = String(visible);
       scene.game.canvas.dataset.waterTiles = String(count);
       scene.game.canvas.dataset.waterFrame = String(frame);
+      scene.game.canvas.dataset.waterMotifs = String(motifs);
       const cost = performance.now() - start;
       scene.game.canvas.dataset.waterUpdateMs = cost.toFixed(2);
       scene.game.canvas.dataset.waterUpdateMaxMs = Math.max(
@@ -120,11 +139,33 @@ export function addWaterEffects(scene: Phaser.Scene, effects: WaterEffect[]) {
       managers.delete(scene);
     });
   }
-  const graphics = scene.add.graphics().setDepth(-9999);
+  const container = scene.add.container(0, 0).setDepth(-9999);
+  const graphics = scene.add.graphics();
+  container.add(graphics);
+  const sprites = effects.flatMap((effect) => {
+    const kind = waterMotif(effect);
+    if (!kind) return [];
+    const tint =
+      kind === "plant"
+        ? effect.palette.submerged[1]
+        : kind === "leaf"
+          ? effect.palette.bank[1]
+          : effect.palette.glint;
+    const image = scene.add
+      .image(effect.x, effect.y, WATER_ATLAS, `${kind}-0`)
+      .setOrigin(0)
+      .setTint(color(tint));
+    container.add(image);
+    return [{ effect, kind, image }];
+  });
   const patch: Patch = {
+    container,
     graphics,
+    sprites,
     effects,
     frame: -1,
+    active: 0,
+    shores: effects.filter((e) => e.edges.length && !e.cell.bridge),
     bounds: {
       x: Math.min(...effects.map((e) => e.x)),
       y: Math.min(...effects.map((e) => e.y)),
@@ -133,7 +174,7 @@ export function addWaterEffects(scene: Phaser.Scene, effects: WaterEffect[]) {
     },
   };
   manager.patches.add(patch);
-  graphics.once("destroy", () => manager!.patches.delete(patch));
+  container.once("destroy", () => manager!.patches.delete(patch));
   drawEffects(patch, manager.frame < 0 ? 0 : manager.frame);
 }
 function drawEffects(patch: Patch, frame: number) {
@@ -141,84 +182,55 @@ function drawEffects(patch: Patch, frame: number) {
   patch.frame = frame;
   const g = patch.graphics;
   g.clear();
-  for (const e of patch.effects) {
+  patch.active = 0;
+  for (const { effect, kind, image } of patch.sprites) {
+    const state = motifState(effect, kind, frame);
+    if (state.alpha > 0) patch.active++;
+    image
+      .setVisible(state.alpha > 0)
+      .setAlpha(state.alpha)
+      .setPosition(effect.x + state.dx, effect.y + state.dy)
+      .setFrame(`${kind}-${state.frame}`);
+  }
+  for (const e of patch.shores) {
     const { x, y, gx, gy, cell, palette, edges } = e;
     // Suppress the entire crossing tile so foam/current never paint over the deck.
     if (cell.bridge) continue;
     const kind = cell.waterVisual?.kind ?? "river";
-    const seed = waterHash(gx, gy, 71),
-      phase = (frame + Math.floor(waterHash(gx, gy, 74) * 56)) % 56;
-    // Surface accents drift within their owning water tile, fading before reset.
-    if (seed > (kind === "sea" ? 0.8 : 0.55) && phase < 40) {
-      const life = phase / 40,
-        strength = Math.sin(life * Math.PI);
-      const flow = cell.waterVisual?.flow ?? [0, 1];
-      const len = Math.hypot(...flow) || 1;
-      const speed = cell.waterDepth === "shallow" ? 4 : 7;
-      const dx =
-        kind === "river" ? (flow[0] / len) * speed : kind === "sea" ? 2 : 0.6;
-      const dy =
-        kind === "river" ? (flow[1] / len) * speed : kind === "sea" ? 4 : 0.5;
-      const px = Math.round(3 + waterHash(gx, gy, 72) * 3 + (life - 0.5) * dx);
-      const py = Math.round(5 + waterHash(gx, gy, 73) * 4 + (life - 0.5) * dy);
-      g.fillStyle(color(palette.glint), strength * (seed > 0.94 ? 0.95 : 0.58));
-      g.fillRect(x + px, y + py, kind === "sea" ? 8 : 4, 1);
-      if (seed > 0.83) g.fillRect(x + px - 2, y + py + 2, 3, 1);
-    }
-    // Shore-following broken wavelets: gradual approach, bright crest, then retreat.
+    // Two long broken wavelets with substantial quiet gaps; no flashing outline.
     for (const { dx, dy, rocky } of edges) {
-      for (let segment = 0; segment < 4; segment++) {
-        const u = segment * 4;
-        const wx = gx + (dx ? (dx > 0 ? 15 : 0) : u);
-        const wy = gy + (dy ? (dy > 0 ? 15 : 0) : u);
-        const noise = waterHash(Math.floor(wx / 12), Math.floor(wy / 12), 83);
-        const cycle =
-          ((((frame + Math.floor(noise * 15) + Math.floor((wx + wy) / 32)) %
-            48) +
-            48) %
-            48) /
-          48;
-        const wash = Math.sin(cycle * Math.PI);
+      for (let segment = 0; segment < 2; segment++) {
+        const u = segment * 8;
+        const wx = gx + (dx ? (dx > 0 ? 15 : 0) : u),
+          wy = gy + (dy ? (dy > 0 ? 15 : 0) : u);
+        const noise = waterHash(Math.floor(wx / 24), Math.floor(wy / 24), 83);
         const sea = kind === "sea";
-        if (noise < (sea ? 0.13 : 0.35)) continue;
-        const inset = sea ? 2 + Math.round((1 - wash) * (rocky ? 2 : 5)) : 2;
-        const alpha = sea
-          ? 0.18 + Math.pow(wash, 3) * (rocky ? 0.8 : 0.63)
-          : 0.12 + wash * 0.19;
-        g.fillStyle(color(sea ? palette.foam : palette.glint), alpha);
-        const px = dx === 1 ? 15 - inset : dx === -1 ? inset : u;
-        const py = dy === 1 ? 15 - inset : dy === -1 ? inset : u;
-        g.fillRect(x + px, y + py, dx ? 1 : 3, dy ? 1 : 3);
-        if (sea && wash > 0.78)
-          g.fillRect(x + px - dx, y + py - dy, dx ? 1 : 2, dy ? 1 : 2);
+        if (noise < (sea ? 0.36 : 0.72)) continue;
+        const phase =
+          (((frame + Math.floor(noise * 24) + Math.floor((wx + wy) / 48)) %
+            80) +
+            80) %
+          80;
+        if (phase >= 56) continue;
+        const life = phase / 56,
+          wash = Math.sin(life * Math.PI);
+        const inset = sea ? 2 + Math.round((1 - wash) * (rocky ? 2 : 4)) : 2;
+        const alpha = wash * wash * (sea ? (rocky ? 0.86 : 0.67) : 0.22);
+        const mark = (
+          along: number,
+          offset: number,
+          width: number,
+          tone: number,
+        ) => {
+          const px = dx === 1 ? 15 - offset : dx === -1 ? offset : along;
+          const py = dy === 1 ? 15 - offset : dy === -1 ? offset : along;
+          g.fillStyle(color(sea ? palette.foam : palette.glint), alpha * tone);
+          g.fillRect(x + px, y + py, dx ? 1 : width, dy ? 1 : width);
+        };
+        mark(u + 1, inset, 3, 1);
+        mark(u + 4, inset + 1, 2, 0.7);
+        if (sea && wash > 0.75 && noise > 0.7) mark(u + 5, inset + 2, 1, 0.6);
       }
-    }
-    const depth = -(cell.waterVisual?.distance ?? -3);
-    if (
-      kind === "river" &&
-      depth > 0.4 &&
-      depth < 3.8 &&
-      waterHash(gx, gy, 44) > 0.8
-    ) {
-      const sx = 4 + Math.floor(waterHash(gx, gy, 45) * 7),
-        sy = 4 + Math.floor(waterHash(gx, gy, 46) * 7);
-      const flow = cell.waterVisual?.flow ?? [0, 1],
-        length = Math.hypot(...flow) || 1;
-      const angle = frame * 0.14 + seed * Math.PI * 2;
-      const ex = Math.round(
-        Math.max(
-          1,
-          Math.min(13, sx + (flow[0] / length) * 3 + Math.cos(angle) * 2),
-        ),
-      );
-      const ey = Math.round(
-        Math.max(
-          1,
-          Math.min(14, sy + (flow[1] / length) * 3 + Math.sin(angle) * 1.5),
-        ),
-      );
-      g.fillStyle(color(palette.glint), 0.26);
-      g.fillRect(x + ex, y + ey, 2, 1);
     }
     if (cell.waterVisual?.frozenMargin && edges.length) {
       g.fillStyle(0xd8e7e4, 0.7);
