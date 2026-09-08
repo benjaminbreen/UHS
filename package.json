@@ -16,7 +16,8 @@
     "prepare:geography": ".venv/bin/python scripts/prepare_geography.py",
     "check": "npm test && npm run build",
     "test:graphics": "playwright test tests/browser/graphics-lab.spec.ts tests/browser/lighting.spec.ts",
-    "prepare:atlas": "python3 scripts/prepare_atlas.py && python3 scripts/prepare_places.py"
+    "measure:performance": "node scripts/measure-performance.mjs",
+    "prepare:atlas": "python3 scripts/prepare_atlas.py && python3 scripts/prepare_places.py && node scripts/prepare-atlas-index.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",

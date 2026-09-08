@@ -1,8 +1,8 @@
 import type { WorldSetting } from "../../content/geography/types";
 import type { TopographyCell, HeightTier } from "../../core/topography";
-import { noise } from "../v2/noise";
-import { toAtlas } from "../v2/atlas";
-import type { LandSample } from "../v2/landscape";
+import { noise } from "../geography/noise";
+import { toAtlas } from "../geography/coordinates";
+import type { LandSample } from "../geography/landscape";
 /** Revision 1: world-coordinate fields; chunk order never affects landforms. */
 export function createReliefLandscape(setting: WorldSetting, seed: string) {
   const origin = toAtlas(setting.lon, setting.lat);

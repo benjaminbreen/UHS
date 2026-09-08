@@ -1,9 +1,5 @@
 import { createRoot } from "react-dom/client";
-import { App } from "./ui/App";
-import { createSession, restoreSession, Runtime } from "./runtime/session";
-import { claimWriter, load, save, preserveRecovery } from "./runtime/storage";
 import "./ui/style.css";
-import { registerWebMCP } from "./agents/webmcp";
 import { PropLabHost } from "./dev/PropLabHost";
 async function start() {
   if (window.location.pathname === "/character-lab") {
@@ -40,48 +36,15 @@ async function start() {
     );
     return;
   }
-  let engine = createSession();
-  let notice = "";
-  try {
-    const stored = await load();
-    if (stored) {
-      try {
-        engine = restoreSession(stored);
-      } catch (error) {
-        await preserveRecovery(stored);
-        throw error;
-      }
-    }
-  } catch {
-    notice =
-      "The saved world could not be loaded. Your stored copy has been preserved; a fresh world is open.";
-  }
-  const writer = await claimWriter();
-  const runtime = new Runtime(engine);
-  runtime.notice = notice;
-  runtime.emit();
-  if (writer)
-    runtime.onChange = (snapshot) => {
-      void save(snapshot).catch(() => {
-        runtime.notice =
-          "Local saving failed. Export your world from Settings to keep it.";
-        runtime.emit();
-      });
-    };
-  // The public player surface projects visibility and validates all commands.
-  Object.assign(window, {
-    historySim: {
-      observe: () => runtime.engine.observe(),
-      inspect: (id: string) => runtime.engine.inspect(id),
-      act: (request: Parameters<Runtime["act"]>[0]) => runtime.act(request),
-    },
-  });
-  registerWebMCP(runtime);
-  if (import.meta.env.DEV) Object.assign(window, { __uhs: runtime });
-  createRoot(document.getElementById("root")!).render(
-    <PropLabHost onOpen={() => runtime.stop()}>
-      <App runtime={runtime} writer={writer} />
-    </PropLabHost>,
+  const { Splash } = await import("./ui/Splash");
+  const root = createRoot(document.getElementById("root")!);
+  root.render(
+    <Splash
+      onStart={async (engine) => {
+        const { startGame } = await import("./runtime/bootstrap");
+        startGame(root, engine);
+      }}
+    />,
   );
 }
 void start();

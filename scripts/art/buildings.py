@@ -220,15 +220,19 @@ class Building:
 
 def build_buildings(root, sprites):
     source=json.loads((root/'src/content/graphics/buildings.json').read_text())
+    source['materials'].update(json.loads((root/'src/content/graphics/urban.json').read_text()).get('materials',{}))
     models={}
-    recipes=dict(source['buildings'])
-    for name,r in source['buildings'].items():
+    from art.urban import UrbanBuilding, urban_recipes, build_urban_furniture
+    build_urban_furniture(sprites)
+    recipes={**source['buildings'], **urban_recipes(root, source)}
+    for name,r in list(recipes.items()):
         if r['roof']=='shelter': continue
         fw,fh=r['footprint']
         for facing,entrance in [('north',[fw//2,-1]),('east',[fw,fh//2]),('west',[-1,fh//2])]:
             recipes[name+'-'+facing]={**r,'facing':facing,'entrance':entrance,'label':r['label']+' · '+facing}
     for name,r in recipes.items():
-        im=Building(r,source['materials'][r['wall']]).render()
+        painter=UrbanBuilding if r.get('urban') else Building
+        im=painter(r,source['materials'][r['wall']]).render()
         sprites[name]=im
         w,h=im.size
         models[name]={

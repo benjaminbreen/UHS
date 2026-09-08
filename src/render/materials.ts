@@ -1,3 +1,4 @@
+import { trimCache } from "../core/cache";
 import { findPath } from "../core/pathfinding";
 import type { Terrain, WorldModel } from "../core/types";
 
@@ -51,7 +52,7 @@ export function surfaceAt(
   const cached = cache.get(key);
   if (cached) return cached;
   const surface = resolveSurface(world, x, y, base);
-  if (cache.size >= 32768) cache.clear();
+  trimCache(cache, 32768);
   cache.set(key, surface);
   return surface;
 }

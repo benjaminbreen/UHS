@@ -5,7 +5,7 @@ export function characterShadow(source: HTMLCanvasElement, phase: LightingId) {
   const canvas = document.createElement("canvas");
   canvas.width = 160;
   canvas.height = 96;
-  const ctx = canvas.getContext("2d")!;
+  const ctx = canvas.getContext("2d", { willReadFrequently: true })!;
   const data = ctx.createImageData(160, 96);
   const pixels = source.getContext("2d")!.getImageData(0, 0, 80, 80).data;
   const light = lightingPreset(phase),

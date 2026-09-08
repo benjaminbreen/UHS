@@ -25,6 +25,7 @@ export type TopographyCell = {
     | "dry-upland"
     | import("../content/ecology/profiles").Ecology;
   moisture?: number;
+  pavement?: "square" | "footway";
   streetMaterial?: import("../content/settlements/streets").StreetMaterial;
   habitat?: import("../world/v3/habitats").Habitat;
   surface: GroundSurface;

@@ -1,3 +1,4 @@
+import { own, renderResources } from "./resources";
 import { paintedGround } from "./material-edges";
 import { rasterHabitatTile, type GroundTileData } from "./habitat-raster";
 import { rasterWaterTile, type WaterTileData } from "./water-raster";
@@ -30,6 +31,7 @@ export function drawTopography(
   waterTiles?: WaterTileData[],
   groundTiles?: GroundTileData[],
 ) {
+  const resources = renderResources();
   // Static ground is composed into small canvas pages, rather than keeping
   // tens of thousands of ground/blend GameObjects in every animation frame.
   const pageSize = region ? 256 : 512;
@@ -50,11 +52,14 @@ export function drawTopography(
     painted?: HTMLCanvasElement,
   ) => {
     if (frame.startsWith("ramp-")) {
-      scene.add
-        .image(x, y, "topography", frame)
-        .setOrigin(0)
-        .setDepth(depth)
-        .setTint(tint);
+      own(
+        resources,
+        scene.add
+          .image(x, y, "topography", frame)
+          .setOrigin(0)
+          .setDepth(depth)
+          .setTint(tint),
+      );
       return;
     }
     const f = scene.textures.getFrame("topography", frame);
@@ -116,10 +121,14 @@ export function drawTopography(
           page = scene.textures.createCanvas(key, pageSize, pageSize)!;
           page.getContext().imageSmoothingEnabled = false;
           pages.set(key, page);
-          scene.add
-            .image(cx * pageSize, cy * pageSize, key)
-            .setOrigin(0)
-            .setDepth(-10000);
+          resources.textures.push(key);
+          own(
+            resources,
+            scene.add
+              .image(cx * pageSize, cy * pageSize, key)
+              .setOrigin(0)
+              .setDepth(-10000),
+          );
         }
         page
           .getContext()
@@ -156,7 +165,8 @@ export function drawTopography(
     }
     ctx.putImageData(pixels, 0, 0);
     pages.set(key, page);
-    scene.add.image(0, 0, key).setOrigin(0).setDepth(-10000);
+    resources.textures.push(key);
+    own(resources, scene.add.image(0, 0, key).setOrigin(0).setDepth(-10000));
   }
   const bounded = sample;
   if (!region)
@@ -286,7 +296,17 @@ export function drawTopography(
         image(x * 16, top, "tuft", depth + 0.3);
     }
   for (const page of pages.values()) page.refresh();
-  addWaterEffects(scene, effects);
-  const covers = drawBridges(scene, sample, width, height, region, bridges);
+  const water = addWaterEffects(scene, effects);
+  if (water) own(resources, water);
+  const covers = drawBridges(
+    scene,
+    sample,
+    width,
+    height,
+    region,
+    bridges,
+    resources,
+  );
   if (!region) drawTerrainContours(scene, sample, width, height, covers);
+  return resources;
 }

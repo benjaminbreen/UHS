@@ -91,7 +91,8 @@ export function settlementProfile(
       : s.settlement === "port"
         ? "waterfront"
         : s.settlement === "city"
-          ? s.architecture === "classical" || s.architecture === "courtyard"
+          ? !s.urbanRevision &&
+            (s.architecture === "classical" || s.architecture === "courtyard")
             ? "planned"
             : "dense"
           : s.placeId === "normandy"

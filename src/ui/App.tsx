@@ -10,7 +10,6 @@ import Phaser from "phaser";
 import {
   ArrowRight,
   BookOpen,
-  Check,
   ChevronDown,
   Compass,
   Download,
@@ -36,27 +35,23 @@ import {
   Music2,
 } from "lucide-react";
 import { AudioDirector } from "../audio/director";
-import { AudioLab } from "../dev/AudioLab";
+const AudioLab = lazy(() =>
+  import("../dev/AudioLab").then((m) => ({ default: m.AudioLab })),
+);
 import type { Runtime } from "../runtime/session";
 import { restoreSession } from "../runtime/session";
-import { download, save } from "../runtime/storage";
+import { download } from "../runtime/storage";
 import { items } from "../content/packs";
 import { distance, type ItemId, type PlayerCommand } from "../core/types";
 import { WorldScene } from "../render/WorldScene";
 import { WorldSetup } from "./WorldSetup";
 import { AtlasMap } from "./AtlasMap";
-import { toAtlas, fromAtlas } from "../world/v2/atlas";
+import { toAtlas, fromAtlas } from "../world/geography/coordinates";
 import { Sprite, Minimap, timeLabel } from "./components";
 const CharacterLab = lazy(() =>
   import("../dev/CharacterLab").then((m) => ({ default: m.CharacterLab })),
 );
-export function App({
-  runtime,
-  writer,
-}: {
-  runtime: Runtime;
-  writer: boolean;
-}) {
+export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
   const view = useSyncExternalStore(runtime.subscribe, runtime.getSnapshot);
   const { observation: obs, selection, pack } = view;
   const p = obs.player;
@@ -76,7 +71,6 @@ export function App({
   const [error, setError] = useState("");
   const [note, setNote] = useState("");
   const [command, setCommand] = useState("");
-  const [saved, setSaved] = useState(false);
   const [sidebar, setSidebar] = useState(() => window.innerWidth > 640);
   const [mapRegion, setMapRegion] = useState(false);
   const [mapSpan, setMapSpan] = useState(1600);
@@ -682,9 +676,7 @@ export function App({
       <div className="statusbar">
         <span>
           <span className="live-dot" />
-          {writer
-            ? "Saved on this device"
-            : "Private tab copy · export to keep"}
+          Fresh world each reload · export to keep
         </span>
         <span>
           Seed: {obs.manifest.seed} <span className="status-divider">/</span> No
@@ -693,7 +685,9 @@ export function App({
         <span>Click to walk · Scroll to zoom</span>
       </div>
       {audioOpen && audio && (
-        <AudioLab director={audio} onClose={() => setAudioOpen(false)} />
+        <Suspense fallback={<div data-modal="true">Loading audio…</div>}>
+          <AudioLab director={audio} onClose={() => setAudioOpen(false)} />
+        </Suspense>
       )}
       {modal && (
         <div
@@ -1054,20 +1048,6 @@ export function App({
                   </div>
                 </div>
                 <div className="settings-actions">
-                  <button
-                    className="action"
-                    onClick={() => {
-                      if (writer)
-                        void save(runtime.engine.snapshot()).then(() => {
-                          setSaved(true);
-                          setTimeout(() => setSaved(false), 1500);
-                        });
-                    }}
-                    disabled={!writer}
-                  >
-                    <Check size={16} />
-                    {saved ? "Saved" : "Save now"}
-                  </button>
                   <button
                     className="action"
                     onClick={() =>

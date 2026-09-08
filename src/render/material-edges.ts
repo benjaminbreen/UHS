@@ -96,7 +96,9 @@ export function pathCoverage(
     iy = Math.floor(y),
     cell = sample(ix, iy)!;
   if (cell.pathArt?.length && !cell.feature && !cell.ramp && !cell.bridge) {
-    let depth = -Infinity;
+    let coverage = 0;
+    const wobble =
+      (waterNoise((x + ox) * 16, (y + oy) * 16, 27, 421) - 0.5) * 0.09;
     for (const s of cell.pathArt) {
       const ax = ix + s.a[0],
         ay = iy + s.a[1],
@@ -106,17 +108,21 @@ export function pathCoverage(
         0,
         Math.min(1, ((x - ax) * dx + (y - ay) * dy) / (dx * dx + dy * dy || 1)),
       );
-      depth = Math.max(
-        depth,
-        s.radius - Math.hypot(x - ax - t * dx, y - ay - t * dy),
+      const depth =
+        s.radius - Math.hypot(x - ax - t * dx, y - ay - t * dy) + wobble;
+      coverage = Math.max(
+        coverage,
+        0.48 + (0.6 * depth) / Math.min(1.4, s.radius),
       );
     }
-    return Math.max(0, Math.min(1, 0.48 + depth / 0.65));
+    return Math.max(0, Math.min(1, coverage));
   }
+
   const eligible = (a: number, b: number) => {
     const n = sample(a, b);
     return (
       n?.surface === "soil" &&
+      !n.pathArt?.length &&
       n.height === cell.height &&
       !n.bridge &&
       !n.ramp &&

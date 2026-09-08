@@ -1,3 +1,4 @@
+import { urbanProps } from "./urban";
 import type { Inventory } from "../../core/types";
 
 export type PropDef = {
@@ -13,6 +14,7 @@ export type PropDef = {
   contents?: Inventory;
 };
 export const propDefs: Record<string, PropDef> = {
+  ...urbanProps,
   hideBag: {
     solid: true,
     name: "Hide bag",

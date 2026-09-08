@@ -337,3 +337,84 @@ test("face controls and time-of-day shadows use the production renderer", async 
     );
   }
 });
+
+test("breathing keeps head and feet fixed, idle heads stay facing forward, and narrower bodies retain crisp pixels", async ({
+  page,
+}) => {
+  await page.goto("/character-lab");
+  await page.getByRole("button", { name: "breathe", exact: true }).click();
+  await page.getByLabel("Build", { exact: true }).selectOption("-1");
+  const result = await page.evaluate(async () => {
+    const { drawCharacter } = await import(
+      "/src/render/characters/draw.ts" as string
+    );
+    const { originalAppearance } = await import(
+      "/src/core/character.ts" as string
+    );
+    const { ramp } = await import("/src/render/characters/pixels.ts" as string);
+    const c = document.createElement("canvas");
+    c.width = c.height = 80;
+    const ctx = c.getContext("2d")!;
+    const crop = (y: number, h: number) =>
+      Array.from(ctx.getImageData(0, y, 80, h).data).join(",");
+    let stable = true,
+      animated = true,
+      crisp = true;
+    for (let direction = 0; direction < 4; direction++) {
+      const heads = [],
+        feet = [],
+        bodies = [];
+      for (let f = 0; f < 4; f++) {
+        drawCharacter(ctx, originalAppearance, direction, "breathe", f);
+        heads.push(crop(45, 16));
+        feet.push(crop(76, 4));
+        bodies.push(c.toDataURL());
+        const data = ctx.getImageData(0, 0, 80, 80).data;
+        for (let i = 3; i < data.length; i += 4)
+          if (data[i] !== 0 && data[i] !== 255) crisp = false;
+      }
+      stable &&= new Set(heads).size === 1 && new Set(feet).size === 1;
+      animated &&= new Set(bodies).size > 1;
+    }
+    const attentive = { ...originalAppearance, posture: "attentive" };
+    drawCharacter(ctx, attentive, 1, "idle", 0);
+    const idle = c.toDataURL();
+    drawCharacter(ctx, attentive, 1, "idle", 2);
+    const headStill = idle === c.toDataURL();
+    const width = (build: number) => {
+      drawCharacter(ctx, { ...originalAppearance, build }, 2, "idle", 0);
+      const d = ctx.getImageData(0, 64, 80, 6).data;
+      let min = 80,
+        max = 0;
+      for (let y = 0; y < 6; y++)
+        for (let x = 0; x < 80; x++)
+          if (d[(y * 80 + x) * 4 + 3]) {
+            min = Math.min(min, x);
+            max = Math.max(max, x);
+          }
+      return max - min + 1;
+    };
+    return {
+      stable,
+      animated,
+      crisp,
+      headStill,
+      narrow: width(-1),
+      previous: width(0),
+      edge: ramp("#f0ceb0", "skin").edge,
+    };
+  });
+  expect(result.stable).toBe(true);
+  expect(result.animated).toBe(true);
+  expect(result.crisp).toBe(true);
+  expect(result.headStill).toBe(true);
+  expect(result.previous - result.narrow).toBe(1);
+  const edge = parseInt(result.edge.slice(1), 16);
+  expect((edge >> 16) & 255).toBeLessThan(110);
+  expect((edge >> 8) & 255).toBeLessThan(85);
+  await page.goto("/");
+  await expect(page.locator(".game-container canvas")).toHaveAttribute(
+    "data-character-pose",
+    "breathe",
+  );
+});

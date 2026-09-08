@@ -69,7 +69,7 @@ await page.evaluate(async () => {
   r.setZoom(4);
 });
 await page
-  .locator(".game-container canvas[data-character-pose=idle]")
+  .locator(".game-container canvas[data-character-pose=breathe]")
   .waitFor();
 await page
   .locator(".game-container canvas")

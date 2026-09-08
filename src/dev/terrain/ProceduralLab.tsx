@@ -1,6 +1,7 @@
+import { prepareSettingSession } from "../../runtime/preparation";
 import { useEffect, useRef, useState } from "react";
 import Phaser from "phaser";
-import { Runtime, createSettingSession } from "../../runtime/session";
+import { Runtime } from "../../runtime/session";
 import { WorldScene } from "../../render/WorldScene";
 import type { RenderOptions } from "../../render/appearance";
 import {
@@ -413,15 +414,22 @@ export function ProceduralLab() {
     [motion, setMotion] = useState(true),
     [focus, setFocus] = useState<"settlement" | "start">("settlement");
   const old = useRef<Runtime | undefined>(undefined);
+  const preparation = useRef<AbortController | undefined>(undefined);
   const generate = async (c: Config) => {
+    preparation.current?.abort();
+    const controller = new AbortController();
+    preparation.current = controller;
     setBusy(true);
     setReady(false);
     setError("");
     await new Promise((r) => setTimeout(r, 30));
     try {
-      const next = new Runtime(createSettingSession(labSetting(c), c.seed), {
-        cacheTerrain: false,
-      });
+      const next = new Runtime(
+        await prepareSettingSession(labSetting(c), c.seed, controller.signal),
+        {
+          cacheTerrain: false,
+        },
+      );
       old.current?.dispose();
       old.current = next;
       setRuntime(next);
@@ -431,14 +439,17 @@ export function ProceduralLab() {
       );
       history.replaceState(null, "", `/terrain-lab?${q}`);
     } catch (e) {
-      setError(String(e));
+      if (!controller.signal.aborted) setError(String(e));
     } finally {
-      setBusy(false);
+      if (!controller.signal.aborted) setBusy(false);
     }
   };
   useEffect(() => {
     void generate(draft);
-    return () => old.current?.dispose();
+    return () => {
+      preparation.current?.abort();
+      old.current?.dispose();
+    };
   }, []);
   const update = (key: keyof Config, value: string) =>
     setDraft((d) => ({ ...d, [key]: key === "year" ? Number(value) : value }));

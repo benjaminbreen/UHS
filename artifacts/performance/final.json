@@ -1,0 +1,201 @@
+{
+  "recordedAt": "2026-09-08T21:57:09.487Z",
+  "base": "http://127.0.0.1:4173",
+  "cadence": {
+    "p50": 16.699999999999932,
+    "p95": 16.700000000000045
+  },
+  "reports": [
+    {
+      "world": "anatolia",
+      "shellMs": 1157,
+      "readyMs": 1846,
+      "startupTasks": [
+        {
+          "start": 1670.5,
+          "ms": 400
+        }
+      ],
+      "sample": {
+        "p50": 16.699999999999818,
+        "p95": 16.700000000000728,
+        "max": 33.399999999999636,
+        "commandP95": 25.69999998807907,
+        "commandMax": 42.19999998807907,
+        "statuses": {
+          "completed": 40
+        },
+        "start": {
+          "x": 0,
+          "y": 0,
+          "space": "outside"
+        },
+        "end": {
+          "x": 0,
+          "y": 0,
+          "space": "outside"
+        },
+        "manifest": {
+          "seed": "anatolia-relief-1",
+          "pack": "atlas",
+          "schema": 2,
+          "simulation": 2,
+          "generator": 3,
+          "content": 2,
+          "atlas": 2,
+          "setting": {
+            "version": 2,
+            "terrainRevision": 1,
+            "placeId": "konya",
+            "location": "Konya plain",
+            "lon": 32.83,
+            "lat": 37.67,
+            "year": -6499,
+            "culture": "north-african-west-asian",
+            "climate": "mediterranean",
+            "relief": 0.15,
+            "water": "river-ns",
+            "settlement": "village",
+            "architecture": "mudbrick",
+            "role": "Early farmer",
+            "characterName": "Early farmer",
+            "community": "",
+            "season": "spring"
+          }
+        },
+        "heap": 114759324
+      },
+      "metrics": {
+        "ready": "true",
+        "sceneryDrawMs": "60",
+        "sceneryDrawCount": "3",
+        "lighting": "morning",
+        "characterShadow": "morning",
+        "heldSprite": "",
+        "characterPose": "walk",
+        "terrainReady": "true",
+        "terrainPending": "0",
+        "terrainChunkCount": "56",
+        "terrainChunksBuilt": "56",
+        "terrainInstallMaxMs": "4.4",
+        "waterPatches": "6",
+        "waterTiles": "541",
+        "waterFrame": "99",
+        "waterMotifs": "36",
+        "waterUpdateMs": "0.00",
+        "waterUpdateMaxMs": "2.90",
+        "terrainLoadMs": "1199"
+      },
+      "minimaps": [
+        {
+          "className": "minimap",
+          "builds": "2"
+        }
+      ],
+      "errors": []
+    },
+    {
+      "world": "alexandria",
+      "shellMs": 1058,
+      "readyMs": 5677,
+      "startupTasks": [
+        {
+          "start": 4692.199999988079,
+          "ms": 608
+        },
+        {
+          "start": 5300.699999988079,
+          "ms": 75
+        },
+        {
+          "start": 5378.699999988079,
+          "ms": 92
+        }
+      ],
+      "sample": {
+        "p50": 16.69999999999891,
+        "p95": 16.799999999999272,
+        "max": 50.100000000000364,
+        "commandP95": 35.5,
+        "commandMax": 44.69999998807907,
+        "statuses": {
+          "completed": 40
+        },
+        "start": {
+          "x": 0,
+          "y": 0,
+          "space": "outside"
+        },
+        "end": {
+          "x": 0,
+          "y": 0,
+          "space": "outside"
+        },
+        "manifest": {
+          "seed": "tiber-100",
+          "pack": "atlas",
+          "schema": 2,
+          "simulation": 2,
+          "generator": 3,
+          "content": 2,
+          "atlas": 2,
+          "setting": {
+            "version": 2,
+            "geographyRevision": 1,
+            "geographyMode": "earth",
+            "terrainRevision": 2,
+            "environment": {
+              "ecology": "dry-scrub",
+              "landform": "plain",
+              "population": "settled",
+              "start": "resident",
+              "household": "mixed"
+            },
+            "placeId": "alexandria",
+            "location": "Alexandria",
+            "lon": 29.92,
+            "lat": 31.2,
+            "year": -225,
+            "culture": "north-african-west-asian",
+            "climate": "mediterranean",
+            "relief": 0.08,
+            "water": "coast-n",
+            "settlement": "port",
+            "architecture": "classical",
+            "role": "Traveler",
+            "characterName": "Livia",
+            "character": {
+              "hunger": 12,
+              "fatigue": 3
+            },
+            "community": "",
+            "season": "spring"
+          }
+        },
+        "heap": 248774071
+      },
+      "metrics": {
+        "ready": "true",
+        "sceneryDrawMs": "345",
+        "sceneryDrawCount": "3",
+        "lighting": "morning",
+        "characterShadow": "morning",
+        "heldSprite": "",
+        "characterPose": "walk",
+        "terrainReady": "true",
+        "terrainPending": "0",
+        "terrainChunkCount": "56",
+        "terrainChunksBuilt": "56",
+        "terrainInstallMaxMs": "16.2",
+        "terrainLoadMs": "1996"
+      },
+      "minimaps": [
+        {
+          "className": "minimap",
+          "builds": "2"
+        }
+      ],
+      "errors": []
+    }
+  ]
+}

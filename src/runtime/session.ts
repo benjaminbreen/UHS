@@ -1,3 +1,5 @@
+import { releaseTerrainWorker } from "./terrain-worker-owner";
+import type { PreparedSettlement } from "../world/v3/prepared";
 import { wardrobeFor } from "../content/characters/wardrobes";
 import { actorAppearance } from "../core/character";
 import type { Actor } from "../core/types";
@@ -15,6 +17,7 @@ import {
   type PlayerCommand,
   type Point,
   type Snapshot,
+  type Observation,
 } from "../core/types";
 import { items, packs } from "../content/packs";
 import { createWorld } from "../world/generate";
@@ -33,6 +36,7 @@ export function createSession(
   setting?: WorldSetting,
   content: 1 | 2 = 2,
   generator: 1 | 2 | 3 = 3,
+  prepared?: PreparedSettlement,
 ) {
   const resolved = setting ?? snapshot?.manifest.setting;
   const pack = resolved
@@ -42,7 +46,7 @@ export function createSession(
   const generation = snapshot?.manifest.generator ?? generator;
   let world = resolved
     ? generation === 3
-      ? createSettlementWorld(pack, seed)
+      ? createSettlementWorld(pack, seed, prepared)
       : createAtlasWorld(pack, seed)
     : createWorld(pack, seed);
   const version = snapshot?.manifest.content ?? content;
@@ -149,7 +153,7 @@ export class Runtime {
     if (!allowedHeights(actor.age).includes(parsed.height))
       throw Error("That height is not available for this character’s age.");
     actor.appearance = parsed;
-    this.onChange?.(this.engine.snapshot());
+    this.onChange?.();
     this.emit();
   }
   private animateCommand(
@@ -182,19 +186,23 @@ export class Runtime {
   }
   private subscribers = new Set<() => void>();
   private cached: ReturnType<Runtime["view"]>;
-  onChange?: (snapshot: Snapshot) => void;
+  onChange?: () => void;
+  private observation?: Observation;
   constructor(engine: Engine, options: { cacheTerrain?: boolean } = {}) {
     this.chunks = new ChunkCache(options.cacheTerrain !== false);
     this.engine = engine;
     this.cached = this.view();
   }
-  private view() {
+  private view(refresh = true) {
     const pos = this.engine.state.player.pos;
     const outside =
       pos.space === "outside"
         ? pos
         : this.engine.world.place(pos.space)?.entrance;
-    const observation = this.engine.observe();
+    const observation =
+      refresh || !this.observation
+        ? (this.observation = this.engine.observe())
+        : this.observation;
     return {
       observation: {
         ...observation,
@@ -226,6 +234,7 @@ export class Runtime {
     };
   }
   dispose() {
+    releaseTerrainWorker(this.engine.world);
     this.stop(false);
     this.chunks.dispose();
     this.subscribers.clear();
@@ -237,7 +246,7 @@ export class Runtime {
       this.subscribers.delete(listener);
     };
   };
-  emit() {
+  emit(refresh = true) {
     // Relief rendering streams its own cell data; the legacy tile worker
     // would otherwise regenerate the same settlement without any consumer.
     if (!this.engine.world.topography)
@@ -249,25 +258,26 @@ export class Runtime {
         this.engine.state.manifest.setting,
         this.engine.state.manifest.generator,
       );
-    this.cached = this.view();
+    this.cached = this.view(refresh);
     for (const listener of this.subscribers) listener();
   }
   select(id?: string) {
     this.selected = id;
-    this.emit();
+    this.emit(false);
   }
   setZoom(z: number) {
     this.zoom = Math.min(4, Math.max(1, z));
-    this.emit();
+    this.emit(false);
   }
   replace(engine: Engine) {
+    releaseTerrainWorker(this.engine.world);
     this.replay = undefined;
     this.stop();
     this.engine = engine;
     this.selected = undefined;
     this.notice = "A new day, a different world.";
     this.emit();
-    this.onChange?.(this.engine.snapshot());
+    this.onChange?.();
   }
   command(command: PlayerCommand) {
     if (this.replay) {
@@ -293,7 +303,7 @@ export class Runtime {
       previousProp,
     );
     this.notice = result.reason ?? "";
-    if (result.status !== "rejected") this.onChange?.(this.engine.snapshot());
+    if (result.status !== "rejected") this.onChange?.();
     this.emit();
     return result;
   }
@@ -304,9 +314,9 @@ export class Runtime {
     const previousProp = heldObject(this.engine.state)?.sprite;
     const result = this.engine.act({ ...request, command });
     this.animateCommand(command, result.status !== "rejected", previousProp);
-    if (result.status !== "rejected") this.onChange?.(this.engine.snapshot());
+    if (result.status !== "rejected") this.onChange?.();
     this.emit();
-    return { ...result, observation: this.engine.observe() };
+    return { ...result, observation: structuredClone(this.observation!) };
   }
   propControls() {
     const s = this.engine.state,
@@ -545,7 +555,7 @@ export class Runtime {
     this.route = [];
     this.follow = undefined;
     this.running = false;
-    if (emit) this.emit();
+    if (emit) this.emit(false);
   }
   terrainAt(x: number, y: number, space = "outside") {
     return (
@@ -669,7 +679,7 @@ export class Runtime {
     this.replay = undefined;
     this.notice =
       "Your journey continues from this point. The imported recording is unchanged.";
-    this.onChange?.(this.engine.snapshot());
+    this.onChange?.();
     this.emit();
   }
   addNote(text: string, evidence?: string) {
@@ -680,7 +690,7 @@ export class Runtime {
       time: this.engine.state.clock,
       evidence,
     });
-    this.onChange?.(this.engine.snapshot());
+    this.onChange?.();
     this.emit();
   }
 }

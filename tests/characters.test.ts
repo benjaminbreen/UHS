@@ -19,7 +19,7 @@ describe("character recipes", () => {
     expect(people).toEqual(
       Array.from({ length: 192 }, (_, i) => generateAppearance("study", i)),
     );
-    expect(new Set(people.map((a) => a.build)).size).toBe(3);
+    expect(new Set(people.map((a) => a.build)).size).toBe(4);
     expect(people.every((a) => a.height >= -1)).toBe(true);
     expect(new Set(people.map((a) => a.wearing.garment)).size).toBe(8);
     expect(new Set(people.map((a) => a.hair)).size).toBe(8);
@@ -108,4 +108,19 @@ it("uses weighted rather than mandatory face traits, keeping the original option
   expect(new Set(strong).size).toBeGreaterThan(1);
   expect(average).toContain("original");
   expect(elder.filter((j) => j === "small").length).toBeGreaterThan(600);
+});
+
+it("defaults to narrower builds while preserving all previous widths", () => {
+  const people = Array.from({ length: 2000 }, (_, i) =>
+    generateAppearance("widths", i),
+  );
+  expect(originalAppearance.build).toBe(-1);
+  expect(
+    people.filter((a) => a.build === -1).length / people.length,
+  ).toBeGreaterThan(0.7);
+  for (const build of [-1, 0, 1, 2])
+    expect(
+      characterAppearanceSchema.safeParse({ ...originalAppearance, build })
+        .success,
+    ).toBe(true);
 });

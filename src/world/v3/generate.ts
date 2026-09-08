@@ -1,3 +1,5 @@
+import { trimCache } from "../../core/cache";
+import { preparedSite, type PreparedSettlement } from "./prepared";
 import { pathArt } from "./path-art";
 import { streetMaterial } from "../../content/settlements/streets";
 import { habitatAt, habitatTree } from "./habitats";
@@ -18,18 +20,20 @@ import type { Pack, Terrain, WorldModel } from "../../core/types";
 import { CHUNK_SIZE } from "../../core/types";
 import { random } from "../../core/random";
 import { settlementProfile } from "../../content/settlements/profiles";
-import { createLandscape } from "../v2/landscape";
-import { noise } from "../v2/noise";
+import { createLandscape } from "../geography/landscape";
+import { noise } from "../geography/noise";
 import { cellKey, type Road, type SettlementPlan, type Site } from "./types";
 import { crossing, planRoad, roadCells } from "./roads";
 import { planSettlement } from "./plan";
 export const DISTRICT_SIZE = 384;
 export type SettlementWorld = WorldModel & {
   planAt(x: number, y: number): SettlementPlan | undefined;
+  prepare(): PreparedSettlement;
 };
 export function createSettlementWorld(
   pack: Pack,
   seed: string,
+  prepared?: PreparedSettlement,
 ): SettlementWorld {
   const regional = pack.setting?.geographyRevision
     ? createRegionalContext(pack.setting)
@@ -42,12 +46,12 @@ export function createSettlementWorld(
       : relief
         ? createReliefLandscape(pack.setting!, seed)
         : createLandscape(pack.setting!, seed),
-    sites = new Map<string, Site | null>(),
-    plans = new Map<string, SettlementPlan>(),
-    links = new Map<string, Road[]>(),
-    active = new Set<string>();
+    sites = new Map<string, Site | null>(prepared?.sites),
+    plans = new Map<string, SettlementPlan>(prepared?.plans),
+    links = new Map<string, Road[]>(prepared?.links),
+    active = new Set<string>(prepared?.active);
   const regionalPlanner = regional
-    ? regionalSettlements(regional, land.sample, seed)
+    ? regionalSettlements(regional, land.sample, seed, prepared?.regionalSites)
     : undefined;
   const transport =
     regional && regionalPlanner
@@ -213,7 +217,7 @@ export function createSettlementWorld(
       4,
     );
     const result = r ? [...(bridge ? [bridge] : []), r] : [];
-    if (links.size > 128) links.clear();
+    trimCache(links, 128);
     links.set(id, result);
     return result;
   }
@@ -283,11 +287,11 @@ export function createSettlementWorld(
           if (p) result.push(p);
         }
       }
-    if (neighborCache.size > 96) neighborCache.clear();
+    trimCache(neighborCache, 96);
     neighborCache.set(key, result);
     return result;
   }
-  const roadCache = new Map<string, Map<string, Terrain>>();
+  const roadCache = new Map<string, Map<string, Terrain>>(prepared?.roads);
   function regionalRoads(x: number, y: number) {
     if (relief && !regional) return new Map<string, Terrain>();
     const c = coord(x, y),
@@ -312,7 +316,7 @@ export function createSettlementWorld(
           )
             tiles.set(cellKey(px, py), r.kind === "bridge" ? "bridge" : "dirt");
         });
-      if (roadCache.size >= 32) roadCache.clear();
+      trimCache(roadCache, 32);
       roadCache.set(key, tiles);
       return tiles;
     }
@@ -344,7 +348,7 @@ export function createSettlementWorld(
           }
         }
       }
-    if (roadCache.size >= 32) roadCache.clear();
+    trimCache(roadCache, 32);
     roadCache.set(key, tiles);
     return tiles;
   }
@@ -362,7 +366,7 @@ export function createSettlementWorld(
         y + land.origin.y,
         land.sample(x, y),
       );
-      if (habitatCache.size >= 65536) habitatCache.clear();
+      trimCache(habitatCache, 65536);
       habitatCache.set(key, value);
     }
     return value;
@@ -531,7 +535,7 @@ export function createSettlementWorld(
         }
       : undefined;
   }
-  const reliefCache = new Map<string, TopographyCell>();
+  const reliefCache = new Map<string, TopographyCell>(prepared?.relief);
   const pathArtCache = new WeakMap<
     SettlementPlan,
     ReturnType<typeof pathArt>
@@ -612,6 +616,24 @@ export function createSettlementWorld(
         cell.streetMaterial = streetMaterial(local);
       } else cell.surface = "soil";
     }
+    if (pack.setting?.urbanRevision) {
+      for (const p of nearby(x, y)) {
+        const key = cellKey(x, y);
+        const material = p.streetSurfaces?.get(key);
+        if (material && cell.feature === "paving") {
+          if (material === "earth") {
+            cell.surface = "soil";
+            delete cell.feature;
+            delete cell.streetMaterial;
+          } else cell.streetMaterial = material;
+        }
+        if (p.pavement?.has(key)) cell.pavement = p.pavement.get(key);
+        // Authored block ground and courts are areas, not thin paths. Preserve
+        // their extent instead of reinterpreting only road centers as worn soil.
+        if (t === "dirt" && p.surface.get(key) === "dirt" && !!p.pavement?.size)
+          cell.surface = "soil";
+      }
+    }
     if (t === "dirt")
       for (const p of nearby(x, y)) {
         let center = roadCenters.get(p);
@@ -644,7 +666,10 @@ export function createSettlementWorld(
       const strokes = nearby(x, y).flatMap((p) => {
         let index = pathArtCache.get(p);
         if (!index) {
-          index = pathArt(p.site.profile.paved ? [] : p.roads);
+          index = pathArt(
+            p.site.profile.paved ? [] : p.roads,
+            !!pack.setting?.roadRevision,
+          );
           pathArtCache.set(p, index);
         }
         return index.get(cellKey(x, y)) ?? [];
@@ -830,7 +855,7 @@ export function createSettlementWorld(
       const slope = naturalSlopesFor(x, y).get(key);
       if (slope) c.ramp = slope;
     }
-    if (reliefCache.size > 65536) reliefCache.clear();
+    trimCache(reliefCache, 65536);
     reliefCache.set(key, c);
     return c;
   }
@@ -851,6 +876,27 @@ export function createSettlementWorld(
     return out;
   }
   const world: SettlementWorld = {
+    prepare: () => ({
+      sites: [...sites].map(([key, s]) => [key, s ? preparedSite(s) : null]),
+      regionalSites: regionalPlanner?.prepare(),
+      plans: [...plans].map(([key, p]) => [
+        key,
+        { ...p, site: preparedSite(p.site) },
+      ]),
+      links: [...links],
+      roads: [...roadCache],
+      relief: [...reliefCache],
+      active: [...active],
+      initial: {
+        spawn: world.spawn,
+        settlements: world.settlements,
+        places: world.places,
+        initialActors: world.initialActors,
+        initialObjects: world.initialObjects,
+        enclosures: world.enclosures,
+        households: world.households,
+      },
+    }),
     ...(regional
       ? {
           geography: {
@@ -1040,6 +1086,10 @@ export function createSettlementWorld(
     world.initialActors.push(...p.actors);
     if (environment) populateHouseholds(world, p, seed);
     world.enclosures.push(...p.enclosures);
+  }
+  if (prepared) {
+    Object.assign(world, prepared.initial);
+    return world;
   }
   const initial = getPlan(
     startingSite?.cx ?? home.x,

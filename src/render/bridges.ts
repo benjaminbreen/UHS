@@ -1,3 +1,4 @@
+import { own, renderResources, type RenderResources } from "./resources";
 import type { TerrainRegion } from "./terrain-region";
 import type Phaser from "phaser";
 import type { TopographySample } from "../core/topography";
@@ -61,6 +62,7 @@ export function drawBridges(
   height: number,
   region?: TerrainRegion,
   spans = bridgeSpans(sample, width, height, !!region),
+  resources: RenderResources = renderResources(),
 ) {
   const footprints: { x: number; y: number; width: number; height: number }[] =
     [];
@@ -86,7 +88,7 @@ export function drawBridges(
       deck.fillRect(x - left, y - top, w, h);
     };
     // Water remains visible below the suspended span and its front bearer.
-    const shadow = scene.add.graphics().setDepth(-2000);
+    const shadow = own(resources, scene.add.graphics().setDepth(-2000));
     shadow.fillStyle(0x153d50, 0.55);
     shadow.fillRect(left + 3, top + h + 5, w - 2, 10);
     rect(left, top, w, h + 5, 0x533b2c);
@@ -123,19 +125,24 @@ export function drawBridges(
     const texture = `${region?.prefix ?? "contour"}-bridge-${minX}-${minY}`;
     if (scene.textures.exists(texture)) scene.textures.remove(texture);
     deck.generateTexture(texture, w, h + 6);
+    resources.textures.push(texture);
     deck.destroy();
     for (let offset = 0; offset < h; offset += 16)
-      scene.add
-        .image(left, top, texture)
-        .setOrigin(0)
-        .setCrop(0, offset, w, offset + 16 >= h ? 22 : 16)
-        .setDepth((minY + offset / 16) * 16 + 2);
+      own(
+        resources,
+        scene.add
+          .image(left, top, texture)
+          .setOrigin(0)
+          .setCrop(0, offset, w, offset + 16 >= h ? 22 : 16)
+          .setDepth((minY + offset / 16) * 16 + 2),
+      );
     // End posts have lit caps, shaded sides and feet below the deck.
     for (const px of [left + 2, left + w - 7])
       for (const py of [top + 1, top + h - 1]) {
-        const post = scene.add
-          .graphics()
-          .setDepth(py + elevation * TERRAIN_RISE + 3);
+        const post = own(
+          resources,
+          scene.add.graphics().setDepth(py + elevation * TERRAIN_RISE + 3),
+        );
         const box = (x: number, y: number, w: number, h: number, c: number) => {
           post.fillStyle(c);
           post.fillRect(x, y, w, h);

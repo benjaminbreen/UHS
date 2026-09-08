@@ -1,6 +1,6 @@
 import type { Ecology } from "../../content/ecology/profiles";
-import type { LandSample } from "../v2/landscape";
-import { noise } from "../v2/noise";
+import type { LandSample } from "../geography/landscape";
+import { noise } from "../geography/noise";
 import { random } from "../../core/random";
 
 export type HabitatKind =

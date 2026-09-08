@@ -47,3 +47,23 @@ npx playwright test tests/browser/settlements.spec.ts tests/browser/world-v2.spe
 The settlement tests cover all six forms, reachable entrances/work areas, plot overlap, river-versus-sea crossings, closed pens, autonomous gates, recorded player gate opening, chunk query order, save continuation and replay. The diagnostic script prints actual building/field/pen counts and unreachable destinations for six geographically different settings. Browser screenshots are in `artifacts/settlement-*.png`.
 
 This is settlement generation with simple daily activity. It does not simulate historical urban growth, construction, farm yields over seasons, a complete supply economy or changing societies across continents. Those can extend the existing data and interactions when needed; no extra framework is introduced here.
+
+## Shared road corridors and short access spurs — September 8, 2026
+
+Local access routes (doors, yards, fields and pens) now start at the access point and join a nearby reachable road, stopping at the first existing road encountered. They no longer independently route back to a fixed village-center target. Candidate joins are deterministic and bounded; blocked candidates are retried at separated nearby road points. Main-road searches favor existing corridors, penalize new parallel construction nearby, and use an unweighted heuristic when a road network exists. Existing solid-footprint, width, water and bridge checks still apply.
+
+This deliberately changes newly generated v3 settlement layouts; runtime character pathfinding is unchanged. No migration or restoration work was added. Review the refreshed Umbria/grassland screenshots in `artifacts/texture-review/`. Three focused road-network tests cover short spurs, corridor reuse, obstacles and bridge-only water crossings. The existing six-form settlement test also passed, checking building counts and reachability of doors, work areas, fields and gates. Production build passed. Concurrent performance/character work remains separate.
+
+## Sparse roads and continuous junctions — September 8, 2026
+
+New worlds pin `roadRevision: 1`. Regional neighbors use a sparse relative-neighborhood graph, then route in fixed ownership-cell batches, shortest connections first. Routes within each batch reuse centerlines and crossings; ownership and sorting make geometry independent of viewport request order. Authored connections retain their explicit endpoints. This is a bounded local network, not a global minimum-cost road optimizer.
+
+Local neighborhood lanes and doors join actual road centerlines with one bounded search, rather than sorting the entire road surface and trying up to eight targets. Ordinary hamlets use three neighborhood anchors. Yard/work access remains validated but no longer creates an extra drawn road; doorstep wear is smaller and minor paths are narrower with softer shoulders. Public/city block layouts retain their existing structure.
+
+The paired semicircle bug came from ending a lane on the painted shoulder of another road. Shared centerline endpoints now make continuous junctions. Short approaches can straighten on validated level, dry ground; their authoritative cells change with the art. Drawing unions duplicate cardinal edges, retains junctions and assigns shared segments the widest width before simplification. Regional bridge searches use unit steps to enter narrow decks reliably, and routes carry the geometry of any crossing they reuse.
+
+Review `artifacts/roads/after.png` and `after-junction.png`; `scripts/capture-roads.ts` captures production preview and checks eight actual movement steps across the junction after entering play. `scripts/measure-roads.ts` compares the previous and new revision with the same setting and seed; results are in `artifacts/roads/comparison.json`. These are local measurements, not steady-FPS claims. Pinned worlds without the road revision keep the previous routing; regenerate to see the changes. No commit or deployment.
+
+## Urban neighborhoods — September 8, 2026
+
+New `urbanRevision: 1` dense/planned/waterfront neighborhoods use the shared block-and-parcel composer in `src/world/v3/urban.ts`. Streets precede parcels; civic squares, public hall ranges, market counters, footways and enclosed courts have explicit roles. Source-qualified civic content lives in `src/content/settlements/civic/`, while shared form/material recipes remain independent of culture in the renderer. See `CITY_ART.md` for generation scope, compatibility, art ownership, review captures and verification.

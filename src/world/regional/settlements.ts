@@ -1,3 +1,4 @@
+import { preparedSite, type PreparedSite } from "../v3/prepared";
 import { random } from "../../core/random";
 import { settlementProfile } from "../../content/settlements/profiles";
 import type { Site } from "../v3/types";
@@ -9,8 +10,20 @@ export function regionalSettlements(
   context: RegionalContext,
   sample: Sample,
   seed: string,
+  prepared?: [string, PreparedSite[]][],
 ) {
   const cache = new Map<string, Site[]>();
+  const accepts = (s: PreparedSite) => (x: number, y: number) =>
+    context.canSettle(x, y) &&
+    Math.hypot(x - s.center.x, y - s.center.y) < s.profile.radius &&
+    (s.namedId
+      ? context.placeAt(x, y)?.id === s.namedId
+      : !context.placeAt(x, y));
+  for (const [key, sites] of prepared ?? [])
+    cache.set(
+      key,
+      sites.map((s) => ({ ...s, accepts: accepts(s) })),
+    );
   let homeId: string | undefined;
   function sitesIn(cx: number, cy: number): Site[] {
     const key = `${cx},${cy}`,
@@ -118,13 +131,32 @@ export function regionalSettlements(
       const q = usable[0],
         pack = context.packAt(q.x, q.y);
       const profile = {
-        ...settlementProfile(pack.setting!, !!p.namedId),
+        ...settlementProfile(
+          pack.setting!,
+          !!p.namedId ||
+            (!!pack.setting?.urbanRevision &&
+              (pack.setting.settlement === "city" ||
+                pack.setting.settlement === "port")),
+        ),
         radius,
         ...(radius < 45
-          ? { buildings: Math.max(2, Math.floor(radius / 6)), frontage: 7 }
+          ? {
+              buildings: Math.max(
+                2,
+                Math.floor(
+                  radius /
+                    (pack.setting?.urbanRevision &&
+                    (pack.setting.settlement === "city" ||
+                      pack.setting.settlement === "port")
+                      ? 2
+                      : 6),
+                ),
+              ),
+              frontage: 7,
+            }
           : {}),
       };
-      result.push({
+      const site: Site = {
         id: `s${cx}_${cy}~${encodeURIComponent(p.id)}`,
         cx,
         cy,
@@ -134,13 +166,9 @@ export function regionalSettlements(
         name: p.name,
         namedId: p.namedId,
         pack,
-        accepts: (x, y) =>
-          context.canSettle(x, y) &&
-          Math.hypot(x - q.x, y - q.y) < radius &&
-          (p.namedId
-            ? context.placeAt(x, y)?.id === p.namedId
-            : !context.placeAt(x, y)),
-      });
+      };
+      site.accepts = accepts(site);
+      result.push(site);
     }
     result.sort(
       (a, b) =>
@@ -153,6 +181,8 @@ export function regionalSettlements(
   }
   return {
     sitesIn,
+    prepare: (): [string, PreparedSite[]][] =>
+      [...cache].map(([key, sites]) => [key, sites.map(preparedSite)]),
     setHome: (id: string) => {
       homeId = id;
       for (const list of cache.values())

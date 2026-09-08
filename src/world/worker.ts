@@ -1,10 +1,11 @@
 import {
   handleTerrainRequest,
+  useTerrainWorld,
   type TerrainRequest,
 } from "../render/terrain-worker";
 import { createWorld } from "./generate";
 import { packs } from "../content/packs";
-import type { WorldModel } from "../core/types";
+import type { Pack, WorldModel } from "../core/types";
 import { createSettlementWorld } from "./v3/generate";
 import { createAtlasWorld } from "./v2/generate";
 import { packForSetting } from "../content/geography/pack";
@@ -21,7 +22,22 @@ export type ChunkRequest = {
 };
 let world: WorldModel | undefined;
 let key = "";
-self.onmessage = (event: MessageEvent<ChunkRequest | TerrainRequest>) => {
+self.onmessage = (
+  event: MessageEvent<
+    ChunkRequest | TerrainRequest | { prepare: { pack: Pack; seed: string } }
+  >,
+) => {
+  if ("prepare" in event.data) {
+    try {
+      const { pack, seed } = event.data.prepare;
+      const prepared = createSettlementWorld(pack, seed);
+      useTerrainWorld(prepared);
+      self.postMessage({ prepared: prepared.prepare() });
+    } catch (error) {
+      self.postMessage({ error: String(error) });
+    }
+    return;
+  }
   if ("pack" in event.data || "region" in event.data) {
     handleTerrainRequest(event.data);
     return;

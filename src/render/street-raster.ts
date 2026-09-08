@@ -1,3 +1,4 @@
+import { pavingStonePixel } from "./paving-stones";
 import type { TopographySample } from "../core/topography";
 import type { GroundTileData } from "./habitat-raster";
 import { waterHash as hash } from "./water-style";
@@ -31,65 +32,49 @@ export function rasterStreetTile(
         west ? px : 99,
         east ? 15 - px : 99,
       );
-      let tone: number[];
-      if (border < 4) {
-        const joint = north || south ? mod(wx, 8) === 0 : mod(wy, 8) === 0;
+      let tone: readonly number[];
+      if (border < 3) {
+        // Use the nearest edge's tangent, including corners and T-junctions.
+        const horizontal =
+          Math.min(north ? py : 99, south ? 15 - py : 99) <=
+          Math.min(west ? px : 99, east ? 15 - px : 99);
+        const joint = mod(horizontal ? wx : wy, 9) === 0;
         tone =
-          border === 3
-            ? [91, 95, 85]
+          border === 2
+            ? [112, 113, 96]
             : joint
-              ? [126, 126, 106]
+              ? [137, 134, 112]
               : border === 0
-                ? [189, 182, 145]
-                : [163, 160, 129];
-      } else if (material === "brick" || material === "slab") {
-        const w = material === "brick" ? 10 : 15,
-          h = material === "brick" ? 5 : 10,
+                ? [202, 192, 157]
+                : [175, 166, 138];
+      } else if (material === "brick") {
+        const w = 8,
+          h = 4,
           row = Math.floor(wy / h);
         const a = mod(wx + (row % 2) * Math.floor(w / 2), w),
           b = mod(wy, h);
         const v = hash(Math.floor((wx + ((row % 2) * w) / 2) / w), row, 391);
-        const base = material === "brick" ? [156, 98, 65] : [142, 141, 119];
+        const base = [156, 98, 65];
         const light =
           a === 1 || b === 1
-            ? 13
+            ? 7
             : a === w - 1 || b === h - 1
-              ? -15
+              ? -7
               : Math.floor(v * 12) - 6;
-        tone = a === 0 || b === 0 ? [95, 91, 76] : base.map((n) => n + light);
+        tone =
+          a === 0 || b === 0 ? [132, 130, 112] : base.map((n) => n + light);
       } else {
-        const sx = material === "basalt" ? 10 : 7,
-          sy = material === "basalt" ? 9 : 6;
-        const bx = Math.floor(wx / sx),
-          by = Math.floor(wy / sy);
-        let first = Infinity,
-          second = Infinity,
-          id = 0,
-          dx = 0,
-          dy = 0;
-        for (let yy = by - 1; yy <= by + 1; yy++)
-          for (let xx = bx - 1; xx <= bx + 1; xx++) {
-            const cx = (xx + 0.5) * sx + (hash(xx, yy, 393) - 0.5) * sx * 0.55,
-              cy = (yy + 0.5) * sy + (hash(xx, yy, 394) - 0.5) * sy * 0.5;
-            const a = (wx - cx) / sx,
-              b = (wy - cy) / sy,
-              d = a * a + b * b;
-            if (d < first) {
-              second = first;
-              first = d;
-              id = hash(xx, yy, 395);
-              dx = a;
-              dy = b;
-            } else if (d < second) second = d;
-          }
-        const seam = second - first < 0.1;
-        const base = material === "basalt" ? [101, 111, 108] : [131, 130, 111];
-        const light =
-          Math.floor(id * 20) -
-          10 +
-          (dx + dy < -0.22 ? 9 : dx + dy > 0.4 ? -9 : 0);
-        tone = seam ? [66, 76, 74] : base.map((n) => n + light);
+        tone = pavingStonePixel(wx, wy, material);
       }
+      // Chamfer exposed outer corners in native pixels. Connected road cells
+      // retain full coverage, so intersections never acquire internal curbs.
+      const corner = Math.min(
+        north && west ? px + py : 99,
+        north && east ? 15 - px + py : 99,
+        south && west ? px + 15 - py : 99,
+        south && east ? 30 - px - py : 99,
+      );
+      if (corner < 3) tone = [174, 157, 112];
       const i = (py * 16 + px) * 4;
       pixels.set([...tone, 255], i);
     }

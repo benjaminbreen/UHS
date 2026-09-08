@@ -79,11 +79,11 @@ test("combined keys and player/NPC animation survive redraws", async ({
     const start = image.x;
     npc.pos.x += 1;
     r.emit();
-    await new Promise((resolve) => setTimeout(resolve, 55));
+    await new Promise((resolve) => setTimeout(resolve, 250));
     const middle = image.x;
     r.emit();
     const redraw = image.x;
-    await new Promise((resolve) => setTimeout(resolve, 240));
+    await new Promise((resolve) => setTimeout(resolve, 700));
     return { start, middle, redraw, end: image.x };
   });
   expect(npcMotion.middle).toBeGreaterThan(npcMotion.start);

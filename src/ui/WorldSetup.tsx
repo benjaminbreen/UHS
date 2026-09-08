@@ -1,9 +1,23 @@
-import { eras } from "../content/history/dates";
-import { cultures } from "../content/history/types";
+import { prepareSettingSession } from "../runtime/preparation";
+import { randomStart } from "../content/geography/random-start";
+import {
+  Sparkles,
+  Brain,
+  Dices,
+  Settings2,
+  MapPin,
+  CalendarDays,
+  House,
+  UserRound,
+  Flag,
+  ArrowRight,
+  X,
+} from "lucide-react";
+
 import { useEffect, useRef, useState } from "react";
-import { createSession, createSettingSession } from "../runtime/session";
+
 import type { Engine } from "../core/engine";
-import { packs } from "../content/packs";
+
 import { places, featuredPlaces } from "../content/geography/places";
 import {
   describeSetting,
@@ -17,16 +31,20 @@ import { AtlasMap } from "./AtlasMap";
 export function WorldSetup({
   onStart,
   initialSeed,
+  initialPrompt = "",
+  initialMode = "local",
 }: {
   onStart: (engine: Engine) => void;
   initialSeed: string;
+  initialPrompt?: string;
+  initialMode?: "local" | "model";
 }) {
-  const [prompt, setPrompt] = useState(""),
+  const [prompt, setPrompt] = useState(initialPrompt),
     [place, setPlace] = useState("rome"),
     [year, setYear] = useState("100"),
     [seed, setSeed] = useState(initialSeed),
-    [mode, setMode] = useState<"local" | "model">("local");
-  const [legacy, setLegacy] = useState(""),
+    [mode, setMode] = useState<"local" | "model">(initialMode);
+  const [role, setRole] = useState(""),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [token, setToken] = useState("");
@@ -63,32 +81,32 @@ export function WorldSetup({
     setPlace(id);
     setYear(String(p.year));
     setPrompt("");
-    setLegacy("");
+    setRole("");
     setError("");
   };
   const randomize = () => {
-    const draws = crypto.getRandomValues(new Uint32Array(5));
-    const family = cultures[draws[0] % cultures.length][0];
-    const candidates = places.filter((p) => p.culture === family);
-    const selected = candidates[draws[1] % candidates.length];
-    const era = eras[draws[2] % eras.length];
-    const low = era.start?.year ?? -39999;
-    const high = era.end?.year ?? new Date().getFullYear() + 1;
-    choose(selected.id);
-    setYear(String(low + (draws[3] % (high - low))));
-    setSeed(`world-${draws[4].toString(36)}`);
+    const start = randomStart();
+    choose(start.setting.placeId);
+    setYear(String(start.setting.year));
+    setSeed(start.seed);
+    setRole(start.setting.role);
     setPattern("");
   };
+  const editDetails = () => {
+    if (localSetting) {
+      setPlace(localSetting.placeId);
+      setYear(String(localSetting.year));
+      setRole(localSetting.role);
+    }
+    setPrompt("");
+  };
+
   const begin = async () => {
     setError("");
     setBusy(true);
     controller.current = new AbortController();
     try {
       const worldSeed = seed.trim() || "earth-2";
-      if (legacy && !prompt.trim()) {
-        onStart(createSession(legacy, worldSeed));
-        return;
-      }
       let setting = localSetting;
       if (mode === "model" && needsModel) {
         const response = await fetch("/api/world-weaver", {
@@ -123,11 +141,16 @@ export function WorldSetup({
       const parsed = populateCharacter(
         settingSchema.parse({
           ...setting,
+          ...(role ? { role, characterName: role } : {}),
           ...(pattern ? { settlementPattern: pattern } : {}),
         }),
         worldSeed,
       );
-      const engine = createSettingSession(parsed, worldSeed);
+      const engine = await prepareSettingSession(
+        parsed,
+        worldSeed,
+        controller.current.signal,
+      );
       if (!controller.current.signal.aborted) onStart(engine);
     } catch (err) {
       if (!controller.current?.signal.aborted)
@@ -139,30 +162,8 @@ export function WorldSetup({
     }
   };
   return (
-    <>
-      <div className="eyebrow">WORLD WEAVER · EARTH, REIMAGINED</div>
+    <div className="weaver">
       <h2>Where will you begin?</h2>
-      <button disabled={busy} onClick={randomize}>
-        Random place &amp; era
-      </button>
-      <button
-        disabled={busy}
-        onClick={() =>
-          onStart(
-            createSettingSession(
-              {
-                ...settingFor(places.find((p) => p.id === "konya")!, -6499),
-                terrainRevision: 1,
-                role: "Early farmer",
-                characterName: "Early farmer",
-              },
-              "anatolia-relief-1",
-            ),
-          )
-        }
-      >
-        Anatolia · 6500 BCE · terrain preview
-      </button>
       <div
         className="weaver-modes"
         role="group"
@@ -173,37 +174,52 @@ export function WorldSetup({
           disabled={busy}
           onClick={() => setMode("local")}
         >
-          Procedural · free / offline
+          <Sparkles />
+          <span>
+            Procedural<small>Generate a random start</small>
+          </span>
         </button>
         <button
           aria-pressed={mode === "model"}
           disabled={busy}
-          onClick={() => {
-            setMode("model");
-            setLegacy("");
-          }}
+          onClick={() => setMode("model")}
         >
-          World Weaver · LLM enabled
+          <Brain />
+          <span>
+            World Weaver<small>Use AI to create a start</small>
+          </span>
         </button>
       </div>
-      <p>
-        {mode === "local"
-          ? "Places, periods, and roles resolve on your device. No model or account needed."
-          : "Specific requests resolve locally. World Weaver interprets ambiguous or unmatched details, then the procedural engine builds the world."}
-      </p>
-      <label className="field-label">
-        Describe your starting situation
-        <input
-          value={prompt}
-          maxLength={2000}
-          disabled={busy}
-          onChange={(e) => {
-            setPrompt(e.target.value);
-            setLegacy("");
-          }}
-          placeholder="Elizabethan London · a farmer in 19th-century Haiti"
-        />
-      </label>
+      <div className="weaver-prompt">
+        <button className="random-start" disabled={busy} onClick={randomize}>
+          <Dices />
+          Random start
+        </button>
+        <div>
+          <input
+            aria-label="Describe your starting situation"
+            value={prompt}
+            maxLength={2000}
+            disabled={busy}
+            onChange={(e) => {
+              setPrompt(e.target.value);
+              setRole("");
+            }}
+            placeholder="Describe a place, period, and character…"
+          />
+          {prompt && (
+            <button
+              aria-label="Clear starting situation"
+              disabled={busy}
+              onClick={() => {
+                editDetails();
+              }}
+            >
+              <X />
+            </button>
+          )}
+        </div>
+      </div>
       <div className="weaver-examples">
         {[
           "Elizabethan London",
@@ -217,90 +233,133 @@ export function WorldSetup({
           <button
             key={q}
             disabled={busy}
+            aria-pressed={prompt === q}
             onClick={() => {
               setPrompt(q);
-              setLegacy("");
+              setRole("");
             }}
           >
             {q}
           </button>
         ))}
       </div>
-      <div className="seed-row">
-        <label className="field-label">
-          Or choose a place
-          <select
-            value={localSetting?.placeId ?? place}
-            disabled={busy}
-            onChange={(e) => choose(e.target.value)}
-          >
-            {places.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="field-label">
-          Starting year
-          <input
-            aria-label="Starting year"
-            type="number"
-            value={
-              prompt.trim() && localSetting ? String(localSetting.year) : year
-            }
-            disabled={busy || !!prompt.trim()}
-            onChange={(e) => {
-              setYear(e.target.value);
-              setLegacy("");
-            }}
+      <div className="weaver-details">
+        <div className="weaver-manual">
+          <h3>
+            <Settings2 />
+            Set the details manually
+          </h3>
+          <label className="weaver-field">
+            <MapPin />
+            <span>Place</span>
+            <select
+              aria-label="Place"
+              value={localSetting?.placeId ?? place}
+              disabled={busy}
+              onChange={(e) => choose(e.target.value)}
+            >
+              {places.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="weaver-field">
+            <CalendarDays />
+            <span>Starting year</span>
+            <input
+              aria-label="Starting year"
+              type="number"
+              value={prompt.trim() && localSetting ? localSetting.year : year}
+              disabled={busy}
+              onChange={(e) => {
+                editDetails();
+                setYear(e.target.value);
+              }}
+            />
+            <small>
+              Negative years use astronomical numbering (−99 = 100 BCE).
+            </small>
+          </label>
+          <label className="weaver-field">
+            <House />
+            <span>Settlement layout</span>
+            <select
+              value={pattern}
+              disabled={busy}
+              onChange={(e) => setPattern(e.target.value as Pattern | "")}
+            >
+              <option value="">Choose from the setting</option>
+              {patterns.map((p) => (
+                <option key={p} value={p}>
+                  {
+                    {
+                      farmstead: "Farmstead",
+                      clustered: "Clustered village",
+                      roadside: "Roadside village",
+                      dense: "Dense town",
+                      planned: "Planned streets",
+                      waterfront: "Waterfront settlement",
+                    }[p]
+                  }
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="weaver-field">
+            <UserRound />
+            <span>Role</span>
+            <input
+              aria-label="Role"
+              placeholder="Choose from the setting"
+              value={role || localSetting?.role || ""}
+              disabled={busy}
+              onChange={(e) => {
+                editDetails();
+                setRole(e.target.value);
+              }}
+            />
+          </label>
+        </div>
+        <div className="weaver-location">
+          <h3>
+            <MapPin />
+            Location on the world
+          </h3>
+          <AtlasMap
+            lon={localSetting?.lon ?? chosen.lon}
+            lat={localSetting?.lat ?? chosen.lat}
+            onChoose={busy ? undefined : choose}
           />
-          <small>
-            Negative years use astronomical numbering: −99 = 100 BCE.
-          </small>
-        </label>
+          <div className="weaver-result" aria-label="Resolved setting">
+            <h4>
+              <Flag />
+              Resulting start
+            </h4>
+            <p>
+              {localSetting
+                ? describeSetting({
+                    ...localSetting,
+                    ...(role ? { role } : {}),
+                  })
+                : "Describe your setting or choose the details."}
+            </p>
+            <small>
+              {pattern
+                ? pattern.charAt(0).toUpperCase() +
+                  pattern.slice(1) +
+                  " settlement"
+                : "Settlement shaped by the setting"}
+            </small>
+          </div>
+        </div>
       </div>
-      <label className="field-label">
-        Settlement layout
-        <select
-          value={pattern}
-          disabled={busy || !!legacy}
-          onChange={(e) => setPattern(e.target.value as Pattern | "")}
-        >
-          <option value="">Choose from the setting</option>
-          {patterns.map((p) => (
-            <option key={p} value={p}>
-              {
-                {
-                  farmstead: "Farmstead",
-                  clustered: "Clustered village",
-                  roadside: "Roadside village",
-                  dense: "Dense town",
-                  planned: "Planned streets",
-                  waterfront: "Waterfront settlement",
-                }[p]
-              }
-            </option>
-          ))}
-        </select>
-      </label>
-      <AtlasMap
-        lon={localSetting?.lon ?? chosen.lon}
-        lat={localSetting?.lat ?? chosen.lat}
-        onChoose={busy ? undefined : choose}
-      />
-      {localSetting && (mode === "local" || !needsModel) && (
-        <p className="weaver-preview" aria-label="Resolved setting">
-          {describeSetting(localSetting)}
-        </p>
-      )}
-      {prompt.trim() && (
-        <p className="weaver-preview" aria-label="Interpretation route">
-          {needsModel
-            ? mode === "model"
-              ? "World Weaver will interpret this request."
-              : "Using a local fallback. Refine the place and period, or enable World Weaver for interpretation."
-            : "Matched locally — no model request needed."}
+      {prompt.trim() && needsModel && (
+        <p className="weaver-route">
+          {mode === "model"
+            ? "World Weaver will interpret this request."
+            : "Some details could not be matched. Refine your request or use World Weaver."}
         </p>
       )}
       {mode === "model" && needsModel && (
@@ -313,72 +372,29 @@ export function WorldSetup({
             value={token}
             onChange={(e) => setToken(e.target.value)}
           />
-          <small>
-            Requires the optional server endpoint. Your model API key stays on
-            the server.
-          </small>
         </label>
       )}
-      <div className="seed-row">
-        <label className="field-label">
-          World seed
-          <input
-            value={seed}
-            maxLength={100}
-            disabled={busy}
-            onChange={(e) => setSeed(e.target.value)}
-          />
-        </label>
-        <button
-          disabled={busy}
-          onClick={() =>
-            setSeed(
-              `world-${crypto.getRandomValues(new Uint32Array(1))[0].toString(36)}`,
-            )
-          }
-        >
-          Another seed
-        </button>
-      </div>
-      <details open>
-        <summary>Original worlds · compatible with earlier recordings</summary>
-        <div className="weaver-examples">
-          {Object.values(packs).map((p) => (
-            <button
-              key={p.id}
-              aria-pressed={legacy === p.id}
-              disabled={busy}
-              onClick={() => {
-                setLegacy(p.id);
-                setPrompt("");
-                setSeed(p.defaultSeed);
-                setMode("local");
-              }}
-            >
-              {p.subtitle}
-            </button>
-          ))}
-        </div>
-      </details>
-      {legacy && <p>{packs[legacy].subtitle} · generator v1</p>}
       {error && (
         <p role="alert" className="error">
           {error}
         </p>
       )}
-      <div className="modal-bottom">
-        <span>
-          Export the current world first if you want to keep a separate copy.
-        </span>
+      <div className="weaver-bottom">
         <button
           className="filled-button"
           disabled={busy}
           onClick={() => void begin()}
         >
-          {busy ? "Weaving the world…" : "Enter this world"}
+          {busy ? (
+            "Weaving the world…"
+          ) : (
+            <>
+              Begin <ArrowRight />
+            </>
+          )}
         </button>
       </div>
-    </>
+    </div>
   );
 }
 export const worldExamples = featuredPlaces;

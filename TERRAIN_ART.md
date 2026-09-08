@@ -34,3 +34,13 @@ The regional-composition suite has a pre-existing density failure (8 households 
 Ground ramps now separate warm dry ground, fresher turf and cool plant shadows. Dirt uses three discrete wear bands, sparse compacted-earth flecks and irregular grass overlaps. Small authored offsets and grouped intermediate pixels affect only a narrow seam; no screen-space blur or full-field dithering is used. Selected grass clumps are more frequent while most ground remains quiet. Building material ramps, foundation contacts, rock planes and foliage highlights were revised in the original asset recipes and rebuilt. The palette changes are visual and also affect existing scenes; no saved-world migration was attempted.
 
 `artifacts/polish-review/index.html` is the latest review gallery. Its rural before image uses the same seed and camera as the after capture. The final 21 focused checks and production build passed.
+
+## Composed material textures — September 8, 2026
+
+Replaced the fine per-pixel ground grain with original grouped motifs in `render/ground-motifs.ts`. Mineral bands now place 8×5 faceted stone glyphs with explicit face, highlight and contact-shadow tones; placement follows the visible mineral band even when the cell's habitat label is scrub. Grass and earth use separate small authored marks with quiet gaps and uneven colony density. Mediterranean turf has a brighter golden-green ramp and warm limestone ground. Path shoulders retain their inner wear colors and gain a narrow dark contact edge; dry-scrub grass may overlap their outer margin. Prevented the legacy dirt fallback from painting stray triangles outside an authored diagonal route.
+
+Latest captures: `artifacts/texture-review/index.html` (Umbria and the matching grassland study). Fifteen focused motif, material-edge, habitat and street checks passed, along with the production build. This change leaves the concurrent character, performance and world-generation work separate and uncommitted.
+
+### Four-band paths and supporting texture
+
+Path coverage now scales with corridor radius, so broad roads retain four readable bands instead of saturating to the center color within a few pixels. Small world-anchored edge offsets and more candidate grass clumps vary the shoulders. Authored, rotated/reflected 2–4px clusters add restrained grain inside every material; larger faceted stones sit above that supporting rocky texture with varying colony density. The latest Umbria/grassland gallery was refreshed. Sixteen focused tests, including a wide/narrow path-band regression, and the production build passed.

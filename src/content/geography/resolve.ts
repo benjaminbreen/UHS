@@ -185,6 +185,7 @@ export function resolveSetting(
   try {
     const s = settingFor(place, dateFromPrompt(input, place.year, seed));
     const roles: [RegExp, string][] = [
+      [/\bhunter\b/, "Hunter"],
       [/\blegionary\b|\bsoldier\b/, "Legionary"],
       [/\bfarmer\b|\bpeasant\b/, "Farmer"],
       [/\bshaman\b/, "Shaman"],

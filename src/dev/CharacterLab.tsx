@@ -223,7 +223,9 @@ export function CharacterLab({
               : label === "Height"
                 ? heightLabels[Number(v) as CharacterAppearance["height"]]
                 : label === "Build"
-                  ? ["Original", "Broad", "Full"][Number(v)]
+                  ? ["Narrow · default", "Previous width", "Broad", "Full"][
+                      Number(v) + 1
+                    ]
                   : v}
           </option>
         ))}
@@ -352,7 +354,7 @@ export function CharacterLab({
                 setAppearance((a) => ({
                   ...a,
                   height: age < 6 ? -2 : age < 16 ? -1 : 0,
-                  ...(age < 16 ? { beard: "none", build: 0 } : {}),
+                  ...(age < 16 ? { beard: "none", build: -1 } : {}),
                 }));
               }}
             />
@@ -365,8 +367,11 @@ export function CharacterLab({
               (v) =>
                 change("height", Number(v) as CharacterAppearance["height"]),
             )}
-            {select("Build", String(appearance.build), ["0", "1", "2"], (v) =>
-              change("build", Number(v) as 0 | 1 | 2),
+            {select(
+              "Build",
+              String(appearance.build),
+              ["-1", "0", "1", "2"],
+              (v) => change("build", Number(v) as -1 | 0 | 1 | 2),
             )}
           </div>
           <div className="cl-two">

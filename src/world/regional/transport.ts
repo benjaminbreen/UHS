@@ -5,11 +5,18 @@ import type {
 import type { Point } from "../../core/types";
 import type { RegionalContext } from "./context";
 import { REGION_CELL } from "./context";
-import { toAtlas } from "../v2/atlas";
+import { toAtlas } from "../geography/coordinates";
 import { containsDate } from "../../content/history/dates";
 import type { Road, Site } from "../v3/types";
 import { cellKey } from "../v3/types";
-import { line, crossing, planRoad, roadCells, type Sample } from "../v3/roads";
+import {
+  line,
+  directLine,
+  crossing,
+  planRoad,
+  roadCells,
+  type Sample,
+} from "../v3/roads";
 
 /** Connections own route geometry independently of loaded households. Water links
  * remain proposals until a transport system can actually service them. */
@@ -18,6 +25,7 @@ export function regionalTransport(
   sitesIn: (x: number, y: number) => Site[],
   sample: Sample,
 ) {
+  const shared = !!context.settingAt(0, 0).roadRevision;
   const cache = new Map<
     string,
     { record: GeographicConnection; roads: Road[] }
@@ -48,7 +56,16 @@ export function regionalTransport(
     a.x + a.w >= b.x &&
     a.y <= b.y + b.h &&
     a.y + a.h >= b.y;
-  function build(id: string, from: string, to: string, a: Point, b: Point) {
+  function build(
+    id: string,
+    from: string,
+    to: string,
+    a: Point,
+    b: Point,
+    existing = new Set<string>(),
+    crossingCells = new Set<string>(),
+    knownBridges: Road[] = [],
+  ) {
     const old = cache.get(id);
     if (old) return old;
     const middle = {
@@ -61,14 +78,16 @@ export function regionalTransport(
         Math.round(a.y + ((b.y - a.y) * i) / 16),
       ),
     ).some((f) => f.water < 0);
-    const bridge = crossesWater
-      ? crossing(`${id}-bridge`, middle, sample, 72)
-      : undefined;
-    const allowed = new Set<string>();
+    const bridge =
+      crossesWater && !crossingCells.size
+        ? crossing(`${id}-bridge`, middle, sample, 72)
+        : undefined;
+    const allowed = new Set<string>(crossingCells);
     if (bridge) roadCells(bridge, (x, y) => allowed.add(cellKey(x, y)));
-    const direct = line(a, b),
+    const direct = (shared ? directLine : line)(a, b),
       level = sample(a.x, a.y).elevation;
     const flat =
+      !existing.size &&
       !crossesWater &&
       direct.every((p) =>
         [
@@ -96,12 +115,12 @@ export function regionalTransport(
           a,
           b,
           sample,
-          new Set(),
+          existing,
           allowed,
           new Set(),
           bounds([a, b]),
           1,
-          4,
+          shared && allowed.size ? 1 : 4,
         );
     const result = {
       record: {
@@ -112,7 +131,18 @@ export function regionalTransport(
         status: road ? ("routed" as const) : ("blocked" as const),
         points: road?.points ?? [a, b],
       },
-      roads: road ? [...(bridge ? [bridge] : []), road] : [],
+      roads: road
+        ? [
+            ...(bridge
+              ? [bridge]
+              : knownBridges.filter((b) => {
+                  const cells = new Set<string>();
+                  roadCells(b, (x, y) => cells.add(cellKey(x, y)));
+                  return road.points.some((p) => cells.has(cellKey(p.x, p.y)));
+                })),
+            road,
+          ]
+        : [],
     };
     if (cache.size >= 256) cache.delete(cache.keys().next().value!);
     cache.set(id, result);
@@ -140,10 +170,86 @@ export function regionalTransport(
       )
         selected.set(dir, b);
     }
-    const result = [...selected.values()];
+    const candidates = shared
+      ? nearby.filter(
+          (p) => p.id !== s.id && p.pack?.setting?.settlement !== "camp",
+        )
+      : [...selected.values()];
+    const result = shared
+      ? candidates.filter((b) => {
+          const distance = Math.hypot(
+            b.center.x - s.center.x,
+            b.center.y - s.center.y,
+          );
+          const witnesses = new Map(nearby.map((p) => [p.id, p]));
+          for (let y = -1; y <= 1; y++)
+            for (let x = -1; x <= 1; x++)
+              for (const p of sitesIn(b.cx + x, b.cy + y))
+                witnesses.set(p.id, p);
+          return ![...witnesses.values()].some(
+            (p) =>
+              p.id !== s.id &&
+              p.id !== b.id &&
+              p.pack?.setting?.settlement !== "camp" &&
+              Math.hypot(p.center.x - s.center.x, p.center.y - s.center.y) <
+                distance &&
+              Math.hypot(p.center.x - b.center.x, p.center.y - b.center.y) <
+                distance,
+          );
+        })
+      : candidates;
     if (neighborCache.size >= 256)
       neighborCache.delete(neighborCache.keys().next().value!);
     neighborCache.set(s.id, result);
+    return result;
+  }
+  const batches = new Map<string, Map<string, ReturnType<typeof build>>>();
+  function batch(cx: number, cy: number) {
+    const key = `${cx},${cy}`,
+      old = batches.get(key);
+    if (old) return old;
+    const edges = new Map<string, [Site, Site]>();
+    for (let dy = -1; dy <= 1; dy++)
+      for (let dx = -1; dx <= 1; dx++)
+        for (const a of sitesIn(cx + dx, cy + dy)) {
+          if (a.pack?.setting?.settlement === "camp") continue;
+          for (const b of neighbors(a)) {
+            const [u, v] = a.id < b.id ? [a, b] : [b, a];
+            if (u.cx === cx && u.cy === cy)
+              edges.set(`${u.id}:${v.id}`, [u, v]);
+          }
+        }
+    const ordered = [...edges].sort((a, b) => {
+      const length = ([u, v]: [Site, Site]) =>
+        Math.hypot(u.center.x - v.center.x, u.center.y - v.center.y);
+      return length(a[1]) - length(b[1]) || a[0].localeCompare(b[0]);
+    });
+    const result = new Map<string, ReturnType<typeof build>>(),
+      roads = new Set<string>(),
+      bridges = new Set<string>(),
+      bridgeRoads = new Map<string, Road>();
+    for (const [id, [a, b]] of ordered) {
+      let route = build(id, a.id, b.id, a.center, b.center, roads, bridges, [
+        ...bridgeRoads.values(),
+      ]);
+      // A previous crossing may be unreachable from this bank. Retry independently
+      // rather than making the whole connection disappear.
+      if (!route.roads.length && bridges.size) {
+        cache.delete(id);
+        route = build(id, a.id, b.id, a.center, b.center, roads);
+      }
+      result.set(id, route);
+      for (const road of route.roads)
+        if (road.kind === "bridge") bridgeRoads.set(road.id, road);
+      for (const road of route.roads)
+        roadCells(road, (x, y) => {
+          if (road.kind === "bridge") bridges.add(cellKey(x, y));
+        });
+      for (const road of route.roads)
+        for (const p of road.points) roads.add(cellKey(p.x, p.y));
+    }
+    if (batches.size >= 64) batches.delete(batches.keys().next().value!);
+    batches.set(key, result);
     return result;
   }
   function inArea(area: GeographicArea) {
@@ -166,7 +272,15 @@ export function regionalTransport(
               if (!result.has(id))
                 result.set(
                   id,
-                  build(id, first.id, second.id, first.center, second.center),
+                  shared
+                    ? batch(first.cx, first.cy).get(id)!
+                    : build(
+                        id,
+                        first.id,
+                        second.id,
+                        first.center,
+                        second.center,
+                      ),
                 );
             }
           }

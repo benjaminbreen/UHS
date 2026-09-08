@@ -1,4 +1,5 @@
 import { WorldCharacters } from "./characters/world";
+import { entityInView, npcMotion } from "./entity-presentation";
 import { poseTiming, type CharacterPose } from "./characters/poses";
 import type { Actor } from "../core/types";
 import { waterStyle } from "./water-style";
@@ -83,7 +84,6 @@ export class WorldScene extends Phaser.Scene {
       "/topography/atlas.png",
       "/topography/atlas.json",
     );
-    this.load.atlas("world-art", "/packs/atlas.png", "/packs/atlas.json");
     this.load.image("terrain", "/packs/terrain.png");
   }
   create() {
@@ -169,7 +169,7 @@ export class WorldScene extends Phaser.Scene {
           y = hit.y + oy;
         }
       }
-      const obs = this.runtime.engine.observe();
+      const obs = this.runtime.getSnapshot().observation;
       const actor = obs.actors.find(
         (a) => Math.abs(a.pos.x - x) <= 0.7 && Math.abs(a.pos.y - y) <= 0.7,
       );
@@ -268,11 +268,7 @@ export class WorldScene extends Phaser.Scene {
       this.terrainAnchor = undefined;
     }
     if (w.topography && p.space === "outside") {
-      this.terrainStream ??= new TerrainStream(
-        this,
-        w.pack,
-        e.state.manifest.seed,
-      );
+      this.terrainStream ??= new TerrainStream(this, w, e.state.manifest.seed);
       this.terrainStream.setView(
         p.x,
         p.y,
@@ -515,10 +511,10 @@ export class WorldScene extends Phaser.Scene {
           }
         for (const b of w.places)
           if (
-            b.x > startX - 8 &&
+            b.x + b.w > startX - 8 &&
             b.x < startX + width + 8 &&
-            b.y > startY - 8 &&
-            b.y < startY + height + 8
+            b.y + b.h > startY - 8 &&
+            b.y < startY + height + 16
           ) {
             const placement = buildingPlacement(b);
             // The cast texture uses the source canvas's bottom anchor; model owns its offset.
@@ -589,13 +585,13 @@ export class WorldScene extends Phaser.Scene {
           : 1,
       );
     }
-    const obs = this.options.overview
-        ? {
-            ...e.observe(),
-            actors: e.state.actors.filter((a) => a.pos.space === p.space),
-            objects: e.state.objects.filter((o) => o.pos.space === p.space),
-          }
-        : e.observe(),
+    const visible = (pos: Position) =>
+      entityInView(pos, p, this.scale.width, this.scale.height, rt.zoom);
+    const obs = {
+        player: e.state.player,
+        actors: e.state.actors.filter((a) => visible(a.pos)),
+        objects: e.state.objects.filter((o) => visible(o.pos)),
+      },
       keep = new Set<string>();
 
     const renderEntity = (
@@ -669,7 +665,14 @@ export class WorldScene extends Phaser.Scene {
           targets: shade ? [im, shade] : im,
           x: tx,
           y: ty,
-          duration: this.motionDuration,
+          ...(actor && id !== "player" && !this.options.lab
+            ? npcMotion(
+                e.state.manifest.seed,
+                id,
+                frame.startsWith("human-"),
+                e.state.clock,
+              )
+            : { duration: this.motionDuration }),
           ease: "Linear",
         });
       } else {
@@ -739,11 +742,14 @@ export class WorldScene extends Phaser.Scene {
       c.startFollow(this.entities.get("player")!, true, 0.4, 0.4);
     for (const [id, image] of this.entities)
       if (!keep.has(id)) {
+        this.tweens.killTweensOf(image);
+        const shade = this.shadows.get(id);
+        if (shade) this.tweens.killTweensOf(shade);
         image.destroy();
         this.entities.delete(id);
         this.destinations.delete(id);
         this.actorFrames.delete(id);
-        this.shadows.get(id)?.destroy();
+        shade?.destroy();
         this.shadows.delete(id);
       }
     let g = this.selection!;
@@ -838,11 +844,11 @@ export class WorldScene extends Phaser.Scene {
     // Depth and the selection marker follow the displayed position, not the next tile.
     for (const [id, im] of this.entities) {
       const frame = this.actorFrames.get(id);
-      im.setDepth(
+      const depth =
         im.y +
-          this.lift(im.x, (this.destinations.get(id)?.y ?? 0) * 16 + 16) -
-          (frame ? 2 : 6),
-      );
+        this.lift(im.x, (this.destinations.get(id)?.y ?? 0) * 16 + 16) -
+        (frame ? 2 : 6);
+      if (im.depth !== depth) im.setDepth(depth);
       const human = this.humanActors.get(id);
       if (human && this.characters) {
         const moving = this.tweens.isTweening(im);
@@ -857,6 +863,7 @@ export class WorldScene extends Phaser.Scene {
         else if (!moving && /gathering|working/i.test(human.activity))
           pose = "work";
         else if (!moving && /eating/i.test(human.activity)) pose = "give";
+        if (id === "player" && pose === "idle") pose = "breathe";
         const index = active
           ? Math.min(3, Math.floor(elapsed / poseTiming(pose)))
           : this.options.freeze
@@ -871,7 +878,7 @@ export class WorldScene extends Phaser.Scene {
             ? action.prop
             : undefined);
         const texture = this.characters.frame(human, pose, index, prop);
-        im.setTexture(texture);
+        if (im.texture.key !== texture) im.setTexture(texture);
         if (this.options.shadows !== false) {
           const shadowTexture = this.characters.shadow(
             texture,
@@ -882,18 +889,28 @@ export class WorldScene extends Phaser.Scene {
             shade = this.add.image(im.x, im.y, shadowTexture);
             this.shadows.set(id, shade);
           }
-          shade
-            .setTexture(shadowTexture)
-            .setOrigin(0.5, 32 / 96)
-            .setPosition(im.x, im.y)
-            .setDepth(this.runtime.engine.world.topography ? -1000 : -60000);
-          if (id === "player")
+          if (shade.texture.key !== shadowTexture)
+            shade.setTexture(shadowTexture);
+          shade.setOrigin(0.5, 32 / 96).setPosition(im.x, im.y);
+          const shadowDepth = this.runtime.engine.world.topography
+            ? -1000
+            : -60000;
+          if (shade.depth !== shadowDepth) shade.setDepth(shadowDepth);
+          if (
+            id === "player" &&
+            this.game.canvas.dataset.characterShadow !== this.shadowPhase
+          )
             this.game.canvas.dataset.characterShadow = this.shadowPhase;
         }
-        im.setData("characterPose", pose).setData("heldSprite", prop ?? null);
+        if (im.getData("characterPose") !== pose)
+          im.setData("characterPose", pose);
+        if (im.getData("heldSprite") !== (prop ?? null))
+          im.setData("heldSprite", prop ?? null);
         if (id === "player") {
-          this.game.canvas.dataset.heldSprite = prop ?? "";
-          this.game.canvas.dataset.characterPose = pose;
+          if (this.game.canvas.dataset.heldSprite !== (prop ?? ""))
+            this.game.canvas.dataset.heldSprite = prop ?? "";
+          if (this.game.canvas.dataset.characterPose !== pose)
+            this.game.canvas.dataset.characterPose = pose;
         }
       } else if (frame && !this.options.lab)
         im.setFrame(

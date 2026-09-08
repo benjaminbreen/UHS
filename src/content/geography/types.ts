@@ -56,6 +56,9 @@ export const settingSchema = z
     version: z.literal(2),
     // Pins the integrated geography rules without changing old generation inputs.
     geographyRevision: z.literal(1).optional(),
+    // New urban footprints/layouts are opt-in; old manifests retain their geometry.
+    urbanRevision: z.literal(1).optional(),
+    roadRevision: z.literal(1).optional(),
     geographyMode: z.enum(["earth", "configured"]).optional(),
     terrainRevision: z.union([z.literal(1), z.literal(2)]).optional(),
     environment: z

@@ -1,5 +1,6 @@
 export const poses = [
   "idle",
+  "breathe",
   "walk",
   "carry",
   "pickup",
@@ -19,6 +20,7 @@ export const poses = [
 export type CharacterPose = (typeof poses)[number];
 export const poseFrames = 4;
 export function poseTiming(pose: CharacterPose) {
+  if (pose === "breathe") return 1000;
   return pose === "idle"
     ? 360
     : pose === "swing" || pose === "hurt"

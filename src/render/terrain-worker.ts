@@ -24,6 +24,9 @@ export type TerrainResponse = {
   groundTiles: GroundTileData[];
 };
 let world: WorldModel;
+export function useTerrainWorld(prepared: WorldModel) {
+  world = prepared;
+}
 export function handleTerrainRequest(data: TerrainRequest) {
   try {
     if ("pack" in data) {

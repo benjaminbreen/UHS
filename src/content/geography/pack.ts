@@ -1,3 +1,4 @@
+import { civicProfile } from "../settlements/civic";
 import { packTemplates } from "../legacy-packs";
 import { landscapes } from "../graphics/landscapes";
 import { formatHistoricalYear } from "../../core/calendar";
@@ -136,6 +137,20 @@ export function packForSetting(setting: WorldSetting): Pack {
         .map((e) => e.definition.runtimeId!);
     if (ids("plant").length) pack.trees = ids("plant");
     if (ids("occupation").length) pack.roles = ids("occupation");
+  }
+  if (
+    setting.urbanRevision &&
+    (setting.settlement === "city" || setting.settlement === "port")
+  ) {
+    const civic = civicProfile(setting);
+    pack.evidence.push({
+      id: `civic-${civic.id}`,
+      title: civic.label,
+      statement: civic.evidence.note,
+      status: civic.evidence.status,
+      url: civic.evidence.sources[0] ?? "",
+      limitation: civic.evidence.note,
+    });
   }
   return pack;
 }

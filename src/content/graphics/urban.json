@@ -1,0 +1,110 @@
+{
+  "bases": [
+    "house-roman-0",
+    "house-roman-1",
+    "house-roman-2",
+    "house-roman-3",
+    "study-timber",
+    "study-courtyard",
+    "study-board",
+    "house-thatch",
+    "house-mud-0",
+    "house-mud-1"
+  ],
+  "forms": {
+    "row": {
+      "footprint": [
+        8,
+        6
+      ],
+      "stories": 2,
+      "roofDepth": 43,
+      "bays": 3
+    },
+    "shop": {
+      "footprint": [
+        5,
+        5
+      ],
+      "stories": 1,
+      "roofDepth": 34,
+      "bays": 2,
+      "shop": true
+    },
+    "wide": {
+      "footprint": [
+        11,
+        7
+      ],
+      "stories": 2,
+      "roofDepth": 48,
+      "bays": 4
+    },
+    "tall": {
+      "footprint": [
+        7,
+        6
+      ],
+      "stories": 3,
+      "roofDepth": 39,
+      "bays": 3
+    }
+  },
+  "materials": {
+    "rose-plaster": {
+      "wall": [
+        "#514136",
+        "#936850",
+        "#c58d6c",
+        "#dba789",
+        "#f1c8a1"
+      ],
+      "roof": [
+        "#5d2f24",
+        "#a3452b",
+        "#cd633c",
+        "#f6945a"
+      ],
+      "foundation": [
+        "#4c5146",
+        "#939684",
+        "#cbc7af"
+      ]
+    }
+  },
+  "wallOverrides": {
+    "house-roman-2": "rose-plaster"
+  },
+  "civicForms": {
+    "hall": {
+      "footprint": [
+        12,
+        7
+      ],
+      "stories": 2,
+      "roofDepth": 49,
+      "bays": 4,
+      "bases": [
+        "house-roman-0",
+        "study-timber",
+        "study-courtyard",
+        "study-board",
+        "house-thatch",
+        "house-mud-0"
+      ]
+    },
+    "colonnade": {
+      "footprint": [
+        13,
+        7
+      ],
+      "stories": 2,
+      "roofDepth": 52,
+      "bays": 5,
+      "colonnade": true,
+      "bases": [
+        "house-roman-0"
+      ]
+    }
+  }
+}

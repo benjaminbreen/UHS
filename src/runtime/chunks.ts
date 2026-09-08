@@ -9,8 +9,9 @@ export class ChunkCache {
   private pending = new Set<string>();
   private worldKey = "";
   private regionKey = "";
-  constructor(enabled = true) {
-    if (enabled && typeof Worker !== "undefined") {
+  constructor(private enabled = true) {}
+  private ensureWorker() {
+    if (!this.worker && this.enabled && typeof Worker !== "undefined") {
       this.worker = new Worker(new URL("../world/worker.ts", import.meta.url), {
         type: "module",
       });
@@ -34,6 +35,7 @@ export class ChunkCache {
     setting?: WorldSetting,
     generator: 1 | 2 | 3 = setting ? 2 : 1,
   ) {
+    this.ensureWorker();
     const key = `${generator}:${packId}:${seed}:${setting ? stateHash(setting) : "v1"}`;
     if (key !== this.worldKey) {
       this.worldKey = key;
@@ -71,6 +73,7 @@ export class ChunkCache {
   }
   dispose() {
     this.worker?.terminate();
+    this.worker = undefined;
     this.cache.clear();
     this.pending.clear();
   }

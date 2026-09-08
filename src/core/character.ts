@@ -107,7 +107,7 @@ export type CharacterAppearance = {
   bodyShape?: (typeof bodyShapes)[number];
   posture?: (typeof postures)[number];
   height: -2 | -1 | 0 | 1 | 2;
-  build: 0 | 1 | 2;
+  build: -1 | 0 | 1 | 2;
   skin: string;
   hairColor: string;
   hair: (typeof hairStyles)[number];
@@ -219,7 +219,16 @@ export function generateAppearance(
             ] as const
           )[n("posture", 6)],
     height: heightForAge(seed, index, age),
-    build: age < 16 ? 0 : (n("build", 3) as 0 | 1 | 2),
+    build:
+      age < 16
+        ? -1
+        : n("build", 100) < 75
+          ? -1
+          : n("build", 100) < 93
+            ? 0
+            : n("build", 100) < 99
+              ? 1
+              : 2,
     skin: skinColors[n("skin", skinColors.length)],
     hairColor: [
       "#292823",
@@ -277,7 +286,7 @@ export function actorAppearance(actor: {
 }
 export const originalAppearance: CharacterAppearance = {
   height: 0,
-  build: 0,
+  build: -1,
   skin: skinColors[0],
   hairColor: "#292823",
   hair: "original",

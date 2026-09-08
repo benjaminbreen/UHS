@@ -1,5 +1,11 @@
 export type Point = [number, number];
-export type Ramp = { edge: string; shade: string; base: string; light: string };
+export type Ramp = {
+  edge: string;
+  shadowEdge?: string;
+  shade: string;
+  base: string;
+  light: string;
+};
 export function mix(a: string, b: string, t: number) {
   const x = parseInt(a.slice(1), 16),
     y = parseInt(b.slice(1), 16);
@@ -28,9 +34,25 @@ export function ramp(
   };
   return {
     base,
-    // Preserve hue: green cloth gets a deep green contour, brown hair deep brown.
-    edge: scale(material === "skin" ? 0.53 : material === "hair" ? 0.38 : 0.37),
-    shade: scale(material === "skin" ? 0.77 : 0.69),
+    shadowEdge: mix(
+      scale(material === "skin" ? 0.34 : 0.32),
+      "#402039",
+      material === "skin" ? 0.38 : 0.24,
+    ),
+    // Warm skin lights against deep brown/plum contours; cooler shadow hues
+    // give separation without turning every material into the same black.
+    edge:
+      material === "skin"
+        ? mix(scale(0.39), "#482235", 0.28)
+        : mix(
+            scale(material === "hair" ? 0.38 : 0.37),
+            "#291d39",
+            material === "hair" ? 0.22 : 0.16,
+          ),
+    shade:
+      material === "skin"
+        ? mix(scale(0.77), "#8b4945", 0.12)
+        : mix(scale(0.69), "#43364f", 0.1),
     light: mix(
       base,
       material === "skin" ? "#ffe0ae" : "#f5d99c",
@@ -88,7 +110,19 @@ export class Pixels {
         !mask.has(`${x + 1},${y}`) ||
         !mask.has(`${x},${y - 1}`) ||
         !mask.has(`${x},${y + 1}`);
-      this.rect(x, y, 1, 1, border ? colors.edge : colors.base);
+      const shadedEdge =
+        !mask.has(`${x},${y + 1}`) || !mask.has(`${x + 1},${y}`);
+      this.rect(
+        x,
+        y,
+        1,
+        1,
+        border
+          ? shadedEdge
+            ? (colors.shadowEdge ?? colors.edge)
+            : colors.edge
+          : colors.base,
+      );
     }
   }
   shape(points: Point[], colors: Ramp) {

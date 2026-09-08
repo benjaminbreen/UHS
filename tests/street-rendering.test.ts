@@ -49,3 +49,49 @@ it("paving keeps world-coordinate joints identical across chunk origins", () => 
     rasterStreetTile(sample, 1, 0, 0, 0).pixels,
   );
 });
+
+it("uses dated NYC mixes without spreading them to other places or periods", async () => {
+  const { streetPalette, chooseStreetSurface } = await import(
+    "../src/content/settlements/streets/palettes"
+  );
+  const ny = {
+    lon: -74,
+    lat: 40.7,
+    year: 1850,
+    culture: "european",
+  } as WorldSetting;
+  const p = streetPalette(ny);
+  expect(p.main).toContain("sett");
+  expect(p.footway).toContain("brick");
+  expect(p.lane).toContain("earth");
+  expect(streetPalette({ ...ny, year: 1700 }).main).not.toContain("sett");
+  expect(streetPalette({ ...ny, lon: 12.5, lat: 41.9 }).main).not.toContain(
+    "sett",
+  );
+  expect(chooseStreetSurface(p, "lane", 0.4)).toBe("earth");
+});
+
+it("renders each material distinctly and preserves selected square materials", () => {
+  const signatures = new Set<string>();
+  for (const material of [
+    "slab",
+    "basalt",
+    "cobble",
+    "sett",
+    "brick",
+  ] as const) {
+    const sample: TopographySample = () => ({
+      height: 0,
+      surface: "gravel",
+      feature: "paving",
+      streetMaterial: material,
+      pavement: "square",
+    });
+    const pixels = rasterStreetTile(sample, 0, 0, 0, 0).pixels;
+    signatures.add(Array.from(pixels).join(","));
+    expect(rasterStreetTile(sample, 0, 0, -16, 32).pixels).toEqual(
+      rasterStreetTile(sample, -16, 32, 0, 0).pixels,
+    );
+  }
+  expect(signatures.size).toBe(5);
+});

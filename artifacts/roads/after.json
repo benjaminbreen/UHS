@@ -1,0 +1,51 @@
+{
+  "setting": {
+    "version": 2,
+    "geographyRevision": 1,
+    "urbanRevision": 1,
+    "roadRevision": 1,
+    "geographyMode": "configured",
+    "terrainRevision": 2,
+    "environment": {
+      "ecology": "desert",
+      "landform": "plain",
+      "population": "sparse",
+      "start": "resident",
+      "household": "mixed"
+    },
+    "placeId": "konya",
+    "location": "Konya plain · street study",
+    "lon": 32.83,
+    "lat": 37.67,
+    "year": -6499,
+    "culture": "north-african-west-asian",
+    "climate": "arid",
+    "relief": 0.15,
+    "water": "river-ns",
+    "settlement": "village",
+    "settlementPattern": "clustered",
+    "architecture": "mudbrick",
+    "role": "Household member",
+    "characterName": "Traveler",
+    "community": "",
+    "season": "summer"
+  },
+  "households": 8,
+  "roads": 20,
+  "roadPoints": 864,
+  "spawn": {
+    "x": 0,
+    "y": 0,
+    "space": "outside"
+  },
+  "previewAndWalkMs": 33882.592791999996,
+  "movement": {
+    "steps": 8,
+    "end": {
+      "x": 2,
+      "y": 6,
+      "space": "outside"
+    }
+  },
+  "errors": []
+}

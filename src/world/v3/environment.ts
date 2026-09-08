@@ -1,11 +1,12 @@
+import { trimCache } from "../../core/cache";
 import { marshBasin } from "./wet-features";
 import type { WorldSetting } from "../../content/geography/types";
 import { ecologyProfiles } from "../../content/ecology/profiles";
 import { regionalLandforms } from "./landforms";
-import { noise } from "../v2/noise";
-import { toAtlas, atlasSample } from "../v2/atlas";
+import { noise } from "../geography/noise";
+import { toAtlas, atlasSample } from "../geography/atlas";
 import type { RegionalContext } from "../regional/context";
-import type { LandSample } from "../v2/landscape";
+import type { LandSample } from "../geography/landscape";
 /** Geography is sampled independently of settlements and player circumstances. */
 export function createEnvironment(
   s: WorldSetting,
@@ -51,7 +52,7 @@ export function createEnvironment(
     let broad = atlasCache.get(key);
     if (!broad) {
       broad = atlasSample(gx + 16, gy + 16);
-      if (atlasCache.size >= 4096) atlasCache.clear();
+      trimCache(atlasCache, 4096);
       atlasCache.set(key, broad);
     }
     // Exact sampling is only needed within reach of a shoreline or river.
@@ -233,7 +234,7 @@ export function createEnvironment(
     let value = cache.get(key);
     if (!value) {
       value = calculate(x, y);
-      if (cache.size >= 65536) cache.clear();
+      trimCache(cache, 65536);
       cache.set(key, value);
     }
     return value;

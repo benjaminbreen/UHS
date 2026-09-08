@@ -77,7 +77,16 @@ export class WorldCharacters {
       const c = document.createElement("canvas");
       c.width = 80;
       c.height = 80;
-      drawCharacter(c.getContext("2d")!, a, actor.direction, pose, frame, art);
+      // Shadows and Phaser's CanvasTexture read these pixels immediately.
+      // Keep the tiny source on the CPU to avoid synchronous GPU readbacks.
+      drawCharacter(
+        c.getContext("2d", { willReadFrequently: true })!,
+        a,
+        actor.direction,
+        pose,
+        frame,
+        art,
+      );
       this.scene.textures
         .addCanvas(key, c)
         ?.setFilter(Phaser.Textures.FilterMode.NEAREST);

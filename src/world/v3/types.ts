@@ -52,6 +52,11 @@ export type SettlementPlan = {
   actors: Actor[];
   enclosures: WorldModel["enclosures"];
   surface: Map<string, Terrain>;
+  streetSurfaces?: Map<
+    string,
+    import("../../content/settlements/streets/palettes").StreetSurface
+  >;
+  pavement?: Map<string, "square" | "footway">;
   traffic: Set<string>;
   reserved: Set<string>;
   solid: Set<string>;

@@ -12,6 +12,11 @@ def pack_atlas(sprites, output, name, width=1024):
         if 'anchor' in im.info:
             ax,ay=im.info['anchor'];frame['pivot']={'x':ax/w,'y':ay/h}
         frames[key]=frame;placements.append((im,x,y));x+=w+2;rowh=max(rowh,h)
+    # Keep each texture within a conservative GPU limit as modular kits grow.
+    # Repack wider before allocating; never silently emit an unusable tall atlas.
+    if y+rowh+2>4096:
+        if width<4096:return pack_atlas(sprites,output,name,width*2)
+        raise ValueError(f'{name} needs multiple pages: exceeds 4096 pixels')
     atlas=Image.new('RGBA',(width,y+rowh+2))
     for im,x,y in placements:atlas.paste(im,(x,y))
     atlas.save(output/f'{name}.png')

@@ -1,5 +1,5 @@
 import { bankOffset } from "./wet-features";
-import { noise } from "../v2/noise";
+import { noise } from "../geography/noise";
 import { random } from "../../core/random";
 import type { WorldSetting } from "../../content/geography/types";
 

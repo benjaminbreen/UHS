@@ -94,3 +94,40 @@ it("anchors wash pixels to the same signed shore contour and preserves inputs", 
   }
   expect(JSON.stringify(shore(-1, 0))).toBe(original);
 });
+
+it("does not redraw tile-shaped dirt fragments beyond an authored diagonal", () => {
+  const sample: TopographySample = (x, y) => ({
+    ...cell,
+    surface: x === 0 && y === 0 ? "soil" : "grass",
+    ...(x === 0 && y === 0
+      ? {
+          pathArt: [
+            { a: [0.5, 0.5] as const, b: [3.5, 3.5] as const, radius: 0.5 },
+          ],
+        }
+      : {}),
+  });
+  expect(pathCoverage(sample, 1.01, 0.5, 0, 0)).toBe(0);
+  expect(pathCoverage(sample, 0.5, 0.5, 0, 0)).toBeGreaterThan(0.8);
+});
+
+it("leaves room for four wear bands on broad paths while lighting narrow path centers", () => {
+  const broad: TopographySample = () => ({
+    ...cell,
+    pathArt: [{ a: [1.5, -10], b: [1.5, 10], radius: 1.5 }],
+  });
+  const samples = [0.08, 0.35, 0.7, 0.95].map((x) =>
+    pathCoverage(broad, x, 0.5, 0, 0),
+  );
+  expect(samples[0]).toBeLessThan(0.56);
+  expect(samples[1]).toBeGreaterThan(0.56);
+  expect(samples[1]).toBeLessThan(0.7);
+  expect(samples[2]).toBeGreaterThan(0.7);
+  expect(samples[2]).toBeLessThan(0.84);
+  expect(samples[3]).toBeGreaterThan(0.84);
+  const narrow: TopographySample = () => ({
+    ...cell,
+    pathArt: [{ a: [0.5, -10], b: [0.5, 10], radius: 0.5 }],
+  });
+  expect(pathCoverage(narrow, 0.5, 0.5, 0, 0)).toBeGreaterThan(0.95);
+});

@@ -54,7 +54,7 @@ export const characterAppearanceSchema = z.object({
     z.literal(1),
     z.literal(2),
   ]),
-  build: z.union([z.literal(0), z.literal(1), z.literal(2)]),
+  build: z.union([z.literal(-1), z.literal(0), z.literal(1), z.literal(2)]),
   skin: pixelColor,
   hairColor: pixelColor,
   hair: z.enum(hairStyles),

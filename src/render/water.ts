@@ -179,6 +179,7 @@ export function addWaterEffects(scene: Phaser.Scene, effects: WaterEffect[]) {
   manager.patches.add(patch);
   container.once("destroy", () => manager!.patches.delete(patch));
   drawEffects(patch, manager.frame < 0 ? 0 : manager.frame);
+  return container;
 }
 function drawEffects(patch: Patch, frame: number) {
   if (patch.frame === frame) return;

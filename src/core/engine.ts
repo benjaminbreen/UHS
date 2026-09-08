@@ -1182,6 +1182,9 @@ export class Engine {
       at.push(o);
       this.tickObstacles.set(key, at);
     }
+    const actors = [...this.state.actors].sort((a, b) =>
+      a.id < b.id ? -1 : a.id > b.id ? 1 : 0,
+    );
     const end = this.state.clock + seconds;
     const player = this.state.player;
     while (this.state.clock < end) {
@@ -1199,9 +1202,7 @@ export class Engine {
         const season = seasonAt(this.world.pack.setting.season, next);
         for (const o of this.state.objects) refreshResource(o, next, season);
       }
-      for (const a of [...this.state.actors].sort((a, b) =>
-        a.id < b.id ? -1 : a.id > b.id ? 1 : 0,
-      )) {
+      for (const a of actors) {
         if (a.id === heldActor) continue;
         const focus =
           this.state.manifest.simulation === 2 && player.pos.space !== "outside"

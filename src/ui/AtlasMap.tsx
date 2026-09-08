@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { atlasLand, atlasRivers } from "../world/v2/atlas";
+import { atlasLand, atlasRivers } from "../world/geography/atlas";
 import { featuredPlaces, places } from "../content/geography/places";
 export function AtlasMap({
   lon,

@@ -14,6 +14,8 @@ export function route(
   cost: (to: Point, from: Point) => number,
   options: {
     maxNodes?: number;
+    /** Generation can search for any cell in a network; use zero heuristic. */
+    isGoal?: (point: Point) => boolean;
     minCost?: number;
     /** Above one trades optimality for a faster, directed search. Used only when laying out country roads. */
     heuristicWeight?: number;
@@ -67,7 +69,11 @@ export function route(
       k = key(current.p);
     if (current.g !== scores.get(k)) continue;
     visited++;
-    if (current.p.x === goal.x && current.p.y === goal.y) {
+    if (
+      options.isGoal
+        ? options.isGoal(current.p)
+        : current.p.x === goal.x && current.p.y === goal.y
+    ) {
       const path: Point[] = [];
       let p = current.p;
       while (p.x !== start.x || p.y !== start.y) {
@@ -116,7 +122,7 @@ export function route(
             ? Math.hypot(goal.x - p.x, goal.y - p.y)
             : Math.abs(goal.x - p.x) + Math.abs(goal.y - p.y)) /
             step) *
-            (options.minCost ?? 1) *
+            (options.isGoal ? 0 : (options.minCost ?? 1)) *
             (options.heuristicWeight ?? 1),
         order: serial++,
       });

@@ -1,3 +1,61 @@
+## Material mixes within cities — September 8, 2026
+
+Paving now uses compact, content-owned mixes by street role, with a stable selection per route, square or frontage. New urban worlds distinguish basalt, rounded cobbles, dressed granite blocks, brick, warm-gray slabs and earth lanes. Squares and footways honor the chosen material instead of forcing slabs. Earlier trunk surfaces survive access-lane intersections. Unprofiled settings use slabs as the fallback rather than a worldwide year-based material progression; dated Italian/European profiles and a nineteenth-century NYC mix provide local interpretations. NYC granite blocks have an official Street Design Manual reference; proportions and placement remain artistic inference. Renderer branches only on material, not culture, and routes/collisions remain unchanged.
+
+Validation: production build, 12 focused street/urban/road checks, and three production city browser checks passed. Browser sampling confirmed basalt/cobble/slab/soil in Rome and granite/cobble/brick/slab/soil in NYC. Reproducible captures use `scripts/capture-paving.ts`.
+
+## Compact splash layout — September 8, 2026
+
+Removed the unsolicited geography/rules and browser-saving footer copy. Reduced the splash to an 840px composition with smaller logo, type, controls, and scenario icons; centered it with larger surrounding margins. Existing structure, custom tagline, About credit, and glint remain. Checked desktop/mobile rendering, About behavior, reduced motion, TypeScript, and whitespace.
+
+## Splash logotype polish and About — September 8, 2026
+
+Removed the logo backdrop with an SVG alpha filter that preserves the source image. Added a brief stepped pixel glint on the capital H every 14 seconds, disabled by reduced-motion preferences. Replaced the tagline with “An experiment in teachably imperfect historical simulations.” About expands inline to credit Benjamin Breen and link to the configured GitHub repository. Desktop/mobile captures updated; browser checks verified expansion, repository URL, reduced-motion behavior, no horizontal overflow, and no runtime errors. TypeScript and whitespace checks passed. The opening flow previously passed all seven production-browser checks, including all four scenarios, typed requests, random starts, and reload behavior.
+
+## Opening splash and playable scenario selection — September 8, 2026
+
+The normal entry route now opens a responsive splash using the supplied `logotype uhs.png` (served unchanged from `public/brand/uhs.png`). No simulation is prepared until Begin, Random start, or a scenario is selected. Prompt details carry into World Weaver; unmatched requests remain editable. Random start creates a fresh seeded character/world; reload returns to the splash with no local game persistence. The scenario cards explicitly resolve a Neolithic hunter in Konya (7000 BCE), legionary in Umbria (20 BCE), farmer in Seoul (1750), and free Black farmer in Haiti (1820). These are playable generated settings, not scripted historical reenactments. Orbital survival and a Brutus/Forum event were replaced by supported Earth-based starts rather than advertised as implemented mechanics. Added local Hunter prompt recognition.
+
+The splash includes loading/cancel/error states, keyboard-accessible details, and working method/help panels. Scenario definitions remain in geographic content; generation uses the shared preparation path. Developer lab routes are preserved. Visual captures: `artifacts/splash/desktop.png` and `mobile.png`. Validation is covered by `tests/browser/splash.spec.ts`; production build and TypeScript checks passed. Unrelated shared-checkout changes remain intact.
+
+## Urban blocks, civic squares and v1-inspired paving — September 8, 2026
+
+New worlds pin `urbanRevision: 1` for larger modular urban ranges, shared frontage, bounded block streets, compact neighborhoods, enclosed courts, planted corners, footways and civic squares. A civic hall faces its public square; water, a brazier and explicit market counters occupy the square, and residents use it as a social destination. Civic halls support public entry/exit without creating a household. New urban sites no longer inherit the eight-building secondary-settlement cap. Existing regional clustered layouts remain explicit choices.
+
+Shared content-owned forms drive width, storeys, window bays, roofs, materials, awnings and civic colonnades. Original frames remain available. Larger footprints are included in scenery culling. Atlases repack wider within a 4096-pixel limit; unused civic/material combinations are not compiled. The ground renderer preserves intentionally cleared block areas. The final user-requested paving revision carries forward the original Roman map's warm-gray flagstones, clipped corners, quiet face variation and short highlights, with world-coordinate joints across chunks.
+
+Dated civic profiles provide qualified Italian basilica/square and English market-hall interpretations; other settings explicitly use fictional meeting halls in their existing architectural materials. This is a reusable neighborhood grammar, not a surveyed reconstruction or a civic/economic simulation. Permanent era boundaries and legacy generation inputs are unchanged; no save restoration work.
+
+Validation: production build; 14 focused unit checks across urban composition, streets, road networks, rendering, six settlement forms and prop behavior; three production Chrome city checks (Roman, timber and earthen). Verified civic entry/exit, reachable destinations, non-overlapping footprints, preserved market-counter frames, and missing-frame checks. The final Roman cadence sample measured p95 16.8 ms; an earlier run measured 33.4 ms, so timings remain host-dependent. A normal Earth-mode Rome 100 BCE seed generated 34 buildings including its civic hall. The initial London art fixture resolved to Westminster's independently scoped clustered layout; the timber renderer check uses a controlled study instead.
+
+See `CITY_ART.md`, `scripts/check-cities.ts`, `scripts/capture-cities.ts`, and `artifacts/cities/`. Unrelated road, character, performance and UI work is preserved. No commit or deployment.
+
+## Sparse road network and continuous joins — September 8, 2026
+
+Implemented new-world `roadRevision: 1`: sparse regional connection selection, deterministic batches that reuse corridors/crossings, fewer hamlet lanes, single-search access to road centerlines, smaller doorstep wear and softer narrow footpaths. Removed separate drawn yard-service routes while retaining access validation. Unified duplicate drawing edges and fixed the paired semicircle junction defect by joining centerlines rather than painted shoulders. Clear level approaches can straighten without crossing solids/water; bridge searches resolve narrow decks at unit steps and retain reused deck geometry.
+
+Validation: 17 focused road/render tests and three existing settlement layout/routing/crossing checks passed; production build passed with the existing bundle advisory. Production Chrome preview and eight gameplay steps across the revised junction passed without page errors. The older movement browser test expects immediate gameplay on `/` and fails against the current world-creation screen; the shared dev server restarted during the procedural browser test. The isolated production capture avoids those harness issues. See `artifacts/roads/after-junction.png`, `after.json`, and `comparison.json`; reproduction scripts and scope are documented in `SETTLEMENTS.md`. No commit/deployment; unrelated ongoing city, graphics and runtime work preserved.
+
+## World Weaver layout and fresh starts — September 8, 2026
+
+Restyled world creation around the supplied navy-and-gold reference, with mode cards, prompt presets, editable place/year/layout/role, atlas preview, and a centered Begin action. Responsive details stack on phones. Each page load now prepares a fresh featured place/date with a random seed and character; Random start uses the same generator. Browser restore, autosave, writer locks, and Save now are disconnected. Existing stored data is untouched and file import/export remains explicit.
+
+Validation: production build and five focused world-generation tests passed. Chrome exercised prompt selection, role editing, Begin, reload (different seed and character), and a 390px viewport with no horizontal overflow or runtime errors. Existing unrelated worktree changes preserved.
+
+## Final character contour, width and breathing polish — September 8, 2026
+
+Removed idle head turns. The playable character now uses a slow four-second breathing pose with one-pixel shoulder/chest movement and fixed head, feet and prop grips; the lab exposes the pose for inspection. Tightened side-view hand travel to ±2px and lift to 1px, retaining opposing leg movement. Skin contours are darker brown/plum; lower/right outlines have cooler shadow hues while clothes/hair keep their own ramps. Default build −1 narrows the torso one native pixel, keeps earlier widths available, and weights adult generation toward narrow builds. Heights are unchanged.
+
+Eight character unit tests and seven browser tests passed, including stable breathing anchors, no idle head turns, width difference, carrying, crisp alpha and time-of-day shadows. Review `artifacts/characters/final-polish.png` and `scripts/capture-character-polish.ts`. Unrelated performance/world work is preserved.
+
+## Performance, viewport visibility and organic NPC motion — September 8, 2026
+
+Implemented cancellable worker world preparation with warmed-worker handoff to terrain rendering; lazy gameplay/lab imports and tile workers; offline atlas indexes; shared geography modules; explicit chunk resource ownership; padded minimap caching; reused observations; coalesced snapshot creation; guarded frame setters; CPU-backed character canvases; and incremental derived-cache eviction. Existing generator/version behavior remains supported. See `PERFORMANCE.md` for module ownership, reproduction commands, results and limits.
+
+Fixed on-screen NPC/object popping by separating viewport rendering from the 19-tile knowledge radius. A padded camera rectangle determines drawing; other interiors and offscreen entities remain excluded. Seeded NPC tween delays/durations soften synchronized steps while preserving authoritative timing and state. Player controls keep their existing response.
+
+Against `a00d0dc`, local production Alexandria selection-to-terrain fell from 9.16 s to 5.68 s and its longest startup task from 3.66 s to 0.61 s. Anatolia preview fell from 2.32 s to 1.85 s. Steady cadence remains about 60 FPS; command-time improvements are not consistent. Gameplay bundle size and initial scenery work remain follow-ups. Production build, 48 focused unit tests, and character/movement/viewport/terrain/procedural/water browser checks passed. Changes are in the worktree for review; no new commit or deployment.
+
 ## Reviewed character checkpoint and v2 integration — September 8, 2026
 
 User requested review, commit and push of the current worktree into `origin/v2`, including the existing `codex/character-lab` checkpoint. Remote `v2` was at `96edf47`; `222f0b7` is its direct descendant and contains the terrain/art work. This checkpoint adds the complete character lab, body/face/clothing variants, carried-object presentation, dynamic human shadows, village study, recipes and captures. It also includes the performance review and the two supplied UI reference mockups. Those mockups remain reference assets, not implemented character/belief panels.

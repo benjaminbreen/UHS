@@ -26,7 +26,7 @@ Unrestricted lab combinations are visual studies, not claims of historically att
 - `props.ts`: native, transparency-cropped art for all 18 currently portable prop definitions. Containers retain their source pixels; the stick has a direction/pose-aware held drawing. One-hand, hanging and two-hand supports share the character hand positions. Tall hanging objects are lifted clear of the feet. Large vessels/crates can obscure the face because their original dimensions are retained.
 - `world.ts`: scene-owned cached character frames, evicted after inactivity. Appearance resolution is cached and held-object lookup is indexed at scene refresh. Lab populations cache their four composite pages rather than rerasterizing everyone on every animation loop.
 
-There are 16 pose families: idle, walk, carry, pickup, drop, give, talk, point, beckon, shrug, swing, thrust, work, startle, hurt and sit. Gameplay wires movement, successful interaction animations, resting, gathering/working and eating activities. The additional expressive poses are available in the lab; this does not add new combat, throwing or emotion rules.
+There are 17 pose families: idle, breathe, walk, carry, pickup, drop, give, talk, point, beckon, shrug, swing, thrust, work, startle, hurt and sit. Gameplay wires movement, successful interaction animations, resting, gathering/working and eating activities. The additional expressive poses are available in the lab; this does not add new combat, throwing or emotion rules.
 
 Runtime command outcomes trigger presentation animations without moving inventory ownership into the renderer. Space with a held stick animates the actual strike; with no eligible target, it produces a visual air swing without damage. Picking up removes the ground object and attaches it to the actor. Dropping restores the ground object. Human shadows project the complete composed pose (including carried objects), cache by frame and lighting phase, and reuse the existing six time-of-day cast directions/opacities. Small foot-contact shadows remain at night. Prop/building shadow behavior is unchanged.
 
@@ -53,3 +53,11 @@ The lab exposes five head shapes and five jaw shapes, three body silhouettes, si
 Body taper/fullness, chest light, underarm folds, belt gathers, long tunics and lower-colored skirts provide silhouette and material variation without scaling pixels. Idle phase is offset per actor. Held burdens affect posture; hand-on-hip and clasped-hand resting poses yield to actual carried objects and actions.
 
 The lighting control affects the native preview shadow and six-person production-renderer village study. The selected recipe and held object appear alongside an original adult, strong adult, elder, child and tall adult. `scripts/capture-character-village.ts` captures matching morning, midday, dusk and night scenes. All five heights retain their existing age boundaries; ordinary adults still default to original height.
+
+## Final contour and motion polish
+
+Skin contours now use a dark brown/plum ramp even for pale complexions. Lower/right silhouette edges use a slightly cooler, deeper shade than upper/left edges; hair and cloth retain their material hue. Hand tips have a defined lower contour. Side walking keeps opposing arms and legs but reduces hand travel from ±3px to ±2px and its lift from 2px to 1px.
+
+Idle poses no longer turn the head. Only the resting player automatically enters `breathe`: a four-second cycle with a one-pixel shoulder/chest lift, fixed head and feet, and fixed grips. The lab exposes this pose for frame stepping. NPC idle poses remain still apart from blinking.
+
+Build −1 is the new default, narrowing the torso/shoulders one native pixel without resampling the head. Previous builds 0/1/2 remain selectable and retain their geometry. Procedural adult width weights are 75% narrow, 18% previous, 6% broad and 1% full; children default narrow. Height distribution is unchanged. Review `artifacts/characters/final-polish.png` or run `scripts/capture-character-polish.ts`.

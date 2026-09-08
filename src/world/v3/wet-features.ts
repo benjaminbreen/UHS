@@ -1,5 +1,5 @@
 import { random } from "../../core/random";
-import { noise } from "../v2/noise";
+import { noise } from "../geography/noise";
 import type { Ecology } from "../../content/ecology/profiles";
 /** Sparse independently shaped coves/bars. Long quiet bank sections remain. */
 export function bankOffset(seed: string, along: number, side: number) {

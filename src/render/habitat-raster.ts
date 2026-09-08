@@ -1,3 +1,4 @@
+import { groundMotif, materialGrain } from "./ground-motifs";
 import { rasterStreetTile } from "./street-raster";
 import { transitionPixel, fringePixel, groundClumps } from "./terrain-tiles";
 import {
@@ -20,9 +21,9 @@ export type GroundTileData = {
 // Close values keep the ground subordinate to actors; hue carries material identity.
 const ramps: Record<Ecology, string[]> = {
   grassland: [
-    "#879d48",
-    "#b9b36a",
-    "#6f8b41",
+    "#819c42",
+    "#b9b45f",
+    "#64883b",
     "#c9b981",
     "#827d4d",
     "#3f6335",
@@ -74,13 +75,13 @@ const ramps: Record<Ecology, string[]> = {
     "#bec570",
   ],
   "dry-scrub": [
-    "#b0a962",
-    "#c1b481",
-    "#97955b",
-    "#b7aa8b",
+    "#a1aa50",
+    "#bcb56b",
+    "#879749",
+    "#bdb18f",
     "#9e9065",
-    "#727544",
-    "#dfc783",
+    "#506e35",
+    "#ddd179",
   ],
   desert: [
     "#d1b77a",
@@ -247,18 +248,25 @@ export function rasterHabitatTile(
             : band === 2
               ? [195, 208, 204]
               : [215, 223, 207];
-      const cluster = hash(Math.floor(wx / 3), Math.floor(wy / 2), 14);
-      // Low contrast clustered grain replaces the old blanket of bright grass dashes.
-      const shade = cluster > 0.84 ? 5 : cluster < 0.13 ? -4 : 0;
-      put(px, py, rgb, shade);
-      if (
-        !frozen &&
-        band !== 3 &&
-        h.ecology !== "desert" &&
-        hash(Math.floor(wx / 13), Math.floor(wy / 11), 389) > 0.82 &&
-        fringePixel(wx, wy, 2)
-      )
-        put(px, py, rgb, 9);
+      const grain = materialGrain(wx, wy);
+      const grainShade = band === 3 ? [0, -9, 7][grain] : [0, -7, 8][grain];
+      put(px, py, rgb, frozen ? grainShade * 0.3 : grainShade);
+      // Texture describes the material: little faceted stones or composed turf.
+      // No blanket of independently varied pixels behind these marks.
+      const ink = groundMotif(
+        band === 3
+          ? "stone"
+          : h.ecology === "desert" || frozen
+            ? "earth"
+            : "turf",
+        wx,
+        wy,
+      );
+      if (ink) {
+        const mineral = band === 3;
+        const shade = mineral ? [0, -29, -6, 22][ink] : [0, -6, 4, 11][ink];
+        put(px, py, rgb, frozen ? Math.round(shade * 0.4) : shade);
+      }
     }
   // Compose material boundaries over the same habitat underpainting. Only natural
   // edges are reconstructed; raised terrain and paving keep their own outlines.
@@ -285,36 +293,28 @@ export function rasterHabitatTile(
             : h.ecology === "tropical-woodland"
               ? [186, 130, 62]
               : [208, 152, 70];
-          const bx = Math.floor(wx / 9),
-            by = Math.floor(wy / 8);
-          const tx = 1 + Math.floor(hash(bx, by, 338) * 5),
-            ty = 1 + Math.floor(hash(bx, by, 339) * 5);
-          const mark =
-            hash(bx, by, 331) > 0.72 &&
-            ((wx % 9) + 9) % 9 >= tx &&
-            ((wx % 9) + 9) % 9 < tx + 2 &&
-            ((wy % 8) + 8) % 8 === ty;
-          // Two discrete worn-center tones and grouped chips on the margin.
-          const shoulder = 0.62 + (noise(wx, wy, 23, 377) - 0.5) * 0.055;
-          const edgeTone = path < shoulder ? -18 : path > 0.82 ? 10 : 0;
-          const chip =
-            path < 0.69 &&
-            hash(Math.floor(wx / 11), Math.floor(wy / 13), 367) > 0.72 &&
-            fringePixel(
-              wx,
-              wy,
-              Math.floor(
-                hash(Math.floor(wx / 11), Math.floor(wy / 13), 369) * 4,
-              ),
-            );
-          const grain = hash(Math.floor(wx / 2), Math.floor(wy / 2), 379);
-          const earth = grain > 0.86 ? 5 : grain < 0.09 ? -4 : 0;
-          put(
-            px,
-            py,
-            base,
-            mark ? edgeTone + 16 : chip ? edgeTone + 9 : edgeTone + earth,
+          const shoulder = 0.68 + (noise(wx, wy, 23, 377) - 0.5) * 0.055;
+          // One native-pixel contact edge, then the shoulder and worn center.
+          // A few small chips break its silhouette without a regular fringe.
+          const notch = fringePixel(
+            wx,
+            wy,
+            Math.floor(hash(Math.floor(wx / 13), Math.floor(wy / 11), 367) * 4),
           );
+          const edgeTone =
+            path < (notch ? 0.54 : 0.56)
+              ? -38
+              : path < shoulder
+                ? -19
+                : path > 0.84
+                  ? 15
+                  : 0;
+          const ink = groundMotif("earth", wx, wy);
+          const texture = ink
+            ? [0, -12, 5, 18][ink]
+            : [0, -6, 7][materialGrain(wx, wy)];
+          const minor = cell.pathArt?.length && cell.pathArt.every(s => s.radius < 0.5);
+          put(px, py, base, (minor ? edgeTone * 0.3 : edgeTone) + (path < 0.56 ? 0 : texture));
         } else if (nearShore && cell.surface !== "soil") {
           const distance = shoreDistance(sample, xx, yy, ox, oy);
           const jitter = (noise(wx, wy, 5, 333) - 0.5) * 0.32;
@@ -335,13 +335,19 @@ export function rasterHabitatTile(
   if (
     hasPath &&
     !frozen &&
-    !["desert", "dry-scrub"].includes(h.ecology) &&
-    hash(x + ox, y + oy, 341) > 0.44
+    h.ecology !== "desert" &&
+    h.exposed < 0.65 &&
+    hash(x + ox, y + oy, 341) > 0.27
   ) {
     for (const [px, py] of [
-      [4, 7],
-      [10, 11],
-      [7, 5],
+      [1, 6],
+      [5, 6],
+      [10, 6],
+      [14, 6],
+      [2, 11],
+      [7, 11],
+      [12, 11],
+      [14, 14],
     ]) {
       const coverage = pathCoverage(
         sample,
@@ -350,7 +356,12 @@ export function rasterHabitatTile(
         ox,
         oy,
       );
-      if (coverage < 0.18 || coverage > 0.49) continue;
+      if (
+        coverage < 0.24 ||
+        coverage > 0.52 ||
+        hash(gx + px, gy + py, 425) < 0.35
+      )
+        continue;
       for (const [dx, dy] of [
         [0, 0],
         [1, 0],
@@ -426,15 +437,7 @@ export function rasterHabitatTile(
       ])
         put(px + dx, py + dy, palette[1], -4);
     } else if (mineral) {
-      const rock = frozen ? [139, 156, 156] : palette[3].map((v) => v - 21);
-      for (const [dx, dy] of [
-        [0, 0],
-        [1, 0],
-        [2, 0],
-        [1, -1],
-      ])
-        put(px + dx, py + dy, rock);
-      put(px + 1, py - 1, palette[3], 10);
+      // The base pass already places readable stones inside mineral bands.
     } else if (h.kind === "woodland") {
       for (const [dx, dy] of [
         [0, 0],

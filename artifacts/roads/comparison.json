@@ -1,0 +1,297 @@
+[
+  {
+    "revision": "previous",
+    "ms": 75270.871541,
+    "households": 8,
+    "roads": 34,
+    "points": 4052,
+    "localSetting": {
+      "version": 2,
+      "geographyRevision": 1,
+      "urbanRevision": 1,
+      "geographyMode": "configured",
+      "terrainRevision": 2,
+      "environment": {
+        "ecology": "desert",
+        "landform": "plain",
+        "population": "sparse",
+        "start": "resident",
+        "household": "mixed"
+      },
+      "placeId": "unresearched",
+      "location": "Countryside",
+      "lon": 32.830078125,
+      "lat": 37.669921875,
+      "year": -6499,
+      "culture": "north-african-west-asian",
+      "climate": "arid",
+      "relief": 0.15,
+      "water": "none",
+      "settlement": "village",
+      "settlementPattern": "clustered",
+      "architecture": "mudbrick",
+      "role": "Household member",
+      "characterName": "Traveler",
+      "community": "",
+      "season": "summer"
+    },
+    "types": [
+      {
+        "id": "s174_-202~generated:s175_-201~generated-bridge",
+        "points": 27
+      },
+      {
+        "id": "s175_-201~generated-bridge",
+        "points": 23
+      },
+      {
+        "id": "s174_-202~generated:s175_-201~generated",
+        "points": 331
+      },
+      {
+        "id": "s175_-201~generated:s175_-202~generated",
+        "points": 511
+      },
+      {
+        "id": "s173_-201~generated:s174_-202~generated",
+        "points": 749
+      },
+      {
+        "id": "s175_-200~generated:s175_-201~generated",
+        "points": 697
+      },
+      {
+        "id": "s175_-201~generated:s176_-200~generated",
+        "points": 1165
+      },
+      {
+        "id": "s175_-201~generated-bridge-approach1",
+        "points": 46
+      },
+      {
+        "id": "s175_-201~generated-neighborhood0",
+        "points": 53
+      },
+      {
+        "id": "s175_-201~generated-neighborhood1",
+        "points": 37
+      },
+      {
+        "id": "s175_-201~generated-neighborhood2",
+        "points": 82
+      },
+      {
+        "id": "s175_-201~generated-neighborhood3",
+        "points": 48
+      },
+      {
+        "id": "s175_-201~generated-neighborhood4",
+        "points": 46
+      },
+      {
+        "id": "s175_-201~generated-door0",
+        "points": 6
+      },
+      {
+        "id": "s175_-201~generated-yard-access0",
+        "points": 13
+      },
+      {
+        "id": "s175_-201~generated-door1",
+        "points": 6
+      },
+      {
+        "id": "s175_-201~generated-yard-access1",
+        "points": 12
+      },
+      {
+        "id": "s175_-201~generated-door2",
+        "points": 4
+      },
+      {
+        "id": "s175_-201~generated-yard-access2",
+        "points": 13
+      },
+      {
+        "id": "s175_-201~generated-door3",
+        "points": 3
+      },
+      {
+        "id": "s175_-201~generated-yard-access3",
+        "points": 13
+      },
+      {
+        "id": "s175_-201~generated-door4",
+        "points": 3
+      },
+      {
+        "id": "s175_-201~generated-yard-access4",
+        "points": 13
+      },
+      {
+        "id": "s175_-201~generated-door5",
+        "points": 2
+      },
+      {
+        "id": "s175_-201~generated-yard-access5",
+        "points": 9
+      },
+      {
+        "id": "s175_-201~generated-door6",
+        "points": 2
+      },
+      {
+        "id": "s175_-201~generated-yard-access6",
+        "points": 13
+      },
+      {
+        "id": "s175_-201~generated-door7",
+        "points": 6
+      },
+      {
+        "id": "s175_-201~generated-yard-access7",
+        "points": 14
+      },
+      {
+        "id": "s175_-201~generated-field-access0",
+        "points": 20
+      },
+      {
+        "id": "s175_-201~generated-field-access1",
+        "points": 8
+      },
+      {
+        "id": "s175_-201~generated-field-access2",
+        "points": 37
+      },
+      {
+        "id": "s175_-201~generated-field-access3",
+        "points": 31
+      },
+      {
+        "id": "s175_-201~generated-pen-access1",
+        "points": 9
+      }
+    ]
+  },
+  {
+    "revision": 1,
+    "ms": 20443.16904200001,
+    "households": 8,
+    "roads": 20,
+    "points": 864,
+    "localSetting": {
+      "version": 2,
+      "geographyRevision": 1,
+      "urbanRevision": 1,
+      "roadRevision": 1,
+      "geographyMode": "configured",
+      "terrainRevision": 2,
+      "environment": {
+        "ecology": "desert",
+        "landform": "plain",
+        "population": "sparse",
+        "start": "resident",
+        "household": "mixed"
+      },
+      "placeId": "unresearched",
+      "location": "Countryside",
+      "lon": 32.830078125,
+      "lat": 37.669921875,
+      "year": -6499,
+      "culture": "north-african-west-asian",
+      "climate": "arid",
+      "relief": 0.15,
+      "water": "none",
+      "settlement": "village",
+      "settlementPattern": "clustered",
+      "architecture": "mudbrick",
+      "role": "Household member",
+      "characterName": "Traveler",
+      "community": "",
+      "season": "summer"
+    },
+    "types": [
+      {
+        "id": "s175_-201~generated-bridge",
+        "points": 23
+      },
+      {
+        "id": "s175_-201~generated:s175_-202~generated",
+        "points": 511
+      },
+      {
+        "id": "s175_-201~generated-bridge-approach1",
+        "points": 46
+      },
+      {
+        "id": "s175_-201~generated-neighborhood0",
+        "points": 53
+      },
+      {
+        "id": "s175_-201~generated-neighborhood1",
+        "points": 32
+      },
+      {
+        "id": "s175_-201~generated-neighborhood2",
+        "points": 31
+      },
+      {
+        "id": "s175_-201~generated-door0",
+        "points": 7
+      },
+      {
+        "id": "s175_-201~generated-door1",
+        "points": 7
+      },
+      {
+        "id": "s175_-201~generated-door2",
+        "points": 3
+      },
+      {
+        "id": "s175_-201~generated-door3",
+        "points": 6
+      },
+      {
+        "id": "s175_-201~generated-door4",
+        "points": 7
+      },
+      {
+        "id": "s175_-201~generated-door5",
+        "points": 4
+      },
+      {
+        "id": "s175_-201~generated-door6",
+        "points": 6
+      },
+      {
+        "id": "s175_-201~generated-door7",
+        "points": 6
+      },
+      {
+        "id": "s175_-201~generated-field-access0",
+        "points": 19
+      },
+      {
+        "id": "s175_-201~generated-field-access1",
+        "points": 22
+      },
+      {
+        "id": "s175_-201~generated-field-access2",
+        "points": 34
+      },
+      {
+        "id": "s175_-201~generated-field-access3",
+        "points": 26
+      },
+      {
+        "id": "s175_-201~generated-pen-access0",
+        "points": 11
+      },
+      {
+        "id": "s175_-201~generated-pen-access1",
+        "points": 10
+      }
+    ]
+  }
+]

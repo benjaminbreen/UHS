@@ -1,5 +1,7 @@
 # Performance and architecture review — 8 September 2026
 
+Implementation and subsequent measurements: [PERFORMANCE.md](PERFORMANCE.md).
+
 Reviewed the shared checkout including the initial character work, before the final face/wardrobe/dynamic-shadow additions checkpointed later on September 8. Measurements and source line references below describe that earlier review snapshot. No application code was changed. This is a focused review of startup, rendering, simulation scaling, module ownership, and removal candidates, not an exhaustive correctness or security audit.
 
 ## Assessment

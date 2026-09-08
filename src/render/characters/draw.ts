@@ -20,7 +20,8 @@ export function drawCharacter(
     side = direction === 1 || direction === 3,
     back = direction === 0,
     moving = pose === "walk" || pose === "carry";
-  const resting = pose === "idle";
+  const resting = pose === "idle" || pose === "breathe";
+  const inhale = pose === "breathe" && (f === 1 || f === 2) ? 1 : 0;
   const stance = resting ? (a.posture ?? "upright") : "upright";
   const burden = !!prop && (prop.width > 24 || prop.height > 28);
   const lean =
@@ -40,7 +41,8 @@ export function drawCharacter(
             : 0);
   const tall = a.height * 3,
     torso = a.height * 2,
-    wide = a.build,
+    wide = Math.max(0, a.build),
+    narrow = a.build === -1 ? 1 : 0,
     feet = 30 + tall - bend - bob;
   const skin = ramp(a.skin, "skin"),
     cloth = ramp(a.wearing.color),
@@ -62,13 +64,21 @@ export function drawCharacter(
       : ["coat", "shirt", "robe"].includes(a.wearing.garment)
         ? "long"
         : "short");
-  const shoulderNear: Point = side ? [10, 15] : [16 + wide, 15],
-    shoulderFar: Point = side ? [13, 15] : [3 - wide, 15];
+  const armSwing = moving ? [0, 2, 0, -2][f] : 0;
+  const shoulderNear: Point = side
+      ? [10, 15 - inhale]
+      : [16 + wide - narrow, 15 - inhale],
+    shoulderFar: Point = side
+      ? [13 - narrow, 15 - inhale]
+      : [3 - wide, 15 - inhale];
   let near: Point = side
-      ? [10 - stride, 22 + torso - (stride < 0 ? 2 : 0)]
-      : [16 + wide - (stride < 0 ? 1 : 0), 22 + torso + Math.round(stride / 2)],
+      ? [10 - armSwing, 22 + torso - (armSwing < 0 ? 1 : 0)]
+      : [
+          16 + wide - narrow - (stride < 0 ? 1 : 0),
+          22 + torso + Math.round(stride / 2),
+        ],
     far: Point = side
-      ? [13 + stride, 22 + torso - (stride > 0 ? 2 : 0)]
+      ? [13 - narrow + armSwing, 22 + torso - (armSwing > 0 ? 1 : 0)]
       : [3 - wide + (stride > 0 ? 1 : 0), 22 + torso - Math.round(stride / 2)];
   if (!prop && resting) {
     if (stance === "hand-on-hip") near = [side ? 12 : 14 + wide, 20 + torso];
@@ -207,7 +217,8 @@ export function drawCharacter(
     // A palm cluster and thumb, rather than a one-pixel stick at the end of a tube.
     p.rect(arm.hand[0] - 1, arm.hand[1], 3, 2, material.shade);
     p.rect(arm.hand[0] - 1, arm.hand[1], 2, 1, material.light);
-    p.rect(arm.hand[0], arm.hand[1] + 1, 2, 1, material.base);
+    p.rect(arm.hand[0], arm.hand[1] + 1, 2, 1, material.edge);
+    p.rect(arm.hand[0], arm.hand[1], 1, 1, material.base);
   };
   if (back) drawProp();
   // Far arm and far leg precede the torso, as in a hand-drawn side-view sheet.
@@ -218,7 +229,7 @@ export function drawCharacter(
     ctx.restore();
   }
   const leg = (isFar: boolean) => {
-    const x = side ? (isFar ? 12 : 9) : isFar ? 6 - wide : 13 + wide,
+    const x = side ? (isFar ? 12 : 9) : isFar ? 6 - wide : 13 + wide - narrow,
       walk = side ? (isFar ? -stride : stride) : 0;
     const lift = moving
       ? (isFar && f === 3) || (!isFar && f === 1)
@@ -270,7 +281,7 @@ export function drawCharacter(
     );
   }
   const left = side ? 6 - wide : 4 - wide,
-    right = side ? 15 + wide : 16 + wide;
+    right = (side ? 15 + wide : 16 + wide) - narrow;
   const long = ["robe", "dress", "coat", "skirt", "long-tunic"].includes(
       a.wearing.garment,
     ),
@@ -294,14 +305,14 @@ export function drawCharacter(
       [
         [left + 2, 12],
         [right - 2, 12],
-        [right, 15],
+        [right, 15 - inhale],
         [right - waist + belly, 19 + torso],
         [right + flare, hem - 1 - hemLift],
         [right - 1, hem],
         [left - flare, hem],
         [left - 1, hem - 2],
         [left + waist - belly, 19 + torso],
-        [left, 15],
+        [left, 15 - inhale],
       ],
       cloth,
     );
@@ -353,7 +364,7 @@ export function drawCharacter(
         p.rect(seam + 1, y, 1, 1, a.wearing.trim);
   }
   // Small planes of cloth shading: chest, underarm and belt gathers, never box outlines.
-  p.rect(left + 2, 15, side ? 2 : 4, 2, cloth.light);
+  p.rect(left + 2, 15 - inhale, side ? 2 : 4, 2, cloth.light);
   p.line([right - 2, 18], [right - 2 - waist, 21 + torso], cloth.shade);
   p.line([left + 3, 21 + torso], [left + 5, 20 + torso], cloth.shade);
   if (a.wearing.garment === "skirt") {
@@ -408,10 +419,9 @@ export function drawCharacter(
     p.line([side ? 8 : 6, 15], [side ? 7 : 5, 20 + torso], drape.light);
     p.line([side ? 10 : 8, 14], [side ? 13 : 12, 15], drape.base);
   }
-  const looking = stance === "attentive" && f === 2;
   ctx.save();
   if (stance === "stooped") ctx.translate(1, 1);
-  drawHead(p, a, looking ? !side : side, looking ? false : back, pose, f);
+  drawHead(p, a, side, back, pose, f);
   ctx.restore();
   if (a.wearing.necklace && !back) {
     if (side) p.line([13, 15], [14, 17], a.wearing.trim);

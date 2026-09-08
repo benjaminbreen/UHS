@@ -1,3 +1,4 @@
+import { own, renderResources, type RenderResources } from "./resources";
 import type Phaser from "phaser";
 import type { TopographySample } from "../core/topography";
 import type { TerrainRegion } from "./terrain-region";
@@ -341,9 +342,11 @@ export function drawContourLayers(
   scene: Phaser.Scene,
   layers: ContourLayer[],
   prefix = "contour",
+  resources: RenderResources = renderResources(),
 ) {
   for (const layer of layers) {
     const key = `${prefix}-${layer.row}-${layer.tier}`;
+    resources.textures.push(key);
     const texture = scene.textures.createCanvas(
       key,
       layer.width,
@@ -354,15 +357,21 @@ export function drawContourLayers(
     data.data.set(layer.pixels);
     context.putImageData(data, 0, 0);
     texture.refresh();
-    scene.add
-      .image(layer.x + 3, layer.y + 4, key)
-      .setOrigin(0)
-      .setTint(0x30452b)
-      .setAlpha(0.25)
-      .setDepth(layer.row * 16 + 0.8);
-    scene.add
-      .image(layer.x, layer.y, key)
-      .setOrigin(0)
-      .setDepth(layer.row * 16 + 1.5 + layer.tier * 0.01);
+    own(
+      resources,
+      scene.add
+        .image(layer.x + 3, layer.y + 4, key)
+        .setOrigin(0)
+        .setTint(0x30452b)
+        .setAlpha(0.25)
+        .setDepth(layer.row * 16 + 0.8),
+    );
+    own(
+      resources,
+      scene.add
+        .image(layer.x, layer.y, key)
+        .setOrigin(0)
+        .setDepth(layer.row * 16 + 1.5 + layer.tier * 0.01),
+    );
   }
 }

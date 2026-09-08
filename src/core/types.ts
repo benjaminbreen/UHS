@@ -25,7 +25,7 @@ export type Evidence = {
   id: string;
   title: string;
   statement: string;
-  status: "documented" | "inferred";
+  status: "documented" | "inferred" | "fictional";
   url: string;
   limitation: string;
 };

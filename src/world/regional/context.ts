@@ -1,3 +1,4 @@
+import { trimCache } from "../../core/cache";
 import type { Pack } from "../../core/types";
 import type { WorldSetting } from "../../content/geography/types";
 import type {
@@ -10,7 +11,7 @@ import { places } from "../../content/geography/places";
 import { containsDate } from "../../content/history/dates";
 import { environmentFor } from "../../content/geography/defaults";
 import { packForSetting } from "../../content/geography/pack";
-import { broadEnvironment, toAtlas, fromAtlas } from "../v2/atlas";
+import { broadEnvironment, toAtlas, fromAtlas } from "../geography/atlas";
 import { inBounds, inPolygon, nearestSegment } from "./geometry";
 
 export const REGION_CELL = 384;
@@ -159,7 +160,7 @@ export function createRegionalContext(start: WorldSetting) {
         })
         .map((feature) => ({ region, feature })),
     );
-    if (featureCache.size >= 128) featureCache.clear();
+    trimCache(featureCache, 128);
     featureCache.set(k, result);
     return result;
   }
@@ -218,7 +219,7 @@ export function createRegionalContext(start: WorldSetting) {
     if (!value) {
       const ll = fromAtlas(gx * 128 + 64, gy * 128 + 64);
       value = broadEnvironment(ll.lon, ll.lat);
-      if (climateCache.size >= 512) climateCache.clear();
+      trimCache(climateCache, 512);
       climateCache.set(k, value);
     }
     return value;
@@ -287,7 +288,7 @@ export function createRegionalContext(start: WorldSetting) {
     };
     if (start.geographyMode === "configured" && localStart)
       s.environment = { ...start.environment! };
-    if (settingCache.size >= 16384) settingCache.clear();
+    trimCache(settingCache, 16384);
     settingCache.set(key, s);
     return s;
   }
@@ -322,7 +323,7 @@ export function createRegionalContext(start: WorldSetting) {
           limitation: `${evidence.status}: approximate generation coverage; not a complete historical reconstruction.`,
           url: evidence.sources[0] ?? "https://www.naturalearthdata.com/",
         });
-      if (packCache.size >= 128) packCache.clear();
+      trimCache(packCache, 128);
       packCache.set(k, pack);
     }
     return pack;

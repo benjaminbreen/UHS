@@ -1,6 +1,7 @@
+import { takeTerrainWorker } from "../runtime/terrain-worker-owner";
 import { ensureWaterAtlas } from "./water-motifs";
 import type Phaser from "phaser";
-import type { Pack } from "../core/types";
+import type { WorldModel } from "../core/types";
 import { drawTopography } from "./topography";
 import { drawContourLayers } from "./terrain-contours";
 import {
@@ -18,26 +19,36 @@ type Chunk = {
 /** Rasterize off-thread, install one small chunk per frame, retain a bounded
  * ring for backtracking. Neither movement nor lighting re-rasterizes terrain. */
 export class TerrainStream {
-  private worker = new Worker(new URL("../world/worker.ts", import.meta.url), {
-    type: "module",
-  });
+  private worker: Worker;
   private chunks = new Map<string, Chunk>();
   private wanted = new Map<string, TerrainRegion>();
   private pending?: string;
   private completed?: TerrainResponse;
   private started = performance.now();
   private loaded = false;
+  private dirty = true;
+  private queue: [string, TerrainRegion][] = [];
   private count = 0;
   private maxInstall = 0;
   private center = { x: 0, y: 0 };
   private reach = { x: 0, y: 0 };
   constructor(
     private scene: Phaser.Scene,
-    pack: Pack,
+    world: WorldModel,
     seed: string,
   ) {
     ensureWaterAtlas(scene);
-    this.worker.postMessage({ pack, seed } satisfies TerrainRequest);
+    const retained = takeTerrainWorker(world);
+    this.worker =
+      retained ??
+      new Worker(new URL("../world/worker.ts", import.meta.url), {
+        type: "module",
+      });
+    if (!retained)
+      this.worker.postMessage({
+        pack: world.pack,
+        seed,
+      } satisfies TerrainRequest);
     this.worker.onmessage = ({ data }) => {
       if (data.error) {
         scene.game.canvas.dataset.terrainError = data.error;
@@ -51,6 +62,14 @@ export class TerrainStream {
     };
   }
   setView(x: number, y: number, halfX: number, halfY: number) {
+    if (
+      this.center.x === x &&
+      this.center.y === y &&
+      this.reach.x === halfX &&
+      this.reach.y === halfY &&
+      this.wanted.size
+    )
+      return;
     this.center = { x, y };
     this.reach = { x: halfX, y: halfY };
     this.wanted.clear();
@@ -83,9 +102,14 @@ export class TerrainStream {
         this.chunks.delete(id);
       }
     }
+    this.queue = [...this.wanted]
+      .filter(([id]) => !this.chunks.has(id))
+      .sort(([, a], [, b]) => this.priority(a) - this.priority(b));
+    this.dirty = true;
     this.metrics();
   }
   update() {
+    if (!this.completed && (this.pending || !this.queue.length)) return;
     const start = performance.now();
     if (this.completed) {
       const { id, layers, cells, bridges, waterTiles, groundTiles } =
@@ -94,9 +118,7 @@ export class TerrainStream {
       this.pending = undefined;
       const region = this.wanted.get(id);
       if (region) {
-        const before = new Set(this.scene.children.list);
-        const textures = new Set(this.scene.textures.getTextureKeys());
-        drawTopography(
+        const resources = drawTopography(
           this.scene,
           (x, y) => cells[(y + PAD) * (SIZE + PAD * 2) + x + PAD],
           SIZE,
@@ -106,8 +128,8 @@ export class TerrainStream {
           waterTiles,
           groundTiles,
         );
-        drawContourLayers(this.scene, layers, region.prefix);
-        const objects = this.scene.children.list.filter((o) => !before.has(o));
+        drawContourLayers(this.scene, layers, region.prefix, resources);
+        const { objects, textures } = resources;
         for (const object of objects) {
           const o = object as Phaser.GameObjects.Image;
           o.x += region.x * 16;
@@ -119,17 +141,16 @@ export class TerrainStream {
         this.chunks.set(id, {
           region,
           objects,
-          textures: this.scene.textures
-            .getTextureKeys()
-            .filter((k) => !textures.has(k)),
+          textures,
         });
         this.count++;
+        this.dirty = true;
       }
     }
     if (!this.pending) {
-      const next = [...this.wanted]
-        .filter(([id]) => !this.chunks.has(id))
-        .sort(([, a], [, b]) => this.priority(a) - this.priority(b))[0];
+      while (this.queue.length && this.chunks.has(this.queue[0][0]))
+        this.queue.shift();
+      const next = this.queue.shift();
       if (next) {
         const [id, region] = next;
         this.pending = id;
@@ -137,7 +158,7 @@ export class TerrainStream {
       }
     }
     this.maxInstall = Math.max(this.maxInstall, performance.now() - start);
-    this.metrics();
+    if (this.dirty) this.metrics();
   }
   private priority(r: TerrainRegion) {
     const dx = Math.abs(r.x + SIZE / 2 - this.center.x),
@@ -151,6 +172,7 @@ export class TerrainStream {
     );
   }
   private metrics() {
+    this.dirty = false;
     const canvas = this.scene.game.canvas;
     const visible = [...this.wanted].filter(
       ([, r]) => this.priority(r) < 100000,

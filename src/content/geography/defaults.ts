@@ -29,6 +29,8 @@ export function integratedSetting(s: WorldSetting): WorldSetting {
   return {
     ...s,
     geographyRevision: 1,
+    urbanRevision: 1,
+    roadRevision: 1,
     geographyMode: s.environment ? "configured" : "earth",
     terrainRevision: 2,
     environment: s.environment ?? environmentFor(s),
