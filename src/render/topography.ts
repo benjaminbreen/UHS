@@ -1,3 +1,10 @@
+import { rasterWaterTile, type WaterTileData } from "./water-raster";
+import {
+  addWaterEffects,
+  waterCanvas,
+  shoreTile,
+  type WaterEffect,
+} from "./water";
 import type { TerrainRegion } from "./terrain-region";
 import { drawBridges, type BridgeSpan } from "./bridges";
 import type Phaser from "phaser";
@@ -18,18 +25,24 @@ export function drawTopography(
   height: number,
   region?: TerrainRegion,
   bridges?: BridgeSpan[],
+  waterTiles?: WaterTileData[],
 ) {
   // Static ground is composed into small canvas pages, rather than keeping
   // tens of thousands of ground/blend GameObjects in every animation frame.
   const pageSize = region ? 256 : 512;
   const pages = new Map<string, Phaser.Textures.CanvasTexture>();
   const tinted = new Map<string, HTMLCanvasElement>();
+  const shoreTiles = new Map<string, HTMLCanvasElement>();
+  const effects: WaterEffect[] = [];
+  let waterScratch: HTMLCanvasElement | undefined;
+  const preparedWater = new Map(waterTiles?.map((t) => [`${t.x},${t.y}`, t]));
   const image = (
     x: number,
     y: number,
     frame: string,
     depth: number,
     tint = 0xffffff,
+    painted?: HTMLCanvasElement,
   ) => {
     if (frame.startsWith("ramp-")) {
       scene.add
@@ -40,9 +53,9 @@ export function drawTopography(
       return;
     }
     const f = scene.textures.getFrame("topography", frame);
-    let source = f.source.image as CanvasImageSource;
-    let sx = f.cutX,
-      sy = f.cutY;
+    let source = (painted ?? f.source.image) as CanvasImageSource;
+    let sx = painted ? 0 : f.cutX,
+      sy = painted ? 0 : f.cutY;
     if (tint !== 0xffffff) {
       const key = `${frame}:${tint}`;
       let tile = tinted.get(key);
@@ -118,6 +131,28 @@ export function drawTopography(
           );
       }
   };
+  // One CPU pixel upload for the whole water page, rather than 256 temporary
+  // canvases/drawImage calls on ocean chunks. Land is composed over this base.
+  const bakedWater = new Set<string>();
+  if (region && waterTiles?.length) {
+    const key = `${region.prefix}-ground-0-0`;
+    const page = scene.textures.createCanvas(key, pageSize, pageSize)!;
+    const ctx = page.getContext();
+    ctx.imageSmoothingEnabled = false;
+    const pixels = ctx.createImageData(pageSize, pageSize);
+    for (const tile of waterTiles) {
+      if (tile.effect.y !== tile.y * 16) continue;
+      for (let row = 0; row < 16; row++)
+        pixels.data.set(
+          tile.pixels.subarray(row * 64, row * 64 + 64),
+          ((tile.y * 16 + row) * pageSize + tile.x * 16) * 4,
+        );
+      bakedWater.add(`${tile.x},${tile.y}`);
+    }
+    ctx.putImageData(pixels, 0, 0);
+    pages.set(key, page);
+    scene.add.image(0, 0, key).setOrigin(0).setDepth(-10000);
+  }
   const bounded = sample;
   if (!region)
     sample = (x, y) => bounded(x, Math.max(0, Math.min(height - 1, y)));
@@ -136,7 +171,6 @@ export function drawTopography(
       const c = sample(x, y)!;
       const worldX = x + (region?.x ?? 0),
         worldY = y + (region?.y ?? 0);
-      const phase = (worldX & 1) | ((worldY & 1) << 1);
       const top = y * 16 - c.height * TERRAIN_RISE,
         depth = -10000 + y * 16 + 1;
       const variant = Math.floor(
@@ -148,24 +182,57 @@ export function drawTopography(
           : c.surface;
       const shoreline =
         c.surface === "gravel" &&
-        !!contourMask(sample, x, y, (n) => n.surface === "water");
+        (!!c.feature ||
+          !!contourMask(sample, x, y, (n) => n.surface === "water"));
       if (c.ramp) {
         image(x * 16, top - TERRAIN_RISE, `ramp-${c.ramp}`, y * 16 + 1.9);
         continue;
       }
-      image(
-        x * 16,
-        c.bridge ? y * 16 : top,
-        `${c.bridge ? "water" : material === "gravel" && !shoreline ? "grass" : material}-${variant}`,
-        depth,
-        c.surface === "grass"
-          ? c.height === 0
-            ? 0xd2e2be
-            : c.height === 2
-              ? 0xe6e6c0
-              : 0xffffff
-          : 0xffffff,
-      );
+      let painted: HTMLCanvasElement | undefined;
+      if (c.surface === "water" || c.bridge) {
+        const water =
+          preparedWater.get(`${x},${y}`) ??
+          rasterWaterTile(sample, x, y, region?.x ?? 0, region?.y ?? 0);
+        if (!bakedWater.has(`${x},${y}`))
+          painted = waterScratch = waterCanvas(water, waterScratch);
+        effects.push(water.effect);
+      } else if (
+        c.waterVisual &&
+        c.feature !== "paving" &&
+        c.waterVisual.distance < c.waterVisual.shoreWidth + 1 &&
+        ((c.surface === "gravel" && shoreline) || c.surface === "sand")
+      ) {
+        const key = `${material}-${variant}-${c.waterVisual.ecology}-${c.waterVisual.kind}`;
+        painted = shoreTiles.get(key);
+        if (!painted) {
+          const f = scene.textures.getFrame(
+            "topography",
+            `${material}-${variant}`,
+          );
+          painted = shoreTile(
+            f.source.image as CanvasImageSource,
+            f.cutX,
+            f.cutY,
+            c,
+          );
+          shoreTiles.set(key, painted);
+        }
+      }
+      if (!bakedWater.has(`${x},${y}`))
+        image(
+          x * 16,
+          c.bridge ? y * 16 : top,
+          `${c.bridge ? "water" : material === "gravel" && !shoreline ? "grass" : material}-${variant}`,
+          depth,
+          c.surface === "grass"
+            ? c.height === 0
+              ? 0xd2e2be
+              : c.height === 2
+                ? 0xe6e6c0
+                : 0xffffff
+            : 0xffffff,
+          painted,
+        );
       if (c.surface === "gravel" && !shoreline) {
         const connections =
           contourMask(sample, x, y, (n) => n.surface === "gravel") & 15;
@@ -183,23 +250,6 @@ export function drawTopography(
           );
           if (mask) image(x * 16, top, `blend-${surface}-${mask}`, depth + 0.1);
         }
-      } else if (!c.bridge) {
-        if (c.waterDepth !== "shallow") {
-          const mask = contourMask(
-            sample,
-            x,
-            y,
-            (n) => n.surface === "water" && n.waterDepth === "shallow",
-          );
-          if (mask) image(x * 16, top, `blend-shallow-${mask}`, depth + 0.1);
-        }
-        const banks = contourMask(
-          sample,
-          x,
-          y,
-          (n) => n.surface !== "water" && !n.bridge,
-        );
-        if (banks) image(x * 16, top, `bank-${banks}-${phase}`, depth + 0.2);
       }
       if (
         (c.surface === "grass" || c.surface === "damp") &&
@@ -209,6 +259,7 @@ export function drawTopography(
         image(x * 16, top, "tuft", depth + 0.3);
     }
   for (const page of pages.values()) page.refresh();
+  addWaterEffects(scene, effects);
   const covers = drawBridges(scene, sample, width, height, region, bridges);
   if (!region) drawTerrainContours(scene, sample, width, height, covers);
 }

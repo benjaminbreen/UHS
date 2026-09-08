@@ -18,6 +18,8 @@ export function route(
     /** Above one trades optimality for a faster, directed search. Used only when laying out country roads. */
     heuristicWeight?: number;
     step?: number;
+    /** Generation only; runtime movement retains its existing crossing rules. */
+    diagonal?: boolean;
     bounds?: { x: number; y: number; w: number; h: number };
   } = {},
 ): RouteResult {
@@ -84,6 +86,14 @@ export function route(
       [step, 0],
       [0, step],
       [-step, 0],
+      ...(options.diagonal
+        ? [
+            [step, step],
+            [step, -step],
+            [-step, step],
+            [-step, -step],
+          ]
+        : []),
     ]) {
       const p = { x: current.p.x + dx, y: current.p.y + dy },
         b = options.bounds;
@@ -102,7 +112,10 @@ export function route(
         g,
         f:
           g +
-          ((Math.abs(goal.x - p.x) + Math.abs(goal.y - p.y)) / step) *
+          ((options.diagonal
+            ? Math.hypot(goal.x - p.x, goal.y - p.y)
+            : Math.abs(goal.x - p.x) + Math.abs(goal.y - p.y)) /
+            step) *
             (options.minCost ?? 1) *
             (options.heuristicWeight ?? 1),
         order: serial++,

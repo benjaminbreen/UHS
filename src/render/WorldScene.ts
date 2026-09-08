@@ -1,3 +1,4 @@
+import { waterStyle } from "./water-style";
 import { TerrainStream } from "./terrain-stream";
 import {
   surfaceElevation,
@@ -482,7 +483,20 @@ export class WorldScene extends Phaser.Scene {
                     ]
                   : d.sprite;
               this.shadow(frame, x * 16 + 8, y * 16 + 16);
-              this.sprite(frame, x * 16 + 8, y * 16 + 16, y * 16 + 12);
+              const decoration = this.sprite(
+                frame,
+                x * 16 + 8,
+                y * 16 + 16,
+                y * 16 + 12,
+              );
+              if (d.sprite === "rock" && w.topography) {
+                const cell = w.topography(x, y);
+                if (
+                  cell?.waterVisual &&
+                  cell.waterVisual.distance < cell.waterVisual.shoreWidth + 4
+                )
+                  decoration.setTint(waterStyle(cell).rockTint);
+              }
             }
           }
         for (const b of w.places)

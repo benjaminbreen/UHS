@@ -44,6 +44,47 @@ const defaults: Config = {
 const examples: { name: string; value: Partial<Config> }[] = [
   { name: "Woodland households", value: { ...defaults } },
   {
+    name: "Desert river",
+    value: {
+      ecology: "desert",
+      water: "river-ew",
+      population: "none",
+      start: "wanderer",
+      landform: "plain",
+    },
+  },
+  {
+    name: "Monsoon river",
+    value: {
+      ecology: "tropical-woodland",
+      water: "river-ns",
+      population: "none",
+      start: "wanderer",
+      landform: "plain",
+    },
+  },
+  {
+    name: "Tropical lagoon",
+    value: {
+      ecology: "tropical-woodland",
+      water: "coast-n",
+      population: "none",
+      start: "wanderer",
+      landform: "plain",
+    },
+  },
+  {
+    name: "Arctic shore",
+    value: {
+      ecology: "tundra",
+      water: "coast-n",
+      season: "winter",
+      population: "none",
+      start: "wanderer",
+      landform: "plain",
+    },
+  },
+  {
     name: "Uninhabited coast",
     value: {
       ecology: "grassland",
@@ -182,13 +223,19 @@ function Preview({
   onReady,
   layer,
   focus,
+  motion,
 }: {
   runtime: Runtime;
+  motion: boolean;
   onReady: () => void;
   layer: string;
   focus: "settlement" | "start";
 }) {
   const mount = useRef<HTMLDivElement>(null);
+  const renderOptions = useRef<RenderOptions | undefined>(undefined);
+  useEffect(() => {
+    if (renderOptions.current) renderOptions.current.waterAnimation = motion;
+  }, [motion]);
   useEffect(() => {
     const host = mount.current!,
       center = { ...runtime.engine.state.player.pos };
@@ -205,14 +252,39 @@ function Preview({
       center.x = Math.round(local.reduce((n, h) => n + h.x, 0) / local.length);
       center.y = Math.round(local.reduce((n, h) => n + h.y, 0) / local.length);
     }
-    runtime.zoom = 0.75;
+    if (
+      focus === "settlement" &&
+      !homes.length &&
+      runtime.engine.state.manifest.setting?.water !== "none"
+    ) {
+      let nearest: { x: number; y: number } | undefined,
+        distance = Infinity;
+      for (let dy = -80; dy <= 80; dy += 4)
+        for (let dx = -80; dx <= 80; dx += 4) {
+          const d = dx * dx + dy * dy;
+          if (d >= distance) continue;
+          const x = center.x + dx,
+            y = center.y + dy;
+          if (runtime.engine.world.terrain(x, y) === "water") {
+            nearest = { x, y };
+            distance = d;
+          }
+        }
+      if (nearest) {
+        center.x = nearest.x;
+        center.y = nearest.y;
+      }
+    }
+    runtime.zoom = 0.625;
     const options: RenderOptions = {
       lab: true,
       overview: true,
       center,
       freeze: true,
+      waterAnimation: motion,
       colorGrade: false,
     };
+    renderOptions.current = options;
     const scene = new WorldScene(runtime, options);
     const game = new Phaser.Game({
       type: Phaser.AUTO,
@@ -295,6 +367,7 @@ function Preview({
     Object.assign(window, {
       terrainLab: {
         runtime,
+        scene,
         describe: () => ({
           seed: runtime.engine.state.manifest.seed,
           setting: runtime.engine.state.manifest.setting,
@@ -329,6 +402,7 @@ export function ProceduralLab() {
     [error, setError] = useState(""),
     [playing, setPlaying] = useState(false),
     [layer, setLayer] = useState("art"),
+    [motion, setMotion] = useState(true),
     [focus, setFocus] = useState<"settlement" | "start">("settlement");
   const old = useRef<Runtime | undefined>(undefined);
   const generate = async (c: Config) => {
@@ -488,6 +562,9 @@ export function ProceduralLab() {
         </aside>
         <main className="proc-main">
           <div className="proc-toolbar">
+            <button onClick={() => setMotion((m) => !m)} aria-pressed={motion}>
+              {motion ? "Pause water" : "Animate water"}
+            </button>
             <div>
               <strong>
                 {applied
@@ -509,7 +586,9 @@ export function ProceduralLab() {
             >
               {focus === "settlement"
                 ? "Center on player"
-                : "Center on settlement"}
+                : e?.state.households?.length
+                  ? "Center on settlement"
+                  : "Center on landscape"}
             </button>
             <label>
               Overlay{" "}
@@ -535,6 +614,7 @@ export function ProceduralLab() {
           ) : (
             runtime && (
               <Preview
+                motion={motion}
                 runtime={runtime}
                 layer={layer}
                 focus={focus}

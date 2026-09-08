@@ -63,13 +63,38 @@ export function createSettlementWorld(
           x: cx * 384 + 192 - land.origin.x,
           y: cy * 384 + 192 - land.origin.y,
         };
-    for (let i = 0; i < 25; i++) {
+    const locations = Array.from({ length: 25 }, (_, i) => {
       const angle = i * 2.4,
         radius = i ? 8 + Math.floor(i / 5) * 6 : 0;
-      const p = {
+      return {
         x: Math.round((center.x + Math.cos(angle) * radius) / 2) * 2,
         y: Math.round((center.y + Math.sin(angle) * radius) / 2) * 2,
       };
+    });
+    if (environment) {
+      const suitability = (p: { x: number; y: number }) => {
+        const f = land.sample(p.x, p.y),
+          near = [
+            [-6, -6],
+            [6, -6],
+            [-6, 6],
+            [6, 6],
+          ].map(([dx, dy]) => land.sample(p.x + dx, p.y + dy));
+        return (
+          near.reduce(
+            (n, q) =>
+              n +
+              (q.water < 5 ? 1000 : 0) +
+              Math.abs(q.elevation - f.elevation) * 4,
+            0,
+          ) +
+          Math.abs(f.water - 28) * 0.15 +
+          Math.hypot(p.x - center.x, p.y - center.y) * 0.12
+        );
+      };
+      locations.sort((a, b) => suitability(a) - suitability(b));
+    }
+    for (const p of locations) {
       const samples = [
         [-6, -6],
         [6, -6],
@@ -81,7 +106,7 @@ export function createSettlementWorld(
         samples.some((f) => f.water < 5) ||
         Math.max(...samples.map((f) => f.elevation)) -
           Math.min(...samples.map((f) => f.elevation)) >
-          28
+          (environment ? 0 : 28)
       )
         continue;
       const s = {
@@ -244,7 +269,7 @@ export function createSettlementWorld(
         ecologyProfiles[localEcology(pack.setting!, seed, x, y, f)];
       return f.water < 0
         ? "water"
-        : f.water < 3
+        : f.water < (f.shoreWidth ?? 3)
           ? "sand"
           : f.snow
             ? "snow"
@@ -379,13 +404,36 @@ export function createSettlementWorld(
     if (t === "bridge") height = 1;
     const cell = reliefCell(height, f.water, f.moisture);
     if (environment) {
+      cell.waterVisual = {
+        distance: f.water,
+        kind: f.kind,
+        ecology: pack.setting!.environment!.ecology,
+        shoreWidth: f.shoreWidth ?? 3,
+        flow: f.waterFlow ?? [0, 1],
+        frozenMargin: f.snow,
+      };
       cell.biome = localEcology(pack.setting!, seed, x, y, f);
       const eco = ecologyProfiles[cell.biome];
       if (f.water >= 0) cell.surface = f.snow ? "snow" : eco.surface;
-      if (f.water >= 0 && f.water < 3) cell.surface = "sand";
+      if (f.water >= 0 && f.water < (f.shoreWidth ?? 3)) {
+        const shoreEcology = pack.setting!.environment!.ecology;
+        const stonyShore =
+          shoreEcology === "tundra" ||
+          shoreEcology === "boreal-woodland" ||
+          (f.kind === "sea" &&
+            shoreEcology !== "desert" &&
+            shoreEcology !== "tropical-woodland" &&
+            (f.shoreWidth ?? 3) < 5);
+        cell.surface = f.kind === "river" || stonyShore ? "gravel" : "sand";
+        if (cell.surface === "gravel") cell.feature = "bank";
+      }
     } else if (height === 0 && f.water >= 0) cell.surface = "gravel";
     if (t === "bridge") return { ...cell, surface: "soil", bridge: true };
-    if (t === "field" || t === "paving") cell.surface = "soil";
+    if (t === "field") cell.surface = "soil";
+    if (t === "paving") {
+      cell.surface = environment ? "gravel" : "soil";
+      if (environment) cell.feature = "paving";
+    }
     if (t === "dirt")
       for (const p of nearby(x, y)) {
         let center = roadCenters.get(p);
@@ -461,6 +509,73 @@ export function createSettlementWorld(
     }
     return result;
   }
+  const naturalSlopes = new Map<
+    string,
+    Map<string, NonNullable<TopographyCell["ramp"]>>
+  >();
+  function naturalSlopesFor(x: number, y: number) {
+    const bx = Math.floor(x / 32) * 32,
+      by = Math.floor(y / 32) * 32,
+      key = cellKey(bx, by);
+    const old = naturalSlopes.get(key);
+    if (old) return old;
+    const result = new Map<string, NonNullable<TopographyCell["ramp"]>>();
+    const best = new Map<
+      number,
+      {
+        x: number;
+        y: number;
+        dx: number;
+        dy: number;
+        dir: NonNullable<TopographyCell["ramp"]>;
+        score: number;
+      }
+    >();
+    // Select stable, two-cell openings on actual contours, never at fixed grid lines.
+    for (let py = by; py < by + 32; py++)
+      for (let px = bx; px < bx + 32; px++) {
+        const c = land.sample(px, py);
+        if (c.water < 0) continue;
+        for (const [dx, dy, dir] of [
+          [0, -1, "n"],
+          [1, 0, "e"],
+          [0, 1, "s"],
+          [-1, 0, "w"],
+        ] as const) {
+          const tx = Math.abs(dy),
+            ty = Math.abs(dx);
+          if (px + tx >= bx + 32 || py + ty >= by + 32) continue;
+          const hi = land.sample(px + dx, py + dy);
+          if (hi.elevation !== c.elevation + 14 || hi.water < 0) continue;
+          if (
+            ![0, 1].every((k) =>
+              [-2, -1, 0, 1, 2].every((d) => {
+                const f = land.sample(
+                  px + k * tx + d * dx,
+                  py + k * ty + d * dy,
+                );
+                return (
+                  f.water >= 0 &&
+                  f.elevation === (d > 0 ? hi.elevation : c.elevation)
+                );
+              }),
+            )
+          )
+            continue;
+          const score = random(seed, "natural-pass", px, py, dir);
+          if (score < (best.get(c.elevation)?.score ?? Infinity))
+            best.set(c.elevation, { x: px, y: py, dx, dy, dir, score });
+        }
+      }
+    for (const p of best.values()) {
+      result.set(cellKey(p.x, p.y), p.dir);
+      result.set(cellKey(p.x + Math.abs(p.dy), p.y + Math.abs(p.dx)), p.dir);
+    }
+    if (naturalSlopes.size >= 96)
+      naturalSlopes.delete(naturalSlopes.keys().next().value!);
+    naturalSlopes.set(key, result);
+    return result;
+  }
   function topography(x: number, y: number): TopographyCell {
     const key = cellKey(x, y),
       old = reliefCache.get(key);
@@ -480,32 +595,18 @@ export function createSettlementWorld(
     }
     if (
       environment &&
-      !c.ramp &&
-      (x % 16 === 0 || x % 16 === 1 || y % 16 === 0 || y % 16 === 1)
+      [
+        [0, -1],
+        [1, 0],
+        [0, 1],
+        [-1, 0],
+      ].some(
+        ([dx, dy]) =>
+          land.sample(x + dx, y + dy).elevation === c.height * 14 + 14,
+      )
     ) {
-      for (const [dx, dy, dir] of [
-        [0, -1, "n"],
-        [1, 0, "e"],
-        [0, 1, "s"],
-        [-1, 0, "w"],
-      ] as const) {
-        if (
-          (dx && y % 16 !== 0 && y % 16 !== 1) ||
-          (dy && x % 16 !== 0 && x % 16 !== 1)
-        )
-          continue;
-        const hi = rawCell(x + dx, y + dy),
-          lo = rawCell(x - dx, y - dy);
-        if (
-          hi.height === c.height + 1 &&
-          lo.height === c.height &&
-          hi.surface !== "water" &&
-          lo.surface !== "water"
-        ) {
-          c.ramp = dir;
-          break;
-        }
-      }
+      const slope = naturalSlopesFor(x, y).get(key);
+      if (slope) c.ramp = slope;
     }
     if (reliefCache.size > 65536) reliefCache.clear();
     reliefCache.set(key, c);

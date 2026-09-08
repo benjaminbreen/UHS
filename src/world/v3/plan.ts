@@ -21,6 +21,7 @@ export function planSettlement(
   const c = site.center,
     profile = site.profile,
     r = profile.radius;
+  const organic = !!pack.setting?.environment && profile.pattern !== "planned";
   const bounds = {
     x: c.x - r - 40,
     y: c.y - r - 40,
@@ -101,6 +102,7 @@ export function planSettlement(
       area,
       width,
       width ? 2 : 1,
+      organic ? seed : undefined,
     );
     if (road) addRoad(road);
     else plan.diagnostics.routeFailures++;
@@ -164,95 +166,200 @@ export function planSettlement(
     sprite: "fire",
     inventory: {},
   });
-  for (const [i, dx, dy] of [
-    [0, -1, 0],
-    [1, 1, 0],
-    [2, 0, -1],
-    [3, 0, 1],
-  ]) {
-    if (profile.pattern === "farmstead" && i === 2) continue;
-    let goal: Point | undefined;
-    for (
-      let distance =
-        profile.pattern === "farmstead"
-          ? i === 3
-            ? r - 10
-            : 32
-          : profile.pattern === "roadside" && i > 1
-            ? 32
-            : r - 10;
-      distance >= 18;
-      distance -= 6
-    ) {
-      const q = { x: c.x + dx * distance, y: c.y + dy * distance };
-      if (dry({ x: q.x - 2, y: q.y - 2, w: 5, h: 5 }, false)) {
-        goal = q;
-        break;
+  if (organic) {
+    // Local anchors precede buildings: dry courts/terraces, access to a crossing,
+    // and a small number of neighborhood centers. Density does not imply a grid.
+    const anchors: Point[] = [{ ...c }];
+    if (selected) {
+      for (const [i, end] of [
+        selected.points[0],
+        selected.points.at(-1)!,
+      ].entries()) {
+        if (connect(c, end, `bridge-approach${i}`, 0)) anchors.push(end);
       }
     }
-    if (goal)
-      connect(
-        c,
-        goal,
-        `approach${i}`,
-        pack.setting?.settlement === "camp" ? 0 : 1,
-      );
-  }
-  if (selected) {
-    connect(c, selected.points[0], "bridge-approach-a");
-    connect(c, selected.points.at(-1)!, "bridge-approach-b");
-  }
-  if (
-    profile.pattern === "planned" ||
-    profile.pattern === "dense" ||
-    profile.pattern === "waterfront"
-  ) {
-    for (const offset of profile.pattern === "dense"
-      ? [-47, -22, 19, 49]
-      : [-52, -26, 26, 52])
-      for (const vertical of [false, true]) {
-        const bend =
-          profile.pattern === "dense"
-            ? Math.round(
-                (rand("lane-bend", offset, Number(vertical)) - 0.5) * 12,
-              )
-            : 0;
-        const a = {
-            x: c.x + (vertical ? offset : -r + 20),
-            y: c.y + (vertical ? -r + 20 : offset),
-          },
-          b = {
-            x: c.x + (vertical ? offset + bend : r - 20),
-            y: c.y + (vertical ? r - 20 : offset + bend),
-          };
-        if (
-          !dry({ x: a.x - 1, y: a.y - 1, w: 3, h: 3 }, false) ||
-          !dry({ x: b.x - 1, y: b.y - 1, w: 3, h: 3 }, false)
+    const candidates = Array.from({ length: 72 }, (_, i) => {
+      const angle = rand("anchor-angle", i) * Math.PI * 2;
+      const radius = (0.28 + rand("anchor-radius", i) * 0.66) * r;
+      const p = {
+        x: c.x + Math.round(Math.cos(angle) * radius),
+        y: c.y + Math.round(Math.sin(angle) * radius),
+      };
+      const f = sample(p.x, p.y);
+      const fit = dry({ x: p.x - 5, y: p.y - 5, w: 11, h: 11 }, false);
+      return {
+        p,
+        fit,
+        score:
+          rand("anchor-score", i) * 18 +
+          Math.abs(f.water - 24) * 0.05 +
+          Math.abs(f.moisture - 0.5) * 8,
+      };
+    })
+      .filter((a) => a.fit)
+      .sort((a, b) => a.score - b.score);
+    const count =
+      profile.pattern === "dense"
+        ? 8
+        : profile.pattern === "waterfront"
+          ? 6
+          : profile.pattern === "farmstead"
+            ? 3
+            : 5;
+    let accepted = 0;
+    for (const { p } of candidates) {
+      if (accepted >= count) break;
+      if (
+        anchors.some(
+          (a) =>
+            Math.hypot(a.x - p.x, a.y - p.y) <
+            (profile.pattern === "dense" ? 23 : 26),
         )
-          continue;
-        const band = vertical
-          ? { x: a.x - 8, y: a.y, w: 24, h: b.y - a.y }
-          : { x: a.x, y: a.y - 8, w: b.x - a.x, h: 24 };
-        connect(a, b, `lane-${offset}-${vertical}`, 0, band);
+      )
+        continue;
+      const nearest = [...anchors].sort(
+        (a, b) =>
+          Math.hypot(a.x - p.x, a.y - p.y) - Math.hypot(b.x - p.x, b.y - p.y),
+      )[0];
+      if (
+        !connect(
+          nearest,
+          p,
+          `neighborhood${accepted}`,
+          accepted === 0 && profile.paved && pack.setting?.settlement !== "camp"
+            ? 1
+            : 0,
+        )
+      )
+        continue;
+      anchors.push(p);
+      accepted++;
+      if (accepted % 2 === 1 && profile.pattern !== "roadside") {
+        const size = 2 + Math.floor(rand("court-size", accepted) * 2);
+        if (
+          dry(
+            { x: p.x - size, y: p.y - size, w: size * 2 + 1, h: size * 2 + 1 },
+            false,
+          )
+        ) {
+          for (let y = p.y - size; y <= p.y + size; y++)
+            for (let x = p.x - size; x <= p.x + size; x++) {
+              if (Math.hypot(x - p.x, (y - p.y) * 1.15) > size + 0.5) continue;
+              plan.surface.set(
+                cellKey(x, y),
+                profile.paved ? "paving" : "dirt",
+              );
+              plan.reserved.add(cellKey(x, y));
+              roads.add(cellKey(x, y));
+            }
+        }
       }
-  } else if (profile.pattern === "clustered") {
-    // Small household courts create several centers instead of a single street cross.
-    for (let i = 0; i < 3; i++) {
-      const a = i * 2.1 + rand("court-angle"),
-        q = {
-          x: c.x + Math.round(Math.cos(a) * 30),
-          y: c.y + Math.round(Math.sin(a) * 30),
-        };
-      const court = { x: q.x - 3, y: q.y - 3, w: 7, h: 7 };
-      if (dry(court) && connect(c, q, `court${i}`, 0)) {
-        paint(court, "dirt");
-        eachCell(court, (x, y) => roads.add(cellKey(x, y)));
-        plan.plots.push({
-          ...court,
-          id: `${site.id}-court${i}`,
-          kind: "public",
-          access: q,
-        });
+    }
+    // A few cross-links form blocks; ordinary hamlets retain branching paths.
+    if (profile.pattern === "dense" || profile.pattern === "waterfront")
+      for (let i = 2; i < anchors.length; i += 2) {
+        const a = anchors[i],
+          b = anchors
+            .filter((_, j) => j !== i && j !== 0)
+            .sort(
+              (u, v) =>
+                Math.hypot(u.x - a.x, u.y - a.y) -
+                Math.hypot(v.x - a.x, v.y - a.y),
+            )[1];
+        if (b && Math.hypot(a.x - b.x, a.y - b.y) < r)
+          connect(a, b, `cross-lane${i}`, 0);
+      }
+  } else {
+    for (const [i, dx, dy] of [
+      [0, -1, 0],
+      [1, 1, 0],
+      [2, 0, -1],
+      [3, 0, 1],
+    ]) {
+      if (profile.pattern === "farmstead" && i === 2) continue;
+      let goal: Point | undefined;
+      for (
+        let distance =
+          profile.pattern === "farmstead"
+            ? i === 3
+              ? r - 10
+              : 32
+            : profile.pattern === "roadside" && i > 1
+              ? 32
+              : r - 10;
+        distance >= 18;
+        distance -= 6
+      ) {
+        const q = { x: c.x + dx * distance, y: c.y + dy * distance };
+        if (dry({ x: q.x - 2, y: q.y - 2, w: 5, h: 5 }, false)) {
+          goal = q;
+          break;
+        }
+      }
+      if (goal)
+        connect(
+          c,
+          goal,
+          `approach${i}`,
+          pack.setting?.settlement === "camp" ? 0 : 1,
+        );
+    }
+    if (selected) {
+      connect(c, selected.points[0], "bridge-approach-a");
+      connect(c, selected.points.at(-1)!, "bridge-approach-b");
+    }
+    if (
+      profile.pattern === "planned" ||
+      profile.pattern === "dense" ||
+      profile.pattern === "waterfront"
+    ) {
+      for (const offset of profile.pattern === "dense"
+        ? [-47, -22, 19, 49]
+        : [-52, -26, 26, 52])
+        for (const vertical of [false, true]) {
+          const bend =
+            profile.pattern === "dense"
+              ? Math.round(
+                  (rand("lane-bend", offset, Number(vertical)) - 0.5) * 12,
+                )
+              : 0;
+          const a = {
+              x: c.x + (vertical ? offset : -r + 20),
+              y: c.y + (vertical ? -r + 20 : offset),
+            },
+            b = {
+              x: c.x + (vertical ? offset + bend : r - 20),
+              y: c.y + (vertical ? r - 20 : offset + bend),
+            };
+          if (
+            !dry({ x: a.x - 1, y: a.y - 1, w: 3, h: 3 }, false) ||
+            !dry({ x: b.x - 1, y: b.y - 1, w: 3, h: 3 }, false)
+          )
+            continue;
+          const band = vertical
+            ? { x: a.x - 8, y: a.y, w: 24, h: b.y - a.y }
+            : { x: a.x, y: a.y - 8, w: b.x - a.x, h: 24 };
+          connect(a, b, `lane-${offset}-${vertical}`, 0, band);
+        }
+    } else if (profile.pattern === "clustered") {
+      // Small household courts create several centers instead of a single street cross.
+      for (let i = 0; i < 3; i++) {
+        const a = i * 2.1 + rand("court-angle"),
+          q = {
+            x: c.x + Math.round(Math.cos(a) * 30),
+            y: c.y + Math.round(Math.sin(a) * 30),
+          };
+        const court = { x: q.x - 3, y: q.y - 3, w: 7, h: 7 };
+        if (dry(court) && connect(c, q, `court${i}`, 0)) {
+          paint(court, "dirt");
+          eachCell(court, (x, y) => roads.add(cellKey(x, y)));
+          plan.plots.push({
+            ...court,
+            id: `${site.id}-court${i}`,
+            kind: "public",
+            access: q,
+          });
+        }
       }
     }
   }
@@ -290,17 +397,32 @@ export function planSettlement(
     for (
       let j = profile.frontage;
       j < road.points.length;
-      j += profile.frontage
+      j += organic
+        ? Math.max(
+            5,
+            profile.frontage - 3 + Math.floor(rand(road.id, "spacing", j) * 7),
+          )
+        : profile.frontage
     ) {
       const p = road.points[j],
-        a = road.points[j - 1];
+        a = road.points[organic ? Math.max(0, j - 4) : j - 1];
       if (
         Math.hypot(p.x - c.x, p.y - c.y) > r - 10 ||
         Math.hypot(p.x - c.x, p.y - c.y) < 10
       )
         continue;
-      const dx = Math.sign(p.x - a.x),
-        dy = Math.sign(p.y - a.y);
+      const vx = p.x - a.x,
+        vy = p.y - a.y;
+      const dx = organic
+          ? Math.abs(vx) >= Math.abs(vy)
+            ? Math.sign(vx)
+            : 0
+          : Math.sign(vx),
+        dy = organic
+          ? Math.abs(vy) > Math.abs(vx)
+            ? Math.sign(vy)
+            : 0
+          : Math.sign(vy);
       if (!dx && !dy) continue;
       for (const sign of [-1, 1])
         frontage.push({ point: p, nx: -dy * sign, ny: dx * sign });
@@ -331,7 +453,11 @@ export function planSettlement(
       [w, h] = model.footprint;
     // Old assets are only used south-facing until their oriented recipes are available.
     if (frame === base && facing !== "south") continue;
-    const setback = profile.paved ? 3 : 4;
+    const setback = organic
+      ? 2 + Math.floor(rand("setback", j) * 5)
+      : profile.paved
+        ? 3
+        : 4;
     const door = { x: point.x + nx * setback, y: point.y + ny * setback };
     const rect = {
       x: door.x - model.entrance[0],
@@ -401,7 +527,13 @@ export function planSettlement(
       claim: "landscape",
       entranceLabel,
     });
-    paint(yard, "dirt");
+    if (organic)
+      eachCell(yard, (x, y) => {
+        plan.reserved.add(cellKey(x, y));
+        if (Math.hypot(x - door.x, y - door.y) < 2 + rand("yard-wear", i) * 2)
+          plan.surface.set(cellKey(x, y), "dirt");
+      });
+    else paint(yard, "dirt");
 
     plan.plots.push({
       ...yard,
@@ -501,18 +633,34 @@ export function planSettlement(
     );
   }
   function landPlot(w: number, h: number, label: string): Rect | undefined {
+    let best: Rect | undefined,
+      score = Infinity,
+      fits = 0;
     for (let ring = 45; ring <= r + 22; ring += 12)
       for (let i = 0; i < 20; i++) {
-        const angle = (i * Math.PI) / 10 + rand(label, "angle"),
+        const angle = organic
+            ? rand(label, ring, i, "angle") * Math.PI * 2
+            : (i * Math.PI) / 10 + rand(label, "angle"),
           rect = {
             x: c.x + Math.round(Math.cos(angle) * ring) - Math.floor(w / 2),
             y: c.y + Math.round(Math.sin(angle) * ring) - Math.floor(h / 2),
             w,
             h,
           };
-        if (dry({ x: rect.x - 2, y: rect.y - 2, w: w + 4, h: h + 4 }))
-          return rect;
+        if (dry({ x: rect.x - 2, y: rect.y - 2, w: w + 4, h: h + 4 })) {
+          if (!organic) return rect;
+          const f = sample(rect.x + w / 2, rect.y + h / 2);
+          const value =
+            Math.abs(f.moisture - 0.62) * 60 +
+            Math.hypot(rect.x - c.x, rect.y - c.y) * 0.1;
+          if (value < score) {
+            score = value;
+            best = rect;
+          }
+          if (++fits >= 6) return best;
+        }
       }
+    return best;
   }
   if (profile.fields !== "none" && owners.length)
     for (let i = 0; i < (profile.pattern === "farmstead" ? 5 : 4); i++) {

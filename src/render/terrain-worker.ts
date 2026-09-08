@@ -1,3 +1,4 @@
+import { rasterWaterTile, type WaterTileData } from "./water-raster";
 import type { Pack, WorldModel } from "../core/types";
 import { createSettlementWorld } from "../world/v3/generate";
 import { rasterTerrainContours, type ContourLayer } from "./terrain-contours";
@@ -17,6 +18,7 @@ export type TerrainResponse = {
   layers: ContourLayer[];
   cells: TopographyCell[];
   bridges: BridgeSpan[];
+  waterTiles: WaterTileData[];
 };
 let world: WorldModel;
 export function handleTerrainRequest(data: TerrainRequest) {
@@ -28,7 +30,7 @@ export function handleTerrainRequest(data: TerrainRequest) {
     const { id, region } = data;
     const sample = (x: number, y: number) =>
       world.topography!(x + region.x, y + region.y);
-    const cells = [];
+    const cells: TopographyCell[] = [];
     for (let y = -PAD; y < SIZE + PAD; y++)
       for (let x = -PAD; x < SIZE + PAD; x++) cells.push(sample(x, y));
     const bridges = bridgeSpans(sample, SIZE, SIZE, true);
@@ -51,9 +53,26 @@ export function handleTerrainRequest(data: TerrainRequest) {
           });
       }
     const layers = rasterTerrainContours(sample, SIZE, SIZE, covers, region);
-    self.postMessage({ id, layers, cells, bridges } satisfies TerrainResponse, {
-      transfer: layers.map((l) => l.pixels.buffer),
-    });
+    const waterTiles: WaterTileData[] = [];
+    const cachedSample = (x: number, y: number) =>
+      cells[(y + PAD) * (SIZE + PAD * 2) + x + PAD];
+    for (let y = 0; y < SIZE; y++)
+      for (let x = 0; x < SIZE; x++) {
+        const cell = cachedSample(x, y);
+        if (cell.surface === "water" || cell.bridge)
+          waterTiles.push(
+            rasterWaterTile(cachedSample, x, y, region.x, region.y),
+          );
+      }
+    self.postMessage(
+      { id, layers, cells, bridges, waterTiles } satisfies TerrainResponse,
+      {
+        transfer: [
+          ...layers.map((l) => l.pixels.buffer),
+          ...waterTiles.map((t) => t.pixels.buffer),
+        ],
+      },
+    );
   } catch (error) {
     self.postMessage({
       id: "id" in data ? data.id : "init",

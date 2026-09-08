@@ -1,3 +1,5 @@
+> **Current explorer composition:** Environment-configured worlds now use terrain-selected anchors, branching routes and variable frontage. Dense towns can be irregular; only the planned profile retains its grid. The original generator baseline described below remains relevant to other settings. See [ECOLOGY.md](ECOLOGY.md#landscape-and-settlement-composition-pass) for the implemented landscape/settlement refinement and its checks.
+
 # Procedural settlements
 
 New procedural and World Weaver starts use generator 3 and simulation 2. Both modes supply the same saved setting and run the same planner. The original Roman/Anatolian presets and existing generator-2 saves keep their earlier layouts and behavior.

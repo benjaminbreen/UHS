@@ -5,6 +5,8 @@ export type RenderOptions = {
   onReady?: () => void;
   debug?: boolean;
   freeze?: boolean;
+  /** Allow water motion in otherwise stationary art previews. */
+  waterAnimation?: boolean;
   lighting?: LightingId;
   colorGrade?: boolean;
   shadows?: boolean;

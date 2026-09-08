@@ -1,6 +1,6 @@
 import type { WorldSetting } from "../../content/geography/types";
 import { ecologyProfiles } from "../../content/ecology/profiles";
-import { random } from "../../core/random";
+import { regionalLandforms } from "./landforms";
 import { noise } from "../v2/noise";
 import { toAtlas } from "../v2/atlas";
 import type { LandSample } from "../v2/landscape";
@@ -8,58 +8,42 @@ import type { LandSample } from "../v2/landscape";
 export function createEnvironment(s: WorldSetting, seed: string) {
   const cfg = s.environment!,
     profile = ecologyProfiles[cfg.ecology];
-  const angle = random(seed, "land-angle") * Math.PI * 2,
-    phase = random(seed, "land-offset") * 500;
+  const plan = regionalLandforms(s, seed);
   const cache = new Map<string, LandSample>();
   const calculate = (x: number, y: number): LandSample => {
-    const u = x * Math.cos(angle) + y * Math.sin(angle),
-      v = -x * Math.sin(angle) + y * Math.cos(angle);
-    const broad =
-      noise(seed, x, y, 110, "height") * 0.75 +
-      noise(seed, x, y, 48, "height-detail") * 0.25;
-    const shape =
-      cfg.landform === "plain"
-        ? 0.44 + (broad - 0.5) * 0.2
-        : cfg.landform === "rolling"
-          ? broad
-          : cfg.landform === "ridge"
-            ? 0.38 + Math.cos((u + phase) / 58) * 0.22 + (broad - 0.5) * 0.35
-            : 0.26 +
-              Math.min(0.5, Math.hypot(u / 95, v / 75) * 0.25) +
-              (broad - 0.5) * 0.3;
-    const along = s.water === "river-ew" ? x : y,
-      across = s.water === "river-ew" ? y : x;
-    const course =
-      -34 +
-      Math.sin((along + phase) / 39) * 10 +
-      (noise(seed, 0, along, 90, "course") - 0.5) * 16;
+    const shape = plan.field(x, y);
+    const wx = x + (noise(seed, x, y, 75, "shore-warp-x") - 0.5) * 36,
+      wy = y + (noise(seed, x, y, 87, "shore-warp-y") - 0.5) * 36;
+    let waterFlow: readonly [number, number] = [0, 0];
     let water = 1000,
+      floodplain = 3,
+      shoreWidth = 2,
       kind: LandSample["kind"] = "river";
-    if (s.water.startsWith("river"))
-      water =
-        Math.abs(across - course) -
-        (4 + noise(seed, 0, along, 55, "width") * 4);
-    else if (s.water.startsWith("coast")) {
+    if (s.water.startsWith("river")) {
+      ({ water, floodplain, shoreWidth, waterFlow } = plan.river(x, y));
+    } else if (s.water.startsWith("coast")) {
       const signed =
         s.water === "coast-n"
-          ? y
+          ? wy
           : s.water === "coast-s"
-            ? -y
+            ? -wy
             : s.water === "coast-e"
-              ? -x
-              : x;
-      const lateral = s.water.endsWith("n") || s.water.endsWith("s") ? x : y;
-      water =
-        signed +
-        35 +
-        Math.sin((lateral + phase) / 35) * 6 +
-        (noise(seed, lateral, 0, 65, "shore") - 0.5) * 12;
+              ? -wx
+              : wx;
+      water = signed + 35 + (noise(seed, x, y, 27, "headlands") - 0.5) * 13;
       kind = "sea";
+      shoreWidth = 2 + noise(seed, x, y, 46, "beaches") * 9;
+      floodplain = shoreWidth + 3;
     } else if (s.water === "lake") {
+      // Overlapping distorted basins create coves and uneven shores.
+      const a = Math.hypot((wx + 42) / 24, (wy - 19) / 29),
+        b = Math.hypot((wx + 29) / 19, (wy - 35) / 21);
       water =
-        (Math.hypot((x + 38) / 25, (y - 20) / 33) - 1) * 25 +
-        (noise(seed, x, y, 30, "lake") - 0.5) * 4;
+        (Math.min(a, b) - 1) * 24 +
+        (noise(seed, x, y, 19, "lake-shore") - 0.5) * 4;
       kind = "lake";
+      shoreWidth = 0.7 + noise(seed, x, y, 25, "lake-margin") * 3;
+      floodplain = shoreWidth + noise(seed, x, y, 40, "lake-flat") * 7;
     }
     if (cfg.ecology === "wetland" && s.water === "none") {
       const pool = noise(seed, x, y, 24, "pools");
@@ -74,12 +58,36 @@ export function createEnvironment(s: WorldSetting, seed: string) {
         0.96,
         profile.moisture +
           (noise(seed, x, y, 36, "moisture") - 0.5) * 0.22 +
-          Math.max(0, 1 - Math.max(0, water) / 14) * 0.18,
+          Math.max(0, 1 - Math.max(0, water) / 14) *
+            noise(seed, x + 43, y - 19, 29, "drainage-pockets") *
+            0.28,
       ),
     );
-    const level = water < 3 ? 0 : shape > 0.57 ? 2 : shape < 0.34 ? 0 : 1;
+    // Broad dry tiers and asymmetric low floodplains; a generous intermediate
+    // terrace prevents a two-tier wall directly at a water edge.
+    let baseTier = shape > 0.56 ? 2 : shape < 0.34 ? 0 : 1;
+    if (baseTier !== 1) {
+      const support = [
+        [0, -2],
+        [2, 0],
+        [0, 2],
+        [-2, 0],
+      ].filter(([dx, dy]) => {
+        const h = plan.field(x + dx, y + dy);
+        return (h > 0.56 ? 2 : h < 0.34 ? 0 : 1) === baseTier;
+      }).length;
+      if (support < 3) baseTier = 1;
+    }
+    const level =
+      water < floodplain
+        ? 0
+        : water < floodplain + 10
+          ? Math.min(1, baseTier)
+          : baseTier;
     return {
       water,
+      shoreWidth,
+      waterFlow,
       kind,
       moisture,
       elevation: level * 14,

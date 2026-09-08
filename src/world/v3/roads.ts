@@ -1,3 +1,4 @@
+import { noise } from "../v2/noise";
 import { route } from "../../core/routing";
 import type { Point } from "../../core/types";
 import type { LandSample } from "../v2/landscape";
@@ -95,11 +96,13 @@ export function planRoad(
   bounds: Rect,
   width = 1,
   step = 2,
+  organicSeed?: string,
 ): Road | undefined {
   const snap = (p: Point) => ({
     x: Math.round(p.x / step) * step,
     y: Math.round(p.y / step) * step,
   });
+  const preferenceCache = new Map<string, number>();
   const start = snap(a),
     end = snap(b);
   const result = route(
@@ -127,18 +130,32 @@ export function planRoad(
           Math.abs(f.elevation - sample(from.x, from.y).elevation),
         );
       }
-      return (
+      const base =
         (roads.has(cellKey(to.x, to.y)) ? 1 : 2.2) +
         slope * 1.3 +
-        (sample(to.x, to.y).water < 7 ? 2 : 0)
+        (sample(to.x, to.y).water < 7 ? 2 : 0);
+      let preference = 0;
+      if (organicSeed && !roads.has(cellKey(to.x, to.y))) {
+        const key = cellKey(to.x, to.y),
+          old = preferenceCache.get(key);
+        preference =
+          old ??
+          noise(organicSeed, to.x, to.y, 23, "route-ground") * 1.6 +
+            Math.max(0, sample(to.x, to.y).moisture - 0.65) * 5;
+        if (old === undefined) preferenceCache.set(key, preference);
+      }
+      return (
+        (base + preference) *
+        (to.x !== from.x && to.y !== from.y ? Math.SQRT2 : 1)
       );
     },
     {
       step,
+      diagonal: !!organicSeed,
       bounds,
-      maxNodes: step > 2 ? 5000 : 12000,
+      maxNodes: organicSeed ? 5000 : step > 2 ? 5000 : 12000,
       minCost: roads.size ? 1 : 2.2,
-      heuristicWeight: step > 2 ? 2 : 1,
+      heuristicWeight: organicSeed ? 1.8 : step > 2 ? 2 : 1,
     },
   );
   if (result.status !== "found") return;

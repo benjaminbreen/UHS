@@ -20,7 +20,18 @@ export type TopographyCell = {
     | import("../content/ecology/profiles").Ecology;
   moisture?: number;
   surface: GroundSurface;
+  /** Continuous gravel ground versus the legacy shallow drainage overlay. */
+  feature?: "bank" | "paving";
   waterDepth?: "shallow" | "deep";
+  /** Presentation metadata only: does not change water collision or simulation. */
+  waterVisual?: {
+    distance: number;
+    kind: "river" | "sea" | "lake";
+    ecology: import("../content/ecology/profiles").Ecology;
+    shoreWidth: number;
+    flow: readonly [number, number];
+    frozenMargin: boolean;
+  };
   /** On the lower tile, pointing toward its one-tier-higher neighbor. */
   ramp?: Direction;
   bridge?: boolean;

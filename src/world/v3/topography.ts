@@ -7,7 +7,7 @@ import type { LandSample } from "../v2/landscape";
 export function createReliefLandscape(setting: WorldSetting, seed: string) {
   const origin = toAtlas(setting.lon, setting.lat);
   const cache = new Map<string, LandSample>();
-  const sample = (x: number, y: number) => {
+  const sample = (x: number, y: number): LandSample => {
     const key = `${x},${y}`,
       old = cache.get(key);
     if (old) return old;

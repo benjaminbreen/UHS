@@ -86,7 +86,7 @@ export class TerrainStream {
   update() {
     const start = performance.now();
     if (this.completed) {
-      const { id, layers, cells, bridges } = this.completed;
+      const { id, layers, cells, bridges, waterTiles } = this.completed;
       this.completed = undefined;
       this.pending = undefined;
       const region = this.wanted.get(id);
@@ -100,6 +100,7 @@ export class TerrainStream {
           SIZE,
           region,
           bridges,
+          waterTiles,
         );
         drawContourLayers(this.scene, layers, region.prefix);
         const objects = this.scene.children.list.filter((o) => !before.has(o));

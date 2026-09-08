@@ -8,6 +8,9 @@ import {
 } from "./atlas";
 import { noise, segmentDistance } from "./noise";
 export type LandSample = {
+  /** Optional dry shoreline width in local cells, supplied by regional terrain. */
+  shoreWidth?: number;
+  waterFlow?: readonly [number, number];
   elevation: number;
   moisture: number;
   water: number;
