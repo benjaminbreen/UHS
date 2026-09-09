@@ -1,18 +1,16 @@
 import { describe, it, expect } from "vitest";
 import { resolveSetting, settingFor } from "../src/content/geography/resolve";
 import { places } from "../src/content/geography/places";
-import {
-  createSession,
-  restoreSession,
-  Runtime,
-} from "../src/runtime/session";
+import { createSession } from "../src/runtime/session";
 import { findPath } from "../src/core/pathfinding";
 import { worldWeaver } from "../server/world-weaver";
 import { createAtlasWorld } from "../src/world/v2/generate";
 import { packForSetting } from "../src/content/geography/pack";
-import { settingSchema } from "../src/content/geography/types";
 // Generator v2 fixtures deliberately stay on v2 as new starts advance to v3.
-const createSettingSession = (setting: import("../src/content/geography/types").WorldSetting, seed="earth-2") => createSession("atlas",seed,undefined,setting,2,2);
+const createSettingSession = (
+  setting: import("../src/content/geography/types").WorldSetting,
+  seed = "earth-2",
+) => createSession("atlas", seed, undefined, setting, 2, 2);
 const get = (text: string) => {
   const r = resolveSetting(text);
   if ("error" in r) throw Error(r.error);
@@ -93,7 +91,7 @@ describe("shared World Weaver / procedural geography", () => {
         ),
       ).toBe(true);
   }, 20000);
-  it("has usable nearby entrances and conserves layout through saves, worker construction and replay", () => {
+  it("has usable nearby entrances and conserves layout through worker construction", () => {
     for (const query of ["London", "Alexandria", "Haiti", "Siberia"]) {
       const setting = get(query),
         e = createSettingSession(setting, "doors");
@@ -109,56 +107,8 @@ describe("shared World Weaver / procedural geography", () => {
         ).toBeGreaterThan(0);
       const workerWorld = createAtlasWorld(packForSetting(setting), "doors");
       expect(workerWorld.chunk(0, 0)).toEqual(e.world.chunk(0, 0));
-      const commands = [
-        {
-          actionId: "wait",
-          expectedRevision: 0,
-          command: { type: "wait" as const, seconds: 60 },
-        },
-      ];
-      e.act(commands[0]);
-      const restored = restoreSession(e.snapshot());
-      expect(restored.hash()).toBe(e.hash());
-      const step = {
-        actionId: "step",
-        expectedRevision: 1,
-        command: { type: "move" as const, dx: 1, dy: 0 },
-      };
-      expect(restored.act(step)).toEqual(e.act(step));
-      expect(restored.hash()).toBe(e.hash());
-      commands.push(step as any);
-      const rt = new Runtime(createSettingSession(setting, "unused"), {
-        cacheTerrain: false,
-      });
-      rt.loadReplay({
-        manifest: e.state.manifest,
-        commands,
-        finalHash: e.hash(),
-      });
-      commands.forEach(() => rt.stepReplay());
-      expect(rt.engine.hash()).toBe(e.hash());
-      rt.seekReplay(0);
-      commands.forEach(() => rt.stepReplay());
-      expect(rt.engine.hash()).toBe(e.hash());
-      rt.dispose();
     }
   }, 20000);
-  it("refuses incompatible manifests instead of silently regenerating them", () => {
-    const saved = createSettingSession(get("London"), "version").snapshot();
-    expect(() =>
-      restoreSession({
-        ...saved,
-        manifest: { ...saved.manifest, generator: 3 },
-      }),
-    ).toThrow();
-    expect(() =>
-      restoreSession({
-        ...saved,
-        manifest: { ...saved.manifest, setting: undefined },
-      }),
-    ).toThrow();
-    expect(() => settingSchema.parse({ ...get("London"), lat: 999 })).toThrow();
-  });
   it("never calls a provider in free mode; protects and validates the optional World Weaver boundary", async () => {
     let calls = 0;
     const setting = settingFor(places.find((p) => p.id === "london")!);

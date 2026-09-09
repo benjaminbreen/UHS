@@ -27,7 +27,13 @@ import {
   type HeightTier,
   type TopographyCell,
 } from "../../core/topography";
-import type { Pack, Terrain, WorldModel } from "../../core/types";
+import type { Pack, Point, Terrain, WorldModel } from "../../core/types";
+import {
+  buildItinerary,
+  DAY_MINUTES,
+  type Itinerary,
+} from "../../core/itinerary";
+import { route } from "../../core/routing";
 import { CHUNK_SIZE } from "../../core/types";
 import { random } from "../../core/random";
 import { settlementProfile } from "../../content/settlements/profiles";
@@ -37,7 +43,12 @@ import { cellKey, type Road, type SettlementPlan, type Site } from "./types";
 import { crossing, planRoad, roadCells } from "./roads";
 import { planSettlement } from "./plan";
 import { siteGate } from "./urban";
+import { propDefs } from "../../content/props/catalog";
 export const DISTRICT_SIZE = 384;
+/** Residents per settlement given a full daily routine. Past this the rest keep
+ * the simpler needs-driven behaviour; routing every resident of a large town
+ * costs more than a frame has. */
+const ROUTINE_BUDGET = 48;
 export type SettlementWorld = WorldModel & {
   planAt(x: number, y: number): SettlementPlan | undefined;
   prepare(): PreparedSettlement;
@@ -237,6 +248,7 @@ export function createSettlementWorld(
     links.set(id, result);
     return result;
   }
+  const routines = new Map<string, Itinerary | undefined>();
   function getPlan(
     cx: number,
     cy: number,
@@ -278,6 +290,12 @@ export function createSettlementWorld(
       for (const id of plans.keys())
         if (!active.has(id) && id !== s.id) {
           plans.delete(id);
+          // Routines belong to the plan they were searched against. Kept past
+          // it they are an unbounded leak, one entry per resident of every
+          // settlement ever walked through; rebuilt after it they come from the
+          // same seeded plan and the same terrain, so they come back identical.
+          for (const rid of routines.keys())
+            if (rid.startsWith(`${id}-`)) routines.delete(rid);
           break;
         }
     return plan;
@@ -1083,6 +1101,123 @@ export function createSettlementWorld(
     reliefCache.set(key, c);
     return c;
   }
+  const routineRank = new Map<string, string[]>();
+  /** Legs are searched once per resident and then never again: a routine is
+   * read back with a binary search, so the crowd costs nothing per tick.
+   *
+   * Building them is budgeted, because a large town holds more residents than
+   * a frame can afford to route. The budget counts residents and picks them in
+   * a fixed order rather than measuring the wall clock: the simulation asks for
+   * a routine every tick and moves the resident differently when there is none,
+   * so a clock-based budget decided how a world evolved by how busy the machine
+   * was, and `offRoutine` then wrote that into the saved state. */
+  function routineFor(id: string) {
+    if (routines.has(id)) return routines.get(id);
+    const plan =
+      id === "player"
+        ? getPlan(
+            startingSite?.cx ?? home.x,
+            startingSite?.cy ?? home.y,
+            startingSite?.id,
+          )
+        : planForEntity(id);
+    const stations = plan?.stations.get(id);
+    const site = plan?.work.get(id);
+    // Whether this resident is inside the settlement's budget, decided by a
+    // fixed order over its own residents so the answer never depends on who
+    // asked first or on how long the last search took.
+    if (plan && id !== "player") {
+      const key = plan.site.id;
+      let ranked = routineRank.get(key);
+      if (!ranked) {
+        ranked = [...plan.stations.keys()].sort();
+        routineRank.set(key, ranked);
+      }
+      const rank = ranked.indexOf(id);
+      if (rank < 0 || rank >= ROUTINE_BUDGET) {
+        routines.set(id, undefined);
+        return undefined;
+      }
+    }
+    let built: Itinerary | undefined;
+    if (stations && site && stations.length > 1) {
+      // Buildings and terrain are in world.blocked; the furniture the plan puts
+      // in a yard is not, and a routine that walked through a loom would be
+      // worse than one that goes round it.
+      const furniture = new Set(
+        plan!.objects
+          .filter(
+            (o) =>
+              o.pos.space === "outside" &&
+              ((o.prop && propDefs[o.prop]?.solid && !o.broken) ||
+                o.kind === "well" ||
+                o.kind === "fire"),
+          )
+          .map((o) => cellKey(o.pos.x, o.pos.y)),
+      );
+      const leg = (from: Point, to: Point) => {
+        if (from.x === to.x && from.y === to.y) return [];
+        const goal = cellKey(to.x, to.y);
+        const result = route(
+          from,
+          to,
+          (p) =>
+            world.blocked(p.x, p.y, "outside") ||
+            (furniture.has(cellKey(p.x, p.y)) && cellKey(p.x, p.y) !== goal)
+              ? Infinity
+              : (world.navigationCost?.(p.x, p.y, id) ?? 1),
+          {
+            // Work outside the settlement means legs of a hundred tiles or
+            // more; a flat budget only ever found the ones close to home.
+            maxNodes: Math.min(
+              12000,
+              1500 + (Math.abs(from.x - to.x) + Math.abs(from.y - to.y)) * 70,
+            ),
+            minCost: 1,
+            bounds: {
+              x: Math.min(from.x, to.x) - 40,
+              y: Math.min(from.y, to.y) - 40,
+              w: Math.abs(from.x - to.x) + 80,
+              h: Math.abs(from.y - to.y) + 80,
+            },
+          },
+        );
+        return result.status === "found" ? result.path : undefined;
+      };
+      // A station the resident cannot actually walk to is dropped rather than
+      // teleported through: the routine shortens, the route stays honest.
+      const reachable: typeof stations = [];
+      const legs: Point[][] = [];
+      let at = stations[stations.length - 1].pos;
+      for (const station of stations) {
+        const path = leg(at, station.pos);
+        if (!path) continue;
+        reachable.push(station);
+        legs.push(path);
+        at = station.pos;
+      }
+      if (reachable.length > 1)
+        built = buildItinerary(
+          reachable,
+          (1230 + site.offset) % DAY_MINUTES,
+          (_from, to) => legs[reachable.findIndex((s) => s.pos === to)] ?? [],
+          random(seed, "day-phase", id),
+        );
+    }
+    if (!built && (globalThis as Record<string, unknown>).__routineDebug)
+      console.log(
+        "no routine",
+        id,
+        "plan",
+        !!plan,
+        "stations",
+        plan?.stations.get(id)?.length,
+        "work",
+        !!plan?.work.get(id),
+      );
+    routines.set(id, built);
+    return built;
+  }
   function planForEntity(id: string) {
     const m = /^s(-?\d+)_(-?\d+)/.exec(id);
     if (!m) return;
@@ -1252,6 +1387,8 @@ export function createSettlementWorld(
         )?.work.get(id);
       return planForEntity(id)?.work.get(id);
     },
+    itinerary: (id) => routineFor(id),
+    routinePending: (id) => !routines.has(id),
     propSlots: (id) => {
       return planForEntity(id)?.slots.get(id);
     },
@@ -1329,27 +1466,37 @@ export function createSettlementWorld(
       !initial ||
       (regional && !initial.places.length))
   ) {
-    let found = false;
-    for (let r = 0; r <= (regional ? 768 : 120) && !found; r += 2)
-      for (let i = 0; i < 24; i++) {
-        const x = Math.round(Math.cos((i * Math.PI) / 12) * r),
-          y = Math.round(Math.sin((i * Math.PI) / 12) * r);
+    let clear: { x: number; y: number } | undefined,
+      anyDry: { x: number; y: number } | undefined;
+    for (let r = 0; r <= (regional ? 768 : 120) && !clear; r += 2) {
+      // Probe count scales with circumference: a fixed 24 rays leave ~200 cells
+      // between probes at r=768, which steps clean over a small island.
+      const steps = Math.max(24, Math.round(r * 0.8));
+      for (let i = 0; i < steps; i++) {
+        const a = (i * 2 * Math.PI) / steps,
+          x = Math.round(Math.cos(a) * r),
+          y = Math.round(Math.sin(a) * r);
+        if (land.sample(x, y).water <= 3) continue;
+        if (world.blocked(x, y, "outside")) continue;
         if (
-          !world.blocked(x, y, "outside") &&
-          land.sample(x, y).water > 3 &&
-          (!initial ||
-            Math.hypot(x - initial.site.center.x, y - initial.site.center.y) >
-              initial.site.profile.radius * 0.75)
+          !initial ||
+          Math.hypot(x - initial.site.center.x, y - initial.site.center.y) >
+            initial.site.profile.radius * 0.75
         ) {
-          world.spawn = { x, y, space: "outside" };
-          found = true;
+          clear = { x, y };
           break;
         }
+        // Islands and narrow coastal strips can have no dry ground outside the
+        // settlement; standing in town beats refusing to start.
+        if (!anyDry) anyDry = { x, y };
       }
-    if (!found)
+    }
+    const spot = clear ?? anyDry;
+    if (!spot)
       throw Error(
         "No dry starting location found; try another seed or water setting.",
       );
+    world.spawn = { ...spot, space: "outside" };
   }
   world.activate!(world.spawn.x, world.spawn.y);
   if (environment?.start === "shepherd") {

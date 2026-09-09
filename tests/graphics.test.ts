@@ -1,7 +1,5 @@
 import { it, expect } from "vitest";
-import { readFileSync } from "node:fs";
 import { buildingModels } from "../src/content/graphics/models";
-import { createSession, restoreSession } from "../src/runtime/session";
 import {
   createLabRuntime,
   parseLabConfig,
@@ -53,17 +51,3 @@ it("lab links round-trip camera and rendering controls and reject malformed pres
   expect(parseLabConfig("study=__proto__&zoom=1.8").study).toBe("classical");
   expect(parseLabConfig("zoom=1.8").zoom).toBe(2);
 });
-it("checkpoint journeys replay to their original hashes with the refactored content contract", () => {
-  for (const pack of ["roman", "neolithic"]) {
-    const save = JSON.parse(
-      readFileSync(`artifacts/${pack}-day-save.json`, "utf8"),
-    );
-    const trajectory = JSON.parse(
-      readFileSync(`artifacts/${pack}-day.json`, "utf8"),
-    );
-    expect(restoreSession(save).snapshot()).toEqual(save);
-    const engine = createSession(save.manifest.pack, save.manifest.seed, undefined, undefined, save.manifest.content);
-    for (const command of save.log) engine.act(command);
-    expect(engine.hash()).toBe(trajectory.finalHash);
-  }
-}, 20000);

@@ -13,7 +13,6 @@ import {
   urbanGates,
   type Block,
   type Gate,
-  type Tier,
   type Wall,
 } from "./blocks";
 import { cellKey, type Rect, type Road, type Site } from "./types";
@@ -129,6 +128,7 @@ export function urbanNeighborhood(
       x: api.shore.x - site.center.x,
       y: api.shore.y - site.center.y,
     },
+    (x, y) => api.dry({ x, y, w: 1, h: 1 }, false),
   );
   const used = new Set<string>();
   const reserve = (r: Rect) => {
@@ -142,6 +142,18 @@ export function urbanNeighborhood(
     return true;
   };
   const fits = (r: Rect) => api.dry(r) && free(r);
+  /** Inside the defensive circuit, where there is one. */
+  const within = (r: Point | Rect) => {
+    if (!layout.wall) return true;
+    const w = "w" in r ? r.w - 1 : 0,
+      h = "h" in r ? r.h - 1 : 0;
+    return [
+      [r.x, r.y],
+      [r.x + w, r.y],
+      [r.x, r.y + h],
+      [r.x + w, r.y + h],
+    ].every(([x, y]) => layout.holds(x, y, 1));
+  };
 
   // The circuit stands before the streets, so a run that would cross it is
   // refused and only the gates let a road through.
@@ -171,7 +183,13 @@ export function urbanNeighborhood(
                 : "run";
         return { ...p, frame: `wall-${material}-${kind}` };
       });
-    if (parts.length) api.buildWall(layout.wall, parts);
+    if (parts.length) {
+      api.buildWall(layout.wall, parts);
+      // The ring is rasterised, so it does not sit exactly on the continuous
+      // boundary. Holding its actual cells is what keeps a threshold or a work
+      // pocket off the wall, where a margin against the boundary would not.
+      for (const part of parts) used.add(cellKey(part.x, part.y));
+    }
   }
 
   // Streets first, widest first, so a junction takes the wider surface.
@@ -275,23 +293,33 @@ export function urbanNeighborhood(
     .sort((a, b) => a.reach - b.reach || a.x - b.x || a.y - b.y)
     .map((block) => ({ block, lots: blockLots(block), built: 0 }));
   const capacity = urbanCapacity(site.profile.radius, form);
-  for (let round = 0; lots.length < capacity; round++) {
-    let placed = false;
-    for (const rank of ranks) {
-      const lot = rank.lots[round];
-      if (!lot) continue;
-      placed = true;
+  for (const rank of ranks) {
+    if (lots.length >= capacity) break;
+    for (const lot of rank.lots) {
       if (lots.length >= capacity) break;
-      const door = { ...lot.point, w: 1, h: 1 };
-      if (!fits(lot.rect) || !free(door) || !api.dry(door, false)) continue;
+      const door = { ...lot.point, w: 1, h: 1 },
+        work = { ...lot.workPoint, w: 1, h: 1 };
+      if (
+        !fits(lot.rect) ||
+        !free(door) ||
+        !free(work) ||
+        !api.dry(door, false)
+      )
+        continue;
+      // A block may overhang the circuit; a household may not. A threshold or
+      // work pocket outside the wall has no way back in but the long way round
+      // to a gate, and the work pocket sits two cells clear of the door.
+      if (!within(lot.point) || !within(lot.rect) || !within(lot.workPoint))
+        continue;
       lots.push(lot);
       rank.built++;
       reserve(lot.rect);
-      // Holding the threshold stops the next range on a perpendicular edge from
-      // taking a doorstep and cutting the household off from its own street.
+      // Hold the threshold and the work pocket in front of it. A later range on
+      // the row behind can otherwise stand on ground this household needs, and
+      // a work point inside a wall is a resident who cannot reach their work.
       reserve(door);
+      reserve(work);
     }
-    if (!placed) break;
   }
   // Block ground is laid last, for the blocks that actually came to something.
   // Paving a block whose every parcel was refused leaves bare ground standing
@@ -306,114 +334,101 @@ export function urbanNeighborhood(
       });
   return lots;
 
+  /** Terraced rows, not a ring of ranges around a void.
+   *
+   * A block's depth is spent by the rows on its long sides: put an 8x6 house on
+   * the top edge of a 26x18 block and another on the bottom, and the 6 cells
+   * left in the middle are too shallow for the side edges to hold anything at
+   * all. Filling the block as back-to-back pairs of rows instead uses the whole
+   * depth, which is also how a terraced street was actually built, and roughly
+   * doubles what a block holds. The gap between pairs is a lane, widened into a
+   * court where the fabric wants one. Ends of rows are party walls, so the
+   * short sides carry no separate range. */
   function blockLots(block: Block): UrbanLot[] {
-    const court = {
-      x: block.x + 4,
-      y: block.y + 4,
-      w: block.w - 8,
-      h: block.h - 8,
-    };
-    // A court paints and reserves ground, so it has to respect what is already
-    // standing there: the civic range is placed before any block is composed.
-    if (block.court && court.w >= 3 && court.h >= 3 && free(court)) {
-      // Every court needs a way in. A blind alley belongs to the compound; an
-      // ordinary court opens onto the street it sits behind.
-      const passage = block.lane ?? {
-        a: { x: block.x + (block.w >> 1), y: block.y + block.h + 2 },
-        b: { x: block.x + (block.w >> 1), y: court.y + court.h - 1 },
-        tier: 2 as Tier,
-      };
-      if (api.lay(passage.a, passage.b, `court-${block.x}-${block.y}`, 0)) {
-        const lo = Math.min(passage.a.y, passage.b.y),
-          hi = Math.max(passage.a.y, passage.b.y);
-        reserve({ x: passage.a.x - 1, y: lo, w: 3, h: hi - lo + 1 });
-        api.paintCourt(court);
+    const out: UrbanLot[] = [];
+    const deepest = Math.max(
+      ...frames.map((f) => buildingModel(f).footprint[1]),
+    );
+    const gap = block.court ? 3 : 1;
+    let top = block.y;
+    for (let band = 0; top + deepest <= block.y + block.h; band++) {
+      const room = block.y + block.h - top;
+      const paired = room >= deepest * 2;
+      // The first row of a pair opens onto whatever lies above it; the second
+      // backs onto the first and opens onto the lane below.
+      out.push(...terrace(block, top, 1, band));
+      if (paired) out.push(...terrace(block, top + deepest, -1, band + 100));
+      top += (paired ? deepest * 2 : deepest) + gap;
+      if (top + deepest <= block.y + block.h) {
+        // A lane between pairs runs the full width, so it meets the streets at
+        // both ends of the block and nothing behind it is landlocked.
+        const lane = { x: block.x - 1, y: top - Math.ceil(gap / 2) };
+        api.lay(
+          lane,
+          { x: block.x + block.w, y: lane.y },
+          `row-${block.x}-${lane.y}`,
+          0,
+        );
+        if (block.court)
+          api.paintCourt({ x: block.x, y: top - gap, w: block.w, h: gap });
       }
     }
-    // One material dominates a block, so a range reads as a range and not as a
-    // row of unrelated houses.
-    const dominant =
-      frames[Math.floor(rand("range", block.x, block.y) * frames.length)];
-    // `nx`/`ny` is the direction the entrance faces, matching the frontage
-    // convention the planner already uses for road-side plots.
-    const right = block.x + block.w,
-      bottom = block.y + block.h;
-    const edges = [
-      { nx: 0, ny: 1, from: block.x, to: right, fixed: block.y },
-      { nx: 0, ny: -1, from: block.x, to: right, fixed: bottom },
-      { nx: 1, ny: 0, from: block.y, to: bottom, fixed: block.x },
-      { nx: -1, ny: 0, from: block.y, to: bottom, fixed: right },
-    ];
+    return out;
+  }
+
+  /** One row of houses along a block, all opening the same way. */
+  function terrace(
+    block: Block,
+    top: number,
+    ny: number,
+    key: number,
+  ): UrbanLot[] {
     const out: UrbanLot[] = [];
-    for (const [e, edge] of edges.entries()) {
-      let cursor = edge.from;
-      while (cursor < edge.to - 4) {
-        const choices = [...frames].sort(
-          (a, b) =>
-            rand(block.x, block.y, e, cursor, a) -
-            (a === dominant ? 0.55 : 0) -
-            (rand(block.x, block.y, e, cursor, b) -
-              (b === dominant ? 0.55 : 0)),
-        );
-        let span = 1;
-        // Bounded: the cheap geometry tests come first, and only the few best
-        // frames are put to the terrain. Testing every frame at every position
-        // would scan the ground thousands of times per block.
-        let tried = 0;
-        for (const base of choices) {
-          if (tried >= 5) break;
-          const facing =
-            edge.nx > 0
-              ? "west"
-              : edge.nx < 0
-                ? "east"
-                : edge.ny > 0
-                  ? "north"
-                  : "south";
-          const frame = facing === "south" ? base : `${base}-${facing}`;
-          if (!buildingModels[frame]) continue;
-          const model = buildingModel(frame),
-            [w, h] = model.footprint;
-          const rect = {
-            x: edge.ny ? cursor : edge.nx > 0 ? edge.fixed : edge.fixed - w,
-            y: edge.nx ? cursor : edge.ny > 0 ? edge.fixed : edge.fixed - h,
-            w,
-            h,
-          };
-          // A range lines the block's own edge; anything deeper than the block
-          // would bury the court the passage was reserved for.
-          if (edge.ny ? h > block.h - 2 : w > block.w - 2) continue;
-          const along = edge.ny ? w : h;
-          if (cursor + along > edge.to) continue;
-          const point = {
-            x: rect.x + model.entrance[0],
-            y: rect.y + model.entrance[1],
-          };
-          tried++;
-          // A wide range straddles a contour that a narrower one clears, so the
-          // ground is asked here, while there is still another frame to try.
-          if (
-            !api.dry(rect, false) ||
-            !api.dry({ ...point, w: 1, h: 1 }, false)
-          )
-            continue;
-          out.push({
-            point,
-            nx: edge.nx,
-            ny: edge.ny,
-            frame,
-            rect,
-            yard: rect,
-            workPoint: {
-              x: point.x + (edge.ny ? 2 : -edge.nx),
-              y: point.y + (edge.nx ? 2 : -edge.ny),
-            },
-          });
-          span = along;
-          break;
-        }
-        cursor += span;
+    const dominant =
+      frames[Math.floor(rand("range", block.x, block.y, key) * frames.length)];
+    let cursor = block.x;
+    while (cursor < block.x + block.w - 4) {
+      const choices = [...frames].sort(
+        (a, b) =>
+          rand(block.x, top, cursor, a) -
+          (a === dominant ? 0.55 : 0) -
+          (rand(block.x, top, cursor, b) - (b === dominant ? 0.55 : 0)),
+      );
+      let span = 1,
+        tried = 0;
+      for (const base of choices) {
+        // Bounded: only the few best frames are put to the ground. Testing
+        // every frame at every position would scan the block many times over.
+        if (tried >= 5) break;
+        const frame = ny > 0 ? `${base}-north` : base;
+        if (!buildingModels[frame]) continue;
+        const model = buildingModel(frame),
+          [w, h] = model.footprint;
+        if (top + h > block.y + block.h || cursor + w > block.x + block.w)
+          continue;
+        const rect = { x: cursor, y: top, w, h };
+        const point = {
+          x: rect.x + model.entrance[0],
+          y: rect.y + model.entrance[1],
+        };
+        tried++;
+        // A wide range straddles a contour a narrower one clears, so the ground
+        // is asked here, while there is still another frame to try.
+        if (!api.dry(rect, false) || !api.dry({ ...point, w: 1, h: 1 }, false))
+          continue;
+        out.push({
+          point,
+          nx: 0,
+          ny,
+          frame,
+          rect,
+          yard: rect,
+          workPoint: { x: point.x, y: point.y - ny },
+        });
+        span = w;
+        break;
       }
+      cursor += span;
     }
     return out;
   }

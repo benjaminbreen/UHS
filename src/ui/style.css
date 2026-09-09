@@ -1418,6 +1418,19 @@ button:disabled {opacity:.5;cursor:default;}
 .start-preview strong { font-weight:400;color:#f4d38c; }
 .start-preview-role { color:#eee5d6; }
 .start-preview p { margin:3px 0 0;color:#bfc3cb;font-size:13px; }
+.region-tag { display:inline-block;margin-right:7px;padding:1px 7px;border:1px solid currentColor;border-radius:9px;font-size:11px;letter-spacing:.04em;text-transform:uppercase;vertical-align:1px;opacity:.92; }
+.region-tag[data-culture="european"] { color:#8fb3e0; }
+.region-tag[data-culture="north-african-west-asian"] { color:#e0b878; }
+.region-tag[data-culture="inner-eurasian"] { color:#b39ede; }
+.region-tag[data-culture="south-asian"] { color:#e59b6d; }
+.region-tag[data-culture="east-asian"] { color:#e08b96; }
+.region-tag[data-culture="southeast-asian"] { color:#7fc7ae; }
+.region-tag[data-culture="west-central-african"] { color:#d7c26a; }
+.region-tag[data-culture="east-southern-african"] { color:#a8c46f; }
+.region-tag[data-culture="mesoamerican"] { color:#6fc3c9; }
+.region-tag[data-culture="andean"] { color:#c9a0d6; }
+.region-tag[data-culture="other-indigenous-american"] { color:#9ec9e6; }
+.region-tag[data-culture="australian-pacific"] { color:#dba0a0; }
 .modal-world { width:min(940px,100%);padding:26px 28px 18px;max-height:calc(100dvh - 40px); }
 .weaver h2 { font-size:36px;margin:0 44px 14px 0;letter-spacing:-.5px; }
 .weaver-modes { margin-bottom:14px;gap:9px; }

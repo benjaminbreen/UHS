@@ -61,6 +61,10 @@ export type SettlementPlan = {
   reserved: Set<string>;
   solid: Set<string>;
   work: Map<string, WorkSite>;
+  /** Places people stop to talk, spread through the settlement. */
+  gatherings?: Point[];
+  /** Ordered daily errands per resident; the world turns these into routes. */
+  stations: Map<string, import("../../core/itinerary").Station[]>;
   slots: Map<string, { yard: Point[]; work: Point[] }>;
   spawn: Point;
   diagnostics: { routeFailures: number; rejectedBuildings: number };

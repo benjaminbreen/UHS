@@ -238,3 +238,86 @@ def build_city_walls(sprites):
             sprites[f"wall-{material}-{kind}"] = im
             if kind == "jamb":
                 sprites[f"wall-{material}-jamb-left"] = ImageOps.mirror(im)
+
+
+def build_square_furniture(sprites):
+    """Ornaments for a public square, one per thing a square actually held.
+
+    Content decides which of these a place and date gets; the recipes here know
+    nothing about culture. All share the kit's stone and timber ramps and the
+    upper-left light of every other sprite.
+    """
+    stone = ["#6f6d5e", "#918e7c", "#b3af99", "#cdc8b0"]
+    dark, mid, light, pale = stone
+
+    im = Image.new("RGBA", (32, 32)); d = ImageDraw.Draw(im)
+    d.ellipse((2, 22, 29, 30), fill=(39, 44, 32, 70))
+    d.ellipse((2, 14, 29, 28), fill=dark)
+    d.ellipse((3, 12, 28, 26), fill=mid)
+    d.ellipse((5, 14, 26, 24), fill="#3d6f74")
+    d.ellipse((7, 15, 24, 22), fill="#57949a")
+    for x in range(9, 24, 4):
+        d.point((x, 17), fill="#9fd0cf")
+    d.rectangle((14, 4, 17, 16), fill=mid)
+    d.rectangle((14, 4, 15, 16), fill=light)
+    d.ellipse((12, 1, 19, 7), fill=pale)
+    d.ellipse((13, 2, 18, 5), fill="#8fc3c6")
+    sprites["fountain"] = im
+
+    im = Image.new("RGBA", (16, 24)); d = ImageDraw.Draw(im)
+    d.ellipse((2, 19, 13, 23), fill=(39, 44, 32, 70))
+    d.rectangle((3, 17, 12, 21), fill=dark)
+    d.rectangle((4, 15, 11, 18), fill=mid)
+    d.rectangle((5, 14, 10, 16), fill=light)
+    # A standing figure, read at this size by its silhouette alone.
+    d.rectangle((6, 6, 9, 15), fill=mid)
+    d.rectangle((6, 6, 7, 15), fill=light)
+    d.ellipse((6, 2, 10, 6), fill=pale)
+    d.line((5, 8, 4, 12), fill=mid)
+    d.line((10, 8, 11, 11), fill=mid)
+    sprites["statue"] = im
+
+    im = Image.new("RGBA", (16, 24)); d = ImageDraw.Draw(im)
+    d.ellipse((3, 19, 12, 23), fill=(39, 44, 32, 70))
+    d.rectangle((3, 18, 12, 21), fill=dark)
+    d.rectangle((5, 3, 10, 19), fill=mid)
+    d.rectangle((5, 3, 6, 19), fill=light)
+    d.polygon([(5, 3), (7, 1), (8, 1), (10, 3)], fill=pale)
+    for y in range(6, 17, 3):
+        d.line((7, y, 9, y), fill=dark)
+    sprites["stele"] = im
+
+    im = Image.new("RGBA", (16, 24)); d = ImageDraw.Draw(im)
+    d.ellipse((2, 19, 13, 23), fill=(39, 44, 32, 70))
+    for i, y in enumerate([21, 19, 17]):
+        d.rectangle((2 + i, y, 13 - i, y + 1), fill=mid if i % 2 else dark)
+        d.line((2 + i, y, 13 - i, y), fill=light)
+    d.rectangle((7, 5, 8, 17), fill=mid)
+    d.line((7, 5, 7, 17), fill=light)
+    d.rectangle((4, 7, 11, 8), fill=mid)
+    d.line((4, 7, 11, 7), fill=light)
+    sprites["market-cross"] = im
+
+    im = Image.new("RGBA", (32, 32)); d = ImageDraw.Draw(im)
+    d.ellipse((3, 24, 28, 31), fill=(39, 44, 32, 70))
+    d.rectangle((5, 18, 26, 28), fill="#5b4a33")
+    d.rectangle((6, 17, 25, 25), fill="#8a6c45")
+    for x in range(8, 25, 5):
+        d.rectangle((x, 19, x + 2, 24), fill="#b0894f")
+    for x in [6, 25]:
+        d.rectangle((x, 10, x + 1, 27), fill="#4b3d2b")
+    d.polygon([(2, 12), (15, 5), (29, 12), (29, 14), (2, 14)], fill="#7a3b2c")
+    d.polygon([(4, 12), (15, 6), (27, 12)], fill="#a8543a")
+    d.line((2, 14, 29, 14), fill="#59291f")
+    sprites["kiosk"] = im
+
+    im = Image.new("RGBA", (32, 32)); d = ImageDraw.Draw(im)
+    d.ellipse((2, 24, 29, 31), fill=(39, 44, 32, 70))
+    for i, y in enumerate([26, 22, 18]):
+        lo, hi = 2 + i * 4, 29 - i * 4
+        d.rectangle((lo, y, hi, y + 4), fill=mid)
+        d.line((lo, y, hi, y), fill=light)
+        d.line((lo, y + 4, hi, y + 4), fill=dark)
+    d.rectangle((13, 12, 18, 19), fill=dark)
+    d.rectangle((13, 12, 18, 13), fill=pale)
+    sprites["altar-platform"] = im

@@ -2,10 +2,14 @@ import { it, expect } from "vitest";
 import { createSettingSession } from "../src/runtime/session";
 import { settingFor } from "../src/content/geography/resolve";
 import { places } from "../src/content/geography/places";
-const setting = {
-  ...settingFor(places.find((p) => p.id === "konya")!, -6499),
-  terrainRevision: 1 as const,
-};
+// `settingFor` now returns an integrated setting, which pins the geography
+// revision. This suite is about the older relief generator, so the pin has to
+// come off with the terrain revision it requires.
+const { geographyRevision: _pinned, ...integrated } = settingFor(
+  places.find((p) => p.id === "konya")!,
+  -6499,
+);
+const setting = { ...integrated, terrainRevision: 1 as const };
 it("generates broad zones with limited slopes and reachable households", () => {
   const start = performance.now(),
     e = createSettingSession(setting, "anatolia-relief-1"),

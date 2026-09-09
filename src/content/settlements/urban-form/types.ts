@@ -32,6 +32,9 @@ export type UrbanForm = {
   plazaScale: number;
   /** Which side of the plaza the civic range occupies. */
   civic: "head" | "side";
+  /** What stands in the public square, in the order it is placed. Keys of
+   * `src/content/settlements/ornaments.ts`. */
+  ornaments: readonly string[];
   evidence: {
     status: "inferred" | "fictional";
     sources: string[];

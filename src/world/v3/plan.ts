@@ -11,6 +11,7 @@ import {
 import { urbanNeighborhood, urbanSite, siteForm, type UrbanLot } from "./urban";
 import { urbanNeighborhoodV1 } from "./urban-v1";
 import { urbanCapacity } from "../../content/settlements/scale";
+import { ornaments } from "../../content/settlements/ornaments";
 import type { Actor, Pack, Point, Position, Terrain } from "../../core/types";
 import { proceduralName } from "../../content/geography/character";
 import { random } from "../../core/random";
@@ -24,6 +25,7 @@ import {
   roadCells,
   type Sample,
 } from "./roads";
+import { planRoutines } from "./routines";
 import {
   cellKey,
   eachCell,
@@ -32,6 +34,9 @@ import {
   type SettlementPlan,
   type Site,
 } from "./types";
+/** The livelihood activity that keeps animals, as the character tables name it. */
+const HERDING = "Tending animals";
+
 export function planSettlement(
   site: Site,
   pack: Pack,
@@ -47,6 +52,9 @@ export function planSettlement(
     : undefined;
   const sharedRoads = !!pack.setting?.roadRevision;
   const urban = urbanSite(site, pack);
+  /** Resolved once: the lookup scans every dated rule, and both the square's
+   * furniture and the building budget ask for it. */
+  const fabric = siteForm(site, pack);
   /** Worlds pinned to the first urban revision keep their fixed lattice. */
   const composed = (pack.setting?.urbanRevision ?? 0) >= 2;
   const organic = !!pack.setting?.environment && profile.pattern !== "planned";
@@ -71,6 +79,7 @@ export function planSettlement(
     reserved: new Set(),
     solid: new Set(),
     work: new Map(),
+    stations: new Map(),
     slots: new Map(),
     spawn: { ...c },
     diagnostics: { routeFailures: 0, rejectedBuildings: 0 },
@@ -102,12 +111,12 @@ export function planSettlement(
       const k = cellKey(x, y),
         f = sample(x, y);
       if (f.water < 0 && !bridges.has(k)) return;
-      plan.surface.set(
-        k,
-        f.water < 0 ? "bridge" : profile.paved ? "paving" : "dirt",
-      );
+      // Paved by tier, not by the settlement's rank: a city paved its streets,
+      // not every back lane and doorstep in it.
+      const stone = profile.paved && road.width >= 1;
+      plan.surface.set(k, f.water < 0 ? "bridge" : stone ? "paving" : "dirt");
       // Earlier trunk roads keep their surface where later access lanes join.
-      if (material && profile.paved && !plan.streetSurfaces!.has(k))
+      if (material && stone && !plan.streetSurfaces!.has(k))
         plan.streetSurfaces!.set(k, material);
       roads.add(k);
       plan.reserved.add(k);
@@ -203,7 +212,6 @@ export function planSettlement(
         valid = false;
     });
     if (!valid) {
-      if (process.env.UHS_DEBUG_LAY) console.log("lay refused", label, a, b, width);
       plan.diagnostics.routeFailures++;
       return;
     }
@@ -325,13 +333,53 @@ export function planSettlement(
       if (square) {
         socialCenter.x = court.x + Math.floor(court.w / 2);
         socialCenter.y = court.y + Math.floor(court.h / 2);
+        // What stands in the square comes from the fabric, so a Roman forum
+        // gets a fountain and a statue where a ward plaza gets a stele. Pieces
+        // go round the edge: the middle stays clear to cross.
+        const spots: Point[] = [
+          { x: court.x + 2, y: court.y + 2 },
+          { x: court.x + court.w - 3, y: court.y + 2 },
+          { x: court.x + 2, y: court.y + court.h - 3 },
+          { x: court.x + court.w - 3, y: court.y + court.h - 3 },
+          { x: socialCenter.x, y: court.y + 2 },
+        ];
+        // The shared water source and hearth already exist; the first water
+        // ornament and the first fire ornament become them rather than
+        // duplicating them, so household routines keep their destinations.
         const source = plan.objects.find((o) => o.id === `${site.id}-water`)!;
-        source.pos = pos({ x: court.x + 2, y: court.y + 2 });
-        waterStand.x = source.pos.x + 1;
-        waterStand.y = source.pos.y;
         const hearth = plan.objects.find((o) => o.id === `${site.id}-hearth`)!;
-        hearth.name = "Public brazier";
-        hearth.pos = pos({ x: court.x + court.w - 2, y: court.y + 2 });
+        let water = false,
+          fire = false;
+        for (const [i, key] of fabric.ornaments.entries()) {
+          const piece = ornaments[key];
+          const spot = spots[i];
+          if (!piece || !spot) continue;
+          if (!dry({ ...spot, w: piece.size, h: piece.size }, false)) continue;
+          if (piece.kind === "well" && !water) {
+            water = true;
+            source.name = piece.label;
+            source.sprite = piece.sprite;
+            source.pos = pos(spot);
+            waterStand.x = spot.x + 1;
+            waterStand.y = spot.y;
+            continue;
+          }
+          if (piece.kind === "fire" && !fire) {
+            fire = true;
+            hearth.name = piece.label;
+            hearth.pos = pos(spot);
+            continue;
+          }
+          plan.objects.push({
+            id: `${site.id}-${piece.id}-${i}`,
+            name: piece.label,
+            kind: piece.kind,
+            sprite: piece.sprite,
+            pos: pos(spot),
+            inventory: {},
+          });
+        }
+        // Market counters line the square's lower edge, clear of the ornaments.
         for (const [i, x] of [court.x + 3, court.x + court.w - 4].entries())
           plan.objects.push({
             id: `${site.id}-market-${i}`,
@@ -684,11 +732,13 @@ export function planSettlement(
         a.point.y - b.point.y,
     );
   const owners: string[] = [];
+  /** Households whose work is keeping animals, so a pen has someone to tend it. */
+  const herders = new Set<string>();
   // A composed settlement's capacity comes from its own extent and fabric; the
   // flat profile count still governs villages and the older layouts.
   const limit =
     urban && composed
-      ? urbanCapacity(profile.radius, siteForm(site, pack))
+      ? urbanCapacity(profile.radius, fabric)
       : profile.buildings;
   for (let j = 0; j < frontage.length && plan.places.length < limit; j++) {
     const lot = frontage[j];
@@ -778,13 +828,22 @@ export function planSettlement(
     if (!connect(door, point, `door${i}`, 0)) continue;
     const entranceLabel =
       model.opening === "roof-hatch" ? "Climb inside" : "Enter";
-    const role = pack.setting?.characterRevision
-      ? characterLivelihood(
-          pack.setting,
-          seed,
-          owner,
-          owner === "player" ? pack.role : undefined,
-        ).label
+    // A settlement that keeps animals asks for someone to keep them. Drawing
+    // every household freely from the dozens of trades on offer left a farm
+    // with livestock and nobody whose work was livestock, so no pen was built.
+    const wanted =
+      owner === "player"
+        ? pack.role
+        : profile.livestock && i % 3 === 1
+          ? "herder"
+          : profile.fields !== "none" && i % 3 === 0
+            ? "farmer"
+            : undefined;
+    const livelihood = pack.setting?.characterRevision
+      ? characterLivelihood(pack.setting, seed, owner, wanted)
+      : undefined;
+    const role = livelihood
+      ? livelihood.label
       : owner === "player"
         ? pack.role
         : profile.fields !== "none"
@@ -794,6 +853,11 @@ export function planSettlement(
               ? "Herder"
               : pack.roles[i % pack.roles.length]
           : pack.roles[i % pack.roles.length];
+    // Who keeps animals is a question about the work, not about one label. The
+    // livelihood tables name dozens of trades, so matching "Herder" by name
+    // left a farmstead with no pen, no gate and no animals at all.
+    if (livelihood ? livelihood.activity === HERDING : role === "Herder")
+      herders.add(owner);
     eachCell(rect, (x, y) => plan.solid.add(cellKey(x, y)));
     if (!connect(workPoint, door, `yard-access${i}`, 0)) {
       eachCell(rect, (x, y) => plan.solid.delete(cellKey(x, y)));
@@ -909,6 +973,11 @@ export function planSettlement(
           generateCharacter(pack.setting, seed, owner, 34, role),
         );
       if (owner !== "player") plan.actors.push(a);
+      // The threshold and the work pocket are held against scattered decoration.
+      // A rock dropped on a work point is a resident who cannot reach their own
+      // work, and the decoration layer only skips reserved ground.
+      plan.reserved.add(cellKey(door.x, door.y));
+      plan.reserved.add(cellKey(workPoint.x, workPoint.y));
       plan.work.set(owner, {
         home: door,
         work: workPoint,
@@ -923,7 +992,7 @@ export function planSettlement(
             : role === "Merchant"
               ? "Trading"
               : `${role} at work`,
-        offset: Math.floor(rand(owner, "schedule") * 45),
+        offset: Math.floor(rand(owner, "schedule") * 150),
       });
     }
     plan.objects.push(
@@ -1079,12 +1148,7 @@ export function planSettlement(
       work.label = "Tending the field";
     }
   const herdOwners = owners
-    .filter(
-      (id) =>
-        id !== "player" &&
-        (!characterContext ||
-          plan.actors.find((a) => a.id === id)?.role === "Herder"),
-    )
+    .filter((id) => id !== "player" && herders.has(id))
     .slice(-2);
   if (profile.livestock && herdOwners.length)
     for (let i = 0; i < Math.min(2, herdOwners.length); i++) {
@@ -1210,5 +1274,6 @@ export function planSettlement(
         );
     }
   }
+  planRoutines(plan, seed, pack, sample);
   return plan;
 }

@@ -17,6 +17,7 @@ import {
   type CommandRequest,
   type CommandResult,
   type GameEvent,
+  type Household,
   type Inspection,
   type Inventory,
   type ItemDef,
@@ -29,9 +30,12 @@ import {
 } from "./types";
 import { canonical, random, stateHash } from "./random";
 import { findPath } from "./pathfinding";
+import { itineraryAt, type Itinerary } from "./itinerary";
 import { route, type RouteResult } from "./routing";
 import type { Point } from "./types";
 const copy = <T>(x: T): T => structuredClone(x);
+/** Routines built in one call to `advance`. */
+const ROUTINE_BUILDS_PER_ADVANCE = 32;
 export class Engine {
   state: Snapshot;
   constructor(
@@ -326,7 +330,8 @@ export class Engine {
       const x = Math.round(p.x + ((pos.x - p.x) * i) / steps),
         y = Math.round(p.y + ((pos.y - p.y) * i) / steps);
       for (const b of blockers)
-        if (x >= b.x && x < b.x + b.w && y >= b.y && y < b.y + b.h) return false;
+        if (x >= b.x && x < b.x + b.w && y >= b.y && y < b.y + b.h)
+          return false;
     }
     return true;
   }
@@ -714,9 +719,16 @@ export class Engine {
             this.blocked(p.pos.x, p.pos.y + c.dy)))
       )
         return "The way is blocked.";
+      const occupant = this.state.actors.find(
+        (a) =>
+          a.pos.space === p.pos.space &&
+          a.pos.x === p.pos.x + c.dx &&
+          a.pos.y === p.pos.y + c.dy,
+      );
+      if (occupant) return `${occupant.name} is standing there.`;
       return;
     }
-    if (c.type === "wait")
+    if (c.type === "wait" || c.type === "pass")
       return Number.isInteger(c.seconds) && c.seconds > 0 && c.seconds <= 3600
         ? undefined
         : "Wait between 1 and 3,600 seconds.";
@@ -818,6 +830,10 @@ export class Engine {
       this.advance((c.dx && c.dy ? 3 : 2) + (slope > 1 ? 1 : 0));
       const key = `${Math.floor(p.pos.x / 64)},${Math.floor(p.pos.y / 64)}`;
       if (!this.state.visited.includes(key)) this.state.visited.push(key);
+      return;
+    }
+    if (c.type === "pass") {
+      this.advance(c.seconds);
       return;
     }
     if (c.type === "wait") {
@@ -1198,6 +1214,62 @@ export class Engine {
       space: a.pos.space,
     });
   }
+  /** Eats one edible from the actor's own bag, else from the household store.
+   * Returns false when there is nothing to eat. */
+  private feed(a: Actor, household?: Household) {
+    const store = household
+      ? this.state.objects.find((o) => o.id === household.storeId)
+      : undefined;
+    for (const bag of [a.inventory, store?.inventory]) {
+      if (!bag) continue;
+      const food = (Object.keys(bag) as ItemId[]).find(
+        (k) => this.items[k].edible && (bag[k] ?? 0) > 0,
+      );
+      if (!food) continue;
+      bag[food] = (bag[food] ?? 0) - 1;
+      a.hunger = Math.max(0, a.hunger - (this.items[food].edible ?? 0));
+      return true;
+    }
+    return false;
+  }
+  /** Places an actor from their precomputed day. Sleeping moves them inside
+   * the house, so nobody stands at the door overnight. */
+  private followRoutine(a: Actor, routine: Itinerary, clock: number) {
+    const at = itineraryAt(routine, clock);
+    const household = this.state.households?.find(
+      (h) => h.id === a.householdId,
+    );
+    a.offRoutine = false;
+    const gateId = this.world.activitySites?.(a.id)?.gateId;
+    if (gateId) {
+      const gate = this.state.objects.find((o) => o.id === gateId);
+      if (gate) gate.open = at.activity !== "rest";
+    }
+    if (at.activity === "rest" && household?.residence) {
+      const index = Math.max(0, household.members.indexOf(a.id));
+      a.pos = { x: 3 + (index % 4), y: 3, space: household.residence };
+      a.activity = at.label;
+      a.fatigue = Math.max(0, a.fatigue - 0.1);
+      // Eating at home is what keeps a resident under the hunger gate below and
+      // so on their routine at all. Without it the whole settlement drifts onto
+      // the pathfinding fallback over a long session.
+      // High enough that one meal covers the night's ~16 points of hunger:
+      // followRoutine runs every 12 seconds, and a lower gate empties the
+      // household store in a few days.
+      if (a.hunger > 35) this.feed(a, household);
+      // Indoors the routine's outdoor coordinates mean nothing: let the drawn
+      // position fall back to the simulated one.
+      a.offRoutine = true;
+      return;
+    }
+    a.pos = {
+      x: Math.round(at.x),
+      y: Math.round(at.y),
+      space: "outside",
+    };
+    a.direction = at.direction;
+    a.activity = at.label;
+  }
   private advance(seconds: number, heldActor?: string) {
     // Derived paths never survive a command boundary: saves and replays need no hidden routing state.
     this.routes.clear();
@@ -1214,6 +1286,11 @@ export class Engine {
     );
     const end = this.state.clock + seconds;
     const player = this.state.player;
+    // Building a routine costs a path search per station, and a city has a
+    // couple of hundred residents wanting one at once. Capped per advance and
+    // spent in the actors' fixed order, so a cold city fills in over a few
+    // ticks and every replay spends the budget on the same people.
+    let routineBuilds = 0;
     while (this.state.clock < end) {
       const next = Math.min(end, (Math.floor(this.state.clock / 6) + 1) * 6),
         elapsed = next - this.state.clock;
@@ -1268,7 +1345,19 @@ export class Engine {
             a.pos = copy(target);
         }
         if (a.kind === "human") {
+          if (this.world.routinePending?.(a.id)) {
+            if (routineBuilds >= ROUTINE_BUILDS_PER_ADVANCE) continue;
+            routineBuilds++;
+          }
+          // A resident on their routine costs a binary search, not a path
+          // search. Needs pull them off it; everything else is the day's round.
+          const routine = this.world.itinerary?.(a.id);
+          if (routine && a.hunger <= 45 && !a.task) {
+            if (next % 12 === 0) this.followRoutine(a, routine, next);
+            continue;
+          }
           if (next % 18 !== 0) continue;
+          a.offRoutine = true;
           const hour = (next / 3600) % 24;
           const dutyGate =
             a.origin && a.role === "Herder"
@@ -1294,19 +1383,14 @@ export class Engine {
           if (a.hunger > 55) {
             a.activity = "Finding something to eat";
             this.stepToward(a, a.home);
-            if (distance(a.pos, a.home) < 2) {
-              const food = (Object.keys(a.inventory) as ItemId[]).find(
-                (k) => this.items[k].edible && (a.inventory[k] ?? 0) > 0,
-              );
-              if (food) {
-                a.inventory[food] = (a.inventory[food] ?? 0) - 1;
-                a.hunger = Math.max(
-                  0,
-                  a.hunger - (this.items[food].edible ?? 0),
-                );
-                a.activity = "Eating at home";
-              }
-            }
+            if (
+              distance(a.pos, a.home) < 2 &&
+              this.feed(
+                a,
+                this.state.households?.find((h) => h.id === a.householdId),
+              )
+            )
+              a.activity = "Eating at home";
           } else if (this.world.activitySites?.(a.id)) {
             const sites = this.world.activitySites(a.id)!;
             const minute = (next / 60 + sites.offset) % 1440;

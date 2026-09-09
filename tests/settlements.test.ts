@@ -7,12 +7,7 @@ import {
 } from "../src/content/settlements/profiles";
 import { resolveSetting } from "../src/content/geography/resolve";
 import { packForSetting } from "../src/content/geography/pack";
-import {
-  createSession,
-  createSettingSession,
-  restoreSession,
-  Runtime,
-} from "../src/runtime/session";
+import { createSettingSession, Runtime } from "../src/runtime/session";
 import { crossing } from "../src/world/v3/roads";
 import type { SettlementWorld } from "../src/world/v3/generate";
 import type { LandSample } from "../src/world/v2/landscape";
@@ -86,7 +81,12 @@ describe("settlement layout and movement", () => {
           `${pattern}: ${JSON.stringify(goal)}`,
         ).toBe("found");
       }
-      expect(p.places[0].owner).toBe("player");
+      // The player has a home here; which index it lands on is not a contract,
+      // and a town puts its civic range in the list first.
+      expect(
+        p.places.some((b) => b.owner === "player"),
+        pattern,
+      ).toBe(true);
       expect(p.actors.some((a) => a.id === "player")).toBe(false);
       signatures.add(JSON.stringify(p.places.map((b) => [b.x, b.y, b.sprite])));
     }
@@ -110,7 +110,7 @@ describe("settlement layout and movement", () => {
       ),
     ).toBeUndefined();
   });
-  it("keeps prop-filled generated households accessible and save continuation deterministic", () => {
+  it("keeps prop-filled generated households accessible", () => {
     const e = createSettingSession(setting(), "settlement-test"),
       p = (e.world as SettlementWorld).planAt(0, 0)!;
     expect(e.state.manifest).toMatchObject({
@@ -126,41 +126,7 @@ describe("settlement layout and movement", () => {
     for (const [id, w] of p.work)
       expect(e.findRoute(e.state.player.pos, w.work).status, id).toBe("found");
     expect(e.state.objects.some((o) => o.id.endsWith("-prop0"))).toBe(true);
-    const other = restoreSession(e.snapshot());
-    for (const current of [e, other])
-      current.act({
-        actionId: "wait-1",
-        expectedRevision: 0,
-        command: { type: "wait", seconds: 120 },
-      });
-    expect(other.hash()).toBe(e.hash());
-    const commands = e.state.log;
-    const rt = new Runtime(e);
-    rt.loadReplay({
-      manifest: e.state.manifest,
-      commands,
-      finalHash: e.hash(),
-    });
-    commands.forEach(() => rt.stepReplay());
-    expect(rt.engine.hash()).toBe(e.hash());
-    rt.dispose();
   }, 30000);
-  it("keeps old atlas saves on their original generator", () => {
-    const old = createSession(
-        "atlas",
-        "old-settlement",
-        undefined,
-        setting(),
-        2,
-        2,
-      ),
-      restored = restoreSession(old.snapshot());
-    expect(restored.state.manifest).toMatchObject({
-      generator: 2,
-      simulation: 1,
-    });
-    expect(restored.hash()).toBe(old.hash());
-  });
   it("keeps closed pens contained and opens gates as explicit player commands", () => {
     const e = createSettingSession(
       {

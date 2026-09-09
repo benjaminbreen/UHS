@@ -1,7 +1,7 @@
 import { places } from "./places";
-import { farms } from "./onsets";
 import { settingFor } from "./resolve";
 import { populateCharacter } from "./character";
+import { resolveCharacterContext } from "../characters/resolve";
 
 const firstRandomYear = -9999; // 10,000 BCE in astronomical numbering
 const onePastPresent = 2027;
@@ -76,8 +76,7 @@ export function randomPopulationWeightedYear(draw: number) {
       : (2 * remaining) /
         (segment.startPopulation +
           Math.sqrt(
-            segment.startPopulation ** 2 +
-              (2 * change * remaining) / duration,
+            segment.startPopulation ** 2 + (2 * change * remaining) / duration,
           ));
   return Math.min(segment.end - 1, segment.start + Math.floor(offset));
 }
@@ -91,14 +90,12 @@ export function randomStartFromDraws(draws: Uint32Array) {
   const place = places[draws[0] % places.length];
   const year = randomPopulationWeightedYear(draws[2] ?? 0);
   const seed = `world-${crypto.randomUUID()}`;
-  const roles = farms({ ...place, year })
-    ? ["Farmer", "Herder", "Craftsperson", "Trader", "Traveler"]
-    : ["Gatherer", "Hunter", "Traveler"];
-  const role = roles[draws[1] % roles.length];
-  const setting = populateCharacter(
-    { ...settingFor(place, year), role },
-    seed,
-  );
+  const base = settingFor(place, year);
+  // The work available here, rather than a fixed five; a Kyoto start can be a
+  // dyer and a Manchester one a match worker.
+  const work = resolveCharacterContext(base).livelihoods;
+  const role = work[draws[1] % work.length].label;
+  const setting = populateCharacter({ ...base, role }, seed);
   return { seed, setting };
 }
 

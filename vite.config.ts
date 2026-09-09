@@ -25,5 +25,9 @@ export default defineConfig({
   build: {
     rollupOptions: { output: { manualChunks: { phaser: ["phaser"] } } },
   },
-  server: { port: 5173, strictPort: true },
+  // PORT lets a second dev server run alongside the default one.
+  server: {
+    port: Number(process.env.PORT) || 5173,
+    strictPort: !process.env.PORT,
+  },
 });

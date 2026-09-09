@@ -13,9 +13,13 @@ export function regionalSettlements(
   prepared?: [string, PreparedSite[]][],
 ) {
   const cache = new Map<string, Site[]>();
+  // Square, not round. A circular claim forces every settlement to a disc, and
+  // the layouts that follow it are rectangular. Neighbour spacing already keeps
+  // sites apart; the named-place test below still bounds a claim to its own place.
   const accepts = (s: PreparedSite) => (x: number, y: number) =>
     context.canSettle(x, y) &&
-    Math.hypot(x - s.center.x, y - s.center.y) < s.profile.radius &&
+    Math.max(Math.abs(x - s.center.x), Math.abs(y - s.center.y)) <
+      s.profile.radius &&
     (s.namedId
       ? context.placeAt(x, y)?.id === s.namedId
       : !context.placeAt(x, y));

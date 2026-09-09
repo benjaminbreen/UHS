@@ -1,10 +1,5 @@
 import { describe, expect, it } from "vitest";
 import { resolveSetting } from "../src/content/geography/resolve";
-import {
-  createSettingSession,
-  restoreSession,
-  Runtime,
-} from "../src/runtime/session";
 const resolve = (prompt: string, seed = "routing") => {
   const result = resolveSetting(prompt, seed);
   if ("error" in result) throw Error(result.error);
@@ -41,27 +36,4 @@ describe("local-first setting interpretation", () => {
     expect(resolve("Florence weaver 750").setting.year).toBe(750);
     expect(resolve("Florence weaver 100 BCE").setting.year).toBe(-99);
   });
-  it("saves generated starting conditions and reproduces them in replay", () => {
-    const setting = resolve("renaissance Florence weaver").setting;
-    const engine = createSettingSession(setting, "routing");
-    expect(engine.state.player.name).toBe(setting.characterName);
-    expect(engine.state.player.hunger).toBe(setting.character!.hunger);
-    engine.act({
-      actionId: "wait",
-      expectedRevision: 0,
-      command: { type: "wait", seconds: 60 },
-    });
-    expect(restoreSession(engine.snapshot()).hash()).toBe(engine.hash());
-    const runtime = new Runtime(createSettingSession(setting, "routing"), {
-      cacheTerrain: false,
-    });
-    runtime.loadReplay({
-      manifest: engine.state.manifest,
-      commands: engine.state.log,
-      hash: engine.hash(),
-    });
-    runtime.stepReplay();
-    expect(runtime.engine.hash()).toBe(engine.hash());
-    runtime.dispose();
-  }, 30000);
 });

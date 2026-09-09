@@ -59,6 +59,9 @@ export type CharacterOrigin = {
   profile: string;
   community: string;
   nameKit?: string;
+  nameTradition?: string;
+  nameRegion?: string;
+  sex?: "unspecified" | "male" | "female";
   nameFormat?: string;
   nameFamilies?: string[];
   livelihood: string;
@@ -91,6 +94,10 @@ export type Actor = {
   memories: string[];
   direction: number;
   held?: string;
+  /** Set while a need has pulled this actor off their daily routine. Absent is
+   * the normal case, so a resident is drawn from the schedule from the first
+   * frame, before the simulation has ticked at all. */
+  offRoutine?: boolean;
   lastUpdated?: number;
   goal?: Position;
 };
@@ -125,7 +132,9 @@ export type WorldObject = {
     | "crop"
     | "tree"
     | "exit"
-    | "bed";
+    | "bed"
+    /** Looked at, not used. Carries no interaction of its own. */
+    | "monument";
   pos: Position;
   sprite: string;
   inventory: Inventory;
@@ -210,6 +219,9 @@ export type GameEvent = {
 export type PlayerCommand =
   | { type: "move"; dx: number; dy: number }
   | { type: "wait"; seconds: number }
+  /** Time passing while the player stands still. Logged so a replay keeps the
+   * same clock, but it raises no event of its own. */
+  | { type: "pass"; seconds: number }
   | {
       type: "interact";
       target: string;
@@ -322,6 +334,11 @@ export interface WorldModel {
   navigationCost?(x: number, y: number, actorId?: string): number;
   protectedCell?(x: number, y: number): boolean;
   propSlots?(placeId: string): { yard: Point[]; work: Point[] } | undefined;
+  /** A resident's whole day as a route. Built on demand and cached by the
+   * world: sampling it costs a binary search, not a path search. */
+  itinerary?(actorId: string): import("./itinerary").Itinerary | undefined;
+  /** True while a routine is still queued to be built. */
+  routinePending?(actorId: string): boolean;
   activitySites?(actorId: string):
     | {
         home: Point;

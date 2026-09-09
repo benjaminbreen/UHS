@@ -5,6 +5,7 @@ import { populateCharacter } from "./character";
 import { places } from "./places";
 import { urbanized } from "../settlements/urban-form";
 import { farms } from "./onsets";
+import { integratedSetting } from "./defaults";
 import { settingSchema, type AtlasPlace, type WorldSetting } from "./types";
 export const normalize = (s: string) =>
   s
@@ -108,20 +109,20 @@ export function settingFor(place: AtlasPlace, year = place.year): WorldSetting {
   // reached it, such as Tasmania, becomes a town on that later date, not on a
   // farming date it never had.
   const forager = !farms(where) && !town;
-  return settingSchema.parse({
-    version: 2,
-    placeId: place.id,
-    location: place.name,
-    lon: place.lon,
-    lat: place.lat,
-    year,
-    culture: place.culture,
-    climate: year < -9999 && place.lat > 48 ? "tundra" : place.climate,
-    relief: place.relief,
-    water: place.water,
-    settlement: forager ? "camp" : town ? place.settlement : "village",
-    architecture:
-      forager
+  return integratedSetting(
+    settingSchema.parse({
+      version: 2,
+      placeId: place.id,
+      location: place.name,
+      lon: place.lon,
+      lat: place.lat,
+      year,
+      culture: place.culture,
+      climate: year < -9999 && place.lat > 48 ? "tundra" : place.climate,
+      relief: place.relief,
+      water: place.water,
+      settlement: forager ? "camp" : town ? place.settlement : "village",
+      architecture: forager
         ? "shelter"
         : year < -3499
           ? "mudbrick"
@@ -132,11 +133,12 @@ export function settingFor(place: AtlasPlace, year = place.year): WorldSetting {
               ? "board"
               : "timber"
             : place.architecture,
-    role: "Traveler",
-    characterName: "Traveler",
-    community: "",
-    season: place.lat < 0 ? "autumn" : "spring",
-  });
+      role: "Traveler",
+      characterName: "Traveler",
+      community: "",
+      season: place.lat < 0 ? "autumn" : "spring",
+    }),
+  );
 }
 export function resolveSetting(
   input: string,

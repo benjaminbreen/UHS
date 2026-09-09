@@ -1,5 +1,8 @@
 import { resolveCharacterContext } from "../../content/characters/resolve";
-import { generateCharacter } from "../../content/characters/generate";
+import {
+  characterSex,
+  generateCharacter,
+} from "../../content/characters/generate";
 import type {
   Actor,
   Household,
@@ -8,6 +11,7 @@ import type {
 } from "../../core/types";
 import type { SettlementPlan } from "./types";
 import { random } from "../../core/random";
+import { gathererRoutine, socialStop } from "./routines";
 import { ecologyProfiles } from "../../content/ecology/profiles";
 const seasons = ["spring", "summer", "autumn", "winter"];
 /** Small explicit household patterns, not a universal nuclear-family assumption. */
@@ -54,17 +58,25 @@ export function populateHouseholds(
         generateCharacter(pack.setting, seed, adult.id, age, adult.role),
       );
     // world.initialActors shares these objects with the completed plan.
-    const extended =
-      form === "extended" ||
-      (form === "mixed" && random(seed, id, "form") > 0.55);
     const roll = random(seed, id, "form");
     const shared = form === "shared" || (form === "mixed" && roll < 0.4);
+    // A settlement of one household form keeps it; the mixed default is
+    // sampled, because a legible street wants a few people out on visible
+    // errands rather than every resident stood in their own yard.
+    const size = random(seed, id, "size");
     const count =
-      form === "mixed" && roll < 0.15 ? 0 : shared ? 2 : extended ? 3 : 2;
+      owner === "player" || form === "extended" || form === "shared"
+        ? 2
+        : size < 0.45
+          ? 0
+          : size < 0.85
+            ? 1
+            : 2;
     for (let i = 0; i < count; i++) {
-      const child = !shared && i === 1,
-        elder = !shared && i === 2;
       const memberId = `${owner}-member-${i}`;
+      const kin = random(seed, memberId, "kin");
+      const child = !shared && (i > 0 ? kin < 0.7 : kin < 0.3);
+      const elder = !shared && !child && i === 0 && kin > 0.85;
       const relation = child
         ? "parent"
         : elder
@@ -133,6 +145,13 @@ export function populateHouseholds(
                 partner?.origin?.nameFamilies?.[0]
               ? [parent.nameFamilies[0], partner.origin.nameFamilies[0]]
               : undefined;
+        // A partner is drawn opposite the householder; everyone else is free.
+        const sex =
+          relation === "partner"
+            ? characterSex(seed, owner) === "female"
+              ? "male"
+              : "female"
+            : characterSex(seed, memberId);
         Object.assign(
           a,
           generateCharacter(
@@ -140,9 +159,11 @@ export function populateHouseholds(
             seed,
             memberId,
             a.age,
-            "Gatherer",
+            // Adults in a household hold their own work; only children do not.
+            child ? "Child" : undefined,
             undefined,
             inherited,
+            sex,
           ),
         );
         if (child) {
@@ -175,6 +196,23 @@ export function populateHouseholds(
       }
       household.members.push(memberId);
       world.initialActors.push(a);
+      // Members get a routine of their own so a household spreads across the
+      // settlement during the day instead of stacking on one doorstep.
+      plan.work.set(memberId, {
+        ...sites,
+        label: child ? "Errands" : "Gathering",
+        offset: (sites.offset + 37 * (i + 1)) % 1440,
+      });
+      plan.stations.set(memberId, [
+        ...gathererRoutine(plan, seed, memberId, owner, sites.home, child),
+        socialStop(plan, seed, memberId, sites.home),
+        {
+          pos: sites.home,
+          activity: "rest",
+          label: "At home",
+          minutes: 420,
+        },
+      ]);
       if (child) {
         const partner = world.initialActors.find(
           (b) =>

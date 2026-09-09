@@ -16,6 +16,10 @@ const setting = (
 ): WorldSetting => ({
   ...settingFor(places.find((p) => p.id === "konya")!, -6499),
   terrainRevision: 2,
+  // `settingFor` returns an Earth setting, whose named places are planted
+  // whatever the environment says. This suite is about configured worlds, so
+  // it has to ask for one; otherwise Konya arrives with its own households.
+  geographyMode: "configured",
   water: "none",
   season: "summer",
   environment: {

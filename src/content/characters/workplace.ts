@@ -1,0 +1,65 @@
+/** Where a livelihood's day actually happens. The ported livelihoods carry an
+ * activity string but no place, so everyone ended up in the market square; this
+ * reads the place back off the activity rather than duplicating the table. */
+export const workplaces = [
+  "wild",
+  "water",
+  "field",
+  "pasture",
+  "extraction",
+  "market",
+  "civic",
+  "carrying",
+  "workshop",
+  "household",
+] as const;
+export type Workplace = (typeof workplaces)[number];
+const byActivity: Record<string, Workplace> = {
+  "Gathering plants": "wild",
+  "Looking for game": "wild",
+  "Cutting timber": "wild",
+  "Working timber": "wild",
+  "Gathering fuel": "wild",
+  "Burning charcoal": "wild",
+  "Keeping the hives": "wild",
+  "Working near water": "water",
+  "Working the water": "water",
+  "Working the wharf": "water",
+  Washing: "water",
+  "Carrying water": "water",
+  "Tending cultivation": "field",
+  "Bringing in the crop": "field",
+  "Working the smallholding": "field",
+  "Working the grain": "field",
+  "Tending animals": "pasture",
+  "Working underground": "extraction",
+  "Working stone": "extraction",
+  "Working the salt": "extraction",
+  "Burning lime": "extraction",
+  "Making brick": "extraction",
+  "Minding the stall": "market",
+  "Exchanging goods": "market",
+  "Keeping the house": "market",
+  "At the rite": "civic",
+  "Keeping the record": "civic",
+  "Standing watch": "civic",
+  "Tending the sick": "civic",
+  "On the line": "civic",
+  "At the machine": "civic",
+  Building: "civic",
+  "Working the roof": "civic",
+  "Carrying a load": "carrying",
+  "Running errands": "carrying",
+  "Clearing waste": "carrying",
+  "Household work": "household",
+  "Looking after the household": "household",
+  Cooking: "household",
+  "Preparing food": "household",
+  Cleaning: "household",
+  "Keeping the fire": "household",
+  "Attending on someone": "household",
+};
+/** Anything not listed is bench work: a yard, a shed, a room off the street. */
+export function workplaceFor(activity: string): Workplace {
+  return byActivity[activity] ?? "workshop";
+}

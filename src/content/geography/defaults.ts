@@ -25,12 +25,17 @@ export function environmentFor(
 
 /** Called only for new worlds. Workers and replay consume the pinned input as-is. */
 export function integratedSetting(s: WorldSetting): WorldSetting {
-  if (s.terrainRevision === 1) return { ...s, characterRevision: 1 };
+  if (s.terrainRevision === 1)
+    return { ...s, characterRevision: s.characterRevision ?? 1 };
   if (s.geographyRevision)
-    return { ...s, characterRevision: 1, vegetationRevision: 4 };
+    return {
+      ...s,
+      characterRevision: s.characterRevision ?? 1,
+      vegetationRevision: 4,
+    };
   return {
     ...s,
-    characterRevision: 1,
+    characterRevision: 2,
     geographyRevision: 1,
     urbanRevision: 2,
     roadRevision: 1,

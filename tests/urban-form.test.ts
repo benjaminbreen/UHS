@@ -13,7 +13,10 @@ import { farms, farmingOnset } from "../src/content/geography/onsets";
 import { urbanFrames } from "../src/world/v3/urban";
 import { packForSetting } from "../src/content/geography/pack";
 import kit from "../src/content/graphics/urban.json";
-import { urbanCapacity } from "../src/content/settlements/scale";
+import {
+  urbanCapacity,
+  URBAN_CAPACITY,
+} from "../src/content/settlements/scale";
 import type { WorldSetting } from "../src/content/geography/types";
 import type { UrbanForm } from "../src/content/settlements/urban-form/types";
 
@@ -24,7 +27,9 @@ const at = (
   year: number,
 ) => urbanForm({ culture, lon, lat, year } as WorldSetting);
 
-const pack = packForSetting(settingFor(places.find((p) => p.id === "rome")!, 100));
+const pack = packForSetting(
+  settingFor(places.find((p) => p.id === "rome")!, 100),
+);
 const center = { x: 0, y: 0 };
 const compose = (form: UrbanForm, radius = 96, seed = "seed") =>
   composeUrban("site", center, radius, form, seed);
@@ -142,26 +147,33 @@ it("keeps gates on the built edge and stable against the world seed", () => {
 
 it("varies the interior with the world seed while the layout stays deterministic", () => {
   const form = at("european", 12.5, 41.9, 1300);
-  expect(compose(form, 96, "a")).toEqual(compose(form, 96, "a"));
-  expect(JSON.stringify(compose(form, 96, "a").blocks)).not.toBe(
-    JSON.stringify(compose(form, 96, "b").blocks),
-  );
+  // The layout carries closures for its boundary, so compare what it composed.
+  const shape = (seed: string) => {
+    const l = compose(form, 96, seed);
+    return JSON.stringify([l.blocks, l.streets, l.plaza, l.wall?.cells]);
+  };
+  expect(shape("a")).toBe(shape("a"));
+  expect(shape("a")).not.toBe(shape("b"));
 });
 
-it("scales capacity with extent rather than a fixed count", () => {
+it("scales capacity with extent and block size, and stays bounded", () => {
   const form = at("east-asian", 116, 40, 1450);
   expect(urbanCapacity(30, form)).toBeLessThan(urbanCapacity(60, form));
-  expect(urbanCapacity(60, form)).toBeLessThan(urbanCapacity(110, form));
-  expect(urbanCapacity(400, form)).toBeLessThanOrEqual(150);
-  // A courtyard fabric spends more ground per household than a survey grid.
-  expect(urbanCapacity(96, at("andean", -72, -13, 1450))).toBeLessThan(
-    urbanCapacity(96, at("european", -75, 40, 1750)),
+  expect(urbanCapacity(60, form)).toBeLessThan(urbanCapacity(90, form));
+  expect(urbanCapacity(400, form)).toBeLessThanOrEqual(URBAN_CAPACITY);
+  // Capacity counts street frontage, so at one extent a fabric of smaller
+  // blocks holds more of it: more blocks means more block edge.
+  const small = at("north-african-west-asian", 44, 33, 900);
+  expect(small.block[0] * small.block[1]).toBeLessThan(
+    form.block[0] * form.block[1],
   );
+  expect(urbanCapacity(55, small)).toBeGreaterThan(urbanCapacity(55, form));
 });
 
 it("only ranks a place as a town where an urban fabric is attested by then", () => {
   const place = (id: string) => places.find((p) => p.id === id)!;
-  const rank = (id: string, year: number) => settingFor(place(id), year).settlement;
+  const rank = (id: string, year: number) =>
+    settingFor(place(id), year).settlement;
   // Reported case: the atlas ranks Hobart a city from its modern prominence.
   expect(place("city-hobart").settlement).toBe("city");
   expect(rank("city-hobart", -1320)).toBe("camp");
@@ -173,8 +185,12 @@ it("only ranks a place as a town where an urban fabric is attested by then", () 
   expect(rank("london", 1400)).toBe("city");
   expect(rank("london", -1320)).toBe("village");
   // A fabric whose window has closed still leaves the place urban.
-  expect(urbanized({ culture: "east-asian", lon: 139.7, lat: 35.7, year: 1700 })).toBe(true);
-  expect(urbanOnset({ culture: "australian-pacific", lon: 147.3, lat: -42.9 })).toBe(Infinity);
+  expect(
+    urbanized({ culture: "east-asian", lon: 139.7, lat: 35.7, year: 1700 }),
+  ).toBe(true);
+  expect(
+    urbanOnset({ culture: "australian-pacific", lon: 147.3, lat: -42.9 }),
+  ).toBe(Infinity);
 });
 
 it("never paves or densifies a settlement before its region has towns", () => {
@@ -225,8 +241,12 @@ it("caps house height at what the fabric built", () => {
 });
 
 it("makes people foragers where farming has not arrived", () => {
-  const w = (culture: WorldSetting["culture"], lon: number, lat: number, year: number) =>
-    ({ culture, lon, lat, year }) as WorldSetting;
+  const w = (
+    culture: WorldSetting["culture"],
+    lon: number,
+    lat: number,
+    year: number,
+  ) => ({ culture, lon, lat, year }) as WorldSetting;
   // Tasmania: no farming at any date, so a start there is a camp until the
   // modern settlement network reaches it.
   expect(farms(w("australian-pacific", 147.3, -42.9, 1700))).toBe(false);
@@ -262,4 +282,59 @@ it("ranks and equips a place consistently across its whole history", () => {
       expect(p.paved, where).toBe(false);
       expect(p.livestock, where).toBe(false);
     }
+});
+
+it("walls the fabrics attested as walled, with a closed ring open only at gates", () => {
+  const walled = at("east-asian", 116, 40, 1450);
+  const open = at("east-asian", 135, 35, 1200);
+  expect(walled.wall).toBe("masonry");
+  // A capital laid out without a circuit is not given one.
+  expect(open.wall).toBe("none");
+  expect(at("west-central-african", 8, 12, 1500).wall).toBe("earth");
+  expect(at("mesoamerican", -99, 19, 1500).wall).toBe("none");
+  expect(compose(open).wall).toBeUndefined();
+
+  const layout = compose(walled);
+  const wall = layout.wall!;
+  const ring = new Set(wall.cells.map((p) => `${p.x},${p.y}`));
+  expect(ring.size).toBeGreaterThan(200);
+  // Every gate is an opening, and every opening is off the ring.
+  for (const gate of layout.gates) {
+    expect(ring.has(`${gate.point.x},${gate.point.y}`)).toBe(false);
+    expect(wall.openings.has(`${gate.point.x},${gate.point.y}`)).toBe(true);
+    // A gate stands on the circuit, not off it.
+    expect(
+      Math.round(Math.hypot(gate.point.x, gate.point.y)),
+    ).toBeGreaterThanOrEqual(layout.half - 1);
+  }
+  // The circuit encloses: no cardinal step leaves the middle without passing an
+  // opening. Walking straight out along each axis must meet wall or gate.
+  for (const [dx, dy] of [
+    [1, 0],
+    [-1, 0],
+    [0, 1],
+    [0, -1],
+  ]) {
+    let hit = false;
+    for (let d = 1; d <= layout.half + 2 && !hit; d++)
+      hit =
+        ring.has(`${dx * d},${dy * d}`) ||
+        wall.openings.has(`${dx * d},${dy * d}`);
+    expect(hit, `${dx},${dy}`).toBe(true);
+  }
+  // Nothing is built across the circuit, and no street runs through it.
+  for (const b of layout.blocks)
+    for (const [x, y] of [
+      [b.x, b.y],
+      [b.x + b.w - 1, b.y + b.h - 1],
+    ])
+      expect(ring.has(`${x},${y}`), `block ${b.x},${b.y}`).toBe(false);
+  for (const s of layout.streets) {
+    const steps = Math.max(Math.abs(s.b.x - s.a.x), Math.abs(s.b.y - s.a.y));
+    for (let i = 0; i <= steps; i++) {
+      const x = Math.round(s.a.x + ((s.b.x - s.a.x) * i) / (steps || 1));
+      const y = Math.round(s.a.y + ((s.b.y - s.a.y) * i) / (steps || 1));
+      expect(ring.has(`${x},${y}`), `street ${s.a.x},${s.a.y}`).toBe(false);
+    }
+  }
 });

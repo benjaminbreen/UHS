@@ -2,6 +2,7 @@ import { random } from "../../core/random";
 import type { Point } from "../../core/types";
 import type { UrbanForm } from "../../content/settlements/urban-form/types";
 import { urbanFootprint } from "../../content/settlements/scale";
+import { line } from "./roads";
 import { cellKey, type Rect } from "./types";
 
 export type Gate = { point: Point; nx: number; ny: number; axis: "x" | "y" };
@@ -32,6 +33,10 @@ export type UrbanLayout = {
   plaza: Rect;
   half: number;
   wall?: Wall;
+  /** Distance from the centre to the built edge on this bearing, in radians. */
+  edge(angle: number): number;
+  /** Whether a point lies inside the built edge, less an optional margin. */
+  holds(x: number, y: number, margin?: number): boolean;
 };
 
 /** Outward normals in a fixed order. Which ones are used depends on the gate
@@ -45,6 +50,12 @@ const sides: Gate[] = [
 
 const even = (n: number) => Math.round(n / 2) * 2;
 
+/** A circuit belongs to a whole settlement. A large place is planned as several
+ * neighbourhoods sharing one identity, and walling each of them would put a
+ * rampart between one quarter of a city and the next. */
+export const hasCircuit = (form: UrbanForm, radius: number) =>
+  form.wall !== "none" && radius >= 40;
+
 /** Where through routes should meet the built edge. Pure in the site's own
  * identity so the regional road layer and the local planner agree without
  * either of them building the other's geometry. */
@@ -54,7 +65,7 @@ export function urbanGates(
   radius: number,
   form: UrbanForm,
 ): Gate[] {
-  const half = urbanFootprint(radius);
+  const half = urbanFootprint(radius, form);
   const spine: "x" | "y" =
     random(siteId, "spine") < 0.5 && form.plan === "linear" ? "y" : "x";
   const order =
@@ -75,10 +86,9 @@ export function urbanGates(
           );
     // A walled gate has to stand on the circuit itself, so drifting it along
     // the wall shortens its distance from the centre rather than leaving the ring.
-    const along =
-      form.wall === "none"
-        ? half
-        : Math.round(Math.sqrt(Math.max(1, half * half - drift * drift)));
+    const along = !hasCircuit(form, radius)
+      ? half
+      : Math.round(Math.sqrt(Math.max(1, half * half - drift * drift)));
     return {
       nx: s.nx,
       ny: s.ny,
@@ -122,11 +132,113 @@ export function composeUrban(
    * built edge varies with the world. */
   seed: string,
   plazaBias?: Point,
+  /** Whether a cell can be built on. Omitted, the boundary is the fabric's own
+   * ideal shape; supplied, terrain pulls that shape inward wherever it fails. */
+  usable?: (x: number, y: number) => boolean,
 ): UrbanLayout {
-  const half = urbanFootprint(radius);
+  const half = urbanFootprint(radius, form);
   const rand = (...keys: (string | number)[]) =>
     random(seed, siteId, "compose", ...keys);
   const gates = urbanGates(siteId, center, radius, form);
+
+  // --- The built edge -------------------------------------------------------
+  // The shape a fabric would take on open ground, before terrain has a say. A
+  // grid was laid out as a rectangle and a grown town was not, so the two do
+  // not get the same outline. Nothing here is a circle.
+  const BEARINGS = 72;
+  const ideal = (() => {
+    if (form.plan === "orthogonal" || form.plan === "linear") {
+      const stretch = form.plan === "linear" ? 1.75 : 1 + rand("aspect") * 0.34;
+      const turned =
+        form.plan === "linear" ? gates[0].axis === "y" : rand("turn") < 0.5;
+      const along = half,
+        across = half / stretch;
+      const a = turned ? across : along,
+        b = turned ? along : across;
+      return (angle: number) =>
+        Math.min(
+          Math.abs(a / Math.cos(angle)) || Infinity,
+          Math.abs(b / Math.sin(angle)) || Infinity,
+        );
+    }
+    // A grown circuit wanders. Three harmonics keep it smooth and closed.
+    const swing =
+      form.plan === "radial" ? 0.1 : 0.14 + 0.12 * (1 - form.regularity);
+    const phase = [0, 1, 2].map((k) => rand("shape", k) * Math.PI * 2);
+    return (angle: number) =>
+      half *
+      (1 +
+        swing *
+          (0.6 * Math.sin(2 * angle + phase[0]) +
+            0.28 * Math.sin(3 * angle + phase[1]) +
+            0.16 * Math.sin(5 * angle + phase[2])));
+  })();
+
+  const bearing = (i: number) =>
+    ((i + BEARINGS) % BEARINGS) * ((Math.PI * 2) / BEARINGS);
+  // Cast outward on each bearing and stop at the last cell that holds. Terrain
+  // decides where a wall can actually stand; the ideal shape only says where it
+  // would like to.
+  const radii = Array.from({ length: BEARINGS }, (_, i) => {
+    const angle = bearing(i);
+    // Not clamped to the footprint radius: that radius is the half-extent of a
+    // rectangle, and clamping its diagonal to it is exactly what turns every
+    // outline back into a disc.
+    const want = ideal(angle);
+    if (!usable) return want;
+    const floor = half * 0.42;
+    let r = want;
+    while (
+      r > floor &&
+      !usable(
+        Math.round(center.x + Math.cos(angle) * r),
+        Math.round(center.y + Math.sin(angle) * r),
+      )
+    )
+      r -= 1;
+    return r;
+  });
+  // A single refused cell should dent the outline, not gouge it. What gets
+  // smoothed is how much the ground took away, not the outline itself:
+  // averaging the outline would round the corners off every rectangle.
+  const wanted = radii.map((_, i) => ideal(bearing(i)));
+  const smoothed = radii.map((_, i) => {
+    const trim =
+      [-2, -1, 0, 1, 2]
+        .map((d) => {
+          const j = (i + d + BEARINGS) % BEARINGS;
+          return wanted[j] - radii[j];
+        })
+        .reduce((a, b) => a + b) / 5;
+    return Math.max(radii[i], wanted[i] - trim);
+  });
+  // A wall has to reach its own gates, whatever the bearings either side say.
+  for (const gate of gates) {
+    const angle = Math.atan2(gate.point.y - center.y, gate.point.x - center.x);
+    const reachTo = Math.hypot(
+      gate.point.x - center.x,
+      gate.point.y - center.y,
+    );
+    const i = Math.round((angle / (Math.PI * 2)) * BEARINGS);
+    for (const d of [-1, 0, 1])
+      smoothed[(i + d + BEARINGS) % BEARINGS] = Math.max(
+        smoothed[(i + d + BEARINGS) % BEARINGS],
+        reachTo,
+      );
+  }
+  const edge = (angle: number) => {
+    const t = (angle / (Math.PI * 2)) * BEARINGS;
+    const i = Math.floor(t),
+      f = t - i;
+    const a = smoothed[((i % BEARINGS) + BEARINGS) % BEARINGS],
+      b = smoothed[(((i + 1) % BEARINGS) + BEARINGS) % BEARINGS];
+    return a + (b - a) * f;
+  };
+  const holds = (x: number, y: number, margin = 0) => {
+    const dx = x - center.x,
+      dy = y - center.y;
+    return Math.hypot(dx, dy) <= edge(Math.atan2(dy, dx)) - margin;
+  };
   const streets: Segment[] = [];
   const [arterial, street, lane] = form.tiers;
   const width = (tier: Tier) => [arterial, street, lane][tier];
@@ -137,8 +249,28 @@ export function composeUrban(
     h: half * 2 + 1,
   };
 
-  // The plaza is placed before the arterials so they can terminate on it.
-  const size = Math.max(7, even(half * 2 * form.plazaScale) + 1);
+  const walled = hasCircuit(form, radius);
+  const margin = walled ? arterial + 1 : 0;
+  /** Pull `v` back along `axis` until it lies inside the built edge. The edge is
+   * not a circle, so there is no closed form for it; walking in from the far end
+   * is exact and costs at most the length of the street. */
+  const inside = (v: number, axis: "x" | "y", fixed: number) => {
+    const origin = axis === "x" ? center.x : center.y;
+    const step = v >= origin ? -1 : 1;
+    let out = v;
+    while (
+      out !== origin &&
+      !holds(axis === "x" ? out : fixed, axis === "x" ? fixed : out, margin)
+    )
+      out += step;
+    return out;
+  };
+
+  // The plaza is placed before the arterials so they can terminate on it. Its
+  // scale is read against the radius, not the width: against the width a fifth
+  // put a third of the town under one square, which is a parade ground rather
+  // than a market place.
+  const size = Math.max(7, even(half * form.plazaScale) + 1);
   const bias =
     form.plaza === "waterfront" && plazaBias
       ? plazaBias
@@ -251,44 +383,44 @@ export function composeUrban(
         continue;
       cuts[axis].add(at);
       // A circuit is only breached at its gates, so an avenue stops short of it.
-      const edge = form.wall === "none" ? 0 : arterial + 1;
+      const lo = inside(
+        (axis === "x" ? center.y : center.x) - half,
+        axis === "x" ? "y" : "x",
+        at,
+      );
+      const hi = inside(
+        (axis === "x" ? center.y : center.x) + half,
+        axis === "x" ? "y" : "x",
+        at,
+      );
+      if (hi - lo < 12) continue;
       streets.push(
         axis === "x"
-          ? {
-              a: { x: at, y: bounds.y + edge },
-              b: { x: at, y: bounds.y + bounds.h - 1 - edge },
-              tier: 0,
-            }
-          : {
-              a: { x: bounds.x + edge, y: at },
-              b: { x: bounds.x + bounds.w - 1 - edge, y: at },
-              tier: 0,
-            },
+          ? { a: { x: at, y: lo }, b: { x: at, y: hi }, tier: 0 }
+          : { a: { x: lo, y: at }, b: { x: hi, y: at }, tier: 0 },
       );
     }
   }
 
-  /** Clamped clear of the circuit, which has no opening here. */
-  const margin = form.wall === "none" ? 0 : arterial + 1;
-  const inside = (v: number, axis: "x" | "y") =>
-    Math.min(
-      Math.max(v, (axis === "x" ? bounds.x : bounds.y) + margin),
-      (axis === "x" ? bounds.x + bounds.w : bounds.y + bounds.h) - 1 - margin,
-    );
-
   // Quarters between the arterials, then blocks inside each quarter.
+  // Every bend in an arterial contributes a cut, so on an irregular fabric the
+  // raw set is dense enough that almost every quarter came out under the
+  // eight-cell minimum and was dropped: a medina turned a fifth of its extent
+  // into block. Cuts closer together than a block are merged.
   const edges = (axis: "x" | "y") => {
     const lo = axis === "x" ? bounds.x : bounds.y;
     const hi = lo + (axis === "x" ? bounds.w : bounds.h) - 1;
-    return [
-      lo,
-      ...[...cuts[axis]].filter((v) => v > lo + 6 && v < hi - 6),
-      hi,
-    ].sort((a, b) => a - b);
+    const least = (axis === "x" ? form.block[0] : form.block[1]) * 0.7;
+    const kept: number[] = [lo];
+    for (const v of [...cuts[axis]].sort((a, b) => a - b))
+      if (v > lo + 6 && v < hi - 6 && v - kept[kept.length - 1] >= least)
+        kept.push(v);
+    if (hi - kept[kept.length - 1] < least && kept.length > 1) kept.pop();
+    return [...kept, hi];
   };
   const xs = edges("x"),
     ys = edges("y");
-  const inset = arterial + 2;
+  const inset = arterial + 1;
   const blocks: Block[] = [];
   const quarters: Rect[] = [];
   for (let j = 1; j < ys.length; j++)
@@ -303,18 +435,10 @@ export function composeUrban(
       quarters.push(...subtract(rect, plaza, arterial + 1));
     }
 
-  // A walled settlement is built up to its wall and not past it.
-  const walled = form.wall !== "none";
-  const enclosed = (r: Rect) =>
-    !walled ||
-    [
-      [r.x, r.y],
-      [r.x + r.w - 1, r.y],
-      [r.x, r.y + r.h - 1],
-      [r.x + r.w - 1, r.y + r.h - 1],
-    ].every(
-      ([x, y]) => Math.hypot(x - center.x, y - center.y) <= half - arterial - 1,
-    );
+  // A settlement is built up to its edge and not past it. The test is on the
+  // block's middle, not its corners: a block that overhangs still holds ranges
+  // on its inner sides, and each parcel is put to the ground individually.
+  const enclosed = (r: Rect) => holds(r.x + r.w / 2, r.y + r.h / 2, margin);
 
   for (const [q, quarter] of quarters.entries()) subdivide(quarter, 0, `q${q}`);
 
@@ -324,7 +448,7 @@ export function composeUrban(
     const size = horizontal ? rect.w : rect.h;
     const target = horizontal ? bw : bh;
     const tier: Tier = depth === 0 ? 1 : 2;
-    const gap = width(tier) * 2 + 2;
+    const gap = width(tier) * 2 + 1;
     // Split only while splitting brings the parts closer to the target than
     // leaving the block whole would; otherwise blocks drift to twice the module.
     const parts = Math.max(1, Math.round(size / target));
@@ -365,13 +489,13 @@ export function composeUrban(
         streets.push(
           horizontal
             ? {
-                a: { x: line, y: inside(rect.y - inset, "y") },
-                b: { x: line, y: inside(rect.y + rect.h + inset, "y") },
+                a: { x: line, y: inside(rect.y - inset, "y", line) },
+                b: { x: line, y: inside(rect.y + rect.h + inset, "y", line) },
                 tier,
               }
             : {
-                a: { x: inside(rect.x - inset, "x"), y: line },
-                b: { x: inside(rect.x + rect.w + inset, "x"), y: line },
+                a: { x: inside(rect.x - inset, "x", line), y: line },
+                b: { x: inside(rect.x + rect.w + inset, "x", line), y: line },
                 tier,
               },
         );
@@ -408,15 +532,14 @@ export function composeUrban(
     });
   }
 
-  return { gates, streets, blocks, plaza, half, wall: circuit() };
+  return { gates, streets, blocks, plaza, half, edge, holds, wall: circuit() };
 
-  /** The circuit runs at the edge of the built extent. It is a ring rather than
-   * a rectangle because the ground a settlement is allowed to occupy is bounded
-   * by its distance from the centre: a square circuit of the same half-extent
-   * puts its corners outside the site altogether, and only its four mid-edge
-   * arcs would ever be built. Each gate is opened wide enough for its arterial. */
+  /** The circuit follows the built edge, which is the fabric's own outline
+   * pulled in wherever the ground refused it. Consecutive boundary points are
+   * joined with cardinal steps, so the ring is closed and cannot be walked
+   * through diagonally. Each gate is opened wide enough for its arterial. */
   function circuit(): Wall | undefined {
-    if (form.wall === "none") return;
+    if (!walled || form.wall === "none") return;
     const openings = new Set<string>();
     for (const gate of gates)
       for (let d = -arterial - 1; d <= arterial + 1; d++)
@@ -425,40 +548,41 @@ export function composeUrban(
             ? cellKey(gate.point.x, gate.point.y + d)
             : cellKey(gate.point.x + d, gate.point.y),
         );
-    // One cell per column and per row, so the ring is closed under cardinal
-    // steps and cannot be walked through diagonally.
+    const at = (i: number) => {
+      const angle = bearing(i);
+      const r = smoothed[((i % BEARINGS) + BEARINGS) % BEARINGS];
+      return {
+        x: Math.round(center.x + Math.cos(angle) * r),
+        y: Math.round(center.y + Math.sin(angle) * r),
+      };
+    };
     const seen = new Set<string>();
     const cells: Point[] = [];
-    const put = (x: number, y: number) => {
-      const key = cellKey(x, y);
-      if (seen.has(key)) return;
-      seen.add(key);
-      if (!openings.has(key)) cells.push({ x, y });
-    };
-    for (let d = -half; d <= half; d++) {
-      const across = Math.round(Math.sqrt(Math.max(0, half * half - d * d)));
-      put(center.x + d, center.y + across);
-      put(center.x + d, center.y - across);
-      put(center.x + across, center.y + d);
-      put(center.x - across, center.y + d);
-    }
+    let lo = { x: Infinity, y: Infinity },
+      hi = { x: -Infinity, y: -Infinity };
+    for (let i = 0; i < BEARINGS; i++)
+      for (const q of line(at(i), at(i + 1))) {
+        const key = cellKey(q.x, q.y);
+        if (seen.has(key)) continue;
+        seen.add(key);
+        lo = { x: Math.min(lo.x, q.x), y: Math.min(lo.y, q.y) };
+        hi = { x: Math.max(hi.x, q.x), y: Math.max(hi.y, q.y) };
+        if (!openings.has(key)) cells.push(q);
+      }
+    if (!cells.length) return;
     return {
       material: form.wall,
-      rect: {
-        x: center.x - half,
-        y: center.y - half,
-        w: half * 2 + 1,
-        h: half * 2 + 1,
-      },
+      rect: { ...lo, w: hi.x - lo.x + 1, h: hi.y - lo.y + 1 },
       cells,
       openings,
     };
   }
 }
 
-/** Largest parts of `rect` left once `hole` and its street margin are removed.
- * Keeps the two widest strips rather than a full rectangle decomposition; the
- * discarded slivers would be too shallow to hold a building anyway. */
+/** `rect` with `hole` and its street margin removed, as up to four disjoint
+ * rectangles. Keeping only the two largest strips, as this once did, silently
+ * discarded most of every quarter the public square touched: a medina turned
+ * barely a fifth of its extent into block. */
 function subtract(rect: Rect, hole: Rect, margin: number): Rect[] {
   const h = {
     x: hole.x - margin,
@@ -466,53 +590,28 @@ function subtract(rect: Rect, hole: Rect, margin: number): Rect[] {
     w: hole.w + margin * 2,
     h: hole.h + margin * 2,
   };
+  const right = rect.x + rect.w,
+    bottom = rect.y + rect.h;
   if (
-    h.x >= rect.x + rect.w ||
-    h.y >= rect.y + rect.h ||
+    h.x >= right ||
+    h.y >= bottom ||
     h.x + h.w <= rect.x ||
     h.y + h.h <= rect.y
   )
     return [rect];
-  const strips: Rect[] = [
+  // Two full-height side strips, then the band between them split above and
+  // below the hole. Guillotine cuts, so nothing overlaps and nothing is lost.
+  const bandX = Math.max(rect.x, h.x),
+    bandRight = Math.min(right, h.x + h.w);
+  return [
     { x: rect.x, y: rect.y, w: h.x - rect.x, h: rect.h },
+    { x: h.x + h.w, y: rect.y, w: right - (h.x + h.w), h: rect.h },
+    { x: bandX, y: rect.y, w: bandRight - bandX, h: h.y - rect.y },
     {
-      x: h.x + h.w,
-      y: rect.y,
-      w: rect.x + rect.w - (h.x + h.w),
-      h: rect.h,
-    },
-    { x: rect.x, y: rect.y, w: rect.w, h: h.y - rect.y },
-    {
-      x: rect.x,
+      x: bandX,
       y: h.y + h.h,
-      w: rect.w,
-      h: rect.y + rect.h - (h.y + h.h),
+      w: bandRight - bandX,
+      h: bottom - (h.y + h.h),
     },
   ].filter((r) => r.w >= 8 && r.h >= 8);
-  strips.sort((a, b) => b.w * b.h - a.w * a.h);
-  // The best strip plus the best perpendicular one; together they never overlap
-  // each other's short side by more than the plaza margin already removed.
-  const first = strips[0];
-  if (!first) return [];
-  const second = strips.find(
-    (r) => r !== first && (r.w === rect.w) !== (first.w === rect.w),
-  );
-  return second
-    ? [first, clip(second, first)].filter((r) => r.w >= 8 && r.h >= 8)
-    : [first];
-}
-
-/** Trim `r` clear of `keep` along whichever axis costs least area. */
-function clip(r: Rect, keep: Rect): Rect {
-  const ox = Math.min(r.x + r.w, keep.x + keep.w) - Math.max(r.x, keep.x);
-  const oy = Math.min(r.y + r.h, keep.y + keep.h) - Math.max(r.y, keep.y);
-  if (ox <= 0 || oy <= 0) return r;
-  if (r.w > r.h) {
-    return r.x < keep.x
-      ? { ...r, w: keep.x - r.x }
-      : { ...r, x: keep.x + keep.w, w: r.x + r.w - (keep.x + keep.w) };
-  }
-  return r.y < keep.y
-    ? { ...r, h: keep.y - r.y }
-    : { ...r, y: keep.y + keep.h, h: r.y + r.h - (keep.y + keep.h) };
 }

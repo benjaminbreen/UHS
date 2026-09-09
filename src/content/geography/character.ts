@@ -64,7 +64,7 @@ export function populateCharacter(
   setting: WorldSetting,
   seed: string,
 ): WorldSetting {
-  setting = { ...setting, characterRevision: 1 };
+  setting = { ...setting, characterRevision: setting.characterRevision ?? 1 };
   const generated = generateCharacter(
     setting,
     seed,

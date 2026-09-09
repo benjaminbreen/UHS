@@ -303,9 +303,20 @@ export function drawHead(
     p.rect(10, 9, 1, 2, skin.light);
   }
   if (!back && a.beard !== "none") {
-    if (a.beard === "moustache")
-      p.rect(side ? 15 : 8, 11, side ? 2 : 6, 1, hair.shade);
-    else if (a.beard === "stubble") {
+    const b = a.beard;
+    // Every jaw shape is at least six pixels wide at y13, so chin-hugging
+    // styles anchor there rather than to a per-jaw contour.
+    const moustache = () => {
+      if (side) {
+        p.rect(15, 11, 3, 1, hair.shade);
+        p.rect(17, 12, 1, 1, hair.edge);
+      } else {
+        p.rect(8, 11, 6, 1, hair.shade);
+        p.rect(8, 12, 1, 1, hair.edge);
+        p.rect(13, 12, 1, 1, hair.edge);
+      }
+    };
+    if (b === "stubble")
       p.rect(
         side ? 14 : 8,
         13,
@@ -313,28 +324,93 @@ export function drawHead(
         1,
         mix(skin.base, hair.base, 0.45),
       );
-    } else {
-      const bottom = a.beard === "long" ? 19 : 16;
+    else if (b === "moustache") moustache();
+    else if (b === "handlebar") {
+      if (side) {
+        p.rect(14, 11, 4, 1, hair.shade);
+        p.rect(18, 10, 1, 1, hair.base);
+      } else {
+        p.rect(7, 11, 7, 1, hair.shade);
+        p.rect(6, 10, 1, 1, hair.base);
+        p.rect(14, 10, 1, 1, hair.base);
+      }
+    } else if (b === "goatee") {
+      moustache();
       p.shape(
         side
           ? [
+              [13, 13],
+              [16, 13],
+              [15, 17],
+              [13, 16],
+            ]
+          : [
+              [9, 13],
+              [13, 13],
+              [12, 17],
+              [10, 17],
+            ],
+        hair,
+      );
+    } else if (b === "sideburns") {
+      if (side) {
+        p.rect(11, 7, 2, 4, hair.base);
+        p.rect(11, 7, 1, 3, hair.shade);
+      } else {
+        p.rect(5, 8, 1, 4, hair.base);
+        p.rect(15, 8, 1, 4, hair.base);
+        p.rect(5, 11, 2, 1, hair.shade);
+        p.rect(14, 11, 2, 1, hair.shade);
+      }
+    } else if (b === "chinstrap") {
+      // Jawline only, no moustache, so the mouth stays legible.
+      if (side) {
+        p.line([10, 10], [12, 13], hair.base);
+        p.rect(12, 13, 5, 1, hair.base);
+        p.rect(14, 14, 2, 1, hair.shade);
+      } else {
+        p.line([5, 10], [8, 13], hair.base);
+        p.line([15, 10], [12, 13], hair.base);
+        p.rect(8, 13, 5, 1, hair.base);
+        p.rect(9, 14, 3, 1, hair.shade);
+      }
+    } else {
+      const bottom = b === "short" ? 16 : 19;
+      const fork = b === "forked";
+      p.shape(
+        side
+          ? ([
               [12, 12],
               [14, 13],
               [17, 12],
               [16, bottom - 1],
-              [13, bottom],
+              ...(fork
+                ? [
+                    [15, bottom],
+                    [14, bottom - 3],
+                    [13, bottom],
+                  ]
+                : [[13, bottom]]),
               [11, 14],
-            ]
-          : [
+            ] as Point[])
+          : ([
               [6, 11],
               [8, 13],
               [13, 13],
               [15, 11],
               [15, 15],
-              [12, bottom],
-              [9, bottom],
+              ...(fork
+                ? [
+                    [13, bottom],
+                    [11, bottom - 3],
+                    [9, bottom],
+                  ]
+                : [
+                    [12, bottom],
+                    [9, bottom],
+                  ]),
               [6, 15],
-            ],
+            ] as Point[]),
         hair,
       );
       p.rect(side ? 14 : 9, 13, side ? 2 : 3, 1, skin.shade);

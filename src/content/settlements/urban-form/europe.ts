@@ -20,6 +20,7 @@ export const europeForms: UrbanFormRule[] = [
     plaza: "crossing",
     plazaScale: 0.22,
     civic: "head",
+    ornaments: ["fountain", "statue", "brazier"],
     evidence: {
       status: "inferred",
       sources: [
@@ -47,6 +48,7 @@ export const europeForms: UrbanFormRule[] = [
     plaza: "offset",
     plazaScale: 0.17,
     civic: "head",
+    ornaments: ["well", "cross", "brazier"],
     evidence: {
       status: "inferred",
       sources: [
@@ -74,6 +76,7 @@ export const europeForms: UrbanFormRule[] = [
     plaza: "offset",
     plazaScale: 0.19,
     civic: "head",
+    ornaments: ["fountain", "cross", "bench"],
     evidence: {
       status: "inferred",
       sources: [],
@@ -99,6 +102,7 @@ export const europeForms: UrbanFormRule[] = [
     plaza: "crossing",
     plazaScale: 0.16,
     civic: "head",
+    ornaments: ["well", "statue", "bench"],
     evidence: {
       status: "inferred",
       sources: [],

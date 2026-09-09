@@ -66,11 +66,18 @@ def defaults(lon,lat):
  if 70<lon<140 and 8<lat<30:climate='monsoon'
  if 115<lon<145 and -32<lat<-18:climate='arid'
  if lon<-30:
-  culture='north-american' if lat>28 else 'south-american' if lat<8 else 'mesoamerican'
-  architecture='board' if lat>28 else 'mudbrick'
+  # Mesoamerica is a region, not everything between the tropics: the old cutoff
+  # put Florida and the Caribbean in it.
+  if -106<lon<-85 and 13<lat<23: culture='mesoamerican'
+  elif lat<8: culture='south-american'
+  elif lat>=23 or lon>-85: culture='north-american'
+  else: culture='mesoamerican'
+  architecture='board' if culture=='north-american' else 'mudbrick'
  elif -20<lon<55 and -36<lat<35:
   culture='sub-saharan-african' if lat<20 else 'mena';architecture='mudbrick'
  elif lon>110 and lat<-10:culture='australian-pacific'
+ # South China, Hong Kong and Taiwan sit south of the old east/southeast line.
+ elif lon>110 and 20<lat<26:culture='east-asian';architecture='courtyard'
  elif lon>95 and lat<25:culture='southeast-asian'
  elif lon>95:culture='east-asian';architecture='courtyard'
  elif lon>60 and lat<35:culture='south-asian';architecture='courtyard'

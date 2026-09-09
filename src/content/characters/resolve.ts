@@ -6,10 +6,20 @@ import type {
   CommunityProfile,
   AppearanceKit,
   NameKit,
+  NameTradition,
+  Livelihood,
+  SocietyCapability,
 } from "./context-types";
 import { communityProfiles, appearanceKits } from "./profiles/communities";
 import { nameKits } from "./name-kits";
+import { nameTraditions } from "./profiles/traditions.generated";
+import { nameRegions } from "./profiles/name-regions.generated";
 import { livelihoods } from "./livelihoods";
+import { commonLivelihoods } from "./livelihoods.generated";
+import {
+  capabilityOverrides,
+  capabilityWindows,
+} from "./capabilities.generated";
 
 validateCharacterContent();
 
@@ -18,7 +28,13 @@ export type CharacterContext = {
   profile: CommunityProfile;
   appearance: AppearanceKit;
   names?: NameKit;
-  livelihoods: typeof livelihoods;
+  /** Weighted traditions drawn on where no hand-written kit is scoped. */
+  traditions?: {
+    region: string;
+    options: readonly { tradition: NameTradition; weight: number }[];
+  };
+  capabilities: ReadonlySet<SocietyCapability>;
+  livelihoods: readonly Livelihood[];
   notes: string[];
 };
 
@@ -84,6 +100,71 @@ const fallbackProfile: CommunityProfile = {
       "Activities and generic items are explicit gap-fillers; local names, materials and institutions need research.",
   },
 };
+/** What this society could do here, this year. Overrides beat the zone date. */
+export function capabilitiesFor(s: WorldSetting): Set<SocietyCapability> {
+  const boxes = capabilityOverrides
+    .filter(
+      (o) =>
+        s.lon >= o.bounds[0] &&
+        s.lon <= o.bounds[2] &&
+        s.lat >= o.bounds[1] &&
+        s.lat <= o.bounds[3] &&
+        (!o.cultures || o.cultures.includes(s.culture)),
+    )
+    .sort(
+      (a, b) =>
+        (a.bounds[2] - a.bounds[0]) * (a.bounds[3] - a.bounds[1]) -
+        (b.bounds[2] - b.bounds[0]) * (b.bounds[3] - b.bounds[1]),
+    );
+  const available = new Set<SocietyCapability>();
+  for (const w of capabilityWindows) {
+    if (w.culture !== s.culture) continue;
+    const override = boxes.find(
+      (o) => o.capabilities[w.capability] !== undefined,
+    );
+    const from = override?.capabilities[w.capability] ?? w.from;
+    if (s.year >= from && s.year < w.to) available.add(w.capability);
+  }
+  return available;
+}
+const traditionsById = new Map(nameTraditions.map((t) => [t.id, t]));
+const boxArea = (b: readonly number[]) => (b[2] - b[0]) * (b[3] - b[1]);
+/** The smallest box containing the point wins; a tie falls to the earlier id. */
+export function nameTraditionsFor(s: WorldSetting) {
+  for (const region of [...nameRegions].sort(
+    (a, b) => boxArea(a.bounds) - boxArea(b.bounds) || a.id.localeCompare(b.id),
+  )) {
+    const [w, so, e, n] = region.bounds;
+    if (s.lon < w || s.lon > e || s.lat < so || s.lat > n) continue;
+    const window = region.windows.find(
+      (v) => s.year >= v.years[0] && s.year < v.years[1],
+    );
+    if (!window) continue;
+    const options = window.options.flatMap((o) => {
+      const tradition = traditionsById.get(o.tradition);
+      return tradition ? [{ tradition, weight: o.weight }] : [];
+    });
+    if (options.length) return { region: region.id, options };
+  }
+  return undefined;
+}
+/** Which stratum of ordinary work a place is in. Tiers overlap deliberately. */
+function tierApplies(
+  tier: NonNullable<Livelihood["tier"]>,
+  s: WorldSetting,
+  capabilities: ReadonlySet<SocietyCapability>,
+) {
+  const farming = capabilities.has("settled_agriculture");
+  const urban =
+    capabilities.has("urban_settlement") &&
+    (s.settlement === "city" || s.settlement === "port");
+  if (tier === "prehistoric") return !farming || s.settlement === "camp";
+  if (tier === "village") return farming && s.settlement !== "camp";
+  if (tier === "town") return urban;
+  if (tier === "industrial")
+    return urban && capabilities.has("wage_labor") && s.year >= 1780;
+  return s.year >= 1900 && capabilities.has("wage_labor");
+}
 export function resolveCharacterContext(s: WorldSetting): CharacterContext {
   const community = communityFor(s);
   const candidates = communityProfiles
@@ -114,6 +195,8 @@ export function resolveCharacterContext(s: WorldSetting): CharacterContext {
       `Ambiguous name kits: ${scopedNames[0].id}, ${scopedNames[1].id}`,
     );
   const names = scopedNames[0];
+  const traditions = names ? undefined : nameTraditionsFor(s);
+  const capabilities = capabilitiesFor(s);
   const eligible = livelihoods.filter(
     (l) =>
       profile.livelihoods.includes(l.id) &&
@@ -125,18 +208,41 @@ export function resolveCharacterContext(s: WorldSetting): CharacterContext {
             : s.settlement !== "camp" && profile.allowedItems.includes("grain"),
       ),
   );
+  const supported = (l: Livelihood) =>
+    !l.capabilities?.some((c) => !capabilities.has(c)) &&
+    (!l.anyCapability?.length ||
+      l.anyCapability.some((c) => capabilities.has(c))) &&
+    !l.withoutCapability?.some((c) => capabilities.has(c));
+  // Revision 2 adds the ordinary work on top of the eight playable kits, and
+  // holds both to the same capability gate.
+  const revised = s.characterRevision === 2;
+  const playable = revised ? eligible.filter(supported) : eligible;
+  const tiered = revised
+    ? commonLivelihoods.filter(
+        (l) => tierApplies(l.tier!, s, capabilities) && supported(l),
+      )
+    : [];
   return {
     community,
     profile,
     appearance,
     names,
-    livelihoods: eligible.length
-      ? eligible
-      : livelihoods.filter((l) => l.id === "traveler"),
+    traditions,
+    capabilities,
+    livelihoods: [
+      ...(playable.length
+        ? playable
+        : livelihoods.filter((l) => l.id === "traveler")),
+      ...tiered,
+    ],
     notes: [
       profile.evidence.limitation,
       appearance.evidence.limitation,
-      ...(names ? [names.evidence.limitation] : [inventedNameNote]),
+      ...(names
+        ? [names.evidence.limitation]
+        : traditions
+          ? []
+          : [inventedNameNote]),
     ],
   };
 }

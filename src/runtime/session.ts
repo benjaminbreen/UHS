@@ -141,6 +141,11 @@ export function restoreSession(value: unknown) {
     throw Error("Missing carried object in save.");
   return engine;
 }
+/** Game seconds the idle clock hands to the simulation at a time. Every block
+ * is one logged command and one retained receipt, neither of which is ever
+ * trimmed, so this trades log growth against how coarsely an actor the engine
+ * rather than a routine moves steps across the screen. */
+const IDLE_BLOCK = 60;
 export class Runtime {
   engine: Engine;
   selected?: string;
@@ -234,6 +239,7 @@ export class Runtime {
   constructor(engine: Engine, options: { cacheTerrain?: boolean } = {}) {
     this.chunks = new ChunkCache(options.cacheTerrain !== false);
     this.engine = engine;
+    this.syncAmbient();
     this.cached = this.view();
   }
   private view(refresh = true) {
@@ -305,6 +311,7 @@ export class Runtime {
     for (const listener of this.subscribers) listener();
   }
   select(id?: string) {
+    if (id) this.flushAmbient();
     this.selected = id;
     this.emit(false);
   }
@@ -318,9 +325,39 @@ export class Runtime {
     this.stop();
     this.engine = engine;
     this.selected = undefined;
+    this.syncAmbient();
     this.notice = "A new day, a different world.";
     this.emit();
     this.onChange?.();
+  }
+  /** Game seconds per real second while the player stands still. Matches the
+   * rate that walking already advances the clock, so the settlement keeps one
+   * pace whether or not the player is moving. */
+  ambientRate = 20;
+  private ambientBase = 0;
+  private ambientAt = 0;
+  /** What the renderer draws: the world clock plus the time that has passed
+   * since the last command. Monotonic, and never behind the simulation. */
+  displayClock() {
+    // A short grace period means the gaps between walking steps contribute
+    // nothing; only actually standing still lets the clock run on.
+    const idle = (performance.now() - this.ambientAt) / 1000 - 0.25;
+    return Math.max(
+      this.engine.state.clock,
+      this.ambientBase + (idle > 0 ? idle * this.ambientRate : 0),
+    );
+  }
+  private syncAmbient() {
+    this.ambientBase = this.engine.state.clock;
+    this.ambientAt = performance.now();
+  }
+  /** Hands the drawn time back to the simulation, so positions the player can
+   * click on agree with the ones on screen. */
+  flushAmbient() {
+    const seconds = Math.floor(this.displayClock() - this.engine.state.clock);
+    if (seconds >= 1)
+      this.dispatch({ type: "pass", seconds: Math.min(3600, seconds) });
+    this.syncAmbient();
   }
   command(command: PlayerCommand) {
     if (this.replay) {
@@ -334,17 +371,19 @@ export class Runtime {
       this.emit();
       return;
     }
+    if (parsed.data.type !== "pass") this.flushAmbient();
+    const result = this.dispatch(parsed.data);
+    this.syncAmbient();
+    return result;
+  }
+  private dispatch(command: PlayerCommand) {
     const previousProp = heldObject(this.engine.state)?.sprite;
     const result = this.engine.act({
       actionId: `ui-${this.engine.state.revision}-${++this.serial}`,
       expectedRevision: this.engine.state.revision,
-      command: parsed.data,
+      command,
     });
-    this.animateCommand(
-      parsed.data,
-      result.status !== "rejected",
-      previousProp,
-    );
+    this.animateCommand(command, result.status !== "rejected", previousProp);
     this.notice = result.reason ?? "";
     if (result.status !== "rejected") this.onChange?.();
     this.emit();
@@ -491,6 +530,7 @@ export class Runtime {
     this.emit();
   }
   approach(id: string) {
+    this.flushAmbient();
     const target = this.engine.inspect(id);
     if (!target) return;
     const p = this.engine.state.player.pos;
@@ -519,6 +559,7 @@ export class Runtime {
     }
   }
   startFollow(id: string) {
+    this.flushAmbient();
     const result = this.command({
       type: "interact",
       target: id,
@@ -536,7 +577,15 @@ export class Runtime {
       if (this.replay.playing) this.stepReplay();
       return;
     }
-    if (!this.running) return;
+    if (!this.running) {
+      // Standing still still spends time. Small blocks, because the whole block
+      // is simulated in one frame: 600 seconds at once is a visible hitch, and
+      // anyone the engine rather than a routine moves stands frozen until it
+      // lands.
+      if (this.displayClock() - this.engine.state.clock >= IDLE_BLOCK)
+        this.flushAmbient();
+      return;
+    }
     const p = this.engine.state.player.pos;
     if (this.follow) {
       const a = this.engine.state.actors.find((a) => a.id === this.follow);

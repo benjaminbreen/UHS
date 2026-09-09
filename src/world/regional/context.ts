@@ -225,10 +225,15 @@ export function createRegionalContext(start: WorldSetting) {
     }
     return value;
   }
-  const settingCache = new Map<string, WorldSetting>();
+  // Keyed by column, then row, then whether the start is included. The chunk
+  // loop asks for this once per cell, so building a `${x},${y},${flag}` string
+  // for every lookup was itself among the largest costs in world generation.
+  const settingCache = new Map<number, Map<number, WorldSetting>>();
+  let settingCount = 0;
   function settingAt(x: number, y: number, includeStart = true): WorldSetting {
-    const key = `${x},${y},${includeStart}`;
-    const previous = settingCache.get(key);
+    const row = includeStart ? y * 2 : y * 2 + 1;
+    let column = settingCache.get(x);
+    const previous = column?.get(row);
     if (previous) return previous;
     const ll = fromAtlas(x + origin.x, y + origin.y),
       ambient = ambientAt(x, y);
@@ -291,8 +296,14 @@ export function createRegionalContext(start: WorldSetting) {
     };
     if (start.geographyMode === "configured" && localStart)
       s.environment = { ...start.environment! };
-    trimCache(settingCache, 16384);
-    settingCache.set(key, s);
+    if (settingCount >= 16384) {
+      settingCache.clear();
+      settingCount = 0;
+      column = undefined;
+    }
+    if (!column) settingCache.set(x, (column = new Map()));
+    column.set(row, s);
+    settingCount++;
     return s;
   }
   function packAt(x: number, y: number) {

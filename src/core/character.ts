@@ -13,8 +13,13 @@ export const beardStyles = [
   "none",
   "stubble",
   "moustache",
+  "handlebar",
+  "goatee",
+  "sideburns",
+  "chinstrap",
   "short",
   "long",
+  "forked",
 ] as const;
 export const garments = [
   "tunic",
@@ -27,6 +32,7 @@ export const garments = [
   "wrap",
 ] as const;
 export const headwear = ["none", "band", "cap", "hood", "wrap"] as const;
+export const beltStyles = ["none", "cord", "sash", "leather", "wide"] as const;
 export const headShapes = [
   "original",
   "round",
@@ -117,6 +123,7 @@ export type CharacterAppearance = {
     hem?: (typeof hemStyles)[number];
     shoulderCloth?: boolean;
     garment: (typeof garments)[number];
+    belt?: (typeof beltStyles)[number];
     color: string;
     lowerColor: string;
     trim: string;
@@ -185,18 +192,19 @@ export function generateAppearance(
   seed: string,
   index = 0,
   age = 30,
-  traits?: CharacterPhysique,
+  traits?: Partial<CharacterPhysique>,
 ): CharacterAppearance {
   const n = (key: string, max: number) =>
     Math.floor(random(seed, "character-art", index, key) * max);
-  const physique = traits ?? {
+  const physique: CharacterPhysique = {
     strength:
       age < 13
         ? 15 + n("strength", 20)
         : age >= 65
           ? 25 + n("strength", 40)
           : 30 + n("strength", 65),
-    sex: "unspecified" as const,
+    sex: "unspecified",
+    ...traits,
   };
   return {
     physique,
@@ -239,12 +247,33 @@ export function generateAppearance(
       "#a35432",
     ][n("hair-color", 6)],
     hair: hairStyles[n("hair", hairStyles.length)],
-    beard: age < 16 ? "none" : beardStyles[n("beard", beardStyles.length)],
+    beard:
+      age < 16
+        ? "none"
+        : (
+            [
+              "none",
+              "none",
+              "stubble",
+              "moustache",
+              "handlebar",
+              "goatee",
+              "sideburns",
+              "chinstrap",
+              "short",
+              "short",
+              "long",
+              "forked",
+            ] as const
+          )[n("beard", 12)],
     wearing: {
       sleeves: sleeveStyles[n("sleeves", sleeveStyles.length)],
       hem: hemStyles[n("hem", hemStyles.length)],
       shoulderCloth: n("shoulder-cloth", 4) === 0,
       garment: garments[n("garment", garments.length)],
+      belt: (
+        ["leather", "leather", "none", "none", "cord", "sash", "wide"] as const
+      )[n("belt", 7)],
       color: clothColors[n("cloth", clothColors.length)],
       lowerColor: clothColors[n("lower", clothColors.length)],
       trim: clothColors[n("trim", clothColors.length)],

@@ -26,6 +26,7 @@ export const livelihoods: readonly Livelihood[] = [
     label: "Farmer",
     activity: "Tending cultivation",
     needs: ["cultivation"],
+    capabilities: ["settled_agriculture"],
     inventory: { water: 2, grain: 3, tool: 1 },
   },
   {
@@ -46,6 +47,7 @@ export const livelihoods: readonly Livelihood[] = [
     label: "Trader",
     activity: "Exchanging supplies",
     needs: ["settled"],
+    capabilities: ["market_exchange"],
     inventory: { water: 2, fruit: 2 },
   },
   {

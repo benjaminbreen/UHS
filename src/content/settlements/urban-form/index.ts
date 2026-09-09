@@ -8,6 +8,7 @@ import { europeForms } from "./europe";
 import { americasForms } from "./americas";
 import { africaForms } from "./africa";
 import { southeastAsiaForms } from "./southeast-asia";
+import { modernForms } from "./modern";
 
 /** Narrower date ranges win, so a specific period is not shadowed by a broad one. */
 const rules: UrbanFormRule[] = [
@@ -18,6 +19,7 @@ const rules: UrbanFormRule[] = [
   ...americasForms,
   ...africaForms,
   ...southeastAsiaForms,
+  ...modernForms,
 ].sort((a, b) => a.to - a.from - (b.to - b.from) || a.id.localeCompare(b.id));
 
 /** An unprofiled place gets a plainly labelled generic town, never another
@@ -33,12 +35,13 @@ export const genericForm: UrbanForm = {
   regularity: 0.35,
   courts: 0.45,
   deadEnds: 0.2,
-  tiers: [2, 1, 0],
+  tiers: [1, 1, 0],
   gates: 4,
   wall: "none",
   plaza: "offset",
   plazaScale: 0.17,
   civic: "head",
+  ornaments: ["well", "brazier"],
   evidence: {
     status: "fictional",
     sources: [],
@@ -46,7 +49,21 @@ export const genericForm: UrbanForm = {
   },
 };
 
+/** Small memo: the planner asks for the same setting's fabric many times per
+ * settlement, and each miss scans every dated rule. */
+const resolved = new Map<string, UrbanForm>();
+
 export function urbanForm(s: WorldSetting): UrbanForm {
+  const key = `${s.culture}|${s.lon}|${s.lat}|${s.year}`;
+  const memo = resolved.get(key);
+  if (memo) return memo;
+  const form = select(s);
+  if (resolved.size >= 64) resolved.clear();
+  resolved.set(key, form);
+  return form;
+}
+
+function select(s: WorldSetting): UrbanForm {
   const rule = rules.find((p) => {
     const [w, south, e, n] = p.bounds;
     return (

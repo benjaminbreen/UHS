@@ -81,6 +81,9 @@ const actor = z.object({
       profile: z.string(),
       community: z.string(),
       nameKit: z.string().optional(),
+      nameTradition: z.string().optional(),
+      nameRegion: z.string().optional(),
+      sex: z.enum(["unspecified", "male", "female"]).optional(),
       nameFormat: z.string().optional(),
       nameFamilies: z.array(z.string()).optional(),
       livelihood: z.string(),
@@ -119,6 +122,7 @@ const actor = z.object({
   memories: z.array(z.string()),
   held: z.string().optional(),
   direction: z.number().int().min(0).max(3),
+  offRoutine: z.boolean().optional(),
   lastUpdated: z.number().int().optional(),
   goal: pos.optional(),
 });
@@ -174,6 +178,12 @@ export const commandSchema = z.discriminatedUnion("type", [
   z
     .object({
       type: z.literal("wait"),
+      seconds: z.number().int().min(1).max(3600),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("pass"),
       seconds: z.number().int().min(1).max(3600),
     })
     .strict(),

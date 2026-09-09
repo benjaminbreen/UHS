@@ -8,3 +8,7 @@
 - Other agent work may be present in the shared checkout. Inspect Git status; preserve unrelated changes and do not sweep them into a task commit.
 
 - During early development, the user explicitly prioritizes terrain graphics, procedural composition and performance over saves. Do not spend effort on save restoration or save-system tests unless requested.
+
+- Comments: only where the code cannot speak for itself — a non-obvious why, a units or ordering trap, a bug link. Short, plain English, usually one line. Do not restate the line below, do not set a scene, do not explain the design. When in doubt, leave it out.
+- Educated guessing is the default for historical content: extrapolate from real evidence and expert speculation. Reconstructed Proto-Indo-European religion, Bronze Age belief and the like are wanted, not avoided. Do not invent evidence, but do not hedge every line or stop to verify unless asked.
+- Run tests and browser checks when asked, or when a change plainly needs them. Not as a reflex after every edit.

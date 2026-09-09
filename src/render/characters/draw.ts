@@ -382,8 +382,26 @@ export function drawCharacter(
   }
   if (a.wearing.hem === "split")
     p.rect(side ? right - 2 : 10, hem - 2, 1, 2, lower.shade);
-  p.rect(left, 22 + torso, right - left, 1, leather.edge);
-  p.rect(side ? right - 2 : 10, 22 + torso, 2, 1, a.wearing.trim);
+  const belt = a.wearing.belt ?? "leather",
+    beltY = 22 + torso,
+    buckleX = side ? right - 2 : 10;
+  if (belt === "leather") {
+    p.rect(left, beltY, right - left, 1, leather.edge);
+    p.rect(buckleX, beltY, 2, 1, a.wearing.trim);
+  } else if (belt === "wide") {
+    p.rect(left, beltY - 1, right - left, 2, leather.edge);
+    p.rect(left, beltY - 1, right - left, 1, leather.shade);
+    p.rect(buckleX, beltY - 1, 2, 2, a.wearing.trim);
+  } else if (belt === "cord") {
+    const cord = ramp(a.wearing.trim);
+    p.rect(left + 1, beltY, right - left - 2, 1, cord.shade);
+    p.rect(buckleX, beltY, 1, 2, cord.base);
+  } else if (belt === "sash") {
+    const sash = ramp(a.wearing.lowerColor);
+    p.rect(left, beltY - 1, right - left, 2, sash.base);
+    p.rect(left, beltY, right - left, 1, sash.shade);
+    p.rect(left, beltY - 1, 2, 3, sash.shade);
+  }
   // Neck is a separate warm shadow between head and garment.
   p.rect(side ? 11 : 8, 12, side ? 3 : 5, 3, skin.shade);
   p.rect(side ? 12 : 9, 13, 2, 1, skin.base);

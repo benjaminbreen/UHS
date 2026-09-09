@@ -17,10 +17,36 @@ import Phaser from "phaser";
 import type { Runtime } from "../runtime/session";
 import type { Position, WorldModel } from "../core/types";
 import { surfaceAt, hasQuay } from "./materials";
-import { random } from "../core/random";
+import { hash, random } from "../core/random";
+import {
+  itineraryAt,
+  type Ambient,
+  type StationActivity,
+} from "../core/itinerary";
 import { lightingAt, lightingPreset, shadowFrame } from "./lighting";
 import terrainFrames from "./generated/terrain.json" with { type: "json" };
 const SCENERY_CACHE_REACH = 8;
+/** People drawn at once. Beyond roughly this many the per-head frame cache,
+ * not the simulation, is what costs the frame. */
+const CROWD_LIMIT = 24;
+/** Tiles of slack beyond the view for routine lookups. `entityInView` allows
+ * 8 on x and 12 on y, so this must clear 12. */
+const AMBIENT_MARGIN = 16;
+/** Routines built per rendered frame. Around 3ms each, so this is most of a
+ * frame's slack; it lasts a second or two on entering a settlement. */
+const ROUTINE_BUILDS_PER_FRAME = 2;
+/** Tiles of elbow room between drawn people. */
+const SPACING = 0.95;
+const ambientPoses: Record<StationActivity, CharacterPose> = {
+  rest: "sit",
+  work: "work",
+  tend: "work",
+  haul: "carry",
+  "draw-water": "work",
+  gather: "work",
+  visit: "talk",
+  graze: "idle",
+};
 export class WorldScene extends Phaser.Scene {
   private runtime: Runtime;
   private characters?: WorldCharacters;
@@ -33,6 +59,15 @@ export class WorldScene extends Phaser.Scene {
     >
   >();
   private canopies: { image: Phaser.GameObjects.Image; cut: number }[] = [];
+  private ambient = new Map<string, Ambient>();
+  /** Not drawn: indoors, or waiting on a routine. */
+  private indoors = new Set<string>();
+  /** Residents in range with no routine yet, nearest first. */
+  private pendingRoutines: string[] = [];
+  /** A routine was built since the last full pass, so someone is undrawn. */
+  private routinesBuilt = false;
+  private drawnCrowd = new Set<string>();
+  private ambientDrawn = -Infinity;
   private modalOpen = false;
   private poseOffsets = new Map<string, number>();
   private layers: Phaser.GameObjects.GameObject[] = [];
@@ -672,12 +707,67 @@ export class WorldScene extends Phaser.Scene {
     }
     const visible = (pos: Position) =>
       entityInView(pos, p, this.scale.width, this.scale.height, rt.zoom);
+    // Drawn time runs on while the player stands still, so a resident on their
+    // routine is placed from the schedule rather than from the last tick.
+    const drawnClock = rt.displayClock();
+    this.ambientDrawn = drawnClock;
+    this.ambient.clear();
+    this.indoors.clear();
+    this.routinesBuilt = false;
+    const pending: { id: string; d2: number }[] = [];
+    // Must cover everything `visible` accepts, or a resident between the two
+    // is drawn from a stale simulated position and never placed indoors. The
+    // margin lets people walk in from off screen rather than appear at the edge.
+    const range =
+      Math.max(this.scale.width, this.scale.height) / rt.zoom / 32 +
+      AMBIENT_MARGIN;
+    for (const a of e.state.actors) {
+      if (
+        a.offRoutine ||
+        a.kind !== "human" ||
+        a.pos.space !== "outside" ||
+        Math.abs(a.pos.x - p.x) > range ||
+        Math.abs(a.pos.y - p.y) > range
+      )
+        continue;
+      // Asked before itinerary(), because itinerary() builds one on demand at
+      // around 3ms. Queued for buildRoutines to spend a couple per frame; until
+      // then the resident is held back rather than drawn standing still.
+      if (w.routinePending?.(a.id)) {
+        this.indoors.add(a.id);
+        pending.push({
+          id: a.id,
+          d2: (a.pos.x - p.x) ** 2 + (a.pos.y - p.y) ** 2,
+        });
+        continue;
+      }
+      // The routine decides who is out, not a.pos: the engine barely ticks
+      // while the player stands still.
+      const routine = w.itinerary?.(a.id);
+      if (!routine) continue;
+      const at = itineraryAt(routine, drawnClock);
+      if (at.activity === "rest" && !at.moving) this.indoors.add(a.id);
+      else this.ambient.set(a.id, at);
+    }
+    pending.sort((x, y) => x.d2 - y.d2);
+    this.pendingRoutines = pending.map((r) => r.id);
+    const where = (a: Actor): Position => {
+      const at = this.ambient.get(a.id);
+      return at ? { x: at.x, y: at.y, space: "outside" } : a.pos;
+    };
     const obs = {
         player: e.state.player,
-        actors: e.state.actors.filter((a) => visible(a.pos)),
+        actors: this.crowd(
+          e.state.actors.filter(
+            (a) => !this.indoors.has(a.id) && visible(where(a)),
+          ),
+          p,
+          where,
+        ),
         objects: e.state.objects.filter((o) => visible(o.pos)),
       },
       keep = new Set<string>();
+    this.separate(p);
 
     const renderEntity = (
       id: string,
@@ -685,6 +775,7 @@ export class WorldScene extends Phaser.Scene {
       pos: Position,
       actor = false,
       target = id,
+      smooth = false,
     ) => {
       keep.add(id);
       let im = this.entities.get(id);
@@ -736,10 +827,25 @@ export class WorldScene extends Phaser.Scene {
       if (
         shade &&
         !frame.startsWith("human-") &&
-        (shade.texture.key !== shadowTexture || shade.frame.name !== shadowKey) &&
+        (shade.texture.key !== shadowTexture ||
+          shade.frame.name !== shadowKey) &&
         this.textures.get(shadowTexture).has(shadowKey)
       )
         shade.setTexture(shadowTexture, shadowKey).setOriginFromFrame();
+      // A routine gives a position between tiles every frame, so there is
+      // nothing to interpolate: tweening it would only lag the schedule.
+      if (smooth) {
+        this.tweens.killTweensOf(im);
+        if (shade) this.tweens.killTweensOf(shade);
+        im.setPosition(tx, ty);
+        shade?.setPosition(tx, ty);
+        this.destinations.set(id, {
+          x: Math.round(pos.x),
+          y: Math.round(pos.y),
+          space: pos.space,
+        });
+        return;
+      }
       const previous = this.destinations.get(id);
       const moved =
         !previous ||
@@ -821,7 +927,11 @@ export class WorldScene extends Phaser.Scene {
     this.humanActors.clear();
     for (const a of [obs.player, ...obs.actors]) {
       if (a.kind === "human")
-        this.humanActors.set(a.id, { ...a, appearance: rt.appearanceFor(a) });
+        this.humanActors.set(a.id, {
+          ...a,
+          direction: this.ambient.get(a.id)?.direction ?? a.direction,
+          appearance: rt.appearanceFor(a),
+        });
       this.actorFrames.set(
         a.id,
         a.kind === "human" ? `${a.sprite}-${a.direction}-` : a.sprite,
@@ -830,7 +940,15 @@ export class WorldScene extends Phaser.Scene {
         a.kind === "human"
           ? `${a.sprite}-${a.direction}-${this.options.lab ? e.state.revision % 2 : 0}`
           : `${a.sprite}${this.options.lab ? e.state.revision % 2 : 0}`;
-      renderEntity(a.id, frame, a.pos, true);
+      const at = this.ambient.get(a.id);
+      renderEntity(
+        a.id,
+        frame,
+        at ? { x: at.x, y: at.y, space: a.pos.space } : a.pos,
+        true,
+        a.id,
+        !!at,
+      );
     }
     if (this.options.lab && !this.options.overview)
       c.startFollow(this.entities.get("player")!, true, 0.4, 0.4);
@@ -900,6 +1018,16 @@ export class WorldScene extends Phaser.Scene {
   }
   update(time: number) {
     this.terrainStream?.update();
+    if (!this.options.lab && this.ready) {
+      const clock = this.runtime.displayClock();
+      this.buildRoutines();
+      // A full pass now and then lets people walk into and out of view; in
+      // between, the ones on screen are just repositioned. Someone whose routine
+      // was just built has no sprite until the next full pass, so redraw sooner.
+      if (clock - this.ambientDrawn > (this.routinesBuilt ? 20 : 90))
+        this.draw();
+      else this.moveAmbient(clock);
+    }
     const phase = this.options.freeze ? 0 : Math.floor(time / 800) % 4;
     if (phase !== this.rippleTime) {
       this.rippleTime = phase;
@@ -945,7 +1073,8 @@ export class WorldScene extends Phaser.Scene {
       if (im.depth !== depth) im.setDepth(depth);
       const human = this.humanActors.get(id);
       if (human && this.characters) {
-        const moving = this.tweens.isTweening(im);
+        const at = this.ambient.get(id);
+        const moving = at ? at.moving : this.tweens.isTweening(im);
         const action =
           id === "player" ? this.runtime.characterAction : undefined;
         const elapsed = action ? performance.now() - action.at : Infinity;
@@ -953,16 +1082,17 @@ export class WorldScene extends Phaser.Scene {
         const heldSprite = this.heldSprites.get(id);
         let pose: CharacterPose = moving ? "walk" : "idle";
         if (active) pose = action.pose;
-        else if (!moving && /rest|sleep/i.test(human.activity)) pose = "sit";
-        else if (!moving && /gathering|working/i.test(human.activity))
-          pose = "work";
-        else if (!moving && /eating/i.test(human.activity)) pose = "give";
+        else if (moving) pose = "walk";
+        else if (at) pose = this.ambientPose(id, at, time);
+        else if (/rest|sleep/i.test(human.activity)) pose = "sit";
+        else if (/gathering|working/i.test(human.activity)) pose = "work";
+        else if (/eating/i.test(human.activity)) pose = "give";
         if (id === "player" && pose === "idle") pose = "breathe";
         const index = active
           ? Math.min(3, Math.floor(elapsed / poseTiming(pose)))
           : this.options.freeze
             ? 0
-            : Math.floor((time + this.poseOffset(id)) / poseTiming(pose)) % 4;
+            : this.poseFrame(id, pose, time);
         const prop =
           heldSprite ??
           (active && action.pose === "drop" && index < 2
@@ -1047,15 +1177,154 @@ export class WorldScene extends Phaser.Scene {
       marker && destination ? marker.y - (destination.y * 16 + 16) : 0,
     );
   }
-  /** Per-actor animation phase offset; stable, so it is hashed once. */
+  /** Nudges drawn people out of each other. Presentation only: the schedule
+   * still says where somebody is standing, this only decides how they stand
+   * around one another, so two people crossing slide past instead of merging.
+   * The player repels as well, which parts a crowd around them. */
+  private separate(player: { x: number; y: number }) {
+    // The drawn crowd, not every resident in range: this runs every frame and
+    // is O(n²), and nobody off screen needs to stand nicely.
+    const people: Ambient[] = [];
+    for (const id of this.drawnCrowd) {
+      const at = this.ambient.get(id);
+      if (at) people.push(at);
+    }
+    if (people.length < 2) return;
+    for (let pass = 0; pass < 3; pass++)
+      for (let i = 0; i < people.length; i++) {
+        const a = people[i];
+        for (let j = i + 1; j <= people.length; j++) {
+          const b = j === people.length ? player : people[j];
+          let dx = a.x - b.x,
+            dy = a.y - b.y;
+          const d2 = dx * dx + dy * dy;
+          if (d2 >= SPACING * SPACING) continue;
+          if (d2 < 1e-4) {
+            // Exactly stacked: pick a fixed direction so they do not shiver.
+            dx = (i % 2 ? 1 : -1) * 0.05;
+            dy = (i % 3 ? 1 : -1) * 0.05;
+          }
+          const d = Math.hypot(dx, dy) || 1;
+          const push = ((SPACING - d) / d) * 0.5;
+          a.x += dx * push;
+          a.y += dy * push;
+          if (j < people.length) {
+            b.x -= dx * push;
+            b.y -= dy * push;
+          }
+        }
+      }
+  }
+  /** Builds a couple of the queued routines. A build is a path search per
+   * station, around 3ms, and a city wants a couple of hundred of them, so they
+   * are spent a frame at a time from the nearest resident outward. This is
+   * presentation: the engine builds its own on a fixed per-tick budget, and the
+   * result is the same itinerary whoever asks first. */
+  private buildRoutines() {
+    const w = this.runtime.engine.world;
+    for (let i = 0; i < ROUTINE_BUILDS_PER_FRAME; i++) {
+      const id = this.pendingRoutines.shift();
+      if (id === undefined) return;
+      // Already built by the engine: drop it and let the next frame continue.
+      if (!w.routinePending?.(id)) continue;
+      w.itinerary?.(id);
+      this.routinesBuilt = true;
+    }
+  }
+  /** Moves the people already on screen along their routines. The full pass is
+   * driven by player commands, which is far too rare a beat for a village that
+   * keeps going while the player stands still. */
+  private moveAmbient(clock: number) {
+    for (const id of this.ambient.keys()) {
+      if (!this.entities.has(id)) continue;
+      const routine = this.runtime.engine.world.itinerary?.(id);
+      if (!routine) continue;
+      const at = itineraryAt(routine, clock);
+      this.ambient.set(id, at);
+      const human = this.humanActors.get(id);
+      if (human && human.direction !== at.direction)
+        this.humanActors.set(id, { ...human, direction: at.direction });
+    }
+    this.separate(this.runtime.engine.state.player.pos);
+    this.placeAmbient();
+  }
+  private placeAmbient() {
+    for (const [id, at] of this.ambient) {
+      const im = this.entities.get(id);
+      if (!im) continue;
+      const tx = at.x * 16 + 8,
+        ty = at.y * 16 + 16 - this.lift(tx, at.y * 16 + 16);
+      im.setPosition(tx, ty);
+      this.shadows.get(id)?.setPosition(tx, ty);
+      this.destinations.set(id, {
+        x: Math.round(at.x),
+        y: Math.round(at.y),
+        space: "outside",
+      });
+    }
+  }
+  /** Every drawn head keeps its own cached frames and shadow, so the crowd is
+   * capped and the nearest people win it. Already-drawn residents get a small
+   * bonus, which stops the pair at the edge trading places every step. */
+  private crowd(
+    actors: Actor[],
+    centre: Position,
+    where: (a: Actor) => Position,
+  ) {
+    const humans = actors.filter((a) => a.kind === "human");
+    if (humans.length <= CROWD_LIMIT) {
+      this.drawnCrowd = new Set(humans.map((a) => a.id));
+      return actors;
+    }
+    const keep = new Set(
+      humans
+        .map((a) => {
+          const at = where(a);
+          return {
+            id: a.id,
+            rank:
+              Math.hypot(at.x - centre.x, at.y - centre.y) -
+              (this.drawnCrowd.has(a.id) ? 3 : 0),
+          };
+        })
+        .sort((x, y) => x.rank - y.rank || (x.id < y.id ? -1 : 1))
+        .slice(0, CROWD_LIMIT)
+        .map((r) => r.id),
+    );
+    if (this.runtime.selected) keep.add(this.runtime.selected);
+    this.drawnCrowd = keep;
+    return actors.filter((a) => a.kind !== "human" || keep.has(a.id));
+  }
+  /** Per-actor animation phase offset; stable, so it is hashed once.
+   * A mixed hash, because sibling ids differ by a character or two and a
+   * character sum put them within a few milliseconds of each other. */
   private poseOffset(id: string) {
     let offset = this.poseOffsets.get(id);
     if (offset === undefined) {
-      offset = 0;
-      for (let i = 0; i < id.length; i++) offset += id.charCodeAt(i) * 37;
+      offset = hash(id) % 100000;
       this.poseOffsets.set(id, offset);
     }
     return offset;
+  }
+  /** A knot of people is not a chorus. Each takes a turn talking and a longer
+   * turn listening, on their own beat. */
+  private ambientPose(id: string, at: Ambient, time: number): CharacterPose {
+    if (at.activity !== "visit") return ambientPoses[at.activity];
+    const offset = this.poseOffset(id);
+    const beat = 2600 + (offset % 2400);
+    return Math.floor((time + offset) / beat) % 3 ? "idle" : "talk";
+  }
+  /** Idle draws only two things: eyes open, and the blink on frame three. Both
+   * the rate and the phase are per-actor, so a street does not wink in unison,
+   * and an idle crowd caches two textures a head instead of four. */
+  private poseFrame(id: string, pose: CharacterPose, time: number) {
+    const offset = this.poseOffset(id);
+    if (pose === "idle") {
+      const cycle = 3400 + (offset % 3800);
+      return (time + offset) % cycle < 130 ? 3 : 0;
+    }
+    if (pose === "sit") return 0;
+    return Math.floor((time + offset) / poseTiming(pose)) % 4;
   }
   private direction(): [number, number] {
     const has = (arrow: string, letter: string) =>
