@@ -1389,6 +1389,23 @@ export class Engine {
     a.direction = at.direction;
     a.activity = at.label;
   }
+  /** Keeps a dormant resident indoors at their household, or at their door
+   * when the house has no interior. */
+  private park(a: Actor) {
+    const household = this.state.households?.find(
+      (h) => h.id === a.householdId,
+    );
+    a.offRoutine = true;
+    a.activity = "At home";
+    a.hunger = Math.min(a.hunger, 30);
+    a.fatigue = Math.max(0, a.fatigue - 0.1);
+    if (household?.residence) {
+      const index = Math.max(0, household.members.indexOf(a.id));
+      a.pos = { x: 3 + (index % 4), y: 3, space: household.residence };
+    } else if (a.pos.space === "outside" && distance(a.pos, a.home) > 0) {
+      a.pos = copy(a.home);
+    }
+  }
   private advance(seconds: number, heldActor?: string) {
     // Derived paths never survive a command boundary: saves and replays need no hidden routing state.
     this.routes.clear();
@@ -1421,6 +1438,7 @@ export class Engine {
           elapsed / (player.activity === "Resting" ? 100000 : 2400),
       );
       if (next % 6 !== 0) continue;
+      if (next % 3600 === 0) this.world.rotateRoutines?.(next);
       if (this.world.pack.setting?.environment) {
         const season = seasonAt(this.world.pack.setting.season, next);
         for (const o of this.state.objects) refreshResource(o, next, season);
@@ -1464,6 +1482,12 @@ export class Engine {
             a.pos = copy(target);
         }
         if (a.kind === "human") {
+          // Past the routine budget a resident is furniture: home, fed, and
+          // never routed. The budget rotates them back in over the days.
+          if (this.world.dormant?.(a.id)) {
+            this.park(a);
+            continue;
+          }
           if (this.world.routinePending?.(a.id)) {
             if (routineBuilds >= ROUTINE_BUILDS_PER_ADVANCE) continue;
             routineBuilds++;

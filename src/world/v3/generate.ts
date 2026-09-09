@@ -31,6 +31,7 @@ import type { Pack, Point, Terrain, WorldModel } from "../../core/types";
 import {
   buildItinerary,
   DAY_MINUTES,
+  itineraryAt,
   type Itinerary,
 } from "../../core/itinerary";
 import { route } from "../../core/routing";
@@ -300,6 +301,10 @@ export function createSettlementWorld(
           // same seeded plan and the same terrain, so they come back identical.
           for (const rid of routines.keys())
             if (rid.startsWith(`${id}-`)) routines.delete(rid);
+          for (const rid of dormant)
+            if (rid.startsWith(`${id}-`)) dormant.delete(rid);
+          routineRank.delete(id);
+          routineOffset.delete(id);
           break;
         }
     return plan;
@@ -1116,6 +1121,28 @@ export function createSettlementWorld(
     return c;
   }
   const routineRank = new Map<string, string[]>();
+  // Start of the active window over each settlement's ranked residents.
+  const routineOffset = new Map<string, number>();
+  const dormant = new Set<string>();
+  /** Retires the oldest active resident once they are resting at home and
+   * wakes the next dormant one, so the crowd turns over without anyone
+   * vanishing mid-street. One swap per settlement per call. */
+  function rotateRoutines(clock: number) {
+    for (const [key, ranked] of routineRank) {
+      const n = ranked.length;
+      if (n <= ROUTINE_BUDGET) continue;
+      const offset = routineOffset.get(key) ?? 0;
+      const retiring = ranked[offset];
+      const it = routines.get(retiring);
+      if (it && itineraryAt(it, clock).activity !== "rest") continue;
+      routineOffset.set(key, (offset + 1) % n);
+      routines.set(retiring, undefined);
+      dormant.add(retiring);
+      const waking = ranked[(offset + ROUTINE_BUDGET) % n];
+      routines.delete(waking);
+      dormant.delete(waking);
+    }
+  }
   /** Legs are searched once per resident and then never again: a routine is
    * read back with a binary search, so the crowd costs nothing per tick.
    *
@@ -1148,8 +1175,10 @@ export function createSettlementWorld(
         routineRank.set(key, ranked);
       }
       const rank = ranked.indexOf(id);
-      if (rank < 0 || rank >= ROUTINE_BUDGET) {
+      const offset = routineOffset.get(key) ?? 0;
+      if (rank < 0 || (rank - offset + ranked.length) % ranked.length >= ROUTINE_BUDGET) {
         routines.set(id, undefined);
+        if (rank >= 0) dormant.add(id);
         return undefined;
       }
     }
@@ -1403,6 +1432,8 @@ export function createSettlementWorld(
     },
     itinerary: (id) => routineFor(id),
     routinePending: (id) => !routines.has(id),
+    dormant: (id) => dormant.has(id),
+    rotateRoutines,
     propSlots: (id) => {
       return planForEntity(id)?.slots.get(id);
     },

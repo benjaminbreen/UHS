@@ -340,6 +340,12 @@ export interface WorldModel {
   itinerary?(actorId: string): import("./itinerary").Itinerary | undefined;
   /** True while a routine is still queued to be built. */
   routinePending?(actorId: string): boolean;
+  /** True for a resident outside the routine budget: they stay home and are
+   * not simulated until the budget rotates to them. */
+  dormant?(actorId: string): boolean;
+  /** Retires one resting resident per settlement and wakes a dormant one.
+   * Called once per game hour. */
+  rotateRoutines?(clock: number): void;
   activitySites?(actorId: string):
     | {
         home: Point;
