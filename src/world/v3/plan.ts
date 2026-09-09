@@ -118,6 +118,8 @@ export function planSettlement(
       // Earlier trunk roads keep their surface where later access lanes join.
       if (material && stone && !plan.streetSurfaces!.has(k))
         plan.streetSurfaces!.set(k, material);
+      if (urban && stone && road.width < 2 && !plan.pavement!.has(k))
+        plan.pavement!.set(k, "lane");
       roads.add(k);
       plan.reserved.add(k);
     });
@@ -246,7 +248,7 @@ export function planSettlement(
       for (let x = c.x - r; x < c.x + r; x += 2) {
         const f = sample(x, y),
           d = Math.hypot(x - c.x, y - c.y);
-        if (f.kind === "sea" && f.water >= 4 && f.water < 8 && d < best) {
+        if (f.water >= 4 && f.water < 8 && d < best) {
           best = d;
           shoreFound = { x, y };
         }
@@ -267,13 +269,18 @@ export function planSettlement(
     w: half * 2 + 1,
     h: half * 2 + 1,
   };
-  eachCell(publicArea, (x, y) => {
-    if (sample(x, y).water >= 0 && (!site.accepts || site.accepts(x, y))) {
-      plan.surface.set(cellKey(x, y), profile.paved ? "paving" : "dirt");
-      plan.reserved.add(cellKey(x, y));
-      roads.add(cellKey(x, y));
-    }
-  });
+  // A composed town has its square; a second common at the centre only cost
+  // the block it landed in.
+  eachCell(
+    urban && composed ? { ...publicArea, w: 0, h: 0 } : publicArea,
+    (x, y) => {
+      if (sample(x, y).water >= 0 && (!site.accepts || site.accepts(x, y))) {
+        plan.surface.set(cellKey(x, y), profile.paved ? "paving" : "dirt");
+        plan.reserved.add(cellKey(x, y));
+        roads.add(cellKey(x, y));
+      }
+    },
+  );
   if (sample(c.x, c.y).water >= 0) centers.add(cellKey(c.x, c.y));
   plan.plots.push({
     ...publicArea,
@@ -302,7 +309,164 @@ export function planSettlement(
   });
   let urbanLots: UrbanLot[] = [];
   if (urban) {
-    const paintCourt = (court: Rect, square?: string) => {
+    /** A square is composed from the fabric's spec: one centrepiece on a dais
+     * scaled to the square, four corners, stalls along the lower edge. The
+     * shared water and hearth objects already exist for routines; the first
+     * water piece and the brazier become them rather than duplicating them. */
+    const composeSquare = (court: Rect, civicRect?: Rect) => {
+      const spec = fabric.square;
+      const min = Math.min(court.w, court.h);
+      const cx = court.x + Math.floor(court.w / 2),
+        cy = court.y + Math.floor(court.h / 2);
+      const source = plan.objects.find((o) => o.id === `${site.id}-water`)!;
+      const hearth = plan.objects.find((o) => o.id === `${site.id}-hearth`)!;
+      let water = false,
+        fire = false;
+      const bed = (rect: Rect, tag: string) => {
+        if (!dry(rect, false)) return false;
+        eachCell(rect, (x, y) => {
+          const k = cellKey(x, y);
+          plan.surface.set(k, "grass");
+          plan.pavement!.delete(k);
+          plan.streetSurfaces!.delete(k);
+        });
+        const at = { x: rect.x + (rect.w >> 1), y: rect.y + (rect.h >> 1) };
+        plan.solid.add(cellKey(at.x, at.y));
+        plan.objects.push({
+          id: `${site.id}-square-tree-${tag}`,
+          name: "Square tree",
+          kind: "tree",
+          pos: pos(at),
+          sprite: pack.trees[0],
+          inventory: {},
+        });
+        return true;
+      };
+      const place = (key: string, spot: Point, tag: string, focus = false) => {
+        const piece = ornaments[key];
+        if (!piece) return;
+        if (!dry({ ...spot, w: piece.size, h: piece.size }, false)) return;
+        if (piece.kind === "well") {
+          if (water) return;
+          water = true;
+          source.name = piece.label;
+          source.sprite = (focus && piece.focusSprite) || piece.sprite;
+          source.pos = pos(spot);
+          waterStand.x = spot.x + 1;
+          waterStand.y = spot.y;
+          return;
+        }
+        if (piece.kind === "fire") {
+          if (fire || spec.hearth !== "brazier") return;
+          fire = true;
+          hearth.name = piece.label;
+          hearth.pos = pos(spot);
+          return;
+        }
+        if (focus) plan.solid.add(cellKey(spot.x, spot.y));
+        plan.objects.push({
+          id: `${site.id}-${piece.id}-${tag}`,
+          name: piece.label,
+          kind: piece.kind,
+          sprite: (focus && piece.focusSprite) || piece.sprite,
+          pos: pos(spot),
+          inventory: {},
+        });
+      };
+      // Centrepiece. The dais is a paving grade the raster raises, so it fits
+      // any footprint; the piece itself is the only solid cell.
+      let daisHalf = 0;
+      if (spec.focus === "tree") {
+        bed({ x: cx - 1, y: cy - 1, w: 3, h: 3 }, "focus");
+        daisHalf = 1;
+      } else if (spec.focus) {
+        const piece = ornaments[spec.focus];
+        if (piece && !piece.grounded) {
+          const size = Math.min(7, 2 * Math.floor((min + 3) / 7) + 1);
+          daisHalf = size >> 1;
+          eachCell(
+            { x: cx - daisHalf, y: cy - daisHalf, w: size, h: size },
+            (x, y) => plan.pavement!.set(cellKey(x, y), "dais"),
+          );
+        }
+        place(spec.focus, { x: cx, y: cy }, "focus", true);
+      }
+      // Talk, and the player's first step, happen at the foot of the
+      // monument, not inside it.
+      socialCenter.y = cy + Math.max(1, daisHalf) + 1;
+      plan.spawn = { x: cx, y: socialCenter.y };
+      // Corners. Every square gets water; a brazier fabric gets its fire.
+      const list = [...spec.corners];
+      const waterKeys = ["well", "fountain"];
+      if (!water && !list.some((k) => waterKeys.includes(k)))
+        list.splice(Math.min(3, list.length), 0, "well");
+      if (spec.hearth === "brazier" && !list.includes("brazier"))
+        list.splice(Math.min(3, list.length), 0, "brazier");
+      const anchors: [number, number, number, number][] = [
+        [court.x, court.y, 1, 1],
+        [court.x + court.w - 1, court.y, -1, 1],
+        [court.x, court.y + court.h - 1, 1, -1],
+        [court.x + court.w - 1, court.y + court.h - 1, -1, -1],
+      ];
+      for (const [i, [x0, y0, dx, dy]] of anchors.entries()) {
+        if (!list.length) break;
+        let key = list[i % list.length];
+        if (key === "tree") {
+          const rect = {
+            x: dx > 0 ? x0 + 1 : x0 - 3,
+            y: dy > 0 ? y0 + 1 : y0 - 3,
+            w: 3,
+            h: 3,
+          };
+          if (min >= 15 && bed(rect, `corner-${i}`)) continue;
+          key = "planter";
+        }
+        place(key, { x: x0 + dx * 2, y: y0 + dy * 2 }, `corner-${i}`);
+      }
+      // A hidden hearth goes behind the civic range: still reachable for the
+      // routines that cook and gather there, but off the square.
+      if (spec.hearth === "hidden" && civicRect) {
+        const r = civicRect;
+        const rcx = r.x + (r.w >> 1),
+          rcy = r.y + (r.h >> 1);
+        const away =
+          Math.abs(rcx - cx) > Math.abs(rcy - cy)
+            ? { x: Math.sign(rcx - cx), y: 0 }
+            : { x: 0, y: Math.sign(rcy - cy) };
+        const behind = (t: number) =>
+          away.x
+            ? { x: away.x > 0 ? r.x + r.w : r.x - 1, y: r.y + t }
+            : { x: r.x + t, y: away.y > 0 ? r.y + r.h : r.y - 1 };
+        const span = away.x ? r.h : r.w;
+        const spot = [span >> 1, 1, span - 2]
+          .map(behind)
+          .find(
+            (q) =>
+              dry({ ...q, w: 1, h: 1 }, false) &&
+              !plan.solid.has(cellKey(q.x, q.y)) &&
+              !roads.has(cellKey(q.x, q.y)),
+          );
+        if (spot) {
+          hearth.pos = pos(spot);
+          plan.reserved.add(cellKey(spot.x, spot.y));
+        }
+      }
+      // Market counters line the square's lower edge, clear of the corners.
+      for (const [i, x] of [court.x + 4, court.x + court.w - 5].entries())
+        plan.objects.push({
+          id: `${site.id}-market-${i}`,
+          name: "Market counter",
+          prop: "marketCounter",
+          kind: "container",
+          sprite: `urban-stall-${i}`,
+          pos: pos({ x, y: court.y + court.h - 2 }),
+          inventory: characterContext
+            ? eligibleInventory({ grain: 6 }, characterContext)
+            : { grain: 6 },
+          owner: `${site.id}-community`,
+        });
+    };
+    const paintCourt = (court: Rect, square?: string, civicRect?: Rect) => {
       const material =
         palette &&
         chooseStreetSurface(
@@ -333,66 +497,12 @@ export function planSettlement(
       if (square) {
         socialCenter.x = court.x + Math.floor(court.w / 2);
         socialCenter.y = court.y + Math.floor(court.h / 2);
-        // What stands in the square comes from the fabric, so a Roman forum
-        // gets a fountain and a statue where a ward plaza gets a stele. Pieces
-        // go round the edge: the middle stays clear to cross.
-        const spots: Point[] = [
-          { x: court.x + 2, y: court.y + 2 },
-          { x: court.x + court.w - 3, y: court.y + 2 },
-          { x: court.x + 2, y: court.y + court.h - 3 },
-          { x: court.x + court.w - 3, y: court.y + court.h - 3 },
-          { x: socialCenter.x, y: court.y + 2 },
-        ];
-        // The shared water source and hearth already exist; the first water
-        // ornament and the first fire ornament become them rather than
-        // duplicating them, so household routines keep their destinations.
-        const source = plan.objects.find((o) => o.id === `${site.id}-water`)!;
-        const hearth = plan.objects.find((o) => o.id === `${site.id}-hearth`)!;
-        let water = false,
-          fire = false;
-        for (const [i, key] of fabric.ornaments.entries()) {
-          const piece = ornaments[key];
-          const spot = spots[i];
-          if (!piece || !spot) continue;
-          if (!dry({ ...spot, w: piece.size, h: piece.size }, false)) continue;
-          if (piece.kind === "well" && !water) {
-            water = true;
-            source.name = piece.label;
-            source.sprite = piece.sprite;
-            source.pos = pos(spot);
-            waterStand.x = spot.x + 1;
-            waterStand.y = spot.y;
-            continue;
-          }
-          if (piece.kind === "fire" && !fire) {
-            fire = true;
-            hearth.name = piece.label;
-            hearth.pos = pos(spot);
-            continue;
-          }
-          plan.objects.push({
-            id: `${site.id}-${piece.id}-${i}`,
-            name: piece.label,
-            kind: piece.kind,
-            sprite: piece.sprite,
-            pos: pos(spot),
-            inventory: {},
-          });
-        }
-        // Market counters line the square's lower edge, clear of the ornaments.
-        for (const [i, x] of [court.x + 3, court.x + court.w - 4].entries())
-          plan.objects.push({
-            id: `${site.id}-market-${i}`,
-            name: "Market counter",
-            prop: "marketCounter",
-            kind: "container",
-            sprite: `urban-stall-${i}`,
-            pos: pos({ x, y: court.y + court.h - 2 }),
-            inventory: characterContext
-              ? eligibleInventory({ grain: 6 }, characterContext)
-              : { grain: 6 },
-            owner: `${site.id}-community`,
-          });
+        composeSquare(court, civicRect);
+        // The centre is now the monument; anything that entered there
+        // enters at its foot instead.
+        for (const plot of plan.plots)
+          if (plan.solid.has(cellKey(plot.access.x, plot.access.y)))
+            plot.access = { ...socialCenter };
       }
       // Trees belong to planted court corners; the central passage stays clear.
       const garden = { x: court.x, y: court.y, w: 3, h: 3 };
@@ -425,6 +535,30 @@ export function planSettlement(
           lay,
           dry,
           shore: urbanShore(),
+          bank: (x, y) => {
+            const f = sample(x, y);
+            return f.water >= 4 && f.water < 6.5 && f.kind !== "lake";
+          },
+          paintQuay: (rect) =>
+            eachCell(rect, (x, y) => {
+              const k = cellKey(x, y);
+              if (plan.solid.has(k) || roads.has(k)) return;
+              plan.surface.set(k, "paving");
+              plan.pavement!.set(k, "footway");
+              plan.reserved.add(k);
+              roads.add(k);
+            }),
+          bridge: (() => {
+            const ends = [
+              ...connections.filter((p) => p.kind === "bridge"),
+              ...(selected ? [selected] : []),
+            ].flatMap((b) => [b.points[0], b.points.at(-1)!]);
+            return ends.sort(
+              (a, b) =>
+                Math.hypot(a.x - c.x, a.y - c.y) -
+                Math.hypot(b.x - c.x, b.y - c.y),
+            )[0];
+          })(),
           paintCourt,
           paintBlock,
           reserveGround: (rect) =>
@@ -738,7 +872,7 @@ export function planSettlement(
   // flat profile count still governs villages and the older layouts.
   const limit =
     urban && composed
-      ? urbanCapacity(profile.radius, fabric)
+      ? Math.min(urbanCapacity(profile.radius, fabric), profile.buildings)
       : profile.buildings;
   for (let j = 0; j < frontage.length && plan.places.length < limit; j++) {
     const lot = frontage[j];
@@ -834,11 +968,15 @@ export function planSettlement(
     const wanted =
       owner === "player"
         ? pack.role
-        : profile.livestock && i % 3 === 1
-          ? "herder"
-          : profile.fields !== "none" && i % 3 === 0
-            ? "farmer"
-            : undefined;
+        : lot.quarter === "market"
+          ? "trader"
+          : lot.quarter === "craft"
+            ? "craftsperson"
+            : profile.livestock && i % 3 === 1
+              ? "herder"
+              : profile.fields !== "none" && i % 3 === 0
+                ? "farmer"
+                : undefined;
     const livelihood = pack.setting?.characterRevision
       ? characterLivelihood(pack.setting, seed, owner, wanted)
       : undefined;
@@ -863,14 +1001,20 @@ export function planSettlement(
       eachCell(rect, (x, y) => plan.solid.delete(cellKey(x, y)));
       continue;
     }
+    const shopfront =
+      lot.quarter === "market" || lot.quarter === "craft" || i % 4 === 1;
     plan.places.push({
       id,
       name:
-        i % 4 === 1
-          ? `${role}'s workshop`
-          : i % 4 === 2
-            ? "Household stores"
-            : "Household",
+        lot.quarter === "market"
+          ? `${role}'s shop`
+          : lot.quarter === "elite"
+            ? "Townhouse"
+            : shopfront
+              ? `${role}'s workshop`
+              : i % 4 === 2
+                ? "Household stores"
+                : "Household",
       description: model.description,
       x: rect.x,
       y: rect.y,
@@ -878,7 +1022,7 @@ export function planSettlement(
       h,
       sprite: frame,
       entrance: door,
-      access: i % 4 === 1 ? "public" : "household",
+      access: shopfront ? "public" : "household",
       owner,
       claim: "landscape",
       entranceLabel,

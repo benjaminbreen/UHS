@@ -4,7 +4,9 @@ import type { UrbanForm } from "./urban-form/types";
  * per-building routing cost stays predictable. Each building costs two short
  * path searches, so this is the main dial on how long a settlement takes to
  * build. */
-export const URBAN_CAPACITY = 110;
+export const URBAN_CAPACITY = 80;
+/** Only the largest modern cities go past the ordinary cap. */
+export const METROPOLIS_CAPACITY = 120;
 
 /** Cells of block edge one street-facing building occupies, averaged over the
  * kit's frontages. */
@@ -44,4 +46,31 @@ export function urbanCapacity(radius: number, form: UrbanForm): number {
     4,
     Math.min(URBAN_CAPACITY, Math.round(blocks * perBlock(form) * 0.9)),
   );
+}
+
+/** Street-facing buildings a place of this population and date should get.
+ * Not a population model: a town is drawn at a scale the player can walk,
+ * and this only decides how much of it is built. */
+export function urbanTarget(
+  s: { settlement?: string; year: number },
+  population?: number,
+): number {
+  if (population !== undefined) {
+    // Log scale between 3k and 1M; a metropolis past that gets the top band.
+    const t = Math.max(0, Math.min(1, Math.log10(population / 3000) / 2.5));
+    const target = Math.round(20 + t * (URBAN_CAPACITY - 20));
+    return population >= 800000 && s.year >= 1800
+      ? Math.min(METROPOLIS_CAPACITY, Math.round(population / 15000) + 40)
+      : target;
+  }
+  const port = s.settlement === "port";
+  return s.year >= 1800
+    ? port
+      ? 45
+      : 55
+    : s.year >= 500
+      ? port
+        ? 38
+        : 45
+      : 40;
 }

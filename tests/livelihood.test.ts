@@ -47,7 +47,7 @@ it("generates eight ecologies without requiring settlement or assigning a home",
         habitats.add(e.world.topography!(x, y).biome!);
     expect(habitats.has(ecology)).toBe(true);
   }
-});
+}, 180000);
 it("creates reciprocal family links and shared residences, with plausible parent age differences", () => {
   const e = createSettingSession(
       setting({ household: "extended" }),

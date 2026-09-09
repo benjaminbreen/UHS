@@ -10,6 +10,7 @@ import {
 } from "./water";
 import type { TerrainRegion } from "./terrain-region";
 import { drawBridges, type BridgeSpan } from "./bridges";
+import { addFlowers, flowersAt, type FlowerSpot } from "./flowers";
 import type Phaser from "phaser";
 import { drawTerrainContours } from "./terrain-contours";
 import {
@@ -39,6 +40,7 @@ export function drawTopography(
   const tinted = new Map<string, HTMLCanvasElement>();
   const shoreTiles = new Map<string, HTMLCanvasElement>();
   const effects: WaterEffect[] = [];
+  const flowers: FlowerSpot[] = [];
   let groundScratch: HTMLCanvasElement | undefined;
   const preparedGround = new Map(groundTiles?.map((t) => [`${t.x},${t.y}`, t]));
   let waterScratch: HTMLCanvasElement | undefined;
@@ -244,6 +246,9 @@ export function drawTopography(
         data.data.set(tile.pixels);
         ctx.putImageData(data, 0, 0);
         painted = groundScratch;
+        flowers.push(
+          ...flowersAt(sample, x, y, region?.x ?? 0, region?.y ?? 0, top),
+        );
         if (c.waterVisual && c.height === 0 && c.waterVisual.distance < 1)
           effects.push(
             rasterWaterTile(sample, x, y, region?.x ?? 0, region?.y ?? 0)
@@ -298,6 +303,8 @@ export function drawTopography(
   for (const page of pages.values()) page.refresh();
   const water = addWaterEffects(scene, effects);
   if (water) own(resources, water);
+  const blooms = addFlowers(scene, flowers);
+  if (blooms) own(resources, blooms);
   const covers = drawBridges(
     scene,
     sample,

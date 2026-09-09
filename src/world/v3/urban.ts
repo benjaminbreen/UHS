@@ -17,8 +17,13 @@ import {
 } from "./blocks";
 import { cellKey, type Rect, type Road, type Site } from "./types";
 
+/** What a block is for. Decides which house forms stand on it, what its
+ * residents do and how the planner names their doors. */
+export type Quarter = "market" | "craft" | "elite" | "residential" | "edge";
+
 export type UrbanLot = {
   point: Point;
+  quarter?: Quarter;
   nx: number;
   ny: number;
   frame: string;
@@ -32,7 +37,7 @@ export type UrbanSurface = {
   /** Straight street with no graph search. Returns undefined on unusable ground. */
   lay(a: Point, b: Point, label: string, width: number): Road | undefined;
   dry(rect: Rect, occupied?: boolean): boolean;
-  paintCourt(rect: Rect, square?: string): void;
+  paintCourt(rect: Rect, square?: string, civic?: Rect): void;
   paintBlock(rect: Rect): void;
   /** Hold ground against any street laid later in the same pass. */
   reserveGround(rect: Rect): void;
@@ -40,6 +45,12 @@ export type UrbanSurface = {
   buildWall(wall: Wall, parts: { x: number; y: number; frame: string }[]): void;
   /** Direction of open water, for fabrics whose public space faces it. */
   shore?: Point;
+  /** Land within two cells of water, where a quay and its street can stand. */
+  bank?(x: number, y: number): boolean;
+  /** Paved strip between a riverside street and the water. */
+  paintQuay?(rect: Rect): void;
+  /** Where a bridge meets this bank; an offset square gathers at it. */
+  bridge?: Point;
 };
 
 /** Urban house models this pack can build, capped at `storeys`. The kit's forms
@@ -62,7 +73,9 @@ export function urbanSite(site: Site, pack: Pack): boolean {
   return (
     !!pack.setting?.urbanRevision &&
     site.profile.radius >= 24 &&
-    ["dense", "planned", "waterfront"].includes(site.profile.pattern) &&
+    (["dense", "planned", "waterfront"].includes(site.profile.pattern) ||
+      pack.setting?.settlement === "city" ||
+      pack.setting?.settlement === "port") &&
     urbanFrames(pack, siteForm(site, pack).storeys).length > 0
   );
 }
@@ -118,16 +131,21 @@ export function urbanNeighborhood(
   if (!frames.length) return [];
   const rand = (...keys: (string | number)[]) =>
     random(seed, site.id, "urban", ...keys);
+  // A waterfront square faces the water; a bridgehead market gathers where
+  // the bridge lands. Other squares keep their fabric's own placement.
+  const toward = (p: Point | undefined) =>
+    p && { x: p.x - site.center.x, y: p.y - site.center.y };
   const layout = composeUrban(
     site.id,
     site.center,
     site.profile.radius,
     form,
     seed,
-    api.shore && {
-      x: api.shore.x - site.center.x,
-      y: api.shore.y - site.center.y,
-    },
+    form.plaza === "waterfront"
+      ? toward(api.shore)
+      : form.plaza === "offset"
+        ? toward(api.bridge)
+        : undefined,
     (x, y) => api.dry({ x, y, w: 1, h: 1 }, false),
   );
   const used = new Set<string>();
@@ -198,9 +216,12 @@ export function urbanNeighborhood(
     .entries())
     api.lay(s.a, s.b, `street-${s.tier}-${i}`, form.tiers[s.tier]);
 
+  if (api.bank) riverside();
+
   const lots: UrbanLot[] = [];
   const civic = civicProfile(pack.setting!);
   const plaza = { ...layout.plaza };
+  let civicRect: Rect | undefined;
   // The civic range takes the plaza's head before the square is painted, so the
   // square keeps its full depth in front of the building rather than behind it.
   const civicBase = pack.buildings.find(
@@ -279,9 +300,10 @@ export function urbanNeighborhood(
       reserve(chosen.rect);
       reserve({ ...point, w: 1, h: 1 });
       api.reserveGround(chosen.rect);
+      civicRect = chosen.rect;
     }
   }
-  api.paintCourt(plaza, civic.square);
+  api.paintCourt(plaza, civic.square, civicRect);
 
   // Parcels are gathered per block, then taken a few at a time from each block
   // in turn. Filling one block at a time would spend the whole capacity on the
@@ -289,23 +311,23 @@ export function urbanNeighborhood(
   // Blocks are not required to be uniformly buildable. Asking a whole block to
   // be level would discard nearly all of them on real ground; each parcel is
   // put to the terrain individually below.
+  const quarters = new Map<Block, Quarter>();
+  for (const block of layout.blocks) quarters.set(block, quarterOf(block));
   const ranks = [...layout.blocks]
     .sort((a, b) => a.reach - b.reach || a.x - b.x || a.y - b.y)
     .map((block) => ({ block, lots: blockLots(block), built: 0 }));
-  const capacity = urbanCapacity(site.profile.radius, form);
+  const capacity = Math.min(
+    urbanCapacity(site.profile.radius, form),
+    site.profile.buildings,
+  );
   for (const rank of ranks) {
     if (lots.length >= capacity) break;
     for (const lot of rank.lots) {
       if (lots.length >= capacity) break;
       const door = { ...lot.point, w: 1, h: 1 },
         work = { ...lot.workPoint, w: 1, h: 1 };
-      if (
-        !fits(lot.rect) ||
-        !free(door) ||
-        !free(work) ||
-        !api.dry(door, false)
-      )
-        continue;
+      if (!fits(lot.rect)) continue;
+      if (!free(door) || !free(work) || !api.dry(door, false)) continue;
       // A block may overhang the circuit; a household may not. A threshold or
       // work pocket outside the wall has no way back in but the long way round
       // to a gate, and the work pocket sits two cells clear of the door.
@@ -333,6 +355,107 @@ export function urbanNeighborhood(
         h: rank.block.h + 2,
       });
   return lots;
+
+  /** Blocks nearest the square trade; the rest are craft rows, a few grander
+   * ranges on the arterials, ordinary households, and a thin edge. */
+  function quarterOf(block: Block): Quarter {
+    if (block.reach < 0.38) return "market";
+    if (block.reach > 0.82) return "edge";
+    const onArterial = layout.streets.some(
+      (s) =>
+        s.tier === 0 &&
+        Math.min(
+          Math.abs(s.a.x - block.x),
+          Math.abs(s.a.x - block.x - block.w),
+          Math.abs(s.a.y - block.y),
+          Math.abs(s.a.y - block.y - block.h),
+        ) <=
+          form.tiers[0] + 2,
+    );
+    const roll = rand("quarter", block.x, block.y);
+    if (onArterial && block.reach < 0.7 && roll < 0.4) return "elite";
+    return roll < 0.72 ? "craft" : "residential";
+  }
+
+  /** House forms a quarter prefers, in the kit's form names. */
+  function framesFor(quarter: Quarter): string[] {
+    const want =
+      quarter === "market"
+        ? ["shop", "tall"]
+        : quarter === "craft"
+          ? ["row", "shop"]
+          : quarter === "elite"
+            ? ["wide", "tall"]
+            : quarter === "edge"
+              ? ["shop", "row"]
+              : ["row", "tall"];
+    const chosen = frames.filter((f) => want.some((w) => f.endsWith(`-${w}`)));
+    return chosen.length ? chosen : frames;
+  }
+
+  /** A street along the bank, with a quay between it and the water. Fitted
+   * in short runs so it follows a bend rather than being refused by it. */
+  function riverside() {
+    const bank: Point[] = [];
+    const half = layout.half + 4;
+    for (let y = site.center.y - half; y <= site.center.y + half; y++)
+      for (let x = site.center.x - half; x <= site.center.x + half; x++)
+        if (layout.holds(x, y, -2) && api.bank!(x, y)) bank.push({ x, y });
+    if (bank.length < 12) return;
+    const xs = bank.map((p) => p.x),
+      ys = bank.map((p) => p.y);
+    const alongX =
+      Math.max(...xs) - Math.min(...xs) >= Math.max(...ys) - Math.min(...ys);
+    const along = (p: Point) => (alongX ? p.x : p.y),
+      across = (p: Point) => (alongX ? p.y : p.x);
+    const lo = Math.min(...bank.map(along)),
+      hi = Math.max(...bank.map(along));
+    const runs = Math.max(1, Math.min(4, Math.round((hi - lo) / 18)));
+    const dryAt = (a: number, c: number) =>
+      api.dry(
+        alongX ? { x: a, y: c, w: 1, h: 1 } : { x: c, y: a, w: 1, h: 1 },
+        false,
+      );
+    let laid = 0;
+    for (let i = 0; i < runs; i++) {
+      const from = lo + Math.round(((hi - lo) * i) / runs),
+        to = lo + Math.round(((hi - lo) * (i + 1)) / runs);
+      const here = bank.filter((p) => along(p) >= from && along(p) <= to);
+      if (here.length < 4) continue;
+      const sorted = here.map(across).sort((a, b) => a - b);
+      const median = sorted[sorted.length >> 1];
+      // Inland is whichever side of the bank line is dry.
+      const side =
+        [1, -1]
+          .map((d) => ({
+            d,
+            dry: here.filter((p) => dryAt(along(p), median + d * 3)).length,
+          }))
+          .sort((a, b) => b.dry - a.dry)[0]?.d ?? 1;
+      for (let inland = 2; inland <= 5; inland++) {
+        const c = median + side * inland;
+        const road = api.lay(
+          alongX ? { x: from, y: c } : { x: c, y: from },
+          alongX ? { x: to, y: c } : { x: c, y: to },
+          `quay-${i}`,
+          form.tiers[1],
+        );
+        if (!road) continue;
+        laid++;
+        // The quay: every dry cell between the street and the water.
+        for (let a = from; a <= to; a++)
+          for (let k = 1; k < inland + 2; k++) {
+            const q = c - side * (form.tiers[1] + k);
+            if (!dryAt(a, q)) break;
+            api.paintQuay?.(
+              alongX ? { x: a, y: q, w: 1, h: 1 } : { x: q, y: a, w: 1, h: 1 },
+            );
+          }
+        break;
+      }
+    }
+    return laid;
+  }
 
   /** Terraced rows, not a ring of ranges around a void.
    *
@@ -384,11 +507,13 @@ export function urbanNeighborhood(
     key: number,
   ): UrbanLot[] {
     const out: UrbanLot[] = [];
+    const quarter = quarters.get(block) ?? "residential";
+    const pool = framesFor(quarter);
     const dominant =
-      frames[Math.floor(rand("range", block.x, block.y, key) * frames.length)];
+      pool[Math.floor(rand("range", block.x, block.y, key) * pool.length)];
     let cursor = block.x;
     while (cursor < block.x + block.w - 4) {
-      const choices = [...frames].sort(
+      const choices = [...pool].sort(
         (a, b) =>
           rand(block.x, top, cursor, a) -
           (a === dominant ? 0.55 : 0) -
@@ -418,6 +543,7 @@ export function urbanNeighborhood(
           continue;
         out.push({
           point,
+          quarter,
           nx: 0,
           ny,
           frame,

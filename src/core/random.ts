@@ -37,7 +37,20 @@ function foldInteger(h: number, value: number): number {
  * of times per settlement, where those two allocations were the single largest
  * cost in world building; the digest, and so every world, is unchanged. */
 export function random(seed: string, ...keys: (string | number)[]): number {
-  let h = foldText(2166136261, seed);
+  return finish(foldKeys(foldText(2166136261, seed), keys));
+}
+/** Hash state after `seed` and `keys`, for callers that draw many values under
+ * one fixed prefix. `randomFrom(prefix(seed, a), b)` equals `random(seed, a, b)`. */
+export function prefix(seed: string, ...keys: (string | number)[]): number {
+  return foldKeys(foldText(2166136261, seed), keys);
+}
+export function randomFrom(
+  state: number,
+  ...keys: (string | number)[]
+): number {
+  return finish(foldKeys(state, keys));
+}
+function foldKeys(h: number, keys: (string | number)[]): number {
   for (let i = 0; i < keys.length; i++) {
     h ^= 124; // "|"
     h = Math.imul(h, 16777619);
@@ -53,6 +66,9 @@ export function random(seed: string, ...keys: (string | number)[]): number {
         ? foldInteger(h, key)
         : foldText(h, String(key));
   }
+  return h;
+}
+function finish(h: number): number {
   let t = (h >>> 0) + 0x6d2b79f5;
   t = Math.imul(t ^ (t >>> 15), t | 1);
   t ^= t + Math.imul(t ^ (t >>> 7), t | 61);

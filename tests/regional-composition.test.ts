@@ -10,7 +10,12 @@ const setting = (
   landform: NonNullable<WorldSetting["environment"]>["landform"] = "rolling",
   pattern: WorldSetting["settlementPattern"] = "clustered",
 ): WorldSetting => ({
-  ...settingFor(places.find((p) => p.id === "konya")!, -6499),
+  // A dense pattern only holds where Konya is an attested town; before that it
+  // falls back to clustered.
+  ...settingFor(
+    places.find((p) => p.id === "konya")!,
+    pattern === "dense" ? 1300 : -6499,
+  ),
   terrainRevision: 2,
   water: "river-ew",
   settlementPattern: pattern,

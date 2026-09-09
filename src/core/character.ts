@@ -159,14 +159,14 @@ export const clothColors = [
   "#d59a76",
 ];
 export const heightLabels: Record<CharacterAppearance["height"], string> = {
-  [-2]: "Under 6 · −6 pixels",
-  [-1]: "Child / short adult · −3 pixels",
+  [-2]: "Child · −6 pixels",
+  [-1]: "Youth / short adult · −3 pixels",
   0: "Original · average adult",
   1: "Tall · +3 pixels",
   2: "Tallest · +6 pixels",
 };
 export function allowedHeights(age = 30): CharacterAppearance["height"][] {
-  return age < 6 ? [-2, -1] : age < 16 ? [-1, 0] : [-1, 0, 1, 2];
+  return age < 13 ? [-2, -1] : age < 16 ? [-1, 0] : [-1, 0, 1, 2];
 }
 /** Art distribution, not a claim about historical population measurements. */
 export function heightForAge(
@@ -174,8 +174,7 @@ export function heightForAge(
   index = 0,
   age = 30,
 ): CharacterAppearance["height"] {
-  if (age < 6) return -2;
-  if (age < 13) return -1;
+  if (age < 13) return -2;
   const roll = random(seed, "character-art", index, "height");
   if (age < 16) return roll < 0.7 ? -1 : 0;
   // Adults: 10% short, 80% original, 9% tall, 1% tallest.
@@ -186,7 +185,7 @@ export function appearanceForAge(
   age = 30,
 ): CharacterAppearance {
   if (allowedHeights(age).includes(appearance.height)) return appearance;
-  return { ...appearance, height: age < 6 ? -2 : age < 16 ? -1 : 0 };
+  return { ...appearance, height: age < 13 ? -2 : age < 16 ? -1 : 0 };
 }
 export function generateAppearance(
   seed: string,

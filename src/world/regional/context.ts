@@ -116,9 +116,11 @@ export function createRegionalContext(start: WorldSetting) {
   const containsPlace = (p: RegionalPlace, x: number, y: number) => {
     const ll = fromAtlas(x + origin.x, y + origin.y),
       c = local(p);
+    // Square, like the site claim: a town is composed as a rectangle, and a
+    // round claim refused every corner block of it.
     return p.footprint
       ? inPolygon(ll.lon, ll.lat, p.footprint)
-      : Math.hypot(x - c.x, y - c.y) <= p.radius;
+      : Math.max(Math.abs(x - c.x), Math.abs(y - c.y)) <= p.radius;
   };
   const placeAt = (x: number, y: number) =>
     placesAt(x, y)
@@ -230,6 +232,9 @@ export function createRegionalContext(start: WorldSetting) {
   // for every lookup was itself among the largest costs in world generation.
   const settingCache = new Map<number, Map<number, WorldSetting>>();
   let settingCount = 0;
+  // Everything but the coordinates is the same across an ambient block, a
+  // profile set and a named place, so that part is built once and shared.
+  const baseCache = new Map<string, WorldSetting>();
   function settingAt(x: number, y: number, includeStart = true): WorldSetting {
     const row = includeStart ? y * 2 : y * 2 + 1;
     let column = settingCache.get(x);
@@ -250,52 +255,60 @@ export function createRegionalContext(start: WorldSetting) {
               : ambient.moisture < 0.45
                 ? "mediterranean"
                 : "temperate";
-    let s: WorldSetting = {
-      ...start,
-      ...ll,
-      location: "Countryside",
-      placeId: "unresearched",
-      community: "",
-      characterCommunity: undefined,
-      climate,
-      relief: ambient.relief,
-      water: "none",
-      settlement: start.year < -9999 ? "camp" : "village",
-      settlementPattern: undefined,
-      environment: undefined,
-    };
-    for (const p of profilesAt(x, y)) s = { ...s, ...p.defaults };
-    const namedPlace = placeAt(x, y);
-    if (namedPlace)
-      s = {
-        ...s,
-        ...namedPlace.defaults,
-        placeId: namedPlace.id,
-        location: namedPlace.name,
+    const here = profilesAt(x, y),
+      namedPlace = placeAt(x, y);
+    let baseKey = `${ambient.relief}|${climate}|${localStart}|${namedPlace?.id}`;
+    for (const p of here) baseKey += "|" + p.id;
+    let base = baseCache.get(baseKey);
+    if (!base) {
+      let s: WorldSetting = {
+        ...start,
+        location: "Countryside",
+        placeId: "unresearched",
+        community: "",
+        characterCommunity: undefined,
+        climate,
+        relief: ambient.relief,
+        water: "none",
+        settlement: start.year < -9999 ? "camp" : "village",
+        settlementPattern: undefined,
+        environment: undefined,
       };
-    if (localStart && (!namedPlace || namedPlace.id === start.placeId))
-      s = {
-        ...s,
-        culture: start.culture,
-        community: start.community,
-        characterCommunity: start.characterCommunity,
-        architecture: start.architecture,
-        settlement: start.settlement,
-        settlementPattern: start.settlementPattern,
-        climate: start.climate,
-        relief: start.relief,
+      for (const p of here) s = { ...s, ...p.defaults };
+      if (namedPlace)
+        s = {
+          ...s,
+          ...namedPlace.defaults,
+          placeId: namedPlace.id,
+          location: namedPlace.name,
+        };
+      if (localStart && (!namedPlace || namedPlace.id === start.placeId))
+        s = {
+          ...s,
+          culture: start.culture,
+          community: start.community,
+          characterCommunity: start.characterCommunity,
+          architecture: start.architecture,
+          settlement: start.settlement,
+          settlementPattern: start.settlementPattern,
+          climate: start.climate,
+          relief: start.relief,
+        };
+      // Chronology is not a worldwide technology ladder. Only deep-prehistoric
+      // fallback changes settlement mechanics; local dated defaults take precedence.
+      if (start.year < -9999 && !namedPlace)
+        s = { ...s, settlement: "camp", architecture: "shelter" };
+      s.environment = {
+        ...environmentFor(s),
+        start: start.environment!.start,
+        household: start.environment!.household,
       };
-    // Chronology is not a worldwide technology ladder. Only deep-prehistoric
-    // fallback changes settlement mechanics; local dated defaults take precedence.
-    if (start.year < -9999 && !namedPlace)
-      s = { ...s, settlement: "camp", architecture: "shelter" };
-    s.environment = {
-      ...environmentFor(s),
-      start: start.environment!.start,
-      household: start.environment!.household,
-    };
-    if (start.geographyMode === "configured" && localStart)
-      s.environment = { ...start.environment! };
+      if (start.geographyMode === "configured" && localStart)
+        s.environment = { ...start.environment! };
+      trimCache(baseCache, 512);
+      baseCache.set(baseKey, (base = s));
+    }
+    const s: WorldSetting = { ...base, ...ll };
     if (settingCount >= 16384) {
       settingCache.clear();
       settingCount = 0;

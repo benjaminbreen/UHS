@@ -13,7 +13,9 @@ export function drawHead(
     hair = ramp(a.hairColor, "hair"),
     cloth = ramp(a.wearing.color),
     cloak = ramp(a.wearing.cloakColor);
-  const eye = mix(a.hairColor, "#342b36", 0.6),
+  const eye = mix(a.hairColor, "#2a2230", 0.75),
+    // Faint glint, kept close to the iris so eyes don't read as gray.
+    glint = mix(eye, skin.light, 0.3),
     blink = pose === "idle" && f === 3;
   const shape = a.head ?? "original",
     jaw = a.jaw ?? "original";
@@ -21,7 +23,9 @@ export function drawHead(
     shape === "broad" || shape === "round" ? 1 : shape === "oval" ? -1 : 0;
   const chinY = shape === "long" ? 16 : 15;
   if (side) {
-    // Actual east profile: occiput → forehead → nose → lips → chin → neck.
+    // Actual east profile: occiput → forehead → nose → chin → neck.
+    // Nose is a 1px bump and every jaw stays 3px behind it so the head reads
+    // as sitting on the body rather than jutting past it.
     p.shape(
       [
         [shape === "broad" ? 3 : 5, 4],
@@ -29,41 +33,41 @@ export function drawHead(
         [shape === "oval" ? 14 : 15, 3],
         [17, 5],
         [17, 8],
-        [19, 9],
-        [19, 10],
-        [17, 11],
+        [18, 9],
+        [18, 10],
+        [16, 11],
         ...((jaw === "square"
           ? [
-              [18, 13],
-              [17, 16],
-              [12, 16],
+              [16, 13],
+              [15, 16],
+              [11, 16],
               [10, 13],
             ]
           : jaw === "small"
             ? [
-                [16, 12],
-                [14, 14],
+                [15, 12],
+                [13, 14],
                 [11, 13],
                 [10, 12],
               ]
             : jaw === "pointed"
               ? [
-                  [17, 13],
-                  [15, 17],
+                  [15, 13],
+                  [14, 17],
                   [12, 14],
                   [10, 12],
                 ]
               : jaw === "soft"
                 ? [
-                    [17, 12],
-                    [16, 14],
-                    [14, 16],
+                    [15, 12],
+                    [15, 14],
+                    [13, 16],
                     [11, 14],
                     [10, 12],
                   ]
                 : [
-                    [17, 13],
-                    [14, chinY],
+                    [15, 13],
+                    [13, chinY],
                     [10, chinY - 1],
                     [10, 12],
                   ]) as Point[]),
@@ -75,6 +79,7 @@ export function drawHead(
     p.rect(12, 6, 4, 5, skin.base);
     p.rect(16, 9, 2, 1, skin.light);
     p.rect(14, 7, 1, blink ? 1 : 2, blink ? skin.shade : eye);
+    if (!blink) p.rect(14, 7, 1, 1, glint);
     p.rect(15, 7, 1, 1, skin.light);
     p.rect(15, 11, 2, 1, skin.shade);
     p.rect(13, 13, 2, 1, skin.shade);
@@ -130,6 +135,10 @@ export function drawHead(
     if (!back) {
       p.rect(7, 8, 2, blink ? 1 : 2, blink ? skin.shade : eye);
       p.rect(12, 8, 2, blink ? 1 : 2, blink ? skin.shade : eye);
+      if (!blink) {
+        p.rect(7, 8, 1, 1, glint);
+        p.rect(12, 8, 1, 1, glint);
+      }
       p.rect(10, 10, 2, 1, skin.light);
       p.rect(9, 12, 3, 1, skin.shade);
       if (pose === "talk" && f % 2) p.rect(10, 12, 2, 2, skin.edge);
@@ -308,8 +317,8 @@ export function drawHead(
     // styles anchor there rather than to a per-jaw contour.
     const moustache = () => {
       if (side) {
-        p.rect(15, 11, 3, 1, hair.shade);
-        p.rect(17, 12, 1, 1, hair.edge);
+        p.rect(14, 11, 3, 1, hair.shade);
+        p.rect(16, 12, 1, 1, hair.edge);
       } else {
         p.rect(8, 11, 6, 1, hair.shade);
         p.rect(8, 12, 1, 1, hair.edge);
@@ -327,8 +336,8 @@ export function drawHead(
     else if (b === "moustache") moustache();
     else if (b === "handlebar") {
       if (side) {
-        p.rect(14, 11, 4, 1, hair.shade);
-        p.rect(18, 10, 1, 1, hair.base);
+        p.rect(13, 11, 4, 1, hair.shade);
+        p.rect(17, 10, 1, 1, hair.base);
       } else {
         p.rect(7, 11, 7, 1, hair.shade);
         p.rect(6, 10, 1, 1, hair.base);
@@ -339,10 +348,10 @@ export function drawHead(
       p.shape(
         side
           ? [
-              [13, 13],
-              [16, 13],
-              [15, 17],
-              [13, 16],
+              [12, 13],
+              [15, 13],
+              [14, 17],
+              [12, 16],
             ]
           : [
               [9, 13],
@@ -366,8 +375,8 @@ export function drawHead(
       // Jawline only, no moustache, so the mouth stays legible.
       if (side) {
         p.line([10, 10], [12, 13], hair.base);
-        p.rect(12, 13, 5, 1, hair.base);
-        p.rect(14, 14, 2, 1, hair.shade);
+        p.rect(12, 13, 4, 1, hair.base);
+        p.rect(13, 14, 2, 1, hair.shade);
       } else {
         p.line([5, 10], [8, 13], hair.base);
         p.line([15, 10], [12, 13], hair.base);
@@ -382,15 +391,15 @@ export function drawHead(
           ? ([
               [12, 12],
               [14, 13],
-              [17, 12],
-              [16, bottom - 1],
+              [16, 12],
+              [15, bottom - 1],
               ...(fork
                 ? [
-                    [15, bottom],
-                    [14, bottom - 3],
-                    [13, bottom],
+                    [14, bottom],
+                    [13, bottom - 3],
+                    [12, bottom],
                   ]
-                : [[13, bottom]]),
+                : [[12, bottom]]),
               [11, 14],
             ] as Point[])
           : ([

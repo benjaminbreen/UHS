@@ -27,22 +27,29 @@ export function drawCharacter(
   const lean =
     stance === "relaxed" ? 1 : stance === "stooped" ? 2 : burden ? -1 : 0;
   const stride = moving ? [0, 3, 0, -3][f] : 0,
-    bob = moving && f % 2 ? 1 : 0;
+    bob = moving && f % 2 ? 1 : 0,
+    shift = pose === "sway" ? [-1, 0, 1, 0][f] : 0;
   const bend =
     (stance === "stooped" ? 2 : burden ? 1 : 0) +
-    (pose === "sit"
+    (pose === "sit" || pose === "kneel"
       ? 6
-      : pose === "pickup" || pose === "drop"
-        ? [0, 3, 6, 2][f]
-        : pose === "work"
-          ? [0, 0, 4, 2][f]
-          : pose === "hurt"
-            ? [0, 2, 3, 1][f]
-            : 0);
+      : pose === "stoop"
+        ? [2, 4, 6, 4][f]
+        : pose === "tug"
+          ? [1, 0, 2, 3][f]
+          : pose === "pickup" || pose === "drop"
+            ? [0, 3, 6, 2][f]
+            : pose === "work"
+              ? [0, 0, 4, 2][f]
+              : pose === "hurt"
+                ? [0, 2, 3, 1][f]
+                : 0);
   const tall = a.height * 3,
     torso = a.height * 2,
     wide = Math.max(0, a.build),
-    narrow = a.build === -1 ? 1 : 0,
+    // The smallest body loses a pixel each side too, or it reads as a short adult.
+    small = a.height <= -2 ? 1 : 0,
+    narrow = (a.build === -1 ? 1 : 0) + small,
     feet = 30 + tall - bend - bob;
   const skin = ramp(a.skin, "skin"),
     cloth = ramp(a.wearing.color),
@@ -51,7 +58,7 @@ export function drawCharacter(
     leather = ramp("#72503b"),
     wood = ramp("#ae7e49");
   ctx.save();
-  ctx.translate(30, 49 - tall + bend + bob);
+  ctx.translate(30 + shift, 49 - tall + bend + bob);
   if (direction === 3) {
     ctx.translate(20, 0);
     ctx.scale(-1, 1);
@@ -70,7 +77,7 @@ export function drawCharacter(
       : [16 + wide - narrow, 15 - inhale],
     shoulderFar: Point = side
       ? [13 - narrow, 15 - inhale]
-      : [3 - wide, 15 - inhale];
+      : [3 - wide + small, 15 - inhale];
   let near: Point = side
       ? [10 - armSwing, 22 + torso - (armSwing < 0 ? 1 : 0)]
       : [
@@ -79,7 +86,10 @@ export function drawCharacter(
         ],
     far: Point = side
       ? [13 - narrow + armSwing, 22 + torso - (armSwing > 0 ? 1 : 0)]
-      : [3 - wide + (stride > 0 ? 1 : 0), 22 + torso - Math.round(stride / 2)];
+      : [
+          3 - wide + small + (stride > 0 ? 1 : 0),
+          22 + torso - Math.round(stride / 2),
+        ];
   if (!prop && resting) {
     if (stance === "hand-on-hip") near = [side ? 12 : 14 + wide, 20 + torso];
     if (stance === "hands-together") {
@@ -98,7 +108,7 @@ export function drawCharacter(
     near = [21 + wide, pose === "startle" ? 9 : 15];
     far = [side ? 4 : 0 - wide, pose === "startle" ? 9 : 15];
   }
-  if (pose === "swing" || pose === "work")
+  if (pose === "swing")
     near = (
       [
         [17, 9],
@@ -107,6 +117,30 @@ export function drawCharacter(
         [18, 22],
       ] as Point[]
     )[f];
+  // Work stays below the shoulder and close to the body; swing is for axes.
+  if (pose === "work")
+    near = (
+      [
+        [15 + wide, 18],
+        [16 + wide, 16],
+        [17 + wide, 20],
+        [16 + wide, 19],
+      ] as Point[]
+    )[f];
+  if (pose === "stoop") {
+    near = [side ? 15 : 13 + wide, 25 + torso - bend + [0, 1, 1, 0][f]];
+    far = [side ? 13 : 8 - wide, near[1]];
+  }
+  if (pose === "kneel") {
+    near = [side ? 17 : 15 + wide, 23 + torso - bend + [0, 1, 0, 1][f]];
+    far = [side ? 13 : 6 - wide, 23 + torso - bend];
+  }
+  if (pose === "tug") {
+    near = [side ? 16 : 11, 20 + torso - [1, 0, 2, 3][f]];
+    far = [side ? 14 : 9, near[1]];
+  }
+  if (pose === "lift")
+    near = [side ? 16 : 15 + wide, 21 + torso - [0, 3, 5, 2][f]];
   if (pose === "thrust")
     near = (
       [
@@ -122,7 +156,7 @@ export function drawCharacter(
     near = [side ? 19 : 16 + wide, 21 + torso - [0, 2, 3, 0][f]];
     far = [side ? 16 : 4 - wide, near[1]];
   }
-  if (prop?.kind === "stick" && !["swing", "work", "thrust"].includes(pose))
+  if (prop?.kind === "stick" && !["swing", "thrust"].includes(pose))
     near = [18 + wide, 21 + torso + (moving && f % 2 ? -1 : 0)];
   if (prop?.kind === "side")
     near = [
@@ -143,7 +177,7 @@ export function drawCharacter(
     if (!prop) return;
     if (prop.kind === "stick") {
       const v: Point =
-        pose === "swing" || pose === "work"
+        pose === "swing"
           ? (
               [
                 [3, -18],
@@ -229,7 +263,13 @@ export function drawCharacter(
     ctx.restore();
   }
   const leg = (isFar: boolean) => {
-    const x = side ? (isFar ? 12 : 9) : isFar ? 6 - wide : 13 + wide - narrow,
+    const x = side
+        ? isFar
+          ? 12
+          : 9
+        : isFar
+          ? 6 - wide + small
+          : 13 + wide - narrow,
       walk = side ? (isFar ? -stride : stride) : 0;
     const lift = moving
       ? (isFar && f === 3) || (!isFar && f === 1)
@@ -280,7 +320,7 @@ export function drawCharacter(
       cloak.light,
     );
   }
-  const left = side ? 6 - wide : 4 - wide,
+  const left = (side ? 6 - wide : 4 - wide) + small,
     right = (side ? 15 + wide : 16 + wide) - narrow;
   const long = ["robe", "dress", "coat", "skirt", "long-tunic"].includes(
       a.wearing.garment,
@@ -437,6 +477,8 @@ export function drawCharacter(
     p.line([side ? 8 : 6, 15], [side ? 7 : 5, 20 + torso], drape.light);
     p.line([side ? 10 : 8, 14], [side ? 13 : 12, 15], drape.base);
   }
+  // Collar shadow under the chin so the head sits on the body.
+  if (!back) p.rect(left + 1, 16, right - left - 1, 1, cloth.shade);
   ctx.save();
   if (stance === "stooped") ctx.translate(1, 1);
   drawHead(p, a, side, back, pose, f);

@@ -40,12 +40,20 @@ const SPACING = 0.95;
 const ambientPoses: Record<StationActivity, CharacterPose> = {
   rest: "sit",
   work: "work",
-  tend: "work",
+  tend: "stoop",
   haul: "carry",
-  "draw-water": "work",
-  gather: "work",
+  "draw-water": "tug",
+  gather: "stoop",
   visit: "talk",
   graze: "idle",
+  play: "sway",
+};
+const workAlternates: Partial<
+  Record<CharacterPose, [CharacterPose, CharacterPose]>
+> = {
+  work: ["lift", "sway"],
+  stoop: ["kneel", "work"],
+  tug: ["stoop", "sway"],
 };
 export class WorldScene extends Phaser.Scene {
   private runtime: Runtime;
@@ -744,7 +752,12 @@ export class WorldScene extends Phaser.Scene {
       // The routine decides who is out, not a.pos: the engine barely ticks
       // while the player stands still.
       const routine = w.itinerary?.(a.id);
-      if (!routine) continue;
+      // Past the routine budget a resident stays indoors rather than loitering
+      // at the door on the needs loop.
+      if (!routine) {
+        this.indoors.add(a.id);
+        continue;
+      }
       const at = itineraryAt(routine, drawnClock);
       if (at.activity === "rest" && !at.moving) this.indoors.add(a.id);
       else this.ambient.set(a.id, at);
@@ -1309,8 +1322,17 @@ export class WorldScene extends Phaser.Scene {
   /** A knot of people is not a chorus. Each takes a turn talking and a longer
    * turn listening, on their own beat. */
   private ambientPose(id: string, at: Ambient, time: number): CharacterPose {
-    if (at.activity !== "visit") return ambientPoses[at.activity];
     const offset = this.poseOffset(id);
+    if (at.activity !== "visit") {
+      const base = ambientPoses[at.activity];
+      const alt = workAlternates[base];
+      if (!alt) return base;
+      // Every 20-30s a worker changes what they are doing, so a yard is not
+      // a row of people doing the same thing in unison.
+      const beat = 20000 + (offset % 10000);
+      const n = Math.floor((time + offset) / beat) % 4;
+      return n === 0 ? alt[0] : n === 2 ? alt[1] : base;
+    }
     const beat = 2600 + (offset % 2400);
     return Math.floor((time + offset) / beat) % 3 ? "idle" : "talk";
   }

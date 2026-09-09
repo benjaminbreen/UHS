@@ -20,7 +20,11 @@ export const americasForms: UrbanFormRule[] = [
     plaza: "crossing",
     plazaScale: 0.34,
     civic: "head",
-    ornaments: ["altar", "stele", "brazier"],
+    square: {
+      focus: "altar",
+      corners: ["stele", "brazier", "stele", "brazier"],
+      hearth: "brazier",
+    },
     evidence: {
       status: "inferred",
       sources: [],
@@ -46,7 +50,7 @@ export const americasForms: UrbanFormRule[] = [
     plaza: "crossing",
     plazaScale: 0.28,
     civic: "head",
-    ornaments: ["altar", "stele", "brazier"],
+    square: { focus: "altar", corners: ["stele", "bench"], hearth: "brazier" },
     evidence: {
       status: "inferred",
       sources: [],

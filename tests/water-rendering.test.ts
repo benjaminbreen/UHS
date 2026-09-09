@@ -19,6 +19,7 @@ const setting = (
   water: WorldSetting["water"],
 ): WorldSetting => ({
   ...settingFor(places.find((p) => p.id === "konya")!, -6499),
+  geographyMode: "configured",
   terrainRevision: 2,
   water,
   environment: {
@@ -93,7 +94,7 @@ it("retains base ecology on wet banks and exports river tangents without changin
       ),
     ).toBe(false);
   }
-}, 15000); // Three complete regional worlds; raster assertions above remain fast.
+}, 120000); // Three complete regional worlds; slow under a parallel suite.
 
 it("gives tropical rivers and coasts distinct water, and ecological banks distinct minerals", () => {
   const river = waterPalette("tropical-woodland", "river"),

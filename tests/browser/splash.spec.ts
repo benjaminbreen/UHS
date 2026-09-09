@@ -44,6 +44,7 @@ for (const start of starts)
     const errors: string[] = [];
     page.on("pageerror", (e) => errors.push(e.message));
     await page.goto("/");
+    await page.getByRole("button", { name: "More info" }).click();
     await page.getByRole("button", { name: new RegExp(start.name) }).click();
     await page.waitForFunction(() => !!(window as any).historySim, null, {
       timeout: 75000,
@@ -68,8 +69,9 @@ test("Random start previews characters and Begin preserves the selected characte
 }) => {
   test.setTimeout(120000);
   await page.goto("/");
+  await page.getByRole("button", { name: "More info" }).click();
   await page.getByRole("button", { name: "Random start", exact: true }).click();
-  const preview = page.getByLabel("Selected start");
+  const preview = page.getByLabel("Selected start").first();
   await expect(preview).toBeVisible();
   const first = await preview.textContent();
   expect(await page.evaluate(() => !!(window as any).historySim)).toBe(false);
@@ -93,6 +95,7 @@ test("Random start previews characters and Begin preserves the selected characte
   await page.reload();
   await expect(page.getByAltText("Universal History Simulator")).toBeVisible();
   expect(await page.evaluate(() => !!(window as any).historySim)).toBe(false);
+  await page.getByRole("button", { name: "More info" }).click();
   await page.getByRole("button", { name: "Random start", exact: true }).click();
   await expect(preview).toBeVisible();
   const nextName = await preview.locator("strong").innerText();
@@ -126,7 +129,7 @@ test("typed prompt begins a world and unrecognized text stays editable", async (
 }) => {
   test.setTimeout(90000);
   await page.goto("/");
-  await page.getByLabel("Who will you be?").fill("An unknown place");
+  await page.getByLabel("Your start").fill("An unknown place");
   await page.getByRole("button", { name: "Begin", exact: true }).click();
   await expect(
     page.getByRole("dialog", { name: "Create a world" }),
@@ -135,7 +138,7 @@ test("typed prompt begins a world and unrecognized text stays editable", async (
     "An unknown place",
   );
   await page.getByRole("button", { name: "Close dialog" }).click();
-  await page.getByLabel("Who will you be?").fill("Farmer in Seoul 1750");
+  await page.getByLabel("Your start").fill("Farmer in Seoul 1750");
   await page.getByRole("button", { name: "Begin", exact: true }).click();
   await page.waitForFunction(() => !!(window as any).historySim, null, {
     timeout: 75000,

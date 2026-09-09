@@ -41,7 +41,7 @@ export const genericForm: UrbanForm = {
   plaza: "offset",
   plazaScale: 0.17,
   civic: "head",
-  ornaments: ["well", "brazier"],
+  square: { focus: "tree", corners: ["well", "bench"], hearth: "hidden" },
   evidence: {
     status: "fictional",
     sources: [],

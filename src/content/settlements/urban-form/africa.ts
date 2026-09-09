@@ -20,7 +20,7 @@ export const africaForms: UrbanFormRule[] = [
     plaza: "offset",
     plazaScale: 0.2,
     civic: "side",
-    ornaments: ["well", "brazier", "bench"],
+    square: { focus: "tree", corners: ["well", "bench"], hearth: "brazier" },
     evidence: {
       status: "inferred",
       sources: [],
@@ -46,7 +46,7 @@ export const africaForms: UrbanFormRule[] = [
     plaza: "waterfront",
     plazaScale: 0.14,
     civic: "side",
-    ornaments: ["well", "bench"],
+    square: { focus: "well", corners: ["bench", "planter"], hearth: "hidden" },
     evidence: {
       status: "inferred",
       sources: [],
@@ -72,7 +72,7 @@ export const africaForms: UrbanFormRule[] = [
     plaza: "crossing",
     plazaScale: 0.26,
     civic: "side",
-    ornaments: ["altar", "brazier"],
+    square: { focus: "tree", corners: ["brazier", "bench"], hearth: "brazier" },
     evidence: {
       status: "inferred",
       sources: [],

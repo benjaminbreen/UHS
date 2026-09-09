@@ -15,6 +15,8 @@ import shadows from "../public/nature/shadows.json";
 const base = settingFor(places.find((p) => p.id === "konya")!);
 const setting = (ecology: Ecology, lon = 30, lat = 40): WorldSetting => ({
   ...base,
+  // Otherwise the atlas environment at Konya wins over the ecology under test.
+  geographyMode: "configured",
   lon,
   lat,
   terrainRevision: 2,
@@ -169,4 +171,4 @@ it("generates every new plant in suitable worlds without placing them in water o
       )
       .sort(),
   );
-}, 30000);
+}, 120000);

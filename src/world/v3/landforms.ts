@@ -19,9 +19,9 @@ export function regionalLandforms(
 ) {
   const angle = random(seed, "land-angle") * Math.PI * 2;
   const reaches = new Map<number, number[]>();
-  const heights = new Map<string, number>();
+  const heights = new Map<number, number>();
   const field = (x: number, y: number) => {
-    const key = `${x},${y}`;
+    const key = x * 2097152 + y;
     const old = heights.get(key);
     if (old !== undefined) return old;
     const wx = x + (noise(seed, x, y, 95, "warp-x") - 0.5) * 62,

@@ -158,8 +158,9 @@ it("varies the interior with the world seed while the layout stays deterministic
 
 it("scales capacity with extent and block size, and stays bounded", () => {
   const form = at("east-asian", 116, 40, 1450);
-  expect(urbanCapacity(30, form)).toBeLessThan(urbanCapacity(60, form));
-  expect(urbanCapacity(60, form)).toBeLessThan(urbanCapacity(90, form));
+  // Radii below the cap, which a 60-cell extent already reaches.
+  expect(urbanCapacity(20, form)).toBeLessThan(urbanCapacity(30, form));
+  expect(urbanCapacity(30, form)).toBeLessThan(urbanCapacity(45, form));
   expect(urbanCapacity(400, form)).toBeLessThanOrEqual(URBAN_CAPACITY);
   // Capacity counts street frontage, so at one extent a fabric of smaller
   // blocks holds more of it: more blocks means more block edge.
@@ -167,7 +168,7 @@ it("scales capacity with extent and block size, and stays bounded", () => {
   expect(small.block[0] * small.block[1]).toBeLessThan(
     form.block[0] * form.block[1],
   );
-  expect(urbanCapacity(55, small)).toBeGreaterThan(urbanCapacity(55, form));
+  expect(urbanCapacity(40, small)).toBeGreaterThan(urbanCapacity(40, form));
 });
 
 it("only ranks a place as a town where an urban fabric is attested by then", () => {

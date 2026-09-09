@@ -1,28 +1,43 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import {
   ArrowRight,
-  Dices,
+  X,
+  ChevronDown,
   Wheat,
   Landmark,
   Leaf,
   MoveUpRight,
-  X,
-  ChevronDown,
 } from "lucide-react";
+import { openings } from "../content/geography/openings";
 import { StartPreview } from "./StartPreview";
 import type { WorldSetting } from "../content/geography/types";
 import type { Engine } from "../core/engine";
-import { openings } from "../content/geography/openings";
+import { regionAt } from "../content/geography/region-label";
+import { formatHistoricalYear } from "../core/calendar";
+import type { randomStart } from "../content/geography/random-start";
+import { bannerFor, defaultBanner, smokeFor } from "./splash-banner";
+import { BannerSmoke } from "./BannerSmoke";
+import { SplashStars } from "./SplashStars";
 import "./splash.css";
-const WorldSetup = lazy(() =>
-  import("./WorldSetup").then((m) => ({ default: m.WorldSetup })),
-);
+type Starter = typeof import("../content/geography/random-start");
+let starter: Starter | null = null;
+let starterLoad: Promise<Starter> | null = null;
+function loadStarter() {
+  starterLoad ??= import("../content/geography/random-start").then((m) => {
+    starter = m;
+    return m;
+  });
+  return starterLoad;
+}
 const icons = {
   arrow: MoveUpRight,
   column: Landmark,
   wheat: Wheat,
   leaf: Leaf,
 };
+const WorldSetup = lazy(() =>
+  import("./WorldSetup").then((m) => ({ default: m.WorldSetup })),
+);
 export function Splash({
   onStart,
 }: {
@@ -33,6 +48,7 @@ export function Splash({
     setting: WorldSetting;
   }>();
   const [aboutOpen, setAboutOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const [prompt, setPrompt] = useState("");
   const [mode, setMode] = useState<"local" | "model">("local");
   const [busy, setBusy] = useState("");
@@ -43,6 +59,7 @@ export function Splash({
   const [seed] = useState(() => `world-${crypto.randomUUID()}`);
   const controller = useRef<AbortController | null>(null);
   const dialog = useRef<HTMLElement>(null);
+  const bannerImg = useRef<HTMLImageElement>(null);
   useEffect(() => () => controller.current?.abort(), []);
   useEffect(() => {
     if (!panel) return;
@@ -76,16 +93,33 @@ export function Splash({
       previous?.focus();
     };
   }, [panel]);
-  const randomize = async () => {
-    const { randomStart } = await import("../content/geography/random-start");
-    const { formatHistoricalYear } = await import("../core/calendar");
-    const next = randomStart();
+  const randomizeCall = useRef(0);
+  const applyStart = (next: ReturnType<typeof randomStart>) => {
+    const region = regionAt(next.setting.lon, next.setting.lat);
     setSelected(next);
     setPrompt(
-      `${next.setting.role} in ${next.setting.location}, ${formatHistoricalYear(next.setting.year)}`,
+      `${next.setting.role} in ${region?.label ?? next.setting.location}, ${formatHistoricalYear(next.setting.year)}`,
     );
     setError("");
   };
+  const randomize = async () => {
+    // Draw synchronously once loaded so a click lands before the next read;
+    // while loading, only the latest call may land.
+    if (starter) return applyStart(starter.randomStart());
+    const call = ++randomizeCall.current;
+    const loaded = await loadStarter();
+    if (call !== randomizeCall.current) return;
+    applyStart(loaded.randomStart());
+  };
+  // Open on a random start rather than an empty box.
+  useEffect(() => {
+    void randomize();
+  }, []);
+  const region = selected
+    ? regionAt(selected.setting.lon, selected.setting.lat)
+    : undefined;
+  const culture = region?.culture;
+  const banner = bannerFor(culture, selected?.setting.year, region?.id);
   const launch = async (
     request?: string,
     selection: typeof selected | null = selected,
@@ -142,211 +176,238 @@ export function Splash({
   };
   return (
     <main className="splash">
-      <div className="splash-content" inert={panel ? true : undefined}>
-        <header className="splash-header">
-          <svg width="0" height="0" className="logo-filter" aria-hidden="true">
-            <defs>
-              <filter id="uhs-logo-ink" colorInterpolationFilters="sRGB">
-                <feColorMatrix
-                  type="matrix"
-                  values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  8 0 0 0 -0.85"
+      <div className="splash-frame">
+        <SplashStars />
+        <div className="splash-content" inert={panel ? true : undefined}>
+          <header className="splash-header">
+            <div className="splash-logotype">
+              <img
+                src="/brand/uhs-stacked.png"
+                alt="Universal History Simulator"
+                width="722"
+                height="218"
+              />
+            </div>
+            <div className="splash-rule" aria-hidden="true">
+              <span />
+              <i />
+              <span />
+            </div>
+            <p>An experiment in teachably imperfect historical simulations</p>
+          </header>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (!prompt.trim()) {
+                setPanel("world");
+                return;
+              }
+              if (mode === "model" && !selected) setPanel("world");
+              else void launch(prompt.trim());
+            }}
+          >
+            <label className="splash-eyebrow" htmlFor="opening-prompt">
+              Your start
+            </label>
+            <div className="splash-input">
+              <svg
+                className="splash-cursor"
+                viewBox="0 0 12 12"
+                shapeRendering="crispEdges"
+                aria-hidden="true"
+              >
+                <path
+                  fill="#e9c785"
+                  d="M1 0h1v1h1v1h1v1h1v1h1v1h1v1h1v1h1v1H6v1h1v1h1v1H7v-1H6v-1H5v-1H4v1H3v1H2v1H1z"
                 />
-              </filter>
-            </defs>
-          </svg>
-          <div className="splash-logotype">
-            <img
-              src="/brand/uhs.png"
-              alt="Universal History Simulator"
-              width="1196"
-              height="190"
-            />
-            <svg
-              className="logo-glint"
-              viewBox="0 0 15 15"
-              shapeRendering="crispEdges"
-              aria-hidden="true"
-            >
-              <path
-                className="glint-rays"
-                fill="#e9c785"
-                d="M7 0h1v4H7zM7 11h1v4H7zM0 7h4v1H0zM11 7h4v1h-4z"
+              </svg>
+              <input
+                id="opening-prompt"
+                value={prompt}
+                disabled={!!busy}
+                maxLength={2000}
+                onChange={(e) => {
+                  setSelected(undefined);
+                  setPrompt(e.target.value);
+                }}
+                placeholder="A hunter in Anatolia, 7000 BCE"
               />
-              <path
-                className="glint-cross"
-                fill="#fff2cc"
-                d="M6 3h3v3h3v3H9v3H6V9H3V6h3z"
-              />
-              <path fill="#fffdf2" d="M6 6h3v3H6z" />
-            </svg>
-          </div>
-          <p>An experiment in teachably imperfect historical simulations</p>
-        </header>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (!prompt.trim()) {
-              setPanel("world");
-              return;
-            }
-            if (mode === "model" && !selected) setPanel("world");
-            else void launch(prompt.trim());
-          }}
-        >
-          <label className="splash-eyebrow" htmlFor="opening-prompt">
-            Who will you be?
-          </label>
-          <div className="splash-input">
-            <input
-              id="opening-prompt"
-              value={prompt}
-              disabled={!!busy}
-              maxLength={2000}
-              onChange={(e) => {
-                setSelected(undefined);
-                setPrompt(e.target.value);
-              }}
-              placeholder="A hunter in Anatolia, 7000 BCE"
-            />
-            <button
-              type="button"
-              aria-label="Choose starting details"
-              disabled={!!busy}
-              onClick={() => setPanel("world")}
-            >
-              <ChevronDown />
-            </button>
-          </div>
-          <div className="splash-actions">
-            <div
-              className="splash-modes"
-              role="group"
-              aria-label="World creation mode"
-            >
               <button
                 type="button"
-                aria-pressed={mode === "local"}
+                aria-label="Choose starting details"
                 disabled={!!busy}
-                onClick={() => setMode("local")}
+                onClick={() => setPanel("world")}
               >
-                <span className="mode-diamond" />
-                <span>
-                  Procedural<small>Generate a random start</small>
-                </span>
-              </button>
-              <button
-                type="button"
-                aria-pressed={mode === "model"}
-                disabled={!!busy}
-                onClick={() => setMode("model")}
-              >
-                <span className="mode-diamond" />
-                <span>
-                  World Weaver<small>AI-assisted world creation</small>
-                </span>
+                <ChevronDown />
               </button>
             </div>
-            <button className="splash-begin" disabled={!!busy}>
-              Begin <ArrowRight size={20} />
-            </button>
-            <button
-              type="button"
-              className="splash-random"
-              disabled={!!busy}
-              onClick={() => void randomize()}
-            >
-              <Dices size={18} />
-              Random start
-            </button>
-          </div>
-        </form>
-        {selected && <StartPreview setting={selected.setting} />}
-        <div className="splash-status" role="status">
-          {busy}
-          {busy && (
-            <button
-              onClick={() => {
-                controller.current?.abort();
-                controller.current = null;
-                setBusy("");
-              }}
-            >
-              Cancel
-            </button>
-          )}
-        </div>
-        {error && (
-          <p className="splash-error" role="alert">
-            {error}
-          </p>
-        )}
-        <div className="splash-divider">
-          <span>✦</span>
-        </div>
-        <section className="splash-openings" aria-label="Opening scenarios">
-          <h2 className="splash-eyebrow">Or begin with</h2>
-          <div className="opening-grid">
-            {openings.map((opening) => {
-              const Icon = icons[opening.icon];
-              return (
+            <div className="splash-actions">
+              <button
+                type="button"
+                className="splash-random"
+                disabled={!!busy}
+                onClick={() => void randomize()}
+              >
+                Random start
+              </button>
+              <button className="splash-begin" disabled={!!busy}>
+                Begin
+              </button>
+            </div>
+          </form>
+          <button
+            type="button"
+            className="splash-more"
+            aria-expanded={moreOpen}
+            aria-controls="splash-more"
+            onClick={() => setMoreOpen((open) => !open)}
+          >
+            More info
+            <ChevronDown
+              className={moreOpen ? "about-chevron is-open" : "about-chevron"}
+              size={14}
+            />
+          </button>
+          <div
+            id="splash-more"
+            className="splash-more-panel"
+            hidden={!moreOpen}
+          >
+            <div className="splash-more-inner">
+              {selected && <StartPreview setting={selected.setting} />}
+              <div
+                className="splash-modes"
+                role="group"
+                aria-label="World creation mode"
+              >
                 <button
-                  key={opening.id}
+                  type="button"
+                  aria-pressed={mode === "local"}
                   disabled={!!busy}
-                  onClick={() => {
-                    setPrompt(opening.prompt);
-                    setSelected(undefined);
-                    void launch(opening.prompt, null);
-                  }}
+                  onClick={() => setMode("local")}
                 >
-                  <Icon aria-hidden="true" />
-                  <span>
-                    {opening.title}
-                    <small>{opening.detail}</small>
-                  </span>
+                  Standard
                 </button>
-              );
-            })}
+                <button
+                  type="button"
+                  aria-pressed={mode === "model"}
+                  disabled={!!busy}
+                  onClick={() => setMode("model")}
+                >
+                  Use AI
+                </button>
+              </div>
+              <div className="splash-divider">
+                <span>✦</span>
+              </div>
+              <section
+                className="splash-openings"
+                aria-label="Opening scenarios"
+              >
+                <h2 className="splash-eyebrow">Or begin with</h2>
+                <div className="opening-grid">
+                  {openings.map((opening) => {
+                    const Icon = icons[opening.icon];
+                    return (
+                      <button
+                        key={opening.id}
+                        disabled={!!busy}
+                        onClick={() => {
+                          setPrompt(opening.prompt);
+                          setSelected(undefined);
+                          void launch(opening.prompt, null);
+                        }}
+                      >
+                        <Icon aria-hidden="true" />
+                        <span>
+                          {opening.title}
+                          <small>{opening.detail}</small>
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+            </div>
           </div>
-        </section>
-        <footer className="splash-footer">
-          <nav aria-label="About the simulator">
-            <button
-              aria-expanded={aboutOpen}
-              aria-controls="splash-about"
-              onClick={() => setAboutOpen((open) => !open)}
-            >
-              About{" "}
-              <ChevronDown
-                className={
-                  aboutOpen ? "about-chevron is-open" : "about-chevron"
-                }
-                size={13}
+          <div className="splash-status" role="status">
+            {busy}
+            {busy && (
+              <button
+                onClick={() => {
+                  controller.current?.abort();
+                  controller.current = null;
+                  setBusy("");
+                }}
+              >
+                Cancel
+              </button>
+            )}
+          </div>
+          {error && (
+            <p className="splash-error" role="alert">
+              {error}
+            </p>
+          )}
+          <div className="splash-banner" aria-hidden="true">
+            <div className="splash-banner-art">
+              <img
+                key={banner}
+                ref={bannerImg}
+                src={banner}
+                alt=""
+                onError={(e) => {
+                  if (e.currentTarget.src.endsWith(defaultBanner)) return;
+                  e.currentTarget.src = defaultBanner;
+                }}
               />
-            </button>
-            <span>·</span>
-            <button disabled={!!busy} onClick={() => setPanel("about")}>
-              How it works
-            </button>
-            <span>·</span>
-            <button disabled={!!busy} onClick={() => setPanel("sources")}>
-              Sources and method
-            </button>
-            <span>·</span>
-            <button disabled={!!busy} onClick={() => setPanel("world")}>
-              Starting details
-            </button>
-          </nav>
-          <div id="splash-about" className="splash-about" hidden={!aboutOpen}>
-            <p>Designed by Benjamin Breen.</p>
-            <a
-              href="https://github.com/benjaminbreen/UHS"
-              target="_blank"
-              rel="noreferrer"
-            >
-              Explore the project on GitHub <ArrowRight size={14} />
-            </a>
+              <BannerSmoke
+                key={`smoke-${banner}`}
+                img={bannerImg}
+                emitters={smokeFor[banner] ?? []}
+              />
+            </div>
           </div>
-        </footer>
+          <footer className="splash-footer">
+            <nav aria-label="About the simulator">
+              <button
+                aria-expanded={aboutOpen}
+                aria-controls="splash-about"
+                onClick={() => setAboutOpen((open) => !open)}
+              >
+                About{" "}
+                <ChevronDown
+                  className={
+                    aboutOpen ? "about-chevron is-open" : "about-chevron"
+                  }
+                  size={13}
+                />
+              </button>
+              <span>·</span>
+              <button disabled={!!busy} onClick={() => setPanel("about")}>
+                How it works
+              </button>
+              <span>·</span>
+              <button disabled={!!busy} onClick={() => setPanel("sources")}>
+                Sources
+              </button>
+              <span>·</span>
+              <button disabled={!!busy} onClick={() => setPanel("world")}>
+                Settings
+              </button>
+            </nav>
+            <div id="splash-about" className="splash-about" hidden={!aboutOpen}>
+              <p>Designed by Benjamin Breen.</p>
+              <a
+                href="https://github.com/benjaminbreen/UHS"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Explore the project on GitHub <ArrowRight size={14} />
+              </a>
+            </div>
+          </footer>
+        </div>
       </div>
       {panel && (
         <div

@@ -48,7 +48,7 @@ for (const scene of [
     await page.getByRole("button", { name: "Choose starting details" }).click();
     await page.getByLabel("Place", { exact: true }).selectOption(scene.place);
     await page.getByLabel("Starting year", { exact: true }).fill(scene.year);
-    const preview = page.getByLabel("Selected start");
+    const preview = page.getByRole("dialog").getByLabel("Selected start");
     const previewName = await preview.locator("strong").innerText();
     expect(previewName).not.toMatch(/^Resident /);
     await expect(preview).not.toContainText("fallback");
@@ -130,6 +130,7 @@ test("random starts never expose numbered residents or internal coverage labels"
     );
   });
   expect(generated.every((name) => !/^Resident \d+$/.test(name))).toBe(true);
+  await page.getByRole("button", { name: "More info" }).click();
   for (let i = 0; i < 3; i++) {
     await page
       .getByRole("button", { name: "Random start", exact: true })

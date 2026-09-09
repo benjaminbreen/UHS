@@ -22,7 +22,7 @@ export const westAsiaForms: UrbanFormRule[] = [
     plaza: "offset",
     plazaScale: 0.14,
     civic: "side",
-    ornaments: ["well", "brazier"],
+    square: { focus: "well", corners: ["brazier", "bench"], hearth: "brazier" },
     evidence: {
       status: "inferred",
       sources: [],
@@ -49,7 +49,11 @@ export const westAsiaForms: UrbanFormRule[] = [
     plaza: "crossing",
     plazaScale: 0.2,
     civic: "head",
-    ornaments: ["fountain", "statue", "bench"],
+    square: {
+      focus: "statue",
+      corners: ["fountain", "bench"],
+      hearth: "hidden",
+    },
     evidence: {
       status: "inferred",
       sources: [],
@@ -75,7 +79,11 @@ export const westAsiaForms: UrbanFormRule[] = [
     plaza: "offset",
     plazaScale: 0.13,
     civic: "side",
-    ornaments: ["fountain", "well", "bench"],
+    square: {
+      focus: "fountain",
+      corners: ["well", "bench", "planter", "bench"],
+      hearth: "hidden",
+    },
     evidence: {
       status: "inferred",
       sources: [],
@@ -101,7 +109,11 @@ export const westAsiaForms: UrbanFormRule[] = [
     plaza: "crossing",
     plazaScale: 0.3,
     civic: "head",
-    ornaments: ["fountain", "kiosk", "bench"],
+    square: {
+      focus: "fountain",
+      corners: ["kiosk", "bench", "planter", "bench"],
+      hearth: "hidden",
+    },
     evidence: {
       status: "inferred",
       sources: [],

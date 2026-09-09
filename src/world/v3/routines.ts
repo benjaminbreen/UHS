@@ -1,5 +1,6 @@
 import type { Station } from "../../core/itinerary";
-import type { Pack, Point } from "../../core/types";
+import type { Actor, Pack, Point } from "../../core/types";
+import type { Livelihood } from "../../content/characters/context-types";
 import {
   workplaceFor,
   type Workplace,
@@ -26,8 +27,6 @@ const store = (plan: SettlementPlan, owner: string) =>
   )?.pos;
 const wellAt = (plan: SettlementPlan) =>
   plan.objects.find((o) => o.kind === "well")?.pos;
-const hearthAt = (plan: SettlementPlan) =>
-  plan.objects.find((o) => o.kind === "fire")?.pos;
 /** Doors other than this actor's own, nearest first: the errand that actually
  * carries somebody across the settlement rather than round their own yard. */
 function neighbours(plan: SettlementPlan, owner: string, home: Point) {
@@ -176,100 +175,192 @@ function craftRoutine(
       : []),
   ];
 }
-/** Household members without a trade of their own: errands, not idling. */
-export function gathererRoutine(
+/** Era bands for the errands people run when they are not at a trade. */
+const era = (year: number) =>
+  year < 1750 ? "premodern" : year < 1900 ? "industrial" : "modern";
+/** Somebody else's door a real walk away, or the square if there is none. */
+function farDoor(plan: SettlementPlan, seed: string, id: string, home: Point) {
+  const doors = neighbours(plan, id, home);
+  const far = doors.slice(Math.floor(doors.length / 2));
+  return (
+    far[Math.floor(random(seed, "routine", id, "far") * far.length)] ??
+    doors[0] ??
+    plan.gatherings?.[0]
+  );
+}
+/** The building an indoor activity belongs in. The plan has one civic hall
+ * and a few shopfront workshops; until it grows religious and industrial
+ * buildings, rites go to the hall and machine work to the largest workshop. */
+function doorFor(
   plan: SettlementPlan,
   seed: string,
   id: string,
-  owner: string,
+  activity: string,
   home: Point,
+): Point | undefined {
+  const hall = plan.places.find((p) => p.claim.startsWith("civic-"));
+  const shops = plan.places
+    .filter(
+      (p) =>
+        p.owner !== id &&
+        p.access === "public" &&
+        !p.claim.startsWith("civic-") &&
+        /shop|workshop/i.test(p.name),
+    )
+    .map((p) => p.entrance);
+  const pickShop = () =>
+    shops.length
+      ? shops[Math.floor(random(seed, "routine", id, "shop") * shops.length)]
+      : undefined;
+  if (/rite|record|watch|sick/i.test(activity)) return hall?.entrance;
+  if (/machine|line|building|roof/i.test(activity))
+    return pickShop() ?? hall?.entrance;
+  return pickShop() ?? farDoor(plan, seed, id, home);
+}
+/** Indoors somewhere that is not home: drawn walking there and back, hidden
+ * while inside. The same rule that hides a resident at rest hides them at
+ * the office, the school or the shop floor. */
+const inside = (pos: Point, label: string, minutes: number): Station => ({
+  pos,
+  activity: "rest",
+  label,
+  minutes,
+});
+/** Residents whose day is spent under a roof: their own house, or the house
+ * they keep for someone else. One short errand outside, chosen by era, and
+ * the rest of the day indoors where nobody is drawn. */
+export function memberRoutine(
+  plan: SettlementPlan,
+  seed: string,
+  id: string,
+  home: Point,
+  year: number,
   child: boolean,
 ): Station[] {
+  const when = era(year);
   const water = wellAt(plan);
-  const hearth = hearthAt(plan);
-  const depot = store(plan, owner);
-  const doors = neighbours(plan, owner, home);
-  const edge = plan.plots
-    .filter((p) => p.kind === "field" || p.kind === "pasture")
-    .map((p) => p.access);
-  const forage =
-    edge[Math.floor(random(seed, "routine", id, "forage") * edge.length)];
+  const doors = neighbours(plan, id, home);
   const call =
     doors[Math.floor(random(seed, "routine", id, "call") * doors.length)];
-  if (child)
+  const square = plan.plots.find((p) => p.kind === "public");
+  const shop = square
+    ? { x: square.x + Math.floor(square.w / 2), y: square.y + square.h - 1 }
+    : call;
+  const pick = random(seed, "routine", id, "errand");
+  const rest = (share: number): Station => ({ ...night(home), share });
+  if (child) {
+    // Children run: a short circuit of doorsteps and corners with almost no
+    // dwell, so they are seen moving rather than standing. Water is the one
+    // errand they are sent on before piped supply.
+    const run: Station = { ...night(home), share: 0.3, pace: 0.18 };
+    const spots = [
+      ...doors.slice(0, 3),
+      ...(plan.gatherings ?? []).slice(0, 2),
+    ];
+    const played = circuit(
+      plan,
+      seed,
+      id,
+      spots,
+      "Running between houses",
+      "play",
+    );
+    const played2 = circuit(
+      plan,
+      seed,
+      `${id}-b`,
+      [home, ...spots],
+      "Playing in the street",
+      "play",
+    );
+    const played3 = circuit(
+      plan,
+      seed,
+      `${id}-c`,
+      [...spots].reverse(),
+      "Chasing the others",
+      "play",
+    );
+    if (when === "modern") {
+      const school = farDoor(plan, seed, id, home);
+      return [
+        ...(school ? [inside(school, "At school", 200)] : []),
+        ...played,
+        ...played2,
+        ...played3,
+        run,
+      ];
+    }
     return [
-      ...(hearth
-        ? [
-            {
-              pos: hearth,
-              activity: "visit" as const,
-              label: "Playing by the hearth",
-              minutes: 130,
-            },
-          ]
-        : []),
+      ...played,
       ...(water
         ? [
             {
               pos: nearby(plan, seed, id, water),
               activity: "draw-water" as const,
               label: "Sent for water",
-              minutes: 25,
+              minutes: 8,
             },
           ]
         : []),
-      ...(call
-        ? [
-            {
-              pos: call,
-              activity: "visit" as const,
-              label: "Running between houses",
-              minutes: 90,
-            },
-          ]
-        : []),
+      ...played2,
+      ...played3,
+      run,
     ];
+  }
+  // One errand a day. Water before there is piped water; then the shop or
+  // the market; a neighbour when the settlement has neither; the nearest
+  // corner as a last resort, so the routine always has its three stations.
+  const corner = plan.gatherings?.[0];
+  const errand: Station | undefined =
+    when === "premodern" && water && pick < 0.5
+      ? {
+          pos: nearby(plan, seed, id, water),
+          activity: "draw-water",
+          label: "Fetching water",
+          minutes: 20,
+        }
+      : shop && pick < 0.8
+        ? {
+            pos: nearby(plan, seed, id, shop),
+            activity: "visit",
+            label:
+              when === "modern"
+                ? "Going to the shop"
+                : when === "industrial"
+                  ? "At the market"
+                  : "Trading at the square",
+            minutes: 30,
+          }
+        : call
+          ? {
+              pos: nearby(plan, seed, id, call),
+              activity: "visit",
+              label: "Calling on a neighbour",
+              minutes: 35,
+            }
+          : corner
+            ? {
+                pos: nearby(plan, seed, id, corner),
+                activity: "visit",
+                label: "Out for air",
+                minutes: 20,
+              }
+            : undefined;
   return [
-    ...(forage
-      ? [
+    ...(errand ? [errand] : []),
+    socialStop(plan, seed, id, home),
+    ...(errand
+      ? []
+      : [
           {
-            pos: nearby(plan, seed, id, forage),
-            activity: "gather" as const,
-            label: "Gathering at the field edge",
-            minutes: 140,
-          },
-        ]
-      : []),
-    ...(depot
-      ? [
-          {
-            pos: nearby(plan, seed, id, depot),
-            activity: "haul" as const,
-            label: "Bringing the load home",
-            minutes: 20,
-          },
-        ]
-      : []),
-    ...(water
-      ? [
-          {
-            pos: nearby(plan, seed, id, water),
-            activity: "draw-water" as const,
-            label: "Fetching water",
-            minutes: 25,
-          },
-        ]
-      : []),
-    ...(hearth
-      ? [
-          {
-            pos: nearby(plan, seed, id, hearth),
+            pos: nearby(plan, seed, `${id}-step`, home),
             activity: "visit" as const,
-            label: "At the hearth",
-            minutes: 40,
+            label: "On the doorstep",
+            minutes: 10,
           },
-        ]
-      : []),
+        ]),
+    rest(0.07),
   ];
 }
 /** Places people actually stop to talk: a well, a corner, a stretch of street
@@ -401,7 +492,7 @@ function outdoorSites(plan: SettlementPlan, seed: string, sample: Sample) {
     }
   return { wild, shore, quarry, roadOut };
 }
-type Outdoors = ReturnType<typeof outdoorSites>;
+type Outdoors = NonNullable<SettlementPlan["outdoors"]>;
 /** Three spots in the same stretch of country, walked in a stable order: the
  * tree-to-tree circuit rather than a wander. */
 function circuit(
@@ -430,54 +521,78 @@ export function planRoutines(
   sample: Sample,
 ) {
   plan.gatherings = gatherings(plan, seed);
-  const outdoors = outdoorSites(plan, seed, sample);
-  const context = pack.setting?.characterRevision
-    ? resolveCharacterContext(pack.setting)
-    : undefined;
-  const kits = new Map(context?.livelihoods.map((l) => [l.id, l]) ?? []);
+  plan.outdoors = outdoorSites(plan, seed, sample);
   for (const [id, site] of plan.work) {
     const actor = plan.actors.find((a) => a.id === id);
     if (site.gateId && actor?.kind !== "human") continue;
-    const home = site.home;
-    const kit = actor?.origin?.livelihood
-      ? kits.get(actor.origin.livelihood)
-      : undefined;
-    const label = kit?.activity ?? site.label;
-    const field = plan.plots.find((p) => p.kind === "field" && p.owner === id);
-    const gate = plan.objects.find((o) => o.id === site.gateId);
-    const pasture = plan.plots.find(
-      (p) =>
-        p.kind === "pasture" && p.owner === id && p.id.endsWith("-pasture"),
-    );
-    // What the plan actually gave this person outranks the livelihood label: a
-    // field or a pen is a real place, the keyword is only a hint.
-    const place = field
-      ? "field"
-      : gate
-        ? "pasture"
-        : kit
-          ? workplaceFor(kit.activity)
-          : "workshop";
-    const errands = workdayFor(
-      place,
-      plan,
-      seed,
-      id,
-      home,
-      site,
-      label,
-      outdoors,
-      field,
-      pasture,
-    );
-    plan.stations.set(id, [
-      ...(errands.length
-        ? errands
-        : craftRoutine(plan, seed, id, id, home, site.work, label)),
-      socialStop(plan, seed, id, home),
-      night(home),
-    ]);
+    plan.stations.set(id, routineFor(plan, seed, pack, id, site, actor));
   }
+}
+const kitsFor = new WeakMap<Pack, Map<string, Livelihood>>();
+/** The livelihood kit an actor was generated with, if the setting has them. */
+export function livelihoodOf(pack: Pack, actor?: Actor) {
+  if (!pack.setting?.characterRevision || !actor?.origin?.livelihood)
+    return undefined;
+  let kits = kitsFor.get(pack);
+  if (!kits) {
+    kits = new Map(
+      resolveCharacterContext(pack.setting).livelihoods.map((l) => [l.id, l]),
+    );
+    kitsFor.set(pack, kits);
+  }
+  return kits.get(actor.origin.livelihood);
+}
+/** One resident's day, from what the plan gave them and what their
+ * livelihood does. Used for owners at planning time and for household
+ * members added afterwards. */
+export function routineFor(
+  plan: SettlementPlan,
+  seed: string,
+  pack: Pack,
+  id: string,
+  site: WorkSite,
+  actor?: Actor,
+): Station[] {
+  const outdoors = plan.outdoors ?? { wild: [] };
+  const home = site.home;
+  const kit = livelihoodOf(pack, actor);
+  const label = kit?.activity ?? site.label;
+  const field = plan.plots.find((p) => p.kind === "field" && p.owner === id);
+  const gate = plan.objects.find((o) => o.id === site.gateId);
+  const pasture = plan.plots.find(
+    (p) => p.kind === "pasture" && p.owner === id && p.id.endsWith("-pasture"),
+  );
+  // What the plan actually gave this person outranks the livelihood label: a
+  // field or a pen is a real place, the keyword is only a hint.
+  const place = field
+    ? "field"
+    : gate
+      ? "pasture"
+      : kit
+        ? workplaceFor(kit.activity)
+        : "workshop";
+  const errands = workdayFor(
+    place,
+    plan,
+    seed,
+    id,
+    home,
+    site,
+    label,
+    outdoors,
+    pack.year,
+    field,
+    pasture,
+  );
+  if (errands.length && errands[errands.length - 1].activity === "rest")
+    return errands;
+  return [
+    ...(errands.length
+      ? errands
+      : craftRoutine(plan, seed, id, id, home, site.work, label)),
+    socialStop(plan, seed, id, home),
+    night(home),
+  ];
 }
 function workdayFor(
   place: Workplace,
@@ -488,10 +603,14 @@ function workdayFor(
   site: WorkSite,
   label: string,
   outdoors: Outdoors,
+  year: number,
   field?: { access: Point },
   pasture?: { x: number; y: number; w: number; h: number },
 ): Station[] {
   const depot = store(plan, id);
+  // From the factory age on, most trades happen under somebody else's roof:
+  // walk there, vanish inside, walk home. Before that the yard is the shop.
+  const indoorWork = era(year) !== "premodern";
   const haul = depot
     ? [
         {
@@ -534,7 +653,13 @@ function workdayFor(
       return outdoors.shore
         ? [...circuit(plan, seed, id, [outdoors.shore], label, "work"), ...haul]
         : [];
-    case "carrying":
+    case "carrying": {
+      if (label === "Running errands") {
+        const doors = neighbours(plan, id, home);
+        const stops =
+          doors.length >= 3 ? doors : [...doors, ...(plan.gatherings ?? [])];
+        return circuit(plan, seed, id, stops.slice(0, 6), label, "visit");
+      }
       return outdoors.roadOut
         ? [
             {
@@ -546,6 +671,7 @@ function workdayFor(
             ...haul,
           ]
         : [];
+    }
     case "market": {
       const pitch = stall(plan, seed, id);
       return pitch
@@ -560,6 +686,13 @@ function workdayFor(
       const site2 =
         doors[Math.floor(random(seed, "civic", id) * doors.length)] ??
         plan.gatherings?.[0];
+      const roof = doorFor(plan, seed, id, label, home) ?? site2;
+      if (indoorWork && roof)
+        return [
+          inside(roof, label, 300),
+          socialStop(plan, seed, id, home),
+          { ...night(home), share: 0.1 },
+        ];
       return site2
         ? [
             {
@@ -573,9 +706,19 @@ function workdayFor(
         : [];
     }
     case "household":
-      return gathererRoutine(plan, seed, id, id, home, false);
-    default:
+      return memberRoutine(plan, seed, id, home, year, false);
+    default: {
+      const bench = indoorWork
+        ? doorFor(plan, seed, id, label, home)
+        : undefined;
+      if (bench)
+        return [
+          inside(bench, label, 300),
+          socialStop(plan, seed, id, home),
+          { ...night(home), share: 0.1 },
+        ];
       return craftRoutine(plan, seed, id, id, home, site.work, label);
+    }
   }
 }
 /** The knot this resident drinks and gossips at: the nearest of the scattered

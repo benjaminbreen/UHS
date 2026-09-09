@@ -33,6 +33,8 @@ export type RegionalPlace = {
   /** A footprint can span districts; radius is the approximate fallback in tiles. */
   footprint?: readonly Coordinate[];
   radius: number;
+  /** Rough population within this entry's dates; sizes the built extent. */
+  population?: number;
   defaults: LocalDefaults;
   evidence: Provenance;
 };

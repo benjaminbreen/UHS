@@ -4,6 +4,9 @@ import { settlementProfile } from "../../content/settlements/profiles";
 import type { Site } from "../v3/types";
 import type { Sample } from "../v3/roads";
 import { REGION_CELL, type RegionalContext } from "./context";
+import { urbanForm } from "../../content/settlements/urban-form";
+import { urbanTarget } from "../../content/settlements/scale";
+import { urbanRadiusFor } from "../v3/blocks";
 
 /** Districts index plans; named places and their neighborhoods own their identity. */
 export function regionalSettlements(
@@ -43,6 +46,7 @@ export function regionalSettlements(
       name?: string;
       namedId?: string;
       radius?: number;
+      population?: number;
     }[] = [];
     for (const p of named) {
       const center = context.local(p);
@@ -58,6 +62,7 @@ export function regionalSettlements(
           name: p.name,
           namedId: p.id,
           radius: p.radius,
+          population: p.population,
         });
       if (p.footprint) {
         // Large footprints become neighborhoods using the same planner as towns.
@@ -95,12 +100,18 @@ export function regionalSettlements(
       proposals.push({ ...center, id: "generated" });
     const result: Site[] = [];
     for (const p of proposals) {
-      const radius = Math.min(
-        p.radius ?? 74,
-        ...proposals
-          .filter((q) => q !== p)
-          .map((q) => Math.max(16, Math.hypot(q.x - p.x, q.y - p.y) / 2 - 8)),
-      );
+      // A named place keeps the radius its entry gives it. Spacing only
+      // guards generated sites; a neighbour's claim already bounds a named one.
+      const radius = p.namedId
+        ? (p.radius ?? 74)
+        : Math.min(
+            p.radius ?? 74,
+            ...proposals
+              .filter((q) => q !== p)
+              .map((q) =>
+                Math.max(16, Math.hypot(q.x - p.x, q.y - p.y) / 2 - 8),
+              ),
+          );
       const candidates = Array.from({ length: 49 }, (_, i) => {
         const r = i ? Math.min(radius * 0.35, 6 + Math.floor(i / 8) * 5) : 0;
         return {
@@ -134,31 +145,32 @@ export function regionalSettlements(
       if (!usable.length) continue;
       const q = usable[0],
         pack = context.packAt(q.x, q.y);
+      const setting = pack.setting!;
+      const town =
+        !!setting.urbanRevision &&
+        (setting.settlement === "city" || setting.settlement === "port");
+      const base = settlementProfile(setting, !!p.namedId || town);
+      // A town is built to the size its population implies, inside the claim
+      // its entry gives it. Villages keep the flat profile sizes.
+      const target = town ? urbanTarget(setting, p.population) : undefined;
+      const built =
+        target !== undefined
+          ? Math.min(
+              radius,
+              urbanRadiusFor(target, urbanForm(setting), p.id, seed),
+            )
+          : radius;
       const profile = {
-        ...settlementProfile(
-          pack.setting!,
-          !!p.namedId ||
-            (!!pack.setting?.urbanRevision &&
-              (pack.setting.settlement === "city" ||
-                pack.setting.settlement === "port")),
-        ),
-        radius,
-        ...(radius < 45
-          ? {
-              buildings: Math.max(
-                2,
-                Math.floor(
-                  radius /
-                    (pack.setting?.urbanRevision &&
-                    (pack.setting.settlement === "city" ||
-                      pack.setting.settlement === "port")
-                      ? 2
-                      : 6),
-                ),
-              ),
-              frontage: 7,
-            }
-          : {}),
+        ...base,
+        radius: built,
+        ...(target !== undefined
+          ? { buildings: target }
+          : built < 45
+            ? {
+                buildings: Math.max(2, Math.floor(built / 6)),
+                frontage: 7,
+              }
+            : {}),
       };
       const site: Site = {
         id: `s${cx}_${cy}~${encodeURIComponent(p.id)}`,

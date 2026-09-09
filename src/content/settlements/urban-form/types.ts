@@ -3,6 +3,21 @@ import type { CultureId } from "../../history/types";
 /** How the street network is organised, independent of art or material. */
 export type UrbanPlan = "orthogonal" | "radial" | "organic" | "linear";
 
+/** A square is composed, not scattered: one centrepiece, four corners, and a
+ * decision about the shared fire. Ids are keys of
+ * `src/content/settlements/ornaments.ts`, plus `tree` for a planted bed. */
+export type SquareSpec = {
+  /** Centrepiece. Monuments stand on a stepped dais scaled to the square;
+   * `tree`, `well` and `altar` bring their own ground. */
+  focus?: string;
+  /** Corner pieces in order; a short list repeats. `tree` takes a 3x3 bed
+   * where the square is wide enough and falls back to a planter. */
+  corners: readonly string[];
+  /** A brazier stands in the square; hidden puts the fire behind the civic
+   * range, where a town's shared fire actually was. */
+  hearth: "brazier" | "hidden";
+};
+
 export type UrbanForm = {
   id: string;
   label: string;
@@ -32,9 +47,8 @@ export type UrbanForm = {
   plazaScale: number;
   /** Which side of the plaza the civic range occupies. */
   civic: "head" | "side";
-  /** What stands in the public square, in the order it is placed. Keys of
-   * `src/content/settlements/ornaments.ts`. */
-  ornaments: readonly string[];
+  /** How the public square is furnished. */
+  square: SquareSpec;
   evidence: {
     status: "inferred" | "fictional";
     sources: string[];

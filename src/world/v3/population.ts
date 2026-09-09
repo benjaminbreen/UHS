@@ -11,7 +11,7 @@ import type {
 } from "../../core/types";
 import type { SettlementPlan } from "./types";
 import { random } from "../../core/random";
-import { gathererRoutine, socialStop } from "./routines";
+import { livelihoodOf, memberRoutine, routineFor } from "./routines";
 import { ecologyProfiles } from "../../content/ecology/profiles";
 const seasons = ["spring", "summer", "autumn", "winter"];
 /** Small explicit household patterns, not a universal nuclear-family assumption. */
@@ -89,7 +89,7 @@ export function populateHouseholds(
         name: pack.names[
           Math.floor(random(seed, memberId, "name") * pack.names.length)
         ],
-        role: child ? "Child" : elder ? "Elder" : "Gatherer",
+        role: child ? "Child" : elder ? "Elder" : "Householder",
         kind: "human",
         pos: { ...sites.home, space: "outside" },
         home: { ...sites.home, space: "outside" },
@@ -198,21 +198,19 @@ export function populateHouseholds(
       world.initialActors.push(a);
       // Members get a routine of their own so a household spreads across the
       // settlement during the day instead of stacking on one doorstep.
-      plan.work.set(memberId, {
+      const kit = livelihoodOf(pack, a);
+      const memberSite = {
         ...sites,
-        label: child ? "Errands" : "Gathering",
+        label: child ? "Errands" : (kit?.activity ?? "Keeping house"),
         offset: (sites.offset + 37 * (i + 1)) % 1440,
-      });
-      plan.stations.set(memberId, [
-        ...gathererRoutine(plan, seed, memberId, owner, sites.home, child),
-        socialStop(plan, seed, memberId, sites.home),
-        {
-          pos: sites.home,
-          activity: "rest",
-          label: "At home",
-          minutes: 420,
-        },
-      ]);
+      };
+      plan.work.set(memberId, memberSite);
+      plan.stations.set(
+        memberId,
+        kit && !child
+          ? routineFor(plan, seed, pack, memberId, memberSite, a)
+          : memberRoutine(plan, seed, memberId, sites.home, pack.year, child),
+      );
       if (child) {
         const partner = world.initialActors.find(
           (b) =>

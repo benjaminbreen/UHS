@@ -11,6 +11,10 @@ export type Ornament = {
   kind: WorldObject["kind"];
   /** Cells the piece occupies, so a large one is not put in a doorway. */
   size: number;
+  /** Larger sprite for the same thing when it is the square's centrepiece. */
+  focusSprite?: string;
+  /** The piece is its own platform or ground, so no dais is built under it. */
+  grounded?: boolean;
 };
 
 export const ornaments: Record<string, Ornament> = {
@@ -20,11 +24,13 @@ export const ornaments: Record<string, Ornament> = {
     sprite: "well",
     kind: "well",
     size: 2,
+    grounded: true,
   },
   fountain: {
     id: "fountain",
     label: "Public fountain",
     sprite: "fountain",
+    focusSprite: "monument-fountain",
     kind: "well",
     size: 2,
   },
@@ -39,6 +45,7 @@ export const ornaments: Record<string, Ornament> = {
     id: "statue",
     label: "Statue on a plinth",
     sprite: "statue",
+    focusSprite: "monument-statue",
     kind: "monument",
     size: 1,
   },
@@ -46,6 +53,7 @@ export const ornaments: Record<string, Ornament> = {
     id: "stele",
     label: "Inscribed stone",
     sprite: "stele",
+    focusSprite: "monument-obelisk",
     kind: "monument",
     size: 1,
   },
@@ -53,6 +61,7 @@ export const ornaments: Record<string, Ornament> = {
     id: "cross",
     label: "Market cross",
     sprite: "market-cross",
+    focusSprite: "monument-cross",
     kind: "monument",
     size: 1,
   },
@@ -69,6 +78,13 @@ export const ornaments: Record<string, Ornament> = {
     sprite: "altar-platform",
     kind: "monument",
     size: 2,
+  },
+  planter: {
+    id: "planter",
+    label: "Planter",
+    sprite: "planter",
+    kind: "monument",
+    size: 1,
   },
   bench: {
     id: "bench",

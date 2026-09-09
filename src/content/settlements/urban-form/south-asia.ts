@@ -20,7 +20,7 @@ export const southAsiaForms: UrbanFormRule[] = [
     plaza: "offset",
     plazaScale: 0.16,
     civic: "side",
-    ornaments: ["well", "brazier"],
+    square: { focus: "well", corners: ["bench", "brazier"], hearth: "brazier" },
     evidence: {
       status: "inferred",
       sources: [],
@@ -46,7 +46,11 @@ export const southAsiaForms: UrbanFormRule[] = [
     plaza: "crossing",
     plazaScale: 0.18,
     civic: "head",
-    ornaments: ["well", "stele", "brazier"],
+    square: {
+      focus: "tree",
+      corners: ["well", "stele", "bench", "stele"],
+      hearth: "brazier",
+    },
     evidence: {
       status: "inferred",
       sources: [],

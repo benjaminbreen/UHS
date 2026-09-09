@@ -9,13 +9,7 @@ import {
 } from "./water-style";
 
 export function paintedGround(c: TopographyCell) {
-  return (
-    !!c.habitat &&
-    !c.ramp &&
-    !c.bridge &&
-    c.surface !== "water" &&
-    c.feature !== "field"
-  );
+  return !!c.habitat && !c.ramp && !c.bridge && c.surface !== "water";
 }
 export const rgb = (c: string) => [
   parseInt(c.slice(1, 3), 16),

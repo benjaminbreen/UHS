@@ -8,6 +8,8 @@ import type {
 } from "../../core/types";
 import type { SettlementProfile } from "../../content/settlements/profiles";
 export type Rect = Point & { w: number; h: number };
+/** What a paved cell is for; the raster grades its stones by this. */
+export type Pavement = "square" | "dais" | "footway" | "lane";
 export type Site = {
   id: string;
   cx: number;
@@ -56,13 +58,15 @@ export type SettlementPlan = {
     string,
     import("../../content/settlements/streets/palettes").StreetSurface
   >;
-  pavement?: Map<string, "square" | "footway">;
+  pavement?: Map<string, Pavement>;
   traffic: Set<string>;
   reserved: Set<string>;
   solid: Set<string>;
   work: Map<string, WorkSite>;
   /** Places people stop to talk, spread through the settlement. */
   gatherings?: Point[];
+  /** Country round the settlement, kept for routines built after planning. */
+  outdoors?: { wild: Point[]; shore?: Point; quarry?: Point; roadOut?: Point };
   /** Ordered daily errands per resident; the world turns these into routes. */
   stations: Map<string, import("../../core/itinerary").Station[]>;
   slots: Map<string, { yard: Point[]; work: Point[] }>;

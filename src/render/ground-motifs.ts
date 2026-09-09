@@ -8,11 +8,36 @@ export const stoneMotifs = [
   ["00330000", "03223000", "02221000", "00111000", "00000000"],
   ["00033000", "03322300", "02222110", "01221100", "00110000"],
 ];
+// One well-drawn five-blade tuft, mirrored for variety: 1 shaded left edge
+// of each blade, 2 blade body, 3 highlight up the centre blade. Which of the
+// three tone levels it is drawn in is chosen per tuft by the raster.
 const turfMotifs = [
-  ["00000000", "00300000", "00200300", "01200200", "00122100", "00011000"],
-  ["00000000", "00000300", "03000200", "01202200", "00122100", "00011000"],
-  ["00000000", "00000000", "00300300", "01201200", "00122100", "00011000"],
-  ["00000000", "00300000", "00200000", "01203000", "00122100", "00011000"],
+  [
+    "000010000",
+    "000013000",
+    "100013001",
+    "120013021",
+    "012113121",
+    "012213221",
+    "001221221",
+    "000122210",
+  ],
+  [
+    "000010000",
+    "000310000",
+    "100310001",
+    "120310021",
+    "121311210",
+    "122312210",
+    "122122100",
+    "012221000",
+  ],
+];
+// Round pebbles: 1 shadow, 2 body, 3 lit top.
+const pebbleMotifs = [
+  ["0330", "3221", "0110"],
+  ["0300", "3210", "0100"],
+  ["03300", "32221", "01110"],
 ];
 const earthMotifs = [
   ["00000000", "00000000", "00330000", "00221000", "00000000", "00000000"],
@@ -20,14 +45,31 @@ const earthMotifs = [
   ["00000000", "00000000", "00333000", "00022000", "00000000", "00000000"],
   ["00000000", "00000000", "00030000", "00321000", "00010000", "00000000"],
 ];
-export type GroundMotif = "stone" | "turf" | "earth";
+export type GroundMotif = "stone" | "turf" | "earth" | "pebble";
+export const TURF_STEP = [24, 20] as const;
 /** Placement varies whole motifs, with quiet cells between them. World anchors
  * preserve the pattern across chunk boundaries, including negative coordinates. */
 export function groundMotif(kind: GroundMotif, wx: number, wy: number) {
-  const stepX = kind === "stone" ? 13 : 16;
-  const stepY = kind === "stone" ? 12 : 15;
-  const bx = Math.floor(wx / stepX),
-    by = Math.floor(wy / stepY);
+  const stepX =
+    kind === "stone"
+      ? 13
+      : kind === "turf"
+        ? TURF_STEP[0]
+        : kind === "pebble"
+          ? 15
+          : 16;
+  const stepY =
+    kind === "stone"
+      ? 12
+      : kind === "turf"
+        ? TURF_STEP[1]
+        : kind === "pebble"
+          ? 14
+          : 15;
+  const by = Math.floor(wy / stepY);
+  // Turf sits on a staggered lattice: odd rows shift half a step.
+  const shift = kind === "turf" && by & 1 ? stepX / 2 : 0;
+  const bx = Math.floor((wx - shift) / stepX);
   const colony = hash(Math.floor(bx / 4), Math.floor(by / 3), 403);
   const density =
     kind === "stone"
@@ -36,15 +78,36 @@ export function groundMotif(kind: GroundMotif, wx: number, wy: number) {
         : 0.45
       : kind === "earth"
         ? 0.56
-        : colony > 0.45
-          ? 0.62
-          : 0.23;
+        : kind === "pebble"
+          ? colony > 0.5
+            ? 0.6
+            : 0.3
+          : colony > 0.2
+            ? 0.85
+            : 0.5;
   if (hash(bx, by, 401) > density) return 0;
-  const x = wx - bx * stepX - 1 - Math.floor(hash(bx, by, 405) * (stepX - 9));
-  const y = wy - by * stepY - 1 - Math.floor(hash(bx, by, 407) * (stepY - 7));
   const glyphs =
-    kind === "stone" ? stoneMotifs : kind === "turf" ? turfMotifs : earthMotifs;
+    kind === "stone"
+      ? stoneMotifs
+      : kind === "turf"
+        ? turfMotifs
+        : kind === "pebble"
+          ? pebbleMotifs
+          : earthMotifs;
   const glyph = glyphs[Math.floor(hash(bx, by, 409) * glyphs.length)];
+  const slackX = stepX - glyph[0].length + 1,
+    slackY = stepY - glyph.length + 1;
+  // Turf keeps to the lattice with a two-pixel wobble; other marks roam.
+  const ox =
+    kind === "turf"
+      ? Math.floor(slackX / 2) + Math.floor(hash(bx, by, 405) * 5) - 2
+      : Math.floor(hash(bx, by, 405) * slackX);
+  const oy =
+    kind === "turf"
+      ? Math.floor(slackY / 2) + Math.floor(hash(bx, by, 407) * 5) - 2
+      : Math.floor(hash(bx, by, 407) * slackY);
+  const x = wx - shift - bx * stepX - ox;
+  const y = wy - by * stepY - oy;
   return Number(glyph[y]?.[x] ?? 0);
 }
 
@@ -102,6 +165,43 @@ export function materialGrain(wx: number, wy: number) {
   if (choice & 8) y = 7 - y;
   if (choice & 16) [x, y] = [y, x];
   return Number(grainTiles[choice & 3][y][x]);
+}
+
+// Faint lighter strokes on a regular 8x8 lattice under the dark tufts; the
+// two variants alternate by cell so the lattice never reads as a grid.
+const tickTiles = [
+  [
+    "00000000",
+    "00100000",
+    "01000000",
+    "00000000",
+    "00000010",
+    "00000100",
+    "00000000",
+    "00000000",
+  ],
+  [
+    "00000000",
+    "00000100",
+    "00001000",
+    "00000000",
+    "00100000",
+    "01000000",
+    "00000000",
+    "00000000",
+  ],
+];
+export function turfTick(wx: number, wy: number) {
+  const bx = Math.floor(wx / 8),
+    by = Math.floor(wy / 8);
+  const v = (bx + by + Math.floor(hash(bx, by, 431) * 2)) & 1;
+  return tickTiles[v][((wy % 8) + 8) % 8][((wx % 8) + 8) % 8] === "1";
+}
+// Regular sparse dark speckle for bare earth.
+export function earthSpeckle(wx: number, wy: number) {
+  const x = ((wx % 8) + 8) % 8,
+    y = ((wy % 8) + 8) % 8;
+  return (x === 2 && y === 1) || (x === 6 && y === 5) || (x === 4 && y === 7);
 }
 
 /** Small original blade clusters for path margins. Anchored at their bottom

@@ -19,7 +19,7 @@ describe("contextual character generation", () => {
       const setting = integratedSetting(settingFor(featured));
       expect(() => resolveCharacterContext(setting)).not.toThrow();
       const populated = populateCharacter(setting, "featured-place-seed");
-      expect(populated.characterRevision).toBe(1);
+      expect(populated.characterRevision).toBe(2);
       expect(populated.character).toBeDefined();
       expect(populated.characterName.length).toBeGreaterThan(0);
       expect(populated.characterName).not.toMatch(/^Resident \d+$/);
@@ -290,8 +290,12 @@ it("uses stable fictional names for still-uncovered contexts without claiming lo
   const { inventedName } = await import(
     "../src/content/characters/invented-name"
   );
+  // The Amazon now has a Guarani naming tradition, so the uncovered case is
+  // the Falklands before settlement: no tradition claims those coordinates.
   const s = {
     ...settingFor(place("amazon"), 1400),
+    lon: -60,
+    lat: -52,
     placeId: "uncovered-indigenous-american-context",
   };
   const people = Array.from({ length: 96 }, (_, i) =>

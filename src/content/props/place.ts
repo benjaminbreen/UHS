@@ -68,7 +68,9 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
           o,
           pick(o.id, o.pos.space === "outside" ? "yard" : "household", o.pos),
         );
-      else if (o.kind === "well") stamp(o, pick(o.id, "water", o.pos));
+      // A square's fountain keeps its own sprite; only the plain well is a prop.
+      else if (o.kind === "well" && o.sprite === "well")
+        stamp(o, pick(o.id, "water", o.pos));
       if (o.prop && !usable(o.pos, o.id)) {
         const original = { ...o.pos };
         const choices: Position[] = [];

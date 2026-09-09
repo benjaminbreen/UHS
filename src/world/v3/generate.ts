@@ -94,8 +94,12 @@ export function createSettlementWorld(
         .filter((s) => Math.hypot(s.center.x, s.center.y) < 384)
         .sort(
           (a, b) =>
+            // The place the player asked for, before the nearest.
+            Number(b.namedId === pack.setting?.placeId) -
+              Number(a.namedId === pack.setting?.placeId) ||
             Math.hypot(a.center.x, a.center.y) -
-              Math.hypot(b.center.x, b.center.y) || a.id.localeCompare(b.id),
+              Math.hypot(b.center.x, b.center.y) ||
+            a.id.localeCompare(b.id),
         )[0]
     : undefined;
   if (startingSite) regionalPlanner!.setHome(startingSite.id);
@@ -1468,16 +1472,26 @@ export function createSettlementWorld(
   ) {
     let clear: { x: number; y: number } | undefined,
       anyDry: { x: number; y: number } | undefined;
+    // A traveller arrives at the edge of the place they asked for, not at
+    // whatever lies nearest the map origin. A world configured without people
+    // has no such place: the nearest site is a neighbour outside the empty ring.
+    const from =
+      initial && pack.setting?.environment?.population !== "none"
+        ? initial.site.center
+        : { x: 0, y: 0 };
     for (let r = 0; r <= (regional ? 768 : 120) && !clear; r += 2) {
       // Probe count scales with circumference: a fixed 24 rays leave ~200 cells
       // between probes at r=768, which steps clean over a small island.
       const steps = Math.max(24, Math.round(r * 0.8));
       for (let i = 0; i < steps; i++) {
         const a = (i * 2 * Math.PI) / steps,
-          x = Math.round(Math.cos(a) * r),
-          y = Math.round(Math.sin(a) * r);
+          x = from.x + Math.round(Math.cos(a) * r),
+          y = from.y + Math.round(Math.sin(a) * r);
         if (land.sample(x, y).water <= 3) continue;
         if (world.blocked(x, y, "outside")) continue;
+        // Outside the town, but not inside the neighbouring one.
+        const claim = regional?.placeAt(x, y);
+        if (claim && claim.id !== initial?.site.namedId) continue;
         if (
           !initial ||
           Math.hypot(x - initial.site.center.x, y - initial.site.center.y) >

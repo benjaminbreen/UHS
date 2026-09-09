@@ -8,7 +8,7 @@ from art.atlas import pack_atlas
 
 def build_shadows(root, sprites, buildings, output=None, atlas_name='lighting-shadows'):
     phases=json.loads((root/'src/content/graphics/lighting.json').read_text())
-    props=['oak','olive','hackberry','acacia','cypress','bush','flowers','flax','rock','rock-1','rock-2','reeds','wheat','basket','amphora','jug','well','fire','hall','sheep0','sheep1','goat0','goat1','chicken0','chicken1','lizard0','lizard1','bed','oven','crate','fence','gate','gate-open','crop-leafy','fountain','statue','stele','market-cross','kiosk','altar-platform']
+    props=['oak','olive','hackberry','acacia','cypress','bush','flowers','flax','rock','rock-1','rock-2','reeds','wheat','basket','amphora','jug','well','fire','hall','sheep0','sheep1','goat0','goat1','chicken0','chicken1','lizard0','lizard1','bed','oven','crate','fence','gate','gate-open','crop-leafy','fountain','statue','stele','market-cross','kiosk','altar-platform','monument-cross','monument-statue','monument-obelisk','monument-fountain','planter']
     result={}
     for name,source in sprites.items():
         if not (name.startswith(('human-','house-','study-','prop-broken-','urban-stall-','nature-')) or name in props):continue

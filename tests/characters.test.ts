@@ -70,12 +70,13 @@ describe("character recipes", () => {
   it("applies the under-six boundary and retains shorter adults", () => {
     for (let i = 0; i < 100; i++) {
       expect(heightForAge("ages", i, 5)).toBe(-2);
-      expect(heightForAge("ages", i, 6)).toBe(-1);
-      expect(heightForAge("ages", i, 12)).toBe(-1);
+      expect(heightForAge("ages", i, 6)).toBe(-2);
+      expect(heightForAge("ages", i, 12)).toBe(-2);
+      expect(heightForAge("ages", i, 13)).not.toBe(-2);
       expect(generateAppearance("ages", i, 4).beard).toBe("none");
     }
     expect(allowedHeights(30)).toContain(-1);
-    expect(allowedHeights(6)).not.toContain(-2);
+    expect(allowedHeights(13)).not.toContain(-2);
     const appearance = { ...originalAppearance, height: -2 as const };
     expect(
       actorAppearance({ id: "child", sprite: "human-0-0", age: 5, appearance })

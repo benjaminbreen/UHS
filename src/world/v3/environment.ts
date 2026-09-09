@@ -60,7 +60,7 @@ export function createEnvironment(
       ? atlasSample(ax, ay)
       : broad;
   }
-  const cache = new Map<string, LandSample>();
+  const cache = new Map<number, LandSample>();
   const calculate = (x: number, y: number): LandSample => {
     const local = regional?.settingAt(x, y) ?? s;
     const profile = ecologyProfiles[local.environment!.ecology];
@@ -230,7 +230,8 @@ export function createEnvironment(
     };
   };
   const sample = (x: number, y: number) => {
-    const key = `${x},${y}`;
+    // Packed, not a string: exact while |x| < 2^20 and |y| < 2^21.
+    const key = x * 2097152 + y;
     let value = cache.get(key);
     if (!value) {
       value = calculate(x, y);

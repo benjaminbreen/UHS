@@ -32,7 +32,11 @@ const spanishGrid = americas.map(
     plaza: "crossing",
     plazaScale: 0.19,
     civic: "head",
-    ornaments: ["fountain", "cross", "statue", "bench"],
+    square: {
+      focus: "cross",
+      corners: ["fountain", "tree", "planter", "tree"],
+      hearth: "hidden",
+    },
     evidence: {
       status: "inferred",
       sources: [],
@@ -61,7 +65,11 @@ const industrialGrid = americas.map(
     plaza: "crossing",
     plazaScale: 0.13,
     civic: "head",
-    ornaments: ["fountain", "statue", "kiosk", "bench"],
+    square: {
+      focus: "statue",
+      corners: ["fountain", "tree", "bench", "tree"],
+      hearth: "hidden",
+    },
     evidence: {
       status: "inferred",
       sources: [],
@@ -96,7 +104,7 @@ export const modernForms: UrbanFormRule[] = [
     plaza: "crossing",
     plazaScale: 0.2,
     civic: "head",
-    ornaments: ["fountain", "kiosk", "statue", "bench"],
+    square: { focus: "statue", corners: ["tree", "bench"], hearth: "hidden" },
     evidence: {
       status: "inferred",
       sources: [],
@@ -122,7 +130,11 @@ export const modernForms: UrbanFormRule[] = [
     plaza: "crossing",
     plazaScale: 0.15,
     civic: "head",
-    ornaments: ["fountain", "kiosk", "statue", "bench"],
+    square: {
+      focus: "statue",
+      corners: ["tree", "bench", "planter", "bench"],
+      hearth: "hidden",
+    },
     evidence: {
       status: "inferred",
       sources: [],
@@ -148,7 +160,11 @@ export const modernForms: UrbanFormRule[] = [
     plaza: "crossing",
     plazaScale: 0.16,
     civic: "head",
-    ornaments: ["fountain", "statue", "kiosk", "bench"],
+    square: {
+      focus: "fountain",
+      corners: ["statue", "tree", "bench", "tree"],
+      hearth: "hidden",
+    },
     evidence: {
       status: "inferred",
       sources: [],
@@ -174,7 +190,11 @@ export const modernForms: UrbanFormRule[] = [
     plaza: "crossing",
     plazaScale: 0.13,
     civic: "head",
-    ornaments: ["fountain", "statue", "kiosk", "bench"],
+    square: {
+      focus: "statue",
+      corners: ["fountain", "tree", "bench", "tree"],
+      hearth: "hidden",
+    },
     evidence: {
       status: "inferred",
       sources: [],

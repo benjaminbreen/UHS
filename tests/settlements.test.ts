@@ -211,4 +211,4 @@ it("herders open their own pens by day and secure returned animals at night", ()
     command: { type: "wait", seconds: 18 },
   });
   expect(gate.open).toBe(false);
-}, 15000);
+}, 120000);

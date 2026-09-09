@@ -54,7 +54,7 @@ const even = (n: number) => Math.round(n / 2) * 2;
  * neighbourhoods sharing one identity, and walling each of them would put a
  * rampart between one quarter of a city and the next. */
 export const hasCircuit = (form: UrbanForm, radius: number) =>
-  form.wall !== "none" && radius >= 40;
+  form.wall !== "none" && radius >= 30;
 
 /** Where through routes should meet the built edge. Pure in the site's own
  * identity so the regional road layer and the local planner agree without
@@ -271,29 +271,51 @@ export function composeUrban(
   // put a third of the town under one square, which is a parade ground rather
   // than a market place.
   const size = Math.max(7, even(half * form.plazaScale) + 1);
+  // A direction, whatever length the caller's vector had.
+  if (plazaBias) {
+    const length = Math.hypot(plazaBias.x, plazaBias.y) || 1;
+    plazaBias = { x: plazaBias.x / length, y: plazaBias.y / length };
+  }
   const bias =
     form.plaza === "waterfront" && plazaBias
       ? plazaBias
-      : form.plaza === "offset"
-        ? (() => {
-            const angle = rand("plaza-angle") * Math.PI * 2;
-            return { x: Math.cos(angle), y: Math.sin(angle) };
-          })()
-        : form.plaza === "gate"
-          ? { x: gates[0].nx, y: gates[0].ny }
-          : { x: 0, y: 0 };
+      : form.plaza === "offset" && plazaBias
+        ? plazaBias
+        : form.plaza === "offset"
+          ? (() => {
+              const angle = rand("plaza-angle") * Math.PI * 2;
+              return { x: Math.cos(angle), y: Math.sin(angle) };
+            })()
+          : form.plaza === "gate"
+            ? { x: gates[0].nx, y: gates[0].ny }
+            : { x: 0, y: 0 };
   const offset =
     form.plaza === "crossing" ? 0 : half * (form.plaza === "gate" ? 0.72 : 0.3);
   const focus = {
     x: center.x + even(bias.x * offset),
     y: center.y + even(bias.y * offset),
   };
+  // A square pulled toward water or a bridge stops short of the bank.
+  if (usable)
+    while (
+      (focus.x !== center.x || focus.y !== center.y) &&
+      !squareUsable(focus, size)
+    ) {
+      focus.x -= Math.sign(focus.x - center.x) * 2;
+      focus.y -= Math.sign(focus.y - center.y) * 2;
+    }
   const plaza = {
     x: focus.x - (size >> 1),
     y: focus.y - (size >> 1),
     w: size,
     h: size,
   };
+  function squareUsable(at: Point, size: number) {
+    for (let y = at.y - (size >> 1) - 2; y <= at.y + (size >> 1) + 2; y++)
+      for (let x = at.x - (size >> 1) - 2; x <= at.x + (size >> 1) + 2; x++)
+        if (!usable!(x, y)) return false;
+    return true;
+  }
 
   // Arterials: one axis-aligned run per gate, bent where the fabric is irregular
   // so the network does not collapse into a single central crossing.
@@ -483,7 +505,9 @@ export function composeUrban(
       if (child.w >= 8 && child.h >= 8)
         subdivide(child, depth + 1, `${key}.${i}`);
       if (i < positions.length) {
-        const line = lo + at - Math.floor(gap / 2);
+        // The gap is [at - gap, at); the street sits in the middle of it.
+        // Centred on `at - width` it overran the next block's first row.
+        const line = lo + at - width(tier) - 1;
         // Overrun by the inset so the split meets the streets bounding the
         // quarter, but never past the circuit: only a gate breaches that.
         streets.push(
@@ -577,6 +601,34 @@ export function composeUrban(
       openings,
     };
   }
+}
+
+/** Site radius at which this fabric offers about `target` street-facing
+ * parcels, found by composing it on open ground. The fixed costs of arterials,
+ * square and insets make the count far from proportional to area at small
+ * extents, so no closed form is trusted. */
+export function urbanRadiusFor(
+  target: number,
+  form: UrbanForm,
+  siteId: string,
+  seed: string,
+): number {
+  const offered = (r: number) => {
+    const layout = composeUrban(siteId, { x: 0, y: 0 }, r, form, seed);
+    let slots = 0;
+    for (const b of layout.blocks)
+      slots += Math.floor(b.w / 8) * Math.max(1, Math.floor((b.h + 1) / 7));
+    // Ground and the circuit refuse a share of what open ground offers.
+    return slots * 0.7;
+  };
+  let lo = 30,
+    hi = 110;
+  while (hi - lo > 2) {
+    const mid = Math.round((lo + hi) / 2);
+    if (offered(mid) >= target) hi = mid;
+    else lo = mid;
+  }
+  return hi;
 }
 
 /** `rect` with `hole` and its street margin removed, as up to four disjoint

@@ -197,16 +197,19 @@ export function resolveCharacterContext(s: WorldSetting): CharacterContext {
   const names = scopedNames[0];
   const traditions = names ? undefined : nameTraditionsFor(s);
   const capabilities = capabilitiesFor(s);
+  const needsMet = (needs: Livelihood["needs"]) =>
+    (needs ?? []).every((need) =>
+      need === "water"
+        ? s.water !== "none"
+        : need === "settled"
+          ? s.settlement !== "camp"
+          : s.settlement !== "camp" && profile.allowedItems.includes("grain"),
+    );
+  // The ported table carries no needs, so a common trade borrows the authored
+  // entry of the same id: a fisher still wants water.
+  const authoredNeeds = new Map(livelihoods.map((l) => [l.id, l.needs]));
   const eligible = livelihoods.filter(
-    (l) =>
-      profile.livelihoods.includes(l.id) &&
-      (l.needs ?? []).every((need) =>
-        need === "water"
-          ? s.water !== "none"
-          : need === "settled"
-            ? s.settlement !== "camp"
-            : s.settlement !== "camp" && profile.allowedItems.includes("grain"),
-      ),
+    (l) => profile.livelihoods.includes(l.id) && needsMet(l.needs),
   );
   const supported = (l: Livelihood) =>
     !l.capabilities?.some((c) => !capabilities.has(c)) &&
@@ -219,7 +222,10 @@ export function resolveCharacterContext(s: WorldSetting): CharacterContext {
   const playable = revised ? eligible.filter(supported) : eligible;
   const tiered = revised
     ? commonLivelihoods.filter(
-        (l) => tierApplies(l.tier!, s, capabilities) && supported(l),
+        (l) =>
+          tierApplies(l.tier!, s, capabilities) &&
+          supported(l) &&
+          needsMet(l.needs ?? authoredNeeds.get(l.id)),
       )
     : [];
   return {

@@ -321,3 +321,97 @@ def build_square_furniture(sprites):
     d.rectangle((13, 12, 18, 19), fill=dark)
     d.rectangle((13, 12, 18, 13), fill=pale)
     sprites["altar-platform"] = im
+
+    build_monuments(sprites, stone)
+
+
+def build_monuments(sprites, stone):
+    """Centrepiece-scale pieces. The wide platform under them is a paving grade
+    the ground raster raises to any footprint; these carry only their own
+    plinth, so the same cross reads at market scale and at plaza scale."""
+    dark, mid, light, pale = stone
+
+    def plinth(d, w, base_y):
+        # Two-course pedestal, lit from the upper left like everything else.
+        cx = w // 2
+        d.rectangle((cx - 9, base_y - 6, cx + 8, base_y), fill=dark)
+        d.rectangle((cx - 9, base_y - 6, cx + 8, base_y - 5), fill=light)
+        d.rectangle((cx - 7, base_y - 12, cx + 6, base_y - 6), fill=mid)
+        d.line((cx - 7, base_y - 12, cx + 6, base_y - 12), fill=pale)
+        d.line((cx - 7, base_y - 12, cx - 7, base_y - 7), fill=light)
+        d.line((cx + 6, base_y - 11, cx + 6, base_y - 7), fill=dark)
+        d.rectangle((cx - 4, base_y - 10, cx + 3, base_y - 8), fill=dark)
+
+    im = Image.new("RGBA", (32, 48)); d = ImageDraw.Draw(im)
+    d.ellipse((3, 42, 28, 47), fill=(39, 44, 32, 70))
+    plinth(d, 32, 45)
+    d.rectangle((14, 6, 17, 33), fill=mid)
+    d.line((14, 6, 14, 33), fill=light)
+    d.line((17, 7, 17, 33), fill=dark)
+    d.rectangle((9, 12, 22, 14), fill=mid)
+    d.line((9, 12, 22, 12), fill=pale)
+    d.line((9, 14, 22, 14), fill=dark)
+    d.rectangle((15, 7, 16, 11), fill=pale)
+    sprites["monument-cross"] = im
+
+    im = Image.new("RGBA", (32, 48)); d = ImageDraw.Draw(im)
+    d.ellipse((3, 42, 28, 47), fill=(39, 44, 32, 70))
+    plinth(d, 32, 45)
+    d.rectangle((12, 30, 19, 33), fill=dark)
+    # A standing figure with one arm raised, read by silhouette.
+    d.rectangle((13, 14, 18, 31), fill=mid)
+    d.rectangle((13, 14, 14, 31), fill=light)
+    d.polygon([(12, 31), (13, 20), (18, 20), (19, 31)], fill=mid)
+    d.ellipse((13, 8, 18, 13), fill=pale)
+    d.line((12, 17, 9, 24), fill=mid, width=2)
+    d.line((19, 16, 22, 9), fill=mid, width=2)
+    d.point((22, 8), fill=pale)
+    sprites["monument-statue"] = im
+
+    im = Image.new("RGBA", (32, 48)); d = ImageDraw.Draw(im)
+    d.ellipse((3, 42, 28, 47), fill=(39, 44, 32, 70))
+    plinth(d, 32, 45)
+    d.polygon([(12, 33), (13, 6), (18, 6), (19, 33)], fill=mid)
+    d.polygon([(12, 33), (13, 6), (15, 6), (14, 33)], fill=light)
+    d.polygon([(17, 6), (18, 6), (19, 33), (18, 33)], fill=dark)
+    d.polygon([(13, 6), (15, 2), (16, 2), (18, 6)], fill=pale)
+    for y in range(10, 30, 4):
+        d.line((15, y, 16, y), fill=dark)
+    sprites["monument-obelisk"] = im
+
+    im = Image.new("RGBA", (48, 48)); d = ImageDraw.Draw(im)
+    d.ellipse((3, 36, 44, 46), fill=(39, 44, 32, 70))
+    d.ellipse((2, 24, 45, 44), fill=dark)
+    d.ellipse((3, 22, 44, 40), fill=mid)
+    d.arc((3, 22, 44, 40), 190, 350, fill=pale, width=1)
+    d.ellipse((6, 25, 41, 37), fill="#3d6f74")
+    d.ellipse((8, 26, 39, 34), fill="#57949a")
+    for x in range(11, 38, 5):
+        d.point((x, 29), fill="#9fd0cf")
+    d.rectangle((21, 12, 26, 30), fill=mid)
+    d.rectangle((21, 12, 22, 30), fill=light)
+    d.ellipse((14, 10, 33, 18), fill=dark)
+    d.ellipse((15, 9, 32, 15), fill=mid)
+    d.ellipse((17, 10, 30, 13), fill="#57949a")
+    d.rectangle((22, 3, 25, 11), fill=mid)
+    d.line((22, 3, 22, 11), fill=light)
+    d.ellipse((20, 0, 27, 5), fill=pale)
+    d.ellipse((21, 1, 26, 3), fill="#8fc3c6")
+    for x, y in [(12, 20), (35, 19), (23, 14)]:
+        d.line((x, y, x + 1, y + 4), fill="#9fd0cf")
+    sprites["monument-fountain"] = im
+
+    # A terracotta planter in flower, for the corners of a square.
+    im = Image.new("RGBA", (16, 24)); d = ImageDraw.Draw(im)
+    d.ellipse((2, 19, 13, 23), fill=(39, 44, 32, 70))
+    d.polygon([(3, 12), (12, 12), (11, 21), (4, 21)], fill="#8a4f34")
+    d.polygon([(4, 12), (7, 12), (6, 21), (5, 21)], fill="#b6714a")
+    d.rectangle((2, 10, 13, 12), fill="#a5603f")
+    d.line((2, 10, 13, 10), fill="#c98a5f")
+    for x, y in [(4, 7), (9, 5), (12, 8), (7, 9)]:
+        d.ellipse((x - 3, y - 2, x + 2, y + 3), fill="#47643c")
+        d.ellipse((x - 2, y - 2, x + 1, y + 1), fill="#6f8c48")
+    for x, y in [(4, 5), (8, 3), (11, 6), (6, 8), (12, 9)]:
+        d.rectangle((x, y, x + 1, y + 1), fill="#d94f6b")
+        d.point((x, y), fill="#f1a2b4")
+    sprites["planter"] = im
