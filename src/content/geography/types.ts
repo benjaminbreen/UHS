@@ -51,6 +51,15 @@ export type AtlasPlace = {
   architecture: (typeof architectures)[number];
   /** Modern gazetteer population used only to size a procedural footprint. */
   population?: number;
+  /** Nearest atlas coastline, in tiles, and the compass direction to it. */
+  coast?: WaterNeighbour;
+  /** Nearest atlas river; bearing is the direction to it, not its flow. */
+  river?: WaterNeighbour;
+};
+export const bearings = ["n", "ne", "e", "se", "s", "sw", "w", "nw"] as const;
+export type WaterNeighbour = {
+  distance: number;
+  bearing: (typeof bearings)[number];
 };
 /** Both interpreters produce this same immutable input. No model text is executable. */
 export const settingSchema = z

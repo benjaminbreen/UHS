@@ -5,6 +5,9 @@ const data = JSON.parse(
     "utf8",
   ),
 );
+// Half-degree buckets, each edge filed only in the cells it crosses; the
+// runtime reads the 3x3 neighbourhood. Must match src/world/geography/atlas.ts.
+const BUCKET = 0.5;
 const width = 1440,
   height = 720,
   mask = new Uint8Array(width * height);
@@ -51,13 +54,13 @@ function buckets(paths) {
         b = points[i];
       if (Math.abs(a[0] - b[0]) > 180) continue;
       for (
-        let y = Math.floor(Math.min(a[1], b[1]) / 2) - 1;
-        y <= Math.floor(Math.max(a[1], b[1]) / 2) + 1;
+        let y = Math.floor(Math.min(a[1], b[1]) / BUCKET);
+        y <= Math.floor(Math.max(a[1], b[1]) / BUCKET);
         y++
       )
         for (
-          let x = Math.floor(Math.min(a[0], b[0]) / 2) - 1;
-          x <= Math.floor(Math.max(a[0], b[0]) / 2) + 1;
+          let x = Math.floor(Math.min(a[0], b[0]) / BUCKET);
+          x <= Math.floor(Math.max(a[0], b[0]) / BUCKET);
           x++
         ) {
           const key = `${x},${y}`,
@@ -86,6 +89,7 @@ writeFileSync(
     width,
     height,
     runs,
+    bucket: BUCKET,
     land: buckets(data.land),
     rivers: buckets(data.rivers.map((r) => r.points)),
   }),

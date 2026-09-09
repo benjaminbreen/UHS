@@ -84,6 +84,58 @@ def defaults(lon,lat):
  elif lon>45 and lat>35:culture='central-asian'
  elif lon>30 and lat<43:culture='mena';architecture='mudbrick'
  return dict(climate=climate,culture=culture,architecture=architecture,year=1400,water='none',settlement='village',relief=.35)
+# Nearest coast and river from the prepared atlas, in game tiles, so a port is
+# generated on its shore. Segments are bucketed by degree; the search stops
+# after the ring that holds the first hit, since a closer hit cannot lie further out.
+ATLAS_SCALE=2048; GRID=.25; MAX_RINGS=8
+atlas=json.loads((ROOT/'src/content/geography/atlas.generated.json').read_text())
+def bucket(paths):
+ table={}
+ for pts in paths:
+  for i in range(1,len(pts)):
+   a,b=pts[i-1],pts[i]
+   if abs(a[0]-b[0])>180: continue
+   for y in range(math.floor(min(a[1],b[1])/GRID),math.floor(max(a[1],b[1])/GRID)+1):
+    for x in range(math.floor(min(a[0],b[0])/GRID),math.floor(max(a[0],b[0])/GRID)+1):
+     table.setdefault((x,y),[]).append((a,b))
+ return table
+coastEdges=bucket(atlas['land']);riverEdges=bucket([r['points'] for r in atlas['rivers']])
+def nearest(table,lon,lat):
+ """Nearest segment as (distance in degrees, foot point, direction) or None."""
+ cx,cy=math.floor(lon/GRID),math.floor(lat/GRID);best=None
+ for ring in range(MAX_RINGS+1):
+  for y in range(cy-ring,cy+ring+1):
+   for x in range(cx-ring,cx+ring+1):
+    if max(abs(x-cx),abs(y-cy))!=ring: continue
+    for a,b in table.get((x,y),()):
+     dx=b[0]-a[0];dy=b[1]-a[1];den=dx*dx+dy*dy or 1
+     t=max(0,min(1,((lon-a[0])*dx+(lat-a[1])*dy)/den))
+     px,py=a[0]+t*dx,a[1]+t*dy;d=math.hypot(px-lon,py-lat)
+     if best is None or d<best[0]: best=(d,(px,py),(dx,dy))
+  if best and best[0]<=ring*GRID: break
+ return best
+def bearing(dx,dy):
+ return ['e','ne','n','nw','w','sw','s','se'][round(math.degrees(math.atan2(dy,dx))/45)%8]
+def neighbour(found,lon,lat):
+ d,(px,py),_=found
+ return {'distance':round(d*ATLAS_SCALE),'bearing':bearing(px-lon,py-lat)}
+def side(found,lon,lat):
+ """Dominant compass axis to the water, the only shape the coast setting knows."""
+ _,(px,py),_=found;dx,dy=px-lon,py-lat
+ return ('e' if dx>0 else 'w') if abs(dx)>=abs(dy) else ('n' if dy>0 else 's')
+PORT_TILES=80; RIVER_TILES=60
+def waters(lon,lat,settlement):
+ """Coast/river metadata plus the water setting and settlement form they imply."""
+ out={};water=None
+ c=nearest(coastEdges,lon,lat);r=nearest(riverEdges,lon,lat)
+ if c: out['coast']=neighbour(c,lon,lat)
+ if r: out['river']=neighbour(r,lon,lat)
+ if c and out['coast']['distance']<PORT_TILES:
+  water='coast-'+side(c,lon,lat)
+  if settlement=='city': settlement='port'
+ elif r and out['river']['distance']<RIVER_TILES:
+  dx,dy=r[2];water='river-ew' if abs(dx)>=abs(dy) else 'river-ns'
+ return out,water,settlement
 legacy=json.loads((ROOT/'scripts/data/legacy-areas.json').read_text());result={};matched=0
 for p in legacy:
  names=[norm(p['name']),norm(re.sub(r' (Plain|Valley|Highlands|Lowlands|Plateau|Region|Basin)$','',p['name']))]
@@ -94,13 +146,18 @@ for p in legacy:
   # are the exceptions: every legacy row reads 'timber' and 'village', which is
   # a placeholder rather than a judgement, so the region and the source decide.
   fill=defaults(lon,lat)
-  record={**fill,**p,'architecture':fill['architecture'],'settlement':settlement or 'village','lon':round(lon,4),'lat':round(lat,4)}
+  near,water,settlement=waters(lon,lat,settlement or 'village')
+  # Legacy 'none' is the same placeholder as its 'village'; a named river or
+  # lake is a judgement and stays.
+  record={**fill,**p,**near,'architecture':fill['architecture'],'settlement':settlement,'lon':round(lon,4),'lat':round(lat,4)}
+  if p.get('water','none')=='none' and water: record['water']=water
   if population: record['population']=int(population)
   result[norm(p['name'])]=record;matched+=1
 for f in sorted(cities,key=lambda f:-(f['properties']['pop_max'] or 0)):
  p=f['properties'];name=p['name'];key=norm(name);lon,lat=p['longitude'],p['latitude']
  if p['scalerank']>4 or key in result or abs(lat)>85:continue
- record=dict(id='city-'+key.replace(' ','-'),name=name,aliases=[p['nameascii']] if p.get('nameascii')!=name and p.get('nameascii') else [],lon=round(lon,4),lat=round(lat,4),**{**defaults(lon,lat),'settlement':rank(p)})
+ near,water,settlement=waters(lon,lat,rank(p))
+ record=dict(id='city-'+key.replace(' ','-'),name=name,aliases=[p['nameascii']] if p.get('nameascii')!=name and p.get('nameascii') else [],lon=round(lon,4),lat=round(lat,4),**{**defaults(lon,lat),'settlement':settlement,**({'water':water} if water else {})},**near)
  if p['pop_max']: record['population']=int(p['pop_max'])
  result[key]=record
 # Fix the catalog culture vocabulary centrally; data generation never invents runtime IDs.

@@ -43,6 +43,7 @@ export function createEnvironment(
       : global;
   };
   const atlasCache = new Map<string, ReturnType<typeof atlasSample>>();
+  const fineCache = new Map<string, ReturnType<typeof atlasSample>>();
   function earth(x: number, y: number) {
     const ax = x + origin.x,
       ay = y + origin.y;
@@ -55,10 +56,22 @@ export function createEnvironment(
       trimCache(atlasCache, 4096);
       atlasCache.set(key, broad);
     }
-    // Exact sampling is only needed within reach of a shoreline or river.
-    return Math.abs(broad.coast) < 64 || broad.river < 64
+    if (Math.abs(broad.coast) >= 64 && broad.river >= 64) return broad;
+    // Distance to a shore changes by at most a cell per cell, so a sample at
+    // the middle of a four-cell block is within three cells of the truth.
+    // Exact sampling is only needed where that error would move the water.
+    const fx = Math.floor(ax / 4) * 4,
+      fy = Math.floor(ay / 4) * 4;
+    const fineKey = `${fx},${fy}`;
+    let mid = fineCache.get(fineKey);
+    if (!mid) {
+      mid = atlasSample(fx + 2, fy + 2);
+      trimCache(fineCache, 16384);
+      fineCache.set(fineKey, mid);
+    }
+    return Math.abs(mid.coast) < 12 || mid.river < 12
       ? atlasSample(ax, ay)
-      : broad;
+      : mid;
   }
   const cache = new Map<number, LandSample>();
   const calculate = (x: number, y: number): LandSample => {

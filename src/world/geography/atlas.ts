@@ -8,9 +8,17 @@ export { ATLAS_SCALE, toAtlas, fromAtlas } from "./coordinates";
 export const atlasLand = data.land;
 export const atlasRivers = data.rivers;
 type Edge = { a: number[]; b: number[]; name?: string };
-const key = (x: number, y: number) =>
-  `${Math.floor(x / 2)},${Math.floor(y / 2)}`;
-const { width, height } = prepared;
+const { width, height, bucket: BUCKET } = prepared;
+/** Edges from the bucket at lon/lat and its eight neighbours. */
+function* near(index: Map<string, Edge[]>, lon: number, lat: number) {
+  const cx = Math.floor(lon / BUCKET),
+    cy = Math.floor(lat / BUCKET);
+  for (let y = cy - 1; y <= cy + 1; y++)
+    for (let x = cx - 1; x <= cx + 1; x++) {
+      const list = index.get(`${x},${y}`);
+      if (list) yield* list;
+    }
+}
 const mask = new Uint8Array(width * height);
 for (const [start, end] of prepared.runs) mask.fill(1, start, end);
 function edges(paths: { points: number[][]; name?: string }[]) {
@@ -68,16 +76,16 @@ function landAt(lon: number, lat: number) {
   return left % 2 === 1;
 }
 export function atlasSample(x: number, y: number) {
-  const { lon, lat } = fromAtlas(x, y),
-    k = key(lon, lat);
+  const { lon, lat } = fromAtlas(x, y);
   const col = Math.max(0, Math.min(width - 1, Math.floor((lon + 180) * 4))),
     row = Math.max(0, Math.min(height - 1, Math.floor((90 - lat) * 4)));
-  let coast = 2;
-  for (const e of landEdges.get(k) ?? [])
+  // Beyond the neighbouring buckets the coast is only known to be far.
+  let coast = BUCKET;
+  for (const e of near(landEdges, lon, lat))
     coast = Math.min(coast, segmentDistance(lon, lat, e.a, e.b));
   let river = Infinity;
   let riverFlow: readonly [number, number] = [0, 0];
-  for (const e of riverEdges.get(k) ?? []) {
+  for (const e of near(riverEdges, lon, lat)) {
     const distance = segmentDistance(lon, lat, e.a, e.b) * ATLAS_SCALE;
     if (distance < river) {
       river = distance;
@@ -135,7 +143,7 @@ export function nearestRiverPoint(
         .flatMap((r) =>
           r.points.slice(1).map((b, i) => ({ a: r.points[i], b })),
         )
-    : (riverEdges.get(key(lon, lat)) ?? []);
+    : [...near(riverEdges, lon, lat)];
   for (const { a, b } of edges) {
     const dx = b[0] - a[0],
       dy = b[1] - a[1],

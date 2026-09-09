@@ -14,8 +14,9 @@ it("preserves global coast, river and flow samples after offline indexing", () =
       const p = toAtlas(lon, lat);
       samples.push(atlasSample(p.x, p.y));
     }
-  // Captured from the original runtime-built index at a00d0dc.
-  expect(stateHash(samples)).toBe("30bd2d09");
+  // Captured after the move to the 10m coastline and half-degree buckets;
+  // the a00d0dc runtime-built index hashed to 30bd2d09.
+  expect(stateHash(samples)).toBe("194c3cfb");
   const p = toAtlas(31, 30);
   expect(nearestRiverPoint(p.x, p.y, "Nile")).toEqual([
     63940.4032, -61455.9744,
@@ -33,7 +34,7 @@ it("keeps place identifiers unique and disambiguates names by their own region",
   expect(york.culture).toBe("european");
   // The generated gazetteer must be able to produce cities, not only villages.
   const generated = places.filter((p) => p.id.startsWith("city-"));
-  expect(generated.filter((p) => p.settlement === "city").length).toBeGreaterThan(
-    100,
-  );
+  expect(
+    generated.filter((p) => p.settlement === "city").length,
+  ).toBeGreaterThan(100);
 });
