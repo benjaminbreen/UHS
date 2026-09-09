@@ -1,7 +1,5 @@
 import { expect, it } from "vitest";
 import { groundMotif, stoneMotifs } from "../src/render/ground-motifs";
-import { rasterHabitatTile } from "../src/render/habitat-raster";
-import type { TopographySample } from "../src/core/topography";
 it("gives each stone a coherent face, highlight and shadow at a readable size", () => {
   for (const glyph of stoneMotifs) {
     const pixels = glyph.join("");
