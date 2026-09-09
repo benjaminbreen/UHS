@@ -15,7 +15,7 @@ import { pathArt } from "./path-art";
 import { streetMaterial } from "../../content/settlements/streets";
 import { habitatAt, habitatTree } from "./habitats";
 import { createRegionalContext } from "../regional/context";
-import { regionalSettlements } from "../regional/settlements";
+import { regionalSettlements, shorePreference } from "../regional/settlements";
 import { regionalTransport } from "../regional/transport";
 import type { GeographicArea } from "../../core/geography";
 import { createEnvironment, localEcology } from "./environment";
@@ -95,9 +95,11 @@ export function createSettlementWorld(
         .filter((s) => Math.hypot(s.center.x, s.center.y) < 384)
         .sort(
           (a, b) =>
-            // The place the player asked for, before the nearest.
+            // The place the player asked for, before the nearest; and its
+            // city proper before one of its outlying quarters.
             Number(b.namedId === pack.setting?.placeId) -
               Number(a.namedId === pack.setting?.placeId) ||
+            b.profile.radius - a.profile.radius ||
             Math.hypot(a.center.x, a.center.y) -
               Math.hypot(b.center.x, b.center.y) ||
             a.id.localeCompare(b.id),
@@ -133,7 +135,8 @@ export function createSettlementWorld(
           x: cx * 384 + 192 - land.origin.x,
           y: cy * 384 + 192 - land.origin.y,
         };
-    const locations = Array.from({ length: 25 }, (_, i) => {
+    // A configured shore sits about 35 tiles out; the ring must reach past it.
+    const locations = Array.from({ length: 45 }, (_, i) => {
       const angle = i * 2.4,
         radius = i ? 8 + Math.floor(i / 5) * 6 : 0;
       return {
@@ -158,7 +161,7 @@ export function createSettlementWorld(
               Math.abs(q.elevation - f.elevation) * 4,
             0,
           ) +
-          Math.abs(f.water - 28) * 0.15 +
+          shorePreference(f.water) * 0.15 +
           Math.hypot(p.x - center.x, p.y - center.y) * 0.12
         );
       };
@@ -1176,7 +1179,10 @@ export function createSettlementWorld(
       }
       const rank = ranked.indexOf(id);
       const offset = routineOffset.get(key) ?? 0;
-      if (rank < 0 || (rank - offset + ranked.length) % ranked.length >= ROUTINE_BUDGET) {
+      if (
+        rank < 0 ||
+        (rank - offset + ranked.length) % ranked.length >= ROUTINE_BUDGET
+      ) {
         routines.set(id, undefined);
         if (rank >= 0) dormant.add(id);
         return undefined;
@@ -1380,10 +1386,14 @@ export function createSettlementWorld(
     spawn: { x: 0, y: 0, space: "outside" },
     planAt: (x, y) => {
       const c = coord(x, y);
+      // The site whose claim holds the cell, before the nearest centre: a
+      // city's quarter can be nearer than the city it belongs to.
       const nearest = [...sitesIn(c.x, c.y)].sort(
         (a, b) =>
+          Number(b.accepts?.(x, y) ?? false) -
+            Number(a.accepts?.(x, y) ?? false) ||
           Math.hypot(a.center.x - x, a.center.y - y) -
-          Math.hypot(b.center.x - x, b.center.y - y),
+            Math.hypot(b.center.x - x, b.center.y - y),
       )[0];
       return nearest ? getPlan(c.x, c.y, nearest.id) : undefined;
     },

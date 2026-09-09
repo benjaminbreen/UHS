@@ -24,6 +24,11 @@ export type Site = {
   namedId?: string;
   pack?: import("../../core/types").Pack;
   accepts?(x: number, y: number): boolean;
+  /** Where density concentrates, in local tile coordinates. Omitted, the
+   * public square is the one core. */
+  cores?: { x: number; y: number; radius: number; weight?: number }[];
+  /** Built extent's width over its height, where the place says so. */
+  aspect?: number;
 };
 export type Road = {
   id: string;

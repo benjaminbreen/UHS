@@ -156,6 +156,11 @@ export function composeUrban(
   /** Whether a cell can be built on. Omitted, the boundary is the fabric's own
    * ideal shape; supplied, terrain pulls that shape inward wherever it fails. */
   usable?: (x: number, y: number) => boolean,
+  /** How central a cell is, 0 at the edge to 1 at a core. Omitted, distance
+   * from the square stands in for it. */
+  density?: (x: number, y: number) => number,
+  /** Width over height of the built extent, where the place dictates it. */
+  aspect?: number,
 ): UrbanLayout {
   const half = urbanFootprint(radius, form);
   const rand = (...keys: (string | number)[]) =>
@@ -195,14 +200,18 @@ export function composeUrban(
   const single = specs.length === 1;
   const coreHalf = single ? half : Math.max(14, Math.round(half * 0.6));
   // A grid was laid out as a rectangle, and not a square one.
-  const stretch =
-    core.plan === "linear"
+  const stretch = aspect
+    ? Math.max(aspect, 1 / aspect)
+    : core.plan === "linear"
       ? 1.75
       : grown(core.plan)
         ? 1
         : 1 + rand("aspect") * 0.34;
-  const turned =
-    core.plan === "linear" ? gates[0].axis === "y" : rand("turn") < 0.5;
+  const turned = aspect
+    ? aspect < 1
+    : core.plan === "linear"
+      ? gates[0].axis === "y"
+      : rand("turn") < 0.5;
   const coreA = turned ? Math.round(coreHalf / stretch) : coreHalf,
     coreB = turned ? coreHalf : Math.round(coreHalf / stretch);
   const coreRect = {
@@ -384,7 +393,12 @@ export function composeUrban(
   const offset =
     form.plaza === "crossing"
       ? 0
-      : coreHalf * (form.plaza === "gate" ? 0.72 : 0.3);
+      : coreHalf *
+        (form.plaza === "gate"
+          ? 0.72
+          : form.plaza === "waterfront"
+            ? 0.55
+            : 0.3);
   const focus = {
     x: center.x + even(bias.x * offset),
     y: center.y + even(bias.y * offset),
@@ -839,7 +853,7 @@ export function composeUrban(
       }
     }
     for (const s of diagonals)
-      for (const p of line(s.a, s.b)) clearAround(p.x, p.y, hiA + margin(0));
+      for (const p of line(s.a, s.b)) clearAround(p.x, p.y, hiA + 2);
     clearRect(plaza, Math.max(loA, hiA) + 1);
     for (const r of squares) clearRect(r, Math.max(loA, hiA) + 1);
   }
@@ -887,11 +901,12 @@ export function composeUrban(
         ...r,
         depth: 0,
         court: false,
-        reach:
-          Math.max(
-            Math.abs(r.x + r.w / 2 - focus.x),
-            Math.abs(r.y + r.h / 2 - focus.y),
-          ) / half,
+        reach: density
+          ? 1 - density(r.x + r.w / 2, r.y + r.h / 2)
+          : Math.max(
+              Math.abs(r.x + r.w / 2 - focus.x),
+              Math.abs(r.y + r.h / 2 - focus.y),
+            ) / half,
       });
     }
   }
@@ -906,8 +921,8 @@ export function composeUrban(
           inRect(b.x + (b.w >> 1), b.y + (b.h >> 1), d.rect),
         ) ?? districts[0];
       const [bw, bh] = d.spec.block;
-      const wide = b.w >= bw * 1.7 && b.w >= 20,
-        tall = b.h >= bh * 1.7 && b.h >= 20;
+      const wide = b.w >= bw * 1.5 && b.w >= 16,
+        tall = b.h >= bh * 1.5 && b.h >= 16;
       if (!wide && !tall) continue;
       const tier: Tier = 2;
       const m = margin(tier);

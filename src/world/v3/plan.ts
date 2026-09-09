@@ -126,7 +126,13 @@ export function planSettlement(
     palette && chooseStreetSurface(palette, "footway", rand("footways"));
   // A city claim is not a single paved surface. Roads, footways, yards and
   // planted spaces add their own higher-ranked surfaces over this base.
-  const cityGround = profile.radius < 45 ? undefined : "dirt";
+  // Worn earth between an old town's streets; lawn in a modern one.
+  const cityGround =
+    profile.radius < 45
+      ? undefined
+      : (pack.setting?.year ?? 0) >= 1900
+        ? "grass"
+        : "dirt";
   const addRoad = (road: Road) => {
     const material = road.kind === "lane" ? laneSurface : stone;
     plan.roads.push(road);
@@ -647,11 +653,31 @@ export function planSettlement(
     };
     // A small town's block ground is grass; a city's is its own beaten earth
     // or paving, with grass only as edging round the houses.
+    // A modern block is yard between its buildings; an older one is earth.
+    const blockGround =
+      (pack.setting?.year ?? 0) >= 1900 ? "grass" : (cityGround ?? "grass");
     const paintBlock = (block: Rect) =>
       eachCell(block, (x, y) => {
         if (dry({ x, y, w: 1, h: 1 }, false))
-          setSurface(cellKey(x, y), cityGround ?? "grass", 2);
+          setSurface(cellKey(x, y), blockGround, 2);
       });
+    const paintFootway = (rect: Rect) => {
+      if (!profile.paved) return;
+      eachCell(rect, (x, y) => {
+        const k = cellKey(x, y);
+        if (
+          plan.solid.has(k) ||
+          roads.has(k) ||
+          !dry({ x, y, w: 1, h: 1 }, false)
+        )
+          return;
+        if (setSurface(k, "paving", 5)) {
+          plan.pavement!.set(k, "footway");
+          plan.reserved.add(k);
+          if (footwaySurface) plan.streetSurfaces!.set(k, footwaySurface);
+        }
+      });
+    };
     const paintVerge = (rect: Rect) =>
       eachCell(rect, (x, y) => {
         const k = cellKey(x, y);
@@ -926,6 +952,7 @@ export function planSettlement(
           paintSquare,
           paintVerge,
           paintVergeWalk,
+          paintFootway,
           paintPark,
           furnish,
           paintCity,
@@ -1481,11 +1508,12 @@ export function planSettlement(
             w: 1,
             h: rect.h,
           };
-      eachCell(back, (x, y) => {
-        const k = cellKey(x, y);
-        if (!plan.solid.has(k) && dry({ x, y, w: 1, h: 1 }, false))
-          setSurface(k, "dirt", 3);
-      });
+      if (cityGround !== "grass")
+        eachCell(back, (x, y) => {
+          const k = cellKey(x, y);
+          if (!plan.solid.has(k) && dry({ x, y, w: 1, h: 1 }, false))
+            setSurface(k, "dirt", 3);
+        });
       const footway = ny
         ? {
             x: rect.x,

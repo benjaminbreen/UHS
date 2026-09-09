@@ -32,25 +32,43 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
     o.open = false;
     if (def.contents) o.inventory = { ...def.contents };
   };
-  const occupied = (p: Position, ignore?: string) =>
-    world.initialObjects.some(
-      (o) =>
-        o.id !== ignore &&
-        o.pos.space === p.space &&
-        Math.hypot(o.pos.x - p.x, o.pos.y - p.y) < 1.8,
-    );
+  // Indexed by cell: a city has a thousand objects and asks about each one.
+  const at = (p: Position) => `${p.space}:${p.x},${p.y}`;
+  const objectsAt = new Map<string, WorldObject[]>();
+  const index = (o: WorldObject) => {
+    const k = at(o.pos),
+      list = objectsAt.get(k) ?? [];
+    list.push(o);
+    objectsAt.set(k, list);
+  };
+  const unindex = (o: WorldObject) => {
+    const list = objectsAt.get(at(o.pos));
+    if (list) list.splice(list.indexOf(o), 1);
+  };
+  for (const o of world.initialObjects) index(o);
+  const actorsAt = new Set(world.initialActors.map((a) => at(a.pos)));
+  const doorsAt = new Set<string>();
+  for (const b of world.places)
+    for (let dy = -1; dy <= 1; dy++)
+      for (let dx = -1; dx <= 1; dx++)
+        doorsAt.add(
+          at({ x: b.entrance.x + dx, y: b.entrance.y + dy, space: "outside" }),
+        );
+  const occupied = (p: Position, ignore?: string) => {
+    for (let dy = -1; dy <= 1; dy++)
+      for (let dx = -1; dx <= 1; dx++)
+        for (const o of objectsAt.get(
+          at({ x: p.x + dx, y: p.y + dy, space: p.space }),
+        ) ?? [])
+          if (o.id !== ignore) return true;
+    return false;
+  };
   const usable = (p: Position, ignore?: string) =>
     !world.blocked(p.x, p.y, p.space) &&
     !(p.space === "outside" && world.protectedCell?.(p.x, p.y)) &&
     !occupied(p, ignore) &&
-    !world.initialActors.some(
-      (a) => a.pos.space === p.space && a.pos.x === p.x && a.pos.y === p.y,
-    ) &&
-    !world.places.some(
-      (b) =>
-        p.space === "outside" &&
-        Math.hypot(b.entrance.x - p.x, b.entrance.y - p.y) < 2,
-    ) &&
+    !actorsAt.has(at(p)) &&
+    !doorsAt.has(at(p)) &&
     [
       [0, 1],
       [1, 0],
@@ -85,7 +103,11 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
                 });
             }
         const free = choices.find((p) => usable(p, o.id));
-        if (free) o.pos = free;
+        if (free) {
+          unindex(o);
+          o.pos = free;
+          index(o);
+        }
       }
     }
     for (const b of world.places) {
@@ -122,6 +144,7 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
         };
         stamp(o, pick(o.id, slot === 1 ? "yard" : "work", o.pos));
         world.initialObjects.push(o);
+        index(o);
         done.add(o.id);
       }
     }

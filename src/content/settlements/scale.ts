@@ -57,9 +57,10 @@ export function urbanCapacity(
   );
 }
 
-/** Building limit for a composed settlement. Modern blocks use a denser visual
- * parcel plan than the historical frontage estimate, but remain bounded so a
- * large city does not turn generation into an unbounded pathfinding pass. */
+/** Safety cap on a composed settlement. Blocks are filled to their coverage
+ * and the count falls out of that; this only bounds how long a plan may spend
+ * routing doors, spent from the centre outward. */
+export const URBAN_HARD_CAP = 720;
 export function urbanBuildingLimit(
   radius: number,
   form: UrbanForm,
@@ -67,11 +68,16 @@ export function urbanBuildingLimit(
   year: number,
 ): number {
   const base = Math.min(urbanCapacity(radius, form, requested), requested);
-  if (year < 1900) return base;
-  return Math.min(
-    MODERN_CITY_CAPACITY,
-    Math.max(base, Math.round(base * (requested >= 100 ? 1.8 : 1.5))),
-  );
+  if (year < 1900 && radius < 45) return base;
+  return Math.max(base, URBAN_HARD_CAP);
+}
+
+/** Built half-extent for a population. Log scale from 3,000 to 3,000,000;
+ * before 1800 the same population packed into less ground. */
+export function urbanRadius(population = 20000, year = 2000): number {
+  const t = Math.max(0, Math.min(1, Math.log10(population / 3000) / 3));
+  const r = 30 + t * 110;
+  return Math.round(year < 1800 ? Math.max(30, r * 0.8) : r);
 }
 
 /** Street-facing buildings a place of this population and date should get.

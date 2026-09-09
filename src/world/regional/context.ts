@@ -3,6 +3,7 @@ import { trimCache } from "../../core/cache";
 import type { Pack } from "../../core/types";
 import type { WorldSetting } from "../../content/geography/types";
 import type {
+  Coordinate,
   RegionalPlace,
   RegionalFeature,
   RegionalProfile,
@@ -31,10 +32,10 @@ export function createRegionalContext(start: WorldSetting) {
         id: p.id,
         name: p.name,
         at: [p.lon, p.lat],
-        radius: p.settlement === "city" ? 140 : 60,
+        radius: p.settlement === "village" ? 60 : 140,
         population: p.population,
         dates: { start: { year: 1990 } },
-        defaults: { settlement: p.settlement },
+        defaults: { settlement: p.settlement, water: p.water },
         evidence: {
           status: "inferred",
           sources: ["https://www.naturalearthdata.com/"],
@@ -67,6 +68,7 @@ export function createRegionalContext(start: WorldSetting) {
         architecture: start.architecture,
         settlement: start.settlement,
         settlementPattern: start.settlementPattern,
+        water: start.water,
       },
       evidence: {
         status: "fictional",
@@ -104,10 +106,11 @@ export function createRegionalContext(start: WorldSetting) {
         placeBuckets.set(k, list);
       }
   }
-  const local = (p: RegionalPlace) => {
-    const q = toAtlas(...p.at);
+  const localPoint = (c: Coordinate) => {
+    const q = toAtlas(...c);
     return { x: q.x - origin.x, y: q.y - origin.y };
   };
+  const local = (p: RegionalPlace) => localPoint(p.at);
   const profilesAt = (x: number, y: number) => {
     const p = fromAtlas(x + origin.x, y + origin.y);
     return profiles.filter((r) => inBounds(p.lon, p.lat, r.bounds));
@@ -388,6 +391,7 @@ export function createRegionalContext(start: WorldSetting) {
     profiles,
     activePlaces,
     local,
+    localPoint,
     placesAt,
     placeAt,
     containsPlace,

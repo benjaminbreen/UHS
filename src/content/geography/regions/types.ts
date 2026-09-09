@@ -23,6 +23,7 @@ export type LocalDefaults = Partial<
     | "settlement"
     | "settlementPattern"
     | "relief"
+    | "water"
   >
 >;
 export type RegionalPlace = {
@@ -35,6 +36,11 @@ export type RegionalPlace = {
   radius: number;
   /** Rough population within this entry's dates; sizes the built extent. */
   population?: number;
+  /** Where density concentrates, each a point with a falloff radius in
+   * tiles. Omitted, the public square is the one core. */
+  cores?: readonly { at: Coordinate; radius: number; weight?: number }[];
+  /** Built extent's width over its height. Omitted, the fabric decides. */
+  aspect?: number;
   defaults: LocalDefaults;
   evidence: Provenance;
 };

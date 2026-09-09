@@ -176,9 +176,10 @@ it("only ranks a place as a town where an urban fabric is attested by then", () 
   const rank = (id: string, year: number) =>
     settingFor(place(id), year).settlement;
   // Reported case: the atlas ranks Hobart a city from its modern prominence.
-  expect(place("city-hobart").settlement).toBe("city");
+  // Hobart sits on the Derwent estuary, so its modern rank is port.
+  expect(place("city-hobart").settlement).toBe("port");
   expect(rank("city-hobart", -1320)).toBe("camp");
-  expect(rank("city-hobart", 2000)).toBe("city");
+  expect(rank("city-hobart", 2000)).toBe("port");
   // A place inside a researched envelope keeps its rank from that envelope's
   // earliest date and loses it before.
   expect(rank("rome", -100)).toBe("city");
@@ -270,8 +271,8 @@ it("ranks and equips a place consistently across its whole history", () => {
   expect(ranks).toEqual([
     ["camp", false],
     ["camp", false],
-    ["city", true],
-    ["city", true],
+    ["port", true],
+    ["port", true],
   ]);
   // A camp never gets fields, livestock or paving anywhere in the atlas.
   for (const place of places)

@@ -3,11 +3,32 @@ import { random } from "../../core/random";
 import { settlementProfile } from "../../content/settlements/profiles";
 import type { Site } from "../v3/types";
 import type { Sample } from "../v3/roads";
+import type { LandSample } from "../geography/landscape";
 import { REGION_CELL, type RegionalContext } from "./context";
-import { urbanForm } from "../../content/settlements/urban-form";
-import { urbanTarget } from "../../content/settlements/scale";
-import { urbanRadiusFor } from "../v3/blocks";
+import { urbanRadius, urbanTarget } from "../../content/settlements/scale";
 
+/** How far from the water a waterside centre wants to stand. A town keeps
+ * room for a quay and a waterfront street, 8-14 tiles; a city's centre sits
+ * back about two fifths of its claim, so the built extent reaches the shore
+ * on one side and spreads inland on the others instead of losing half its
+ * ground to the sea. */
+export const shorePreference = (
+  water: number,
+  radius = 0,
+  /** Farthest from water any candidate stands: an island narrower than the
+   * setback still wants its centre on its own middle, not its edge. */
+  available = Infinity,
+) => {
+  const lo = Math.min(
+      radius >= 60 ? Math.min(60, radius * 0.36) : 8,
+      available * 0.8,
+    ),
+    hi = Math.max(
+      lo,
+      Math.min(radius >= 60 ? Math.min(70, radius * 0.46) : 14, available),
+    );
+  return water < lo ? (lo - water) * 2 : water > hi ? water - hi : 0;
+};
 /** Districts index plans; named places and their neighborhoods own their identity. */
 export function regionalSettlements(
   context: RegionalContext,
@@ -47,6 +68,8 @@ export function regionalSettlements(
       namedId?: string;
       radius?: number;
       population?: number;
+      cores?: Site["cores"];
+      aspect?: number;
     }[] = [];
     for (const p of named) {
       const center = context.local(p);
@@ -63,6 +86,12 @@ export function regionalSettlements(
           namedId: p.id,
           radius: p.radius,
           population: p.population,
+          cores: p.cores?.map((core) => ({
+            ...context.localPoint(core.at),
+            radius: core.radius,
+            weight: core.weight,
+          })),
+          aspect: p.aspect,
         });
       if (p.footprint) {
         // Large footprints become neighborhoods using the same planner as towns.
@@ -78,7 +107,8 @@ export function regionalSettlements(
                 id: `${p.id}@${x + context.origin.x}_${y + context.origin.y}`,
                 name: p.name,
                 namedId: p.id,
-                radius: 27,
+                // A quarter of a great city is a town in its own right.
+                radius: p.radius >= 100 ? 45 : 27,
               });
       }
     }
@@ -112,36 +142,65 @@ export function regionalSettlements(
                 Math.max(16, Math.hypot(q.x - p.x, q.y - p.y) / 2 - 8),
               ),
           );
-      const candidates = Array.from({ length: 49 }, (_, i) => {
-        const r = i ? Math.min(radius * 0.35, 6 + Math.floor(i / 8) * 5) : 0;
-        return {
-          x: Math.round((p.x + Math.cos(i * 2.4) * r) / 2) * 2,
-          y: Math.round((p.y + Math.sin(i * 2.4) * r) / 2) * 2,
-        };
+      // A waterside place searches its whole claim: the gazetteer point is
+      // the modern centre, and the shore can be a hundred tiles off.
+      const water = context.settingAt(p.x, p.y).water;
+      const shore = water !== "none";
+      const reach = shore ? radius : radius * 0.35;
+      const step = shore ? 8 : 5;
+      const candidates = [{ x: p.x, y: p.y }];
+      for (let r = 6; r <= reach; r += step) {
+        const n = shore ? Math.max(8, Math.round((Math.PI * r) / 4)) : 8;
+        for (let i = 0; i < n; i++) {
+          const a = (i / n) * Math.PI * 2 + r * 0.3;
+          candidates.push({
+            x: Math.round((p.x + Math.cos(a) * r) / 2) * 2,
+            y: Math.round((p.y + Math.sin(a) * r) / 2) * 2,
+          });
+        }
+      }
+      const wanted: LandSample["kind"] = water.startsWith("coast")
+        ? "sea"
+        : water === "lake"
+          ? "lake"
+          : "river";
+      const usable = candidates.filter((q) => {
+        if (!context.canSettle(q.x, q.y)) return false;
+        // A named place's centre stays inside its own claim; a search that
+        // crosses a river lands the city in the next borough.
+        const owner = context.placeAt(q.x, q.y)?.id;
+        if (p.namedId ? owner !== p.namedId : owner !== undefined) return false;
+        const f = sample(q.x, q.y);
+        return (
+          f.water >= 5 &&
+          [
+            [-4, -4],
+            [4, -4],
+            [-4, 4],
+            [4, 4],
+          ].every(([dx, dy]) => {
+            const n = sample(q.x + dx, q.y + dy);
+            return n.water >= 5 && n.elevation === f.elevation;
+          })
+        );
       });
-      const usable = candidates
-        .filter((q) => {
-          if (!context.canSettle(q.x, q.y)) return false;
+      const available = Math.max(
+        0,
+        ...usable.map((q) => sample(q.x, q.y).water),
+      );
+      usable.sort((a, b) => {
+        const score = (q: typeof a) => {
           const f = sample(q.x, q.y);
           return (
-            f.water >= 5 &&
-            [
-              [-4, -4],
-              [4, -4],
-              [-4, 4],
-              [4, 4],
-            ].every(([dx, dy]) => {
-              const n = sample(q.x + dx, q.y + dy);
-              return n.water >= 5 && n.elevation === f.elevation;
-            })
+            Math.hypot(q.x - p.x, q.y - p.y) * 0.12 +
+            (shore
+              ? shorePreference(f.water, radius, available) +
+                (f.kind === wanted ? 0 : 60)
+              : Math.abs(f.water - 25) * 0.12)
           );
-        })
-        .sort((a, b) => {
-          const score = (q: typeof a) =>
-            Math.hypot(q.x - p.x, q.y - p.y) +
-            Math.abs(sample(q.x, q.y).water - 25) * 0.12;
-          return score(a) - score(b);
-        });
+        };
+        return score(a) - score(b);
+      });
       if (!usable.length) continue;
       const q = usable[0],
         pack = context.packAt(q.x, q.y);
@@ -153,12 +212,11 @@ export function regionalSettlements(
       // A town is built to the size its population implies, inside the claim
       // its entry gives it. Villages keep the flat profile sizes.
       const target = town ? urbanTarget(setting, p.population) : undefined;
+      // Extent follows population on a log scale: a town of three thousand
+      // is thirty cells across the half, a metropolis fills its claim.
       const built =
         target !== undefined
-          ? Math.min(
-              radius,
-              urbanRadiusFor(target, urbanForm(setting), p.id, seed),
-            )
+          ? Math.min(radius, urbanRadius(p.population, setting.year))
           : radius;
       const profile = {
         ...base,
@@ -182,6 +240,8 @@ export function regionalSettlements(
         name: p.name,
         namedId: p.namedId,
         pack,
+        cores: p.cores,
+        aspect: p.aspect,
       };
       site.accepts = accepts(site);
       result.push(site);
