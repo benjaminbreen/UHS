@@ -123,7 +123,10 @@ export function rasterStreetTile(
           Math.min(kerbW ? px : 99, kerbE ? 15 - px : 99) <
           Math.min(kerbN ? py : 99, kerbS ? 15 - py : 99);
         const joint = mod(vertical ? wy : wx, 8) === 0;
-        const dark = material === "basalt" || material === "sett";
+        const dark =
+          material === "basalt" ||
+          material === "sett" ||
+          material === "asphalt";
         tone =
           kerbBorder === 0
             ? joint

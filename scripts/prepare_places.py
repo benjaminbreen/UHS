@@ -89,16 +89,20 @@ for p in legacy:
  names=[norm(p['name']),norm(re.sub(r' (Plain|Valley|Highlands|Lowlands|Plateau|Region|Basin)$','',p['name']))]
  point=locate(names,(p['lon'],p['lat']))
  if point and abs(point[1])<=85:
-  lon,lat,_,settlement=point
+  lon,lat,population,settlement=point
   # The curated record wins where it says anything. Architecture and settlement
   # are the exceptions: every legacy row reads 'timber' and 'village', which is
   # a placeholder rather than a judgement, so the region and the source decide.
   fill=defaults(lon,lat)
-  result[norm(p['name'])]={**fill,**p,'architecture':fill['architecture'],'settlement':settlement or 'village','lon':round(lon,4),'lat':round(lat,4)};matched+=1
+  record={**fill,**p,'architecture':fill['architecture'],'settlement':settlement or 'village','lon':round(lon,4),'lat':round(lat,4)}
+  if population: record['population']=int(population)
+  result[norm(p['name'])]=record;matched+=1
 for f in sorted(cities,key=lambda f:-(f['properties']['pop_max'] or 0)):
  p=f['properties'];name=p['name'];key=norm(name);lon,lat=p['longitude'],p['latitude']
  if p['scalerank']>4 or key in result or abs(lat)>85:continue
- result[key]=dict(id='city-'+key.replace(' ','-'),name=name,aliases=[p['nameascii']] if p.get('nameascii')!=name and p.get('nameascii') else [],lon=round(lon,4),lat=round(lat,4),**{**defaults(lon,lat),'settlement':rank(p)})
+ record=dict(id='city-'+key.replace(' ','-'),name=name,aliases=[p['nameascii']] if p.get('nameascii')!=name and p.get('nameascii') else [],lon=round(lon,4),lat=round(lat,4),**{**defaults(lon,lat),'settlement':rank(p)})
+ if p['pop_max']: record['population']=int(p['pop_max'])
+ result[key]=record
 # Fix the catalog culture vocabulary centrally; data generation never invents runtime IDs.
 alias={'north-american':'other-indigenous-american','south-american':'andean','sub-saharan-african':'west-central-african','mena':'north-african-west-asian','central-asian':'inner-eurasian'}
 for p in result.values():p['culture']=alias.get(p['culture'],p['culture'])

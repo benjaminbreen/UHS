@@ -7,7 +7,7 @@ import {
 import type { ReligiousProfile } from "../../content/settlements/religious/types";
 import { urbanForm } from "../../content/settlements/urban-form";
 import type { UrbanForm } from "../../content/settlements/urban-form/types";
-import { urbanCapacity } from "../../content/settlements/scale";
+import { urbanBuildingLimit } from "../../content/settlements/scale";
 import type { Pack, Point } from "../../core/types";
 import { buildingModel, buildingModels } from "../../content/graphics/models";
 import kit from "../../content/graphics/urban.json";
@@ -52,6 +52,10 @@ export type UrbanSurface = {
   paintSquare(rect: Rect, index: number): void;
   /** Planted strip beside an arterial. */
   paintVerge(rect: Rect): void;
+  /** Sidewalk just beyond a planted arterial strip. */
+  paintVergeWalk(rect: Rect): void;
+  /** A small public green or deliberately undeveloped lot. */
+  paintPark(rect: Rect, index: number): void;
   /** A lamp, street tree or planter on the cell. */
   furnish(piece: Furniture): void;
   /** Base ground of the built-up area: beaten earth or paving, with grass
@@ -148,6 +152,38 @@ export function urbanNeighborhood(
   const form = siteForm(site, pack);
   const frames = urbanFrames(pack, form.storeys);
   if (!frames.length) return [];
+  const modern = (pack.setting?.year ?? 0) >= 1900;
+  type CandidateRecipe = {
+    base: string;
+    model: ReturnType<typeof buildingModel>;
+    kind: string;
+    group: string;
+  };
+  // Candidate buildings are deliberately kept out of the normal urban kit:
+  // they are a second-pass infill vocabulary, not substitutes for the city's
+  // larger apartment, office and shop forms.
+  const candidateBases: CandidateRecipe[] = modern
+    ? Object.entries(buildingModels)
+        .filter(([frame, model]) => {
+          const meta = model as { candidate?: boolean };
+          return (
+            meta.candidate === true &&
+            !/(?:-north|-east|-west)$/.test(frame)
+          );
+        })
+        .map(([base, model]) => {
+          const meta = model as {
+            candidateType?: string;
+            candidateGroup?: string;
+          };
+          return {
+            base,
+            model: buildingModel(base),
+            kind: meta.candidateType ?? "mixed-use",
+            group: meta.candidateGroup ?? "infill",
+          };
+        })
+    : [];
   const rand = (...keys: (string | number)[]) =>
     random(seed, site.id, "urban", ...keys);
   // A waterfront square faces the water; a bridgehead market gathers where
@@ -236,7 +272,10 @@ export function urbanNeighborhood(
     api.lay(s.a, s.b, `street-${s.tier}-${i}`, layout.tiers[s.tier]);
   for (const [i, s] of layout.diagonals.entries())
     api.lay(s.a, s.b, `avenue-${i}`, layout.tiers[0]);
-  for (const r of layout.verges) api.paintVerge(r);
+  for (const r of layout.verges) {
+    api.paintVerge(r);
+    api.paintVergeWalk(r);
+  }
 
   if (api.bank) riverside();
 
@@ -432,9 +471,9 @@ export function urbanNeighborhood(
   api.paintCourt(plaza, civic.square, civicRect);
   for (const [i, r] of layout.squares.entries()) api.paintSquare(r, i);
 
-  // Parcels are gathered per block, then taken a few at a time from each block
-  // in turn. Filling one block at a time would spend the whole capacity on the
-  // quarter nearest the plaza and leave the rest of the extent as open ground.
+  // Parcels are gathered per block. The core gets a larger first-pass quota,
+  // while the outer edge is allowed to remain green or undeveloped. This makes
+  // a city read as a connected fabric instead of one isolated house per block.
   // Blocks are not required to be uniformly buildable. Asking a whole block to
   // be level would discard nearly all of them on real ground; each parcel is
   // put to the terrain individually below.
@@ -443,48 +482,116 @@ export function urbanNeighborhood(
   for (const block of layout.blocks) quarters.set(block, quarterOf(block));
   const ranks = [...layout.blocks]
     .sort((a, b) => a.reach - b.reach || a.x - b.x || a.y - b.y)
-    .map((block) => ({ block, lots: blockLots(block), built: 0 }));
-  const capacity = Math.min(
-    urbanCapacity(site.profile.radius, form),
+    .map((block) => ({
+      block,
+      lots: blockLots(block),
+      built: 0,
+      coverage: 0,
+    }));
+  const capacity = urbanBuildingLimit(
+    site.profile.radius,
+    form,
     site.profile.buildings,
+    pack.setting?.year ?? 0,
   );
-  // Two parcels from each block per round, nearest the square first, so a
-  // small budget spreads across the town instead of packing three blocks and
-  // leaving the rest bare.
+  // Hold back a slice of the normal building budget for compact parcels. That
+  // lets infill appear in the gaps instead of losing the opportunity to the
+  // ordinary queue reaching the global cap first.
+  const infillBudget = modern
+    ? Math.min(120, Math.max(12, Math.round(capacity * 0.5)))
+    : 0;
+  const largeLimit = modern
+    ? Math.max(lots.length, capacity - infillBudget)
+    : capacity;
   const queues = ranks.map((rank) => ({ rank, next: 0 }));
+  const firstPass = (reach: number) =>
+    modern ? (reach < 0.42 ? 4 : reach < 0.76 ? 2 : 0) : 2;
+  const place = (rank: (typeof ranks)[number], lot: UrbanLot) => {
+    const door = { ...lot.point, w: 1, h: 1 },
+      work = { ...lot.workPoint, w: 1, h: 1 };
+    if (!fits(lot.rect)) return false;
+    if (!free(door) || !free(work) || !api.dry(door, false)) return false;
+    // A threshold or work pocket outside the wall has no route back in.
+    if (!within(lot.point) || !within(lot.rect) || !within(lot.workPoint))
+      return false;
+    lots.push(lot);
+    rank.built++;
+    rank.coverage += lot.rect.w * lot.rect.h;
+    reserve(lot.rect);
+    reserve(door);
+    reserve(work);
+    return true;
+  };
+  for (const q of queues) {
+    const quota = firstPass(q.rank.block.reach);
+    while (
+      q.rank.built < quota &&
+      q.next < q.rank.lots.length &&
+      lots.length < largeLimit
+    )
+      place(q.rank, q.rank.lots[q.next++]);
+  }
   let placed = true;
-  while (placed && lots.length < capacity) {
+  while (placed && lots.length < largeLimit) {
     placed = false;
     for (const q of queues) {
-      let taken = 0;
-      while (
-        taken < 2 &&
-        q.next < q.rank.lots.length &&
-        lots.length < capacity
-      ) {
-        const lot = q.rank.lots[q.next++];
-        const door = { ...lot.point, w: 1, h: 1 },
-          work = { ...lot.workPoint, w: 1, h: 1 };
-        if (!fits(lot.rect)) continue;
-        if (!free(door) || !free(work) || !api.dry(door, false)) continue;
-        // A block may overhang the circuit; a household may not. A threshold or
-        // work pocket outside the wall has no way back in but the long way round
-        // to a gate, and the work pocket sits two cells clear of the door.
-        if (!within(lot.point) || !within(lot.rect) || !within(lot.workPoint))
-          continue;
-        lots.push(lot);
-        q.rank.built++;
-        taken++;
-        placed = true;
-        reserve(lot.rect);
-        // Hold the threshold and the work pocket in front of it. A later range
-        // on the row behind can otherwise stand on ground this household needs,
-        // and a work point inside a wall is a resident who cannot reach it.
-        reserve(door);
-        reserve(work);
+      if (
+        modern &&
+        q.rank.block.reach > 0.84 &&
+        rand("leave-edge-open", q.rank.block.x, q.rank.block.y) < 0.45
+      )
+        continue;
+      if (q.next >= q.rank.lots.length) continue;
+      const lot = q.rank.lots[q.next++];
+      if (place(q.rank, lot)) placed = true;
+    }
+  }
+
+  // Decide which untouched blocks are the intentional green exceptions before
+  // infill runs. Other empty inner blocks are not parks; they are simply places
+  // where the large vocabulary did not find a suitable footprint.
+  const parkTarget = Math.min(
+    ranks.filter((rank) => !rank.built).length,
+    Math.max(0, Math.round(layout.blocks.length * (form.greenSpaces ?? 0))),
+  );
+  const parkRanks = new Set(
+    ranks
+      .filter((rank) => !rank.built)
+      .sort(
+        (a, b) =>
+          b.block.reach - a.block.reach ||
+          a.block.x - b.block.x ||
+          a.block.y - b.block.y,
+      )
+      .slice(0, parkTarget),
+  );
+
+  // A built block can still have awkward two- and three-cell remnants after
+  // the large pass. Place compact candidates against the nearest block edge,
+  // with a street-facing orientation, but never turn an untouched outer block
+  // into a building lot: those blocks remain the source of parks and greens.
+  if (modern && candidateBases.length && lots.length < capacity) {
+    // One round per block keeps the centre from consuming the whole budget;
+    // later rounds return to blocks whose usable area is still under target.
+    let added = true;
+    while (added && lots.length < capacity) {
+      added = false;
+      for (const rank of ranks) {
+        if (lots.length >= capacity) break;
+        if (parkRanks.has(rank) || rank.block.reach > 0.76) continue;
+        const target =
+          rank.block.reach < 0.42
+            ? 0.84
+            : rank.block.reach < 0.64
+              ? 0.78
+              : 0.68;
+        if (rank.coverage >= rank.block.w * rank.block.h * target) continue;
+        const lot = nextInfillLot(rank.block);
+        if (lot && place(rank, lot)) added = true;
       }
     }
   }
+
   for (const rank of ranks)
     if (rank.built >= 2)
       for (const lay of rowLanes.get(rank.block) ?? []) lay();
@@ -499,6 +606,11 @@ export function urbanNeighborhood(
         w: rank.block.w + 2,
         h: rank.block.h + 2,
       });
+  const greenBlocks = [...parkRanks];
+  for (let i = 0; i < greenBlocks.length; i++) {
+    const b = greenBlocks[i].block;
+    api.paintPark({ x: b.x + 1, y: b.y + 1, w: b.w - 2, h: b.h - 2 }, i);
+  }
   for (const piece of layout.furniture) api.furnish(piece);
   api.paintCity((x, y) => layout.holds(x, y, 1));
   return lots;
@@ -526,18 +638,142 @@ export function urbanNeighborhood(
 
   /** House forms a quarter prefers, in the kit's form names. */
   function framesFor(quarter: Quarter): string[] {
+    const modern = (pack.setting?.year ?? 0) >= 1900;
     const want =
       quarter === "market"
-        ? ["shop", "tall"]
+        ? modern
+          ? ["shop", "office", "tall"]
+          : ["shop", "tall"]
         : quarter === "craft"
-          ? ["row", "shop"]
+          ? modern
+            ? ["row", "shop", "midrise"]
+            : ["row", "shop"]
           : quarter === "elite"
-            ? ["wide", "tall"]
+            ? modern
+              ? ["wide", "office", "midrise", "tall"]
+              : ["wide", "tall"]
             : quarter === "edge"
-              ? ["shop", "row"]
-              : ["row", "tall"];
+              ? modern
+                ? ["shop", "row", "midrise"]
+                : ["shop", "row"]
+              : modern
+                ? ["row", "midrise", "tall"]
+                : ["row", "tall"];
     const chosen = frames.filter((f) => want.some((w) => f.endsWith(`-${w}`)));
     return chosen.length ? chosen : frames;
+  }
+
+  /** Candidate businesses are more likely near the square; homes soften the
+   * residential and elite quarters without turning every gap into retail. */
+  function candidatePool(quarter: Quarter): CandidateRecipe[] {
+    const homes = candidateBases.filter((candidate) =>
+      candidate.kind.includes("home"),
+    );
+    const commercial = candidateBases.filter(
+      (candidate) => !candidate.kind.includes("home"),
+    );
+    if (quarter === "market" || quarter === "craft") return commercial;
+    if (quarter === "elite") return [...homes, ...commercial.slice(0, 3)];
+    if (quarter === "residential") return [...homes, ...commercial.slice(0, 2)];
+    return [];
+  }
+
+  /** Find one compact lot in a block's current residual space. Re-scanning is
+   * intentional: `place` reserves the chosen lot, so the next call naturally
+   * finds the next non-overlapping pocket without a second occupancy model. */
+  function nextInfillLot(block: Block): UrbanLot | undefined {
+    const pool = candidatePool(quarters.get(block) ?? "residential");
+    if (!pool.length) return;
+    const choices = [...pool].sort(
+      (a, b) =>
+        a.model.footprint[0] * a.model.footprint[1] -
+          b.model.footprint[0] * b.model.footprint[1] ||
+        rand("infill-model", block.x, block.y, a.base) -
+          rand("infill-model", block.x, block.y, b.base),
+    );
+    const slots: { recipe: CandidateRecipe; x: number; y: number }[] = [];
+    for (const recipe of choices) {
+      const [w, h] = recipe.model.footprint;
+      for (let y = block.y; y <= block.y + block.h - h; y++)
+        for (let x = block.x; x <= block.x + block.w - w; x++)
+          slots.push({ recipe, x, y });
+    }
+    slots.sort(
+      (a, b) =>
+        Math.min(
+          a.x - block.x,
+          block.x + block.w - (a.x + a.recipe.model.footprint[0]),
+          a.y - block.y,
+          block.y + block.h - (a.y + a.recipe.model.footprint[1]),
+        ) -
+          Math.min(
+            b.x - block.x,
+            block.x + block.w - (b.x + b.recipe.model.footprint[0]),
+            b.y - block.y,
+            block.y + block.h - (b.y + b.recipe.model.footprint[1]),
+          ) ||
+        rand("infill-slot", block.x, block.y, a.x, a.y, a.recipe.base) -
+          rand("infill-slot", block.x, block.y, b.x, b.y, b.recipe.base),
+    );
+    for (const slot of slots) {
+      const { recipe, x, y } = slot,
+        [w, h] = recipe.model.footprint,
+        rect = { x, y, w, h };
+      const edges = [
+        { facing: "north", distance: y - block.y, nx: 0, ny: 1 },
+        {
+          facing: "south",
+          distance: block.y + block.h - (y + h),
+          nx: 0,
+          ny: -1,
+        },
+        { facing: "west", distance: x - block.x, nx: 1, ny: 0 },
+        {
+          facing: "east",
+          distance: block.x + block.w - (x + w),
+          nx: -1,
+          ny: 0,
+        },
+      ].sort(
+        (a, b) =>
+          a.distance - b.distance ||
+          rand("infill-facing", x, y, a.facing) -
+            rand("infill-facing", x, y, b.facing),
+      );
+      for (const edge of edges) {
+        const base =
+          edge.facing === "south"
+            ? recipe.base
+            : `${recipe.base}-${edge.facing}`;
+        const model = buildingModels[base];
+        if (!model) continue;
+        const point = {
+          x: rect.x + model.entrance[0],
+          y: rect.y + model.entrance[1],
+        };
+        if (
+          !fits(rect) ||
+          !free({ ...point, w: 1, h: 1 }) ||
+          !api.dry({ ...point, w: 1, h: 1 }, false) ||
+          !within(point) ||
+          !within(rect)
+        )
+          continue;
+        return {
+          point,
+          quarter: quarters.get(block),
+          nx: edge.nx,
+          ny: edge.ny,
+          frame: base,
+          rect,
+          yard: rect,
+          workPoint: {
+            x: point.x - edge.nx,
+            y: point.y - edge.ny,
+          },
+        };
+      }
+    }
   }
 
   /** A street along the bank, with a quay between it and the water. Fitted

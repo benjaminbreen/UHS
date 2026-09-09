@@ -119,6 +119,66 @@
         "#898e83",
         "#c2c2b0"
       ]
+    },
+    "concrete-frame": {
+      "wall": [
+        "#202a2f",
+        "#46545a",
+        "#71808a",
+        "#aab4b6",
+        "#d4d6cb"
+      ],
+      "roof": [
+        "#20292e",
+        "#37474d",
+        "#52636a",
+        "#75868b"
+      ],
+      "foundation": [
+        "#293238",
+        "#566269",
+        "#a4aaa4"
+      ]
+    },
+    "blue-glass": {
+      "wall": [
+        "#182a35",
+        "#285063",
+        "#477d91",
+        "#83b4bd",
+        "#c1d8d4"
+      ],
+      "roof": [
+        "#17242c",
+        "#263e4a",
+        "#3e6471",
+        "#5e8790"
+      ],
+      "foundation": [
+        "#1f3037",
+        "#405b65",
+        "#9bb5b5"
+      ]
+    },
+    "modern-stucco": {
+      "wall": [
+        "#383b3a",
+        "#6b716d",
+        "#a7aaa0",
+        "#d0cec0",
+        "#eee5ce"
+      ],
+      "roof": [
+        "#303b3e",
+        "#4a5758",
+        "#657271",
+        "#87928b"
+      ],
+      "foundation": [
+        "#333c3c",
+        "#68716d",
+        "#b1b2a6"
+      ]
     }
   },
   "buildings": {
@@ -398,6 +458,761 @@
       ],
       "seed": 23,
       "description": "Graphics construction study; not an authenticated historical reconstruction."
+    },
+    "modern-apartment": {
+      "label": "Mid-rise apartment block",
+      "footprint": [
+        8,
+        6
+      ],
+      "entrance": [
+        4,
+        6
+      ],
+      "canvas": [
+        128,
+        160
+      ],
+      "height": 128,
+      "wall": "concrete-frame",
+      "roof": "flat",
+      "roofMaterial": "grey-tile",
+      "opening": "door",
+      "attachments": [],
+      "seed": 73,
+      "description": "A concrete apartment block with repeated balconies and a flat service roof.",
+      "animation": {
+        "kind": "roof-fan",
+        "xRatio": 0.76,
+        "y": 16,
+        "period": 280,
+        "phase": 1,
+        "chance": 0.45
+      }
+    },
+    "modern-office": {
+      "label": "Glass office tower",
+      "footprint": [
+        10,
+        7
+      ],
+      "entrance": [
+        5,
+        7
+      ],
+      "canvas": [
+        160,
+        192
+      ],
+      "height": 160,
+      "wall": "blue-glass",
+      "roof": "flat",
+      "roofMaterial": "grey-tile",
+      "opening": "door",
+      "attachments": [],
+      "seed": 97,
+      "description": "A blue-glass office building with a compact street entrance and a flat roof plant.",
+      "animation": {
+        "kind": "roof-fan",
+        "xRatio": 0.8,
+        "y": 15,
+        "period": 240,
+        "phase": 2,
+        "chance": 0.38
+      }
+    },
+    "modern-shop": {
+      "label": "Concrete storefront",
+      "footprint": [
+        7,
+        5
+      ],
+      "entrance": [
+        3,
+        5
+      ],
+      "canvas": [
+        112,
+        112
+      ],
+      "height": 64,
+      "wall": "modern-stucco",
+      "roof": "flat",
+      "roofMaterial": "grey-tile",
+      "opening": "door",
+      "attachments": [],
+      "seed": 61,
+      "description": "A low concrete storefront with a shaded canopy and broad display openings.",
+      "animation": {
+        "kind": "roof-fan",
+        "xRatio": 0.22,
+        "y": 15,
+        "period": 320,
+        "phase": 0,
+        "chance": 0.32
+      }
+    },
+    "candidate-modern-3x2-ranch-home": {
+      "label": "Candidate · 3×2 ranch home",
+      "footprint": [
+        3,
+        2
+      ],
+      "entrance": [
+        1,
+        2
+      ],
+      "canvas": [
+        48,
+        80
+      ],
+      "height": 48,
+      "wall": "modern-stucco",
+      "roof": "flat",
+      "roofMaterial": "grey-tile",
+      "roofDepth": 18,
+      "roofStyle": "hip",
+      "roofDetail": "vent",
+      "opening": "door",
+      "attachments": [],
+      "seed": 701,
+      "variant": 3,
+      "candidate": true,
+      "candidateType": "single-family home",
+      "candidateGroup": "3×2 · homes",
+      "business": "residential",
+      "garage": false,
+      "porch": true,
+      "downspout": true,
+      "description": "A compact ranch house with a low hip roof, garage, porch and a small solar array.",
+      "awning": true
+    },
+    "candidate-modern-3x2-corner-store": {
+      "label": "Candidate · 3×2 corner store",
+      "footprint": [
+        3,
+        2
+      ],
+      "entrance": [
+        1,
+        2
+      ],
+      "canvas": [
+        48,
+        80
+      ],
+      "height": 48,
+      "wall": "modern-stucco",
+      "roof": "flat",
+      "roofMaterial": "grey-tile",
+      "roofDepth": 18,
+      "roofStyle": "flat",
+      "roofDetail": "vent",
+      "opening": "door",
+      "attachments": [],
+      "seed": 702,
+      "variant": 1,
+      "candidate": true,
+      "candidateType": "corner store",
+      "candidateGroup": "3×2 · shops",
+      "business": "corner store",
+      "sign": "MART",
+      "awning": true,
+      "doorSide": "right",
+      "description": "A tiny everyday market with a bright fascia, striped awning and display windows."
+    },
+    "candidate-modern-3x2-gas-station": {
+      "label": "Candidate · 3×2 gas station",
+      "footprint": [
+        3,
+        2
+      ],
+      "entrance": [
+        1,
+        2
+      ],
+      "canvas": [
+        48,
+        80
+      ],
+      "height": 48,
+      "wall": "concrete-frame",
+      "roof": "flat",
+      "roofMaterial": "grey-tile",
+      "roofDepth": 18,
+      "roofStyle": "flat",
+      "roofDetail": "hvac",
+      "opening": "door",
+      "attachments": [],
+      "seed": 703,
+      "variant": 2,
+      "candidate": true,
+      "candidateType": "gas station",
+      "candidateGroup": "3×2 · shops",
+      "business": "gas station",
+      "sign": "GAS",
+      "canopy": true,
+      "pylon": true,
+      "description": "A compact neighborhood filling station with a canopy edge and roadside price pylon.",
+      "animation": {
+        "kind": "roof-fan",
+        "xRatio": 0.74,
+        "y": 15,
+        "period": 260,
+        "phase": 1,
+        "chance": 1
+      }
+    },
+    "candidate-modern-3x2-donut-shop": {
+      "label": "Candidate · 3×2 donut shop",
+      "footprint": [
+        3,
+        2
+      ],
+      "entrance": [
+        1,
+        2
+      ],
+      "canvas": [
+        48,
+        80
+      ],
+      "height": 48,
+      "wall": "modern-stucco",
+      "roof": "flat",
+      "roofMaterial": "grey-tile",
+      "roofDepth": 18,
+      "roofStyle": "flat",
+      "roofDetail": "vent",
+      "opening": "door",
+      "attachments": [],
+      "seed": 704,
+      "variant": 5,
+      "candidate": true,
+      "candidateType": "donut shop",
+      "candidateGroup": "3×2 · shops",
+      "business": "donut shop",
+      "sign": "DONUTS",
+      "awning": true,
+      "description": "A cheerful small bakery with a pink sign, striped awning and broad front glazing."
+    },
+    "candidate-modern-3x2-diner": {
+      "label": "Candidate · 3×2 diner",
+      "footprint": [
+        3,
+        2
+      ],
+      "entrance": [
+        1,
+        2
+      ],
+      "canvas": [
+        48,
+        80
+      ],
+      "height": 48,
+      "wall": "concrete-frame",
+      "roof": "flat",
+      "roofMaterial": "grey-tile",
+      "roofDepth": 18,
+      "roofStyle": "flat",
+      "roofDetail": "vent",
+      "opening": "door",
+      "attachments": [],
+      "seed": 705,
+      "variant": 5,
+      "candidate": true,
+      "candidateType": "diner",
+      "candidateGroup": "3×2 · shops",
+      "business": "diner",
+      "sign": "DINER",
+      "awning": true,
+      "description": "A low roadside diner with a warm fascia, striped shade and a window wall for the counter."
+    },
+    "candidate-modern-3x2-pharmacy": {
+      "label": "Candidate · 3×2 pharmacy",
+      "footprint": [
+        3,
+        2
+      ],
+      "entrance": [
+        1,
+        2
+      ],
+      "canvas": [
+        48,
+        80
+      ],
+      "height": 48,
+      "wall": "modern-stucco",
+      "roof": "flat",
+      "roofMaterial": "grey-tile",
+      "roofDepth": 18,
+      "roofStyle": "flat",
+      "roofDetail": "hvac",
+      "opening": "door",
+      "attachments": [],
+      "seed": 706,
+      "variant": 3,
+      "candidate": true,
+      "candidateType": "pharmacy",
+      "candidateGroup": "3×2 · shops",
+      "business": "pharmacy",
+      "sign": "RX",
+      "awning": true,
+      "description": "A compact pharmacy with a readable RX fascia, display glazing and a small red cross.",
+      "animation": {
+        "kind": "roof-fan",
+        "xRatio": 0.76,
+        "y": 15,
+        "period": 300,
+        "phase": 2,
+        "chance": 1
+      }
+    },
+    "candidate-modern-4x2-bungalow": {
+      "label": "Candidate · 4×2 bungalow",
+      "footprint": [
+        4,
+        2
+      ],
+      "entrance": [
+        2,
+        2
+      ],
+      "canvas": [
+        64,
+        80
+      ],
+      "height": 48,
+      "wall": "modern-stucco",
+      "roof": "flat",
+      "roofMaterial": "grey-tile",
+      "roofDepth": 18,
+      "roofStyle": "gable",
+      "roofDetail": "vent",
+      "opening": "door",
+      "attachments": [],
+      "seed": 707,
+      "variant": 4,
+      "candidate": true,
+      "candidateType": "single-family home",
+      "candidateGroup": "4×2 · homes",
+      "business": "residential",
+      "siding": true,
+      "porch": true,
+      "downspout": true,
+      "description": "A low bungalow with a stepped gable, horizontal siding, front porch and paired windows."
+    },
+    "candidate-modern-4x2-duplex": {
+      "label": "Candidate · 4×2 duplex",
+      "footprint": [
+        4,
+        2
+      ],
+      "entrance": [
+        2,
+        2
+      ],
+      "canvas": [
+        64,
+        80
+      ],
+      "height": 68,
+      "wall": "concrete-frame",
+      "roof": "flat",
+      "roofMaterial": "grey-tile",
+      "roofDepth": 18,
+      "roofStyle": "flat",
+      "roofDetail": "solar",
+      "opening": "door",
+      "attachments": [],
+      "seed": 708,
+      "variant": 1,
+      "candidate": true,
+      "candidateType": "single-family home",
+      "candidateGroup": "4×2 · homes",
+      "business": "residential duplex",
+      "stories": 2,
+      "siding": true,
+      "doubleDoor": true,
+      "downspout": true,
+      "description": "A narrow two-story duplex with two entries, repeated windows and a shared service roof."
+    },
+    "candidate-modern-4x2-laundromat": {
+      "label": "Candidate · 4×2 laundromat",
+      "footprint": [
+        4,
+        2
+      ],
+      "entrance": [
+        2,
+        2
+      ],
+      "canvas": [
+        64,
+        80
+      ],
+      "height": 48,
+      "wall": "modern-stucco",
+      "roof": "flat",
+      "roofMaterial": "grey-tile",
+      "roofDepth": 18,
+      "roofStyle": "flat",
+      "roofDetail": "hvac",
+      "opening": "door",
+      "attachments": [],
+      "seed": 709,
+      "variant": 1,
+      "candidate": true,
+      "candidateType": "laundromat",
+      "candidateGroup": "4×2 · shops",
+      "business": "laundromat",
+      "sign": "WASH",
+      "awning": true,
+      "description": "A bright laundromat with a WASH sign, repeated machine windows and a deep street frontage.",
+      "animation": {
+        "kind": "roof-fan",
+        "xRatio": 0.78,
+        "y": 15,
+        "period": 260,
+        "phase": 0,
+        "chance": 1
+      }
+    },
+    "candidate-modern-4x2-market": {
+      "label": "Candidate · 4×2 market",
+      "footprint": [
+        4,
+        2
+      ],
+      "entrance": [
+        2,
+        2
+      ],
+      "canvas": [
+        64,
+        80
+      ],
+      "height": 48,
+      "wall": "modern-stucco",
+      "roof": "flat",
+      "roofMaterial": "grey-tile",
+      "roofDepth": 18,
+      "roofStyle": "flat",
+      "roofDetail": "solar",
+      "opening": "door",
+      "attachments": [],
+      "seed": 710,
+      "variant": 3,
+      "candidate": true,
+      "candidateType": "neighborhood market",
+      "candidateGroup": "4×2 · shops",
+      "business": "neighborhood market",
+      "sign": "MART",
+      "awning": true,
+      "doorSide": "left",
+      "description": "A slightly wider neighborhood market with a color-blocked fascia and continuous display glazing."
+    },
+    "candidate-modern-4x2-gas-station": {
+      "label": "Candidate · 4×2 gas station",
+      "footprint": [
+        4,
+        2
+      ],
+      "entrance": [
+        2,
+        2
+      ],
+      "canvas": [
+        64,
+        80
+      ],
+      "height": 48,
+      "wall": "blue-glass",
+      "roof": "flat",
+      "roofMaterial": "grey-tile",
+      "roofDepth": 18,
+      "roofStyle": "flat",
+      "roofDetail": "hvac",
+      "opening": "door",
+      "attachments": [],
+      "seed": 711,
+      "variant": 0,
+      "candidate": true,
+      "candidateType": "gas station",
+      "candidateGroup": "4×2 · shops",
+      "business": "gas station",
+      "sign": "TEST",
+      "canopy": true,
+      "pylon": true,
+      "description": "A broader convenience filling station with a canopy, glass shopfront and tall roadside sign.",
+      "animation": {
+        "kind": "roof-fan",
+        "xRatio": 0.78,
+        "y": 15,
+        "period": 280,
+        "phase": 0,
+        "chance": 1
+      }
+    },
+    "candidate-modern-4x2-cafe": {
+      "label": "Candidate · 4×2 cafe",
+      "footprint": [
+        4,
+        2
+      ],
+      "entrance": [
+        2,
+        2
+      ],
+      "canvas": [
+        64,
+        80
+      ],
+      "height": 48,
+      "wall": "concrete-frame",
+      "roof": "flat",
+      "roofMaterial": "grey-tile",
+      "roofDepth": 18,
+      "roofStyle": "flat",
+      "roofDetail": "vent",
+      "opening": "door",
+      "attachments": [],
+      "seed": 712,
+      "variant": 2,
+      "candidate": true,
+      "candidateType": "cafe",
+      "candidateGroup": "4×2 · shops",
+      "business": "TEST",
+      "sign": "TEST",
+      "awning": true,
+      "description": "A compact cafe with a deep striped awning, central door and large street-facing windows."
+    },
+    "candidate-modern-3x3-cottage": {
+      "label": "Candidate · 3×3 cottage",
+      "footprint": [
+        3,
+        3
+      ],
+      "entrance": [
+        1,
+        3
+      ],
+      "canvas": [
+        48,
+        96
+      ],
+      "height": 54,
+      "wall": "modern-stucco",
+      "roof": "flat",
+      "roofMaterial": "grey-tile",
+      "roofDepth": 18,
+      "roofStyle": "gable",
+      "roofDetail": "solar",
+      "opening": "door",
+      "attachments": [],
+      "seed": 713,
+      "variant": 3,
+      "candidate": true,
+      "candidateType": "single-family home",
+      "candidateGroup": "3×3 · mixed",
+      "business": "residential",
+      "porch": true,
+      "siding": true,
+      "downspout": true,
+      "description": "A little cottage with a pitched roof, porch and enough garden-facing wall for a spare urban lot."
+    },
+    "candidate-modern-3x3-clinic": {
+      "label": "Candidate · 3×3 clinic",
+      "footprint": [
+        3,
+        3
+      ],
+      "entrance": [
+        1,
+        3
+      ],
+      "canvas": [
+        48,
+        96
+      ],
+      "height": 54,
+      "wall": "modern-stucco",
+      "roof": "flat",
+      "roofMaterial": "grey-tile",
+      "roofDepth": 18,
+      "roofStyle": "flat",
+      "roofDetail": "hvac",
+      "opening": "door",
+      "attachments": [],
+      "seed": 714,
+      "variant": 1,
+      "candidate": true,
+      "candidateType": "clinic",
+      "candidateGroup": "3×3 · mixed",
+      "business": "clinic",
+      "sign": "TEST",
+      "awning": true,
+      "description": "A small clinic with a clear CLINIC fascia, red cross marker and accessible front door.",
+      "garage": true,
+      "animation": {
+        "kind": "roof-fan",
+        "xRatio": 0.76,
+        "y": 15,
+        "period": 300,
+        "phase": 1,
+        "chance": 1
+      }
+    },
+    "candidate-modern-3x3-motel": {
+      "label": "Candidate · 3×3 motel",
+      "footprint": [
+        3,
+        3
+      ],
+      "entrance": [
+        1,
+        3
+      ],
+      "canvas": [
+        48,
+        96
+      ],
+      "height": 54,
+      "wall": "concrete-frame",
+      "roof": "flat",
+      "roofMaterial": "grey-tile",
+      "roofDepth": 18,
+      "roofStyle": "flat",
+      "roofDetail": "vent",
+      "opening": "door",
+      "attachments": [],
+      "seed": 715,
+      "variant": 5,
+      "candidate": true,
+      "candidateType": "motel",
+      "candidateGroup": "3×3 · mixed",
+      "business": "motel",
+      "sign": "MOTEL",
+      "pylon": true,
+      "description": "A compact roadside motel office with a MOTEL sign and a low row of guest-room glazing.",
+      "awning": true
+    },
+    "candidate-modern-3x3-workshop": {
+      "label": "Candidate · 3×3 workshop",
+      "footprint": [
+        3,
+        3
+      ],
+      "entrance": [
+        1,
+        3
+      ],
+      "canvas": [
+        48,
+        96
+      ],
+      "height": 54,
+      "wall": "concrete-frame",
+      "roof": "flat",
+      "roofMaterial": "grey-tile",
+      "roofDepth": 18,
+      "roofStyle": "flat",
+      "roofDetail": "hvac",
+      "opening": "door",
+      "attachments": [],
+      "seed": 716,
+      "variant": 4,
+      "candidate": true,
+      "candidateType": "workshop",
+      "candidateGroup": "3×3 · mixed",
+      "business": "auto workshop",
+      "sign": "WORKS",
+      "doorSide": "left",
+      "description": "A small repair workshop with a WORKS fascia and a segmented roll-up bay.",
+      "animation": {
+        "kind": "roof-fan",
+        "xRatio": 0.73,
+        "y": 15,
+        "period": 280,
+        "phase": 2,
+        "chance": 1
+      }
+    },
+    "candidate-modern-3x3-grocery": {
+      "label": "Candidate · 3×3 grocery",
+      "footprint": [
+        3,
+        3
+      ],
+      "entrance": [
+        1,
+        3
+      ],
+      "canvas": [
+        48,
+        96
+      ],
+      "height": 54,
+      "wall": "modern-stucco",
+      "roof": "flat",
+      "roofMaterial": "grey-tile",
+      "roofDepth": 18,
+      "roofStyle": "flat",
+      "roofDetail": "solar",
+      "opening": "door",
+      "attachments": [],
+      "seed": 717,
+      "variant": 2,
+      "candidate": true,
+      "candidateType": "grocery",
+      "candidateGroup": "3×3 · mixed",
+      "business": "grocery",
+      "sign": "GROCERY",
+      "awning": true,
+      "description": "A compact grocery with a strong fascia, deep awning and broad glassy display front.",
+      "animation": {
+        "kind": "roof-fan",
+        "xRatio": 0.76,
+        "y": 15,
+        "period": 320,
+        "phase": 3,
+        "chance": 1
+      }
+    },
+    "candidate-modern-3x3-diner": {
+      "label": "Candidate · 3×3 diner",
+      "footprint": [
+        3,
+        3
+      ],
+      "entrance": [
+        1,
+        3
+      ],
+      "canvas": [
+        48,
+        96
+      ],
+      "height": 54,
+      "wall": "blue-glass",
+      "roof": "flat",
+      "roofMaterial": "grey-tile",
+      "roofDepth": 18,
+      "roofStyle": "flat",
+      "roofDetail": "vent",
+      "opening": "door",
+      "attachments": [],
+      "seed": 718,
+      "variant": 0,
+      "candidate": true,
+      "candidateType": "diner",
+      "candidateGroup": "3×3 · mixed",
+      "business": "diner",
+      "sign": "DINER",
+      "awning": true,
+      "description": "A roomier diner candidate with a blue-glass frontage, bright sign band and compact door."
     },
     "shelter-hide": {
       "label": "Hide shelter",

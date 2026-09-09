@@ -23,7 +23,20 @@ const kits = Object.fromEntries(
   ]),
 ) as Record<StreetMaterial, StreetPalette>;
 
+const modernCity: StreetPalette = {
+  main: ["asphalt"],
+  local: ["asphalt"],
+  lane: ["asphalt"],
+  square: ["concrete"],
+  footway: ["concrete"],
+};
+
 export function streetPalette(setting: WorldSetting): StreetPalette {
+  if (
+    setting.year >= 1900 &&
+    (setting.settlement === "city" || setting.settlement === "port")
+  )
+    return modernCity;
   const p = newYorkStreets;
   const [w, s, e, n] = p.bounds;
   if (

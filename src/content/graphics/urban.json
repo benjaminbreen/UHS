@@ -7,6 +7,9 @@
     "study-timber",
     "study-courtyard",
     "study-board",
+    "modern-apartment",
+    "modern-office",
+    "modern-shop",
     "house-thatch",
     "house-mud-0",
     "house-mud-1"
@@ -48,6 +51,24 @@
       "stories": 3,
       "roofDepth": 39,
       "bays": 3
+    },
+    "midrise": {
+      "footprint": [
+        8,
+        7
+      ],
+      "stories": 4,
+      "roofDepth": 34,
+      "bays": 4
+    },
+    "office": {
+      "footprint": [
+        10,
+        8
+      ],
+      "stories": 5,
+      "roofDepth": 30,
+      "bays": 5
     }
   },
   "materials": {

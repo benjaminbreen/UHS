@@ -1266,6 +1266,18 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
                     </small>
                   </a>
                   <a
+                    className="action settings-featured"
+                    href="/tree-lab"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Tree texture lab ↗
+                    <small>
+                      Edit tree pixels & palettes · export an atlas-aware JSON
+                      recipe
+                    </small>
+                  </a>
+                  <a
                     className="action"
                     href="/history-lab"
                     target="_blank"

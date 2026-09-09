@@ -52,6 +52,14 @@ export function pavingStonePixel(
   grade: PavingGrade = "street",
 ): Color {
   const g = grades[grade];
+  if (material === "asphalt") {
+    const variation =
+      Math.floor(hash(Math.floor(wx / 3), Math.floor(wy / 3), 719) * 11) - 5;
+    const base: Color = [55, 59, 58];
+    // Asphalt has aggregate variation, but no repeating masonry joints.
+    if (hash(wx, wy, 720) > 0.965) return [91, 92, 84];
+    return tint(base, variation);
+  }
   // Rounded fieldstones and dressed granite blocks have different silhouettes,
   // not merely different tints of the flagstone texture.
   if (material === "cobble" || material === "sett") {
@@ -89,7 +97,17 @@ export function pavingStonePixel(
   const x = mod(wx + offset, width),
     y = mod(wy, height);
   const id = hash(column, row, 703),
-    palette = material === "basalt" ? basalt : limestone;
+    palette =
+      material === "basalt"
+        ? basalt
+        : material === "concrete"
+          ? ([
+              [160, 164, 158],
+              [173, 176, 168],
+              [184, 184, 173],
+              [151, 157, 153],
+            ] as readonly Color[])
+          : limestone;
   // Dressed slabs are matched stone: half the quarry variation of a street.
   const pick = palette[Math.floor(id * palette.length)];
   const face: Color = g.lightJoint
@@ -105,10 +123,14 @@ export function pavingStonePixel(
   const joint: Color = g.lightJoint
     ? material === "basalt"
       ? tint([176, 184, 176], g.lift)
-      : tint([214, 208, 188], g.lift)
+      : material === "concrete"
+        ? tint([198, 201, 193], g.lift)
+        : tint([214, 208, 188], g.lift)
     : material === "basalt"
       ? tint([168, 178, 174], g.lift)
-      : tint([206, 199, 176], g.lift);
+      : material === "concrete"
+        ? tint([190, 194, 187], g.lift)
+        : tint([206, 199, 176], g.lift);
   // Dressed slabs: straight joints a shade darker than the face, a lit top and
   // left bevel, a shaded bottom and right edge, so every stone has thickness.
   if (g.lightJoint) {

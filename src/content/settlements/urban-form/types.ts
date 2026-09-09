@@ -81,6 +81,8 @@ export type UrbanForm = {
   diagonals?: number;
   /** Planted grass strip, in cells, between an arterial and its footway. */
   verge?: number;
+  /** Share of untouched blocks reserved for pocket parks or vacant lots. */
+  greenSpaces?: number;
   /** Street furniture this fabric places: lamps at block corners on the
    * arterials and the square, trees along the verges, planters by doors. */
   furniture?: readonly StreetFurniture[];

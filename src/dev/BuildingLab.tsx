@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import graphics from "../content/graphics/buildings.json" with { type: "json" };
 import religious from "../content/graphics/religious.json" with { type: "json" };
 import "./building-lab.css";
 
@@ -13,6 +14,20 @@ type Model = {
   description: string;
   religious?: boolean;
   family?: string;
+  candidate?: boolean;
+  candidateType?: string;
+  candidateGroup?: string;
+  variant?: number;
+  business?: string;
+  sign?: string;
+  animation?: {
+    kind: string;
+    xRatio: number;
+    y: number;
+    period?: number;
+    phase?: number;
+    chance?: number;
+  };
 };
 type Recipe = Record<string, string | number | boolean | number[] | object>;
 const facings = ["south", "north", "east", "west"] as const;
@@ -21,6 +36,8 @@ const backgrounds: Record<string, string> = {
   Sand: "#d6c8a2",
   Paving: "#b6b19c",
   Slate: "#343e43",
+  Asphalt: "#343a3d",
+  Concrete: "#a9ada5",
 };
 
 async function loadJSON<T>(path: string, v: number): Promise<T> {
@@ -78,7 +95,7 @@ export function BuildingLab() {
   const [models, setModels] = useState<Record<string, Model>>({});
   const [frames, setFrames] = useState<Record<string, Frame>>({});
   const [atlas, setAtlas] = useState<HTMLImageElement>();
-  const [selected, setSelected] = useState("religious-romanesque-chapel");
+  const [selected, setSelected] = useState("candidate-modern-3x2-ranch-home");
   const [facing, setFacing] = useState<(typeof facings)[number]>("south");
   const [scale, setScale] = useState(3);
   const [background, setBackground] = useState("Grass");
@@ -86,6 +103,9 @@ export function BuildingLab() {
   const [recipes, setRecipes] = useState<Record<string, Recipe>>(
     religious.buildings as Record<string, Recipe>,
   );
+  const [candidateRecipes, setCandidateRecipes] = useState<
+    Record<string, Recipe>
+  >(graphics.buildings as Record<string, Recipe>);
   const [materials] = useState(religious.materials);
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
@@ -115,13 +135,15 @@ export function BuildingLab() {
       (k) => !/-(north|east|west)$/.test(k),
     );
     const rank = (k: string) =>
-      k.startsWith("religious-")
+      models[k].candidate
         ? 0
-        : /-urban-(hall|colonnade)/.test(k)
+        : k.startsWith("religious-")
           ? 1
+        : /-urban-(hall|colonnade)/.test(k)
+          ? 2
           : k.includes("-urban-")
-            ? 2
-            : 3;
+            ? 3
+            : 4;
     return ids
       .filter(
         (k) =>
@@ -137,6 +159,7 @@ export function BuildingLab() {
   const recipeId =
     (models[selected] as Model & { recipe?: string })?.recipe ?? "";
   const recipe = recipeId ? recipes[recipeId] : undefined;
+  const candidateRecipe = model?.candidate ? candidateRecipes[selected] : undefined;
 
   useEffect(() => {
     const c = canvas.current;
@@ -149,62 +172,102 @@ export function BuildingLab() {
     c.width = w * scale;
     c.height = h * scale;
     const ctx = c.getContext("2d")!;
-    ctx.setTransform(scale, 0, 0, scale, 0, 0);
-    ctx.imageSmoothingEnabled = false;
-    ctx.fillStyle = backgrounds[background];
-    ctx.fillRect(0, 0, w, h);
-    // Footprint grid: the cells the building occupies, entrance marked.
-    const ox = pad + (w - pad * 2 - fw * 16) / 2,
-      oy = h - pad - fh * 16;
-    ctx.fillStyle = "#0002";
-    ctx.fillRect(ox, oy, fw * 16, fh * 16);
-    ctx.strokeStyle = "#0004";
-    ctx.lineWidth = 1 / scale;
-    for (let x = 0; x <= fw; x++) {
-      ctx.beginPath();
-      ctx.moveTo(ox + x * 16, oy);
-      ctx.lineTo(ox + x * 16, oy + fh * 16);
-      ctx.stroke();
-    }
-    for (let y = 0; y <= fh; y++) {
-      ctx.beginPath();
-      ctx.moveTo(ox, oy + y * 16);
-      ctx.lineTo(ox + fw * 16, oy + y * 16);
-      ctx.stroke();
-    }
-    const [ex, ey] = model.entrance;
-    ctx.fillStyle = "#e0b44c88";
-    ctx.fillRect(ox + ex * 16, oy + ey * 16, 16, 16);
-    // The sprite's anchor sits at the footprint's bottom centre.
-    const ax = ox + (fw * 16) / 2 - model.anchor[0],
-      ay = oy + fh * 16 - model.anchor[1];
-    ctx.drawImage(
-      atlas,
-      f.x,
-      f.y,
-      f.w,
-      f.h,
-      Math.round(ax),
-      Math.round(ay),
-      f.w,
-      f.h,
-    );
+    const animation = model.animation;
+    let phase = animation?.phase ?? 0;
+    const draw = () => {
+      ctx.setTransform(scale, 0, 0, scale, 0, 0);
+      ctx.imageSmoothingEnabled = false;
+      ctx.fillStyle = backgrounds[background];
+      ctx.fillRect(0, 0, w, h);
+      // Footprint grid: the cells the building occupies, entrance marked.
+      const ox = pad + (w - pad * 2 - fw * 16) / 2,
+        oy = h - pad - fh * 16;
+      ctx.fillStyle = "#0002";
+      ctx.fillRect(ox, oy, fw * 16, fh * 16);
+      ctx.strokeStyle = "#0004";
+      ctx.lineWidth = 1 / scale;
+      for (let x = 0; x <= fw; x++) {
+        ctx.beginPath();
+        ctx.moveTo(ox + x * 16, oy);
+        ctx.lineTo(ox + x * 16, oy + fh * 16);
+        ctx.stroke();
+      }
+      for (let y = 0; y <= fh; y++) {
+        ctx.beginPath();
+        ctx.moveTo(ox, oy + y * 16);
+        ctx.lineTo(ox + fw * 16, oy + y * 16);
+        ctx.stroke();
+      }
+      const [ex, ey] = model.entrance;
+      ctx.fillStyle = "#e0b44c88";
+      ctx.fillRect(ox + ex * 16, oy + ey * 16, 16, 16);
+      // The sprite's anchor sits at the footprint's bottom centre.
+      const ax = ox + (fw * 16) / 2 - model.anchor[0],
+        ay = oy + fh * 16 - model.anchor[1];
+      ctx.drawImage(
+        atlas,
+        f.x,
+        f.y,
+        f.w,
+        f.h,
+        Math.round(ax),
+        Math.round(ay),
+        f.w,
+        f.h,
+      );
+      if (animation?.kind === "roof-fan") {
+        const fan = frames[`animation-roof-fan-${phase}`]?.frame;
+        if (fan)
+          ctx.drawImage(
+            atlas,
+            fan.x,
+            fan.y,
+            fan.w,
+            fan.h,
+            Math.round(ax + f.w * animation.xRatio - fan.w / 2),
+            Math.round(ay + animation.y - fan.h / 2),
+            fan.w,
+            fan.h,
+          );
+      }
+    };
+    draw();
+    if (animation?.kind !== "roof-fan") return;
+    const timer = window.setInterval(() => {
+      phase = (phase + 1) % 4;
+      draw();
+    }, Math.max(120, animation.period ?? 280));
+    return () => window.clearInterval(timer);
   }, [atlas, frames, model, frameKey, scale, background]);
 
   const setField = (key: string, value: Recipe[string]) =>
     setRecipes((r) => ({ ...r, [recipeId]: { ...r[recipeId], [key]: value } }));
+  const setCandidateField = (key: string, value: Recipe[string]) =>
+    setCandidateRecipes((r) => ({
+      ...r,
+      [selected]: { ...r[selected], [key]: value },
+    }));
 
   const rebuild = async () => {
     setBusy(true);
     setStatus("Rebuilding art (about 20 s)…");
     try {
+      const candidate = Boolean(models[selected]?.candidate);
       const r = await fetch("/api/art", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          path: "src/content/graphics/religious.json",
+          path: candidate
+            ? "src/content/graphics/buildings.json"
+            : "src/content/graphics/religious.json",
           content:
-            JSON.stringify({ materials, buildings: recipes }, null, 2) + "\n",
+            JSON.stringify(
+              candidate
+                ? { materials: graphics.materials, buildings: candidateRecipes }
+                : { materials, buildings: recipes },
+              null,
+              2,
+            ) + "\n",
         }),
       });
       const out = await r.json();
@@ -227,8 +290,9 @@ export function BuildingLab() {
         <div>
           <h1>Building panel</h1>
           <p>
-            Compiled building models on their footprints. Religious recipes are
-            editable; rebuild writes the recipe and recompiles the art.
+            Compiled building models on their footprints. The review-only
+            modern infill candidates are listed first; their recipes drive
+            compact facades, colorways and business signage.
           </p>
         </div>
         <a href="/">Return to world ↗</a>
@@ -248,7 +312,11 @@ export function BuildingLab() {
                   onClick={() => setSelected(id)}
                 >
                   <span>{models[id].label}</span>
-                  <small>{id.replace(/^religious-/, "")}</small>
+                  <small>
+                    {models[id].candidate
+                      ? `${models[id].candidateGroup ?? "candidate"}${models[id].sign ? ` · ${models[id].sign}` : ""}`
+                      : id.replace(/^religious-/, "")}
+                  </small>
                 </button>
               </li>
             ))}
@@ -293,6 +361,9 @@ export function BuildingLab() {
               <b>{model.label}</b> · footprint {model.footprint[0]}×
               {model.footprint[1]} · entrance {model.entrance.join(",")} ·
               height {model.height}px{model.family ? ` · ${model.family}` : ""}
+              {model.candidate
+                ? ` · ${model.candidateType ?? "infill"} · variant ${model.variant ?? 0}${model.sign ? ` · sign ${model.sign}` : ""}`
+                : ""}
               <br />
               <span>{model.description}</span>
             </p>
@@ -400,6 +471,126 @@ export function BuildingLab() {
               </button>
               <pre>{status}</pre>
             </>
+          ) : model?.candidate ? (
+            <div className="candidate-card">
+              <span className="candidate-badge">Review-only candidate</span>
+              <h2>Procedural feature recipe</h2>
+              {candidateRecipe && (
+                <div className="candidate-controls">
+                  <label>
+                    <span>Colorway (0–5)</span>
+                    <input
+                      type="number"
+                      min={0}
+                      max={5}
+                      value={Number(candidateRecipe.variant ?? 0)}
+                      onChange={(e) =>
+                        setCandidateField(
+                          "variant",
+                          Math.max(0, Math.min(5, Number(e.target.value) || 0)),
+                        )
+                      }
+                    />
+                  </label>
+                  <label>
+                    <span>Business type</span>
+                    <input
+                      value={String(candidateRecipe.business ?? "")}
+                      onChange={(e) =>
+                        setCandidateField("business", e.target.value)
+                      }
+                    />
+                  </label>
+                  <label>
+                    <span>Sign text</span>
+                    <input
+                      value={String(candidateRecipe.sign ?? "")}
+                      maxLength={8}
+                      onChange={(e) =>
+                        setCandidateField("sign", e.target.value.toUpperCase())
+                      }
+                    />
+                  </label>
+                  <label>
+                    <span>Roof detail</span>
+                    <select
+                      value={String(candidateRecipe.roofDetail ?? "vent")}
+                      onChange={(e) =>
+                        setCandidateField("roofDetail", e.target.value)
+                      }
+                    >
+                      {["vent", "hvac", "solar"].map((detail) => (
+                        <option key={detail}>{detail}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    <span>Awning</span>
+                    <input
+                      type="checkbox"
+                      checked={Boolean(candidateRecipe.awning)}
+                      onChange={(e) =>
+                        setCandidateField("awning", e.target.checked)
+                      }
+                    />
+                  </label>
+                  <label>
+                    <span>Garage</span>
+                    <input
+                      type="checkbox"
+                      checked={Boolean(candidateRecipe.garage)}
+                      onChange={(e) =>
+                        setCandidateField("garage", e.target.checked)
+                      }
+                    />
+                  </label>
+                  <label>
+                    <span>Porch</span>
+                    <input
+                      type="checkbox"
+                      checked={Boolean(candidateRecipe.porch)}
+                      onChange={(e) =>
+                        setCandidateField("porch", e.target.checked)
+                      }
+                    />
+                  </label>
+                  <button className="rebuild" disabled={busy} onClick={rebuild}>
+                    {busy ? "Rebuilding…" : "Rebuild candidate art"}
+                  </button>
+                  <pre>{status}</pre>
+                </div>
+              )}
+              <dl>
+                <dt>Group</dt>
+                <dd>{model.candidateGroup}</dd>
+                <dt>Use</dt>
+                <dd>
+                  {String(candidateRecipe?.business ?? model.business ?? model.candidateType)}
+                </dd>
+                <dt>Variant</dt>
+                <dd>
+                  {String(candidateRecipe?.variant ?? model.variant ?? 0)} ·
+                  deterministic colorway/details
+                </dd>
+                <dt>Sign</dt>
+                <dd>
+                  {String(candidateRecipe?.sign ?? model.sign) ||
+                    "none · residential frontage"}
+                </dd>
+                <dt>Motion</dt>
+                <dd>
+                  {model.animation?.kind === "roof-fan"
+                    ? `roof fan · ${model.animation.period ?? 280}ms`
+                    : "none · intentionally static"}
+                </dd>
+              </dl>
+              <p>
+                These compact sprites are authored for odd urban gaps and are
+                not in the city generator yet. The art recipe can change the
+                colorway, roof detail, frontage, awning, garage and sign text
+                before approval.
+              </p>
+            </div>
           ) : (
             <p className="building-hint">
               House and civic models are compiled from{" "}

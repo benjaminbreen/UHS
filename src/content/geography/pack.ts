@@ -26,8 +26,12 @@ export function packForSetting(setting: WorldSetting): Pack {
   const early = setting.year < -3499;
   const base = packTemplates[early ? "neolithic" : "roman"];
   const architecture = setting.architecture;
-  const buildings =
-    architecture === "shelter"
+  const modernCity =
+    setting.year >= 1900 &&
+    (setting.settlement === "city" || setting.settlement === "port");
+  const buildings = modernCity
+    ? ["modern-apartment", "modern-office", "modern-shop"]
+    : architecture === "shelter"
       ? ["shelter-hide", "shelter-reed"]
       : architecture === "timber" &&
           (setting.placeId === "london" ||

@@ -49,6 +49,8 @@ export type AtlasPlace = {
   year: number;
   settlement: (typeof forms)[number];
   architecture: (typeof architectures)[number];
+  /** Modern gazetteer population used only to size a procedural footprint. */
+  population?: number;
 };
 /** Both interpreters produce this same immutable input. No model text is executable. */
 export const settingSchema = z

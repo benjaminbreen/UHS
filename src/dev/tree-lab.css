@@ -1,0 +1,410 @@
+.tree-lab {
+  min-height: 100dvh;
+  background: radial-gradient(ellipse at top, #213653, #091522 74%);
+  color: #f4f0e8;
+  padding: 36px clamp(18px, 4vw, 64px);
+}
+.tree-header,
+.tree-layout,
+.tree-recipe,
+.tree-footer {
+  max-width: 1560px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.tree-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 28px;
+  margin-bottom: 28px;
+}
+.tree-header h1 {
+  font-size: 40px;
+  margin: 10px 0;
+}
+.tree-header p,
+.tree-note,
+.tree-status,
+.tree-footer,
+.tree-count {
+  color: #b7c1cd;
+}
+.tree-eyebrow {
+  color: #eacb82;
+  font: 11px/1.2 sans-serif;
+  letter-spacing: 0.14em;
+}
+.tree-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  max-width: 520px;
+}
+.tree-actions button,
+.tree-actions a,
+.tree-tool-row select {
+  border: 1px solid #69839c;
+  border-radius: 3px;
+  background: #1b3149;
+  color: #f4d894;
+  padding: 10px 12px;
+  text-decoration: none;
+  font: inherit;
+  cursor: pointer;
+}
+.tree-actions button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.tree-layout {
+  display: grid;
+  grid-template-columns: minmax(290px, 390px) minmax(0, 1fr);
+  gap: 22px;
+  align-items: start;
+}
+.tree-library,
+.tree-editor,
+.tree-recipe {
+  border: 1px solid #52718b;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #182a40, #102033);
+  box-shadow: inset 0 0 0 3px #091522, 0 10px 28px #0005;
+}
+.tree-library,
+.tree-editor {
+  padding: 20px;
+}
+.tree-search {
+  display: grid;
+  gap: 8px;
+}
+.tree-lab input,
+.tree-lab select {
+  min-width: 0;
+  background: #0d1b2c;
+  border: 1px solid #627d96;
+  border-radius: 3px;
+  color: #f4f0e8;
+  padding: 9px;
+}
+.tree-count {
+  font: 12px sans-serif;
+  margin: 18px 0 14px;
+}
+.tree-group {
+  border-top: 1px solid #415b72;
+  padding-top: 14px;
+  margin-top: 16px;
+}
+.tree-group h2 {
+  color: #d9e0e7;
+  font-size: 15px;
+  margin: 0 0 10px;
+}
+.tree-asset-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.tree-asset-grid > button {
+  min-width: 0;
+  min-height: 126px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  overflow: hidden;
+  border: 1px solid #3e5971;
+  border-radius: 3px;
+  background: #12263a;
+  color: #f0f1ed;
+  padding: 8px;
+  cursor: pointer;
+}
+.tree-asset-grid > button[aria-pressed="true"] {
+  border-color: #f0cf83;
+  background: #29415a;
+  box-shadow: inset 0 0 0 1px #f0cf83;
+}
+.tree-asset-grid canvas {
+  max-width: 100%;
+  max-height: 78px;
+  width: auto;
+  height: auto;
+  image-rendering: pixelated;
+}
+.tree-thumb-loading {
+  width: 70px;
+  height: 78px;
+}
+.tree-asset-grid strong,
+.tree-asset-grid small {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tree-asset-grid strong {
+  font-size: 13px;
+}
+.tree-asset-grid small {
+  color: #9eafbf;
+  font: 10px monospace;
+}
+.tree-title,
+.tree-section-heading,
+.tree-tool-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18px;
+}
+.tree-title {
+  align-items: flex-start;
+}
+.tree-title h2,
+.tree-section-heading h2 {
+  margin: 8px 0 5px;
+  font-size: 25px;
+}
+.tree-title > span,
+.tree-section-heading > span {
+  color: #b6c2cf;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.tree-title code {
+  color: #e5c77e;
+  font-size: 12px;
+}
+.tree-tool-row {
+  margin: 18px 0 12px;
+  align-items: center;
+}
+.tree-tool-row label {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  white-space: nowrap;
+}
+.tree-tool-row p {
+  color: #b7c1cd;
+  font-size: 13px;
+  margin: 0;
+  text-align: right;
+}
+.tree-editor-scroll {
+  min-height: 300px;
+  max-height: min(70vh, 900px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: auto;
+  padding: 20px;
+  border: 1px solid #57738a;
+  border-radius: 3px;
+  background:
+    conic-gradient(#445366 25%, #354355 0 50%, #445366 0 75%, #354355 0)
+      0 0 / 24px 24px,
+    #354355;
+}
+.tree-pixel-editor,
+.tree-previews canvas {
+  display: block;
+  image-rendering: pixelated;
+  touch-action: none;
+}
+.tree-pixel-editor {
+  cursor: crosshair;
+  box-shadow: 0 4px 18px #0008;
+}
+.tree-loading {
+  color: #b7c1cd;
+  padding: 160px 0;
+}
+.tree-palette,
+.tree-comparison {
+  border-top: 1px solid #415b72;
+  margin-top: 22px;
+  padding-top: 18px;
+}
+.tree-add-color {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #c6d0d9;
+  font-size: 13px;
+}
+.tree-add-color input {
+  width: 38px;
+  height: 30px;
+  padding: 2px;
+}
+.tree-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+.tree-swatches > button,
+.tree-swatches > label {
+  min-width: 92px;
+  display: grid;
+  grid-template-columns: 27px 1fr;
+  grid-template-rows: auto auto;
+  align-items: center;
+  column-gap: 7px;
+  border: 1px solid #47637b;
+  border-radius: 3px;
+  background: #12263a;
+  color: #dfe6eb;
+  padding: 5px;
+}
+.tree-swatches > label.selected,
+.tree-swatches > button.selected {
+  border-color: #f0cf83;
+  box-shadow: inset 0 0 0 1px #f0cf83;
+}
+.tree-swatches button {
+  display: contents;
+  cursor: pointer;
+}
+.tree-swatches i {
+  grid-row: span 2;
+  width: 25px;
+  height: 25px;
+  border: 1px solid #afbac4;
+}
+.tree-swatches button span {
+  font: 12px monospace;
+  text-align: left;
+}
+.tree-swatches input {
+  width: 100%;
+  height: 11px;
+  padding: 0;
+  border: 0;
+}
+.tree-swatches code {
+  grid-column: 2;
+  color: #9eafbf;
+  font-size: 10px;
+}
+.tree-transparent {
+  background:
+    conic-gradient(#8190a0 25%, #536273 0 50%, #8190a0 0 75%, #536273 0)
+      0 0 / 8px 8px;
+}
+.tree-note {
+  font-size: 12px;
+  line-height: 1.5;
+}
+.tree-previews {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 22px;
+  margin-top: 16px;
+}
+.tree-previews > div {
+  display: grid;
+  gap: 7px;
+}
+.tree-previews > div > span {
+  color: #d7e0e7;
+  font-size: 13px;
+}
+.tree-previews > div > canvas {
+  max-width: min(100%, 300px);
+  height: auto;
+  background:
+    conic-gradient(#445366 25%, #354355 0 50%, #445366 0 75%, #354355 0)
+      0 0 / 16px 16px;
+}
+.tree-status {
+  min-height: 22px;
+  border-top: 1px solid #415b72;
+  margin-top: 22px;
+  padding-top: 14px;
+  font-size: 13px;
+}
+.tree-recipe {
+  margin-top: 22px;
+  padding: 14px 20px;
+}
+.tree-recipe summary {
+  color: #f0cf83;
+  cursor: pointer;
+}
+.tree-recipe pre {
+  max-height: 500px;
+  overflow: auto;
+  color: #c7d7e2;
+  font: 11px/1.45 monospace;
+  white-space: pre;
+}
+.tree-footer {
+  font-size: 12px;
+  line-height: 1.5;
+  padding-bottom: 12px;
+}
+.tree-lab :focus-visible {
+  outline: 2px solid #f3d587;
+  outline-offset: 3px;
+}
+@media (max-width: 1050px) {
+  .tree-layout {
+    grid-template-columns: 1fr;
+  }
+  .tree-library {
+    order: 2;
+  }
+  .tree-editor {
+    order: 1;
+  }
+  .tree-asset-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+@media (max-width: 680px) {
+  .tree-lab {
+    padding: 22px 12px;
+  }
+  .tree-header {
+    display: block;
+  }
+  .tree-header h1 {
+    font-size: 30px;
+  }
+  .tree-actions {
+    justify-content: flex-start;
+    margin-top: 18px;
+  }
+  .tree-editor,
+  .tree-library {
+    padding: 14px;
+  }
+  .tree-title,
+  .tree-tool-row,
+  .tree-section-heading {
+    display: block;
+  }
+  .tree-title > span,
+  .tree-section-heading > span {
+    display: block;
+    margin-top: 8px;
+    white-space: normal;
+  }
+  .tree-tool-row p {
+    margin-top: 10px;
+    text-align: left;
+  }
+  .tree-editor-scroll {
+    padding: 8px;
+  }
+  .tree-asset-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}

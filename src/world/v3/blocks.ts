@@ -1249,7 +1249,7 @@ export function urbanRadiusFor(
     return slots * 0.7;
   };
   let lo = 30,
-    hi = 110;
+    hi = 140;
   while (hi - lo > 2) {
     const mid = Math.round((lo + hi) / 2);
     if (offered(mid) >= target) hi = mid;

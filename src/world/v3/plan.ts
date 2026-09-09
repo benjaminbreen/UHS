@@ -11,7 +11,7 @@ import {
 import { urbanNeighborhood, urbanSite, siteForm, type UrbanLot } from "./urban";
 import type { Furniture } from "./blocks";
 import { urbanNeighborhoodV1 } from "./urban-v1";
-import { urbanCapacity } from "../../content/settlements/scale";
+import { urbanBuildingLimit } from "../../content/settlements/scale";
 import { ornaments } from "../../content/settlements/ornaments";
 import type { Actor, Pack, Point, Position, Terrain } from "../../core/types";
 import { proceduralName } from "../../content/geography/character";
@@ -122,14 +122,11 @@ export function planSettlement(
     palette && chooseStreetSurface(palette, "lane", rand("lanes"));
   const squareStone =
     palette && chooseStreetSurface(palette, "square", rand("square-paving"));
-  // A town of any size is beaten earth inside its edge; after the industrial
-  // era it is paved through. Small places keep the ground they stand on.
-  const cityGround =
-    profile.radius < 45
-      ? undefined
-      : profile.paved && (pack.setting?.year ?? 0) >= 1850
-        ? "paving"
-        : "dirt";
+  const footwaySurface =
+    palette && chooseStreetSurface(palette, "footway", rand("footways"));
+  // A city claim is not a single paved surface. Roads, footways, yards and
+  // planted spaces add their own higher-ranked surfaces over this base.
+  const cityGround = profile.radius < 45 ? undefined : "dirt";
   const addRoad = (road: Road) => {
     const material = road.kind === "lane" ? laneSurface : stone;
     plan.roads.push(road);
@@ -664,6 +661,91 @@ export function planSettlement(
           plan.reserved.add(k);
         }
       });
+    const paintVergeWalk = (rect: Rect) => {
+      if (!profile.paved) return;
+      const horizontal = rect.w >= rect.h,
+        before = horizontal ? rect.y < c.y : rect.x < c.x,
+        walk = horizontal
+          ? {
+              x: rect.x,
+              y: before ? rect.y - 1 : rect.y + rect.h,
+              w: rect.w,
+              h: 1,
+            }
+          : {
+              x: before ? rect.x - 1 : rect.x + rect.w,
+              y: rect.y,
+              w: 1,
+              h: rect.h,
+            };
+      eachCell(walk, (x, y) => {
+        const k = cellKey(x, y);
+        if (
+          plan.solid.has(k) ||
+          roads.has(k) ||
+          !dry({ x, y, w: 1, h: 1 }, false)
+        )
+          return;
+        if (setSurface(k, "paving", 5)) {
+          plan.pavement!.set(k, "footway");
+          if (footwaySurface) plan.streetSurfaces!.set(k, footwaySurface);
+          plan.reserved.add(k);
+        }
+      });
+    };
+    const paintPark = (rect: Rect, index: number) => {
+      let usable = 0;
+      eachCell(rect, (x, y) => {
+        const k = cellKey(x, y);
+        if (
+          plan.solid.has(k) ||
+          roads.has(k) ||
+          !dry({ x, y, w: 1, h: 1 }, false)
+        )
+          return;
+        if (setSurface(k, "grass", 11)) {
+          plan.pavement!.delete(k);
+          plan.streetSurfaces!.delete(k);
+          plan.reserved.add(k);
+          usable++;
+        }
+      });
+      if (usable < 6) return;
+      const at = { x: rect.x + (rect.w >> 1), y: rect.y + (rect.h >> 1) },
+        treeKey = cellKey(at.x, at.y);
+      plan.plots.push({
+        ...rect,
+        id: `${site.id}-park-${index}`,
+        kind: "public",
+        access: at,
+      });
+      if (!plan.solid.has(treeKey) && pack.trees[0]) {
+        plan.solid.add(treeKey);
+        plan.objects.push({
+          id: `${site.id}-park-tree-${index}`,
+          name: "Pocket park tree",
+          kind: "tree",
+          pos: pos(at),
+          sprite: pack.trees[0],
+          inventory: {},
+        });
+      }
+      const bench = ornaments.bench,
+        benchAt = { x: at.x + 2, y: at.y };
+      if (
+        bench &&
+        !plan.solid.has(cellKey(benchAt.x, benchAt.y)) &&
+        dry({ ...benchAt, w: 1, h: 1 }, false)
+      )
+        plan.objects.push({
+          id: `${site.id}-park-bench-${index}`,
+          name: bench.label,
+          kind: bench.kind,
+          sprite: bench.sprite,
+          pos: pos(benchAt),
+          inventory: {},
+        });
+    };
     const paintSquare = (court: Rect, index: number) => {
       const material = squareStone;
       eachCell(court, (x, y) => {
@@ -751,10 +833,23 @@ export function planSettlement(
         for (let x = c.x - reach; x <= c.x + reach; x++) {
           if (!holds(x, y) || !dry({ x, y, w: 1, h: 1 }, false)) continue;
           const k = cellKey(x, y);
-          if (!setSurface(k, cityGround, 1)) continue;
-          if (cityGround === "paving") {
+          setSurface(k, cityGround, 1);
+          const besideRoad =
+            !roads.has(k) &&
+            [
+              [1, 0],
+              [-1, 0],
+              [0, 1],
+              [0, -1],
+            ].some(([dx, dy]) => roads.has(cellKey(x + dx, y + dy)));
+          if (
+            profile.paved &&
+            besideRoad &&
+            plan.pavement!.get(k) !== "verge"
+          ) {
+            setSurface(k, "paving", 5);
             plan.pavement!.set(k, "footway");
-            if (stone) plan.streetSurfaces!.set(k, stone);
+            if (footwaySurface) plan.streetSurfaces!.set(k, footwaySurface);
           }
         }
     };
@@ -830,6 +925,8 @@ export function planSettlement(
           paintForecourt,
           paintSquare,
           paintVerge,
+          paintVergeWalk,
+          paintPark,
           furnish,
           paintCity,
           paintBlock,
@@ -1144,7 +1241,12 @@ export function planSettlement(
   // flat profile count still governs villages and the older layouts.
   const limit =
     urban && composed
-      ? Math.min(urbanCapacity(profile.radius, fabric), profile.buildings)
+      ? urbanBuildingLimit(
+          profile.radius,
+          fabric,
+          profile.buildings,
+          pack.setting?.year ?? 0,
+        )
       : profile.buildings;
   for (let j = 0; j < frontage.length && plan.places.length < limit; j++) {
     const lot = frontage[j];

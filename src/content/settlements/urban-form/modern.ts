@@ -61,7 +61,7 @@ const industrialGrid = americas.map(
     courts: 0.18,
     deadEnds: 0.02,
     tiers: [5, 2, 1],
-    storeys: 3,
+    storeys: 5,
     gates: 4,
     wall: "none",
     plaza: "crossing",
@@ -74,7 +74,8 @@ const industrialGrid = americas.map(
     ],
     squares: 2,
     diagonals: 1,
-    verge: 1,
+    verge: 2,
+    greenSpaces: 0.12,
     furniture: ["lamp", "tree", "planter"],
     square: {
       focus: "statue",

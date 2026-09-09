@@ -75,6 +75,19 @@ type WindSprite = {
   phase: number;
   profile: WindProfile;
 };
+type BuildingAnimationRecipe = {
+  kind: string;
+  xRatio: number;
+  y: number;
+  period?: number;
+  phase?: number;
+  chance?: number;
+};
+type BuildingAnimation = {
+  image: Phaser.GameObjects.Image;
+  period: number;
+  phase: number;
+};
 export class WorldScene extends Phaser.Scene {
   private runtime: Runtime;
   private characters?: WorldCharacters;
@@ -115,6 +128,7 @@ export class WorldScene extends Phaser.Scene {
   private terrainAnchor?: { x: number; y: number };
   private drawnWorld?: WorldModel;
   private buildings = new Map<string, Phaser.GameObjects.Image>();
+  private buildingAnimations = new Map<string, BuildingAnimation>();
   private nextInput = 0;
   private motionDuration = 140;
   private heldDirections = new Set<string>();
@@ -347,6 +361,42 @@ export class WorldScene extends Phaser.Scene {
     if (profile)
       this.windSprites.push({ image, baseX: image.x, phase, profile });
   }
+  private addBuildingAnimation(
+    id: string,
+    placement: ReturnType<typeof buildingPlacement>,
+    animation: BuildingAnimationRecipe,
+  ) {
+    if (animation.kind !== "roof-fan") return;
+    const chance = Math.max(0, Math.min(1, animation.chance ?? 1));
+    if (
+      chance < 1 &&
+      random(
+        this.runtime.engine.state.manifest.seed,
+        "building-animation",
+        id,
+      ) >= chance
+    )
+      return;
+    const frame = "animation-roof-fan-0";
+    const image = this.add
+      .image(
+        placement.x -
+          placement.model.anchor[0] +
+          placement.model.bounds[2] * animation.xRatio,
+        placement.y - placement.model.anchor[1] + animation.y,
+        this.texture(frame),
+        frame,
+      )
+      .setOrigin(0.5, 0.5)
+      .setTint(this.tint)
+      .setDepth(placement.depth + 1);
+    this.layers.push(image);
+    this.buildingAnimations.set(id, {
+      image,
+      period: Math.max(120, animation.period ?? 280),
+      phase: animation.phase ?? 0,
+    });
+  }
   private texture(frame: string) {
     if (frame.startsWith("nature-")) return "nature";
     if (frame.startsWith("ecology-")) return "ecology";
@@ -439,6 +489,7 @@ export class WorldScene extends Phaser.Scene {
       this.windSprites = [];
       this.ripples = [];
       this.buildings.clear();
+      this.buildingAnimations.clear();
       this.ground?.destroy();
       this.tilemap?.destroy();
       const margin = w.topography ? SCENERY_CACHE_REACH + 6 : 20;
@@ -716,6 +767,12 @@ export class WorldScene extends Phaser.Scene {
               placement.depth,
             ).setOrigin(placement.originX, placement.originY);
             this.buildings.set(b.id, image);
+            const animation = (
+              placement.model as typeof placement.model & {
+                animation?: BuildingAnimationRecipe;
+              }
+            ).animation;
+            if (animation) this.addBuildingAnimation(b.id, placement, animation);
           }
         for (const fence of w.enclosures) {
           // A city circuit is far wider than a pen, so the cull tests the whole
@@ -1143,6 +1200,20 @@ export class WorldScene extends Phaser.Scene {
       for (const r of this.ripples)
         r.image.setFrame(`ripple-${(phase + r.phase) % 4}`);
     }
+    for (const animation of this.buildingAnimations.values()) {
+      const frame = this.options.freeze
+        ? 0
+        : Math.floor(time / animation.period + animation.phase) % 4;
+      const name = `animation-roof-fan-${frame}`;
+      if (animation.image.frame.name !== name) animation.image.setFrame(name);
+    }
+    if (
+      this.game.canvas.dataset.buildingAnimations !==
+      String(this.buildingAnimations.size)
+    )
+      this.game.canvas.dataset.buildingAnimations = String(
+        this.buildingAnimations.size,
+      );
     for (const wind of this.windSprites) {
       const sway = this.options.freeze
         ? { x: 0, angle: 0 }

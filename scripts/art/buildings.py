@@ -222,8 +222,10 @@ def build_buildings(root, sprites):
     source=json.loads((root/'src/content/graphics/buildings.json').read_text())
     source['materials'].update(json.loads((root/'src/content/graphics/urban.json').read_text()).get('materials',{}))
     models={}
-    from art.urban import (UrbanBuilding, urban_recipes, build_urban_furniture,
+    from art.urban import (InfillBuilding, UrbanBuilding, urban_recipes,
+                           build_animated_details, build_urban_furniture,
                            build_city_walls, build_square_furniture)
+    build_animated_details(sprites)
     build_urban_furniture(sprites)
     build_city_walls(sprites)
     build_square_furniture(sprites)
@@ -235,7 +237,9 @@ def build_buildings(root, sprites):
         for facing,entrance in [('north',[fw//2,-1]),('east',[fw,fh//2]),('west',[-1,fh//2])]:
             recipes[name+'-'+facing]={**r,'facing':facing,'entrance':entrance,'label':r['label']+' · '+facing}
     for name,r in recipes.items():
-        painter=ReligiousBuilding if r.get('religious') else UrbanBuilding if r.get('urban') else Building
+        painter=(InfillBuilding if r.get('candidate') else
+                 ReligiousBuilding if r.get('religious') else
+                 UrbanBuilding if r.get('urban') else Building)
         im=painter(r,source['materials'][r['wall']]).render()
         sprites[name]=im
         w,h=im.size
@@ -245,7 +249,12 @@ def build_buildings(root, sprites):
             'occlusion':[4,7,w-7,h-7],'shadow':{'kind':'building','height':r['height'],'contactWidth':w-12},
             'wall':r['wall'],'roof':r['roof'],'roofMaterial':r['roofMaterial'],'attachments':r['attachments'],
             'opening':r['opening'],'description':r['description'],
-            **({'religious':True,'family':r['family'],'recipe':r['recipe']} if r.get('religious') else {})}
+            **({'religious':True,'family':r['family'],'recipe':r['recipe']} if r.get('religious') else {}),
+            **({'candidate':True,'candidateType':r['candidateType'],
+                'candidateGroup':r['candidateGroup'],'variant':r['variant'],
+                'business':r.get('business',''),'sign':r.get('sign','')}
+               if r.get('candidate') else {}),
+            **({'animation':r['animation']} if r.get('animation') else {})}
     (root/'public/packs/buildings.json').write_text(json.dumps(models))
     (root/'src/content/graphics/models.generated.json').write_text(json.dumps(models))
     return models

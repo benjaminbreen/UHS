@@ -82,6 +82,9 @@
   background: #2c3739;
   border-left-color: #e0b44c;
 }
+.building-body aside button small {
+  line-height: 1.25;
+}
 .building-body main {
   padding: 16px 22px;
   overflow: auto;
@@ -191,6 +194,43 @@
 }
 .building-hint {
   color: #a8a293;
+}
+.candidate-card {
+  border: 1px solid #6b694f;
+  border-radius: 8px;
+  padding: 12px;
+  background: #293437;
+}
+.candidate-badge {
+  display: inline-block;
+  padding: 3px 7px;
+  border: 1px solid #e0b44c;
+  border-radius: 999px;
+  color: #e0b44c;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.candidate-card h2 {
+  margin-top: 12px;
+}
+.candidate-card dl {
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  gap: 5px 8px;
+  margin: 0;
+}
+.candidate-card dt {
+  color: #a8a293;
+  font-size: 12px;
+}
+.candidate-card dd {
+  margin: 0;
+}
+.candidate-card p {
+  color: #b9b3a2;
+  font-size: 12px;
+  margin: 14px 0 0;
 }
 .building-recipe .pair { display: flex; gap: 4px; align-items: center; }
 .building-recipe .pair input { width: 56px; }

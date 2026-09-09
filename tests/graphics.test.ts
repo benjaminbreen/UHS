@@ -51,3 +51,22 @@ it("lab links round-trip camera and rendering controls and reject malformed pres
   expect(parseLabConfig("study=__proto__&zoom=1.8").study).toBe("classical");
   expect(parseLabConfig("zoom=1.8").zoom).toBe(2);
 });
+
+it("compiles the review-only modern infill set at all three compact footprints", () => {
+  const candidates = Object.entries(buildingModels).filter(
+    ([id, model]) =>
+      (model as any).candidate && !/-(north|east|west)$/.test(id),
+  );
+  expect(candidates).toHaveLength(18);
+  expect(
+    new Set(candidates.map(([, model]) => (model as any).footprint.join("×"))),
+  ).toEqual(new Set(["3×2", "4×2", "3×3"]));
+  for (const [id, model] of candidates) {
+    const candidate = model as any;
+    expect(candidate.candidateType).toBeTruthy();
+    expect(candidate.candidateGroup).toBeTruthy();
+    expect(candidate.variant).toBeGreaterThanOrEqual(0);
+    for (const facing of ["north", "east", "west"])
+      expect((buildingModels as any)[`${id}-${facing}`].candidate).toBe(true);
+  }
+});

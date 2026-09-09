@@ -7,6 +7,8 @@ import type { UrbanForm } from "./urban-form/types";
 export const URBAN_CAPACITY = 80;
 /** Only the largest modern cities go past the ordinary cap. */
 export const METROPOLIS_CAPACITY = 120;
+/** Modern city centres need more parcels than the historical frontage cap. */
+export const MODERN_CITY_CAPACITY = 240;
 
 /** Cells of block edge one street-facing building occupies, averaged over the
  * kit's frontages. */
@@ -37,14 +39,38 @@ export function urbanFootprint(radius: number, _form?: UrbanForm) {
  * from ground area and block geometry: it is not a population estimate and not
  * a worldwide growth curve. Larger blocks hold more frontage each but fewer fit,
  * so the count follows the extent far more than the fabric. */
-export function urbanCapacity(radius: number, form: UrbanForm): number {
+export function urbanCapacity(
+  radius: number,
+  form: UrbanForm,
+  requested = URBAN_CAPACITY,
+): number {
   const half = urbanFootprint(radius, form);
   const [bw, bh] = form.block;
   const blocks = ((half * 2) ** 2 * BLOCK_FILL) / (bw * bh);
   // Nine tenths, because a corner parcel and a court passage always cost some.
   return Math.max(
     4,
-    Math.min(URBAN_CAPACITY, Math.round(blocks * perBlock(form) * 0.9)),
+    Math.min(
+      Math.max(URBAN_CAPACITY, requested),
+      Math.round(blocks * perBlock(form) * 0.9),
+    ),
+  );
+}
+
+/** Building limit for a composed settlement. Modern blocks use a denser visual
+ * parcel plan than the historical frontage estimate, but remain bounded so a
+ * large city does not turn generation into an unbounded pathfinding pass. */
+export function urbanBuildingLimit(
+  radius: number,
+  form: UrbanForm,
+  requested: number,
+  year: number,
+): number {
+  const base = Math.min(urbanCapacity(radius, form, requested), requested);
+  if (year < 1900) return base;
+  return Math.min(
+    MODERN_CITY_CAPACITY,
+    Math.max(base, Math.round(base * (requested >= 100 ? 1.8 : 1.5))),
   );
 }
 

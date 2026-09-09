@@ -1,9 +1,18 @@
 import type { WorldSetting } from "../../geography/types";
 import { italyStreet } from "./italy";
 import { europeStreets } from "./europe";
-export type StreetMaterial = "basalt" | "cobble" | "slab" | "brick" | "sett";
+export type StreetMaterial =
+  | "asphalt"
+  | "concrete"
+  | "basalt"
+  | "cobble"
+  | "slab"
+  | "brick"
+  | "sett";
 /** Content resolves place/date into material; rendering never branches on culture. */
 export function streetMaterial(s: WorldSetting): StreetMaterial {
+  if (s.year >= 1900 && (s.settlement === "city" || s.settlement === "port"))
+    return "asphalt";
   for (const p of [italyStreet, ...europeStreets]) {
     const [w, south, e, n] = p.bounds;
     if (

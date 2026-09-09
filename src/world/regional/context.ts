@@ -31,7 +31,8 @@ export function createRegionalContext(start: WorldSetting) {
         id: p.id,
         name: p.name,
         at: [p.lon, p.lat],
-        radius: p.settlement === "city" ? 110 : 60,
+        radius: p.settlement === "city" ? 140 : 60,
+        population: p.population,
         dates: { start: { year: 1990 } },
         defaults: { settlement: p.settlement },
         evidence: {
