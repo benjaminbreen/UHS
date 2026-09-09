@@ -79,6 +79,7 @@ export function habitatTree(
   x: number,
   y: number,
   density: number,
+  ecologyAware = false,
 ): boolean {
   const bx = Math.floor(x / 2),
     by = Math.floor(y / 2);
@@ -87,6 +88,15 @@ export function habitatTree(
     y !== by * 2 + Math.floor(random(seed, "tree-y", bx, by) * 2)
   )
     return false;
-  const grouping = Math.max(0, h.cover - 0.22) * 2.6;
+  const grouping = treeGrouping(h, ecologyAware);
   return random(seed, "tree-presence", bx, by) < density * grouping;
+}
+
+/** Revision 5 gives the same wetness/exposure field a visible canopy effect. */
+export function treeGrouping(h: Habitat, ecologyAware = false) {
+  const base = Math.max(0, h.cover - 0.22) * 2.6;
+  if (!ecologyAware) return base;
+  const wetLift = Math.max(0, h.wet - 0.45) * 1.45;
+  const exposurePenalty = h.exposed * 1.15;
+  return Math.min(2.6, Math.max(0.12, base + wetLift - exposurePenalty));
 }

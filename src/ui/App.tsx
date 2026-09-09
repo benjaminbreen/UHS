@@ -1254,6 +1254,18 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
                     Terrain lab ↗
                   </a>
                   <a
+                    className="action settings-featured"
+                    href="/grass-lab"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Grass texture lab ↗
+                    <small>
+                      Edit native pixels & colors · export a code-friendly JSON
+                      recipe
+                    </small>
+                  </a>
+                  <a
                     className="action"
                     href="/history-lab"
                     target="_blank"

@@ -19,6 +19,7 @@ import type { Position, WorldModel } from "../core/types";
 import { surfaceAt, hasQuay } from "./materials";
 import { hash, random } from "../core/random";
 import { heldObject } from "../core/props";
+import { windProfile, windSway, type WindProfile } from "./wind";
 /** Poll interval while a jump is in the air, matched to the sprite's arc. */
 const JUMP_MS = 360;
 const DIRECTION_KEYS = [
@@ -68,6 +69,12 @@ const workAlternates: Partial<
   stoop: ["kneel", "work"],
   tug: ["stoop", "sway"],
 };
+type WindSprite = {
+  image: Phaser.GameObjects.Image;
+  baseX: number;
+  phase: number;
+  profile: WindProfile;
+};
 export class WorldScene extends Phaser.Scene {
   private runtime: Runtime;
   private characters?: WorldCharacters;
@@ -80,6 +87,7 @@ export class WorldScene extends Phaser.Scene {
     >
   >();
   private canopies: { image: Phaser.GameObjects.Image; cut: number }[] = [];
+  private windSprites: WindSprite[] = [];
   private ambient = new Map<string, Ambient>();
   /** Not drawn: indoors, or waiting on a routine. */
   private indoors = new Set<string>();
@@ -329,6 +337,16 @@ export class WorldScene extends Phaser.Scene {
     this.layers.push(image);
     return image;
   }
+  private addWind(
+    image: Phaser.GameObjects.Image,
+    frame: string,
+    phase: number,
+    isTree = false,
+  ) {
+    const profile = windProfile(frame, isTree);
+    if (profile)
+      this.windSprites.push({ image, baseX: image.x, phase, profile });
+  }
   private texture(frame: string) {
     if (frame.startsWith("nature-")) return "nature";
     if (frame.startsWith("ecology-")) return "ecology";
@@ -418,6 +436,7 @@ export class WorldScene extends Phaser.Scene {
       for (const l of this.layers) l.destroy();
       this.layers = [];
       this.canopies = [];
+      this.windSprites = [];
       this.ripples = [];
       this.buildings.clear();
       this.ground?.destroy();
@@ -593,8 +612,19 @@ export class WorldScene extends Phaser.Scene {
               surfaceAt(w, x, y) === "sand" &&
               random(e.state.manifest.seed, "reeds", x, y) <
                 w.pack.landscape.reeds
-            )
-              this.sprite("reeds", x * 16 + 8, y * 16 + 16, y * 16 + 11);
+            ) {
+              const reeds = this.sprite(
+                "reeds",
+                x * 16 + 8,
+                y * 16 + 16,
+                y * 16 + 11,
+              );
+              this.addWind(
+                reeds,
+                "reeds",
+                random(e.state.manifest.seed, "wind-phase", x, y),
+              );
+            }
             const d = w.decoration(x, y);
             if (d) {
               const frame =
@@ -639,6 +669,12 @@ export class WorldScene extends Phaser.Scene {
                 const cut = Math.floor(decoration.height * 0.72);
                 decoration.setCrop(0, 0, decoration.width, cut);
                 this.canopies.push({ image: decoration, cut });
+                this.addWind(
+                  decoration,
+                  frame,
+                  random(e.state.manifest.seed, "wind-phase", x, y),
+                  true,
+                );
                 const trunk = this.sprite(
                   frame,
                   x * 16 + 8,
@@ -1106,6 +1142,15 @@ export class WorldScene extends Phaser.Scene {
       this.rippleTime = phase;
       for (const r of this.ripples)
         r.image.setFrame(`ripple-${(phase + r.phase) % 4}`);
+    }
+    for (const wind of this.windSprites) {
+      const sway = this.options.freeze
+        ? { x: 0, angle: 0 }
+        : windSway(time, wind.phase, wind.profile);
+      const x = wind.baseX + sway.x;
+      if (wind.image.x !== x) wind.image.setX(x);
+      if (wind.image.rotation !== sway.angle)
+        wind.image.setRotation(sway.angle);
     }
     const active = document.activeElement;
     const typing =

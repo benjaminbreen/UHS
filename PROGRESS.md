@@ -452,3 +452,24 @@ Delivered the Audio studio (Command+1 / Ctrl+1), five original 32-bar themes, tw
 Recorded verification from the audio implementation session: 28 unit/integration tests passed; the focused audio and existing journey browser suites passed nine tests together; the two audio browser tests and production build were rerun after the final lifecycle adjustment. All seven preview renders were checked for non-silence and clipped samples, with results in `public/audio/previews/manifest.json`. This does not claim the entire browser suite was rerun in that session or that automated checks establish musical quality.
 
 The subsequent documentation review recorded the accepted twelve-family approach in design section 20, distinguished planned profiles from implemented content, prioritized the resolver/Java sequence above, and corrected obsolete fixed-shadow asset references. No new historical pack or runtime feature was implemented by that documentation update.
+
+## Wetness-responsive trees and light sward transition — September 9, 2026
+
+New worlds use vegetation revision 5. Tree candidates now respond to the same
+continuous habitat wetness and exposure fields that drive ground bands: wetter
+patches receive stronger grouping, exposed ground retains only a small residual
+chance, and existing revision 4 placement remains reproducible. The existing
+intermediate light ground band is now a quiet light sward without the larger
+turf motif or island outline; it remains a render-only transition, not a new
+ecological envelope. Grass ticks now continue through that light band and use
+the lighter shared mark palette.
+
+The shared world renderer now applies a render-only wind clock: reeds sway
+faster, while modern tree canopies sway independently of their fixed trunks
+and shadows. Willows and palms use slower, slightly stronger profiles; frozen
+lab previews remain deterministic. Focused vegetation tests, production build,
+and regional composition browser checks passed. The wind profiles were then
+retuned to longer cycles and smaller amplitudes after visual review, with the
+willow receiving the largest reduction. The existing play-mode plant focus
+check remains flaky before reaching its scene hook and is unrelated to the
+wind pass.

@@ -16,6 +16,10 @@ import {
 } from "./material-edges";
 import type { Ecology } from "../content/ecology/profiles";
 import type { TopographyCell, TopographySample } from "../core/topography";
+import {
+  defaultGrassArt,
+  type GrassArt,
+} from "../content/graphics/grass-art";
 import { waterHash as hash, waterNoise as noise } from "./water-style";
 const mod = (n: number, d: number) => ((n % d) + d) % d;
 
@@ -23,82 +27,6 @@ export type GroundTileData = {
   x: number;
   y: number;
   pixels: Uint8ClampedArray;
-};
-// Turf, dry turf, damp hollow, mineral, litter, blade shadow, blade light.
-// Close values keep the ground subordinate to actors; hue carries material identity.
-const ramps: Record<Ecology, string[]> = {
-  grassland: [
-    "#63a64b",
-    "#7fbf58",
-    "#52963f",
-    "#b38a5b",
-    "#a97c50",
-    "#3a7a34",
-    "#a3d86a",
-  ],
-  tundra: [
-    "#8fa45c",
-    "#a9b26f",
-    "#7d9552",
-    "#a89a7a",
-    "#8c8d64",
-    "#587047",
-    "#c9cc82",
-  ],
-  "boreal-woodland": [
-    "#699b52",
-    "#83b060",
-    "#568a48",
-    "#9a7a55",
-    "#8f7050",
-    "#3d6b3c",
-    "#a3c96e",
-  ],
-  "temperate-woodland": [
-    "#5c9f48",
-    "#78b856",
-    "#4a8d3d",
-    "#a98159",
-    "#9d7449",
-    "#376f33",
-    "#9cd166",
-  ],
-  "tropical-woodland": [
-    "#4f9e42",
-    "#6bb64f",
-    "#3f8a38",
-    "#9a6a45",
-    "#8d6642",
-    "#2f6c31",
-    "#8ecd5e",
-  ],
-  wetland: [
-    "#5e9d4a",
-    "#7cb45b",
-    "#4a8842",
-    "#8f7a52",
-    "#8a7450",
-    "#356a37",
-    "#9fcf6c",
-  ],
-  "dry-scrub": [
-    "#8fad4f",
-    "#aabf62",
-    "#7a9c47",
-    "#b48f5c",
-    "#ad8a5a",
-    "#557a36",
-    "#cfdc78",
-  ],
-  desert: [
-    "#d1b77a",
-    "#e0c58e",
-    "#b4ae77",
-    "#b8a78b",
-    "#b09b73",
-    "#85834e",
-    "#e1cfa1",
-  ],
 };
 // Trodden earth: contact shadow, shoulder, body, worn center. Kept close in
 // value to that ecology's turf and always less saturated than it, so a road
@@ -118,9 +46,6 @@ const decode = (s: string) => [
   parseInt(s.slice(3, 5), 16),
   parseInt(s.slice(5, 7), 16),
 ];
-const colors = Object.fromEntries(
-  Object.entries(ramps).map(([k, v]) => [k, v.map(decode)]),
-) as Record<Ecology, number[][]>;
 const soils = Object.fromEntries(
   Object.entries(soilRamps).map(([k, v]) => [k, v.map(decode)]),
 ) as Record<Ecology, number[][]>;
@@ -142,24 +67,46 @@ export function rasterHabitatTile(
   y: number,
   ox: number,
   oy: number,
+  art: GrassArt = defaultGrassArt,
 ): GroundTileData {
   const cell = sample(x, y)!;
   if (cell.feature === "paving") return rasterStreetTile(sample, x, y, ox, oy);
   const h = cell.habitat!;
-  const palette = colors[h.ecology];
+  const palette = art.palettes[h.ecology];
   const pixels = new Uint8ClampedArray(16 * 16 * 4);
   const gx = (x + ox) * 16,
     gy = (y + oy) * 16;
   const frozen = cell.surface === "snow";
   // Grassy ecologies expose brown earth; dry and cold ones expose stone.
   const mineralGround = ["desert", "tundra"].includes(h.ecology);
+  const nearBareGround = (ecology: Ecology, xx: number, yy: number) => {
+    for (let dy = -2; dy <= 2; dy++)
+      for (let dx = -2; dx <= 2; dx++) {
+        if (Math.abs(dx) + Math.abs(dy) > 2) continue;
+        const neighbor = sample(xx + dx, yy + dy)?.habitat;
+        if (
+          neighbor &&
+          neighbor.ecology === ecology &&
+          neighbor.exposed > 0.65
+        )
+          return true;
+      }
+    return false;
+  };
   // Band 5 is tilled ground: earth in any ecology, never stone.
-  const bandOf = (a: typeof h, c?: TopographyCell) =>
+  const bandOf = (
+    a: typeof h,
+    c: TopographyCell | undefined,
+    xx: number,
+    yy: number,
+  ) =>
     c?.feature === "field"
       ? 5
       : a.exposed > 0.65
         ? 3
-        : a.exposed > 0.4
+        : a.exposed > 0.4 &&
+            !["desert", "tundra"].includes(a.ecology) &&
+            nearBareGround(a.ecology, xx, yy)
           ? 1
           : a.wet > 0.61
             ? 2
@@ -170,7 +117,7 @@ export function rasterHabitatTile(
   // Remove unsupported one-cell islands before choosing transition tiles.
   const stableBand = (xx: number, yy: number) => {
     const c = sample(xx, yy),
-      own = bandOf(c?.habitat ?? h, c);
+      own = bandOf(c?.habitat ?? h, c, xx, yy);
     const neighbors = [
       [0, -1],
       [1, 0],
@@ -178,8 +125,9 @@ export function rasterHabitatTile(
       [-1, 0],
     ].map(([dx, dy]) => {
       const n = sample(xx + dx, yy + dy);
-      return bandOf(n?.habitat ?? h, n);
+      return bandOf(n?.habitat ?? h, n, xx + dx, yy + dy);
     });
+    if (own === 1) return own;
     return neighbors.filter((b) => b === own).length === 0
       ? neighbors.sort(
           (a, b) =>
@@ -239,6 +187,14 @@ export function rasterHabitatTile(
     return bandAt(px + jx, py + jy);
   };
   const grassy = !mineralGround && !frozen;
+  const lightSward = palette[1].map((v, k) =>
+    Math.round(v * 0.72 + palette[3][k] * 0.28),
+  );
+  const swardTones = [
+    palette[5].map((v, k) => Math.round(v * 0.65 + palette[0][k] * 0.35)),
+    palette[3].map((v, k) => Math.round(v * 0.82 + lightSward[k] * 0.18)),
+    palette[0].map((v, k) => Math.round(v * 0.65 + palette[6][k] * 0.35)),
+  ];
   // 18x18 apron: band per pixel, and 1 = bare earth band, 2 = trodden soil.
   const apron = new Uint8Array(18 * 18);
   const earth = new Uint8Array(18 * 18);
@@ -263,7 +219,13 @@ export function rasterHabitatTile(
       const band = apron[at(px, py)];
       const tilled = band === 5;
       const tone = (b: number) =>
-        b === 5 ? (grassy ? palette[3] : soils[h.ecology][2]) : palette[b];
+        b === 1
+          ? lightSward
+          : b === 5
+            ? grassy
+              ? palette[3]
+              : soils[h.ecology][2]
+            : palette[b];
       let rgb = tone(band);
       // Interlocking clusters only within four native pixels of a real seam.
       // The interiors of transition tiles remain solid habitat colors.
@@ -304,8 +266,14 @@ export function rasterHabitatTile(
               ? [195, 208, 204]
               : [215, 223, 207];
       if (grassy && band <= 2) {
-        // Regular light ticks are the whole base texture; no pixel noise.
-        put(px, py, rgb, turfTick(wx, wy) ? (band === 1 ? 6 : 8) : 0);
+        // Light grass is a quiet transition band; only full and dark turf get
+        // the supporting ticks.
+        put(
+          px,
+          py,
+          rgb,
+          turfTick(wx, wy, art.motifs) ? 10 : 0,
+        );
       } else if (grassy || tilled) {
         const wash = Math.round((noise(wx, wy, 14, 469) - 0.5) * 12);
         put(px, py, rgb, wash + (earthSpeckle(wx, wy) ? -10 : 0));
@@ -316,19 +284,23 @@ export function rasterHabitatTile(
       }
       // Texture describes the material: little faceted stones or composed turf.
       // No blanket of independently varied pixels behind these marks.
-      const ink = groundMotif(
-        tilled || (grassy && band >= 3)
-          ? "pebble"
-          : band === 3
-            ? "stone"
-            : h.ecology === "desert" ||
-                frozen ||
-                (h.layeredForest && band === 4)
-              ? "earth"
-              : "turf",
-        wx,
-        wy,
-      );
+      const ink =
+        band === 1
+          ? groundMotif("sward", wx, wy)
+          : groundMotif(
+              tilled || (grassy && band >= 3)
+                ? "pebble"
+                : band === 3
+                  ? "stone"
+                  : h.ecology === "desert" ||
+                      frozen ||
+                      (h.layeredForest && band === 4)
+                    ? "earth"
+                    : "turf",
+              wx,
+              wy,
+              art.motifs,
+            );
       if (
         h.layeredForest &&
         band === 4 &&
@@ -346,12 +318,16 @@ export function rasterHabitatTile(
       if (ink) {
         const mineral = band === 3;
         if (grassy && band <= 2) {
-          // Solid dark tufts on the light sward; on darker turf the inner
-          // blades catch a highlight.
+          if (band === 1) {
+            put(px, py, swardTones[ink - 1]);
+            continue;
+          }
+          // Solid dark tufts on full turf; on darker turf the inner blades
+          // catch a highlight.
           const dark = palette[5],
             deep = dark.map((v) => Math.max(0, v - 10)),
             lit = palette[0].map((v, k) => Math.round((v + palette[6][k]) / 2));
-          const tones = band === 1 ? [deep, dark, dark] : [deep, dark, lit];
+          const tones = [deep, dark, lit];
           put(px, py, tones[ink - 1]);
           continue;
         }
@@ -437,7 +413,12 @@ export function rasterHabitatTile(
           // Wide trodden ground in a meadow gets pebbles and speckle like any
           // bare earth; a footpath keeps its finer grit.
           const pebbled = grassy && wide;
-          const ink = groundMotif(pebbled ? "pebble" : "earth", wx, wy);
+          const ink = groundMotif(
+            pebbled ? "pebble" : "earth",
+            wx,
+            wy,
+            art.motifs,
+          );
           // A slow wash keeps the treadway from reading as one flat fill.
           let shade =
             Math.round((noise(wx, wy, 44, 461) - 0.5) * 11) +
@@ -504,8 +485,8 @@ export function rasterHabitatTile(
       }
   }
   // Grass ends in a dark serrated border: an outline on the turf side, blades
-  // of one or two pixels leaning out over the earth. A lighter patch gets the
-  // outline alone, so it reads as a separate sward rather than a stain.
+  // of one or two pixels leaning out over the earth. Light grass blends into
+  // the surrounding turf instead of receiving an island outline.
   if (grassy) {
     const dark = palette[5];
     const dirs = [
@@ -523,13 +504,7 @@ export function rasterHabitatTile(
         if (!here) {
           if (band > 2) continue;
           const rim = dirs.some(([dx, dy]) => earth[at(px + dx, py + dy)]);
-          const patch =
-            band === 1 &&
-            dirs.some(([dx, dy]) => {
-              const b = apron[at(px + dx, py + dy)];
-              return b !== 1 && b <= 2 && !earth[at(px + dx, py + dy)];
-            });
-          if (rim || patch) put(px, py, dark);
+          if (rim) put(px, py, dark);
           continue;
         }
         // One-pixel teeth on straight runs only: the single direction with

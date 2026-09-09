@@ -8,6 +8,10 @@ export const stoneMotifs = [
   ["00330000", "03223000", "02221000", "00111000", "00000000"],
   ["00033000", "03322300", "02222110", "01221100", "00110000"],
 ];
+export type GroundMotifOverrides = {
+  turf?: readonly string[][];
+  ticks?: readonly string[][];
+};
 // One well-drawn five-blade tuft, mirrored for variety: 1 shaded left edge
 // of each blade, 2 blade body, 3 highlight up the centre blade. Which of the
 // three tone levels it is drawn in is chosen per tuft by the raster.
@@ -45,16 +49,30 @@ const earthMotifs = [
   ["00000000", "00000000", "00333000", "00022000", "00000000", "00000000"],
   ["00000000", "00000000", "00030000", "00321000", "00010000", "00000000"],
 ];
-export type GroundMotif = "stone" | "turf" | "earth" | "pebble";
+// Short verge marks mix a blade, a small soil fleck and a quiet highlight.
+const swardMotifs = [
+  ["00000", "00100", "01200", "01100", "00100"],
+  ["00000", "01000", "01200", "01100", "00100"],
+  ["00000", "00100", "02200", "01130", "00100"],
+  ["00000", "01010", "01200", "01100", "00100"],
+];
+export type GroundMotif = "stone" | "turf" | "earth" | "pebble" | "sward";
 export const TURF_STEP = [24, 20] as const;
 /** Placement varies whole motifs, with quiet cells between them. World anchors
  * preserve the pattern across chunk boundaries, including negative coordinates. */
-export function groundMotif(kind: GroundMotif, wx: number, wy: number) {
+export function groundMotif(
+  kind: GroundMotif,
+  wx: number,
+  wy: number,
+  overrides?: GroundMotifOverrides,
+) {
   const stepX =
     kind === "stone"
       ? 13
       : kind === "turf"
         ? TURF_STEP[0]
+        : kind === "sward"
+          ? 14
         : kind === "pebble"
           ? 15
           : 16;
@@ -63,6 +81,8 @@ export function groundMotif(kind: GroundMotif, wx: number, wy: number) {
       ? 12
       : kind === "turf"
         ? TURF_STEP[1]
+        : kind === "sward"
+          ? 12
         : kind === "pebble"
           ? 14
           : 15;
@@ -78,10 +98,14 @@ export function groundMotif(kind: GroundMotif, wx: number, wy: number) {
         : 0.45
       : kind === "earth"
         ? 0.56
-        : kind === "pebble"
+      : kind === "pebble"
           ? colony > 0.5
             ? 0.6
             : 0.3
+          : kind === "sward"
+            ? colony > 0.42
+              ? 0.45
+              : 0.25
           : colony > 0.2
             ? 0.85
             : 0.5;
@@ -90,10 +114,12 @@ export function groundMotif(kind: GroundMotif, wx: number, wy: number) {
     kind === "stone"
       ? stoneMotifs
       : kind === "turf"
-        ? turfMotifs
-        : kind === "pebble"
-          ? pebbleMotifs
-          : earthMotifs;
+      ? (overrides?.turf?.length ? overrides.turf : turfMotifs)
+      : kind === "pebble"
+        ? pebbleMotifs
+        : kind === "sward"
+          ? swardMotifs
+        : earthMotifs;
   const glyph = glyphs[Math.floor(hash(bx, by, 409) * glyphs.length)];
   const slackX = stepX - glyph[0].length + 1,
     slackY = stepY - glyph.length + 1;
@@ -191,11 +217,17 @@ const tickTiles = [
     "00000000",
   ],
 ];
-export function turfTick(wx: number, wy: number) {
+export function turfTick(
+  wx: number,
+  wy: number,
+  overrides?: GroundMotifOverrides,
+) {
   const bx = Math.floor(wx / 8),
     by = Math.floor(wy / 8);
   const v = (bx + by + Math.floor(hash(bx, by, 431) * 2)) & 1;
-  return tickTiles[v][((wy % 8) + 8) % 8][((wx % 8) + 8) % 8] === "1";
+  const tiles = overrides?.ticks?.length ? overrides.ticks : tickTiles;
+  const tile = tiles[v % tiles.length];
+  return tile[((wy % 8) + 8) % 8]?.[((wx % 8) + 8) % 8] === "1";
 }
 // Regular sparse dark speckle for bare earth.
 export function earthSpeckle(wx: number, wy: number) {

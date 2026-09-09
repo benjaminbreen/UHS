@@ -512,7 +512,14 @@ export function createSettlementWorld(
         h = habitat(x, y);
       if (
         f.water > (f.shoreWidth ?? 3) &&
-        habitatTree(h, seed, ax, ay, ecologyProfiles[h.ecology].trees)
+        habitatTree(
+          h,
+          seed,
+          ax,
+          ay,
+          ecologyProfiles[h.ecology].trees,
+          (pack.setting?.vegetationRevision ?? 0) >= 5,
+        )
       ) {
         let sprite = vegetationTree(
           regional?.settingAt(x, y) ?? pack.setting!,
@@ -609,7 +616,7 @@ export function createSettlementWorld(
           proposed,
           candidate,
           (pack.setting?.vegetationRevision ?? 0) >= 3
-            ? pack.setting?.vegetationRevision === 4
+            ? (pack.setting?.vegetationRevision ?? 0) >= 4
               ? 0.72
               : 0.54
             : 0.45,
@@ -734,7 +741,7 @@ export function createSettlementWorld(
         "tree-density-thinning",
         x + land.origin.x,
         y + land.origin.y,
-      ) >= (pack.setting?.vegetationRevision === 4 ? 0.6 : 0.8)
+      ) >= ((pack.setting?.vegetationRevision ?? 0) >= 4 ? 0.6 : 0.8)
     )
       selected = undefined;
     if (
@@ -749,7 +756,7 @@ export function createSettlementWorld(
       );
     // Shared low-frequency gaps keep clear ground between vegetation groups.
     if (
-      pack.setting?.vegetationRevision === 4 &&
+      (pack.setting?.vegetationRevision ?? 0) >= 4 &&
       selected &&
       selected !== "rock"
     ) {

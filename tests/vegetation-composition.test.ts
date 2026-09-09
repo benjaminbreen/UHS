@@ -5,6 +5,7 @@ import { settingFor } from "../src/content/geography/resolve";
 import { places } from "../src/content/geography/places";
 import type { WorldSetting } from "../src/content/geography/types";
 import { crownRadius, retainsTree } from "../src/world/v3/vegetation-spacing";
+import { treeGrouping } from "../src/world/v3/habitats";
 import { canopyHidesPlayer } from "../src/render/canopy-visibility";
 import nature from "../public/nature/atlas.json";
 const base: WorldSetting = {
@@ -66,6 +67,22 @@ it("priority thinning is symmetric and uses larger crowns' growing space", () =>
     y !== 0 ? undefined : x === 0 ? a : x === 3 ? b : undefined;
   expect(retainsTree(0, 0, a, sample)).toBe(true);
   expect(retainsTree(3, 0, b, sample)).toBe(false);
+});
+it("revision 5 makes wet ground more favorable and exposed ground only sparsely favorable", () => {
+  const open = {
+    ecology: "grassland" as const,
+    kind: "open" as const,
+    wet: 0.48,
+    cover: 0.45,
+    exposed: 0.08,
+    season: "summer",
+  };
+  const wet = { ...open, kind: "hollow" as const, wet: 0.78 };
+  const bare = { ...open, exposed: 0.82, cover: 0.18 };
+  expect(treeGrouping(wet, true)).toBeGreaterThan(treeGrouping(open, true));
+  expect(treeGrouping(bare, true)).toBeLessThan(treeGrouping(open, true));
+  expect(treeGrouping(bare, true)).toBeGreaterThan(0);
+  expect(treeGrouping(open)).toBe(treeGrouping(open, false));
 });
 it("native broadleaf ages increase in resolution and only foreground crowns hide the player", () => {
   expect(nature.frames["nature-broadleaf-giant"].frame).toMatchObject({

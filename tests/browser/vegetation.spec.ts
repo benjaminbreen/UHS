@@ -35,7 +35,7 @@ for (const ecology of [
         revision: runtime.engine.state.manifest.setting.vegetationRevision,
       };
     });
-    expect(info.revision).toBe(4);
+    expect(info.revision).toBe(5);
     expect(info.frames.length).toBeGreaterThan(0);
     expect(info.shadows).toBeGreaterThan(0);
     if (ecology === "boreal-woodland")
@@ -82,7 +82,7 @@ test("new Korean game uses habitat vegetation and renders its minimap", async ({
       nature: sprites.filter((s) => s.startsWith("nature-")).length,
     };
   });
-  expect(counts.revision).toBe(4);
+  expect(counts.revision).toBe(5);
   expect(counts.nature).toBeGreaterThan(0);
   await expect(page.locator("canvas[data-map-builds]")).toHaveCount(1);
   await page.screenshot({ path: "artifacts/nature-lab/map-seoul.png" });

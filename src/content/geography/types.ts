@@ -73,7 +73,13 @@ export const settingSchema = z
     urbanRevision: z.union([z.literal(1), z.literal(2)]).optional(),
     roadRevision: z.literal(1).optional(),
     vegetationRevision: z
-      .union([z.literal(1), z.literal(2), z.literal(3), z.literal(4)])
+      .union([
+        z.literal(1),
+        z.literal(2),
+        z.literal(3),
+        z.literal(4),
+        z.literal(5),
+      ])
       .optional(),
     geographyMode: z.enum(["earth", "configured"]).optional(),
     terrainRevision: z.union([z.literal(1), z.literal(2)]).optional(),

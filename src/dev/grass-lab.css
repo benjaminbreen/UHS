@@ -1,0 +1,316 @@
+.grass-lab {
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding: 30px clamp(18px, 4vw, 64px) 48px;
+  background:
+    radial-gradient(circle at 80% 0%, #455b3a55, transparent 42%),
+    linear-gradient(135deg, #182118, #242e22 55%, #182018);
+  color: #eee9d2;
+  font-family: "DM Sans", system-ui, sans-serif;
+}
+.grass-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 32px;
+  max-width: 1400px;
+  margin: 0 auto 30px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid #a9a27366;
+}
+.grass-eyebrow {
+  color: #e9c878;
+  font:
+    10px/1.4 "Courier New",
+    monospace;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+.grass-header h1 {
+  margin: 7px 0 8px;
+  color: #f4e6bb;
+  font:
+    36px/1.05 Georgia,
+    serif;
+}
+.grass-header p,
+.grass-note,
+.grass-footer {
+  color: #bec4a9;
+  line-height: 1.5;
+}
+.grass-header p {
+  margin: 0;
+}
+.grass-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  max-width: 540px;
+}
+.grass-actions button,
+.grass-actions a,
+.grass-controls button,
+.grass-controls select {
+  border: 1px solid #87986b;
+  border-radius: 3px;
+  background: #263525;
+  color: #eee9d2;
+  font:
+    13px "DM Sans",
+    system-ui,
+    sans-serif;
+}
+.grass-actions button,
+.grass-actions a {
+  padding: 10px 12px;
+  text-decoration: none;
+  cursor: pointer;
+}
+.grass-actions button:hover,
+.grass-actions a:hover,
+.grass-controls button:hover {
+  border-color: #e9c878;
+  background: #354b32;
+}
+.grass-layout {
+  display: grid;
+  grid-template-columns: minmax(260px, 330px) minmax(0, 1fr);
+  gap: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+.grass-controls,
+.grass-stage {
+  border: 1px solid #788866;
+  border-radius: 5px;
+  background: #1b261cdd;
+  box-shadow: inset 0 0 0 3px #111a12aa;
+}
+.grass-controls {
+  padding: 18px;
+}
+.grass-controls section + section {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid #66725366;
+}
+.grass-controls h2,
+.grass-stage h2 {
+  margin: 0 0 12px;
+  color: #f2dfa9;
+  font:
+    20px Georgia,
+    serif;
+}
+.grass-controls label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  color: #d6d9bf;
+  font-size: 13px;
+}
+.grass-controls select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px;
+}
+.grass-note {
+  margin: 10px 0 0;
+  font-size: 12px;
+}
+.grass-kind-tabs,
+.grass-variants,
+.grass-ink-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.grass-kind-tabs button,
+.grass-variants button,
+.grass-ink-tools button {
+  padding: 8px 10px;
+  cursor: pointer;
+}
+.grass-kind-tabs button[aria-selected="true"],
+.grass-variants button[aria-pressed="true"],
+.grass-ink-tools button[aria-pressed="true"] {
+  border-color: #f0cf7d;
+  background: #4d633c;
+  color: #ffe5a5;
+  box-shadow: inset 0 -2px #e9c878;
+}
+.grass-variants {
+  margin-top: 12px;
+}
+.grass-ink-tools button {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.grass-ink-tools i {
+  display: block;
+  width: 13px;
+  height: 13px;
+  border: 1px solid #d9ddb9;
+}
+.grass-palette {
+  display: grid;
+  gap: 8px;
+}
+.grass-palette label {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 8px;
+}
+.grass-palette input {
+  width: 30px;
+  height: 25px;
+  padding: 0;
+  border: 1px solid #b4bd91;
+  background: transparent;
+  cursor: pointer;
+}
+.grass-palette code {
+  width: 68px;
+  color: #bfc8a0;
+  font:
+    11px "Courier New",
+    monospace;
+}
+.grass-stage {
+  min-width: 0;
+  padding: 22px;
+}
+.grass-stage-heading,
+.grass-rendered-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+}
+.grass-stage-heading > span,
+.grass-rendered-heading > span {
+  color: #aeb89a;
+  font:
+    11px "Courier New",
+    monospace;
+  white-space: nowrap;
+}
+.grass-stage-heading h2,
+.grass-rendered-heading h2 {
+  margin-top: 5px;
+}
+.grass-editor-wrap,
+.grass-preview-wrap {
+  overflow: auto;
+  margin: 16px 0 28px;
+  padding: 22px;
+  border: 1px solid #667a5b;
+  background: #101811;
+}
+.grass-pixel-grid {
+  display: grid;
+  width: max-content;
+  gap: 2px;
+  margin: 0 auto;
+  padding: 2px;
+  background: #071007;
+  image-rendering: pixelated;
+}
+.grass-pixel {
+  width: 34px;
+  height: 34px;
+  box-sizing: border-box;
+  border: 1px solid #53654d;
+  cursor: crosshair;
+  image-rendering: pixelated;
+}
+.grass-pixel:hover {
+  outline: 2px solid #f3d588;
+  outline-offset: -2px;
+}
+.grass-preview-canvas {
+  display: block;
+  width: min(100%, 720px);
+  height: auto;
+  margin: 0 auto;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+.grass-stage-note {
+  max-width: 720px;
+  margin: -14px auto 14px;
+}
+.grass-status {
+  min-height: 20px;
+  color: #e9c878;
+  font:
+    12px "Courier New",
+    monospace;
+}
+.grass-recipe,
+.grass-footer {
+  max-width: 1400px;
+  margin: 24px auto 0;
+}
+.grass-recipe {
+  color: #e8d9ab;
+}
+.grass-recipe summary {
+  cursor: pointer;
+}
+.grass-recipe pre {
+  max-height: 420px;
+  overflow: auto;
+  padding: 16px;
+  border: 1px solid #667a5b;
+  background: #111a12;
+  color: #c8d1ac;
+  font:
+    11px/1.5 "Courier New",
+    monospace;
+}
+.grass-footer {
+  font-size: 11px;
+}
+.grass-lab button:focus-visible,
+.grass-lab a:focus-visible,
+.grass-lab select:focus-visible,
+.grass-lab input:focus-visible {
+  outline: 2px solid #f3d588;
+  outline-offset: 3px;
+}
+@media (max-width: 800px) {
+  .grass-header {
+    flex-direction: column;
+  }
+  .grass-actions {
+    justify-content: flex-start;
+  }
+  .grass-layout {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 520px) {
+  .grass-lab {
+    padding: 20px 10px 32px;
+  }
+  .grass-header h1 {
+    font-size: 30px;
+  }
+  .grass-stage,
+  .grass-controls {
+    padding: 14px;
+  }
+  .grass-editor-wrap,
+  .grass-preview-wrap {
+    padding: 10px;
+  }
+  .grass-pixel {
+    width: 27px;
+    height: 27px;
+  }
+}
