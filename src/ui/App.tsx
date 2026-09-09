@@ -3,6 +3,7 @@ import "./settings.css";
 import {
   lazy,
   Suspense,
+  type PointerEvent as ReactPointerEvent,
   useEffect,
   useRef,
   useState,
@@ -80,6 +81,10 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
   const [note, setNote] = useState("");
   const [command, setCommand] = useState("");
   const [sidebar, setSidebar] = useState(() => window.innerWidth > 640);
+  const [sheetSnap, setSheetSnap] = useState<"peek" | "half" | "full">(
+    "peek",
+  );
+  const sheetPointerStart = useRef<number | null>(null);
   const [mapRegion, setMapRegion] = useState(false);
   const [sideTab, setSideTab] = useState<"around" | "inventory" | "today">(
     "around",
@@ -128,8 +133,36 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
     };
   }, [runtime]);
   useEffect(() => {
-    if (selection && window.innerWidth <= 640) setSidebar(true);
+    if (selection && window.innerWidth <= 640) {
+      setSidebar(true);
+      setSheetSnap("half");
+    }
   }, [selection?.id]);
+  const toggleCharacterPanel = () => {
+    if (sidebar) setSidebar(false);
+    else {
+      setSidebar(true);
+      setSheetSnap("half");
+    }
+  };
+  const onSheetPointerDown = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    sheetPointerStart.current = event.clientY;
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+  const onSheetPointerUp = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    const start = sheetPointerStart.current;
+    sheetPointerStart.current = null;
+    if (start === null) return;
+    const delta = event.clientY - start;
+    if (delta > 42) {
+      if (sheetSnap === "full") setSheetSnap("half");
+      else setSidebar(false);
+    } else if (delta < -42) {
+      setSheetSnap(sheetSnap === "peek" ? "half" : "full");
+    } else {
+      setSheetSnap(sheetSnap === "peek" ? "half" : "peek");
+    }
+  };
   useEffect(() => {
     const listener = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.code === "Digit3") {
@@ -393,7 +426,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
             </button>
             <button
               aria-label="Toggle character panel"
-              onClick={() => setSidebar(!sidebar)}
+              onClick={toggleCharacterPanel}
             >
               <PanelRightClose size={17} />
             </button>
@@ -537,7 +570,27 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
             </div>
           </footer>
         </section>
-        <aside className="sidebar">
+        <aside className="sidebar" data-sheet-snap={sheetSnap}>
+          <button
+            className="mobile-sheet-grabber"
+            aria-label={
+              sheetSnap === "full"
+                ? "Collapse character panel"
+                : "Expand character panel"
+            }
+            onPointerDown={onSheetPointerDown}
+            onPointerUp={onSheetPointerUp}
+          >
+            <span />
+          </button>
+          <div className="mobile-sheet-summary">
+            <CharacterSprite appearance={runtime.appearanceFor(p)} />
+            <span>
+              <strong>{p.name}</strong>
+              <small>{p.role}</small>
+            </span>
+            <ChevronDown aria-hidden="true" />
+          </div>
           <section className="sky-card frame">
             <div className="place-heading">
               <h2>{regionLabel}</h2>
@@ -770,11 +823,11 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
             )}
           </section>
           <div className="sidebar-footer">
-            <button onClick={() => setModal("notebook")}>
-              <NotebookPen size={17} /> Notebook <kbd>N</kbd>
+            <button aria-label="Notebook" onClick={() => setModal("notebook")}>
+              <NotebookPen size={17} /> Notebook <kbd aria-hidden="true">N</kbd>
             </button>
-            <button onClick={() => setModal("inventory")}>
-              <ShoppingBag size={17} /> Inventory <kbd>I</kbd>
+            <button aria-label="Inventory" onClick={() => setModal("inventory")}>
+              <ShoppingBag size={17} /> Inventory <kbd aria-hidden="true">I</kbd>
             </button>
           </div>
         </aside>
