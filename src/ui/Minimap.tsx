@@ -1,14 +1,21 @@
+import nature from "../../public/nature/atlas.json" with { type: "json" };
+import { natureTreeSprites } from "../content/ecology/vegetation";
 import { useEffect, useRef } from "react";
 import atlas from "../render/generated/atlas.json" with { type: "json" };
 import { surfaceAt } from "../render/materials";
 import type { Runtime } from "../runtime/session";
 import type { WorldModel, Point } from "../core/types";
 const PAD = 32;
+let natureImage: HTMLImageElement | undefined;
 let atlasImage: HTMLImageElement | undefined;
 function sprites() {
   if (!atlasImage) {
     atlasImage = new Image();
     atlasImage.src = "/packs/atlas.png";
+  }
+  if (!natureImage) {
+    natureImage = new Image();
+    natureImage.src = "/nature/atlas.png";
   }
   return atlasImage;
 }
@@ -62,7 +69,7 @@ function paintBackground(
     }
   const stamp = (name: string, x: number, y: number, width: number) => {
     const f = (
-      atlas.frames as Record<
+      (name.startsWith("nature-") ? nature.frames : atlas.frames) as Record<
         string,
         { frame: { x: number; y: number; w: number; h: number } }
       >
@@ -70,7 +77,7 @@ function paintBackground(
     if (!f) return;
     const h = Math.round((width * f.h) / f.w);
     c.drawImage(
-      sprites,
+      name.startsWith("nature-") ? natureImage! : sprites,
       f.x,
       f.y,
       f.w,
@@ -100,7 +107,11 @@ function paintBackground(
     ) {
       const prop =
         world.geography && extent > 320 ? undefined : world.decoration(wx, wy);
-      if (prop && world.pack.trees.includes(prop.sprite))
+      if (
+        prop &&
+        (world.pack.trees.includes(prop.sprite) ||
+          natureTreeSprites.includes(prop.sprite))
+      )
         stamp(
           prop.sprite,
           ((wx - origin.x) * size) / extent + size / 2,
@@ -246,9 +257,22 @@ export function Minimap({
       ctx.fill();
       ctx.stroke();
     };
-    if (image.complete && image.naturalWidth) draw();
-    else image.addEventListener("load", draw, { once: true });
-    return () => image.removeEventListener("load", draw);
+    const ready = () => {
+      if (
+        image.complete &&
+        image.naturalWidth &&
+        natureImage?.complete &&
+        natureImage.naturalWidth
+      )
+        draw();
+    };
+    ready();
+    image.addEventListener("load", ready);
+    natureImage!.addEventListener("load", ready);
+    return () => {
+      image.removeEventListener("load", ready);
+      natureImage!.removeEventListener("load", ready);
+    };
   }, [
     world,
     p.x,

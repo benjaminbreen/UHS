@@ -63,30 +63,62 @@ for (const start of starts)
     });
     expect(errors).toEqual([]);
   });
-test("Random start creates a fresh world and reload returns to the splash", async ({
+test("Random start previews characters and Begin preserves the selected character", async ({
   page,
 }) => {
   test.setTimeout(120000);
   await page.goto("/");
   await page.getByRole("button", { name: "Random start", exact: true }).click();
+  const preview = page.getByLabel("Selected start");
+  await expect(preview).toBeVisible();
+  const first = await preview.textContent();
+  expect(await page.evaluate(() => !!(window as any).historySim)).toBe(false);
+  await page.getByRole("button", { name: "Random start", exact: true }).click();
+  await expect(preview).not.toHaveText(first!);
+  const name = await preview.locator("strong").innerText();
+  await page.getByRole("button", { name: "Choose starting details" }).click();
+  const dialog = page.getByRole("dialog");
+  await expect(
+    dialog.getByLabel("Selected start").locator("strong"),
+  ).toHaveText(name);
+  await dialog.getByRole("button", { name: "Begin", exact: true }).click();
   await page.waitForFunction(() => !!(window as any).historySim, null, {
     timeout: 75000,
   });
-  const seed = await page.evaluate(
-    () => (window as any).historySim.observe().manifest.seed,
+  const firstPlayer = await page.evaluate(
+    () => (window as any).historySim.observe().player,
   );
+  expect(firstPlayer.name).toBe(name);
+  expect(firstPlayer.appearance).toBeDefined();
   await page.reload();
   await expect(page.getByAltText("Universal History Simulator")).toBeVisible();
   expect(await page.evaluate(() => !!(window as any).historySim)).toBe(false);
   await page.getByRole("button", { name: "Random start", exact: true }).click();
+  await expect(preview).toBeVisible();
+  const nextName = await preview.locator("strong").innerText();
+  await page.getByRole("button", { name: "Begin", exact: true }).click();
   await page.waitForFunction(() => !!(window as any).historySim, null, {
     timeout: 75000,
   });
+  const nextPlayer = await page.evaluate(
+    () => (window as any).historySim.observe().player,
+  );
+  expect(nextPlayer.name).toBe(nextName);
+  expect(nextPlayer.appearance).not.toEqual(firstPlayer.appearance);
+});
+
+test("World Weaver Begin fits within a laptop viewport", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.goto("/");
+  await page.getByRole("button", { name: "Choose starting details" }).click();
+  const dialog = page.getByRole("dialog");
+  const begin = dialog.getByRole("button", { name: "Begin", exact: true });
+  await expect(begin).toBeVisible();
+  const bounds = await begin.boundingBox();
+  expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(700);
   expect(
-    await page.evaluate(
-      () => (window as any).historySim.observe().manifest.seed,
-    ),
-  ).not.toBe(seed);
+    await dialog.evaluate((e) => e.scrollHeight <= e.clientHeight + 2),
+  ).toBe(true);
 });
 
 test("typed prompt begins a world and unrecognized text stays editable", async ({

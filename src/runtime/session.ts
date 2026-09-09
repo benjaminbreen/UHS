@@ -1,7 +1,9 @@
+import { populateCharacter } from "../content/geography/character";
+import { generateCharacter } from "../content/characters/generate";
 import { releaseTerrainWorker } from "./terrain-worker-owner";
 import type { PreparedSettlement } from "../world/v3/prepared";
 import { wardrobeFor } from "../content/characters/wardrobes";
-import { actorAppearance } from "../core/character";
+import { actorAppearance, generateAppearance } from "../core/character";
 import type { Actor } from "../core/types";
 import type { CharacterPose } from "../render/characters/poses";
 import { allowedHeights, type CharacterAppearance } from "../core/character";
@@ -59,15 +61,56 @@ export function createSession(
   if (!snapshot) {
     engine.state.manifest.content = version;
     engine.initialize(seed);
+    if (resolved?.characterRevision) {
+      for (const actor of engine.state.actors) {
+        if (actor.kind !== "human" || actor.appearance) continue;
+        const local =
+          world.geography?.packAt(actor.home.x, actor.home.y).setting ??
+          resolved;
+        Object.assign(
+          actor,
+          generateCharacter(local, seed, actor.id, actor.age ?? 34, actor.role),
+        );
+      }
+      Object.assign(
+        engine.state.player,
+        generateCharacter(
+          resolved,
+          resolved.character?.appearanceSeed ?? seed,
+          "player",
+          engine.state.player.age ?? 34,
+          resolved.role,
+          resolved.characterName,
+        ),
+      );
+    }
     if (resolved?.character) {
       engine.state.player.hunger = resolved.character.hunger;
       engine.state.player.fatigue = resolved.character.fatigue;
+      if (resolved.character.appearanceSeed && !resolved.characterRevision) {
+        const appearance = generateAppearance(
+          resolved.character.appearanceSeed,
+          0,
+          engine.state.player.age ?? 34,
+        );
+        appearance.wearing = wardrobeFor(
+          resolved.character.appearanceSeed,
+          pack,
+          appearance.wearing,
+        );
+        engine.state.player.appearance = appearance;
+      }
     }
   }
   return engine;
 }
 export function createSettingSession(setting: WorldSetting, seed = "earth-2") {
-  return createSession("atlas", seed, undefined, integratedSetting(setting));
+  return createSession(
+    "atlas",
+    seed,
+    undefined,
+    populateCharacter(integratedSetting(setting), seed),
+  );
 }
 export function restoreSession(value: unknown) {
   const save = snapshotSchema.parse(value);

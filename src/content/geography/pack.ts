@@ -1,3 +1,6 @@
+import { resolveCharacterContext } from "../characters/resolve";
+import { characterName, generateCharacter } from "../characters/generate";
+import { treeMix } from "../ecology/vegetation";
 import { civicProfile } from "../settlements/civic";
 import { packTemplates } from "../legacy-packs";
 import { landscapes } from "../graphics/landscapes";
@@ -138,6 +141,56 @@ export function packForSetting(setting: WorldSetting): Pack {
     if (ids("plant").length) pack.trees = ids("plant");
     if (ids("occupation").length) pack.roles = ids("occupation");
   }
+  if (setting.characterRevision) {
+    const context = resolveCharacterContext(setting);
+    const character = generateCharacter(
+      setting,
+      setting.character?.appearanceSeed ?? "earth-2",
+      "player",
+      34,
+      setting.role,
+      setting.characterName,
+    );
+    pack.names = Array.from({ length: 24 }, (_, i) =>
+      characterName(
+        setting,
+        setting.character?.appearanceSeed ?? "earth-2",
+        `pack-person-${i}`,
+        context,
+      ),
+    );
+    pack.roles = context.livelihoods.map((l) => l.label);
+    pack.role = character.role;
+    pack.startInventory = character.inventory;
+    pack.currency = undefined;
+    pack.trade = { give: "wood", take: "fruit", cost: 1 };
+    pack.commodities = [...context.profile.allowedItems];
+    pack.evidence.push(
+      ...[
+        context.profile,
+        context.appearance,
+        ...(context.names ? [context.names] : []),
+      ].map((entry) => ({
+        id: `character-${entry.id}`,
+        title: entry.label,
+        statement: entry.evidence.claim,
+        status: entry.evidence.status,
+        url: entry.evidence.sources[0] ?? "",
+        limitation: entry.evidence.limitation,
+      })),
+    );
+    if (!context.names)
+      pack.evidence.push({
+        id: "character-names-unresearched",
+        title: "Invented personal name",
+        statement:
+          "No researched naming tradition is available for this context.",
+        status: "fictional",
+        url: "",
+        limitation:
+          "Personal names use a shared fictional syllable set, not an attested local naming tradition or a recovered historical language.",
+      });
+  }
   if (
     setting.urbanRevision &&
     (setting.settlement === "city" || setting.settlement === "port")
@@ -152,5 +205,9 @@ export function packForSetting(setting: WorldSetting): Pack {
       limitation: civic.evidence.note,
     });
   }
+  if (setting.vegetationRevision)
+    pack.trees = treeMix(setting).map(([id]) => id);
+  // Tree-free ecologies still need a harmless court-art fallback. Wild density stays zero.
+  if (!pack.trees.length) pack.trees = ["bush"];
   return pack;
 }

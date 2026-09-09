@@ -1,3 +1,4 @@
+import { populateCharacter } from "../content/geography/character";
 import { createSession } from "./session";
 import { integratedSetting } from "../content/geography/defaults";
 import { packForSetting } from "../content/geography/pack";
@@ -12,7 +13,10 @@ export async function prepareSettingSession(
   seed: string,
   signal?: AbortSignal,
 ) {
-  const resolved = integratedSetting(settingSchema.parse(setting));
+  const resolved = populateCharacter(
+    integratedSetting(settingSchema.parse(setting)),
+    seed,
+  );
   if (typeof Worker === "undefined")
     return createSession("atlas", seed, undefined, resolved);
   signal?.throwIfAborted();

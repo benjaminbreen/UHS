@@ -1,4 +1,10 @@
 import {
+  generateCharacter,
+  characterLivelihood,
+  eligibleInventory,
+} from "../../content/characters/generate";
+import { resolveCharacterContext } from "../../content/characters/resolve";
+import {
   streetPalette,
   chooseStreetSurface,
 } from "../../content/settlements/streets/palettes";
@@ -33,6 +39,9 @@ export function planSettlement(
   const c = site.center,
     profile = site.profile,
     r = profile.radius;
+  const characterContext = pack.setting?.characterRevision
+    ? resolveCharacterContext(pack.setting)
+    : undefined;
   const sharedRoads = !!pack.setting?.roadRevision;
   const urban =
     !!pack.setting?.urbanRevision &&
@@ -289,7 +298,9 @@ export function planSettlement(
               kind: "container",
               sprite: `urban-stall-${i}`,
               pos: pos({ x, y: court.y + court.h - 2 }),
-              inventory: { grain: 6 },
+              inventory: characterContext
+                ? eligibleInventory({ grain: 6 }, characterContext)
+                : { grain: 6 },
               owner: `${site.id}-community`,
             });
         }
@@ -691,8 +702,14 @@ export function planSettlement(
     if (!connect(door, point, `door${i}`, 0)) continue;
     const entranceLabel =
       model.opening === "roof-hatch" ? "Climb inside" : "Enter";
-    const role =
-      owner === "player"
+    const role = pack.setting?.characterRevision
+      ? characterLivelihood(
+          pack.setting,
+          seed,
+          owner,
+          owner === "player" ? pack.role : undefined,
+        ).label
+      : owner === "player"
         ? pack.role
         : profile.fields !== "none"
           ? i % 3 === 0
@@ -810,6 +827,11 @@ export function planSettlement(
         memories: [],
         direction: 2,
       };
+      if (pack.setting?.characterRevision)
+        Object.assign(
+          a,
+          generateCharacter(pack.setting, seed, owner, 34, role),
+        );
       if (owner !== "player") plan.actors.push(a);
       plan.work.set(owner, {
         home: door,
@@ -835,7 +857,12 @@ export function planSettlement(
         kind: "container",
         pos: pos(side),
         sprite: "basket",
-        inventory: { grain: 4, wood: 2 },
+        inventory: pack.setting?.characterRevision
+          ? eligibleInventory(
+              { grain: 4, wood: 2 },
+              resolveCharacterContext(pack.setting),
+            )
+          : { grain: 4, wood: 2 },
         owner,
       },
       {
@@ -863,7 +890,12 @@ export function planSettlement(
         kind: "container",
         pos: { x: 8, y: 3, space: id },
         sprite: "basket",
-        inventory: { grain: 3, wood: 2 },
+        inventory: pack.setting?.characterRevision
+          ? eligibleInventory(
+              { grain: 3, wood: 2 },
+              resolveCharacterContext(pack.setting),
+            )
+          : { grain: 3, wood: 2 },
         owner,
       },
     );
@@ -898,7 +930,20 @@ export function planSettlement(
       }
     return best;
   }
-  if (profile.fields !== "none" && owners.length)
+  const fieldOwners = characterContext
+    ? owners.filter(
+        (id) =>
+          (id === "player"
+            ? pack.role
+            : plan.actors.find((a) => a.id === id)?.role) === "Farmer",
+      )
+    : owners;
+  if (
+    profile.fields !== "none" &&
+    fieldOwners.length &&
+    (!characterContext ||
+      characterContext.profile.allowedItems.includes("grain"))
+  )
     for (let i = 0; i < (profile.pattern === "farmstead" ? 5 : 4); i++) {
       const w =
           profile.fields === "strips"
@@ -920,7 +965,7 @@ export function planSettlement(
         eachCell(field, (x, y) => noRoad.delete(cellKey(x, y)));
         continue;
       }
-      const owner = owners[i % owners.length],
+      const owner = fieldOwners[i % fieldOwners.length],
         id = `${site.id}-field${i}`;
       paint(field, "field");
       eachCell(field, (x, y) => noRoad.add(cellKey(x, y)));
@@ -957,7 +1002,14 @@ export function planSettlement(
       work.work = access;
       work.label = "Tending the field";
     }
-  const herdOwners = owners.filter((id) => id !== "player").slice(-2);
+  const herdOwners = owners
+    .filter(
+      (id) =>
+        id !== "player" &&
+        (!characterContext ||
+          plan.actors.find((a) => a.id === id)?.role === "Herder"),
+    )
+    .slice(-2);
   if (profile.livestock && herdOwners.length)
     for (let i = 0; i < Math.min(2, herdOwners.length); i++) {
       const pen = landPlot(12, 11, `pen${i}`);
@@ -1062,5 +1114,25 @@ export function planSettlement(
         });
       }
     }
+  if (pack.setting?.characterRevision) {
+    for (const actor of plan.actors) {
+      if (actor.kind !== "human") continue;
+      const lacksWork =
+        (actor.role === "Herder" && !plan.work.get(actor.id)?.gateId) ||
+        (actor.role === "Farmer" &&
+          !plan.plots.some((p) => p.kind === "field" && p.owner === actor.id));
+      if (lacksWork)
+        Object.assign(
+          actor,
+          generateCharacter(
+            pack.setting,
+            seed,
+            actor.id,
+            actor.age ?? 34,
+            "Gatherer",
+          ),
+        );
+    }
+  }
   return plan;
 }

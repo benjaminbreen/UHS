@@ -1,0 +1,143 @@
+.modal.modal-settings {
+  width: min(760px, 100%);
+  padding: 30px;
+  background:
+    radial-gradient(ellipse at top left, #30386966, transparent 70%),
+    linear-gradient(130deg, #1c254d, #101830);
+  border: 2px solid #b3a4d7;
+  border-radius: 7px;
+  box-shadow:
+    inset 0 0 0 3px #080e26,
+    0 22px 80px #0009;
+  color: #f2efee;
+}
+.modal-settings > .eyebrow {
+  color: #edcd89;
+  font-size: 11px;
+  letter-spacing: 2px;
+}
+.modal-settings > h2 {
+  font-size: 34px;
+  margin: 10px 0 24px;
+}
+.modal-settings .close-modal {
+  border-color: #9990bd;
+  color: #f5d587;
+  background: #151d3b;
+}
+.settings-tabs {
+  display: flex;
+  gap: 6px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid #777097;
+  margin-bottom: 22px;
+}
+.settings-tabs button {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid #706a96;
+  border-radius: 3px;
+  background: #111a37;
+  color: #c8c6e2;
+  padding: 11px 8px;
+  font:
+    14px "DM Sans",
+    sans-serif;
+  cursor: pointer;
+}
+.settings-tabs [aria-selected="true"] {
+  background: linear-gradient(#3d4777, #29355e);
+  color: #ffe0a0;
+  border-color: #e7c785;
+  box-shadow: inset 0 -2px #e7c785;
+}
+.modal-settings [role="tabpanel"] {
+  min-height: 240px;
+}
+.modal-settings [hidden] {
+  display: none;
+}
+.modal-settings [role="tabpanel"] > p {
+  color: #c4c3d8;
+  font-size: 16px;
+  line-height: 1.6;
+}
+.modal-settings h3 {
+  color: #f4d894;
+  margin: 0 0 16px;
+}
+.modal-settings .action {
+  background: #192343;
+  color: #eee9f4;
+  border: 1px solid #706c98;
+  font-size: 16px;
+  min-height: 45px;
+}
+.modal-settings .action:hover {
+  background: #303c63;
+  border-color: #e7c785;
+}
+.modal-settings .settings-tools .action {
+  display: flex;
+  width: 100%;
+  margin: 8px 0;
+}
+.modal-settings .settings-featured {
+  display: flex;
+  flex-direction: column;
+  align-items: start;
+  gap: 7px;
+  padding: 16px;
+  border-color: #e7c785;
+  color: #f5d587;
+}
+.settings-featured small {
+  font:
+    12px "DM Sans",
+    sans-serif;
+  color: #c9c4e0;
+}
+.modal-settings .settings-row {
+  border-color: #706a96;
+  margin-top: 24px;
+}
+.modal-settings .settings-footnote {
+  border-color: #706a96;
+  padding-top: 16px;
+  margin-top: 20px;
+}
+.modal-settings .settings-footnote strong {
+  font-size: 14px;
+  color: #d4cee9;
+}
+.modal-settings .settings-footnote p {
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 8px 0;
+}
+.modal-settings .settings-footnote small {
+  font-size: 11px;
+  color: #aaa5c9;
+}
+.modal-settings :focus-visible {
+  outline: 2px solid #f5d587;
+  outline-offset: 3px;
+}
+@media (max-width: 600px) {
+  .modal.modal-settings {
+    padding: 24px 16px;
+  }
+  .modal-settings > h2 {
+    font-size: 29px;
+  }
+  .settings-tabs {
+    gap: 4px;
+  }
+  .settings-tabs button {
+    font-size: 12px;
+    padding: 10px 3px;
+  }
+  .modal-settings [role="tabpanel"] {
+    min-height: 220px;
+  }
+}

@@ -135,7 +135,8 @@ export function rasterHabitatTile(
         ? 1
         : a.wet > 0.61
           ? 2
-          : a.ecology.includes("woodland") && a.cover > 0.6
+          : a.ecology.includes("woodland") &&
+              a.cover > (a.layeredForest ? 0.42 : 0.6)
             ? 4
             : 0;
   // Remove unsupported one-cell islands before choosing transition tiles.
@@ -256,12 +257,26 @@ export function rasterHabitatTile(
       const ink = groundMotif(
         band === 3
           ? "stone"
-          : h.ecology === "desert" || frozen
+          : h.ecology === "desert" || frozen || (h.layeredForest && band === 4)
             ? "earth"
             : "turf",
         wx,
         wy,
       );
+      if (
+        h.layeredForest &&
+        band === 4 &&
+        !frozen &&
+        hash(Math.floor(wx / 9), Math.floor(wy / 9), 917) > 0.7
+      ) {
+        const lx = ((wx % 9) + 9) % 9,
+          ly = ((wy % 9) + 9) % 9;
+        if (
+          (ly === 3 && lx >= 3 && lx <= 5) ||
+          (ly === 4 && lx >= 2 && lx <= 4)
+        )
+          put(px, py, palette[4], ly === 3 ? 14 : -9);
+      }
       if (ink) {
         const mineral = band === 3;
         const shade = mineral ? [0, -29, -6, 22][ink] : [0, -6, 4, 11][ink];
@@ -313,8 +328,14 @@ export function rasterHabitatTile(
           const texture = ink
             ? [0, -12, 5, 18][ink]
             : [0, -6, 7][materialGrain(wx, wy)];
-          const minor = cell.pathArt?.length && cell.pathArt.every(s => s.radius < 0.5);
-          put(px, py, base, (minor ? edgeTone * 0.3 : edgeTone) + (path < 0.56 ? 0 : texture));
+          const minor =
+            cell.pathArt?.length && cell.pathArt.every((s) => s.radius < 0.5);
+          put(
+            px,
+            py,
+            base,
+            (minor ? edgeTone * 0.3 : edgeTone) + (path < 0.56 ? 0 : texture),
+          );
         } else if (nearShore && cell.surface !== "soil") {
           const distance = shoreDistance(sample, xx, yy, ox, oy);
           const jitter = (noise(wx, wy, 5, 333) - 0.5) * 0.32;

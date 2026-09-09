@@ -1,3 +1,4 @@
+import { characterName, generateCharacter } from "../characters/generate";
 import type { WorldSetting } from "./types";
 import { random } from "../../core/random";
 import { packForSetting } from "./pack";
@@ -38,6 +39,7 @@ export function proceduralName(
   seed: string,
   key = "name",
 ) {
+  if (setting.characterRevision) return characterName(setting, seed, key);
   const names =
     setting.culture === "european" &&
     setting.year >= 500 &&
@@ -62,18 +64,33 @@ export function populateCharacter(
   setting: WorldSetting,
   seed: string,
 ): WorldSetting {
+  setting = { ...setting, characterRevision: 1 };
+  const generated = generateCharacter(
+    setting,
+    seed,
+    "player",
+    34,
+    setting.role,
+  );
   const pick = (key: string) =>
     random(seed, "starting-character", setting.placeId, setting.year, key);
   return {
     ...setting,
+    role: generated.role,
     characterName:
       setting.characterName === "Traveler" ||
       setting.characterName === setting.role
-        ? proceduralName(setting, seed)
+        ? generated.name
         : setting.characterName,
-    character: setting.character ?? {
-      hunger: 5 + Math.floor(pick("hunger") * 15),
-      fatigue: Math.floor(pick("fatigue") * 8),
-    },
+    character: setting.character
+      ? {
+          ...setting.character,
+          appearanceSeed: setting.character.appearanceSeed ?? seed,
+        }
+      : {
+          appearanceSeed: seed,
+          hunger: 5 + Math.floor(pick("hunger") * 15),
+          fatigue: Math.floor(pick("fatigue") * 8),
+        },
   };
 }

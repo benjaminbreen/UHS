@@ -1,11 +1,14 @@
-import { featuredPlaces } from "./places";
+import { places } from "./places";
 import { settingFor } from "./resolve";
 import { populateCharacter } from "./character";
 
-/** Fresh browser entropy; featured dates keep random starts historically scoped. */
-export function randomStart() {
-  const draws = crypto.getRandomValues(new Uint32Array(2));
-  const place = featuredPlaces[draws[0] % featuredPlaces.length];
+/**
+ * Fresh browser entropy across the entire atlas. Each atlas location retains
+ * its authored default date/context; the curated examples are not a hidden
+ * random-start pool.
+ */
+export function randomStartFromDraws(draws: Uint32Array) {
+  const place = places[draws[0] % places.length];
   const seed = `world-${crypto.randomUUID()}`;
   const roles =
     place.year < -10000
@@ -17,4 +20,8 @@ export function randomStart() {
     seed,
   );
   return { seed, setting };
+}
+
+export function randomStart() {
+  return randomStartFromDraws(crypto.getRandomValues(new Uint32Array(2)));
 }

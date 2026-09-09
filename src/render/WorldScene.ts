@@ -1,3 +1,5 @@
+import { natureTreeSprites } from "../content/ecology/vegetation";
+import { canopyHidesPlayer } from "./canopy-visibility";
 import { WorldCharacters } from "./characters/world";
 import { entityInView, npcMotion } from "./entity-presentation";
 import { poseTiming, type CharacterPose } from "./characters/poses";
@@ -30,6 +32,7 @@ export class WorldScene extends Phaser.Scene {
       "id" | "sprite" | "appearance" | "age" | "direction" | "activity" | "held"
     >
   >();
+  private canopies: { image: Phaser.GameObjects.Image; cut: number }[] = [];
   private layers: Phaser.GameObjects.GameObject[] = [];
   private ground?: Phaser.Tilemaps.TilemapLayer;
   private tilemap?: Phaser.Tilemaps.Tilemap;
@@ -66,6 +69,12 @@ export class WorldScene extends Phaser.Scene {
     this.runtime = runtime;
   }
   preload() {
+    this.load.atlas("nature", "/nature/atlas.png", "/nature/atlas.json");
+    this.load.atlas(
+      "nature-shadows",
+      "/nature/shadows.png",
+      "/nature/shadows.json",
+    );
     this.load.atlas("ecology", "/ecology/atlas.png", "/ecology/atlas.json");
     this.load.atlas("props", "/props/atlas.png", "/props/atlas.json");
     this.load.atlas(
@@ -215,7 +224,7 @@ export class WorldScene extends Phaser.Scene {
   }
   private sprite(frame: string, x: number, y: number, depth: number) {
     const image = this.add
-      .image(x, y - this.lift(x, y), "atlas", frame)
+      .image(x, y - this.lift(x, y), this.texture(frame), frame)
       .setOrigin(0.5, 1)
       .setTint(this.tint)
       .setDepth(depth);
@@ -223,6 +232,7 @@ export class WorldScene extends Phaser.Scene {
     return image;
   }
   private texture(frame: string) {
+    if (frame.startsWith("nature-")) return "nature";
     if (frame.startsWith("ecology-")) return "ecology";
     return frame.startsWith("study-prop-") || frame.startsWith("prop-broken-")
       ? "props"
@@ -232,7 +242,11 @@ export class WorldScene extends Phaser.Scene {
     if (this.options.shadows === false) return undefined;
     const key = shadowFrame(this.shadowPhase, frame);
     const texture =
-      this.texture(frame) === "props" ? "prop-shadows" : "lighting-shadows";
+      this.texture(frame) === "nature"
+        ? "nature-shadows"
+        : this.texture(frame) === "props"
+          ? "prop-shadows"
+          : "lighting-shadows";
     if (!this.textures.get(texture).has(key)) return undefined;
     const image = this.add
       .image(x, transient ? y : y - this.lift(x, y), texture, key)
@@ -305,6 +319,7 @@ export class WorldScene extends Phaser.Scene {
       this.staticKey = key;
       for (const l of this.layers) l.destroy();
       this.layers = [];
+      this.canopies = [];
       this.ripples = [];
       this.buildings.clear();
       this.ground?.destroy();
@@ -499,6 +514,41 @@ export class WorldScene extends Phaser.Scene {
                 y * 16 + 16,
                 y * 16 + 12,
               );
+              if (d.sprite !== "rock" && !this.options.lab) {
+                decoration.setInteractive({
+                  pixelPerfect: true,
+                  useHandCursor: true,
+                });
+                decoration.on(
+                  "pointerdown",
+                  (
+                    pointer: Phaser.Input.Pointer,
+                    _x: number,
+                    _y: number,
+                    event: Phaser.Types.Input.EventData,
+                  ) => {
+                    if (pointer.rightButtonDown()) return;
+                    event.stopPropagation();
+                    this.runtime.select(d.id);
+                  },
+                );
+              }
+              if (
+                (w.pack.setting?.vegetationRevision ?? 0) >= 2 &&
+                (natureTreeSprites.includes(frame) ||
+                  w.pack.trees.includes(frame))
+              ) {
+                const cut = Math.floor(decoration.height * 0.72);
+                decoration.setCrop(0, 0, decoration.width, cut);
+                this.canopies.push({ image: decoration, cut });
+                const trunk = this.sprite(
+                  frame,
+                  x * 16 + 8,
+                  y * 16 + 16,
+                  y * 16 + 12,
+                );
+                trunk.setCrop(0, cut, trunk.width, trunk.height - cut);
+              }
               if (d.sprite === "rock" && w.topography) {
                 const cell = w.topography(x, y);
                 if (
@@ -639,7 +689,11 @@ export class WorldScene extends Phaser.Scene {
       const shade = this.shadows.get(id);
       const shadowKey = shadowFrame(this.shadowPhase, frame);
       const shadowTexture =
-        this.texture(frame) === "props" ? "prop-shadows" : "lighting-shadows";
+        this.texture(frame) === "nature"
+          ? "nature-shadows"
+          : this.texture(frame) === "props"
+            ? "prop-shadows"
+            : "lighting-shadows";
       if (
         shade &&
         !frame.startsWith("human-") &&
@@ -916,6 +970,27 @@ export class WorldScene extends Phaser.Scene {
         im.setFrame(
           `${frame}${this.tweens.isTweening(im) ? Math.floor(time / 140) % 2 : 0}`,
         );
+    }
+    const player = this.entities.get("player");
+    for (const { image, cut } of this.canopies) {
+      const faded =
+        player &&
+        canopyHidesPlayer(
+          {
+            x: image.x,
+            y: image.y,
+            width: image.width,
+            height: image.height,
+            cut,
+          },
+          player,
+        );
+      const target = faded ? 0.32 : 1;
+      image.setAlpha(
+        Math.abs(image.alpha - target) < 0.02
+          ? target
+          : image.alpha + (target - image.alpha) * 0.25,
+      );
     }
     this.characters?.prune();
     const selected = this.runtime.selected;

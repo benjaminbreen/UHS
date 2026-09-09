@@ -75,6 +75,18 @@ export const characterAppearanceSchema = z.object({
   }),
 });
 const actor = z.object({
+  origin: z
+    .object({
+      revision: z.literal(1),
+      profile: z.string(),
+      community: z.string(),
+      nameKit: z.string().optional(),
+      nameFormat: z.string().optional(),
+      nameFamilies: z.array(z.string()).optional(),
+      livelihood: z.string(),
+      notes: z.array(z.string()),
+    })
+    .optional(),
   appearance: characterAppearanceSchema.optional(),
   age: z.number().int().min(0).max(120).optional(),
   householdId: z.string().optional(),

@@ -696,3 +696,33 @@
 }
 .splash-random { white-space:nowrap; }
 @media(max-width:600px) { .splash-begin,.splash-random { padding:0 10px;font-size:11px; } }
+/* The splash and atlas desk use the same brass edges and selection card. */
+.splash-input { border-color:var(--start-border);outline-color:#d9b47735;background:linear-gradient(110deg,#152131,#101a28); }
+.splash-input input { font-family:"Baskervville",Georgia,serif; }
+.splash-random { border:1px solid var(--start-gold);color:#f0d397;background:linear-gradient(120deg,#e9cb7118,#e9cb7108);font-family:"Baskervville",Georgia,serif;font-size:14px;font-weight:400;text-transform:none;letter-spacing:0; }
+.splash-begin { font-family:"Baskervville",Georgia,serif;font-size:17px;font-weight:400;text-transform:none;letter-spacing:0; }
+.splash-modes small,.opening-grid small { color:#b8b8c7; }
+.mode-diamond { border-color:var(--start-gold); }
+.splash-divider::before,.splash-divider::after { background:var(--start-border); }
+.opening-grid small { border-color:#8d795080; }
+.splash-content > .start-preview { margin-top:16px; }
+@media(min-width:761px) and (max-height:800px) {
+  .splash { padding:28px 32px; }
+  .splash-header { margin:0 0 20px; }
+  .splash-logotype { max-width:730px;margin:auto; }
+  .splash-header p { font-size:17px; }
+  .splash-input { min-height:70px; }
+  .splash-actions { margin-top:16px; }
+  .splash-content > .start-preview { margin-top:12px;padding:8px 12px; }
+  .splash-divider { margin-bottom:16px; }
+  .opening-grid { gap:10px 55px;padding:4px 55px; }
+  .splash-footer { margin-top:22px; }
+}
+
+.character-context-note {
+  display: block;
+  max-width: 38rem;
+  line-height: 1.4;
+  color: var(--muted, #b5b0a5);
+  font-size: .78rem;
+}

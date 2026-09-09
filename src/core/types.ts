@@ -25,7 +25,7 @@ export type Evidence = {
   id: string;
   title: string;
   statement: string;
-  status: "documented" | "inferred" | "fictional";
+  status: "documented" | "inferred" | "hypothesis" | "fictional";
   url: string;
   limitation: string;
 };
@@ -54,7 +54,18 @@ export type Resource = {
   seasons: string[];
   readyAt: number;
 };
+export type CharacterOrigin = {
+  revision: 1;
+  profile: string;
+  community: string;
+  nameKit?: string;
+  nameFormat?: string;
+  nameFamilies?: string[];
+  livelihood: string;
+  notes: string[];
+};
 export type Actor = {
+  origin?: CharacterOrigin;
   appearance?: CharacterAppearance;
   age?: number;
   householdId?: string;
@@ -268,6 +279,7 @@ export type Affordance = {
   reason?: string;
 };
 export type Inspection = {
+  sprite?: string;
   id: string;
   name: string;
   description: string;
@@ -293,6 +305,7 @@ export type Observation = {
     | "direction"
     | "age"
     | "appearance"
+    | "origin"
     | "held"
   >[];
   objects: WorldObject[];

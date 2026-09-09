@@ -9,6 +9,8 @@ import {
   X,
   ChevronDown,
 } from "lucide-react";
+import { StartPreview } from "./StartPreview";
+import type { WorldSetting } from "../content/geography/types";
 import type { Engine } from "../core/engine";
 import { openings } from "../content/geography/openings";
 import "./splash.css";
@@ -26,6 +28,10 @@ export function Splash({
 }: {
   onStart: (engine: Engine) => void | Promise<void>;
 }) {
+  const [selected, setSelected] = useState<{
+    seed: string;
+    setting: WorldSetting;
+  }>();
   const [aboutOpen, setAboutOpen] = useState(false);
   const [prompt, setPrompt] = useState("");
   const [mode, setMode] = useState<"local" | "model">("local");
@@ -70,7 +76,20 @@ export function Splash({
       previous?.focus();
     };
   }, [panel]);
-  const launch = async (request?: string) => {
+  const randomize = async () => {
+    const { randomStart } = await import("../content/geography/random-start");
+    const { formatHistoricalYear } = await import("../core/calendar");
+    const next = randomStart();
+    setSelected(next);
+    setPrompt(
+      `${next.setting.role} in ${next.setting.location}, ${formatHistoricalYear(next.setting.year)}`,
+    );
+    setError("");
+  };
+  const launch = async (
+    request?: string,
+    selection: typeof selected | null = selected,
+  ) => {
     if (controller.current) return;
     setError("");
     const abort = new AbortController();
@@ -80,7 +99,10 @@ export function Splash({
       const { prepareSettingSession } = await import("../runtime/preparation");
       let worldSeed = `world-${crypto.randomUUID()}`;
       let setting;
-      if (request) {
+      if (selection) {
+        setting = selection.setting;
+        worldSeed = selection.seed;
+      } else if (request) {
         const { resolveSetting } = await import("../content/geography/resolve");
         const resolved = resolveSetting(request, worldSeed);
         if (!("setting" in resolved) || resolved.needsInterpretation) {
@@ -167,7 +189,7 @@ export function Splash({
               setPanel("world");
               return;
             }
-            if (mode === "model") setPanel("world");
+            if (mode === "model" && !selected) setPanel("world");
             else void launch(prompt.trim());
           }}
         >
@@ -180,7 +202,10 @@ export function Splash({
               value={prompt}
               disabled={!!busy}
               maxLength={2000}
-              onChange={(e) => setPrompt(e.target.value)}
+              onChange={(e) => {
+                setSelected(undefined);
+                setPrompt(e.target.value);
+              }}
               placeholder="A hunter in Anatolia, 7000 BCE"
             />
             <button
@@ -206,7 +231,7 @@ export function Splash({
               >
                 <span className="mode-diamond" />
                 <span>
-                  Grounded<small>Procedural · no model calls</small>
+                  Procedural<small>Generate a random start</small>
                 </span>
               </button>
               <button
@@ -228,13 +253,14 @@ export function Splash({
               type="button"
               className="splash-random"
               disabled={!!busy}
-              onClick={() => void launch()}
+              onClick={() => void randomize()}
             >
               <Dices size={18} />
               Random start
             </button>
           </div>
         </form>
+        {selected && <StartPreview setting={selected.setting} />}
         <div className="splash-status" role="status">
           {busy}
           {busy && (
@@ -268,7 +294,8 @@ export function Splash({
                   disabled={!!busy}
                   onClick={() => {
                     setPrompt(opening.prompt);
-                    void launch(opening.prompt);
+                    setSelected(undefined);
+                    void launch(opening.prompt, null);
                   }}
                 >
                   <Icon aria-hidden="true" />
@@ -353,8 +380,9 @@ export function Splash({
             {panel === "world" ? (
               <Suspense fallback={<p>Opening the atlas…</p>}>
                 <WorldSetup
-                  initialSeed={seed}
-                  initialPrompt={prompt}
+                  initialSeed={selected?.seed ?? seed}
+                  initialSetting={selected?.setting}
+                  initialPrompt={selected ? "" : prompt}
                   initialMode={mode}
                   onStart={(engine) => void onStart(engine)}
                 />

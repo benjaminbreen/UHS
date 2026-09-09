@@ -1,3 +1,4 @@
+import { communityFor } from "../content/characters/resolve";
 import { prepareSettingSession } from "../runtime/preparation";
 import { randomStart } from "../content/geography/random-start";
 import {
@@ -9,7 +10,6 @@ import {
   CalendarDays,
   House,
   UserRound,
-  Flag,
   ArrowRight,
   X,
 } from "lucide-react";
@@ -19,12 +19,9 @@ import { useEffect, useRef, useState } from "react";
 import type { Engine } from "../core/engine";
 
 import { places, featuredPlaces } from "../content/geography/places";
-import {
-  describeSetting,
-  resolveSetting,
-  settingFor,
-} from "../content/geography/resolve";
-import { settingSchema } from "../content/geography/types";
+import { resolveSetting, settingFor } from "../content/geography/resolve";
+import { StartPreview } from "./StartPreview";
+import { settingSchema, type WorldSetting } from "../content/geography/types";
 import { populateCharacter } from "../content/geography/character";
 import { patterns, type Pattern } from "../content/settlements/profiles";
 import { AtlasMap } from "./AtlasMap";
@@ -33,21 +30,27 @@ export function WorldSetup({
   initialSeed,
   initialPrompt = "",
   initialMode = "local",
+  initialSetting,
 }: {
   onStart: (engine: Engine) => void;
   initialSeed: string;
+  initialSetting?: WorldSetting;
   initialPrompt?: string;
   initialMode?: "local" | "model";
 }) {
   const [prompt, setPrompt] = useState(initialPrompt),
-    [place, setPlace] = useState("rome"),
-    [year, setYear] = useState("100"),
+    [place, setPlace] = useState(initialSetting?.placeId ?? "rome"),
+    [year, setYear] = useState(String(initialSetting?.year ?? 100)),
     [seed, setSeed] = useState(initialSeed),
     [mode, setMode] = useState<"local" | "model">(initialMode);
-  const [role, setRole] = useState(""),
+  const [role, setRole] = useState(initialSetting?.role ?? ""),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [token, setToken] = useState("");
+  const [community, setCommunity] = useState<
+    WorldSetting["characterCommunity"]
+  >(initialSetting?.characterCommunity);
+  const [draft, setDraft] = useState(initialSetting);
   const [pattern, setPattern] = useState<Pattern | "">("");
   const controller = useRef<AbortController | null>(null);
   useEffect(() => () => controller.current?.abort(), []);
@@ -61,7 +64,8 @@ export function WorldSetup({
   const resolved = prompt.trim()
     ? resolveSetting(prompt, seed.trim() || "earth-2")
     : {
-        setting: settingFor(chosen, validYear ? numericYear : chosen.year),
+        setting:
+          draft ?? settingFor(chosen, validYear ? numericYear : chosen.year),
         description: "",
         needsInterpretation: false,
       };
@@ -73,11 +77,28 @@ export function WorldSetup({
     candidate?.success && (prompt.trim() || validYear)
       ? candidate.data
       : undefined;
+  const preview = localSetting
+    ? populateCharacter(
+        {
+          ...localSetting,
+          ...(community
+            ? { characterCommunity: community, characterName: "Traveler" }
+            : {}),
+          ...(role && role !== localSetting.role
+            ? { role, characterName: role }
+            : {}),
+          ...(pattern ? { settlementPattern: pattern } : {}),
+        },
+        seed,
+      )
+    : undefined;
   const needsModel =
     !!prompt.trim() &&
     (!("setting" in resolved) || resolved.needsInterpretation === true);
   const choose = (id: string) => {
     const p = places.find((p) => p.id === id)!;
+    setDraft(undefined);
+    setCommunity(undefined);
     setPlace(id);
     setYear(String(p.year));
     setPrompt("");
@@ -91,8 +112,10 @@ export function WorldSetup({
     setSeed(start.seed);
     setRole(start.setting.role);
     setPattern("");
+    setDraft(start.setting);
   };
   const editDetails = () => {
+    setDraft(undefined);
     if (localSetting) {
       setPlace(localSetting.placeId);
       setYear(String(localSetting.year));
@@ -141,7 +164,12 @@ export function WorldSetup({
       const parsed = populateCharacter(
         settingSchema.parse({
           ...setting,
-          ...(role ? { role, characterName: role } : {}),
+          ...(community
+            ? { characterCommunity: community, characterName: "Traveler" }
+            : {}),
+          ...(role && role !== setting.role
+            ? { role, characterName: role }
+            : {}),
           ...(pattern ? { settlementPattern: pattern } : {}),
         }),
         worldSeed,
@@ -307,6 +335,49 @@ export function WorldSetup({
               ))}
             </select>
           </label>
+          {localSetting &&
+            localSetting.lon >= -84 &&
+            localSetting.lon <= -75 &&
+            localSetting.lat >= 35 &&
+            localSetting.lat <= 40 &&
+            localSetting.year >= 1607 &&
+            localSetting.year < 1750 && (
+              <label className="weaver-field">
+                <UserRound />
+                <span>Starting community</span>
+                <select
+                  aria-label="Starting community"
+                  disabled={busy}
+                  value={community ?? communityFor(localSetting)}
+                  onChange={(e) => {
+                    setCommunity(
+                      e.target.value as WorldSetting["characterCommunity"],
+                    );
+                    setDraft((previous) =>
+                      previous
+                        ? { ...previous, characterName: "Traveler" }
+                        : previous,
+                    );
+                  }}
+                >
+                  <option value="english-colonial">
+                    English colonial household
+                  </option>
+                  <option value="indigenous-local">
+                    Indigenous local community
+                  </option>
+                  {localSetting.year >= 1619 && (
+                    <option value="african-diaspora">
+                      African-descended community
+                    </option>
+                  )}
+                </select>
+                <small>
+                  Chooses this starting community, not the population of all
+                  Virginia.
+                </small>
+              </label>
+            )}
           <label className="weaver-field">
             <UserRound />
             <span>Role</span>
@@ -332,27 +403,7 @@ export function WorldSetup({
             lat={localSetting?.lat ?? chosen.lat}
             onChoose={busy ? undefined : choose}
           />
-          <div className="weaver-result" aria-label="Resolved setting">
-            <h4>
-              <Flag />
-              Resulting start
-            </h4>
-            <p>
-              {localSetting
-                ? describeSetting({
-                    ...localSetting,
-                    ...(role ? { role } : {}),
-                  })
-                : "Describe your setting or choose the details."}
-            </p>
-            <small>
-              {pattern
-                ? pattern.charAt(0).toUpperCase() +
-                  pattern.slice(1) +
-                  " settlement"
-                : "Settlement shaped by the setting"}
-            </small>
-          </div>
+          {preview && <StartPreview setting={preview} />}
         </div>
       </div>
       {prompt.trim() && needsModel && (

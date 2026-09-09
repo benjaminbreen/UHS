@@ -1,0 +1,219 @@
+.nature-lab {
+  min-height: 100dvh;
+  background: radial-gradient(ellipse at top, #1c2853, #080e26 75%);
+  color: #f2efee;
+  padding: 36px clamp(18px, 4vw, 64px);
+}
+.nature-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  max-width: 1400px;
+  margin: 0 auto 28px;
+}
+.nature-header h1 {
+  font-size: 38px;
+  margin: 10px 0;
+}
+.nature-header p,
+.nature-meta,
+.nature-count {
+  color: #b8b9d6;
+}
+.nature-header .eyebrow {
+  color: #e7c785;
+}
+.nature-layout {
+  display: grid;
+  grid-template-columns: minmax(300px, 1.2fr) minmax(300px, 1fr);
+  gap: 24px;
+  max-width: 1400px;
+  margin: auto;
+  align-items: start;
+}
+.nature-library,
+.nature-inspector {
+  border: 1px solid #a49bcc;
+  border-radius: 6px;
+  background: linear-gradient(130deg, #222b53, #111931);
+  box-shadow:
+    inset 0 0 0 3px #0a1028,
+    0 8px 25px #0004;
+  padding: 24px;
+}
+.nature-tabs {
+  display: flex;
+  gap: 8px;
+  border-bottom: 1px solid #777098;
+  padding-bottom: 14px;
+}
+.nature-tabs button {
+  flex: 1;
+  background: #111a37;
+  border: 1px solid #73729a;
+  color: #c5c4df;
+  padding: 12px;
+}
+.nature-tabs [aria-selected="true"] {
+  background: #343f6e;
+  color: #f5d587;
+  border-color: #edcb80;
+}
+.nature-search {
+  display: grid;
+  gap: 8px;
+  margin-top: 20px;
+}
+.nature-lab input,
+.nature-lab select {
+  min-width: 0;
+  width: 100%;
+  background: #0d1632;
+  color: #f2efee;
+  border: 1px solid #777098;
+  padding: 10px;
+  border-radius: 3px;
+}
+.nature-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(115px, 1fr));
+  gap: 10px;
+}
+.nature-grid button {
+  background: #141f38;
+  color: #eeedf5;
+  border: 1px solid #485778;
+  border-radius: 3px;
+  padding: 8px;
+  min-width: 0;
+}
+.nature-grid button[aria-pressed="true"] {
+  border-color: #f3d184;
+  background: #303c58;
+  box-shadow: inset 0 0 0 1px #f3d184;
+}
+.nature-grid strong,
+.nature-grid small {
+  display: block;
+}
+.nature-grid strong {
+  font-size: 15px;
+  margin: 8px 0 4px;
+}
+.nature-grid small {
+  font: 11px sans-serif;
+  color: #b7bad2;
+}
+.nature-thumb {
+  height: 104px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.nature-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+.nature-title h2 {
+  margin: 0;
+  font-size: 28px;
+}
+.nature-title span {
+  color: #c3bfdc;
+  font-size: 14px;
+  white-space: nowrap;
+}
+.nature-stage {
+  min-height: 330px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: auto;
+  border: 1px solid #82819c;
+  border-radius: 3px;
+}
+.nature-bg-meadow {
+  background: #829456;
+}
+.nature-bg-dry {
+  background: #bfaa70;
+}
+.nature-bg-forest {
+  background: #344c3e;
+}
+.nature-bg-night {
+  background: #101831;
+}
+.nature-bg-checker {
+  background: conic-gradient(
+      #77808e 25%,
+      #545e70 0 50%,
+      #77808e 0 75%,
+      #545e70 0
+    )
+    0 0/24px 24px;
+}
+.nature-controls {
+  display: flex;
+  align-items: end;
+  gap: 16px;
+  margin: 20px 0;
+}
+.nature-controls label {
+  flex: 1;
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+.nature-meta {
+  font-size: 14px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.nature-meta code {
+  color: #f3d184;
+}
+.nature-lab .action {
+  color: #f4d894;
+  border-color: #8f84bb;
+  background: #202a4e;
+}
+.nature-lab button {
+  cursor: pointer;
+}
+.nature-lab :focus-visible {
+  outline: 2px solid #f5d587;
+  outline-offset: 3px;
+}
+@media (max-width: 760px) {
+  .nature-layout {
+    grid-template-columns: 1fr;
+  }
+  .nature-header {
+    align-items: start;
+  }
+  .nature-header h1 {
+    font-size: 28px;
+  }
+  .nature-header .action {
+    font-size: 14px;
+  }
+  .nature-library,
+  .nature-inspector {
+    padding: 16px;
+  }
+  .nature-stage {
+    min-height: 300px;
+  }
+  .nature-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.nature-stage {
+  justify-content: safe center;
+}

@@ -1,3 +1,5 @@
+import { resolveCharacterContext } from "../../content/characters/resolve";
+import { generateCharacter } from "../../content/characters/generate";
 import type {
   Actor,
   Household,
@@ -46,6 +48,11 @@ export function populateHouseholds(
         relations: [],
         knownResources: [],
       });
+    if (adult && pack.setting?.characterRevision)
+      Object.assign(
+        adult,
+        generateCharacter(pack.setting, seed, adult.id, age, adult.role),
+      );
     // world.initialActors shares these objects with the completed plan.
     const extended =
       form === "extended" ||
@@ -96,6 +103,53 @@ export function populateHouseholds(
         relations: [{ other: owner, kind: relation }],
         knownResources: [],
       };
+      if (pack.setting?.characterRevision) {
+        const naming = resolveCharacterContext(pack.setting).names;
+        const parent =
+          adult?.origin ??
+          (owner === "player"
+            ? generateCharacter(
+                pack.setting,
+                seed,
+                owner,
+                age,
+                pack.role,
+                pack.characterName,
+              ).origin
+            : undefined);
+        const partner = world.initialActors.find(
+          (other) =>
+            other.householdId === id &&
+            other.relations?.some(
+              (r) => r.other === owner && r.kind === "partner",
+            ),
+        );
+        const inherited =
+          child && naming?.format === "family-personal"
+            ? parent?.nameFamilies
+            : child &&
+                naming?.format === "personal-two-families" &&
+                parent?.nameFamilies?.[0] &&
+                partner?.origin?.nameFamilies?.[0]
+              ? [parent.nameFamilies[0], partner.origin.nameFamilies[0]]
+              : undefined;
+        Object.assign(
+          a,
+          generateCharacter(
+            pack.setting,
+            seed,
+            memberId,
+            a.age,
+            "Gatherer",
+            undefined,
+            inherited,
+          ),
+        );
+        if (child) {
+          a.role = "Child";
+          a.inventory = { water: 1 };
+        }
+      }
       for (let r = 1; r < 6; r++) {
         let found = false;
         for (const [dx, dy] of [

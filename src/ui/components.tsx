@@ -1,12 +1,15 @@
+import nature from "../../public/nature/atlas.json" with { type: "json" };
 import ecology from "../../public/ecology/atlas.json" with { type: "json" };
 import props from "../render/generated/props.json" with { type: "json" };
 import atlas from "../render/generated/atlas.json" with { type: "json" };
 export function Sprite({ name, scale = 2 }: { name: string; scale?: number }) {
-  const source = name.startsWith("ecology-")
-    ? ecology
-    : name.startsWith("study-prop-") || name.startsWith("prop-broken-")
-      ? props
-      : atlas;
+  const source = name.startsWith("nature-")
+    ? nature
+    : name.startsWith("ecology-")
+      ? ecology
+      : name.startsWith("study-prop-") || name.startsWith("prop-broken-")
+        ? props
+        : atlas;
   const f = (
     source.frames as Record<
       string,
@@ -23,11 +26,13 @@ export function Sprite({ name, scale = 2 }: { name: string; scale?: number }) {
         width: f.w * scale,
         height: f.h * scale,
         backgroundImage:
-          source === ecology
-            ? "url(/ecology/atlas.png)"
-            : source === props
-              ? "url(/props/atlas.png)"
-              : "url(/packs/atlas.png)",
+          source === nature
+            ? "url(/nature/atlas.png)"
+            : source === ecology
+              ? "url(/ecology/atlas.png)"
+              : source === props
+                ? "url(/props/atlas.png)"
+                : "url(/packs/atlas.png)",
         backgroundPosition: `-${f.x * scale}px -${f.y * scale}px`,
         backgroundSize: `${source.meta.size.w * scale}px ${source.meta.size.h * scale}px`,
         imageRendering: "pixelated",

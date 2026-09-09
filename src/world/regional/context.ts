@@ -1,3 +1,4 @@
+import { resolveCharacterContext } from "../../content/characters/resolve";
 import { trimCache } from "../../core/cache";
 import type { Pack } from "../../core/types";
 import type { WorldSetting } from "../../content/geography/types";
@@ -250,6 +251,7 @@ export function createRegionalContext(start: WorldSetting) {
       location: "Countryside",
       placeId: "unresearched",
       community: "",
+      characterCommunity: undefined,
       climate,
       relief: ambient.relief,
       water: "none",
@@ -271,6 +273,7 @@ export function createRegionalContext(start: WorldSetting) {
         ...s,
         culture: start.culture,
         community: start.community,
+        characterCommunity: start.characterCommunity,
         architecture: start.architecture,
         settlement: start.settlement,
         settlementPattern: start.settlementPattern,
@@ -294,10 +297,17 @@ export function createRegionalContext(start: WorldSetting) {
   }
   function packAt(x: number, y: number) {
     const s = settingAt(x, y);
+    const character = s.characterRevision
+      ? resolveCharacterContext(s)
+      : undefined;
     const k = JSON.stringify([
+      character?.profile.id,
+      character?.names?.id,
+      character?.community,
       s.placeId,
       s.culture,
       s.community,
+      s.characterCommunity,
       s.architecture,
       s.climate,
       s.relief,

@@ -345,6 +345,7 @@ export class Engine {
           pos: a.pos,
           sprite: a.sprite,
           appearance: a.appearance,
+          origin: a.origin,
           age: a.age,
           held: a.held,
           activity: a.activity,
@@ -370,6 +371,31 @@ export class Engine {
     });
   }
   inspect(id: string): Inspection | undefined {
+    const coordinates = /^decor-(-?\d+)-(-?\d+)$/.exec(id);
+    if (coordinates) {
+      const x = Number(coordinates[1]),
+        y = Number(coordinates[2]);
+      const pos = { x, y, space: "outside" };
+      if (!this.visible(pos)) return;
+      const plant = this.world.decoration(x, y);
+      if (!plant || plant.id !== id || plant.sprite === "rock") return;
+      const name = plant.sprite
+        .replace(/^(nature-understory|nature|ecology)-/, "")
+        .replaceAll("-", " ")
+        .replace(/^./, (c) => c.toUpperCase());
+      return {
+        id,
+        pos,
+        name,
+        sprite: plant.sprite,
+        kind: "vegetation",
+        description: plant.solid
+          ? "A tree growing in the surrounding landscape."
+          : "Low vegetation growing in the surrounding landscape.",
+        affordances: [],
+      };
+    }
+
     const actor = this.state.actors.find((a) => a.id === id);
     const object = this.state.objects.find((o) => o.id === id);
     const place = this.world.place(id);
@@ -1243,7 +1269,17 @@ export class Engine {
         if (a.kind === "human") {
           if (next % 18 !== 0) continue;
           const hour = (next / 3600) % 24;
+          const dutyGate =
+            a.origin && a.role === "Herder"
+              ? this.world.activitySites?.(a.id)?.gateId
+              : undefined;
+          const penDuty =
+            dutyGate &&
+            a.hunger <= 55 &&
+            ((hour >= 7 && hour < 17) ||
+              this.state.objects.some((o) => o.id === dutyGate && o.open));
           if (
+            !penDuty &&
             householdActivity(
               a,
               this.state,

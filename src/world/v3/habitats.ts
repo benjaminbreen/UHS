@@ -11,6 +11,7 @@ export type HabitatKind =
   | "woodland"
   | "exposed";
 export type Habitat = {
+  layeredForest?: boolean;
   ecology: Ecology;
   kind: HabitatKind;
   wet: number;

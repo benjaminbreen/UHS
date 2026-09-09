@@ -1,3 +1,14 @@
+import { understorySize } from "../../content/ecology/vegetation";
+import {
+  broadleafAge,
+  crownRadius,
+  retainsTree,
+  type TreeCandidate,
+} from "./vegetation-spacing";
+import {
+  vegetationTree,
+  vegetationUnderstory,
+} from "../../content/ecology/vegetation";
 import { trimCache } from "../../core/cache";
 import { preparedSite, type PreparedSettlement } from "./prepared";
 import { pathArt } from "./path-art";
@@ -454,6 +465,81 @@ export function createSettlementWorld(
     }
     return selected ?? regionalRoads(x, y).get(k) ?? ground(x, y);
   }
+  const treeCandidates = new Map<string, TreeCandidate | null>();
+  function candidate(x: number, y: number): TreeCandidate | undefined {
+    const key = cellKey(x, y);
+    if (treeCandidates.has(key)) return treeCandidates.get(key) ?? undefined;
+    const ax = x + land.origin.x,
+      ay = y + land.origin.y;
+    const bx = Math.floor(ax / 2),
+      by = Math.floor(ay / 2);
+    let value: TreeCandidate | undefined;
+    if (
+      ax === bx * 2 + Math.floor(random(seed, "tree-x", bx, by) * 2) &&
+      ay === by * 2 + Math.floor(random(seed, "tree-y", bx, by) * 2)
+    ) {
+      const f = land.sample(x, y),
+        h = habitat(x, y);
+      if (
+        f.water > (f.shoreWidth ?? 3) &&
+        habitatTree(h, seed, ax, ay, ecologyProfiles[h.ecology].trees)
+      ) {
+        let sprite = vegetationTree(
+          regional?.settingAt(x, y) ?? pack.setting!,
+          h,
+          f,
+          random(seed, "vegetation-species", ax, ay),
+        );
+        if (sprite === "nature-tropical-broadleaf")
+          sprite = broadleafAge(random(seed, "tree-age", ax, ay));
+        if (sprite)
+          value = {
+            sprite,
+            radius: crownRadius(sprite),
+            priority:
+              random(seed, "tree-priority", ax, ay) +
+              (sprite.endsWith("giant") ? 0.3 : 0),
+          };
+      }
+    }
+    trimCache(treeCandidates, 65536);
+    treeCandidates.set(key, value ?? null);
+    return value;
+  }
+  function settledTree(x: number, y: number, tree: TreeCandidate) {
+    let near = false;
+    for (const plan of nearby(x, y))
+      for (const b of plan.places) {
+        const distance = Math.hypot(
+          Math.max(b.x - x, 0, x - (b.x + b.w)),
+          Math.max(b.y - y, 0, y - (b.y + b.h)),
+        );
+        if (distance < tree.radius + 2) return false;
+        if (distance < tree.radius + 12) near = true;
+      }
+    // Trees must not lean across a road immediately beside their trunk.
+    for (const [dx, dy] of [
+      [-2, 0],
+      [2, 0],
+      [0, -2],
+      [0, 2],
+    ]) {
+      if (
+        regionalRoads(x + dx, y + dy).has(cellKey(x + dx, y + dy)) ||
+        nearby(x, y).some((p) =>
+          ["dirt", "paving", "bridge"].includes(
+            p.surface.get(cellKey(x + dx, y + dy)) ?? "",
+          ),
+        )
+      )
+        return false;
+    }
+    return (
+      !near ||
+      random(seed, "settlement-tree", x + land.origin.x, y + land.origin.y) <
+        0.35
+    );
+  }
   function decoration(x: number, y: number) {
     const k = cellKey(x, y),
       f = land.sample(x, y);
@@ -480,18 +566,35 @@ export function createSettlementWorld(
         y + land.origin.y,
       ),
       cover = noise(seed, x + land.origin.x, y + land.origin.y, 45, "woods");
-    const tree =
-      (!regional || ground(x, y) !== "rock") &&
-      (environment
-        ? f.water > (f.shoreWidth ?? 3) &&
-          habitatTree(
-            habitat(x, y),
-            seed,
-            x + land.origin.x,
-            y + land.origin.y,
-            ecologyProfiles[habitat(x, y).ecology].trees,
-          )
-        : x % 3 === 0 && y % 3 === 0 && n < f.moisture * cover * 0.38);
+    const spaced =
+      (pack.setting?.vegetationRevision ?? 0) >= 2 && !!environment;
+    const proposed = spaced ? candidate(x, y) : undefined;
+    const tree = spaced
+      ? !!proposed &&
+        ground(x, y) !== "rock" &&
+        settledTree(x, y, proposed) &&
+        retainsTree(
+          x,
+          y,
+          proposed,
+          candidate,
+          (pack.setting?.vegetationRevision ?? 0) >= 3
+            ? pack.setting?.vegetationRevision === 4
+              ? 0.72
+              : 0.54
+            : 0.45,
+        )
+      : (!regional || ground(x, y) !== "rock") &&
+        (environment
+          ? f.water > (f.shoreWidth ?? 3) &&
+            habitatTree(
+              habitat(x, y),
+              seed,
+              x + land.origin.x,
+              y + land.origin.y,
+              ecologyProfiles[habitat(x, y).ecology].trees,
+            )
+          : x % 3 === 0 && y % 3 === 0 && n < f.moisture * cover * 0.38);
     const sprite =
       relief && f.water < 3 && n < 0.09
         ? "rock"
@@ -525,13 +628,127 @@ export function createSettlementWorld(
                   : relief && n < 0.016 && f.moisture > 0.5 && f.moisture < 0.73
                     ? "flowers"
                     : undefined;
-    return sprite
+    let selected = sprite;
+    if (pack.setting?.vegetationRevision && environment) {
+      const h = habitat(x, y),
+        local = regional?.settingAt(x, y) ?? pack.setting;
+      const roll = random(
+        seed,
+        "vegetation-species",
+        x + land.origin.x,
+        y + land.origin.y,
+      );
+      if (tree && sprite !== "rock" && sprite !== "reeds")
+        selected = spaced
+          ? proposed?.sprite
+          : vegetationTree(local, h, f, roll);
+      else if (sprite === "bush" || sprite === "flowers")
+        selected = vegetationUnderstory(local, h, f, roll);
+      else if (
+        !sprite &&
+        f.water > (f.shoreWidth ?? 3) &&
+        ground(x, y) !== "rock"
+      ) {
+        // Connected low vegetation patches share habitat cover, but independent
+        // sampling keeps them from replacing rocks or changing tree collisions.
+        const density =
+          (h.ecology === "desert"
+            ? 0.006
+            : h.ecology === "tundra"
+              ? 0.012
+              : 0.018) +
+          h.cover * 0.035;
+        if (
+          random(
+            seed,
+            "understory-presence",
+            x + land.origin.x,
+            y + land.origin.y,
+          ) < density
+        )
+          selected = vegetationUnderstory(local, h, f, roll);
+      }
+    }
+    if (
+      spaced &&
+      !tree &&
+      selected &&
+      selected !== "rock" &&
+      habitat(x, y).kind === "woodland" &&
+      random(seed, "forest-understory", x + land.origin.x, y + land.origin.y) >
+        0.3
+    )
+      selected = undefined;
+    // Thin all low scenery, including open ground outside woodland patches.
+    if (
+      (pack.setting?.vegetationRevision ?? 0) >= 3 &&
+      !tree &&
+      selected &&
+      selected !== "rock" &&
+      random(
+        seed,
+        "low-vegetation-thinning",
+        x + land.origin.x,
+        y + land.origin.y,
+      ) > (selected.includes("heath") || selected === "flowers" ? 0.15 : 0.225)
+    )
+      selected = undefined;
+    if (
+      (pack.setting?.vegetationRevision ?? 0) >= 3 &&
+      tree &&
+      selected &&
+      selected !== "rock" &&
+      selected !== "reeds" &&
+      random(
+        seed,
+        "tree-density-thinning",
+        x + land.origin.x,
+        y + land.origin.y,
+      ) >= (pack.setting?.vegetationRevision === 4 ? 0.6 : 0.8)
+    )
+      selected = undefined;
+    if (
+      (pack.setting?.vegetationRevision ?? 0) >= 3 &&
+      selected &&
+      !tree &&
+      selected !== "rock"
+    )
+      selected = understorySize(
+        selected,
+        random(seed, "understory-size", x + land.origin.x, y + land.origin.y),
+      );
+    // Shared low-frequency gaps keep clear ground between vegetation groups.
+    if (
+      pack.setting?.vegetationRevision === 4 &&
+      selected &&
+      selected !== "rock"
+    ) {
+      const patch = noise(
+        seed,
+        x + land.origin.x,
+        y + land.origin.y,
+        22,
+        "vegetation-openings",
+      );
+      if (
+        patch < 0.4 ||
+        (!tree &&
+          random(
+            seed,
+            "quiet-understory",
+            x + land.origin.x,
+            y + land.origin.y,
+          ) > 0.55)
+      )
+        selected = undefined;
+    }
+    return selected
       ? {
           id: `decor-${x}-${y}`,
           x,
           y,
-          sprite,
-          solid: tree || sprite === "rock",
+          sprite: selected,
+          solid: tree || selected === "rock",
         }
       : undefined;
   }
@@ -561,6 +778,8 @@ export function createSettlementWorld(
     const cell = reliefCell(height, f.water, f.moisture);
     if (environment) {
       cell.habitat = habitat(x, y);
+      if ((pack.setting?.vegetationRevision ?? 0) >= 2)
+        cell.habitat = { ...cell.habitat, layeredForest: true };
       cell.waterVisual = {
         distance: f.water,
         kind: f.kind,

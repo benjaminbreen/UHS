@@ -1,3 +1,5 @@
+import { CharacterSprite } from "./CharacterSprite";
+import "./settings.css";
 import {
   lazy,
   Suspense,
@@ -68,6 +70,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
   const [modal, setModal] = useState<
     "world" | "inventory" | "notebook" | "evidence" | "map" | "settings" | null
   >(null);
+  const [settingsTab, setSettingsTab] = useState("Display");
   const [error, setError] = useState("");
   const [note, setNote] = useState("");
   const [command, setCommand] = useState("");
@@ -179,7 +182,8 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
   const focusActor = obs.actors.find((a) => a.id === selection?.id);
   const focusSprite =
     selection &&
-    (runtime.engine.world.place(selection.id)?.sprite ??
+    (selection.sprite ??
+      runtime.engine.world.place(selection.id)?.sprite ??
       obs.objects.find((o) => o.id === selection.id)?.sprite ??
       (focusActor
         ? focusActor.kind === "human"
@@ -499,7 +503,10 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
             </div>
             <div className="character">
               <div className="portrait">
-                <Sprite name={`portrait-${p.sprite}`} scale={2} />
+                <CharacterSprite
+                  appearance={runtime.appearanceFor(p)}
+                  portrait
+                />
               </div>
               <div>
                 <h1>{p.name}</h1>
@@ -511,17 +518,19 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
                       ? "Tired"
                       : "Healthy · Rested"}
                 </span>
-                <div className="wealth">
-                  <Sprite
-                    name={pack.currency ? "coin" : "obsidian"}
-                    scale={1}
-                  />
-                  <span>
-                    {pack.currency
-                      ? `${p.inventory.coin ?? 0} bronze coins`
-                      : `${p.inventory.obsidian ?? 0} obsidian flakes`}
-                  </span>
-                </div>
+                {(pack.currency || !p.origin) && (
+                  <div className="wealth">
+                    <Sprite
+                      name={pack.currency ? "coin" : "obsidian"}
+                      scale={1}
+                    />
+                    <span>
+                      {pack.currency
+                        ? `${p.inventory.coin ?? 0} bronze coins`
+                        : `${p.inventory.obsidian ?? 0} obsidian flakes`}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           </section>
@@ -651,7 +660,9 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
                     .slice(0, 3)
                     .map((a) => (
                       <button key={a.id} onClick={() => runtime.select(a.id)}>
-                        <Sprite name={`${a.sprite}-2-0`} scale={1} />
+                        <CharacterSprite
+                          appearance={runtime.appearanceFor(a)}
+                        />
                         <span>
                           {a.name}
                           <small>{a.role}</small>
@@ -865,16 +876,23 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
                 ].map((e) => (
                   <article className="evidence-card" key={e.id}>
                     <span className="evidence-status">
-                      {e.status === "documented"
-                        ? "Documented foundation"
-                        : "Inferred detail"}
+                      {
+                        {
+                          documented: "Documented foundation",
+                          inferred: "Inferred detail",
+                          hypothesis: "Historical hypothesis",
+                          fictional: "Fictional scenario / art choice",
+                        }[e.status]
+                      }
                     </span>
                     <h3>{e.title}</h3>
                     <p>{e.statement}</p>
                     <p className="limitation">{e.limitation}</p>
-                    <a href={e.url} target="_blank" rel="noreferrer">
-                      Examine the source <ExternalLink size={13} />
-                    </a>
+                    {e.url && (
+                      <a href={e.url} target="_blank" rel="noreferrer">
+                        Examine the source <ExternalLink size={13} />
+                      </a>
+                    )}
                     <button
                       className="text-button"
                       onClick={() => runtime.addNote(e.statement, e.id)}
@@ -978,158 +996,262 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
             {modal === "settings" && (
               <>
                 <div className="eyebrow">YOUR WORLD</div>
-                <h2>Settings & saved journeys</h2>
-                <button
-                  className="action"
-                  onClick={() => {
-                    runtime.stop();
-                    setModal(null);
-                    setCharacterOpen(true);
-                  }}
+                <h2>Settings</h2>
+                <div
+                  className="settings-tabs"
+                  role="tablist"
+                  aria-label="Settings sections"
                 >
-                  Character lab · appearance & clothing
-                </button>
-                <button
-                  className="action"
-                  onClick={() =>
-                    window.dispatchEvent(new Event("uhs-open-props"))
-                  }
+                  {["Display", "Audio", "Journeys", "Developer"].map(
+                    (tab, index, tabs) => (
+                      <button
+                        key={tab}
+                        id={`settings-tab-${tab}`}
+                        role="tab"
+                        aria-selected={settingsTab === tab}
+                        aria-controls={`settings-panel-${tab}`}
+                        tabIndex={settingsTab === tab ? 0 : -1}
+                        onClick={() => setSettingsTab(tab)}
+                        onKeyDown={(e) => {
+                          if (
+                            ["ArrowRight", "ArrowLeft", "Home", "End"].includes(
+                              e.key,
+                            )
+                          ) {
+                            e.preventDefault();
+                            const next =
+                              e.key === "Home"
+                                ? tabs[0]
+                                : e.key === "End"
+                                  ? tabs[tabs.length - 1]
+                                  : tabs[
+                                      (index +
+                                        (e.key === "ArrowRight"
+                                          ? 1
+                                          : tabs.length - 1)) %
+                                        tabs.length
+                                    ];
+                            setSettingsTab(next);
+                            document
+                              .getElementById(`settings-tab-${next}`)
+                              ?.focus();
+                          }
+                        }}
+                      >
+                        {tab}
+                      </button>
+                    ),
+                  )}
+                </div>
+                <div
+                  role="tabpanel"
+                  id="settings-panel-Developer"
+                  aria-labelledby="settings-tab-Developer"
+                  hidden={settingsTab !== "Developer"}
+                  className="settings-tools"
                 >
-                  Prop gallery · ⌘2 / Ctrl+2
-                </button>
-                <button
-                  className="action"
-                  onClick={() => {
-                    runtime.stop();
-                    setModal(null);
-                    setAudioOpen(true);
-                  }}
+                  <p>Inspect artwork and content in the development labs.</p>
+                  <a
+                    className="action settings-featured"
+                    href="/nature-lab"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Plants & animals{" "}
+                    <small>
+                      Browse sprites · compare backgrounds · preview animation
+                      ↗
+                    </small>
+                  </a>
+                  <button
+                    className="action"
+                    onClick={() => {
+                      runtime.stop();
+                      setModal(null);
+                      setCharacterOpen(true);
+                    }}
+                  >
+                    Character lab · appearance & clothing
+                  </button>
+                  <button
+                    className="action"
+                    onClick={() =>
+                      window.dispatchEvent(new Event("uhs-open-props"))
+                    }
+                  >
+                    Prop gallery · ⌘2 / Ctrl+2
+                  </button>
+                  <a
+                    className="action"
+                    href="/graphics-lab"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Graphics lab ↗
+                  </a>
+                  <a
+                    className="action"
+                    href="/terrain-lab"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Terrain lab ↗
+                  </a>
+                  <a
+                    className="action"
+                    href="/history-lab"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    History & content lab ↗
+                  </a>
+                </div>
+                <div
+                  role="tabpanel"
+                  id="settings-panel-Audio"
+                  aria-labelledby="settings-tab-Audio"
+                  hidden={settingsTab !== "Audio"}
                 >
-                  <Music2 size={16} /> Audio studio · ⌘1 / Ctrl+1
-                </button>
-                <a
-                  className="action"
-                  href="/graphics-lab"
-                  target="_blank"
-                  rel="noreferrer"
+                  <h3>Music & sound</h3>
+                  <p>
+                    Listen, adjust playback, and explore the score in the audio
+                    studio.
+                  </p>
+                  <button
+                    className="action"
+                    onClick={() => {
+                      runtime.stop();
+                      setModal(null);
+                      setAudioOpen(true);
+                    }}
+                  >
+                    <Music2 size={16} /> Audio studio · ⌘1 / Ctrl+1
+                  </button>
+                </div>
+                <div
+                  role="tabpanel"
+                  id="settings-panel-Display"
+                  aria-labelledby="settings-tab-Display"
+                  hidden={settingsTab !== "Display"}
                 >
-                  Graphics lab ↗
-                </a>
-                <a
-                  className="action"
-                  href="/history-lab"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  History & content lab ↗
-                </a>
-                <p>
-                  Simulation time moves only when you act. Reading and typing
-                  never advance the day.
-                </p>
-                <div className="settings-row">
-                  <span>World magnification</span>
-                  <div>
-                    <button
-                      className="icon-button"
-                      aria-label="Decrease zoom"
-                      onClick={() => runtime.setZoom(view.zoom - 1)}
-                    >
-                      <Minus size={17} />
-                    </button>{" "}
-                    {view.zoom}×{" "}
-                    <button
-                      className="icon-button"
-                      aria-label="Increase zoom"
-                      onClick={() => runtime.setZoom(view.zoom + 1)}
-                    >
-                      <Plus size={17} />
-                    </button>
+                  <h3>World display</h3>
+                  <p>
+                    Simulation time moves only when you act. Reading and typing
+                    never advance the day.
+                  </p>
+                  <div className="settings-row">
+                    <span>World magnification</span>
+                    <div>
+                      <button
+                        className="icon-button"
+                        aria-label="Decrease zoom"
+                        onClick={() => runtime.setZoom(view.zoom - 1)}
+                      >
+                        <Minus size={17} />
+                      </button>{" "}
+                      {view.zoom}×{" "}
+                      <button
+                        className="icon-button"
+                        aria-label="Increase zoom"
+                        onClick={() => runtime.setZoom(view.zoom + 1)}
+                      >
+                        <Plus size={17} />
+                      </button>
+                    </div>
                   </div>
                 </div>
-                <div className="settings-actions">
-                  <button
-                    className="action"
-                    onClick={() =>
-                      download(
-                        `uhs-${pack.id}-${obs.manifest.seed}.json`,
-                        runtime.engine.snapshot(),
-                      )
-                    }
-                  >
-                    <Download size={16} /> Export world
-                  </button>
-                  <button
-                    className="action"
-                    onClick={() => upload.current?.click()}
-                  >
-                    <Upload size={16} /> Import world
-                  </button>
-                  <button
-                    className="action"
-                    onClick={() =>
-                      download("uhs-trajectory.json", {
-                        manifest: obs.manifest,
-                        commands: runtime.engine.state.log,
-                        hash: runtime.engine.hash(),
-                      })
-                    }
-                  >
-                    <Footprints size={16} /> Export trajectory
-                  </button>
-                  <button
-                    className="action"
-                    onClick={() => replayUpload.current?.click()}
-                  >
-                    <Play size={16} /> Replay a journey
-                  </button>
-                  <button
-                    className="action"
-                    onClick={() => setModal("evidence")}
-                  >
-                    <BookOpen size={16} /> Historical sources
-                  </button>
+                <div
+                  role="tabpanel"
+                  id="settings-panel-Journeys"
+                  aria-labelledby="settings-tab-Journeys"
+                  hidden={settingsTab !== "Journeys"}
+                >
+                  <h3>Journeys & sources</h3>
+                  <div className="settings-actions">
+                    <button
+                      className="action"
+                      onClick={() =>
+                        download(
+                          `uhs-${pack.id}-${obs.manifest.seed}.json`,
+                          runtime.engine.snapshot(),
+                        )
+                      }
+                    >
+                      <Download size={16} /> Export world
+                    </button>
+                    <button
+                      className="action"
+                      onClick={() => upload.current?.click()}
+                    >
+                      <Upload size={16} /> Import world
+                    </button>
+                    <button
+                      className="action"
+                      onClick={() =>
+                        download("uhs-trajectory.json", {
+                          manifest: obs.manifest,
+                          commands: runtime.engine.state.log,
+                          hash: runtime.engine.hash(),
+                        })
+                      }
+                    >
+                      <Footprints size={16} /> Export trajectory
+                    </button>
+                    <button
+                      className="action"
+                      onClick={() => replayUpload.current?.click()}
+                    >
+                      <Play size={16} /> Replay a journey
+                    </button>
+                    <button
+                      className="action"
+                      onClick={() => setModal("evidence")}
+                    >
+                      <BookOpen size={16} /> Historical sources
+                    </button>
+                  </div>
+                  <input
+                    hidden
+                    type="file"
+                    accept=".json"
+                    ref={replayUpload}
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      try {
+                        if (file.size > 20000000) throw Error("File too large");
+                        runtime.loadReplay(JSON.parse(await file.text()));
+                        setModal(null);
+                      } catch {
+                        setError("This is not a compatible recorded journey.");
+                      }
+                    }}
+                  />
+                  <input
+                    hidden
+                    type="file"
+                    accept=".json"
+                    ref={upload}
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      try {
+                        if (file.size > 20000000)
+                          throw Error("File too large.");
+                        const engine = restoreSession(
+                          JSON.parse(await file.text()),
+                        );
+                        runtime.replace(engine);
+                        setModal(null);
+                      } catch {
+                        setError(
+                          "This file is not a compatible UHS world. Your current world is unchanged.",
+                        );
+                      }
+                    }}
+                  />
+                  {error && <p className="error">{error}</p>}
                 </div>
-                <input
-                  hidden
-                  type="file"
-                  accept=".json"
-                  ref={replayUpload}
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    try {
-                      if (file.size > 20000000) throw Error("File too large");
-                      runtime.loadReplay(JSON.parse(await file.text()));
-                      setModal(null);
-                    } catch {
-                      setError("This is not a compatible recorded journey.");
-                    }
-                  }}
-                />
-                <input
-                  hidden
-                  type="file"
-                  accept=".json"
-                  ref={upload}
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    try {
-                      if (file.size > 20000000) throw Error("File too large.");
-                      const engine = restoreSession(
-                        JSON.parse(await file.text()),
-                      );
-                      runtime.replace(engine);
-                      setModal(null);
-                    } catch {
-                      setError(
-                        "This file is not a compatible UHS world. Your current world is unchanged.",
-                      );
-                    }
-                  }}
-                />
-                {error && <p className="error">{error}</p>}
                 <div className="settings-footnote">
                   <strong>Procedural mode</strong>
                   <p>
@@ -1138,8 +1260,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
                     integration.
                   </p>
                   <small>
-                    Original pixel art · Content version 1 · Simulation version
-                    1
+                    Original pixel art · Universal History Simulator
                   </small>
                 </div>
               </>

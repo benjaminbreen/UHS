@@ -1410,3 +1410,41 @@ button:disabled {opacity:.5;cursor:default;}
 .weaver-bottom .filled-button svg { color:#171306; }
 @media(max-width:760px) { .weaver .atlas-map { height:auto; } }
 .weaver { font-family:"Baskervville",Georgia,serif; }
+
+/* Shared start-screen palette and selection preview. */
+:root { --start-gold:#d9b477; --start-border:#8d7950; --start-panel:#101a28; }
+.start-preview { display:flex;align-items:center;gap:12px;padding:11px 14px;border:1px solid var(--start-border);border-radius:6px;background:linear-gradient(110deg,#ddba6510,#0d1522);color:#f0e9dc;font:15px "Baskervville",Georgia,serif; }
+.start-preview > svg { flex-shrink:0;color:var(--start-gold); }
+.start-preview strong { font-weight:400;color:#f4d38c; }
+.start-preview-role { color:#eee5d6; }
+.start-preview p { margin:3px 0 0;color:#bfc3cb;font-size:13px; }
+.modal-world { width:min(940px,100%);padding:26px 28px 18px;max-height:calc(100dvh - 40px); }
+.weaver h2 { font-size:36px;margin:0 44px 14px 0;letter-spacing:-.5px; }
+.weaver-modes { margin-bottom:14px;gap:9px; }
+.weaver-modes button { width:280px;padding:8px 16px;gap:15px;font-size:17px; }
+.weaver-modes small { font-size:12px;margin-top:2px; }
+.weaver-modes svg { width:25px;height:25px; }
+.weaver-prompt { gap:12px;margin-bottom:14px; }
+.weaver .random-start { width:190px;font-size:18px;gap:14px; }
+.random-start svg { width:24px;height:24px; }
+.weaver-prompt input { height:44px;font-size:17px;padding-left:15px; }
+.weaver-prompt > div button { top:10px; }
+.weaver-examples { gap:7px 10px;margin-bottom:16px; }
+.weaver-examples button { font-size:13px;padding:6px 12px; }
+.weaver-details { gap:16px;padding-top:14px; }
+.weaver h3 { font-size:16px;gap:10px;margin-bottom:11px; }
+.weaver h3 svg { width:20px;height:20px; }
+.weaver-manual { padding-right:15px; }
+.weaver-field { grid-template-columns:20px 99px minmax(0,1fr);gap:8px;font-size:13px;padding:5px 6px 5px 9px;margin-bottom:6px; }
+.weaver-field > svg { width:19px;height:19px; }
+.weaver-field input,.weaver-field select { padding:9px 10px;font-size:13px; }
+.weaver-field small { font-size:9px;grid-column:2 / 4; }
+.weaver .atlas-map { height:148px;margin-bottom:10px; }
+.weaver .start-preview { font-size:14px;padding:9px 12px; }
+.weaver .start-preview p { font-size:12px; }
+.weaver-bottom { position:sticky;bottom:-18px;background:var(--start-panel);margin-top:16px;padding:12px 0 0;z-index:1; }
+.weaver-bottom .filled-button { height:44px;width:320px;font-size:21px; }
+@media(max-width:760px) { .modal-world { padding:38px 18px 16px; } .weaver h2 { font-size:28px; } .weaver-modes button { width:50%;font-size:15px;padding:8px;gap:8px; } .weaver .random-start { width:100%;padding:9px; } .weaver-details { grid-template-columns:1fr; } .weaver-manual { padding-right:0; } .weaver .atlas-map { height:auto;max-height:165px; } .weaver-bottom { bottom:-16px; } }
+
+.sidebar .character > div:last-child { min-width: 0; }
+.sidebar .character h1 { overflow-wrap: anywhere; }

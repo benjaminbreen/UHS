@@ -54,11 +54,23 @@ export type AtlasPlace = {
 export const settingSchema = z
   .object({
     version: z.literal(2),
+    characterRevision: z.literal(1).optional(),
+    characterCommunity: z
+      .enum([
+        "local",
+        "english-colonial",
+        "indigenous-local",
+        "african-diaspora",
+      ])
+      .optional(),
     // Pins the integrated geography rules without changing old generation inputs.
     geographyRevision: z.literal(1).optional(),
     // New urban footprints/layouts are opt-in; old manifests retain their geometry.
     urbanRevision: z.literal(1).optional(),
     roadRevision: z.literal(1).optional(),
+    vegetationRevision: z
+      .union([z.literal(1), z.literal(2), z.literal(3), z.literal(4)])
+      .optional(),
     geographyMode: z.enum(["earth", "configured"]).optional(),
     terrainRevision: z.union([z.literal(1), z.literal(2)]).optional(),
     environment: z
@@ -87,6 +99,7 @@ export const settingSchema = z
     characterName: z.string().min(1).max(80),
     character: z
       .object({
+        appearanceSeed: z.string().max(100).optional(),
         hunger: z.number().int().min(0).max(100),
         fatigue: z.number().int().min(0).max(100),
       })

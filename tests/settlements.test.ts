@@ -221,7 +221,7 @@ it("renders the same chunks regardless of query order, including settlement boun
 it("herders open their own pens by day and secure returned animals at night", () => {
   const e = createSettingSession(
     { ...setting("19th century Haiti farmer"), settlementPattern: "farmstead" },
-    "herder",
+    "pen-test", // This seed includes a herder with a generated pen under character revision 1.
   );
   const h = e.state.actors.find((a) => a.role === "Herder")!,
     sites = e.world.activitySites!(h.id)!,

@@ -1,3 +1,81 @@
+## Random-start names without numeric placeholders — September 8, 2026
+
+Fixed the uncovered-context path exposed by Amazon basin 1400: it no longer produces `Resident NNNNNN`. Players and NPCs receive repeatable invented personal names from a shared fictional syllable set when no scoped naming kit applies. Provenance explicitly says these are not attested local names, translations or recovered languages. Researched/scoped naming kits still take precedence, and custom names are preserved. This is not new researched Amazonian coverage.
+
+Removed internal regional-art/fallback labels from the start card. Uncovered names show a short “Invented name” note with an explanatory tooltip; fuller evidence remains in the existing source/provenance views. Random selection retains all its settings instead of hiding uncovered regions.
+
+Validation: ten focused generation tests passed, including every featured start and a 96-person uncovered population. Browser checks passed for the exact Amazon 1400 setup/play path and 100 random starts plus visible random-card checks. Production build passed with the existing bundle advisory. No commit or deployment; other shared-checkout changes preserved.
+
+## Distinct habitat plants and quieter inland tropical composition — September 8, 2026
+
+Added native bamboo (64×96), upright teak-like tree (88×128), wetland sedge and dry bunchgrass (28×24) through `scripts/art/habitat_plants.py`. The lab has 42 plant-related assets; all 24 nature additions have precomputed lighting masks (144 total). Native palette, alpha and margin assertions pass. Inland South/Southeast Asian tropical mixes favor deciduous tree forms and bamboo; palms and flowering ginger are rarer. FAO references and the limitations of these broad regional interpretations are recorded in `VEGETATION.md`.
+
+New worlds use vegetation revision 4, with wider crown spacing, lower tree/understory retention and a shared low-frequency clearing mask. Fixed inland tropical sample drops from 157 trees / 77 low plants to 50 / 25 versus revision 3. Existing revision rules, native pixel scale, canopy fading and plant inspection remain supported. Corrected the terrain schema's inadvertently broadened accepted revisions back to its implemented 1/2 values; vegetation revisions remain separate.
+
+Production build and eight unit checks passed. Browser checks cover the gallery, Settings, four ecologies, normal Korean game/minimap and a Burmese scene containing both new tree silhouettes. Reviewed `artifacts/nature-lab/habitat-plants.png` and `burma-quiet.png`. Unrelated work preserved; no commit/deployment.
+
+## Contextual character generation and naming conventions — September 8, 2026
+
+New procedural starts pin `characterRevision: 1` and share a deterministic player/NPC pipeline for scoped names, appearance, eligible livelihoods and starting supplies. Flat regional/community profiles replace unrelated Roman defaults on this path; missing naming coverage is explicit. Household members use the same palette and naming rules, and field/pen assignments respect actual livelihoods. Existing customized appearances and unpinned input paths are preserved. Rendering remains independent of cultural-family branches.
+
+Initial content covers Congo Basin and precolonial Australian appearance scenarios, distinct English-colonial/Indigenous/African-descended Virginia contexts, qualified regional art defaults, and scoped naming samples. World setup exposes Virginia community choice. Names support complete personal sequences, family-first, family-last and two-family formats; children can inherit appropriate family components without forcing shared surnames on partners. Burmese interior 1350 uses an openly hypothetical naming reconstruction rather than numbered residents. Chinese earlier components and Spanish date coverage retain explicit qualifications; coverage is not comprehensive.
+
+Sidebar portraits and nearby-person icons now paint the actual appearance recipe, fixing the independent legacy-complexion mismatch. Removed the default zero-obsidian wealth line for contextual characters without currency. Evidence UI now distinguishes fictional choices and hypotheses from inference/documentation. Three Luna agents contributed bounded content and tests; their outputs were reviewed and corrected before integration.
+
+Validation: 17 focused character/generation unit tests passed; 11,646 place/date contexts resolved without rule conflicts. Four browser starts (Burma, Congo, Australia, Virginia) passed through the real setup/worker/runtime path, including name preservation, community selection, visible actor provenance and matching sidebar/world complexion; captures are `artifacts/characters/context-*.png`. Focused layout, pen collision and herder-duty checks passed after updating the latter's fixture seed for the changed generated population. Two additional production-browser checks passed for the Roman and Korean opening scenarios (isolated from development hot reload). Production build passed with the existing bundle-size advisory. See `CHARACTER_GENERATION.md` for contracts, sources, interpretation and remaining scope. No commit or deployment; unrelated shared-checkout work preserved.
+
+## Quieter vegetation, small shrubs and plant focus — September 8, 2026
+
+New worlds and terrain previews use vegetation revision 3, with wider crown spacing plus a further 20% tree thinning. Low scenery is reduced across all biomes, including open ground and dry thorn scrub; the final pass halves the first adjustment's shrub/flower retention. Fixed temperate sample: 202→138 trees and 221→44 low plants compared with revision 2. Dry scrub sample: 45→37 trees and 238→44 low plants. Older revision behavior stays intact.
+
+Added four original native pixel shrubs in `scripts/art/small_shrubs.py`: small dry scrub (24×20), medium dry scrub (32×24), low leafy shrub (24×20), and low heath (28×22). Small/medium/large dry shrubs use a 60/30/10 mix; most heath and many fern/bush candidates also use smaller silhouettes, without adding spawn sites. Nature lab now has 38 plant-related assets and the nature atlas has 120 prebuilt lighting masks. No image resampling is used for world sprites.
+
+Plant sprites now support opaque-pixel selection and engine-backed inspection, showing their name, description and sprite in the existing In focus sidebar. This does not advance time or start walking. Production build, seven unit checks, and four final browser checks passed (lab/settings and actual tree/shrub clicks); canopy fading also passed after revision 3 density changes. Reviewed small shrub artwork and the final focus scene. See `VEGETATION.md` and `artifacts/nature-lab/plant-focus-shrub.png`. Unrelated work preserved; no commit/deployment.
+
+## Native broadleaf ages and crown-aware woodland composition — September 8, 2026
+
+New worlds use vegetation revision 2. Added four independently authored broadleaf sizes (48×64, 72×96, 112×144, 144×192), visible under Broadleaf ages in the nature lab. World rendering keeps native pixel scale. Bounded deterministic crown-aware thinning gives large trees more space while preserving habitat groves; settlement edges receive additional clearance and thinning. The fixed tropical composition sample now has 494 trees versus 1,154 previously. Woodland understory is reduced and forest-floor litter added.
+
+Large crowns fade when they obscure the player, retaining opaque lower trunks and precomputed shadows. Earlier vegetation revisions preserve their placement behavior. See `VEGETATION.md`. Production build, 11 focused unit/preparation tests, and eight browser checks passed, including four ecology scenes, normal game/minimap, lab/settings, and canopy fade/restore at native scale. Final rounded crown artwork and tropical composition capture visually reviewed. No commit/deployment; unrelated shared-checkout edits preserved.
+
+## Habitat vegetation integrated into new worlds — September 8, 2026
+
+New sessions pin `vegetationRevision: 1` and use content-owned tree mixes plus habitat-conditioned understory. All twelve native additions now appear through generator-v3 vegetation: conifers/birch in boreal woodland, pine/oak in temperate woodland, freshwater willow, tropical broadleaf/palm, regional Sahel thorn, dry scrub, and habitat/regional fern, heath, sagebrush and ginger. Existing road/water/field exclusions remain; low plants are nonblocking. Courtyard tree pools follow ecology. Existing manifests without the revision retain original selection.
+
+WorldScene and the minimap load the nature atlas. Added 72 precomputed lighting masks with native origins and terrain lift; no per-frame pixel processing. See `VEGETATION.md` for ownership, interpretation limits and reproduction. Production build, eight unit/preparation checks, and five browser checks passed, including four ecology scenes and a normal Korean game/minimap. Browser captures: `artifacts/nature-lab/map-*.png`. No commit/deployment; unrelated work preserved.
+
+Visual follow-up identified with the user: broad crowns still inherit the old dense candidate spacing and have only one mature size. Next work should distinguish tree age/size, use crown-aware spacing and lower settlement-edge density while retaining native pixel scale.
+
+## Four understory pixel-art studies — September 8, 2026
+
+Added woodland fern, flowering heath, sagebrush (each 48×40), and tropical flowering ginger (48×56) through the subject-specific `scripts/art/nature_understory.py` recipes. Their pinnate fronds, pink bell sprays, silver lobed leaves and broad leaves/red bracts provide different visual forms for future habitat composition. These are visual studies, not species-distribution claims or new world placement rules.
+
+The nature lab now shows 30 plant-related assets, with these four under New understory. `npm run art:nature` builds all 12 additions, preserving native pixels, binary transparency, limited palettes and unclipped margins. Production build and both nature/settings browser checks passed, including selection of all four additions. Reviewed `artifacts/nature-lab/ginger-preview.png` and `understory.png`. No commit or deployment; unrelated work preserved.
+
+## Birch, tropical broadleaf, willow and thorn scrub — September 8, 2026
+
+Added four more original native pixel-art studies to the nature atlas: silver birch (64×88), tropical broadleaf (96×96), riverside willow (88×88), and dry thorn scrub (56×40). Pale scarred bark, buttress roots, hanging leaf curtains and low thorny stems supply distinct silhouettes. The lab now lists 26 plant-related assets, separates the new shrub category, and uses the same sprite preview/export path. Existing ecological placement remains unchanged.
+
+Rebuild with `npm run art:nature`; all eight new assets pass palette, binary-alpha and unclipped-margin assertions. The comparison sheet now supports two rows; `artifacts/nature-lab/second-plants.png` shows this batch. Production build and nature/settings browser checks passed, including selection of all four additions. Unrelated work preserved; no commit or deployment.
+
+## Four native pixel-art tree studies — September 8, 2026
+
+Added feather palm (80×96), spreading pine (80×88), boreal spruce (64×96), and Sahel thorn (88×80) to the nature lab, with the new trees listed first. These are original integer-grid drawing recipes in `scripts/art/nature_trees.py`, using opaque limited palettes, authored branch/crown arrangements and seeded interior leaf plates. Generated concept images were superseded after the user's direction to author native pixel art; no generated image pixels are included. Native assets and a separate atlas live in `public/nature/`; rebuild with `npm run art:nature`. Existing world vegetation and ecological selection remain unchanged pending visual review.
+
+The shared Sprite component and lab metadata/export use the new atlas. Increased thumbnail height to accommodate the taller silhouettes. Build-time checks enforce binary alpha, at most 24 colors and transparent margins. Production build and the two nature/settings browser checks passed; reviewed the four-tree comparison at `artifacts/nature-lab/new-trees.png`. No commit or deployment; unrelated work preserved.
+
+## Nature asset lab and tabbed Settings — September 8, 2026
+
+Added `/nature-lab`, available through Settings → Developer → Plants & animals. The lazy-loaded viewer uses the production atlases and shared Sprite component for 18 plant/crop/harvest/debris assets and four two-frame animals. It provides search, pixel scales, five background swatches, manual/animated animal frames, dimensions/frame IDs and native transparent PNG export. It opens in a separate tab so the active world remains open; previews show raw sprites, not world lighting or ecological placement. No new plant artwork or generation changes.
+
+Settings now uses splash-aligned navy gradients, lavender double borders and gold selections, with keyboard-accessible Display, Audio, Journeys and Developer tabs. Existing actions remain available; the developer tab also exposes the terrain lab. Production build and two browser checks passed, including gallery frames/export, tab navigation, opening the lab from a live Korean setting and mobile overflow. Visual captures: `artifacts/nature-lab/`. Unrelated shared-checkout work preserved; no commit or deployment.
+
+## Compact World Weaver and shared random-start previews — September 8, 2026
+
+Reduced the World Weaver heading, controls, map, and spacing to fit a 1280×720 viewport, with a sticky Begin row on smaller windows. Splash and modal now share brass accents and a compact character/place/date preview. Splash Random start cycles previews without generating a world; Begin uses the selected setting and seed. Opening the modal preserves that selection. New populated characters carry an optional appearance seed, consumed at session creation for randomized appearance and the existing wardrobe kit; earlier settings without it retain prior behavior. Names, roles, and initial needs stay in the selected setting.
+
+Production build, character tests, and laptop visual checks completed. Browser coverage exercises preview cycling, selected-character identity through the modal and direct Begin, distinct generated appearances, scenario starts, typed prompts, and reload behavior. Captures: `artifacts/splash/weaver-compact.png` and `random-preview.png`. Unrelated shared-checkout edits preserved.
+
 ## Material mixes within cities — September 8, 2026
 
 Paving now uses compact, content-owned mixes by street role, with a stable selection per route, square or frontage. New urban worlds distinguish basalt, rounded cobbles, dressed granite blocks, brick, warm-gray slabs and earth lanes. Squares and footways honor the chosen material instead of forcing slabs. Earlier trunk surfaces survive access-lane intersections. Unprofiled settings use slabs as the fallback rather than a worldwide year-based material progression; dated Italian/European profiles and a nineteenth-century NYC mix provide local interpretations. NYC granite blocks have an official Street Design Manual reference; proportions and placement remain artistic inference. Renderer branches only on material, not culture, and routes/collisions remain unchanged.

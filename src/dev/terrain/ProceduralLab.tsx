@@ -183,6 +183,7 @@ export function labSetting(c: Config): WorldSetting {
       ? `${base.location} · street study`
       : `${ecologyProfiles[c.ecology].label} · procedural study`,
     terrainRevision: 2,
+    vegetationRevision: 4,
     environment: {
       ecology: c.ecology,
       landform: c.landform,
