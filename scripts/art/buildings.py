@@ -222,8 +222,10 @@ def build_buildings(root, sprites):
     source=json.loads((root/'src/content/graphics/buildings.json').read_text())
     source['materials'].update(json.loads((root/'src/content/graphics/urban.json').read_text()).get('materials',{}))
     models={}
-    from art.urban import UrbanBuilding, urban_recipes, build_urban_furniture
+    from art.urban import (UrbanBuilding, urban_recipes, build_urban_furniture,
+                           build_city_walls)
     build_urban_furniture(sprites)
+    build_city_walls(sprites)
     recipes={**source['buildings'], **urban_recipes(root, source)}
     for name,r in list(recipes.items()):
         if r['roof']=='shelter': continue

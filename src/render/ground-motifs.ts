@@ -103,3 +103,15 @@ export function materialGrain(wx: number, wy: number) {
   if (choice & 16) [x, y] = [y, x];
   return Number(grainTiles[choice & 3][y][x]);
 }
+
+/** Small original blade clusters for path margins. Anchored at their bottom
+ * row so a tuft roots on the verge and leans out over the worn ground.
+ * 1 blade shadow, 2 blade body, 3 lit tip. */
+export const edgeTufts = [
+  ["003000", "002000", "102000", "122100", "011100"],
+  ["030000", "020300", "020200", "122100", "011100"],
+  ["000300", "003200", "102200", "122100", "011100"],
+  ["300030", "202020", "022200", "012100", "001100"],
+  ["000300", "000200", "301200", "221210", "011100"],
+  ["030000", "020000", "020103", "122202", "011110"],
+];

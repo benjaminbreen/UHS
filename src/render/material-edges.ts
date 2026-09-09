@@ -1,3 +1,4 @@
+import { trimCache } from "../core/cache";
 import type { TopographyCell, TopographySample } from "../core/topography";
 import {
   waterDistance,
@@ -83,22 +84,58 @@ export function materialCoverage(
 /** Crisp, irregular pixel steps instead of full-cell corner staircases. */
 type PathSegment = readonly [number, number, number, number];
 const routeCaches = new WeakMap<TopographySample, Map<string, PathSegment[]>>();
+export type PathField = {
+  /** Wear bands. 0.48 is the material boundary the raster thresholds against. */
+  coverage: number;
+  /** Distance from the corridor center over its local radius; 0 is the center. */
+  cross: number;
+  /** Local half-width in cells, after breathing. */
+  radius: number;
+};
+const clamp01 = (n: number) => Math.max(0, Math.min(1, n));
+/** A worn road is not a constant-width ribbon. One slow wave sampled on the
+ * center line rather than at the pixel widens and narrows the whole corridor
+ * along its length, so both margins move together instead of fraying. */
+function breathe(cx: number, cy: number, ox: number, oy: number) {
+  const wx = (cx + ox) * 16,
+    wy = (cy + oy) * 16;
+  return (
+    1 +
+    (waterNoise(wx, wy, 112, 517) - 0.5) * 0.3 +
+    (waterNoise(wx, wy, 37, 519) - 0.5) * 0.13
+  );
+}
+/** Lateral drift of the corridor itself, sampled on the center line so the
+ * whole road snakes and both margins move together. Width variation alone
+ * still left a ruled line; a route follows the ground it was worn into. */
+function wander(cx: number, cy: number, ox: number, oy: number) {
+  return (waterNoise((cx + ox) * 16, (cy + oy) * 16, 74, 523) - 0.5) * 0.84;
+}
+/** Two octaves of margin nibble. One octave left the edge straight enough to
+ * expose the route's underlying 45-degree staircase. */
+function margin(x: number, y: number, ox: number, oy: number) {
+  const wx = (x + ox) * 16,
+    wy = (y + oy) * 16;
+  return (
+    (waterNoise(wx, wy, 27, 421) - 0.5) * 0.085 +
+    (waterNoise(wx, wy, 9, 431) - 0.5) * 0.05
+  );
+}
 /** Connect neighboring route centers before rasterization. A diagonal is a
  * continuous corridor, never a sequence of independently rounded tile caps. */
-export function pathCoverage(
+export function pathField(
   sample: TopographySample,
   x: number,
   y: number,
   ox: number,
   oy: number,
-) {
+): PathField {
   const ix = Math.floor(x),
     iy = Math.floor(y),
     cell = sample(ix, iy)!;
   if (cell.pathArt?.length && !cell.feature && !cell.ramp && !cell.bridge) {
-    let coverage = 0;
-    const wobble =
-      (waterNoise((x + ox) * 16, (y + oy) * 16, 27, 421) - 0.5) * 0.09;
+    let best: PathField = { coverage: 0, cross: 1.5, radius: 0 };
+    const wobble = margin(x, y, ox, oy);
     for (const s of cell.pathArt) {
       const ax = ix + s.a[0],
         ay = iy + s.a[1],
@@ -108,14 +145,22 @@ export function pathCoverage(
         0,
         Math.min(1, ((x - ax) * dx + (y - ay) * dy) / (dx * dx + dy * dy || 1)),
       );
-      const depth =
-        s.radius - Math.hypot(x - ax - t * dx, y - ay - t * dy) + wobble;
-      coverage = Math.max(
-        coverage,
-        0.48 + (0.6 * depth) / Math.min(1.4, s.radius),
+      const cx = ax + t * dx,
+        cy = ay + t * dy,
+        len = Math.hypot(dx, dy) || 1;
+      const radius = s.radius * breathe(cx, cy, ox, oy);
+      const drift = wander(cx, cy, ox, oy) * Math.min(1.2, s.radius);
+      const distance = Math.hypot(
+        x - cx + (drift * dy) / len,
+        y - cy - (drift * dx) / len,
       );
+      const coverage = clamp01(
+        0.48 + (0.6 * (radius - distance + wobble)) / Math.min(1.4, radius),
+      );
+      if (coverage > best.coverage)
+        best = { coverage, cross: distance / (radius || 1), radius };
     }
-    return Math.max(0, Math.min(1, coverage));
+    return best;
   }
 
   const eligible = (a: number, b: number) => {
@@ -141,7 +186,7 @@ export function pathCoverage(
       return n?.bridge || n?.ramp;
     })
   )
-    return 1;
+    return { coverage: 1, cross: 0, radius: 1 };
   let cache = routeCaches.get(sample);
   if (!cache) {
     cache = new Map();
@@ -164,10 +209,12 @@ export function pathCoverage(
             if (eligible(xx + dx, yy + dy))
               segments.push([xx + 0.5, yy + 0.5, xx + dx + 0.5, yy + dy + 0.5]);
         }
-    if (cache.size > 1024) cache.clear();
+    trimCache(cache, 1024);
     cache.set(key, segments);
   }
-  let distance = Infinity;
+  let distance = Infinity,
+    nx = x,
+    ny = y;
   for (const [ax, ay, bx, by] of segments) {
     const dx = bx - ax,
       dy = by - ay,
@@ -175,13 +222,32 @@ export function pathCoverage(
         0,
         Math.min(1, ((x - ax) * dx + (y - ay) * dy) / (dx * dx + dy * dy || 1)),
       );
-    distance = Math.min(distance, Math.hypot(x - ax - t * dx, y - ay - t * dy));
+    const d = Math.hypot(x - ax - t * dx, y - ay - t * dy);
+    if (d < distance) {
+      distance = d;
+      nx = ax + t * dx;
+      ny = ay + t * dy;
+    }
   }
-  // Very small long-wave margin variation; pixel stamps are placed separately.
+  if (!Number.isFinite(distance)) return { coverage: 0, cross: 1.5, radius: 0 };
+  // Half breathing on the legacy reconstruction: it has no authored center
+  // line, so a full-amplitude wave would swell isolated cells into blobs.
   const radius =
-    0.51 + (waterNoise((x + ox) * 16, (y + oy) * 16, 29, 363) - 0.5) * 0.09;
-  return Math.max(0, Math.min(1, 0.48 + (radius - distance) / 0.65));
+    (0.51 + margin(x, y, ox, oy) * 0.55) *
+    (1 + (breathe(nx, ny, ox, oy) - 1) * 0.3);
+  return {
+    coverage: clamp01(0.48 + (radius - distance) / 0.65),
+    cross: distance / (radius || 1),
+    radius,
+  };
 }
+export const pathCoverage = (
+  sample: TopographySample,
+  x: number,
+  y: number,
+  ox: number,
+  oy: number,
+) => pathField(sample, x, y, ox, oy).coverage;
 export function shorePixel(
   cell: TopographyCell,
   distance: number,

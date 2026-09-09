@@ -33,6 +33,8 @@ export class WorldScene extends Phaser.Scene {
     >
   >();
   private canopies: { image: Phaser.GameObjects.Image; cut: number }[] = [];
+  private modalOpen = false;
+  private poseOffsets = new Map<string, number>();
   private layers: Phaser.GameObjects.GameObject[] = [];
   private ground?: Phaser.Tilemaps.TilemapLayer;
   private tilemap?: Phaser.Tilemaps.Tilemap;
@@ -99,6 +101,19 @@ export class WorldScene extends Phaser.Scene {
     this.ready = true;
     this.characters = new WorldCharacters(this);
     this.events.once("shutdown", () => this.characters?.destroy());
+    // Watched rather than queried: the input gate runs on every frame.
+    const watchModals = new MutationObserver(() => {
+      this.modalOpen = !!document.querySelector('[data-modal="true"]');
+    });
+    watchModals.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["data-modal"],
+    });
+    this.modalOpen = !!document.querySelector('[data-modal="true"]');
+    this.events.once("shutdown", () => watchModals.disconnect());
+    this.events.once("destroy", () => watchModals.disconnect());
     this.cameras.main.setBackgroundColor("#819253");
     this.cameras.main.roundPixels = !!this.options.lab;
     this.selection = this.add.graphics().setDepth(20000);
@@ -584,8 +599,28 @@ export class WorldScene extends Phaser.Scene {
             this.buildings.set(b.id, image);
           }
         for (const fence of w.enclosures) {
-          if (Math.abs(fence.x - p.x) > 100 || Math.abs(fence.y - p.y) > 100)
+          // A city circuit is far wider than a pen, so the cull tests the whole
+          // rectangle rather than only its origin.
+          if (
+            fence.x - p.x > 100 ||
+            p.x - (fence.x + fence.w) > 100 ||
+            fence.y - p.y > 100 ||
+            p.y - (fence.y + fence.h) > 100
+          )
             continue;
+          if (fence.parts) {
+            for (const part of fence.parts) {
+              if (Math.abs(part.x - p.x) > 100 || Math.abs(part.y - p.y) > 100)
+                continue;
+              this.sprite(
+                part.frame,
+                part.x * 16 + 8,
+                part.y * 16 + 16,
+                part.y * 16 + 10,
+              );
+            }
+            continue;
+          }
           for (let x = fence.x; x < fence.x + fence.w; x++)
             for (let y = fence.y; y < fence.y + fence.h; y++)
               if (
@@ -683,20 +718,25 @@ export class WorldScene extends Phaser.Scene {
         }
       }
       // One source pixel is one world pixel, for objects and their shadows.
-      im.setTexture(this.texture(frame), frame)
-        .setTint(frame === "fire" ? 0xffffff : this.tint)
-        .setDepth(pos.y * 16 + (actor ? 14 : 10));
+      const texture = this.texture(frame);
+      if (im.texture.key !== texture || im.frame.name !== frame)
+        im.setTexture(texture, frame);
+      const tint = frame === "fire" ? 0xffffff : this.tint;
+      if (im.tintTopLeft !== tint) im.setTint(tint);
+      const depth = pos.y * 16 + (actor ? 14 : 10);
+      if (im.depth !== depth) im.setDepth(depth);
       const shade = this.shadows.get(id);
       const shadowKey = shadowFrame(this.shadowPhase, frame);
       const shadowTexture =
-        this.texture(frame) === "nature"
+        texture === "nature"
           ? "nature-shadows"
-          : this.texture(frame) === "props"
+          : texture === "props"
             ? "prop-shadows"
             : "lighting-shadows";
       if (
         shade &&
         !frame.startsWith("human-") &&
+        (shade.texture.key !== shadowTexture || shade.frame.name !== shadowKey) &&
         this.textures.get(shadowTexture).has(shadowKey)
       )
         shade.setTexture(shadowTexture, shadowKey).setOriginFromFrame();
@@ -872,7 +912,7 @@ export class WorldScene extends Phaser.Scene {
       active instanceof HTMLTextAreaElement ||
       active instanceof HTMLSelectElement ||
       (active instanceof HTMLElement && active.isContentEditable) ||
-      !!document.querySelector('[data-modal="true"]');
+      this.modalOpen;
     if (typing) {
       this.heldDirections.clear();
       this.pendingDirection = undefined;
@@ -922,10 +962,7 @@ export class WorldScene extends Phaser.Scene {
           ? Math.min(3, Math.floor(elapsed / poseTiming(pose)))
           : this.options.freeze
             ? 0
-            : Math.floor(
-                (time + [...id].reduce((n, c) => n + c.charCodeAt(0) * 37, 0)) /
-                  poseTiming(pose),
-              ) % 4;
+            : Math.floor((time + this.poseOffset(id)) / poseTiming(pose)) % 4;
         const prop =
           heldSprite ??
           (active && action.pose === "drop" && index < 2
@@ -945,7 +982,8 @@ export class WorldScene extends Phaser.Scene {
           }
           if (shade.texture.key !== shadowTexture)
             shade.setTexture(shadowTexture);
-          shade.setOrigin(0.5, 32 / 96).setPosition(im.x, im.y);
+          if (shade.originY !== 32 / 96) shade.setOrigin(0.5, 32 / 96);
+          shade.setPosition(im.x, im.y);
           const shadowDepth = this.runtime.engine.world.topography
             ? -1000
             : -60000;
@@ -973,8 +1011,16 @@ export class WorldScene extends Phaser.Scene {
     }
     const player = this.entities.get("player");
     for (const { image, cut } of this.canopies) {
-      const faded =
+      // Distant trees at full alpha have nothing to do; only ones near the
+      // player can hide it, and only a fading one still needs stepping.
+      const near =
         player &&
+        Math.abs(image.x - player.x) < image.width &&
+        player.y > image.y - image.height - 24 &&
+        player.y < image.y + 24;
+      if (!near && image.alpha === 1) continue;
+      const faded =
+        near &&
         canopyHidesPlayer(
           {
             x: image.x,
@@ -983,14 +1029,14 @@ export class WorldScene extends Phaser.Scene {
             height: image.height,
             cut,
           },
-          player,
+          player!,
         );
       const target = faded ? 0.32 : 1;
-      image.setAlpha(
+      const alpha =
         Math.abs(image.alpha - target) < 0.02
           ? target
-          : image.alpha + (target - image.alpha) * 0.25,
-      );
+          : image.alpha + (target - image.alpha) * 0.25;
+      if (alpha !== image.alpha) image.setAlpha(alpha);
     }
     this.characters?.prune();
     const selected = this.runtime.selected;
@@ -1000,6 +1046,16 @@ export class WorldScene extends Phaser.Scene {
       marker && destination ? marker.x - (destination.x * 16 + 8) : 0,
       marker && destination ? marker.y - (destination.y * 16 + 16) : 0,
     );
+  }
+  /** Per-actor animation phase offset; stable, so it is hashed once. */
+  private poseOffset(id: string) {
+    let offset = this.poseOffsets.get(id);
+    if (offset === undefined) {
+      offset = 0;
+      for (let i = 0; i < id.length; i++) offset += id.charCodeAt(i) * 37;
+      this.poseOffsets.set(id, offset);
+    }
+    return offset;
   }
   private direction(): [number, number] {
     const has = (arrow: string, letter: string) =>

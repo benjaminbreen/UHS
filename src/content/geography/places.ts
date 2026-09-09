@@ -85,6 +85,38 @@ const anchors: AtlasPlace[] = [
     0.15,
   ),
   p(
+    // A walled cathedral city in 1300 and a modest town today, so the generated
+    // gazetteer's modern prominence rank cannot place it.
+    "york",
+    "York",
+    -1.08,
+    53.97,
+    "temperate",
+    "river-ew",
+    "european",
+    1300,
+    "timber",
+    ["yorkshire", "jorvik"],
+    "city",
+    0.2,
+  ),
+  p(
+    // Distinct from the Cusco highlands entry, which describes the country
+    // around it rather than the Inca capital.
+    "cusco-city",
+    "Cusco",
+    -71.97,
+    -13.53,
+    "temperate",
+    "none",
+    "andean",
+    1450,
+    "courtyard",
+    ["cuzco", "qosqo"],
+    "city",
+    0.8,
+  ),
+  p(
     "normandy",
     "Normandy",
     -0.37,

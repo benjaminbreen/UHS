@@ -2,6 +2,7 @@ import { expect, it } from "vitest";
 import type { TopographySample, TopographyCell } from "../src/core/topography";
 import {
   pathCoverage,
+  pathField,
   paintedGround,
   shoreDistance,
 } from "../src/render/material-edges";
@@ -111,23 +112,29 @@ it("does not redraw tile-shaped dirt fragments beyond an authored diagonal", () 
   expect(pathCoverage(sample, 0.5, 0.5, 0, 0)).toBeGreaterThan(0.8);
 });
 
-it("leaves room for four wear bands on broad paths while lighting narrow path centers", () => {
+it("keeps four wear bands across a broad path and a worn crown on a narrow one", () => {
   const broad: TopographySample = () => ({
     ...cell,
     pathArt: [{ a: [1.5, -10], b: [1.5, 10], radius: 1.5 }],
   });
-  const samples = [0.08, 0.35, 0.7, 0.95].map((x) =>
-    pathCoverage(broad, x, 0.5, 0, 0),
-  );
-  expect(samples[0]).toBeLessThan(0.56);
-  expect(samples[1]).toBeGreaterThan(0.56);
-  expect(samples[1]).toBeLessThan(0.7);
-  expect(samples[2]).toBeGreaterThan(0.7);
-  expect(samples[2]).toBeLessThan(0.84);
-  expect(samples[3]).toBeGreaterThan(0.84);
+  // The corridor drifts and breathes, so bands are checked by crossing
+  // position rather than at fixed distances from the authored center line.
+  const bands = new Set<number>();
+  for (let i = 0; i <= 60; i++) {
+    const f = pathField(broad, (i * 3) / 60, 0.5, 0, 0);
+    if (f.coverage <= 0.48) continue;
+    bands.add(
+      f.coverage < 0.56 ? 0 : f.coverage < 0.7 ? 1 : f.coverage < 0.84 ? 2 : 3,
+    );
+    expect(f.cross).toBeLessThan(1.06);
+  }
+  expect([...bands].sort()).toEqual([0, 1, 2, 3]);
   const narrow: TopographySample = () => ({
     ...cell,
     pathArt: [{ a: [0.5, -10], b: [0.5, 10], radius: 0.5 }],
   });
-  expect(pathCoverage(narrow, 0.5, 0.5, 0, 0)).toBeGreaterThan(0.95);
+  const crown = Array.from({ length: 33 }, (_, i) =>
+    pathField(narrow, i / 32, 0.5, 0, 0).coverage,
+  );
+  expect(Math.max(...crown)).toBeGreaterThan(0.95);
 });

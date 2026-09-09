@@ -32,7 +32,7 @@ export function integratedSetting(s: WorldSetting): WorldSetting {
     ...s,
     characterRevision: 1,
     geographyRevision: 1,
-    urbanRevision: 1,
+    urbanRevision: 2,
     roadRevision: 1,
     vegetationRevision: 4,
     geographyMode: s.environment ? "configured" : "earth",

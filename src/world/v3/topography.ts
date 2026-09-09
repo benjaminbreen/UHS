@@ -1,3 +1,4 @@
+import { trimCache } from "../../core/cache";
 import type { WorldSetting } from "../../content/geography/types";
 import type { TopographyCell, HeightTier } from "../../core/topography";
 import { noise } from "../geography/noise";
@@ -46,7 +47,7 @@ export function createReliefLandscape(setting: WorldSetting, seed: string) {
       elevation: height * 14,
       snow: false,
     };
-    if (cache.size > 131072) cache.clear();
+    trimCache(cache, 131072);
     cache.set(key, result);
     return result;
   };

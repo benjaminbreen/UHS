@@ -1,3 +1,4 @@
+import { trimCache } from "./cache";
 import {
   depositSupplies,
   harvestResource,
@@ -215,7 +216,7 @@ export class Engine {
     let fixed = this.terrainCollision.get(key);
     if (fixed === undefined) {
       fixed = this.world.blocked(x, y, space);
-      if (this.terrainCollision.size >= 16384) this.terrainCollision.clear();
+      trimCache(this.terrainCollision, 16384);
       this.terrainCollision.set(key, fixed);
     }
     return (
@@ -252,6 +253,16 @@ export class Engine {
     actorId = "player",
     maxNodes = 18000,
   ): RouteResult {
+    // Hoisted out of the cost callback: both were rescanning the whole actor
+    // list at every explored node.
+    const human =
+      actorId === "player" ||
+      this.state.actors.some((a) => a.id === actorId && a.kind === "human");
+    const occupied = new Set<string>();
+    if (actorId !== "player")
+      for (const a of this.state.actors)
+        if (a.id !== actorId && a.pos.space === start.space)
+          occupied.add(`${a.pos.x},${a.pos.y}`);
     return route(
       start,
       target,
@@ -265,11 +276,6 @@ export class Engine {
         if (this.blocked(to.x, to.y, start.space)) {
           const gate = this.gateAt(to, start.space);
           // Humans can open a gate; animals must wait for an actual open gate.
-          const human =
-            actorId === "player" ||
-            this.state.actors.some(
-              (a) => a.id === actorId && a.kind === "human",
-            );
           if (
             !gate ||
             !human ||
@@ -279,16 +285,7 @@ export class Engine {
             return Infinity;
           return 5;
         }
-        if (
-          actorId !== "player" &&
-          this.state.actors.some(
-            (a) =>
-              a.id !== actorId &&
-              a.pos.space === start.space &&
-              a.pos.x === to.x &&
-              a.pos.y === to.y,
-          )
-        )
+        if (actorId !== "player" && occupied.has(`${to.x},${to.y}`))
           return Infinity;
         return start.space === "outside"
           ? (this.world.navigationCost?.(to.x, to.y, actorId) ?? 1)
@@ -311,21 +308,25 @@ export class Engine {
   }
   private visibleFrom(p: Position, pos: Position) {
     if (distance(p, pos) > SIGHT) return false;
+    if (p.space !== "outside") return true;
     const steps = Math.max(Math.abs(p.x - pos.x), Math.abs(p.y - pos.y));
+    if (steps < 2) return true;
+    // Only places overlapping the sight line's bounds can block it; without
+    // this the whole place list is rescanned for every step of every ray.
+    const minX = Math.min(p.x, pos.x),
+      maxX = Math.max(p.x, pos.x),
+      minY = Math.min(p.y, pos.y),
+      maxY = Math.max(p.y, pos.y),
+      blockers = this.world.places.filter(
+        (b) =>
+          b.x <= maxX && b.x + b.w > minX && b.y <= maxY && b.y + b.h > minY,
+      );
+    if (!blockers.length) return true;
     for (let i = 1; i < steps; i++) {
       const x = Math.round(p.x + ((pos.x - p.x) * i) / steps),
         y = Math.round(p.y + ((pos.y - p.y) * i) / steps);
-      if (
-        this.world.places.some(
-          (b) =>
-            p.space === "outside" &&
-            x >= b.x &&
-            x < b.x + b.w &&
-            y >= b.y &&
-            y < b.y + b.h,
-        )
-      )
-        return false;
+      for (const b of blockers)
+        if (x >= b.x && x < b.x + b.w && y >= b.y && y < b.y + b.h) return false;
     }
     return true;
   }

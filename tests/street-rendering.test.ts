@@ -17,7 +17,7 @@ it("simplifies staircase footpaths into continuous diagonals without changing ro
   const before = JSON.stringify(points);
   const art = pathArt([{ id: "p", points, width: 0, kind: "path", cost: 1 }]);
   expect(art.get("1,1")).toEqual([
-    { a: [0.5, 0.5], b: [3.5, 3.5], radius: 0.5 },
+    { a: [0.5, 0.5], b: [3.5, 3.5], radius: 0.44 },
   ]);
   expect(JSON.stringify(points)).toBe(before);
   expect(

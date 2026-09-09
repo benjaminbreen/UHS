@@ -1,3 +1,4 @@
+import { trimCache } from "../../core/cache";
 import { bankOffset } from "./wet-features";
 import { noise } from "../geography/noise";
 import { random } from "../../core/random";
@@ -45,7 +46,7 @@ export function regionalLandforms(
                 : Math.min(0.4, Math.hypot(u / 105, v / 82) * 0.22)) +
               (broad - 0.5) * 0.38
             : 0.15 + broad * 0.7;
-    if (heights.size >= 65536) heights.clear();
+    trimCache(heights, 65536);
     heights.set(key, h);
     return h;
   };

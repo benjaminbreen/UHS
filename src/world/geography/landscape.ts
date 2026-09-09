@@ -1,3 +1,4 @@
+import { trimCache } from "../../core/cache";
 import type { WorldSetting } from "../../content/geography/types";
 import {
   atlasSample,
@@ -173,7 +174,7 @@ export function createLandscape(s: WorldSetting, seed: string) {
       const old = samples.get(k);
       if (old) return old;
       const value = raw(x, y);
-      if (samples.size >= 65536) samples.clear();
+      trimCache(samples, 65536);
       samples.set(k, value);
       return value;
     },

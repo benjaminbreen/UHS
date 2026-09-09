@@ -8,6 +8,7 @@ import { REGION_CELL } from "./context";
 import { toAtlas } from "../geography/coordinates";
 import { containsDate } from "../../content/history/dates";
 import type { Road, Site } from "../v3/types";
+import { siteGate } from "../v3/urban";
 import { cellKey } from "../v3/types";
 import {
   line,
@@ -65,6 +66,7 @@ export function regionalTransport(
     existing = new Set<string>(),
     crossingCells = new Set<string>(),
     knownBridges: Road[] = [],
+    cardinal = false,
   ) {
     const old = cache.get(id);
     if (old) return old;
@@ -84,12 +86,9 @@ export function regionalTransport(
         : undefined;
     const allowed = new Set<string>(crossingCells);
     if (bridge) roadCells(bridge, (x, y) => allowed.add(cellKey(x, y)));
-    const direct = (shared ? directLine : line)(a, b),
-      level = sample(a.x, a.y).elevation;
-    const flat =
-      !existing.size &&
-      !crossesWater &&
-      direct.every((p) =>
+    const level = sample(a.x, a.y).elevation;
+    const clear = (points: Point[]) =>
+      points.every((p) =>
         [
           [0, 0],
           [1, 0],
@@ -101,14 +100,29 @@ export function regionalTransport(
           return f.water >= 4 && f.elevation === level;
         }),
       );
+    // A road that ends at a town gate has to arrive square to the built edge: a
+    // proportional line would enter as a diagonal stair across the streets
+    // waiting for it on the other side. Only tried on open level ground, where
+    // it saves the graph search entirely.
+    const elbow = (corner: Point) => [
+      ...line(a, corner),
+      ...line(corner, b).slice(1),
+    ];
+    const straight =
+      existing.size || crossesWater
+        ? undefined
+        : (cardinal
+            ? [elbow({ x: b.x, y: a.y }), elbow({ x: a.x, y: b.y })]
+            : [(shared ? directLine : line)(a, b)]
+          ).find(clear);
     // Open level ground needs no graph search. Relief and crossings use the shared router.
-    const road: Road | undefined = flat
+    const road: Road | undefined = straight
       ? {
           id,
-          points: direct,
+          points: straight,
           width: 1,
           kind: "street",
-          cost: direct.length * 2.2,
+          cost: straight.length * 2.2,
         }
       : planRoad(
           id,
@@ -148,6 +162,17 @@ export function regionalTransport(
     cache.set(id, result);
     return result;
   }
+  /** Endpoints on the two settlements' built edges rather than their centres,
+   * so a through route stops at a gate instead of crossing the main square. */
+  const ends = (a: Site, b: Site) => {
+    const from = a.pack && siteGate(a, a.pack, b.center),
+      to = b.pack && siteGate(b, b.pack, a.center);
+    return {
+      from: from?.point ?? a.center,
+      to: to?.point ?? b.center,
+      cardinal: !!(from || to),
+    };
+  };
   const neighborCache = new Map<string, Site[]>();
   function neighbors(s: Site) {
     const oldNeighbors = neighborCache.get(s.id);
@@ -229,14 +254,33 @@ export function regionalTransport(
       bridges = new Set<string>(),
       bridgeRoads = new Map<string, Road>();
     for (const [id, [a, b]] of ordered) {
-      let route = build(id, a.id, b.id, a.center, b.center, roads, bridges, [
-        ...bridgeRoads.values(),
-      ]);
+      const e = ends(a, b);
+      let route = build(
+        id,
+        a.id,
+        b.id,
+        e.from,
+        e.to,
+        roads,
+        bridges,
+        [...bridgeRoads.values()],
+        e.cardinal,
+      );
       // A previous crossing may be unreachable from this bank. Retry independently
       // rather than making the whole connection disappear.
       if (!route.roads.length && bridges.size) {
         cache.delete(id);
-        route = build(id, a.id, b.id, a.center, b.center, roads);
+        route = build(
+          id,
+          a.id,
+          b.id,
+          e.from,
+          e.to,
+          roads,
+          new Set(),
+          [],
+          e.cardinal,
+        );
       }
       result.set(id, route);
       for (const road of route.roads)
@@ -274,13 +318,20 @@ export function regionalTransport(
                   id,
                   shared
                     ? batch(first.cx, first.cy).get(id)!
-                    : build(
-                        id,
-                        first.id,
-                        second.id,
-                        first.center,
-                        second.center,
-                      ),
+                    : (() => {
+                        const e = ends(first, second);
+                        return build(
+                          id,
+                          first.id,
+                          second.id,
+                          e.from,
+                          e.to,
+                          new Set(),
+                          new Set(),
+                          [],
+                          e.cardinal,
+                        );
+                      })(),
                 );
             }
           }

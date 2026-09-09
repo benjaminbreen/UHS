@@ -46,7 +46,10 @@ export function pathArt(roads: readonly Road[], shared = false) {
         stroke: PathStroke = {
           a: [a.x + 0.5, a.y + 0.5],
           b: [b.x + 0.5, b.y + 0.5],
-          radius: road.width + (shared && !road.width ? 0.32 : 0.5),
+          // Art half-width only; the route's reserved cells are unchanged. A
+          // cart road at the generated width painted a 48px ribbon through a
+          // village, roughly twice what the reference art carries.
+          radius: road.width * 0.72 + (shared && !road.width ? 0.3 : 0.44),
         };
       const count = Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) * 2),
         seen = new Set<string>(),

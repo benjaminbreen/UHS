@@ -175,3 +175,66 @@ def build_urban_furniture(sprites):
         d.line((5,33,42,33),fill='#d1a362')
         d.line((6,41,42,41),fill=(30,30,25,130))
         sprites[f'urban-stall-{index}']=im
+
+
+def build_city_walls(sprites):
+    """Defensive circuits as tiling wall segments, drawn once per perimeter cell.
+
+    Two materials only, because two is what the content table distinguishes: a
+    coursed masonry curtain and a battered earth rampart. Each is 16 wide so it
+    tiles along a cell edge, and taller than a cell so it reads as an obstacle
+    rather than as ground. Corner turrets and gate jambs close the silhouette;
+    the opening itself is a gap in the run, not a sprite.
+    """
+    from PIL import ImageOps
+    for material, ramp, cap in [
+        ("masonry", ["#6b6857", "#8e8a74", "#a9a48b", "#c0baa0"], "#4f4d41"),
+        ("earth", ["#7d6440", "#9a7d52", "#b39468", "#c9ab7f"], "#5d4a30"),
+    ]:
+        dark, mid, light, top = ramp
+        for kind in ["run", "corner", "jamb"]:
+            im = Image.new("RGBA", (16, 32))
+            d = ImageDraw.Draw(im)
+            d.ellipse((0, 26, 15, 31), fill=(39, 44, 32, 70))
+            batter = material == "earth"
+            for row in range(8, 30):
+                # An earth rampart leans back to its base. The taper is shading,
+                # not silhouette: tapering the sprite would open a seam between
+                # every pair of segments in the run.
+                d.line((0, row, 15, row), fill=mid)
+                if batter and row > 10:
+                    d.point((0, row), fill=light)
+                    d.point((15, row), fill=dark)
+            if batter:
+                # Weathered gullies down the face, not courses.
+                for x, start in [(4, 12), (9, 10), (12, 15)]:
+                    d.line((x, start, x, 29), fill=dark)
+            else:
+                for row in range(11, 30, 5):
+                    d.line((0, row, 15, row), fill=dark)
+                    for x in range(2 if row % 10 else 7, 16, 10):
+                        d.line((x, row, x, min(row + 4, 29)), fill=dark)
+            # The crest runs flat across the whole circuit; insetting it here
+            # would scallop the top edge once per cell.
+            d.line((0, 8, 15, 8), fill=light)
+            d.line((0, 9, 15, 9), fill=top)
+            if kind == "corner":
+                # A turret breaks the run so a right angle does not read as a seam.
+                d.rectangle((2, 3, 13, 29), fill=mid)
+                d.rectangle((2, 3, 13, 4), fill=light)
+                for x in range(2, 14, 4):
+                    d.rectangle((x, 0, x + 1, 3), fill=mid)
+                d.line((2, 3, 2, 29), fill=light)
+                d.line((13, 3, 13, 29), fill=cap)
+            elif kind == "jamb":
+                d.rectangle((5, 5, 15, 29), fill=mid)
+                d.rectangle((5, 5, 15, 6), fill=light)
+                d.line((5, 6, 5, 29), fill=cap)
+            elif not batter:
+                for x in range(1, 15, 5):
+                    d.rectangle((x, 5, x + 2, 9), fill=mid)
+                    d.line((x, 5, x + 2, 5), fill=light)
+            d.line((0, 29, 15, 29), fill=cap)
+            sprites[f"wall-{material}-{kind}"] = im
+            if kind == "jamb":
+                sprites[f"wall-{material}-jamb-left"] = ImageOps.mirror(im)

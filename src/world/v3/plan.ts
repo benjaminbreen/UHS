@@ -8,13 +8,16 @@ import {
   streetPalette,
   chooseStreetSurface,
 } from "../../content/settlements/streets/palettes";
-import { urbanNeighborhood, urbanFrames, type UrbanLot } from "./urban";
+import { urbanNeighborhood, urbanSite, siteForm, type UrbanLot } from "./urban";
+import { urbanNeighborhoodV1 } from "./urban-v1";
+import { urbanCapacity } from "../../content/settlements/scale";
 import type { Actor, Pack, Point, Position, Terrain } from "../../core/types";
 import { proceduralName } from "../../content/geography/character";
 import { random } from "../../core/random";
 import { buildingModel, buildingModels } from "../../content/graphics/models";
 import {
   crossing,
+  line,
   planRoad,
   planAccess,
   joinNetwork,
@@ -43,11 +46,9 @@ export function planSettlement(
     ? resolveCharacterContext(pack.setting)
     : undefined;
   const sharedRoads = !!pack.setting?.roadRevision;
-  const urban =
-    !!pack.setting?.urbanRevision &&
-    profile.radius >= 24 &&
-    ["dense", "planned", "waterfront"].includes(profile.pattern) &&
-    urbanFrames(pack).length > 0;
+  const urban = urbanSite(site, pack);
+  /** Worlds pinned to the first urban revision keep their fixed lattice. */
+  const composed = (pack.setting?.urbanRevision ?? 0) >= 2;
   const organic = !!pack.setting?.environment && profile.pattern !== "planned";
   const bounds = {
     x: c.x - r - 40,
@@ -178,6 +179,37 @@ export function planSettlement(
     else if (!road) plan.diagnostics.routeFailures++;
     return road;
   };
+  /** A composed street is already known to be straight and on chosen ground, so
+   * it needs validating, not searching. Refusing the whole segment on a wet or
+   * blocked cell keeps the promise that a street is never half a street. */
+  const lay = (a: Point, b: Point, label: string, width: number) => {
+    const points = line(a, b);
+    const road: Road = {
+      id: `${site.id}-${label}`,
+      points,
+      width,
+      kind: width ? "street" : "path",
+      cost: points.length,
+    };
+    let valid = true;
+    roadCells(road, (x, y) => {
+      const k = cellKey(x, y);
+      if (
+        sample(x, y).water < 4 ||
+        (site.accepts && !site.accepts(x, y)) ||
+        plan.solid.has(k) ||
+        noRoad.has(k)
+      )
+        valid = false;
+    });
+    if (!valid) {
+      if (process.env.UHS_DEBUG_LAY) console.log("lay refused", label, a, b, width);
+      plan.diagnostics.routeFailures++;
+      return;
+    }
+    addRoad(road);
+    return road;
+  };
   const dry = (rect: Rect, occupied = true) => {
     let lo = Infinity,
       hi = -Infinity,
@@ -194,6 +226,24 @@ export function planSettlement(
         valid = false;
     });
     return valid && (pack.setting?.terrainRevision ? hi === lo : hi - lo < 28);
+  };
+  /** Nearest usable landing water. Sampled once; both the quay and the public
+   * space that faces it ask the same question. */
+  let shoreFound: Point | null | undefined;
+  const urbanShore = () => {
+    if (shoreFound !== undefined) return shoreFound ?? undefined;
+    let best = Infinity;
+    shoreFound = null;
+    for (let y = c.y - r; y < c.y + r; y += 2)
+      for (let x = c.x - r; x < c.x + r; x += 2) {
+        const f = sample(x, y),
+          d = Math.hypot(x - c.x, y - c.y);
+        if (f.kind === "sea" && f.water >= 4 && f.water < 8 && d < best) {
+          best = d;
+          shoreFound = { x, y };
+        }
+      }
+    return shoreFound ?? undefined;
   };
   // Reserve the common first. Its water/hearth objects sit at the edge, never in the through route.
   const half = pack.setting?.terrainRevision
@@ -244,93 +294,123 @@ export function planSettlement(
   });
   let urbanLots: UrbanLot[] = [];
   if (urban) {
-    urbanLots = urbanNeighborhood(
-      site,
-      pack,
-      seed,
-      connect,
-      dry,
-      (court, square) => {
-        const material =
-          palette &&
-          chooseStreetSurface(
-            palette,
-            "square",
-            rand("square-paving", court.x, court.y),
-          );
-        eachCell(court, (x, y) => {
-          const key = cellKey(x, y);
-          plan.reserved.add(key);
-          if (square || !roads.has(key))
-            plan.surface.set(key, square ? "paving" : "dirt");
-          if (square) {
-            roads.add(key);
-            plan.pavement!.set(key, "square");
-            if (material) plan.streetSurfaces!.set(key, material);
-          }
-        });
-        plan.plots.push({
-          ...court,
-          id: `${site.id}-${square ? "square" : "urban-court"}-${plan.plots.length}`,
-          kind: "public",
-          access: {
-            x: court.x + Math.floor(court.w / 2),
-            y: court.y + Math.floor(court.h / 2),
-          },
-        });
+    const paintCourt = (court: Rect, square?: string) => {
+      const material =
+        palette &&
+        chooseStreetSurface(
+          palette,
+          "square",
+          rand("square-paving", court.x, court.y),
+        );
+      eachCell(court, (x, y) => {
+        const key = cellKey(x, y);
+        plan.reserved.add(key);
+        if (square || !roads.has(key))
+          plan.surface.set(key, square ? "paving" : "dirt");
         if (square) {
-          socialCenter.x = court.x + Math.floor(court.w / 2);
-          socialCenter.y = court.y + Math.floor(court.h / 2);
-          const source = plan.objects.find((o) => o.id === `${site.id}-water`)!;
-          source.pos = pos({ x: court.x + 2, y: court.y + 2 });
-          waterStand.x = source.pos.x + 1;
-          waterStand.y = source.pos.y;
-          const hearth = plan.objects.find(
-            (o) => o.id === `${site.id}-hearth`,
-          )!;
-          hearth.name = "Public brazier";
-          hearth.pos = pos({ x: court.x + court.w - 2, y: court.y + 2 });
-          for (const [i, x] of [court.x + 3, court.x + court.w - 4].entries())
-            plan.objects.push({
-              id: `${site.id}-market-${i}`,
-              name: "Market counter",
-              prop: "marketCounter",
-              kind: "container",
-              sprite: `urban-stall-${i}`,
-              pos: pos({ x, y: court.y + court.h - 2 }),
-              inventory: characterContext
-                ? eligibleInventory({ grain: 6 }, characterContext)
-                : { grain: 6 },
-              owner: `${site.id}-community`,
-            });
+          roads.add(key);
+          plan.pavement!.set(key, "square");
+          if (material) plan.streetSurfaces!.set(key, material);
         }
-        // Trees belong to planted court corners; the central passage stays clear.
-        const garden = { x: court.x, y: court.y, w: 3, h: 3 };
-        if (
-          !square &&
-          dry(garden, false) &&
-          !roads.has(cellKey(garden.x + 1, garden.y + 1))
-        ) {
-          paint(garden, "grass");
+      });
+      plan.plots.push({
+        ...court,
+        id: `${site.id}-${square ? "square" : "urban-court"}-${plan.plots.length}`,
+        kind: "public",
+        access: {
+          x: court.x + Math.floor(court.w / 2),
+          y: court.y + Math.floor(court.h / 2),
+        },
+      });
+      if (square) {
+        socialCenter.x = court.x + Math.floor(court.w / 2);
+        socialCenter.y = court.y + Math.floor(court.h / 2);
+        const source = plan.objects.find((o) => o.id === `${site.id}-water`)!;
+        source.pos = pos({ x: court.x + 2, y: court.y + 2 });
+        waterStand.x = source.pos.x + 1;
+        waterStand.y = source.pos.y;
+        const hearth = plan.objects.find((o) => o.id === `${site.id}-hearth`)!;
+        hearth.name = "Public brazier";
+        hearth.pos = pos({ x: court.x + court.w - 2, y: court.y + 2 });
+        for (const [i, x] of [court.x + 3, court.x + court.w - 4].entries())
           plan.objects.push({
-            id: `${site.id}-court-tree-${plan.plots.length}`,
-            name: "Courtyard tree",
-            kind: "tree",
-            pos: pos({ x: garden.x + 1, y: garden.y + 1 }),
-            sprite: pack.trees[0],
-            inventory: {},
+            id: `${site.id}-market-${i}`,
+            name: "Market counter",
+            prop: "marketCounter",
+            kind: "container",
+            sprite: `urban-stall-${i}`,
+            pos: pos({ x, y: court.y + court.h - 2 }),
+            inventory: characterContext
+              ? eligibleInventory({ grain: 6 }, characterContext)
+              : { grain: 6 },
+            owner: `${site.id}-community`,
           });
-        }
-      },
-      (block) =>
-        eachCell(block, (x, y) => {
-          if (
-            !plan.surface.has(cellKey(x, y)) &&
-            dry({ x, y, w: 1, h: 1 }, false)
-          )
-            plan.surface.set(cellKey(x, y), "dirt");
-        }),
-    );
+      }
+      // Trees belong to planted court corners; the central passage stays clear.
+      const garden = { x: court.x, y: court.y, w: 3, h: 3 };
+      if (
+        !square &&
+        dry(garden, false) &&
+        !roads.has(cellKey(garden.x + 1, garden.y + 1))
+      ) {
+        paint(garden, "grass");
+        plan.objects.push({
+          id: `${site.id}-court-tree-${plan.plots.length}`,
+          name: "Courtyard tree",
+          kind: "tree",
+          pos: pos({ x: garden.x + 1, y: garden.y + 1 }),
+          sprite: pack.trees[0],
+          inventory: {},
+        });
+      }
+    };
+    const paintBlock = (block: Rect) =>
+      eachCell(block, (x, y) => {
+        if (
+          !plan.surface.has(cellKey(x, y)) &&
+          dry({ x, y, w: 1, h: 1 }, false)
+        )
+          plan.surface.set(cellKey(x, y), "dirt");
+      });
+    urbanLots = composed
+      ? urbanNeighborhood(site, pack, seed, {
+          lay,
+          dry,
+          shore: urbanShore(),
+          paintCourt,
+          paintBlock,
+          reserveGround: (rect) =>
+            eachCell(rect, (x, y) => noRoad.add(cellKey(x, y))),
+          buildWall: (wall, parts) => {
+            for (const part of parts) {
+              const k = cellKey(part.x, part.y);
+              plan.solid.add(k);
+              plan.reserved.add(k);
+              noRoad.add(k);
+            }
+            plan.enclosures.push({
+              ...wall.rect,
+              // A circuit has many ways in. The single gate this field records
+              // is the one a reader of the older fence contract would look for.
+              gate: [...wall.openings]
+                .map((k) => {
+                  const [x, y] = k.split(",").map(Number);
+                  return { x, y };
+                })
+                .sort((a, b) => a.y - b.y || a.x - b.x)[0] ?? { ...c },
+              parts,
+            });
+          },
+        })
+      : urbanNeighborhoodV1(
+          site,
+          pack,
+          seed,
+          connect,
+          dry,
+          paintCourt,
+          paintBlock,
+        );
     for (const lot of urbanLots)
       eachCell(lot.rect, (x, y) => noRoad.add(cellKey(x, y)));
     if (selected) {
@@ -535,17 +615,7 @@ export function planSettlement(
     }
   }
   if (profile.pattern === "waterfront") {
-    let shore: Point | undefined,
-      best = Infinity;
-    for (let y = c.y - r; y < c.y + r; y += 2)
-      for (let x = c.x - r; x < c.x + r; x += 2) {
-        const f = sample(x, y),
-          d = Math.hypot(x - c.x, y - c.y);
-        if (f.kind === "sea" && f.water >= 4 && f.water < 8 && d < best) {
-          best = d;
-          shore = { x, y };
-        }
-      }
+    const shore = urbanShore();
     if (shore && connect(c, shore, "landing")) {
       const landing = { x: shore.x - 4, y: shore.y - 3, w: 9, h: 7 };
       eachCell(landing, (x, y) => {
@@ -602,19 +672,25 @@ export function planSettlement(
       for (const sign of [-1, 1])
         frontage.push({ point: p, nx: -dy * sign, ny: dx * sign });
     }
-  frontage.sort(
-    (a, b) =>
-      Math.hypot(a.point.x - c.x, a.point.y - c.y) -
-        Math.hypot(b.point.x - c.x, b.point.y - c.y) ||
-      a.point.x - b.point.x ||
-      a.point.y - b.point.y,
-  );
+  // Composed parcels already arrive in the order their own fabric implies, one
+  // round per block. Re-sorting them by distance would spend the whole capacity
+  // on the quarter beside the plaza.
+  if (!(urban && composed))
+    frontage.sort(
+      (a, b) =>
+        Math.hypot(a.point.x - c.x, a.point.y - c.y) -
+          Math.hypot(b.point.x - c.x, b.point.y - c.y) ||
+        a.point.x - b.point.x ||
+        a.point.y - b.point.y,
+    );
   const owners: string[] = [];
-  for (
-    let j = 0;
-    j < frontage.length && plan.places.length < profile.buildings;
-    j++
-  ) {
+  // A composed settlement's capacity comes from its own extent and fabric; the
+  // flat profile count still governs villages and the older layouts.
+  const limit =
+    urban && composed
+      ? urbanCapacity(profile.radius, siteForm(site, pack))
+      : profile.buildings;
+  for (let j = 0; j < frontage.length && plan.places.length < limit; j++) {
     const lot = frontage[j];
     const { point, nx, ny } = lot,
       i = plan.places.length;

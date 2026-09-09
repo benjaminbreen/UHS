@@ -44,3 +44,15 @@ Latest captures: `artifacts/texture-review/index.html` (Umbria and the matching 
 ### Four-band paths and supporting texture
 
 Path coverage now scales with corridor radius, so broad roads retain four readable bands instead of saturating to the center color within a few pixels. Small world-anchored edge offsets and more candidate grass clumps vary the shoulders. Authored, rotated/reflected 2–4px clusters add restrained grain inside every material; larger faceted stones sit above that supporting rocky texture with varying colony density. The latest Umbria/grassland gallery was refreshed. Sixteen focused tests, including a wide/narrow path-band regression, and the production build passed.
+
+### Organic path margins and ecological soil — September 8, 2026
+
+Paths were a single vivid orange (`#d09846`) in every ecology but two, traced by a continuous dark contact pixel, and their margins followed one noise octave of about a pixel. The result read as a line drawn over the ground rather than as ground.
+
+`render/material-edges.ts` now returns a path *field* — coverage, crossing position and local radius — instead of coverage alone. The corridor breathes (a slow width wave) and drifts (a lateral wander), both sampled on the center line so the two margins move together and the route still snakes through world-anchored noise. `render/habitat-raster.ts` carries a four-tone soil ramp per ecology plus a grit stone, tightened in value and desaturated below the local turf: grey-brown for temperate and boreal, pale grey for tundra, warm dun for grassland, laterite for tropical, and a pale scuff for desert. Two grouped hashes offset every wear threshold, so turf survives inside the road, grit strays out of it and the interior bands interlock instead of forming three ruled stripes. The contact shadow now appears in broken single pixels. Cart ruts appear on wagon-width roads only, dashed; stones collect off the treadway; a slow wash varies wear along the length; and turf loses color as it approaches the margin.
+
+`world/v3/path-art.ts` narrows the art half-width (a generated `width: 1` street painted a 48-pixel ribbon, roughly twice the reference art). Reserved route cells, movement and collision are unchanged.
+
+Rasterization cost rose from 178 to 193 µs per tile on a road-saturated fixture; tiles are worker-baked once per chunk. `artifacts/path-review/index.html` holds the before/after and the six ecologies. The `material-edges` band test now checks bands by crossing position rather than at fixed distances from the authored center line, since the corridor no longer holds one radius.
+
+Follow-up: the first soil ramps were too grey. All eight are warmer, desert most of all — a pale cream track on warm sand rather than a grey one — with boreal and tundra still the coolest of the set. `render/ground-motifs.ts` gains `edgeTufts`, small blade clusters rooted on the verge and leaning out over the worn ground. Two per tile at most, gated by a coarse colony hash so whole stretches of margin stay bare, and absent from desert and tundra. Grass overlapping the road, rather than dithering alone, is what breaks its silhouette.

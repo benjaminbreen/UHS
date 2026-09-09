@@ -36,6 +36,7 @@ import { noise } from "../geography/noise";
 import { cellKey, type Road, type SettlementPlan, type Site } from "./types";
 import { crossing, planRoad, roadCells } from "./roads";
 import { planSettlement } from "./plan";
+import { siteGate } from "./urban";
 export const DISTRICT_SIZE = 384;
 export type SettlementWorld = WorldModel & {
   planAt(x: number, y: number): SettlementPlan | undefined;
@@ -215,10 +216,14 @@ export function createSettlementWorld(
       w: Math.abs(a.center.x - b.center.x) + 120,
       h: Math.abs(a.center.y - b.center.y) + 120,
     };
+    // Aim at the built edge. A route to the centre of a town becomes its widest
+    // street, on whatever bearing the neighbouring district happened to sit.
+    const from = siteGate(a, a.pack ?? pack, b.center)?.point ?? a.center,
+      to = siteGate(b, b.pack ?? pack, a.center)?.point ?? b.center;
     const r = planRoad(
       `${id}-road`,
-      a.center,
-      b.center,
+      from,
+      to,
       land.sample,
       new Set(),
       allowed,

@@ -46,6 +46,14 @@ Future boat traffic and economic dependencies should consume these same places, 
 
 `src/content/geography/regions/` contains dated regional constraints; `src/world/regional/` resolves geography, settlement identities and transport. `src/content/geography/defaults.ts` upgrades new-world inputs. `src/content/geography/places.ts` contains the featured anchors and aliases. `types.ts` defines the setting contract, `resolve.ts` interprets offline text, and `pack.ts` adapts that setting to existing content and art. `src/world/v2/landscape.ts` describes terrain; `src/world/v3/` plans new settlements and samples chunks. See [SETTLEMENTS.md](SETTLEMENTS.md) for roads, plots, farms, pens and daily activity. `server/world-weaver.ts` only interprets settings.
 
+A place's settlement rank in that catalog is Natural Earth's modern cartographic prominence, so it describes the present settlement network and no earlier one. Two tables date it down.
+
+`src/content/settlements/urban-form/` says when towns of a given kind existed in a region. `settingFor` ranks a place as a town only from the earliest date a fabric there covers its culture family and coordinates, or from the date in `src/content/geography/onsets.ts` when the modern named-place network formed, whichever comes first. Each fabric also carries a `storeys` cap, so a single-storey fabric is never handed a three-storey building model.
+
+`src/content/geography/onsets.ts` also holds rough regional dates for settled farming. Before it, a place is a camp with forager roles, no fields, no livestock and no paving. Somewhere that never farmed becomes a settlement when the modern network reaches it, not on a farming date it never had.
+
+Both tables are regional, not per settlement, and the farming dates are round numbers from the general archaeological literature rather than a reviewed dataset. A culture family with no urban entry is not being described as lacking towns; its layouts have not been researched.
+
 The bundled catalog combines featured settings, Natural Earth place coordinates, and original UHS area descriptions where a named coordinate could be matched. The old UHS adjacency graph is not used. Broad regional coordinates from that graph are deliberately not treated as individual place locations. Named coordinates and default ecology are approximate and can be overridden in the featured anchor table.
 
 ```sh

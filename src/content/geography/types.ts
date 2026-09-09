@@ -65,8 +65,10 @@ export const settingSchema = z
       .optional(),
     // Pins the integrated geography rules without changing old generation inputs.
     geographyRevision: z.literal(1).optional(),
-    // New urban footprints/layouts are opt-in; old manifests retain their geometry.
-    urbanRevision: z.literal(1).optional(),
+    // New urban footprints/layouts are opt-in; old manifests retain their
+    // geometry. 1 is the first fixed-lattice composition; 2 is the dated,
+    // regional block grammar.
+    urbanRevision: z.union([z.literal(1), z.literal(2)]).optional(),
     roadRevision: z.literal(1).optional(),
     vegetationRevision: z
       .union([z.literal(1), z.literal(2), z.literal(3), z.literal(4)])

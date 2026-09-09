@@ -67,3 +67,13 @@ Review `artifacts/roads/after.png` and `after-junction.png`; `scripts/capture-ro
 ## Urban neighborhoods — September 8, 2026
 
 New `urbanRevision: 1` dense/planned/waterfront neighborhoods use the shared block-and-parcel composer in `src/world/v3/urban.ts`. Streets precede parcels; civic squares, public hall ranges, market counters, footways and enclosed courts have explicit roles. Source-qualified civic content lives in `src/content/settlements/civic/`, while shared form/material recipes remain independent of culture in the renderer. See `CITY_ART.md` for generation scope, compatibility, art ownership, review captures and verification.
+
+## Dated regional street fabric — September 8, 2026
+
+New worlds pin `urbanRevision: 2`. Every town used to come out as the same four blocks on one 3x3 lattice, with the civic building always in the same corner and a regional road crossing the main square on whatever diagonal the neighbouring district happened to sit. Both causes were in code, not in geography: the lattice coordinates were literals in `urban.ts`, and `regional/transport.ts` routed centre to centre and took a straight-line fast path on level ground.
+
+`src/world/v3/blocks.ts` now partitions a settlement into gates, arterials, a public square and recursively subdivided blocks. `src/content/settlements/urban-form/` supplies the parameters — block module, street-tier widths, regularity, courtyard and blind-alley shares, gate count, square placement — selected by cultural family, date and coordinates, the same lookup `civic/` and `streets/` already use. Capacity comes from the site's authored radius and its own fabric rather than a flat count, so a larger place produces a larger settlement. Through routes aim at a gate on the built edge and arrive on two cardinal legs.
+
+Composition runs no graph search: streets are straight segments validated in place, so a settlement with two-thirds more buildings plans faster than the old one did (48-66ms against 95-152ms on the flat-ground benchmark). Terrain still refuses what will not fit, and a block whose parcels were all refused is left unpaved.
+
+This is a bounded block grammar, not a reconstruction of cadastral plans. There are no walls, no built gate structures, no suburbs and no growth over time. Cultural families with no researched entry get an explicitly fictional generic fabric. Worlds pinned to `urbanRevision: 1` keep the earlier composition in `src/world/v3/urban-v1.ts`; no migration was added. See `CITY_ART.md` for art ownership, evidence and verification.

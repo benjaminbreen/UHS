@@ -3,6 +3,8 @@ import { eraAt } from "../history/dates";
 import { random } from "../../core/random";
 import { populateCharacter } from "./character";
 import { places } from "./places";
+import { urbanized } from "../settlements/urban-form";
+import { farms } from "./onsets";
 import { settingSchema, type AtlasPlace, type WorldSetting } from "./types";
 export const normalize = (s: string) =>
   s
@@ -93,7 +95,19 @@ export function dateFromPrompt(
   );
 }
 export function settingFor(place: AtlasPlace, year = place.year): WorldSetting {
-  const prehistoric = year < -3499;
+  const where = {
+    culture: place.culture,
+    lon: place.lon,
+    lat: place.lat,
+    year,
+  };
+  // The atlas rank is modern prominence, not this place's size at this date.
+  const town = urbanized(where);
+  // Foragers where farming has not arrived and no settlement network has yet
+  // formed. Somewhere that stayed forager country until the modern network
+  // reached it, such as Tasmania, becomes a town on that later date, not on a
+  // farming date it never had.
+  const forager = !farms(where) && !town;
   return settingSchema.parse({
     version: 2,
     placeId: place.id,
@@ -105,12 +119,11 @@ export function settingFor(place: AtlasPlace, year = place.year): WorldSetting {
     climate: year < -9999 && place.lat > 48 ? "tundra" : place.climate,
     relief: place.relief,
     water: place.water,
-    settlement:
-      year < -9999 ? "camp" : prehistoric ? "village" : place.settlement,
+    settlement: forager ? "camp" : town ? place.settlement : "village",
     architecture:
-      year < -9999
+      forager
         ? "shelter"
-        : prehistoric
+        : year < -3499
           ? "mudbrick"
           : year >= 500 &&
               place.culture === "european" &&

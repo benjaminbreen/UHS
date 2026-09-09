@@ -1,4 +1,6 @@
 import type { WorldSetting } from "../geography/types";
+import { urbanized } from "./urban-form";
+import { farms } from "../geography/onsets";
 export const patterns = [
   "farmstead",
   "clustered",
@@ -84,7 +86,11 @@ export function settlementProfile(
   s: WorldSetting,
   home = true,
 ): SettlementProfile {
-  const pattern: Pattern =
+  // A pinned or player-chosen pattern still cannot make a town where no urban
+  // fabric is attested at this place and date.
+  const town = urbanized(s);
+  const farming = farms(s) || town;
+  const requested: Pattern =
     s.settlementPattern ??
     (s.settlement === "farm"
       ? "farmstead"
@@ -98,14 +104,20 @@ export function settlementProfile(
           : s.placeId === "normandy"
             ? "roadside"
             : "clustered");
+  const pattern: Pattern =
+    town || !["dense", "planned", "waterfront"].includes(requested)
+      ? requested
+      : "clustered";
   const p = { ...profiles[pattern] };
   if (!home) {
     p.buildings = Math.min(p.buildings, 8);
     p.radius = 74;
-    p.fields = s.year >= -9999 ? "grouped" : "none";
-    p.livestock = s.year >= -9999;
+    p.fields = farming ? "grouped" : "none";
+    p.livestock = farming;
   }
-  if (s.settlement === "city" || s.settlement === "port") p.paved = true;
+  if (town && (s.settlement === "city" || s.settlement === "port"))
+    p.paved = true;
+  if (!town) p.paved = false;
   if (s.settlement === "camp") {
     p.buildings = 4;
     p.radius = 54;
@@ -114,7 +126,7 @@ export function settlementProfile(
     p.livestock = false;
     p.paved = false;
   }
-  if (s.year < -9999) {
+  if (!farming) {
     p.fields = "none";
     p.livestock = false;
     p.paved = false;

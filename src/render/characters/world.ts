@@ -23,6 +23,8 @@ export class WorldCharacters {
   >();
   private frameSignatures = new Map<string, string>();
   private serial = 0;
+  /** Interned appearance descriptions: the per-frame cache key must stay short. */
+  private appearanceTokens = new Map<string, number>();
   private appearances = new Map<
     string,
     {
@@ -43,6 +45,12 @@ export class WorldCharacters {
       })
       .catch(console.error);
   }
+  private token(description: string) {
+    let id = this.appearanceTokens.get(description);
+    if (id === undefined)
+      this.appearanceTokens.set(description, (id = this.appearanceTokens.size));
+    return String(id);
+  }
   frame(
     actor: Pick<Actor, "id" | "sprite" | "appearance" | "age" | "direction">,
     pose: CharacterPose,
@@ -62,7 +70,7 @@ export class WorldCharacters {
         age: actor.age,
         source: actor.appearance,
         appearance,
-        signature: JSON.stringify(appearance),
+        signature: this.token(JSON.stringify(appearance)),
         used: 0,
       };
       this.appearances.set(actor.id, resolved);
@@ -133,5 +141,6 @@ export class WorldCharacters {
     this.cache.clear();
     this.frameSignatures.clear();
     this.appearances.clear();
+    this.appearanceTokens.clear();
   }
 }

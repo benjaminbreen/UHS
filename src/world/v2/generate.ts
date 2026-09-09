@@ -1,3 +1,4 @@
+import { trimCache } from "../../core/cache";
 import type {
   Actor,
   Decoration,
@@ -438,7 +439,7 @@ export function createAtlasWorld(pack: Pack, seed: string): WorldModel {
     const old = terrainCache.get(key);
     if (old) return old;
     const value = terrain(x, y);
-    if (terrainCache.size >= 131072) terrainCache.clear();
+    trimCache(terrainCache, 131072);
     terrainCache.set(key, value);
     return value;
   };

@@ -342,7 +342,15 @@ export interface WorldModel {
   overview?(x: number, y: number): Terrain;
   pack: Pack;
   settlements: Settlement[];
-  enclosures: { x: number; y: number; w: number; h: number; gate: Point }[];
+  enclosures: {
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+    gate: Point;
+    /** Explicit per-cell frames, for a circuit that is not a plain fence run. */
+    parts?: { x: number; y: number; frame: string }[];
+  }[];
   places: Place[];
   initialActors: Actor[];
   initialObjects: WorldObject[];
