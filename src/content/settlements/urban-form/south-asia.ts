@@ -14,7 +14,8 @@ export const southAsiaForms: UrbanFormRule[] = [
     regularity: 0.9,
     courts: 0.7,
     deadEnds: 0.18,
-    tiers: [2, 1, 0],
+    tiers: [3, 2, 1],
+    surface: "earth",
     gates: 3,
     wall: "none",
     plaza: "offset",
@@ -40,7 +41,8 @@ export const southAsiaForms: UrbanFormRule[] = [
     regularity: 0.78,
     courts: 0.72,
     deadEnds: 0.2,
-    tiers: [2, 1, 0],
+    tiers: [4, 2, 1],
+    surface: "earth",
     gates: 4,
     wall: "earth",
     plaza: "crossing",
@@ -49,6 +51,7 @@ export const southAsiaForms: UrbanFormRule[] = [
     square: {
       focus: "tree",
       corners: ["well", "stele", "bench", "stele"],
+      daisCorners: "none",
       hearth: "brazier",
     },
     evidence: {

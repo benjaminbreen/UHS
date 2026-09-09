@@ -9,6 +9,7 @@ import {
   chooseStreetSurface,
 } from "../../content/settlements/streets/palettes";
 import { urbanNeighborhood, urbanSite, siteForm, type UrbanLot } from "./urban";
+import type { Furniture } from "./blocks";
 import { urbanNeighborhoodV1 } from "./urban-v1";
 import { urbanCapacity } from "../../content/settlements/scale";
 import { ornaments } from "../../content/settlements/ornaments";
@@ -91,37 +92,75 @@ export function planSettlement(
   const rand = (...k: (string | number)[]) =>
     random(seed, "settlement-3", site.id, ...k);
   const pos = (p: Point): Position => ({ ...p, space: "outside" });
-  const paint = (rect: Rect, t: Terrain, reserve = true) =>
+  /** Surfaces are painted by rank, not by paint order: a footway, a yard or
+   * an access path never overwrites the street it meets. Bridge 10, square 9,
+   * main street 8, street 7, paved lane 6, footway 5, earth path 4, yard 3,
+   * block ground 2. A planted bed forces itself at 11. */
+  const ranks = new Map<string, number>();
+  const setSurface = (k: string, t: Terrain, rank: number) => {
+    const old = ranks.get(k) ?? -1;
+    if (old > rank) return false;
+    if (old < rank) {
+      plan.pavement?.delete(k);
+      plan.streetSurfaces?.delete(k);
+    }
+    ranks.set(k, rank);
+    plan.surface.set(k, t);
+    return true;
+  };
+  const paint = (rect: Rect, t: Terrain, reserve = true, rank = 3) =>
     eachCell(rect, (x, y) => {
-      plan.surface.set(cellKey(x, y), t);
+      setSurface(cellKey(x, y), t, rank);
       if (reserve) plan.reserved.add(cellKey(x, y));
     });
   const palette = pack.setting ? streetPalette(pack.setting) : undefined;
+  // One stone for the whole town, drawn once: a street-by-street lottery of
+  // materials read as patches. Lanes are all earth or all stone, and the
+  // square may take a dressed slab of its own.
+  const stone = palette && chooseStreetSurface(palette, "main", rand("paving"));
+  const laneSurface =
+    palette && chooseStreetSurface(palette, "lane", rand("lanes"));
+  const squareStone =
+    palette && chooseStreetSurface(palette, "square", rand("square-paving"));
+  // A town of any size is beaten earth inside its edge; after the industrial
+  // era it is paved through. Small places keep the ground they stand on.
+  const cityGround =
+    profile.radius < 45
+      ? undefined
+      : profile.paved && (pack.setting?.year ?? 0) >= 1850
+        ? "paving"
+        : "dirt";
   const addRoad = (road: Road) => {
-    const material =
-      palette &&
-      chooseStreetSurface(
-        palette,
-        road.width >= 2 ? "main" : road.width >= 1 ? "local" : "lane",
-        rand("paving", road.id),
-      );
+    const material = road.kind === "lane" ? laneSurface : stone;
     plan.roads.push(road);
     for (const p of road.points) centers.add(cellKey(p.x, p.y));
     roadCells(road, (x, y) => {
       const k = cellKey(x, y),
         f = sample(x, y);
       if (f.water < 0 && !bridges.has(k)) return;
-      // Paved by tier, not by the settlement's rank: a city paved its streets,
-      // not every back lane and doorstep in it.
-      const stone = profile.paved && road.width >= 1;
-      plan.surface.set(k, f.water < 0 ? "bridge" : stone ? "paving" : "dirt");
-      // Earlier trunk roads keep their surface where later access lanes join.
-      if (material && stone && !plan.streetSurfaces!.has(k))
-        plan.streetSurfaces!.set(k, material);
-      if (urban && stone && road.width < 2 && !plan.pavement!.has(k))
-        plan.pavement!.set(k, "lane");
       roads.add(k);
       plan.reserved.add(k);
+      // Composed lanes are paved in a paved town; access paths and doorsteps
+      // are not.
+      const stone = profile.paved && (road.width >= 1 || road.kind === "lane");
+      const rank =
+        f.water < 0
+          ? 10
+          : road.width >= 2
+            ? 8
+            : road.width >= 1
+              ? 7
+              : stone
+                ? 6
+                : 4;
+      if (
+        !setSurface(k, f.water < 0 ? "bridge" : stone ? "paving" : "dirt", rank)
+      )
+        return;
+      if (material && stone && !plan.streetSurfaces!.has(k))
+        plan.streetSurfaces!.set(k, material);
+      if (urban && stone && road.width < 1 && !plan.pavement!.has(k))
+        plan.pavement!.set(k, "lane");
     });
   };
   const selected =
@@ -185,40 +224,92 @@ export function planSettlement(
             width ? 2 : 1,
             organic ? seed : undefined,
           );
-    if (road && !(sharedRoads && label.startsWith("yard-access")))
+    // A composed town's footway already serves the door; an access path
+    // painted over it only cut dirt notches into the street.
+    if (
+      road &&
+      !((sharedRoads || (urban && composed)) && label.startsWith("yard-access"))
+    )
       addRoad(road);
     else if (!road) plan.diagnostics.routeFailures++;
     return road;
   };
-  /** A composed street is already known to be straight and on chosen ground, so
-   * it needs validating, not searching. Refusing the whole segment on a wet or
-   * blocked cell keeps the promise that a street is never half a street. */
-  const lay = (a: Point, b: Point, label: string, width: number) => {
-    const points = line(a, b);
-    const road: Road = {
-      id: `${site.id}-${label}`,
-      points,
-      width,
-      kind: width ? "street" : "path",
-      cost: points.length,
+  /** A composed street is already known to be straight and on chosen ground,
+   * so it needs validating, not searching. A wet or reserved cell clips the
+   * street rather than refusing it: the runs either side still serve their
+   * blocks, where refusing the whole segment left them with no street at all.
+   * `span` is the total width in cells. */
+  const lay = (a: Point, b: Point, label: string, span: number) => {
+    const width = span >= 4 ? 2 : span >= 2 ? 1 : 0;
+    const usable = (p: Point) => {
+      let valid = true;
+      roadCells(
+        { id: "", points: [p], width, span, kind: "street", cost: 0 },
+        (x, y) => {
+          const k = cellKey(x, y);
+          if (
+            sample(x, y).water < 4 ||
+            (site.accepts && !site.accepts(x, y)) ||
+            plan.solid.has(k) ||
+            noRoad.has(k)
+          )
+            valid = false;
+        },
+      );
+      return valid;
     };
-    let valid = true;
-    roadCells(road, (x, y) => {
-      const k = cellKey(x, y);
-      if (
-        sample(x, y).water < 4 ||
-        (site.accepts && !site.accepts(x, y)) ||
-        plan.solid.has(k) ||
-        noRoad.has(k)
-      )
-        valid = false;
-    });
-    if (!valid) {
-      plan.diagnostics.routeFailures++;
-      return;
+    const runs: Point[][] = [];
+    let run: Point[] = [];
+    for (const p of line(a, b)) {
+      if (usable(p)) run.push(p);
+      else if (run.length) {
+        runs.push(run);
+        run = [];
+      }
     }
-    addRoad(road);
-    return road;
+    if (run.length) runs.push(run);
+    let first: Road | undefined;
+    for (const [i, points] of runs.entries()) {
+      if (points.length < 3 && runs.length > 1) continue;
+      const road: Road = {
+        id: `${site.id}-${label}${i ? `-${i}` : ""}`,
+        points,
+        width,
+        span,
+        kind: span >= 2 ? "street" : "lane",
+        cost: points.length,
+      };
+      addRoad(road);
+      first ??= road;
+      // A street that meets a creek crosses it: the wet gap to the next run
+      // is decked over, so the network is not cut in two by a stream.
+      const next = runs[i + 1];
+      if (!next || span < 2) continue;
+      const gap = line(points.at(-1)!, next[0]);
+      const wet = gap.every((p) => {
+        const f = sample(p.x, p.y);
+        const k = cellKey(p.x, p.y);
+        return (
+          f.water < 4 &&
+          f.kind === "river" &&
+          !plan.solid.has(k) &&
+          !noRoad.has(k)
+        );
+      });
+      if (gap.length > 12 || !wet) continue;
+      const deck: Road = {
+        id: `${site.id}-${label}-bridge-${i}`,
+        points: gap,
+        width: Math.min(1, width),
+        span: Math.min(3, span),
+        kind: "bridge",
+        cost: gap.length,
+      };
+      roadCells(deck, (x, y) => bridges.add(cellKey(x, y)));
+      addRoad(deck);
+    }
+    if (!first) plan.diagnostics.routeFailures++;
+    return first;
   };
   const dry = (rect: Rect, occupied = true) => {
     let lo = Infinity,
@@ -275,7 +366,7 @@ export function planSettlement(
     urban && composed ? { ...publicArea, w: 0, h: 0 } : publicArea,
     (x, y) => {
       if (sample(x, y).water >= 0 && (!site.accepts || site.accepts(x, y))) {
-        plan.surface.set(cellKey(x, y), profile.paved ? "paving" : "dirt");
+        setSurface(cellKey(x, y), profile.paved ? "paving" : "dirt", 9);
         plan.reserved.add(cellKey(x, y));
         roads.add(cellKey(x, y));
       }
@@ -326,7 +417,7 @@ export function planSettlement(
         if (!dry(rect, false)) return false;
         eachCell(rect, (x, y) => {
           const k = cellKey(x, y);
-          plan.surface.set(k, "grass");
+          setSurface(k, "grass", 11);
           plan.pavement!.delete(k);
           plan.streetSurfaces!.delete(k);
         });
@@ -382,14 +473,34 @@ export function planSettlement(
       } else if (spec.focus) {
         const piece = ornaments[spec.focus];
         if (piece && !piece.grounded) {
-          const size = Math.min(7, 2 * Math.floor((min + 3) / 7) + 1);
+          const size = Math.min(7, 2 * Math.floor((min + 1) / 7) + 1);
           daisHalf = size >> 1;
           eachCell(
             { x: cx - daisHalf, y: cy - daisHalf, w: size, h: size },
-            (x, y) => plan.pavement!.set(cellKey(x, y), "dais"),
+            (x, y) => {
+              // The platform is stone even where the square around it is earth.
+              const k = cellKey(x, y);
+              setSurface(k, "paving", 9);
+              plan.pavement!.set(k, "dais");
+              if (!plan.streetSurfaces!.has(k))
+                plan.streetSurfaces!.set(k, "slab");
+            },
           );
         }
         place(spec.focus, { x: cx, y: cy }, "focus", true);
+        const corner = spec.daisCorners ?? "post";
+        if (daisHalf >= 2 && min >= 15 && corner !== "none")
+          for (const [i, [dx, dy]] of [
+            [-1, -1],
+            [1, -1],
+            [-1, 1],
+            [1, 1],
+          ].entries())
+            place(
+              corner,
+              { x: cx + dx * daisHalf, y: cy + dy * daisHalf },
+              `dais-${i}`,
+            );
       }
       // Talk, and the player's first step, happen at the foot of the
       // monument, not inside it.
@@ -452,7 +563,11 @@ export function planSettlement(
         }
       }
       // Market counters line the square's lower edge, clear of the corners.
-      for (const [i, x] of [court.x + 4, court.x + court.w - 5].entries())
+      const inset = min >= 13 ? 5 : 2;
+      for (const [i, x] of [
+        court.x + inset,
+        court.x + court.w - inset - 1,
+      ].entries())
         plan.objects.push({
           id: `${site.id}-market-${i}`,
           name: "Market counter",
@@ -466,23 +581,34 @@ export function planSettlement(
           owner: `${site.id}-community`,
         });
     };
+    const paintForecourt = (rect: Rect) => {
+      const material = squareStone;
+      eachCell(rect, (x, y) => {
+        const key = cellKey(x, y);
+        if (!dry({ x, y, w: 1, h: 1 }, false)) return;
+        plan.reserved.add(key);
+        roads.add(key);
+        if (!setSurface(key, profile.paved ? "paving" : "dirt", 8)) return;
+        if (!profile.paved) return;
+        plan.pavement!.set(key, "square");
+        if (material) plan.streetSurfaces!.set(key, material);
+      });
+    };
     const paintCourt = (court: Rect, square?: string, civicRect?: Rect) => {
-      const material =
-        palette &&
-        chooseStreetSurface(
-          palette,
-          "square",
-          rand("square-paving", court.x, court.y),
-        );
+      const material = squareStone;
       eachCell(court, (x, y) => {
         const key = cellKey(x, y);
         plan.reserved.add(key);
-        if (square || !roads.has(key))
-          plan.surface.set(key, square ? "paving" : "dirt");
-        if (square) {
+        if (!square) setSurface(key, "dirt", 3);
+        else {
           roads.add(key);
-          plan.pavement!.set(key, "square");
-          if (material) plan.streetSurfaces!.set(key, material);
+          if (
+            setSurface(key, profile.paved ? "paving" : "dirt", 9) &&
+            profile.paved
+          ) {
+            plan.pavement!.set(key, "square");
+            if (material) plan.streetSurfaces!.set(key, material);
+          }
         }
       });
       plan.plots.push({
@@ -511,7 +637,7 @@ export function planSettlement(
         dry(garden, false) &&
         !roads.has(cellKey(garden.x + 1, garden.y + 1))
       ) {
-        paint(garden, "grass");
+        paint(garden, "grass", true, 11);
         plan.objects.push({
           id: `${site.id}-court-tree-${plan.plots.length}`,
           name: "Courtyard tree",
@@ -522,14 +648,152 @@ export function planSettlement(
         });
       }
     };
+    // A small town's block ground is grass; a city's is its own beaten earth
+    // or paving, with grass only as edging round the houses.
     const paintBlock = (block: Rect) =>
       eachCell(block, (x, y) => {
-        if (
-          !plan.surface.has(cellKey(x, y)) &&
-          dry({ x, y, w: 1, h: 1 }, false)
-        )
-          plan.surface.set(cellKey(x, y), "dirt");
+        if (dry({ x, y, w: 1, h: 1 }, false))
+          setSurface(cellKey(x, y), cityGround ?? "grass", 2);
       });
+    const paintVerge = (rect: Rect) =>
+      eachCell(rect, (x, y) => {
+        const k = cellKey(x, y);
+        if (plan.solid.has(k) || !dry({ x, y, w: 1, h: 1 }, false)) return;
+        if (setSurface(k, "grass", 4)) {
+          plan.pavement!.set(k, "verge");
+          plan.reserved.add(k);
+        }
+      });
+    const paintSquare = (court: Rect, index: number) => {
+      const material = squareStone;
+      eachCell(court, (x, y) => {
+        const k = cellKey(x, y);
+        plan.reserved.add(k);
+        roads.add(k);
+        if (
+          setSurface(k, profile.paved ? "paving" : "dirt", 9) &&
+          profile.paved
+        ) {
+          plan.pavement!.set(k, "square");
+          if (material) plan.streetSurfaces!.set(k, material);
+        }
+      });
+      const cx = court.x + (court.w >> 1),
+        cy = court.y + (court.h >> 1);
+      plan.plots.push({
+        ...court,
+        id: `${site.id}-square-${index + 2}`,
+        kind: "public",
+        access: { x: cx, y: cy + 2 },
+      });
+      const spec = fabric.square;
+      const put = (key: string, at: Point, tag: string) => {
+        const piece = ornaments[key];
+        if (!piece || piece.kind === "well" || piece.kind === "fire") return;
+        if (plan.solid.has(cellKey(at.x, at.y))) return;
+        plan.objects.push({
+          id: `${site.id}-square-${index + 2}-${piece.id}-${tag}`,
+          name: piece.label,
+          kind: piece.kind,
+          sprite: piece.sprite,
+          pos: pos(at),
+          inventory: {},
+        });
+      };
+      // A lesser centrepiece on a three-cell dais; a planted square keeps a tree.
+      if (spec.focus === "tree") {
+        const k = cellKey(cx, cy);
+        setSurface(k, "grass", 11);
+        plan.pavement!.delete(k);
+        plan.solid.add(k);
+        plan.objects.push({
+          id: `${site.id}-square-${index + 2}-tree`,
+          name: "Square tree",
+          kind: "tree",
+          pos: pos({ x: cx, y: cy }),
+          sprite: pack.trees[0],
+          inventory: {},
+        });
+      } else if (spec.focus && ornaments[spec.focus]) {
+        if (!ornaments[spec.focus].grounded)
+          eachCell({ x: cx - 1, y: cy - 1, w: 3, h: 3 }, (x, y) => {
+            const k = cellKey(x, y);
+            setSurface(k, "paving", 9);
+            plan.pavement!.set(k, "dais");
+            if (!plan.streetSurfaces!.has(k))
+              plan.streetSurfaces!.set(k, "slab");
+          });
+        plan.solid.add(cellKey(cx, cy));
+        put(spec.focus, { x: cx, y: cy }, "focus");
+      }
+      for (const [i, [dx, dy]] of [
+        [-1, -1],
+        [1, -1],
+        [-1, 1],
+        [1, 1],
+      ].entries()) {
+        const key = spec.corners[i % spec.corners.length];
+        if (key === "tree") continue;
+        put(
+          key,
+          {
+            x: cx + dx * ((court.w >> 1) - 1),
+            y: cy + dy * ((court.h >> 1) - 1),
+          },
+          `corner-${i}`,
+        );
+      }
+    };
+    const paintCity = (holds: (x: number, y: number) => boolean) => {
+      if (!cityGround) return;
+      const reach = r + 12;
+      for (let y = c.y - reach; y <= c.y + reach; y++)
+        for (let x = c.x - reach; x <= c.x + reach; x++) {
+          if (!holds(x, y) || !dry({ x, y, w: 1, h: 1 }, false)) continue;
+          const k = cellKey(x, y);
+          if (!setSurface(k, cityGround, 1)) continue;
+          if (cityGround === "paving") {
+            plan.pavement!.set(k, "footway");
+            if (stone) plan.streetSurfaces!.set(k, stone);
+          }
+        }
+    };
+    const furnish = (piece: Furniture) => {
+      const k = cellKey(piece.x, piece.y);
+      if (
+        plan.solid.has(k) ||
+        !dry({ x: piece.x, y: piece.y, w: 1, h: 1 }, false)
+      )
+        return;
+      const pavement = plan.pavement!.get(k);
+      // Not in the roadway: a lamp stands on the footway, a tree in the verge.
+      if (roads.has(k) && pavement !== "footway" && pavement !== "verge")
+        return;
+      if (piece.kind === "tree") {
+        if (pavement !== "verge") return;
+        plan.solid.add(k);
+        plan.reserved.add(k);
+        plan.objects.push({
+          id: `${site.id}-street-tree-${piece.x}-${piece.y}`,
+          name: "Street tree",
+          kind: "tree",
+          pos: pos(piece),
+          sprite: pack.trees[0],
+          inventory: {},
+        });
+        return;
+      }
+      const item = ornaments[piece.kind === "lamp" ? "lamp" : "planter"];
+      if (!item) return;
+      plan.objects.push({
+        id: `${site.id}-${item.id}-${piece.x}-${piece.y}`,
+        name: item.label,
+        kind: item.kind,
+        sprite: item.sprite,
+        pos: pos(piece),
+        inventory: {},
+      });
+    };
     urbanLots = composed
       ? urbanNeighborhood(site, pack, seed, {
           lay,
@@ -543,10 +807,13 @@ export function planSettlement(
             eachCell(rect, (x, y) => {
               const k = cellKey(x, y);
               if (plan.solid.has(k) || roads.has(k)) return;
-              plan.surface.set(k, "paving");
-              plan.pavement!.set(k, "footway");
               plan.reserved.add(k);
               roads.add(k);
+              if (
+                setSurface(k, profile.paved ? "paving" : "dirt", 5) &&
+                profile.paved
+              )
+                plan.pavement!.set(k, "footway");
             }),
           bridge: (() => {
             const ends = [
@@ -560,6 +827,11 @@ export function planSettlement(
             )[0];
           })(),
           paintCourt,
+          paintForecourt,
+          paintSquare,
+          paintVerge,
+          furnish,
+          paintCity,
           paintBlock,
           reserveGround: (rect) =>
             eachCell(rect, (x, y) => noRoad.add(cellKey(x, y))),
@@ -909,8 +1181,62 @@ export function planSettlement(
       w: w + 2 + (nx ? 4 : 0),
       h: h + 2 + (ny ? 4 : 0),
     };
-    if (!dry(yard)) {
+    // A composed lot was fitted against streets, walls and other lots when
+    // it was laid out; the block painter has since reserved its ground, so
+    // only wetness and slope are checked again here.
+    if (!dry(yard, !lot.rect)) {
       plan.diagnostics.rejectedBuildings++;
+      continue;
+    }
+    if (lot.religious) {
+      const id = `${site.id}-religious`;
+      eachCell(rect, (x, y) => plan.solid.add(cellKey(x, y)));
+      paint(rect, "dirt");
+      // An apron rings the sanctuary, so its precinct reads on the ground and
+      // a way round it always exists.
+      const apronMaterial = stone;
+      eachCell(
+        { x: rect.x - 1, y: rect.y - 1, w: rect.w + 2, h: rect.h + 2 },
+        (x, y) => {
+          const k = cellKey(x, y);
+          if (plan.solid.has(k) || !dry({ x, y, w: 1, h: 1 }, false)) return;
+          plan.reserved.add(k);
+          roads.add(k);
+          if (
+            !setSurface(k, profile.paved ? "paving" : "dirt", 5) ||
+            !profile.paved
+          )
+            return;
+          plan.pavement!.set(k, "footway");
+          if (apronMaterial) plan.streetSurfaces!.set(k, apronMaterial);
+        },
+      );
+      plan.places.push({
+        id,
+        name: lot.religious.labels[lot.religious.scale],
+        owner: `${site.id}-community`,
+        description: lot.religious.evidence.note,
+        ...rect,
+        sprite: frame,
+        entrance: door,
+        access: "public",
+        claim: `religious-${lot.religious.id}`,
+        entranceLabel: "Enter",
+      });
+      plan.objects.push({
+        id: `${id}-exit`,
+        name: "Return to the square",
+        kind: "exit",
+        pos: { x: 6, y: 9, space: id },
+        sprite: "door-open",
+        inventory: {},
+      });
+      plan.plots.push({
+        ...rect,
+        id: `${id}-plot`,
+        kind: "public",
+        access: door,
+      });
       continue;
     }
     if (lot.civic) {
@@ -1029,6 +1355,35 @@ export function planSettlement(
     });
     if (urban) {
       paint(yard, "dirt");
+      // Grass is edging: a ring round the house, not a field between them.
+      if (cityGround)
+        eachCell(
+          { x: rect.x - 1, y: rect.y - 1, w: rect.w + 2, h: rect.h + 2 },
+          (x, y) => {
+            const k = cellKey(x, y);
+            if (plan.solid.has(k) || roads.has(k)) return;
+            if (dry({ x, y, w: 1, h: 1 }, false)) setSurface(k, "grass", 3);
+          },
+        );
+      // The strip behind a house is worn to earth; the block stays grass.
+      const back = ny
+        ? {
+            x: rect.x,
+            y: ny > 0 ? rect.y + rect.h : rect.y - 1,
+            w: rect.w,
+            h: 1,
+          }
+        : {
+            x: nx > 0 ? rect.x + rect.w : rect.x - 1,
+            y: rect.y,
+            w: 1,
+            h: rect.h,
+          };
+      eachCell(back, (x, y) => {
+        const k = cellKey(x, y);
+        if (!plan.solid.has(k) && dry({ x, y, w: 1, h: 1 }, false))
+          setSurface(k, "dirt", 3);
+      });
       const footway = ny
         ? {
             x: rect.x,
@@ -1042,22 +1397,48 @@ export function planSettlement(
             w: 2,
             h: rect.h,
           };
-      const material =
-        palette &&
-        chooseStreetSurface(
-          palette,
-          "footway",
-          rand("footway-paving", footway.x, footway.y),
-        );
+      const material = stone;
+      // A footway runs beside a street; a house on open ground gets none, so
+      // no stone patches stand alone.
+      const streetNear = (x: number, y: number) => {
+        for (let dy = -2; dy <= 2; dy++)
+          for (let dx = -2; dx <= 2; dx++) {
+            const k = cellKey(x + dx, y + dy);
+            const p = plan.pavement!.get(k);
+            if (roads.has(k) && p !== "footway" && p !== "verge") return true;
+          }
+        return false;
+      };
       eachCell(footway, (x, y) => {
         const k = cellKey(x, y);
+        if (!streetNear(x, y)) return;
         if (!plan.solid.has(k) && dry({ x, y, w: 1, h: 1 }, false)) {
-          plan.surface.set(k, "paving");
+          roads.add(k);
+          if (
+            !setSurface(k, profile.paved ? "paving" : "dirt", 5) ||
+            !profile.paved
+          )
+            return;
           plan.pavement!.set(k, "footway");
           if (material) plan.streetSurfaces!.set(k, material);
-          roads.add(k);
         }
       });
+      if (fabric.furniture?.includes("planter") && ny)
+        for (const dx of [-2, 2]) {
+          const at = { x: point.x + dx, y: point.y };
+          const k = cellKey(at.x, at.y);
+          if (plan.solid.has(k) || plan.pavement!.get(k) !== "footway")
+            continue;
+          if (at.x < rect.x || at.x >= rect.x + rect.w) continue;
+          plan.objects.push({
+            id: `${id}-planter-${dx < 0 ? "l" : "r"}`,
+            name: ornaments.planter.label,
+            kind: ornaments.planter.kind,
+            sprite: ornaments.planter.sprite,
+            pos: pos(at),
+            inventory: {},
+          });
+        }
     } else if (organic)
       eachCell(yard, (x, y) => {
         plan.reserved.add(cellKey(x, y));
@@ -1418,6 +1799,14 @@ export function planSettlement(
         );
     }
   }
+  // A composed town builds over the old common at the centre; its public
+  // plot gathers at the square instead.
+  for (const plot of plan.plots)
+    if (
+      plot.kind === "public" &&
+      plan.solid.has(cellKey(plot.access.x, plot.access.y))
+    )
+      plot.access = { ...socialCenter };
   planRoutines(plan, seed, pack, sample);
   return plan;
 }

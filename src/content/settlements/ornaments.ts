@@ -79,6 +79,13 @@ export const ornaments: Record<string, Ornament> = {
     kind: "monument",
     size: 2,
   },
+  post: {
+    id: "post",
+    label: "Chain post",
+    sprite: "post",
+    kind: "monument",
+    size: 1,
+  },
   planter: {
     id: "planter",
     label: "Planter",
@@ -90,6 +97,13 @@ export const ornaments: Record<string, Ornament> = {
     id: "bench",
     label: "Bench",
     sprite: "bench",
+    kind: "monument",
+    size: 1,
+  },
+  lamp: {
+    id: "lamp",
+    label: "Lamp post",
+    sprite: "lamp-post",
     kind: "monument",
     size: 1,
   },

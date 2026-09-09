@@ -14,7 +14,7 @@ export const americasForms: UrbanFormRule[] = [
     regularity: 0.86,
     courts: 0.66,
     deadEnds: 0.1,
-    tiers: [3, 1, 0],
+    tiers: [4, 2, 1],
     gates: 4,
     wall: "none",
     plaza: "crossing",
@@ -23,6 +23,7 @@ export const americasForms: UrbanFormRule[] = [
     square: {
       focus: "altar",
       corners: ["stele", "brazier", "stele", "brazier"],
+      daisCorners: "none",
       hearth: "brazier",
     },
     evidence: {
@@ -44,7 +45,7 @@ export const americasForms: UrbanFormRule[] = [
     regularity: 0.8,
     courts: 0.88,
     deadEnds: 0.08,
-    tiers: [2, 0, 0],
+    tiers: [3, 1, 1],
     gates: 3,
     wall: "none",
     plaza: "crossing",

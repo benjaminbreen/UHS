@@ -29,21 +29,26 @@ export function drawCharacter(
   const stride = moving ? [0, 3, 0, -3][f] : 0,
     bob = moving && f % 2 ? 1 : 0,
     shift = pose === "sway" ? [-1, 0, 1, 0][f] : 0;
+  // Crouch, stretch off the ground, hang at the apex, absorb the landing.
+  const airborne = pose === "jump";
+  const tuck = airborne ? [0, 2, 5, 1][f] : 0;
   const bend =
     (stance === "stooped" ? 2 : burden ? 1 : 0) +
-    (pose === "sit" || pose === "kneel"
-      ? 6
-      : pose === "stoop"
-        ? [2, 4, 6, 4][f]
-        : pose === "tug"
-          ? [1, 0, 2, 3][f]
-          : pose === "pickup" || pose === "drop"
-            ? [0, 3, 6, 2][f]
-            : pose === "work"
-              ? [0, 0, 4, 2][f]
-              : pose === "hurt"
-                ? [0, 2, 3, 1][f]
-                : 0);
+    (airborne
+      ? [4, -1, 0, 3][f]
+      : pose === "sit" || pose === "kneel"
+        ? 6
+        : pose === "stoop"
+          ? [2, 4, 6, 4][f]
+          : pose === "tug"
+            ? [1, 0, 2, 3][f]
+            : pose === "pickup" || pose === "drop"
+              ? [0, 3, 6, 2][f]
+              : pose === "work"
+                ? [0, 0, 4, 2][f]
+                : pose === "hurt"
+                  ? [0, 2, 3, 1][f]
+                  : 0);
   const tall = a.height * 3,
     torso = a.height * 2,
     wide = Math.max(0, a.build),
@@ -152,6 +157,25 @@ export function drawCharacter(
     )[f];
   if (pose === "pickup" || pose === "drop") near = [19, [22, 24, 25, 22][f]];
   if (pose === "hurt") near = [12, 18];
+  if (airborne) {
+    // Arms wind back, swing overhead through the launch, then reach out to land.
+    near = (
+      [
+        [side ? 8 : 11 + wide, 24 + torso],
+        [side ? 15 : 16 + wide, 11],
+        [side ? 21 : 21 + wide, 13],
+        [side ? 18 : 18 + wide, 19 + torso],
+      ] as Point[]
+    )[f];
+    far = (
+      [
+        [side ? 6 : 6 - wide, 24 + torso],
+        [side ? 11 : 2 - wide, 12],
+        [side ? 8 : -1 - wide, 14],
+        [side ? 13 : 4 - wide, 20 + torso],
+      ] as Point[]
+    )[f];
+  }
   if (pose === "give") {
     near = [side ? 19 : 16 + wide, 21 + torso - [0, 2, 3, 0][f]];
     far = [side ? 16 : 4 - wide, near[1]];
@@ -276,10 +300,12 @@ export function drawCharacter(
         ? 2
         : 0
       : 0;
-    const ankle: Point = [x + walk, feet - 2 - lift],
+    // The trailing leg tucks a pixel less, so the pair reads as a stride in air.
+    const raise = tuck && isFar ? tuck - 1 : tuck;
+    const ankle: Point = [x + walk, feet - 2 - lift - raise],
       hip: Point = [x, 22 + torso];
     const knee: Point = [
-      x + Math.round(walk * 0.5),
+      x + Math.round(walk * 0.5) + (side && raise ? 2 : 0),
       Math.round((hip[1] + ankle[1]) / 2),
     ];
     const bare = a.wearing.garment === "tunic" || a.wearing.garment === "wrap",

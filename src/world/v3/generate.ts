@@ -482,8 +482,11 @@ export function createSettlementWorld(
       const t = p.surface.get(k);
       if (t === "bridge") return t;
       if (t) selected = t;
+      // A composed town paints its own ground; the worn disc is for the
+      // older lattice, whose blocks left nothing between the streets.
       else if (
         p.site.profile.paved &&
+        (pack.setting?.urbanRevision ?? 0) < 2 &&
         Math.hypot(x - p.site.center.x, y - p.site.center.y) <
           p.site.profile.radius * 0.52 &&
         land.sample(x, y).water >= 4

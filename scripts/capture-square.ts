@@ -40,6 +40,22 @@ try {
   );
   await page.waitForTimeout(2500);
   await page.locator("canvas").screenshot({ path: out });
+  // Second frame on the sanctuary, where the town has one.
+  const church = await page.evaluate(() => {
+    const l = (window as any).terrainLab,
+      w = l.runtime.engine.world;
+    const p = w.places.find((q: any) => q.claim?.startsWith("religious-"));
+    if (!p) return null;
+    l.scene.cameras.main.centerOn((p.x + p.w / 2) * 16, (p.y + p.h / 2) * 16);
+    return `${p.name} ${p.sprite} @${p.x},${p.y} ${p.w}x${p.h}`;
+  });
+  if (church) {
+    console.log("sanctuary:", church);
+    await page.waitForTimeout(1500);
+    await page
+      .locator("canvas")
+      .screenshot({ path: out.replace(/\.png$/, "-church.png") });
+  }
 } finally {
   await browser.close();
 }

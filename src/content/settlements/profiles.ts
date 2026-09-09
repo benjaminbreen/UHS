@@ -1,5 +1,5 @@
 import type { WorldSetting } from "../geography/types";
-import { urbanized } from "./urban-form";
+import { urbanized, urbanForm } from "./urban-form";
 import { farms } from "../geography/onsets";
 export const patterns = [
   "farmstead",
@@ -115,8 +115,14 @@ export function settlementProfile(
     p.fields = farming ? "grouped" : "none";
     p.livestock = farming;
   }
-  if (town && (s.settlement === "city" || s.settlement === "port"))
-    p.paved = true;
+  // Paving follows the attested fabric, not the rank. An earth-streeted fabric
+  // stays dirt, and so does an unresearched town before the industrial era.
+  if (town && (s.settlement === "city" || s.settlement === "port")) {
+    const form = urbanForm(s);
+    p.paved =
+      form.surface !== "earth" &&
+      (form.evidence.status !== "fictional" || s.year >= 1800);
+  }
   if (!town) p.paved = false;
   if (s.settlement === "camp") {
     p.buildings = 4;

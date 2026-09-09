@@ -217,7 +217,8 @@ export type GameEvent = {
   pos?: Position;
 };
 export type PlayerCommand =
-  | { type: "move"; dx: number; dy: number }
+  | { type: "move"; dx: number; dy: number; traverse?: boolean }
+  | { type: "throw"; dx: number; dy: number }
   | { type: "wait"; seconds: number }
   /** Time passing while the player stands still. Logged so a replay keeps the
    * same clock, but it raises no event of its own. */

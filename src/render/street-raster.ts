@@ -27,10 +27,27 @@ export function rasterStreetTile(
   // continuous across its cells.
   const step = (dx: number, dy: number) =>
     dais && at(dx, dy)?.pavement !== "dais";
-  const north = edge(0, -1),
-    south = edge(0, 1),
-    west = edge(-1, 0),
-    east = edge(1, 0);
+  // A kerb stone sits on the roadway where it meets a raised footway or a
+  // planted verge; a footway meeting a verge gets one too.
+  const kerbTo = (dx: number, dy: number) => {
+    const n = at(dx, dy);
+    return (
+      !dais &&
+      !!n &&
+      n.pavement !== "dais" &&
+      n.height === c.height &&
+      (n.pavement === "verge" ||
+        (n.pavement === "footway" && c.pavement !== "footway"))
+    );
+  };
+  const kerbN = kerbTo(0, -1),
+    kerbS = kerbTo(0, 1),
+    kerbW = kerbTo(-1, 0),
+    kerbE = kerbTo(1, 0);
+  const north = edge(0, -1) && !kerbN,
+    south = edge(0, 1) && !kerbS,
+    west = edge(-1, 0) && !kerbW,
+    east = edge(1, 0) && !kerbE;
   // A raised footway keeps a cut kerb; every other street edge wears into the
   // ground beside it.
   const kerb = c.pavement === "footway";
@@ -39,7 +56,8 @@ export function rasterStreetTile(
     stepS = step(0, 1),
     stepW = step(-1, 0),
     stepE = step(1, 0);
-  const shadowed = !dais && at(0, -1)?.pavement === "dais";
+  const shadowed = !dais && at(0, -1)?.pavement === "dais",
+    shadowedE = !dais && at(-1, 0)?.pavement === "dais";
   for (let py = 0; py < 16; py++)
     for (let px = 0; px < 16; px++) {
       const wx = (x + ox) * 16 + px,
@@ -92,6 +110,33 @@ export function rasterStreetTile(
       } else {
         tone = pavingStonePixel(wx, wy, material, grade);
       }
+      // Kerb: a light stone line on the outermost pixel, jointed every eight
+      // world pixels, with its shadow on the roadway beside it.
+      const kerbBorder = Math.min(
+        kerbN ? py : 99,
+        kerbS ? 15 - py : 99,
+        kerbW ? px : 99,
+        kerbE ? 15 - px : 99,
+      );
+      if (kerbBorder < 2) {
+        const vertical =
+          Math.min(kerbW ? px : 99, kerbE ? 15 - px : 99) <
+          Math.min(kerbN ? py : 99, kerbS ? 15 - py : 99);
+        const joint = mod(vertical ? wy : wx, 8) === 0;
+        const dark = material === "basalt" || material === "sett";
+        tone =
+          kerbBorder === 0
+            ? joint
+              ? dark
+                ? [150, 158, 154]
+                : [178, 170, 146]
+              : dark
+                ? [206, 212, 206]
+                : [226, 218, 194]
+            : dark
+              ? [96, 106, 104]
+              : [122, 116, 96];
+      }
       // A worn edge: the outermost stones are broken and sunk, and grit from
       // the ground beside creeps over the last pixel or two.
       if (border < 2 && nearest) {
@@ -101,26 +146,99 @@ export function rasterStreetTile(
         else if (border === 0) tone = tone.map((n) => n - 8);
       }
       if (dais) {
-        // Two steps: a lit top lip on every open side, a riser on the south.
-        const lip = Math.min(
-          stepN ? py : 99,
-          stepW ? px : 99,
-          stepE ? 15 - px : 99,
-          stepS ? 15 - py : 99,
-        );
-        if (stepS && 15 - py < 4) {
-          const r = 15 - py;
+        // A cut-stone platform with an outlined edge. Each open side carries
+        // a six-pixel kerb: outline, lit rim, kerb face with joints, groove.
+        // Corners take a solid cap. The south side shows its wall: kerb, a
+        // lit front edge, then the riser, which continues into the cell
+        // below with a lower step and the platform's cast shadow.
+        const K =
+          material === "basalt" || material === "sett"
+            ? {
+                ol: [58, 62, 60],
+                lit: [214, 220, 214],
+                kerb: [186, 194, 190],
+                cap: [166, 174, 170],
+                capLit: [200, 208, 204],
+                joint: [118, 128, 126],
+                groove: [96, 106, 104],
+                riser: [112, 122, 120],
+                riserJoint: [78, 86, 84],
+                side: [120, 130, 128],
+              }
+            : {
+                ol: [74, 69, 58],
+                lit: [244, 238, 218],
+                kerb: [226, 218, 194],
+                cap: [204, 194, 166],
+                capLit: [232, 224, 200],
+                joint: [148, 142, 122],
+                groove: [122, 118, 100],
+                riser: [138, 132, 112],
+                riserJoint: [98, 92, 76],
+                side: [146, 140, 120],
+              };
+        const bx = stepW ? px : stepE ? 15 - px : 99,
+          by = stepN ? py : 99,
+          r = stepS ? 15 - py : 99;
+        const b = Math.min(bx, by);
+        const vertical = bx < 99 && bx <= by && bx < 7;
+        const along = vertical ? wy : wx;
+        const joint = mod(along, 10) < 2;
+        const cap = bx < 7 && (by < 7 || r < 10);
+        // Corner caps are square blocks: outlined all round, lit top-left.
+        const capRing = cap && (bx === 6 || by === 6 || r === 9);
+        const capLit = cap && (bx === 1 || by === 1 || r === 8);
+        if (r < 10) {
           tone =
-            r === 3
-              ? [214, 208, 188]
-              : r === 1
-                ? [128, 124, 106]
-                : [150, 146, 126];
-          if (r === 2 && mod(wx, 7) === 3) tone = [136, 132, 112];
-        } else if (lip === 0) tone = [224, 218, 198];
-        else if (lip === 1) tone = tone.map((n) => n + 6);
-      } else if (shadowed && py < 2) {
-        tone = tone.map((n) => n - (py === 0 ? 22 : 10));
+            r === 9
+              ? K.groove
+              : r === 8
+                ? K.lit
+                : r >= 5
+                  ? cap
+                    ? K.cap
+                    : joint
+                      ? K.joint
+                      : K.kerb
+                  : r === 4
+                    ? K.lit
+                    : mod(wx + 4, 8) < 2 && !cap
+                      ? K.riserJoint
+                      : r === 0
+                        ? [124, 118, 100]
+                        : K.riser;
+          if (cap && r >= 5)
+            tone = capRing ? K.ol : capLit && stepW ? K.capLit : K.cap;
+          if (bx === 0) tone = K.ol;
+        } else if (b < 7) {
+          if (b === 0) tone = K.ol;
+          else if (b === 1) tone = vertical && stepE ? K.side : K.lit;
+          else if (b === 6) tone = K.groove;
+          else tone = joint ? K.joint : K.kerb;
+          if (cap)
+            tone =
+              b === 0
+                ? K.ol
+                : capRing
+                  ? K.ol
+                  : capLit && !(vertical && stepE)
+                    ? K.capLit
+                    : K.cap;
+        }
+      } else if (shadowed || shadowedE) {
+        // Below the wall: the riser's lower course and foot, a lower step
+        // with its own edge, then cast shadow across the slabs. The east
+        // side only casts.
+        if (shadowed && py < 2)
+          tone = mod(wx + 4, 8) < 2 ? [98, 92, 76] : [116, 110, 92];
+        else if (shadowed && py === 2) tone = [74, 69, 58];
+        else if (shadowed && py < 5)
+          tone = py === 3 ? [236, 230, 210] : [216, 210, 188];
+        else if (shadowed && py === 5) tone = [104, 100, 84];
+        else {
+          const d = Math.min(shadowed ? py - 6 : 9, shadowedE ? px : 9);
+          if (d < 3) tone = tone.map((n) => n - [36, 22, 10][d]);
+        }
       }
       // Chamfer exposed outer corners in native pixels. Connected road cells
       // retain full coverage, so intersections never acquire internal curbs.

@@ -26,18 +26,18 @@ export function pavingGrade(pavement?: Pavement): PavingGrade {
     ? "dais"
     : pavement === "square"
       ? "broad"
-      : pavement === "footway" || pavement === "lane"
-        ? "fine"
-        : "street";
+      : // One stone for streets, lanes and footways: the smaller "fine" grade
+        // read as a second material laid in patches.
+        "street";
 }
 const grades: Record<
   PavingGrade,
   { w: number; h: number; lift: number; lightJoint: boolean }
 > = {
-  fine: { w: 7, h: 6, lift: -6, lightJoint: false },
-  street: { w: 9, h: 8, lift: 0, lightJoint: false },
-  broad: { w: 12, h: 10, lift: 6, lightJoint: true },
-  dais: { w: 15, h: 12, lift: 14, lightJoint: true },
+  fine: { w: 10, h: 8, lift: -2, lightJoint: false },
+  street: { w: 13, h: 9, lift: 2, lightJoint: false },
+  broad: { w: 12, h: 10, lift: 4, lightJoint: true },
+  dais: { w: 14, h: 11, lift: 12, lightJoint: true },
 };
 const tint = (c: Color, v: number): Color => [c[0] + v, c[1] + v, c[2] + v];
 
@@ -90,46 +90,56 @@ export function pavingStonePixel(
     y = mod(wy, height);
   const id = hash(column, row, 703),
     palette = material === "basalt" ? basalt : limestone;
-  const face = tint(palette[Math.floor(id * palette.length)], g.lift);
+  // Dressed slabs are matched stone: half the quarry variation of a street.
+  const pick = palette[Math.floor(id * palette.length)];
+  const face: Color = g.lightJoint
+    ? tint(
+        [
+          Math.round((pick[0] + palette[0][0]) / 2),
+          Math.round((pick[1] + palette[0][1]) / 2),
+          Math.round((pick[2] + palette[0][2]) / 2),
+        ],
+        g.lift,
+      )
+    : tint(pick, g.lift);
   const joint: Color = g.lightJoint
     ? material === "basalt"
       ? tint([176, 184, 176], g.lift)
       : tint([214, 208, 188], g.lift)
     : material === "basalt"
-      ? [105, 119, 117]
-      : [150, 149, 130];
-  // Broad slabs are dressed: straight joints, a single lit edge, no chips.
+      ? tint([168, 178, 174], g.lift)
+      : tint([206, 199, 176], g.lift);
+  // Dressed slabs: straight joints a shade darker than the face, a lit top and
+  // left bevel, a shaded bottom and right edge, so every stone has thickness.
   if (g.lightJoint) {
-    if (x === 0 || y === 0) return joint;
-    if (y === 1 && x >= 2 && x <= width - 3 && id < 0.8) return tint(face, 9);
-    if (x === 1 && y >= 2 && id > 0.3) return tint(face, 6);
-    if (y === height - 1 && x >= 2 && id > 0.55) return tint(face, -7);
+    const bevel = tint(face, 11),
+      shade = tint(face, -12);
+    if (x === 0 || y === 0) return tint(face, grade === "dais" ? -14 : -20);
+    if (y === 1 && x < width - 1) return bevel;
+    if (x === 1 && y < height - 1) return bevel;
+    if (y === height - 1 || x === width - 1) return shade;
     if (
-      grade === "dais" &&
       x === Math.floor(id * 7) + 3 &&
       y === Math.floor(id * 5) + 3 &&
-      id > 0.6
+      id > 0.55
     )
-      return tint(face, -5);
+      return tint(face, -6);
     return face;
   }
-  // Stepped corners follow the original authored polygon, with occasional chips.
-  if (
-    (x === 0 && (y === 0 || y >= height - 2)) ||
-    (x === width - 1 && (y === 0 || y === height - 1)) ||
-    (y === height - 1 && x >= width - 3) ||
-    (x === 0 && y === 3 && id > 0.72)
-  )
-    return joint;
-  if (y === 1 && x >= 2 && x <= Math.min(width - 4, 5) && id < 0.87)
-    return material === "basalt"
-      ? tint([176, 183, 170], g.lift)
-      : tint([203, 196, 173], g.lift);
-  if (y === height - 1 && x >= 2 && x <= 5)
-    return material === "basalt"
-      ? tint([114, 128, 123], g.lift)
-      : tint([162, 160, 141], g.lift);
+  // Street flagstones: pale joints, a lit top and left edge, a shaded bottom
+  // and right, and each stone a shade off its neighbours.
+  const tone = Math.floor(hash(column, row, 704) * 13) - 6;
+  const stone = tint(face, tone);
+  if (x === 0 || y === 0) return joint;
+  // A nicked corner now and then keeps the grid from reading as brickwork.
+  if (x === 1 && y === 1 && id > 0.78) return joint;
+  if (y === 1 && x < width - 1) return tint(stone, 10);
+  if (x === 1 && y < height - 1) return tint(stone, 8);
+  if (y === height - 1 || x === width - 1) return tint(stone, -9);
   if (x === Math.floor(id * 4) + 2 && y === height - 3 && id < 0.25)
-    return tint(palette[(Math.floor(id * 4) + 1) % palette.length], g.lift);
-  return face;
+    return tint(
+      palette[(Math.floor(id * 4) + 1) % palette.length],
+      g.lift + tone,
+    );
+  return stone;
 }

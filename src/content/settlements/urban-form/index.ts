@@ -35,7 +35,7 @@ export const genericForm: UrbanForm = {
   regularity: 0.35,
   courts: 0.45,
   deadEnds: 0.2,
-  tiers: [1, 1, 0],
+  tiers: [3, 2, 1],
   gates: 4,
   wall: "none",
   plaza: "offset",

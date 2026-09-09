@@ -188,9 +188,9 @@ function farDoor(plan: SettlementPlan, seed: string, id: string, home: Point) {
     plan.gatherings?.[0]
   );
 }
-/** The building an indoor activity belongs in. The plan has one civic hall
- * and a few shopfront workshops; until it grows religious and industrial
- * buildings, rites go to the hall and machine work to the largest workshop. */
+/** The building an indoor activity belongs in. Rites go to the sanctuary
+ * where the town has one and to the hall otherwise; records and watches to
+ * the hall; machine work to a workshop. */
 function doorFor(
   plan: SettlementPlan,
   seed: string,
@@ -199,6 +199,7 @@ function doorFor(
   home: Point,
 ): Point | undefined {
   const hall = plan.places.find((p) => p.claim.startsWith("civic-"));
+  const sanctuary = plan.places.find((p) => p.claim.startsWith("religious-"));
   const shops = plan.places
     .filter(
       (p) =>
@@ -212,7 +213,8 @@ function doorFor(
     shops.length
       ? shops[Math.floor(random(seed, "routine", id, "shop") * shops.length)]
       : undefined;
-  if (/rite|record|watch|sick/i.test(activity)) return hall?.entrance;
+  if (/rite/i.test(activity)) return (sanctuary ?? hall)?.entrance;
+  if (/record|watch|sick/i.test(activity)) return hall?.entrance;
   if (/machine|line|building|roof/i.test(activity))
     return pickShop() ?? hall?.entrance;
   return pickShop() ?? farDoor(plan, seed, id, home);

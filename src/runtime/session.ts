@@ -189,6 +189,8 @@ export class Runtime {
     pose: CharacterPose;
     at: number;
     prop?: string;
+    /** Sprite arc for a jump: the shadow stays on the ground beneath it. */
+    arc?: { height: number; duration: number };
   };
   private characterSerial = 0;
   customizeCharacter(id: string, appearance: CharacterAppearance) {
@@ -210,11 +212,33 @@ export class Runtime {
     previousProp?: string,
   ) {
     if (!accepted) return;
+    if (command.type === "move") {
+      const leap = command.traverse ? this.engine.lastLeap : undefined;
+      if (leap)
+        this.characterAction = {
+          serial: ++this.characterSerial,
+          pose: "jump",
+          at: performance.now(),
+          arc: {
+            height:
+              leap.kind === "leap"
+                ? 15
+                : leap.kind === "drop"
+                  ? 8
+                  : leap.kind === "climb"
+                    ? 6
+                    : 11,
+            duration: leap.distance === 2 ? 400 : 340,
+          },
+        };
+      return;
+    }
     const action = command.type === "interact" ? command.action : command.type;
     const pose: CharacterPose | undefined = (
       {
         pickup: "pickup",
         drop: "drop",
+        throw: "swing",
         strike: "swing",
         talk: "talk",
         trade: "give",
@@ -497,9 +521,27 @@ export class Runtime {
       this.emit();
     }
   }
-  move(dx: number, dy: number) {
+  move(dx: number, dy: number, traverse = false) {
     this.stop(false);
-    return this.command({ type: "move", dx, dy });
+    return this.command(
+      traverse ? { type: "move", dx, dy, traverse } : { type: "move", dx, dy },
+    );
+  }
+  throwHeld(dx: number, dy: number) {
+    this.stop(false);
+    return this.command({ type: "throw", dx, dy });
+  }
+  /** Jump on the spot. Expression only, like a strike that hits nothing. */
+  hop() {
+    if (this.replay) return;
+    this.stop(false);
+    this.characterAction = {
+      serial: ++this.characterSerial,
+      pose: "jump",
+      at: performance.now(),
+      arc: { height: 11, duration: 320 },
+    };
+    this.emit();
   }
   walkTo(target: Point) {
     this.stop(false);

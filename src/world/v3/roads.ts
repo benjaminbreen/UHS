@@ -22,10 +22,17 @@ export function line(a: Point, b: Point): Point[] {
   }
   return out;
 }
+/** Cells either side of a centreline for a road `span` cells across. An even
+ * span sits one cell further on the positive side. */
+export function spanOffsets(span: number): [number, number] {
+  const lo = Math.floor((span - 1) / 2);
+  return [lo, span - 1 - lo];
+}
 export function roadCells(r: Road, visit: (x: number, y: number) => void) {
+  const [lo, hi] = r.span ? spanOffsets(r.span) : [r.width, r.width];
   for (const p of r.points)
-    for (let dy = -r.width; dy <= r.width; dy++)
-      for (let dx = -r.width; dx <= r.width; dx++) visit(p.x + dx, p.y + dy);
+    for (let dy = -lo; dy <= hi; dy++)
+      for (let dx = -lo; dx <= hi; dx++) visit(p.x + dx, p.y + dy);
 }
 /** Straight proportional line with cardinal rasterization, used by new roads. */
 export function directLine(a: Point, b: Point): Point[] {

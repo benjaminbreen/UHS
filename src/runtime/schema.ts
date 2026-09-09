@@ -173,6 +173,14 @@ export const commandSchema = z.discriminatedUnion("type", [
       type: z.literal("move"),
       dx: z.number().int().min(-1).max(1),
       dy: z.number().int().min(-1).max(1),
+      traverse: z.boolean().optional(),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("throw"),
+      dx: z.number().int().min(-1).max(1),
+      dy: z.number().int().min(-1).max(1),
     })
     .strict(),
   z

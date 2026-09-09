@@ -1,0 +1,118 @@
+{
+  "materials": {
+    "sandstone": {
+      "wall": ["#4e4232", "#7d6a4f", "#a99270", "#c7b08c", "#e3cfaa"],
+      "roof": ["#3a2f27", "#6c5545", "#8f7259", "#b39473"],
+      "foundation": ["#3f372b", "#6f6350", "#9b8c72"]
+    },
+    "grey-limestone": {
+      "wall": ["#3f403a", "#6f7068", "#9b9a8e", "#bcbaab", "#dcd9c8"],
+      "roof": ["#29383e", "#40505c", "#566e79", "#76888d"],
+      "foundation": ["#383a35", "#65675f", "#8f9086"]
+    },
+    "whitewash": {
+      "wall": ["#6b5a48", "#b3a28c", "#dfd3bf", "#f1e8d6", "#fbf6e8"],
+      "roof": ["#52332d", "#8d3d2c", "#b44e31", "#ce6940"],
+      "foundation": ["#4a4034", "#8b7b64", "#b9ab92"]
+    },
+    "andesite": {
+      "wall": ["#3a3a36", "#66655e", "#8e8c82", "#adaa9e", "#cbc7b8"],
+      "roof": ["#3a2f27", "#6c5545", "#8f7259", "#b39473"],
+      "foundation": ["#33332f", "#5c5b55", "#84837a"]
+    },
+    "earthwork": {
+      "wall": ["#4a3c2a", "#7a6242", "#a3865c", "#c2a577", "#d9be8f"],
+      "roof": ["#50452b", "#7c6737", "#aa8b47", "#c7ac62"],
+      "foundation": ["#3f3526", "#6b5a3f", "#94805a"]
+    }
+  },
+  "buildings": {
+    "romanesque-church": {
+      "label": "Romanesque church",
+      "family": "basilica",
+      "description": "A stone church of the eleventh and twelfth centuries: a nave under a steep roof, a round apse at the east end, a west tower with paired belfry arches, and a portal of receding round arches. Sized to its town; dimensions are illustrative.",
+      "footprint": [10, 7],
+      "entrance": [5, 7],
+      "wall": "sandstone",
+      "roofMaterial": "slate",
+      "naveHeight": 50,
+      "roofPitch": 38,
+      "tower": "west",
+      "towerHeight": 112,
+      "towerRoof": "pyramid",
+      "apse": true,
+      "porch": false,
+      "bays": 4,
+      "corbels": true,
+      "lesenes": true,
+      "finial": "cross",
+      "seed": 811,
+      "scales": {
+        "small": { "label": "Romanesque chapel", "footprint": [7, 5], "entrance": [3, 5], "naveHeight": 44, "roofPitch": 34, "towerHeight": 96, "bays": 3 },
+        "medium": { "label": "Romanesque parish church", "footprint": [10, 7], "entrance": [5, 7] },
+        "large": { "label": "Romanesque abbey church", "footprint": [14, 12], "entrance": [7, 12], "naveHeight": 64, "roofPitch": 44, "towerHeight": 150, "bays": 5 }
+      },
+      "looks": [
+        { "wall": "sandstone", "roofMaterial": "slate" },
+        { "wall": "grey-limestone", "roofMaterial": "slate", "towerRoof": "saddle" },
+        { "wall": "sandstone", "roofMaterial": "terracotta", "tower": "east" }
+      ]
+    },
+    "mission-church": {
+      "label": "Mission church",
+      "family": "mission",
+      "description": "A whitewashed church of Spanish America: a plain nave under red tile, a curved baroque gable over the portal, bells hung in an espadaña or in square towers, and a dome at the crossing in the largest. Composed from mission and parish churches of 1550 to 1850; dimensions are illustrative.",
+      "footprint": [10, 7],
+      "entrance": [5, 7],
+      "wall": "whitewash",
+      "roofMaterial": "terracotta",
+      "naveHeight": 46,
+      "roofPitch": 26,
+      "towers": "one",
+      "towerHeight": 100,
+      "gable": "baroque",
+      "dome": false,
+      "bays": 3,
+      "niche": true,
+      "finial": "cross",
+      "seed": 907,
+      "scales": {
+        "small": { "label": "Mission chapel", "footprint": [7, 5], "entrance": [3, 5], "naveHeight": 40, "towers": "espadana", "bays": 2, "niche": false },
+        "medium": { "label": "Parish church", "footprint": [10, 7], "entrance": [5, 7] },
+        "large": { "label": "Cathedral", "footprint": [14, 12], "entrance": [7, 12], "naveHeight": 62, "roofPitch": 30, "towers": "twin", "towerHeight": 150, "dome": true, "bays": 5 }
+      },
+      "looks": [
+        { "wall": "whitewash" },
+        { "wall": "sandstone", "gable": "plain" },
+        { "wall": "whitewash", "roofMaterial": "shingle" }
+      ]
+    },
+    "stepped-platform": {
+      "label": "Stepped platform",
+      "family": "platform",
+      "description": "A tiered platform mound with a stairway on the square side and a temple at the summit: earth-built and grass-covered in the Mississippi valley, stone-faced with balustrades and a roof comb in Mesoamerica, terraced in dressed stone in the Andes. Composed from surviving sites; tier counts and dimensions are illustrative.",
+      "footprint": [10, 10],
+      "entrance": [5, 10],
+      "wall": "andesite",
+      "roofMaterial": "thatch",
+      "tiers": 4,
+      "tierHeight": 16,
+      "face": "stone",
+      "stair": "single",
+      "balustrade": true,
+      "summit": "stone-temple",
+      "crest": false,
+      "seed": 1013,
+      "scales": {
+        "small": { "label": "Platform mound", "footprint": [7, 7], "entrance": [3, 7], "tiers": 2, "tierHeight": 20, "face": "earth", "wall": "earthwork", "balustrade": false, "summit": "thatch-temple" },
+        "medium": { "label": "Temple platform", "footprint": [10, 10], "entrance": [5, 10] },
+        "large": { "label": "Temple pyramid", "footprint": [14, 14], "entrance": [7, 14], "tiers": 6, "stair": "double", "crest": true }
+      },
+      "looks": [
+        { "wall": "andesite" },
+        { "wall": "sandstone", "crest": true },
+        { "wall": "grey-limestone", "balustrade": false, "summit": "thatch-temple" }
+      ]
+    }
+  }
+}

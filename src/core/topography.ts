@@ -158,3 +158,71 @@ export function terrainStep(
       : "A ledge blocks the way — find a slope.",
   };
 }
+
+export type LeapKind = "hop" | "climb" | "drop" | "leap";
+export type LeapResult = {
+  kind: LeapKind;
+  /** Tiles travelled along the direction: 1 for a step, 2 when clearing a gap. */
+  distance: 1 | 2;
+  seconds: number;
+  reason: string;
+};
+/** Opt-in traversal. Resolves what a shift-move does against the tile ahead:
+ * a plain hop on open ground, a scramble up one tier, a drop down, or a leap
+ * clearing one impassable tile onto level ground beyond. */
+export function terrainLeap(
+  sample: TopographySample,
+  from: TerrainPoint,
+  to: TerrainPoint,
+): LeapResult | { kind: "blocked"; reason: string } {
+  const dx = to.x - from.x,
+    dy = to.y - from.y;
+  if (Math.abs(dx) > 1 || Math.abs(dy) > 1 || (!dx && !dy))
+    return { kind: "blocked", reason: "Jump one step at a time." };
+  const a = sample(from.x, from.y),
+    b = sample(to.x, to.y);
+  if (!a || !b) return { kind: "blocked", reason: "Edge of the study." };
+  if (a.solid) return { kind: "blocked", reason: "No room to push off." };
+  if (terrainStep(sample, from, to).allowed)
+    return {
+      kind: "hop",
+      distance: 1,
+      seconds: 3,
+      reason: "You hop forward.",
+    };
+  // Diagonals may clear a corner but never a ledge or a gap.
+  if (dx && dy) return { kind: "blocked", reason: "Jump straight at it." };
+  const water = (c: TopographyCell) => c.surface === "water" && !c.bridge;
+  if (!b.solid && !water(b) && b.height === a.height + 1)
+    return {
+      kind: "climb",
+      distance: 1,
+      seconds: 25,
+      reason: "You scramble up the ledge.",
+    };
+  if (!b.solid && !water(b) && b.height < a.height)
+    return {
+      kind: "drop",
+      distance: 1,
+      seconds: 2,
+      reason: "You drop down.",
+    };
+  // Clearing a stream or a ditch: the landing must be level with the takeoff.
+  // Only water is a gap. A wall or a trunk is climbed or not passed at all.
+  const c = sample(to.x + dx, to.y + dy);
+  if (water(b) && c && !c.solid && !water(c) && c.height === a.height)
+    return {
+      kind: "leap",
+      distance: 2,
+      seconds: 4,
+      reason: "You leap the water.",
+    };
+  return {
+    kind: "blocked",
+    reason: b.solid
+      ? "There is no way over that."
+      : water(b)
+        ? "Too wide to leap."
+        : "The ledge is too high to climb.",
+  };
+}

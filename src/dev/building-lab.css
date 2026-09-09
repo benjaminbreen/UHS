@@ -1,0 +1,200 @@
+.building-lab {
+  min-height: 100dvh;
+  background: #20282b;
+  color: #e5dfce;
+  font:
+    14px/1.45 system-ui,
+    sans-serif;
+  display: flex;
+  flex-direction: column;
+}
+.building-lab * {
+  box-sizing: border-box;
+}
+.building-lab header {
+  padding: 18px 26px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  border-bottom: 1px solid #515749;
+  background: #252f31;
+}
+.building-lab h1 {
+  margin: 0 0 4px;
+  font:
+    28px Georgia,
+    serif;
+}
+.building-lab header p {
+  margin: 0;
+  color: #b9b3a2;
+  max-width: 70ch;
+}
+.building-lab header a,
+.building-lab a {
+  color: #e0b44c;
+}
+.building-body {
+  display: grid;
+  grid-template-columns: 260px 1fr 320px;
+  flex: 1;
+  min-height: 0;
+}
+.building-body aside {
+  border-right: 1px solid #515749;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.building-body aside input {
+  margin: 12px;
+  padding: 6px 8px;
+  background: #18201f;
+  color: inherit;
+  border: 1px solid #515749;
+  border-radius: 6px;
+}
+.building-body aside ul {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 20px;
+  overflow: auto;
+}
+.building-body aside button {
+  width: 100%;
+  text-align: left;
+  padding: 8px 14px;
+  background: none;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  border-left: 3px solid transparent;
+}
+.building-body aside button small {
+  color: #8f8a7c;
+  font-size: 11px;
+}
+.building-body aside button.on {
+  background: #2c3739;
+  border-left-color: #e0b44c;
+}
+.building-body main {
+  padding: 16px 22px;
+  overflow: auto;
+}
+.building-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.building-controls button,
+.building-recipe .rebuild {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid #515749;
+  background: #2c3739;
+  color: inherit;
+  cursor: pointer;
+}
+.building-controls button.on {
+  background: #e0b44c;
+  color: #20282b;
+  border-color: #e0b44c;
+}
+.building-controls label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 12px;
+}
+.building-controls select {
+  background: #18201f;
+  color: inherit;
+  border: 1px solid #515749;
+  border-radius: 6px;
+  padding: 5px;
+}
+.building-stage {
+  background: #18201f;
+  border: 1px solid #515749;
+  border-radius: 8px;
+  padding: 12px;
+  display: inline-block;
+}
+.building-stage canvas {
+  display: block;
+  image-rendering: pixelated;
+}
+.building-meta {
+  max-width: 80ch;
+  color: #d9d3c2;
+}
+.building-meta span {
+  color: #a8a293;
+}
+.building-recipe {
+  border-left: 1px solid #515749;
+  padding: 16px;
+  overflow: auto;
+}
+.building-recipe h2 {
+  margin: 0 0 12px;
+  font:
+    18px Georgia,
+    serif;
+}
+.building-recipe label {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.building-recipe label span {
+  color: #b9b3a2;
+  font-size: 12px;
+}
+.building-recipe input,
+.building-recipe select {
+  width: 100%;
+  padding: 4px 6px;
+  background: #18201f;
+  color: inherit;
+  border: 1px solid #515749;
+  border-radius: 4px;
+}
+.building-recipe input[type="checkbox"] {
+  width: auto;
+  justify-self: start;
+}
+.building-recipe .rebuild {
+  margin-top: 12px;
+  width: 100%;
+  background: #e0b44c;
+  color: #20282b;
+  font-weight: 600;
+}
+.building-recipe .rebuild:disabled {
+  opacity: 0.6;
+}
+.building-recipe pre {
+  white-space: pre-wrap;
+  font-size: 12px;
+  color: #a8a293;
+  margin-top: 10px;
+}
+.building-hint {
+  color: #a8a293;
+}
+.building-recipe .pair { display: flex; gap: 4px; align-items: center; }
+.building-recipe .pair input { width: 56px; }
+.building-recipe .pair small { color: #8f8a7c; font-size: 11px; }
+.building-recipe textarea { width: 100%; font: 11px/1.35 ui-monospace, monospace; background: #18201f; color: inherit; border: 1px solid #515749; border-radius: 4px; padding: 4px; }
+.building-recipe textarea.bad { border-color: #c8384e; }
+.building-recipe label:has(textarea) { grid-template-columns: 1fr; }

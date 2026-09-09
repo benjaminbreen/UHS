@@ -227,14 +227,15 @@ def build_buildings(root, sprites):
     build_urban_furniture(sprites)
     build_city_walls(sprites)
     build_square_furniture(sprites)
-    recipes={**source['buildings'], **urban_recipes(root, source)}
+    from art.religious import ReligiousBuilding, religious_recipes
+    recipes={**source['buildings'], **urban_recipes(root, source), **religious_recipes(root, source)}
     for name,r in list(recipes.items()):
         if r['roof']=='shelter': continue
         fw,fh=r['footprint']
         for facing,entrance in [('north',[fw//2,-1]),('east',[fw,fh//2]),('west',[-1,fh//2])]:
             recipes[name+'-'+facing]={**r,'facing':facing,'entrance':entrance,'label':r['label']+' · '+facing}
     for name,r in recipes.items():
-        painter=UrbanBuilding if r.get('urban') else Building
+        painter=ReligiousBuilding if r.get('religious') else UrbanBuilding if r.get('urban') else Building
         im=painter(r,source['materials'][r['wall']]).render()
         sprites[name]=im
         w,h=im.size
@@ -243,7 +244,8 @@ def build_buildings(root, sprites):
             'anchor':[w/2,h-3],'bounds':[0,0,w,h],'height':r['height'],
             'occlusion':[4,7,w-7,h-7],'shadow':{'kind':'building','height':r['height'],'contactWidth':w-12},
             'wall':r['wall'],'roof':r['roof'],'roofMaterial':r['roofMaterial'],'attachments':r['attachments'],
-            'opening':r['opening'],'description':r['description']}
+            'opening':r['opening'],'description':r['description'],
+            **({'religious':True,'family':r['family'],'recipe':r['recipe']} if r.get('religious') else {})}
     (root/'public/packs/buildings.json').write_text(json.dumps(models))
     (root/'src/content/graphics/models.generated.json').write_text(json.dumps(models))
     return models

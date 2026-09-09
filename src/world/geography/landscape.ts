@@ -130,6 +130,21 @@ export function createLandscape(s: WorldSetting, seed: string) {
         }
       }
     }
+    // Creeks: a meandering stream every few hundred cells, so nearly every
+    // settlement has water through it. The starting town's creek runs through
+    // its eastern quarter, clear of the square. Three cells wide, with a
+    // shallow valley of its own so the banks stay level for building.
+    const CREEK = 640;
+    const lane = Math.round((x - 46) / CREEK);
+    const wander = noise(seed, lane, 0, 1, "creek") - 0.5;
+    const creekX =
+      46 +
+      lane * CREEK +
+      Math.sin(y / 210 + wander * 6) * 22 +
+      Math.sin(y / 57 + lane) * 5 +
+      wander * 80 * Math.min(1, Math.abs(lane));
+    const creek = Math.abs(x - creekX) - 1.5;
+    if (creek < river && s.water !== "lake") river = creek;
     if (s.water === "lake") {
       const lake = Math.hypot((x + 110) * 0.7, y + 20) - 65;
       if (lake < river) {

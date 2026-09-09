@@ -161,6 +161,29 @@ export function createEnvironment(
         } else if (type === "land") water = Math.max(0.1, -feature.distance);
       }
     }
+    // Creeks: a meandering stream every few hundred cells, three cells wide,
+    // so nearly every settlement has water through it and a bridge or two.
+    // The starting town's creek runs through its eastern quarter, clear of
+    // the square. Real rivers and coasts keep their own water.
+    {
+      const CREEK = 640;
+      const lane = Math.round((fx - 46) / CREEK);
+      const wander = noise(seed, lane * 7, 3, 1, "creek") - 0.5;
+      const creekX =
+        46 +
+        lane * CREEK +
+        Math.sin(fy / 210 + wander * 6) * 22 +
+        Math.sin(fy / 57 + lane) * 5 +
+        wander * 80 * Math.min(1, Math.abs(lane));
+      const creek = Math.abs(fx - creekX) - 1.5;
+      if (creek < water && water > 12) {
+        water = creek;
+        kind = "river";
+        shoreWidth = 1;
+        floodplain = 2 + noise(seed, fx, fy, 30, "creek-flat") * 2;
+        waterFlow = [0, lane % 2 ? -1 : 1];
+      }
+    }
     // Real pools join the terrain sample before settlement siting and routing.
     // A common basin center controls eligibility across every pixel of the pool.
     const basin = marshBasin(seed, fx, fy, local.environment!.ecology);

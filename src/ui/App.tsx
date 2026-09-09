@@ -35,7 +35,12 @@ import {
   Play,
   SkipForward,
   Music2,
+  Heart,
 } from "lucide-react";
+import { weatherAt } from "../core/weather";
+import { lightingAt } from "../render/lighting";
+import { regionAt } from "../content/geography/region-label";
+import { WeatherPanel } from "./WeatherPanel";
 import { AudioDirector } from "../audio/director";
 const AudioLab = lazy(() =>
   import("../dev/AudioLab").then((m) => ({ default: m.AudioLab })),
@@ -76,8 +81,25 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
   const [command, setCommand] = useState("");
   const [sidebar, setSidebar] = useState(() => window.innerWidth > 640);
   const [mapRegion, setMapRegion] = useState(false);
+  const [sideTab, setSideTab] = useState<"around" | "inventory" | "today">(
+    "around",
+  );
   const [mapSpan, setMapSpan] = useState(1600);
   const [earthMap, setEarthMap] = useState(false);
+  // Reads the live snapshot so the keyboard listener never sees a stale world.
+  const talkToNearest = () => {
+    const { observation: o } = runtime.getSnapshot();
+    const nearest = o.actors
+      .filter((a) => a.kind === "human")
+      .sort(
+        (a, b) => distance(a.pos, o.player.pos) - distance(b.pos, o.player.pos),
+      )[0];
+    if (nearest) runtime.select(nearest.id);
+    else {
+      runtime.notice = "No one is in sight. Walk farther to meet someone.";
+      runtime.emit();
+    }
+  };
   const mount = useRef<HTMLDivElement>(null);
   const upload = useRef<HTMLInputElement>(null);
   const replayUpload = useRef<HTMLInputElement>(null);
@@ -159,8 +181,13 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
         runtime.propAction(e.code);
       }
       if (e.key.toLowerCase() === "i") setModal("inventory");
+      if (e.key.toLowerCase() === "q") talkToNearest();
+      if (e.key.toLowerCase() === "r") setModal("map");
+      if (e.key.toLowerCase() === "t")
+        runtime.command({ type: "wait", seconds: 300 });
       if (e.key.toLowerCase() === "m") setModal("map");
-      if (e.key.toLowerCase() === "j") setModal("notebook");
+      if (e.key.toLowerCase() === "j" || e.key.toLowerCase() === "n")
+        setModal("notebook");
     };
     window.addEventListener("keydown", listener);
     return () => window.removeEventListener("keydown", listener);
@@ -179,6 +206,29 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
             : hour < 20
               ? "Evening"
               : "Night";
+  const setting = pack.setting;
+  const weather = weatherAt(
+    obs.manifest.seed,
+    setting?.climate ?? "temperate",
+    setting?.season ?? "spring",
+    obs.clock,
+  );
+  const lighting = lightingAt(obs.clock).id;
+  const regionLabel =
+    (setting && regionAt(setting.lon, setting.lat)?.label) || pack.region;
+  const landscape = setting
+    ? `${setting.climate[0].toUpperCase()}${setting.climate.slice(1)} ${
+        setting.water.startsWith("river")
+          ? "river valley"
+          : setting.water.startsWith("coast")
+            ? "coast"
+            : setting.water === "lake"
+              ? "lakeshore"
+              : setting.relief > 0.5
+                ? "hill country"
+                : "plain"
+      }`
+    : pack.subtitle;
   const focusActor = obs.actors.find((a) => a.id === selection?.id);
   const focusSprite =
     selection &&
@@ -190,10 +240,6 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
           ? `${focusActor.sprite}-2-0`
           : `${focusActor.sprite}0`
         : undefined));
-  const currentPlace =
-    p.pos.space === "outside"
-      ? pack.region
-      : runtime.engine.world.place(p.pos.space)?.name;
   const doAction = (c: PlayerCommand) => {
     if (c.type === "interact" && c.action === "follow")
       runtime.startFollow(c.target);
@@ -246,17 +292,21 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
       <header className="topbar">
         <div className="brand">
           <Compass size={24} />
-          <div>Universal History Simulator</div>
+          <div>
+            Universal History Simulator <i aria-hidden="true">✦</i>
+          </div>
         </div>
         <button
           className="world-selector"
           onClick={openWorld}
           title="Change your world"
         >
+          <i aria-hidden="true">◆</i>
           <span>
             {pack.name}, {pack.date}
           </span>
-          <Pencil size={17} />
+          <i aria-hidden="true">◆</i>
+          <Pencil size={15} />
         </button>
         <div className="header-actions">
           <button
@@ -281,6 +331,14 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
           >
             <Settings size={19} />
           </button>
+          <a
+            className="quiet-button donate"
+            href="https://buy.stripe.com/5kQaEXfJLgRGbqrf1L4F201"
+            target="_blank"
+            rel="noreferrer"
+          >
+            <Heart size={15} /> Donate
+          </a>
         </div>
       </header>
       <main className="workspace">
@@ -393,35 +451,12 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
               )}
             </div>
           )}
-          <div className="event-strip">
-            <span className="event-dot" />
-            <span>{obs.events.at(-1)?.text}</span>
-            <button
-              aria-label="Open journal"
-              onClick={() => setModal("notebook")}
-            >
-              <BookOpen size={16} />
-            </button>
-          </div>
           <footer className="bottom-bar">
             <div className="quick-actions">
-              <button
-                onClick={() => {
-                  const nearest = obs.actors
-                    .filter((a) => a.kind === "human")
-                    .sort(
-                      (a, b) => distance(a.pos, p.pos) - distance(b.pos, p.pos),
-                    )[0];
-                  if (nearest) runtime.select(nearest.id);
-                  else {
-                    runtime.notice =
-                      "No one is in sight. Walk farther to meet someone.";
-                    runtime.emit();
-                  }
-                }}
-              >
+              <button onClick={talkToNearest}>
                 <MessageCircle size={17} />
                 <span>Talk</span>
+                <kbd>Q</kbd>
               </button>
               <button
                 onClick={() => {
@@ -449,16 +484,19 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
               >
                 <Search size={19} />
                 <span>Inspect</span>
+                <kbd>E</kbd>
               </button>
               <button onClick={() => setModal("map")}>
                 <MapIcon size={17} />
                 <span>Travel</span>
+                <kbd>R</kbd>
               </button>
               <button
                 onClick={() => runtime.command({ type: "wait", seconds: 300 })}
               >
                 <Hourglass size={17} />
                 <span>Wait</span>
+                <kbd>T</kbd>
               </button>
             </div>
             <form
@@ -479,28 +517,36 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
               </button>
             </form>
             <div className="keyboard-hint">
-              <span>
-                <kbd>W A S D</kbd> walk
+              <span className="hint-event">
+                <i aria-hidden="true">✦</i>
+                {obs.events.at(-1)?.text}
+                <i aria-hidden="true">✦</i>
               </span>
               <span>
-                <kbd>SPACE</kbd> pick up / wield · <kbd>E</kbd> interact ·{" "}
-                <kbd>G</kbd> put down
+                <kbd>W</kbd>
+                <kbd>A</kbd>
+                <kbd>S</kbd>
+                <kbd>D</kbd> walk
+              </span>
+              <span>
+                <kbd>SPACE</kbd> interact
               </span>
               <span>
                 <kbd>M</kbd> map
               </span>
-              <span>Click to walk · Scroll to zoom</span>
             </div>
           </footer>
         </section>
         <aside className="sidebar">
-          <section className="character-section">
+          <section className="sky-card frame">
             <div className="place-heading">
-              <h2>{currentPlace}</h2>
+              <h2>{regionLabel}</h2>
               <p title={`Day ${day} · ${timeLabel(obs.clock)}`}>
                 {pack.date} <span>·</span> {period}
               </p>
+              <small>{landscape}</small>
             </div>
+            <WeatherPanel weather={weather} lighting={lighting} period={period} />
             <div className="character">
               <div className="portrait">
                 <CharacterSprite
@@ -534,23 +580,10 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
               </div>
             </div>
           </section>
-          <section className="region-section">
+          <section className="region-section frame">
             <div className="section-heading">
-              <h2>Region</h2>
-              <button onClick={() => setModal("map")}>
-                Explore <ArrowRight size={13} />
-              </button>
-            </div>
-            <button
-              className="map-button"
-              aria-label="Open regional map"
-              onClick={() => setModal("map")}
-            >
-              <Minimap runtime={runtime} regional={mapRegion} />
-              <span className="north">N ↑</span>
-            </button>
-            <div className="map-switcher">
-              <div role="group" aria-label="Map scale">
+              <h2>Map</h2>
+              <div className="map-switcher" role="group" aria-label="Map scale">
                 <button
                   aria-pressed={!mapRegion}
                   onClick={() => setMapRegion(false)}
@@ -564,29 +597,37 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
                   Region
                 </button>
               </div>
-              <span>
+              <button className="explore" onClick={() => setModal("map")}>
+                Explore <ArrowRight size={13} />
+              </button>
+            </div>
+            <button
+              className="map-button"
+              aria-label="Open regional map"
+              onClick={() => setModal("map")}
+            >
+              <Minimap runtime={runtime} regional={mapRegion} />
+              <span className="north">N ↑</span>
+              <span className="map-scale">
+                <i />
                 {mapRegion
                   ? `${(runtime.engine.world.regionExtent ?? 320) * 2} m`
                   : "220 m"}
               </span>
-            </div>
+            </button>
           </section>
-          <section className="context-section">
-            <div className="section-heading">
-              <span className="eyebrow">
-                {selection ? "IN FOCUS" : "AROUND YOU"}
-              </span>
-              {selection && (
-                <button
-                  aria-label="Clear selection"
-                  onClick={() => runtime.select()}
-                >
-                  <X size={14} />
-                </button>
-              )}
-            </div>
+          <section className="context-section frame">
             {selection ? (
               <>
+                <div className="section-heading">
+                  <span className="eyebrow">IN FOCUS</span>
+                  <button
+                    aria-label="Clear selection"
+                    onClick={() => runtime.select()}
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
                 <div className="focus-card">
                   {focusSprite && (
                     <div className="focus-thumbnail">
@@ -647,39 +688,93 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
               </>
             ) : (
               <>
-                <h2>Around you</h2>
-                <p>
-                  {pack.concern} Select something in the world to look closer.
-                </p>
-                <div className="nearby-list">
-                  {obs.actors
-                    .filter((a) => a.kind === "human")
-                    .sort(
-                      (a, b) => distance(a.pos, p.pos) - distance(b.pos, p.pos),
-                    )
-                    .slice(0, 3)
-                    .map((a) => (
-                      <button key={a.id} onClick={() => runtime.select(a.id)}>
-                        <CharacterSprite
-                          appearance={runtime.appearanceFor(a)}
-                        />
-                        <span>
-                          {a.name}
-                          <small>{a.role}</small>
-                        </span>
-                        <ChevronDown size={13} />
-                      </button>
-                    ))}
+                <div className="side-tabs" role="tablist">
+                  {(
+                    [
+                      ["around", "Around you"],
+                      ["inventory", "Inventory"],
+                      ["today", "Today"],
+                    ] as const
+                  ).map(([id, label]) => (
+                    <button
+                      key={id}
+                      role="tab"
+                      aria-selected={sideTab === id}
+                      onClick={() => setSideTab(id)}
+                    >
+                      {label}
+                    </button>
+                  ))}
                 </div>
+                {sideTab === "around" && (
+                  <div className="nearby-list">
+                    {obs.actors
+                      .filter((a) => a.kind === "human")
+                      .sort(
+                        (a, b) =>
+                          distance(a.pos, p.pos) - distance(b.pos, p.pos),
+                      )
+                      .slice(0, 5)
+                      .map((a) => (
+                        <button key={a.id} onClick={() => runtime.select(a.id)}>
+                          <CharacterSprite
+                            appearance={runtime.appearanceFor(a)}
+                          />
+                          <span>
+                            {a.name}
+                            <small>{a.role}</small>
+                          </span>
+                          <ChevronDown size={13} />
+                        </button>
+                      ))}
+                    {obs.actors.filter((a) => a.kind === "human").length ===
+                      0 && <p>{pack.concern}</p>}
+                  </div>
+                )}
+                {sideTab === "inventory" && (
+                  <div className="nearby-list">
+                    {Object.entries(p.inventory)
+                      .filter(([, n]) => n! > 0)
+                      .map(([id, n]) => (
+                        <button
+                          key={id}
+                          onClick={() => setModal("inventory")}
+                        >
+                          <Sprite name={items[id as ItemId].sprite} scale={1} />
+                          <span>
+                            {items[id as ItemId].name}
+                            <small>Quantity: {n}</small>
+                          </span>
+                          <ChevronDown size={13} />
+                        </button>
+                      ))}
+                    {!Object.values(p.inventory).some((n) => n! > 0) && (
+                      <p>You carry nothing.</p>
+                    )}
+                  </div>
+                )}
+                {sideTab === "today" && (
+                  <div className="event-log">
+                    {[...runtime.engine.state.events]
+                      .reverse()
+                      .slice(0, 8)
+                      .map((e) => (
+                        <div key={e.id}>
+                          <time>{timeLabel(e.time)}</time>
+                          <span>{e.text}</span>
+                        </div>
+                      ))}
+                  </div>
+                )}
               </>
             )}
           </section>
           <div className="sidebar-footer">
             <button onClick={() => setModal("notebook")}>
-              <NotebookPen size={17} /> Notebook
+              <NotebookPen size={17} /> Notebook <kbd>N</kbd>
             </button>
             <button onClick={() => setModal("inventory")}>
-              <ShoppingBag size={17} /> Inventory
+              <ShoppingBag size={17} /> Inventory <kbd>I</kbd>
             </button>
           </div>
         </aside>
@@ -1088,6 +1183,14 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
                     rel="noreferrer"
                   >
                     Graphics lab ↗
+                  </a>
+                  <a
+                    className="action"
+                    href="/building-lab"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Building panel · models & religious recipes ↗
                   </a>
                   <a
                     className="action"

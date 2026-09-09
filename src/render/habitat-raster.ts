@@ -398,13 +398,31 @@ export function rasterHabitatTile(
         // Wear is not even along a road: whole stretches sit a band lighter or
         // darker than their neighbours.
         const worn = path + interlock + (noise(wx, wy, 96, 467) - 0.5) * 0.08;
-        if (field && worn > 0.48) {
-          if (grassy) earth[at(px, py)] = 2;
+        const shoulder = 0.68 + (noise(wx, wy, 23, 377) - 0.5) * 0.055;
+        // On turf the worn centre is narrower than the material boundary:
+        // the shoulder is a dither of soil into grass, not a filled band.
+        if (field && grassy && worn > 0.48 && worn < shoulder) {
           if (!inside) continue;
-          const shoulder = 0.68 + (noise(wx, wy, 23, 377) - 0.5) * 0.055;
+          const w = (worn - 0.48) / (shoulder - 0.48);
+          if (hash(wx, wy, 471) < w * 0.85) {
+            const wash = Math.round((noise(wx, wy, 44, 461) - 0.5) * 11);
+            put(px, py, soil[1], wash + [0, -5, 6][materialGrain(wx, wy)]);
+          } else {
+            const i = (py * 16 + px) * 4,
+              k0 = 0.2 + w * 0.3;
+            for (let k = 0; k < 3; k++)
+              pixels[i + k] = Math.round(
+                pixels[i + k] * (1 - k0) + soil[3][k] * k0,
+              );
+          }
+          continue;
+        }
+        if (field && worn > 0.48) {
+          if (!inside) continue;
           // One broken native pixel of contact shadow. A continuous dark rim,
           // however wide, is what made the corridor read as an outlined shape.
           const contact =
+            !grassy &&
             worn < 0.515 &&
             hash(Math.floor(wx / 3), Math.floor(wy / 3), 441) > 0.5;
           const wide = field.radius > 0.62;
@@ -473,10 +491,10 @@ export function rasterHabitatTile(
             hash(Math.floor(wx / 3), Math.floor(wy / 3), 335) > 0.72
           )
             put(px, py, palette[5], 12);
-        } else if (path > 0.3 && !grassy) {
+        } else if (path > 0.3) {
           // Trampled verge. Turf loses color as it approaches the road instead
           // of meeting the worn ground at full strength.
-          const w = ((path - 0.3) / 0.18) * 0.34;
+          const w = ((path - 0.3) / 0.18) * (grassy ? 0.2 : 0.34);
           const i = (py * 16 + px) * 4;
           for (let k = 0; k < 3; k++)
             pixels[i + k] = Math.round(
@@ -571,7 +589,7 @@ export function rasterHabitatTile(
       : 0.68;
   // Colonies, not a continuous fringe: whole stretches of margin stay bare.
   const colony = hash(Math.floor(gx / 26), Math.floor(gy / 26), 431) > 0.34;
-  if (hasPath && !grassy && tufted && colony && h.exposed < 0.65) {
+  if (hasPath && tufted && colony && h.exposed < 0.65) {
     let placed = 0;
     for (const [px, py] of [
       [2, 5],
@@ -726,7 +744,13 @@ export function rasterHabitatTile(
       n.height === cell.height
     );
   });
-  if (pavedSide.some(Boolean) && cell.surface !== "water" && !frozen) {
+  // A verge is edged by the roadway's kerb, so it takes no dust or chips.
+  if (
+    pavedSide.some(Boolean) &&
+    cell.surface !== "water" &&
+    !frozen &&
+    cell.pavement !== "verge"
+  ) {
     const dust = [176, 164, 132],
       stone = [181, 175, 152];
     for (let py = 0; py < 16; py++)

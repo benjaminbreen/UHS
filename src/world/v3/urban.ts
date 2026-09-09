@@ -1,5 +1,10 @@
 import { civicProfile } from "../../content/settlements/civic";
 import type { CivicProfile } from "../../content/settlements/civic/types";
+import {
+  religiousProfile,
+  religiousScale,
+} from "../../content/settlements/religious";
+import type { ReligiousProfile } from "../../content/settlements/religious/types";
 import { urbanForm } from "../../content/settlements/urban-form";
 import type { UrbanForm } from "../../content/settlements/urban-form/types";
 import { urbanCapacity } from "../../content/settlements/scale";
@@ -14,6 +19,7 @@ import {
   type Block,
   type Gate,
   type Wall,
+  type Furniture,
 } from "./blocks";
 import { cellKey, type Rect, type Road, type Site } from "./types";
 
@@ -31,13 +37,26 @@ export type UrbanLot = {
   yard: Rect;
   workPoint: Point;
   civic?: CivicProfile;
+  religious?: ReligiousProfile & { scale: "small" | "medium" | "large" };
 };
 
 export type UrbanSurface = {
   /** Straight street with no graph search. Returns undefined on unusable ground. */
-  lay(a: Point, b: Point, label: string, width: number): Road | undefined;
+  lay(a: Point, b: Point, label: string, span: number): Road | undefined;
   dry(rect: Rect, occupied?: boolean): boolean;
   paintCourt(rect: Rect, square?: string, civic?: Rect): void;
+  /** Paved apron between a sanctuary and the square. */
+  paintForecourt(rect: Rect): void;
+  /** A further square at a crossing: paved like the main one, with a lesser
+   * centrepiece and corners from the same spec. */
+  paintSquare(rect: Rect, index: number): void;
+  /** Planted strip beside an arterial. */
+  paintVerge(rect: Rect): void;
+  /** A lamp, street tree or planter on the cell. */
+  furnish(piece: Furniture): void;
+  /** Base ground of the built-up area: beaten earth or paving, with grass
+   * left only where something plants it. */
+  paintCity(holds: (x: number, y: number) => boolean): void;
   paintBlock(rect: Rect): void;
   /** Hold ground against any street laid later in the same pass. */
   reserveGround(rect: Rect): void;
@@ -214,7 +233,10 @@ export function urbanNeighborhood(
   for (const [i, s] of [...layout.streets]
     .sort((a, b) => a.tier - b.tier)
     .entries())
-    api.lay(s.a, s.b, `street-${s.tier}-${i}`, form.tiers[s.tier]);
+    api.lay(s.a, s.b, `street-${s.tier}-${i}`, layout.tiers[s.tier]);
+  for (const [i, s] of layout.diagonals.entries())
+    api.lay(s.a, s.b, `avenue-${i}`, layout.tiers[0]);
+  for (const r of layout.verges) api.paintVerge(r);
 
   if (api.bank) riverside();
 
@@ -303,7 +325,112 @@ export function urbanNeighborhood(
       civicRect = chosen.rect;
     }
   }
+  // The sanctuary takes a second side of the square, set back behind a
+  // paved forecourt, so the door opens onto the square rather than into it.
+  const religious = religiousProfile(pack.setting!);
+  if (religious) {
+    const scale = religiousScale(site.profile.radius);
+    const look = Math.floor(rand("religious-look") * 3);
+    const base = `religious-${religious.recipe}-${scale}-${look}`;
+    const civicSide: [number, number] | undefined =
+      civicRect &&
+      (civicRect.y + civicRect.h <= plaza.y
+        ? [0, -1]
+        : civicRect.y >= plaza.y + plaza.h
+          ? [0, 1]
+          : civicRect.x >= plaza.x + plaza.w
+            ? [1, 0]
+            : [-1, 0]);
+    const named: Record<string, [number, number]> = {
+      north: [0, -1],
+      east: [1, 0],
+      west: [-1, 0],
+    };
+    const preferred: [number, number] =
+      religious.side === "opposite" && civicSide
+        ? [-civicSide[0], -civicSide[1]]
+        : (named[religious.side] ?? [0, -1]);
+    const sides = [
+      preferred,
+      ...(
+        [
+          [0, -1],
+          [1, 0],
+          [-1, 0],
+        ] as [number, number][]
+      ).filter((s) => s[0] !== preferred[0] || s[1] !== preferred[1]),
+    ].filter(
+      (s) => !civicSide || s[0] !== civicSide[0] || s[1] !== civicSide[1],
+    );
+    const gap = religious.forecourt + 1;
+    const candidates = sides.flatMap(([nx, ny]) => {
+      const facing =
+        nx > 0 ? "west" : nx < 0 ? "east" : ny > 0 ? "north" : "south";
+      const frame = facing === "south" ? base : `${base}-${facing}`;
+      if (!buildingModels[frame]) return [];
+      const model = buildingModel(frame),
+        [w, h] = model.footprint;
+      return [0, 1, -1, 2, -2].map((step) => {
+        const shift = step * (form.tiers[0] + 3);
+        const rect = {
+          x: nx
+            ? nx < 0
+              ? plaza.x - w - gap
+              : plaza.x + plaza.w + gap
+            : Math.floor(plaza.x + (plaza.w - w) / 2) + shift,
+          y: ny
+            ? ny < 0
+              ? plaza.y - h - gap
+              : plaza.y + plaza.h + gap
+            : Math.floor(plaza.y + (plaza.h - h) / 2) + shift,
+          w,
+          h,
+        };
+        // The forecourt spans the building's width between it and the square.
+        const forecourt = nx
+          ? {
+              x: nx < 0 ? rect.x + w : plaza.x + plaza.w,
+              y: rect.y,
+              w: gap,
+              h,
+            }
+          : {
+              x: rect.x,
+              y: ny < 0 ? rect.y + h : plaza.y + plaza.h,
+              w,
+              h: gap,
+            };
+        return { nx, ny, frame, model, rect, forecourt };
+      });
+    });
+    const chosen = candidates.find(
+      (c) =>
+        fits(c.rect) && free({ ...c.forecourt }) && api.dry(c.forecourt, false),
+    );
+    if (chosen) {
+      const point = {
+        x: chosen.rect.x + chosen.model.entrance[0],
+        y: chosen.rect.y + chosen.model.entrance[1],
+      };
+      lots.push({
+        point,
+        nx: chosen.nx,
+        ny: chosen.ny,
+        frame: chosen.frame,
+        rect: chosen.rect,
+        yard: chosen.rect,
+        workPoint: point,
+        religious: { ...religious, scale },
+      });
+      reserve(chosen.rect);
+      reserve(chosen.forecourt);
+      api.reserveGround(chosen.rect);
+      api.reserveGround(chosen.forecourt);
+      api.paintForecourt(chosen.forecourt);
+    }
+  }
   api.paintCourt(plaza, civic.square, civicRect);
+  for (const [i, r] of layout.squares.entries()) api.paintSquare(r, i);
 
   // Parcels are gathered per block, then taken a few at a time from each block
   // in turn. Filling one block at a time would spend the whole capacity on the
@@ -312,6 +439,7 @@ export function urbanNeighborhood(
   // be level would discard nearly all of them on real ground; each parcel is
   // put to the terrain individually below.
   const quarters = new Map<Block, Quarter>();
+  const rowLanes = new Map<Block, (() => void)[]>();
   for (const block of layout.blocks) quarters.set(block, quarterOf(block));
   const ranks = [...layout.blocks]
     .sort((a, b) => a.reach - b.reach || a.x - b.x || a.y - b.y)
@@ -320,29 +448,46 @@ export function urbanNeighborhood(
     urbanCapacity(site.profile.radius, form),
     site.profile.buildings,
   );
-  for (const rank of ranks) {
-    if (lots.length >= capacity) break;
-    for (const lot of rank.lots) {
-      if (lots.length >= capacity) break;
-      const door = { ...lot.point, w: 1, h: 1 },
-        work = { ...lot.workPoint, w: 1, h: 1 };
-      if (!fits(lot.rect)) continue;
-      if (!free(door) || !free(work) || !api.dry(door, false)) continue;
-      // A block may overhang the circuit; a household may not. A threshold or
-      // work pocket outside the wall has no way back in but the long way round
-      // to a gate, and the work pocket sits two cells clear of the door.
-      if (!within(lot.point) || !within(lot.rect) || !within(lot.workPoint))
-        continue;
-      lots.push(lot);
-      rank.built++;
-      reserve(lot.rect);
-      // Hold the threshold and the work pocket in front of it. A later range on
-      // the row behind can otherwise stand on ground this household needs, and
-      // a work point inside a wall is a resident who cannot reach their work.
-      reserve(door);
-      reserve(work);
+  // Two parcels from each block per round, nearest the square first, so a
+  // small budget spreads across the town instead of packing three blocks and
+  // leaving the rest bare.
+  const queues = ranks.map((rank) => ({ rank, next: 0 }));
+  let placed = true;
+  while (placed && lots.length < capacity) {
+    placed = false;
+    for (const q of queues) {
+      let taken = 0;
+      while (
+        taken < 2 &&
+        q.next < q.rank.lots.length &&
+        lots.length < capacity
+      ) {
+        const lot = q.rank.lots[q.next++];
+        const door = { ...lot.point, w: 1, h: 1 },
+          work = { ...lot.workPoint, w: 1, h: 1 };
+        if (!fits(lot.rect)) continue;
+        if (!free(door) || !free(work) || !api.dry(door, false)) continue;
+        // A block may overhang the circuit; a household may not. A threshold or
+        // work pocket outside the wall has no way back in but the long way round
+        // to a gate, and the work pocket sits two cells clear of the door.
+        if (!within(lot.point) || !within(lot.rect) || !within(lot.workPoint))
+          continue;
+        lots.push(lot);
+        q.rank.built++;
+        taken++;
+        placed = true;
+        reserve(lot.rect);
+        // Hold the threshold and the work pocket in front of it. A later range
+        // on the row behind can otherwise stand on ground this household needs,
+        // and a work point inside a wall is a resident who cannot reach it.
+        reserve(door);
+        reserve(work);
+      }
     }
   }
+  for (const rank of ranks)
+    if (rank.built >= 2)
+      for (const lay of rowLanes.get(rank.block) ?? []) lay();
   // Block ground is laid last, for the blocks that actually came to something.
   // Paving a block whose every parcel was refused leaves bare ground standing
   // where no street or building ever arrived.
@@ -354,6 +499,8 @@ export function urbanNeighborhood(
         w: rank.block.w + 2,
         h: rank.block.h + 2,
       });
+  for (const piece of layout.furniture) api.furnish(piece);
+  api.paintCity((x, y) => layout.holds(x, y, 1));
   return lots;
 
   /** Blocks nearest the square trade; the rest are craft rows, a few grander
@@ -370,7 +517,7 @@ export function urbanNeighborhood(
           Math.abs(s.a.y - block.y),
           Math.abs(s.a.y - block.y - block.h),
         ) <=
-          form.tiers[0] + 2,
+          layout.tiers[0] + 2,
     );
     const roll = rand("quarter", block.x, block.y);
     if (onArterial && block.reach < 0.7 && roll < 0.4) return "elite";
@@ -438,14 +585,14 @@ export function urbanNeighborhood(
           alongX ? { x: from, y: c } : { x: c, y: from },
           alongX ? { x: to, y: c } : { x: c, y: to },
           `quay-${i}`,
-          form.tiers[1],
+          layout.tiers[1],
         );
         if (!road) continue;
         laid++;
         // The quay: every dry cell between the street and the water.
         for (let a = from; a <= to; a++)
           for (let k = 1; k < inland + 2; k++) {
-            const q = c - side * (form.tiers[1] + k);
+            const q = c - side * (layout.tiers[1] + k);
             if (!dryAt(a, q)) break;
             api.paintQuay?.(
               alongX ? { x: a, y: q, w: 1, h: 1 } : { x: q, y: a, w: 1, h: 1 },
@@ -484,16 +631,23 @@ export function urbanNeighborhood(
       top += (paired ? deepest * 2 : deepest) + gap;
       if (top + deepest <= block.y + block.h) {
         // A lane between pairs runs the full width, so it meets the streets at
-        // both ends of the block and nothing behind it is landlocked.
+        // both ends of the block and nothing behind it is landlocked. Laid
+        // only once the block is built: a lane through an empty block is a
+        // cul-de-sac to nowhere.
         const lane = { x: block.x - 1, y: top - Math.ceil(gap / 2) };
-        api.lay(
-          lane,
-          { x: block.x + block.w, y: lane.y },
-          `row-${block.x}-${lane.y}`,
-          0,
-        );
-        if (block.court)
-          api.paintCourt({ x: block.x, y: top - gap, w: block.w, h: gap });
+        rowLanes.set(block, [
+          ...(rowLanes.get(block) ?? []),
+          () => {
+            api.lay(
+              lane,
+              { x: block.x + block.w, y: lane.y },
+              `row-${block.x}-${lane.y}`,
+              1,
+            );
+            if (block.court)
+              api.paintCourt({ x: block.x, y: top - gap, w: block.w, h: gap });
+          },
+        ]);
       }
     }
     return out;
@@ -554,7 +708,8 @@ export function urbanNeighborhood(
         span = w;
         break;
       }
-      cursor += span;
+      // A cell between neighbours, so a row reads as houses rather than a wall.
+      cursor += span + 1;
     }
     return out;
   }

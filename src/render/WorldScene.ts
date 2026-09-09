@@ -18,6 +18,19 @@ import type { Runtime } from "../runtime/session";
 import type { Position, WorldModel } from "../core/types";
 import { surfaceAt, hasQuay } from "./materials";
 import { hash, random } from "../core/random";
+import { heldObject } from "../core/props";
+/** Poll interval while a jump is in the air, matched to the sprite's arc. */
+const JUMP_MS = 360;
+const DIRECTION_KEYS = [
+  "arrowleft",
+  "arrowright",
+  "arrowup",
+  "arrowdown",
+  "a",
+  "d",
+  "w",
+  "s",
+];
 import {
   itineraryAt,
   type Ambient,
@@ -97,6 +110,10 @@ export class WorldScene extends Phaser.Scene {
   private nextInput = 0;
   private motionDuration = 140;
   private heldDirections = new Set<string>();
+  private shiftHeld = false;
+  /** One throw per press of shift, so holding it does not empty your hands. */
+  private throwArmed = false;
+  private arcSerial = 0;
   private pendingDirection?: [number, number];
   private destinations = new Map<string, Position>();
   private lastTick = 0;
@@ -183,28 +200,24 @@ export class WorldScene extends Phaser.Scene {
       )
         return;
       const key = event.key.toLowerCase();
-      if (
-        [
-          "arrowleft",
-          "arrowright",
-          "arrowup",
-          "arrowdown",
-          "a",
-          "d",
-          "w",
-          "s",
-        ].includes(key)
-      ) {
+      const steering = DIRECTION_KEYS.includes(key);
+      if (steering) {
         event.preventDefault();
         this.heldDirections.add(key);
         if (!event.repeat) this.pendingDirection = this.direction();
       }
+      // Shift pressed with nothing else held is a jump on the spot. Shift with
+      // a direction is a traversal or a throw, and the movement poll has those.
+      if (this.syncShift(event) && !steering && !this.direction().some(Boolean))
+        this.runtime.hop();
     });
     this.input.keyboard!.on("keyup", (event: KeyboardEvent) => {
+      this.syncShift(event);
       this.heldDirections.delete(event.key.toLowerCase());
     });
     const clearInput = () => {
       this.heldDirections.clear();
+      this.shiftHeld = this.throwArmed = false;
       this.pendingDirection = undefined;
       this.runtime.stop();
     };
@@ -279,6 +292,33 @@ export class WorldScene extends Phaser.Scene {
       this.runtime.engine.state.player.pos.space === "outside"
       ? surfaceElevation(w.topography, x / 16 - 0.5, y / 16 - 1) * TERRAIN_RISE
       : 0;
+  }
+  /** Sends a sprite along a parabola to its landing tile. The height above the
+   * ground is published as `arcLift`, which is what keeps the shadow behind. */
+  private launch(
+    im: Phaser.GameObjects.Image,
+    arc: { height: number; duration: number },
+    tx: number,
+    ty: number,
+  ) {
+    this.tweens.killTweensOf(im);
+    this.tweens.add({
+      targets: im,
+      x: tx,
+      y: ty,
+      duration: arc.duration,
+      ease: "Linear",
+      onUpdate: (tween: Phaser.Tweens.Tween) => {
+        // Sine, not a parabola: it leaves and meets the ground less abruptly.
+        const rise = arc.height * Math.sin(Math.PI * tween.progress);
+        im.y -= rise;
+        im.setData("arcLift", rise);
+      },
+      onComplete: () => {
+        im.setPosition(tx, ty);
+        im.setData("arcLift", 0);
+      },
+    });
   }
   private sprite(frame: string, x: number, y: number, depth: number) {
     const image = this.add
@@ -865,6 +905,14 @@ export class WorldScene extends Phaser.Scene {
         previous.x !== pos.x ||
         previous.y !== pos.y ||
         previous.space !== pos.space;
+      const pending = id === "player" ? rt.characterAction : undefined;
+      const arc =
+        pending?.arc && pending.serial !== this.arcSerial
+          ? ((this.arcSerial = pending.serial), pending.arc)
+          : undefined;
+      // A jump on the spot still needs its arc, so it runs as a tween that
+      // travels nowhere.
+      if (arc && !moved) this.launch(im, arc, im.x, im.y);
       if (!moved) return;
       this.destinations.set(id, { ...pos });
       if (
@@ -874,6 +922,18 @@ export class WorldScene extends Phaser.Scene {
       ) {
         this.tweens.killTweensOf(im);
         if (shade) this.tweens.killTweensOf(shade);
+        if (arc) {
+          this.launch(im, arc, tx, ty);
+          if (shade)
+            this.tweens.add({
+              targets: shade,
+              x: tx,
+              y: ty,
+              duration: arc.duration,
+              ease: "Linear",
+            });
+          return;
+        }
         this.tweens.add({
           targets: shade ? [im, shade] : im,
           x: tx,
@@ -1056,6 +1116,7 @@ export class WorldScene extends Phaser.Scene {
       this.modalOpen;
     if (typing) {
       this.heldDirections.clear();
+      this.shiftHeld = this.throwArmed = false;
       this.pendingDirection = undefined;
     }
     if (!this.options.lab && !typing && time >= this.nextInput) {
@@ -1065,10 +1126,25 @@ export class WorldScene extends Phaser.Scene {
         : (this.pendingDirection ?? held);
       this.pendingDirection = undefined;
       if (dx || dy) {
-        this.motionDuration = 140 * Math.hypot(dx, dy);
-        this.nextInput = time + this.motionDuration;
-        this.lastTick = time;
-        this.runtime.move(dx, dy);
+        const carrying = !!heldObject(this.runtime.engine.state);
+        if (this.shiftHeld && carrying) {
+          if (this.throwArmed) {
+            this.throwArmed = false;
+            this.nextInput = time + 280;
+            this.lastTick = time;
+            this.runtime.throwHeld(dx, dy);
+          }
+        } else if (this.shiftHeld) {
+          this.motionDuration = JUMP_MS;
+          this.nextInput = time + JUMP_MS;
+          this.lastTick = time;
+          this.runtime.move(dx, dy, true);
+        } else {
+          this.motionDuration = 140 * Math.hypot(dx, dy);
+          this.nextInput = time + this.motionDuration;
+          this.lastTick = time;
+          this.runtime.move(dx, dy);
+        }
       }
     }
     if (!this.options.lab && time - this.lastTick >= 140 && !typing) {
@@ -1079,11 +1155,18 @@ export class WorldScene extends Phaser.Scene {
     // Depth and the selection marker follow the displayed position, not the next tile.
     for (const [id, im] of this.entities) {
       const frame = this.actorFrames.get(id);
+      // Height above the tile, mid-jump. Depth sorts on where the feet would
+      // be, or a jumper passes behind whatever they are jumping over.
+      const arcLift = (im.getData("arcLift") as number) ?? 0;
       const depth =
         im.y +
+        arcLift +
         this.lift(im.x, (this.destinations.get(id)?.y ?? 0) * 16 + 16) -
         (frame ? 2 : 6);
       if (im.depth !== depth) im.setDepth(depth);
+      // The camera tracks the sprite, so cancel the arc or the world bobs.
+      if (id === "player" && !this.options.lab)
+        this.cameras.main.setFollowOffset(0, -arcLift);
       const human = this.humanActors.get(id);
       if (human && this.characters) {
         const at = this.ambient.get(id);
@@ -1108,7 +1191,11 @@ export class WorldScene extends Phaser.Scene {
             : this.poseFrame(id, pose, time);
         const prop =
           heldSprite ??
-          (active && action.pose === "drop" && index < 2
+          // A thrown object stays in the hand through the windup. Striking
+          // also swings, but then the hand is still full and this never runs.
+          (active &&
+          (action.pose === "drop" || action.pose === "swing") &&
+          index < 2
             ? action.prop
             : undefined);
         const texture = this.characters.frame(human, pose, index, prop);
@@ -1126,7 +1213,13 @@ export class WorldScene extends Phaser.Scene {
           if (shade.texture.key !== shadowTexture)
             shade.setTexture(shadowTexture);
           if (shade.originY !== 32 / 96) shade.setOrigin(0.5, 32 / 96);
-          shade.setPosition(im.x, im.y);
+          // Mid-jump the sprite is lifted off its tile; the shadow is not, and
+          // it draws in a little to sell the height.
+          shade.setPosition(im.x, im.y + arcLift);
+          const shrink = arcLift ? 1 - Math.min(0.3, arcLift / 48) : 1;
+          if (shade.scaleX !== shrink) shade.setScale(shrink);
+          const fade = arcLift ? 1 - Math.min(0.4, arcLift / 36) : 1;
+          if (shade.alpha !== fade) shade.setAlpha(fade);
           const shadowDepth = this.runtime.engine.world.topography
             ? -1000
             : -60000;
@@ -1347,6 +1440,13 @@ export class WorldScene extends Phaser.Scene {
     }
     if (pose === "sit") return 0;
     return Math.floor((time + offset) / poseTiming(pose)) % 4;
+  }
+  /** Shift is read from every key event, not only its own, so a swallowed
+   * press or a focus change cannot leave the flag stuck. Returns the edge. */
+  private syncShift(event: KeyboardEvent) {
+    if (event.shiftKey === this.shiftHeld) return false;
+    this.shiftHeld = this.throwArmed = event.shiftKey;
+    return event.shiftKey;
   }
   private direction(): [number, number] {
     const has = (arrow: string, letter: string) =>

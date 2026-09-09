@@ -4,6 +4,7 @@ import { terrainFoot, pickTerrain } from "../src/render/terrain-projection";
 import {
   directions,
   terrainStep,
+  terrainLeap,
   contourMask,
   type Direction,
   type TopographyCell,
@@ -270,4 +271,61 @@ it("discovers a single complete bridge span from either side of a chunk seam", a
   expect(
     right.map((s) => ({ ...s, minX: s.minX + 16, maxX: s.maxX + 16 })),
   ).toEqual(expected);
+});
+
+describe("opt-in traversal", () => {
+  const world =
+    (cells: Record<string, Partial<TopographyCell>>) =>
+    (x: number, y: number): TopographyCell => ({
+      height: 1,
+      surface: "grass",
+      ...cells[`${x},${y}`],
+    });
+  const here = { x: 0, y: 0 },
+    east = { x: 1, y: 0 };
+
+  it("hops on open ground and scrambles up a ledge with no ramp", () => {
+    expect(terrainLeap(world({}), here, east).kind).toBe("hop");
+    const ledge = world({ "1,0": { height: 2 } });
+    expect(terrainStep(ledge, here, east).allowed).toBe(false);
+    expect(terrainLeap(ledge, here, east).kind).toBe("climb");
+    // Two tiers is still beyond reach.
+    expect(terrainLeap(world({ "1,0": { height: 3 } }), here, east).kind).toBe(
+      "blocked",
+    );
+  });
+
+  it("drops off a ledge that cannot be walked down", () => {
+    const step = world({ "1,0": { height: 0 } });
+    expect(terrainStep(step, here, east).allowed).toBe(false);
+    expect(terrainLeap(step, here, east).kind).toBe("drop");
+  });
+
+  it("clears one tile of water onto level ground, but not two", () => {
+    const stream = world({ "1,0": { surface: "water" } });
+    const leap = terrainLeap(stream, here, east);
+    expect(leap.kind).toBe("leap");
+    expect(leap.kind !== "blocked" && leap.distance).toBe(2);
+    const wide = world({
+      "1,0": { surface: "water" },
+      "2,0": { surface: "water" },
+    });
+    expect(terrainLeap(wide, here, east).kind).toBe("blocked");
+    // The far bank has to be level with the near one.
+    const uneven = world({
+      "1,0": { surface: "water" },
+      "2,0": { height: 2 },
+    });
+    expect(terrainLeap(uneven, here, east).kind).toBe("blocked");
+  });
+
+  it("refuses buildings, diagonals into obstacles, and bridged water is walked", () => {
+    expect(
+      terrainLeap(world({ "1,0": { solid: true } }), here, east).kind,
+    ).toBe("blocked");
+    const corner = world({ "1,0": { height: 2 }, "1,1": { height: 2 } });
+    expect(terrainLeap(corner, here, { x: 1, y: 1 }).kind).toBe("blocked");
+    const bridge = world({ "1,0": { surface: "water", bridge: true } });
+    expect(terrainLeap(bridge, here, east).kind).toBe("hop");
+  });
 });

@@ -9,7 +9,10 @@ import type {
 import type { SettlementProfile } from "../../content/settlements/profiles";
 export type Rect = Point & { w: number; h: number };
 /** What a paved cell is for; the raster grades its stones by this. */
-export type Pavement = "square" | "dais" | "footway" | "lane";
+/** How a street cell is used. `verge` marks a planted grass strip between a
+ * roadway and its footway; the cell's surface is grass, not paving, and a kerb
+ * is drawn where paving meets it. */
+export type Pavement = "square" | "dais" | "footway" | "lane" | "verge";
 export type Site = {
   id: string;
   cx: number;
@@ -25,7 +28,10 @@ export type Site = {
 export type Road = {
   id: string;
   points: Point[];
+  /** Half-width; a symmetric road covers `width` cells either side. */
   width: number;
+  /** Total cells across, for even widths a half-width cannot express. */
+  span?: number;
   kind: "street" | "lane" | "path" | "bridge";
   cost: number;
 };

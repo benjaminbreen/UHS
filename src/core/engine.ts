@@ -32,6 +32,7 @@ import { canonical, random, stateHash } from "./random";
 import { findPath } from "./pathfinding";
 import { itineraryAt, type Itinerary } from "./itinerary";
 import { route, type RouteResult } from "./routing";
+import { terrainLeap, type LeapResult } from "./topography";
 import type { Point } from "./types";
 const copy = <T>(x: T): T => structuredClone(x);
 /** Routines built in one call to `advance`. */
@@ -240,6 +241,44 @@ export class Engine {
           o.pos.y === y,
       )
     );
+  }
+  /** Where a shift-move goes. Uses the tiered terrain contract when the world
+   * publishes one, and otherwise treats any single blocked tile as a gap. */
+  traversal(
+    from: Position,
+    dx: number,
+    dy: number,
+  ): LeapResult | { kind: "blocked"; reason: string } {
+    const to = { x: from.x + dx, y: from.y + dy };
+    const clear = (p: Point) => !this.blocked(p.x, p.y, from.space);
+    if (from.space === "outside" && this.world.topography) {
+      const sample = (x: number, y: number) => this.world.topography!(x, y);
+      const result = terrainLeap(sample, from, to);
+      // Props and gates sit above the terrain contract and still block a landing.
+      if (result.kind === "blocked") return result;
+      const landing =
+        result.distance === 2 ? { x: to.x + dx, y: to.y + dy } : to;
+      return clear(landing)
+        ? result
+        : { kind: "blocked", reason: "Something is in the way." };
+    }
+    if (
+      clear(to) &&
+      !(
+        dx &&
+        dy &&
+        (!clear({ x: to.x, y: from.y }) || !clear({ x: from.x, y: to.y }))
+      )
+    )
+      return {
+        kind: "hop",
+        distance: 1,
+        seconds: 3,
+        reason: "You hop forward.",
+      };
+    // Without a terrain contract there is no way to tell a ditch from a wall,
+    // so a jump reaches open ground only.
+    return { kind: "blocked", reason: "There is no way over that." };
   }
   gateAt(p: Point, space = this.state.player.pos.space) {
     return this.state.objects.find(
@@ -698,13 +737,34 @@ export class Engine {
   }
   private validate(c: PlayerCommand): string | undefined {
     const p = this.state.player;
-    if (c.type === "move") {
+    if (c.type === "move" || c.type === "throw") {
       if (
         !Number.isInteger(c.dx) ||
         !Number.isInteger(c.dy) ||
         Math.max(Math.abs(c.dx), Math.abs(c.dy)) !== 1
       )
-        return "Move one adjacent step.";
+        return c.type === "throw"
+          ? "Throw in one direction."
+          : "Move one adjacent step.";
+      if (c.type === "throw")
+        return heldObject(this.state)
+          ? undefined
+          : "You are not holding anything to throw.";
+      if (c.traverse) {
+        const leap = this.traversal(p.pos, c.dx, c.dy);
+        if (leap.kind === "blocked") return leap.reason;
+        const landing = {
+          x: p.pos.x + c.dx * leap.distance,
+          y: p.pos.y + c.dy * leap.distance,
+        };
+        const there = this.state.actors.find(
+          (a) =>
+            a.pos.space === p.pos.space &&
+            a.pos.x === landing.x &&
+            a.pos.y === landing.y,
+        );
+        return there ? `${there.name} is standing there.` : undefined;
+      }
       if (
         (p.pos.space === "outside" &&
           this.world.canCross &&
@@ -812,9 +872,68 @@ export class Engine {
         this.state.objects.push(next);
       }
   }
+  /** The traversal a move resolved to, for the renderer to animate. Cleared
+   * once read, so a walked step never inherits the previous jump's arc. */
+  lastLeap?: LeapResult;
   private execute(c: PlayerCommand) {
     const p = this.state.player;
+    if (c.type === "throw") {
+      const prop = heldObject(this.state);
+      if (!prop) throw Error("Throw validation failed");
+      p.direction = c.dy < 0 ? 0 : c.dx > 0 ? 1 : c.dy > 0 ? 2 : 3;
+      let landed = { ...p.pos };
+      for (let i = 1; i <= 3; i++) {
+        const step = { ...p.pos, x: p.pos.x + c.dx * i, y: p.pos.y + c.dy * i };
+        if (
+          this.blocked(step.x, step.y, step.space) ||
+          (p.pos.space === "outside" &&
+            this.world.canCross &&
+            !this.world.canCross(landed, step))
+        )
+          break;
+        landed = step;
+      }
+      const distance = Math.max(
+        Math.abs(landed.x - p.pos.x),
+        Math.abs(landed.y - p.pos.y),
+      );
+      prop.pos = landed;
+      delete prop.carriedBy;
+      delete p.held;
+      const def = propDefs[prop.prop ?? ""];
+      if (!distance)
+        this.event(`You have no room to throw ${prop.name.toLowerCase()}.`);
+      else if (def?.breakable) {
+        this.propOwnership(prop, "break");
+        prop.broken = true;
+        prop.open = true;
+        prop.depleted = false;
+        prop.sprite = `prop-broken-${def.breakable}`;
+        this.event(
+          `You hurl ${prop.name.toLowerCase()}. It shatters where it lands.`,
+        );
+      } else
+        this.event(
+          `You throw ${prop.name.toLowerCase()} ${distance} pace${distance > 1 ? "s" : ""} away.`,
+        );
+      this.advance(3);
+      return;
+    }
     if (c.type === "move") {
+      const leap = c.traverse ? this.traversal(p.pos, c.dx, c.dy) : undefined;
+      if (leap && leap.kind !== "blocked") {
+        this.lastLeap = leap;
+        p.pos.x += c.dx * leap.distance;
+        p.pos.y += c.dy * leap.distance;
+        p.direction = c.dy < 0 ? 0 : c.dx > 0 ? 1 : c.dy > 0 ? 2 : 3;
+        p.activity = "Exploring";
+        this.populateNearby();
+        this.advance(leap.seconds);
+        const key = `${Math.floor(p.pos.x / 64)},${Math.floor(p.pos.y / 64)}`;
+        if (!this.state.visited.includes(key)) this.state.visited.push(key);
+        return;
+      }
+      delete this.lastLeap;
       p.pos.x += c.dx;
       p.pos.y += c.dy;
       p.direction = c.dy < 0 ? 0 : c.dx > 0 ? 1 : c.dy > 0 ? 2 : 3;
