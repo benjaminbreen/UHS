@@ -69,6 +69,37 @@
       "stories": 5,
       "roofDepth": 30,
       "bays": 5
+    },
+    "cottage": {
+      "footprint": [
+        4,
+        3
+      ],
+      "stories": 1,
+      "roofDepth": 28,
+      "bays": 1,
+      "infill": true
+    },
+    "hut": {
+      "footprint": [
+        3,
+        3
+      ],
+      "stories": 1,
+      "roofDepth": 26,
+      "bays": 1,
+      "infill": true
+    },
+    "stall": {
+      "footprint": [
+        3,
+        2
+      ],
+      "stories": 1,
+      "roofDepth": 22,
+      "bays": 1,
+      "shop": true,
+      "infill": true
     }
   },
   "materials": {

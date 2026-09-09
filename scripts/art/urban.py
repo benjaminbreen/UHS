@@ -11,6 +11,9 @@ class UrbanBuilding(Building):
     def __init__(self, recipe, material):
         super().__init__(recipe, material)
         self.top = recipe['roofDepth'] + 10
+        # Infill forms are one bay wide; the door takes the bay, so windows
+        # are placed by hand instead of on the shared bay rhythm.
+        self.infill = bool(recipe.get('infill'))
 
     def wall(self):
         super().wall()
@@ -49,6 +52,8 @@ class UrbanBuilding(Building):
         # Upper floors use the same bay rhythm at every orientation. Side/rear
         # entrances are authored separately, never by mirroring the light.
         centers = [round(15 + i * (self.w - 36) / max(1, bays - 1)) for i in range(bays)]
+        if self.infill:
+            centers = self.infill_centers()
         for floor in range(stories):
             base = b - 7 - floor * 31
             if floor:
@@ -64,6 +69,14 @@ class UrbanBuilding(Building):
         if self.facing == 'south':
             self.recess(self.door_x-6,b-29,12,28,True)
             d.line((self.door_x-8,b+2,self.door_x+8,b+2),fill=wall[4])
+
+    def infill_centers(self):
+        w = self.w
+        if self.facing != 'south':
+            return [w // 2]
+        if w < 64:
+            return []
+        return [14 if self.door_x > w // 2 else w - 22]
 
     def tiled_roof(self):
         d,w,t=self.d,self.w,self.top
@@ -111,6 +124,14 @@ class UrbanBuilding(Building):
                 y=b-5+row*3
                 d.rectangle((4-row,y,w-7+row,y+2),fill=shade)
                 d.line((4-row,y,w-7+row,y),fill=hi)
+            return
+        if kind == 'timber-frame' and self.infill:
+            # Two corner posts and a lintel beam; the full frame's braces would
+            # cross the door on a canvas this narrow.
+            d,b,w=self.d,self.bottom,self.w
+            for x in [6,w-15]:
+                d.rectangle((x,self.top+3,x+3,b-6),fill='#453d30');d.line((x,self.top+4,x,b-7),fill='#8d7350')
+            d.line((6,b-33,w-13,b-33),fill='#514431',width=3)
             return
         if kind != 'urban-shop':
             return super().attachment(kind)
@@ -451,9 +472,9 @@ def urban_recipes(root, source):
                      entrance=[fw//2,fh],opening='door',height=r['stories']*31+24,
                      attachments=([part for part in original['attachments'] if part == 'timber-frame'] + (['urban-colonnade'] if shape.get('colonnade') else ['urban-shop'] if shape.get('shop') else [])),
                      seed=original['seed']+len(form)*19,
-                     label={'row':'Street-front house','shop':'Shop and workshop','wide':'Broad courtyard range','tall':'Tall residential house','midrise':'Mid-rise apartment block','office':'Glass office tower','hall':'Public hall','colonnade':'Colonnaded civic hall'}[form],
+                     label={'row':'Street-front house','shop':'Shop and workshop','wide':'Broad courtyard range','tall':'Tall residential house','midrise':'Mid-rise apartment block','office':'Glass office tower','hall':'Public hall','colonnade':'Colonnaded civic hall','cottage':'Cottage','hut':'Hut','stall':'Market stall'}[form],
                      description='A procedural urban building: shared street frontage, recessed openings and a rear court. Its form is illustrative, not a surveyed reconstruction.',
-                     urban=True)
+                     urban=True,infill=bool(shape.get('infill')))
             out[f'{base}-urban-{form}']=r
     return out
 

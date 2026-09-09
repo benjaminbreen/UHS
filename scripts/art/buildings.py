@@ -254,6 +254,7 @@ def build_buildings(root, sprites):
                 'candidateGroup':r['candidateGroup'],'variant':r['variant'],
                 'business':r.get('business',''),'sign':r.get('sign','')}
                if r.get('candidate') else {}),
+            **({'infill':True} if r.get('infill') else {}),
             **({'animation':r['animation']} if r.get('animation') else {})}
     (root/'public/packs/buildings.json').write_text(json.dumps(models))
     (root/'src/content/graphics/models.generated.json').write_text(json.dumps(models))
