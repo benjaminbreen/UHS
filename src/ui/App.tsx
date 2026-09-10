@@ -37,6 +37,7 @@ import {
   SkipForward,
   Music2,
   Heart,
+  ScrollText,
 } from "lucide-react";
 import { weatherAt } from "../core/weather";
 import { lightingAt } from "../render/lighting";
@@ -48,10 +49,15 @@ const AudioLab = lazy(() =>
   import("../dev/AudioLab").then((m) => ({ default: m.AudioLab })),
 );
 import type { Runtime } from "../runtime/session";
-import { restoreSession } from "../runtime/session";
+import { restoreSession, ZOOM_STEPS } from "../runtime/session";
+
+const formatZoom = (z: number) =>
+  Number.isInteger(z) ? `${z}` : z.toFixed(2).replace(/0$/, "");
 import { download } from "../runtime/storage";
-import { items } from "../content/packs";
-import { distance, type ItemId, type PlayerCommand } from "../core/types";
+import { distance, type PlayerCommand } from "../core/types";
+import { describeStats, statKeys } from "../core/stats";
+import { narratorProvider, PROVIDER_KEY } from "../narrator/turn";
+import { NarratorPanel, turnTime } from "./NarratorPanel";
 import { WorldScene } from "../render/WorldScene";
 import { WorldSetup } from "./WorldSetup";
 import { AtlasMap } from "./AtlasMap";
@@ -68,6 +74,8 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
   const [audio, setAudio] = useState<AudioDirector | null>(null);
   const [audioOpen, setAudioOpen] = useState(false);
   const [characterOpen, setCharacterOpen] = useState(false);
+  const [statDetails, setStatDetails] = useState(false);
+  const [provider, setProvider] = useState(narratorProvider);
   useEffect(() => {
     const director = new AudioDirector();
     setAudio(director);
@@ -75,8 +83,30 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
   }, []);
   useEffect(() => audio?.updateWorld(obs.clock), [audio, obs.clock]);
   const [modal, setModal] = useState<
-    "world" | "inventory" | "notebook" | "evidence" | "map" | "settings" | null
+    | "world"
+    | "inventory"
+    | "notebook"
+    | "evidence"
+    | "map"
+    | "settings"
+    | "narration"
+    | null
   >(null);
+  const [narratorOpen, setNarratorOpen] = useState(false);
+  const [narratorBusy, setNarratorBusy] = useState(false);
+  const [narratorError, setNarratorError] = useState("");
+  const commandForm = useRef<HTMLFormElement>(null);
+  const say = async () => {
+    const text = command.trim();
+    if (!text || narratorBusy) return;
+    setNarratorOpen(true);
+    setNarratorBusy(true);
+    setNarratorError("");
+    setCommand("");
+    const turn = await runtime.say(text);
+    setNarratorBusy(false);
+    setNarratorError(turn.error ?? "");
+  };
   const [settingsTab, setSettingsTab] = useState("Display");
   const [error, setError] = useState("");
   const [note, setNote] = useState("");
@@ -212,6 +242,9 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
         e.preventDefault();
         runtime.propAction(e.code);
       }
+      if (e.key === "=" || e.key === "+") runtime.stepZoom(1);
+      if (e.key === "-" || e.key === "_") runtime.stepZoom(-1);
+      if (e.key === "0") runtime.setZoom(2);
       if (e.key.toLowerCase() === "i") setModal("inventory");
       if (e.key.toLowerCase() === "q") talkToNearest();
       if (e.key.toLowerCase() === "r") setModal("map");
@@ -288,34 +321,6 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
   const openWorld = () => {
     setModal("world");
     setError("");
-  };
-  const submit = () => {
-    const text = command.trim().toLowerCase();
-    if (!text) return;
-    const minutes = /^wait(?:\s+(\d+))?/.exec(text);
-    const eat = /^(?:eat|use)\s+(.+)$/.exec(text);
-    if (minutes)
-      runtime.command({
-        type: "wait",
-        seconds: Math.min(3600, Math.max(1, Number(minutes[1] || 5) * 60)),
-      });
-    else if (eat) {
-      const item = Object.values(items).find((i) =>
-        i.name.toLowerCase().includes(eat[1]),
-      );
-      if (item) runtime.command({ type: "use", item: item.id });
-      else {
-        runtime.notice = "That food is not in the supported item catalog.";
-        runtime.emit();
-      }
-    } else if (/inventory/.test(text)) setModal("inventory");
-    else if (/map/.test(text)) setModal("map");
-    else {
-      runtime.notice =
-        "Try “wait 10”, “eat bread”, or select a person or object for contextual actions. Free-form model interpretation is not connected.";
-      runtime.emit();
-    }
-    setCommand("");
   };
   const evidence =
     pack.evidence.find((e) => e.id === selection?.claim) ?? pack.evidence[0];
@@ -418,16 +423,16 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
           <div className="map-controls">
             <button
               aria-label="Zoom out"
-              onClick={() => runtime.setZoom(view.zoom - 1)}
-              disabled={view.zoom === 1}
+              onClick={() => runtime.stepZoom(-1)}
+              disabled={view.zoom <= ZOOM_STEPS[0]}
             >
               <Minus size={17} />
             </button>
-            <span>{view.zoom}×</span>
+            <span>{formatZoom(view.zoom)}×</span>
             <button
               aria-label="Zoom in"
-              onClick={() => runtime.setZoom(view.zoom + 1)}
-              disabled={view.zoom === 4}
+              onClick={() => runtime.stepZoom(1)}
+              disabled={view.zoom >= ZOOM_STEPS[ZOOM_STEPS.length - 1]}
             >
               <Plus size={17} />
             </button>
@@ -491,6 +496,15 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
               )}
             </div>
           )}
+          <NarratorPanel
+            anchor={commandForm}
+            open={narratorOpen && !modal}
+            busy={narratorBusy}
+            error={narratorError}
+            last={runtime.engine.state.narration?.at(-1)}
+            onClose={() => setNarratorOpen(false)}
+            onLog={() => setModal("narration")}
+          />
           <footer className="bottom-bar">
             <div className="quick-actions">
               <button onClick={talkToNearest}>
@@ -540,19 +554,25 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
               </button>
             </div>
             <form
+              ref={commandForm}
               className="command-input"
               onSubmit={(e) => {
                 e.preventDefault();
-                submit();
+                void say();
               }}
             >
               <input
                 aria-label="Action command"
                 value={command}
+                disabled={narratorBusy}
                 onChange={(e) => setCommand(e.target.value)}
+                onFocus={() => setNarratorOpen(true)}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") setNarratorOpen(false);
+                }}
                 placeholder="What do you want to do?"
               />
-              <button aria-label="Submit action">
+              <button aria-label="Tell the narrator" disabled={narratorBusy}>
                 <ArrowRight size={19} />
               </button>
             </form>
@@ -635,12 +655,20 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
                   {p.age !== undefined && <span> · {p.age}</span>}
                 </div>
                 <span className="condition">
-                  {p.hunger > 70
-                    ? "Hungry"
-                    : p.fatigue > 65
-                      ? "Tired"
-                      : "Healthy · Rested"}
+                  {[
+                    (p.health ?? 100) < 40
+                      ? "Unwell"
+                      : p.hunger > 70
+                        ? "Hungry"
+                        : "Healthy",
+                    p.fatigue > 65 ? "Tired" : "Rested",
+                  ].join(" · ")}
                 </span>
+                {p.stats && (
+                  <span className="traits">
+                    {describeStats(p.stats).join(", ") || "unremarkable"}
+                  </span>
+                )}
                 {(pack.currency ||
                   !p.origin ||
                   (p.inventory.coin ?? 0) > 0) && (
@@ -735,7 +763,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
                     Contents:{" "}
                     {Object.entries(selection.inventory)
                       .filter(([, n]) => n! > 0)
-                      .map(([id, n]) => `${n} ${items[id as ItemId].name}`)
+                      .map(([id, n]) => `${n} ${runtime.item(id)!.name}`)
                       .join(", ") || "Empty"}
                   </p>
                 )}
@@ -820,9 +848,9 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
                       .filter(([, n]) => n! > 0)
                       .map(([id, n]) => (
                         <button key={id} onClick={() => setModal("inventory")}>
-                          <Sprite name={items[id as ItemId].sprite} scale={1} />
+                          <Sprite name={runtime.item(id)!.sprite} scale={1} />
                           <span>
-                            {items[id as ItemId].name}
+                            {runtime.item(id)!.name}
                             <small>Quantity: {n}</small>
                           </span>
                           <ChevronDown size={13} />
@@ -941,7 +969,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
                         Contents:{" "}
                         {Object.entries(propControls.held!.inventory)
                           .filter(([, n]) => n! > 0)
-                          .map(([id, n]) => `${n} ${items[id as ItemId].name}`)
+                          .map(([id, n]) => `${n} ${runtime.item(id)!.name}`)
                           .join(", ") || "Empty"}
                       </p>
                     )}
@@ -959,19 +987,19 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
                     .map(([id, n]) => (
                       <div className="inventory-item" key={id}>
                         <div className="item-art">
-                          <Sprite name={items[id as ItemId].sprite} scale={2} />
+                          <Sprite name={runtime.item(id)!.sprite} scale={2} />
                         </div>
                         <div>
-                          <strong>{items[id as ItemId].name}</strong>
+                          <strong>{runtime.item(id)!.name}</strong>
                           <small>Quantity: {n}</small>
                         </div>
-                        {items[id as ItemId].edible && (
+                        {runtime.item(id)!.edible && (
                           <button
                             className="small-button"
                             onClick={() =>
                               runtime.command({
                                 type: "use",
-                                item: id as ItemId,
+                                item: id,
                               })
                             }
                           >
@@ -990,7 +1018,55 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
                     Fatigue <meter min={0} max={100} value={p.fatigue} />
                     <span>{Math.round(p.fatigue)} / 100</span>
                   </label>
+                  <label>
+                    Health <meter min={0} max={100} value={p.health ?? 100} />
+                    <span>{Math.round(p.health ?? 100)} / 100</span>
+                  </label>
                 </div>
+                {p.stats && (
+                  <div className="stats">
+                    <p>
+                      You are{" "}
+                      {describeStats(p.stats).join(", ") || "unremarkable"}.{" "}
+                      <button
+                        className="link"
+                        onClick={() => setStatDetails((v) => !v)}
+                      >
+                        {statDetails ? "Hide details" : "Details"}
+                      </button>
+                    </p>
+                    {statDetails && (
+                      <div className="needs">
+                        {statKeys.map((k) => (
+                          <label key={k}>
+                            {k[0].toUpperCase() + k.slice(1)}{" "}
+                            <meter min={0} max={100} value={p.stats![k]} />
+                            <span>{p.stats![k]} / 100</span>
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </>
+            )}
+            {modal === "narration" && (
+              <>
+                <div className="eyebrow">WHAT THE NARRATOR TOLD YOU</div>
+                <h2>Narration log</h2>
+                {runtime.engine.state.narration?.length ? (
+                  <ol className="narration-log">
+                    {runtime.engine.state.narration.map((t, i) => (
+                      <li key={i}>
+                        <small>{turnTime(t.clock)}</small>
+                        <p className="narrator-said">{t.input}</p>
+                        <p>{t.text}</p>
+                      </li>
+                    ))}
+                  </ol>
+                ) : (
+                  <p>Nothing yet. Click the action bar and say what you do.</p>
+                )}
               </>
             )}
             {modal === "notebook" && (
@@ -1286,6 +1362,18 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
                   </a>
                   <a
                     className="action settings-featured"
+                    href="/terrain-experiments"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Terrain experiments ↗
+                    <small>
+                      Grass, dirt and altitude steps · procedural vs. tileset
+                      atlas
+                    </small>
+                  </a>
+                  <a
+                    className="action settings-featured"
                     href="/grass-lab"
                     target="_blank"
                     rel="noreferrer"
@@ -1356,19 +1444,38 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
                       <button
                         className="icon-button"
                         aria-label="Decrease zoom"
-                        onClick={() => runtime.setZoom(view.zoom - 1)}
+                        onClick={() => runtime.stepZoom(-1)}
                       >
                         <Minus size={17} />
                       </button>{" "}
-                      {view.zoom}×{" "}
+                      {formatZoom(view.zoom)}×{" "}
                       <button
                         className="icon-button"
                         aria-label="Increase zoom"
-                        onClick={() => runtime.setZoom(view.zoom + 1)}
+                        onClick={() => runtime.stepZoom(1)}
                       >
                         <Plus size={17} />
                       </button>
                     </div>
+                  </div>
+                  <h3>Narrator</h3>
+                  <div className="settings-row">
+                    <span>Model</span>
+                    <select
+                      value={provider}
+                      onChange={(e) => {
+                        const next = e.target.value as typeof provider;
+                        setProvider(next);
+                        try {
+                          localStorage.setItem(PROVIDER_KEY, next);
+                        } catch {
+                          /* private mode */
+                        }
+                      }}
+                    >
+                      <option value="openai">OpenAI (GPT-5.6 luna)</option>
+                      <option value="gemini">Gemini 3.5 Flash-Lite</option>
+                    </select>
                   </div>
                 </div>
                 <div
@@ -1379,6 +1486,12 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
                 >
                   <h3>Journeys & sources</h3>
                   <div className="settings-actions">
+                    <button
+                      className="action"
+                      onClick={() => setModal("narration")}
+                    >
+                      <ScrollText size={16} /> Narration log
+                    </button>
                     <button
                       className="action"
                       onClick={() =>

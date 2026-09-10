@@ -4,22 +4,8 @@ import type { WorldSetting } from "../content/geography/types";
 export type PackId = string;
 export type Point = { x: number; y: number };
 export type Position = Point & { space: string };
-export type ItemId =
-  | "fruit"
-  | "berries"
-  | "reeds"
-  | "fodder"
-  | "bread"
-  | "grain"
-  | "water"
-  | "coin"
-  | "obsidian"
-  | "wool"
-  | "wood"
-  | "fish"
-  | "tool"
-  | "flax"
-  | "lizard";
+/** Built-in ids are plain words; items invented during play are prefixed "x-". */
+export type ItemId = string;
 export type Inventory = Partial<Record<ItemId, number>>;
 export type Evidence = {
   id: string;
@@ -34,7 +20,24 @@ export type ItemDef = {
   name: string;
   sprite: string;
   value: number;
+  /** Hunger relieved when eaten. */
   edible?: number;
+  /** Health change when eaten. */
+  health?: number;
+  description?: string;
+  flammable?: boolean;
+  floats?: boolean;
+};
+/** All 0-100. The first three drive checks; the rest colour dialogue. */
+export type Stats = {
+  strength: number;
+  agility: number;
+  wit: number;
+  openness: number;
+  conscientiousness: number;
+  extraversion: number;
+  agreeableness: number;
+  neuroticism: number;
 };
 export type Household = {
   id: string;
@@ -68,6 +71,8 @@ export type CharacterOrigin = {
   notes: string[];
 };
 export type Actor = {
+  stats?: Stats;
+  health?: number;
   origin?: CharacterOrigin;
   appearance?: CharacterAppearance;
   age?: number;
@@ -254,7 +259,8 @@ export type PlayerCommand =
       take: ItemId;
       takeQuantity: number;
     }
-  | { type: "use"; item: ItemId };
+  | { type: "use"; item: ItemId }
+  | { type: "narrate"; intents: Intent[] };
 export type CommandRequest = {
   actionId: string;
   expectedRevision: number;
@@ -284,7 +290,51 @@ export type Snapshot = {
   receipts: Record<string, Receipt>;
   log: CommandRequest[];
   permissions: Record<string, number>;
+  /** Items invented during play. */
+  catalog?: Record<ItemId, ItemDef>;
+  /** Standing facts the narrator has established. Newest last. */
+  ledger?: string[];
+  /** Narrator turns, oldest first. */
+  narration?: { clock: number; input: string; text: string }[];
 };
+/** What a narrator turn may do to the world. Each one resolves
+ * deterministically in the engine; the model only proposes. */
+export type Intent =
+  | {
+      type: "attempt";
+      check: "strength" | "agility" | "wit";
+      difficulty: number;
+      success: string;
+      failure: string;
+      minutes?: number;
+    }
+  | { type: "forage"; item?: ItemId }
+  | {
+      type: "invent";
+      item: {
+        name: string;
+        description: string;
+        value: number;
+        edible?: number;
+        health?: number;
+        flammable?: boolean;
+        floats?: boolean;
+        look:
+          | "rock"
+          | "plant"
+          | "food"
+          | "wood"
+          | "cloth"
+          | "tool"
+          | "vessel"
+          | "creature";
+      };
+      consumes?: { item: ItemId; quantity: number }[];
+    }
+  | { type: "pass"; minutes: number }
+  | { type: "travel"; direction: "north" | "south" | "east" | "west" }
+  | { type: "regard"; delta: number; reason: string }
+  | { type: "fact"; text: string };
 export type Affordance = {
   label: string;
   command: PlayerCommand;

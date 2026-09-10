@@ -230,7 +230,8 @@ def build_buildings(root, sprites):
     build_city_walls(sprites)
     build_square_furniture(sprites)
     from art.religious import ReligiousBuilding, religious_recipes
-    recipes={**source['buildings'], **urban_recipes(root, source), **religious_recipes(root, source)}
+    from art.period import PeriodBuilding, period_recipes
+    recipes={**source['buildings'], **urban_recipes(root, source), **religious_recipes(root, source), **period_recipes(root, source)}
     for name,r in list(recipes.items()):
         if r['roof']=='shelter': continue
         fw,fh=r['footprint']
@@ -238,6 +239,7 @@ def build_buildings(root, sprites):
             recipes[name+'-'+facing]={**r,'facing':facing,'entrance':entrance,'label':r['label']+' · '+facing}
     for name,r in recipes.items():
         painter=(InfillBuilding if r.get('candidate') else
+                 PeriodBuilding if r.get('period') else
                  ReligiousBuilding if r.get('religious') else
                  UrbanBuilding if r.get('urban') else Building)
         im=painter(r,source['materials'][r['wall']]).render()
@@ -255,6 +257,8 @@ def build_buildings(root, sprites):
                 'business':r.get('business',''),'sign':r.get('sign','')}
                if r.get('candidate') else {}),
             **({'infill':True} if r.get('infill') else {}),
+            **({'period':True,'periodGroup':r['group'],'style':r['style'],'variant':r.get('variant',0),
+                'sign':r.get('sign',''),'role':r.get('role','house'),'stories':r['stories']} if r.get('period') else {}),
             **({'animation':r['animation']} if r.get('animation') else {})}
     (root/'public/packs/buildings.json').write_text(json.dumps(models))
     (root/'src/content/graphics/models.generated.json').write_text(json.dumps(models))

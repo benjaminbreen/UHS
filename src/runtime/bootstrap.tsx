@@ -16,7 +16,11 @@ export function startGame(root: Root, engine: Engine) {
     },
   });
   registerWebMCP(runtime);
-  if (import.meta.env.DEV) Object.assign(window, { __uhs: runtime });
+  if (import.meta.env.DEV)
+    Object.assign(window, {
+      __uhs: runtime,
+      say: (text: string) => runtime.say(text).then(console.log),
+    });
   root.render(
     <PropLabHost onOpen={() => runtime.stop()}>
       <App runtime={runtime} writer={false} />

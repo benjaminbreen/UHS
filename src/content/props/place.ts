@@ -27,8 +27,9 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
     const def = propDefs[key];
     o.prop = key;
     o.name = def.name;
-    o.sprite = `study-prop-${def.family}-${key === "stick" ? 0 : Math.floor(random(seed, "prop-color", o.id) * 3)}`;
-    o.kind = def.drink ? "well" : "container";
+    const variants = key === "stick" ? 1 : (def.variants ?? 3);
+    o.sprite = `study-prop-${def.family}-${Math.floor(random(seed, "prop-color", o.id) * variants)}`;
+    o.kind = def.drink ? "well" : def.fire ? "fire" : "container";
     o.open = false;
     if (def.contents) o.inventory = { ...def.contents };
   };
@@ -89,6 +90,9 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
       // A square's fountain keeps its own sprite; only the plain well is a prop.
       else if (o.kind === "well" && o.sprite === "well")
         stamp(o, pick(o.id, "water", o.pos));
+      // The shared fire takes its period form the same way.
+      else if (false && o.kind === "fire" && o.sprite === "fire")
+        stamp(o, pick(o.id, "fire", o.pos));
       if (o.prop && !usable(o.pos, o.id)) {
         const original = { ...o.pos };
         const choices: Position[] = [];

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import graphics from "../content/graphics/buildings.json" with { type: "json" };
 import religious from "../content/graphics/religious.json" with { type: "json" };
+import period from "../content/graphics/period.json" with { type: "json" };
 import "./building-lab.css";
 
 type Frame = { frame: { x: number; y: number; w: number; h: number } };
@@ -14,6 +15,9 @@ type Model = {
   description: string;
   religious?: boolean;
   family?: string;
+  period?: boolean;
+  periodGroup?: string;
+  style?: string;
   candidate?: boolean;
   candidateType?: string;
   candidateGroup?: string;
@@ -31,6 +35,19 @@ type Model = {
 };
 type Recipe = Record<string, string | number | boolean | number[] | object>;
 const facings = ["south", "north", "east", "west"] as const;
+const periodOptions: Record<string, string[]> = {
+  roofStyle: ["parapet-hip", "hip", "gable", "pediment", "flat", "mansard", "chinese", "kawara", "giwa", "verandah-hip"],
+  roofMaterial: ["slate", "grey-tile", "shingle", "terracotta", "tar", "kawara", "giwa", "copper", "thatch"],
+  window: ["sash", "sash-arched", "tall", "bay", "shuttered", "lattice", "shoji", "slit"],
+  door: ["fanlight", "stoop", "double", "shop", "shop-panels", "koshi", "arcade", "red-gate", "sliding"],
+  cornice: ["none", "dentil", "bracket", "corbel", "eave"],
+};
+const periodExtras = [
+  "chimneys", "railings", "basement", "tall", "hoods", "rusticated", "quoins",
+  "pediment", "balcony", "canopy", "fire-escape", "water-tank", "skylight",
+  "awning", "wares", "lanterns", "sign-board", "hanging-sign", "counter",
+  "porch", "verandah", "maru",
+];
 const backgrounds: Record<string, string> = {
   Grass: "#85965a",
   Sand: "#d6c8a2",
@@ -95,7 +112,7 @@ export function BuildingLab() {
   const [models, setModels] = useState<Record<string, Model>>({});
   const [frames, setFrames] = useState<Record<string, Frame>>({});
   const [atlas, setAtlas] = useState<HTMLImageElement>();
-  const [selected, setSelected] = useState("candidate-modern-3x2-ranch-home");
+  const [selected, setSelected] = useState("period-georgian-townhouse");
   const [facing, setFacing] = useState<(typeof facings)[number]>("south");
   const [scale, setScale] = useState(3);
   const [background, setBackground] = useState("Grass");
@@ -106,6 +123,9 @@ export function BuildingLab() {
   const [candidateRecipes, setCandidateRecipes] = useState<
     Record<string, Recipe>
   >(graphics.buildings as Record<string, Recipe>);
+  const [periodRecipes, setPeriodRecipes] = useState<Record<string, Recipe>>(
+    period.buildings as Record<string, Recipe>,
+  );
   const [materials] = useState(religious.materials);
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
@@ -135,15 +155,17 @@ export function BuildingLab() {
       (k) => !/-(north|east|west)$/.test(k),
     );
     const rank = (k: string) =>
-      models[k].candidate
+      models[k].period
         ? 0
-        : k.startsWith("religious-")
+        : models[k].candidate
           ? 1
-        : /-urban-(hall|colonnade)/.test(k)
-          ? 2
-          : k.includes("-urban-")
-            ? 3
-            : 4;
+          : k.startsWith("religious-")
+            ? 2
+            : /-urban-(hall|colonnade)/.test(k)
+              ? 3
+              : k.includes("-urban-")
+                ? 4
+                : 5;
     return ids
       .filter(
         (k) =>
@@ -151,7 +173,12 @@ export function BuildingLab() {
           k.includes(filter) ||
           models[k].label.toLowerCase().includes(filter.toLowerCase()),
       )
-      .sort((a, b) => rank(a) - rank(b) || a.localeCompare(b));
+      .sort(
+        (a, b) =>
+          rank(a) - rank(b) ||
+          (models[a].periodGroup ?? "").localeCompare(models[b].periodGroup ?? "") ||
+          a.localeCompare(b),
+      );
   }, [models, filter]);
 
   const frameKey = facing === "south" ? selected : `${selected}-${facing}`;
@@ -160,6 +187,13 @@ export function BuildingLab() {
     (models[selected] as Model & { recipe?: string })?.recipe ?? "";
   const recipe = recipeId ? recipes[recipeId] : undefined;
   const candidateRecipe = model?.candidate ? candidateRecipes[selected] : undefined;
+  const periodId = selected.replace(/^period-/, "");
+  const periodRecipe = model?.period ? periodRecipes[periodId] : undefined;
+  const setPeriodField = (key: string, value: Recipe[string]) =>
+    setPeriodRecipes((r) => ({
+      ...r,
+      [periodId]: { ...r[periodId], [key]: value },
+    }));
 
   useEffect(() => {
     const c = canvas.current;
@@ -253,18 +287,23 @@ export function BuildingLab() {
     setStatus("Rebuilding art (about 20 s)…");
     try {
       const candidate = Boolean(models[selected]?.candidate);
+      const isPeriod = Boolean(models[selected]?.period);
       const r = await fetch("/api/art", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          path: candidate
-            ? "src/content/graphics/buildings.json"
-            : "src/content/graphics/religious.json",
+          path: isPeriod
+            ? "src/content/graphics/period.json"
+            : candidate
+              ? "src/content/graphics/buildings.json"
+              : "src/content/graphics/religious.json",
           content:
             JSON.stringify(
-              candidate
-                ? { materials: graphics.materials, buildings: candidateRecipes }
-                : { materials, buildings: recipes },
+              isPeriod
+                ? { materials: period.materials, buildings: periodRecipes }
+                : candidate
+                  ? { materials: graphics.materials, buildings: candidateRecipes }
+                  : { materials, buildings: recipes },
               null,
               2,
             ) + "\n",
@@ -291,8 +330,9 @@ export function BuildingLab() {
           <h1>Building panel</h1>
           <p>
             Compiled building models on their footprints. The review-only
-            modern infill candidates are listed first; their recipes drive
-            compact facades, colorways and business signage.
+            period facades (Georgian, brownstone, tenement, and their East and
+            South Asian contemporaries) are listed first, then the modern
+            infill candidates. Both are recipe-driven and rebuild in place.
           </p>
         </div>
         <a href="/">Return to world ↗</a>
@@ -313,9 +353,11 @@ export function BuildingLab() {
                 >
                   <span>{models[id].label}</span>
                   <small>
-                    {models[id].candidate
-                      ? `${models[id].candidateGroup ?? "candidate"}${models[id].sign ? ` · ${models[id].sign}` : ""}`
-                      : id.replace(/^religious-/, "")}
+                    {models[id].period
+                      ? models[id].periodGroup
+                      : models[id].candidate
+                        ? `${models[id].candidateGroup ?? "candidate"}${models[id].sign ? ` · ${models[id].sign}` : ""}`
+                        : id.replace(/^religious-/, "")}
                   </small>
                 </button>
               </li>
@@ -363,7 +405,9 @@ export function BuildingLab() {
               height {model.height}px{model.family ? ` · ${model.family}` : ""}
               {model.candidate
                 ? ` · ${model.candidateType ?? "infill"} · variant ${model.variant ?? 0}${model.sign ? ` · sign ${model.sign}` : ""}`
-                : ""}
+                : model.period
+                  ? ` · ${model.style} · colorway ${model.variant ?? 0}`
+                  : ""}
               <br />
               <span>{model.description}</span>
             </p>
@@ -471,6 +515,106 @@ export function BuildingLab() {
               </button>
               <pre>{status}</pre>
             </>
+          ) : model?.period && periodRecipe ? (
+            <div className="candidate-card">
+              <span className="candidate-badge">Review-only period facade</span>
+              <h2>Recipe · {periodId}</h2>
+              <div className="candidate-controls">
+                {Object.entries(periodRecipe)
+                  .filter(([key]) => !["label", "group", "style", "description", "seed"].includes(key))
+                  .map(([key, value]) => (
+                    <label key={key}>
+                      <span>{key}</span>
+                      {key === "wall" ? (
+                        <select
+                          value={String(value)}
+                          onChange={(e) => setPeriodField(key, e.target.value)}
+                        >
+                          {Object.keys(period.materials).map((m) => (
+                            <option key={m}>{m}</option>
+                          ))}
+                        </select>
+                      ) : periodOptions[key] ? (
+                        <select
+                          value={String(value)}
+                          onChange={(e) => setPeriodField(key, e.target.value)}
+                        >
+                          {periodOptions[key].map((m) => (
+                            <option key={m}>{m}</option>
+                          ))}
+                        </select>
+                      ) : key === "extras" ? (
+                        <span className="extras">
+                          {periodExtras.map((extra) => (
+                            <label key={extra}>
+                              <input
+                                type="checkbox"
+                                checked={(value as string[]).includes(extra)}
+                                onChange={(e) =>
+                                  setPeriodField(
+                                    key,
+                                    e.target.checked
+                                      ? [...(value as string[]), extra]
+                                      : (value as string[]).filter((x) => x !== extra),
+                                  )
+                                }
+                              />
+                              {extra}
+                            </label>
+                          ))}
+                        </span>
+                      ) : typeof value === "number" ? (
+                        <input
+                          type="number"
+                          value={value}
+                          onChange={(e) => setPeriodField(key, Number(e.target.value))}
+                        />
+                      ) : Array.isArray(value) ? (
+                        <span className="pair">
+                          {value.map((n, i) => (
+                            <input
+                              key={i}
+                              type="number"
+                              value={n as number}
+                              onChange={(e) => {
+                                const next = [...value];
+                                next[i] = Number(e.target.value) || 0;
+                                setPeriodField(key, next);
+                              }}
+                            />
+                          ))}
+                        </span>
+                      ) : (
+                        <input
+                          value={String(value)}
+                          maxLength={key === "sign" ? 8 : undefined}
+                          onChange={(e) =>
+                            setPeriodField(
+                              key,
+                              key === "sign" ? e.target.value.toUpperCase() : e.target.value,
+                            )
+                          }
+                        />
+                      )}
+                    </label>
+                  ))}
+                <button className="rebuild" disabled={busy} onClick={rebuild}>
+                  {busy ? "Rebuilding…" : "Rebuild period art"}
+                </button>
+                <pre>{status}</pre>
+              </div>
+              <dl>
+                <dt>Group</dt>
+                <dd>{model.periodGroup}</dd>
+                <dt>Style</dt>
+                <dd>{model.style}</dd>
+              </dl>
+              <p>
+                Period facades are authored for review and are not in the city
+                generator yet. Change the wall material, window, door, roof,
+                cornice, extras or colorway and rebuild.
+              </p>
+            </div>
           ) : model?.candidate ? (
             <div className="candidate-card">
               <span className="candidate-badge">Review-only candidate</span>

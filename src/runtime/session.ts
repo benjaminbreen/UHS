@@ -4,7 +4,7 @@ import { releaseTerrainWorker } from "./terrain-worker-owner";
 import type { PreparedSettlement } from "../world/v3/prepared";
 import { wardrobeFor } from "../content/characters/wardrobes";
 import { actorAppearance, generateAppearance } from "../core/character";
-import type { Actor } from "../core/types";
+import type { Actor, Intent, ItemId } from "../core/types";
 import type { CharacterPose } from "../render/characters/poses";
 import { allowedHeights, type CharacterAppearance } from "../core/character";
 import { characterAppearanceSchema } from "./schema";
@@ -22,6 +22,8 @@ import {
   type Observation,
 } from "../core/types";
 import { items, packs } from "../content/packs";
+import { rollStats } from "../core/stats";
+import { narratorTurn } from "../narrator/turn";
 import { createWorld } from "../world/generate";
 import { commandSchema, snapshotSchema } from "./schema";
 import { ChunkCache } from "./chunks";
@@ -101,6 +103,8 @@ export function createSession(
         engine.state.player.appearance = appearance;
       }
     }
+    engine.state.player.stats = rollStats(seed, engine.state.player);
+    engine.state.player.health = 100;
   }
   return engine;
 }
@@ -146,6 +150,11 @@ export function restoreSession(value: unknown) {
  * trimmed, so this trades log growth against how coarsely an actor the engine
  * rather than a routine moves steps across the screen. */
 const IDLE_BLOCK = 60;
+export const ZOOM_STEPS = [
+  0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3, 3.5, 4, 5, 6,
+];
+const ZOOM_MIN = ZOOM_STEPS[0];
+const ZOOM_MAX = ZOOM_STEPS[ZOOM_STEPS.length - 1];
 export class Runtime {
   engine: Engine;
   selected?: string;
@@ -340,8 +349,16 @@ export class Runtime {
     this.emit(false);
   }
   setZoom(z: number) {
-    this.zoom = Math.min(4, Math.max(1, z));
+    this.zoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, z));
     this.emit(false);
+  }
+  /** Move `steps` notches along ZOOM_STEPS from wherever we currently sit. */
+  stepZoom(steps: number) {
+    let i = ZOOM_STEPS.findIndex((v) => v >= this.zoom - 1e-4);
+    if (i < 0) i = ZOOM_STEPS.length - 1;
+    this.setZoom(
+      ZOOM_STEPS[Math.min(ZOOM_STEPS.length - 1, Math.max(0, i + steps))],
+    );
   }
   replace(engine: Engine) {
     releaseTerrainWorker(this.engine.world);
@@ -382,6 +399,26 @@ export class Runtime {
     if (seconds >= 1)
       this.dispatch({ type: "pass", seconds: Math.min(3600, seconds) });
     this.syncAmbient();
+  }
+  item(id: ItemId) {
+    return this.engine.item(id);
+  }
+  /** One narrator turn from free text. */
+  say(input: string) {
+    return narratorTurn(this, input);
+  }
+  /** Marks state changed outside a command, such as the narration log. */
+  touch() {
+    this.onChange?.();
+    this.emit();
+  }
+  /** Runs narrator intents and reports what the engine made of each. */
+  narrate(intents: Intent[]) {
+    const result = this.command({ type: "narrate", intents });
+    return {
+      result,
+      outcomes: result?.status === "completed" ? this.engine.lastOutcomes : [],
+    };
   }
   command(command: PlayerCommand) {
     if (this.replay) {

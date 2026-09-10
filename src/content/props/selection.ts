@@ -2,7 +2,7 @@ import type { Pack } from "../../core/types";
 import type { CultureId } from "../history/types";
 import { eraAt } from "../history/dates";
 import { historyRegistry, resolveHistory } from "../history";
-export type PropContext = "household" | "yard" | "water" | "work";
+export type PropContext = "household" | "yard" | "water" | "work" | "fire";
 export type PropKit = {
   era: string;
   culture: CultureId;
@@ -21,7 +21,10 @@ export function propKit(pack: Pack): PropKit {
     yard: ["basket"],
     water: ["spring"],
     work: ["woodpile", "stick"],
+    fire: ["firepit"],
   };
+  const climate = pack.setting?.climate;
+  const cold = climate === "boreal" || climate === "tundra";
   const oldWorld = [
     "european",
     "north-african-west-asian",
@@ -67,6 +70,37 @@ export function propKit(pack: Pack): PropKit {
     contexts.yard.push("barrel");
     contexts.water = ["well", "roofedWell"];
   }
+  // The shared fire in its period form. A cold-country camp keeps a long
+  // fire; oven cultures move the fire into a clay body early; the classical
+  // Mediterranean and East Asia raise it onto a brazier; from the factory
+  // age the public fire is an iron basket, then a drum.
+  if (cold && year < 1500) contexts.fire = ["longFire"];
+  if (
+    pottery &&
+    year >= -6999 &&
+    ["north-african-west-asian", "south-asian", "inner-eurasian"].includes(
+      culture,
+    )
+  )
+    contexts.fire = ["tannur"];
+  if (
+    year >= -800 &&
+    year < 650 &&
+    ["european", "north-african-west-asian"].includes(culture)
+  )
+    contexts.fire = ["brazier"];
+  if (year >= -500 && culture === "east-asian") contexts.fire = ["brazier"];
+  if (year >= 500 && culture === "european") contexts.fire = ["bakeOven"];
+  if (year >= 1000 && culture === "east-asian") contexts.fire = ["teaStove"];
+  if (year >= 1550 && ["mesoamerican", "andean"].includes(culture))
+    contexts.fire = ["bakeOven", "firepit"];
+  if (year >= 1600 && culture === "european")
+    contexts.fire = ["fireBasket", "bakeOven"];
+  if (year >= 1750 && culture === "inner-eurasian")
+    contexts.fire = ["teaStove"];
+  if (year >= 1850)
+    contexts.fire = [...new Set(["fireBasket", ...contexts.fire])];
+  if (year >= 1940) contexts.fire = ["drumFire", "fireBasket"];
   if (year >= 1850) {
     contexts.yard.push("tin");
     contexts.household.push("carton");
@@ -83,11 +117,13 @@ export function propKit(pack: Pack): PropKit {
   }
   if (pack.setting?.settlement === "camp") {
     contexts.water = ["spring"];
+    contexts.fire = cold ? ["longFire"] : ["firepit"];
     contexts.yard = pottery ? ["pot", "basket"] : ["basket"];
   }
   if (year < -25999) {
     contexts.household = ["hideBag"];
     contexts.yard = ["hideBag"];
+    contexts.fire = cold ? ["longFire"] : ["firepit"];
   }
   const placeId =
     pack.setting?.placeId ??
@@ -104,6 +140,7 @@ export function propKit(pack: Pack): PropKit {
     yard: "storehouse",
     water: "water",
     work: "workshop",
+    fire: "hearth",
   };
   // Authored historical exclusions/context/capability rules outrank broad
   // prototype kits. Unresearched entries remain explicitly provisional.

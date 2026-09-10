@@ -238,3 +238,6 @@
 .building-recipe textarea { width: 100%; font: 11px/1.35 ui-monospace, monospace; background: #18201f; color: inherit; border: 1px solid #515749; border-radius: 4px; padding: 4px; }
 .building-recipe textarea.bad { border-color: #c8384e; }
 .building-recipe label:has(textarea) { grid-template-columns: 1fr; }
+.building-recipe .extras { display: flex; flex-wrap: wrap; gap: 2px 8px; }
+.building-recipe .extras label { display: inline-flex; gap: 3px; align-items: center; font-size: 11px; color: #cfc9b8; }
+.building-recipe label:has(.extras) { grid-template-columns: 1fr; }

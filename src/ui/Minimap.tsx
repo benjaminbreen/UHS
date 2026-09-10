@@ -1,4 +1,3 @@
-import nature from "../../public/nature/atlas.json" with { type: "json" };
 import { natureTreeSprites } from "../content/ecology/vegetation";
 import { useEffect, useRef } from "react";
 import atlas from "../render/generated/atlas.json" with { type: "json" };
@@ -19,6 +18,74 @@ function sprites() {
   }
   return atlasImage;
 }
+function hash(x: number, y: number) {
+  let h = (x * 374761393 + y * 668265263) | 0;
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+}
+// Flat map colours in the world's own palette; edges are outlined separately.
+const colors: Record<string, string> = {
+  snow: "#dfe7e6",
+  rock: "#8f8b80",
+  marsh: "#4f7f62",
+  grass: "#6ea447",
+  dry: "#a7a862",
+  dirt: "#b28a5c",
+  sand: "#d1c288",
+  water: "#2f7ea0",
+  bridge: "#a88755",
+  paving: "#c4bea6",
+  field: "#9c874a",
+  floor: "#b6a078",
+};
+const shade: Record<string, string> = {
+  grass: "#5f9440",
+  dry: "#98995a",
+  dirt: "#a37e54",
+  field: "#8c7840",
+  sand: "#c4b47c",
+};
+const roofCache = new Map<string, { roof: string; wall: string }>();
+/** Roof and wall tone read from the building's own sprite, so each region's houses keep their colours. */
+function buildingTones(sprite: string, image: HTMLImageElement) {
+  const cached = roofCache.get(sprite);
+  if (cached) return cached;
+  const f = (
+    atlas.frames as Record<
+      string,
+      { frame: { x: number; y: number; w: number; h: number } }
+    >
+  )[sprite]?.frame;
+  const fallback = { roof: "#4a5560", wall: "#d8cfb0" };
+  if (!f || !image.complete || !image.naturalWidth) return fallback;
+  const c = document.createElement("canvas");
+  c.width = f.w;
+  c.height = f.h;
+  const ctx = c.getContext("2d")!;
+  ctx.drawImage(image, f.x, f.y, f.w, f.h, 0, 0, f.w, f.h);
+  const avg = (y0: number, y1: number) => {
+    const d = ctx.getImageData(0, y0, f.w, Math.max(1, y1 - y0)).data;
+    let r = 0,
+      g = 0,
+      b = 0,
+      n = 0;
+    for (let i = 0; i < d.length; i += 4) {
+      if (d[i + 3] < 200) continue;
+      r += d[i];
+      g += d[i + 1];
+      b += d[i + 2];
+      n++;
+    }
+    if (!n) return undefined;
+    return `rgb(${Math.round(r / n)},${Math.round(g / n)},${Math.round(b / n)})`;
+  };
+  const tones = {
+    roof: avg(Math.round(f.h * 0.08), Math.round(f.h * 0.4)) ?? fallback.roof,
+    wall: avg(Math.round(f.h * 0.55), Math.round(f.h * 0.85)) ?? fallback.wall,
+  };
+  roofCache.set(sprite, tones);
+  return tones;
+}
 function paintBackground(
   canvas: HTMLCanvasElement,
   world: WorldModel,
@@ -34,68 +101,88 @@ function paintBackground(
   c.save();
   c.translate(PAD, PAD);
   c.imageSmoothingEnabled = false;
-  const colors: Record<string, string> = {
-    snow: "#d9e4e5",
-    rock: "#8d887d",
-    marsh: "#527e68",
-    grass: "#738749",
-    dry: "#9ba16a",
-    dirt: "#b2a070",
-    sand: "#c6b681",
-    water: "#246679",
-    bridge: "#a59166",
-    paving: "#b5b09a",
-    field: "#88784f",
-    floor: "#b6a078",
+  const px = 2;
+  const cols = Math.ceil((size + PAD * 2) / px),
+    rows = Math.ceil((height + PAD * 2) / px);
+  const kind: string[] = new Array(cols * rows);
+  const coarse = extent > (world.generatorVersion === 3 ? 320 : 3200);
+  const at = (i: number, j: number) => {
+    const x = i * px - PAD,
+      y = j * px - PAD;
+    const wx = Math.floor(origin.x + ((x - size / 2) * extent) / size),
+      wy = Math.floor(origin.y + ((y - height / 2) * extent) / size);
+    return { x, y, wx, wy };
   };
-  for (let y = -PAD; y < height + PAD; y += 2)
-    for (let x = -PAD; x < size + PAD; x += 2) {
-      const wx = Math.floor(origin.x + ((x - size / 2) * extent) / size),
-        wy = Math.floor(origin.y + ((y - height / 2) * extent) / size);
-      c.fillStyle =
-        colors[
-          extent > (world.generatorVersion === 3 ? 320 : 3200) && world.overview
-            ? world.overview(wx, wy)
-            : surfaceAt(world, wx, wy)
-        ];
+  // Terrain pass.
+  for (let j = 0; j < rows; j++)
+    for (let i = 0; i < cols; i++) {
+      const { x, y, wx, wy } = at(i, j);
+      let k: string =
+        coarse && world.overview
+          ? world.overview(wx, wy)
+          : surfaceAt(world, wx, wy);
+      let fill = colors[k] ?? colors.grass;
       if (world.topography && extent <= 320) {
         const cell = world.topography(wx, wy);
-        if (cell.surface === "water")
-          c.fillStyle = cell.waterDepth === "shallow" ? "#409baa" : "#146c8c";
-        else if (cell.height > world.topography(wx, wy + 1).height)
-          c.fillStyle = "#956c40";
+        if (cell.surface === "water") {
+          k = "water";
+          fill = cell.waterDepth === "shallow" ? "#3d93b0" : "#2a6f93";
+        } else if (cell.height > world.topography(wx, wy + 1).height) {
+          k = "cliff";
+          fill = "#8d6640";
+        }
       }
-      c.fillRect(x, y, 2, 2);
+      kind[j * cols + i] = k;
+      // Sparse darker speckle gives grass and soil their pixel grain.
+      if (shade[k] && hash(wx, wy) < 0.16) fill = shade[k];
+      c.fillStyle = fill;
+      c.fillRect(x, y, px, px);
     }
-  const stamp = (name: string, x: number, y: number, width: number) => {
-    const f = (
-      (name.startsWith("nature-") ? nature.frames : atlas.frames) as Record<
-        string,
-        { frame: { x: number; y: number; w: number; h: number } }
-      >
-    )[name]?.frame;
-    if (!f) return;
-    const h = Math.round((width * f.h) / f.w);
-    c.drawImage(
-      name.startsWith("nature-") ? natureImage! : sprites,
-      f.x,
-      f.y,
-      f.w,
-      f.h,
-      Math.round(x - width / 2),
-      Math.round(y - h),
-      width,
-      h,
-    );
+  // Outline pass: a darker seam wherever the ground type changes, plus a pale
+  // shoreline on the water side.
+  for (let j = 0; j < rows; j++)
+    for (let i = 0; i < cols; i++) {
+      const k = kind[j * cols + i];
+      const right = i + 1 < cols ? kind[j * cols + i + 1] : k,
+        down = j + 1 < rows ? kind[(j + 1) * cols + i] : k;
+      if (k === right && k === down) continue;
+      const { x, y } = at(i, j);
+      const water = k === "water";
+      const nearWater = right === "water" || down === "water";
+      if (water && !(right === "water" && down === "water")) {
+        c.fillStyle = "#8ed0dc";
+        if (right !== "water") c.fillRect(x + px - 1, y, 1, px);
+        if (down !== "water") c.fillRect(x, y + px - 1, px, 1);
+        continue;
+      }
+      c.fillStyle = nearWater ? "#245d5a" : "#00000033";
+      if (k !== right) c.fillRect(x + px - 1, y, 1, px);
+      if (k !== down) c.fillRect(x, y + px - 1, px, 1);
+    }
+  const toPx = (wx: number, wy: number) => ({
+    x: Math.round(((wx - origin.x) * size) / extent + size / 2),
+    y: Math.round(((wy - origin.y) * size) / extent + height / 2),
+  });
+  const tree = (x: number, y: number) => {
+    // 7px canopy: rim, body, highlight, trunk.
+    c.fillStyle = "#2f5a28";
+    c.fillRect(x - 3, y - 5, 7, 5);
+    c.fillRect(x - 2, y - 6, 5, 1);
+    c.fillRect(x - 2, y, 5, 1);
+    c.fillStyle = "#4f9a3a";
+    c.fillRect(x - 2, y - 5, 5, 5);
+    c.fillRect(x - 1, y - 6, 3, 1);
+    c.fillStyle = "#86c95c";
+    c.fillRect(x - 2, y - 5, 2, 2);
+    c.fillRect(x - 1, y - 6, 2, 1);
+    c.fillStyle = "#5a3d24";
+    c.fillRect(x, y + 1, 1, 2);
   };
-  // Draw actual cover and settlement footprints from the shared world plan.
-  const stride = extent > 3200 ? extent : regional || large ? 9 : 3;
+  const stride = extent > 3200 ? extent : regional || large ? 4 : 1;
+  const span = ((height + PAD * 2) * extent) / size / 2;
   for (
-    let wy =
-      Math.floor(
-        (origin.y - ((height + PAD * 2) * extent) / size / 2) / stride,
-      ) * stride;
-    wy < origin.y + ((height + PAD * 2) * extent) / size / 2;
+    let wy = Math.floor((origin.y - span) / stride) * stride;
+    wy < origin.y + span;
     wy += stride
   )
     for (
@@ -111,18 +198,38 @@ function paintBackground(
         prop &&
         (world.pack.trees.includes(prop.sprite) ||
           natureTreeSprites.includes(prop.sprite))
-      )
-        stamp(
-          prop.sprite,
-          ((wx - origin.x) * size) / extent + size / 2,
-          ((wy - origin.y) * size) / extent + height / 2,
-          regional ? 9 : 11,
-        );
+      ) {
+        // Thin dense cover so canopies stay readable as separate icons.
+        if (hash(wx + 7, wy + 3) < (regional || large ? 0.4 : 0.3)) continue;
+        const { x, y } = toPx(wx, wy);
+        tree(x, y);
+      }
     }
-  for (const b of world.places) {
-    const x = ((b.x + b.w / 2 - origin.x) * size) / extent + size / 2,
-      y = ((b.y + b.h - origin.y) * size) / extent + height / 2;
-    stamp(b.sprite, x, y, Math.max(5, Math.round((b.w * size) / extent)));
+  // Buildings: a roof block over a wall block, both in the sprite's own tones.
+  const sorted = [...world.places].sort((a, b) => a.y + a.h - (b.y + b.h));
+  for (const b of sorted) {
+    const { x, y } = toPx(b.x + b.w / 2, b.y + b.h);
+    const w = Math.max(6, Math.round((b.w * size) / extent) + 2);
+    const h = Math.max(6, Math.round(w * 0.8));
+    const { roof, wall } = buildingTones(b.sprite, sprites);
+    const left = x - Math.floor(w / 2),
+      top = y - h;
+    const roofH = Math.max(3, Math.round(h * 0.45));
+    c.fillStyle = "#1f2427";
+    c.fillRect(left - 1, top - 1, w + 2, h + 2);
+    c.fillStyle = wall;
+    c.fillRect(left, top + roofH, w, h - roofH);
+    c.fillStyle = roof;
+    c.fillRect(left, top, w, roofH);
+    c.fillStyle = "#ffffff55";
+    c.fillRect(left, top, w, 1);
+    c.fillStyle = "#3a2c20";
+    c.fillRect(x - 1, y - 2, 2, 2);
+    if (w >= 10) {
+      c.fillStyle = "#4b5d6c";
+      c.fillRect(left + 2, top + roofH + 1, 2, 2);
+      c.fillRect(left + w - 4, top + roofH + 1, 2, 2);
+    }
   }
   if (large || regional) {
     c.font = `${large ? 13 : 10}px Georgia`;
@@ -130,14 +237,13 @@ function paintBackground(
     const settlements =
       world.geography?.placesIn({
         x: origin.x - extent / 2 - (PAD * extent) / size,
-        y: origin.y - ((height + PAD * 2) * extent) / size / 2,
+        y: origin.y - span,
         w: extent + (PAD * 2 * extent) / size,
-        h: ((height + PAD * 2) * extent) / size,
+        h: span * 2,
       }) ?? world.settlements;
     for (const s of settlements) {
       if ("parentId" in s && s.parentId) continue;
-      const x = ((s.x - origin.x) * size) / extent + size / 2,
-        y = ((s.y - origin.y) * size) / extent + height / 2;
+      const { x, y } = toPx(s.x, s.y);
       if (
         x < 3 - PAD ||
         x > size + PAD - 3 ||
@@ -157,7 +263,6 @@ function paintBackground(
     }
     c.textAlign = "left";
   }
-
   c.restore();
 }
 type Backing = {
@@ -244,18 +349,21 @@ export function Minimap({
         size,
         height,
       );
-      ctx.fillStyle = "#f7ebcb";
-      ctx.strokeStyle = "#303a31";
+      const mx = ((p.x - origin.x) * size) / extent + size / 2,
+        my = ((p.y - origin.y) * size) / extent + height / 2;
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = "#1c2430aa";
       ctx.beginPath();
-      ctx.arc(
-        ((p.x - origin.x) * size) / extent + size / 2,
-        ((p.y - origin.y) * size) / extent + height / 2,
-        large ? 4 : 3,
-        0,
-        Math.PI * 2,
-      );
-      ctx.fill();
+      ctx.arc(mx, my, large ? 7 : 5.5, 0, Math.PI * 2);
       ctx.stroke();
+      ctx.strokeStyle = "#f7ebcb";
+      ctx.beginPath();
+      ctx.arc(mx, my, large ? 6 : 4.5, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = "#f7ebcb";
+      ctx.beginPath();
+      ctx.arc(mx, my, large ? 2.5 : 2, 0, Math.PI * 2);
+      ctx.fill();
     };
     const ready = () => {
       if (

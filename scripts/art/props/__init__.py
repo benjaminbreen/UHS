@@ -3,9 +3,11 @@ from .compact import COMPACT
 from .proofs import PROOFS
 from .daily import DAILY
 from .containers import vessel, gourd, basket, sack, box, barrel, bucket, modern
-from .utilities import trough, well, pump, grinder, mortar, tool, woodpile, sheaf, rack, scarecrow, fire, oven, lamp, lantern, furniture, bedroll
+from .utilities import trough, well, pump, grinder, mortar, tool, woodpile, sheaf, rack, scarecrow, lamp, lantern, furniture, bedroll
+from .fires import FIRES
 
-def draw_prop(key,variant):
+def draw_prop(key,variant,frame=0):
+ if key in FIRES:return FIRES[key](variant,frame)
  if key in COMPACT:return COMPACT[key](variant)
  if key in DAILY:return DAILY[key](variant)
  if key in PROOFS:return PROOFS[key](variant)
@@ -16,4 +18,4 @@ def draw_prop(key,variant):
  if key in ['hoe','sickle','spade']:return tool(key,variant)
  if key in ['stool','bench','workbench']:return furniture(key,variant)
  if key in ['well','framed-well']:return well(variant,key=='framed-well')
- return {'gourd':gourd,'sack':sack,'barrel':barrel,'bucket':bucket,'trough':trough,'pump':pump,'grinder':grinder,'mortar':mortar,'woodpile':woodpile,'sheaf':sheaf,'drying-rack':rack,'scarecrow':scarecrow,'hearth':fire,'oven':oven,'oil-lamp':lamp,'lantern':lantern,'bedroll':bedroll}[key](variant)
+ return {'gourd':gourd,'sack':sack,'barrel':barrel,'bucket':bucket,'trough':trough,'pump':pump,'grinder':grinder,'mortar':mortar,'woodpile':woodpile,'sheaf':sheaf,'drying-rack':rack,'scarecrow':scarecrow,'oil-lamp':lamp,'lantern':lantern,'bedroll':bedroll}[key](variant)

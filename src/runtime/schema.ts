@@ -12,24 +12,105 @@ import {
 } from "../core/character";
 import { z } from "zod";
 import { settingSchema } from "../content/geography/types";
-const item = z.enum([
-  "fruit",
-  "berries",
-  "reeds",
-  "fodder",
-  "bread",
-  "grain",
-  "water",
-  "coin",
-  "obsidian",
-  "wool",
-  "wood",
-  "fish",
-  "tool",
-  "flax",
-  "lizard",
+const item = z.string().regex(/^[a-z][a-z0-9-]{0,39}$/);
+const inventory = z.record(item, z.number().int().min(0).max(1000000));
+const itemDef = z
+  .object({
+    id: item,
+    name: z.string().max(40),
+    sprite: z.string().max(60),
+    value: z.number().int().min(0).max(1000),
+    edible: z.number().int().optional(),
+    health: z.number().int().optional(),
+    description: z.string().max(160).optional(),
+    flammable: z.boolean().optional(),
+    floats: z.boolean().optional(),
+  })
+  .strict();
+const stat = z.number().int().min(0).max(100);
+const stats = z
+  .object({
+    strength: stat,
+    agility: stat,
+    wit: stat,
+    openness: stat,
+    conscientiousness: stat,
+    extraversion: stat,
+    agreeableness: stat,
+    neuroticism: stat,
+  })
+  .strict();
+const intent = z.discriminatedUnion("type", [
+  z
+    .object({
+      type: z.literal("attempt"),
+      check: z.enum(["strength", "agility", "wit"]),
+      difficulty: z.number().min(1).max(5),
+      success: z.string().max(600),
+      failure: z.string().max(600),
+      minutes: z.number().min(1).max(120).optional(),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("forage"),
+      item: item.or(z.literal("")).optional(),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("invent"),
+      item: z
+        .object({
+          name: z.string().min(1).max(40),
+          description: z.string().max(160),
+          value: z.number().min(0).max(1000),
+          edible: z.number().min(0).max(100).optional(),
+          health: z.number().min(-100).max(100).optional(),
+          flammable: z.boolean().optional(),
+          floats: z.boolean().optional(),
+          look: z.enum([
+            "rock",
+            "plant",
+            "food",
+            "wood",
+            "cloth",
+            "tool",
+            "vessel",
+            "creature",
+          ]),
+        })
+        .strict(),
+      consumes: z
+        .array(
+          z
+            .object({ item, quantity: z.number().int().min(1).max(99) })
+            .strict(),
+        )
+        .max(6)
+        .optional(),
+    })
+    .strict(),
+  z
+    .object({ type: z.literal("pass"), minutes: z.number().min(1).max(1440) })
+    .strict(),
+  z
+    .object({
+      type: z.literal("travel"),
+      direction: z.enum(["north", "south", "east", "west"]),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("regard"),
+      delta: z.number().min(-3).max(3),
+      reason: z.string().max(120),
+    })
+    .strict(),
+  z
+    .object({ type: z.literal("fact"), text: z.string().min(1).max(160) })
+    .strict(),
 ]);
-const inventory = z.partialRecord(item, z.number().int().min(0).max(1000000));
 const point = z.object({
   x: z.number().int().min(-1000000).max(1000000),
   y: z.number().int().min(-1000000).max(1000000),
@@ -75,6 +156,8 @@ export const characterAppearanceSchema = z.object({
   }),
 });
 const actor = z.object({
+  stats: stats.optional(),
+  health: z.number().min(0).max(100).optional(),
   origin: z
     .object({
       revision: z.literal(1),
@@ -232,7 +315,22 @@ export const commandSchema = z.discriminatedUnion("type", [
     })
     .strict(),
   z.object({ type: z.literal("use"), item }).strict(),
+  z
+    .object({ type: z.literal("narrate"), intents: z.array(intent).max(6) })
+    .strict(),
 ]);
+/** What the narrator model may return. Its command is one of the ordinary
+ * player commands; intents go through the same narrate path as the UI. */
+export const narratorReplySchema = z
+  .object({
+    narration: z.string().min(1).max(1200),
+    intents: z.array(intent).max(6),
+    command: z
+      .discriminatedUnion("type", commandSchema.options.slice(0, -1) as never)
+      .optional(),
+  })
+  .strict();
+export type NarratorReply = z.infer<typeof narratorReplySchema>;
 const request = z.object({
   actionId: z.string().regex(/^[a-zA-Z0-9_-]{1,100}$/),
   expectedRevision: z.number().int(),
@@ -316,4 +414,18 @@ export const snapshotSchema = z.object({
   receipts: z.record(z.string(), z.object({ payload: z.string(), result })),
   log: z.array(request).max(100000),
   permissions: z.record(z.string(), z.number()),
+  catalog: z.record(item, itemDef).optional(),
+  narration: z
+    .array(
+      z
+        .object({
+          clock: z.number(),
+          input: z.string().max(600),
+          text: z.string().max(2400),
+        })
+        .strict(),
+    )
+    .max(200)
+    .optional(),
+  ledger: z.array(z.string().max(160)).max(12).optional(),
 });

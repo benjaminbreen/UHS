@@ -38,6 +38,15 @@ import {
   type StationActivity,
 } from "../core/itinerary";
 import { lightingAt, lightingPreset, shadowFrame } from "./lighting";
+import {
+  FIRE_FRAME_MS,
+  SMOKE_MS,
+  SMOKE_PUFFS,
+  animatedBase,
+  animatedFrames,
+  ensureFireTextures,
+  glowAlpha,
+} from "./fire";
 import terrainFrames from "./generated/terrain.json" with { type: "json" };
 const SCENERY_CACHE_REACH = 8;
 /** People drawn at once. Beyond roughly this many the per-head frame cache,
@@ -61,6 +70,8 @@ const ambientPoses: Record<StationActivity, CharacterPose> = {
   visit: "talk",
   graze: "idle",
   play: "sway",
+  cook: "stoop",
+  warm: "sit",
 };
 const workAlternates: Partial<
   Record<CharacterPose, [CharacterPose, CharacterPose]>
@@ -87,6 +98,13 @@ type BuildingAnimation = {
   image: Phaser.GameObjects.Image;
   period: number;
   phase: number;
+};
+type FireEffect = {
+  image: Phaser.GameObjects.Image;
+  base: string;
+  phase: number;
+  glow: Phaser.GameObjects.Image;
+  smoke: Phaser.GameObjects.Image[];
 };
 export class WorldScene extends Phaser.Scene {
   private runtime: Runtime;
@@ -122,6 +140,7 @@ export class WorldScene extends Phaser.Scene {
   private selection?: Phaser.GameObjects.Graphics;
   private routeOverlay?: Phaser.GameObjects.Graphics;
   private actorFrames = new Map<string, string>();
+  private wheelAccum = 0;
   private unsubscribe?: () => void;
   private staticKey = "";
   private terrainStream?: TerrainStream;
@@ -129,6 +148,8 @@ export class WorldScene extends Phaser.Scene {
   private drawnWorld?: WorldModel;
   private buildings = new Map<string, Phaser.GameObjects.Image>();
   private buildingAnimations = new Map<string, BuildingAnimation>();
+  private fires = new Map<string, FireEffect>();
+  private fireFrames = new Set<string>();
   private nextInput = 0;
   private motionDuration = 140;
   private heldDirections = new Set<string>();
@@ -183,6 +204,10 @@ export class WorldScene extends Phaser.Scene {
     this.ready = true;
     this.characters = new WorldCharacters(this);
     this.events.once("shutdown", () => this.characters?.destroy());
+    ensureFireTextures(this);
+    this.fireFrames = animatedFrames(
+      this.textures.get("props").getFrameNames(),
+    );
     // Watched rather than queried: the input gate runs on every frame.
     const watchModals = new MutationObserver(() => {
       this.modalOpen = !!document.querySelector('[data-modal="true"]');
@@ -289,8 +314,16 @@ export class WorldScene extends Phaser.Scene {
     this.input.on(
       "wheel",
       (_p: unknown, _g: unknown, _dx: number, dy: number) => {
-        if (dy && !this.options.lab)
-          this.runtime.setZoom(this.runtime.zoom + (dy < 0 ? 1 : -1));
+        if (!dy || this.options.lab) return;
+        // Trackpads fire many small deltas; accumulate and step one notch at a
+        // time so a light flick doesn't run to the end of the range.
+        this.wheelAccum += dy;
+        const notch = 90;
+        while (Math.abs(this.wheelAccum) >= notch) {
+          const dir = this.wheelAccum > 0 ? 1 : -1;
+          this.wheelAccum -= dir * notch;
+          this.runtime.stepZoom(-dir);
+        }
       },
     );
     const onResize = () => this.draw();
@@ -396,6 +429,63 @@ export class WorldScene extends Phaser.Scene {
       period: Math.max(120, animation.period ?? 280),
       phase: animation.phase ?? 0,
     });
+  }
+  /** Flame frames, a ground glow and a few drifting puffs of smoke. */
+  private lightFire(
+    id: string,
+    image: Phaser.GameObjects.Image,
+    base: string,
+    x: number,
+    y: number,
+  ) {
+    const existing = this.fires.get(id);
+    if (existing && existing.base === base) return;
+    if (existing) this.quenchFire(id);
+    const phase = Math.floor(this.poseOffset(id) % 4);
+    const glow = this.add
+      .image(x, y - 10, "fire-glow")
+      .setBlendMode(Phaser.BlendModes.ADD)
+      .setScale(1.4, 1)
+      .setAlpha(glowAlpha[this.light.id])
+      .setDepth(image.depth - 1);
+    const smoke: Phaser.GameObjects.Image[] = [];
+    if (!this.options.freeze)
+      for (let i = 0; i < SMOKE_PUFFS; i++) {
+        const puff = this.add
+          .image(x, y - 34, "fire-smoke")
+          .setAlpha(0)
+          .setDepth(image.depth + 1);
+        const drift = () => {
+          const dx = (Math.random() - 0.5) * 6;
+          puff
+            .setPosition(x + dx, y - 32)
+            .setAlpha(0.32)
+            .setScale(0.5);
+          this.tweens.add({
+            targets: puff,
+            y: y - 60,
+            x: x + dx + (Math.random() - 0.3) * 10,
+            alpha: 0,
+            scale: 1.7,
+            duration: SMOKE_MS,
+            ease: "Sine.easeOut",
+            onComplete: drift,
+          });
+        };
+        this.time.delayedCall((i * SMOKE_MS) / SMOKE_PUFFS, drift);
+        smoke.push(puff);
+      }
+    this.fires.set(id, { image, base, phase, glow, smoke });
+  }
+  private quenchFire(id: string) {
+    const fire = this.fires.get(id);
+    if (!fire) return;
+    fire.glow.destroy();
+    for (const puff of fire.smoke) {
+      this.tweens.killTweensOf(puff);
+      puff.destroy();
+    }
+    this.fires.delete(id);
   }
   private texture(frame: string) {
     if (frame.startsWith("nature-")) return "nature";
@@ -772,7 +862,8 @@ export class WorldScene extends Phaser.Scene {
                 animation?: BuildingAnimationRecipe;
               }
             ).animation;
-            if (animation) this.addBuildingAnimation(b.id, placement, animation);
+            if (animation)
+              this.addBuildingAnimation(b.id, placement, animation);
           }
         for (const fence of w.enclosures) {
           // A city circuit is far wider than a pen, so the cull tests the whole
@@ -956,9 +1047,13 @@ export class WorldScene extends Phaser.Scene {
       }
       // One source pixel is one world pixel, for objects and their shadows.
       const texture = this.texture(frame);
-      if (im.texture.key !== texture || im.frame.name !== frame)
+      if (im.texture.key !== texture || animatedBase(im.frame.name) !== frame)
         im.setTexture(texture, frame);
-      const tint = frame === "fire" ? 0xffffff : this.tint;
+      const fire = frame === "fire" || this.fireFrames.has(frame);
+      if (this.fireFrames.has(frame)) this.lightFire(id, im, frame, tx, ty);
+      else if (this.fires.has(id)) this.quenchFire(id);
+      // A fire keeps its own colour at night.
+      const tint = fire ? 0xffffff : this.tint;
       if (im.tintTopLeft !== tint) im.setTint(tint);
       const depth = pos.y * 16 + (actor ? 14 : 10);
       if (im.depth !== depth) im.setDepth(depth);
@@ -1124,6 +1219,7 @@ export class WorldScene extends Phaser.Scene {
         const shade = this.shadows.get(id);
         if (shade) this.tweens.killTweensOf(shade);
         image.destroy();
+        this.quenchFire(id);
         this.entities.delete(id);
         this.destinations.delete(id);
         this.actorFrames.delete(id);
@@ -1199,6 +1295,20 @@ export class WorldScene extends Phaser.Scene {
       this.rippleTime = phase;
       for (const r of this.ripples)
         r.image.setFrame(`ripple-${(phase + r.phase) % 4}`);
+    }
+    for (const fire of this.fires.values()) {
+      const n = this.options.freeze
+        ? 0
+        : Math.floor(time / FIRE_FRAME_MS + fire.phase) % 4;
+      const name = n ? `${fire.base}-f${n}` : fire.base;
+      if (fire.image.frame.name !== name) fire.image.setFrame(name);
+      const pulse = this.options.freeze
+        ? 1
+        : 0.88 + 0.12 * Math.sin(time / 210 + fire.phase * 1.7);
+      const alpha = glowAlpha[this.light.id] * pulse;
+      if (fire.glow.alpha !== alpha) fire.glow.setAlpha(alpha);
+      if (fire.glow.depth !== fire.image.depth - 1)
+        fire.glow.setDepth(fire.image.depth - 1);
     }
     for (const animation of this.buildingAnimations.values()) {
       const frame = this.options.freeze

@@ -30,6 +30,7 @@ import {
   type WorldObject,
 } from "./types";
 import { canonical, random, stateHash } from "./random";
+import { resolveIntents, validateIntents } from "./intents";
 import { findPath } from "./pathfinding";
 import { itineraryAt, type Itinerary } from "./itinerary";
 import { route, type RouteResult } from "./routing";
@@ -134,8 +135,11 @@ export class Engine {
       "system",
     );
   }
+  item(id: ItemId): ItemDef | undefined {
+    return this.items[id] ?? this.state.catalog?.[id];
+  }
   hash() {
-    const { receipts, log, notes, ...physical } = this.state;
+    const { receipts, log, notes, narration, ...physical } = this.state;
     return stateHash(physical);
   }
   snapshot() {
@@ -196,7 +200,7 @@ export class Engine {
       );
     }
   }
-  private rng(purpose: string) {
+  rng(purpose: string) {
     return random(
       this.state.manifest.seed,
       "simulation",
@@ -426,7 +430,7 @@ export class Engine {
   visible(pos: Position) {
     return this.visibleFrom(this.state.player.pos, pos);
   }
-  private visibleFrom(p: Position, pos: Position) {
+  visibleFrom(p: Position, pos: Position) {
     if (distance(p, pos) > SIGHT) return false;
     if (p.space !== "outside") return true;
     const steps = Math.max(Math.abs(p.x - pos.x), Math.abs(p.y - pos.y));
@@ -686,8 +690,9 @@ export class Engine {
         object.open ? "Close gate" : "Open gate",
       );
     if (object.kind === "well") interact("drink", "Drink and refill water");
-    if (object.kind === "fire" || object.kind === "bed")
-      interact("rest", "Rest for 20 minutes");
+    if (object.kind === "fire")
+      interact("rest", "Warm yourself for 20 minutes");
+    if (object.kind === "bed") interact("rest", "Rest for 20 minutes");
     if (object.kind === "tree")
       interact(
         "harvest",
@@ -812,7 +817,7 @@ export class Engine {
     this.state.receipts[request.actionId] = { payload, result: copy(result) };
     return result;
   }
-  private validate(c: PlayerCommand): string | undefined {
+  validate(c: PlayerCommand): string | undefined {
     const p = this.state.player;
     if (c.type === "move" || c.type === "throw") {
       if (
@@ -870,9 +875,10 @@ export class Engine {
         ? undefined
         : "Wait between 1 and 3,600 seconds.";
     if (c.type === "use")
-      return this.items[c.item]?.edible && (p.inventory[c.item] ?? 0) > 0
+      return this.item(c.item)?.edible && (p.inventory[c.item] ?? 0) > 0
         ? undefined
         : "You cannot eat that item.";
+    if (c.type === "narrate") return validateIntents(this, c.intents);
     if (c.type === "interact" && c.action === "drop" && !this.dropSpot())
       return "There is no clear adjacent place to put it down.";
     const target = this.inspect(c.target);
@@ -893,17 +899,16 @@ export class Engine {
         c.give === c.take
       )
         return "Invalid quantities or items.";
+      const give = this.item(c.give),
+        take = this.item(c.take);
       if (
-        !this.items[c.give] ||
-        !this.items[c.take] ||
+        !give ||
+        !take ||
         (p.inventory[c.give] ?? 0) < c.giveQuantity ||
         (a.inventory[c.take] ?? 0) < c.takeQuantity
       )
         return "One side does not have the offered goods.";
-      if (
-        this.items[c.give].value * c.giveQuantity <
-        this.items[c.take].value * c.takeQuantity
-      )
+      if (give.value * c.giveQuantity < take.value * c.takeQuantity)
         return "They decline those terms.";
       return;
     }
@@ -914,7 +919,9 @@ export class Engine {
       return offered?.reason ?? "That action is not available.";
   }
   private populatedDistrict = "";
-  private populateNearby() {
+  /** One line per intent from the last narrate command. */
+  lastOutcomes: string[] = [];
+  populateNearby() {
     if (!this.world.activate) return;
     const p = this.state.player.pos;
     if (p.space !== "outside") return;
@@ -952,7 +959,7 @@ export class Engine {
   /** The traversal a move resolved to, for the renderer to animate. Cleared
    * once read, so a walked step never inherits the previous jump's arc. */
   lastLeap?: LeapResult;
-  private execute(c: PlayerCommand) {
+  execute(c: PlayerCommand) {
     const p = this.state.player;
     if (c.type === "throw") {
       const prop = heldObject(this.state);
@@ -1040,10 +1047,19 @@ export class Engine {
       return;
     }
     if (c.type === "use") {
+      const def = this.item(c.item)!;
       p.inventory[c.item] = (p.inventory[c.item] ?? 0) - 1;
-      p.hunger = Math.max(0, p.hunger - (this.items[c.item].edible ?? 0));
+      p.hunger = Math.max(0, p.hunger - (def.edible ?? 0));
+      if (def.health)
+        p.health = Math.min(100, Math.max(0, (p.health ?? 100) + def.health));
       this.advance(60);
-      this.event(`You eat some ${this.items[c.item].name.toLowerCase()}.`);
+      this.event(
+        `You eat some ${def.name.toLowerCase()}.${def.health && def.health < 0 ? " It does not sit well." : ""}`,
+      );
+      return;
+    }
+    if (c.type === "narrate") {
+      this.lastOutcomes = resolveIntents(this, c.intents);
       return;
     }
     if (c.type === "interact") {
@@ -1244,7 +1260,7 @@ export class Engine {
             ) as Inventory;
             for (const [k, v] of Object.entries(inv)) {
               const item = k as ItemId;
-              const n = Math.min(v, p.inventory[item] ?? 0);
+              const n = Math.min(v ?? 0, p.inventory[item] ?? 0);
               o.inventory[item] = (o.inventory[item] ?? 0) + n;
               p.inventory[item] = (p.inventory[item] ?? 0) - n;
             }
@@ -1292,7 +1308,7 @@ export class Engine {
   private transfer(from: Inventory, to: Inventory) {
     for (const [k, n] of Object.entries(from)) {
       const id = k as ItemId;
-      to[id] = (to[id] ?? 0) + n;
+      to[id] = (to[id] ?? 0) + (n ?? 0);
       from[id] = 0;
     }
   }
@@ -1475,7 +1491,7 @@ export class Engine {
       this.moveActor(a, copy(a.home));
     }
   }
-  private advance(seconds: number, heldActor?: string) {
+  advance(seconds: number, heldActor?: string) {
     // Derived paths never survive a command boundary: saves and replays need no hidden routing state.
     this.routes.clear();
     this.tickObstacles = new Map();

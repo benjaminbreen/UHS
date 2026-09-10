@@ -93,10 +93,23 @@ export function urbanFrames(
     )
     .map(([form]) => form);
   return pack.buildings.flatMap((base) =>
-    forms
-      .map((form) => `${base}-urban-${form}`)
-      .filter((frame) => !!buildingModels[frame]),
+    isPeriod(base)
+      ? infill
+        ? []
+        : [base]
+      : forms
+          .map((form) => `${base}-urban-${form}`)
+          .filter((frame) => !!buildingModels[frame]),
   );
+}
+
+/** Period street facades are complete frames rather than base-and-form kits;
+ * they carry their own storeys and a role the quarters sort by. */
+function isPeriod(frame: string): boolean {
+  return !!(buildingModels[frame] as { period?: boolean } | undefined)?.period;
+}
+function periodRole(frame: string): string {
+  return (buildingModels[frame] as { role?: string }).role ?? "house";
 }
 
 /** Composed as a town rather than a hamlet. The road layer and the planner both
@@ -665,6 +678,21 @@ export function urbanNeighborhood(
               : modern
                 ? ["row", "midrise", "tall"]
                 : ["row", "tall"];
+    const period = frames.filter(isPeriod);
+    if (period.length) {
+      const roles =
+        quarter === "market"
+          ? ["shop", "tenement"]
+          : quarter === "craft"
+            ? ["shop", "house", "tenement"]
+            : quarter === "elite"
+              ? ["grand", "house"]
+              : quarter === "edge"
+                ? ["house", "shop"]
+                : ["house", "tenement"];
+      const chosen = period.filter((f) => roles.includes(periodRole(f)));
+      return chosen.length ? chosen : period;
+    }
     const chosen = frames.filter((f) => want.some((w) => f.endsWith(`-${w}`)));
     return chosen.length ? chosen : frames;
   }

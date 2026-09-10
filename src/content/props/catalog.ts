@@ -12,6 +12,10 @@ export type PropDef = {
   drink?: boolean;
   strike?: boolean;
   contents?: Inventory;
+  /** The settlement's shared fire. Keeps the `fire` object kind. */
+  fire?: boolean;
+  /** Sprite variants the family has; three unless said otherwise. */
+  variants?: number;
 };
 export const propDefs: Record<string, PropDef> = {
   ...urbanProps,
@@ -150,6 +154,59 @@ export const propDefs: Record<string, PropDef> = {
     family: "trough",
     container: true,
     contents: { water: 4 },
+  },
+  firepit: {
+    solid: true,
+    name: "Shared firepit",
+    family: "hearth",
+    fire: true,
+    variants: 1,
+  },
+  longFire: {
+    solid: true,
+    name: "Long fire",
+    family: "long-fire",
+    fire: true,
+    variants: 1,
+  },
+  tannur: {
+    solid: true,
+    name: "Sunken clay oven",
+    family: "tannur",
+    fire: true,
+  },
+  brazier: {
+    solid: true,
+    name: "Standing brazier",
+    family: "brazier",
+    fire: true,
+    variants: 2,
+  },
+  bakeOven: {
+    solid: true,
+    name: "Communal bake oven",
+    family: "oven",
+    fire: true,
+  },
+  teaStove: {
+    solid: true,
+    name: "Stove and kettle",
+    family: "stove",
+    fire: true,
+  },
+  fireBasket: {
+    solid: true,
+    name: "Iron fire basket",
+    family: "fire-basket",
+    fire: true,
+    variants: 1,
+  },
+  drumFire: {
+    solid: true,
+    name: "Oil-drum fire",
+    family: "oil-drum",
+    fire: true,
+    variants: 1,
   },
   woodpile: {
     solid: true,

@@ -22,6 +22,54 @@ const namesByCulture: Partial<Record<WorldSetting["culture"], string[]>> = {
   ],
   "inner-eurasian": ["Altan", "Saran", "Batu", "Oyu", "Temur", "Nara"],
 };
+/** Street facades for a city of 1700 to 1899, by region and decade. These are
+ * full model frames, not kit bases; the urban planner passes them through. */
+export function periodBuildings(setting: WorldSetting): string[] {
+  const { year, culture, lon, lat } = setting;
+  if (year < 1700 || year >= 1900) return [];
+  if (setting.settlement !== "city" && setting.settlement !== "port") return [];
+  const victorian = year >= 1840;
+  if (culture === "european" && lon < -30)
+    return year < 1830
+      ? ["federal-house", "georgian-townhouse", "georgian-shop", "georgian-stone-house"]
+      : [
+          "brownstone",
+          "brownstone-pair",
+          "italianate-row",
+          "greek-revival",
+          "mansard-house",
+          "victorian-shop",
+          "victorian-grocer",
+          ...(year >= 1860 ? ["tenement-storefront", "tenement-walkup", "cast-iron-warehouse"] : []),
+        ];
+  if (culture === "european")
+    return [
+      "georgian-townhouse",
+      "georgian-terrace",
+      "georgian-stone-house",
+      "georgian-shop",
+      ...(year >= 1800 ? ["regency-terrace"] : []),
+      ...(victorian ? ["victorian-shop", "victorian-grocer", "mansard-house", "cast-iron-warehouse"] : []),
+    ];
+  if (culture === "east-asian") {
+    const japan = lon > 128 && lat > 30 && lat < 46;
+    const korea = !japan && lon > 124 && lon < 130.5 && lat > 33.5 && lat < 39;
+    if (japan)
+      return ["machiya", "machiya-shop", ...(year >= 1870 ? ["giyofu-house"] : [])];
+    if (korea) return ["hanok", "chinese-shophouse"];
+    return ["chinese-shophouse", "chinese-courtyard-gate"];
+  }
+  if (culture === "southeast-asian")
+    return year >= 1820
+      ? ["straits-shophouse", "straits-shophouse-mint", "colonial-bungalow"]
+      : ["chinese-shophouse", "colonial-bungalow"];
+  if (culture === "south-asian")
+    return year >= 1800
+      ? ["colonial-bungalow", "straits-shophouse-mint", "victorian-shop"]
+      : ["colonial-bungalow"];
+  return [];
+}
+
 export function packForSetting(setting: WorldSetting): Pack {
   const early = setting.year < -3499;
   const base = packTemplates[early ? "neolithic" : "roman"];
@@ -29,6 +77,7 @@ export function packForSetting(setting: WorldSetting): Pack {
   const modernCity =
     setting.year >= 1900 &&
     (setting.settlement === "city" || setting.settlement === "port");
+  const period = periodBuildings(setting).map((b) => `period-${b}`);
   const buildings = modernCity
     ? ["modern-apartment", "modern-office", "modern-shop"]
     : architecture === "shelter"
@@ -71,7 +120,8 @@ export function packForSetting(setting: WorldSetting): Pack {
     setting,
     ground: setting.climate === "arid" ? "dry" : "grass",
     road: "dirt",
-    buildings,
+    // Period facades lead; the kit base stays for civic halls and infill forms.
+    buildings: period.length ? [...period, ...buildings] : buildings,
     trees,
     landscape:
       setting.settlement === "city" || setting.settlement === "port"

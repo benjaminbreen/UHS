@@ -1,0 +1,1058 @@
+{
+  "materials": {
+    "red-brick": {
+      "texture": "brick",
+      "wall": [
+        "#3a2420",
+        "#6b3a2e",
+        "#9a5240",
+        "#b8694f",
+        "#d08a68"
+      ],
+      "roof": [
+        "#29383e",
+        "#40505c",
+        "#566e79",
+        "#98a5a1"
+      ],
+      "foundation": [
+        "#4a4a41",
+        "#8a8878",
+        "#c2beaa"
+      ]
+    },
+    "brown-brick": {
+      "texture": "brick",
+      "wall": [
+        "#2f1f1a",
+        "#563630",
+        "#7e4f3f",
+        "#98634f",
+        "#b5806a"
+      ],
+      "roof": [
+        "#26262a",
+        "#39393a",
+        "#4c4c49",
+        "#77766c"
+      ],
+      "foundation": [
+        "#3e3e38",
+        "#75736a",
+        "#aaa89b"
+      ]
+    },
+    "london-stock": {
+      "texture": "brick",
+      "wall": [
+        "#3b3629",
+        "#6e6549",
+        "#a49874",
+        "#c3b58f",
+        "#dcd0ac"
+      ],
+      "roof": [
+        "#29383e",
+        "#40505c",
+        "#566e79",
+        "#98a5a1"
+      ],
+      "foundation": [
+        "#4a4a41",
+        "#8a8878",
+        "#c2beaa"
+      ]
+    },
+    "brownstone": {
+      "texture": "ashlar",
+      "wall": [
+        "#3a2b21",
+        "#5f4636",
+        "#836650",
+        "#9e806a",
+        "#bc9f86"
+      ],
+      "roof": [
+        "#26262a",
+        "#39393a",
+        "#4c4c49",
+        "#77766c"
+      ],
+      "foundation": [
+        "#3f322a",
+        "#6f5a4a",
+        "#a58c76"
+      ]
+    },
+    "limestone": {
+      "texture": "ashlar",
+      "wall": [
+        "#484537",
+        "#837f6a",
+        "#bbb59b",
+        "#d3ceb4",
+        "#e9e5cd"
+      ],
+      "roof": [
+        "#29383e",
+        "#40505c",
+        "#566e79",
+        "#98a5a1"
+      ],
+      "foundation": [
+        "#4a4a41",
+        "#8a8878",
+        "#c2beaa"
+      ]
+    },
+    "cream-stucco": {
+      "texture": "stucco",
+      "wall": [
+        "#4c4536",
+        "#8e8166",
+        "#d3c6a6",
+        "#e6dcc0",
+        "#f7f0d8"
+      ],
+      "roof": [
+        "#29383e",
+        "#40505c",
+        "#566e79",
+        "#98a5a1"
+      ],
+      "foundation": [
+        "#4a4a41",
+        "#8a8878",
+        "#c2beaa"
+      ]
+    },
+    "ochre-stucco": {
+      "texture": "stucco",
+      "wall": [
+        "#4e4230",
+        "#917a50",
+        "#cdb079",
+        "#dfc790",
+        "#f1deab"
+      ],
+      "roof": [
+        "#29383e",
+        "#40505c",
+        "#566e79",
+        "#98a5a1"
+      ],
+      "foundation": [
+        "#4a4a41",
+        "#8a8878",
+        "#c2beaa"
+      ]
+    },
+    "white-clapboard": {
+      "texture": "clapboard",
+      "wall": [
+        "#46453c",
+        "#8d8c7c",
+        "#d6d4c3",
+        "#e8e6d7",
+        "#faf8ed"
+      ],
+      "roof": [
+        "#3b322d",
+        "#635040",
+        "#896b4e",
+        "#c6a57b"
+      ],
+      "foundation": [
+        "#4a4a41",
+        "#8a8878",
+        "#c2beaa"
+      ]
+    },
+    "grey-brick": {
+      "texture": "grey-brick",
+      "timber": [
+        "#2b211b",
+        "#4d3a2c",
+        "#6e563f",
+        "#8f7454",
+        "#ad9169"
+      ],
+      "wall": [
+        "#2c2f31",
+        "#565b5c",
+        "#818785",
+        "#9fa4a1",
+        "#bcc0bb"
+      ],
+      "roof": [
+        "#2a2e30",
+        "#474d50",
+        "#646b6d",
+        "#a4aaa6"
+      ],
+      "foundation": [
+        "#3a3d3c",
+        "#6e7371",
+        "#a3a8a3"
+      ]
+    },
+    "machiya-timber": {
+      "texture": "timber-plaster",
+      "timber": [
+        "#241b15",
+        "#43322a",
+        "#63493a",
+        "#826650",
+        "#a3886a"
+      ],
+      "wall": [
+        "#4a4438",
+        "#8d846f",
+        "#dcd3bb",
+        "#ece5cf",
+        "#f8f3e1"
+      ],
+      "roof": [
+        "#20262a",
+        "#353e44",
+        "#4e5a61",
+        "#8d9aa2"
+      ],
+      "foundation": [
+        "#40403a",
+        "#7b7a70",
+        "#b3b2a4"
+      ]
+    },
+    "hanok-plaster": {
+      "texture": "panel",
+      "timber": [
+        "#2c2119",
+        "#54402f",
+        "#7a5d43",
+        "#9a7a58",
+        "#b8966f"
+      ],
+      "wall": [
+        "#4c4539",
+        "#8f8672",
+        "#dcd2b8",
+        "#eae2cc",
+        "#f7f1de"
+      ],
+      "roof": [
+        "#2a2e30",
+        "#474d50",
+        "#646b6d",
+        "#a4aaa6"
+      ],
+      "foundation": [
+        "#4a4a41",
+        "#8a8878",
+        "#c2beaa"
+      ]
+    },
+    "peach-plaster": {
+      "texture": "stucco",
+      "wall": [
+        "#4f3f36",
+        "#a0765f",
+        "#d9ac8e",
+        "#e8c5aa",
+        "#f6dfc8"
+      ],
+      "roof": [
+        "#52332d",
+        "#8d3d2c",
+        "#b44e31",
+        "#e78a51"
+      ],
+      "foundation": [
+        "#4a4a41",
+        "#8a8878",
+        "#c2beaa"
+      ]
+    },
+    "mint-plaster": {
+      "texture": "stucco",
+      "wall": [
+        "#3f4a45",
+        "#6f8d7f",
+        "#a9c9b5",
+        "#c7ddcb",
+        "#e3f0e3"
+      ],
+      "roof": [
+        "#52332d",
+        "#8d3d2c",
+        "#b44e31",
+        "#e78a51"
+      ],
+      "foundation": [
+        "#4a4a41",
+        "#8a8878",
+        "#c2beaa"
+      ]
+    }
+  },
+  "buildings": {
+    "georgian-townhouse": {
+      "label": "Georgian townhouse",
+      "group": "Georgian \u00b7 Britain and colonies",
+      "style": "georgian",
+      "footprint": [
+        4,
+        3
+      ],
+      "entrance": [
+        3,
+        3
+      ],
+      "stories": 3,
+      "bays": 3,
+      "roofDepth": 22,
+      "wall": "red-brick",
+      "roofMaterial": "slate",
+      "roofStyle": "parapet-hip",
+      "window": "sash",
+      "door": "fanlight",
+      "cornice": "dentil",
+      "extras": [
+        "chimneys",
+        "railings",
+        "tall"
+      ],
+      "variant": 0,
+      "seed": 811,
+      "description": "A three-bay brick townhouse of about 1760: rubbed-brick flat arches, six-over-six sashes, a fanlight over a panelled door, and a parapet hiding the slate roof.",
+      "role": "house"
+    },
+    "georgian-terrace": {
+      "label": "Georgian terrace range",
+      "group": "Georgian \u00b7 Britain and colonies",
+      "style": "georgian",
+      "footprint": [
+        6,
+        3
+      ],
+      "entrance": [
+        1,
+        3
+      ],
+      "stories": 3,
+      "bays": 5,
+      "roofDepth": 22,
+      "wall": "london-stock",
+      "roofMaterial": "slate",
+      "roofStyle": "parapet-hip",
+      "window": "sash",
+      "door": "fanlight",
+      "cornice": "dentil",
+      "extras": [
+        "chimneys",
+        "railings",
+        "tall",
+        "basement"
+      ],
+      "variant": 1,
+      "seed": 812,
+      "description": "A five-bay run of yellow London stock brick with a basement area behind iron railings, the piano nobile marked by taller first-floor sashes.",
+      "role": "grand"
+    },
+    "georgian-stone-house": {
+      "label": "Ashlar town house",
+      "group": "Georgian \u00b7 Britain and colonies",
+      "style": "georgian",
+      "footprint": [
+        5,
+        3
+      ],
+      "entrance": [
+        2,
+        3
+      ],
+      "stories": 3,
+      "bays": 3,
+      "roofDepth": 24,
+      "wall": "limestone",
+      "roofMaterial": "slate",
+      "roofStyle": "parapet-hip",
+      "window": "sash",
+      "door": "fanlight",
+      "cornice": "dentil",
+      "extras": [
+        "chimneys",
+        "pediment",
+        "quoins",
+        "rusticated"
+      ],
+      "variant": 2,
+      "seed": 813,
+      "description": "Palladian manners in dressed limestone: rusticated ground floor, quoined corners and a pedimented doorcase, as in Bath or Dublin.",
+      "role": "grand"
+    },
+    "regency-terrace": {
+      "label": "Regency stucco terrace",
+      "group": "Georgian \u00b7 Britain and colonies",
+      "style": "regency",
+      "footprint": [
+        5,
+        3
+      ],
+      "entrance": [
+        2,
+        3
+      ],
+      "stories": 3,
+      "bays": 3,
+      "roofDepth": 20,
+      "wall": "cream-stucco",
+      "roofMaterial": "slate",
+      "roofStyle": "hip",
+      "window": "sash",
+      "door": "fanlight",
+      "cornice": "dentil",
+      "extras": [
+        "balcony",
+        "canopy",
+        "tall",
+        "rusticated",
+        "chimneys"
+      ],
+      "variant": 4,
+      "seed": 814,
+      "description": "Painted stucco of the 1820s with a continuous iron balcony under a tented canopy at first-floor level, low hipped slate roof and deep eaves.",
+      "role": "grand"
+    },
+    "georgian-shop": {
+      "label": "Georgian bow-window shop",
+      "group": "Georgian \u00b7 Britain and colonies",
+      "style": "georgian",
+      "footprint": [
+        4,
+        3
+      ],
+      "entrance": [
+        1,
+        3
+      ],
+      "stories": 2,
+      "bays": 3,
+      "roofDepth": 24,
+      "wall": "red-brick",
+      "roofMaterial": "shingle",
+      "roofStyle": "gable",
+      "window": "bay",
+      "door": "fanlight",
+      "cornice": "dentil",
+      "extras": [
+        "chimneys",
+        "hanging-sign"
+      ],
+      "variant": 2,
+      "seed": 815,
+      "description": "A two-story shop-house with a many-paned bow window beside the door and a hanging trade sign, typical of a market town high street.",
+      "role": "shop"
+    },
+    "federal-house": {
+      "label": "Federal clapboard house",
+      "group": "American \u00b7 1780 to 1900",
+      "style": "federal",
+      "footprint": [
+        5,
+        3
+      ],
+      "entrance": [
+        2,
+        3
+      ],
+      "stories": 2,
+      "bays": 3,
+      "roofDepth": 24,
+      "wall": "white-clapboard",
+      "roofMaterial": "shingle",
+      "roofStyle": "gable",
+      "window": "shuttered",
+      "door": "fanlight",
+      "cornice": "dentil",
+      "extras": [
+        "chimneys",
+        "pediment"
+      ],
+      "variant": 0,
+      "seed": 816,
+      "description": "White-painted clapboard with green shutters, paired end chimneys and an elliptical fanlight, the New England house of about 1800.",
+      "role": "house"
+    },
+    "greek-revival": {
+      "label": "Greek Revival house",
+      "group": "American \u00b7 1780 to 1900",
+      "style": "greek-revival",
+      "footprint": [
+        5,
+        3
+      ],
+      "entrance": [
+        2,
+        3
+      ],
+      "stories": 2,
+      "bays": 3,
+      "roofDepth": 26,
+      "wall": "white-clapboard",
+      "roofMaterial": "shingle",
+      "roofStyle": "pediment",
+      "window": "sash",
+      "door": "double",
+      "cornice": "none",
+      "extras": [
+        "porch"
+      ],
+      "variant": 4,
+      "seed": 817,
+      "description": "Gable-end to the street with a full pediment and a columned porch: the temple-front house of the 1830s and 1840s.",
+      "role": "grand"
+    },
+    "brownstone": {
+      "label": "Brownstone row house",
+      "group": "American \u00b7 1780 to 1900",
+      "style": "brownstone",
+      "footprint": [
+        4,
+        3
+      ],
+      "entrance": [
+        1,
+        3
+      ],
+      "stories": 4,
+      "bays": 3,
+      "roofDepth": 18,
+      "wall": "brownstone",
+      "roofMaterial": "tar",
+      "roofStyle": "flat",
+      "window": "sash",
+      "door": "stoop",
+      "cornice": "bracket",
+      "extras": [
+        "basement",
+        "hoods",
+        "tall",
+        "chimneys"
+      ],
+      "variant": 1,
+      "seed": 818,
+      "description": "A high-stoop brownstone of the 1870s: raised basement, tall parlour-floor windows under stone hoods and a heavy bracketed cornice.",
+      "role": "house"
+    },
+    "brownstone-pair": {
+      "label": "Brownstone double house",
+      "group": "American \u00b7 1780 to 1900",
+      "style": "brownstone",
+      "footprint": [
+        6,
+        3
+      ],
+      "entrance": [
+        2,
+        3
+      ],
+      "stories": 4,
+      "bays": 4,
+      "roofDepth": 18,
+      "wall": "brownstone",
+      "roofMaterial": "tar",
+      "roofStyle": "flat",
+      "window": "sash-arched",
+      "door": "stoop",
+      "cornice": "bracket",
+      "extras": [
+        "basement",
+        "hoods",
+        "chimneys",
+        "skylight"
+      ],
+      "variant": 3,
+      "seed": 819,
+      "description": "A wider brownstone with round-headed windows, on the Italianate pattern of Brooklyn and Harlem.",
+      "role": "grand"
+    },
+    "italianate-row": {
+      "label": "Italianate row house",
+      "group": "American \u00b7 1780 to 1900",
+      "style": "italianate",
+      "footprint": [
+        4,
+        3
+      ],
+      "entrance": [
+        3,
+        3
+      ],
+      "stories": 3,
+      "bays": 3,
+      "roofDepth": 18,
+      "wall": "ochre-stucco",
+      "roofMaterial": "tar",
+      "roofStyle": "flat",
+      "window": "bay",
+      "door": "fanlight",
+      "cornice": "bracket",
+      "extras": [
+        "hoods",
+        "chimneys"
+      ],
+      "variant": 2,
+      "seed": 820,
+      "description": "A bracketed cornice, arched upper windows and a projecting ground-floor bay, painted ochre: the mid-century Italianate row house.",
+      "role": "house"
+    },
+    "mansard-house": {
+      "label": "Second Empire house",
+      "group": "American \u00b7 1780 to 1900",
+      "style": "second-empire",
+      "footprint": [
+        5,
+        3
+      ],
+      "entrance": [
+        2,
+        3
+      ],
+      "stories": 3,
+      "bays": 3,
+      "roofDepth": 30,
+      "wall": "red-brick",
+      "roofMaterial": "slate",
+      "roofStyle": "mansard",
+      "window": "sash-arched",
+      "door": "double",
+      "cornice": "bracket",
+      "extras": [
+        "hoods",
+        "chimneys"
+      ],
+      "variant": 3,
+      "seed": 821,
+      "description": "A slate mansard with dormers and iron cresting over a brick body: the fashionable house of the 1860s and 1870s.",
+      "role": "grand"
+    },
+    "victorian-shop": {
+      "label": "Victorian shop with fascia",
+      "group": "Victorian \u00b7 1840 to 1900",
+      "style": "victorian",
+      "footprint": [
+        4,
+        3
+      ],
+      "entrance": [
+        1,
+        3
+      ],
+      "stories": 3,
+      "bays": 3,
+      "roofDepth": 18,
+      "wall": "red-brick",
+      "roofMaterial": "slate",
+      "roofStyle": "parapet-hip",
+      "window": "sash",
+      "door": "shop",
+      "cornice": "corbel",
+      "extras": [
+        "awning",
+        "chimneys"
+      ],
+      "sign": "DRAPER",
+      "variant": 1,
+      "seed": 822,
+      "description": "Plate glass under a lettered fascia and a striped blind, with lodgings above. The standard high-street shop from the 1850s onward.",
+      "role": "shop"
+    },
+    "victorian-grocer": {
+      "label": "Corner grocer",
+      "group": "Victorian \u00b7 1840 to 1900",
+      "style": "victorian",
+      "footprint": [
+        5,
+        3
+      ],
+      "entrance": [
+        2,
+        3
+      ],
+      "stories": 2,
+      "bays": 3,
+      "roofDepth": 22,
+      "wall": "london-stock",
+      "roofMaterial": "slate",
+      "roofStyle": "hip",
+      "window": "sash",
+      "door": "shop",
+      "cornice": "dentil",
+      "extras": [
+        "wares",
+        "chimneys"
+      ],
+      "sign": "GROCER",
+      "variant": 2,
+      "seed": 823,
+      "description": "A two-story grocer's with produce crates on the pavement and a painted fascia; the shop the neighbourhood buys its bread from.",
+      "role": "shop"
+    },
+    "cast-iron-warehouse": {
+      "label": "Cast-iron warehouse",
+      "group": "Victorian \u00b7 1840 to 1900",
+      "style": "cast-iron",
+      "footprint": [
+        6,
+        3
+      ],
+      "entrance": [
+        3,
+        3
+      ],
+      "stories": 4,
+      "bays": 5,
+      "roofDepth": 16,
+      "wall": "cream-stucco",
+      "roofMaterial": "tar",
+      "roofStyle": "flat",
+      "window": "sash-arched",
+      "door": "double",
+      "cornice": "bracket",
+      "extras": [
+        "chimneys",
+        "skylight"
+      ],
+      "variant": 4,
+      "seed": 824,
+      "description": "Rows of arched windows between slender painted iron columns, as in SoHo or Glasgow's warehouse streets of the 1860s.",
+      "role": "tenement"
+    },
+    "tenement-storefront": {
+      "label": "Tenement with storefront",
+      "group": "Victorian \u00b7 1840 to 1900",
+      "style": "tenement",
+      "footprint": [
+        5,
+        3
+      ],
+      "entrance": [
+        1,
+        3
+      ],
+      "stories": 5,
+      "bays": 4,
+      "roofDepth": 18,
+      "wall": "brown-brick",
+      "roofMaterial": "tar",
+      "roofStyle": "flat",
+      "window": "sash",
+      "door": "shop",
+      "cornice": "corbel",
+      "extras": [
+        "fire-escape",
+        "water-tank",
+        "awning",
+        "chimneys"
+      ],
+      "sign": "GROCERY",
+      "variant": 5,
+      "seed": 825,
+      "description": "A five-story brick walk-up with a shop at street level, an iron fire escape zigzagging down the front and a water tank on the roof.",
+      "role": "tenement"
+    },
+    "tenement-walkup": {
+      "label": "Tenement walk-up",
+      "group": "Victorian \u00b7 1840 to 1900",
+      "style": "tenement",
+      "footprint": [
+        4,
+        3
+      ],
+      "entrance": [
+        1,
+        3
+      ],
+      "stories": 5,
+      "bays": 3,
+      "roofDepth": 18,
+      "wall": "brown-brick",
+      "roofMaterial": "tar",
+      "roofStyle": "flat",
+      "window": "sash",
+      "door": "double",
+      "cornice": "corbel",
+      "extras": [
+        "fire-escape",
+        "chimneys",
+        "skylight"
+      ],
+      "variant": 0,
+      "seed": 826,
+      "description": "The dumbbell tenement's street face: three bays, a double door under a transom, fire escape, and a corbelled brick cornice.",
+      "role": "tenement"
+    },
+    "chinese-shophouse": {
+      "label": "Chinese shophouse",
+      "group": "East Asia \u00b7 Qing, Edo and Joseon",
+      "style": "chinese-shophouse",
+      "footprint": [
+        4,
+        3
+      ],
+      "entrance": [
+        2,
+        3
+      ],
+      "stories": 2,
+      "bays": 3,
+      "roofDepth": 24,
+      "wall": "grey-brick",
+      "roofMaterial": "giwa",
+      "roofStyle": "chinese",
+      "window": "lattice",
+      "door": "shop-panels",
+      "cornice": "eave",
+      "extras": [
+        "lanterns",
+        "sign-board",
+        "counter"
+      ],
+      "variant": 5,
+      "seed": 827,
+      "description": "Grey brick and a grey tile roof with raised ridge ends; folding timber shutters open the whole ground floor to the street, lanterns at the eave.",
+      "role": "shop"
+    },
+    "chinese-courtyard-gate": {
+      "label": "Courtyard house gate range",
+      "group": "East Asia \u00b7 Qing, Edo and Joseon",
+      "style": "siheyuan",
+      "footprint": [
+        6,
+        3
+      ],
+      "entrance": [
+        3,
+        3
+      ],
+      "stories": 1,
+      "bays": 4,
+      "roofDepth": 26,
+      "wall": "grey-brick",
+      "roofMaterial": "giwa",
+      "roofStyle": "chinese",
+      "window": "lattice",
+      "door": "red-gate",
+      "cornice": "eave",
+      "extras": [
+        "lanterns"
+      ],
+      "variant": 5,
+      "seed": 828,
+      "description": "The street range of a siheyuan: a studded vermilion gate with drum stones, flanked by lattice windows under a tiled roof.",
+      "role": "grand"
+    },
+    "machiya": {
+      "label": "Machiya townhouse",
+      "group": "East Asia \u00b7 Qing, Edo and Joseon",
+      "style": "machiya",
+      "footprint": [
+        5,
+        3
+      ],
+      "entrance": [
+        2,
+        3
+      ],
+      "stories": 2,
+      "bays": 3,
+      "roofDepth": 24,
+      "wall": "machiya-timber",
+      "roofMaterial": "kawara",
+      "roofStyle": "kawara",
+      "window": "slit",
+      "door": "koshi",
+      "cornice": "eave",
+      "extras": [],
+      "variant": 4,
+      "seed": 829,
+      "description": "A Kyoto-style merchant house: fine koshi lattice and an indigo noren at street level, plastered upper wall with a slit window, dark kawara tiles.",
+      "role": "house"
+    },
+    "machiya-shop": {
+      "label": "Edo merchant shop",
+      "group": "East Asia \u00b7 Qing, Edo and Joseon",
+      "style": "machiya",
+      "footprint": [
+        6,
+        3
+      ],
+      "entrance": [
+        3,
+        3
+      ],
+      "stories": 2,
+      "bays": 4,
+      "roofDepth": 26,
+      "wall": "machiya-timber",
+      "roofMaterial": "kawara",
+      "roofStyle": "kawara",
+      "window": "shoji",
+      "door": "koshi",
+      "cornice": "eave",
+      "extras": [
+        "sign-board"
+      ],
+      "variant": 0,
+      "seed": 830,
+      "description": "A wider shop with paper-screened upper windows and a vertical signboard, the kind that lined a post-town's main street.",
+      "role": "shop"
+    },
+    "hanok": {
+      "label": "Hanok house",
+      "group": "East Asia \u00b7 Qing, Edo and Joseon",
+      "style": "hanok",
+      "footprint": [
+        6,
+        3
+      ],
+      "entrance": [
+        3,
+        3
+      ],
+      "stories": 1,
+      "bays": 4,
+      "roofDepth": 28,
+      "wall": "hanok-plaster",
+      "roofMaterial": "giwa",
+      "roofStyle": "giwa",
+      "window": "shoji",
+      "door": "sliding",
+      "cornice": "eave",
+      "extras": [
+        "maru"
+      ],
+      "variant": 2,
+      "seed": 831,
+      "description": "Dark posts framing white plaster panels and paper-screened windows, a raised wooden floor, and a heavy grey giwa roof whose eaves lift at the corners.",
+      "role": "house"
+    },
+    "giyofu-house": {
+      "label": "Meiji Western-style house",
+      "group": "East Asia \u00b7 Qing, Edo and Joseon",
+      "style": "giyofu",
+      "footprint": [
+        5,
+        3
+      ],
+      "entrance": [
+        2,
+        3
+      ],
+      "stories": 2,
+      "bays": 3,
+      "roofDepth": 24,
+      "wall": "white-clapboard",
+      "roofMaterial": "kawara",
+      "roofStyle": "hip",
+      "window": "sash-arched",
+      "door": "double",
+      "cornice": "dentil",
+      "extras": [
+        "balcony"
+      ],
+      "variant": 3,
+      "seed": 832,
+      "description": "Giyofu: a Japanese carpenter's idea of a Western house, with clapboard, arched sashes and a balcony, under a kawara tile roof.",
+      "role": "grand"
+    },
+    "straits-shophouse": {
+      "label": "Straits shophouse",
+      "group": "South and Southeast Asia \u00b7 colonial ports",
+      "style": "straits",
+      "footprint": [
+        4,
+        3
+      ],
+      "entrance": [
+        1,
+        3
+      ],
+      "stories": 2,
+      "bays": 3,
+      "roofDepth": 22,
+      "wall": "peach-plaster",
+      "roofMaterial": "terracotta",
+      "roofStyle": "gable",
+      "window": "shuttered",
+      "door": "arcade",
+      "cornice": "dentil",
+      "extras": [
+        "lanterns"
+      ],
+      "variant": 2,
+      "seed": 833,
+      "description": "Penang or Singapore about 1890: a five-foot way arcade at street level, louvred shutters above, pastel plaster and a terracotta roof.",
+      "role": "shop"
+    },
+    "straits-shophouse-mint": {
+      "label": "Straits shophouse, mint",
+      "group": "South and Southeast Asia \u00b7 colonial ports",
+      "style": "straits",
+      "footprint": [
+        5,
+        3
+      ],
+      "entrance": [
+        2,
+        3
+      ],
+      "stories": 2,
+      "bays": 3,
+      "roofDepth": 22,
+      "wall": "mint-plaster",
+      "roofMaterial": "terracotta",
+      "roofStyle": "gable",
+      "window": "shuttered",
+      "door": "arcade",
+      "cornice": "dentil",
+      "extras": [
+        "sign-board"
+      ],
+      "variant": 0,
+      "seed": 834,
+      "description": "A wider shophouse in the same family, with a vertical trade board at the arcade.",
+      "role": "shop"
+    },
+    "colonial-bungalow": {
+      "label": "Colonial verandah bungalow",
+      "group": "South and Southeast Asia \u00b7 colonial ports",
+      "style": "bungalow",
+      "footprint": [
+        7,
+        3
+      ],
+      "entrance": [
+        3,
+        3
+      ],
+      "stories": 1,
+      "bays": 5,
+      "roofDepth": 30,
+      "wall": "cream-stucco",
+      "roofMaterial": "terracotta",
+      "roofStyle": "verandah-hip",
+      "window": "shuttered",
+      "door": "double",
+      "cornice": "none",
+      "extras": [
+        "verandah"
+      ],
+      "variant": 2,
+      "seed": 835,
+      "description": "A single-story Anglo-Indian bungalow: deep verandah on slender posts, shuttered windows and a broad low hipped roof.",
+      "role": "grand"
+    }
+  }
+}

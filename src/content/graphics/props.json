@@ -322,23 +322,90 @@
     },
     {
       "id": "hearth",
-      "name": "Hearth or firepit",
+      "name": "Open firepit",
       "group": "Household",
-      "description": "An irregular ring or shallow hearth contains dark coals, pale ash and a small layered flame.",
+      "description": "A ring of stones round an ash bed, two logs and a layered flame.",
       "variants": [
-        "Lit hearth"
-      ]
+        "Lit firepit"
+      ],
+      "frames": 4
     },
     {
       "id": "oven",
-      "name": "Small oven or stove",
+      "name": "Communal bake oven",
       "group": "Household",
-      "description": "A compact clay dome or masonry body has a dark fire opening, soot staining and a bright worn lip.",
+      "description": "A clay dome on a stone base, its mouth glowing and a lick of flame at the lip.",
       "variants": [
         "Terracotta",
         "Buff clay",
         "Red earth"
-      ]
+      ],
+      "frames": 4
+    },
+    {
+      "id": "long-fire",
+      "name": "Long fire",
+      "group": "Household",
+      "description": "A trench of embers with three low flames along a single log, the fire of a cold-country camp.",
+      "variants": [
+        "Lit"
+      ],
+      "frames": 4
+    },
+    {
+      "id": "tannur",
+      "name": "Sunken clay oven",
+      "group": "Household",
+      "description": "A clay cylinder set in a packed-earth collar, flame rising from its open top.",
+      "variants": [
+        "Terracotta",
+        "Buff clay",
+        "Red earth"
+      ],
+      "frames": 4
+    },
+    {
+      "id": "brazier",
+      "name": "Standing brazier",
+      "group": "Household",
+      "description": "A metal bowl on three splayed legs holding coals and a flame.",
+      "variants": [
+        "Bronze",
+        "Iron"
+      ],
+      "frames": 4
+    },
+    {
+      "id": "stove",
+      "name": "Brick stove and kettle",
+      "group": "Household",
+      "description": "A brick block with a firebox in front and an iron kettle steaming on top.",
+      "variants": [
+        "Red brick",
+        "Grey brick",
+        "Ochre brick"
+      ],
+      "frames": 4
+    },
+    {
+      "id": "fire-basket",
+      "name": "Iron fire basket",
+      "group": "Household",
+      "description": "A barred iron cage on legs with coals and a flame between the bars.",
+      "variants": [
+        "Iron"
+      ],
+      "frames": 4
+    },
+    {
+      "id": "oil-drum",
+      "name": "Oil-drum fire",
+      "group": "Household",
+      "description": "A steel drum with rust and burn holes, flame standing out of its open top.",
+      "variants": [
+        "Steel"
+      ],
+      "frames": 4
     },
     {
       "id": "oil-lamp",

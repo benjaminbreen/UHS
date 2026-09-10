@@ -27,6 +27,58 @@ const store = (plan: SettlementPlan, owner: string) =>
   )?.pos;
 const wellAt = (plan: SettlementPlan) =>
   plan.objects.find((o) => o.kind === "well")?.pos;
+const hearthAt = (plan: SettlementPlan) =>
+  plan.objects.find((o) => o.kind === "fire")?.pos;
+/** How far from the fire a household still cooks and sits at it. A village
+ * gathers whole; in a city only the quarter round the hearth does. */
+const HEARTH_REACH = 30;
+function hearthFor(plan: SettlementPlan, home: Point, year: number) {
+  const fire = hearthAt(plan);
+  if (!fire || era(year) === "modern") return undefined;
+  return Math.hypot(fire.x - home.x, fire.y - home.y) <= HEARTH_REACH
+    ? fire
+    : undefined;
+}
+/** Sat round the shared fire at the end of the day, before going in. */
+function fireside(
+  plan: SettlementPlan,
+  seed: string,
+  id: string,
+  home: Point,
+  year: number,
+): Station[] {
+  const fire = hearthFor(plan, home, year);
+  return fire
+    ? [
+        {
+          pos: nearby(plan, seed, `${id}-fire`, fire),
+          activity: "warm",
+          label: "Sitting by the fire",
+          minutes: 40,
+        },
+      ]
+    : [];
+}
+/** The morning pot at the shared fire, for the household's cook. */
+function cooking(
+  plan: SettlementPlan,
+  seed: string,
+  id: string,
+  home: Point,
+  year: number,
+): Station[] {
+  const fire = hearthFor(plan, home, year);
+  return fire
+    ? [
+        {
+          pos: nearby(plan, seed, `${id}-cook`, fire),
+          activity: "cook",
+          label: "Cooking at the hearth",
+          minutes: 30,
+        },
+      ]
+    : [];
+}
 /** Doors other than this actor's own, nearest first: the errand that actually
  * carries somebody across the settlement rather than round their own yard. */
 function neighbours(plan: SettlementPlan, owner: string, home: Point) {
@@ -255,6 +307,7 @@ export function memberRoutine(
     // dwell, so they are seen moving rather than standing. Water is the one
     // errand they are sent on before piped supply.
     const run: Station = { ...night(home), share: 0.3, pace: 0.18 };
+    // The fire is the first gathering, so it is already on the circuit.
     const spots = [
       ...doors.slice(0, 3),
       ...(plan.gatherings ?? []).slice(0, 2),
@@ -350,6 +403,7 @@ export function memberRoutine(
               }
             : undefined;
   return [
+    ...cooking(plan, seed, id, home, year),
     ...(errand ? [errand] : []),
     socialStop(plan, seed, id, home),
     ...(errand
@@ -362,6 +416,7 @@ export function memberRoutine(
             minutes: 10,
           },
         ]),
+    ...fireside(plan, seed, id, home, year),
     rest(0.07),
   ];
 }
@@ -377,7 +432,9 @@ function gatherings(plan: SettlementPlan, seed: string) {
   });
   if (!roads.length) return [];
   const count = Math.min(8, Math.max(3, Math.round(plan.work.size / 3)));
-  const spots: Point[] = [];
+  // The shared fire is the first knot; the others keep their distance.
+  const fire = hearthAt(plan);
+  const spots: Point[] = fire ? [fire] : [];
   for (let i = 0; i < count; i++) {
     const angle =
       ((i + random(seed, "knot", plan.site.id, i, "angle") * 0.6) / count) *
@@ -593,6 +650,7 @@ export function routineFor(
       ? errands
       : craftRoutine(plan, seed, id, id, home, site.work, label)),
     socialStop(plan, seed, id, home),
+    ...fireside(plan, seed, id, home, pack.year),
     night(home),
   ];
 }

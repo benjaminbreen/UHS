@@ -4,7 +4,8 @@ import json
 
 def pack_atlas(sprites, output, name, width=1024):
     frames={};placements=[];x=y=rowh=0
-    for key,im in sprites.items():
+    # Tallest first: shelves stay full instead of leaving air under short sprites.
+    for key,im in sorted(sprites.items(),key=lambda kv:(-kv[1].size[1],-kv[1].size[0],kv[0])):
         w,h=im.size
         if w+2>width:raise ValueError(f'{key} exceeds atlas width')
         if x+w+2>width:x=0;y+=rowh+2;rowh=0
