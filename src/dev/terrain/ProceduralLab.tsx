@@ -17,6 +17,7 @@ import { waters, type WorldSetting } from "../../content/geography/types";
 import { settingFor } from "../../content/geography/resolve";
 import { places } from "../../content/geography/places";
 import { App } from "../../ui/App";
+import { GroundStylePanel } from "./GroundStylePanel";
 
 type Config = {
   place?: string;
@@ -35,7 +36,9 @@ const defaults: Config = {
   seed: "ecology-01",
   ecology: "temperate-woodland",
   landform: "rolling",
-  population: "sparse",
+  // The lab defaults to an empty landscape: households and residents dominate
+  // preparation time and none of it is terrain. Pick a population to opt in.
+  population: "none",
   start: "resident",
   household: "mixed",
   pattern: "clustered",
@@ -629,6 +632,7 @@ export function ProceduralLab() {
               Play this world →
             </button>
           </div>
+          <GroundStylePanel />
           {error ? (
             <p role="alert">{error}</p>
           ) : (

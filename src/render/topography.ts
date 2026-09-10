@@ -13,7 +13,8 @@ import { drawBridges, type BridgeSpan } from "./bridges";
 import { addFlowers, flowersAt, type FlowerSpot } from "./flowers";
 import { addCrops, cropsAt, type CropSpot } from "./crops";
 import type Phaser from "phaser";
-import { drawTerrainContours } from "./terrain-contours";
+import { drawTerrainContours, wallOwnsCell } from "./terrain-contours";
+import { groundStyle } from "./ground-style";
 import {
   contourMask,
   type GroundSurface,
@@ -175,6 +176,7 @@ export function drawTopography(
   const bounded = sample;
   if (!region)
     sample = (x, y) => bounded(x, Math.max(0, Math.min(height - 1, y)));
+  const styled = !!groundStyle();
   const priority: GroundSurface[] = [
     "water",
     "damp",
@@ -261,7 +263,11 @@ export function drawTopography(
               .effect,
           );
       }
-      if (!bakedWater.has(`${x},${y}`))
+      // Cells beside a height change are drawn by the wall pass instead, at
+      // each pixel's own lifted row; blitting the tile here as well would
+      // leave the tile-aligned original showing through the new edge.
+      const owned = styled && wallOwnsCell(sample, x, y);
+      if (!bakedWater.has(`${x},${y}`) && !owned)
         image(
           x * 16,
           c.bridge ? y * 16 : top,
@@ -276,6 +282,7 @@ export function drawTopography(
             : 0xffffff,
           painted,
         );
+      if (owned) continue;
       if (c.surface === "gravel" && !shoreline && !paintedGround(c)) {
         const connections =
           contourMask(sample, x, y, (n) => n.surface === "gravel") & 15;
@@ -321,6 +328,15 @@ export function drawTopography(
     bridges,
     resources,
   );
-  if (!region) drawTerrainContours(scene, sample, width, height, covers);
+  if (!region)
+    drawTerrainContours(
+      scene,
+      sample,
+      width,
+      height,
+      covers,
+      resources,
+      groundTiles,
+    );
   return resources;
 }

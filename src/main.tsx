@@ -17,6 +17,11 @@ async function start() {
     createRoot(document.getElementById("root")!).render(<TerrainLab />);
     return;
   }
+  if (window.location.pathname === "/terrain-experiments") {
+    const { TerrainExperiments } = await import("./dev/TerrainExperiments");
+    createRoot(document.getElementById("root")!).render(<TerrainExperiments />);
+    return;
+  }
   if (window.location.pathname === "/grass-lab") {
     const { GrassLab } = await import("./dev/GrassLab");
     createRoot(document.getElementById("root")!).render(<GrassLab />);

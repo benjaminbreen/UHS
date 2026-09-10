@@ -1,0 +1,129 @@
+.gsp {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  width: 300px;
+  max-height: calc(100dvh - 24px);
+  display: flex;
+  flex-direction: column;
+  z-index: 40;
+  background: #1e221fee;
+  border: 1px solid #4d4737;
+  border-radius: 4px;
+  color: #ded5bd;
+  font-family: Georgia, serif;
+  backdrop-filter: blur(3px);
+}
+.gsp.shut {
+  width: 190px;
+}
+.gsp header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-bottom: 1px solid #4d4737;
+}
+.gsp h2 {
+  flex: 1;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 400;
+}
+.gsp h3 {
+  margin: 14px 0 6px;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #9d9682;
+  font-weight: 400;
+}
+.gsp button {
+  font: inherit;
+  font-size: 12px;
+  padding: 4px 8px;
+  color: #ded5bd;
+  background: #2b302b;
+  border: 1px solid #4d4737;
+  border-radius: 3px;
+  cursor: pointer;
+}
+.gsp button:hover {
+  background: #363c35;
+}
+.gsp button.on {
+  background: #5a6b45;
+  border-color: #8ea06c;
+  color: #f2ecd8;
+}
+.gsp-fold {
+  width: 24px;
+}
+.gsp-ab {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+}
+.gsp-body {
+  overflow: auto;
+  padding: 4px 10px 12px;
+}
+.gsp-note {
+  margin: 6px 0;
+  font-size: 11px;
+  line-height: 1.45;
+  color: #9d9682;
+}
+.gsp-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+.gsp-tabs button {
+  padding: 3px 6px;
+  font-size: 11px;
+}
+.gsp-slider {
+  display: block;
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+.gsp-slider.off {
+  opacity: 0.32;
+}
+.gsp-slider span {
+  display: flex;
+  justify-content: space-between;
+}
+.gsp-slider em {
+  font-style: normal;
+  color: #b7cf8a;
+}
+.gsp-slider input {
+  width: 100%;
+  accent-color: #8ea06c;
+}
+.gsp-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  margin-bottom: 2px;
+}
+.gsp-override {
+  margin-bottom: 6px;
+}
+.gsp-reset {
+  width: 100%;
+  margin-top: 4px;
+}
+.gsp-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 14px;
+}
+.gsp-actions button {
+  flex: 1;
+}

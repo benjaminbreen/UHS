@@ -2,6 +2,14 @@ import { own, renderResources, type RenderResources } from "./resources";
 import type Phaser from "phaser";
 import type { TopographySample } from "../core/topography";
 import type { TerrainRegion } from "./terrain-region";
+import type { GroundTileData } from "./habitat-raster";
+import { paintedGround } from "./material-edges";
+import {
+  contourNoise,
+  groundStyle,
+  styledBankIndex,
+  type GroundStyle,
+} from "./ground-style";
 import style from "./generated/topography-style.json";
 const R = style.rise,
   B = 6;
@@ -19,6 +27,8 @@ export type ContourLayer = {
   width: number;
   height: number;
   pixels: Uint8ClampedArray;
+  /** Plain ground rather than a bank: no drop shadow copy. */
+  flat?: boolean;
 };
 type Cover = { x: number; y: number; width: number; height: number };
 /** Rasterize the UNION of elevated ground, swept down to the lower surface.
@@ -30,7 +40,19 @@ export function rasterTerrainContours(
   height: number,
   covers: readonly Cover[] = [],
   region?: TerrainRegion,
+  groundTiles?: readonly GroundTileData[],
 ): ContourLayer[] {
+  const styled = groundStyle();
+  if (styled)
+    return rasterWallContours(
+      sample,
+      width,
+      height,
+      covers,
+      region,
+      styled,
+      groundTiles,
+    );
   const layers = new Map<string, ContourLayer>(),
     w = width * 16 + B * 2,
     lh = 16 + R * 3 + B * 2;
@@ -290,52 +312,348 @@ export function rasterTerrainContours(
           }
           paint(row, tier, px, py, color);
         }
-  // Tight textures avoid uploading a map-wide transparent rectangle for each
-  // short contour row. Retain the same world origin and painter depth.
-  return [...layers.values()].map((layer) => {
-    let left = layer.width,
-      right = 0,
-      top = layer.height,
-      bottom = 0;
-    for (let y = 0; y < layer.height; y++)
-      for (let x = 0; x < layer.width; x++)
-        if (layer.pixels[(y * layer.width + x) * 4 + 3]) {
-          left = Math.min(left, x);
-          right = Math.max(right, x);
-          top = Math.min(top, y);
-          bottom = Math.max(bottom, y);
-        }
-    const width = right - left + 1,
-      height = bottom - top + 1,
-      pixels = new Uint8ClampedArray(width * height * 4);
-    for (let y = 0; y < height; y++)
-      pixels.set(
-        layer.pixels.subarray(
-          ((y + top) * layer.width + left) * 4,
-          ((y + top) * layer.width + right + 1) * 4,
-        ),
-        y * width * 4,
-      );
-    return {
-      ...layer,
-      x: layer.x + left,
-      y: layer.y + top,
-      width,
-      height,
-      pixels,
-    };
-  });
+  return cropLayers([...layers.values()]);
 }
+
+/** Tight textures avoid uploading a map-wide transparent rectangle for each
+ * short contour row. Retain the same world origin and painter depth. */
+function cropLayers(all: ContourLayer[]): ContourLayer[] {
+  const cropped: ContourLayer[] = [];
+  for (const layer of all) {
+    {
+      let left = layer.width,
+        right = 0,
+        top = layer.height,
+        bottom = 0;
+      for (let y = 0; y < layer.height; y++)
+        for (let x = 0; x < layer.width; x++)
+          if (layer.pixels[(y * layer.width + x) * 4 + 3]) {
+            left = Math.min(left, x);
+            right = Math.max(right, x);
+            top = Math.min(top, y);
+            bottom = Math.max(bottom, y);
+          }
+      if (right < left) continue;
+      const width = right - left + 1,
+        height = bottom - top + 1,
+        pixels = new Uint8ClampedArray(width * height * 4);
+      for (let y = 0; y < height; y++)
+        pixels.set(
+          layer.pixels.subarray(
+            ((y + top) * layer.width + left) * 4,
+            ((y + top) * layer.width + right + 1) * 4,
+          ),
+          y * width * 4,
+        );
+      cropped.push({
+        ...layer,
+        x: layer.x + left,
+        y: layer.y + top,
+        width,
+        height,
+        pixels,
+      });
+    }
+  }
+  return cropped;
+}
+
+/** Height read per pixel, then a true wall below it.
+ *
+ * The interpolated height is clamped up to each cell's own tier, so the drawn
+ * edge only ever grows outward: the tile-aligned ground beneath is never left
+ * exposed, and cell centres keep exactly the tier the walkable grid uses.
+ * Plateau interiors are left transparent so the habitat raster shows through.
+ */
+export function wallOwnsCell(sample: TopographySample, x: number, y: number) {
+  const c = sample(x, y);
+  // Only cells with a rasterised habitat tile can be redrawn here: there is
+  // nothing to copy the surface texture from otherwise.
+  if (!c || !paintedGround(c) || c.feature === "paving" || c.field) return false;
+  for (let dy = -1; dy <= 1; dy++)
+    for (let dx = -1; dx <= 1; dx++) {
+      const n = sample(x + dx, y + dy);
+      if (n && n.height !== c.height) return true;
+    }
+  return false;
+}
+
+function rasterWallContours(
+  sample: TopographySample,
+  width: number,
+  height: number,
+  covers: readonly Cover[],
+  region: TerrainRegion | undefined,
+  style: GroundStyle,
+  groundTiles: readonly GroundTileData[] = [],
+): ContourLayer[] {
+  const { bank, contour } = style;
+  const PX = 16,
+    PY = 64;
+  const FW = width * 16 + PX * 2,
+    FH = height * 16 + PY * 2;
+
+  // Cell tiers first: the interpolation below reads each of them four times.
+  const cpad = 4,
+    cstride = width + cpad * 2;
+  const tiers = new Int8Array(cstride * (height + cpad * 2));
+  for (let y = -cpad; y < height + cpad; y++)
+    for (let x = -cpad; x < width + cpad; x++) {
+      const c = sample(region ? x : Math.max(0, Math.min(width - 1, x)), y);
+      tiers[(y + cpad) * cstride + x + cpad] = c && !c.bridge ? c.height : 0;
+    }
+  const owns = new Uint8Array(cstride * (height + cpad * 2));
+  for (let y = -cpad; y < height + cpad; y++)
+    for (let x = -cpad; x < width + cpad; x++)
+      owns[(y + cpad) * cstride + x + cpad] = wallOwnsCell(
+        (a, b) => sample(region ? a : Math.max(0, Math.min(width - 1, a)), b),
+        x,
+        y,
+      )
+        ? 1
+        : 0;
+  const ownsAt = (x: number, y: number) =>
+    owns[
+      Math.max(0, Math.min(height + cpad * 2 - 1, y + cpad)) * cstride +
+        Math.max(0, Math.min(cstride - 1, x + cpad))
+    ] === 1;
+  const tierAt = (x: number, y: number) =>
+    tiers[
+      Math.max(0, Math.min(height + cpad * 2 - 1, y + cpad)) * cstride +
+        Math.max(0, Math.min(cstride - 1, x + cpad))
+    ];
+
+  const ox = (region?.x ?? 0) * 16,
+    oy = (region?.y ?? 0) * 16;
+  const ease = (t: number) => t * t * (3 - 2 * t);
+  const levels = new Int8Array(FW * FH);
+  for (let i = 0; i < FH; i++)
+    for (let j = 0; j < FW; j++) {
+      const px = j - PX,
+        py = i - PY;
+      const u = (px - 8) / 16,
+        v = (py - 8) / 16;
+      const x0 = Math.floor(u),
+        y0 = Math.floor(v);
+      const fx = ease(u - x0),
+        fy = ease(v - y0);
+      const a = tierAt(x0, y0),
+        b = tierAt(x0 + 1, y0),
+        c = tierAt(x0, y0 + 1),
+        d = tierAt(x0 + 1, y0 + 1);
+      const h =
+        (a + (b - a) * fx) * (1 - fy) +
+        (c + (d - c) * fx) * fy +
+        (contourNoise(px + ox, py + oy, contour.scale) - 0.5) * contour.wobble;
+      const cx = Math.floor(px / 16),
+        cy = Math.floor(py / 16);
+      const own = tierAt(cx, cy);
+      // Interior ground is still blitted a whole tile at a time by the ground
+      // page, so only the edge zone the wall pass owns may leave its tier.
+      levels[i * FW + j] = ownsAt(cx, cy)
+        ? Math.max(0, Math.min(3, Math.round(h)))
+        : own;
+    }
+
+  // Wobble on its own throws off single-pixel islands that read as artefacts.
+  if (contour.smoothing) {
+    const src = levels.slice();
+    const counts = new Int32Array(4);
+    const r = contour.smoothing;
+    for (let i = 0; i < FH; i++)
+      for (let j = 0; j < FW; j++) {
+        counts.fill(0);
+        for (let dy = -r; dy <= r; dy++)
+          for (let dx = -r; dx <= r; dx++)
+            counts[
+              src[
+                Math.max(0, Math.min(FH - 1, i + dy)) * FW +
+                  Math.max(0, Math.min(FW - 1, j + dx))
+              ]
+            ]++;
+        let best = 0;
+        for (let t = 1; t < 4; t++) if (counts[t] > counts[best]) best = t;
+        // Never below the cell's own tier: the ground page must stay covered.
+        const own = tierAt(
+          Math.floor((j - PX) / 16),
+          Math.floor((i - PY) / 16),
+        );
+        levels[i * FW + j] = Math.max(own, best);
+      }
+  }
+  const lvl = (px: number, py: number) =>
+    levels[
+      Math.max(0, Math.min(FH - 1, py + PY)) * FW +
+        Math.max(0, Math.min(FW - 1, px + PX))
+    ];
+
+  // Bank tone is applied to the palette once, not per pixel.
+  const toned = colors.map((c) =>
+    c.map((v, k) =>
+      k === 3
+        ? v
+        : Math.max(
+            0,
+            Math.min(255, (128 + (v - 128) * bank.contrast) * bank.brightness),
+          ),
+    ),
+  );
+  const layers = new Map<string, ContourLayer>();
+  const w = width * 16 + PX * 2,
+    lh = 16 + R * 3 + PX * 2;
+  const paint = (
+    row: number,
+    tier: number,
+    px: number,
+    sy: number,
+    color: number,
+  ) => {
+    if (region && (row < 0 || row >= height || px < 0 || px >= width * 16))
+      return;
+    if (
+      covers.some(
+        (c) =>
+          px >= c.x && px < c.x + c.width && sy >= c.y && sy < c.y + c.height,
+      )
+    )
+      return;
+    const key = `${row}:${tier}`;
+    let layer = layers.get(key);
+    if (!layer) {
+      layer = {
+        row,
+        tier,
+        x: -PX,
+        y: row * 16 - R * 3 - PX,
+        width: w,
+        height: lh,
+        pixels: new Uint8ClampedArray(w * lh * 4),
+      };
+      layers.set(key, layer);
+    }
+    const ix = px + PX,
+      iy = sy - layer.y;
+    if (ix < 0 || iy < 0 || ix >= w || iy >= lh) return;
+    layer.pixels.set(toned[color], (iy * w + ix) * 4);
+  };
+  // Owned cells are skipped by the ground page, so their surface is copied
+  // here from the tile the worker already rasterised, at each pixel's own
+  // lifted row. That is what lets the edge cut inward without exposing the
+  // tile-aligned ground underneath.
+  const tiles = new Map(groundTiles.map((t) => [`${t.x},${t.y}`, t.pixels]));
+  const wrap = (n: number) => ((n % 16) + 16) % 16;
+  const surface = (
+    row: number,
+    tier: number,
+    px: number,
+    py: number,
+    sy: number,
+    fallback: number,
+  ) => {
+    const pixels = tiles.get(`${Math.floor(px / 16)},${row}`);
+    if (!pixels) return paint(row, tier, px, sy, fallback);
+    if (region && (row < 0 || row >= height || px < 0 || px >= width * 16))
+      return;
+    if (
+      covers.some(
+        (c) =>
+          px >= c.x && px < c.x + c.width && sy >= c.y && sy < c.y + c.height,
+      )
+    )
+      return;
+    const key = `${row}:${tier}:flat`;
+    let layer = layers.get(key);
+    if (!layer) {
+      layer = {
+        row,
+        tier,
+        x: -PX,
+        y: row * 16 - R * 3 - PX,
+        width: w,
+        height: lh,
+        pixels: new Uint8ClampedArray(w * lh * 4),
+        flat: true,
+      };
+      layers.set(key, layer);
+    }
+    const ix = px + PX,
+      iy = sy - layer.y;
+    if (ix < 0 || iy < 0 || ix >= w || iy >= lh) return;
+    const src = (wrap(py) * 16 + wrap(px)) * 4;
+    layer.pixels.set(pixels.subarray(src, src + 4), (iy * w + ix) * 4);
+  };
+
+  const lo = region ? -1 : 0,
+    hi = region ? height * 16 + 1 : height * 16;
+  for (let px = -PX; px < width * 16 + PX; px++)
+    for (let py = lo - 16; py < hi + 16; py++) {
+      const L = lvl(px, py);
+      const row = Math.floor(py / 16);
+      const cell = sample(Math.floor(px / 16), row);
+      const dry = cell?.surface === "dry" || cell?.surface === "sand";
+      const snow = cell?.surface === "snow";
+      const sy = py - L * R;
+      const west = lvl(px - 1, py),
+        east = lvl(px + 1, py),
+        north = lvl(px, py - 1);
+      const rim = west < L || east < L || north < L;
+      const cap = snow ? 25 : dry ? 9 : 4;
+      // The ground page skips owned cells entirely, so every pixel of one is
+      // drawn here at its own lifted row.
+      if (ownsAt(Math.floor(px / 16), row)) surface(row, L, px, py, sy, cap);
+      if (rim && L) paint(row, L, px, sy, snow ? 26 : dry ? 10 : 6);
+      else if (
+        contour.sides &&
+        (lvl(px - contour.sides, py) < L || lvl(px + contour.sides, py) < L)
+      )
+        paint(row, L, px, sy, cap);
+      const below = lvl(px, py + 1);
+      if (below >= L) continue;
+      const drop = (L - below) * R;
+      for (let r = 0; r < drop; r++)
+        paint(
+          row,
+          L,
+          px,
+          sy + 1 + r,
+          styledBankIndex(
+            bank,
+            false,
+            3,
+            r,
+            R,
+            px + ox,
+            py + oy,
+            dry,
+            snow,
+            cell?.surface === "sand",
+          ),
+        );
+    }
+  return cropLayers([...layers.values()]);
+}
+
 export function drawTerrainContours(
   scene: Phaser.Scene,
   sample: TopographySample,
   width: number,
   height: number,
   covers: readonly Cover[] = [],
+  resources: RenderResources = renderResources(),
+  groundTiles?: readonly GroundTileData[],
 ) {
   drawContourLayers(
     scene,
-    rasterTerrainContours(sample, width, height, covers),
+    rasterTerrainContours(
+      sample,
+      width,
+      height,
+      covers,
+      undefined,
+      groundTiles,
+    ),
+    "contour",
+    resources,
   );
 }
 export function drawContourLayers(
@@ -344,8 +662,9 @@ export function drawContourLayers(
   prefix = "contour",
   resources: RenderResources = renderResources(),
 ) {
+  const shadow = groundStyle()?.bank.shadow ?? 4;
   for (const layer of layers) {
-    const key = `${prefix}-${layer.row}-${layer.tier}`;
+    const key = `${prefix}-${layer.row}-${layer.tier}${layer.flat ? "-f" : ""}`;
     resources.textures.push(key);
     const texture = scene.textures.createCanvas(
       key,
@@ -357,21 +676,24 @@ export function drawContourLayers(
     data.data.set(layer.pixels);
     context.putImageData(data, 0, 0);
     texture.refresh();
-    own(
-      resources,
-      scene.add
-        .image(layer.x + 3, layer.y + 4, key)
-        .setOrigin(0)
-        .setTint(0x30452b)
-        .setAlpha(0.25)
-        .setDepth(layer.row * 16 + 0.8),
-    );
+    if (!layer.flat)
+      own(
+        resources,
+        scene.add
+          .image(layer.x + shadow * 0.5, layer.y + shadow, key)
+          .setOrigin(0)
+          .setTint(0x30452b)
+          .setAlpha(0.25)
+          .setDepth(layer.row * 16 + 0.8),
+      );
     own(
       resources,
       scene.add
         .image(layer.x, layer.y, key)
         .setOrigin(0)
-        .setDepth(layer.row * 16 + 1.5 + layer.tier * 0.01),
+        .setDepth(
+          layer.row * 16 + (layer.flat ? 1.2 : 1.5) + layer.tier * 0.01,
+        ),
     );
   }
 }

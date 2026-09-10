@@ -21,3 +21,6 @@ artifacts/audio/*.wav
 
 # Scratch scripts run with tsx from the repo root.
 *.tmp.ts
+
+# Third-party tilesets kept locally for reference; extracted crops are committed.
+tilesets for experimenting/

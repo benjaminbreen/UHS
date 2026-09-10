@@ -1,3 +1,4 @@
+import { setGroundStyle, type GroundStyle } from "./ground-style";
 import { paintedGround } from "./material-edges";
 import { rasterHabitatTile, type GroundTileData } from "./habitat-raster";
 import { rasterWaterTile, type WaterTileData } from "./water-raster";
@@ -14,6 +15,7 @@ import {
 import type { TopographyCell } from "../core/topography";
 export type TerrainRequest =
   | { pack: Pack; seed: string }
+  | { style: GroundStyle | null }
   | { id: string; region: TerrainRegion };
 export type TerrainResponse = {
   id: string;
@@ -29,6 +31,10 @@ export function useTerrainWorld(prepared: WorldModel) {
 }
 export function handleTerrainRequest(data: TerrainRequest) {
   try {
+    if ("style" in data) {
+      setGroundStyle(data.style ?? undefined);
+      return;
+    }
     if ("pack" in data) {
       world = createSettlementWorld(data.pack, data.seed);
       return;
@@ -58,7 +64,6 @@ export function handleTerrainRequest(data: TerrainRequest) {
             height: 22,
           });
       }
-    const layers = rasterTerrainContours(sample, SIZE, SIZE, covers, region);
     const waterTiles: WaterTileData[] = [];
     const groundTiles: GroundTileData[] = [];
     const cachedSample = (x: number, y: number) =>
@@ -75,6 +80,14 @@ export function handleTerrainRequest(data: TerrainRequest) {
             rasterWaterTile(cachedSample, x, y, region.x, region.y),
           );
       }
+    const layers = rasterTerrainContours(
+      sample,
+      SIZE,
+      SIZE,
+      covers,
+      region,
+      groundTiles,
+    );
     self.postMessage(
       {
         id,

@@ -43,7 +43,7 @@ self.onmessage = (
     }
     return;
   }
-  if ("pack" in event.data || "region" in event.data) {
+  if ("pack" in event.data || "region" in event.data || "style" in event.data) {
     handleTerrainRequest(event.data);
     return;
   }

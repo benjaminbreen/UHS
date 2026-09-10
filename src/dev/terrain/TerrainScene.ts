@@ -36,6 +36,8 @@ export class TerrainScene extends Phaser.Scene {
   private moving = false;
   private facing = 0;
   private generation = 0;
+  /** Ground and contour textures from the last draw, so a restyle can redraw. */
+  private drawn: string[] = [];
   private pendingDirection?: Direction;
   private nextAttempt = 0;
   private keys?: Record<string, Phaser.Input.Keyboard.Key>;
@@ -59,7 +61,10 @@ export class TerrainScene extends Phaser.Scene {
   }
   create() {
     const f = this.fixture;
-    drawTopography(this, f.sample, f.width, f.height);
+    // Phaser keeps canvas textures across a scene restart, and createCanvas
+    // returns null on a key that already exists.
+    for (const key of this.drawn) this.textures.remove(key);
+    this.drawn = drawTopography(this, f.sample, f.width, f.height).textures;
     for (const p of f.props) {
       const lift = (f.sample(p.x, p.y)?.height ?? 0) * TERRAIN_RISE;
       if (!p.texture)

@@ -5,6 +5,12 @@ import {
   materialGrain,
   turfTick,
 } from "./ground-motifs";
+import {
+  groundStyle,
+  layerFor,
+  styleGroundPixel,
+  type GroundMaterial,
+} from "./ground-style";
 import { rasterStreetTile } from "./street-raster";
 import { rasterFieldTile } from "./field-raster";
 import { transitionPixel, fringePixel, groundClumps } from "./terrain-tiles";
@@ -17,10 +23,7 @@ import {
 } from "./material-edges";
 import type { Ecology } from "../content/ecology/profiles";
 import type { TopographyCell, TopographySample } from "../core/topography";
-import {
-  defaultGrassArt,
-  type GrassArt,
-} from "../content/graphics/grass-art";
+import { defaultGrassArt, type GrassArt } from "../content/graphics/grass-art";
 import { waterHash as hash, waterNoise as noise } from "./water-style";
 const mod = (n: number, d: number) => ((n % d) + d) % d;
 
@@ -62,6 +65,23 @@ export function naturalGround(c: TopographyCell) {
 }
 /** Original native-pixel materials; sampled in the worker and baked into chunk pages.
  * No tile-shaped color patches, per-frame noise or additional ground GameObjects. */
+/** The raster's band numbers, read as the material the style panel edits. */
+function materialOf(
+  band: number,
+  surface: TopographyCell["surface"],
+  mineral: boolean,
+  frozen: boolean,
+): GroundMaterial {
+  if (frozen) return "snow";
+  if (surface === "sand") return "sand";
+  if (band === 5) return "tilled";
+  if (band === 4) return "litter";
+  if (band === 3) return mineral ? "stone" : "earth";
+  if (band === 2) return "wet";
+  if (band === 1) return "sward";
+  return "turf";
+}
+
 export function rasterHabitatTile(
   sample: TopographySample,
   x: number,
@@ -86,11 +106,7 @@ export function rasterHabitatTile(
       for (let dx = -2; dx <= 2; dx++) {
         if (Math.abs(dx) + Math.abs(dy) > 2) continue;
         const neighbor = sample(xx + dx, yy + dy)?.habitat;
-        if (
-          neighbor &&
-          neighbor.ecology === ecology &&
-          neighbor.exposed > 0.65
-        )
+        if (neighbor && neighbor.ecology === ecology && neighbor.exposed > 0.65)
           return true;
       }
     return false;
@@ -267,15 +283,22 @@ export function rasterHabitatTile(
             : band === 2
               ? [195, 208, 204]
               : [215, 223, 207];
+      const style = groundStyle();
+      if (style)
+        rgb = styleGroundPixel(
+          [...rgb],
+          layerFor(
+            style,
+            materialOf(band, cell.surface, mineralGround, frozen),
+            cell.height,
+          ),
+          wx,
+          wy,
+        );
       if (grassy && band <= 2) {
         // Light grass is a quiet transition band; only full and dark turf get
         // the supporting ticks.
-        put(
-          px,
-          py,
-          rgb,
-          turfTick(wx, wy, art.motifs) ? 10 : 0,
-        );
+        put(px, py, rgb, turfTick(wx, wy, art.motifs) ? 10 : 0);
       } else if (grassy || tilled) {
         const wash = Math.round((noise(wx, wy, 14, 469) - 0.5) * 12);
         put(px, py, rgb, wash + (earthSpeckle(wx, wy) ? -10 : 0));

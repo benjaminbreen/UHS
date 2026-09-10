@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import Phaser from "phaser";
 import { TerrainScene, type StudyStatus } from "./terrain/TerrainScene";
 import type { TerrainStudy } from "./terrain/fixture";
+import { GroundStylePanel } from "./terrain/GroundStylePanel";
 import "./terrain-lab.css";
 
 export function FixedTerrainLab() {
@@ -69,6 +70,12 @@ export function FixedTerrainLab() {
         <span>01 / Ground, water & relief</span>
         <a href="/terrain-lab">Procedural explorer ↗</a>
       </header>
+      <GroundStylePanel
+        onRestyle={() => {
+          setReady(false);
+          scene.current?.scene.restart();
+        }}
+      />
       <div className="terrain-layout">
         <aside className="terrain-controls">
           <div className="terrain-eyebrow">Landscape studies</div>
