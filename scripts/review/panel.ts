@@ -11,8 +11,7 @@ export const PANEL = [
   { place: "london", year: 2000 },
   { place: "rome", year: 100 },
   { place: "alexandria", year: -244 },
-  { place: "city-cairo", year: 900 },
-  { place: "city-beijing", year: 1450 },
+  { place: "beijing", year: 1450 },
 ] as const;
 
 export function panelSetting(place: string, year: number) {
@@ -49,7 +48,10 @@ export function panelCity(place: string, year: number, seed = "city-review") {
   const core = Math.max(20, Math.round(r / 3));
   let coreBuilt = 0;
   for (const p of plan.places)
-    if (Math.abs(p.x + p.w / 2 - c.x) < core && Math.abs(p.y + p.h / 2 - c.y) < core)
+    if (
+      Math.abs(p.x + p.w / 2 - c.x) < core &&
+      Math.abs(p.y + p.h / 2 - c.y) < core
+    )
       coreBuilt += p.w * p.h;
   return {
     place,
@@ -60,7 +62,11 @@ export function panelCity(place: string, year: number, seed = "city-review") {
     humans: engine.state.actors.filter((a) => a.kind === "human").length,
     builtShare: built / (2 * r + 1) ** 2,
     coreShare: coreBuilt / (2 * core) ** 2,
-    parks: plan.plots.filter((p: { id: string }) => p.id.includes("-park-")).length as number,
+    parks: plan.plots.filter((p: { id: string }) => p.id.includes("-park-"))
+      .length as number,
+    parcels: (plan.parcels?.length ?? 0) as number,
+    fieldCells: (plan.fields?.size ?? 0) as number,
+    system: plan.territory ? String(plan.territory.outer) : "",
     routeFailures: plan.diagnostics.routeFailures as number,
     timing: (plan.diagnostics.timing ?? {}) as Record<string, number>,
     engine,

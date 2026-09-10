@@ -1,4 +1,5 @@
 import { trimCache } from "../core/cache";
+import { raisedFieldEdge } from "./field-raster";
 import type { TopographyCell, TopographySample } from "../core/topography";
 import {
   waterDistance,
@@ -65,7 +66,7 @@ export function materialCoverage(
       !c.bridge &&
       !c.ramp &&
       c.feature !== "paving" &&
-      c.feature !== "field" &&
+      (c.field ? !raisedFieldEdge(c) : c.feature !== "field") &&
       predicate(c)
       ? 1
       : 0;

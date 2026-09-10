@@ -12,6 +12,10 @@ import { urbanNeighborhood, urbanSite, siteForm, type UrbanLot } from "./urban";
 import type { Furniture } from "./blocks";
 import { urbanNeighborhoodV1 } from "./urban-v1";
 import { urbanBuildingLimit } from "../../content/settlements/scale";
+import { cropSprite, planFarmland, territoryReach } from "./farmland";
+import { crops } from "../../content/agriculture/crops";
+import { farms } from "../../content/geography/onsets";
+import { route } from "../../core/routing";
 import { ornaments } from "../../content/settlements/ornaments";
 import type { Actor, Pack, Point, Position, Terrain } from "../../core/types";
 import { proceduralName } from "../../content/geography/character";
@@ -46,6 +50,8 @@ export function planSettlement(
   seed: string,
   sample: Sample,
   connections: Road[],
+  /** Ground inside another settlement's claim, which fields keep off. */
+  foreign: (x: number, y: number) => boolean = () => false,
 ): SettlementPlan {
   const c = site.center,
     profile = site.profile,
@@ -61,11 +67,25 @@ export function planSettlement(
   /** Worlds pinned to the first urban revision keep their fixed lattice. */
   const composed = (pack.setting?.urbanRevision ?? 0) >= 2;
   const organic = !!pack.setting?.environment && profile.pattern !== "planned";
-  const bounds = {
+  // Farmland reaches past the claim, and so must the ground a path may use.
+  // A town farms once its region does, whatever its own profile says of
+  // household fields; a camp or a hunting band does not.
+  const farmed =
+    !!pack.setting?.environment &&
+    farms(pack.setting) &&
+    (profile.fields !== "none" || urban);
+  const margin = 40 + (farmed ? territoryReach(r, pack) : 0);
+  const coreBounds = {
     x: c.x - r - 40,
     y: c.y - r - 40,
     w: (r + 40) * 2,
     h: (r + 40) * 2,
+  };
+  const bounds = {
+    x: c.x - r - margin,
+    y: c.y - r - margin,
+    w: (r + margin) * 2,
+    h: (r + margin) * 2,
   };
   const tPlan = now();
   const plan: SettlementPlan = {
@@ -92,6 +112,11 @@ export function planSettlement(
   const roads = plan.traffic,
     bridges = new Set<string>(),
     noRoad = new Set<string>();
+  // A view, not a copy: with the fields in, noRoad holds tens of thousands
+  // of cells and a copy per doorstep search cost seconds.
+  const blockedForRoads = {
+    has: (k: string) => plan.solid.has(k) || noRoad.has(k),
+  } as Set<string>;
   const rand = (...k: (string | number)[]) =>
     random(seed, "settlement-3", site.id, ...k);
   const pos = (p: Point): Position => ({ ...p, space: "outside" });
@@ -187,9 +212,11 @@ export function planSettlement(
     b: Point,
     label: string,
     width = 1,
-    area = bounds,
+    area?: Rect,
   ) => {
     const access = /^(door|yard-access|field-access|pen-access)/.test(label);
+    // A doorstep path searches the town, not the fields round it.
+    area ??= access ? coreBounds : bounds;
     const road = access
       ? (sharedRoads ? joinNetwork : planAccess)(
           `${site.id}-${label}`,
@@ -199,7 +226,7 @@ export function planSettlement(
           sample,
           sharedRoads ? centers : roads,
           bridges,
-          new Set([...plan.solid, ...noRoad]),
+          blockedForRoads,
           area,
         )
       : sharedRoads &&
@@ -213,7 +240,7 @@ export function planSettlement(
               ? new Set([...centers].filter((k) => !bridges.has(k)))
               : centers,
             bridges,
-            new Set([...plan.solid, ...noRoad]),
+            blockedForRoads,
             area,
             width,
           )
@@ -224,7 +251,7 @@ export function planSettlement(
             sample,
             roads,
             bridges,
-            new Set([...plan.solid, ...noRoad]),
+            blockedForRoads,
             area,
             width,
             width ? 2 : 1,
@@ -245,7 +272,16 @@ export function planSettlement(
    * street rather than refusing it: the runs either side still serve their
    * blocks, where refusing the whole segment left them with no street at all.
    * `span` is the total width in cells. */
-  const lay = (a: Point, b: Point, label: string, span: number) => {
+  const lay = (
+    a: Point,
+    b: Point,
+    label: string,
+    span: number,
+    /** A field track runs past the claim the streets are held to. */
+    outside = false,
+    /** An earth track keeps its kind whatever the town paves. */
+    kind?: Road["kind"],
+  ) => {
     const width = span >= 4 ? 2 : span >= 2 ? 1 : 0;
     const usable = (p: Point) => {
       let valid = true;
@@ -255,7 +291,7 @@ export function planSettlement(
           const k = cellKey(x, y);
           if (
             sample(x, y).water < 4 ||
-            (site.accepts && !site.accepts(x, y)) ||
+            (!outside && site.accepts && !site.accepts(x, y)) ||
             plan.solid.has(k) ||
             noRoad.has(k)
           )
@@ -282,7 +318,7 @@ export function planSettlement(
         points,
         width,
         span,
-        kind: span >= 2 ? "street" : "lane",
+        kind: kind ?? (span >= 2 ? "street" : "lane"),
         cost: points.length,
       };
       addRoad(road);
@@ -314,7 +350,7 @@ export function planSettlement(
       roadCells(deck, (x, y) => bridges.add(cellKey(x, y)));
       addRoad(deck);
     }
-    if (!first) plan.diagnostics.routeFailures++;
+    if (!first && !label.startsWith("field-")) plan.diagnostics.routeFailures++;
     return first;
   };
   const dry = (rect: Rect, occupied = true) => {
@@ -1744,12 +1780,158 @@ export function planSettlement(
             : plan.actors.find((a) => a.id === id)?.role) === "Farmer",
       )
     : owners;
-  if (
+  const farmable =
     profile.fields !== "none" &&
-    fieldOwners.length &&
+    fieldOwners.length > 0 &&
     (!characterContext ||
-      characterContext.profile.allowedItems.includes("grain"))
-  )
+      characterContext.profile.allowedItems.includes("grain"));
+  /** Fields, lanes and canals round the town. Laid after the pens and
+   * yards, which want the near ground, and before routines. */
+  const layFarmland = () => {
+    const tFields = now();
+    // The regional roads through the territory are laid after the fields,
+    // so the fields have to know where they will run.
+    const throughRoads = new Set<string>();
+    for (const road of connections)
+      roadCells(road, (x, y) => throughRoads.add(cellKey(x, y)));
+    const farmland = planFarmland({
+      site,
+      pack,
+      seed,
+      sample,
+      urban,
+      connections,
+      taken: (x, y) => {
+        const k = cellKey(x, y);
+        return (
+          plan.reserved.has(k) ||
+          plan.solid.has(k) ||
+          roads.has(k) ||
+          throughRoads.has(k)
+        );
+      },
+      solid: (x, y) => plan.solid.has(cellKey(x, y)),
+      foreign,
+      // A town gets about a hundred parcels, a village one or two a house.
+      cap: urban
+        ? Math.max(40, Math.min(110, Math.round(plan.places.length * 0.4)))
+        : Math.max(6, plan.places.length * 2),
+      // Lanes are straight and laid from the far end in, so each ends on
+      // the lane or spoke it serves; a spoke's inner end is routed the last
+      // few cells onto the town's own streets.
+      lane: (a, b, label) =>
+        lay(a, b, `field-${label}`, 1, true, "path")?.points,
+      join: (a, label) => connect(a, c, `field-${label}`, 0, bounds)?.points,
+      owners: fieldOwners,
+      homeOf: (owner) => plan.work.get(owner)?.home,
+    });
+    if (farmland) {
+      plan.fields = farmland.fields;
+      plan.canals = farmland.canals;
+      plan.culverts = farmland.culverts;
+      plan.parcels = farmland.parcels;
+      plan.territory = farmland.territory;
+      for (const [k, cell] of farmland.fields) {
+        // Pasture is grass with a fence round it; everything else is worked soil.
+        setSurface(k, cell.crop === "pasture" ? "grass" : "field", 3);
+        noRoad.add(k);
+      }
+      // A canal is water a cell wide; a track crosses it on a culvert deck.
+      for (const k of farmland.canals) {
+        setSurface(k, "water", 6);
+        plan.reserved.add(k);
+        noRoad.add(k);
+      }
+      for (const k of farmland.culverts) {
+        setSurface(k, "bridge", 10);
+        plan.reserved.add(k);
+      }
+      for (const [i, w] of farmland.wells.entries()) {
+        const k = cellKey(w.x, w.y);
+        plan.solid.add(k);
+        plan.reserved.add(k);
+        plan.objects.push({
+          id: `${site.id}-field-well-${i}`,
+          name: "Irrigation well",
+          kind: "well",
+          sprite: "farm-well-shadoof",
+          pos: pos(w),
+          inventory: { water: 20 },
+        });
+      }
+      // Only a worked parcel is a plot: the sim routes to plots, and the
+      // far fields are scenery until someone is given them.
+      for (const parcel of farmland.parcels) {
+        if (!parcel.owner) continue;
+        // A field the household cannot walk to in a fair search is not its
+        // field: the gate estimate misses a wall's detour.
+        const home = plan.work.get(parcel.owner)?.home;
+        if (
+          home &&
+          route(
+            home,
+            parcel.access,
+            (to) => (plan.solid.has(cellKey(to.x, to.y)) ? Infinity : 1),
+            { maxNodes: 9000 },
+          ).status !== "found"
+        ) {
+          delete parcel.owner;
+          continue;
+        }
+        const id = `${site.id}-parcel${parcel.id}`;
+        plan.plots.push({
+          ...parcel.rect,
+          id,
+          kind: "field",
+          owner: parcel.owner,
+          access: parcel.access,
+        });
+        const crop = crops[parcel.crop];
+        if (crop.kind === "pasture" || crop.kind === "fallow") continue;
+        // A few tended plants per parcel: what the farmer's round visits and
+        // the harvest comes from. The ground raster draws the crop itself.
+        let n = 0;
+        for (
+          let y = parcel.rect.y + 2;
+          y < parcel.rect.y + parcel.rect.h - 1;
+          y += 5
+        )
+          for (
+            let x = parcel.rect.x + 2;
+            x < parcel.rect.x + parcel.rect.w - 1;
+            x += 5
+          ) {
+            if (n >= 4 || !farmland.fields.has(cellKey(x, y))) continue;
+            n++;
+            plan.objects.push({
+              id: `${id}-crop-${x - parcel.rect.x}-${y - parcel.rect.y}`,
+              name: crop.label,
+              kind: "crop",
+              pos: pos({ x, y }),
+              sprite: cropSprite(parcel.crop),
+              inventory: crop.yields ? { [crop.yields]: 3 } : {},
+              ...(crop.yields
+                ? {
+                    resource: {
+                      item: crop.yields,
+                      capacity: 3,
+                      regrowSeconds: 28 * 86400,
+                      seasons: (
+                        ["spring", "summer", "autumn", "winter"] as const
+                      ).filter((season) => crop.calendar[season] === "ripe"),
+                      readyAt: 0,
+                    },
+                  }
+                : {}),
+              owner: parcel.owner,
+              claim: "landscape",
+            });
+          }
+      }
+    }
+    plan.diagnostics.timing!.fields = Math.round(now() - tFields);
+  };
+  if (!farmed && farmable)
     for (let i = 0; i < (profile.pattern === "farmstead" ? 5 : 4); i++) {
       const w =
           profile.fields === "strips"
@@ -1915,6 +2097,7 @@ export function planSettlement(
         });
       }
     }
+  if (farmed) layFarmland();
   if (pack.setting?.characterRevision) {
     for (const actor of plan.actors) {
       if (actor.kind !== "human") continue;
@@ -1944,6 +2127,13 @@ export function planSettlement(
     )
       plot.access = { ...socialCenter };
   plan.diagnostics.timing!.buildings = Math.round(now() - tBuildings);
+  // Routes through the territory are searched after the fields are cut, so
+  // a field cell a road ended up on gives way to it.
+  if (plan.fields)
+    for (const k of plan.traffic) {
+      plan.fields.delete(k);
+      if (plan.canals?.delete(k)) plan.culverts?.add(k);
+    }
   const tRoutines = now();
   planRoutines(plan, seed, pack, sample);
   plan.diagnostics.timing!.routines = Math.round(now() - tRoutines);

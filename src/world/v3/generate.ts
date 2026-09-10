@@ -44,6 +44,8 @@ import { cellKey, type Road, type SettlementPlan, type Site } from "./types";
 import { crossing, planRoad, roadCells } from "./roads";
 import { planSettlement } from "./plan";
 import { siteGate } from "./urban";
+import { territoryReach, type FieldCell } from "./farmland";
+import { cropStage } from "../../content/agriculture";
 import { propDefs } from "../../content/props/catalog";
 export const DISTRICT_SIZE = 384;
 /** Residents per settlement given a full daily routine. Past this the rest keep
@@ -286,12 +288,16 @@ export function createSettlementWorld(
           h: s.profile.radius * 2 + 80,
         }),
       );
+    const others = [-1, 0, 1]
+      .flatMap((dy) => [-1, 0, 1].flatMap((dx) => sitesIn(cx + dx, cy + dy)))
+      .filter((o) => o.id !== s.id && o.accepts);
     const plan = planSettlement(
       s,
       s.pack ?? pack,
       seed,
       land.sample,
       connections,
+      (x, y) => others.some((o) => o.accepts!(x, y)),
     );
     plans.set(s.id, plan);
     // Cells near this plan were decorated while it was still being drawn.
@@ -347,9 +353,15 @@ export function createSettlementWorld(
           // A plan's ground reaches 40 cells past its claim (fields, lanes
           // to the gates); anything further is another town's business, and
           // building it here is what made a city open its whole hinterland.
+          const reach =
+            s.profile.radius +
+            8 +
+            (s.profile.fields !== "none"
+              ? Math.max(64, territoryReach(s.profile.radius, s.pack ?? pack))
+              : 64);
           if (
-            Math.abs(s.center.x - (bx * 64 + 32)) > s.profile.radius + 72 ||
-            Math.abs(s.center.y - (by * 64 + 32)) > s.profile.radius + 72
+            Math.abs(s.center.x - (bx * 64 + 32)) > reach ||
+            Math.abs(s.center.y - (by * 64 + 32)) > reach
           )
             continue;
           const p = getPlan(s.cx, s.cy, s.id);
@@ -504,6 +516,41 @@ export function createSettlementWorld(
               : f.moisture < 0.3
                 ? "dry"
                 : "grass";
+  }
+  /** The crop on a cell, with its stage for this world's season, or the
+   * ditch beside a lane. */
+  function fieldAt(
+    x: number,
+    y: number,
+  ):
+    | (FieldCell & {
+        stage: import("../../content/agriculture/types").CropStage;
+        ditch?: boolean;
+      })
+    | undefined {
+    const k = cellKey(x, y);
+    for (const p of nearby(x, y)) {
+      const cell = p.fields?.get(k);
+      if (cell)
+        return {
+          ...cell,
+          stage: cropStage(
+            cell.crop,
+            (pack.setting?.season ??
+              "summer") as import("../../content/agriculture/types").Season,
+            pack.setting?.lat ?? 0,
+          ),
+        };
+    }
+  }
+  /** A canal cell: which way the water runs, from its neighbours. */
+  function canalAt(x: number, y: number): "x" | "y" | undefined {
+    for (const p of nearby(x, y)) {
+      if (!p.canals?.has(cellKey(x, y))) continue;
+      const along =
+        p.canals.has(cellKey(x + 1, y)) || p.canals.has(cellKey(x - 1, y));
+      return along ? "x" : "y";
+    }
   }
   function terrain(x: number, y: number, space = "outside"): Terrain {
     if (space !== "outside") return "floor";
@@ -930,6 +977,20 @@ export function createSettlementWorld(
     if (t === "field") {
       cell.surface = "soil";
       cell.feature = "field";
+    }
+    const farmed = fieldAt(x, y);
+    if (farmed) cell.field = farmed;
+    const canal = canalAt(x, y);
+    if (canal && cell.waterVisual) {
+      cell.surface = "water";
+      cell.waterDepth = "shallow";
+      cell.waterVisual = {
+        ...cell.waterVisual,
+        distance: -1,
+        kind: "canal",
+        shoreWidth: 1,
+        flow: canal === "x" ? [1, 0] : [0, 1],
+      };
     }
     if (t === "rock") cell.surface = "gravel";
     if (t === "paving") {

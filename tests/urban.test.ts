@@ -60,10 +60,12 @@ it("encloses public squares and courts with varied, non-overlapping ranges and r
       ...p.work.values(),
     ].map((g: any) => g.work ?? g)) {
       expect(
+        // Bounded to the territory: a household's field lies out past the
+        // built edge, along a track from the gate.
         route(p.spawn, goal, (q) =>
           p.solid.has(`${q.x},${q.y}`) ||
-          Math.abs(q.x) > 90 ||
-          Math.abs(q.y) > 90
+          Math.abs(q.x) > 200 ||
+          Math.abs(q.y) > 200
             ? Infinity
             : 1,
         ).status,

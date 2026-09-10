@@ -6,6 +6,7 @@ import {
   turfTick,
 } from "./ground-motifs";
 import { rasterStreetTile } from "./street-raster";
+import { rasterFieldTile } from "./field-raster";
 import { transitionPixel, fringePixel, groundClumps } from "./terrain-tiles";
 import {
   paintedGround,
@@ -71,6 +72,7 @@ export function rasterHabitatTile(
 ): GroundTileData {
   const cell = sample(x, y)!;
   if (cell.feature === "paving") return rasterStreetTile(sample, x, y, ox, oy);
+  if (cell.field) return rasterFieldTile(sample, x, y, ox, oy, art);
   const h = cell.habitat!;
   const palette = art.palettes[h.ecology];
   const pixels = new Uint8ClampedArray(16 * 16 * 4);

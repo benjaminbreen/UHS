@@ -31,11 +31,26 @@ export type TopographyCell = {
   surface: GroundSurface;
   /** Continuous gravel ground versus the legacy shallow drainage overlay. */
   feature?: "bank" | "paving" | "field";
+  /** A farmed cell. Stage is already resolved for the season. `edges` is a
+   * bitmask of parcel ends: north 1, east 2, south 4, west 8. A `ditch` cell
+   * is a one-cell irrigation channel beside a lane. */
+  field?: {
+    parcel: number;
+    crop: import("../content/agriculture/types").CropId;
+    axis: "x" | "y";
+    edges: number;
+    boundary: import("../content/agriculture/types").Boundary;
+    wet: boolean;
+    /** Enclosure edges, same bits as `edges`: where the fence or hedge runs. */
+    fence: number;
+    ditch?: boolean;
+    stage: import("../content/agriculture/types").CropStage;
+  };
   waterDepth?: "shallow" | "deep";
   /** Presentation metadata only: does not change water collision or simulation. */
   waterVisual?: {
     distance: number;
-    kind: "river" | "sea" | "lake";
+    kind: "river" | "sea" | "lake" | "canal";
     ecology: import("../content/ecology/profiles").Ecology;
     shoreWidth: number;
     flow: readonly [number, number];

@@ -1,13 +1,17 @@
 import { pavingGrade, pavingStonePixel } from "./paving-stones";
+import { raisedFieldEdge } from "./field-raster";
 import type { TopographyCell, TopographySample } from "../core/topography";
 import type { GroundTileData } from "./habitat-raster";
 import { waterHash as hash } from "./water-style";
 const mod = (n: number, d: number) => ((n % d) + d) % d;
 const paved = (n?: TopographyCell) => n?.feature === "paving" || !!n?.bridge;
 /** A cell that reads as ground beside paving, so the edge wears rather than
- * stops. Water and the field edge keep their own outlines. */
+ * stops. Water and a field with a standing boundary keep their own outlines. */
 export const wornEdge = (n?: TopographyCell) =>
-  !!n && !paved(n) && n.surface !== "water" && n.feature !== "field";
+  !!n &&
+  !paved(n) &&
+  n.surface !== "water" &&
+  (n.field ? !raisedFieldEdge(n) : n.feature !== "field");
 /** Shared native-pixel paving materials. Place/date selection happens in content. */
 export function rasterStreetTile(
   sample: TopographySample,

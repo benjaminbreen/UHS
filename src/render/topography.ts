@@ -1,7 +1,7 @@
 import { own, renderResources } from "./resources";
 import { paintedGround } from "./material-edges";
 import { rasterHabitatTile, type GroundTileData } from "./habitat-raster";
-import { rasterWaterTile, type WaterTileData } from "./water-raster";
+import { isCanal, rasterWaterTile, type WaterTileData } from "./water-raster";
 import {
   addWaterEffects,
   waterCanvas,
@@ -11,6 +11,7 @@ import {
 import type { TerrainRegion } from "./terrain-region";
 import { drawBridges, type BridgeSpan } from "./bridges";
 import { addFlowers, flowersAt, type FlowerSpot } from "./flowers";
+import { addCrops, cropsAt, type CropSpot } from "./crops";
 import type Phaser from "phaser";
 import { drawTerrainContours } from "./terrain-contours";
 import {
@@ -41,6 +42,7 @@ export function drawTopography(
   const shoreTiles = new Map<string, HTMLCanvasElement>();
   const effects: WaterEffect[] = [];
   const flowers: FlowerSpot[] = [];
+  const standingCrops: CropSpot[] = [];
   let groundScratch: HTMLCanvasElement | undefined;
   const preparedGround = new Map(groundTiles?.map((t) => [`${t.x},${t.y}`, t]));
   let waterScratch: HTMLCanvasElement | undefined;
@@ -212,7 +214,8 @@ export function drawTopography(
           rasterWaterTile(sample, x, y, region?.x ?? 0, region?.y ?? 0);
         if (!bakedWater.has(`${x},${y}`))
           painted = waterScratch = waterCanvas(water, waterScratch);
-        effects.push(water.effect);
+        // A canal is still water with no shore: no motifs or wash sprites.
+        if (!isCanal(c)) effects.push(water.effect);
       } else if (
         c.waterVisual &&
         c.feature !== "paving" &&
@@ -248,6 +251,9 @@ export function drawTopography(
         painted = groundScratch;
         flowers.push(
           ...flowersAt(sample, x, y, region?.x ?? 0, region?.y ?? 0, top),
+        );
+        standingCrops.push(
+          ...cropsAt(sample, x, y, region?.x ?? 0, region?.y ?? 0, top),
         );
         if (c.waterVisual && c.height === 0 && c.waterVisual.distance < 1)
           effects.push(
@@ -305,6 +311,7 @@ export function drawTopography(
   if (water) own(resources, water);
   const blooms = addFlowers(scene, flowers);
   if (blooms) own(resources, blooms);
+  addCrops(scene, standingCrops, resources);
   const covers = drawBridges(
     scene,
     sample,

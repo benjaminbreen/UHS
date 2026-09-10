@@ -32,6 +32,107 @@ const cardinal = [
   [0, 1],
   [-1, 0],
 ] as const;
+const mod = (n: number, d: number) => ((n % d) + d) % d;
+
+/** Water one cell wide, so the shoreline machinery does not apply. */
+export const isCanal = (c?: TopographyCell) =>
+  !!c && c.surface === "water" && c.waterVisual?.kind === "canal" && !c.bridge;
+
+/** A cut channel: straight two-pixel lips either side, still water between,
+ * one highlight line along the flow. Water runs to the edge wherever the
+ * neighbour is water or a culvert deck; elsewhere the lip closes the end. A
+ * perpendicular canal opens the lip over the middle columns for a junction. */
+function rasterCanalTile(
+  sample: TopographySample,
+  x: number,
+  y: number,
+  gx: number,
+  gy: number,
+  cell: TopographyCell,
+  palette: WaterPalette,
+): WaterTileData {
+  const rgb = (c: string) => [
+    parseInt(c.slice(1, 3), 16),
+    parseInt(c.slice(3, 5), 16),
+    parseInt(c.slice(5, 7), 16),
+  ];
+  const mix = (a: number[], b: number[], t: number) =>
+    a.map((v, k) => Math.round(v * (1 - t) + b[k] * t));
+  const axis = (cell.waterVisual?.flow[0] ?? 0) !== 0 ? "x" : "y";
+  const open = (dx: number, dy: number) => {
+    const n = sample(x + dx, y + dy);
+    return !!n && (n.surface === "water" || !!n.bridge);
+  };
+  const openN = open(0, -1),
+    openE = open(1, 0),
+    openS = open(0, 1),
+    openW = open(-1, 0);
+  const [startOpen, endOpen, sideAOpen, sideBOpen] =
+    axis === "x"
+      ? [openW, openE, openN, openS]
+      : [openN, openS, openW, openE];
+  const water = new Uint8Array(256);
+  for (let py = 0; py < 16; py++)
+    for (let px = 0; px < 16; px++) {
+      const a = axis === "x" ? px : py,
+        c = axis === "x" ? py : px;
+      let w = c >= 2 && c <= 13;
+      if (w && !startOpen && a < 2) w = false;
+      if (w && !endOpen && a > 13) w = false;
+      if (a >= 2 && a <= 13) {
+        if (sideAOpen && c < 2) w = true;
+        if (sideBOpen && c > 13) w = true;
+      }
+      water[py * 16 + px] = w ? 1 : 0;
+    }
+  const at = (px: number, py: number) =>
+    px < 0 || py < 0 || px > 15 || py > 15 ? undefined : water[py * 16 + px];
+  const still = rgb(palette.depths[2]),
+    shadow = rgb(palette.depths[3]),
+    glint = mix(still, rgb(palette.glint), 0.45),
+    lipOuter = rgb(palette.bank[2]),
+    lipInner = rgb(palette.bank[1]),
+    lipJoint = rgb(palette.bank[0]);
+  const pixels = new Uint8ClampedArray(1024);
+  for (let py = 0; py < 16; py++)
+    for (let px = 0; px < 16; px++) {
+      const wx = gx + px,
+        wy = gy + py;
+      const c = axis === "x" ? py : px;
+      const along = axis === "x" ? wx : wy;
+      let tone: number[];
+      if (at(px, py)) {
+        // The north and west lips cast a one-pixel shade onto the water.
+        const shaded = at(px, py - 1) === 0 || at(px - 1, py) === 0;
+        tone = shaded ? shadow : still;
+        if (!shaded && c === 9 && waterHash(Math.floor(along / 6), 0, 901) > 0.25)
+          tone = glint;
+      } else {
+        const inner =
+          at(px + 1, py) === 1 ||
+          at(px - 1, py) === 1 ||
+          at(px, py + 1) === 1 ||
+          at(px, py - 1) === 1;
+        tone = inner ? lipInner : lipOuter;
+        if (!inner && mod(along, 8) === 0 && (c === 0 || c === 15)) tone = lipJoint;
+      }
+      pixels.set([...tone, 255], (py * 16 + px) * 4);
+    }
+  return {
+    x,
+    y,
+    pixels,
+    effect: {
+      x: x * 16,
+      y: y * 16 - cell.height * TERRAIN_RISE,
+      gx,
+      gy,
+      cell,
+      palette,
+      edges: [],
+    },
+  };
+}
 export function rasterWaterTile(
   sample: TopographySample,
   x: number,
@@ -44,6 +145,8 @@ export function rasterWaterTile(
     kind = cell.waterVisual?.kind ?? "river";
   const gx = (x + ox) * 16,
     gy = (y + oy) * 16;
+  if (kind === "canal" && !cell.bridge)
+    return rasterCanalTile(sample, x, y, gx, gy, cell, palette);
   const edges = cardinal.flatMap(([dx, dy]) => {
     const n = sample(x + dx, y + dy);
     return n && n.surface !== "water" && !n.bridge

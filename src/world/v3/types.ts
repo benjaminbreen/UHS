@@ -78,6 +78,13 @@ export type SettlementPlan = {
   gatherings?: Point[];
   /** Country round the settlement, kept for routines built after planning. */
   outdoors?: { wild: Point[]; shore?: Point; quarry?: Point; roadOut?: Point };
+  /** Farmland round the town: crop per cell, the parcels, and the territory
+   * with its lanes and the slots kept free for outlying sites. */
+  fields?: Map<string, import("./farmland").FieldCell>;
+  canals?: Set<string>;
+  culverts?: Set<string>;
+  parcels?: import("./farmland").Parcel[];
+  territory?: import("./farmland").Territory;
   /** Ordered daily errands per resident; the world turns these into routes. */
   stations: Map<string, import("../../core/itinerary").Station[]>;
   slots: Map<string, { yard: Point[]; work: Point[] }>;

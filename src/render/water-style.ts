@@ -68,7 +68,7 @@ const wetland: WaterPalette = {
 };
 export function waterPalette(
   ecology: Ecology,
-  kind: "river" | "sea" | "lake",
+  kind: "river" | "sea" | "lake" | "canal",
 ): WaterPalette {
   switch (ecology) {
     case "desert":
@@ -124,6 +124,8 @@ export function waterDistance(sample: TopographySample, x: number, y: number) {
     fy = y - 0.5 - iy;
   const d = (a: number, b: number) => {
     const c = sample(a, b);
+    // A canal draws its own lips and gives its neighbours no shoreline.
+    if (c?.surface === "water" && c.waterVisual?.kind === "canal") return 4;
     return (
       c?.waterVisual?.distance ??
       (c?.surface === "water" || c?.bridge
@@ -140,7 +142,7 @@ export function waterDistance(sample: TopographySample, x: number, y: number) {
 }
 export function waterBand(
   distance: number,
-  kind: "river" | "sea" | "lake",
+  kind: "river" | "sea" | "lake" | "canal",
   shoreWidth: number,
   gx: number,
   gy: number,

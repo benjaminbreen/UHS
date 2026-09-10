@@ -173,6 +173,8 @@ from art.buildings import build_buildings
 from art.shadows import build_shadows
 buildings = build_buildings(ROOT, S)
 build_shadows(ROOT, S, buildings)
+from art.fields import build_fields
+S.update(build_fields())
 from art.atlas import pack_atlas
 atlas=pack_atlas(S,OUT,'atlas')
 # Reviewable original-asset proof at exactly 3x nearest-neighbor scaling.
