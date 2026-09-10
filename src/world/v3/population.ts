@@ -64,8 +64,11 @@ export function populateHouseholds(
     // sampled, because a legible street wants a few people out on visible
     // errands rather than every resident stood in their own yard.
     const size = random(seed, id, "size");
-    const count =
-      owner === "player" || form === "extended" || form === "shared"
+    // A stall or a hut is one person's; a full household needs a house.
+    const small = owner !== "player" && place.w * place.h <= 12;
+    const count = small
+      ? 0
+      : owner === "player" || form === "extended" || form === "shared"
         ? 2
         : size < 0.45
           ? 0

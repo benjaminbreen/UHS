@@ -27,6 +27,7 @@ import {
   type Position,
   type Snapshot,
   type WorldModel,
+  type WorldObject,
 } from "./types";
 import { canonical, random, stateHash } from "./random";
 import { findPath } from "./pathfinding";
@@ -215,7 +216,70 @@ export class Engine {
     if (this.state.events.length > 160) this.state.events.shift();
   }
   private tickObstacles?: Map<string, typeof this.state.objects>;
+  // Per-advance indexes. All undefined outside advance(), where the callers
+  // fall back to the linear scans they replace.
+  private gatesAt?: Map<string, WorldObject[]>;
+  private actorsAt?: Map<string, Actor[]>;
+  private actorCell?: Map<string, string>;
+  private actorsById?: Map<string, Actor>;
+  private objectsById?: Map<string, WorldObject>;
+  private householdsById?: Map<string, Household>;
+  private resourceObjects?: WorldObject[];
   private terrainCollision = new Map<string, boolean>();
+  /** Re-files an actor in actorsAt after any write to a.pos, including ones
+   * made by livelihood callbacks the engine does not own. */
+  private syncActor(a: Actor) {
+    if (!this.actorsAt || !this.actorCell) return;
+    const key = `${a.pos.space}:${a.pos.x},${a.pos.y}`;
+    const old = this.actorCell.get(a.id);
+    if (old === key) return;
+    if (old !== undefined) {
+      const bucket = this.actorsAt.get(old);
+      if (bucket) {
+        const i = bucket.indexOf(a);
+        if (i >= 0) bucket.splice(i, 1);
+      }
+    }
+    const bucket = this.actorsAt.get(key);
+    if (bucket) bucket.push(a);
+    else this.actorsAt.set(key, [a]);
+    this.actorCell.set(a.id, key);
+  }
+  private moveActor(a: Actor, pos: Position) {
+    a.pos = pos;
+    this.syncActor(a);
+  }
+  /** Same-cell test standing in for `actors.some(o => distance(o.pos, p) < 1)`;
+   * positions are integer cells, so the two agree. */
+  private actorAt(p: Position, excludeId: string) {
+    if (this.actorsAt)
+      return (
+        this.actorsAt
+          .get(`${p.space}:${p.x},${p.y}`)
+          ?.some((o) => o.id !== excludeId) ?? false
+      );
+    return this.state.actors.some(
+      (o) =>
+        o.id !== excludeId &&
+        o.pos.space === p.space &&
+        o.pos.x === p.x &&
+        o.pos.y === p.y,
+    );
+  }
+  private household(id: string | undefined) {
+    return this.householdsById
+      ? id === undefined
+        ? undefined
+        : this.householdsById.get(id)
+      : this.state.households?.find((h) => h.id === id);
+  }
+  private object(id: string | undefined) {
+    return this.objectsById
+      ? id === undefined
+        ? undefined
+        : this.objectsById.get(id)
+      : this.state.objects.find((o) => o.id === id);
+  }
   blocked(x: number, y: number, space = this.state.player.pos.space) {
     const key = `${space}:${x},${y}`;
     let fixed = this.terrainCollision.get(key);
@@ -281,6 +345,8 @@ export class Engine {
     return { kind: "blocked", reason: "There is no way over that." };
   }
   gateAt(p: Point, space = this.state.player.pos.space) {
+    if (this.gatesAt)
+      return this.gatesAt.get(`${space}:${p.x},${p.y}`)?.find((o) => !o.open);
     return this.state.objects.find(
       (o) =>
         o.kind === "gate" &&
@@ -300,9 +366,17 @@ export class Engine {
     // list at every explored node.
     const human =
       actorId === "player" ||
-      this.state.actors.some((a) => a.id === actorId && a.kind === "human");
-    const occupied = new Set<string>();
-    if (actorId !== "player")
+      (this.actorsById
+        ? this.actorsById.get(actorId)?.kind === "human"
+        : this.state.actors.some(
+            (a) => a.id === actorId && a.kind === "human",
+          ));
+    // Inside advance the per-cell actor index answers this directly, so the
+    // route callback never rebuilds a set over every actor.
+    const cellOccupied = (p: Point) =>
+      this.actorAt({ ...p, space: start.space }, actorId);
+    const occupied = this.actorsAt ? undefined : new Set<string>();
+    if (occupied && actorId !== "player")
       for (const a of this.state.actors)
         if (a.id !== actorId && a.pos.space === start.space)
           occupied.add(`${a.pos.x},${a.pos.y}`);
@@ -328,7 +402,10 @@ export class Engine {
             return Infinity;
           return 5;
         }
-        if (actorId !== "player" && occupied.has(`${to.x},${to.y}`))
+        if (
+          actorId !== "player" &&
+          (occupied ? occupied.has(`${to.x},${to.y}`) : cellOccupied(to))
+        )
           return Infinity;
         return start.space === "outside"
           ? (this.world.navigationCost?.(to.x, to.y, actorId) ?? 1)
@@ -1220,6 +1297,8 @@ export class Engine {
     }
   }
   private stepToward(a: Actor, target: Position) {
+    // Livelihood callbacks write a.pos behind the engine's back.
+    this.syncActor(a);
     if (a.pos.space !== target.space) return;
     if (this.state.manifest.simulation === 2) {
       if (a.pos.x === target.x && a.pos.y === target.y) return;
@@ -1227,9 +1306,7 @@ export class Engine {
         (a.householdId &&
           this.blocked(target.x, target.y, target.space) &&
           !this.gateAt(target, target.space)) ||
-        this.state.actors.some(
-          (other) => other.id !== a.id && distance(other.pos, target) < 1,
-        )
+        this.actorAt(target, a.id)
       ) {
         const alternative = [
           [0, 1],
@@ -1239,11 +1316,7 @@ export class Engine {
         ]
           .map(([x, y]) => ({ ...target, x: target.x + x, y: target.y + y }))
           .find(
-            (p) =>
-              !this.blocked(p.x, p.y, p.space) &&
-              !this.state.actors.some(
-                (other) => other.id !== a.id && distance(other.pos, p) < 1,
-              ),
+            (p) => !this.blocked(p.x, p.y, p.space) && !this.actorAt(p, a.id),
           );
         if (!alternative) return;
         target = alternative;
@@ -1275,22 +1348,14 @@ export class Engine {
         this.routes.delete(a.id);
         return;
       }
-      if (
-        this.state.actors.some(
-          (other) =>
-            other.id !== a.id &&
-            other.pos.space === a.pos.space &&
-            other.pos.x === step.x &&
-            other.pos.y === step.y,
-        )
-      ) {
+      if (this.actorAt({ ...step, space: a.pos.space }, a.id)) {
         this.routes.delete(a.id);
         return;
       }
       cached.path.shift();
       a.direction =
         step.y < a.pos.y ? 0 : step.x > a.pos.x ? 1 : step.y > a.pos.y ? 2 : 3;
-      a.pos = { ...step, space: a.pos.space };
+      this.moveActor(a, { ...step, space: a.pos.space });
       return;
     }
     const dx = Math.sign(target.x - a.pos.x),
@@ -1310,6 +1375,7 @@ export class Engine {
         a.pos.x += x;
         a.pos.y += y;
         a.direction = y < 0 ? 0 : x > 0 ? 1 : y > 0 ? 2 : 3;
+        this.syncActor(a);
         return;
       }
     }
@@ -1322,6 +1388,7 @@ export class Engine {
     if (step) {
       a.pos.x = step.x;
       a.pos.y = step.y;
+      this.syncActor(a);
     }
   }
   private stepAway(a: Actor, p: Position) {
@@ -1336,9 +1403,7 @@ export class Engine {
   /** Eats one edible from the actor's own bag, else from the household store.
    * Returns false when there is nothing to eat. */
   private feed(a: Actor, household?: Household) {
-    const store = household
-      ? this.state.objects.find((o) => o.id === household.storeId)
-      : undefined;
+    const store = household ? this.object(household.storeId) : undefined;
     for (const bag of [a.inventory, store?.inventory]) {
       if (!bag) continue;
       const food = (Object.keys(bag) as ItemId[]).find(
@@ -1355,18 +1420,20 @@ export class Engine {
    * the house, so nobody stands at the door overnight. */
   private followRoutine(a: Actor, routine: Itinerary, clock: number) {
     const at = itineraryAt(routine, clock);
-    const household = this.state.households?.find(
-      (h) => h.id === a.householdId,
-    );
+    const household = this.household(a.householdId);
     a.offRoutine = false;
     const gateId = this.world.activitySites?.(a.id)?.gateId;
     if (gateId) {
-      const gate = this.state.objects.find((o) => o.id === gateId);
+      const gate = this.object(gateId);
       if (gate) gate.open = at.activity !== "rest";
     }
     if (at.activity === "rest" && household?.residence) {
       const index = Math.max(0, household.members.indexOf(a.id));
-      a.pos = { x: 3 + (index % 4), y: 3, space: household.residence };
+      this.moveActor(a, {
+        x: 3 + (index % 4),
+        y: 3,
+        space: household.residence,
+      });
       a.activity = at.label;
       a.fatigue = Math.max(0, a.fatigue - 0.1);
       // Eating at home is what keeps a resident under the hunger gate below and
@@ -1381,41 +1448,63 @@ export class Engine {
       a.offRoutine = true;
       return;
     }
-    a.pos = {
+    this.moveActor(a, {
       x: Math.round(at.x),
       y: Math.round(at.y),
       space: "outside",
-    };
+    });
     a.direction = at.direction;
     a.activity = at.label;
   }
   /** Keeps a dormant resident indoors at their household, or at their door
    * when the house has no interior. */
   private park(a: Actor) {
-    const household = this.state.households?.find(
-      (h) => h.id === a.householdId,
-    );
+    const household = this.household(a.householdId);
     a.offRoutine = true;
     a.activity = "At home";
     a.hunger = Math.min(a.hunger, 30);
     a.fatigue = Math.max(0, a.fatigue - 0.1);
     if (household?.residence) {
       const index = Math.max(0, household.members.indexOf(a.id));
-      a.pos = { x: 3 + (index % 4), y: 3, space: household.residence };
+      this.moveActor(a, {
+        x: 3 + (index % 4),
+        y: 3,
+        space: household.residence,
+      });
     } else if (a.pos.space === "outside" && distance(a.pos, a.home) > 0) {
-      a.pos = copy(a.home);
+      this.moveActor(a, copy(a.home));
     }
   }
   private advance(seconds: number, heldActor?: string) {
     // Derived paths never survive a command boundary: saves and replays need no hidden routing state.
     this.routes.clear();
     this.tickObstacles = new Map();
+    this.gatesAt = new Map();
+    this.objectsById = new Map();
+    this.resourceObjects = [];
     for (const o of this.state.objects) {
+      if (!this.objectsById.has(o.id)) this.objectsById.set(o.id, o);
+      if (o.resource) this.resourceObjects.push(o);
       if (o.kind !== "gate" && !o.prop) continue;
       const key = `${o.pos.space}:${o.pos.x},${o.pos.y}`;
       const at = this.tickObstacles.get(key) ?? [];
       at.push(o);
       this.tickObstacles.set(key, at);
+      if (o.kind === "gate") {
+        const gates = this.gatesAt.get(key) ?? [];
+        gates.push(o);
+        this.gatesAt.set(key, gates);
+      }
+    }
+    this.householdsById = new Map();
+    for (const h of this.state.households ?? [])
+      if (!this.householdsById.has(h.id)) this.householdsById.set(h.id, h);
+    this.actorsById = new Map();
+    this.actorsAt = new Map();
+    this.actorCell = new Map();
+    for (const a of this.state.actors) {
+      if (!this.actorsById.has(a.id)) this.actorsById.set(a.id, a);
+      this.syncActor(a);
     }
     const actors = [...this.state.actors].sort((a, b) =>
       a.id < b.id ? -1 : a.id > b.id ? 1 : 0,
@@ -1441,7 +1530,7 @@ export class Engine {
       if (next % 3600 === 0) this.world.rotateRoutines?.(next);
       if (this.world.pack.setting?.environment) {
         const season = seasonAt(this.world.pack.setting.season, next);
-        for (const o of this.state.objects) refreshResource(o, next, season);
+        for (const o of this.resourceObjects) refreshResource(o, next, season);
       }
       for (const a of actors) {
         if (a.id === heldActor) continue;
@@ -1456,8 +1545,7 @@ export class Engine {
           distance(
             a.pos.space === "outside"
               ? a.pos
-              : (this.state.households?.find((h) => h.id === a.householdId)
-                  ?.home ?? a.pos),
+              : (this.household(a.householdId)?.home ?? a.pos),
             focus,
           ) > (this.state.manifest.simulation === 2 ? 220 : 80)
         )
@@ -1479,7 +1567,7 @@ export class Engine {
             distance(a.pos, target) * 18 < gap &&
             !this.blocked(target.x, target.y, target.space)
           )
-            a.pos = copy(target);
+            this.moveActor(a, copy(target));
         }
         if (a.kind === "human") {
           // Past the routine budget a resident is furniture: home, fed, and
@@ -1511,7 +1599,7 @@ export class Engine {
             a.hunger <= 55 &&
             ((hour >= 7 && hour < 17) ||
               this.state.objects.some((o) => o.id === dutyGate && o.open));
-          if (
+          const busy =
             !penDuty &&
             householdActivity(
               a,
@@ -1520,18 +1608,16 @@ export class Engine {
               (target) => this.stepToward(a, target),
               (target) =>
                 this.findRoute(a.pos, target, a.id, 1500).status === "found",
-            )
-          )
-            continue;
+            );
+          // householdActivity moves residents indoors itself.
+          this.syncActor(a);
+          if (busy) continue;
           if (a.hunger > 55) {
             a.activity = "Finding something to eat";
             this.stepToward(a, a.home);
             if (
               distance(a.pos, a.home) < 2 &&
-              this.feed(
-                a,
-                this.state.households?.find((h) => h.id === a.householdId),
-              )
+              this.feed(a, this.household(a.householdId))
             )
               a.activity = "Eating at home";
           } else if (this.world.activitySites?.(a.id)) {
@@ -1555,9 +1641,7 @@ export class Engine {
                   ? "At the common"
                   : sites.label;
             if (sites.gateId) {
-              const gate = this.state.objects.find(
-                (o) => o.id === sites.gateId,
-              );
+              const gate = this.object(sites.gateId);
               if (gate && distance(a.pos, gate.pos) < 2.5) {
                 if (!resting && !social) gate.open = true;
                 const animals = this.state.actors.filter(
@@ -1624,7 +1708,7 @@ export class Engine {
           // Food comes from finite, replenishing pasture patches.
         } else if (this.world.activitySites?.(a.id)) {
           const sites = this.world.activitySites(a.id)!;
-          const gate = this.state.objects.find((o) => o.id === sites.gateId);
+          const gate = this.object(sites.gateId);
           const hour = (next / 3600) % 24;
           const grazing = hour >= 8 && hour < 17 && gate?.open;
           const target = grazing ? sites.work : sites.home;
@@ -1649,5 +1733,12 @@ export class Engine {
       }
     }
     this.tickObstacles = undefined;
+    this.gatesAt = undefined;
+    this.actorsAt = undefined;
+    this.actorCell = undefined;
+    this.actorsById = undefined;
+    this.objectsById = undefined;
+    this.householdsById = undefined;
+    this.resourceObjects = undefined;
   }
 }

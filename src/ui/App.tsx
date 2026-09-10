@@ -42,6 +42,7 @@ import { weatherAt } from "../core/weather";
 import { lightingAt } from "../render/lighting";
 import { regionAt } from "../content/geography/region-label";
 import { WeatherPanel } from "./WeatherPanel";
+import { sexFromName } from "../content/characters/name-sex";
 import { AudioDirector } from "../audio/director";
 const AudioLab = lazy(() =>
   import("../dev/AudioLab").then((m) => ({ default: m.AudioLab })),
@@ -81,9 +82,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
   const [note, setNote] = useState("");
   const [command, setCommand] = useState("");
   const [sidebar, setSidebar] = useState(() => window.innerWidth > 640);
-  const [sheetSnap, setSheetSnap] = useState<"peek" | "half" | "full">(
-    "peek",
-  );
+  const [sheetSnap, setSheetSnap] = useState<"peek" | "half" | "full">("peek");
   const sheetPointerStart = useRef<number | null>(null);
   const [mapRegion, setMapRegion] = useState(false);
   const [sideTab, setSideTab] = useState<"around" | "inventory" | "today">(
@@ -262,6 +261,14 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
                 : "plain"
       }`
     : pack.subtitle;
+  // Kits without gendered names leave origin.sex unspecified; the drawn body still has one.
+  const playerSex =
+    p.origin?.sex && p.origin.sex !== "unspecified"
+      ? p.origin.sex
+      : (runtime.appearanceFor(p).physique?.sex ?? "unspecified") !==
+          "unspecified"
+        ? runtime.appearanceFor(p).physique?.sex
+        : sexFromName(p.name);
   const focusActor = obs.actors.find((a) => a.id === selection?.id);
   const focusSprite =
     selection &&
@@ -599,7 +606,11 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
               </p>
               <small>{landscape}</small>
             </div>
-            <WeatherPanel weather={weather} lighting={lighting} period={period} />
+            <WeatherPanel
+              weather={weather}
+              lighting={lighting}
+              period={period}
+            />
             <div className="character">
               <div className="portrait">
                 <CharacterSprite
@@ -609,7 +620,20 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
               </div>
               <div>
                 <h1>{p.name}</h1>
-                <div className="role">{p.role}</div>
+                <div className="role">
+                  {p.role}
+                  {playerSex === "female" && (
+                    <i className="sex female" title="Female">
+                      ♀
+                    </i>
+                  )}
+                  {playerSex === "male" && (
+                    <i className="sex male" title="Male">
+                      ♂
+                    </i>
+                  )}
+                  {p.age !== undefined && <span> · {p.age}</span>}
+                </div>
                 <span className="condition">
                   {p.hunger > 70
                     ? "Hungry"
@@ -617,14 +641,20 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
                       ? "Tired"
                       : "Healthy · Rested"}
                 </span>
-                {(pack.currency || !p.origin) && (
+                {(pack.currency ||
+                  !p.origin ||
+                  (p.inventory.coin ?? 0) > 0) && (
                   <div className="wealth">
                     <Sprite
-                      name={pack.currency ? "coin" : "obsidian"}
+                      name={
+                        pack.currency || (p.inventory.coin ?? 0) > 0
+                          ? "coin"
+                          : "obsidian"
+                      }
                       scale={1}
                     />
                     <span>
-                      {pack.currency
+                      {pack.currency || (p.inventory.coin ?? 0) > 0
                         ? `${p.inventory.coin ?? 0} bronze coins`
                         : `${p.inventory.obsidian ?? 0} obsidian flakes`}
                     </span>
@@ -789,10 +819,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
                     {Object.entries(p.inventory)
                       .filter(([, n]) => n! > 0)
                       .map(([id, n]) => (
-                        <button
-                          key={id}
-                          onClick={() => setModal("inventory")}
-                        >
+                        <button key={id} onClick={() => setModal("inventory")}>
                           <Sprite name={items[id as ItemId].sprite} scale={1} />
                           <span>
                             {items[id as ItemId].name}
@@ -826,8 +853,12 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
             <button aria-label="Notebook" onClick={() => setModal("notebook")}>
               <NotebookPen size={17} /> Notebook <kbd aria-hidden="true">N</kbd>
             </button>
-            <button aria-label="Inventory" onClick={() => setModal("inventory")}>
-              <ShoppingBag size={17} /> Inventory <kbd aria-hidden="true">I</kbd>
+            <button
+              aria-label="Inventory"
+              onClick={() => setModal("inventory")}
+            >
+              <ShoppingBag size={17} /> Inventory{" "}
+              <kbd aria-hidden="true">I</kbd>
             </button>
           </div>
         </aside>

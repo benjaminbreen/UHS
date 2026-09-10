@@ -1,6 +1,11 @@
 import { seasonAt } from "./livelihood";
 
-export type WeatherCondition = "clear" | "light-clouds" | "overcast" | "rain" | "mist";
+export type WeatherCondition =
+  | "clear"
+  | "light-clouds"
+  | "overcast"
+  | "rain"
+  | "mist";
 export type Weather = {
   condition: WeatherCondition;
   label: string;
@@ -17,7 +22,10 @@ const labels: Record<WeatherCondition, string> = {
 };
 
 // Mean daily temperature (°C) by climate and season, and the day/night swing.
-const bands: Record<string, { temps: [number, number, number, number]; swing: number }> = {
+const bands: Record<
+  string,
+  { temps: [number, number, number, number]; swing: number }
+> = {
   temperate: { temps: [11, 22, 12, 2], swing: 8 },
   mediterranean: { temps: [16, 27, 19, 10], swing: 9 },
   tropical: { temps: [28, 29, 28, 26], swing: 6 },
@@ -54,9 +62,12 @@ export function weatherAt(
   clock: number,
 ): Weather {
   const day = Math.floor(clock / 86400);
-  const hour = ((clock / 3600) % 24 + 24) % 24;
+  const hour = (((clock / 3600) % 24) + 24) % 24;
   const season = seasonAt(initialSeason, clock);
-  const si = Math.max(0, ["spring", "summer", "autumn", "winter"].indexOf(season));
+  const si = Math.max(
+    0,
+    ["spring", "summer", "autumn", "winter"].indexOf(season),
+  );
   const band = bands[climate] ?? bands.temperate;
   const rain = (rainChance[climate] ?? rainChance.temperate)[si];
   const roll = hash(`${seed}:${day}:sky`);
@@ -77,7 +88,12 @@ export function weatherAt(
   const tempC = Math.round(
     band.temps[si] + (diurnal * band.swing) / 2 + noise + cloudCool,
   );
-  return { condition, label: labels[condition], tempC, night: hour < 5 || hour >= 20 };
+  return {
+    condition,
+    label: labels[condition],
+    tempC,
+    night: hour < 5 || hour >= 20,
+  };
 }
 
 export const toFahrenheit = (c: number) => Math.round((c * 9) / 5 + 32);

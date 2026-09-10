@@ -27,7 +27,7 @@ import {
   type HeightTier,
   type TopographyCell,
 } from "../../core/topography";
-import type { Pack, Point, Terrain, WorldModel } from "../../core/types";
+import type { Pack, Place, Point, Terrain, WorldModel } from "../../core/types";
 import {
   buildItinerary,
   DAY_MINUTES,
@@ -294,6 +294,9 @@ export function createSettlementWorld(
       connections,
     );
     plans.set(s.id, plan);
+    // Cells near this plan were decorated while it was still being drawn.
+    decorations.clear();
+    neighborCache.clear();
     if (plans.size > 48)
       for (const id of plans.keys())
         if (!active.has(id) && id !== s.id) {
@@ -312,6 +315,23 @@ export function createSettlementWorld(
         }
     return plan;
   }
+  const yardIndex = new WeakMap<SettlementPlan, Map<string, string>>();
+  /** Household plot cells by owner, built once per plan: a route search asks
+   * for thousands of cells and a city has hundreds of plots. */
+  function yardOwners(p: SettlementPlan) {
+    let index = yardIndex.get(p);
+    if (!index) {
+      index = new Map();
+      for (const plot of p.plots) {
+        if (plot.kind !== "household" || !plot.owner) continue;
+        for (let y = plot.y; y < plot.y + plot.h; y++)
+          for (let x = plot.x; x < plot.x + plot.w; x++)
+            index.set(cellKey(x, y), plot.owner);
+      }
+      yardIndex.set(p, index);
+    }
+    return index;
+  }
   const neighborCache = new Map<string, SettlementPlan[]>();
   function nearby(x: number, y: number) {
     const bx = Math.floor(x / 64),
@@ -324,9 +344,12 @@ export function createSettlementWorld(
     for (let dy = -1; dy <= 1; dy++)
       for (let dx = -1; dx <= 1; dx++) {
         for (const s of sitesIn(c.x + dx, c.y + dy)) {
+          // A plan's ground reaches 40 cells past its claim (fields, lanes
+          // to the gates); anything further is another town's business, and
+          // building it here is what made a city open its whole hinterland.
           if (
-            Math.abs(s.center.x - (bx * 64 + 32)) > s.profile.radius + 90 ||
-            Math.abs(s.center.y - (by * 64 + 32)) > s.profile.radius + 90
+            Math.abs(s.center.x - (bx * 64 + 32)) > s.profile.radius + 72 ||
+            Math.abs(s.center.y - (by * 64 + 32)) > s.profile.radius + 72
           )
             continue;
           const p = getPlan(s.cx, s.cy, s.id);
@@ -551,10 +574,44 @@ export function createSettlementWorld(
     treeCandidates.set(key, value ?? null);
     return value;
   }
+  const placeBuckets = new WeakMap<SettlementPlan, Map<string, Place[]>>();
+  /** Places of a plan within a 32-cell bucket and its neighbours. */
+  function placesNear(plan: SettlementPlan, x: number, y: number) {
+    let buckets = placeBuckets.get(plan);
+    if (!buckets) {
+      buckets = new Map();
+      for (const b of plan.places)
+        for (
+          let by = Math.floor(b.y / 32);
+          by <= Math.floor((b.y + b.h) / 32);
+          by++
+        )
+          for (
+            let bx = Math.floor(b.x / 32);
+            bx <= Math.floor((b.x + b.w) / 32);
+            bx++
+          ) {
+            const key = cellKey(bx, by),
+              list = buckets.get(key) ?? [];
+            list.push(b);
+            buckets.set(key, list);
+          }
+      placeBuckets.set(plan, buckets);
+    }
+    const bx = Math.floor(x / 32),
+      by = Math.floor(y / 32),
+      out: Place[] = [];
+    for (let dy = -1; dy <= 1; dy++)
+      for (let dx = -1; dx <= 1; dx++) {
+        const list = buckets.get(cellKey(bx + dx, by + dy));
+        if (list) out.push(...list);
+      }
+    return out;
+  }
   function settledTree(x: number, y: number, tree: TreeCandidate) {
     let near = false;
     for (const plan of nearby(x, y))
-      for (const b of plan.places) {
+      for (const b of placesNear(plan, x, y)) {
         const distance = Math.hypot(
           Math.max(b.x - x, 0, x - (b.x + b.w)),
           Math.max(b.y - y, 0, y - (b.y + b.h)),
@@ -585,9 +642,21 @@ export function createSettlementWorld(
         0.35
     );
   }
+  const decorations = new Map<string, ReturnType<typeof decorate> | null>();
+  /** Per cell, once: the renderer, the collision test and every route search
+   * ask the same cell many times, and the answer only depends on plans that
+   * nearby() has already built. */
   function decoration(x: number, y: number) {
-    const k = cellKey(x, y),
-      f = land.sample(x, y);
+    const k = cellKey(x, y);
+    const old = decorations.get(k);
+    if (old !== undefined) return old ?? undefined;
+    const value = decorate(x, y, k);
+    trimCache(decorations, 131072);
+    decorations.set(k, value ?? null);
+    return value;
+  }
+  function decorate(x: number, y: number, k: string) {
+    const f = land.sample(x, y);
     if (
       f.water < (relief ? 0 : 4) ||
       nearby(x, y).some(
@@ -1285,6 +1354,14 @@ export function createSettlementWorld(
   }
   const world: SettlementWorld = {
     prepare: () => ({
+      // The starting town's routines are searched here, off the main thread,
+      // so arrival costs a lookup rather than seconds of path searches.
+      routines: [...routines].filter(([id]) =>
+        startPlan()?.actors.some((a) => a.id === id),
+      ),
+      dormant: [...dormant].filter((id) =>
+        startPlan()?.actors.some((a) => a.id === id),
+      ),
       sites: [...sites].map(([key, s]) => [key, s ? preparedSite(s) : null]),
       regionalSites: regionalPlanner?.prepare(),
       plans: [...plans].map(([key, p]) => [
@@ -1460,17 +1537,10 @@ export function createSettlementWorld(
       const t = terrain(x, y);
       if (nearby(x, y).some((p) => p.traffic.has(cellKey(x, y)))) return 1;
       if (t === "field") return 4;
-      const privateYard = nearby(x, y).some((p) =>
-        p.plots.some(
-          (plot) =>
-            plot.kind === "household" &&
-            plot.owner !== actorId &&
-            x >= plot.x &&
-            x < plot.x + plot.w &&
-            y >= plot.y &&
-            y < plot.y + plot.h,
-        ),
-      );
+      const privateYard = nearby(x, y).some((p) => {
+        const owner = yardOwners(p).get(cellKey(x, y));
+        return owner !== undefined && owner !== actorId;
+      });
       if (!privateYard && (t === "paving" || t === "dirt" || t === "bridge"))
         return 1;
       return (privateYard ? 2.8 : 1.8) + (t === "marsh" ? 2 : 0);
@@ -1503,8 +1573,22 @@ export function createSettlementWorld(
     if (environment) populateHouseholds(world, p, seed);
     world.enclosures.push(...p.enclosures);
   }
+  /** The starting town's plan, once the world has one. */
+  const startPlan = () =>
+    startingSite ? plans.get(startingSite.id) : plans.get([...active][0] ?? "");
+  /** Routines for the starting town are searched at creation, in both the
+   * worker and the synchronous path, so the two agree on who has one from the
+   * first tick and arrival costs a lookup rather than seconds of searches. */
+  const warmRoutines = () => {
+    for (const a of startPlan()?.actors ?? [])
+      if (a.kind === "human") routineFor(a.id);
+  };
   if (prepared) {
     Object.assign(world, prepared.initial);
+    for (const [id, itinerary] of prepared.routines ?? [])
+      routines.set(id, itinerary);
+    for (const id of prepared.dormant ?? []) dormant.add(id);
+    if (!prepared.routines) warmRoutines();
     return world;
   }
   const initial = getPlan(
@@ -1588,5 +1672,7 @@ export function createSettlementWorld(
       });
     }
   }
+  // After the households are in, so the ranked list of residents is complete.
+  warmRoutines();
   return world;
 }

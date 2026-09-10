@@ -11,6 +11,7 @@ import { createAtlasWorld } from "./v2/generate";
 import { packForSetting } from "../content/geography/pack";
 import type { WorldSetting } from "../content/geography/types";
 import { stateHash } from "../core/random";
+import type { PreparedSettlement } from "./v3/prepared";
 export type ChunkRequest = {
   setting?: WorldSetting;
   generator?: 1 | 2 | 3;
@@ -24,15 +25,19 @@ let world: WorldModel | undefined;
 let key = "";
 self.onmessage = (
   event: MessageEvent<
-    ChunkRequest | TerrainRequest | { prepare: { pack: Pack; seed: string } }
+    | ChunkRequest
+    | TerrainRequest
+    | {
+        prepare: { pack: Pack; seed: string; prepared?: PreparedSettlement };
+      }
   >,
 ) => {
   if ("prepare" in event.data) {
     try {
-      const { pack, seed } = event.data.prepare;
-      const prepared = createSettlementWorld(pack, seed);
+      const { pack, seed, prepared: cached } = event.data.prepare;
+      const prepared = createSettlementWorld(pack, seed, cached);
       useTerrainWorld(prepared);
-      self.postMessage({ prepared: prepared.prepare() });
+      self.postMessage({ prepared: cached ?? prepared.prepare() });
     } catch (error) {
       self.postMessage({ error: String(error) });
     }

@@ -95,11 +95,14 @@ export function regionalSettlements(
         });
       if (p.footprint) {
         // Large footprints become neighborhoods using the same planner as towns.
-        for (let y = oy + 32; y < oy + REGION_CELL; y += 64)
-          for (let x = ox + 32; x < ox + REGION_CELL; x += 64)
+        // Spaced at 96 and kept within reach of the city: a lattice over
+        // the whole polygon opened every quarter of a borough at once.
+        for (let y = oy + 48; y < oy + REGION_CELL; y += 96)
+          for (let x = ox + 48; x < ox + REGION_CELL; x += 96)
             if (
               context.containsPlace(p, x, y) &&
-              Math.hypot(x - center.x, y - center.y) > p.radius + 24
+              Math.hypot(x - center.x, y - center.y) > p.radius + 24 &&
+              Math.hypot(x - center.x, y - center.y) < p.radius * 2.2
             )
               proposals.push({
                 x,
@@ -215,7 +218,7 @@ export function regionalSettlements(
       // Extent follows population on a log scale: a town of three thousand
       // is thirty cells across the half, a metropolis fills its claim.
       const built =
-        target !== undefined
+        target !== undefined && p.population
           ? Math.min(radius, urbanRadius(p.population, setting.year))
           : radius;
       const profile = {

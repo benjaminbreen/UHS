@@ -82,7 +82,12 @@ export type SettlementPlan = {
   stations: Map<string, import("../../core/itinerary").Station[]>;
   slots: Map<string, { yard: Point[]; work: Point[] }>;
   spawn: Point;
-  diagnostics: { routeFailures: number; rejectedBuildings: number };
+  diagnostics: {
+    routeFailures: number;
+    rejectedBuildings: number;
+    /** Milliseconds per planning phase. */
+    timing?: Record<string, number>;
+  };
 };
 export const cellKey = (x: number, y: number) => `${x},${y}`;
 export const inside = (r: Rect, x: number, y: number) =>

@@ -35,17 +35,34 @@ function Cloud({
 }) {
   const fill = dark ? "url(#cloud-dark)" : "url(#cloud-light)";
   return (
-    <g transform={`translate(${x} ${y}) scale(${scale})`} filter="url(#soft)" id={id}>
+    <g
+      transform={`translate(${x} ${y}) scale(${scale})`}
+      filter="url(#soft)"
+      id={id}
+    >
       <ellipse cx="0" cy="0" rx="26" ry="11" fill={fill} />
       <ellipse cx="-14" cy="4" rx="16" ry="9" fill={fill} />
       <ellipse cx="12" cy="3" rx="18" ry="10" fill={fill} />
       <ellipse cx="2" cy="-7" rx="14" ry="10" fill={fill} />
-      <ellipse cx="-4" cy="6" rx="24" ry="6" fill={dark ? "#5b6480" : "#c9d3e2"} opacity="0.55" />
+      <ellipse
+        cx="-4"
+        cy="6"
+        rx="24"
+        ry="6"
+        fill={dark ? "#5b6480" : "#c9d3e2"}
+        opacity="0.55"
+      />
     </g>
   );
 }
 
-function Scene({ weather, lighting }: { weather: Weather; lighting: LightingId }) {
+function Scene({
+  weather,
+  lighting,
+}: {
+  weather: Weather;
+  lighting: LightingId;
+}) {
   const { condition, night } = weather;
   const stars = useMemo(() => {
     const r = seeded(7);
@@ -59,13 +76,22 @@ function Scene({ weather, lighting }: { weather: Weather; lighting: LightingId }
   }, []);
   const rain = useMemo(() => {
     const r = seeded(3);
-    return Array.from({ length: 22 }, (_, i) => ({ x: r() * 170, d: r() * 1.2, i }));
+    return Array.from({ length: 22 }, (_, i) => ({
+      x: r() * 170,
+      d: r() * 1.2,
+      i,
+    }));
   }, []);
   const dim = night || lighting === "dusk";
   const cloudy = condition !== "clear" && condition !== "mist";
   const heavy = condition === "overcast" || condition === "rain";
   return (
-    <svg className="sky-scene" viewBox="0 0 160 140" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <svg
+      className="sky-scene"
+      viewBox="0 0 160 140"
+      preserveAspectRatio="xMidYMid slice"
+      aria-hidden="true"
+    >
       <defs>
         <filter id="soft" x="-30%" y="-40%" width="160%" height="180%">
           <feGaussianBlur stdDeviation="1.4" />
@@ -117,13 +143,16 @@ function Scene({ weather, lighting }: { weather: Weather; lighting: LightingId }
               cy={s.y}
               r={s.r}
               fill="#fff6e0"
-              style={{ animationDuration: `${s.d}s`, animationDelay: `${-s.i * 0.37}s` }}
+              style={{
+                animationDuration: `${s.d}s`,
+                animationDelay: `${-s.i * 0.37}s`,
+              }}
             />
           ))}
         </g>
       )}
       {!heavy && (
-        <g className="sky-body" transform="translate(112 58)">
+        <g className="sky-body" transform="translate(104 44)">
           {night ? (
             <>
               <circle r="30" fill="url(#moon-halo)" />
@@ -134,22 +163,60 @@ function Scene({ weather, lighting }: { weather: Weather; lighting: LightingId }
             </>
           ) : (
             <>
-              <circle r="34" fill="url(#sun-halo)" filter="url(#glow)" className="sky-halo" />
+              <circle
+                r="30"
+                fill="url(#sun-halo)"
+                filter="url(#glow)"
+                className="sky-halo"
+              />
               <g className="sky-rays">
                 {Array.from({ length: 8 }, (_, i) => (
-                  <rect key={i} x="12" y="-2" width="26" height="4" rx="2" fill="url(#ray)" transform={`rotate(${i * 45})`} />
+                  <rect
+                    key={i}
+                    x="12"
+                    y="-2"
+                    width="22"
+                    height="4"
+                    rx="2"
+                    fill="url(#ray)"
+                    transform={`rotate(${i * 45})`}
+                  />
                 ))}
               </g>
-              <circle r="12" fill="url(#sun-core)" />
+              <circle r="11" fill="url(#sun-core)" />
             </>
           )}
         </g>
       )}
       {condition === "mist" && (
         <g className="sky-mist" filter="url(#haze)">
-          <rect x="-40" y="70" width="240" height="10" rx="5" fill="#dfe6f0" opacity="0.5" />
-          <rect x="-60" y="92" width="240" height="12" rx="6" fill="#c9d3e0" opacity="0.5" />
-          <rect x="-20" y="114" width="240" height="14" rx="7" fill="#dfe6f0" opacity="0.45" />
+          <rect
+            x="-40"
+            y="70"
+            width="240"
+            height="10"
+            rx="5"
+            fill="#dfe6f0"
+            opacity="0.5"
+          />
+          <rect
+            x="-60"
+            y="92"
+            width="240"
+            height="12"
+            rx="6"
+            fill="#c9d3e0"
+            opacity="0.5"
+          />
+          <rect
+            x="-20"
+            y="114"
+            width="240"
+            height="14"
+            rx="7"
+            fill="#dfe6f0"
+            opacity="0.45"
+          />
         </g>
       )}
       {cloudy && (
@@ -219,12 +286,20 @@ export function WeatherPanel({
   };
   const temp =
     unit === "C" ? `${weather.tempC}°C` : `${toFahrenheit(weather.tempC)}°F`;
-  const [a, b, c] = skies[lighting];
+  const heavy =
+    weather.condition === "overcast" || weather.condition === "rain";
+  const [a, b, c] = heavy
+    ? weather.night
+      ? ["#0a0f22", "#232c44", "#3d4761"]
+      : ["#2b3a5a", "#66758f", "#aab5c6"]
+    : skies[lighting];
   return (
     <div
       className="sky"
       data-lighting={lighting}
-      style={{ background: `linear-gradient(165deg, ${a} 0%, ${b} 55%, ${c} 115%)` }}
+      style={{
+        background: `linear-gradient(165deg, ${a} 0%, ${b} 55%, ${c} 115%)`,
+      }}
     >
       <Scene weather={weather} lighting={lighting} />
       <span className="sky-period">{period}</span>

@@ -5,6 +5,7 @@ import { packForSetting } from "../content/geography/pack";
 import { settingSchema, type WorldSetting } from "../content/geography/types";
 import type { PreparedSettlement } from "../world/v3/prepared";
 import { retainTerrainWorker } from "./terrain-worker-owner";
+import { loadPrepared, preparedKey, savePrepared } from "./prepared-store";
 
 /** The same generator runs synchronously in Node and prepares cloneable geometry
  * in the browser worker. The renderer takes over that already-warm worker. */
@@ -24,6 +25,11 @@ export async function prepareSettingSession(
     type: "module",
   });
   try {
+    // A world seen before is handed to the worker ready-made, so it only has
+    // to rebuild the functions around the geometry.
+    const key = preparedKey(resolved, seed);
+    const cached = await loadPrepared(key).catch(() => undefined);
+    signal?.throwIfAborted();
     const prepared = await new Promise<PreparedSettlement>(
       (resolve, reject) => {
         const abort = () => {
@@ -42,11 +48,12 @@ export async function prepareSettingSession(
           reject(Error(e.message));
         };
         worker.postMessage({
-          prepare: { pack: packForSetting(resolved), seed },
+          prepare: { pack: packForSetting(resolved), seed, prepared: cached },
         });
       },
     );
     signal?.throwIfAborted();
+    if (!cached) void savePrepared(key, prepared);
     const engine = createSession(
       "atlas",
       seed,

@@ -38,6 +38,8 @@ import {
 /** The livelihood activity that keeps animals, as the character tables name it. */
 const HERDING = "Tending animals";
 
+const now = () =>
+  typeof performance !== "undefined" ? performance.now() : Date.now();
 export function planSettlement(
   site: Site,
   pack: Pack,
@@ -65,6 +67,7 @@ export function planSettlement(
     w: (r + 40) * 2,
     h: (r + 40) * 2,
   };
+  const tPlan = now();
   const plan: SettlementPlan = {
     site,
     roads: [],
@@ -83,7 +86,7 @@ export function planSettlement(
     stations: new Map(),
     slots: new Map(),
     spawn: { ...c },
-    diagnostics: { routeFailures: 0, rejectedBuildings: 0 },
+    diagnostics: { routeFailures: 0, rejectedBuildings: 0, timing: {} },
   };
   const centers = new Set<string>();
   const roads = plan.traffic,
@@ -1262,6 +1265,7 @@ export function planSettlement(
         a.point.y - b.point.y,
     );
   const owners: string[] = [];
+  const tStreets = tPlan;
   /** Households whose work is keeping animals, so a pen has someone to tend it. */
   const herders = new Set<string>();
   // A composed settlement's capacity comes from its own extent and fabric; the
@@ -1275,6 +1279,8 @@ export function planSettlement(
           pack.setting?.year ?? 0,
         )
       : profile.buildings;
+  plan.diagnostics.timing!.streets = Math.round(now() - tStreets);
+  const tBuildings = now();
   for (let j = 0; j < frontage.length && plan.places.length < limit; j++) {
     const lot = frontage[j];
     const { point, nx, ny } = lot,
@@ -1937,6 +1943,10 @@ export function planSettlement(
       plan.solid.has(cellKey(plot.access.x, plot.access.y))
     )
       plot.access = { ...socialCenter };
+  plan.diagnostics.timing!.buildings = Math.round(now() - tBuildings);
+  const tRoutines = now();
   planRoutines(plan, seed, pack, sample);
+  plan.diagnostics.timing!.routines = Math.round(now() - tRoutines);
+  plan.diagnostics.timing!.total = Math.round(now() - tPlan);
   return plan;
 }
