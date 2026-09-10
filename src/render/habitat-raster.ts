@@ -50,7 +50,7 @@ const decode = (s: string) => [
   parseInt(s.slice(3, 5), 16),
   parseInt(s.slice(5, 7), 16),
 ];
-const soils = Object.fromEntries(
+export const soils = Object.fromEntries(
   Object.entries(soilRamps).map(([k, v]) => [k, v.map(decode)]),
 ) as Record<Ecology, number[][]>;
 export function naturalGround(c: TopographyCell) {

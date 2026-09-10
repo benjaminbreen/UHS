@@ -1,5 +1,7 @@
 /** Shared opt-in terrain contract for the study and v3 terrain revision 1. */
-export type HeightTier = 0 | 1 | 2 | 3;
+/** Altitude step. Zero is the lowest ground; the ceiling is set per place by
+ * its relief rather than by this type. */
+export type HeightTier = number;
 export type GroundSurface =
   | "grass"
   | "damp"
@@ -158,19 +160,21 @@ export function terrainStep(
           ? "Walking through damp meadow."
           : "Walking on level ground.",
     };
-  const lower = a.height < b.height ? a : b;
-  const sign = a.height < b.height ? 1 : -1;
-  const ramp = lower.ramp && directions[lower.ramp];
-  const allowed =
-    Math.abs(a.height - b.height) === 1 &&
-    !!ramp &&
-    ramp.x === dx * sign &&
-    ramp.y === dy * sign;
+  // One step up is a scramble anyone can manage, and you may always walk off
+  // an edge however far it falls. Only climbing two or more is barred.
+  if (b.height < a.height)
+    return {
+      allowed: true,
+      reason:
+        a.height - b.height > 1
+          ? "Dropping off the edge."
+          : "Stepping down a bank.",
+    };
+  if (b.height === a.height + 1)
+    return { allowed: true, reason: "Scrambling up a bank." };
   return {
-    allowed,
-    reason: allowed
-      ? "Crossing a one-tier slope."
-      : "A ledge blocks the way — find a slope.",
+    allowed: false,
+    reason: "Too high to climb — find a slope.",
   };
 }
 

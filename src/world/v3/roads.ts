@@ -257,13 +257,15 @@ export function joinNetwork(
           )
             return Infinity;
         }
-      return (
-        1 +
+      // Cost the grade, not the raw drop: a flat penalty per metre made a
+      // single step as dear as a long detour, so roads never climbed at all.
+      // Squaring it lets a road switchback up a hillside a step at a time
+      // while still refusing to run straight at a cliff.
+      const step =
         Math.abs(
           sample(to.x, to.y).elevation - sample(from.x, from.y).elevation,
-        ) *
-          1.3
-      );
+        ) / 14;
+      return 1 + step * step * 6;
     },
     { bounds, maxNodes: 5000, isGoal: (p) => roads.has(cellKey(p.x, p.y)) },
   );

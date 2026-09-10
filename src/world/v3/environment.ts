@@ -229,23 +229,46 @@ export function createEnvironment(
             0.28,
       ),
     );
-    // Broad dry tiers and asymmetric low floodplains; a generous intermediate
-    // terrace prevents a two-tier wall directly at a water edge.
-    let baseTier = shape > 0.56 ? 2 : shape < 0.34 ? 0 : 1;
-    if (baseTier !== 1) {
-      const support = [
-        [0, -2],
-        [2, 0],
-        [0, 2],
-        [-2, 0],
-      ].filter(([dx, dy]) => {
-        const h = field(x + dx, y + dy);
-        return (h > 0.56 ? 2 : h < 0.34 ? 0 : 1) === baseTier;
-      }).length;
-      if (support < 3) baseTier = 1;
-    }
-    // Approximate urban land is graded as a shared footprint, never per building.
-    if (regional?.placeAt(x, y) && water > floodplain + 10) baseTier = 1;
+    // The place's own relief sets how many steps the ground may climb: a
+    // floodplain still tops out at two, a mountain range runs to nine.
+    // The ambient regional relief describes the countryside; the setting's own
+    // relief is the floor, so a mountain place raises the ground around it
+    // rather than being levelled by whatever the region averages to.
+    const relief = Math.max(local.relief ?? 0, s.relief ?? 0, 0.1);
+    const ceiling = Math.max(2, Math.round(1 + relief * 8));
+    // Spread across the landform's whole working range rather than three fixed
+    // bands. The old middle band swallowed most of the map into one tier, so
+    // no ceiling above it ever showed.
+    const tierOf = (h: number) => {
+      const t = Math.min(1, Math.max(0, (h - 0.28) / 0.52));
+      return Math.min(ceiling, Math.round(Math.pow(t, 1.15) * ceiling));
+    };
+    // A town terraces rather than levels: sampling the landform broadly gives
+    // it a few wide steps to build on instead of a stair at every cell, while
+    // still letting it climb a hillside the way a real one does.
+    const built = !!regional?.placeAt(x, y);
+    let baseTier = tierOf(
+      built
+        ? (shape +
+            field(x - 4, y) +
+            field(x + 4, y) +
+            field(x, y - 4) +
+            field(x, y + 4)) /
+            5
+        : shape,
+    );
+    // A tier with no neighbour at the same height is a speck. Fall back to
+    // whichever neighbouring height is nearest rather than snapping to one.
+    const around = [
+      [0, -2],
+      [2, 0],
+      [0, 2],
+      [-2, 0],
+    ].map(([dx, dy]) => tierOf(field(x + dx, y + dy)));
+    if (!around.some((t) => t === baseTier))
+      baseTier = around.reduce((best, t) =>
+        Math.abs(t - baseTier) < Math.abs(best - baseTier) ? t : best,
+      );
     const level =
       water < floodplain
         ? 0

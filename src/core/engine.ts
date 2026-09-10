@@ -35,6 +35,9 @@ import { findPath } from "./pathfinding";
 import { itineraryAt, type Itinerary } from "./itinerary";
 import { route, type RouteResult } from "./routing";
 import { terrainLeap, type LeapResult } from "./topography";
+
+/** Elevation carried by one altitude step, matching the terrain renderer. */
+const TERRAIN_STEP = 14;
 import type { Point } from "./types";
 const copy = <T>(x: T): T => structuredClone(x);
 /** Routines built in one call to `advance`. */
@@ -1023,13 +1026,21 @@ export class Engine {
       p.direction = c.dy < 0 ? 0 : c.dx > 0 ? 1 : c.dy > 0 ? 2 : 3;
       p.activity = "Exploring";
       this.populateNearby();
-      const slope =
+      const rise =
         p.pos.space === "outside" && this.world.elevation
-          ? Math.abs(
-              this.world.elevation(p.pos.x, p.pos.y) -
-                this.world.elevation(p.pos.x - c.dx, p.pos.y - c.dy),
-            )
+          ? this.world.elevation(p.pos.x, p.pos.y) -
+            this.world.elevation(p.pos.x - c.dx, p.pos.y - c.dy)
           : 0;
+      const slope = Math.abs(rise);
+      // A step that changes tier gets the same arc the shift-move used, so
+      // ordinary walking up and off banks stays animated.
+      if (slope >= TERRAIN_STEP)
+        this.lastLeap = {
+          kind: rise > 0 ? "climb" : "drop",
+          distance: 1,
+          seconds: 0,
+          reason: rise > 0 ? "You scramble up." : "You drop down.",
+        };
       this.advance((c.dx && c.dy ? 3 : 2) + (slope > 1 ? 1 : 0));
       const key = `${Math.floor(p.pos.x / 64)},${Math.floor(p.pos.y / 64)}`;
       if (!this.state.visited.includes(key)) this.state.visited.push(key);

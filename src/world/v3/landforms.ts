@@ -36,9 +36,15 @@ export function regionalLandforms(
       form === "plain"
         ? 0.45 + (broad - 0.5) * 0.23
         : form === "ridge"
-          ? 0.23 +
-            noise(seed, u, v * 0.28, 62, "ridge-spine") * 0.48 +
-            (broad - 0.5) * 0.24
+          ? // Folded rather than smooth: a plain noise swells and subsides,
+            // where a range wants a crest line with flanks falling away.
+            0.18 +
+            Math.pow(
+              1 - Math.abs(noise(seed, u, v * 0.28, 62, "ridge-spine") * 2 - 1),
+              1.4,
+            ) *
+              0.6 +
+            (broad - 0.5) * 0.22
           : form === "basin"
             ? 0.28 +
               (formAt

@@ -5,6 +5,7 @@ import {
   neutralLayer,
   swatchCount,
   type GroundMaterial,
+  MAX_TIERS,
   type GroundStyle,
   type LayerStyle,
 } from "../../render/ground-style";
@@ -56,7 +57,8 @@ const BANK_FIELDS: {
   { key: "strata", label: "Strata", min: 0, max: 2, step: 0.05 },
   { key: "lobes", label: "Earth lobes", min: 0, max: 1.5, step: 0.05 },
   { key: "roots", label: "Roots & stones", min: 0, max: 0.3, step: 0.01 },
-  { key: "shadow", label: "Cast shadow (px)", min: 0, max: 10, step: 1 },
+  { key: "rise", label: "Step height (px)", min: 8, max: 28, step: 1 },
+  { key: "shadow", label: "Cast shadow (px)", min: 0, max: 14, step: 1 },
   {
     key: "brightness",
     label: "Earth brightness",
@@ -67,7 +69,7 @@ const BANK_FIELDS: {
   { key: "contrast", label: "Earth contrast", min: 0.3, max: 2, step: 0.05 },
 ];
 
-const TIERS = [0, 1, 2, 3];
+const TIERS = Array.from({ length: MAX_TIERS }, (_, i) => i);
 
 export function GroundStylePanel({
   onRestyle,
@@ -75,7 +77,7 @@ export function GroundStylePanel({
   /** Scenes that draw once (the fixed studies) need an explicit rebuild. */
   onRestyle?: () => void;
 } = {}) {
-  const [on, setOn] = useState(false);
+  const [on, setOn] = useState(true);
   const [style, setStyle] = useState<GroundStyle>(defaultGroundStyle);
   const [material, setMaterial] = useState<GroundMaterial>("turf");
   const [tier, setTier] = useState(0);
@@ -83,13 +85,18 @@ export function GroundStylePanel({
   const [note, setNote] = useState("");
   const [reach, setReach] = useState(16);
   const timer = useRef<number>(0);
-  const touched = useRef(false);
+  // The style is already live at mount, so only changes after it need a
+  // rebuild. Skipping on `on` instead left the flag unset while it stayed
+  // true, and every slider after the first was swallowed.
+  const mounted = useRef(false);
 
   // Restyling re-rasterises every visible chunk, so coalesce slider drags
   // rather than rebuilding the terrain on every input event.
   useEffect(() => {
-    if (!on && !touched.current) return;
-    touched.current = true;
+    if (!mounted.current) {
+      mounted.current = true;
+      return;
+    }
     clearTimeout(timer.current);
     timer.current = window.setTimeout(() => {
       restyleTerrain(on ? style : null);
@@ -104,7 +111,7 @@ export function GroundStylePanel({
     // Lab-only hook so review scripts can load a style without clicking.
     Object.assign(window, { groundStyleLab: { apply: setStyle } });
     return () => {
-      if (touched.current) restyleTerrain(null);
+      restyleTerrain(defaultGroundStyle());
       delete (window as unknown as { groundStyleLab?: unknown }).groundStyleLab;
     };
   }, []);
@@ -122,7 +129,12 @@ export function GroundStylePanel({
       const next = { ...(s.tiers[tier] ?? {}) };
       if (value === undefined) delete next[key];
       else next[key] = value;
-      return { ...s, tiers: s.tiers.map((t, i) => (i === tier ? next : t)) };
+      const tiers = Array.from(
+        { length: MAX_TIERS },
+        (_, i) => s.tiers[i] ?? {},
+      );
+      tiers[tier] = next;
+      return { ...s, tiers };
     });
 
   const exportJson = async () => {
@@ -164,14 +176,14 @@ export function GroundStylePanel({
             checked={on}
             onChange={(e) => setOn(e.target.checked)}
           />
-          {on ? "New" : "Current"}
+          {on ? "New" : "Legacy"}
         </label>
       </header>
       {open && (
         <div className="gsp-body">
           <p className="gsp-note">
-            The toggle A/Bs the live terrain: off is the shipped renderer, on
-            re-rasterises every visible chunk through these settings.
+            The toggle A/Bs the live terrain: on is the shipped renderer, off
+            falls back to the older bevelled banks and untextured turf.
           </p>
 
           <h3>Material</h3>

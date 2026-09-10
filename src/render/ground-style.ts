@@ -1,4 +1,5 @@
 import swatchData from "./generated/turf-swatches.json" with { type: "json" };
+import { DEFAULT_TERRAIN_RISE, setTerrainRise } from "./terrain-projection";
 
 /** Experimental restyling of ground and banks, shared by the main thread and
  * the terrain worker. Off by default: with no style set every raster keeps its
@@ -39,6 +40,9 @@ export type BankStyle = {
   outline: boolean;
   brightness: number;
   contrast: number;
+  /** Pixels of lift per altitude step. Presentation only: the world model
+   * still counts elevation in fixed units. */
+  rise: number;
 };
 
 export type ContourStyle = {
@@ -59,6 +63,9 @@ export type GroundStyle = {
   bank: BankStyle;
 };
 
+/** Altitude steps the style panel exposes a row for. */
+export const MAX_TIERS = 10;
+
 export const neutralLayer: LayerStyle = {
   swatch: -1,
   opacity: 0,
@@ -75,33 +82,58 @@ export function defaultGroundStyle(): GroundStyle {
   materials.turf = { ...neutralLayer, swatch: 0, opacity: 0.5 };
   materials.sward = { ...neutralLayer, swatch: 5, opacity: 0.35 };
   materials.wet = { ...neutralLayer, swatch: 7, opacity: 0 };
+  materials.earth = { ...neutralLayer, opacity: 0.05 };
+  // Ground darkens as it climbs and thins out again at the summit.
+  const tiers: Partial<LayerStyle>[] = [
+    {
+      swatch: 5,
+      opacity: 0,
+      contrast: 0.9,
+      brightness: 0.78,
+      saturation: 1.05,
+    },
+    { swatch: 4, opacity: 0.15, contrast: 1.05, brightness: 0.84 },
+    { swatch: 5, opacity: 0.25, brightness: 0.86 },
+    { swatch: 8, opacity: 0.15, contrast: 1, brightness: 0.94 },
+    { swatch: 0, opacity: 0.15, brightness: 0.94 },
+    { swatch: 0, opacity: 0.1 },
+    { swatch: 7, opacity: 0.3 },
+    {
+      swatch: 6,
+      opacity: 0.4,
+      contrast: 0.95,
+      brightness: 1.06,
+      saturation: 0.85,
+    },
+  ];
+  while (tiers.length < MAX_TIERS) tiers.push({});
   return {
     materials,
-    tiers: [
-      { swatch: 5, opacity: 0, contrast: 0.9, brightness: 0.96 },
-      { swatch: 4, opacity: 0.2 },
-      { swatch: 5, opacity: 0.35 },
-      {},
-    ],
-    contour: { wobble: 0.65, scale: 14, smoothing: 0, sides: 1 },
+    tiers,
+    contour: { wobble: 0.95, scale: 13, smoothing: 0, sides: 2 },
     bank: {
-      lip: 1,
-      strata: 0.85,
-      lobes: 0.8,
-      roots: 0.17,
-      shadow: 9,
-      fringe: 0.45,
+      lip: 2,
+      strata: 0.95,
+      lobes: 1.1,
+      roots: 0.2,
+      shadow: 10,
+      fringe: 0.55,
       outline: true,
-      brightness: 0.92,
-      contrast: 1,
+      brightness: 0.78,
+      contrast: 1.5,
+      rise: 20,
     },
   };
 }
 
-let active: GroundStyle | undefined;
+/** On by default, in the game as well as the labs. The worker imports this
+ * module too, so both threads start from the same style; the lab posts an
+ * explicit null to compare against the older renderer. */
+let active: GroundStyle | undefined = defaultGroundStyle();
 export const groundStyle = () => active;
 export const setGroundStyle = (style: GroundStyle | undefined) => {
   active = style;
+  setTerrainRise(style?.bank.rise ?? DEFAULT_TERRAIN_RISE);
 };
 
 const TILE = swatchData.tile;
@@ -181,51 +213,30 @@ function noise(x: number, y: number, salt: number) {
   return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
 }
 
-// Earth ramps into the shared topography palette, darkest first.
-const EARTH = [14, 15, 16, 17];
-const DRY = [15, 16, 17, 18];
-const SNOW = [23, 24, 25, 26];
+/** What a pixel of a bank face is made of. The caller resolves the colour,
+ * because earth is the ecology's own soil rather than one shared brown. */
+export type BankPixel =
+  | { kind: "turf" }
+  | { kind: "crease" }
+  | { kind: "earth"; tone: number };
 
-/** Bank shading over the contour rasteriser's existing silhouette: a turf lip
- * with a ragged fringe, a crease, then lobed strata down to a dark foot. The
- * geometry is untouched — only which palette entry each pixel takes. */
-export function styledBankIndex(
+export function styledBankPixel(
   bank: BankStyle,
-  onTop: boolean,
-  near: number,
   faceY: number,
-  rise: number,
+  drop: number,
   worldX: number,
   worldY: number,
-  dry: boolean,
-  snow: boolean,
-  sand = false,
-) {
-  const cap = snow
-    ? near === 1
-      ? 26
-      : 25
-    : dry
-      ? near === 1
-        ? 10
-        : 9
-      : near === 1
-        ? 6
-        : 4;
-  if (onTop) return cap;
-  const turf = snow ? 25 : dry ? 9 : 4;
-  if (faceY < bank.lip) return turf;
-  if (bank.outline && bank.lip && faceY === bank.lip) return snow ? 23 : 14;
+): BankPixel {
+  if (faceY < bank.lip) return { kind: "turf" };
+  if (bank.outline && bank.lip && faceY === bank.lip) return { kind: "crease" };
   // Tongues of turf hanging past the lip, so the crease is never a ruled line.
   if (
     bank.fringe &&
     faceY < bank.lip + 3 &&
     noise(worldX, faceY, 71) < bank.fringe
   )
-    return turf;
-  // Sand keeps its own pale ramp; ordinary dry ground still exposes earth.
-  const ramp = snow ? SNOW : dry && sand ? DRY : EARTH;
-  const depth = (faceY - bank.lip) / Math.max(1, rise - bank.lip);
+    return { kind: "turf" };
+  const depth = (faceY - bank.lip) / Math.max(1, drop - bank.lip);
   // Lobe width and phase drift along the bank, or every face lines its lobes
   // up into a row of fence posts.
   const period = 5 + Math.floor(noise(Math.floor(worldX / 37), 0, 12) * 3);
@@ -234,8 +245,21 @@ export function styledBankIndex(
   const drift = noise(lobe0, Math.floor(worldY / 24), 41) * 2 - 1;
   const lobe = bank.lobes * (Math.abs(phase - 0.5) * 2 - 0.35) * 1.6;
   const strata = Math.sin(((faceY + drift * 3) / 4) * Math.PI) * bank.strata;
-  let i = 2.6 + strata - lobe - depth * 1.5;
-  if (faceY >= rise - 2) i -= 2;
-  if (noise(worldX, worldY, 33) < bank.roots) i = 0;
-  return ramp[Math.max(0, Math.min(ramp.length - 1, Math.round(i)))];
+  let tone = 2.6 + strata - lobe - depth * 1.5;
+  if (faceY >= drop - 2) tone -= 2;
+  if (noise(worldX, worldY, 33) < bank.roots) tone = 0;
+  return { kind: "earth", tone: Math.max(0, Math.min(3, Math.round(tone))) };
+}
+
+/** Brightness and contrast for the bank, applied to whatever ramp it uses. */
+export function toneBank(
+  rgb: readonly number[],
+  bank: BankStyle,
+): [number, number, number] {
+  return [0, 1, 2].map((k) =>
+    Math.max(
+      0,
+      Math.min(255, (128 + (rgb[k] - 128) * bank.contrast) * bank.brightness),
+    ),
+  ) as [number, number, number];
 }

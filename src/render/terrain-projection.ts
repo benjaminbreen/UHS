@@ -1,7 +1,13 @@
 import style from "./generated/topography-style.json";
 import type { TerrainPoint, TopographySample } from "../core/topography";
-/** One shared presentation transform for tops, feet, shadows and pointer picking. */
-export const TERRAIN_RISE = style.rise;
+/** One shared presentation transform for tops, feet, shadows and pointer
+ * picking. Live binding: the ground style may retune it, and every importer
+ * has to move together or characters float above their own ground. */
+export let TERRAIN_RISE = style.rise;
+export const DEFAULT_TERRAIN_RISE = style.rise;
+export function setTerrainRise(px: number) {
+  TERRAIN_RISE = px;
+}
 export function surfaceElevation(
   sample: TopographySample,
   x: number,

@@ -31,6 +31,8 @@ type Config = {
   water: (typeof waters)[number];
   season: WorldSetting["season"];
   year: number;
+  /** Overrides the place's relief, which sets how many altitude steps exist. */
+  relief: number;
 };
 const defaults: Config = {
   seed: "ecology-01",
@@ -45,6 +47,7 @@ const defaults: Config = {
   water: "river-ns",
   season: "summer",
   year: -6499,
+  relief: 0.35,
 };
 const examples: { name: string; value: Partial<Config> }[] = [
   { name: "Woodland households", value: { ...defaults } },
@@ -163,6 +166,7 @@ function readConfig(): Config {
   if (q.has("place") && places.some((p) => p.id === q.get("place")))
     c.place = q.get("place")!;
   if (q.has("year")) c.year = Number(q.get("year"));
+  if (q.has("relief")) c.relief = Number(q.get("relief"));
   return c;
 }
 export function labSetting(c: Config): WorldSetting {
@@ -182,6 +186,7 @@ export function labSetting(c: Config): WorldSetting {
   };
   return {
     ...base,
+    relief: c.relief,
     location: c.place
       ? `${base.location} · street study`
       : `${ecologyProfiles[c.ecology].label} · procedural study`,
@@ -455,8 +460,12 @@ export function ProceduralLab() {
       old.current?.dispose();
     };
   }, []);
+  const numeric: (keyof Config)[] = ["year", "relief"];
   const update = (key: keyof Config, value: string) =>
-    setDraft((d) => ({ ...d, [key]: key === "year" ? Number(value) : value }));
+    setDraft((d) => ({
+      ...d,
+      [key]: numeric.includes(key) ? Number(value) : value,
+    }));
   const select = (
     label: string,
     key: keyof Config,
@@ -563,6 +572,17 @@ export function ProceduralLab() {
             (v) => ecologyProfiles[v as Config["ecology"]].label,
           )}
           {select("Landform", "landform", landforms)}
+          <label>
+            Relief {draft.relief.toFixed(2)}
+            <input
+              type="range"
+              min={0}
+              max={1}
+              step={0.05}
+              value={draft.relief}
+              onChange={(e) => update("relief", e.target.value)}
+            />
+          </label>
           {select("Water", "water", waters)}
           {select("Population", "population", populations)}
           {select("Settlement pattern", "pattern", [...patterns, "camp"])}

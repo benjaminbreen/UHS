@@ -222,7 +222,7 @@ export class Runtime {
   ) {
     if (!accepted) return;
     if (command.type === "move") {
-      const leap = command.traverse ? this.engine.lastLeap : undefined;
+      const leap = this.engine.lastLeap;
       if (leap)
         this.characterAction = {
           serial: ++this.characterSerial,

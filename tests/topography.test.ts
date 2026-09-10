@@ -12,7 +12,7 @@ import {
 import { terrainFixture, studyRoute } from "../src/dev/terrain/fixture";
 
 describe("stage-one terrain contract", () => {
-  it("admits each ramp from both ends, rejects side entry and multi-tier drops", () => {
+  it("admits each ramp from both ends, rejects side entry and multi-tier climbs", () => {
     for (const direction of Object.keys(directions) as Direction[]) {
       const d = directions[direction];
       const low: TopographyCell = {
@@ -35,9 +35,13 @@ describe("stage-one terrain contract", () => {
       expect(terrainStep(sample, a, { x: d.y, y: d.x }).allowed).toBe(false);
       high.height = 3;
       expect(terrainStep(sample, a, b).allowed).toBe(false);
+      // Two tiers down is a fall, and falling is always permitted.
+      high.height = -1;
+      expect(terrainStep(sample, a, b).allowed).toBe(true);
+      // One tier is walked with or without a ramp; the ramp only shapes it.
       high.height = 2;
       delete low.ramp;
-      expect(terrainStep(sample, a, b).allowed).toBe(false);
+      expect(terrainStep(sample, a, b).allowed).toBe(true);
     }
   });
   it("keeps corners, water and bridges explicit", () => {
@@ -211,7 +215,6 @@ it("allows clear diagonals in all directions but validates both edges around eve
         for (const obstacle of [
           { height: 1, surface: "water" },
           { height: 1, surface: "grass", solid: true },
-          { height: 2, surface: "grass" },
           { height: 1, surface: "soil", ramp: "n" },
         ] satisfies TopographyCell[]) {
           cells.set(`${point.x},${point.y}`, obstacle);
@@ -219,6 +222,13 @@ it("allows clear diagonals in all directions but validates both edges around eve
           expect(terrainStep(sample, to, from).allowed).toBe(false);
           cells.clear();
         }
+        // Height is directional: two tiers up is a wall, the same two tiers
+        // down is a fall, and falling is allowed.
+        cells.set(`${point.x},${point.y}`, { height: 3, surface: "grass" });
+        const up = terrainStep(sample, from, to).allowed;
+        const down = terrainStep(sample, to, from).allowed;
+        expect(up && down).toBe(false);
+        cells.clear();
       }
     }
 });
@@ -287,18 +297,21 @@ describe("opt-in traversal", () => {
   it("hops on open ground and scrambles up a ledge with no ramp", () => {
     expect(terrainLeap(world({}), here, east).kind).toBe("hop");
     const ledge = world({ "1,0": { height: 2 } });
-    expect(terrainStep(ledge, here, east).allowed).toBe(false);
-    expect(terrainLeap(ledge, here, east).kind).toBe("climb");
+    expect(terrainStep(ledge, here, east).allowed).toBe(true);
+    expect(terrainLeap(ledge, here, east).kind).toBe("hop");
     // Two tiers is still beyond reach.
     expect(terrainLeap(world({ "1,0": { height: 3 } }), here, east).kind).toBe(
       "blocked",
     );
   });
 
-  it("drops off a ledge that cannot be walked down", () => {
+  it("walks off a ledge of any depth", () => {
+    // Walking off an edge is always allowed, however far it falls.
     const step = world({ "1,0": { height: 0 } });
-    expect(terrainStep(step, here, east).allowed).toBe(false);
-    expect(terrainLeap(step, here, east).kind).toBe("drop");
+    expect(terrainStep(step, here, east).allowed).toBe(true);
+    expect(
+      terrainStep(world({ "1,0": { height: -6 } }), here, east).allowed,
+    ).toBe(true);
   });
 
   it("clears one tile of water onto level ground, but not two", () => {
@@ -323,7 +336,8 @@ describe("opt-in traversal", () => {
     expect(
       terrainLeap(world({ "1,0": { solid: true } }), here, east).kind,
     ).toBe("blocked");
-    const corner = world({ "1,0": { height: 2 }, "1,1": { height: 2 } });
+    // A corner one tier up is walkable now; two tiers is still a wall.
+    const corner = world({ "1,0": { height: 3 }, "1,1": { height: 3 } });
     expect(terrainLeap(corner, here, { x: 1, y: 1 }).kind).toBe("blocked");
     const bridge = world({ "1,0": { surface: "water", bridge: true } });
     expect(terrainLeap(bridge, here, east).kind).toBe("hop");
