@@ -1,3 +1,4 @@
+import { MapTravel } from "./map-travel";
 import { populateCharacter } from "../content/geography/character";
 import { generateCharacter } from "../content/characters/generate";
 import { releaseTerrainWorker } from "./terrain-worker-owner";
@@ -289,6 +290,8 @@ export class Runtime {
     this.engine = engine;
     this.syncAmbient();
     this.cached = this.view();
+    const map = engine.state.manifest.setting?.playableMap;
+    if (map) new MapTravel(this, map.id, engine.state.manifest.setting!.year);
   }
   private view(refresh = true) {
     const pos = this.engine.state.player.pos;
@@ -383,6 +386,8 @@ export class Runtime {
     this.replay = undefined;
     this.stop();
     this.engine = engine;
+    const map = engine.state.manifest.setting?.playableMap;
+    if (!preserveJourney && map) new MapTravel(this, map.id, engine.state.manifest.setting!.year);
     this.selected = undefined;
     this.syncAmbient();
     this.notice = "A new day, a different world.";

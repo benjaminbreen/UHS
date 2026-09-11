@@ -62,7 +62,7 @@ export default function GeographyPreview({
       resize: ResizeObserver | undefined;
     const setting = settingForTravelStop(stop, year);
     if (bounded) {
-      setting.playableMap = { id: ("networkId" in stop ? String(stop.networkId) : stop.id), size: stop.size === 512 ? 512 : 384, exits: exits.map(({id, to, bearing, mode}) => ({id, to, bearing, mode})) };
+      setting.playableMap = { id: ("networkId" in stop ? String(stop.networkId) : stop.id), size: stop.size === 384 ? 384 : 304, exits: exits.map(({id, to, bearing, mode, seam}) => ({id, to, bearing, mode, seam})) };
       setting.environment!.population = stop.settlement === "city" || stop.settlement === "town" ? "settled" : "none";
       setting.environment!.start = "wanderer";
     }
@@ -181,8 +181,8 @@ export default function GeographyPreview({
             value={size}
             onChange={(e) => setSize(+e.target.value)}
           >
-            <option value={384}>Small · 384 tiles · 54 sec</option>
-            <option value={512}>Medium · 512 tiles · 72 sec</option>
+            <option value={304}>Small · 304 tiles · 43 sec</option>
+            <option value={384}>Medium · 384 tiles · 54 sec</option>
 
           </select>
         </label>

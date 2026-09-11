@@ -125,19 +125,26 @@ export function rasterHabitatTile(
   ox: number,
   oy: number,
   art: GrassArt = defaultGrassArt,
+  cell: TopographyCell = sample(x, y)!,
 ): GroundTileData {
-  const cell = sample(x, y)!;
   if (cell.feature === "paving") return rasterStreetTile(sample, x, y, ox, oy);
   if (cell.field) return rasterFieldTile(sample, x, y, ox, oy, art);
   const h = cell.habitat!;
   const key = paletteKey(h.ecology, h.colorway);
-  const palette = h.vegetation === "savanna"
+  let palette = h.vegetation === "savanna"
     ? art.palettes["dry-scrub"]
     : h.vegetation === "steppe"
       ? art.palettes.grassland
       : h.vegetation === "alpine"
         ? art.palettes.tundra
         : art.palettes[key];
+  const blendPalette = (ramps: Record<PaletteKey, number[][]>, fallback: number[][]) =>
+    h.blend && h.blend.length > 1
+      ? fallback.map((row,i) => row.map((_,c) => Math.round(h.blend!.reduce((sum,part) =>
+          sum + ramps[paletteKey(part.ecology,part.colorway)][i][c] * part.weight, 0))))
+      : fallback;
+  palette = blendPalette(art.palettes, palette);
+  const soilPalette = blendPalette(soils, soils[key]);
   const pixels = new Uint8ClampedArray(16 * 16 * 4);
   const gx = (x + ox) * 16,
     gy = (y + oy) * 16;
@@ -285,7 +292,7 @@ export function rasterHabitatTile(
           : b === 5
             ? grassy
               ? palette[3]
-              : soils[key][2]
+              : soilPalette[2]
             : palette[b];
       let rgb = tone(band);
       // Interlocking clusters only within four native pixels of a real seam.
@@ -424,7 +431,7 @@ export function rasterHabitatTile(
     cell.waterVisual.distance < cell.waterVisual.shoreWidth + 1.5 &&
     (!groundStyle() || shoreOnTier(sample, x, y));
   if (paintedGround(cell) && (hasPath || nearShore)) {
-    const soil = soils[key];
+    const soil = soilPalette;
     // The apron rows exist only to mark trodden ground for the edge pass.
     for (let py = -1; py <= 16; py++)
       for (let px = -1; px <= 16; px++) {

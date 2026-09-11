@@ -3,6 +3,7 @@ import type { PlayerCommand, Snapshot } from "../core/types";
 import type { Runtime } from "./session";
 import { releaseTerrainWorker } from "./terrain-worker-owner";
 import {
+  mapForCoordinate,
   permanentMap,
   permanentExits,
   connectionPath,
@@ -20,12 +21,14 @@ export function travelSetting(
   const setting = settingForTravelStop(map, year);
   setting.playableMap = {
     id: map.networkId,
-    size: map.size === 512 ? 512 : 384,
-    exits: exits.map(({ id, to, bearing, mode }) => ({
+    name: map.name,
+    size: map.size === 384 ? 384 : 304,
+    exits: exits.map(({ id, to, bearing, mode, seam }) => ({
       id,
       to,
       bearing,
       mode,
+      seam,
     })),
   };
   setting.environment!.population =
@@ -37,13 +40,14 @@ export async function prepareTravelMap(
   id: string,
   year: number,
   signal?: AbortSignal,
+  saved?: Snapshot,
 ) {
   const map = permanentMap(id, year),
     exits = permanentExits(id, year);
   const { prepareSettingSession } = await import("./preparation");
   return prepareSettingSession(
-    travelSetting(map, exits, year),
-    "travel-review:" + id,
+    saved?.manifest.setting ?? travelSetting(map, exits, year),
+    saved?.manifest.seed ?? "travel-review:" + id,
     signal,
   );
 }
@@ -93,7 +97,12 @@ export class MapTravel {
     if (this.staged) releaseTerrainWorker(this.staged.engine.world);
     this.staged = undefined;
     const abort = new AbortController();
-    const promise = this.prepare(id, this.year, abort.signal)
+    const promise = this.prepare(
+      id,
+      this.year,
+      abort.signal,
+      this.visited.get(id),
+    )
       .then((fresh) => {
         if (abort.signal.aborted || this.closed) {
           releaseTerrainWorker(fresh.world);
@@ -143,6 +152,44 @@ export class MapTravel {
         this.prefetchFailures.add(nearest.to);
       });
   }
+  borderHint() {
+    if (this.busy) return "Preparing the next map…";
+    const p = this.runtime.engine.state.player.pos;
+    const half =
+      this.runtime.engine.state.manifest.setting!.playableMap!.size / 2;
+    if (
+      p.space !== "outside" ||
+      half - Math.max(Math.abs(p.x), Math.abs(p.y)) > 18
+    )
+      return undefined;
+    const side =
+      Math.abs(p.x) > Math.abs(p.y)
+        ? p.x < 0
+          ? "W"
+          : "E"
+        : p.y < 0
+          ? "N"
+          : "S";
+    const entrance = this.entrances
+      .filter(
+        (e) =>
+          e.point &&
+          e.mode === "land" &&
+          (e.seam?.side ?? e.bearing).includes(side),
+      )
+      .sort(
+        (a, b) =>
+          Math.hypot(p.x - a.point!.x, p.y - a.point!.y) -
+            Math.hypot(p.x - b.point!.x, p.y - b.point!.y) ||
+          a.id.localeCompare(b.id),
+      )[0];
+    const exit = this.exits.find((e) => e.id === entrance?.id);
+    const direction = { N: "north", E: "east", S: "south", W: "west" }[side];
+    return exit
+      ? `Continue ${direction} to ${exit.name}`
+      : "Follow another border to an overland crossing.";
+  }
+
   intercept(command: PlayerCommand) {
     if (this.busy) return true;
     if (command.type !== "move" || this.closed) return false;
@@ -152,13 +199,16 @@ export class MapTravel {
     const x = p.x + command.dx,
       y = p.y + command.dy;
     const outside = x < -half || y < -half || x >= half || y >= half;
+    const side = y < -half ? "N" : y >= half ? "S" : x < -half ? "W" : "E";
     const entrance = this.entrances
       .filter(
         (e) =>
           e.point &&
-          Math.hypot(p.x - e.point.x, p.y - e.point.y) <= 2 &&
-          (outside ||
-            (e.shore && this.runtime.engine.world.terrain(x, y) === "water")),
+          (outside
+            ? e.mode === "land" && (e.seam?.side ?? e.bearing).includes(side)
+            : e.shore &&
+              Math.hypot(p.x - e.point.x, p.y - e.point.y) <= 2 &&
+              this.runtime.engine.world.terrain(x, y) === "water"),
       )
       .sort(
         (a, b) =>
@@ -166,7 +216,14 @@ export class MapTravel {
             Math.hypot(p.x - b.point!.x, p.y - b.point!.y) ||
           a.id.localeCompare(b.id),
       )[0];
-    if (!entrance) return false;
+    if (!entrance) {
+      if (outside) {
+        this.runtime.notice =
+          "No overland connection on this border. Follow another edge.";
+        return true;
+      }
+      return false;
+    }
     if (entrance.mode !== "land") {
       this.runtime.notice = "You need a boat to continue from this shore.";
       return true;
@@ -252,4 +309,40 @@ export class MapTravel {
     this.visited.clear();
     if (this.runtime.journey === this) this.runtime.journey = undefined;
   }
+}
+
+export async function prepareConnectedStart(
+  setting: import("../content/geography/types").WorldSetting,
+  seed: string,
+  signal?: AbortSignal,
+) {
+  const { travelById, travelLocations } = await import(
+    "../content/geography/travel"
+  );
+  const { kilometers } = await import("../world/travel/geography");
+  // The gazetteer and the travel catalog name the same town differently
+  // (area-edinburgh against edinburgh), so match position as well as id.
+  const near = travelLocations
+    .filter((p) => kilometers(p, setting) < 25)
+    .sort(
+      (a, b) =>
+        kilometers(a, setting) - kilometers(b, setting) ||
+        a.id.localeCompare(b.id),
+    )[0];
+  const id = travelById.has(setting.placeId)
+    ? "place:" + setting.placeId
+    : near
+      ? "place:" + near.id
+      : mapForCoordinate({ lon: setting.lon, lat: setting.lat });
+  const map = permanentMap(id, setting.year);
+  const exits = permanentExits(id, setting.year);
+  const bounded = {
+    ...setting,
+    // A wilderness start is otherwise labelled "Countryside" while the map it
+    // sits on has a real geographic name. A named town keeps its own name.
+    location: map.locationId ? setting.location : map.name,
+    playableMap: travelSetting(map, exits, setting.year).playableMap,
+  };
+  const { prepareSettingSession } = await import("./preparation");
+  return prepareSettingSession(bounded, seed, signal);
 }

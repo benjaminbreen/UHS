@@ -12,6 +12,7 @@ export type HabitatKind =
   | "exposed";
 export type VegetationPattern = "savanna" | "steppe" | "alpine";
 export type Habitat = {
+  blend?: { ecology: Ecology; colorway?: DesertColorway; weight: number }[];
   vegetation?: VegetationPattern;
   layeredForest?: boolean;
   ecology: Ecology;

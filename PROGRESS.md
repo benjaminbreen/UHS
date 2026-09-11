@@ -1,3 +1,13 @@
+## Connected starts, ecotones and shared borders — September 11, 2026
+
+Normal new-game creation now prepares a permanent bounded map and attaches live travel automatically. Small maps are 304 tiles; dated cities use 384. Older 512-tile contracts remain readable but are not selected for new starts. Catalog places attach to nearby backbone nodes in each available cardinal direction, preserving reciprocal IDs. Land classification searches for a route around bays rather than requiring a straight line over land. Boundary movement chooses a matching land connection along the edge instead of requiring the original marker tile. Guidance is a proximity toast inside the world pane; the camera and terrain/scenery streaming centers stop at the footprint with a narrow visual margin.
+
+New ecology-revision-1 settings blend regional environments and the starting envelope using smooth, warped weights. Moisture, ground and soil colors, tree density and clustered plant selection share those weights. Historical/cultural profiles remain discrete and independent. Inputs without the ecology revision retain the prior selector.
+
+Land connections carry reciprocal sampled boundary profiles for coast/river distances, elevation and trail position. Each connection occupies an edge segment; profiles agree in normalized segment coordinates across differing map sizes. The existing environment generator blends them through a 32-tile apron, leaving the interior sampling unchanged. Trails reach matching boundary positions and suppress obstructing decorative vegetation. This is a compressed geographic connection, not a claim that distant map interiors are contiguous pieces of Earth. Existing procedural waterways away from the apron remain unchanged.
+
+Validation: focused network, crossing, ecology and seam tests pass, including California overland access, directional catalog connections and small/medium boundary agreement. Production build passed. Browser validation and broader coast/rugged-terrain review are recorded with the final delivery. Other-agent water and wading work in this checkout was preserved.
+
 ## Wider beaches and shoreward ocean surf — September 11, 2026
 
 Doubled ocean beach baseline again to eight tiles. Extended the calm-water fade to 5–13 tiles offshore and the caustic fade to 8–12. Expanded ocean distance encoding beyond the former eight-tile ceiling while preserving nearshore precision. Ocean crests now use a shore-distance phase, rather than northward world-space advection, and are broader/brighter. Offshore colors animate at two scales with much lower contrast and finer stepped transitions; nearby water also uses finer color steps.

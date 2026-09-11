@@ -1,3 +1,4 @@
+import { waterDepthAt, MAX_WADING_DEPTH } from "./water-field";
 /** Shared opt-in terrain contract for the study and v3 terrain revision 1. */
 /** Altitude step. Zero is the lowest ground; the ceiling is set per place by
  * its relief rather than by this type. */
@@ -140,10 +141,13 @@ export function terrainStep(
   if (a.solid || b.solid)
     return { allowed: false, reason: "A building or tree blocks this tile." };
   if (
-    (a.surface === "water" && !a.bridge) ||
-    (b.surface === "water" && !b.bridge)
+    waterDepthAt(sample, from.x + 0.5, from.y + 0.5) > MAX_WADING_DEPTH ||
+    waterDepthAt(sample, to.x + 0.5, to.y + 0.5) > MAX_WADING_DEPTH
   )
-    return { allowed: false, reason: "Water — use the bridge." };
+    return {
+      allowed: false,
+      reason: "Too deep to wade — find a shallower crossing or bridge.",
+    };
   for (const cell of [a, b]) {
     if (cell.ramp) {
       const axis = directions[cell.ramp];

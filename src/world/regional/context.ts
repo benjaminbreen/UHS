@@ -1,3 +1,9 @@
+import { noise } from "../geography/noise";
+import {
+  ecologyProfiles,
+  type Ecology,
+  type DesertColorway,
+} from "../../content/ecology/profiles";
 import { geographicClimate } from "../geography/climate";
 import { resolveCharacterContext } from "../../content/characters/resolve";
 import { trimCache } from "../../core/cache";
@@ -240,7 +246,11 @@ export function createRegionalContext(start: WorldSetting) {
   // Everything but the coordinates is the same across an ambient block, a
   // profile set and a named place, so that part is built once and shared.
   const baseCache = new Map<string, WorldSetting>();
-  function settingAt(x: number, y: number, includeStart = true): WorldSetting {
+  function rawSettingAt(
+    x: number,
+    y: number,
+    includeStart = true,
+  ): WorldSetting {
     const row = includeStart ? y * 2 : y * 2 + 1;
     let column = settingCache.get(x);
     const previous = column?.get(row);
@@ -257,7 +267,7 @@ export function createRegionalContext(start: WorldSetting) {
     if (!base) {
       let s: WorldSetting = {
         ...start,
-        location: "Countryside",
+        location: start.playableMap?.name ?? "Countryside",
         placeId: "unresearched",
         community: "",
         characterCommunity: undefined,
@@ -312,6 +322,81 @@ export function createRegionalContext(start: WorldSetting) {
     column.set(row, s);
     settingCount++;
     return s;
+  }
+  const ecologyCache = new Map<string, ReturnType<typeof calculateEcology>>();
+  function calculateEcology(x: number, y: number) {
+    const ax = x + origin.x,
+      ay = y + origin.y;
+    const warp = (noise("ecotone", ax, ay, 96, "boundary") - 0.5) * 48;
+    const gx = Math.floor((ax + warp) / 128) * 128;
+    const gy = Math.floor((ay - warp) / 128) * 128;
+    const smooth = (t: number) => t * t * (3 - 2 * t);
+    const tx = smooth((ax + warp - gx) / 128),
+      ty = smooth((ay - warp - gy) / 128);
+    const distance = Math.hypot(x, y) + warp;
+    const home = 1 - smooth(Math.max(0, Math.min(1, (distance - 80) / 208)));
+    const parts: {
+      ecology: Ecology;
+      colorway?: DesertColorway;
+      weight: number;
+    }[] = [];
+    const add = (
+      env: NonNullable<WorldSetting["environment"]>,
+      weight: number,
+    ) => {
+      if (weight <= 0) return;
+      const existing = parts.find(
+        (p) => p.ecology === env.ecology && p.colorway === env.colorway,
+      );
+      if (existing) existing.weight += weight;
+      else parts.push({ ecology: env.ecology, colorway: env.colorway, weight });
+    };
+    for (const [dx, dy, weight] of [
+      [0, 0, (1 - tx) * (1 - ty)],
+      [128, 0, tx * (1 - ty)],
+      [0, 128, (1 - tx) * ty],
+      [128, 128, tx * ty],
+    ])
+      add(
+        rawSettingAt(gx + dx - origin.x, gy + dy - origin.y, false)
+          .environment!,
+        weight * (1 - home),
+      );
+    add(start.environment!, home);
+    let roll = noise("ecotone", ax, ay, 12, "plant-colonies");
+    const selected =
+      parts.find((p) => (roll -= p.weight) <= 0) ?? parts[parts.length - 1];
+    return {
+      parts,
+      selected,
+      moisture: parts.reduce(
+        (sum, p) => sum + ecologyProfiles[p.ecology].moisture * p.weight,
+        0,
+      ),
+    };
+  }
+  function ecologyAt(x: number, y: number) {
+    const key = `${x},${y}`;
+    let value = ecologyCache.get(key);
+    if (!value) {
+      value = calculateEcology(x, y);
+      trimCache(ecologyCache, 16384);
+      ecologyCache.set(key, value);
+    }
+    return value;
+  }
+  function settingAt(x: number, y: number, includeStart = true): WorldSetting {
+    const s = rawSettingAt(x, y, includeStart);
+    if (!start.ecologyRevision || !includeStart) return s;
+    const { selected } = ecologyAt(x, y);
+    return {
+      ...s,
+      environment: {
+        ...s.environment!,
+        ecology: selected.ecology,
+        colorway: selected.colorway,
+      },
+    };
   }
   function packAt(x: number, y: number) {
     const s = settingAt(x, y);
@@ -389,6 +474,7 @@ export function createRegionalContext(start: WorldSetting) {
     landUse,
     canSettle,
     settingAt,
+    ecologyAt,
     packAt,
     profilesAt,
   };

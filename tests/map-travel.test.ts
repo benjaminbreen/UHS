@@ -177,3 +177,19 @@ it("shares nearby preparation with crossing and cancels pending work on disposal
   expect(signal?.aborted).toBe(true);
   await Promise.resolve();
 });
+it("crosses a land border away from the original entrance marker", async () => {
+  const { make, exits, runtime } = fixture();
+  const journey = new MapTravel(
+    runtime,
+    a,
+    1300,
+    async (id) => make(id),
+    exits,
+    () => [],
+  );
+  runtime.engine.state.player.pos = { x: -192, y: 35, space: "outside" };
+  expect(journey.intercept({ type: "move", dx: -1, dy: 0 })).toBe(true);
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  expect(journey.id).toBe(b);
+  runtime.dispose();
+});

@@ -19,15 +19,17 @@ export function drawCharacter(
   const f = ((frame % 4) + 4) % 4,
     side = direction === 1 || direction === 3,
     back = direction === 0,
-    moving = pose === "walk" || pose === "carry";
+    moving = pose === "walk" || pose === "carry" || pose === "wade";
   const resting = pose === "idle" || pose === "breathe";
   const inhale = pose === "breathe" && (f === 1 || f === 2) ? 1 : 0;
   const stance = resting ? (a.posture ?? "upright") : "upright";
   const burden = !!prop && (prop.width > 24 || prop.height > 28);
   const lean =
     stance === "relaxed" ? 1 : stance === "stooped" ? 2 : burden ? -1 : 0;
-  const stride = moving ? [0, 3, 0, -3][f] : 0,
-    bob = moving && f % 2 ? 1 : 0,
+  const stride = moving
+      ? (pose === "wade" ? [0, 2, 0, -2] : [0, 3, 0, -3])[f]
+      : 0,
+    bob = moving && pose !== "wade" && f % 2 ? 1 : 0,
     shift = pose === "sway" ? [-1, 0, 1, 0][f] : 0;
   // Crouch, stretch off the ground, hang at the apex, absorb the landing.
   const airborne = pose === "jump";

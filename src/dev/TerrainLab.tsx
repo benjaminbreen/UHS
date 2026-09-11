@@ -2,7 +2,12 @@ import { ProceduralLab } from "./terrain/ProceduralLab";
 import { useEffect, useRef, useState } from "react";
 import Phaser from "phaser";
 import { TerrainScene, type StudyStatus } from "./terrain/TerrainScene";
-import type { TerrainStudy } from "./terrain/fixture";
+import {
+  defaultReliefOptions,
+  reliefPlaces,
+  type ReliefOptions,
+  type TerrainStudy,
+} from "./terrain/fixture";
 import { GroundStylePanel } from "./terrain/GroundStylePanel";
 import "./terrain-lab.css";
 
@@ -12,6 +17,7 @@ export function FixedTerrainLab() {
       ? "contours"
       : "meadow",
   );
+  const [relief, setRelief] = useState<ReliefOptions>(defaultReliefOptions);
   const [debug, setDebug] = useState(false);
   const [ready, setReady] = useState(false);
   const [status, setStatus] = useState<StudyStatus>();
@@ -23,7 +29,7 @@ export function FixedTerrainLab() {
     setDebug(false);
     history.replaceState(null, "", `/terrain-lab?study=${study}`);
     const host = mount.current!;
-    const s = new TerrainScene(study, setStatus, () => setReady(true));
+    const s = new TerrainScene(study, setStatus, () => setReady(true), relief);
     scene.current = s;
     const g = new Phaser.Game({
       type: Phaser.AUTO,
@@ -51,7 +57,7 @@ export function FixedTerrainLab() {
       g.destroy(true);
       delete (window as unknown as { terrainLab?: unknown }).terrainLab;
     };
-  }, [study]);
+  }, [study, relief]);
   const exportImage = () =>
     game.current?.renderer.snapshot((image) => {
       if (!(image instanceof HTMLImageElement)) return;
@@ -93,8 +99,57 @@ export function FixedTerrainLab() {
           <p>
             {study === "meadow"
               ? "A river, damp margins and sunlit terraces. A composed landscape for reviewing the new terrain vocabulary."
-              : "Four height tiers, slopes in every direction, inward corners and exposed ledges."}
+              : "A window cut from the shipped generator: real tiers, ecotones and slopes, rebased so the lowest ground sits at tier zero."}
           </p>
+          {study === "contours" && (
+            <>
+              <label>
+                Place
+                <select
+                  aria-label="Relief place"
+                  value={relief.place}
+                  onChange={(e) =>
+                    setRelief((r) => ({ ...r, place: e.target.value }))
+                  }
+                >
+                  {reliefPlaces.map((id) => (
+                    <option key={id} value={id}>
+                      {id}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Landform
+                <select
+                  aria-label="Relief landform"
+                  value={relief.landform}
+                  onChange={(e) =>
+                    setRelief((r) => ({
+                      ...r,
+                      landform: e.target.value as ReliefOptions["landform"],
+                    }))
+                  }
+                >
+                  {["ridge", "rolling", "basin", "plain"].map((id) => (
+                    <option key={id} value={id}>
+                      {id}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Seed
+                <input
+                  aria-label="Relief seed"
+                  defaultValue={relief.seed}
+                  onBlur={(e) =>
+                    setRelief((r) => ({ ...r, seed: e.target.value }))
+                  }
+                />
+              </label>
+            </>
+          )}
           <div className="terrain-rule" />
           <div className="terrain-eyebrow">Explore on foot</div>
           <p>

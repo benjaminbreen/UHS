@@ -11,7 +11,11 @@ test("walks to Oxford and back with one player and retained local changes", asyn
   await page
     .getByRole("button", { name: "Play connected maps", exact: true })
     .click();
-  await expect(page.getByLabel("Map travel")).toBeVisible({ timeout: 120000 });
+  await page.waitForFunction(
+    () => Boolean((window as any).__uhs?.journey),
+    undefined,
+    { timeout: 120000 },
+  );
   await page.waitForFunction(() => Boolean((window as any).__uhs?.journey));
   const initial = await page.evaluate(() => {
     const rt = (window as any).__uhs;
@@ -73,4 +77,87 @@ test("walks to Oxford and back with one player and retained local changes", asyn
   );
   await page.screenshot({ path: "artifacts/geography/live-map-return.png" });
   expect(errors).toEqual([]);
+});
+
+test("normal new-game creation enables connected maps", async ({ page }) => {
+  test.setTimeout(180000);
+  await page.goto("/");
+  await page.locator("#opening-prompt").fill("London 1300 farmer");
+  await page.locator("#opening-prompt").press("Enter");
+  await page.waitForFunction(
+    () => Boolean((window as any).__uhs?.journey),
+    undefined,
+    { timeout: 120000 },
+  );
+  const state = await page.evaluate(() => {
+    const rt = (window as any).__uhs;
+    return {
+      id: rt.journey.id,
+      size: rt.engine.state.manifest.setting.playableMap.size,
+    };
+  });
+  expect(state).toEqual({ id: "place:london", size: 384 });
+});
+
+test("San Diego has a walkable southern border and a constrained camera", async ({
+  page,
+}) => {
+  test.setTimeout(180000);
+  await page.goto("/");
+  await page.locator("#opening-prompt").fill("San Diego 1650 BCE hunter");
+  await page.locator("#opening-prompt").press("Enter");
+  await page.waitForFunction(
+    () => Boolean((window as any).__uhs?.journey),
+    undefined,
+    { timeout: 120000 },
+  );
+  await expect(page.getByLabel("Map travel")).toHaveCount(0);
+  const destination = await page.evaluate(() => {
+    const rt = (window as any).__uhs;
+    const e = rt.journey.entrances.find(
+      (e: any) => e.bearing === "S" && e.mode === "land" && e.point,
+    );
+    if (!e) throw Error("No southern overland entrance");
+    rt.engine.state.player.pos = { ...e.point, space: "outside" };
+    rt.setZoom(0.5);
+    rt.emit();
+    return e.to;
+  });
+  await expect(page.getByLabel("Map travel")).toBeVisible();
+  await expect(page.locator(".game-container canvas")).toHaveAttribute(
+    "data-terrain-ready",
+    "true",
+    { timeout: 90000 },
+  );
+  await page.screenshot({ path: "artifacts/geography/coastal-border.png" });
+  await page.evaluate(() => (window as any).__uhs.move(0, 1));
+  await page.waitForFunction(
+    (id) =>
+      (window as any).__uhs.journey.id === id &&
+      !(window as any).__uhs.journey.busy,
+    destination,
+    { timeout: 90000 },
+  );
+});
+
+test("can continue north through several maps from Butembo", async ({ page }) => {
+  test.setTimeout(300000);
+  await page.goto("/geography-lab?year=1300");
+  await page.getByLabel("Permanent map place").selectOption("place:city-butembo");
+  await page.getByRole("button", {name:"Play connected maps",exact:true}).click();
+  await page.waitForFunction(()=>Boolean((window as any).__uhs?.journey),undefined,{timeout:120000});
+  for(let i=0;i<3;i++) {
+    const next=await page.evaluate(()=>{
+      const rt=(window as any).__uhs;
+      const candidates=rt.journey.entrances.filter((e:any)=>e.point&&e.mode==="land"&&(e.seam?.side??e.bearing).includes("N"));
+      const e=candidates[0];
+      if(!e)throw Error("Missing reachable north exit on "+rt.journey.id);
+      rt.engine.state.player.pos={x:0,y:0,space:"outside"};rt.emit();
+      rt.engine.state.player.pos={...e.point,space:"outside"};rt.emit();
+      const half=rt.engine.state.manifest.setting.playableMap.size/2;
+      rt.move(e.point.x===-half?-1:e.point.x===half-1?1:0,e.point.y===-half?-1:e.point.y===half-1?1:0);
+      return e.to;
+    });
+    await page.waitForFunction(id=>(window as any).__uhs.journey.id===id&&!(window as any).__uhs.journey.busy,next,{timeout:120000});
+  }
 });

@@ -5,7 +5,32 @@ import {
   type TopographyCell,
   type TopographySample,
 } from "../../core/topography";
+import { places } from "../../content/geography/places";
+import { settingFor } from "../../content/geography/resolve";
+import { packForSetting } from "../../content/geography/pack";
+import { createSettlementWorld } from "../../world/v3/generate";
+import type { landforms } from "../../content/ecology/profiles";
 export type TerrainStudy = "meadow" | "contours";
+export type ReliefOptions = {
+  /** Atlas place id, so the study inherits a real climate and ecology. */
+  place: string;
+  landform: (typeof landforms)[number];
+  seed: string;
+};
+export const defaultReliefOptions: ReliefOptions = {
+  place: "umbria",
+  landform: "ridge",
+  seed: "relief-study",
+};
+/** Relief-bearing anchors, so the dropdown is not the whole atlas. */
+export const reliefPlaces = [
+  "umbria",
+  "ethiopia",
+  "athens",
+  "cusco-city",
+  "java",
+  "catalhoyuk",
+];
 export type StudyProp = TerrainPoint & {
   frame: string;
   texture?: "topography";
@@ -20,8 +45,87 @@ export type TerrainFixture = {
   spawn: TerrainPoint;
   stops: Record<string, TerrainPoint>;
 };
+/** Cut a bounded window out of a real generated world. Candidate origins are
+ * scored on how many tiers they hold and how many of their drops face away
+ * from the camera, which is the case the art has to solve. */
+function reliefWindow(width: number, height: number, o: ReliefOptions) {
+  const place = places.find((p) => p.id === o.place) ?? places[0];
+  const setting = settingFor(place);
+  setting.environment = {
+    ...setting.environment!,
+    landform: o.landform,
+    population: "none",
+  };
+  const world = createSettlementWorld(packForSetting(setting), o.seed);
+  const topo = world.topography!;
+  let best = { x: 0, y: 0, score: -1 };
+  for (let gy = -2; gy <= 2; gy++)
+    for (let gx = -2; gx <= 2; gx++) {
+      const ox = gx * width,
+        oy = gy * height;
+      const seen = new Set<number>();
+      let away = 0,
+        water = 0;
+      for (let y = 0; y < height; y += 2)
+        for (let x = 0; x < width; x += 2) {
+          const c = topo(ox + x, oy + y);
+          if (!c) continue;
+          if (c.surface === "water") water++;
+          seen.add(c.height);
+          const n = topo(ox + x, oy + y - 1);
+          if (n && n.height < c.height) away++;
+        }
+      // Tier variety first, then away-facing drops; open water crowds out the
+      // relief this study is for.
+      const score = seen.size * 100 + away - water * 2;
+      if (score > best.score) best = { x: ox, y: oy, score };
+    }
+  const cells: TopographyCell[] = [];
+  let min = Infinity;
+  for (let y = 0; y < height; y++)
+    for (let x = 0; x < width; x++) {
+      const c = topo(best.x + x, best.y + y);
+      const copy: TopographyCell = c
+        ? { ...c }
+        : { height: 0, surface: "grass" };
+      cells.push(copy);
+      if (copy.height < min) min = copy.height;
+    }
+  // Rebase to tier 0 so the strips the renderer allocates stay short and the
+  // whole landform sits inside the study camera.
+  if (min > 0 && min < Infinity)
+    for (const c of cells) c.height = Math.max(0, c.height - min);
+  const at = (x: number, y: number) => cells[y * width + x];
+  const walkable = (x: number, y: number) => {
+    const c = at(x, y);
+    return c && c.surface !== "water" && !c.solid;
+  };
+  let spawn = { x: Math.floor(width / 2), y: Math.floor(height / 2) };
+  if (!walkable(spawn.x, spawn.y))
+    outer: for (let y = 1; y < height - 1; y++)
+      for (let x = 1; x < width - 1; x++)
+        if (walkable(x, y)) {
+          spawn = { x, y };
+          break outer;
+        }
+  // One stop per tier present, so every step is one click away.
+  const stops: Record<string, TerrainPoint> = {};
+  const taken = new Set<number>();
+  for (let y = 1; y < height - 1; y++)
+    for (let x = 1; x < width - 1; x++) {
+      const c = at(x, y);
+      if (!walkable(x, y) || taken.has(c.height)) continue;
+      taken.add(c.height);
+      stops[`Tier ${c.height}`] = { x, y };
+    }
+  return { cells, spawn, stops };
+}
+
 /** Fixed composition proves the art grammar. Stage two owns procedural landforms. */
-export function terrainFixture(study: TerrainStudy): TerrainFixture {
+export function terrainFixture(
+  study: TerrainStudy,
+  options?: ReliefOptions,
+): TerrainFixture {
   const width = 36,
     height = 27;
   const cells: TopographyCell[] = Array.from(
@@ -249,29 +353,12 @@ export function terrainFixture(study: TerrainStudy): TerrainFixture {
       }
     }
   } else {
-    // One disconnected-looking but fully accessible stepped mass, with inward corners.
-    rect(3, 3, 30, 21, { height: 0, surface: "damp" });
-    rect(7, 6, 22, 15, { height: 1, surface: "grass" });
-    rect(11, 9, 14, 9, { height: 2, surface: "dry" });
-    rect(16, 11, 6, 5, { height: 3, surface: "grass" });
-    rect(7, 6, 4, 4, { height: 0, surface: "damp" }); // concave notch
-    set(17, 21, { height: 0, surface: "soil", ramp: "n" });
-    set(25, 13, { height: 1, surface: "soil", ramp: "w" });
-    set(18, 10, { height: 2, surface: "soil", ramp: "s" });
-    set(10, 13, { height: 1, surface: "soil", ramp: "e" });
-    // Return to the outer ground through a fourth facing.
-    set(32, 13, { height: 0, surface: "soil", ramp: "e" });
-    spawn = { x: 17, y: 23 };
-    stops = {
-      "South slope": { x: 17, y: 19 },
-      "East slope": { x: 23, y: 13 },
-      "North slope": { x: 18, y: 13 },
-      "West slope": { x: 12, y: 13 },
-    };
-    props.push(
-      { x: 18, y: 14, frame: "bush" },
-      { x: 21, y: 11, frame: "rock" },
-    );
+    // Cut from the shipped generator rather than hand-drawn blocks, so the
+    // study shows the relief, ecotones and slopes the game actually makes.
+    const window = reliefWindow(width, height, options ?? defaultReliefOptions);
+    for (let i = 0; i < cells.length; i++) cells[i] = window.cells[i];
+    spawn = window.spawn;
+    stops = window.stops;
   }
   return { width, height, cells, sample, props, spawn, stops };
 }

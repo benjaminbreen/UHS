@@ -1,5 +1,5 @@
 import { communityFor } from "../content/characters/resolve";
-import { prepareSettingSession } from "../runtime/preparation";
+import { prepareConnectedStart } from "../runtime/map-travel";
 import { randomStart } from "../content/geography/random-start";
 import {
   Sparkles,
@@ -174,7 +174,7 @@ export function WorldSetup({
         }),
         worldSeed,
       );
-      const engine = await prepareSettingSession(
+      const engine = await prepareConnectedStart(
         parsed,
         worldSeed,
         controller.current.signal,

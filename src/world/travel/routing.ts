@@ -71,10 +71,15 @@ export function edgeOpen(a: string, b: string, mode: TravelMode) {
   return open;
 }
 const routeCache = new Map<string, { path: string[]; expanded: number }>();
-export function findTravelPath(start: string, goal: string, mode: TravelMode) {
+export function findTravelPath(
+  start: string,
+  goal: string,
+  mode: TravelMode,
+  maxKm = Infinity,
+) {
   const reverse = start > goal,
     [a, b] = [start, goal].sort(),
-    key = `${mode}:${a}:${b}`;
+    key = `${mode}:${a}:${b}:${maxKm}`;
   const cached = routeCache.get(key);
   if (cached)
     return {
@@ -107,6 +112,8 @@ export function findTravelPath(start: string, goal: string, mode: TravelMode) {
     for (const next of neighborsOf(current)) {
       if (closed.has(next) || !edgeOpen(current, next, mode)) continue;
       const n = cellPoint(next);
+      if (kilometers(cellPoint(a), n) + kilometers(n, cellPoint(b)) > maxKm)
+        continue;
       const relief =
         !isWater(p) && !isWater(n)
           ? (broadEnvironment(p.lon, p.lat).relief +
@@ -330,7 +337,7 @@ export function planTravel(query: TravelQuery): TravelResult {
         reason: selection.reason,
         km: distance[i],
         pathIndex: i,
-        size: state === "city" ? 512 : 384,
+        size: state === "city" ? 384 : 304,
         note:
           p?.note ??
           "Representative geographic landscape. “No named settlement” does not establish historical absence of people.",

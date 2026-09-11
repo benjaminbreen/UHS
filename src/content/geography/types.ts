@@ -94,7 +94,8 @@ export const settingSchema = z
         z.literal(6),
       ])
       .optional(),
-    playableMap: z.object({ id: z.string(), size: z.union([z.literal(384), z.literal(512)]), exits: z.array(z.object({ id: z.string(), to: z.string(), bearing: z.string(), mode: z.string() })).default([]) }).strict().optional(),
+    ecologyRevision: z.literal(1).optional(),
+    playableMap: z.object({ id: z.string(), name: z.string().optional(), size: z.union([z.literal(304), z.literal(384), z.literal(512)]), exits: z.array(z.object({ id: z.string(), to: z.string(), bearing: z.string(), mode: z.string(), seam: z.object({side:z.enum(["N","E","S","W"]), start:z.number(),end:z.number(),water:z.array(z.number()),sea:z.array(z.boolean()),height:z.array(z.number()),road:z.boolean(),roadAt:z.number(),band:z.number().optional()}).optional() })).default([]) }).strict().optional(),
     geographyMode: z.enum(["earth", "configured"]).optional(),
     terrainRevision: z.union([z.literal(1), z.literal(2)]).optional(),
     environment: z

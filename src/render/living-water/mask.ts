@@ -1,6 +1,8 @@
+import type { TerrainReceivers } from "../terrain-contours";
+import { waterContactDistance } from "../../core/water-field";
 import { coastDistance, coastBeachWidth } from "./coast";
 import type { ShorePolish } from "./polish";
-import { waterHash, waterNoise } from "../water-style";
+import { waterHash } from "../water-style";
 import type { WaterObject } from "./scenery";
 import type { TopographySample } from "../../core/topography";
 import type { TerrainRegion } from "../terrain-region";
@@ -22,6 +24,7 @@ export function rasterLivingWater(
   region?: TerrainRegion,
   polish?: ShorePolish,
   existingRocks: readonly { x: number; y: number }[] = [],
+  receivers?: TerrainReceivers,
 ): LivingMask {
   const refined = !!polish?.enabled;
   const W = width * 16,
@@ -57,7 +60,7 @@ export function rasterLivingWater(
           beach * 1.5 +
             1 +
             (visual.kind === "sea" ? (polish?.coastScallop ?? 1.4) : 0) ||
-        (cell.height > 0 && cell.surface !== "water")
+        (!receivers && cell.height > 0 && cell.surface !== "water")
       )
         continue;
       const row =
@@ -82,30 +85,14 @@ export function rasterLivingWater(
           : (profile.direction * Math.PI) / 180;
       for (let py = 0; py < 16; py++)
         for (let px = 0; px < 16; px++) {
-          let d = shoreDistance(
+          const d = waterContactDistance(
             sample,
             tx + (px + 0.5) / 16,
             ty + (py + 0.5) / 16,
             region?.x ?? 0,
             region?.y ?? 0,
+            polish,
           );
-          if (visual.kind === "sea")
-            d = coastDistance(
-              d,
-              (region?.x ?? 0) + tx + (px + 0.5) / 16,
-              (region?.y ?? 0) + ty + (py + 0.5) / 16,
-              polish,
-            );
-          if (refined)
-            d +=
-              (waterNoise(
-                (region?.x ?? 0) * 16 + tx * 16 + px,
-                (region?.y ?? 0) * 16 + ty * 16 + py,
-                9,
-                482,
-              ) -
-                0.5) *
-              0.24;
           const localBeach =
             visual.kind === "sea"
               ? coastBeachWidth(
@@ -115,29 +102,34 @@ export function rasterLivingWater(
                   polish,
                 )
               : beach;
-          if (d > localBeach || (d >= 0 && cell.height > 0)) continue;
-          const y = ty * 16 + py - cell.height * TERRAIN_RISE + shift;
+          const sx = tx * 16 + px, sy = ty * 16 + py;
+          const receiver = receivers && receivers.tiers[
+            (sy - receivers.y) * receivers.width + sx - receivers.x];
+          const lowGround = receivers ? receiver === 0 ||
+            (receiver === -1 && cell.surface === "water" && cell.height === 0) : cell.height === 0;
+          if (d > localBeach || !lowGround) continue;
+          const y = sy + shift;
           if (y < 0 || y >= H) continue;
           const i = (y * W + tx * 16 + px) * 4;
+          const sea = visual.kind === "sea";
+          const level = sea && -d > 4 ? 64 + (-d - 4) * 4 : -d * 16;
           pixels.data[i] =
             d < 0
               ? Math.min(
                   255,
-                  128 +
-                    Math.round(
-                      visual.kind === "sea" && -d > 4
-                        ? 64 + (-d - 4) * 4
-                        : -d * 16,
-                    ),
+                  128 + (sea ? Math.floor(level) : Math.round(level)),
                 )
               : Math.max(
                   1,
                   127 - Math.round((d / Math.max(0.01, localBeach)) * 126),
                 );
           pixels.data[i + 1] = row + 1;
-          pixels.data[i + 2] = Math.round(
-            ((angle / (Math.PI * 2) + 1) % 1) * 255,
-          );
+          // Sea pixels ignore flow angle, so blue carries the depth fraction
+          // below one byte step; without it wave crests snap between contours.
+          pixels.data[i + 2] =
+            sea && d < 0
+              ? Math.floor((level - Math.floor(level)) * 255)
+              : Math.round(((angle / (Math.PI * 2) + 1) % 1) * 255);
           pixels.data[i + 3] = 255;
           count++;
         }

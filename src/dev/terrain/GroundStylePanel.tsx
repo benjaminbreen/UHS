@@ -91,6 +91,12 @@ export function GroundStylePanel({
   // true, and every slider after the first was swallowed.
   const mounted = useRef(false);
 
+  // Held in a ref, not a dependency: the callers pass an inline arrow, and a
+  // rebuild that sets state in the host re-created it, re-ran this effect and
+  // restarted the scene forever.
+  const rebuild = useRef(onRestyle);
+  rebuild.current = onRestyle;
+
   // Restyling re-rasterises every visible chunk, so coalesce slider drags
   // rather than rebuilding the terrain on every input event.
   useEffect(() => {
@@ -101,10 +107,10 @@ export function GroundStylePanel({
     clearTimeout(timer.current);
     timer.current = window.setTimeout(() => {
       restyleTerrain(on ? style : null);
-      onRestyle?.();
+      rebuild.current?.();
     }, 300);
     return () => clearTimeout(timer.current);
-  }, [on, style, onRestyle]);
+  }, [on, style]);
   useEffect(() => {
     setTerrainReach(reach);
   }, [reach]);

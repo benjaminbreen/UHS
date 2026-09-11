@@ -1,3 +1,5 @@
+import { waterDepthAt, wadingCost } from "../core/water-field";
+import { WadingEffects } from "./characters/wading";
 import { shorePolishDefaults } from "./living-water/polish";
 import { updateLivingWater } from "./living-water/game";
 import { natureTreeSprites } from "../content/ecology/vegetation";
@@ -114,6 +116,7 @@ type FireEffect = {
 export class WorldScene extends Phaser.Scene {
   private runtime: Runtime;
   private characters?: WorldCharacters;
+  private wading?: WadingEffects;
   private heldSprites = new Map<string, string>();
   private humanActors = new Map<
     string,
@@ -179,7 +182,7 @@ export class WorldScene extends Phaser.Scene {
     super("world");
     this.runtime = runtime;
     this.options.waterRenderer ??= "living";
-    this.options.shorePolish ??= {...shorePolishDefaults};
+    this.options.shorePolish ??= { ...shorePolishDefaults };
   }
   preload() {
     this.load.atlas("nature", "/nature/atlas.png", "/nature/atlas.json");
@@ -211,6 +214,8 @@ export class WorldScene extends Phaser.Scene {
   create() {
     this.ready = true;
     this.characters = new WorldCharacters(this);
+    this.wading = new WadingEffects(this);
+    this.events.once("shutdown", () => this.wading?.destroy());
     this.events.once("shutdown", () => this.characters?.destroy());
     ensureFireTextures(this);
     this.fireFrames = animatedFrames(
@@ -566,6 +571,16 @@ export class WorldScene extends Phaser.Scene {
     this.shadowPhase = p.space === "outside" ? this.light.id : "night";
     const c = this.cameras.main;
     c.setZoom(rt.zoom);
+    const footprint = p.space === "outside" && !this.options.overview ? w.pack.setting?.playableMap?.size : undefined;
+    const margin = 20 / rt.zoom;
+    if (footprint) c.setBounds(-footprint*8-margin, -footprint*8-margin, footprint*16+margin*2, footprint*16+margin*2);
+    else c.removeBounds();
+    const viewCenter = (value: number, pixels: number) => {
+      if (!footprint) return value;
+      const reach = Math.max(0, footprint/2 - pixels/rt.zoom/32 + margin/16);
+      return Math.max(-reach, Math.min(reach,value));
+    };
+    const viewX = viewCenter(p.x, this.scale.width), viewY = viewCenter(p.y, this.scale.height);
     if (w !== this.drawnWorld) {
       this.pendingDirection = undefined;
       c.centerOn(p.x * 16 + 8, p.y * 16 + 8);
@@ -586,8 +601,8 @@ export class WorldScene extends Phaser.Scene {
     if (w.topography && p.space === "outside") {
       this.terrainStream ??= new TerrainStream(this, w, e.state.manifest.seed);
       this.terrainStream.setView(
-        p.x,
-        p.y,
+        viewX,
+        viewY,
         Math.ceil(this.scale.width / rt.zoom / 32),
         Math.ceil(this.scale.height / rt.zoom / 32),
       );
@@ -602,10 +617,10 @@ export class WorldScene extends Phaser.Scene {
     if (
       w.topography &&
       (!this.terrainAnchor ||
-        Math.abs(p.x - this.terrainAnchor.x) > SCENERY_CACHE_REACH ||
-        Math.abs(p.y - this.terrainAnchor.y) > SCENERY_CACHE_REACH)
+        Math.abs(viewX - this.terrainAnchor.x) > SCENERY_CACHE_REACH ||
+        Math.abs(viewY - this.terrainAnchor.y) > SCENERY_CACHE_REACH)
     )
-      this.terrainAnchor = { x: p.x, y: p.y };
+      this.terrainAnchor = { x: Math.floor(viewX), y: Math.floor(viewY) };
     const bx = w.topography ? this.terrainAnchor!.x : Math.floor(p.x / 16) * 16,
       by = w.topography ? this.terrainAnchor!.y : Math.floor(p.y / 16) * 16;
     const key = [
@@ -1205,7 +1220,22 @@ export class WorldScene extends Phaser.Scene {
                 frame.startsWith("human-"),
                 e.state.clock,
               )
-            : { duration: this.motionDuration }),
+            : {
+                duration:
+                  actor && w.topography && pos.space === "outside"
+                    ? Math.max(
+                        this.motionDuration,
+                        140 *
+                          wadingCost(
+                            waterDepthAt(
+                              w.topography,
+                              pos.x + 0.5,
+                              pos.y + 0.5,
+                            ),
+                          ),
+                      )
+                    : this.motionDuration,
+              }),
           ease: "Linear",
         });
       } else {
@@ -1290,6 +1320,7 @@ export class WorldScene extends Phaser.Scene {
         this.tweens.killTweensOf(image);
         const shade = this.shadows.get(id);
         if (shade) this.tweens.killTweensOf(shade);
+        this.wading?.remove(id);
         image.destroy();
         this.quenchFire(id);
         this.entities.delete(id);
@@ -1451,6 +1482,17 @@ export class WorldScene extends Phaser.Scene {
         if (dx || dy) {
           this.motionDuration =
             (this.shiftHeld ? 85 : 140) * Math.hypot(dx, dy);
+          const p = this.runtime.engine.state.player.pos,
+            sample = this.runtime.engine.world.topography;
+          if (sample && p.space === "outside") {
+            const depth = Math.max(
+              waterDepthAt(sample, p.x + 0.5, p.y + 0.5),
+              waterDepthAt(sample, p.x + dx + 0.5, p.y + dy + 0.5),
+            );
+            if (depth > 0)
+              this.motionDuration =
+                140 * Math.hypot(dx, dy) * wadingCost(depth);
+          }
           this.nextInput = time + this.motionDuration;
           this.lastTick = time;
           this.runtime.move(dx, dy, false, this.shiftHeld);
@@ -1464,6 +1506,14 @@ export class WorldScene extends Phaser.Scene {
         this.lastTick = time;
         this.motionDuration = 140;
         this.runtime.tick();
+        if (this.runtime.running) {
+          const p = this.runtime.engine.state.player.pos,
+            sample = this.runtime.engine.world.topography;
+          if (sample && p.space === "outside")
+            this.nextInput =
+              time +
+              140 * wadingCost(waterDepthAt(sample, p.x + 0.5, p.y + 0.5));
+        }
       }
     }
     // Depth and the selection marker follow the displayed position, not the next tile.
@@ -1489,6 +1539,16 @@ export class WorldScene extends Phaser.Scene {
           id === "player" ? this.runtime.characterAction : undefined;
         const elapsed = action ? performance.now() - action.at : Infinity;
         const active = action && elapsed < poseTiming(action.pose) * 4;
+        const sample = this.runtime.engine.world.topography;
+        const wetPos = this.destinations.get(id);
+        const water =
+          sample && wetPos?.space === "outside" && !arcLift
+            ? waterDepthAt(
+                sample,
+                im.x / 16,
+                (im.y + this.lift(im.x, wetPos.y * 16 + 16) - 8) / 16,
+              )
+            : 0;
         const heldSprite = this.heldSprites.get(id);
         let pose: CharacterPose = moving ? "walk" : "idle";
         if (active) pose = action.pose;
@@ -1498,11 +1558,14 @@ export class WorldScene extends Phaser.Scene {
         else if (/gathering|working/i.test(human.activity)) pose = "work";
         else if (/eating/i.test(human.activity)) pose = "give";
         if (id === "player" && pose === "idle") pose = "breathe";
+        if (moving && water > 0.025 && !active) pose = "wade";
         const index = active
           ? Math.min(3, Math.floor(elapsed / poseTiming(pose)))
           : this.options.freeze
             ? 0
-            : this.poseFrame(id, pose, time);
+            : pose === "wade"
+              ? (this.wading?.frame(id) ?? 0)
+              : this.poseFrame(id, pose, time);
         const prop =
           heldSprite ??
           // A thrown object stays in the hand through the windup. Striking
@@ -1514,6 +1577,16 @@ export class WorldScene extends Phaser.Scene {
             : undefined);
         const texture = this.characters.frame(human, pose, index, prop);
         if (im.texture.key !== texture) im.setTexture(texture);
+        this.wading?.update(
+          id,
+          im,
+          Number.isFinite(water) ? water : 0,
+          this.options.freeze ? 0 : time,
+          moving,
+          sample && wetPos
+            ? sample(wetPos.x, wetPos.y)?.waterVisual?.flow
+            : undefined,
+        );
         if (this.options.shadows !== false) {
           const shadowTexture = this.characters.shadow(
             texture,
@@ -1532,7 +1605,8 @@ export class WorldScene extends Phaser.Scene {
           shade.setPosition(im.x, im.y + arcLift);
           const shrink = arcLift ? 1 - Math.min(0.3, arcLift / 48) : 1;
           if (shade.scaleX !== shrink) shade.setScale(shrink);
-          const fade = arcLift ? 1 - Math.min(0.4, arcLift / 36) : 1;
+          const fade =
+            water > 0.025 ? 0 : arcLift ? 1 - Math.min(0.4, arcLift / 36) : 1;
           if (shade.alpha !== fade) shade.setAlpha(fade);
           const shadowDepth = this.runtime.engine.world.topography
             ? -1000

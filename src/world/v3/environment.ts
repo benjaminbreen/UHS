@@ -1,3 +1,4 @@
+import { boundarySample } from "../travel/seams";
 import { trimCache } from "../../core/cache";
 import { marshBasin } from "./wet-features";
 import type { WorldSetting } from "../../content/geography/types";
@@ -218,11 +219,32 @@ export function createEnvironment(
       floodplain = 2.5;
       waterFlow = [0, 0];
     }
+    const seam = s.playableMap
+      ? boundarySample(
+          s.playableMap.size,
+          s.playableMap.exits.flatMap((e) => (e.seam ? [e.seam] : [])),
+          x,
+          y,
+        )
+      : undefined;
+    if (seam) {
+      water =
+        Math.max(-64, Math.min(64, water)) * (1 - seam.weight) +
+        seam.water * seam.weight;
+      if (seam.weight > 0.5) {
+        kind = seam.kind;
+        waterFlow = seam.flow;
+        shoreWidth = seam.kind === "sea" ? 6 : 2;
+        floodplain = shoreWidth + 3;
+      }
+    }
     const moisture = Math.max(
       0.05,
       Math.min(
         0.96,
-        profile.moisture +
+        (s.ecologyRevision && regional
+          ? regional.ecologyAt(x, y).moisture
+          : profile.moisture) +
           (noise(seed, fx, fy, 36, "moisture") - 0.5) * 0.22 +
           Math.max(0, 1 - Math.max(0, water) / 14) *
             noise(seed, fx + 43, fy - 19, 29, "drainage-pockets") *
@@ -281,7 +303,12 @@ export function createEnvironment(
       waterFlow,
       kind,
       moisture,
-      elevation: level * 14,
+      elevation: seam
+        ? Math.round(
+            (level * 14 * (1 - seam.weight) + seam.height * seam.weight) / 14,
+          ) * 14
+        : level * 14,
+      travelRoad: !!seam?.road && water >= 0,
       summit: ceiling * 14,
       // Cold envelopes keep snow on their highest steps all year once the
       // relief is mountainous, which also marks the summit from a distance.

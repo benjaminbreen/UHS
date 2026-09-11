@@ -130,7 +130,7 @@ export function Splash({
     controller.current = abort;
     setBusy("Preparing your world…");
     try {
-      const { prepareSettingSession } = await import("../runtime/preparation");
+      const { prepareConnectedStart } = await import("../runtime/map-travel");
       let worldSeed = `world-${crypto.randomUUID()}`;
       let setting;
       if (selection) {
@@ -153,7 +153,7 @@ export function Splash({
         setting = start.setting;
         worldSeed = start.seed;
       }
-      const engine = await prepareSettingSession(
+      const engine = await prepareConnectedStart(
         setting,
         worldSeed,
         abort.signal,

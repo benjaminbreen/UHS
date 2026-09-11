@@ -1,5 +1,6 @@
 import type { WorldModel } from "../../core/types";
 export type EntranceSpec = {
+  seam?: import("./seams").BoundarySeam;
   id: string;
   to: string;
   bearing: string;
@@ -64,24 +65,47 @@ export function mapEntrances(
   return exits.map((exit) => {
     const angle = (directions.indexOf(exit.bearing) * Math.PI) / 4;
     const target = { x: Math.sin(angle) * half, y: -Math.cos(angle) * half };
+    if (exit.seam) {
+      const t =
+        -half +
+        (exit.seam.start +
+          (exit.seam.end - exit.seam.start) * exit.seam.roadAt) *
+          (size - 1);
+      target.x =
+        exit.seam.side === "W" ? -half : exit.seam.side === "E" ? half - 1 : t;
+      target.y =
+        exit.seam.side === "N" ? -half : exit.seam.side === "S" ? half - 1 : t;
+    }
     const coastal = exit.mode !== "land" && shore.length > 0;
-    const candidates = [...(coastal ? shore : edge)].filter((i) => {
-      if (coastal) return true;
-      const p = point(i);
-      return (exit.bearing.includes("N") && p.y === -half) ||
-        (exit.bearing.includes("S") && p.y === half - 1) ||
-        (exit.bearing.includes("E") && p.x === half - 1) ||
-        (exit.bearing.includes("W") && p.x === -half);
-    }).sort((a, b) => {
-      const p = point(a),
-        q = point(b);
-      return (
-        Number(used.has(a)) - Number(used.has(b)) ||
-        Math.hypot(p.x - target.x, p.y - target.y) -
-          Math.hypot(q.x - target.x, q.y - target.y) ||
-        a - b
-      );
-    });
+    const candidates = [...(coastal ? shore : edge)]
+      .filter((i) => {
+        if (coastal) return true;
+        const p = point(i);
+        if (exit.seam) {
+          const u =
+            ((exit.seam.side === "N" || exit.seam.side === "S" ? p.x : p.y) +
+              half) /
+            (size - 1);
+          if (u < exit.seam.start || u > exit.seam.end) return false;
+        }
+        const direction = exit.seam?.side ?? exit.bearing;
+        return (
+          (direction.includes("N") && p.y === -half) ||
+          (direction.includes("S") && p.y === half - 1) ||
+          (direction.includes("E") && p.x === half - 1) ||
+          (direction.includes("W") && p.x === -half)
+        );
+      })
+      .sort((a, b) => {
+        const p = point(a),
+          q = point(b);
+        return (
+          Number(used.has(a)) - Number(used.has(b)) ||
+          Math.hypot(p.x - target.x, p.y - target.y) -
+            Math.hypot(q.x - target.x, q.y - target.y) ||
+          a - b
+        );
+      });
     const end = candidates[0],
       path: { x: number; y: number }[] = [];
     if (end !== undefined) {

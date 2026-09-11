@@ -8,7 +8,7 @@ import { rasterHabitatTile, type GroundTileData } from "./habitat-raster";
 import { rasterWaterTile, type WaterTileData } from "./water-raster";
 import type { Pack, WorldModel } from "../core/types";
 import { createSettlementWorld } from "../world/v3/generate";
-import { rasterTerrainContours, type ContourLayer } from "./terrain-contours";
+import { rasterTerrainContours, type ContourLayer, type TerrainReceivers } from "./terrain-contours";
 import { bridgeSpans, type BridgeSpan } from "./bridges";
 import { TERRAIN_RISE } from "./terrain-projection";
 import {
@@ -30,6 +30,7 @@ export type TerrainResponse = {
   groundTiles: GroundTileData[];
   /** Flat [x, y, drop, lowerTier, side] per rim pixel, chunk screen space. */
   rims: Int16Array;
+  receivers?: TerrainReceivers;
   living?: LivingMask;
 };
 let world: WorldModel;
@@ -127,16 +128,19 @@ export function handleTerrainRequest(data: TerrainRequest) {
           );
       }
     const rimList: number[] = [];
+    const receiverData: Partial<TerrainReceivers> = {};
     const layers = rasterTerrainContours(
-      sample,
+      paintSample,
       SIZE,
       SIZE,
       covers,
       region,
       groundTiles,
       rimList,
+      receiverData,
     );
     const rims = Int16Array.from(rimList);
+    const receivers = receiverData.tiers ? receiverData as TerrainReceivers : undefined;
     const rockPositions: { x: number; y: number }[] = [];
     if (polish?.enabled)
       for (let y = -3; y < SIZE + 3; y++)
@@ -157,8 +161,23 @@ export function handleTerrainRequest(data: TerrainRequest) {
           region,
           polish,
           rockPositions,
+          receivers,
         )
       : undefined;
+    if (living && receivers) {
+      for (const layer of layers) {
+        if (!layer.flat) continue;
+        for (let y = 0; y < layer.height; y++)
+          for (let x = 0; x < layer.width; x++) {
+            const sx = layer.x + x, sy = layer.y + y;
+            if (sx < 0 || sx >= living.width || sy + 96 < 0 || sy + 96 >= living.height) continue;
+            const i = (sy - receivers.y) * receivers.width + sx - receivers.x;
+            if (receivers.tiers[i] !== 0 || receivers.rows[i] !== layer.row) continue;
+            if (living.pixels[((sy + 96) * living.width + sx) * 4 + 3])
+              layer.pixels[(y * layer.width + x) * 4 + 3] = 0;
+          }
+      }
+    }
     self.postMessage(
       {
         id,
@@ -168,11 +187,13 @@ export function handleTerrainRequest(data: TerrainRequest) {
         waterTiles,
         groundTiles,
         rims,
+        receivers,
         living,
       } satisfies TerrainResponse,
       {
         transfer: [
           rims.buffer,
+          ...(receivers ? [receivers.tiers.buffer, receivers.rows.buffer] : []),
           ...(living ? [living.pixels.buffer, living.bends.buffer] : []),
           ...layers.map((l) => l.pixels.buffer),
           ...groundTiles.map((t) => t.pixels.buffer),

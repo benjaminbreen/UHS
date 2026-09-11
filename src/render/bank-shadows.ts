@@ -1,3 +1,4 @@
+import type { TerrainReceivers } from "./terrain-contours";
 import type { TopographyCell } from "../core/topography";
 import { TERRAIN_RISE } from "./terrain-projection";
 import {
@@ -24,6 +25,7 @@ export function rasterBankShadows(
   cells: readonly TopographyCell[],
   cast: readonly [number, number],
   opacity: number,
+  receivers?: TerrainReceivers,
 ): ShadowLayer[] | undefined {
   let [vx, vy] = cast;
   if (!rims.length || opacity <= 0 || (!vx && !vy)) return;
@@ -46,7 +48,7 @@ export function rasterBankShadows(
     H = SIZE * 16 + PAD * 16 - top;
   const map = new Int8Array(W * H).fill(-1);
   const at = (x: number, y: number) => (y - top) * W + x + PAD * 16;
-  for (let y = -PAD; y < SIZE + PAD; y++)
+  if (!receivers) for (let y = -PAD; y < SIZE + PAD; y++)
     for (let x = -PAD; x < SIZE + PAD; x++) {
       const c = cells[(y + PAD) * stride + x + PAD];
       if (!c) continue;
@@ -60,6 +62,13 @@ export function rasterBankShadows(
         map.fill(t, at(x * 16, py), at(x * 16 + 16, py));
       }
     }
+  const receiverAt = (x: number, y: number) => {
+    if (!receivers || x < receivers.x || y < receivers.y ||
+      x >= receivers.x + receivers.width || y >= receivers.y + receivers.height) return -1;
+    return (y - receivers.y) * receivers.width + x - receivers.x;
+  };
+  const tierAt = (x: number, y: number) => receivers
+    ? receivers.tiers[receiverAt(x, y)] ?? -1 : map[at(x, y)];
   const alpha = new Uint8Array(W * H);
   const a = Math.round(opacity * 255);
   let x0 = W,
@@ -91,8 +100,10 @@ export function rasterBankShadows(
       ]) {
         if (bx >= SIZE * 16 + PAD * 16 || by >= top + H) continue;
         const j = at(bx, by);
-        const tier = map[j];
+        const tier = tierAt(bx, by);
         if (tier < 0 || tier > below) continue;
+        // Adjacent rim rays share receiver pixels.
+        if (a <= alpha[j]) continue;
         alpha[j] = a;
         if (bx < x0) x0 = bx;
         if (bx > x1) x1 = bx;
@@ -106,7 +117,7 @@ export function rasterBankShadows(
   // that row's ground strip and below anything standing there.
   const boxes = new Map<number, [number, number, number, number]>();
   const rowOf = (x: number, y: number) =>
-    Math.floor((y + map[at(x, y)] * R) / 16);
+    receivers ? receivers.rows[receiverAt(x, y)] : Math.floor((y + map[at(x, y)] * R) / 16);
   for (let y = y0; y <= y1; y++)
     for (let x = x0; x <= x1; x++) {
       if (!alpha[at(x, y)]) continue;

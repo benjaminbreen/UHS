@@ -1,3 +1,4 @@
+import { waterDepthAt, MAX_WADING_DEPTH } from "../../core/water-field";
 import { mapEntrances, type MapEntrance } from "../travel/entrances";
 import { understorySize } from "../../content/ecology/vegetation";
 import {
@@ -463,6 +464,7 @@ export function createSettlementWorld(
         y + land.origin.y,
         land.sample(x, y),
       );
+      if (pack.setting?.ecologyRevision && regional) value.blend = regional.ecologyAt(x,y).parts;
       const pattern = vegetationPattern(setting, land.sample(x, y));
       if (pattern) value.vegetation = pattern;
       if (value.vegetation === "savanna" || value.vegetation === "steppe") {
@@ -496,6 +498,7 @@ export function createSettlementWorld(
           ) > 0.56))
     )
       return "rock";
+    if (f.travelRoad) return "dirt";
     if (regional?.landUse(x, y) === "fields" && f.water >= 0) return "field";
     if (environment) {
       const profile =
@@ -622,7 +625,7 @@ export function createSettlementWorld(
           seed,
           ax,
           ay,
-          ecologyProfiles[h.ecology].trees,
+          h.blend?.reduce((sum, p) => sum + ecologyProfiles[p.ecology].trees * p.weight, 0) ?? ecologyProfiles[h.ecology].trees,
           (pack.setting?.vegetationRevision ?? 0) >= 5,
         )
       ) {
@@ -721,6 +724,7 @@ export function createSettlementWorld(
    * ask the same cell many times, and the answer only depends on plans that
    * nearby() has already built. */
   function decoration(x: number, y: number) {
+    if (environment && land.sample(x,y).travelRoad) return undefined;
     const k = cellKey(x, y);
     const old = decorations.get(k);
     if (old !== undefined) return old ?? undefined;
@@ -993,7 +997,7 @@ export function createSettlementWorld(
         f,
       );
       const eco = ecologyProfiles[cell.biome];
-      if (f.water >= 0) cell.surface = f.snow ? "snow" : eco.surface;
+      if (f.water >= 0) cell.surface = f.snow ? "snow" : f.travelRoad ? "soil" : eco.surface;
       if (f.water >= 0 && f.water < (f.shoreWidth ?? 3)) {
         const shoreEcology = (regional?.settingAt(x, y) ?? pack.setting!)
           .environment!.ecology;
@@ -1600,7 +1604,7 @@ export function createSettlementWorld(
         ? x < 1 || x > 11 || y < 1 || y > 9
         : !inside(x, y) || Math.abs(x + land.origin.x) > 180 * 2048 ||
           Math.abs(y + land.origin.y) > 85 * 2048 ||
-          terrain(x, y) === "water" ||
+          (relief ? waterDepthAt(topography, x + 0.5, y + 0.5) > MAX_WADING_DEPTH : terrain(x, y) === "water") ||
           nearby(x, y).some((p) => p.solid.has(cellKey(x, y))) ||
           !!decoration(x, y)?.solid,
     chunk: (cx, cy) =>

@@ -4,7 +4,7 @@ import { ensureWaterAtlas } from "./water-motifs";
 import type Phaser from "phaser";
 import type { WorldModel } from "../core/types";
 import { drawTopography } from "./topography";
-import { drawContourLayers } from "./terrain-contours";
+import { drawContourLayers, type TerrainReceivers } from "./terrain-contours";
 import {
   TERRAIN_CHUNK_SIZE as SIZE,
   TERRAIN_CHUNK_PAD as PAD,
@@ -20,6 +20,7 @@ type Chunk = {
   objects: Phaser.GameObjects.GameObject[];
   textures: string[];
   rims: Int16Array;
+  receivers?: TerrainReceivers;
   cells: TopographyCell[];
   shade: Phaser.GameObjects.Image[];
 };
@@ -159,6 +160,7 @@ export class TerrainStream {
         waterTiles,
         groundTiles,
         rims,
+        receivers,
         living,
       } = this.completed;
       this.completed = undefined;
@@ -194,6 +196,7 @@ export class TerrainStream {
           objects,
           textures,
           rims,
+          receivers,
           cells,
           shade: [],
         };
@@ -273,6 +276,7 @@ export class TerrainStream {
       chunk.cells,
       this.sun.cast,
       this.sun.opacity,
+      chunk.receivers,
     );
     if (!layers) return;
     for (const layer of layers) {

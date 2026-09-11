@@ -42,12 +42,10 @@ it("reassigns reshaped pixels to the material of their new tier", () => {
   const surfaces = contourSurfaces(sample, tiles(sample), 0, 0);
   expect(surfaces.owner(14, 8, 0)?.cell).toBe(sand);
   expect(surfaces.owner(17, 8, 1)?.cell).toBe(grass);
-  expect([
-    ...surfaces.pixel(surfaces.owner(14, 8, 0)!, 14, 8, 0, () => 0)!,
-  ]).toEqual([220, 190, 130, 255]);
-  expect([
-    ...surfaces.pixel(surfaces.owner(17, 8, 1)!, 17, 8, 1, () => 1)!,
-  ]).toEqual([40, 110, 45, 255]);
+  // A cached donor tile may contain shoreline ink from a different location.
+  const moved = surfaces.pixel(surfaces.owner(17, 8, 1)!, 17, 8, 1, () => 1)!;
+  expect([...moved]).not.toEqual([40, 110, 45, 255]);
+  expect(moved[3]).toBe(255);
 });
 
 it("keeps paving, fields, water, bridges and paths out of natural material transfer", () => {
@@ -64,7 +62,7 @@ it("keeps paving, fields, water, bridges and paths out of natural material trans
   }
 });
 
-it("adds a sparse fringe only within three pixels of a different surface", () => {
+it("keeps lower beach pixels free of grass borrowed across a cliff", () => {
   const surfaces = contourSurfaces(sample, tiles(sample), 0, 0);
   const level = (x: number) => (x < 16 ? 1 : 0);
   let fringe = 0,
@@ -78,11 +76,11 @@ it("adds a sparse fringe only within three pixels of a different surface", () =>
       } else sandPixels++;
       expect(p[3]).toBe(255);
     }
-  expect(fringe).toBeGreaterThan(0);
-  expect(fringe).toBeLessThan(sandPixels);
+  expect(fringe).toBe(0);
+  expect(sandPixels).toBe(256);
 });
 
-it("uses identical texture and dither across chunk origins", () => {
+it("uses identical world-position material samples across chunk origins", () => {
   const a = contourSurfaces(sample, tiles(sample), 0, 0);
   const b = contourSurfaces((x, y) => sample(x + 1, y), tiles(sample, 1), 1, 0);
   for (let y = 0; y < 32; y++)

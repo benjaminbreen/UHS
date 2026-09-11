@@ -1,5 +1,7 @@
+import { waterHash, waterNoise } from "../core/water-field";
+export { waterHash, waterNoise, waterDistance } from "../core/water-field";
 import type { Ecology } from "../content/ecology/profiles";
-import type { TopographyCell, TopographySample } from "../core/topography";
+import type { TopographyCell } from "../core/topography";
 
 export type WaterPalette = {
   depths: readonly string[];
@@ -90,55 +92,6 @@ export function waterPalette(
     default:
       return temperate;
   }
-}
-/** Integer world-coordinate noise: no per-frame random draws or chunk-local seeds. */
-export function waterHash(x: number, y: number, salt = 0) {
-  let n =
-    Math.imul(x | 0, 374761393) ^
-    Math.imul(y | 0, 668265263) ^
-    Math.imul(salt, 1274126177);
-  n = Math.imul(n ^ (n >>> 13), 1274126177);
-  return ((n ^ (n >>> 16)) >>> 0) / 4294967296;
-}
-/** Smooth world-anchored fields; field sampling never depends on chunk boundaries. */
-export function waterNoise(x: number, y: number, scale: number, salt: number) {
-  const ix = Math.floor(x / scale),
-    iy = Math.floor(y / scale);
-  const sx = x / scale - ix,
-    sy = y / scale - iy;
-  const fx = sx * sx * (3 - 2 * sx),
-    fy = sy * sy * (3 - 2 * sy);
-  return (
-    (waterHash(ix, iy, salt) * (1 - fx) + waterHash(ix + 1, iy, salt) * fx) *
-      (1 - fy) +
-    (waterHash(ix, iy + 1, salt) * (1 - fx) +
-      waterHash(ix + 1, iy + 1, salt) * fx) *
-      fy
-  );
-}
-/** Bilinear reconstruction of the continuous bed at native-pixel centers. */
-export function waterDistance(sample: TopographySample, x: number, y: number) {
-  const ix = Math.floor(x - 0.5),
-    iy = Math.floor(y - 0.5);
-  const fx = x - 0.5 - ix,
-    fy = y - 0.5 - iy;
-  const d = (a: number, b: number) => {
-    const c = sample(a, b);
-    // A canal draws its own lips and gives its neighbours no shoreline.
-    if (c?.surface === "water" && c.waterVisual?.kind === "canal") return 4;
-    return (
-      c?.waterVisual?.distance ??
-      (c?.surface === "water" || c?.bridge
-        ? c.waterDepth === "deep"
-          ? -4
-          : -1
-        : 1)
-    );
-  };
-  return (
-    (d(ix, iy) * (1 - fx) + d(ix + 1, iy) * fx) * (1 - fy) +
-    (d(ix, iy + 1) * (1 - fx) + d(ix + 1, iy + 1) * fx) * fy
-  );
 }
 export function waterBand(
   distance: number,

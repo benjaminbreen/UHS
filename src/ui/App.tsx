@@ -326,13 +326,6 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
     pack.evidence.find((e) => e.id === selection?.claim) ?? pack.evidence[0];
   return (
     <div className={`app ${!sidebar ? "sidebar-hidden" : ""}`}>
-      {runtime.journey && <div className="journey-bar" aria-label="Map travel">
-        <strong>{runtime.engine.state.manifest.setting?.location}</strong>
-        <span>{runtime.journey.busy ? "Preparing next map…" : "Walk through an entrance to continue."}</span>
-        {runtime.journey.entrances.filter((e) => e.point).map((e) => <button key={e.id} disabled={runtime.journey!.busy} onClick={() => runtime.walkTo(e.point!)}>
-          {e.bearing} · {runtime.journey!.exits.find((x) => x.id === e.id)?.name ?? "Next map"}{e.mode !== "land" ? " · boat needed" : ""}
-        </button>)}
-      </div>}
       {characterOpen && (
         <Suspense fallback={<div data-modal="true">Loading characters…</div>}>
           <CharacterLab
@@ -494,6 +487,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
               </button>
             </div>
           )}
+          {runtime.journey?.borderHint() && <div className="world-notice border-hint" role="status" aria-label="Map travel">{runtime.journey.borderHint()}</div>}
           {(view.notice || view.running) && (
             <div className="world-notice" role="status">
               {view.running ? (

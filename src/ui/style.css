@@ -2626,3 +2626,5 @@ button:disabled {
 .sidebar .character h1 {
   overflow-wrap: anywhere;
 }
+
+.border-hint { top: 18px; bottom: auto; pointer-events: none; }

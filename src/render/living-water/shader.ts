@@ -47,6 +47,7 @@ void main(){
  float angle=m.b*6.2831853;vec2 flow=vec2(cos(angle),sin(angle));
  bool ocean=kind>.5&&kind<1.5;
  if(ocean&&raw>192.)depth=4.+(raw-192.)/4.;
+ if(ocean)depth+=m.b*(raw>192.?.25:.0625);
  float t=waterTime*.5;
  vec4 bends=texture2D(iChannel3,(local+.5)/resolution);
  float encoded=floor(bends.b*255.+.5),solid=step(128.,encoded),delay=mod(encoded,128.)/8.;

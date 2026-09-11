@@ -1,13 +1,8 @@
+export { shoreDistance } from "../core/water-field";
 import { trimCache } from "../core/cache";
 import { raisedFieldEdge } from "./field-raster";
 import type { TopographyCell, TopographySample } from "../core/topography";
-import {
-  waterDistance,
-  waterNoise,
-  waterHash,
-  waterStyle,
-  waterBand,
-} from "./water-style";
+import { waterNoise, waterHash, waterStyle, waterBand } from "./water-style";
 
 export function paintedGround(c: TopographyCell) {
   return !!c.habitat && !c.ramp && !c.bridge && c.surface !== "water";
@@ -38,22 +33,6 @@ export const rgb = (c: string) => [
   parseInt(c.slice(3, 5), 16),
   parseInt(c.slice(5, 7), 16),
 ];
-/** Shared native-pixel shoreline used for bank colors, wet lips and moving wash.
- * Land at a different height retains its hard cliff footprint. */
-export function shoreDistance(
-  sample: TopographySample,
-  x: number,
-  y: number,
-  ox: number,
-  oy: number,
-) {
-  const c = sample(Math.floor(x), Math.floor(y))!;
-  const d = waterDistance(sample, x, y);
-  if (c.height > 0 && c.surface !== "water") return Math.max(0.08, d);
-  const jitter =
-    (waterNoise((x + ox) * 16, (y + oy) * 16, 7, 319) - 0.5) * 0.14;
-  return d + jitter;
-}
 /** Bilinear beach width keeps the outer bank as continuous as the water edge. */
 export function shoreWidth(sample: TopographySample, x: number, y: number) {
   const ix = Math.floor(x - 0.5),

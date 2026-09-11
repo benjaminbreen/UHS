@@ -39,6 +39,14 @@ export type ContourLayer = {
   /** Plain ground rather than a bank: no drop shadow copy. */
   flat?: boolean;
 };
+export type TerrainReceivers = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  tiers: Int8Array;
+  rows: Int16Array;
+};
 type Cover = { x: number; y: number; width: number; height: number };
 /** Rasterize the UNION of elevated ground, swept down to the lower surface.
  * No tile owns a decorative end cap: touching faces share the same silhouette,
@@ -51,6 +59,7 @@ export function rasterTerrainContours(
   region?: TerrainRegion,
   groundTiles?: readonly GroundTileData[],
   rims?: number[],
+  receivers?: Partial<TerrainReceivers>,
 ): ContourLayer[] {
   const R = TERRAIN_RISE;
   const styled = groundStyle();
@@ -64,6 +73,7 @@ export function rasterTerrainContours(
       styled,
       groundTiles,
       rims,
+      receivers,
     );
   const layers = new Map<string, ContourLayer>(),
     w = width * 16 + B * 2;
@@ -399,15 +409,16 @@ function rasterWallContours(
   style: GroundStyle,
   groundTiles: readonly GroundTileData[] = [],
   rims?: number[],
+  receivers?: Partial<TerrainReceivers>,
 ): ContourLayer[] {
   const { bank, contour } = style;
-  const PX = 16,
-    PY = 64;
+  const PX = receivers ? 128 : 16,
+    PY = receivers ? 128 : 64;
   const FW = width * 16 + PX * 2,
     FH = height * 16 + PY * 2;
 
   // Cell tiers first: the interpolation below reads each of them four times.
-  const cpad = 4,
+  const cpad = receivers ? 10 : 4,
     cstride = width + cpad * 2;
   const tiers = new Int8Array(cstride * (height + cpad * 2));
   for (let y = -cpad; y < height + cpad; y++)
@@ -501,6 +512,33 @@ function rasterWallContours(
       Math.max(0, Math.min(FH - 1, py + PY)) * FW +
         Math.max(0, Math.min(FW - 1, px + PX))
     ];
+
+  if (receivers) {
+    const top = -PY - maxTier * R;
+    const height = FH + maxTier * R;
+    const tiers = new Int8Array(FW * height).fill(-1);
+    const rows = new Int16Array(FW * height).fill(-32768);
+    for (let py = -PY; py < FH - PY; py++)
+      for (let px = -PX; px < FW - PX; px++) {
+        const L = lvl(px, py);
+        const row = Math.floor(py / 16);
+        const cell = sample(Math.floor(px / 16), row);
+        const sy = py - L * R;
+        const i = (sy - top) * FW + px + PX;
+        const covered = cell?.ramp || cell?.bridge || covers.some(c =>
+          px >= c.x && px < c.x + c.width && sy >= c.y && sy < c.y + c.height);
+        if (row > rows[i] || (row === rows[i] && tiers[i] !== -2)) {
+          tiers[i] = covered || !cell || cell.surface === "water" ? -1 : L;
+          rows[i] = row;
+        }
+        const below = lvl(px, py + 1);
+        for (let k = 1; k <= (L - below) * R; k++) {
+          tiers[i + k * FW] = -2;
+          rows[i + k * FW] = row;
+        }
+      }
+    Object.assign(receivers, { x: -PX, y: top, width: FW, height, tiers, rows });
+  }
 
   // Bank tone is applied to the palette once, not per pixel.
   const toned = colors.map((c) =>
@@ -742,6 +780,12 @@ function rasterWallContours(
           const spot = at(row, px, sy, true, L);
           if (spot) spot.layer.pixels.set(rgba, spot.i);
         } else paint(row, L, px, sy, cap);
+        // A fixed contour cue stays on its own terrace, independent of sunlight.
+        for (let k = 1; k <= 3; k++) {
+          if (lvl(px, py - k) >= L) continue;
+          shade(row, px, sy, [0, 0.16, 0.10, 0.05][k]);
+          break;
+        }
         // Contact shade thrown forward by whatever rises immediately behind.
         // Darkening the ground it falls on reads as a shadow; a tinted copy
         // of the bank reads as a smudge.
@@ -774,6 +818,7 @@ function rasterWallContours(
           rims.push(px, py + 1 - below * R, drop_(L, below), below, 1);
         if (west < L) rims.push(px - 1, py - west * R, drop_(L, west), west, 2);
         if (east < L) rims.push(px + 1, py - east * R, drop_(L, east), east, 4);
+
       }
       if (below >= L) continue;
       const drop = (L - below) * R;

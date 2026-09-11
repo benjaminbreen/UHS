@@ -14,6 +14,7 @@ import {
 import {
   studyRoute,
   terrainFixture,
+  type ReliefOptions,
   type TerrainFixture,
   type TerrainStudy,
 } from "./fixture";
@@ -46,9 +47,10 @@ export class TerrainScene extends Phaser.Scene {
     study: TerrainStudy,
     private onStatus: (s: StudyStatus) => void,
     private onReady: () => void,
+    relief?: ReliefOptions,
   ) {
     super("terrain-study");
-    this.fixture = terrainFixture(study);
+    this.fixture = terrainFixture(study, relief);
     this.pos = { ...this.fixture.spawn };
   }
   preload() {

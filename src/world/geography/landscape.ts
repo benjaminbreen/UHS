@@ -9,6 +9,7 @@ import {
 } from "./atlas";
 import { noise, segmentDistance } from "./noise";
 export type LandSample = {
+  travelRoad?: boolean;
   /** Optional dry shoreline width in local cells, supplied by regional terrain. */
   shoreWidth?: number;
   waterFlow?: readonly [number, number];

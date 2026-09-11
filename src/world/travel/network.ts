@@ -1,3 +1,4 @@
+import { sampleSeam, seamSide, oppositeSide, type BoundarySeam } from "./seams";
 import {
   cellToChildren,
   cellToParent,
@@ -20,15 +21,18 @@ import {
   isWater,
   kilometers,
   bearingTo,
+  interpolate,
   passable,
   snapCell,
 } from "./geography";
 import { resolveMapEnvironment, mapClimateLabel } from "./environment";
 import { resolveGeographicName } from "./naming";
+import backboneNames from "../../content/geography/travel/generated/backbone-names.json";
 import { findTravelPath } from "./routing";
 import type { Coordinate, TravelStop } from "./types";
 export type PermanentMap = TravelStop & { networkId: string };
 export type MapExit = {
+  seam?: BoundarySeam;
   id: string;
   from: string;
   to: string;
@@ -152,6 +156,12 @@ function initialize() {
             kilometers(p, a.anchor) - kilometers(p, b.anchor) ||
             a.id.localeCompare(b.id),
         );
+      for (const direction of ["N", "E", "S", "W"]) {
+        const next = nearby.find((n) =>
+          bearingTo(p, n.anchor).includes(direction),
+        );
+        if (next) connect(id, next.id);
+      }
       try {
         const access = cellPoint(snapCell(p, "land"));
         const inland = nearby.find((n) => passable(access, n.anchor, "land"));
@@ -194,14 +204,19 @@ export function permanentMap(id: string, year: number): PermanentMap {
     networkId: id,
     environment,
     naming,
+    // A backbone map otherwise inherits whatever broad polygon contains it, so
+    // ten maps read "Arabian Peninsula". The generated table gives each the
+    // nearest regional landform instead; a catalog place keeps its own name.
     name:
-      p && settlement !== "unresearched" ? locationName(p, year) : naming.name,
+      p && settlement !== "unresearched"
+        ? locationName(p, year)
+        : ((backboneNames as Record<string, string>)[id] ?? naming.name),
     climate: mapClimateLabel(environment),
     water: environment.surface === "sea",
     culture: environment.culture,
     locationId: n.locationId,
     settlement,
-    size: settlement === "city" ? 512 : 384,
+    size: settlement === "city" ? 384 : 304,
     reason: "Permanent playable map",
     km: 0,
     pathIndex: 0,
@@ -210,21 +225,30 @@ export function permanentMap(id: string, year: number): PermanentMap {
       "Permanent geographic landscape; habitation is resolved separately.",
   };
 }
+const seamCache = new Map<string, ReturnType<typeof sampleSeam>>();
+const landConnections = new Map<string, boolean>();
 function landConnection(a: Coordinate, b: Coordinate) {
+  const key = [a.lon + "," + a.lat, b.lon + "," + b.lat].sort().join("|");
+  if (landConnections.has(key)) return landConnections.get(key)!;
+  let connected = false;
   try {
-    return passable(
-      cellPoint(snapCell(a, "land")),
-      cellPoint(snapCell(b, "land")),
+    findTravelPath(
+      snapCell(a, "land"),
+      snapCell(b, "land"),
       "land",
+      Math.max(250, kilometers(a, b) * 3),
     );
+    connected = true;
   } catch {
-    return false;
+    /* Disconnected shores remain sea transfers. */
   }
+  landConnections.set(key, connected);
+  return connected;
 }
 export function permanentExits(id: string, year: number): MapExit[] {
   initialize();
   const from = nodes.get(id)!;
-  return [...(links.get(id) ?? [])].sort().map((to) => {
+  const exits: MapExit[] = [...(links.get(id) ?? [])].sort().map((to) => {
     const other = nodes.get(to)!;
     return {
       id: [id, to].sort().join("~"),
@@ -243,7 +267,47 @@ export function permanentExits(id: string, year: number): MapExit[] {
               : "mixed",
     };
   });
+  for (const exit of exits) {
+    const ids = [exit.from, exit.to].sort(),
+      a = nodes.get(ids[0])!,
+      b = nodes.get(ids[1])!;
+    const side = seamSide(bearingTo(a.anchor, b.anchor));
+    // A crossing that needs a boat ends the map in open water rather than at a
+    // bare edge, so every border reads as geography.
+    const shore = exit.mode !== "land";
+    let shared = seamCache.get(exit.id);
+    if (!shared) {
+      let anchor = interpolate(a.anchor, b.anchor, 0.5);
+      const atlas = toAtlas(anchor.lon, anchor.lat);
+      if (!shore && atlasSample(atlas.x, atlas.y).coast < 0) {
+        const route = findTravelPath(
+          snapCell(a.anchor, "land"),
+          snapCell(b.anchor, "land"),
+          "land",
+        ).path;
+        anchor = cellPoint(route[Math.floor(route.length / 2)]);
+      }
+      shared = sampleSeam(anchor, side, shore);
+      seamCache.set(exit.id, shared);
+    }
+    exit.seam = {
+      ...shared,
+      side: exit.from === ids[0] ? side : oppositeSide(side),
+      start: 0,
+      end: 1,
+      road: !shore,
+    };
+  }
+  for (const side of ["N", "E", "S", "W"]) {
+    const group = exits.filter((e) => e.seam?.side === side);
+    group.forEach((e, i) => {
+      e.seam!.start = i / group.length;
+      e.seam!.end = (i + 1) / group.length;
+    });
+  }
+  return exits;
 }
+
 export function connectionPath(exit: MapExit) {
   initialize();
   const a = nodes.get(exit.from)!,
@@ -256,5 +320,18 @@ export function connectionPath(exit: MapExit) {
 }
 export function mapForCoordinate(p: Coordinate) {
   initialize();
-  return owner(latLngToCell(p.lat, p.lon, 2));
+  const id = owner(latLngToCell(p.lat, p.lon, 2));
+  const atlas = toAtlas(p.lon, p.lat);
+  // A routing cell's centre can sit offshore while the point itself is inland.
+  // Without this an inland start resolves to an ocean map with no land exits.
+  if (!id.startsWith("sea:") || atlasSample(atlas.x, atlas.y).coast < 0)
+    return id;
+  const nearest = [...nodes.values()]
+    .filter((n) => !n.water && !n.locationId)
+    .sort(
+      (a, b) =>
+        kilometers(p, a.anchor) - kilometers(p, b.anchor) ||
+        a.id.localeCompare(b.id),
+    )[0];
+  return nearest?.id ?? id;
 }

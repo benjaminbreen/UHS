@@ -1,3 +1,4 @@
+import { waterDepthAt, wadingCost, MAX_WADING_DEPTH } from "./water-field";
 import { trimCache } from "./cache";
 import {
   depositSupplies,
@@ -448,7 +449,12 @@ export class Engine {
         )
           return Infinity;
         return start.space === "outside"
-          ? (this.world.navigationCost?.(to.x, to.y, actorId) ?? 1)
+          ? (this.world.navigationCost?.(to.x, to.y, actorId) ?? 1) *
+              (this.world.topography
+                ? wadingCost(
+                    waterDepthAt(this.world.topography, to.x + 0.5, to.y + 0.5),
+                  )
+                : 1)
           : 1;
       },
       {
@@ -902,6 +908,9 @@ export class Engine {
         );
         return there ? `${there.name} is standing there.` : undefined;
       }
+      if (p.pos.space === "outside" && this.world.topography &&
+        waterDepthAt(this.world.topography, p.pos.x + c.dx + 0.5, p.pos.y + c.dy + 0.5) > MAX_WADING_DEPTH)
+        return "Too deep to wade — find a shallower crossing or a bridge.";
       if (
         (p.pos.space === "outside" &&
           this.world.canCross &&
@@ -1068,7 +1077,11 @@ export class Engine {
         p.pos.x += c.dx * leap.distance;
         p.pos.y += c.dy * leap.distance;
         p.direction = c.dy < 0 ? 0 : c.dx > 0 ? 1 : c.dy > 0 ? 2 : 3;
-        p.activity = "Exploring";
+        const depth =
+          p.pos.space === "outside" && this.world.topography
+            ? waterDepthAt(this.world.topography, p.pos.x + 0.5, p.pos.y + 0.5)
+            : 0;
+        p.activity = depth > 0 ? "Wading" : "Exploring";
         this.populateNearby();
         this.advance(leap.seconds);
         const key = `${Math.floor(p.pos.x / 64)},${Math.floor(p.pos.y / 64)}`;
@@ -1079,7 +1092,11 @@ export class Engine {
       p.pos.x += c.dx;
       p.pos.y += c.dy;
       p.direction = c.dy < 0 ? 0 : c.dx > 0 ? 1 : c.dy > 0 ? 2 : 3;
-      p.activity = "Exploring";
+      const depth =
+        p.pos.space === "outside" && this.world.topography
+          ? waterDepthAt(this.world.topography, p.pos.x + 0.5, p.pos.y + 0.5)
+          : 0;
+      p.activity = depth > 0 ? "Wading" : "Exploring";
       this.populateNearby();
       const rise =
         p.pos.space === "outside" && this.world.elevation
@@ -1096,8 +1113,10 @@ export class Engine {
           reason: rise > 0 ? "You scramble up." : "You drop down.",
         };
       this.advance(
-        (c.run ? (c.dx && c.dy ? 2 : 1) : c.dx && c.dy ? 3 : 2) +
-          (slope > 1 ? 1 : 0),
+        Math.ceil(
+          (c.run && !depth ? (c.dx && c.dy ? 2 : 1) : c.dx && c.dy ? 3 : 2) *
+            wadingCost(depth),
+        ) + (slope > 1 ? 1 : 0),
       );
       const key = `${Math.floor(p.pos.x / 64)},${Math.floor(p.pos.y / 64)}`;
       if (!this.state.visited.includes(key)) this.state.visited.push(key);
@@ -1269,7 +1288,11 @@ export class Engine {
         p.activity = "Resting";
         this.advance(1200);
         p.fatigue = Math.max(0, p.fatigue - 35);
-        p.activity = "Exploring";
+        const depth =
+          p.pos.space === "outside" && this.world.topography
+            ? waterDepthAt(this.world.topography, p.pos.x + 0.5, p.pos.y + 0.5)
+            : 0;
+        p.activity = depth > 0 ? "Wading" : "Exploring";
         this.event("You rest beside the household’s work. Your fatigue eases.");
         break;
       case "store":
