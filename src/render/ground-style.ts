@@ -120,6 +120,7 @@ export function defaultGroundStyle(): GroundStyle {
  * module too, so both threads start from the same style; the lab posts an
  * explicit null to compare against the older renderer. */
 let active: GroundStyle | undefined = defaultGroundStyle();
+setTerrainRise(active.bank.rise);
 export const groundStyle = () => active;
 export const setGroundStyle = (style: GroundStyle | undefined) => {
   active = style;

@@ -2,7 +2,7 @@ import type { WorldSetting } from "./types";
 import { desertColorwayFor } from "../ecology/profiles";
 
 export function environmentFor(
-  s: WorldSetting,
+  s: Pick<WorldSetting, "climate" | "lon" | "lat" | "relief" | "settlement">,
 ): NonNullable<WorldSetting["environment"]> {
   return {
     ecology:
@@ -34,7 +34,7 @@ export function integratedSetting(s: WorldSetting): WorldSetting {
     return {
       ...s,
       characterRevision: s.characterRevision ?? 1,
-      vegetationRevision: 5,
+      vegetationRevision: 6,
     };
   return {
     ...s,
@@ -42,7 +42,7 @@ export function integratedSetting(s: WorldSetting): WorldSetting {
     geographyRevision: 1,
     urbanRevision: 2,
     roadRevision: 1,
-    vegetationRevision: 5,
+    vegetationRevision: 6,
     geographyMode: s.environment ? "configured" : "earth",
     terrainRevision: 2,
     environment: s.environment ?? environmentFor(s),

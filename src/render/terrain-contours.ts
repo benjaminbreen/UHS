@@ -4,6 +4,7 @@ import type { TopographySample } from "../core/topography";
 import type { TerrainRegion } from "./terrain-region";
 import type { GroundTileData } from "./habitat-raster";
 import { paintedGround } from "./material-edges";
+import { contourSurfaces } from "./contour-surfaces";
 import {
   contourNoise,
   groundStyle,
@@ -688,27 +689,12 @@ function rasterWallContours(
     return trim;
   };
 
-  // Owned cells are skipped by the ground page, so their surface is copied
-  // here from the tile the worker already rasterised, at each pixel's own
-  // lifted row. That is what lets the edge cut inward without exposing the
-  // tile-aligned ground underneath.
-  const tiles = new Map(groundTiles.map((t) => [`${t.x},${t.y}`, t.pixels]));
-  const wrap = (n: number) => ((n % 16) + 16) % 16;
-  const surface = (
-    row: number,
-    tier: number,
-    px: number,
-    py: number,
-    sy: number,
-    fallback: number,
-  ) => {
-    const pixels = tiles.get(`${Math.floor(px / 16)},${row}`);
-    if (!pixels) return paint(row, tier, px, sy, fallback);
-    const spot = at(row, px, sy, true, tier);
-    if (!spot) return;
-    const src = (wrap(py) * 16 + wrap(px)) * 4;
-    spot.layer.pixels.set(pixels.subarray(src, src + 4), spot.i);
-  };
+  const surfaces = contourSurfaces(
+    (x, y) => sample(region ? x : Math.max(0, Math.min(width - 1, x)), y),
+    groundTiles,
+    region?.x ?? 0,
+    region?.y ?? 0,
+  );
 
   const drop_ = (hi: number, lo: number) => (hi - lo) * R;
   const sampleAt = (x: number, y: number) =>
@@ -723,8 +709,10 @@ function rasterWallContours(
       const L = lvl(px, py);
       const row = Math.floor(py / 16);
       const cell = sample(Math.floor(px / 16), row);
-      const dry = cell?.surface === "dry" || cell?.surface === "sand";
-      const snow = cell?.surface === "snow";
+      const owner = surfaces.owner(px, py, L);
+      const material = owner?.cell ?? cell;
+      const dry = material?.surface === "dry" || material?.surface === "sand";
+      const snow = material?.surface === "snow";
       const sy = py - L * R;
       const cx = Math.floor(px / 16);
       // A ramp joins its plateau flush: no rim line, strip or face there.
@@ -744,12 +732,16 @@ function rasterWallContours(
       if (cell?.ramp) continue;
       const cap = snow ? 25 : dry ? 9 : 4;
       const trim = trimFor(
-        cell?.habitat?.ecology,
-        cell?.surface,
-        cell?.habitat?.colorway,
+        material?.habitat?.ecology,
+        material?.surface,
+        material?.habitat?.colorway,
       );
-      if (ownsAt(Math.floor(px / 16), row)) {
-        surface(row, L, px, py, sy, cap);
+      if (ownsAt(Math.floor(px / 16), row) && !clipped(row, px, sy)) {
+        const rgba = owner && surfaces.pixel(owner, px, py, L, lvl);
+        if (rgba) {
+          const spot = at(row, px, sy, true, L);
+          if (spot) spot.layer.pixels.set(rgba, spot.i);
+        } else paint(row, L, px, sy, cap);
         // Contact shade thrown forward by whatever rises immediately behind.
         // Darkening the ground it falls on reads as a shadow; a tinted copy
         // of the bank reads as a smudge.

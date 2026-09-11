@@ -35,7 +35,7 @@ for (const ecology of [
         revision: runtime.engine.state.manifest.setting.vegetationRevision,
       };
     });
-    expect(info.revision).toBe(5);
+    expect(info.revision).toBe(6);
     expect(info.frames.length).toBeGreaterThan(0);
     expect(info.shadows).toBeGreaterThan(0);
     if (ecology === "boreal-woodland")
@@ -82,7 +82,7 @@ test("new Korean game uses habitat vegetation and renders its minimap", async ({
       nature: sprites.filter((s) => s.startsWith("nature-")).length,
     };
   });
-  expect(counts.revision).toBe(5);
+  expect(counts.revision).toBe(6);
   expect(counts.nature).toBeGreaterThan(0);
   await expect(page.locator("canvas[data-map-builds]")).toHaveCount(1);
   await page.screenshot({ path: "artifacts/nature-lab/map-seoul.png" });
@@ -107,4 +107,17 @@ test("Burmese interior renders bamboo and upright deciduous trees", async ({
   expect(frames).toContain("nature-bamboo-clump");
   expect(frames).toContain("nature-teak");
   await page.screenshot({ path: "artifacts/nature-lab/burma-quiet.png" });
+});
+
+test("reviews savanna, steppe and alpine vegetation profiles", async ({ page }) => {
+  test.setTimeout(180000);
+  for (const pattern of ["savanna", "steppe", "alpine"]) {
+    await page.goto(`/terrain-lab?ecology=grassland&vegetation=${pattern}&population=none&start=wanderer&landform=rolling&water=none&seed=vegetation-patterns`);
+    await expect(page.getByRole("button", { name: "Play this world →" })).toBeEnabled({ timeout: 75000 });
+    await expect(page.locator(".proc-preview canvas")).toHaveAttribute("data-terrain-pending", "0", { timeout: 75000 });
+    const setting = await page.evaluate(() => (window as any).terrainLab.describe().setting);
+    expect(setting.environment.vegetation).toBe(pattern);
+    expect(setting.vegetationRevision).toBe(6);
+    await page.screenshot({ path: `artifacts/geography/vegetation-${pattern}.png` });
+  }
 });

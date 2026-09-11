@@ -1,3 +1,4 @@
+import type { MapEnvironment } from "./environment";
 import type { GeographicName } from "./naming";
 export type Coordinate = { lon: number; lat: number };
 export type TravelLocation = Coordinate & {
@@ -24,6 +25,7 @@ export type TravelQuery = {
   mode: TravelMode;
 };
 export type TravelCell = Coordinate & {
+  environment: MapEnvironment;
   naming: GeographicName;
   regionId?: string;
   id: string;

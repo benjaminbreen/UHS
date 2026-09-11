@@ -249,3 +249,37 @@ test("inspects global naming coverage and unrelated regional labels", async ({
     fullPage: true,
   });
 });
+test("previews dry terrain and a small island from their actual anchors", async ({
+  page,
+}) => {
+  test.setTimeout(300000);
+  for (const [id, mode, ecology] of [
+    ["city-dulan", "mixed", "desert"],
+    ["city-male", "sea", "tropical-woodland"],
+  ]) {
+    await page.goto(
+      `/geography-lab?from=${id}&to=${id}&via=&year=1300&spacing=500&mode=${mode}`,
+    );
+    await ready(page);
+    const stop = await page.evaluate(
+      () => (window as any).geographyLab.describe().result.stops[0],
+    );
+    expect(stop.environment.ecology).toBe(ecology);
+    expect(stop.environment.surface).toBe("land");
+    await page
+      .getByRole("button", { name: "Preview existing terrain" })
+      .click();
+    await expect(
+      page.getByText(
+        "Existing generator and renderer · gold outline shows proposed bounds",
+      ),
+    ).toBeVisible({ timeout: 75000 });
+    await expect(page.locator(".geo-preview-canvas canvas")).toHaveAttribute(
+      "data-terrain-ready", "true", { timeout: 120000 },
+    );
+    await page.screenshot({
+      path: `artifacts/geography/environment-${id}.png`,
+    });
+    await page.getByRole("button", { name: "Close preview ×" }).click();
+  }
+});

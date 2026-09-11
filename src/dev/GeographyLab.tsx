@@ -18,6 +18,7 @@ import { edgeOpen } from "../world/travel/routing";
 import type { TravelQuery, TravelResult } from "../world/travel/types";
 import "./geography-lab.css";
 import { formatHistoricalYear } from "../core/calendar";
+const PermanentMaps = lazy(() => import("./PermanentMaps"));
 const LocalPreview = lazy(() => import("./GeographyPreview"));
 const sortedLocations = [...travelLocations].sort((a, b) =>
   a.name.localeCompare(b.name),
@@ -278,6 +279,8 @@ export function GeographyLab() {
         </div>
         <span className="geo-badge">TRAVEL SYSTEM · DEVELOPMENT</span>
       </header>
+      <Suspense fallback={<p>Loading permanent map network…</p>}><PermanentMaps year={query.year} /></Suspense>
+
       <section className="geo-presets" aria-label="Review journeys">
         {Object.entries(travelPresets).map(([id, p]) => (
           <button
@@ -839,6 +842,23 @@ export function GeographyLab() {
                     </span>
                   </div>
                   <p>
+                    <strong>Resolved environment</strong>
+                    <br />
+                    {active.environment.ecology} · {active.environment.landform}
+                    <br />
+                    Anchor {active.environment.anchor.lat.toFixed(3)}°,{" "}
+                    {active.environment.anchor.lon.toFixed(3)}°<br />
+                    Earth surface: {active.environment.surface} · coast{" "}
+                    {Math.round(Math.abs(active.environment.coastDistance))}{" "}
+                    tiles away
+                    <br />
+                    {(active.environment.surface === "sea") !==
+                      active.water && (
+                      <>
+                        Routing cell and fine shoreline disagree.
+                        <br />
+                      </>
+                    )}
                     <strong>Regional library</strong>
                     <br />
                     {active.culture.replaceAll("-", " ")}
@@ -860,7 +880,7 @@ export function GeographyLab() {
                       </p>
                       <button
                         disabled={
-                          active.water ||
+                          active.environment.surface === "sea" ||
                           Math.abs(active.lat) > 85 ||
                           pending ||
                           !!error

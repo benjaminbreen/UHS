@@ -474,3 +474,9 @@
     gap: 6px;
   }
 }
+
+.geo-permanent { padding: 24px; margin-bottom: 28px; border: 1px solid #436168; border-radius: 12px; background: #182e35; }
+.geo-permanent h2 { margin-top: 0; }
+.geo-permanent select { display: block; width: min(100%, 420px); padding: 12px; margin: 8px 0 20px; background: #10252c; color: #eee4ce; border: 1px solid #587077; border-radius: 6px; font: inherit; }
+.geo-permanent .geo-neighbors { margin: 18px 0; }
+.geo-permanent .geo-preview { margin-top: 22px; }

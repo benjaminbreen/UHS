@@ -12,6 +12,27 @@ import {
 export function paintedGround(c: TopographyCell) {
   return !!c.habitat && !c.ramp && !c.bridge && c.surface !== "water";
 }
+export function shoreOnTier(sample: TopographySample, x: number, y: number) {
+  const cell = sample(x, y);
+  if (!cell) return false;
+  const shore = (c: TopographyCell) =>
+    c.surface === "sand" || c.surface === "gravel" || c.surface === "water";
+  if (cell.height === 0 || shore(cell)) return true;
+  for (let dy = -1; dy <= 1; dy++)
+    for (let dx = -1; dx <= 1; dx++) {
+      const n = sample(x + dx, y + dy);
+      if (
+        n &&
+        n.height === cell.height &&
+        !n.bridge &&
+        !n.ramp &&
+        n.feature !== "paving" &&
+        shore(n)
+      )
+        return true;
+    }
+  return false;
+}
 export const rgb = (c: string) => [
   parseInt(c.slice(1, 3), 16),
   parseInt(c.slice(3, 5), 16),

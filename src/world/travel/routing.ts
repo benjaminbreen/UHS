@@ -1,3 +1,4 @@
+import { resolveMapEnvironment, mapClimateLabel } from "./environment";
 import { resolveGeographicName } from "./naming";
 import { waterRegion } from "../../content/geography/travel/oceans";
 import {
@@ -312,8 +313,15 @@ export function planTravel(query: TravelQuery): TravelResult {
         p && (state === "city" || state === "town" || authored)
           ? locationName(p, query.year)
           : naming.name;
+      const environment = p
+        ? resolveMapEnvironment(p, query.year)
+        : cells[i].environment;
       return {
         ...cells[i],
+        environment,
+        climate: mapClimateLabel(environment),
+        relief: environment.relief,
+        culture: environment.culture,
         name,
         naming,
         transition: transitions.get(i),
@@ -322,7 +330,7 @@ export function planTravel(query: TravelQuery): TravelResult {
         reason: selection.reason,
         km: distance[i],
         pathIndex: i,
-        size: state === "city" ? 640 : state === "town" ? 512 : 384,
+        size: state === "city" ? 512 : 384,
         note:
           p?.note ??
           "Representative geographic landscape. “No named settlement” does not establish historical absence of people.",

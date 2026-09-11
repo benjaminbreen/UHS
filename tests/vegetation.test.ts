@@ -1,5 +1,6 @@
 import { expect, it } from "vitest";
 import {
+  vegetationPattern,
   vegetationTree,
   vegetationUnderstory,
 } from "../src/content/ecology/vegetation";
@@ -172,3 +173,24 @@ it("generates every new plant in suitable worlds without placing them in water o
       .sort(),
   );
 }, 120000);
+
+
+it("resolves open vegetation globally while leaving old revisions unchanged", () => {
+  const dry = { ...land, moisture: 0.4, elevation: 10, summit: 100 };
+  const tropical = { ...setting("tropical-woodland", 25, -15), vegetationRevision: 6 as const };
+  expect(vegetationPattern(tropical, dry)).toBe("savanna");
+  expect(vegetationPattern(tropical, { ...dry, moisture: 0.8 })).toBeUndefined();
+  const inland = { ...setting("grassland", 70, 45), vegetationRevision: 6 as const };
+  expect(vegetationPattern(inland, dry)).toBe("steppe");
+  expect(vegetationPattern({ ...inland, relief: 0.9 }, { ...dry, elevation: 85 })).toBe("alpine");
+  expect(vegetationPattern({ ...inland, relief: 0.2 }, { ...dry, elevation: 85 })).toBe("steppe");
+  expect(vegetationPattern({ ...tropical, vegetationRevision: 5 }, dry)).toBeUndefined();
+});
+
+it("keeps alpine ground treeless and uses low vegetation instead of forest understory", () => {
+  const s = { ...setting("temperate-woodland"), vegetationRevision: 6 as const };
+  const h: Habitat = { ecology: "temperate-woodland", vegetation: "alpine", kind: "open", wet: 0.1, cover: 0.2, exposed: 0.7, season: "summer" };
+  expect(vegetationTree(s, h, land, 0.2)).toBeUndefined();
+  expect(vegetationUnderstory(s, h, land, 0.2)).toBe("nature-understory-low-heath");
+  expect(vegetationUnderstory(s, h, { ...land, snow: true }, 0.2)).toBeUndefined();
+});

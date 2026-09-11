@@ -1,3 +1,4 @@
+import { geographicClimate } from "../geography/climate";
 import { resolveCharacterContext } from "../../content/characters/resolve";
 import { trimCache } from "../../core/cache";
 import type { Pack } from "../../core/types";
@@ -247,18 +248,7 @@ export function createRegionalContext(start: WorldSetting) {
     const ll = fromAtlas(x + origin.x, y + origin.y),
       ambient = ambientAt(x, y);
     const localStart = includeStart && Math.hypot(x, y) < 192;
-    const climate: WorldSetting["climate"] =
-      Math.abs(ll.lat) > 68
-        ? "tundra"
-        : Math.abs(ll.lat) > 55
-          ? "boreal"
-          : ambient.moisture < 0.23
-            ? "arid"
-            : Math.abs(ll.lat) < 18
-              ? "tropical"
-              : ambient.moisture < 0.45
-                ? "mediterranean"
-                : "temperate";
+    const climate = geographicClimate(ll.lat, ambient.moisture);
     const here = profilesAt(x, y),
       namedPlace = placeAt(x, y);
     let baseKey = `${ambient.relief}|${climate}|${localStart}|${namedPlace?.id}`;

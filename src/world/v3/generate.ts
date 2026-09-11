@@ -1,3 +1,4 @@
+import { mapEntrances, type MapEntrance } from "../travel/entrances";
 import { understorySize } from "../../content/ecology/vegetation";
 import {
   broadleafAge,
@@ -6,6 +7,7 @@ import {
   type TreeCandidate,
 } from "./vegetation-spacing";
 import {
+  vegetationPattern,
   vegetationTree,
   vegetationUnderstory,
 } from "../../content/ecology/vegetation";
@@ -54,6 +56,7 @@ export const DISTRICT_SIZE = 384;
 const ROUTINE_BUDGET = 48;
 export type SettlementWorld = WorldModel & {
   planAt(x: number, y: number): SettlementPlan | undefined;
+  entrances(): MapEntrance[];
   prepare(): PreparedSettlement;
 };
 export function createSettlementWorld(
@@ -76,9 +79,22 @@ export function createSettlementWorld(
     plans = new Map<string, SettlementPlan>(prepared?.plans),
     links = new Map<string, Road[]>(prepared?.links),
     active = new Set<string>(prepared?.active);
-  const regionalPlanner = regional
+  const half = pack.setting?.playableMap ? pack.setting.playableMap.size / 2 : undefined;
+  const inside = (x: number, y: number) => half === undefined || (x >= -half && x < half && y >= -half && y < half);
+  const rawPlanner = regional
     ? regionalSettlements(regional, land.sample, seed, prepared?.regionalSites)
     : undefined;
+  const regionalPlanner = rawPlanner && half !== undefined ? {
+    ...rawPlanner,
+    sitesIn: (cx: number, cy: number) => {
+      if (pack.setting?.environment?.population === "none") return [];
+      const x = cx * DISTRICT_SIZE - land.origin.x, y = cy * DISTRICT_SIZE - land.origin.y;
+      if (x >= half || x + DISTRICT_SIZE < -half || y >= half || y + DISTRICT_SIZE < -half) return [];
+      return rawPlanner.sitesIn(cx, cy).filter((s) =>
+        Math.abs(s.center.x) + s.profile.radius < half - 4 &&
+        Math.abs(s.center.y) + s.profile.radius < half - 4);
+    },
+  } : rawPlanner;
   const transport =
     regional && regionalPlanner
       ? regionalTransport(regional, regionalPlanner.sitesIn, land.sample)
@@ -447,6 +463,15 @@ export function createSettlementWorld(
         y + land.origin.y,
         land.sample(x, y),
       );
+      const pattern = vegetationPattern(setting, land.sample(x, y));
+      if (pattern) value.vegetation = pattern;
+      if (value.vegetation === "savanna" || value.vegetation === "steppe") {
+        value.exposed *= 0.55;
+        value.cover = Math.min(1, value.cover * 1.3 + 0.12);
+      } else if (value.vegetation === "alpine") {
+        value.exposed = Math.min(1, value.exposed + 0.2);
+        value.cover *= 0.45;
+      }
       if (setting.environment!.colorway)
         value.colorway = setting.environment!.colorway;
       trimCache(habitatCache, 65536);
@@ -1205,6 +1230,7 @@ export function createSettlementWorld(
     return result;
   }
   function topography(x: number, y: number): TopographyCell {
+    if (half !== undefined && (Math.abs(x) > half + 32 || Math.abs(y) > half + 32)) return { height: 0, surface: "water" };
     const key = cellKey(x, y),
       old = reliefCache.get(key);
     if (old) return old;
@@ -1423,8 +1449,14 @@ export function createSettlementWorld(
       for (let cx = a.x; cx <= b.x; cx++) out.push(...sitesIn(cx, cy));
     return out;
   }
+  let entranceCache = prepared?.entrances;
+  const entrances = () => entranceCache ??= pack.setting?.playableMap
+    ? mapEntrances(world, pack.setting.playableMap.size, pack.setting.playableMap.exits)
+    : [];
   const world: SettlementWorld = {
+    entrances,
     prepare: () => ({
+      entrances: entrances(),
       // The starting town's routines are searched here, off the main thread,
       // so arrival costs a lookup rather than seconds of path searches.
       routines: [...routines].filter(([id]) =>
@@ -1521,7 +1553,7 @@ export function createSettlementWorld(
             from: { x: number; y: number },
             to: { x: number; y: number },
           ) => {
-            return terrainStep(topography, from, to).allowed;
+            return inside(to.x, to.y) && terrainStep(topography, from, to).allowed;
           },
         }
       : {}),
@@ -1545,8 +1577,8 @@ export function createSettlementWorld(
       )[0];
       return nearest ? getPlan(c.x, c.y, nearest.id) : undefined;
     },
-    terrain,
-    decoration,
+    terrain: (x, y, space = "outside") => space !== "outside" || inside(x, y) ? terrain(x, y, space) : "water",
+    decoration: (x, y) => inside(x, y) ? decoration(x, y) : undefined,
     overview: (x, y) => {
       if (regional)
         return regional.placeAt(x, y) &&
@@ -1559,21 +1591,21 @@ export function createSettlementWorld(
       if (s && Math.hypot(x - s.center.x, y - s.center.y) < 5) return "paving";
       return ground(x, y);
     },
-    regionExtent: 1600,
+    regionExtent: half ?? 1600,
     elevation: (x, y) => land.sample(x, y).elevation,
     moisture: (x, y) => land.sample(x, y).moisture,
     riverX: () => Infinity,
     blocked: (x, y, space) =>
       space !== "outside"
         ? x < 1 || x > 11 || y < 1 || y > 9
-        : Math.abs(x + land.origin.x) > 180 * 2048 ||
+        : !inside(x, y) || Math.abs(x + land.origin.x) > 180 * 2048 ||
           Math.abs(y + land.origin.y) > 85 * 2048 ||
           terrain(x, y) === "water" ||
           nearby(x, y).some((p) => p.solid.has(cellKey(x, y))) ||
           !!decoration(x, y)?.solid,
     chunk: (cx, cy) =>
       Array.from({ length: CHUNK_SIZE * CHUNK_SIZE }, (_, i) =>
-        terrain(
+        world.terrain(
           cx * CHUNK_SIZE + (i % CHUNK_SIZE),
           cy * CHUNK_SIZE + Math.floor(i / CHUNK_SIZE),
         ),
@@ -1693,7 +1725,7 @@ export function createSettlementWorld(
         const a = (i * 2 * Math.PI) / steps,
           x = from.x + Math.round(Math.cos(a) * r),
           y = from.y + Math.round(Math.sin(a) * r);
-        if (land.sample(x, y).water <= 3) continue;
+        if (!inside(x, y) || land.sample(x, y).water <= 3) continue;
         if (world.blocked(x, y, "outside")) continue;
         // Outside the town, but not inside the neighbouring one.
         const claim = regional?.placeAt(x, y);

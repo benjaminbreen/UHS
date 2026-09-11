@@ -10,7 +10,9 @@ export type HabitatKind =
   | "scrub"
   | "woodland"
   | "exposed";
+export type VegetationPattern = "savanna" | "steppe" | "alpine";
 export type Habitat = {
+  vegetation?: VegetationPattern;
   layeredForest?: boolean;
   ecology: Ecology;
   colorway?: DesertColorway;
@@ -107,6 +109,10 @@ export function habitatTree(
 export function treeGrouping(h: Habitat, ecologyAware = false) {
   const base = Math.max(0, h.cover - 0.22) * 2.6;
   if (!ecologyAware) return base;
+  if (h.vegetation === "alpine") return 0;
+  if (h.vegetation === "steppe") return h.wet > 0.65 ? base * 0.22 : 0;
+  if (h.vegetation === "savanna")
+    return Math.min(0.7, base * 0.3 + Math.max(0, h.wet - 0.4) * 0.8);
   const wetLift = Math.max(0, h.wet - 0.45) * 1.45;
   const exposurePenalty = h.exposed * 1.15;
   return Math.min(2.6, Math.max(0.12, base + wetLift - exposurePenalty));

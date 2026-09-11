@@ -30,6 +30,7 @@ import {
   paintedGround,
   pathField,
   shoreDistance,
+  shoreOnTier,
   shoreWidth,
   shorePixel,
 } from "./material-edges";
@@ -61,7 +62,7 @@ const soilRamps: Record<PaletteKey, string[]> = {
   "dry-scrub": ["#977f52", "#b09769", "#c4ac80", "#d3bc92", "#9a927c"],
   desert: ["#b39868", "#c9b083", "#dac298", "#e7d3ab", "#b3a68c"],
   "desert:sahara": ["#c3984f", "#d6ae66", "#e6c37e", "#efd396", "#c9b07e"],
-  "desert:red-earth": ["#9c5f3a", "#b4764c", "#c98c60", "#d6a072", "#a88b74"],
+  "desert:red-earth": ["#983f2d", "#b45233", "#cc6c42", "#e28a59", "#ae7051"],
 };
 const decode = (s: string) => [
   parseInt(s.slice(1, 3), 16),
@@ -83,7 +84,7 @@ const bankRamps: Record<PaletteKey, string[]> = {
   "dry-scrub": ["#6f5233", "#8f6d45", "#b08c5e", "#cba878", "#a09a86"],
   desert: ["#8a6a3e", "#ab895a", "#cdac78", "#e2c894", "#b7ad94"],
   "desert:sahara": ["#a8722f", "#c48f45", "#dcae62", "#ecc47e", "#c7b08a"],
-  "desert:red-earth": ["#6e3a24", "#8f4d2f", "#b5683f", "#cf8a5c", "#d9c3a3"],
+  "desert:red-earth": ["#692f27", "#913c2b", "#b95233", "#dc7b48", "#edb17e"],
 };
 export const banks = Object.fromEntries(
   Object.entries(bankRamps).map(([k, v]) => [k, v.map(decode)]),
@@ -130,13 +131,19 @@ export function rasterHabitatTile(
   if (cell.field) return rasterFieldTile(sample, x, y, ox, oy, art);
   const h = cell.habitat!;
   const key = paletteKey(h.ecology, h.colorway);
-  const palette = art.palettes[key];
+  const palette = h.vegetation === "savanna"
+    ? art.palettes["dry-scrub"]
+    : h.vegetation === "steppe"
+      ? art.palettes.grassland
+      : h.vegetation === "alpine"
+        ? art.palettes.tundra
+        : art.palettes[key];
   const pixels = new Uint8ClampedArray(16 * 16 * 4);
   const gx = (x + ox) * 16,
     gy = (y + oy) * 16;
   const frozen = cell.surface === "snow";
   // Grassy ecologies expose brown earth; dry and cold ones expose stone.
-  const mineralGround = ["desert", "tundra"].includes(h.ecology);
+  const mineralGround = h.vegetation === "alpine" || ["desert", "tundra"].includes(h.ecology);
   const nearBareGround = (ecology: Ecology, xx: number, yy: number) => {
     for (let dy = -2; dy <= 2; dy++)
       for (let dx = -2; dx <= 2; dx++) {
@@ -164,8 +171,8 @@ export function rasterHabitatTile(
           ? 1
           : a.wet > 0.61
             ? 2
-            : a.ecology.includes("woodland") &&
-                a.cover > (a.layeredForest ? 0.42 : 0.6)
+            : !a.vegetation && a.ecology.includes("woodland") &&
+                a.cover > (a.layeredForest ? 0.34 : 0.5)
               ? 4
               : 0;
   // Remove unsupported one-cell islands before choosing transition tiles.
@@ -345,8 +352,13 @@ export function rasterHabitatTile(
       }
       // Texture describes the material: little faceted stones or composed turf.
       // No blanket of independently varied pixels behind these marks.
+      const sparse = h.vegetation === "alpine" || h.ecology === "boreal-woodland";
+      const colony = hash(Math.floor(wx / 37), Math.floor(wy / 29), 941);
       const ink =
-        band === 1
+        sparse && colony < 0.65 ? 0 :
+        (h.vegetation === "savanna" || h.vegetation === "steppe") && band < 3
+          ? (colony > 0.32 ? groundMotif("sward", wx, wy, art.motifs) : 0)
+          : band === 1
           ? groundMotif("sward", wx, wy)
           : groundMotif(
               tilled || (grassy && band >= 3)
@@ -409,7 +421,8 @@ export function rasterHabitatTile(
     ).some((n) => n?.surface === "soil" && n.height === cell.height);
   const nearShore =
     !!cell.waterVisual &&
-    cell.waterVisual.distance < cell.waterVisual.shoreWidth + 1.5;
+    cell.waterVisual.distance < cell.waterVisual.shoreWidth + 1.5 &&
+    (!groundStyle() || shoreOnTier(sample, x, y));
   if (paintedGround(cell) && (hasPath || nearShore)) {
     const soil = soils[key];
     // The apron rows exist only to mark trodden ground for the edge pass.

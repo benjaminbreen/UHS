@@ -13,6 +13,7 @@ export const preparedSite = ({
  * prepared settlement from an older build is not reused. */
 export const PREPARED_VERSION = 1;
 export type PreparedSettlement = {
+  entrances?: import("../travel/entrances").MapEntrance[];
   /** The starting town's daily routines, built where the plan was, and the
    * residents the routine budget left at home. */
   routines?: [string, import("../../core/itinerary").Itinerary | undefined][];

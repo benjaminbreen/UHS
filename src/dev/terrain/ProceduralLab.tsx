@@ -25,6 +25,7 @@ type Config = {
   seed: string;
   ecology: (typeof ecologies)[number];
   colorway: (typeof desertColorways)[number];
+  vegetation: "auto" | "savanna" | "steppe" | "alpine";
   landform: (typeof landforms)[number];
   population: (typeof populations)[number];
   start: (typeof starts)[number];
@@ -40,6 +41,7 @@ const defaults: Config = {
   seed: "ecology-01",
   ecology: "temperate-woodland",
   colorway: "highland",
+  vegetation: "auto",
   landform: "rolling",
   // The lab defaults to an empty landscape: households and residents dominate
   // preparation time and none of it is terrain. Pick a population to opt in.
@@ -157,6 +159,8 @@ function readConfig(): Config {
   for (const key of [
     "seed",
     "ecology",
+    "colorway",
+    "vegetation",
     "landform",
     "population",
     "start",
@@ -189,14 +193,16 @@ export function labSetting(c: Config): WorldSetting {
   };
   return {
     ...base,
+    geographyMode: c.place ? "earth" : "configured",
     relief: c.relief,
     location: c.place
       ? `${base.location} · street study`
       : `${ecologyProfiles[c.ecology].label} · procedural study`,
     terrainRevision: 2,
-    vegetationRevision: 5,
+    vegetationRevision: 6,
     environment: {
       ecology: c.ecology,
+      vegetation: c.vegetation === "auto" ? undefined : c.vegetation,
       colorway: c.ecology === "desert" ? c.colorway : undefined,
       landform: c.landform,
       population: c.population,
@@ -577,6 +583,7 @@ export function ProceduralLab() {
           )}
           {draft.ecology === "desert" &&
             select("Desert colourway", "colorway", desertColorways)}
+          {select("Vegetation pattern", "vegetation", ["auto", "savanna", "steppe", "alpine"])}
           {select("Landform", "landform", landforms)}
           <label>
             Relief {draft.relief.toFixed(2)}

@@ -1,3 +1,35 @@
+## Contour material alignment — September 10, 2026
+
+The styled terrain pass now sources displaced surface pixels and bank trim from the appropriate height tier, with a nearest-tier fallback for tall drops. A sparse three-native-pixel material fringe softens natural transitions; exposed faces retain their crisp geometry. Shoreline underpainting no longer spills lower beach sand onto raised grass without a same-tier shore neighbor. Chunk-edge donor textures are cached on demand. Terrain heights, collision and generation are unchanged; the unstyled shoreline path is preserved.
+
+Validation: 26 focused terrain/material/habitat/water checks passed across the final targeted runs; TypeScript build checks passed. A browser lake fixture checks opaque coverage and was visually reviewed, alongside a live riverbank capture. The fixture no longer shows the detached shoreline strips. Review image: `artifacts/terrain-material-bank.png`. No commit or push.
+
+## Permanent maps and bounded preparation — September 10, 2026
+
+Added a destination-independent global playable-map network in the existing geography panel. A deterministic sparse land backbone coarsens H3 resolution-2 cells only over land; ocean groups use separate basin spacing. Catalog places attach locally with stable IDs, and nearby places connect without a destination query. Reciprocal connection IDs survive date changes and independent inspections. Following a connection resolves its underlying path through the existing geographic router. Fine shoreline checks distinguish coastal/island anchors from the coarse routing mask.
+
+The Permanent maps panel lets users pick a place, follow connections, return, and generate its bounded terrain. Small (384 tiles) is the default, dated cities use medium (512), and large is reserved. The original route-spacing inspector remains available below; its route-specific proposals are not the permanent network.
+
+The existing generator accepts an optional playableMap contract, restricts regional settlement planning to fitting sites, blocks movement outside the footprint, and retains a rendering apron for natural terrain sampling. Dated/unresearched landscape previews suppress named habitation; city previews retain the existing settlement generator. A worker-prepared flood fill finds reachable boundary entrances or shore access, preserving connection IDs and paths from spawn. Unreachable entrances are reported explicitly. A visual mask shows the finite footprint without altering its Earth coastline or relief. Live crossing is still stage 3.
+
+Validation: 15 permanent-map and existing travel tests passed; browser follow/return and bounded London checks passed. Build passed. Remaining geographic limitations include coarse routing barriers and polar local generation beyond ±85°; ocean local previews remain reserved for vessel gameplay. No commit or push. Unrelated terrain-style work in the checkout was preserved.
+
+## Boreal palette and differentiated vegetation — September 10, 2026
+
+Replaced the overly blue boreal ground with moss/olive greens and warmer forest-floor tones. Boreal turf marks now form sparser patches. Added savanna, steppe and alpine vegetation profiles without new climate IDs: open grass colonies and scattered trees, mostly treeless dry grass with wet refuges, and treeless low alpine plants with exposed mineral ground. Automatic selection uses existing latitude, moisture and relief inputs; the high-mountain threshold is a local proxy, not a measured treeline. The terrain lab exposes an explicit Vegetation pattern override and restores it from shared URLs.
+
+Generation changes are pinned to vegetation revision 6 for new worlds. Older revisions retain their existing placement rules. Existing plant assets and terrain geometry are reused; ground raster patterns and palettes carry the visual distinction. No global name data is used as a historical vegetation map.
+
+Validation: 15 vegetation/composition/habitat tests passed, including old-revision selection and alpine exclusions. Two browser checks passed for boreal rendering and the three explicit profiles; captures visually reviewed. See TRAVEL.md for the five remaining implementation stages, beginning with a permanent destination-independent playable network in the existing geography panel. No commit or push.
+
+## Geographic preview environments and ecological color — September 10, 2026
+
+Geography previews now resolve their own coordinate-based climate, relief and ecology using the existing regional climate rule and dated profiles, instead of inheriting a nearby catalog city's environment. The inspector distinguishes the actual atlas shoreline from the coarse routing mask, allowing small island anchors to be previewed even when their routing cell is water. Existing Earth sampling supports maps surrounded by water; no new island terrain recipe was needed. The fully zoomed-out preview requires time to stream terrain, so browser captures now wait for terrain readiness at the normal review zoom.
+
+Ground palettes now distinguish amber scrub, cooler boreal woodland, deeper tropical vegetation, muted tundra, golden Sahara and stronger terracotta red desert. Red desert roads and banks share the warmer palette; woodland floor colors appear at lower cover thresholds. These are rendering changes only; world topology, generated objects, coastlines, movement and saved simulation state are unchanged. No new climate IDs were added. The procedural terrain lab now uses configured geography for unnamed studies so selected ecology, population, water and colorway reach the generator; explicit place studies retain Earth geography. Shared URLs now restore colorway.
+
+Validation: 18 travel/environment/naming tests, 13 regional/environment tests and four habitat rendering tests passed. Seven geography browser checks passed before the visual palette update; the dry-map and island browser check passed again afterward with terrain-ready captures. Production build passed. Earlier extreme-zoom capture timed out while streaming and was interrupted by development reload; normal-zoom captures show dry terrain and island coastline correctly. No commit or push.
+
 ## Global geographic naming and 500 km default — September 10, 2026
 
 Travel naming now resolves globally from 1,332 imported Natural Earth physical/marine records and RESOLVE Ecoregions 2017 regional fallbacks. Offline importers pin source checksums and licenses, preserve source identities and full ecological labels, and compile approximately 4 MB of data. No runtime model or network calls are needed. Modern ecological names are explicit regional labels, not historical vegetation assertions. Existing terrain, rendering and geographic paths remain unchanged.

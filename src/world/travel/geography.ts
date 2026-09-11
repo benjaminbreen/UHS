@@ -1,11 +1,9 @@
+import { resolveMapEnvironment, mapClimateLabel } from "./environment";
 import { northAmericanLandscape } from "../../content/geography/travel/north-american-landscapes";
 import { waterRegion } from "../../content/geography/travel/oceans";
 import { resolveGeographicName } from "./naming";
 import { cellToLatLng, gridDisk, latLngToCell } from "h3-js";
 import index from "../../content/geography/atlas-index.generated.json";
-import { broadEnvironment } from "../geography/atlas";
-import { regionalProfiles } from "../../content/geography/regions";
-import { containsDate } from "../../content/history/dates";
 import type { Coordinate, TravelCell, TravelMode } from "./types";
 export const TRAVEL_RESOLUTION = 4;
 const mask = new Uint8Array(index.width * index.height);
@@ -102,44 +100,19 @@ export function passable(a: Coordinate, b: Coordinate, mode: TravelMode) {
 export function describeCell(id: string, year: number): TravelCell {
   const p = cellPoint(id),
     water = isWater(p),
-    e = broadEnvironment(p.lon, p.lat),
-    a = Math.abs(p.lat);
-  const climate = water
-    ? "Ocean"
-    : a > 68
-      ? "Tundra"
-      : a > 55
-        ? "Boreal"
-        : e.moisture < 0.23
-          ? "Arid"
-          : a < 18
-            ? "Tropical"
-            : e.moisture < 0.45
-              ? "Mediterranean"
-              : "Temperate";
-  let culture = "Unresearched";
-  for (const profile of regionalProfiles
-    .filter((r) => containsDate(r.dates, { year }))
-    .sort((a, b) => a.priority - b.priority || a.id.localeCompare(b.id))) {
-    const [w, s, e, n] = profile.bounds;
-    if (
-      p.lon >= w &&
-      p.lon <= e &&
-      p.lat >= s &&
-      p.lat <= n &&
-      profile.defaults.culture
-    )
-      culture = profile.defaults.culture;
-  }
+    environment = resolveMapEnvironment(p, year);
+  const climate = mapClimateLabel(environment),
+    culture = environment.culture;
   const naming = resolveGeographicName(p, water);
   return {
     ...p,
     naming,
+    environment,
     regionId: water ? waterRegion(p).id : northAmericanLandscape(p)?.id,
     id,
     water,
     climate,
-    relief: e.relief,
+    relief: environment.relief,
     culture: water ? "No resident default" : culture,
     name: naming.name,
   };

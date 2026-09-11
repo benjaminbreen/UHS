@@ -1,6 +1,27 @@
 import type { WorldSetting } from "../geography/types";
-import type { Habitat } from "../../world/v3/habitats";
+import type { Habitat, VegetationPattern } from "../../world/v3/habitats";
 import type { LandSample } from "../../world/geography/landscape";
+
+export function vegetationPattern(
+  s: WorldSetting,
+  land: LandSample,
+): VegetationPattern | undefined {
+  if ((s.vegetationRevision ?? 0) < 6) return undefined;
+  if (s.environment?.vegetation) return s.environment.vegetation;
+  const ecology = s.environment?.ecology;
+  // A local high-mountain proxy, not a measured global treeline.
+  if (s.relief > 0.7 && land.elevation / (land.summit ?? 126) > 0.7)
+    return "alpine";
+  if (ecology === "desert" || ecology === "tundra" || ecology === "wetland")
+    return undefined;
+  if (Math.abs(s.lat) < 30 && land.moisture < 0.6)
+    return "savanna";
+  if (
+    Math.abs(s.lat) >= 30 && land.moisture < 0.48 &&
+    ecology !== "boreal-woodland"
+  ) return "steppe";
+  return undefined;
+}
 
 // Reusable visual growth forms, not exact species distributions. Regional filters
 // avoid turning distinctive sagebrush and Sahel tree art into worldwide defaults.
@@ -118,7 +139,11 @@ export function vegetationTree(
   land: LandSample,
   roll: number,
 ) {
-  if (h.ecology === "tundra") return undefined;
+  if (h.ecology === "tundra" || h.vegetation === "alpine") return undefined;
+  if (h.vegetation === "savanna")
+    return Math.abs(s.lat) < 30 && s.lon > -20 && s.lon < 55
+      ? choose(sahel, roll)
+      : choose([[tropical, 1]], roll);
   const fresh =
     land.kind !== "sea" &&
     land.water > (land.shoreWidth ?? 3) &&
@@ -139,6 +164,12 @@ export function vegetationUnderstory(
   roll: number,
 ): string | undefined {
   const wet = land.kind !== "sea" && land.water < 16;
+  if (h.vegetation && !land.snow && land.water > (land.shoreWidth ?? 3)) {
+    if (h.vegetation === "alpine")
+      return roll < 0.8 ? "nature-understory-low-heath" : "flowers";
+    if (wet && roll < 0.6) return "nature-understory-sedge";
+    return roll < 0.85 ? "nature-understory-dry-bunchgrass" : scrub;
+  }
   if (
     (s.vegetationRevision ?? 0) >= 4 &&
     !land.snow &&

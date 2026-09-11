@@ -91,14 +91,17 @@ export const settingSchema = z
         z.literal(3),
         z.literal(4),
         z.literal(5),
+        z.literal(6),
       ])
       .optional(),
+    playableMap: z.object({ id: z.string(), size: z.union([z.literal(384), z.literal(512)]), exits: z.array(z.object({ id: z.string(), to: z.string(), bearing: z.string(), mode: z.string() })).default([]) }).strict().optional(),
     geographyMode: z.enum(["earth", "configured"]).optional(),
     terrainRevision: z.union([z.literal(1), z.literal(2)]).optional(),
     environment: z
       .object({
         ecology: z.enum(ecologies),
         colorway: z.enum(desertColorways).optional(),
+        vegetation: z.enum(["savanna", "steppe", "alpine"]).optional(),
         landform: z.enum(landforms),
         population: z.enum(populations),
         start: z.enum(starts),
