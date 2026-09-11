@@ -58,7 +58,7 @@ test("world props expose E/Space prompts, preserve contents and render broken re
     r.command({ type: "interact", target: stick.id, action: "pickup" });
     r.select(o.id);
   }, id);
-  await page.keyboard.press("Space");
+  await page.keyboard.press("KeyF");
   expect(
     await page.evaluate(
       (id) =>

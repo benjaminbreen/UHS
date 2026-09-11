@@ -12,6 +12,10 @@ try {
     const errors = [];
     page.on("pageerror", (e) => errors.push(e.message));
     await page.addInitScript(() => {
+      // Keep generated world seeds identical across benchmark runs.
+      let serial = 0;
+      crypto.randomUUID = () =>
+        `00000000-0000-4000-8000-${String(++serial).padStart(12, "0")}`;
       window.longTasks = [];
       new PerformanceObserver((list) =>
         window.longTasks.push(
@@ -23,26 +27,24 @@ try {
     });
     const start = Date.now();
     await page.goto(base);
-    await page.locator('.game-container canvas[data-ready="true"]').waitFor();
+    await page
+      .getByRole("button", { name: "Choose starting details" })
+      .waitFor();
     const shellMs = Date.now() - start;
-    await page.getByRole("button", { name: "New world", exact: true }).click();
-    if (world === "alexandria")
-      await page
-        .getByRole("button", { name: "Hellenistic Alexandria", exact: true })
-        .click();
+    await page.getByRole("button", { name: "Choose starting details" }).click();
+    const setup = page.getByRole("dialog", { name: "Create a world" });
+    await setup
+      .getByLabel("Describe your starting situation")
+      .fill(
+        world === "anatolia"
+          ? "A hunter in Anatolia, 6500 BCE"
+          : "Hellenistic Alexandria",
+      );
     await page.evaluate(() => {
       window.longTasks = [];
     });
     const selection = Date.now();
-    await page
-      .getByRole("button", {
-        name:
-          world === "anatolia"
-            ? "Anatolia · 6500 BCE · terrain preview"
-            : "Enter this world",
-        exact: true,
-      })
-      .click();
+    await setup.getByRole("button", { name: "Begin", exact: true }).click();
     const canvas = page.locator(
       '.game-container canvas[data-terrain-ready="true"]',
     );

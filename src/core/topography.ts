@@ -183,12 +183,12 @@ export function terrainStep(
 export type LeapKind = "hop" | "climb" | "drop" | "leap";
 export type LeapResult = {
   kind: LeapKind;
-  /** Tiles travelled along the direction: 1 for a step, 2 when clearing a gap. */
-  distance: 1 | 2;
+  /** Tiles travelled along the direction. */
+  distance: 1 | 2 | 3;
   seconds: number;
   reason: string;
 };
-/** Opt-in traversal. Resolves what a shift-move does against the tile ahead:
+/** Legacy traversal retained for existing commands:
  * a plain hop on open ground, a scramble up one tier, a drop down, or a leap
  * clearing one impassable tile onto level ground beyond. */
 export function terrainLeap(
@@ -246,4 +246,52 @@ export function terrainLeap(
         ? "Too wide to leap."
         : "The ledge is too high to climb.",
   };
+}
+
+export function terrainJump(
+  sample: TopographySample,
+  from: TerrainPoint,
+  to: TerrainPoint,
+  power: "short" | "long",
+): LeapResult | { kind: "blocked"; reason: string } {
+  const dx = to.x - from.x,
+    dy = to.y - from.y;
+  if (Math.max(Math.abs(dx), Math.abs(dy)) !== 1)
+    return { kind: "blocked", reason: "Jump in one direction." };
+  const start = sample(from.x, from.y);
+  const water = (c: TopographyCell) => c.surface === "water" && !c.bridge;
+  if (!start || start.solid || water(start))
+    return { kind: "blocked", reason: "No room to push off." };
+  const reach = power === "long" ? 3 : 2;
+  const rise = power === "long" ? 2 : 1;
+  let landing: LeapResult | undefined;
+  for (let step = 1; step <= reach; step++) {
+    const at = { x: from.x + dx * step, y: from.y + dy * step };
+    const cell = sample(at.x, at.y);
+    if (!cell || cell.solid || cell.height > start.height + rise) break;
+    if (dx && dy) {
+      const corners = [sample(at.x - dx, at.y), sample(at.x, at.y - dy)];
+      if (
+        corners.some(
+          (c) => !c || c.solid || water(c) || c.height > start.height + rise,
+        )
+      )
+        break;
+    }
+    if (water(cell)) continue;
+    landing = {
+      kind:
+        cell.height > start.height
+          ? "climb"
+          : cell.height < start.height
+            ? "drop"
+            : "leap",
+      distance: step as 1 | 2 | 3,
+      seconds: power === "long" ? 3 : 2,
+      reason: power === "long" ? "You make a long jump." : "You jump forward.",
+    };
+  }
+  return (
+    landing ?? { kind: "blocked", reason: "No clear landing within reach." }
+  );
 }

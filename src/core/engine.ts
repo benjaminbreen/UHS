@@ -34,7 +34,7 @@ import { resolveIntents, validateIntents } from "./intents";
 import { findPath } from "./pathfinding";
 import { itineraryAt, type Itinerary } from "./itinerary";
 import { route, type RouteResult } from "./routing";
-import { terrainLeap, type LeapResult } from "./topography";
+import { terrainJump, terrainLeap, type LeapResult } from "./topography";
 
 /** Elevation carried by one altitude step, matching the terrain renderer. */
 const TERRAIN_STEP = 14;
@@ -313,15 +313,48 @@ export class Engine {
       )
     );
   }
-  /** Where a shift-move goes. Uses the tiered terrain contract when the world
-   * publishes one, and otherwise treats any single blocked tile as a gap. */
   traversal(
     from: Position,
     dx: number,
     dy: number,
+    jump?: "short" | "long",
   ): LeapResult | { kind: "blocked"; reason: string } {
     const to = { x: from.x + dx, y: from.y + dy };
     const clear = (p: Point) => !this.blocked(p.x, p.y, from.space);
+    if (jump) {
+      const sample = (x: number, y: number) => {
+        const cell =
+          from.space === "outside" && this.world.topography
+            ? this.world.topography(x, y)
+            : { height: 0, surface: "grass" as const };
+        if (!cell) return cell;
+        const water = cell.surface === "water" && !cell.bridge;
+        const obstacle = this.state.objects.some(
+          (o) =>
+            o.pos.space === from.space &&
+            o.pos.x === x &&
+            o.pos.y === y &&
+            ((o.kind === "gate" && !o.open) ||
+              (!!o.prop &&
+                !!propDefs[o.prop]?.solid &&
+                !o.carriedBy &&
+                !o.broken)),
+        );
+        return {
+          ...cell,
+          solid: cell.solid || obstacle || (!water && !clear({ x, y })),
+        };
+      };
+      const result = terrainJump(sample, from, to, jump);
+      if (result.kind === "blocked") return result;
+      const landing = {
+        x: from.x + dx * result.distance,
+        y: from.y + dy * result.distance,
+      };
+      return clear(landing)
+        ? result
+        : { kind: "blocked", reason: "Something is in the way." };
+    }
     if (from.space === "outside" && this.world.topography) {
       const sample = (x: number, y: number) => this.world.topography!(x, y);
       const result = terrainLeap(sample, from, to);
@@ -433,7 +466,11 @@ export class Engine {
   visible(pos: Position) {
     return this.visibleFrom(this.state.player.pos, pos);
   }
-  visibleFrom(p: Position, pos: Position) {
+  visibleFrom(
+    p: Position,
+    pos: Position,
+    places: WorldModel["places"] = this.world.places,
+  ) {
     if (distance(p, pos) > SIGHT) return false;
     if (p.space !== "outside") return true;
     const steps = Math.max(Math.abs(p.x - pos.x), Math.abs(p.y - pos.y));
@@ -444,7 +481,7 @@ export class Engine {
       maxX = Math.max(p.x, pos.x),
       minY = Math.min(p.y, pos.y),
       maxY = Math.max(p.y, pos.y),
-      blockers = this.world.places.filter(
+      blockers = places.filter(
         (b) =>
           b.x <= maxX && b.x + b.w > minX && b.y <= maxY && b.y + b.h > minY,
       );
@@ -460,12 +497,24 @@ export class Engine {
   }
   observe(): Observation {
     const s = this.state;
+    const p = s.player.pos;
+    const places =
+      p.space === "outside"
+        ? this.world.places.filter(
+            (b) =>
+              b.x <= p.x + SIGHT &&
+              b.x + b.w > p.x - SIGHT &&
+              b.y <= p.y + SIGHT &&
+              b.y + b.h > p.y - SIGHT,
+          )
+        : [];
+    const visible = (pos: Position) => this.visibleFrom(p, pos, places);
     return copy({
       revision: s.revision,
       clock: s.clock,
       player: s.player,
       actors: s.actors
-        .filter((a) => this.visible(a.pos))
+        .filter((a) => visible(a.pos))
         .map((a) => ({
           id: a.id,
           name: a.name,
@@ -481,7 +530,7 @@ export class Engine {
           direction: a.direction,
         })),
       objects: s.objects
-        .filter((o) => this.visible(o.pos))
+        .filter((o) => visible(o.pos))
         .map((o) => ({
           ...o,
           inventory: o.prop
@@ -493,7 +542,7 @@ export class Engine {
               : o.inventory,
         })),
       places: this.world.places.filter((p) =>
-        this.visible({ ...p.entrance, space: "outside" }),
+        visible({ ...p.entrance, space: "outside" }),
       ),
       events: s.events.slice(-12),
       manifest: s.manifest,
@@ -835,8 +884,11 @@ export class Engine {
         return heldObject(this.state)
           ? undefined
           : "You are not holding anything to throw.";
-      if (c.traverse) {
-        const leap = this.traversal(p.pos, c.dx, c.dy);
+      if (c.jump && heldObject(this.state))
+        return "Put down the held object before jumping.";
+      if (c.jump && (c.run || c.traverse)) return "Choose one movement style.";
+      if (c.traverse || c.jump) {
+        const leap = this.traversal(p.pos, c.dx, c.dy, c.jump);
         if (leap.kind === "blocked") return leap.reason;
         const landing = {
           x: p.pos.x + c.dx * leap.distance,
@@ -1007,7 +1059,10 @@ export class Engine {
       return;
     }
     if (c.type === "move") {
-      const leap = c.traverse ? this.traversal(p.pos, c.dx, c.dy) : undefined;
+      const leap =
+        c.traverse || c.jump
+          ? this.traversal(p.pos, c.dx, c.dy, c.jump)
+          : undefined;
       if (leap && leap.kind !== "blocked") {
         this.lastLeap = leap;
         p.pos.x += c.dx * leap.distance;
@@ -1032,8 +1087,7 @@ export class Engine {
             this.world.elevation(p.pos.x - c.dx, p.pos.y - c.dy)
           : 0;
       const slope = Math.abs(rise);
-      // A step that changes tier gets the same arc the shift-move used, so
-      // ordinary walking up and off banks stays animated.
+      // Tier changes animate even without an explicit jump.
       if (slope >= TERRAIN_STEP)
         this.lastLeap = {
           kind: rise > 0 ? "climb" : "drop",
@@ -1041,7 +1095,10 @@ export class Engine {
           seconds: 0,
           reason: rise > 0 ? "You scramble up." : "You drop down.",
         };
-      this.advance((c.dx && c.dy ? 3 : 2) + (slope > 1 ? 1 : 0));
+      this.advance(
+        (c.run ? (c.dx && c.dy ? 2 : 1) : c.dx && c.dy ? 3 : 2) +
+          (slope > 1 ? 1 : 0),
+      );
       const key = `${Math.floor(p.pos.x / 64)},${Math.floor(p.pos.y / 64)}`;
       if (!this.state.visited.includes(key)) this.state.visited.push(key);
       return;

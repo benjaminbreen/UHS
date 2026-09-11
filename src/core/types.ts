@@ -222,7 +222,14 @@ export type GameEvent = {
   pos?: Position;
 };
 export type PlayerCommand =
-  | { type: "move"; dx: number; dy: number; traverse?: boolean }
+  | {
+      type: "move";
+      dx: number;
+      dy: number;
+      traverse?: boolean;
+      jump?: "short" | "long";
+      run?: boolean;
+    }
   | { type: "throw"; dx: number; dy: number }
   | { type: "wait"; seconds: number }
   /** Time passing while the player stands still. Logged so a replay keeps the

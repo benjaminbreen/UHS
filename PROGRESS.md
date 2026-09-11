@@ -1,3 +1,53 @@
+## Global geographic naming and 500 km default — September 10, 2026
+
+Travel naming now resolves globally from 1,332 imported Natural Earth physical/marine records and RESOLVE Ecoregions 2017 regional fallbacks. Offline importers pin source checksums and licenses, preserve source identities and full ecological labels, and compile approximately 4 MB of data. No runtime model or network calls are needed. Modern ecological names are explicit regional labels, not historical vegetation assertions. Existing terrain, rendering and geographic paths remain unchanged.
+
+The workshop includes an on-demand global naming audit and clickable coverage overlay. Its 3,318 distinct catalog/globe samples include 1,660 land cells, with five unresolved land labels exposed explicitly. Source geometry and coarse coastlines can disagree. Unresearched city endpoints now show named landscapes rather than generic city-area labels. Data refinements remain independent of H3 map identity and dated settlement coverage. See TRAVEL.md.
+
+User review approved the system and selected 500 km as the default land spacing; presets now use that value while explicit shared URLs retain their settings. Ocean spacing remains separate. User authorized committing and pushing all current worktree changes, including the existing movement, terrain and performance work and review artifacts.
+
+Validation: 21 focused travel, naming, movement and runtime tests passed; six production-browser checks passed after restarting the stopped preview server. Production build passed with the existing bundle advisory. Global naming coverage and route screenshots were visually reviewed.
+
+## Ocean compression and landscape names — September 10, 2026
+
+Open-water compression now uses distinct spacing across all five oceans and selected marginal seas, independent of the land slider. Geographic paths, requested stops, and coastal transfers remain intact. Ocean names use fixed sectors rather than route-relative numbers. London–El Paso at 180 km land spacing now produces 28 maps, including five water maps with coastal approaches.
+
+Added compact, stable-ID US landscape polygons based on a simplified interpretation of USGS physiographic regions. Southern routes now name coastal plains, Mississippi landscapes, Piney Woods, Texas prairies, Edwards Plateau and Chihuahuan Desert; sustained region transitions are retained in compression. Global land naming remains incomplete. Existing terrain generation and renderer behavior are unchanged. See TRAVEL.md for spacing values, sources and boundary limitations.
+
+Validation: ten travel tests and five production-browser checks passed; ocean tests cover Atlantic, Pacific, Indian, Arctic and Southern passages independently of land spacing. Production build passed with the existing bundle advisory. Visually reviewed artifacts/geography/london-el-paso.png. No commit or deployment.
+
+## Mixed land and sea journeys — September 10, 2026
+
+The geography panel now defaults to combined land/sea routing, with optional walking-only and sea-only restrictions. Shared routing permits sampled coastal transfers with a modest transfer penalty; there is no route-distance or search-expansion cutoff. Compression retains departure/landfall and adjacent sea stops. Blue sailing sections and boat-required labels distinguish transport; nominal walking excludes ocean maps. Named settlement endpoints use land cells. Existing game terrain, renderer and boat gameplay are unchanged.
+
+Endpoint changes clear preset waypoints; failed queries clear obsolete results and stop the loading indicator. All statistics hide during recalculation. Explicit mode URLs remain respected. Coastal transfer locations remain approximate at the existing atlas resolution. See TRAVEL.md.
+
+Validation: eight travel unit tests passed, including transoceanic Matamoros–Dalian, reciprocal return paths, retained transfers, inland walking and Iceland mixed travel. Production build passed with the existing bundle advisory. Four production-browser checks passed, including transoceanic routing, mode persistence, waypoint clearing, error recovery, and the existing terrain preview. Pacific-spanning visual review also exposed and fixed wrapped coastline polygons. Screenshot: artifacts/geography/mixed-ocean.png.
+
+## Geography workshop and travel foundation — September 10, 2026
+
+Added `/geography-lab`, linked from Settings → Developer, with an isolated production preview on port 5186. The panel uses a shared global H3 resolution-4 graph, existing atlas land/sea masking, reciprocal terrain-aware routing in a worker, and adjustable proposed-stop compression. British (London → Oxford → Edinburgh), illustrative Morocco → Cairo → Delhi, and Iceland sea queries are presets; arbitrary catalog endpoints and via locations remain editable. Default review journeys contain 8 and 39 stops respectively.
+
+Compact regional travel files supply short landscape names and explicit inferred settlement coverage windows. Geographic IDs survive date changes; missing settlement coverage shows the landscape without asserting a named town. Earth pan/zoom, route/cell overlays, compass-labeled neighbors, shareable URLs and mobile layout are implemented. A lazy local preview uses the existing generator and WorldScene with 384/512/640-tile boundary overlays. Existing terrain generation, live movement and saves are unchanged; unrelated shared-checkout work was preserved.
+
+Scope: the underlying geographic graph is shared, but stop compression is still a route-review proposal, not the finalized global playable-stop network. Actual boundary crossing, dated historical roads, comprehensive settlement dates and climate refinement remain pending. Coarse coastline routing and anchor snapping are visible limitations. See `TRAVEL.md` for contracts and next integration decisions.
+
+Validation: six focused travel tests and three production-browser checks passed, covering dates, reciprocal routing, compression, island/sea behavior, polar identities, invalid inputs, UI changes, mobile/share state, and the existing terrain renderer/boundary overlay. Production build passed with the existing bundle advisory. Captures are in `artifacts/geography/`. No commit or deployment.
+
+## Space jump/pickup/drop and Shift running — September 10, 2026
+
+Space now drops a held item first, picks up a nearby portable prop second, and otherwise charges a jump. A quick release jumps up to two tiles in 260 ms; holding 240 ms launches one three-tile jump in 300 ms, with a two-altitude-level rise limit rather than one. Aim follows held movement keys or facing direction. Holding Space does not repeat jumps, and menus, text focus and blur cancel pending input. Shift moves at an 85 ms base cadence versus 140 ms walking; new run commands also use less simulation time per step. F retains striking and X throws in the movement/facing direction; E and G remain available. Hints and PROPS.md updated.
+
+New explicit jump/run command fields preserve the old movement/traversal path. Charged jumps require a dry landing, cannot cross solid props, walls or blocked diagonal corners, and reject carrying at the engine boundary. Source changes preserve the earlier uncommitted portrait/visibility work.
+
+Validation: 21 focused movement, terrain and runtime tests passed. Browser input checks passed for tap/hold distance, one jump per hold, pickup/drop priority, text-focus cancellation and faster running, including three repeated runs and a final run with an input fixture away from doorways. Visually reviewed the updated game controls. Production build passed with the existing bundle advisory. No commit or deployment.
+
+## Portrait caching and observation visibility — September 10, 2026
+
+Repaired `measure:performance` for the splash → starting-details → Begin flow. Benchmark UUIDs are deterministic so before/after runs use identical world manifests. Sidebar character sprites now retain their rendered output across value-identical observations and share a bounded 128-entry source/crop cache. Appearance changes invalidate the rendered output; bust/full-body changes reuse the source pixels. Observation visibility gathers nearby building candidates once per call, retaining the existing line-of-sight rules and avoiding persistent world caches.
+
+Validation: four runtime tests passed, including visibility equivalence across movement, interiors and building additions/removals. Browser portrait checks verified pixel identity, reuse across remounts/mode switches, and appearance invalidation. Production build and final typecheck passed (existing bundle advisory). Both production benchmark scenarios completed without browser errors and with identical before/after manifests; visually reviewed Alexandria captures. Command p95: Anatolia 2.2→1.7 ms, Alexandria 2.3→2.3 ms; frame p95 remained about 16.7 ms. These single-run timings are indicative, not a reliable FPS gain. A focused same-world Alexandria observation measurement was 0.37→0.27 ms with 210 places and 290 actors. Reports/captures: `artifacts/performance/portrait-visibility-{before,after}*`. No commit/deployment; unrelated artifacts preserved.
+
 ## Random-start names without numeric placeholders — September 8, 2026
 
 Fixed the uncovered-context path exposed by Amazon basin 1400: it no longer produces `Resident NNNNNN`. Players and NPCs receive repeatable invented personal names from a shared fictional syllable set when no scoped naming kit applies. Provenance explicitly says these are not attested local names, translations or recovered languages. Researched/scoped naming kits still take precedence, and custom names are preserved. This is not new researched Amazonian coverage.

@@ -1,0 +1,275 @@
+{
+  "recordedAt": "2026-09-11T02:37:29.271Z",
+  "base": "http://127.0.0.1:4173",
+  "cadence": {
+    "p50": 16.699999999999932,
+    "p95": 16.700000000000045
+  },
+  "reports": [
+    {
+      "world": "anatolia",
+      "shellMs": 307,
+      "readyMs": 6998,
+      "startupTasks": [
+        {
+          "start": 4948.5,
+          "ms": 80
+        },
+        {
+          "start": 5104.200000047684,
+          "ms": 132
+        },
+        {
+          "start": 5240.900000035763,
+          "ms": 415
+        },
+        {
+          "start": 5691.600000023842,
+          "ms": 130
+        },
+        {
+          "start": 5841.800000011921,
+          "ms": 72
+        },
+        {
+          "start": 5946.800000011921,
+          "ms": 237
+        },
+        {
+          "start": 6268.800000011921,
+          "ms": 263
+        }
+      ],
+      "sample": {
+        "p50": 16.69999999999891,
+        "p95": 16.700000000000728,
+        "max": 16.80000000000109,
+        "commandP95": 1.7000000476837158,
+        "commandMax": 9.5,
+        "statuses": {
+          "completed": 39,
+          "rejected": 1
+        },
+        "start": {
+          "x": -20,
+          "y": -10,
+          "space": "outside"
+        },
+        "end": {
+          "x": -19,
+          "y": -10,
+          "space": "outside"
+        },
+        "manifest": {
+          "seed": "world-00000000-0000-4000-8000-000000000002",
+          "pack": "atlas",
+          "schema": 2,
+          "simulation": 2,
+          "generator": 3,
+          "content": 2,
+          "atlas": 2,
+          "setting": {
+            "version": 2,
+            "characterRevision": 2,
+            "geographyRevision": 1,
+            "urbanRevision": 2,
+            "roadRevision": 1,
+            "vegetationRevision": 5,
+            "geographyMode": "earth",
+            "terrainRevision": 2,
+            "environment": {
+              "ecology": "dry-scrub",
+              "landform": "plain",
+              "population": "settled",
+              "start": "resident",
+              "household": "mixed"
+            },
+            "placeId": "konya",
+            "location": "Konya plain",
+            "lon": 32.83,
+            "lat": 37.67,
+            "year": -6499,
+            "culture": "north-african-west-asian",
+            "climate": "mediterranean",
+            "relief": 0.15,
+            "water": "river-ns",
+            "settlement": "village",
+            "architecture": "mudbrick",
+            "role": "Hunter",
+            "characterName": "Sana",
+            "character": {
+              "appearanceSeed": "world-00000000-0000-4000-8000-000000000002",
+              "hunger": 17,
+              "fatigue": 2
+            },
+            "community": "",
+            "season": "spring"
+          }
+        },
+        "heap": 158663673
+      },
+      "metrics": {
+        "ready": "true",
+        "terrainReady": "true",
+        "terrainPending": "0",
+        "terrainChunkCount": "25",
+        "terrainChunksBuilt": "25",
+        "terrainInstallMaxMs": "37.2",
+        "sceneryDrawMs": "4",
+        "sceneryDrawCount": "1",
+        "lighting": "morning",
+        "buildingAnimations": "0",
+        "characterShadow": "morning",
+        "heldSprite": "",
+        "characterPose": "walk",
+        "flowerCount": "277",
+        "flowerPatches": "6",
+        "terrainLoadMs": "1603",
+        "waterPatches": "0",
+        "waterTiles": "0",
+        "waterFrame": "160",
+        "waterMotifs": "0",
+        "waterUpdateMs": "0.00",
+        "waterUpdateMaxMs": "0.20"
+      },
+      "minimaps": [
+        {
+          "className": "minimap",
+          "builds": "1"
+        }
+      ],
+      "errors": []
+    },
+    {
+      "world": "alexandria",
+      "shellMs": 385,
+      "readyMs": 5807,
+      "startupTasks": [
+        {
+          "start": 2969.600000023842,
+          "ms": 155
+        },
+        {
+          "start": 3214.600000023842,
+          "ms": 58
+        },
+        {
+          "start": 3315.2000000476837,
+          "ms": 70
+        },
+        {
+          "start": 3389.2000000476837,
+          "ms": 623
+        },
+        {
+          "start": 4050.100000023842,
+          "ms": 108
+        },
+        {
+          "start": 4169.400000035763,
+          "ms": 73
+        },
+        {
+          "start": 4302.700000047684,
+          "ms": 261
+        }
+      ],
+      "sample": {
+        "p50": 16.69999999999891,
+        "p95": 16.799999999999272,
+        "max": 16.80000000000109,
+        "commandP95": 2.300000011920929,
+        "commandMax": 11.400000035762787,
+        "statuses": {
+          "completed": 40
+        },
+        "start": {
+          "x": 4,
+          "y": -17,
+          "space": "outside"
+        },
+        "end": {
+          "x": 4,
+          "y": -17,
+          "space": "outside"
+        },
+        "manifest": {
+          "seed": "world-00000000-0000-4000-8000-000000000002",
+          "pack": "atlas",
+          "schema": 2,
+          "simulation": 2,
+          "generator": 3,
+          "content": 2,
+          "atlas": 2,
+          "setting": {
+            "version": 2,
+            "characterRevision": 2,
+            "geographyRevision": 1,
+            "urbanRevision": 2,
+            "roadRevision": 1,
+            "vegetationRevision": 5,
+            "geographyMode": "earth",
+            "terrainRevision": 2,
+            "environment": {
+              "ecology": "dry-scrub",
+              "landform": "plain",
+              "population": "settled",
+              "start": "resident",
+              "household": "mixed"
+            },
+            "placeId": "alexandria",
+            "location": "Alexandria",
+            "lon": 29.92,
+            "lat": 31.2,
+            "year": -197,
+            "culture": "north-african-west-asian",
+            "climate": "mediterranean",
+            "relief": 0.08,
+            "water": "coast-n",
+            "settlement": "port",
+            "architecture": "classical",
+            "role": "Traveler",
+            "characterName": "Arsinoe",
+            "character": {
+              "appearanceSeed": "world-00000000-0000-4000-8000-000000000002",
+              "hunger": 12,
+              "fatigue": 6
+            },
+            "community": "",
+            "season": "spring"
+          }
+        },
+        "heap": 167355088
+      },
+      "metrics": {
+        "ready": "true",
+        "terrainReady": "true",
+        "terrainPending": "0",
+        "terrainChunkCount": "30",
+        "terrainChunksBuilt": "30",
+        "terrainInstallMaxMs": "36.0",
+        "sceneryDrawMs": "24",
+        "sceneryDrawCount": "1",
+        "lighting": "morning",
+        "buildingAnimations": "0",
+        "characterShadow": "morning",
+        "heldSprite": "",
+        "characterPose": "breathe",
+        "waterPatches": "2",
+        "waterTiles": "290",
+        "waterFrame": "149",
+        "waterMotifs": "17",
+        "waterUpdateMs": "0.00",
+        "waterUpdateMaxMs": "0.60",
+        "terrainLoadMs": "2287"
+      },
+      "minimaps": [
+        {
+          "className": "minimap",
+          "builds": "1"
+        }
+      ],
+      "errors": []
+    }
+  ]
+}

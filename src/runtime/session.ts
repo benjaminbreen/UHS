@@ -150,6 +150,9 @@ export function restoreSession(value: unknown) {
  * trimmed, so this trades log growth against how coarsely an actor the engine
  * rather than a routine moves steps across the screen. */
 const IDLE_BLOCK = 60;
+export const JUMP_MS = 260;
+export const LONG_JUMP_MS = 300;
+export const JUMP_CHARGE_MS = 240;
 export const ZOOM_STEPS = [
   0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3, 3.5, 4, 5, 6,
 ];
@@ -229,15 +232,26 @@ export class Runtime {
           pose: "jump",
           at: performance.now(),
           arc: {
-            height:
-              leap.kind === "leap"
+            height: command.jump
+              ? command.jump === "long"
+                ? 30
+                : 18
+              : leap.kind === "leap"
                 ? 15
                 : leap.kind === "drop"
                   ? 8
                   : leap.kind === "climb"
                     ? 6
                     : 11,
-            duration: leap.distance === 2 ? 400 : 340,
+            duration: command.jump
+              ? command.jump === "long"
+                ? LONG_JUMP_MS
+                : JUMP_MS
+              : command.run
+                ? 210
+                : leap.distance === 2
+                  ? 400
+                  : 340,
           },
         };
       return;
@@ -507,7 +521,7 @@ export class Runtime {
       primaryLabel: primary
         ? `${held ? "Strike" : "Pick up"} ${target!.name.toLowerCase()}`
         : held
-          ? "G: put down held object"
+          ? "Space: put down held object"
           : "Move near a portable object",
       secondaryLabel: context
         ? propDefs[context.prop!]?.drink
@@ -516,27 +530,35 @@ export class Runtime {
         : undefined,
     };
   }
-  propAction(key: "Space" | "KeyE" | "KeyG") {
+  propAction(key: "Space" | "KeyE" | "KeyG" | "KeyF") {
     this.stop(false);
     const controls = this.propControls();
     const command =
-      key === "Space"
-        ? controls.primary
-        : key === "KeyE"
-          ? controls.secondary
-          : controls.held
-            ? {
-                type: "interact" as const,
-                target: controls.held.id,
-                action: "drop" as const,
-              }
-            : undefined;
+      key === "Space" && controls.held
+        ? {
+            type: "interact" as const,
+            target: controls.held.id,
+            action: "drop" as const,
+          }
+        : key === "Space" || key === "KeyF"
+          ? key === "KeyF" && !controls.held
+            ? undefined
+            : controls.primary
+          : key === "KeyE"
+            ? controls.secondary
+            : controls.held
+              ? {
+                  type: "interact" as const,
+                  target: controls.held.id,
+                  action: "drop" as const,
+                }
+              : undefined;
     if (command) {
       this.selected = command.target;
       this.command(command);
     } else {
       if (
-        key === "Space" &&
+        key === "KeyF" &&
         controls.held &&
         propDefs[controls.held.prop ?? ""]?.strike &&
         !this.replay
@@ -558,11 +580,19 @@ export class Runtime {
       this.emit();
     }
   }
-  move(dx: number, dy: number, traverse = false) {
+  move(dx: number, dy: number, traverse = false, run = false) {
     this.stop(false);
     return this.command(
-      traverse ? { type: "move", dx, dy, traverse } : { type: "move", dx, dy },
+      traverse
+        ? { type: "move", dx, dy, traverse }
+        : run
+          ? { type: "move", dx, dy, run }
+          : { type: "move", dx, dy },
     );
+  }
+  jump(dx: number, dy: number, power: "short" | "long") {
+    this.stop(false);
+    return this.command({ type: "move", dx, dy, jump: power });
   }
   throwHeld(dx: number, dy: number) {
     this.stop(false);
@@ -570,7 +600,7 @@ export class Runtime {
   }
   /** Jump on the spot. Expression only, like a strike that hits nothing. */
   hop() {
-    if (this.replay) return;
+    if (this.replay || heldObject(this.engine.state)) return;
     this.stop(false);
     this.characterAction = {
       serial: ++this.characterSerial,

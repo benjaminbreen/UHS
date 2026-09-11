@@ -257,6 +257,8 @@ export const commandSchema = z.discriminatedUnion("type", [
       dx: z.number().int().min(-1).max(1),
       dy: z.number().int().min(-1).max(1),
       traverse: z.boolean().optional(),
+      jump: z.enum(["short", "long"]).optional(),
+      run: z.boolean().optional(),
     })
     .strict(),
   z

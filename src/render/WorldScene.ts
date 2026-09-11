@@ -14,14 +14,17 @@ import {
 import { buildingContains, buildingPlacement } from "./buildings";
 import { terrainVariant, type RenderOptions } from "./appearance";
 import Phaser from "phaser";
-import type { Runtime } from "../runtime/session";
+import {
+  JUMP_MS,
+  LONG_JUMP_MS,
+  JUMP_CHARGE_MS,
+  type Runtime,
+} from "../runtime/session";
 import type { Position, WorldModel } from "../core/types";
 import { surfaceAt, hasQuay } from "./materials";
 import { hash, random } from "../core/random";
-import { heldObject } from "../core/props";
 import { windProfile, windSway, type WindProfile } from "./wind";
 /** Poll interval while a jump is in the air, matched to the sprite's arc. */
-const JUMP_MS = 360;
 const DIRECTION_KEYS = [
   "arrowleft",
   "arrowright",
@@ -154,8 +157,9 @@ export class WorldScene extends Phaser.Scene {
   private motionDuration = 140;
   private heldDirections = new Set<string>();
   private shiftHeld = false;
-  /** One throw per press of shift, so holding it does not empty your hands. */
-  private throwArmed = false;
+  private spaceDown = false;
+  private jumpStarted?: number;
+  private queuedJump?: "short" | "long";
   private arcSerial = 0;
   private pendingDirection?: [number, number];
   private destinations = new Map<string, Position>();
@@ -253,18 +257,46 @@ export class WorldScene extends Phaser.Scene {
         this.heldDirections.add(key);
         if (!event.repeat) this.pendingDirection = this.direction();
       }
-      // Shift pressed with nothing else held is a jump on the spot. Shift with
-      // a direction is a traversal or a throw, and the movement poll has those.
-      if (this.syncShift(event) && !steering && !this.direction().some(Boolean))
-        this.runtime.hop();
+      this.shiftHeld = event.shiftKey;
+      if (event.code === "Space" && !(active instanceof HTMLButtonElement)) {
+        event.preventDefault();
+        if (event.repeat || this.spaceDown) return;
+        this.spaceDown = true;
+        const controls = this.runtime.propControls();
+        if (controls.held || controls.primary) this.runtime.propAction("Space");
+        else {
+          this.runtime.stop(false);
+          this.jumpStarted = this.time.now;
+        }
+      }
+      if (
+        event.code === "KeyX" &&
+        !event.repeat &&
+        !(active instanceof HTMLButtonElement)
+      ) {
+        event.preventDefault();
+        const [dx, dy] = this.jumpDirection();
+        this.runtime.throwHeld(dx, dy);
+      }
     });
     this.input.keyboard!.on("keyup", (event: KeyboardEvent) => {
-      this.syncShift(event);
+      this.shiftHeld = event.shiftKey;
       this.heldDirections.delete(event.key.toLowerCase());
+      if (event.code === "Space") {
+        this.spaceDown = false;
+        if (this.jumpStarted !== undefined) {
+          this.queuedJump =
+            this.time.now - this.jumpStarted >= JUMP_CHARGE_MS
+              ? "long"
+              : "short";
+          this.jumpStarted = undefined;
+        }
+      }
     });
     const clearInput = () => {
       this.heldDirections.clear();
-      this.shiftHeld = this.throwArmed = false;
+      this.shiftHeld = this.spaceDown = false;
+      this.jumpStarted = this.queuedJump = undefined;
       this.pendingDirection = undefined;
       this.runtime.stop();
     };
@@ -1111,7 +1143,7 @@ export class WorldScene extends Phaser.Scene {
       if (
         previous?.space === pos.space &&
         (im.x !== tx || im.y !== ty) &&
-        Math.hypot(im.x - tx, im.y - ty) < 65
+        Math.hypot(im.x - tx, im.y - ty) < (arc ? 120 : 65)
       ) {
         this.tweens.killTweensOf(im);
         if (shade) this.tweens.killTweensOf(shade);
@@ -1347,41 +1379,50 @@ export class WorldScene extends Phaser.Scene {
       this.modalOpen;
     if (typing) {
       this.heldDirections.clear();
-      this.shiftHeld = this.throwArmed = false;
+      this.shiftHeld = this.spaceDown = false;
+      this.jumpStarted = this.queuedJump = undefined;
       this.pendingDirection = undefined;
     }
-    if (!this.options.lab && !typing && time >= this.nextInput) {
-      const held = this.direction();
-      const [dx, dy] = held.some(Boolean)
-        ? held
-        : (this.pendingDirection ?? held);
-      this.pendingDirection = undefined;
-      if (dx || dy) {
-        const carrying = !!heldObject(this.runtime.engine.state);
-        if (this.shiftHeld && carrying) {
-          if (this.throwArmed) {
-            this.throwArmed = false;
-            this.nextInput = time + 280;
-            this.lastTick = time;
-            this.runtime.throwHeld(dx, dy);
-          }
-        } else if (this.shiftHeld) {
-          this.motionDuration = JUMP_MS;
-          this.nextInput = time + JUMP_MS;
-          this.lastTick = time;
-          this.runtime.move(dx, dy, true);
-        } else {
-          this.motionDuration = 140 * Math.hypot(dx, dy);
+    if (!this.options.lab && !typing) {
+      if (
+        this.jumpStarted !== undefined &&
+        time - this.jumpStarted >= JUMP_CHARGE_MS
+      ) {
+        this.jumpStarted = undefined;
+        this.queuedJump = "long";
+      }
+      if (time >= this.nextInput && this.queuedJump) {
+        const power = this.queuedJump;
+        this.queuedJump = undefined;
+        const [dx, dy] = this.jumpDirection();
+        this.pendingDirection = undefined;
+        this.motionDuration = power === "long" ? LONG_JUMP_MS : JUMP_MS;
+        this.nextInput = time + this.motionDuration;
+        this.lastTick = time;
+        this.runtime.jump(dx, dy, power);
+      } else if (time >= this.nextInput && this.jumpStarted === undefined) {
+        const held = this.direction();
+        const [dx, dy] = held.some(Boolean)
+          ? held
+          : (this.pendingDirection ?? held);
+        this.pendingDirection = undefined;
+        if (dx || dy) {
+          this.motionDuration =
+            (this.shiftHeld ? 85 : 140) * Math.hypot(dx, dy);
           this.nextInput = time + this.motionDuration;
           this.lastTick = time;
-          this.runtime.move(dx, dy);
+          this.runtime.move(dx, dy, false, this.shiftHeld);
         }
       }
-    }
-    if (!this.options.lab && time - this.lastTick >= 140 && !typing) {
-      this.lastTick = time;
-      this.motionDuration = 140;
-      this.runtime.tick();
+      if (
+        time >= this.nextInput &&
+        time - this.lastTick >= 140 &&
+        this.jumpStarted === undefined
+      ) {
+        this.lastTick = time;
+        this.motionDuration = 140;
+        this.runtime.tick();
+      }
     }
     // Depth and the selection marker follow the displayed position, not the next tile.
     for (const [id, im] of this.entities) {
@@ -1672,12 +1713,18 @@ export class WorldScene extends Phaser.Scene {
     if (pose === "sit") return 0;
     return Math.floor((time + offset) / poseTiming(pose)) % 4;
   }
-  /** Shift is read from every key event, not only its own, so a swallowed
-   * press or a focus change cannot leave the flag stuck. Returns the edge. */
-  private syncShift(event: KeyboardEvent) {
-    if (event.shiftKey === this.shiftHeld) return false;
-    this.shiftHeld = this.throwArmed = event.shiftKey;
-    return event.shiftKey;
+  private jumpDirection(): [number, number] {
+    const direction = this.direction();
+    if (direction.some(Boolean)) return direction;
+    if (this.pendingDirection?.some(Boolean)) return this.pendingDirection;
+    return (
+      [
+        [0, -1],
+        [1, 0],
+        [0, 1],
+        [-1, 0],
+      ] as [number, number][]
+    )[this.runtime.engine.state.player.direction];
   }
   private direction(): [number, number] {
     const has = (arrow: string, letter: string) =>

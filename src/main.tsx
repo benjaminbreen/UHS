@@ -2,6 +2,11 @@ import { createRoot } from "react-dom/client";
 import "./ui/style.css";
 import { PropLabHost } from "./dev/PropLabHost";
 async function start() {
+  if (window.location.pathname === "/geography-lab") {
+    const { GeographyLab } = await import("./dev/GeographyLab");
+    createRoot(document.getElementById("root")!).render(<GeographyLab />);
+    return;
+  }
   if (window.location.pathname === "/nature-lab") {
     const { NatureLab } = await import("./dev/NatureLab");
     createRoot(document.getElementById("root")!).render(<NatureLab />);

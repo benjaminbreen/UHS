@@ -234,11 +234,11 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
         e.altKey
       )
         return;
-      if (e.code === "Space") {
-        e.preventDefault();
-        if (!e.repeat) runtime.propAction("Space");
-      }
-      if ((e.code === "KeyE" || e.code === "KeyG") && !e.repeat) {
+      if (e.code === "Space") e.preventDefault();
+      if (
+        (e.code === "KeyE" || e.code === "KeyG" || e.code === "KeyF") &&
+        !e.repeat
+      ) {
         e.preventDefault();
         runtime.propAction(e.code);
       }
@@ -391,7 +391,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
           <div
             className="game-container"
             ref={mount}
-            aria-label="Playable historical world. Use arrow keys or WASD to walk."
+            aria-label="Playable historical world. WASD or arrows to walk, Shift to run, Space to jump or pick up and drop items. Hold Space for a long jump."
             tabIndex={0}
           />
           <div className="prop-prompts" data-testid="prop-prompts">
@@ -404,14 +404,20 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
             {propControls.held && (
               <span>
                 Holding: {propControls.held!.name}{" "}
+                <span title="Throw in your facing direction">X · Throw</span>{" "}
                 <button onClick={() => runtime.propAction("KeyG")}>
-                  G · Put down
+                  Space · Put down
                 </button>
               </span>
             )}
             {propControls.primary && (
-              <button onClick={() => runtime.propAction("Space")}>
-                Space · {propControls.primaryLabel}
+              <button
+                onClick={() =>
+                  runtime.propAction(propControls.held ? "KeyF" : "Space")
+                }
+              >
+                {propControls.held ? "F" : "Space"} ·{" "}
+                {propControls.primaryLabel}
               </button>
             )}
             {propControls.secondary && (
@@ -589,7 +595,15 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
                 <kbd>D</kbd> walk
               </span>
               <span>
-                <kbd>SPACE</kbd> interact
+                <kbd>SHIFT</kbd> run
+              </span>
+              <span title="Tap to jump; hold for a longer jump. Nearby items take priority. No jumping while carrying.">
+                <kbd>SPACE</kbd>{" "}
+                {propControls.held
+                  ? "drop"
+                  : propControls.primary
+                    ? "pick up"
+                    : "jump (hold: long)"}
               </span>
               <span>
                 <kbd>M</kbd> map
@@ -1306,6 +1320,15 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
                   className="settings-tools"
                 >
                   <p>Inspect artwork and content in the development labs.</p>
+                  <a
+                    className="action"
+                    href="/geography-lab"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Geography &amp; travel{" "}
+                    <small>Inspect routes, landscape stops and map boundaries</small>
+                  </a>
                   <a
                     className="action settings-featured"
                     href="/nature-lab"

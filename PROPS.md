@@ -4,14 +4,15 @@ The visual baseline is checkpoint commit `120f870`. New worlds use **content ver
 
 ## Controls and behavior
 
-- **Space, empty hands:** pick up the nearby portable prop, preferring the facing direction.
-- **Space, holding a stout stick:** strike a nearby breakable container. Clay takes one strike, fiber two, wood three; these are explicit game balancing values, not physical claims.
+- **Space:** drop a held object first; otherwise pick up a nearby portable prop, preferring the facing direction. With no item available, tap for a two-tile jump or hold 240 ms for a three-tile jump that can climb two altitude levels. Jumps use the held movement direction, or the facing direction when stationary. A hold launches once; release before jumping again.
+- **F, holding a stout stick:** strike a nearby breakable container. Clay takes one strike, fiber two, wood three; these are explicit game balancing values, not physical claims.
 - **E:** drink at a water source or look inside a nearby container. A nearby water source takes priority; otherwise, when holding a container, E examines that container.
-- **G / Put down:** put the held object on a clear adjacent tile, outside doorways.
+- **Shift + movement:** run at about 1.6× walking speed. **X:** throw the held item in the movement/facing direction.
+- **G / Put down (alternative to Space):** put the held object on a clear adjacent tile, outside doorways.
 - **Look inside** reveals persistent quantities. **Take contents** transfers all available goods, with ownership consequences where applicable. Picking up does not transfer the contents separately.
 - **Wait** remains a toolbar button and text command. Key repeats, forms, and modal panels suppress gameplay actions.
 
-The MVP has one held object slot. Picking up equips that object; a stick has the strike capability, while a held container can be inspected and put down. Multiple equipment slots, item nesting, arbitrary per-stack transfers, throwing, locks, and animated open lids are not implemented.
+The MVP has one held object slot. Picking up equips that object; a stick has the strike capability, while a held container can be inspected and put down. Multiple equipment slots, item nesting, arbitrary per-stack transfers, locks, and animated open lids are not implemented.
 
 Breaking preserves the original object ID, replaces the sprite with material-specific remains, and exposes the same contents in place. Taking those contents empties the remains; retrying a command never duplicates goods. Empty vessels remain visible. Damage, ownership, open/broken state and carrying survive save/reload. Nearby witnesses react to taking or damaging household property.
 

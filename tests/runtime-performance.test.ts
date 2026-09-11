@@ -62,3 +62,49 @@ it("terminates world preparation when the loading view is cancelled", async () =
   await expect(pending).rejects.toMatchObject({ name: "AbortError" });
   expect(terminate).toHaveBeenCalled();
 });
+
+it("matches full-world visibility after movement, interiors and building changes", () => {
+  const engine = createSession("roman", "visibility-candidates");
+  const check = () => {
+    const observation = engine.observe();
+    expect(observation.actors.map((a) => a.id)).toEqual(
+      engine.state.actors.filter((a) => engine.visible(a.pos)).map((a) => a.id),
+    );
+    expect(observation.objects.map((o) => o.id)).toEqual(
+      engine.state.objects
+        .filter((o) => engine.visible(o.pos))
+        .map((o) => o.id),
+    );
+    expect(observation.places.map((p) => p.id)).toEqual(
+      engine.world.places
+        .filter((p) => engine.visible({ ...p.entrance, space: "outside" }))
+        .map((p) => p.id),
+    );
+  };
+  const places = [...engine.world.places];
+  for (const place of places) {
+    for (const offset of [-19, -1, 0, 1, 19]) {
+      engine.state.player.pos = {
+        x: place.x + offset,
+        y: place.y,
+        space: "outside",
+      };
+      check();
+    }
+    engine.state.player.pos = { x: 2, y: 2, space: place.id };
+    check();
+  }
+  engine.state.player.pos = { ...places[0].entrance, space: "outside" };
+  check();
+  engine.world.places.push({
+    ...places[0],
+    id: "new-visibility-wall",
+    x: engine.state.player.pos.x + 1,
+    y: engine.state.player.pos.y - 10,
+    w: 1,
+    h: 20,
+  });
+  check();
+  engine.world.places.pop();
+  check();
+});
