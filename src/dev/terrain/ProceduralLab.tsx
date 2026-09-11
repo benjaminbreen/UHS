@@ -1,3 +1,4 @@
+import { shorePolishDefaults } from "../../render/living-water/polish";
 import { prepareSettingSession } from "../../runtime/preparation";
 import { useEffect, useRef, useState } from "react";
 import Phaser from "phaser";
@@ -303,8 +304,46 @@ function Preview({
         center.y = nearest.y;
       }
     }
-    runtime.zoom = 0.625;
+    const query = new URLSearchParams(location.search),
+      embedded = query.has("waterContext");
+    const optionsCoast = { ...center };
+    if (embedded && query.get("water")?.startsWith("coast")) {
+      let nearest = Infinity;
+      for (let y = -100; y <= 100; y += 2)
+        for (let x = -100; x <= 100; x += 2) {
+          const c = runtime.engine.world.topography?.(
+              center.x + x,
+              center.y + y,
+            ),
+            d = x * x + y * y;
+          if (
+            c?.waterVisual?.kind === "sea" &&
+            Math.abs(c.waterVisual.distance) < 1 &&
+            d < nearest
+          ) {
+            nearest = d;
+            Object.assign(optionsCoast, { x: center.x + x, y: center.y + y });
+          }
+        }
+      if (nearest < Infinity) Object.assign(center, optionsCoast);
+    }
+    runtime.zoom = embedded ? 2 : 0.625;
     const options: RenderOptions = {
+      shorePolish: embedded
+        ? {
+            ...shorePolishDefaults,
+            coastScallop: Number(query.get("coastScallop") ?? 1.4),
+            coastScale: Number(query.get("coastScale") ?? 18),
+            coastBeachWidth: Number(query.get("coastBeachWidth") ?? 8),
+            beachVariation: Number(query.get("beachVariation") ?? 0.5),
+            offshoreCalm: Number(query.get("offshoreCalm") ?? 0.95),
+            enabled: query.get("polish") !== "false",
+            blend: Number(query.get("blend") ?? 0.7),
+            plants: Number(query.get("plants") ?? 0.85),
+            rocks: Number(query.get("rocks") ?? 0.75),
+            ripples: Number(query.get("ripples") ?? 0.8),
+          }
+        : undefined,
       lab: true,
       overview: true,
       center,
@@ -456,6 +495,21 @@ export function ProceduralLab() {
       const q = new URLSearchParams(
         Object.entries(c).map(([k, v]) => [k, String(v)]),
       );
+      const previous = new URLSearchParams(location.search);
+      for (const key of [
+        "waterContext",
+        "polish",
+        "blend",
+        "plants",
+        "rocks",
+        "ripples",
+        "coastScallop",
+        "coastScale",
+        "coastBeachWidth",
+        "beachVariation",
+        "offshoreCalm",
+      ])
+        if (previous.has(key)) q.set(key, previous.get(key)!);
       history.replaceState(null, "", `/terrain-lab?${q}`);
     } catch (e) {
       if (!controller.signal.aborted) setError(String(e));
@@ -519,6 +573,9 @@ export function ProceduralLab() {
   const e = runtime?.engine;
   return (
     <div className="terrain-lab proc-lab">
+      {new URLSearchParams(location.search).has("waterContext") && (
+        <style>{`.terrain-header,.terrain-controls,.proc-toolbar,.proc-households,.proc-readout,.ground-style-panel{display:none!important}.proc-layout{display:block!important;height:100vh!important}.proc-main{height:100vh!important;display:block!important}.proc-preview{height:100vh!important;width:100vw!important}.proc-lab{height:100vh!important;min-height:0!important;padding:0!important}`}</style>
+      )}
       <header className="terrain-header">
         <div>
           <a href="/">Universal History Simulator</a>
@@ -583,7 +640,12 @@ export function ProceduralLab() {
           )}
           {draft.ecology === "desert" &&
             select("Desert colourway", "colorway", desertColorways)}
-          {select("Vegetation pattern", "vegetation", ["auto", "savanna", "steppe", "alpine"])}
+          {select("Vegetation pattern", "vegetation", [
+            "auto",
+            "savanna",
+            "steppe",
+            "alpine",
+          ])}
           {select("Landform", "landform", landforms)}
           <label>
             Relief {draft.relief.toFixed(2)}
@@ -665,7 +727,9 @@ export function ProceduralLab() {
               Play this world →
             </button>
           </div>
-          <GroundStylePanel />
+          {!new URLSearchParams(location.search).has("waterContext") && (
+            <GroundStylePanel />
+          )}
           {error ? (
             <p role="alert">{error}</p>
           ) : (

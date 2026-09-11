@@ -1,3 +1,5 @@
+import { shorePolishDefaults } from "./living-water/polish";
+import { updateLivingWater } from "./living-water/game";
 import { natureTreeSprites } from "../content/ecology/vegetation";
 import { canopyHidesPlayer } from "./canopy-visibility";
 import { WorldCharacters } from "./characters/world";
@@ -176,6 +178,8 @@ export class WorldScene extends Phaser.Scene {
   ) {
     super("world");
     this.runtime = runtime;
+    this.options.waterRenderer ??= "living";
+    this.options.shorePolish ??= {...shorePolishDefaults};
   }
   preload() {
     this.load.atlas("nature", "/nature/atlas.png", "/nature/atlas.json");
@@ -565,7 +569,12 @@ export class WorldScene extends Phaser.Scene {
     if (w !== this.drawnWorld) {
       this.pendingDirection = undefined;
       c.centerOn(p.x * 16 + 8, p.y * 16 + 8);
-      this.entities.get("player")?.setPosition(p.x * 16 + 8, p.y * 16 + 16 - this.lift(p.x * 16 + 8, p.y * 16 + 16));
+      this.entities
+        .get("player")
+        ?.setPosition(
+          p.x * 16 + 8,
+          p.y * 16 + 16 - this.lift(p.x * 16 + 8, p.y * 16 + 16),
+        );
     }
     if (!this.entities.has("player") && !this.options.overview)
       c.centerOn(p.x * 16 + 8, p.y * 16 + 8);
@@ -627,14 +636,17 @@ export class WorldScene extends Phaser.Scene {
       const margin = w.topography ? SCENERY_CACHE_REACH + 6 : 20;
       const halfX = Math.ceil(this.scale.width / rt.zoom / 32) + margin,
         halfY = Math.ceil(this.scale.height / rt.zoom / 32) + margin;
-      const mapHalf = p.space === "outside" ? w.pack.setting?.playableMap?.size : undefined;
+      const mapHalf =
+        p.space === "outside" ? w.pack.setting?.playableMap?.size : undefined;
       const limit = mapHalf === undefined ? Infinity : mapHalf / 2 + 16;
       const startX = Math.max(bx - halfX, -limit),
         startY = Math.max(by - halfY, -limit);
       const width = Math.max(0, Math.min(bx + halfX + 16, limit) - startX),
         height = Math.max(0, Math.min(by + halfY + 16, limit) - startY);
       if (mapHalf !== undefined) {
-        const g = this.add.graphics().setDepth(1000000), h = mapHalf * 8, extent = 100000;
+        const g = this.add.graphics().setDepth(1000000),
+          h = mapHalf * 8,
+          extent = 100000;
         g.fillStyle(0x101c20);
         g.fillRect(-extent, -extent, extent * 2, extent - h);
         g.fillRect(-extent, h, extent * 2, extent - h);
@@ -642,10 +654,11 @@ export class WorldScene extends Phaser.Scene {
         g.fillRect(h, -h, extent - h, h * 2);
         g.lineStyle(2 / rt.zoom, 0xf0ca82);
         g.strokeRect(-h, -h, h * 2, h * 2);
-        for (const e of rt.journey?.entrances ?? []) if (e.point) {
-          g.fillStyle(e.mode === "land" ? 0xf0ca82 : 0x64c3d4);
-          g.fillCircle(e.point.x * 16 + 8, e.point.y * 16 + 8, 14);
-        }
+        for (const e of rt.journey?.entrances ?? [])
+          if (e.point) {
+            g.fillStyle(e.mode === "land" ? 0xf0ca82 : 0x64c3d4);
+            g.fillCircle(e.point.x * 16 + 8, e.point.y * 16 + 8, 14);
+          }
         this.layers.push(g);
       }
       if (!w.topography || p.space !== "outside") {
@@ -1338,6 +1351,13 @@ export class WorldScene extends Phaser.Scene {
     this.game.canvas.dataset.lighting = this.light.id;
   }
   update(time: number) {
+    updateLivingWater(
+      this,
+      time,
+      this.light.id,
+      this.options.waterAnimation === false ||
+        (!!this.options.freeze && this.options.waterAnimation !== true),
+    );
     this.terrainStream?.update();
     if (!this.options.lab && this.ready) {
       const clock = this.runtime.displayClock();

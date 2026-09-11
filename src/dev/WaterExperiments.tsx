@@ -1,4 +1,5 @@
-import preferredC from "./water-experiments/presets/preferred-c.json";
+import { MapContext } from "./water-experiments/MapContext";
+import preferredC from "../render/living-water/defaults.json";
 import {
   bankClimates,
   bankStyle,
@@ -111,6 +112,9 @@ function readSettings(): Settings {
 export function WaterExperiments() {
   const [settings, setSettings] = useState(readSettings),
     [view, setView] = useState<System | "compare">("depth");
+  const [mapContext, setMapContext] = useState(
+    new URLSearchParams(location.search).has("context"),
+  );
   const [copied, setCopied] = useState(false);
   const clock = useMemo(() => ({ time: 0 }), []),
     latest = useRef(settings);
@@ -132,13 +136,15 @@ export function WaterExperiments() {
       null,
       "",
       "?" +
-        new URLSearchParams(
-          Object.entries(settings).map(([k, v]) => [k, String(v)]),
-        ),
+        new URLSearchParams([
+          ...Object.entries(settings).map(([k, v]) => [k, String(v)]),
+          ...(mapContext ? [["context", "map"]] : []),
+        ]),
     );
-  }, [settings]);
+  }, [settings, mapContext]);
   const change = <K extends keyof Settings>(key: K, value: Settings[K]) =>
     setSettings((s) => ({ ...s, [key]: value }));
+  if (mapContext) return <MapContext onBack={() => setMapContext(false)} />;
   return (
     <main className="water-lab">
       <header>
@@ -153,6 +159,9 @@ export function WaterExperiments() {
         </div>
         <span className="water-badge">DEV PROTOTYPES</span>
       </header>
+      <button onClick={() => setMapContext(true)} style={{ marginBottom: 20 }}>
+        Shoreline in a real map ↗
+      </button>
       <section className="water-controls" aria-label="Water controls">
         <label>
           Water type

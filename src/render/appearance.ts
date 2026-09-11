@@ -7,6 +7,8 @@ export type RenderOptions = {
   freeze?: boolean;
   /** Allow water motion in otherwise stationary art previews. */
   waterAnimation?: boolean;
+  shorePolish?: import("./living-water/polish").ShorePolish;
+  waterRenderer?: "living" | "legacy";
   lighting?: LightingId;
   colorGrade?: boolean;
   shadows?: boolean;

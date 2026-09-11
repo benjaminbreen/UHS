@@ -1,3 +1,19 @@
+## Wider beaches and shoreward ocean surf — September 11, 2026
+
+Doubled ocean beach baseline again to eight tiles. Extended the calm-water fade to 5–13 tiles offshore and the caustic fade to 8–12. Expanded ocean distance encoding beyond the former eight-tile ceiling while preserving nearshore precision. Ocean crests now use a shore-distance phase, rather than northward world-space advection, and are broader/brighter. Offshore colors animate at two scales with much lower contrast and finer stepped transitions; nearby water also uses finer color steps.
+
+## Shipped shoreline polish, scalloped coasts and quiet offshore water — September 11, 2026
+
+Enabled the approved shoreline polish in ordinary WorldScene. Added bounded, world-anchored ocean-coast displacement, independent outer beach width variation, and doubled base ocean beach width to four tiles. The underlying geographical outline stays intact. Both worker ground and the water mask use the shared coast functions. Removed per-tile ocean surface phase directions, replacing them with coherent offshore drift; fine caustics/crests fade into broad calm forms offshore.
+
+The real-map water study exposes/export scallop depth/size, ocean beach width, outer edge variation and offshore calmness. Its coast preset now centers sea shore specifically. Pure tests verify bounded displacement, zero-amplitude behavior, offshore falloff and matching masks across chunks. Existing live-map comparison/export/arctic tests pass. These are visual shoreline refinements; navigation/terrain classifications are unchanged.
+
+## Shoreline polish in real map context — September 11, 2026
+
+Added a second Water experiments section at `/water-experiments?context=map`, embedding the actual procedural terrain renderer at 2× with pan/zoom. Current C and the opt-in polish share the same seed/map. Controls cover climate, season, water feature, bank transition, low plants, stone clusters and edge wavelets; explicit Apply, pause and JSON export are available.
+
+Polish adds coherent stepped earth/grass transitions, organic edge shapes, brighter shore wash, grouped stones/pebbles, authored low-plant patterns and seasonal colors. Tropical water receives plants and fish; arctic study vegetation is prohibited. Existing map rocks now join the study displacement field, though their footprints are still approximate. Study changes are not globally enabled. Browser checks cover the live map, comparison, Apply, pause, arctic exclusion and exported settings; profile/continuity unit tests also pass.
+
 ## Direct bank colors and stepped gradients — September 11, 2026
 
 Added bank-surface, wet-edge and water-contact color pickers, custom-color override toggle, bank tint opacity and wet-edge opacity. Warm golden sand, red stone/clay, gray pebbles and snow/slush are one-click colorways. Clay and pebble variants also recolor rock facets. Removed the random dry-bank speckles. Wet margins now support an optional two-to-eight-color stepped gradient with no dithering; toggling it off restores clean bands. All new values are persisted in URLs and revision-7 JSON exports. The exact user-supplied C preset remains archived and loadable.

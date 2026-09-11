@@ -1,3 +1,5 @@
+import type { LivingMask } from "./living-water/mask";
+import { usesLivingWater, addLivingWater } from "./living-water/game";
 import { own, renderResources } from "./resources";
 import { paintedGround } from "./material-edges";
 import { rasterHabitatTile, type GroundTileData } from "./habitat-raster";
@@ -33,6 +35,7 @@ export function drawTopography(
   bridges?: BridgeSpan[],
   waterTiles?: WaterTileData[],
   groundTiles?: GroundTileData[],
+  livingMask?: LivingMask,
 ) {
   const resources = renderResources();
   // Static ground is composed into small canvas pages, rather than keeping
@@ -316,7 +319,11 @@ export function drawTopography(
         image(x * 16, top, "tuft", depth + 0.3);
     }
   for (const page of pages.values()) page.refresh();
-  const water = addWaterEffects(scene, effects);
+  if (usesLivingWater(scene))
+    addLivingWater(scene, sample, width, height, region, resources, livingMask);
+  const water = usesLivingWater(scene)
+    ? undefined
+    : addWaterEffects(scene, effects);
   if (water) own(resources, water);
   const blooms = addFlowers(scene, flowers);
   if (blooms) own(resources, blooms);

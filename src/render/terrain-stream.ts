@@ -1,3 +1,4 @@
+import { usesLivingWater } from "./living-water/game";
 import { takeTerrainWorker } from "../runtime/terrain-worker-owner";
 import { ensureWaterAtlas } from "./water-motifs";
 import type Phaser from "phaser";
@@ -77,6 +78,8 @@ export class TerrainStream {
     // A retained worker may still hold the previous scene's style.
     this.worker.postMessage({
       style: groundStyle() ?? null,
+      living: usesLivingWater(scene),
+      polish:(scene as Phaser.Scene & {options:import("./appearance").RenderOptions}).options.shorePolish,
     } satisfies TerrainRequest);
     live.add(this);
     this.worker.onerror = (event) => {
@@ -113,9 +116,14 @@ export class TerrainStream {
         cx++
       ) {
         const size = this.world.pack.setting?.playableMap?.size;
-        if (size !== undefined &&
-          (cx * SIZE >= size / 2 + PAD || (cx + 1) * SIZE < -size / 2 - PAD ||
-           cy * SIZE >= size / 2 + PAD || (cy + 1) * SIZE < -size / 2 - PAD)) continue;
+        if (
+          size !== undefined &&
+          (cx * SIZE >= size / 2 + PAD ||
+            (cx + 1) * SIZE < -size / 2 - PAD ||
+            cy * SIZE >= size / 2 + PAD ||
+            (cy + 1) * SIZE < -size / 2 - PAD)
+        )
+          continue;
         const id = `${cx},${cy}`;
         this.wanted.set(id, {
           x: cx * SIZE,
@@ -143,8 +151,16 @@ export class TerrainStream {
     if (!this.completed && (this.pending || !this.queue.length)) return;
     const start = performance.now();
     if (this.completed) {
-      const { id, layers, cells, bridges, waterTiles, groundTiles, rims } =
-        this.completed;
+      const {
+        id,
+        layers,
+        cells,
+        bridges,
+        waterTiles,
+        groundTiles,
+        rims,
+        living,
+      } = this.completed;
       this.completed = undefined;
       this.pending = undefined;
       const [gen, key] = id.split(":");
@@ -161,6 +177,7 @@ export class TerrainStream {
           bridges,
           waterTiles,
           groundTiles,
+          living,
         );
         drawContourLayers(this.scene, layers, region.prefix, resources);
         const { objects, textures } = resources;

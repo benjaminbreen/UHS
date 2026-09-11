@@ -1,3 +1,7 @@
+import { coastDistance, coastBeachWidth } from "./living-water/coast";
+import type { ShorePolish } from "./living-water/polish";
+import { livingBeachWidth } from "./living-water/profile";
+import { rasterLivingWater, type LivingMask } from "./living-water/mask";
 import { setGroundStyle, type GroundStyle } from "./ground-style";
 import { paintedGround } from "./material-edges";
 import { rasterHabitatTile, type GroundTileData } from "./habitat-raster";
@@ -15,7 +19,7 @@ import {
 import type { TopographyCell } from "../core/topography";
 export type TerrainRequest =
   | { pack: Pack; seed: string }
-  | { style: GroundStyle | null }
+  | { style: GroundStyle | null; living?: boolean; polish?: ShorePolish }
   | { id: string; region: TerrainRegion };
 export type TerrainResponse = {
   id: string;
@@ -26,8 +30,11 @@ export type TerrainResponse = {
   groundTiles: GroundTileData[];
   /** Flat [x, y, drop, lowerTier, side] per rim pixel, chunk screen space. */
   rims: Int16Array;
+  living?: LivingMask;
 };
 let world: WorldModel;
+let livingEnabled = false;
+let polish: ShorePolish | undefined;
 export function useTerrainWorld(prepared: WorldModel) {
   world = prepared;
 }
@@ -35,6 +42,8 @@ export function handleTerrainRequest(data: TerrainRequest) {
   try {
     if ("style" in data) {
       setGroundStyle(data.style ?? undefined);
+      if ("polish" in data) polish = data.polish;
+      if (data.living !== undefined) livingEnabled = data.living;
       return;
     }
     if ("pack" in data) {
@@ -70,12 +79,47 @@ export function handleTerrainRequest(data: TerrainRequest) {
     const groundTiles: GroundTileData[] = [];
     const cachedSample = (x: number, y: number) =>
       cells[(y + PAD) * (SIZE + PAD * 2) + x + PAD];
+    const paintCells = new Map<string, TopographyCell>();
+    const paintSample = (x: number, y: number) => {
+      const c = sample(x, y);
+      if (!livingEnabled || !c.waterVisual) return c;
+      const key = `${x},${y}`;
+      let painted = paintCells.get(key);
+      if (!painted) {
+        painted = {
+          ...c,
+          waterVisual: {
+            ...c.waterVisual,
+            distance:
+              c.waterVisual.kind === "sea"
+                ? coastDistance(
+                    c.waterVisual.distance,
+                    x + region.x,
+                    y + region.y,
+                    polish,
+                  )
+                : c.waterVisual.distance,
+            shoreWidth:
+              c.waterVisual.kind === "sea"
+                ? coastBeachWidth(
+                    livingBeachWidth(sample, x, y, region.x, region.y, polish),
+                    x + region.x,
+                    y + region.y,
+                    polish,
+                  )
+                : livingBeachWidth(sample, x, y, region.x, region.y, polish),
+          },
+        };
+        paintCells.set(key, painted);
+      }
+      return painted;
+    };
     for (let y = 0; y < SIZE; y++)
       for (let x = 0; x < SIZE; x++) {
         const cell = cachedSample(x, y);
         if (paintedGround(cell))
           groundTiles.push(
-            rasterHabitatTile(cachedSample, x, y, region.x, region.y),
+            rasterHabitatTile(paintSample, x, y, region.x, region.y),
           );
         if (cell.surface === "water" || cell.bridge)
           waterTiles.push(
@@ -93,6 +137,28 @@ export function handleTerrainRequest(data: TerrainRequest) {
       rimList,
     );
     const rims = Int16Array.from(rimList);
+    const rockPositions: { x: number; y: number }[] = [];
+    if (polish?.enabled)
+      for (let y = -3; y < SIZE + 3; y++)
+        for (let x = -3; x < SIZE + 3; x++) {
+          const c = cachedSample(x, y);
+          if (
+            c?.waterVisual &&
+            c.waterVisual.distance < 2 &&
+            world.decoration(x + region.x, y + region.y)?.sprite === "rock"
+          )
+            rockPositions.push({ x, y });
+        }
+    const living = livingEnabled
+      ? rasterLivingWater(
+          cachedSample,
+          SIZE,
+          SIZE,
+          region,
+          polish,
+          rockPositions,
+        )
+      : undefined;
     self.postMessage(
       {
         id,
@@ -102,10 +168,12 @@ export function handleTerrainRequest(data: TerrainRequest) {
         waterTiles,
         groundTiles,
         rims,
+        living,
       } satisfies TerrainResponse,
       {
         transfer: [
           rims.buffer,
+          ...(living ? [living.pixels.buffer, living.bends.buffer] : []),
           ...layers.map((l) => l.pixels.buffer),
           ...groundTiles.map((t) => t.pixels.buffer),
           ...waterTiles.map((t) => t.pixels.buffer),

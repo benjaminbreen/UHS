@@ -349,7 +349,7 @@ test("preferred C loads exact approved values and climate banks retain a wet edg
     .getByRole("button", { name: "Load preferred C", exact: true })
     .click();
   await expect(page.getByLabel("Beach width", { exact: true })).toHaveValue(
-    "1.7",
+    "1.5",
   );
   await expect(page.getByLabel("Water type")).toHaveValue("river");
   await expect(page.locator("canvas[data-ready=true]")).toHaveCount(1);
