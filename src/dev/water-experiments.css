@@ -1,0 +1,218 @@
+.water-lab {
+  min-height: 100vh;
+  background: #101d22;
+  color: #d4e5df;
+  padding: 32px clamp(18px, 3vw, 56px);
+  font-family: system-ui, sans-serif;
+}
+.water-lab header {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  align-items: center;
+  margin-bottom: 28px;
+}
+.water-lab a {
+  color: #91b5ac;
+  font-size: 13px;
+}
+.water-eyebrow {
+  font-size: 10px;
+  letter-spacing: 3px;
+  color: #72ccb7;
+  margin: 28px 0 8px;
+}
+.water-lab h1 {
+  font-family: Georgia, serif;
+  font-weight: 400;
+  font-size: 44px;
+  margin: 0;
+  color: #ecf3dc;
+}
+.water-lab header p:last-child {
+  color: #92aaa9;
+  font-size: 14px;
+}
+.water-badge {
+  font-size: 10px;
+  letter-spacing: 2px;
+  border: 1px solid #38564f;
+  border-radius: 20px;
+  padding: 10px 14px;
+  color: #8ebeb0;
+}
+.water-controls {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 20px 24px;
+  background: #19292e;
+  padding: 24px;
+  border: 1px solid #304248;
+  border-radius: 10px;
+}
+.water-controls label {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  font-size: 12px;
+  color: #a6bfba;
+}
+.water-lab select {
+  width: 100%;
+  background: #102127;
+  color: #e3e9da;
+  border: 1px solid #39504f;
+  padding: 10px;
+  border-radius: 5px;
+  font-size: 13px;
+}
+.water-controls input[type="range"] {
+  width: 100%;
+  accent-color: #88d6b7;
+  margin-top: 10px;
+}
+.water-checks {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 12px;
+}
+.water-checks label {
+  flex-direction: row;
+  align-items: center;
+}
+.water-checks input {
+  accent-color: #88d6b7;
+}
+.water-toolbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 24px 0;
+  flex-wrap: wrap;
+}
+.water-toolbar > div {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.water-lab button {
+  background: #1b3035;
+  color: #c8dad5;
+  border: 1px solid #3d5557;
+  border-radius: 5px;
+  padding: 9px 12px;
+  cursor: pointer;
+  font-size: 12px;
+}
+.water-lab button:hover {
+  border-color: #99d7bf;
+}
+.water-lab button[aria-pressed="true"] {
+  background: #a1dabb;
+  color: #152f2c;
+  border-color: #a1dabb;
+}
+.water-studies {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+.water-studies article {
+  background: #19292e;
+  border: 1px solid #35484d;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.water-card-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+}
+.water-card-title h2 {
+  font-size: 17px;
+  font-family: Georgia, serif;
+  font-weight: 400;
+  margin: 0;
+  color: #ecf3dc;
+}
+.water-card-title span {
+  font-size: 8px;
+  letter-spacing: 1.5px;
+  color: #93b5a7;
+}
+.water-preview {
+  aspect-ratio: 3/2;
+  width: 100%;
+  background: #15272c;
+}
+.water-preview canvas {
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  image-rendering: pixelated;
+}
+.water-studies article > p {
+  font-size: 12px;
+  line-height: 1.6;
+  color: #9fb6b4;
+  margin: 16px;
+  min-height: 58px;
+}
+.water-enlarge {
+  margin: 0 16px 16px;
+}
+.water-focus {
+  grid-template-columns: minmax(0, 1152px);
+  justify-content: center;
+}
+.water-focus .water-preview {
+  max-height: none;
+}
+.water-lab footer {
+  margin-top: 24px;
+  max-width: 1000px;
+  color: #8ea7a4;
+  font-size: 12px;
+  line-height: 1.7;
+}
+.water-swatches {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 14px;
+}
+.water-swatches span:not(:last-child) {
+  width: 28px;
+  height: 14px;
+  border-radius: 2px;
+}
+.water-swatches span:last-child {
+  margin-left: 8px;
+}
+@media (max-width: 1050px) {
+  .water-controls {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .water-studies {
+    grid-template-columns: 1fr;
+  }
+  .water-lab header {
+    align-items: flex-start;
+  }
+  .water-badge {
+    display: none;
+  }
+  .water-lab h1 {
+    font-size: 34px;
+  }
+}
+@media (max-width: 500px) {
+  .water-controls {
+    grid-template-columns: 1fr;
+  }
+  .water-lab {
+    padding: 18px;
+  }
+}

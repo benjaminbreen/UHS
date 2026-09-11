@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState, lazy, Suspense } from "react";
 import { travelLocations } from "../content/geography/travel";
 import type { PermanentMap, MapExit } from "../world/travel/network";
+const LiveGame = lazy(() => import("../ui/App").then((m) => ({ default: m.App })));
 const Preview = lazy(() => import("./GeographyPreview"));
 export default function PermanentMaps({ year }: { year: number }) {
+  const [playing, setPlaying] = useState<import("../runtime/session").Runtime>();
+  const launchAbort = useRef<AbortController>(undefined);
   const worker = useRef<Worker>(undefined),
     request = useRef(0);
   const [id, setId] = useState("place:london"),
@@ -42,6 +45,29 @@ export default function PermanentMaps({ year }: { year: number }) {
     load(id);
     return () => w.terminate();
   }, [year]);
+  useEffect(() => () => {
+    launchAbort.current?.abort();
+    playing?.dispose();
+    if ((window as any).__uhs === playing) delete (window as any).__uhs;
+  }, [playing]);
+  const play = async () => {
+    setBusy(true); setError("");
+    const abort = new AbortController(); launchAbort.current = abort;
+    try {
+      const { MapTravel, prepareTravelMap } = await import("../runtime/map-travel");
+      const { Runtime } = await import("../runtime/session");
+      const runtime = new Runtime(await prepareTravelMap(id, year, abort.signal));
+      new MapTravel(runtime, id, year);
+      runtime.zoom = 1; runtime.emit();
+      (window as any).__uhs = runtime;
+      setPlaying(runtime);
+    } catch (e) { if (!abort.signal.aborted) setError(String(e)); }
+    finally { setBusy(false); }
+  };
+  if (playing) return <div className="geo-live-game">
+    <button onClick={() => { const current = playing.journey?.id ?? id; setPlaying(undefined); load(current); }}>Back to geography panel</button>
+    <Suspense fallback={<p>Opening game…</p>}><LiveGame runtime={playing} writer={true} /></Suspense>
+  </div>;
   return (
     <section className="geo-permanent">
       <h2>Permanent maps</h2>
@@ -104,6 +130,7 @@ export default function PermanentMaps({ year }: { year: number }) {
           >
             Generate bounded map
           </button>
+          <button disabled={busy || map.water || Math.abs(map.lat) > 85} onClick={play}>Play connected maps</button>
           {preview && (
             <Suspense fallback={<p>Loading terrain…</p>}>
               <Preview stop={map} year={year} bounded exits={exits} />

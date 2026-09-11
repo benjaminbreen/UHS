@@ -1,3 +1,59 @@
+## Direct bank colors and stepped gradients — September 11, 2026
+
+Added bank-surface, wet-edge and water-contact color pickers, custom-color override toggle, bank tint opacity and wet-edge opacity. Warm golden sand, red stone/clay, gray pebbles and snow/slush are one-click colorways. Clay and pebble variants also recolor rock facets. Removed the random dry-bank speckles. Wet margins now support an optional two-to-eight-color stepped gradient with no dithering; toggling it off restores clean bands. All new values are persisted in URLs and revision-7 JSON exports. The exact user-supplied C preset remains archived and loadable.
+
+Validation: seven browser checks passed, including actual JSON download contents, colors/opacity, gradient toggling/reload, approved preset values, climate/material resolution, foam masking, and earlier controls. Final typecheck passed; preceding climate-bank build passed. Reviewed warm-bank gradient capture and captured red-bank rock recoloring. The previously failing climate selector lookup is fixed with explicit accessible labels. Gameplay integration remains deferred per WATER_EXPERIMENTS.md; no commit/deployment.
+
+## Preferred C and climate bank materials — September 11, 2026
+
+Preserved the user's exact revision-5 JSON in `src/dev/water-experiments/presets/preferred-c.json`. New visits default to its settings and C; Load preferred C restores it without requiring a new URL. Added independent bank climate/material controls, clean wet/contact bands, wet-edge width and bank-lapping strength. Inland banks default to mud, desert inland banks to red clay, and arctic studies to snow; sand remains selectable. No rejected dithering was reintroduced. River shoreline wavelets are thicker at minimum and vary along the bank separately from directional flow.
+
+The preceding beach-width/altitude proxy, foam opacity/thickness/breakup, extra C ripples and rock-aware crest masking/phase deflection also passed their five browser checks and production build. New handoff document `WATER_EXPERIMENTS.md` records the user's intended future map-based resolution from local slope, climate/colorway, season, feature size, weather/wind and time. Those gameplay mappings are explicitly deferred; the approved preset's extra ripples remain on while future gameplay should default them off until weather warrants them.
+
+No playable-world changes, commit or deployment. Unrelated shared-checkout work preserved.
+
+## Clean bank outlines and JSON export — September 11, 2026
+
+Removed the rejected shoreline and bank stippling, restoring clean sand boundaries. Replaced Mud–sand blend with bank-boundary color picker/presets, darkness and opacity controls. Old bankBlend URL values are ignored. Original dark-earth color at full opacity is the default; rock contact-ripple correction remains intact.
+
+Save settings JSON downloads a versioned `uhs-water-study` document with all settings, renderer revision, current comparison view/selected renderer, animation time and source URL for implementation handoff. No save-game changes. Validation: all four water browser tests passed, including parsing the actual downloaded JSON and verifying the selected C renderer, custom boundary values and URL restoration. Typecheck passed. Clean pond boundary capture visually reviewed in `artifacts/water-clean-boundary.png`. No commit or deployment.
+
+## Wet sand and rock contact ripples — September 11, 2026
+
+Added a world-pixel-anchored dithered wet-sand strip at the B/C shoreline. The new Mud–sand blend slider feathers the outer muddy bank into beach sand; zero preserves the hard bank edge, and the setting is restored from study URLs. Rock contact ripples now follow each rendered silhouette's bottom pixels, with a one-to-two-pixel wash, instead of an offset ellipse centered below the rock. Reduced the displaced rock shadow.
+
+Validation: three water browser checks passed; the expanded blend-slider persistence check passed separately. Typecheck passed. Enlarged pond capture visually reviewed for wet sand, bank dithering and rock contact alignment. No playable-renderer changes, commit or deployment.
+
+## Water scenery and sculpted banks — September 11, 2026
+
+Extended the B/C water studies with deterministic, spaced rock and plant placement. Rocks have irregular faceted silhouettes, mineral highlights, moss, contact shadows, broken waterline foam and directional river wakes. Freshwater supports reeds/cattails, lily clusters and occasional flowers; coasts force swaying seaweed. Removed the earlier fixed scattered plant/stone overlay. A precomputed obstacle field bends the moving color coordinates around rocks and, more gently, plants. This is a visual flow approximation, not fluid simulation or gameplay collision.
+
+New URL-persisted controls: rock count and size, plant-cluster count and type, bank height, bank vegetation and shoreline roughness. Available space caps actual placement. Banks now have a textured soil face, shaded foot, grassy lip, clustered ground cover, tufts and sparse flowers. Scenery and bank treatment apply to B/C; A retains its production water rendering. The common shoreline roughness control changes the lab fixture only.
+
+Validation: three browser tests passed for surface motion/stillness, pause, habitats, mobile, control persistence, zero-count removal, coastal plant selection and nonzero rock/plant flow effects. Typecheck passed; production build checked. Enlarged river/coast captures reviewed at `artifacts/water-scenery-{river,coast}.png`. Shared map-travel changes preserved. No commit or deployment.
+
+## Moving water color fields — September 11, 2026
+
+Rebuilt both water experiments after visual feedback and the supplied vivid pixel-art reference. Removed the cached static five-band water base. B now advects a periodic multiscale color-cluster field through a saturated nine-color ramp; irregular horizontal pixel forms move across depth transitions and deep water. C recomputes refracted color forms and warped caustic networks every surface frame, with sharper submerged stones and swaying plants. Replaced the large outlined offshore-wave overlay with crests derived from the moving wave field. Production A and playable water remain unchanged.
+
+Validation: two browser checks passed, including an isolated surface test with no fish, foam or glitter overlays. Between t=1 and t=2, 43% of B and 68% of C deep-water pixels changed visibly; Still produced no changed surface pixels. Tropical and polar palettes differ throughout the sampled water. Pause, habitat controls, reload and mobile checks still pass. Visually reviewed updated comparison and pond captures. The new full surface is more expensive than the previous static base: a short local sample measured maximum surface generation of 7.4 ms B and 14.3 ms C, not a production-scale guarantee. Full-world integration is still deferred. No commit or deployment.
+
+## Water experiments — September 11, 2026
+
+Added `/water-experiments`, linked from Settings → Developer. A runs the existing water raster, motif atlas and shoreline effects on a shared habitat-aware synthetic fixture. B (Pixel tides) uses vivid stepped shelves and quantized drifting ripple patterns; C (Living depths) uses traveling crests, depth-dependent sand transparency, caustics and submerged fish. Both prototypes have lapping shoreline wash, coastal storm droplets, pond splash rings and reflection glitters driven by the existing lighting presets. River, pond, lake and coast fixtures, four climate colorways, intensity, flow, time, clarity, fish/glitter toggles, pause, speed, reset, enlarged inspection and shareable control URLs are available.
+
+These are isolated rendering studies, not a change to the playable renderer. Baseline A retains its original climate mapping and animation timing; new intensity, speed, fish/transparency and glitters apply only to supporting prototypes. Transparency is a composited bed/fish demonstration; fish are visual rather than simulation entities. Coastal waves approach the north shore; river directions are explicit art-test overrides. Full-world integration, terrain/chunk interaction and production-scale performance await selection of a direction.
+
+Validation: browser checks passed for three distinct canvases, animation, stable pause, habitat changes, URL restoration and mobile overflow, with no page errors. Production build passed; final refinements typechecked. Visually reviewed comparison and storm captures in `artifacts/water-experiments-{comparison,storm,pond}.png`. A short local three-panel storm run measured p95 browser frame interval 20.2 ms, B redraw 1.3 ms and C redraw 5.1 ms (A effects-only 0.3 ms is not a like-for-like full raster cost). Unrelated map-travel work preserved; no commit or deployment.
+
+## Live map crossings and preparation — September 10, 2026
+
+The Permanent maps panel now launches the actual game through Play connected maps. Walking outward through a reachable land entrance switches to the permanently connected map and its paired entrance. The traveler, health, carried objects and clock continue; changed actors and objects remain on return within the session. Arrival protection prevents an immediate bounce back. Failed destination preparation leaves the current map intact. Sea exits report the boat requirement.
+
+Nearby land entrances prepare one destination in advance; crossing reuses that preparation. Superseded work is cancelled. Inactive maps retain simulation snapshots rather than engines or renderers; terrain workers and render streams are released on replacement or disposal. Terrain streaming and scenery requests respect the bounded footprint with a rendering apron. Loading pauses the ambient clock. Small remains the default, medium is restricted to dated cities, and large remains unused.
+
+Validation: nine focused permanent-map/travel checks passed, including return-state, inventory, failed arrival, entrance guards, prefetch reuse and cancellation. The live browser check crossed London → Oxford → London, preserving the character, health and a changed object, then waited for terrain readiness. Production build passed. This is available through the geography panel; ordinary unbounded game starts remain unchanged. Persistent multi-map saves and sailing are deferred. The preceding entire worktree, including the other agent's contour material fix, was committed and pushed as fdcc35e before this work.
+
 ## Contour material alignment — September 10, 2026
 
 The styled terrain pass now sources displaced surface pixels and bank trim from the appropriate height tier, with a nearest-tier fallback for tall drops. A sparse three-native-pixel material fringe softens natural transitions; exposed faces retain their crisp geometry. Shoreline underpainting no longer spills lower beach sand onto raised grass without a same-tier shore neighbor. Chunk-edge donor textures are cached on demand. Terrain heights, collision and generation are unchanged; the unstyled shoreline path is preserved.

@@ -160,6 +160,7 @@ const ZOOM_MIN = ZOOM_STEPS[0];
 const ZOOM_MAX = ZOOM_STEPS[ZOOM_STEPS.length - 1];
 export class Runtime {
   engine: Engine;
+  journey?: import("./map-travel").MapTravel;
   selected?: string;
   notice = "";
   running = false;
@@ -330,6 +331,7 @@ export class Runtime {
     };
   }
   dispose() {
+    this.journey?.dispose();
     releaseTerrainWorker(this.engine.world);
     this.stop(false);
     this.chunks.dispose();
@@ -354,6 +356,7 @@ export class Runtime {
         this.engine.state.manifest.setting,
         this.engine.state.manifest.generator,
       );
+    this.journey?.observe();
     this.cached = this.view(refresh);
     for (const listener of this.subscribers) listener();
   }
@@ -374,7 +377,8 @@ export class Runtime {
       ZOOM_STEPS[Math.min(ZOOM_STEPS.length - 1, Math.max(0, i + steps))],
     );
   }
-  replace(engine: Engine) {
+  replace(engine: Engine, preserveJourney = false) {
+    if (!preserveJourney) this.journey?.dispose();
     releaseTerrainWorker(this.engine.world);
     this.replay = undefined;
     this.stop();
@@ -394,6 +398,7 @@ export class Runtime {
   /** What the renderer draws: the world clock plus the time that has passed
    * since the last command. Monotonic, and never behind the simulation. */
   displayClock() {
+    if (this.journey?.busy) return this.engine.state.clock;
     // A short grace period means the gaps between walking steps contribute
     // nothing; only actually standing still lets the clock run on.
     const idle = (performance.now() - this.ambientAt) / 1000 - 0.25;
@@ -402,6 +407,9 @@ export class Runtime {
       this.ambientBase + (idle > 0 ? idle * this.ambientRate : 0),
     );
   }
+  resumeAmbient() {
+    this.syncAmbient();
+  }
   private syncAmbient() {
     this.ambientBase = this.engine.state.clock;
     this.ambientAt = performance.now();
@@ -409,6 +417,7 @@ export class Runtime {
   /** Hands the drawn time back to the simulation, so positions the player can
    * click on agree with the ones on screen. */
   flushAmbient() {
+    if (this.journey?.busy) return;
     const seconds = Math.floor(this.displayClock() - this.engine.state.clock);
     if (seconds >= 1)
       this.dispatch({ type: "pass", seconds: Math.min(3600, seconds) });
@@ -452,6 +461,11 @@ export class Runtime {
     return result;
   }
   private dispatch(command: PlayerCommand) {
+    if (this.journey?.intercept(command)) {
+      this.emit(false);
+      return { actionId: "travel-" + ++this.serial, revision: this.engine.state.revision,
+        status: "interrupted" as const, elapsedSeconds: 0, events: [], reason: this.notice };
+    }
     const previousProp = heldObject(this.engine.state)?.sprite;
     const result = this.engine.act({
       actionId: `ui-${this.engine.state.revision}-${++this.serial}`,
@@ -468,6 +482,12 @@ export class Runtime {
     if (this.replay)
       throw Error("Continue from this replay point before acting.");
     const command = commandSchema.parse(request.command);
+    if (request.expectedRevision === this.engine.state.revision && this.journey?.intercept(command)) {
+      this.emit(false);
+      return { actionId: request.actionId, revision: this.engine.state.revision,
+        status: "interrupted" as const, elapsedSeconds: 0, events: [], reason: this.notice,
+        observation: structuredClone(this.observation!) };
+    }
     const previousProp = heldObject(this.engine.state)?.sprite;
     const result = this.engine.act({ ...request, command });
     this.animateCommand(command, result.status !== "rejected", previousProp);

@@ -51,7 +51,7 @@ export class TerrainStream {
   private asked = { x: 0, y: 0 };
   constructor(
     private scene: Phaser.Scene,
-    world: WorldModel,
+    private world: WorldModel,
     seed: string,
   ) {
     ensureWaterAtlas(scene);
@@ -112,6 +112,10 @@ export class TerrainStream {
         cx <= Math.floor((x + halfX) / SIZE) + 1;
         cx++
       ) {
+        const size = this.world.pack.setting?.playableMap?.size;
+        if (size !== undefined &&
+          (cx * SIZE >= size / 2 + PAD || (cx + 1) * SIZE < -size / 2 - PAD ||
+           cy * SIZE >= size / 2 + PAD || (cy + 1) * SIZE < -size / 2 - PAD)) continue;
         const id = `${cx},${cy}`;
         this.wanted.set(id, {
           x: cx * SIZE,

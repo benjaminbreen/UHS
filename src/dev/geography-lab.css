@@ -480,3 +480,8 @@
 .geo-permanent select { display: block; width: min(100%, 420px); padding: 12px; margin: 8px 0 20px; background: #10252c; color: #eee4ce; border: 1px solid #587077; border-radius: 6px; font: inherit; }
 .geo-permanent .geo-neighbors { margin: 18px 0; }
 .geo-permanent .geo-preview { margin-top: 22px; }
+
+.geo-live-game { position: fixed; inset: 0; z-index: 50; background: #101c20; overflow: auto; }
+.geo-live-game > button { position: fixed; right: 16px; top: 8px; z-index: 200; }
+.journey-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 8px 18px; background: #182e35; color: #eee4ce; }
+.journey-bar button { padding: 6px 10px; }
