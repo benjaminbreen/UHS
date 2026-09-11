@@ -87,6 +87,11 @@ export type Boundary =
   | "ditch"
   /** An unploughed grass balk between open-field strips. */
   | "baulk"
+  /** Era enclosures, set by the generator where a system has no
+   * documented boundary: boulders at the corners, then post and rail,
+   * then wire. */
+  | "stones"
+  | "wire"
   | "none";
 
 export type Outbuilding =

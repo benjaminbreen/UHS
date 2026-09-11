@@ -1,7 +1,8 @@
 import type { Boundary } from "../content/agriculture/types";
 import type { GroundMotifOverrides } from "./ground-motifs";
-import { turfTick } from "./ground-motifs";
+import { stoneMotifs, turfTick } from "./ground-motifs";
 import { waterHash as hash } from "./water-style";
+
 
 const mod = (n: number, d: number) => ((n % d) + d) % d;
 type Rgb = number[];
@@ -15,6 +16,9 @@ export type Enclosure = {
   /** Parcel edges, same bits. Those not also in `fence` get a thin line. */
   edges: number;
   boundary: Boundary;
+  /** The parcel lines inside the enclosure, when the bold run is an era
+   * enclosure rather than the system's own boundary. */
+  inner?: Boundary;
   wet: boolean;
   /** World pixel origin of the cell. */
   gx: number;
@@ -50,13 +54,16 @@ const trough = { lip: [124, 110, 84], water: [46, 68, 74], deep: [38, 58, 66] };
 const POST_PITCH = 8;
 
 /** How many outer pixels a boundary claims, shadow row included. */
-function width(boundary: Boundary) {
+export function width(boundary: Boundary) {
   switch (boundary) {
     case "hedge":
+    case "stones":
       return 5;
     case "fence":
     case "wall":
       return 4;
+    case "wire":
+      return 3;
     case "bund":
     case "ditch":
     case "baulk":
@@ -103,7 +110,9 @@ export function enclosurePixel(
     (inner & 4 && py === 15) ||
     (inner & 8 && px === 0);
   if (!on) return undefined;
-  switch (e.boundary) {
+  switch (e.inner ?? e.boundary) {
+    case "none":
+      return undefined;
     case "bund":
       return shade(e.soil[3], 14);
     case "ditch":
@@ -114,7 +123,7 @@ export function enclosurePixel(
   }
 }
 
-function bold(
+export function bold(
   e: Enclosure,
   d: number,
   along: number,
@@ -141,6 +150,32 @@ function bold(
     if (d === 0) return wood.railTop;
     if (d === 2) return wood.railLow;
     return shade(ground, -12);
+  }
+  if (b === "wire") {
+    // A post every twelve pixels with one strand between, sagging a
+    // pixel midway.
+    const at = mod(along, 12);
+    if (at < 2) {
+      if (d === 2) return shade(ground, -14);
+      return d === 0 && at === 0 ? wood.postLit : wood.post;
+    }
+    if (corner) return d < 2 ? wood.post : shade(ground, -10);
+    const sag = at > 3 && at < 9 ? 1 : 0;
+    if (d === 1 + sag) return hash(Math.floor(along / 3), 0, 845) > 0.8 ? [128, 122, 112] : [78, 72, 64];
+    return undefined;
+  }
+  if (b === "stones") {
+    // Boulders dragged to the edge, one every so often, always at a corner.
+    const slot = Math.floor(along / 16);
+    const here = corner || hash(slot, Math.floor((wx + wy - along) / 16), 847) > 0.5;
+    if (!here) return undefined;
+    const glyph = stoneMotifs[(slot + (corner ? 1 : 0)) & 3];
+    const col = corner ? Math.min(7, dv) : mod(along, 16) - 4;
+    const row = corner ? Math.min(4, dh) : d;
+    if (col < 0 || col >= glyph[0].length || row >= glyph.length) return undefined;
+    const ink = +glyph[row][col];
+    if (!ink) return undefined;
+    return [stone.faceJoint, stone.face, stone.cap][ink - 1];
   }
   if (b === "hedge") {
     if (d === 4) return shade(ground, -20);

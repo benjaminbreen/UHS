@@ -12,7 +12,19 @@ import {
   type GroundMaterial,
 } from "./ground-style";
 import { rasterStreetTile } from "./street-raster";
-import { rasterFieldTile } from "./field-raster";
+import { rasterFieldTile, tilled } from "./field-raster";
+import { bold, width as fenceWidth } from "./fences";
+import { paintFences } from "./fence-pass";
+import {
+  BANK,
+  bankPixel,
+  fenceStands,
+  fieldsNear,
+  headlandDepths,
+  nearestField,
+  troddenPixel,
+  weedPixel,
+} from "./headland";
 import { transitionPixel, fringePixel, groundClumps } from "./terrain-tiles";
 import {
   paintedGround,
@@ -21,7 +33,11 @@ import {
   shoreWidth,
   shorePixel,
 } from "./material-edges";
-import type { Ecology } from "../content/ecology/profiles";
+import {
+  paletteKey,
+  type Ecology,
+  type PaletteKey,
+} from "../content/ecology/profiles";
 import type { TopographyCell, TopographySample } from "../core/topography";
 import { defaultGrassArt, type GrassArt } from "../content/graphics/grass-art";
 import { waterHash as hash, waterNoise as noise } from "./water-style";
@@ -35,7 +51,7 @@ export type GroundTileData = {
 // Trodden earth: contact shadow, shoulder, body, worn center. Kept close in
 // value to that ecology's turf and always less saturated than it, so a road
 // reads as bare ground rather than as a line drawn over the ground.
-const soilRamps: Record<Ecology, string[]> = {
+const soilRamps: Record<PaletteKey, string[]> = {
   grassland: ["#8f6c46", "#ab8759", "#bf9b6c", "#cca97a", "#9d8f72"],
   tundra: ["#7d7359", "#958b71", "#a99f85", "#b8af95", "#87857a"],
   "boreal-woodland": ["#75694c", "#8e8063", "#a4957a", "#b4a68b", "#7f8071"],
@@ -44,6 +60,8 @@ const soilRamps: Record<Ecology, string[]> = {
   wetland: ["#6b6449", "#847c5e", "#998f72", "#a89e81", "#7a7b6c"],
   "dry-scrub": ["#977f52", "#b09769", "#c4ac80", "#d3bc92", "#9a927c"],
   desert: ["#b39868", "#c9b083", "#dac298", "#e7d3ab", "#b3a68c"],
+  "desert:sahara": ["#c3984f", "#d6ae66", "#e6c37e", "#efd396", "#c9b07e"],
+  "desert:red-earth": ["#9c5f3a", "#b4764c", "#c98c60", "#d6a072", "#a88b74"],
 };
 const decode = (s: string) => [
   parseInt(s.slice(1, 3), 16),
@@ -52,7 +70,24 @@ const decode = (s: string) => [
 ];
 export const soils = Object.fromEntries(
   Object.entries(soilRamps).map(([k, v]) => [k, v.map(decode)]),
-) as Record<Ecology, number[][]>;
+) as Record<PaletteKey, number[][]>;
+// Cut bank faces: undercut, strata, body, sunlit shoulder, embedded stone.
+// Wider in value than the road ramp, which is kept close to turf on purpose.
+const bankRamps: Record<PaletteKey, string[]> = {
+  grassland: ["#5e4030", "#7a5238", "#9a6b47", "#b8865a", "#8d8a7c"],
+  tundra: ["#4f4a3e", "#6a6353", "#86806c", "#a19a84", "#9d9c94"],
+  "boreal-woodland": ["#4a3c2c", "#665239", "#856b4c", "#a08761", "#8a877c"],
+  "temperate-woodland": ["#55392a", "#75503a", "#956a48", "#b3875c", "#8f8a7e"],
+  "tropical-woodland": ["#5a3421", "#7c4a2f", "#9e6640", "#bd8656", "#8a7d6d"],
+  wetland: ["#463d2b", "#605540", "#7c705a", "#978a70", "#7f8073"],
+  "dry-scrub": ["#6f5233", "#8f6d45", "#b08c5e", "#cba878", "#a09a86"],
+  desert: ["#8a6a3e", "#ab895a", "#cdac78", "#e2c894", "#b7ad94"],
+  "desert:sahara": ["#a8722f", "#c48f45", "#dcae62", "#ecc47e", "#c7b08a"],
+  "desert:red-earth": ["#6e3a24", "#8f4d2f", "#b5683f", "#cf8a5c", "#d9c3a3"],
+};
+export const banks = Object.fromEntries(
+  Object.entries(bankRamps).map(([k, v]) => [k, v.map(decode)]),
+) as Record<PaletteKey, number[][]>;
 export function naturalGround(c: TopographyCell) {
   return (
     !!c.habitat &&
@@ -94,7 +129,8 @@ export function rasterHabitatTile(
   if (cell.feature === "paving") return rasterStreetTile(sample, x, y, ox, oy);
   if (cell.field) return rasterFieldTile(sample, x, y, ox, oy, art);
   const h = cell.habitat!;
-  const palette = art.palettes[h.ecology];
+  const key = paletteKey(h.ecology, h.colorway);
+  const palette = art.palettes[key];
   const pixels = new Uint8ClampedArray(16 * 16 * 4);
   const gx = (x + ox) * 16,
     gy = (y + oy) * 16;
@@ -242,7 +278,7 @@ export function rasterHabitatTile(
           : b === 5
             ? grassy
               ? palette[3]
-              : soils[h.ecology][2]
+              : soils[key][2]
             : palette[b];
       let rgb = tone(band);
       // Interlocking clusters only within four native pixels of a real seam.
@@ -375,7 +411,7 @@ export function rasterHabitatTile(
     !!cell.waterVisual &&
     cell.waterVisual.distance < cell.waterVisual.shoreWidth + 1.5;
   if (paintedGround(cell) && (hasPath || nearShore)) {
-    const soil = soils[h.ecology];
+    const soil = soils[key];
     // The apron rows exist only to mark trodden ground for the edge pass.
     for (let py = -1; py <= 16; py++)
       for (let px = -1; px <= 16; px++) {
@@ -775,5 +811,81 @@ export function rasterHabitatTile(
         }
       }
   }
+  // Round a neighbouring field: the trodden buffer, the bank, then the
+  // fence outside it, with weeds along the bank's foot. Post and rail is
+  // a standing sprite with its foot on the fence line, so it is drawn
+  // over whatever ring band its post rises across.
+  if (!frozen && cell.surface !== "water") {
+    const style = { ecology: h.ecology, palette };
+    const facing = (dx: number, dy: number) =>
+      dx < 0 ? 2 : dx > 0 ? 8 : dy < 0 ? 4 : 1;
+    const cx = x + ox,
+      cy = y + oy;
+    const around = fieldsNear(sample, x, y);
+    for (let py = 0; py < 16 && around.length; py++)
+      for (let px = 0; px < 16; px++) {
+        const near = nearestField(around, px, py);
+        if (!near) continue;
+        const wx = gx + px,
+          wy = gy + py;
+        const { buffer, fence } = headlandDepths(wx, wy);
+        const { d, dx, dy, field } = near;
+        const kind = field.enclosure ?? field.boundary;
+        const straight = !dx || !dy;
+        const bit = facing(dx, dy);
+        const stands =
+          kind !== "none" &&
+          straight &&
+          fenceStands(field, bit, cx + dx, cy + dy);
+        const horizontal = !!dy;
+        if (d < buffer) {
+          put(px, py, troddenPixel(wx, wy, d / buffer, style));
+          continue;
+        }
+        if (d < buffer + BANK) {
+          put(px, py, bankPixel(wx, wy, d - buffer, style));
+          continue;
+        }
+        const i = (py * 16 + px) * 4;
+        const ground = [pixels[i], pixels[i + 1], pixels[i + 2]];
+        if (d < buffer + BANK + 5) {
+          const weed = weedPixel(wx, wy, 0.55, style);
+          if (weed) put(px, py, weed);
+        }
+        if (!stands || kind === "fence" || kind === "wire" || d < fence) continue;
+        const w = fenceWidth(kind);
+        const r = Math.floor(d - fence);
+        if (r < 0 || r >= w) continue;
+        const rowFromTop = horizontal && dy > 0 ? w - 1 - r : r;
+        const e = {
+          fence: bit,
+          edges: 0,
+          boundary: kind,
+          wet: !!field.wet,
+          gx,
+          gy,
+          palette,
+          soil: tilled[h.ecology],
+          motifs: art.motifs,
+        };
+        const rgb = bold(
+          e,
+          rowFromTop,
+          horizontal ? wx : wy,
+          false,
+          horizontal ? rowFromTop : 99,
+          horizontal ? 99 : rowFromTop,
+          ground,
+          wx,
+          wy,
+        );
+        if (rgb) put(px, py, rgb);
+      }
+  }
+  if (!frozen)
+    paintFences(sample, x, y, ox, oy, put, (px, py) => {
+      const i = (py * 16 + px) * 4;
+      for (let k = 0; k < 3; k++) pixels[i + k] = Math.max(0, pixels[i + k] - 22);
+    });
   return { x, y, pixels };
 }

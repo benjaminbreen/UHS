@@ -447,6 +447,8 @@ export function createSettlementWorld(
         y + land.origin.y,
         land.sample(x, y),
       );
+      if (setting.environment!.colorway)
+        value.colorway = setting.environment!.colorway;
       trimCache(habitatCache, 65536);
       habitatCache.set(key, value);
     }
@@ -458,7 +460,7 @@ export function createSettlementWorld(
       regional &&
       f.water >= (f.shoreWidth ?? 3) &&
       (regional.landUse(x, y) === "rock" ||
-        (f.elevation >= 28 &&
+        ((f.summit ? f.elevation / f.summit >= 0.6 : f.elevation >= 28) &&
           f.moisture < 0.6 &&
           noise(
             seed,
@@ -776,7 +778,15 @@ export function createSettlementWorld(
                   Math.floor(random(seed, "v3-tree", x, y) * pack.trees.length)
                 ]
               : n <
-                  (environment ? 0.002 + habitat(x, y).exposed * 0.017 : 0.006)
+                  (environment
+                    ? (0.002 + habitat(x, y).exposed * 0.017) *
+                      // Scree: what falls off a bank collects at its foot.
+                      ([1, 2].some(
+                        (d) => land.sample(x, y - d).elevation > f.elevation,
+                      )
+                        ? 3
+                        : 1)
+                    : 0.006)
                 ? "rock"
                 : n <
                     (environment

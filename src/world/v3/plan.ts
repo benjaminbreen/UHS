@@ -353,14 +353,24 @@ export function planSettlement(
     if (!first && !label.startsWith("field-")) plan.diagnostics.routeFailures++;
     return first;
   };
-  const dry = (rect: Rect, occupied = true) => {
+  /** Dry, unreserved ground. Level is required only inside `core` (the whole
+   * rect by default): a yard or pen margin may step down onto the next
+   * terrace, but the footprint itself may not. */
+  const dry = (rect: Rect, occupied = true, core: Rect = rect) => {
     let lo = Infinity,
       hi = -Infinity,
       valid = true;
     eachCell(rect, (x, y) => {
       const f = sample(x, y);
-      lo = Math.min(lo, f.elevation);
-      hi = Math.max(hi, f.elevation);
+      if (
+        x >= core.x &&
+        x < core.x + core.w &&
+        y >= core.y &&
+        y < core.y + core.h
+      ) {
+        lo = Math.min(lo, f.elevation);
+        hi = Math.max(hi, f.elevation);
+      }
       if (
         f.water < 4 ||
         (site.accepts && !site.accepts(x, y)) ||
@@ -1355,7 +1365,7 @@ export function planSettlement(
     // A composed lot was fitted against streets, walls and other lots when
     // it was laid out; the block painter has since reserved its ground, so
     // only wetness and slope are checked again here.
-    if (!dry(yard, !lot.rect)) {
+    if (!dry(yard, !lot.rect, rect)) {
       plan.diagnostics.rejectedBuildings++;
       continue;
     }
@@ -1757,7 +1767,13 @@ export function planSettlement(
             w,
             h,
           };
-        if (dry({ x: rect.x - 2, y: rect.y - 2, w: w + 4, h: h + 4 })) {
+        // The footprint and the row its gate opens onto must be level.
+        if (
+          dry({ x: rect.x - 2, y: rect.y - 2, w: w + 4, h: h + 4 }, true, {
+            ...rect,
+            h: h + 1,
+          })
+        ) {
           if (!organic) return rect;
           const f = sample(rect.x + w / 2, rect.y + h / 2);
           const value =
@@ -1995,7 +2011,12 @@ export function planSettlement(
     .slice(-2);
   if (profile.livestock && herdOwners.length)
     for (let i = 0; i < Math.min(2, herdOwners.length); i++) {
-      const pen = landPlot(12, 11, `pen${i}`);
+      // Terraced ground rarely offers a full-size level plot; a smaller pen
+      // beats no herder at all.
+      const pen =
+        landPlot(12, 11, `pen${i}`) ??
+        landPlot(9, 8, `pen${i}`) ??
+        landPlot(7, 6, `pen${i}`);
       if (!pen) continue;
       const gate = { x: pen.x + Math.floor(pen.w / 2), y: pen.y + pen.h - 1 },
         outside = { x: gate.x, y: gate.y + 1 };

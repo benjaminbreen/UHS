@@ -24,6 +24,8 @@ export type TerrainResponse = {
   bridges: BridgeSpan[];
   waterTiles: WaterTileData[];
   groundTiles: GroundTileData[];
+  /** Flat [x, y, drop, lowerTier, side] per rim pixel, chunk screen space. */
+  rims: Int16Array;
 };
 let world: WorldModel;
 export function useTerrainWorld(prepared: WorldModel) {
@@ -80,6 +82,7 @@ export function handleTerrainRequest(data: TerrainRequest) {
             rasterWaterTile(cachedSample, x, y, region.x, region.y),
           );
       }
+    const rimList: number[] = [];
     const layers = rasterTerrainContours(
       sample,
       SIZE,
@@ -87,7 +90,9 @@ export function handleTerrainRequest(data: TerrainRequest) {
       covers,
       region,
       groundTiles,
+      rimList,
     );
+    const rims = Int16Array.from(rimList);
     self.postMessage(
       {
         id,
@@ -96,9 +101,11 @@ export function handleTerrainRequest(data: TerrainRequest) {
         bridges,
         waterTiles,
         groundTiles,
+        rims,
       } satisfies TerrainResponse,
       {
         transfer: [
+          rims.buffer,
           ...layers.map((l) => l.pixels.buffer),
           ...groundTiles.map((t) => t.pixels.buffer),
           ...waterTiles.map((t) => t.pixels.buffer),

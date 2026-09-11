@@ -1,4 +1,5 @@
 import type { WorldSetting } from "./types";
+import { desertColorwayFor } from "../ecology/profiles";
 
 export function environmentFor(
   s: WorldSetting,
@@ -16,6 +17,8 @@ export function environmentFor(
               : s.climate === "tropical" || s.climate === "monsoon"
                 ? "tropical-woodland"
                 : "temperate-woodland",
+    colorway:
+      s.climate === "arid" ? desertColorwayFor(s.lon, s.lat) : undefined,
     landform: s.relief > 0.65 ? "ridge" : s.relief > 0.25 ? "rolling" : "plain",
     population: s.settlement === "camp" ? "sparse" : "settled",
     start: "resident",

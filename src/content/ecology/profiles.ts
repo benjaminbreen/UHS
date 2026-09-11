@@ -10,6 +10,31 @@ export const ecologies = [
   "tundra",
 ] as const;
 export type Ecology = (typeof ecologies)[number];
+/** Desert colourways: the same envelope in a different earth. Highland is
+ * the pale ochre of a dry plateau, sahara warm gold sand, red earth the
+ * iron-stained soil of the American Southwest or the Australian interior. */
+export const desertColorways = ["highland", "sahara", "red-earth"] as const;
+export type DesertColorway = (typeof desertColorways)[number];
+/** Key into the per-ecology colour tables. Only the desert has variants. */
+export type PaletteKey = Ecology | "desert:sahara" | "desert:red-earth";
+export function paletteKey(
+  ecology: Ecology,
+  colorway?: DesertColorway,
+): PaletteKey {
+  return ecology === "desert" && colorway && colorway !== "highland"
+    ? `desert:${colorway}`
+    : ecology;
+}
+/** Default colourway for an arid place, by where on Earth it is. */
+export function desertColorwayFor(lon: number, lat: number): DesertColorway {
+  const sahara =
+    (lat > 10 && lat < 38 && lon > -18 && lon < 62) ||
+    (lat > 20 && lat < 45 && lon > 60 && lon < 95);
+  const redEarth =
+    (lat > 26 && lat < 42 && lon > -125 && lon < -98) ||
+    (lat > -36 && lat < -14 && lon > 112 && lon < 154);
+  return redEarth ? "red-earth" : sahara ? "sahara" : "highland";
+}
 export const landforms = ["plain", "rolling", "ridge", "basin"] as const;
 export const populations = ["none", "sparse", "settled"] as const;
 export const starts = ["resident", "visitor", "wanderer", "shepherd"] as const;

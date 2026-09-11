@@ -11,7 +11,13 @@ import {
   toneBank,
   type GroundStyle,
 } from "./ground-style";
-import { soils } from "./habitat-raster";
+import { banks, soils } from "./habitat-raster";
+import { defaultGrassArt } from "../content/graphics/grass-art";
+import {
+  paletteKey,
+  type DesertColorway,
+  type Ecology,
+} from "../content/ecology/profiles";
 import { TERRAIN_RISE } from "./terrain-projection";
 import style from "./generated/topography-style.json";
 const B = 6;
@@ -43,6 +49,7 @@ export function rasterTerrainContours(
   covers: readonly Cover[] = [],
   region?: TerrainRegion,
   groundTiles?: readonly GroundTileData[],
+  rims?: number[],
 ): ContourLayer[] {
   const R = TERRAIN_RISE;
   const styled = groundStyle();
@@ -55,6 +62,7 @@ export function rasterTerrainContours(
       region,
       styled,
       groundTiles,
+      rims,
     );
   const layers = new Map<string, ContourLayer>(),
     w = width * 16 + B * 2;
@@ -389,6 +397,7 @@ function rasterWallContours(
   region: TerrainRegion | undefined,
   style: GroundStyle,
   groundTiles: readonly GroundTileData[] = [],
+  rims?: number[],
 ): ContourLayer[] {
   const { bank, contour } = style;
   const PX = 16,
@@ -569,6 +578,23 @@ function rasterWallContours(
     const spot = at(row, px, sy, false, tier);
     if (spot) spot.layer.pixels.set(toned[color], spot.i);
   };
+  const paintFlat = (
+    row: number,
+    tier: number,
+    px: number,
+    sy: number,
+    rgb: readonly number[],
+  ) => {
+    const spot = at(row, px, sy, true, tier);
+    if (!spot) return;
+    spot.layer.pixels[spot.i] = rgb[0];
+    spot.layer.pixels[spot.i + 1] = rgb[1];
+    spot.layer.pixels[spot.i + 2] = rgb[2];
+    spot.layer.pixels[spot.i + 3] = 255;
+  };
+  // Face pixels go into both strips: the camera scrolls at sub-pixel
+  // offsets, and a seam between two images would otherwise show the scene
+  // background along every lip.
   const paintRgb = (
     row: number,
     tier: number,
@@ -576,6 +602,7 @@ function rasterWallContours(
     sy: number,
     rgb: readonly number[],
   ) => {
+    paintFlat(row, tier, px, sy, rgb);
     const spot = at(row, px, sy, false, tier);
     if (!spot) return;
     spot.layer.pixels[spot.i] = rgb[0];
@@ -596,27 +623,69 @@ function rasterWallContours(
     layer.pixels[i + 2] *= 1 - amount;
   };
 
-  // Bank earth is the ecology's own soil, so temperate loam, desert sand and
-  // tundra grey never share one brown. Cached per ecology: the tone adjustment
-  // is the same for every pixel of a face.
-  const earthRamps = new Map<string, [number, number, number][]>();
-  const earthFor = (ecology: string | undefined, snow: boolean) => {
-    const key = `${ecology ?? "grassland"}:${snow}`;
-    let ramp = earthRamps.get(key);
-    if (!ramp) {
-      const base = snow
-        ? [
-            [120, 128, 132],
-            [150, 160, 164],
-            [186, 203, 208],
-            [213, 220, 208],
-          ]
-        : (soils[(ecology ?? "grassland") as keyof typeof soils] ??
-          soils.grassland);
-      ramp = [0, 1, 2, 3].map((i) => toneBank(base[i], bank));
-      earthRamps.set(key, ramp);
+  // Bank earth is the ecology's own cut-bank ramp, and the lip, lit edge and
+  // shaded sides come from its turf palette, so a desert never wears a green
+  // lip. Cached per ecology and surface: the tone adjustment is the same for
+  // every pixel of a face.
+  type Trim = {
+    earth: [number, number, number][];
+    lip: readonly number[];
+    edge: readonly number[];
+    sides: readonly number[];
+    crease: readonly number[];
+  };
+  const trims = new Map<string, Trim>();
+  const mix = (a: readonly number[], b: readonly number[], t: number) =>
+    [0, 1, 2].map((k) => Math.round(a[k] + (b[k] - a[k]) * t));
+  const trimFor = (
+    ecology: string | undefined,
+    surface: string | undefined,
+    colorway?: DesertColorway,
+  ): Trim => {
+    const eco = paletteKey((ecology ?? "grassland") as Ecology, colorway);
+    const key = `${eco}:${surface}`;
+    let trim = trims.get(key);
+    if (trim) return trim;
+    if (surface === "snow") {
+      const earth = [
+        [120, 128, 132],
+        [150, 160, 164],
+        [186, 203, 208],
+        [213, 220, 208],
+        [168, 172, 170],
+      ].map((c) => toneBank(c, bank));
+      trim = {
+        earth,
+        lip: colors[25],
+        edge: colors[26],
+        sides: colors[24],
+        crease: colors[23],
+      };
+    } else {
+      const earth = (banks[eco] ?? banks.grassland).map((c) =>
+        toneBank(c, bank),
+      );
+      const turf =
+        defaultGrassArt.palettes[eco] ?? defaultGrassArt.palettes.grassland;
+      trim =
+        surface === "sand"
+          ? {
+              earth,
+              lip: earth[3],
+              edge: mix(earth[3], turf[6], 0.3),
+              sides: earth[1],
+              crease: earth[0],
+            }
+          : {
+              earth,
+              lip: turf[1],
+              edge: mix(turf[1], turf[6], 0.2),
+              sides: turf[2],
+              crease: earth[0],
+            };
     }
-    return ramp;
+    trims.set(key, trim);
+    return trim;
   };
 
   // Owned cells are skipped by the ground page, so their surface is copied
@@ -641,6 +710,12 @@ function rasterWallContours(
     spot.layer.pixels.set(pixels.subarray(src, src + 4), spot.i);
   };
 
+  const drop_ = (hi: number, lo: number) => (hi - lo) * R;
+  const sampleAt = (x: number, y: number) =>
+    sample(region ? x : Math.max(0, Math.min(width - 1, x)), y);
+  /** The cell at (x, y) is a ramp whose high end faces `dir`. */
+  const rampInto = (x: number, y: number, dir: "n" | "e" | "s" | "w") =>
+    sampleAt(x, y)?.ramp === dir;
   const lo = region ? -1 : 0,
     hi = region ? height * 16 + 1 : height * 16;
   for (let px = -PX; px < width * 16 + PX; px++)
@@ -651,44 +726,193 @@ function rasterWallContours(
       const dry = cell?.surface === "dry" || cell?.surface === "sand";
       const snow = cell?.surface === "snow";
       const sy = py - L * R;
-      const west = lvl(px - 1, py),
-        east = lvl(px + 1, py),
-        north = lvl(px, py - 1);
+      const cx = Math.floor(px / 16);
+      // A ramp joins its plateau flush: no rim line, strip or face there.
+      const west =
+          lvl(px - 1, py) < L && !rampInto(cx - 1, row, "e")
+            ? lvl(px - 1, py)
+            : L,
+        east =
+          lvl(px + 1, py) < L && !rampInto(cx + 1, row, "w")
+            ? lvl(px + 1, py)
+            : L,
+        north =
+          lvl(px, py - 1) < L && !rampInto(cx, row - 1, "s")
+            ? lvl(px, py - 1)
+            : L;
       const rim = west < L || east < L || north < L;
+      if (cell?.ramp) continue;
       const cap = snow ? 25 : dry ? 9 : 4;
+      const trim = trimFor(
+        cell?.habitat?.ecology,
+        cell?.surface,
+        cell?.habitat?.colorway,
+      );
       if (ownsAt(Math.floor(px / 16), row)) {
         surface(row, L, px, py, sy, cap);
-        // Shade thrown forward by whatever rises immediately behind. A tinted
-        // copy of the bank reads as a smudge; darkening the ground it actually
-        // falls on reads as a shadow.
+        // Contact shade thrown forward by whatever rises immediately behind.
+        // Darkening the ground it falls on reads as a shadow; a tinted copy
+        // of the bank reads as a smudge.
         for (let k = 1; k <= bank.shadow; k++) {
           if (lvl(px, py - k) <= L) continue;
-          shade(row, px, sy, 0.42 * (1 - (k - 1) / Math.max(1, bank.shadow)));
+          shade(row, px, sy, 0.32 * (1 - (k - 1) / Math.max(1, bank.shadow)));
           break;
         }
       }
-      if (rim && L) paint(row, L, px, sy, snow ? 26 : dry ? 10 : 6);
+      // A lit pixel along every rim, with a shaded strip just inside the
+      // west and east ones: the outline that makes a step read as a step.
+      if (rim && L) paintRgb(row, L, px, sy, trim.edge);
       else if (
         contour.sides &&
         (lvl(px - contour.sides, py) < L || lvl(px + contour.sides, py) < L)
       )
-        paint(row, L, px, sy, cap);
-      const below = lvl(px, py + 1);
+        paintRgb(row, L, px, sy, trim.sides);
+      const below = rampInto(cx, row + 1, "n") ? L : lvl(px, py + 1);
+      // Rim feet for the sun-cast shadow drawn on the main thread: screen
+      // point on the lower ground, wall height, lower tier, which way it faces.
+      if (
+        rims &&
+        L &&
+        px >= 0 &&
+        px < width * 16 &&
+        py >= 0 &&
+        py < height * 16
+      ) {
+        if (below < L)
+          rims.push(px, py + 1 - below * R, drop_(L, below), below, 1);
+        if (west < L) rims.push(px - 1, py - west * R, drop_(L, west), west, 2);
+        if (east < L) rims.push(px + 1, py - east * R, drop_(L, east), east, 4);
+      }
       if (below >= L) continue;
       const drop = (L - below) * R;
-      const earth = earthFor(cell?.habitat?.ecology, snow);
       for (let r = 0; r < drop; r++) {
         const pixel = styledBankPixel(bank, r, drop, px + ox, py + oy);
-        if (pixel.kind === "earth")
-          paintRgb(row, L, px, sy + 1 + r, earth[pixel.tone]);
-        else
-          paint(
-            row,
-            L,
-            px,
-            sy + 1 + r,
-            pixel.kind === "crease" ? (snow ? 23 : 14) : cap,
+        const rgb =
+          pixel.kind === "earth"
+            ? trim.earth[pixel.tone]
+            : pixel.kind === "crease"
+              ? trim.crease
+              : pixel.kind === "stone"
+                ? trim.earth[4]
+                : r === 0
+                  ? trim.edge
+                  : trim.lip;
+        paintRgb(row, L, px, sy + 1 + r, rgb);
+      }
+    }
+  // Ramps: a trodden-earth slope lifted continuously from its own tier to
+  // the plateau it climbs, in place of the old atlas slope sprite. Rows and
+  // columns are walked in screen space so a stretched slope has no gaps.
+  const soilFor = (ecology: string | undefined, colorway?: DesertColorway) =>
+    soils[paletteKey((ecology ?? "grassland") as Ecology, colorway)] ??
+    soils.grassland;
+  const noise = (x: number, y: number, salt: number) =>
+    contourNoise(x, y, 1, salt);
+  for (let cy = 0; cy < height; cy++)
+    for (let cx = 0; cx < width; cx++) {
+      const cell = sampleAt(cx, cy);
+      const dir = cell?.ramp;
+      if (!cell || !dir) continue;
+      const t = cell.height;
+      const soil = soilFor(cell.habitat?.ecology, cell.habitat?.colorway);
+      const trim = trimFor(
+        cell.habitat?.ecology,
+        cell.surface,
+        cell.habitat?.colorway,
+      );
+      const southTier = rampInto(cx, cy + 1, dir)
+        ? undefined
+        : tierAt(cx, cy + 1);
+      // Edge-anchored: the high end reaches the plateau's full lift and the
+      // low end sits on the ground, so neither joint leaves a gap.
+      const h = (px: number, py: number) => {
+        const u = px - cx * 16,
+          v = py - cy * 16;
+        return (
+          t +
+          { n: 1 - v / 16, s: (v + 1) / 16, e: (u + 1) / 16, w: 1 - u / 16 }[
+            dir
+          ]
+        );
+      };
+      const along = dir === "n" || dir === "s";
+      for (let px = cx * 16; px < cx * 16 + 16; px++) {
+        const wx = px + ox;
+        // Screen span of this column, then each screen row finds the world
+        // row whose lifted extent covers it.
+        const top = Math.round(cy * 16 - h(px, cy * 16) * R),
+          bottom = Math.round(
+            cy * 16 + 15 - (dir === "n" ? t : h(px, cy * 16 + 15)) * R,
           );
+        const first = Math.min(top, bottom),
+          last = Math.max(top, bottom);
+        for (let sy = first; sy <= last; sy++) {
+          let py = cy * 16;
+          if (along) {
+            const lifted = (y: number) => y - h(px, y) * R;
+            py = cy * 16 + 15;
+            for (let y = cy * 16; y < cy * 16 + 16; y++)
+              if (lifted(y) > sy) {
+                py = Math.max(cy * 16, y - 1);
+                break;
+              }
+          } else py = sy + Math.round(h(px, cy * 16) * R);
+          const wy = py + oy;
+          // Across the ramp: two pixels of cut earth where the side is open,
+          // trodden soil between, with erosion lines across the slope and a
+          // darker foot where it meets the lower ground.
+          const u = along ? px - cx * 16 : py - cy * 16;
+          const openLow = along
+            ? !rampInto(cx - 1, cy, dir)
+            : !rampInto(cx, cy - 1, dir);
+          const openHigh = along
+            ? !rampInto(cx + 1, cy, dir)
+            : !rampInto(cx, cy + 1, dir);
+          const side = openLow && u < 2 ? u : openHigh && u > 13 ? 15 - u : -1;
+          const cut =
+            side < 0 ? undefined : side === 0 ? trim.earth[0] : trim.earth[1];
+          const n = noise(wx, wy, 91);
+          const rise = along ? sy : px;
+          const line =
+            (rise +
+              Math.floor(noise(Math.floor((along ? px : sy) / 6), 0, 93) * 5)) %
+              5 ===
+              0 && noise(wx, wy, 95) < 0.6;
+          const foot = along
+            ? sy >= last - 1
+            : southTier !== undefined && py >= cy * 16 + 14;
+          const rgb =
+            cut ??
+            (foot
+              ? soil[0]
+              : line
+                ? mix(soil[2], soil[1], 0.5)
+                : n < 0.1
+                  ? soil[1]
+                  : n > 0.85
+                    ? soil[3]
+                    : soil[2]);
+          paintFlat(cy, t, px, sy, rgb);
+        }
+        // Across-slope ramps rise along x, so each column shows a wedge of
+        // cut earth down to the ground in front of it.
+        if (southTier === undefined) continue;
+        const foot = cy * 16 + 16 - southTier * R;
+        const drop = foot - (last + 1);
+        for (let r = 0; r < drop; r++) {
+          const pixel = styledBankPixel(bank, r, drop, wx, cy * 16 + 16 + oy);
+          const rgb =
+            pixel.kind === "earth"
+              ? trim.earth[pixel.tone]
+              : pixel.kind === "crease"
+                ? trim.crease
+                : pixel.kind === "stone"
+                  ? trim.earth[4]
+                  : r === 0
+                    ? trim.edge
+                    : trim.lip;
+          paintRgb(cy, t, px, last + 1 + r, rgb);
+        }
       }
     }
   return cropLayers(
@@ -725,7 +949,6 @@ export function drawContourLayers(
   prefix = "contour",
   resources: RenderResources = renderResources(),
 ) {
-  const shadow = groundStyle()?.bank.shadow ?? 4;
   for (const layer of layers) {
     const key = `${prefix}-${layer.row}-${layer.tier}${layer.flat ? "-f" : ""}`;
     resources.textures.push(key);
@@ -739,24 +962,15 @@ export function drawContourLayers(
     data.data.set(layer.pixels);
     context.putImageData(data, 0, 0);
     texture.refresh();
-    if (!layer.flat)
-      own(
-        resources,
-        scene.add
-          .image(layer.x + shadow * 0.5, layer.y + shadow, key)
-          .setOrigin(0)
-          .setTint(0x30452b)
-          .setAlpha(0.25)
-          .setDepth(layer.row * 16 + 0.8),
-      );
     own(
       resources,
       scene.add
         .image(layer.x, layer.y, key)
         .setOrigin(0)
-        .setDepth(
-          layer.row * 16 + (layer.flat ? 1.2 : 1.5) + layer.tier * 0.01,
-        ),
+        // Ground strips sit below any figure whose feet can reach them: a
+        // walker between rows r-1 and r has depth from (r-1)*16+10 upward.
+        // Faces stay above the ground page but below figures on the plateau.
+        .setDepth(layer.row * 16 + (layer.flat ? -7 : 1.5) + layer.tier * 0.01),
     );
   }
 }

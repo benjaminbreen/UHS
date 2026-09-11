@@ -56,9 +56,10 @@ const BANK_FIELDS: {
   { key: "fringe", label: "Overhanging fringe", min: 0, max: 1, step: 0.05 },
   { key: "strata", label: "Strata", min: 0, max: 2, step: 0.05 },
   { key: "lobes", label: "Earth lobes", min: 0, max: 1.5, step: 0.05 },
-  { key: "roots", label: "Roots & stones", min: 0, max: 0.3, step: 0.01 },
+  { key: "roots", label: "Roots", min: 0, max: 0.3, step: 0.01 },
+  { key: "stones", label: "Stones", min: 0, max: 0.15, step: 0.005 },
   { key: "rise", label: "Step height (px)", min: 8, max: 28, step: 1 },
-  { key: "shadow", label: "Cast shadow (px)", min: 0, max: 14, step: 1 },
+  { key: "shadow", label: "Contact shadow (px)", min: 0, max: 14, step: 1 },
   {
     key: "brightness",
     label: "Earth brightness",

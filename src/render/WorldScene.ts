@@ -545,6 +545,11 @@ export class WorldScene extends Phaser.Scene {
         Math.ceil(this.scale.width / rt.zoom / 32),
         Math.ceil(this.scale.height / rt.zoom / 32),
       );
+      this.terrainStream.setSun({
+        id: this.shadowPhase,
+        cast: lightingPreset(this.shadowPhase).cast as [number, number],
+        opacity: lightingPreset(this.shadowPhase).opacity,
+      });
     }
     // Scenery has a small movement allowance; the expensive ground and
     // contour textures are owned independently by TerrainStream.

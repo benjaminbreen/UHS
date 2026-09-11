@@ -1,4 +1,4 @@
-import type { Ecology } from "../../content/ecology/profiles";
+import type { DesertColorway, Ecology } from "../../content/ecology/profiles";
 import type { LandSample } from "../geography/landscape";
 import { noise } from "../geography/noise";
 import { random } from "../../core/random";
@@ -13,6 +13,7 @@ export type HabitatKind =
 export type Habitat = {
   layeredForest?: boolean;
   ecology: Ecology;
+  colorway?: DesertColorway;
   kind: HabitatKind;
   wet: number;
   cover: number;
@@ -38,11 +39,16 @@ export function habitatAt(
   const riparian = clamp(
     1 - Math.max(0, land.water - (land.shoreWidth ?? 3)) / 13,
   );
+  // Altitude as a share of the place's own relief: a floodplain's second
+  // step is not a mountain's. The valley floor gets a little extra lushness.
+  const alt = clamp(land.elevation / (land.summit ?? 126));
+  const lush = land.elevation === 0 ? 0.08 : 0;
   const wet = clamp(
     (hollow - 0.39) * 2.5 +
       (land.moisture - 0.5) * 0.9 +
       riparian * 0.38 -
-      land.elevation / 100,
+      alt * 0.5 +
+      lush,
   );
   const substrateWeight =
     ecology === "wetland" ? 0.68 : ecology === "tropical-woodland" ? 0.82 : 1;
@@ -50,11 +56,16 @@ export function habitatAt(
     substrateWeight *
     clamp(
       (noise(seed, x - warp, y + warp, 29, "habitat-mineral") - 0.45) * 2.8 +
-        land.elevation / 125 -
+        alt * 0.55 -
         wet * 0.55,
     );
   const cover = clamp(
-    (broad - 0.3) * 0.9 + (colony - 0.4) * 1.5 + wet * 0.12 - exposed * 0.3,
+    (broad - 0.3) * 0.9 +
+      (colony - 0.4) * 1.5 +
+      wet * 0.12 -
+      exposed * 0.3 -
+      alt * 0.3 +
+      lush,
   );
   const forest = ecology.includes("woodland");
   const kind: HabitatKind =

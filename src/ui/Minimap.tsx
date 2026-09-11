@@ -98,6 +98,13 @@ function paintBackground(
   regional: boolean,
 ) {
   const c = canvas.getContext("2d")!;
+  // Desert colourways recolour the flat map's sand and bare ground too.
+  const colorway: Record<string, string> =
+    world.pack.setting?.environment?.colorway === "sahara"
+      ? { sand: "#e4c47c", dry: "#c9a55e", dirt: "#c3984f" }
+      : world.pack.setting?.environment?.colorway === "red-earth"
+        ? { sand: "#c98a5c", dry: "#a86d45", dirt: "#9c5f3a" }
+        : {};
   c.save();
   c.translate(PAD, PAD);
   c.imageSmoothingEnabled = false;
@@ -121,7 +128,7 @@ function paintBackground(
         coarse && world.overview
           ? world.overview(wx, wy)
           : surfaceAt(world, wx, wy);
-      let fill = colors[k] ?? colors.grass;
+      let fill = colorway[k] ?? colors[k] ?? colors.grass;
       if (world.topography && extent <= 320) {
         const cell = world.topography(wx, wy);
         if (cell.surface === "water") {

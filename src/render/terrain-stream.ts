@@ -11,12 +11,23 @@ import {
 } from "./terrain-region";
 import type { TerrainRequest, TerrainResponse } from "./terrain-worker";
 import { groundStyle, setGroundStyle, type GroundStyle } from "./ground-style";
+import { rasterBankShadows } from "./bank-shadows";
+import type { TopographyCell } from "../core/topography";
 
 type Chunk = {
   region: TerrainRegion;
   objects: Phaser.GameObjects.GameObject[];
   textures: string[];
+  rims: Int16Array;
+  cells: TopographyCell[];
+  shade: Phaser.GameObjects.Image[];
 };
+export type SunPhase = {
+  id: string;
+  cast: readonly [number, number];
+  opacity: number;
+};
+const NO_SUN: SunPhase = { id: "night", cast: [0, 0], opacity: 0 };
 /** Rasterize off-thread, install one small chunk per frame, retain a bounded
  * ring for backtracking. Neither movement nor lighting re-rasterizes terrain. */
 export class TerrainStream {
@@ -35,6 +46,7 @@ export class TerrainStream {
   private maxInstall = 0;
   private center = { x: 0, y: 0 };
   private reach = { x: 0, y: 0 };
+  private sun: SunPhase = NO_SUN;
   /** The reach WorldScene asked for, before any lab cap. */
   private asked = { x: 0, y: 0 };
   constructor(
@@ -127,7 +139,7 @@ export class TerrainStream {
     if (!this.completed && (this.pending || !this.queue.length)) return;
     const start = performance.now();
     if (this.completed) {
-      const { id, layers, cells, bridges, waterTiles, groundTiles } =
+      const { id, layers, cells, bridges, waterTiles, groundTiles, rims } =
         this.completed;
       this.completed = undefined;
       this.pending = undefined;
@@ -156,11 +168,16 @@ export class TerrainStream {
           // the overlap of lifted tiles at adjacent chunk boundaries.
           o.depth += region.y * 16;
         }
-        this.chunks.set(id2, {
+        const chunk: Chunk = {
           region,
           objects,
           textures,
-        });
+          rims,
+          cells,
+          shade: [],
+        };
+        this.shadeChunk(chunk, id2);
+        this.chunks.set(id2, chunk);
         this.count++;
         this.dirty = true;
       }
@@ -214,8 +231,58 @@ export class TerrainStream {
     }
   }
   private release(chunk: Chunk) {
+    this.unshade(chunk);
     for (const object of chunk.objects) object.destroy();
     for (const key of chunk.textures) this.scene.textures.remove(key);
+  }
+  private unshade(chunk: Chunk) {
+    for (const image of chunk.shade) {
+      const key = image.texture.key;
+      image.destroy();
+      this.scene.textures.remove(key);
+    }
+    chunk.shade = [];
+  }
+  /** Bank shadows follow the sun like every other cast shadow. Only the
+   * small shadow textures are rebuilt; ground and contour pages are kept. */
+  private shadeChunk(chunk: Chunk, id: string) {
+    this.unshade(chunk);
+    const layers = rasterBankShadows(
+      chunk.rims,
+      chunk.cells,
+      this.sun.cast,
+      this.sun.opacity,
+    );
+    if (!layers) return;
+    for (const layer of layers) {
+      const key = `${chunk.region.prefix}-shade-${id}-${this.sun.id}-${layer.row}`;
+      const texture = this.scene.textures.createCanvas(
+        key,
+        layer.width,
+        layer.height,
+      )!;
+      const context = texture.getContext();
+      const data = context.createImageData(layer.width, layer.height);
+      data.data.set(layer.pixels);
+      context.putImageData(data, 0, 0);
+      texture.refresh();
+      // Just above that row's ground strip (-7), below anything walking.
+      chunk.shade.push(
+        this.scene.add
+          .image(
+            chunk.region.x * 16 + layer.x,
+            chunk.region.y * 16 + layer.y,
+            key,
+          )
+          .setOrigin(0)
+          .setDepth((chunk.region.y + layer.row) * 16 - 6.5),
+      );
+    }
+  }
+  setSun(sun: SunPhase) {
+    if (sun.id === this.sun.id) return;
+    this.sun = sun;
+    for (const [id, chunk] of this.chunks) this.shadeChunk(chunk, id);
   }
   /** Drop every rasterised chunk and ask for them again under a new style.
    * Cheaper and far less disruptive than tearing down the whole scene. */

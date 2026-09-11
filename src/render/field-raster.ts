@@ -1,12 +1,24 @@
 import { crops } from "../content/agriculture/crops";
 import type { CropId } from "../content/agriculture/types";
-import type { Ecology } from "../content/ecology/profiles";
+import { paletteKey, type Ecology } from "../content/ecology/profiles";
 import type { TopographyCell, TopographySample } from "../core/topography";
 import { defaultGrassArt, type GrassArt } from "../content/graphics/grass-art";
 import { enclosurePixel } from "./fences";
+import { headlandDepths, innerDistance, troddenPixel } from "./headland";
+import { paintFences } from "./fence-pass";
 import { groundMotif, turfTick } from "./ground-motifs";
 import type { GroundTileData } from "./habitat-raster";
 import { waterHash as hash, waterNoise as noise } from "./water-style";
+import {
+  bladeGlyphs,
+  GLYPH_BASE,
+  GLYPH_H,
+  GLYPH_W,
+  rosetteGlyphs,
+  rosetteRipeGlyphs,
+  sproutGlyphs,
+  type CropGlyph,
+} from "../content/graphics/crop-glyphs";
 
 const mod = (n: number, d: number) => ((n % d) + d) % d;
 type Rgb = number[];
@@ -22,16 +34,16 @@ const shade = (c: Rgb, v: number): Rgb => c.map((n) => n + v);
 // Tilled soil: trough shadow, furrow side, ridge, dry ridge top. Darker and
 // warmer than the trodden earth of a road, since it is turned, not packed.
 const tilledRamps: Record<Ecology, string[]> = {
-  grassland: ["#5e4128", "#7a5636", "#96704a", "#ab865c"],
-  tundra: ["#4f4634", "#6b6047", "#857a5e", "#978c70"],
-  "boreal-woodland": ["#4e3f2b", "#6a583d", "#846f50", "#968264"],
-  "temperate-woodland": ["#57402a", "#74573a", "#8f6f4c", "#a4845e"],
-  "tropical-woodland": ["#5d3c26", "#7c5334", "#996a46", "#ad7d55"],
-  wetland: ["#4c4230", "#665a43", "#7f735a", "#918669"],
-  "dry-scrub": ["#6f5636", "#8f7249", "#ab8c5f", "#bf9f70"],
-  desert: ["#8b7148", "#a98c5f", "#c2a574", "#d3b886"],
+  grassland: ["#5a3418", "#7c4c24", "#9c6535", "#b87e48"],
+  tundra: ["#4f3520", "#6c4b2d", "#89653f", "#a07c52"],
+  "boreal-woodland": ["#503018", "#6e4622", "#8c5d32", "#a57444"],
+  "temperate-woodland": ["#583317", "#794a22", "#9a6333", "#b47b45"],
+  "tropical-woodland": ["#5c3116", "#7e4820", "#a06030", "#ba7842"],
+  wetland: ["#4e331b", "#6c4827", "#896038", "#a1764a"],
+  "dry-scrub": ["#633b1b", "#875a2c", "#a8743e", "#c28c52"],
+  desert: ["#6a4220", "#8e5e30", "#ad7843", "#c69258"],
 };
-const tilled = Object.fromEntries(
+export const tilled = Object.fromEntries(
   Object.entries(tilledRamps).map(([k, v]) => [k, v.map(decode)]),
 ) as Record<Ecology, Rgb[]>;
 
@@ -42,8 +54,8 @@ const paddy = {
   mud: [88, 78, 58],
 };
 const tan = [190, 168, 116];
-/** Furrow pitch in world pixels. */
-const PITCH = 4;
+/** Plants along a ridge, in world pixels. */
+const PLANT_PITCH = 10;
 
 /** Foliage colour of a crop: its ripe hue pulled toward leaf green, then
  * darkened, so every crop's green stage is its own green. */
@@ -90,8 +102,10 @@ export function rasterFieldTile(
   const f = cell.field!;
   const h = cell.habitat;
   const ecology: Ecology = h?.ecology ?? "grassland";
-  const palette = art.palettes[ecology];
+  const key = paletteKey(ecology, h?.colorway);
+  const palette = art.palettes[key];
   const soil = tilled[ecology];
+  const headland = { ecology, palette };
   const crop = cropOf(f.crop);
   const hue = decode(crop.hue);
   const leaf = foliage(hue);
@@ -113,17 +127,78 @@ export function rasterFieldTile(
   const wet = f.wet && !f.ditch;
   const axis = f.ditch ? ditchAxis(sample, x, y) : f.axis;
 
-  // Rows run along the axis at a fixed pitch. The row drifts at most one
-  // pixel over a long wavelength so it stays ruled without being a grid.
+  // Rows run along the axis, phased on world pixels so strips in one
+  // furlong share rows. The pitch is the parcel's own, so neighbouring
+  // fields differ, and a parcel has its own grain: how speckled the soil
+  // is and how lumpy the ridge.
+  const pitch = 10 + Math.floor(hash(f.parcel, 0, 871) * 4);
+  const grain = 0.05 + hash(f.parcel, 1, 871) * 0.09;
+  const lumpy = 0.15 + hash(f.parcel, 2, 871) * 0.25;
   const furrow = (wx: number, wy: number) => {
     const along = axis === "x" ? wx : wy;
     const across = axis === "x" ? wy : wx;
     const band = Math.floor(across / 64);
     const drift = Math.floor(noise(along, band * 64, 96, 813) * 3) - 1;
     const shifted = across + drift;
-    // 0 trough, 1 side, 2 ridge top, 3 shoulder.
-    return { p: mod(shifted, PITCH), along, row: Math.floor(shifted / PITCH) };
+    const p = mod(shifted, pitch);
+    const row = Math.floor(shifted / pitch);
+    // Height across the ridge, 0 in the trough and 1 on the crest, as a
+    // rounded profile rather than flat steps; lumps along the row and a
+    // per-pixel dither break the contour lines up.
+    const round = 0.5 - 0.5 * Math.cos(((p + 0.5) / pitch) * Math.PI * 2);
+    const lump = (noise(along, row * 7, 5, 883) - 0.5) * lumpy;
+    const dither = (hash(wx, wy, 887) - 0.5) * 0.28;
+    const t = Math.min(1, Math.max(0, round + lump + dither));
+    return { t, along, row, dc: p - (pitch >> 1) };
   };
+  // Soil tone for a ridge height: trough shadow to dry crest, with flecks
+  // of lighter crumb on the crest and darker clods in the trough.
+  const soilAt = (t: number, wx: number, wy: number, wash: number) => {
+    const fleck = hash(wx, wy, 889);
+    if (t > 0.6 && fleck < grain) return shade(soil[3], 12 + wash);
+    if (t < 0.35 && fleck < grain * 0.7) return shade(soil[0], -10 + wash);
+    // Troughs are wider than the crest: turned soil falls into the furrow.
+    const i = t < 0.35 ? 0 : t < 0.55 ? 1 : t < 0.8 ? 2 : 3;
+    return shade(soil[i], wash);
+  };
+
+  const low = crop.height === "low";
+  // Which glyph set, if any, stands on the ridges at this stage.
+  const glyphs: CropGlyph[] | undefined =
+    kind === "fallow"
+      ? undefined
+      : stage === "sown"
+        ? sproutGlyphs
+        : stage === "green"
+          ? low
+            ? rosetteGlyphs
+            : bladeGlyphs
+          : stage === "ripe" && low
+            ? rosetteRipeGlyphs
+            : undefined;
+  // Value at a pixel of the glyph on this row, or 0. Plants sit one per
+  // PLANT_PITCH along the row, jittered a pixel, so they read as sown by
+  // hand rather than stamped.
+  const plant = (along: number, row: number, dc: number): number => {
+    if (!glyphs) return 0;
+    const k = Math.floor(along / PLANT_PITCH);
+    const seed = hash(k, row, 857);
+    // Sprouts are sparse; blades under standing sprites thinner than the
+    // rosettes of a low crop, which are all it gets.
+    const keep = stage === "sown" ? 0.3 : glyphs === bladeGlyphs ? 0.55 : 0.94;
+    if (seed > keep) return 0;
+    const g = glyphs[Math.floor(hash(k, row, 859) * glyphs.length)];
+    const j = Math.floor(hash(k, row, 861) * 3) - 1;
+    const da = along - (k * PLANT_PITCH + 4 + j);
+    // Screen-vertical is across the row when rows run east-west.
+    const u = axis === "x" ? da : dc;
+    const v = axis === "x" ? dc : da;
+    const gx = u + (GLYPH_W >> 1);
+    const gy = v + GLYPH_BASE;
+    if (gx < 0 || gx >= GLYPH_W || gy < 0 || gy >= GLYPH_H) return 0;
+    return +g[gy][gx];
+  };
+  const leafRamp: Rgb[] = [shade(leaf, -26), leaf, shade(leaf, 16), hue];
 
   for (let py = 0; py < 16; py++)
     for (let px = 0; px < 16; px++) {
@@ -138,7 +213,9 @@ export function rasterFieldTile(
         const along = axis === "x" ? wx : wy;
         const d = Math.abs(across - 7.5);
         if (d < 4) {
-          const glint = mod(along, 8) < 2 && hash(Math.floor(along / 8), Math.floor(across), 821) > 0.8;
+          const glint =
+            mod(along, 8) < 2 &&
+            hash(Math.floor(along / 8), Math.floor(across), 821) > 0.8;
           rgb = d < 2 ? (glint ? paddy.sky : paddy.deep) : paddy.water;
         } else if (d < 5) rgb = shade(paddy.mud, wash);
         else rgb = shade(soil[2], wash);
@@ -155,69 +232,84 @@ export function rasterFieldTile(
         if (turfTick(wx, wy, art.motifs)) rgb = shade(rgb, grazed ? 4 : 8);
         const ink = groundMotif("turf", wx, wy, art.motifs);
         if (ink && !grazed)
-          rgb = [shade(palette[5], -6), palette[5], mix(palette[0], palette[6], 0.5)][ink - 1];
+          rgb = [
+            shade(palette[5], -6),
+            palette[5],
+            mix(palette[0], palette[6], 0.5),
+          ][ink - 1];
       } else {
-        const { p, along, row } = furrow(wx, wy);
-        const top = p === 2;
-        const trough = p === 0;
-        const side = p === 1;
+        const { t, along, row, dc } = furrow(wx, wy);
+        const trough = t < 0.3;
+        const top = t >= 0.85;
+        const ink = plant(along, row, dc);
         // One value per 3 px of row, so variation is along the row, not
         // pixel noise.
         const rowHash = hash(Math.floor(along / 3), row, 831);
         if (wet) {
           // Uniform still water between the bunds; the crop stands in rows.
           rgb = paddy.water;
-          if (mod(along, 8) < 2 && hash(Math.floor(along / 8), row, 835) > 0.9 && !top)
+          if (
+            mod(along, 8) < 2 &&
+            hash(Math.floor(along / 8), row, 835) > 0.9 &&
+            !top
+          )
             rgb = paddy.sky;
-          if (stage === "bare") {
-            if (top) rgb = shade(paddy.mud, wash);
-          } else if (stage === "sown") {
-            if (top) rgb = rowHash > 0.35 ? mix(leaf, paddy.water, 0.3) : shade(paddy.mud, wash);
+          const ridge = t >= 0.6;
+          if (stage === "bare" || stage === "sown") {
+            if (ridge) rgb = shade(paddy.mud, wash + (top ? 4 : -4));
           } else if (stage === "green") {
-            if (top) rgb = shade(leaf, rowHash > 0.6 ? 10 : 0);
-            else if (side) rgb = shade(leaf, -12);
+            if (ridge) rgb = mix(paddy.mud, leaf, top ? 0.5 : 0.3);
           } else if (stage === "ripe") {
             if (top) rgb = shade(hue, rowHash > 0.6 ? 14 : 4);
-            else if (side) rgb = shade(hue, -18);
-          } else if (top) rgb = shade(tan, -6);
+            else if (ridge) rgb = shade(hue, -18);
+          } else if (ridge) rgb = shade(tan, -6);
+          if (ink) rgb = leafRamp[ink - 1];
         } else {
-          const base = trough ? soil[0] : side ? soil[1] : top ? soil[3] : soil[2];
-          rgb = shade(base, wash);
-          if (stage === "bare") {
-            // Clean tilled soil.
-          } else if (stage === "sown") {
-            if (top && rowHash > 0.4) rgb = mix(rgb, leaf, 0.65);
-          } else if (stage === "green") {
-            if (top) rgb = shade(leaf, rowHash > 0.66 ? 12 : 0);
-            else if (side) rgb = shade(leaf, -14);
-            else if (trough) rgb = shade(soil[0], wash);
-            else rgb = shade(leaf, -22);
-          } else if (stage === "ripe") {
-            if (top) rgb = shade(hue, rowHash > 0.6 ? 16 : 6);
-            else if (side) rgb = shade(hue, -16);
-            else if (trough) rgb = mix(shade(hue, -40), soil[0], 0.5);
-            else rgb = shade(hue, -26);
-          } else {
-            // Stubble: pale straw over the ridges, soil in the troughs, and
-            // short cut stalks every third pixel along the row.
+          rgb = soilAt(t, wx, wy, wash);
+          if (stage === "sown") {
+            // Watered: the whole bed darker, the troughs darkest, in damp
+            // patches rather than an even stain.
+            const damp = 0.3 + noise(wx, wy, 18, 877) * 0.3;
+            rgb = mix(rgb, soil[0], trough ? damp + 0.2 : damp);
+          } else if (stage === "stubble") {
+            // Pale straw over the ridges, soil in the troughs, and short
+            // cut stalks every third pixel along the row.
             const straw = mix(tan, soil[2], 0.3);
             if (trough) rgb = shade(soil[0], wash + 6);
             else rgb = shade(straw, wash + (top ? 8 : -6));
             if (top && mod(along, 3) === 0) rgb = shade(soil[1], -6);
           }
+          if (ink) rgb = leafRamp[ink - 1];
         }
       }
-      if (autumn && !wet && kind !== "pasture") rgb = mix(rgb, palette[1], 0.08);
+      // The soil stops short of the enclosure: a trodden headland with a
+      // dotted lip where the last furrow ends.
+      if (f.fence && !f.ditch) {
+        const { inner: m } = headlandDepths(wx, wy);
+        const inner = innerDistance(f.fence, px, py, m);
+        if (inner <= m) {
+          const s = m - inner;
+          // A dark lip where the last furrow ends, broken here and there.
+          if (s < 1.1)
+            rgb = hash(Math.floor(wx / 5), Math.floor(wy / 5), 923) < 0.15 ? soil[1] : soil[0];
+          else rgb = troddenPixel(wx, wy, 0, headland);
+        }
+      }
+      if (autumn && !wet && kind !== "pasture")
+        rgb = mix(rgb, palette[1], 0.08);
       if (frozen)
-        rgb = wet ? mix(rgb, [196, 208, 210], 0.55) : mix(rgb, [206, 212, 204], 0.6);
+        rgb = wet
+          ? mix(rgb, [196, 208, 210], 0.55)
+          : mix(rgb, [206, 212, 204], 0.6);
       put(px, py, rgb);
     }
 
-  // Enclosure and parcel lines over the outer pixels.
-  if ((f.fence || f.edges) && !f.ditch && f.boundary !== "none") {
+  // Thin parcel lines inside an enclosure. The enclosure itself stands
+  // outside the headland and is drawn by the ground pass round the field.
+  if (f.edges & ~f.fence && !f.ditch && f.boundary !== "none") {
     const enclosure = {
-      fence: f.fence,
-      edges: f.edges,
+      fence: 0,
+      edges: f.edges & ~f.fence,
       boundary: f.boundary,
       wet,
       gx,
@@ -236,6 +328,11 @@ export function rasterFieldTile(
         put(px, py, rgb);
       }
   }
+  if (!frozen)
+    paintFences(sample, x, y, ox, oy, put, (px, py) => {
+      const i = (py * 16 + px) * 4;
+      for (let k = 0; k < 3; k++) pixels[i + k] = Math.max(0, pixels[i + k] - 22);
+    });
   return { x, y, pixels };
 }
 
@@ -245,6 +342,8 @@ export function raisedFieldEdge(c?: TopographyCell) {
   return (
     !!c?.field &&
     !!c.field.fence &&
-    ["hedge", "wall", "fence", "baulk"].includes(c.field.boundary)
+    ["hedge", "wall", "fence", "baulk"].includes(
+      c.field.enclosure ?? c.field.boundary,
+    )
   );
 }

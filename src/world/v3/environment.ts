@@ -282,10 +282,16 @@ export function createEnvironment(
       kind,
       moisture,
       elevation: level * 14,
+      summit: ceiling * 14,
+      // Cold envelopes keep snow on their highest steps all year once the
+      // relief is mountainous, which also marks the summit from a distance.
       snow:
         (local.environment!.ecology === "tundra" && s.season === "winter") ||
         (local.environment!.ecology === "boreal-woodland" &&
-          s.season === "winter"),
+          s.season === "winter") ||
+        (["tundra", "boreal-woodland"].includes(local.environment!.ecology) &&
+          ceiling >= 6 &&
+          level >= ceiling - 1),
     };
   };
   const sample = (x: number, y: number) => {

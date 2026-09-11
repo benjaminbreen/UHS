@@ -1,4 +1,4 @@
-import type { Ecology } from "../ecology/profiles";
+import type { PaletteKey } from "../ecology/profiles";
 
 export const grassPaletteRoles = [
   "base",
@@ -14,7 +14,7 @@ export type GrassPaletteRecipe = Record<GrassPaletteRole, string>;
 export type GrassArtRecipe = {
   version: 1;
   target: "grass";
-  palettes: Record<Ecology, GrassPaletteRecipe>;
+  palettes: Record<PaletteKey, GrassPaletteRecipe>;
   motifs: {
     /** 0 transparent, 1 blade shadow, 2 blade body, 3 blade highlight. */
     turf: string[][];
@@ -23,7 +23,7 @@ export type GrassArtRecipe = {
   };
 };
 export type GrassArt = {
-  palettes: Record<Ecology, number[][]>;
+  palettes: Record<PaletteKey, number[][]>;
   motifs: GrassArtRecipe["motifs"];
 };
 
@@ -114,6 +114,24 @@ export const defaultGrassArtRecipe: GrassArtRecipe = {
       "#85834e",
       "#e1cfa1",
     ),
+    "desert:sahara": palette(
+      "#e4c47c",
+      "#f0d494",
+      "#c9a55e",
+      "#d3a86a",
+      "#b98e50",
+      "#a8813f",
+      "#f5e2a8",
+    ),
+    "desert:red-earth": palette(
+      "#c98a5c",
+      "#dba473",
+      "#a86d45",
+      "#b5805a",
+      "#8e5a3a",
+      "#7d4b30",
+      "#e6b98a",
+    ),
     tundra: palette(
       "#8fa45c",
       "#a9b26f",
@@ -185,7 +203,7 @@ export function resolveGrassArt(recipe: GrassArtRecipe): GrassArt {
         ecology,
         grassPaletteRoles.map((role) => decode(colors[role])),
       ]),
-    ) as Record<Ecology, number[][]>,
+    ) as Record<PaletteKey, number[][]>,
     motifs: recipe.motifs,
   };
 }

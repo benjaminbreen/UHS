@@ -45,6 +45,8 @@ export type TopographyCell = {
     wet: boolean;
     /** Enclosure edges, same bits as `edges`: where the fence or hedge runs. */
     fence: number;
+    /** Era enclosure drawn on the fence edges when `boundary` has none. */
+    enclosure?: import("../content/agriculture/types").Boundary;
     ditch?: boolean;
     stage: import("../content/agriculture/types").CropStage;
   };

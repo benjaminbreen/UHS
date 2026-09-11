@@ -4,6 +4,7 @@ import {
   populations,
   starts,
   householdForms,
+  desertColorways,
 } from "../ecology/profiles";
 import { z } from "zod";
 import { patterns } from "../settlements/profiles";
@@ -97,6 +98,7 @@ export const settingSchema = z
     environment: z
       .object({
         ecology: z.enum(ecologies),
+        colorway: z.enum(desertColorways).optional(),
         landform: z.enum(landforms),
         population: z.enum(populations),
         start: z.enum(starts),

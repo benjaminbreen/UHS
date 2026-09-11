@@ -13,6 +13,9 @@ export type LandSample = {
   shoreWidth?: number;
   waterFlow?: readonly [number, number];
   elevation: number;
+  /** Highest elevation the place can reach, so consumers can judge a cell
+   * by how far up its own relief it sits rather than by raw units. */
+  summit?: number;
   moisture: number;
   water: number;
   kind: "sea" | "river" | "lake";

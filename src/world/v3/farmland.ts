@@ -23,9 +23,22 @@ export type FieldCell = {
    * strips shares one fence, a hedged field is its own. */
   fence: number;
   boundary: Boundary;
+  /** What stands on the fence edges when the system has no documented
+   * boundary of its own: the era's enclosure, drawn in broken runs. */
+  enclosure?: Boundary;
   /** Standing water between bunds. */
   wet: boolean;
 };
+
+/** Enclosure by era where the farm system documents none: boulders before
+ * 3500 BCE, open ground in the early historical world, post and rail from
+ * classical to industrial, wire after 1900. */
+export function eraEnclosure(year: number): Boundary {
+  if (year < -3500) return "stones";
+  if (year < -800) return "none";
+  if (year < 1900) return "fence";
+  return "wire";
+}
 export type Parcel = {
   id: number;
   rect: Rect;
@@ -149,7 +162,9 @@ export function planFarmland(input: {
   const [along, back] = system.module;
   const strips = ["strip", "ribbon", "terrace"].includes(system.geometry);
   const wet = system.geometry === "basin";
-  const boundaryWidth = system.boundary === "none" ? 0 : 1;
+  // Two clear cells between enclosures: a trodden headland, a bank and the
+  // fence on each side, with ground between.
+  const boundaryWidth = 2;
   const irrigated = IRRIGATED.has(system.irrigation);
   const mix = cropsFor(system, setting.climate);
   const pastoral = mix.every((m) => m.id === "pasture" || m.id === "fallow");
@@ -673,6 +688,62 @@ export function planFarmland(input: {
           wells.push(w);
       }
 
+  // --- Terraces ---------------------------------------------------------------
+  // A parcel cut across a step becomes one parcel per terrace: the boundary
+  // then falls on the bank and the furrows restart above it. Slivers on a
+  // third tier are given back to the grass.
+  {
+    const byParcel = new Map<number, Map<number, string[]>>();
+    for (const [k, cell] of fields) {
+      const [x, y] = k.split(",").map(Number);
+      const tiers = byParcel.get(cell.parcel) ?? new Map<number, string[]>();
+      const e = sample(x, y).elevation;
+      tiers.set(e, [...(tiers.get(e) ?? []), k]);
+      byParcel.set(cell.parcel, tiers);
+    }
+    for (const parent of [...parcels]) {
+      const tiers = byParcel.get(parent.id);
+      if (!tiers || tiers.size < 2) continue;
+      const ranked = [...tiers.entries()].sort(
+        (a, b) => b[1].length - a[1].length,
+      );
+      let kept = 0;
+      for (const [i, [, keys]] of ranked.entries()) {
+        if (i === 0) {
+          kept += keys.length;
+          continue;
+        }
+        if (keys.length < 6) {
+          for (const k of keys) fields.delete(k);
+          continue;
+        }
+        const id = nextParcel++;
+        // Its own enclosure, so the headland and fence fall on the step.
+        groupOf.set(id, id + 100000);
+        let x0 = Infinity,
+          y0 = Infinity,
+          x1 = -Infinity,
+          y1 = -Infinity;
+        for (const k of keys) {
+          fields.get(k)!.parcel = id;
+          const [x, y] = k.split(",").map(Number);
+          x0 = Math.min(x0, x);
+          y0 = Math.min(y0, y);
+          x1 = Math.max(x1, x);
+          y1 = Math.max(y1, y);
+        }
+        parcels.push({
+          id,
+          rect: { x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1 },
+          crop: parent.crop,
+          cells: keys.length,
+          access: parent.access,
+        });
+      }
+      parent.cells = kept;
+    }
+  }
+
   // --- Edges and fences -------------------------------------------------------
   for (const [k, cell] of fields) {
     const [x, y] = k.split(",").map(Number);
@@ -691,7 +762,22 @@ export function planFarmland(input: {
     }
     cell.edges = edges;
     cell.fence = fence;
+    if (["none", "ditch", "baulk"].includes(cell.boundary)) {
+      const era = eraEnclosure(setting.year);
+      if (era !== "none") cell.enclosure = era;
+    }
   }
+  // A gap in the fence where the parcel is entered.
+  for (const p of parcels)
+    for (const [bit, dx, dy] of [
+      [4, 0, -1],
+      [8, 1, 0],
+      [1, 0, 1],
+      [2, -1, 0],
+    ]) {
+      const cell = fields.get(cellKey(p.access.x + dx, p.access.y + dy));
+      if (cell && cell.parcel === p.id) cell.fence &= ~bit;
+    }
   // A canal reaches the last field in its wedge and no further.
   for (const k of [...canals]) {
     const [x, y] = k.split(",").map(Number);

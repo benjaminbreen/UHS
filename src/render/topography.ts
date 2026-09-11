@@ -206,7 +206,9 @@ export function drawTopography(
         (!!c.feature ||
           !!contourMask(sample, x, y, (n) => n.surface === "water"));
       if (c.ramp) {
-        image(x * 16, top - TERRAIN_RISE, `ramp-${c.ramp}`, y * 16 + 1.9);
+        // The styled wall pass draws its own slope.
+        if (!styled)
+          image(x * 16, top - TERRAIN_RISE, `ramp-${c.ramp}`, y * 16 + 1.9);
         continue;
       }
       let painted: HTMLCanvasElement | undefined;

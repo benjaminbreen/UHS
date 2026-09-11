@@ -35,6 +35,8 @@ export type BankStyle = {
   strata: number;
   lobes: number;
   roots: number;
+  /** Chance of an embedded stone per face pixel. */
+  stones: number;
   shadow: number;
   fringe: number;
   outline: boolean;
@@ -83,44 +85,32 @@ export function defaultGroundStyle(): GroundStyle {
   materials.sward = { ...neutralLayer, swatch: 5, opacity: 0.35 };
   materials.wet = { ...neutralLayer, swatch: 7, opacity: 0 };
   materials.earth = { ...neutralLayer, opacity: 0.05 };
-  // Ground darkens as it climbs and thins out again at the summit.
-  const tiers: Partial<LayerStyle>[] = [
-    {
-      swatch: 5,
-      opacity: 0,
-      contrast: 0.9,
-      brightness: 0.78,
-      saturation: 1.05,
-    },
-    { swatch: 4, opacity: 0.15, contrast: 1.05, brightness: 0.84 },
-    { swatch: 5, opacity: 0.25, brightness: 0.86 },
-    { swatch: 8, opacity: 0.15, contrast: 1, brightness: 0.94 },
-    { swatch: 0, opacity: 0.15, brightness: 0.94 },
-    { swatch: 0, opacity: 0.1 },
-    { swatch: 7, opacity: 0.3 },
-    {
-      swatch: 6,
-      opacity: 0.4,
-      contrast: 0.95,
-      brightness: 1.06,
-      saturation: 0.85,
-    },
-  ];
+  // A subtle ladder: the valley floor a touch richer, each step up a little
+  // paler and greyer. Texture swatches vary by step so terraces read apart
+  // even where the tone difference is slight.
+  const swatches = [5, 4, 5, 8, 0, 0, 7, 6, 6, 6];
+  const tiers: Partial<LayerStyle>[] = swatches.map((swatch, t) => ({
+    swatch,
+    opacity: t === 0 ? 0 : 0.15,
+    brightness: t === 0 ? 0.98 : 1 + 0.012 * t,
+    saturation: t === 0 ? 1.05 : 1 - 0.02 * t,
+  }));
   while (tiers.length < MAX_TIERS) tiers.push({});
   return {
     materials,
     tiers,
-    contour: { wobble: 0.95, scale: 13, smoothing: 0, sides: 2 },
+    contour: { wobble: 0.95, scale: 13, smoothing: 1, sides: 2 },
     bank: {
       lip: 2,
       strata: 0.95,
       lobes: 1.1,
       roots: 0.2,
-      shadow: 10,
+      stones: 0.035,
+      shadow: 6,
       fringe: 0.55,
       outline: true,
-      brightness: 0.78,
-      contrast: 1.5,
+      brightness: 0.92,
+      contrast: 1.15,
       rise: 20,
     },
   };
@@ -218,6 +208,7 @@ function noise(x: number, y: number, salt: number) {
 export type BankPixel =
   | { kind: "turf" }
   | { kind: "crease" }
+  | { kind: "stone" }
   | { kind: "earth"; tone: number };
 
 export function styledBankPixel(
@@ -237,6 +228,14 @@ export function styledBankPixel(
   )
     return { kind: "turf" };
   const depth = (faceY - bank.lip) / Math.max(1, drop - bank.lip);
+  // Stones sit two pixels wide, clear of the lip and the foot.
+  if (
+    bank.stones &&
+    faceY > bank.lip + 2 &&
+    faceY < drop - 2 &&
+    noise(Math.floor(worldX / 2), worldY, 57) < bank.stones
+  )
+    return { kind: "stone" };
   // Lobe width and phase drift along the bank, or every face lines its lobes
   // up into a row of fence posts.
   const period = 5 + Math.floor(noise(Math.floor(worldX / 37), 0, 12) * 3);
@@ -246,6 +245,8 @@ export function styledBankPixel(
   const lobe = bank.lobes * (Math.abs(phase - 0.5) * 2 - 0.35) * 1.6;
   const strata = Math.sin(((faceY + drift * 3) / 4) * Math.PI) * bank.strata;
   let tone = 2.6 + strata - lobe - depth * 1.5;
+  // Sunlit shoulder under the lip, darkest at the foot.
+  if (faceY <= bank.lip + 1) tone += 1;
   if (faceY >= drop - 2) tone -= 2;
   if (noise(worldX, worldY, 33) < bank.roots) tone = 0;
   return { kind: "earth", tone: Math.max(0, Math.min(3, Math.round(tone))) };

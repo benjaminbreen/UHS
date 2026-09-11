@@ -11,6 +11,7 @@ import {
   populations,
   starts,
   householdForms,
+  desertColorways,
 } from "../../content/ecology/profiles";
 import { patterns } from "../../content/settlements/profiles";
 import { waters, type WorldSetting } from "../../content/geography/types";
@@ -23,6 +24,7 @@ type Config = {
   place?: string;
   seed: string;
   ecology: (typeof ecologies)[number];
+  colorway: (typeof desertColorways)[number];
   landform: (typeof landforms)[number];
   population: (typeof populations)[number];
   start: (typeof starts)[number];
@@ -37,6 +39,7 @@ type Config = {
 const defaults: Config = {
   seed: "ecology-01",
   ecology: "temperate-woodland",
+  colorway: "highland",
   landform: "rolling",
   // The lab defaults to an empty landscape: households and residents dominate
   // preparation time and none of it is terrain. Pick a population to opt in.
@@ -194,6 +197,7 @@ export function labSetting(c: Config): WorldSetting {
     vegetationRevision: 5,
     environment: {
       ecology: c.ecology,
+      colorway: c.ecology === "desert" ? c.colorway : undefined,
       landform: c.landform,
       population: c.population,
       start:
@@ -571,6 +575,8 @@ export function ProceduralLab() {
             ecologies,
             (v) => ecologyProfiles[v as Config["ecology"]].label,
           )}
+          {draft.ecology === "desert" &&
+            select("Desert colourway", "colorway", desertColorways)}
           {select("Landform", "landform", landforms)}
           <label>
             Relief {draft.relief.toFixed(2)}
