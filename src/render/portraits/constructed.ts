@@ -120,6 +120,10 @@ type Model = {
   shoulder: number;
   shadowScale: number;
   neckWidth: number;
+  /** Torso narrowing for children and youths; 1 is adult. */
+  bodyScale: number;
+  /** Hairline retreat at the temples for elders, in pixels. */
+  recede: number;
   head: Pt[];
 };
 
@@ -136,7 +140,7 @@ export function paintConstructed(
   if (hood) drawHoodBack(r, m);
   else drawBackHair(r, m);
   drawNeck(r, m);
-  drawCollar(r, m);
+  if (!hood) drawCollar(r, m);
   drawHead(r, m);
   drawEar(r, m);
   drawBeard(r, m);
@@ -164,8 +168,9 @@ function model(
 ): Model {
   const face = portraitFace(a, age);
   const child = age < 13;
+  const youth = !child && age < 17;
   const head = a.head ?? "original";
-  const jaw = a.jaw ?? "original";
+  const jaw = child ? "soft" : (a.jaw ?? "original");
   const top =
     (head === "long" ? 6 : head === "round" ? 8 : 7) + (child ? 1 : 0);
   const chin =
@@ -173,22 +178,26 @@ function model(
     (face.chin === "long" ? 2 : face.chin === "short" ? -1 : 0) +
     (head === "long" ? 1 : head === "round" ? -1 : 0) +
     (jaw === "small" ? -1 : 0) -
-    (child ? 3 : age < 17 ? 1 : 0) +
+    (child ? 2 : youth ? 1 : 0) +
     t.chinLength;
-  const widen = head === "broad" ? 1.5 : head === "round" ? 1 : 0;
+  const widen =
+    (head === "broad" ? 1.5 : head === "round" ? 1 : 0) + (child ? 1 : 0);
   const nearX = 21.5 - widen - t.faceWidth / 2;
   const farX = 47 + widen + t.faceWidth / 2;
   const mid = 38 + t.turn;
-  const eyeY = 25 + (child ? 1 : 0) + (head === "long" ? 1 : 0) + t.eyeHeight;
+  const eyeY = 25 + (child ? 2 : 0) + (head === "long" ? 1 : 0) + t.eyeHeight;
   const browY = eyeY - 3;
   const noseBase =
     eyeY +
     (face.nose === "short" ? 6 : face.nose === "aquiline" ? 8 : 7) +
-    t.noseLength;
+    t.noseLength -
+    (child ? 1 : 0);
   const mouthY = Math.min(chin - 5, noseBase + 4 + t.mouthDrop);
+  const recede = a.hair === "bald" ? 0 : age >= 65 ? 2 : age >= 55 ? 1 : 0;
   const hairline =
     (face.hairline === "high" ? 12 : face.hairline === "low" ? 16 : 14) +
-    (top - 7);
+    (top - 7) -
+    recede;
   const volume = Math.max(
     1,
     (a.hair === "cropped" || a.hair === "bald"
@@ -226,7 +235,10 @@ function model(
         : [farX - 2, chin - 6];
   const nearCorner: Pt = [nearBase[0] - t.jawWidth, nearBase[1] - t.jawHeight];
   const farCorner: Pt = [farBase[0] + t.jawWidth, farBase[1] - t.jawHeight];
-  const chinW = (jaw === "pointed" || jaw === "small" ? 1.5 : 0) - t.chinWidth;
+  const chinW =
+    (jaw === "pointed" || jaw === "small" ? 1.5 : 0) -
+    t.chinWidth +
+    (child ? 1 : 0);
   const headPts: Pt[] = [
     [29, top + 0.5],
     [37, top - 0.5],
@@ -251,7 +263,15 @@ function model(
     age,
     child,
     skin: tones(a.skin, "skin"),
-    hair: tones(a.hairColor, "hair"),
+    // Hair greys from the mid forties on, whatever colour it started.
+    hair: tones(
+      mix(
+        a.hairColor,
+        "#b8b2a6",
+        age >= 45 ? Math.min(0.85, (age - 45) / 30) : 0,
+      ),
+      "hair",
+    ),
     cloth: tones(a.wearing.color, "cloth"),
     trim: tones(a.wearing.trim, "cloth"),
     lower: tones(a.wearing.lowerColor, "cloth"),
@@ -276,9 +296,14 @@ function model(
     hairline,
     volume,
     hemY,
-    shoulder: (a.build < 0 ? 2 : a.build > 0 ? -2 : 0) - t.shoulders,
+    shoulder:
+      (a.build < 0 ? 2 : a.build > 0 ? -2 : 0) -
+      t.shoulders +
+      (child ? 6 : youth ? 3 : 0),
     shadowScale: t.shadow,
-    neckWidth: t.neckWidth,
+    neckWidth: t.neckWidth - (child ? 1.5 : youth ? 0.5 : 0),
+    bodyScale: child ? 0.78 : youth ? 0.9 : 1,
+    recede,
     head: smooth(headPts, 5),
   };
 }
@@ -289,7 +314,7 @@ function necklineFor(m: Model): Pt[] {
   const garment = m.a.wearing.garment;
   const vNeck = garment === "shirt" || garment === "coat";
   const high = garment === "robe" || garment === "wrap";
-  return high
+  const points: Pt[] = high
     ? [
         [25, 49],
         [36, 50.5],
@@ -310,6 +335,7 @@ function necklineFor(m: Model): Pt[] {
           [42, 51.5],
           [46.5, 48.5],
         ];
+  return points.map(([x, y]) => [36 + (x - 36) * m.bodyScale, y] as Pt);
 }
 
 function drawTorso(r: Raster, m: Model) {
@@ -319,10 +345,13 @@ function drawTorso(r: Raster, m: Model) {
     farArm = 60 - s;
   const high = ["robe", "wrap"].includes(a.wearing.garment);
   const neckline = necklineFor(m);
+  const bs = m.bodyScale;
+  // Torso x positions shrink toward the centre for small bodies.
+  const bx = (x: number) => 36 + (x - 36) * bs;
   const body = smooth(
     [
       ...neckline,
-      [53, 50.5],
+      [36 + 17 * bs, 50.5],
       [57.5 - s, 56],
       [farArm - 0.5, 64],
       [farArm, 80],
@@ -331,8 +360,8 @@ function drawTorso(r: Raster, m: Model) {
       [nearArm, 80],
       [nearArm + 0.5, 64],
       [7 + s, 56.5],
-      [12, 51],
-      [19, 48.5],
+      [36 - 24 * bs, 51],
+      [36 - 17 * bs, 48.5],
     ],
     4,
   );
@@ -343,18 +372,18 @@ function drawTorso(r: Raster, m: Model) {
   // Folds fall from the neckline toward the belt.
   r.stroke(
     [
-      [29, 60],
-      [27, 70],
-      [28, 79],
+      [bx(29), 60],
+      [bx(27), 70],
+      [bx(28), 79],
     ],
     cloth.shade,
     3,
   );
   r.stroke(
     [
-      [44, 59],
-      [46, 69],
-      [47, 79],
+      [bx(44), 59],
+      [bx(46), 69],
+      [bx(47), 79],
     ],
     cloth.shade,
     3,
@@ -364,35 +393,39 @@ function drawTorso(r: Raster, m: Model) {
 
   if (m.hemY < 80) {
     const hem = m.hemY;
+    const nearIn = nearArm + 9 * bs,
+      farIn = farArm - 9 * bs;
     const near = r.region([
       [nearArm + 0.5, hem - 0.5],
       [nearArm + 4, hem + 1.5],
-      [13, hem + 1.5],
-      [14, hem - 0.5],
-      [14, 80],
+      [nearIn - 1, hem + 1.5],
+      [nearIn, hem - 0.5],
+      [nearIn, 80],
       [nearArm, 80],
     ]);
     const far = r.region([
-      [51, hem + 0.5],
-      [54, hem + 2],
+      [farIn, hem + 0.5],
+      [farIn + 3, hem + 2],
       [farArm - 3, hem + 2],
       [farArm, hem + 0.5],
       [farArm, 80],
-      [50.5, 80],
+      [farIn - 0.5, 80],
     ]);
     r.fill(near, skin.base, MAT.skin);
     r.fill(far, skin.base, MAT.skin);
-    shadeRamp(r, near, [nearArm + 3, 70], [14, 70], 0.3, SHADOW, [MAT.skin]);
+    shadeRamp(r, near, [nearArm + 3, 70], [nearIn, 70], 0.3, SHADOW, [
+      MAT.skin,
+    ]);
     shadeRamp(r, near, [nearArm + 4, 70], [nearArm, 70], 0.14, LIGHT, [
       MAT.skin,
     ]);
-    shadeRamp(r, far, [52, 70], [farArm, 70], 0.34, SHADOW, [MAT.skin]);
+    shadeRamp(r, far, [farIn + 1, 70], [farArm, 70], 0.34, SHADOW, [MAT.skin]);
     // Sleeve hems curve over the arm.
     r.stroke(
       [
         [nearArm + 1, hem - 1],
         [nearArm + 4, hem + 0.5],
-        [13, hem - 1],
+        [nearIn - 1, hem - 1],
       ],
       cloth.deep,
       0,
@@ -400,8 +433,8 @@ function drawTorso(r: Raster, m: Model) {
     );
     r.stroke(
       [
-        [51, hem],
-        [55, hem + 1],
+        [farIn, hem],
+        [farIn + 4, hem + 1],
         [farArm - 1, hem],
       ],
       cloth.deep,
@@ -413,34 +446,34 @@ function drawTorso(r: Raster, m: Model) {
   if (a.wearing.shoulderCloth) {
     const drape = smooth(
       [
-        [41, 50.5],
-        [49, 52],
-        [56, 57],
-        [59, 64],
-        [52, 72],
-        [38, 80],
-        [38, 84],
-        [16, 84],
-        [16, 80],
-        [26, 68],
+        [bx(41), 50.5],
+        [bx(49), 52],
+        [bx(56), 57],
+        [bx(59), 64],
+        [bx(52), 72],
+        [bx(38), 80],
+        [bx(38), 84],
+        [bx(16), 84],
+        [bx(16), 80],
+        [bx(26), 68],
       ],
       3,
     );
     r.poly(drape, trim.base, MAT.trim);
     const region = r.region(drape);
-    shadeRamp(r, region, [40, 60], [60, 66], 0.28, SHADOW, [MAT.trim]);
+    shadeRamp(r, region, [bx(40), 60], [bx(60), 66], 0.28, SHADOW, [MAT.trim]);
     r.stroke(
       [
-        [52, 58],
-        [30, 79],
+        [bx(52), 58],
+        [bx(30), 79],
       ],
       trim.shade,
       2,
     );
     r.stroke(
       [
-        [46, 54],
-        [24, 75],
+        [bx(46), 54],
+        [bx(24), 75],
       ],
       trim.light,
       3,
@@ -457,15 +490,15 @@ function drawTorso(r: Raster, m: Model) {
         : m.lower;
     r.poly(
       [
-        [15, y],
-        [51, y - 0.5],
-        [51, y + h - 0.5],
-        [15, y + h],
+        [bx(15), y],
+        [bx(51), y - 0.5],
+        [bx(51), y + h - 0.5],
+        [bx(15), y + h],
       ],
       t.base,
       MAT.trim,
     );
-    r.rect(16, y + 1, 30, 1, t.light);
+    r.rect(bx(16), y + 1, Math.round(30 * bs), 1, t.light);
     shadeRamp(
       r,
       r.region([
@@ -480,7 +513,7 @@ function drawTorso(r: Raster, m: Model) {
       SHADOW,
       [MAT.trim],
     );
-    if (belt === "sash") r.rect(31, y, 3, h, t.shade);
+    if (belt === "sash") r.rect(bx(31), y, 3, h, t.shade);
   }
 }
 
@@ -546,8 +579,8 @@ function drawCloak(r: Raster, m: Model, nearArm: number, farArm: number) {
   );
   r.stroke(
     [
-      [11, 58],
-      [8, 79],
+      [nearArm + 7, 58],
+      [nearArm + 4, 79],
     ],
     c.light,
     3,
@@ -612,6 +645,17 @@ function drawHead(r: Raster, m: Model) {
     only: [MAT.skin],
     soft: true,
   });
+  if (m.age >= 60) {
+    // Cheeks hollow below the cheekbone on both sides.
+    r.paint(r.ellipse(27, eyeY + 10.5, 3, 2), shadow(0.16), {
+      only: [MAT.skin],
+      soft: true,
+    });
+    r.paint(r.ellipse(mid + 5, eyeY + 10, 2.5, 2), shadow(0.14), {
+      only: [MAT.skin],
+      soft: true,
+    });
+  }
   // Brow ridge shadow over both sockets.
   r.paint(
     r.region([
@@ -738,7 +782,7 @@ function drawFeatures(r: Raster, m: Model) {
   ];
   r.stroke(nearBrow, browColor);
   r.stroke(farBrow, browColor);
-  if (face.brows === "heavy") {
+  if (face.brows === "heavy" && age < 60) {
     r.stroke(
       nearBrow.map(([x, y]) => [x, y + 1] as Pt),
       hair.base,
@@ -885,27 +929,34 @@ function hairOuter(m: Model, length: number): Pt[] {
     [26, top - v - 0.5],
     [nearOut + 2, top - v + 4],
   ];
-  if (length > 50)
-    // Two masses falling over the shoulders; the middle hides behind the neck.
+  if (length > 50) {
+    // Two masses falling over the shoulders, tapering toward the ends; the
+    // middle hides behind the neck.
+    const wave = m.face.hairTexture === "wavy" ? 1.5 : 0;
     return [
       [nearOut + 0.5, 18],
       [nearOut - 2, 30],
-      [nearOut - 3, 48],
-      [nearOut - 1, length - 3],
-      [nearOut + 4, length + 1],
-      [nearX + 3, length - 3],
+      [nearOut - 2.5 - wave, 42],
+      [nearOut - 1.5 + wave, 52],
+      [nearOut - 0.5 - wave, length - 8],
+      [nearOut + 2.5, length - 1],
+      [nearOut + 6, length + 1],
+      [nearX + 3, length - 4],
       [nearX + 4.5, chin + 8],
       [nearX + 4, chin + 2],
       [farX - 4, chin + 2],
       [farX - 4.5, chin + 8],
-      [farX - 2, length - 3],
-      [farOut - 3, length + 1],
-      [farOut + 1, length - 3],
-      [farOut + 2, 48],
+      [farX - 2, length - 4],
+      [farOut - 4, length + 1],
+      [farOut - 1, length - 1],
+      [farOut + 0.5 + wave, length - 8],
+      [farOut + 1.5 - wave, 52],
+      [farOut + 2.5 + wave, 42],
       [farOut + 1, 30],
       [farOut, 18],
       ...crown,
     ];
+  }
   return [
     [nearOut + 0.5, 18],
     [nearOut, 30],
@@ -1013,8 +1064,8 @@ function drawFrontHair(r: Raster, m: Model) {
     [36, hairline + peak],
     [32, hairline - 0.3],
     [28, hairline + 1],
-    [25, hairline + 3.5],
-    [23.5, hairline + 7],
+    [25 + m.recede, hairline + 3.5 - m.recede],
+    [23.5 + m.recede, hairline + 7 - m.recede],
     // Lock in front of the temple, then behind the ear.
     [nearX + 2.5, eyeY - 1],
     [nearX + 1.5, style === "cropped" ? eyeY - 3 : eyeY + 3],
@@ -1572,15 +1623,18 @@ function drawJewellery(r: Raster, m: Model) {
     r.put(x - 1, y + 1, gold.high);
   }
   if (a.wearing.necklace) {
-    const beads: Pt[] = [
-      [24, 52],
-      [27, 55],
-      [31, 57.5],
-      [36, 58.5],
-      [41, 57.5],
-      [45, 55],
-      [47, 52],
-    ];
+    const bs = m.bodyScale;
+    const beads: Pt[] = (
+      [
+        [24, 52],
+        [27, 55],
+        [31, 57.5],
+        [36, 58.5],
+        [41, 57.5],
+        [45, 55],
+        [47, 52],
+      ] as Pt[]
+    ).map(([x, y]) => [Math.round(36 + (x - 36) * bs), y]);
     for (let i = 0; i + 1 < beads.length; i++)
       r.line(beads[i], beads[i + 1], gold.shade, MAT.metal);
     for (const [x, y] of beads) {

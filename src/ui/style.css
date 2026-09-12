@@ -591,7 +591,7 @@ button:hover:not(:disabled) {
   background: #ffffff08;
 }
 .portrait {
-  background: #5f6a5a;
+  background: linear-gradient(145deg, #323a68, #263052);
   border-radius: 5px;
   width: 92px;
   height: 96px;
@@ -2763,7 +2763,7 @@ button:disabled {
   text-transform: capitalize;
 }
 .character-portrait {
-  background: linear-gradient(#6b7566, #59634f);
+  background: linear-gradient(145deg, #323a68, #263052);
   border: 1px solid var(--line);
   border-radius: 5px;
   aspect-ratio: 1;
@@ -3261,7 +3261,7 @@ button:disabled {
   font-size: 14px;
 }
 .character-portrait {
-  height: 308px;
+  height: 288px;
   aspect-ratio: auto;
   border-color: #566399;
   border-radius: 1px;
@@ -3421,7 +3421,7 @@ button:disabled {
   background: linear-gradient(180deg, #35406c2b, #13192e0a);
 }
 .belief-portrait {
-  height: 195px;
+  height: 192px;
   overflow: hidden;
   border: 1px solid #56639970;
   background: linear-gradient(145deg, #323a68, #263052);

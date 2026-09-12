@@ -49,6 +49,8 @@ function portraitSource(appearance: CharacterAppearance, key: string) {
 }
 
 const portraits = new Map<string, HTMLCanvasElement>();
+/** Region of the 64×80 bust shown in the UI: hair top to collar. */
+const CROP = { x: 9, y: 4, w: 46, h: 48 };
 /** Three-quarter bust from the same recipe, cached per appearance and age. */
 function portraitCanvas(
   appearance: CharacterAppearance,
@@ -101,7 +103,18 @@ export function CharacterSprite({
     out.clearRect(0, 0, canvas.width, canvas.height);
     out.imageSmoothingEnabled = false;
     if (portrait) {
-      out.drawImage(portraitCanvas(appearance, age, key), 0, 0);
+      // Face crop at two whole pixels per native pixel.
+      out.drawImage(
+        portraitCanvas(appearance, age, key),
+        CROP.x,
+        CROP.y,
+        CROP.w,
+        CROP.h,
+        0,
+        0,
+        CROP.w * 2,
+        CROP.h * 2,
+      );
     } else {
       const { source, x0, y0, width, height } = portraitSource(appearance, key);
       out.drawImage(
@@ -121,8 +134,8 @@ export function CharacterSprite({
   return (
     <canvas
       ref={ref}
-      width={portrait ? PORTRAIT_WIDTH : 32}
-      height={portrait ? PORTRAIT_HEIGHT : 40}
+      width={portrait ? CROP.w * 2 : 32}
+      height={portrait ? CROP.h * 2 : 40}
       aria-label={portrait ? "Character appearance" : "Person appearance"}
       data-skin={appearance.skin}
       style={{
