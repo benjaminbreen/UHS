@@ -4,7 +4,7 @@
   "atlas": {
     "file": "atlas.png",
     "columns": 8,
-    "rows": 6
+    "rows": 12
   },
   "palette": [
     "#081223",
@@ -837,6 +837,822 @@
       "atlas": {
         "x": 448,
         "y": 320,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "horus",
+      "label": "Horus",
+      "file": "icons/horus.png",
+      "extractedFile": "extracted/horus.png",
+      "sheet": 4,
+      "sourceCell": {
+        "row": 0,
+        "column": 0
+      },
+      "atlas": {
+        "x": 0,
+        "y": 384,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "ptah",
+      "label": "Ptah",
+      "file": "icons/ptah.png",
+      "extractedFile": "extracted/ptah.png",
+      "sheet": 4,
+      "sourceCell": {
+        "row": 0,
+        "column": 1
+      },
+      "atlas": {
+        "x": 64,
+        "y": 384,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "thoth",
+      "label": "Thoth",
+      "file": "icons/thoth.png",
+      "extractedFile": "extracted/thoth.png",
+      "sheet": 4,
+      "sourceCell": {
+        "row": 0,
+        "column": 2
+      },
+      "atlas": {
+        "x": 128,
+        "y": 384,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "hera",
+      "label": "Hera",
+      "file": "icons/hera.png",
+      "extractedFile": "extracted/hera.png",
+      "sheet": 4,
+      "sourceCell": {
+        "row": 0,
+        "column": 3
+      },
+      "atlas": {
+        "x": 192,
+        "y": 384,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "poseidon",
+      "label": "Poseidon",
+      "file": "icons/poseidon.png",
+      "extractedFile": "extracted/poseidon.png",
+      "sheet": 4,
+      "sourceCell": {
+        "row": 1,
+        "column": 0
+      },
+      "atlas": {
+        "x": 256,
+        "y": 384,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "ares",
+      "label": "Ares",
+      "file": "icons/ares.png",
+      "extractedFile": "extracted/ares.png",
+      "sheet": 4,
+      "sourceCell": {
+        "row": 1,
+        "column": 1
+      },
+      "atlas": {
+        "x": 320,
+        "y": 384,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "aphrodite",
+      "label": "Aphrodite",
+      "file": "icons/aphrodite.png",
+      "extractedFile": "extracted/aphrodite.png",
+      "sheet": 4,
+      "sourceCell": {
+        "row": 1,
+        "column": 2
+      },
+      "atlas": {
+        "x": 384,
+        "y": 384,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "hephaestus",
+      "label": "Hephaestus",
+      "file": "icons/hephaestus.png",
+      "extractedFile": "extracted/hephaestus.png",
+      "sheet": 4,
+      "sourceCell": {
+        "row": 1,
+        "column": 3
+      },
+      "atlas": {
+        "x": 448,
+        "y": 384,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "hermes",
+      "label": "Hermes",
+      "file": "icons/hermes.png",
+      "extractedFile": "extracted/hermes.png",
+      "sheet": 4,
+      "sourceCell": {
+        "row": 2,
+        "column": 0
+      },
+      "atlas": {
+        "x": 0,
+        "y": 448,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "jupiter",
+      "label": "Jupiter",
+      "file": "icons/jupiter.png",
+      "extractedFile": "extracted/jupiter.png",
+      "sheet": 4,
+      "sourceCell": {
+        "row": 2,
+        "column": 1
+      },
+      "atlas": {
+        "x": 64,
+        "y": 448,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "juno",
+      "label": "Juno",
+      "file": "icons/juno.png",
+      "extractedFile": "extracted/juno.png",
+      "sheet": 4,
+      "sourceCell": {
+        "row": 2,
+        "column": 2
+      },
+      "atlas": {
+        "x": 128,
+        "y": 448,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "mars",
+      "label": "Mars",
+      "file": "icons/mars.png",
+      "extractedFile": "extracted/mars.png",
+      "sheet": 4,
+      "sourceCell": {
+        "row": 2,
+        "column": 3
+      },
+      "atlas": {
+        "x": 192,
+        "y": 448,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "minerva",
+      "label": "Minerva",
+      "file": "icons/minerva.png",
+      "extractedFile": "extracted/minerva.png",
+      "sheet": 4,
+      "sourceCell": {
+        "row": 3,
+        "column": 0
+      },
+      "atlas": {
+        "x": 256,
+        "y": 448,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "neptune",
+      "label": "Neptune",
+      "file": "icons/neptune.png",
+      "extractedFile": "extracted/neptune.png",
+      "sheet": 4,
+      "sourceCell": {
+        "row": 3,
+        "column": 1
+      },
+      "atlas": {
+        "x": 320,
+        "y": 448,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "diana",
+      "label": "Diana",
+      "file": "icons/diana.png",
+      "extractedFile": "extracted/diana.png",
+      "sheet": 4,
+      "sourceCell": {
+        "row": 3,
+        "column": 2
+      },
+      "atlas": {
+        "x": 384,
+        "y": 448,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "vesta",
+      "label": "Vesta",
+      "file": "icons/vesta.png",
+      "extractedFile": "extracted/vesta.png",
+      "sheet": 4,
+      "sourceCell": {
+        "row": 3,
+        "column": 3
+      },
+      "atlas": {
+        "x": 448,
+        "y": 448,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "ahura-mazda",
+      "label": "Ahura Mazda",
+      "file": "icons/ahura-mazda.png",
+      "extractedFile": "extracted/ahura-mazda.png",
+      "sheet": 5,
+      "sourceCell": {
+        "row": 0,
+        "column": 0
+      },
+      "atlas": {
+        "x": 0,
+        "y": 512,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "mithra",
+      "label": "Mithra",
+      "file": "icons/mithra.png",
+      "extractedFile": "extracted/mithra.png",
+      "sheet": 5,
+      "sourceCell": {
+        "row": 0,
+        "column": 1
+      },
+      "atlas": {
+        "x": 64,
+        "y": 512,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "anahita",
+      "label": "Anahita",
+      "file": "icons/anahita.png",
+      "extractedFile": "extracted/anahita.png",
+      "sheet": 5,
+      "sourceCell": {
+        "row": 0,
+        "column": 2
+      },
+      "atlas": {
+        "x": 128,
+        "y": 512,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "angra-mainyu",
+      "label": "Angra Mainyu",
+      "file": "icons/angra-mainyu.png",
+      "extractedFile": "extracted/angra-mainyu.png",
+      "sheet": 5,
+      "sourceCell": {
+        "row": 0,
+        "column": 3
+      },
+      "atlas": {
+        "x": 192,
+        "y": 512,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "tengri",
+      "label": "Tengri",
+      "file": "icons/tengri.png",
+      "extractedFile": "extracted/tengri.png",
+      "sheet": 5,
+      "sourceCell": {
+        "row": 1,
+        "column": 0
+      },
+      "atlas": {
+        "x": 256,
+        "y": 512,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "etugen",
+      "label": "Et\u00fcgen",
+      "file": "icons/etugen.png",
+      "extractedFile": "extracted/etugen.png",
+      "sheet": 5,
+      "sourceCell": {
+        "row": 1,
+        "column": 1
+      },
+      "atlas": {
+        "x": 320,
+        "y": 512,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "umai",
+      "label": "Umai",
+      "file": "icons/umai.png",
+      "extractedFile": "extracted/umai.png",
+      "sheet": 5,
+      "sourceCell": {
+        "row": 1,
+        "column": 2
+      },
+      "atlas": {
+        "x": 384,
+        "y": 512,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "erlik",
+      "label": "Erlik",
+      "file": "icons/erlik.png",
+      "extractedFile": "extracted/erlik.png",
+      "sheet": 5,
+      "sourceCell": {
+        "row": 1,
+        "column": 3
+      },
+      "atlas": {
+        "x": 448,
+        "y": 512,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "pachamama",
+      "label": "Pachamama",
+      "file": "icons/pachamama.png",
+      "extractedFile": "extracted/pachamama.png",
+      "sheet": 5,
+      "sourceCell": {
+        "row": 2,
+        "column": 0
+      },
+      "atlas": {
+        "x": 0,
+        "y": 576,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "illapa",
+      "label": "Illapa",
+      "file": "icons/illapa.png",
+      "extractedFile": "extracted/illapa.png",
+      "sheet": 5,
+      "sourceCell": {
+        "row": 2,
+        "column": 1
+      },
+      "atlas": {
+        "x": 64,
+        "y": 576,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "mama-quilla",
+      "label": "Mama Quilla",
+      "file": "icons/mama-quilla.png",
+      "extractedFile": "extracted/mama-quilla.png",
+      "sheet": 5,
+      "sourceCell": {
+        "row": 2,
+        "column": 2
+      },
+      "atlas": {
+        "x": 128,
+        "y": 576,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "mama-cocha",
+      "label": "Mama Cocha",
+      "file": "icons/mama-cocha.png",
+      "extractedFile": "extracted/mama-cocha.png",
+      "sheet": 5,
+      "sourceCell": {
+        "row": 2,
+        "column": 3
+      },
+      "atlas": {
+        "x": 192,
+        "y": 576,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "kinich-ajaw",
+      "label": "K'inich Ajaw",
+      "file": "icons/kinich-ajaw.png",
+      "extractedFile": "extracted/kinich-ajaw.png",
+      "sheet": 5,
+      "sourceCell": {
+        "row": 3,
+        "column": 0
+      },
+      "atlas": {
+        "x": 256,
+        "y": 576,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "itzamna",
+      "label": "Itzamna",
+      "file": "icons/itzamna.png",
+      "extractedFile": "extracted/itzamna.png",
+      "sheet": 5,
+      "sourceCell": {
+        "row": 3,
+        "column": 1
+      },
+      "atlas": {
+        "x": 320,
+        "y": 576,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "chaac",
+      "label": "Chaac",
+      "file": "icons/chaac.png",
+      "extractedFile": "extracted/chaac.png",
+      "sheet": 5,
+      "sourceCell": {
+        "row": 3,
+        "column": 2
+      },
+      "atlas": {
+        "x": 384,
+        "y": 576,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "cocijo",
+      "label": "Cocijo",
+      "file": "icons/cocijo.png",
+      "extractedFile": "extracted/cocijo.png",
+      "sheet": 5,
+      "sourceCell": {
+        "row": 3,
+        "column": 3
+      },
+      "atlas": {
+        "x": 448,
+        "y": 576,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "olorun",
+      "label": "Olorun",
+      "file": "icons/olorun.png",
+      "extractedFile": "extracted/olorun.png",
+      "sheet": 6,
+      "sourceCell": {
+        "row": 0,
+        "column": 0
+      },
+      "atlas": {
+        "x": 0,
+        "y": 640,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "orunmila",
+      "label": "Orunmila",
+      "file": "icons/orunmila.png",
+      "extractedFile": "extracted/orunmila.png",
+      "sheet": 6,
+      "sourceCell": {
+        "row": 0,
+        "column": 1
+      },
+      "atlas": {
+        "x": 64,
+        "y": 640,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "yemoja",
+      "label": "Yemoja",
+      "file": "icons/yemoja.png",
+      "extractedFile": "extracted/yemoja.png",
+      "sheet": 6,
+      "sourceCell": {
+        "row": 0,
+        "column": 2
+      },
+      "atlas": {
+        "x": 128,
+        "y": 640,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "eshu-eleggua",
+      "label": "Eshu/Eleggua",
+      "file": "icons/eshu-eleggua.png",
+      "extractedFile": "extracted/eshu-eleggua.png",
+      "sheet": 6,
+      "sourceCell": {
+        "row": 0,
+        "column": 3
+      },
+      "atlas": {
+        "x": 192,
+        "y": 640,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "rangi",
+      "label": "Rangi",
+      "file": "icons/rangi.png",
+      "extractedFile": "extracted/rangi.png",
+      "sheet": 6,
+      "sourceCell": {
+        "row": 1,
+        "column": 0
+      },
+      "atlas": {
+        "x": 256,
+        "y": 640,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "papa",
+      "label": "Papa",
+      "file": "icons/papa.png",
+      "extractedFile": "extracted/papa.png",
+      "sheet": 6,
+      "sourceCell": {
+        "row": 1,
+        "column": 1
+      },
+      "atlas": {
+        "x": 320,
+        "y": 640,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "tane",
+      "label": "T\u0101ne",
+      "file": "icons/tane.png",
+      "extractedFile": "extracted/tane.png",
+      "sheet": 6,
+      "sourceCell": {
+        "row": 1,
+        "column": 2
+      },
+      "atlas": {
+        "x": 384,
+        "y": 640,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "rongo",
+      "label": "Rongo",
+      "file": "icons/rongo.png",
+      "extractedFile": "extracted/rongo.png",
+      "sheet": 6,
+      "sourceCell": {
+        "row": 1,
+        "column": 3
+      },
+      "atlas": {
+        "x": 448,
+        "y": 640,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "krishna",
+      "label": "Krishna",
+      "file": "icons/krishna.png",
+      "extractedFile": "extracted/krishna.png",
+      "sheet": 6,
+      "sourceCell": {
+        "row": 2,
+        "column": 0
+      },
+      "atlas": {
+        "x": 0,
+        "y": 704,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "parvati",
+      "label": "Parvati",
+      "file": "icons/parvati.png",
+      "extractedFile": "extracted/parvati.png",
+      "sheet": 6,
+      "sourceCell": {
+        "row": 2,
+        "column": 1
+      },
+      "atlas": {
+        "x": 64,
+        "y": 704,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "murugan",
+      "label": "Murugan",
+      "file": "icons/murugan.png",
+      "extractedFile": "extracted/murugan.png",
+      "sheet": 6,
+      "sourceCell": {
+        "row": 2,
+        "column": 2
+      },
+      "atlas": {
+        "x": 128,
+        "y": 704,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "brahma",
+      "label": "Brahma",
+      "file": "icons/brahma.png",
+      "extractedFile": "extracted/brahma.png",
+      "sheet": 6,
+      "sourceCell": {
+        "row": 2,
+        "column": 3
+      },
+      "atlas": {
+        "x": 192,
+        "y": 704,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "lugus",
+      "label": "Lugus",
+      "file": "icons/lugus.png",
+      "extractedFile": "extracted/lugus.png",
+      "sheet": 6,
+      "sourceCell": {
+        "row": 3,
+        "column": 0
+      },
+      "atlas": {
+        "x": 256,
+        "y": 704,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "taranis",
+      "label": "Taranis",
+      "file": "icons/taranis.png",
+      "extractedFile": "extracted/taranis.png",
+      "sheet": 6,
+      "sourceCell": {
+        "row": 3,
+        "column": 1
+      },
+      "atlas": {
+        "x": 320,
+        "y": 704,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "epona",
+      "label": "Epona",
+      "file": "icons/epona.png",
+      "extractedFile": "extracted/epona.png",
+      "sheet": 6,
+      "sourceCell": {
+        "row": 3,
+        "column": 2
+      },
+      "atlas": {
+        "x": 384,
+        "y": 704,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "brigantia",
+      "label": "Brigantia",
+      "file": "icons/brigantia.png",
+      "extractedFile": "extracted/brigantia.png",
+      "sheet": 6,
+      "sourceCell": {
+        "row": 3,
+        "column": 3
+      },
+      "atlas": {
+        "x": 448,
+        "y": 704,
         "width": 64,
         "height": 64
       }

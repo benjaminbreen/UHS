@@ -12,7 +12,7 @@ import type {
   SocietyCapability,
 } from "./context-types";
 import { communityProfiles, appearanceKits } from "./profiles/communities";
-import { populations } from "./profiles/populations";
+import { labourRegimes, populations } from "./profiles/populations";
 import { subsistenceMixes } from "./profiles/subsistence";
 import { nameKits } from "./name-kits";
 import { nameTraditions } from "./profiles/traditions.generated";
@@ -68,6 +68,27 @@ export function characterCommunity(
     population.groups.find((g) => (roll -= g.share) < 0) ??
     population.groups[population.groups.length - 1]
   ).community;
+}
+/**
+ * Whether this person is free, and if not on what terms. Bondage was ordinary
+ * in most of the societies the game covers; a share of a community rather than
+ * a property of one, so it is drawn per person like the community itself.
+ */
+export function characterStanding(
+  s: WorldSetting,
+  seed: string,
+  id: string,
+  community = characterCommunity(s, seed, id),
+): "free" | "unfree" {
+  const group = populationFor(s)?.groups.find((g) => g.community === community);
+  const regime = labourRegimes
+    .filter((r) => matchesCharacterScope(r.scope, s, "*"))
+    .sort((a, b) => b.priority - a.priority || a.id.localeCompare(b.id))[0];
+  const share = group?.unfree ?? regime?.unfree ?? 0;
+  if (share <= 0) return "free";
+  return random(seed, "character-v1", id, "standing") < share
+    ? "unfree"
+    : "free";
 }
 /** Explicit choices win. Defaults describe the selected scenario, not all inhabitants. */
 export function communityFor(s: WorldSetting): string {
@@ -185,6 +206,16 @@ export function nameTraditionsFor(s: WorldSetting) {
  * catalogue: only the industrial and modern tiers consulted the calendar at
  * all. Dates now live on the livelihood as `years`.
  */
+/**
+ * Once most work is waged, the pre-industrial village crafts are gone: a 1948
+ * town does not hold a swineherd, a cottager and a vine dresser. Growing food
+ * continues, so subsistence work keeps the plain village tier and the crafts
+ * beside it close here.
+ */
+const industrial = (
+  s: WorldSetting,
+  capabilities: ReadonlySet<SocietyCapability>,
+) => capabilities.has("wage_labor") && s.year >= 1900;
 function tierApplies(
   tier: NonNullable<Livelihood["tier"]>,
   s: WorldSetting,
@@ -196,6 +227,8 @@ function tierApplies(
     (s.settlement === "city" || s.settlement === "port");
   if (tier === "prehistoric") return !farming || s.settlement === "camp";
   if (tier === "village") return farming && s.settlement !== "camp";
+  if (tier === "village-craft")
+    return farming && s.settlement !== "camp" && !industrial(s, capabilities);
   if (tier === "town") return urban;
   if (tier === "industrial") return urban && capabilities.has("wage_labor");
   return capabilities.has("wage_labor");
@@ -211,9 +244,16 @@ const DEFAULT_SHARES = {
   foraging: 0.12,
   other: 0.33,
 };
-export function subsistenceFor(s: WorldSetting) {
+export function subsistenceFor(
+  s: WorldSetting,
+  capabilities: ReadonlySet<SocietyCapability> = capabilitiesFor(s),
+) {
   return subsistenceMixes
-    .filter((m) => matchesCharacterScope(m.scope, s, "*"))
+    .filter(
+      (m) =>
+        matchesCharacterScope(m.scope, s, "*") &&
+        !m.requires?.some((c) => !capabilities.has(c)),
+    )
     .sort((a, b) => b.priority - a.priority || a.id.localeCompare(b.id))[0];
 }
 const SHARE_OF: Partial<Record<Workplace, keyof typeof DEFAULT_SHARES>> = {
@@ -228,18 +268,47 @@ const SHARE_OF: Partial<Record<Workplace, keyof typeof DEFAULT_SHARES>> = {
  * instead of both drawing the same village list in the same proportions.
  * Weights within a class keep their relative sizes.
  */
-function weighted(pool: readonly Livelihood[], s: WorldSetting) {
-  const shares = subsistenceFor(s)?.shares ?? DEFAULT_SHARES;
+function weighted(
+  pool: readonly Livelihood[],
+  s: WorldSetting,
+  capabilities: ReadonlySet<SocietyCapability>,
+) {
+  let shares = subsistenceFor(s, capabilities)?.shares ?? DEFAULT_SHARES;
+  // A regional mix describes the countryside. A town lives off the country
+  // around it rather than off its own fields, so most of its work is not
+  // food production however much farming the region does.
+  if (s.settlement === "city" || s.settlement === "port") {
+    const keep = 0.15;
+    const food = shares.farming + shares.herding + shares.fishing + shares.foraging;
+    const scale = food > 0 ? (food * keep) / food : 0;
+    shares = {
+      farming: shares.farming * scale,
+      herding: shares.herding * scale,
+      fishing: shares.fishing * scale,
+      foraging: shares.foraging * scale,
+      other: shares.other + food * (1 - scale),
+    };
+  }
   const classOf = (l: Livelihood) =>
     SHARE_OF[l.workplace ?? workplaceFor(l.activity)] ?? "other";
+  /* A village craft and a factory job are not equally likely in an
+   * industrialising town: the older stratum thins as the newer one arrives,
+   * and there are more old roles in the table than new ones, so without this
+   * the nineteenth century still came out mostly medieval. */
+  const era = (l: Livelihood) =>
+    l.tier === "village-craft" && tierApplies("industrial", s, capabilities)
+      ? 0.25
+      : l.tier === "prehistoric" && capabilities.has("settled_agriculture")
+        ? 0.5
+        : 1;
   const mass = new Map<string, number>();
   for (const l of pool)
-    mass.set(classOf(l), (mass.get(classOf(l)) ?? 0) + (l.weight ?? 1));
+    mass.set(classOf(l), (mass.get(classOf(l)) ?? 0) + (l.weight ?? 1) * era(l));
   return pool.map((l) => {
     const c = classOf(l);
     const total = mass.get(c) || 1;
     // Share of the settlement for this class, split by weight within it.
-    return { ...l, weight: (shares[c] * (l.weight ?? 1) * 100) / total };
+    return { ...l, weight: (shares[c] * (l.weight ?? 1) * era(l) * 100) / total };
   });
 }
 /** Everything about a livelihood that depends on where and when it is. */
@@ -379,6 +448,7 @@ export function resolveCharacterContext(
         ...tiered,
       ]),
       s,
+      capabilities,
     ),
     notes: [
       profile.note,

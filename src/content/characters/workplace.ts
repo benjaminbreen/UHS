@@ -43,6 +43,7 @@ const byActivity: Record<string, Workplace> = {
   "Exchanging goods": "market",
   "Keeping the house": "market",
   "At the rite": "civic",
+  "Playing and telling": "civic",
   "Keeping the record": "civic",
   "Standing watch": "civic",
   "Tending the sick": "civic",

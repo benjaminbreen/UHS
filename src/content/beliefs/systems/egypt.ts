@@ -23,6 +23,12 @@ export const egypt: readonly BeliefSystem[] = [
         rank: "major",
       },
       {
+        name: "Anubis",
+        wiki: "https://en.wikipedia.org/wiki/Anubis",
+        domain: "embalming, cemeteries, passage of the dead",
+        rank: "major",
+      },
+      {
         name: "Isis",
         wiki: "https://en.wikipedia.org/wiki/Isis",
         domain: "healing, protection, mourning",
@@ -101,7 +107,7 @@ export const egypt: readonly BeliefSystem[] = [
     evidence: {
       status: "documented",
       claim:
-        "Amun-Ra's paramount position in the New Kingdom, the Osiris-Isis-Horus grouping, and household devotion to Bes, Taweret and the ancestors are well attested in temple and settlement evidence, including Deir el-Medina.",
+        "Amun-Ra's paramount position in the New Kingdom, the Osiris-Isis-Horus grouping, Anubis's funerary role, and household devotion to Bes, Taweret and the ancestors are well attested in temple and settlement evidence, including Deir el-Medina.",
       sources: [
         "Assmann, The Search for God in Ancient Egypt",
         "Baines, 'Practical Religion and Piety'",

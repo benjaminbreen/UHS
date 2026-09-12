@@ -595,6 +595,59 @@
         "water": 1,
         "tool": 1
       }
+    },
+    "portering": {
+      "activity": "Carrying a load",
+      "inventory": {
+        "water": 1
+      }
+    },
+    "warfare": {
+      "activity": "Standing watch",
+      "inventory": {
+        "water": 1,
+        "tool": 1
+      }
+    },
+    "watch": {
+      "activity": "Standing watch",
+      "inventory": {
+        "water": 1,
+        "tool": 1
+      }
+    },
+    "authority": {
+      "activity": "Keeping the record",
+      "inventory": {
+        "water": 1
+      }
+    },
+    "performance": {
+      "activity": "Playing and telling",
+      "inventory": {
+        "water": 1
+      }
+    },
+    "craft": {
+      "activity": "Household craft work",
+      "inventory": {
+        "water": 1,
+        "tool": 1
+      }
+    },
+    "extraction": {
+      "activity": "Working the salt",
+      "inventory": {
+        "water": 1,
+        "tool": 1
+      }
+    },
+    "baking": {
+      "activity": "Working the grain",
+      "inventory": {
+        "water": 1,
+        "bread": 2
+      }
     }
   }
 }

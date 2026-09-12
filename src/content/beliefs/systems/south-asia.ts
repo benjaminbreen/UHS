@@ -540,6 +540,20 @@ export const southAsia: readonly BeliefSystem[] = [
         relations: [{ kind: "consort-of", of: "Shiva" }],
       },
       {
+        name: "Durga",
+        wiki: "https://en.wikipedia.org/wiki/Durga",
+        domain: "protective power, victory over disorder",
+        rank: "major",
+        relations: [{ kind: "aspect-of", of: "Devi/Shakti" }],
+      },
+      {
+        name: "Lakshmi",
+        wiki: "https://en.wikipedia.org/wiki/Lakshmi",
+        domain: "prosperity, good fortune, abundance",
+        rank: "major",
+        relations: [{ kind: "consort-of", of: "Vishnu" }],
+      },
+      {
         name: "Brahma",
         wiki: "https://en.wikipedia.org/wiki/Brahma",
         domain: "creation, less worshipped in practice",
@@ -582,7 +596,7 @@ export const southAsia: readonly BeliefSystem[] = [
     evidence: {
       status: "documented",
       claim:
-        "Temple inscriptions and the Puranas confirm the rise of Vishnu and Shiva as paramount, Devi as powerful, and Ganesha as a household protector; puja and festival practice are well attested.",
+        "Temple inscriptions and the Puranas confirm the rise of Vishnu and Shiva as paramount, Devi and Durga as powerful protectors, Lakshmi as a focus of prosperity, and Ganesha as a household guardian; puja and festival practice are well attested.",
       sources: [
         "Doniger, The Hindus: An Alternative History",
         "Pollock, The Language of the Gods in the World of Men",

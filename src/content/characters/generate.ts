@@ -8,6 +8,7 @@ import type { Inventory } from "../../core/types";
 import type { WorldSetting } from "../geography/types";
 import {
   characterCommunity,
+  characterStanding,
   resolveCharacterContext,
   type CharacterContext,
 } from "./resolve";
@@ -168,6 +169,7 @@ export function characterLivelihood(
   requested?: string,
   context = resolveCharacterContext(s),
   sex: Sex = "unspecified",
+  standing: "free" | "unfree" = "free",
 ) {
   const alias: Record<string, string> = {
     forager: "gatherer",
@@ -201,9 +203,14 @@ export function characterLivelihood(
     sex === "unspecified"
       ? context.livelihoods
       : context.livelihoods.filter((l) => !l.sex || l.sex === sex);
+  // Work marked unfree is only for those held in bondage, and someone in
+  // bondage does that work rather than choosing a trade.
+  const byStanding = (open.length ? open : context.livelihoods).filter((l) =>
+    standing === "unfree" ? l.standing === "unfree" : l.standing !== "unfree",
+  );
   // A society whose record does not name an officiant offers no religious
   // office at all, rather than a generic priest.
-  const withBeliefs = (open.length ? open : context.livelihoods).flatMap(
+  const withBeliefs = (byStanding.length ? byStanding : open).flatMap(
     (l) => {
       const resolved = asOfficiant(l, s, seed, id);
       return resolved ? [resolved] : [];
@@ -271,7 +278,9 @@ export function generateCharacter(
 ) {
   // Where a plural population is authored, each person draws their own
   // community, so the appearance palette and the naming kit stay in step.
-  const context = resolveCharacterContext(s, characterCommunity(s, seed, id));
+  const community = characterCommunity(s, seed, id);
+  const context = resolveCharacterContext(s, community);
+  const standing = characterStanding(s, seed, id, community);
   // The hand-written kits are not split by gender yet, so a drawn sex would
   // contradict the name half the time. Ported traditions are split.
   const drawn: Sex = context.names ? "unspecified" : sex;
@@ -291,6 +300,7 @@ export function generateCharacter(
     requestedRole,
     context,
     drawn,
+    standing,
   );
   const recognized =
     !requestedRole ||
@@ -331,6 +341,7 @@ export function generateCharacter(
       nameTradition: "tradition" in naming ? naming.tradition : undefined,
       nameRegion: "region" in naming ? naming.region : undefined,
       sex: drawn,
+      standing,
       nameFormat:
         explicitName && explicitName !== naming.display
           ? "custom"
@@ -338,6 +349,7 @@ export function generateCharacter(
       nameFamilies:
         explicitName && explicitName !== naming.display ? [] : naming.families,
       livelihood: livelihood.id,
+      roleLabel: livelihood.label,
       notes: [
         ...context.notes,
         ...("note" in naming && naming.note ? [naming.note] : []),

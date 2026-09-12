@@ -70,17 +70,21 @@ export function officiantFor(
       // A reconstructed name carries an asterisk and a concept carries an
       // article; "Priest of *Ilma" and "Priest of The market" both read as
       // mistakes, so only a plainly named power takes a dedication.
-      !p.name.startsWith("*") &&
       !/^the\b/i.test(p.name),
   );
   // A pantheon is what gets divided between priesthoods, so a handful of
   // powers at this rank is the test -- except at the top, where there is
   // usually exactly one and serving it is the whole office.
-  const enough = chosen.serves === "paramount" ? 1 : 4;
+  const enough = chosen.serves === "paramount" ? 1 : 2;
   if (!chosen.serves || UNDEDICATED.test(chosen.label) || powers.length < enough)
     return { label: chosen.label, tier: chosen.tier };
   const power = powers[Math.floor(random(seed, "character-v1", id, "power") * powers.length)];
-  return { label: `${chosen.label} of ${power.name}`, tier: chosen.tier };
+  // The asterisk marks a reconstructed form for the reader of a glossary; in
+  // a person's title it just looks like a typo.
+  return {
+    label: `${chosen.label} of ${power.name.replace(/^\*/, "")}`,
+    tier: chosen.tier,
+  };
 }
 
 /** Replace a belief-driven row with the office this place actually has. */

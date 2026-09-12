@@ -155,7 +155,13 @@ export type Livelihood = {
    * begins and ends is `years`, which used to be buried in here and meant the
    * catalogue was identical from 3000 BCE to 1600 CE.
    */
-  tier?: "prehistoric" | "village" | "town" | "industrial" | "modern";
+  tier?:
+    | "prehistoric"
+    | "village"
+    | "village-craft"
+    | "town"
+    | "industrial"
+    | "modern";
   /** When this work exists at all. Half-open, astronomical years. */
   years?: readonly [number, number];
   /** Where, when the work is local to a region. [W, S, E, N]. */
@@ -188,5 +194,11 @@ export type Livelihood = {
   withoutCapability?: readonly SocietyCapability[];
   /** Work done overwhelmingly by one sex where that is documented. */
   sex?: "male" | "female";
+  /**
+   * Who does this work. Absent means anyone. `unfree` marks work that was
+   * done by people held in bondage, which is not a separate set of trades so
+   * much as the same fields and households worked under compulsion.
+   */
+  standing?: "free" | "unfree";
   inventory: Inventory;
 };

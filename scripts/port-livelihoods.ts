@@ -234,6 +234,17 @@ writeFileSync(
     `\n];\n`,
 );
 
+/* A village-tier role that does not produce food is a pre-industrial craft and
+ * should not outlive industry; one that does keeps going. */
+const FOOD_ACTIVITY = new Set([
+  "Tending cultivation", "Bringing in the crop", "Working the smallholding",
+  "Working the grain", "Tending animals", "Working near water",
+  "Working the water", "Gathering plants", "Looking for game",
+]);
+for (const r of roles.values())
+  if (r.tier === "village" && !FOOD_ACTIVITY.has(r.activity))
+    r.tier = "village-craft";
+
 writeFileSync(
   "src/content/characters/livelihoods.generated.ts",
   header +
@@ -256,7 +267,8 @@ writeFileSync(
         (sc?.minPopulation ? `    minPopulation: ${sc.minPopulation},\n` : "") +
         (sc?.weight ? `    weight: ${sc.weight},\n` : "") +
         (sc?.workplace ? `    workplace: ${JSON.stringify(sc.workplace)},\n` : "") +
-        (sc?.fromBeliefs ? `    fromBeliefs: true,\n` : ""))(
+        (sc?.fromBeliefs ? `    fromBeliefs: true,\n` : "") +
+        (sc?.standing ? `    standing: ${JSON.stringify(sc.standing)},\n` : ""))(
         scopes[r.id],
         scopes[r.id]?.years ?? tierDates[r.tier],
       ) +

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import unicodedata
 from collections import deque
 from pathlib import Path
 
@@ -99,6 +100,69 @@ SHEETS = [
             ("tezcatlipoca", "Tezcatlipoca"),
             ("viracocha", "Viracocha"),
             ("tangaroa", "Tangaroa"),
+        ],
+    ),
+    (
+        "named-deities-04.png",
+        [
+            ("horus", "Horus"),
+            ("ptah", "Ptah"),
+            ("thoth", "Thoth"),
+            ("hera", "Hera"),
+            ("poseidon", "Poseidon"),
+            ("ares", "Ares"),
+            ("aphrodite", "Aphrodite"),
+            ("hephaestus", "Hephaestus"),
+            ("hermes", "Hermes"),
+            ("jupiter", "Jupiter"),
+            ("juno", "Juno"),
+            ("mars", "Mars"),
+            ("minerva", "Minerva"),
+            ("neptune", "Neptune"),
+            ("diana", "Diana"),
+            ("vesta", "Vesta"),
+        ],
+    ),
+    (
+        "named-deities-05.png",
+        [
+            ("ahura-mazda", "Ahura Mazda"),
+            ("mithra", "Mithra"),
+            ("anahita", "Anahita"),
+            ("angra-mainyu", "Angra Mainyu"),
+            ("tengri", "Tengri"),
+            ("etugen", "Etügen"),
+            ("umai", "Umai"),
+            ("erlik", "Erlik"),
+            ("pachamama", "Pachamama"),
+            ("illapa", "Illapa"),
+            ("mama-quilla", "Mama Quilla"),
+            ("mama-cocha", "Mama Cocha"),
+            ("kinich-ajaw", "K'inich Ajaw"),
+            ("itzamna", "Itzamna"),
+            ("chaac", "Chaac"),
+            ("cocijo", "Cocijo"),
+        ],
+    ),
+    (
+        "named-deities-06.png",
+        [
+            ("olorun", "Olorun"),
+            ("orunmila", "Orunmila"),
+            ("yemoja", "Yemoja"),
+            ("eshu-eleggua", "Eshu/Eleggua"),
+            ("rangi", "Rangi"),
+            ("papa", "Papa"),
+            ("tane", "Tāne"),
+            ("rongo", "Rongo"),
+            ("krishna", "Krishna"),
+            ("parvati", "Parvati"),
+            ("murugan", "Murugan"),
+            ("brahma", "Brahma"),
+            ("lugus", "Lugus"),
+            ("taranis", "Taranis"),
+            ("epona", "Epona"),
+            ("brigantia", "Brigantia"),
         ],
     ),
 ]
@@ -295,10 +359,15 @@ def main() -> None:
         x, y = column * cell_width, row * cell_height
         enlarged = sprite.resize((96, 96), Image.Resampling.NEAREST)
         proof.paste(enlarged, (x + 24, y + 2), enlarged)
-        text_box = draw.textbbox((0, 0), label, font=font)
+        proof_label = (
+            unicodedata.normalize("NFKD", label)
+            .encode("ascii", "ignore")
+            .decode()
+        )
+        text_box = draw.textbbox((0, 0), proof_label, font=font)
         text_width = text_box[2] - text_box[0]
         draw.rectangle((x, y + 98, x + cell_width - 1, y + cell_height - 1), fill=(8, 18, 35))
-        draw.text((x + (cell_width - text_width) // 2, y + 101), label, font=font, fill=(247, 234, 190))
+        draw.text((x + (cell_width - text_width) // 2, y + 101), proof_label, font=font, fill=(247, 234, 190))
     proof.save(ASSET_ROOT / "proof.png", optimize=True)
     print(f"Wrote {len(sprites)} icons, {atlas.size[0]}x{atlas.size[1]} atlas, and transparency proof")
 

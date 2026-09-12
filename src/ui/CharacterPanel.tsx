@@ -267,6 +267,9 @@ export function CharacterPanel({
   const livelihood = actor.origin
     ? livelihoodById(actor.origin.livelihood)
     : undefined;
+  // A religious office is named for the belief system in force, so the drawn
+  // title is on the actor, not on the table row its id points at.
+  const roleLabel = actor.origin?.roleLabel ?? livelihood?.label ?? actor.role;
   const sex = actor.origin?.sex ?? sexFromName(actor.name);
   const they = sex === "female" ? "She" : sex === "male" ? "He" : "They";
   const members = (actor.relations ?? [])
@@ -401,7 +404,7 @@ export function CharacterPanel({
             </h1>
             <p className="summary">
               {[
-                livelihood?.label ?? actor.role,
+                roleLabel,
                 actor.origin?.community,
                 household && `household of ${household.members.length}`,
               ]
@@ -486,10 +489,11 @@ export function CharacterPanel({
                         {person!.name}
                         <small>
                           {relation} ·{" "}
-                          {person!.origin
-                            ? (livelihoodById(person!.origin.livelihood)
-                                ?.label ?? person!.role)
-                            : person!.role}
+                          {person!.origin?.roleLabel ??
+                            (person!.origin
+                              ? (livelihoodById(person!.origin.livelihood)
+                                  ?.label ?? person!.role)
+                              : person!.role)}
                         </small>
                       </span>
                       <b className="dots" aria-hidden="true">

@@ -93,19 +93,34 @@
         -5000,
         1900
       ],
-      "why": "Hand threshing with a flail ends with the threshing machine."
+      "why": "Hand threshing with a flail ends with the threshing machine. Hand threshing with a flail ends with the threshing machine."
     },
     "ploughman": {
-      "weight": 12
+      "weight": 12,
+      "years": [
+        -1000,
+        1950
+      ],
+      "why": "Ends with the tractor."
     },
     "cottager": {
-      "weight": 8
+      "weight": 8,
+      "years": [
+        1200,
+        1900
+      ],
+      "why": "A tenure of cottage and common rights, ended by enclosure and the wage."
     },
     "crofter": {
       "weight": 8
     },
     "shepherd": {
-      "weight": 14
+      "weight": 14,
+      "years": [
+        -8000,
+        1960
+      ],
+      "why": "Shepherding survives in hill country but stops being an ordinary village job."
     },
     "herder": {
       "weight": 14
@@ -114,16 +129,36 @@
       "weight": 14
     },
     "goatherd": {
-      "weight": 12
+      "weight": 12,
+      "years": [
+        -8000,
+        1950
+      ],
+      "why": "Goat keeping continues; the standing village office does not."
     },
     "swineherd": {
-      "weight": 8
+      "weight": 8,
+      "years": [
+        -3000,
+        1900
+      ],
+      "why": "Pig keeping continues; the word and the job as a separate village office do not."
     },
     "dairymaid": {
-      "weight": 6
+      "weight": 6,
+      "years": [
+        1200,
+        1950
+      ],
+      "why": "Hand milking as a named household office."
     },
     "milkmaid": {
-      "weight": 6
+      "weight": 6,
+      "years": [
+        1200,
+        1950
+      ],
+      "why": "As dairymaid."
     },
     "pig-keeper": {
       "weight": 8
@@ -183,9 +218,9 @@
       "weight": 22,
       "years": [
         700,
-        10001
+        1960
       ],
-      "why": "An Arabic term for a peasant cultivator; it belongs to the Islamic-era countryside, not the Neolithic."
+      "why": "An Arabic term for a peasant cultivator; it belongs to the Islamic-era countryside, not the Neolithic. An Ottoman and colonial-era term for the Egyptian peasantry."
     },
     "market-gardener": {
       "weight": 8,
@@ -199,9 +234,9 @@
       "weight": 8,
       "years": [
         -800,
-        10001
+        1900
       ],
-      "why": "Viticulture spreads with the Mediterranean world."
+      "why": "Viticulture spreads with the Mediterranean world. Viticulture continues under other names and arrangements."
     },
     "canoe-builder": {
       "weight": 4
@@ -625,6 +660,13 @@
         1950
       ],
       "why": "Ends with electric street lighting."
+    },
+    "thatcher": {
+      "years": [
+        -3000,
+        1900
+      ],
+      "why": "Survives as a heritage trade rather than ordinary work."
     }
   },
   "extraRoles": {
@@ -778,6 +820,449 @@
       "weight": 12,
       "fromBeliefs": true,
       "why": "One row standing for every officiant. The label and its rarity come from the belief system in force here, so Egypt yields a priest of Amun-Ra and 17th-century Germany a Lutheran minister. Societies whose record does not name an officiant produce none."
+    },
+    "field-slave": {
+      "label": "Field hand",
+      "keyword": "agriculture",
+      "tier": "village",
+      "weight": 30,
+      "standing": "unfree",
+      "why": "Gang labour on the land, the commonest condition of enslaved people in the plantation Americas and a large part of estate agriculture in the classical world. Bounded south of the manorial north, where unfree field labour was villeinage rather than chattel slavery.",
+      "bounds": [
+        -100,
+        -35,
+        60,
+        45
+      ]
+    },
+    "household-slave": {
+      "label": "Household servant",
+      "keyword": "household",
+      "tier": "village",
+      "weight": 14,
+      "standing": "unfree",
+      "why": "Domestic bondage: cooking, carrying, minding children, attending a household's members.",
+      "bounds": [
+        -100,
+        -35,
+        100,
+        45
+      ]
+    },
+    "bound-labourer": {
+      "label": "Bound labourer",
+      "keyword": "portering",
+      "tier": "village",
+      "weight": 10,
+      "standing": "unfree",
+      "why": "Carrying, hauling and building under compulsion, in mines, on docks and at public works."
+    },
+    "bondservant": {
+      "label": "Bondservant",
+      "keyword": "household",
+      "tier": "village",
+      "weight": 8,
+      "standing": "unfree",
+      "years": [
+        1600,
+        1800
+      ],
+      "why": "Indenture: bound for a term of years rather than for life, and most of the early English colonial labour force."
+    },
+    "villein": {
+      "label": "Villein",
+      "keyword": "agriculture",
+      "tier": "village",
+      "weight": 26,
+      "standing": "unfree",
+      "years": [
+        900,
+        1500
+      ],
+      "bounds": [
+        -5,
+        43,
+        30,
+        56
+      ],
+      "why": "Bound to the manor and owing labour services on the lord's demesne, as against owned outright."
+    },
+    "serf": {
+      "label": "Serf",
+      "keyword": "agriculture",
+      "tier": "village",
+      "weight": 26,
+      "standing": "unfree",
+      "years": [
+        1500,
+        1861
+      ],
+      "bounds": [
+        22,
+        44,
+        65,
+        66
+      ],
+      "why": "Russian serfdom, which by the eighteenth century allowed sale apart from the land."
+    },
+    "warrior": {
+      "label": "Warrior",
+      "keyword": "warfare",
+      "tier": "village",
+      "weight": 10,
+      "sex": "male",
+      "why": "Fighting as what a man of standing does, rather than as paid service. Ungated: it needs no state to retain him."
+    },
+    "retainer": {
+      "label": "Retainer",
+      "keyword": "warfare",
+      "tier": "village",
+      "weight": 8,
+      "sex": "male",
+      "capabilities": [
+        "retained_military_service"
+      ],
+      "why": "Kept in arms by a lord or a state. The capability was dated for every culture and gated nothing at all."
+    },
+    "town-watchman": {
+      "label": "Watchman",
+      "keyword": "watch",
+      "tier": "town",
+      "weight": 6,
+      "capabilities": [
+        "urban_settlement"
+      ],
+      "years": [
+        -1000,
+        10001
+      ],
+      "why": "A town watch is as old as towns; the only watch roles were modern-tier."
+    },
+    "gate-keeper": {
+      "label": "Gate Keeper",
+      "keyword": "watch",
+      "tier": "town",
+      "weight": 4,
+      "capabilities": [
+        "urban_settlement"
+      ],
+      "why": "Keeping and closing the gate, which is a named office in most walled towns."
+    },
+    "armourer": {
+      "label": "Armourer",
+      "keyword": "metalwork",
+      "tier": "village-craft",
+      "weight": 4,
+      "capabilities": [
+        "metallurgy"
+      ],
+      "why": "Making and mending arms and armour."
+    },
+    "fletcher": {
+      "label": "Fletcher",
+      "keyword": "woodwork",
+      "tier": "village-craft",
+      "weight": 4,
+      "why": "Making arrows, which is separate work from making the bow."
+    },
+    "apprentice": {
+      "label": "Apprentice",
+      "keyword": "craft",
+      "tier": "town",
+      "weight": 10,
+      "capabilities": [
+        "guild_apprenticeship"
+      ],
+      "why": "Bound to a master for a term of years. The capability existed and gated nothing, so no town had apprentices."
+    },
+    "journeyman": {
+      "label": "Journeyman",
+      "keyword": "craft",
+      "tier": "town",
+      "weight": 8,
+      "capabilities": [
+        "guild_apprenticeship"
+      ],
+      "why": "Out of apprenticeship, working for wages, not yet a master."
+    },
+    "guild-master": {
+      "label": "Guild Master",
+      "keyword": "craft",
+      "tier": "town",
+      "weight": 3,
+      "capabilities": [
+        "guilds"
+      ],
+      "why": "Holding the freedom of a craft and the right to take apprentices."
+    },
+    "money-changer": {
+      "label": "Money Changer",
+      "keyword": "trade",
+      "tier": "town",
+      "weight": 4,
+      "capabilities": [
+        "coinage"
+      ],
+      "why": "Coinage was dated per culture and gated nothing; a place with coin needs someone who knows what it is worth."
+    },
+    "headman": {
+      "label": "Headman",
+      "keyword": "authority",
+      "tier": "village",
+      "weight": 5,
+      "why": "Speaking for a settlement to whoever is above it, which every settlement needs and none had."
+    },
+    "village-elder": {
+      "label": "Village Elder",
+      "keyword": "authority",
+      "tier": "village",
+      "weight": 8,
+      "why": "Settling disputes and remembering what was agreed."
+    },
+    "tax-collector": {
+      "label": "Tax Collector",
+      "keyword": "authority",
+      "tier": "town",
+      "weight": 3,
+      "capabilities": [
+        "writing"
+      ],
+      "why": "The oldest use writing is put to."
+    },
+    "toll-keeper": {
+      "label": "Toll Keeper",
+      "keyword": "authority",
+      "tier": "town",
+      "weight": 3,
+      "capabilities": [
+        "market_exchange"
+      ],
+      "why": "Taking the toll at a bridge, a gate or a ford."
+    },
+    "musician": {
+      "label": "Musician",
+      "keyword": "performance",
+      "tier": "village",
+      "weight": 6,
+      "why": "There was no music, dance or storytelling anywhere in the table, in any era."
+    },
+    "storyteller": {
+      "label": "Storyteller",
+      "keyword": "performance",
+      "tier": "village",
+      "weight": 6,
+      "why": "Holding what a community knows about itself, which in a society without writing is an office."
+    },
+    "carver": {
+      "label": "Carver",
+      "keyword": "woodwork",
+      "tier": "village-craft",
+      "weight": 6,
+      "why": "Wood, bone and stone carving, the core craft of several regions the game covers."
+    },
+    "boatwright": {
+      "label": "Boatwright",
+      "keyword": "woodwork",
+      "tier": "village",
+      "weight": 6,
+      "needs": [
+        "water"
+      ],
+      "years": [
+        -5000,
+        10001
+      ],
+      "why": "Building and mending boats, which every water-side settlement needs and none could staff."
+    },
+    "salt-panner": {
+      "label": "Salt Panner",
+      "keyword": "extraction",
+      "tier": "village",
+      "weight": 4,
+      "needs": [
+        "water"
+      ],
+      "why": "Evaporating sea water, distinct from mining rock salt."
+    },
+    "shopkeeper": {
+      "label": "Shopkeeper",
+      "keyword": "trade",
+      "tier": "town",
+      "weight": 10,
+      "years": [
+        1500,
+        10001
+      ],
+      "why": "A fixed shop rather than a stall, which is what a high street is made of and what the table had none of."
+    },
+    "grocer": {
+      "label": "Grocer",
+      "keyword": "trade",
+      "tier": "town",
+      "weight": 8,
+      "years": [
+        1600,
+        10001
+      ]
+    },
+    "confectioner": {
+      "label": "Confectioner",
+      "keyword": "baking",
+      "tier": "town",
+      "weight": 4,
+      "years": [
+        1700,
+        10001
+      ],
+      "why": "A pastry and sweet shop, distinct from the bread baker."
+    },
+    "dressmaker": {
+      "label": "Dressmaker",
+      "keyword": "textiles",
+      "tier": "town",
+      "weight": 8,
+      "sex": "female",
+      "years": [
+        1700,
+        10001
+      ]
+    },
+    "milliner": {
+      "label": "Milliner",
+      "keyword": "textiles",
+      "tier": "town",
+      "weight": 5,
+      "sex": "female",
+      "years": [
+        1700,
+        10001
+      ]
+    },
+    "clerk": {
+      "label": "Clerk",
+      "keyword": "authority",
+      "tier": "town",
+      "weight": 10,
+      "capabilities": [
+        "writing"
+      ],
+      "years": [
+        1500,
+        10001
+      ],
+      "why": "Keeping books and correspondence for a merchant, a bank or an office: the commonest town job of the nineteenth century and absent entirely."
+    },
+    "bank-clerk": {
+      "label": "Bank Clerk",
+      "keyword": "authority",
+      "tier": "town",
+      "weight": 5,
+      "capabilities": [
+        "coinage"
+      ],
+      "years": [
+        1700,
+        10001
+      ]
+    },
+    "printer": {
+      "label": "Printer",
+      "keyword": "craft",
+      "tier": "town",
+      "weight": 5,
+      "capabilities": [
+        "writing"
+      ],
+      "years": [
+        1470,
+        10001
+      ],
+      "why": "From the spread of the press."
+    },
+    "schoolteacher": {
+      "label": "Schoolteacher",
+      "keyword": "authority",
+      "tier": "town",
+      "weight": 8,
+      "capabilities": [
+        "writing"
+      ],
+      "years": [
+        1600,
+        10001
+      ]
+    },
+    "postman": {
+      "label": "Postman",
+      "keyword": "portering",
+      "tier": "town",
+      "weight": 6,
+      "years": [
+        1700,
+        10001
+      ]
+    },
+    "policeman": {
+      "label": "Policeman",
+      "keyword": "watch",
+      "tier": "town",
+      "weight": 6,
+      "years": [
+        1820,
+        10001
+      ],
+      "why": "A uniformed civil police, as against a town watch."
+    },
+    "lamplighter": {
+      "label": "Lamplighter",
+      "keyword": "watch",
+      "tier": "town",
+      "weight": 4,
+      "years": [
+        1800,
+        1950
+      ],
+      "why": "Lighting and dousing the street lamps, until electricity."
+    },
+    "stationmaster": {
+      "label": "Stationmaster",
+      "keyword": "authority",
+      "tier": "town",
+      "weight": 3,
+      "years": [
+        1840,
+        10001
+      ]
+    },
+    "cabinetmaker": {
+      "label": "Cabinetmaker",
+      "keyword": "woodwork",
+      "tier": "town",
+      "weight": 5,
+      "years": [
+        1600,
+        10001
+      ]
+    },
+    "watchmaker": {
+      "label": "Watchmaker",
+      "keyword": "craft",
+      "tier": "town",
+      "weight": 3,
+      "years": [
+        1600,
+        10001
+      ]
+    },
+    "pharmacist": {
+      "label": "Pharmacist",
+      "keyword": "medicine",
+      "tier": "town",
+      "weight": 4,
+      "years": [
+        1600,
+        10001
+      ]
     }
   }
 }

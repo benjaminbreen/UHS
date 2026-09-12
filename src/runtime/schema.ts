@@ -200,6 +200,9 @@ const actor = z.object({
       nameTradition: z.string().optional(),
       nameRegion: z.string().optional(),
       sex: z.enum(["unspecified", "male", "female"]).optional(),
+      standing: z.enum(["free", "unfree"]).optional(),
+      /** The title as drawn: a belief-driven office resolves per person. */
+      roleLabel: z.string().optional(),
       nameFormat: z.string().optional(),
       nameFamilies: z.array(z.string()).optional(),
       livelihood: z.string(),

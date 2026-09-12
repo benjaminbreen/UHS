@@ -547,6 +547,13 @@ export const eastAsia: readonly BeliefSystem[] = [
         rank: "major",
       },
       {
+        name: "Jade Emperor",
+        wiki: "https://en.wikipedia.org/wiki/Jade_Emperor",
+        domain: "the celestial bureaucracy, judgment and order",
+        rank: "major",
+        relations: [{ kind: "serves", of: "Heaven" }],
+      },
+      {
         name: "City god",
         wiki: "https://en.wikipedia.org/wiki/Chenghuangshen",
         domain: "order, moral accounting, justice",
@@ -602,7 +609,7 @@ export const eastAsia: readonly BeliefSystem[] = [
     evidence: {
       status: "documented",
       claim:
-        "Ming household manuals, temple records, and tomb art show the coexistence of ancestral veneration, popular deities (Guanyin, Mazu, kitchen god, city god), and Daoist-Buddhist rites in both urban and rural homes.",
+        "Ming household manuals, temple records, and tomb art show the coexistence of ancestral veneration, the Jade Emperor's celestial administration, popular deities such as Guanyin, Mazu, the kitchen god and the city god, and Daoist-Buddhist rites in both urban and rural homes.",
       sources: [
         "Fabrizio, 'The Cult of the Kitchen God'",
         "Brook, The Confusions of Pleasure",
@@ -821,6 +828,12 @@ export const eastAsia: readonly BeliefSystem[] = [
         rank: "paramount",
       },
       {
+        name: "Hachiman",
+        wiki: "https://en.wikipedia.org/wiki/Hachiman",
+        domain: "warriors, protection, the realm",
+        rank: "major",
+      },
+      {
         name: "Local kami",
         domain: "shrine, mountain, river, place",
         rank: "major",
@@ -868,7 +881,7 @@ export const eastAsia: readonly BeliefSystem[] = [
     evidence: {
       status: "documented",
       claim:
-        "Heian court records and temple documents show Shinto-Buddhist syncretism at both institutional and household levels; shrine records show Buddhist monks officiating at kami festivals.",
+        "Heian court records and temple documents show Shinto-Buddhist syncretism at both institutional and household levels, including Hachiman's recognition as a Buddhist protector; shrine records show Buddhist monks officiating at kami festivals.",
       sources: [
         "Adolphson, The Gates of Power",
         "Tyler, Japanese No Dramas",

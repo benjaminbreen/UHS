@@ -310,6 +310,19 @@ export const european: readonly BeliefSystem[] = [
         relations: [{ kind: "child-of", of: "Zeus" }],
       },
       {
+        name: "Demeter",
+        wiki: "https://en.wikipedia.org/wiki/Demeter",
+        domain: "grain, harvest, the Eleusinian mysteries",
+        rank: "major",
+      },
+      {
+        name: "Dionysus",
+        wiki: "https://en.wikipedia.org/wiki/Dionysus",
+        domain: "wine, ecstasy, theatre",
+        rank: "major",
+        relations: [{ kind: "child-of", of: "Zeus" }],
+      },
+      {
         name: "Poseidon",
         wiki: "https://en.wikipedia.org/wiki/Poseidon",
         domain: "the sea, horses",
@@ -362,7 +375,7 @@ export const european: readonly BeliefSystem[] = [
     evidence: {
       status: "documented",
       claim:
-        "The 12 Olympians are well documented in Homer, inscriptions and archaeology; domestic household cult and the role of omens are confirmed by grave goods, shrines in homes, and literary sources.",
+        "The Olympian gods, including Demeter's mystery cult and the public festivals of Dionysus, are well documented in literature, inscriptions and archaeology; domestic household cult and the role of omens are confirmed by grave goods, shrines in homes, and literary sources.",
       sources: [
         "Burkert, Greek Religion",
         "Parker, Polytheism and Society in Classical Athens",
@@ -578,7 +591,7 @@ export const european: readonly BeliefSystem[] = [
   },
   {
     id: "celtic-britain",
-    label: "Iron Age British Celtic practice",
+    label: "Iron Age insular Celtic practice",
     wiki: "https://en.wikipedia.org/wiki/Ancient_Celtic_religion",
     scope: { years: [-100, 400], bounds: [-25, 40, 5, 72] },
     powers: [
@@ -600,6 +613,12 @@ export const european: readonly BeliefSystem[] = [
         domain: "the land, sovereignty, the tribe",
         rank: "major",
         relations: [{ kind: "consort-of", of: "Lugus" }],
+      },
+      {
+        name: "Brigid",
+        wiki: "https://en.wikipedia.org/wiki/Brigid",
+        domain: "poetry, healing, craft, the hearth",
+        rank: "major",
       },
       {
         name: "Nodens",
@@ -659,6 +678,7 @@ export const european: readonly BeliefSystem[] = [
       "Weapons, coins and treasures are thrown into rivers and wells for Nodens and Coventina.",
       "The sick bathe at Sulis's hot spring, leaving curses and thanks scratched on lead.",
       "Taranis is honoured with the wheel; Belatucadros and Cocidius are called on at frontier shrines.",
+      "In Ireland, Brigid is called on for healing, skilled work and the household fire.",
       "The Matres are carved in threes on household altars for fertility and protection.",
     ],
     specialist: "The druid or bard; the chieftain calls on Taranis and Lugus.",
@@ -667,14 +687,14 @@ export const european: readonly BeliefSystem[] = [
     evidence: {
       status: "documented",
       claim:
-        "Sulis at Bath, Coventina at Carrawburgh, Nodens at Lydney, Brigantia among the Brigantes, Belatucadros and Cocidius on the northern frontier, and Epona, Taranis, Lugus, Maponos and the Matres are all attested in British and neighbouring Romano-Celtic inscriptions and dedications.",
+        "Sulis at Bath, Coventina at Carrawburgh, Nodens at Lydney, Brigantia among the Brigantes, Belatucadros and Cocidius on the northern frontier, and Epona, Taranis, Lugus, Maponos and the Matres are attested in British and neighbouring Romano-Celtic inscriptions and dedications. Brigid is preserved in early medieval Irish tradition.",
       sources: [
         "Cunliffe, Iron Age Britain",
         "Green, Dictionary of Celtic Myth and Legend",
         "Ross, Pagan Celtic Britain",
       ],
       limitation:
-        "Most of these names survive on Roman-period altars and curse tablets, which may already show Roman influence on older British cults; pre-Roman belief cannot be reconstructed with the same confidence. Pairing Brigantia with Lugus follows the comparative Celtic argument that a land-sovereignty goddess marries the ruling god; no British source states the marriage directly.",
+        "Most British names survive on Roman-period altars and curse tablets, which may already show Roman influence on older cults; pre-Roman belief cannot be reconstructed with the same confidence. Brigid's pre-Christian cult is inferred from later Irish material rather than contemporary Iron Age evidence. Pairing Brigantia with Lugus follows the comparative Celtic argument that a land-sovereignty goddess marries the ruling god; no British source states the marriage directly.",
     },
   },
   {

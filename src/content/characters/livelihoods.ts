@@ -52,14 +52,14 @@ export const livelihoods: readonly Livelihood[] = [
   },
   {
     id: "craftsperson",
-    weight: 6,
+    weight: 1,
     label: "Craftsperson",
     activity: "Household craft work",
     inventory: { water: 2, wood: 2, tool: 1 },
   },
   {
     id: "trader",
-    weight: 3,
+    weight: 1,
     label: "Trader",
     activity: "Exchanging supplies",
     needs: ["settled"],

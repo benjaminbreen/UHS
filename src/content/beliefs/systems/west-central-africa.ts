@@ -332,6 +332,12 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
         rank: "major",
       },
       {
+        name: "Ogun",
+        wiki: "https://en.wikipedia.org/wiki/Ogun",
+        domain: "iron, smithing, war, the opened road",
+        rank: "major",
+      },
+      {
         name: "Oshun",
         wiki: "https://en.wikipedia.org/wiki/Oshun",
         domain: "rivers, fertility, beauty",
@@ -385,7 +391,7 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
     evidence: {
       status: "documented",
       claim:
-        "Orunmila's role in divination, Shango and Oshun's cult followings, household shrines to Eleggua and the ori are attested in twentieth-century Yoruba ethnography across Nigeria and in diaspora accounts from the Atlantic slave trade.",
+        "Orunmila's role in divination, the cults of Shango, Ogun and Oshun, and household shrines to Eleggua and the ori are attested in twentieth-century Yoruba ethnography across Nigeria and in diaspora accounts from the Atlantic slave trade.",
       sources: [
         "Awolalu, Yoruba Beliefs and Sacrificial Rites",
         "Bascom, Sixteen Cowries",

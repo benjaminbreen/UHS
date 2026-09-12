@@ -1,4 +1,4 @@
-import type { CharacterScope } from "../context-types";
+import type { CharacterScope, SocietyCapability } from "../context-types";
 
 /*
  * What a place lives on.
@@ -23,6 +23,8 @@ export type SubsistenceMix = {
   scope: CharacterScope;
   /** Higher wins where two cover the same place and date. */
   priority: number;
+  /** Only where the society could do these; a modern mix wants wage labour. */
+  requires?: readonly SocietyCapability[];
   shares: {
     /** Sown and reaped: workplace `field`. */
     farming: number;
@@ -165,5 +167,15 @@ export const subsistenceMixes: readonly SubsistenceMix[] = [
     shares: { farming: 0.36, herding: 0.04, fishing: 0.16, foraging: 0.22, other: 0.22 },
     sources: ["https://doi.org/10.1017/CBO9780511607219"],
     note: "Shifting cultivation of roots and bananas, with a large share of the diet still hunted, fished and gathered from the forest and the rivers.",
+  },
+  {
+    id: "subsistence.industrial",
+    label: "Industrial society",
+    scope: { years: [1850, 10001] },
+    priority: 6,
+    requires: ["wage_labor"],
+    shares: { farming: 0.12, herding: 0.03, fishing: 0.03, foraging: 0.01, other: 0.81 },
+    sources: ["https://doi.org/10.1017/CBO9781139034319"],
+    note: "Once most people work for wages, most work is not food production. Farming employs a tenth rather than half, and the rest of the settlement does everything else. Requires wage labour, so a village that has not industrialised keeps its own mix.",
   },
 ];

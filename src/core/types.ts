@@ -69,9 +69,12 @@ export type CharacterOrigin = {
   nameTradition?: string;
   nameRegion?: string;
   sex?: "unspecified" | "male" | "female";
+  standing?: "free" | "unfree";
   nameFormat?: string;
   nameFamilies?: string[];
   livelihood: string;
+  /** The title as drawn; a belief-driven office resolves per person. */
+  roleLabel?: string;
   notes: string[];
 };
 export type Actor = {
