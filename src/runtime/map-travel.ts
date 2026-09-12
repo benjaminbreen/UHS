@@ -137,7 +137,7 @@ export class MapTravel {
     )
       this.arrival = undefined;
     const nearest = this.entrances
-      .filter((e) => e.point && e.mode === "land" && e.id !== this.arrival?.id)
+      .filter((e) => e.point && e.walkable && e.id !== this.arrival?.id)
       .sort(
         (a, b) =>
           Math.hypot(p.x - a.point!.x, p.y - a.point!.y) -
@@ -173,9 +173,7 @@ export class MapTravel {
     const entrance = this.entrances
       .filter(
         (e) =>
-          e.point &&
-          e.mode === "land" &&
-          (e.seam?.side ?? e.bearing).includes(side),
+          e.point && e.walkable && (e.seam?.side ?? e.bearing).includes(side),
       )
       .sort(
         (a, b) =>
@@ -205,7 +203,7 @@ export class MapTravel {
         (e) =>
           e.point &&
           (outside
-            ? e.mode === "land" && (e.seam?.side ?? e.bearing).includes(side)
+            ? e.walkable && (e.seam?.side ?? e.bearing).includes(side)
             : e.shore &&
               Math.hypot(p.x - e.point.x, p.y - e.point.y) <= 2 &&
               this.runtime.engine.world.terrain(x, y) === "water"),
@@ -224,7 +222,7 @@ export class MapTravel {
       }
       return false;
     }
-    if (entrance.mode !== "land") {
+    if (!entrance.walkable) {
       this.runtime.notice = "You need a boat to continue from this shore.";
       return true;
     }
@@ -236,7 +234,7 @@ export class MapTravel {
     return true;
   }
   async cross(entrance: MapEntrance) {
-    if (this.busy || this.closed || !entrance.point || entrance.mode !== "land")
+    if (this.busy || this.closed || !entrance.point || !entrance.walkable)
       return;
     const exit = this.exits.find((e) => e.id === entrance.id);
     if (!exit) return;

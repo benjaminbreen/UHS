@@ -14,6 +14,28 @@ Open `/character-lab`, or use **Settings → Character lab · appearance & cloth
 
 Unrestricted lab combinations are visual studies, not claims of historically attested dress. Actors without an explicit appearance preserve their legacy complexion/clothing palette and resolve stable body, face, hair and wardrobe variation. Generic dated wardrobe kits in `src/content/characters/wardrobes.ts` provide silhouette defaults, not authenticated historical costume reconstructions. Explicit wardrobes take precedence. Existing generation inputs, eras and recorded world composition are not changed. Historical wardrobe selection remains a content-authoring task; the renderer does not branch on cultural families.
 
+## The character panel
+
+Clicking the sidebar portrait opens a profile for the player; clicking a person under **Around you** opens the same panel for them. `src/ui/CharacterPanel.tsx` renders three tabs — Profile, Household, Abilities — from data that already exists plus three derived functions. Nothing new is stored on an actor, so a village of four hundred residents costs nothing to give trades and temperaments.
+
+- **Stats** (`src/core/stats.ts`) roll from the seed and the actor id: strength, agility, endurance, wit and the five broad personality traits, all 0–100. Endurance was added after the first saves; those load with the mean of strength and agility rather than a fresh roll, which would move a known character.
+- **Disposition and standing** (`src/core/persona.ts`) are read off those stats. Disposition prefers a pair of traits over a single one. Standing is how the settlement holds someone — years in one place, diligence, household size — and is separate from `actor.trust`, which stays the player's own account of them.
+- **Abilities** (`src/content/characters/abilities.ts`) map the 138 livelihoods onto about twenty broad practices, ranked 1–3 from practice, the leaning stat and age. The generated livelihood list is not edited; matching is by id. One or two abilities outside the trade are drawn deterministically, so everyone knows a couple of ordinary things.
+- **Today** comes from the resident's existing routine (`dayPlan` in `src/core/itinerary.ts`). The routine walks the same circuit several times a day, so repeats collapse to one entry and the time shown is the nearest round. The player has no routine and sees recent events instead.
+- **Available** is the engine's own affordance list for that person, and disappears when they walk out of sight.
+
+These are playable derivations from generated data, not biography. `tests/persona.test.ts`, `tests/day-plan.test.ts` and `tests/browser/character-panel.spec.ts` cover them; the browser spec captures `artifacts/character-panel-*.png`.
+
+## Beliefs
+
+`src/content/beliefs/` holds 214 belief systems across the twelve culture regions, each scoped by a year range and a lon/lat box and resolved by the same `matchesCharacterScope` the name kits use. Each region file also carries a few wide era floors — foragers, early farming, the long middle, the early modern centuries, the industrial period — so a date always lands on something; a dated entry beats a floor because it is narrower in years times degrees. The setting's own culture region is preferred over a box that spills across a border, but only as a preference, since some places carry a neighbour's culture tag. `npx tsx scripts/check-beliefs.ts [region]` reports coverage against every place the app can generate; it currently stands at 99%, the remainder being Antarctica and islands nobody had reached yet. A system lists its powers in three ranks — `paramount`, `major`, `local` — with a relation edge where a hierarchy is worth drawing, a few lines of practice, who officiates, and an evidence record with sources and limitations. The local ranks matter most: they are the powers an ordinary person addresses without going through a temple.
+
+Where nothing is recorded for a place and date, `unscopedBeliefs` supplies an unnamed practice — the ancestors, the sky, the water, the land — at `fictional` status. No proper deity name is ever invented and presented as recovered.
+
+A person's own belief is derived, not stored: `beliefOf` picks a patron from the powers near to hand, an observance level from their traits, and one practice line they keep. `tests/beliefs.test.ts` checks the shape of every system, that relations point at powers in their own list, and that documented entries carry sources.
+
+The regional files were drafted by model agents against a hand-written exemplar (`systems/egypt.ts`) and are content, not scholarship: expect errors of detail, particularly in the traditions with the thinnest written record.
+
 ## Art and animation
 
 `src/core/character.ts` owns appearance data, deterministic variants and the legacy fallback. `src/runtime/schema.ts` validates imported appearance recipes. Appearance is optional, so existing actors remain readable without regeneration.

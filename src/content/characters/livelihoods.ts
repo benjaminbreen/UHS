@@ -1,4 +1,5 @@
 import type { Livelihood } from "./context-types";
+import { commonLivelihoods } from "./livelihoods.generated";
 
 /** Shared playable activity kits. Quantities are gameplay choices, not historical statistics. */
 export const livelihoods: readonly Livelihood[] = [
@@ -57,3 +58,10 @@ export const livelihoods: readonly Livelihood[] = [
     inventory: { water: 2, fruit: 1 },
   },
 ];
+const index = new Map(
+  [...livelihoods, ...commonLivelihoods].map((l) => [l.id, l]),
+);
+/** Lookup across both lists, for display of an origin already generated. */
+export function livelihoodById(id: string) {
+  return index.get(id);
+}

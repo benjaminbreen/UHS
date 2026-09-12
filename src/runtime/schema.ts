@@ -32,6 +32,7 @@ const stats = z
   .object({
     strength: stat,
     agility: stat,
+    endurance: stat.optional(),
     wit: stat,
     openness: stat,
     conscientiousness: stat,
@@ -39,7 +40,13 @@ const stats = z
     agreeableness: stat,
     neuroticism: stat,
   })
-  .strict();
+  .strict()
+  // Endurance postdates the earliest saves; those load with the mean of the
+  // two stats it sits between rather than a fresh roll, which would move.
+  .transform((s) => ({
+    ...s,
+    endurance: s.endurance ?? Math.round((s.strength + s.agility) / 2),
+  }));
 const intent = z.discriminatedUnion("type", [
   z
     .object({

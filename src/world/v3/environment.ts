@@ -31,7 +31,11 @@ export function createEnvironment(
       : undefined;
   const blendWeight = (x: number, y: number) =>
     configuredPlan
-      ? Math.max(0, Math.min(1, (384 - Math.hypot(x, y)) / 192))
+      ? // A bounded map is a portrait of its place, so the recipe owns the whole
+        // playable area and Earth geography does not bleed into its corners.
+        s.playableMap
+        ? 1
+        : Math.max(0, Math.min(1, (384 - Math.hypot(x, y)) / 192))
       : 0;
   const field = (x: number, y: number) => {
     const global = plan.field(
@@ -105,6 +109,23 @@ export function createEnvironment(
       water = signed + 35 + (noise(seed, x, y, 27, "headlands") - 0.5) * 13;
       kind = "sea";
       shoreWidth = 2 + noise(seed, x, y, 46, "beaches") * 9;
+      floodplain = shoreWidth + 3;
+    } else if (s.water === "island") {
+      // A whole small island drawn at map scale: this is a portrait of the
+      // place, not a true-scale window onto it, so the sea closes all round.
+      const lobes =
+        (noise(seed, x, y, 71, "island-lobes") - 0.5) * 46 +
+        (noise(seed, x, y, 29, "island-bays") - 0.5) * 20;
+      water = 108 + lobes - Math.hypot(wx * 1.12, wy * 0.96);
+      kind = "sea";
+      shoreWidth = 2 + noise(seed, x, y, 44, "island-beaches") * 7;
+      floodplain = shoreWidth + 4;
+    } else if (s.water === "ocean") {
+      // Open water, with the occasional bar or rock breaking the surface.
+      const bar = noise(seed, x, y, 54, "sandbars");
+      water = bar > 0.88 ? (bar - 0.88) * 170 - 5 : -22 - (0.88 - bar) * 44;
+      kind = "sea";
+      shoreWidth = 1.5 + noise(seed, x, y, 33, "bar-edges") * 2;
       floodplain = shoreWidth + 3;
     } else if (s.water === "lake") {
       // Overlapping distorted basins create coves and uneven shores.

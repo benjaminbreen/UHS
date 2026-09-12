@@ -44,27 +44,99 @@ it("shares shoreline, river and road profiles in both directions and across map 
   }
 });
 
-it("ends a boat crossing in open water inside the map, not at a bare edge", async () => {
-  const { mapForCoordinate, permanentMap, permanentExits } = await import(
+const portrait = async (id: string, year: number) => {
+  const { permanentMap, permanentExits } = await import(
     "../src/world/travel/network"
   );
   const { travelSetting } = await import("../src/runtime/map-travel");
   const { createSettlementWorld } = await import("../src/world/v3/generate");
   const { packForSetting } = await import("../src/content/geography/pack");
-  const id = mapForCoordinate({ lon: -77.3, lat: 18.1 });
-  const map = permanentMap(id, 2021),
-    exits = permanentExits(id, 2021);
-  const shores = exits.filter((e) => e.mode !== "land");
-  expect(shores.length).toBeGreaterThan(0);
-  for (const e of shores) expect(e.seam!.sea.every(Boolean)).toBe(true);
+  const map = permanentMap(id, year),
+    exits = permanentExits(id, year);
+  const setting = travelSetting(map, exits, year);
   const world = createSettlementWorld(
-    packForSetting(travelSetting(map, exits, 2021)),
-    "seam-shore",
+    packForSetting(setting),
+    "portrait:" + id,
   );
-  // Each exit owns only a segment of its side, so sample that segment's centre.
-  for (const e of shores) {
-    const [x, y] = point(e.seam!, map.size, 0.5);
-    expect(world.terrain(x, y), `${e.seam!.side} ${e.to}`).toBe("water");
-  }
+  const half = map.size / 2;
+  const edgeLand = (dx: number, dy: number) => {
+    let land = 0,
+      total = 0;
+    for (let t = -half; t < half; t += 8) {
+      total++;
+      const x = dx ? dx * (half - 1) : t,
+        y = dy ? dy * (half - 1) : t;
+      if (world.terrain(x, y) !== "water") land++;
+    }
+    return land / total;
+  };
+  return { map, exits, setting, world, edgeLand };
+};
+
+it("draws a small island as an island, with sea on every border", async () => {
+  const { setting, exits, world, edgeLand } = await portrait(
+    "place:city-san-juan",
+    -1975,
+  );
+  expect(setting.water).toBe("island");
   expect(world.terrain(0, 0)).not.toBe("water");
+  for (const [dx, dy] of [
+    [0, -1],
+    [0, 1],
+    [1, 0],
+    [-1, 0],
+  ])
+    expect(edgeLand(dx, dy), `${dx},${dy}`).toBe(0);
+  // Its coast closes the map, so leaving it is a boat crossing.
+  expect(exits.every((e) => e.seam!.walkable === 0)).toBe(true);
 }, 120000);
+
+it("draws open water as open water, and never as a land bridge", async () => {
+  const { mapForCoordinate } = await import("../src/world/travel/network");
+  const id = mapForCoordinate({ lon: 114.63, lat: 20.9 });
+  const { setting, exits, world, edgeLand } = await portrait(id, -996);
+  expect(setting.water).toBe("ocean");
+  expect(world.terrain(0, 0)).toBe("water");
+  // Neighbours are mainland China, Hainan and Luzon, hundreds of km apart.
+  // None of them may lend this map a coastline.
+  for (const [dx, dy] of [
+    [0, -1],
+    [0, 1],
+    [1, 0],
+    [-1, 0],
+  ])
+    expect(edgeLand(dx, dy), `${dx},${dy}`).toBe(0);
+  expect(exits.every((e) => e.seam!.walkable === 0)).toBe(true);
+}, 120000);
+
+it("keeps a continental map walkable out of every land border", async () => {
+  const { exits, edgeLand, setting } = await portrait("place:london", 1400);
+  expect(setting.geographyMode).toBe("earth");
+  expect(exits.filter((e) => e.seam!.walkable > 0).length).toBeGreaterThan(0);
+  expect(edgeLand(0, -1)).toBeGreaterThan(0);
+}, 120000);
+
+it("pairs every walkable exit with a walkable arrival", async () => {
+  const { permanentMap, permanentExits } = await import(
+    "../src/world/travel/network"
+  );
+  const { travelSetting } = await import("../src/runtime/map-travel");
+  const { createSettlementWorld } = await import("../src/world/v3/generate");
+  const { packForSetting } = await import("../src/content/geography/pack");
+  const year = 1400;
+  const build = (id: string) => {
+    const map = permanentMap(id, year),
+      exits = permanentExits(id, year);
+    return createSettlementWorld(
+      packForSetting(travelSetting(map, exits, year)),
+      "pair:" + id,
+    );
+  };
+  const out = build("place:london").entrances!().filter((e) => e.walkable);
+  expect(out.length).toBeGreaterThan(0);
+  for (const e of out) {
+    const back = build(e.to).entrances!().find((x) => x.id === e.id);
+    expect(back?.walkable, `${e.seam?.side} -> ${e.to}`).toBe(true);
+    expect(back!.path.length).toBeGreaterThan(1);
+  }
+}, 300000);

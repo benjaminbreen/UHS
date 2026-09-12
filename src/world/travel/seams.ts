@@ -12,6 +12,8 @@ export type BoundarySeam = {
   /** Tiles the blend reaches inward. A shore needs room for a beach and open
    * water; a road crossing only needs the ground to match. */
   band?: number;
+  /** Fraction of this border that is dry ground, so 0 needs a boat. */
+  walkable: number;
 };
 export const SEAM_BAND = 32;
 export const SHORE_BAND = 72;
@@ -35,9 +37,9 @@ export const oppositeSide = (
 export function sampleSeam(
   anchor: Coordinate,
   side: BoundarySeam["side"],
-  /** A crossing that leaves by water ends in open sea, whatever the atlas says
-   * at this exact midpoint. Otherwise the map stops at a dry invisible wall. */
-  shore = false,
+  /** The border is open sea whatever the atlas says here: used when one side
+   * is an island or open water, whose own coast already closes the map. */
+  openWater = false,
 ) {
   const p = toAtlas(anchor.lon, anchor.lat);
   const water: number[] = [],
@@ -52,10 +54,8 @@ export function sampleSeam(
       p.y + (side === "E" || side === "W" ? t : 0),
     );
     const depth = Math.min(a.coast, a.river - 6);
-    if (shore) {
-      // Keep the real coastline's shape, but hold it below the waterline so
-      // the boundary itself is always open water.
-      water.push(Math.max(-64, Math.min(-14, depth - 26)));
+    if (openWater) {
+      water.push(Math.max(-64, Math.min(-16, depth - 30)));
       sea.push(true);
       height.push(0);
       continue;
@@ -72,8 +72,12 @@ export function sampleSeam(
     water,
     sea,
     height,
-    band: shore ? SHORE_BAND : SEAM_BAND,
+    // A border with any water on it needs room for a shore; a dry crossing
+    // only needs the ground either side to match.
+    band: water.some((v) => v < 0) ? SHORE_BAND : SEAM_BAND,
     roadAt: (candidates[0]?.i ?? 16) / 32,
+    /** Fraction of the border you can walk through. */
+    walkable: water.filter((v) => v >= 0).length / water.length,
   };
 }
 export function boundarySample(

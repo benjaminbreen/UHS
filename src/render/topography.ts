@@ -51,6 +51,66 @@ export function drawTopography(
   const preparedGround = new Map(groundTiles?.map((t) => [`${t.x},${t.y}`, t]));
   let waterScratch: HTMLCanvasElement | undefined;
   const preparedWater = new Map(waterTiles?.map((t) => [`${t.x},${t.y}`, t]));
+  const pageFor = (cx: number, cy: number) => {
+    const key = `${region?.prefix ?? "contour"}-ground-${cx}-${cy}`;
+    let page = pages.get(key);
+    if (!page) {
+      page = scene.textures.createCanvas(key, pageSize, pageSize)!;
+      page.getContext().imageSmoothingEnabled = false;
+      pages.set(key, page);
+      resources.textures.push(key);
+      own(
+        resources,
+        scene.add
+          .image(cx * pageSize, cy * pageSize, key)
+          .setOrigin(0)
+          .setDepth(-10000),
+      );
+    }
+    return page;
+  };
+  const fill = (x: number, y: number, w: number, h: number, css: string) => {
+    for (
+      let cy = Math.floor(y / pageSize);
+      cy <= Math.floor((y + h - 1) / pageSize);
+      cy++
+    )
+      for (
+        let cx = Math.floor(x / pageSize);
+        cx <= Math.floor((x + w - 1) / pageSize);
+        cx++
+      ) {
+        const context = pageFor(cx, cy).getContext();
+        context.fillStyle = css;
+        context.fillRect(x - cx * pageSize, y - cy * pageSize, w, h);
+      }
+  };
+  /** Average tone of a material tile, for the underlay beneath wall strips. */
+  const tones = new Map<string, string>();
+  const tone = (frame: string) => {
+    let css = tones.get(frame);
+    if (css) return css;
+    const f = scene.textures.getFrame("topography", frame);
+    const one = document.createElement("canvas");
+    one.width = one.height = 1;
+    const c = one.getContext("2d")!;
+    c.imageSmoothingEnabled = true;
+    c.drawImage(
+      f.source.image as CanvasImageSource,
+      f.cutX,
+      f.cutY,
+      f.cutWidth,
+      f.cutHeight,
+      0,
+      0,
+      1,
+      1,
+    );
+    const [r, g, b] = c.getImageData(0, 0, 1, 1).data;
+    css = `rgb(${r},${g},${b})`;
+    tones.set(frame, css);
+    return css;
+  };
   const image = (
     x: number,
     y: number,
@@ -123,22 +183,7 @@ export function drawTopography(
         cx <= Math.floor((x + f.cutWidth - 1) / pageSize);
         cx++
       ) {
-        const key = `${region?.prefix ?? "contour"}-ground-${cx}-${cy}`;
-        let page = pages.get(key);
-        if (!page) {
-          page = scene.textures.createCanvas(key, pageSize, pageSize)!;
-          page.getContext().imageSmoothingEnabled = false;
-          pages.set(key, page);
-          resources.textures.push(key);
-          own(
-            resources,
-            scene.add
-              .image(cx * pageSize, cy * pageSize, key)
-              .setOrigin(0)
-              .setDepth(-10000),
-          );
-        }
-        page
+        pageFor(cx, cy)
           .getContext()
           .drawImage(
             source,
@@ -287,7 +332,21 @@ export function drawTopography(
             : 0xffffff,
           painted,
         );
-      if (owned) continue;
+      if (owned) {
+        // The wall pass owns these cells, and its row strips are separate
+        // images: a sub-pixel seam between two of them would otherwise show
+        // the camera background. Flat tone, so no tile edge reads through.
+        fill(
+          x * 16,
+          top,
+          16,
+          16,
+          tone(
+            `${material === "gravel" && !shoreline ? "grass" : material}-${variant}`,
+          ),
+        );
+        continue;
+      }
       if (c.surface === "gravel" && !shoreline && !paintedGround(c)) {
         const connections =
           contourMask(sample, x, y, (n) => n.surface === "gravel") & 15;

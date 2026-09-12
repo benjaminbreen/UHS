@@ -1,4 +1,5 @@
 import { CharacterSprite } from "./CharacterSprite";
+import { CharacterPanel } from "./CharacterPanel";
 import "./settings.css";
 import {
   lazy,
@@ -63,6 +64,7 @@ import { WorldSetup } from "./WorldSetup";
 import { AtlasMap } from "./AtlasMap";
 import { toAtlas, fromAtlas } from "../world/geography/coordinates";
 import { Sprite, Minimap, timeLabel } from "./components";
+import { FpsMeter } from "./FpsMeter";
 const CharacterLab = lazy(() =>
   import("../dev/CharacterLab").then((m) => ({ default: m.CharacterLab })),
 );
@@ -90,9 +92,16 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
     | "map"
     | "settings"
     | "narration"
+    | "character"
     | null
   >(null);
+  const [characterId, setCharacterId] = useState("player");
+  const openCharacter = (id: string) => {
+    setCharacterId(id);
+    setModal("character");
+  };
   const [narratorOpen, setNarratorOpen] = useState(false);
+  const [fps, setFps] = useState(false);
   const [narratorBusy, setNarratorBusy] = useState(false);
   const [narratorError, setNarratorError] = useState("");
   const commandForm = useRef<HTMLFormElement>(null);
@@ -257,6 +266,15 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
     window.addEventListener("keydown", listener);
     return () => window.removeEventListener("keydown", listener);
   }, [modal, audioOpen, runtime]);
+  useEffect(() => {
+    const listener = (e: KeyboardEvent) => {
+      if (e.code !== "Backquote" || !(e.metaKey || e.ctrlKey)) return;
+      e.preventDefault();
+      setFps((on) => !on);
+    };
+    window.addEventListener("keydown", listener);
+    return () => window.removeEventListener("keydown", listener);
+  }, []);
   const day = Math.floor(obs.clock / 86400) + 1;
   const hour = Math.floor(obs.clock / 3600) % 24;
   const period =
@@ -281,6 +299,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
   const lighting = lightingAt(obs.clock).id;
   const regionLabel =
     (setting && regionAt(setting.lon, setting.lat)?.label) || pack.region;
+  const borderHint = runtime.journey?.borderHint();
   const landscape = setting
     ? `${setting.climate[0].toUpperCase()}${setting.climate.slice(1)} ${
         setting.water.startsWith("river")
@@ -394,6 +413,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
             aria-label="Playable historical world. WASD or arrows to walk, Shift to run, Space to jump or pick up and drop items. Hold Space for a long jump."
             tabIndex={0}
           />
+          {fps && <FpsMeter />}
           <div className="prop-prompts" data-testid="prop-prompts">
             {obs.manifest.content === 1 && (
               <span>
@@ -487,7 +507,15 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
               </button>
             </div>
           )}
-          {runtime.journey?.borderHint() && <div className="world-notice border-hint" role="status" aria-label="Map travel">{runtime.journey.borderHint()}</div>}
+          {borderHint && (
+            <div
+              className="world-notice border-hint"
+              role="status"
+              aria-label="Map travel"
+            >
+              {borderHint}
+            </div>
+          )}
           {(view.notice || view.running) && (
             <div className="world-notice" role="status">
               {view.running ? (
@@ -646,7 +674,11 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
               lighting={lighting}
               period={period}
             />
-            <div className="character">
+            <button
+              className="character"
+              aria-label={`Open ${p.name}'s profile`}
+              onClick={() => openCharacter(p.id)}
+            >
               <div className="portrait">
                 <CharacterSprite
                   appearance={runtime.appearanceFor(p)}
@@ -704,7 +736,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
                   </div>
                 )}
               </div>
-            </div>
+            </button>
           </section>
           <section className="region-section frame">
             <div className="section-heading">
@@ -842,7 +874,13 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
                       )
                       .slice(0, 5)
                       .map((a) => (
-                        <button key={a.id} onClick={() => runtime.select(a.id)}>
+                        <button
+                          key={a.id}
+                          onClick={() => {
+                            runtime.select(a.id);
+                            openCharacter(a.id);
+                          }}
+                        >
                           <CharacterSprite
                             appearance={runtime.appearanceFor(a)}
                           />
@@ -951,6 +989,15 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
                   runtime.replace(engine);
                   setModal(null);
                 }}
+              />
+            )}
+            {modal === "character" && (
+              <CharacterPanel
+                runtime={runtime}
+                actorId={characterId}
+                onClose={() => setModal(null)}
+                onAction={doAction}
+                onSelect={setCharacterId}
               />
             )}
             {modal === "inventory" && (
@@ -1321,8 +1368,16 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
                   className="settings-tools"
                 >
                   <p>Inspect artwork and content in the development labs.</p>
-                  <a className="action" href="/water-experiments" target="_blank" rel="noreferrer">
-                    Water experiments <small>Compare current water with two animated prototypes</small>
+                  <a
+                    className="action"
+                    href="/water-experiments"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Water experiments{" "}
+                    <small>
+                      Compare current water with two animated prototypes
+                    </small>
                   </a>
                   <a
                     className="action"
@@ -1331,7 +1386,9 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
                     rel="noreferrer"
                   >
                     Geography &amp; travel{" "}
-                    <small>Inspect routes, landscape stops and map boundaries</small>
+                    <small>
+                      Inspect routes, landscape stops and map boundaries
+                    </small>
                   </a>
                   <a
                     className="action settings-featured"

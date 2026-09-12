@@ -26,6 +26,7 @@ function fixture() {
       mode: "land",
       bearing: id === a ? "W" : "E",
       shore: false,
+      walkable: true,
       point: reachable ? { x: side, y: 0 } : undefined,
       path: [3, 2, 1, 0].map((n) => ({ x: side + (id === a ? n : -n), y: 0 })),
     };

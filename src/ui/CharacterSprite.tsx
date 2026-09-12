@@ -47,9 +47,12 @@ function portraitSource(appearance: CharacterAppearance, key: string) {
 export function CharacterSprite({
   appearance,
   portrait = false,
+  scale = 1,
 }: {
   appearance: CharacterAppearance;
   portrait?: boolean;
+  /** Multiplies the drawn size only; the raster stays at native pixels. */
+  scale?: number;
 }) {
   const ref = useRef<HTMLCanvasElement>(null);
   const rendered = useRef<{ key: string; portrait: boolean } | undefined>(
@@ -66,17 +69,19 @@ export function CharacterSprite({
     out.clearRect(0, 0, canvas.width, canvas.height);
     out.imageSmoothingEnabled = false;
     if (portrait) {
-      // Native-pixel bust crop; detailed portrait illustration is a later art task.
+      // Head and shoulders, enlarged by whole pixels so it stays a raster.
+      const bust = Math.max(1, Math.round(height * 0.5));
+      const zoom = Math.max(1, Math.floor(Math.min(32 / width, 32 / bust)));
       out.drawImage(
         source,
         x0,
         y0,
         width,
-        Math.min(height, 24),
-        Math.floor((32 - width) / 2),
-        3,
-        width,
-        Math.min(height, 24),
+        bust,
+        Math.floor((32 - width * zoom) / 2),
+        Math.max(0, Math.floor((32 - bust * zoom) / 2)),
+        width * zoom,
+        bust * zoom,
       );
     } else
       out.drawImage(
@@ -100,8 +105,8 @@ export function CharacterSprite({
       aria-label={portrait ? "Character appearance" : "Person appearance"}
       data-skin={appearance.skin}
       style={{
-        width: portrait ? "100%" : 24,
-        height: portrait ? "100%" : 30,
+        width: portrait ? "100%" : 24 * scale,
+        height: portrait ? "100%" : 30 * scale,
         imageRendering: "pixelated",
         objectFit: "contain",
         flexShrink: 0,

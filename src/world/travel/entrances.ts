@@ -10,6 +10,9 @@ export type MapEntrance = EntranceSpec & {
   point?: { x: number; y: number };
   path: { x: number; y: number }[];
   shore: boolean;
+  /** The border cell is dry ground the player can walk out through. A crossing
+   * is decided by the terrain at the border, not by the long-distance route. */
+  walkable: boolean;
 };
 export function mapEntrances(
   world: WorldModel,
@@ -27,7 +30,12 @@ export function mapEntrances(
     queue: number[] = [];
   const start = world.spawn;
   if (Math.abs(start.x) >= half || Math.abs(start.y) >= half)
-    return exits.map((e) => ({ ...e, path: [], shore: false }));
+    return exits.map((e) => ({
+      ...e,
+      path: [],
+      shore: false,
+      walkable: false,
+    }));
   const first = index(start.x, start.y);
   previous[first] = -1;
   queue.push(first);
@@ -76,26 +84,30 @@ export function mapEntrances(
       target.y =
         exit.seam.side === "N" ? -half : exit.seam.side === "S" ? half - 1 : t;
     }
-    const coastal = exit.mode !== "land" && shore.length > 0;
+    // Dry ground on this stretch of border is the crossing, whatever the
+    // long-distance route thought. Only fall back to a boarding point when
+    // the whole stretch is water.
+    const onSide = (i: number) => {
+      const p = point(i);
+      if (exit.seam) {
+        const u =
+          ((exit.seam.side === "N" || exit.seam.side === "S" ? p.x : p.y) +
+            half) /
+          (size - 1);
+        if (u < exit.seam.start || u > exit.seam.end) return false;
+      }
+      const direction = exit.seam?.side ?? exit.bearing;
+      return (
+        (direction.includes("N") && p.y === -half) ||
+        (direction.includes("S") && p.y === half - 1) ||
+        (direction.includes("E") && p.x === half - 1) ||
+        (direction.includes("W") && p.x === -half)
+      );
+    };
+    const walkable = edge.some(onSide);
+    const coastal = !walkable && shore.length > 0;
     const candidates = [...(coastal ? shore : edge)]
-      .filter((i) => {
-        if (coastal) return true;
-        const p = point(i);
-        if (exit.seam) {
-          const u =
-            ((exit.seam.side === "N" || exit.seam.side === "S" ? p.x : p.y) +
-              half) /
-            (size - 1);
-          if (u < exit.seam.start || u > exit.seam.end) return false;
-        }
-        const direction = exit.seam?.side ?? exit.bearing;
-        return (
-          (direction.includes("N") && p.y === -half) ||
-          (direction.includes("S") && p.y === half - 1) ||
-          (direction.includes("E") && p.x === half - 1) ||
-          (direction.includes("W") && p.x === -half)
-        );
-      })
+      .filter((i) => coastal || onSide(i))
       .sort((a, b) => {
         const p = point(a),
           q = point(b);
@@ -118,6 +130,7 @@ export function mapEntrances(
       point: end === undefined ? undefined : point(end),
       path,
       shore: coastal,
+      walkable: walkable && end !== undefined,
     };
   });
 }

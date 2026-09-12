@@ -28,10 +28,11 @@ export type ItemDef = {
   flammable?: boolean;
   floats?: boolean;
 };
-/** All 0-100. The first three drive checks; the rest colour dialogue. */
+/** All 0-100. The first four drive checks; the rest colour dialogue. */
 export type Stats = {
   strength: number;
   agility: number;
+  endurance: number;
   wit: number;
   openness: number;
   conscientiousness: number;

@@ -215,3 +215,49 @@ export function itineraryAt(itinerary: Itinerary, clock: number): Ambient {
     direction: Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 1 : 3) : dy > 0 ? 2 : 0,
   };
 }
+export type PlanEntry = {
+  label: string;
+  activity: StationActivity;
+  /** Absolute minute, so the caller can print a clock time. */
+  minute: number;
+  state: "done" | "now" | "later";
+};
+/** The day's errands as a reader would list them. The routine walks the same
+ * circuit several times, so repeats collapse to one entry and the clock time
+ * shown is the nearest round, not the first. */
+export function dayPlan(itinerary: Itinerary, clock: number): PlanEntry[] {
+  const { segments, period } = itinerary;
+  let m = (clock / 60 - itinerary.start) % period;
+  if (m < 0) m += period;
+  const base = clock / 60 - m;
+  let now = 0;
+  for (let i = 0; i < segments.length; i++) if (segments[i].from <= m) now = i;
+  const order: string[] = [];
+  const found = new Map<string, number[]>();
+  segments.forEach((s, i) => {
+    if (s.path || s.activity === "rest") return;
+    if (!found.has(s.label)) {
+      found.set(s.label, []);
+      order.push(s.label);
+    }
+    found.get(s.label)!.push(i);
+  });
+  const entries = order.map((label) => {
+    const indices = found.get(label)!;
+    const at =
+      indices.find((i) => i === now) ??
+      indices.find((i) => segments[i].from > m) ??
+      indices[indices.length - 1];
+    return {
+      label,
+      activity: segments[at].activity,
+      minute: base + segments[at].from,
+      state: (at === now
+        ? "now"
+        : segments[at].from > m
+          ? "later"
+          : "done") as PlanEntry["state"],
+    };
+  });
+  return entries.sort((a, b) => a.minute - b.minute);
+}

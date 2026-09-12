@@ -3,6 +3,7 @@ import type { Actor, Stats } from "./types";
 const keys = [
   "strength",
   "agility",
+  "endurance",
   "wit",
   "openness",
   "conscientiousness",
@@ -39,10 +40,12 @@ export function rollStats(
     stats.strength = Math.round((stats.strength + body * 2) / 3);
   if (age < 14) {
     stats.strength = Math.round(stats.strength * 0.5);
+    stats.endurance = Math.round(stats.endurance * 0.6);
     stats.wit = Math.round(stats.wit * 0.7);
   } else if (age >= 60) {
     stats.strength = Math.round(stats.strength * 0.7);
     stats.agility = Math.round(stats.agility * 0.7);
+    stats.endurance = Math.round(stats.endurance * 0.75);
   }
   return stats;
 }
@@ -57,6 +60,7 @@ export function statsOf(
 const words: Record<keyof Stats, [low: string, high: string]> = {
   strength: ["frail", "strong"],
   agility: ["clumsy", "nimble"],
+  endurance: ["easily spent", "tireless"],
   wit: ["slow-witted", "sharp"],
   openness: ["set in their ways", "curious"],
   conscientiousness: ["careless", "diligent"],

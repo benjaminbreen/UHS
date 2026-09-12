@@ -266,6 +266,8 @@ export function rasterHabitatTile(
   // 18x18 apron: band per pixel, and 1 = bare earth band, 2 = trodden soil.
   const apron = new Uint8Array(18 * 18);
   const earth = new Uint8Array(18 * 18);
+  // Pixels the path pass fills: the grass edge must not draw over a road.
+  const trodden = new Uint8Array(18 * 18);
   const at = (px: number, py: number) => (py + 1) * 18 + px + 1;
   for (let py = -1; py <= 16; py++)
     for (let px = -1; px <= 16; px++) {
@@ -539,6 +541,7 @@ export function rasterHabitatTile(
               Math.round(v * 0.45 + [196, 204, 202][k] * 0.55),
             );
           put(px, py, tone, contact ? 0 : shade);
+          if (!contact) trodden[at(px, py)] = 1;
         } else if (!inside) {
           continue;
         } else if (nearShore && cell.surface !== "soil") {
@@ -580,6 +583,7 @@ export function rasterHabitatTile(
       for (let px = 0; px < 16; px++) {
         const wx = gx + px,
           wy = gy + py;
+        if (trodden[at(px, py)]) continue;
         const here = earth[at(px, py)],
           band = apron[at(px, py)];
         if (!here) {
