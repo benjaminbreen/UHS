@@ -101,6 +101,16 @@ export function validateCharacterContent() {
     )
       throw Error(`Invalid appearance kit: ${kit.id}`);
   }
+  /* A livelihood's characteristic item is stripped if no profile allows it,
+   * which left every knapper, mason and drover carrying only water. */
+  const allowedItems = new Set(
+    communityProfiles.flatMap((p) => p.allowedItems as string[]),
+  );
+  for (const l of livelihoods)
+    for (const item of Object.keys(l.inventory))
+      if (!allowedItems.has(item))
+        throw Error(`No profile allows ${item}, so ${l.id} loses it`);
+
   // The forward check below catches a profile naming work that does not exist.
   // This is the reverse: hand-written work no profile offers is unreachable,
   // which is how "herder" sat in the table while no settlement could staff a pen.

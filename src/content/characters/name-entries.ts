@@ -23,6 +23,8 @@ const ETHNONYMS = [
   "tuscarora", "wampanoag", "pequot", "lenape", "shawnee", "ojibwe", "sauk",
   "fox", "miami", "koori", "tiwi", "bidjigal", "taqbaylit", "aqvayli",
   "tamazight", "tamil", "bilagáana", "bilagaana", "anishinabe",
+  "tillamook", "kalapuya", "siletz", "wiyot", "tolowa", "achomawi",
+  "atsugewi", "shasta", "serrano", "taskigi",
 ];
 
 /** Settlements, sites, regions and physical features. */
@@ -34,7 +36,9 @@ const PLACES = [
   "ocoee", "coosa", "talisi", "wetumpka", "abihka", "atasi", "kealedji",
   "kolomi", "okchai", "tukabahchi", "sawokli", "osochi", "pakana", "chehaw",
   "caguas", "humacao", "jayuya", "loíza", "loiza", "yabucoa", "bairoa",
-  "orocovis", "arasibo", "uluru", "wagga", "kalgoorlie", "warrnambool",
+  "orocovis", "arasibo", "guatavita", "ubaque", "turmequé", "turmeque",
+  "firavitoba", "sugamuxi", "wakokai", "nanih", "chelan", "tallulah",
+  "uluru", "wagga", "kalgoorlie", "warrnambool",
   "narrandera", "queanbeyan", "ulladulla", "papunya", "poolamacca", "tarkine",
   "brindabella", "djarragun", "jundah", "merinda", "coolah", "kankan",
   "djenné", "djenne", "azemour", "tilantongo", "tututepec", "kiva", "kotyiti",
@@ -57,6 +61,7 @@ const TITLES = [
   "fixico", "holata", "tustunnuggee", "beg", "khan", "tegin", "yabgu", "shad",
   "elteber", "tarkan", "baghatur", "boyla", "tudun", "maripgan", "wonhwa",
   "cacica", "angakok", "hosteen", "hastiin", "nguyen", "selassie", "mariam",
+  "nahnken", "hopoithle", "hillis",
 ];
 
 /** Common nouns, adjectives and greetings. */
@@ -68,6 +73,7 @@ const NOUNS = [
   "mana", "tihu", "ulac", "tamurt", "azegzaw", "amellal", "azelmad", "furaha",
   "uzuri", "wema", "malkia", "dada", "quandong", "gidgee", "ceiba", "jagua",
   "selu", "atsila", "yona", "kamama", "quyca", "guasgua", "dibe", "gad",
+  "chitto", "kono", "nokose", "isfaha", "lowak", "fuswa", "takosa",
 ];
 
 /** Documented individuals who died in the twentieth century or later. */
@@ -83,6 +89,10 @@ const MODERN_PEOPLE = [
   "tutu", "mbeki", "sobukwe", "forough", "simin", "parvin", "tahereh",
   "gemayel", "aoun", "hariri", "jumblatt", "frangieh", "charbel",
   "tatanka-iyotanka", "mahpiya-luta", "tashunka-witco", "hehaka-sapa",
+  "ishi", "sequoyah", "numaga", "winnemucca", "ouray", "walkara",
+  "pocatello", "washakie", "tendoy", "tahgee", "opothleyahola", "menawa",
+  "apushimataha", "porivo", "tourtotte", "poivier", "bourdeau", "wadze",
+  "wadzewipe", "loeak", "wakanda",
 ];
 
 const REASONS: readonly [string, readonly string[]][] = [
@@ -98,9 +108,20 @@ const index = new Map<string, string>();
 for (const [reason, words] of REASONS)
   for (const w of words) index.set(w, reason);
 
+/*
+ * A word barred in one tradition can be an ordinary name in another: Rana is a
+ * Rajput rank and a common Levantine given name. Rules are matched on the word,
+ * so collisions like that are listed here rather than weakening the rule.
+ */
+const ALLOWED = new Set(["levantine:rana", "arabic-levant:rana"]);
+
 /** Why this entry may not be used as a personal name, if it may not be. */
-export function barredNameEntry(entry: string): string | undefined {
+export function barredNameEntry(
+  entry: string,
+  tradition?: string,
+): string | undefined {
   const key = entry.trim().toLowerCase();
+  if (tradition && ALLOWED.has(`${tradition}:${key}`)) return undefined;
   const reason = index.get(key);
   if (reason) return reason;
   // English glosses reached the family-name lists as "Wolf-Clan", "Blue-Corn".
@@ -110,9 +131,12 @@ export function barredNameEntry(entry: string): string | undefined {
 }
 
 /** Every barred entry in a pool, as `entry: reason`. */
-export function barredNameEntries(entries: readonly string[]) {
+export function barredNameEntries(
+  entries: readonly string[],
+  tradition?: string,
+) {
   return entries.flatMap((e) => {
-    const reason = barredNameEntry(e);
+    const reason = barredNameEntry(e, tradition);
     return reason ? [`${e}: ${reason}`] : [];
   });
 }

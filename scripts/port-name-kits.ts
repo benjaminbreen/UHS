@@ -44,9 +44,12 @@ const geo = JSON.parse(
 const skip = new Set(geo._skip);
 
 /** Traditions authored in UHS; these replace an HPG set of the same id. */
-const AUTHORED: Record<string, any> = JSON.parse(
+const TRADITION_FILE = JSON.parse(
   readFileSync("scripts/data/name-traditions.json", "utf8"),
-).traditions;
+);
+const AUTHORED: Record<string, any> = TRADITION_FILE.traditions;
+/** Removed from the shipped table; see the reason beside each id. */
+const RETIRED: Record<string, string> = TRADITION_FILE.retired ?? {};
 
 /** UHS corrections to HPG's region/period table. */
 const WINDOW_OVERRIDES: Record<
@@ -128,7 +131,7 @@ for (const [key, set] of Object.entries(CHARACTER_NAMES) as [string, any][]) {
    * copy: the rule lives in one place and re-vendoring cannot undo it. */
   const usable = (n: string) => {
     if (!n) return false;
-    const reason = barredNameEntry(n);
+    const reason = barredNameEntry(n, slug(key));
     if (reason) weeded.push(`${key}: ${n} (${reason})`);
     return !reason;
   };
@@ -189,6 +192,9 @@ for (const [id, t] of Object.entries(AUTHORED)) {
     patronymic: t.patronymic,
   });
 }
+
+for (const [key, t] of [...traditions])
+  if (RETIRED[t.id]) traditions.delete(key);
 
 type Window = {
   years: [number, number];
@@ -305,6 +311,61 @@ for (const [id, patch] of Object.entries(WINDOW_OVERRIDES)) {
     .filter((w) => w.options.length)
     .sort((a, b) => a.years[0] - b.years[0]);
 }
+
+/* Fill the hole the era corrections opened under each region: everything
+ * earlier than its first plausible option fell through to one global invented
+ * pool, so Palaeolithic Japan and Palaeolithic Peru produced the same names. */
+const DEEP = JSON.parse(
+  readFileSync("scripts/data/name-windows.json", "utf8"),
+).deepTime;
+for (const region of regions.values()) {
+  const deep = DEEP.byCulture[region.culture];
+  if (!deep || !traditions.has(`UHS::${deep}`)) continue;
+  // The earliest year anything already here can actually be used.
+  let first = Infinity;
+  for (const w of region.windows)
+    for (const o of w.options) {
+      const t = [...traditions.values()].find((x) => x.id === o.tradition);
+      if (t) first = Math.min(first, Math.max(w.years[0], t.era[0]));
+    }
+  const settled = DEEP.settledFrom[region.id];
+  const from = clampYear(settled ?? -Infinity);
+  const to = Math.min(first, CEIL);
+  if (!(from < to)) continue;
+  const end = clampYear(to);
+  // An existing window may already start at the floor while every option in it
+  // is era-gated out until later. Move it to where it actually begins, so the
+  // two do not both claim the same start year and shadow each other.
+  region.windows = region.windows.flatMap((w) =>
+    w.years[0] >= from && w.years[0] < end
+      ? w.years[1] > end
+        ? [{ ...w, years: [end, w.years[1]] as [number, number] }]
+        : []
+      : [w],
+  );
+  region.windows.unshift({
+    years: [from, end],
+    options: [{ tradition: deep, weight: 1 }],
+  });
+}
+
+/* Options came across with equal weight, so a window naming six traditions
+ * made a sixth of the population each. Apply authored proportions, and fold
+ * duplicate options together rather than letting a repeat count twice. */
+const WEIGHTS = JSON.parse(
+  readFileSync("scripts/data/name-windows.json", "utf8"),
+).weights;
+for (const region of regions.values())
+  for (const w of region.windows) {
+    const merged = new Map<string, number>();
+    for (const o of w.options)
+      merged.set(o.tradition, (merged.get(o.tradition) ?? 0) + o.weight);
+    const authored = WEIGHTS[region.id]?.[String(w.years[0])];
+    w.options = [...merged].map(([tradition, weight]) => ({
+      tradition,
+      weight: authored?.[tradition] ?? (authored ? 1 : weight),
+    }));
+  }
 
 for (const [id, r] of regions) if (!r.windows.length) regions.delete(id);
 

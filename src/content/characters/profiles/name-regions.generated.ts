@@ -18,7 +18,7 @@ export const nameRegions: readonly NameRegion[] = [
       { years: [410, 793], options: [{ tradition: "english-anglo-saxon", weight: 1 }, { tradition: "welsh", weight: 1 }, { tradition: "scottish", weight: 1 }, { tradition: "celtic-irish", weight: 1 }] },
       { years: [793, 1100], options: [{ tradition: "old-norse", weight: 3 }, { tradition: "english-anglo-saxon", weight: 5 }, { tradition: "celtic-irish", weight: 2 }] },
       { years: [1100, 1300], options: [{ tradition: "english-medieval", weight: 1 }, { tradition: "norman-french", weight: 1 }, { tradition: "welsh", weight: 1 }, { tradition: "scottish", weight: 1 }, { tradition: "celtic-irish", weight: 1 }] },
-      { years: [1300, 10001], options: [{ tradition: "english", weight: 1 }, { tradition: "welsh", weight: 1 }, { tradition: "scottish", weight: 1 }, { tradition: "celtic-irish", weight: 1 }] },
+      { years: [1300, 10001], options: [{ tradition: "english", weight: 72 }, { tradition: "welsh", weight: 8 }, { tradition: "scottish", weight: 12 }, { tradition: "celtic-irish", weight: 8 }] },
     ],
   },
   {
@@ -49,7 +49,7 @@ export const nameRegions: readonly NameRegion[] = [
       { years: [410, 711], options: [{ tradition: "ancient-roman", weight: 1 }, { tradition: "german", weight: 1 }] },
       { years: [711, 1200], options: [{ tradition: "spanish-castilian", weight: 6 }, { tradition: "portuguese", weight: 4 }, { tradition: "galician", weight: 3 }, { tradition: "moorish-andalus", weight: 8 }, { tradition: "jewish-ashkenazi", weight: 2 }] },
       { years: [1200, 1492], options: [{ tradition: "spanish-castilian", weight: 1 }, { tradition: "portuguese", weight: 1 }, { tradition: "galician", weight: 1 }] },
-      { years: [1492, 10001], options: [{ tradition: "spanish-castilian", weight: 1 }, { tradition: "portuguese", weight: 1 }, { tradition: "galician", weight: 1 }] },
+      { years: [1492, 10001], options: [{ tradition: "spanish-castilian", weight: 72 }, { tradition: "portuguese", weight: 22 }, { tradition: "galician", weight: 6 }] },
     ],
   },
   {
@@ -61,7 +61,7 @@ export const nameRegions: readonly NameRegion[] = [
       { years: [-1000000, -25], options: [{ tradition: "prehistoric-proto-celtic", weight: 1 }, { tradition: "celtic-ancient", weight: 1 }] },
       { years: [-25, 410], options: [{ tradition: "ancient-roman", weight: 1 }] },
       { years: [410, 711], options: [{ tradition: "german", weight: 1 }] },
-      { years: [711, 10001], options: [{ tradition: "galician", weight: 1 }, { tradition: "portuguese", weight: 1 }, { tradition: "spanish-castilian", weight: 1 }] },
+      { years: [711, 10001], options: [{ tradition: "galician", weight: 60 }, { tradition: "portuguese", weight: 15 }, { tradition: "spanish-castilian", weight: 25 }] },
     ],
   },
   {
@@ -103,7 +103,7 @@ export const nameRegions: readonly NameRegion[] = [
       { years: [-100, 500], options: [{ tradition: "prehistoric-proto-germanic", weight: 1 }, { tradition: "german", weight: 1 }] },
       { years: [500, 900], options: [{ tradition: "slavic-medieval", weight: 1 }, { tradition: "frankish-carolingian", weight: 1 }, { tradition: "bohemian", weight: 1 }] },
       { years: [900, 1918], options: [{ tradition: "german", weight: 1 }, { tradition: "bohemian", weight: 1 }, { tradition: "hungarian-medieval", weight: 1 }, { tradition: "hungarian-modern", weight: 1 }, { tradition: "polish-medieval", weight: 1 }, { tradition: "polish-modern", weight: 1 }] },
-      { years: [1918, 10001], options: [{ tradition: "czech-modern", weight: 1 }, { tradition: "slovak-modern", weight: 1 }, { tradition: "hungarian-modern", weight: 1 }, { tradition: "german", weight: 1 }] },
+      { years: [1918, 10001], options: [{ tradition: "czech-modern", weight: 35 }, { tradition: "slovak-modern", weight: 15 }, { tradition: "hungarian-modern", weight: 20 }, { tradition: "german", weight: 30 }] },
     ],
   },
   {
@@ -117,7 +117,7 @@ export const nameRegions: readonly NameRegion[] = [
       { years: [500, 900], options: [{ tradition: "slavic-medieval", weight: 1 }] },
       { years: [900, 1526], options: [{ tradition: "hungarian-medieval", weight: 1 }, { tradition: "polish-medieval", weight: 1 }, { tradition: "transylvanian", weight: 1 }] },
       { years: [1526, 1918], options: [{ tradition: "hungarian-medieval", weight: 1 }, { tradition: "hungarian-modern", weight: 1 }, { tradition: "polish-medieval", weight: 1 }, { tradition: "polish-modern", weight: 1 }, { tradition: "transylvanian", weight: 1 }, { tradition: "romanian", weight: 1 }, { tradition: "german", weight: 1 }] },
-      { years: [1918, 10001], options: [{ tradition: "hungarian-modern", weight: 1 }, { tradition: "polish-modern", weight: 1 }, { tradition: "slovak-modern", weight: 1 }, { tradition: "romanian", weight: 1 }] },
+      { years: [1918, 10001], options: [{ tradition: "hungarian-modern", weight: 25 }, { tradition: "polish-modern", weight: 35 }, { tradition: "slovak-modern", weight: 15 }, { tradition: "romanian", weight: 25 }] },
     ],
   },
   {
@@ -126,10 +126,11 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [22,45,27,48],
     culture: "european",
     windows: [
-      { years: [-1000000, 100], options: [{ tradition: "celtic-ancient", weight: 1 }] },
+      { years: [-1000000, -800], options: [{ tradition: "early-west-eurasia", weight: 1 }] },
+      { years: [-800, 100], options: [{ tradition: "celtic-ancient", weight: 1 }] },
       { years: [100, 900], options: [{ tradition: "slavic-medieval", weight: 1 }, { tradition: "german", weight: 1 }] },
       { years: [900, 1918], options: [{ tradition: "transylvanian", weight: 1 }, { tradition: "hungarian-medieval", weight: 1 }, { tradition: "hungarian-modern", weight: 1 }, { tradition: "romanian", weight: 1 }, { tradition: "german", weight: 1 }] },
-      { years: [1918, 10001], options: [{ tradition: "romanian", weight: 1 }, { tradition: "hungarian-modern", weight: 1 }, { tradition: "german", weight: 1 }] },
+      { years: [1918, 10001], options: [{ tradition: "romanian", weight: 70 }, { tradition: "hungarian-modern", weight: 25 }, { tradition: "german", weight: 5 }] },
     ],
   },
   {
@@ -153,7 +154,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [28.5,40.7,29.5,41.5],
     culture: "european",
     windows: [
-      { years: [-1000000, 330], options: [{ tradition: "ancient-greek", weight: 1 }, { tradition: "ancient-roman", weight: 1 }] },
+      { years: [-1000000, -1400], options: [{ tradition: "early-west-eurasia", weight: 1 }] },
+      { years: [-1400, 330], options: [{ tradition: "ancient-greek", weight: 1 }, { tradition: "ancient-roman", weight: 1 }] },
       { years: [330, 1453], options: [{ tradition: "byzantine", weight: 10 }, { tradition: "greek", weight: 6 }, { tradition: "armenian", weight: 2 }] },
       { years: [1453, 1923], options: [{ tradition: "turkish", weight: 20 }, { tradition: "greek", weight: 7 }, { tradition: "armenian", weight: 4 }, { tradition: "jewish-ashkenazi", weight: 1 }] },
       { years: [1923, 10001], options: [{ tradition: "turkish", weight: 40 }, { tradition: "greek", weight: 1 }, { tradition: "armenian", weight: 1 }] },
@@ -165,7 +167,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [26,40.5,29,42.2],
     culture: "european",
     windows: [
-      { years: [-1000000, 1453], options: [{ tradition: "byzantine", weight: 6 }, { tradition: "greek", weight: 6 }, { tradition: "bulgarian", weight: 5 }] },
+      { years: [-1000000, -3000], options: [{ tradition: "early-west-eurasia", weight: 1 }] },
+      { years: [-3000, 1453], options: [{ tradition: "byzantine", weight: 6 }, { tradition: "greek", weight: 6 }, { tradition: "bulgarian", weight: 5 }] },
       { years: [1453, 1923], options: [{ tradition: "turkish", weight: 8 }, { tradition: "greek", weight: 6 }, { tradition: "bulgarian", weight: 6 }] },
       { years: [1923, 10001], options: [{ tradition: "turkish", weight: 9 }, { tradition: "bulgarian", weight: 6 }, { tradition: "greek", weight: 4 }] },
     ],
@@ -194,9 +197,8 @@ export const nameRegions: readonly NameRegion[] = [
     windows: [
       { years: [-1000000, -400], options: [{ tradition: "prehistoric-proto-indo-european", weight: 1 }] },
       { years: [-400, 200], options: [{ tradition: "prehistoric-proto-germanic", weight: 1 }] },
-      { years: [750, 1400], options: [{ tradition: "old-norse", weight: 8 }, { tradition: "icelandic", weight: 1 }] },
-      { years: [1400, 1500], options: [{ tradition: "icelandic", weight: 1 }] },
-      { years: [1500, 10001], options: [{ tradition: "scandinavian", weight: 1 }] },
+      { years: [400, 1700], options: [{ tradition: "old-norse", weight: 8 }, { tradition: "icelandic", weight: 1 }] },
+      { years: [1700, 10001], options: [{ tradition: "scandinavian", weight: 1 }] },
     ],
   },
   {
@@ -207,8 +209,8 @@ export const nameRegions: readonly NameRegion[] = [
     windows: [
       { years: [-1000000, -400], options: [{ tradition: "prehistoric-proto-indo-european", weight: 1 }] },
       { years: [-400, 200], options: [{ tradition: "prehistoric-proto-germanic", weight: 1 }] },
-      { years: [750, 1400], options: [{ tradition: "old-norse", weight: 9 }] },
-      { years: [1400, 10001], options: [{ tradition: "scandinavian", weight: 1 }] },
+      { years: [400, 1700], options: [{ tradition: "old-norse", weight: 9 }] },
+      { years: [1700, 10001], options: [{ tradition: "scandinavian", weight: 1 }] },
     ],
   },
   {
@@ -219,8 +221,8 @@ export const nameRegions: readonly NameRegion[] = [
     windows: [
       { years: [-1000000, -400], options: [{ tradition: "prehistoric-proto-indo-european", weight: 1 }] },
       { years: [-400, 200], options: [{ tradition: "prehistoric-proto-germanic", weight: 1 }] },
-      { years: [750, 1400], options: [{ tradition: "old-norse", weight: 9 }] },
-      { years: [1400, 10001], options: [{ tradition: "scandinavian", weight: 1 }] },
+      { years: [400, 1700], options: [{ tradition: "old-norse", weight: 9 }] },
+      { years: [1700, 10001], options: [{ tradition: "scandinavian", weight: 1 }] },
     ],
   },
   {
@@ -231,8 +233,8 @@ export const nameRegions: readonly NameRegion[] = [
     windows: [
       { years: [-1000000, -400], options: [{ tradition: "prehistoric-proto-indo-european", weight: 1 }] },
       { years: [-400, 200], options: [{ tradition: "prehistoric-proto-germanic", weight: 1 }] },
-      { years: [750, 1400], options: [{ tradition: "old-norse", weight: 9 }] },
-      { years: [1400, 10001], options: [{ tradition: "scandinavian", weight: 1 }] },
+      { years: [400, 1700], options: [{ tradition: "old-norse", weight: 9 }] },
+      { years: [1700, 10001], options: [{ tradition: "scandinavian", weight: 1 }] },
     ],
   },
   {
@@ -241,6 +243,7 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [15,66,31,71],
     culture: "european",
     windows: [
+      { years: [-1000000, 1550], options: [{ tradition: "early-west-eurasia", weight: 1 }] },
       { years: [1550, 1800], options: [{ tradition: "sami-north", weight: 8 }, { tradition: "scandinavian", weight: 1 }] },
       { years: [1800, 10001], options: [{ tradition: "sami-north", weight: 5 }, { tradition: "scandinavian", weight: 4 }] },
     ],
@@ -253,8 +256,8 @@ export const nameRegions: readonly NameRegion[] = [
     windows: [
       { years: [-1000000, -400], options: [{ tradition: "prehistoric-proto-indo-european", weight: 1 }] },
       { years: [-400, 200], options: [{ tradition: "prehistoric-proto-germanic", weight: 1 }] },
-      { years: [750, 1400], options: [{ tradition: "old-norse", weight: 9 }] },
-      { years: [1400, 10001], options: [{ tradition: "scandinavian", weight: 1 }] },
+      { years: [400, 1700], options: [{ tradition: "old-norse", weight: 9 }] },
+      { years: [1700, 10001], options: [{ tradition: "scandinavian", weight: 1 }] },
     ],
   },
   {
@@ -290,7 +293,7 @@ export const nameRegions: readonly NameRegion[] = [
       { years: [882, 1240], options: [{ tradition: "russian", weight: 1 }, { tradition: "slavic-medieval", weight: 1 }] },
       { years: [1240, 1480], options: [{ tradition: "russian", weight: 1 }, { tradition: "mongolian-traditional", weight: 1 }, { tradition: "turkic-steppe", weight: 1 }] },
       { years: [1480, 1721], options: [{ tradition: "russian", weight: 1 }, { tradition: "polish-medieval", weight: 1 }, { tradition: "polish-modern", weight: 1 }] },
-      { years: [1721, 10001], options: [{ tradition: "russian", weight: 1 }, { tradition: "russian", weight: 1 }, { tradition: "russian", weight: 1 }, { tradition: "polish-modern", weight: 1 }, { tradition: "jewish-ashkenazi", weight: 1 }] },
+      { years: [1721, 10001], options: [{ tradition: "russian", weight: 70 }, { tradition: "polish-modern", weight: 20 }, { tradition: "jewish-ashkenazi", weight: 10 }] },
     ],
   },
   {
@@ -327,6 +330,7 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [40,58,70,72],
     culture: "european",
     windows: [
+      { years: [-1000000, 800], options: [{ tradition: "early-west-eurasia", weight: 1 }] },
       { years: [800, 1600], options: [{ tradition: "komi-permic", weight: 4 }, { tradition: "ob-ugric", weight: 3 }, { tradition: "sami-north", weight: 2 }] },
       { years: [1600, 10001], options: [{ tradition: "komi-permic", weight: 3 }, { tradition: "sami-north", weight: 2 }, { tradition: "russian", weight: 5 }] },
     ],
@@ -337,6 +341,7 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [56,51,64,68],
     culture: "inner-eurasian",
     windows: [
+      { years: [-1000000, 800], options: [{ tradition: "early-north-eurasia", weight: 1 }] },
       { years: [800, 1600], options: [{ tradition: "komi-permic", weight: 5 }, { tradition: "ob-ugric", weight: 3 }, { tradition: "turkic-steppe", weight: 1 }] },
       { years: [1600, 10001], options: [{ tradition: "komi-permic", weight: 3 }, { tradition: "ob-ugric", weight: 2 }, { tradition: "russian", weight: 5 }] },
     ],
@@ -347,10 +352,9 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [-125,42,-116,60],
     culture: "other-indigenous-american",
     windows: [
-      { years: [-1000000, 1600], options: [{ tradition: "pacific-northwest", weight: 1 }, { tradition: "california-native", weight: 1 }] },
-      { years: [1600, 1769], options: [{ tradition: "pacific-northwest", weight: 1 }, { tradition: "california-native", weight: 1 }] },
-      { years: [1769, 1848], options: [{ tradition: "pacific-northwest", weight: 1 }, { tradition: "spanish-castilian", weight: 1 }, { tradition: "russian", weight: 1 }] },
-      { years: [1848, 10001], options: [{ tradition: "english", weight: 1 }, { tradition: "chinese-cantonese", weight: 1 }, { tradition: "spanish-latin-american", weight: 1 }, { tradition: "pacific-northwest", weight: 1 }] },
+      { years: [-1000000, 1769], options: [{ tradition: "early-americas", weight: 1 }] },
+      { years: [1769, 1848], options: [{ tradition: "spanish-castilian", weight: 1 }, { tradition: "russian", weight: 1 }] },
+      { years: [1848, 10001], options: [{ tradition: "english", weight: 70 }, { tradition: "chinese-cantonese", weight: 10 }, { tradition: "spanish-latin-american", weight: 20 }] },
     ],
   },
   {
@@ -359,10 +363,9 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [-124.5,38.5,-119.5,42],
     culture: "other-indigenous-american",
     windows: [
-      { years: [-1000000, 1600], options: [{ tradition: "california-native", weight: 1 }] },
-      { years: [1600, 1769], options: [{ tradition: "california-native", weight: 1 }] },
-      { years: [1769, 1848], options: [{ tradition: "spanish-castilian", weight: 1 }, { tradition: "russian", weight: 1 }, { tradition: "california-native", weight: 1 }] },
-      { years: [1848, 10001], options: [{ tradition: "english", weight: 1 }, { tradition: "texas-anglo", weight: 1 }, { tradition: "chinese-cantonese", weight: 1 }, { tradition: "italian", weight: 1 }, { tradition: "spanish-latin-american", weight: 1 }] },
+      { years: [-1000000, 1769], options: [{ tradition: "early-americas", weight: 1 }] },
+      { years: [1769, 1848], options: [{ tradition: "spanish-castilian", weight: 1 }, { tradition: "russian", weight: 1 }] },
+      { years: [1848, 10001], options: [{ tradition: "english", weight: 45 }, { tradition: "texas-anglo", weight: 7 }, { tradition: "chinese-cantonese", weight: 10 }, { tradition: "italian", weight: 8 }, { tradition: "spanish-latin-american", weight: 30 }] },
     ],
   },
   {
@@ -371,10 +374,9 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [-123.5,35,-119.5,38.5],
     culture: "other-indigenous-american",
     windows: [
-      { years: [-1000000, 1600], options: [{ tradition: "california-native", weight: 1 }] },
-      { years: [1600, 1769], options: [{ tradition: "california-native", weight: 1 }] },
-      { years: [1769, 1848], options: [{ tradition: "spanish-castilian", weight: 1 }, { tradition: "california-native", weight: 1 }] },
-      { years: [1848, 10001], options: [{ tradition: "english", weight: 1 }, { tradition: "texas-anglo", weight: 1 }, { tradition: "portuguese", weight: 1 }, { tradition: "filipino", weight: 1 }, { tradition: "spanish-latin-american", weight: 1 }] },
+      { years: [-1000000, 1769], options: [{ tradition: "early-americas", weight: 1 }] },
+      { years: [1769, 1848], options: [{ tradition: "spanish-castilian", weight: 1 }] },
+      { years: [1848, 10001], options: [{ tradition: "english", weight: 40 }, { tradition: "texas-anglo", weight: 8 }, { tradition: "portuguese", weight: 10 }, { tradition: "filipino", weight: 10 }, { tradition: "spanish-latin-american", weight: 32 }] },
     ],
   },
   {
@@ -383,10 +385,9 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [-121,32,-114,35.5],
     culture: "other-indigenous-american",
     windows: [
-      { years: [-1000000, 1600], options: [{ tradition: "california-native", weight: 1 }] },
-      { years: [1600, 1769], options: [{ tradition: "california-native", weight: 1 }] },
-      { years: [1769, 1848], options: [{ tradition: "california-native", weight: 10 }, { tradition: "texas-spanish-colonial", weight: 6 }, { tradition: "spanish-castilian", weight: 3 }] },
-      { years: [1848, 10001], options: [{ tradition: "texas-anglo", weight: 1 }, { tradition: "spanish-latin-american", weight: 1 }, { tradition: "african-american", weight: 1 }, { tradition: "chinese-cantonese", weight: 1 }, { tradition: "japanese", weight: 1 }, { tradition: "korean", weight: 1 }] },
+      { years: [-1000000, 1769], options: [{ tradition: "early-americas", weight: 1 }] },
+      { years: [1769, 1848], options: [{ tradition: "texas-spanish-colonial", weight: 6 }, { tradition: "spanish-castilian", weight: 3 }] },
+      { years: [1848, 10001], options: [{ tradition: "texas-anglo", weight: 34 }, { tradition: "spanish-latin-american", weight: 40 }, { tradition: "african-american", weight: 6 }, { tradition: "chinese-cantonese", weight: 7 }, { tradition: "japanese", weight: 3 }, { tradition: "korean", weight: 5 }] },
     ],
   },
   {
@@ -395,7 +396,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [-115,31,-102,38],
     culture: "other-indigenous-american",
     windows: [
-      { years: [-1000000, 1600], options: [{ tradition: "pueblo", weight: 1 }, { tradition: "southwest-native", weight: 1 }, { tradition: "apache", weight: 1 }] },
+      { years: [-1000000, -1000], options: [{ tradition: "early-americas", weight: 1 }] },
+      { years: [-1000, 1600], options: [{ tradition: "pueblo", weight: 1 }, { tradition: "southwest-native", weight: 1 }, { tradition: "apache", weight: 1 }] },
       { years: [1600, 1848], options: [{ tradition: "pueblo", weight: 7 }, { tradition: "pueblo-modern", weight: 7 }, { tradition: "texas-spanish-colonial", weight: 8 }, { tradition: "apache", weight: 4 }, { tradition: "navajo", weight: 3 }, { tradition: "spanish-castilian", weight: 2 }] },
       { years: [1848, 10001], options: [{ tradition: "texas-anglo", weight: 40 }, { tradition: "spanish-latin-american", weight: 38 }, { tradition: "navajo", weight: 6 }, { tradition: "pueblo-modern", weight: 5 }, { tradition: "apache", weight: 2 }] },
     ],
@@ -406,10 +408,11 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [-105,29,-95,49],
     culture: "other-indigenous-american",
     windows: [
-      { years: [-1000000, 1600], options: [{ tradition: "plains-native", weight: 1 }, { tradition: "lakota-sioux", weight: 1 }, { tradition: "apache", weight: 1 }] },
+      { years: [-1000000, -1000], options: [{ tradition: "early-americas", weight: 1 }] },
+      { years: [-1000, 1600], options: [{ tradition: "plains-native", weight: 1 }, { tradition: "lakota-sioux", weight: 1 }, { tradition: "apache", weight: 1 }] },
       { years: [1600, 1700], options: [{ tradition: "plains-native", weight: 1 }, { tradition: "lakota-sioux", weight: 1 }, { tradition: "apache", weight: 1 }] },
       { years: [1700, 1860], options: [{ tradition: "plains-native", weight: 1 }, { tradition: "lakota-sioux", weight: 1 }, { tradition: "french", weight: 1 }, { tradition: "spanish-latin-american", weight: 1 }] },
-      { years: [1860, 10001], options: [{ tradition: "texas-anglo", weight: 1 }, { tradition: "german", weight: 1 }, { tradition: "scandinavian", weight: 1 }, { tradition: "plains-native", weight: 1 }, { tradition: "lakota-sioux", weight: 1 }] },
+      { years: [1860, 10001], options: [{ tradition: "texas-anglo", weight: 55 }, { tradition: "german", weight: 25 }, { tradition: "scandinavian", weight: 12 }, { tradition: "plains-native", weight: 4 }, { tradition: "lakota-sioux", weight: 4 }] },
     ],
   },
   {
@@ -418,10 +421,11 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [-95,29,-85,42],
     culture: "other-indigenous-american",
     windows: [
-      { years: [-1000000, 1600], options: [{ tradition: "mississippian", weight: 1 }, { tradition: "creek-muskogee", weight: 1 }, { tradition: "algonquian", weight: 1 }] },
+      { years: [-1000000, -1000], options: [{ tradition: "early-americas", weight: 1 }] },
+      { years: [-1000, 1600], options: [{ tradition: "mississippian", weight: 1 }, { tradition: "creek-muskogee", weight: 1 }, { tradition: "algonquian", weight: 1 }] },
       { years: [1600, 1673], options: [{ tradition: "mississippian", weight: 1 }, { tradition: "creek-muskogee", weight: 1 }, { tradition: "algonquian", weight: 1 }] },
       { years: [1673, 1803], options: [{ tradition: "french", weight: 1 }, { tradition: "creek-muskogee", weight: 1 }, { tradition: "spanish-castilian", weight: 1 }] },
-      { years: [1803, 10001], options: [{ tradition: "north-american-colonial", weight: 1 }, { tradition: "african-american", weight: 1 }, { tradition: "german", weight: 1 }, { tradition: "celtic-irish", weight: 1 }] },
+      { years: [1803, 10001], options: [{ tradition: "north-american-colonial", weight: 45 }, { tradition: "african-american", weight: 35 }, { tradition: "german", weight: 12 }, { tradition: "celtic-irish", weight: 8 }] },
     ],
   },
   {
@@ -430,9 +434,10 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [-85,40,-70,48],
     culture: "other-indigenous-american",
     windows: [
-      { years: [-1000000, 1600], options: [{ tradition: "iroquois-haudenosaunee", weight: 1 }, { tradition: "algonquian", weight: 1 }] },
+      { years: [-1000000, -1000], options: [{ tradition: "early-americas", weight: 1 }] },
+      { years: [-1000, 1600], options: [{ tradition: "iroquois-haudenosaunee", weight: 1 }, { tradition: "algonquian", weight: 1 }] },
       { years: [1600, 1783], options: [{ tradition: "north-american-colonial", weight: 1 }, { tradition: "french", weight: 1 }, { tradition: "dutch", weight: 1 }, { tradition: "iroquois-haudenosaunee", weight: 1 }] },
-      { years: [1783, 10001], options: [{ tradition: "english", weight: 1 }, { tradition: "french", weight: 1 }, { tradition: "german", weight: 1 }, { tradition: "celtic-irish", weight: 1 }, { tradition: "italian", weight: 1 }, { tradition: "polish-medieval", weight: 1 }, { tradition: "polish-modern", weight: 1 }] },
+      { years: [1783, 10001], options: [{ tradition: "english", weight: 40 }, { tradition: "french", weight: 9 }, { tradition: "german", weight: 18 }, { tradition: "celtic-irish", weight: 15 }, { tradition: "italian", weight: 10 }, { tradition: "polish-medieval", weight: 3 }, { tradition: "polish-modern", weight: 5 }] },
     ],
   },
   {
@@ -441,9 +446,10 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [-77,38,-66,46],
     culture: "other-indigenous-american",
     windows: [
-      { years: [-1000000, 1600], options: [{ tradition: "iroquois-haudenosaunee", weight: 1 }, { tradition: "algonquian", weight: 1 }] },
+      { years: [-1000000, -1000], options: [{ tradition: "early-americas", weight: 1 }] },
+      { years: [-1000, 1600], options: [{ tradition: "iroquois-haudenosaunee", weight: 1 }, { tradition: "algonquian", weight: 1 }] },
       { years: [1600, 1783], options: [{ tradition: "north-american-colonial", weight: 1 }, { tradition: "english", weight: 1 }, { tradition: "dutch", weight: 1 }, { tradition: "french", weight: 1 }, { tradition: "iroquois-haudenosaunee", weight: 1 }] },
-      { years: [1783, 10001], options: [{ tradition: "english", weight: 1 }, { tradition: "german", weight: 1 }, { tradition: "celtic-irish", weight: 1 }, { tradition: "italian", weight: 1 }, { tradition: "jewish-ashkenazi", weight: 1 }, { tradition: "french", weight: 1 }] },
+      { years: [1783, 10001], options: [{ tradition: "english", weight: 38 }, { tradition: "german", weight: 15 }, { tradition: "celtic-irish", weight: 18 }, { tradition: "italian", weight: 13 }, { tradition: "jewish-ashkenazi", weight: 10 }, { tradition: "french", weight: 6 }] },
     ],
   },
   {
@@ -452,7 +458,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [-92,25,-75,37],
     culture: "other-indigenous-american",
     windows: [
-      { years: [-1000000, 1600], options: [{ tradition: "cherokee", weight: 1 }, { tradition: "creek-muskogee", weight: 1 }, { tradition: "mississippian", weight: 1 }] },
+      { years: [-1000000, 800], options: [{ tradition: "early-americas", weight: 1 }] },
+      { years: [800, 1600], options: [{ tradition: "cherokee", weight: 1 }, { tradition: "creek-muskogee", weight: 1 }, { tradition: "mississippian", weight: 1 }] },
       { years: [1600, 1670], options: [{ tradition: "spanish-castilian", weight: 1 }, { tradition: "english", weight: 1 }, { tradition: "french", weight: 1 }, { tradition: "cherokee", weight: 1 }] },
       { years: [1670, 1865], options: [{ tradition: "african-american", weight: 0.05 }, { tradition: "english", weight: 0.45 }, { tradition: "spanish-castilian", weight: 0.14 }, { tradition: "french", weight: 0.12 }, { tradition: "cherokee", weight: 0.24 }] },
       { years: [1865, 10001], options: [{ tradition: "african-american", weight: 0.4 }, { tradition: "north-american-modern", weight: 0.24 }, { tradition: "english", weight: 0.24 }, { tradition: "scottish", weight: 0.12 }] },
@@ -464,7 +471,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [-82,25,-70,40],
     culture: "other-indigenous-american",
     windows: [
-      { years: [-1000000, 1600], options: [{ tradition: "algonquian", weight: 1 }] },
+      { years: [-1000000, -1000], options: [{ tradition: "early-americas", weight: 1 }] },
+      { years: [-1000, 1600], options: [{ tradition: "algonquian", weight: 1 }] },
       { years: [1600, 1607], options: [{ tradition: "algonquian", weight: 1 }] },
       { years: [1607, 1640], options: [{ tradition: "north-american-colonial", weight: 1 }, { tradition: "english", weight: 1 }, { tradition: "dutch", weight: 1 }] },
       { years: [1640, 1865], options: [{ tradition: "african-american", weight: 0.05 }, { tradition: "north-american-colonial", weight: 0.33 }, { tradition: "english", weight: 0.48 }, { tradition: "dutch", weight: 0.14 }] },
@@ -480,7 +488,7 @@ export const nameRegions: readonly NameRegion[] = [
     windows: [
       { years: [-1000000, 1600], options: [{ tradition: "inuit", weight: 1 }, { tradition: "north-american-algonquian", weight: 1 }] },
       { years: [1600, 1730], options: [{ tradition: "inuit", weight: 1 }, { tradition: "algonquian", weight: 1 }] },
-      { years: [1730, 10001], options: [{ tradition: "inuit", weight: 1 }, { tradition: "russian", weight: 1 }, { tradition: "french", weight: 1 }, { tradition: "english", weight: 1 }, { tradition: "scandinavian", weight: 1 }] },
+      { years: [1730, 10001], options: [{ tradition: "inuit", weight: 45 }, { tradition: "russian", weight: 7 }, { tradition: "french", weight: 15 }, { tradition: "english", weight: 25 }, { tradition: "scandinavian", weight: 8 }] },
     ],
   },
   {
@@ -489,7 +497,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [-140,45,-55,70],
     culture: "other-indigenous-american",
     windows: [
-      { years: [-1000000, 1600], options: [{ tradition: "algonquian", weight: 1 }, { tradition: "iroquois-haudenosaunee", weight: 1 }, { tradition: "inuit", weight: 1 }] },
+      { years: [-1000000, -2000], options: [{ tradition: "early-americas", weight: 1 }] },
+      { years: [-2000, 1600], options: [{ tradition: "algonquian", weight: 1 }, { tradition: "iroquois-haudenosaunee", weight: 1 }, { tradition: "inuit", weight: 1 }] },
     ],
   },
   {
@@ -498,7 +507,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [-95,51,-75,64],
     culture: "other-indigenous-american",
     windows: [
-      { years: [-1000000, 1600], options: [{ tradition: "inuit", weight: 1 }, { tradition: "north-american-algonquian", weight: 1 }] },
+      { years: [-1000000, -3000], options: [{ tradition: "early-americas", weight: 1 }] },
+      { years: [-3000, 1600], options: [{ tradition: "inuit", weight: 1 }, { tradition: "north-american-algonquian", weight: 1 }] },
     ],
   },
   {
@@ -507,7 +517,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [-136,60,-102,70],
     culture: "other-indigenous-american",
     windows: [
-      { years: [-1000000, 1600], options: [{ tradition: "great-basin-native", weight: 1 }, { tradition: "plains-native", weight: 1 }] },
+      { years: [-1000000, -2000], options: [{ tradition: "early-americas", weight: 1 }] },
+      { years: [-2000, 1600], options: [{ tradition: "great-basin-native", weight: 1 }, { tradition: "plains-native", weight: 1 }] },
     ],
   },
   {
@@ -516,7 +527,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [-105,17,-96,23],
     culture: "mesoamerican",
     windows: [
-      { years: [-1000000, 1600], options: [{ tradition: "aztec", weight: 1 }] },
+      { years: [-1000000, 1200], options: [{ tradition: "early-americas", weight: 1 }] },
+      { years: [1200, 1600], options: [{ tradition: "aztec", weight: 1 }] },
       { years: [1600, 1821], options: [{ tradition: "spanish-castilian", weight: 1 }, { tradition: "aztec", weight: 1 }] },
       { years: [1821, 10001], options: [{ tradition: "spanish-latin-american", weight: 1 }] },
     ],
@@ -527,7 +539,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [-99.5,19,-98.5,20.2],
     culture: "mesoamerican",
     windows: [
-      { years: [-1000000, 1600], options: [{ tradition: "aztec", weight: 1 }] },
+      { years: [-1000000, 1200], options: [{ tradition: "early-americas", weight: 1 }] },
+      { years: [1200, 1600], options: [{ tradition: "aztec", weight: 1 }] },
       { years: [1600, 1821], options: [{ tradition: "spanish-castilian", weight: 1 }, { tradition: "aztec", weight: 1 }] },
       { years: [1821, 10001], options: [{ tradition: "spanish-latin-american", weight: 1 }] },
     ],
@@ -538,7 +551,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [-92,7,-77,18],
     culture: "mesoamerican",
     windows: [
-      { years: [-1000000, 1600], options: [{ tradition: "maya", weight: 1 }, { tradition: "mixtec", weight: 1 }, { tradition: "zapotec", weight: 1 }] },
+      { years: [-1000000, -500], options: [{ tradition: "early-americas", weight: 1 }] },
+      { years: [-500, 1600], options: [{ tradition: "maya", weight: 1 }, { tradition: "mixtec", weight: 1 }, { tradition: "zapotec", weight: 1 }] },
       { years: [1600, 1821], options: [{ tradition: "spanish-castilian", weight: 4 }, { tradition: "maya", weight: 6 }, { tradition: "maya-modern", weight: 10 }] },
       { years: [1821, 10001], options: [{ tradition: "maya-modern", weight: 10 }, { tradition: "spanish-latin-american", weight: 9 }, { tradition: "african-american", weight: 1 }] },
     ],
@@ -549,7 +563,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [-92,15,-87,21],
     culture: "mesoamerican",
     windows: [
-      { years: [-1000000, 1600], options: [{ tradition: "maya", weight: 1 }] },
+      { years: [-1000000, -500], options: [{ tradition: "early-americas", weight: 1 }] },
+      { years: [-500, 1600], options: [{ tradition: "maya", weight: 1 }] },
       { years: [1600, 1821], options: [{ tradition: "maya", weight: 8 }, { tradition: "maya-modern", weight: 9 }, { tradition: "spanish-castilian", weight: 2 }] },
       { years: [1821, 10001], options: [{ tradition: "maya-modern", weight: 12 }, { tradition: "spanish-latin-american", weight: 6 }] },
     ],
@@ -560,7 +575,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [-91,17.5,-86.5,21.7],
     culture: "mesoamerican",
     windows: [
-      { years: [-1000000, 1600], options: [{ tradition: "maya", weight: 1 }] },
+      { years: [-1000000, -500], options: [{ tradition: "early-americas", weight: 1 }] },
+      { years: [-500, 1600], options: [{ tradition: "maya", weight: 1 }] },
       { years: [1600, 1821], options: [{ tradition: "maya", weight: 8 }, { tradition: "maya-modern", weight: 9 }, { tradition: "spanish-castilian", weight: 2 }] },
       { years: [1821, 10001], options: [{ tradition: "maya-modern", weight: 11 }, { tradition: "spanish-latin-american", weight: 7 }] },
     ],
@@ -571,7 +587,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [-98.5,15.6,-94,18.2],
     culture: "mesoamerican",
     windows: [
-      { years: [-1000000, 1600], options: [{ tradition: "zapotec", weight: 1 }, { tradition: "mixtec", weight: 1 }] },
+      { years: [-1000000, -500], options: [{ tradition: "early-americas", weight: 1 }] },
+      { years: [-500, 1600], options: [{ tradition: "zapotec", weight: 1 }, { tradition: "mixtec", weight: 1 }] },
       { years: [1600, 1821], options: [{ tradition: "zapotec", weight: 5 }, { tradition: "mixtec", weight: 4 }, { tradition: "zapotec-modern", weight: 8 }, { tradition: "spanish-castilian", weight: 2 }] },
       { years: [1821, 10001], options: [{ tradition: "zapotec-modern", weight: 10 }, { tradition: "spanish-latin-american", weight: 8 }] },
     ],
@@ -582,7 +599,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [-85,11,-82.5,16],
     culture: "mesoamerican",
     windows: [
-      { years: [-1000000, 1600], options: [{ tradition: "maya", weight: 1 }, { tradition: "carib", weight: 1 }] },
+      { years: [-1000000, -500], options: [{ tradition: "early-americas", weight: 1 }] },
+      { years: [-500, 1600], options: [{ tradition: "maya", weight: 1 }, { tradition: "carib", weight: 1 }] },
       { years: [1600, 1630], options: [{ tradition: "maya", weight: 1 }, { tradition: "carib", weight: 1 }] },
       { years: [1630, 1860], options: [{ tradition: "carib", weight: 8 }, { tradition: "maya-modern", weight: 5 }, { tradition: "afro-caribbean", weight: 5 }, { tradition: "english", weight: 2 }] },
       { years: [1860, 10001], options: [{ tradition: "maya-modern", weight: 7 }, { tradition: "afro-caribbean", weight: 6 }, { tradition: "spanish-latin-american", weight: 6 }, { tradition: "african-american", weight: 2 }, { tradition: "english", weight: 1 }] },
@@ -594,9 +612,10 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [-83,7,-77,9.7],
     culture: "mesoamerican",
     windows: [
-      { years: [-1000000, 1600], options: [{ tradition: "muisca", weight: 1 }, { tradition: "carib", weight: 1 }] },
+      { years: [-1000000, 800], options: [{ tradition: "early-americas", weight: 1 }] },
+      { years: [800, 1600], options: [{ tradition: "muisca", weight: 1 }, { tradition: "carib", weight: 1 }] },
       { years: [1600, 1821], options: [{ tradition: "spanish-castilian", weight: 1 }] },
-      { years: [1821, 10001], options: [{ tradition: "spanish-latin-american", weight: 1 }, { tradition: "african-american", weight: 1 }, { tradition: "chinese-cantonese", weight: 1 }] },
+      { years: [1821, 10001], options: [{ tradition: "spanish-latin-american", weight: 75 }, { tradition: "african-american", weight: 18 }, { tradition: "chinese-cantonese", weight: 7 }] },
     ],
   },
   {
@@ -605,7 +624,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [-85,10,-59,27],
     culture: "other-indigenous-american",
     windows: [
-      { years: [-1000000, 1600], options: [{ tradition: "taino", weight: 1 }, { tradition: "carib", weight: 1 }] },
+      { years: [-1000000, 800], options: [{ tradition: "early-americas", weight: 1 }] },
+      { years: [800, 1600], options: [{ tradition: "taino", weight: 1 }, { tradition: "carib", weight: 1 }] },
       { years: [1600, 1848], options: [{ tradition: "afro-caribbean", weight: 0.1 }, { tradition: "spanish-castilian", weight: 0.3 }, { tradition: "french", weight: 0.18 }, { tradition: "english", weight: 0.2 }, { tradition: "dutch", weight: 0.07 }, { tradition: "taino", weight: 0.15 }] },
       { years: [1848, 1898], options: [{ tradition: "afro-caribbean", weight: 0.55 }, { tradition: "spanish-castilian", weight: 0.17 }, { tradition: "french", weight: 0.11 }, { tradition: "english", weight: 0.13 }, { tradition: "dutch", weight: 0.04 }] },
       { years: [1898, 10001], options: [{ tradition: "afro-caribbean", weight: 0.55 }, { tradition: "puerto-rican", weight: 0.14 }, { tradition: "spanish-latin-american", weight: 0.16 }, { tradition: "english", weight: 0.09 }, { tradition: "french", weight: 0.06 }] },
@@ -617,6 +637,7 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [-85,17,-65,23.5],
     culture: "other-indigenous-american",
     windows: [
+      { years: [-4000, 800], options: [{ tradition: "early-americas", weight: 1 }] },
       { years: [-1000000, 1600], options: [{ tradition: "taino", weight: 1 }] },
       { years: [1600, 1886], options: [{ tradition: "afro-caribbean", weight: 0.12 }, { tradition: "spanish-castilian", weight: 0.72 }, { tradition: "taino", weight: 0.16 }] },
       { years: [1886, 1898], options: [{ tradition: "afro-caribbean", weight: 0.45 }, { tradition: "spanish-castilian", weight: 0.55 }] },
@@ -629,6 +650,7 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [-63,11,-59,18.5],
     culture: "other-indigenous-american",
     windows: [
+      { years: [-2000, 800], options: [{ tradition: "early-americas", weight: 1 }] },
       { years: [-1000000, 1600], options: [{ tradition: "carib", weight: 1 }] },
       { years: [1600, 1834], options: [{ tradition: "afro-caribbean", weight: 0.08 }, { tradition: "french", weight: 0.28 }, { tradition: "english", weight: 0.36 }, { tradition: "dutch", weight: 0.12 }, { tradition: "carib", weight: 0.16 }] },
       { years: [1834, 10001], options: [{ tradition: "afro-caribbean", weight: 0.76 }, { tradition: "english", weight: 0.12 }, { tradition: "french", weight: 0.08 }, { tradition: "spanish-latin-american", weight: 0.04 }] },
@@ -640,8 +662,9 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [-120,42,-105,56],
     culture: "other-indigenous-american",
     windows: [
+      { years: [-1000000, 1600], options: [{ tradition: "early-americas", weight: 1 }] },
       { years: [1600, 1805], options: [{ tradition: "great-basin-native", weight: 1 }, { tradition: "plains-native", weight: 1 }] },
-      { years: [1805, 10001], options: [{ tradition: "english", weight: 1 }, { tradition: "scandinavian", weight: 1 }, { tradition: "german", weight: 1 }, { tradition: "great-basin-native", weight: 1 }] },
+      { years: [1805, 10001], options: [{ tradition: "english", weight: 65 }, { tradition: "scandinavian", weight: 12 }, { tradition: "german", weight: 15 }, { tradition: "great-basin-native", weight: 8 }] },
     ],
   },
   {
@@ -650,7 +673,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [-79,-12,-70,10],
     culture: "andean",
     windows: [
-      { years: [-1000000, 1533], options: [{ tradition: "inca", weight: 1 }, { tradition: "muisca", weight: 1 }] },
+      { years: [-1000000, 800], options: [{ tradition: "early-americas", weight: 1 }] },
+      { years: [800, 1533], options: [{ tradition: "inca", weight: 1 }, { tradition: "muisca", weight: 1 }] },
       { years: [1533, 1820], options: [{ tradition: "inca", weight: 6 }, { tradition: "muisca", weight: 4 }, { tradition: "andean-modern", weight: 8 }, { tradition: "spanish-castilian", weight: 3 }] },
       { years: [1820, 10001], options: [{ tradition: "andean-modern", weight: 8 }, { tradition: "spanish-latin-american", weight: 10 }] },
     ],
@@ -661,7 +685,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [-73,-40,-64,-12],
     culture: "andean",
     windows: [
-      { years: [-1000000, 1533], options: [{ tradition: "inca", weight: 1 }, { tradition: "mapuche", weight: 1 }] },
+      { years: [-1000000, -3000], options: [{ tradition: "early-americas", weight: 1 }] },
+      { years: [-3000, 1533], options: [{ tradition: "inca", weight: 1 }, { tradition: "mapuche", weight: 1 }] },
       { years: [1533, 1820], options: [{ tradition: "inca", weight: 6 }, { tradition: "mapuche", weight: 5 }, { tradition: "andean-modern", weight: 8 }, { tradition: "spanish-castilian", weight: 3 }] },
       { years: [1820, 10001], options: [{ tradition: "andean-modern", weight: 14 }, { tradition: "spanish-latin-american", weight: 12 }, { tradition: "mapuche", weight: 4 }, { tradition: "italian", weight: 2 }, { tradition: "german", weight: 1 }] },
     ],
@@ -672,7 +697,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [-74,-12,-50,5],
     culture: "other-indigenous-american",
     windows: [
-      { years: [-1000000, 1533], options: [{ tradition: "tupi", weight: 1 }, { tradition: "guarani", weight: 1 }, { tradition: "inca", weight: 1 }] },
+      { years: [-1000000, -3000], options: [{ tradition: "early-americas", weight: 1 }] },
+      { years: [-3000, 1533], options: [{ tradition: "tupi", weight: 1 }, { tradition: "guarani", weight: 1 }, { tradition: "inca", weight: 1 }] },
       { years: [1533, 1541], options: [{ tradition: "tupi", weight: 1 }, { tradition: "guarani", weight: 1 }, { tradition: "inca", weight: 1 }] },
       { years: [1541, 10001], options: [{ tradition: "portuguese-brazil", weight: 1 }, { tradition: "spanish-latin-american", weight: 1 }, { tradition: "tupi", weight: 1 }, { tradition: "guarani", weight: 1 }] },
     ],
@@ -683,7 +709,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [-66,-40,-55,-19],
     culture: "other-indigenous-american",
     windows: [
-      { years: [-1000000, 1533], options: [{ tradition: "guarani", weight: 1 }, { tradition: "mapuche", weight: 1 }] },
+      { years: [-1000000, -3000], options: [{ tradition: "early-americas", weight: 1 }] },
+      { years: [-3000, 1533], options: [{ tradition: "guarani", weight: 1 }, { tradition: "mapuche", weight: 1 }] },
       { years: [1533, 1536], options: [{ tradition: "guarani", weight: 1 }, { tradition: "mapuche", weight: 1 }] },
       { years: [1536, 1816], options: [{ tradition: "spanish-castilian", weight: 1 }, { tradition: "guarani", weight: 1 }, { tradition: "mapuche", weight: 1 }] },
       { years: [1816, 10001], options: [{ tradition: "spanish-latin-american", weight: 1 }, { tradition: "italian", weight: 1 }, { tradition: "german", weight: 1 }, { tradition: "guarani", weight: 1 }] },
@@ -695,7 +722,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [-49,-30,-34,-2],
     culture: "other-indigenous-american",
     windows: [
-      { years: [-1000000, 1533], options: [{ tradition: "tupi", weight: 1 }, { tradition: "guarani", weight: 1 }] },
+      { years: [-1000000, -3000], options: [{ tradition: "early-americas", weight: 1 }] },
+      { years: [-3000, 1533], options: [{ tradition: "tupi", weight: 1 }, { tradition: "guarani", weight: 1 }] },
       { years: [1533, 1888], options: [{ tradition: "afro-brazilian", weight: 0.18 }, { tradition: "portuguese", weight: 0.46 }, { tradition: "tupi", weight: 0.2 }, { tradition: "guarani", weight: 0.16 }] },
       { years: [1888, 10001], options: [{ tradition: "afro-brazilian", weight: 0.48 }, { tradition: "portuguese-brazil", weight: 0.28 }, { tradition: "italian", weight: 0.12 }, { tradition: "german", weight: 0.07 }, { tradition: "japanese", weight: 0.05 }] },
     ],
@@ -706,7 +734,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [-62,1,-51,8.5],
     culture: "other-indigenous-american",
     windows: [
-      { years: [-1000000, 1533], options: [{ tradition: "carib", weight: 1 }, { tradition: "tupi", weight: 1 }, { tradition: "guarani", weight: 1 }] },
+      { years: [-1000000, -3000], options: [{ tradition: "early-americas", weight: 1 }] },
+      { years: [-3000, 1533], options: [{ tradition: "carib", weight: 1 }, { tradition: "tupi", weight: 1 }, { tradition: "guarani", weight: 1 }] },
       { years: [1533, 1600], options: [{ tradition: "carib", weight: 1 }, { tradition: "tupi", weight: 1 }, { tradition: "guarani", weight: 1 }] },
       { years: [1600, 10001], options: [{ tradition: "dutch", weight: 1 }, { tradition: "english", weight: 1 }, { tradition: "french", weight: 1 }, { tradition: "african-american", weight: 1 }, { tradition: "hindi", weight: 1 }, { tradition: "carib", weight: 1 }] },
     ],
@@ -717,9 +746,10 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [-75,-56,-62,-40],
     culture: "other-indigenous-american",
     windows: [
-      { years: [-1000000, 1533], options: [{ tradition: "mapuche", weight: 1 }] },
+      { years: [-1000000, -3000], options: [{ tradition: "early-americas", weight: 1 }] },
+      { years: [-3000, 1533], options: [{ tradition: "mapuche", weight: 1 }] },
       { years: [1533, 1880], options: [{ tradition: "mapuche", weight: 1 }] },
-      { years: [1880, 10001], options: [{ tradition: "spanish-latin-american", weight: 1 }, { tradition: "welsh", weight: 1 }, { tradition: "german", weight: 1 }, { tradition: "mapuche", weight: 1 }] },
+      { years: [1880, 10001], options: [{ tradition: "spanish-latin-american", weight: 80 }, { tradition: "welsh", weight: 4 }, { tradition: "german", weight: 4 }, { tradition: "mapuche", weight: 12 }] },
     ],
   },
   {
@@ -728,7 +758,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [-54,-30,-47,-20],
     culture: "other-indigenous-american",
     windows: [
-      { years: [-1000000, 1533], options: [{ tradition: "inca", weight: 1 }] },
+      { years: [-1000000, 1200], options: [{ tradition: "early-americas", weight: 1 }] },
+      { years: [1200, 1533], options: [{ tradition: "inca", weight: 1 }] },
       { years: [1533, 1538], options: [{ tradition: "inca", weight: 1 }] },
       { years: [1538, 1825], options: [{ tradition: "inca", weight: 7 }, { tradition: "andean-modern", weight: 9 }, { tradition: "spanish-castilian", weight: 3 }] },
       { years: [1825, 10001], options: [{ tradition: "andean-modern", weight: 13 }, { tradition: "spanish-latin-american", weight: 7 }] },
@@ -740,7 +771,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [-73,2,-60,11],
     culture: "other-indigenous-american",
     windows: [
-      { years: [-1000000, 1533], options: [{ tradition: "muisca", weight: 1 }, { tradition: "carib", weight: 1 }] },
+      { years: [-1000000, 800], options: [{ tradition: "early-americas", weight: 1 }] },
+      { years: [800, 1533], options: [{ tradition: "muisca", weight: 1 }, { tradition: "carib", weight: 1 }] },
       { years: [1533, 1811], options: [{ tradition: "spanish-castilian", weight: 1 }, { tradition: "muisca", weight: 1 }] },
       { years: [1811, 10001], options: [{ tradition: "spanish-latin-american", weight: 1 }] },
     ],
@@ -751,6 +783,7 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [-41,-10,-34.8,-5],
     culture: "other-indigenous-american",
     windows: [
+      { years: [-1000000, 1533], options: [{ tradition: "early-americas", weight: 1 }] },
       { years: [1533, 1630], options: [{ tradition: "afro-brazilian", weight: 0.16 }, { tradition: "portuguese", weight: 0.54 }, { tradition: "tupi", weight: 0.3 }] },
       { years: [1630, 1654], options: [{ tradition: "afro-brazilian", weight: 0.16 }, { tradition: "portuguese", weight: 0.42 }, { tradition: "dutch", weight: 0.18 }, { tradition: "tupi", weight: 0.24 }] },
       { years: [1654, 1888], options: [{ tradition: "afro-brazilian", weight: 0.2 }, { tradition: "portuguese", weight: 0.56 }, { tradition: "tupi", weight: 0.24 }] },
@@ -763,7 +796,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [29,22,34,31.5],
     culture: "north-african-west-asian",
     windows: [
-      { years: [-1000000, -3100], options: [{ tradition: "prehistoric-mena", weight: 1 }] },
+      { years: [-1000000, -3400], options: [{ tradition: "early-west-eurasia", weight: 1 }] },
+      { years: [-3400, -3100], options: [{ tradition: "prehistoric-mena", weight: 1 }] },
       { years: [-3100, 332], options: [{ tradition: "prehistoric-mena", weight: 1 }] },
       { years: [332, 641], options: [{ tradition: "egyptian-coptic", weight: 15 }, { tradition: "ancient-greek", weight: 4 }, { tradition: "ancient-roman", weight: 1 }] },
       { years: [641, 1100], options: [{ tradition: "egyptian-coptic", weight: 11 }, { tradition: "arabic-levant", weight: 8 }] },
@@ -778,7 +812,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [29,15,37,22],
     culture: "north-african-west-asian",
     windows: [
-      { years: [-1000000, -3000], options: [{ tradition: "prehistoric-mena", weight: 1 }] },
+      { years: [-1000000, -3400], options: [{ tradition: "early-west-eurasia", weight: 1 }] },
+      { years: [-3400, -3000], options: [{ tradition: "prehistoric-mena", weight: 1 }] },
       { years: [-3000, 785], options: [{ tradition: "nubian", weight: 1 }, { tradition: "egyptian-coptic", weight: 1 }, { tradition: "prehistoric-mena", weight: 1 }] },
       { years: [785, 10001], options: [{ tradition: "nubian", weight: 3 }, { tradition: "arabic-traditional", weight: 2 }] },
     ],
@@ -789,7 +824,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [33.5,29,39,37.5],
     culture: "north-african-west-asian",
     windows: [
-      { years: [-1000000, -3000], options: [{ tradition: "prehistoric-mena", weight: 1 }] },
+      { years: [-1000000, -3400], options: [{ tradition: "early-west-eurasia", weight: 1 }] },
+      { years: [-3400, -3000], options: [{ tradition: "prehistoric-mena", weight: 1 }] },
       { years: [-3000, 332], options: [{ tradition: "mesopotamian-ancient", weight: 1 }, { tradition: "hebrew", weight: 1 }] },
       { years: [332, 636], options: [{ tradition: "ancient-greek", weight: 1 }, { tradition: "ancient-roman", weight: 1 }, { tradition: "byzantine", weight: 1 }, { tradition: "hebrew", weight: 1 }] },
       { years: [636, 1099], options: [{ tradition: "arabic-levant", weight: 10 }, { tradition: "byzantine", weight: 3 }] },
@@ -805,7 +841,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [26,36,45,42],
     culture: "north-african-west-asian",
     windows: [
-      { years: [-1000000, -2000], options: [{ tradition: "prehistoric-mena", weight: 1 }] },
+      { years: [-1000000, -3400], options: [{ tradition: "early-west-eurasia", weight: 1 }] },
+      { years: [-3400, -2000], options: [{ tradition: "prehistoric-mena", weight: 1 }] },
       { years: [-2000, 334], options: [{ tradition: "persian-ancient", weight: 1 }, { tradition: "ancient-greek", weight: 1 }] },
       { years: [334, 1071], options: [{ tradition: "byzantine", weight: 14 }, { tradition: "armenian", weight: 5 }, { tradition: "georgian", weight: 1 }] },
       { years: [1071, 1453], options: [{ tradition: "turkic-steppe", weight: 9 }, { tradition: "byzantine", weight: 7 }, { tradition: "armenian", weight: 4 }, { tradition: "greek", weight: 5 }] },
@@ -819,7 +856,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [39,29,48,37.5],
     culture: "north-african-west-asian",
     windows: [
-      { years: [-1000000, -3000], options: [{ tradition: "prehistoric-mena", weight: 1 }] },
+      { years: [-1000000, -3400], options: [{ tradition: "early-west-eurasia", weight: 1 }] },
+      { years: [-3400, -3000], options: [{ tradition: "prehistoric-mena", weight: 1 }] },
       { years: [-3000, 539], options: [{ tradition: "mesopotamian-ancient", weight: 1 }] },
       { years: [539, 633], options: [{ tradition: "persian-ancient", weight: 4 }] },
       { years: [633, 1258], options: [{ tradition: "arabian-hejaz", weight: 6 }, { tradition: "arabic-traditional", weight: 6 }, { tradition: "persian-farsi", weight: 4 }] },
@@ -834,7 +872,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [-13,27,11,37.5],
     culture: "north-african-west-asian",
     windows: [
-      { years: [-1000000, 146], options: [{ tradition: "berber-amazigh", weight: 1 }] },
+      { years: [-1000000, -2000], options: [{ tradition: "early-west-eurasia", weight: 1 }] },
+      { years: [-2000, 146], options: [{ tradition: "berber-amazigh", weight: 1 }] },
       { years: [146, 647], options: [{ tradition: "ancient-roman", weight: 1 }, { tradition: "berber-amazigh", weight: 1 }] },
       { years: [647, 1500], options: [{ tradition: "berber-amazigh", weight: 9 }, { tradition: "arabian-hejaz", weight: 2 }, { tradition: "arabic-traditional", weight: 2 }] },
       { years: [1500, 1962], options: [{ tradition: "maghrebi", weight: 20 }, { tradition: "berber-amazigh", weight: 13 }, { tradition: "french", weight: 2 }, { tradition: "spanish-castilian", weight: 1 }, { tradition: "turkish", weight: 1 }] },
@@ -847,7 +886,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [34,12,60,32],
     culture: "north-african-west-asian",
     windows: [
-      { years: [-1000000, 622], options: [{ tradition: "arabian-hejaz", weight: 1 }, { tradition: "hebrew", weight: 1 }] },
+      { years: [-1000000, -1200], options: [{ tradition: "early-west-eurasia", weight: 1 }] },
+      { years: [-1200, 622], options: [{ tradition: "arabian-hejaz", weight: 1 }, { tradition: "hebrew", weight: 1 }] },
       { years: [622, 1517], options: [{ tradition: "arabian-hejaz", weight: 1 }, { tradition: "arabic-traditional", weight: 1 }] },
       { years: [1517, 1918], options: [{ tradition: "arabic-traditional", weight: 24 }, { tradition: "turkish", weight: 1 }] },
       { years: [1918, 10001], options: [{ tradition: "arabic-traditional", weight: 1 }] },
@@ -859,7 +899,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [38,17,44,28],
     culture: "north-african-west-asian",
     windows: [
-      { years: [-1000000, 1918], options: [{ tradition: "arabian-hejaz", weight: 12 }, { tradition: "arabic-traditional", weight: 12 }, { tradition: "turkish", weight: 1 }] },
+      { years: [-1000000, -800], options: [{ tradition: "early-west-eurasia", weight: 1 }] },
+      { years: [-800, 1918], options: [{ tradition: "arabian-hejaz", weight: 12 }, { tradition: "arabic-traditional", weight: 12 }, { tradition: "turkish", weight: 1 }] },
       { years: [1918, 10001], options: [{ tradition: "arabic-traditional", weight: 1 }] },
     ],
   },
@@ -869,7 +910,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [44,25,63,40],
     culture: "north-african-west-asian",
     windows: [
-      { years: [-1000000, 651], options: [{ tradition: "persian-ancient", weight: 1 }, { tradition: "sogdian", weight: 1 }] },
+      { years: [-1000000, -1500], options: [{ tradition: "early-west-eurasia", weight: 1 }] },
+      { years: [-1500, 651], options: [{ tradition: "persian-ancient", weight: 1 }, { tradition: "sogdian", weight: 1 }] },
       { years: [651, 1220], options: [{ tradition: "persian-farsi", weight: 9 }, { tradition: "persian-khorasan", weight: 7 }, { tradition: "arabian-hejaz", weight: 2 }, { tradition: "arabic-traditional", weight: 2 }] },
       { years: [1220, 1501], options: [{ tradition: "persian-farsi", weight: 1 }, { tradition: "mongolian-traditional", weight: 1 }, { tradition: "turkic-steppe", weight: 1 }] },
       { years: [1501, 10001], options: [{ tradition: "persian-farsi", weight: 1 }] },
@@ -881,7 +923,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [38,38,50,45],
     culture: "north-african-west-asian",
     windows: [
-      { years: [-1000000, 600], options: [{ tradition: "armenian", weight: 1 }, { tradition: "georgian", weight: 1 }, { tradition: "persian-ancient", weight: 1 }, { tradition: "ancient-roman", weight: 1 }] },
+      { years: [-1000000, -1500], options: [{ tradition: "early-west-eurasia", weight: 1 }] },
+      { years: [-1500, 600], options: [{ tradition: "armenian", weight: 1 }, { tradition: "georgian", weight: 1 }, { tradition: "persian-ancient", weight: 1 }, { tradition: "ancient-roman", weight: 1 }] },
       { years: [600, 1800], options: [{ tradition: "armenian", weight: 8 }, { tradition: "georgian", weight: 8 }, { tradition: "persian-farsi", weight: 4 }, { tradition: "turkish", weight: 3 }] },
       { years: [1800, 10001], options: [{ tradition: "armenian", weight: 8 }, { tradition: "georgian", weight: 8 }, { tradition: "russian", weight: 3 }] },
     ],
@@ -892,7 +935,9 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [-17,11,40,18],
     culture: "west-central-african",
     windows: [
-      { years: [800, 1900], options: [{ tradition: "west-african-sahel", weight: 12 }, { tradition: "hausa", weight: 8 }, { tradition: "maghrebi", weight: 2 }] },
+      { years: [-1000000, -1000], options: [{ tradition: "early-africa", weight: 1 }] },
+      { years: [-1000, 1200], options: [{ tradition: "sahel-early", weight: 1 }] },
+      { years: [1200, 1900], options: [{ tradition: "west-african-sahel", weight: 12 }, { tradition: "hausa", weight: 8 }, { tradition: "maghrebi", weight: 2 }] },
       { years: [1900, 10001], options: [{ tradition: "west-african-sahel", weight: 12 }, { tradition: "hausa", weight: 8 }, { tradition: "french", weight: 1 }] },
     ],
   },
@@ -902,7 +947,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [-17,4,-2,13],
     culture: "west-central-african",
     windows: [
-      { years: [-1000000, 1500], options: [{ tradition: "yoruba-traditional", weight: 1 }, { tradition: "west-african-sahel", weight: 1 }] },
+      { years: [-1000000, 800], options: [{ tradition: "early-africa", weight: 1 }] },
+      { years: [800, 1500], options: [{ tradition: "yoruba-traditional", weight: 1 }, { tradition: "west-african-sahel", weight: 1 }] },
       { years: [1500, 1787], options: [{ tradition: "yoruba-traditional", weight: 12 }, { tradition: "west-african-sahel", weight: 9 }, { tradition: "portuguese", weight: 2 }] },
       { years: [1787, 1960], options: [{ tradition: "yoruba-traditional", weight: 10 }, { tradition: "yoruba-modern", weight: 6 }, { tradition: "west-african-sahel", weight: 8 }, { tradition: "african-american", weight: 2 }, { tradition: "portuguese", weight: 1 }, { tradition: "english", weight: 1 }, { tradition: "french", weight: 1 }] },
       { years: [1960, 10001], options: [{ tradition: "yoruba-modern", weight: 10 }, { tradition: "yoruba-traditional", weight: 6 }, { tradition: "west-african-sahel", weight: 8 }] },
@@ -914,7 +960,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [7.5,4,9.5,7],
     culture: "west-central-african",
     windows: [
-      { years: [-1000000, 500], options: [{ tradition: "prehistoric-african", weight: 1 }] },
+      { years: [-1000000, -1000], options: [{ tradition: "early-africa", weight: 1 }] },
+      { years: [-1000, 500], options: [{ tradition: "prehistoric-african", weight: 1 }] },
       { years: [500, 10001], options: [{ tradition: "igbo", weight: 1 }] },
     ],
   },
@@ -924,7 +971,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [11,-9,16,-4],
     culture: "west-central-african",
     windows: [
-      { years: [-1000000, 500], options: [{ tradition: "prehistoric-african", weight: 1 }] },
+      { years: [-1000000, -1000], options: [{ tradition: "early-africa", weight: 1 }] },
+      { years: [-1000, 500], options: [{ tradition: "prehistoric-african", weight: 1 }] },
       { years: [500, 1480], options: [{ tradition: "kongo", weight: 1 }] },
       { years: [1480, 10001], options: [{ tradition: "kongo", weight: 30 }, { tradition: "portuguese", weight: 1 }] },
     ],
@@ -935,7 +983,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [15,-6,20,-2],
     culture: "west-central-african",
     windows: [
-      { years: [-1000000, 500], options: [{ tradition: "prehistoric-african", weight: 1 }] },
+      { years: [-1000000, -1000], options: [{ tradition: "early-africa", weight: 1 }] },
+      { years: [-1000, 500], options: [{ tradition: "prehistoric-african", weight: 1 }] },
       { years: [500, 10001], options: [{ tradition: "kongo", weight: 12 }, { tradition: "luba", weight: 5 }] },
     ],
   },
@@ -945,7 +994,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [22,-12,28,-5],
     culture: "west-central-african",
     windows: [
-      { years: [-1000000, 500], options: [{ tradition: "prehistoric-african", weight: 1 }] },
+      { years: [-1000000, -1000], options: [{ tradition: "early-africa", weight: 1 }] },
+      { years: [-1000, 500], options: [{ tradition: "prehistoric-african", weight: 1 }] },
       { years: [500, 10001], options: [{ tradition: "luba", weight: 1 }] },
     ],
   },
@@ -955,7 +1005,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [8,-8,30,5],
     culture: "west-central-african",
     windows: [
-      { years: [-1000000, 500], options: [{ tradition: "prehistoric-african", weight: 1 }] },
+      { years: [-1000000, -1000], options: [{ tradition: "early-africa", weight: 1 }] },
+      { years: [-1000, 500], options: [{ tradition: "prehistoric-african", weight: 1 }] },
       { years: [500, 1480], options: [{ tradition: "kongo", weight: 14 }, { tradition: "luba", weight: 10 }, { tradition: "igbo", weight: 8 }] },
       { years: [1480, 1960], options: [{ tradition: "kongo", weight: 14 }, { tradition: "luba", weight: 10 }, { tradition: "igbo", weight: 8 }, { tradition: "portuguese", weight: 1 }, { tradition: "french", weight: 1 }, { tradition: "dutch", weight: 1 }] },
       { years: [1960, 10001], options: [{ tradition: "kongo", weight: 14 }, { tradition: "luba", weight: 10 }, { tradition: "igbo", weight: 8 }, { tradition: "french", weight: 1 }] },
@@ -967,7 +1018,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [38,-2,52,18],
     culture: "east-southern-african",
     windows: [
-      { years: [-1000000, 1270], options: [{ tradition: "ethiopian-highland", weight: 1 }] },
+      { years: [-1000000, -400], options: [{ tradition: "early-africa", weight: 1 }] },
+      { years: [-400, 1270], options: [{ tradition: "ethiopian-highland", weight: 1 }] },
       { years: [1270, 1936], options: [{ tradition: "amharic", weight: 10 }, { tradition: "somali", weight: 8 }, { tradition: "ethiopian-highland", weight: 4 }] },
       { years: [1936, 10001], options: [{ tradition: "amharic", weight: 12 }, { tradition: "somali", weight: 10 }, { tradition: "italian", weight: 1 }] },
     ],
@@ -978,7 +1030,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [28,-12,38,5],
     culture: "east-southern-african",
     windows: [
-      { years: [-1000000, 700], options: [{ tradition: "prehistoric-african", weight: 1 }] },
+      { years: [-1000000, -1000], options: [{ tradition: "early-africa", weight: 1 }] },
+      { years: [-1000, 700], options: [{ tradition: "prehistoric-african", weight: 1 }] },
       { years: [700, 1880], options: [{ tradition: "rwanda-burundi", weight: 8 }, { tradition: "arabic-traditional", weight: 2 }] },
       { years: [1880, 10001], options: [{ tradition: "swahili-interior", weight: 30 }, { tradition: "rwanda-burundi", weight: 12 }, { tradition: "hindi", weight: 2 }, { tradition: "english", weight: 1 }] },
     ],
@@ -989,6 +1042,7 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [38,-12,42,-1],
     culture: "east-southern-african",
     windows: [
+      { years: [-1000000, 700], options: [{ tradition: "early-africa", weight: 1 }] },
       { years: [700, 1500], options: [{ tradition: "swahili-coastal", weight: 14 }, { tradition: "arabic-traditional", weight: 4 }, { tradition: "persian-farsi", weight: 2 }] },
       { years: [1500, 1960], options: [{ tradition: "swahili-coastal", weight: 20 }, { tradition: "arabic-traditional", weight: 5 }, { tradition: "portuguese", weight: 1 }, { tradition: "english", weight: 1 }] },
       { years: [1960, 10001], options: [{ tradition: "swahili-coastal", weight: 1 }] },
@@ -1000,8 +1054,10 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [11,-35,33,-17],
     culture: "east-southern-african",
     windows: [
-      { years: [-1000000, 300], options: [{ tradition: "prehistoric-african", weight: 1 }] },
-      { years: [1652, 1994], options: [{ tradition: "zulu", weight: 12 }, { tradition: "xhosa", weight: 9 }, { tradition: "sotho-tswana", weight: 13 }, { tradition: "shona", weight: 14 }, { tradition: "dutch", weight: 3 }, { tradition: "english", weight: 3 }] },
+      { years: [-1000000, -1000], options: [{ tradition: "early-africa", weight: 1 }] },
+      { years: [-1000, 300], options: [{ tradition: "prehistoric-african", weight: 1 }] },
+      { years: [400, 1900], options: [{ tradition: "bantu-southern", weight: 1 }] },
+      { years: [1900, 1994], options: [{ tradition: "zulu", weight: 12 }, { tradition: "xhosa", weight: 9 }, { tradition: "sotho-tswana", weight: 13 }, { tradition: "shona", weight: 14 }, { tradition: "dutch", weight: 3 }, { tradition: "english", weight: 3 }] },
       { years: [1994, 10001], options: [{ tradition: "zulu", weight: 12 }, { tradition: "xhosa", weight: 9 }, { tradition: "sotho-tswana", weight: 13 }, { tradition: "shona", weight: 14 }, { tradition: "english", weight: 2 }, { tradition: "dutch", weight: 2 }] },
     ],
   },
@@ -1011,7 +1067,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [12,-8,30,8],
     culture: "west-central-african",
     windows: [
-      { years: [-1000000, 500], options: [{ tradition: "prehistoric-african", weight: 1 }] },
+      { years: [-1000000, -1000], options: [{ tradition: "early-africa", weight: 1 }] },
+      { years: [-1000, 500], options: [{ tradition: "prehistoric-african", weight: 1 }] },
       { years: [500, 1870], options: [{ tradition: "luba", weight: 14 }, { tradition: "rwanda-burundi", weight: 10 }, { tradition: "kongo", weight: 7 }] },
       { years: [1870, 10001], options: [{ tradition: "luba", weight: 14 }, { tradition: "rwanda-burundi", weight: 10 }, { tradition: "kongo", weight: 7 }, { tradition: "french", weight: 1 }, { tradition: "portuguese", weight: 1 }] },
     ],
@@ -1022,7 +1079,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [3,7,5.5,9.5],
     culture: "west-central-african",
     windows: [
-      { years: [-1000000, 1960], options: [{ tradition: "yoruba-traditional", weight: 1 }] },
+      { years: [-1000000, 800], options: [{ tradition: "early-africa", weight: 1 }] },
+      { years: [800, 1960], options: [{ tradition: "yoruba-traditional", weight: 1 }] },
       { years: [1960, 10001], options: [{ tradition: "yoruba-modern", weight: 10 }, { tradition: "yoruba-traditional", weight: 4 }] },
     ],
   },
@@ -1032,7 +1090,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [2.7,6.3,4.5,8.5],
     culture: "west-central-african",
     windows: [
-      { years: [-1000000, 1960], options: [{ tradition: "yoruba-traditional", weight: 1 }] },
+      { years: [-1000000, 800], options: [{ tradition: "early-africa", weight: 1 }] },
+      { years: [800, 1960], options: [{ tradition: "yoruba-traditional", weight: 1 }] },
       { years: [1960, 10001], options: [{ tradition: "yoruba-modern", weight: 10 }, { tradition: "yoruba-traditional", weight: 4 }] },
     ],
   },
@@ -1042,7 +1101,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [4.5,5.5,6.5,7.5],
     culture: "west-central-african",
     windows: [
-      { years: [-1000000, 1960], options: [{ tradition: "yoruba-traditional", weight: 1 }] },
+      { years: [-1000000, 800], options: [{ tradition: "early-africa", weight: 1 }] },
+      { years: [800, 1960], options: [{ tradition: "yoruba-traditional", weight: 1 }] },
       { years: [1960, 10001], options: [{ tradition: "yoruba-modern", weight: 10 }, { tradition: "yoruba-traditional", weight: 4 }] },
     ],
   },
@@ -1052,7 +1112,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [6.5,5,8,7],
     culture: "west-central-african",
     windows: [
-      { years: [-1000000, 10001], options: [{ tradition: "igbo", weight: 1 }] },
+      { years: [-1000000, -500], options: [{ tradition: "early-africa", weight: 1 }] },
+      { years: [-500, 10001], options: [{ tradition: "igbo", weight: 1 }] },
     ],
   },
   {
@@ -1061,7 +1122,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [4.8,4,7.5,6],
     culture: "west-central-african",
     windows: [
-      { years: [-1000000, 10001], options: [{ tradition: "igbo", weight: 1 }] },
+      { years: [-1000000, -500], options: [{ tradition: "early-africa", weight: 1 }] },
+      { years: [-500, 10001], options: [{ tradition: "igbo", weight: 1 }] },
     ],
   },
   {
@@ -1070,7 +1132,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [8,9,10.5,11],
     culture: "west-central-african",
     windows: [
-      { years: [-1000000, 10001], options: [{ tradition: "hausa", weight: 10 }, { tradition: "west-african-sahel", weight: 8 }, { tradition: "igbo", weight: 4 }] },
+      { years: [-1000000, -500], options: [{ tradition: "early-africa", weight: 1 }] },
+      { years: [-500, 10001], options: [{ tradition: "hausa", weight: 10 }, { tradition: "west-african-sahel", weight: 8 }, { tradition: "igbo", weight: 4 }] },
     ],
   },
   {
@@ -1079,7 +1142,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [-9,4,10,9],
     culture: "west-central-african",
     windows: [
-      { years: [-1000000, 1600], options: [{ tradition: "yoruba-traditional", weight: 14 }, { tradition: "igbo", weight: 14 }, { tradition: "akan", weight: 7 }] },
+      { years: [-1000000, -500], options: [{ tradition: "early-africa", weight: 1 }] },
+      { years: [-500, 1600], options: [{ tradition: "yoruba-traditional", weight: 14 }, { tradition: "igbo", weight: 14 }, { tradition: "akan", weight: 7 }] },
       { years: [1600, 1960], options: [{ tradition: "yoruba-traditional", weight: 10 }, { tradition: "yoruba-modern", weight: 4 }, { tradition: "igbo", weight: 14 }, { tradition: "akan", weight: 7 }, { tradition: "english", weight: 1 }] },
       { years: [1960, 10001], options: [{ tradition: "yoruba-modern", weight: 10 }, { tradition: "yoruba-traditional", weight: 4 }, { tradition: "igbo", weight: 14 }, { tradition: "akan", weight: 7 }] },
     ],
@@ -1090,6 +1154,7 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [42,-26,52,-11],
     culture: "east-southern-african",
     windows: [
+      { years: [400, 700], options: [{ tradition: "early-africa", weight: 1 }] },
       { years: [-1000000, 1000], options: [{ tradition: "malagasy-sakalava", weight: 1 }, { tradition: "swahili-coastal", weight: 1 }] },
       { years: [1000, 1817], options: [{ tradition: "malagasy-sakalava", weight: 1 }, { tradition: "malagasy-betsileo", weight: 1 }] },
       { years: [1817, 1897], options: [{ tradition: "malagasy-merina", weight: 1 }, { tradition: "malagasy-betsileo", weight: 1 }, { tradition: "malagasy-sakalava", weight: 1 }] },
@@ -1102,7 +1167,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [92,5,110,23],
     culture: "southeast-asian",
     windows: [
-      { years: [-1000000, 802], options: [{ tradition: "burmese", weight: 1 }] },
+      { years: [-1000000, 800], options: [{ tradition: "early-sunda", weight: 1 }] },
+      { years: [800, 802], options: [{ tradition: "burmese", weight: 1 }] },
       { years: [802, 1500], options: [{ tradition: "angkorian-khmer", weight: 1 }] },
       { years: [1500, 1887], options: [{ tradition: "khmer", weight: 1 }, { tradition: "vietnamese", weight: 1 }, { tradition: "burmese", weight: 1 }] },
       { years: [1887, 10001], options: [{ tradition: "vietnamese", weight: 16 }, { tradition: "thai", weight: 12 }, { tradition: "khmer", weight: 10 }, { tradition: "french", weight: 1 }, { tradition: "english", weight: 1 }] },
@@ -1114,7 +1180,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [100,10,108,23],
     culture: "southeast-asian",
     windows: [
-      { years: [-1000000, 802], options: [{ tradition: "khmer", weight: 1 }, { tradition: "vietnamese", weight: 1 }] },
+      { years: [-1000000, -200], options: [{ tradition: "early-sunda", weight: 1 }] },
+      { years: [-200, 802], options: [{ tradition: "khmer", weight: 1 }, { tradition: "vietnamese", weight: 1 }] },
       { years: [802, 1500], options: [{ tradition: "angkorian-khmer", weight: 1 }] },
       { years: [1500, 1893], options: [{ tradition: "khmer", weight: 1 }, { tradition: "vietnamese", weight: 1 }] },
       { years: [1893, 10001], options: [{ tradition: "thai", weight: 24 }, { tradition: "french", weight: 1 }, { tradition: "vietnamese", weight: 15 }] },
@@ -1126,7 +1193,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [95,-11,141,7],
     culture: "southeast-asian",
     windows: [
-      { years: [-1000000, 800], options: [{ tradition: "vietnamese", weight: 1 }] },
+      { years: [-1000000, -200], options: [{ tradition: "early-sunda", weight: 1 }] },
+      { years: [-200, 800], options: [{ tradition: "vietnamese", weight: 1 }] },
       { years: [800, 1300], options: [{ tradition: "vietnamese", weight: 1 }] },
       { years: [1300, 1945], options: [{ tradition: "malay-islamic-historical", weight: 1 }, { tradition: "malay", weight: 1 }, { tradition: "indonesian", weight: 1 }, { tradition: "javanese", weight: 1 }] },
       { years: [1945, 10001], options: [{ tradition: "malay", weight: 1 }, { tradition: "indonesian", weight: 1 }, { tradition: "chinese-cantonese", weight: 1 }] },
@@ -1138,7 +1206,9 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [117,5,127,19],
     culture: "southeast-asian",
     windows: [
-      { years: [1565, 1898], options: [{ tradition: "filipino", weight: 39 }, { tradition: "spanish-castilian", weight: 1 }] },
+      { years: [-1000000, -1000], options: [{ tradition: "early-sunda", weight: 1 }] },
+      { years: [-1000, 1600], options: [{ tradition: "philippine-precolonial", weight: 1 }] },
+      { years: [1600, 1898], options: [{ tradition: "filipino", weight: 39 }, { tradition: "spanish-castilian", weight: 1 }] },
       { years: [1898, 10001], options: [{ tradition: "filipino", weight: 37 }, { tradition: "english", weight: 1 }, { tradition: "spanish-latin-american", weight: 1 }, { tradition: "japanese", weight: 1 }] },
     ],
   },
@@ -1148,7 +1218,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [66,23,76,34],
     culture: "south-asian",
     windows: [
-      { years: [-1000000, 1206], options: [{ tradition: "sanskrit-classical", weight: 1 }, { tradition: "punjabi", weight: 1 }] },
+      { years: [-1000000, -1500], options: [{ tradition: "early-south-asia", weight: 1 }] },
+      { years: [-1500, 1206], options: [{ tradition: "sanskrit-classical", weight: 1 }, { tradition: "punjabi", weight: 1 }] },
       { years: [1206, 1857], options: [{ tradition: "punjabi", weight: 1 }, { tradition: "persian-farsi", weight: 1 }, { tradition: "hindi", weight: 1 }] },
       { years: [1857, 10001], options: [{ tradition: "punjabi", weight: 22 }, { tradition: "hindi", weight: 17 }, { tradition: "english", weight: 1 }] },
     ],
@@ -1159,7 +1230,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [76,22,89,30],
     culture: "south-asian",
     windows: [
-      { years: [-1000000, 1206], options: [{ tradition: "sanskrit-classical", weight: 1 }, { tradition: "hindi", weight: 1 }] },
+      { years: [-1000000, -1500], options: [{ tradition: "early-south-asia", weight: 1 }] },
+      { years: [-1500, 1206], options: [{ tradition: "sanskrit-classical", weight: 1 }, { tradition: "hindi", weight: 1 }] },
       { years: [1206, 1857], options: [{ tradition: "hindi", weight: 1 }, { tradition: "persian-farsi", weight: 1 }, { tradition: "rajput", weight: 1 }] },
       { years: [1857, 10001], options: [{ tradition: "hindi", weight: 21 }, { tradition: "bengali-traditional", weight: 9 }, { tradition: "bengali-modern", weight: 9 }, { tradition: "english", weight: 1 }] },
     ],
@@ -1170,7 +1242,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [73,11,82,21],
     culture: "south-asian",
     windows: [
-      { years: [-1000000, 1347], options: [{ tradition: "tamil", weight: 1 }] },
+      { years: [-1000000, -300], options: [{ tradition: "early-south-asia", weight: 1 }] },
+      { years: [-300, 1347], options: [{ tradition: "tamil", weight: 1 }] },
       { years: [1347, 1857], options: [{ tradition: "tamil", weight: 1 }, { tradition: "dravidian", weight: 1 }, { tradition: "hindi", weight: 1 }, { tradition: "persian-farsi", weight: 1 }] },
       { years: [1857, 10001], options: [{ tradition: "tamil", weight: 15 }, { tradition: "dravidian", weight: 13 }, { tradition: "hindi", weight: 11 }, { tradition: "english", weight: 1 }] },
     ],
@@ -1181,7 +1254,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [80,25,97,31],
     culture: "south-asian",
     windows: [
-      { years: [-1000000, 10001], options: [{ tradition: "sanskrit-classical", weight: 1 }, { tradition: "hindi", weight: 1 }, { tradition: "bengali-traditional", weight: 1 }, { tradition: "bengali-modern", weight: 1 }, { tradition: "chinese-mandarin", weight: 1 }] },
+      { years: [-1000000, -1500], options: [{ tradition: "early-south-asia", weight: 1 }] },
+      { years: [-1500, 10001], options: [{ tradition: "sanskrit-classical", weight: 1 }, { tradition: "hindi", weight: 1 }, { tradition: "bengali-traditional", weight: 1 }, { tradition: "bengali-modern", weight: 1 }, { tradition: "chinese-mandarin", weight: 1 }] },
     ],
   },
   {
@@ -1190,7 +1264,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [73,20,84,26],
     culture: "south-asian",
     windows: [
-      { years: [-1000000, 1200], options: [{ tradition: "sanskrit-classical", weight: 1 }] },
+      { years: [-1000000, -1500], options: [{ tradition: "early-south-asia", weight: 1 }] },
+      { years: [-1500, 1200], options: [{ tradition: "sanskrit-classical", weight: 1 }] },
       { years: [1200, 10001], options: [{ tradition: "hindi", weight: 1 }, { tradition: "rajput", weight: 1 }, { tradition: "bengali-traditional", weight: 1 }, { tradition: "bengali-modern", weight: 1 }] },
     ],
   },
@@ -1200,7 +1275,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [79.5,5.8,82,10],
     culture: "south-asian",
     windows: [
-      { years: [-1000000, 1505], options: [{ tradition: "tamil", weight: 1 }, { tradition: "sanskrit-classical", weight: 1 }] },
+      { years: [-1000000, -1500], options: [{ tradition: "early-south-asia", weight: 1 }] },
+      { years: [-1500, 1505], options: [{ tradition: "tamil", weight: 1 }, { tradition: "sanskrit-classical", weight: 1 }] },
       { years: [1505, 1658], options: [{ tradition: "tamil", weight: 20 }, { tradition: "portuguese", weight: 1 }] },
       { years: [1658, 1796], options: [{ tradition: "tamil", weight: 20 }, { tradition: "dutch", weight: 1 }, { tradition: "portuguese", weight: 3 }] },
       { years: [1796, 1948], options: [{ tradition: "tamil", weight: 22 }, { tradition: "dravidian", weight: 16 }, { tradition: "english", weight: 1 }, { tradition: "dutch", weight: 1 }] },
@@ -1213,7 +1289,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [119,21,126,31],
     culture: "east-asian",
     windows: [
-      { years: [-1000000, 1624], options: [{ tradition: "chinese-cantonese", weight: 1 }] },
+      { years: [-1000000, -200], options: [{ tradition: "early-east-asia", weight: 1 }] },
+      { years: [-200, 1624], options: [{ tradition: "chinese-cantonese", weight: 1 }] },
       { years: [1624, 1895], options: [{ tradition: "chinese-cantonese", weight: 30 }, { tradition: "dutch", weight: 1 }] },
       { years: [1895, 1945], options: [{ tradition: "japanese", weight: 1 }, { tradition: "chinese-mandarin", weight: 1 }] },
       { years: [1945, 10001], options: [{ tradition: "chinese-mandarin", weight: 1 }] },
@@ -1225,8 +1302,9 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [60,50,180,73],
     culture: "inner-eurasian",
     windows: [
-      { years: [-1000000, 1600], options: [{ tradition: "prehistoric-asian", weight: 1 }, { tradition: "turkic-steppe", weight: 3 }] },
-      { years: [1600, 10001], options: [{ tradition: "russian", weight: 4 }, { tradition: "siberian-indigenous", weight: 1 }] },
+      { years: [-1000000, -2000], options: [{ tradition: "prehistoric-asian", weight: 1 }, { tradition: "turkic-steppe", weight: 3 }] },
+      { years: [-2000, 1650], options: [{ tradition: "siberian-taiga", weight: 1 }] },
+      { years: [1650, 10001], options: [{ tradition: "russian", weight: 4 }, { tradition: "siberian-indigenous", weight: 1 }] },
     ],
   },
   {
@@ -1235,7 +1313,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [46,42,87,55],
     culture: "inner-eurasian",
     windows: [
-      { years: [-1000000, 550], options: [{ tradition: "sogdian", weight: 1 }, { tradition: "persian-khorasan", weight: 1 }] },
+      { years: [-1000000, -500], options: [{ tradition: "early-north-eurasia", weight: 1 }] },
+      { years: [-500, 550], options: [{ tradition: "sogdian", weight: 1 }, { tradition: "persian-khorasan", weight: 1 }] },
       { years: [550, 1300], options: [{ tradition: "old-turkic", weight: 1 }] },
       { years: [1300, 1850], options: [{ tradition: "mongolian-traditional", weight: 1 }, { tradition: "kazakh", weight: 1 }, { tradition: "turkic-steppe", weight: 1 }] },
       { years: [1850, 10001], options: [{ tradition: "kazakh", weight: 3 }, { tradition: "russian", weight: 2 }] },
@@ -1247,7 +1326,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [54,32,66,40],
     culture: "inner-eurasian",
     windows: [
-      { years: [-1000000, 651], options: [{ tradition: "persian-ancient", weight: 1 }, { tradition: "sogdian", weight: 1 }] },
+      { years: [-1000000, -1500], options: [{ tradition: "early-north-eurasia", weight: 1 }] },
+      { years: [-1500, 651], options: [{ tradition: "persian-ancient", weight: 1 }, { tradition: "sogdian", weight: 1 }] },
       { years: [651, 1220], options: [{ tradition: "persian-khorasan", weight: 1 }] },
       { years: [1220, 10001], options: [{ tradition: "persian-khorasan", weight: 1 }, { tradition: "mongolian-traditional", weight: 1 }, { tradition: "uzbek", weight: 1 }] },
     ],
@@ -1258,7 +1338,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [58,36,73,45],
     culture: "inner-eurasian",
     windows: [
-      { years: [-1000000, 712], options: [{ tradition: "sogdian", weight: 1 }, { tradition: "persian-ancient", weight: 1 }] },
+      { years: [-1000000, -1500], options: [{ tradition: "early-north-eurasia", weight: 1 }] },
+      { years: [-1500, 712], options: [{ tradition: "sogdian", weight: 1 }, { tradition: "persian-ancient", weight: 1 }] },
       { years: [712, 1220], options: [{ tradition: "persian-khorasan", weight: 1 }, { tradition: "sogdian", weight: 1 }] },
       { years: [1220, 1873], options: [{ tradition: "uzbek", weight: 1 }, { tradition: "mongolian-traditional", weight: 1 }, { tradition: "persian-farsi", weight: 1 }] },
       { years: [1873, 10001], options: [{ tradition: "uzbek", weight: 12 }, { tradition: "kyrgyz", weight: 6 }, { tradition: "russian", weight: 2 }] },
@@ -1270,7 +1351,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [58,36,80,45],
     culture: "inner-eurasian",
     windows: [
-      { years: [-1000000, 1220], options: [{ tradition: "sogdian", weight: 1 }, { tradition: "persian-khorasan", weight: 1 }] },
+      { years: [-1000000, -500], options: [{ tradition: "early-north-eurasia", weight: 1 }] },
+      { years: [-500, 1220], options: [{ tradition: "sogdian", weight: 1 }, { tradition: "persian-khorasan", weight: 1 }] },
       { years: [1220, 1873], options: [{ tradition: "uzbek", weight: 1 }, { tradition: "turkmen", weight: 1 }, { tradition: "mongolian-traditional", weight: 1 }] },
       { years: [1873, 10001], options: [{ tradition: "uzbek", weight: 10 }, { tradition: "turkmen", weight: 8 }, { tradition: "kyrgyz", weight: 5 }, { tradition: "russian", weight: 2 }] },
     ],
@@ -1281,7 +1363,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [87,40,135,53],
     culture: "inner-eurasian",
     windows: [
-      { years: [-1000000, 550], options: [{ tradition: "mongolian", weight: 1 }] },
+      { years: [-1000000, -3000], options: [{ tradition: "early-north-eurasia", weight: 1 }] },
+      { years: [-3000, 550], options: [{ tradition: "mongolian", weight: 1 }] },
       { years: [550, 1200], options: [{ tradition: "old-turkic", weight: 1 }] },
       { years: [1200, 1206], options: [{ tradition: "mongolian", weight: 1 }] },
       { years: [1206, 1700], options: [{ tradition: "mongolian", weight: 1 }, { tradition: "mongolian-traditional", weight: 1 }] },
@@ -1294,7 +1377,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [112,32,122,41],
     culture: "east-asian",
     windows: [
-      { years: [-1000000, 1279], options: [{ tradition: "chinese-mandarin", weight: 1 }] },
+      { years: [-1000000, -1200], options: [{ tradition: "early-east-asia", weight: 1 }] },
+      { years: [-1200, 1279], options: [{ tradition: "chinese-mandarin", weight: 1 }] },
       { years: [1279, 1368], options: [{ tradition: "mongolian-traditional", weight: 1 }, { tradition: "chinese-mandarin", weight: 1 }] },
       { years: [1368, 1644], options: [{ tradition: "chinese-mandarin", weight: 1 }] },
       { years: [1644, 1912], options: [{ tradition: "chinese-mandarin", weight: 1 }] },
@@ -1307,7 +1391,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [104,20,120,28],
     culture: "east-asian",
     windows: [
-      { years: [-1000000, 1900], options: [{ tradition: "chinese-cantonese", weight: 9 }, { tradition: "vietnamese", weight: 1 }] },
+      { years: [-1000000, -200], options: [{ tradition: "early-east-asia", weight: 1 }] },
+      { years: [-200, 1900], options: [{ tradition: "chinese-cantonese", weight: 9 }, { tradition: "vietnamese", weight: 1 }] },
       { years: [1900, 10001], options: [{ tradition: "chinese-cantonese", weight: 3 }, { tradition: "chinese-mandarin", weight: 2 }] },
     ],
   },
@@ -1317,7 +1402,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [118,29,123,33],
     culture: "east-asian",
     windows: [
-      { years: [-1000000, 1900], options: [{ tradition: "chinese-mandarin", weight: 1 }] },
+      { years: [-1000000, -1200], options: [{ tradition: "early-east-asia", weight: 1 }] },
+      { years: [-1200, 1900], options: [{ tradition: "chinese-mandarin", weight: 1 }] },
       { years: [1900, 10001], options: [{ tradition: "chinese-mandarin", weight: 1 }] },
     ],
   },
@@ -1327,7 +1413,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [112,21.5,115,23.8],
     culture: "east-asian",
     windows: [
-      { years: [-1000000, 1557], options: [{ tradition: "chinese-cantonese", weight: 1 }] },
+      { years: [-1000000, -200], options: [{ tradition: "early-east-asia", weight: 1 }] },
+      { years: [-200, 1557], options: [{ tradition: "chinese-cantonese", weight: 1 }] },
       { years: [1557, 1841], options: [{ tradition: "chinese-cantonese", weight: 24 }, { tradition: "portuguese", weight: 1 }] },
       { years: [1841, 10001], options: [{ tradition: "chinese-cantonese", weight: 24 }, { tradition: "english", weight: 1 }, { tradition: "portuguese", weight: 1 }] },
     ],
@@ -1388,6 +1475,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [129,30,146,46],
     culture: "east-asian",
     windows: [
+      { years: [-1000000, -3000], options: [{ tradition: "early-east-asia", weight: 1 }] },
+      { years: [-3000, 700], options: [{ tradition: "jomon-yayoi", weight: 1 }] },
       { years: [700, 1875], options: [{ tradition: "japanese-classical", weight: 1 }] },
       { years: [1875, 10001], options: [{ tradition: "japanese", weight: 1 }] },
     ],
@@ -1398,7 +1487,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [124,33,131,43],
     culture: "east-asian",
     windows: [
-      { years: [-1000000, 668], options: [{ tradition: "korean-ancient", weight: 1 }] },
+      { years: [-1000000, -300], options: [{ tradition: "early-east-asia", weight: 1 }] },
+      { years: [-300, 668], options: [{ tradition: "korean-ancient", weight: 1 }] },
       { years: [668, 1910], options: [{ tradition: "korean", weight: 1 }] },
       { years: [1910, 1945], options: [{ tradition: "korean", weight: 1 }, { tradition: "japanese", weight: 1 }] },
       { years: [1945, 10001], options: [{ tradition: "korean", weight: 1 }] },
@@ -1434,7 +1524,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [138,-39,154,-28],
     culture: "australian-pacific",
     windows: [
-      { years: [-1000000, 1788], options: [{ tradition: "aboriginal-australian", weight: 1 }] },
+      { years: [-1000000, -45000], options: [{ tradition: "early-sahul", weight: 1 }] },
+      { years: [-45000, 1788], options: [{ tradition: "aboriginal-australian", weight: 1 }] },
       { years: [1788, 10001], options: [{ tradition: "aboriginal-australian", weight: 5 }, { tradition: "english", weight: 2 }] },
     ],
   },
@@ -1444,7 +1535,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [125,-32,141,-19],
     culture: "australian-pacific",
     windows: [
-      { years: [-1000000, 1870], options: [{ tradition: "aboriginal-australian", weight: 1 }] },
+      { years: [-1000000, -45000], options: [{ tradition: "early-sahul", weight: 1 }] },
+      { years: [-45000, 1870], options: [{ tradition: "aboriginal-australian", weight: 1 }] },
       { years: [1870, 10001], options: [{ tradition: "aboriginal-australian", weight: 3 }, { tradition: "english", weight: 1 }] },
     ],
   },
@@ -1454,7 +1546,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [130,-26,154,-10],
     culture: "australian-pacific",
     windows: [
-      { years: [-1000000, 1824], options: [{ tradition: "aboriginal-australian", weight: 1 }] },
+      { years: [-1000000, -45000], options: [{ tradition: "early-sahul", weight: 1 }] },
+      { years: [-45000, 1824], options: [{ tradition: "aboriginal-australian", weight: 1 }] },
       { years: [1824, 10001], options: [{ tradition: "aboriginal-australian", weight: 12 }, { tradition: "english", weight: 4 }, { tradition: "melanesian", weight: 2 }, { tradition: "chinese-cantonese", weight: 2 }] },
     ],
   },
@@ -1464,7 +1557,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [112,-35,129,-14],
     culture: "australian-pacific",
     windows: [
-      { years: [-1000000, 1829], options: [{ tradition: "aboriginal-australian", weight: 1 }] },
+      { years: [-1000000, -45000], options: [{ tradition: "early-sahul", weight: 1 }] },
+      { years: [-45000, 1829], options: [{ tradition: "aboriginal-australian", weight: 1 }] },
       { years: [1829, 10001], options: [{ tradition: "aboriginal-australian", weight: 4 }, { tradition: "english", weight: 1 }] },
     ],
   },
@@ -1485,7 +1579,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [130,-23,180,0],
     culture: "australian-pacific",
     windows: [
-      { years: [-1000000, 1840], options: [{ tradition: "melanesian-precontact", weight: 1 }] },
+      { years: [-1000000, -3000], options: [{ tradition: "early-sahul", weight: 1 }] },
+      { years: [-3000, 1840], options: [{ tradition: "melanesian-precontact", weight: 1 }] },
       { years: [1840, 1884], options: [{ tradition: "melanesian-precontact", weight: 1 }, { tradition: "melanesian", weight: 1 }] },
       { years: [1884, 10001], options: [{ tradition: "melanesian", weight: 1 }] },
     ],
@@ -1527,7 +1622,8 @@ export const nameRegions: readonly NameRegion[] = [
     bounds: [115,-11,160,0],
     culture: "australian-pacific",
     windows: [
-      { years: [-1000000, 1512], options: [{ tradition: "melanesian-precontact", weight: 1 }] },
+      { years: [-1000000, -3000], options: [{ tradition: "early-sahul", weight: 1 }] },
+      { years: [-3000, 1512], options: [{ tradition: "melanesian-precontact", weight: 1 }] },
       { years: [1512, 1949], options: [{ tradition: "indonesian", weight: 14 }, { tradition: "malay", weight: 10 }, { tradition: "melanesian", weight: 8 }, { tradition: "dutch", weight: 1 }, { tradition: "portuguese", weight: 1 }] },
       { years: [1949, 10001], options: [{ tradition: "indonesian", weight: 1 }, { tradition: "malay", weight: 1 }] },
     ],

@@ -1,3 +1,19 @@
+## Three-quarter portrait renderers B and C — September 12, 2026
+
+The Portrait Lab now compares three renderers on the same recipe. B is a first three-quarter bust on a new canvas-free raster (`src/render/portraits/raster.ts`: polygon fill, spline silhouettes, dithered gradient shading, one-pixel material contours, cast shadows). C rebuilds the head from a proper three-quarter construction: feature midline at two thirds of the face width, profile nose overlapping the far cheek, foreshortened far eye, diagonal near jaw to an off-centre chin, one visible ear, hair weighted to the near side, and shoulders with bare or sleeved upper arms. Both honour every appearance field A does.
+
+C exposes construction offsets (turn, face width, jaw, chin, eyes, nose, mouth, neck, hair volume, shoulders, shadow) as lab sliders with a reset and a JSON readout of non-default values, so tuned defaults can be baked into `constructedDefaults`. The contact sheet follows the selected renderer tab. `scripts/portrait-sheet.ts` renders the twelve studies through B or C to a PNG without a browser.
+
+Validation: typecheck, ten character tests and the Portrait Lab browser check (three stage canvases, recipe edits on all three, slider changes and reset on C, full-page captures per renderer) pass. Not committed.
+
+## Versioned faces and Portrait Lab — September 12, 2026
+
+Character appearances now carry an optional revision-1 semantic face recipe covering eye size/shape/spacing, brows, nose, mouth, chin, hair texture/hairline and facial detail. New characters generate it deterministically; the save schema accepts it while remaining compatible with older appearance records. This is the same appearance object used by the world character, not a second portrait-only identity.
+
+Added a dedicated transparent 64×80 layered pixel portrait renderer and `/portrait-lab`. The lab can inspect live players/NPCs or twelve deterministic studies, edit every facial field, reveal the complete recipe and compare identical inputs through explicit A/B renderer slots. System A is implemented; System B is deliberately registered without a renderer for a separate art pass. Settings → Developer opens the lab against the current world.
+
+Validation: production build, ten focused character tests and two Portrait Lab browser checks pass. They verify deterministic contact sheets, real facial edits, the A/B slot contract, Settings integration with live-world actors and a full-page render. The portrait system is a development study and is not yet selected as the profile-modal renderer. Unrelated name-content work in the shared checkout was preserved; no commit or deployment.
+
 ## Connected starts, ecotones and shared borders — September 11, 2026
 
 Normal new-game creation now prepares a permanent bounded map and attaches live travel automatically. Small maps are 304 tiles; dated cities use 384. Older 512-tile contracts remain readable but are not selected for new starts. Catalog places attach to nearby backbone nodes in each available cardinal direction, preserving reciprocal IDs. Land classification searches for a route around bays rather than requiring a straight line over land. Boundary movement chooses a matching land connection along the edge instead of requiring the original marker tile. Guidance is a proximity toast inside the world pane; the camera and terrain/scenery streaming centers stop at the footprint with a narrow visual margin.

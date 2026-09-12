@@ -150,8 +150,10 @@ export const communityProfiles: CommunityProfile[] = [
       "wood",
       "fish",
       "tool",
+      "obsidian",
       "grain",
       "wool",
+      "fodder",
     ],
     ...fallbackEvidence(
       "A qualified rural Haitian starting scenario. Shared farming/herding mechanics and generic grain/wool are gameplay stand-ins awaiting local crop and livestock research.",
@@ -184,6 +186,7 @@ export const communityProfiles: CommunityProfile[] = [
       "wood",
       "fish",
       "tool",
+      "obsidian",
       "grain",
     ],
     ...fallbackEvidence(
@@ -218,6 +221,7 @@ export const communityProfiles: CommunityProfile[] = [
       "wood",
       "fish",
       "tool",
+      "obsidian",
       "grain",
     ],
     ...fallbackEvidence(
@@ -258,6 +262,7 @@ export const communityProfiles: CommunityProfile[] = [
       "wood",
       "fish",
       "tool",
+      "obsidian",
       "grain",
     ],
     ...fallbackEvidence(
@@ -292,6 +297,7 @@ export const communityProfiles: CommunityProfile[] = [
       "wood",
       "fish",
       "tool",
+      "obsidian",
       "grain",
     ],
     ...fallbackEvidence(
@@ -326,6 +332,7 @@ export const communityProfiles: CommunityProfile[] = [
       "wood",
       "fish",
       "tool",
+      "obsidian",
       "lizard",
     ],
     ...fallbackEvidence(
@@ -359,6 +366,7 @@ export const communityProfiles: CommunityProfile[] = [
       "wood",
       "fish",
       "tool",
+      "obsidian",
       "grain",
     ],
     ...profileEvidence("Bounded Congo Basin visual and livelihood defaults for communities in the 1000–1800 CE window.", ["https://www.metmuseum.org/toah/ht/08/afc.html"]),
@@ -382,6 +390,7 @@ export const communityProfiles: CommunityProfile[] = [
       "wood",
       "fish",
       "tool",
+      "obsidian",
       "lizard",
     ],
     ...profileEvidence("Use a dark-complexion, dark-hair visual default and mobile foraging, hunting, fishing, and craft roles for an Australian interior community before 1788.", [
@@ -414,11 +423,13 @@ export const communityProfiles: CommunityProfile[] = [
       "wood",
       "fish",
       "tool",
+      "obsidian",
       "grain",
       "bread",
       "coin",
       "flax",
       "wool",
+      "fodder",
     ],
     ...profileEvidence("Use a varied light-complexion visual default and English-colonial livelihood set for Virginia settlements from 1607 to 1750.", [
         "https://www.nps.gov/jame/learn/historyculture/the-virginia-company-of-london.htm",
@@ -451,6 +462,7 @@ export const communityProfiles: CommunityProfile[] = [
       "wood",
       "fish",
       "tool",
+      "obsidian",
       "grain",
     ],
     ...profileEvidence("Keep an Indigenous local Virginia community distinct from the English-colonial community when both are available in the same place and dates.", [
@@ -483,6 +495,7 @@ export const communityProfiles: CommunityProfile[] = [
       "wood",
       "fish",
       "tool",
+      "obsidian",
       "grain",
       "bread",
       "flax",

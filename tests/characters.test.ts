@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   actorAppearance,
   faceFromTraits,
+  generateFace,
   heightForAge,
   allowedHeights,
   generateAppearance,
@@ -25,6 +26,25 @@ describe("character recipes", () => {
     expect(new Set(people.map((a) => a.hair)).size).toBe(8);
     for (const a of people)
       expect(characterAppearanceSchema.safeParse(a).success).toBe(true);
+  });
+  it("stores a deterministic, versioned portrait face recipe", () => {
+    const people = Array.from({ length: 96 }, (_, index) =>
+      generateAppearance("portrait-recipe", index, 30),
+    );
+    expect(people.every((person) => person.face?.revision === 1)).toBe(true);
+    expect(new Set(people.map((person) => person.face?.eyeShape)).size).toBe(3);
+    expect(new Set(people.map((person) => person.face?.nose)).size).toBe(4);
+    expect(generateFace("portrait-recipe", 4, 30)).toEqual(
+      generateFace("portrait-recipe", 4, 30),
+    );
+    expect(generateFace("portrait-recipe", 4, 70).detail).toMatch(
+      /lines|weathered/,
+    );
+  });
+  it("accepts old appearance recipes without a portrait face block", () => {
+    expect(
+      characterAppearanceSchema.safeParse(originalAppearance).success,
+    ).toBe(true);
   });
   it("uses explicit clothing and preserves the old tunic palette otherwise", () => {
     const legacy = { id: "npc", sprite: "human-1-3" };

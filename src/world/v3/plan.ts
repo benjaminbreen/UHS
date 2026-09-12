@@ -4,7 +4,7 @@ import {
   characterSex,
   eligibleInventory,
 } from "../../content/characters/generate";
-import { resolveCharacterContext } from "../../content/characters/resolve";
+import { resolveCharacterContext, workAt } from "../../content/characters/resolve";
 import {
   streetPalette,
   chooseStreetSurface,
@@ -60,6 +60,11 @@ export function planSettlement(
   const characterContext = pack.setting?.characterRevision
     ? resolveCharacterContext(pack.setting)
     : undefined;
+  /* Ask what work is actually available rather than guessing at ids: the
+   * planner used to request "farmer" and match `role === "Farmer"`, so where
+   * the pool held no cultivator it laid fields nobody could work. */
+  const canFarm = !characterContext || workAt(characterContext, "field").length > 0;
+  const canHerd = !characterContext || workAt(characterContext, "pasture").length > 0;
   const sharedRoads = !!pack.setting?.roadRevision;
   const urban = urbanSite(site, pack);
   /** Resolved once: the lookup scans every dated rule, and both the square's
@@ -1480,10 +1485,12 @@ export function planSettlement(
           ? "trader"
           : lot.quarter === "craft"
             ? "craftsperson"
-            : profile.livestock && i % 3 === 1
-              ? "herder"
-              : profile.fields !== "none" && i % 3 === 0
-                ? "farmer"
+            : profile.livestock && canHerd && i % 3 === 1
+              ? workAt(characterContext!, "pasture", characterSex(seed, owner))[0]
+                  ?.id ?? "herder"
+              : profile.fields !== "none" && canFarm && i % 3 === 0
+                ? workAt(characterContext!, "field", characterSex(seed, owner))[0]
+                    ?.id ?? "farmer"
                 : undefined;
     const livelihood = pack.setting?.characterRevision
       ? characterLivelihood(

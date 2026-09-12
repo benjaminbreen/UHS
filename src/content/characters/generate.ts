@@ -199,7 +199,12 @@ export function characterLivelihood(
     sex === "unspecified"
       ? context.livelihoods
       : context.livelihoods.filter((l) => !l.sex || l.sex === sex);
-  return pick(open.length ? open : context.livelihoods, seed, id, "livelihood");
+  const pool = open.length ? open : context.livelihoods;
+  // Drawn by share, not evenly. Uniformly, twelve adults held ten different
+  // trades: one of everything and two of nothing, and nobody growing food.
+  const total = pool.reduce((n, l) => n + (l.weight ?? 1), 0);
+  let roll = random(seed, "character-v1", id, "livelihood") * total;
+  return pool.find((l) => (roll -= l.weight ?? 1) < 0) ?? pool[pool.length - 1];
 }
 export function eligibleInventory(
   inventory: Inventory,

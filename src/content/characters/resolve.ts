@@ -13,11 +13,14 @@ import type {
 } from "./context-types";
 import { communityProfiles, appearanceKits } from "./profiles/communities";
 import { populations } from "./profiles/populations";
+import { subsistenceMixes } from "./profiles/subsistence";
 import { nameKits } from "./name-kits";
 import { nameTraditions } from "./profiles/traditions.generated";
 import { nameRegions } from "./profiles/name-regions.generated";
 import { livelihoods } from "./livelihoods";
 import { commonLivelihoods } from "./livelihoods.generated";
+import { workplaceFor, type Workplace } from "./workplace";
+import type { CharacterPhysique } from "../../core/character";
 import {
   capabilityOverrides,
   capabilityWindows,
@@ -176,7 +179,12 @@ export function nameTraditionsFor(s: WorldSetting) {
   }
   return undefined;
 }
-/** Which stratum of ordinary work a place is in. Tiers overlap deliberately. */
+/**
+ * Which kind of settlement this work belongs to. This used to carry the dates
+ * as well, which is why every year from 3000 BCE to 1600 CE produced the same
+ * catalogue: only the industrial and modern tiers consulted the calendar at
+ * all. Dates now live on the livelihood as `years`.
+ */
 function tierApplies(
   tier: NonNullable<Livelihood["tier"]>,
   s: WorldSetting,
@@ -189,9 +197,87 @@ function tierApplies(
   if (tier === "prehistoric") return !farming || s.settlement === "camp";
   if (tier === "village") return farming && s.settlement !== "camp";
   if (tier === "town") return urban;
-  if (tier === "industrial")
-    return urban && capabilities.has("wage_labor") && s.year >= 1780;
-  return s.year >= 1900 && capabilities.has("wage_labor");
+  if (tier === "industrial") return urban && capabilities.has("wage_labor");
+  return capabilities.has("wage_labor");
+}
+const dedupe = (pool: readonly Livelihood[]) => [
+  ...new Map(pool.map((l) => [l.id, l])).values(),
+].map((l) => pool.find((x) => x.id === l.id)!);
+/** How this place divides its work between the ways of getting food. */
+const DEFAULT_SHARES = {
+  farming: 0.35,
+  herding: 0.1,
+  fishing: 0.1,
+  foraging: 0.12,
+  other: 0.33,
+};
+export function subsistenceFor(s: WorldSetting) {
+  return subsistenceMixes
+    .filter((m) => matchesCharacterScope(m.scope, s, "*"))
+    .sort((a, b) => b.priority - a.priority || a.id.localeCompare(b.id))[0];
+}
+const SHARE_OF: Partial<Record<Workplace, keyof typeof DEFAULT_SHARES>> = {
+  field: "farming",
+  pasture: "herding",
+  water: "fishing",
+  wild: "foraging",
+};
+/**
+ * Scale each livelihood's weight by its place's subsistence base, so a steppe
+ * settlement comes out mostly herders and a rice district mostly cultivators
+ * instead of both drawing the same village list in the same proportions.
+ * Weights within a class keep their relative sizes.
+ */
+function weighted(pool: readonly Livelihood[], s: WorldSetting) {
+  const shares = subsistenceFor(s)?.shares ?? DEFAULT_SHARES;
+  const classOf = (l: Livelihood) =>
+    SHARE_OF[l.workplace ?? workplaceFor(l.activity)] ?? "other";
+  const mass = new Map<string, number>();
+  for (const l of pool)
+    mass.set(classOf(l), (mass.get(classOf(l)) ?? 0) + (l.weight ?? 1));
+  return pool.map((l) => {
+    const c = classOf(l);
+    const total = mass.get(c) || 1;
+    // Share of the settlement for this class, split by weight within it.
+    return { ...l, weight: (shares[c] * (l.weight ?? 1) * 100) / total };
+  });
+}
+/** Everything about a livelihood that depends on where and when it is. */
+function inScope(l: Livelihood, s: WorldSetting) {
+  if (l.years && !(s.year >= l.years[0] && s.year < l.years[1])) return false;
+  if (l.cultures && !l.cultures.includes(s.culture)) return false;
+  if (
+    l.bounds &&
+    (s.lon < l.bounds[0] ||
+      s.lon > l.bounds[2] ||
+      s.lat < l.bounds[1] ||
+      s.lat > l.bounds[3])
+  )
+    return false;
+  // Work tied to a particular country is specialised, so no ecology recorded
+  // means "not here" rather than "anywhere": otherwise a setting without the
+  // data drew camel herders in Italy and reindeer herders on the steppe.
+  const ecology = s.environment?.ecology;
+  if (l.ecologies && (!ecology || !l.ecologies.includes(ecology))) return false;
+  return true;
+}
+/**
+ * The work in this context that happens at a given kind of place. The
+ * settlement planner used to guess at ids -- it asked for "farmer" and matched
+ * `role === "Farmer"` -- so a renamed trade silently left a field with nobody
+ * to work it. Asking by workplace lets the planner find out there is nobody,
+ * and not lay the field.
+ */
+export function workAt(
+  context: CharacterContext,
+  workplace: Workplace,
+  sex: CharacterPhysique["sex"] = "unspecified",
+) {
+  return context.livelihoods.filter(
+    (l) =>
+      (l.workplace ?? workplaceFor(l.activity)) === workplace &&
+      (sex === "unspecified" || !l.sex || l.sex === sex),
+  );
 }
 export function resolveCharacterContext(
   s: WorldSetting,
@@ -263,12 +349,15 @@ export function resolveCharacterContext(
   // Revision 2 adds the ordinary work on top of the eight playable kits, and
   // holds both to the same capability gate.
   const revised = s.characterRevision === 2;
-  const playable = revised ? eligible.filter(supported) : eligible;
+  const playable = revised
+    ? eligible.filter((l) => supported(l) && inScope(l, s))
+    : eligible;
   const tiered = revised
     ? commonLivelihoods.filter(
         (l) =>
           tierApplies(l.tier!, s, capabilities) &&
           supported(l) &&
+          inScope(l, s) &&
           needsMet(l.needs ?? authoredNeeds.get(l.id)),
       )
     : [];
@@ -279,12 +368,18 @@ export function resolveCharacterContext(
     names,
     traditions,
     capabilities,
-    livelihoods: [
-      ...(playable.length
-        ? playable
-        : livelihoods.filter((l) => l.id === "traveler")),
-      ...tiered,
-    ],
+    // `farmer`, `hunter` and `fisher` exist in both tables, so an undeduped
+    // pool drew them at double weight while the display looked up the other
+    // object. The hand-written kit wins: it carries the `needs` gate.
+    livelihoods: weighted(
+      dedupe([
+        ...(playable.length
+          ? playable
+          : livelihoods.filter((l) => l.id === "traveler")),
+        ...tiered,
+      ]),
+      s,
+    ),
     notes: [
       profile.note,
       appearance.note,

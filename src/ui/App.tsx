@@ -68,6 +68,9 @@ import { FpsMeter } from "./FpsMeter";
 const CharacterLab = lazy(() =>
   import("../dev/CharacterLab").then((m) => ({ default: m.CharacterLab })),
 );
+const PortraitLab = lazy(() =>
+  import("../dev/PortraitLab").then((m) => ({ default: m.PortraitLab })),
+);
 export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
   const view = useSyncExternalStore(runtime.subscribe, runtime.getSnapshot);
   const { observation: obs, selection, pack } = view;
@@ -76,6 +79,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
   const [audio, setAudio] = useState<AudioDirector | null>(null);
   const [audioOpen, setAudioOpen] = useState(false);
   const [characterOpen, setCharacterOpen] = useState(false);
+  const [portraitOpen, setPortraitOpen] = useState(false);
   const [statDetails, setStatDetails] = useState(false);
   const [provider, setProvider] = useState(narratorProvider);
   useEffect(() => {
@@ -224,6 +228,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
       }
       if (e.key === "Escape") {
         setCharacterOpen(false);
+        setPortraitOpen(false);
         setAudioOpen(false);
         setModal(null);
         runtime.stop();
@@ -350,6 +355,14 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
           <CharacterLab
             runtime={runtime}
             onClose={() => setCharacterOpen(false)}
+          />
+        </Suspense>
+      )}
+      {portraitOpen && (
+        <Suspense fallback={<div data-modal="true">Loading portraits…</div>}>
+          <PortraitLab
+            runtime={runtime}
+            onClose={() => setPortraitOpen(false)}
           />
         </Suspense>
       )}
@@ -682,6 +695,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
               <div className="portrait">
                 <CharacterSprite
                   appearance={runtime.appearanceFor(p)}
+                  age={p.age}
                   portrait
                 />
               </div>
@@ -1206,7 +1220,9 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
                     )}
                     <h3>{e.title}</h3>
                     <p>{e.statement}</p>
-                    {e.limitation && <p className="limitation">{e.limitation}</p>}
+                    {e.limitation && (
+                      <p className="limitation">{e.limitation}</p>
+                    )}
                     {e.url && (
                       <a href={e.url} target="_blank" rel="noreferrer">
                         Examine the source <ExternalLink size={13} />
@@ -1413,6 +1429,19 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
                     }}
                   >
                     Character lab · appearance & clothing
+                  </button>
+                  <button
+                    className="action settings-featured"
+                    onClick={() => {
+                      runtime.stop();
+                      setModal(null);
+                      setPortraitOpen(true);
+                    }}
+                  >
+                    Portrait lab · facial recipes &amp; A/B renderers
+                    <small>
+                      Compare identical characters at a native 64 × 80 pixels
+                    </small>
                   </button>
                   <button
                     className="action"

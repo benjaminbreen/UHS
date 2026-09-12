@@ -1,6 +1,8 @@
 import type { CharacterAppearance } from "../../core/character";
 import type { Inventory } from "../../core/types";
+import type { Ecology } from "../ecology/profiles";
 import type { CultureId } from "../history/types";
+import type { Workplace } from "./workplace";
 
 /** Exact-year, local scopes; never a culture × era Cartesian product. */
 export type CharacterScope = {
@@ -147,8 +149,29 @@ export type Livelihood = {
   id: string;
   label: string;
   activity: string;
-  /** Ordinary-work tier; absent on the eight hand-written kits. */
+  /**
+   * Which kind of settlement this work belongs to; absent on the eight
+   * hand-written kits. This is about settlement form, not date — when a trade
+   * begins and ends is `years`, which used to be buried in here and meant the
+   * catalogue was identical from 3000 BCE to 1600 CE.
+   */
   tier?: "prehistoric" | "village" | "town" | "industrial" | "modern";
+  /** When this work exists at all. Half-open, astronomical years. */
+  years?: readonly [number, number];
+  /** Where, when the work is local to a region. [W, S, E, N]. */
+  bounds?: readonly [number, number, number, number];
+  cultures?: readonly CultureId[];
+  /** Work tied to what grows here: a reindeer herder needs tundra. */
+  ecologies?: readonly Ecology[];
+  /** A settlement smaller than this cannot support the trade. */
+  minPopulation?: number;
+  /**
+   * Relative share of the workforce. Everything used to be drawn uniformly, so
+   * twelve adults held ten different trades and nobody grew any food.
+   */
+  weight?: number;
+  /** Where the day happens. Falls back to reading it off `activity`. */
+  workplace?: Workplace;
   needs?: readonly ("water" | "settled" | "cultivation")[];
   /** All of these must be available here. */
   capabilities?: readonly SocietyCapability[];

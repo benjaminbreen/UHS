@@ -16,6 +16,7 @@ export const workplaces = [
 export type Workplace = (typeof workplaces)[number];
 const byActivity: Record<string, Workplace> = {
   "Gathering plants": "wild",
+  "Gathering supplies": "wild",
   "Looking for game": "wild",
   "Cutting timber": "wild",
   "Working timber": "wild",
@@ -38,6 +39,7 @@ const byActivity: Record<string, Workplace> = {
   "Burning lime": "extraction",
   "Making brick": "extraction",
   "Minding the stall": "market",
+  "Exchanging supplies": "market",
   "Exchanging goods": "market",
   "Keeping the house": "market",
   "At the rite": "civic",
@@ -49,9 +51,11 @@ const byActivity: Record<string, Workplace> = {
   Building: "civic",
   "Working the roof": "civic",
   "Carrying a load": "carrying",
+  Traveling: "carrying",
   "Running errands": "carrying",
   "Clearing waste": "carrying",
   "Household work": "household",
+  "Household craft work": "household",
   "Looking after the household": "household",
   Cooking: "household",
   "Preparing food": "household",
@@ -59,7 +63,11 @@ const byActivity: Record<string, Workplace> = {
   "Keeping the fire": "household",
   "Attending on someone": "household",
 };
-/** Anything not listed is bench work: a yard, a shed, a room off the street. */
+/**
+ * Anything not listed is bench work: a yard, a shed, a room off the street.
+ * That is right for a smith or a potter and wrong for a forager, so the four
+ * hand-written kits are listed above rather than left to the default.
+ */
 export function workplaceFor(activity: string): Workplace {
   return byActivity[activity] ?? "workshop";
 }

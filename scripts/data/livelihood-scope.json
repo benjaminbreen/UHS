@@ -1,0 +1,775 @@
+{
+  "_comment": "Per-role scope and weight, authored in UHS and merged by scripts/port-livelihoods.ts. The ported table has none of this: every trade was available in every era the tier allowed, everywhere on Earth, at the same frequency as every other. `years` is half-open and astronomical. `weight` is a relative share of the workforce, default 1; a value of 20 on a cultivator against 1 on a glazier is what makes a village mostly farmers. `bounds`, `cultures` and `ecologies` narrow work that is local. Phase 2 fills this in; Phase 1 only wires it up, with the dates that were previously hidden inside the tier test.",
+  "roles": {
+    "_tierDates": {
+      "why": "The industrial and modern tiers were the only ones that consulted a year, inside the settlement-form test. Moved here so the test is about settlement form alone.",
+      "industrial": [
+        1780,
+        10001
+      ],
+      "modern": [
+        1900,
+        10001
+      ]
+    },
+    "potter": {
+      "years": [
+        -7000,
+        10001
+      ],
+      "why": "Ungated, so offered from the earliest farming date, about two thousand years before ceramics."
+    },
+    "glazier": {
+      "years": [
+        1200,
+        10001
+      ],
+      "why": "Gated only on urban settlement, so available in Uruk around 3500 BCE, some three and a half thousand years before window glass."
+    },
+    "cooper": {
+      "years": [
+        -100,
+        10001
+      ],
+      "bounds": [
+        -25,
+        25,
+        60,
+        72
+      ],
+      "why": "Stave barrels are Iron Age Celtic and spread from there. Ungated it appeared in Bronze Age Mesopotamia and in Mesoamerica and the Andes, which had neither barrels nor the cooperage tradition."
+    },
+    "saddler": {
+      "years": [
+        -800,
+        1950
+      ],
+      "why": "Gated only on draft animals, so from 3500 BCE; saddles are later. Follows the working horse."
+    },
+    "miller": {
+      "years": [
+        -300,
+        10001
+      ],
+      "why": "A miller presupposes a mill. Grinding by quern is household work, not a trade."
+    },
+    "charcoal-burner": {
+      "years": [
+        -3000,
+        1900
+      ],
+      "why": "Charcoal as a specialised trade follows smelting rather than preceding it. Charcoal burning as a living ends with coke smelting and bottled gas."
+    },
+    "peat-cutter": {
+      "bounds": [
+        -11,
+        50,
+        30,
+        71
+      ],
+      "why": "Already bounded in phase 1; kept here with the rest."
+    },
+    "farmer": {
+      "weight": 26
+    },
+    "cultivator": {
+      "weight": 26
+    },
+    "farm-labourer": {
+      "weight": 16
+    },
+    "field-labourer": {
+      "weight": 16
+    },
+    "tenant-farmer": {
+      "weight": 12
+    },
+    "tenant-cultivator": {
+      "weight": 12
+    },
+    "thresher": {
+      "weight": 10,
+      "years": [
+        -5000,
+        1900
+      ],
+      "why": "Hand threshing with a flail ends with the threshing machine."
+    },
+    "ploughman": {
+      "weight": 12
+    },
+    "cottager": {
+      "weight": 8
+    },
+    "crofter": {
+      "weight": 8
+    },
+    "shepherd": {
+      "weight": 14
+    },
+    "herder": {
+      "weight": 14
+    },
+    "cattle-herder": {
+      "weight": 14
+    },
+    "goatherd": {
+      "weight": 12
+    },
+    "swineherd": {
+      "weight": 8
+    },
+    "dairymaid": {
+      "weight": 6
+    },
+    "milkmaid": {
+      "weight": 6
+    },
+    "pig-keeper": {
+      "weight": 8
+    },
+    "llama-herder": {
+      "weight": 14
+    },
+    "fisher": {
+      "weight": 12
+    },
+    "reef-fisher": {
+      "weight": 12
+    },
+    "forager": {
+      "weight": 12
+    },
+    "hunter": {
+      "weight": 10
+    },
+    "rice-farmer": {
+      "weight": 26
+    },
+    "maize-cultivator": {
+      "weight": 26,
+      "years": [
+        -4000,
+        10001
+      ],
+      "why": "Maize domestication in Mesoamerica; the Andes adopt it later."
+    },
+    "millet-farmer": {
+      "weight": 26
+    },
+    "taro-cultivator": {
+      "weight": 26
+    },
+    "yam-grower": {
+      "weight": 18
+    },
+    "potato-farmer": {
+      "weight": 18,
+      "years": [
+        -2000,
+        10001
+      ],
+      "why": "Potatoes are Andean and ancient there, and nowhere else before 1550."
+    },
+    "date-cultivator": {
+      "weight": 12,
+      "years": [
+        -3000,
+        10001
+      ],
+      "why": "Date palms are cultivated in Mesopotamia and the Gulf from the Bronze Age."
+    },
+    "fellah": {
+      "weight": 22,
+      "years": [
+        700,
+        10001
+      ],
+      "why": "An Arabic term for a peasant cultivator; it belongs to the Islamic-era countryside, not the Neolithic."
+    },
+    "market-gardener": {
+      "weight": 8,
+      "years": [
+        1500,
+        10001
+      ],
+      "why": "Market gardening presupposes a town market buying vegetables daily."
+    },
+    "vine-dresser": {
+      "weight": 8,
+      "years": [
+        -800,
+        10001
+      ],
+      "why": "Viticulture spreads with the Mediterranean world."
+    },
+    "canoe-builder": {
+      "weight": 4
+    },
+    "bark-cloth-beater": {
+      "weight": 4
+    },
+    "farm-worker": {
+      "weight": 16
+    },
+    "farm-hand": {
+      "weight": 16
+    },
+    "dairy-farmer": {
+      "weight": 8,
+      "years": [
+        1700,
+        10001
+      ],
+      "why": "Dairying as a farm's main business rather than a household task."
+    },
+    "homesteader": {
+      "weight": 10,
+      "years": [
+        1780,
+        10001
+      ],
+      "why": "A settler tenure of the North American interior."
+    },
+    "ranch-hand": {
+      "weight": 8,
+      "years": [
+        1700,
+        10001
+      ],
+      "why": "Ranching follows the introduction of cattle and horses to the Americas."
+    },
+    "cattle-hand": {
+      "weight": 8,
+      "years": [
+        1700,
+        10001
+      ],
+      "why": "As ranch hand."
+    },
+    "sharecropper": {
+      "weight": 12,
+      "years": [
+        1500,
+        10001
+      ],
+      "why": "Sharecropping as a named tenure, rather than tenancy in general."
+    },
+    "agricultural-labourer": {
+      "weight": 16,
+      "years": [
+        1600,
+        10001
+      ],
+      "why": "Landless wage labour on the land, as against a tenancy."
+    },
+    "palm-tapper": {
+      "weight": 8
+    },
+    "coffee-picker": {
+      "years": [
+        1720,
+        10001
+      ],
+      "why": "Coffee reaches the Americas as a plantation crop in the eighteenth century."
+    },
+    "tea-picker": {
+      "years": [
+        1830,
+        10001
+      ],
+      "why": "Commercial tea picking as wage work in South Asia follows the Assam plantations."
+    },
+    "tea-grower": {
+      "years": [
+        800,
+        10001
+      ],
+      "why": "Tea cultivation in China is Tang-era and later."
+    },
+    "jute-grower": {
+      "years": [
+        1830,
+        10001
+      ],
+      "why": "Jute as a cash crop follows the Dundee trade."
+    },
+    "groundnut-grower": {
+      "years": [
+        1830,
+        10001
+      ],
+      "why": "Groundnuts are an American crop grown for export in the Sahel from the nineteenth century."
+    },
+    "cotton-grower": {
+      "years": [
+        -1500,
+        10001
+      ],
+      "why": "Cotton is ancient in South Asia, unlike the plantation crops beside it here."
+    },
+    "coca-grower": {
+      "years": [
+        -1000,
+        10001
+      ],
+      "why": "Coca cultivation in the Andes long predates the Spanish."
+    },
+    "silk-farmer": {
+      "years": [
+        -2000,
+        10001
+      ],
+      "why": "Sericulture is Neolithic in China."
+    },
+    "beekeeper": {
+      "years": [
+        -2400,
+        10001
+      ],
+      "why": "Hive-keeping is attested in Egypt around 2400 BCE; it was previously offered from the first farming villages anywhere on Earth."
+    },
+    "candle-maker": {
+      "years": [
+        -200,
+        10001
+      ],
+      "why": "Tallow and wax candles as a trade are Roman and later."
+    },
+    "soap-boiler": {
+      "years": [
+        -100,
+        10001
+      ],
+      "why": "Soap boiling as a trade is Roman and later."
+    },
+    "oil-presser": {
+      "years": [
+        -3000,
+        10001
+      ],
+      "why": "Olive and sesame pressing follows the orchard crops, not the first cereals."
+    },
+    "salt-worker": {
+      "years": [
+        -5000,
+        10001
+      ],
+      "why": "Salt production as specialised work, rather than gathering it where it lies."
+    },
+    "dyer": {
+      "years": [
+        -3000,
+        10001
+      ],
+      "why": "Dyeing as a trade separate from household cloth work."
+    },
+    "sexton": {
+      "years": [
+        600,
+        10001
+      ],
+      "bounds": [
+        -11,
+        34,
+        45,
+        62
+      ],
+      "why": "A Christian parish office. Gated only on urban settlement it appeared in Uruk, Anyang, Teotihuacan and Cahokia."
+    },
+    "alewife": {
+      "years": [
+        1200,
+        1800
+      ],
+      "bounds": [
+        -11,
+        49,
+        3,
+        61
+      ],
+      "why": "An English trade with its own legal regime, the assize of ale. An English trade with its own legal regime, the assize of ale."
+    },
+    "publican": {
+      "years": [
+        -200,
+        10001
+      ],
+      "why": "Innkeeping is ancient; it was locked behind the industrial tier."
+    },
+    "stonemason": {
+      "years": [
+        -3000,
+        10001
+      ],
+      "why": "Monumental stone dressing is Bronze Age; it was locked behind the industrial tier."
+    },
+    "bricklayer": {
+      "years": [
+        -3000,
+        10001
+      ],
+      "why": "Mud brick and fired brick are both ancient; locked behind the industrial tier."
+    },
+    "sailor": {
+      "years": [
+        -3000,
+        10001
+      ],
+      "why": "There was no seafaring livelihood at all before 1780, which left every ancient port without sailors."
+    },
+    "night-watchman": {
+      "years": [
+        -1000,
+        10001
+      ],
+      "why": "A town watch is ancient; it was modern-tier only, so no settlement had anyone keeping watch before 1900."
+    },
+    "chapman": {
+      "years": [
+        1200,
+        1900
+      ],
+      "bounds": [
+        -11,
+        43,
+        30,
+        61
+      ],
+      "why": "An English and northern European pedlar; it was offered worldwide."
+    },
+    "costermonger": {
+      "years": [
+        1500,
+        1950
+      ],
+      "bounds": [
+        -11,
+        49,
+        3,
+        61
+      ],
+      "why": "A London street seller of fruit; it was offered worldwide."
+    },
+    "navvy": {
+      "years": [
+        1750,
+        1950
+      ],
+      "why": "Canal and railway earthwork labour."
+    },
+    "night-soil-collector": {
+      "years": [
+        -500,
+        1920
+      ],
+      "why": "Urban waste collection follows dense cities. Ends with piped sewerage."
+    },
+    "ostler": {
+      "years": [
+        -1000,
+        1940
+      ],
+      "why": "Stabling for travellers' horses ends with the motor car."
+    },
+    "cabman": {
+      "years": [
+        1650,
+        1940
+      ],
+      "why": "The horse cab gives way to the taxi."
+    },
+    "muleteer": {
+      "years": [
+        -1000,
+        1950
+      ],
+      "why": "Pack transport gives way to the lorry."
+    },
+    "wool-comber": {
+      "years": [
+        -1000,
+        1850
+      ],
+      "why": "Combing is mechanised early in the textile factories."
+    },
+    "fuller": {
+      "years": [
+        -500,
+        1800
+      ],
+      "why": "Fulling by foot and by stock gives way to the fulling mill and then the factory."
+    },
+    "scullion": {
+      "years": [
+        1200,
+        1950
+      ],
+      "why": "The lowest kitchen servant disappears with domestic service itself."
+    },
+    "wet-nurse": {
+      "years": [
+        -2000,
+        1920
+      ],
+      "why": "Ends with safe artificial feeding."
+    },
+    "match-worker": {
+      "years": [
+        1830,
+        1940
+      ],
+      "why": "A trade that existed only while matches were dipped by hand."
+    },
+    "lime-burner": {
+      "years": [
+        -2000,
+        1950
+      ],
+      "why": "Field and village lime kilns give way to industrial cement."
+    },
+    "rope-maker": {
+      "years": [
+        -3000,
+        1930
+      ],
+      "why": "Hand ropewalks give way to machine spinning."
+    },
+    "sawyer": {
+      "years": [
+        -2000,
+        1920
+      ],
+      "why": "Pit sawing by hand ends with the powered sawmill."
+    },
+    "wheelwright": {
+      "years": [
+        -1000,
+        1950
+      ],
+      "why": "Wooden wheels for carts and carriages."
+    },
+    "chimney-sweep": {
+      "years": [
+        1500,
+        1960
+      ],
+      "why": "Follows the open coal fire."
+    },
+    "errand-boy": {
+      "years": [
+        1750,
+        1960
+      ],
+      "why": "Child errand work ends with schooling laws."
+    },
+    "washerwoman": {
+      "years": [
+        -1000,
+        1960
+      ],
+      "why": "Ends with the domestic washing machine."
+    },
+    "laundress": {
+      "years": [
+        -1000,
+        1960
+      ],
+      "why": "As washerwoman."
+    },
+    "drover": {
+      "years": [
+        -3000,
+        1900
+      ],
+      "why": "Driving stock overland on the hoof ends with the railway."
+    },
+    "carter": {
+      "years": [
+        -2000,
+        1950
+      ],
+      "why": "Horse haulage gives way to the lorry."
+    },
+    "spinner": {
+      "years": [
+        -5000,
+        1850
+      ],
+      "why": "Hand spinning for a living ends with the mule and the throstle."
+    },
+    "brickmaker": {
+      "years": [
+        -3000,
+        1950
+      ],
+      "why": "Hand moulding gives way to the brickworks."
+    },
+    "scribe": {
+      "years": [
+        -3000,
+        1850
+      ],
+      "why": "Writing for other people as a trade fades as literacy spreads."
+    },
+    "water-carrier": {
+      "years": [
+        -3000,
+        1930
+      ],
+      "why": "Ends with piped water."
+    },
+    "lamplighter": {
+      "years": [
+        1800,
+        1950
+      ],
+      "why": "Ends with electric street lighting."
+    }
+  },
+  "extraRoles": {
+    "_comment": "Work authored in UHS and emitted alongside the ported table. These are subsistence bases the upstream agrarian table has no entry for, each tied to the country that supports it.",
+    "camel-herder": {
+      "label": "Camel Herder",
+      "keyword": "herding",
+      "tier": "village",
+      "weight": 14,
+      "years": [
+        -1000,
+        10001
+      ],
+      "ecologies": [
+        "desert",
+        "dry-scrub"
+      ],
+      "why": "Dromedary pastoralism across the Saharan and Arabian deserts; camels are domesticated in Arabia in the second millennium BCE. Bounded to the Saharan, Arabian and central Asian deserts: ecology alone let it into Mediterranean scrub.",
+      "bounds": [
+        -17,
+        12,
+        78,
+        40
+      ]
+    },
+    "reindeer-herder": {
+      "label": "Reindeer Herder",
+      "keyword": "herding",
+      "tier": "village",
+      "weight": 18,
+      "years": [
+        -500,
+        10001
+      ],
+      "ecologies": [
+        "tundra",
+        "boreal-woodland"
+      ],
+      "why": "Sami and Siberian reindeer pastoralism, distinct from hunting wild reindeer, which is far older. Bounded to Fennoscandia and northern Siberia: ecology alone let it onto the Mongolian steppe.",
+      "bounds": [
+        5,
+        58,
+        180,
+        78
+      ]
+    },
+    "yak-herder": {
+      "label": "Yak Herder",
+      "keyword": "herding",
+      "tier": "village",
+      "weight": 16,
+      "years": [
+        -2000,
+        10001
+      ],
+      "bounds": [
+        72,
+        26,
+        103,
+        40
+      ],
+      "why": "Yak pastoralism on the Tibetan plateau and its margins, where nothing else will graze.",
+      "ecologies": [
+        "grassland",
+        "tundra"
+      ]
+    },
+    "horse-herder": {
+      "label": "Horse Herder",
+      "keyword": "herding",
+      "tier": "village",
+      "weight": 12,
+      "years": [
+        -2000,
+        10001
+      ],
+      "ecologies": [
+        "grassland"
+      ],
+      "why": "Horse-keeping on the open steppe, the basis of mounted pastoralism."
+    },
+    "swidden-cultivator": {
+      "label": "Swidden Cultivator",
+      "keyword": "agriculture",
+      "tier": "village",
+      "weight": 20,
+      "years": [
+        -4000,
+        10001
+      ],
+      "ecologies": [
+        "tropical-woodland",
+        "temperate-woodland"
+      ],
+      "why": "Shifting cultivation: clear, burn, crop for a few seasons, move on. The commonest form of farming in forested country and invisible in a table that assumes permanent fields. Bounded to the tropics and warm temperate zone.",
+      "bounds": [
+        -85,
+        -25,
+        160,
+        35
+      ]
+    },
+    "terrace-farmer": {
+      "label": "Terrace Farmer",
+      "keyword": "agriculture",
+      "tier": "village",
+      "weight": 16,
+      "years": [
+        -1000,
+        10001
+      ],
+      "why": "Cutting and maintaining terraces on slopes too steep to plough. Bounded to monsoon and Himalayan Asia; Andean terracing is covered by the Andean roles.",
+      "bounds": [
+        66,
+        -11,
+        140,
+        40
+      ]
+    },
+    "irrigation-keeper": {
+      "label": "Irrigation Keeper",
+      "keyword": "agriculture",
+      "tier": "village",
+      "weight": 8,
+      "years": [
+        -4000,
+        10001
+      ],
+      "ecologies": [
+        "desert",
+        "dry-scrub",
+        "grassland"
+      ],
+      "why": "Maintaining and allocating the channels, which in irrigated societies is its own job and often its own office."
+    },
+    "sea-fisher": {
+      "label": "Sea Fisher",
+      "keyword": "fishing",
+      "tier": "village",
+      "weight": 12,
+      "years": [
+        -5000,
+        10001
+      ],
+      "why": "Fishing from a boat off the coast, as against the shore and river work the single existing fisher role covers."
+    }
+  }
+}
