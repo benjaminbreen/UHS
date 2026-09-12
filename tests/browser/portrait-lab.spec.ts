@@ -40,14 +40,22 @@ test("portrait lab compares one recipe across two renderer slots", async ({
   const jaw = page.getByRole("slider", { name: "Jaw width" });
   await jaw.focus();
   for (let i = 0; i < 4; i++) await jaw.press("ArrowRight");
-  await expect(jaw).toHaveValue("2");
+  await expect(jaw).toHaveValue("3");
   await page.waitForTimeout(200);
   expect(await stageData()).not.toBe(cBefore);
-  await expect(page.getByText('"jawWidth": 2')).toBeVisible();
+  await expect(page.getByText('"jawWidth": 3')).toBeVisible();
   await page.getByRole("button", { name: "Reset construction" }).click();
-  await expect(jaw).toHaveValue("0");
+  await expect(jaw).toHaveValue("1");
   await page.waitForTimeout(200);
   expect(await stageData()).toBe(cBefore);
+
+  await page.getByLabel("Grid size").selectOption("24");
+  await expect(page.locator(".portrait-contact-sheet canvas")).toHaveCount(24);
+  const seedBefore = await page.getByLabel("Seed").inputValue();
+  await page.getByRole("button", { name: "Shuffle", exact: true }).click();
+  expect(await page.getByLabel("Seed").inputValue()).not.toBe(seedBefore);
+  await page.getByLabel("Mixed ages").check();
+  await expect(page.locator(".portrait-contact-sheet canvas")).toHaveCount(24);
 
   for (const [tab, file] of [
     ["B only", "three-quarter-v1"],
@@ -55,7 +63,7 @@ test("portrait lab compares one recipe across two renderer slots", async ({
   ]) {
     await page.getByRole("tab", { name: tab }).click();
     await expect(page.locator(".portrait-contact-sheet canvas")).toHaveCount(
-      12,
+      24,
     );
     await page.screenshot({
       path: `artifacts/portrait-lab/${file}.png`,

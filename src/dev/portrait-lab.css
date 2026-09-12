@@ -226,11 +226,47 @@
 .portrait-contact-section {
   margin-top: 18px;
 }
+.portrait-contact-section > header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.portrait-sheet-controls {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+.portrait-sheet-controls label {
+  display: grid;
+  gap: 4px;
+  color: #b8bfd1;
+  font-size: 11px;
+}
+.portrait-sheet-controls .portrait-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-bottom: 9px;
+}
+.portrait-sheet-controls input[type="checkbox"] {
+  margin: 0;
+  accent-color: var(--pl-coral);
+}
 .portrait-contact-sheet {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
   gap: 10px;
   padding: 16px;
+}
+.portrait-contact-sheet[data-size="24"] {
+  grid-template-columns: repeat(8, 1fr);
+  gap: 8px;
+}
+.portrait-contact-sheet[data-size="48"] {
+  grid-template-columns: repeat(12, 1fr);
+  gap: 6px;
 }
 .portrait-contact-sheet button {
   position: relative;

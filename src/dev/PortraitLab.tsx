@@ -15,6 +15,7 @@ import {
   type CharacterAppearance,
   type CharacterFace,
 } from "../core/character";
+import { random } from "../core/random";
 import type { Runtime } from "../runtime/session";
 import {
   constructedDefaults,
@@ -101,19 +102,45 @@ export function PortraitLab({
   const tuned = (Object.keys(tuning) as (keyof ConstructedTuning)[]).filter(
     (key) => tuning[key] !== constructedDefaults[key],
   );
+  const [gridSize, setGridSize] = useState(12);
+  const [mixedAges, setMixedAges] = useState(false);
+  // Ages sampled per cell when mixed: a spread of children, adults and elders.
+  const studyAges = useMemo(
+    () =>
+      Array.from({ length: gridSize }, (_, index) => {
+        if (!mixedAges) return age;
+        const roll = random(`${seed}:${batch}`, "study-age", index);
+        const span = random(`${seed}:${batch}`, "study-age-span", index);
+        return roll < 0.15
+          ? 4 + Math.floor(span * 9)
+          : roll < 0.25
+            ? 13 + Math.floor(span * 5)
+            : roll < 0.8
+              ? 18 + Math.floor(span * 37)
+              : 55 + Math.floor(span * 26);
+      }),
+    [gridSize, mixedAges, seed, batch, age],
+  );
   const generated = useMemo(
     () =>
-      Array.from({ length: 12 }, (_, index) =>
-        generateAppearance(`${seed}:${batch}`, index, age),
+      studyAges.map((studyAge, index) =>
+        generateAppearance(`${seed}:${batch}`, index, studyAge),
       ),
-    [seed, batch, age],
+    [seed, batch, studyAges],
   );
+  const shuffle = () => {
+    setSeed(`shuffle-${Math.random().toString(36).slice(2, 8)}`);
+    setActorId("generated-0");
+  };
   const actorIndex = Number(actorId.replace("generated-", ""));
   const live = liveActors.find((actor) => actor.id === actorId);
   const base = live
     ? runtime!.appearanceFor(live)
     : (generated[Number.isFinite(actorIndex) ? actorIndex : 0] ?? generated[0]);
-  const activeAge = live?.age ?? age;
+  const activeAge =
+    live?.age ??
+    (Number.isFinite(actorIndex) ? studyAges[actorIndex] : undefined) ??
+    age;
   const [edited, setEdited] = useState<CharacterAppearance>(() =>
     withFace(base, seed, activeAge),
   );
@@ -173,6 +200,7 @@ export function PortraitLab({
           <button onClick={() => setBatch((value) => value + 1)}>
             New batch
           </button>
+          <button onClick={shuffle}>Shuffle seed</button>
           {onClose ? (
             <button onClick={onClose}>Back to world ×</button>
           ) : (
@@ -361,28 +389,62 @@ export function PortraitLab({
 
           <section className="portrait-contact-section">
             <header>
-              <h2>Contact sheet</h2>
-              <p>
-                The same twelve deterministic recipes through{" "}
-                {sheetSystem.label}. Pick a single renderer tab to switch the
-                sheet.
-              </p>
+              <div>
+                <h2>Contact sheet</h2>
+                <p>
+                  {gridSize} deterministic recipes from the seed through{" "}
+                  {sheetSystem.label}. Pick a single renderer tab to switch the
+                  sheet; shuffle or start a new batch for fresh faces.
+                </p>
+              </div>
+              <div className="portrait-sheet-controls">
+                <label>
+                  Grid
+                  <select
+                    aria-label="Grid size"
+                    value={gridSize}
+                    onChange={(event) => {
+                      setGridSize(Number(event.target.value));
+                      setActorId("generated-0");
+                    }}
+                  >
+                    {[12, 24, 48].map((size) => (
+                      <option key={size} value={size}>
+                        {size} faces
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="portrait-check">
+                  <input
+                    type="checkbox"
+                    checked={mixedAges}
+                    onChange={(event) => setMixedAges(event.target.checked)}
+                  />
+                  Mixed ages
+                </label>
+                <button onClick={shuffle}>Shuffle</button>
+              </div>
             </header>
-            <div className="portrait-contact-sheet">
+            <div className="portrait-contact-sheet" data-size={gridSize}>
               {generated.map((appearance, index) => (
                 <button
                   key={index}
                   aria-pressed={actorId === `generated-${index}`}
                   onClick={() => setActorId(`generated-${index}`)}
+                  title={`Study ${index + 1} · age ${studyAges[index]}`}
                 >
                   <PortraitCanvas
                     system={sheetSystem}
                     appearance={appearance}
-                    age={age}
+                    age={studyAges[index]}
                     label={`Generated study ${index + 1}`}
                     options={options}
                   />
-                  <span>{String(index + 1).padStart(2, "0")}</span>
+                  <span>
+                    {String(index + 1).padStart(2, "0")}
+                    {mixedAges ? ` · ${studyAges[index]}` : ""}
+                  </span>
                 </button>
               ))}
             </div>
