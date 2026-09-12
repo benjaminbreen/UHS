@@ -67,6 +67,17 @@ export const postures = [
   "attentive",
 ] as const;
 export const sleeveStyles = ["short", "long", "loose", "none"] as const;
+/** Where a wearable item sits. Composed in this order, later slots on top. */
+export const wearSlots = [
+  "body",
+  "over",
+  "belt",
+  "head",
+  "neck",
+  "ears",
+  "arms",
+] as const;
+export type WearSlot = (typeof wearSlots)[number];
 export const hemStyles = ["plain", "split", "slanted"] as const;
 export type CharacterPhysique = {
   strength: number;
@@ -241,6 +252,13 @@ export function generateAppearance(
 ): CharacterAppearance {
   const n = (key: string, max: number) =>
     Math.floor(random(seed, "character-art", index, key) * max);
+  // Every drawn body has a sex; "unspecified" from a caller means "draw one".
+  const sex =
+    traits?.sex && traits.sex !== "unspecified"
+      ? traits.sex
+      : n("sex", 2)
+        ? "female"
+        : "male";
   const physique: CharacterPhysique = {
     strength:
       age < 13
@@ -248,8 +266,8 @@ export function generateAppearance(
         : age >= 65
           ? 25 + n("strength", 40)
           : 30 + n("strength", 65),
-    sex: "unspecified",
     ...traits,
+    sex,
   };
   return {
     physique,
@@ -294,7 +312,7 @@ export function generateAppearance(
     ][n("hair-color", 6)],
     hair: hairStyles[n("hair", hairStyles.length)],
     beard:
-      age < 16
+      age < 16 || sex !== "male"
         ? "none"
         : (
             [

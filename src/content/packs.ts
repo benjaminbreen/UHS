@@ -3,10 +3,11 @@ import { resolvePlayablePacks } from "./history/playable";
 import { items as baseItems } from "./legacy-packs";
 import { ecologicalItems } from "./ecology/resources";
 import { forageItems } from "./ecology/forage";
+import { wearableItems } from "./characters/wearables";
 export const items: Record<
   import("../core/types").ItemId,
   import("../core/types").ItemDef
-> = { ...baseItems, ...ecologicalItems, ...forageItems };
+> = { ...baseItems, ...ecologicalItems, ...forageItems, ...wearableItems };
 export const packs: Record<string, Pack> = resolvePlayablePacks();
 export function resolvePrompt(
   input: string,

@@ -235,10 +235,13 @@ function model(
         : [farX - 2, chin - 6];
   const nearCorner: Pt = [nearBase[0] - t.jawWidth, nearBase[1] - t.jawHeight];
   const farCorner: Pt = [farBase[0] + t.jawWidth, farBase[1] - t.jawHeight];
+  // Sex reads in two cues only: chin breadth here, brow weight in drawFeatures.
+  const sex = a.physique?.sex ?? "unspecified";
   const chinW =
     (jaw === "pointed" || jaw === "small" ? 1.5 : 0) -
     t.chinWidth +
-    (child ? 1 : 0);
+    (child ? 1 : 0) +
+    (sex === "female" ? 0.5 : sex === "male" ? -0.5 : 0);
   const headPts: Pt[] = [
     [29, top + 0.5],
     [37, top - 0.5],
@@ -766,7 +769,13 @@ function drawFeatures(r: Raster, m: Model) {
   r.put(fx - 1, eyeY + 1, skin.shade);
 
   // Brows. The near brow reads long and arched; the far one is short.
-  const browColor = age >= 55 ? mix(hair.deep, skin.shade, 0.35) : hair.deep;
+  const female = a.physique?.sex === "female";
+  const browColor =
+    age >= 55
+      ? mix(hair.deep, skin.shade, 0.35)
+      : female
+        ? mix(hair.deep, skin.base, 0.2)
+        : hair.deep;
   const arch = face.brows === "arched" ? 1 : 0;
   const nearBrow: Pt[] = [
     [nx - 1, browY + 1.5],
@@ -782,7 +791,7 @@ function drawFeatures(r: Raster, m: Model) {
   ];
   r.stroke(nearBrow, browColor);
   r.stroke(farBrow, browColor);
-  if (face.brows === "heavy" && age < 60) {
+  if (face.brows === "heavy" && age < 60 && !female) {
     r.stroke(
       nearBrow.map(([x, y]) => [x, y + 1] as Pt),
       hair.base,

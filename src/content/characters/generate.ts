@@ -12,6 +12,8 @@ import {
   type CharacterContext,
 } from "./resolve";
 import { asOfficiant } from "./officiant";
+import { sexFromName } from "./name-sex";
+import { wornFromWearing } from "../../core/wearing";
 import type { CharacterPhysique } from "../../core/character";
 
 export type Sex = CharacterPhysique["sex"];
@@ -79,8 +81,7 @@ export function characterNameParts(
         id,
         "parent-name",
       );
-      const suffix =
-        tradition.patronymic[sex === "female" ? "female" : "male"];
+      const suffix = tradition.patronymic[sex === "female" ? "female" : "male"];
       return {
         display: `${personal} ${parent}${suffix}`,
         personal,
@@ -202,10 +203,12 @@ export function characterLivelihood(
       : context.livelihoods.filter((l) => !l.sex || l.sex === sex);
   // A society whose record does not name an officiant offers no religious
   // office at all, rather than a generic priest.
-  const withBeliefs = (open.length ? open : context.livelihoods).flatMap((l) => {
-    const resolved = asOfficiant(l, s, seed, id);
-    return resolved ? [resolved] : [];
-  });
+  const withBeliefs = (open.length ? open : context.livelihoods).flatMap(
+    (l) => {
+      const resolved = asOfficiant(l, s, seed, id);
+      return resolved ? [resolved] : [];
+    },
+  );
   const pool = withBeliefs.length ? withBeliefs : context.livelihoods;
   // Drawn by share, not evenly. Uniformly, twelve adults held ten different
   // trades: one of everything and two of nothing, and nobody growing food.
@@ -307,11 +310,19 @@ export function generateCharacter(
       "household member",
     ].includes(requestedRole.toLowerCase());
   const role = recognized ? livelihood.label : requestedRole!;
+  // The body follows the name where the kit could not be told a sex, so a
+  // woman named Anna is never drawn with a beard.
+  const bodySex: Sex =
+    drawn === "unspecified"
+      ? (sexFromName(explicitName || naming.display) ?? sex)
+      : drawn;
+  const appearance = characterAppearance(s, seed, id, age, context, bodySex);
   return {
     name: explicitName || naming.display,
     role,
     inventory: eligibleInventory(livelihood.inventory, context),
-    appearance: characterAppearance(s, seed, id, age, context, drawn),
+    appearance,
+    worn: wornFromWearing(appearance.wearing),
     origin: {
       revision: 1 as const,
       profile: context.profile.id,

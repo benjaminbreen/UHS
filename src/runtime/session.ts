@@ -4,6 +4,7 @@ import { generateCharacter } from "../content/characters/generate";
 import { releaseTerrainWorker } from "./terrain-worker-owner";
 import type { PreparedSettlement } from "../world/v3/prepared";
 import { wardrobeFor } from "../content/characters/wardrobes";
+import { composeWearing, wornFromWearing } from "../core/wearing";
 import { actorAppearance, generateAppearance } from "../core/character";
 import type { Actor, Intent, ItemId } from "../core/types";
 import type { CharacterPose } from "../render/characters/poses";
@@ -102,6 +103,7 @@ export function createSession(
           appearance.wearing,
         );
         engine.state.player.appearance = appearance;
+        engine.state.player.worn = wornFromWearing(appearance.wearing);
       }
     }
     engine.state.player.stats = rollStats(seed, engine.state.player);
@@ -183,9 +185,22 @@ export class Runtime {
     { signature: string; value: CharacterAppearance }
   >();
   appearanceFor(
+    actor: Pick<Actor, "id" | "sprite" | "appearance" | "age" | "worn">,
+  ): CharacterAppearance {
+    const base = actor.appearance
+      ? actorAppearance(actor)
+      : this.defaultAppearance(actor);
+    if (!actor.worn) return base;
+    return {
+      ...base,
+      wearing: composeWearing(base.wearing, actor.worn, (id) =>
+        this.engine.item(id),
+      ),
+    };
+  }
+  private defaultAppearance(
     actor: Pick<Actor, "id" | "sprite" | "appearance" | "age">,
   ): CharacterAppearance {
-    if (actor.appearance) return actorAppearance(actor);
     const pack = this.engine.world.pack;
     const signature = `${actor.sprite}:${actor.age}:${pack.id}:${pack.year}`;
     const cached = this.appearanceDefaults.get(actor.id);
@@ -217,6 +232,7 @@ export class Runtime {
     if (!allowedHeights(actor.age).includes(parsed.height))
       throw Error("That height is not available for this character’s age.");
     actor.appearance = parsed;
+    actor.worn = wornFromWearing(parsed.wearing);
     this.onChange?.();
     this.emit();
   }
@@ -387,7 +403,8 @@ export class Runtime {
     this.stop();
     this.engine = engine;
     const map = engine.state.manifest.setting?.playableMap;
-    if (!preserveJourney && map) new MapTravel(this, map.id, engine.state.manifest.setting!.year);
+    if (!preserveJourney && map)
+      new MapTravel(this, map.id, engine.state.manifest.setting!.year);
     this.selected = undefined;
     this.syncAmbient();
     this.notice = "A new day, a different world.";
@@ -468,8 +485,14 @@ export class Runtime {
   private dispatch(command: PlayerCommand) {
     if (this.journey?.intercept(command)) {
       this.emit(false);
-      return { actionId: "travel-" + ++this.serial, revision: this.engine.state.revision,
-        status: "interrupted" as const, elapsedSeconds: 0, events: [], reason: this.notice };
+      return {
+        actionId: "travel-" + ++this.serial,
+        revision: this.engine.state.revision,
+        status: "interrupted" as const,
+        elapsedSeconds: 0,
+        events: [],
+        reason: this.notice,
+      };
     }
     const previousProp = heldObject(this.engine.state)?.sprite;
     const result = this.engine.act({
@@ -487,11 +510,20 @@ export class Runtime {
     if (this.replay)
       throw Error("Continue from this replay point before acting.");
     const command = commandSchema.parse(request.command);
-    if (request.expectedRevision === this.engine.state.revision && this.journey?.intercept(command)) {
+    if (
+      request.expectedRevision === this.engine.state.revision &&
+      this.journey?.intercept(command)
+    ) {
       this.emit(false);
-      return { actionId: request.actionId, revision: this.engine.state.revision,
-        status: "interrupted" as const, elapsedSeconds: 0, events: [], reason: this.notice,
-        observation: structuredClone(this.observation!) };
+      return {
+        actionId: request.actionId,
+        revision: this.engine.state.revision,
+        status: "interrupted" as const,
+        elapsedSeconds: 0,
+        events: [],
+        reason: this.notice,
+        observation: structuredClone(this.observation!),
+      };
     }
     const previousProp = heldObject(this.engine.state)?.sprite;
     const result = this.engine.act({ ...request, command });

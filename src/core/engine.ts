@@ -1,3 +1,4 @@
+import { wornFromWearing } from "./wearing";
 import { waterDepthAt, wadingCost, MAX_WADING_DEPTH } from "./water-field";
 import { trimCache } from "./cache";
 import {
@@ -43,6 +44,14 @@ import type { Point } from "./types";
 const copy = <T>(x: T): T => structuredClone(x);
 /** Routines built in one call to `advance`. */
 const ROUTINE_BUILDS_PER_ADVANCE = 32;
+/** Saves from before wearables carry an authored look; give them the matching worn slots. */
+function migrateWorn(snapshot: Snapshot): Snapshot {
+  for (const actor of [snapshot.player, ...snapshot.actors])
+    if (actor.kind === "human" && actor.appearance && !actor.worn)
+      actor.worn = wornFromWearing(actor.appearance.wearing);
+  return snapshot;
+}
+
 export class Engine {
   state: Snapshot;
   constructor(
@@ -51,7 +60,7 @@ export class Engine {
     snapshot?: Snapshot,
   ) {
     this.state = snapshot
-      ? copy(snapshot)
+      ? migrateWorn(copy(snapshot))
       : {
           manifest: {
             seed: "",
@@ -908,8 +917,15 @@ export class Engine {
         );
         return there ? `${there.name} is standing there.` : undefined;
       }
-      if (p.pos.space === "outside" && this.world.topography &&
-        waterDepthAt(this.world.topography, p.pos.x + c.dx + 0.5, p.pos.y + c.dy + 0.5) > MAX_WADING_DEPTH)
+      if (
+        p.pos.space === "outside" &&
+        this.world.topography &&
+        waterDepthAt(
+          this.world.topography,
+          p.pos.x + c.dx + 0.5,
+          p.pos.y + c.dy + 0.5,
+        ) > MAX_WADING_DEPTH
+      )
         return "Too deep to wade — find a shallower crossing or a bridge.";
       if (
         (p.pos.space === "outside" &&

@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { composeWearing, wornFromWearing } from "../src/core/wearing";
+import { wearableItems } from "../src/content/characters/wearables";
 import {
   actorAppearance,
   faceFromTraits,
@@ -144,4 +146,58 @@ it("defaults to narrower builds while preserving all previous widths", () => {
       characterAppearanceSchema.safeParse({ ...originalAppearance, build })
         .success,
     ).toBe(true);
+});
+it("draws a sex for every body and keeps beards off women", () => {
+  for (let i = 0; i < 200; i++) {
+    const drawn = generateAppearance("sexes", i, 30);
+    expect(["male", "female"]).toContain(drawn.physique?.sex);
+    const woman = generateAppearance("sexes", i, 30, { sex: "female" });
+    expect(woman.physique?.sex).toBe("female");
+    expect(woman.beard).toBe("none");
+    const man = generateAppearance("sexes", i, 30, { sex: "male" });
+    expect(man.physique?.sex).toBe("male");
+  }
+  expect(
+    Array.from(
+      { length: 200 },
+      (_, i) => generateAppearance("sexes", i, 30, { sex: "male" }).beard,
+    ).some((beard) => beard !== "none"),
+  ).toBe(true);
+});
+it("derives the worn look from items and back", () => {
+  const base = {
+    ...originalAppearance.wearing,
+    headwear: "cap" as const,
+    necklace: true,
+    cloak: true,
+    belt: "sash" as const,
+    garment: "robe" as const,
+  };
+  const worn = wornFromWearing(base);
+  expect(worn).toEqual({
+    body: "garment-robe",
+    head: "headwear-cap",
+    over: "cloak",
+    belt: "belt-sash",
+    neck: "necklace",
+  });
+  const composed = composeWearing(base, worn, (id) => wearableItems[id]);
+  expect(composed).toMatchObject({
+    garment: "robe",
+    sleeves: "loose",
+    headwear: "cap",
+    necklace: true,
+    cloak: true,
+    belt: "sash",
+    earrings: false,
+    color: base.color,
+  });
+  const undressed = composeWearing(
+    base,
+    { body: worn.body },
+    (id) => wearableItems[id],
+  );
+  expect(undressed.headwear).toBe("none");
+  expect(undressed.necklace).toBe(false);
+  expect(undressed.cloak).toBe(false);
 });

@@ -1,4 +1,4 @@
-import type { CharacterAppearance } from "./character";
+import type { CharacterAppearance, WearSlot } from "./character";
 import type { LandscapeStyle } from "../content/graphics/landscapes";
 import type { WorldSetting } from "../content/geography/types";
 export type PackId = string;
@@ -21,6 +21,8 @@ export type ItemDef = {
   name: string;
   sprite: string;
   value: number;
+  /** A wearable: the slot it occupies and the look it adds when worn. */
+  wear?: { slot: WearSlot; look: Partial<CharacterAppearance["wearing"]> };
   /** Hunger relieved when eaten. */
   edible?: number;
   /** Health change when eaten. */
@@ -77,6 +79,8 @@ export type Actor = {
   health?: number;
   origin?: CharacterOrigin;
   appearance?: CharacterAppearance;
+  /** Items on the body, by slot. Not counted in `inventory`; `wearing` derives from these. */
+  worn?: Partial<Record<WearSlot, ItemId>>;
   age?: number;
   householdId?: string;
   relations?: SocialRelation[];

@@ -19,6 +19,7 @@ import {
   postures,
   sleeveStyles,
   hemStyles,
+  wearSlots,
 } from "../core/character";
 import { z } from "zod";
 import { settingSchema } from "../content/geography/types";
@@ -206,6 +207,7 @@ const actor = z.object({
     })
     .optional(),
   appearance: characterAppearanceSchema.optional(),
+  worn: z.record(z.enum(wearSlots), z.string().max(60)).optional(),
   age: z.number().int().min(0).max(120).optional(),
   householdId: z.string().optional(),
   relations: z
