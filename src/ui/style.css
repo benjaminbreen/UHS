@@ -3003,6 +3003,26 @@ button:disabled {
 .belongings button[aria-pressed="true"] {
   border-color: var(--gold);
 }
+.belongings.worn {
+  margin-bottom: 10px;
+}
+.belongings.worn button:disabled {
+  cursor: default;
+}
+.belongings.worn button:not(:disabled):hover {
+  border-color: var(--line);
+}
+.wear-action {
+  margin-left: 8px;
+  padding: 2px 9px;
+  border: 1px solid var(--gold);
+  border-radius: 3px;
+  background: none;
+  color: var(--gold);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
 .belonging-note {
   color: var(--muted);
   font-size: 13px;

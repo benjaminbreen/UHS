@@ -1,3 +1,4 @@
+import { wearSlots } from "../core/character";
 import { useState } from "react";
 import {
   Amphora,
@@ -299,6 +300,11 @@ export function CharacterPanel({
   const goods = Object.entries(actor.inventory)
     .map(([id, n]) => [id, n ?? 0] as [string, number])
     .filter(([, n]) => n > 0);
+  const worn = wearSlots.flatMap((slot) =>
+    actor.worn?.[slot] ? [[slot, actor.worn[slot]!] as const] : [],
+  );
+  const shownId = shown ?? goods[0]?.[0];
+  const wearable = shownId && runtime.item(shownId)?.wear ? shownId : undefined;
   const condition = [
     (actor.health ?? 100) < 40
       ? "Unwell"
@@ -498,6 +504,30 @@ export function CharacterPanel({
             ) : (
               <p>No household recorded here.</p>
             )}
+            <h3>Worn</h3>
+            <ul className="belongings worn">
+              {worn.map(([slot, id]) => (
+                <li key={slot}>
+                  <button
+                    aria-label={
+                      isPlayer
+                        ? `Take off ${runtime.item(id)?.name ?? id}`
+                        : (runtime.item(id)?.name ?? id)
+                    }
+                    title={runtime.item(id)?.name ?? id}
+                    disabled={!isPlayer || slot === "body"}
+                    onClick={() => runtime.command({ type: "remove", slot })}
+                  >
+                    <Sprite name={runtime.item(id)?.sprite ?? ""} scale={1} />
+                  </button>
+                </li>
+              ))}
+              {!worn.length && (
+                <li className="empty" aria-hidden="true">
+                  ·
+                </li>
+              )}
+            </ul>
             <h3>Belongings</h3>
             <ul className="belongings">
               {goods.map(([id, n]) => (
@@ -526,6 +556,16 @@ export function CharacterPanel({
                     .filter(Boolean)
                     .join(" · ")
                 : "Carries nothing."}
+              {isPlayer && goods.length > 0 && wearable && (
+                <button
+                  className="wear-action"
+                  onClick={() =>
+                    runtime.command({ type: "wear", item: wearable })
+                  }
+                >
+                  Wear
+                </button>
+              )}
             </p>
             {inspection && (
               <>

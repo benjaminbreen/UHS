@@ -240,6 +240,30 @@ describe("shared deterministic foundation", () => {
       }),
     ).toThrow();
   });
+  it("puts wearables on and takes them off through the inventory", () => {
+    const e = createSession(Object.keys(packs)[0], "wear");
+    const p = e.state.player;
+    p.inventory["headwear-cap"] = 1;
+    expect(act(e, { type: "wear", item: "headwear-cap" }).status).toBe(
+      "completed",
+    );
+    expect(p.worn?.head).toBe("headwear-cap");
+    expect(p.inventory["headwear-cap"] ?? 0).toBe(0);
+    p.inventory["headwear-hood"] = 1;
+    act(e, { type: "wear", item: "headwear-hood" });
+    expect(p.worn?.head).toBe("headwear-hood");
+    expect(p.inventory["headwear-cap"]).toBe(1);
+    expect(act(e, { type: "remove", slot: "head" }).status).toBe("completed");
+    expect(p.worn?.head).toBeUndefined();
+    expect(p.inventory["headwear-hood"]).toBe(1);
+    expect(act(e, { type: "remove", slot: "head" }).status).toBe("rejected");
+    expect(act(e, { type: "wear", item: "grain" }).status).toBe("rejected");
+    p.inventory["garment-robe"] = 1;
+    act(e, { type: "wear", item: "garment-robe" });
+    expect(p.worn?.body).toBe("garment-robe");
+    expect(act(e, { type: "remove", slot: "body" }).status).toBe("rejected");
+    expect(restoreSession(e.snapshot()).hash()).toBe(e.hash());
+  });
   it("supports a full procedural day in each pack, with persistent activity and no API", () => {
     for (const pack of Object.values(packs)) {
       const e = createSession(pack.id, "full-day");

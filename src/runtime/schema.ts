@@ -207,7 +207,7 @@ const actor = z.object({
     })
     .optional(),
   appearance: characterAppearanceSchema.optional(),
-  worn: z.record(z.enum(wearSlots), z.string().max(60)).optional(),
+  worn: z.partialRecord(z.enum(wearSlots), z.string().max(60)).optional(),
   age: z.number().int().min(0).max(120).optional(),
   householdId: z.string().optional(),
   relations: z
@@ -351,6 +351,8 @@ export const commandSchema = z.discriminatedUnion("type", [
     })
     .strict(),
   z.object({ type: z.literal("use"), item }).strict(),
+  z.object({ type: z.literal("wear"), item }).strict(),
+  z.object({ type: z.literal("remove"), slot: z.enum(wearSlots) }).strict(),
   z
     .object({ type: z.literal("narrate"), intents: z.array(intent).max(6) })
     .strict(),

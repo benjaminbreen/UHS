@@ -38,6 +38,31 @@ test("the character panel opens from the sidebar portrait and reads a person", a
   await expect(panel.locator("header h2")).not.toBeEmpty();
   await expect(panel.locator(".ability-list li").first()).toBeVisible();
   await expect(panel.locator("footer span")).not.toBeEmpty();
+  // The player can put a wearable on and take it off again. The dev build
+  // exposes the runtime, so the test hands the player a cap first.
+  await page.evaluate(() => {
+    const runtime = (
+      window as unknown as {
+        __uhs: {
+          engine: { state: { player: { inventory: Record<string, number> } } };
+          emit: () => void;
+        };
+      }
+    ).__uhs;
+    runtime.engine.state.player.inventory["headwear-cap"] = 1;
+    runtime.emit();
+  });
+  const removable = panel.locator(".belongings.worn button:not(:disabled)");
+  const wornBefore = await removable.count();
+  const goods = panel.locator(".belongings:not(.worn) button");
+  for (let i = 0; i < (await goods.count()); i++) {
+    await goods.nth(i).click();
+    if (await panel.getByRole("button", { name: "Wear" }).isVisible()) break;
+  }
+  await panel.getByRole("button", { name: "Wear" }).click();
+  await expect(removable).toHaveCount(wornBefore + 1);
+  await panel.getByRole("button", { name: "Take off Cap" }).click();
+  await expect(removable).toHaveCount(wornBefore);
   await page.screenshot({ path: "artifacts/character-panel-player.png" });
 
   await panel.getByRole("tab", { name: "Abilities" }).click();

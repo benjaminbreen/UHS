@@ -273,6 +273,10 @@ export type PlayerCommand =
       takeQuantity: number;
     }
   | { type: "use"; item: ItemId }
+  /** Put a wearable from the inventory on; whatever held the slot comes off. */
+  | { type: "wear"; item: ItemId }
+  /** Take the item in a slot off, into the inventory. */
+  | { type: "remove"; slot: WearSlot }
   | { type: "narrate"; intents: Intent[] };
 export type CommandRequest = {
   actionId: string;

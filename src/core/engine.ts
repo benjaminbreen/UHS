@@ -958,6 +958,16 @@ export class Engine {
       return this.item(c.item)?.edible && (p.inventory[c.item] ?? 0) > 0
         ? undefined
         : "You cannot eat that item.";
+    if (c.type === "wear")
+      return this.item(c.item)?.wear && (p.inventory[c.item] ?? 0) > 0
+        ? undefined
+        : "You cannot wear that item.";
+    if (c.type === "remove")
+      return c.slot === "body"
+        ? "You keep your garment on."
+        : p.worn?.[c.slot]
+          ? undefined
+          : "There is nothing there to take off.";
     if (c.type === "narrate") return validateIntents(this, c.intents);
     if (c.type === "interact" && c.action === "drop" && !this.dropSpot())
       return "There is no clear adjacent place to put it down.";
@@ -1158,6 +1168,28 @@ export class Engine {
       this.advance(60);
       this.event(
         `You eat some ${def.name.toLowerCase()}.${def.health && def.health < 0 ? " It does not sit well." : ""}`,
+      );
+      return;
+    }
+    if (c.type === "wear") {
+      const def = this.item(c.item)!;
+      const slot = def.wear!.slot;
+      p.worn ??= {};
+      const previous = p.worn[slot];
+      p.inventory[c.item] = (p.inventory[c.item] ?? 0) - 1;
+      if (previous) p.inventory[previous] = (p.inventory[previous] ?? 0) + 1;
+      p.worn[slot] = c.item;
+      this.advance(20);
+      this.event(`You put on the ${def.name.toLowerCase()}.`);
+      return;
+    }
+    if (c.type === "remove") {
+      const id = p.worn![c.slot]!;
+      delete p.worn![c.slot];
+      p.inventory[id] = (p.inventory[id] ?? 0) + 1;
+      this.advance(20);
+      this.event(
+        `You take off the ${(this.item(id)?.name ?? id).toLowerCase()}.`,
       );
       return;
     }
