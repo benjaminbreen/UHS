@@ -1,6 +1,11 @@
 import { useEffect, useRef } from "react";
 import type { CharacterAppearance } from "../core/character";
 import { drawCharacter } from "../render/characters/draw";
+import {
+  drawConstructedPortrait,
+  PORTRAIT_HEIGHT,
+  PORTRAIT_WIDTH,
+} from "../render/portraits/constructed";
 
 type PortraitSource = {
   source: HTMLCanvasElement;
@@ -43,14 +48,40 @@ function portraitSource(appearance: CharacterAppearance, key: string) {
   return result;
 }
 
+const portraits = new Map<string, HTMLCanvasElement>();
+/** Three-quarter bust from the same recipe, cached per appearance and age. */
+function portraitCanvas(
+  appearance: CharacterAppearance,
+  age: number,
+  key: string,
+) {
+  const cached = portraits.get(key);
+  if (cached) {
+    portraits.delete(key);
+    portraits.set(key, cached);
+    return cached;
+  }
+  const source = document.createElement("canvas");
+  source.width = PORTRAIT_WIDTH;
+  source.height = PORTRAIT_HEIGHT;
+  drawConstructedPortrait(source.getContext("2d")!, appearance, age);
+  portraits.set(key, source);
+  if (portraits.size > SOURCE_LIMIT)
+    portraits.delete(portraits.keys().next().value!);
+  return source;
+}
+
 /** UI and world read the identical appearance recipe; no legacy portrait lookup. */
 export function CharacterSprite({
   appearance,
   portrait = false,
+  age = 30,
   scale = 1,
 }: {
   appearance: CharacterAppearance;
   portrait?: boolean;
+  /** Ages the portrait: children and elders draw differently. */
+  age?: number;
   /** Multiplies the drawn size only; the raster stays at native pixels. */
   scale?: number;
 }) {
@@ -61,29 +92,18 @@ export function CharacterSprite({
   useEffect(() => {
     const canvas = ref.current;
     if (!canvas) return;
-    const key = JSON.stringify(appearance);
+    const key = portrait
+      ? `${age}:${JSON.stringify(appearance)}`
+      : JSON.stringify(appearance);
     if (rendered.current?.key === key && rendered.current.portrait === portrait)
       return;
-    const { source, x0, y0, width, height } = portraitSource(appearance, key);
     const out = canvas.getContext("2d")!;
     out.clearRect(0, 0, canvas.width, canvas.height);
     out.imageSmoothingEnabled = false;
     if (portrait) {
-      // Head and shoulders, enlarged by whole pixels so it stays a raster.
-      const bust = Math.max(1, Math.round(height * 0.5));
-      const zoom = Math.max(1, Math.floor(Math.min(32 / width, 32 / bust)));
-      out.drawImage(
-        source,
-        x0,
-        y0,
-        width,
-        bust,
-        Math.floor((32 - width * zoom) / 2),
-        Math.max(0, Math.floor((32 - bust * zoom) / 2)),
-        width * zoom,
-        bust * zoom,
-      );
-    } else
+      out.drawImage(portraitCanvas(appearance, age, key), 0, 0);
+    } else {
+      const { source, x0, y0, width, height } = portraitSource(appearance, key);
       out.drawImage(
         source,
         x0,
@@ -95,13 +115,14 @@ export function CharacterSprite({
         width,
         height,
       );
+    }
     rendered.current = { key, portrait };
-  }, [appearance, portrait]);
+  }, [appearance, portrait, age]);
   return (
     <canvas
       ref={ref}
-      width={32}
-      height={portrait ? 32 : 40}
+      width={portrait ? PORTRAIT_WIDTH : 32}
+      height={portrait ? PORTRAIT_HEIGHT : 40}
       aria-label={portrait ? "Character appearance" : "Person appearance"}
       data-skin={appearance.skin}
       style={{

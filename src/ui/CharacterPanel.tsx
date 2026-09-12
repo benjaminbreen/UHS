@@ -347,6 +347,7 @@ export function CharacterPanel({
             <div className="character-portrait">
               <CharacterSprite
                 appearance={runtime.appearanceFor(actor)}
+                age={actor.age}
                 portrait
               />
             </div>
@@ -633,6 +634,7 @@ export function CharacterPanel({
             <div className="belief-portrait">
               <CharacterSprite
                 appearance={runtime.appearanceFor(actor)}
+                age={actor.age}
                 portrait
               />
             </div>

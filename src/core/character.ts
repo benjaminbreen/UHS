@@ -47,6 +47,16 @@ export const jawShapes = [
   "pointed",
   "small",
 ] as const;
+export const eyeSizes = ["small", "medium", "large"] as const;
+export const eyeShapes = ["round", "almond", "narrow"] as const;
+export const eyeSpacings = ["close", "average", "wide"] as const;
+export const browShapes = ["straight", "arched", "heavy"] as const;
+export const noseShapes = ["short", "straight", "broad", "aquiline"] as const;
+export const mouthShapes = ["narrow", "soft", "full", "wide"] as const;
+export const chinShapes = ["short", "average", "long"] as const;
+export const hairTextures = ["straight", "wavy", "curly", "coiled"] as const;
+export const hairlines = ["low", "average", "high", "widows-peak"] as const;
+export const faceDetails = ["clear", "freckles", "lines", "weathered"] as const;
 export const bodyShapes = ["straight", "tapered", "rounded"] as const;
 export const postures = [
   "upright",
@@ -62,6 +72,41 @@ export type CharacterPhysique = {
   strength: number;
   sex: "unspecified" | "male" | "female";
 };
+export type CharacterFace = {
+  revision: 1;
+  eyeSize: (typeof eyeSizes)[number];
+  eyeShape: (typeof eyeShapes)[number];
+  eyeSpacing: (typeof eyeSpacings)[number];
+  brows: (typeof browShapes)[number];
+  nose: (typeof noseShapes)[number];
+  mouth: (typeof mouthShapes)[number];
+  chin: (typeof chinShapes)[number];
+  hairTexture: (typeof hairTextures)[number];
+  hairline: (typeof hairlines)[number];
+  detail: (typeof faceDetails)[number];
+};
+export function generateFace(seed: string, index = 0, age = 30): CharacterFace {
+  const pick = <T>(key: string, values: readonly T[]) =>
+    values[
+      Math.floor(random(seed, "portrait-face-v1", index, key) * values.length)
+    ];
+  return {
+    revision: 1,
+    eyeSize: pick("eye-size", eyeSizes),
+    eyeShape: pick("eye-shape", eyeShapes),
+    eyeSpacing: pick("eye-spacing", eyeSpacings),
+    brows: pick("brows", browShapes),
+    nose: pick("nose", noseShapes),
+    mouth: pick("mouth", mouthShapes),
+    chin: pick("chin", chinShapes),
+    hairTexture: pick("hair-texture", hairTextures),
+    hairline: pick("hairline", hairlines),
+    detail:
+      age >= 55
+        ? pick("older-detail", ["lines", "weathered"] as const)
+        : pick("detail", ["clear", "clear", "clear", "freckles"] as const),
+  };
+}
 /** Weighted art direction, not a biological rule or an inference of personality. */
 export function faceFromTraits(
   seed: string,
@@ -108,6 +153,7 @@ export function faceFromTraits(
 }
 export type CharacterAppearance = {
   physique?: CharacterPhysique;
+  face?: CharacterFace;
   head?: (typeof headShapes)[number];
   jaw?: (typeof jawShapes)[number];
   bodyShape?: (typeof bodyShapes)[number];
@@ -207,6 +253,7 @@ export function generateAppearance(
   };
   return {
     physique,
+    face: generateFace(seed, index, age),
     ...faceFromTraits(seed, index, age, physique),
     bodyShape:
       physique.strength > 70

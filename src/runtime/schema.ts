@@ -1,5 +1,15 @@
 import {
   hairStyles,
+  eyeSizes,
+  eyeShapes,
+  eyeSpacings,
+  browShapes,
+  noseShapes,
+  mouthShapes,
+  chinShapes,
+  hairTextures,
+  hairlines,
+  faceDetails,
   beardStyles,
   garments,
   headwear,
@@ -129,6 +139,21 @@ export const characterAppearanceSchema = z.object({
     .object({
       strength: z.number().int().min(0).max(100),
       sex: z.enum(["unspecified", "male", "female"]),
+    })
+    .optional(),
+  face: z
+    .object({
+      revision: z.literal(1),
+      eyeSize: z.enum(eyeSizes),
+      eyeShape: z.enum(eyeShapes),
+      eyeSpacing: z.enum(eyeSpacings),
+      brows: z.enum(browShapes),
+      nose: z.enum(noseShapes),
+      mouth: z.enum(mouthShapes),
+      chin: z.enum(chinShapes),
+      hairTexture: z.enum(hairTextures),
+      hairline: z.enum(hairlines),
+      detail: z.enum(faceDetails),
     })
     .optional(),
   head: z.enum(headShapes).optional(),
