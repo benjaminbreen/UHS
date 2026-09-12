@@ -8,7 +8,12 @@ import { rasterHabitatTile, type GroundTileData } from "./habitat-raster";
 import { rasterWaterTile, type WaterTileData } from "./water-raster";
 import type { Pack, WorldModel } from "../core/types";
 import { createSettlementWorld } from "../world/v3/generate";
-import { rasterTerrainContours, type ContourLayer, type TerrainReceivers } from "./terrain-contours";
+import type { PreparedSettlement } from "../world/v3/prepared";
+import {
+  rasterTerrainContours,
+  type ContourLayer,
+  type TerrainReceivers,
+} from "./terrain-contours";
 import { bridgeSpans, type BridgeSpan } from "./bridges";
 import { TERRAIN_RISE } from "./terrain-projection";
 import {
@@ -18,7 +23,7 @@ import {
 } from "./terrain-region";
 import type { TopographyCell } from "../core/topography";
 export type TerrainRequest =
-  | { pack: Pack; seed: string }
+  | { pack: Pack; seed: string; prepared?: PreparedSettlement }
   | { style: GroundStyle | null; living?: boolean; polish?: ShorePolish }
   | { id: string; region: TerrainRegion };
 export type TerrainResponse = {
@@ -48,7 +53,9 @@ export function handleTerrainRequest(data: TerrainRequest) {
       return;
     }
     if ("pack" in data) {
-      world = createSettlementWorld(data.pack, data.seed);
+      // Prepared geometry turns a four-second build into a one-millisecond
+      // one, which is what makes a second rasterising worker affordable.
+      world = createSettlementWorld(data.pack, data.seed, data.prepared);
       return;
     }
     const { id, region } = data;
@@ -140,7 +147,9 @@ export function handleTerrainRequest(data: TerrainRequest) {
       receiverData,
     );
     const rims = Int16Array.from(rimList);
-    const receivers = receiverData.tiers ? receiverData as TerrainReceivers : undefined;
+    const receivers = receiverData.tiers
+      ? (receiverData as TerrainReceivers)
+      : undefined;
     const rockPositions: { x: number; y: number }[] = [];
     if (polish?.enabled)
       for (let y = -3; y < SIZE + 3; y++)
@@ -169,10 +178,18 @@ export function handleTerrainRequest(data: TerrainRequest) {
         if (!layer.flat) continue;
         for (let y = 0; y < layer.height; y++)
           for (let x = 0; x < layer.width; x++) {
-            const sx = layer.x + x, sy = layer.y + y;
-            if (sx < 0 || sx >= living.width || sy + 96 < 0 || sy + 96 >= living.height) continue;
+            const sx = layer.x + x,
+              sy = layer.y + y;
+            if (
+              sx < 0 ||
+              sx >= living.width ||
+              sy + 96 < 0 ||
+              sy + 96 >= living.height
+            )
+              continue;
             const i = (sy - receivers.y) * receivers.width + sx - receivers.x;
-            if (receivers.tiers[i] !== 0 || receivers.rows[i] !== layer.row) continue;
+            if (receivers.tiers[i] !== 0 || receivers.rows[i] !== layer.row)
+              continue;
             if (living.pixels[((sy + 96) * living.width + sx) * 4 + 3])
               layer.pixels[(y * layer.width + x) * 4 + 3] = 0;
           }

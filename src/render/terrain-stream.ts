@@ -14,6 +14,7 @@ import type { TerrainRequest, TerrainResponse } from "./terrain-worker";
 import { groundStyle, setGroundStyle, type GroundStyle } from "./ground-style";
 import { rasterBankShadows } from "./bank-shadows";
 import type { TopographyCell } from "../core/topography";
+import type { PreparedSettlement } from "../world/v3/prepared";
 
 type Chunk = {
   region: TerrainRegion;
@@ -24,20 +25,29 @@ type Chunk = {
   cells: TopographyCell[];
   shade: Phaser.GameObjects.Image[];
 };
+/** One rasterising worker and the chunk it is busy with, if any. */
+type Rasterizer = { worker: Worker; busy?: string };
 export type SunPhase = {
   id: string;
   cast: readonly [number, number];
   opacity: number;
 };
+/** Two extra rasterisers doubles throughput; each one holds its own copy of
+ * the world, and past three they mostly compete for the same cores. */
+const WORKER_LIMIT = Math.min(
+  3,
+  Math.max(1, (navigator.hardwareConcurrency ?? 4) - 1),
+);
 const NO_SUN: SunPhase = { id: "night", cast: [0, 0], opacity: 0 };
 /** Rasterize off-thread, install one small chunk per frame, retain a bounded
  * ring for backtracking. Neither movement nor lighting re-rasterizes terrain. */
 export class TerrainStream {
-  private worker: Worker;
+  private pool: Rasterizer[] = [];
   private chunks = new Map<string, Chunk>();
   private wanted = new Map<string, TerrainRegion>();
-  private pending?: string;
-  private completed?: TerrainResponse;
+  private completed: TerrainResponse[] = [];
+  /** Resent to every worker spawned later, and on restyle. */
+  private styling: Extract<TerrainRequest, { style: GroundStyle | null }>;
   private started = performance.now();
   private loaded = false;
   private dirty = true;
@@ -54,38 +64,94 @@ export class TerrainStream {
   constructor(
     private scene: Phaser.Scene,
     private world: WorldModel,
-    seed: string,
+    private seed: string,
   ) {
     ensureWaterAtlas(scene);
     const retained = takeTerrainWorker(world);
-    this.worker =
-      retained ??
-      new Worker(new URL("../world/worker.ts", import.meta.url), {
-        type: "module",
-      });
+    const first: Rasterizer = {
+      worker:
+        retained ??
+        new Worker(new URL("../world/worker.ts", import.meta.url), {
+          type: "module",
+        }),
+    };
+    this.listen(first);
     if (!retained)
-      this.worker.postMessage({
+      first.worker.postMessage({
         pack: world.pack,
         seed,
       } satisfies TerrainRequest);
-    this.worker.onmessage = ({ data }) => {
-      if (data.error) {
-        scene.game.canvas.dataset.terrainError = data.error;
-        this.pending = undefined;
-        return;
-      }
-      this.completed = data;
-    };
     // A retained worker may still hold the previous scene's style.
-    this.worker.postMessage({
+    this.styling = {
       style: groundStyle() ?? null,
       living: usesLivingWater(scene),
-      polish:(scene as Phaser.Scene & {options:import("./appearance").RenderOptions}).options.shorePolish,
-    } satisfies TerrainRequest);
-    live.add(this);
-    this.worker.onerror = (event) => {
-      scene.game.canvas.dataset.terrainError = event.message;
+      polish: (
+        scene as Phaser.Scene & {
+          options: import("./appearance").RenderOptions;
+        }
+      ).options.shorePolish,
     };
+    first.worker.postMessage(this.styling);
+    this.pool.push(first);
+    live.add(this);
+  }
+  private listen(r: Rasterizer) {
+    const canvas = this.scene.game.canvas;
+    r.worker.onmessage = ({ data }) => {
+      r.busy = undefined;
+      if (data.error) {
+        canvas.dataset.terrainError = data.error;
+        return;
+      }
+      this.completed.push(data);
+    };
+    r.worker.onerror = (event) => {
+      r.busy = undefined;
+      canvas.dataset.terrainError = event.message;
+    };
+  }
+  /** Grow only once there is a backlog worth splitting: a still camera should
+   * not pay for a second world. */
+  private grow() {
+    const prepare = (this.world as { prepare?: () => PreparedSettlement })
+      .prepare;
+    if (this.pool.length >= WORKER_LIMIT || !prepare) return;
+    const r: Rasterizer = {
+      worker: new Worker(new URL("../world/worker.ts", import.meta.url), {
+        type: "module",
+      }),
+    };
+    this.listen(r);
+    r.worker.postMessage({
+      pack: this.world.pack,
+      seed: this.seed,
+      prepared: prepare.call(this.world),
+    } satisfies TerrainRequest);
+    r.worker.postMessage(this.styling);
+    this.pool.push(r);
+  }
+  private inFlight(id: string) {
+    return this.pool.some((r) => r.busy === id);
+  }
+  /** Hand queued chunks to every idle worker. */
+  private dispatch() {
+    if (this.queue.length >= 3) this.grow();
+    for (const r of this.pool) {
+      if (r.busy) continue;
+      while (
+        this.queue.length &&
+        (this.chunks.has(this.queue[0][0]) || this.inFlight(this.queue[0][0]))
+      )
+        this.queue.shift();
+      const next = this.queue.shift();
+      if (!next) return;
+      const [id, region] = next;
+      r.busy = id;
+      r.worker.postMessage({
+        id: `${this.generation}:${id}`,
+        region,
+      } satisfies TerrainRequest);
+    }
   }
   setView(x: number, y: number, halfX: number, halfY: number) {
     this.asked = { x: halfX, y: halfY };
@@ -143,15 +209,18 @@ export class TerrainStream {
       }
     }
     this.queue = [...this.wanted]
-      .filter(([id]) => !this.chunks.has(id))
+      .filter(([id]) => !this.chunks.has(id) && !this.inFlight(id))
       .sort(([, a], [, b]) => this.priority(a) - this.priority(b));
     this.dirty = true;
     this.metrics();
   }
   update() {
-    if (!this.completed && (this.pending || !this.queue.length)) return;
+    if (!this.completed.length && !this.queue.length) return;
     const start = performance.now();
-    if (this.completed) {
+    // One install a frame: the raster is the slow part, but a chunk still
+    // costs ~30ms of main thread to hand to the GPU.
+    const done = this.completed.shift();
+    if (done) {
       const {
         id,
         layers,
@@ -162,9 +231,7 @@ export class TerrainStream {
         rims,
         receivers,
         living,
-      } = this.completed;
-      this.completed = undefined;
-      this.pending = undefined;
+      } = done;
       const [gen, key] = id.split(":");
       const region =
         Number(gen) === this.generation ? this.wanted.get(key) : undefined;
@@ -206,19 +273,7 @@ export class TerrainStream {
         this.dirty = true;
       }
     }
-    if (!this.pending) {
-      while (this.queue.length && this.chunks.has(this.queue[0][0]))
-        this.queue.shift();
-      const next = this.queue.shift();
-      if (next) {
-        const [id, region] = next;
-        this.pending = id;
-        this.worker.postMessage({
-          id: `${this.generation}:${id}`,
-          region,
-        } satisfies TerrainRequest);
-      }
-    }
+    this.dispatch();
     this.maxInstall = Math.max(this.maxInstall, performance.now() - start);
     if (this.dirty) this.metrics();
   }
@@ -246,6 +301,7 @@ export class TerrainStream {
     );
     canvas.dataset.terrainChunkCount = String(this.chunks.size);
     canvas.dataset.terrainChunksBuilt = String(this.count);
+    canvas.dataset.terrainWorkers = String(this.pool.length);
     canvas.dataset.terrainInstallMaxMs = this.maxInstall.toFixed(1);
     if (ready && !this.loaded) {
       this.loaded = true;
@@ -313,11 +369,16 @@ export class TerrainStream {
    * Cheaper and far less disruptive than tearing down the whole scene. */
   restyle(style: GroundStyle | null) {
     this.generation++;
-    this.worker.postMessage({ style } satisfies TerrainRequest);
+    this.styling = { ...this.styling, style };
+    for (const r of this.pool) {
+      r.worker.postMessage(this.styling);
+      // The old-style raster still in flight is dropped on arrival, so the
+      // chunk has to look free again or nothing would re-request it.
+      r.busy = undefined;
+    }
     for (const chunk of this.chunks.values()) this.release(chunk);
     this.chunks.clear();
-    this.pending = undefined;
-    this.completed = undefined;
+    this.completed = [];
     // Keep `wanted`: WorldScene only calls setView when the camera moves, so
     // clearing it would leave a still preview with nothing to re-request.
     this.queue = [...this.wanted].sort(
@@ -332,7 +393,8 @@ export class TerrainStream {
   }
   dispose() {
     live.delete(this);
-    this.worker.terminate();
+    for (const r of this.pool) r.worker.terminate();
+    this.pool = [];
     for (const chunk of this.chunks.values()) this.release(chunk);
     this.chunks.clear();
   }
