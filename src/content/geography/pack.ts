@@ -224,25 +224,22 @@ export function packForSetting(setting: WorldSetting): Pack {
         context.profile,
         context.appearance,
         ...(context.names ? [context.names] : []),
-      ].map((entry) => ({
-        id: `character-${entry.id}`,
-        title: entry.label,
-        statement: entry.evidence.claim,
-        status: entry.evidence.status,
-        url: entry.evidence.sources[0] ?? "",
-        limitation: entry.evidence.limitation,
-      })),
+      ]
+        .filter((entry) => entry.note || entry.sources.length)
+        .map((entry) => ({
+          id: `character-${entry.id}`,
+          title: entry.label,
+          statement: entry.note ?? "",
+          url: entry.sources[0] ?? "",
+        })),
     );
     if (!context.names)
       pack.evidence.push({
         id: "character-names-unresearched",
         title: "Invented personal name",
         statement:
-          "No researched naming tradition is available for this context.",
-        status: "fictional",
+          "No naming tradition covers this place and date yet, so names are drawn from a shared invented syllable set.",
         url: "",
-        limitation:
-          "Personal names use a shared fictional syllable set, not an attested local naming tradition or a recovered historical language.",
       });
   }
   if (

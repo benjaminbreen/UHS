@@ -40,13 +40,21 @@ import { dispositionOf, standingOf } from "../core/persona";
 import { describeStats, statsOf, statKeys } from "../core/stats";
 import { abilitiesOf } from "../content/characters/abilities";
 import { livelihoodById } from "../content/characters/livelihoods";
-import { beliefOf, beliefsFor, unscopedBeliefs } from "../content/beliefs";
+import {
+  beliefOf,
+  beliefsFor,
+  unscopedBeliefs,
+  wikiFor,
+} from "../content/beliefs";
 import { glyphForPower } from "../content/beliefs/icons";
+import { deityIconFor } from "../content/beliefs/deity-icons";
 import { GlyphIcon } from "./GlyphIcon";
 import { sexFromName } from "../content/characters/name-sex";
 import type { Runtime } from "../runtime/session";
 import type { Actor, PlayerCommand } from "../core/types";
 import type { StationActivity } from "../core/itinerary";
+import type { PersonalBelief } from "../content/beliefs";
+import type { Power } from "../content/beliefs/types";
 
 const dayIcons: Record<StationActivity, LucideIcon> = {
   rest: Moon,
@@ -107,6 +115,122 @@ const Pips = ({ rank, tone }: { rank: number; tone: string }) => (
   </span>
 );
 
+function PowerIcon({
+  power,
+  large = false,
+}: {
+  power: Power;
+  large?: boolean;
+}) {
+  const source = deityIconFor(power.name);
+  return source ? (
+    <img
+      className="deity-icon"
+      src={source}
+      alt=""
+      width={large ? 96 : 64}
+      height={large ? 96 : 64}
+    />
+  ) : (
+    <GlyphIcon
+      glyph={glyphForPower(power)}
+      rank={power.rank}
+      scale={large ? 6 : 4}
+    />
+  );
+}
+
+type PowerNode = {
+  power: Power;
+  x: number;
+  y: number;
+  tier: "primary" | "secondary";
+};
+
+export function beliefHierarchy(belief: PersonalBelief) {
+  const featured = [belief.paramount, belief.patron]
+    .filter((power): power is Power => Boolean(power))
+    .filter(
+      (power, index, powers) =>
+        powers.findIndex((candidate) => candidate.name === power.name) ===
+        index,
+    )
+    .slice(0, 2);
+  if (!featured.length && belief.system.powers[0])
+    featured.push(belief.system.powers[0]);
+  // Prefer powers that are tied to something already shown, so the lines are
+  // between things on screen rather than pointing off the edge of it.
+  const shown = new Set(featured.map((power) => power.name));
+  const ties = (power: Power) =>
+    (power.relations ?? []).filter((relation) =>
+      belief.system.powers.some((other) => other.name === relation.of),
+    );
+  const connected = (power: Power) =>
+    ties(power).some((relation) => shown.has(relation.of)) ||
+    belief.system.powers.some(
+      (other) =>
+        shown.has(other.name) &&
+        ties(other).some((relation) => relation.of === power.name),
+    );
+  const rest = belief.system.powers.filter((power) => !shown.has(power.name));
+  const rank = { paramount: 0, major: 1, local: 2 } as const;
+  const secondary: Power[] = [];
+  while (secondary.length < 5) {
+    const next =
+      rest
+        .filter((power) => !shown.has(power.name))
+        .sort(
+          (a, b) =>
+            Number(connected(b)) - Number(connected(a)) ||
+            ties(b).length - ties(a).length ||
+            rank[a.rank] - rank[b.rank],
+        )[0] ?? undefined;
+    if (!next) break;
+    secondary.push(next);
+    shown.add(next.name);
+  }
+  const nodes: PowerNode[] = [
+    ...featured.map((power, index) => ({
+      power,
+      x: featured.length === 1 ? 500 : index === 0 ? 360 : 640,
+      y: 62,
+      tier: "primary" as const,
+    })),
+    ...secondary.map((power, index) => ({
+      power,
+      x: ((index + 1) * 1000) / (secondary.length + 1),
+      y: 232,
+      tier: "secondary" as const,
+    })),
+  ];
+  const positions = new Map(nodes.map((node) => [node.power.name, node]));
+  const edges = nodes.flatMap((node) =>
+    (node.power.relations ?? []).flatMap((relation) => {
+      const target = positions.get(relation.of);
+      if (!target || target.power.name === node.power.name) return [];
+      // Between rows the line leaves from the facing edges. Within a row it
+      // leaves from the far side and loops clear, so it never crosses the
+      // icons sitting between the two ends.
+      const sameRow = node.tier === target.tier;
+      const startY = node.tier === "primary" ? node.y + 42 : node.y - 42;
+      const endY = target.tier === "primary" ? target.y + 42 : target.y - 42;
+      // Within a row the line runs through the gap between the rows, clear of
+      // the icons standing between its two ends.
+      const midY = sameRow
+        ? startY + (node.tier === "primary" ? 20 : -20)
+        : Math.round((startY + endY) / 2);
+      return [
+        {
+          key: `${node.power.name}-${relation.kind}-${target.power.name}`,
+          kind: relation.kind,
+          path: `M ${node.x} ${startY} V ${midY} H ${target.x} V ${endY}`,
+        },
+      ];
+    }),
+  );
+  return { nodes, edges, hidden: belief.system.powers.length - nodes.length };
+}
+
 /** One panel for the player and for anybody else: the same derived facts read
  * the same way whoever is being looked at. */
 export function CharacterPanel({
@@ -126,6 +250,9 @@ export function CharacterPanel({
     "profile" | "household" | "abilities" | "beliefs"
   >("profile");
   const [shown, setShown] = useState<string | undefined>(undefined);
+  const [selectedPowerName, setSelectedPowerName] = useState<
+    string | undefined
+  >(undefined);
   const state = runtime.engine.state,
     seed = state.manifest.seed,
     pack = runtime.engine.world.pack;
@@ -154,6 +281,10 @@ export function CharacterPanel({
     actor,
     pack.setting ? beliefsFor(pack.setting) : unscopedBeliefs,
   );
+  const hierarchy = beliefHierarchy(belief);
+  const selectedPower =
+    belief.system.powers.find((power) => power.name === selectedPowerName) ??
+    belief.patron;
   const routine = runtime.engine.world.itinerary?.(actor.id);
   const plan = routine ? dayPlan(routine, state.clock) : [];
   const inspection = isPlayer ? undefined : runtime.engine.inspect(actor.id);
@@ -180,7 +311,8 @@ export function CharacterPanel({
 
   return (
     <div className="character-panel">
-      <header>
+      <header className="character-header">
+        <i className="character-mark" aria-hidden="true" />
         <h2>{actor.name}</h2>
         <p>
           {actor.role}
@@ -496,57 +628,159 @@ export function CharacterPanel({
         </div>
       )}
       {tab === "beliefs" && (
-        <div className="character-tab">
-          <div className="patron">
-            <GlyphIcon
-              glyph={glyphForPower(belief.patron)}
-              rank={belief.patron.rank}
-              scale={4}
-            />
-            <h1>{belief.patron.name}</h1>
-          </div>
-          <p className="summary">
-            {belief.patron.domain} · {belief.observance} in observance
-            {belief.paramount && belief.paramount !== belief.patron
-              ? ` · under ${belief.paramount.name}`
-              : ""}
-          </p>
-          {belief.keeps && <p className="keeps">{belief.keeps}</p>}
-          <h3>{belief.system.label}</h3>
-          <ul className="powers">
-            {belief.system.powers.map((power) => (
-              <li key={power.name} data-rank={power.rank}>
-                <GlyphIcon glyph={glyphForPower(power)} rank={power.rank} />
+        <div className="belief-layout">
+          <aside className="belief-aside">
+            <div className="belief-portrait">
+              <CharacterSprite
+                appearance={runtime.appearanceFor(actor)}
+                portrait
+              />
+            </div>
+            <h1>Spiritual life</h1>
+            <p>
+              {belief.system.label}. {belief.keeps ?? belief.system.practice[0]}
+            </p>
+            <dl className="belief-measures">
+              <div>
+                <dt>Observance</dt>
+                <dd>{belief.observance}</dd>
+              </div>
+              <div>
+                <dt>Patron</dt>
+                <dd>{belief.patron.name}</dd>
+              </div>
+              <div>
+                <dt>Evidence</dt>
+                <dd>{belief.system.evidence.status}</dd>
+              </div>
+            </dl>
+            {belief.system.specialist && (
+              <div className="belief-tradition">
+                <h3>Officiated by</h3>
+                <p>{belief.system.specialist}</p>
+              </div>
+            )}
+          </aside>
+          <div className="belief-main">
+            <div className="belief-intro">
+              <div>
+                <h3>Known powers · personal and cultic order</h3>
+                <h1>{belief.system.label}</h1>
+                <p>
+                  Prominence reflects {actor.name.split(" ")[0]}'s world and
+                  practice—not a universal family tree.
+                </p>
+              </div>
+              <div className="belief-legend" aria-label="Relationship legend">
                 <span>
-                  {power.name}
-                  <small>
-                    {power.gloss ? `${power.gloss} · ` : ""}
-                    {power.domain}
-                    {power.relation
-                      ? ` · ${power.relation.kind.replace("-", " ")} ${power.relation.of}`
-                      : ""}
-                  </small>
+                  <i /> named relation
                 </span>
-                <em>{power.rank}</em>
-              </li>
-            ))}
-          </ul>
-          {belief.system.specialist && (
-            <>
-              <h3>Officiated by</h3>
-              <p>{belief.system.specialist}</p>
-            </>
-          )}
-          {belief.system.afterlife && (
-            <>
-              <h3>After death</h3>
-              <p>{belief.system.afterlife}</p>
-            </>
-          )}
+                <span>
+                  <i className="personal" /> personal prominence
+                </span>
+              </div>
+            </div>
+            <div className="power-map">
+              <svg
+                viewBox="0 0 1000 300"
+                preserveAspectRatio="none"
+                aria-hidden="true"
+              >
+                {hierarchy.edges.map((edge) => (
+                  <path
+                    key={edge.key}
+                    d={edge.path}
+                    data-relation={edge.kind}
+                  />
+                ))}
+              </svg>
+              {hierarchy.nodes.map((node) => (
+                <button
+                  key={node.power.name}
+                  className="power-node"
+                  data-tier={node.tier}
+                  data-selected={selectedPower.name === node.power.name}
+                  style={{ left: `${node.x / 10}%`, top: `${node.y / 3}%` }}
+                  onClick={() => setSelectedPowerName(node.power.name)}
+                  aria-pressed={selectedPower.name === node.power.name}
+                >
+                  <PowerIcon power={node.power} />
+                  <strong>{node.power.name}</strong>
+                  <small>{node.power.rank}</small>
+                </button>
+              ))}
+              {hierarchy.hidden > 0 && (
+                <span className="more-powers">+{hierarchy.hidden} known</span>
+              )}
+            </div>
+            <div className="power-detail">
+              <div className="power-identity">
+                <h1>{selectedPower.name}</h1>
+                <div className="power-portrait">
+                  <PowerIcon power={selectedPower} large />
+                </div>
+                <p>{selectedPower.domain}</p>
+              </div>
+              <div className="power-copy">
+                <h2>{selectedPower.domain}.</h2>
+                {selectedPower.gloss && <p>{selectedPower.gloss}</p>}
+                <p>{belief.system.evidence.claim}</p>
+                <dl>
+                  <div>
+                    <dt>Personal stance</dt>
+                    <dd>
+                      {selectedPower.name === belief.patron.name
+                        ? "Patron power"
+                        : "Known and observed"}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Relation</dt>
+                    <dd>
+                      {selectedPower.relations?.length
+                        ? selectedPower.relations
+                            .map(
+                              (relation) =>
+                                `${relation.kind.replaceAll("-", " ")} ${relation.of}`,
+                            )
+                            .join(" · ")
+                        : selectedPower.rank}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Confidence</dt>
+                    <dd>{belief.system.evidence.status}</dd>
+                  </div>
+                </dl>
+              </div>
+              <div className="belief-practices">
+                <h3>Practices</h3>
+                <ul>
+                  {belief.system.practice.slice(0, 3).map((practice) => (
+                    <li key={practice}>{practice}</li>
+                  ))}
+                </ul>
+                {wikiFor(belief.system, selectedPower) && (
+                  <a
+                    href={wikiFor(belief.system, selectedPower)}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    View source ↗
+                  </a>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       )}
       <footer>
-        <span>{describeStats(stats).join(", ") || "unremarkable"}</span>
+        <span>
+          <i aria-hidden="true" />
+          Some personal details are reconstructed
+          {describeStats(stats).length > 0 &&
+            ` · ${describeStats(stats).join(", ")}`}
+        </span>
         <button onClick={onClose}>Close</button>
       </footer>
     </div>

@@ -39,16 +39,19 @@ export const andes: readonly BeliefSystem[] = [
         name: "The spring",
         domain: "fresh water, the drinking place",
         rank: "local",
+        relations: [{ kind: "serves", of: "The water" }],
       },
       {
         name: "The field boundary",
         domain: "the stone marker, the plot",
         rank: "local",
+        relations: [{ kind: "serves", of: "*Qullu" }],
       },
       {
         name: "The cave sanctuary",
         domain: "the rock shelter, the place of the dead",
         rank: "local",
+        relations: [{ kind: "serves", of: "*Wak'a" }],
       },
     ],
     practice: [
@@ -103,21 +106,25 @@ export const andes: readonly BeliefSystem[] = [
         name: "The herds",
         domain: "the llama and alpaca, the wealth",
         rank: "local",
+        relations: [{ kind: "serves", of: "Pachamama" }],
       },
       {
         name: "The temple",
         domain: "the sacred place, the gathering site",
         rank: "local",
+        relations: [{ kind: "serves", of: "The ancestors" }],
       },
       {
         name: "The spring shrine",
         domain: "water for irrigation and offering",
         rank: "local",
+        relations: [{ kind: "serves", of: "Illapa" }],
       },
       {
         name: "The boundary stone",
         domain: "the field edge, the marker, ownership",
         rank: "local",
+        relations: [{ kind: "serves", of: "The ancestors" }],
       },
       {
         name: "The household hearth",
@@ -168,16 +175,23 @@ export const andes: readonly BeliefSystem[] = [
         domain: "the far coast, abundance, exchange",
         rank: "major",
       },
-      { name: "The jaguar", domain: "the forest, power, fangs", rank: "major" },
+      {
+        name: "The jaguar",
+        domain: "the forest, power, fangs",
+        rank: "major",
+        relations: [{ kind: "serves", of: "*Pacha" }],
+      },
       {
         name: "The spring",
         domain: "water, the source of life",
         rank: "local",
+        relations: [{ kind: "serves", of: "*Pacha" }],
       },
       {
         name: "The field stone",
         domain: "the boundary, the marking",
         rank: "local",
+        relations: [{ kind: "serves", of: "The ancestors" }],
       },
       {
         name: "*Wak'a",
@@ -185,6 +199,7 @@ export const andes: readonly BeliefSystem[] = [
           "Proto-Quechuan *wak'a, 'a sacred place, object, or ancestor requiring reverence'",
         domain: "the wrapped dead of the ayllu",
         rank: "local",
+        relations: [{ kind: "serves", of: "The ancestors" }],
       },
     ],
     practice: [
@@ -237,21 +252,25 @@ export const andes: readonly BeliefSystem[] = [
         name: "The warrior",
         domain: "the noble dead, weapons and captives",
         rank: "major",
+        relations: [{ kind: "serves", of: "Ai Apaec" }],
       },
       {
         name: "The irrigation spring",
         domain: "water for the fields",
         rank: "local",
+        relations: [{ kind: "serves", of: "The sea" }],
       },
       {
         name: "The household dead",
         domain: "the ancestors of this place",
         rank: "local",
+        relations: [{ kind: "serves", of: "The ancestors" }],
       },
       {
         name: "The boundary marker",
         domain: "land, field ownership",
         rank: "local",
+        relations: [{ kind: "serves", of: "The ancestors" }],
       },
     ],
     practice: [
@@ -301,19 +320,27 @@ export const andes: readonly BeliefSystem[] = [
         name: "The killer whale",
         domain: "power in water, fangs, transformation",
         rank: "major",
+        relations: [{ kind: "serves", of: "*Illa" }],
       },
       {
         name: "The puma",
         domain: "strength, hunting, the fanged lord",
         rank: "major",
+        relations: [{ kind: "serves", of: "*Illa" }],
       },
-      { name: "The spring", domain: "water in the dry land", rank: "local" },
+      {
+        name: "The spring",
+        domain: "water in the dry land",
+        rank: "local",
+        relations: [{ kind: "serves", of: "*Illa" }],
+      },
       {
         name: "*Wak'a",
         gloss:
           "Proto-Quechuan *wak'a, 'a sacred place, object, or ancestor requiring reverence'",
         domain: "the wrapped lineage dead",
         rank: "local",
+        relations: [{ kind: "serves", of: "The ancestors" }],
       },
       {
         name: "The field boundary",
@@ -360,6 +387,7 @@ export const andes: readonly BeliefSystem[] = [
         wiki: "https://en.wikipedia.org/wiki/Inti",
         domain: "the sun, warmth, the day",
         rank: "major",
+        relations: [{ kind: "serves", of: "*Pacha" }],
       },
       {
         name: "The apus",
@@ -371,6 +399,7 @@ export const andes: readonly BeliefSystem[] = [
         wiki: "https://en.wikipedia.org/wiki/Illapa",
         domain: "lightning, water, fertility, the storm",
         rank: "major",
+        relations: [{ kind: "serves", of: "*Pacha" }],
       },
       {
         name: "The ancestors",
@@ -383,6 +412,7 @@ export const andes: readonly BeliefSystem[] = [
           "Proto-Quechuan *illa, 'a luminous or sacred thing; a shrine-object, often linked to springs and lightning-struck stone'",
         domain: "water for fields and herds",
         rank: "local",
+        relations: [{ kind: "serves", of: "Illapa" }],
       },
       {
         name: "Mallki",
@@ -390,6 +420,7 @@ export const andes: readonly BeliefSystem[] = [
           "Quechua mallki, 'the wrapped ancestor' — the same term used elsewhere in this file for mummy bundles",
         domain: "the wrapped dead of the lineage",
         rank: "local",
+        relations: [{ kind: "serves", of: "The ancestors" }],
       },
       {
         name: "*Wak'a",
@@ -397,6 +428,7 @@ export const andes: readonly BeliefSystem[] = [
           "Proto-Quechuan *wak'a, 'a sacred place, object, or ancestor requiring reverence'",
         domain: "the village marker, the field edge",
         rank: "local",
+        relations: [{ kind: "serves", of: "The apus" }],
       },
     ],
     practice: [
@@ -431,6 +463,7 @@ export const andes: readonly BeliefSystem[] = [
         wiki: "https://en.wikipedia.org/wiki/Inti",
         domain: "the sun, the king, divine order",
         rank: "paramount",
+        relations: [{ kind: "child-of", of: "Viracocha" }],
       },
       {
         name: "Viracocha",
@@ -443,13 +476,17 @@ export const andes: readonly BeliefSystem[] = [
         wiki: "https://en.wikipedia.org/wiki/Mama_Killa",
         domain: "the moon, the night, protection",
         rank: "major",
-        relation: { kind: "consort-of", of: "Inti" },
+        relations: [
+          { kind: "consort-of", of: "Inti" },
+          { kind: "child-of", of: "Viracocha" },
+        ],
       },
       {
         name: "Illapa",
         wiki: "https://en.wikipedia.org/wiki/Illapa",
         domain: "the lightning, the storm, water",
         rank: "major",
+        relations: [{ kind: "serves", of: "Inti" }],
       },
       {
         name: "Mama Cocha",
@@ -461,6 +498,7 @@ export const andes: readonly BeliefSystem[] = [
         name: "The royal ancestors",
         domain: "the wrapped dead kings",
         rank: "major",
+        relations: [{ kind: "child-of", of: "Inti" }],
       },
       {
         name: "The local apu",
@@ -546,16 +584,19 @@ export const andes: readonly BeliefSystem[] = [
         wiki: "https://en.wikipedia.org/wiki/Huaca",
         domain: "the sacred stone or spring that marks this place",
         rank: "local",
+        relations: [{ kind: "aspect-of", of: "The apus" }],
       },
       {
         name: "The spring",
         domain: "water, fertility, life",
         rank: "local",
+        relations: [{ kind: "aspect-of", of: "Mama Cocha" }],
       },
       {
         name: "The household hearth",
         domain: "fire, cooking, the family",
         rank: "local",
+        relations: [{ kind: "serves", of: "Pachamama" }],
       },
     ],
     practice: [
@@ -596,11 +637,13 @@ export const andes: readonly BeliefSystem[] = [
         wiki: "https://en.wikipedia.org/wiki/Virgin_of_Copacabana",
         domain: "the mother, protection, healing, fertility",
         rank: "major",
+        relations: [{ kind: "serves", of: "God" }],
       },
       {
         name: "The saints",
         domain: "local protectors, answerers of prayers",
         rank: "major",
+        relations: [{ kind: "serves", of: "God" }],
       },
       {
         name: "Pachamama",
@@ -628,16 +671,19 @@ export const andes: readonly BeliefSystem[] = [
         name: "The spring",
         domain: "water, now blessed by the church",
         rank: "local",
+        relations: [{ kind: "serves", of: "God" }],
       },
       {
         name: "The village saint",
         domain: "the Christian name placed on the old guardian",
         rank: "local",
+        relations: [{ kind: "aspect-of", of: "The saints" }],
       },
       {
         name: "The hidden mallqui",
         domain: "the ancestor, kept wrapped in secret",
         rank: "local",
+        relations: [{ kind: "aspect-of", of: "The mallquis" }],
       },
     ],
     practice: [
@@ -689,6 +735,7 @@ export const andes: readonly BeliefSystem[] = [
         wiki: "https://en.wikipedia.org/wiki/Virgin_of_Copacabana",
         domain: "protection, healing, local patronage",
         rank: "major",
+        relations: [{ kind: "serves", of: "God" }],
       },
       {
         name: "The mallquis",
@@ -705,16 +752,19 @@ export const andes: readonly BeliefSystem[] = [
         name: "The spring of this place",
         domain: "water, blessing, life",
         rank: "local",
+        relations: [{ kind: "serves", of: "God" }],
       },
       {
         name: "The field guardian",
         domain: "the boundary stone, the crop warden",
         rank: "local",
+        relations: [{ kind: "aspect-of", of: "The apus" }],
       },
       {
         name: "The household dead",
         domain: "parents and grandparents, counsel",
         rank: "local",
+        relations: [{ kind: "aspect-of", of: "The mallquis" }],
       },
     ],
     practice: [

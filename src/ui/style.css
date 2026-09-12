@@ -3143,3 +3143,666 @@ button:disabled {
   align-items: center;
   gap: 14px;
 }
+
+.modal-character {
+  width: min(1500px, 100%);
+  padding: 0;
+  border-radius: 1px;
+  border-color: #c09b4e;
+  background: radial-gradient(
+    circle at 78% 32%,
+    #272847 0,
+    #191e39 34%,
+    #11172c 78%
+  );
+  box-shadow:
+    0 0 0 5px #12172a,
+    0 0 0 7px #806a3c,
+    0 30px 100px #080b12b8;
+}
+.modal-character > .close-modal {
+  right: 24px;
+  top: 25px;
+  z-index: 2;
+  color: #d6d5df;
+}
+.character-panel {
+  --belief-cyan: #62d4ca;
+  --belief-coral: #ef766d;
+  --belief-indigo: #292f58;
+  --sans: "DM Sans", system-ui, sans-serif;
+}
+.character-panel .character-header {
+  position: relative;
+  display: flex;
+  align-items: baseline;
+  min-height: 88px;
+  gap: 24px;
+  padding: 24px 150px 20px 76px;
+  border-bottom: 1px solid var(--line);
+}
+.character-mark {
+  position: absolute;
+  left: 34px;
+  top: 37px;
+  width: 12px;
+  height: 12px;
+  transform: rotate(45deg);
+  background: var(--belief-coral);
+}
+.character-panel .character-header h2 {
+  font-size: 42px;
+  font-weight: 400;
+  line-height: 1;
+}
+.character-panel .character-header p {
+  margin: 0;
+  color: #c5c5d5;
+  font-size: 19px;
+}
+.character-panel .character-header .where {
+  right: 74px;
+  top: 35px;
+  color: #c4c5d3;
+  font-size: 15px;
+}
+.character-panel > nav {
+  align-items: flex-end;
+  min-height: 62px;
+  gap: 34px;
+  padding: 0 34px;
+  border-bottom-color: var(--line);
+}
+.character-panel > nav button {
+  padding: 20px 10px 16px;
+  font-family: var(--sans);
+  font-size: 17px;
+  border-bottom-width: 4px;
+}
+.character-panel > nav button[aria-selected="true"] {
+  color: var(--belief-cyan);
+  border-bottom-color: var(--belief-coral);
+}
+.character-body {
+  grid-template-columns: 275px minmax(480px, 1fr) 340px;
+  gap: 0;
+  min-height: 635px;
+  padding: 0;
+  align-items: stretch;
+}
+.character-aside,
+.character-side {
+  padding: 24px;
+  background: linear-gradient(180deg, #36417026, #12192e0a);
+}
+.character-aside {
+  border-right: 1px solid var(--line);
+}
+.character-side {
+  border-left: 1px solid var(--line);
+  background: linear-gradient(180deg, #553d592b, #151a310f);
+}
+.character-main {
+  padding: 26px 32px;
+}
+.character-panel h1 {
+  font-size: 30px;
+  font-weight: 400;
+  line-height: 1.18;
+}
+.character-panel h3 {
+  margin: 24px 0 10px;
+  font-size: 13px;
+  letter-spacing: 0.12em;
+}
+.character-panel .summary {
+  color: #b7b9ce;
+  font-family: var(--sans);
+  font-size: 14px;
+}
+.character-portrait {
+  height: 308px;
+  aspect-ratio: auto;
+  border-color: #566399;
+  border-radius: 1px;
+  background: linear-gradient(145deg, #323a68, #263052);
+}
+.character-aside .condition {
+  gap: 11px;
+  margin: 20px 8px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--line-soft);
+}
+.character-aside .condition li {
+  color: #91d69b;
+  font-family: var(--sans);
+  font-size: 15px;
+}
+.character-aside .condition li:nth-child(2) {
+  color: var(--belief-cyan);
+}
+.character-aside .condition li[data-state="unwell"],
+.character-aside .condition li[data-state="hungry"],
+.character-aside .condition li[data-state="thirsty"],
+.character-aside .condition li[data-state="tired"] {
+  color: var(--belief-coral);
+}
+.carrying {
+  min-height: 54px;
+  font-family: var(--sans);
+  color: #d3d3df;
+}
+.follow-day {
+  margin-top: 20px;
+  border-width: 1px 0 0;
+  border-radius: 0;
+  padding: 18px 5px;
+  font-family: var(--sans);
+}
+.day-plan {
+  gap: 0;
+}
+.day-plan li {
+  grid-template-columns: 28px 62px minmax(0, 1fr) auto;
+  min-height: 58px;
+  padding: 8px 10px;
+  border-radius: 1px;
+  font-family: var(--sans);
+  font-size: 15px;
+}
+.day-plan li:not(:last-child)::after {
+  left: 23px;
+  top: 37px;
+  bottom: -12px;
+  background: #d7ae58a8;
+}
+.day-plan li[data-state="now"] {
+  border-left: 2px solid var(--belief-cyan);
+  background: linear-gradient(90deg, #3f4d864f, #30375f35);
+}
+.day-plan li[data-state="now"] svg {
+  color: var(--belief-cyan);
+}
+.day-plan time {
+  font-size: 12px;
+}
+.ability-list {
+  gap: 10px;
+}
+.ability-list li {
+  font-family: var(--sans);
+  font-size: 14px;
+}
+.ability-list svg {
+  color: var(--belief-cyan);
+}
+.pips {
+  gap: 10px;
+}
+.pips i {
+  width: 12px;
+  height: 12px;
+  border-color: #9297b0;
+}
+.bearing {
+  gap: 58px;
+  margin-top: 18px;
+}
+.bearing dd {
+  margin-top: 4px;
+  font-size: 18px;
+}
+.household-list,
+.belongings,
+.available {
+  gap: 8px;
+}
+.household-list button {
+  min-height: 66px;
+  padding: 8px 10px;
+  border-radius: 1px;
+  font-family: var(--sans);
+}
+.household-list button:hover,
+.household-list button:focus-visible {
+  border-color: #566fb0;
+  background: #41508446;
+}
+.belongings {
+  grid-auto-rows: 76px;
+  gap: 9px;
+}
+.belongings li,
+.belongings button {
+  border-radius: 1px;
+}
+.available button {
+  border-width: 1px 0 0;
+  border-radius: 0;
+  font-family: var(--sans);
+}
+.available li:first-child button:not([disabled]) {
+  border-color: transparent;
+  background: linear-gradient(90deg, #a64f59, #c46968);
+}
+.character-panel footer {
+  min-height: 54px;
+  padding: 12px 34px;
+  font-family: var(--sans);
+  font-size: 12px;
+  font-style: normal;
+}
+.character-panel footer span {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.character-panel footer span i {
+  width: 9px;
+  height: 9px;
+  transform: rotate(45deg);
+  border: 1px solid var(--gold);
+}
+.character-panel footer > button {
+  border-radius: 1px;
+}
+.character-tab {
+  min-height: 635px;
+  padding: 28px 34px;
+}
+.belief-layout {
+  display: grid;
+  grid-template-columns: 255px minmax(0, 1fr);
+  min-height: 635px;
+}
+.belief-aside {
+  padding: 24px;
+  border-right: 1px solid var(--line);
+  background: linear-gradient(180deg, #35406c2b, #13192e0a);
+}
+.belief-portrait {
+  height: 195px;
+  overflow: hidden;
+  border: 1px solid #56639970;
+  background: linear-gradient(145deg, #323a68, #263052);
+}
+.belief-aside h1 {
+  margin-top: 20px;
+  font-size: 27px;
+}
+.belief-aside > p,
+.belief-tradition p {
+  color: #b8bbcf;
+  font-family: var(--sans);
+  font-size: 13px;
+  line-height: 1.55;
+}
+.belief-measures {
+  margin-top: 20px;
+}
+.belief-measures div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 0;
+  border-bottom: 1px solid #d7ae5825;
+  font-family: var(--sans);
+  font-size: 12px;
+}
+.belief-measures dd {
+  color: var(--belief-cyan);
+  text-align: right;
+  text-transform: capitalize;
+}
+.belief-tradition {
+  margin-top: 20px;
+  padding-top: 1px;
+  border-top: 1px solid var(--line-soft);
+}
+.belief-main {
+  min-width: 0;
+  padding: 23px 28px;
+}
+.belief-intro {
+  display: flex;
+  align-items: flex-end;
+  gap: 28px;
+}
+.belief-intro h3 {
+  margin: 0 0 7px;
+}
+.belief-intro h1 {
+  font-size: 27px;
+}
+.belief-intro p {
+  margin-top: 4px;
+  color: #b8bbcf;
+  font-family: var(--sans);
+  font-size: 12px;
+}
+.belief-legend {
+  display: flex;
+  gap: 18px;
+  margin-left: auto;
+  padding-bottom: 4px;
+  color: #b8bbcf;
+  font-family: var(--sans);
+  font-size: 10px;
+  white-space: nowrap;
+}
+.belief-legend i {
+  display: inline-block;
+  width: 27px;
+  margin-right: 6px;
+  vertical-align: middle;
+  border-top: 1px solid var(--gold);
+}
+.belief-legend i.personal {
+  border-top-style: dotted;
+}
+.power-map {
+  position: relative;
+  height: 300px;
+  margin-top: 5px;
+  border-bottom: 1px solid var(--line);
+}
+.power-map svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.power-map path {
+  fill: none;
+  stroke: #d7ae58b3;
+  stroke-width: 1.25;
+  vector-effect: non-scaling-stroke;
+  shape-rendering: crispEdges;
+}
+.power-map path[data-relation="consort-of"] {
+  stroke-dasharray: 3 4;
+}
+.power-map path[data-relation="aspect-of"] {
+  stroke: var(--belief-coral);
+  stroke-dasharray: 7 5;
+}
+.power-node {
+  position: absolute;
+  z-index: 1;
+  display: flex;
+  width: 116px;
+  min-height: 112px;
+  padding: 4px;
+  transform: translate(-50%, -50%);
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--cream);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 1px;
+  font: inherit;
+  cursor: pointer;
+}
+.power-node:hover,
+.power-node:focus-visible {
+  background: #31406c32;
+  border-color: #5e70a2;
+}
+.power-node[data-selected="true"] {
+  border-color: var(--belief-cyan);
+  background:
+    linear-gradient(var(--belief-coral), var(--belief-coral)) left top/12px 2px
+      no-repeat,
+    linear-gradient(var(--belief-coral), var(--belief-coral)) left top/2px 12px
+      no-repeat,
+    linear-gradient(var(--belief-coral), var(--belief-coral)) right top/12px 2px
+      no-repeat,
+    linear-gradient(var(--belief-coral), var(--belief-coral)) right top/2px 12px
+      no-repeat,
+    linear-gradient(var(--belief-coral), var(--belief-coral)) left bottom/12px
+      2px no-repeat,
+    linear-gradient(var(--belief-coral), var(--belief-coral)) left bottom/2px
+      12px no-repeat,
+    linear-gradient(var(--belief-coral), var(--belief-coral)) right bottom/12px
+      2px no-repeat,
+    linear-gradient(var(--belief-coral), var(--belief-coral)) right bottom/2px
+      12px no-repeat,
+    #30446826;
+}
+.power-node .deity-icon {
+  width: 62px;
+  height: 62px;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+.power-node .glyph {
+  margin: 9px;
+}
+.power-node strong {
+  display: block;
+  max-width: 112px;
+  overflow: hidden;
+  font-size: 15px;
+  font-weight: 400;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.power-node small {
+  margin-top: 2px;
+  color: var(--gold);
+  font-family: var(--sans);
+  font-size: 8px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.power-node[data-tier="primary"] {
+  min-height: 120px;
+}
+.power-node[data-tier="primary"] .deity-icon {
+  width: 72px;
+  height: 72px;
+}
+.more-powers {
+  position: absolute;
+  right: 0;
+  bottom: 7px;
+  color: var(--muted);
+  font-family: var(--sans);
+  font-size: 10px;
+}
+.power-detail {
+  display: grid;
+  grid-template-columns: 205px minmax(290px, 1fr) 280px;
+  gap: 24px;
+  padding-top: 18px;
+}
+.power-detail h1 {
+  margin-bottom: 10px;
+  font-size: 28px;
+}
+.power-identity {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  align-content: start;
+  gap: 0 12px;
+}
+.power-identity h1 {
+  grid-column: 1 / -1;
+}
+.power-identity > p {
+  align-self: center;
+  color: #c5c6d6;
+  font-size: 13px;
+  line-height: 1.4;
+}
+.power-portrait {
+  display: flex;
+  width: 96px;
+  height: 96px;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #c5a365, #86613d);
+}
+.power-portrait .deity-icon {
+  width: 86px;
+  height: 86px;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+.power-copy,
+.belief-practices {
+  padding-left: 22px;
+  border-left: 1px solid var(--line);
+}
+.power-copy h2 {
+  margin: 3px 0 8px;
+  font-size: 18px;
+  font-weight: 400;
+}
+.power-copy > p {
+  margin: 7px 0;
+  color: #b8bbcf;
+  font-family: var(--sans);
+  font-size: 12px;
+  line-height: 1.45;
+}
+.power-copy dl {
+  margin-top: 12px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line-soft);
+}
+.power-copy dl div {
+  display: grid;
+  grid-template-columns: 118px 1fr;
+  padding: 3px 0;
+  font-family: var(--sans);
+  font-size: 11px;
+}
+.power-copy dt {
+  color: #aeb1c4;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.power-copy dd {
+  color: var(--cream);
+  text-transform: capitalize;
+}
+.belief-practices h3 {
+  margin-top: 3px;
+}
+.belief-practices ul {
+  list-style: none;
+}
+.belief-practices li {
+  position: relative;
+  padding: 8px 0 8px 17px;
+  border-top: 1px solid #d7ae5825;
+  color: #d0d1dc;
+  font-family: var(--sans);
+  font-size: 11px;
+  line-height: 1.35;
+}
+.belief-practices li::before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 13px;
+  width: 6px;
+  height: 6px;
+  transform: rotate(45deg);
+  background: var(--gold);
+}
+.belief-practices li:first-child {
+  padding-inline: 25px 8px;
+  color: var(--cream);
+  background: linear-gradient(90deg, #a64f59ad, #c4696878);
+}
+.belief-practices li:first-child::before {
+  left: 10px;
+}
+.belief-practices a {
+  display: block;
+  margin-top: 10px;
+  color: var(--belief-cyan);
+  font-family: var(--sans);
+  font-size: 12px;
+  text-align: right;
+}
+.deity-icon {
+  flex-shrink: 0;
+}
+@media (max-width: 1120px) {
+  .character-body {
+    grid-template-columns: 235px minmax(400px, 1fr) 290px;
+  }
+  .power-detail {
+    grid-template-columns: 180px minmax(260px, 1fr) 230px;
+  }
+  .belief-layout {
+    grid-template-columns: 220px minmax(0, 1fr);
+  }
+}
+@media (max-width: 860px) {
+  .character-panel .character-header {
+    display: block;
+    padding: 20px 58px 16px 54px;
+  }
+  .character-panel .character-header h2 {
+    font-size: 31px;
+  }
+  .character-panel .character-header p {
+    margin-top: 5px;
+    font-size: 14px;
+  }
+  .character-panel .character-header .where {
+    display: none;
+  }
+  .character-mark {
+    left: 25px;
+    top: 32px;
+  }
+  .character-panel > nav {
+    gap: 16px;
+    overflow-x: auto;
+    padding-inline: 18px;
+  }
+  .character-body,
+  .belief-layout {
+    grid-template-columns: 1fr;
+  }
+  .character-aside,
+  .belief-aside {
+    display: none;
+  }
+  .character-side,
+  .power-copy,
+  .belief-practices {
+    border-left: 0;
+  }
+  .character-side {
+    border-top: 1px solid var(--line);
+  }
+  .belief-main {
+    padding: 20px 16px;
+  }
+  .belief-intro {
+    display: block;
+  }
+  .belief-legend {
+    margin-top: 12px;
+  }
+  .power-map {
+    height: 340px;
+  }
+  .power-detail {
+    grid-template-columns: 1fr;
+  }
+  .power-copy,
+  .belief-practices {
+    padding: 14px 0 0;
+    border-top: 1px solid var(--line);
+  }
+}

@@ -1,4 +1,4 @@
-import { nameRegions } from "../characters/profiles/name-regions.generated";
+import { regionsByArea } from "../characters/resolve";
 import type { CultureId } from "../history/types";
 
 /**
@@ -6,12 +6,7 @@ import type { CultureId } from "../history/types";
  * named regions with boxes, so it doubles as the region layer; the narrowest
  * box containing the point wins, and a tie falls to the earlier id.
  */
-const byArea = [...nameRegions].sort(
-  (a, b) =>
-    (a.bounds[2] - a.bounds[0]) * (a.bounds[3] - a.bounds[1]) -
-      (b.bounds[2] - b.bounds[0]) * (b.bounds[3] - b.bounds[1]) ||
-    a.id.localeCompare(b.id),
-);
+const byArea = regionsByArea;
 export function regionAt(
   lon: number,
   lat: number,

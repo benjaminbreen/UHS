@@ -1,4 +1,3 @@
-import { resolveCharacterContext } from "../../content/characters/resolve";
 import {
   characterSex,
   generateCharacter,
@@ -119,7 +118,6 @@ export function populateHouseholds(
         knownResources: [],
       };
       if (pack.setting?.characterRevision) {
-        const naming = resolveCharacterContext(pack.setting).names;
         const parent =
           adult?.origin ??
           (owner === "player"
@@ -139,11 +137,15 @@ export function populateHouseholds(
               (r) => r.other === owner && r.kind === "partner",
             ),
         );
+        // The parent's own recorded format, not the context's: outside the
+        // hand-written kits the context has no format at all, which left every
+        // household on the ported traditions with unrelated surnames.
+        const format = parent?.nameFormat;
         const inherited =
-          child && naming?.format === "family-personal"
+          child && format === "family-personal"
             ? parent?.nameFamilies
             : child &&
-                naming?.format === "personal-two-families" &&
+                format === "personal-two-families" &&
                 parent?.nameFamilies?.[0] &&
                 partner?.origin?.nameFamilies?.[0]
               ? [parent.nameFamilies[0], partner.origin.nameFamilies[0]]
@@ -167,6 +169,7 @@ export function populateHouseholds(
             undefined,
             inherited,
             sex,
+            parent?.nameTradition,
           ),
         );
         if (child) {

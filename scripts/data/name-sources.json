@@ -1,0 +1,12 @@
+{
+  "_comment": "Human-authored further reading, one or two per tradition, keyed by tradition id. Authored here, not in HPG: the upstream name sets carry no citations. Traditions absent from this file are the authoring backlog; scripts/check-names.ts reports the count. Never add a URL that has not been checked.",
+  "sources": {
+    "ancient-greek": ["https://www.perseus.tufts.edu/hopper/"],
+    "mesopotamian-ancient": ["https://cdli.ucla.edu/"],
+    "icelandic": ["https://island.is/en/name-giving/icelandic-naming-convention-surnames"],
+    "japanese": ["https://doi.org/10.1093/acrefore/9780190201098.013.274"],
+    "javanese": ["https://sealang.net/oldjava/"],
+    "mongolian-traditional": ["https://www.degruyterbrill.com/document/doi/10.1515/9783110819724/html"],
+    "aboriginal-australian": ["https://aiatsis.gov.au/explore/aboriginal-australia-map"]
+  }
+}

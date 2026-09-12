@@ -10,16 +10,9 @@ const londonLives = "https://www.londonlives.org/";
 const virginiaMuster =
   "https://www.nps.gov/jame/learn/historyculture/the-first-residents-of-jamestown.htm";
 
-const attestedNames = (
-  claim: string,
-  sources: string[],
-  status: "documented" | "inferred" = "inferred",
-) => ({
-  status,
-  claim,
+const attestedNames = (note: string, sources: string[]) => ({
   sources,
-  limitation:
-    "An authored sample drawn from these documentary traditions, with normalized display spellings and regional/temporal extrapolation; they do not establish local frequency, complete gender coverage, or a naming rule for every household. Generated people are fictional, and a name source supports name use only, not appearance.",
+  note,
 });
 
 export const nameKits: NameKit[] = [
@@ -61,10 +54,7 @@ export const nameKits: NameKit[] = [
       "Valeria",
       "Flavia",
     ],
-    evidence: attestedNames(
-      "Roman personal-name forms and gentilicia are represented in the Epigraphic Database Heidelberg's searchable corpus of Latin inscriptions; this kit is scoped to a Roman-Italy setting as a bounded gameplay sample.",
-      [romanEpigraphy],
-    ),
+    ...attestedNames("Roman personal-name forms and gentilicia are represented in the Epigraphic Database Heidelberg's searchable corpus of Latin inscriptions; this kit is scoped to a Roman-Italy setting as a bounded gameplay sample.", [romanEpigraphy]),
   },
   {
     id: "names-medieval-england-1100-1600",
@@ -102,11 +92,7 @@ export const nameKits: NameKit[] = [
       "Ela",
       "Christina",
     ],
-    evidence: attestedNames(
-      "DMNES documents given names in European sources through 1600, including English forms; this is an inferred regional English sample whose display spellings are modernized for readability and should not be mistaken for a complete medieval name register.",
-      [dmnes],
-      "inferred",
-    ),
+    ...attestedNames("DMNES documents given names in European sources through 1600, including English forms; this is an inferred regional English sample whose display spellings are modernized for readability and should not be mistaken for a complete medieval name register.", [dmnes]),
   },
   {
     id: "names-early-modern-england-1600-1750",
@@ -143,11 +129,7 @@ export const nameKits: NameKit[] = [
       "Frances",
       "Eleanor",
     ],
-    evidence: attestedNames(
-      "DMNES documents European given names through 1600, while London Lives publishes primary London records beginning in 1690. The intervening and post-1600 use here is an inferred continuity sample; display spellings are modernized and this is not a frequency table.",
-      [dmnes, londonLives],
-      "inferred",
-    ),
+    ...attestedNames("DMNES documents European given names through 1600, while London Lives publishes primary London records beginning in 1690. The intervening and post-1600 use here is an inferred continuity sample; display spellings are modernized and this is not a frequency table.", [dmnes, londonLives]),
   },
   {
     id: "names-english-virginia-1607-1750",
@@ -182,11 +164,7 @@ export const nameKits: NameKit[] = [
       "Sarah",
       "Martha",
     ],
-    evidence: attestedNames(
-      "The National Park Service reproduces a source-based list of the known 104 English settlers who remained at Jamestown in 1607; male forms use that roster; female forms extend the English sample from DMNES. Regional use and continuity through 1750 are inferred.",
-      [virginiaMuster, dmnes],
-      "inferred",
-    ),
+    ...attestedNames("The National Park Service reproduces a source-based list of the known 104 English settlers who remained at Jamestown in 1607; male forms use that roster; female forms extend the English sample from DMNES. Regional use and continuity through 1750 are inferred.", [virginiaMuster, dmnes]),
   },
   {
     id: "names-medieval-italy-1200-1500",
@@ -219,10 +197,7 @@ export const nameKits: NameKit[] = [
       "Agnes",
       "Costanza",
     ],
-    evidence: attestedNames(
-      "The Dictionary of Medieval Names from European Sources gathers documented medieval name forms, including Italian evidence, and records their source attestations; this kit is a regional sample rather than a claim about all Italian communities.",
-      [dmnes],
-    ),
+    ...attestedNames("The Dictionary of Medieval Names from European Sources gathers documented medieval name forms, including Italian evidence, and records their source attestations; this kit is a regional sample rather than a claim about all Italian communities.", [dmnes]),
   },
   {
     id: "names-early-modern-italy-1500-1750",
@@ -255,11 +230,7 @@ export const nameKits: NameKit[] = [
       "Isabella",
       "Maddalena",
     ],
-    evidence: attestedNames(
-      "DMNES documents European given names in sources written through 1600, including Italian forms. Applying the continuing forms to 1600–1750 is an explicitly inferred continuity sample for regional play.",
-      [dmnes],
-      "inferred",
-    ),
+    ...attestedNames("DMNES documents European given names in sources written through 1600, including Italian forms. Applying the continuing forms to 1600–1750 is an explicitly inferred continuity sample for regional play.", [dmnes]),
   },
   {
     id: "names-medieval-france-1100-1500",
@@ -292,10 +263,7 @@ export const nameKits: NameKit[] = [
       "Perrine",
       "Madeleine",
     ],
-    evidence: attestedNames(
-      "DMNES documents medieval French name forms with dated source references; the selected forms are a small regional sample and do not represent every language or community within medieval France.",
-      [dmnes],
-    ),
+    ...attestedNames("DMNES documents medieval French name forms with dated source references; the selected forms are a small regional sample and do not represent every language or community within medieval France.", [dmnes]),
   },
   {
     id: "names-early-modern-france-1500-1750",
@@ -329,10 +297,6 @@ export const nameKits: NameKit[] = [
       "Françoise",
       "Charlotte",
     ],
-    evidence: attestedNames(
-      "DMNES documents European given names in sources written through 1600, including French forms. Applying the continuing forms to 1600–1750 is an explicitly inferred continuity sample for regional play.",
-      [dmnes],
-      "inferred",
-    ),
+    ...attestedNames("DMNES documents European given names in sources written through 1600, including French forms. Applying the continuing forms to 1600–1750 is an explicitly inferred continuity sample for regional play.", [dmnes]),
   },
 ];

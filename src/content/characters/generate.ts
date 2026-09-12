@@ -6,7 +6,11 @@ import {
 } from "../../core/character";
 import type { Inventory } from "../../core/types";
 import type { WorldSetting } from "../geography/types";
-import { resolveCharacterContext, type CharacterContext } from "./resolve";
+import {
+  characterCommunity,
+  resolveCharacterContext,
+  type CharacterContext,
+} from "./resolve";
 import type { CharacterPhysique } from "../../core/character";
 
 export type Sex = CharacterPhysique["sex"];
@@ -27,6 +31,7 @@ export function characterNameParts(
   context = resolveCharacterContext(s),
   inheritedFamilies?: readonly string[],
   sex: Sex = characterSex(seed, id),
+  inheritedTradition?: string,
 ) {
   const kit = context.names;
   if (!kit) {
@@ -42,10 +47,17 @@ export function characterNameParts(
     }
     const total = drawn.options.reduce((n, o) => n + o.weight, 0);
     let roll = random(seed, "character-v1", id, "tradition") * total;
-    const tradition = (
-      drawn.options.find((o) => (roll -= o.weight) < 0) ??
-      drawn.options[drawn.options.length - 1]
-    ).tradition;
+    // A household shares one tradition: inheriting a surname from a parent who
+    // drew a different tradition would put a Chinese surname on a Swedish name.
+    const tradition =
+      (inheritedTradition
+        ? drawn.options.find((o) => o.tradition.id === inheritedTradition)
+            ?.tradition
+        : undefined) ??
+      (
+        drawn.options.find((o) => (roll -= o.weight) < 0) ??
+        drawn.options[drawn.options.length - 1]
+      ).tradition;
     // A tradition may document one gender only; fall back to the whole set.
     const gendered =
       sex === "female" ? tradition.feminine : tradition.masculine;
@@ -57,6 +69,27 @@ export function characterNameParts(
       id,
       "name",
     );
+    if (tradition.format === "personal-patronymic" && tradition.patronymic) {
+      // Named for a parent, so the element is that parent's name plus a
+      // suffix for this person's sex, and is never inherited further.
+      const parent = pick(
+        tradition.patronymic.parents ?? tradition.masculine,
+        seed,
+        id,
+        "parent-name",
+      );
+      const suffix =
+        tradition.patronymic[sex === "female" ? "female" : "male"];
+      return {
+        display: `${personal} ${parent}${suffix}`,
+        personal,
+        families: [] as string[],
+        format: "personal-patronymic",
+        tradition: tradition.id,
+        region: drawn.region,
+        note: tradition.note,
+      };
+    }
     const inherited = inheritedFamilies?.[0];
     const family =
       inherited ??
@@ -83,7 +116,10 @@ export function characterNameParts(
   const format = kit.format ?? "personal";
   const families: string[] = [];
   if (format === "personal-patronymic") {
-    const patronymic = pick(kit.patronymics!, seed, id, "patronymic");
+    const patronymic = kit.patronymic
+      ? pick(kit.patronymic.parents, seed, id, "parent-name") +
+        kit.patronymic[sex === "female" ? "female" : "male"]
+      : pick(kit.patronymics!, seed, id, "patronymic");
     return {
       display: `${personal} ${patronymic}`,
       personal,
@@ -156,7 +192,13 @@ export function characterLivelihood(
     : undefined;
   if (named) return named;
   // A few kinds of work were done overwhelmingly by one sex; the rest are open.
-  const open = context.livelihoods.filter((l) => !l.sex || l.sex === sex);
+  // "unspecified" is no constraint rather than no match -- read as a constraint
+  // it excluded all 62 sex-marked roles, which is every herding role there is,
+  // so no settlement could staff a pen.
+  const open =
+    sex === "unspecified"
+      ? context.livelihoods
+      : context.livelihoods.filter((l) => !l.sex || l.sex === sex);
   return pick(open.length ? open : context.livelihoods, seed, id, "livelihood");
 }
 export function eligibleInventory(
@@ -210,8 +252,11 @@ export function generateCharacter(
   explicitName?: string,
   inheritedFamilies?: readonly string[],
   sex: Sex = characterSex(seed, id),
+  inheritedTradition?: string,
 ) {
-  const context = resolveCharacterContext(s);
+  // Where a plural population is authored, each person draws their own
+  // community, so the appearance palette and the naming kit stay in step.
+  const context = resolveCharacterContext(s, characterCommunity(s, seed, id));
   // The hand-written kits are not split by gender yet, so a drawn sex would
   // contradict the name half the time. Ported traditions are split.
   const drawn: Sex = context.names ? "unspecified" : sex;
@@ -222,6 +267,7 @@ export function generateCharacter(
     context,
     inheritedFamilies,
     drawn,
+    inheritedTradition,
   );
   const livelihood = characterLivelihood(
     s,

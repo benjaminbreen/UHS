@@ -11,15 +11,25 @@
  * are re-expressed as boxes in scripts/data/capability-overrides.json; the work
  * itself is parsed out of commonProfessions.ts, whose roles are one per line.
  *
- * Run: npx tsx scripts/port-livelihoods.ts [path-to-hpg]
+ * Reads the snapshot in scripts/data/hpg; refresh it with vendor-hpg.ts.
+ *
+ * Run: npx tsx scripts/port-livelihoods.ts
  */
 import { readFileSync, writeFileSync } from "node:fs";
-import { resolve as resolvePath } from "node:path";
 
-const hpg = process.argv[2] ?? `${process.env.HOME}/code/historical-persona-generator`;
-const { capabilityAvailableFrom, capabilityAvailableUntil } = await import(
-  resolvePath(hpg, "src/constants/societyCapabilities.ts")
-);
+const CAPABILITY_TABLE = JSON.parse(
+  readFileSync("scripts/data/hpg/capabilities.json", "utf8"),
+) as Record<string, Record<string, (number | string)[]>>;
+/** Infinities are spelled out in the snapshot; see vendor-hpg.ts. */
+const unnum = (v: number | string | undefined, fallback: number) =>
+  v === undefined ? fallback
+  : typeof v === "number" ? v
+  : v === "Infinity" ? Infinity
+  : -Infinity;
+const capabilityAvailableFrom = (c: string, x: { culturalZone: string }) =>
+  unnum(CAPABILITY_TABLE[c]?.[x.culturalZone]?.[0], -Infinity);
+const capabilityAvailableUntil = (c: string, x: { culturalZone: string }) =>
+  unnum(CAPABILITY_TABLE[c]?.[x.culturalZone]?.[1], Infinity);
 
 const CAPABILITIES = [
   "writing", "metallurgy", "settled_agriculture", "heritable_land", "draft_animals",
@@ -46,8 +56,8 @@ const clamp = (y: number) => (!Number.isFinite(y) ? (y < 0 ? FLOOR : CEIL) : Mat
 const windows: { capability: string; culture: string; from: number; to: number }[] = [];
 for (const capability of CAPABILITIES) {
   for (const [zone, cultures] of Object.entries(ZONE_CULTURES)) {
-    const from = capabilityAvailableFrom(capability, { year: 0, culturalZone: zone });
-    const to = capabilityAvailableUntil(capability, { year: 0, culturalZone: zone });
+    const from = capabilityAvailableFrom(capability, { culturalZone: zone });
+    const to = capabilityAvailableUntil(capability, { culturalZone: zone });
     for (const culture of cultures)
       windows.push({ capability, culture, from: clamp(from), to: clamp(to) });
   }
@@ -59,7 +69,7 @@ const work = JSON.parse(readFileSync("scripts/data/livelihood-work.json", "utf8"
 /* --- the work itself ---------------------------------------------------- */
 
 const source = readFileSync(
-  resolvePath(hpg, "src/constants/characterData/commonProfessions.ts"),
+  "scripts/data/hpg/commonProfessions.ts.txt",
   "utf8",
 );
 const TIERS = ["PREHISTORIC_WORK", "VILLAGE_WORK", "TOWN_WORK", "INDUSTRIAL_WORK", "MODERN_WORK"];

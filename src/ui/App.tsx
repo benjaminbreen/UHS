@@ -1192,19 +1192,21 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
                   ...pack.evidence.filter((e) => e.id !== evidence.id),
                 ].map((e) => (
                   <article className="evidence-card" key={e.id}>
-                    <span className="evidence-status">
-                      {
+                    {e.status && (
+                      <span className="evidence-status">
                         {
-                          documented: "Documented foundation",
-                          inferred: "Inferred detail",
-                          hypothesis: "Historical hypothesis",
-                          fictional: "Fictional scenario / art choice",
-                        }[e.status]
-                      }
-                    </span>
+                          {
+                            documented: "Documented foundation",
+                            inferred: "Inferred detail",
+                            hypothesis: "Historical hypothesis",
+                            fictional: "Fictional scenario / art choice",
+                          }[e.status]
+                        }
+                      </span>
+                    )}
                     <h3>{e.title}</h3>
                     <p>{e.statement}</p>
-                    <p className="limitation">{e.limitation}</p>
+                    {e.limitation && <p className="limitation">{e.limitation}</p>}
                     {e.url && (
                       <a href={e.url} target="_blank" rel="noreferrer">
                         Examine the source <ExternalLink size={13} />

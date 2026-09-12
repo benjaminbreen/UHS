@@ -40,10 +40,10 @@ it("keeps every system well formed", () => {
       expect(power.domain.length, `${system.id}/${power.name}`).toBeGreaterThan(
         2,
       );
-      if (power.relation)
+      for (const relation of power.relations ?? [])
         expect(
-          names.has(power.relation.of),
-          `${system.id}: ${power.name} points at ${power.relation.of}`,
+          names.has(relation.of),
+          `${system.id}: ${power.name} points at ${relation.of}`,
         ).toBe(true);
     }
     // Someone has to be reachable without going through a temple.
@@ -151,4 +151,49 @@ it("explains every starred name and never leaves a gloss bare", () => {
           `${system.id}/${power.name}`,
         ).toBeGreaterThan(15);
     }
+});
+
+it("keeps relations pointing at real powers, once each, never at themselves", () => {
+  let total = 0;
+  for (const system of beliefSystems) {
+    const names = new Set(system.powers.map((p) => p.name));
+    for (const power of system.powers) {
+      const seen = new Set<string>();
+      for (const relation of power.relations ?? []) {
+        total++;
+        expect(names.has(relation.of), `${system.id}/${power.name}`).toBe(true);
+        expect(
+          relation.of,
+          `${system.id}/${power.name} points at itself`,
+        ).not.toBe(power.name);
+        const key = `${relation.kind}:${relation.of}`;
+        expect(seen.has(key), `${system.id}/${power.name}: ${key} twice`).toBe(
+          false,
+        );
+        seen.add(key);
+      }
+    }
+    // Descent must not loop: a child cannot be its own ancestor.
+    const parents = new Map(
+      system.powers.map((p) => [
+        p.name,
+        (p.relations ?? [])
+          .filter((r) => r.kind === "child-of")
+          .map((r) => r.of),
+      ]),
+    );
+    for (const start of parents.keys()) {
+      const walk = (name: string, seen: string[]): void => {
+        for (const parent of parents.get(name) ?? []) {
+          expect(
+            seen.includes(parent),
+            `${system.id}: descent loops at ${parent}`,
+          ).toBe(false);
+          walk(parent, [...seen, parent]);
+        }
+      };
+      walk(start, [start]);
+    }
+  }
+  expect(total).toBeGreaterThan(600);
 });

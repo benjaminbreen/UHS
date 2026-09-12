@@ -1,0 +1,496 @@
+{
+ "writing": {
+  "EUROPEAN": [
+   -700,
+   "Infinity"
+  ],
+  "MENA": [
+   -3200,
+   "Infinity"
+  ],
+  "EAST_ASIAN": [
+   -1200,
+   "Infinity"
+  ],
+  "SOUTH_ASIAN": [
+   -300,
+   "Infinity"
+  ],
+  "SOUTHEAST_ASIAN": [
+   400,
+   "Infinity"
+  ],
+  "SUB_SAHARAN_AFRICAN": [
+   1000,
+   "Infinity"
+  ],
+  "SOUTH_AMERICAN": [
+   1532,
+   "Infinity"
+  ],
+  "NORTH_AMERICAN_PRE_COLUMBIAN": [
+   "Infinity",
+   "Infinity"
+  ],
+  "OCEANIA": [
+   1800,
+   "Infinity"
+  ]
+ },
+ "metallurgy": {
+  "EUROPEAN": [
+   -2500,
+   "Infinity"
+  ],
+  "MENA": [
+   -3300,
+   "Infinity"
+  ],
+  "EAST_ASIAN": [
+   -2000,
+   "Infinity"
+  ],
+  "SOUTH_ASIAN": [
+   -2800,
+   "Infinity"
+  ],
+  "SOUTHEAST_ASIAN": [
+   -2000,
+   "Infinity"
+  ],
+  "SUB_SAHARAN_AFRICAN": [
+   -900,
+   "Infinity"
+  ],
+  "SOUTH_AMERICAN": [
+   -1500,
+   "Infinity"
+  ],
+  "NORTH_AMERICAN_PRE_COLUMBIAN": [
+   "Infinity",
+   "Infinity"
+  ],
+  "OCEANIA": [
+   1800,
+   "Infinity"
+  ]
+ },
+ "settled_agriculture": {
+  "EUROPEAN": [
+   -6000,
+   "Infinity"
+  ],
+  "MENA": [
+   -9000,
+   "Infinity"
+  ],
+  "EAST_ASIAN": [
+   -7000,
+   "Infinity"
+  ],
+  "SOUTH_ASIAN": [
+   -7000,
+   "Infinity"
+  ],
+  "SOUTHEAST_ASIAN": [
+   -4000,
+   "Infinity"
+  ],
+  "SUB_SAHARAN_AFRICAN": [
+   -3000,
+   "Infinity"
+  ],
+  "SOUTH_AMERICAN": [
+   -3500,
+   "Infinity"
+  ],
+  "NORTH_AMERICAN_PRE_COLUMBIAN": [
+   -2000,
+   "Infinity"
+  ],
+  "OCEANIA": [
+   -1500,
+   "Infinity"
+  ]
+ },
+ "heritable_land": {
+  "EUROPEAN": [
+   -3500,
+   "Infinity"
+  ],
+  "MENA": [
+   -6000,
+   "Infinity"
+  ],
+  "EAST_ASIAN": [
+   -4500,
+   "Infinity"
+  ],
+  "SOUTH_ASIAN": [
+   -4500,
+   "Infinity"
+  ],
+  "SOUTHEAST_ASIAN": [
+   -1000,
+   "Infinity"
+  ],
+  "SUB_SAHARAN_AFRICAN": [
+   -1000,
+   "Infinity"
+  ],
+  "SOUTH_AMERICAN": [
+   -1500,
+   "Infinity"
+  ],
+  "NORTH_AMERICAN_PRE_COLUMBIAN": [
+   -500,
+   "Infinity"
+  ],
+  "OCEANIA": [
+   -500,
+   "Infinity"
+  ]
+ },
+ "draft_animals": {
+  "EUROPEAN": [
+   -3500,
+   "Infinity"
+  ],
+  "MENA": [
+   -4000,
+   "Infinity"
+  ],
+  "EAST_ASIAN": [
+   -3000,
+   "Infinity"
+  ],
+  "SOUTH_ASIAN": [
+   -3500,
+   "Infinity"
+  ],
+  "SOUTHEAST_ASIAN": [
+   -2000,
+   "Infinity"
+  ],
+  "SUB_SAHARAN_AFRICAN": [
+   -1000,
+   "Infinity"
+  ],
+  "SOUTH_AMERICAN": [
+   1540,
+   "Infinity"
+  ],
+  "NORTH_AMERICAN_PRE_COLUMBIAN": [
+   "Infinity",
+   "Infinity"
+  ],
+  "OCEANIA": [
+   1800,
+   "Infinity"
+  ]
+ },
+ "guilds": {
+  "EUROPEAN": [
+   1100,
+   "Infinity"
+  ],
+  "MENA": [
+   900,
+   "Infinity"
+  ],
+  "EAST_ASIAN": [
+   900,
+   "Infinity"
+  ],
+  "SOUTH_ASIAN": [
+   500,
+   "Infinity"
+  ],
+  "SOUTHEAST_ASIAN": [
+   900,
+   "Infinity"
+  ],
+  "SUB_SAHARAN_AFRICAN": [
+   "Infinity",
+   "Infinity"
+  ],
+  "SOUTH_AMERICAN": [
+   "Infinity",
+   "Infinity"
+  ],
+  "NORTH_AMERICAN_PRE_COLUMBIAN": [
+   "Infinity",
+   "Infinity"
+  ],
+  "OCEANIA": [
+   "Infinity",
+   "Infinity"
+  ]
+ },
+ "coinage": {
+  "EUROPEAN": [
+   -600,
+   "Infinity"
+  ],
+  "MENA": [
+   -600,
+   "Infinity"
+  ],
+  "EAST_ASIAN": [
+   -500,
+   "Infinity"
+  ],
+  "SOUTH_ASIAN": [
+   -600,
+   "Infinity"
+  ],
+  "SOUTHEAST_ASIAN": [
+   700,
+   "Infinity"
+  ],
+  "SUB_SAHARAN_AFRICAN": [
+   800,
+   "Infinity"
+  ],
+  "SOUTH_AMERICAN": [
+   1540,
+   "Infinity"
+  ],
+  "NORTH_AMERICAN_PRE_COLUMBIAN": [
+   "Infinity",
+   "Infinity"
+  ],
+  "OCEANIA": [
+   1800,
+   "Infinity"
+  ]
+ },
+ "urban_settlement": {
+  "EUROPEAN": [
+   -1600,
+   "Infinity"
+  ],
+  "MENA": [
+   -3500,
+   "Infinity"
+  ],
+  "EAST_ASIAN": [
+   -2000,
+   "Infinity"
+  ],
+  "SOUTH_ASIAN": [
+   -2600,
+   "Infinity"
+  ],
+  "SOUTHEAST_ASIAN": [
+   -500,
+   "Infinity"
+  ],
+  "SUB_SAHARAN_AFRICAN": [
+   -300,
+   "Infinity"
+  ],
+  "SOUTH_AMERICAN": [
+   -1500,
+   "Infinity"
+  ],
+  "NORTH_AMERICAN_PRE_COLUMBIAN": [
+   -500,
+   "Infinity"
+  ],
+  "OCEANIA": [
+   "Infinity",
+   "Infinity"
+  ]
+ },
+ "european_contact": {
+  "EUROPEAN": [
+   -10000,
+   "Infinity"
+  ],
+  "MENA": [
+   -10000,
+   "Infinity"
+  ],
+  "EAST_ASIAN": [
+   1543,
+   "Infinity"
+  ],
+  "SOUTH_ASIAN": [
+   1498,
+   "Infinity"
+  ],
+  "SOUTHEAST_ASIAN": [
+   1511,
+   "Infinity"
+  ],
+  "SUB_SAHARAN_AFRICAN": [
+   1880,
+   "Infinity"
+  ],
+  "SOUTH_AMERICAN": [
+   1532,
+   "Infinity"
+  ],
+  "NORTH_AMERICAN_PRE_COLUMBIAN": [
+   1600,
+   "Infinity"
+  ],
+  "OCEANIA": [
+   1790,
+   "Infinity"
+  ]
+ },
+ "market_exchange": {
+  "EUROPEAN": [
+   -1000,
+   "Infinity"
+  ],
+  "MENA": [
+   -3000,
+   "Infinity"
+  ],
+  "EAST_ASIAN": [
+   -1500,
+   "Infinity"
+  ],
+  "SOUTH_ASIAN": [
+   -2500,
+   "Infinity"
+  ],
+  "SOUTHEAST_ASIAN": [
+   -200,
+   "Infinity"
+  ],
+  "SUB_SAHARAN_AFRICAN": [
+   -200,
+   "Infinity"
+  ],
+  "SOUTH_AMERICAN": [
+   1532,
+   "Infinity"
+  ],
+  "NORTH_AMERICAN_PRE_COLUMBIAN": [
+   "Infinity",
+   "Infinity"
+  ],
+  "OCEANIA": [
+   1800,
+   "Infinity"
+  ]
+ },
+ "wage_labor": {
+  "EUROPEAN": [
+   -500,
+   "Infinity"
+  ],
+  "MENA": [
+   -2000,
+   "Infinity"
+  ],
+  "EAST_ASIAN": [
+   -500,
+   "Infinity"
+  ],
+  "SOUTH_ASIAN": [
+   -300,
+   "Infinity"
+  ],
+  "SOUTHEAST_ASIAN": [
+   800,
+   "Infinity"
+  ],
+  "SUB_SAHARAN_AFRICAN": [
+   1000,
+   "Infinity"
+  ],
+  "SOUTH_AMERICAN": [
+   1540,
+   "Infinity"
+  ],
+  "NORTH_AMERICAN_PRE_COLUMBIAN": [
+   "Infinity",
+   "Infinity"
+  ],
+  "OCEANIA": [
+   1800,
+   "Infinity"
+  ]
+ },
+ "retained_military_service": {
+  "EUROPEAN": [
+   -700,
+   1650
+  ],
+  "MENA": [
+   -2500,
+   1850
+  ],
+  "EAST_ASIAN": [
+   -1200,
+   1870
+  ],
+  "SOUTH_ASIAN": [
+   -600,
+   1860
+  ],
+  "SOUTHEAST_ASIAN": [
+   400,
+   1900
+  ],
+  "SUB_SAHARAN_AFRICAN": [
+   800,
+   1900
+  ],
+  "SOUTH_AMERICAN": [
+   1200,
+   1540
+  ],
+  "NORTH_AMERICAN_PRE_COLUMBIAN": [
+   "Infinity",
+   "Infinity"
+  ],
+  "OCEANIA": [
+   1300,
+   1870
+  ]
+ },
+ "guild_apprenticeship": {
+  "EUROPEAN": [
+   -200,
+   1880
+  ],
+  "MENA": [
+   -1800,
+   1900
+  ],
+  "EAST_ASIAN": [
+   -600,
+   1900
+  ],
+  "SOUTH_ASIAN": [
+   -500,
+   1900
+  ],
+  "SOUTHEAST_ASIAN": [
+   900,
+   1930
+  ],
+  "SUB_SAHARAN_AFRICAN": [
+   1000,
+   1950
+  ],
+  "SOUTH_AMERICAN": [
+   1540,
+   1900
+  ],
+  "NORTH_AMERICAN_PRE_COLUMBIAN": [
+   "Infinity",
+   "Infinity"
+  ],
+  "OCEANIA": [
+   "Infinity",
+   "Infinity"
+  ]
+ }
+}

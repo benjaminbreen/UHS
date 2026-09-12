@@ -162,7 +162,7 @@ export const australiaPacific: readonly BeliefSystem[] = [
         name: "The men's house",
         domain: "male power, initiation, the community",
         rank: "major",
-        relation: { kind: "serves", of: "The high ancestors" },
+        relations: [{ kind: "serves", of: "The high ancestors" }],
       },
       {
         name: "The named dead of one's line",
@@ -231,7 +231,7 @@ export const australiaPacific: readonly BeliefSystem[] = [
         gloss: "Proto-Oceanic *waga, 'canoe'",
         domain: "knowledge of timber, sail and passage",
         rank: "major",
-        relation: { kind: "serves", of: "*Qatua" },
+        relations: [{ kind: "serves", of: "*Qatua" }],
       },
       {
         name: "*Tanoq",
@@ -294,6 +294,7 @@ export const australiaPacific: readonly BeliefSystem[] = [
         name: "Marawa",
         domain: "the spider, rivalry with Qat, the limits of his creation",
         rank: "major",
+        relations: [{ kind: "rival-of", of: "Qat" }],
       },
       {
         name: "Téa Kanaké",
@@ -370,7 +371,7 @@ export const australiaPacific: readonly BeliefSystem[] = [
         wiki: "https://en.wikipedia.org/wiki/Tāne",
         domain: "the forest, timber, craft",
         rank: "major",
-        relation: { kind: "child-of", of: "Tangaroa" },
+        relations: [{ kind: "child-of", of: "Tangaroa" }],
       },
       {
         name: "Rongo",
@@ -397,7 +398,7 @@ export const australiaPacific: readonly BeliefSystem[] = [
         name: "The reef spirits",
         domain: "protection and fish",
         rank: "local",
-        relation: { kind: "aspect-of", of: "Tangaroa" },
+        relations: [{ kind: "aspect-of", of: "Tangaroa" }],
       },
       {
         name: "The family's own dead",
@@ -444,7 +445,7 @@ export const australiaPacific: readonly BeliefSystem[] = [
         wiki: "https://en.wikipedia.org/wiki/Kanaloa",
         domain: "sea, ocean, the underworld",
         rank: "major",
-        relation: { kind: "consort-of", of: "Kāne" },
+        relations: [{ kind: "consort-of", of: "Kāne" }],
       },
       {
         name: "Lono",
@@ -466,6 +467,7 @@ export const australiaPacific: readonly BeliefSystem[] = [
         name: "Pele",
         domain: "volcanoes, fire, transformation",
         rank: "major",
+        relations: [{ kind: "child-of", of: "Haumea" }],
       },
       {
         name: "The chiefs' 'aumakua",
@@ -528,30 +530,40 @@ export const australiaPacific: readonly BeliefSystem[] = [
         wiki: "https://en.wikipedia.org/wiki/Rangi_and_Papa",
         domain: "earth, the foundational mother",
         rank: "major",
-        relation: { kind: "consort-of", of: "Rangi" },
+        relations: [{ kind: "consort-of", of: "Rangi" }],
       },
       {
         name: "Tāne",
         wiki: "https://en.wikipedia.org/wiki/Tāne",
         domain: "forests, light, male power",
         rank: "major",
+        relations: [
+          { kind: "child-of", of: "Papa" },
+          { kind: "sibling-of", of: "Tangaroa" },
+        ],
       },
       {
         name: "Tangaroa",
         wiki: "https://en.wikipedia.org/wiki/Tangaroa",
         domain: "sea, fish, boundaries",
         rank: "major",
+        relations: [{ kind: "child-of", of: "Papa" }],
       },
       {
         name: "Rongo",
         wiki: "https://en.wikipedia.org/wiki/Rongo",
         domain: "crops, kumara, sustenance",
         rank: "major",
+        relations: [
+          { kind: "child-of", of: "Papa" },
+          { kind: "sibling-of", of: "Tū" },
+        ],
       },
       {
         name: "Tū",
         domain: "war, ancestors, human prowess",
         rank: "major",
+        relations: [{ kind: "child-of", of: "Papa" }],
       },
       {
         name: "The tīpuna (ancestors) of the hapū",
@@ -613,7 +625,7 @@ export const australiaPacific: readonly BeliefSystem[] = [
         name: "Olofat",
         domain: "trickery, fire, the doings of a clever son",
         rank: "major",
-        relation: { kind: "child-of", of: "Anulap" },
+        relations: [{ kind: "child-of", of: "Anulap" }],
       },
       {
         name: "Aluluei",
@@ -681,26 +693,28 @@ export const australiaPacific: readonly BeliefSystem[] = [
         wiki: "https://en.wikipedia.org/wiki/Jesus",
         domain: "redemption, sacrifice, salvation",
         rank: "major",
-        relation: { kind: "child-of", of: "God" },
+        relations: [{ kind: "child-of", of: "God" }],
       },
       {
         name: "The Holy Spirit",
         wiki: "https://en.wikipedia.org/wiki/Holy_Spirit_in_Christianity",
         domain: "guidance, conversion, healing",
         rank: "major",
-        relation: { kind: "aspect-of", of: "God" },
+        relations: [{ kind: "aspect-of", of: "God" }],
       },
       {
         name: "John Williams",
         wiki: "https://en.wikipedia.org/wiki/John_Williams_(missionary)",
         domain: "the LMS apostle to the Pacific, martyred at Erromango",
         rank: "major",
+        relations: [{ kind: "serves", of: "God" }],
       },
       {
         name: "Satan",
         wiki: "https://en.wikipedia.org/wiki/Satan",
         domain: "the tempter, the old gods recast as his agents",
         rank: "local",
+        relations: [{ kind: "rival-of", of: "God" }],
       },
       {
         name: "The church congregation",
@@ -711,6 +725,7 @@ export const australiaPacific: readonly BeliefSystem[] = [
         name: "The saints and martyrs",
         domain: "examples of faith and obedience",
         rank: "local",
+        relations: [{ kind: "serves", of: "God" }],
       },
       {
         name: "The Christian ancestors",
@@ -829,12 +844,14 @@ export const australiaPacific: readonly BeliefSystem[] = [
         wiki: "https://en.wikipedia.org/wiki/Hikuleo",
         domain: "ruler of Pulotu, the land of the dead",
         rank: "major",
+        relations: [{ kind: "sibling-of", of: "Tagaloa" }],
       },
       {
         name: "Māui",
         wiki: "https://en.wikipedia.org/wiki/Māui_(mythology)",
         domain: "trickster demigod, fishing up islands, snaring the sun",
         rank: "major",
+        relations: [{ kind: "child-of", of: "Tagaloa" }],
       },
       {
         name: "The chief's line",
@@ -877,7 +894,7 @@ export const australiaPacific: readonly BeliefSystem[] = [
         "Kirch & Green, 'Hawaiki, Ancestral Polynesia'",
       ],
       limitation:
-        "Tagaloa, Hikule'o and Māui are recorded from later Samoan and Tongan tradition; their presence this early is a reconstruction, not a direct record of settlement-era belief.",
+        "Tagaloa, Hikule'o and Māui are recorded from later Samoan and Tongan tradition; their presence this early is a reconstruction, not a direct record of settlement-era belief. Their kinship also varies by tradition: Tongan sources (Gifford) rank Tagaloa and Hikule'o as co-equal primordial gods rather than siblings by birth, and Māui's tie to Tagaloa is closer in Samoan telling (as Māui-a-Tagaloa) than in Tongan.",
     },
   },
   {
@@ -896,6 +913,7 @@ export const australiaPacific: readonly BeliefSystem[] = [
         name: "Ratumaibulu",
         domain: "the underworld, growth of crops and gardens",
         rank: "major",
+        relations: [{ kind: "child-of", of: "Degei" }],
       },
       {
         name: "The kalou-vu",
@@ -976,29 +994,40 @@ export const australiaPacific: readonly BeliefSystem[] = [
         wiki: "https://en.wikipedia.org/wiki/Rangi_and_Papa",
         domain: "earth, the foundational mother",
         rank: "major",
+        relations: [{ kind: "consort-of", of: "Rangi" }],
       },
       {
         name: "Tāne",
         wiki: "https://en.wikipedia.org/wiki/Tāne",
         domain: "forests, timber, light",
         rank: "major",
+        relations: [
+          { kind: "child-of", of: "Papa" },
+          { kind: "sibling-of", of: "Tangaroa" },
+        ],
       },
       {
         name: "Tangaroa",
         wiki: "https://en.wikipedia.org/wiki/Tangaroa",
         domain: "sea and boundaries",
         rank: "major",
+        relations: [{ kind: "child-of", of: "Papa" }],
       },
       {
         name: "Rongo",
         wiki: "https://en.wikipedia.org/wiki/Rongo",
         domain: "crops and sustenance",
         rank: "major",
+        relations: [
+          { kind: "child-of", of: "Papa" },
+          { kind: "sibling-of", of: "Tū" },
+        ],
       },
       {
         name: "Tū",
         domain: "war and human power",
         rank: "major",
+        relations: [{ kind: "child-of", of: "Papa" }],
       },
       {
         name: "The tīpuna (ancestors)",

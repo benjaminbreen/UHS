@@ -194,11 +194,14 @@ it("herders open their own pens by day and secure returned animals at night", ()
     gate = e.state.objects.find((o) => o.id === sites.gateId)!;
   h.pos = { ...h.work };
   e.state.player.pos = { ...h.work, x: h.work.x + 2 };
-  e.act({
-    actionId: "day",
-    expectedRevision: 0,
-    command: { type: "wait", seconds: 18 },
-  });
+  // Herders start their round at their own offset, so how many ticks this
+  // takes depends on which villager drew the job. Advance until it opens.
+  for (let i = 0; i < 12 && !gate.open; i++)
+    e.act({
+      actionId: `day-${i}`,
+      expectedRevision: e.state.revision,
+      command: { type: "wait", seconds: 600 },
+    });
   expect(gate.open).toBe(true);
   e.state.clock = 19 * 3600;
   h.hunger = 0;

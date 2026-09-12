@@ -1,0 +1,830 @@
+{
+ "PREHISTORIC_PROTO_INDO_EUROPEAN": [
+  "-Infinity",
+  -1500
+ ],
+ "PREHISTORIC_PROTO_CELTIC": [
+  "-Infinity",
+  -100
+ ],
+ "PREHISTORIC_PROTO_GERMANIC": [
+  "-Infinity",
+  400
+ ],
+ "PREHISTORIC_MENA": [
+  "-Infinity",
+  -2500
+ ],
+ "PREHISTORIC_SOUTH_ASIAN": [
+  "-Infinity",
+  -1300
+ ],
+ "PREHISTORIC_ASIAN": [
+  "-Infinity",
+  -1200
+ ],
+ "PREHISTORIC_INNER_ASIAN": [
+  "-Infinity",
+  500
+ ],
+ "PREHISTORIC_AFRICAN": [
+  "-Infinity",
+  500
+ ],
+ "PREHISTORIC_AMERICAN": [
+  "-Infinity",
+  500
+ ],
+ "PREHISTORIC_AUSTRONESIAN": [
+  -3000,
+  "Infinity"
+ ],
+ "PREHISTORIC_OCEANIC": [
+  "-Infinity",
+  -800
+ ],
+ "ANCIENT_GREEK": [
+  -1400,
+  400
+ ],
+ "ANCIENT_ROMAN": [
+  -800,
+  600
+ ],
+ "FRANKISH_MEROVINGIAN": [
+  400,
+  800
+ ],
+ "FRANKISH_CAROLINGIAN": [
+  400,
+  1000
+ ],
+ "SAXON_EARLY_MEDIEVAL": [
+  400,
+  1100
+ ],
+ "NORMAN_FRENCH": [
+  400,
+  1350
+ ],
+ "FRENCH_MEDIEVAL": [
+  500,
+  1550
+ ],
+ "ENGLISH_ANGLO_SAXON": [
+  400,
+  1150
+ ],
+ "ENGLISH_MEDIEVAL": [
+  500,
+  1550
+ ],
+ "ENGLISH": [
+  -3000,
+  "Infinity"
+ ],
+ "TEXAS_SPANISH_COLONIAL": [
+  1690,
+  1850
+ ],
+ "TEXAS_ANGLO": [
+  1820,
+  "Infinity"
+ ],
+ "JEWISH_ASHKENAZI": [
+  900,
+  "Infinity"
+ ],
+ "PUERTO_RICAN": [
+  1500,
+  "Infinity"
+ ],
+ "AFRICAN_AMERICAN": [
+  1619,
+  "Infinity"
+ ],
+ "AZTEC": [
+  1200,
+  1600
+ ],
+ "MAYA": [
+  -500,
+  1600
+ ],
+ "ZAPOTEC": [
+  -500,
+  1600
+ ],
+ "MIXTEC": [
+  900,
+  1600
+ ],
+ "TAINO": [
+  800,
+  1600
+ ],
+ "CARIB": [
+  800,
+  1700
+ ],
+ "SWAHILI_COASTAL": [
+  800,
+  "Infinity"
+ ],
+ "MESOPOTAMIAN_ANCIENT": [
+  -3200,
+  100
+ ],
+ "LEVANTINE": [
+  -1500,
+  "Infinity"
+ ],
+ "MAGHREBI": [
+  700,
+  "Infinity"
+ ],
+ "EGYPTIAN_COPTIC": [
+  100,
+  "Infinity"
+ ],
+ "ARABIAN_HEJAZ": [
+  -800,
+  700
+ ],
+ "RWANDA_BURUNDI": [
+  1400,
+  "Infinity"
+ ],
+ "ETHIOPIAN_HIGHLAND": [
+  -400,
+  "Infinity"
+ ],
+ "WEST_AFRICAN_SAHEL": [
+  300,
+  "Infinity"
+ ],
+ "YORUBA_TRADITIONAL": [
+  800,
+  "Infinity"
+ ],
+ "NUBIAN": [
+  -2000,
+  1400
+ ],
+ "PERSIAN_ANCIENT": [
+  -1500,
+  650
+ ],
+ "SOGDIAN": [
+  -500,
+  1000
+ ],
+ "TURKIC_STEPPE": [
+  500,
+  "Infinity"
+ ],
+ "PERSIAN_KHORASAN": [
+  700,
+  "Infinity"
+ ],
+ "TRANSYLVANIAN": [
+  -3000,
+  "Infinity"
+ ],
+ "GALICIAN": [
+  -3000,
+  "Infinity"
+ ],
+ "PACIFIC_NORTHWEST_COAST": [
+  -2000,
+  "Infinity"
+ ],
+ "GREAT_BASIN_NATIVE": [
+  -2000,
+  "Infinity"
+ ],
+ "SOUTHWEST_NATIVE": [
+  -1000,
+  "Infinity"
+ ],
+ "NORTH_AMERICAN_ALGONQUIAN": [
+  -3000,
+  "Infinity"
+ ],
+ "IROQUOIAN": [
+  -500,
+  "Infinity"
+ ],
+ "PLAINS_NATIVE": [
+  -1000,
+  "Infinity"
+ ],
+ "MISSISSIPPIAN": [
+  800,
+  1600
+ ],
+ "PACIFIC_NORTHWEST": [
+  -2000,
+  "Infinity"
+ ],
+ "CALIFORNIA_NATIVE": [
+  -2000,
+  "Infinity"
+ ],
+ "INCA": [
+  1200,
+  1580
+ ],
+ "MAYA_MODERN": [
+  1550,
+  "Infinity"
+ ],
+ "ZAPOTEC_MODERN": [
+  1550,
+  "Infinity"
+ ],
+ "ANDEAN_MODERN": [
+  1550,
+  "Infinity"
+ ],
+ "TUPI": [
+  -3000,
+  "Infinity"
+ ],
+ "MUISCA": [
+  600,
+  1600
+ ],
+ "MAPUCHE": [
+  -3000,
+  "Infinity"
+ ],
+ "SPANISH_CASTILIAN": [
+  -3000,
+  "Infinity"
+ ],
+ "SPANISH_LATIN_AMERICAN": [
+  1500,
+  "Infinity"
+ ],
+ "PORTUGUESE": [
+  -3000,
+  "Infinity"
+ ],
+ "AFRO_BRAZILIAN": [
+  1540,
+  "Infinity"
+ ],
+ "AFRO_CARIBBEAN": [
+  1515,
+  "Infinity"
+ ],
+ "PORTUGUESE_BRAZIL": [
+  1500,
+  "Infinity"
+ ],
+ "ITALIAN": [
+  -3000,
+  "Infinity"
+ ],
+ "FRENCH": [
+  -3000,
+  "Infinity"
+ ],
+ "GERMAN": [
+  -3000,
+  "Infinity"
+ ],
+ "RUSSIAN": [
+  900,
+  "Infinity"
+ ],
+ "GREEK": [
+  -3000,
+  "Infinity"
+ ],
+ "CELTIC_ANCIENT": [
+  -800,
+  700
+ ],
+ "CELTIC_IRISH": [
+  400,
+  "Infinity"
+ ],
+ "WELSH": [
+  400,
+  "Infinity"
+ ],
+ "SCOTTISH": [
+  400,
+  "Infinity"
+ ],
+ "DUTCH": [
+  -3000,
+  "Infinity"
+ ],
+ "SCANDINAVIAN": [
+  400,
+  "Infinity"
+ ],
+ "BYZANTINE": [
+  330,
+  1500
+ ],
+ "SLAVIC_MEDIEVAL": [
+  500,
+  1500
+ ],
+ "HUNGARIAN_MEDIEVAL": [
+  500,
+  "Infinity"
+ ],
+ "POLISH_MEDIEVAL": [
+  500,
+  "Infinity"
+ ],
+ "CZECH_MODERN": [
+  1700,
+  "Infinity"
+ ],
+ "SLOVAK_MODERN": [
+  1700,
+  "Infinity"
+ ],
+ "POLISH_MODERN": [
+  1700,
+  "Infinity"
+ ],
+ "YUGOSLAV": [
+  -3000,
+  "Infinity"
+ ],
+ "EAST_GERMAN": [
+  -3000,
+  "Infinity"
+ ],
+ "BOHEMIAN": [
+  -3000,
+  "Infinity"
+ ],
+ "ARMENIAN": [
+  -500,
+  "Infinity"
+ ],
+ "GEORGIAN": [
+  -300,
+  "Infinity"
+ ],
+ "JAPANESE": [
+  300,
+  "Infinity"
+ ],
+ "CHINESE_MANDARIN": [
+  -1200,
+  "Infinity"
+ ],
+ "CHINESE_CANTONESE": [
+  -200,
+  "Infinity"
+ ],
+ "KOREAN_ANCIENT": [
+  -300,
+  950
+ ],
+ "KOREAN": [
+  900,
+  "Infinity"
+ ],
+ "MONGOLIAN": [
+  -3000,
+  "Infinity"
+ ],
+ "TIBETAN": [
+  600,
+  "Infinity"
+ ],
+ "MANCHU": [
+  1600,
+  "Infinity"
+ ],
+ "UYGHUR": [
+  700,
+  "Infinity"
+ ],
+ "ARABIC_LEVANT": [
+  600,
+  "Infinity"
+ ],
+ "PERSIAN_FARSI": [
+  900,
+  "Infinity"
+ ],
+ "TURKISH": [
+  1300,
+  "Infinity"
+ ],
+ "HEBREW": [
+  -1200,
+  "Infinity"
+ ],
+ "BERBER_AMAZIGH": [
+  -2000,
+  "Infinity"
+ ],
+ "VENETIAN_MEDIEVAL": [
+  500,
+  "Infinity"
+ ],
+ "MOORISH_ANDALUS": [
+  750,
+  1500
+ ],
+ "BYZANTINE_GREEK": [
+  330,
+  "Infinity"
+ ],
+ "KHMER_ANGKOR": [
+  800,
+  "Infinity"
+ ],
+ "FLEMISH_MEDIEVAL": [
+  500,
+  "Infinity"
+ ],
+ "CATALAN_MEDIEVAL": [
+  500,
+  "Infinity"
+ ],
+ "THAI_AYUTTHAYA": [
+  1350,
+  "Infinity"
+ ],
+ "MAMLUK_EGYPT": [
+  1250,
+  1520
+ ],
+ "SANSKRIT_CLASSICAL": [
+  -1500,
+  1200
+ ],
+ "DRAVIDIAN": [
+  -2000,
+  "Infinity"
+ ],
+ "RAJPUT": [
+  600,
+  "Infinity"
+ ],
+ "BENGALI_TRADITIONAL": [
+  1100,
+  "Infinity"
+ ],
+ "HINDI": [
+  1200,
+  "Infinity"
+ ],
+ "BENGALI_MODERN": [
+  1700,
+  "Infinity"
+ ],
+ "TAMIL": [
+  -300,
+  "Infinity"
+ ],
+ "PUNJABI": [
+  1000,
+  "Infinity"
+ ],
+ "YORUBA_MODERN": [
+  1700,
+  "Infinity"
+ ],
+ "SWAHILI_INTERIOR": [
+  800,
+  "Infinity"
+ ],
+ "AMHARIC": [
+  300,
+  "Infinity"
+ ],
+ "ZULU": [
+  1600,
+  "Infinity"
+ ],
+ "HAUSA": [
+  1000,
+  "Infinity"
+ ],
+ "AKAN": [
+  1000,
+  "Infinity"
+ ],
+ "SOMALI": [
+  700,
+  "Infinity"
+ ],
+ "IGBO": [
+  -500,
+  "Infinity"
+ ],
+ "KONGO": [
+  -200,
+  "Infinity"
+ ],
+ "LUBA": [
+  300,
+  "Infinity"
+ ],
+ "SHONA": [
+  400,
+  "Infinity"
+ ],
+ "XHOSA": [
+  700,
+  "Infinity"
+ ],
+ "SOTHO_TSWANA": [
+  700,
+  "Infinity"
+ ],
+ "POLYNESIAN": [
+  1814,
+  "Infinity"
+ ],
+ "MELANESIAN": [
+  1840,
+  "Infinity"
+ ],
+ "ABORIGINAL_AUSTRALIAN": [
+  -45000,
+  "Infinity"
+ ],
+ "ANDEAN_QUECHUA": [
+  1000,
+  "Infinity"
+ ],
+ "GUARANI": [
+  -3000,
+  "Infinity"
+ ],
+ "EUROPEAN": [
+  -3000,
+  "Infinity"
+ ],
+ "EAST_ASIAN": [
+  -3000,
+  "Infinity"
+ ],
+ "MENA": [
+  -3000,
+  "Infinity"
+ ],
+ "NORTH_AMERICAN_PRE_COLUMBIAN": [
+  -3000,
+  "Infinity"
+ ],
+ "OCEANIA": [
+  -3000,
+  "Infinity"
+ ],
+ "SOUTH_ASIAN": [
+  -3000,
+  "Infinity"
+ ],
+ "SOUTH_AMERICAN": [
+  -3000,
+  "Infinity"
+ ],
+ "SUB_SAHARAN_AFRICAN": [
+  -3000,
+  "Infinity"
+ ],
+ "NORTH_AMERICAN_COLONIAL": [
+  1607,
+  1840
+ ],
+ "NORTH_AMERICAN_MODERN": [
+  1840,
+  "Infinity"
+ ],
+ "MALAGASY_MERINA": [
+  700,
+  "Infinity"
+ ],
+ "MALAGASY_BETSILEO": [
+  700,
+  "Infinity"
+ ],
+ "MALAGASY_SAKALAVA": [
+  700,
+  "Infinity"
+ ],
+ "VIETNAMESE": [
+  -200,
+  "Infinity"
+ ],
+ "THAI": [
+  1200,
+  "Infinity"
+ ],
+ "BURMESE": [
+  800,
+  "Infinity"
+ ],
+ "KHMER": [
+  500,
+  "Infinity"
+ ],
+ "LAO": [
+  1300,
+  "Infinity"
+ ],
+ "JAVANESE": [
+  400,
+  "Infinity"
+ ],
+ "MALAY": [
+  600,
+  "Infinity"
+ ],
+ "MALAY_ISLAMIC_HISTORICAL": [
+  -3000,
+  "Infinity"
+ ],
+ "INDONESIAN": [
+  1945,
+  "Infinity"
+ ],
+ "FILIPINO": [
+  1565,
+  "Infinity"
+ ],
+ "CZECH": [
+  -3000,
+  "Infinity"
+ ],
+ "HUNGARIAN_MODERN": [
+  1700,
+  "Infinity"
+ ],
+ "ROMANIAN": [
+  -3000,
+  "Infinity"
+ ],
+ "BULGARIAN": [
+  -3000,
+  "Infinity"
+ ],
+ "SERBIAN": [
+  -3000,
+  "Infinity"
+ ],
+ "CROATIAN": [
+  -3000,
+  "Infinity"
+ ],
+ "KAZAKH": [
+  1450,
+  "Infinity"
+ ],
+ "UZBEK": [
+  1450,
+  "Infinity"
+ ],
+ "KYRGYZ": [
+  1450,
+  "Infinity"
+ ],
+ "TURKMEN": [
+  1450,
+  "Infinity"
+ ],
+ "HAWAIIAN": [
+  1820,
+  "Infinity"
+ ],
+ "TAHITIAN": [
+  1797,
+  "Infinity"
+ ],
+ "SAMOAN": [
+  1830,
+  "Infinity"
+ ],
+ "TONGAN": [
+  1826,
+  "Infinity"
+ ],
+ "FIJIAN": [
+  1835,
+  "Infinity"
+ ],
+ "CHAMORRO": [
+  1668,
+  "Infinity"
+ ],
+ "MICRONESIAN": [
+  -3000,
+  "Infinity"
+ ],
+ "SIBERIAN_INDIGENOUS": [
+  -3000,
+  "Infinity"
+ ],
+ "POLYNESIAN_PRECONTACT": [
+  -800,
+  1830
+ ],
+ "MAORI_PRECONTACT": [
+  1250,
+  1840
+ ],
+ "SAMOAN_PRECONTACT": [
+  -800,
+  1830
+ ],
+ "TONGAN_PRECONTACT": [
+  -800,
+  1826
+ ],
+ "TAHITIAN_PRECONTACT": [
+  1000,
+  1797
+ ],
+ "HAWAIIAN_PRECONTACT": [
+  1000,
+  1850
+ ],
+ "FIJIAN_PRECONTACT": [
+  -1000,
+  1854
+ ],
+ "MELANESIAN_PRECONTACT": [
+  -3000,
+  1884
+ ],
+ "APACHE": [
+  1400,
+  "Infinity"
+ ],
+ "CHEROKEE": [
+  1000,
+  "Infinity"
+ ],
+ "IROQUOIS_HAUDENOSAUNEE": [
+  1100,
+  "Infinity"
+ ],
+ "CREEK_MUSKOGEE": [
+  1000,
+  "Infinity"
+ ],
+ "ALGONQUIAN": [
+  -1000,
+  "Infinity"
+ ],
+ "PUEBLO": [
+  -500,
+  "Infinity"
+ ],
+ "PUEBLO_MODERN": [
+  1600,
+  "Infinity"
+ ],
+ "INUIT": [
+  -2000,
+  "Infinity"
+ ],
+ "LAKOTA_SIOUX": [
+  1500,
+  "Infinity"
+ ],
+ "NAVAJO": [
+  1400,
+  "Infinity"
+ ],
+ "COMANCHE": [
+  1600,
+  "Infinity"
+ ],
+ "SEMINOLE": [
+  1700,
+  "Infinity"
+ ],
+ "BLACKFEET": [
+  1500,
+  "Infinity"
+ ],
+ "ICELANDIC": [
+  874,
+  "Infinity"
+ ],
+ "ARABIC_TRADITIONAL": [
+  500,
+  "Infinity"
+ ],
+ "MONGOLIAN_TRADITIONAL": [
+  1100,
+  "Infinity"
+ ]
+}

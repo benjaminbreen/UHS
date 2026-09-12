@@ -7,9 +7,6 @@ import type { NameKit } from "../context-types";
  */
 const chineseSource = "https://www.loc.gov/catdir/pinyin/rom1.html";
 const spanishSource = "https://www.boe.es/buscar/doc.php?id=BOE-A-2000-3842";
-const normalizationLimit =
-  "Names are normalized into Latin display strings and sampled as components; generated combinations are fictional, not attested persons. Romanization, accents, compound given names, marriage practices, minority traditions, and local historical variation are not fully represented, and a naming source does not establish appearance or occupation.";
-
 export const structuredNameKits: NameKit[] = [
   {
     id: "names-china-family-personal-1000-2026",
@@ -65,13 +62,8 @@ export const structuredNameKits: NameKit[] = [
       "Ma",
       "Luo",
     ],
-    evidence: {
-      status: "inferred",
-      claim:
-        "The Library of Congress Pinyin romanization guidance preserves the Chinese convention of writing the family name separately before the given name; this bounded Chinese scenario supplies component forms for fictional generation. Earlier periods use an explicit reconstruction rather than a century-specific personal-name register.",
-      sources: [chineseSource],
-      limitation: `${normalizationLimit} The source establishes display ordering/romanization, not the date-specific prevalence of these components. Pinyin is a modern display convention even for earlier scenarios. This does not supply generation poems or historical naming taboos.`,
-    },
+    sources: [chineseSource],
+    note: "The family name precedes the given name. Pinyin is a modern display convention; generation poems and naming taboos are not modelled.",
   },
   {
     id: "names-spain-two-families-1900-2026",
@@ -148,12 +140,7 @@ export const structuredNameKits: NameKit[] = [
       "Torres",
       "Vázquez",
     ],
-    evidence: {
-      status: "inferred",
-      claim:
-        "Spain's official civil-registry regulation describes two parental surnames and provisions for choosing or reversing their order; this bounded modern Spain kit represents a personal name followed by two parental family names with fictional component combinations.",
-      sources: [spanishSource],
-      limitation: `${normalizationLimit} The engine currently uses household parent ordering, not a determination of paternal/maternal lineage. The cited regulation is from 2000; extending the prototype format across this date window is a scenario inference and does not establish the same order for every earlier period, Spanish-speaking country, or family circumstance.`,
-    },
+    sources: [spanishSource],
+    note: "A personal name followed by one surname from each parent. Spanish civil registration has allowed the parents to choose the order since 2000; before that the father's came first.",
   },
 ];

@@ -19,6 +19,14 @@ test("the character panel opens from the sidebar portrait and reads a person", a
       .getByRole("button", { name: "Begin", exact: true })
       .click();
   }
+  // The splash's settings dialog may either launch immediately or return the
+  // configured start to the splash, depending on the selected creation mode.
+  const splashBegin = page.locator(".splash-begin");
+  if (
+    !(await page.getByRole("dialog").count()) &&
+    (await splashBegin.isVisible())
+  )
+    await splashBegin.click();
   await expect(page.locator(".game-container canvas")).toHaveAttribute(
     "data-ready",
     "true",
@@ -35,7 +43,21 @@ test("the character panel opens from the sidebar portrait and reads a person", a
   await panel.getByRole("tab", { name: "Abilities" }).click();
   await expect(panel.locator(".stat-bars li")).toHaveCount(9);
   await panel.getByRole("tab", { name: "Beliefs" }).click();
-  await expect(panel.locator(".powers li").first()).toBeVisible();
+  await expect(panel.locator(".belief-layout")).toBeVisible();
+  await expect(panel.locator(".power-node").first()).toBeVisible();
+  expect(await panel.locator(".power-node").count()).toBeLessThanOrEqual(7);
+  await expect(panel.locator(".power-detail h1")).not.toBeEmpty();
+  const otherPower = panel.locator(".power-node").nth(1);
+  if (await otherPower.count()) {
+    const name = (await otherPower.locator("strong").textContent()) ?? "";
+    await otherPower.click();
+    await expect(panel.locator(".power-detail h1")).toHaveText(name);
+  }
+  for (const path of await panel.locator(".power-map path").all()) {
+    expect(await path.getAttribute("d")).toMatch(
+      /^M [\d.]+ [\d.]+ V [\d.]+ H [\d.]+ V [\d.]+$/,
+    );
+  }
   await page.screenshot({ path: "artifacts/character-panel-beliefs.png" });
   await panel.getByRole("tab", { name: "Household" }).click();
   await expect(panel.locator(".character-tab")).toBeVisible();

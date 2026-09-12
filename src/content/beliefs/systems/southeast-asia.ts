@@ -87,6 +87,7 @@ export const southeastAsia: readonly BeliefSystem[] = [
         wiki: "https://en.wikipedia.org/wiki/Dewi_Sri",
         domain: "growth, harvest, plenty",
         rank: "major",
+        relations: [{ kind: "aspect-of", of: "The Hyang" }],
       },
       {
         name: "*Rumaq",
@@ -116,6 +117,7 @@ export const southeastAsia: readonly BeliefSystem[] = [
         name: "The danyang",
         domain: "the village boundary and its watch",
         rank: "local",
+        relations: [{ kind: "aspect-of", of: "The Hyang" }],
       },
       {
         name: "*Taneq",
@@ -318,6 +320,7 @@ export const southeastAsia: readonly BeliefSystem[] = [
         wiki: "https://en.wikipedia.org/wiki/Brahma",
         domain: "creation, the world-maker",
         rank: "major",
+        relations: [{ kind: "child-of", of: "Vishnu" }],
       },
       {
         name: "The Buddha",
@@ -371,7 +374,7 @@ export const southeastAsia: readonly BeliefSystem[] = [
         "Hall, A History of Early Southeast Asia",
       ],
       limitation:
-        "Court and temple texts describe official practice; village faith inferred from archaeology and colonial accounts.",
+        "Court and temple texts describe official practice; village faith inferred from archaeology and colonial accounts. Brahma's birth from Vishnu, shown in Angkor's own temple reliefs, is a Vaishnava telling that sits awkwardly beside this cult's own Shiva-centered kingship.",
     },
   },
   {
@@ -396,21 +399,25 @@ export const southeastAsia: readonly BeliefSystem[] = [
         name: "Min Mahagiri",
         domain: "Mount Popa, the household's guardian, the coconut shrine",
         rank: "major",
+        relations: [{ kind: "serves", of: "Thagyamin" }],
       },
       {
         name: "Wathondaye",
         domain: "witness to deeds, the realm beneath",
         rank: "major",
+        relations: [{ kind: "serves", of: "The Buddha" }],
       },
       {
         name: "Shin Byu Shin",
         domain: "royal nat lineage, guardianship of the court",
         rank: "major",
+        relations: [{ kind: "serves", of: "Thagyamin" }],
       },
       {
         name: "The Taungbyon brothers",
         domain: "brotherhood, festival, protection from illness",
         rank: "local",
+        relations: [{ kind: "serves", of: "Thagyamin" }],
       },
       {
         name: "The river nats",
@@ -473,28 +480,33 @@ export const southeastAsia: readonly BeliefSystem[] = [
         wiki: "https://en.wikipedia.org/wiki/Indra",
         domain: "the sky, rain, the king's cosmic place",
         rank: "major",
+        relations: [{ kind: "serves", of: "The Buddha" }],
       },
       {
         name: "Phra Phrom",
         wiki: "https://en.wikipedia.org/wiki/Phra_Phrom",
         domain: "the city guardian, creation, four-faced protection",
         rank: "major",
+        relations: [{ kind: "serves", of: "The Buddha" }],
       },
       {
         name: "Lak Mueang",
         domain: "the community's own spirit guardian, the city's pillar",
         rank: "major",
+        relations: [{ kind: "aspect-of", of: "The phi" }],
       },
       {
         name: "Chao Thi",
         domain: "the home's land and safety",
         rank: "local",
+        relations: [{ kind: "aspect-of", of: "The phi" }],
       },
       {
         name: "Mae Posop",
         wiki: "https://en.wikipedia.org/wiki/Phosop",
         domain: "growth, the planter's hope, the rice spirit",
         rank: "local",
+        relations: [{ kind: "aspect-of", of: "The phi" }],
       },
       {
         name: "The ancestors",
@@ -557,6 +569,7 @@ export const southeastAsia: readonly BeliefSystem[] = [
         wiki: "https://en.wikipedia.org/wiki/Brahma",
         domain: "creation and the world's fabric",
         rank: "major",
+        relations: [{ kind: "child-of", of: "Vishnu" }],
       },
       {
         name: "The Buddha",
@@ -611,7 +624,7 @@ export const southeastAsia: readonly BeliefSystem[] = [
         "Vickers, Bali: A Paradise Created",
       ],
       limitation:
-        "Court inscriptions and temple records are abundant; village practice is known chiefly through Bali's cultural continuity and ethnography.",
+        "Court inscriptions and temple records are abundant; village practice is known chiefly through Bali's cultural continuity and ethnography. Brahma's birth from Vishnu is a Vaishnava Puranic telling, one strand among several the Majapahit court drew on.",
     },
   },
   {
@@ -631,12 +644,14 @@ export const southeastAsia: readonly BeliefSystem[] = [
         wiki: "https://en.wikipedia.org/wiki/Muhammad",
         domain: "the seal of prophecy, intercession",
         rank: "major",
+        relations: [{ kind: "serves", of: "Allah" }],
       },
       {
         name: "The Wali Songo",
         wiki: "https://en.wikipedia.org/wiki/Wali_Sanga",
         domain: "nearness to God, healing, the spread of Islam",
         rank: "major",
+        relations: [{ kind: "taught-by", of: "The Prophet Muhammad" }],
       },
       {
         name: "Batara Guru",
@@ -662,6 +677,7 @@ export const southeastAsia: readonly BeliefSystem[] = [
         wiki: "https://en.wikipedia.org/wiki/Semar",
         domain: "wisdom, comic wisdom, protection of the ordinary",
         rank: "local",
+        relations: [{ kind: "sibling-of", of: "Batara Guru" }],
       },
       {
         name: "The ancestors",
@@ -694,7 +710,7 @@ export const southeastAsia: readonly BeliefSystem[] = [
         "Ricklefs, Mysticism in Java: Ideology in Indonesia",
       ],
       limitation:
-        "Islamic texts and chronicles focus on political and legal Islam; the integration of local practice is best documented from ethnographic and colonial sources.",
+        "Islamic texts and chronicles focus on political and legal Islam; the integration of local practice is best documented from ethnographic and colonial sources. Semar's tie to Batara Guru as his brother Ismaya comes from Javanese wayang cosmology, not a single canonical scripture.",
     },
   },
   {
@@ -719,6 +735,7 @@ export const southeastAsia: readonly BeliefSystem[] = [
         wiki: "https://en.wikipedia.org/wiki/Avalokiteshvara",
         domain: "compassion, the refuge of the suffering",
         rank: "major",
+        relations: [{ kind: "serves", of: "The Buddha" }],
       },
       {
         name: "Guan Yu",
@@ -749,6 +766,7 @@ export const southeastAsia: readonly BeliefSystem[] = [
         wiki: "https://en.wikipedia.org/wiki/T%C3%A1o_Qu%C3%A2n",
         domain: "the hearth, household deeds, the yearly report to heaven",
         rank: "local",
+        relations: [{ kind: "serves", of: "The Jade Emperor" }],
       },
       {
         name: "The rice and water",
@@ -807,6 +825,7 @@ export const southeastAsia: readonly BeliefSystem[] = [
         name: "Jata",
         domain: "water, the underworld, fertility, travel to the sea",
         rank: "major",
+        relations: [{ kind: "consort-of", of: "Mahatala" }],
       },
       {
         name: "The rice",
@@ -854,7 +873,7 @@ export const southeastAsia: readonly BeliefSystem[] = [
         "Sidwell, The Austroasiatic Languages",
       ],
       limitation:
-        "Few historical sources exist for upland practice generally; Mahatala, Jata, and Y'wa are drawn from two well-studied groups and stand in here for a pattern that varies in name and detail across dozens of highland peoples. *Bri is a Proto-Austroasiatic word for forest, reconstructed from Mon-Khmer and Munda languages spoken across the mainland uplands generally; it is not a word the Ngaju Dayak (Austronesian speakers) or the Karen (Tibeto-Burman speakers) named here ever used themselves, and stands in for the wider Austroasiatic-speaking upland pattern this system otherwise generalizes from.",
+        "Few historical sources exist for upland practice generally; Mahatala, Jata, and Y'wa are drawn from two well-studied groups and stand in here for a pattern that varies in name and detail across dozens of highland peoples. *Bri is a Proto-Austroasiatic word for forest, reconstructed from Mon-Khmer and Munda languages spoken across the mainland uplands generally; it is not a word the Ngaju Dayak (Austronesian speakers) or the Karen (Tibeto-Burman speakers) named here ever used themselves, and stands in for the wider Austroasiatic-speaking upland pattern this system otherwise generalizes from. Mahatala and Jata are paired as upperworld and underworld in Ngaju cosmology; some tellings unite them as a single totality rather than a married couple.",
     },
   },
   {
@@ -884,12 +903,20 @@ export const southeastAsia: readonly BeliefSystem[] = [
         name: "Apolaki",
         domain: "the sun, war, valor",
         rank: "major",
+        relations: [
+          { kind: "child-of", of: "Bathala" },
+          { kind: "sibling-of", of: "Mayari" },
+        ],
       },
       {
         name: "Mayari",
         wiki: "https://en.wikipedia.org/wiki/Mayari",
         domain: "the moon, night, one-eyed justice",
         rank: "major",
+        relations: [
+          { kind: "child-of", of: "Bathala" },
+          { kind: "sibling-of", of: "Tala" },
+        ],
       },
       {
         name: "Maria Makiling",
@@ -901,6 +928,7 @@ export const southeastAsia: readonly BeliefSystem[] = [
         name: "Tala",
         domain: "the night sky, guidance for travelers and sailors",
         rank: "local",
+        relations: [{ kind: "child-of", of: "Bathala" }],
       },
       {
         name: "The house",
@@ -937,7 +965,7 @@ export const southeastAsia: readonly BeliefSystem[] = [
         "Scott, Barangay: Sixteenth-Century Philippine Culture and Society",
       ],
       limitation:
-        "Spanish friars' accounts are hostile and sparse, and the pantheon they record varies by region and chronicler; the fullest picture comes from 19th-century ethnography and modern practice.",
+        "Spanish friars' accounts are hostile and sparse, and the pantheon they record varies by region and chronicler; the fullest picture comes from 19th-century ethnography and modern practice. The sibling genealogy uniting Apolaki, Mayari, and Tala as Bathala's children follows a specific compiled Tagalog telling, not one attested uniformly across every colonial or regional source.",
     },
   },
   {
@@ -957,6 +985,7 @@ export const southeastAsia: readonly BeliefSystem[] = [
         wiki: "https://en.wikipedia.org/wiki/Muhammad",
         domain: "the seal of prophecy, intercession",
         rank: "major",
+        relations: [{ kind: "serves", of: "Allah" }],
       },
       {
         name: "Patotoqe",
@@ -983,6 +1012,7 @@ export const southeastAsia: readonly BeliefSystem[] = [
         domain:
           "royal ancestry, the descent from the sky, founding of dynasties",
         rank: "local",
+        relations: [{ kind: "child-of", of: "Patotoqe" }],
       },
       {
         name: "The house guardian",
@@ -998,6 +1028,7 @@ export const southeastAsia: readonly BeliefSystem[] = [
         name: "The saints",
         domain: "healing, protection, nearness to God",
         rank: "local",
+        relations: [{ kind: "serves", of: "Allah" }],
       },
     ],
     practice: [
@@ -1021,7 +1052,7 @@ export const southeastAsia: readonly BeliefSystem[] = [
         "Pelras, The Bugis",
       ],
       limitation:
-        "Court and trade records focus on sultanates and spice commerce; the Bugis and Moluccan material is best attested from the oral epic and clan tradition, best recorded in the modern period though claiming much older roots.",
+        "Court and trade records focus on sultanates and spice commerce; the Bugis and Moluccan material is best attested from the oral epic and clan tradition, best recorded in the modern period though claiming much older roots. We Nyiliq Timoq's descent as Patotoqe's ordained act is one reading of the La Galigo cycle's account of the first rulers' arrival from the upper world.",
     },
   },
   {
@@ -1040,6 +1071,7 @@ export const southeastAsia: readonly BeliefSystem[] = [
         wiki: "https://en.wikipedia.org/wiki/Ho_Chi_Minh",
         domain: "revolutionary founding, moral example, the people's father",
         rank: "major",
+        relations: [{ kind: "serves", of: "The nation" }],
       },
       {
         name: "The great tradition",
@@ -1061,6 +1093,7 @@ export const southeastAsia: readonly BeliefSystem[] = [
         wiki: "https://en.wikipedia.org/wiki/Jos%C3%A9_Rizal",
         domain: "martyrdom, the Filipino awakening, folk sainthood",
         rank: "local",
+        relations: [{ kind: "serves", of: "The nation" }],
       },
       {
         name: "The market",

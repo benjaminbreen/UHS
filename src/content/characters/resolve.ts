@@ -1,4 +1,5 @@
 import { inventedNameNote } from "./invented-name";
+import { random } from "../../core/random";
 import { validateCharacterContent } from "./validate";
 import type { WorldSetting } from "../geography/types";
 import type {
@@ -11,6 +12,7 @@ import type {
   SocietyCapability,
 } from "./context-types";
 import { communityProfiles, appearanceKits } from "./profiles/communities";
+import { populations } from "./profiles/populations";
 import { nameKits } from "./name-kits";
 import { nameTraditions } from "./profiles/traditions.generated";
 import { nameRegions } from "./profiles/name-regions.generated";
@@ -38,6 +40,32 @@ export type CharacterContext = {
   notes: string[];
 };
 
+/** The plural society covering this place and date, if one is authored. */
+export function populationFor(s: WorldSetting) {
+  return populations
+    .filter((p) => matchesCharacterScope(p.scope, s, "*"))
+    .sort((a, b) => b.priority - a.priority || a.id.localeCompare(b.id))[0];
+}
+/**
+ * Which community one person belongs to. Where a population is authored the
+ * draw is per person, so a settlement holds the mix rather than one group.
+ * An explicit scenario choice still decides the whole place.
+ */
+export function characterCommunity(
+  s: WorldSetting,
+  seed: string,
+  id: string,
+): string {
+  if (s.characterCommunity) return s.characterCommunity;
+  const population = populationFor(s);
+  if (!population) return communityFor(s);
+  const total = population.groups.reduce((n, g) => n + g.share, 0);
+  let roll = random(seed, "character-v1", id, "community") * total;
+  return (
+    population.groups.find((g) => (roll -= g.share) < 0) ??
+    population.groups[population.groups.length - 1]
+  ).community;
+}
 /** Explicit choices win. Defaults describe the selected scenario, not all inhabitants. */
 export function communityFor(s: WorldSetting): string {
   if (s.characterCommunity) return s.characterCommunity;
@@ -77,12 +105,7 @@ const fallbackAppearance: AppearanceKit = {
   hairColors: ["#292823", "#493627"],
   hairStyles: ["cropped", "long", "curls"],
   garments: ["wrap"],
-  evidence: {
-    status: "fictional",
-    claim: "Varied schematic appearance where no scoped profile exists.",
-    sources: [],
-    limitation: "Not a reconstruction of a particular population or its dress.",
-  },
+  sources: [],
 };
 const fallbackProfile: CommunityProfile = {
   id: "unresearched",
@@ -92,13 +115,8 @@ const fallbackProfile: CommunityProfile = {
   appearance: "unresearched",
   livelihoods: ["gatherer", "craftsperson", "traveler"],
   allowedItems: ["water", "fruit", "wood", "tool"],
-  evidence: {
-    status: "fictional",
-    claim: "Minimal playable scenario without unrelated cultural defaults.",
-    sources: [],
-    limitation:
-      "Activities and generic items are explicit gap-fillers; local names, materials and institutions need research.",
-  },
+  sources: [],
+  note: "No researched community covers this place and date yet.",
 };
 /** What this society could do here, this year. Overrides beat the zone date. */
 export function capabilitiesFor(s: WorldSetting): Set<SocietyCapability> {
@@ -128,23 +146,33 @@ export function capabilitiesFor(s: WorldSetting): Set<SocietyCapability> {
   return available;
 }
 const traditionsById = new Map(nameTraditions.map((t) => [t.id, t]));
-const boxArea = (b: readonly number[]) => (b[2] - b[0]) * (b[3] - b[1]);
-/** The smallest box containing the point wins; a tie falls to the earlier id. */
+/**
+ * The smallest box containing the point wins; a tie falls to the earlier id.
+ * regionAt sorts the same array for the map label, so the two must agree.
+ */
+export const regionsByArea = [...nameRegions].sort(
+  (a, b) =>
+    (a.bounds[2] - a.bounds[0]) * (a.bounds[3] - a.bounds[1]) -
+      (b.bounds[2] - b.bounds[0]) * (b.bounds[3] - b.bounds[1]) ||
+    a.id.localeCompare(b.id),
+);
 export function nameTraditionsFor(s: WorldSetting) {
-  for (const region of [...nameRegions].sort(
-    (a, b) => boxArea(a.bounds) - boxArea(b.bounds) || a.id.localeCompare(b.id),
-  )) {
+  for (const region of regionsByArea) {
     const [w, so, e, n] = region.bounds;
     if (s.lon < w || s.lon > e || s.lat < so || s.lat > n) continue;
-    const window = region.windows.find(
-      (v) => s.year >= v.years[0] && s.year < v.years[1],
-    );
-    if (!window) continue;
-    const options = window.options.flatMap((o) => {
-      const tradition = traditionsById.get(o.tradition);
-      return tradition ? [{ tradition, weight: o.weight }] : [];
-    });
-    if (options.length) return { region: region.id, options };
+    // Region windows run wider than the traditions they offer, so a window is
+    // not a date: drop options whose own attested era excludes this year, and
+    // keep looking outward if that empties the window.
+    for (const window of region.windows) {
+      if (!(s.year >= window.years[0] && s.year < window.years[1])) continue;
+      const options = window.options.flatMap((o) => {
+        const tradition = traditionsById.get(o.tradition);
+        if (!tradition) return [];
+        const [from, to] = tradition.era;
+        return s.year >= from && s.year < to ? [{ tradition, weight: o.weight }] : [];
+      });
+      if (options.length) return { region: region.id, options };
+    }
   }
   return undefined;
 }
@@ -165,8 +193,10 @@ function tierApplies(
     return urban && capabilities.has("wage_labor") && s.year >= 1780;
   return s.year >= 1900 && capabilities.has("wage_labor");
 }
-export function resolveCharacterContext(s: WorldSetting): CharacterContext {
-  const community = communityFor(s);
+export function resolveCharacterContext(
+  s: WorldSetting,
+  community = communityFor(s),
+): CharacterContext {
   const candidates = communityProfiles
     .filter((p) => matchesCharacterScope(p.scope, s, community))
     .sort((a, b) => b.priority - a.priority || a.id.localeCompare(b.id));
@@ -195,7 +225,21 @@ export function resolveCharacterContext(s: WorldSetting): CharacterContext {
       `Ambiguous name kits: ${scopedNames[0].id}, ${scopedNames[1].id}`,
     );
   const names = scopedNames[0];
-  const traditions = names ? undefined : nameTraditionsFor(s);
+  // A hand-written kit is the most specific answer; a community's own
+  // traditions beat the region's; the region table is the fallback.
+  const profileTraditions = profile.nameTraditions?.flatMap((o) => {
+    const tradition = traditionsById.get(o.tradition);
+    if (!tradition) return [];
+    const [from, to] = tradition.era;
+    return s.year >= from && s.year < to
+      ? [{ tradition, weight: o.weight }]
+      : [];
+  });
+  const traditions = names
+    ? undefined
+    : profileTraditions?.length
+      ? { region: profile.id, options: profileTraditions }
+      : nameTraditionsFor(s);
   const capabilities = capabilitiesFor(s);
   const needsMet = (needs: Livelihood["needs"]) =>
     (needs ?? []).every((need) =>
@@ -242,13 +286,9 @@ export function resolveCharacterContext(s: WorldSetting): CharacterContext {
       ...tiered,
     ],
     notes: [
-      profile.evidence.limitation,
-      appearance.evidence.limitation,
-      ...(names
-        ? [names.evidence.limitation]
-        : traditions
-          ? []
-          : [inventedNameNote]),
-    ],
+      profile.note,
+      appearance.note,
+      ...(names ? [names.note] : traditions ? [] : [inventedNameNote]),
+    ].filter((n): n is string => !!n),
   };
 }

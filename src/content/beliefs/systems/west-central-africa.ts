@@ -182,6 +182,7 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
         name: "Nkuba",
         domain: "thunder, divine punishment and power",
         rank: "local",
+        relations: [{ kind: "serves", of: "Nzambi a Mpungu" }],
       },
       {
         name: "The royal regalia",
@@ -241,11 +242,13 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
         wiki: "https://en.wikipedia.org/wiki/Muhammad",
         domain: "the messenger, intercession",
         rank: "major",
+        relations: [{ kind: "serves", of: "Allah" }],
       },
       {
         name: "Saints and holy men",
         domain: "blessing, healing, protection",
         rank: "major",
+        relations: [{ kind: "serves", of: "Allah" }],
       },
       {
         name: "The Qur'an",
@@ -320,6 +323,7 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
         wiki: "https://en.wikipedia.org/wiki/Orunmila",
         domain: "divination, destiny, fate",
         rank: "major",
+        relations: [{ kind: "serves", of: "Olorun" }],
       },
       {
         name: "Shango",
@@ -332,6 +336,7 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
         wiki: "https://en.wikipedia.org/wiki/Oshun",
         domain: "rivers, fertility, beauty",
         rank: "major",
+        relations: [{ kind: "consort-of", of: "Shango" }],
       },
       {
         name: "Yemoja",
@@ -349,6 +354,7 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
         wiki: "https://en.wikipedia.org/wiki/Eshu",
         domain: "crossroads, boundaries, trickster",
         rank: "local",
+        relations: [{ kind: "serves", of: "Orunmila" }],
       },
       {
         name: "Iya Mapo",
@@ -425,6 +431,7 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
         name: "The chi",
         domain: "the personal guardian spirit",
         rank: "local",
+        relations: [{ kind: "aspect-of", of: "Chukwu" }],
       },
       {
         name: "The umuada",
@@ -491,11 +498,13 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
         name: "Bia",
         domain: "the river Bia, wind, spirits of nature",
         rank: "major",
+        relations: [{ kind: "sibling-of", of: "Tano" }],
       },
       {
         name: "Okra",
         domain: "the personal guardian soul",
         rank: "major",
+        relations: [{ kind: "aspect-of", of: "Onyankopon" }],
       },
       {
         name: "Nananom",
@@ -553,11 +562,16 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
         wiki: "https://en.wikipedia.org/wiki/Nommo",
         domain: "water, fertility, speech, the word",
         rank: "major",
+        relations: [{ kind: "child-of", of: "Amma" }],
       },
       {
         name: "Faro",
         domain: "the rain and the river Niger",
         rank: "major",
+        relations: [
+          { kind: "child-of", of: "Amma" },
+          { kind: "rival-of", of: "Pemba" },
+        ],
       },
       {
         name: "Nyale",
@@ -606,7 +620,7 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
         "Levtzion, Islam in West Africa",
       ],
       limitation:
-        "Islamic influence complicated these systems from around 1500 onward. This entry presents the pre-Islamic foundation as inferred from colonial-era accounts.",
+        "Islamic influence complicated these systems from around 1500 onward. This entry presents the pre-Islamic foundation as inferred from colonial-era accounts. The rivalry drawn between Faro and Pemba belongs specifically to Bamana (Mande) cosmology, not Dogon tradition proper, and is folded into this composite entry alongside Amma.",
     },
   },
   {
@@ -698,11 +712,13 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
         wiki: "https://en.wikipedia.org/wiki/Muhammad",
         domain: "the messenger, intercession",
         rank: "major",
+        relations: [{ kind: "serves", of: "Allah" }],
       },
       {
         name: "Angels",
         domain: "the divine will, protection",
         rank: "major",
+        relations: [{ kind: "serves", of: "Allah" }],
       },
       {
         name: "The Qur'an",
@@ -714,6 +730,7 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
         name: "Saints",
         domain: "spiritual power, blessing",
         rank: "major",
+        relations: [{ kind: "serves", of: "Allah" }],
       },
       {
         name: "The jinn",
@@ -771,11 +788,13 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
         wiki: "https://en.wikipedia.org/wiki/Legba",
         domain: "crossroads, boundaries, trickster and opener of the way",
         rank: "major",
+        relations: [{ kind: "child-of", of: "Mawu-Lisa" }],
       },
       {
         name: "Gu",
         domain: "war, iron, metalwork",
         rank: "major",
+        relations: [{ kind: "child-of", of: "Mawu-Lisa" }],
       },
       {
         name: "Aja",
@@ -792,6 +811,7 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
         name: "Agbe",
         domain: "wealth and the sea",
         rank: "major",
+        relations: [{ kind: "child-of", of: "Mawu-Lisa" }],
       },
       {
         name: "Tohosou",
@@ -808,6 +828,7 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
         wiki: "https://en.wikipedia.org/wiki/Hevioso",
         domain: "thunder and the sky",
         rank: "local",
+        relations: [{ kind: "child-of", of: "Mawu-Lisa" }],
       },
     ],
     practice: [
@@ -850,6 +871,7 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
         wiki: "https://en.wikipedia.org/wiki/Nkisi",
         domain: "spirits bound in objects, healing and justice",
         rank: "major",
+        relations: [{ kind: "serves", of: "Nzambi" }],
       },
       {
         name: "Mbumba",
@@ -860,6 +882,7 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
         name: "Tombe",
         domain: "lightning and divine wrath",
         rank: "major",
+        relations: [{ kind: "serves", of: "Nzambi" }],
       },
       {
         name: "Kalunga",
@@ -928,6 +951,7 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
         wiki: "https://en.wikipedia.org/wiki/Simbi",
         domain: "spirits of water, stone, and forest place, healing",
         rank: "major",
+        relations: [{ kind: "serves", of: "Nzambi a Mpungu" }],
       },
       {
         name: "The forest",
@@ -938,12 +962,14 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
         name: "Lightning",
         domain: "divine power and punishment",
         rank: "major",
+        relations: [{ kind: "serves", of: "Nzambi a Mpungu" }],
       },
       {
         name: "The bisimbi",
         wiki: "https://en.wikipedia.org/wiki/Simbi",
         domain: "the spirits of particular streams and springs, initiation",
         rank: "local",
+        relations: [{ kind: "aspect-of", of: "The simbi" }],
       },
       {
         name: "The nkisi",
@@ -1088,6 +1114,7 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
         wiki: "https://en.wikipedia.org/wiki/Jesus",
         domain: "redemption, mission teaching",
         rank: "major",
+        relations: [{ kind: "child-of", of: "God" }],
       },
       {
         name: "The ancestors",
@@ -1160,17 +1187,23 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
         wiki: "https://en.wikipedia.org/wiki/Jesus",
         domain: "redemption, sacrifice, incarnate god",
         rank: "major",
+        relations: [
+          { kind: "child-of", of: "God" },
+          { kind: "child-of", of: "The Virgin Mary" },
+        ],
       },
       {
         name: "The Holy Spirit",
         wiki: "https://en.wikipedia.org/wiki/Holy_Spirit",
         domain: "healing, prophecy, indwelling power",
         rank: "major",
+        relations: [{ kind: "aspect-of", of: "God" }],
       },
       {
         name: "Angels",
         domain: "divine servants and protectors",
         rank: "major",
+        relations: [{ kind: "serves", of: "God" }],
       },
       {
         name: "The Virgin Mary",
@@ -1182,6 +1215,7 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
         name: "Saints",
         domain: "powerful dead, intercession",
         rank: "local",
+        relations: [{ kind: "serves", of: "God" }],
       },
       {
         name: "The ancestors",

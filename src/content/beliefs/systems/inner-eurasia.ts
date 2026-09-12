@@ -103,13 +103,14 @@ export const innerEurasia: readonly BeliefSystem[] = [
         gloss: "Proto-Indo-European *h₂éwsōs, 'dawn'",
         domain: "the dawn, the opening of the day",
         rank: "major",
-        relation: { kind: "child-of", of: "*Dyēus Ph₂tḗr" },
+        relations: [{ kind: "child-of", of: "*Dyēus Ph₂tḗr" }],
       },
       {
         name: "*Seh₂wl̥",
         gloss: "Proto-Indo-European *seh₂wl̥ (nom. *sóh₂wl̥), 'sun'",
         domain: "the sun's journey across the sky",
         rank: "major",
+        relations: [{ kind: "child-of", of: "*Dyēus Ph₂tḗr" }],
       },
       {
         name: "The ancestors",
@@ -165,7 +166,7 @@ export const innerEurasia: readonly BeliefSystem[] = [
         "West, Indo-European Poetry and Myth",
       ],
       limitation:
-        "Every starred form here is a linguistic reconstruction, not a name anyone on the Bronze Age steppe is recorded as speaking; each is inferred backward from cognate vocabulary in daughter traditions attested a thousand years or more later, and a reconstructed word for 'horse' or 'water' is not itself proof that the community personified it as a power.",
+        "Every starred form here is a linguistic reconstruction, not a name anyone on the Bronze Age steppe is recorded as speaking; each is inferred backward from cognate vocabulary in daughter traditions attested a thousand years or more later, and a reconstructed word for 'horse' or 'water' is not itself proof that the community personified it as a power. The dawn and sun as daughters of the sky father follow comparative Indo-European poetics (West), not any single attested genealogy.",
     },
   },
   {
@@ -188,11 +189,13 @@ export const innerEurasia: readonly BeliefSystem[] = [
         name: "Psykhoguashe",
         domain: "rivers, the sea, fertility",
         rank: "major",
+        relations: [{ kind: "consort-of", of: "Tha" }],
       },
       {
         name: "Mezitha",
         domain: "the forest, game, the hunt",
         rank: "major",
+        relations: [{ kind: "child-of", of: "Tha" }],
       },
       {
         name: "The ancestors",
@@ -213,6 +216,7 @@ export const innerEurasia: readonly BeliefSystem[] = [
         name: "Sozeresh",
         domain: "agriculture, the harvest, fertility of the field",
         rank: "local",
+        relations: [{ kind: "child-of", of: "Tha" }],
       },
     ],
     practice: [
@@ -234,7 +238,7 @@ export const innerEurasia: readonly BeliefSystem[] = [
         "Chirikba, 'Between Christianity and Islam: Heathen Amulets in the Caucasus'",
       ],
       limitation:
-        "This pantheon is best recorded for Circassian-speaking peoples; neighboring Caucasus groups had cognate but distinct names, and this entry flattens that variation across a wide span of mountains and centuries.",
+        "This pantheon is best recorded for Circassian-speaking peoples; neighboring Caucasus groups had cognate but distinct names, and this entry flattens that variation across a wide span of mountains and centuries. The family ties drawn here between Tha and Psykhoguashe, Mezitha, and Sozeresh follow composite Nart-saga tellings that vary between recorded versions, not one fixed genealogy.",
     },
   },
   {
@@ -329,6 +333,7 @@ export const innerEurasia: readonly BeliefSystem[] = [
         name: "Api",
         domain: "the earth, crops, fertility",
         rank: "major",
+        relations: [{ kind: "consort-of", of: "Papaios" }],
       },
       { name: "Papaios", domain: "ancestor of all Scythians", rank: "major" },
       {
@@ -345,6 +350,7 @@ export const innerEurasia: readonly BeliefSystem[] = [
         name: "The ancestors",
         domain: "the royal and warrior dead",
         rank: "major",
+        relations: [{ kind: "child-of", of: "Papaios" }],
       },
       {
         name: "Ares",
@@ -395,7 +401,10 @@ export const innerEurasia: readonly BeliefSystem[] = [
         wiki: "https://en.wikipedia.org/wiki/Umay",
         domain: "mothers, children, fertility",
         rank: "major",
-        relation: { kind: "consort-of", of: "Tengri" },
+        relations: [
+          { kind: "consort-of", of: "Tengri" },
+          { kind: "aspect-of", of: "Etügen" },
+        ],
       },
       {
         name: "Etügen",
@@ -470,6 +479,7 @@ export const innerEurasia: readonly BeliefSystem[] = [
         wiki: "https://en.wikipedia.org/wiki/Etugen",
         domain: "the land, prosperity, the camps",
         rank: "major",
+        relations: [{ kind: "consort-of", of: "Tengri" }],
       },
       {
         name: "The ancestors",
@@ -538,7 +548,7 @@ export const innerEurasia: readonly BeliefSystem[] = [
         wiki: "https://en.wikipedia.org/wiki/Umay",
         domain: "the land, fertility, the tent",
         rank: "major",
-        relation: { kind: "consort-of", of: "Tengri" },
+        relations: [{ kind: "consort-of", of: "Tengri" }],
       },
       {
         name: "Yer-Sub",
@@ -605,17 +615,20 @@ export const innerEurasia: readonly BeliefSystem[] = [
         name: "The good spirits",
         domain: "health, righteousness, increase",
         rank: "major",
+        relations: [{ kind: "serves", of: "Ahura Mazda" }],
       },
       {
         name: "Ahriman",
         wiki: "https://en.wikipedia.org/wiki/Angra_Mainyu",
         domain: "darkness, deceit, disease",
         rank: "major",
+        relations: [{ kind: "rival-of", of: "Ahura Mazda" }],
       },
       {
         name: "Fire",
         domain: "purification, the sacred element",
         rank: "local",
+        relations: [{ kind: "child-of", of: "Ahura Mazda" }],
       },
       {
         name: "Water",
@@ -666,12 +679,14 @@ export const innerEurasia: readonly BeliefSystem[] = [
         name: "Sipe Gyalmo",
         domain: "protection, fate, the Bon teachings",
         rank: "major",
+        relations: [{ kind: "serves", of: "Tonpa Shenrab" }],
       },
       {
         name: "Tonpa Shenrab",
         wiki: "https://en.wikipedia.org/wiki/Tonpa_Shenrab",
         domain: "the Bon teachings, the founder's wisdom",
         rank: "major",
+        relations: [{ kind: "aspect-of", of: "Shenlha Okar" }],
       },
       {
         name: "Sa Yi Lha Mo",
@@ -720,7 +735,7 @@ export const innerEurasia: readonly BeliefSystem[] = [
         "Samuel, Civilized Shamans",
       ],
       limitation:
-        "Bon texts were recorded late and often intermixed with Buddhist material; early Bon is reconstructed from critique by Buddhist sources.",
+        "Bon texts were recorded late and often intermixed with Buddhist material; early Bon is reconstructed from critique by Buddhist sources. Tonpa Shenrab as an emanation of Shenlha Okar reflects later systematized Bon cosmology rather than a single founding account.",
     },
   },
   {
@@ -738,7 +753,7 @@ export const innerEurasia: readonly BeliefSystem[] = [
         name: "Kaltash-Ekwa",
         domain: "the earth, birth, fate",
         rank: "major",
-        relation: { kind: "consort-of", of: "Numi-Torum" },
+        relations: [{ kind: "consort-of", of: "Numi-Torum" }],
       },
       {
         name: "Ulgen",
@@ -751,6 +766,10 @@ export const innerEurasia: readonly BeliefSystem[] = [
         wiki: "https://en.wikipedia.org/wiki/Erlik",
         domain: "the underworld, death, judgment",
         rank: "major",
+        relations: [
+          { kind: "sibling-of", of: "Ulgen" },
+          { kind: "rival-of", of: "Ulgen" },
+        ],
       },
       {
         name: "The ancestors",
@@ -794,7 +813,7 @@ export const innerEurasia: readonly BeliefSystem[] = [
         "Humphrey, Shamans and Elders",
       ],
       limitation:
-        "This entry merges pantheons from distinct language families (Ob-Ugric, Turkic, Mongolic, Yakut) under one Siberian umbrella; no single community held all of these names at once.",
+        "This entry merges pantheons from distinct language families (Ob-Ugric, Turkic, Mongolic, Yakut) under one Siberian umbrella; no single community held all of these names at once. The brotherhood and rivalry given here for Ulgen and Erlik follow one strand of Altai tradition (Anokhin); other tellings treat them as independent rather than kin.",
     },
   },
   {
@@ -814,18 +833,21 @@ export const innerEurasia: readonly BeliefSystem[] = [
         wiki: "https://en.wikipedia.org/wiki/Muhammad",
         domain: "the messenger, intercession",
         rank: "major",
+        relations: [{ kind: "serves", of: "Allah" }],
       },
       {
         name: "Khoja Ahmad Yasawi",
         wiki: "https://en.wikipedia.org/wiki/Ahmad_Yasawi",
         domain: "sainthood, the Yasawi order, intercession",
         rank: "major",
+        relations: [{ kind: "taught-by", of: "Muhammad" }],
       },
       {
         name: "Khizr",
         wiki: "https://en.wikipedia.org/wiki/Khidr",
         domain: "hidden guidance, water, the traveler's protector",
         rank: "major",
+        relations: [{ kind: "serves", of: "Allah" }],
       },
       {
         name: "The ancestors",
@@ -883,19 +905,21 @@ export const innerEurasia: readonly BeliefSystem[] = [
         wiki: "https://en.wikipedia.org/wiki/Etugen",
         domain: "the land and its fertility",
         rank: "major",
-        relation: { kind: "consort-of", of: "Tengri" },
+        relations: [{ kind: "consort-of", of: "Tengri" }],
       },
       {
         name: "Umai",
         wiki: "https://en.wikipedia.org/wiki/Umay",
         domain: "children, the ger's fertility, protection",
         rank: "major",
+        relations: [{ kind: "aspect-of", of: "Etügen" }],
       },
       {
         name: "Erlik",
         wiki: "https://en.wikipedia.org/wiki/Erlik",
         domain: "the underworld, judgment of the dead",
         rank: "major",
+        relations: [{ kind: "rival-of", of: "Tengri" }],
       },
       {
         name: "The ancestors",
@@ -963,12 +987,14 @@ export const innerEurasia: readonly BeliefSystem[] = [
         wiki: "https://en.wikipedia.org/wiki/Saint_Nicholas",
         domain: "travelers, protection, the harvest",
         rank: "major",
+        relations: [{ kind: "serves", of: "God" }],
       },
       {
         name: "Saint George",
         wiki: "https://en.wikipedia.org/wiki/Saint_George",
         domain: "herds, warriors, protection of cattle",
         rank: "major",
+        relations: [{ kind: "serves", of: "God" }],
       },
       {
         name: "The spirits of the land",
@@ -1115,6 +1141,7 @@ export const innerEurasia: readonly BeliefSystem[] = [
         wiki: "https://en.wikipedia.org/wiki/Etugen",
         domain: "the land, fertility, camps",
         rank: "major",
+        relations: [{ kind: "consort-of", of: "Tengri" }],
       },
       {
         name: "Fire",
@@ -1243,11 +1270,16 @@ export const innerEurasia: readonly BeliefSystem[] = [
         name: "Kugu Jumo",
         domain: "the sky, the world's order",
         rank: "major",
+        relations: [{ kind: "aspect-of", of: "Inmar" }],
       },
       {
         name: "Keremet",
         domain: "misfortune, sacrifice, the wild grove",
         rank: "major",
+        relations: [
+          { kind: "sibling-of", of: "Inmar" },
+          { kind: "rival-of", of: "Inmar" },
+        ],
       },
       {
         name: "Vu-murt",
@@ -1299,7 +1331,7 @@ export const innerEurasia: readonly BeliefSystem[] = [
         "Vasilyev, Mari Native Religion",
       ],
       limitation:
-        "Full written record is nineteenth-century and later, from outsiders; practice by 600 CE certainly differed and blended increasingly with incoming Islam and Orthodoxy over this span.",
+        "Full written record is nineteenth-century and later, from outsiders; practice by 600 CE certainly differed and blended increasingly with incoming Islam and Orthodoxy over this span. Kugu Jumo is treated here as the Mari name for the same high sky god as the Udmurt Inmar, and Keremet's kinship with Inmar follows the Udmurt-Mari dualist myth of a rebellious younger brother; both are interpretive rather than plain fact for every community this entry covers.",
     },
   },
 ];

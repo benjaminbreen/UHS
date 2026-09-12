@@ -24,3 +24,6 @@ artifacts/audio/*.wav
 
 # Third-party tilesets kept locally for reference; extracted crops are committed.
 tilesets for experimenting/
+
+# Stray editor backups
+*.bak

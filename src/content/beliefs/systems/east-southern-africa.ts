@@ -86,6 +86,7 @@ export const eastSouthernAfrica: readonly BeliefSystem[] = [
         name: "Gǁawama",
         domain: "the earth, ill fortune, the setting sun",
         rank: "major",
+        relations: [{ kind: "rival-of", of: "Hishe" }],
       },
       {
         name: "The eland",
@@ -415,18 +416,20 @@ export const eastSouthernAfrica: readonly BeliefSystem[] = [
         wiki: "https://en.wikipedia.org/wiki/Mary,_mother_of_Jesus",
         domain: "healing, childbirth, mercy",
         rank: "major",
-        relation: { kind: "aspect-of", of: "Christ the King" },
+        relations: [{ kind: "aspect-of", of: "Christ the King" }],
       },
       {
         name: "Saint George",
         wiki: "https://en.wikipedia.org/wiki/Saint_George",
         domain: "war, kingship, protection",
         rank: "major",
+        relations: [{ kind: "serves", of: "Christ the King" }],
       },
       {
         name: "The saints of the monastery",
         domain: "scholarship, prayer, intercession",
         rank: "major",
+        relations: [{ kind: "serves", of: "Christ the King" }],
       },
       {
         name: "The holy water of this church",
@@ -484,6 +487,7 @@ export const eastSouthernAfrica: readonly BeliefSystem[] = [
         wiki: "https://en.wikipedia.org/wiki/Muhammad",
         domain: "guidance, protection, intercession",
         rank: "major",
+        relations: [{ kind: "serves", of: "Allah" }],
       },
       {
         name: "The jinn of this shore",
@@ -501,6 +505,7 @@ export const eastSouthernAfrica: readonly BeliefSystem[] = [
           "Proto-Bantu *-dima/*mudimu, a reconstructed term for an ancestral or lineage spirit; the same root underlies the mizimu of the well, above.",
         domain: "trade success, family honor",
         rank: "local",
+        relations: [{ kind: "aspect-of", of: "The mizimu of the town" }],
       },
       {
         name: "The shrine of Fumo Liyongo",
@@ -560,7 +565,7 @@ export const eastSouthernAfrica: readonly BeliefSystem[] = [
         wiki: "https://en.wikipedia.org/wiki/Nehanda_Nyakasikana",
         domain: "a named mhondoro, rain, the land's fertility",
         rank: "major",
-        relation: { kind: "aspect-of", of: "The mhondoro" },
+        relations: [{ kind: "aspect-of", of: "The mhondoro" }],
       },
       {
         name: "The sacred rock and cave",
@@ -693,6 +698,7 @@ export const eastSouthernAfrica: readonly BeliefSystem[] = [
         name: "uMvelinqangi",
         domain: "the sky, thunder, the first to emerge",
         rank: "major",
+        relations: [{ kind: "aspect-of", of: "uNkulunkulu" }],
       },
       {
         name: "The royal ancestors",
@@ -708,7 +714,7 @@ export const eastSouthernAfrica: readonly BeliefSystem[] = [
         name: "Inkosazana",
         domain: "the princess spirit of the rainbow and rain rites",
         rank: "local",
-        relation: { kind: "aspect-of", of: "Nomkhubulwane" },
+        relations: [{ kind: "aspect-of", of: "Nomkhubulwane" }],
       },
       {
         name: "The amadlozi",
@@ -746,7 +752,7 @@ export const eastSouthernAfrica: readonly BeliefSystem[] = [
         "Hammond-Tooke, ed., The Bantu-Speaking Peoples of Southern Africa",
       ],
       limitation:
-        "Direct evidence for the pre-colonial period is limited. These names are recorded in 19th- and 20th-century ethnography and projected back via linguistic continuity; earlier forms of the same figures may have differed.",
+        "Direct evidence for the pre-colonial period is limited. These names are recorded in 19th- and 20th-century ethnography and projected back via linguistic continuity; earlier forms of the same figures may have differed. Some ethnographers treat uMvelinqangi and uNkulunkulu as the same figure under different names rather than as sky-aspect and source; the aspect-of relation drawn here follows the reading that keeps them distinct.",
     },
   },
   {
@@ -766,6 +772,7 @@ export const eastSouthernAfrica: readonly BeliefSystem[] = [
           "Proto-Bantu *-dima/*mudimu, a reconstructed term for an ancestral or lineage spirit; the attested Zulu amadlozi, below, names the household form of the same idea.",
         domain: "battle guidance, kingship, victory",
         rank: "major",
+        relations: [{ kind: "aspect-of", of: "The amadlozi" }],
       },
       {
         name: "Nomkhubulwane",
@@ -827,12 +834,13 @@ export const eastSouthernAfrica: readonly BeliefSystem[] = [
         name: "Engai Nanyokie",
         domain: "the red, wrathful sky, drought, anger",
         rank: "major",
-        relation: { kind: "aspect-of", of: "Engai Narok" },
+        relations: [{ kind: "aspect-of", of: "Engai Narok" }],
       },
       {
         name: "Naiterukop",
         domain: "the first man, cattle, the ancestor of the age-sets",
         rank: "major",
+        relations: [{ kind: "child-of", of: "Engai Narok" }],
       },
       {
         name: "The cattle themselves",
@@ -899,7 +907,7 @@ export const eastSouthernAfrica: readonly BeliefSystem[] = [
         name: "Andriamanitra",
         domain: "the sweet-scented lord, creation, the sky",
         rank: "major",
-        relation: { kind: "aspect-of", of: "Zanahary" },
+        relations: [{ kind: "aspect-of", of: "Zanahary" }],
       },
       {
         name: "The razana",
@@ -912,6 +920,7 @@ export const eastSouthernAfrica: readonly BeliefSystem[] = [
           "Proto-Malayo-Polynesian *qanitu, 'ancestral spirit, ghost'; regularly reflected in Malagasy angatra, 'ghost.'",
         domain: "that house's fertility, health, children",
         rank: "major",
+        relations: [{ kind: "aspect-of", of: "The razana" }],
       },
       {
         name: "The vazimba",
@@ -984,13 +993,13 @@ export const eastSouthernAfrica: readonly BeliefSystem[] = [
         name: "Nambi",
         domain: "Ggulu's daughter, fertility, the first marriage",
         rank: "major",
-        relation: { kind: "consort-of", of: "Kintu" },
+        relations: [{ kind: "consort-of", of: "Kintu" }],
       },
       {
         name: "Walumbe",
         domain: "death, misfortune",
         rank: "major",
-        relation: { kind: "child-of", of: "Ggulu" },
+        relations: [{ kind: "child-of", of: "Ggulu" }],
       },
       {
         name: "Mukasa",
@@ -1002,6 +1011,7 @@ export const eastSouthernAfrica: readonly BeliefSystem[] = [
         name: "Kibuka",
         domain: "war, the king's battles, victory",
         rank: "major",
+        relations: [{ kind: "sibling-of", of: "Mukasa" }],
       },
       {
         name: "Nnende",

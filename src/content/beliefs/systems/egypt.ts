@@ -27,14 +27,14 @@ export const egypt: readonly BeliefSystem[] = [
         wiki: "https://en.wikipedia.org/wiki/Isis",
         domain: "healing, protection, mourning",
         rank: "major",
-        relation: { kind: "consort-of", of: "Osiris" },
+        relations: [{ kind: "consort-of", of: "Osiris" }],
       },
       {
         name: "Horus",
         wiki: "https://en.wikipedia.org/wiki/Horus",
         domain: "kingship, the sky",
         rank: "major",
-        relation: { kind: "child-of", of: "Osiris" },
+        relations: [{ kind: "child-of", of: "Osiris" }],
       },
       {
         name: "Hathor",
@@ -59,7 +59,10 @@ export const egypt: readonly BeliefSystem[] = [
         wiki: "https://en.wikipedia.org/wiki/Sekhmet",
         domain: "plague and its cure",
         rank: "major",
-        relation: { kind: "aspect-of", of: "Hathor" },
+        relations: [
+          { kind: "aspect-of", of: "Hathor" },
+          { kind: "consort-of", of: "Ptah" },
+        ],
       },
       {
         name: "Bes",

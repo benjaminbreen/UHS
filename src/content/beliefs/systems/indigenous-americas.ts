@@ -35,17 +35,20 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         gloss: "Proto-Algonquian *eškwote·wi, 'fire'",
         domain: "warmth, cooking, gathering, protection",
         rank: "local",
+        relations: [{ kind: "serves", of: "The ancestors" }],
       },
       {
         name: "*Ki·ži·kwi",
         gloss: "Proto-Algonquian *ki·ži·kwi, 'sky, sun, day'",
         domain: "direction, time, movement of animals",
         rank: "local",
+        relations: [{ kind: "serves", of: "The animals" }],
       },
       {
         name: "The sacred peak or cave",
         domain: "local power, ritual place, vision",
         rank: "local",
+        relations: [{ kind: "serves", of: "The ancestors" }],
       },
     ],
     practice: [
@@ -86,6 +89,7 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         gloss: "Proto-Uto-Aztecan *tïpa, 'earth, ground' (provisional)",
         domain: "fields, shelter, water, the place itself",
         rank: "major",
+        relations: [{ kind: "serves", of: "Corn or seeds" }],
       },
       {
         name: "The wild animals",
@@ -102,6 +106,7 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         name: "The fire",
         domain: "clearing land, cooking, community",
         rank: "local",
+        relations: [{ kind: "serves", of: "Corn or seeds" }],
       },
       {
         name: "*Pa",
@@ -113,6 +118,7 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         name: "The sacred place",
         domain: "local shrine, village center, protection",
         rank: "local",
+        relations: [{ kind: "serves", of: "*Tata" }],
       },
     ],
     practice: [
@@ -170,16 +176,19 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         name: "The wild animals",
         domain: "hunted species, respect and reciprocity",
         rank: "local",
+        relations: [{ kind: "serves", of: "The ancestors" }],
       },
       {
         name: "The hearth fire",
         domain: "family, home, protection",
         rank: "local",
+        relations: [{ kind: "serves", of: "The ancestors" }],
       },
       {
         name: "The earth",
         domain: "fields, foundation, mother",
         rank: "local",
+        relations: [{ kind: "serves", of: "Corn or the staple crop" }],
       },
     ],
     practice: [
@@ -219,11 +228,13 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         name: "The paramount chief or king",
         domain: "order, authority, the cosmos",
         rank: "paramount",
+        relations: [{ kind: "child-of", of: "Naymlap" }],
       },
       {
         name: "The staple crop",
         domain: "life and fertility, state provision",
         rank: "major",
+        relations: [{ kind: "serves", of: "The sacred center" }],
       },
       {
         name: "Naymlap",
@@ -235,6 +246,7 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         name: "The sacred center",
         domain: "the capital, the cosmos, government",
         rank: "major",
+        relations: [{ kind: "serves", of: "The paramount chief or king" }],
       },
       {
         name: "*Úni",
@@ -310,17 +322,20 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         name: "The fire",
         domain: "home, gathering, purification",
         rank: "local",
+        relations: [{ kind: "serves", of: "The ancestors" }],
       },
       {
         name: "The hunted or gathered animal",
         domain: "food, respect, reciprocity",
         rank: "local",
+        relations: [{ kind: "serves", of: "The staple food" }],
       },
       {
         name: "*Tata",
         gloss: "Proto-Uto-Aztecan *tata, 'father, elder male'",
         domain: "medicine, wisdom, guidance",
         rank: "local",
+        relations: [{ kind: "serves", of: "The ancestors" }],
       },
       {
         name: "Pachamama",
@@ -380,11 +395,13 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         gloss: "Proto-Uto-Aztecan *tata, 'father, elder male'",
         domain: "the first people, guidance",
         rank: "major",
+        relations: [{ kind: "serves", of: "The seasonal plants" }],
       },
       {
         name: "The fire",
         domain: "cooking, clearing, protection",
         rank: "local",
+        relations: [{ kind: "serves", of: "The seasonal plants" }],
       },
       {
         name: "*Pa",
@@ -396,6 +413,7 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         name: "The animals",
         domain: "game, respect, reciprocity",
         rank: "local",
+        relations: [{ kind: "serves", of: "The seasonal plants" }],
       },
     ],
     practice: [
@@ -437,6 +455,7 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         wiki: "https://en.wikipedia.org/wiki/Kachina",
         domain: "rain, crops, the ancestor spirits who return",
         rank: "major",
+        relations: [{ kind: "serves", of: "Iyatiku" }],
       },
       {
         name: "Tawa",
@@ -452,7 +471,7 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         name: "Badger",
         domain: "the hunt, protection of the south",
         rank: "local",
-        relation: { kind: "serves", of: "Katsinas" },
+        relations: [{ kind: "serves", of: "Katsinas" }],
       },
       {
         name: "The household hearth",
@@ -463,11 +482,13 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         name: "The kiva pit",
         domain: "the underworld emergence, ceremony",
         rank: "local",
+        relations: [{ kind: "serves", of: "Masauwu" }],
       },
       {
         name: "The ancestors",
         domain: "the pueblo's dead, continuity",
         rank: "local",
+        relations: [{ kind: "aspect-of", of: "Katsinas" }],
       },
     ],
     practice: [
@@ -526,16 +547,19 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         name: "The fire",
         domain: "burning groves, cooking, protection",
         rank: "local",
+        relations: [{ kind: "serves", of: "The oak trees" }],
       },
       {
         name: "The seeds and roots",
         domain: "gathered foods, seasonal abundance",
         rank: "local",
+        relations: [{ kind: "serves", of: "The land" }],
       },
       {
         name: "The mountains or coastal rocks",
         domain: "sacred places, shelter, water",
         rank: "local",
+        relations: [{ kind: "serves", of: "The land" }],
       },
     ],
     practice: [
@@ -595,16 +619,19 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         name: "The shell and bone",
         domain: "tools, ornaments, exchange",
         rank: "local",
+        relations: [{ kind: "serves", of: "The islands" }],
       },
       {
         name: "The canoe or plank boat",
         domain: "travel, trade, hunting at sea",
         rank: "local",
+        relations: [{ kind: "serves", of: "*Xa" }],
       },
       {
         name: "The fire",
         domain: "cooking, warmth, home",
         rank: "local",
+        relations: [{ kind: "serves", of: "The islands" }],
       },
     ],
     practice: [
@@ -667,16 +694,19 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         name: "The fire",
         domain: "cooking, warmth, signaling",
         rank: "local",
+        relations: [{ kind: "serves", of: "The seeds and roots" }],
       },
       {
         name: "The animals",
         domain: "rabbits, deer, bighorn, hunted game",
         rank: "local",
+        relations: [{ kind: "serves", of: "*Tïpa" }],
       },
       {
         name: "The seasonal lakes",
         domain: "fish and waterfowl, abundance in season",
         rank: "local",
+        relations: [{ kind: "serves", of: "*Pa" }],
       },
     ],
     practice: [
@@ -738,16 +768,19 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         gloss: "Proto-Algonquian *eškwote·wi, 'fire'",
         domain: "cooking, clearing, protection, gathering place",
         rank: "local",
+        relations: [{ kind: "serves", of: "The ancestors" }],
       },
       {
         name: "The animals",
         domain: "deer, elk, hunted game, respect",
         rank: "local",
+        relations: [{ kind: "serves", of: "The mast forest" }],
       },
       {
         name: "The corn or seeds",
         domain: "cultivated foods, emerging sustenance",
         rank: "local",
+        relations: [{ kind: "serves", of: "The mast forest" }],
       },
     ],
     practice: [
@@ -791,6 +824,7 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         name: "Kanati",
         domain: "the hunt, game animals, the sky",
         rank: "major",
+        relations: [{ kind: "consort-of", of: "Selu" }],
       },
       {
         name: "Uktena",
@@ -803,11 +837,13 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         wiki: "https://en.wikipedia.org/wiki/Red_Horn",
         domain: "war, the hunt, the birdman power",
         rank: "major",
+        relations: [{ kind: "serves", of: "The ancestors" }],
       },
       {
         name: "The sacred fire",
         domain: "purification, renewal, the town center",
         rank: "major",
+        relations: [{ kind: "serves", of: "Selu" }],
       },
       {
         name: "The ancestors",
@@ -818,11 +854,13 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         name: "The river",
         domain: "travel, water, trade",
         rank: "local",
+        relations: [{ kind: "serves", of: "Uktena" }],
       },
       {
         name: "The mound itself",
         domain: "the town, protection, elevation",
         rank: "local",
+        relations: [{ kind: "serves", of: "The ancestors" }],
       },
     ],
     practice: [
@@ -867,23 +905,26 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         wiki: "https://en.wikipedia.org/wiki/Nanabozho",
         domain: "the culture hero, trickster, transformation",
         rank: "major",
+        relations: [{ kind: "aspect-of", of: "Manitou" }],
       },
       {
         name: "Gluskap",
         wiki: "https://en.wikipedia.org/wiki/Gluskap",
         domain: "the culture hero, transformer, teacher",
         rank: "major",
+        relations: [{ kind: "aspect-of", of: "Manitou" }],
       },
       {
         name: "Turtle",
         domain: "the earth, slowness, steadiness",
         rank: "major",
-        relation: { kind: "aspect-of", of: "Manitou" },
+        relations: [{ kind: "aspect-of", of: "Manitou" }],
       },
       {
         name: "The forest animals",
         domain: "hunted species, respect and reciprocity",
         rank: "local",
+        relations: [{ kind: "serves", of: "The ancestors" }],
       },
       {
         name: "The ancestors",
@@ -894,6 +935,7 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         name: "The lodge fire",
         domain: "home, gathering, warmth",
         rank: "local",
+        relations: [{ kind: "serves", of: "The ancestors" }],
       },
       {
         name: "The maple tree",
@@ -941,39 +983,46 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         name: "Tharonhiawagon",
         domain: "growth, order, the good twin",
         rank: "major",
-        relation: { kind: "child-of", of: "Sky Woman" },
+        relations: [{ kind: "child-of", of: "Sky Woman" }],
       },
       {
         name: "Flint",
         domain: "winter, stone, the twin who opposes",
         rank: "major",
-        relation: { kind: "child-of", of: "Sky Woman" },
+        relations: [
+          { kind: "child-of", of: "Sky Woman" },
+          { kind: "sibling-of", of: "Tharonhiawagon" },
+        ],
       },
       {
         name: "The Three Sisters",
         domain: "corn, beans, squash, cultivation",
         rank: "major",
-        relation: { kind: "aspect-of", of: "Sky Woman" },
+        relations: [{ kind: "aspect-of", of: "Sky Woman" }],
       },
       {
         name: "Hinon",
         domain: "thunder, war, rain, strength",
         rank: "major",
+        relations: [{ kind: "serves", of: "Tharonhiawagon" }],
       },
       {
         name: "The turtle",
         domain: "the earth mother, patience, home",
         rank: "local",
+        relations: [{ kind: "aspect-of", of: "Sky Woman" }],
       },
       {
         name: "The longhouse ancestors",
         domain: "matrilineal lines, clan protection",
         rank: "local",
+        relations: [{ kind: "serves", of: "Sky Woman" }],
       },
       {
         name: "The healing herbs",
         domain: "medicine, restoration, growth",
         rank: "local",
+        relations: [{ kind: "serves", of: "Sky Woman" }],
       },
       {
         name: "The fire at the longhouse center",
@@ -1025,28 +1074,33 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         wiki: "https://en.wikipedia.org/wiki/White_Buffalo_Calf_Woman",
         domain: "the buffalo, the sacred pipe, teaching",
         rank: "major",
+        relations: [{ kind: "serves", of: "Wakan Tanka" }],
       },
       {
         name: "Wi",
         domain: "the sun, time, the pole of the circle",
         rank: "major",
+        relations: [{ kind: "aspect-of", of: "Wakan Tanka" }],
       },
       {
         name: "Wakinyan",
         wiki: "https://en.wikipedia.org/wiki/Thunderbird_(mythology)",
         domain: "thunder, storm, the west, war power",
         rank: "major",
+        relations: [{ kind: "aspect-of", of: "Wakan Tanka" }],
       },
       {
         name: "Iktomi",
         wiki: "https://en.wikipedia.org/wiki/Iktomi",
         domain: "trickery, the spider, mischief",
         rank: "local",
+        relations: [{ kind: "aspect-of", of: "Wakan Tanka" }],
       },
       {
         name: "The sacred pipe",
         domain: "ceremony, binding, truth",
         rank: "local",
+        relations: [{ kind: "serves", of: "Ptesanwin" }],
       },
       {
         name: "The ancestors",
@@ -1057,6 +1111,7 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         name: "The earth",
         domain: "the mother, abundance, home",
         rank: "local",
+        relations: [{ kind: "serves", of: "Wakan Tanka" }],
       },
     ],
     practice: [
@@ -1117,17 +1172,19 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         name: "Killer whale",
         domain: "the sea, power, hunters",
         rank: "local",
-        relation: { kind: "aspect-of", of: "The ancestors" },
+        relations: [{ kind: "aspect-of", of: "The ancestors" }],
       },
       {
         name: "The cedar tree",
         domain: "shelter, baskets, canoes, life",
         rank: "local",
+        relations: [{ kind: "serves", of: "The ancestors" }],
       },
       {
         name: "The river",
         domain: "fish, freshwater, gathering",
         rank: "local",
+        relations: [{ kind: "serves", of: "The salmon" }],
       },
     ],
     practice: [
@@ -1190,17 +1247,20 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         gloss: "Proto-Athabaskan *tuʔ, 'water'",
         domain: "fish, passage, cleansing",
         rank: "local",
+        relations: [{ kind: "serves", of: "The ancestors" }],
       },
       {
         name: "*Qoʔ",
         gloss: "Proto-Athabaskan *qoʔ, 'fire'",
         domain: "warmth, cooking, protection",
         rank: "local",
+        relations: [{ kind: "serves", of: "The ancestors" }],
       },
       {
         name: "The forest",
         domain: "shelter, berries, game",
         rank: "local",
+        relations: [{ kind: "serves", of: "The caribou or moose" }],
       },
       {
         name: "Yamoria",
@@ -1268,17 +1328,20 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         gloss: "Proto-Athabaskan *qoʔ, 'fire'",
         domain: "home, warmth, gathering",
         rank: "local",
+        relations: [{ kind: "serves", of: "The ancestors" }],
       },
       {
         name: "*Tuʔ",
         gloss: "Proto-Athabaskan *tuʔ, 'water'",
         domain: "fish, crossing, cleansing",
         rank: "local",
+        relations: [{ kind: "serves", of: "The ancestors" }],
       },
       {
         name: "The beaver or fur-bearer",
         domain: "trade, wealth, respect",
         rank: "local",
+        relations: [{ kind: "serves", of: "The caribou or moose" }],
       },
       {
         name: "Yamoria",
@@ -1341,28 +1404,31 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         name: "The seal",
         domain: "the hunt, blubber, sustenance",
         rank: "major",
-        relation: { kind: "serves", of: "Sedna" },
+        relations: [{ kind: "serves", of: "Sedna" }],
       },
       {
         name: "Anguta",
         domain: "Sedna's father, guardian of the drowned dead",
         rank: "local",
-        relation: { kind: "serves", of: "Sedna" },
+        relations: [{ kind: "serves", of: "Sedna" }],
       },
       {
         name: "The oil lamp fire",
         domain: "warmth, the home, light",
         rank: "local",
+        relations: [{ kind: "serves", of: "Sedna" }],
       },
       {
         name: "The sea ice",
         domain: "stability, travel, the platform",
         rank: "local",
+        relations: [{ kind: "serves", of: "Sedna" }],
       },
       {
         name: "Tuurngaq",
         domain: "an individual's helping spirit, gained in dreams",
         rank: "local",
+        relations: [{ kind: "serves", of: "Tornarsuk" }],
       },
     ],
     practice: [
@@ -1416,16 +1482,19 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         name: "The island mountain",
         domain: "fresh water, sacred place, shelter",
         rank: "local",
+        relations: [{ kind: "serves", of: "The land and forest" }],
       },
       {
         name: "The fire",
         domain: "cooking, clearing, protection",
         rank: "local",
+        relations: [{ kind: "serves", of: "The land and forest" }],
       },
       {
         name: "The mangrove and coastal trees",
         domain: "fish nursery, canoes, shelter",
         rank: "local",
+        relations: [{ kind: "serves", of: "*Úni" }],
       },
     ],
     practice: [
@@ -1463,12 +1532,13 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         name: "Atabey",
         domain: "the mother, water, motherhood",
         rank: "major",
-        relation: { kind: "consort-of", of: "Yocahu" },
+        relations: [{ kind: "consort-of", of: "Yocahu" }],
       },
       {
         name: "Guabancex",
         domain: "the hurricane, wind, destruction",
         rank: "major",
+        relations: [{ kind: "rival-of", of: "Yocahu" }],
       },
       {
         name: "Zemis (ancestral spirits)",
@@ -1479,6 +1549,7 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         name: "The sea",
         domain: "travel, fish, salt, boundaries",
         rank: "local",
+        relations: [{ kind: "serves", of: "Atabey" }],
       },
       {
         name: "The mangrove",
@@ -1489,6 +1560,7 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         name: "The ancestors of the cohort",
         domain: "clan protection, continuity",
         rank: "local",
+        relations: [{ kind: "aspect-of", of: "Zemis (ancestral spirits)" }],
       },
     ],
     practice: [
@@ -1543,21 +1615,25 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         name: "The jaguar",
         domain: "power, transformation, forest mastery",
         rank: "local",
+        relations: [{ kind: "serves", of: "The anaconda or river spirit" }],
       },
       {
         name: "The yam or manioc",
         domain: "cultivated staple, fertility",
         rank: "local",
+        relations: [{ kind: "serves", of: "The anaconda or river spirit" }],
       },
       {
         name: "The fish and river mammals",
         domain: "food, abundance in season",
         rank: "local",
+        relations: [{ kind: "serves", of: "The anaconda or river spirit" }],
       },
       {
         name: "The shamanic plant",
         domain: "vision, communication, power",
         rank: "local",
+        relations: [{ kind: "serves", of: "*Awa" }],
       },
     ],
     practice: [
@@ -1613,23 +1689,26 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         name: "The river dolphins",
         domain: "shape-shifting, seduction, danger",
         rank: "major",
-        relation: { kind: "aspect-of", of: "The anaconda spirit" },
+        relations: [{ kind: "aspect-of", of: "The anaconda spirit" }],
       },
       {
         name: "*Awa",
         gloss: "Proto-Tupi-Guaraní *awa, 'person, human being'",
         domain: "the lineage, the village, protection",
         rank: "local",
+        relations: [{ kind: "serves", of: "Jurupari" }],
       },
       {
         name: "Yachak (plant masters)",
         domain: "specific plants for medicine and power",
         rank: "local",
+        relations: [{ kind: "serves", of: "Jurupari" }],
       },
       {
         name: "The fish",
         domain: "food, abundance, careful taking",
         rank: "local",
+        relations: [{ kind: "serves", of: "The anaconda spirit" }],
       },
     ],
     practice: [
@@ -1683,6 +1762,7 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         wiki: "https://en.wikipedia.org/wiki/Anhang%C3%A1",
         domain: "the deceiver of hunters, the forest's dangers",
         rank: "major",
+        relations: [{ kind: "rival-of", of: "Tupã" }],
       },
       {
         name: "*Ɨ",
@@ -1700,11 +1780,13 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         name: "The shamanic power",
         domain: "healing, vision, danger",
         rank: "local",
+        relations: [{ kind: "serves", of: "Tupã" }],
       },
       {
         name: "The maize or cultivated crop",
         domain: "fertility, sustenance",
         rank: "local",
+        relations: [{ kind: "serves", of: "*Ka'a" }],
       },
     ],
     practice: [
@@ -1752,6 +1834,7 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         name: "Xelsum",
         domain: "the evil spirit, wind, suffering",
         rank: "major",
+        relations: [{ kind: "rival-of", of: "Elal" }],
       },
       {
         name: "Ngenechen",
@@ -1774,11 +1857,13 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         name: "The guanaco",
         domain: "the hunt, meat, sustenance",
         rank: "local",
+        relations: [{ kind: "serves", of: "Elal" }],
       },
       {
         name: "The ancestors",
         domain: "the band's dead, strength",
         rank: "local",
+        relations: [{ kind: "serves", of: "Elal" }],
       },
       {
         name: "The sea",
@@ -1848,16 +1933,19 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         name: "The fire",
         domain: "burning, cooking, gathering",
         rank: "local",
+        relations: [{ kind: "serves", of: "The oak and salmon abundance" }],
       },
       {
         name: "The mountains or rivers",
         domain: "water, shelter, access",
         rank: "local",
+        relations: [{ kind: "serves", of: "The oak and salmon abundance" }],
       },
       {
         name: "The healer or elder",
         domain: "knowledge, guidance",
         rank: "local",
+        relations: [{ kind: "serves", of: "Chinigchinich" }],
       },
     ],
     practice: [
@@ -1904,6 +1992,7 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         wiki: "https://en.wikipedia.org/wiki/Coyote_(mythology)",
         domain: "Coyote, mischief, the flaws in creation",
         rank: "major",
+        relations: [{ kind: "sibling-of", of: "Tobats" }],
       },
       {
         name: "*Tata",
@@ -1915,16 +2004,19 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         name: "The fire",
         domain: "cooking, signaling, protection",
         rank: "local",
+        relations: [{ kind: "serves", of: "The seeds and roots" }],
       },
       {
         name: "The animals",
         domain: "game, respect, reciprocity",
         rank: "local",
+        relations: [{ kind: "serves", of: "Tobats" }],
       },
       {
         name: "The elder or healer",
         domain: "knowledge, healing, guidance",
         rank: "local",
+        relations: [{ kind: "serves", of: "Tobats" }],
       },
     ],
     practice: [
@@ -1967,18 +2059,20 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         wiki: "https://en.wikipedia.org/wiki/Atabey_(goddess)",
         domain: "the mother, water, motherhood",
         rank: "major",
-        relation: { kind: "consort-of", of: "Yúcahu" },
+        relations: [{ kind: "consort-of", of: "Yúcahu" }],
       },
       {
         name: "Guabancex",
         wiki: "https://en.wikipedia.org/wiki/Guabancex",
         domain: "the hurricane, wind, destruction",
         rank: "major",
+        relations: [{ kind: "rival-of", of: "Yúcahu" }],
       },
       {
         name: "The sea",
         domain: "fish, travel, trade, sustenance",
         rank: "major",
+        relations: [{ kind: "serves", of: "Atabey" }],
       },
       {
         name: "Maquetaurie Guayaba",
@@ -1999,6 +2093,7 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         name: "The healer",
         domain: "medicine, ceremony",
         rank: "local",
+        relations: [{ kind: "serves", of: "Yúcahu" }],
       },
     ],
     practice: [

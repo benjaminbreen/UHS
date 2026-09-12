@@ -1,6 +1,20 @@
 import type { CharacterScope } from "../characters/context-types";
 import type { Evidence } from "../history/types";
 
+export type RelationKind =
+  /** Descent, either way round: draw the arrow from the child. */
+  | "child-of"
+  | "consort-of"
+  | "sibling-of"
+  /** One face of a larger power, or an emanation of it. */
+  | "aspect-of"
+  /** Attends, carries messages for, or works under. */
+  | "serves"
+  /** Opposed, in the stories people tell. */
+  | "rival-of"
+  /** Taught by, or founded the line that teaches. */
+  | "taught-by";
+export type Relation = { kind: RelationKind; of: string };
 export type Power = {
   name: string;
   /** English Wikipedia article for this power, where one exists. The panel
@@ -12,11 +26,9 @@ export type Power = {
   /** What they are asked about, in a few words. */
   domain: string;
   rank: "paramount" | "major" | "local";
-  /** Place in the hierarchy, when there is one worth drawing. */
-  relation?: {
-    kind: "child-of" | "consort-of" | "aspect-of" | "serves";
-    of: string;
-  };
+  /** How this power stands to others in the same list. More than one is
+   * normal: a god is commonly the child of one and the consort of another. */
+  relations?: readonly Relation[];
 };
 export type BeliefSystem = {
   id: string;

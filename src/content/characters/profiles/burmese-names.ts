@@ -13,9 +13,6 @@ const myanmarMainland: readonly [number, number, number, number] = [
   93, 15, 98, 25,
 ];
 
-const limitation =
-  "These are complete personal-name sequences, not family names, and honorifics such as U, Daw, Ko, and Ma are omitted. The sources describe naming practice and attest examples, but do not provide a population frequency table or authorize assigning a name by gender, class, religion, or ethnicity. Generated people are fictional; Roman spellings vary between sources and are normalized here for readability. Applying this modern evidence before its collection is a continuity inference; these bounds are a central Burmese scenario, not all ethnic communities of Myanmar. A name source supports name use only, not appearance.";
-
 export const burmeseNameKits: NameKit[] = [
   {
     id: "names-burmese-modern-1885-2026",
@@ -76,13 +73,8 @@ export const burmeseNameKits: NameKit[] = [
       "Aye Aye",
       "Mya Mya",
     ],
-    evidence: {
-      status: "inferred",
-      claim:
-        "A University of Malaya study of Myanmar personal names gives one-, two-, and three-element examples and describes the absence of hereditary surnames; Robinne's study likewise describes Burmese personal names as one person's full name, commonly two or three syllables.",
-      sources: [surveyPdf, perséeNames, oxfordTerms],
-      limitation,
-    },
+    sources: [surveyPdf, perséeNames, oxfordTerms],
+    note: "Burmese names carry no hereditary surname: the whole sequence, commonly two or three syllables, is one person's name. Honorifics such as U, Daw, Ko and Ma are titles and are omitted here.",
   },
   {
     id: "names-burmese-precolonial-continuity-1100-1885",
@@ -125,13 +117,7 @@ export const burmeseNameKits: NameKit[] = [
       "Aung San",
       "Khin Kyi",
     ],
-    evidence: {
-      status: "hypothesis",
-      claim:
-        "Burmese naming conventions documented in twentieth- and twenty-first-century surveys are used here as an exploratory continuity hypothesis for the precolonial interior. Burmese historical writing is documented from the Pagan period onward, but the cited naming surveys do not establish that this exact modernized list or its frequencies applied across 1100–1885 households.",
-      sources: [surveyPdf, perséeNames, oxfordTerms, burmeseHistory],
-      limitation:
-        "This is an explicit continuity hypothesis, not a recovered household register. Earlier dates have substantially weaker support; these are plausible invented names rather than claimed medieval attestations. The Cambridge history source supports the existence and chronology of indigenous Burmese historical sources, while the naming studies are later evidence; royal regnal names, monastic names, ethnic minority systems, and local spelling conventions are not represented comprehensively. Names remain complete personal sequences with no hereditary surname or honorific, and generated people are fictional. Roman spellings are normalized for display and do not establish pronunciation or appearance.",
-    },
+    sources: [surveyPdf, perséeNames, oxfordTerms, burmeseHistory],
+    note: "Burmese naming practice is described in surveys from the twentieth century onward; these forms are carried back to the Pagan period on the strength of that continuity. Regnal and monastic names follow separate conventions not represented here.",
   },
 ];

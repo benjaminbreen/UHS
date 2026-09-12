@@ -1,6 +1,7 @@
 import {
   generateCharacter,
   characterLivelihood,
+  characterSex,
   eligibleInventory,
 } from "../../content/characters/generate";
 import { resolveCharacterContext } from "../../content/characters/resolve";
@@ -1485,7 +1486,14 @@ export function planSettlement(
                 ? "farmer"
                 : undefined;
     const livelihood = pack.setting?.characterRevision
-      ? characterLivelihood(pack.setting, seed, owner, wanted)
+      ? characterLivelihood(
+          pack.setting,
+          seed,
+          owner,
+          wanted,
+          undefined,
+          characterSex(seed, owner),
+        )
       : undefined;
     const role = livelihood
       ? livelihood.label

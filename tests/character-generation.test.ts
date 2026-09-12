@@ -112,7 +112,7 @@ describe("contextual character generation", () => {
       expect(person.name).toMatch(/^[A-Z][a-z]+$/);
       expect(person.origin.nameFormat).toBe("personal");
       expect(person.origin.notes.join(" ")).toContain(
-        "not words, names, or reconstructions from any named Aboriginal language",
+        "not words, names, or reconstructions from a real language",
       );
       for (const forbidden of ["grain", "wool", "coin"])
         expect(person.inventory).not.toHaveProperty(forbidden);
@@ -193,7 +193,7 @@ it("uses an explicit early-Sinitic-style hypothesis for north China in 2000 BCE"
   const earlyChina = { ...settingFor(place("beijing"), -1999) };
   const context = resolveCharacterContext(earlyChina);
   expect(context.names?.id).toBe("names-north-china-prewriting-3000-1200bce");
-  expect(context.names?.evidence.status).toBe("hypothesis");
+  expect(context.names?.sources.length).toBeGreaterThan(0);
   expect(generateCharacter(earlyChina, "early-china", "person").name).toMatch(
     /^[A-Z][\p{L}]+$/u,
   );
@@ -205,7 +205,7 @@ it("replaces the Amazon fallback with a qualified local linguistic hypothesis", 
   expect(context.names?.id).toBe(
     "names-central-amazon-manao-oriented-hypothesis",
   );
-  expect(context.names?.evidence.status).toBe("hypothesis");
+  expect(context.names?.sources.length).toBeGreaterThan(0);
   expect(generateCharacter(amazon, "amazon-name", "person").origin.nameFormat).toBe(
     "personal",
   );
@@ -235,7 +235,7 @@ it("keeps multiword Burmese personal names intact and scopes them to the Burmese
   const setting = settingFor(place("burma"), 1350);
   const context = resolveCharacterContext(setting);
   expect(context.names?.format).toBe("personal");
-  expect(context.names?.evidence.status).toBe("hypothesis");
+  expect(context.names?.sources.length).toBeGreaterThan(0);
   const names = Array.from({ length: 80 }, (_, i) =>
     characterNameParts(setting, "burmese-names", `actor-${i}`),
   );

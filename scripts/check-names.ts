@@ -1,25 +1,6 @@
 /* Samples the ported naming data at a few places and dates. */
-import { nameTraditions } from "../src/content/characters/profiles/traditions.generated";
-import { nameRegions } from "../src/content/characters/profiles/name-regions.generated";
+import { optionsAt } from "./check-name-coverage";
 import { random } from "../src/core/random";
-
-const byId = new Map(nameTraditions.map((t) => [t.id, t]));
-const area = (b: readonly number[]) => (b[2] - b[0]) * (b[3] - b[1]);
-
-function regionFor(lon: number, lat: number, year: number) {
-  return nameRegions
-    .filter(
-      (r) =>
-        lon >= r.bounds[0] &&
-        lon <= r.bounds[2] &&
-        lat >= r.bounds[1] &&
-        lat <= r.bounds[3] &&
-        r.windows.some((w) => year >= w.years[0] && year < w.years[1]),
-    )
-    .sort(
-      (a, b) => area(a.bounds) - area(b.bounds) || a.id.localeCompare(b.id),
-    )[0];
-}
 
 function personName(
   lon: number,
@@ -28,15 +9,13 @@ function personName(
   seed: string,
   id: string,
 ) {
-  const region = regionFor(lon, lat, year);
-  if (!region) return undefined;
-  const options = region.windows.find(
-    (w) => year >= w.years[0] && year < w.years[1],
-  )!.options;
-  const total = options.reduce((n, o) => n + o.weight, 0);
+  const hit = optionsAt(lon, lat, year);
+  if (!hit) return undefined;
+  const total = hit.options.reduce((n, o) => n + o.weight, 0);
   let roll = random(seed, "name-tradition", id) * total;
-  const chosen = options.find((o) => (roll -= o.weight) < 0) ?? options.at(-1)!;
-  const t = byId.get(chosen.tradition)!;
+  const t = (
+    hit.options.find((o) => (roll -= o.weight) < 0) ?? hit.options.at(-1)!
+  ).tradition;
   const female = random(seed, "sex", id) < 0.5;
   const pool = (female ? t.feminine : t.masculine).length
     ? female
@@ -56,7 +35,7 @@ function personName(
       ? `${family} ${personal}`
       : `${personal} ${family}`;
   return {
-    region: region.label,
+    region: hit.region,
     tradition: t.id,
     display,
     sex: female ? "f" : "m",

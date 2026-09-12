@@ -6,13 +6,7 @@ import type { AppearanceKit, CommunityProfile } from "../context-types";
  * never estimates of population frequencies and never cues for personality or
  * occupation. Community profiles below choose the palette explicitly.
  */
-const paletteEvidence = (claim: string) => ({
-  status: "fictional" as const,
-  claim,
-  sources: [],
-  limitation:
-    "This is a fictional schematic art range for legibility and variety, not a measured historical skin or hair distribution. It does not encode ancestry, identity, health, status, or personality.",
-});
+const paletteEvidence = (note: string) => ({ sources: [], note });
 
 const darkHair: readonly CharacterAppearance["hair"][] = [
   "cropped",
@@ -35,7 +29,7 @@ export const appearanceKits: AppearanceKit[] = [
   {
     id: "appearance.europe-broad",
     label: "Broad European visual palette",
-    evidence: paletteEvidence(
+    ...paletteEvidence(
       "Use a varied light-to-medium complexion and hair palette for broadly scoped European scenes.",
     ),
     skin: ["#f0ceb0", "#e4b994", "#d3a16a", "#b78464", "#a97143"],
@@ -54,7 +48,7 @@ export const appearanceKits: AppearanceKit[] = [
   {
     id: "appearance.english-colonial-light",
     label: "English-colonial Virginia light-complexion palette",
-    evidence: paletteEvidence(
+    ...paletteEvidence(
       "Use a light-complexion range with natural hair-color variation for the English-colonial Virginia scenario.",
     ),
     skin: ["#f0ceb0", "#edc5a3", "#e4b994", "#dcb086"],
@@ -72,7 +66,7 @@ export const appearanceKits: AppearanceKit[] = [
   {
     id: "appearance.africa-broad",
     label: "Broad African visual palette",
-    evidence: paletteEvidence(
+    ...paletteEvidence(
       "Use a varied medium-brown-to-deep-brown complexion palette and predominantly dark hair for broadly scoped African scenes.",
     ),
     skin: ["#70472f", "#5a3828", "#8c5d40", "#3f2922", "#a97143"],
@@ -83,7 +77,7 @@ export const appearanceKits: AppearanceKit[] = [
   {
     id: "appearance.asia-broad",
     label: "Broad Asian visual palette",
-    evidence: paletteEvidence(
+    ...paletteEvidence(
       "Use a varied light-to-deep-ochre complexion range and predominantly dark hair for broadly scoped Asian scenes.",
     ),
     skin: ["#e4b994", "#d3a16a", "#b78464", "#a97143", "#8c5d40"],
@@ -94,7 +88,7 @@ export const appearanceKits: AppearanceKit[] = [
   {
     id: "appearance.americas-broad",
     label: "Broad American visual palette",
-    evidence: paletteEvidence(
+    ...paletteEvidence(
       "Use a varied medium-to-deep-brown complexion palette and dark hair for broadly scoped American scenes.",
     ),
     skin: ["#a97143", "#8c5d40", "#70472f", "#b78464", "#5a3828"],
@@ -105,7 +99,7 @@ export const appearanceKits: AppearanceKit[] = [
   {
     id: "appearance.oceania-broad",
     label: "Broad Oceania visual palette",
-    evidence: paletteEvidence(
+    ...paletteEvidence(
       "Use a varied medium-brown-to-deep-brown complexion palette and dark hair for broadly scoped Oceania scenes.",
     ),
     skin: ["#8c5d40", "#70472f", "#5a3828", "#a97143", "#b78464"],
@@ -116,7 +110,7 @@ export const appearanceKits: AppearanceKit[] = [
   {
     id: "appearance.congo-basin-1000-1800",
     label: "Congo Basin, 1000–1800 visual palette",
-    evidence: paletteEvidence(
+    ...paletteEvidence(
       "For Congo Basin communities between 1000 and 1800 CE, use deep-brown complexions and dark hair with modest art variation.",
     ),
     skin: ["#3f2922", "#4d3025", "#5a3828", "#70472f", "#8c5d40"],
@@ -126,22 +120,12 @@ export const appearanceKits: AppearanceKit[] = [
   },
 ];
 
-const profileEvidence = (
-  claim: string,
-  sources: string[],
-  limitation: string,
-) => ({ status: "inferred" as const, claim, sources, limitation });
-
-const inferredPaletteLimit =
-  "The appearance reference is an inferred schematic art palette, not an exact historical skin distribution or a claim that every resident looked alike. Community membership does not determine personality, ability, or occupation.";
-
-const fallbackEvidence = (claim: string) => ({
-  status: "fictional" as const,
-  claim,
-  sources: [],
-  limitation:
-    "Fictional low-priority art defaults used only where no more specific community research matches. They are schematic palette choices, not evidence of historical population appearance or a universal regional identity.",
+const profileEvidence = (note: string, sources: string[]) => ({
+  sources,
+  note,
 });
+
+const fallbackEvidence = (note: string) => ({ sources: [], note });
 
 export const communityProfiles: CommunityProfile[] = [
   {
@@ -169,7 +153,7 @@ export const communityProfiles: CommunityProfile[] = [
       "grain",
       "wool",
     ],
-    evidence: fallbackEvidence(
+    ...fallbackEvidence(
       "A qualified rural Haitian starting scenario. Shared farming/herding mechanics and generic grain/wool are gameplay stand-ins awaiting local crop and livestock research.",
     ),
   },
@@ -187,6 +171,8 @@ export const communityProfiles: CommunityProfile[] = [
       "gatherer",
       "hunter",
       "farmer",
+      "herder",
+      "fisher",
       "craftsperson",
       "trader",
       "traveler",
@@ -200,7 +186,7 @@ export const communityProfiles: CommunityProfile[] = [
       "tool",
       "grain",
     ],
-    evidence: fallbackEvidence(
+    ...fallbackEvidence(
       "Provide a broad European visual and livelihood fallback when no scoped community profile is available.",
     ),
   },
@@ -218,6 +204,7 @@ export const communityProfiles: CommunityProfile[] = [
       "gatherer",
       "hunter",
       "farmer",
+      "herder",
       "fisher",
       "craftsperson",
       "trader",
@@ -233,7 +220,7 @@ export const communityProfiles: CommunityProfile[] = [
       "tool",
       "grain",
     ],
-    evidence: fallbackEvidence(
+    ...fallbackEvidence(
       "Provide a broad African visual and livelihood fallback when no scoped community profile is available.",
     ),
   },
@@ -257,6 +244,7 @@ export const communityProfiles: CommunityProfile[] = [
       "gatherer",
       "hunter",
       "farmer",
+      "herder",
       "fisher",
       "craftsperson",
       "trader",
@@ -272,7 +260,7 @@ export const communityProfiles: CommunityProfile[] = [
       "tool",
       "grain",
     ],
-    evidence: fallbackEvidence(
+    ...fallbackEvidence(
       "Provide a broad Asian visual and livelihood fallback when no scoped community profile is available.",
     ),
   },
@@ -290,6 +278,7 @@ export const communityProfiles: CommunityProfile[] = [
       "gatherer",
       "hunter",
       "farmer",
+      "herder",
       "fisher",
       "craftsperson",
       "trader",
@@ -305,7 +294,7 @@ export const communityProfiles: CommunityProfile[] = [
       "tool",
       "grain",
     ],
-    evidence: fallbackEvidence(
+    ...fallbackEvidence(
       "Provide a broad American visual and livelihood fallback when no scoped community profile is available.",
     ),
   },
@@ -323,6 +312,7 @@ export const communityProfiles: CommunityProfile[] = [
       "gatherer",
       "hunter",
       "farmer",
+      "herder",
       "fisher",
       "craftsperson",
       "trader",
@@ -338,7 +328,7 @@ export const communityProfiles: CommunityProfile[] = [
       "tool",
       "lizard",
     ],
-    evidence: fallbackEvidence(
+    ...fallbackEvidence(
       "Provide a broad Oceania visual and livelihood fallback when no scoped community profile is available.",
     ),
   },
@@ -371,11 +361,7 @@ export const communityProfiles: CommunityProfile[] = [
       "tool",
       "grain",
     ],
-    evidence: profileEvidence(
-      "Bounded Congo Basin visual and livelihood defaults for communities in the 1000–1800 CE window.",
-      ["https://www.metmuseum.org/toah/ht/08/afc.html"],
-      `${inferredPaletteLimit} The source discusses Central Africa in 1400–1600; extension across this larger region and date window is an inference. Livelihoods are broad gameplay categories, not a household census.`,
-    ),
+    ...profileEvidence("Bounded Congo Basin visual and livelihood defaults for communities in the 1000–1800 CE window.", ["https://www.metmuseum.org/toah/ht/08/afc.html"]),
   },
   {
     id: "community.australian-interior-pre1788",
@@ -398,13 +384,9 @@ export const communityProfiles: CommunityProfile[] = [
       "tool",
       "lizard",
     ],
-    evidence: profileEvidence(
-      "Use a dark-complexion, dark-hair visual default and mobile foraging, hunting, fishing, and craft roles for an Australian interior community before 1788.",
-      [
+    ...profileEvidence("Use a dark-complexion, dark-hair visual default and mobile foraging, hunting, fishing, and craft roles for an Australian interior community before 1788.", [
         "https://australian.museum/about/history/exhibitions/indigenous-australians/",
-      ],
-      `${inferredPaletteLimit} This compact role list is a scenario extrapolation, not every Aboriginal nation or practice. Excluded grain/bread mean the existing wheat-based assets are unsuitable, not that seed processing or baking was absent. Very early dates remain speculative.`,
-    ),
+      ]),
   },
   {
     id: "community.english-colonial",
@@ -438,13 +420,9 @@ export const communityProfiles: CommunityProfile[] = [
       "flax",
       "wool",
     ],
-    evidence: profileEvidence(
-      "Use a varied light-complexion visual default and English-colonial livelihood set for Virginia settlements from 1607 to 1750.",
-      [
+    ...profileEvidence("Use a varied light-complexion visual default and English-colonial livelihood set for Virginia settlements from 1607 to 1750.", [
         "https://www.nps.gov/jame/learn/historyculture/the-virginia-company-of-london.htm",
-      ],
-      `${inferredPaletteLimit} This is one explicitly selected community in Virginia; it must not become a universal regional appearance rule.`,
-    ),
+      ]),
   },
   {
     id: "community.indigenous-local-virginia",
@@ -475,13 +453,9 @@ export const communityProfiles: CommunityProfile[] = [
       "tool",
       "grain",
     ],
-    evidence: profileEvidence(
-      "Keep an Indigenous local Virginia community distinct from the English-colonial community when both are available in the same place and dates.",
-      [
+    ...profileEvidence("Keep an Indigenous local Virginia community distinct from the English-colonial community when both are available in the same place and dates.", [
         "https://www.nps.gov/jame/learn/historyculture/chronology-of-powhatan-indian-activity.htm",
-      ],
-      `${inferredPaletteLimit} The profile is a regional art and gameplay abstraction and does not identify a single historical nation or imply uniform appearance.`,
-    ),
+      ]),
   },
   {
     id: "community.african-diaspora-virginia",
@@ -493,6 +467,7 @@ export const communityProfiles: CommunityProfile[] = [
     },
     priority: 95,
     appearance: "appearance.africa-broad",
+    nameTraditions: [{ tradition: "anglo-colonial-diaspora", weight: 1 }],
     livelihoods: [
       "farmer",
       "craftsperson",
@@ -512,10 +487,6 @@ export const communityProfiles: CommunityProfile[] = [
       "bread",
       "flax",
     ],
-    evidence: profileEvidence(
-      "Keep an African-diaspora Virginia community distinct from both English-colonial and Indigenous local communities in the 1619–1750 window.",
-      ["https://encyclopediavirginia.org/entries/africans-virginias-first/"],
-      `${inferredPaletteLimit} The profile marks a historically distinct community context; it does not collapse diverse African origins or later Virginia experiences into one appearance.`,
-    ),
+    ...profileEvidence("Keep an African-diaspora Virginia community distinct from both English-colonial and Indigenous local communities in the 1619–1750 window.", ["https://encyclopediavirginia.org/entries/africans-virginias-first/"]),
   },
 ];

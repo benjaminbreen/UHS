@@ -156,7 +156,12 @@ export const eastAsia: readonly BeliefSystem[] = [
         rank: "major",
       },
       { name: "Rivers and springs", domain: "water, fertility", rank: "major" },
-      { name: "The royal ancestors", domain: "kingship, war", rank: "major" },
+      {
+        name: "The royal ancestors",
+        domain: "kingship, war",
+        rank: "major",
+        relations: [{ kind: "serves", of: "Di" }],
+      },
       { name: "Wind and thunder", domain: "weather, fortune", rank: "local" },
       {
         name: "The household niche",
@@ -203,6 +208,7 @@ export const eastAsia: readonly BeliefSystem[] = [
         name: "The royal ancestors",
         domain: "kingship, approval of rule",
         rank: "major",
+        relations: [{ kind: "serves", of: "Tian" }],
       },
       { name: "Earth", domain: "harvest, stability", rank: "major" },
       {
@@ -261,6 +267,7 @@ export const eastAsia: readonly BeliefSystem[] = [
         name: "The ancestors",
         domain: "household and clan protection",
         rank: "major",
+        relations: [{ kind: "serves", of: "Tian" }],
       },
       {
         name: "Earth and fields",
@@ -336,6 +343,7 @@ export const eastAsia: readonly BeliefSystem[] = [
         name: "Local earth gods",
         domain: "village fields, boundaries",
         rank: "major",
+        relations: [{ kind: "aspect-of", of: "Earth" }],
       },
       {
         name: "Household ancestors",
@@ -351,6 +359,7 @@ export const eastAsia: readonly BeliefSystem[] = [
         name: "The kitchen hearth",
         domain: "household sustenance and report to Heaven",
         rank: "local",
+        relations: [{ kind: "serves", of: "Heaven" }],
       },
       {
         name: "Tutelary spirits",
@@ -398,6 +407,7 @@ export const eastAsia: readonly BeliefSystem[] = [
         wiki: "https://en.wikipedia.org/wiki/Bodhisattva",
         domain: "compassion, intercession for the living",
         rank: "major",
+        relations: [{ kind: "serves", of: "Buddha" }],
       },
       {
         name: "Household ancestors",
@@ -413,6 +423,7 @@ export const eastAsia: readonly BeliefSystem[] = [
         name: "Guardian spirits",
         domain: "household protection",
         rank: "local",
+        relations: [{ kind: "serves", of: "Local earth god" }],
       },
       {
         name: "Hungry ghosts",
@@ -482,11 +493,13 @@ export const eastAsia: readonly BeliefSystem[] = [
         wiki: "https://en.wikipedia.org/wiki/Kitchen_God",
         domain: "household sustenance and the moral report",
         rank: "local",
+        relations: [{ kind: "serves", of: "City god" }],
       },
       {
         name: "Local earth god",
         domain: "fields and village boundaries",
         rank: "local",
+        relations: [{ kind: "serves", of: "City god" }],
       },
       {
         name: "Tutelary spirits",
@@ -538,6 +551,7 @@ export const eastAsia: readonly BeliefSystem[] = [
         wiki: "https://en.wikipedia.org/wiki/Chenghuangshen",
         domain: "order, moral accounting, justice",
         rank: "major",
+        relations: [{ kind: "serves", of: "Heaven" }],
       },
       {
         name: "Guanyin",
@@ -550,13 +564,14 @@ export const eastAsia: readonly BeliefSystem[] = [
         wiki: "https://en.wikipedia.org/wiki/Mazu",
         domain: "sea protection, maritime safety",
         rank: "major",
-        relation: { kind: "aspect-of", of: "Guanyin" },
+        relations: [{ kind: "aspect-of", of: "Guanyin" }],
       },
       {
         name: "Kitchen god",
         wiki: "https://en.wikipedia.org/wiki/Kitchen_God",
         domain: "household sustenance and moral report",
         rank: "local",
+        relations: [{ kind: "serves", of: "Heaven" }],
       },
       {
         name: "Earth god",
@@ -629,6 +644,7 @@ export const eastAsia: readonly BeliefSystem[] = [
         name: "Village tutelary",
         domain: "shrine, well, tree, crossroads",
         rank: "local",
+        relations: [{ kind: "serves", of: "Earth god" }],
       },
       {
         name: "Door and threshold spirits",
@@ -741,6 +757,7 @@ export const eastAsia: readonly BeliefSystem[] = [
         wiki: "https://en.wikipedia.org/wiki/Bodhisattva",
         domain: "compassion, intercession",
         rank: "major",
+        relations: [{ kind: "serves", of: "Buddha" }],
       },
       {
         name: "Household ancestors",
@@ -807,6 +824,7 @@ export const eastAsia: readonly BeliefSystem[] = [
         name: "Local kami",
         domain: "shrine, mountain, river, place",
         rank: "major",
+        relations: [{ kind: "aspect-of", of: "Buddhist deities" }],
       },
       {
         name: "Buddhist deities",
@@ -823,12 +841,13 @@ export const eastAsia: readonly BeliefSystem[] = [
         wiki: "https://en.wikipedia.org/wiki/Ujigami",
         domain: "clan protection and blessing",
         rank: "local",
-        relation: { kind: "aspect-of", of: "Local kami" },
+        relations: [{ kind: "aspect-of", of: "Local kami" }],
       },
       {
         name: "Household kami",
         domain: "door, hearth, kitchen",
         rank: "local",
+        relations: [{ kind: "aspect-of", of: "Local kami" }],
       },
       {
         name: "Ancestral spirit",
@@ -876,6 +895,7 @@ export const eastAsia: readonly BeliefSystem[] = [
         wiki: "https://en.wikipedia.org/wiki/Kannon",
         domain: "compassion, childbirth, healing",
         rank: "major",
+        relations: [{ kind: "serves", of: "Amida Buddha" }],
       },
       {
         name: "Local kami",
@@ -891,11 +911,13 @@ export const eastAsia: readonly BeliefSystem[] = [
         name: "Household kami",
         domain: "door, hearth, sustenance",
         rank: "local",
+        relations: [{ kind: "aspect-of", of: "Local kami" }],
       },
       {
         name: "Village tutelary kami",
         domain: "communal well-being",
         rank: "local",
+        relations: [{ kind: "aspect-of", of: "Local kami" }],
       },
       {
         name: "Ancestral spirit",
@@ -947,6 +969,7 @@ export const eastAsia: readonly BeliefSystem[] = [
         wiki: "https://en.wikipedia.org/wiki/Kannon",
         domain: "compassion, childbirth, healing",
         rank: "major",
+        relations: [{ kind: "serves", of: "Buddha" }],
       },
       {
         name: "Local kami",
@@ -957,18 +980,20 @@ export const eastAsia: readonly BeliefSystem[] = [
         name: "Household kami",
         domain: "hearth, door, family shrine",
         rank: "local",
+        relations: [{ kind: "aspect-of", of: "Local kami" }],
       },
       {
         name: "Amida Buddha",
         wiki: "https://en.wikipedia.org/wiki/Amitabha",
         domain: "rebirth in the Pure Land at death",
         rank: "local",
+        relations: [{ kind: "aspect-of", of: "Buddha" }],
       },
       {
         name: "Ancestor-kami",
         domain: "household blessing and protection",
         rank: "local",
-        relation: { kind: "aspect-of", of: "Household ancestors" },
+        relations: [{ kind: "aspect-of", of: "Household ancestors" }],
       },
     ],
     practice: [
@@ -1089,6 +1114,7 @@ export const eastAsia: readonly BeliefSystem[] = [
         name: "Household kami",
         domain: "hearth, door, garden",
         rank: "local",
+        relations: [{ kind: "aspect-of", of: "Kami of the islands" }],
       },
       {
         name: "Village tutelary",
@@ -1099,6 +1125,7 @@ export const eastAsia: readonly BeliefSystem[] = [
         name: "Sea guardian spirit",
         domain: "fishing, maritime safety",
         rank: "local",
+        relations: [{ kind: "aspect-of", of: "Kami of the islands" }],
       },
     ],
     practice: [
@@ -1285,12 +1312,14 @@ export const eastAsia: readonly BeliefSystem[] = [
         wiki: "https://en.wikipedia.org/wiki/Tudigong",
         domain: "the local earth god, the neighbourhood",
         rank: "major",
+        relations: [{ kind: "serves", of: "The City God" }],
       },
       {
         name: "Zao Jun",
         wiki: "https://en.wikipedia.org/wiki/Kitchen_God",
         domain: "the stove, household report to Heaven",
         rank: "local",
+        relations: [{ kind: "serves", of: "The City God" }],
       },
       {
         name: "Guan Yu",

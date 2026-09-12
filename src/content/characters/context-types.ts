@@ -1,6 +1,6 @@
 import type { CharacterAppearance } from "../../core/character";
 import type { Inventory } from "../../core/types";
-import type { CultureId, Evidence } from "../history/types";
+import type { CultureId } from "../history/types";
 
 /** Exact-year, local scopes; never a culture × era Cartesian product. */
 export type CharacterScope = {
@@ -13,7 +13,14 @@ export type CharacterScope = {
 export type QualifiedContent = {
   id: string;
   label: string;
-  evidence: Evidence;
+  /** Human-authored further reading for this choice; https URLs. */
+  sources: readonly string[];
+  /**
+   * One specific fact about the practice or the surviving record — what the
+   * convention is, or why it is hard to recover. Never a hedge about how
+   * confident the content is.
+   */
+  note?: string;
 };
 export type NameKit = QualifiedContent & {
   scope: CharacterScope;
@@ -30,6 +37,12 @@ export type NameKit = QualifiedContent & {
   secondFamilyNames?: readonly string[];
   /** Complete patronymic/metronymic displays; never inherited as a family name. */
   patronymics?: readonly string[];
+  /**
+   * Preferred over `patronymics`: a parent's name plus a suffix chosen by the
+   * child's sex. A flat list of finished displays cannot know the sex, which
+   * is how women ended up called -sson.
+   */
+  patronymic?: { parents: readonly string[]; male: string; female: string };
 };
 /**
  * A naming tradition's components, gendered. Ported from the Historical Persona
@@ -44,8 +57,31 @@ export type NameTradition = {
   familyNames: readonly string[];
   /** Share of people in this tradition who carry no family name, 0-1. */
   noFamilyName: number;
-  format: "personal" | "personal-family" | "family-personal";
-  note: string;
+  format:
+    | "personal"
+    | "personal-family"
+    | "family-personal"
+    | "personal-patronymic";
+  /**
+   * Suffixes for a parent-derived element, by the child's sex. Built from a
+   * parent's personal name rather than drawn from a flat list, so a woman
+   * cannot end up called -sson.
+   */
+  patronymic?: {
+    /** Parent-name forms to build on; falls back to the masculine pool. */
+    parents?: readonly string[];
+    male: string;
+    female: string;
+  };
+  /**
+   * When this naming tradition is attested, clamped. A region window may be
+   * wider than the traditions it offers; the resolver drops options whose era
+   * does not contain the year, which is what stops a 1000-year window handing
+   * out names from one end of it.
+   */
+  era: readonly [number, number];
+  sources: readonly string[];
+  note?: string;
 };
 /** Which traditions are drawn on in a place, and in which years. */
 export type NameRegion = {
@@ -71,6 +107,13 @@ export type CommunityProfile = QualifiedContent & {
   appearance: string;
   livelihoods: readonly string[];
   allowedItems: readonly (keyof Inventory)[];
+  /**
+   * Which naming traditions this community draws on, where that differs from
+   * whatever the surrounding region uses. Without it a community inherits the
+   * region's traditions, which is right for the majority and wrong for anyone
+   * whose names travelled with them.
+   */
+  nameTraditions?: readonly { tradition: string; weight: number }[];
 };
 export type SocietyCapability =
   | "writing"

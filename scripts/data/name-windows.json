@@ -1,0 +1,91 @@
+{
+  "_comment": "UHS overrides to HPG's region/period table, applied after it by scripts/port-name-kits.ts. `replace` drops every HPG window for that region and uses these instead; `add` keeps HPG's and merges these in, clipping any HPG window that overlaps. Keys are UHS region ids as they appear in name-regions.generated.ts. Windows are [from, to), astronomical years, half-open.",
+  "regions": {
+    "european-ural-mountains": {
+      "why": "HPG gave the whole Urals Scandinavian names for 200-1200 and proto-Germanic before that, which is 2000 km and a language family out. The middle and northern Urals are Permic and Ob-Ugric country, with Turkic pressure from the south after the Bulgar and Horde periods.",
+      "replace": [
+        { "years": [-1000000, 800], "options": [] },
+        { "years": [800, 1600], "options": [{ "tradition": "komi-permic", "weight": 5 }, { "tradition": "ob-ugric", "weight": 3 }, { "tradition": "turkic-steppe", "weight": 1 }] },
+        { "years": [1600, 10001], "options": [{ "tradition": "komi-permic", "weight": 3 }, { "tradition": "ob-ugric", "weight": 2 }, { "tradition": "russian", "weight": 5 }] }
+      ]
+    },
+    "european-ural-and-arctic-europe": {
+      "why": "Same fault further north. This is Nenets, Komi and Sami country; Russian settlement follows the sixteenth century.",
+      "replace": [
+        { "years": [-1000000, 800], "options": [] },
+        { "years": [800, 1600], "options": [{ "tradition": "komi-permic", "weight": 4 }, { "tradition": "ob-ugric", "weight": 3 }, { "tradition": "sami-north", "weight": 2 }] },
+        { "years": [1600, 10001], "options": [{ "tradition": "komi-permic", "weight": 3 }, { "tradition": "sami-north", "weight": 2 }, { "tradition": "russian", "weight": 5 }] }
+      ]
+    },
+    "european-lapland": {
+      "why": "HPG gave Lapland proto-Germanic and then Scandinavian. Sapmi is Sami; Nordic names arrive with church and state registration.",
+      "replace": [
+        { "years": [-1000000, 1550], "options": [] },
+        { "years": [1550, 1800], "options": [{ "tradition": "sami-north", "weight": 8 }, { "tradition": "scandinavian", "weight": 1 }] },
+        { "years": [1800, 10001], "options": [{ "tradition": "sami-north", "weight": 5 }, { "tradition": "scandinavian", "weight": 4 }] }
+      ]
+    },
+    "european-scandinavia": {
+      "why": "The Viking age and the high Middle Ages were running on a modern Swedish pool. Old Norse covers 750-1400; the modern pool is now clamped to 1700.",
+      "add": [
+        { "years": [750, 1400], "options": [{ "tradition": "old-norse", "weight": 8 }, { "tradition": "icelandic", "weight": 1 }] }
+      ]
+    },
+    "european-norwegian-fjords": {
+      "why": "As Scandinavia.",
+      "add": [{ "years": [750, 1400], "options": [{ "tradition": "old-norse", "weight": 9 }] }]
+    },
+    "european-jutland-peninsula": {
+      "why": "As Scandinavia.",
+      "add": [{ "years": [750, 1400], "options": [{ "tradition": "old-norse", "weight": 9 }] }]
+    },
+    "european-gotland": {
+      "why": "As Scandinavia.",
+      "add": [{ "years": [750, 1400], "options": [{ "tradition": "old-norse", "weight": 9 }] }]
+    },
+    "european-stockholm-archipelago": {
+      "why": "As Scandinavia.",
+      "add": [{ "years": [750, 1400], "options": [{ "tradition": "old-norse", "weight": 9 }] }]
+    },
+    "european-atlantic-islands": {
+      "why": "Iceland and the Faroes were uninhabited before the ninth century, so the window should start at settlement rather than at the beginning of time.",
+      "replace": [
+        { "years": [-1000000, 870], "options": [] },
+        { "years": [870, 1400], "options": [{ "tradition": "old-norse", "weight": 6 }, { "tradition": "icelandic", "weight": 4 }] },
+        { "years": [1400, 10001], "options": [{ "tradition": "icelandic", "weight": 9 }, { "tradition": "scandinavian", "weight": 1 }] }
+      ]
+    },
+    "european-british-isles": {
+      "why": "Scandinavian settlement in the Danelaw and the Isles was Old Norse-speaking, not modern Swedish.",
+      "add": [{ "years": [793, 1100], "options": [{ "tradition": "old-norse", "weight": 3 }, { "tradition": "english-anglo-saxon", "weight": 5 }, { "tradition": "celtic-irish", "weight": 2 }] }]
+    },
+    "east-asian-japan": {
+      "why": "One window from the beginning of time to the present, on a pool of Meiji-era surnames. Japan was settled deep in the Palaeolithic but its onomastics are not recoverable before the written record.",
+      "replace": [
+        { "years": [-1000000, 700], "options": [] },
+        { "years": [700, 1875], "options": [{ "tradition": "japanese-classical", "weight": 1 }] },
+        { "years": [1875, 10001], "options": [{ "tradition": "japanese", "weight": 1 }] }
+      ]
+    },
+    "southeast-asian-indochina-interior": {
+      "why": "Angkor was running on modern Cambodian names with Sino-Cambodian surnames.",
+      "add": [{ "years": [802, 1500], "options": [{ "tradition": "angkorian-khmer", "weight": 1 }] }]
+    },
+    "southeast-asian-mainland-southeast-asia": {
+      "why": "As Indochina Interior.",
+      "add": [{ "years": [802, 1500], "options": [{ "tradition": "angkorian-khmer", "weight": 1 }] }]
+    },
+    "east-asian-kazakh-steppes": {
+      "why": "Ottoman names were standing in for the Turk and Uyghur khaganates and the whole pre-Mongol steppe.",
+      "add": [{ "years": [550, 1300], "options": [{ "tradition": "old-turkic", "weight": 1 }] }]
+    },
+    "east-asian-mongolia-and-manchuria": {
+      "why": "As the Kazakh steppes.",
+      "add": [{ "years": [550, 1200], "options": [{ "tradition": "old-turkic", "weight": 1 }] }]
+    },
+    "east-asian-xinjiang": {
+      "why": "As the Kazakh steppes; the Uyghur khaganate and its successors are the Old Turkic case proper.",
+      "add": [{ "years": [550, 1300], "options": [{ "tradition": "old-turkic", "weight": 1 }] }]
+    }
+  }
+}

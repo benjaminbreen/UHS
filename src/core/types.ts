@@ -11,9 +11,10 @@ export type Evidence = {
   id: string;
   title: string;
   statement: string;
-  status: "documented" | "inferred" | "hypothesis" | "fictional";
+  /** Omitted by content that cites a source instead of grading itself. */
+  status?: "documented" | "inferred" | "hypothesis" | "fictional";
   url: string;
-  limitation: string;
+  limitation?: string;
 };
 export type ItemDef = {
   id: ItemId;

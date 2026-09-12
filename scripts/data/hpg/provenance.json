@@ -1,0 +1,6 @@
+{
+ "source": "historical-persona-generator",
+ "commit": "9644c843292f2fca59e602f7320471d0614a5557",
+ "vendored": "2026-09-12",
+ "note": "Regenerate with scripts/vendor-hpg.ts. The port scripts read only these files."
+}
