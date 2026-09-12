@@ -102,3 +102,53 @@ it("covers the places and dates the app can actually generate", () => {
   // The remainder is Antarctica and islands nobody had reached yet.
   expect(hit / n).toBeGreaterThan(0.97);
 });
+
+it("links every system to an article, and no power to a malformed one", () => {
+  const shape = /^https:\/\/en\.wikipedia\.org\/wiki\/[^\s"?#]+$/;
+  let linked = 0;
+  for (const system of beliefSystems) {
+    if (system.wiki) {
+      linked++;
+      expect(shape.test(system.wiki), `${system.id}: ${system.wiki}`).toBe(
+        true,
+      );
+    }
+    for (const power of system.powers)
+      if (power.wiki)
+        expect(
+          shape.test(power.wiki),
+          `${system.id}/${power.name}: ${power.wiki}`,
+        ).toBe(true);
+  }
+  // Links are checked against the live API by scripts/check-beliefs-wiki.ts.
+  expect(linked / beliefSystems.length).toBeGreaterThan(0.9);
+});
+
+it("names the powers wherever names survive", () => {
+  const unnamed = beliefSystems.filter(
+    (b) =>
+      b.powers.filter((p) => /^(the|a|an)\b/i.test(p.name)).length /
+        b.powers.length >
+      0.6,
+  );
+  // The rest carry reconstructed forms under `gloss`, or are the handful where
+  // even a reconstruction would be a stretch: pre-1788 Australia, Papuan
+  // highland prehistory, Teotihuacan and Olmec, the pre-Bantu forest.
+  expect(unnamed.length / beliefSystems.length).toBeLessThan(0.2);
+});
+
+it("explains every starred name and never leaves a gloss bare", () => {
+  for (const system of beliefSystems)
+    for (const power of system.powers) {
+      // A starred form is a reconstruction and must say which language it is
+      // reconstructed from. A gloss without a star is an attested term being
+      // translated, which is fine.
+      if (power.name.startsWith("*"))
+        expect(power.gloss, `${system.id}/${power.name}`).toBeDefined();
+      if (power.gloss)
+        expect(
+          power.gloss.length,
+          `${system.id}/${power.name}`,
+        ).toBeGreaterThan(15);
+    }
+});

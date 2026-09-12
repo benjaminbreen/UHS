@@ -8,19 +8,23 @@ export const southeastAsia: readonly BeliefSystem[] = [
     id: "se-asia-early-foragers",
     label: "Early forager and hunter communities",
     scope: { years: [-8000, -2000], bounds: [92, -11, 142, 25] },
+    wiki: "https://en.wikipedia.org/wiki/Prehistory_of_Southeast_Asia",
     powers: [
       {
-        name: "The ancestors",
+        name: "*Kmoc",
+        gloss: "Proto-Austroasiatic *kmoc, 'corpse, spirit of the dead'",
         domain: "lineage, protection, the family path",
         rank: "paramount",
       },
       {
-        name: "The forest",
+        name: "*Bri",
+        gloss: "Proto-Austroasiatic *briʔ, 'forest'",
         domain: "game, paths, abundance, danger",
         rank: "paramount",
       },
       {
-        name: "The water",
+        name: "*Ɗaːk",
+        gloss: "Proto-Austroasiatic *ɗaːk, 'water'",
         domain: "fish, travel, crossings, sustenance",
         rank: "major",
       },
@@ -60,73 +64,93 @@ export const southeastAsia: readonly BeliefSystem[] = [
       sources: [
         "Bellwood, Prehistory of the Indo-Malaysian Archipelago",
         "Higham, The Archaeology of Mainland Southeast Asia",
+        "Sidwell, The Austroasiatic Languages",
       ],
       limitation:
-        "No direct sources; inferred from material remains and continuities in later upland practice.",
+        "No direct sources; inferred from material remains and continuities in later upland practice. The starred names are Proto-Austroasiatic words reconstructed from later Mon-Khmer and Munda languages, not recorded theonyms, and Proto-Austroasiatic itself is usually dated well after this span begins; nothing here shows these foragers spoke an Austroasiatic language, only that it is the best-attested substrate candidate for the region.",
     },
   },
   {
     id: "se-asia-austronesian-animism",
     label: "Austronesian ancestor and spirit practice",
     scope: { years: [-2000, 800], bounds: [92, -11, 142, 25] },
+    wiki: "https://en.wikipedia.org/wiki/Austronesian_peoples",
     powers: [
       {
-        name: "The ancestors",
-        domain: "the family line, protection, direction",
+        name: "The Hyang",
+        wiki: "https://en.wikipedia.org/wiki/Hyang",
+        domain: "ancestral and divine spirits, blessing, the unseen",
         rank: "paramount",
       },
-      { name: "The rice", domain: "growth, harvest, plenty", rank: "major" },
       {
-        name: "The house post",
+        name: "Dewi Sri",
+        wiki: "https://en.wikipedia.org/wiki/Dewi_Sri",
+        domain: "growth, harvest, plenty",
+        rank: "major",
+      },
+      {
+        name: "*Rumaq",
+        gloss: "Proto-Austronesian *Rumaq, 'house'",
         domain: "the household threshold and its safety",
         rank: "major",
       },
       {
-        name: "The water",
+        name: "The Naga",
+        wiki: "https://en.wikipedia.org/wiki/Naga",
         domain: "rivers, crossings, the sea's far shore",
         rank: "major",
       },
       {
-        name: "The forest",
+        name: "*Qalas",
+        gloss: "Proto-Austronesian *qalas, 'forest, wilderness'",
         domain: "game, paths, the edge of settled land",
         rank: "local",
       },
       {
-        name: "The hearth",
+        name: "*Sapuy",
+        gloss: "Proto-Austronesian *Sapuy, 'fire'",
         domain: "warmth, gathering, shared food",
         rank: "local",
       },
       {
-        name: "The village guardian",
-        domain: "boundary and watch",
+        name: "The danyang",
+        domain: "the village boundary and its watch",
         rank: "local",
       },
       {
-        name: "The ground",
+        name: "*Taneq",
+        gloss: "Proto-Austronesian *taneq, 'earth, land, soil'",
         domain: "burial and staying put",
         rank: "local",
       },
     ],
     practice: [
-      "Rice and palm wine set out at planting and harvest for the ancestors and the rice.",
+      "Rice and palm wine are set out at planting and harvest for the Hyang and for Dewi Sri.",
       "A post carved with faces marks the entrance to the house and the cleared land.",
-      "Dead are laid in the ground or in trees, kept provisioned so they do not wander.",
-      "Crocodile and python are not hunted on certain days—they are watchers for other people.",
+      "The dead are laid in the ground or in trees, kept provisioned so they join the Hyang without wandering.",
+      "Crocodile and python go unhunted on certain days, taken for the Naga's kin.",
     ],
-    specialist: "The eldest, the one who remembers the names.",
+    specialist:
+      "The eldest, who remembers the names and speaks first to the Hyang.",
     evidence: {
-      status: "inferred",
+      status: "hypothesis",
       claim:
-        "Austronesian-language communities across maritime Southeast Asia shared an ancestor-venerating, animate-spirits practice before Hindu or Islamic arrival, evidenced by persistent patterns in later folk practice and early colonial accounts.",
-      sources: ["Fox, The Austronesian Link", "Howe, 'Malay-Muslim Animism'"],
+        "Austronesian-language communities across maritime Southeast Asia shared an ancestor- and spirit-venerating practice before Hindu or Islamic arrival. The Hyang, Dewi Sri, and the naga are attested in the earliest Old Malay, Old Javanese, and Old Sundanese inscriptions and persist in later folk practice across the archipelago.",
+      sources: [
+        "Fox, The Austronesian Link",
+        "Howe, 'Malay-Muslim Animism'",
+        "Zoetmulder, Old Javanese-English Dictionary",
+        "Blust, The Austronesian Languages",
+      ],
       limitation:
-        "No surviving texts; reconstruction from ethnographic continuities and regional borrowing patterns.",
+        "No texts survive from the earliest centuries of this span; the named figures are attested only once writing appears, and are projected back onto the practice that preceded it. The starred names are Proto-Austronesian words for house, forest, fire and land, reconstructed by the comparative method from daughter languages across the Pacific and archipelago, not recorded names for spirits of the house or the forest.",
     },
   },
   {
     id: "se-asia-early-hindu-buddhism",
     label: "Early Hindu-Buddhist kingdoms and villages",
     scope: { years: [-500, 1000], bounds: [92, -10, 145, 24] },
+    wiki: "https://en.wikipedia.org/wiki/Greater_India",
     powers: [
       {
         name: "The ancestors",
@@ -135,16 +159,19 @@ export const southeastAsia: readonly BeliefSystem[] = [
       },
       {
         name: "Shiva",
+        wiki: "https://en.wikipedia.org/wiki/Shiva",
         domain: "cycles, the mountain, transformation",
         rank: "major",
       },
       {
         name: "Vishnu",
+        wiki: "https://en.wikipedia.org/wiki/Vishnu",
         domain: "order, preservation, cosmic balance",
         rank: "major",
       },
       {
         name: "The Buddha",
+        wiki: "https://en.wikipedia.org/wiki/Gautama_Buddha",
         domain: "the path, awakening, the refuge",
         rank: "major",
       },
@@ -159,7 +186,8 @@ export const southeastAsia: readonly BeliefSystem[] = [
         rank: "major",
       },
       {
-        name: "Local spirits",
+        name: "The neak ta",
+        wiki: "https://en.wikipedia.org/wiki/Neak_ta",
         domain: "the land's guardians, village boundaries",
         rank: "local",
       },
@@ -172,7 +200,7 @@ export const southeastAsia: readonly BeliefSystem[] = [
     practice: [
       "Temples to Shiva and Buddha rise on hills and river bends.",
       "The king rules as the gods' representative, anchoring cosmic order.",
-      "Villagers tend rice and the local spirits as their ancestors did.",
+      "Villagers tend rice and the neak ta as their ancestors did.",
       "Monks and Brahmins conduct state ritual; farmers and merchants live by older rhythms.",
     ],
     specialist:
@@ -180,7 +208,7 @@ export const southeastAsia: readonly BeliefSystem[] = [
     evidence: {
       status: "documented",
       claim:
-        "Hindu-Buddhist architecture, inscriptions, and art appear across Southeast Asia from the early centuries, while ethnographic and folk accounts show local spirits and ancestor practice persisting beneath and within the great traditions.",
+        "Hindu-Buddhist architecture, inscriptions, and art appear across Southeast Asia from the early centuries, while ethnographic and folk accounts show land-guardian spirits such as the neak ta and ancestor practice persisting beneath and within the great traditions.",
       sources: [
         "Hall, A History of Early Southeast Asia",
         "Vickery, The Khmer Empire and the Early Cham Polity",
@@ -193,20 +221,30 @@ export const southeastAsia: readonly BeliefSystem[] = [
     id: "se-asia-funan-hindu-buddhism",
     label: "Funan and early Champa Hindu-Buddhist courts",
     scope: { years: [1, 650], bounds: [99, 8, 108, 16] },
+    wiki: "https://en.wikipedia.org/wiki/Funan",
     powers: [
       {
         name: "Vishnu",
+        wiki: "https://en.wikipedia.org/wiki/Vishnu",
         domain: "order, kingship, preservation",
         rank: "paramount",
       },
       {
         name: "Shiva",
+        wiki: "https://en.wikipedia.org/wiki/Shiva",
         domain: "cycles, dissolution, the mountain",
         rank: "paramount",
       },
       {
         name: "The Buddha",
+        wiki: "https://en.wikipedia.org/wiki/Gautama_Buddha",
         domain: "awakening, the refuge, the path",
+        rank: "major",
+      },
+      {
+        name: "Po Nagar",
+        wiki: "https://en.wikipedia.org/wiki/Po_Nagar",
+        domain: "the land, motherhood, the realm's fertility",
         rank: "major",
       },
       {
@@ -230,53 +268,60 @@ export const southeastAsia: readonly BeliefSystem[] = [
         rank: "local",
       },
       {
-        name: "Local spirits",
+        name: "The neak ta",
+        wiki: "https://en.wikipedia.org/wiki/Neak_ta",
         domain: "the land's own guardians",
         rank: "local",
       },
     ],
     practice: [
       "Great temples to Vishnu and Shiva are built on river bends and hilltops; the king is the god's proxy.",
-      "Monks and court Brahmins read Sanskrit and make offerings, the villagers the spirits as always.",
+      "Monks and court Brahmins read Sanskrit and make offerings; villagers keep the neak ta as always.",
+      "Cham communities honor Po Nagar, mother of the land, whose coastal shrine draws pilgrims across faiths.",
       "Statuary mixes Vishnu and Buddha, Shiva and local features of stone and water.",
       "The flood season is seen as Vishnu's gift; harvest follows the old calendar and the new.",
     ],
     specialist:
-      "Court Brahmins for the state gods; village elders for the local spirits below.",
+      "Court Brahmins for the state gods; village elders for the neak ta below.",
     evidence: {
       status: "documented",
       claim:
-        "Funan and Champa inscriptions record major Hindu temples and Buddha statues from the 1st-7th centuries, while later folktales and ethnography show local spirit worship persisting in lowland practice.",
+        "Funan and Champa inscriptions record major Hindu temples and Buddha statues from the 1st-7th centuries, while later folktales and ethnography show Po Nagar and the neak ta persisting in lowland practice.",
       sources: [
         "Vickery, The Khmer Empire and the Early Cham Polity",
         "Pottier, 'Funan and the Mekong Delta'",
       ],
       limitation:
-        "Court inscriptions dominate; the reality of village practice is inferred from later periods.",
+        "Court inscriptions dominate; Po Nagar's cult is best attested from the stone temple raised after this period, and is extended back here by continuity of Cham practice.",
     },
   },
   {
     id: "se-asia-angkorian-devaraja",
     label: "Khmer Angkorian devaraja cult",
     scope: { years: [790, 1431], bounds: [102, 10, 106, 15] },
+    wiki: "https://en.wikipedia.org/wiki/Devaraja",
     powers: [
       {
         name: "Shiva",
+        wiki: "https://en.wikipedia.org/wiki/Shiva",
         domain: "the god-king, the axis of the realm",
         rank: "paramount",
       },
       {
         name: "Vishnu",
+        wiki: "https://en.wikipedia.org/wiki/Vishnu",
         domain: "sustenance, the cosmic order",
         rank: "major",
       },
       {
         name: "Brahma",
+        wiki: "https://en.wikipedia.org/wiki/Brahma",
         domain: "creation, the world-maker",
         rank: "major",
       },
       {
         name: "The Buddha",
+        wiki: "https://en.wikipedia.org/wiki/Gautama_Buddha",
         domain: "refuge, merit, escape from suffering",
         rank: "major",
       },
@@ -333,40 +378,43 @@ export const southeastAsia: readonly BeliefSystem[] = [
     id: "se-asia-theravada-burma",
     label: "Theravada Burma with nat worship",
     scope: { years: [1050, 1885], bounds: [92, 9, 102, 29] },
+    wiki: "https://en.wikipedia.org/wiki/Buddhism_in_Myanmar",
     powers: [
       {
         name: "The Buddha",
+        wiki: "https://en.wikipedia.org/wiki/Gautama_Buddha",
         domain: "the path to nirvana, the refuge",
         rank: "paramount",
       },
       {
-        name: "The 37 nats",
-        domain: "the spirits of earth, air, ancestors, the wild",
+        name: "Thagyamin",
+        wiki: "https://en.wikipedia.org/wiki/Thagyamin",
+        domain: "king of the nats, the sky, rain, kingship",
         rank: "paramount",
       },
       {
-        name: "The Earth goddess",
+        name: "Min Mahagiri",
+        domain: "Mount Popa, the household's guardian, the coconut shrine",
+        rank: "major",
+      },
+      {
+        name: "Wathondaye",
         domain: "witness to deeds, the realm beneath",
         rank: "major",
       },
       {
-        name: "Indra",
-        domain: "rain, the season, kingship",
+        name: "Shin Byu Shin",
+        domain: "royal nat lineage, guardianship of the court",
         rank: "major",
       },
       {
-        name: "The local nat",
-        domain: "the village's own guardian spirit",
-        rank: "major",
+        name: "The Taungbyon brothers",
+        domain: "brotherhood, festival, protection from illness",
+        rank: "local",
       },
       {
         name: "The river nats",
         domain: "water, crossing, the path abroad",
-        rank: "local",
-      },
-      {
-        name: "The household post",
-        domain: "the home's protection and threshold",
         rank: "local",
       },
       {
@@ -381,20 +429,20 @@ export const southeastAsia: readonly BeliefSystem[] = [
       },
     ],
     practice: [
-      "Monasteries are the heart of village life; lay people give rice and cloth to gain merit, then approach the nats for the daily fix.",
-      "Nat worship happens at household shrines and at the spirit's own shrine tree or stone.",
-      "A person possessed by a nat may speak as the nat; possession is courted for prophecy and healing.",
-      "Water poured on a statue of Buddha becomes merit; water poured on a spirit shrine becomes propitiation.",
-      "Elephant and python are nats' kin; harming them invites their vengeance.",
+      "Monasteries anchor village life; lay people give rice and cloth to gain merit, then turn to the nats for the daily fix.",
+      "A coconut wrapped in cloth hangs from the house post for Min Mahagiri, guardian of hearth and home.",
+      "Mediums are possessed by Shin Byu Shin, Thagyamin, or another nat and speak with the spirit's voice.",
+      "The Taungbyon festival each August draws mediums and pilgrims to dance for the two brother nats.",
+      "Elephant and python are counted the nats' kin; harming them invites vengeance.",
     ],
     specialist:
-      "Monks for the dharma and merit; spirit mediums for possession and communication; the household elder for the ancestors.",
+      "Monks for the dharma and merit; nat mediums for possession, healing, and the Taungbyon rites; the household elder for the ancestors.",
     afterlife:
-      "Rebirth until merit brings cessation. Nats cycle through suffering and power without escape.",
+      "Rebirth continues until merit brings cessation. The nats cycle through suffering and power without escape.",
     evidence: {
       status: "documented",
       claim:
-        "Burmese chronicles and inscriptions from the Pagan period onward record Buddhist monasteries; ethnographic accounts since the 1800s consistently document nat worship as coeval and inseparable from Buddhism in village practice.",
+        "Burmese chronicles and inscriptions from the Pagan period onward record Buddhist monasteries; ethnographic accounts since the 1800s consistently document Thagyamin, Min Mahagiri, the Taungbyon brothers, and dozens of other named nats as coeval and inseparable from Buddhism in village practice.",
       sources: [
         "Aung-Thwin, The Mrauk-U Empire and Southeast Asian State Formation",
         "Spiro, Burmese Supernaturalism",
@@ -407,9 +455,11 @@ export const southeastAsia: readonly BeliefSystem[] = [
     id: "se-asia-theravada-siam",
     label: "Theravada Siam and Lao practice",
     scope: { years: [1238, 1885], bounds: [99, 13, 108, 21] },
+    wiki: "https://en.wikipedia.org/wiki/Religion_in_Thailand",
     powers: [
       {
         name: "The Buddha",
+        wiki: "https://en.wikipedia.org/wiki/Gautama_Buddha",
         domain: "the path, the refuge, enlightenment",
         rank: "paramount",
       },
@@ -420,27 +470,30 @@ export const southeastAsia: readonly BeliefSystem[] = [
       },
       {
         name: "Indra",
+        wiki: "https://en.wikipedia.org/wiki/Indra",
         domain: "the sky, rain, the king's cosmic place",
         rank: "major",
       },
       {
-        name: "Brahma and the Four Faces",
-        domain: "the city guardian, creation",
+        name: "Phra Phrom",
+        wiki: "https://en.wikipedia.org/wiki/Phra_Phrom",
+        domain: "the city guardian, creation, four-faced protection",
         rank: "major",
       },
       {
-        name: "The village phi",
-        domain: "the community's own spirit guardian",
+        name: "Lak Mueang",
+        domain: "the community's own spirit guardian, the city's pillar",
         rank: "major",
       },
       {
-        name: "The house post spirit",
-        domain: "the home's life and safety",
+        name: "Chao Thi",
+        domain: "the home's land and safety",
         rank: "local",
       },
       {
-        name: "The rice",
-        domain: "growth, the planter's hope",
+        name: "Mae Posop",
+        wiki: "https://en.wikipedia.org/wiki/Phosop",
+        domain: "growth, the planter's hope, the rice spirit",
         rank: "local",
       },
       {
@@ -455,19 +508,20 @@ export const southeastAsia: readonly BeliefSystem[] = [
       },
     ],
     practice: [
-      "Villages maintain wats as centers of merit-making; young men spend rains as monks to gain blessing.",
-      "A household spirit house receives fruit and rice; offerings made by women after evening.",
-      "The phi may sicken a family if not respected; a shaman detects which phi has taken offense.",
-      "Brahmins from the city maintain the Erawan shrine and the city guardian; the village headman makes offerings at the village post.",
+      "Villages maintain wats as centers of merit-making; young men spend a rains retreat as monks to gain blessing.",
+      "A spirit house for Chao Thi stands in the yard and receives fruit and rice from the women each evening.",
+      "The phi may sicken a family if slighted; a khru diagnoses which phi has taken offense.",
+      "Mae Posop is thanked at planting and harvest, sometimes carried in effigy from the field to the granary.",
+      "City pillars for Lak Mueang and shrines to Phra Phrom stand at the town's center; the village headman tends the humbler post at its edge.",
     ],
     specialist:
-      "Monks for merit and teaching; the khru (spirit master) for divination and possession; the household elder for daily offerings.",
+      "Monks for merit and teaching; the khru (spirit master) for divination and possession; the household elder for daily offerings to Chao Thi.",
     afterlife:
       "Merit brings higher rebirth. The phi persist endlessly, cycling through favor and anger.",
     evidence: {
       status: "documented",
       claim:
-        "Thai and Lao chronicles record Buddhist kingdoms from Sukhothai onward; ethnography and temple records from the 1800s onward consistently describe phi worship as essential village practice alongside Buddhism.",
+        "Thai and Lao chronicles record Buddhist kingdoms from Sukhothai onward; ethnography and temple records from the 1800s onward consistently describe Phra Phrom, Lak Mueang, Chao Thi, Mae Posop, and the wider phi as essential village practice alongside Buddhism.",
       sources: [
         "Baker & Pasuk, A History of Thailand",
         "Tambiah, The Buddhist Saints of the Forest and the Cult of Amulets",
@@ -480,6 +534,7 @@ export const southeastAsia: readonly BeliefSystem[] = [
     id: "se-asia-majapahit",
     label: "Majapahit Hindu-Buddhist Java",
     scope: { years: [1200, 1600], bounds: [100, -11, 130, -4] },
+    wiki: "https://en.wikipedia.org/wiki/Majapahit",
     powers: [
       {
         name: "Shiva-Buddha",
@@ -488,6 +543,7 @@ export const southeastAsia: readonly BeliefSystem[] = [
       },
       {
         name: "Vishnu",
+        wiki: "https://en.wikipedia.org/wiki/Vishnu",
         domain: "preservation, the dharma, the order",
         rank: "major",
       },
@@ -498,16 +554,19 @@ export const southeastAsia: readonly BeliefSystem[] = [
       },
       {
         name: "Brahma",
+        wiki: "https://en.wikipedia.org/wiki/Brahma",
         domain: "creation and the world's fabric",
         rank: "major",
       },
       {
         name: "The Buddha",
+        wiki: "https://en.wikipedia.org/wiki/Gautama_Buddha",
         domain: "the teaching, merit, the way out",
         rank: "major",
       },
       {
         name: "Mount Semeru",
+        wiki: "https://en.wikipedia.org/wiki/Mount_Semeru",
         domain: "the realm's center, the axis",
         rank: "local",
       },
@@ -559,40 +618,54 @@ export const southeastAsia: readonly BeliefSystem[] = [
     id: "se-asia-islamic-java-malay",
     label: "Islamic Java and Malay sultanates",
     scope: { years: [1200, 1900], bounds: [92, -10, 130, 10] },
+    wiki: "https://en.wikipedia.org/wiki/Islam_in_Southeast_Asia",
     powers: [
       {
         name: "Allah",
+        wiki: "https://en.wikipedia.org/wiki/Allah",
         domain: "the ultimate source, judgment, mercy",
         rank: "paramount",
       },
       {
         name: "The Prophet Muhammad",
+        wiki: "https://en.wikipedia.org/wiki/Muhammad",
         domain: "the seal of prophecy, intercession",
         rank: "major",
       },
       {
-        name: "The saints",
-        domain: "nearness to God, healing, protection",
+        name: "The Wali Songo",
+        wiki: "https://en.wikipedia.org/wiki/Wali_Sanga",
+        domain: "nearness to God, healing, the spread of Islam",
         rank: "major",
       },
       {
-        name: "The ancestors",
-        domain: "blessing and watching over the family",
+        name: "Batara Guru",
+        wiki: "https://en.wikipedia.org/wiki/Batara_Guru",
+        domain: "the old high god, kingship, the unseen order",
         rank: "major",
       },
       {
-        name: "The rice",
+        name: "Nyai Roro Kidul",
+        wiki: "https://en.wikipedia.org/wiki/Nyai_Roro_Kidul",
+        domain:
+          "the southern sea, the sultan's spirit consort, danger and power",
+        rank: "major",
+      },
+      {
+        name: "Dewi Sri",
+        wiki: "https://en.wikipedia.org/wiki/Dewi_Sri",
         domain: "growth and sustenance",
         rank: "local",
       },
       {
-        name: "The house spirit",
-        domain: "the home's safety and abundance",
+        name: "Semar and the punakawan",
+        wiki: "https://en.wikipedia.org/wiki/Semar",
+        domain: "wisdom, comic wisdom, protection of the ordinary",
         rank: "local",
       },
       {
-        name: "The water guardian",
-        domain: "river and well, the crossing",
+        name: "The ancestors",
+        domain: "blessing and watching over the family",
         rank: "local",
       },
       {
@@ -600,27 +673,22 @@ export const southeastAsia: readonly BeliefSystem[] = [
         domain: "burial, rooting, the underworld's witness",
         rank: "local",
       },
-      {
-        name: "Local spirits",
-        domain: "village guardians, the land's own voice",
-        rank: "local",
-      },
     ],
     practice: [
       "Prayer five times daily; the mosque is the community's gathering and direction.",
-      "Saints' shrines—some ancient—are visited for blessing and healing; graves of the pious draw pilgrims.",
-      "The Quran is recited at birth and death; Quranic verses worn as amulet.",
-      "Peasants make offerings to ancestors and to the rice field's spirit—nothing in the Quran forbids it.",
-      "Weddings and harvests follow Islamic calendar and old custom woven together.",
+      "The Wali Songo are honored at their tomb-shrines, visited for blessing and intercession across the island.",
+      "Sultans of Yogyakarta and Surakarta renew their pact with Nyai Roro Kidul, queen of the southern sea, each year.",
+      "Wayang gives Batara Guru's court its due, but it is Semar and the punakawan, servants wiser than their masters, whom audiences love.",
+      "Peasants make offerings to Dewi Sri and the ancestors—nothing in the Quran forbids it.",
     ],
     specialist:
-      "The imam for Islamic prayer and teaching; the mosque leader for community issues; the village elder for ancestral rites; the dukun (healer) for the spirits.",
+      "The imam for prayer and teaching; the kyai at the pesantren; the dukun for Dewi Sri, Nyai Roro Kidul, and the old spirits beneath Islam.",
     afterlife:
       "The faithful enter paradise; the wicked face punishment. Ancestors may intervene from their rest.",
     evidence: {
       status: "documented",
       claim:
-        "Islamic sultanates of Java and the Malay Peninsula from the 1400s onward are recorded in inscriptions and foreign accounts; ethnography from the colonial period documents Islamic practice layered over and coexisting with ancestor and spirit veneration, not replacing it.",
+        "Islamic sultanates of Java and the Malay Peninsula from the 1400s onward are recorded in inscriptions and foreign accounts; Javanese literature and ethnography document Batara Guru, Semar, Dewi Sri, and Nyai Roro Kidul persisting alongside Islam, carried by the Wali Songo tradition rather than erased by it.",
       sources: [
         "Reid, Southeast Asia in the Age of Commerce",
         "Ricklefs, Mysticism in Java: Ideology in Indonesia",
@@ -633,6 +701,7 @@ export const southeastAsia: readonly BeliefSystem[] = [
     id: "se-asia-vietnamese-ancestor",
     label: "Vietnamese ancestor veneration and Mahayana",
     scope: { years: [1000, 1900], bounds: [102, 8, 109, 24] },
+    wiki: "https://en.wikipedia.org/wiki/Vietnamese_folk_religion",
     powers: [
       {
         name: "The ancestors",
@@ -641,37 +710,44 @@ export const southeastAsia: readonly BeliefSystem[] = [
       },
       {
         name: "The Buddha",
+        wiki: "https://en.wikipedia.org/wiki/Gautama_Buddha",
         domain: "the refuge, merit, compassion",
         rank: "major",
       },
       {
         name: "Avalokiteshvara",
+        wiki: "https://en.wikipedia.org/wiki/Avalokiteshvara",
         domain: "compassion, the refuge of the suffering",
         rank: "major",
       },
       {
         name: "Guan Yu",
+        wiki: "https://en.wikipedia.org/wiki/Guan_Yu",
         domain: "righteousness, loyalty, virtue",
         rank: "major",
       },
       {
-        name: "The Earth goddess",
-        domain: "the land, crops, stability",
+        name: "Thanh Mau",
+        wiki: "https://en.wikipedia.org/wiki/%C4%90%E1%BA%A1o_M%E1%BA%ABu",
+        domain: "the land, crops, motherhood, the Four Palaces",
+        rank: "major",
+      },
+      {
+        name: "Tan Vien",
+        wiki: "https://en.wikipedia.org/wiki/T%E1%BA%A3n_Vi%C3%AAn_S%C6%A1n_Th%C3%A1nh",
+        domain: "the mountain, flood control, guardian of the realm",
         rank: "major",
       },
       {
         name: "The Jade Emperor",
+        wiki: "https://en.wikipedia.org/wiki/Jade_Emperor",
         domain: "cosmic order, the record of souls",
         rank: "local",
       },
       {
-        name: "The tutelary god of the village",
-        domain: "guardian and fate of the community",
-        rank: "local",
-      },
-      {
-        name: "The household altar",
-        domain: "the family's center, daily nourishment",
+        name: "Ong Tao",
+        wiki: "https://en.wikipedia.org/wiki/T%C3%A1o_Qu%C3%A2n",
+        domain: "the hearth, household deeds, the yearly report to heaven",
         rank: "local",
       },
       {
@@ -682,51 +758,54 @@ export const southeastAsia: readonly BeliefSystem[] = [
     ],
     practice: [
       "The ancestors sit on a high altar in the home and are fed daily with rice, incense and prayer.",
-      "Buddhist monasteries teach the dharma; lay people gain merit by supporting monks.",
-      "The moon festivals gather families to remember ancestors and ancestors to visit the living.",
-      "The village temple holds statues of Guan Yu, local sages, and minor deities of craft and protection.",
-      "A person's soul at death must be guided carefully by rite and feeding lest it wander or return to trouble the living.",
+      "Buddhist monasteries teach the dharma; lay people gain merit and call on Avalokiteshvara's mercy.",
+      "The moon festival gathers families to remember ancestors and welcomes them back to visit the living.",
+      "Mediums of the Thanh Mau enter trance to channel the Mother Goddesses and their court of spirits.",
+      "Ong Tao, the kitchen god, rides a carp to heaven each New Year to report the household's deeds to the Jade Emperor.",
     ],
     specialist:
-      "The household head tends the ancestor altar; Buddhist monks for teaching and merit; the village priest for the tutelary and the rites of the dead.",
+      "The household head tends the ancestor altar and the kitchen shrine to Ong Tao; Buddhist monks for teaching and merit; mediums for the Thanh Mau; the village priest for Tan Vien and the tutelary spirits.",
     afterlife:
       "The ancestors watch and bless. The virtuous gain higher rebirth; the suffering are freed by compassion.",
     evidence: {
       status: "documented",
       claim:
-        "Vietnamese texts from the 11th century onward record Buddhism and Confucian ancestor rites; ethnographic sources from the French colonial period document a sophisticated synthesis where Mahayana Buddhism and ancestor veneration form one integrated system, the spirits of the Buddhist pantheon understood as distant, the ancestors as near and daily.",
+        "Vietnamese texts from the 11th century onward record Buddhism and Confucian ancestor rites; ethnographic sources from the French colonial period onward document a synthesis where Mahayana Buddhism, the Thanh Mau spirit-medium cult, Tan Vien and the other tutelary spirits, and household ancestor veneration form one integrated system.",
       sources: [
         "Taylor, The Birth of Vietnam",
         "Hickey, Village in Vietnam",
-        "Kwanten, The Buddhistic Conquest of China",
+        "Fjelstad & Nguyen, Possessed by the Spirits",
       ],
       limitation:
-        "Classical Vietnamese sources emphasize the Confucian and Buddhist elite perspective; village practice is best known from colonial-era ethnography.",
+        "Classical Vietnamese sources emphasize the Confucian and Buddhist elite perspective; the Thanh Mau cult and village practice are best known from colonial-era and later ethnography.",
     },
   },
   {
     id: "se-asia-upland-animism",
     label: "Upland and forest animism",
     scope: { years: [1, 2000], bounds: [98, 0, 122, 25] },
+    wiki: "https://en.wikipedia.org/wiki/Kaharingan",
     powers: [
       {
-        name: "The ancestors",
-        domain: "the family line, health and fortune",
+        name: "The sangiang",
+        domain: "lineage, protection, the deified ancestors",
         rank: "paramount",
       },
       {
-        name: "The forest",
+        name: "*Bri",
+        gloss: "Proto-Austroasiatic *briʔ, 'forest'",
         domain: "game, paths, danger, the wild beyond",
         rank: "paramount",
       },
       {
-        name: "The mountain",
-        domain: "height, the sky, the far view",
+        name: "Mahatala",
+        wiki: "https://en.wikipedia.org/wiki/Mahatala",
+        domain: "height, the sky, cosmic order, the far view",
         rank: "major",
       },
       {
-        name: "The river",
-        domain: "water, travel, the direction to the sea",
+        name: "Jata",
+        domain: "water, the underworld, fertility, travel to the sea",
         rank: "major",
       },
       {
@@ -735,8 +814,8 @@ export const southeastAsia: readonly BeliefSystem[] = [
         rank: "major",
       },
       {
-        name: "The village guardian",
-        domain: "boundary and protection from the wild",
+        name: "Y'wa",
+        domain: "creation, moral order, the sky father of the Karen hills",
         rank: "local",
       },
       {
@@ -756,55 +835,72 @@ export const southeastAsia: readonly BeliefSystem[] = [
       },
     ],
     practice: [
-      "Before hunting or entering the forest, the ancestors are asked permission and promised a share.",
+      "Before hunting or entering the forest, the sangiang are asked permission and promised a share.",
+      "Longhouses carve hornbills for Mahatala and serpents for Jata, keeping sky and underworld in balance.",
       "A stone pile at the clearing's edge warns spirits not to trespass on human ground.",
-      "Rice given to the fields in spring and gathered in autumn with ritual attention.",
-      "A death in the village requires propitiation of any forest spirits who may have taken offense.",
+      "Karen households invoke Y'wa at planting and at illness, alongside the sangiang.",
       "Tattoos and ornaments mark the wearer's clan and their pact with the ancestors.",
     ],
     specialist:
-      "The village priest reads animal signs and dreams; the eldest tends the household and the ancestors.",
+      "The village priest reads animal signs and dreams; the eldest tends the household and the sangiang.",
     evidence: {
-      status: "inferred",
+      status: "hypothesis",
       claim:
-        "Upland Austronesian and Mon-Khmer peoples of the highlands and interior of Southeast Asia maintain animist practices that appear unchanged in ethnographic records and are inferred from lowland folktales to represent the ancestral substrate beneath later Hindu-Buddhist and Islamic traditions.",
+        "Upland Austronesian and Mon-Khmer peoples of the highlands and interior of Southeast Asia maintain animist practices inferred to represent the ancestral substrate beneath later Hindu-Buddhist and Islamic traditions. Mahatala and Jata, the paired sky and underworld deities of the Ngaju Dayak, and Y'wa, the Karen sky father, are two well-documented instances of a much broader upland pattern.",
       sources: [
         "Condominas, We Have Eaten the Forest",
         "Endicott, An Analysis of Malay Magic",
+        "Scharer, Ngaju Religion: The Conception of God among a South Borneo People",
+        "Sidwell, The Austroasiatic Languages",
       ],
       limitation:
-        "Few historical sources exist for upland practice; the picture comes from modern ethnography and inferences from lowland persistence of similar elements.",
+        "Few historical sources exist for upland practice generally; Mahatala, Jata, and Y'wa are drawn from two well-studied groups and stand in here for a pattern that varies in name and detail across dozens of highland peoples. *Bri is a Proto-Austroasiatic word for forest, reconstructed from Mon-Khmer and Munda languages spoken across the mainland uplands generally; it is not a word the Ngaju Dayak (Austronesian speakers) or the Karen (Tibeto-Burman speakers) named here ever used themselves, and stands in for the wider Austroasiatic-speaking upland pattern this system otherwise generalizes from.",
     },
   },
   {
     id: "se-asia-philippine-anito",
     label: "Philippine anito practice and Catholic syncretism",
     scope: { years: [1000, 1900], bounds: [117, 5, 127, 20] },
+    wiki: "https://en.wikipedia.org/wiki/Philippine_mythology",
     powers: [
       {
+        name: "Bathala",
+        wiki: "https://en.wikipedia.org/wiki/Bathala",
+        domain: "the sky, creation, the supreme order",
+        rank: "paramount",
+      },
+      {
         name: "The anitos",
+        wiki: "https://en.wikipedia.org/wiki/Anito",
         domain: "spirits of place, ancestors, the sacred",
         rank: "paramount",
       },
       {
-        name: "The ancestors",
-        domain: "the family line, guidance and blessing",
-        rank: "paramount",
-      },
-      {
-        name: "The rice",
-        domain: "growth, harvest, the people's food",
+        name: "Lakapati",
+        domain: "farmland, fertility, the harvest's protector",
         rank: "major",
       },
       {
-        name: "The sea",
-        domain: "fish, travel, commerce, danger",
+        name: "Apolaki",
+        domain: "the sun, war, valor",
         rank: "major",
       },
       {
-        name: "The mountain and forest",
-        domain: "game, height, the boundary",
+        name: "Mayari",
+        wiki: "https://en.wikipedia.org/wiki/Mayari",
+        domain: "the moon, night, one-eyed justice",
         rank: "major",
+      },
+      {
+        name: "Maria Makiling",
+        wiki: "https://en.wikipedia.org/wiki/Maria_Makiling",
+        domain: "the mountain, the forest's game, guardianship of the wild",
+        rank: "major",
+      },
+      {
+        name: "Tala",
+        domain: "the night sky, guidance for travelers and sailors",
+        rank: "local",
       },
       {
         name: "The house",
@@ -823,39 +919,48 @@ export const southeastAsia: readonly BeliefSystem[] = [
       },
     ],
     practice: [
-      "Before planting or fishing, the anitos are called and offered rice wine and meat.",
-      "Shamans (babaylan) interpret dreams and diagnose spirit sickness.",
-      "The ancestors are buried in the home or in trees, kept close and fed at feasts.",
-      "Certain trees, stones, and springs house anitos; they are marked and respected, not disturbed.",
-      "After Spanish conquest, Catholic saints and Mary take the anitos' places in form while the spirits persist in practice.",
+      "Before planting or fishing, the anitos are called and Lakapati is thanked for the harvest to come.",
+      "Babaylan shamans interpret dreams, diagnose spirit sickness, and mediate with Bathala and the anitos.",
+      "The dead are buried in the home or in trees, kept close and fed at feasts.",
+      "Maria Makiling and other diwata are said to guard particular mountains and springs; travelers leave a small offering before passing.",
+      "After Spanish conquest, Catholic saints and Mary take Bathala's and the anitos' places in form while the old names persist in story.",
     ],
     specialist:
-      "The babaylan (shaman) for divination, healing and communication; the household head for ancestor rites; the village elder for the barangay.",
+      "The babaylan (shaman) for divination, healing and communication with Bathala and the anitos; the household head for ancestor rites; the village elder for the barangay guardian.",
     evidence: {
       status: "documented",
       claim:
-        "Early Spanish accounts (16th-17th centuries) describe elaborate anito worship and shamanic practice; later colonial and ethnographic sources document the survival and syncretism of anito practice under Catholic veneration, showing the anitos encoded as saints.",
+        "Early Spanish accounts (16th-17th centuries) describe elaborate anito worship, the diwata class of nature spirits, and named deities including Bathala, Lakapati, Apolaki, and Mayari; later colonial and ethnographic sources document the survival and syncretism of this practice under Catholic veneration.",
       sources: [
         "Phelan, The Hispanization of the Philippines",
         "Jocano, Folk Christianity and Ethnic Identity in the Philippines",
+        "Scott, Barangay: Sixteenth-Century Philippine Culture and Society",
       ],
       limitation:
-        "Spanish friars' accounts are hostile and sparse; the fullest picture comes from 19th-century ethnography and modern practice.",
+        "Spanish friars' accounts are hostile and sparse, and the pantheon they record varies by region and chronicler; the fullest picture comes from 19th-century ethnography and modern practice.",
     },
   },
   {
     id: "se-asia-sulawesi-moluccas-islam",
     label: "Islamic sultanates in Sulawesi and the Moluccas",
     scope: { years: [1200, 1900], bounds: [110, -11, 145, 5] },
+    wiki: "https://en.wikipedia.org/wiki/Islam_in_Indonesia",
     powers: [
       {
         name: "Allah",
+        wiki: "https://en.wikipedia.org/wiki/Allah",
         domain: "the ultimate, judgment, mercy",
         rank: "paramount",
       },
       {
         name: "The Prophet Muhammad",
+        wiki: "https://en.wikipedia.org/wiki/Muhammad",
         domain: "the seal of prophecy, intercession",
+        rank: "major",
+      },
+      {
+        name: "Patotoqe",
+        domain: "fate, the order set before creation, the high god above",
         rank: "major",
       },
       {
@@ -874,18 +979,19 @@ export const southeastAsia: readonly BeliefSystem[] = [
         rank: "major",
       },
       {
+        name: "We Nyiliq Timoq",
+        domain:
+          "royal ancestry, the descent from the sky, founding of dynasties",
+        rank: "local",
+      },
+      {
         name: "The house guardian",
         domain: "the home's safety, family prosperity",
         rank: "local",
       },
       {
-        name: "The island's spirit",
-        domain: "the land itself, its boundaries and gifts",
-        rank: "local",
-      },
-      {
-        name: "The water spirits",
-        domain: "springs, wells, the crossing",
+        name: "Nunusaku",
+        domain: "the ancestral tree, the origin of clans, the land's memory",
         rank: "local",
       },
       {
@@ -896,31 +1002,33 @@ export const southeastAsia: readonly BeliefSystem[] = [
     ],
     practice: [
       "Prayer five times daily; the mosque is the island's gathering place.",
-      "The sultan rules by Islamic law and custom woven together.",
-      "Ancestors are honored at family altars alongside Islamic practice.",
+      "The sultan rules by Islamic law and by the older order Patotoqe is said to have fixed before the world began.",
+      "Bugis genealogies trace royal houses back to We Nyiliq Timoq, said to have descended from the upper world.",
       "Traders and sailors make offerings to the sea spirits before voyage.",
-      "Saints' tombs are visited for blessing; the pious seek their intercession.",
+      "Clans across the Moluccas trace their origin to Nunusaku, the ancestral tree, and gather at its remembered site.",
     ],
     specialist:
-      "The imam and qadi for Islamic law and prayer; the village headman for kin and land; healers for the spirits.",
+      "The imam and qadi for Islamic law and prayer; Bugis genealogists and elders for Patotoqe's order and the royal descent; healers for the local spirits.",
     afterlife:
-      "The faithful enter paradise. The ancestors may intercede. Spirits persist in the land.",
+      "The faithful enter paradise. The ancestors may intercede. The order Patotoqe set still shapes fate.",
     evidence: {
       status: "documented",
       claim:
-        "Islamic sultanates of Ternate, Tidore, Banjarmasin and others ruled Sulawesi and the Moluccas from the 1400s onward, recorded in Portuguese, Dutch and local chronicles; ethnography documents Islamic practice coexisting with ancestor and spirit veneration in village daily life.",
+        "Islamic sultanates of Ternate, Tidore, Banjarmasin and others ruled Sulawesi and the Moluccas from the 1400s onward, recorded in Portuguese, Dutch and local chronicles. Bugis cosmology—Patotoqe and the descent of We Nyiliq Timoq, preserved in the La Galigo cycle—and the Nunusaku origin-tree tradition of Central Maluku are documented as coexisting with Islamic practice in daily and dynastic life.",
       sources: [
         "Reid, Southeast Asia in the Age of Commerce",
         "Andaya, The World of Maluku",
+        "Pelras, The Bugis",
       ],
       limitation:
-        "Court and trade records focus on sultanates and spice commerce; village practice is known chiefly from colonial and ethnographic sources.",
+        "Court and trade records focus on sultanates and spice commerce; the Bugis and Moluccan material is best attested from the oral epic and clan tradition, best recorded in the modern period though claiming much older roots.",
     },
   },
   {
     id: "se-asia-colonial-modernization",
     label: "Colonial and postcolonial modernization",
     scope: { years: [1850, 2000], bounds: [92, -11, 142, 25] },
+    wiki: "https://en.wikipedia.org/wiki/History_of_Southeast_Asia",
     powers: [
       {
         name: "The nation",
@@ -928,8 +1036,9 @@ export const southeastAsia: readonly BeliefSystem[] = [
         rank: "paramount",
       },
       {
-        name: "The ancestors",
-        domain: "family honor, tradition, the past",
+        name: "Ho Chi Minh",
+        wiki: "https://en.wikipedia.org/wiki/Ho_Chi_Minh",
+        domain: "revolutionary founding, moral example, the people's father",
         rank: "major",
       },
       {
@@ -946,6 +1055,12 @@ export const southeastAsia: readonly BeliefSystem[] = [
         name: "Education and knowledge",
         domain: "schooling, books, the modern path",
         rank: "major",
+      },
+      {
+        name: "Jose Rizal",
+        wiki: "https://en.wikipedia.org/wiki/Jos%C3%A9_Rizal",
+        domain: "martyrdom, the Filipino awakening, folk sainthood",
+        rank: "local",
       },
       {
         name: "The market",
@@ -965,10 +1080,10 @@ export const southeastAsia: readonly BeliefSystem[] = [
     ],
     practice: [
       "Colonial rulers and later national governments shape law and public order.",
-      "Traditional religion persists in family and household; public observance of state faith.",
+      "Traditional religion persists in family and household; public observance follows the state's chosen faith.",
+      "In parts of the Philippines, folk movements venerate Jose Rizal as a martyred saint alongside the old religion.",
+      "In Vietnam, some households keep a photograph of Ho Chi Minh on the ancestor altar, folded into ancestor veneration rather than replacing it.",
       "Young people seek education in cities; return changed, causing family tension.",
-      "Farmers and villagers adopt cash crops, modern tools, new obligations.",
-      "Nationalism and ethnic identity compete with older religious and kinship loyalties.",
     ],
     specialist:
       "Administrators and teachers for the nation; priests and monks for the tradition; elders for custom.",
@@ -977,14 +1092,14 @@ export const southeastAsia: readonly BeliefSystem[] = [
     evidence: {
       status: "documented",
       claim:
-        "Colonial rule in Southeast Asia from 1850 onward (Dutch East Indies, French Indochina, British Burma, etc.) introduced state bureaucracy, schooling, and market integration; independence and modernization continued these trends. Religious traditions persisted but were reshaped by nationalism and capitalist integration, as documented in colonial reports, nationalist literature, and modern ethnography.",
+        "Colonial rule in Southeast Asia from 1850 onward (Dutch East Indies, French Indochina, British Burma, etc.) introduced state bureaucracy, schooling, and market integration; independence and modernization continued these trends. Religious traditions persisted but were reshaped by nationalism, and in some cases produced genuinely quasi-religious veneration of founding figures, as with Jose Rizal in Rizalista folk movements and household veneration of Ho Chi Minh in Vietnam.",
       sources: [
         "Reid, A History of Southeast Asia",
         "Adas, The Burma Delta",
-        "Stoler, Capitalism and Confrontation in Sumatra's Plantation Belt",
+        "Ileto, Pasyon and Revolution: Popular Movements in the Philippines, 1840-1910",
       ],
       limitation:
-        "Colonial and nationalist narratives dominate; lived experience of rural and urban people is patchily documented.",
+        "Colonial and nationalist narratives dominate; most powers listed here are structural forces without personal names by nature, and named figures like Rizal and Ho Chi Minh are documented exceptions rather than the rule.",
     },
   },
 ];

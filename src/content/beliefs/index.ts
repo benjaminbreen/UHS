@@ -107,6 +107,11 @@ export function beliefsFor(setting: WorldSetting): BeliefSystem {
   return pool.sort((a, b) => specificity(a) - specificity(b))[0];
 }
 
+/** The power's own article, or the tradition's. */
+export function wikiFor(system: BeliefSystem, power?: Power) {
+  return power?.wiki ?? system.wiki;
+}
+
 export type PersonalBelief = {
   system: BeliefSystem;
   /** Who this person actually addresses, most days. */

@@ -4,32 +4,56 @@ export const westAsia: readonly BeliefSystem[] = [
   {
     id: "west-asia-foragers",
     label: "Foraging communities of West Asia and North Africa",
+    wiki: "https://en.wikipedia.org/wiki/Paleolithic_religion",
     scope: { years: [-10000, -2000], bounds: [-20, 10, 65, 45] },
     powers: [
       {
-        name: "The ancestors",
+        name: "*Rapiʔū",
+        gloss: "Proto-Semitic *rapiʔ-, 'shade, healer'; cf. Ugaritic rpum",
         domain: "the first people, memory",
         rank: "paramount",
       },
       {
-        name: "The hunt",
+        name: "*Śaydu",
+        gloss: "Proto-Semitic *śayd-, 'hunt, game'",
         domain: "prey animals and their spirits",
         rank: "major",
       },
-      { name: "The water", domain: "rivers, springs, life", rank: "major" },
-      { name: "The land", domain: "rocks, caves, shelter", rank: "major" },
-      { name: "The sky", domain: "weather, stars, the rains", rank: "major" },
+      {
+        name: "*Mayu",
+        gloss: "Proto-Afroasiatic *maw-, 'water'",
+        domain: "rivers, springs, life",
+        rank: "major",
+      },
+      {
+        name: "*Ṣuru",
+        gloss: "Proto-Semitic *ṣur-, 'rock, cliff'",
+        domain: "rocks, caves, shelter",
+        rank: "major",
+      },
+      {
+        name: "*Šamayu",
+        gloss: "Proto-Semitic *šamay-, 'sky'",
+        domain: "weather, stars, the rains",
+        rank: "major",
+      },
       {
         name: "The shamanic guide",
         domain: "dreams and trance",
         rank: "local",
       },
       {
-        name: "The hearth",
+        name: "*ʔIšatu",
+        gloss: "Proto-Semitic *ʔiš(a)t-, 'fire'",
         domain: "the camp's fire and gathering",
         rank: "local",
       },
-      { name: "The tool", domain: "stone, bone, making", rank: "local" },
+      {
+        name: "*ʔAbnu",
+        gloss: "Proto-Semitic *ʔabn-, 'stone'",
+        domain: "stone, bone, making",
+        rank: "local",
+      },
     ],
     practice: [
       "Kill sites are marked with stones as thanks to the animal's spirit.",
@@ -48,33 +72,59 @@ export const westAsia: readonly BeliefSystem[] = [
         "Mellars, The Neanderthal Legacy",
         "Gamble, Timewalkers: The Prehistory of Global Colonization",
         "Conkey and Spector, 'Archaeology and the Study of Gender'",
+        "Kogan, Proto-Semitic Lexicon",
+        "Ehret, Reconstructing Proto-Afroasiatic",
       ],
       limitation:
-        "No oral tradition survives; this is a reconstruction from material evidence and cross-cultural pattern.",
+        "No language family reaches back to the Natufian and its neighbors: Proto-Semitic and Proto-Afroasiatic are themselves millennia later than this horizon. The starred forms above are the least indefensible stand-ins available, not recovered Epipalaeolithic words, and a reconstructed word for 'rock' or 'fire' is not evidence anyone worshipped a being by that name.",
     },
   },
   {
     id: "west-asia-early-farming",
     label: "Early farming and herding communities",
+    wiki: "https://en.wikipedia.org/wiki/Neolithic_religion",
     scope: { years: [-2000, 500], bounds: [-18, 12, 62, 42] },
     powers: [
       {
-        name: "The earth",
+        name: "*ʔArṣ́u",
+        gloss: "Proto-Semitic *ʔarṣ́-, 'earth, land'",
         domain: "crops, fertility, the growing year",
         rank: "paramount",
       },
       {
-        name: "The herd",
+        name: "*Ṣaʔnu",
+        gloss: "Proto-Semitic *ṣaʔn-, 'flock, sheep and goats'",
         domain: "cattle, sheep, milk and wool",
         rank: "major",
       },
-      { name: "The water", domain: "rain, irrigation, life", rank: "major" },
-      { name: "The sun", domain: "the ripening of grain", rank: "major" },
-      { name: "The household", domain: "family and continuity", rank: "major" },
-      { name: "The ancestors", domain: "the land they worked", rank: "local" },
-      { name: "The well", domain: "drinking water, community", rank: "local" },
       {
-        name: "The boundary stone",
+        name: "*Mayu",
+        gloss: "Proto-Afroasiatic *maw-, 'water'",
+        domain: "rain, irrigation, life",
+        rank: "major",
+      },
+      {
+        name: "*Šamšu",
+        gloss: "Proto-Semitic *šamš-, 'sun'",
+        domain: "the ripening of grain",
+        rank: "major",
+      },
+      {
+        name: "*Baytu",
+        gloss: "Proto-Semitic *bayt-, 'house, household'",
+        domain: "family and continuity",
+        rank: "major",
+      },
+      { name: "The ancestors", domain: "the land they worked", rank: "local" },
+      {
+        name: "*Biʔru",
+        gloss: "Proto-Semitic *biʔr-, 'well'",
+        domain: "drinking water, community",
+        rank: "local",
+      },
+      {
+        name: "*Gabulu",
+        gloss: "Proto-Semitic *gbl, 'border, boundary'",
         domain: "fields and their limits",
         rank: "local",
       },
@@ -96,24 +146,48 @@ export const westAsia: readonly BeliefSystem[] = [
         "Hodder, The Domestication of Europe",
         "Mithen, The Prehistory of the Mind",
         "Crabtree and Campana, 'Early Sedentism and Its Consequences'",
+        "Huehnergard, An Introduction to Ugaritic",
+        "Ehret, Reconstructing Proto-Afroasiatic",
       ],
       limitation:
-        "Enormous variation existed by ecology and era. This is the floor beneath all specific traditions.",
+        "The starred forms are comparative reconstructions of vocabulary, not recovered theonyms: nobody is recorded speaking them, and a word for 'earth' or 'well' is not evidence of a worshipped earth-being or well-spirit by that name. Proto-Semitic itself postdates the start of this horizon by a wide margin; the Afroasiatic-level forms reach further but are correspondingly less certain. Enormous ecological and regional variation is also flattened here; this is the floor beneath all specific traditions, not a single lived religion.",
     },
   },
   {
     id: "sumerian-city-states",
     label: "Sumerian city-state religion",
+    wiki: "https://en.wikipedia.org/wiki/Sumerian_religion",
     scope: { years: [-3500, -1500], bounds: [40, 28, 52, 37] },
     powers: [
-      { name: "Enlil", domain: "storm, fate, kingship", rank: "paramount" },
-      { name: "Enki", domain: "fresh water, wisdom, craft", rank: "major" },
-      { name: "Utu", domain: "the sun, justice, the boundary", rank: "major" },
-      { name: "Inanna", domain: "love, war, the evening star", rank: "major" },
+      {
+        name: "Enlil",
+        domain: "storm, fate, kingship",
+        rank: "paramount",
+        wiki: "https://en.wikipedia.org/wiki/Enlil",
+      },
+      {
+        name: "Enki",
+        domain: "fresh water, wisdom, craft",
+        rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Enki",
+      },
+      {
+        name: "Utu",
+        domain: "the sun, justice, the boundary",
+        rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Utu",
+      },
+      {
+        name: "Inanna",
+        domain: "love, war, the evening star",
+        rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Inanna",
+      },
       {
         name: "Ninhursag",
         domain: "the mountains, birth",
         rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Ninhursag",
       },
       {
         name: "The city god",
@@ -161,29 +235,44 @@ export const westAsia: readonly BeliefSystem[] = [
   {
     id: "old-babylonian",
     label: "Old Babylonian practice",
+    wiki: "https://en.wikipedia.org/wiki/Ancient_Mesopotamian_religion",
     scope: { years: [-2000, -1400], bounds: [40, 29, 50, 37] },
     powers: [
       {
         name: "Marduk",
         domain: "Babylon, destiny, the tablets of fate",
         rank: "paramount",
+        wiki: "https://en.wikipedia.org/wiki/Marduk",
       },
-      { name: "Ea", domain: "fresh water, craft, contracts", rank: "major" },
-      { name: "Shamash", domain: "the sun, law, justice", rank: "major" },
+      {
+        name: "Ea",
+        domain: "fresh water, craft, contracts",
+        rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Enki",
+      },
+      {
+        name: "Shamash",
+        domain: "the sun, law, justice",
+        rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Shamash",
+      },
       {
         name: "Sin",
         domain: "the moon, time, the night",
         rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Sin_(mythology)",
       },
       {
         name: "Ishtar",
         domain: "love, fertility, battle",
         rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Ishtar",
       },
       {
         name: "Ninhursag",
         domain: "birth and the wild",
         rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Ninhursag",
       },
       {
         name: "The doorkeeper",
@@ -227,31 +316,46 @@ export const westAsia: readonly BeliefSystem[] = [
   {
     id: "neo-assyrian",
     label: "Neo-Assyrian state religion",
+    wiki: "https://en.wikipedia.org/wiki/Ancient_Mesopotamian_religion",
     scope: { years: [-1000, -500], bounds: [38, 32, 50, 40] },
     powers: [
       {
         name: "Ashur",
         domain: "Assyria, empire, fate",
         rank: "paramount",
+        wiki: "https://en.wikipedia.org/wiki/Ashur_(god)",
       },
       {
         name: "Enlil",
         domain: "storm, the word of destiny",
         rank: "major",
         relation: { kind: "aspect-of", of: "Ashur" },
+        wiki: "https://en.wikipedia.org/wiki/Enlil",
       },
       {
         name: "Shamash",
         domain: "the sun, truth, law",
         rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Shamash",
       },
-      { name: "Adad", domain: "storm, rain, the flood", rank: "major" },
+      {
+        name: "Adad",
+        domain: "storm, rain, the flood",
+        rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Adad",
+      },
       {
         name: "Ishtar",
         domain: "war, love, the evening star",
         rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Ishtar",
       },
-      { name: "Anu", domain: "the sky, power", rank: "major" },
+      {
+        name: "Anu",
+        domain: "the sky, power",
+        rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Anu",
+      },
       {
         name: "The royal standard",
         domain: "the army's presence",
@@ -292,32 +396,42 @@ export const westAsia: readonly BeliefSystem[] = [
   {
     id: "levantine-canaanite",
     label: "Levantine Canaanite religion",
+    wiki: "https://en.wikipedia.org/wiki/Canaanite_religion",
     scope: { years: [-1500, -300], bounds: [33, 30, 40, 37] },
     powers: [
-      { name: "El", domain: "sky, authority, the ancestor", rank: "paramount" },
+      {
+        name: "El",
+        domain: "sky, authority, the ancestor",
+        rank: "paramount",
+        wiki: "https://en.wikipedia.org/wiki/El_(deity)",
+      },
       {
         name: "Baal",
         domain: "storm, rain, the living land",
         rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Baal",
       },
       {
         name: "Asherah",
         domain: "the great mother, fertility",
         rank: "major",
         relation: { kind: "consort-of", of: "El" },
+        wiki: "https://en.wikipedia.org/wiki/Asherah",
       },
       {
         name: "Anat",
         domain: "war, the hunt, raw power",
         rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Anat",
       },
       {
         name: "Mot",
         domain: "death and drought",
         rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Mot_(god)",
       },
       {
-        name: "The local basal",
+        name: "The local baal",
         domain: "a town's prosperity",
         rank: "major",
       },
@@ -362,12 +476,38 @@ export const westAsia: readonly BeliefSystem[] = [
   {
     id: "israelite-judahite",
     label: "Judahite monarchy religion",
+    wiki: "https://en.wikipedia.org/wiki/Ancient_Israelite_religion",
     scope: { years: [-1000, -400], bounds: [34, 30, 37, 34] },
     powers: [
       {
         name: "YHWH",
         domain: "the God of Israel, the covenant",
         rank: "paramount",
+        wiki: "https://en.wikipedia.org/wiki/Yahweh",
+      },
+      {
+        name: "Baal",
+        domain: "storm, rain, rival worship",
+        rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Baal",
+      },
+      {
+        name: "Asherah",
+        domain: "the great mother, household devotion",
+        rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Asherah",
+      },
+      {
+        name: "The angel of YHWH",
+        domain: "YHWH's presence and messenger",
+        rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Angel_of_the_Lord",
+      },
+      {
+        name: "Elijah",
+        domain: "zeal against Baal, fire from heaven",
+        rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Elijah",
       },
       {
         name: "The king",
@@ -377,16 +517,6 @@ export const westAsia: readonly BeliefSystem[] = [
       {
         name: "The high priest",
         domain: "the temple, atonement",
-        rank: "major",
-      },
-      {
-        name: "The prophets",
-        domain: "YHWH's word and warning",
-        rank: "major",
-      },
-      {
-        name: "The blessing of Zion",
-        domain: "Jerusalem's safety",
         rank: "major",
       },
       {
@@ -409,6 +539,7 @@ export const westAsia: readonly BeliefSystem[] = [
       "Three times each year, the people go up to Jerusalem for the festivals.",
       "The king and priests offer at the altar to avert YHWH's anger.",
       "A family marks the doorposts with blood at the feast of the escape from Egypt.",
+      "Asherah poles stand beside altars in many towns despite prophetic condemnation.",
       "Prophets cry out YHWH's judgment in the streets when the king breaks covenant.",
     ],
     specialist:
@@ -417,22 +548,64 @@ export const westAsia: readonly BeliefSystem[] = [
     evidence: {
       status: "documented",
       claim:
-        "The centrality of the Jerusalem temple, the covenant theology, and household ritual practice are documented in the Hebrew Bible, the Black Obelisk of Shalmaneser, and Jerusalem archaeology.",
+        "The centrality of the Jerusalem temple, the covenant theology, and the persistence of Baal and Asherah worship alongside YHWH are documented in the Hebrew Bible, the Kuntillet Ajrud inscriptions, the Black Obelisk of Shalmaneser, and Jerusalem archaeology.",
       sources: [
         "Smith, The Early History of God: Yahweh and the Other Deities",
         "Na'aman, 'The Law of the King in the Kingdom of Judah'",
         "Finkelstein, The Bible Unearthed",
       ],
       limitation:
-        "Biblical texts reflect later redaction; pre-exile practice may have been less monotheistic.",
+        "Biblical texts reflect later redaction; pre-exile practice was more polytheistic than the finished text admits.",
     },
   },
   {
     id: "second-temple-judaism",
     label: "Second Temple Jewish practice",
+    wiki: "https://en.wikipedia.org/wiki/Second_Temple_Judaism",
     scope: { years: [-500, 200], bounds: [34, 30, 37, 34] },
     powers: [
-      { name: "YHWH", domain: "the God of Israel, Creator", rank: "paramount" },
+      {
+        name: "YHWH",
+        domain: "the God of Israel, Creator",
+        rank: "paramount",
+        wiki: "https://en.wikipedia.org/wiki/Yahweh",
+      },
+      {
+        name: "Michael",
+        domain: "chief archangel, Israel's champion",
+        rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Michael_(archangel)",
+      },
+      {
+        name: "Gabriel",
+        domain: "angelic messenger, revelation",
+        rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Gabriel",
+      },
+      {
+        name: "The Satan",
+        domain: "the accuser, the adversary",
+        rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Satan",
+      },
+      {
+        name: "Hokhmah",
+        domain: "Wisdom, present with God at creation",
+        rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Hokhmah",
+      },
+      {
+        name: "Elijah",
+        domain: "the returning prophet, herald of the end",
+        rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Elijah",
+      },
+      {
+        name: "Abraham, Isaac and Jacob",
+        domain: "the patriarchs of the covenant",
+        rank: "local",
+        wiki: "https://en.wikipedia.org/wiki/Patriarchs_(Bible)",
+      },
       {
         name: "The Torah",
         domain: "YHWH's word and law",
@@ -454,18 +627,8 @@ export const westAsia: readonly BeliefSystem[] = [
         rank: "major",
       },
       {
-        name: "The angels",
-        domain: "YHWH's messengers",
-        rank: "major",
-      },
-      {
         name: "The household",
         domain: "the family's covenant",
-        rank: "local",
-      },
-      {
-        name: "The ancestors",
-        domain: "the faithful departed",
         rank: "local",
       },
       {
@@ -476,10 +639,11 @@ export const westAsia: readonly BeliefSystem[] = [
     ],
     practice: [
       "The Torah is studied in groups and its commandments kept strictly.",
-      "At Passover, a family gathers to remember the escape from Egypt.",
+      "At Passover, a family gathers to remember the escape from Egypt, and a cup is set for Elijah.",
       "The Sabbath is kept by resting and praying from sunset to sunset.",
+      "Michael is invoked as Israel's angelic champion against the forces of Belial, especially at Qumran.",
+      "Ben Sira and the sages hymn Hokhmah as God's first creation, sent to dwell in Israel.",
       "Tzitzit fringes on garments remind the wearer of the 613 commandments.",
-      "Purity rules govern what is eaten and what touches the body.",
     ],
     specialist:
       "Priests and Levites in the temple; sages and scribes in the community.",
@@ -488,11 +652,12 @@ export const westAsia: readonly BeliefSystem[] = [
     evidence: {
       status: "documented",
       claim:
-        "Temple records, the Dead Sea Scrolls, rabbinic literature, and Josephus document Second Temple ritual, Torah study, and the rise of synagogue practice alongside the temple.",
+        "Temple records, the Dead Sea Scrolls, the book of Daniel, Ben Sira and the Wisdom of Solomon, Malachi's expectation of Elijah's return, rabbinic literature, and Josephus document Second Temple ritual, the naming of Michael and Gabriel as YHWH's chief angels, the personification of Hokhmah, and the rise of synagogue practice alongside the temple.",
       sources: [
         "Sanders, Judaism: Practice and Belief 63 BCE - 66 CE",
         "Collins, The Apocalyptic Imagination",
         "Schwartz, Imperialism and Jewish Society",
+        "von Rad, Wisdom in Israel",
       ],
       limitation:
         "Sectarian diversity was high; this describes mainstream practice, not Essenes or other groups.",
@@ -501,12 +666,32 @@ export const westAsia: readonly BeliefSystem[] = [
   {
     id: "achaemenid-zoroastrian",
     label: "Achaemenid Zoroastrian Iran",
+    wiki: "https://en.wikipedia.org/wiki/Zoroastrianism_in_Iran",
     scope: { years: [-700, -200], bounds: [46, 24, 63, 40] },
     powers: [
       {
         name: "Ahura Mazda",
         domain: "wisdom, creation, good",
         rank: "paramount",
+        wiki: "https://en.wikipedia.org/wiki/Ahura_Mazda",
+      },
+      {
+        name: "Angra Mainyu",
+        domain: "the hostile spirit, the lie",
+        rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Angra_Mainyu",
+      },
+      {
+        name: "Mithra",
+        domain: "contract, oath, the all-seeing sun",
+        rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Mithra",
+      },
+      {
+        name: "Anahita",
+        domain: "the waters, fertility, sovereignty",
+        rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Anahita",
       },
       {
         name: "The king",
@@ -515,19 +700,34 @@ export const westAsia: readonly BeliefSystem[] = [
         relation: { kind: "serves", of: "Ahura Mazda" },
       },
       {
-        name: "The Amesha Spenta",
-        domain: "the archangels of creation",
+        name: "The Amesha Spentas",
+        domain:
+          "Vohu Manah, Asha Vahishta, Khshathra Vairya, Spenta Armaiti, Haurvatat and Ameretat, the Bounteous Immortals of creation",
         rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Amesha_Spenta",
       },
       {
-        name: "Fire",
+        name: "Sraosha",
+        domain: "obedience, the ritual word, discipline",
+        rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Sraosha",
+      },
+      {
+        name: "Atar",
         domain: "purification, Ahura Mazda's flame",
         rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Atar",
       },
       {
         name: "The magi",
         domain: "ritual and prayer",
         rank: "major",
+      },
+      {
+        name: "The fravashis",
+        domain: "guardian spirits of the dead and unborn",
+        rank: "local",
+        wiki: "https://en.wikipedia.org/wiki/Fravashi",
       },
       {
         name: "The threshold",
@@ -539,15 +739,11 @@ export const westAsia: readonly BeliefSystem[] = [
         domain: "family prosperity",
         rank: "local",
       },
-      {
-        name: "The ancestors",
-        domain: "wisdom passed down",
-        rank: "local",
-      },
     ],
     practice: [
       "Fire is tended in the home and never allowed to die.",
       "The dead are exposed on a tower so vultures can consume them, keeping them from defiling the earth.",
+      "Mithra is invoked over oaths and contracts; Anahita's waters purify at her shrines.",
       "The magi perform rituals to keep chaos at bay and reward Ahura Mazda's creation.",
       "Contracts sworn before fire are inviolable.",
     ],
@@ -557,7 +753,7 @@ export const westAsia: readonly BeliefSystem[] = [
     evidence: {
       status: "documented",
       claim:
-        "Achaemenid royal inscriptions, the Zoroastrian liturgy Yasna, Herodotus, and later Pahlavi texts document the supremacy of Ahura Mazda, the king's role, and the magi's authority.",
+        "Achaemenid royal inscriptions naming Mithra and Anahita alongside Ahura Mazda, the Zoroastrian liturgy Yasna, Herodotus, and later Pahlavi texts document the supremacy of Ahura Mazda, the king's role, and the magi's authority.",
       sources: [
         "Briant, From Cyrus to Alexander",
         "Boyce, Zoroastrianism: Their Religious Beliefs and Practices",
@@ -570,32 +766,38 @@ export const westAsia: readonly BeliefSystem[] = [
   {
     id: "hellenistic-syria",
     label: "Hellenistic Syrian syncretism",
+    wiki: "https://en.wikipedia.org/wiki/Hellenistic_religion",
     scope: { years: [-400, 100], bounds: [32, 31, 42, 39] },
     powers: [
       {
         name: "Zeus-Baal",
         domain: "the sky, rain, kingly power",
         rank: "paramount",
+        wiki: "https://en.wikipedia.org/wiki/Zeus",
       },
       {
         name: "Athena",
         domain: "wisdom, craft, the city",
         rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Athena",
       },
       {
         name: "Aphrodite-Astarte",
         domain: "love, fertility, the evening star",
         rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Astarte",
       },
       {
         name: "Apollo",
         domain: "healing, the sun, music",
         rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Apollo",
       },
       {
         name: "Hermes",
         domain: "commerce, travelers, thieves",
         rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Hermes",
       },
       {
         name: "The altar of the agora",
@@ -638,12 +840,20 @@ export const westAsia: readonly BeliefSystem[] = [
   {
     id: "sasanian-zoroastrian",
     label: "Sasanian Zoroastrian Iran",
+    wiki: "https://en.wikipedia.org/wiki/Zoroastrianism_in_Iran",
     scope: { years: [100, 700], bounds: [46, 24, 63, 40] },
     powers: [
       {
         name: "Ahura Mazda",
         domain: "wisdom, creation, light",
         rank: "paramount",
+        wiki: "https://en.wikipedia.org/wiki/Ahura_Mazda",
+      },
+      {
+        name: "Angra Mainyu",
+        domain: "the hostile spirit, darkness, the lie",
+        rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Angra_Mainyu",
       },
       {
         name: "The Shahanshah",
@@ -652,24 +862,41 @@ export const westAsia: readonly BeliefSystem[] = [
         relation: { kind: "serves", of: "Ahura Mazda" },
       },
       {
-        name: "The Amesha Spenta",
-        domain: "the divine qualities",
+        name: "The Amesha Spentas",
+        domain:
+          "Vohu Manah, Asha Vahishta, Khshathra Vairya, Spenta Armaiti, Haurvatat and Ameretat",
         rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Amesha_Spenta",
       },
       {
-        name: "The yazata spirits",
-        domain: "the beneficent powers",
+        name: "Mithra",
+        domain: "contract, covenant, the all-seeing sun",
         rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Mithra",
       },
       {
-        name: "Fire",
+        name: "Anahita",
+        domain: "the heavenly waters, fertility, kingship",
+        rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Anahita",
+      },
+      {
+        name: "Verethragna",
+        domain: "victory, martial force",
+        rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Verethragna",
+      },
+      {
+        name: "Sraosha",
+        domain: "obedience, ritual order, protection at night",
+        rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Sraosha",
+      },
+      {
+        name: "Atar",
         domain: "purification, the sacred flame",
         rank: "major",
-      },
-      {
-        name: "Water",
-        domain: "cleansing and life",
-        rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Atar",
       },
       {
         name: "The magi",
@@ -677,13 +904,14 @@ export const westAsia: readonly BeliefSystem[] = [
         rank: "major",
       },
       {
-        name: "The hearth",
-        domain: "household blessing",
+        name: "The fravashis",
+        domain: "guardian spirits, protection and wisdom",
         rank: "local",
+        wiki: "https://en.wikipedia.org/wiki/Fravashi",
       },
       {
-        name: "The ancestors",
-        domain: "protection and wisdom",
+        name: "The hearth",
+        domain: "household blessing",
         rank: "local",
       },
     ],
@@ -700,7 +928,7 @@ export const westAsia: readonly BeliefSystem[] = [
     evidence: {
       status: "documented",
       claim:
-        "Sasanian coins, inscriptions, the Avesta, the Denkard, and later Arab histories document the state enforcement of Zoroastrianism, the magi's judicial role, and ritual practice including exposure of the dead.",
+        "Sasanian coins, inscriptions, the Avesta, the Denkard, and later Arab histories document the state enforcement of Zoroastrianism, the magi's judicial role, the cult of Mithra, Anahita and Verethragna, and ritual practice including exposure of the dead.",
       sources: [
         "Christensen, L'Iran sous les Sassanides",
         "Shaul Shaked, Dualism in Transformation",
@@ -713,28 +941,38 @@ export const westAsia: readonly BeliefSystem[] = [
   {
     id: "pre-islamic-arabia",
     label: "Pre-Islamic Arabian polytheism",
+    wiki: "https://en.wikipedia.org/wiki/Religion_in_pre-Islamic_Arabia",
     scope: { years: [200, 650], bounds: [33, 12, 60, 34] },
     powers: [
-      { name: "Allah", domain: "the high god, fate", rank: "paramount" },
+      {
+        name: "Allah",
+        domain: "the high god, fate",
+        rank: "paramount",
+        wiki: "https://en.wikipedia.org/wiki/Allah",
+      },
       {
         name: "Al-Lat",
         domain: "the goddess, the land",
         rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Al-Lat",
       },
       {
         name: "Al-Uzza",
         domain: "the mighty, the morning star",
         rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Al-Uzza",
       },
       {
         name: "Manat",
         domain: "fate and death",
         rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Manat_(goddess)",
       },
       {
         name: "The jinn",
         domain: "spirits of place and wilderness",
         rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Jinn",
       },
       {
         name: "The tribal ancestor",
@@ -782,33 +1020,66 @@ export const westAsia: readonly BeliefSystem[] = [
   {
     id: "early-islamic",
     label: "Early Islamic practice",
+    wiki: "https://en.wikipedia.org/wiki/Early_Islam",
     scope: { years: [600, 850], bounds: [33, 12, 60, 34] },
     powers: [
-      { name: "God", domain: "the Creator, judgment", rank: "paramount" },
+      {
+        name: "God",
+        domain: "the Creator, judgment",
+        rank: "paramount",
+        wiki: "https://en.wikipedia.org/wiki/God_in_Islam",
+      },
       {
         name: "Muhammad",
         domain: "the Messenger, God's word",
         rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Muhammad",
       },
       {
-        name: "The angels",
-        domain: "God's servants",
+        name: "Jibril",
+        domain: "revelation, God's messenger",
         rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Gabriel",
+      },
+      {
+        name: "Mika'il",
+        domain: "sustenance, rain, providence",
+        rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Michael_(archangel)",
+      },
+      {
+        name: "Israfil",
+        domain: "the trumpet of the Last Day",
+        rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Israfil",
+      },
+      {
+        name: "Munkar and Nakir",
+        domain: "questioning of the newly dead",
+        rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Munkar_and_Nakir",
+      },
+      {
+        name: "Iblis",
+        domain: "the tempter, disobedience",
+        rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Iblis",
       },
       {
         name: "The prophets",
-        domain: "God's earlier messengers",
+        domain: "Ibrahim, Musa, Isa and God's earlier messengers",
         rank: "major",
       },
       {
-        name: "The saints",
-        domain: "those near to God",
-        rank: "major",
+        name: "Khidr",
+        domain: "the hidden guide, wisdom beyond the law",
+        rank: "local",
+        wiki: "https://en.wikipedia.org/wiki/Khidr",
       },
       {
         name: "The imam",
         domain: "community leader and prayer",
-        rank: "major",
+        rank: "local",
       },
       {
         name: "The dead in the tomb",
@@ -823,18 +1094,18 @@ export const westAsia: readonly BeliefSystem[] = [
     ],
     practice: [
       "Prayer is performed five times daily facing Mecca, alone or in congregation.",
-      "The Quran is memorized and chanted; its words are God's own.",
+      "The Quran is memorized and chanted; Jibril is named as the spirit who brought it to Muhammad.",
       "Fasting from dawn to dusk is kept during the month of Ramadan.",
       "Alms are given to the poor; the tax is one part in forty of wealth.",
       "A pilgrimage to Mecca is made once in a lifetime if means allow.",
     ],
     specialist: "The imam leads prayer; the qadi judges by God's law.",
     afterlife:
-      "The grave's solitude, then resurrection and divine judgment on the Day of Standing.",
+      "The grave's solitude, questioned by Munkar and Nakir, then resurrection and divine judgment on the Day of Standing.",
     evidence: {
       status: "documented",
       claim:
-        "The Quran, hadith collections, early Islamic legal texts, and archaeological evidence from seventh-century Mecca and Medina document the five pillars, Quranic centrality, and the role of community and law.",
+        "The Quran, hadith collections, early Islamic legal texts, and archaeological evidence from seventh-century Mecca and Medina document the five pillars, the naming of Jibril, Mika'il, Israfil and Iblis, and the role of community and law.",
       sources: [
         "Peters, Muhammad and the Origins of Islam",
         "Watt, The Formative Period of Islamic Thought",
@@ -847,9 +1118,15 @@ export const westAsia: readonly BeliefSystem[] = [
   {
     id: "medieval-sunni-islam",
     label: "Medieval Sunni Islamic practice",
+    wiki: "https://en.wikipedia.org/wiki/Sunni_Islam",
     scope: { years: [700, 1600], bounds: [-18, 10, 63, 42] },
     powers: [
-      { name: "God", domain: "the Almighty, justice", rank: "paramount" },
+      {
+        name: "God",
+        domain: "the Almighty, justice",
+        rank: "paramount",
+        wiki: "https://en.wikipedia.org/wiki/God_in_Islam",
+      },
       { name: "Muhammad", domain: "the Seal of Prophets", rank: "major" },
       {
         name: "The Quran",
@@ -862,6 +1139,18 @@ export const westAsia: readonly BeliefSystem[] = [
         rank: "major",
       },
       {
+        name: "Jibril",
+        domain: "revelation, the angel of the Quran",
+        rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Gabriel",
+      },
+      {
+        name: "Iblis",
+        domain: "temptation, disobedience",
+        rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Iblis",
+      },
+      {
         name: "The caliph",
         domain: "God's vicegerent, the community",
         rank: "major",
@@ -872,9 +1161,16 @@ export const westAsia: readonly BeliefSystem[] = [
         rank: "major",
       },
       {
-        name: "The sheikh",
-        domain: "teaching and wisdom",
+        name: "Abd al-Qadir al-Jilani",
+        domain: "founder of the Qadiriyya order, sainthood",
         rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Abdul-Qadir_Gilani",
+      },
+      {
+        name: "Khidr",
+        domain: "the hidden guide who instructs saints",
+        rank: "local",
+        wiki: "https://en.wikipedia.org/wiki/Khidr",
       },
       {
         name: "The saint's tomb",
@@ -895,7 +1191,7 @@ export const westAsia: readonly BeliefSystem[] = [
     practice: [
       "The five daily prayers are performed in congregation when possible.",
       "The Quran is recited publicly during Ramadan; scholars debate its meaning.",
-      "Pilgrimage to Mecca, to saints' tombs, and to holy sites fulfills devotion.",
+      "Pilgrimage to Mecca, to Abd al-Qadir al-Jilani's tomb in Baghdad, and to other saints' shrines fulfills devotion.",
       "The dead are washed and wrapped in white cloth; the grave's direction is marked.",
       "Alms, fasting, and truthful witnessing are duties of faith.",
     ],
@@ -906,7 +1202,7 @@ export const westAsia: readonly BeliefSystem[] = [
     evidence: {
       status: "documented",
       claim:
-        "Legal texts from the four law schools, hadith collections, the writings of Al-Ghazali, travelers' accounts, and cemetery archaeology document the standardized practices of Sunni Islam by the tenth century.",
+        "Legal texts from the four law schools, hadith collections, the writings of Al-Ghazali, the hagiography of Abd al-Qadir al-Jilani, travelers' accounts, and cemetery archaeology document the standardized practices of Sunni Islam by the tenth century.",
       sources: [
         "Lapidus, A History of Islamic Societies",
         "Makdisi, The Rise of Colleges",
@@ -919,6 +1215,7 @@ export const westAsia: readonly BeliefSystem[] = [
   {
     id: "coptic-orthodox",
     label: "Coptic Orthodox Christianity",
+    wiki: "https://en.wikipedia.org/wiki/Coptic_Orthodox_Church_of_Alexandria",
     scope: { years: [1000, 1700], bounds: [23, 20, 38, 34] },
     powers: [
       {
@@ -932,16 +1229,36 @@ export const westAsia: readonly BeliefSystem[] = [
         name: "Mary",
         domain: "intercessor, protectress",
         rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Mary,_mother_of_Jesus",
       },
       {
-        name: "The saints",
-        domain: "Christ's witnesses, helpers",
+        name: "Michael",
+        domain: "archangel, protector, intercessor",
         rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Michael_(archangel)",
+      },
+      {
+        name: "Anthony the Great",
+        domain: "father of monks, desert asceticism",
+        rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Anthony_the_Great",
+      },
+      {
+        name: "Mark the Evangelist",
+        domain: "apostle, founder of the Egyptian church",
+        rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Mark_the_Evangelist",
       },
       {
         name: "The patriarch",
         domain: "church leadership and sacrament",
         rank: "major",
+      },
+      {
+        name: "Saint Menas",
+        domain: "healing shrine, pilgrimage at Abu Mina",
+        rank: "local",
+        wiki: "https://en.wikipedia.org/wiki/Saint_Menas",
       },
       {
         name: "The priest",
@@ -963,8 +1280,8 @@ export const westAsia: readonly BeliefSystem[] = [
       "The liturgy is performed in Coptic on Sundays; bread and wine become Christ's body.",
       "Fasting is kept before major feasts and on Wednesdays and Fridays.",
       "Icons are venerated but not worshiped; they are windows to the holy.",
+      "Pilgrims travel to Anthony's monastery in the eastern desert and to Saint Menas's shrine at Abu Mina for healing.",
       "The dead are buried facing east; the priest prays the funeral liturgy.",
-      "Saints' feast days are marked with processions and gathering at the shrine.",
     ],
     specialist:
       "The patriarch and bishops; priests who perform the sacraments.",
@@ -973,7 +1290,7 @@ export const westAsia: readonly BeliefSystem[] = [
     evidence: {
       status: "documented",
       claim:
-        "Coptic liturgical manuscripts, church architecture, hagiographies, and accounts by Arab and European travelers document the continuation of Egyptian Christianity despite Islamic rule, with visible Coptic liturgy, veneration of saints, and monastic tradition.",
+        "Coptic liturgical manuscripts, church architecture, the hagiographies of Anthony and Mark, pilgrim graffiti at Abu Mina, and accounts by Arab and European travelers document the continuation of Egyptian Christianity despite Islamic rule, with visible Coptic liturgy, veneration of saints, and monastic tradition.",
       sources: [
         "Mango, Byzantine Architecture",
         "Al-Mas'udi, Meadows of Gold",
@@ -986,18 +1303,32 @@ export const westAsia: readonly BeliefSystem[] = [
   {
     id: "ottoman-sufi",
     label: "Ottoman Sufi-inflected Islam",
+    wiki: "https://en.wikipedia.org/wiki/Sufism",
     scope: { years: [1350, 1850], bounds: [18, 22, 52, 45] },
     powers: [
-      { name: "God", domain: "the Divine, mysteries", rank: "paramount" },
+      {
+        name: "God",
+        domain: "the Divine, mysteries",
+        rank: "paramount",
+        wiki: "https://en.wikipedia.org/wiki/God_in_Islam",
+      },
       {
         name: "Muhammad",
         domain: "the Perfect Man, intercessor",
         rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Muhammad",
       },
       {
-        name: "The saint",
-        domain: "God's beloved, blessing",
+        name: "Jalal ad-Din Rumi",
+        domain: "founder of the Mevlevi order, the whirling dhikr",
         rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Rumi",
+      },
+      {
+        name: "Haci Bektas Veli",
+        domain: "founder of the Bektashi order, patron of the Janissaries",
+        rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Haji_Bektash_Veli",
       },
       {
         name: "The pir",
@@ -1010,18 +1341,19 @@ export const westAsia: readonly BeliefSystem[] = [
         rank: "major",
       },
       {
+        name: "Khidr",
+        domain: "the hidden guide of wandering dervishes",
+        rank: "local",
+        wiki: "https://en.wikipedia.org/wiki/Khidr",
+      },
+      {
         name: "The dervish",
         domain: "the ascetic seeker",
-        rank: "major",
+        rank: "local",
       },
       {
         name: "The shrine",
         domain: "the saint's tomb, blessing",
-        rank: "local",
-      },
-      {
-        name: "The tariqah",
-        domain: "the mystical order",
         rank: "local",
       },
       {
@@ -1033,7 +1365,7 @@ export const westAsia: readonly BeliefSystem[] = [
     practice: [
       "The dhikr is chanted in the lodge; God's names are repeated to achieve presence.",
       "A spiritual guide leads a disciple through stages of knowledge toward union.",
-      "Saints' tombs are visited; their intercession is sought for healing and blessing.",
+      "Saints' tombs, including Rumi's at Konya, are visited; their intercession is sought for healing and blessing.",
       "The poor are fed at the saint's feast; the festival is the town's gathered joy.",
       "The dead are buried in shrouds washed in water blessed by a saint.",
     ],
@@ -1044,7 +1376,7 @@ export const westAsia: readonly BeliefSystem[] = [
     evidence: {
       status: "documented",
       claim:
-        "Ottoman court records, hagiographies of Sufi saints, travelers' accounts, tomb archaeology, and Sufi treatises document the integration of Sufism into Ottoman piety, the veneration of saints, and the role of mystical orders.",
+        "Ottoman court records, hagiographies of Rumi and Haci Bektas Veli, travelers' accounts, tomb archaeology, and Sufi treatises document the integration of Sufism into Ottoman piety, the veneration of saints, and the role of mystical orders.",
       sources: [
         "Kunt and Woodhead, Süleymân the Magnificent and His Age",
         "Trimingham, The Sufi Orders in Islam",
@@ -1057,22 +1389,30 @@ export const westAsia: readonly BeliefSystem[] = [
   {
     id: "post-1069-egypt",
     label: "Post-Fatimid Egyptian Islamic practice",
+    wiki: "https://en.wikipedia.org/wiki/Islam_in_Egypt",
     scope: { years: [1069, 1450], bounds: [24, 22, 36, 32] },
     powers: [
-      { name: "God", domain: "the Almighty, sovereignty", rank: "paramount" },
+      {
+        name: "God",
+        domain: "the Almighty, sovereignty",
+        rank: "paramount",
+        wiki: "https://en.wikipedia.org/wiki/God_in_Islam",
+      },
       {
         name: "Muhammad",
         domain: "the Prophet, intercession",
         rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Muhammad",
+      },
+      {
+        name: "Ahmad al-Badawi",
+        domain: "founder of the Badawiyya order, patron of Tanta",
+        rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Ahmad_al-Badawi",
       },
       {
         name: "The Nile",
         domain: "annual flood, grain, blessing",
-        rank: "major",
-      },
-      {
-        name: "The saint",
-        domain: "God's friends, healing",
         rank: "major",
       },
       {
@@ -1081,13 +1421,20 @@ export const westAsia: readonly BeliefSystem[] = [
         rank: "major",
       },
       {
+        name: "Khidr",
+        domain: "the guide who appears at holy wells",
+        rank: "local",
+        wiki: "https://en.wikipedia.org/wiki/Khidr",
+      },
+      {
         name: "The mosque",
         domain: "prayer and community",
         rank: "local",
       },
       {
         name: "The saint's tomb",
-        domain: "blessing and intercession",
+        domain:
+          "blessing and intercession, above all al-Badawi's shrine at Tanta",
         rank: "local",
       },
       {
@@ -1098,18 +1445,18 @@ export const westAsia: readonly BeliefSystem[] = [
     ],
     practice: [
       "The Nile's rise is watched and celebrated; prayers are offered for abundance.",
-      "Saints' tombs are visited for healing, protection, and blessing.",
+      "Pilgrims gather at Ahmad al-Badawi's shrine in Tanta for healing, protection, and blessing.",
       "The five daily prayers are performed in congregation at the mosque.",
       "Fasting during Ramadan is kept strictly; the evening meal breaks the fast communally.",
       "The dead are wrapped in simple cloth and buried facing Mecca.",
     ],
     specialist:
-      "The qadi judges by Islamic law; imams lead prayer; sheikhs guide saint cults.",
+      "The qadi judges by Islamic law; imams lead prayer; sheikhs guide the Badawiyya and other saint cults.",
     afterlife: "Resurrection and divine judgment on the Day of Standing.",
     evidence: {
       status: "documented",
       claim:
-        "Egyptian Islamic administrative records, Mamluk-era mosque inscriptions, travelers' accounts, and waqf endowment documents document the integration of Islamic law, Nile-centered practice, and saint veneration in medieval Egypt.",
+        "Egyptian Islamic administrative records, Mamluk-era mosque inscriptions, the hagiography of Ahmad al-Badawi, travelers' accounts, and waqf endowment documents document the integration of Islamic law, Nile-centered practice, and saint veneration in medieval Egypt.",
       sources: [
         "Al-Maqrizi, Description of Egypt",
         "Lapidus, A History of Islamic Societies",
@@ -1122,9 +1469,15 @@ export const westAsia: readonly BeliefSystem[] = [
   {
     id: "nubian-nile-islam",
     label: "Nubian Nile and Islamic practice",
+    wiki: "https://en.wikipedia.org/wiki/Islam_in_Sudan",
     scope: { years: [700, 1600], bounds: [32, 14, 38, 26] },
     powers: [
-      { name: "God", domain: "the Creator", rank: "paramount" },
+      {
+        name: "God",
+        domain: "the Creator",
+        rank: "paramount",
+        wiki: "https://en.wikipedia.org/wiki/God_in_Islam",
+      },
       {
         name: "The Nile",
         domain: "water, grain, life",
@@ -1136,9 +1489,28 @@ export const westAsia: readonly BeliefSystem[] = [
         rank: "major",
       },
       {
-        name: "The saint",
-        domain: "God's chosen, blessing",
+        name: "Ghulam Allah ibn A'id",
+        domain:
+          "the scholar credited with bringing Islamic law to the Nile valley",
         rank: "major",
+      },
+      {
+        name: "Idris wad al-Arbab",
+        domain: "founding saint of Sudanese Sufism, teacher of holy men",
+        rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Idris_wad_al-Arbab",
+      },
+      {
+        name: "Jibril",
+        domain: "revelation, God's messenger",
+        rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Gabriel",
+      },
+      {
+        name: "Khidr",
+        domain: "the guide at the river's edge, patron of travelers",
+        rank: "local",
+        wiki: "https://en.wikipedia.org/wiki/Khidr",
       },
       {
         name: "The king",
@@ -1159,7 +1531,7 @@ export const westAsia: readonly BeliefSystem[] = [
     practice: [
       "The Nile's annual flood is celebrated with prayer and offering.",
       "The king performs court ceremonies before the assembled people.",
-      "Saints' tombs are visited and their intercession sought for healing.",
+      "Sacred tombs are visited and their intercession sought for healing, above all the shrines of Idris wad al-Arbab and his students.",
       "The five prayers are performed; Friday prayer gathers the community.",
       "The dead are buried with their goods and face east toward Mecca.",
     ],
@@ -1170,11 +1542,12 @@ export const westAsia: readonly BeliefSystem[] = [
     evidence: {
       status: "documented",
       claim:
-        "Nubian kingdoms (Kush, Meroe, and the Christian kingdoms) transitioned to Islamic practice after the Arab conquest; Nubian Arabic inscriptions, royal tombs, and mosque archaeology show syncretism of ancestral royal reverence, Nile devotion, and Islamic law.",
+        "Nubian kingdoms (Kush, Meroe, and the Christian kingdoms) transitioned to Islamic practice after the Arab conquest; Nubian Arabic inscriptions crediting scholars such as Ghulam Allah ibn A'id and the sixteenth-century hagiography of Idris wad al-Arbab, royal tombs, and mosque archaeology show syncretism of ancestral royal reverence, Nile devotion, and Islamic law.",
       sources: [
         "Welsby, The Medieval Kingdoms of Nubia",
         "Shinnie, Meroe: A Civilization of the Sudan",
         "O'Fahey and Radtke, 'Neo-Sufism Reconsidered'",
+        "O'Fahey, 'Fashoda and the Origins of Sudanese Islam'",
       ],
       limitation:
         "The shift from Christianity to Islam was gradual; this describes a snapshot after consolidation.",
@@ -1183,22 +1556,36 @@ export const westAsia: readonly BeliefSystem[] = [
   {
     id: "maghreb-berber-islam",
     label: "Maghrebi Berber Islamic practice",
+    wiki: "https://en.wikipedia.org/wiki/Maraboutism",
     scope: { years: [600, 1800], bounds: [-20, 12, 15, 40] },
     powers: [
-      { name: "God", domain: "the Divine, justice", rank: "paramount" },
+      {
+        name: "God",
+        domain: "the Divine, justice",
+        rank: "paramount",
+        wiki: "https://en.wikipedia.org/wiki/God_in_Islam",
+      },
       {
         name: "Muhammad",
         domain: "the Prophet, exemplar",
         rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Muhammad",
       },
       {
-        name: "The saint",
-        domain: "God's friends, blessing",
+        name: "Abu Madyan",
+        domain: "father of Maghrebi Sufism, shrine at Tlemcen",
         rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Abu_Madyan",
+      },
+      {
+        name: "Ahmad al-Tijani",
+        domain: "founder of the Tijaniyya order, Fez",
+        rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Ahmad_al-Tijani",
       },
       {
         name: "The marabout",
-        domain: "the holy man, healing",
+        domain: "holy men as a class: healing, blessing, arbitration",
         rank: "major",
       },
       {
@@ -1223,8 +1610,8 @@ export const westAsia: readonly BeliefSystem[] = [
       },
     ],
     practice: [
-      "Saint shrines mark the landscape; pilgrimage brings blessing and healing.",
-      "The marabout leads prayer and resolves disputes; his word carries authority.",
+      "Marabouts' shrines mark the landscape, from Abu Madyan's tomb at Tlemcen to countless village saints; pilgrimage brings blessing and healing.",
+      "A marabout leads prayer and resolves disputes; his word carries authority.",
       "The ancestors are honored; their tombs are tended and visited.",
       "Ramadan is observed with fasting and nightly gathering.",
       "The dead are wrapped and buried in the family cemetery facing Mecca.",
@@ -1236,7 +1623,7 @@ export const westAsia: readonly BeliefSystem[] = [
     evidence: {
       status: "documented",
       claim:
-        "Berber Islamic inscriptions, saint hagiographies, Andalusian travel accounts, and tomb archaeology show the integration of Islamic law, saint veneration, and Berber ancestral reverence in the Maghreb.",
+        "Berber Islamic inscriptions, the hagiographies of Abu Madyan and Ahmad al-Tijani, Andalusian travel accounts, and tomb archaeology show the integration of Islamic law, marabout veneration, and Berber ancestral reverence in the Maghreb.",
       sources: [
         "Bencheneb, 'Le culte des saints dans l'Islam algérien'",
         "Ibn Khaldun, The Muqaddimah",
@@ -1249,13 +1636,20 @@ export const westAsia: readonly BeliefSystem[] = [
   {
     id: "arabian-peninsula-broader",
     label: "Islamic practice across the Arabian Peninsula",
+    wiki: "https://en.wikipedia.org/wiki/Islam_in_Saudi_Arabia",
     scope: { years: [600, 1800], bounds: [30, 10, 62, 35] },
     powers: [
-      { name: "God", domain: "the Almighty", rank: "paramount" },
+      {
+        name: "God",
+        domain: "the Almighty",
+        rank: "paramount",
+        wiki: "https://en.wikipedia.org/wiki/God_in_Islam",
+      },
       {
         name: "Muhammad",
         domain: "the Prophet, the Seal",
         rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Muhammad",
       },
       {
         name: "The Quran",
@@ -1263,9 +1657,28 @@ export const westAsia: readonly BeliefSystem[] = [
         rank: "major",
       },
       {
-        name: "The saint",
-        domain: "God's friends, intercession",
+        name: "Jibril",
+        domain: "revelation, God's messenger",
         rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Gabriel",
+      },
+      {
+        name: "Iblis",
+        domain: "temptation, the whisperer",
+        rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Iblis",
+      },
+      {
+        name: "Uways al-Qarani",
+        domain: "the hidden saint, patron of mystics who never met the Prophet",
+        rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Uwais_al-Qarani",
+      },
+      {
+        name: "Abdullah ibn Alawi al-Haddad",
+        domain: "Hadhrami saint, teacher of the litany of the sayyids",
+        rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Abdallah_ibn_Alawi_al-Haddad",
       },
       {
         name: "The judge",
@@ -1276,6 +1689,7 @@ export const westAsia: readonly BeliefSystem[] = [
         name: "The Kaaba",
         domain: "the house of God, pilgrimage",
         rank: "local",
+        wiki: "https://en.wikipedia.org/wiki/Kaaba",
       },
       {
         name: "The ancestors",
@@ -1297,7 +1711,8 @@ export const westAsia: readonly BeliefSystem[] = [
       "The Kaaba is circumambulated during pilgrimage; millions gather for the hajj.",
       "The five prayers are performed daily, facing Mecca.",
       "Fasting during Ramadan is the mark of the faithful.",
-      "Saints' tombs are visited for healing and blessing; their intercession is sought.",
+      "In Hadramawt, al-Haddad's litany is recited nightly and his tomb at Tarim draws pilgrims seeking blessing.",
+      "Uways al-Qarani is invoked as the model of hidden, unrewarded devotion.",
       "The dead are buried wrapped in white cloth, facing Mecca.",
     ],
     specialist:
@@ -1306,11 +1721,12 @@ export const westAsia: readonly BeliefSystem[] = [
     evidence: {
       status: "documented",
       claim:
-        "Hadith collections, legal texts, pilgrimage accounts, and Arabic poetry document the standardization of Islamic practice across Arabia by the tenth century, the role of the Kaaba, and saint veneration.",
+        "Hadith collections, legal texts, pilgrimage accounts, the hagiography of Uways al-Qarani, the writings and litany of Abdullah ibn Alawi al-Haddad, and Arabic poetry document the standardization of Islamic practice across Arabia by the tenth century, the role of the Kaaba, and saint veneration.",
       sources: [
         "Peters, Muhammad and the Origins of Islam",
         "Serjeant, 'Materials for South Arabian History'",
         "Watt, The Formative Period of Islamic Thought",
+        "Ho, The Graves of Tarim",
       ],
       limitation:
         "Bedouin, urban, and settled oasis practice varied significantly; this describes a common framework.",
@@ -1319,18 +1735,31 @@ export const westAsia: readonly BeliefSystem[] = [
   {
     id: "persian-sufi-islam",
     label: "Persian Sufi Islamic practice",
+    wiki: "https://en.wikipedia.org/wiki/Sufism",
     scope: { years: [900, 1600], bounds: [48, 25, 62, 38] },
     powers: [
-      { name: "God", domain: "the Divine mystery", rank: "paramount" },
+      {
+        name: "God",
+        domain: "the Divine mystery",
+        rank: "paramount",
+        wiki: "https://en.wikipedia.org/wiki/God_in_Islam",
+      },
       {
         name: "Muhammad",
         domain: "the Perfect Man, exemplar",
         rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Muhammad",
       },
       {
-        name: "The saint",
-        domain: "God's beloved, guide",
+        name: "Baha-ud-Din Naqshband",
+        domain: "founder of the Naqshbandi order, silent dhikr",
         rank: "major",
+      },
+      {
+        name: "Al-Ghazali",
+        domain: "philosopher-mystic, reconciler of law and Sufism",
+        rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Al-Ghazali",
       },
       {
         name: "The pir",
@@ -1338,9 +1767,10 @@ export const westAsia: readonly BeliefSystem[] = [
         rank: "major",
       },
       {
-        name: "The mystical path",
-        domain: "union with God",
-        rank: "major",
+        name: "Khidr",
+        domain: "the hidden guide met on the mystical path",
+        rank: "local",
+        wiki: "https://en.wikipedia.org/wiki/Khidr",
       },
       {
         name: "The ancestors",
@@ -1377,7 +1807,7 @@ export const westAsia: readonly BeliefSystem[] = [
     evidence: {
       status: "documented",
       claim:
-        "Sufi treatises (Ghazali, Rumi, Hafiz), Persian poetry, shrine archaeology, and administrative records document the integration of Sufism into Persian Islamic practice, the veneration of saints, and the role of the mystical path.",
+        "Sufi treatises by al-Ghazali, Rumi and Hafiz, the hagiography of Baha-ud-Din Naqshband, Persian poetry, shrine archaeology, and administrative records document the integration of Sufism into Persian Islamic practice, the veneration of saints, and the role of the mystical path.",
       sources: [
         "Schimmel, My Soul is a Woman",
         "Lewisohn, The Heritage of Sufism",
@@ -1390,13 +1820,26 @@ export const westAsia: readonly BeliefSystem[] = [
   {
     id: "anatolian-ottoman-islam",
     label: "Anatolian Ottoman Islamic practice",
+    wiki: "https://en.wikipedia.org/wiki/Islam_in_Turkey",
     scope: { years: [1300, 1700], bounds: [26, 35, 46, 42] },
     powers: [
-      { name: "God", domain: "the Divine sovereign", rank: "paramount" },
+      {
+        name: "God",
+        domain: "the Divine sovereign",
+        rank: "paramount",
+        wiki: "https://en.wikipedia.org/wiki/God_in_Islam",
+      },
       {
         name: "Muhammad",
         domain: "the Prophet, intercessor",
         rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Muhammad",
+      },
+      {
+        name: "Yunus Emre",
+        domain: "Anatolian mystic-poet, sainthood in vernacular Turkish",
+        rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Yunus_Emre",
       },
       {
         name: "The sultan",
@@ -1409,9 +1852,10 @@ export const westAsia: readonly BeliefSystem[] = [
         rank: "major",
       },
       {
-        name: "The saint",
-        domain: "God's beloved, blessing",
-        rank: "major",
+        name: "Khidr",
+        domain: "the green guide, patron of travelers",
+        rank: "local",
+        wiki: "https://en.wikipedia.org/wiki/Khidr",
       },
       {
         name: "The mosque",
@@ -1432,7 +1876,7 @@ export const westAsia: readonly BeliefSystem[] = [
     practice: [
       "The sultan performs public ceremonies; his piety is displayed in mosque endowments.",
       "The five prayers gather the faithful; Friday prayer brings community together.",
-      "Saints' tombs are visited for healing; their saints' feast days bring crowds.",
+      "Yunus Emre's verses are sung at gatherings; his tomb draws pilgrims seeking blessing.",
       "Fasting during Ramadan and the pilgrimage to Mecca are duties.",
       "The dead are washed, wrapped in white cloth, and buried in the cemetery.",
     ],
@@ -1443,7 +1887,7 @@ export const westAsia: readonly BeliefSystem[] = [
     evidence: {
       status: "documented",
       claim:
-        "Ottoman inscriptions, waqf endowments, court records, and mosque archaeology document the state's role in Islam, the integration of saint veneration, and the standardization of Islamic practice.",
+        "Ottoman inscriptions, waqf endowments, court records, the poetry and hagiography of Yunus Emre, and mosque archaeology document the state's role in Islam, the integration of saint veneration, and the standardization of Islamic practice.",
       sources: [
         "Faroqhi, Pilgrims and Sultans",
         "Kafadar, Between Two Worlds",
@@ -1456,9 +1900,15 @@ export const westAsia: readonly BeliefSystem[] = [
   {
     id: "caucasus-caspian-islam",
     label: "Caucasus and Caspian Islamic and traditional practice",
+    wiki: "https://en.wikipedia.org/wiki/Islam_in_Russia",
     scope: { years: [-2000, 2000], bounds: [44, 38, 64, 45] },
     powers: [
-      { name: "God", domain: "the Divine creator", rank: "paramount" },
+      {
+        name: "God",
+        domain: "the Divine creator",
+        rank: "paramount",
+        wiki: "https://en.wikipedia.org/wiki/God_in_Islam",
+      },
       {
         name: "The mountains",
         domain: "shelter, hunting, identity",
@@ -1470,14 +1920,22 @@ export const westAsia: readonly BeliefSystem[] = [
         rank: "major",
       },
       {
-        name: "The leader",
-        domain: "the clan or tribe, justice",
+        name: "Imam Shamil",
+        domain: "Naqshbandi resistance leader, model of pious authority",
         rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Imam_Shamil",
       },
       {
-        name: "The saint",
-        domain: "blessing and intercession",
+        name: "Kunta Haji Kishiev",
+        domain: "Qadiri pir, teacher of the loud dhikr",
         rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Kunta_Haji_Kishiev",
+      },
+      {
+        name: "Khidr",
+        domain: "the guide of the high pastures and passes",
+        rank: "local",
+        wiki: "https://en.wikipedia.org/wiki/Khidr",
       },
       {
         name: "The hearth",
@@ -1498,8 +1956,8 @@ export const westAsia: readonly BeliefSystem[] = [
     practice: [
       "The high peaks are honored as sacred; pilgrims climb them for blessing.",
       "The ancestors are invoked for protection and counsel in times of crisis.",
-      "The clan leader holds court and settles disputes by custom and oath.",
-      "Saints' tombs dot the landscape; their intercession is sought for healing.",
+      "Imam Shamil's resistance is remembered as a model of pious leadership.",
+      "Kunta Haji Kishiev's followers turn in the loud dhikr at his shrine and lodges.",
       "The dead are buried in family cemeteries; their memory is kept alive.",
     ],
     specialist:
@@ -1508,11 +1966,12 @@ export const westAsia: readonly BeliefSystem[] = [
     evidence: {
       status: "hypothesis",
       claim:
-        "The Caucasus peoples maintained complex layerings of pre-Islamic tradition, Islamic practice, and local custom from the medieval period onward. Mountain geography preserved ancestral reverence and community autonomy alongside Islamic law.",
+        "The Caucasus peoples maintained complex layerings of pre-Islamic tradition, Islamic practice, and local custom from the medieval period onward, including the Naqshbandi-led resistance of Imam Shamil and the Qadiri revival led by Kunta Haji Kishiev in the nineteenth century. Mountain geography preserved ancestral reverence and community autonomy alongside Islamic law.",
       sources: [
         "Bennigsen and Wimbush, Muslims of the Soviet Empire",
         "Bulliet, The Camel and the Wheel",
         "Austin, The Bactrian Camel as an Agent of Technological Transfer",
+        "Zelkina, In Quest for God and Freedom",
       ],
       limitation:
         "The enormous diversity of Caucasus peoples and practices is flattened into a single schema.",
@@ -1521,13 +1980,26 @@ export const westAsia: readonly BeliefSystem[] = [
   {
     id: "modern-west-asia-islam",
     label: "Modern Islamic practice in West Asia and North Africa",
+    wiki: "https://en.wikipedia.org/wiki/Islam_by_country",
     scope: { years: [1750, 2100], bounds: [-18, 12, 62, 42] },
     powers: [
-      { name: "God", domain: "the Creator, judge", rank: "paramount" },
+      {
+        name: "God",
+        domain: "the Creator, judge",
+        rank: "paramount",
+        wiki: "https://en.wikipedia.org/wiki/God_in_Islam",
+      },
       {
         name: "Muhammad",
         domain: "the Prophet, the Seal",
         rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Muhammad",
+      },
+      {
+        name: "Jibril",
+        domain: "revelation, God's messenger",
+        rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Gabriel",
       },
       {
         name: "The nation",
@@ -1540,9 +2012,10 @@ export const westAsia: readonly BeliefSystem[] = [
         rank: "major",
       },
       {
-        name: "The scholar",
-        domain: "interpretation of faith",
+        name: "Muhammad Abduh",
+        domain: "reformist scholar, model of modern ijtihad",
         rank: "major",
+        wiki: "https://en.wikipedia.org/wiki/Muhammad_Abduh",
       },
       {
         name: "The mosque",
@@ -1579,7 +2052,7 @@ export const westAsia: readonly BeliefSystem[] = [
     evidence: {
       status: "documented",
       claim:
-        "Census data, Islamic institutional records, ethnographic studies, and observational accounts from the nineteenth century to present document the continuity of Islamic practice alongside nationalism, education, technology, and social change.",
+        "Census data, Islamic institutional records, the writings of reformers such as Muhammad Abduh, ethnographic studies, and observational accounts from the nineteenth century to present document the continuity of Islamic practice alongside nationalism, education, technology, and social change.",
       sources: [
         "Lapidus, A History of Islamic Societies",
         "Anderson, 'Law as Instrument of Change in the Middle East'",

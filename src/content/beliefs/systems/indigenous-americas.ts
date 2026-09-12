@@ -14,7 +14,8 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         rank: "paramount",
       },
       {
-        name: "The land",
+        name: "*Axkyi",
+        gloss: "Proto-Algonquian *axkyi, 'earth, land'",
         domain: "passage, shelter, water sources, sacred places",
         rank: "major",
       },
@@ -24,17 +25,20 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         rank: "major",
       },
       {
-        name: "The water",
+        name: "*Nepyi",
+        gloss: "Proto-Algonquian *nepyi, 'water'",
         domain: "rivers and coasts, fish, crossing, cleansing",
         rank: "major",
       },
       {
-        name: "The fire",
+        name: "*Eškwote·wi",
+        gloss: "Proto-Algonquian *eškwote·wi, 'fire'",
         domain: "warmth, cooking, gathering, protection",
         rank: "local",
       },
       {
-        name: "The sun and seasons",
+        name: "*Ki·ži·kwi",
+        gloss: "Proto-Algonquian *ki·ži·kwi, 'sky, sun, day'",
         domain: "direction, time, movement of animals",
         rank: "local",
       },
@@ -59,9 +63,11 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         "Dillehay, The Settlement of the Americas",
         "Byers, Early Holocene Occupations in the Americas",
         "Boyd, The Coming of the Spirit of Pestilence",
+        'Goddard, "Handbook of North American Indians, Vol. 17: Languages" (Proto-Algonquian)',
+        "Hewson, A Computer-Generated Dictionary of Proto-Algonquian",
       ],
       limitation:
-        "No written records; practices are inferred from artifact distributions, settlement patterns, and burial contexts across vast time and geography. This represents broad patterns among many distinct populations with their own local practices.",
+        "No written records; practices are inferred from artifact distributions, settlement patterns, and burial contexts across vast time and geography, and this represents broad patterns among many distinct populations with their own local practices. The starred forms are Proto-Algonquian reconstructions, a language stage dated to roughly 3,000 years ago at most — thousands of years after this floor layer's horizon closes. No family reaches back 13,000 years, so these words stand in for a Paleoindian vocabulary that is simply gone; a reconstructed word for 'earth' or 'fire' is not evidence that Paleoindian people used it, or worshipped an earth-power or fire-power by that name.",
     },
   },
 
@@ -76,7 +82,8 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         rank: "paramount",
       },
       {
-        name: "The land",
+        name: "*Tïpa",
+        gloss: "Proto-Uto-Aztecan *tïpa, 'earth, ground' (provisional)",
         domain: "fields, shelter, water, the place itself",
         rank: "major",
       },
@@ -86,7 +93,8 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         rank: "major",
       },
       {
-        name: "The ancestors",
+        name: "*Tata",
+        gloss: "Proto-Uto-Aztecan *tata, 'father, elder male'",
         domain: "the people who came before, guidance",
         rank: "major",
       },
@@ -96,7 +104,8 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         rank: "local",
       },
       {
-        name: "The water source",
+        name: "*Pa",
+        gloss: "Proto-Uto-Aztecan *pa, 'water'",
         domain: "river or spring, irrigation, renewal",
         rank: "local",
       },
@@ -121,15 +130,18 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         "Smith, The Emergence of Agriculture",
         "Pearsall, Paleoethnobotany: A Handbook of Procedures",
         "Roosevelt, Moundbuilders of the Amazon",
+        'Miller, "Uto-Aztecan Cognate Sets", IJAL',
+        "Stubbs, Uto-Aztecan: A Comparative Vocabulary",
       ],
       limitation:
-        "Practices varied enormously by region and climate. This is a general summary of the transition zone between hunting and farming, applicable across the Americas.",
+        "Practices varied enormously by region and climate; this is a general summary of the transition zone between hunting and farming, applicable across the Americas, and Uto-Aztecan speakers occupied only one corner of it. The starred forms are comparative reconstructions of vocabulary, not recovered theonyms: nobody is recorded speaking them, and a word for 'water' is not evidence of a water god by that name. Maize itself has no inherited Proto-Uto-Aztecan term, so the staple crop is left undescribed rather than forced into a reconstruction it does not have.",
     },
   },
 
   {
     id: "middle-period-americas",
     label: "Middle period Americas practice",
+    wiki: "https://en.wikipedia.org/wiki/Viracocha",
     scope: { years: [-500, 1200], bounds: [-170, -56, -32, 83] },
     powers: [
       {
@@ -143,12 +155,14 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         rank: "major",
       },
       {
-        name: "The sacred center or mountain",
-        domain: "the village, the cosmos, authority",
+        name: "Viracocha",
+        wiki: "https://en.wikipedia.org/wiki/Viracocha",
+        domain: "creation, the civilizing order, the sacred center",
         rank: "major",
       },
       {
-        name: "The water",
+        name: "*Úni",
+        gloss: "Proto-Arawakan *úni, 'water'",
         domain: "rivers, springs, rain, abundance",
         rank: "major",
       },
@@ -180,22 +194,25 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
     afterlife:
       "Ancestors join the spirit world but remain present and influential in the village.",
     evidence: {
-      status: "documented",
+      status: "hypothesis",
       claim:
-        "Archaeological evidence from across the Americas shows the development of stable farming villages, ceremonial centers, and complex social organization. Ethnographic and historical accounts document the persistence of these practices into the contact period.",
+        "Archaeological evidence from across the Americas shows the development of stable farming villages, ceremonial centers, and complex social organization. Ethnographic and historical accounts document the persistence of these practices into the contact period; Viracocha, the creator god of the pre-Inca and Inca Andes, is one well-documented example of a civilizing power tied to a sacred center in this era.",
       sources: [
         "Silverberg, Mound Builders of Ancient America",
         "Hodge, The Handbook of American Indians North of Mexico",
         "Lévi-Strauss, The Raw and the Cooked",
+        "Aikhenvald, The Arawak Language Family",
+        "Payne, A Classification of Maipuran Arawakan Languages",
       ],
       limitation:
-        "Practices varied widely across regions and centuries. This is a middle-range summary applicable to the agricultural Americas from 500 BCE through the first centuries of the Common Era and beyond.",
+        "Practices varied widely across regions and centuries; this is a middle-range summary applicable to the agricultural Americas from 500 BCE through the first centuries of the Common Era and beyond, and Arawakan speech covered only its Caribbean and lowland South American corner of that range. The starred form is a comparative reconstruction of vocabulary, not a recovered theonym: nobody is recorded speaking it, and a word for 'water' is not evidence of a water god by that name.",
     },
   },
 
   {
     id: "early-complex-americas",
     label: "Early complex societies practice",
+    wiki: "https://en.wikipedia.org/wiki/Chiefdom",
     scope: { years: [1200, 1500], bounds: [-170, -56, -32, 83] },
     powers: [
       {
@@ -209,8 +226,9 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         rank: "major",
       },
       {
-        name: "The ancestors of the lineage",
-        domain: "legitimacy, continuity, power",
+        name: "Naymlap",
+        wiki: "https://en.wikipedia.org/wiki/Naymlap",
+        domain: "the founding king, dynastic legitimacy",
         rank: "major",
       },
       {
@@ -219,7 +237,8 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         rank: "major",
       },
       {
-        name: "The water",
+        name: "*Úni",
+        gloss: "Proto-Arawakan *úni, 'water'",
         domain: "trade, travel, abundance",
         rank: "local",
       },
@@ -245,22 +264,24 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
     afterlife:
       "Honored dead ascend to the spirit realm; ancestors of chiefs remain powerful.",
     evidence: {
-      status: "documented",
+      status: "hypothesis",
       claim:
-        "Archaeological evidence from Mississippian centers, Ancestral Puebloan towns, northern Andean chiefdoms, and Caribbean polities shows the emergence of hierarchical societies with chiefly authority, monumental architecture, and differential burials.",
+        "Archaeological evidence from Mississippian centers, Ancestral Puebloan towns, northern Andean chiefdoms, and Caribbean polities shows the emergence of hierarchical societies with chiefly authority, monumental architecture, and differential burials. Naymlap, the legendary founding king of the Lambayeque dynasty on Peru's north coast, is one well-documented example of the dynastic founder figures such societies produced.",
       sources: [
         "Peregrine, Mississippian Evolution of Chiefdoms",
         "Drennan & Peterson, Prehispanic Chiefdoms in the Americas",
         "Whitmore & Turner, Collapsed Civilizations",
+        "Aikhenvald, The Arawak Language Family",
       ],
       limitation:
-        "This describes the general pattern of early complex societies and does not represent any specific regional tradition in detail.",
+        "This describes the general pattern of early complex societies and does not represent any specific regional tradition in detail; the Arawakan-speaking chiefdoms of the Caribbean are only one strand of it. The starred form is a comparative reconstruction of vocabulary, not a recovered theonym: nobody is recorded speaking it, and a word for 'water' is not evidence of a water god by that name.",
     },
   },
 
   {
     id: "historic-contact-americas",
     label: "Historic Americas practice at contact",
+    wiki: "https://en.wikipedia.org/wiki/Indigenous_peoples_of_the_Americas",
     scope: { years: [1500, 1901], bounds: [-170, -56, -32, 83] },
     powers: [
       {
@@ -269,7 +290,8 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         rank: "paramount",
       },
       {
-        name: "The land and water",
+        name: "*Tïpa",
+        gloss: "Proto-Uto-Aztecan *tïpa, 'earth, ground' (provisional)",
         domain: "home territory, sustenance, sacred geography",
         rank: "major",
       },
@@ -279,8 +301,9 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         rank: "major",
       },
       {
-        name: "The sacred power or spirit",
-        domain: "healing, vision, protection",
+        name: "Coyote",
+        wiki: "https://en.wikipedia.org/wiki/Coyote_(mythology)",
+        domain: "the trickster and culture hero, in dozens of local forms",
         rank: "major",
       },
       {
@@ -294,8 +317,15 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         rank: "local",
       },
       {
-        name: "The healer or elder",
+        name: "*Tata",
+        gloss: "Proto-Uto-Aztecan *tata, 'father, elder male'",
         domain: "medicine, wisdom, guidance",
+        rank: "local",
+      },
+      {
+        name: "Pachamama",
+        wiki: "https://en.wikipedia.org/wiki/Pachamama",
+        domain: "the earth mother, fertility, provision",
         rank: "local",
       },
     ],
@@ -312,16 +342,18 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
     afterlife:
       "Souls travel to the ancestors; the dead remain present and influential.",
     evidence: {
-      status: "documented",
+      status: "hypothesis",
       claim:
-        "Historical accounts, ethnographic records, and oral traditions from contact onward document the religious practices of hundreds of distinct indigenous nations across the Americas, from the Arctic to Patagonia.",
+        "Historical accounts, ethnographic records, and oral traditions from contact onward document the religious practices of hundreds of distinct indigenous nations across the Americas, from the Arctic to Patagonia. Coyote and Pachamama are given here as widely attested, well-documented examples of a trickster/culture-hero figure and an earth-mother figure respectively; each nation had, and many still have, their own names and figures.",
       sources: [
         "Sturtevant, Handbook of North American Indians",
         "Urton, The Inca of South America",
         "Hemming, The Search for El Dorado",
+        'Miller, "Uto-Aztecan Cognate Sets", IJAL',
+        "Stubbs, Uto-Aztecan: A Comparative Vocabulary",
       ],
       limitation:
-        "This summarizes broad patterns shared across many nations and time periods. Every community had distinct practices, and these traditions continue to evolve today.",
+        "This summarizes broad patterns shared across many nations and time periods; every community had distinct practices, and these traditions continue to evolve today. The starred forms are Proto-Uto-Aztecan reconstructions of vocabulary, not recovered theonyms, and Uto-Aztecan speech covered only the Southwest, Mesoamerica, and the Great Basin corner of this hemispheric layer; a word for 'earth' is not evidence of an earth god by that name.",
     },
   },
 
@@ -338,12 +370,14 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         rank: "paramount",
       },
       {
-        name: "The land",
+        name: "*Tïpa",
+        gloss: "Proto-Uto-Aztecan *tïpa, 'earth, ground' (provisional)",
         domain: "shelter, water sources, sacred peaks",
         rank: "major",
       },
       {
-        name: "The ancestors",
+        name: "*Tata",
+        gloss: "Proto-Uto-Aztecan *tata, 'father, elder male'",
         domain: "the first people, guidance",
         rank: "major",
       },
@@ -353,7 +387,8 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         rank: "local",
       },
       {
-        name: "The water source",
+        name: "*Pa",
+        gloss: "Proto-Uto-Aztecan *pa, 'water'",
         domain: "river or spring, life, purity",
         rank: "local",
       },
@@ -377,35 +412,40 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
       sources: [
         "Wilcox, Pueblo Period Population History",
         "Minnis, Social Adaptations to Food Stress in the Prehistoric American Southwest",
+        'Miller, "Uto-Aztecan Cognate Sets", IJAL',
+        "Stubbs, Uto-Aztecan: A Comparative Vocabulary",
       ],
       limitation:
-        "Evidence is sparse and unevenly distributed. This represents the broad pattern of forager-farmers in the Southwest.",
+        "Evidence is sparse and unevenly distributed; this represents the broad pattern of forager-farmers in the Southwest. The starred forms are comparative reconstructions of vocabulary, not recovered theonyms: nobody is recorded speaking them, and a word for 'water' is not evidence of a water god by that name.",
     },
   },
 
   {
     id: "ancestral-puebloan",
     label: "Ancestral Puebloan practice",
+    wiki: "https://en.wikipedia.org/wiki/Ancestral_Puebloans",
     scope: { years: [100, 1450], bounds: [-115, 27, -101, 37] },
     powers: [
       {
-        name: "Corn Mother",
-        domain: "agriculture, fertility, the harvest",
+        name: "Iyatiku",
+        wiki: "https://en.wikipedia.org/wiki/Iyatiku",
+        domain: "corn, fertility, the harvest, creation",
         rank: "paramount",
       },
       {
         name: "Katsinas",
+        wiki: "https://en.wikipedia.org/wiki/Kachina",
         domain: "rain, crops, the ancestor spirits who return",
         rank: "major",
       },
       {
-        name: "The spirits of the mountains",
-        domain: "water sources, weather, the peaks",
+        name: "Tawa",
+        domain: "the sun, time, the calendar",
         rank: "major",
       },
       {
-        name: "The sun",
-        domain: "time, the calendar, the day",
+        name: "Masauwu",
+        domain: "the earth, death, fire, guardianship of this world",
         rank: "major",
       },
       {
@@ -443,7 +483,7 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
     evidence: {
       status: "inferred",
       claim:
-        "Katsina veneration is documented in historic Pueblo practice and in the archaeological record of kivas, prayer sticks, and katsina figurines from Chaco and Mesa Verde phases. Corn agriculture structures Puebloan cosmology in documented ethnography.",
+        "Katsina veneration is documented in historic Pueblo practice and in the archaeological record of kivas, prayer sticks, and katsina figurines from Chaco and Mesa Verde phases. Corn agriculture structures Puebloan cosmology, and named figures such as Keresan Iyatiku, Hopi Tawa, and Hopi Masauwu are recorded in documented ethnography and projected back to earlier Puebloan practice.",
       sources: [
         "Nabokov & Wall, Tiwa Indians of the Rio Grande",
         "Ortiz, The Tewa World",
@@ -477,7 +517,8 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         rank: "major",
       },
       {
-        name: "The ancestors",
+        name: "*ʔUuti",
+        gloss: "Proto-Utian (Miwok-Costanoan) *ʔuuti, 'person, people'",
         domain: "the people before, guidance, land claim",
         rank: "major",
       },
@@ -509,16 +550,17 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
     afterlife:
       "Spirits of the dead travel; the cremation releases them to join the ancestors.",
     evidence: {
-      status: "documented",
+      status: "hypothesis",
       claim:
         "Archaeological evidence shows 10,000 years of intensive harvesting and burning management of California oak woodlands and riparian zones. Ethnographic accounts by Powers, Barrett, and others document the continuity of these practices into the 19th and 20th centuries.",
       sources: [
         "Boyd, The Coming of the Spirit of Pestilence",
         "Peacock & Turner, Just Below the Surface",
         "Anderson, Tending the Wild",
+        'Callaghan, "Evidence for Yok-Utian", IJAL',
       ],
       limitation:
-        "This is a general summary across California's diverse language groups and regions, from the coast to the interior valley and mountains. Each nation had distinct practices.",
+        "This is a general summary across California's diverse language groups and regions, from the coast to the interior valley and mountains, and each nation had distinct practices. The starred form is a comparative reconstruction of vocabulary, not a recovered theonym: nobody is recorded speaking it, and a word for 'people' is not evidence of an ancestor cult by that name. Utian itself, the family name Callaghan gave this Miwok-Costanoan grouping, comes from this same reconstructed word.",
     },
   },
 
@@ -528,7 +570,8 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
     scope: { years: [-3000, 1500], bounds: [-125, 32, -117, 42] },
     powers: [
       {
-        name: "The sea",
+        name: "*Xa",
+        gloss: "Proto-Yuman *xa, 'water'",
         domain: "fish, kelp, seals, shellfish",
         rank: "paramount",
       },
@@ -543,7 +586,8 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         rank: "major",
       },
       {
-        name: "The ancestors",
+        name: "*ʔIipaa",
+        gloss: "Proto-Yuman *ʔiipaa, 'person, people'",
         domain: "the sea people, protection",
         rank: "major",
       },
@@ -575,16 +619,17 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
     afterlife:
       "Spirits of the sea people return to the islands and the depths.",
     evidence: {
-      status: "documented",
+      status: "hypothesis",
       claim:
         "Coastal middens and shell mounds show 3000+ years of marine resource exploitation. Ethnographic accounts document the sophistication of plank-boat construction, harpoon hunting, and maritime trading networks.",
       sources: [
         "Erlandson, The Archaeology of Aquatic Adaptations",
         "Boyd, The Coming of the Spirit of Pestilence",
         "Lightfoot & Parrish, California Indians and Their Environment",
+        "Wares, A Comparative Study of Yuman Consonantism",
       ],
       limitation:
-        "This is a summary of California coastal maritime societies and does not represent any single nation's specific practice.",
+        "This is a summary of California coastal maritime societies and does not represent any single nation's specific practice; Yuman speech fits its southern reach best. The starred forms are comparative reconstructions of vocabulary, not recovered theonyms: nobody is recorded speaking them, and a word for 'water' is not evidence of a sea god by that name.",
     },
   },
 
@@ -601,17 +646,20 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         rank: "paramount",
       },
       {
-        name: "The mountain springs",
+        name: "*Pa",
+        gloss: "Proto-Uto-Aztecan *pa, 'water'",
         domain: "water, sacred places, travel",
         rank: "major",
       },
       {
-        name: "The land and valleys",
+        name: "*Tïpa",
+        gloss: "Proto-Uto-Aztecan *tïpa, 'earth, ground' (provisional)",
         domain: "territory, home, resources",
         rank: "major",
       },
       {
-        name: "The ancestors",
+        name: "*Tata",
+        gloss: "Proto-Uto-Aztecan *tata, 'father, elder male'",
         domain: "the first people, guidance",
         rank: "major",
       },
@@ -643,15 +691,16 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
     afterlife:
       "Souls of the dead travel to distant places; ancestors watch from afar.",
     evidence: {
-      status: "documented",
+      status: "hypothesis",
       claim:
         "Archaeological evidence from the last 8000 years shows intensive seed gathering, storage pits, and seasonal occupation patterns. Ethnographic accounts by Steward and others document the seasonal round and resource management.",
       sources: [
         "Steward, Basin-Plateau Aboriginal Sociopolitical Groups",
         "Aikens & Croes, The Archaeology of the Columbia Plateau",
+        'Miller, "Uto-Aztecan Cognate Sets", IJAL',
       ],
       limitation:
-        "This is a general summary of Great Basin foraging and does not represent any specific nation's distinct seasonal and territorial practices.",
+        "This is a general summary of Great Basin foraging and does not represent any specific nation's distinct seasonal and territorial practices. The starred forms are comparative reconstructions of vocabulary, not recovered theonyms, and the Numic branch of Uto-Aztecan is thought to have spread across the Great Basin only in the last thousand years or so — far later than this system's 8000-year floor; a word for 'water' is not evidence of a water god by that name at any point in the range.",
     },
   },
 
@@ -668,7 +717,8 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         rank: "paramount",
       },
       {
-        name: "The river",
+        name: "*Nepyi",
+        gloss: "Proto-Algonquian *nepyi, 'water'",
         domain: "travel, fish, water, crossing",
         rank: "major",
       },
@@ -678,12 +728,14 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         rank: "major",
       },
       {
-        name: "The land",
+        name: "*Axkyi",
+        gloss: "Proto-Algonquian *axkyi, 'earth, land'",
         domain: "home, shelter, sacred places",
         rank: "major",
       },
       {
-        name: "The fire",
+        name: "*Eškwote·wi",
+        gloss: "Proto-Algonquian *eškwote·wi, 'fire'",
         domain: "cooking, clearing, protection, gathering place",
         rank: "local",
       },
@@ -715,37 +767,42 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
       sources: [
         "Steponaitis, Prehistoric Archaeology in the Eastern United States",
         "Caldwell, The Trend of Indian Population in the Southeast",
+        'Goddard, "Handbook of North American Indians, Vol. 17: Languages" (Proto-Algonquian)',
+        "Hewson, A Computer-Generated Dictionary of Proto-Algonquian",
       ],
       limitation:
-        "Evidence of early farming is sparse; dates for maize adoption vary by region. This is a general summary of Eastern Woodlands transition from hunting to farming.",
+        "Evidence of early farming is sparse; dates for maize adoption vary by region, and this is a general summary of Eastern Woodlands transition from hunting to farming. The starred forms are Proto-Algonquian reconstructions of vocabulary, not recovered theonyms: nobody is recorded speaking them, and a word for 'water' is not evidence of a river god by that name. The Proto-Algonquian split is dated well after this system's early centuries, so the reconstruction is a placeholder for an older, unrecorded stage of the same language family.",
     },
   },
 
   {
     id: "mississippian-southeast",
     label: "Mississippian practice",
+    wiki: "https://en.wikipedia.org/wiki/Southeastern_Ceremonial_Complex",
     scope: { years: [800, 1600], bounds: [-100, 25, -75, 48] },
     powers: [
       {
-        name: "Corn",
-        domain: "agriculture, life, emergence",
+        name: "Selu",
+        wiki: "https://en.wikipedia.org/wiki/Selu",
+        domain: "corn, agriculture, life, emergence",
         rank: "paramount",
       },
       {
-        name: "The sun god",
-        domain: "the sky, order, the cosmic center",
+        name: "Kanati",
+        domain: "the hunt, game animals, the sky",
         rank: "major",
       },
       {
-        name: "The great horned serpent",
-        domain: "waters, fertility, the underworld",
+        name: "Uktena",
+        wiki: "https://en.wikipedia.org/wiki/Uktena",
+        domain: "waters, the underworld, danger",
         rank: "major",
       },
       {
-        name: "The warrior falcon",
-        domain: "war, the hunt, power",
+        name: "Red Horn",
+        wiki: "https://en.wikipedia.org/wiki/Red_Horn",
+        domain: "war, the hunt, the birdman power",
         rank: "major",
-        relation: { kind: "serves", of: "The sun god" },
       },
       {
         name: "The sacred fire",
@@ -781,11 +838,12 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
     evidence: {
       status: "documented",
       claim:
-        "Mississippian cosmology is reconstructed from iconography on shell gorgets and copper plates, from mound-and-plaza town plans, and from 16th-century Spanish accounts of Southeastern chiefdoms like Coosa and Cahokia.",
+        "Mississippian cosmology is reconstructed from iconography on shell gorgets and copper plates, from mound-and-plaza town plans, and from 16th-century Spanish accounts of Southeastern chiefdoms like Coosa and Cahokia. Later Cherokee oral tradition names Selu (Corn Mother) and Kanati (the Lucky Hunter) as first parents, and Uktena as the great horned serpent; scholars link the Birdman iconography of the Southeastern Ceremonial Complex to Red Horn, a hero figure recorded across the wider Mississippian world.",
       sources: [
         "Peregrine, Mississippian Evolution of Chiefdoms",
         "Swanton, Indians of the Southeastern United States",
         "DePratter & Covington, Hernando de Soto",
+        "Mooney, Myths of the Cherokee",
       ],
       limitation:
         "Cosmology is inferred from material culture and later ethnographic parallels, not from texts. Regional variation was substantial; this is a central pattern.",
@@ -795,21 +853,25 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
   {
     id: "eastern-woodlands-algonquian",
     label: "Eastern Woodlands Algonquian practice",
+    wiki: "https://en.wikipedia.org/wiki/Algonquian_mythology",
     scope: { years: [1200, 1901], bounds: [-90, 38, -65, 52] },
     powers: [
       {
         name: "Manitou",
+        wiki: "https://en.wikipedia.org/wiki/Manitou",
         domain: "the great spirit, all power and life",
         rank: "paramount",
       },
       {
         name: "Nanabozho",
+        wiki: "https://en.wikipedia.org/wiki/Nanabozho",
         domain: "the culture hero, trickster, transformation",
         rank: "major",
       },
       {
-        name: "The Four Winds",
-        domain: "weather, the cardinal directions",
+        name: "Gluskap",
+        wiki: "https://en.wikipedia.org/wiki/Gluskap",
+        domain: "the culture hero, transformer, teacher",
         rank: "major",
       },
       {
@@ -852,10 +914,10 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
     evidence: {
       status: "documented",
       claim:
-        "Algonquian cosmology is documented in early ethnographic accounts by Schoolcraft, James, and Densmore, and in the oral traditions preserved by Anishinaabe, Lenape, and other Algonquian peoples. Manitou theology and dream power are central in 19th-century records.",
+        "Algonquian cosmology is documented in early ethnographic accounts by Schoolcraft, James, and Densmore, and in the oral traditions preserved by Anishinaabe, Wabanaki, and other Algonquian peoples. Manitou theology, the Nanabozho cycle among Great Lakes Algonquians, and the Gluskap cycle among Wabanaki peoples are central in 19th-century records.",
       sources: [
         "Densmore, Chippewa Customs",
-        "Harmon, Rich Montagnais",
+        "Leland, The Algonquin Legends of New England",
         "Warren, History of Ojibwe Nation",
       ],
       limitation:
@@ -866,18 +928,26 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
   {
     id: "eastern-woodlands-iroquoian",
     label: "Eastern Woodlands Iroquoian practice",
+    wiki: "https://en.wikipedia.org/wiki/Haudenosaunee_creation_myth",
     scope: { years: [1200, 1901], bounds: [-85, 40, -70, 50] },
     powers: [
       {
-        name: "The Great Spirit",
-        domain: "creation, life, order",
+        name: "Sky Woman",
+        wiki: "https://en.wikipedia.org/wiki/Sky_Woman",
+        domain: "creation, the earth, women",
         rank: "paramount",
       },
       {
-        name: "Sky Woman",
-        domain: "the earth, creation, women",
+        name: "Tharonhiawagon",
+        domain: "growth, order, the good twin",
         rank: "major",
-        relation: { kind: "child-of", of: "The Great Spirit" },
+        relation: { kind: "child-of", of: "Sky Woman" },
+      },
+      {
+        name: "Flint",
+        domain: "winter, stone, the twin who opposes",
+        rank: "major",
+        relation: { kind: "child-of", of: "Sky Woman" },
       },
       {
         name: "The Three Sisters",
@@ -886,8 +956,8 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         relation: { kind: "aspect-of", of: "Sky Woman" },
       },
       {
-        name: "Thunder",
-        domain: "war, strength, the storm",
+        name: "Hinon",
+        domain: "thunder, war, rain, strength",
         rank: "major",
       },
       {
@@ -925,7 +995,7 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
     evidence: {
       status: "documented",
       claim:
-        "Haudenosaunee cosmology—creation story of Sky Woman, the Thanksgiving Address, and the seasonal ceremonies—is preserved in oral tradition and documented in ethnographic records by Goldenweiser, Hewitt, and others. Contemporary Haudenosaunee nations maintain these teachings.",
+        "Haudenosaunee cosmology—the creation story of Sky Woman and her grandsons Tharonhiawagon and Flint (Tawiskaron), the Thanksgiving Address, and the seasonal ceremonies—is preserved in oral tradition and documented in ethnographic records by Goldenweiser, Hewitt, and others. Contemporary Haudenosaunee nations maintain these teachings.",
       sources: [
         "Hewitt, Iroquoian Cosmology",
         "Fenton, The Great Law and the Longhouse",
@@ -941,31 +1011,36 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
   {
     id: "great-plains-historic",
     label: "Great Plains historic practice",
+    wiki: "https://en.wikipedia.org/wiki/Lakota_mythology",
     scope: { years: [1200, 1901], bounds: [-110, 28, -90, 55] },
     powers: [
       {
         name: "Wakan Tanka",
+        wiki: "https://en.wikipedia.org/wiki/Wakan_Tanka",
         domain: "the great mystery, all powers united",
         rank: "paramount",
       },
       {
-        name: "Buffalo",
-        domain: "the hunt, sustenance, gift and reciprocity",
+        name: "Ptesanwin",
+        wiki: "https://en.wikipedia.org/wiki/White_Buffalo_Calf_Woman",
+        domain: "the buffalo, the sacred pipe, teaching",
         rank: "major",
       },
       {
-        name: "The sun",
-        domain: "time, power, the pole of the circle",
+        name: "Wi",
+        domain: "the sun, time, the pole of the circle",
         rank: "major",
       },
       {
-        name: "The four winds",
-        domain: "direction, weather, communication",
+        name: "Wakinyan",
+        wiki: "https://en.wikipedia.org/wiki/Thunderbird_(mythology)",
+        domain: "thunder, storm, the west, war power",
         rank: "major",
       },
       {
-        name: "The eagle",
-        domain: "vision, height, power",
+        name: "Iktomi",
+        wiki: "https://en.wikipedia.org/wiki/Iktomi",
+        domain: "trickery, the spider, mischief",
         rank: "local",
       },
       {
@@ -997,11 +1072,11 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
     evidence: {
       status: "documented",
       claim:
-        "Plains religious practice is documented in accounts by Dorsey, Grinnell, Hassrick, and in the oral traditions maintained by Lakota, Cheyenne, Arapaho, and other Plains nations. Sun Dance, vision quest, and sacred pipe ceremonies are central.",
+        "Plains religious practice is documented in accounts by Dorsey, Grinnell, Hassrick, and in the oral traditions maintained by Lakota, Cheyenne, Arapaho, and other Plains nations. Walker's Lakota consultants named Wakan Tanka, Wi, and Wakinyan among the Wakan beings; White Buffalo Calf Woman's gift of the pipe and Iktomi's trickster cycle are widely recorded.",
       sources: [
         "Hassrick, The Sioux: Life and Customs",
+        "Walker, Lakota Belief and Ritual",
         "Grinnell, The Cheyenne Indians",
-        "Dorsey & Murie, Notes on Skidi Pawnee Astronomy",
       ],
       limitation:
         "This is a summary of shared themes across culturally distinct Plains peoples and does not represent any specific nation's practice today. It is general ethnographic description.",
@@ -1013,6 +1088,7 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
   {
     id: "northwest-coast-historic",
     label: "Northwest Coast historic practice",
+    wiki: "https://en.wikipedia.org/wiki/Raven_Tales",
     scope: { years: [1200, 1901], bounds: [-135, 42, -115, 62] },
     powers: [
       {
@@ -1022,12 +1098,14 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
       },
       {
         name: "Raven",
+        wiki: "https://en.wikipedia.org/wiki/Raven_Tales",
         domain: "creation, trickster, light",
         rank: "major",
       },
       {
-        name: "Eagle",
-        domain: "power, the sky, nobility",
+        name: "Thunderbird",
+        wiki: "https://en.wikipedia.org/wiki/Thunderbird_(mythology)",
+        domain: "storm, power, the sky, nobility",
         rank: "major",
       },
       {
@@ -1066,7 +1144,7 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
     evidence: {
       status: "documented",
       claim:
-        "Northwest Coast cosmology is documented in ethnographies by Boas, Swanton, and Barbeau, and is maintained in oral tradition by Tlingit, Haida, Kwakwaka'wakw, and other nations. Salmon ceremonies and potlatches are well recorded.",
+        "Northwest Coast cosmology is documented in ethnographies by Boas, Swanton, and Barbeau, and is maintained in oral tradition by Tlingit, Haida, Kwakwaka'wakw, and other nations. Raven's creation and trickster cycle and widespread Thunderbird tradition are well recorded; salmon ceremonies and potlatches are well documented.",
       sources: [
         "Boas, Kwakwaka'wakw Ethnography",
         "Swanton, Contribution to the Ethnology of the Haida",
@@ -1082,6 +1160,7 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
   {
     id: "subarctic-boreal",
     label: "Subarctic boreal forager practice",
+    wiki: "https://en.wikipedia.org/wiki/Wisakedjak",
     scope: { years: [-3000, 1500], bounds: [-140, 50, -80, 68] },
     powers: [
       {
@@ -1090,7 +1169,8 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         rank: "paramount",
       },
       {
-        name: "The land",
+        name: "*Ni·",
+        gloss: "Proto-Athabaskan *ni·, 'land, earth'",
         domain: "territory, water, travel routes",
         rank: "major",
       },
@@ -1100,23 +1180,31 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         rank: "major",
       },
       {
-        name: "The water",
+        name: "Wisakedjak",
+        wiki: "https://en.wikipedia.org/wiki/Wisakedjak",
+        domain: "the culture hero, trickster, transformation",
+        rank: "major",
+      },
+      {
+        name: "*Tuʔ",
+        gloss: "Proto-Athabaskan *tuʔ, 'water'",
         domain: "fish, passage, cleansing",
         rank: "local",
       },
       {
-        name: "The fire",
+        name: "*Qoʔ",
+        gloss: "Proto-Athabaskan *qoʔ, 'fire'",
         domain: "warmth, cooking, protection",
-        rank: "local",
-      },
-      {
-        name: "The medicine spirit",
-        domain: "healing, protection, vision",
         rank: "local",
       },
       {
         name: "The forest",
         domain: "shelter, berries, game",
+        rank: "local",
+      },
+      {
+        name: "Yamoria",
+        domain: "law, monsters tamed, right order on the land",
         rank: "local",
       },
     ],
@@ -1132,21 +1220,25 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
     afterlife:
       "Souls and spirits return through names and reincarnation; hunting requires respect for animal spirits.",
     evidence: {
-      status: "documented",
+      status: "hypothesis",
       claim:
-        "Archaeological evidence shows 3000+ years of hunting and trapping in boreal forests. Ethnographic accounts document the seasonal round, naming practices, and spiritual relationships with hunted animals.",
+        "Archaeological evidence shows 3000+ years of hunting and trapping in boreal forests. Ethnographic accounts document the seasonal round, naming practices, and spiritual relationships with hunted animals, and record the Wisakedjak (Cree/Anishinaabe) and Yamoria (Dene) culture-hero cycles that are projected back to this earlier period.",
       sources: [
         "Helm, The Indians of the Subarctic",
-        "Trigger, The Children of Aataentsic",
+        "Bloomfield, Sacred Stories of the Sweet Grass Cree",
+        "Petitot, Traditions indiennes du Canada nord-ouest",
+        "Krauss & Leer, Athabaskan Tone",
+        "Cook, A Grammar of Dëne Sųłiné",
       ],
       limitation:
-        "This is a general summary of Subarctic foraging societies and does not represent any specific nation's practices or contemporary traditions.",
+        "This is a general summary of Subarctic foraging societies and does not represent any specific nation's practices or contemporary traditions. The starred forms are Proto-Athabaskan reconstructions of vocabulary, not recovered theonyms, chosen alongside the already-named Algonquian (Wisakedjak) and Dene (Yamoria) figures to reflect the region's real mix of language families; a word for 'water' is not evidence of a water god by that name.",
     },
   },
 
   {
     id: "subarctic-historic",
     label: "Subarctic historic practice",
+    wiki: "https://en.wikipedia.org/wiki/Wisakedjak",
     scope: { years: [1500, 1901], bounds: [-140, 50, -80, 68] },
     powers: [
       {
@@ -1160,28 +1252,37 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         rank: "major",
       },
       {
-        name: "The shamanic spirit",
-        domain: "healing, hunting success, vision",
+        name: "Wisakedjak",
+        wiki: "https://en.wikipedia.org/wiki/Wisakedjak",
+        domain: "healing, trickery, hunting success, vision",
         rank: "major",
       },
       {
-        name: "The land",
+        name: "*Ni·",
+        gloss: "Proto-Athabaskan *ni·, 'land, earth'",
         domain: "territory, water, shelter",
         rank: "major",
       },
       {
-        name: "The fire",
+        name: "*Qoʔ",
+        gloss: "Proto-Athabaskan *qoʔ, 'fire'",
         domain: "home, warmth, gathering",
         rank: "local",
       },
       {
-        name: "The water spirit",
+        name: "*Tuʔ",
+        gloss: "Proto-Athabaskan *tuʔ, 'water'",
         domain: "fish, crossing, cleansing",
         rank: "local",
       },
       {
         name: "The beaver or fur-bearer",
         domain: "trade, wealth, respect",
+        rank: "local",
+      },
+      {
+        name: "Yamoria",
+        domain: "law, monsters tamed, right order on the land",
         rank: "local",
       },
     ],
@@ -1197,15 +1298,17 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
     afterlife:
       "Souls return in new births and in the animals hunted; shamans travel between worlds.",
     evidence: {
-      status: "documented",
+      status: "hypothesis",
       claim:
-        "Subarctic religious practice is documented in ethnographies by Helm, Wilkinson, and in oral traditions maintained by Dene, Sekani, Beaver, and other nations. Shamanism and animal respect are central themes.",
+        "Subarctic religious practice is documented in ethnographies by Helm, Wilkinson, and in oral traditions maintained by Dene, Cree, Beaver, and other nations. Wisakedjak's trickster cycle among Algonquian Subarctic peoples and Yamoria the lawgiver among Dene peoples are widely recorded; shamanism and animal respect are central themes.",
       sources: [
         "Helm, The Indians of the Subarctic",
+        "Petitot, Traditions indiennes du Canada nord-ouest",
         "Gwich'in Steering Committee, Gwich'in and the Porcupine Caribou Herd",
+        "Krauss & Leer, Athabaskan Tone",
       ],
       limitation:
-        "This is a general summary across Subarctic societies and does not represent any specific nation's practices or living traditions.",
+        "This is a general summary across Subarctic societies and does not represent any specific nation's practices or living traditions. The starred forms are Proto-Athabaskan reconstructions of vocabulary, not recovered theonyms: nobody is recorded speaking them, and a word for 'land' is not evidence of a land god by that name.",
     },
   },
 
@@ -1214,20 +1317,23 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
   {
     id: "arctic-thule-inuit",
     label: "Arctic Thule and Inuit practice",
+    wiki: "https://en.wikipedia.org/wiki/Inuit_religion",
     scope: { years: [1000, 1901], bounds: [-180, 55, -60, 83] },
     powers: [
       {
         name: "Sedna",
+        wiki: "https://en.wikipedia.org/wiki/Sedna_(mythology)",
         domain: "the sea, marine animals, storms",
         rank: "paramount",
       },
       {
-        name: "The spirit of the land",
-        domain: "caribou, musk ox, passage",
+        name: "Sila",
+        wiki: "https://en.wikipedia.org/wiki/Sila_(mythology)",
+        domain: "weather, breath, the order of the world",
         rank: "major",
       },
       {
-        name: "Tornaarsuk",
+        name: "Tornarsuk",
         domain: "the great spirit, shamans, weather",
         rank: "major",
       },
@@ -1238,9 +1344,10 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         relation: { kind: "serves", of: "Sedna" },
       },
       {
-        name: "The ancestors",
-        domain: "the band's dead, power, names",
+        name: "Anguta",
+        domain: "Sedna's father, guardian of the drowned dead",
         rank: "local",
+        relation: { kind: "serves", of: "Sedna" },
       },
       {
         name: "The oil lamp fire",
@@ -1253,8 +1360,8 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         rank: "local",
       },
       {
-        name: "The helping spirit",
-        domain: "individual power from dreams",
+        name: "Tuurngaq",
+        domain: "an individual's helping spirit, gained in dreams",
         rank: "local",
       },
     ],
@@ -1271,7 +1378,7 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
     evidence: {
       status: "documented",
       claim:
-        "Inuit and Yupik cosmology is documented in ethnographies by Hawkes, Nelson, and Rasmussen, and is maintained in oral tradition. Sedna's dominion over sea mammals and shamanic practice are central themes.",
+        "Inuit and Yupik cosmology is documented in ethnographies by Hawkes, Nelson, and Rasmussen, and is maintained in oral tradition. Sedna's dominion over sea mammals, her father Anguta, the pervasive weather-spirit Sila, and shamans' individual tuurngait are central, well-recorded themes.",
       sources: [
         "Rasmussen, Intellectual Culture of the Iglulik Eskimos",
         "Nelson, Eskimo about Bering Strait",
@@ -1290,7 +1397,8 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
     scope: { years: [-2000, 500], bounds: [-85, 10, -55, 30] },
     powers: [
       {
-        name: "The sea",
+        name: "*Úni",
+        gloss: "Proto-Arawakan *úni, 'water'",
         domain: "fish, salt, shellfish, travel",
         rank: "paramount",
       },
@@ -1334,9 +1442,10 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
       sources: [
         "Keegan, The Bahama Archipelago",
         "Curet, The Evolution of Postclassic Hispaniola",
+        "Aikhenvald, The Arawak Language Family",
       ],
       limitation:
-        "Evidence is sparse. This is a general summary of early Caribbean maritime foragers.",
+        "Evidence is sparse; this is a general summary of early Caribbean maritime foragers, and Arawakan speakers reached the islands only partway through this system's span. The starred form is a comparative reconstruction of vocabulary, not a recovered theonym: nobody is recorded speaking it, and a word for 'water' is not evidence of a sea god by that name.",
     },
   },
 
@@ -1419,12 +1528,14 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         rank: "paramount",
       },
       {
-        name: "The forest",
+        name: "*Ka'a",
+        gloss: "Proto-Tupi-Guaraní *ka'a, 'forest, plant, herb'",
         domain: "animals, plants, shelter, hunting",
         rank: "major",
       },
       {
-        name: "The ancestors",
+        name: "*Awa",
+        gloss: "Proto-Tupi-Guaraní *awa, 'person, human being'",
         domain: "the village and lineage, connection to land",
         rank: "major",
       },
@@ -1467,15 +1578,18 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
       sources: [
         "Roosevelt, Moundbuilders of the Amazon",
         "Heckenberger et al., Pre-Columbian Urbanism and Landscape Transformation",
+        "Rodrigues, Línguas Brasileiras",
+        'Jensen, "Comparative Tupi-Guarani Morphosyntax"',
       ],
       limitation:
-        "Early Amazonian practices are inferred from archaeological and ethnographic parallels. This is a general summary of early Amazonian societies.",
+        "Early Amazonian practices are inferred from archaeological and ethnographic parallels; this is a general summary of early Amazonian societies, and Tupi-Guaraní is only one of many language families in the basin. The starred forms are comparative reconstructions of vocabulary, not recovered theonyms: nobody is recorded speaking them, and a word for 'forest' is not evidence of a forest god by that name.",
     },
   },
 
   {
     id: "amazonian-ethnographic",
     label: "Amazonian ethnographic practice",
+    wiki: "https://en.wikipedia.org/wiki/Jurupari",
     scope: { years: [1500, 1901], bounds: [-80, -8, -45, 5] },
     powers: [
       {
@@ -1484,13 +1598,15 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         rank: "paramount",
       },
       {
-        name: "The forest",
+        name: "*Ka'a",
+        gloss: "Proto-Tupi-Guaraní *ka'a, 'forest, plant, herb'",
         domain: "animals, plants, hunting and gathering",
         rank: "major",
       },
       {
-        name: "The jaguar",
-        domain: "power, predation, shamanism",
+        name: "Jurupari",
+        wiki: "https://en.wikipedia.org/wiki/Jurupari",
+        domain: "male initiation, sacred flutes, law among men",
         rank: "major",
       },
       {
@@ -1500,7 +1616,8 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         relation: { kind: "aspect-of", of: "The anaconda spirit" },
       },
       {
-        name: "The ancestors",
+        name: "*Awa",
+        gloss: "Proto-Tupi-Guaraní *awa, 'person, human being'",
         domain: "the lineage, the village, protection",
         rank: "local",
       },
@@ -1526,16 +1643,18 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
     afterlife:
       "Souls return to the forest; shamans' spirits travel between worlds.",
     evidence: {
-      status: "inferred",
+      status: "hypothesis",
       claim:
-        "Amazonian cosmology is documented in 20th-century ethnographies by Descola, Århem, and Echeverri, and in contemporary accounts by Amazonian peoples. Archaeological and paleobotanical evidence suggests that shamanism and plant use are ancient.",
+        "Amazonian cosmology is documented in 20th-century ethnographies by Descola, Århem, and Echeverri, and in contemporary accounts by Amazonian peoples. Jurupari, the initiation figure of the Tukanoan and Arawakan Upper Rio Negro, is documented since Barbosa Rodrigues's 19th-century recording of the cycle. Archaeological and paleobotanical evidence suggests that shamanism and plant use are ancient.",
       sources: [
         "Descola, The Spears of Twilight",
         "Århem, Makuna Social Order",
         "Calavia Sáez, The Cosmology of Attraction",
+        "Rodrigues, Línguas Brasileiras",
+        'Jensen, "Comparative Tupi-Guarani Morphosyntax"',
       ],
       limitation:
-        "Most detailed evidence is from ethnography after 1950. Earlier practices are inferred from ethnographic parallels and archaeological context. This is a summary across diverse Amazonian societies.",
+        "Most detailed evidence is from ethnography after 1950; earlier practices are inferred from ethnographic parallels and archaeological context, and this is a summary across diverse Amazonian societies, of which Tupi-Guaraní speakers are only one strand — the Jurupari cycle itself belongs to Tukanoan and Arawakan peoples of the Rio Negro. The starred forms are comparative reconstructions of vocabulary, not recovered theonyms: nobody is recorded speaking them, and a word for 'forest' is not evidence of a forest god by that name.",
     },
   },
 
@@ -1544,30 +1663,36 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
   {
     id: "brazil-atlantic-coast",
     label: "Brazilian Atlantic coast and forest practice",
+    wiki: "https://en.wikipedia.org/wiki/Tup%C3%A3",
     scope: { years: [-2000, 1901], bounds: [-62, -32, -32, -2] },
     powers: [
       {
-        name: "The forest",
-        domain: "shelter, game, roots, fruits, medicine",
+        name: "Tupã",
+        wiki: "https://en.wikipedia.org/wiki/Tup%C3%A3",
+        domain: "thunder, the sky, the highest power",
         rank: "paramount",
       },
       {
-        name: "The ancestors",
-        domain: "the village and lineage, connection to land",
+        name: "*Ka'a",
+        gloss: "Proto-Tupi-Guaraní *ka'a, 'forest, plant, herb'",
+        domain: "shelter, game, roots, fruits, medicine",
         rank: "major",
       },
       {
-        name: "The jaguar",
-        domain: "power, forest mastery, transformation",
+        name: "Anhangá",
+        wiki: "https://en.wikipedia.org/wiki/Anhang%C3%A1",
+        domain: "the deceiver of hunters, the forest's dangers",
         rank: "major",
       },
       {
-        name: "The ocean and rivers",
+        name: "*Ɨ",
+        gloss: "Proto-Tupi-Guaraní *ɨ, 'water'",
         domain: "fish, trade, travel, shells",
         rank: "major",
       },
       {
-        name: "The fire",
+        name: "*Tata",
+        gloss: "Proto-Tupi-Guaraní *tata, 'fire'",
         domain: "cooking, clearing, protection",
         rank: "local",
       },
@@ -1594,15 +1719,18 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
     afterlife:
       "Souls travel to the forest or to distant lands; ancestors watch over the village.",
     evidence: {
-      status: "documented",
+      status: "hypothesis",
       claim:
-        "Atlantic Forest sites show 2000+ years of habitation, shell middens, and pottery traditions. Colonial accounts and ethnography document forest and coastal societies. Tupi and Ge traditions are well recorded.",
+        "Atlantic Forest sites show 2000+ years of habitation, shell middens, and pottery traditions. Colonial accounts from Thevet, Léry, and Anchieta, and later ethnography, document Tupi and Ge traditions, including Tupã as thunder and highest power and Anhangá as the forest spirit who leads hunters astray.",
       sources: [
         "Prous, Arqueologia Brasileira",
         "Hemming, Red Gold: The Conquest of the Brazilian Indians",
+        "Léry, History of a Voyage to the Land of Brazil",
+        "Rodrigues, Línguas Brasileiras",
+        'Jensen, "Comparative Tupi-Guarani Morphosyntax"',
       ],
       limitation:
-        "This is a general summary of Atlantic Forest and coastal societies and does not represent any specific nation's practices or contemporary traditions.",
+        "This is a general summary of Atlantic Forest and coastal societies and does not represent any specific nation's practices or contemporary traditions. The starred forms are Proto-Tupi-Guaraní reconstructions of vocabulary, not recovered theonyms, offered alongside Tupã and Anhangá — names that are themselves recorded words, not modern coinages — to fill out the pantheon; a word for 'water' is not evidence of a water god by that name.",
     },
   },
 
@@ -1611,10 +1739,12 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
   {
     id: "patagonian-southern-cone",
     label: "Patagonian and southern cone practice",
+    wiki: "https://en.wikipedia.org/wiki/Elal",
     scope: { years: [-2000, 1901], bounds: [-75, -56, -50, -25] },
     powers: [
       {
         name: "Elal",
+        wiki: "https://en.wikipedia.org/wiki/Elal",
         domain: "the culture hero, the sky, creation",
         rank: "paramount",
       },
@@ -1624,23 +1754,30 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         rank: "major",
       },
       {
-        name: "The guanaco",
-        domain: "the hunt, meat, sustenance",
+        name: "Ngenechen",
+        wiki: "https://en.wikipedia.org/wiki/Ngenechen",
+        domain: "creation, fertility, order",
         rank: "major",
       },
       {
-        name: "The spirits of the mountains",
-        domain: "shelter, water, passage",
+        name: "Pillan",
+        wiki: "https://en.wikipedia.org/wiki/Pillan",
+        domain: "volcanoes, thunder, ancestral power",
         rank: "major",
+      },
+      {
+        name: "Temaukel",
+        domain: "creation, the sky, moral law",
+        rank: "local",
+      },
+      {
+        name: "The guanaco",
+        domain: "the hunt, meat, sustenance",
+        rank: "local",
       },
       {
         name: "The ancestors",
         domain: "the band's dead, strength",
-        rank: "local",
-      },
-      {
-        name: "The fire",
-        domain: "warmth, cooking, gathering",
         rank: "local",
       },
       {
@@ -1661,20 +1798,21 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
     evidence: {
       status: "documented",
       claim:
-        "Patagonian cosmology is documented in 19th-century accounts by D'Orbigny, Musters, and later ethnographies. The Elal cycle is preserved in Tehuelche oral tradition. Archaeological sites show ritual practices over millennia.",
+        "Patagonian and southern cone cosmology is documented in 19th-century accounts by D'Orbigny, Musters, and later ethnographies. The Elal and Xelsum cycle is preserved in Tehuelche oral tradition, Ngenechen and Pillan are recorded in Mapuche ethnography, and Temaukel is the Selk'nam supreme being documented by Gusinde.",
       sources: [
         "Musters, At Home with the Patagonians",
-        "D'Orbigny, Voyage in South America",
-        "Borrero, Dynamic Paleoindians",
+        "Gusinde, The Selk'nam",
+        "Faron, Mapuche Social Structure",
       ],
       limitation:
-        "This is a summary from ethnographic records and does not represent contemporary Mapuche, Tehuelche, or other southern South American communities, whose traditions are living and distinct.",
+        "This is a summary spanning several distinct traditions (Tehuelche, Mapuche, Selk'nam) from ethnographic records, not a single people's cosmology, and does not represent any contemporary community's living practice.",
     },
   },
 
   {
     id: "california-historic",
     label: "California historic practice",
+    wiki: "https://en.wikipedia.org/wiki/Chinigchinich",
     scope: { years: [1500, 1901], bounds: [-125, 30, -114, 50] },
     powers: [
       {
@@ -1683,14 +1821,28 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         rank: "paramount",
       },
       {
-        name: "The ancestors",
+        name: "Chinigchinich",
+        wiki: "https://en.wikipedia.org/wiki/Chinigchinich",
+        domain: "moral law, the secret society, punishment",
+        rank: "major",
+      },
+      {
+        name: "Kuksu",
+        wiki: "https://en.wikipedia.org/wiki/Kuksu",
+        domain: "creation, spirit impersonation, the secret society",
+        rank: "major",
+      },
+      {
+        name: "*ʔUuti",
+        gloss: "Proto-Utian (Miwok-Costanoan) *ʔuuti, 'person, people'",
         domain: "connection to land and territory",
         rank: "major",
       },
       {
-        name: "The land",
-        domain: "home, protection, sacred places",
-        rank: "major",
+        name: "Coyote",
+        wiki: "https://en.wikipedia.org/wiki/Coyote_(mythology)",
+        domain: "trickery, creation, teaching by bad example",
+        rank: "local",
       },
       {
         name: "The fire",
@@ -1717,21 +1869,24 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
     specialist: "Elders and healers who guide the people",
     afterlife: "Spirits release through cremation to join ancestors.",
     evidence: {
-      status: "documented",
+      status: "hypothesis",
       claim:
-        "Ethnographic accounts and oral traditions document California indigenous practice through the 19th and 20th centuries. Fire management, gathering, and trade are well documented.",
+        "Ethnographic accounts and oral traditions document California indigenous practice through the 19th and 20th centuries. Boscana recorded the Chinigchinich religion of Southern California, and the Kuksu secret-society tradition of Central California is documented by Kroeber and Loeb; fire management, gathering, and trade are well documented.",
       sources: [
-        "Boyd, The Coming of the Spirit of Pestilence",
+        "Boscana, Chinigchinich",
+        "Loeb, The Western Kuksu Cult",
         "Anderson, Tending the Wild",
+        'Callaghan, "Evidence for Yok-Utian", IJAL',
       ],
       limitation:
-        "This is a general summary of California indigenous practice and does not represent any specific nation's traditions.",
+        "This is a general summary of California indigenous practice and does not represent any specific nation's traditions; Chinigchinich belongs to a Uto-Aztecan-speaking people and Kuksu to Penutian-speaking ones, while the starred form here is Utian (Miwok-Costanoan) — three different families sharing this floor layer. The starred form is a comparative reconstruction of vocabulary, not a recovered theonym: nobody is recorded speaking it, and a word for 'people' is not evidence of an ancestor cult by that name.",
     },
   },
 
   {
     id: "great-basin-historic",
     label: "Great Basin historic practice",
+    wiki: "https://en.wikipedia.org/wiki/Southern_Paiute_people",
     scope: { years: [1500, 1901], bounds: [-120, 32, -109, 43] },
     powers: [
       {
@@ -1740,12 +1895,19 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
         rank: "paramount",
       },
       {
-        name: "The mountain spirits",
-        domain: "water, sacred places, passage",
+        name: "Tobats",
+        domain: "Wolf, the elder, wisdom, right creation",
         rank: "major",
       },
       {
-        name: "The ancestors",
+        name: "Shinangwav",
+        wiki: "https://en.wikipedia.org/wiki/Coyote_(mythology)",
+        domain: "Coyote, mischief, the flaws in creation",
+        rank: "major",
+      },
+      {
+        name: "*Tata",
+        gloss: "Proto-Uto-Aztecan *tata, 'father, elder male'",
         domain: "guidance, connection to land",
         rank: "major",
       },
@@ -1775,37 +1937,53 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
     specialist: "Elders and healers who guide the seasons",
     afterlife: "Spirits of the dead travel distant paths.",
     evidence: {
-      status: "documented",
+      status: "hypothesis",
       claim:
-        "Ethnographic records and oral traditions document Great Basin indigenous practice through the 19th and 20th centuries.",
+        "Ethnographic records and oral traditions document Great Basin indigenous practice through the 19th and 20th centuries. Powell and later Sapir and Lowie recorded the Numic creation cycle of Wolf (Tobats) and his younger brother Coyote (Shinangwav) among Southern Paiute, Ute, and neighboring peoples.",
       sources: [
         "Steward, Basin-Plateau Aboriginal Sociopolitical Groups",
-        "Downs, The Two Worlds of the Washo",
+        "Powell, Sketch of the Mythology of the North American Indians",
+        "Lowie, Shoshonean Tales",
+        'Miller, "Uto-Aztecan Cognate Sets", IJAL',
       ],
       limitation:
-        "This is a general summary of Great Basin practice and does not represent any specific nation's traditions.",
+        "This is a general summary of Great Basin practice and does not represent any specific nation's traditions. The starred form is a comparative reconstruction of vocabulary, not a recovered theonym: nobody is recorded speaking it, and a word for 'father' is not evidence of an ancestor god by that name, distinct from Tobats and Shinangwav, whose names are themselves recorded Numic words.",
     },
   },
 
   {
     id: "caribbean-historic",
     label: "Caribbean indigenous historic practice",
+    wiki: "https://en.wikipedia.org/wiki/Ta%C3%ADno_mythology",
     scope: { years: [1600, 1901], bounds: [-85, 10, -55, 30] },
     powers: [
       {
-        name: "The sea",
-        domain: "fish, travel, trade, sustenance",
+        name: "Yúcahu",
+        domain: "cassava, fertility, the great spirit",
         rank: "paramount",
       },
       {
-        name: "The ancestors",
-        domain: "connection to land, power",
+        name: "Atabey",
+        wiki: "https://en.wikipedia.org/wiki/Atabey_(goddess)",
+        domain: "the mother, water, motherhood",
+        rank: "major",
+        relation: { kind: "consort-of", of: "Yúcahu" },
+      },
+      {
+        name: "Guabancex",
+        wiki: "https://en.wikipedia.org/wiki/Guabancex",
+        domain: "the hurricane, wind, destruction",
         rank: "major",
       },
       {
-        name: "The island and forest",
-        domain: "shelter, game, plants",
+        name: "The sea",
+        domain: "fish, travel, trade, sustenance",
         rank: "major",
+      },
+      {
+        name: "Maquetaurie Guayaba",
+        domain: "the dead, the afterlife realm of Coaybay",
+        rank: "local",
       },
       {
         name: "The fire",
@@ -1831,12 +2009,17 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
       "Maintaining connection to ancestral places.",
     ],
     specialist: "Healers and elders maintaining traditions",
-    afterlife: "Spirits of ancestors remain present and protective.",
+    afterlife:
+      "Souls travel to Maquetaurie Guayaba's realm of Coaybay; ancestors remain present and protective.",
     evidence: {
       status: "hypothesis",
       claim:
-        "Following Taíno collapse and displacement, remnant Caribbean communities maintained syncretic practices blending indigenous and African traditions, documented in colonial and later accounts.",
-      sources: ["Hemming, Red Gold", "Sturm & Sturm, The Oklahoma Cherokees"],
+        "Following Taíno collapse and displacement, remnant Caribbean communities maintained syncretic practices blending indigenous and African traditions, documented in colonial and later accounts. Zemís such as Yúcahu, Atabey, Guabancex, and Maquetaurie Guayaba, recorded by Pané at contact, persisted in altered form among surviving communities.",
+      sources: [
+        "Hemming, Red Gold",
+        "Pané, An Account of the Antiquities of the Indians",
+        "Sturm & Sturm, The Oklahoma Cherokees",
+      ],
       limitation:
         "This is a summary of postcolonial Caribbean indigenous survival and does not represent any specific contemporary community.",
     },

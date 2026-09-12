@@ -7,8 +7,18 @@ test("the character panel opens from the sidebar portrait and reads a person", a
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto("/");
-  const begin = page.getByRole("button", { name: "Begin", exact: true });
-  if (await begin.count()) await begin.click();
+  // A fixed start: a random one can land on a modern city that takes minutes
+  // to build, and this spec is about the panel, not world generation.
+  const choose = page.getByRole("button", { name: "Choose starting details" });
+  if (await choose.count()) {
+    await choose.click();
+    await page.getByLabel("Place", { exact: true }).selectOption("congo");
+    await page.getByLabel("Starting year", { exact: true }).fill("1300");
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: "Begin", exact: true })
+      .click();
+  }
   await expect(page.locator(".game-container canvas")).toHaveAttribute(
     "data-ready",
     "true",

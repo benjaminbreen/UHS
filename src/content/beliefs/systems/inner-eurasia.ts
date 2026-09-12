@@ -4,10 +4,12 @@ export const innerEurasia: readonly BeliefSystem[] = [
   {
     id: "inner-eurasia-foragers",
     label: "Inner Eurasian forager and early pastoral practice",
+    wiki: "https://en.wikipedia.org/wiki/Prehistoric_religion",
     scope: { years: [-8000, -1200], bounds: [25, 25, 180, 82] },
     powers: [
       {
-        name: "The sky",
+        name: "*Ilma",
+        gloss: "Proto-Uralic *ilma, 'sky, air, weather'",
         domain: "weather, the high places, destiny",
         rank: "paramount",
       },
@@ -17,17 +19,21 @@ export const innerEurasia: readonly BeliefSystem[] = [
         rank: "major",
       },
       {
-        name: "The hearth fire",
+        name: "*Tuli",
+        gloss: "Proto-Uralic *tuli, 'fire'",
         domain: "the camp, protection, daily sustenance",
         rank: "major",
       },
       {
-        name: "The master of animals",
+        name: "*Qu'j",
+        gloss:
+          "Proto-Yeniseian *qu'j, 'wolverine', standing for the taiga's fiercest hunter",
         domain: "game and herds, the hunt's success",
         rank: "major",
       },
       {
-        name: "The water spirits",
+        name: "*Wete",
+        gloss: "Proto-Uralic *wete, 'water'",
         domain: "rivers, lakes, wells, safe drinking",
         rank: "local",
       },
@@ -64,29 +70,50 @@ export const innerEurasia: readonly BeliefSystem[] = [
         "Mallory, In Search of the Indo-Europeans",
         "Anthony, The Horse, the Wheel, and Language",
         "Pitulko, Arctic Odysseys",
+        "Rédei, Uralisches etymologisches Wörterbuch",
+        "Starostin, Sino-Caucasian and Yeniseian reconstructions",
       ],
       limitation:
-        "No written records; practices varied across vast regions and millennia. This entry flattens real diversity into a single generalized system.",
+        "The starred forms are comparative reconstructions of vocabulary, not recovered theonyms: nobody speaking this early is recorded using them, and a word for 'sky' or 'water' is not evidence of a sky god or water spirit by that name. Proto-Uralic and Proto-Yeniseian are themselves dated well after this entry's opening, and each covers only part of the huge west-east range given here, not the whole of it; no single reconstructed vocabulary honestly spans Volga forest to Pacific taiga, so most of this pantheon stays in the terms of function rather than word.",
     },
   },
   {
     id: "steppe-bronze-age",
     label: "Bronze Age steppe pastoralist practice",
+    wiki: "https://en.wikipedia.org/wiki/Proto-Indo-European_religion",
     scope: { years: [-2000, -800], bounds: [25, 38, 150, 65] },
     powers: [
       {
-        name: "The sky",
-        domain: "weather, the high pastures, fate",
+        name: "*Dyēus Ph₂tḗr",
+        wiki: "https://en.wikipedia.org/wiki/Dyeus",
+        gloss: "Proto-Indo-European *dyēus ph₂tḗr, 'sky father'",
+        domain: "the sky father, oaths, the far height",
         rank: "paramount",
+      },
+      {
+        name: "*Perkʷunos",
+        wiki: "https://en.wikipedia.org/wiki/Perkwunos",
+        gloss: "Proto-Indo-European *perkʷunos, 'the striking one, thunder'",
+        domain: "thunder, the storm, the warrior's weapon",
+        rank: "major",
+      },
+      {
+        name: "*H₂éwsōs",
+        wiki: "https://en.wikipedia.org/wiki/Hausos",
+        gloss: "Proto-Indo-European *h₂éwsōs, 'dawn'",
+        domain: "the dawn, the opening of the day",
+        rank: "major",
+        relation: { kind: "child-of", of: "*Dyēus Ph₂tḗr" },
+      },
+      {
+        name: "*Seh₂wl̥",
+        gloss: "Proto-Indo-European *seh₂wl̥ (nom. *sóh₂wl̥), 'sun'",
+        domain: "the sun's journey across the sky",
+        rank: "major",
       },
       {
         name: "The ancestors",
         domain: "the herd's prosperity, lineage",
-        rank: "major",
-      },
-      {
-        name: "The hearth fire",
-        domain: "the tent, protection, daily life",
         rank: "major",
       },
       {
@@ -95,18 +122,27 @@ export const innerEurasia: readonly BeliefSystem[] = [
         rank: "local",
       },
       {
-        name: "The water spirits",
+        name: "*H₂ep",
+        gloss: "Proto-Indo-European *h₂ep-, 'water, river'",
         domain: "rivers, wells, safe drinking",
         rank: "local",
       },
       {
-        name: "The horse herds",
-        domain: "fertility and survival of stock",
+        name: "*H₁éḱwos",
+        gloss: "Proto-Indo-European *h₁éḱwos, 'horse'",
+        domain: "fertility and survival of the herd",
         rank: "local",
       },
       {
-        name: "The earth below",
+        name: "*Dʰéǵʰōm",
+        gloss: "Proto-Indo-European *dʰéǵʰōm, 'earth'",
         domain: "campsites, burial, the underworld",
+        rank: "local",
+      },
+      {
+        name: "*H₁n̥gʷnis",
+        gloss: "Proto-Indo-European *h₁n̥gʷnis, 'fire'",
+        domain: "the hearth, purification, the offered portion",
         rank: "local",
       },
     ],
@@ -120,41 +156,47 @@ export const innerEurasia: readonly BeliefSystem[] = [
     afterlife:
       "Continued life below ground with the herd and the ancestors' aid.",
     evidence: {
-      status: "inferred",
+      status: "hypothesis",
       claim:
-        "Kurgan burials with horses and weapons, stone arrangements on high ground, and the long continuity of steppe pastoralist cosmology suggest an early sky worship and ancestor cult rooted in herding life.",
+        "Comparative linguistics reconstructs a Proto-Indo-European sky father and a separate thunder-wielding warrior god from cognate deity names across Vedic, Greek, Baltic, and Germanic traditions descended from Bronze Age steppe speech communities. Kurgan burials with horses and weapons, and stone arrangements on high ground, match the reconstructed cult.",
       sources: [
         "Anthony, The Horse, the Wheel, and Language",
-        "Gimbutas, The Kurgan Hypothesis and Indo-European Origins",
-        "Mallory, In Search of the Indo-Europeans",
+        "Mallory and Adams, The Oxford Introduction to Proto-Indo-European and the Proto-Indo-European World",
+        "West, Indo-European Poetry and Myth",
       ],
       limitation:
-        "No written records; evidence is archaeological and linguistic, mediated through later steppe traditions that may have altered core beliefs.",
+        "Every starred form here is a linguistic reconstruction, not a name anyone on the Bronze Age steppe is recorded as speaking; each is inferred backward from cognate vocabulary in daughter traditions attested a thousand years or more later, and a reconstructed word for 'horse' or 'water' is not itself proof that the community personified it as a power.",
     },
   },
   {
     id: "caucasus-early-peoples",
     label: "Caucasian mountain and foothill practice",
+    wiki: "https://en.wikipedia.org/wiki/Circassian_mythology",
     scope: { years: [-2000, 1400], bounds: [35, 40, 60, 50] },
     powers: [
       {
-        name: "The high mountain",
-        domain: "the peaks, weather, danger",
+        name: "Tha",
+        domain: "the high peaks, sky, creation",
         rank: "paramount",
+      },
+      {
+        name: "Shible",
+        domain: "thunder, oaths, justice",
+        rank: "major",
+      },
+      {
+        name: "Psykhoguashe",
+        domain: "rivers, the sea, fertility",
+        rank: "major",
+      },
+      {
+        name: "Mezitha",
+        domain: "the forest, game, the hunt",
+        rank: "major",
       },
       {
         name: "The ancestors",
         domain: "the clan and its lands",
-        rank: "major",
-      },
-      {
-        name: "The river spirits",
-        domain: "water and valleys, fertility",
-        rank: "major",
-      },
-      {
-        name: "The forest master",
-        domain: "trees, game, the wild",
         rank: "local",
       },
       {
@@ -168,41 +210,43 @@ export const innerEurasia: readonly BeliefSystem[] = [
         rank: "local",
       },
       {
-        name: "The sky father",
-        domain: "thunder, oaths, justice",
-        rank: "major",
+        name: "Sozeresh",
+        domain: "agriculture, the harvest, fertility of the field",
+        rank: "local",
       },
     ],
     practice: [
       "A stone pillar marks a sacred place; oaths are sworn touching it.",
       "The dead are buried in a cairn or tower; weapons and goods accompany them.",
-      "A river crossing receives an offering; water is addressed respectfully.",
-      "A hunt begins with invocation to the forest master and the sky.",
+      "A river crossing receives an offering to Psykhoguashe; water is addressed respectfully.",
+      "A hunt begins with invocation to Mezitha and to Tha above.",
     ],
     specialist: "The eldest of the clan; a person marked by visions.",
     afterlife:
       "The ancestors remain near their burial places; they aid and judge the living.",
     evidence: {
-      status: "inferred",
+      status: "documented",
       claim:
-        "Archaeological evidence of tower tombs, stone arrangements, and burial goods; later ethnographic accounts describe mountain worship, ancestor veneration, and oath-taking practices continuous into modern times.",
+        "Circassian and broader Northwest Caucasian ethnography, recorded from the nineteenth century and preserved in the Nart sagas, names Tha as supreme sky god with Shible, Psykhoguashe, Mezitha, and Sozeresh as a recognizable pantheon beneath him. Tower tombs and stone arrangements match the described practice.",
       sources: [
-        "Anthony, The Horse, the Wheel, and Language",
-        "Woolley, Excavations at Ur",
-        "Tsutsiev, Atlas of the Caucasus",
+        "Colarusso, Nart Sagas from the Caucasus",
+        "Tuite, 'Highland Georgian Paganism'",
+        "Chirikba, 'Between Christianity and Islam: Heathen Amulets in the Caucasus'",
       ],
       limitation:
-        "Early records are sparse; most sources are from later periods or ethnographic reconstruction.",
+        "This pantheon is best recorded for Circassian-speaking peoples; neighboring Caucasus groups had cognate but distinct names, and this entry flattens that variation across a wide span of mountains and centuries.",
     },
   },
   {
     id: "volga-uralic-peoples",
     label: "Volga and Uralic peoples' early practice",
+    wiki: "https://en.wikipedia.org/wiki/Proto-Uralic_religion",
     scope: { years: [-1500, 900], bounds: [42, 48, 70, 62] },
     powers: [
       {
-        name: "The sky",
-        domain: "thunder, weather, the high realm",
+        name: "*Num",
+        gloss: "Proto-Uralic *num-/*lu-, 'sky, weather'",
+        domain: "the sky, weather, the high realm",
         rank: "paramount",
       },
       {
@@ -211,28 +255,38 @@ export const innerEurasia: readonly BeliefSystem[] = [
         rank: "major",
       },
       {
-        name: "The river",
-        domain: "the Volga's flow, fishing, travel",
+        name: "*Kala",
+        gloss: "Proto-Uralic *kala, 'fish'",
+        domain: "the Volga's fish and flow, travel by water",
         rank: "major",
       },
       {
-        name: "The forest",
-        domain: "game, berries, the wild",
+        name: "*Ńoša",
+        gloss: "Proto-Uralic *ńoša, 'hare'",
+        domain: "the forest's hunted game, berries, the wild",
         rank: "major",
       },
       {
-        name: "The hearth fire",
+        name: "*Tuli",
+        gloss: "Proto-Uralic *tuli, 'fire'",
         domain: "the house, family, blessing",
         rank: "local",
       },
       {
-        name: "Water spirits",
+        name: "*Wete",
+        gloss: "Proto-Uralic *wete, 'water'",
         domain: "wells, springs, water-crossings",
         rank: "local",
       },
       {
-        name: "The earth mother",
+        name: "*Maa",
+        gloss: "Proto-Uralic *maa, 'earth, land'",
         domain: "crops, fertility, the growing season",
+        rank: "local",
+      },
+      {
+        name: "The house spirit",
+        domain: "the dwelling and its fortune",
         rank: "local",
       },
     ],
@@ -246,21 +300,23 @@ export const innerEurasia: readonly BeliefSystem[] = [
     afterlife:
       "The dead dwell in the earth or return to the forest; shamans speak with them.",
     evidence: {
-      status: "inferred",
+      status: "hypothesis",
       claim:
-        "Archaeological evidence from settlement and burial sites along the Volga shows continuity of forest-river settlement patterns, ancestor veneration, and fire rituals. Later accounts describe forest and water worship among Finno-Ugric and Turkic peoples.",
+        "Comparative Uralic linguistics reconstructs *num- as a Proto-Uralic sky/weather term, reflected in the Nenets Num, the Khanty and Mansi Torum, and cognate figures across the family; Rédei's etymological dictionary and Napolskikh's reconstruction of the Proto-Uralic world picture supply *kala, *ńoša, *tuli, *wete and *maa as securely comparable vocabulary for fish, game, fire, water and land. Archaeological evidence from Volga settlement and burial sites independently shows continuity of forest-river settlement, ancestor veneration, and fire ritual through this span.",
       sources: [
+        "Napolskikh, 'Proto-Uralic World Picture: A Reconstruction'",
+        "Rédei, Uralisches etymologisches Wörterbuch",
         "Chernykh, The Steppes and the Sown",
-        "Dolukhanov, The Early Slavs",
         "Khazanov, Nomads and the Outside World",
       ],
       limitation:
-        "Early written records are late and often from outsiders; this entry combines diverse Finno-Ugric and proto-Turkic traditions across centuries.",
+        "The starred forms are reconstructed words, not recovered names of powers: nobody in this period is recorded calling the sky *num or the fish *kala as an address to a spirit, and the reconstruction is built from far later, geographically scattered daughter languages. The specific Permic and Mari pantheon later attested on the Volga (Inmar, Keremet, and their kin) postdates this entry and is not projected backward here.",
     },
   },
   {
     id: "scythian-practice",
     label: "Scythian religious practice",
+    wiki: "https://en.wikipedia.org/wiki/Scythian_religion",
     scope: { years: [-900, 100], bounds: [25, 38, 130, 60] },
     powers: [
       { name: "Tabiti", domain: "the sky, the herd", rank: "paramount" },
@@ -275,6 +331,16 @@ export const innerEurasia: readonly BeliefSystem[] = [
         rank: "major",
       },
       { name: "Papaios", domain: "ancestor of all Scythians", rank: "major" },
+      {
+        name: "Goitosyros",
+        domain: "the sun, healing, prophecy",
+        rank: "major",
+      },
+      {
+        name: "Argimpasa",
+        domain: "love, the moon, royal legitimacy",
+        rank: "major",
+      },
       {
         name: "The ancestors",
         domain: "the royal and warrior dead",
@@ -302,39 +368,50 @@ export const innerEurasia: readonly BeliefSystem[] = [
     evidence: {
       status: "documented",
       claim:
-        "Herodotus describes Scythian altars, sacrifice, and priestesses; archaeological evidence of kurgan burials, sacrificed horses, and the iron sword cult confirms the pattern.",
+        "Herodotus names Tabiti, Papaios, Api, Goitosyros, and Argimpasa as the Scythians' own names for gods he equates with Hestia, Zeus, Gaia, Apollo, and Aphrodite Urania, and describes Scythian altars, sacrifice, and priestesses; archaeological evidence of kurgan burials, sacrificed horses, and the iron sword cult confirms the pattern.",
       sources: [
         "Herodotus, Histories Book 4",
         "Davis-Kimball, Warrior Women",
         "Rolle, The World of the Scythians",
       ],
       limitation:
-        "Herodotus wrote from Greek outsiders' perspective; the iron sword cult is inferred from burials rather than contemporary texts.",
+        "Herodotus wrote from a Greek outsider's perspective and gives no native name for Ares' Scythian equivalent; the iron sword cult is inferred from burials rather than contemporary texts.",
     },
   },
   {
     id: "post-scythian-steppe",
     label: "Post-Scythian steppe and Central Asian pastoral practice",
+    wiki: "https://en.wikipedia.org/wiki/Tengrism",
     scope: { years: [-250, 550], bounds: [40, 38, 110, 56] },
     powers: [
       {
         name: "Tengri",
+        wiki: "https://en.wikipedia.org/wiki/Tengri",
         domain: "the sky, destiny, the chiefs",
         rank: "paramount",
       },
       {
-        name: "The ancestors",
-        domain: "the shamanic dead and past leaders",
+        name: "Umai",
+        wiki: "https://en.wikipedia.org/wiki/Umay",
+        domain: "mothers, children, fertility",
         rank: "major",
+        relation: { kind: "consort-of", of: "Tengri" },
       },
       {
-        name: "The Earth",
+        name: "Etügen",
+        wiki: "https://en.wikipedia.org/wiki/Etugen",
         domain: "the land, fertility, the camps",
         rank: "major",
       },
       {
-        name: "The spirit of the mountain",
-        domain: "sacred peaks where power passes",
+        name: "Ötüken",
+        wiki: "https://en.wikipedia.org/wiki/%C3%96t%C3%BCken",
+        domain: "the sacred mountain forest, the seat of chiefs",
+        rank: "major",
+      },
+      {
+        name: "The ancestors",
+        domain: "the shamanic dead and past leaders",
         rank: "major",
       },
       {
@@ -357,34 +434,42 @@ export const innerEurasia: readonly BeliefSystem[] = [
       "The chief sacrifices a white horse to Tengri at the spring gathering.",
       "Fire is circled around a new bride and around the tent at night for protection.",
       "Shamans drum and speak in ancestor voices to diagnose sickness and guide decisions.",
-      "A mountain is marked with a pile of stones; travelers add stones and speak their need.",
+      "Ötüken is marked with a pile of stones; travelers add stones and speak their need.",
     ],
     specialist:
       "The shamans who maintain the hidden world; the chief as Tengri's voice.",
     afterlife:
       "The shamans claim the dead return to the sky; shamans consult them for the living.",
     evidence: {
-      status: "inferred",
+      status: "hypothesis",
       claim:
-        "The transition between Scythian iron-sword practice and later Turkic Tengri worship shows continuity in sky reverence, shamanic mediation, and ancestor consultation. Chinese sources describe post-Scythian steppe peoples with these practices.",
+        "Tengri, Umai, Etügen, and Ötüken are directly attested only from later Old Turkic inscriptions; Chinese sources describe post-Scythian steppe peoples with sky reverence, shamanic mediation, and ancestor consultation consistent with this cosmology, and continuity is assumed backward across the gap.",
       sources: [
         "Di Cosmo, The Jurchens and Khitans",
         "Barfield, The Perilous Frontier",
         "Christian, A History of Russia, Central Asia and Mongolia",
       ],
       limitation:
-        "Few direct sources; continuity is inferred from archaeological distribution and later ethnographic accounts.",
+        "The named pantheon here is projected back from Old Turkic sources several centuries later; no text from this period itself gives these names to the peoples of the post-Scythian steppe.",
     },
   },
   {
     id: "xiongnu-steppe",
     label: "Xiongnu steppe confederation practice",
+    wiki: "https://en.wikipedia.org/wiki/Tengrism",
     scope: { years: [-300, 200], bounds: [60, 38, 140, 62] },
     powers: [
       {
         name: "Tengri",
+        wiki: "https://en.wikipedia.org/wiki/Tengri",
         domain: "the sky, destiny, the khans",
         rank: "paramount",
+      },
+      {
+        name: "Etügen",
+        wiki: "https://en.wikipedia.org/wiki/Etugen",
+        domain: "the land, prosperity, the camps",
+        rank: "major",
       },
       {
         name: "The ancestors",
@@ -392,13 +477,9 @@ export const innerEurasia: readonly BeliefSystem[] = [
         rank: "major",
       },
       {
-        name: "The Earth",
-        domain: "the land, prosperity, the camps",
-        rank: "major",
-      },
-      {
-        name: "The spirit of the mountain",
-        domain: "a sacred peak where khans take power",
+        name: "Ötüken",
+        wiki: "https://en.wikipedia.org/wiki/%C3%96t%C3%BCken",
+        domain: "a sacred mountain forest where khans take power",
         rank: "local",
       },
       {
@@ -421,40 +502,48 @@ export const innerEurasia: readonly BeliefSystem[] = [
       "The khan sacrifices a white horse to Tengri at the great spring gathering.",
       "Fire is passed under a new bride's feet and circled around the tent at night.",
       "Shamans drum at night and speak in the voice of ancestors to diagnose sickness.",
-      "A mountain is marked with a pile of stones; travelers add stones and speak their need.",
+      "Ötüken is marked with a pile of stones; travelers add stones and speak their need.",
     ],
     specialist:
       "The shamans who maintain the hidden world; the khan as Tengri's earthly voice.",
     afterlife:
       "The shamans claim the dead return to the sky but are consulted by the shamans.",
     evidence: {
-      status: "inferred",
+      status: "hypothesis",
       claim:
-        "Chinese sources describe Xiongnu sky worship and shamanism; later Mongol practice preserves elements suggesting continuity of a steppe cosmology centered on Tengri and ancestral shamans.",
+        "Chinese sources transliterate a Xiongnu sky-title, 'Chengli', widely read as cognate with Tengri, alongside descriptions of Xiongnu sky worship and shamanism; later Mongol and Turkic practice preserves Etügen and Ötüken, suggesting continuity of a shared steppe cosmology.",
       sources: [
         "Sima Qian, Records of the Grand Historian",
         "Di Cosmo, The Jurchens and Khitans",
         "Barfield, The Perilous Frontier",
       ],
       limitation:
-        "Chinese sources are outsiders' accounts; the Xiongnu left no written records of their own beliefs.",
+        "Chinese sources are outsiders' accounts and the Xiongnu left no written record of their own beliefs; the fuller named pantheon is drawn from centuries-later Turkic and Mongol continuity, not Xiongnu texts.",
     },
   },
   {
     id: "turkic-tengrism",
     label: "Early Turkic Tengrism",
+    wiki: "https://en.wikipedia.org/wiki/Tengrism",
     scope: { years: [550, 900], bounds: [50, 38, 130, 58] },
     powers: [
       {
         name: "Tengri",
+        wiki: "https://en.wikipedia.org/wiki/Tengri",
         domain: "the sky, destiny, the khans",
         rank: "paramount",
       },
       {
-        name: "The Earth Mother",
+        name: "Umai",
+        wiki: "https://en.wikipedia.org/wiki/Umay",
         domain: "the land, fertility, the tent",
         rank: "major",
         relation: { kind: "consort-of", of: "Tengri" },
+      },
+      {
+        name: "Yer-Sub",
+        domain: "the sacred land and waters, oaths",
+        rank: "major",
       },
       {
         name: "The ancestors",
@@ -462,13 +551,9 @@ export const innerEurasia: readonly BeliefSystem[] = [
         rank: "major",
       },
       {
-        name: "The sacred mountain",
+        name: "Ötüken",
+        wiki: "https://en.wikipedia.org/wiki/%C3%96t%C3%BCken",
         domain: "center of the world, the khans' seat",
-        rank: "local",
-      },
-      {
-        name: "The water spirits",
-        domain: "rivers and springs, purification",
         rank: "local",
       },
       {
@@ -483,8 +568,8 @@ export const innerEurasia: readonly BeliefSystem[] = [
       },
     ],
     practice: [
-      "A new khan is legitimized by Tengri; oath-taking involves fire and water.",
-      "The sacred mountain is visited by shamans seeking Tengri's will.",
+      "A new khan is legitimized by Tengri; oath-taking invokes Yer-Sub, land and water together.",
+      "Ötüken is visited by shamans seeking Tengri's will.",
       "Fire is protected and honored; a woman stepping over it brings shame.",
       "Springs are left undisturbed and marked with stones and cloth.",
     ],
@@ -492,25 +577,27 @@ export const innerEurasia: readonly BeliefSystem[] = [
     afterlife:
       "The spirit joins Tengri in the sky; shamans become guide-ancestors.",
     evidence: {
-      status: "inferred",
+      status: "documented",
       claim:
-        "Early Turkic inscriptions and tomb stones mention Tengri and khans; later Mongol and Islamic sources preserve shamanic elements suggesting an organized Turkic cosmology.",
+        "The Orkhon inscriptions name Tengri, Umai, and the Yer-Sub (land-water) complex directly, tie khanly legitimacy to Tengri's mandate, and place Ötüken as the sacred seat of power; later Mongol and Islamic sources preserve shamanic elements consistent with this cosmology.",
       sources: [
         "Orkun, The History of Turkish Language",
         "Golden, An Introduction to the History of the Turkic Peoples",
         "Sinor, The Turks in the Early Islamic World",
       ],
       limitation:
-        "Turkic runic inscriptions are sparse and formulaic; much is inferred from later Mongol practice and Islamic accounts of pre-conversion beliefs.",
+        "The Orkhon inscriptions are royal and formulaic; ordinary practice beneath the khanly cult is inferred from later Mongol continuity and Islamic accounts of pre-conversion belief.",
     },
   },
   {
     id: "sogdian-zoroastrianism",
     label: "Sogdian Zoroastrian and Manichaean practice",
+    wiki: "https://en.wikipedia.org/wiki/Zoroastrianism",
     scope: { years: [-300, 1000], bounds: [50, 35, 80, 50] },
     powers: [
       {
         name: "Ahura Mazda",
+        wiki: "https://en.wikipedia.org/wiki/Ahura_Mazda",
         domain: "wisdom, light, the good creation",
         rank: "paramount",
       },
@@ -521,6 +608,7 @@ export const innerEurasia: readonly BeliefSystem[] = [
       },
       {
         name: "Ahriman",
+        wiki: "https://en.wikipedia.org/wiki/Angra_Mainyu",
         domain: "darkness, deceit, disease",
         rank: "major",
       },
@@ -552,7 +640,7 @@ export const innerEurasia: readonly BeliefSystem[] = [
     evidence: {
       status: "documented",
       claim:
-        "Sogdian merchant colonies in China and Central Asia maintain fire temples; texts preserve Zoroastrian and Manichaean prayers and cosmology.",
+        "Sogdian merchant colonies in China and Central Asia maintain fire temples; texts preserve Zoroastrian and Manichaean prayers naming Ahura Mazda and Ahriman and their cosmology.",
       sources: [
         "Daryaee, Sasanian Persia",
         "Lieu, Manichaeism in Central Asia and China",
@@ -565,21 +653,34 @@ export const innerEurasia: readonly BeliefSystem[] = [
   {
     id: "tibetan-bon",
     label: "Tibetan Bon tradition",
+    wiki: "https://en.wikipedia.org/wiki/Bon",
     scope: { years: [-800, 1200], bounds: [75, 25, 105, 40] },
     powers: [
-      { name: "The sky", domain: "the high realm, purity", rank: "paramount" },
       {
-        name: "The earth",
-        domain: "the lower realm, fertility, crops",
+        name: "Shenlha Okar",
+        wiki: "https://en.wikipedia.org/wiki/Shenlha_Okar",
+        domain: "light, compassion, the highest heaven",
+        rank: "paramount",
+      },
+      {
+        name: "Sipe Gyalmo",
+        domain: "protection, fate, the Bon teachings",
         rank: "major",
       },
       {
-        name: "Water and rivers",
-        domain: "life, purification, flow",
+        name: "Tonpa Shenrab",
+        wiki: "https://en.wikipedia.org/wiki/Tonpa_Shenrab",
+        domain: "the Bon teachings, the founder's wisdom",
         rank: "major",
       },
       {
-        name: "The mountain master",
+        name: "Sa Yi Lha Mo",
+        domain: "the earth, fertility, crops",
+        rank: "major",
+      },
+      {
+        name: "Nyenchen Thanglha",
+        wiki: "https://en.wikipedia.org/wiki/Nyenchen_Tanglha",
         domain: "a sacred peak, protection, danger",
         rank: "local",
       },
@@ -598,15 +699,10 @@ export const innerEurasia: readonly BeliefSystem[] = [
         domain: "the house, protection, luck",
         rank: "local",
       },
-      {
-        name: "Wild animals and demons",
-        domain: "the untamed landscape",
-        rank: "local",
-      },
     ],
     practice: [
       "A stone cairn (lha-rtse) is built on a pass; people add stones and circle clockwise.",
-      "A mountain is walked around to honor its master; prayer flags are strung on high places.",
+      "Nyenchen Thanglha is walked around to honor its master; prayer flags are strung on high places.",
       "The dead are offered water; sky burial returns the body to the birds.",
       "Ritual fire is lit at dawn; juniper smoke marks the beginning of the day.",
     ],
@@ -615,9 +711,9 @@ export const innerEurasia: readonly BeliefSystem[] = [
     afterlife:
       "The spirit ascends to the sky or returns through rebirth; the body is returned to nature.",
     evidence: {
-      status: "inferred",
+      status: "documented",
       claim:
-        "Tibetan texts preserve Bon teachings; Buddhist accounts describe Bon practice in detail as they encountered and absorbed it. Sky burial, sacred mountains, and water worship appear in both traditions.",
+        "Tibetan Bon texts name Shenlha Okar, Tonpa Shenrab, Sipe Gyalmo, and Sa Yi Lha Mo among their pantheon, and Buddhist accounts describe Bon practice in detail as they encountered and absorbed it. Sky burial, sacred mountains such as Nyenchen Thanglha, and water worship appear in both traditions.",
       sources: [
         "Karmay, The Arrow and the Spindle",
         "Blondeau, Religions of Tibet in Practice",
@@ -630,18 +726,31 @@ export const innerEurasia: readonly BeliefSystem[] = [
   {
     id: "siberian-shamanism",
     label: "Siberian shamanic practice",
+    wiki: "https://en.wikipedia.org/wiki/Siberian_shamanism",
     scope: { years: [-1000, 1950], bounds: [25, 35, 180, 90] },
     powers: [
       {
-        name: "The sky father",
-        domain: "the high realm, destiny",
+        name: "Numi-Torum",
+        domain: "the high realm, destiny, creation",
         rank: "paramount",
       },
       {
-        name: "The earth mother",
-        domain: "the lower realm, animals, fertility",
+        name: "Kaltash-Ekwa",
+        domain: "the earth, birth, fate",
         rank: "major",
-        relation: { kind: "consort-of", of: "The sky father" },
+        relation: { kind: "consort-of", of: "Numi-Torum" },
+      },
+      {
+        name: "Ulgen",
+        wiki: "https://en.wikipedia.org/wiki/Ulgen",
+        domain: "the upper world, creation's order, benevolence",
+        rank: "major",
+      },
+      {
+        name: "Erlik",
+        wiki: "https://en.wikipedia.org/wiki/Erlik",
+        domain: "the underworld, death, judgment",
+        rank: "major",
       },
       {
         name: "The ancestors",
@@ -649,7 +758,7 @@ export const innerEurasia: readonly BeliefSystem[] = [
         rank: "major",
       },
       {
-        name: "The master of the taiga",
+        name: "Bayanai",
         domain: "bears, game, the forest",
         rank: "local",
       },
@@ -666,45 +775,56 @@ export const innerEurasia: readonly BeliefSystem[] = [
     ],
     practice: [
       "A shaman drums through the night to journey to the sky and retrieve a lost soul.",
-      "The first kill of a hunt is offered to the master of the animals with gratitude.",
+      "The first kill of a hunt is offered to Bayanai with gratitude.",
+      "A bear killed in the hunt is honored with a feast; its skull is set high in a tree or on a pole.",
       "A drum hangs in the house to ward off malicious spirits.",
       "At the solstice, offerings of fat and meat are left in the forest for the masters.",
     ],
     specialist:
       "The shaman, marked by illness or inheritance, who travels between realms.",
     afterlife:
-      "A shaman's soul may become a helper spirit; the ordinary dead join the earth mother.",
+      "A shaman's soul may become a helper spirit; the ordinary dead join Kaltash-Ekwa in the earth.",
     evidence: {
       status: "documented",
       claim:
-        "Russian colonial records, ethnographic studies from the 19th and 20th centuries, and contemporary indigenous practice describe shamanic cosmology, drum use, and animal sacrifice across Siberian peoples.",
+        "Ob-Ugric ethnography names Numi-Torum and Kaltash-Ekwa as the high sky-earth pair; Altai and Turkic-Mongol Siberian traditions attest Ulgen and Erlik as opposed upper- and under-world rulers; Yakut ethnography names Bayanai as master of the taiga and the hunt. The bear ceremony is documented across Siberian and circumpolar peoples alike.",
       sources: [
         "Eliade, Shamanism",
         "Dioszegi, Popular Beliefs and Folklore Tradition in Siberia",
         "Humphrey, Shamans and Elders",
       ],
       limitation:
-        "Russian colonial and Soviet ethnography sometimes misinterpreted or distorted shamanic practice; 20th-century practices reflect centuries of disruption and change.",
+        "This entry merges pantheons from distinct language families (Ob-Ugric, Turkic, Mongolic, Yakut) under one Siberian umbrella; no single community held all of these names at once.",
     },
   },
   {
     id: "central-asian-islam",
     label: "Central Asian Islamic practice with Sufi and shrine elements",
+    wiki: "https://en.wikipedia.org/wiki/Islam_in_Central_Asia",
     scope: { years: [900, 1900], bounds: [45, 32, 85, 50] },
     powers: [
       {
         name: "Allah",
+        wiki: "https://en.wikipedia.org/wiki/Allah",
         domain: "the divine, creation, judgment",
         rank: "paramount",
       },
       {
-        name: "The Prophet Muhammad",
+        name: "Muhammad",
+        wiki: "https://en.wikipedia.org/wiki/Muhammad",
         domain: "the messenger, intercession",
         rank: "major",
       },
       {
-        name: "The saints",
-        domain: "blessing, healing, intercession with Allah",
+        name: "Khoja Ahmad Yasawi",
+        wiki: "https://en.wikipedia.org/wiki/Ahmad_Yasawi",
+        domain: "sainthood, the Yasawi order, intercession",
+        rank: "major",
+      },
+      {
+        name: "Khizr",
+        wiki: "https://en.wikipedia.org/wiki/Khidr",
+        domain: "hidden guidance, water, the traveler's protector",
         rank: "major",
       },
       {
@@ -727,7 +847,7 @@ export const innerEurasia: readonly BeliefSystem[] = [
       "A shrine tomb (mazar) is visited with gifts of cloth and coin; women pray for children.",
       "A Sufi teacher's circle gathers to sing, dance, and seek closeness to Allah.",
       "A wedding includes a mullah's blessing and the bride circling fire or walking over salt.",
-      "The graves of the pious are visited at festival time with food, cloth, and prayer.",
+      "The graves of the pious, and of masters in Khoja Ahmad Yasawi's line, are visited at festival time with food, cloth, and prayer.",
     ],
     specialist:
       "The mullah and the Sufi teacher; the keeper of a shrine or holy site.",
@@ -736,7 +856,7 @@ export const innerEurasia: readonly BeliefSystem[] = [
     evidence: {
       status: "documented",
       claim:
-        "Medieval Islamic geographies and later ethnographic accounts describe shrine devotion, Sufi orders, and local practice across Central Asia; archaeological evidence of mazar complexes confirms long histories.",
+        "Medieval Islamic geographies and later ethnographic accounts describe shrine devotion, the Yasawi Sufi order founded by Khoja Ahmad Yasawi, veneration of Khizr, and local practice across Central Asia; archaeological evidence of mazar complexes confirms long histories.",
       sources: [
         "Al-Muqaddasi, The Best Divisions for Knowledge of the Regions",
         "DeWeese, Islamization and Native Religion in the Golden Horde",
@@ -749,18 +869,33 @@ export const innerEurasia: readonly BeliefSystem[] = [
   {
     id: "mongol-chinggis",
     label: "Mongol practice under Chinggis Khan",
+    wiki: "https://en.wikipedia.org/wiki/Mongolian_shamanism",
     scope: { years: [1150, 1280], bounds: [55, 38, 135, 58] },
     powers: [
       {
         name: "Tengri",
+        wiki: "https://en.wikipedia.org/wiki/Tengri",
         domain: "the sky, Chinggis's mandate",
         rank: "paramount",
       },
       {
-        name: "The Earth Mother",
+        name: "Etügen",
+        wiki: "https://en.wikipedia.org/wiki/Etugen",
         domain: "the land and its fertility",
         rank: "major",
         relation: { kind: "consort-of", of: "Tengri" },
+      },
+      {
+        name: "Umai",
+        wiki: "https://en.wikipedia.org/wiki/Umay",
+        domain: "children, the ger's fertility, protection",
+        rank: "major",
+      },
+      {
+        name: "Erlik",
+        wiki: "https://en.wikipedia.org/wiki/Erlik",
+        domain: "the underworld, judgment of the dead",
+        rank: "major",
       },
       {
         name: "The ancestors",
@@ -768,8 +903,9 @@ export const innerEurasia: readonly BeliefSystem[] = [
         rank: "major",
       },
       {
-        name: "The sacred mountain",
-        domain: "Burhan Khaldun, center of power",
+        name: "Burhan Khaldun",
+        wiki: "https://en.wikipedia.org/wiki/Burkhan_Khaldun",
+        domain: "the sacred mountain, center of power",
         rank: "local",
       },
       {
@@ -801,19 +937,20 @@ export const innerEurasia: readonly BeliefSystem[] = [
     evidence: {
       status: "documented",
       claim:
-        "Mongol sources (The Secret History), Persian historians (Rashid al-Din), and Chinese accounts all describe Tengri worship, ancestor veneration, and sacred geography under Chinggis.",
+        "Mongol sources (The Secret History), Persian historians (Rashid al-Din), and Chinese accounts all describe Tengri worship, ancestor veneration, and sacred geography under Chinggis, naming Burhan Khaldun directly as his mountain of refuge and worship.",
       sources: [
         "Secret History of the Mongols",
         "Rashid al-Din, Jami' al-tawarikh",
         "Allsen, The Cultural Mosaic of the Mongol Empire",
       ],
       limitation:
-        "Accounts mix shamanism, ancestor cults, and later Buddhist and Islamic influences; the core Mongol practice is sometimes obscured.",
+        "Accounts mix shamanism, ancestor cults, and later Buddhist and Islamic influences; Erlik's role as underworld judge is better attested in later Mongol Buddhist tradition than in Chinggis's own lifetime.",
     },
   },
   {
     id: "siberian-russian-hybrid",
     label: "Russian colonial-era Siberian hybrid practice",
+    wiki: "https://en.wikipedia.org/wiki/Dvoeverie",
     scope: { years: [1600, 1900], bounds: [60, 48, 180, 80] },
     powers: [
       {
@@ -822,8 +959,15 @@ export const innerEurasia: readonly BeliefSystem[] = [
         rank: "paramount",
       },
       {
-        name: "The saints",
-        domain: "intercession, protection, healing",
+        name: "Saint Nicholas",
+        wiki: "https://en.wikipedia.org/wiki/Saint_Nicholas",
+        domain: "travelers, protection, the harvest",
+        rank: "major",
+      },
+      {
+        name: "Saint George",
+        wiki: "https://en.wikipedia.org/wiki/Saint_George",
+        domain: "herds, warriors, protection of cattle",
         rank: "major",
       },
       {
@@ -837,21 +981,22 @@ export const innerEurasia: readonly BeliefSystem[] = [
         rank: "local",
       },
       {
-        name: "The master of the taiga",
+        name: "Bayanai",
         domain: "bears, game, the wild",
         rank: "local",
       },
       {
-        name: "The house spirit",
+        name: "Domovoi",
+        wiki: "https://en.wikipedia.org/wiki/Domovoi",
         domain: "the hearth, luck, protection",
         rank: "local",
       },
     ],
     practice: [
       "A church and an icon corner mark a settlement; Orthodox rituals frame the calendar.",
-      "Offerings are still left in the forest for the master of animals.",
+      "Offerings are still left in the forest for Bayanai.",
       "A shaman may be consulted quietly despite Orthodox prohibition.",
-      "A shrine to a local spirit coexists with Orthodox chapels and village rituals.",
+      "A bowl of milk is left out for the Domovoi so the house stays lucky.",
     ],
     specialist:
       "The Orthodox priest; the elder or shaman continues in unofficial practice.",
@@ -860,10 +1005,10 @@ export const innerEurasia: readonly BeliefSystem[] = [
     evidence: {
       status: "documented",
       claim:
-        "Russian colonial records, 19th-century ethnographers, and Soviet-era anthropology document the coexistence and tension between Orthodox Christianity and indigenous Siberian shamanism.",
+        "Russian colonial records, nineteenth-century ethnographers, and Soviet-era anthropology document the coexistence and tension between Orthodox Christianity, its folk saints, and indigenous Siberian spirit-masters such as Bayanai and the household Domovoi, under the dual-faith pattern Russian folklorists call dvoeverie.",
       sources: [
         "Slezkine, Arctic Mirrors",
-        "Crummey, Old Believers in Russian Society",
+        "Ivanits, Russian Folk Belief",
         "Anderson, Living in the Land of Hunger",
       ],
       limitation:
@@ -873,16 +1018,31 @@ export const innerEurasia: readonly BeliefSystem[] = [
   {
     id: "tarim-basin-peoples",
     label: "Tarim Basin oasis and desert practice",
+    wiki: "https://en.wikipedia.org/wiki/Silk_Road_transmission_of_Buddhism",
     scope: { years: [-1000, 1900], bounds: [75, 35, 95, 44] },
     powers: [
       {
-        name: "The sky",
-        domain: "weather, drought, survival",
+        name: "Vaiśravaṇa",
+        wiki: "https://en.wikipedia.org/wiki/Vaishravana",
+        domain: "kingship, guardianship, the north",
         rank: "paramount",
       },
       {
-        name: "The water spirits",
-        domain: "rivers, aquifers, oases",
+        name: "Maitreya",
+        wiki: "https://en.wikipedia.org/wiki/Maitreya",
+        domain: "the future Buddha, salvation, pilgrimage",
+        rank: "major",
+      },
+      {
+        name: "Hariti",
+        wiki: "https://en.wikipedia.org/wiki/Hariti",
+        domain: "childbirth, protection of children",
+        rank: "major",
+      },
+      {
+        name: "Mahākāla",
+        wiki: "https://en.wikipedia.org/wiki/Mahakala",
+        domain: "wrathful protection, disease, the desert's dangers",
         rank: "major",
       },
       {
@@ -891,9 +1051,9 @@ export const innerEurasia: readonly BeliefSystem[] = [
         rank: "major",
       },
       {
-        name: "The spirits of the desert",
-        domain: "demons, mirages, the wasteland",
-        rank: "major",
+        name: "The water spirits",
+        domain: "rivers, aquifers, oases",
+        rank: "local",
       },
       {
         name: "The oasis master",
@@ -905,41 +1065,38 @@ export const innerEurasia: readonly BeliefSystem[] = [
         domain: "the house, family, warmth",
         rank: "local",
       },
-      {
-        name: "Protection spirits",
-        domain: "against demons and sandstorm",
-        rank: "local",
-      },
     ],
     practice: [
       "A well is offered libations at dawn and dusk; water is treated with reverence.",
       "The dead are buried at the oasis edge; stones mark graves against sandstorm burial.",
-      "A shrine to a spirit marks an oasis; travelers leave offerings for safe passage.",
+      "A shrine to Vaiśravaṇa or Maitreya marks a monastery; travelers leave offerings for safe passage.",
       "Rituals mark the seasons and the date harvest; ancestors are called upon.",
     ],
-    specialist: "An elder or healer who knows the spirits of the oasis.",
+    specialist: "A monk, or an elder who knows the spirits of the oasis.",
     afterlife:
-      "The dead dwell in the underworld but return to aid the oasis and its living.",
+      "Rebirth under Maitreya's eventual coming; the dead may also dwell in the underworld but return to aid the oasis and its living.",
     evidence: {
-      status: "inferred",
+      status: "documented",
       claim:
-        "Archaeological sites in the Tarim Basin show long continuity of oasis settlement, cemetery practices, and evidence of water worship. Texts describe desert demons and oasis spirits in later accounts.",
+        "Kingdom of Khotan coinage and murals name Vaiśravaṇa as royal patron guardian; Kizil and Kucha cave paintings and pilgrim accounts (Xuanzang) attest widespread Maitreya devotion and the cults of Hariti and Mahākāla across Tarim Basin Buddhist kingdoms.",
       sources: [
         "Wood, The Silk Road",
+        "Whitfield, The Silk Road: Trade, Travel, War and Faith",
         "Mallory and Mair, The Tarim Mummies",
-        "Pletcher, The Silk Road",
       ],
       limitation:
-        "Early records are sparse; this entry combines varied oasis traditions into one generalized system.",
+        "This entry spans three millennia and layers a well-documented Buddhist cult over an earlier, largely unattested indigenous Tarim religion; the desert and oasis spirits beneath it have no recoverable names of their own.",
     },
   },
   {
     id: "post-mongol-steppe",
     label: "Post-Mongol Turkic and Tatar steppe practice",
+    wiki: "https://en.wikipedia.org/wiki/Tengrism",
     scope: { years: [1300, 1700], bounds: [40, 40, 120, 60] },
     powers: [
       {
         name: "Tengri",
+        wiki: "https://en.wikipedia.org/wiki/Tengri",
         domain: "the sky, destiny, power",
         rank: "paramount",
       },
@@ -954,7 +1111,8 @@ export const innerEurasia: readonly BeliefSystem[] = [
         rank: "major",
       },
       {
-        name: "The Earth Mother",
+        name: "Etügen",
+        wiki: "https://en.wikipedia.org/wiki/Etugen",
         domain: "the land, fertility, camps",
         rank: "major",
       },
@@ -987,7 +1145,7 @@ export const innerEurasia: readonly BeliefSystem[] = [
     evidence: {
       status: "documented",
       claim:
-        "Chinese and Persian sources describe post-Mongol Turkic practices; Crimean Tatar and Kazakh ethnographic records show continuity of Tengri worship and shamanic leadership.",
+        "Chinese and Persian sources describe post-Mongol Turkic practices; Crimean Tatar and Kazakh ethnographic records show continuity of Tengri and Etügen worship and shamanic leadership.",
       sources: [
         "Reubreni, History of the Tatars",
         "Khazanov, Nomads and the Outside World",
@@ -1000,12 +1158,25 @@ export const innerEurasia: readonly BeliefSystem[] = [
   {
     id: "far-northeast-siberia",
     label: "Far northeast Siberia and Arctic peoples",
+    wiki: "https://en.wikipedia.org/wiki/Shamanism_in_Siberia",
     scope: { years: [-2000, 1950], bounds: [25, 35, 180, 90] },
     powers: [
       {
-        name: "The sky",
-        domain: "weather, spirits, the high realm",
+        name: "Kutkh",
+        wiki: "https://en.wikipedia.org/wiki/Kutkh",
+        domain: "creation, trickery, the raven's cunning",
         rank: "paramount",
+      },
+      {
+        name: "Keretkun",
+        domain: "the sea, whales, walrus, safe hunting",
+        rank: "major",
+      },
+      {
+        name: "*Sila",
+        gloss: "Proto-Eskimo *sila, 'weather, outer world, wisdom'",
+        domain: "the weather, the encompassing world, the shaman's insight",
+        rank: "major",
       },
       {
         name: "The ancestors",
@@ -1014,17 +1185,12 @@ export const innerEurasia: readonly BeliefSystem[] = [
       },
       {
         name: "The master of the animals",
-        domain: "seals, whales, walrus, fish",
+        domain: "caribou, land game, the tundra's herds",
         rank: "major",
       },
       {
         name: "The fire",
         domain: "the hearth, warmth, protection",
-        rank: "local",
-      },
-      {
-        name: "The sea spirits",
-        domain: "safe hunting and passage",
         rank: "local",
       },
       {
@@ -1039,56 +1205,68 @@ export const innerEurasia: readonly BeliefSystem[] = [
       },
     ],
     practice: [
-      "A shaman drums for a lost soul or speaks with the animal masters.",
+      "A shaman drums for a lost soul or speaks with Keretkun and the animal masters.",
       "The first seal or whale is offered with ceremony; bones are kept sacred.",
       "The hearth fire receives a portion of every meal and hunt.",
-      "The dead are buried with goods; shamans guide them to the ancestors.",
+      "The dead are buried with goods; shamans guide them to the ancestors, and to Kutkh who made the world.",
     ],
     specialist:
       "The shaman, marked by dreams and illness, who travels between worlds.",
     afterlife:
       "Shamans join the guide-ancestors; ordinary dead aid the people through them.",
     evidence: {
-      status: "documented",
+      status: "hypothesis",
       claim:
-        "Russian colonial records, ethnographic studies from Chukchi, Siberian Yupik, and other Arctic peoples describe shamanism, animal respect, and seal hunting rituals.",
+        "Chukchi, Koryak, and Siberian Yupik ethnography name Kutkh, the creator raven, as a central figure across the region, and Keretkun as master of sea mammals and the hunt; Russian colonial records and later ethnographic studies describe shamanism and animal-respect rituals built around them. Fortescue's comparative Eskimo-Aleut dictionary independently reconstructs *sila for the Yupik-speaking part of this same population, covering weather, the outer world, and shamanic wisdom.",
       sources: [
+        "Bogoras, The Chukchee",
+        "Jochelson, The Koryak",
         "Eliade, Shamanism",
-        "Dioszegi, Popular Beliefs and Folklore Tradition in Siberia",
-        "Humphrey, Shamans and Elders",
+        "Fortescue, Comparative Eskimo Dictionary",
       ],
       limitation:
-        "Most accounts from 19th-20th centuries; Soviet ethnography sometimes distorted practices.",
+        "Kutkh and Keretkun are best attested among the Chukchi and Koryak specifically; other peoples of this vast region had cognate but distinct figures, flattened here into one entry. *Sila is a comparative reconstruction of vocabulary, not a recovered theonym, and reaches only the Eskimo-Aleut branch of this population; Chukotko-Kamchatkan comparative reconstruction remains too thin to responsibly extend the same treatment to Kutkh and Keretkun's own language family.",
     },
   },
   {
     id: "volga-river-peoples-medieval",
     label: "Medieval and early modern Volga river peoples",
+    wiki: "https://en.wikipedia.org/wiki/Mari_native_religion",
     scope: { years: [600, 1800], bounds: [40, 48, 70, 65] },
     powers: [
       {
-        name: "The sky",
-        domain: "thunder, fate, the high realm",
+        name: "Inmar",
+        domain: "the sky, creation, fate",
         rank: "paramount",
       },
       {
-        name: "The river",
-        domain: "the Volga, trade, life",
+        name: "Kugu Jumo",
+        domain: "the sky, the world's order",
         rank: "major",
       },
       {
-        name: "The ancestors",
-        domain: "the settlement and lineage",
+        name: "Keremet",
+        domain: "misfortune, sacrifice, the wild grove",
         rank: "major",
       },
       {
-        name: "The forest",
-        domain: "game, furs, the wild",
+        name: "Vu-murt",
+        domain: "rivers, lakes, water, drowning",
         rank: "major",
       },
       {
-        name: "Water spirits",
-        domain: "wells, springs, crossings",
+        name: "Nyulesmurt",
+        domain: "the forest, game",
+        rank: "local",
+      },
+      {
+        name: "Vörsa",
+        domain: "the field edge, boundary, crops",
+        rank: "local",
+      },
+      {
+        name: "Kylchin",
+        domain: "the granary, harvest, household luck",
         rank: "local",
       },
       {
@@ -1097,31 +1275,31 @@ export const innerEurasia: readonly BeliefSystem[] = [
         rank: "local",
       },
       {
-        name: "The earth and crops",
-        domain: "fertility, the harvest",
+        name: "The ancestors",
+        domain: "the settlement and lineage",
         rank: "local",
       },
     ],
     practice: [
-      "Offerings to the river and forest mark the seasons and trade ventures.",
+      "A sacred grove is kept for Keremet, apart from the village, where dark animals are offered.",
       "A new household is blessed; fire marks transitions and ceremonies.",
-      "The dead are buried with goods; mounds mark graves.",
-      "Spring and autumn bring collective offerings and shamanic consultation.",
+      "The dead are buried with goods; mounds mark graves and Vörsa is asked to keep the field boundary.",
+      "Spring and autumn bring collective offerings to Inmar and Vu-murt, and shamanic consultation.",
     ],
-    specialist: "The eldest; shamans and healers who know the spirits.",
+    specialist: "The eldest; a priest (kart) who knows the spirits.",
     afterlife:
-      "The dead dwell with ancestors; shamans consult them for the living.",
+      "The dead dwell with ancestors; priests and diviners consult them for the living.",
     evidence: {
-      status: "inferred",
+      status: "documented",
       claim:
-        "Archaeological sites along the Volga show settlement continuity, burial mounds, and ritual practices. Later ethnographic accounts describe Finno-Ugric and early Turkic traditions of forest and water worship.",
+        "Nineteenth- and twentieth-century ethnography of the Udmurt and Mari names Inmar and Kugu Jumo as supreme sky gods, Keremet as a rival sacrificial power, and Vu-murt, Nyulesmurt, Vörsa, and Kylchin as recognized spirit-masters of water, forest, field, and granary, in a system with deep roots along the Volga.",
       sources: [
-        "Chernykh, The Steppes and the Sown",
-        "DeWeese, Islamization and Native Religion in the Golden Horde",
-        "Khazanov, Nomads and the Outside World",
+        "Napolskikh, 'Udmurt Mythology'",
+        "Holmberg, Finno-Ugric, Siberian Mythology",
+        "Vasilyev, Mari Native Religion",
       ],
       limitation:
-        "Early records are from outsiders; practices blended with incoming Islam and Orthodoxy.",
+        "Full written record is nineteenth-century and later, from outsiders; practice by 600 CE certainly differed and blended increasingly with incoming Islam and Orthodoxy over this span.",
     },
   },
 ];

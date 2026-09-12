@@ -7,6 +7,7 @@ export const australiaPacific: readonly BeliefSystem[] = [
   {
     id: "aboriginal-australia-general",
     label: "Aboriginal Australian practice (general)",
+    wiki: "https://en.wikipedia.org/wiki/Australian_Aboriginal_mythology",
     scope: { years: [-60000, 1788], bounds: [110, -50, 160, 30] },
     powers: [
       {
@@ -71,15 +72,18 @@ export const australiaPacific: readonly BeliefSystem[] = [
   {
     id: "oceanic-maritime-societies-early",
     label: "Oceanic maritime and forager societies",
+    wiki: "https://en.wikipedia.org/wiki/History_of_Oceania",
     scope: { years: [-60000, 500], bounds: [110, -50, 180, 30] },
     powers: [
       {
-        name: "The ancestors and their knowledge",
+        name: "*Qatua",
+        gloss: "Proto-Oceanic *qatua, 'spirit, ghost, ancestor'",
         domain: "founders of the places, keepers of the way",
         rank: "paramount",
       },
       {
-        name: "The sea and its roads",
+        name: "*Tasik",
+        gloss: "Proto-Oceanic *tasik, 'the sea'",
         domain: "passage, abundance, boundaries",
         rank: "major",
       },
@@ -89,7 +93,8 @@ export const australiaPacific: readonly BeliefSystem[] = [
         rank: "major",
       },
       {
-        name: "The sky and the seasons",
+        name: "*Lani",
+        gloss: "Proto-Oceanic *lani, 'sky'",
         domain: "weather, gathering times, navigation",
         rank: "local",
       },
@@ -121,19 +126,21 @@ export const australiaPacific: readonly BeliefSystem[] = [
     evidence: {
       status: "hypothesis",
       claim:
-        "Early Pacific and Australian maritime societies organized around ancestor veneration, knowledge of place, and marine exploitation. This entry applies a general pattern across the oceanic and island regions before specific documented traditions emerged.",
+        "Early Pacific and Australian maritime societies organized around ancestor veneration, knowledge of place, and marine exploitation. This entry applies a general pattern across the oceanic and island regions before specific documented traditions emerged. *Qatua, *tasik, and *lani are Proto-Oceanic reconstructions for spirit, sea, and sky, ancestral to words like Fijian and Polynesian atua, tahi/tasi, and lagi/rangi.",
       sources: [
         "Spriggs, 'The Island Melanesians'",
         "Terrell, 'Prehistory in the Pacific Islands'",
         "Jones, 'Pleistocene Australia'",
+        "Blust, 'The Austronesian Languages'",
       ],
       limitation:
-        "A broad floor layer covering vast geographic and temporal range. Actual belief systems and practices varied widely by region and era. This represents common underlying themes rather than any single documented tradition.",
+        "A broad floor layer covering vast geographic and temporal range. Actual belief systems and practices varied widely by region and era. Proto-Oceanic is dated to roughly 1500-1000 BCE, alongside the Lapita expansion; for most of this entry's -60000 to 500 span, including the entire Pleistocene settlement of Sahul, no Oceanic or even Austronesian language had yet arrived, so the starred forms only fit its final centuries.",
     },
   },
   {
     id: "papuan-highlands-early",
     label: "Papuan Highlands practice",
+    wiki: "https://en.wikipedia.org/wiki/Religion_in_Papua_New_Guinea",
     scope: { years: [1000, 1800], bounds: [140, -13, 150, 2] },
     powers: [
       {
@@ -198,32 +205,37 @@ export const australiaPacific: readonly BeliefSystem[] = [
         "Andrew Strathern, 'Ongka: A Self-Account by a New Guinea Big-Man'",
       ],
       limitation:
-        "One valley-based summary covering many distinct societies. Regional variation in detail is substantial; this represents a common pattern rather than a single ethnographic account.",
+        "One valley-based summary covering many distinct societies. Regional variation in detail is substantial; this represents a common pattern rather than a single ethnographic account. No starred reconstructions appear here: Papuan Highland languages belong to the Trans-New Guinea family, not Austronesian or Oceanic, and Trans-New Guinea's proto-vocabulary is far less securely established than Proto-Oceanic's, so nothing defensible can be offered in its place.",
     },
   },
   {
     id: "early-melanesia-lapita",
     label: "Early Melanesian practice (Lapita era)",
+    wiki: "https://en.wikipedia.org/wiki/Lapita_culture",
     scope: { years: [-1500, 1000], bounds: [160, -25, 180, -10] },
     powers: [
       {
-        name: "The reef and its abundance",
+        name: "*Ika",
+        gloss: "Proto-Oceanic *ika, 'fish'",
         domain: "fish, shellfish, safe water",
         rank: "paramount",
       },
       {
-        name: "The ancestors across the sea road",
+        name: "*Qatua",
+        gloss: "Proto-Oceanic *qatua, 'spirit, ghost, ancestor'",
         domain: "founded the islands, travelled between them",
         rank: "major",
       },
       {
-        name: "The canoe builders",
+        name: "*Waga",
+        gloss: "Proto-Oceanic *waga, 'canoe'",
         domain: "knowledge of timber, sail and passage",
         rank: "major",
-        relation: { kind: "serves", of: "The ancestors across the sea road" },
+        relation: { kind: "serves", of: "*Qatua" },
       },
       {
-        name: "The first people of each island",
+        name: "*Tanoq",
+        gloss: "Proto-Oceanic *tanoq, 'earth, land'",
         domain: "right to the land and its resources",
         rank: "major",
       },
@@ -256,54 +268,58 @@ export const australiaPacific: readonly BeliefSystem[] = [
     evidence: {
       status: "hypothesis",
       claim:
-        "The Lapita culture (1500 BCE-1000 CE) spread across Melanesia via maritime navigation and exchange. While material culture is well documented archaeologically, specific belief systems are not. This reconstructs plausible practice from known Polynesian and Melanesian patterns and from the voyaging context.",
+        "The Lapita culture (1500 BCE-1000 CE) spread across Melanesia via maritime navigation and exchange. While material culture is well documented archaeologically, specific belief systems are not. This reconstructs plausible practice from known Polynesian and Melanesian patterns and from the voyaging context. Proto-Oceanic, the reconstructed ancestor of the Oceanic branch of Austronesian, is dated to almost exactly this culture's beginning, making its vocabulary (*ika 'fish', *qatua 'spirit', *waga 'canoe', *tanoq 'land') the best-fitting reconstruction used anywhere in this file.",
       sources: [
         "Spriggs, 'The Island Melanesians'",
         "Terrell, 'Prehistory in the Pacific Islands'",
         "Anderson, 'Polynesian Settlement of New Zealand'",
+        "Blust, 'The Austronesian Languages'",
       ],
       limitation:
-        "No direct records of Lapita belief systems survive. This is a hypothesis based on later Polynesian and Melanesian practice and on the archaeological evidence of extensive seafaring across two millennia.",
+        "No direct records of Lapita belief systems survive. This is a hypothesis based on later Polynesian and Melanesian practice, on the archaeological evidence of extensive seafaring, and on reconstructed Proto-Oceanic vocabulary; the words are real linguistic reconstructions, not recorded Lapita speech, and no Lapita person is known to have used them as names for these powers.",
     },
   },
   {
     id: "vanuatu-new-caledonia-tradition",
     label: "Vanuatu and New Caledonian practice",
+    wiki: "https://en.wikipedia.org/wiki/Religion_in_Vanuatu",
     scope: { years: [1000, 1800], bounds: [162, -25, 172, -15] },
     powers: [
       {
-        name: "The ancestral lines",
-        domain: "founders and ongoing presence",
+        name: "Qat",
+        domain: "creation, trickery, the shaping of the Banks Islands",
         rank: "paramount",
       },
       {
-        name: "The reef and lagoon",
-        domain: "fish, shellfish, safe water",
+        name: "Marawa",
+        domain: "the spider, rivalry with Qat, the limits of his creation",
         rank: "major",
       },
       {
-        name: "The forest and its power",
-        domain: "timber, game, spirits of place",
+        name: "Téa Kanaké",
+        domain: "the founding ancestor of the Kanak people",
         rank: "major",
       },
       {
-        name: "The chief and his ancestors",
+        name: "*Mana",
+        gloss: "Proto-Oceanic *mana, 'efficacious power, potency'",
         domain: "leadership and its mana",
         rank: "major",
       },
       {
-        name: "The village gathering place",
-        domain: "ceremony, exchange, justice",
+        name: "The reef and lagoon",
+        domain: "fish, shellfish, safe water",
         rank: "local",
       },
       {
-        name: "The named dead of the line",
+        name: "The forest and its power",
+        domain: "timber, game, spirits of place",
+        rank: "local",
+      },
+      {
+        name: "*Qatua",
+        gloss: "Proto-Oceanic *qatua, 'spirit, ghost, ancestor'",
         domain: "recent ancestors and their needs",
-        rank: "local",
-      },
-      {
-        name: "The spirits of particular places",
-        domain: "waters, groves, mountain peaks",
         rank: "local",
       },
       {
@@ -325,34 +341,40 @@ export const australiaPacific: readonly BeliefSystem[] = [
     evidence: {
       status: "documented",
       claim:
-        "Vanuatu and New Caledonian societies practice chiefly exchange systems, ancestor veneration, and place-based spirituality documented in ethnographic accounts of Melanesian societies.",
+        "Qat's creation of the Banks Islands and his rivalry with the trickster Marawa are recorded in Codrington's foundational ethnography of Melanesian religion. Chiefly exchange, ancestor veneration, and Téa Kanaké as the founding ancestor of the Kanak are documented across Vanuatu and New Caledonia. Codrington's own study is also where 'mana' entered comparative religion, from Melanesian languages descended from Proto-Oceanic *mana.",
       sources: [
+        "Codrington, 'The Melanesians'",
         "Deacon, 'Malekula'",
         "Leenhardt, 'Do Kamo'",
         "Bonnemaison, 'The Tree and the Canoe'",
+        "Blust, 'The Austronesian Languages'",
       ],
       limitation:
-        "One generalised pattern standing in for distinct cultural areas with substantial variation. Regional practice differs significantly between islands and communities.",
+        "Qat and Marawa belong specifically to the Banks Islands; this entry extends them across Vanuatu and pairs them with New Caledonian tradition for a single regional summary. Regional practice differs significantly between islands and communities. *Mana and *qatua are Proto-Oceanic reconstructions, offered as concept-words for chiefly power and the recent dead, not as names either people used for themselves.",
     },
   },
   {
     id: "samoan-polynesian",
     label: "Samoan and Polynesian practice",
+    wiki: "https://en.wikipedia.org/wiki/Polynesian_narrative",
     scope: { years: [1000, 1800], bounds: [-180, -25, -160, 5] },
     powers: [
       {
         name: "Tangaroa",
+        wiki: "https://en.wikipedia.org/wiki/Tangaroa",
         domain: "the sea, fish, navigation",
         rank: "paramount",
       },
       {
         name: "Tane",
+        wiki: "https://en.wikipedia.org/wiki/Tāne",
         domain: "the forest, timber, craft",
         rank: "major",
         relation: { kind: "child-of", of: "Tangaroa" },
       },
       {
         name: "Rongo",
+        wiki: "https://en.wikipedia.org/wiki/Rongo",
         domain: "cultivation, the harvest",
         rank: "major",
       },
@@ -409,6 +431,7 @@ export const australiaPacific: readonly BeliefSystem[] = [
   {
     id: "hawaiian-precontact",
     label: "Hawaiian practice (precontact)",
+    wiki: "https://en.wikipedia.org/wiki/Hawaiian_religion",
     scope: { years: [1000, 1778], bounds: [-160, 18, -154, 23] },
     powers: [
       {
@@ -418,12 +441,14 @@ export const australiaPacific: readonly BeliefSystem[] = [
       },
       {
         name: "Kanaloa",
+        wiki: "https://en.wikipedia.org/wiki/Kanaloa",
         domain: "sea, ocean, the underworld",
         rank: "major",
         relation: { kind: "consort-of", of: "Kāne" },
       },
       {
         name: "Lono",
+        wiki: "https://en.wikipedia.org/wiki/Lono",
         domain: "clouds, rain, fertility, agriculture",
         rank: "major",
       },
@@ -484,6 +509,7 @@ export const australiaPacific: readonly BeliefSystem[] = [
   {
     id: "maori-aotearoa-precontact",
     label: "Māori practice in Aotearoa (precontact)",
+    wiki: "https://en.wikipedia.org/wiki/Māori_traditional_religion",
     scope: { years: [500, 1769], bounds: [165, -48, 180, -30] },
     powers: [
       {
@@ -493,27 +519,32 @@ export const australiaPacific: readonly BeliefSystem[] = [
       },
       {
         name: "Rangi",
+        wiki: "https://en.wikipedia.org/wiki/Rangi_and_Papa",
         domain: "sky, the overarching presence",
         rank: "major",
       },
       {
         name: "Papa",
+        wiki: "https://en.wikipedia.org/wiki/Rangi_and_Papa",
         domain: "earth, the foundational mother",
         rank: "major",
         relation: { kind: "consort-of", of: "Rangi" },
       },
       {
         name: "Tāne",
+        wiki: "https://en.wikipedia.org/wiki/Tāne",
         domain: "forests, light, male power",
         rank: "major",
       },
       {
         name: "Tangaroa",
+        wiki: "https://en.wikipedia.org/wiki/Tangaroa",
         domain: "sea, fish, boundaries",
         rank: "major",
       },
       {
         name: "Rongo",
+        wiki: "https://en.wikipedia.org/wiki/Rongo",
         domain: "crops, kumara, sustenance",
         rank: "major",
       },
@@ -564,32 +595,39 @@ export const australiaPacific: readonly BeliefSystem[] = [
   {
     id: "micronesian-practice",
     label: "Micronesian practice",
+    wiki: "https://en.wikipedia.org/wiki/Micronesian_mythology",
     scope: { years: [500, 1800], bounds: [130, -15, 180, 15] },
     powers: [
       {
-        name: "Lalimiʻ",
-        domain: "the creator and sustainer",
+        name: "Nareau",
+        wiki: "https://en.wikipedia.org/wiki/Nareau",
+        domain: "creation, the spider who made the world",
         rank: "paramount",
       },
       {
-        name: "The navigation stars",
-        domain: "guide the canoes across the ocean",
+        name: "Anulap",
+        domain: "the high sky, order among the gods",
         rank: "major",
-        relation: { kind: "aspect-of", of: "Lalimiʻ" },
+      },
+      {
+        name: "Olofat",
+        domain: "trickery, fire, the doings of a clever son",
+        rank: "major",
+        relation: { kind: "child-of", of: "Anulap" },
+      },
+      {
+        name: "Aluluei",
+        domain: "navigation, the many-eyed guide of canoes",
+        rank: "major",
       },
       {
         name: "The reef and its fish",
         domain: "daily sustenance and abundance",
-        rank: "major",
+        rank: "local",
       },
       {
         name: "The chiefly ancestors",
         domain: "founding lines and their mana",
-        rank: "major",
-      },
-      {
-        name: "The trade wind",
-        domain: "fills sails, brings voyagers",
         rank: "local",
       },
       {
@@ -598,13 +636,13 @@ export const australiaPacific: readonly BeliefSystem[] = [
         rank: "local",
       },
       {
-        name: "The spirit of place",
-        domain: "each island and lagoon",
+        name: "The trade wind",
+        domain: "fills sails, brings voyagers",
         rank: "local",
       },
     ],
     practice: [
-      "Sailing canoes blessed before voyage; prayers offered to the stars and wind.",
+      "Sailing canoes blessed before voyage; prayers offered to Aluluei and the wind.",
       "Fish and breadfruit brought to the chief's platform for the ancestors.",
       "Taboo on entering certain places during mourning or after touching the dead.",
       "Navigation taught orally through chant and story, encoding star paths and island positions.",
@@ -616,42 +654,53 @@ export const australiaPacific: readonly BeliefSystem[] = [
     evidence: {
       status: "documented",
       claim:
-        "Micronesian maritime practice centred on navigational stars, chiefly genealogy, and voyaging canoes is documented in oral traditions, in the star compass systems (still used in Polynesian navigation), and in ethnographic accounts of Micronesian societies.",
+        "Nareau's creation of the world is recorded in Gilbertese (Kiribati) oral tradition. Anulap, his trickster son Olofat, and the navigator-god Aluluei are documented in Carolinian oral literature collected on Ulithi and neighbouring atolls, alongside chiefly genealogy and star-path navigation.",
       sources: [
-        "Turnbull, 'Map Are Not Territory'",
+        "Grimble, 'Tungaru Traditions'",
+        "Lessa, 'Tales from Ulithi Atoll'",
         "Gladwin, 'East Is a Big Bird'",
-        "Finney, 'Voyage of Rediscovery'",
       ],
       limitation:
-        "Micronesian societies are diverse; this represents a maritime and navigational emphasis common across the region, particularly among the Pacific-voyaging atolls.",
+        "Micronesian societies are diverse; Nareau belongs to the Gilbertese (Kiribati) tradition and Anulap, Olofat and Aluluei to the Carolinian, so this entry combines distinct island traditions into one regional summary.",
     },
   },
   {
     id: "pacific-mission-christianity",
     label: "Pacific mission Christianity",
+    wiki: "https://en.wikipedia.org/wiki/Christianity_in_Oceania",
     scope: { years: [1800, 1950], bounds: [110, -50, 180, 25] },
     powers: [
       {
         name: "God",
+        wiki: "https://en.wikipedia.org/wiki/God_in_Christianity",
         domain: "creator, judge, sustainer",
         rank: "paramount",
       },
       {
         name: "Jesus Christ",
+        wiki: "https://en.wikipedia.org/wiki/Jesus",
         domain: "redemption, sacrifice, salvation",
         rank: "major",
         relation: { kind: "child-of", of: "God" },
       },
       {
         name: "The Holy Spirit",
+        wiki: "https://en.wikipedia.org/wiki/Holy_Spirit_in_Christianity",
         domain: "guidance, conversion, healing",
         rank: "major",
         relation: { kind: "aspect-of", of: "God" },
       },
       {
-        name: "The pastor or missionary",
-        domain: "authority, teaching, the path to heaven",
+        name: "John Williams",
+        wiki: "https://en.wikipedia.org/wiki/John_Williams_(missionary)",
+        domain: "the LMS apostle to the Pacific, martyred at Erromango",
         rank: "major",
+      },
+      {
+        name: "Satan",
+        wiki: "https://en.wikipedia.org/wiki/Satan",
+        domain: "the tempter, the old gods recast as his agents",
+        rank: "local",
       },
       {
         name: "The church congregation",
@@ -682,8 +731,9 @@ export const australiaPacific: readonly BeliefSystem[] = [
     evidence: {
       status: "documented",
       claim:
-        "Christian missions across the Pacific from the early 19th century onward converted large populations. Missionary accounts, church records, and ethnographic work document the rapid incorporation of Christian practice alongside and replacing indigenous belief systems.",
+        "Christian missions across the Pacific from the early 19th century onward converted large populations. John Williams and the London Missionary Society are well documented pioneers of the region; missionary accounts, church records, and ethnographic work document the rapid incorporation of Christian practice alongside and replacing indigenous belief systems.",
       sources: [
+        "Williams, 'A Narrative of Missionary Enterprises in the South Sea Islands'",
         "Comaroff & Comaroff, 'Of Revelation and Revolution'",
         "Campbell, 'Island Kingdom: Tonga and Samoa'",
         "Douglas, 'Christian Bodies'",
@@ -695,6 +745,7 @@ export const australiaPacific: readonly BeliefSystem[] = [
   {
     id: "aboriginal-australia-colonial",
     label: "Aboriginal Australia and Christian missions (colonial era)",
+    wiki: "https://en.wikipedia.org/wiki/Australian_Aboriginal_mythology",
     scope: { years: [1788, 2000], bounds: [110, -50, 160, -10] },
     powers: [
       {
@@ -764,21 +815,25 @@ export const australiaPacific: readonly BeliefSystem[] = [
   {
     id: "samoan-tongan-early",
     label: "Early Samoan and Tongan settlement",
+    wiki: "https://en.wikipedia.org/wiki/Samoan_mythology",
     scope: { years: [-8000, 2000], bounds: [-180, -25, -160, -10] },
     powers: [
       {
-        name: "The ancestors of the voyage",
-        domain: "founded the islands, crossed the sea",
+        name: "Tagaloa",
+        wiki: "https://en.wikipedia.org/wiki/Tagaloa",
+        domain: "creator of sky and sea, the supreme power",
         rank: "paramount",
       },
       {
-        name: "Tangaroa",
-        domain: "the sea and its domain",
+        name: "Hikule'o",
+        wiki: "https://en.wikipedia.org/wiki/Hikuleo",
+        domain: "ruler of Pulotu, the land of the dead",
         rank: "major",
       },
       {
-        name: "The sky and weather",
-        domain: "guidance for navigation",
+        name: "Māui",
+        wiki: "https://en.wikipedia.org/wiki/Māui_(mythology)",
+        domain: "trickster demigod, fishing up islands, snaring the sun",
         rank: "major",
       },
       {
@@ -810,53 +865,63 @@ export const australiaPacific: readonly BeliefSystem[] = [
     ],
     specialist:
       "Master navigators, chiefs and their speakers, keepers of genealogy.",
-    afterlife: "The ancestors depart to distant islands or the sky realm.",
+    afterlife:
+      "The dead depart for Hikule'o's Pulotu, or the ancestors' distant islands.",
     evidence: {
       status: "hypothesis",
       claim:
-        "Samoa and Tonga were settled by Polynesian voyagers by 1000 BCE. Early settlement communities would have maintained maritime knowledge, chiefly hierarchy, and ancestor veneration documented in later Polynesian practice.",
+        "Samoa and Tonga were settled by Polynesian voyagers by 1000 BCE. This applies the pantheon later recorded across Samoa and Tonga (Tagaloa, Hikule'o, Māui) back onto the early settlement period, alongside the maritime knowledge and chiefly hierarchy documented in Polynesian practice generally.",
       sources: [
-        "Anderson, 'Polynesian Settlement of New Zealand'",
-        "Spriggs, 'The Island Melanesians'",
+        "Kramer, 'The Samoan Islands'",
+        "Gifford, 'Tongan Society'",
         "Kirch & Green, 'Hawaiki, Ancestral Polynesia'",
       ],
       limitation:
-        "Early settlement belief systems are not directly documented. This is a reconstruction based on later Polynesian practice and the settlement archaeology.",
+        "Tagaloa, Hikule'o and Māui are recorded from later Samoan and Tongan tradition; their presence this early is a reconstruction, not a direct record of settlement-era belief.",
     },
   },
   {
     id: "fiji-traditions",
     label: "Fijian practice",
+    wiki: "https://en.wikipedia.org/wiki/Fijian_mythology",
     scope: { years: [1000, 1800], bounds: [177, -20, 181, -16] },
     powers: [
       {
-        name: "The ancestral lines",
-        domain: "founders and ongoing presence",
+        name: "Degei",
+        wiki: "https://en.wikipedia.org/wiki/Degei",
+        domain: "creation, the serpent god of Nakauvadra",
         rank: "paramount",
       },
       {
-        name: "The reef and lagoon",
-        domain: "fish, shellfish, abundance",
+        name: "Ratumaibulu",
+        domain: "the underworld, growth of crops and gardens",
         rank: "major",
       },
       {
-        name: "The chief and his ancestors",
+        name: "The kalou-vu",
+        domain: "the founding gods of each clan and village",
+        rank: "major",
+      },
+      {
+        name: "*Mana",
+        gloss: "Proto-Oceanic *mana, 'efficacious power, potency'",
         domain: "leadership and its mana",
         rank: "major",
       },
       {
-        name: "The village gathering place",
-        domain: "ceremony and exchange",
-        rank: "major",
-      },
-      {
-        name: "The family dead",
-        domain: "ancestors and their presence",
+        name: "The vu",
+        domain: "ancestral spirits attached to a place or family",
         rank: "local",
       },
       {
-        name: "The spirits of place",
-        domain: "waters, groves and peaks",
+        name: "The reef and lagoon",
+        domain: "fish, shellfish, abundance",
+        rank: "local",
+      },
+      {
+        name: "*Qatua",
+        gloss: "Proto-Oceanic *qatua, 'spirit, ghost, ancestor'",
+        domain: "ancestors and their presence",
         rank: "local",
       },
       {
@@ -877,19 +942,22 @@ export const australiaPacific: readonly BeliefSystem[] = [
     evidence: {
       status: "documented",
       claim:
-        "Fijian societies practice chiefly exchange systems, ancestor veneration and place-based spirituality documented in ethnographic accounts of Fiji and Melanesian societies.",
+        "Degei's role as serpent-creator, Ratumaibulu as lord of the underworld and crops, and the kalou-vu and vu as the ancestral gods of clan and family are documented from the earliest missionary ethnography of Fiji onward, alongside chiefly exchange systems. Fijian mana and its cognates across the region trace to Proto-Oceanic *mana, and Fijian kalou sits in the same semantic family as Proto-Oceanic *qatua, 'spirit, ghost, ancestor'.",
       sources: [
+        "Williams, 'Fiji and the Fijians'",
         "Sahlins, 'Islands of History'",
         "Toren, 'Making Sense of Hierarchy and History'",
         "Lockwood, 'The Crooked Line'",
+        "Blust, 'The Austronesian Languages'",
       ],
       limitation:
-        "One generalised pattern standing in for distinct cultural areas. Regional variation between island groups and communities is substantial.",
+        "One generalised pattern standing in for distinct cultural areas. Regional variation between island groups and communities is substantial. *Mana and *qatua are the reconstructed Proto-Oceanic ancestors of Fijian words, not names actually used for these two powers; the well-attested kalou-vu and vu already carry real Fijian names and needed no reconstruction.",
     },
   },
   {
     id: "south-island-aotearoa",
     label: "South Island Māori practice",
+    wiki: "https://en.wikipedia.org/wiki/Māori_traditional_religion",
     scope: { years: [500, 1769], bounds: [165, -48, 178, -40] },
     powers: [
       {
@@ -899,26 +967,31 @@ export const australiaPacific: readonly BeliefSystem[] = [
       },
       {
         name: "Rangi",
+        wiki: "https://en.wikipedia.org/wiki/Rangi_and_Papa",
         domain: "sky, the overarching presence",
         rank: "major",
       },
       {
         name: "Papa",
+        wiki: "https://en.wikipedia.org/wiki/Rangi_and_Papa",
         domain: "earth, the foundational mother",
         rank: "major",
       },
       {
         name: "Tāne",
+        wiki: "https://en.wikipedia.org/wiki/Tāne",
         domain: "forests, timber, light",
         rank: "major",
       },
       {
         name: "Tangaroa",
+        wiki: "https://en.wikipedia.org/wiki/Tangaroa",
         domain: "sea and boundaries",
         rank: "major",
       },
       {
         name: "Rongo",
+        wiki: "https://en.wikipedia.org/wiki/Rongo",
         domain: "crops and sustenance",
         rank: "major",
       },

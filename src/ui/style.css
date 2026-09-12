@@ -3131,3 +3131,15 @@ button:disabled {
   color: var(--muted);
   font-size: 15px;
 }
+.glyph {
+  image-rendering: pixelated;
+  flex-shrink: 0;
+}
+.powers li {
+  align-items: center;
+}
+.patron {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}

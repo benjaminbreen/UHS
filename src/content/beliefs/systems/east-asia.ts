@@ -4,12 +4,20 @@ export const eastAsia: readonly BeliefSystem[] = [
   {
     id: "neolithic-east-asia-foragers",
     label: "Neolithic East Asia foraging and early settlement",
+    wiki: "https://en.wikipedia.org/wiki/Chinese_Neolithic",
     scope: { years: [-8000, -1600], bounds: [90, 15, 150, 55] },
     powers: [
       {
-        name: "The ancestors",
+        name: "*Pwa",
+        gloss: "Proto-Sino-Tibetan *pwa, 'grandfather, ancestor'",
         domain: "household, clan, continuity",
         rank: "paramount",
+      },
+      {
+        name: "*Nəy",
+        gloss: "Proto-Sino-Tibetan *nəy, 'sun, day'",
+        domain: "the sun, daylight, the turning day",
+        rank: "major",
       },
       {
         name: "The river",
@@ -27,7 +35,8 @@ export const eastAsia: readonly BeliefSystem[] = [
         rank: "major",
       },
       {
-        name: "The hearth fire",
+        name: "*Mey",
+        gloss: "Proto-Sino-Tibetan *mey, 'fire'",
         domain: "warmth, cooking, gathering place",
         rank: "local",
       },
@@ -37,8 +46,9 @@ export const eastAsia: readonly BeliefSystem[] = [
         rank: "local",
       },
       {
-        name: "The night sky",
-        domain: "seasons, travel, time",
+        name: "*Hnit",
+        gloss: "Proto-Sino-Tibetan *hnit, 'year'",
+        domain: "seasons, the turning year, time",
         rank: "local",
       },
     ],
@@ -58,14 +68,16 @@ export const eastAsia: readonly BeliefSystem[] = [
       sources: [
         "Perlès, An Introduction to the Prehistory of East Asia",
         "Aikens & Higuchi, Prehistory of Japan",
+        "Matisoff, Handbook of Proto-Tibeto-Burman",
       ],
       limitation:
-        "No written records; reconstruction is inferred from archaeological settlement patterns, burial goods, and the historical practices of successor societies. This spans eight millennia and enormous geographical variation.",
+        "No written records; reconstruction is inferred from archaeological settlement patterns, burial goods, and the historical practices of successor societies. This spans eight millennia and enormous geographical variation. The starred names are Proto-Sino-Tibetan words for grandfather, sun, fire and year, reconstructed by comparing Chinese, Tibetan, Burmese and their relatives, not recorded theonyms; the reconstructed language itself is usually placed well after this span begins, so its vocabulary is at best a guess about what these foragers' eventual descendants would come to say.",
     },
   },
   {
     id: "early-bronze-farming-era",
     label: "Early Bronze Age farming societies",
+    wiki: "https://en.wikipedia.org/wiki/Chinese_Bronze_Age",
     scope: { years: [-1600, -800], bounds: [95, 20, 145, 50] },
     powers: [
       {
@@ -129,9 +141,15 @@ export const eastAsia: readonly BeliefSystem[] = [
   {
     id: "shang-oracle",
     label: "Shang oracle bone practice",
+    wiki: "https://en.wikipedia.org/wiki/Oracle_bone",
     scope: { years: [-1600, -1046], bounds: [100, 25, 130, 48] },
     powers: [
-      { name: "Di", domain: "supreme power, harvests", rank: "paramount" },
+      {
+        name: "Di",
+        wiki: "https://en.wikipedia.org/wiki/Shangdi",
+        domain: "supreme power, harvests",
+        rank: "paramount",
+      },
       {
         name: "The ancestors",
         domain: "household and clan, intercession",
@@ -172,10 +190,12 @@ export const eastAsia: readonly BeliefSystem[] = [
   {
     id: "zhou-heaven-rites",
     label: "Early Zhou Heaven and ancestral rites",
+    wiki: "https://en.wikipedia.org/wiki/Tian",
     scope: { years: [-1046, -500], bounds: [100, 25, 135, 48] },
     powers: [
       {
         name: "Tian",
+        wiki: "https://en.wikipedia.org/wiki/Tian",
         domain: "Heaven, the mandate, cosmic order",
         rank: "paramount",
       },
@@ -228,10 +248,12 @@ export const eastAsia: readonly BeliefSystem[] = [
   {
     id: "warring-states-qin",
     label: "Warring States and Qin period belief",
+    wiki: "https://en.wikipedia.org/wiki/Chinese_folk_religion",
     scope: { years: [-500, -206], bounds: [95, 20, 140, 50] },
     powers: [
       {
         name: "Tian",
+        wiki: "https://en.wikipedia.org/wiki/Tian",
         domain: "Heaven, cosmic order, mandate",
         rank: "paramount",
       },
@@ -291,6 +313,7 @@ export const eastAsia: readonly BeliefSystem[] = [
   {
     id: "han-popular",
     label: "Han dynasty popular religion",
+    wiki: "https://en.wikipedia.org/wiki/Chinese_folk_religion",
     scope: { years: [-206, 300], bounds: [95, 18, 135, 52] },
     powers: [
       {
@@ -300,6 +323,7 @@ export const eastAsia: readonly BeliefSystem[] = [
       },
       {
         name: "Xiwangmu",
+        wiki: "https://en.wikipedia.org/wiki/Xiwangmu",
         domain: "immortality, the western paradise",
         rank: "major",
       },
@@ -360,15 +384,18 @@ export const eastAsia: readonly BeliefSystem[] = [
   {
     id: "six-dynasties-buddhism",
     label: "Six Dynasties Buddhist practice",
+    wiki: "https://en.wikipedia.org/wiki/Chinese_Buddhism",
     scope: { years: [300, 650], bounds: [100, 20, 140, 50] },
     powers: [
       {
         name: "Buddha",
+        wiki: "https://en.wikipedia.org/wiki/Gautama_Buddha",
         domain: "enlightenment, salvation from suffering",
         rank: "paramount",
       },
       {
         name: "Bodhisattvas",
+        wiki: "https://en.wikipedia.org/wiki/Bodhisattva",
         domain: "compassion, intercession for the living",
         rank: "major",
       },
@@ -419,15 +446,18 @@ export const eastAsia: readonly BeliefSystem[] = [
   {
     id: "tang-syncretism",
     label: "Tang dynasty syncretism",
+    wiki: "https://en.wikipedia.org/wiki/Sanjiao",
     scope: { years: [618, 960], bounds: [95, 18, 140, 52] },
     powers: [
       {
         name: "The Three Jewels",
+        wiki: "https://en.wikipedia.org/wiki/Three_Jewels",
         domain: "Buddha, Dharma, Sangha",
         rank: "paramount",
       },
       {
         name: "Daoist immortals",
+        wiki: "https://en.wikipedia.org/wiki/Xian_(Taoism)",
         domain: "longevity, alchemy, transcendence",
         rank: "major",
       },
@@ -438,6 +468,7 @@ export const eastAsia: readonly BeliefSystem[] = [
       },
       {
         name: "City god",
+        wiki: "https://en.wikipedia.org/wiki/Chenghuangshen",
         domain: "urban order and moral record",
         rank: "major",
       },
@@ -448,6 +479,7 @@ export const eastAsia: readonly BeliefSystem[] = [
       },
       {
         name: "Kitchen god",
+        wiki: "https://en.wikipedia.org/wiki/Kitchen_God",
         domain: "household sustenance and the moral report",
         rank: "local",
       },
@@ -488,6 +520,7 @@ export const eastAsia: readonly BeliefSystem[] = [
   {
     id: "song-ming-pantheon",
     label: "Song and Ming household pantheon",
+    wiki: "https://en.wikipedia.org/wiki/Chinese_folk_religion",
     scope: { years: [960, 1700], bounds: [95, 15, 140, 52] },
     powers: [
       {
@@ -502,22 +535,26 @@ export const eastAsia: readonly BeliefSystem[] = [
       },
       {
         name: "City god",
+        wiki: "https://en.wikipedia.org/wiki/Chenghuangshen",
         domain: "order, moral accounting, justice",
         rank: "major",
       },
       {
         name: "Guanyin",
+        wiki: "https://en.wikipedia.org/wiki/Guanyin",
         domain: "compassion, childbirth, relief",
         rank: "major",
       },
       {
         name: "Mazu",
+        wiki: "https://en.wikipedia.org/wiki/Mazu",
         domain: "sea protection, maritime safety",
         rank: "major",
         relation: { kind: "aspect-of", of: "Guanyin" },
       },
       {
         name: "Kitchen god",
+        wiki: "https://en.wikipedia.org/wiki/Kitchen_God",
         domain: "household sustenance and moral report",
         rank: "local",
       },
@@ -563,6 +600,7 @@ export const eastAsia: readonly BeliefSystem[] = [
   {
     id: "late-imperial-village",
     label: "Late imperial rural practice",
+    wiki: "https://en.wikipedia.org/wiki/Chinese_folk_religion",
     scope: { years: [1700, 1912], bounds: [95, 18, 140, 50] },
     powers: [
       {
@@ -577,11 +615,13 @@ export const eastAsia: readonly BeliefSystem[] = [
       },
       {
         name: "Kitchen god",
+        wiki: "https://en.wikipedia.org/wiki/Kitchen_God",
         domain: "household sustenance and harmony",
         rank: "major",
       },
       {
         name: "Guanyin",
+        wiki: "https://en.wikipedia.org/wiki/Guanyin",
         domain: "compassion, childbirth, healing",
         rank: "local",
       },
@@ -622,6 +662,7 @@ export const eastAsia: readonly BeliefSystem[] = [
   {
     id: "korean-three-kingdoms",
     label: "Korean Three Kingdoms shamanic practice",
+    wiki: "https://en.wikipedia.org/wiki/Korean_shamanism",
     scope: { years: [-37, 800], bounds: [120, 30, 140, 50] },
     powers: [
       {
@@ -686,15 +727,18 @@ export const eastAsia: readonly BeliefSystem[] = [
   {
     id: "koryo-buddhism",
     label: "Koryo kingdom Buddhism",
+    wiki: "https://en.wikipedia.org/wiki/Buddhism_in_Korea",
     scope: { years: [800, 1450], bounds: [120, 30, 140, 50] },
     powers: [
       {
         name: "Buddha",
+        wiki: "https://en.wikipedia.org/wiki/Gautama_Buddha",
         domain: "enlightenment, salvation",
         rank: "paramount",
       },
       {
         name: "Bodhisattvas",
+        wiki: "https://en.wikipedia.org/wiki/Bodhisattva",
         domain: "compassion, intercession",
         rank: "major",
       },
@@ -750,10 +794,12 @@ export const eastAsia: readonly BeliefSystem[] = [
   {
     id: "heian-shinto-buddhism",
     label: "Heian period Shinto-Buddhist synthesis",
+    wiki: "https://en.wikipedia.org/wiki/Shinbutsu-sh%C5%ABg%C5%8D",
     scope: { years: [794, 1200], bounds: [128, 30, 148, 48] },
     powers: [
       {
         name: "Amaterasu",
+        wiki: "https://en.wikipedia.org/wiki/Amaterasu",
         domain: "the sun, imperial descent, national order",
         rank: "paramount",
       },
@@ -774,6 +820,7 @@ export const eastAsia: readonly BeliefSystem[] = [
       },
       {
         name: "Ujigami",
+        wiki: "https://en.wikipedia.org/wiki/Ujigami",
         domain: "clan protection and blessing",
         rank: "local",
         relation: { kind: "aspect-of", of: "Local kami" },
@@ -815,15 +862,18 @@ export const eastAsia: readonly BeliefSystem[] = [
   {
     id: "medieval-japan-pure-land",
     label: "Medieval Japan Pure Land Buddhism",
+    wiki: "https://en.wikipedia.org/wiki/Pure_Land_Buddhism",
     scope: { years: [1200, 1620], bounds: [128, 28, 148, 50] },
     powers: [
       {
         name: "Amida Buddha",
+        wiki: "https://en.wikipedia.org/wiki/Amitabha",
         domain: "salvation, the Pure Land",
         rank: "paramount",
       },
       {
         name: "Bodhisattva Kannon",
+        wiki: "https://en.wikipedia.org/wiki/Kannon",
         domain: "compassion, childbirth, healing",
         rank: "major",
       },
@@ -879,6 +929,7 @@ export const eastAsia: readonly BeliefSystem[] = [
   {
     id: "tokugawa-household-buddhism",
     label: "Tokugawa household Buddhism",
+    wiki: "https://en.wikipedia.org/wiki/Danka_system",
     scope: { years: [1620, 1950], bounds: [128, 28, 148, 50] },
     powers: [
       {
@@ -893,6 +944,7 @@ export const eastAsia: readonly BeliefSystem[] = [
       },
       {
         name: "Kannon",
+        wiki: "https://en.wikipedia.org/wiki/Kannon",
         domain: "compassion, childbirth, healing",
         rank: "major",
       },
@@ -908,6 +960,7 @@ export const eastAsia: readonly BeliefSystem[] = [
       },
       {
         name: "Amida Buddha",
+        wiki: "https://en.wikipedia.org/wiki/Amitabha",
         domain: "rebirth in the Pure Land at death",
         rank: "local",
       },
@@ -944,6 +997,7 @@ export const eastAsia: readonly BeliefSystem[] = [
   {
     id: "joseon-korea-confucianism",
     label: "Joseon Korea Confucian and shamanic tradition",
+    wiki: "https://en.wikipedia.org/wiki/Korean_Confucianism",
     scope: { years: [1450, 1910], bounds: [120, 30, 140, 50] },
     powers: [
       {
@@ -1008,6 +1062,7 @@ export const eastAsia: readonly BeliefSystem[] = [
   {
     id: "ryukyu-ancestor-kami",
     label: "Ryukyu Islands ancestor and kami veneration",
+    wiki: "https://en.wikipedia.org/wiki/Ryukyuan_religion",
     scope: { years: [1200, 1950], bounds: [123, 24, 133, 32] },
     powers: [
       {
@@ -1071,6 +1126,7 @@ export const eastAsia: readonly BeliefSystem[] = [
   {
     id: "southwest-china-farming",
     label: "Southwest China and Southeast Asia borderland practice",
+    wiki: "https://en.wikipedia.org/wiki/Chinese_folk_religion",
     scope: { years: [1000, 1950], bounds: [90, 15, 110, 35] },
     powers: [
       {
@@ -1134,6 +1190,7 @@ export const eastAsia: readonly BeliefSystem[] = [
   {
     id: "tibetan-plateau-practice",
     label: "Tibetan Plateau and Qaidam Basin pastoralist tradition",
+    wiki: "https://en.wikipedia.org/wiki/Bon",
     scope: { years: [800, 1950], bounds: [88, 30, 110, 45] },
     powers: [
       {
@@ -1197,6 +1254,7 @@ export const eastAsia: readonly BeliefSystem[] = [
   {
     id: "modern-east-asia",
     label: "Modern East Asian practice and transition",
+    wiki: "https://en.wikipedia.org/wiki/Chinese_folk_religion",
     scope: { years: [1900, 2020], bounds: [90, 15, 150, 55] },
     powers: [
       {
@@ -1205,57 +1263,76 @@ export const eastAsia: readonly BeliefSystem[] = [
         rank: "paramount",
       },
       {
-        name: "The nation",
-        domain: "modern identity, collective order",
+        name: "Guanyin",
+        wiki: "https://en.wikipedia.org/wiki/Guanyin",
+        domain: "compassion, healing, childbirth",
         rank: "major",
       },
       {
-        name: "The earth and harvest",
-        domain: "livelihood, connection to place",
+        name: "Mazu",
+        wiki: "https://en.wikipedia.org/wiki/Mazu",
+        domain: "the sea, protection, safe travel",
         rank: "major",
       },
       {
-        name: "The city or village",
-        domain: "community, local order",
+        name: "Amaterasu",
+        wiki: "https://en.wikipedia.org/wiki/Amaterasu",
+        domain: "the sun, Japan's kami, national order",
+        rank: "major",
+      },
+      {
+        name: "Tudigong",
+        wiki: "https://en.wikipedia.org/wiki/Tudigong",
+        domain: "the local earth god, the neighbourhood",
+        rank: "major",
+      },
+      {
+        name: "Zao Jun",
+        wiki: "https://en.wikipedia.org/wiki/Kitchen_God",
+        domain: "the stove, household report to Heaven",
         rank: "local",
       },
       {
-        name: "The household",
-        domain: "family protection, daily life",
+        name: "Guan Yu",
+        wiki: "https://en.wikipedia.org/wiki/Guan_Yu",
+        domain: "loyalty, war, prosperity in trade",
         rank: "local",
       },
       {
-        name: "Memory and education",
-        domain: "transmitted knowledge, ethics",
+        name: "The City God",
+        wiki: "https://en.wikipedia.org/wiki/Chenghuangshen",
+        domain: "urban order, the moral record",
         rank: "local",
       },
       {
-        name: "The land and place",
-        domain: "local identity, connection",
+        name: "Inari",
+        wiki: "https://en.wikipedia.org/wiki/Inari_%C5%8Ckami",
+        domain: "rice, foxes, prosperity",
         rank: "local",
       },
     ],
     practice: [
-      "Household altars persist, often simplified; ancestor days are kept.",
-      "Modern holidays mix traditional and national commemorations.",
-      "Urban populations maintain folk practices alongside modernized religion.",
-      "Traditional rites adapt to new contexts: factory shrines, school ceremonies, civic celebrations.",
+      "Household altars persist, often simplified; incense goes to the ancestors and to Guanyin or Mazu depending on the region.",
+      "Zao Jun's paper image is sent off before the new year with sweets to sweeten his report to Heaven.",
+      "Fishing and coastal families keep Mazu's temples busy; city shrines to the City God and Tudigong mark neighbourhoods.",
+      "In Japan, shrines to Amaterasu and Inari persist alongside Buddhist temples and the household kami shelf.",
     ],
     specialist:
-      "Ritual specialists coexist with secular authorities; the family elder at home.",
+      "Temple priests and Daoist or Buddhist ritual specialists coexist with secular authorities; the family elder at home.",
     afterlife:
-      "Ideas of the afterlife reflect hybrid beliefs: traditional ancestors, modern social memory, ethical judgment.",
+      "Ideas of the afterlife reflect hybrid beliefs: ancestors kept at the household shrine, judgment before the City God's court, or rebirth through Buddhist merit.",
     evidence: {
       status: "documented",
       claim:
-        "Twentieth and twenty-first century ethnography documents persistence of ancestor veneration and local practice despite modernization, Marxist suppression, war, and rapid social change; modern ritual blends traditional and contemporary forms.",
+        "Twentieth and twenty-first century ethnography documents persistence of household ancestor veneration and continued devotion to Guanyin, Mazu, Zao Jun, Guan Yu, Tudigong, and the City God across China and the diaspora, and to Amaterasu and Inari in Japan, despite modernization, Marxist suppression, war, and rapid social change.",
       sources: [
         "Wolf, 'The Woman Who Didn't Become a Shaman'",
         "Cohen, 'Being Chinese'",
         "Reader & Tanabe, Practically Religious",
+        "Feuchtwang, Popular Religion in China",
       ],
       limitation:
-        "Wide diversity across the region and rapid change mean this is an approximation; individual variation is enormous and local practice continues to evolve.",
+        "Wide diversity across the region and rapid change mean this is an approximation; which figures a household actually addresses varies enormously by locality, and practice continues to evolve.",
     },
   },
 ];

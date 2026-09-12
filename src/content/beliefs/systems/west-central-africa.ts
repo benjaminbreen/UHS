@@ -4,6 +4,7 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
   {
     id: "west-central-foragers",
     label: "West-central African forager practice",
+    wiki: "https://en.wikipedia.org/wiki/Traditional_African_religion",
     scope: { years: [-8000, -500], bounds: [-18, -10, 32, 20] },
     powers: [
       {
@@ -67,17 +68,19 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
         "Mitchell, The Archaeology of Southern Africa",
       ],
       limitation:
-        "No written forager records exist; this system flattens thousands of years and many distinct peoples into one schematic pattern.",
+        "No written forager records exist; this system flattens thousands of years and many distinct peoples into one schematic pattern. Unlike neighboring Bantu, Khoe, or Nilotic groups, these forest foragers' original languages are largely extinct or unrecorded (most communities today speak a Bantu or Ubangian language acquired from later neighbors), so no proto-language can be honestly reconstructed for the powers named here; the names stay descriptive rather than reach for a starred form with nothing behind it.",
     },
   },
   {
     id: "early-bantu-farmers",
     label: "Early Bantu farming and herding practice",
+    wiki: "https://en.wikipedia.org/wiki/Bantu_mythology",
     scope: { years: [-500, 500], bounds: [-18, -10, 32, 20] },
     powers: [
       {
-        name: "The sky",
-        domain: "rains, lightning, fertility",
+        name: "Nzambi",
+        wiki: "https://en.wikipedia.org/wiki/Nzambi_a_Mpungu",
+        domain: "the sky, the creator, rarely approached directly",
         rank: "paramount",
       },
       {
@@ -86,8 +89,8 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
         rank: "major",
       },
       {
-        name: "The ancestors",
-        domain: "the lineage, the homestead, protection",
+        name: "Midzimu",
+        domain: "the ancestral spirits of the lineage, protection",
         rank: "major",
       },
       {
@@ -96,13 +99,19 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
         rank: "major",
       },
       {
+        name: "Kalunga",
+        wiki: "https://en.wikipedia.org/wiki/Kalunga",
+        domain: "the boundary between the living and the dead, river crossings",
+        rank: "local",
+      },
+      {
         name: "The smiths' fire",
         domain: "iron, tools, transformation",
         rank: "local",
       },
       {
-        name: "The village head's spirit",
-        domain: "law, justice, settlement order",
+        name: "Nkumu",
+        domain: "the chief's spirit, law, settlement order",
         rank: "local",
       },
       {
@@ -110,53 +119,53 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
         domain: "game, medicine, danger",
         rank: "local",
       },
-      {
-        name: "The water source",
-        domain: "drinking, healing, crossing",
-        rank: "local",
-      },
     ],
     practice: [
       "Crops planted with greeting to the earth and asking permission from the forest.",
-      "Beer poured and meat shared with ancestors before eating.",
-      "At a death, the body is buried in the homestead yard, joining protective ancestors.",
+      "Beer poured and meat shared with the midzimu before eating.",
+      "At a death, the body is buried in the homestead yard, joining the protective midzimu.",
       "Smiths work iron in ritual quiet; metal holds power and must be treated with respect.",
     ],
     specialist:
-      "The lineage elder; the smith for technical knowledge; the rainmaker.",
+      "The lineage elder and the nkumu; the smith for technical knowledge; the rainmaker.",
     afterlife:
-      "The dead become ancestors dwelling in or near the homestead, watching and guiding descendants.",
+      "The dead become midzimu dwelling in or near the homestead, watching and guiding descendants; a death without proper rites can leave them stranded at Kalunga's boundary.",
     evidence: {
-      status: "inferred",
+      status: "hypothesis",
       claim:
-        "Iron-working settlements across central Africa from -500 onward show agricultural and pastoral practices consistent with Bantu expansion; ethnography of later Bantu groups documents lineage-based ancestor veneration and iron ritual.",
+        "Iron-working settlements across central Africa from -500 onward show agricultural and pastoral practices consistent with Bantu expansion. Nzambi, the midzimu, and Kalunga reflect terms and concepts broadly reconstructed across daughter Bantu languages for the creator, the ancestral dead, and the boundary between living and dead.",
       sources: [
         "Huffman, Handbook to the Iron Age",
         "Mitchell, The Archaeology of Southern Africa",
         "Vansina, Paths in the Rainforests",
       ],
       limitation:
-        "Early Bantu beliefs are not directly documented; this entry is inferred from archaeology and later oral tradition, flattening real regional and temporal variation.",
+        "Early Bantu beliefs of this era are not directly documented; these names are comparative reconstructions from later Bantu-language reflexes, projected back onto a period that left no record of what anyone actually called these powers.",
     },
   },
+
   {
     id: "regional-kingdoms-era",
     label: "Regional kingdoms and savanna practice",
+    wiki: "https://en.wikipedia.org/wiki/Bantu_mythology",
     scope: { years: [500, 1200], bounds: [-18, -10, 32, 20] },
     powers: [
       {
-        name: "The high god",
-        domain: "the creator, rarely named directly",
+        name: "Nzambi a Mpungu",
+        wiki: "https://en.wikipedia.org/wiki/Nzambi_a_Mpungu",
+        domain: "the creator, distant and rarely invoked directly",
         rank: "paramount",
       },
       {
-        name: "The king's spirit",
-        domain: "law, order, prosperity of the land",
+        name: "Mbidi Kiluwe",
+        domain: "the founding hero-king, the royal ancestral line",
         rank: "major",
       },
       {
-        name: "The ancestors",
-        domain: "the kingdom's founding line, protection",
+        name: "Kalunga",
+        wiki: "https://en.wikipedia.org/wiki/Kalunga",
+        domain:
+          "the boundary between the living and the dead, kingship's sanction",
         rank: "major",
       },
       {
@@ -165,13 +174,13 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
         rank: "major",
       },
       {
-        name: "The rivers",
-        domain: "water, crossing, local power",
+        name: "Mbumba",
+        domain: "the rainbow serpent, rivers, crossing, local power",
         rank: "major",
       },
       {
-        name: "Thunder",
-        domain: "divine punishment and power",
+        name: "Nkuba",
+        domain: "thunder, divine punishment and power",
         rank: "local",
       },
       {
@@ -191,40 +200,45 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
       },
     ],
     practice: [
-      "The king makes annual offerings to ensure rain and good harvest.",
-      "Ancestors are honored with libations; the founders of the kingdom receive special feasts.",
+      "The king makes annual offerings to Nzambi a Mpungu and to Kalunga to ensure rain and good harvest.",
+      "The royal ancestors are honored with libations; Mbidi Kiluwe and the kingdom's founders receive special feasts.",
       "Markets open on set days marked by ritual and protected by local powers.",
       "Smiths work in recognized guild with ritual prohibitions and secret knowledge.",
     ],
     specialist:
       "The king or his designated ritual deputy; smiths with guild knowledge; market elders.",
     afterlife:
-      "The dead join the ancestors; powerful people may become localized spirits for their place.",
+      "The dead join the royal ancestors across Kalunga's boundary; a founder like Mbidi Kiluwe may become a localized spirit for his place.",
     evidence: {
-      status: "inferred",
+      status: "hypothesis",
       claim:
-        "Archaeological evidence of organized settlements, trade networks, and craft specialization from 500 onward suggests hierarchical societies; later kingdoms' practices project back to infer this era's structure.",
+        "Archaeological evidence of organized settlements, trade networks, and craft specialization from 500 onward suggests hierarchical societies. Nzambi a Mpungu, Kalunga, and the Luba founding hero Mbidi Kiluwe are documented in later Kongo and Luba oral tradition and comparative Bantu religion, and are projected back onto this era's kingdoms.",
       sources: [
         "McIntosh, Ancient Middle Niger",
         "Connah, African Civilizations",
         "Vansina, Paths in the Rainforests",
+        "de Heusch, The Drunken King",
       ],
       limitation:
-        "This is a schematic summary covering vast regional variation across five centuries. Specific kingdoms had their own systems; this describes common patterns among them.",
+        "This is a schematic summary covering vast regional variation across seven centuries and at least two distinct traditions (Kongo, Luba); these named figures are attested mainly in oral traditions recorded centuries after this era closed.",
     },
   },
+
   {
     id: "islamic-trade-era",
     label: "Islamic trade and adaptation",
+    wiki: "https://en.wikipedia.org/wiki/Islam_in_Africa",
     scope: { years: [1200, 1600], bounds: [-18, 11, 32, 20] },
     powers: [
       {
         name: "Allah",
+        wiki: "https://en.wikipedia.org/wiki/Allah",
         domain: "the one god, ultimate power",
         rank: "paramount",
       },
       {
         name: "The Prophet Muhammad",
+        wiki: "https://en.wikipedia.org/wiki/Muhammad",
         domain: "the messenger, intercession",
         rank: "major",
       },
@@ -235,6 +249,7 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
       },
       {
         name: "The Qur'an",
+        wiki: "https://en.wikipedia.org/wiki/Quran",
         domain: "divine speech, protection in amulets",
         rank: "major",
       },
@@ -245,6 +260,7 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
       },
       {
         name: "Jinn",
+        wiki: "https://en.wikipedia.org/wiki/Jinn",
         domain: "spirits of place, hidden power",
         rank: "local",
       },
@@ -290,30 +306,36 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
   {
     id: "yoruba-orisha",
     label: "Yoruba orisha practice",
+    wiki: "https://en.wikipedia.org/wiki/Yoruba_religion",
     scope: { years: [900, 1750], bounds: [-2, 2, 10, 14] },
     powers: [
       {
         name: "Olorun",
+        wiki: "https://en.wikipedia.org/wiki/Olorun",
         domain: "the high god, the sky",
         rank: "paramount",
       },
       {
         name: "Orunmila",
+        wiki: "https://en.wikipedia.org/wiki/Orunmila",
         domain: "divination, destiny, fate",
         rank: "major",
       },
       {
         name: "Shango",
+        wiki: "https://en.wikipedia.org/wiki/Shango",
         domain: "thunder, justice, war",
         rank: "major",
       },
       {
         name: "Oshun",
+        wiki: "https://en.wikipedia.org/wiki/Oshun",
         domain: "rivers, fertility, beauty",
         rank: "major",
       },
       {
         name: "Yemoja",
+        wiki: "https://en.wikipedia.org/wiki/Yemoja",
         domain: "the ocean, motherhood",
         rank: "major",
       },
@@ -324,6 +346,7 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
       },
       {
         name: "Eleggua",
+        wiki: "https://en.wikipedia.org/wiki/Eshu",
         domain: "crossroads, boundaries, trickster",
         rank: "local",
       },
@@ -369,10 +392,12 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
   {
     id: "igbo-chi",
     label: "Igbo chi and earth practice",
+    wiki: "https://en.wikipedia.org/wiki/Odinani",
     scope: { years: [900, 1750], bounds: [6, 4, 12, 10] },
     powers: [
       {
         name: "Chukwu",
+        wiki: "https://en.wikipedia.org/wiki/Chukwu",
         domain: "the creator god, sky and fate",
         rank: "paramount",
       },
@@ -443,6 +468,7 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
   {
     id: "akan-suman",
     label: "Akan suman and abosom practice",
+    wiki: "https://en.wikipedia.org/wiki/Akan_religion",
     scope: { years: [1000, 1750], bounds: [-6, 2, 4, 10] },
     powers: [
       {
@@ -452,6 +478,7 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
       },
       {
         name: "Asase Ya",
+        wiki: "https://en.wikipedia.org/wiki/Asase_Ya",
         domain: "the earth, fertility, the dead",
         rank: "major",
       },
@@ -512,15 +539,18 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
   {
     id: "dogon-mande",
     label: "Dogon cosmology and Mande spirit practice",
+    wiki: "https://en.wikipedia.org/wiki/Dogon_religion",
     scope: { years: [1200, 1750], bounds: [-18, 4, 10, 20] },
     powers: [
       {
         name: "Amma",
+        wiki: "https://en.wikipedia.org/wiki/Amma_(deity)",
         domain: "the creator, the world-egg",
         rank: "paramount",
       },
       {
         name: "Nommo",
+        wiki: "https://en.wikipedia.org/wiki/Nommo",
         domain: "water, fertility, speech, the word",
         rank: "major",
       },
@@ -541,6 +571,7 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
       },
       {
         name: "The jinn",
+        wiki: "https://en.wikipedia.org/wiki/Jinn",
         domain: "spirits of place, the bush and river",
         rank: "local",
       },
@@ -581,21 +612,23 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
   {
     id: "hausa-bori",
     label: "Hausa bori and spirit possession",
+    wiki: "https://en.wikipedia.org/wiki/Bori_(religion)",
     scope: { years: [1000, 1500], bounds: [4, 10, 15, 15] },
     powers: [
       {
-        name: "Ubandawaki",
-        domain: "the high god, destiny",
+        name: "Allah",
+        wiki: "https://en.wikipedia.org/wiki/Allah",
+        domain: "the distant creator, destiny",
         rank: "paramount",
       },
       {
-        name: "The bori",
-        domain: "the great spirits, possessing and healing",
+        name: "Sarkin Rafi",
+        domain: "chief of the river spirits, water and illness",
         rank: "major",
       },
       {
-        name: "Sarki",
-        domain: "the chief spirit, kingship and prosperity",
+        name: "Dan Galadima",
+        domain: "the princely spirit, youth and ambition",
         rank: "major",
       },
       {
@@ -604,18 +637,18 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
         rank: "major",
       },
       {
+        name: "Kuturu",
+        domain: "leprosy, disease, and its healing",
+        rank: "local",
+      },
+      {
+        name: "Inna",
+        domain: "mothers, midwives, the household",
+        rank: "local",
+      },
+      {
         name: "The gida",
         domain: "household spirits",
-        rank: "local",
-      },
-      {
-        name: "The ruwa",
-        domain: "water spirits and illness",
-        rank: "local",
-      },
-      {
-        name: "The mai",
-        domain: "place spirits and their owners",
         rank: "local",
       },
       {
@@ -627,38 +660,42 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
     practice: [
       "A spirit may possess a woman or man, speaking through them and demanding gifts.",
       "The possessed are honored; they become mediums between the human and spirit world.",
-      "A drum calls the bori to gather; they dance and are fed.",
-      "Some spirits bring illness; a healer negotiates with them on behalf of the sick.",
+      "A drum calls Sarkin Rafi, Dan Galadima, and the other bori to gather; they dance and are fed.",
+      "Kuturu and other spirits bring illness; a healer negotiates with them on behalf of the sick.",
     ],
     specialist:
-      "The mai bori (spirit medium) and the magajiya (priestess who leads the bori cult).",
+      "The mai bori (spirit medium) and the magajiya (priestess who leads the bori cult); Inna's devotees among midwives and mothers.",
     afterlife:
-      "A person of power may become a spirit after death, joining the bori.",
+      "A person of power may become a spirit after death, joining Sarkin Rafi, Dan Galadima, and the other bori.",
     evidence: {
       status: "documented",
       claim:
-        "Hausa bori spirit possession, the role of mediums and priestesses, and the relationship to pre-Islamic Hausa religion are documented in early colonial records and in twentieth-century ethnography.",
+        "Hausa bori spirit possession and its named iskoki, among them Sarkin Rafi, Dan Galadima, Kuturu, and Inna, are documented in early colonial records and in twentieth-century ethnography, alongside the distant creator Allah recognized even in pre-Islamic Hausa cosmology.",
       sources: [
         "Besmer, Horses of God",
         "Masquelier, Prayer Has Spoiled Everything",
         "Masquelier, Dirt, Undress, and Difference",
       ],
       limitation:
-        "Bori remained most robust in rural areas as Islam took hold of Hausa cities from 1500 onward. This entry represents the pre-Islamic or minimally Islamic form.",
+        "Bori remained most robust in rural areas as Islam took hold of Hausa cities from 1500 onward. This entry represents the pre-Islamic or minimally Islamic form; the roster of iskoki is far larger than the handful named here.",
     },
   },
+
   {
     id: "hausa-islamic",
     label: "Hausa Islam with older layered practice",
+    wiki: "https://en.wikipedia.org/wiki/Islam_in_Nigeria",
     scope: { years: [1500, 1900], bounds: [-4, 10, 18, 18] },
     powers: [
       {
         name: "Allah",
+        wiki: "https://en.wikipedia.org/wiki/Allah",
         domain: "the one god, ultimate power",
         rank: "paramount",
       },
       {
         name: "The Prophet Muhammad",
+        wiki: "https://en.wikipedia.org/wiki/Muhammad",
         domain: "the messenger, intercession",
         rank: "major",
       },
@@ -669,6 +706,7 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
       },
       {
         name: "The Qur'an",
+        wiki: "https://en.wikipedia.org/wiki/Quran",
         domain: "divine speech and power",
         rank: "major",
       },
@@ -679,6 +717,7 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
       },
       {
         name: "The jinn",
+        wiki: "https://en.wikipedia.org/wiki/Jinn",
         domain: "supernatural beings, trouble and protection",
         rank: "local",
       },
@@ -718,15 +757,18 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
   {
     id: "fon-vodun",
     label: "Fon and Dahomey vodun",
+    wiki: "https://en.wikipedia.org/wiki/West_African_Vodun",
     scope: { years: [1400, 1900], bounds: [-4, 4, 8, 14] },
     powers: [
       {
         name: "Mawu-Lisa",
+        wiki: "https://en.wikipedia.org/wiki/Mawu-Lisa",
         domain: "the high god and creator",
         rank: "paramount",
       },
       {
         name: "Legba",
+        wiki: "https://en.wikipedia.org/wiki/Legba",
         domain: "crossroads, boundaries, trickster and opener of the way",
         rank: "major",
       },
@@ -742,6 +784,7 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
       },
       {
         name: "Oshun",
+        wiki: "https://en.wikipedia.org/wiki/Oshun",
         domain: "rivers, women, fertility",
         rank: "major",
       },
@@ -762,6 +805,7 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
       },
       {
         name: "Hevioso",
+        wiki: "https://en.wikipedia.org/wiki/Hevioso",
         domain: "thunder and the sky",
         rank: "local",
       },
@@ -792,15 +836,18 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
   {
     id: "kongo-nkisi",
     label: "Kongo nkisi and ancestral power",
+    wiki: "https://en.wikipedia.org/wiki/Kongo_religion",
     scope: { years: [1450, 1850], bounds: [10, -10, 28, 5] },
     powers: [
       {
         name: "Nzambi",
+        wiki: "https://en.wikipedia.org/wiki/Nzambi_a_Mpungu",
         domain: "the high god, the creator",
         rank: "paramount",
       },
       {
         name: "The nkisi",
+        wiki: "https://en.wikipedia.org/wiki/Nkisi",
         domain: "spirits bound in objects, healing and justice",
         rank: "major",
       },
@@ -816,6 +863,7 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
       },
       {
         name: "Kalunga",
+        wiki: "https://en.wikipedia.org/wiki/Kalunga",
         domain: "the boundary between the living and the dead",
         rank: "major",
       },
@@ -866,16 +914,19 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
   {
     id: "central-forest-spirits",
     label: "Central African forest spirits and earth power",
+    wiki: "https://en.wikipedia.org/wiki/Kongo_religion",
     scope: { years: [1000, 1800], bounds: [2, -10, 32, 8] },
     powers: [
       {
-        name: "The creator",
-        domain: "the high god, rarely named or addressed",
+        name: "Nzambi a Mpungu",
+        wiki: "https://en.wikipedia.org/wiki/Nzambi_a_Mpungu",
+        domain: "the creator, rarely named or addressed directly",
         rank: "paramount",
       },
       {
-        name: "Enuma",
-        domain: "the earth, growth and death",
+        name: "The simbi",
+        wiki: "https://en.wikipedia.org/wiki/Simbi",
+        domain: "spirits of water, stone, and forest place, healing",
         rank: "major",
       },
       {
@@ -884,17 +935,27 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
         rank: "major",
       },
       {
-        name: "The waters",
-        domain: "healing, danger, initiation",
-        rank: "major",
-      },
-      {
         name: "Lightning",
         domain: "divine power and punishment",
         rank: "major",
       },
       {
-        name: "The ancestors",
+        name: "The bisimbi",
+        wiki: "https://en.wikipedia.org/wiki/Simbi",
+        domain: "the spirits of particular streams and springs, initiation",
+        rank: "local",
+      },
+      {
+        name: "The nkisi",
+        wiki: "https://en.wikipedia.org/wiki/Nkisi",
+        domain:
+          "spirit-power bound in a figure by the nganga, protection and healing",
+        rank: "local",
+      },
+      {
+        name: "*Mudimu",
+        gloss:
+          "Proto-Bantu *-dima/*mudimu, a reconstructed term for an ancestral or lineage spirit.",
         domain: "the lineage's own dead, protection",
         rank: "local",
       },
@@ -903,38 +964,37 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
         domain: "dreams, the other world",
         rank: "local",
       },
-      {
-        name: "The village boundary",
-        domain: "protection and danger",
-        rank: "local",
-      },
     ],
     practice: [
       "The earth receives the first portions of game and grain.",
-      "A river crossing or a night in the forest is approached with respect and prayer.",
-      "Dreams carry messages from the ancestors and the other world.",
-      "Boys and girls undergo initiation in the forest, learning the knowledge held by water or earth.",
+      "A river crossing or a night in the forest is approached with respect and prayer to the simbi.",
+      "An nganga makes an nkisi to hold a spirit's power and seal an oath or heal the sick.",
+      "Boys and girls undergo initiation at the bisimbi's streams, learning the knowledge held by water or earth.",
     ],
     specialist:
-      "Elders and initiated persons teach the young; healers address the spirits.",
+      "Elders and initiated persons teach the young; the nganga addresses the simbi and makes the nkisi.",
     afterlife:
       "The dead join the ancestors; their names are called and their memory is kept in the living.",
     evidence: {
       status: "hypothesis",
       claim:
-        "Central African forest-dwelling peoples possessed earth-centered and animistic systems before intensive colonization. The specifics are inferred from scattered colonial reports and from later ethnography of surviving systems.",
+        "Central African forest-dwelling peoples possessed earth-centred and animistic systems before intensive colonization. Nzambi a Mpungu, the simbi and bisimbi water-and-forest spirits, and the nkisi objects made by the nganga are widely attested in Kongo-adjacent central African ethnography and are used here to name powers colonial-era sources otherwise recorded only in translation.",
       sources: [
         "Turnbull, The Forest People",
         "Rey, The Network of the Gods",
         "Kisliuk, Seizing the Dance",
+        "MacGaffey, Religion and Society in Central Africa",
+        "Bastin, Coupez, and Mumba, Bantu Lexical Reconstructions",
       ],
       limitation:
-        "No written sources predate colonization; this entry is based on twentieth-century ethnography projected back and on colonial observations. The named powers are descriptive rather than recovered proper names.",
+        "No written sources predate colonization; this entry is based on twentieth-century ethnography of Kongo-related and neighbouring central African traditions, projected back and applied more broadly across the forest region than any single people practiced them. *Mudimu is a Proto-Bantu comparative reconstruction, not a recovered theonym: nobody in this period is recorded speaking it, and a word for ancestral spirit is not evidence of the specific lineage cult described here.",
     },
   },
+
   {
     id: "atlantic-trade-era",
     label: "Atlantic trade era adaptation",
+    wiki: "https://en.wikipedia.org/wiki/Traditional_African_religion",
     scope: { years: [1600, 1850], bounds: [-18, -10, 32, 20] },
     powers: [
       {
@@ -1009,10 +1069,12 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
   {
     id: "colonial-period",
     label: "Colonial period and Christian expansion",
+    wiki: "https://en.wikipedia.org/wiki/Christianity_in_Africa",
     scope: { years: [1850, 1950], bounds: [-18, -10, 32, 20] },
     powers: [
       {
         name: "God",
+        wiki: "https://en.wikipedia.org/wiki/God",
         domain: "the Christian God, often aligned with colonial authority",
         rank: "paramount",
       },
@@ -1023,6 +1085,7 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
       },
       {
         name: "Jesus Christ",
+        wiki: "https://en.wikipedia.org/wiki/Jesus",
         domain: "redemption, mission teaching",
         rank: "major",
       },
@@ -1083,20 +1146,24 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
   {
     id: "yoruba-nineteenth-century-christian",
     label: "Yoruba Christian mission encounter",
+    wiki: "https://en.wikipedia.org/wiki/Christianity_in_Nigeria",
     scope: { years: [1850, 1920], bounds: [-2, 2, 10, 14] },
     powers: [
       {
         name: "God",
+        wiki: "https://en.wikipedia.org/wiki/God",
         domain: "the creator and judge",
         rank: "paramount",
       },
       {
         name: "Jesus Christ",
+        wiki: "https://en.wikipedia.org/wiki/Jesus",
         domain: "redemption, sacrifice, incarnate god",
         rank: "major",
       },
       {
         name: "The Holy Spirit",
+        wiki: "https://en.wikipedia.org/wiki/Holy_Spirit",
         domain: "healing, prophecy, indwelling power",
         rank: "major",
       },
@@ -1107,6 +1174,7 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
       },
       {
         name: "The Virgin Mary",
+        wiki: "https://en.wikipedia.org/wiki/Mary,_mother_of_Jesus",
         domain: "motherhood, intercession",
         rank: "major",
       },

@@ -41,6 +41,8 @@ import { describeStats, statsOf, statKeys } from "../core/stats";
 import { abilitiesOf } from "../content/characters/abilities";
 import { livelihoodById } from "../content/characters/livelihoods";
 import { beliefOf, beliefsFor, unscopedBeliefs } from "../content/beliefs";
+import { glyphForPower } from "../content/beliefs/icons";
+import { GlyphIcon } from "./GlyphIcon";
 import { sexFromName } from "../content/characters/name-sex";
 import type { Runtime } from "../runtime/session";
 import type { Actor, PlayerCommand } from "../core/types";
@@ -495,7 +497,14 @@ export function CharacterPanel({
       )}
       {tab === "beliefs" && (
         <div className="character-tab">
-          <h1>{belief.patron.name}</h1>
+          <div className="patron">
+            <GlyphIcon
+              glyph={glyphForPower(belief.patron)}
+              rank={belief.patron.rank}
+              scale={4}
+            />
+            <h1>{belief.patron.name}</h1>
+          </div>
           <p className="summary">
             {belief.patron.domain} · {belief.observance} in observance
             {belief.paramount && belief.paramount !== belief.patron
@@ -507,9 +516,11 @@ export function CharacterPanel({
           <ul className="powers">
             {belief.system.powers.map((power) => (
               <li key={power.name} data-rank={power.rank}>
+                <GlyphIcon glyph={glyphForPower(power)} rank={power.rank} />
                 <span>
                   {power.name}
                   <small>
+                    {power.gloss ? `${power.gloss} · ` : ""}
                     {power.domain}
                     {power.relation
                       ? ` · ${power.relation.kind.replace("-", " ")} ${power.relation.of}`

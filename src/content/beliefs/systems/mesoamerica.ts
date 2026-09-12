@@ -4,15 +4,18 @@ export const mesoamerica: readonly BeliefSystem[] = [
   {
     id: "mesoamerican-foragers",
     label: "Ancestral Mesoamerican beliefs",
+    wiki: "https://en.wikipedia.org/wiki/Archaic_period_in_the_Americas",
     scope: { years: [-10000, -800], bounds: [-107, 12, -78, 25] },
     powers: [
       {
-        name: "The ancestors",
+        name: "*Mam",
+        gloss: "Proto-Mayan *mam, 'grandfather, ancestor'",
         domain: "lineage, the dead, guidance",
         rank: "paramount",
       },
       {
-        name: "The animal powers",
+        name: "*B'alam",
+        gloss: "Proto-Mayan *b'alam, 'jaguar'",
         domain: "game, hunting skill, transformation",
         rank: "major",
       },
@@ -55,22 +58,25 @@ export const mesoamerica: readonly BeliefSystem[] = [
     evidence: {
       status: "hypothesis",
       claim:
-        "Early Mesoamerican remains (Clovis-era points, middens, rock shelters) show sustained use of specific water sources and mountain passes. Ancestor veneration and animal transformation themes appear consistently in later Mesoamerican traditions from the Olmec onward, suggesting deep roots in forager cosmologies.",
+        "Early Mesoamerican remains (Clovis-era points, middens, rock shelters) show sustained use of specific water sources and mountain passes. Ancestor veneration and animal transformation themes appear consistently in later Mesoamerican traditions from the Olmec onward, suggesting deep roots in forager cosmologies. *Mam and *b'alam are reconstructed Proto-Mayan vocabulary, borrowed here as stand-in names for the ancestor- and animal-powers this record cannot otherwise name.",
       sources: [
         "Piperno & Flannery, 'The Earliest Archaeological Maize (Zea mays L.) from Highland Mexico'",
         "Flannery, 'The Origins of Agriculture in Mesoamerica and North America'",
+        "Kaufman, 'A Preliminary Mayan Etymological Dictionary'",
       ],
       limitation:
-        "Forager beliefs are not directly recoverable. This entry describes the likely common base from which later Mesoamerican traditions elaborated.",
+        "Forager beliefs are not directly recoverable, and no names survive from this period. Proto-Mayan is itself dated no earlier than about 2000 BCE, thousands of years after this entry begins in -10000; projecting its vocabulary onto Archaic-period foragers is a considerable stretch, kept only because it is the most defensible vocabulary available for the region, not because Mayan speech reaches back that far.",
     },
   },
   {
     id: "early-mesoamerican-farming",
     label: "Early Mesoamerican farming communities",
+    wiki: "https://en.wikipedia.org/wiki/Mesoamerican_chronology",
     scope: { years: [-3000, -300], bounds: [-107, 12, -78, 25] },
     powers: [
       {
-        name: "The maize spirit",
+        name: "*Ixim",
+        gloss: "Proto-Mayan *ixim, 'maize'",
         domain: "crops, fertility, sustenance",
         rank: "paramount",
       },
@@ -90,7 +96,8 @@ export const mesoamerica: readonly BeliefSystem[] = [
         rank: "major",
       },
       {
-        name: "The household earth",
+        name: "*Kab'",
+        gloss: "Proto-Mayan *kab', 'earth, land, honey'",
         domain: "family settlement and fields",
         rank: "local",
       },
@@ -105,7 +112,8 @@ export const mesoamerica: readonly BeliefSystem[] = [
         rank: "local",
       },
       {
-        name: "The day keepers",
+        name: "*K'in",
+        gloss: "Proto-Mayan *k'in, 'day, sun'",
         domain: "timing of planting and harvest",
         rank: "local",
       },
@@ -123,18 +131,20 @@ export const mesoamerica: readonly BeliefSystem[] = [
     evidence: {
       status: "hypothesis",
       claim:
-        "Archaeological sites show stable village settlement across Mesoamerica by -3000 with domesticated maize, beans, and squash in storage. Maize-centered ritual appears in later Mesoamerican traditions and dominates Mesoamerican cosmology, suggesting maize veneration emerged early with farming adoption.",
+        "Archaeological sites show stable village settlement across Mesoamerica by -3000 with domesticated maize, beans, and squash in storage. Maize-centered ritual appears in later Mesoamerican traditions and dominates Mesoamerican cosmology, suggesting maize veneration emerged early with farming adoption. *Ixim, *kab', and *k'in are reconstructed Proto-Mayan words for maize, land, and the day/sun, used here as concept-names for powers no text ever recorded.",
       sources: [
         "Piperno et al., 'Maize in Prehistoric Central America: Phytoliths and Pollen Records'",
         "Zeder et al., 'Harvesting Change: Archaeology and the Transition to Agriculture'",
+        "Kaufman, 'A Preliminary Mayan Etymological Dictionary'",
       ],
       limitation:
-        "No written records survive. The detail and sophistication of later maize theology is projected backward; early farming communities likely held simpler forms.",
+        "No written records survive and no names are recoverable. The detail and sophistication of later maize theology is projected backward; early farming communities likely held simpler forms. The starred words are Proto-Mayan reconstructions, not attested theonyms, and this entry's Gulf and Chiapas farmers may equally have spoken early Mixe-Zoquean rather than Mayan.",
     },
   },
   {
     id: "olmec-early",
     label: "Olmec ritual practice",
+    wiki: "https://en.wikipedia.org/wiki/Olmecs",
     scope: { years: [-1500, -200], bounds: [-103, 14, -82, 20] },
     powers: [
       {
@@ -143,8 +153,9 @@ export const mesoamerica: readonly BeliefSystem[] = [
         rank: "paramount",
       },
       {
-        name: "The maize spirit",
-        domain: "fertility, crops, sustenance",
+        name: "*Kakawa",
+        gloss: "Proto-Mixe-Zoquean *kakawa, 'cacao'",
+        domain: "maize, cacao, fertility, sustenance",
         rank: "major",
       },
       { name: "The ancestors", domain: "lineage, the dead", rank: "major" },
@@ -164,8 +175,9 @@ export const mesoamerica: readonly BeliefSystem[] = [
         rank: "local",
       },
       {
-        name: "The bloodletting powers",
-        domain: "sacrifice, debt to the gods",
+        name: "*Poma",
+        gloss: "Proto-Mixe-Zoquean *pom, 'copal incense'",
+        domain: "incense, bloodletting, debt to the gods",
         rank: "local",
       },
       {
@@ -186,43 +198,50 @@ export const mesoamerica: readonly BeliefSystem[] = [
     evidence: {
       status: "hypothesis",
       claim:
-        "Olmec sculpture depicts a being combining human and jaguar features; jade working and depiction of bloodletting suggest sacrificial systems. Water and mountain orientation appears consistent across settlement layouts. Olmec influence spread across Mesoamerica, suggesting ideology shared with neighboring regions.",
+        "Olmec sculpture depicts a being combining human and jaguar features; jade working and depiction of bloodletting suggest sacrificial systems. Water and mountain orientation appears consistent across settlement layouts. Olmec influence spread across Mesoamerica, suggesting ideology shared with neighboring regions. Mixe-Zoquean is the language family most often proposed for the Olmec themselves, on the strength of early loanwords such as *kakawa and *pom that spread from Mixe-Zoquean into Mayan and other Mesoamerican languages alongside cacao and incense use.",
       sources: [
         "Cyphers, Olmec: America's First Civilization",
         "Grove, 'Olmec Archaeology: A Synthesis'",
         "Flannery & Marcus, 'The Cloud People'",
+        "Campbell & Kaufman, 'Mesoamerica as a Linguistic Area'",
       ],
       limitation:
-        "No written records survive. Deductions rest on monumental art and settlement patterns. Influence on later traditions is inferred.",
+        "No written records survive and no Olmec names are recoverable. Deductions rest on monumental art and settlement patterns, and the Mixe-Zoquean identification of the Olmec, while widely argued, is not certain. *Kakawa and *pom are reconstructed words carried by loanword evidence, not recovered Olmec theonyms.",
     },
   },
   {
     id: "maya-preclassic",
     label: "Preclassic Maya cosmology",
+    wiki: "https://en.wikipedia.org/wiki/Maya_civilization",
     scope: { years: [-1000, 300], bounds: [-97, 12, -78, 24] },
     powers: [
       {
         name: "Hunab Ku",
+        wiki: "https://en.wikipedia.org/wiki/Hunab_Ku",
         domain: "the creator, the sky, unity",
         rank: "paramount",
       },
       {
         name: "Chaac",
+        wiki: "https://en.wikipedia.org/wiki/Chaac",
         domain: "rain, lightning, storms",
         rank: "major",
       },
       {
         name: "Itzamna",
+        wiki: "https://en.wikipedia.org/wiki/Itzamna",
         domain: "earth, sky knowledge, healing",
         rank: "major",
       },
       {
         name: "The maize god",
+        wiki: "https://en.wikipedia.org/wiki/Maya_maize_god",
         domain: "maize, death, rebirth",
         rank: "major",
       },
       {
         name: "Xibalba",
+        wiki: "https://en.wikipedia.org/wiki/Xibalba",
         domain: "the underworld, danger, disease",
         rank: "major",
       },
@@ -268,25 +287,30 @@ export const mesoamerica: readonly BeliefSystem[] = [
   {
     id: "maya-classic",
     label: "Classic Maya kingdoms",
+    wiki: "https://en.wikipedia.org/wiki/Maya_civilization",
     scope: { years: [100, 950], bounds: [-97, 12, -78, 24] },
     powers: [
       {
         name: "Hunab Ku",
+        wiki: "https://en.wikipedia.org/wiki/Hunab_Ku",
         domain: "the creator, the sky, unity",
         rank: "paramount",
       },
       {
         name: "Chaac",
+        wiki: "https://en.wikipedia.org/wiki/Chaac",
         domain: "rain, lightning, the four directions",
         rank: "major",
       },
       {
         name: "Itzamna",
+        wiki: "https://en.wikipedia.org/wiki/Itzamna",
         domain: "writing, healing, the east",
         rank: "major",
       },
       {
         name: "The maize god",
+        wiki: "https://en.wikipedia.org/wiki/Maya_maize_god",
         domain: "maize, death and rebirth",
         rank: "major",
         relation: { kind: "child-of", of: "Hunab Ku" },
@@ -348,20 +372,24 @@ export const mesoamerica: readonly BeliefSystem[] = [
   {
     id: "central-american-traditions",
     label: "Central American belief systems",
+    wiki: "https://en.wikipedia.org/wiki/Pre-Columbian_era",
     scope: { years: [-800, 1550], bounds: [-96, 8, -78, 20] },
     powers: [
       {
-        name: "The sky powers",
-        domain: "rain, lightning, the seasons",
+        name: "Sibö",
+        wiki: "https://en.wikipedia.org/wiki/Bribri_people",
+        domain: "creation, the sky, the giving of life",
         rank: "paramount",
       },
       {
-        name: "The maize spirit",
+        name: "*Ixim",
+        gloss: "Proto-Mayan *ixim, 'maize'",
         domain: "crops, fertility, sustenance",
         rank: "major",
       },
       {
-        name: "The water powers",
+        name: "*Ha'",
+        gloss: "Proto-Mayan *ha', 'water'",
         domain: "rivers, the sea, cenotes",
         rank: "major",
       },
@@ -393,20 +421,23 @@ export const mesoamerica: readonly BeliefSystem[] = [
     afterlife:
       "The ancestors dwell in the landscape and may return to aid or afflict the living.",
     evidence: {
-      status: "inferred",
+      status: "hypothesis",
       claim:
-        "Archaeological evidence from Mesoamerican sites shows extended cultural contact and shared symbolic systems across Central America. Settlement patterns and artifact distribution suggest a common religious substrate adapted to local conditions.",
+        "Archaeological evidence from Mesoamerican sites shows extended cultural contact and shared symbolic systems across Central America. Bribri and Cabécar oral tradition, recorded by twentieth-century ethnographers, names Sibö as the creator power of the Talamanca highlands. The maize spirit and water powers instead carry reconstructed Proto-Mayan vocabulary, appropriate to this entry's northern, Maya-adjacent reach rather than the Chibchan-speaking south it also covers.",
       sources: [
         "Sharer & Traxler, The Ancient Maya",
+        "Bozzoli, El nacimiento y la muerte entre los Bribris",
         "Stone & Zalewski, 'The Nahua Conquest of Yucatan Reconsidered'",
+        "Kaufman, 'A Preliminary Mayan Etymological Dictionary'",
       ],
       limitation:
-        "Central American archaeology is less intensively studied than the Maya heartland. Regional variation was likely significant.",
+        "Central American archaeology is less intensively studied than the Maya heartland. Sibö is documented for one language group (Bribri/Cabécar) within a region of great linguistic and religious diversity; naming it paramount for the whole entry is a simplification. *Ixim and *ha' are Proto-Mayan words, defensible only for this entry's Guatemalan end; no comparably established Proto-Chibchan vocabulary is used here for the Costa Rican and Panamanian end, where Sibö's own language actually belongs.",
     },
   },
   {
     id: "teotihuacan-classical",
     label: "Teotihuacan ritual practice",
+    wiki: "https://en.wikipedia.org/wiki/Teotihuacan",
     scope: { years: [50, 850], bounds: [-100, 18, -98, 21] },
     powers: [
       {
@@ -415,17 +446,20 @@ export const mesoamerica: readonly BeliefSystem[] = [
         rank: "paramount",
       },
       {
-        name: "The feathered serpent",
+        name: "*Kōātl",
+        gloss: "Proto-Nahuan *kōā-tl, 'serpent'",
         domain: "wind, sky, transformation",
         rank: "major",
       },
       {
-        name: "The old fire god",
+        name: "*Tleh",
+        gloss: "Proto-Nahuan *tleh, 'fire'",
         domain: "fire, the hearth, renewal",
         rank: "major",
       },
       {
-        name: "The maize being",
+        name: "*Sintli",
+        gloss: "Proto-Nahuan *sin-, 'maize, dried ear of maize'",
         domain: "crops, fertility, sustenance",
         rank: "major",
       },
@@ -459,28 +493,38 @@ export const mesoamerica: readonly BeliefSystem[] = [
     evidence: {
       status: "hypothesis",
       claim:
-        "Murals and censers depict a storm figure and a feathered serpent. Foundation deposits contain maize, blood-letter, and shells. Pyramid alignments suggest astronomical and directional significance. Teotihuacan's political reach extended across central Mesoamerica.",
+        "Murals and censers depict a storm figure and a feathered serpent. Foundation deposits contain maize, blood-letter, and shells. Pyramid alignments suggest astronomical and directional significance. Teotihuacan's political reach extended across central Mesoamerica. Proto-Nahuan and Proto-Totonacan are the two languages most often proposed for Teotihuacan itself; the city's own language is unresolved, and this entry draws its reconstructed vocabulary from Nahuan, the better-attested of the two candidates.",
       sources: [
         "Millon, Teotihuacan: City of the Gods",
         "Sugiyama, 'Human Sacrifice, Warfare and Veneration'",
+        "Dakin, 'Studies in Nahuatl Historical Phonology'",
       ],
       limitation:
-        "Teotihuacan left no deciphered texts. Deduction relies on art, architecture, and comparative analysis with later Aztec practice.",
+        "Teotihuacan left no deciphered texts and no name for any of its powers survives. Deduction relies on art, architecture, and comparative analysis with later Aztec practice. *Kōātl, *tleh, and *sintli are Proto-Nahuan reconstructions, not recovered Teotihuacan words; Proto-Totonacan is an equally argued candidate for the city's language, but its comparative vocabulary is less accessible and is not drawn on directly here.",
     },
   },
   {
     id: "zapotec-montealbán",
     label: "Zapotec Monte Albán practice",
+    wiki: "https://en.wikipedia.org/wiki/Zapotec_civilization",
     scope: { years: [-500, 1000], bounds: [-101, 14, -96, 20] },
     powers: [
       {
         name: "Cocijo",
+        wiki: "https://en.wikipedia.org/wiki/Cocijo",
         domain: "lightning, rain, fertility",
         rank: "paramount",
       },
-      { name: "Pezelao", domain: "the mountain and earth", rank: "major" },
-      { name: "Pitao", domain: "creation, the sky", rank: "major" },
-      { name: "The maize god", domain: "crops and growth", rank: "major" },
+      {
+        name: "Pitao Cozobi",
+        domain: "maize, abundance, the granary",
+        rank: "major",
+      },
+      {
+        name: "Coquihani",
+        domain: "light, dawn, life-giving warmth",
+        rank: "major",
+      },
       { name: "The ancestors", domain: "lineage and the past", rank: "major" },
       {
         name: "The household altar",
@@ -493,7 +537,12 @@ export const mesoamerica: readonly BeliefSystem[] = [
         rank: "local",
       },
       {
-        name: "The sky powers",
+        name: "The pèe",
+        domain: "the breath of life carried in every person and thing",
+        rank: "local",
+      },
+      {
+        name: "The day signs",
         domain: "individual fate and the calendar",
         rank: "local",
       },
@@ -510,28 +559,40 @@ export const mesoamerica: readonly BeliefSystem[] = [
     evidence: {
       status: "documented",
       claim:
-        "Zapotec glyphs name Cocijo as the paramount rain god. Tomb murals depict Cocijo, Pezelao and the maize god. Monte Albán's architectural alignment and hilltop location emphasize Cocijo's mountain seat.",
+        "Zapotec glyphs and colonial-era vocabularies name Cocijo as the paramount rain and lightning power, Pitao Cozobi as the maize and abundance power, and Coquihani as a power of light and dawn. The pèe, a life-force believed to inhere in people, animals, and even stones, is recorded in colonial Zapotec dictionaries and remains a term in modern Zapotec communities.",
       sources: [
         "Flannery & Marcus, The Cloud People: Divergence and Development",
         "Joyce, Zapotec Chiefdoms",
+        "Marcus, 'Zapotec Religion'",
       ],
       limitation:
-        "Zapotec writing is only partially deciphered. Interpretation relies on monumental art and ethnographic parallels.",
+        "Zapotec writing is only partially deciphered. Many divine names come from colonial-era vocabularies compiled after the conquest and may not map cleanly onto Classic-period Monte Albán practice.",
     },
   },
   {
     id: "west-mexican-traditions",
     label: "West Mexican ritual practice",
+    wiki: "https://en.wikipedia.org/wiki/Pur%C3%A9pecha_people",
     scope: { years: [-500, 1600], bounds: [-107, 16, -98, 25] },
     powers: [
       {
-        name: "The mountain masters",
-        domain: "peaks, water sources, sacred landscape",
+        name: "Curicaveri",
+        domain: "fire, the sun, war",
         rank: "paramount",
       },
       {
-        name: "The maize spirit",
-        domain: "crops, fertility, sustenance",
+        name: "Xaratanga",
+        domain: "the moon, fertility, agriculture",
+        rank: "major",
+      },
+      {
+        name: "Cuerauperi",
+        domain: "creation, the earth, rain",
+        rank: "major",
+      },
+      {
+        name: "The mountain masters",
+        domain: "peaks, water sources, sacred landscape",
         rank: "major",
       },
       {
@@ -540,17 +601,13 @@ export const mesoamerica: readonly BeliefSystem[] = [
         rank: "major",
       },
       {
-        name: "The rain and thunder powers",
-        domain: "storms, lightning, the seasons",
-        rank: "major",
-      },
-      {
         name: "The household spirits",
         domain: "family, home, the hearth",
         rank: "local",
       },
       {
-        name: "The animal masters",
+        name: "*Maso",
+        gloss: "Proto-Uto-Aztecan *maso, 'deer'",
         domain: "game, hunting, transformation",
         rank: "local",
       },
@@ -567,39 +624,58 @@ export const mesoamerica: readonly BeliefSystem[] = [
       "Seasonal gatherings mark planting and harvest with feasting and dance.",
     ],
     specialist:
-      "Shamans communicate with mountain masters and animal spirits. Elders oversee lineage shrines.",
+      "Priests of Curicaveri direct state ritual under the Tarascan kings; shamans and elders serve household and lineage shrines.",
     afterlife:
       "The dead remain in the ancestral mountains and watch over living family and fields.",
     evidence: {
-      status: "inferred",
+      status: "documented",
       claim:
-        "West Mexican archaeology shows distinct ceramic and architectural traditions separate from central and southern Mesoamerica, suggesting a regional belief system. Later historical sources document shamanic and ancestor-centered practice. Evidence for Aztec expansion into the region suggests underlying local traditions.",
+        "The Relación de Michoacán, compiled shortly after the conquest, names Curicaveri as the paramount fire and sun power of the Tarascan (Purépecha) state, with Xaratanga as a moon and fertility power and Cuerauperi as an earth and creation power. West Mexican archaeology outside the Tarascan core shows distinct ceramic and architectural traditions, suggesting related but locally varied practice.",
       sources: [
+        "Relación de Michoacán (Relación de las ceremonias y ritos y población y gobierno de los indios de la provincia de Mechuacan)",
+        "Pollard, Tariacuri's Legacy: The Prehispanic Tarascan State",
         "Kelley & Kelley, 'An Alternative Hypothesis for the Explanation of Aztec Imperialism'",
-        "Wilkinson, 'Pre-Columbian Settlement in the Bajío'",
       ],
       limitation:
-        "West Mexico is less well studied than other Mesoamerican regions. Much of this entry is reconstructed from fragmentary archaeological evidence and ethnographic parallels.",
+        "This entry spans a much larger area and longer period than the Tarascan state it draws its named powers from. West Mexico outside the Tarascan core is less well studied, and much of this entry is reconstructed from fragmentary archaeological evidence and ethnographic parallels. Purépecha itself is a language isolate with no established proto-family of its own, so no reconstruction can honestly stand in for the Tarascan state's own speech; *maso is Proto-Uto-Aztecan, borrowed from the Nahua, Cora, and Huichol communities that ringed this region, not from Tarascan territory itself.",
     },
   },
   {
     id: "mexica-aztec",
     label: "Mexica (Aztec) practice",
+    wiki: "https://en.wikipedia.org/wiki/Aztec_religion",
     scope: { years: [1250, 1600], bounds: [-104, 15, -94, 23] },
     powers: [
       {
         name: "Huitzilopochtli",
+        wiki: "https://en.wikipedia.org/wiki/Huitzilopochtli",
         domain: "war, sun, the Mexica nation",
         rank: "paramount",
       },
-      { name: "Tlaloc", domain: "rain, lightning, mountains", rank: "major" },
+      {
+        name: "Tlaloc",
+        wiki: "https://en.wikipedia.org/wiki/Tlaloc",
+        domain: "rain, lightning, mountains",
+        rank: "major",
+      },
       {
         name: "Quetzalcoatl",
+        wiki: "https://en.wikipedia.org/wiki/Quetzalcoatl",
         domain: "wind, learning, rulership",
         rank: "major",
       },
-      { name: "Tezcatlipoca", domain: "night, fate, sorcery", rank: "major" },
-      { name: "Chalchiuhtlicue", domain: "water, rivers", rank: "major" },
+      {
+        name: "Tezcatlipoca",
+        wiki: "https://en.wikipedia.org/wiki/Tezcatlipoca",
+        domain: "night, fate, sorcery",
+        rank: "major",
+      },
+      {
+        name: "Chalchiuhtlicue",
+        wiki: "https://en.wikipedia.org/wiki/Chalchiuhtlicue",
+        domain: "water, rivers",
+        rank: "major",
+      },
       {
         name: "The maize god",
         domain: "maize and sustenance",
@@ -607,6 +683,7 @@ export const mesoamerica: readonly BeliefSystem[] = [
       },
       {
         name: "Xiuhtecuhtli",
+        wiki: "https://en.wikipedia.org/wiki/Xiuhtecuhtli",
         domain: "fire, the hearth, the household",
         rank: "local",
       },
@@ -647,27 +724,57 @@ export const mesoamerica: readonly BeliefSystem[] = [
   {
     id: "maya-postclassic",
     label: "Postclassic Maya kingdoms",
+    wiki: "https://en.wikipedia.org/wiki/Maya_civilization",
     scope: { years: [750, 1600], bounds: [-97, 12, -78, 24] },
     powers: [
       {
         name: "Hunab Ku",
+        wiki: "https://en.wikipedia.org/wiki/Hunab_Ku",
         domain: "the creator, the sky",
         rank: "paramount",
       },
       {
         name: "Chaac",
+        wiki: "https://en.wikipedia.org/wiki/Chaac",
         domain: "rain, the four directions",
         rank: "major",
       },
       {
         name: "Itzamna",
+        wiki: "https://en.wikipedia.org/wiki/Itzamna",
         domain: "earth, knowledge, healing",
         rank: "major",
       },
       {
-        name: "The maize god",
-        domain: "maize, fertility and death",
+        name: "Kukulkan",
+        wiki: "https://en.wikipedia.org/wiki/Kukulkan",
+        domain: "the feathered serpent, wind, kingship",
         rank: "major",
+      },
+      {
+        name: "Ix Chel",
+        wiki: "https://en.wikipedia.org/wiki/Ix_Chel",
+        domain: "the moon, medicine, weaving, childbirth",
+        rank: "major",
+        relation: { kind: "consort-of", of: "Itzamna" },
+      },
+      {
+        name: "Yum Kaax",
+        wiki: "https://en.wikipedia.org/wiki/Yum_Kaax",
+        domain: "maize, the forest, young growth",
+        rank: "major",
+      },
+      {
+        name: "Ah Puch",
+        wiki: "https://en.wikipedia.org/wiki/Ah_Puch",
+        domain: "death, decay, the ninth underworld",
+        rank: "major",
+      },
+      {
+        name: "The Bacabs",
+        wiki: "https://en.wikipedia.org/wiki/Bacab",
+        domain: "the four sky-bearers set at the world's corners",
+        rank: "local",
       },
       {
         name: "The household shrine",
@@ -694,7 +801,8 @@ export const mesoamerica: readonly BeliefSystem[] = [
       "Maize and cacao are burned at household and cenote shrines.",
       "Bloodletting at calendar waypoints sustains the gods.",
       "The ancestors receive food and drink at the household shrine.",
-      "Feast days mark the patron saints of towns and lineages.",
+      "Kukulkan's descent is marked at the equinoxes at temples built to his design.",
+      "Ah Puch is placated, not courted, with fasting and care at the sickbed.",
     ],
     specialist: "Ah kin keep the calendar. Shamans work for healing and harm.",
     afterlife:
@@ -702,10 +810,11 @@ export const mesoamerica: readonly BeliefSystem[] = [
     evidence: {
       status: "documented",
       claim:
-        "The Books of Chilam Balam (16th-17th century), colonial accounts, and archaeological cenote deposits record Chaac, Itzamna, and the maize god. Domestic shrines with figurines appear in household archaeology. Postclassic cities maintained Maya religious practice despite political fragmentation.",
+        "The Books of Chilam Balam (16th-17th century), colonial accounts, and archaeological cenote deposits record Chaac, Itzamna, Kukulkan, Ix Chel, Yum Kaax, Ah Puch, and the Bacabs. Domestic shrines with figurines appear in household archaeology. Postclassic cities maintained Maya religious practice despite political fragmentation.",
       sources: [
         "Roys, The Book of Chilam Balam of Chumayel",
         "Tozzer, Chichen Itza and Its Cenote of Sacrifice",
+        "Taube, The Major Gods of Ancient Yucatan",
       ],
       limitation:
         "The Books of Chilam Balam were written in Maya using Spanish script by Maya authors after the conquest, incorporating both pre-conquest knowledge and Spanish Christian influence.",
@@ -714,6 +823,7 @@ export const mesoamerica: readonly BeliefSystem[] = [
   {
     id: "colonial-mesoamerica-syncretic",
     label: "Colonial Mesoamerica syncretism",
+    wiki: "https://en.wikipedia.org/wiki/Colonial_Mexico",
     scope: { years: [1500, 1850], bounds: [-107, 10, -78, 25] },
     powers: [
       {
@@ -723,12 +833,20 @@ export const mesoamerica: readonly BeliefSystem[] = [
       },
       {
         name: "Jesus",
+        wiki: "https://en.wikipedia.org/wiki/Jesus",
         domain: "suffering, redemption, the cross",
         rank: "major",
       },
       {
-        name: "The Virgin Mary",
-        domain: "mercy, protection, motherhood",
+        name: "The Virgin of Guadalupe",
+        wiki: "https://en.wikipedia.org/wiki/Our_Lady_of_Guadalupe",
+        domain: "mercy, protection, motherhood, the new patroness",
+        rank: "major",
+      },
+      {
+        name: "Maximón",
+        wiki: "https://en.wikipedia.org/wiki/Maxim%C3%B3n",
+        domain: "the crossroads, vice and its cure, dangerous protection",
         rank: "major",
       },
       {
@@ -737,44 +855,42 @@ export const mesoamerica: readonly BeliefSystem[] = [
         rank: "major",
       },
       {
-        name: "The town patron saint",
-        domain: "the town's identity and welfare",
-        rank: "major",
-      },
-      {
         name: "The household saints",
         domain: "family protection and prosperity",
         rank: "local",
       },
       {
-        name: "The ancestors",
-        domain: "the dead and family continuity",
+        name: "The aluxob",
+        wiki: "https://en.wikipedia.org/wiki/Alux",
+        domain: "small guardians of the field, mischief and protection",
         rank: "local",
       },
       {
-        name: "The mountain and cave powers",
-        domain: "water, earth, the landscape",
+        name: "The chaneques",
+        wiki: "https://en.wikipedia.org/wiki/Chaneque",
+        domain: "the wild place, springs and caves, stolen souls",
         rank: "local",
       },
     ],
     practice: [
       "Mass at the Christian church marks the yearly round alongside saint festivals.",
       "Candles and copal burn at the household altar before images of saints and crucifixes.",
-      "The ancestors receive maize and drink at household shrines on their days.",
-      "Fiestas for patron saints gather the town; bloodletting is replaced by self-mortification and fasting.",
+      "Maximón is fed cigars and liquor by cofradía members who keep his effigy through the year.",
+      "Aluxob are fed at field shrines so they guard rather than spoil the milpa; chaneques are placated before clearing new ground.",
     ],
     specialist:
-      "The Spanish priest oversees the church. Ah kin and shamans continue to serve secretly or in the hills.",
+      "The Spanish priest oversees the church. Ah kin, shamans, and Maximón's cofradía continue to serve secretly or in the hills.",
     afterlife:
       "Heaven and hell replace the older cosmology. The ancestors and saints intercede before God.",
     evidence: {
       status: "documented",
       claim:
-        "Spanish ecclesiastical records (visita records, papal correspondence) and Maya-language documents (Chilam Balam, land grants, testaments) record the blending of Christian saints with local mountain powers and household ancestors. Archaeological evidence from colonial churches and shrines shows Spanish Christian imagery alongside indigenous materials.",
+        "Spanish ecclesiastical records (visita records, papal correspondence) and Maya-language documents (Chilam Balam, land grants, testaments) record the blending of Christian saints with local mountain powers and household ancestors. The Virgin of Guadalupe's cult dates to the earliest colonial decades; Maximón and the aluxob and chaneques are documented in colonial and early ethnographic sources across the Maya and Nahua highlands.",
       sources: [
         "MacLeod, Spanish Central America: A Socioeconomic History",
         "Restall, The Black Middle: Africans, Mayas and Spaniards in Colonial Yucatan",
         "Gossen, Chamulas in the World of the Sun",
+        "Mendelson, 'Ritual and Mythology' in Handbook of Middle American Indians",
       ],
       limitation:
         "Colonial Spanish sources were written by clergy with missionary goals. Maya testimony comes through colonial officials and Christian scribes. The balance between Christian and pre-Christian practice varied by locality and changed across the colonial period.",
@@ -783,6 +899,7 @@ export const mesoamerica: readonly BeliefSystem[] = [
   {
     id: "modern-mesoamerica",
     label: "Modern Mesoamerican traditions",
+    wiki: "https://en.wikipedia.org/wiki/Folk_Catholicism",
     scope: { years: [1750, 2025], bounds: [-107, 10, -78, 25] },
     powers: [
       {
@@ -792,17 +909,20 @@ export const mesoamerica: readonly BeliefSystem[] = [
       },
       {
         name: "Jesus",
+        wiki: "https://en.wikipedia.org/wiki/Jesus",
         domain: "redemption, suffering, the cross",
         rank: "major",
       },
       {
-        name: "The Virgin Mary",
-        domain: "protection, motherhood, healing",
+        name: "The Virgin of Guadalupe",
+        wiki: "https://en.wikipedia.org/wiki/Our_Lady_of_Guadalupe",
+        domain: "protection, motherhood, healing, national patroness",
         rank: "major",
       },
       {
-        name: "The local saints",
-        domain: "the town, community, welfare",
+        name: "Maximón (San Simón)",
+        wiki: "https://en.wikipedia.org/wiki/Maxim%C3%B3n",
+        domain: "the town, community, dangerous favors",
         rank: "major",
       },
       {
@@ -816,34 +936,38 @@ export const mesoamerica: readonly BeliefSystem[] = [
         rank: "local",
       },
       {
-        name: "The ancestors",
-        domain: "the dead, family continuity",
+        name: "The Day of the Dead ancestors",
+        wiki: "https://en.wikipedia.org/wiki/Day_of_the_Dead",
+        domain:
+          "the returning dead, honored each November with altars and marigolds",
         rank: "local",
       },
       {
-        name: "The land and forest powers",
-        domain: "agriculture, game, the wild",
+        name: "The chaneques",
+        wiki: "https://en.wikipedia.org/wiki/Chaneque",
+        domain: "guardian spirits of field and forest",
         rank: "local",
       },
     ],
     practice: [
       "Church attendance marks baptism, marriage, death, and the calendar of saints.",
       "Household altars with saints and candles remain central to family ritual.",
-      "Ancestors are remembered on Days of the Dead with food and flowers.",
-      "Local mountains and water sources receive offerings for rain and fertility.",
+      "The dead are welcomed home on the Day of the Dead with food, marigolds, and photographs.",
+      "Local mountains and water sources receive offerings for rain and fertility; chaneques are placated before working new ground.",
     ],
     specialist:
       "Catholic priests, indigenous shamans, and family elders each maintain their domains.",
     afterlife:
-      "Heaven and hell, with the dead joining the communion of saints and ancestors.",
+      "Heaven and hell, with the dead joining the communion of saints and ancestors, and returning each year to visit the living.",
     evidence: {
       status: "documented",
       claim:
-        "Modern ethnographic studies, religious practice surveys, and community documentation show persistent indigenous cosmology integrated with Christianity. Mountain worship, ancestor veneration, and saint festivals retain pre-conquest structures adapted to Christian frameworks across Mesoamerica.",
+        "Modern ethnographic studies, religious practice surveys, and community documentation show persistent indigenous cosmology integrated with Christianity. Mountain worship, the Day of the Dead, and the cult of the Virgin of Guadalupe and of Maximón retain pre-conquest structures adapted to Christian frameworks across Mesoamerica.",
       sources: [
         "Vogt, Zinacantan: A Maya Community in the Highlands of Chiapas",
         "Watanabe, 'Unimagined Listeners' in Postcolonial Mesoamerica",
         "Annis, God and Production in a Guatemalan Town",
+        "Brandes, Skulls to the Living, Bread to the Dead",
       ],
       limitation:
         "Modern traditions vary significantly by region, community, and generation. This entry flattens real diversity into a regional summary.",

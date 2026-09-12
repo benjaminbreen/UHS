@@ -4,6 +4,7 @@ export const european: readonly BeliefSystem[] = [
   {
     id: "europe-foragers",
     label: "European forager practice",
+    wiki: "https://en.wikipedia.org/wiki/Paleolithic_religion",
     scope: { years: [-40000, -3000], bounds: [-25, 34, 48, 72] },
     powers: [
       {
@@ -17,8 +18,10 @@ export const european: readonly BeliefSystem[] = [
         rank: "major",
       },
       {
-        name: "The river",
-        domain: "fish, water, travel",
+        name: "*Sal-",
+        gloss:
+          "Reconstructed pre-Indo-European (\"Old European\") hydronymic root *sal-, 'fast-flowing water', recurring across river names from Iberia to the Baltic",
+        domain: "rivers, fish, travel",
         rank: "major",
       },
       {
@@ -32,7 +35,9 @@ export const european: readonly BeliefSystem[] = [
         rank: "major",
       },
       {
-        name: "The animals",
+        name: "*Ńoša",
+        gloss:
+          "Proto-Uralic *ńoša, 'hare' — defensible only for the range's northeastern edge, toward the Baltic and the Urals",
         domain: "their spirits, their help",
         rank: "major",
       },
@@ -69,29 +74,64 @@ export const european: readonly BeliefSystem[] = [
     evidence: {
       status: "hypothesis",
       claim:
-        "European forager practice 8000–3000 BCE is inferred from archaeological sites with hearths, animal bones, stone tools, ochre graves and band-level camps across the continent.",
+        "European forager practice 8000–3000 BCE is inferred from archaeological sites with hearths, animal bones, stone tools, ochre graves and band-level camps across the continent. No language family reaches back this far anywhere in Europe, so the two named powers here reach for the least indefensible options available: Hans Krahe's 'Old European' hydronymy, a pre-Indo-European layer of river-name roots recurring across the continent, and, for the range's northeastern sliver alone, the Proto-Uralic word for 'hare'.",
       sources: [
         "Bailey & Milner, Archaeology of Prehistoric Britain",
         "Gamble, The Paleolithic Societies of Europe",
         "Mithen, The Prehistory of the Mind",
+        "Krahe, Unsere ältesten Flussnamen",
+        "Rédei, Uralisches etymologisches Wörterbuch",
       ],
       limitation:
-        "Spiritual practice leaves no direct evidence; this is a plausible reconstruction from material culture and ethnographic parallels.",
+        "Spiritual practice leaves no direct evidence; this is a plausible reconstruction from material culture and ethnographic parallels, and almost all its powers are kept descriptive because no names survive from this period. *Sal- is itself contested: some scholars read Old European hydronymy as an early layer of Indo-European rather than a true pre-Indo-European substrate, and it names a river pattern, not a river god. *Ńoša is a genuine stretch in the other direction — Proto-Uralic is usually dated millennia after this scope closes, and even then covers only the Baltic-Urals corner of a range that stretches to Iberia; both names are reconstructed words, not recovered theonyms.",
     },
   },
   {
     id: "europe-early-farming",
     label: "European early farming practice",
+    wiki: "https://en.wikipedia.org/wiki/Proto-Indo-European_religion",
     scope: { years: [-3000, 400], bounds: [-25, 34, 48, 72] },
     powers: [
       {
-        name: "The earth mother",
-        domain: "grain, soil, fertility",
+        name: "*Dyēus Ph₂tēr",
+        wiki: "https://en.wikipedia.org/wiki/Dyeus",
+        gloss: "Proto-Indo-European *dyēus ph₂tḗr, 'sky father'",
+        domain: "the sky, oaths, fatherhood",
         rank: "paramount",
       },
       {
-        name: "The sky father",
-        domain: "rain, lightning, storms",
+        name: "The earth",
+        domain: "grain, soil, fertility",
+        rank: "major",
+      },
+      {
+        name: "*Perkʷunos",
+        wiki: "https://en.wikipedia.org/wiki/Perkwunos",
+        gloss: "Proto-Indo-European *perkʷunos, 'the striking one, thunder'",
+        domain: "thunder, storms, the oak",
+        rank: "major",
+      },
+      {
+        name: "*H₂éwsōs",
+        wiki: "https://en.wikipedia.org/wiki/Hausos",
+        gloss: "Proto-Indo-European *h₂éwsōs, 'dawn'",
+        domain: "the dawn, the opening of the day",
+        rank: "major",
+        relation: { kind: "child-of", of: "*Dyēus Ph₂tēr" },
+      },
+      {
+        name: "*Diwós Sūnū",
+        wiki: "https://en.wikipedia.org/wiki/Divine_twins",
+        gloss:
+          "Proto-Indo-European *diwós sūnū, 'sons of Dyēus': the divine twin horsemen reconstructed from the Vedic Aśvins, Greek Dioskouroi, and Baltic Dieva dēli",
+        domain: "horses, rescue, the morning and evening star",
+        rank: "major",
+        relation: { kind: "child-of", of: "*Dyēus Ph₂tēr" },
+      },
+      {
+        name: "*Seh₂ul",
+        gloss: "Proto-Indo-European *seh₂ul-/*sóh₂wl̥, 'sun'",
+        domain: "the sun's journey across the sky",
         rank: "major",
       },
       {
@@ -100,19 +140,10 @@ export const european: readonly BeliefSystem[] = [
         rank: "major",
       },
       {
-        name: "The herd",
-        domain: "cattle, sheep, prosperity",
-        rank: "major",
-      },
-      {
-        name: "The fire",
-        domain: "the hearth, the home",
-        rank: "major",
-      },
-      {
-        name: "The waters",
-        domain: "rivers, springs, wells",
-        rank: "major",
+        name: "*H₁n̥gʷnis",
+        gloss: "Proto-Indo-European *h₁n̥gʷnis, 'fire'",
+        domain: "the home, kept alight",
+        rank: "local",
       },
       {
         name: "The sacred tree",
@@ -125,13 +156,8 @@ export const european: readonly BeliefSystem[] = [
         rank: "local",
       },
       {
-        name: "The fields",
-        domain: "boundaries, property",
-        rank: "local",
-      },
-      {
-        name: "The stones",
-        domain: "markers, passage graves",
+        name: "The boundary stones",
+        domain: "markers, passage graves, property",
         rank: "local",
       },
     ],
@@ -147,45 +173,74 @@ export const european: readonly BeliefSystem[] = [
     evidence: {
       status: "hypothesis",
       claim:
-        "Early farming practice 3000–500 BCE is inferred from settlement patterns, passage graves, cultivation remains, sacrifice sites, and archaeological evidence of household shrines.",
+        "Early farming practice 3000–500 BCE is inferred from settlement patterns, passage graves, cultivation remains, sacrifice sites and household shrines. The named powers are Proto-Indo-European reconstructions built from comparative mythology across the daughter traditions (Vedic, Greek, Norse, Baltic and others).",
       sources: [
         "Renfrew, Before Civilization",
         "Scarre, Prehistoric Europe",
-        "Insoll, Archaeology of Religion",
+        "Mallory & Adams, The Oxford Introduction to Proto-Indo-European and the Proto-Indo-European World",
       ],
       limitation:
-        "Extremely diverse region and timescale; this is a synthetic sketch covering vast variation.",
+        "The starred names are comparative-linguistic reconstructions of vocabulary, not recovered theonyms: nobody is recorded speaking them, and a reconstructed word for 'fire' or 'sun' is not itself evidence that farming-era Europeans addressed a power by that name. The Proto-Indo-European community they describe is usually dated to the Pontic-Caspian steppe around 4500–2500 BCE, thousands of years after farming first reached southeastern Europe, and its language and gods spread west only later, through migration.",
     },
   },
 
   {
     id: "aegean-bronze-age",
     label: "Mycenaean Aegean practice",
+    wiki: "https://en.wikipedia.org/wiki/Mycenaean_religion",
     scope: { years: [-1600, -1100], bounds: [19, 35, 29, 42] },
     powers: [
-      { name: "Zeus", domain: "sky, kingship, oaths", rank: "paramount" },
+      {
+        name: "Zeus",
+        wiki: "https://en.wikipedia.org/wiki/Zeus",
+        domain: "sky, kingship, oaths",
+        rank: "paramount",
+      },
       {
         name: "Hera",
+        wiki: "https://en.wikipedia.org/wiki/Hera",
         domain: "the palace, women, cattle",
         rank: "major",
         relation: { kind: "consort-of", of: "Zeus" },
       },
       {
         name: "Poseidon",
+        wiki: "https://en.wikipedia.org/wiki/Poseidon",
         domain: "the sea, horses, earthquakes",
         rank: "major",
       },
-      { name: "Athena", domain: "craft, war, cities", rank: "major" },
+      {
+        name: "Athena",
+        wiki: "https://en.wikipedia.org/wiki/Athena",
+        domain: "craft, war, cities",
+        rank: "major",
+      },
       {
         name: "Ares",
+        wiki: "https://en.wikipedia.org/wiki/Ares",
         domain: "battle, bloodshed",
         rank: "major",
         relation: { kind: "child-of", of: "Zeus" },
       },
-      { name: "Apollo", domain: "plague, healing, prophecy", rank: "major" },
-      { name: "Artemis", domain: "wild animals, the hunt", rank: "major" },
+      {
+        name: "Apollo",
+        wiki: "https://en.wikipedia.org/wiki/Apollo",
+        domain: "plague, healing, prophecy",
+        rank: "major",
+      },
+      {
+        name: "Artemis",
+        wiki: "https://en.wikipedia.org/wiki/Artemis",
+        domain: "wild animals, the hunt",
+        rank: "major",
+      },
       { name: "The palace hearth", domain: "the house, fire", rank: "local" },
-      { name: "Hermes", domain: "flocks, travel, boundaries", rank: "local" },
+      {
+        name: "Hermes",
+        wiki: "https://en.wikipedia.org/wiki/Hermes",
+        domain: "flocks, travel, boundaries",
+        rank: "local",
+      },
       {
         name: "The ancestors",
         domain: "the lineage of the house",
@@ -217,22 +272,64 @@ export const european: readonly BeliefSystem[] = [
   {
     id: "classical-greek",
     label: "Classical Greek practice",
+    wiki: "https://en.wikipedia.org/wiki/Ancient_Greek_religion",
     scope: { years: [-500, -323], bounds: [19, 36, 29, 42] },
     powers: [
-      { name: "Zeus", domain: "sky, oaths, justice", rank: "paramount" },
+      {
+        name: "Zeus",
+        wiki: "https://en.wikipedia.org/wiki/Zeus",
+        domain: "sky, oaths, justice",
+        rank: "paramount",
+      },
       {
         name: "Hera",
+        wiki: "https://en.wikipedia.org/wiki/Hera",
         domain: "marriage, the city-state",
         rank: "major",
         relation: { kind: "consort-of", of: "Zeus" },
       },
-      { name: "Athena", domain: "wisdom, craft, war", rank: "major" },
-      { name: "Apollo", domain: "prophecy, music, medicine", rank: "major" },
-      { name: "Poseidon", domain: "the sea, horses", rank: "major" },
-      { name: "Aphrodite", domain: "desire, beauty", rank: "major" },
-      { name: "Ares", domain: "slaughter, violence", rank: "major" },
-      { name: "Hephaestus", domain: "smithcraft, fire", rank: "major" },
-      { name: "Hermes", domain: "commerce, travel, theft", rank: "local" },
+      {
+        name: "Athena",
+        wiki: "https://en.wikipedia.org/wiki/Athena",
+        domain: "wisdom, craft, war",
+        rank: "major",
+      },
+      {
+        name: "Apollo",
+        wiki: "https://en.wikipedia.org/wiki/Apollo",
+        domain: "prophecy, music, medicine",
+        rank: "major",
+      },
+      {
+        name: "Poseidon",
+        wiki: "https://en.wikipedia.org/wiki/Poseidon",
+        domain: "the sea, horses",
+        rank: "major",
+      },
+      {
+        name: "Aphrodite",
+        wiki: "https://en.wikipedia.org/wiki/Aphrodite",
+        domain: "desire, beauty",
+        rank: "major",
+      },
+      {
+        name: "Ares",
+        wiki: "https://en.wikipedia.org/wiki/Ares",
+        domain: "slaughter, violence",
+        rank: "major",
+      },
+      {
+        name: "Hephaestus",
+        wiki: "https://en.wikipedia.org/wiki/Hephaestus",
+        domain: "smithcraft, fire",
+        rank: "major",
+      },
+      {
+        name: "Hermes",
+        wiki: "https://en.wikipedia.org/wiki/Hermes",
+        domain: "commerce, travel, theft",
+        rank: "local",
+      },
       { name: "The household gods", domain: "domestic rites", rank: "local" },
       {
         name: "The ancestors",
@@ -266,23 +363,70 @@ export const european: readonly BeliefSystem[] = [
   {
     id: "republican-roman",
     label: "Republican Roman practice",
+    wiki: "https://en.wikipedia.org/wiki/Religion_in_ancient_Rome",
     scope: { years: [-509, -27], bounds: [8, 38, 18, 48] },
     powers: [
-      { name: "Jupiter", domain: "the sky, the state, war", rank: "paramount" },
+      {
+        name: "Jupiter",
+        wiki: "https://en.wikipedia.org/wiki/Jupiter_(mythology)",
+        domain: "the sky, the state, war",
+        rank: "paramount",
+      },
       {
         name: "Juno",
+        wiki: "https://en.wikipedia.org/wiki/Juno_(mythology)",
         domain: "the city, women",
         rank: "major",
         relation: { kind: "consort-of", of: "Jupiter" },
       },
-      { name: "Mars", domain: "war, agriculture, the wild", rank: "major" },
-      { name: "Minerva", domain: "wisdom, craft, the city", rank: "major" },
-      { name: "Neptune", domain: "the sea, springs", rank: "major" },
-      { name: "Diana", domain: "the hunt, wild places", rank: "major" },
-      { name: "Vesta", domain: "the hearth, the city hearth", rank: "major" },
-      { name: "Mercury", domain: "commerce, travel, theft", rank: "local" },
-      { name: "The lar", domain: "the household, its field", rank: "local" },
-      { name: "Penates", domain: "the pantry, plenty", rank: "local" },
+      {
+        name: "Mars",
+        wiki: "https://en.wikipedia.org/wiki/Mars_(mythology)",
+        domain: "war, agriculture, the wild",
+        rank: "major",
+      },
+      {
+        name: "Minerva",
+        wiki: "https://en.wikipedia.org/wiki/Minerva",
+        domain: "wisdom, craft, the city",
+        rank: "major",
+      },
+      {
+        name: "Neptune",
+        wiki: "https://en.wikipedia.org/wiki/Neptune_(mythology)",
+        domain: "the sea, springs",
+        rank: "major",
+      },
+      {
+        name: "Diana",
+        wiki: "https://en.wikipedia.org/wiki/Diana_(mythology)",
+        domain: "the hunt, wild places",
+        rank: "major",
+      },
+      {
+        name: "Vesta",
+        wiki: "https://en.wikipedia.org/wiki/Vesta_(mythology)",
+        domain: "the hearth, the city hearth",
+        rank: "major",
+      },
+      {
+        name: "Mercury",
+        wiki: "https://en.wikipedia.org/wiki/Mercury_(mythology)",
+        domain: "commerce, travel, theft",
+        rank: "local",
+      },
+      {
+        name: "The lar",
+        wiki: "https://en.wikipedia.org/wiki/Lares",
+        domain: "the household, its field",
+        rank: "local",
+      },
+      {
+        name: "Penates",
+        wiki: "https://en.wikipedia.org/wiki/Penates",
+        domain: "the pantry, plenty",
+        rank: "local",
+      },
       { name: "The ancestors", domain: "the family line", rank: "local" },
     ],
     practice: [
@@ -310,6 +454,7 @@ export const european: readonly BeliefSystem[] = [
   {
     id: "imperial-roman",
     label: "Imperial Roman practice",
+    wiki: "https://en.wikipedia.org/wiki/Religion_in_ancient_Rome",
     scope: { years: [-27, 400], bounds: [-20, 15, 50, 72] },
     powers: [
       {
@@ -317,26 +462,64 @@ export const european: readonly BeliefSystem[] = [
         domain: "the state, war, peace",
         rank: "paramount",
       },
-      { name: "Jupiter", domain: "sky, justice, empire", rank: "major" },
+      {
+        name: "Jupiter",
+        wiki: "https://en.wikipedia.org/wiki/Jupiter_(mythology)",
+        domain: "sky, justice, empire",
+        rank: "major",
+      },
       {
         name: "Juno",
+        wiki: "https://en.wikipedia.org/wiki/Juno_(mythology)",
         domain: "the city, the empress",
         rank: "major",
         relation: { kind: "consort-of", of: "Jupiter" },
       },
-      { name: "Mars", domain: "war, soldiers", rank: "major" },
-      { name: "Minerva", domain: "craft, wisdom", rank: "major" },
-      { name: "Vesta", domain: "fire, continuity, the state", rank: "major" },
-      { name: "Neptune", domain: "the sea, trade routes", rank: "major" },
+      {
+        name: "Mars",
+        wiki: "https://en.wikipedia.org/wiki/Mars_(mythology)",
+        domain: "war, soldiers",
+        rank: "major",
+      },
+      {
+        name: "Minerva",
+        wiki: "https://en.wikipedia.org/wiki/Minerva",
+        domain: "craft, wisdom",
+        rank: "major",
+      },
+      {
+        name: "Vesta",
+        wiki: "https://en.wikipedia.org/wiki/Vesta_(mythology)",
+        domain: "fire, continuity, the state",
+        rank: "major",
+      },
+      {
+        name: "Neptune",
+        wiki: "https://en.wikipedia.org/wiki/Neptune_(mythology)",
+        domain: "the sea, trade routes",
+        rank: "major",
+      },
       {
         name: "Diana",
+        wiki: "https://en.wikipedia.org/wiki/Diana_(mythology)",
         domain: "the hunt, wild women",
         rank: "major",
       },
-      { name: "Mercury", domain: "commerce, gain", rank: "local" },
-      { name: "The lar", domain: "the household and field", rank: "local" },
+      {
+        name: "Mercury",
+        wiki: "https://en.wikipedia.org/wiki/Mercury_(mythology)",
+        domain: "commerce, gain",
+        rank: "local",
+      },
+      {
+        name: "The lar",
+        wiki: "https://en.wikipedia.org/wiki/Lares",
+        domain: "the household and field",
+        rank: "local",
+      },
       {
         name: "Penates",
+        wiki: "https://en.wikipedia.org/wiki/Penates",
         domain: "storage, grain, enough",
         rank: "local",
       },
@@ -372,47 +555,73 @@ export const european: readonly BeliefSystem[] = [
   {
     id: "celtic-britain",
     label: "Iron Age British Celtic practice",
+    wiki: "https://en.wikipedia.org/wiki/Ancient_Celtic_religion",
     scope: { years: [-100, 400], bounds: [-25, 40, 5, 72] },
     powers: [
       {
-        name: "The ancestors",
-        domain: "the tribe, its land, its dead",
+        name: "Lugus",
+        wiki: "https://en.wikipedia.org/wiki/Lugus",
+        domain: "many skills, kingship, the tribe",
         rank: "paramount",
       },
       {
-        name: "The war god",
-        domain: "battle, weapons, the warrior",
+        name: "Taranis",
+        wiki: "https://en.wikipedia.org/wiki/Taranis",
+        domain: "thunder, war, the wheel",
         rank: "major",
       },
       {
-        name: "The sovereignty goddess",
-        domain: "the land, the tribe, cattle",
+        name: "Brigantia",
+        wiki: "https://en.wikipedia.org/wiki/Brigantia_(goddess)",
+        domain: "the land, sovereignty, the tribe",
         rank: "major",
       },
       {
-        name: "The sun",
-        domain: "light, time, healing",
+        name: "Nodens",
+        wiki: "https://en.wikipedia.org/wiki/Nodens",
+        domain: "healing, hunting, the sea",
         rank: "major",
       },
       {
-        name: "The waters",
-        domain: "rivers, lakes, the sea",
+        name: "Epona",
+        wiki: "https://en.wikipedia.org/wiki/Epona",
+        domain: "horses, fertility, the road",
         rank: "major",
       },
       {
-        name: "The head",
-        domain: "the warrior's strength, soul",
+        name: "Belatucadros",
+        wiki: "https://en.wikipedia.org/wiki/Belatucadros",
+        domain: "war, the northern frontier",
         rank: "major",
       },
-      { name: "The hearth", domain: "the roundhouse, family", rank: "local" },
       {
-        name: "The well or spring",
-        domain: "healing water, fortune",
+        name: "Cocidius",
+        wiki: "https://en.wikipedia.org/wiki/Cocidius",
+        domain: "war, the hunt, forests",
+        rank: "major",
+      },
+      {
+        name: "Maponos",
+        wiki: "https://en.wikipedia.org/wiki/Maponos",
+        domain: "youth, music, the hunt",
         rank: "local",
       },
       {
-        name: "The hero of the tribe",
-        domain: "protection, precedent",
+        name: "Sulis",
+        wiki: "https://en.wikipedia.org/wiki/Sulis",
+        domain: "the hot spring, healing, curses",
+        rank: "local",
+      },
+      {
+        name: "Coventina",
+        wiki: "https://en.wikipedia.org/wiki/Coventina",
+        domain: "the sacred well, plenty",
+        rank: "local",
+      },
+      {
+        name: "The Matres",
+        wiki: "https://en.wikipedia.org/wiki/Matres_and_Matronae",
+        domain: "the mother goddesses, the household, fertility",
         rank: "local",
       },
       {
@@ -422,50 +631,55 @@ export const european: readonly BeliefSystem[] = [
       },
     ],
     practice: [
-      "Heads of fallen enemies are displayed to retain their power.",
-      "Weapons and treasures are thrown into lakes as gifts to the gods.",
-      "Wells and springs are visited for healing and prophecy.",
-      "The dead are buried with weapons, food and ornaments.",
+      "Weapons, coins and treasures are thrown into rivers and wells for Nodens and Coventina.",
+      "The sick bathe at Sulis's hot spring, leaving curses and thanks scratched on lead.",
+      "Taranis is honoured with the wheel; Belatucadros and Cocidius are called on at frontier shrines.",
+      "The Matres are carved in threes on household altars for fertility and protection.",
     ],
-    specialist: "The druid or bard; the chieftain for war-gods.",
+    specialist: "The druid or bard; the chieftain calls on Taranis and Lugus.",
     afterlife:
       "The dead dwell in the ancestral mound or a land across the sea, unchanged.",
     evidence: {
-      status: "inferred",
+      status: "documented",
       claim:
-        "No written accounts exist; the practice is inferred from archaeological deposits (weapon burials, votive hoards in water, trepanned skulls), Roman accounts of British Celts, and later Irish texts mentioning druids.",
+        "Sulis at Bath, Coventina at Carrawburgh, Nodens at Lydney, Brigantia among the Brigantes, Belatucadros and Cocidius on the northern frontier, and Epona, Taranis, Lugus, Maponos and the Matres are all attested in British and neighbouring Romano-Celtic inscriptions and dedications.",
       sources: [
         "Cunliffe, Iron Age Britain",
-        "Green, Dying for the Gods: Human Sacrifice in Iron Age and Roman Europe",
-        "Caesar, Gallic Wars (on British druids)",
+        "Green, Dictionary of Celtic Myth and Legend",
+        "Ross, Pagan Celtic Britain",
       ],
       limitation:
-        "Iron Age Britain likely had varied practices; the picture is a scholarly reconstruction.",
+        "Most of these names survive on Roman-period altars and curse tablets, which may already show Roman influence on older British cults; pre-Roman belief cannot be reconstructed with the same confidence.",
     },
   },
   {
     id: "celtic-gaul",
     label: "Iron Age Gallic practice",
+    wiki: "https://en.wikipedia.org/wiki/Gallo-Roman_religion",
     scope: { years: [-500, 100], bounds: [-5, 42, 8, 51] },
     powers: [
       { name: "The tribe", domain: "unity, the land, war", rank: "paramount" },
       {
         name: "Toutatis",
+        wiki: "https://en.wikipedia.org/wiki/Toutatis",
         domain: "the people, protection",
         rank: "major",
       },
       {
         name: "Taranis",
+        wiki: "https://en.wikipedia.org/wiki/Taranis",
         domain: "thunder, war, the wheel",
         rank: "major",
       },
       {
         name: "Esus",
+        wiki: "https://en.wikipedia.org/wiki/Esus",
         domain: "timber, horses, war",
         rank: "major",
       },
       {
         name: "Epona",
+        wiki: "https://en.wikipedia.org/wiki/Epona",
         domain: "horses, fertility, the road",
         rank: "major",
       },
@@ -476,6 +690,7 @@ export const european: readonly BeliefSystem[] = [
       },
       {
         name: "Belenos",
+        wiki: "https://en.wikipedia.org/wiki/Belenus",
         domain: "sun, healing, crafts",
         rank: "local",
       },
@@ -520,19 +735,46 @@ export const european: readonly BeliefSystem[] = [
   {
     id: "norse-scandinavia",
     label: "Viking Age Norse practice",
+    wiki: "https://en.wikipedia.org/wiki/Old_Norse_religion",
     scope: { years: [700, 1300], bounds: [-26, 45, 50, 72] },
     powers: [
-      { name: "Odin", domain: "war, death, wisdom, poetry", rank: "paramount" },
+      {
+        name: "Odin",
+        wiki: "https://en.wikipedia.org/wiki/Odin",
+        domain: "war, death, wisdom, poetry",
+        rank: "paramount",
+      },
       {
         name: "Thor",
+        wiki: "https://en.wikipedia.org/wiki/Thor",
         domain: "thunder, strength, oaths",
         rank: "major",
         relation: { kind: "child-of", of: "Odin" },
       },
-      { name: "Freyja", domain: "beauty, love, warriors' hall", rank: "major" },
-      { name: "Freyr", domain: "summer, fertility, peace", rank: "major" },
-      { name: "Tyr", domain: "war, law, oath-keeping", rank: "major" },
-      { name: "Loki", domain: "fire, chaos, mischief", rank: "major" },
+      {
+        name: "Freyja",
+        wiki: "https://en.wikipedia.org/wiki/Freyja",
+        domain: "beauty, love, warriors' hall",
+        rank: "major",
+      },
+      {
+        name: "Freyr",
+        wiki: "https://en.wikipedia.org/wiki/Freyr",
+        domain: "summer, fertility, peace",
+        rank: "major",
+      },
+      {
+        name: "Tyr",
+        wiki: "https://en.wikipedia.org/wiki/T%C3%BDr",
+        domain: "war, law, oath-keeping",
+        rank: "major",
+      },
+      {
+        name: "Loki",
+        wiki: "https://en.wikipedia.org/wiki/Loki",
+        domain: "fire, chaos, mischief",
+        rank: "major",
+      },
       {
         name: "The ancestors",
         domain: "the lineage, the dead",
@@ -580,15 +822,18 @@ export const european: readonly BeliefSystem[] = [
   {
     id: "slavic-paganism",
     label: "Pre-Christian Slavic practice",
+    wiki: "https://en.wikipedia.org/wiki/Slavic_paganism",
     scope: { years: [400, 1100], bounds: [15, 45, 40, 60] },
     powers: [
       {
         name: "Perun",
+        wiki: "https://en.wikipedia.org/wiki/Perun",
         domain: "thunder, war, the sky-father",
         rank: "paramount",
       },
       {
         name: "Veles",
+        wiki: "https://en.wikipedia.org/wiki/Veles_(god)",
         domain: "cattle, wealth, the underworld",
         rank: "major",
         relation: { kind: "child-of", of: "Perun" },
@@ -605,11 +850,13 @@ export const european: readonly BeliefSystem[] = [
       },
       {
         name: "Stribog",
+        wiki: "https://en.wikipedia.org/wiki/Stribog",
         domain: "wind, air, fate",
         rank: "major",
       },
       {
         name: "Dazhbog",
+        wiki: "https://en.wikipedia.org/wiki/Dazhbog",
         domain: "the sun, light, wealth",
         rank: "major",
       },
@@ -658,23 +905,36 @@ export const european: readonly BeliefSystem[] = [
   {
     id: "frankish-christian-early",
     label: "Early medieval Frankish Christian practice",
+    wiki: "https://en.wikipedia.org/wiki/Christianization_of_the_Franks",
     scope: { years: [500, 850], bounds: [-15, 30, 45, 72] },
     powers: [
       { name: "God", domain: "the creator, all power", rank: "paramount" },
       {
         name: "Christ",
+        wiki: "https://en.wikipedia.org/wiki/Jesus",
         domain: "redemption, salvation",
         rank: "major",
         relation: { kind: "child-of", of: "God" },
       },
-      { name: "Mary", domain: "intercession, mercy", rank: "major" },
+      {
+        name: "Mary",
+        wiki: "https://en.wikipedia.org/wiki/Mary,_mother_of_Jesus",
+        domain: "intercession, mercy",
+        rank: "major",
+      },
       {
         name: "The Holy Spirit",
+        wiki: "https://en.wikipedia.org/wiki/Holy_Spirit_in_Christianity",
         domain: "sanctity, inspiration",
         rank: "major",
         relation: { kind: "aspect-of", of: "God" },
       },
-      { name: "Michael", domain: "war, protection, judgement", rank: "major" },
+      {
+        name: "Michael",
+        wiki: "https://en.wikipedia.org/wiki/Michael_(archangel)",
+        domain: "war, protection, judgement",
+        rank: "major",
+      },
       { name: "The saints", domain: "intercession, healing", rank: "major" },
       {
         name: "The local saint",
@@ -717,6 +977,7 @@ export const european: readonly BeliefSystem[] = [
   {
     id: "catholic-high-medieval",
     label: "High medieval Catholic practice",
+    wiki: "https://en.wikipedia.org/wiki/Catholic_Church_in_the_Middle_Ages",
     scope: { years: [1000, 1300], bounds: [-15, 35, 40, 65] },
     powers: [
       {
@@ -726,15 +987,32 @@ export const european: readonly BeliefSystem[] = [
       },
       {
         name: "Christ",
+        wiki: "https://en.wikipedia.org/wiki/Jesus",
         domain: "salvation, the Eucharist, the cross",
         rank: "major",
         relation: { kind: "child-of", of: "God" },
       },
-      { name: "Mary", domain: "intercession, mothers, mercy", rank: "major" },
-      { name: "Michael", domain: "war, good against evil", rank: "major" },
-      { name: "Gabriel", domain: "messages, annunciations", rank: "major" },
+      {
+        name: "Mary",
+        wiki: "https://en.wikipedia.org/wiki/Mary,_mother_of_Jesus",
+        domain: "intercession, mothers, mercy",
+        rank: "major",
+      },
+      {
+        name: "Michael",
+        wiki: "https://en.wikipedia.org/wiki/Michael_(archangel)",
+        domain: "war, good against evil",
+        rank: "major",
+      },
+      {
+        name: "Gabriel",
+        wiki: "https://en.wikipedia.org/wiki/Gabriel",
+        domain: "messages, annunciations",
+        rank: "major",
+      },
       {
         name: "Saint Peter",
+        wiki: "https://en.wikipedia.org/wiki/Saint_Peter",
         domain: "the Church, keys to heaven",
         rank: "major",
       },
@@ -781,27 +1059,36 @@ export const european: readonly BeliefSystem[] = [
   {
     id: "reformation-protestant",
     label: "Reformation Protestant practice",
+    wiki: "https://en.wikipedia.org/wiki/Reformation",
     scope: { years: [1500, 1800], bounds: [-26, 30, 50, 72] },
     powers: [
       { name: "God", domain: "all power, predestination", rank: "paramount" },
       {
         name: "Christ",
+        wiki: "https://en.wikipedia.org/wiki/Jesus",
         domain: "salvation, faith, the Word",
         rank: "major",
         relation: { kind: "child-of", of: "God" },
       },
       {
         name: "The Holy Spirit",
+        wiki: "https://en.wikipedia.org/wiki/Holy_Spirit_in_Christianity",
         domain: "faith, inspiration, grace",
         rank: "major",
         relation: { kind: "aspect-of", of: "God" },
       },
       {
         name: "The Bible",
+        wiki: "https://en.wikipedia.org/wiki/Bible",
         domain: "God's word, authority",
         rank: "major",
       },
-      { name: "The Devil", domain: "temptation, opposition", rank: "major" },
+      {
+        name: "Satan",
+        wiki: "https://en.wikipedia.org/wiki/Satan",
+        domain: "temptation, opposition, the ancient adversary",
+        rank: "major",
+      },
       {
         name: "The Holy Communion",
         domain: "remembrance, grace",
@@ -847,23 +1134,32 @@ export const european: readonly BeliefSystem[] = [
   {
     id: "orthodox-russia",
     label: "Orthodox Russian practice",
+    wiki: "https://en.wikipedia.org/wiki/Russian_Orthodox_Church",
     scope: { years: [1000, 1700], bounds: [15, 40, 50, 72] },
     powers: [
       { name: "God", domain: "all power, eternity", rank: "paramount" },
       {
         name: "Christ",
+        wiki: "https://en.wikipedia.org/wiki/Jesus",
         domain: "salvation, the Eucharist, icons",
         rank: "major",
         relation: { kind: "child-of", of: "God" },
       },
       {
         name: "Mary",
+        wiki: "https://en.wikipedia.org/wiki/Mary,_mother_of_Jesus",
         domain: "mercy, the protection of Russia",
         rank: "major",
       },
-      { name: "Michael", domain: "war, protection", rank: "major" },
+      {
+        name: "Michael",
+        wiki: "https://en.wikipedia.org/wiki/Michael_(archangel)",
+        domain: "war, protection",
+        rank: "major",
+      },
       {
         name: "Saint Nicholas",
+        wiki: "https://en.wikipedia.org/wiki/Saint_Nicholas",
         domain: "travelers, protection",
         rank: "major",
       },
@@ -913,20 +1209,33 @@ export const european: readonly BeliefSystem[] = [
   {
     id: "catholic-early-modern",
     label: "Early modern Catholic practice",
+    wiki: "https://en.wikipedia.org/wiki/Counter-Reformation",
     scope: { years: [1500, 1800], bounds: [-26, 30, 50, 72] },
     powers: [
       { name: "God", domain: "all power, creation", rank: "paramount" },
       {
         name: "Christ",
+        wiki: "https://en.wikipedia.org/wiki/Jesus",
         domain: "salvation, the Eucharist",
         rank: "major",
         relation: { kind: "child-of", of: "God" },
       },
-      { name: "Mary", domain: "intercession, mercy, mothers", rank: "major" },
-      { name: "Michael", domain: "war, judgement", rank: "major" },
+      {
+        name: "Mary",
+        wiki: "https://en.wikipedia.org/wiki/Mary,_mother_of_Jesus",
+        domain: "intercession, mercy, mothers",
+        rank: "major",
+      },
+      {
+        name: "Michael",
+        wiki: "https://en.wikipedia.org/wiki/Michael_(archangel)",
+        domain: "war, judgement",
+        rank: "major",
+      },
       { name: "The saints", domain: "aid and intercession", rank: "major" },
       {
         name: "Saint James",
+        wiki: "https://en.wikipedia.org/wiki/James,_son_of_Zebedee",
         domain: "pilgrims, Spain",
         rank: "major",
       },
@@ -972,6 +1281,7 @@ export const european: readonly BeliefSystem[] = [
   {
     id: "european-enlightenment",
     label: "European Enlightenment-era practice",
+    wiki: "https://en.wikipedia.org/wiki/Age_of_Enlightenment",
     scope: { years: [1700, 1850], bounds: [-26, 30, 50, 72] },
     powers: [
       {
@@ -981,12 +1291,14 @@ export const european: readonly BeliefSystem[] = [
       },
       {
         name: "Christ",
+        wiki: "https://en.wikipedia.org/wiki/Jesus",
         domain: "morality, the church",
         rank: "major",
         relation: { kind: "child-of", of: "God" },
       },
       {
         name: "Mary",
+        wiki: "https://en.wikipedia.org/wiki/Mary,_mother_of_Jesus",
         domain: "intercession, the Virgin",
         rank: "major",
       },
@@ -1046,6 +1358,7 @@ export const european: readonly BeliefSystem[] = [
   {
     id: "european-industrial",
     label: "Industrial-era European practice",
+    wiki: "https://en.wikipedia.org/wiki/Secularization",
     scope: { years: [1850, 2000], bounds: [-26, 30, 50, 72] },
     powers: [
       {
@@ -1119,34 +1432,47 @@ export const european: readonly BeliefSystem[] = [
   {
     id: "byzantine-orthodox",
     label: "Byzantine Orthodox practice",
+    wiki: "https://en.wikipedia.org/wiki/Byzantine_Empire",
     scope: { years: [330, 1460], bounds: [12, 33, 48, 49] },
     powers: [
       { name: "God", domain: "creation, judgement", rank: "paramount" },
       {
         name: "Christ Pantokrator",
+        wiki: "https://en.wikipedia.org/wiki/Christ_Pantocrator",
         domain: "salvation, the icon in the dome",
         rank: "major",
         relation: { kind: "aspect-of", of: "God" },
       },
       {
         name: "The Theotokos",
-        domain: "intercession, the defence of the city",
-        rank: "major",
-      },
-      {
-        name: "The saints",
-        domain: "particular needs and trades",
+        wiki: "https://en.wikipedia.org/wiki/Theotokos",
+        domain:
+          "intercession, defence of the city, venerated as the Hodegetria and Blachernitissa",
         rank: "major",
       },
       {
         name: "Saint Nicholas",
+        wiki: "https://en.wikipedia.org/wiki/Saint_Nicholas",
         domain: "sailors, merchants, children",
         rank: "major",
         relation: { kind: "serves", of: "God" },
       },
       {
-        name: "The archangel Michael",
+        name: "Michael",
+        wiki: "https://en.wikipedia.org/wiki/Michael_(archangel)",
         domain: "armies, the hour of death",
+        rank: "major",
+      },
+      {
+        name: "Gabriel",
+        wiki: "https://en.wikipedia.org/wiki/Gabriel",
+        domain: "messages, the Annunciation",
+        rank: "major",
+      },
+      {
+        name: "Saint George",
+        wiki: "https://en.wikipedia.org/wiki/Saint_George",
+        domain: "soldiers, dragon-slaying, popular devotion",
         rank: "major",
       },
       {
@@ -1160,17 +1486,12 @@ export const european: readonly BeliefSystem[] = [
         domain: "the family remembered at liturgy",
         rank: "local",
       },
-      {
-        name: "The evil eye",
-        domain: "envy, sudden misfortune",
-        rank: "local",
-      },
     ],
     practice: [
       "Oil and candles before the icon at home and at the church door.",
       "Fasts before Easter and Christmas, kept by the household together.",
       "Name days rather than birthdays; the saint is the person's patron.",
-      "Blue beads, salt and spitting against the eye, alongside the priest's blessing.",
+      "Soldiers invoke George and travelers invoke Nicholas; the Theotokos's icon is paraded to defend the city in crisis.",
     ],
     specialist:
       "Parish priests and monks; the bishop for anything beyond the village.",
@@ -1178,7 +1499,7 @@ export const european: readonly BeliefSystem[] = [
     evidence: {
       status: "documented",
       claim:
-        "Icon veneration, the cult of the Theotokos and the saints, fasting, name days and parallel protective practice against the eye are well attested across the Byzantine world and its successor Orthodox populations.",
+        "Icon veneration, the cult of the Theotokos under titles like Hodegetria and Blachernitissa, and the saints Nicholas and George, alongside the archangels Michael and Gabriel, are well attested across the Byzantine world and its successor Orthodox populations.",
       sources: [
         "Cormack, Byzantine Art",
         "Kaldellis, The Byzantine Republic",
@@ -1191,28 +1512,44 @@ export const european: readonly BeliefSystem[] = [
   {
     id: "post-roman-christian-mediterranean",
     label: "Post-Roman Christian practice",
+    wiki: "https://en.wikipedia.org/wiki/Christianization_of_the_Roman_Empire",
     scope: { years: [380, 1000], bounds: [-12, 34, 25, 58] },
     powers: [
       { name: "God", domain: "creation, judgement", rank: "paramount" },
       {
         name: "Christ",
+        wiki: "https://en.wikipedia.org/wiki/Jesus",
         domain: "salvation",
         rank: "major",
         relation: { kind: "aspect-of", of: "God" },
       },
-      { name: "The Virgin", domain: "intercession", rank: "major" },
       {
-        name: "The local saint",
-        domain: "the relic the church was built around",
+        name: "The Virgin",
+        wiki: "https://en.wikipedia.org/wiki/Mary,_mother_of_Jesus",
+        domain: "intercession",
         rank: "major",
       },
       {
-        name: "The bishop's saint",
-        domain: "the diocese and its protection",
+        name: "Martin",
+        wiki: "https://en.wikipedia.org/wiki/Martin_of_Tours",
+        domain: "the shrine cults of Gaul, charity, healing",
         rank: "major",
       },
       {
-        name: "The Devil",
+        name: "Michael",
+        wiki: "https://en.wikipedia.org/wiki/Michael_(archangel)",
+        domain: "the defence of high places, the hour of death",
+        rank: "major",
+      },
+      {
+        name: "Sebastian",
+        wiki: "https://en.wikipedia.org/wiki/Saint_Sebastian",
+        domain: "plague, protection",
+        rank: "major",
+      },
+      {
+        name: "Satan",
+        wiki: "https://en.wikipedia.org/wiki/Satan",
         domain: "temptation, plague, bad harvests",
         rank: "major",
       },
@@ -1236,7 +1573,7 @@ export const european: readonly BeliefSystem[] = [
       "Oaths sworn on a relic, which is more binding than a spoken promise.",
       "The fields walked and blessed before the harvest.",
       "Older wells and stones kept, renamed for a saint.",
-      "Charms and church blessing used together against illness.",
+      "Martin's cloak, Michael's high shrines and Sebastian's arrows are called on in turn, for charity, danger and plague.",
     ],
     specialist:
       "Priests and monks; a local holy man or woman where no church stood.",
@@ -1244,10 +1581,11 @@ export const european: readonly BeliefSystem[] = [
     evidence: {
       status: "inferred",
       claim:
-        "Relic cult, oath-taking on relics, rogation processions and the christening of older sacred places are documented across the post-Roman west and Mediterranean, though unevenly by region.",
+        "Relic cult, oath-taking on relics, rogation processions, and the spread of the cults of Martin of Tours, Michael (from Monte Gargano) and Sebastian are documented across the post-Roman west and Mediterranean, though unevenly by region.",
       sources: [
         "Brown, The Cult of the Saints",
         "Geary, Living with the Dead in the Middle Ages",
+        "Sulpicius Severus, Life of Saint Martin",
       ],
       limitation:
         "A broad floor for six centuries; the depth of Christianization varied enormously between town, countryside and frontier.",
@@ -1256,21 +1594,34 @@ export const european: readonly BeliefSystem[] = [
   {
     id: "latin-christendom-late-medieval",
     label: "Late medieval Latin Christian practice",
+    wiki: "https://en.wikipedia.org/wiki/Late_Middle_Ages",
     scope: { years: [1300, 1520], bounds: [-10, 35, 30, 62] },
     powers: [
       { name: "God", domain: "creation, judgement", rank: "paramount" },
-      { name: "Christ", domain: "the Passion, the mass", rank: "major" },
+      {
+        name: "Christ",
+        wiki: "https://en.wikipedia.org/wiki/Jesus",
+        domain: "the Passion, the mass",
+        rank: "major",
+      },
       {
         name: "The Virgin",
+        wiki: "https://en.wikipedia.org/wiki/Mary,_mother_of_Jesus",
         domain: "mercy, intercession, plague",
         rank: "major",
       },
       {
         name: "Saint Christopher",
+        wiki: "https://en.wikipedia.org/wiki/Saint_Christopher",
         domain: "travellers, sudden death",
         rank: "major",
       },
-      { name: "Saint Sebastian", domain: "plague", rank: "major" },
+      {
+        name: "Saint Sebastian",
+        wiki: "https://en.wikipedia.org/wiki/Saint_Sebastian",
+        domain: "plague",
+        rank: "major",
+      },
       { name: "The Devil", domain: "temptation, the deathbed", rank: "major" },
       {
         name: "The guild's patron",
