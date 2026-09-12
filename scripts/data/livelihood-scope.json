@@ -909,7 +909,7 @@
       "label": "Warrior",
       "keyword": "warfare",
       "tier": "village",
-      "weight": 10,
+      "weight": 3,
       "sex": "male",
       "why": "Fighting as what a man of standing does, rather than as paid service. Ungated: it needs no state to retain him."
     },
@@ -917,7 +917,7 @@
       "label": "Retainer",
       "keyword": "warfare",
       "tier": "village",
-      "weight": 8,
+      "weight": 2,
       "sex": "male",
       "capabilities": [
         "retained_military_service"
@@ -928,7 +928,7 @@
       "label": "Watchman",
       "keyword": "watch",
       "tier": "town",
-      "weight": 6,
+      "weight": 2,
       "capabilities": [
         "urban_settlement"
       ],
@@ -942,7 +942,7 @@
       "label": "Gate Keeper",
       "keyword": "watch",
       "tier": "town",
-      "weight": 4,
+      "weight": 1,
       "capabilities": [
         "urban_settlement"
       ],
@@ -952,7 +952,7 @@
       "label": "Armourer",
       "keyword": "metalwork",
       "tier": "village-craft",
-      "weight": 4,
+      "weight": 1,
       "capabilities": [
         "metallurgy"
       ],
@@ -962,14 +962,14 @@
       "label": "Fletcher",
       "keyword": "woodwork",
       "tier": "village-craft",
-      "weight": 4,
+      "weight": 1,
       "why": "Making arrows, which is separate work from making the bow."
     },
     "apprentice": {
       "label": "Apprentice",
       "keyword": "craft",
       "tier": "town",
-      "weight": 10,
+      "weight": 3,
       "capabilities": [
         "guild_apprenticeship"
       ],
@@ -979,7 +979,7 @@
       "label": "Journeyman",
       "keyword": "craft",
       "tier": "town",
-      "weight": 8,
+      "weight": 2,
       "capabilities": [
         "guild_apprenticeship"
       ],
@@ -989,7 +989,7 @@
       "label": "Guild Master",
       "keyword": "craft",
       "tier": "town",
-      "weight": 3,
+      "weight": 1,
       "capabilities": [
         "guilds"
       ],
@@ -999,7 +999,7 @@
       "label": "Money Changer",
       "keyword": "trade",
       "tier": "town",
-      "weight": 4,
+      "weight": 1,
       "capabilities": [
         "coinage"
       ],
@@ -1009,21 +1009,21 @@
       "label": "Headman",
       "keyword": "authority",
       "tier": "village",
-      "weight": 5,
+      "weight": 1,
       "why": "Speaking for a settlement to whoever is above it, which every settlement needs and none had."
     },
     "village-elder": {
       "label": "Village Elder",
       "keyword": "authority",
       "tier": "village",
-      "weight": 8,
+      "weight": 2,
       "why": "Settling disputes and remembering what was agreed."
     },
     "tax-collector": {
       "label": "Tax Collector",
       "keyword": "authority",
       "tier": "town",
-      "weight": 3,
+      "weight": 1,
       "capabilities": [
         "writing"
       ],
@@ -1033,7 +1033,7 @@
       "label": "Toll Keeper",
       "keyword": "authority",
       "tier": "town",
-      "weight": 3,
+      "weight": 1,
       "capabilities": [
         "market_exchange"
       ],
@@ -1043,28 +1043,28 @@
       "label": "Musician",
       "keyword": "performance",
       "tier": "village",
-      "weight": 6,
+      "weight": 2,
       "why": "There was no music, dance or storytelling anywhere in the table, in any era."
     },
     "storyteller": {
       "label": "Storyteller",
       "keyword": "performance",
       "tier": "village",
-      "weight": 6,
+      "weight": 2,
       "why": "Holding what a community knows about itself, which in a society without writing is an office."
     },
     "carver": {
       "label": "Carver",
       "keyword": "woodwork",
       "tier": "village-craft",
-      "weight": 6,
+      "weight": 2,
       "why": "Wood, bone and stone carving, the core craft of several regions the game covers."
     },
     "boatwright": {
       "label": "Boatwright",
       "keyword": "woodwork",
       "tier": "village",
-      "weight": 6,
+      "weight": 2,
       "needs": [
         "water"
       ],
@@ -1078,7 +1078,7 @@
       "label": "Salt Panner",
       "keyword": "extraction",
       "tier": "village",
-      "weight": 4,
+      "weight": 1,
       "needs": [
         "water"
       ],
@@ -1088,7 +1088,7 @@
       "label": "Shopkeeper",
       "keyword": "trade",
       "tier": "town",
-      "weight": 10,
+      "weight": 4,
       "years": [
         1500,
         10001
@@ -1099,7 +1099,7 @@
       "label": "Grocer",
       "keyword": "trade",
       "tier": "town",
-      "weight": 8,
+      "weight": 3,
       "years": [
         1600,
         10001
@@ -1109,7 +1109,7 @@
       "label": "Confectioner",
       "keyword": "baking",
       "tier": "town",
-      "weight": 4,
+      "weight": 2,
       "years": [
         1700,
         10001
@@ -1120,7 +1120,7 @@
       "label": "Dressmaker",
       "keyword": "textiles",
       "tier": "town",
-      "weight": 8,
+      "weight": 3,
       "sex": "female",
       "years": [
         1700,
@@ -1131,7 +1131,7 @@
       "label": "Milliner",
       "keyword": "textiles",
       "tier": "town",
-      "weight": 5,
+      "weight": 2,
       "sex": "female",
       "years": [
         1700,
@@ -1142,7 +1142,7 @@
       "label": "Clerk",
       "keyword": "authority",
       "tier": "town",
-      "weight": 10,
+      "weight": 4,
       "capabilities": [
         "writing"
       ],
@@ -1156,7 +1156,7 @@
       "label": "Bank Clerk",
       "keyword": "authority",
       "tier": "town",
-      "weight": 5,
+      "weight": 2,
       "capabilities": [
         "coinage"
       ],
@@ -1169,7 +1169,7 @@
       "label": "Printer",
       "keyword": "craft",
       "tier": "town",
-      "weight": 5,
+      "weight": 2,
       "capabilities": [
         "writing"
       ],
@@ -1183,7 +1183,7 @@
       "label": "Schoolteacher",
       "keyword": "authority",
       "tier": "town",
-      "weight": 8,
+      "weight": 3,
       "capabilities": [
         "writing"
       ],
@@ -1196,7 +1196,7 @@
       "label": "Postman",
       "keyword": "portering",
       "tier": "town",
-      "weight": 6,
+      "weight": 2,
       "years": [
         1700,
         10001
@@ -1206,7 +1206,7 @@
       "label": "Policeman",
       "keyword": "watch",
       "tier": "town",
-      "weight": 6,
+      "weight": 2,
       "years": [
         1820,
         10001
@@ -1217,7 +1217,7 @@
       "label": "Lamplighter",
       "keyword": "watch",
       "tier": "town",
-      "weight": 4,
+      "weight": 1,
       "years": [
         1800,
         1950
@@ -1228,7 +1228,7 @@
       "label": "Stationmaster",
       "keyword": "authority",
       "tier": "town",
-      "weight": 3,
+      "weight": 1,
       "years": [
         1840,
         10001
@@ -1238,7 +1238,7 @@
       "label": "Cabinetmaker",
       "keyword": "woodwork",
       "tier": "town",
-      "weight": 5,
+      "weight": 2,
       "years": [
         1600,
         10001
@@ -1248,7 +1248,7 @@
       "label": "Watchmaker",
       "keyword": "craft",
       "tier": "town",
-      "weight": 3,
+      "weight": 1,
       "years": [
         1600,
         10001
@@ -1258,7 +1258,7 @@
       "label": "Pharmacist",
       "keyword": "medicine",
       "tier": "town",
-      "weight": 4,
+      "weight": 2,
       "years": [
         1600,
         10001
