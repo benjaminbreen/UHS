@@ -1663,4 +1663,13 @@ export const commonLivelihoods: readonly Livelihood[] = [
     weight: 12,
     inventory: {"water":2,"fish":2,"tool":1},
   },
+  {
+    id: "religious-specialist",
+    label: "Religious specialist",
+    activity: "At the rite",
+    tier: "village",
+    weight: 12,
+    fromBeliefs: true,
+    inventory: {"water":1,"tool":1},
+  },
 ];

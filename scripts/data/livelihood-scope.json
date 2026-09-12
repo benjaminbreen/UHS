@@ -770,6 +770,14 @@
         10001
       ],
       "why": "Fishing from a boat off the coast, as against the shore and river work the single existing fisher role covers."
+    },
+    "religious-specialist": {
+      "label": "Religious specialist",
+      "keyword": "ritual",
+      "tier": "village",
+      "weight": 12,
+      "fromBeliefs": true,
+      "why": "One row standing for every officiant. The label and its rarity come from the belief system in force here, so Egypt yields a priest of Amun-Ra and 17th-century Germany a Lutheran minister. Societies whose record does not name an officiant produce none."
     }
   }
 }

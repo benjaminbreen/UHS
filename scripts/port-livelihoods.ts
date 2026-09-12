@@ -255,7 +255,8 @@ writeFileSync(
         (sc?.ecologies ? `    ecologies: ${JSON.stringify(sc.ecologies)},\n` : "") +
         (sc?.minPopulation ? `    minPopulation: ${sc.minPopulation},\n` : "") +
         (sc?.weight ? `    weight: ${sc.weight},\n` : "") +
-        (sc?.workplace ? `    workplace: ${JSON.stringify(sc.workplace)},\n` : ""))(
+        (sc?.workplace ? `    workplace: ${JSON.stringify(sc.workplace)},\n` : "") +
+        (sc?.fromBeliefs ? `    fromBeliefs: true,\n` : ""))(
         scopes[r.id],
         scopes[r.id]?.years ?? tierDates[r.tier],
       ) +

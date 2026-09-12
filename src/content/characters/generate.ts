@@ -11,6 +11,7 @@ import {
   resolveCharacterContext,
   type CharacterContext,
 } from "./resolve";
+import { asOfficiant } from "./officiant";
 import type { CharacterPhysique } from "../../core/character";
 
 export type Sex = CharacterPhysique["sex"];
@@ -199,7 +200,13 @@ export function characterLivelihood(
     sex === "unspecified"
       ? context.livelihoods
       : context.livelihoods.filter((l) => !l.sex || l.sex === sex);
-  const pool = open.length ? open : context.livelihoods;
+  // A society whose record does not name an officiant offers no religious
+  // office at all, rather than a generic priest.
+  const withBeliefs = (open.length ? open : context.livelihoods).flatMap((l) => {
+    const resolved = asOfficiant(l, s, seed, id);
+    return resolved ? [resolved] : [];
+  });
+  const pool = withBeliefs.length ? withBeliefs : context.livelihoods;
   // Drawn by share, not evenly. Uniformly, twelve adults held ten different
   // trades: one of everything and two of nothing, and nobody growing food.
   const total = pool.reduce((n, l) => n + (l.weight ?? 1), 0);

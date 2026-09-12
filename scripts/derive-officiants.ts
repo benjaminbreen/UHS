@@ -1,0 +1,158 @@
+/*
+ * Turns each belief system's `specialist` sentence into structured officiants.
+ *
+ * Every belief system already says who officiates, in prose: "Temple priests
+ * and curaca; family and ayllu heads." That sentence is the authority — it was
+ * written alongside the powers it serves — so the roles are derived from it
+ * rather than authored a second time and left to drift.
+ *
+ * Semicolons separate tiers of officiant, commas and "and" separate roles
+ * within one. A phrase naming the household, the family, the lineage or the
+ * hearth is domestic work; one naming a temple, a shrine, a king or a master
+ * is the rare public office; anything else sits between. Hand corrections go
+ * in scripts/data/officiants.json and win.
+ *
+ * Run: npx tsx scripts/derive-officiants.ts
+ */
+import { readFileSync, writeFileSync } from "node:fs";
+import { beliefSystems } from "../src/content/beliefs/index";
+
+const overrides = JSON.parse(
+  readFileSync("scripts/data/officiants.json", "utf8"),
+) as { systems: Record<string, any[]>; skip: string[] };
+
+const HOUSEHOLD =
+  /household|family|hearth|domestic|lineage|kin|home|eldest|parents?|ancestral rites/i;
+const PARAMOUNT =
+  /king|queen|royal|emperor|pharaoh|high priest|chief priest|paramount|state|court|master navigator|archbishop|pontiff|caliph|patriarch/i;
+const TEMPLE =
+  /temple|shrine|monk|nun|priest|minister|imam|rabbi|abbot|monastic|cathedral|mosque|synagogue|church|clergy|oracle|ritual master/i;
+
+/** Trailing qualifiers: "shamans for major concerns" is still a shaman. */
+const TRIM =
+  /\s+(for|who|as|at|to|in|on|with|that|when|during|among|guides?|leads?|performs?|maintains?|holds?|marks?|speaks?|tends?|attends?|retains?|receives?|oversees?|works?|consults?|judges?|conducts?|presides?|officiates?|offers?|makes?|keeps?|reads?|sings?|coexist)\b.*$/i;
+
+const clean = (raw: string) =>
+  raw
+    .replace(/\([^)]*\)/g, " ")
+    .replace(/^\s*(the|a|an|their|its|his|her)\s+/i, "")
+    .replace(TRIM, "")
+    .replace(/[.;:,]+$/, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+/** "Temple priests" -> "Temple priest". Plural forms only, possessives kept. */
+const singular = (s: string) =>
+  s
+    .replace(/\bmen\b/g, "man")
+    .replace(/\bwomen\b/g, "woman")
+    .replace(/\bpeople\b/g, "person")
+    .replace(/\bwives\b/g, "wife")
+    .replace(/([a-z])ives\b/g, "$1ife")
+    .replace(/([a-z])ies\b/g, "$1y")
+    .replace(/(ss|sh|ch|x)es\b/g, "$1")
+    .replace(/([^s'])s\b/g, "$1");
+
+const title = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+type Officiant = {
+  tier: "household" | "local" | "temple" | "paramount";
+  label: string;
+  serves?: "paramount" | "major" | "local";
+  weight: number;
+};
+
+/** Rarer the higher it goes: a village has elders, a city has one high priest. */
+const WEIGHT = { household: 40, local: 14, temple: 5, paramount: 1 };
+const SERVES = {
+  household: "local",
+  local: "local",
+  temple: "major",
+  paramount: "paramount",
+} as const;
+
+function parse(sentence: string): Officiant[] {
+  const out: Officiant[] = [];
+  const seen = new Set<string>();
+  for (const segment of sentence.split(/;/)) {
+    for (const raw of segment.split(/,| and (?=[a-z])/i)) {
+      const phrase = clean(raw);
+      if (!phrase || phrase.length < 3 || phrase.length > 40) continue;
+      // A fragment left by the split is not a role: "current knowledge",
+      // "their speakers" on its own. Require a plausible noun head.
+      if (!/\b(elder|eldest|head|priest|priestess|shaman|monk|nun|chief|king|queen|lord|master|healer|diviner|medium|keeper|specialist|scholar|minister|imam|rabbi|oracle|dreamer|singer|dancer|smith|midwife|mother|father|pilot|navigator|reader|teacher|catechist|worker|attendant|servant|leader|guardian|sorcerer|witch|magician|bard|storyteller|ritualist|officiant|celebrant|abbot|bori|magajiya|noro|tohunga|curaca|shrine|temple|clergy|prophet|seer|herbalist|doctor|sage)/i.test(phrase))
+        continue;
+      const tier = HOUSEHOLD.test(phrase)
+        ? "household"
+        : PARAMOUNT.test(phrase)
+          ? "paramount"
+          : TEMPLE.test(phrase)
+            ? "temple"
+            : "local";
+      const label = title(singular(phrase));
+      if (seen.has(label.toLowerCase())) continue;
+      seen.add(label.toLowerCase());
+      out.push({ tier, label, serves: SERVES[tier], weight: WEIGHT[tier] });
+    }
+  }
+  return out;
+}
+
+const skip = new Set(overrides.skip ?? []);
+const rows: [string, Officiant[]][] = [];
+let derived = 0,
+  handed = 0;
+for (const b of beliefSystems) {
+  if (skip.has(b.id)) continue;
+  const manual = overrides.systems?.[b.id];
+  if (manual) {
+    rows.push([b.id, manual]);
+    handed++;
+    continue;
+  }
+  if (!b.specialist) continue;
+  const parsed = parse(b.specialist);
+  if (!parsed.length) continue;
+  rows.push([b.id, parsed]);
+  derived++;
+}
+
+writeFileSync(
+  "src/content/beliefs/officiants.generated.ts",
+  `// Generated by scripts/derive-officiants.ts from each belief system's own\n` +
+    `// \`specialist\` sentence. Do not edit by hand; correct the sentence, or\n` +
+    `// override the system in scripts/data/officiants.json, and re-run.\n` +
+    `import type { Officiant } from "./types";\n\n` +
+    `export const officiantsBySystem: Readonly<Record<string, readonly Officiant[]>> = {\n` +
+    rows
+      .map(
+        ([id, list]) =>
+          `  ${JSON.stringify(id)}: [\n` +
+          list
+            .map(
+              (o) =>
+                `    { tier: ${JSON.stringify(o.tier)}, label: ${JSON.stringify(o.label)}` +
+                (o.serves ? `, serves: ${JSON.stringify(o.serves)}` : "") +
+                `, weight: ${o.weight} },`,
+            )
+            .join("\n") +
+          `\n  ],`,
+      )
+      .join("\n") +
+    `\n};\n`,
+);
+
+const tiers = rows
+  .flatMap(([, l]) => l)
+  .reduce<Record<string, number>>((n, o) => ({ ...n, [o.tier]: (n[o.tier] ?? 0) + 1 }), {});
+const empty = beliefSystems
+  .filter((b) => !skip.has(b.id) && !rows.some(([id]) => id === b.id))
+  .map((b) => b.id);
+if (empty.length)
+  console.error(
+    `\nno officiant parsed, needs an entry in scripts/data/officiants.json:\n  ${empty.join("\n  ")}`,
+  );
+console.error(
+  `${rows.length} systems (${derived} derived, ${handed} hand-authored), ` +
+    `${rows.flatMap(([, l]) => l).length} officiants ${JSON.stringify(tiers)}`,
+);

@@ -588,6 +588,13 @@
         "flax": 2,
         "tool": 1
       }
+    },
+    "ritual": {
+      "activity": "At the rite",
+      "inventory": {
+        "water": 1,
+        "tool": 1
+      }
     }
   }
 }

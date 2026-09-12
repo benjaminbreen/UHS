@@ -172,6 +172,13 @@ export type Livelihood = {
   weight?: number;
   /** Where the day happens. Falls back to reading it off `activity`. */
   workplace?: Workplace;
+  /**
+   * Work whose title comes from whatever people here believe, rather than
+   * being one label everywhere: an officiant of the local belief system, named
+   * for the power they attend. One row stands for a priest of Amun-Ra, a
+   * Lutheran minister and a curaca.
+   */
+  fromBeliefs?: boolean;
   needs?: readonly ("water" | "settled" | "cultivation")[];
   /** All of these must be available here. */
   capabilities?: readonly SocietyCapability[];

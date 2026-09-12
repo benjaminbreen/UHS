@@ -30,6 +30,18 @@ export type Power = {
    * normal: a god is commonly the child of one and the consort of another. */
   relations?: readonly Relation[];
 };
+/**
+ * Someone who officiates. Tiers run from the household up to the one office a
+ * whole polity has; the weights make the high offices rare, so a hamlet has
+ * elders and only a city has a high priest.
+ */
+export type Officiant = {
+  tier: "household" | "local" | "temple" | "paramount";
+  label: string;
+  /** Which rank of power this office attends, for naming the role. */
+  serves?: "paramount" | "major" | "local";
+  weight: number;
+};
 export type BeliefSystem = {
   id: string;
   label: string;

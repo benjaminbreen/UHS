@@ -1,0 +1,687 @@
+{
+  "_comment": "Hand corrections to the officiants derived from each belief system's specialist sentence. A system here replaces the derived result entirely. A system in skip gets none at all, which is the honest answer where the record does not say who officiated -- those places simply have no religious role to draw.",
+  "systems": {
+    "aboriginal-australia-general": [
+      {
+        "tier": "local",
+        "label": "Initiated knowledge holder",
+        "serves": "local",
+        "weight": 14
+      },
+      {
+        "tier": "household",
+        "label": "Senior kin",
+        "serves": "local",
+        "weight": 40
+      }
+    ],
+    "papuan-highlands-early": [
+      {
+        "tier": "local",
+        "label": "Initiated man",
+        "serves": "local",
+        "weight": 14
+      },
+      {
+        "tier": "household",
+        "label": "Oldest of the men's house",
+        "serves": "local",
+        "weight": 40
+      }
+    ],
+    "pacific-mission-christianity": [
+      {
+        "tier": "temple",
+        "label": "Pastor",
+        "serves": "major",
+        "weight": 5
+      },
+      {
+        "tier": "temple",
+        "label": "Missionary",
+        "serves": "major",
+        "weight": 5
+      },
+      {
+        "tier": "local",
+        "label": "Catechist",
+        "serves": "local",
+        "weight": 14
+      }
+    ],
+    "regional-foragers-deep": [
+      {
+        "tier": "local",
+        "label": "Trance healer",
+        "serves": "local",
+        "weight": 14
+      },
+      {
+        "tier": "household",
+        "label": "Eldest",
+        "serves": "local",
+        "weight": 40
+      }
+    ],
+    "san-forager-practice": [
+      {
+        "tier": "local",
+        "label": "Trance dancer",
+        "serves": "local",
+        "weight": 14
+      },
+      {
+        "tier": "household",
+        "label": "Eldest",
+        "serves": "local",
+        "weight": 40
+      }
+    ],
+    "celtic-gaul": [
+      {
+        "tier": "temple",
+        "label": "Druid",
+        "serves": "major",
+        "weight": 5
+      },
+      {
+        "tier": "local",
+        "label": "Vate",
+        "serves": "local",
+        "weight": 14
+      },
+      {
+        "tier": "local",
+        "label": "Bard",
+        "serves": "local",
+        "weight": 14
+      },
+      {
+        "tier": "household",
+        "label": "Household head",
+        "serves": "local",
+        "weight": 40
+      }
+    ],
+    "great-plains-historic": [
+      {
+        "tier": "local",
+        "label": "Vision seeker",
+        "serves": "local",
+        "weight": 14
+      },
+      {
+        "tier": "local",
+        "label": "Medicine person",
+        "serves": "local",
+        "weight": 14
+      },
+      {
+        "tier": "household",
+        "label": "Household head",
+        "serves": "local",
+        "weight": 40
+      }
+    ],
+    "taino-caribbean": [
+      {
+        "tier": "paramount",
+        "label": "Cacique",
+        "serves": "paramount",
+        "weight": 1
+      },
+      {
+        "tier": "local",
+        "label": "Nitaino",
+        "serves": "local",
+        "weight": 14
+      },
+      {
+        "tier": "local",
+        "label": "Behique",
+        "serves": "local",
+        "weight": 14
+      },
+      {
+        "tier": "household",
+        "label": "Household head",
+        "serves": "local",
+        "weight": 40
+      }
+    ],
+    "maya-classic": [
+      {
+        "tier": "paramount",
+        "label": "K'uhul ajaw",
+        "serves": "paramount",
+        "weight": 1
+      },
+      {
+        "tier": "temple",
+        "label": "Temple priest",
+        "serves": "major",
+        "weight": 5
+      },
+      {
+        "tier": "temple",
+        "label": "Ah kin",
+        "serves": "major",
+        "weight": 5
+      },
+      {
+        "tier": "household",
+        "label": "Household head",
+        "serves": "local",
+        "weight": 40
+      }
+    ],
+    "maya-postclassic": [
+      {
+        "tier": "temple",
+        "label": "Ah kin",
+        "serves": "major",
+        "weight": 5
+      },
+      {
+        "tier": "local",
+        "label": "Shaman",
+        "serves": "local",
+        "weight": 14
+      },
+      {
+        "tier": "household",
+        "label": "Household head",
+        "serves": "local",
+        "weight": 40
+      }
+    ],
+    "early-buddhism": [
+      {
+        "tier": "temple",
+        "label": "Bhikkhu",
+        "serves": "major",
+        "weight": 5
+      },
+      {
+        "tier": "temple",
+        "label": "Bhikkhuni",
+        "serves": "major",
+        "weight": 5
+      },
+      {
+        "tier": "household",
+        "label": "Lay householder",
+        "serves": "local",
+        "weight": 40
+      }
+    ],
+    "sikh-gurus": [
+      {
+        "tier": "paramount",
+        "label": "Guru",
+        "serves": "paramount",
+        "weight": 1
+      },
+      {
+        "tier": "temple",
+        "label": "Granthi",
+        "serves": "major",
+        "weight": 5
+      },
+      {
+        "tier": "household",
+        "label": "Household head",
+        "serves": "local",
+        "weight": 40
+      }
+    ],
+    "theravada-sri-lanka": [
+      {
+        "tier": "temple",
+        "label": "Bhikkhu",
+        "serves": "major",
+        "weight": 5
+      },
+      {
+        "tier": "temple",
+        "label": "Monastery abbot",
+        "serves": "major",
+        "weight": 5
+      },
+      {
+        "tier": "household",
+        "label": "Lay householder",
+        "serves": "local",
+        "weight": 40
+      }
+    ],
+    "indo-islamic-sufi": [
+      {
+        "tier": "temple",
+        "label": "Pir",
+        "serves": "major",
+        "weight": 5
+      },
+      {
+        "tier": "temple",
+        "label": "Qazi",
+        "serves": "major",
+        "weight": 5
+      },
+      {
+        "tier": "local",
+        "label": "Murid",
+        "serves": "local",
+        "weight": 14
+      },
+      {
+        "tier": "household",
+        "label": "Household head",
+        "serves": "local",
+        "weight": 40
+      }
+    ],
+    "hindu-reform": [
+      {
+        "tier": "temple",
+        "label": "Brahmin reformer",
+        "serves": "major",
+        "weight": 5
+      },
+      {
+        "tier": "local",
+        "label": "Lay preacher",
+        "serves": "local",
+        "weight": 14
+      },
+      {
+        "tier": "household",
+        "label": "Household head",
+        "serves": "local",
+        "weight": 40
+      }
+    ],
+    "maghreb-berber-islam": [
+      {
+        "tier": "temple",
+        "label": "Marabout",
+        "serves": "major",
+        "weight": 5
+      },
+      {
+        "tier": "local",
+        "label": "Faqih",
+        "serves": "local",
+        "weight": 14
+      },
+      {
+        "tier": "household",
+        "label": "Household head",
+        "serves": "local",
+        "weight": 40
+      }
+    ],
+    "persian-sufi-islam": [
+      {
+        "tier": "temple",
+        "label": "Pir",
+        "serves": "major",
+        "weight": 5
+      },
+      {
+        "tier": "temple",
+        "label": "Qadi",
+        "serves": "major",
+        "weight": 5
+      },
+      {
+        "tier": "local",
+        "label": "Poet",
+        "serves": "local",
+        "weight": 14
+      },
+      {
+        "tier": "household",
+        "label": "Household head",
+        "serves": "local",
+        "weight": 40
+      }
+    ],
+    "yoruba-orisha": [
+      {
+        "tier": "temple",
+        "label": "Babalawo",
+        "serves": "major",
+        "weight": 5
+      },
+      {
+        "tier": "temple",
+        "label": "Iyalorisha",
+        "serves": "major",
+        "weight": 5
+      },
+      {
+        "tier": "household",
+        "label": "Babalorisha",
+        "serves": "local",
+        "weight": 40
+      }
+    ],
+    "fon-vodun": [
+      {
+        "tier": "temple",
+        "label": "Vodunon",
+        "serves": "major",
+        "weight": 5
+      },
+      {
+        "tier": "household",
+        "label": "Hunon",
+        "serves": "local",
+        "weight": 40
+      }
+    ],
+    "yoruba-nineteenth-century-christian": [
+      {
+        "tier": "temple",
+        "label": "Pastor",
+        "serves": "major",
+        "weight": 5
+      },
+      {
+        "tier": "temple",
+        "label": "Missionary",
+        "serves": "major",
+        "weight": 5
+      },
+      {
+        "tier": "local",
+        "label": "Catechist",
+        "serves": "local",
+        "weight": 14
+      }
+    ],
+    "inca-state": [
+      {
+        "tier": "paramount",
+        "label": "State priest",
+        "serves": "paramount",
+        "weight": 1
+      },
+      {
+        "tier": "temple",
+        "label": "Temple attendant",
+        "serves": "major",
+        "weight": 5
+      },
+      {
+        "tier": "local",
+        "label": "Curaca",
+        "serves": "local",
+        "weight": 14
+      },
+      {
+        "tier": "household",
+        "label": "Household head",
+        "serves": "local",
+        "weight": 40
+      }
+    ],
+    "republican-roman": [
+      {
+        "tier": "paramount",
+        "label": "Pontifex",
+        "serves": "paramount",
+        "weight": 1
+      },
+      {
+        "tier": "temple",
+        "label": "Flamen",
+        "serves": "major",
+        "weight": 5
+      },
+      {
+        "tier": "local",
+        "label": "Local cult priest",
+        "serves": "local",
+        "weight": 14
+      },
+      {
+        "tier": "household",
+        "label": "Household head",
+        "serves": "local",
+        "weight": 40
+      }
+    ],
+    "aegean-bronze-age": [
+      {
+        "tier": "paramount",
+        "label": "Palace priest",
+        "serves": "paramount",
+        "weight": 1
+      },
+      {
+        "tier": "local",
+        "label": "Shrine keeper",
+        "serves": "local",
+        "weight": 14
+      },
+      {
+        "tier": "household",
+        "label": "Household head",
+        "serves": "local",
+        "weight": 40
+      }
+    ],
+    "mexica-aztec": [
+      {
+        "tier": "paramount",
+        "label": "High priest",
+        "serves": "paramount",
+        "weight": 1
+      },
+      {
+        "tier": "temple",
+        "label": "Tlamacazqui",
+        "serves": "major",
+        "weight": 5
+      },
+      {
+        "tier": "local",
+        "label": "Calpulli priest",
+        "serves": "local",
+        "weight": 14
+      },
+      {
+        "tier": "household",
+        "label": "Household head",
+        "serves": "local",
+        "weight": 40
+      }
+    ],
+    "nguni-ancestor-veneration": [
+      {
+        "tier": "local",
+        "label": "Inyanga",
+        "serves": "local",
+        "weight": 14
+      },
+      {
+        "tier": "local",
+        "label": "Isangoma",
+        "serves": "local",
+        "weight": 14
+      },
+      {
+        "tier": "household",
+        "label": "Lineage elder",
+        "serves": "local",
+        "weight": 40
+      }
+    ],
+    "nubian-nile-islam": [
+      {
+        "tier": "temple",
+        "label": "Qadi",
+        "serves": "major",
+        "weight": 5
+      },
+      {
+        "tier": "local",
+        "label": "Sheikh",
+        "serves": "local",
+        "weight": 14
+      },
+      {
+        "tier": "household",
+        "label": "Household head",
+        "serves": "local",
+        "weight": 40
+      }
+    ],
+    "akan-suman": [
+      {
+        "tier": "temple",
+        "label": "Okomfo",
+        "serves": "major",
+        "weight": 5
+      },
+      {
+        "tier": "local",
+        "label": "Shrine attendant",
+        "serves": "local",
+        "weight": 14
+      },
+      {
+        "tier": "household",
+        "label": "Family head",
+        "serves": "local",
+        "weight": 40
+      }
+    ],
+    "dogon-mande": [
+      {
+        "tier": "local",
+        "label": "Griot",
+        "serves": "local",
+        "weight": 14
+      },
+      {
+        "tier": "local",
+        "label": "Hogon",
+        "serves": "local",
+        "weight": 14
+      },
+      {
+        "tier": "household",
+        "label": "Family head",
+        "serves": "local",
+        "weight": 40
+      }
+    ],
+    "neolithic-east-asia-foragers": [
+      {
+        "tier": "local",
+        "label": "Ancestor speaker",
+        "serves": "local",
+        "weight": 14
+      },
+      {
+        "tier": "household",
+        "label": "Eldest",
+        "serves": "local",
+        "weight": 40
+      }
+    ],
+    "inner-eurasia-foragers": [
+      {
+        "tier": "local",
+        "label": "Dream-marked shaman",
+        "serves": "local",
+        "weight": 14
+      },
+      {
+        "tier": "household",
+        "label": "Eldest",
+        "serves": "local",
+        "weight": 40
+      }
+    ],
+    "steppe-bronze-age": [
+      {
+        "tier": "local",
+        "label": "Spirit-marked shaman",
+        "serves": "local",
+        "weight": 14
+      },
+      {
+        "tier": "household",
+        "label": "Eldest",
+        "serves": "local",
+        "weight": 40
+      }
+    ],
+    "caucasus-early-peoples": [
+      {
+        "tier": "local",
+        "label": "Vision-marked seer",
+        "serves": "local",
+        "weight": 14
+      },
+      {
+        "tier": "household",
+        "label": "Clan eldest",
+        "serves": "local",
+        "weight": 40
+      }
+    ],
+    "volga-uralic-peoples": [
+      {
+        "tier": "local",
+        "label": "Shaman",
+        "serves": "local",
+        "weight": 14
+      },
+      {
+        "tier": "local",
+        "label": "Herb-woman",
+        "serves": "local",
+        "weight": 14
+      },
+      {
+        "tier": "household",
+        "label": "Eldest",
+        "serves": "local",
+        "weight": 40
+      }
+    ],
+    "se-asia-austronesian-animism": [
+      {
+        "tier": "local",
+        "label": "Hyang speaker",
+        "serves": "local",
+        "weight": 14
+      },
+      {
+        "tier": "household",
+        "label": "Eldest",
+        "serves": "local",
+        "weight": 40
+      }
+    ]
+  },
+  "skip": [
+    "paleoindian-americas",
+    "early-farming-americas",
+    "southwest-early-foragers",
+    "caribbean-early",
+    "indus-valley"
+  ],
+  "skipReasons": {
+    "paleoindian-americas": "No evidence names anyone as an officiant this early.",
+    "early-farming-americas": "As paleoindian: nothing survives that would say.",
+    "southwest-early-foragers": "As paleoindian.",
+    "caribbean-early": "Pre-Taino Caribbean leaves no record of who officiated.",
+    "indus-valley": "The Indus script is undeciphered and nothing else names a priesthood; the 'priest-king' is a modern label for a statue."
+  }
+}
