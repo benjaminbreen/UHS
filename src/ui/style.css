@@ -2772,6 +2772,23 @@ button:disabled {
   align-items: center;
   gap: 8px;
 }
+.live-tuning-section {
+  margin: 8px -2px;
+  padding: 8px 2px 2px;
+  border-top: 1px solid #4d4d3e;
+}
+.live-tuning-section summary {
+  color: #fff1cb;
+  font-size: 14px;
+  font-weight: 650;
+  cursor: pointer;
+}
+.live-tuning-section > p {
+  margin: 7px 0 9px;
+  color: #a99b78;
+  font-size: 11px;
+  line-height: 1.4;
+}
 .live-animal-controls {
   margin: 14px -2px 0;
   padding: 12px 2px 0;

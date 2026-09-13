@@ -12,6 +12,11 @@ export type GroundMotifOverrides = {
   turf?: readonly string[][];
   ticks?: readonly string[][];
 };
+export type GroundMotifTuning = {
+  density?: number;
+  spacing?: number;
+  clustering?: number;
+};
 // One well-drawn five-blade tuft, mirrored for variety: 1 shaded left edge
 // of each blade, 2 blade body, 3 highlight up the centre blade. Which of the
 // three tone levels it is drawn in is chosen per tuft by the raster.
@@ -65,8 +70,9 @@ export function groundMotif(
   wx: number,
   wy: number,
   overrides?: GroundMotifOverrides,
+  tuning?: GroundMotifTuning,
 ) {
-  const stepX =
+  const baseStepX =
     kind === "stone"
       ? 13
       : kind === "turf"
@@ -76,7 +82,7 @@ export function groundMotif(
         : kind === "pebble"
           ? 15
           : 16;
-  const stepY =
+  const baseStepY =
     kind === "stone"
       ? 12
       : kind === "turf"
@@ -86,12 +92,15 @@ export function groundMotif(
         : kind === "pebble"
           ? 14
           : 15;
+  const spacing = tuning?.spacing ?? 1;
+  const stepX = Math.max(6, Math.round(baseStepX * spacing));
+  const stepY = Math.max(6, Math.round(baseStepY * spacing));
   const by = Math.floor(wy / stepY);
   // Turf sits on a staggered lattice: odd rows shift half a step.
   const shift = kind === "turf" && by & 1 ? stepX / 2 : 0;
   const bx = Math.floor((wx - shift) / stepX);
   const colony = hash(Math.floor(bx / 4), Math.floor(by / 3), 403);
-  const density =
+  const clusteredDensity =
     kind === "stone"
       ? colony > 0.5
         ? 0.84
@@ -109,6 +118,16 @@ export function groundMotif(
           : colony > 0.2
             ? 0.85
             : 0.5;
+  const clustering = tuning?.clustering ?? 1;
+  const meanDensity = kind === "stone" ? 0.645 : kind === "turf" ? 0.675 : 0.43;
+  const density = Math.max(
+    0,
+    Math.min(
+      1,
+      (meanDensity + (clusteredDensity - meanDensity) * clustering) *
+        (tuning?.density ?? 1),
+    ),
+  );
   if (hash(bx, by, 401) > density) return 0;
   const glyphs =
     kind === "stone"

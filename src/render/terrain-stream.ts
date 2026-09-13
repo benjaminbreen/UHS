@@ -56,6 +56,8 @@ export class TerrainStream {
   /** Bumped on restyle; responses rasterised under an older style are dropped. */
   private generation = 0;
   private maxInstall = 0;
+  private maxGroundInstall = 0;
+  private batchedTiles = 0;
   private center = { x: 0, y: 0 };
   private reach = { x: 0, y: 0 };
   private sun: SunPhase = NO_SUN;
@@ -217,8 +219,7 @@ export class TerrainStream {
   update() {
     if (!this.completed.length && !this.queue.length) return;
     const start = performance.now();
-    // One install a frame: the raster is the slow part, but a chunk still
-    // costs ~30ms of main thread to hand to the GPU.
+    // Keep installation bounded while workers prepare the next chunks.
     const done = this.completed.shift();
     if (done) {
       const {
@@ -228,6 +229,7 @@ export class TerrainStream {
         bridges,
         waterTiles,
         groundTiles,
+        groundPage,
         rims,
         receivers,
         living,
@@ -237,6 +239,7 @@ export class TerrainStream {
         Number(gen) === this.generation ? this.wanted.get(key) : undefined;
       const id2 = key;
       if (region) {
+        const groundStart = performance.now();
         const resources = drawTopography(
           this.scene,
           (x, y) => cells[(y + PAD) * (SIZE + PAD * 2) + x + PAD],
@@ -247,7 +250,17 @@ export class TerrainStream {
           waterTiles,
           groundTiles,
           living,
+          groundPage,
         );
+        this.maxGroundInstall = Math.max(
+          this.maxGroundInstall,
+          performance.now() - groundStart,
+        );
+        if (groundPage)
+          this.batchedTiles += groundPage.tiles.reduce(
+            (sum, value) => sum + value,
+            0,
+          );
         drawContourLayers(this.scene, layers, region.prefix, resources);
         const { objects, textures } = resources;
         for (const object of objects) {
@@ -273,8 +286,8 @@ export class TerrainStream {
         this.dirty = true;
       }
     }
-    this.dispatch();
     this.maxInstall = Math.max(this.maxInstall, performance.now() - start);
+    this.dispatch();
     if (this.dirty) this.metrics();
   }
   private priority(r: TerrainRegion) {
@@ -303,6 +316,8 @@ export class TerrainStream {
     canvas.dataset.terrainChunksBuilt = String(this.count);
     canvas.dataset.terrainWorkers = String(this.pool.length);
     canvas.dataset.terrainInstallMaxMs = this.maxInstall.toFixed(1);
+    canvas.dataset.terrainGroundInstallMaxMs = this.maxGroundInstall.toFixed(1);
+    canvas.dataset.terrainBatchedTiles = String(this.batchedTiles);
     if (ready && !this.loaded) {
       this.loaded = true;
       canvas.dataset.terrainLoadMs = String(

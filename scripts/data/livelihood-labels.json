@@ -3322,6 +3322,498 @@
     ],
     "label": "Camel Herd"
    }
+  ],
+  "apprentice": [
+   {
+    "scope": {
+     "years": [
+      -1000000,
+      10001
+     ]
+    },
+    "label": "Apprentice Weaver"
+   },
+   {
+    "scope": {
+     "years": [
+      -1000000,
+      10001
+     ]
+    },
+    "label": "Apprentice Smith"
+   },
+   {
+    "scope": {
+     "years": [
+      -1000000,
+      10001
+     ]
+    },
+    "label": "Apprentice Potter"
+   },
+   {
+    "scope": {
+     "years": [
+      -1000000,
+      10001
+     ]
+    },
+    "label": "Apprentice Carpenter"
+   },
+   {
+    "scope": {
+     "years": [
+      -1000000,
+      10001
+     ]
+    },
+    "label": "Apprentice Tanner"
+   },
+   {
+    "scope": {
+     "years": [
+      -1000000,
+      10001
+     ]
+    },
+    "label": "Apprentice Dyer"
+   },
+   {
+    "scope": {
+     "years": [
+      -1000000,
+      10001
+     ]
+    },
+    "label": "Apprentice Mason"
+   },
+   {
+    "scope": {
+     "years": [
+      -1000000,
+      10001
+     ]
+    },
+    "label": "Apprentice Baker"
+   },
+   {
+    "scope": {
+     "years": [
+      -1000000,
+      10001
+     ]
+    },
+    "label": "Apprentice Cooper"
+   },
+   {
+    "scope": {
+     "years": [
+      -1000000,
+      10001
+     ]
+    },
+    "label": "Apprentice Shoemaker"
+   },
+   {
+    "scope": {
+     "years": [
+      -1000000,
+      10001
+     ]
+    },
+    "label": "Apprentice Tailor"
+   },
+   {
+    "scope": {
+     "years": [
+      -1000000,
+      10001
+     ]
+    },
+    "label": "Apprentice Goldsmith"
+   },
+   {
+    "scope": {
+     "years": [
+      -1000000,
+      10001
+     ]
+    },
+    "label": "Apprentice Glazier"
+   },
+   {
+    "scope": {
+     "years": [
+      -1000000,
+      10001
+     ]
+    },
+    "label": "Apprentice Saddler"
+   },
+   {
+    "scope": {
+     "years": [
+      -1000000,
+      10001
+     ]
+    },
+    "label": "Apprentice Miller"
+   },
+   {
+    "scope": {
+     "years": [
+      -1000000,
+      10001
+     ]
+    },
+    "label": "Apprentice Brewer"
+   },
+   {
+    "scope": {
+     "years": [
+      -1000000,
+      10001
+     ]
+    },
+    "label": "Apprentice Printer"
+   },
+   {
+    "scope": {
+     "years": [
+      -1000000,
+      10001
+     ]
+    },
+    "label": "Apprentice Painter"
+   }
+  ],
+  "journeyman": [
+   {
+    "scope": {
+     "years": [
+      -1000000,
+      10001
+     ]
+    },
+    "label": "Journeyman Weaver"
+   },
+   {
+    "scope": {
+     "years": [
+      -1000000,
+      10001
+     ]
+    },
+    "label": "Journeyman Smith"
+   },
+   {
+    "scope": {
+     "years": [
+      -1000000,
+      10001
+     ]
+    },
+    "label": "Journeyman Potter"
+   },
+   {
+    "scope": {
+     "years": [
+      -1000000,
+      10001
+     ]
+    },
+    "label": "Journeyman Carpenter"
+   },
+   {
+    "scope": {
+     "years": [
+      -1000000,
+      10001
+     ]
+    },
+    "label": "Journeyman Tanner"
+   },
+   {
+    "scope": {
+     "years": [
+      -1000000,
+      10001
+     ]
+    },
+    "label": "Journeyman Dyer"
+   },
+   {
+    "scope": {
+     "years": [
+      -1000000,
+      10001
+     ]
+    },
+    "label": "Journeyman Mason"
+   },
+   {
+    "scope": {
+     "years": [
+      -1000000,
+      10001
+     ]
+    },
+    "label": "Journeyman Baker"
+   },
+   {
+    "scope": {
+     "years": [
+      -1000000,
+      10001
+     ]
+    },
+    "label": "Journeyman Cooper"
+   },
+   {
+    "scope": {
+     "years": [
+      -1000000,
+      10001
+     ]
+    },
+    "label": "Journeyman Shoemaker"
+   },
+   {
+    "scope": {
+     "years": [
+      -1000000,
+      10001
+     ]
+    },
+    "label": "Journeyman Tailor"
+   },
+   {
+    "scope": {
+     "years": [
+      -1000000,
+      10001
+     ]
+    },
+    "label": "Journeyman Goldsmith"
+   },
+   {
+    "scope": {
+     "years": [
+      -1000000,
+      10001
+     ]
+    },
+    "label": "Journeyman Glazier"
+   },
+   {
+    "scope": {
+     "years": [
+      -1000000,
+      10001
+     ]
+    },
+    "label": "Journeyman Saddler"
+   },
+   {
+    "scope": {
+     "years": [
+      -1000000,
+      10001
+     ]
+    },
+    "label": "Journeyman Miller"
+   },
+   {
+    "scope": {
+     "years": [
+      -1000000,
+      10001
+     ]
+    },
+    "label": "Journeyman Brewer"
+   },
+   {
+    "scope": {
+     "years": [
+      -1000000,
+      10001
+     ]
+    },
+    "label": "Journeyman Printer"
+   },
+   {
+    "scope": {
+     "years": [
+      -1000000,
+      10001
+     ]
+    },
+    "label": "Journeyman Painter"
+   }
+  ],
+  "guild-master": [
+   {
+    "scope": {
+     "years": [
+      -1000000,
+      10001
+     ]
+    },
+    "label": "Master Weaver"
+   },
+   {
+    "scope": {
+     "years": [
+      -1000000,
+      10001
+     ]
+    },
+    "label": "Master Smith"
+   },
+   {
+    "scope": {
+     "years": [
+      -1000000,
+      10001
+     ]
+    },
+    "label": "Master Potter"
+   },
+   {
+    "scope": {
+     "years": [
+      -1000000,
+      10001
+     ]
+    },
+    "label": "Master Carpenter"
+   },
+   {
+    "scope": {
+     "years": [
+      -1000000,
+      10001
+     ]
+    },
+    "label": "Master Tanner"
+   },
+   {
+    "scope": {
+     "years": [
+      -1000000,
+      10001
+     ]
+    },
+    "label": "Master Dyer"
+   },
+   {
+    "scope": {
+     "years": [
+      -1000000,
+      10001
+     ]
+    },
+    "label": "Master Mason"
+   },
+   {
+    "scope": {
+     "years": [
+      -1000000,
+      10001
+     ]
+    },
+    "label": "Master Baker"
+   },
+   {
+    "scope": {
+     "years": [
+      -1000000,
+      10001
+     ]
+    },
+    "label": "Master Cooper"
+   },
+   {
+    "scope": {
+     "years": [
+      -1000000,
+      10001
+     ]
+    },
+    "label": "Master Shoemaker"
+   },
+   {
+    "scope": {
+     "years": [
+      -1000000,
+      10001
+     ]
+    },
+    "label": "Master Tailor"
+   },
+   {
+    "scope": {
+     "years": [
+      -1000000,
+      10001
+     ]
+    },
+    "label": "Master Goldsmith"
+   },
+   {
+    "scope": {
+     "years": [
+      -1000000,
+      10001
+     ]
+    },
+    "label": "Master Glazier"
+   },
+   {
+    "scope": {
+     "years": [
+      -1000000,
+      10001
+     ]
+    },
+    "label": "Master Saddler"
+   },
+   {
+    "scope": {
+     "years": [
+      -1000000,
+      10001
+     ]
+    },
+    "label": "Master Miller"
+   },
+   {
+    "scope": {
+     "years": [
+      -1000000,
+      10001
+     ]
+    },
+    "label": "Master Brewer"
+   },
+   {
+    "scope": {
+     "years": [
+      -1000000,
+      10001
+     ]
+    },
+    "label": "Master Printer"
+   },
+   {
+    "scope": {
+     "years": [
+      -1000000,
+      10001
+     ]
+    },
+    "label": "Master Painter"
+   }
   ]
  }
 }

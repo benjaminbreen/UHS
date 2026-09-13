@@ -21,6 +21,7 @@ test("live graphics panel tunes the renderer and zoom easing", async ({
   await expect(canvas).toHaveAttribute("data-round-pixels", "false");
   await expect(canvas).toHaveAttribute("data-zoom-duration", "130");
 
+  await panel.getByText("Camera & sampling", { exact: true }).click();
   await panel.getByLabel("Round camera pixels").check();
   await expect(canvas).toHaveAttribute("data-round-pixels", "true");
   await panel.getByLabel("Texture filtering").selectOption("linear");
@@ -29,6 +30,16 @@ test("live graphics panel tunes the renderer and zoom easing", async ({
   await expect(canvas).toHaveCSS("image-rendering", "auto");
   await panel.getByRole("slider", { name: "Camera follow" }).fill("0.25");
   await expect(canvas).toHaveAttribute("data-follow-lerp", "0.25");
+  await panel.getByLabel("Preview redistributed rocks").check();
+  await expect(canvas).toHaveAttribute("data-rock-preview", "true");
+  await panel.getByRole("slider", { name: "Path width" }).fill("1.4");
+  await panel.getByRole("slider", { name: "Center-line wander" }).fill("2");
+  await expect(canvas).toHaveAttribute("data-path-width", "1.4");
+  await expect(canvas).toHaveAttribute("data-path-wobble", "2");
+  await panel.getByLabel("Basic tree art").selectOption("oak");
+  await panel.getByLabel("Extra ground assets").selectOption("mixed");
+  await expect(canvas).toHaveAttribute("data-tree-palette", "oak");
+  await expect(canvas).toHaveAttribute("data-litter-palette", "mixed");
   await panel.getByLabel("Species").selectOption("red-deer");
   await panel.getByLabel("Animation").selectOption("flee");
   const faunaBefore = await page.evaluate(

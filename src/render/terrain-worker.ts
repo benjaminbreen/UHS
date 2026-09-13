@@ -2,7 +2,8 @@ import { coastDistance, coastBeachWidth } from "./living-water/coast";
 import type { ShorePolish } from "./living-water/polish";
 import { livingBeachWidth } from "./living-water/profile";
 import { rasterLivingWater, type LivingMask } from "./living-water/mask";
-import { setGroundStyle, type GroundStyle } from "./ground-style";
+import { groundStyle, setGroundStyle, type GroundStyle } from "./ground-style";
+import { batchGroundPage, type GroundPage } from "./ground-pages";
 import { paintedGround } from "./material-edges";
 import { rasterHabitatTile, type GroundTileData } from "./habitat-raster";
 import { rasterWaterTile, type WaterTileData } from "./water-raster";
@@ -33,6 +34,7 @@ export type TerrainResponse = {
   bridges: BridgeSpan[];
   waterTiles: WaterTileData[];
   groundTiles: GroundTileData[];
+  groundPage?: GroundPage;
   /** Flat [x, y, drop, lowerTier, side] per rim pixel, chunk screen space. */
   rims: Int16Array;
   receivers?: TerrainReceivers;
@@ -195,6 +197,16 @@ export function handleTerrainRequest(data: TerrainRequest) {
           }
       }
     }
+    const groundPage = batchGroundPage(
+      cachedSample,
+      SIZE,
+      SIZE,
+      groundTiles,
+      !!groundStyle(),
+    );
+    const remainingGround = groundPage
+      ? groundTiles.filter((tile) => !groundPage.tiles[tile.y * SIZE + tile.x])
+      : groundTiles;
     self.postMessage(
       {
         id,
@@ -202,7 +214,8 @@ export function handleTerrainRequest(data: TerrainRequest) {
         cells,
         bridges,
         waterTiles,
-        groundTiles,
+        groundTiles: remainingGround,
+        groundPage,
         rims,
         receivers,
         living,
@@ -213,7 +226,10 @@ export function handleTerrainRequest(data: TerrainRequest) {
           ...(receivers ? [receivers.tiers.buffer, receivers.rows.buffer] : []),
           ...(living ? [living.pixels.buffer, living.bends.buffer] : []),
           ...layers.map((l) => l.pixels.buffer),
-          ...groundTiles.map((t) => t.pixels.buffer),
+          ...remainingGround.map((t) => t.pixels.buffer),
+          ...(groundPage
+            ? [groundPage.pixels.buffer, groundPage.tiles.buffer]
+            : []),
           ...waterTiles.map((t) => t.pixels.buffer),
         ],
       },

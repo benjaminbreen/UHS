@@ -148,6 +148,14 @@ export function rasterHabitatTile(
   const pixels = new Uint8ClampedArray(16 * 16 * 4);
   const gx = (x + ox) * 16,
     gy = (y + oy) * 16;
+  const composition = groundStyle()?.composition;
+  const motifTuning = composition
+    ? {
+        density: composition.motifDensity,
+        spacing: composition.motifSpacing,
+        clustering: composition.motifClustering,
+      }
+    : undefined;
   const frozen = cell.surface === "snow";
   // Grassy ecologies expose brown earth; dry and cold ones expose stone.
   const mineralGround = h.vegetation === "alpine" || ["desert", "tundra"].includes(h.ecology);
@@ -366,9 +374,9 @@ export function rasterHabitatTile(
       const ink =
         sparse && colony < 0.65 ? 0 :
         (h.vegetation === "savanna" || h.vegetation === "steppe") && band < 3
-          ? (colony > 0.32 ? groundMotif("sward", wx, wy, art.motifs) : 0)
+          ? (colony > 0.32 ? groundMotif("sward", wx, wy, art.motifs, motifTuning) : 0)
           : band === 1
-          ? groundMotif("sward", wx, wy)
+          ? groundMotif("sward", wx, wy, undefined, motifTuning)
           : groundMotif(
               tilled || (grassy && band >= 3)
                 ? "pebble"
@@ -382,6 +390,7 @@ export function rasterHabitatTile(
               wx,
               wy,
               art.motifs,
+              motifTuning,
             );
       if (
         h.layeredForest &&
@@ -452,8 +461,9 @@ export function rasterHabitatTile(
           (hash(Math.floor(wx / 2), Math.floor(wy / 2), 437) +
             hash(Math.floor(wx / 3), Math.floor(wy / 3), 439) -
             1) *
-            0.08 +
-          (noise(wx, wy, 21, 463) - 0.5) * 0.06;
+            0.08 * (composition?.pathEdgeBreakup ?? 1) +
+          (noise(wx, wy, 21, 463) - 0.5) *
+            0.06 * (composition?.pathEdgeBreakup ?? 1);
         // Wear is not even along a road: whole stretches sit a band lighter or
         // darker than their neighbours.
         const worn = path + interlock + (noise(wx, wy, 96, 467) - 0.5) * 0.08;
@@ -642,11 +652,12 @@ export function rasterHabitatTile(
   // than as a filled shape. They root on the verge and lean out over the worn
   // edge, so the silhouette of the road is broken by grass, not by dithering
   // alone. Several per tile where the margin crosses it, none where it does not.
-  const tufted = ["desert", "tundra"].includes(h.ecology)
+  const tuftedBase = ["desert", "tundra"].includes(h.ecology)
     ? 0
     : ["dry-scrub", "wetland"].includes(h.ecology)
       ? 0.42
       : 0.68;
+  const tufted = Math.min(1, tuftedBase * (composition?.pathFringe ?? 1));
   // Colonies, not a continuous fringe: whole stretches of margin stay bare.
   const colony = hash(Math.floor(gx / 26), Math.floor(gy / 26), 431) > 0.34;
   if (hasPath && tufted && colony && h.exposed < 0.65) {

@@ -14,7 +14,8 @@ import { entityInView, npcMotion } from "./entity-presentation";
 import { poseTiming, type CharacterPose } from "./characters/poses";
 import type { Actor } from "../core/types";
 import { waterStyle } from "./water-style";
-import { TerrainStream } from "./terrain-stream";
+import { TerrainStream, restyleTerrain } from "./terrain-stream";
+import { defaultGroundStyle } from "./ground-style";
 import {
   surfaceElevation,
   pickTerrain,
@@ -71,6 +72,17 @@ const CROWD_LIMIT = 24;
 /** Tiles of slack beyond the view for routine lookups. `entityInView` allows
  * 8 on x and 12 on y, so this must clear 12. */
 const AMBIENT_MARGIN = 16;
+const alternateTrees = {
+  oak: ["Oak Tree.png", 7],
+  birch: ["Birch Tree 1.png", 6],
+  cedar: ["Cedar Tree.png", 6],
+  fir: ["Fir Tree.png", 5],
+  hazel: ["Hazel Tree.png", 5],
+  maple: ["Maple Tree.png", 5],
+  willow: ["Willow Tree.png", 5],
+  apple: ["Apple Tree.png", 6],
+  cherry: ["Cherry Blossom Tree.png", 6],
+} as const;
 /** Routines built per rendered frame. Around 3ms each, so this is most of a
  * frame's slack; it lasts a second or two on entering a settlement. */
 const ROUTINE_BUILDS_PER_FRAME = 2;
@@ -229,11 +241,22 @@ export class WorldScene extends Phaser.Scene {
       "/topography/atlas.json",
     );
     this.load.image("terrain", "/packs/terrain.png");
+    this.load.image(
+      "tree-study-source",
+      new URL("../../trees.png", import.meta.url).href,
+    );
+    for (const [id, [file]] of Object.entries(alternateTrees))
+      this.load.spritesheet(
+        `study-tree-${id}`,
+        new URL(`../../trees pngs/${file}`, import.meta.url).href,
+        { frameWidth: 64, frameHeight: 96 },
+      );
   }
   create() {
     this.ready = true;
     this.characters = new WorldCharacters(this);
     this.wading = new WadingEffects(this);
+    this.prepareTreeStudySheet();
     this.events.once("shutdown", () => this.wading?.destroy());
     this.events.once("shutdown", () => this.characters?.destroy());
     ensureFireTextures(this);
@@ -445,7 +468,12 @@ export class WorldScene extends Phaser.Scene {
   }
   private sprite(frame: string, x: number, y: number, depth: number) {
     const image = this.add
-      .image(x, y - this.lift(x, y), this.texture(frame), frame)
+      .image(
+        x,
+        y - this.lift(x, y),
+        this.texture(frame),
+        this.textureFrame(frame),
+      )
       .setOrigin(0.5, 1)
       .setTint(this.tint)
       .setDepth(depth);
@@ -556,12 +584,52 @@ export class WorldScene extends Phaser.Scene {
     this.fires.delete(id);
   }
   private texture(frame: string) {
+    if (frame.startsWith("study-sheet-tree-")) return "tree-study";
+    if (frame.startsWith("study-tree-"))
+      return frame.slice(0, frame.lastIndexOf("-"));
+    if (frame.startsWith("study-litter-")) return "tree-study";
     if (frame.startsWith("nature-")) return "nature";
     if (frame.startsWith("faunab-")) return "faunab";
     if (frame.startsWith("ecology-")) return "ecology";
     return frame.startsWith("study-prop-") || frame.startsWith("prop-broken-")
       ? "props"
       : "atlas";
+  }
+  private textureFrame(frame: string): string | number {
+    if (frame.startsWith("study-sheet-tree-")) return frame.slice(17);
+    if (frame.startsWith("study-tree-"))
+      return Number(frame.slice(frame.lastIndexOf("-") + 1));
+    if (frame.startsWith("study-litter-")) return frame.slice(13);
+    return frame;
+  }
+  private prepareTreeStudySheet() {
+    if (this.textures.exists("tree-study")) return;
+    const source = this.textures
+      .get("tree-study-source")
+      .getSourceImage() as HTMLImageElement;
+    const texture = this.textures.createCanvas("tree-study", 128, 128);
+    if (!texture) return;
+    const context = texture.getContext();
+    context.drawImage(source, 0, 0);
+    const data = context.getImageData(0, 0, 128, 128);
+    for (let i = 0; i < data.data.length; i += 4)
+      if (
+        data.data[i] > 245 &&
+        data.data[i + 1] > 245 &&
+        data.data[i + 2] > 245
+      )
+        data.data[i + 3] = 0;
+    context.putImageData(data, 0, 0);
+    texture.add("pine", 0, 0, 0, 16, 48);
+    texture.add("broadleaf", 0, 48, 0, 48, 48);
+    texture.add("log-a", 0, 64, 48, 32, 16);
+    texture.add("log-b", 0, 96, 48, 32, 16);
+    texture.add("brush", 0, 32, 48, 32, 32);
+    texture.add("grass-a", 0, 64, 96, 16, 16);
+    texture.add("grass-b", 0, 80, 96, 16, 16);
+    texture.add("grass-c", 0, 96, 96, 16, 16);
+    texture.add("grass-d", 0, 112, 96, 16, 16);
+    texture.refresh();
   }
   private textureFilter() {
     return this.liveGraphics.textureSampling === "nearest"
@@ -570,6 +638,45 @@ export class WorldScene extends Phaser.Scene {
   }
   applyLiveGraphics(patch: Partial<LiveGraphicsSettings>) {
     this.liveGraphics = { ...this.liveGraphics, ...patch };
+    const terrainKeys = [
+      "groundDetailDensity",
+      "groundDetailSpacing",
+      "groundDetailClustering",
+      "pathWidth",
+      "pathWobble",
+      "pathEdgeBreakup",
+      "pathFringe",
+    ] as const;
+    if (terrainKeys.some((key) => key in patch)) {
+      const style = defaultGroundStyle();
+      style.composition = {
+        motifDensity: this.liveGraphics.groundDetailDensity,
+        motifSpacing: this.liveGraphics.groundDetailSpacing,
+        motifClustering: this.liveGraphics.groundDetailClustering,
+        pathWidth: this.liveGraphics.pathWidth,
+        pathWobble: this.liveGraphics.pathWobble,
+        pathEdgeBreakup: this.liveGraphics.pathEdgeBreakup,
+        pathFringe: this.liveGraphics.pathFringe,
+      };
+      restyleTerrain(style);
+    }
+    if (
+      [
+        "previewRockDistribution",
+        "rockDensity",
+        "rockAltitudeBias",
+        "rockDrynessBias",
+        "rockClustering",
+        "rockClusterScale",
+        "treePalette",
+        "treeScale",
+        "litterPalette",
+        "litterDensity",
+      ].some((key) => key in patch)
+    ) {
+      this.staticKey = "";
+      if (this.scene?.isActive()) this.draw();
+    }
     if (!this.cameras?.main || !this.game?.canvas) return;
     const camera = this.cameras.main;
     camera.roundPixels = this.liveGraphics.roundPixels;
@@ -587,6 +694,13 @@ export class WorldScene extends Phaser.Scene {
       zoomDuration: String(this.liveGraphics.zoomDuration),
       zoomEase: this.liveGraphics.zoomEase,
       followLerp: String(this.liveGraphics.followLerp),
+      rockPreview: String(this.liveGraphics.previewRockDistribution),
+      rockDensity: String(this.liveGraphics.rockDensity),
+      pathWidth: String(this.liveGraphics.pathWidth),
+      pathWobble: String(this.liveGraphics.pathWobble),
+      pathEdgeBreakup: String(this.liveGraphics.pathEdgeBreakup),
+      treePalette: this.liveGraphics.treePalette,
+      litterPalette: this.liveGraphics.litterPalette,
     });
     if (!this.liveGraphics.zoomDuration && this.zoomTarget !== undefined) {
       camera.zoomEffect.reset();
@@ -998,16 +1112,70 @@ export class WorldScene extends Phaser.Scene {
                 random(e.state.manifest.seed, "wind-phase", x, y),
               );
             }
-            const d = w.decoration(x, y);
-            if (d) {
+            let d = w.decoration(x, y);
+            let previewRock = false;
+            if (this.liveGraphics.previewRockDistribution && w.topography) {
+              if (d?.sprite === "rock") d = undefined;
+              const cell = w.topography(x, y);
+              if (
+                !d &&
+                cell?.habitat &&
+                !cell.feature &&
+                !cell.pathArt?.length &&
+                !cell.bridge &&
+                !cell.ramp &&
+                !["water", "damp", "snow"].includes(cell.surface)
+              ) {
+                const altitude = Math.min(1, Math.max(0, cell.height / 7));
+                const dryness = Math.max(
+                  cell.habitat.exposed,
+                  1 - cell.habitat.wet,
+                );
+                const ecology = Math.max(
+                  0.08,
+                  1 +
+                    this.liveGraphics.rockAltitudeBias * (altitude - 0.35) * 1.7 +
+                    this.liveGraphics.rockDrynessBias * (dryness - 0.5) * 1.35,
+                );
+                const scale = this.liveGraphics.rockClusterScale;
+                const cluster = random(
+                  e.state.manifest.seed,
+                  "rock-preview-cluster",
+                  Math.floor(x / scale),
+                  Math.floor(y / scale),
+                );
+                const clustered =
+                  1 + this.liveGraphics.rockClustering * (cluster - 0.5) * 2;
+                const chance = Math.min(
+                  0.22,
+                  (this.liveGraphics.rockDensity / 100) * ecology * clustered,
+                );
+                previewRock =
+                  random(e.state.manifest.seed, "rock-preview", x, y) < chance;
+              }
+            }
+            if (d || previewRock) {
+              const originalName = previewRock ? "rock" : d!.sprite;
+              const originalIsTree =
+                natureTreeSprites.includes(originalName) ||
+                w.pack.trees.includes(originalName);
+              const alternate = this.liveGraphics.treePalette;
+              const spriteName =
+                originalIsTree && alternate !== "native"
+                  ? alternate === "sheet-pine"
+                    ? "study-sheet-tree-pine"
+                    : alternate === "sheet-broadleaf"
+                      ? "study-sheet-tree-broadleaf"
+                      : `study-tree-${alternate}-${alternateTrees[alternate][1] - 1}`
+                  : originalName;
               const frame =
-                d.sprite === "rock"
+                spriteName === "rock"
                   ? ["rock", "rock-1", "rock-2"][
                       Math.floor(
                         random(e.state.manifest.seed, "rock-art", x, y) * 3,
                       )
                     ]
-                  : d.sprite;
+                  : spriteName;
               this.shadow(frame, x * 16 + 8, y * 16 + 16);
               const decoration = this.sprite(
                 frame,
@@ -1015,7 +1183,12 @@ export class WorldScene extends Phaser.Scene {
                 y * 16 + 16,
                 y * 16 + 12,
               );
-              if (d.sprite !== "rock" && !this.options.lab) {
+              if (
+                spriteName.startsWith("study-tree-") ||
+                spriteName.startsWith("study-sheet-tree-")
+              )
+                decoration.setScale(this.liveGraphics.treeScale);
+              if (d && d.sprite !== "rock" && !this.options.lab) {
                 decoration.setInteractive({
                   pixelPerfect: true,
                   useHandCursor: true,
@@ -1036,7 +1209,8 @@ export class WorldScene extends Phaser.Scene {
               }
               if (
                 (w.pack.setting?.vegetationRevision ?? 0) >= 2 &&
-                (natureTreeSprites.includes(frame) ||
+                (originalIsTree ||
+                  natureTreeSprites.includes(frame) ||
                   w.pack.trees.includes(frame))
               ) {
                 const cut = Math.floor(decoration.height * 0.72);
@@ -1054,15 +1228,62 @@ export class WorldScene extends Phaser.Scene {
                   y * 16 + 16,
                   y * 16 + 12,
                 );
+                if (
+                  spriteName.startsWith("study-tree-") ||
+                  spriteName.startsWith("study-sheet-tree-")
+                )
+                  trunk.setScale(this.liveGraphics.treeScale);
                 trunk.setCrop(0, cut, trunk.width, trunk.height - cut);
               }
-              if (d.sprite === "rock" && w.topography) {
+              if (spriteName === "rock" && w.topography) {
                 const cell = w.topography(x, y);
                 if (
                   cell?.waterVisual &&
                   cell.waterVisual.distance < cell.waterVisual.shoreWidth + 4
                 )
                   decoration.setTint(waterStyle(cell).rockTint);
+              }
+            }
+            if (
+              !d &&
+              !previewRock &&
+              w.topography &&
+              this.liveGraphics.litterPalette !== "none"
+            ) {
+              const cell = w.topography(x, y);
+              const h = cell?.habitat;
+              const woodland = !!h?.layeredForest || !!h?.ecology.includes("woodland");
+              const allowed =
+                this.liveGraphics.litterPalette === "mixed" ||
+                (this.liveGraphics.litterPalette === "woodland" && woodland) ||
+                (this.liveGraphics.litterPalette === "grassland" && !woodland);
+              if (
+                allowed &&
+                h &&
+                !cell.feature &&
+                !cell.pathArt?.length &&
+                !cell.bridge &&
+                !cell.ramp &&
+                !["water", "snow"].includes(cell.surface) &&
+                random(e.state.manifest.seed, "study-litter", x, y) <
+                  this.liveGraphics.litterDensity / 100
+              ) {
+                const frames = woodland
+                  ? ["log-a", "log-b", "brush"]
+                  : ["grass-a", "grass-b", "grass-c", "grass-d"];
+                const frame =
+                  frames[
+                    Math.floor(
+                      random(e.state.manifest.seed, "study-litter-art", x, y) *
+                        frames.length,
+                    )
+                  ];
+                this.sprite(
+                  `study-litter-${frame}`,
+                  x * 16 + 8,
+                  y * 16 + 16,
+                  y * 16 + 8,
+                );
               }
             }
           }

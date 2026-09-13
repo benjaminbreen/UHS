@@ -25,10 +25,14 @@ describe("naming atlas", () => {
   it("keeps coverage from regressing", () => {
     const { cells, covered } = coverage();
     /*
-     * 93.9%. It fell to 69.3% first, as era corrections and two retirements
-     * removed content that was covering places with the wrong names, then
-     * rose past the original 78.5% as the gaps were authored. Coverage here
-     * means plausible coverage.
+     * 92.3%, measured against the atlas land mask. It used to be measured
+     * against the union of the region boxes, which could not see a place no
+     * box covered -- which is exactly what a hole is. Sichuan was falling
+     * through to invented syllables while the number read 94%.
+     *
+     * Coverage here means plausible coverage: it fell to 69% partway through
+     * as era corrections removed content that was covering places with the
+     * wrong names, then rose as the gaps were authored.
      *
      * What is left uncovered is mostly correct: Polynesia, New Zealand,
      * Hawaii, Iceland and Madagascar were uninhabited at the early dates the
@@ -38,7 +42,7 @@ describe("naming atlas", () => {
      * Lower this threshold only alongside a deliberate era correction, and say
      * which one. Otherwise a drop means a window or a region was lost.
      */
-    expect(covered / cells).toBeGreaterThan(0.93);
+    expect(covered / cells).toBeGreaterThan(0.91);
   });
 
   it("has no window a later one cannot be reached past", () => {

@@ -3,6 +3,7 @@ import { trimCache } from "../core/cache";
 import { raisedFieldEdge } from "./field-raster";
 import type { TopographyCell, TopographySample } from "../core/topography";
 import { waterNoise, waterHash, waterStyle, waterBand } from "./water-style";
+import { groundStyle } from "./ground-style";
 
 export function paintedGround(c: TopographyCell) {
   return !!c.habitat && !c.ramp && !c.bridge && c.surface !== "water";
@@ -130,7 +131,11 @@ export function pathField(
     cell = sample(ix, iy)!;
   if (cell.pathArt?.length && !cell.feature && !cell.ramp && !cell.bridge) {
     let best: PathField = { coverage: 0, cross: 1.5, radius: 0 };
-    const wobble = margin(x, y, ox, oy);
+    const tuning = groundStyle()?.composition;
+    const edgeBreakup = tuning?.pathEdgeBreakup ?? 1;
+    const width = tuning?.pathWidth ?? 1;
+    const pathWobble = tuning?.pathWobble ?? 1;
+    const wobble = margin(x, y, ox, oy) * edgeBreakup;
     for (const s of cell.pathArt) {
       const ax = ix + s.a[0],
         ay = iy + s.a[1],
@@ -143,8 +148,9 @@ export function pathField(
       const cx = ax + t * dx,
         cy = ay + t * dy,
         len = Math.hypot(dx, dy) || 1;
-      const radius = s.radius * breathe(cx, cy, ox, oy);
-      const drift = wander(cx, cy, ox, oy) * Math.min(1.2, s.radius);
+      const radius = s.radius * width * breathe(cx, cy, ox, oy);
+      const drift =
+        wander(cx, cy, ox, oy) * Math.min(1.2, s.radius) * pathWobble;
       const distance = Math.hypot(
         x - cx + (drift * dy) / len,
         y - cy - (drift * dx) / len,

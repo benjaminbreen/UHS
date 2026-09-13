@@ -57,12 +57,23 @@ export type ContourStyle = {
   sides: number;
 };
 
+export type CompositionStyle = {
+  motifDensity: number;
+  motifSpacing: number;
+  motifClustering: number;
+  pathWidth: number;
+  pathWobble: number;
+  pathEdgeBreakup: number;
+  pathFringe: number;
+};
+
 export type GroundStyle = {
   contour: ContourStyle;
   materials: Record<GroundMaterial, LayerStyle>;
   /** One entry per height tier 0–3. Any field left out inherits the material. */
   tiers: Partial<LayerStyle>[];
   bank: BankStyle;
+  composition?: CompositionStyle;
 };
 
 /** Altitude steps the style panel exposes a row for. */
@@ -100,6 +111,15 @@ export function defaultGroundStyle(): GroundStyle {
     materials,
     tiers,
     contour: { wobble: 0.95, scale: 13, smoothing: 1, sides: 2 },
+    composition: {
+      motifDensity: 1,
+      motifSpacing: 1,
+      motifClustering: 1,
+      pathWidth: 1,
+      pathWobble: 1,
+      pathEdgeBreakup: 1,
+      pathFringe: 1,
+    },
     bank: {
       lip: 2,
       strata: 0.95,

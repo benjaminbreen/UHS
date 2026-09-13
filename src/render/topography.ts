@@ -1,4 +1,5 @@
 import type { LivingMask } from "./living-water/mask";
+import type { GroundPage } from "./ground-pages";
 import { usesLivingWater, addLivingWater } from "./living-water/game";
 import { own, renderResources } from "./resources";
 import { paintedGround } from "./material-edges";
@@ -36,6 +37,7 @@ export function drawTopography(
   waterTiles?: WaterTileData[],
   groundTiles?: GroundTileData[],
   livingMask?: LivingMask,
+  groundPage?: GroundPage,
 ) {
   const resources = renderResources();
   // Static ground is composed into small canvas pages, rather than keeping
@@ -222,6 +224,32 @@ export function drawTopography(
     own(resources, scene.add.image(0, 0, key).setOrigin(0).setDepth(-10000));
   }
   const bounded = sample;
+  if (groundPage) {
+    const source = document.createElement("canvas");
+    source.width = groundPage.width;
+    source.height = groundPage.height;
+    const context = source.getContext("2d")!;
+    const data = context.createImageData(source.width, source.height);
+    data.data.set(groundPage.pixels);
+    context.putImageData(data, 0, 0);
+    for (
+      let cy = Math.floor(groundPage.y / pageSize);
+      cy <= Math.floor((groundPage.y + source.height - 1) / pageSize);
+      cy++
+    )
+      for (
+        let cx = Math.floor(groundPage.x / pageSize);
+        cx <= Math.floor((groundPage.x + source.width - 1) / pageSize);
+        cx++
+      )
+        pageFor(cx, cy)
+          .getContext()
+          .drawImage(
+            source,
+            groundPage.x - cx * pageSize,
+            groundPage.y - cy * pageSize,
+          );
+  }
   if (!region)
     sample = (x, y) => bounded(x, Math.max(0, Math.min(height - 1, y)));
   const styled = !!groundStyle();
@@ -238,6 +266,7 @@ export function drawTopography(
   for (let y = region ? 0 : -3; y < height + (region ? 0 : 4); y++)
     for (let x = 0; x < width; x++) {
       const c = sample(x, y)!;
+      const batched = !!groundPage?.tiles[y * width + x];
       const worldX = x + (region?.x ?? 0),
         worldY = y + (region?.y ?? 0);
       const top = y * 16 - c.height * TERRAIN_RISE,
@@ -291,16 +320,18 @@ export function drawTopography(
         }
       }
       if (paintedGround(c)) {
-        const tile =
-          preparedGround.get(`${x},${y}`) ??
-          rasterHabitatTile(sample, x, y, region?.x ?? 0, region?.y ?? 0);
-        groundScratch ??= document.createElement("canvas");
-        groundScratch.width = groundScratch.height = 16;
-        const ctx = groundScratch.getContext("2d")!;
-        const data = ctx.createImageData(16, 16);
-        data.data.set(tile.pixels);
-        ctx.putImageData(data, 0, 0);
-        painted = groundScratch;
+        if (!batched) {
+          const tile =
+            preparedGround.get(`${x},${y}`) ??
+            rasterHabitatTile(sample, x, y, region?.x ?? 0, region?.y ?? 0);
+          groundScratch ??= document.createElement("canvas");
+          groundScratch.width = groundScratch.height = 16;
+          const ctx = groundScratch.getContext("2d")!;
+          const data = ctx.createImageData(16, 16);
+          data.data.set(tile.pixels);
+          ctx.putImageData(data, 0, 0);
+          painted = groundScratch;
+        }
         flowers.push(
           ...flowersAt(sample, x, y, region?.x ?? 0, region?.y ?? 0, top),
         );
@@ -317,7 +348,7 @@ export function drawTopography(
       // each pixel's own lifted row; blitting the tile here as well would
       // leave the tile-aligned original showing through the new edge.
       const owned = styled && wallOwnsCell(sample, x, y);
-      if (!bakedWater.has(`${x},${y}`) && !owned)
+      if (!batched && !bakedWater.has(`${x},${y}`) && !owned)
         image(
           x * 16,
           c.bridge ? y * 16 : top,

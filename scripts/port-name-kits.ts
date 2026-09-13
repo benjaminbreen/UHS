@@ -375,6 +375,26 @@ for (const region of regions.values())
     }));
   }
 
+/* Continental backstops. The resolver takes the smallest box containing a
+ * point, so these only win in the cracks between the real regions -- which is
+ * where Neijiang, Xi'an, Kunming, Dhaka and Kabul were sitting. */
+const BACKSTOPS = JSON.parse(
+  readFileSync("scripts/data/name-windows.json", "utf8"),
+).backstops?.regions as any[] | undefined;
+for (const b of BACKSTOPS ?? []) {
+  if (regions.has(b.id)) continue;
+  regions.set(b.id, {
+    id: b.id,
+    label: b.label,
+    bounds: b.bounds,
+    culture: b.culture,
+    windows: b.windows.map((v: any) => ({
+      years: [clampYear(v.years[0]), clampYear(v.years[1])],
+      options: v.options,
+    })),
+  });
+}
+
 for (const [id, r] of regions) if (!r.windows.length) regions.delete(id);
 
 const used = new Set<string>();

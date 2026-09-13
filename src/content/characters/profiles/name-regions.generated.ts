@@ -1631,4 +1631,110 @@ export const nameRegions: readonly NameRegion[] = [
       { years: [1949, 10001], options: [{ tradition: "indonesian", weight: 1 }, { tradition: "malay", weight: 1 }] },
     ],
   },
+  {
+    id: "backstop-east-asia",
+    label: "East Asia",
+    bounds: [73,18,135,54],
+    culture: "east-asian",
+    windows: [
+      { years: [-2000, 1279], options: [{ tradition: "chinese-mandarin", weight: 1 }] },
+      { years: [1279, 10001], options: [{ tradition: "chinese-mandarin", weight: 8 }, { tradition: "chinese-cantonese", weight: 2 }] },
+    ],
+  },
+  {
+    id: "backstop-south-asia",
+    label: "South Asia",
+    bounds: [70,5,97,37],
+    culture: "south-asian",
+    windows: [
+      { years: [-1500, 1200], options: [{ tradition: "sanskrit-classical", weight: 1 }] },
+      { years: [1200, 1800], options: [{ tradition: "hindi", weight: 4 }, { tradition: "dravidian", weight: 2 }, { tradition: "rajput", weight: 1 }] },
+      { years: [1800, 10001], options: [{ tradition: "hindi", weight: 5 }, { tradition: "bengali-traditional", weight: 2 }, { tradition: "dravidian", weight: 3 }] },
+    ],
+  },
+  {
+    id: "backstop-southeast-asia",
+    label: "Southeast Asia",
+    bounds: [92,-11,141,24],
+    culture: "southeast-asian",
+    windows: [
+      { years: [-1000, 1600], options: [{ tradition: "philippine-precolonial", weight: 1 }, { tradition: "angkorian-khmer", weight: 2 }, { tradition: "malay", weight: 1 }] },
+      { years: [1600, 10001], options: [{ tradition: "malay", weight: 2 }, { tradition: "thai", weight: 2 }, { tradition: "vietnamese", weight: 2 }, { tradition: "indonesian", weight: 4 }] },
+    ],
+  },
+  {
+    id: "backstop-europe",
+    label: "Europe",
+    bounds: [-11,35,45,72],
+    culture: "european",
+    windows: [
+      { years: [-800, 500], options: [{ tradition: "ancient-roman", weight: 2 }, { tradition: "celtic-ancient", weight: 1 }] },
+      { years: [500, 1000], options: [{ tradition: "germanic-successor-kingdoms", weight: 2 }, { tradition: "slavic-medieval", weight: 2 }] },
+      { years: [1000, 1500], options: [{ tradition: "german-medieval", weight: 2 }, { tradition: "slavic-medieval", weight: 2 }, { tradition: "french-medieval", weight: 2 }] },
+      { years: [1500, 10001], options: [{ tradition: "german", weight: 3 }, { tradition: "polish-modern", weight: 2 }, { tradition: "italian", weight: 3 }, { tradition: "french", weight: 2 }] },
+    ],
+  },
+  {
+    id: "backstop-mena",
+    label: "West Asia and North Africa",
+    bounds: [-18,12,70,42],
+    culture: "north-african-west-asian",
+    windows: [
+      { years: [-3000, 640], options: [{ tradition: "mesopotamian-ancient", weight: 2 }, { tradition: "persian-ancient", weight: 2 }, { tradition: "arabian-hejaz", weight: 1 }] },
+      { years: [640, 10001], options: [{ tradition: "arabic-traditional", weight: 6 }, { tradition: "persian-farsi", weight: 2 }, { tradition: "turkish", weight: 2 }] },
+    ],
+  },
+  {
+    id: "backstop-west-africa",
+    label: "West and Central Africa",
+    bounds: [-18,-12,32,20],
+    culture: "west-central-african",
+    windows: [
+      { years: [-1000, 1200], options: [{ tradition: "sahel-early", weight: 2 }, { tradition: "prehistoric-african", weight: 2 }] },
+      { years: [1200, 10001], options: [{ tradition: "west-african-sahel", weight: 4 }, { tradition: "yoruba-traditional", weight: 3 }, { tradition: "kongo", weight: 1 }, { tradition: "hausa", weight: 2 }] },
+    ],
+  },
+  {
+    id: "backstop-east-southern-africa",
+    label: "East and Southern Africa",
+    bounds: [22,-35,52,18],
+    culture: "east-southern-african",
+    windows: [
+      { years: [-1000, 400], options: [{ tradition: "prehistoric-african", weight: 1 }] },
+      { years: [400, 1900], options: [{ tradition: "bantu-southern", weight: 3 }, { tradition: "swahili-coastal", weight: 2 }, { tradition: "ethiopian-highland", weight: 1 }] },
+      { years: [1900, 10001], options: [{ tradition: "zulu", weight: 3 }, { tradition: "shona", weight: 2 }, { tradition: "swahili-interior", weight: 3 }] },
+    ],
+  },
+  {
+    id: "backstop-inner-eurasia",
+    label: "Inner Eurasia",
+    bounds: [40,35,140,60],
+    culture: "inner-eurasian",
+    windows: [
+      { years: [-1000, 550], options: [{ tradition: "sogdian", weight: 1 }] },
+      { years: [550, 1300], options: [{ tradition: "old-turkic", weight: 3 }, { tradition: "sogdian", weight: 1 }] },
+      { years: [1300, 10001], options: [{ tradition: "turkic-steppe", weight: 2 }, { tradition: "uzbek", weight: 3 }, { tradition: "kazakh", weight: 3 }, { tradition: "mongolian", weight: 1 }] },
+    ],
+  },
+  {
+    id: "backstop-north-america",
+    label: "North America",
+    bounds: [-170,12,-52,72],
+    culture: "other-indigenous-american",
+    windows: [
+      { years: [-2000, 1600], options: [{ tradition: "early-americas", weight: 1 }] },
+      { years: [1600, 1800], options: [{ tradition: "north-american-colonial", weight: 2 }, { tradition: "algonquian", weight: 1 }] },
+      { years: [1800, 10001], options: [{ tradition: "north-american-modern", weight: 7 }, { tradition: "spanish-latin-american", weight: 3 }] },
+    ],
+  },
+  {
+    id: "backstop-south-america",
+    label: "South America",
+    bounds: [-82,-56,-34,13],
+    culture: "andean",
+    windows: [
+      { years: [-2000, 1533], options: [{ tradition: "early-americas", weight: 1 }] },
+      { years: [1533, 10001], options: [{ tradition: "spanish-latin-american", weight: 5 }, { tradition: "portuguese-brazil", weight: 4 }, { tradition: "andean-modern", weight: 1 }] },
+    ],
+  },
 ];
