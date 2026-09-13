@@ -13,7 +13,15 @@ import { urbanNeighborhood, urbanSite, siteForm, type UrbanLot } from "./urban";
 import type { Furniture } from "./blocks";
 import { urbanNeighborhoodV1 } from "./urban-v1";
 import { urbanBuildingLimit } from "../../content/settlements/scale";
-import { cropSprite, planFarmland, territoryReach } from "./farmland";
+import {
+  cropSprite,
+  eraEnclosure,
+  planFarmland,
+  territoryReach,
+  type FieldCell,
+} from "./farmland";
+import { faunaAt } from "../../content/fauna";
+import type { FaunaGroup, FaunaMember } from "../../core/fauna";
 import { crops } from "../../content/agriculture/crops";
 import { farms } from "../../content/geography/onsets";
 import { route } from "../../core/routing";
@@ -2024,6 +2032,31 @@ export function planSettlement(
   const herdOwners = owners
     .filter((id) => id !== "player" && herders.has(id))
     .slice(-2);
+  const kept = pack.setting ? faunaAt(pack.setting) : [];
+  const herdSpecies = kept.find(
+    (k) => k.category === "domestic" && k.social === "herd",
+  );
+  const flockSpecies = kept.find(
+    (k) => k.category === "domestic" && k.social === "flock",
+  );
+  /** Pen and paddock cells drawn by the field raster, so a pen wears the same
+   * wall, rails or wire as the fields of its day. Merged after the farmland so
+   * they never count as cropland. */
+  const penFields: [string, FieldCell][] = [];
+  const year = pack.setting?.year ?? 0;
+  const penBoundary = year < -800 ? "wall" : eraEnclosure(year);
+  const fenceCell = (
+    parcel: number,
+    fence: number,
+  ): FieldCell => ({
+    parcel,
+    crop: "pasture",
+    axis: "x",
+    edges: fence,
+    fence,
+    boundary: penBoundary,
+    wet: false,
+  });
   if (profile.livestock && herdOwners.length)
     for (let i = 0; i < Math.min(2, herdOwners.length); i++) {
       // Terraced ground rarely offers a full-size level plot; a smaller pen
@@ -2043,18 +2076,27 @@ export function planSettlement(
       const owner = herdOwners[i],
         id = `${site.id}-pen${i}`,
         gateId = `${id}-gate`;
-      plan.enclosures.push({ ...pen, gate });
+      // The raster draws the fence; the enclosure only keeps trees off the gate.
+      plan.enclosures.push({ ...pen, gate, parts: [] });
       eachCell(pen, (x, y) => {
         const k = cellKey(x, y);
         plan.reserved.add(k);
-        if (
-          (x === pen.x ||
-            x === pen.x + pen.w - 1 ||
-            y === pen.y ||
-            y === pen.y + pen.h - 1) &&
-          (x !== gate.x || y !== gate.y)
-        )
-          plan.solid.add(k);
+        const edge =
+          x === pen.x ||
+          x === pen.x + pen.w - 1 ||
+          y === pen.y ||
+          y === pen.y + pen.h - 1;
+        if (edge && (x !== gate.x || y !== gate.y)) plan.solid.add(k);
+        if (edge) return;
+        // The fence stands on the solid ring, so the bits sit on the cells
+        // just inside it; the run breaks above the gate.
+        let bits = 0;
+        if (y === pen.y + 1) bits |= 1;
+        if (x === pen.x + pen.w - 2) bits |= 2;
+        if (y === pen.y + pen.h - 2 && x !== gate.x) bits |= 4;
+        if (x === pen.x + 1) bits |= 8;
+        penFields.push([k, fenceCell(100000 + i * 2, bits)]);
+        setSurface(k, "grass", 3);
       });
       plan.objects.push({
         id: gateId,
@@ -2079,13 +2121,40 @@ export function planSettlement(
       const pasture = { x: gate.x - 3, y: gate.y + 3, w: 7, h: 6 };
       const hasPasture = dry(pasture);
       if (hasPasture) {
-        eachCell(pasture, (x, y) => plan.reserved.add(cellKey(x, y)));
+        // A paddock fenced on three sides, its open mouth toward the gate,
+        // with a trough by the far fence.
+        eachCell(pasture, (x, y) => {
+          const k = cellKey(x, y);
+          plan.reserved.add(k);
+          let bits = 0;
+          if (x === pasture.x + pasture.w - 1) bits |= 2;
+          if (y === pasture.y + pasture.h - 1) bits |= 4;
+          if (x === pasture.x) bits |= 8;
+          penFields.push([k, fenceCell(100001 + i * 2, bits)]);
+          setSurface(k, "grass", 3);
+        });
+        for (let x = pasture.x - 1; x <= pasture.x + pasture.w; x++)
+          for (let y = pasture.y - 1; y <= pasture.y + pasture.h; y++)
+            noRoad.add(cellKey(x, y));
         plan.plots.push({
           ...pasture,
           id: `${id}-pasture`,
           kind: "pasture",
           owner,
           access: outside,
+        });
+        plan.objects.push({
+          id: `${id}-paddock-trough`,
+          name: "Feeding trough",
+          kind: "container",
+          prop: "trough",
+          sprite: "study-prop-trough-1",
+          inventory: { fodder: 3, water: 2 },
+          owner,
+          pos: pos({
+            x: pasture.x + Math.floor(pasture.w / 2),
+            y: pasture.y + pasture.h - 2,
+          }),
         });
       }
       plan.plots.push({ ...pen, id, kind: "pasture", owner, access: outside });
@@ -2096,6 +2165,51 @@ export function planSettlement(
       hw.work = outside;
       hw.gateId = gateId;
       hw.label = "Tending livestock";
+      if (herdSpecies) {
+        // One group for the pen: the engine moves it as a herd.
+        const interior: Point[] = [];
+        eachCell(pen, (x, y) => {
+          if (
+            x > pen.x &&
+            x < pen.x + pen.w - 1 &&
+            y > pen.y &&
+            y < pen.y + pen.h - 1 &&
+            !(x === pen.x + 2 && y === pen.y + 2)
+          )
+            interior.push({ x, y });
+        });
+        const count = Math.min(
+          interior.length,
+          3 + Math.floor(random(seed, id, "herd") * 2),
+        );
+        const stride = Math.max(1, Math.floor(interior.length / count));
+        const members: FaunaMember[] = Array.from({ length: count }, (_, j) => ({
+          ...interior[(j * stride + 1) % interior.length],
+          direction: j % 2 ? 3 : 1,
+        }));
+        const middle = {
+          x: pen.x + Math.floor(pen.w / 2),
+          y: pen.y + Math.floor(pen.h / 2),
+        };
+        (plan.fauna ??= []).push({
+          id: `${id}-herd`,
+          speciesId: herdSpecies.id,
+          members,
+          pos: pos(members[0]),
+          home: pos(middle),
+          homeRadius: Math.max(pen.w, pen.h),
+          state: "rest",
+          nextDecisionAt: 0,
+          stride: 0,
+          since: 0,
+          owner,
+          gateId,
+          pasture: hasPasture
+            ? pos({ x: pasture.x + 3, y: pasture.y + 2 })
+            : undefined,
+        });
+        continue;
+      }
       for (let j = 0; j < 3; j++) {
         const home = { x: pen.x + 3 + j * 2, y: pen.y + 4 },
           kind = j === 2 ? "goat" : "sheep",
@@ -2134,6 +2248,49 @@ export function planSettlement(
       }
     }
   if (farmed) layFarmland();
+  if (penFields.length) {
+    plan.fields ??= new Map();
+    for (const [k, cell] of penFields) plan.fields.set(k, cell);
+  }
+  // A few hens scratching about the yard, for households that keep them.
+  if (flockSpecies) {
+    let flocks = 0;
+    for (const owner of owners) {
+      if (flocks >= 2) break;
+      if (owner === "player") continue;
+      const yard = plan.slots.get(owner)?.yard[0];
+      if (!yard || plan.solid.has(cellKey(yard.x, yard.y))) continue;
+      if (random(seed, owner, "hens") > 0.6) continue;
+      const members: FaunaMember[] = [];
+      for (let dy = -1; dy <= 1 && members.length < 4; dy++)
+        for (let dx = -1; dx <= 1 && members.length < 4; dx++) {
+          const x = yard.x + dx,
+            y = yard.y + dy;
+          if (
+            plan.solid.has(cellKey(x, y)) ||
+            plan.traffic.has(cellKey(x, y)) ||
+            random(seed, owner, "hen", dx, dy) > 0.55
+          )
+            continue;
+          members.push({ x, y, direction: dx < 0 ? 3 : 1 });
+        }
+      if (members.length < 2) continue;
+      (plan.fauna ??= []).push({
+        id: `${site.id}-flock-${owner}`,
+        speciesId: flockSpecies.id,
+        members,
+        pos: pos(members[0]),
+        home: pos(yard),
+        homeRadius: 4,
+        state: "forage",
+        nextDecisionAt: 0,
+        stride: 0,
+        since: 0,
+        owner,
+      } satisfies FaunaGroup);
+      flocks++;
+    }
+  }
   if (pack.setting?.characterRevision) {
     for (const actor of plan.actors) {
       if (actor.kind !== "human") continue;

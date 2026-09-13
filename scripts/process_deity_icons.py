@@ -293,6 +293,15 @@ SHEETS = [
     ),
 ]
 
+SINGLE_SOURCES = [
+    ("foundational/god-the-father.png", "god-the-father", "God the Father"),
+    ("foundational/jesus-christ.png", "jesus-christ", "Jesus Christ"),
+    ("foundational/holy-spirit.png", "holy-spirit", "The Holy Spirit"),
+    ("foundational/allah.png", "allah", "Allah"),
+    ("foundational/yhwh.png", "yhwh", "YHWH"),
+    ("foundational/tian-heaven.png", "tian-heaven", "Tian / Heaven"),
+]
+
 
 def color_distance(a: tuple[int, int, int], b: tuple[int, int, int]) -> float:
     # Green contributes most to perceived brightness; blue differences are less dominant.
@@ -457,6 +466,24 @@ def main() -> None:
                     "sourceCell": {"row": row, "column": column},
                 }
             )
+
+    for filename, slug, label in SINGLE_SOURCES:
+        source = Image.open(SOURCE_ROOT / filename).convert("RGB")
+        sprite = make_sprite(source)
+        sprite.save(EXTRACTED_ROOT / f"{slug}.png", optimize=True)
+        final_path = ICON_ROOT / f"{slug}.png"
+        if initializing_final_icons or not final_path.exists():
+            sprite.save(final_path, optimize=True)
+        sprites.append((slug, label, Image.open(final_path).convert("RGBA")))
+        records.append(
+            {
+                "id": slug,
+                "label": label,
+                "file": f"icons/{slug}.png",
+                "extractedFile": f"extracted/{slug}.png",
+                "sourceFile": f"sources/{filename}",
+            }
+        )
 
     rows = (len(sprites) + ATLAS_COLUMNS - 1) // ATLAS_COLUMNS
     atlas = Image.new("RGBA", (ATLAS_COLUMNS * SPRITE_SIZE, rows * SPRITE_SIZE))

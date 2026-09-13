@@ -1,3 +1,4 @@
+import { faunaStates } from "../core/fauna";
 import {
   hairStyles,
   eyeSizes,
@@ -385,7 +386,34 @@ const result = z.object({
   events: z.array(event),
   reason: z.string().optional(),
 });
+const faunaGroup = z
+  .object({
+    id: z.string(),
+    speciesId: z.string(),
+    members: z
+      .array(
+        z.object({
+          x: z.number().int(),
+          y: z.number().int(),
+          direction: z.union([z.literal(1), z.literal(3)]),
+        }),
+      )
+      .max(32),
+    pos,
+    home: pos,
+    homeRadius: z.number(),
+    state: z.enum(faunaStates),
+    target: pos.optional(),
+    nextDecisionAt: z.number(),
+    stride: z.number(),
+    since: z.number(),
+    owner: z.string().optional(),
+    gateId: z.string().optional(),
+    pasture: pos.optional(),
+  })
+  .strict();
 export const snapshotSchema = z.object({
+  fauna: z.array(faunaGroup).max(5000).optional(),
   households: z
     .array(
       z.object({

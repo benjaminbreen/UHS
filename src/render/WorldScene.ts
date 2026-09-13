@@ -3,6 +3,11 @@ import { WadingEffects } from "./characters/wading";
 import { shorePolishDefaults } from "./living-water/polish";
 import { updateLivingWater } from "./living-water/game";
 import { natureTreeSprites } from "../content/ecology/vegetation";
+import {
+  aerialStates,
+  type FaunaGroup,
+  type FaunaState,
+} from "../core/fauna";
 import { canopyHidesPlayer } from "./canopy-visibility";
 import { WorldCharacters } from "./characters/world";
 import { entityInView, npcMotion } from "./entity-presentation";
@@ -27,6 +32,10 @@ import {
 import type { Position, WorldModel } from "../core/types";
 import { surfaceAt, hasQuay } from "./materials";
 import { hash, random } from "../core/random";
+import {
+  defaultLiveGraphicsSettings,
+  type LiveGraphicsSettings,
+} from "./live-graphics";
 import { windProfile, windSway, type WindProfile } from "./wind";
 /** Poll interval while a jump is in the air, matched to the sprite's arc. */
 const DIRECTION_KEYS = [
@@ -138,6 +147,13 @@ export class WorldScene extends Phaser.Scene {
   private ambientDrawn = -Infinity;
   private modalOpen = false;
   private poseOffsets = new Map<string, number>();
+  /** Drawn animals, for the frame cycle in update(). */
+  private faunaSprites = new Map<
+    string,
+    { species: string; state: FaunaState; phase: number }
+  >();
+  private testFauna: FaunaGroup[] = [];
+  private testFaunaSerial = 0;
   private layers: Phaser.GameObjects.GameObject[] = [];
   private ground?: Phaser.Tilemaps.TilemapLayer;
   private tilemap?: Phaser.Tilemaps.Tilemap;
@@ -170,6 +186,8 @@ export class WorldScene extends Phaser.Scene {
   private destinations = new Map<string, Position>();
   private lastTick = 0;
   private ready = false;
+  private liveGraphics = { ...defaultLiveGraphicsSettings };
+  private zoomTarget?: number;
 
   private light = lightingAt(9 * 3600);
   private tint = 0xffffff;
@@ -186,6 +204,7 @@ export class WorldScene extends Phaser.Scene {
   }
   preload() {
     this.load.atlas("nature", "/nature/atlas.png", "/nature/atlas.json");
+    this.load.atlas("faunab", "/fauna-b/atlas.png", "/fauna-b/atlas.json");
     this.load.atlas(
       "nature-shadows",
       "/nature/shadows.png",
@@ -235,7 +254,15 @@ export class WorldScene extends Phaser.Scene {
     this.events.once("shutdown", () => watchModals.disconnect());
     this.events.once("destroy", () => watchModals.disconnect());
     this.cameras.main.setBackgroundColor("#819253");
-    this.cameras.main.roundPixels = !!this.options.lab;
+    this.applyLiveGraphics(
+      this.options.lab ? { roundPixels: true, zoomDuration: 0 } : {},
+    );
+    const filterTexture = (_key: string, texture: Phaser.Textures.Texture) =>
+      texture.setFilter(this.textureFilter());
+    this.textures.on(Phaser.Textures.Events.ADD, filterTexture);
+    this.events.once("shutdown", () =>
+      this.textures.off(Phaser.Textures.Events.ADD, filterTexture),
+    );
     this.selection = this.add.graphics().setDepth(20000);
     this.routeOverlay = this.add.graphics().setDepth(20000);
     this.night = this.add.graphics().setDepth(19000).setScrollFactor(0);
@@ -530,10 +557,124 @@ export class WorldScene extends Phaser.Scene {
   }
   private texture(frame: string) {
     if (frame.startsWith("nature-")) return "nature";
+    if (frame.startsWith("faunab-")) return "faunab";
     if (frame.startsWith("ecology-")) return "ecology";
     return frame.startsWith("study-prop-") || frame.startsWith("prop-broken-")
       ? "props"
       : "atlas";
+  }
+  private textureFilter() {
+    return this.liveGraphics.textureSampling === "nearest"
+      ? Phaser.Textures.FilterMode.NEAREST
+      : Phaser.Textures.FilterMode.LINEAR;
+  }
+  applyLiveGraphics(patch: Partial<LiveGraphicsSettings>) {
+    this.liveGraphics = { ...this.liveGraphics, ...patch };
+    if (!this.cameras?.main || !this.game?.canvas) return;
+    const camera = this.cameras.main;
+    camera.roundPixels = this.liveGraphics.roundPixels;
+    camera.setLerp(this.liveGraphics.followLerp);
+    this.game.canvas.style.imageRendering = this.liveGraphics.canvasSampling;
+    this.textures.each(
+      (texture: Phaser.Textures.Texture) =>
+        texture.setFilter(this.textureFilter()),
+      this,
+    );
+    Object.assign(this.game.canvas.dataset, {
+      roundPixels: String(this.liveGraphics.roundPixels),
+      textureSampling: this.liveGraphics.textureSampling,
+      canvasSampling: this.liveGraphics.canvasSampling,
+      zoomDuration: String(this.liveGraphics.zoomDuration),
+      zoomEase: this.liveGraphics.zoomEase,
+      followLerp: String(this.liveGraphics.followLerp),
+    });
+    if (!this.liveGraphics.zoomDuration && this.zoomTarget !== undefined) {
+      camera.zoomEffect.reset();
+      camera.setZoom(this.zoomTarget);
+      this.game.canvas.dataset.cameraZoom = String(this.zoomTarget);
+    }
+  }
+  addTestFauna(speciesId: string, state: FaunaState, count: number) {
+    const player = this.runtime.engine.state.player;
+    if (player.pos.space !== "outside") return 0;
+    const world = this.runtime.engine.world;
+    const cells: { x: number; y: number }[] = [];
+    const used = new Set(
+      this.testFauna.flatMap((group) =>
+        group.members.map((member) => `${member.x},${member.y}`),
+      ),
+    );
+    const directions = [
+      [1, 0],
+      [-1, 0],
+      [0, 1],
+      [0, -1],
+      [1, 1],
+      [-1, 1],
+      [1, -1],
+      [-1, -1],
+    ] as const;
+    for (let ring = 3; ring <= 12 && cells.length < count; ring += 3)
+      for (const [dx, dy] of directions) {
+        const x = player.pos.x + dx * ring,
+          y = player.pos.y + dy * ring;
+        if (!used.has(`${x},${y}`) && !world.blocked(x, y, "outside"))
+          cells.push({ x, y });
+        if (cells.length >= count) break;
+      }
+    if (!cells.length) return 0;
+    const id = `dev-fauna-${++this.testFaunaSerial}`;
+    const members = cells.slice(0, Math.max(1, Math.min(12, count))).map(
+      ({ x, y }, index) => ({
+        x,
+        y,
+        direction: (index % 2 ? 3 : 1) as 1 | 3,
+      }),
+    );
+    const pos = { ...members[0], space: "outside" as const };
+    this.testFauna.push({
+      id,
+      speciesId,
+      members,
+      pos,
+      home: { ...pos },
+      homeRadius: 8,
+      state,
+      nextDecisionAt: Infinity,
+      stride: 0,
+      since: this.runtime.engine.state.clock,
+    });
+    this.game.canvas.dataset.testFaunaCount = String(
+      this.testFauna.reduce((total, group) => total + group.members.length, 0),
+    );
+    this.draw();
+    return members.length;
+  }
+  clearTestFauna() {
+    this.testFauna = [];
+    if (this.game?.canvas) this.game.canvas.dataset.testFaunaCount = "0";
+    this.draw();
+  }
+  private setCameraZoom(target: number) {
+    const camera = this.cameras.main;
+    if (this.zoomTarget === target) return;
+    const initial = this.zoomTarget === undefined;
+    this.zoomTarget = target;
+    this.game.canvas.dataset.cameraZoomTarget = String(target);
+    if (initial || !this.liveGraphics.zoomDuration || this.options.lab) {
+      camera.setZoom(target);
+      this.game.canvas.dataset.cameraZoom = String(target);
+      return;
+    }
+    camera.zoomTo(
+      target,
+      this.liveGraphics.zoomDuration,
+      this.liveGraphics.zoomEase,
+      true,
+      (_camera, _progress, zoom) => {
+        this.game.canvas.dataset.cameraZoom = zoom.toFixed(4);
+      },
+    );
   }
   private shadow(frame: string, x: number, y: number, transient = false) {
     if (this.options.shadows === false) return undefined;
@@ -561,6 +702,10 @@ export class WorldScene extends Phaser.Scene {
           ? { ...this.options.center, space: "outside" }
           : e.state.player.pos,
       w = e.world;
+    if (this.drawnWorld && w !== this.drawnWorld && this.testFauna.length) {
+      this.testFauna = [];
+      this.game.canvas.dataset.testFaunaCount = "0";
+    }
     this.light = this.options.lighting
       ? lightingPreset(this.options.lighting)
       : lightingAt(e.state.clock);
@@ -570,7 +715,7 @@ export class WorldScene extends Phaser.Scene {
         : parseInt(this.light.tint, 16);
     this.shadowPhase = p.space === "outside" ? this.light.id : "night";
     const c = this.cameras.main;
-    c.setZoom(rt.zoom);
+    this.setCameraZoom(rt.zoom);
     const footprint = p.space === "outside" && !this.options.overview ? w.pack.setting?.playableMap?.size : undefined;
     const margin = 20 / rt.zoom;
     if (footprint) c.setBounds(-footprint*8-margin, -footprint*8-margin, footprint*16+margin*2, footprint*16+margin*2);
@@ -1111,7 +1256,12 @@ export class WorldScene extends Phaser.Scene {
           .setOrigin(0.5, 1);
         this.entities.set(id, im);
         if (id === "player" && !this.options.lab)
-          c.startFollow(im, false, 1, 1);
+          c.startFollow(
+            im,
+            false,
+            this.liveGraphics.followLerp,
+            this.liveGraphics.followLerp,
+          );
         const shade = frame.startsWith("human-")
           ? undefined
           : this.shadow(frame, tx, ty, true);
@@ -1313,6 +1463,36 @@ export class WorldScene extends Phaser.Scene {
         !!at,
       );
     }
+    this.faunaSprites.clear();
+    for (const g of [...(e.state.fauna ?? []), ...this.testFauna]) {
+      if (Math.abs(g.pos.x - p.x) > range || Math.abs(g.pos.y - p.y) > range)
+        continue;
+      // In the air the sprite rides a cell and a quarter above its ground cell.
+      const lift = aerialStates.has(g.state) ? 1.25 : 0;
+      for (const [i, m] of g.members.entries()) {
+        const id = `${g.id}-${i}`;
+        const at = { x: m.x, y: m.y - lift, space: "outside" };
+        if (!visible(at)) continue;
+        const phase = this.poseOffset(id) % 8;
+        renderEntity(
+          id,
+          this.faunaFrame(g.speciesId, g.state, phase),
+          at,
+          true,
+          g.id,
+        );
+        const im = this.entities.get(id)!;
+        if (g.id.startsWith("dev-fauna-")) im.disableInteractive();
+        if (im.flipX !== (m.direction === 3)) im.setFlipX(m.direction === 3);
+        // Three clear rows under the hooves in every study frame.
+        im.setOrigin(0.5, (im.frame.height - 3) / im.frame.height);
+        this.faunaSprites.set(id, {
+          species: g.speciesId,
+          state: g.state,
+          phase,
+        });
+      }
+    }
     if (this.options.lab && !this.options.overview)
       c.startFollow(this.entities.get("player")!, true, 0.4, 0.4);
     for (const [id, image] of this.entities)
@@ -1381,7 +1561,30 @@ export class WorldScene extends Phaser.Scene {
       );
     this.game.canvas.dataset.lighting = this.light.id;
   }
+  /** Frame of an animal's eight-step cycle at scene time; states share the
+   * lab's timings so a walk in the world matches the walk in the lab. */
+  private faunaFrame(species: string, state: FaunaState, phase: number) {
+    const ms =
+      state === "flight"
+        ? 85
+        : state === "flee" ||
+            state === "chase" ||
+            state === "takeoff" ||
+            state === "landing"
+          ? 95
+          : state === "wander" || state === "stalk" || state === "approach"
+            ? 140
+            : 260;
+    const n = this.options.freeze ? 0 : Math.floor(this.time.now / ms + phase) % 8;
+    return `faunab-${species}-${state}-${n}`;
+  }
   update(time: number) {
+    for (const [id, f] of this.faunaSprites) {
+      const im = this.entities.get(id);
+      if (!im) continue;
+      const name = this.faunaFrame(f.species, f.state, f.phase);
+      if (im.frame.name !== name) im.setFrame(name);
+    }
     updateLivingWater(
       this,
       time,

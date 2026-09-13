@@ -1,6 +1,21 @@
 import type { BeliefSystem } from "../types";
+import { applyBeliefKits } from "../kits/apply";
+import {
+  classicalGreekCore,
+  classicalGreekDevotionOptions,
+  romanCapitolineTriad,
+  romanCivicFigures,
+  romanDevotionOptions,
+} from "../kits/classical";
+import {
+  latinChristianHolyFigures,
+  latinChristianPatronOptions,
+  orthodoxTrinity,
+  russianOrthodoxHolyFigures,
+  russianOrthodoxPatronOptions,
+} from "../kits/christian";
 
-export const european: readonly BeliefSystem[] = [
+const europeanBase: readonly BeliefSystem[] = [
   {
     id: "europe-foragers",
     label: "European forager practice",
@@ -1206,61 +1221,11 @@ export const european: readonly BeliefSystem[] = [
   },
   {
     id: "orthodox-russia",
-    label: "Orthodox Russian practice",
+    label: "Russian Orthodox Christianity",
     wiki: "https://en.wikipedia.org/wiki/Russian_Orthodox_Church",
     scope: { years: [1000, 1700], bounds: [15, 40, 50, 72] },
-    powers: [
-      { name: "God", domain: "all power, eternity", rank: "paramount" },
-      {
-        name: "Christ",
-        wiki: "https://en.wikipedia.org/wiki/Jesus",
-        domain: "salvation, the Eucharist, icons",
-        rank: "major",
-        relations: [{ kind: "child-of", of: "God" }],
-      },
-      {
-        name: "Mary",
-        wiki: "https://en.wikipedia.org/wiki/Mary,_mother_of_Jesus",
-        domain: "mercy, the protection of Russia",
-        rank: "major",
-        relations: [{ kind: "serves", of: "God" }],
-      },
-      {
-        name: "Michael",
-        wiki: "https://en.wikipedia.org/wiki/Michael_(archangel)",
-        domain: "war, protection",
-        rank: "major",
-        relations: [{ kind: "serves", of: "God" }],
-      },
-      {
-        name: "Saint Nicholas",
-        wiki: "https://en.wikipedia.org/wiki/Saint_Nicholas",
-        domain: "travelers, protection",
-        rank: "major",
-        relations: [{ kind: "serves", of: "God" }],
-      },
-      {
-        name: "The local saint",
-        domain: "the city, miracles",
-        rank: "major",
-        relations: [{ kind: "serves", of: "God" }],
-      },
-      {
-        name: "The icon",
-        domain: "the presence of the holy",
-        rank: "local",
-      },
-      {
-        name: "The Orthodox dead",
-        domain: "commemoration, prayer",
-        rank: "local",
-      },
-      {
-        name: "The monastery",
-        domain: "prayer for the world",
-        rank: "local",
-      },
-    ],
+    powers: [...orthodoxTrinity, ...russianOrthodoxHolyFigures],
+    patronOptions: russianOrthodoxPatronOptions,
     practice: [
       "Liturgy is sung in Church Slavonic; icons are venerated.",
       "Reliquaries of saints are kept in churches.",
@@ -1776,3 +1741,38 @@ export const european: readonly BeliefSystem[] = [
     },
   },
 ];
+
+export const european = applyBeliefKits(europeanBase, {
+  "classical-greek": {
+    powers: classicalGreekCore,
+    patronOptions: classicalGreekDevotionOptions,
+  },
+  "republican-roman": {
+    powers: [...romanCapitolineTriad, ...romanCivicFigures],
+    patronOptions: romanDevotionOptions,
+  },
+  "imperial-roman": {
+    powers: [...romanCapitolineTriad, ...romanCivicFigures],
+    patronOptions: romanDevotionOptions,
+  },
+  "frankish-christian-early": {
+    powers: [...orthodoxTrinity, ...latinChristianHolyFigures],
+    patronOptions: latinChristianPatronOptions,
+  },
+  "catholic-high-medieval": {
+    powers: [...orthodoxTrinity, ...latinChristianHolyFigures],
+    patronOptions: latinChristianPatronOptions,
+  },
+  "catholic-early-modern": {
+    powers: [...orthodoxTrinity, ...latinChristianHolyFigures],
+    patronOptions: latinChristianPatronOptions,
+  },
+  "post-roman-christian-mediterranean": {
+    powers: [...orthodoxTrinity, ...latinChristianHolyFigures],
+    patronOptions: latinChristianPatronOptions,
+  },
+  "latin-christendom-late-medieval": {
+    powers: [...orthodoxTrinity, ...latinChristianHolyFigures],
+    patronOptions: latinChristianPatronOptions,
+  },
+});

@@ -1,6 +1,12 @@
 import type { BeliefSystem } from "../types";
+import { applyBeliefKits } from "../kits/apply";
+import { pureLandMahayanaCore } from "../kits/buddhist";
+import {
+  songMingDevotionOptions,
+  songMingHouseholdCore,
+} from "../kits/chinese";
 
-export const eastAsia: readonly BeliefSystem[] = [
+const eastAsiaBase: readonly BeliefSystem[] = [
   {
     id: "neolithic-east-asia-foragers",
     label: "Neolithic East Asia foraging and early settlement",
@@ -1378,3 +1384,11 @@ export const eastAsia: readonly BeliefSystem[] = [
     },
   },
 ];
+
+export const eastAsia = applyBeliefKits(eastAsiaBase, {
+  "song-ming-pantheon": {
+    powers: songMingHouseholdCore,
+    patronOptions: songMingDevotionOptions,
+  },
+  "medieval-japan-pure-land": { powers: pureLandMahayanaCore },
+});

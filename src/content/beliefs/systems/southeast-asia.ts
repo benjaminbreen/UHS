@@ -1,9 +1,11 @@
 import type { BeliefSystem } from "../types";
+import { applyBeliefKits } from "../kits/apply";
+import { theravadaTripleGem } from "../kits/buddhist";
 
 /** Southeast Asian belief systems across the major traditions and regions.
  * From early animism through Hindu-Buddhist syncretism to Islam and Catholicism,
  * showing local spirits persisting beneath and within each great tradition. */
-export const southeastAsia: readonly BeliefSystem[] = [
+const southeastAsiaBase: readonly BeliefSystem[] = [
   {
     id: "se-asia-early-foragers",
     label: "Early forager and hunter communities",
@@ -1136,3 +1138,58 @@ export const southeastAsia: readonly BeliefSystem[] = [
     },
   },
 ];
+
+export const southeastAsia = applyBeliefKits(southeastAsiaBase, {
+  "se-asia-theravada-burma": {
+    powers: [
+      ...theravadaTripleGem,
+      {
+        name: "Thagyamin",
+        domain: "rain, kingship, guardian of Buddhism",
+        rank: "major",
+      },
+      {
+        name: "Min Mahagiri",
+        domain: "Mount Popa and the household",
+        rank: "major",
+      },
+      {
+        name: "Wathondaye",
+        domain: "witness to meritorious deeds",
+        rank: "major",
+      },
+      {
+        name: "The Taungbyon brothers",
+        domain: "festival, illness, protection",
+        rank: "major",
+      },
+      {
+        name: "The local nat",
+        domain: "the household and immediate landscape",
+        rank: "major",
+      },
+    ],
+  },
+  "se-asia-theravada-siam": {
+    powers: [
+      ...theravadaTripleGem,
+      { name: "Indra", domain: "rain and royal protection", rank: "major" },
+      {
+        name: "Phra Phrom",
+        domain: "creation and four-faced protection",
+        rank: "major",
+      },
+      { name: "Lak Mueang", domain: "the city and its pillar", rank: "major" },
+      {
+        name: "Mae Posop",
+        domain: "rice and agricultural abundance",
+        rank: "major",
+      },
+      {
+        name: "The local phi",
+        domain: "ancestors, home, and landscape",
+        rank: "major",
+      },
+    ],
+  },
+});

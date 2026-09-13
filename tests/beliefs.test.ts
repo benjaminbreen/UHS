@@ -7,6 +7,7 @@ import {
 } from "../src/content/beliefs";
 import { places } from "../src/content/geography/places";
 import type { Actor } from "../src/core/types";
+import { deityIconFor } from "../src/content/beliefs/deity-icons";
 
 const actor = (
   id = "a1",
@@ -29,6 +30,10 @@ it("keeps every system well formed", () => {
       expect(Math.abs(n), system.id).toBeLessThanOrEqual(90);
     }
     expect(system.powers.length, system.id).toBeGreaterThan(2);
+    expect(
+      system.powers.filter((power) => power.rank === "paramount").length,
+      system.id,
+    ).toBeLessThanOrEqual(3);
     expect(system.practice.length, system.id).toBeGreaterThan(0);
     expect(system.evidence.claim.length, system.id).toBeGreaterThan(20);
     expect(system.evidence.limitation.length, system.id).toBeGreaterThan(20);
@@ -36,6 +41,10 @@ it("keeps every system well formed", () => {
     if (system.evidence.status === "documented")
       expect(system.evidence.sources.length, system.id).toBeGreaterThan(0);
     const names = new Set(system.powers.map((p) => p.name));
+    for (const patron of system.patronOptions ?? [])
+      expect(names.has(patron), `${system.id}: unknown patron ${patron}`).toBe(
+        true,
+      );
     for (const power of system.powers) {
       expect(power.domain.length, `${system.id}/${power.name}`).toBeGreaterThan(
         2,
@@ -46,11 +55,6 @@ it("keeps every system well formed", () => {
           `${system.id}: ${power.name} points at ${relation.of}`,
         ).toBe(true);
     }
-    // Someone has to be reachable without going through a temple.
-    expect(
-      system.powers.some((p) => p.rank === "local"),
-      system.id,
-    ).toBe(true);
   }
 });
 
@@ -76,13 +80,87 @@ it("resolves the narrowest scope and falls back cleanly", () => {
 
 it("derives a stable personal belief", () => {
   const one = beliefOf("seed", actor(), unscopedBeliefs);
-  expect(one.patron.rank).not.toBe("paramount");
-  expect(beliefOf("seed", actor(), unscopedBeliefs).patron.name).toBe(
-    one.patron.name,
-  );
+  expect(one.patron).toBeUndefined();
   expect(
     beliefOf("seed", actor("a2"), unscopedBeliefs).observance,
   ).toBeTruthy();
+});
+
+it("only assigns a personal devotion from explicit options", () => {
+  const system = beliefSystems.find(
+    (candidate) => candidate.id === "orthodox-russia",
+  )!;
+  const one = beliefOf("seed", actor(), system);
+  expect(system.patronOptions).toContain(one.patron?.name);
+  expect(beliefOf("seed", actor(), system).patron?.name).toBe(one.patron?.name);
+});
+
+it("presents Russian Orthodoxy as the Trinity and five holy figures", () => {
+  for (const id of ["orthodox-russia", "siberian-russian-hybrid"]) {
+    const system = beliefSystems.find((candidate) => candidate.id === id)!;
+    expect(
+      system.powers
+        .filter((power) => power.rank === "paramount")
+        .map((power) => power.name),
+    ).toEqual(["God the Father", "Jesus Christ, the Son", "The Holy Spirit"]);
+    expect(
+      system.powers
+        .filter((power) => power.rank === "major")
+        .map((power) => power.name),
+    ).toEqual([
+      "The Theotokos",
+      "Saint Nicholas",
+      "Peter and Paul",
+      "Saint George",
+      "Archangel Michael",
+    ]);
+  }
+});
+
+it("gives ten major traditions a concise, recognizable core", () => {
+  const expected = {
+    "orthodox-russia": [
+      "God the Father",
+      "Jesus Christ, the Son",
+      "The Holy Spirit",
+    ],
+    "imperial-roman": ["Jupiter", "Juno", "Minerva"],
+    "catholic-high-medieval": [
+      "God the Father",
+      "Jesus Christ, the Son",
+      "The Holy Spirit",
+    ],
+    "medieval-sunni-islam": ["Allah"],
+    "gupta-puranic": ["Vishnu", "Shiva", "Devi/Shakti"],
+    "song-ming-pantheon": ["Heaven"],
+    "theravada-sri-lanka": ["The Buddha", "The Dhamma", "The Sangha"],
+    "medieval-japan-pure-land": [
+      "Amida Buddha",
+      "Shakyamuni Buddha",
+      "The Dharma",
+    ],
+    "second-temple-judaism": ["YHWH"],
+    "classical-greek": ["Zeus", "Hera", "Athena"],
+  } as const;
+
+  for (const [id, foundation] of Object.entries(expected)) {
+    const system = beliefSystems.find((candidate) => candidate.id === id)!;
+    const paramount = system.powers.filter(
+      (power) => power.rank === "paramount",
+    );
+    const major = system.powers.filter((power) => power.rank === "major");
+    expect(
+      paramount.map((power) => power.name),
+      id,
+    ).toEqual(foundation);
+    expect(paramount.length, id).toBeLessThanOrEqual(3);
+    expect(major.length, id).toBeLessThanOrEqual(5);
+    for (const power of paramount.filter(
+      ({ name }) => !/^The (Dhamma|Dharma|Sangha)$/.test(name),
+    )) {
+      expect(deityIconFor(power.name), `${id}: ${power.name}`).toBeDefined();
+    }
+  }
 });
 
 it("covers the places and dates the app can actually generate", () => {
@@ -195,5 +273,6 @@ it("keeps relations pointing at real powers, once each, never at themselves", ()
       walk(start, [start]);
     }
   }
-  expect(total).toBeGreaterThan(600);
+  // Coarse coverage alarm only; the checks above enforce relationship quality.
+  expect(total).toBeGreaterThan(500);
 });

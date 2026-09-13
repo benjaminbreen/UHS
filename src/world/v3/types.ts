@@ -63,6 +63,8 @@ export type SettlementPlan = {
   places: Place[];
   objects: WorldObject[];
   actors: Actor[];
+  /** Kept animals as groups: the pen herd, the yard flock. */
+  fauna?: import("../../core/fauna").FaunaGroup[];
   enclosures: WorldModel["enclosures"];
   surface: Map<string, Terrain>;
   streetSurfaces?: Map<

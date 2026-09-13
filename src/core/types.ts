@@ -297,6 +297,8 @@ export type CommandResult = {
 export type Receipt = { payload: string; result: CommandResult };
 export type Snapshot = {
   households?: Household[];
+  /** Animal groups: wild ones spawned as districts open, kept ones from pens. */
+  fauna?: import("./fauna").FaunaGroup[];
   manifest: WorldManifest;
   clock: number;
   revision: number;
@@ -431,6 +433,8 @@ export interface WorldModel {
   elevation?(x: number, y: number): number;
   moisture?(x: number, y: number): number;
   activate?(x: number, y: number): void;
+  /** Animal groups for the districts round (x, y); ids repeat, the engine keeps the first. */
+  fauna?(x: number, y: number): import("./fauna").FaunaGroup[];
   restoreDistricts?(entityIds: string[]): void;
   regionExtent?: number;
   overview?(x: number, y: number): Terrain;

@@ -1,6 +1,6 @@
 # Named deity icon set v1
 
-This directory contains 192 transparent, palette-limited 64 × 64 deity icons.
+This directory contains 198 transparent, palette-limited 64 × 64 deity icons.
 
 - `icons/` is the source of truth for consumers and the place for manual retouching.
 - `extracted/` is the reproducible first-pass output generated from the concept sheets.
@@ -12,6 +12,11 @@ This directory contains 192 transparent, palette-limited 64 × 64 deity icons.
 Run `python3 scripts/process_deity_icons.py` from the repository root to rebuild the extracted icons, atlas, manifest and proof sheet. The processor partitions each concept sheet into its 4 × 4 cells, removes the navy presentation background, normalizes the artwork to a padded 64 × 64 canvas, maps it to the shared 16-color palette, and writes hard alpha edges. It does not overwrite the preserved concept sheets or existing final icons. The atlas and proof always use the final files from `icons/`, so later hand edits survive regeneration.
 
 The concept sheets were created with Codex's built-in image generator on September 12, 2026. They are original project assets generated for Universal History Simulator. The first approved carved-relic sheet established the art direction; subsequent sheets use the approved set as style references. No pixels from the user's earlier generic glyph sheet were copied into these assets.
+
+Six individually generated foundational sources extend the same pipeline under
+`sources/foundational/`: God the Father, Jesus Christ, the Holy Spirit, and
+non-figurative symbols for Allah, YHWH and Tian/Heaven. The Jewish and Islamic
+symbols deliberately contain neither human figures nor sacred lettering.
 
 Sheets 04–06 extend the atlas with these fixed row-major cells:
 

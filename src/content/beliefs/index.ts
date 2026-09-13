@@ -1,5 +1,4 @@
 import { random } from "../../core/random";
-import { statsOf } from "../../core/stats";
 import { matchesCharacterScope } from "../characters/resolve";
 import type { WorldSetting } from "../geography/types";
 import type { Actor } from "../../core/types";
@@ -95,9 +94,16 @@ const specificity = (b: BeliefSystem) => {
 };
 
 /** The most specific system that covers this place, date and culture. */
-export function beliefsFor(setting: WorldSetting): BeliefSystem {
+export function beliefsFor(
+  setting: WorldSetting,
+  community?: string,
+): BeliefSystem {
   const here = beliefSystems.filter((b) =>
-    matchesCharacterScope({ ...b.scope, cultures: undefined }, setting),
+    matchesCharacterScope(
+      { ...b.scope, cultures: undefined },
+      setting,
+      community,
+    ),
   );
   // A preference, not a gate: some places carry a culture tag from a
   // neighbouring region, and geography is still the better answer than nothing.
@@ -115,7 +121,7 @@ export function wikiFor(system: BeliefSystem, power?: Power) {
 export type PersonalBelief = {
   system: BeliefSystem;
   /** Who this person actually addresses, most days. */
-  patron: Power;
+  patron?: Power;
   paramount?: Power;
   observance: "devout" | "regular" | "occasional" | "indifferent";
   /** One practice line they keep, drawn from the system. */
@@ -128,26 +134,24 @@ export function beliefOf(
   actor: Pick<Actor, "id" | "age" | "appearance" | "stats" | "origin">,
   system: BeliefSystem,
 ): PersonalBelief {
-  const stats = statsOf(seed, actor);
-  // People address the powers near to hand far more often than the great ones.
-  const near = system.powers.filter((p) => p.rank !== "paramount");
-  const pool = near.length ? near : system.powers;
-  const patron =
-    pool[Math.floor(random(seed, "belief", actor.id) * pool.length)];
-  const score =
-    stats.conscientiousness * 0.6 +
-    (100 - stats.openness) * 0.2 +
-    stats.agreeableness * 0.2;
+  const patrons = (system.patronOptions ?? []).flatMap((name) => {
+    const power = system.powers.find((candidate) => candidate.name === name);
+    return power ? [power] : [];
+  });
+  const patron = patrons.length
+    ? patrons[Math.floor(random(seed, "belief", actor.id) * patrons.length)]
+    : undefined;
+  const score = random(seed, "belief-observance", actor.id) * 100;
   return {
     system,
     patron,
     paramount: system.powers.find((p) => p.rank === "paramount"),
     observance:
-      score >= 68
+      score >= 75
         ? "devout"
-        : score >= 50
+        : score >= 35
           ? "regular"
-          : score >= 34
+          : score >= 10
             ? "occasional"
             : "indifferent",
     keeps: system.practice.length

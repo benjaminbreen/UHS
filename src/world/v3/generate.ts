@@ -24,6 +24,8 @@ import type { GeographicArea } from "../../core/geography";
 import { createEnvironment, localEcology } from "./environment";
 import { ecologyProfiles } from "../../content/ecology/profiles";
 import { populateHouseholds, addWildResources } from "./population";
+import { spawnFauna } from "./fauna";
+import type { FaunaGroup } from "../../core/fauna";
 import { createReliefLandscape, reliefCell } from "./topography";
 import {
   terrainStep,
@@ -1457,6 +1459,7 @@ export function createSettlementWorld(
   const entrances = () => entranceCache ??= pack.setting?.playableMap
     ? mapEntrances(world, pack.setting.playableMap.size, pack.setting.playableMap.exits)
     : [];
+  const keptFauna: FaunaGroup[] = [];
   const world: SettlementWorld = {
     entrances,
     prepare: () => ({
@@ -1656,6 +1659,10 @@ export function createSettlementWorld(
       for (const p of nearby(x, y)) activate(p);
       if (environment) addWildResources(world, seed, x, y);
     },
+    fauna: (x, y) => [
+      ...keptFauna,
+      ...(environment ? spawnFauna(world, seed, x, y) : []),
+    ],
     restoreDistricts: (ids) => {
       for (const id of ids) {
         const p = planForEntity(id);
@@ -1677,6 +1684,7 @@ export function createSettlementWorld(
     world.places.push(...p.places);
     world.initialObjects.push(...p.objects);
     world.initialActors.push(...p.actors);
+    keptFauna.push(...(p.fauna ?? []));
     if (environment) populateHouseholds(world, p, seed);
     world.enclosures.push(...p.enclosures);
   }

@@ -10,6 +10,8 @@ export type RelationKind =
   | "aspect-of"
   /** Attends, carries messages for, or works under. */
   | "serves"
+  /** A holy person asked to pray to the divine on someone's behalf. */
+  | "intercedes-before"
   /** Opposed, in the stories people tell. */
   | "rival-of"
   /** Taught by, or founded the line that teaches. */
@@ -50,6 +52,9 @@ export type BeliefSystem = {
    * power without one of its own. */
   wiki?: string;
   powers: readonly Power[];
+  /** Named figures who may matter especially to one person. Nothing is chosen
+   * implicitly: many traditions have no concept resembling a patron. */
+  patronOptions?: readonly string[];
   /** Short lines: what people give, when they gather, what they avoid. */
   practice: readonly string[];
   /** Who officiates, if anyone does. */

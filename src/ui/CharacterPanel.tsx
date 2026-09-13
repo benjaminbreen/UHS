@@ -149,51 +149,22 @@ type PowerNode = {
 };
 
 export function beliefHierarchy(belief: PersonalBelief) {
-  const featured = [belief.paramount, belief.patron]
-    .filter((power): power is Power => Boolean(power))
-    .filter(
-      (power, index, powers) =>
-        powers.findIndex((candidate) => candidate.name === power.name) ===
-        index,
-    )
-    .slice(0, 2);
+  const featured = belief.system.powers
+    .filter((power) => power.rank === "paramount")
+    .slice(0, 3);
   if (!featured.length && belief.system.powers[0])
     featured.push(belief.system.powers[0]);
-  // Prefer powers that are tied to something already shown, so the lines are
-  // between things on screen rather than pointing off the edge of it.
-  const shown = new Set(featured.map((power) => power.name));
-  const ties = (power: Power) =>
-    (power.relations ?? []).filter((relation) =>
-      belief.system.powers.some((other) => other.name === relation.of),
-    );
-  const connected = (power: Power) =>
-    ties(power).some((relation) => shown.has(relation.of)) ||
-    belief.system.powers.some(
-      (other) =>
-        shown.has(other.name) &&
-        ties(other).some((relation) => relation.of === power.name),
-    );
-  const rest = belief.system.powers.filter((power) => !shown.has(power.name));
-  const rank = { paramount: 0, major: 1, local: 2 } as const;
-  const secondary: Power[] = [];
-  while (secondary.length < 5) {
-    const next =
-      rest
-        .filter((power) => !shown.has(power.name))
-        .sort(
-          (a, b) =>
-            Number(connected(b)) - Number(connected(a)) ||
-            ties(b).length - ties(a).length ||
-            rank[a.rank] - rank[b.rank],
-        )[0] ?? undefined;
-    if (!next) break;
-    secondary.push(next);
-    shown.add(next.name);
-  }
+  const secondary = belief.system.powers
+    .filter(
+      (power) =>
+        power.rank === "major" &&
+        !featured.some((candidate) => candidate.name === power.name),
+    )
+    .slice(0, 5);
   const nodes: PowerNode[] = [
     ...featured.map((power, index) => ({
       power,
-      x: featured.length === 1 ? 500 : index === 0 ? 360 : 640,
+      x: ((index + 1) * 1000) / (featured.length + 1),
       y: 62,
       tier: "primary" as const,
     })),
@@ -283,12 +254,16 @@ export function CharacterPanel({
   const belief = beliefOf(
     seed,
     actor,
-    pack.setting ? beliefsFor(pack.setting) : unscopedBeliefs,
+    pack.setting
+      ? beliefsFor(pack.setting, actor.origin?.community)
+      : unscopedBeliefs,
   );
   const hierarchy = beliefHierarchy(belief);
   const selectedPower =
     belief.system.powers.find((power) => power.name === selectedPowerName) ??
-    belief.patron;
+    belief.patron ??
+    hierarchy.nodes[0]?.power ??
+    belief.system.powers[0]!;
   const routine = runtime.engine.world.itinerary?.(actor.id);
   const plan = routine ? dayPlan(routine, state.clock) : [];
   const inspection = isPlayer ? undefined : runtime.engine.inspect(actor.id);
@@ -691,10 +666,12 @@ export function CharacterPanel({
                 <dt>Observance</dt>
                 <dd>{belief.observance}</dd>
               </div>
-              <div>
-                <dt>Patron</dt>
-                <dd>{belief.patron.name}</dd>
-              </div>
+              {belief.patron && (
+                <div>
+                  <dt>Personal devotion</dt>
+                  <dd>{belief.patron.name}</dd>
+                </div>
+              )}
               <div>
                 <dt>Evidence</dt>
                 <dd>{belief.system.evidence.status}</dd>
@@ -710,19 +687,16 @@ export function CharacterPanel({
           <div className="belief-main">
             <div className="belief-intro">
               <div>
-                <h3>Known powers · personal and cultic order</h3>
+                <h3>Belief and devotion</h3>
                 <h1>{belief.system.label}</h1>
                 <p>
-                  Prominence reflects {actor.name.split(" ")[0]}'s world and
-                  practice—not a universal family tree.
+                  The central figures in {actor.name.split(" ")[0]}'s religious
+                  world.
                 </p>
               </div>
               <div className="belief-legend" aria-label="Relationship legend">
                 <span>
                   <i /> named relation
-                </span>
-                <span>
-                  <i className="personal" /> personal prominence
                 </span>
               </div>
             </div>
@@ -752,7 +726,9 @@ export function CharacterPanel({
                 >
                   <PowerIcon power={node.power} />
                   <strong>{node.power.name}</strong>
-                  <small>{node.power.rank}</small>
+                  <small>
+                    {node.tier === "primary" ? "foundational" : "important"}
+                  </small>
                 </button>
               ))}
               {hierarchy.hidden > 0 && (
@@ -775,9 +751,9 @@ export function CharacterPanel({
                   <div>
                     <dt>Personal stance</dt>
                     <dd>
-                      {selectedPower.name === belief.patron.name
-                        ? "Patron power"
-                        : "Known and observed"}
+                      {selectedPower.name === belief.patron?.name
+                        ? "Personally significant"
+                        : "Central to this tradition"}
                     </dd>
                   </div>
                   <div>
@@ -790,7 +766,11 @@ export function CharacterPanel({
                                 `${relation.kind.replaceAll("-", " ")} ${relation.of}`,
                             )
                             .join(" · ")
-                        : selectedPower.rank}
+                        : hierarchy.nodes.find(
+                              (node) => node.power.name === selectedPower.name,
+                            )?.tier === "primary"
+                          ? "Foundational"
+                          : "Important"}
                     </dd>
                   </div>
                   <div>

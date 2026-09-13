@@ -70,7 +70,7 @@ test("the character panel opens from the sidebar portrait and reads a person", a
   await panel.getByRole("tab", { name: "Beliefs" }).click();
   await expect(panel.locator(".belief-layout")).toBeVisible();
   await expect(panel.locator(".power-node").first()).toBeVisible();
-  expect(await panel.locator(".power-node").count()).toBeLessThanOrEqual(7);
+  expect(await panel.locator(".power-node").count()).toBeLessThanOrEqual(8);
   await expect(panel.locator(".power-detail h1")).not.toBeEmpty();
   const otherPower = panel.locator(".power-node").nth(1);
   if (await otherPower.count()) {
@@ -108,4 +108,54 @@ test("the character panel opens from the sidebar portrait and reads a person", a
     await page.screenshot({ path: "artifacts/character-panel-neighbour.png" });
   }
   expect(errors).toEqual([]);
+});
+
+test("Russian Orthodox belief shows the Trinity and five holy figures", async ({
+  page,
+}) => {
+  test.setTimeout(180000);
+  await page.goto("/");
+  await page.getByRole("button", { name: "Choose starting details" }).click();
+  await page
+    .getByLabel("Place", { exact: true })
+    .selectOption("area-ural-mountains");
+  await page.getByLabel("Starting year", { exact: true }).fill("1750");
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Begin", exact: true })
+    .click();
+  const splashBegin = page.locator(".splash-begin");
+  if (
+    !(await page.getByRole("dialog").count()) &&
+    (await splashBegin.isVisible())
+  )
+    await splashBegin.click();
+  await expect(page.locator(".game-container canvas")).toHaveAttribute(
+    "data-ready",
+    "true",
+    { timeout: 120000 },
+  );
+  await page.locator("button.character").click();
+  const panel = page.locator(".character-panel");
+  await panel.getByRole("tab", { name: "Beliefs" }).click();
+  await expect(panel.locator(".belief-intro h1")).toHaveText(
+    "Russian Orthodox Christianity in Siberia",
+  );
+  await expect(panel.locator('.power-node[data-tier="primary"]')).toHaveCount(
+    3,
+  );
+  await expect(panel.locator('.power-node[data-tier="secondary"]')).toHaveCount(
+    5,
+  );
+  await expect(panel.locator(".power-node strong")).toHaveText([
+    "God the Father",
+    "Jesus Christ, the Son",
+    "The Holy Spirit",
+    "The Theotokos",
+    "Saint Nicholas",
+    "Peter and Paul",
+    "Saint George",
+    "Archangel Michael",
+  ]);
+  await page.screenshot({ path: "artifacts/character-panel-orthodox.png" });
 });

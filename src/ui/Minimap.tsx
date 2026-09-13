@@ -1,5 +1,6 @@
 import { natureTreeSprites } from "../content/ecology/vegetation";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { faunaProfile } from "../content/fauna";
 import atlas from "../render/generated/atlas.json" with { type: "json" };
 import { surfaceAt } from "../render/materials";
 import type { Runtime } from "../runtime/session";
@@ -292,7 +293,11 @@ export function Minimap({
 }) {
   const ref = useRef<HTMLCanvasElement>(null);
   const backing = useRef<Backing | undefined>(undefined);
+  /** Animal groups on the map this draw, for the hover label. */
+  const pins = useRef<{ x: number; y: number; text: string }[]>([]);
+  const [pin, setPin] = useState<{ x: number; y: number; text: string }>();
   const world = runtime.engine.world;
+  const revision = runtime.engine.state.revision;
   const local = runtime.engine.state.player.pos;
   const p =
     local.space === "outside" ? local : world.place(local.space)!.entrance;
@@ -371,6 +376,27 @@ export function Minimap({
       ctx.beginPath();
       ctx.arc(mx, my, large ? 2.5 : 2, 0, Math.PI * 2);
       ctx.fill();
+      // One dot per animal group: cream for kept animals, amber for wild.
+      pins.current = [];
+      for (const g of runtime.engine.state.fauna ?? []) {
+        const x = ((g.pos.x - origin.x) * size) / extent + size / 2,
+          y = ((g.pos.y - origin.y) * size) / extent + height / 2;
+        if (x < 3 || y < 3 || x > size - 3 || y > height - 3) continue;
+        const profile = faunaProfile(g.speciesId);
+        ctx.fillStyle = "#1c2430aa";
+        ctx.beginPath();
+        ctx.arc(x, y, large ? 3.5 : 3, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = profile?.category === "wild" ? "#e6a53c" : "#f1e2b5";
+        ctx.beginPath();
+        ctx.arc(x, y, large ? 2.5 : 2, 0, Math.PI * 2);
+        ctx.fill();
+        pins.current.push({
+          x,
+          y,
+          text: `${(profile?.label ?? g.speciesId).replace(" study", "")} · ${g.members.length}`,
+        });
+      }
     };
     const ready = () => {
       if (
@@ -400,14 +426,40 @@ export function Minimap({
     large,
     regional,
     places,
+    revision,
   ]);
   return (
-    <canvas
-      ref={ref}
-      width={size}
-      height={height}
-      className={large ? "large-map" : "minimap"}
-      aria-label="Map derived from the generated regional plan"
-    />
+    <span className="minimap-frame">
+      <canvas
+        ref={ref}
+        width={size}
+        height={height}
+        className={large ? "large-map" : "minimap"}
+        aria-label="Map derived from the generated regional plan"
+        onMouseMove={(event) => {
+          const r = event.currentTarget.getBoundingClientRect();
+          const sx = size / r.width,
+            sy = height / r.height;
+          const x = (event.clientX - r.left) * sx,
+            y = (event.clientY - r.top) * sy;
+          let best: (typeof pins.current)[number] | undefined,
+            near = 9 * sx;
+          for (const d of pins.current) {
+            const dd = Math.hypot(d.x - x, d.y - y);
+            if (dd < near) {
+              near = dd;
+              best = d;
+            }
+          }
+          setPin(best ? { x: best.x / sx, y: best.y / sy, text: best.text } : undefined);
+        }}
+        onMouseLeave={() => setPin(undefined)}
+      />
+      {pin && (
+        <span className="map-pin" style={{ left: pin.x, top: pin.y }}>
+          {pin.text}
+        </span>
+      )}
+    </span>
   );
 }

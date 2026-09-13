@@ -37,6 +37,7 @@ import { findPath } from "./pathfinding";
 import { itineraryAt, type Itinerary } from "./itinerary";
 import { route, type RouteResult } from "./routing";
 import { terrainJump, terrainLeap, type LeapResult } from "./topography";
+import { advanceFauna } from "./fauna-sim";
 
 /** Elevation carried by one altitude step, matching the terrain renderer. */
 const TERRAIN_STEP = 14;
@@ -1045,6 +1046,64 @@ export class Engine {
           );
         this.state.objects.push(next);
       }
+    if (this.world.fauna) {
+      this.state.fauna ??= [];
+      const known = new Set(this.state.fauna.map((g) => g.id));
+      for (const g of this.world.fauna(p.x, p.y))
+        if (!known.has(g.id)) {
+          known.add(g.id);
+          this.state.fauna.push(copy(g));
+        }
+    }
+  }
+  /** One six-second step for the animal groups near the player. Their pace
+   * is their own: a wolf outruns a person, a sheep does not keep up. */
+  private stepFauna(clock: number) {
+    const groups = this.state.fauna;
+    if (!groups?.length) return;
+    const player = this.state.player;
+    const focus =
+      player.pos.space === "outside"
+        ? player.pos
+        : {
+            ...(this.world.place(player.pos.space)?.entrance ?? player.pos),
+            space: "outside",
+          };
+    const near = groups.filter(
+      (g) =>
+        Math.abs(g.pos.x - focus.x) <= 80 && Math.abs(g.pos.y - focus.y) <= 80,
+    );
+    if (!near.length) return;
+    const humans = [
+      player.pos,
+      ...this.state.actors
+        .filter(
+          (a) =>
+            a.kind === "human" &&
+            a.pos.space === "outside" &&
+            Math.abs(a.pos.x - focus.x) <= 90 &&
+            Math.abs(a.pos.y - focus.y) <= 90,
+        )
+        .map((a) => a.pos),
+    ];
+    advanceFauna(
+      near,
+      {
+        blocked: (x, y) => this.blocked(x, y, "outside"),
+        canCross: this.world.canCross
+          ? (from, to) => this.world.canCross!(from, to)
+          : undefined,
+        topography: this.world.topography
+          ? (x, y) => this.world.topography!(x, y)
+          : undefined,
+        occupied: (x, y) => this.actorAt({ x, y, space: "outside" }, ""),
+        gateOpen: (id) => !!this.object(id)?.open,
+        humans,
+        rng: (purpose) => this.rng(purpose),
+        hour: (clock / 3600) % 24,
+      },
+      clock,
+    );
   }
   /** The traversal a move resolved to, for the renderer to animate. Cleared
    * once read, so a walked step never inherits the previous jump's arc. */
@@ -1802,9 +1861,17 @@ export class Engine {
                 const animals = this.state.actors.filter(
                   (b) => b.owner === a.id && b.kind !== "human",
                 );
+                const herds = (this.state.fauna ?? []).filter(
+                  (g) => g.owner === a.id,
+                );
                 if (
                   resting &&
-                  animals.every((b) => distance(b.pos, b.home) < 2)
+                  animals.every((b) => distance(b.pos, b.home) < 2) &&
+                  herds.every((g) =>
+                    g.members.every(
+                      (m) => Math.hypot(m.x - g.home.x, m.y - g.home.y) < 3.5,
+                    ),
+                  )
                 )
                   gate.open = false;
               }
@@ -1886,6 +1953,7 @@ export class Engine {
           this.stepToward(a, { ...a.pos, x: a.pos.x + dx, y: a.pos.y + dy });
         }
       }
+      this.stepFauna(next);
     }
     this.tickObstacles = undefined;
     this.gatesAt = undefined;

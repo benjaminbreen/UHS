@@ -1,6 +1,8 @@
 import type { BeliefSystem } from "../types";
+import { secondTempleJewishCore, sunniIslamicCore } from "../kits/abrahamic";
+import { applyBeliefKits } from "../kits/apply";
 
-export const westAsia: readonly BeliefSystem[] = [
+const westAsiaBase: readonly BeliefSystem[] = [
   {
     id: "west-asia-foragers",
     label: "Foraging communities of West Asia and North Africa",
@@ -2170,3 +2172,9 @@ export const westAsia: readonly BeliefSystem[] = [
     },
   },
 ];
+
+export const westAsia = applyBeliefKits(westAsiaBase, {
+  "second-temple-judaism": { powers: secondTempleJewishCore },
+  "early-islamic": { powers: sunniIslamicCore },
+  "medieval-sunni-islam": { powers: sunniIslamicCore },
+});

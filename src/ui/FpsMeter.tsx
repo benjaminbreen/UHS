@@ -8,7 +8,7 @@ type Sample = {
   install: string;
 };
 
-/** Frame timing readout for render work, toggled with Cmd/Ctrl + `. */
+/** Frame timing readout for the live render-tuning panel. */
 export function FpsMeter() {
   const [sample, setSample] = useState<Sample>({
     fps: 0,

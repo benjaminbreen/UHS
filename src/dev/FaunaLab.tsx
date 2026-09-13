@@ -158,12 +158,18 @@ export function FaunaLab() {
     sampleGroup: {
       id: "study-group",
       speciesId: profile.id,
-      memberCount: members,
+      members: group.map((m, i) => ({
+        x: Math.round(m.x / 8),
+        y: Math.round(m.y / 8),
+        direction: i % 2 ? 3 : 1,
+      })),
       pos: { x: 0, y: 0, space: "outside" },
       home: { x: 0, y: 0, space: "outside" },
       homeRadius: profile.cohesionRadius * 3,
       state,
       nextDecisionAt: profile.calmDecisionSeconds,
+      stride: 0,
+      since: 0,
     },
   };
 

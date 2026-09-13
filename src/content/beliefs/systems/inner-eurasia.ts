@@ -1,4 +1,9 @@
 import type { BeliefSystem } from "../types";
+import {
+  orthodoxTrinity,
+  russianOrthodoxHolyFigures,
+  russianOrthodoxPatronOptions,
+} from "../kits/christian";
 
 export const innerEurasia: readonly BeliefSystem[] = [
   {
@@ -973,72 +978,35 @@ export const innerEurasia: readonly BeliefSystem[] = [
   },
   {
     id: "siberian-russian-hybrid",
-    label: "Russian colonial-era Siberian hybrid practice",
-    wiki: "https://en.wikipedia.org/wiki/Dvoeverie",
-    scope: { years: [1600, 1900], bounds: [60, 48, 180, 80] },
-    powers: [
-      {
-        name: "God",
-        domain: "the Orthodox Christian divine",
-        rank: "paramount",
-      },
-      {
-        name: "Saint Nicholas",
-        wiki: "https://en.wikipedia.org/wiki/Saint_Nicholas",
-        domain: "travelers, protection, the harvest",
-        rank: "major",
-        relations: [{ kind: "serves", of: "God" }],
-      },
-      {
-        name: "Saint George",
-        wiki: "https://en.wikipedia.org/wiki/Saint_George",
-        domain: "herds, warriors, protection of cattle",
-        rank: "major",
-        relations: [{ kind: "serves", of: "God" }],
-      },
-      {
-        name: "The spirits of the land",
-        domain: "the taiga, rivers, mountains",
-        rank: "major",
-      },
-      {
-        name: "The ancestors",
-        domain: "the settlement, guidance",
-        rank: "local",
-      },
-      {
-        name: "Bayanai",
-        domain: "bears, game, the wild",
-        rank: "local",
-      },
-      {
-        name: "Domovoi",
-        wiki: "https://en.wikipedia.org/wiki/Domovoi",
-        domain: "the hearth, luck, protection",
-        rank: "local",
-      },
-    ],
+    label: "Russian Orthodox Christianity in Siberia",
+    wiki: "https://en.wikipedia.org/wiki/Russian_Orthodox_Church",
+    scope: {
+      years: [1600, 1900],
+      cultures: ["european"],
+      bounds: [60, 48, 180, 80],
+    },
+    powers: [...orthodoxTrinity, ...russianOrthodoxHolyFigures],
+    patronOptions: russianOrthodoxPatronOptions,
     practice: [
-      "A church and an icon corner mark a settlement; Orthodox rituals frame the calendar.",
-      "Offerings are still left in the forest for Bayanai.",
-      "A shaman may be consulted quietly despite Orthodox prohibition.",
-      "A bowl of milk is left out for the Domovoi so the house stays lucky.",
+      "The Divine Liturgy, baptisms, marriages, and burials order communal life.",
+      "Icons of Christ, the Theotokos, and the saints stand in the household icon corner.",
+      "Fasts and feasts shape the year; a person's name saint receives particular devotion.",
+      "The dead are remembered in prayer and at annual commemorations.",
     ],
     specialist:
-      "The Orthodox priest; the elder or shaman continues in unofficial practice.",
-    afterlife:
-      "Orthodox heaven and hell compete with older beliefs in the spirit world.",
+      "The Orthodox parish priest; monks and bishops serve wider areas.",
+    afterlife: "Resurrection, judgement, and the life of the world to come.",
     evidence: {
       status: "documented",
       claim:
-        "Russian colonial records, nineteenth-century ethnographers, and Soviet-era anthropology document the coexistence and tension between Orthodox Christianity, its folk saints, and indigenous Siberian spirit-masters such as Bayanai and the household Domovoi, under the dual-faith pattern Russian folklorists call dvoeverie.",
+        "Church and colonial records document Russian Orthodox parishes, monasteries, icons, sacraments, feast days, and saint veneration across Russian settlements in Siberia.",
       sources: [
         "Slezkine, Arctic Mirrors",
         "Ivanits, Russian Folk Belief",
         "Anderson, Living in the Land of Hunger",
       ],
       limitation:
-        "Orthodox authorities emphasized conversion; actual practice was syncretic and varied widely by region and community.",
+        "This is the Orthodox profile, not a claim that every Siberian community was Russian or Christian. Indigenous traditions and mixed practices require their own community-scoped profiles.",
     },
   },
   {

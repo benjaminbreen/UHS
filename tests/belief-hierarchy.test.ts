@@ -45,18 +45,44 @@ const belief: PersonalBelief = {
 };
 
 describe("belief hierarchy", () => {
-  it("keeps central powers above their dependants", () => {
+  it("uses authored ranks and order rather than promoting a patron", () => {
     const hierarchy = beliefHierarchy(belief);
     expect(
       hierarchy.nodes
         .filter((node) => node.tier === "primary")
         .map((node) => node.power.name),
-    ).toEqual(["Amun-Ra", "Osiris"]);
+    ).toEqual(["Amun-Ra"]);
     expect(
       hierarchy.nodes
         .filter((node) => node.tier === "secondary")
         .map((node) => node.power.name),
-    ).toEqual(["Isis", "Hathor"]);
+    ).toEqual(["Osiris", "Isis", "Hathor"]);
+  });
+
+  it("shows no more than three foundational and five important figures", () => {
+    const powers: Power[] = [
+      ...Array.from({ length: 4 }, (_, index) => ({
+        name: `Foundation ${index}`,
+        domain: "the foundation",
+        rank: "paramount" as const,
+      })),
+      ...Array.from({ length: 7 }, (_, index) => ({
+        name: `Figure ${index}`,
+        domain: "an important concern",
+        rank: "major" as const,
+      })),
+    ];
+    const hierarchy = beliefHierarchy({
+      ...belief,
+      system: { ...belief.system, powers },
+    });
+    expect(
+      hierarchy.nodes.filter((node) => node.tier === "primary"),
+    ).toHaveLength(3);
+    expect(
+      hierarchy.nodes.filter((node) => node.tier === "secondary"),
+    ).toHaveLength(5);
+    expect(hierarchy.hidden).toBe(3);
   });
 
   it("draws only real relations as exact orthogonal paths", () => {

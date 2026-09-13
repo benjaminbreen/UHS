@@ -64,7 +64,12 @@ import { WorldSetup } from "./WorldSetup";
 import { AtlasMap } from "./AtlasMap";
 import { toAtlas, fromAtlas } from "../world/geography/coordinates";
 import { Sprite, Minimap, timeLabel } from "./components";
-import { FpsMeter } from "./FpsMeter";
+import { LiveGraphicsPanel } from "../dev/LiveGraphicsPanel";
+import {
+  defaultLiveGraphicsSettings,
+  type LiveGraphicsSettings,
+} from "../render/live-graphics";
+import type { FaunaState } from "../core/fauna";
 const CharacterLab = lazy(() =>
   import("../dev/CharacterLab").then((m) => ({ default: m.CharacterLab })),
 );
@@ -105,7 +110,13 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
     setModal("character");
   };
   const [narratorOpen, setNarratorOpen] = useState(false);
-  const [fps, setFps] = useState(false);
+  const [graphicsOpen, setGraphicsOpen] = useState(false);
+  const [liveGraphics, setLiveGraphics] = useState<LiveGraphicsSettings>(
+    () => ({
+      ...defaultLiveGraphicsSettings,
+    }),
+  );
+  const liveGraphicsRef = useRef(liveGraphics);
   const [narratorBusy, setNarratorBusy] = useState(false);
   const [narratorError, setNarratorError] = useState("");
   const commandForm = useRef<HTMLFormElement>(null);
@@ -153,6 +164,8 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
   const game = useRef<Phaser.Game | undefined>(undefined);
   useEffect(() => {
     if (!mount.current) return;
+    const scene = new WorldScene(runtime);
+    scene.applyLiveGraphics(liveGraphicsRef.current);
     const g = new Phaser.Game({
       type: Phaser.AUTO,
       parent: mount.current,
@@ -165,7 +178,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
         width: mount.current.clientWidth,
         height: mount.current.clientHeight,
       },
-      scene: new WorldScene(runtime),
+      scene,
       audio: { noAudio: true },
       banner: false,
     });
@@ -174,6 +187,19 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
       g.destroy(true);
     };
   }, [runtime]);
+  const updateLiveGraphics = (patch: Partial<LiveGraphicsSettings>) => {
+    const next = { ...liveGraphicsRef.current, ...patch };
+    liveGraphicsRef.current = next;
+    setLiveGraphics(next);
+    const scene = game.current?.scene.getScene("world") as
+      | WorldScene
+      | undefined;
+    scene?.applyLiveGraphics(next);
+  };
+  const resetLiveGraphics = () => {
+    updateLiveGraphics(defaultLiveGraphicsSettings);
+    runtime.setZoom(2);
+  };
   useEffect(() => {
     if (selection && window.innerWidth <= 640) {
       setSidebar(true);
@@ -275,7 +301,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
     const listener = (e: KeyboardEvent) => {
       if (e.code !== "Backquote" || !(e.metaKey || e.ctrlKey)) return;
       e.preventDefault();
-      setFps((on) => !on);
+      if (!e.repeat) setGraphicsOpen((open) => !open);
     };
     window.addEventListener("keydown", listener);
     return () => window.removeEventListener("keydown", listener);
@@ -426,7 +452,30 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
             aria-label="Playable historical world. WASD or arrows to walk, Shift to run, Space to jump or pick up and drop items. Hold Space for a long jump."
             tabIndex={0}
           />
-          {fps && <FpsMeter />}
+          {graphicsOpen && (
+            <LiveGraphicsPanel
+              settings={liveGraphics}
+              zoom={view.zoom}
+              onChange={updateLiveGraphics}
+              onZoom={(zoom) => runtime.setZoom(zoom)}
+              onClose={() => setGraphicsOpen(false)}
+              onReset={resetLiveGraphics}
+              onAddAnimal={(species, state: FaunaState, count) =>
+                (
+                  game.current?.scene.getScene("world") as
+                    | WorldScene
+                    | undefined
+                )?.addTestFauna(species, state, count) ?? 0
+              }
+              onClearAnimals={() =>
+                (
+                  game.current?.scene.getScene("world") as
+                    | WorldScene
+                    | undefined
+                )?.clearTestFauna()
+              }
+            />
+          )}
           <div className="prop-prompts" data-testid="prop-prompts">
             {obs.manifest.content === 1 && (
               <span>

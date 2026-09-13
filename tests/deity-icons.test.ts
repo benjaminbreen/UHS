@@ -1,4 +1,4 @@
-import { readdirSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { beliefSystems } from "../src/content/beliefs";
 import { deityIconFor } from "../src/content/beliefs/deity-icons";
@@ -21,17 +21,14 @@ describe("named deity icons", () => {
     expect(deityIconFor("The hearth fire")).toBeUndefined();
   });
 
-  it("keeps every shipped portrait connected to a scoped power", () => {
-    const files = readdirSync(
-      new URL("../public/beliefs/deities/v1/icons", import.meta.url),
-    ).filter((file) => file.endsWith(".png"));
-    const used = new Set(
-      beliefSystems
-        .flatMap((system) => system.powers)
-        .map((power) => deityIconFor(power.name)?.split("/").at(-1))
-        .filter((file): file is string => Boolean(file)),
-    );
-
-    expect(files.filter((file) => !used.has(file))).toEqual([]);
+  it("backs every scoped portrait with a shipped icon", () => {
+    for (const power of beliefSystems.flatMap((system) => system.powers)) {
+      const icon = deityIconFor(power.name);
+      if (!icon) continue;
+      expect(
+        existsSync(new URL(`../public${icon}`, import.meta.url)),
+        power.name,
+      ).toBe(true);
+    }
   });
 });

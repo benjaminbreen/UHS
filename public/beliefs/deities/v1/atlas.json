@@ -4,7 +4,7 @@
   "atlas": {
     "file": "atlas.png",
     "columns": 8,
-    "rows": 24
+    "rows": 25
   },
   "palette": [
     "#081223",
@@ -3285,6 +3285,84 @@
       "atlas": {
         "x": 448,
         "y": 1472,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "god-the-father",
+      "label": "God the Father",
+      "file": "icons/god-the-father.png",
+      "extractedFile": "extracted/god-the-father.png",
+      "sourceFile": "sources/foundational/god-the-father.png",
+      "atlas": {
+        "x": 0,
+        "y": 1536,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "jesus-christ",
+      "label": "Jesus Christ",
+      "file": "icons/jesus-christ.png",
+      "extractedFile": "extracted/jesus-christ.png",
+      "sourceFile": "sources/foundational/jesus-christ.png",
+      "atlas": {
+        "x": 64,
+        "y": 1536,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "holy-spirit",
+      "label": "The Holy Spirit",
+      "file": "icons/holy-spirit.png",
+      "extractedFile": "extracted/holy-spirit.png",
+      "sourceFile": "sources/foundational/holy-spirit.png",
+      "atlas": {
+        "x": 128,
+        "y": 1536,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "allah",
+      "label": "Allah",
+      "file": "icons/allah.png",
+      "extractedFile": "extracted/allah.png",
+      "sourceFile": "sources/foundational/allah.png",
+      "atlas": {
+        "x": 192,
+        "y": 1536,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "yhwh",
+      "label": "YHWH",
+      "file": "icons/yhwh.png",
+      "extractedFile": "extracted/yhwh.png",
+      "sourceFile": "sources/foundational/yhwh.png",
+      "atlas": {
+        "x": 256,
+        "y": 1536,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "tian-heaven",
+      "label": "Tian / Heaven",
+      "file": "icons/tian-heaven.png",
+      "extractedFile": "extracted/tian-heaven.png",
+      "sourceFile": "sources/foundational/tian-heaven.png",
+      "atlas": {
+        "x": 320,
+        "y": 1536,
         "width": 64,
         "height": 64
       }

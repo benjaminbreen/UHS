@@ -1,3 +1,25 @@
+## Live renderer tuning and test animals — September 13, 2026
+
+Command/Ctrl+Backquote now opens a compact panel over the playable world for direct pixel-rendering comparisons. It changes camera pixel rounding, nearest/linear texture filtering, browser canvas sampling, arbitrary 0.05-step zoom, zoom duration/easing, camera-follow smoothing and the existing frame meter live. Reset restores the shipped rendering defaults and 2× zoom. Normal stepped zoom now eases over 130 ms without removing any of the thirteen zoom stops. These controls are presentation state only and do not enter saves or simulation hashes.
+
+The same panel can place one to twelve examples of any authored fauna species and animation state around the player. Test animals use the playable fauna atlas, direction, lighting, depth and frame cycle, but remain scene-local: they are not simulated or saved, cannot be selected as real animals, clear on map replacement, and can be removed independently. Validation: typecheck and the focused live-browser check pass, including shortcut toggling, live renderer attributes, an in-progress and completed eased zoom, animal placement/clearing and reset. `artifacts/live-graphics-panel.png` was visually reviewed. No commit or deployment.
+
+## Ten recognizable belief cores and foundational icons — September 12, 2026
+
+Ten high-value traditions now use compact authored kits: Russian Orthodoxy, Roman civic religion, Latin Catholicism, Sunni Islam, Puranic Hinduism, Song–Ming Chinese religious life, Theravada Buddhism, Pure Land Mahayana, Second Temple Judaism and Classical Greek religion. Each representative profile has no more than three foundational powers and five important figures. The same flat kits can update closely related dated profiles without regenerating worlds or creating a culture-by-era content matrix; regional figures remain only where they add real personal texture.
+
+Six new foundational emblems—God the Father, Jesus Christ, the Holy Spirit, Allah, YHWH and Tian/Heaven—were generated in the approved carved pixel-relic style and processed through the existing transparent 64×64, 16-color deity pipeline. The Allah, YHWH and Tian images are non-anthropomorphic; the first two contain no sacred lettering. The v1 deity set now contains 198 icons, with generated sources preserved under `public/beliefs/deities/v1/sources/foundational/`.
+
+Validation: production build passes. A focused test locks the recognizable foundational order and 3+5 cap for all ten traditions, verifies foundational figure icons, and retains structural checks for every relationship in all belief systems.
+
+## Simpler authored belief hierarchy — September 12, 2026
+
+Belief panels now show at most three foundational figures and five important figures in authored order. Personal devotion no longer promotes a random non-paramount power into the top row; it is assigned only from an explicit system list. Observance variation no longer treats personality openness as evidence against religiosity. The panel uses plain foundational/important language, and belief resolution can use the actor's authored community as well as place and date.
+
+Russian Orthodoxy is the reference cleanup. Russian and Russian-Siberian profiles reuse one flat kit: God the Father, Jesus Christ the Son and the Holy Spirit above the Theotokos, Nicholas, Peter and Paul, George and Michael. Bayanai, generic ancestors, land spirits and the Domovoi are no longer presented as part of every Siberian Orthodox character's religion; existing Indigenous belief profiles remain separate. European-culture Siberian starts prefer the Orthodox profile, while Indigenous contexts can continue to resolve their own regional content.
+
+Validation: 18 focused belief/hierarchy/officiant tests passed across all 214 systems; the Russian Orthodox browser check confirms the exact 3+5 display in the Ural Mountains at 1750. The general character-panel browser check and production build pass. `artifacts/character-panel-orthodox.png` was visually reviewed. The pre-change shared worktree, including Fauna Lab B-set work, was committed and pushed as `50d469d`; these belief changes are not yet committed.
+
 ## Fauna small-sprite art revision — September 12, 2026
 
 Replaced the initial fauna art with 248 compact frames, simplifying the detailed intermediate pass in response to the user's Stardew-like sprite-sheet reference. Native canvases preserve relative size: sparrow 16×16, dove 18×18, chicken 20×20, sheep 32×32, wolf 40×32 and deer 40×40. A shared 2× lineup makes proportions directly comparable. Six-color palettes have no enclosing outlines. Eight-frame cycles include articulated gaits, pecks, wingbeats, grazing, resting and small ear/eye gestures. No world placement or simulation behavior changed.

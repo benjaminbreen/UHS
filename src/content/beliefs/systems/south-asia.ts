@@ -1,10 +1,13 @@
 import type { BeliefSystem } from "../types";
+import { applyBeliefKits } from "../kits/apply";
+import { theravadaTripleGem } from "../kits/buddhist";
+import { puranicHinduCore, puranicHinduDevotionOptions } from "../kits/hindu";
 
 /** South Asian belief systems from the Indus Valley through the colonial era.
  * Coverage emphasizes the local powers actually addressed by villagers: the
  * household dead, the village goddess, the field spirit, the sacred tree.
  */
-export const southAsia: readonly BeliefSystem[] = [
+const southAsiaBase: readonly BeliefSystem[] = [
   {
     id: "prehistoric-foragers",
     label: "Prehistoric forager practice",
@@ -1556,3 +1559,32 @@ export const southAsia: readonly BeliefSystem[] = [
     },
   },
 ];
+
+export const southAsia = applyBeliefKits(southAsiaBase, {
+  "gupta-puranic": {
+    powers: puranicHinduCore,
+    patronOptions: puranicHinduDevotionOptions,
+  },
+  "theravada-sri-lanka": {
+    powers: [
+      ...theravadaTripleGem,
+      {
+        name: "The Bodhi tree and relics",
+        domain: "the Buddha's tangible presence",
+        rank: "major",
+      },
+      {
+        name: "Vishnu",
+        domain: "guardian of Sri Lanka and the Dhamma",
+        rank: "major",
+      },
+      { name: "Kataragama", domain: "guardianship and healing", rank: "major" },
+      {
+        name: "Pattini",
+        domain: "healing and protection from disease",
+        rank: "major",
+      },
+      { name: "Saman", domain: "guardian of Sri Pada", rank: "major" },
+    ],
+  },
+});

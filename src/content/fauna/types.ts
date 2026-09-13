@@ -1,4 +1,5 @@
 import type { FaunaState } from "../../core/fauna";
+import type { CharacterScope } from "../characters/context-types";
 import studies from "../../../public/fauna/studies.json" with { type: "json" };
 
 export type HabitatTag =
@@ -30,6 +31,17 @@ export type FaunaProfile = {
   activity: "diurnal" | "nocturnal" | "crepuscular" | "flexible";
   groupSize: readonly [minimum: number, maximum: number];
   habitats: readonly { tag: HabitatTag; weight: number }[];
+  /** Where and when the species occurs. No match means absent, never a
+   * neighbour's animal standing in. */
+  presence: readonly CharacterScope[];
+  /** What a society must do before a kept species appears with it. */
+  needs?: "herding" | "settled";
+  /** Expected groups per 64-cell block where every cell is ideal habitat. */
+  density: number;
+  /** Cells per six-second step at a walk; a person walks one. */
+  pace: number;
+  /** Scrambles a terrace step the way a person can. Others need a slope. */
+  climbs?: boolean;
   settlementTolerance: number;
   minimumSettlementDistance: number;
   alertRadius: number;
