@@ -192,7 +192,13 @@ export type Livelihood = {
    * honey finder and in Amazonia a brazil-nut gatherer, and calling both of
    * them "Gatherer" wastes the one thing the game knows about where they are.
    */
-  labels?: readonly { scope: CharacterScope; label: string; weight?: number }[];
+  labels?: readonly {
+    scope: CharacterScope;
+    /** What the country supports: a rabbit hunter wants somewhere rabbits are. */
+    ecologies?: readonly Ecology[];
+    label: string;
+    weight?: number;
+  }[];
   /**
    * Work whose title comes from whatever people here believe, rather than
    * being one label everywhere: an officiant of the local belief system, named

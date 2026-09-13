@@ -67,7 +67,9 @@ describe("contextual character generation", () => {
     );
 
     expect(player.name).toBe("Martha Custis");
-    expect(player.role).toBe(npc.role);
+    // Same work, not the same words for it: what a farmer is called is drawn
+    // per person, so two of them in one village grow different crops.
+    expect(player.origin.livelihood).toBe(npc.origin.livelihood);
     expect(player.appearance).not.toEqual(undefined);
     expect(npc.appearance).not.toEqual(undefined);
 

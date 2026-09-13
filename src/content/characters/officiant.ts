@@ -96,8 +96,11 @@ export function localLabel(
   seed: string,
   id: string,
 ): string {
-  const fits = [...(l.labels ?? []), ...(localLabels[l.id] ?? [])].filter((v) =>
-    matchesCharacterScope(v.scope, s, "*"),
+  const ecology = s.environment?.ecology;
+  const fits = [...(l.labels ?? []), ...(localLabels[l.id] ?? [])].filter(
+    (v) =>
+      matchesCharacterScope(v.scope, s, "*") &&
+      (!v.ecologies || (ecology && v.ecologies.includes(ecology))),
   );
   if (!fits.length) return l.label;
   const total = fits.reduce((n, v) => n + (v.weight ?? 1), 0);

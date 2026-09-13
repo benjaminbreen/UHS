@@ -253,10 +253,11 @@ for (const r of roles.values())
 writeFileSync(
   "src/content/characters/livelihood-labels.generated.ts",
   header +
-    `import type { CharacterScope } from "./context-types";\n\n` +
+    `import type { CharacterScope } from "./context-types";\n` +
+    `import type { Ecology } from "../ecology/profiles";\n\n` +
     `/** What a piece of work is called in a given place and century. */\n` +
     `export const localLabels: Readonly<\n` +
-    `  Record<string, readonly { scope: CharacterScope; label: string; weight?: number }[]>\n` +
+    `  Record<string, readonly { scope: CharacterScope; ecologies?: readonly Ecology[]; label: string; weight?: number }[]>\n` +
     `> = {\n` +
     Object.entries(LABELS)
       .filter(([id]) => !id.startsWith("_"))
@@ -266,7 +267,9 @@ writeFileSync(
           (vs as any[])
             .map(
               (v) =>
-                `    { scope: ${JSON.stringify(v.scope)}, label: ${JSON.stringify(v.label)}` +
+                `    { scope: ${JSON.stringify(v.scope)}` +
+                (v.ecologies ? `, ecologies: ${JSON.stringify(v.ecologies)}` : "") +
+                `, label: ${JSON.stringify(v.label)}` +
                 (v.weight ? `, weight: ${v.weight}` : "") +
                 ` },`,
             )
@@ -301,13 +304,16 @@ writeFileSync(
         (sc?.workplace ? `    workplace: ${JSON.stringify(sc.workplace)},\n` : "") +
         (sc?.fromBeliefs ? `    fromBeliefs: true,\n` : "") +
         (sc?.standing ? `    standing: ${JSON.stringify(sc.standing)},\n` : "") +
+        (sc?.needs ? `    needs: ${JSON.stringify(sc.needs)},\n` : "") +
         ((vs: any[] | undefined) =>
           vs?.length
             ? `    labels: [\n` +
               vs
                 .map(
                   (v) =>
-                    `      { scope: ${JSON.stringify(v.scope)}, label: ${JSON.stringify(v.label)}` +
+                    `      { scope: ${JSON.stringify(v.scope)}` +
+                (v.ecologies ? `, ecologies: ${JSON.stringify(v.ecologies)}` : "") +
+                `, label: ${JSON.stringify(v.label)}` +
                     (v.weight ? `, weight: ${v.weight}` : "") +
                     ` },`,
                 )
