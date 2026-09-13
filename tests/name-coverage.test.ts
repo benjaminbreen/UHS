@@ -91,6 +91,26 @@ describe("naming atlas", () => {
     expect(flat.length).toBeLessThanOrEqual(7);
   });
 
+  it("does not hand out a hereditary surname before there were any", () => {
+    // A pool that carries surnames applies them to everyone, so Ostrogothic
+    // Italy came out as Helga Koch and an Inuit hunter in 2000 BCE got a
+    // surname invented in 1970.
+    const byId = new Map(nameTraditions.map((t) => [t.id, t]));
+    for (const r of nameRegions)
+      for (const w of r.windows)
+        for (const o of w.options) {
+          const t = byId.get(o.tradition);
+          if (!t?.familyNames.length || t.noFamilyName > 0.1) continue;
+          const start = Math.max(w.years[0], t.era[0]);
+          expect(
+            t.familyNamesFrom === undefined || t.familyNamesFrom <= start
+              ? true
+              : start < t.familyNamesFrom,
+            `${t.id} in ${r.id}`,
+          ).toBe(true);
+        }
+  });
+
   it("keeps every pool usable", () => {
     // Weeding left some pools very thin; they are the authoring backlog.
     // A pool that empties would silently stop appearing anywhere.

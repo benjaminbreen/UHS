@@ -131,6 +131,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [400, 1350],
+    familyNamesFrom: 1100,
     sources: [],
   },
   {
@@ -142,6 +143,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [500, 1550],
+    familyNamesFrom: 1200,
     sources: [],
   },
   {
@@ -164,6 +166,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [500, 1550],
+    familyNamesFrom: 1250,
     sources: [],
   },
   {
@@ -175,6 +178,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [-3000, 10001],
+    familyNamesFrom: 1300,
     sources: [],
   },
   {
@@ -208,6 +212,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [900, 10001],
+    familyNamesFrom: 1780,
     sources: [],
   },
   {
@@ -307,6 +312,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [800, 10001],
+    familyNamesFrom: 1800,
     sources: [],
   },
   {
@@ -318,6 +324,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [-3200, 100],
+    familyNamesFrom: 10001,
     sources: ["https://cdli.ucla.edu/"],
   },
   {
@@ -329,6 +336,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [1900, 10001],
+    familyNamesFrom: 1900,
     sources: ["https://doi.org/10.1163/1573-3912_ei3_COM_23904"],
     note: "Given names and family names in general use across Lebanon, Syria and Palestine, drawn from both Christian and Muslim naming stocks. Family names are occupational or descriptive in origin and became hereditary under Ottoman and Mandate registration.",
   },
@@ -341,6 +349,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [1900, 10001],
+    familyNamesFrom: 1900,
     sources: [],
   },
   {
@@ -352,6 +361,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [100, 10001],
+    familyNamesFrom: 1900,
     sources: [],
   },
   {
@@ -363,6 +373,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [-800, 700],
+    familyNamesFrom: 1930,
     sources: [],
   },
   {
@@ -385,6 +396,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [-400, 10001],
+    familyNamesFrom: 10001,
     sources: [],
   },
   {
@@ -407,6 +419,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [800, 10001],
+    familyNamesFrom: 1900,
     sources: [],
   },
   {
@@ -418,6 +431,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 1,
     format: "personal",
     era: [-2000, 1400],
+    familyNamesFrom: 1900,
     sources: [],
   },
   {
@@ -429,6 +443,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [-1500, 650],
+    familyNamesFrom: 10001,
     sources: [],
   },
   {
@@ -440,6 +455,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [-500, 1000],
+    familyNamesFrom: 10001,
     sources: [],
   },
   {
@@ -451,6 +467,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 1,
     format: "personal",
     era: [1300, 10001],
+    familyNamesFrom: 10001,
     sources: [],
   },
   {
@@ -462,6 +479,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [700, 10001],
+    familyNamesFrom: 1919,
     sources: [],
   },
   {
@@ -473,6 +491,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [-3000, 10001],
+    familyNamesFrom: 1400,
     sources: [],
   },
   {
@@ -484,6 +503,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [-3000, 10001],
+    familyNamesFrom: 1200,
     sources: [],
   },
   {
@@ -629,6 +649,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [-3000, 10001],
+    familyNamesFrom: 1200,
     sources: [],
   },
   {
@@ -651,6 +672,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [-3000, 10001],
+    familyNamesFrom: 1200,
     sources: [],
   },
   {
@@ -695,6 +717,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [-3000, 10001],
+    familyNamesFrom: 1200,
     sources: [],
   },
   {
@@ -706,6 +729,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [-3000, 10001],
+    familyNamesFrom: 1300,
     sources: [],
   },
   {
@@ -716,7 +740,8 @@ export const nameTraditions: readonly NameTradition[] = [
     familyNames: ["Müller","Schmidt","Schneider","Fischer","Weber","Meyer","Wagner","Becker","Schulz","Hoffmann","Schäfer","Koch","Bauer","Richter","Klein","Wolf","Schröder","Neumann","Schwarz","Zimmermann","Braun","Krüger","Hofmann","Hartmann","Lange","Schmitt","Werner","Schmitz","Krause","Meier"],
     noFamilyName: 0,
     format: "personal-family",
-    era: [-3000, 10001],
+    era: [1500, 10001],
+    familyNamesFrom: 1400,
     sources: [],
   },
   {
@@ -728,6 +753,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [900, 10001],
+    familyNamesFrom: 1500,
     sources: [],
   },
   {
@@ -739,6 +765,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [-3000, 10001],
+    familyNamesFrom: 1300,
     sources: [],
   },
   {
@@ -761,6 +788,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [400, 10001],
+    familyNamesFrom: 1000,
     sources: [],
   },
   {
@@ -772,6 +800,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [400, 10001],
+    familyNamesFrom: 1550,
     sources: [],
   },
   {
@@ -783,6 +812,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [400, 10001],
+    familyNamesFrom: 1300,
     sources: [],
   },
   {
@@ -794,6 +824,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [-3000, 10001],
+    familyNamesFrom: 1400,
     sources: [],
   },
   {
@@ -805,6 +836,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [1700, 10001],
+    familyNamesFrom: 1800,
     sources: [],
   },
   {
@@ -816,6 +848,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [330, 1500],
+    familyNamesFrom: 900,
     sources: [],
   },
   {
@@ -827,6 +860,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [500, 1500],
+    familyNamesFrom: 1400,
     sources: [],
   },
   {
@@ -838,6 +872,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "family-personal",
     era: [500, 10001],
+    familyNamesFrom: 1400,
     sources: [],
   },
   {
@@ -849,6 +884,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [500, 10001],
+    familyNamesFrom: 1400,
     sources: [],
   },
   {
@@ -860,6 +896,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [1700, 10001],
+    familyNamesFrom: 1400,
     sources: [],
   },
   {
@@ -871,6 +908,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [1700, 10001],
+    familyNamesFrom: 1400,
     sources: [],
   },
   {
@@ -882,6 +920,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [1700, 10001],
+    familyNamesFrom: 1400,
     sources: [],
   },
   {
@@ -915,6 +954,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [-3000, 10001],
+    familyNamesFrom: 1400,
     sources: [],
   },
   {
@@ -926,6 +966,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [-500, 10001],
+    familyNamesFrom: 1100,
     sources: [],
   },
   {
@@ -937,6 +978,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [-300, 10001],
+    familyNamesFrom: 1100,
     sources: [],
   },
   {
@@ -981,6 +1023,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "family-personal",
     era: [-300, 950],
+    familyNamesFrom: -100,
     sources: [],
   },
   {
@@ -1003,6 +1046,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "family-personal",
     era: [-3000, 10001],
+    familyNamesFrom: 1920,
     sources: [],
   },
   {
@@ -1014,6 +1058,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [600, 10001],
+    familyNamesFrom: 10001,
     sources: [],
   },
   {
@@ -1025,6 +1070,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [700, 10001],
+    familyNamesFrom: 1920,
     sources: [],
   },
   {
@@ -1036,6 +1082,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [600, 10001],
+    familyNamesFrom: 1900,
     sources: [],
   },
   {
@@ -1047,6 +1094,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [900, 10001],
+    familyNamesFrom: 1919,
     sources: [],
   },
   {
@@ -1058,6 +1106,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [1300, 10001],
+    familyNamesFrom: 1934,
     sources: [],
   },
   {
@@ -1069,6 +1118,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [-1200, 10001],
+    familyNamesFrom: 1780,
     sources: [],
   },
   {
@@ -1080,6 +1130,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 1,
     format: "personal",
     era: [-2000, 10001],
+    familyNamesFrom: 1900,
     sources: [],
   },
   {
@@ -1091,6 +1142,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [750, 1500],
+    familyNamesFrom: 900,
     sources: [],
   },
   {
@@ -1102,6 +1154,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [-1500, 1200],
+    familyNamesFrom: 10001,
     sources: [],
   },
   {
@@ -1113,6 +1166,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [1800, 10001],
+    familyNamesFrom: 1900,
     sources: [],
   },
   {
@@ -1124,6 +1178,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [600, 10001],
+    familyNamesFrom: 1500,
     sources: [],
   },
   {
@@ -1135,6 +1190,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [1800, 10001],
+    familyNamesFrom: 1800,
     sources: [],
   },
   {
@@ -1146,6 +1202,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [1200, 10001],
+    familyNamesFrom: 1800,
     sources: [],
   },
   {
@@ -1168,6 +1225,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [-300, 10001],
+    familyNamesFrom: 1900,
     sources: [],
   },
   {
@@ -1179,6 +1237,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [1000, 10001],
+    familyNamesFrom: 1800,
     sources: [],
   },
   {
@@ -1190,6 +1249,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [1700, 10001],
+    familyNamesFrom: 1900,
     sources: [],
   },
   {
@@ -1201,6 +1261,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [1900, 10001],
+    familyNamesFrom: 1900,
     sources: [],
   },
   {
@@ -1212,6 +1273,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [300, 10001],
+    familyNamesFrom: 10001,
     sources: [],
   },
   {
@@ -1223,6 +1285,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [1900, 10001],
+    familyNamesFrom: 1900,
     sources: [],
   },
   {
@@ -1256,6 +1319,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [700, 10001],
+    familyNamesFrom: 10001,
     sources: [],
   },
   {
@@ -1267,6 +1331,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [-500, 10001],
+    familyNamesFrom: 1900,
     sources: [],
   },
   {
@@ -1278,6 +1343,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [-200, 10001],
+    familyNamesFrom: 1500,
     sources: [],
   },
   {
@@ -1289,6 +1355,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [300, 10001],
+    familyNamesFrom: 1900,
     sources: [],
   },
   {
@@ -1300,6 +1367,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [1900, 10001],
+    familyNamesFrom: 1900,
     sources: [],
   },
   {
@@ -1311,6 +1379,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [1900, 10001],
+    familyNamesFrom: 1900,
     sources: [],
   },
   {
@@ -1322,6 +1391,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [1900, 10001],
+    familyNamesFrom: 1900,
     sources: [],
   },
   {
@@ -1399,6 +1469,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [700, 10001],
+    familyNamesFrom: 1900,
     sources: [],
   },
   {
@@ -1410,6 +1481,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [700, 10001],
+    familyNamesFrom: 1900,
     sources: [],
   },
   {
@@ -1421,6 +1493,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [700, 10001],
+    familyNamesFrom: 1900,
     sources: [],
   },
   {
@@ -1432,6 +1505,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "family-personal",
     era: [-200, 10001],
+    familyNamesFrom: -200,
     sources: [],
   },
   {
@@ -1443,6 +1517,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [1913, 10001],
+    familyNamesFrom: 1913,
     sources: [],
   },
   {
@@ -1454,6 +1529,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [800, 10001],
+    familyNamesFrom: 10001,
     sources: [],
   },
   {
@@ -1465,6 +1541,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [1863, 10001],
+    familyNamesFrom: 1910,
     sources: [],
   },
   {
@@ -1476,6 +1553,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [400, 10001],
+    familyNamesFrom: 1900,
     sources: ["https://sealang.net/oldjava/"],
   },
   {
@@ -1487,6 +1565,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [1900, 10001],
+    familyNamesFrom: 1900,
     sources: [],
   },
   {
@@ -1509,6 +1588,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [1945, 10001],
+    familyNamesFrom: 1900,
     sources: [],
   },
   {
@@ -1520,6 +1600,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [1565, 10001],
+    familyNamesFrom: 1849,
     sources: [],
   },
   {
@@ -1531,6 +1612,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "family-personal",
     era: [1700, 10001],
+    familyNamesFrom: 1400,
     sources: [],
   },
   {
@@ -1542,6 +1624,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [-3000, 10001],
+    familyNamesFrom: 1500,
     sources: [],
   },
   {
@@ -1553,6 +1636,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [-3000, 10001],
+    familyNamesFrom: 1400,
     sources: [],
   },
   {
@@ -1564,6 +1648,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [-3000, 10001],
+    familyNamesFrom: 1400,
     sources: [],
   },
   {
@@ -1575,6 +1660,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [-3000, 10001],
+    familyNamesFrom: 1400,
     sources: [],
   },
   {
@@ -1586,6 +1672,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [1450, 10001],
+    familyNamesFrom: 1920,
     sources: [],
   },
   {
@@ -1597,6 +1684,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [1450, 10001],
+    familyNamesFrom: 1920,
     sources: [],
   },
   {
@@ -1608,6 +1696,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [1450, 10001],
+    familyNamesFrom: 1920,
     sources: [],
   },
   {
@@ -1619,6 +1708,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [1450, 10001],
+    familyNamesFrom: 1920,
     sources: [],
   },
   {
@@ -1796,6 +1886,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [1000, 10001],
+    familyNamesFrom: 1830,
     sources: [],
   },
   {
@@ -1807,6 +1898,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 1,
     format: "personal",
     era: [1100, 10001],
+    familyNamesFrom: 1850,
     sources: [],
   },
   {
@@ -1818,6 +1910,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 1,
     format: "personal",
     era: [1000, 1840],
+    familyNamesFrom: 1850,
     sources: ["https://glottolog.org/resource/languoid/id/cree1270","https://doi.org/10.2307/1264364"],
     note: "Forms built to Muskogean sound patterns. A Creek person's public name was usually a war title earned in adulthood, attached to their town and matrilineal clan — Hopothle, Yahola, Tustunnuggee are ranks rather than names, and are not used here. These are constructed shapes, not words from Mvskoke.",
   },
@@ -1830,6 +1923,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [-1000, 10001],
+    familyNamesFrom: 1850,
     sources: [],
   },
   {
@@ -1863,6 +1957,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [-2000, 10001],
+    familyNamesFrom: 1970,
     sources: [],
   },
   {
@@ -1874,6 +1969,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [1500, 10001],
+    familyNamesFrom: 1890,
     sources: [],
   },
   {
@@ -1885,6 +1981,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [1400, 10001],
+    familyNamesFrom: 1930,
     sources: [],
   },
   {
@@ -1896,6 +1993,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 1,
     format: "personal-patronymic",
     era: [874, 10001],
+    familyNamesFrom: 10001,
     patronymic: {"parents":["Bjarnar","Eiríks","Magnúsar","Ólafs","Ragnars","Sigurðar","Gunnars","Haralds","Leifs","Njáls","Egils","Snorra","Ketils","Orms","Þórðar","Ara","Einars","Gríms","Jóns","Kjartans"],"male":"son","female":"dóttir"},
     sources: ["https://island.is/en/name-giving/icelandic-naming-convention-surnames","https://www.sagadb.org/"],
     note: "Icelanders carry no hereditary surname. A person is named for a parent — Jónsson or Jónsdóttir — so the second element changes with each generation and differs between a brother and a sister.",
@@ -1909,6 +2007,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "personal-family",
     era: [500, 10001],
+    familyNamesFrom: 1900,
     sources: [],
   },
   {
@@ -1920,6 +2019,7 @@ export const nameTraditions: readonly NameTradition[] = [
     noFamilyName: 0,
     format: "family-personal",
     era: [1100, 10001],
+    familyNamesFrom: 1920,
     sources: ["https://www.degruyterbrill.com/document/doi/10.1515/9783110819724/html"],
   },
   {
@@ -2174,5 +2274,29 @@ export const nameTraditions: readonly NameTradition[] = [
     era: [-1000, 1600],
     sources: ["https://doi.org/10.1017/S0022463400001004","https://nationalmuseum.gov.ph/"],
     note: "Names from the Laguna Copperplate Inscription of 900 — the earliest document in the islands, which names ordinary people settling a debt — with further forms built to Tagalog and Visayan sound patterns. What survives otherwise is almost entirely the names of datus recorded by Spanish chroniclers, so building only from that would give every villager a chief's name. Filipino surnames date from the Claveria decree of 1849 and are not used.",
+  },
+  {
+    id: "germanic-successor-kingdoms",
+    label: "Germanic successor kingdoms",
+    masculine: ["Theoderic","Athalaric","Theodahad","Witigis","Totila","Alaric","Athaulf","Wallia","Theudis","Leovigild","Reccared","Alboin","Authari","Agilulf","Rothari","Grimoald","Liutprand","Aistulf","Ratchis","Gundobad","Gunderic","Huneric","Thrasamund","Gelimer","Odoacer","Ermanaric","Sigimund","Amalric","Hildebad","Theudebert","Gundhari","Ariovald","Berthar","Wulfstan","Randwald","Munderic"],
+    feminine: ["Amalasuintha","Matasuntha","Amalafrida","Amalaberga","Theudelinda","Gundeperga","Rodelinda","Ansa","Gisulfa","Brunhild","Galswintha","Ragnahild","Austrigusa","Ostrogotho","Erelieva","Gudeliva","Hildegund","Theudegotha","Amalberga","Sigilinda","Gundrada","Berthrada"],
+    familyNames: [],
+    noFamilyName: 1,
+    format: "personal",
+    era: [200, 900],
+    sources: ["https://doi.org/10.1017/CHOL9780521362917","https://www.degruyterbrill.com/document/doi/10.1515/9783110242157/html"],
+    note: "Names from the Gothic, Lombard, Vandal and Burgundian kingdoms that followed Rome in the west, with further forms built from the same elements — theud- people, amal- the Gothic royal line, hild- battle, gund- war, sig- victory. Only elite names survive from these centuries, so the pool leans on rulers and their households; nobody carried a hereditary surname.",
+  },
+  {
+    id: "german-medieval",
+    label: "Medieval German",
+    masculine: ["Heinrich","Konrad","Otto","Friedrich","Ludwig","Albrecht","Dietrich","Hermann","Gottfried","Wilhelm","Berthold","Eberhard","Siegfried","Walther","Rudolf","Arnold","Gebhard","Adalbert","Lothar","Wolfram","Ulrich","Reinhard","Hartmann","Kuno"],
+    feminine: ["Hildegard","Kunigunde","Adelheid","Mechthild","Gertrud","Irmgard","Bertha","Gisela","Hedwig","Richardis","Beatrix","Agnes","Judith","Uta","Sophia","Elisabeth","Margarethe","Klara","Adelgunde","Walburga","Hadwig","Irmentrud"],
+    familyNames: [],
+    noFamilyName: 1,
+    format: "personal",
+    era: [900, 1500],
+    sources: ["https://doi.org/10.1017/CHOL9780521362917"],
+    note: "Given names from German charters and chronicles between the Carolingians and the Reformation. Ordinary people were distinguished by a byname — a trade, a place, a father — that only hardened into a hereditary surname from the fourteenth century, and later still in the countryside.",
   },
 ];

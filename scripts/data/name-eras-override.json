@@ -1,24 +1,85 @@
 {
   "_comment": "UHS corrections to the vendored HPG era table. HPG dates when a PEOPLE existed; several of its pools are modern name lists carrying that early floor, so a c.1900 census sample was reaching the seventeenth century. These dates are when the name FORMS IN THE POOL are attested — usually the date hereditary surnames became general, since that is what most of these pools contain. Lowering a floor here needs a reason in the note.",
   "eras": {
-    "AFRICAN_AMERICAN": { "from": 1865, "why": "Pool is a c.1900 US census sample. Hereditary surnames became general after emancipation, not on arrival in 1619." },
-    "SCANDINAVIAN": { "from": 1700, "why": "Modern Swedish given names with frozen -sson surnames. Hereditary surname law is 19th century; 1700 is already generous. Viking-age Scandinavia needs its own tradition." },
-    "JAPANESE": { "from": 1875, "why": "Tanaka, Suzuki, Watanabe are koseki surnames. Commoner surnames became universal with the 1875 registration law." },
-    "THAI": { "from": 1913, "why": "Thai surnames date from the 1913 Surname Act; the pool carries them." },
-    "KHMER": { "from": 1863, "why": "Modern Khmer given names with Sino-Cambodian surnames. Angkorian onomastics are a separate, attested corpus." },
-    "MALAY": { "from": 1900, "why": "Modern pool; nothing in it is distinctively pre-colonial." },
-    "TURKIC_STEPPE": { "from": 1300, "why": "Osman, Orhan, Bayezid, Hurrem, Kosem are Seljuk-Ottoman, 13th-17th century. The pre-Mongol steppe needs Old Turkic." },
-    "SIBERIAN_INDIGENOUS": { "from": 1650, "why": "Given names are Sakha and Buryat; the surnames are Imperial Russian and follow the conquest." },
-    "MICRONESIAN": { "from": 1900, "why": "The masculine list is twentieth-century presidents and the surnames are the same men." },
-    "ZULU": { "from": 1900, "why": "Pool is late twentieth century. The Zulu polity itself dates from the 1810s." },
-    "XHOSA": { "from": 1900, "why": "Surnames are twentieth-century political figures." },
-    "SHONA": { "from": 1900, "why": "Given names are Christian-era sentence names." },
-    "SOTHO_TSWANA": { "from": 1900, "why": "Modern pool." },
-    "SWAHILI_INTERIOR": { "from": 1900, "why": "Surnames are twentieth-century Kikuyu and Kalenjin, several of them athletes." },
-    "MAGHREBI": { "from": 1900, "why": "Surnames are living footballers." },
-    "LEVANTINE": { "from": 1900, "why": "Twentieth-century Lebanese political surnames; Charbel postdates 1898." },
-    "BENGALI_TRADITIONAL": { "from": 1800, "why": "Masculine list is bhadralok, feminine list is film actresses." },
-    "DRAVIDIAN": { "from": 1800, "why": "Modern given names with caste-title surnames across four languages." },
-    "WEST_AFRICAN_SAHEL": { "from": 1200, "why": "Sundiata, Samori and the Mansa/Askia titles are thirteenth century and later." }
+    "AFRICAN_AMERICAN": {
+      "from": 1865,
+      "why": "Pool is a c.1900 US census sample. Hereditary surnames became general after emancipation, not on arrival in 1619."
+    },
+    "SCANDINAVIAN": {
+      "from": 1700,
+      "why": "Modern Swedish given names with frozen -sson surnames. Hereditary surname law is 19th century; 1700 is already generous. Viking-age Scandinavia needs its own tradition."
+    },
+    "JAPANESE": {
+      "from": 1875,
+      "why": "Tanaka, Suzuki, Watanabe are koseki surnames. Commoner surnames became universal with the 1875 registration law."
+    },
+    "THAI": {
+      "from": 1913,
+      "why": "Thai surnames date from the 1913 Surname Act; the pool carries them."
+    },
+    "KHMER": {
+      "from": 1863,
+      "why": "Modern Khmer given names with Sino-Cambodian surnames. Angkorian onomastics are a separate, attested corpus."
+    },
+    "MALAY": {
+      "from": 1900,
+      "why": "Modern pool; nothing in it is distinctively pre-colonial."
+    },
+    "TURKIC_STEPPE": {
+      "from": 1300,
+      "why": "Osman, Orhan, Bayezid, Hurrem, Kosem are Seljuk-Ottoman, 13th-17th century. The pre-Mongol steppe needs Old Turkic."
+    },
+    "SIBERIAN_INDIGENOUS": {
+      "from": 1650,
+      "why": "Given names are Sakha and Buryat; the surnames are Imperial Russian and follow the conquest."
+    },
+    "MICRONESIAN": {
+      "from": 1900,
+      "why": "The masculine list is twentieth-century presidents and the surnames are the same men."
+    },
+    "ZULU": {
+      "from": 1900,
+      "why": "Pool is late twentieth century. The Zulu polity itself dates from the 1810s."
+    },
+    "XHOSA": {
+      "from": 1900,
+      "why": "Surnames are twentieth-century political figures."
+    },
+    "SHONA": {
+      "from": 1900,
+      "why": "Given names are Christian-era sentence names."
+    },
+    "SOTHO_TSWANA": {
+      "from": 1900,
+      "why": "Modern pool."
+    },
+    "SWAHILI_INTERIOR": {
+      "from": 1900,
+      "why": "Surnames are twentieth-century Kikuyu and Kalenjin, several of them athletes."
+    },
+    "MAGHREBI": {
+      "from": 1900,
+      "why": "Surnames are living footballers."
+    },
+    "LEVANTINE": {
+      "from": 1900,
+      "why": "Twentieth-century Lebanese political surnames; Charbel postdates 1898."
+    },
+    "BENGALI_TRADITIONAL": {
+      "from": 1800,
+      "why": "Masculine list is bhadralok, feminine list is film actresses."
+    },
+    "DRAVIDIAN": {
+      "from": 1800,
+      "why": "Modern given names with caste-title surnames across four languages."
+    },
+    "WEST_AFRICAN_SAHEL": {
+      "from": 1200,
+      "why": "Sundiata, Samori and the Mansa/Askia titles are thirteenth century and later."
+    },
+    "GERMAN": {
+      "from": 1500,
+      "why": "The pool is modern: Helga and Koch, Muller and Schmidt, with a hereditary surname on everyone. It was standing in for the Ostrogoths in Italy, the Visigoths in Iberia and the migration-period Rhine."
+    }
   }
 }

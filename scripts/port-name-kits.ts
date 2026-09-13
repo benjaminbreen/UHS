@@ -57,6 +57,11 @@ const WINDOW_OVERRIDES: Record<
   { replace?: any[]; add?: any[] }
 > = JSON.parse(readFileSync("scripts/data/name-windows.json", "utf8")).regions;
 
+/** When a hereditary family name became ordinary; see name-surnames.json. */
+const SURNAMES: Record<string, number> = JSON.parse(
+  readFileSync("scripts/data/name-surnames.json", "utf8"),
+).from;
+
 /** Citations are authored in UHS; the upstream name sets carry none. */
 const SOURCES: Record<string, string[]> = JSON.parse(
   readFileSync("scripts/data/name-sources.json", "utf8"),
@@ -116,6 +121,7 @@ type Tradition = {
   noFamilyName: number;
   format: string;
   era: [number, number];
+  familyNamesFrom?: number;
   reconstructed: boolean;
   sources?: string[];
   note?: string;
@@ -166,6 +172,7 @@ for (const [key, set] of Object.entries(CHARACTER_NAMES) as [string, any][]) {
       clampYear(nameSetEarliestYear(key)),
       clampYear(nameSetLatestYear(key)),
     ],
+    familyNamesFrom: SURNAMES[slug(key)],
     reconstructed: RECONSTRUCTED.test(key),
   });
 }
@@ -189,6 +196,7 @@ for (const [id, t] of Object.entries(AUTHORED)) {
     reconstructed: false,
     sources: t.sources,
     note: t.note,
+    familyNamesFrom: t.familyNamesFrom ?? SURNAMES[id],
     patronymic: t.patronymic,
   });
 }
@@ -401,6 +409,9 @@ writeFileSync(
           `    familyNames: ${list(t.familyNames)},\n    noFamilyName: ${t.noFamilyName},\n` +
           `    format: ${JSON.stringify(t.format)},\n` +
           `    era: [${t.era[0]}, ${t.era[1]}],\n` +
+          (t.familyNamesFrom !== undefined
+            ? `    familyNamesFrom: ${t.familyNamesFrom},\n`
+            : "") +
           (t.patronymic
             ? `    patronymic: ${JSON.stringify(t.patronymic)},\n`
             : "") +

@@ -82,6 +82,14 @@ export type NameTradition = {
    * out names from one end of it.
    */
   era: readonly [number, number];
+  /**
+   * When a hereditary family name became ordinary in this tradition. Before
+   * it, people carried a personal name and at most a byname, so a pool with
+   * surnames in it would otherwise put a fourteenth-century invention on a
+   * sixth-century villager. Absent where family names are as old as the
+   * tradition, which is the case for Chinese, Korean and Roman naming.
+   */
+  familyNamesFrom?: number;
   sources: readonly string[];
   note?: string;
 };

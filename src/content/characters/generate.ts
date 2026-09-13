@@ -95,9 +95,15 @@ export function characterNameParts(
       };
     }
     const inherited = inheritedFamilies?.[0];
+    // A hereditary family name is an invention with a date, and most of these
+    // pools carry one for a period long before their people did.
+    const surnamed =
+      tradition.familyNamesFrom === undefined ||
+      s.year >= tradition.familyNamesFrom;
     const family =
       inherited ??
-      (tradition.familyNames.length &&
+      (surnamed &&
+      tradition.familyNames.length &&
       random(seed, "character-v1", id, "has-family-name") >=
         tradition.noFamilyName
         ? pick(tradition.familyNames, seed, id, "family-name")

@@ -507,6 +507,189 @@
           ]
         }
       ]
+    },
+    "european-italy": {
+      "why": "Ostrogothic and Lombard Italy was running on modern German names with modern German surnames.",
+      "add": [
+        {
+          "years": [
+            476,
+            774
+          ],
+          "options": [
+            {
+              "tradition": "byzantine",
+              "weight": 6
+            },
+            {
+              "tradition": "germanic-successor-kingdoms",
+              "weight": 4
+            }
+          ]
+        }
+      ]
+    },
+    "european-iberian-peninsula": {
+      "why": "Visigothic Iberia likewise.",
+      "add": [
+        {
+          "years": [
+            410,
+            711
+          ],
+          "options": [
+            {
+              "tradition": "ancient-roman",
+              "weight": 5
+            },
+            {
+              "tradition": "germanic-successor-kingdoms",
+              "weight": 5
+            }
+          ]
+        }
+      ]
+    },
+    "european-galicia": {
+      "why": "Suebic and Visigothic Galicia likewise.",
+      "add": [
+        {
+          "years": [
+            410,
+            711
+          ],
+          "options": [
+            {
+              "tradition": "germanic-successor-kingdoms",
+              "weight": 1
+            }
+          ]
+        }
+      ]
+    },
+    "european-germanic-lands": {
+      "why": "The Rhine and the Elbe between Rome and the Carolingians, and the medieval German lands after them.",
+      "add": [
+        {
+          "years": [
+            200,
+            500
+          ],
+          "options": [
+            {
+              "tradition": "prehistoric-proto-germanic",
+              "weight": 4
+            },
+            {
+              "tradition": "germanic-successor-kingdoms",
+              "weight": 6
+            }
+          ]
+        },
+        {
+          "years": [
+            843,
+            1500
+          ],
+          "options": [
+            {
+              "tradition": "german-medieval",
+              "weight": 1
+            }
+          ]
+        }
+      ]
+    },
+    "european-central-europe": {
+      "why": "As the Germanic lands.",
+      "add": [
+        {
+          "years": [
+            500,
+            900
+          ],
+          "options": [
+            {
+              "tradition": "slavic-medieval",
+              "weight": 5
+            },
+            {
+              "tradition": "germanic-successor-kingdoms",
+              "weight": 3
+            },
+            {
+              "tradition": "frankish-carolingian",
+              "weight": 2
+            }
+          ]
+        },
+        {
+          "years": [
+            900,
+            1500
+          ],
+          "options": [
+            {
+              "tradition": "german-medieval",
+              "weight": 4
+            },
+            {
+              "tradition": "bohemian",
+              "weight": 3
+            },
+            {
+              "tradition": "polish-medieval",
+              "weight": 3
+            }
+          ]
+        }
+      ]
+    },
+    "european-low-countries": {
+      "why": "As the Germanic lands.",
+      "add": [
+        {
+          "years": [
+            843,
+            1500
+          ],
+          "options": [
+            {
+              "tradition": "dutch",
+              "weight": 4
+            },
+            {
+              "tradition": "german-medieval",
+              "weight": 3
+            },
+            {
+              "tradition": "french-medieval",
+              "weight": 3
+            }
+          ]
+        }
+      ]
+    },
+    "european-transylvania": {
+      "why": "Gothic and Gepid Transylvania, then the medieval kingdom.",
+      "add": [
+        {
+          "years": [
+            100,
+            900
+          ],
+          "options": [
+            {
+              "tradition": "slavic-medieval",
+              "weight": 5
+            },
+            {
+              "tradition": "germanic-successor-kingdoms",
+              "weight": 5
+            }
+          ]
+        }
+      ]
     }
   },
   "deepTime": {
