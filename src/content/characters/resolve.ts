@@ -328,6 +328,17 @@ function inScope(l: Livelihood, s: WorldSetting) {
   // data drew camel herders in Italy and reindeer herders on the steppe.
   const ecology = s.environment?.ecology;
   if (l.ecologies && (!ecology || !l.ecologies.includes(ecology))) return false;
+  // A trade that needs a certain number of customers. Settlement form is the
+  // only size the setting carries, so it stands in for a head count.
+  if (l.minPopulation) {
+    const size =
+      s.settlement === "city" || s.settlement === "port"
+        ? 2000
+        : s.settlement === "village"
+          ? 200
+          : 30;
+    if (size < l.minPopulation) return false;
+  }
   return true;
 }
 /**

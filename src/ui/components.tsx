@@ -1,10 +1,13 @@
 import nature from "../../public/nature/atlas.json" with { type: "json" };
+import fauna from "../../public/fauna/atlas.json" with { type: "json" };
 import ecology from "../../public/ecology/atlas.json" with { type: "json" };
 import props from "../render/generated/props.json" with { type: "json" };
 import atlas from "../render/generated/atlas.json" with { type: "json" };
 export function Sprite({ name, scale = 2 }: { name: string; scale?: number }) {
-  const source = name.startsWith("nature-")
-    ? nature
+  const source = name.startsWith("fauna-")
+    ? fauna
+    : name.startsWith("nature-")
+      ? nature
     : name.startsWith("ecology-")
       ? ecology
       : name.startsWith("study-prop-") || name.startsWith("prop-broken-")
@@ -26,7 +29,9 @@ export function Sprite({ name, scale = 2 }: { name: string; scale?: number }) {
         width: f.w * scale,
         height: f.h * scale,
         backgroundImage:
-          source === nature
+          source === fauna
+            ? "url(/fauna/atlas.png)"
+            : source === nature
             ? "url(/nature/atlas.png)"
             : source === ecology
               ? "url(/ecology/atlas.png)"

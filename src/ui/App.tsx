@@ -1420,6 +1420,18 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
                       ↗
                     </small>
                   </a>
+                  <a
+                    className="action settings-featured"
+                    href="/fauna-lab"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Fauna lab{" "}
+                    <small>
+                      Compare species, behavior states, flock spacing and flight
+                      ↗
+                    </small>
+                  </a>
                   <button
                     className="action"
                     onClick={() => {

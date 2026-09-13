@@ -1,3 +1,11 @@
+## Fauna Lab and behavior contracts — September 12, 2026
+
+Added an isolated `/fauna-lab` with 88 original native-pixel frames for house sparrow, rock dove, chicken, sheep, red deer and gray wolf. The lab compares every authored behavior state, animation, mirrored direction, native scale, group size/spacing, flight height, shadows and five backdrops; it exposes the selected flat profile/group JSON and exports individual transparent frames. Settings → Developer opens the lab in a separate tab. No playable-world placement, behavior, save or simulation version changed.
+
+Introduced a small serializable fauna-group contract and subject-owned bird, domestic and temperate-wildlife profiles. Profiles carry semantic habitat weights, settlement tolerance, social organization, activity period, group bounds, alert/cohesion/separation radii, calm/urgent decision cadence, diet, palette and art mapping. `npm run art:fauna` builds an independent 512×198 atlas with binary alpha, limited palettes, unclipped margins and stable anchors. The unlicensed third-party animal folder is not imported. See `FAUNA.md`.
+
+Validation: fauna profile/atlas tests, production build and the Fauna Lab browser check pass. Desktop flight and mobile captures were visually reviewed; the contact sheet is under `artifacts/fauna-lab/`. Unrelated deity and portrait work in the shared checkout was preserved; no commit or deployment.
+
 ## Three-quarter portrait renderers B and C — September 12, 2026
 
 The Portrait Lab now compares three renderers on the same recipe. B is a first three-quarter bust on a new canvas-free raster (`src/render/portraits/raster.ts`: polygon fill, spline silhouettes, dithered gradient shading, one-pixel material contours, cast shadows). C rebuilds the head from a proper three-quarter construction: feature midline at two thirds of the face width, profile nose overlapping the far cheek, foreshortened far eye, diagonal near jaw to an off-centre chin, one visible ear, hair weighted to the near side, and shoulders with bare or sleeved upper arms. Both honour every appearance field A does.

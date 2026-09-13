@@ -4,7 +4,7 @@
   "atlas": {
     "file": "atlas.png",
     "columns": 8,
-    "rows": 12
+    "rows": 24
   },
   "palette": [
     "#081223",
@@ -1653,6 +1653,1638 @@
       "atlas": {
         "x": 448,
         "y": 704,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "ashur",
+      "label": "Ashur",
+      "file": "icons/ashur.png",
+      "extractedFile": "extracted/ashur.png",
+      "sheet": 7,
+      "sourceCell": {
+        "row": 0,
+        "column": 0
+      },
+      "atlas": {
+        "x": 0,
+        "y": 768,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "anu",
+      "label": "Anu",
+      "file": "icons/anu.png",
+      "extractedFile": "extracted/anu.png",
+      "sheet": 7,
+      "sourceCell": {
+        "row": 0,
+        "column": 1
+      },
+      "atlas": {
+        "x": 64,
+        "y": 768,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "adad",
+      "label": "Adad",
+      "file": "icons/adad.png",
+      "extractedFile": "extracted/adad.png",
+      "sheet": 7,
+      "sourceCell": {
+        "row": 0,
+        "column": 2
+      },
+      "atlas": {
+        "x": 128,
+        "y": 768,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "ninhursag",
+      "label": "Ninhursag",
+      "file": "icons/ninhursag.png",
+      "extractedFile": "extracted/ninhursag.png",
+      "sheet": 7,
+      "sourceCell": {
+        "row": 0,
+        "column": 3
+      },
+      "atlas": {
+        "x": 192,
+        "y": 768,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "shamash",
+      "label": "Shamash",
+      "file": "icons/shamash.png",
+      "extractedFile": "extracted/shamash.png",
+      "sheet": 7,
+      "sourceCell": {
+        "row": 1,
+        "column": 0
+      },
+      "atlas": {
+        "x": 256,
+        "y": 768,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "el",
+      "label": "El",
+      "file": "icons/el.png",
+      "extractedFile": "extracted/el.png",
+      "sheet": 7,
+      "sourceCell": {
+        "row": 1,
+        "column": 1
+      },
+      "atlas": {
+        "x": 320,
+        "y": 768,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "anat",
+      "label": "Anat",
+      "file": "icons/anat.png",
+      "extractedFile": "extracted/anat.png",
+      "sheet": 7,
+      "sourceCell": {
+        "row": 1,
+        "column": 2
+      },
+      "atlas": {
+        "x": 384,
+        "y": 768,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "aphrodite-astarte",
+      "label": "Aphrodite-Astarte",
+      "file": "icons/aphrodite-astarte.png",
+      "extractedFile": "extracted/aphrodite-astarte.png",
+      "sheet": 7,
+      "sourceCell": {
+        "row": 1,
+        "column": 3
+      },
+      "atlas": {
+        "x": 448,
+        "y": 768,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "zeus-baal",
+      "label": "Zeus-Baal",
+      "file": "icons/zeus-baal.png",
+      "extractedFile": "extracted/zeus-baal.png",
+      "sheet": 7,
+      "sourceCell": {
+        "row": 2,
+        "column": 0
+      },
+      "atlas": {
+        "x": 0,
+        "y": 832,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "sraosha",
+      "label": "Sraosha",
+      "file": "icons/sraosha.png",
+      "extractedFile": "extracted/sraosha.png",
+      "sheet": 7,
+      "sourceCell": {
+        "row": 2,
+        "column": 1
+      },
+      "atlas": {
+        "x": 64,
+        "y": 832,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "atar",
+      "label": "Atar",
+      "file": "icons/atar.png",
+      "extractedFile": "extracted/atar.png",
+      "sheet": 7,
+      "sourceCell": {
+        "row": 2,
+        "column": 2
+      },
+      "atlas": {
+        "x": 128,
+        "y": 832,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "verethragna",
+      "label": "Verethragna",
+      "file": "icons/verethragna.png",
+      "extractedFile": "extracted/verethragna.png",
+      "sheet": 7,
+      "sourceCell": {
+        "row": 2,
+        "column": 3
+      },
+      "atlas": {
+        "x": 192,
+        "y": 832,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "amesha-spentas",
+      "label": "The Amesha Spentas",
+      "file": "icons/amesha-spentas.png",
+      "extractedFile": "extracted/amesha-spentas.png",
+      "sheet": 7,
+      "sourceCell": {
+        "row": 3,
+        "column": 0
+      },
+      "atlas": {
+        "x": 256,
+        "y": 832,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "al-lat",
+      "label": "Al-Lat",
+      "file": "icons/al-lat.png",
+      "extractedFile": "extracted/al-lat.png",
+      "sheet": 7,
+      "sourceCell": {
+        "row": 3,
+        "column": 1
+      },
+      "atlas": {
+        "x": 320,
+        "y": 832,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "al-uzza",
+      "label": "Al-Uzza",
+      "file": "icons/al-uzza.png",
+      "extractedFile": "extracted/al-uzza.png",
+      "sheet": 7,
+      "sourceCell": {
+        "row": 3,
+        "column": 2
+      },
+      "atlas": {
+        "x": 384,
+        "y": 832,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "manat",
+      "label": "Manat",
+      "file": "icons/manat.png",
+      "extractedFile": "extracted/manat.png",
+      "sheet": 7,
+      "sourceCell": {
+        "row": 3,
+        "column": 3
+      },
+      "atlas": {
+        "x": 448,
+        "y": 832,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "freyr",
+      "label": "Freyr",
+      "file": "icons/freyr.png",
+      "extractedFile": "extracted/freyr.png",
+      "sheet": 8,
+      "sourceCell": {
+        "row": 0,
+        "column": 0
+      },
+      "atlas": {
+        "x": 0,
+        "y": 896,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "tyr",
+      "label": "Tyr",
+      "file": "icons/tyr.png",
+      "extractedFile": "extracted/tyr.png",
+      "sheet": 8,
+      "sourceCell": {
+        "row": 0,
+        "column": 1
+      },
+      "atlas": {
+        "x": 64,
+        "y": 896,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "loki",
+      "label": "Loki",
+      "file": "icons/loki.png",
+      "extractedFile": "extracted/loki.png",
+      "sheet": 8,
+      "sourceCell": {
+        "row": 0,
+        "column": 2
+      },
+      "atlas": {
+        "x": 128,
+        "y": 896,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "veles",
+      "label": "Veles",
+      "file": "icons/veles.png",
+      "extractedFile": "extracted/veles.png",
+      "sheet": 8,
+      "sourceCell": {
+        "row": 0,
+        "column": 3
+      },
+      "atlas": {
+        "x": 192,
+        "y": 896,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "dazhbog",
+      "label": "Dazhbog",
+      "file": "icons/dazhbog.png",
+      "extractedFile": "extracted/dazhbog.png",
+      "sheet": 8,
+      "sourceCell": {
+        "row": 1,
+        "column": 0
+      },
+      "atlas": {
+        "x": 256,
+        "y": 896,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "toutatis",
+      "label": "Toutatis",
+      "file": "icons/toutatis.png",
+      "extractedFile": "extracted/toutatis.png",
+      "sheet": 8,
+      "sourceCell": {
+        "row": 1,
+        "column": 1
+      },
+      "atlas": {
+        "x": 320,
+        "y": 896,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "esus",
+      "label": "Esus",
+      "file": "icons/esus.png",
+      "extractedFile": "extracted/esus.png",
+      "sheet": 8,
+      "sourceCell": {
+        "row": 1,
+        "column": 2
+      },
+      "atlas": {
+        "x": 384,
+        "y": 896,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "belatucadros",
+      "label": "Belatucadros",
+      "file": "icons/belatucadros.png",
+      "extractedFile": "extracted/belatucadros.png",
+      "sheet": 8,
+      "sourceCell": {
+        "row": 1,
+        "column": 3
+      },
+      "atlas": {
+        "x": 448,
+        "y": 896,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "tabiti",
+      "label": "Tabiti",
+      "file": "icons/tabiti.png",
+      "extractedFile": "extracted/tabiti.png",
+      "sheet": 8,
+      "sourceCell": {
+        "row": 2,
+        "column": 0
+      },
+      "atlas": {
+        "x": 0,
+        "y": 960,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "thagimasadas",
+      "label": "Thagimasadas",
+      "file": "icons/thagimasadas.png",
+      "extractedFile": "extracted/thagimasadas.png",
+      "sheet": 8,
+      "sourceCell": {
+        "row": 2,
+        "column": 1
+      },
+      "atlas": {
+        "x": 64,
+        "y": 960,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "api",
+      "label": "Api",
+      "file": "icons/api.png",
+      "extractedFile": "extracted/api.png",
+      "sheet": 8,
+      "sourceCell": {
+        "row": 2,
+        "column": 2
+      },
+      "atlas": {
+        "x": 128,
+        "y": 960,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "papaios",
+      "label": "Papaios",
+      "file": "icons/papaios.png",
+      "extractedFile": "extracted/papaios.png",
+      "sheet": 8,
+      "sourceCell": {
+        "row": 2,
+        "column": 3
+      },
+      "atlas": {
+        "x": 192,
+        "y": 960,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "goitosyros",
+      "label": "Goitosyros",
+      "file": "icons/goitosyros.png",
+      "extractedFile": "extracted/goitosyros.png",
+      "sheet": 8,
+      "sourceCell": {
+        "row": 3,
+        "column": 0
+      },
+      "atlas": {
+        "x": 256,
+        "y": 960,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "argimpasa",
+      "label": "Argimpasa",
+      "file": "icons/argimpasa.png",
+      "extractedFile": "extracted/argimpasa.png",
+      "sheet": 8,
+      "sourceCell": {
+        "row": 3,
+        "column": 1
+      },
+      "atlas": {
+        "x": 320,
+        "y": 960,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "numi-torum",
+      "label": "Numi-Torum",
+      "file": "icons/numi-torum.png",
+      "extractedFile": "extracted/numi-torum.png",
+      "sheet": 8,
+      "sourceCell": {
+        "row": 3,
+        "column": 2
+      },
+      "atlas": {
+        "x": 384,
+        "y": 960,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "kaltash-ekwa",
+      "label": "Kaltash-Ekwa",
+      "file": "icons/kaltash-ekwa.png",
+      "extractedFile": "extracted/kaltash-ekwa.png",
+      "sheet": 8,
+      "sourceCell": {
+        "row": 3,
+        "column": 3
+      },
+      "atlas": {
+        "x": 448,
+        "y": 960,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "agni",
+      "label": "Agni",
+      "file": "icons/agni.png",
+      "extractedFile": "extracted/agni.png",
+      "sheet": 9,
+      "sourceCell": {
+        "row": 0,
+        "column": 0
+      },
+      "atlas": {
+        "x": 0,
+        "y": 1024,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "varuna",
+      "label": "Varuna",
+      "file": "icons/varuna.png",
+      "extractedFile": "extracted/varuna.png",
+      "sheet": 9,
+      "sourceCell": {
+        "row": 0,
+        "column": 1
+      },
+      "atlas": {
+        "x": 64,
+        "y": 1024,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "soma",
+      "label": "Soma",
+      "file": "icons/soma.png",
+      "extractedFile": "extracted/soma.png",
+      "sheet": 9,
+      "sourceCell": {
+        "row": 0,
+        "column": 2
+      },
+      "atlas": {
+        "x": 128,
+        "y": 1024,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "surya",
+      "label": "Surya",
+      "file": "icons/surya.png",
+      "extractedFile": "extracted/surya.png",
+      "sheet": 9,
+      "sourceCell": {
+        "row": 0,
+        "column": 3
+      },
+      "atlas": {
+        "x": 192,
+        "y": 1024,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "buddha",
+      "label": "The Buddha",
+      "file": "icons/buddha.png",
+      "extractedFile": "extracted/buddha.png",
+      "sheet": 9,
+      "sourceCell": {
+        "row": 1,
+        "column": 0
+      },
+      "atlas": {
+        "x": 256,
+        "y": 1024,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "three-jewels",
+      "label": "The Three Jewels",
+      "file": "icons/three-jewels.png",
+      "extractedFile": "extracted/three-jewels.png",
+      "sheet": 9,
+      "sourceCell": {
+        "row": 1,
+        "column": 1
+      },
+      "atlas": {
+        "x": 320,
+        "y": 1024,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "bodhisattvas",
+      "label": "Bodhisattvas",
+      "file": "icons/bodhisattvas.png",
+      "extractedFile": "extracted/bodhisattvas.png",
+      "sheet": 9,
+      "sourceCell": {
+        "row": 1,
+        "column": 2
+      },
+      "atlas": {
+        "x": 384,
+        "y": 1024,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "amida-buddha",
+      "label": "Amida Buddha",
+      "file": "icons/amida-buddha.png",
+      "extractedFile": "extracted/amida-buddha.png",
+      "sheet": 9,
+      "sourceCell": {
+        "row": 1,
+        "column": 3
+      },
+      "atlas": {
+        "x": 448,
+        "y": 1024,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "xiwangmu",
+      "label": "Xiwangmu",
+      "file": "icons/xiwangmu.png",
+      "extractedFile": "extracted/xiwangmu.png",
+      "sheet": 9,
+      "sourceCell": {
+        "row": 2,
+        "column": 0
+      },
+      "atlas": {
+        "x": 0,
+        "y": 1088,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "city-god",
+      "label": "City God",
+      "file": "icons/city-god.png",
+      "extractedFile": "extracted/city-god.png",
+      "sheet": 9,
+      "sourceCell": {
+        "row": 2,
+        "column": 1
+      },
+      "atlas": {
+        "x": 64,
+        "y": 1088,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "kitchen-god",
+      "label": "Kitchen God",
+      "file": "icons/kitchen-god.png",
+      "extractedFile": "extracted/kitchen-god.png",
+      "sheet": 9,
+      "sourceCell": {
+        "row": 2,
+        "column": 2
+      },
+      "atlas": {
+        "x": 128,
+        "y": 1088,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "tudigong",
+      "label": "Tudigong",
+      "file": "icons/tudigong.png",
+      "extractedFile": "extracted/tudigong.png",
+      "sheet": 9,
+      "sourceCell": {
+        "row": 2,
+        "column": 3
+      },
+      "atlas": {
+        "x": 192,
+        "y": 1088,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "devi-shakti",
+      "label": "Devi/Shakti",
+      "file": "icons/devi-shakti.png",
+      "extractedFile": "extracted/devi-shakti.png",
+      "sheet": 9,
+      "sourceCell": {
+        "row": 3,
+        "column": 0
+      },
+      "atlas": {
+        "x": 256,
+        "y": 1088,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "bhairava",
+      "label": "Bhairava",
+      "file": "icons/bhairava.png",
+      "extractedFile": "extracted/bhairava.png",
+      "sheet": 9,
+      "sourceCell": {
+        "row": 3,
+        "column": 1
+      },
+      "atlas": {
+        "x": 320,
+        "y": 1088,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "ganga",
+      "label": "Ganga",
+      "file": "icons/ganga.png",
+      "extractedFile": "extracted/ganga.png",
+      "sheet": 9,
+      "sourceCell": {
+        "row": 3,
+        "column": 2
+      },
+      "atlas": {
+        "x": 384,
+        "y": 1088,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "khandoba",
+      "label": "Khandoba",
+      "file": "icons/khandoba.png",
+      "extractedFile": "extracted/khandoba.png",
+      "sheet": 9,
+      "sourceCell": {
+        "row": 3,
+        "column": 3
+      },
+      "atlas": {
+        "x": 448,
+        "y": 1088,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "bathala",
+      "label": "Bathala",
+      "file": "icons/bathala.png",
+      "extractedFile": "extracted/bathala.png",
+      "sheet": 10,
+      "sourceCell": {
+        "row": 0,
+        "column": 0
+      },
+      "atlas": {
+        "x": 0,
+        "y": 1152,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "lakapati",
+      "label": "Lakapati",
+      "file": "icons/lakapati.png",
+      "extractedFile": "extracted/lakapati.png",
+      "sheet": 10,
+      "sourceCell": {
+        "row": 0,
+        "column": 1
+      },
+      "atlas": {
+        "x": 64,
+        "y": 1152,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "apolaki",
+      "label": "Apolaki",
+      "file": "icons/apolaki.png",
+      "extractedFile": "extracted/apolaki.png",
+      "sheet": 10,
+      "sourceCell": {
+        "row": 0,
+        "column": 2
+      },
+      "atlas": {
+        "x": 128,
+        "y": 1152,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "dewi-sri",
+      "label": "Dewi Sri",
+      "file": "icons/dewi-sri.png",
+      "extractedFile": "extracted/dewi-sri.png",
+      "sheet": 10,
+      "sourceCell": {
+        "row": 0,
+        "column": 3
+      },
+      "atlas": {
+        "x": 192,
+        "y": 1152,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "thagyamin",
+      "label": "Thagyamin",
+      "file": "icons/thagyamin.png",
+      "extractedFile": "extracted/thagyamin.png",
+      "sheet": 10,
+      "sourceCell": {
+        "row": 1,
+        "column": 0
+      },
+      "atlas": {
+        "x": 256,
+        "y": 1152,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "min-mahagiri",
+      "label": "Min Mahagiri",
+      "file": "icons/min-mahagiri.png",
+      "extractedFile": "extracted/min-mahagiri.png",
+      "sheet": 10,
+      "sourceCell": {
+        "row": 1,
+        "column": 1
+      },
+      "atlas": {
+        "x": 320,
+        "y": 1152,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "batara-guru",
+      "label": "Batara Guru",
+      "file": "icons/batara-guru.png",
+      "extractedFile": "extracted/batara-guru.png",
+      "sheet": 10,
+      "sourceCell": {
+        "row": 1,
+        "column": 2
+      },
+      "atlas": {
+        "x": 384,
+        "y": 1152,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "degei",
+      "label": "Degei",
+      "file": "icons/degei.png",
+      "extractedFile": "extracted/degei.png",
+      "sheet": 10,
+      "sourceCell": {
+        "row": 1,
+        "column": 3
+      },
+      "atlas": {
+        "x": 448,
+        "y": 1152,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "kane",
+      "label": "K\u0101ne",
+      "file": "icons/kane.png",
+      "extractedFile": "extracted/kane.png",
+      "sheet": 10,
+      "sourceCell": {
+        "row": 2,
+        "column": 0
+      },
+      "atlas": {
+        "x": 0,
+        "y": 1216,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "kanaloa",
+      "label": "Kanaloa",
+      "file": "icons/kanaloa.png",
+      "extractedFile": "extracted/kanaloa.png",
+      "sheet": 10,
+      "sourceCell": {
+        "row": 2,
+        "column": 1
+      },
+      "atlas": {
+        "x": 64,
+        "y": 1216,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "lono",
+      "label": "Lono",
+      "file": "icons/lono.png",
+      "extractedFile": "extracted/lono.png",
+      "sheet": 10,
+      "sourceCell": {
+        "row": 2,
+        "column": 2
+      },
+      "atlas": {
+        "x": 128,
+        "y": 1216,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "ku",
+      "label": "K\u016b",
+      "file": "icons/ku.png",
+      "extractedFile": "extracted/ku.png",
+      "sheet": 10,
+      "sourceCell": {
+        "row": 2,
+        "column": 3
+      },
+      "atlas": {
+        "x": 192,
+        "y": 1216,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "pele",
+      "label": "Pele",
+      "file": "icons/pele.png",
+      "extractedFile": "extracted/pele.png",
+      "sheet": 10,
+      "sourceCell": {
+        "row": 3,
+        "column": 0
+      },
+      "atlas": {
+        "x": 256,
+        "y": 1216,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "haumea",
+      "label": "Haumea",
+      "file": "icons/haumea.png",
+      "extractedFile": "extracted/haumea.png",
+      "sheet": 10,
+      "sourceCell": {
+        "row": 3,
+        "column": 1
+      },
+      "atlas": {
+        "x": 320,
+        "y": 1216,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "maui",
+      "label": "M\u0101ui",
+      "file": "icons/maui.png",
+      "extractedFile": "extracted/maui.png",
+      "sheet": 10,
+      "sourceCell": {
+        "row": 3,
+        "column": 2
+      },
+      "atlas": {
+        "x": 384,
+        "y": 1216,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "tagaloa",
+      "label": "Tagaloa",
+      "file": "icons/tagaloa.png",
+      "extractedFile": "extracted/tagaloa.png",
+      "sheet": 10,
+      "sourceCell": {
+        "row": 3,
+        "column": 3
+      },
+      "atlas": {
+        "x": 448,
+        "y": 1216,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "kaggen",
+      "label": "\u01c0Kaggen",
+      "file": "icons/kaggen.png",
+      "extractedFile": "extracted/kaggen.png",
+      "sheet": 11,
+      "sourceCell": {
+        "row": 0,
+        "column": 0
+      },
+      "atlas": {
+        "x": 0,
+        "y": 1280,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "leza",
+      "label": "Leza",
+      "file": "icons/leza.png",
+      "extractedFile": "extracted/leza.png",
+      "sheet": 11,
+      "sourceCell": {
+        "row": 0,
+        "column": 1
+      },
+      "atlas": {
+        "x": 64,
+        "y": 1280,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "mahrem",
+      "label": "Mahrem",
+      "file": "icons/mahrem.png",
+      "extractedFile": "extracted/mahrem.png",
+      "sheet": 11,
+      "sourceCell": {
+        "row": 0,
+        "column": 2
+      },
+      "atlas": {
+        "x": 128,
+        "y": 1280,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "astar",
+      "label": "Astar",
+      "file": "icons/astar.png",
+      "extractedFile": "extracted/astar.png",
+      "sheet": 11,
+      "sourceCell": {
+        "row": 0,
+        "column": 3
+      },
+      "atlas": {
+        "x": 192,
+        "y": 1280,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "mwari",
+      "label": "Mwari",
+      "file": "icons/mwari.png",
+      "extractedFile": "extracted/mwari.png",
+      "sheet": 11,
+      "sourceCell": {
+        "row": 1,
+        "column": 0
+      },
+      "atlas": {
+        "x": 256,
+        "y": 1280,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "nehanda",
+      "label": "Nehanda",
+      "file": "icons/nehanda.png",
+      "extractedFile": "extracted/nehanda.png",
+      "sheet": 11,
+      "sourceCell": {
+        "row": 1,
+        "column": 1
+      },
+      "atlas": {
+        "x": 320,
+        "y": 1280,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "unkulunkulu",
+      "label": "uNkulunkulu",
+      "file": "icons/unkulunkulu.png",
+      "extractedFile": "extracted/unkulunkulu.png",
+      "sheet": 11,
+      "sourceCell": {
+        "row": 1,
+        "column": 2
+      },
+      "atlas": {
+        "x": 384,
+        "y": 1280,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "umvelinqangi",
+      "label": "uMvelinqangi",
+      "file": "icons/umvelinqangi.png",
+      "extractedFile": "extracted/umvelinqangi.png",
+      "sheet": 11,
+      "sourceCell": {
+        "row": 1,
+        "column": 3
+      },
+      "atlas": {
+        "x": 448,
+        "y": 1280,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "chukwu",
+      "label": "Chukwu",
+      "file": "icons/chukwu.png",
+      "extractedFile": "extracted/chukwu.png",
+      "sheet": 11,
+      "sourceCell": {
+        "row": 2,
+        "column": 0
+      },
+      "atlas": {
+        "x": 0,
+        "y": 1344,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "ala",
+      "label": "Ala",
+      "file": "icons/ala.png",
+      "extractedFile": "extracted/ala.png",
+      "sheet": 11,
+      "sourceCell": {
+        "row": 2,
+        "column": 1
+      },
+      "atlas": {
+        "x": 64,
+        "y": 1344,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "asase-ya",
+      "label": "Asase Ya",
+      "file": "icons/asase-ya.png",
+      "extractedFile": "extracted/asase-ya.png",
+      "sheet": 11,
+      "sourceCell": {
+        "row": 2,
+        "column": 2
+      },
+      "atlas": {
+        "x": 128,
+        "y": 1344,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "amma",
+      "label": "Amma",
+      "file": "icons/amma.png",
+      "extractedFile": "extracted/amma.png",
+      "sheet": 11,
+      "sourceCell": {
+        "row": 2,
+        "column": 3
+      },
+      "atlas": {
+        "x": 192,
+        "y": 1344,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "nommo",
+      "label": "Nommo",
+      "file": "icons/nommo.png",
+      "extractedFile": "extracted/nommo.png",
+      "sheet": 11,
+      "sourceCell": {
+        "row": 3,
+        "column": 0
+      },
+      "atlas": {
+        "x": 256,
+        "y": 1344,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "mawu-lisa",
+      "label": "Mawu-Lisa",
+      "file": "icons/mawu-lisa.png",
+      "extractedFile": "extracted/mawu-lisa.png",
+      "sheet": 11,
+      "sourceCell": {
+        "row": 3,
+        "column": 1
+      },
+      "atlas": {
+        "x": 320,
+        "y": 1344,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "legba",
+      "label": "Legba",
+      "file": "icons/legba.png",
+      "extractedFile": "extracted/legba.png",
+      "sheet": 11,
+      "sourceCell": {
+        "row": 3,
+        "column": 2
+      },
+      "atlas": {
+        "x": 384,
+        "y": 1344,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "engai-narok",
+      "label": "Engai Narok",
+      "file": "icons/engai-narok.png",
+      "extractedFile": "extracted/engai-narok.png",
+      "sheet": 11,
+      "sourceCell": {
+        "row": 3,
+        "column": 3
+      },
+      "atlas": {
+        "x": 448,
+        "y": 1344,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "ai-apaec",
+      "label": "Ai Apaec",
+      "file": "icons/ai-apaec.png",
+      "extractedFile": "extracted/ai-apaec.png",
+      "sheet": 12,
+      "sourceCell": {
+        "row": 0,
+        "column": 0
+      },
+      "atlas": {
+        "x": 0,
+        "y": 1408,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "supay",
+      "label": "Supay",
+      "file": "icons/supay.png",
+      "extractedFile": "extracted/supay.png",
+      "sheet": 12,
+      "sourceCell": {
+        "row": 0,
+        "column": 1
+      },
+      "atlas": {
+        "x": 64,
+        "y": 1408,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "coyote",
+      "label": "Coyote",
+      "file": "icons/coyote.png",
+      "extractedFile": "extracted/coyote.png",
+      "sheet": 12,
+      "sourceCell": {
+        "row": 0,
+        "column": 2
+      },
+      "atlas": {
+        "x": 128,
+        "y": 1408,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "wisakedjak",
+      "label": "Wisakedjak",
+      "file": "icons/wisakedjak.png",
+      "extractedFile": "extracted/wisakedjak.png",
+      "sheet": 12,
+      "sourceCell": {
+        "row": 0,
+        "column": 3
+      },
+      "atlas": {
+        "x": 192,
+        "y": 1408,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "gluskap",
+      "label": "Gluskap",
+      "file": "icons/gluskap.png",
+      "extractedFile": "extracted/gluskap.png",
+      "sheet": 12,
+      "sourceCell": {
+        "row": 1,
+        "column": 0
+      },
+      "atlas": {
+        "x": 256,
+        "y": 1408,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "iyatiku",
+      "label": "Iyatiku",
+      "file": "icons/iyatiku.png",
+      "extractedFile": "extracted/iyatiku.png",
+      "sheet": 12,
+      "sourceCell": {
+        "row": 1,
+        "column": 1
+      },
+      "atlas": {
+        "x": 320,
+        "y": 1408,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "selu",
+      "label": "Selu",
+      "file": "icons/selu.png",
+      "extractedFile": "extracted/selu.png",
+      "sheet": 12,
+      "sourceCell": {
+        "row": 1,
+        "column": 2
+      },
+      "atlas": {
+        "x": 384,
+        "y": 1408,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "sky-woman",
+      "label": "Sky Woman",
+      "file": "icons/sky-woman.png",
+      "extractedFile": "extracted/sky-woman.png",
+      "sheet": 12,
+      "sourceCell": {
+        "row": 1,
+        "column": 3
+      },
+      "atlas": {
+        "x": 448,
+        "y": 1408,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "wakan-tanka",
+      "label": "Wakan Tanka",
+      "file": "icons/wakan-tanka.png",
+      "extractedFile": "extracted/wakan-tanka.png",
+      "sheet": 12,
+      "sourceCell": {
+        "row": 2,
+        "column": 0
+      },
+      "atlas": {
+        "x": 0,
+        "y": 1472,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "tupa",
+      "label": "Tup\u00e3",
+      "file": "icons/tupa.png",
+      "extractedFile": "extracted/tupa.png",
+      "sheet": 12,
+      "sourceCell": {
+        "row": 2,
+        "column": 1
+      },
+      "atlas": {
+        "x": 64,
+        "y": 1472,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "elal",
+      "label": "Elal",
+      "file": "icons/elal.png",
+      "extractedFile": "extracted/elal.png",
+      "sheet": 12,
+      "sourceCell": {
+        "row": 2,
+        "column": 2
+      },
+      "atlas": {
+        "x": 128,
+        "y": 1472,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "katsinas",
+      "label": "Katsinas",
+      "file": "icons/katsinas.png",
+      "extractedFile": "extracted/katsinas.png",
+      "sheet": 12,
+      "sourceCell": {
+        "row": 2,
+        "column": 3
+      },
+      "atlas": {
+        "x": 192,
+        "y": 1472,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "masauwu",
+      "label": "Masauwu",
+      "file": "icons/masauwu.png",
+      "extractedFile": "extracted/masauwu.png",
+      "sheet": 12,
+      "sourceCell": {
+        "row": 3,
+        "column": 0
+      },
+      "atlas": {
+        "x": 256,
+        "y": 1472,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "kukulkan",
+      "label": "Kukulkan",
+      "file": "icons/kukulkan.png",
+      "extractedFile": "extracted/kukulkan.png",
+      "sheet": 12,
+      "sourceCell": {
+        "row": 3,
+        "column": 1
+      },
+      "atlas": {
+        "x": 320,
+        "y": 1472,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "ix-chel",
+      "label": "Ix Chel",
+      "file": "icons/ix-chel.png",
+      "extractedFile": "extracted/ix-chel.png",
+      "sheet": 12,
+      "sourceCell": {
+        "row": 3,
+        "column": 2
+      },
+      "atlas": {
+        "x": 384,
+        "y": 1472,
+        "width": 64,
+        "height": 64
+      }
+    },
+    {
+      "id": "ah-puch",
+      "label": "Ah Puch",
+      "file": "icons/ah-puch.png",
+      "extractedFile": "extracted/ah-puch.png",
+      "sheet": 12,
+      "sourceCell": {
+        "row": 3,
+        "column": 3
+      },
+      "atlas": {
+        "x": 448,
+        "y": 1472,
         "width": 64,
         "height": 64
       }

@@ -5,6 +5,7 @@ import {
   type CharacterAppearance,
 } from "../../core/character";
 import type { Inventory } from "../../core/types";
+import type { Livelihood } from "./context-types";
 import type { WorldSetting } from "../geography/types";
 import {
   characterCommunity,
@@ -162,6 +163,22 @@ export function characterName(
   return characterNameParts(s, seed, id, context).display;
 }
 
+/*
+ * Work marked unfree is only for those held in bondage. The reverse is not
+ * true: enslaved and bound people did every kind of work there was, so the
+ * marked rows bias the draw rather than bounding it -- treating them as the
+ * whole of an unfree person's world left a sugar island with no craft, no
+ * herding and no trade in it. What is closed to them is the work that
+ * presumes standing of its own: holding an office, keeping a shop, being
+ * retained in arms.
+ */
+const CLOSED_TO_UNFREE =
+  /^(guild-master|headman|village-elder|tax-collector|toll-keeper|money-changer|shopkeeper|grocer|innkeeper|publican|retainer|clerk|bank-clerk|schoolteacher|printer|pharmacist|stationmaster|trader)$/;
+const allowedBy = (standing: "free" | "unfree", l: Livelihood) =>
+  standing === "unfree"
+    ? l.standing === "unfree" || !CLOSED_TO_UNFREE.test(l.id)
+    : l.standing !== "unfree";
+
 export function characterLivelihood(
   s: WorldSetting,
   seed: string,
@@ -194,7 +211,12 @@ export function characterLivelihood(
         ? context.livelihoods.find((l) => l.id === alias[key])
         : undefined))
     : undefined;
-  if (named) return named;
+  // A request still has to pass the filters a drawn role passes, and a
+  // religious office still takes its title from what people here believe.
+  if (named && allowedBy(standing, named)) {
+    const resolved = asOfficiant(named, s, seed, id);
+    if (resolved) return resolved;
+  }
   // A few kinds of work were done overwhelmingly by one sex; the rest are open.
   // "unspecified" is no constraint rather than no match -- read as a constraint
   // it excluded all 62 sex-marked roles, which is every herding role there is,
@@ -203,10 +225,18 @@ export function characterLivelihood(
     sex === "unspecified"
       ? context.livelihoods
       : context.livelihoods.filter((l) => !l.sex || l.sex === sex);
-  // Work marked unfree is only for those held in bondage, and someone in
-  // bondage does that work rather than choosing a trade.
-  const byStanding = (open.length ? open : context.livelihoods).filter((l) =>
-    standing === "unfree" ? l.standing === "unfree" : l.standing !== "unfree",
+  /* Work marked unfree is only for those held in bondage. The reverse is not
+   * true: enslaved and bound people did every kind of work there was, so the
+   * marked rows bias the draw rather than bounding it -- treating them as the
+   * whole of an unfree person's world left a sugar island with no craft, no
+   * herding and no trade in it. Work that presumes standing of its own, and
+   * the offices, are the exception. */
+  const byStanding = (open.length ? open : context.livelihoods).flatMap((l) =>
+    !allowedBy(standing, l)
+      ? []
+      : standing === "unfree" && l.standing === "unfree"
+        ? [{ ...l, weight: (l.weight ?? 1) * 4 }]
+        : [l],
   );
   // A society whose record does not name an officiant offers no religious
   // office at all, rather than a generic priest.

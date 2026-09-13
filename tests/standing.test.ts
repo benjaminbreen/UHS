@@ -28,18 +28,26 @@ describe("who is free", () => {
     expect(unfree("neolithic Anatolia"), "neolithic Anatolia").toBe(0);
   });
 
-  it("gives unfree people unfree work and nobody else", () => {
+  it("keeps unfree work for the unfree, without making it their whole world", () => {
+    // Enslaved and bound people did every kind of work there was. Treating
+    // the unfree rows as the whole of their world left a sugar island with no
+    // craft in it, so the marked rows bias the draw rather than bounding it.
     for (const q of ["1700 Virginia", "ancient Rome", "medieval Normandy"]) {
       const ctx = resolveCharacterContext(settingFor(q));
       const unfreeIds = new Set(
         ctx.livelihoods.filter((l) => l.standing === "unfree").map((l) => l.id),
       );
-      for (const c of sample(q, 80)) {
-        const isUnfreeWork = unfreeIds.has(c.origin.livelihood);
-        expect(isUnfreeWork, `${q}: ${c.role}`).toBe(
-          c.origin.standing === "unfree",
-        );
-      }
+      const people = sample(q, 120);
+      for (const c of people)
+        if (unfreeIds.has(c.origin.livelihood))
+          expect(c.origin.standing, `${q}: ${c.role}`).toBe("unfree");
+      const unfree = people.filter((c) => c.origin.standing === "unfree");
+      const marked = unfree.filter((c) => unfreeIds.has(c.origin.livelihood));
+      expect(marked.length / unfree.length, `${q} bias`).toBeGreaterThan(0.3);
+      expect(
+        new Set(unfree.map((c) => c.origin.livelihood)).size,
+        `${q} variety`,
+      ).toBeGreaterThan(unfreeIds.size);
     }
   });
 
