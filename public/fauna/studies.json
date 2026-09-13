@@ -1,0 +1,105 @@
+{
+  "house-sparrow": {
+    "palette": [
+      "#35382e",
+      "#70583c",
+      "#a3804e",
+      "#c7a878",
+      "#ede0b5",
+      "#d3aa54"
+    ],
+    "states": {
+      "forage": 8,
+      "perch": 8,
+      "takeoff": 8,
+      "flight": 8,
+      "approach": 8,
+      "landing": 8
+    }
+  },
+  "rock-dove": {
+    "palette": [
+      "#343e40",
+      "#657774",
+      "#95aaa3",
+      "#c4d0c2",
+      "#eee9cf",
+      "#bf9369"
+    ],
+    "states": {
+      "forage": 8,
+      "perch": 8,
+      "takeoff": 8,
+      "flight": 8,
+      "approach": 8,
+      "landing": 8
+    }
+  },
+  "chicken": {
+    "palette": [
+      "#49392c",
+      "#a45c36",
+      "#d8904d",
+      "#edbd74",
+      "#fff0bf",
+      "#c9533c"
+    ],
+    "states": {
+      "idle": 8,
+      "forage": 8,
+      "wander": 8,
+      "flee": 8
+    }
+  },
+  "sheep": {
+    "palette": [
+      "#514b3b",
+      "#8f8567",
+      "#bdb394",
+      "#e0d8b8",
+      "#f7edcf",
+      "#ae9064"
+    ],
+    "states": {
+      "idle": 8,
+      "graze": 8,
+      "wander": 8,
+      "flee": 8,
+      "rest": 8
+    }
+  },
+  "red-deer": {
+    "palette": [
+      "#553e30",
+      "#93613e",
+      "#bf874f",
+      "#dca56b",
+      "#f0d7a3",
+      "#775039"
+    ],
+    "states": {
+      "idle": 8,
+      "forage": 8,
+      "wander": 8,
+      "flee": 8,
+      "rest": 8
+    }
+  },
+  "gray-wolf": {
+    "palette": [
+      "#37413b",
+      "#626e60",
+      "#8c9982",
+      "#b6bfa1",
+      "#dedfc0",
+      "#caab63"
+    ],
+    "states": {
+      "idle": 8,
+      "wander": 8,
+      "stalk": 8,
+      "chase": 8,
+      "rest": 8
+    }
+  }
+}

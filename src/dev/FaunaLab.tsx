@@ -33,7 +33,8 @@ export function FaunaLab() {
   const [playing, setPlaying] = useState(true);
   const [direction, setDirection] = useState<"east" | "west">("east");
   const [scale, setScale] = useState(3);
-  const [members, setMembers] = useState(5);
+  const [members, setMembers] = useState(1);
+  const [speed, setSpeed] = useState(1);
   const [spacing, setSpacing] = useState(24);
   const [flightHeight, setFlightHeight] = useState(28);
   const [shadows, setShadows] = useState(true);
@@ -44,27 +45,37 @@ export function FaunaLab() {
   const id = frames[frame % Math.max(1, frames.length)] ?? states[0];
   const flying = aerial.has(state);
   const dimensions = frameInfo(id);
+  const frameDuration =
+    state === "flight"
+      ? 85
+      : ["flee", "chase", "takeoff", "landing"].includes(state)
+        ? 95
+        : ["wander", "stalk", "approach"].includes(state)
+          ? 140
+          : 260;
 
   useEffect(() => {
     if (!playing || frames.length < 2) return;
     const timer = window.setInterval(
       () => setFrame((current) => (current + 1) % frames.length),
-      flying ? 150 : 320,
+      frameDuration / speed,
     );
     return () => window.clearInterval(timer);
-  }, [flying, frames.length, playing, state]);
+  }, [frameDuration, frames.length, playing, speed, state]);
 
   const group = useMemo(
     () =>
       Array.from({ length: members }, (_, index) => {
-        const column = index - (members - 1) / 2;
+        const columns = Math.min(members, 3);
+        const row = Math.floor(index / columns);
+        const rowMembers = Math.min(columns, members - row * columns);
+        const column = (index % columns) - (rowMembers - 1) / 2;
         return {
           x: column * spacing,
-          y: ((index * 7) % 3) * Math.max(3, spacing * 0.18),
-          frame: frames[index % Math.max(1, frames.length)] ?? id,
+          y: (row - Math.floor((members - 1) / columns) / 2) * spacing * 0.6,
         };
       }),
-    [frames, id, members, spacing],
+    [members, spacing],
   );
 
   const pick = (index: number) => {
@@ -72,8 +83,6 @@ export function FaunaLab() {
     const next = firstState(index);
     setState(next);
     setFrame(0);
-    const [minimum, maximum] = faunaProfiles[index].groupSize;
-    setMembers(Math.max(minimum, Math.min(5, maximum)));
     setMessage("");
   };
 
@@ -129,12 +138,36 @@ export function FaunaLab() {
         <div>
           <div className="eyebrow">DEVELOPER · FAUNA STUDIES</div>
           <h1>Fauna Lab</h1>
-          <p>Original native-pixel studies and the shared species contract.</p>
+          <p>Small silhouettes · soft palettes · lively movement.</p>
         </div>
         <a className="action" href="/">
           Game opening ↗
         </a>
       </header>
+
+      <section className="fauna-lineup" aria-label="Shared pixel scale">
+        <div className="eyebrow">WORLD-SCALE LINEUP · EVERY SPECIES AT 2×</div>
+        <div className="fauna-lineup-animals">
+          {faunaProfiles.map((candidate) => {
+            const names =
+              candidate.art.idle ??
+              candidate.art.perch ??
+              Object.values(candidate.art)[0]!;
+            const size = frameInfo(names[0]);
+            return (
+              <div key={candidate.id}>
+                <span className="fauna-lineup-sprite">
+                  <Sprite name={names[0]} scale={2} />
+                </span>
+                <small>{candidate.label.replace(" study", "")}</small>
+                <small>
+                  {size?.w} × {size?.h} px
+                </small>
+              </div>
+            );
+          })}
+        </div>
+      </section>
 
       <div className="fauna-layout">
         <section className="fauna-library" aria-label="Species studies">
@@ -181,8 +214,8 @@ export function FaunaLab() {
               <div>
                 <dt>Decisions</dt>
                 <dd>
-                  {profile.calmDecisionSeconds}s / {profile.urgentDecisionSeconds}s
-                  urgent
+                  {profile.calmDecisionSeconds}s /{" "}
+                  {profile.urgentDecisionSeconds}s urgent
                 </dd>
               </div>
             </dl>
@@ -209,7 +242,16 @@ export function FaunaLab() {
             data-testid="fauna-preview"
           >
             {group.map((member, index) => {
-              const lift = flying ? flightHeight + Math.abs(index % 3 - 1) * 3 : 0;
+              const memberFrame = (frame + index * 3) % frames.length;
+              const progress = memberFrame / (frames.length - 1);
+              const lift = flying
+                ? flightHeight *
+                  (state === "takeoff"
+                    ? progress
+                    : state === "landing"
+                      ? 1 - progress
+                      : 1)
+                : 0;
               return (
                 <div key={index}>
                   {shadows && (
@@ -218,7 +260,11 @@ export function FaunaLab() {
                       style={{
                         left: `calc(50% + ${member.x * scale}px)`,
                         top: `calc(62% + ${member.y * scale}px)`,
-                        opacity: flying ? Math.max(0.14, 0.5 - lift / 90) : 0.48,
+                        opacity: flying
+                          ? Math.max(0.14, 0.5 - lift / 90)
+                          : 0.48,
+                        width: (dimensions?.w ?? 48) * scale * 0.55,
+                        height: scale * 3,
                       }}
                     />
                   )}
@@ -230,18 +276,32 @@ export function FaunaLab() {
                       transform: `translate(-50%, -100%) scaleX(${direction === "west" ? -1 : 1})`,
                     }}
                   >
-                    <Sprite
-                      name={
-                        playing
-                          ? frames[(frame + index) % frames.length]
-                          : member.frame
-                      }
-                      scale={scale}
-                    />
+                    <Sprite name={frames[memberFrame]} scale={scale} />
                   </span>
                 </div>
               );
             })}
+            <span className="fauna-stage-caption">
+              {members === 1 ? "Single-animal study" : "Group study"} · {scale}×
+              native pixels
+            </span>
+          </div>
+
+          <div className="fauna-timeline" aria-label="Animation frames">
+            {frames.map((name, index) => (
+              <button
+                key={name}
+                aria-label={`Frame ${index + 1}`}
+                aria-pressed={frame === index}
+                onClick={() => {
+                  setPlaying(false);
+                  setFrame(index);
+                }}
+              >
+                <Sprite name={name} scale={1} />
+                <small>{String(index + 1).padStart(2, "0")}</small>
+              </button>
+            ))}
           </div>
 
           <div className="fauna-controls">
@@ -277,7 +337,7 @@ export function FaunaLab() {
                 value={scale}
                 onChange={(event) => setScale(Number(event.target.value))}
               >
-                {[1, 2, 3, 4].map((value) => (
+                {[1, 2, 3, 4, 5].map((value) => (
                   <option key={value} value={value}>
                     {value}×
                   </option>
@@ -300,6 +360,18 @@ export function FaunaLab() {
           </div>
           <div className="fauna-sliders">
             <label>
+              Playback · {speed}×
+              <input
+                aria-label="Playback speed"
+                type="range"
+                min="0.25"
+                max="2"
+                step="0.25"
+                value={speed}
+                onChange={(event) => setSpeed(Number(event.target.value))}
+              />
+            </label>
+            <label>
               Group members · {members}
               <input
                 aria-label="Group members"
@@ -316,7 +388,7 @@ export function FaunaLab() {
                 aria-label="Group spacing"
                 type="range"
                 min="10"
-                max="42"
+                max="64"
                 value={spacing}
                 onChange={(event) => setSpacing(Number(event.target.value))}
               />
@@ -330,17 +402,41 @@ export function FaunaLab() {
                 max="64"
                 disabled={!flying}
                 value={flightHeight}
-                onChange={(event) => setFlightHeight(Number(event.target.value))}
+                onChange={(event) =>
+                  setFlightHeight(Number(event.target.value))
+                }
               />
             </label>
           </div>
           <div className="fauna-actions">
             <button
               className="action"
+              aria-label="Previous frame"
+              onClick={() => {
+                setPlaying(false);
+                setFrame(
+                  (current) => (current + frames.length - 1) % frames.length,
+                );
+              }}
+            >
+              ←
+            </button>
+            <button
+              className="action"
               aria-pressed={playing}
               onClick={() => setPlaying((current) => !current)}
             >
               {playing ? "Pause animation" : "Play animation"}
+            </button>
+            <button
+              className="action"
+              aria-label="Next frame"
+              onClick={() => {
+                setPlaying(false);
+                setFrame((current) => (current + 1) % frames.length);
+              }}
+            >
+              →
             </button>
             <label className="fauna-check">
               <input

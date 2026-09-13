@@ -9,6 +9,7 @@ import {
   characterSex,
 } from "../src/content/characters/generate";
 import { workplaceFor } from "../src/content/characters/workplace";
+import { localLabel } from "../src/content/characters/officiant";
 import { livelihoods } from "../src/content/characters/livelihoods";
 import { commonLivelihoods } from "../src/content/characters/livelihoods.generated";
 
@@ -101,5 +102,43 @@ describe("who does what in a settlement", () => {
         (l.workplace ?? "workshop") as never,
       )).toBeDefined();
     }
+  });
+});
+
+describe("what the work is called here", () => {
+  it("gives the generic kits a local name where one is authored", () => {
+    // A gatherer in Neolithic Europe is a honey finder and in Amazonia a
+    // brazil-nut gatherer. The id, the workplace and the day are the same;
+    // calling both of them "Gatherer" wastes what the game knows about them.
+    const base = settingFor("medieval Normandy");
+    const cases: [string, number, number, number, string][] = [
+      ["craftsperson", 12.5, 41.9, 100, "Rome"],
+      ["craftsperson", 116, 34, 1500, "Ming China"],
+      ["craftsperson", 8.2, 46.8, 1750, "Switzerland"],
+      ["gatherer", -60, -5, 1400, "Amazonia"],
+      ["gatherer", 10, 48, -5000, "Neolithic Europe"],
+      ["hunter", -95, 68, 1500, "the Arctic"],
+    ];
+    for (const [id, lon, lat, year, where] of cases) {
+      const kit = livelihoods.find((l) => l.id === id)!;
+      const s = { ...base, lon, lat, year };
+      const drawn = new Set(
+        Array.from({ length: 16 }, (_, i) => localLabel(kit, s, "label", `p${i}`)),
+      );
+      expect(drawn.has(kit.label), `${id} still generic in ${where}`).toBe(false);
+      expect(drawn.size, `${id} in ${where} has one name only`).toBeGreaterThan(1);
+    }
+  });
+
+  it("keeps a local name inside the country that supports it", () => {
+    const base = settingFor("medieval Normandy");
+    const fisher = livelihoods.find((l) => l.id === "fisher")!;
+    // Landlocked Switzerland was producing whalers.
+    const swiss = new Set(
+      Array.from({ length: 24 }, (_, i) =>
+        localLabel(fisher, { ...base, lon: 8.2, lat: 46.8, year: 1750 }, "w", `p${i}`),
+      ),
+    );
+    expect([...swiss]).not.toContain("Whaler");
   });
 });

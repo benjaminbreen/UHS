@@ -63,6 +63,11 @@ for (const capability of CAPABILITIES) {
   }
 }
 
+/** Local names for work whose id, workplace and day stay the same. */
+const LABELS = JSON.parse(
+  readFileSync("scripts/data/livelihood-labels.json", "utf8"),
+).roles as Record<string, any[]>;
+
 const scopes = JSON.parse(
   readFileSync("scripts/data/livelihood-scope.json", "utf8"),
 ).roles as Record<string, any>;
@@ -246,6 +251,33 @@ for (const r of roles.values())
     r.tier = "village-craft";
 
 writeFileSync(
+  "src/content/characters/livelihood-labels.generated.ts",
+  header +
+    `import type { CharacterScope } from "./context-types";\n\n` +
+    `/** What a piece of work is called in a given place and century. */\n` +
+    `export const localLabels: Readonly<\n` +
+    `  Record<string, readonly { scope: CharacterScope; label: string; weight?: number }[]>\n` +
+    `> = {\n` +
+    Object.entries(LABELS)
+      .filter(([id]) => !id.startsWith("_"))
+      .map(
+        ([id, vs]) =>
+          `  ${JSON.stringify(id)}: [\n` +
+          (vs as any[])
+            .map(
+              (v) =>
+                `    { scope: ${JSON.stringify(v.scope)}, label: ${JSON.stringify(v.label)}` +
+                (v.weight ? `, weight: ${v.weight}` : "") +
+                ` },`,
+            )
+            .join("\n") +
+          `\n  ],`,
+      )
+      .join("\n") +
+    `\n};\n`,
+);
+
+writeFileSync(
   "src/content/characters/livelihoods.generated.ts",
   header +
     `import type { Livelihood } from "./context-types";\n\n` +
@@ -268,7 +300,20 @@ writeFileSync(
         (sc?.weight ? `    weight: ${sc.weight},\n` : "") +
         (sc?.workplace ? `    workplace: ${JSON.stringify(sc.workplace)},\n` : "") +
         (sc?.fromBeliefs ? `    fromBeliefs: true,\n` : "") +
-        (sc?.standing ? `    standing: ${JSON.stringify(sc.standing)},\n` : ""))(
+        (sc?.standing ? `    standing: ${JSON.stringify(sc.standing)},\n` : "") +
+        ((vs: any[] | undefined) =>
+          vs?.length
+            ? `    labels: [\n` +
+              vs
+                .map(
+                  (v) =>
+                    `      { scope: ${JSON.stringify(v.scope)}, label: ${JSON.stringify(v.label)}` +
+                    (v.weight ? `, weight: ${v.weight}` : "") +
+                    ` },`,
+                )
+                .join("\n") +
+              `\n    ],\n`
+            : "")(LABELS[r.id]))(
         scopes[r.id],
         scopes[r.id]?.years ?? tierDates[r.tier],
       ) +

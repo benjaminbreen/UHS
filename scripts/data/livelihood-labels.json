@@ -1,0 +1,1578 @@
+{
+ "_comment": "Local names for work. The id, the workplace, the inventory and the day are unchanged; only what people call it differs. Scope is the same shape used for names and beliefs: years are half-open astronomical, bounds are [W, S, E, N]. A role with no match here keeps its plain label.",
+ "roles": {
+  "craftsperson": [
+   {
+    "scope": {
+     "years": [
+      -500,
+      500
+     ],
+     "bounds": [
+      6,
+      30,
+      36,
+      46
+     ]
+    },
+    "label": "Amulet Maker"
+   },
+   {
+    "scope": {
+     "years": [
+      -300,
+      500
+     ],
+     "bounds": [
+      6,
+      30,
+      36,
+      46
+     ]
+    },
+    "label": "Lamp Maker"
+   },
+   {
+    "scope": {
+     "years": [
+      -100,
+      600
+     ],
+     "bounds": [
+      6,
+      30,
+      36,
+      46
+     ]
+    },
+    "label": "Mosaicist"
+   },
+   {
+    "scope": {
+     "years": [
+      -50,
+      700
+     ],
+     "bounds": [
+      6,
+      30,
+      40,
+      46
+     ]
+    },
+    "label": "Glassblower"
+   },
+   {
+    "scope": {
+     "years": [
+      1368,
+      1644
+     ],
+     "bounds": [
+      100,
+      18,
+      145,
+      46
+     ]
+    },
+    "label": "Silk Dyer"
+   },
+   {
+    "scope": {
+     "years": [
+      1000,
+      1800
+     ],
+     "bounds": [
+      100,
+      18,
+      145,
+      46
+     ]
+    },
+    "label": "Porcelain Painter"
+   },
+   {
+    "scope": {
+     "years": [
+      600,
+      1900
+     ],
+     "bounds": [
+      100,
+      18,
+      145,
+      46
+     ]
+    },
+    "label": "Ink Maker"
+   },
+   {
+    "scope": {
+     "years": [
+      700,
+      1900
+     ],
+     "bounds": [
+      128,
+      30,
+      146,
+      46
+     ]
+    },
+    "label": "Lacquerer"
+   },
+   {
+    "scope": {
+     "years": [
+      100,
+      1900
+     ],
+     "bounds": [
+      100,
+      18,
+      145,
+      46
+     ]
+    },
+    "label": "Paper Maker"
+   },
+   {
+    "scope": {
+     "years": [
+      1650,
+      1900
+     ],
+     "bounds": [
+      5.9,
+      45.8,
+      10.5,
+      47.8
+     ]
+    },
+    "label": "Clockmaker"
+   },
+   {
+    "scope": {
+     "years": [
+      1100,
+      1700
+     ],
+     "bounds": [
+      -11,
+      36,
+      30,
+      60
+     ]
+    },
+    "label": "Bell Founder"
+   },
+   {
+    "scope": {
+     "years": [
+      800,
+      1500
+     ],
+     "bounds": [
+      -11,
+      36,
+      30,
+      60
+     ]
+    },
+    "label": "Illuminator"
+   },
+   {
+    "scope": {
+     "years": [
+      -3000,
+      -300
+     ],
+     "bounds": [
+      24,
+      22,
+      36,
+      32
+     ]
+    },
+    "label": "Faience Maker"
+   },
+   {
+    "scope": {
+     "years": [
+      -2600,
+      -300
+     ],
+     "bounds": [
+      24,
+      22,
+      36,
+      32
+     ]
+    },
+    "label": "Coffin Painter"
+   },
+   {
+    "scope": {
+     "years": [
+      400,
+      1200
+     ],
+     "bounds": [
+      -2,
+      54,
+      30,
+      71
+     ]
+    },
+    "label": "Antler Worker"
+   },
+   {
+    "scope": {
+     "years": [
+      700,
+      1300
+     ],
+     "bounds": [
+      -2,
+      54,
+      30,
+      71
+     ]
+    },
+    "label": "Bone Comb Maker"
+   },
+   {
+    "scope": {
+     "years": [
+      -200,
+      1600
+     ],
+     "bounds": [
+      -106,
+      13,
+      -86,
+      23
+     ]
+    },
+    "label": "Featherworker"
+   },
+   {
+    "scope": {
+     "years": [
+      -1500,
+      1550
+     ],
+     "bounds": [
+      -106,
+      13,
+      -86,
+      23
+     ]
+    },
+    "label": "Obsidian Knapper"
+   },
+   {
+    "scope": {
+     "years": [
+      900,
+      1533
+     ],
+     "bounds": [
+      -82,
+      -25,
+      -66,
+      12
+     ]
+    },
+    "label": "Quipu Maker"
+   },
+   {
+    "scope": {
+     "years": [
+      1200,
+      1533
+     ],
+     "bounds": [
+      -82,
+      -25,
+      -66,
+      12
+     ]
+    },
+    "label": "Goldsmith of the Sun",
+    "weight": 1
+   },
+   {
+    "scope": {
+     "years": [
+      1100,
+      1800
+     ],
+     "bounds": [
+      -8,
+      4,
+      10,
+      14
+     ]
+    },
+    "label": "Brass Caster"
+   },
+   {
+    "scope": {
+     "years": [
+      1600,
+      1900
+     ],
+     "bounds": [
+      -8,
+      4,
+      10,
+      14
+     ]
+    },
+    "label": "Adire Dyer"
+   },
+   {
+    "scope": {
+     "years": [
+      -800,
+      1900
+     ],
+     "bounds": [
+      45,
+      40,
+      120,
+      55
+     ]
+    },
+    "label": "Felt Maker"
+   },
+   {
+    "scope": {
+     "years": [
+      -500,
+      1800
+     ],
+     "bounds": [
+      45,
+      40,
+      120,
+      55
+     ]
+    },
+    "label": "Bowyer"
+   },
+   {
+    "scope": {
+     "years": [
+      -2000,
+      1950
+     ],
+     "bounds": [
+      -170,
+      60,
+      180,
+      84
+     ]
+    },
+    "label": "Skin Sewer"
+   },
+   {
+    "scope": {
+     "years": [
+      -2000,
+      1950
+     ],
+     "bounds": [
+      -170,
+      60,
+      180,
+      84
+     ]
+    },
+    "label": "Harpoon Maker"
+   },
+   {
+    "scope": {
+     "years": [
+      -500,
+      1900
+     ],
+     "bounds": [
+      130,
+      -25,
+      -130,
+      25
+     ]
+    },
+    "label": "Tapa Beater"
+   },
+   {
+    "scope": {
+     "years": [
+      -1000,
+      1800
+     ],
+     "bounds": [
+      130,
+      -25,
+      -130,
+      25
+     ]
+    },
+    "label": "Adze Maker"
+   },
+   {
+    "scope": {
+     "years": [
+      800,
+      1900
+     ],
+     "bounds": [
+      66,
+      6,
+      92,
+      32
+     ]
+    },
+    "label": "Cotton Printer"
+   },
+   {
+    "scope": {
+     "years": [
+      -2000,
+      1500
+     ],
+     "bounds": [
+      66,
+      6,
+      92,
+      32
+     ]
+    },
+    "label": "Bead Driller"
+   },
+   {
+    "scope": {
+     "years": [
+      -500,
+      1900
+     ],
+     "bounds": [
+      92,
+      -11,
+      141,
+      25
+     ]
+    },
+    "label": "Rattan Weaver"
+   },
+   {
+    "scope": {
+     "years": [
+      1200,
+      1900
+     ],
+     "bounds": [
+      92,
+      -11,
+      141,
+      25
+     ]
+    },
+    "label": "Kris Smith"
+   },
+   {
+    "scope": {
+     "years": [
+      -1000,
+      1800
+     ],
+     "bounds": [
+      -18,
+      -1,
+      50,
+      20
+     ]
+    },
+    "label": "Bark-cloth Maker"
+   },
+   {
+    "scope": {
+     "years": [
+      -500,
+      1800
+     ],
+     "bounds": [
+      -18,
+      -1,
+      50,
+      20
+     ]
+    },
+    "label": "Ironsmith of the Forge",
+    "weight": 1
+   },
+   {
+    "scope": {
+     "years": [
+      1600,
+      1900
+     ],
+     "bounds": [
+      5.9,
+      45.8,
+      12.5,
+      47.8
+     ]
+    },
+    "label": "Lace Maker"
+   },
+   {
+    "scope": {
+     "years": [
+      1400,
+      1900
+     ],
+     "bounds": [
+      5.9,
+      45.8,
+      12.5,
+      47.8
+     ]
+    },
+    "label": "Wood Carver"
+   },
+   {
+    "scope": {
+     "years": [
+      1800,
+      1930
+     ],
+     "bounds": [
+      5.9,
+      45.8,
+      12.5,
+      47.8
+     ]
+    },
+    "label": "Music-box Maker"
+   }
+  ],
+  "gatherer": [
+   {
+    "scope": {
+     "years": [
+      -9000,
+      -2000
+     ],
+     "bounds": [
+      -11,
+      36,
+      30,
+      60
+     ]
+    },
+    "label": "Honey Finder"
+   },
+   {
+    "scope": {
+     "years": [
+      -9000,
+      -1000
+     ],
+     "bounds": [
+      -11,
+      36,
+      30,
+      60
+     ]
+    },
+    "label": "Acorn Gatherer"
+   },
+   {
+    "scope": {
+     "years": [
+      -3000,
+      1900
+     ],
+     "bounds": [
+      -11,
+      36,
+      30,
+      60
+     ]
+    },
+    "label": "Mushroom Gatherer"
+   },
+   {
+    "scope": {
+     "years": [
+      -5000,
+      1800
+     ],
+     "bounds": [
+      24,
+      22,
+      36,
+      32
+     ]
+    },
+    "label": "Reed Cutter"
+   },
+   {
+    "scope": {
+     "years": [
+      -3000,
+      1900
+     ],
+     "bounds": [
+      -75,
+      -15,
+      -45,
+      5
+     ]
+    },
+    "label": "Brazil-nut Gatherer"
+   },
+   {
+    "scope": {
+     "years": [
+      -3000,
+      1900
+     ],
+     "bounds": [
+      -75,
+      -15,
+      -45,
+      5
+     ]
+    },
+    "label": "Palm-heart Gatherer"
+   },
+   {
+    "scope": {
+     "years": [
+      -40000,
+      1900
+     ],
+     "bounds": [
+      113,
+      -39,
+      154,
+      -11
+     ]
+    },
+    "label": "Seed Grinder"
+   },
+   {
+    "scope": {
+     "years": [
+      -40000,
+      1900
+     ],
+     "bounds": [
+      113,
+      -39,
+      154,
+      -11
+     ]
+    },
+    "label": "Witchetty Digger"
+   },
+   {
+    "scope": {
+     "years": [
+      -5000,
+      1950
+     ],
+     "bounds": [
+      -170,
+      55,
+      180,
+      84
+     ]
+    },
+    "label": "Berry Picker"
+   },
+   {
+    "scope": {
+     "years": [
+      -5000,
+      1950
+     ],
+     "bounds": [
+      -170,
+      55,
+      180,
+      84
+     ]
+    },
+    "label": "Egg Collector"
+   },
+   {
+    "scope": {
+     "years": [
+      -5000,
+      1900
+     ],
+     "bounds": [
+      -18,
+      -1,
+      50,
+      20
+     ]
+    },
+    "label": "Baobab Gatherer"
+   },
+   {
+    "scope": {
+     "years": [
+      -5000,
+      1900
+     ],
+     "bounds": [
+      -18,
+      -1,
+      50,
+      20
+     ]
+    },
+    "label": "Honey Hunter"
+   },
+   {
+    "scope": {
+     "years": [
+      -2000,
+      1900
+     ],
+     "bounds": [
+      92,
+      -11,
+      141,
+      25
+     ]
+    },
+    "label": "Rattan Cutter"
+   },
+   {
+    "scope": {
+     "years": [
+      -1000,
+      1900
+     ],
+     "bounds": [
+      92,
+      -11,
+      141,
+      25
+     ]
+    },
+    "label": "Resin Tapper"
+   },
+   {
+    "scope": {
+     "years": [
+      -1000,
+      1900
+     ],
+     "bounds": [
+      100,
+      18,
+      145,
+      46
+     ]
+    },
+    "label": "Herb Gatherer"
+   },
+   {
+    "scope": {
+     "years": [
+      -1000,
+      1900
+     ],
+     "bounds": [
+      100,
+      18,
+      145,
+      46
+     ]
+    },
+    "label": "Bamboo Shoot Digger"
+   },
+   {
+    "scope": {
+     "years": [
+      -1000,
+      1800
+     ],
+     "bounds": [
+      -11,
+      30,
+      36,
+      42
+     ]
+    },
+    "label": "Caper Gatherer"
+   },
+   {
+    "scope": {
+     "years": [
+      -2000,
+      1533
+     ],
+     "bounds": [
+      -82,
+      -25,
+      -66,
+      12
+     ]
+    },
+    "label": "Salt Gatherer"
+   },
+   {
+    "scope": {
+     "years": [
+      -5000,
+      1880
+     ],
+     "bounds": [
+      -120,
+      32,
+      -105,
+      42
+     ]
+    },
+    "label": "Pinyon Gatherer"
+   },
+   {
+    "scope": {
+     "years": [
+      -2000,
+      1900
+     ],
+     "bounds": [
+      -97,
+      42,
+      -82,
+      50
+     ]
+    },
+    "label": "Wild Rice Harvester"
+   },
+   {
+    "scope": {
+     "years": [
+      -3000,
+      1950
+     ],
+     "bounds": [
+      -170,
+      58,
+      180,
+      84
+     ]
+    },
+    "label": "Driftwood Collector"
+   },
+   {
+    "scope": {
+     "years": [
+      -3000,
+      1950
+     ],
+     "bounds": [
+      -170,
+      58,
+      180,
+      84
+     ]
+    },
+    "label": "Kelp Gatherer"
+   }
+  ],
+  "hunter": [
+   {
+    "scope": {
+     "years": [
+      -3000,
+      1950
+     ],
+     "bounds": [
+      -170,
+      58,
+      180,
+      84
+     ]
+    },
+    "label": "Seal Hunter"
+   },
+   {
+    "scope": {
+     "years": [
+      -5000,
+      1900
+     ],
+     "bounds": [
+      5,
+      58,
+      180,
+      78
+     ]
+    },
+    "label": "Reindeer Stalker"
+   },
+   {
+    "scope": {
+     "years": [
+      -8000,
+      1880
+     ],
+     "bounds": [
+      -110,
+      30,
+      -94,
+      52
+     ]
+    },
+    "label": "Bison Hunter"
+   },
+   {
+    "scope": {
+     "years": [
+      -3000,
+      1900
+     ],
+     "bounds": [
+      -75,
+      -15,
+      -45,
+      5
+     ]
+    },
+    "label": "Blowgun Hunter"
+   },
+   {
+    "scope": {
+     "years": [
+      -5000,
+      1900
+     ],
+     "bounds": [
+      -18,
+      -1,
+      50,
+      20
+     ]
+    },
+    "label": "Net Hunter"
+   },
+   {
+    "scope": {
+     "years": [
+      -2000,
+      1880
+     ],
+     "bounds": [
+      -18,
+      -1,
+      50,
+      20
+     ]
+    },
+    "label": "Elephant Hunter"
+   },
+   {
+    "scope": {
+     "years": [
+      -9000,
+      1800
+     ],
+     "bounds": [
+      -11,
+      36,
+      30,
+      60
+     ]
+    },
+    "label": "Deer Stalker"
+   },
+   {
+    "scope": {
+     "years": [
+      -5000,
+      1800
+     ],
+     "bounds": [
+      -11,
+      36,
+      30,
+      60
+     ]
+    },
+    "label": "Boar Hunter"
+   },
+   {
+    "scope": {
+     "years": [
+      -40000,
+      1900
+     ],
+     "bounds": [
+      113,
+      -39,
+      154,
+      -11
+     ]
+    },
+    "label": "Kangaroo Hunter"
+   },
+   {
+    "scope": {
+     "years": [
+      600,
+      1800
+     ],
+     "bounds": [
+      25,
+      30,
+      120,
+      50
+     ]
+    },
+    "label": "Falconer"
+   },
+   {
+    "scope": {
+     "years": [
+      -1000,
+      1900
+     ],
+     "bounds": [
+      45,
+      40,
+      120,
+      55
+     ]
+    },
+    "label": "Marmot Trapper"
+   },
+   {
+    "scope": {
+     "years": [
+      -2000,
+      1600
+     ],
+     "bounds": [
+      -106,
+      13,
+      -86,
+      23
+     ]
+    },
+    "label": "Jaguar Hunter"
+   },
+   {
+    "scope": {
+     "years": [
+      -3000,
+      1950
+     ],
+     "bounds": [
+      -170,
+      58,
+      180,
+      84
+     ]
+    },
+    "label": "Walrus Hunter"
+   },
+   {
+    "scope": {
+     "years": [
+      -3000,
+      1950
+     ],
+     "bounds": [
+      -170,
+      58,
+      180,
+      84
+     ]
+    },
+    "label": "Caribou Hunter"
+   },
+   {
+    "scope": {
+     "years": [
+      -2000,
+      1950
+     ],
+     "bounds": [
+      -170,
+      58,
+      180,
+      84
+     ]
+    },
+    "label": "Bear Hunter"
+   }
+  ],
+  "fisher": [
+   {
+    "scope": {
+     "years": [
+      -2000,
+      1950
+     ],
+     "bounds": [
+      -170,
+      58,
+      180,
+      84
+     ]
+    },
+    "label": "Ice Fisher"
+   },
+   {
+    "scope": {
+     "years": [
+      -1500,
+      1900
+     ],
+     "bounds": [
+      130,
+      -25,
+      -130,
+      25
+     ]
+    },
+    "label": "Reef Fisher"
+   },
+   {
+    "scope": {
+     "years": [
+      -2000,
+      1930
+     ],
+     "bounds": [
+      48,
+      20,
+      60,
+      30
+     ]
+    },
+    "label": "Pearl Diver"
+   },
+   {
+    "scope": {
+     "years": [
+      200,
+      1900
+     ],
+     "bounds": [
+      128,
+      30,
+      146,
+      46
+     ]
+    },
+    "label": "Ama Diver"
+   },
+   {
+    "scope": {
+     "years": [
+      -3000,
+      1900
+     ],
+     "bounds": [
+      24,
+      22,
+      36,
+      32
+     ]
+    },
+    "label": "Nile Netter"
+   },
+   {
+    "scope": {
+     "years": [
+      -1000,
+      1533
+     ],
+     "bounds": [
+      -82,
+      -25,
+      -66,
+      12
+     ]
+    },
+    "label": "Reed-boat Fisher"
+   },
+   {
+    "scope": {
+     "years": [
+      -3000,
+      1880
+     ],
+     "bounds": [
+      -135,
+      42,
+      -120,
+      60
+     ]
+    },
+    "label": "Salmon Weir Keeper"
+   },
+   {
+    "scope": {
+     "years": [
+      -2000,
+      1800
+     ],
+     "bounds": [
+      -11,
+      36,
+      30,
+      60
+     ]
+    },
+    "label": "Eel Trapper"
+   },
+   {
+    "scope": {
+     "years": [
+      1100,
+      1900
+     ],
+     "bounds": [
+      -11,
+      42,
+      2,
+      62
+     ]
+    },
+    "label": "Whaler"
+   }
+  ],
+  "trader": [
+   {
+    "scope": {
+     "years": [
+      700,
+      1900
+     ],
+     "bounds": [
+      -17,
+      8,
+      38,
+      25
+     ]
+    },
+    "label": "Salt Caravaneer"
+   },
+   {
+    "scope": {
+     "years": [
+      1000,
+      1700
+     ],
+     "bounds": [
+      -17,
+      8,
+      38,
+      25
+     ]
+    },
+    "label": "Gold Broker"
+   },
+   {
+    "scope": {
+     "years": [
+      -200,
+      1600
+     ],
+     "bounds": [
+      45,
+      30,
+      105,
+      48
+     ]
+    },
+    "label": "Caravan Merchant"
+   },
+   {
+    "scope": {
+     "years": [
+      700,
+      1900
+     ],
+     "bounds": [
+      32,
+      -12,
+      78,
+      25
+     ]
+    },
+    "label": "Dhow Merchant"
+   },
+   {
+    "scope": {
+     "years": [
+      1300,
+      1521
+     ],
+     "bounds": [
+      -106,
+      13,
+      -86,
+      23
+     ]
+    },
+    "label": "Pochteca"
+   },
+   {
+    "scope": {
+     "years": [
+      800,
+      1400
+     ],
+     "bounds": [
+      -2,
+      54,
+      30,
+      71
+     ]
+    },
+    "label": "Fur Trader"
+   },
+   {
+    "scope": {
+     "years": [
+      -500,
+      1600
+     ],
+     "bounds": [
+      -11,
+      30,
+      36,
+      46
+     ]
+    },
+    "label": "Ship's Factor"
+   },
+   {
+    "scope": {
+     "years": [
+      1000,
+      1800
+     ],
+     "bounds": [
+      92,
+      -11,
+      141,
+      25
+     ]
+    },
+    "label": "Spice Dealer"
+   },
+   {
+    "scope": {
+     "years": [
+      1400,
+      1900
+     ],
+     "bounds": [
+      100,
+      18,
+      145,
+      46
+     ]
+    },
+    "label": "Tea Broker"
+   },
+   {
+    "scope": {
+     "years": [
+      1100,
+      1500
+     ],
+     "bounds": [
+      -11,
+      36,
+      30,
+      60
+     ]
+    },
+    "label": "Pedlar of Relics",
+    "weight": 1
+   }
+  ],
+  "traveler": [
+   {
+    "scope": {
+     "years": [
+      400,
+      1700
+     ],
+     "bounds": [
+      -11,
+      36,
+      30,
+      60
+     ]
+    },
+    "label": "Pilgrim"
+   },
+   {
+    "scope": {
+     "years": [
+      1100,
+      1500
+     ],
+     "bounds": [
+      -11,
+      36,
+      30,
+      60
+     ]
+    },
+    "label": "Wandering Scholar"
+   },
+   {
+    "scope": {
+     "years": [
+      700,
+      1900
+     ],
+     "bounds": [
+      25,
+      12,
+      63,
+      42
+     ]
+    },
+    "label": "Hajji"
+   },
+   {
+    "scope": {
+     "years": [
+      -500,
+      1900
+     ],
+     "bounds": [
+      66,
+      6,
+      92,
+      32
+     ]
+    },
+    "label": "Sadhu"
+   },
+   {
+    "scope": {
+     "years": [
+      200,
+      1800
+     ],
+     "bounds": [
+      100,
+      18,
+      145,
+      46
+     ]
+    },
+    "label": "Mendicant Monk"
+   },
+   {
+    "scope": {
+     "years": [
+      -1000,
+      1800
+     ]
+    },
+    "label": "Messenger"
+   }
+  ],
+  "farmer": [
+   {
+    "scope": {
+     "years": [
+      1300,
+      1700
+     ],
+     "bounds": [
+      -11,
+      49,
+      3,
+      61
+     ]
+    },
+    "label": "Husbandman"
+   },
+   {
+    "scope": {
+     "years": [
+      200,
+      600
+     ],
+     "bounds": [
+      -11,
+      30,
+      36,
+      46
+     ]
+    },
+    "label": "Colonus"
+   },
+   {
+    "scope": {
+     "years": [
+      1400,
+      1800
+     ],
+     "bounds": [
+      -11,
+      49,
+      3,
+      61
+     ]
+    },
+    "label": "Yeoman"
+   }
+  ],
+  "herder": [
+   {
+    "scope": {
+     "years": [
+      -1000,
+      1900
+     ],
+     "bounds": [
+      -11,
+      36,
+      30,
+      48
+     ]
+    },
+    "label": "Transhumant"
+   },
+   {
+    "scope": {
+     "years": [
+      -500,
+      1900
+     ],
+     "bounds": [
+      5,
+      43,
+      16,
+      48
+     ]
+    },
+    "label": "Drover of the High Pasture"
+   }
+  ]
+ }
+}

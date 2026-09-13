@@ -1,5 +1,5 @@
 import type { FaunaProfile } from "./types";
-import { frames } from "./types";
+import { study } from "./types";
 
 export const domesticFauna: readonly FaunaProfile[] = [
   {
@@ -23,8 +23,7 @@ export const domesticFauna: readonly FaunaProfile[] = [
     calmDecisionSeconds: 45,
     urgentDecisionSeconds: 6,
     diet: ["seed", "plant", "invertebrate"],
-    palette: ["#3d332a", "#8c4d31", "#bd7146", "#ead9aa", "#a84235", "#d5a552"],
-    art: frames("chicken", { idle: 2, forage: 2, wander: 4, flee: 4 }),
+    ...study("chicken"),
   },
   {
     id: "sheep",
@@ -47,13 +46,6 @@ export const domesticFauna: readonly FaunaProfile[] = [
     calmDecisionSeconds: 60,
     urgentDecisionSeconds: 6,
     diet: ["grass", "plant"],
-    palette: ["#332f2a", "#4b4437", "#6f624d", "#c8c2a4", "#e4dfc5"],
-    art: frames("sheep", {
-      idle: 2,
-      graze: 2,
-      wander: 4,
-      flee: 4,
-      rest: 2,
-    }),
+    ...study("sheep"),
   },
 ];

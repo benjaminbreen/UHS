@@ -1,275 +1,185 @@
-"""Native pixel drawings with articulated, pose-specific animation."""
+"""Compact, unoutlined animal sprites with fixed foot anchors."""
 import math
-from PIL import Image, ImageDraw, ImageFilter
+from PIL import Image, ImageDraw
 
-TAU = math.tau
 PALETTES = {
-    "sheep": ["#393b31", "#686551", "#96917a", "#b9b59a", "#d4ceb2", "#eee5c9", "#fff1d4", "#756148", "#ab8b60"],
-    "red-deer": ["#352e29", "#594033", "#7d5139", "#a36c43", "#bc8757", "#d4a473", "#e4c79b", "#eee0ba", "#383932"],
-    "gray-wolf": ["#303632", "#49514a", "#657065", "#848c79", "#a4aa94", "#c4c6ad", "#dddac1", "#e0b85f", "#474039"],
-    "chicken": ["#3e302a", "#603d2e", "#895035", "#b16b40", "#d49657", "#e9bd7c", "#f1d9a2", "#933b32", "#c55b40", "#be904c"],
-    "house-sparrow": ["#34352e", "#534433", "#786044", "#a18155", "#bda278", "#dbca9f", "#eee2bf", "#45483b", "#b39556"],
-    "rock-dove": ["#303b3e", "#4b5859", "#687878", "#899995", "#b0bab0", "#d3d7c6", "#e7e7d5", "#607665", "#a98c83"],
+    "house-sparrow": ["#35382e", "#70583c", "#a3804e", "#c7a878", "#ede0b5", "#d3aa54"],
+    "rock-dove": ["#343e40", "#657774", "#95aaa3", "#c4d0c2", "#eee9cf", "#bf9369"],
+    "chicken": ["#49392c", "#a45c36", "#d8904d", "#edbd74", "#fff0bf", "#c9533c"],
+    "sheep": ["#514b3b", "#8f8567", "#bdb394", "#e0d8b8", "#f7edcf", "#ae9064"],
+    "red-deer": ["#553e30", "#93613e", "#bf874f", "#dca56b", "#f0d7a3", "#775039"],
+    "gray-wolf": ["#37413b", "#626e60", "#8c9982", "#b6bfa1", "#dedfc0", "#caab63"],
 }
 STATES = {
-    "house-sparrow": {"forage": 8, "perch": 8, "takeoff": 8, "flight": 8, "approach": 8, "landing": 8},
-    "rock-dove": {"forage": 8, "perch": 8, "takeoff": 8, "flight": 8, "approach": 8, "landing": 8},
-    "chicken": {"idle": 8, "forage": 8, "wander": 8, "flee": 8},
-    "sheep": {"idle": 8, "graze": 8, "wander": 8, "flee": 8, "rest": 8},
-    "red-deer": {"idle": 8, "forage": 8, "wander": 8, "flee": 8, "rest": 8},
-    "gray-wolf": {"idle": 8, "wander": 8, "stalk": 8, "chase": 8, "rest": 8},
+    "house-sparrow": dict.fromkeys(["forage", "perch", "takeoff", "flight", "approach", "landing"], 8),
+    "rock-dove": dict.fromkeys(["forage", "perch", "takeoff", "flight", "approach", "landing"], 8),
+    "chicken": dict.fromkeys(["idle", "forage", "wander", "flee"], 8),
+    "sheep": dict.fromkeys(["idle", "graze", "wander", "flee", "rest"], 8),
+    "red-deer": dict.fromkeys(["idle", "forage", "wander", "flee", "rest"], 8),
+    "gray-wolf": dict.fromkeys(["idle", "wander", "stalk", "chase", "rest"], 8),
 }
-
+NATIVE_SIZES = {
+    "house-sparrow": (16, 16),
+    "rock-dove": (18, 18),
+    "chicken": (20, 20),
+    "sheep": (32, 32),
+    "red-deer": (40, 40),
+    "gray-wolf": (40, 32),
+}
 
 class Drawing:
     def __init__(self, species, size):
-        self.im = Image.new("RGBA", size)
+        native = NATIVE_SIZES[species]
+        self.sx, self.sy = (native[0]-3) / (size[0]-3), (native[1]-3) / (size[1]-3)
+        self.im = Image.new("RGBA", native)
         self.d = ImageDraw.Draw(self.im)
         self.p = PALETTES[species]
 
     def poly(self, points, color):
-        self.d.polygon([(round(x), round(y)) for x, y in points], fill=self.p[color])
+        self.d.polygon([(round(1+(x-1)*self.sx), round(1+(y-1)*self.sy)) for x, y in points], fill=self.p[color])
 
     def line(self, points, color, width=1):
-        self.d.line([(round(x), round(y)) for x, y in points], fill=self.p[color], width=width)
+        self.d.line([(round(1+(x-1)*self.sx), round(1+(y-1)*self.sy)) for x, y in points], fill=self.p[color], width=width)
 
     def oval(self, box, color):
-        self.d.ellipse(tuple(round(v) for v in box), fill=self.p[color])
+        self.d.ellipse(tuple(round(1+(v-1)*(self.sx if i%2 == 0 else self.sy)) for i,v in enumerate(box)), fill=self.p[color])
 
     def finish(self):
-        # A one-pixel interrupted-looking dark edge keeps fur readable on grass.
-        alpha = self.im.getchannel("A")
-        edge = alpha.filter(ImageFilter.MaxFilter(3))
-        out = Image.new("RGBA", self.im.size, self.p[0])
-        out.putalpha(edge)
-        out.alpha_composite(self.im)
-        out.info["anchor"] = [self.im.width // 2, self.im.height - 3]
-        return out
+        self.im.info["anchor"] = [self.im.width // 2, self.im.height - 3]
+        return self.im
 
+def bird(species, state, frame):
+    s = Drawing(species, (24, 24))
+    dove = species == "rock-dove"
+    flying = state in {"takeoff", "flight", "approach", "landing"}
+    opening = [0, .25, .6, 1, 1, 1, 1, 1][frame] if state == "takeoff" else [1, 1, 1, .8, .5, .3, 0, 0][frame] if state == "landing" else 1
+    if flying and opening:
+        wing = [-8, -6, -2, 4, 7, 4, -1, -6][frame] * opening
+        if state == "approach":
+            wing *= .6
+        s.poly([(11,13), (8,11+wing*.5), (6,11+wing), (9,12+wing), (14,14)], 1)
+        s.poly([(10,14), (4,16), (3,18), (9,17), (13,15)], 1)
+        s.oval((9,12,18,16), 2)
+        s.line([(12,16), (16,16)], 4)
+        s.oval((16,10,20,14), 3 if dove else 2)
+        s.line([(20,12), (22,13)], 5)
+        s.line([(19,11), (19,11)], 0)
+        s.poly([(12,14), (9,12+wing*.5), (7,12+wing), (11,13+wing), (15,14)], 3)
+        s.line([(8,12+wing), (10,13+wing)], 4)
+        if state in {"approach", "landing"}:
+            s.line([(15,17), (17,19), (19,19)], 5)
+    else:
+        dip = [0,0,1,3,4,4,2,0][frame] if state == "forage" else 0
+        s.line([(11,19), (11,21), (13,21)], 5)
+        s.line([(15,19), (16,21), (18,21)], 5)
+        s.poly([(10,15), (4,16), (3,19), (9,18)], 1)
+        s.oval((8,13,17,19), 2)
+        s.line([(12,19), (16,18)], 4)
+        s.poly([(9,14), (13,13), (14,16), (10,17), (8,17)], 1)
+        s.line([(10,14), (12,14)], 3)
+        s.oval((14,10+dip,19,15+dip), 2)
+        s.line([(16,14+dip), (18,14+dip)], 4)
+        if not dove:
+            s.line([(15,10+dip), (17,10+dip)], 1)
+        s.line([(18,12+dip), (18,12+dip)], 0 if frame != 6 else 1)
+        s.line([(20,13+dip), (21,14+dip)], 5)
+    return s.finish()
+
+def chicken(state, frame):
+    s = Drawing("chicken", (24,24))
+    moving = state in {"wander", "flee"}
+    phase = frame / 8 * math.tau
+    bob = round(math.cos(phase*2)) if moving else 0
+    for x, offset in [(10,0), (15,math.pi)]:
+        step = round(math.cos(phase+offset)*2) if moving else 0
+        lift = round(max(0,math.sin(phase+offset))*2) if moving else 0
+        s.line([(x,18), (x+step,21-lift), (x+step+2,21-lift)], 2)
+    s.poly([(9,14+bob), (4,10+bob), (3,7+bob), (6,8+bob), (8,11+bob), (10,10+bob)], 1)
+    s.oval((6,11+bob,18,19+bob), 2)
+    s.oval((7,10+bob,16,16+bob), 3)
+    s.poly([(8,13+bob), (12,12+bob), (14,14+bob), (12,17+bob), (8,16+bob)], 2)
+    s.line([(9,13+bob), (11,13+bob)], 3)
+    dip = [0,0,1,3,5,5,2,0][frame] if state == "forage" else 0
+    y = 8+bob+dip
+    s.poly([(14,14+bob), (15,y+1), (18,y+1), (19,y+5), (16,16+bob)], 3)
+    s.oval((15,y,20,y+5), 4)
+    s.line([(16,y), (16,y-2), (18,y-1), (19,y-2)], 5)
+    s.line([(19,y+5), (19,y+6)], 5)
+    s.line([(19,y+2), (19,y+2)], 2 if frame == 6 and not moving else 0)
+    s.line([(21,y+3), (22,y+3)], 2)
+    if state == "flee":
+        drop = round(max(0,math.sin(phase))*4)
+        s.poly([(11,13+bob), (8,14+bob), (8,17+bob+drop), (13,16+bob)], 3)
+    return s.finish()
 
 def quadruped(species, state, frame):
-    s = Drawing(species, (64, 56))
+    s = Drawing(species, (32,32))
     deer, wolf = species == "red-deer", species == "gray-wolf"
-    resting = state == "rest"
-    running = state in {"flee", "chase"}
     moving = state in {"wander", "flee", "chase", "stalk"}
-    phase = frame / 8 * TAU
-    bob = round(math.cos(phase * 2) * (1.5 if running else .5)) if moving else (frame in (3, 4))
-    back = (23 if deer else 29 if wolf else 26) + bob
+    running = state in {"flee", "chase"}
+    resting = state == "rest"
+    phase = frame / 8 * math.tau
+    bob = round(math.cos(phase*2)) if moving else 0
+    top = (14 if deer else 17 if wolf else 16)+bob
     if resting:
-        back = 36 + (frame in (3, 4))
+        top = 21
     if state == "stalk":
-        back += 3
-    hip, shoulder = 19, 40
-    foot = 51
-    belly = back + (10 if deer or wolf else 14)
-    # Far legs precede the torso; the near pair is drawn over it.
+        top += 2
+    bottom = top+(6 if deer or wolf else 8)
     def leg(x, hind, far):
         if resting:
-            s.poly([(x-3, 43), (x+5, 48), (x+9, 49), (x-4, 49)], 2 if far else 3)
-            s.line([(x, 48), (x+8, 49)], 1)
+            s.line([(x,27), (x+3,28)], 1 if far else 2, 2)
             return
-        p = phase + (math.pi if far else 0) + (0 if hind else math.pi)
+        p = phase+(math.pi if far else 0)+(0 if hind else math.pi)
         if running:
-            p = phase + (0.6 if far else 0) + (2.3 if hind else 0)
-        swing = math.cos(p) * (7 if running else 3.5) if moving else 0
-        lift = max(0, math.sin(p)) * (6 if running else 3) if moving else 0
-        root = (x, belly-3)
-        knee = (x + (3 if hind else -1) + swing*.35, (belly+foot)/2-1)
-        ankle = (x+swing, foot-lift-(2 if far else 0))
-        c = 1 if far else 2
-        s.line([root, knee], c, 4 if wolf or not deer else 3)
-        s.line([knee, ankle], c, 2)
-        if not far:
-            s.line([(root[0]-1, root[1]), (knee[0]-1, knee[1]), (ankle[0]-1, ankle[1]-1)], 4 if deer else 3)
-        s.line([(ankle[0]-1, ankle[1]), (ankle[0]+2, ankle[1])], 0, 2)
-    leg(hip+3, True, True)
-    leg(shoulder-3, False, True)
-    tail_wave = math.sin(phase) * (2 if moving else 1)
+            p = phase+(.7 if far else 0)+(2.3 if hind else 0)
+        swing = math.cos(p)*(4 if running else 2) if moving else 0
+        lift = max(0,math.sin(p))*(4 if running else 2) if moving else 0
+        s.line([(x,bottom-1), (x+swing*.5+(1 if hind else 0),25), (x+swing,28-lift)], 1 if far else 2, 1 if deer else 2)
+        s.line([(x+swing,28-lift), (x+swing+1,28-lift)], 0)
+    leg(11,True,True)
+    leg(20,False,True)
     if wolf:
-        s.poly([(15,back+5),(10,back+7),(7,back+12+tail_wave),(3,back+13+tail_wave),(6,back+17+tail_wave),(12,back+14),(18,back+9)],2)
-        s.line([(13,back+7),(8,back+13+tail_wave),(5,back+14+tail_wave)],4,2)
+        s.poly([(9,top+2), (5,top+4), (2,min(27,top+8)), (5,min(28,top+9)), (10,top+5)], 2)
     elif deer:
-        s.poly([(14,back+3),(10,back+1),(11,back+7),(16,back+9)],6)
-        s.line([(12,back+3),(13,back+6)],7)
+        s.line([(7,top+2), (5,top), (6,top+4)], 4)
     else:
-        s.poly([(13,back+7),(9,back+8),(10,back+12),(14,back+11)],3)
-    s.poly([(12,back+5),(15,back+1),(23,back-1),(34,back),(41,back+2),(46,back+8),(42,belly),(32,belly+1),(20,belly),(13,belly-4)],2)
-    s.poly([(14,back+4),(20,back),(31,back),(40,back+2),(42,back+6),(35,back+9),(22,back+8),(15,back+10)],4 if not wolf else 3)
-    s.poly([(18,back+1),(29,back),(37,back+2),(34,back+4),(21,back+4),(15,back+6)],5 if not wolf else 4)
-    s.poly([(21,belly-3),(32,belly-2),(40,belly-6),(39,belly),(30,belly+1),(21,belly)],6 if deer else 3)
+        s.oval((4,top+4,8,top+7), 3)
+    s.oval((6,top,23,bottom), 2)
+    s.oval((7,top,22,bottom-2), 3 if not wolf else 2)
     if wolf:
-        s.poly([(18,back+2),(26,back),(36,back+2),(39,back+5),(31,back+6),(28,back+4),(23,back+5),(20,back+4)],1)
-        s.line([(20,back+2),(25,back+1),(28,back+2)],2)
-        for x,y in [(16,7),(21,8),(26,9),(34,7),(38,6)]:
-            s.line([(x,back+y),(x+2,back+y-1)],4)
+        s.poly([(9,top), (16,top), (21,top+2), (17,top+3), (10,top+2)], 1)
     elif deer:
-        s.line([(18,back+3),(26,back+2),(32,back+3)],6)
-        s.line([(17,back+8),(18,back+12),(21,back+14)],3)
-        s.line([(35,back+6),(34,back+10),(37,back+12)],3)
+        s.line([(9,top+1), (16,top+1)], 3)
+        s.line([(12,bottom), (18,bottom)], 4)
     else:
-        # Irregular wool locks follow the shoulder and belly volume.
-        for x,y,r in [(15,4,3),(21,2,4),(28,2,4),(35,3,4),(40,6,3),(15,9,3),(22,8,4),(29,8,4),(36,10,4),(20,13,3),(28,13,3)]:
-            s.oval((x-r,back+y-r,x+r,back+y+r),4 if y<9 else 3)
-            s.line([(x-r+1,back+y),(x-r+2,back+y-2),(x+1,back+y-2)],6 if y<7 else 5)
-            s.line([(x+1,back+y+r-1),(x+3,back+y+r-2)],2)
-    leg(hip-1, True, False)
-    leg(shoulder, False, False)
-
-    eating = state in {"graze", "forage"}
-    dip = [0,1,4,7,9,9,5,1][frame] if eating else 0
+        s.poly([(7,top+2), (9,top), (13,top), (14,top+1), (18,top), (21,top+2), (19,top+4), (10,top+4)], 4)
+        s.line([(9,bottom-2), (12,bottom-1)], 3)
+    leg(9,True,False)
+    leg(21,False,False)
+    dip = [0,0,2,5,7,7,3,0][frame] if state in {"graze", "forage"} else 0
+    hy = (10 if deer else top-1)+dip
     if resting:
-        hx,hy = (43,40) if wolf else (46,33)
-    elif deer:
-        hx,hy = 47, 18 + bob + dip * 2
-    elif wolf:
-        hx,hy = 48, back+1 + (3 if state=="stalk" else 0)
-    else:
-        hx,hy = 48, back+1 + dip
-    if deer and not eating:
-        s.poly([(38,back+6),(40,20+bob),(44,13+bob),(49,15+bob),(47,24+bob),(44,back+9)],3)
-        s.line([(42,back+2),(44,20+bob),(46,17+bob)],5,2)
-        s.line([(47,20+bob),(45,26+bob)],6,2)
-    else:
-        s.poly([(38,back+3),(43,hy-2),(49,hy+2),(49,hy+9),(43,belly-1),(40,back+10)],3 if not wolf else 4)
-        if wolf:
-            s.poly([(41,back+2),(46,hy),(48,hy+6),(44,hy+11),(40,back+10),(43,back+9)],5)
-    s.poly([(hx-4,hy-3),(hx+1,hy-4),(hx+4,hy-1),(hx+4,hy+3),(hx+9,hy+4),(hx+9,hy+7),(hx+4,hy+9),(hx-2,hy+7),(hx-5,hy+2)],3 if not wolf else 3)
-    s.poly([(hx-3,hy-2),(hx+1,hy-3),(hx+3,hy),(hx,hy+3),(hx-3,hy+2)],5 if deer else 4)
-    s.poly([(hx+1,hy+4),(hx+8,hy+5),(hx+7,hy+7),(hx+2,hy+7)],6 if deer or wolf else 7)
-    s.line([(hx+8,hy+4),(hx+9,hy+5),(hx+8,hy+6)],0,2)
-    s.line([(hx+3,hy+8),(hx+7,hy+8)],1)
-    ear = 1 if frame in (5,6) and not moving else 0
-    s.poly([(hx-3,hy-1),(hx-8,hy-4-ear),(hx-6,hy-7-ear),(hx-1,hy-3)],2)
-    s.line([(hx-6,hy-5-ear),(hx-3,hy-3)],5)
-    s.poly([(hx+1,hy-3),(hx+2,hy-8+ear),(hx+5,hy-6+ear),(hx+4,hy-1)],2)
-    s.line([(hx+3,hy-6+ear),(hx+3,hy-3)],5)
-    s.line([(hx+1,hy+1),(hx+3,hy+1)],0)
-    if frame != 6 or moving:
-        s.line([(hx+2,hy),(hx+2,hy)],7 if wolf else 6)
-    if deer:
-        # Antlers rotate with the head; they never vanish during locomotion.
-        for dx in [-3,2]:
-            s.line([(hx+dx,hy-5),(hx+dx-2,hy-10),(hx+dx-5,hy-13)],2)
-            s.line([(hx+dx-2,hy-9),(hx+dx+1,hy-13)],5)
-            s.line([(hx+dx-4,hy-12),(hx+dx-7,hy-12)],5)
-    if species == "sheep":
-        s.oval((hx-5,hy-5,hx+1,hy-1),4)
-        s.line([(hx-4,hy-3),(hx-2,hy-4),(hx,hy-3)],6)
+        hy = 22 if wolf else 18
+    s.poly([(19,top+3), (21,hy), (25,hy+1), (25,hy+5), (22,bottom-1)], 2 if deer else 3)
+    s.oval((21,hy-1,27,hy+5), 2 if deer else 3)
+    s.poly([(25,hy+2), (29,hy+3), (29,hy+5), (24,hy+5)], 3 if deer else 4 if wolf else 1)
+    s.line([(29,hy+3), (29,hy+3)], 0)
+    s.line([(22,hy), (20,hy-2), (22,hy-2)], 2)
+    ear = 1 if frame in (4,5) and not moving else 0
+    s.poly([(25,hy), (25+ear,hy-4+ear), (27,hy-2), (27,hy)], 2)
+    s.line([(26,hy+1), (26,hy+1)], 2 if frame == 6 and not moving else 0)
+    if wolf:
+        s.poly([(21,hy+2), (23,hy+4), (22,hy+7), (20,hy+5)], 4)
+    elif not deer:
+        s.line([(22,hy-1), (24,hy-2), (25,hy-1)], 4, 2)
     return s.finish()
-
-
-def bird(species,state,frame):
-    s = Drawing(species,(48,48))
-    dove = species == "rock-dove"
-    flight = state in {"takeoff","flight","approach","landing"}
-    phase = frame / 8 * TAU
-    peck = [0,0,2,5,7,7,3,0][frame] if state=="forage" else 0
-    if flight:
-        opening = [0,.2,.45,.8,1,1,1,1][frame] if state=="takeoff" else [1,1,1,.8,.6,.3,.1,0][frame] if state=="landing" else 1
-        if opening < .2:
-            return bird(species,"perch",frame)
-        cy=23
-        flap = math.cos(phase) * (9 if state!="approach" else 5)
-        for far in [True,False]:
-            sign = -1 if far else 1
-            root=(25,cy)
-            elbow=(19,cy+sign*(7+flap*.3)*opening)
-            tip=(8,cy+sign*(9+flap)*opening)
-            s.poly([root,elbow,tip,(6,tip[1]+sign*3),(14,cy+sign*5),(24,cy+sign*3)],2 if far else 3)
-            s.poly([root,(19,elbow[1]),(10,tip[1]),(15,cy+sign*5),(24,cy+sign*2)],4 if dove else 4)
-            for k in range(5):
-                x=7+k*2
-                y=tip[1]*(1-k/7)+(cy+sign*5)*(k/7)
-                s.line([(x,y),(x+4,y-sign*3)],1)
-                s.line([(x+1,y),(x+4,y-sign*2)],5)
-            if dove:
-                s.line([(16,elbow[1]),(21,cy+sign*3)],1,2)
-                s.line([(12,tip[1]),(18,cy+sign*4)],2,2)
-        s.poly([(23,26),(13,30),(8,32),(9,35),(19,32),(27,28)],2)
-        s.line([(12,32),(20,29)],5)
-        s.oval((21,21,35,29),3)
-        s.line([(25,22),(31,22),(34,24)],5,2)
-        s.oval((32,19,39,25),3)
-        s.line([(34,24),(37,25)],5)
-        s.line([(39,22),(42,23)],8)
-        s.line([(37,21),(37,21)],0)
-        if state in {"landing","approach"}:
-            s.line([(30,29),(33,33),(37,33)],8)
-            s.line([(27,29),(29,33),(32,33)],8)
-    else:
-        cy=31+(frame in (3,4))
-        s.line([(23,37),(22,41),(26,41)],8)
-        s.line([(29,37),(30,41),(33,41)],8)
-        s.poly([(18,30),(8,34),(5,38),(16,36),(23,33)],2)
-        s.line([(8,36),(16,33)],4)
-        s.oval((16,26,33,38),3)
-        s.poly([(23,32),(30,32),(33,34),(30,38),(24,37)],5)
-        s.poly([(17,29),(23,26),(29,28),(28,32),(22,35),(17,34)],2)
-        for x,y in [(18,29),(22,29),(25,30),(19,32),(23,32)]:
-            s.line([(x,y),(x+2,y-1)],4)
-            s.line([(x,y+1),(x+2,y)],1)
-        hx,hy = 32, 23+peck
-        s.poly([(27,29),(28,hy+1),(34,hy),(37,hy+5),(32,34)],3)
-        s.oval((hx-4,hy-3,hx+5,hy+5),3)
-        s.poly([(hx-3,hy+1),(hx+1,hy),(hx+4,hy+2),(hx+1,hy+5),(hx-3,hy+4)],5)
-        if dove:
-            s.line([(29,27+peck//2),(30,29+peck//2),(33,29+peck//2)],7,2)
-            s.line([(21,29),(26,31)],1,2)
-            s.line([(20,32),(24,34)],1,2)
-        else:
-            s.line([(hx-3,hy-2),(hx+2,hy-2)],2,2)
-            s.line([(hx-2,hy+1),(hx,hy+3)],1)
-            s.line([(hx+1,hy+4),(hx+2,hy+6)],0,2)
-        s.line([(hx+3,hy),(hx+3,hy)],0 if frame!=6 else 2)
-        s.line([(hx+5,hy+2),(hx+8,hy+3)],8)
-    return s.finish()
-
-
-def chicken(state,frame):
-    s=Drawing("chicken",(48,48))
-    moving=state in {"wander","flee"}
-    phase=frame/8*TAU
-    bob=round(math.cos(phase*2)) if moving else (frame in (3,4))
-    y=25+bob
-    for x,offset in [(23,math.pi),(30,0)]:
-        swing=math.cos(phase+offset)*3 if moving else 0
-        lift=max(0,math.sin(phase+offset))*3 if moving else 0
-        s.line([(x,35),(x+swing,40-lift),(x+swing+3,41-lift)],9)
-        s.line([(x+swing,40-lift),(x+swing-2,41-lift)],9)
-    for k in range(4):
-        s.poly([(19,y+6),(8-k,y-1-k*2),(6+k,y-5-k),(13+k,y-3),(23,y+2)],1+k%3)
-        s.line([(9+k,y-4),(18,y+3)],4)
-    s.oval((15,y-4,35,y+11),2)
-    s.oval((17,y-5,34,y+7),3)
-    s.poly([(17,y),(24,y-2),(30,y+1),(28,y+7),(22,y+9),(18,y+5)],2)
-    for x,dy in [(19,1),(23,0),(26,2),(20,4),(24,4),(22,7)]:
-        s.line([(x,y+dy),(x+2,y+dy-1)],4)
-        s.line([(x,y+dy+1),(x+2,y+dy)],1)
-    dip=[0,0,3,7,9,9,4,0][frame] if state=="forage" else 0
-    hx,hy=35,18+bob+dip
-    s.poly([(28,y+2),(29,hy),(34,hy-1),(38,hy+4),(33,y+5)],4)
-    s.line([(30,hy+2),(31,y+2)],5,2)
-    s.oval((hx-4,hy-3,hx+3,hy+5),5)
-    s.line([(hx-2,hy+1),(hx,hy+3)],6,2)
-    s.poly([(hx-3,hy-3),(hx-4,hy-6),(hx-2,hy-7),(hx,hy-5),(hx+1,hy-7),(hx+2,hy-4)],7)
-    s.line([(hx-3,hy-5),(hx-2,hy-6),(hx,hy-4)],8)
-    s.oval((hx+1,hy+4,hx+3,hy+7),7)
-    s.line([(hx+2,hy),(hx+2,hy)],0)
-    s.poly([(hx+3,hy+1),(hx+7,hy+3),(hx+3,hy+3)],9)
-    if state=="flee":
-        spread=round(max(0,math.sin(phase))*6)
-        s.poly([(23,y),(18,y+5),(19,y+10+spread),(26,y+7),(29,y+3)],2)
-        for k in range(3):
-            s.line([(20+k*2,y+4),(20+k*2,y+9+spread-k)],5)
-    return s.finish()
-
 
 def fauna():
-    result={}
-    for species,states in STATES.items():
-        for state,count in states.items():
+    result = {}
+    for species, states in STATES.items():
+        for state, count in states.items():
             for frame in range(count):
-                im = bird(species,state,frame) if species in {"house-sparrow","rock-dove"} else chicken(state,frame) if species=="chicken" else quadruped(species,state,frame)
-                result[f"fauna-{species}-{state}-{frame}"]=im
+                im = bird(species,state,frame) if species in {"house-sparrow", "rock-dove"} else chicken(state,frame) if species == "chicken" else quadruped(species,state,frame)
+                result[f"fauna-{species}-{state}-{frame}"] = im
     return result

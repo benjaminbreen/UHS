@@ -1,4 +1,5 @@
 import type { FaunaState } from "../../core/fauna";
+import studies from "../../../public/fauna/studies.json" with { type: "json" };
 
 export type HabitatTag =
   | "settlement"
@@ -42,17 +43,19 @@ export type FaunaProfile = {
   art: Partial<Record<FaunaState, readonly string[]>>;
 };
 
-export function frames(
-  species: string,
-  states: Record<string, number>,
-): FaunaProfile["art"] {
-  return Object.fromEntries(
-    Object.entries(states).map(([state, count]) => [
-      state,
-      Array.from(
-        { length: count },
-        (_, frame) => `fauna-${species}-${state}-${frame}`,
-      ),
-    ]),
-  );
+export function study(
+  species: keyof typeof studies,
+): Pick<FaunaProfile, "art" | "palette"> {
+  return {
+    palette: studies[species].palette,
+    art: Object.fromEntries(
+      Object.entries(studies[species].states).map(([state, count]) => [
+        state,
+        Array.from(
+          { length: count },
+          (_, frame) => `fauna-${species}-${state}-${frame}`,
+        ),
+      ]),
+    ),
+  };
 }

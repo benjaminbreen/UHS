@@ -8,7 +8,19 @@ test("fauna lab previews species, behavior and group presentation", async ({
   await page.goto("/fauna-lab");
   await expect(page.getByRole("heading", { name: "Fauna Lab" })).toBeVisible();
   await expect(page.locator(".fauna-grid button")).toHaveCount(6);
-  await expect(page.locator(".fauna-member")).toHaveCount(5);
+  await expect(page.locator(".fauna-member")).toHaveCount(1);
+  await page.getByRole("button", { name: "Frame 4", exact: true }).click();
+  await expect(page.locator(".fauna-frame code")).toHaveText(
+    "fauna-house-sparrow-forage-3",
+  );
+  await page.getByRole("button", { name: "Next frame", exact: true }).click();
+  await expect(page.locator(".fauna-frame code")).toHaveText(
+    "fauna-house-sparrow-forage-4",
+  );
+  await expect(
+    page.getByRole("button", { name: "Frame 5", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await page.getByRole("button", { name: "Play animation" }).click();
 
   await page.getByLabel("Behavior state").selectOption("flight");
   await expect(page.getByLabel("Flight height")).toBeEnabled();
@@ -44,7 +56,9 @@ test("fauna lab previews species, behavior and group presentation", async ({
     fullPage: true,
   });
   expect(
-    await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
   ).toBe(true);
   expect(errors).toEqual([]);
 });
@@ -59,8 +73,7 @@ test("developer settings link to the fauna lab", async ({ page }) => {
   await page.getByRole("button", { name: "Settings", exact: true }).click();
   const settings = page.getByRole("dialog", { name: "settings", exact: true });
   await settings.getByRole("tab", { name: "Developer" }).click();
-  await expect(settings.getByRole("link", { name: /Fauna lab/ })).toHaveAttribute(
-    "href",
-    "/fauna-lab",
-  );
+  await expect(
+    settings.getByRole("link", { name: /Fauna lab/ }),
+  ).toHaveAttribute("href", "/fauna-lab");
 });

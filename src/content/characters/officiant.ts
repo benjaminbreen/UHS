@@ -3,6 +3,8 @@ import { officiantsBySystem } from "../beliefs/officiants.generated";
 import type { Officiant } from "../beliefs/types";
 import type { WorldSetting } from "../geography/types";
 import { random } from "../../core/random";
+import { matchesCharacterScope } from "./resolve";
+import { localLabels } from "./livelihood-labels.generated";
 import type { Livelihood } from "./context-types";
 
 /*
@@ -87,6 +89,23 @@ export function officiantFor(
   };
 }
 
+/** The local name for this work, where one is authored. */
+export function localLabel(
+  l: Livelihood,
+  s: WorldSetting,
+  seed: string,
+  id: string,
+): string {
+  const fits = [...(l.labels ?? []), ...(localLabels[l.id] ?? [])].filter((v) =>
+    matchesCharacterScope(v.scope, s, "*"),
+  );
+  if (!fits.length) return l.label;
+  const total = fits.reduce((n, v) => n + (v.weight ?? 1), 0);
+  let roll = random(seed, "character-v1", id, "role-label") * total;
+  return (fits.find((v) => (roll -= v.weight ?? 1) < 0) ?? fits[fits.length - 1])
+    .label;
+}
+
 /** Replace a belief-driven row with the office this place actually has. */
 export function asOfficiant(
   l: Livelihood,
@@ -94,7 +113,10 @@ export function asOfficiant(
   seed: string,
   id: string,
 ): Livelihood | undefined {
-  if (!l.fromBeliefs) return l;
+  if (!l.fromBeliefs) {
+    const local = localLabel(l, s, seed, id);
+    return local === l.label ? l : { ...l, label: local };
+  }
   const office = officiantFor(s, seed, id);
   return office ? { ...l, label: office.label } : undefined;
 }

@@ -1,3 +1,9 @@
+## Fauna small-sprite art revision — September 12, 2026
+
+Replaced the initial fauna art with 248 compact frames, simplifying the detailed intermediate pass in response to the user's Stardew-like sprite-sheet reference. Native canvases preserve relative size: sparrow 16×16, dove 18×18, chicken 20×20, sheep 32×32, wolf 40×32 and deer 40×40. A shared 2× lineup makes proportions directly comparable. Six-color palettes have no enclosing outlines. Eight-frame cycles include articulated gaits, pecks, wingbeats, grazing, resting and small ear/eye gestures. No world placement or simulation behavior changed.
+
+The lab defaults to a single animal, with a clickable frame strip, stepping, playback speed, and correctly held/exported selected frames. Generated metadata supplies profile palettes and frame counts. Art validation checks transparency, palette limits and margins; focused profile and browser checks cover mappings, frame selection, playback, export and mobile layout. Larger intermediate drawings were replaced, not retained as another renderer.
+
 ## Fauna Lab and behavior contracts — September 12, 2026
 
 Added an isolated `/fauna-lab` with 88 original native-pixel frames for house sparrow, rock dove, chicken, sheep, red deer and gray wolf. The lab compares every authored behavior state, animation, mirrored direction, native scale, group size/spacing, flight height, shadows and five backdrops; it exposes the selected flat profile/group JSON and exports individual transparent frames. Settings → Developer opens the lab in a separate tab. No playable-world placement, behavior, save or simulation version changed.

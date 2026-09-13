@@ -1,15 +1,5 @@
 import type { FaunaProfile } from "./types";
-import { frames } from "./types";
-
-const birdArt = (id: string) =>
-  frames(id, {
-    forage: 2,
-    perch: 2,
-    takeoff: 3,
-    flight: 4,
-    approach: 2,
-    landing: 3,
-  });
+import { study } from "./types";
 
 export const birds: readonly FaunaProfile[] = [
   {
@@ -33,8 +23,7 @@ export const birds: readonly FaunaProfile[] = [
     calmDecisionSeconds: 45,
     urgentDecisionSeconds: 6,
     diet: ["seed", "invertebrate"],
-    palette: ["#3d392f", "#5c4b37", "#826a49", "#b7a378", "#d2ad61"],
-    art: birdArt("house-sparrow"),
+    ...study("house-sparrow"),
   },
   {
     id: "rock-dove",
@@ -57,7 +46,6 @@ export const birds: readonly FaunaProfile[] = [
     calmDecisionSeconds: 60,
     urgentDecisionSeconds: 6,
     diet: ["seed", "plant"],
-    palette: ["#343b3e", "#536c68", "#777b78", "#aeb0a5", "#b89a63"],
-    art: birdArt("rock-dove"),
+    ...study("rock-dove"),
   },
 ];

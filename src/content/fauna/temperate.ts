@@ -1,5 +1,5 @@
 import type { FaunaProfile } from "./types";
-import { frames } from "./types";
+import { study } from "./types";
 
 export const temperateFauna: readonly FaunaProfile[] = [
   {
@@ -23,14 +23,7 @@ export const temperateFauna: readonly FaunaProfile[] = [
     calmDecisionSeconds: 75,
     urgentDecisionSeconds: 6,
     diet: ["grass", "plant"],
-    palette: ["#2d2925", "#44362b", "#806447", "#9a6442", "#c59870"],
-    art: frames("red-deer", {
-      idle: 2,
-      forage: 2,
-      wander: 4,
-      flee: 4,
-      rest: 2,
-    }),
+    ...study("red-deer"),
   },
   {
     id: "gray-wolf",
@@ -54,13 +47,6 @@ export const temperateFauna: readonly FaunaProfile[] = [
     urgentDecisionSeconds: 6,
     diet: ["small-animal", "ungulate"],
     preyTags: ["small-animal", "ungulate"],
-    palette: ["#242729", "#303639", "#626a68", "#9ca19a"],
-    art: frames("gray-wolf", {
-      idle: 2,
-      wander: 4,
-      stalk: 4,
-      chase: 4,
-      rest: 2,
-    }),
+    ...study("gray-wolf"),
   },
 ];

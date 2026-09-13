@@ -187,6 +187,13 @@ export type Livelihood = {
   /** Where the day happens. Falls back to reading it off `activity`. */
   workplace?: Workplace;
   /**
+   * What this work is called here and now. The id, the workplace and the day
+   * stay the same; only the name changes. A gatherer in Neolithic Europe is a
+   * honey finder and in Amazonia a brazil-nut gatherer, and calling both of
+   * them "Gatherer" wastes the one thing the game knows about where they are.
+   */
+  labels?: readonly { scope: CharacterScope; label: string; weight?: number }[];
+  /**
    * Work whose title comes from whatever people here believe, rather than
    * being one label everywhere: an officiant of the local belief system, named
    * for the power they attend. One row stands for a priest of Amun-Ra, a

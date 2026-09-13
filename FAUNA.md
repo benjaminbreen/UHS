@@ -12,9 +12,11 @@ The current values are implementation studies, not ecological population estimat
 
 ## Artwork
 
-`npm run art:fauna` builds 88 original native-pixel frames into `public/fauna/atlas.png`. The first studies are house sparrow, rock dove, chicken, sheep, red deer and gray wolf. The sprites have binary transparency, limited palettes, stable ground anchors and no baked shadows. The added third-party `Basic Asset Pack for Animals` is not imported or redistributed; its provenance and license remain unrecorded.
+`npm run art:fauna` builds 248 original native-pixel frames into `public/fauna/atlas.png`. Native canvases reflect relative animal size: sparrow 16×16, dove 18×18, chicken 20×20, sheep 32×32, wolf 40×32, deer 40×40. Drawing coordinates are rasterized directly onto each species' native grid; exported bitmaps are not resized to fit a common box. Six-color palettes, no enclosing outlines, binary transparency and no baked shadows follow the user's small-sprite reference. The deer is antlerless. Eight-frame cycles include wingbeats, pecking, grazing, articulated walking/running, ear flicks and blinks; quiet cycles deliberately hold poses. These remain side-view studies, with east/west mirroring rather than directional turn animations. Third-party animal assets are not imported or redistributed. Generated `studies.json` supplies palette and frame-count metadata. Review outputs include a contact sheet and animated GIF under `artifacts/fauna-lab/`.
 
-`/fauna-lab` compares behavior states, animation, east/west silhouette, native pixel scale, group size, spacing, flight height, shadows and background colors. It can export the current transparent frame and reveal the selected species/group contract.
+The lab's shared 2× lineup displays all six species without size normalization. Cattle are not authored yet and should occupy a larger native footprint than the wolf.
+
+`/fauna-lab` compares behavior states, animation, east/west silhouette, native pixel scale, group size, spacing, flight height, shadows and background colors. It opens with one animal, has a clickable eight-frame timeline, previous/next stepping and playback-speed control, and can export the selected transparent frame. Groups use staggered phases; export corresponds to the first member. Takeoff/landing previews vary height across the cycle. These looped studies are not a behavioral flight controller.
 
 ## Next slice
 

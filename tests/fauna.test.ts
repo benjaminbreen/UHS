@@ -25,7 +25,7 @@ describe("fauna profiles", () => {
     for (const profile of faunaProfiles)
       for (const [state, frames] of Object.entries(profile.art)) {
         expect(knownStates.has(state), `${profile.id}:${state}`).toBe(true);
-        expect(frames?.length, `${profile.id}:${state}`).toBeGreaterThan(0);
+        expect(frames?.length, `${profile.id}:${state}`).toBe(8);
         for (const id of frames ?? []) {
           expect(id.startsWith(`fauna-${profile.id}-`)).toBe(true);
           expect(
@@ -34,5 +34,9 @@ describe("fauna profiles", () => {
           ).toBeDefined();
         }
       }
+    const referenced = faunaProfiles.flatMap((profile) =>
+      Object.values(profile.art).flat(),
+    );
+    expect(new Set(referenced).size).toBe(Object.keys(atlas.frames).length);
   });
 });
