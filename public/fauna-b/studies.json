@@ -1,0 +1,141 @@
+{
+  "house-sparrow": {
+    "palette": [
+      "#4d371f",
+      "#6b4a2d",
+      "#a27848",
+      "#cba770",
+      "#f0e2bf",
+      "#3c3025",
+      "#1e1610",
+      "#d9b978"
+    ],
+    "states": {
+      "forage": 8,
+      "perch": 8,
+      "takeoff": 8,
+      "flight": 8,
+      "approach": 8,
+      "landing": 8
+    },
+    "size": [
+      14,
+      14
+    ]
+  },
+  "rock-dove": {
+    "palette": [
+      "#3f4b50",
+      "#5b6a6f",
+      "#8b9b9d",
+      "#bbc6c2",
+      "#e8eade",
+      "#6c5687",
+      "#1e2224",
+      "#cf8a6a"
+    ],
+    "states": {
+      "forage": 8,
+      "perch": 8,
+      "takeoff": 8,
+      "flight": 8,
+      "approach": 8,
+      "landing": 8
+    },
+    "size": [
+      16,
+      16
+    ]
+  },
+  "chicken": {
+    "palette": [
+      "#7a4a22",
+      "#b7732d",
+      "#e2a247",
+      "#f3c975",
+      "#fbe7ad",
+      "#d9402f",
+      "#26190f",
+      "#e9b53a"
+    ],
+    "states": {
+      "idle": 8,
+      "forage": 8,
+      "wander": 8,
+      "flee": 8
+    },
+    "size": [
+      18,
+      20
+    ]
+  },
+  "sheep": {
+    "palette": [
+      "#7c6c57",
+      "#b3a98c",
+      "#ded6b9",
+      "#f2ecd5",
+      "#fffcec",
+      "#8a745b",
+      "#2a211a",
+      "#6b5744"
+    ],
+    "states": {
+      "idle": 8,
+      "graze": 8,
+      "wander": 8,
+      "flee": 8,
+      "rest": 8
+    },
+    "size": [
+      28,
+      26
+    ]
+  },
+  "red-deer": {
+    "palette": [
+      "#6a3d22",
+      "#8f5732",
+      "#bb7941",
+      "#dc9d5f",
+      "#f1c78c",
+      "#f3e4c0",
+      "#2a1a12",
+      "#55301c"
+    ],
+    "states": {
+      "idle": 8,
+      "forage": 8,
+      "wander": 8,
+      "flee": 8,
+      "rest": 8
+    },
+    "size": [
+      40,
+      40
+    ]
+  },
+  "gray-wolf": {
+    "palette": [
+      "#3a4147",
+      "#535c61",
+      "#767f83",
+      "#a4aca9",
+      "#d3d6ce",
+      "#e4e5da",
+      "#1c1d1f",
+      "#c9a24d"
+    ],
+    "states": {
+      "idle": 8,
+      "wander": 8,
+      "stalk": 8,
+      "chase": 8,
+      "rest": 8
+    },
+    "size": [
+      38,
+      26
+    ]
+  }
+}

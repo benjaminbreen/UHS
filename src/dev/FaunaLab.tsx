@@ -1,4 +1,6 @@
 import faunaAtlas from "../../public/fauna/atlas.json" with { type: "json" };
+import faunaAtlasB from "../../public/fauna-b/atlas.json" with { type: "json" };
+import studiesB from "../../public/fauna-b/studies.json" with { type: "json" };
 import { useEffect, useMemo, useState } from "react";
 import type { FaunaState } from "../core/fauna";
 import { faunaProfiles } from "../content/fauna";
@@ -12,17 +14,41 @@ const aerial = new Set<FaunaState>([
   "landing",
 ]);
 
+/** Two art sets share one species/state/frame naming; only the prefix differs. */
+export type Version = "a" | "b";
+type Frame = { x: number; y: number; w: number; h: number };
+const versions = {
+  a: {
+    label: "A · Astra",
+    prefix: "fauna-",
+    atlas: faunaAtlas,
+    image: "/fauna/atlas.png",
+  },
+  b: {
+    label: "B · Fable",
+    prefix: "faunab-",
+    atlas: faunaAtlasB,
+    image: "/fauna-b/atlas.png",
+  },
+} as const;
+
 function firstState(index: number) {
   return Object.keys(faunaProfiles[index].art)[0] as FaunaState;
 }
 
-function frameInfo(id: string) {
+function frameId(id: string, version: Version) {
+  return id.replace(/^fauna-/, versions[version].prefix);
+}
+
+function frameInfo(id: string, version: Version): Frame | undefined {
   return (
-    faunaAtlas.frames as Record<
-      string,
-      { frame: { x: number; y: number; w: number; h: number } }
-    >
-  )[id]?.frame;
+    versions[version].atlas.frames as Record<string, { frame: Frame }>
+  )[frameId(id, version)]?.frame;
+}
+
+function initialVersion(): Version {
+  const param = new URLSearchParams(window.location.search).get("v");
+  return param === "a" ? "a" : "b";
 }
 
 export function FaunaLab() {
@@ -39,12 +65,15 @@ export function FaunaLab() {
   const [flightHeight, setFlightHeight] = useState(28);
   const [shadows, setShadows] = useState(true);
   const [background, setBackground] = useState("meadow");
+  const [version, setVersion] = useState<Version>(initialVersion);
+  const [compare, setCompare] = useState(true);
   const [message, setMessage] = useState("");
   const states = Object.keys(profile.art) as FaunaState[];
   const frames = profile.art[state] ?? [];
-  const id = frames[frame % Math.max(1, frames.length)] ?? states[0];
+  const baseId = frames[frame % Math.max(1, frames.length)] ?? states[0];
+  const id = frameId(baseId, version);
   const flying = aerial.has(state);
-  const dimensions = frameInfo(id);
+  const dimensions = frameInfo(baseId, version);
   const frameDuration =
     state === "flight"
       ? 85
@@ -62,6 +91,12 @@ export function FaunaLab() {
     );
     return () => window.clearInterval(timer);
   }, [frameDuration, frames.length, playing, speed, state]);
+
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    url.searchParams.set("v", version);
+    window.history.replaceState(null, "", url);
+  }, [version]);
 
   const group = useMemo(
     () =>
@@ -89,9 +124,9 @@ export function FaunaLab() {
   async function exportPNG() {
     try {
       const image = new Image();
-      image.src = "/fauna/atlas.png";
+      image.src = versions[version].image;
       await image.decode();
-      const source = frameInfo(id)!;
+      const source = frameInfo(baseId, version)!;
       const canvas = document.createElement("canvas");
       canvas.width = source.w;
       canvas.height = source.h;
@@ -132,6 +167,59 @@ export function FaunaLab() {
     },
   };
 
+  const palette =
+    version === "b"
+      ? (studiesB as Record<string, { palette: string[] }>)[profile.id]
+          ?.palette ?? []
+      : profile.palette;
+
+  const renderGroup = (which: Version, centerPercent: number) => {
+    const size = frameInfo(baseId, which);
+    const groupScale = compare ? Math.min(scale, 3) : scale;
+    return group.map((member, index) => {
+      const memberFrame = (frame + index * 3) % frames.length;
+      const progress = memberFrame / (frames.length - 1);
+      const lift = flying
+        ? flightHeight *
+          (state === "takeoff"
+            ? progress
+            : state === "landing"
+              ? 1 - progress
+              : 1)
+        : 0;
+      return (
+        <div key={`${which}-${index}`}>
+          {shadows && (
+            <span
+              className="fauna-shadow"
+              style={{
+                left: `calc(${centerPercent}% + ${member.x * groupScale}px)`,
+                top: `calc(62% + ${member.y * groupScale}px)`,
+                opacity: flying ? Math.max(0.14, 0.5 - lift / 90) : 0.48,
+                width: (size?.w ?? 48) * groupScale * 0.55,
+                height: groupScale * 3,
+              }}
+            />
+          )}
+          <span
+            className="fauna-member"
+            data-version={which}
+            style={{
+              left: `calc(${centerPercent}% + ${member.x * groupScale}px)`,
+              top: `calc(62% + ${member.y * groupScale - lift}px)`,
+              transform: `translate(-50%, -100%) scaleX(${direction === "west" ? -1 : 1})`,
+            }}
+          >
+            <Sprite
+              name={frameId(frames[memberFrame], which)}
+              scale={groupScale}
+            />
+          </span>
+        </div>
+      );
+    });
+  };
+
   return (
     <main className="fauna-lab">
       <header className="fauna-header">
@@ -140,33 +228,58 @@ export function FaunaLab() {
           <h1>Fauna Lab</h1>
           <p>Small silhouettes · soft palettes · lively movement.</p>
         </div>
-        <a className="action" href="/">
-          Game opening ↗
-        </a>
+        <div className="fauna-version" role="group" aria-label="Art version">
+          {(Object.keys(versions) as Version[]).map((candidate) => (
+            <button
+              key={candidate}
+              className="action"
+              aria-pressed={version === candidate}
+              onClick={() => setVersion(candidate)}
+            >
+              {versions[candidate].label}
+            </button>
+          ))}
+          <label className="fauna-check">
+            <input
+              type="checkbox"
+              checked={compare}
+              onChange={(event) => setCompare(event.target.checked)}
+            />
+            Side by side
+          </label>
+          <a className="action" href="/">
+            Game opening ↗
+          </a>
+        </div>
       </header>
 
       <section className="fauna-lineup" aria-label="Shared pixel scale">
         <div className="eyebrow">WORLD-SCALE LINEUP · EVERY SPECIES AT 2×</div>
-        <div className="fauna-lineup-animals">
-          {faunaProfiles.map((candidate) => {
-            const names =
-              candidate.art.idle ??
-              candidate.art.perch ??
-              Object.values(candidate.art)[0]!;
-            const size = frameInfo(names[0]);
-            return (
-              <div key={candidate.id}>
-                <span className="fauna-lineup-sprite">
-                  <Sprite name={names[0]} scale={2} />
-                </span>
-                <small>{candidate.label.replace(" study", "")}</small>
-                <small>
-                  {size?.w} × {size?.h} px
-                </small>
-              </div>
-            );
-          })}
-        </div>
+        {(Object.keys(versions) as Version[]).map((which) => (
+          <div className="fauna-lineup-row" key={which}>
+            <strong>{versions[which].label}</strong>
+            <div className="fauna-lineup-animals">
+              {faunaProfiles.map((candidate) => {
+                const names =
+                  candidate.art.idle ??
+                  candidate.art.perch ??
+                  Object.values(candidate.art)[0]!;
+                const size = frameInfo(names[0], which);
+                return (
+                  <div key={candidate.id}>
+                    <span className="fauna-lineup-sprite">
+                      <Sprite name={frameId(names[0], which)} scale={2} />
+                    </span>
+                    <small>{candidate.label.replace(" study", "")}</small>
+                    <small>
+                      {size?.w} × {size?.h} px
+                    </small>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </section>
 
       <div className="fauna-layout">
@@ -186,7 +299,10 @@ export function FaunaLab() {
                   onClick={() => pick(index)}
                 >
                   <span className="fauna-thumb">
-                    <Sprite name={candidate.art[previewState]![0]} scale={2} />
+                    <Sprite
+                      name={frameId(candidate.art[previewState]![0], version)}
+                      scale={2}
+                    />
                   </span>
                   <strong>{candidate.label}</strong>
                   <small>
@@ -223,7 +339,7 @@ export function FaunaLab() {
               Habitat: {profile.habitats.map((entry) => entry.tag).join(", ")}
             </p>
             <div className="fauna-palette" aria-label="Sprite palette">
-              {profile.palette.map((color) => (
+              {palette.map((color) => (
                 <span key={color} title={color} style={{ background: color }} />
               ))}
             </div>
@@ -232,7 +348,10 @@ export function FaunaLab() {
 
         <section className="fauna-inspector" aria-label="Fauna preview">
           <div className="fauna-title">
-            <h2>{profile.label}</h2>
+            <h2>
+              {profile.label}{" "}
+              <span className="fauna-version-tag">{versions[version].label}</span>
+            </h2>
             <span>
               {dimensions?.w} × {dimensions?.h} px
             </span>
@@ -241,49 +360,23 @@ export function FaunaLab() {
             className={`fauna-stage fauna-bg-${background}`}
             data-testid="fauna-preview"
           >
-            {group.map((member, index) => {
-              const memberFrame = (frame + index * 3) % frames.length;
-              const progress = memberFrame / (frames.length - 1);
-              const lift = flying
-                ? flightHeight *
-                  (state === "takeoff"
-                    ? progress
-                    : state === "landing"
-                      ? 1 - progress
-                      : 1)
-                : 0;
-              return (
-                <div key={index}>
-                  {shadows && (
-                    <span
-                      className="fauna-shadow"
-                      style={{
-                        left: `calc(50% + ${member.x * scale}px)`,
-                        top: `calc(62% + ${member.y * scale}px)`,
-                        opacity: flying
-                          ? Math.max(0.14, 0.5 - lift / 90)
-                          : 0.48,
-                        width: (dimensions?.w ?? 48) * scale * 0.55,
-                        height: scale * 3,
-                      }}
-                    />
-                  )}
-                  <span
-                    className="fauna-member"
-                    style={{
-                      left: `calc(50% + ${member.x * scale}px)`,
-                      top: `calc(62% + ${member.y * scale - lift}px)`,
-                      transform: `translate(-50%, -100%) scaleX(${direction === "west" ? -1 : 1})`,
-                    }}
-                  >
-                    <Sprite name={frames[memberFrame]} scale={scale} />
-                  </span>
-                </div>
-              );
-            })}
+            {compare ? (
+              <>
+                {renderGroup("a", 27)}
+                {renderGroup("b", 73)}
+                <span className="fauna-split-label" style={{ left: "27%" }}>
+                  A · Astra
+                </span>
+                <span className="fauna-split-label" style={{ left: "73%" }}>
+                  B · Fable
+                </span>
+              </>
+            ) : (
+              renderGroup(version, 50)
+            )}
             <span className="fauna-stage-caption">
-              {members === 1 ? "Single-animal study" : "Group study"} · {scale}×
-              native pixels
+              {members === 1 ? "Single-animal study" : "Group study"} ·{" "}
+              {compare ? Math.min(scale, 3) : scale}× native pixels
             </span>
           </div>
 
@@ -298,7 +391,7 @@ export function FaunaLab() {
                   setFrame(index);
                 }}
               >
-                <Sprite name={name} scale={1} />
+                <Sprite name={frameId(name, version)} scale={1} />
                 <small>{String(index + 1).padStart(2, "0")}</small>
               </button>
             ))}

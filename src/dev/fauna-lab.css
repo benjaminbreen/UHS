@@ -330,3 +330,51 @@
     min-height: 320px;
   }
 }
+.fauna-version {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.fauna-version .action[aria-pressed="true"] {
+  border-color: #e5ca83;
+  box-shadow: inset 0 0 0 1px #e5ca83;
+  background: #405144;
+}
+.fauna-version-tag {
+  margin-left: 8px;
+  font-size: 14px;
+  font-weight: normal;
+  color: #e8cb86;
+}
+.fauna-lineup-row {
+  display: grid;
+  grid-template-columns: 90px 1fr;
+  align-items: center;
+  gap: 12px;
+}
+.fauna-lineup-row + .fauna-lineup-row {
+  border-top: 1px solid #536b66;
+}
+.fauna-lineup-row strong {
+  color: #e8cb86;
+  font-size: 13px;
+}
+.fauna-split-label {
+  position: absolute;
+  top: 14px;
+  transform: translateX(-50%);
+  padding: 4px 8px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #fff;
+  background: #142824bb;
+  z-index: 3;
+}
+@media (max-width: 620px) {
+  .fauna-lineup-row {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+}

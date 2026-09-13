@@ -8,6 +8,7 @@
     "art": "python3 scripts/build_art.py",
     "art:nature": "python3 scripts/build_nature.py",
     "art:fauna": "python3 scripts/build_fauna.py",
+    "art:fauna-b": "python3 scripts/build_fauna_b.py",
     "art:props": "python3 scripts/build_props.py",
     "build": "tsc -b && vite build",
     "test": "vitest run",

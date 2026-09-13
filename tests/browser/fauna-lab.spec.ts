@@ -5,9 +5,17 @@ test("fauna lab previews species, behavior and group presentation", async ({
 }) => {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
-  await page.goto("/fauna-lab");
+  await page.goto("/fauna-lab?v=a");
   await expect(page.getByRole("heading", { name: "Fauna Lab" })).toBeVisible();
   await expect(page.locator(".fauna-grid button")).toHaveCount(6);
+  // side by side by default: one A member and one B member
+  await expect(page.locator(".fauna-member")).toHaveCount(2);
+  await page.getByRole("button", { name: "B · Fable" }).click();
+  await expect(page.locator(".fauna-frame code")).toContainText(
+    "faunab-house-sparrow-forage-",
+  );
+  await page.getByRole("button", { name: "A · Astra" }).click();
+  await page.getByLabel("Side by side").uncheck();
   await expect(page.locator(".fauna-member")).toHaveCount(1);
   await page.getByRole("button", { name: "Frame 4", exact: true }).click();
   await expect(page.locator(".fauna-frame code")).toHaveText(

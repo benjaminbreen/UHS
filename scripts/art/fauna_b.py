@@ -9,12 +9,12 @@ from PIL import Image, ImageDraw
 
 # o outline · d shadow · m base · l light · h highlight · b second colour · e eye/nose · a accent
 PALETTES = {
-    "red-deer": {"o": "#3a2315", "d": "#875330", "m": "#bb7941", "l": "#dc9d5f", "h": "#f1c78c", "b": "#f3e4c0", "e": "#171010", "a": "#2b1a12"},
-    "gray-wolf": {"o": "#23272a", "d": "#4d5559", "m": "#767f83", "l": "#a4aca9", "h": "#d3d6ce", "b": "#e4e5da", "e": "#141212", "a": "#c9a24d"},
-    "sheep": {"o": "#453b2f", "d": "#b3a98c", "m": "#ded6b9", "l": "#f2ecd5", "h": "#fffcec", "b": "#7f6a52", "e": "#1a1411", "a": "#5e4b3a"},
-    "chicken": {"o": "#3d2919", "d": "#b7732d", "m": "#e2a247", "l": "#f3c975", "h": "#fbe7ad", "b": "#d9402f", "e": "#181210", "a": "#e9b53a"},
-    "rock-dove": {"o": "#2b3235", "d": "#5b6a6f", "m": "#8b9b9d", "l": "#bbc6c2", "h": "#e8eade", "b": "#6c5687", "e": "#131313", "a": "#cf8a6a"},
-    "house-sparrow": {"o": "#2e2317", "d": "#6b4a2d", "m": "#a27848", "l": "#cba770", "h": "#f0e2bf", "b": "#3c3025", "e": "#131010", "a": "#d9b978"},
+    "red-deer": {"o": "#6a3d22", "d": "#8f5732", "m": "#bb7941", "l": "#dc9d5f", "h": "#f1c78c", "b": "#f3e4c0", "e": "#2a1a12", "a": "#55301c"},
+    "gray-wolf": {"o": "#3a4147", "d": "#535c61", "m": "#767f83", "l": "#a4aca9", "h": "#d3d6ce", "b": "#e4e5da", "e": "#1c1d1f", "a": "#c9a24d"},
+    "sheep": {"o": "#7c6c57", "d": "#b3a98c", "m": "#ded6b9", "l": "#f2ecd5", "h": "#fffcec", "b": "#8a745b", "e": "#2a211a", "a": "#6b5744"},
+    "chicken": {"o": "#7a4a22", "d": "#b7732d", "m": "#e2a247", "l": "#f3c975", "h": "#fbe7ad", "b": "#d9402f", "e": "#26190f", "a": "#e9b53a"},
+    "rock-dove": {"o": "#3f4b50", "d": "#5b6a6f", "m": "#8b9b9d", "l": "#bbc6c2", "h": "#e8eade", "b": "#6c5687", "e": "#1e2224", "a": "#cf8a6a"},
+    "house-sparrow": {"o": "#4d371f", "d": "#6b4a2d", "m": "#a27848", "l": "#cba770", "h": "#f0e2bf", "b": "#3c3025", "e": "#1e1610", "a": "#d9b978"},
 }
 STATES = {
     "house-sparrow": dict.fromkeys(["forage", "perch", "takeoff", "flight", "approach", "landing"], 8),
@@ -101,20 +101,14 @@ def flat(mask, role):
 
 
 class Canvas:
-    """Ordered layers of role pixels; outline is computed once around the union."""
+    """Ordered layers of role pixels; one outline is drawn around the union."""
 
     def __init__(self, species):
         self.w, self.h = NATIVE_SIZES[species]
         self.palette = PALETTES[species]
         self.px = {}
 
-    def paint(self, pixels, inner=False):
-        if inner:
-            # Ring in outline colour, only where it lands on an earlier part.
-            for x, y in list(pixels):
-                for nx, ny in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
-                    if (nx, ny) not in pixels and (nx, ny) in self.px:
-                        self.px[(nx, ny)] = "o"
+    def paint(self, pixels):
         self.px.update(pixels)
 
     def dot(self, x, y, role):
@@ -165,13 +159,13 @@ def leg(canvas, hip, foot, hind, near, thick=2, role=None, lift=0.0, hoof="a"):
     role = role or ("m" if near else "d")
     pixels = flat(seg, role)
     if near:
-        # leading column catches light, trailing column falls into shade
+        # leading column catches light; the far leg is a flat shadow
         for x, y in seg:
             if (x - 1, y) not in seg:
                 pixels[(x, y)] = "l" if role == "m" else role
     for k in range(thick):
         pixels[(round(fx) + k, round(fy))] = hoof
-    canvas.paint(pixels, inner=near)
+    canvas.paint(pixels)
 
 
 # ---------------------------------------------------------------- quadrupeds
@@ -201,22 +195,18 @@ def deer(state, frame):
 
     def draw_leg(key, hip, hind, near):
         dx, up = gait(t + phases[key]) if moving else (0.0, 0.0)
-        ox = -2 if not near else 0
+        ox = -3 if not near else 0
         leg(c, (hip[0] + ox, hip[1]), (hip[0] + ox + dx + (1 if hind else 0), ground - up), hind, near, lift=up)
 
     # far side first
     draw_leg("fh", hip_h, True, False)
     draw_leg("ff", hip_f, False, False)
-    # far ear
-    c.paint(flat(polygon([(30, 6 + by), (28, 1 + by), (32, 5 + by)]), "d"))
-
     # body: chest a little deeper than the rump
     body = ellipse((7, 16 + by, 30, 26 + by)) | ellipse((15, 15 + by, 31, 26 + by))
     body_px = shade(body, top=1, bottom=2)
     for x, y in body:
-        if y >= 24 + by and 12 <= x <= 27:
-            body_px[(x, y)] = "b"  # pale belly
-    for x, y in body:
+        if (x, y + 1) not in body and 13 <= x <= 27:
+            body_px[(x, y)] = "b"  # pale belly rim
         if (x, y - 1) not in body and 12 <= x <= 26:
             body_px[(x, y)] = "h"
     c.paint(body_px)
@@ -236,15 +226,15 @@ def deer(state, frame):
         chew = 0
     if stage == 0:
         top = (34, 6 + by) if not running else (36, 9 + by)
-        neck = polygon([(23, 18 + by), (29, 16 + by), (top[0] + 1, top[1] + 1), (top[0] - 4, top[1])])
+        neck = polygon([(24, 18 + by), (29, 16 + by), (top[0] + 1, top[1] + 1), (top[0] - 3, top[1])])
         c.paint(shade(neck, top=1, bottom=1))
         _deer_head(c, top[0] - 2, top[1] - 2, "fwd", frame, running, chew)
     elif stage == 1:
-        neck = polygon([(23, 18 + by), (29, 16 + by), (36, 20 + by), (33, 24 + by)])
+        neck = polygon([(24, 18 + by), (29, 16 + by), (36, 20 + by), (33, 23 + by)])
         c.paint(shade(neck, 1, 1))
         _deer_head(c, 32, 19 + by, "low", frame, False, chew)
     else:
-        neck = polygon([(23, 18 + by), (29, 16 + by), (35, 26 + by), (31, 29 + by)])
+        neck = polygon([(24, 18 + by), (29, 16 + by), (35, 26 + by), (31, 28 + by)])
         c.paint(shade(neck, 1, 1))
         _deer_head(c, 31, 25 + by, "down", frame, False, chew)
 
@@ -257,8 +247,9 @@ def deer(state, frame):
 def _deer_head(c, x, y, pose, frame, running, chew=0):
     """Head anchored at (x, y) = back of skull. fwd: alert; low: lowering; down: grazing."""
     if pose == "fwd":
+        c.paint(flat(polygon([(x, y + 2), (x - 2, y - 3), (x + 3, y + 1)]), "d"))
         head = ellipse((x, y, x + 7, y + 6)) | polygon([(x + 5, y + 1), (x + 9, y + 3), (x + 9, y + 5), (x + 5, y + 6)])
-        c.paint(shade(head, 1, 1), inner=True)
+        c.paint(shade(head, 1, 1))
         c.paint(flat(polygon([(x + 6, y + 3), (x + 9, y + 3), (x + 9, y + 5), (x + 6, y + 6)]), "d"))
         c.dot(x + 9, y + 4, "e")
         c.dot(x + 4, y + 2, "e")
@@ -269,8 +260,9 @@ def _deer_head(c, x, y, pose, frame, running, chew=0):
         if frame == 6 and not running:
             c.dot(x + 4, y + 2, "d")
     elif pose == "low":
+        c.paint(flat(polygon([(x - 2, y + 2), (x - 4, y - 2), (x + 1, y + 1)]), "d"))
         head = ellipse((x, y, x + 6, y + 6)) | polygon([(x + 3, y + 3), (x + 7, y + 7), (x + 6, y + 9), (x + 2, y + 6)])
-        c.paint(shade(head, 1, 1), inner=True)
+        c.paint(shade(head, 1, 1))
         c.paint(flat(polygon([(x + 4, y + 5), (x + 7, y + 7), (x + 6, y + 9), (x + 3, y + 7)]), "d"))
         c.dot(x + 7, y + 8, "e")
         c.dot(x + 4, y + 2, "e")
@@ -278,8 +270,9 @@ def _deer_head(c, x, y, pose, frame, running, chew=0):
         c.paint(flat(ear, "m"))
         c.dot(x, y - 1, "b")
     else:
+        c.paint(flat(polygon([(x - 3, y + 3), (x - 5, y - 1), (x, y + 1)]), "d"))
         head = ellipse((x, y, x + 6, y + 5)) | polygon([(x + 2, y + 3), (x + 6, y + 8 + chew), (x + 4, y + 10 + chew), (x + 1, y + 5)])
-        c.paint(shade(head, 1, 1), inner=True)
+        c.paint(shade(head, 1, 1))
         c.paint(flat(polygon([(x + 3, y + 6), (x + 6, y + 8 + chew), (x + 4, y + 10 + chew), (x + 2, y + 7)]), "d"))
         c.dot(x + 5, y + 9 + chew, "e")
         c.dot(x + 4, y + 2, "e")
@@ -289,17 +282,18 @@ def _deer_head(c, x, y, pose, frame, running, chew=0):
 
 
 def _deer_rest(c, frame):
-    by = 10
-    # folded legs under the body
-    c.paint(flat(rect((9, 32, 14, 34)), "d"))
-    c.paint(flat(rect((22, 32, 30, 34)), "d"))
-    body = ellipse((6, 24, 31, 35)) | ellipse((14, 23, 32, 35))
+    body = ellipse((6, 24, 31, 34)) | ellipse((14, 23, 32, 34))
     px = shade(body, 1, 2)
     for x, y in body:
         if (x, y - 1) not in body and 12 <= x <= 26:
             px[(x, y)] = "h"
     c.paint(px)
-    c.paint(flat(polygon([(24, 33), (31, 31), (34, 34), (26, 35)]), "b"))
+    # foreleg folded forward along the ground, hind hoof tucked at the rear
+    fore = rect((24, 33, 34, 35)) | rect((22, 31, 26, 34))
+    fp = shade(fore, 1, 1)
+    fp[(34, 34)] = fp[(34, 35)] = "a"
+    c.paint(fp)
+    c.paint(flat(rect((9, 34, 12, 35)), "d"))
     c.paint(flat(polygon([(6, 26), (8, 25), (8, 30), (5, 29)]), "b"))
     dip = [0, 0, 0, 1, 1, 1, 0, 0][frame]
     top = (34, 15 + dip)
@@ -320,7 +314,7 @@ def wolf(state, frame):
     low = 2 if state == "stalk" else 0
     bounce = round(1.5 * max(0.0, math.sin(2 * math.pi * (t + 0.15)))) if running else (round(0.5 * math.cos(4 * math.pi * t) + 0.5) if moving else 0)
     by = low - bounce
-    hip_h, hip_f = (10, 15 + by), (24, 15 + by)
+    hip_h, hip_f = (10, 14 + by), (24, 14 + by)
     if running:
         gait = lambda ph: walk_foot(ph, 5.0, 4.5, 0.4)
         phases = {"fh": 0.0, "nh": 0.12, "ff": 0.55, "nf": 0.67}
@@ -333,13 +327,11 @@ def wolf(state, frame):
 
     def draw_leg(key, hip, hind, near):
         dx, up = gait(t + phases[key]) if moving else (0.0, 0.0)
-        ox = 0 if near else -2
+        ox = 0 if near else -3
         leg(c, (hip[0] + ox, hip[1]), (hip[0] + ox + dx + (1 if hind else 0), ground - up), hind, near, lift=up, hoof="o")
 
     draw_leg("fh", hip_h, True, False)
     draw_leg("ff", hip_f, False, False)
-    # far ear
-    c.paint(flat(polygon([(27, 8 + by), (27, 3 + by), (30, 7 + by)]), "d"))
     # tail: bushy, low when stalking, streaming when running
     if running:
         tail = polygon([(2, 12 + by), (9, 12 + by), (9, 16 + by), (1, 15 + by)])
@@ -349,25 +341,25 @@ def wolf(state, frame):
         wag = 1 if state == "idle" and frame in (2, 3, 6, 7) else 0
         tail = polygon([(7, 13 + by), (9, 12 + by), (9, 17 + by), (3 - wag, 20 + by), (1 - wag, 18 + by)])
     c.paint(shade(tail, 1, 1))
-    # body, deep chest, tucked belly
-    body = ellipse((6, 9 + by, 29, 19 + by)) | ellipse((14, 8 + by, 30, 20 + by))
+    # body: deep chest, tucked belly
+    body = ellipse((6, 10 + by, 28, 18 + by)) | ellipse((14, 9 + by, 30, 19 + by))
     px = shade(body, 1, 2)
     for x, y in body:
-        if y >= 17 + by and 13 <= x <= 27:
+        if (x, y + 1) not in body and 14 <= x <= 27:
             px[(x, y)] = "b"
         if (x, y - 1) not in body and 12 <= x <= 25:
             px[(x, y)] = "h"
     c.paint(px)
     # neck + head
     if running:
-        hx, hy = 30, 7 + by
-        neck = polygon([(23, 10 + by), (29, 9 + by), (hx + 3, hy + 3), (hx - 2, hy + 6)])
+        hx, hy = 29, 7 + by
+        neck = polygon([(23, 11 + by), (29, 10 + by), (hx + 3, hy + 4), (hx - 1, hy + 6)])
     elif state == "stalk":
-        hx, hy = 29, 9 + by
-        neck = polygon([(23, 10 + by), (29, 9 + by), (hx + 3, hy + 3), (hx - 2, hy + 6)])
+        hx, hy = 28, 9 + by
+        neck = polygon([(23, 11 + by), (29, 10 + by), (hx + 3, hy + 4), (hx - 1, hy + 6)])
     else:
-        hx, hy = 28, 4 + by
-        neck = polygon([(22, 10 + by), (29, 9 + by), (hx + 4, hy + 4), (hx - 2, hy + 6)])
+        hx, hy = 27, 4 + by
+        neck = polygon([(23, 11 + by), (29, 10 + by), (hx + 4, hy + 5), (hx - 1, hy + 5)])
     c.paint(shade(neck, 1, 1))
     _wolf_head(c, hx, hy, frame, state)
     draw_leg("nh", hip_h, True, True)
@@ -376,37 +368,48 @@ def wolf(state, frame):
 
 
 def _wolf_head(c, x, y, frame, state):
-    head = ellipse((x, y, x + 6, y + 6)) | polygon([(x + 4, y + 2), (x + 9, y + 4), (x + 9, y + 6), (x + 4, y + 7)])
+    """Small skull, long muzzle, pale cheek and jaw. (x, y) is the back of the skull."""
+    c.paint(flat(polygon([(x, y + 2), (x, y - 2), (x + 3, y + 1)]), "d"))  # far ear
+    skull = ellipse((x, y, x + 5, y + 5))
+    muzzle = polygon([(x + 3, y + 1), (x + 10, y + 3), (x + 10, y + 5), (x + 3, y + 6)])
+    head = skull | muzzle
     px = shade(head, 1, 1)
     for hx, hy in head:
-        if hy >= y + 5 and hx >= x + 4:
+        if hy >= y + 4 and hx >= x + 3:
             px[(hx, hy)] = "b"
-    c.paint(px, inner=True)
-    c.dot(x + 9, y + 4, "e")
-    c.dot(x + 3, y + 2, "a" if frame != 6 or state != "idle" else "d")
+        elif hy >= y + 3 and hx >= x + 6:
+            px[(hx, hy)] = "l"
+    c.paint(px)
+    c.dot(x + 10, y + 3, "e")
+    c.dot(x + 3, y + 2, "a" if not (frame == 6 and state == "idle") else "d")
     flick = state == "idle" and frame in (3, 4)
-    ear = polygon([(x + 1, y + 1), (x + 1 + (1 if flick else 0), y - 3), (x + 4, y)])
+    ear = polygon([(x + 2, y + 1), (x + 3 + (1 if flick else 0), y - 3), (x + 5, y + 1)])
     c.paint(flat(ear, "m"))
-    c.dot(x + 2, y - 1, "d")
+    c.dot(x + 3, y - 1, "d")
     if state == "chase" and frame % 2:
-        c.dot(x + 8, y + 7, "a")  # tongue
+        c.dot(x + 9, y + 6, "b")
+        c.dot(x + 9, y + 7, "a")  # tongue
     if state == "stalk":
         c.dot(x + 9, y + 6, "h")  # bared tooth
 
 
 def _wolf_rest(c, frame):
-    c.paint(flat(rect((22, 19, 30, 21)), "d"))
-    body = ellipse((5, 12, 29, 21)) | ellipse((13, 11, 30, 21))
+    body = ellipse((5, 13, 28, 21)) | ellipse((13, 12, 30, 21))
     px = shade(body, 1, 2)
     for x, y in body:
         if (x, y - 1) not in body and 10 <= x <= 24:
             px[(x, y)] = "h"
     c.paint(px)
-    tail = polygon([(4, 15), (9, 14), (9, 19), (2, 21), (1, 19)])
+    tail = polygon([(4, 16), (9, 15), (9, 20), (2, 22), (1, 20)])
     c.paint(shade(tail, 1, 1))
+    # forelegs stretched forward on the ground
+    fore = rect((24, 19, 34, 21)) | rect((22, 17, 26, 20))
+    fp = shade(fore, 1, 1)
+    fp[(34, 20)] = fp[(34, 21)] = "o"
+    c.paint(fp)
     dip = [0, 0, 1, 1, 1, 1, 0, 0][frame]
-    hx, hy = 28, 9 + dip
-    neck = polygon([(22, 13), (29, 12), (hx + 4, hy + 4), (hx - 2, hy + 6)])
+    hx, hy = 27, 9 + dip
+    neck = polygon([(22, 14), (28, 13), (hx + 4, hy + 5), (hx - 1, hy + 5)])
     c.paint(shade(neck, 1, 1))
     _wolf_head(c, hx, hy, frame, "rest")
     return c.finish()
@@ -432,7 +435,7 @@ def sheep(state, frame):
 
     def draw_leg(key, hip, hind, near):
         dx, up = gait(t + phases[key]) if moving else (0.0, 0.0)
-        ox = 0 if near else -2
+        ox = 0 if near else -3
         leg(c, (hip[0] + ox, hip[1]), (hip[0] + ox + dx, ground - up), hind, near, role="b" if near else "a", lift=up, hoof="o")
 
     draw_leg("fh", hip_h, True, False)
@@ -461,7 +464,7 @@ def sheep(state, frame):
     for x, y in head:
         if y <= hy + 1:
             hp[(x, y)] = "l"
-    c.paint(hp, inner=True)
+    c.paint(hp)
     c.dot(hx + 4, hy + 3, "e")
     c.dot(hx + 6, hy + 5 + stage, "e")
     flick = state == "idle" and frame in (3, 4)
@@ -489,7 +492,7 @@ def _sheep_rest(c, frame):
     for x, y in head:
         if y <= hy + 1:
             hp[(x, y)] = "l"
-    c.paint(hp, inner=True)
+    c.paint(hp)
     c.dot(hx + 4, hy + 3, "e" if frame not in (3, 4) else "a")
     c.dot(hx + 6, hy + 5, "e")
     c.paint(flat(polygon([(hx - 1, hy + 2), (hx - 3, hy + 1), (hx, hy + 4)]), "b"))
@@ -533,221 +536,211 @@ def chicken(state, frame):
     c.paint(px)
     # wing
     wing_up = running and frame % 2 == 0
-    wing = polygon([(5, 10 + by), (11, 10 + by), (12, 12 + by), (8, 14 + by), (5, 13 + by)]) if not wing_up else polygon([(6, 9 + by), (12, 6 + by), (13, 8 + by), (10, 11 + by), (6, 12 + by)])
-    c.paint(shade(wing, 1, 1, base="m", light="l", dark="d"), inner=True)
+    wing = polygon([(6, 10 + by), (11, 10 + by), (12, 12 + by), (9, 14 + by), (6, 13 + by)]) if not wing_up else polygon([(6, 9 + by), (12, 5 + by), (13, 7 + by), (10, 11 + by), (6, 12 + by)])
+    c.paint(shade(wing, 1, 1, base="m", light="l", dark="d"))
     # neck + head; forage dips the head to the ground
     if state == "forage":
         dip = [0, 0, 2, 5, 7, 7, 3, 0][frame]
     else:
         dip = 0
     thrust = (1 if moving and frame % 4 < 2 else 0)
-    hx, hy = 12 + thrust + lean, 4 + by + dip
-    neck = polygon([(10, 10 + by), (13, 9 + by), (hx + 4, hy + 3), (hx, hy + 4)])
+    hx, hy = 12 + thrust + lean, 5 + by + dip
+    neck = polygon([(11, 10 + by), (13, 9 + by), (hx + 3, hy + 3), (hx + 1, hy + 4)])
     c.paint(shade(neck, 1, 1))
-    head = ellipse((hx, hy, hx + 5, hy + 5))
-    c.paint(shade(head, 1, 1), inner=True)
+    head = ellipse((hx, hy, hx + 4, hy + 4))
+    c.paint(shade(head, 1, 1))
     # comb, beak, wattle, eye
-    for k, h in ((1, 2), (2, 1), (3, 2)):
+    for k, h in ((1, 1), (2, 2), (3, 1)):
         c.dot(hx + k, hy - h, "b")
-        c.dot(hx + k, hy - h + 1, "b")
-    c.dot(hx + 6, hy + 3, "a")
-    c.dot(hx + 7, hy + 3, "a")
-    c.dot(hx + 5, hy + 5, "b")
+    c.dot(hx + 5, hy + 2, "a")
+    c.dot(hx + 6, hy + 2, "a")
+    c.dot(hx + 4, hy + 4, "b")
     blink = state == "idle" and frame == 6
-    c.dot(hx + 4, hy + 2, "d" if blink else "e")
+    c.dot(hx + 3, hy + 1, "d" if blink else "e")
     return c.finish()
 
 
 # ---------------------------------------------------------------- birds (hand pixels)
-# Letters map to palette roles; '.' is clear. Grids are authored facing east.
-SPARROW_BODY = [
-    "..............",
-    "..............",
-    "..............",
-    "........mm....",
-    ".......mlle...",
-    "......mmmmma..",
-    "...ddmmlll....",
-    "..ddmmmlll....",
-    "...dmmmll.....",
-    "....dmmm......",
-    ".....a.a......",
-    "....aa.aa.....",
-    "..............",
-    "..............",
-]
-SPARROW_PECK = [
-    "..............",
-    "..............",
-    "..............",
-    "..............",
-    "..............",
-    "...ddmmll.....",
-    "..ddmmmlll....",
-    "...dmmmllm....",
-    "....dmmmmle...",
-    ".....a.a.mma..",
-    "....aa.aa.....",
-    "..............",
-    "..............",
-    "..............",
-]
-SPARROW_WING = {
-    "up": ["....", "..d.", ".dd.", "dm.."],
-    "mid": ["....", "....", "ddd.", "...."],
-    "down": ["....", "....", "d...", "dd..", ".dd."],
+# Letters map to palette roles; '.' is clear. Grids are authored facing east with
+# the feet on row h-4. Wings are separate grids placed at absolute positions.
+SPARROW = {
+    "stand": [
+        "..............",
+        "..............",
+        "........lll...",
+        ".......lhlle..",
+        ".......dlllaa.",
+        "..dd..mmdmm...",
+        ".ddmmmmdddll..",
+        "..dmmmmmddlh..",
+        "...ddmmmmll...",
+        ".....a..a.....",
+        "....aa..aa....",
+        "..............",
+        "..............",
+        "..............",
+    ],
+    "peck": [
+        "..............",
+        "..............",
+        "..............",
+        "..............",
+        "..dd..........",
+        ".ddmmmmd......",
+        "..dmmmmdddl...",
+        "...ddmmmddllll",
+        ".....mmm.dllle",
+        ".....a..a.lmaa",
+        "....aa..aa..a.",
+        "..............",
+        "..............",
+        "..............",
+    ],
+    "fly": [
+        "..............",
+        "..............",
+        "..............",
+        "..............",
+        ".........lle..",
+        "..ddmmmmmdlaa.",
+        ".ddmmmmmmlll..",
+        "...ddmmmll....",
+        "..............",
+        "..............",
+        "..............",
+        "..............",
+        "..............",
+        "..............",
+    ],
+    "wings": {
+        "up": (["...d", "..dl", ".dl.", "dl.."], 4, 1),
+        "mid": (["dddl"], 4, 6),
+        "down": (["d...", "dl..", ".dl.", "..dl"], 4, 6),
+    },
+    "legs": (5, 8),
 }
-SPARROW_FLY = [
-    "..............",
-    "..............",
-    "..............",
-    "..............",
-    "..............",
-    "........mle...",
-    "..ddmmmmmlla..",
-    "...ddmmmll....",
-    "....ddmm......",
-    "..............",
-    "..............",
-    "..............",
-    "..............",
-    "..............",
-]
-DOVE_BODY = [
-    "................",
-    "................",
-    "................",
-    ".........mml....",
-    "........mllle...",
-    "........bmmmma..",
-    "....ddmmmlll....",
-    "...ddmmmmlll....",
-    "..ddmmmmmll.....",
-    "...ddmmmll......",
-    ".....dmm........",
-    "......a.a.......",
-    ".....aa.aa......",
-    "................",
-    "................",
-    "................",
-]
-DOVE_PECK = [
-    "................",
-    "................",
-    "................",
-    "................",
-    "................",
-    "....ddmmlll.....",
-    "...ddmmmmlll....",
-    "..ddmmmmmllm....",
-    "...ddmmmlllml...",
-    ".....dmm..bmme..",
-    "......a.a..mma..",
-    ".....aa.aa......",
-    "................",
-    "................",
-    "................",
-    "................",
-]
-DOVE_FLY = [
-    "................",
-    "................",
-    "................",
-    "................",
-    "................",
-    "................",
-    ".........mle....",
-    "..ddmmmmmmlla...",
-    "...ddmmmmmll....",
-    "....dddmmm......",
-    "................",
-    "................",
-    "................",
-    "................",
-    "................",
-    "................",
-]
-DOVE_WING = {
-    "up": [".....", "...d.", "..dd.", ".ddl.", "dml.."],
-    "mid": [".....", ".....", ".....", "dddd.", "....."],
-    "down": [".....", ".....", ".....", "d....", "ddl..", ".ddl.", "..dd."],
+DOVE = {
+    "stand": [
+        "................",
+        "................",
+        "................",
+        "..........lll...",
+        ".........lhlle..",
+        ".........bmmmaa.",
+        "...dd..mmbmm....",
+        "..ddmmmmmdddll..",
+        ".ddmmmmmmdddlll.",
+        "..ddmmmmmmmlll..",
+        "...dddmmmmml....",
+        "......a...a.....",
+        ".....aa...aa....",
+        "................",
+        "................",
+        "................",
+    ],
+    "peck": [
+        "................",
+        "................",
+        "................",
+        "................",
+        "................",
+        "....dd..........",
+        "...ddmmmm.......",
+        "..ddmmmmmddl....",
+        "..ddmmmmmdddll..",
+        "...ddmmmmmmllll.",
+        "....dddmmm.bmmme",
+        "......a...almaa.",
+        ".....aa...aa..a.",
+        "................",
+        "................",
+        "................",
+    ],
+    "fly": [
+        "................",
+        "................",
+        "................",
+        "................",
+        "................",
+        "..........lle...",
+        "..ddmmmmbmmmlaa.",
+        ".ddmmmmmmmlll...",
+        "...dddmmmmll....",
+        "................",
+        "................",
+        "................",
+        "................",
+        "................",
+        "................",
+        "................",
+    ],
+    "wings": {
+        "up": (["....d", "...dl", "..dl.", ".dl..", "dl..."], 5, 1),
+        "mid": (["ddddl"], 5, 7),
+        "down": (["d....", "dl...", ".dl..", "..dl.", "...dl"], 5, 7),
+    },
+    "legs": (6, 9),
 }
 
 
-def _blit(c, grid, ox=0, oy=0, inner=False):
+def _blit(c, grid, ox=0, oy=0):
     pixels = {}
     for y, row in enumerate(grid):
         for x, ch in enumerate(row):
             if ch != ".":
                 pixels[(x + ox, y + oy)] = ch
-    c.paint(pixels, inner=inner)
+    c.paint(pixels)
 
 
 def bird(species, state, frame):
     c = Canvas(species)
-    dove = species == "rock-dove"
-    body, peck, fly, wings = (DOVE_BODY, DOVE_PECK, DOVE_FLY, DOVE_WING) if dove else (SPARROW_BODY, SPARROW_PECK, SPARROW_FLY, SPARROW_WING)
+    art = DOVE if species == "rock-dove" else SPARROW
     flying = state in {"takeoff", "flight", "approach", "landing"}
-    wing_cycle = ["up", "up", "mid", "down", "down", "down", "mid", "up"]
     if state == "flight":
-        pose = wing_cycle[frame]
+        pose = ["up", "up", "mid", "down", "down", "down", "mid", "up"][frame]
     elif state == "approach":
         pose = ["mid", "mid", "mid", "down", "mid", "mid", "mid", "up"][frame]
     elif state == "takeoff":
-        pose = ["mid", "up", "down", "up", "down", "up", "mid", "down"][frame]
+        pose = [None, "up", "down", "up", "down", "up", "mid", "down"][frame]
     elif state == "landing":
-        pose = ["up", "down", "up", "up", "mid", "mid", "mid", "mid"][frame]
+        pose = ["up", "down", "up", "up", "mid", "mid", None, None][frame]
     else:
         pose = None
     if flying:
         stage = frame / 7
-        # takeoff: legs fold while the body pitches up; landing: legs drop and the body settles
+        # takeoff: legs fold while the body rises; landing: legs drop and the body settles
         if state == "takeoff":
             lift = -round(4 * stage)
-            legs = frame < 3
+            legs = 0 < frame < 3
         elif state == "landing":
             lift = -round(3 * (1 - stage))
-            legs = frame >= 4
+            legs = 3 <= frame < 6
         else:
-            lift = -3 if dove else -2
+            lift = -3
             legs = False
-        if state == "landing" and frame >= 6:
-            _blit(c, body)
-        elif state == "takeoff" and frame == 0:
-            _blit(c, body)
+        if pose is None:
+            _blit(c, art["stand"])
         else:
-            _blit(c, fly, 0, lift)
+            _blit(c, art["fly"], 0, lift)
             if legs:
-                lx = 6 if dove else 5
-                ly = (10 if dove else 9) + lift
-                c.dot(lx, ly, "a")
-                c.dot(lx + 2, ly, "a")
-                c.dot(lx, ly + 1, "a")
-                c.dot(lx + 2, ly + 1, "a")
-        if pose:
-            wx, wy = (4, 3 + lift) if dove else (4, 3 + lift)
-            grid = wings[pose]
-            oy = wy - (len(grid) - 3) if pose == "up" else wy + 1
-            _blit(c, grid, wx, oy, inner=True)
+                lx, ly = art["legs"]
+                for k in (0, 2):
+                    c.dot(lx + k, ly + lift, "a")
+                    c.dot(lx + k, ly + lift + 1, "a")
+            grid, wx, wy = art["wings"][pose]
+            _blit(c, grid, wx, wy + lift)
     elif state == "forage":
         stage = [0, 1, 1, 0, 0, 1, 0, 0][frame]
         hop = 1 if frame in (3, 6) else 0
-        _blit(c, peck if stage else body, 0, -hop)
-    else:  # perch: blink, look about, ruffle
+        _blit(c, art["peck"] if stage else art["stand"], 0, -hop)
+    else:  # perch: look about, blink
         turn = 1 if frame in (2, 3) else 0
-        _blit(c, body, -turn, 0)
+        _blit(c, art["stand"], -turn, 0)
         if frame == 5:
-            # eye shut
-            for y, row in enumerate(body):
+            for y, row in enumerate(art["stand"]):
                 for x, ch in enumerate(row):
                     if ch == "e":
                         c.dot(x - turn, y, "d")
-    if dove:
-        # iridescent neck patch
-        for y, row in enumerate(body if not flying else fly):
-            for x, ch in enumerate(row):
-                if ch == "b":
-                    pass
     return c.finish()
 
 

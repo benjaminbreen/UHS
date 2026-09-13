@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import atlas from "../public/fauna/atlas.json" with { type: "json" };
+import atlasB from "../public/fauna-b/atlas.json" with { type: "json" };
 import { faunaProfiles } from "../src/content/fauna";
 import { faunaStates } from "../src/core/fauna";
 
@@ -38,5 +39,16 @@ describe("fauna profiles", () => {
       Object.values(profile.art).flat(),
     );
     expect(new Set(referenced).size).toBe(Object.keys(atlas.frames).length);
+  });
+
+  it("ships a B frame for every A frame so the lab can toggle between them", () => {
+    const framesB = atlasB.frames as Record<string, { frame: { w: number; h: number } }>;
+    for (const profile of faunaProfiles)
+      for (const frames of Object.values(profile.art))
+        for (const id of frames ?? []) {
+          const idB = id.replace(/^fauna-/, "faunab-");
+          expect(framesB[idB], idB).toBeDefined();
+        }
+    expect(Object.keys(framesB).length).toBe(Object.keys(atlas.frames).length);
   });
 });
