@@ -38,10 +38,12 @@ const mod = (n: number, d: number) => ((n % d) + d) % d;
 export const isCanal = (c?: TopographyCell) =>
   !!c && c.surface === "water" && c.waterVisual?.kind === "canal" && !c.bridge;
 
-/** A cut channel: straight two-pixel lips either side, still water between,
- * one highlight line along the flow. Water runs to the edge wherever the
- * neighbour is water or a culvert deck; elsewhere the lip closes the end. A
- * perpendicular canal opens the lip over the middle columns for a junction. */
+/** A cut channel seen from above and a little in front: a raised earth berm
+ * outside each lip, a lit far (south/east) bank face, a shadow thrown by the
+ * near bank onto the water, saturated river water with lane ripples, and the
+ * channel a step below the ground. Water runs to the edge wherever the
+ * neighbour is water or a culvert deck; elsewhere the end closes with a
+ * berm. A perpendicular canal opens the berm over the middle for a junction. */
 function rasterCanalTile(
   sample: TopographySample,
   x: number,
@@ -58,6 +60,7 @@ function rasterCanalTile(
   ];
   const mix = (a: number[], b: number[], t: number) =>
     a.map((v, k) => Math.round(v * (1 - t) + b[k] * t));
+  const shade = (a: number[], v: number) => a.map((c) => Math.max(0, Math.min(255, c + v)));
   const axis = (cell.waterVisual?.flow[0] ?? 0) !== 0 ? "x" : "y";
   const open = (dx: number, dy: number) => {
     const n = sample(x + dx, y + dy);
@@ -71,28 +74,35 @@ function rasterCanalTile(
     axis === "x"
       ? [openW, openE, openN, openS]
       : [openN, openS, openW, openE];
+  // Profile across the channel, in pixels from the near edge:
+  // 0-1 berm, 2 lip, 3-12 water, 13 lip, 14-15 berm.
   const water = new Uint8Array(256);
   for (let py = 0; py < 16; py++)
     for (let px = 0; px < 16; px++) {
       const a = axis === "x" ? px : py,
         c = axis === "x" ? py : px;
-      let w = c >= 2 && c <= 13;
-      if (w && !startOpen && a < 2) w = false;
-      if (w && !endOpen && a > 13) w = false;
-      if (a >= 2 && a <= 13) {
-        if (sideAOpen && c < 2) w = true;
-        if (sideBOpen && c > 13) w = true;
+      let w = c >= 3 && c <= 12;
+      if (w && !startOpen && a < 3) w = false;
+      if (w && !endOpen && a > 12) w = false;
+      if (a >= 3 && a <= 12) {
+        if (sideAOpen && c < 3) w = true;
+        if (sideBOpen && c > 12) w = true;
       }
       water[py * 16 + px] = w ? 1 : 0;
     }
   const at = (px: number, py: number) =>
     px < 0 || py < 0 || px > 15 || py > 15 ? undefined : water[py * 16 + px];
-  const still = rgb(palette.depths[2]),
-    shadow = rgb(palette.depths[3]),
+  // Water: the river's mid and deep tones, so a canal is the same water as
+  // the river that feeds it, not a grey wash.
+  const still = rgb(palette.depths[3]),
+    deep = rgb(palette.depths[4]),
+    light = rgb(palette.depths[2]),
     glint = mix(still, rgb(palette.glint), 0.45),
-    lipOuter = rgb(palette.bank[2]),
-    lipInner = rgb(palette.bank[1]),
-    lipJoint = rgb(palette.bank[0]);
+    bermTop = rgb(palette.bank[2]),
+    bermSide = rgb(palette.bank[1]),
+    bermFoot = rgb(palette.bank[0]),
+    faceLit = mix(rgb(palette.bank[1]), rgb(palette.bank[2]), 0.35),
+    faceDark = shade(rgb(palette.bank[0]), -18);
   const pixels = new Uint8ClampedArray(1024);
   for (let py = 0; py < 16; py++)
     for (let px = 0; px < 16; px++) {
@@ -102,19 +112,51 @@ function rasterCanalTile(
       const along = axis === "x" ? wx : wy;
       let tone: number[];
       if (at(px, py)) {
-        // The north and west lips cast a one-pixel shade onto the water.
-        const shaded = at(px, py - 1) === 0 || at(px - 1, py) === 0;
-        tone = shaded ? shadow : still;
-        if (!shaded && c === 9 && waterHash(Math.floor(along / 6), 0, 901) > 0.25)
-          tone = glint;
+        // Near (north/west) bank throws a two-pixel shadow onto the water;
+        // ripples drift along the channel as short dashes in lanes.
+        const shadow2 = at(px, py - 1) === 0 || at(px - 1, py) === 0;
+        const shadow1 = !shadow2 && (at(px, py - 2) === 0 || at(px - 2, py) === 0);
+        // Deep under the near bank, lighter toward the far, sunlit side.
+        tone = shadow2 ? deep : shadow1 ? mix(deep, still, 0.5) : c >= 10 ? mix(still, light, 0.5) : still;
+        const lane = Math.floor((c - 3) / 3);
+        const phase = Math.floor(waterHash(lane, Math.floor(along / 14), 903) * 6);
+        const dash = mod(along + lane * 5 + phase, 14);
+        // Ripples: a two-pixel-high crest with a one-pixel tail, in lanes.
+        if (!shadow2 && !shadow1 && c >= 5 && c <= 11) {
+          if (dash < 3) tone = mix(tone, glint, dash === 1 ? 1 : 0.6);
+          else if (dash === 3 && mod(c, 3) === 1) tone = mix(tone, glint, 0.35);
+        }
+        // The far bank's foot catches light along the water's edge.
+        if (c === 12 && mod(along + phase, 5) !== 2) tone = mix(tone, glint, 0.35);
       } else {
         const inner =
           at(px + 1, py) === 1 ||
           at(px - 1, py) === 1 ||
           at(px, py + 1) === 1 ||
           at(px, py - 1) === 1;
-        tone = inner ? lipInner : lipOuter;
-        if (!inner && mod(along, 8) === 0 && (c === 0 || c === 15)) tone = lipJoint;
+        const near = axis === "x" ? c <= 2 : c <= 2;
+        if (inner) {
+          // The lip: the near bank shows its shadowed face, the far bank
+          // its lit face, and an end wall reads as the dark face too.
+          const farSide = axis === "x" ? c >= 13 : c >= 13;
+          tone = farSide ? faceLit : faceDark;
+          if (axis === "y" && c >= 13) tone = faceLit;
+          if (waterHash(Math.floor(along / 4), c, 905) > 0.7) tone = mix(tone, bermSide, 0.4);
+        } else {
+          // Berm: a ridge of piled earth. The near berm shows its lit crest
+          // and shaded outer slope; the far berm its shaded crest toward us
+          // and lit slope away. Grass creeps over the outer foot in tufts.
+          const outer = near ? c === 0 : c === 15;
+          const crest = near ? c === 1 : c === 14;
+          tone = near
+            ? outer ? bermSide : crest ? shade(bermTop, 6) : bermTop
+            : outer ? shade(bermTop, 4) : crest ? bermSide : bermFoot;
+          if (outer && waterHash(Math.floor(along / 3), c, 907) > 0.5) tone = mix(tone, bermFoot, 0.5);
+          if (crest && waterHash(Math.floor(along / 4), c, 909) > 0.78) tone = mix(tone, bermSide, 0.6);
+          // A trodden line runs along the far berm.
+          if (!near && crest && mod(along + Math.floor(waterHash(Math.floor(along / 9), 0, 911) * 3), 7) === 0)
+            tone = shade(tone, -10);
+        }
       }
       pixels.set([...tone, 255], (py * 16 + px) * 4);
     }
@@ -200,9 +242,12 @@ export function rasterWaterTile(
         ),
       );
       const lip = 1 + Math.floor(waterNoise(wx, wy, 12, 2) * 2);
-      if (!cell.bridge && edge < lip) index = 10 + (edge === 0 ? 1 : 0);
+      // A creek has no cut lip inside its water; its edge is on the turf.
+      const creekTile = (cell.waterVisual?.shoreWidth ?? 3) < 1.2;
+      if (!cell.bridge && !creekTile && edge < lip) index = 10 + (edge === 0 ? 1 : 0);
       if (
         !cell.bridge &&
+        !creekTile &&
         edge === 0 &&
         waterHash(Math.floor(wx / 4), Math.floor(wy / 4), 17) > 0.66
       )
@@ -210,6 +255,7 @@ export function rasterWaterTile(
       // Interrupted contact shade at the wet lip, leaving most banks softly lit.
       if (
         !cell.bridge &&
+        !creekTile &&
         edge === lip &&
         waterHash(Math.floor(wx / 8), Math.floor(wy / 8), 18) > 0.56
       )
@@ -242,6 +288,7 @@ export function rasterWaterTile(
   const depth = -(cell.waterVisual?.distance ?? -3);
   if (
     !cell.bridge &&
+    cell.habitat?.colorway !== "swamp" &&
     depth > 0.4 &&
     depth < (kind === "sea" ? 8 : 3.8) &&
     waterHash(gx, gy, 44) > 0.86 &&

@@ -3,6 +3,7 @@ import { WadingEffects } from "./characters/wading";
 import { shorePolishDefaults } from "./living-water/polish";
 import { updateLivingWater } from "./living-water/game";
 import { natureTreeSprites } from "../content/ecology/vegetation";
+import { rockFrame } from "../content/ecology/rocks";
 import {
   aerialStates,
   type FaunaGroup,
@@ -386,6 +387,11 @@ export class WorldScene extends Phaser.Scene {
           x = hit.x + ox;
           y = hit.y + oy;
         }
+      }
+      const native = pointer.event as MouseEvent | undefined;
+      if (native?.metaKey || native?.ctrlKey) {
+        this.runtime.inspectCell(x, y);
+        return;
       }
       const obs = this.runtime.getSnapshot().observation;
       const actor = obs.actors.find(
@@ -1170,11 +1176,10 @@ export class WorldScene extends Phaser.Scene {
                   : originalName;
               const frame =
                 spriteName === "rock"
-                  ? ["rock", "rock-1", "rock-2"][
-                      Math.floor(
-                        random(e.state.manifest.seed, "rock-art", x, y) * 3,
-                      )
-                    ]
+                  ? rockFrame(
+                      w.topography?.(x, y)?.habitat,
+                      random(e.state.manifest.seed, "rock-art", x, y),
+                    )
                   : spriteName;
               this.shadow(frame, x * 16 + 8, y * 16 + 16);
               const decoration = this.sprite(

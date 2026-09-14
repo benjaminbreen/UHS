@@ -2,7 +2,7 @@ import { noise } from "../geography/noise";
 import {
   ecologyProfiles,
   type Ecology,
-  type DesertColorway,
+  type Colorway,
 } from "../../content/ecology/profiles";
 import { geographicClimate } from "../geography/climate";
 import { resolveCharacterContext } from "../../content/characters/resolve";
@@ -238,6 +238,38 @@ export function createRegionalContext(start: WorldSetting) {
     }
     return value;
   }
+  // Relief read between block centres, so tiers and landform blends follow a
+  // curve across the countryside instead of stepping at every 128-cell box.
+  const reliefBlocks = new Map<string, number>();
+  const blockRelief = (bx: number, by: number) => {
+    const k = `${bx},${by}`;
+    let v = reliefBlocks.get(k);
+    if (v === undefined) {
+      const ll = fromAtlas(bx * 128 + 64, by * 128 + 64);
+      v = broadEnvironment(ll.lon, ll.lat).relief;
+      trimCache(reliefBlocks, 1024);
+      reliefBlocks.set(k, v);
+    }
+    return v;
+  };
+  function reliefAt(x: number, y: number) {
+    const ax = x + origin.x,
+      ay = y + origin.y;
+    const warp = (noise("ecotone", ax, ay, 96, "boundary") - 0.5) * 40;
+    const fx = (ax + warp) / 128 - 0.5,
+      fy = (ay - warp) / 128 - 0.5;
+    const gx = Math.floor(fx),
+      gy = Math.floor(fy);
+    const smooth = (t: number) => t * t * (3 - 2 * t);
+    const tx = smooth(fx - gx),
+      ty = smooth(fy - gy);
+    return (
+      blockRelief(gx, gy) * (1 - tx) * (1 - ty) +
+      blockRelief(gx + 1, gy) * tx * (1 - ty) +
+      blockRelief(gx, gy + 1) * (1 - tx) * ty +
+      blockRelief(gx + 1, gy + 1) * tx * ty
+    );
+  }
   // Keyed by column, then row, then whether the start is included. The chunk
   // loop asks for this once per cell, so building a `${x},${y},${flag}` string
   // for every lookup was itself among the largest costs in world generation.
@@ -327,17 +359,20 @@ export function createRegionalContext(start: WorldSetting) {
   function calculateEcology(x: number, y: number) {
     const ax = x + origin.x,
       ay = y + origin.y;
-    const warp = (noise("ecotone", ax, ay, 96, "boundary") - 0.5) * 48;
-    const gx = Math.floor((ax + warp) / 128) * 128;
-    const gy = Math.floor((ay - warp) / 128) * 128;
+    // A 64-cell lattice: a scene mixes two or three neighbours rather than
+    // sitting inside one carpet.
+    const L = 64;
+    const warp = (noise("ecotone", ax, ay, 96, "boundary") - 0.5) * 56;
+    const gx = Math.floor((ax + warp) / L) * L;
+    const gy = Math.floor((ay - warp) / L) * L;
     const smooth = (t: number) => t * t * (3 - 2 * t);
-    const tx = smooth((ax + warp - gx) / 128),
-      ty = smooth((ay - warp - gy) / 128);
+    const tx = smooth((ax + warp - gx) / L),
+      ty = smooth((ay - warp - gy) / L);
     const distance = Math.hypot(x, y) + warp;
     const home = 1 - smooth(Math.max(0, Math.min(1, (distance - 80) / 208)));
     const parts: {
       ecology: Ecology;
-      colorway?: DesertColorway;
+      colorway?: Colorway;
       weight: number;
     }[] = [];
     const add = (
@@ -353,9 +388,9 @@ export function createRegionalContext(start: WorldSetting) {
     };
     for (const [dx, dy, weight] of [
       [0, 0, (1 - tx) * (1 - ty)],
-      [128, 0, tx * (1 - ty)],
-      [0, 128, (1 - tx) * ty],
-      [128, 128, tx * ty],
+      [L, 0, tx * (1 - ty)],
+      [0, L, (1 - tx) * ty],
+      [L, L, tx * ty],
     ])
       add(
         rawSettingAt(gx + dx - origin.x, gy + dy - origin.y, false)
@@ -363,6 +398,36 @@ export function createRegionalContext(start: WorldSetting) {
         weight * (1 - home),
       );
     add(start.environment!, home);
+    const map = start.playableMap;
+    if (map?.exits.some((e) => e.neighbor)) {
+      const hits = map.exits.flatMap((e) => {
+        if (!e.neighbor || e.mode !== "land") return [];
+        const side = e.seam?.side ?? e.bearing[0];
+        const along = side === "N" || side === "S" ? x : y;
+        const u = (along + map.size / 2) / (map.size - 1);
+        if (u < (e.seam?.start ?? 0) || u > (e.seam?.end ?? 1)) return [];
+        const depth = side === "N" ? y + map.size / 2 : side === "S" ? map.size / 2 - 1 - y : side === "W" ? x + map.size / 2 : map.size / 2 - 1 - x;
+        const weight = 0.5 * (1 - smooth(Math.max(0, Math.min(1, depth / 112))));
+        return weight > 0 ? [{ env: e.neighbor, weight }] : [];
+      });
+      if (hits.length) {
+        const total = hits.reduce((sum, h) => sum + h.weight, 0);
+        parts.length = 0;
+        add(start.environment!, 1 - Math.min(0.5, total));
+        for (const hit of hits)
+          add({ ...start.environment!, ...hit.env }, hit.weight * Math.min(0.5, total) / total);
+      }
+    }
+    if (start.playableMap?.exits.some((e) => e.neighbor)) {
+      const desert = parts.filter((p) => p.ecology === "desert").reduce((sum, p) => sum + p.weight, 0);
+      const green = parts.some((p) => p.ecology.includes("woodland") || p.ecology === "grassland");
+      if (desert > 0 && desert < 1 && green) {
+        const transition = Math.min(desert, 1 - desert) * 1.2;
+        for (const part of parts) part.weight *= 1 - transition;
+        add({ ...start.environment!, ecology: "dry-scrub", colorway: undefined }, transition * desert);
+        add({ ...start.environment!, ecology: "grassland", colorway: undefined }, transition * (1 - desert));
+      }
+    }
     let roll = noise("ecotone", ax, ay, 12, "plant-colonies");
     const selected =
       parts.find((p) => (roll -= p.weight) <= 0) ?? parts[parts.length - 1];
@@ -475,6 +540,7 @@ export function createRegionalContext(start: WorldSetting) {
     canSettle,
     settingAt,
     ecologyAt,
+    reliefAt,
     packAt,
     profilesAt,
   };

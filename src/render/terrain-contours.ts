@@ -3,6 +3,7 @@ import type Phaser from "phaser";
 import type { TopographySample } from "../core/topography";
 import type { TerrainRegion } from "./terrain-region";
 import type { GroundTileData } from "./habitat-raster";
+import type { WaterTileData } from "./water-raster";
 import { paintedGround } from "./material-edges";
 import { contourSurfaces } from "./contour-surfaces";
 import {
@@ -16,7 +17,7 @@ import { banks, soils } from "./habitat-raster";
 import { defaultGrassArt } from "../content/graphics/grass-art";
 import {
   paletteKey,
-  type DesertColorway,
+  type Colorway,
   type Ecology,
 } from "../content/ecology/profiles";
 import { TERRAIN_RISE } from "./terrain-projection";
@@ -60,6 +61,7 @@ export function rasterTerrainContours(
   groundTiles?: readonly GroundTileData[],
   rims?: number[],
   receivers?: Partial<TerrainReceivers>,
+  waterTiles?: readonly WaterTileData[],
 ): ContourLayer[] {
   const R = TERRAIN_RISE;
   const styled = groundStyle();
@@ -74,6 +76,7 @@ export function rasterTerrainContours(
       groundTiles,
       rims,
       receivers,
+      waterTiles,
     );
   const layers = new Map<string, ContourLayer>(),
     w = width * 16 + B * 2;
@@ -390,6 +393,9 @@ export function wallOwnsCell(sample: TopographySample, x: number, y: number) {
   const c = sample(x, y);
   // Only cells with a rasterised habitat tile can be redrawn here: there is
   // nothing to copy the surface texture from otherwise.
+  // Water above the valley floor (a creek on its terrace) is drawn here too,
+  // from its own rasterised tile.
+  if (c && c.surface === "water" && c.height > 0) return true;
   if (!c || !paintedGround(c) || c.feature === "paving" || c.field)
     return false;
   for (let dy = -1; dy <= 1; dy++)
@@ -410,6 +416,7 @@ function rasterWallContours(
   groundTiles: readonly GroundTileData[] = [],
   rims?: number[],
   receivers?: Partial<TerrainReceivers>,
+  waterTiles?: readonly WaterTileData[],
 ): ContourLayer[] {
   const { bank, contour } = style;
   const PX = receivers ? 128 : 16,
@@ -679,7 +686,7 @@ function rasterWallContours(
   const trimFor = (
     ecology: string | undefined,
     surface: string | undefined,
-    colorway?: DesertColorway,
+    colorway?: Colorway,
   ): Trim => {
     const eco = paletteKey((ecology ?? "grassland") as Ecology, colorway);
     const key = `${eco}:${surface}`;
@@ -732,6 +739,7 @@ function rasterWallContours(
     groundTiles,
     region?.x ?? 0,
     region?.y ?? 0,
+    waterTiles,
   );
 
   const drop_ = (hi: number, lo: number) => (hi - lo) * R;
@@ -822,6 +830,35 @@ function rasterWallContours(
       }
       if (below >= L) continue;
       const drop = (L - below) * R;
+      // Water above water: the face is a fall, not a cut bank. Streaks run
+      // down it, the lip is dark, and foam spreads at the foot.
+      const lower = sample(cx, row + 1);
+      if (cell?.surface === "water" && lower?.surface === "water") {
+        const pale = [214, 240, 250],
+          light = [150, 205, 232],
+          mid = [96, 160, 208],
+          deep = [56, 112, 168];
+        const streak = ((px + ox) * 7 + Math.floor(contourNoise(Math.floor((px + ox) / 2), row + oy, 1, 107) * 3)) % 4;
+        for (let r = 0; r < drop; r++) {
+          const n = contourNoise(px + ox, r + (py + oy) * 3, 1, 109);
+          const rgb =
+            r === 0
+              ? deep
+              : r >= drop - 2
+                ? n < 0.6
+                  ? pale
+                  : light
+                : streak === 0
+                  ? pale
+                  : streak === 2
+                    ? mid
+                    : n > 0.8
+                      ? pale
+                      : light;
+          paintRgb(row, L, px, sy + 1 + r, rgb);
+        }
+        continue;
+      }
       for (let r = 0; r < drop; r++) {
         const pixel = styledBankPixel(bank, r, drop, px + ox, py + oy);
         const rgb =
@@ -840,7 +877,7 @@ function rasterWallContours(
   // Ramps: a trodden-earth slope lifted continuously from its own tier to
   // the plateau it climbs, in place of the old atlas slope sprite. Rows and
   // columns are walked in screen space so a stretched slope has no gaps.
-  const soilFor = (ecology: string | undefined, colorway?: DesertColorway) =>
+  const soilFor = (ecology: string | undefined, colorway?: Colorway) =>
     soils[paletteKey((ecology ?? "grassland") as Ecology, colorway)] ??
     soils.grassland;
   const noise = (x: number, y: number, salt: number) =>
@@ -852,6 +889,22 @@ function rasterWallContours(
       if (!cell || !dir) continue;
       const t = cell.height;
       const soil = soilFor(cell.habitat?.ecology, cell.habitat?.colorway);
+      const style = cell.rampStyle ?? "cut";
+      const turf =
+        defaultGrassArt.palettes[
+          paletteKey(
+            (cell.habitat?.ecology ?? "grassland") as Ecology,
+            cell.habitat?.colorway,
+          )
+        ] ?? defaultGrassArt.palettes.grassland;
+      const stone = [156, 156, 146],
+        stoneDark = [104, 106, 100],
+        stoneLight = [196, 196, 184];
+      const timber = [92, 60, 38],
+        timberLight = [134, 94, 56];
+      // Rails, stones and the top edge take a per-ramp phase so no two
+      // crossings share the same breaks.
+      const phase = Math.floor(noise(cx + ox, cy + oy, 97) * 16);
       const trim = trimFor(
         cell.habitat?.ecology,
         cell.surface,
@@ -905,22 +958,79 @@ function rasterWallContours(
           const openHigh = along
             ? !rampInto(cx + 1, cy, dir)
             : !rampInto(cx, cy + 1, dir);
-          const side = openLow && u < 2 ? u : openHigh && u > 13 ? 15 - u : -1;
-          const cut =
-            side < 0 ? undefined : side === 0 ? trim.earth[0] : trim.earth[1];
-          const n = noise(wx, wy, 91);
           const rise = along ? sy : px;
+          const runPos = along ? px : sy;
+          // Rail depth wanders 0–2 px along the run, so the side is a broken
+          // edge rather than two ruled lines; slopes have no rail at all.
+          const railDepth =
+            style === "slope"
+              ? 0
+              : Math.floor(noise(Math.floor((rise + phase) / 3), 0, 99) * 3);
+          const side =
+            openLow && u < railDepth
+              ? u
+              : openHigh && u > 15 - railDepth
+                ? 15 - u
+                : -1;
+          const cut =
+            side < 0
+              ? undefined
+              : style === "timber"
+                ? (rise + phase) % 4 === 0
+                  ? timber
+                  : timberLight
+                : style === "steps"
+                  ? side === 0
+                    ? stoneDark
+                    : stone
+                  : side === 0
+                    ? trim.earth[0]
+                    : trim.earth[1];
+          const n = noise(wx, wy, 91);
           const line =
             (rise +
-              Math.floor(noise(Math.floor((along ? px : sy) / 6), 0, 93) * 5)) %
+              Math.floor(noise(Math.floor(runPos / 6), 0, 93) * 5)) %
               5 ===
               0 && noise(wx, wy, 95) < 0.6;
           const foot = along
             ? sy >= last - 1
             : southTier !== undefined && py >= cy * 16 + 14;
-          const rgb =
-            cut ??
-            (foot
+          // The plateau's turf hangs a pixel or two over the top of the cut.
+          const lip =
+            style !== "steps" &&
+            (along ? sy - first : 15 - (py - cy * 16)) <
+              (noise(Math.floor((runPos + phase) / 2), 1, 101) < 0.5 ? 1 : 2);
+          let rgb: readonly number[];
+          if (cut) rgb = cut;
+          else if (lip) rgb = n < 0.5 ? turf[0] : turf[5];
+          else if (style === "slope") {
+            // Grass with a worn centre: the wear widens toward the foot.
+            const centre = Math.abs(u - 7.5) / 8;
+            const worn = along ? (sy - first) / Math.max(1, last - first) : 0.6;
+            const wearAt = 0.25 + worn * 0.35;
+            rgb =
+              centre < wearAt && n > 0.25
+                ? n > 0.9
+                  ? soil[3]
+                  : soil[2]
+                : foot
+                  ? turf[5]
+                  : n < 0.12
+                    ? turf[5]
+                    : n > 0.88
+                      ? turf[6]
+                      : turf[0];
+          } else if (style === "steps") {
+            // Risers every three rows, treads between; a lit tread edge.
+            const step = (rise + phase) % 3;
+            rgb = step === 0 ? stoneDark : step === 1 ? stoneLight : stone;
+            if (n > 0.9) rgb = stoneDark;
+          } else if (style === "sand") {
+            // A slumped sand face: soft ripples, no rails, darker foot.
+            const ripple = (rise + Math.floor(noise(Math.floor(runPos / 4), 2, 103) * 3)) % 3 === 0;
+            rgb = foot ? soil[1] : ripple ? soil[3] : n < 0.15 ? soil[1] : soil[2];
+          } else
+            rgb = foot
               ? soil[0]
               : line
                 ? mix(soil[2], soil[1], 0.5)
@@ -928,8 +1038,18 @@ function rasterWallContours(
                   ? soil[1]
                   : n > 0.85
                     ? soil[3]
-                    : soil[2]);
+                    : soil[2];
           paintFlat(cy, t, px, sy, rgb);
+        }
+        // Scree: a few stones tumble off a cut or slope onto the ground at
+        // its foot, so the ramp does not end on a ruled line.
+        if ((style === "cut" || style === "slope") && along) {
+          for (let r = 1; r <= 2; r++) {
+            const sy = last + r;
+            const roll = noise(px + ox, sy + oy, 105);
+            if (roll > 0.82)
+              paintFlat(cy, t, px, sy, roll > 0.93 ? trim.earth[4] : trim.earth[1]);
+          }
         }
         // Across-slope ramps rise along x, so each column shows a wedge of
         // cut earth down to the ground in front of it.

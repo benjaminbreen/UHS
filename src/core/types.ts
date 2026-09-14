@@ -438,6 +438,7 @@ export interface WorldModel {
   restoreDistricts?(entityIds: string[]): void;
   regionExtent?: number;
   overview?(x: number, y: number): Terrain;
+  mapTerrain?(x: number, y: number): { terrain: Terrain; habitat?: import("../world/v3/habitats").Habitat };
   pack: Pack;
   settlements: Settlement[];
   enclosures: {

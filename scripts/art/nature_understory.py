@@ -4,10 +4,10 @@ Authored silhouettes and leaf placement, opaque palette, no sampled image pixels
 from PIL import Image, ImageDraw
 import math
 
-FERN=['#193b32','#2c5940','#467e49','#6da153','#a1c36d']
+FERN = ['#0e2a23', '#1d5034', '#367e3a', '#5ea13d', '#9dc75e']
 HEATH=['#303d34','#4e6040','#71804b','#a0a66b']
 SAGE=['#3a4941','#5b7063','#819786','#a8b5a0','#c8cbb1']
-GINGER=['#173d34','#285d40','#438548','#72a553','#a5c06a']
+GINGER = ['#0c2c24', '#185433', '#318537', '#64a53c', '#a3c45b']
 
 
 def fern():

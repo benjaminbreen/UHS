@@ -21,6 +21,7 @@ const meadow: Record<Ecology, FlowerKind[]> = {
   "tropical-woodland": ["poppy", "clover"],
   wetland: ["buttercup", "bluet"],
   "dry-scrub": ["poppy", "buttercup"],
+  savanna: ["buttercup", "poppy"],
   tundra: ["bluet"],
   desert: [],
 };

@@ -21,6 +21,14 @@ export type LandSample = {
   water: number;
   kind: "sea" | "river" | "lake";
   snow: boolean;
+  /** A dry channel or trail through this cell; see world/v3/features. */
+  landscape?: import("../v3/features").Landscape;
+  /** A creek drops a tier here: the cell just below the lip. */
+  fall?: boolean;
+  /** Unit gradient of the water distance at this cell, where the source is
+   * a narrow stream: lets the shoreline be reconstructed per pixel rather
+   * than interpolated between cell centres a channel wide apart. */
+  waterGradient?: readonly [number, number];
 };
 export function createLandscape(s: WorldSetting, seed: string) {
   const origin = toAtlas(s.lon, s.lat),

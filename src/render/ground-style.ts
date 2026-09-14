@@ -92,19 +92,23 @@ export function defaultGroundStyle(): GroundStyle {
   const materials = Object.fromEntries(
     groundMaterials.map((m) => [m, { ...neutralLayer }]),
   ) as Record<GroundMaterial, LayerStyle>;
-  materials.turf = { ...neutralLayer, swatch: 0, opacity: 0.5 };
-  materials.sward = { ...neutralLayer, swatch: 5, opacity: 0.35 };
+  // Turf texture is the authored blade hatch in the raster; the baked
+  // swatches stay a lab comparison, not part of the shipped look.
+  materials.turf = { ...neutralLayer, swatch: 0, opacity: 0 };
+  materials.sward = { ...neutralLayer, swatch: 5, opacity: 0 };
   materials.wet = { ...neutralLayer, swatch: 7, opacity: 0 };
   materials.earth = { ...neutralLayer, opacity: 0.05 };
   // A subtle ladder: the valley floor a touch richer, each step up a little
   // paler and greyer. Texture swatches vary by step so terraces read apart
   // even where the tone difference is slight.
   const swatches = [5, 4, 5, 8, 0, 0, 7, 6, 6, 6];
-  const tiers: Partial<LayerStyle>[] = swatches.map((swatch, t) => ({
+  // Flat by default: a per-tier tint or swatch turned every plateau into a
+  // paler block with a cell-stepped edge beside its cliff.
+  const tiers: Partial<LayerStyle>[] = swatches.map((swatch) => ({
     swatch,
-    opacity: t === 0 ? 0 : 0.15,
-    brightness: t === 0 ? 0.98 : 1 + 0.012 * t,
-    saturation: t === 0 ? 1.05 : 1 - 0.02 * t,
+    opacity: 0,
+    brightness: 1,
+    saturation: 1,
   }));
   while (tiers.length < MAX_TIERS) tiers.push({});
   return {

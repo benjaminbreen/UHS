@@ -60,3 +60,18 @@ The pastoral, chamber and electronic treatments are stylistic previews, not auth
 The place importer reuses landscape descriptions extracted from the user's original [UHS geography catalog](https://github.com/benjaminbreen/UHS/blob/302c17dd8b2d7c809c7056ee9f7f8ed973a8dffa/constants/gameData/geography.ts), held in `scripts/data/legacy-areas.json`. Its old regional coordinates and adjacency graph are not used. Only named coordinate matches are included. Featured settings, mountain belts, climate defaults, local channels, settlements, and paths are authored/generated game data.
 
 The hide/reed shelters and thatched house are original additions to the existing code-authored building recipes; no external art or purchased assets were used.
+
+## Regional biome map and reference packs — September 13, 2026
+
+`src/content/geography/travel/generated/ecoregions.json` now also carries each
+RESOLVE ecoregion's biome number and is read by `src/content/ecology/variants.ts`
+to choose ecological envelopes and colourways for Earth coordinates. Source and
+licence are unchanged (RESOLVE Ecoregions 2017, Dinerstein et al., CC BY 4.0).
+
+The Pixel Crawler free pack (Anokolisa), `trees.png` and the `trees pngs/`
+growth strips in the workspace were used only as style references for the
+blade hatch, ramp saturation and the seven new regional tree recipes in
+`scripts/art/regional_trees.py`. Their pixels are not included in any shipped
+atlas. The Pixel Crawler terms are in a linked PDF that was not retrieved;
+the strips carry no licence file here. The default ground style no longer
+applies the baked GRASS+ swatch overlay, so shipped turf texture is authored.

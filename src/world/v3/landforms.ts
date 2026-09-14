@@ -16,6 +16,7 @@ export function regionalLandforms(
     x: number,
     y: number,
   ) => NonNullable<WorldSetting["environment"]>["landform"],
+  reliefAt?: (x: number, y: number) => number,
 ) {
   const angle = random(seed, "land-angle") * Math.PI * 2;
   const reaches = new Map<number, number[]>();
@@ -31,27 +32,49 @@ export function regionalLandforms(
     const broad =
       noise(seed, u, v, 105, "landmass") * 0.72 +
       noise(seed, u, v, 43, "shoulders") * 0.28;
-    const form = formAt?.(x, y) ?? s.environment!.landform;
-    const h =
-      form === "plain"
-        ? 0.45 + (broad - 0.5) * 0.23
-        : form === "ridge"
-          ? // Folded rather than smooth: a plain noise swells and subsides,
-            // where a range wants a crest line with flanks falling away.
-            0.18 +
-            Math.pow(
-              1 - Math.abs(noise(seed, u, v * 0.28, 62, "ridge-spine") * 2 - 1),
-              1.4,
-            ) *
-              0.6 +
-            (broad - 0.5) * 0.22
-          : form === "basin"
-            ? 0.28 +
-              (formAt
-                ? noise(seed, u, v, 170, "basins") * 0.4
-                : Math.min(0.4, Math.hypot(u / 105, v / 82) * 0.22)) +
-              (broad - 0.5) * 0.38
-            : 0.15 + broad * 0.7;
+    const plain = () => 0.45 + (broad - 0.5) * 0.23;
+    // Folded rather than smooth: a plain noise swells and subsides,
+    // where a range wants a crest line with flanks falling away.
+    const ridge = () =>
+      0.18 +
+      Math.pow(
+        1 - Math.abs(noise(seed, u, v * 0.28, 62, "ridge-spine") * 2 - 1),
+        1.4,
+      ) *
+        0.6 +
+      (broad - 0.5) * 0.22;
+    const rolling = () => 0.15 + broad * 0.7;
+    let h: number;
+    if (reliefAt) {
+      // Earth mode: the three forms cross-fade with the regional relief, so a
+      // range's flank eases into rolling country and then into plain.
+      const r = reliefAt(x, y);
+      const ease = (t: number) => {
+        const c = Math.max(0, Math.min(1, t));
+        return c * c * (3 - 2 * c);
+      };
+      const wRidge = ease((r - 0.5) / 0.3),
+        wPlain = (1 - wRidge) * (1 - ease((r - 0.12) / 0.2)),
+        wRolling = Math.max(0, 1 - wRidge - wPlain);
+      h =
+        (wPlain ? plain() * wPlain : 0) +
+        (wRolling ? rolling() * wRolling : 0) +
+        (wRidge ? ridge() * wRidge : 0);
+    } else {
+      const form = formAt?.(x, y) ?? s.environment!.landform;
+      h =
+        form === "plain"
+          ? plain()
+          : form === "ridge"
+            ? ridge()
+            : form === "basin"
+              ? 0.28 +
+                (formAt
+                  ? noise(seed, u, v, 170, "basins") * 0.4
+                  : Math.min(0.4, Math.hypot(u / 105, v / 82) * 0.22)) +
+                (broad - 0.5) * 0.38
+              : rolling();
+    }
     trimCache(heights, 65536);
     heights.set(key, h);
     return h;
@@ -162,6 +185,8 @@ export function regionalLandforms(
         0.8 + bank * 2.8 + Math.max(0, -bankOffset(seed, nearest, side)) * 0.55,
       // A carved longitudinal bed drops monotonically along the selected outflow.
       bed: -nearest * 0.002 - 2,
+      /** Distance along the planned course, stable across the channel. */
+      along: nearest,
     };
   };
   return { field, river, point, reachCount: () => reaches.size };

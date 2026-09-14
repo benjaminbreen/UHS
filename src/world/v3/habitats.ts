@@ -1,4 +1,5 @@
-import type { DesertColorway, Ecology } from "../../content/ecology/profiles";
+import type { Colorway, Ecology } from "../../content/ecology/profiles";
+import { habitatLayout } from "../../content/ecology/variants";
 import type { LandSample } from "../geography/landscape";
 import { noise } from "../geography/noise";
 import { random } from "../../core/random";
@@ -12,11 +13,11 @@ export type HabitatKind =
   | "exposed";
 export type VegetationPattern = "savanna" | "steppe" | "alpine";
 export type Habitat = {
-  blend?: { ecology: Ecology; colorway?: DesertColorway; weight: number }[];
+  blend?: { ecology: Ecology; colorway?: Colorway; weight: number }[];
   vegetation?: VegetationPattern;
   layeredForest?: boolean;
   ecology: Ecology;
-  colorway?: DesertColorway;
+  colorway?: Colorway;
   kind: HabitatKind;
   wet: number;
   cover: number;
@@ -34,9 +35,14 @@ export function habitatAt(
   x: number,
   y: number,
   land: LandSample,
+  colorway?: Colorway,
 ): Habitat {
+  const layout = habitatLayout(colorway);
   const warp = (noise(seed, x, y, 65, "habitat-warp") - 0.5) * 17;
-  const hollow = noise(seed, x + warp, y - warp, 22, "habitat-drainage");
+  const drainage = noise(seed, x + warp, y - warp, 22, "habitat-drainage");
+  // Braided ground folds the drainage field so its wet band is a thin
+  // connected thread rather than a round pocket.
+  const hollow = layout.braided ? 1 - Math.abs(drainage * 2 - 1) : drainage;
   const broad = noise(seed, x, y, 48, "habitat-cover");
   const colony = noise(seed, x + warp, y, 9, "habitat-colony");
   const riparian = clamp(
@@ -46,31 +52,43 @@ export function habitatAt(
   // step is not a mountain's. The valley floor gets a little extra lushness.
   const alt = clamp(land.elevation / (land.summit ?? 126));
   const lush = land.elevation === 0 ? 0.08 : 0;
+  // A wet layout shifts the field rather than scaling it: scaling pushed a
+  // whole monsoon scene over the hollow threshold and painted it one tone.
   const wet = clamp(
+    (colorway === "swamp" ? 0.2 : 0) +
     (hollow - 0.39) * 2.5 +
       (land.moisture - 0.5) * 0.9 +
       riparian * 0.38 -
       alt * 0.5 +
-      lush,
+      lush +
+      (layout.wet - 1) * 0.3,
   );
   const substrateWeight =
     ecology === "wetland" ? 0.68 : ecology === "tropical-woodland" ? 0.82 : 1;
+  // Dune fields: exposure follows long parallel ridges across the wind.
+  const mineral = layout.banded
+    ? Math.abs(
+        noise(seed, x * 0.35 + y * 0.12, y * 0.06 - warp, 14, "habitat-dune") *
+          2 -
+          1,
+      ) *
+        0.6 +
+      noise(seed, x - warp, y + warp, 29, "habitat-mineral") * 0.4
+    : noise(seed, x - warp, y + warp, 29, "habitat-mineral");
   const exposed =
     substrateWeight *
-    clamp(
-      (noise(seed, x - warp, y + warp, 29, "habitat-mineral") - 0.45) * 2.8 +
-        alt * 0.55 -
-        wet * 0.55,
-    );
+    clamp(((mineral - 0.45) * 2.8 + alt * 0.55 - wet * 0.55) * layout.exposed);
   const cover = clamp(
-    (broad - 0.3) * 0.9 +
+    ((broad - 0.3) * 0.9 +
       (colony - 0.4) * 1.5 +
       wet * 0.12 -
       exposed * 0.3 -
       alt * 0.3 +
-      lush,
+      lush) *
+      layout.cover +
+      (layout.gallery ?? 0) * riparian,
   );
-  const forest = ecology.includes("woodland");
+  const forest = ecology.includes("woodland") || colorway === "swamp";
   const kind: HabitatKind =
     exposed > 0.63
       ? "exposed"
@@ -83,7 +101,7 @@ export function habitatAt(
           : wet > 0.3
             ? "meadow"
             : "open";
-  return { ecology, season, wet, cover, exposed, kind };
+  return { ecology, colorway, season, wet, cover, exposed, kind };
 }
 /** One jittered candidate per 2x2 cell, admitted in connected habitat colonies.
  * Independent hashes avoid coupling tree selection to sprite/rock selection. */
@@ -103,7 +121,7 @@ export function habitatTree(
   )
     return false;
   const grouping = treeGrouping(h, ecologyAware);
-  return random(seed, "tree-presence", bx, by) < density * grouping;
+  return random(seed, "tree-presence", bx, by) < density * grouping * (h.colorway === "swamp" ? 2.4 : 1);
 }
 
 /** Revision 5 gives the same wetness/exposure field a visible canopy effect. */

@@ -23,13 +23,22 @@ export function travelSetting(
     id: map.networkId,
     name: map.name,
     size: map.size === 384 ? 384 : 304,
-    exits: exits.map(({ id, to, bearing, mode, seam }) => ({
-      id,
-      to,
-      bearing,
-      mode,
-      seam,
-    })),
+    exits: exits.map(({ id, to, bearing, mode, seam }) => {
+      const destination = permanentMap(to, year);
+      const next = settingForTravelStop(destination, year);
+      return {
+        id, to, bearing, mode, seam,
+        neighbor: {
+          lon: next.lon, lat: next.lat, relief: next.relief,
+          climate: next.climate, water: next.water,
+          ecology: next.environment!.ecology,
+          colorway: next.environment!.colorway,
+          landform: next.environment!.landform,
+          size: destination.size === 384 ? 384 : 304,
+          geographyMode: next.geographyMode ?? "earth",
+        },
+      };
+    }),
   };
   setting.environment!.population =
     map.settlement === "city" || map.settlement === "town" ? "settled" : "none";

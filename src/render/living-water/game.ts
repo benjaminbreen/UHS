@@ -12,7 +12,7 @@ import { ecologyOrder, livingProfile } from "./profile";
 import { livingFragment } from "./shader";
 import type { LightingId } from "../lighting";
 import { lightingPreset } from "../lighting";
-const LUT = "living-water-colors-1";
+const LUT = "living-water-colors-2";
 const shaders = new WeakMap<Phaser.Scene, Set<Phaser.GameObjects.Shader>>();
 let sequence = 0;
 export function usesLivingWater(scene: Phaser.Scene) {
@@ -26,24 +26,27 @@ function colors(scene: Phaser.Scene) {
   if (scene.textures.exists(LUT)) return;
   const canvas = document.createElement("canvas");
   canvas.width = 16;
-  canvas.height = 128;
+  canvas.height = 240;
   const ctx = canvas.getContext("2d")!;
-  for (let row = 0; row < 128; row++) {
-    const kind = Math.floor((row % 32) / 8),
+  // Rows: eight ecologies × five kinds (river, coast, lake, pond, creek),
+  // then frozen/red-clay sets, then swamp and frozen swamp.
+  for (let row = 0; row < 240; row++) {
+    const kind = Math.floor((row % 40) / 8),
       ecology = ecologyOrder[row % 8];
     const profile = livingProfile({
       height: 0,
       surface: "water",
+      ...(row >= 160 ? { habitat: { ecology: "wetland" as const, colorway: "swamp" as const, kind: "hollow" as const, season: "summer", wet: 1, cover: 0.5, exposed: 0 } } : {}),
       waterVisual: {
-        kind: kind === 1 ? "sea" : kind >= 2 ? "lake" : "river",
-        shoreWidth: kind === 3 ? 0.5 : 2,
+        kind: kind === 1 ? "sea" : kind === 2 || kind === 3 ? "lake" : "river",
+        shoreWidth: kind === 3 ? 0.5 : kind === 4 ? 0.9 : 2,
         distance: -2,
         ecology,
         flow: [0, 1],
-        frozenMargin: row % 64 >= 32,
+        frozenMargin: row % 80 >= 40,
       },
     });
-    if (row >= 64) {
+    if (row >= 80 && row < 160) {
       profile.customBankColors = false;
       profile.bankMaterial = "clay";
       profile.bankClimate = "desert";

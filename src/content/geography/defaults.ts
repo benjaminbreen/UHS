@@ -1,24 +1,13 @@
 import type { WorldSetting } from "./types";
-import { desertColorwayFor } from "../ecology/profiles";
+import { regionalEcology } from "../ecology/variants";
 
 export function environmentFor(
   s: Pick<WorldSetting, "climate" | "lon" | "lat" | "relief" | "settlement">,
 ): NonNullable<WorldSetting["environment"]> {
+  const { ecology, colorway } = regionalEcology(s.lon, s.lat, s.climate);
   return {
-    ecology:
-      s.climate === "tundra"
-        ? "tundra"
-        : s.climate === "boreal"
-          ? "boreal-woodland"
-          : s.climate === "arid"
-            ? "desert"
-            : s.climate === "mediterranean"
-              ? "dry-scrub"
-              : s.climate === "tropical" || s.climate === "monsoon"
-                ? "tropical-woodland"
-                : "temperate-woodland",
-    colorway:
-      s.climate === "arid" ? desertColorwayFor(s.lon, s.lat) : undefined,
+    ecology,
+    colorway,
     landform: s.relief > 0.65 ? "ridge" : s.relief > 0.25 ? "rolling" : "plain",
     population: s.settlement === "camp" ? "sparse" : "settled",
     start: "resident",
@@ -36,6 +25,7 @@ export function integratedSetting(s: WorldSetting): WorldSetting {
       characterRevision: s.characterRevision ?? 1,
       vegetationRevision: 6,
       ecologyRevision: 1,
+      hydrologyRevision: 2,
     };
   return {
     ...s,
@@ -45,6 +35,7 @@ export function integratedSetting(s: WorldSetting): WorldSetting {
     roadRevision: 1,
     vegetationRevision: 6,
     ecologyRevision: 1,
+    hydrologyRevision: 2,
     geographyMode: s.environment ? "configured" : "earth",
     terrainRevision: 2,
     environment: s.environment ?? environmentFor(s),

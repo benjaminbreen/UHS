@@ -26,6 +26,28 @@ export function waterNoise(x: number, y: number, scale: number, salt: number) {
 }
 /** Bilinear reconstruction of the continuous bed at native-pixel centers. */
 export function waterDistance(sample: TopographySample, x: number, y: number) {
+  // A narrow stream carries the gradient of its distance field: extend the
+  // containing cell's value linearly to the pixel. Bilinear interpolation
+  // between cell centres collapses to squares when the channel is a cell
+  // wide, since every neighbour is a different bank.
+  const own = sample(Math.floor(x), Math.floor(y));
+  if (own?.waterVisual?.gradient) {
+    const [gx, gy] = own.waterVisual.gradient;
+    const planar =
+      own.waterVisual.distance +
+      gx * (x - Math.floor(x) - 0.5) +
+      gy * (y - Math.floor(y) - 0.5);
+    // Hand over to the neighbours' bilinear field as the pixel nears the
+    // cell edge, so two cells' planes never leave a crease between them.
+    const ex = Math.abs(x - Math.floor(x) - 0.5) * 2,
+      ey = Math.abs(y - Math.floor(y) - 0.5) * 2;
+    const edge = Math.max(ex, ey);
+    const w = edge < 0.6 ? 1 : 1 - (edge - 0.6) / 0.4;
+    return planar * w + bilinearWaterDistance(sample, x, y) * (1 - w);
+  }
+  return bilinearWaterDistance(sample, x, y);
+}
+function bilinearWaterDistance(sample: TopographySample, x: number, y: number) {
   const ix = Math.floor(x - 0.5),
     iy = Math.floor(y - 0.5);
   const fx = x - 0.5 - ix,

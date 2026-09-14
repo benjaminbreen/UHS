@@ -1,3 +1,6 @@
+import { defaultGrassArt } from "../content/graphics/grass-art";
+import { soils } from "../render/habitat-raster";
+import { paletteKey } from "../content/ecology/profiles";
 import { natureTreeSprites } from "../content/ecology/vegetation";
 import { useEffect, useRef, useState } from "react";
 import { faunaProfile } from "../content/fauna";
@@ -100,12 +103,16 @@ function paintBackground(
 ) {
   const c = canvas.getContext("2d")!;
   // Desert colourways recolour the flat map's sand and bare ground too.
+  const env = world.pack.setting?.environment;
+  const soil = env?.colorway
+    ? soils[paletteKey(env.ecology, env.colorway)]
+    : undefined;
+  const hex = (rgb: number[]) =>
+    "#" + rgb.map((v) => v.toString(16).padStart(2, "0")).join("");
   const colorway: Record<string, string> =
-    world.pack.setting?.environment?.colorway === "sahara"
-      ? { sand: "#e4c47c", dry: "#c9a55e", dirt: "#c3984f" }
-      : world.pack.setting?.environment?.colorway === "red-earth"
-        ? { sand: "#c98a5c", dry: "#a86d45", dirt: "#9c5f3a" }
-        : {};
+    soil && env?.colorway !== "highland" && env?.ecology === "desert"
+      ? { sand: hex(soil[3]), dry: hex(soil[2]), dirt: hex(soil[1]) }
+      : {};
   c.save();
   c.translate(PAD, PAD);
   c.imageSmoothingEnabled = false;
@@ -125,12 +132,15 @@ function paintBackground(
   for (let j = 0; j < rows; j++)
     for (let i = 0; i < cols; i++) {
       const { x, y, wx, wy } = at(i, j);
+      const mapHalf = world.pack.setting?.playableMap?.size;
+      const inMap = mapHalf === undefined || (wx >= -mapHalf / 2 && wx < mapHalf / 2 && wy >= -mapHalf / 2 && wy < mapHalf / 2);
+      const preview = world.mapTerrain?.(wx, wy);
       let k: string =
-        coarse && world.overview
+        preview && !inMap ? preview.terrain : coarse && world.overview
           ? world.overview(wx, wy)
           : surfaceAt(world, wx, wy);
       let fill = colorway[k] ?? colors[k] ?? colors.grass;
-      if (world.topography && extent <= 320) {
+      if (world.topography && extent <= 320 && inMap) {
         const cell = world.topography(wx, wy);
         if (cell.surface === "water") {
           k = "water";
@@ -140,9 +150,22 @@ function paintBackground(
           fill = "#8d6640";
         }
       }
+      const h = preview?.habitat;
+      if (k === "water" && h?.colorway === "swamp") fill = "#536f59";
+      if (h && ["grass", "dry", "sand", "marsh", "rock"].includes(k)) {
+        const parts = h.blend ?? [{ ecology: h.ecology, colorway: h.colorway, weight: 1 }];
+        const rgb = [0, 1, 2].map((channel) => Math.round(parts.reduce((sum, part) => {
+          const key = paletteKey(part.ecology, part.colorway);
+          const mineral = part.ecology === "desert" || k === "sand" || k === "rock";
+          const ramp = mineral ? soils[key] : defaultGrassArt.palettes[key];
+          const index = mineral ? 2 : h.wet > 0.6 ? 7 : h.cover > 0.55 ? 2 : 0;
+          return sum + ramp[index][channel] * part.weight;
+        }, 0)));
+        fill = hex(rgb);
+      }
       kind[j * cols + i] = k;
       // Sparse darker speckle gives grass and soil their pixel grain.
-      if (shade[k] && hash(wx, wy) < 0.16) fill = shade[k];
+      if (!h && shade[k] && hash(wx, wy) < 0.16) fill = shade[k];
       c.fillStyle = fill;
       c.fillRect(x, y, px, px);
     }

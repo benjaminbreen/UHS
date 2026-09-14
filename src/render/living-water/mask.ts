@@ -71,9 +71,11 @@ export function rasterLivingWater(
             ? 16
             : profile.kind === "pond"
               ? 24
-              : 0) +
-        (visual.frozenMargin ? 32 : 0) +
-        (cell.habitat?.colorway === "red-earth" ? 64 : 0);
+              : profile.kind === "creek"
+                ? 32
+                : 0) +
+        (visual.frozenMargin ? 40 : 0) +
+        (cell.habitat?.colorway === "swamp" ? 160 : cell.habitat?.colorway === "red-earth" ? 80 : 0);
       const angle =
         profile.kind === "coast"
           ? Math.atan2(
@@ -105,10 +107,21 @@ export function rasterLivingWater(
           const sx = tx * 16 + px, sy = ty * 16 + py;
           const receiver = receivers && receivers.tiers[
             (sy - receivers.y) * receivers.width + sx - receivers.x];
-          const lowGround = receivers ? receiver === 0 ||
-            (receiver === -1 && cell.surface === "water" && cell.height === 0) : cell.height === 0;
+          // Water on a terrace (a creek above the valley floor) is drawn at
+          // its lifted screen position; its receiver there is the water flag.
+          // Every cell draws at its own lifted position: a creek on a terrace
+          // and the bank pixels its edge reaches into are on that terrace.
+          const lift: number = cell.height * TERRAIN_RISE;
+          const liftedReceiver: number | undefined =
+            receivers && lift
+              ? receivers.tiers[(sy - lift - receivers.y) * receivers.width + sx - receivers.x]
+              : receiver;
+          const lowGround = receivers
+            ? liftedReceiver === cell.height ||
+              (liftedReceiver === -1 && cell.surface === "water")
+            : true;
           if (d > localBeach || !lowGround) continue;
-          const y = sy + shift;
+          const y: number = sy - lift + shift;
           if (y < 0 || y >= H) continue;
           const i = (y * W + tx * 16 + px) * 4;
           const sea = visual.kind === "sea";
@@ -189,7 +202,7 @@ export function rasterLivingWater(
       )
         continue;
       const profile = livingProfile(cell),
-        rock = waterHash(gx, gy, 354) < (refined ? 0.35 * polish!.rocks : 0.35);
+        rock = cell.habitat?.colorway !== "swamp" && waterHash(gx, gy, 354) < (refined ? 0.35 * polish!.rocks : 0.35);
       if (
         refined &&
         !rock &&

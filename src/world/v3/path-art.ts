@@ -25,7 +25,7 @@ export function pathArt(roads: readonly Road[], shared = false) {
     const work = [[0, points.length - 1]];
     while (work.length) {
       const [a, b] = work.pop()!;
-      let max = 0.75,
+      let max = 1.1,
         at = -1;
       for (let i = a + 1; i < b; i++) {
         const d = distance(points[i], points[a], points[b]);
@@ -39,7 +39,22 @@ export function pathArt(roads: readonly Road[], shared = false) {
         work.push([a, at], [at, b]);
       }
     }
-    const selected = [...keep].sort((a, b) => a - b).map((i) => points[i]);
+    // Round the corners: two rounds of corner cutting on the simplified
+    // line, endpoints fixed. The route cells underneath are untouched, so a
+    // bend strays at most about a cell from the walked line.
+    let selected = [...keep].sort((a, b) => a - b).map((i) => points[i]);
+    for (let round = 0; round < 2 && selected.length > 2; round++) {
+      const out: Point[] = [selected[0]];
+      for (let i = 0; i < selected.length - 1; i++) {
+        const a = selected[i],
+          b = selected[i + 1];
+        if (i > 0) out.push({ x: a.x * 0.75 + b.x * 0.25, y: a.y * 0.75 + b.y * 0.25 });
+        if (i < selected.length - 2)
+          out.push({ x: a.x * 0.25 + b.x * 0.75, y: a.y * 0.25 + b.y * 0.75 });
+      }
+      out.push(selected[selected.length - 1]);
+      selected = out;
+    }
     for (let i = 1; i < selected.length; i++) {
       const a = selected[i - 1],
         b = selected[i],

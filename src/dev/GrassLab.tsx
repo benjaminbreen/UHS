@@ -17,6 +17,7 @@ type EditorKind = "turf" | "ticks";
 
 const ecologyLabels: Record<Ecology, string> = {
   grassland: "Grassland",
+  savanna: "Savanna",
   "temperate-woodland": "Temperate woodland",
   "boreal-woodland": "Boreal woodland",
   "tropical-woodland": "Tropical woodland",
@@ -33,6 +34,8 @@ const paletteLabels: Record<GrassPaletteRole, string> = {
   litter: "Litter / woodland floor",
   bladeShadow: "Blade shadow",
   bladeLight: "Blade highlight",
+  wet: "Wet hollow",
+  bare: "Bare earth",
 };
 
 function download(name: string, contents: string, type: string) {

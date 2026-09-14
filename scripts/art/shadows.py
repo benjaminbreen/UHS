@@ -19,6 +19,7 @@ def build_shadows(root, sprites, buildings, output=None, atlas_name='lighting-sh
         # The hearth stones cast a shadow; the flame itself is emissive.
         if name=='fire':opaque=[(x,y) for x,y in opaque if y>=bottom-7]
         if 'shadowMinY' in source.info:opaque=[(x,y) for x,y in opaque if y>=source.info['shadowMinY']]
+        if not opaque:continue
         top=min(y for x,y in opaque)
         model=buildings.get(name)
         height=model['shadow']['height'] if model else bottom-top
@@ -32,7 +33,11 @@ def build_shadows(root, sprites, buildings, output=None, atlas_name='lighting-sh
             # Keeping it screen-horizontal makes low-angle shadows nearly singular:
             # the canopy collapses onto the trunk and narrow-neck vessels become blobs.
             length=math.hypot(vx,vy)
-            ux,uy=(1,0) if model or not length else (vy/length*.75,-vx/length*.75)
+            # Only upright silhouettes lay their width across the cast. A low,
+            # wide object (rock, shrub, log) rotated that way reads as a shadow
+            # thrown the other way from every tree beside it.
+            upright=(bottom-top)>1.15*max(1,max(feet)-min(feet))
+            ux,uy=(1,0) if model or not length or not upright else (vy/length*.75,-vx/length*.75)
             center=(min(feet)+max(feet))/2
             if alpha:
                 for x,y in opaque:

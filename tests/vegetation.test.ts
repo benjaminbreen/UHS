@@ -145,6 +145,8 @@ it("generates every new plant in suitable worlds without placing them in water o
       for (let x = -64; x < 64; x++) {
         const d = world.decoration(x, y);
         if (!d?.sprite.startsWith("nature-")) continue;
+        // A fall stands in its creek; landscape props are checked elsewhere.
+        if (d.sprite === "nature-waterfall" || d.sprite === "nature-stump") continue;
         seen.add(d.sprite);
         expect(["water", "bridge", "dirt", "field", "paving"]).not.toContain(
           world.terrain(x, y),
@@ -165,8 +167,19 @@ it("generates every new plant in suitable worlds without placing them in water o
             "nature-teak",
             "nature-understory-sedge",
             "nature-understory-dry-bunchgrass",
+            // Regional colourway trees are covered by biome-variants.test.ts.
+            "nature-eucalyptus",
+            "nature-baobab",
+            "nature-saguaro",
+            "nature-larch",
+            "nature-juniper",
+            "nature-maple",
+            "nature-mangrove",
+            "nature-waterfall",
+            "nature-stump",
           ].includes(id) &&
           !id.startsWith("nature-broadleaf-") &&
+          !id.startsWith("nature-rock-") &&
           !id.startsWith("nature-dry-scrub-") &&
           !id.startsWith("nature-understory-low-"),
       )

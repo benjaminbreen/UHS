@@ -1,6 +1,7 @@
 /** Broad ecological envelopes; species and land use remain separate choices. */
 export const ecologies = [
   "grassland",
+  "savanna",
   "temperate-woodland",
   "boreal-woodland",
   "tropical-woodland",
@@ -10,30 +11,115 @@ export const ecologies = [
   "tundra",
 ] as const;
 export type Ecology = (typeof ecologies)[number];
-/** Desert colourways: the same envelope in a different earth. Highland is
- * the pale ochre of a dry plateau, sahara warm gold sand, red earth the
- * iron-stained soil of the American Southwest or the Australian interior. */
+/** Regional colourways: the same envelope in a different earth. Each names a
+ * palette, soil, tree mix and habitat layout; see `variants.ts` for which
+ * part of the world selects it. The first three are the original desert set. */
+export const colorways = [
+  "highland",
+  "sahara",
+  "red-earth",
+  "sonoran",
+  "atacama",
+  "kalahari",
+  "maquis",
+  "chaparral",
+  "mallee",
+  "fynbos",
+  "matorral",
+  "sahel",
+  "prairie",
+  "steppe",
+  "pampas",
+  "montane",
+  "acacia",
+  "cerrado",
+  "eucalypt",
+  "monsoon",
+  "oak-hickory",
+  "east-asian",
+  "southern-beech",
+  "conifer",
+  "larch",
+  "coastal",
+  "marsh",
+  "papyrus",
+  "pantanal",
+  "bog",
+  "mangrove",
+  "swamp",
+  "alpine",
+  "polar",
+] as const;
+export type Colorway = (typeof colorways)[number];
+/** Kept for the desert-only callers that predate regional variants. */
 export const desertColorways = ["highland", "sahara", "red-earth"] as const;
-export type DesertColorway = (typeof desertColorways)[number];
-/** Key into the per-ecology colour tables. Only the desert has variants. */
-export type PaletteKey = Ecology | "desert:sahara" | "desert:red-earth";
-export function paletteKey(
-  ecology: Ecology,
-  colorway?: DesertColorway,
-): PaletteKey {
-  return ecology === "desert" && colorway && colorway !== "highland"
-    ? `desert:${colorway}`
-    : ecology;
+export type DesertColorway = Colorway;
+/** Variant palette keys that every colour table must define. A colourway
+ * missing here falls back to its envelope's palette. */
+export const variantPaletteKeys = [
+  "desert:sahara",
+  "desert:red-earth",
+  "desert:sonoran",
+  "desert:atacama",
+  "desert:kalahari",
+  "dry-scrub:chaparral",
+  "dry-scrub:mallee",
+  "dry-scrub:fynbos",
+  "dry-scrub:matorral",
+  "dry-scrub:sahel",
+  "grassland:prairie",
+  "grassland:steppe",
+  "grassland:pampas",
+  "grassland:montane",
+  "savanna:cerrado",
+  "savanna:eucalypt",
+  "savanna:monsoon",
+  "temperate-woodland:oak-hickory",
+  "temperate-woodland:east-asian",
+  "temperate-woodland:southern-beech",
+  "temperate-woodland:conifer",
+  "boreal-woodland:larch",
+  "boreal-woodland:coastal",
+  "tropical-woodland:monsoon",
+  "wetland:monsoon",
+  "wetland:papyrus",
+  "wetland:pantanal",
+  "wetland:bog",
+  "wetland:mangrove",
+  "wetland:swamp",
+  "tundra:alpine",
+  "tundra:polar",
+] as const;
+export type VariantPaletteKey = (typeof variantPaletteKeys)[number];
+/** Key into the per-ecology colour tables. */
+export type PaletteKey = Ecology | VariantPaletteKey;
+const variantKeySet: ReadonlySet<string> = new Set(variantPaletteKeys);
+export function paletteKey(ecology: Ecology, colorway?: Colorway): PaletteKey {
+  const key = `${ecology}:${colorway}`;
+  return colorway && variantKeySet.has(key) ? (key as PaletteKey) : ecology;
 }
 /** Default colourway for an arid place, by where on Earth it is. */
-export function desertColorwayFor(lon: number, lat: number): DesertColorway {
+export function desertColorwayFor(lon: number, lat: number): Colorway {
   const sahara =
     (lat > 10 && lat < 38 && lon > -18 && lon < 62) ||
     (lat > 20 && lat < 45 && lon > 60 && lon < 95);
+  const sonoran = lat > 22 && lat < 38 && lon > -118 && lon < -104;
   const redEarth =
     (lat > 26 && lat < 42 && lon > -125 && lon < -98) ||
     (lat > -36 && lat < -14 && lon > 112 && lon < 154);
-  return redEarth ? "red-earth" : sahara ? "sahara" : "highland";
+  const atacama = lat > -30 && lat < -15 && lon > -75 && lon < -66;
+  const kalahari = lat > -30 && lat < -16 && lon > 12 && lon < 28;
+  return sonoran
+    ? "sonoran"
+    : redEarth
+      ? "red-earth"
+      : atacama
+        ? "atacama"
+        : kalahari
+          ? "kalahari"
+          : sahara
+            ? "sahara"
+            : "highland";
 }
 export const landforms = ["plain", "rolling", "ridge", "basin"] as const;
 export const populations = ["none", "sparse", "settled"] as const;
@@ -57,6 +143,14 @@ export const ecologyProfiles: Record<
     tree: "oak",
     surface: "grass",
     resources: ["berries", "wood", "grazing"],
+  },
+  savanna: {
+    label: "Savanna",
+    moisture: 0.36,
+    trees: 0.07,
+    tree: "acacia",
+    surface: "dry",
+    resources: ["wood", "grazing", "berries"],
   },
   "temperate-woodland": {
     label: "Temperate woodland",

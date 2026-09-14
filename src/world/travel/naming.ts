@@ -1,4 +1,4 @@
-import ecoregions from "../../content/geography/travel/generated/ecoregions.json";
+import { ecoregionAt } from "../../content/geography/ecoregions";
 import { physicalRegions } from "../../content/geography/travel/generated";
 import { northAmericanLandscape } from "../../content/geography/travel/north-american-landscapes";
 import { waterRegion } from "../../content/geography/travel/oceans";
@@ -12,20 +12,7 @@ export type GeographicName = {
   source: string;
 };
 type Region = (typeof physicalRegions)[number];
-const ecoGrid = new Uint16Array(ecoregions.width * ecoregions.height);
-for (const [start, end, id] of ecoregions.runs) ecoGrid.fill(id, start, end);
-const ecoNames = new Map(ecoregions.regions.map((r) => [r.id, r]));
-function ecoregion(p: Coordinate) {
-  const x = Math.max(
-    0,
-    Math.min(ecoregions.width - 1, Math.floor((p.lon + 180) * 4)),
-  );
-  const y = Math.max(
-    0,
-    Math.min(ecoregions.height - 1, Math.floor((90 - p.lat) * 4)),
-  );
-  return ecoNames.get(ecoGrid[y * ecoregions.width + x]);
-}
+const ecoregion = (p: Coordinate) => ecoregionAt(p.lon, p.lat);
 const SOURCE = "Natural Earth physical labels · approximate boundary";
 const wrap = (x: number) => ((((x + 180) % 360) + 360) % 360) - 180;
 const boundsOf = (ring: number[][]) => [

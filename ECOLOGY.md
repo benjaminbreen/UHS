@@ -60,3 +60,38 @@ Generation-only road searches support diagonal steps with four-connected rasteri
 ## Habitat and edge art — September 8, 2026
 
 Configured terrain now includes connected local habitat fields, ecological ground palettes, original pixel transition silhouettes, clustered grass glyphs and less regular tree placement. Continuous path art follows simplified route strokes while movement uses the generated route. Dated street profiles select shared paving materials. See `TERRAIN_ART.md` for implementation, scope, review captures and known checks.
+
+## Regional variants and the Earth biome map — September 13, 2026
+
+Every envelope now carries an optional `colorway`, generalising the desert-only
+set. `src/content/ecology/variants.ts` resolves envelope and colourway for a
+place on Earth from the RESOLVE 2017 ecoregion raster already used for travel
+names (`src/content/geography/ecoregions.ts`; biome number kept per region,
+CC BY 4.0). Realm and a few latitude bands pick the colourway: Sahara sand sea
+versus Sonoran cactus desert versus Australian red earth; monsoon, papyrus,
+Pantanal, reed marsh, peat bog or mangrove wetland; prairie, steppe, pampas or
+montane grassland; oak–hickory, East Asian, southern-beech or conifer temperate
+woodland; larch or coastal taiga; maquis, chaparral, mallee, fynbos, matorral or
+Sahel scrub. Savanna is a ninth envelope. Coastal cells widen to the nearest
+filled ecoregion cell; open ocean and unmapped places keep the older climate
+rule, and deep-prehistoric tundra still overrides.
+
+A colourway names a grass, soil and bank ramp (derived from its envelope by
+small hue/saturation/value shifts), a tree mix, and a habitat layout. Layouts
+scale the shared wetness, exposure and cover fields and can fold drainage into
+connected braids (monsoon, papyrus, Pantanal, mangrove), band exposure into dune
+ridges (Sahara, Kalahari, red earth) or pull trees toward water as gallery
+forest (savannas, prairie). Bog and flooded-savanna layouts admit more marsh
+pools. Seven regional trees were authored for the mixes: eucalyptus, baobab,
+saguaro, larch, juniper, maple and mangrove.
+
+These are broad readings of a modern potential-vegetation map, not dated
+reconstructions; a colourway is an art and layout choice, never a species
+inventory. The terrain lab exposes every colourway under **Regional variant**
+(`variant=` in the URL). `tests/biome-variants.test.ts` checks palette
+coverage, sample Earth coordinates, tree-mix sprites and layout effects.
+Review captures: `artifacts/biome-review/`.
+
+### Freshwater swamp forests
+
+Named freshwater and peat swamp forests in the existing RESOLVE ecoregion data now select `wetland:swamp`, rather than the broad tropical-forest default. Swamp remains part of the wetland family, with wooded hummocks, wet understory, shallow flooded river margins and a peat-green/mud palette. It is distinct from open marsh, flooded savanna and saltwater mangrove. These are procedural interpretations of the source region classification, not reconstructed historical flood extents.

@@ -31,6 +31,8 @@ export type TopographyCell = {
   pavement?: import("../world/v3/types").Pavement;
   streetMaterial?: import("../content/settlements/streets").StreetMaterial;
   habitat?: import("../world/v3/habitats").Habitat;
+  /** Presentation-only landscape feature painted by the ground raster. */
+  landscape?: import("../world/v3/features").Landscape;
   surface: GroundSurface;
   /** Continuous gravel ground versus the legacy shallow drainage overlay. */
   feature?: "bank" | "paving" | "field";
@@ -60,9 +62,13 @@ export type TopographyCell = {
     shoreWidth: number;
     flow: readonly [number, number];
     frozenMargin: boolean;
+    /** Unit gradient of `distance` at the cell centre, for narrow streams. */
+    gradient?: readonly [number, number];
   };
   /** On the lower tile, pointing toward its one-tier-higher neighbor. */
   ramp?: Direction;
+  /** How the ramp is drawn; movement does not read it. */
+  rampStyle?: "cut" | "slope" | "steps" | "sand" | "timber";
   bridge?: boolean;
   solid?: boolean;
 };

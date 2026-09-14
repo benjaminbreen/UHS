@@ -42,6 +42,7 @@ const tilledRamps: Record<Ecology, string[]> = {
   wetland: ["#4e331b", "#6c4827", "#896038", "#a1764a"],
   "dry-scrub": ["#633b1b", "#875a2c", "#a8743e", "#c28c52"],
   desert: ["#6a4220", "#8e5e30", "#ad7843", "#c69258"],
+  savanna: ["#61391a", "#845a2b", "#a5743d", "#c08d50"],
 };
 export const tilled = Object.fromEntries(
   Object.entries(tilledRamps).map(([k, v]) => [k, v.map(decode)]),
@@ -246,8 +247,16 @@ export function rasterFieldTile(
         // pixel noise.
         const rowHash = hash(Math.floor(along / 3), row, 831);
         if (wet) {
-          // Uniform still water between the bunds; the crop stands in rows.
-          rgb = paddy.water;
+          // Still water between the bunds, shaded a row under the north
+          // and west bund and glinting along the far side; the crop stands
+          // in rows.
+          const bx = mod(wx, 16),
+            by = mod(wy, 16);
+          const shadeRow = by <= 1 || bx <= 1;
+          const farLip = by === 14 || bx === 14;
+          rgb = shadeRow ? paddy.deep : paddy.water;
+          if (farLip && hash(Math.floor((axis === "x" ? wx : wy) / 5), 0, 837) > 0.5)
+            rgb = paddy.sky;
           if (
             mod(along, 8) < 2 &&
             hash(Math.floor(along / 8), row, 835) > 0.9 &&

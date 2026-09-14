@@ -11,7 +11,7 @@ export const preparedSite = ({
  * synchronous generation; functions are reconstructed by the receiving world. */
 /** Bump when generation output changes shape or content, so a cached
  * prepared settlement from an older build is not reused. */
-export const PREPARED_VERSION = 1;
+export const PREPARED_VERSION = 5;
 export type PreparedSettlement = {
   entrances?: import("../travel/entrances").MapEntrance[];
   /** The starting town's daily routines, built where the plan was, and the

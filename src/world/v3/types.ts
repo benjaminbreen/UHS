@@ -75,6 +75,8 @@ export type SettlementPlan = {
   traffic: Set<string>;
   reserved: Set<string>;
   solid: Set<string>;
+  /** Building footprints only: what wears the ground round it. */
+  built?: Set<string>;
   work: Map<string, WorkSite>;
   /** Places people stop to talk, spread through the settlement. */
   gatherings?: Point[];

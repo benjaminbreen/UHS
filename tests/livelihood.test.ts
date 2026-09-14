@@ -31,7 +31,7 @@ const setting = (
     ...over,
   },
 });
-it("generates eight ecologies without requiring settlement or assigning a home", () => {
+it("generates every ecology without requiring settlement or assigning a home", () => {
   for (const ecology of ecologies) {
     const e = createSettingSession(
       setting({ ecology, population: "none", start: "wanderer" }),

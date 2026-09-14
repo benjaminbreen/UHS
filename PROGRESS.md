@@ -1,3 +1,57 @@
+## Connected tributaries and freshwater swamp — September 14, 2026
+
+New worlds pin hydrology revision 2 (previous revisions retain their water policy). River deformation now uses a continuous world-space warp instead of switching offsets with the nearest atlas segment; local water features merge with existing water. Creek routing and terrain painting share `mainWater`, including configured shores/lakes and regional water. Two spaced tributaries per eligible 192-cell block are attempted from a larger candidate set. Outlet-directed, winding polylines must reach real water, retain their mouth through smoothing, and widen downstream. The former extra displacement and random detached oxbows remain disabled. Prepared cache version is 5.
+
+Named freshwater/peat swamp ecoregions previously fell through RESOLVE biome 1 into ordinary tropical woodland. They now resolve to wetland/swamp: a distinct freshwater swamp forest palette and tree mix, wetter understory, shallow flooded river margins, subdued mud banks and peat-green water. The living-water lookup has swamp rows (including frozen rows), reduced caustics and fewer rocks; the static water renderer has matching swamp tones.
+
+Checks: river-connectivity regression at an atlas-direction change; tributary presence, sinuosity and wet centerlines through river/coast/lake mouths; named Borneo swamp resolution and shallow inundation. Browser terrain captures in `artifacts/water-repair-review/` and `artifacts/swamp-polish/`. The exact original screenshot seed was not reproduced.
+
+## Connected biome transitions and minimaps — September 14, 2026
+
+Travel settings now pin the neighbouring map's geographic/environment summary on each exit. Along land connections, the outer 112 cells blend toward the same mixture on both sides; desert/woodland boundaries introduce dry scrub and grassland. Existing habitat palette blending and ecological plant selection consume this mixture. Settings without neighbour metadata retain their previous ecology rules. Prepared cache version is 4.
+
+The minimap samples a lightweight neighbouring environment across an exit, mapping border coordinates into the destination, instead of painting the playable-area water sentinel. This previews natural terrain, not the neighbouring settlement's buildings or dynamic state. Interior roads/buildings retain their normal rendering. Minimap ground colours use biome/colorway palettes and habitat moisture/cover, including transitional blends. Away from linked exits, out-of-bounds previews use the current geographic field.
+
+Validation: TypeScript, two focused boundary/preview regressions, and a browser fixture rendering both desert-to-woodland minimaps without runtime errors. Capture: `artifacts/biome-boundary-minimaps.png`. No full travel/playthrough sweep.
+
+## Water simplification — September 14, 2026
+
+New worlds pin `hydrologyRevision: 1`. Earth maps retain their own coastline instead of blending in travel seams selected from the more land-heavy neighbour; travel links no longer author strips of land along these map edges. Existing manifests without the revision keep the previous generation policy. Prepared cache version is now 3.
+
+Wet creeks are limited to one candidate per 192-cell block and must reach an outlet; failed walks no longer create automatic ponds. Configured tributaries use the configured river, regional tributaries recognize signed sea/lake/river outlets, and creek masks merge into the receiving water without the former three-cell dry gap. The extra post-walk meander displacement is disabled. Automatic oxbows and the per-reach river tier cache are disabled for new worlds; scattered basin pools are restricted to wetlands. This is a restrained procedural approximation, not a drainage simulation. Legacy code remains behind the pinned policy for existing manifests.
+
+Focused regression coverage checks coastal border preservation, dry countryside, and new-world policy selection. No broad browser sweep requested; exact screenshot location unavailable.
+
+## Hydrology pass — September 13, 2026
+
+Creek shorelines are reconstructed per pixel from the stream gradient (no more cell squares) and creek beds are authored pebbles keyed to the colourway.
+
+Creek banks (September 14): creeks are a living-water kind with pebble banks drawn by the river shoreline method; the living layer draws every cell at its own tier, which removed the blocky grey edges on terrace creeks.
+
+Tributaries: two to four creeks per 192-cell block, seeded near rivers, pulled to the channel on flat ground, joining it at real mouths; the straight creek lane is removed. Living water now draws on terrace creeks and plateau ponds.
+
+Edge pass: canal feeders start at real water and carry ripples, trample follows building footprints only, shore lines and field aprons wander gently, creek margins are gravel on turf, and paddies have a lip shadow and glints.
+
+Follow-up: rivers step down a tier at rapids along their course (falls drawn across the channel), arroyo beds vary by colourway with a cut bank on the uphill lip, and closed woodland floors carry fern colonies.
+
+Creeks keep the tier of the ground they cross and step down at real edges; the cliff face between water and lower water is drawn as a fall (the sprite is gone); elevated water is painted on plateaus; creeks join rivers and never cross settlements; atlas and planned rivers sway into meanders at constant width; oxbow crescents appear on green floodplains. See `TERRAIN_ART.md`.
+
+## Phase 2 landscapes — September 13, 2026
+
+Ramps are drawn by style (slope, cut, steps, timber, sand) with broken rails, an overhanging lip and scree, and natural passes vary in width. The per-tier tint ladder is off and the litter band is smaller and softer.
+
+Creeks with ponds and waterfalls, arroyos, animal trails, shrub colonies, trodden ground that uses the road edge treatment, rock outcrops, salt pans, gravel bars, dune crests, logs and stumps; meandering atlas rivers and corner-cut path strokes; a 64-cell ecotone lattice and wet/bare tones in every ramp. One registry (`world/v3/features.ts`), one test. Details in `TERRAIN_ART.md`; captures in `artifacts/biome-review/`.
+
+## Phase 1 graphics: shadows, seams, inspector — September 13, 2026
+
+Rock, shrub and log shadows now lie on the same sun axis as trees and people (the shadow compiler only rotates upright silhouettes). Straight tier and landform seams along 128-cell ambient blocks are gone: relief interpolates between block centres, landforms cross-fade by relief, the tier ceiling is fractional and river terraces wander. Habitat band edges are per-pixel thresholds of interpolated fields rather than 8-pixel tile steps. Command-click a cell in play to see its biome, colourway, habitat, tier, surface and ecoregion in the event bar. Details in `TERRAIN_ART.md`.
+
+## Regional biomes, blade hatch and vivid ramps — September 13, 2026
+
+Toward the mockup: turf carries an authored blade hatch under the tufts, turf tones meet in a dithered seam with a dark rim, green ramps are more saturated, the wetland ramp is green rather than teal, and tree palettes have darker outlines and richer mids. The baked GRASS+ swatch overlay is off in the shipped style. Sand seas expose darker sand rather than stone.
+
+Every envelope now takes a regional colourway resolved from the RESOLVE ecoregion biome map already in the repo (biome number added; CC BY 4.0), with realm and latitude picking among 33 colourways. Savanna is a ninth envelope. A colourway carries derived grass, soil and bank ramps, a tree mix and a habitat layout (braided drainage, dune banding, gallery forest, extra pooling). Seven new regional trees: eucalyptus, baobab, saguaro, larch, juniper, maple, mangrove. Ground marks are sparser and scattered, denser only in lush ground, with eight tuft glyphs; loose rocks are rare outside exposed ground and six regional stone sets replace the one grey trio where the biome calls for it. Contour boundary rows no longer borrow a neighbouring cell's path or earth patch. The terrain lab exposes variants; `scripts/capture-biomes.ts` captures them. `tests/biome-variants.test.ts` plus the habitat, vegetation and livelihood suites pass. Review: `artifacts/biome-review/`. See `ECOLOGY.md`, `TERRAIN_ART.md`, `ASSET_PROVENANCE.md`.
+
 ## Worker-composed ground pages — September 13, 2026
 
 Checkpointed and pushed the entire preceding worktree as `b1720b6` on `v2`, as requested. Level terrain chunks now assemble their painted ground pixels into one page in the worker and transfer that page instead of individual tile buffers. The main thread writes the page once and retains the existing ground textures, progressive chunk display, flowers, crops, water and contour layers. Chunks containing mixed elevations, ramps or bridges retain the original drawing path; contour-owned boundary cells remain separate. This reduces CPU canvas assembly and transfer overhead; contour GPU texture consolidation is deferred.

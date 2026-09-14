@@ -635,7 +635,8 @@ export function planFarmland(input: {
     for (let y = c.y - outer - 24; y <= c.y + outer + 24; y += 3)
       for (let x = c.x - outer - 24; x <= c.x + outer + 24; x += 3) {
         const f = sample(x, y);
-        if (f.water >= 1 || f.kind === "sea") continue;
+        // Real fresh water only: a beach cell at the shore is not a source.
+        if (f.water >= -1 || f.kind === "sea") continue;
         const d = Math.hypot(x - c.x, y - c.y);
         if (d > edge + 4 && d < best) {
           best = d;

@@ -24,7 +24,9 @@ export function livingProfile(cell: TopographyCell): Settings {
         ? cell.waterVisual.shoreWidth < 1
           ? "pond"
           : "lake"
-        : "river";
+        : (cell.waterVisual?.shoreWidth ?? 3) < 1.2
+          ? "creek"
+          : "river";
   const palette =
     ecology === "tundra"
       ? "polar"
@@ -33,31 +35,39 @@ export function livingProfile(cell: TopographyCell): Settings {
         : ["temperate-woodland", "boreal-woodland"].includes(ecology)
           ? "blue"
           : "tropical";
+  const swamp = cell.habitat?.colorway === "swamp";
   const frozen = !!cell.waterVisual?.frozenMargin;
   const red = ecology === "desert" && cell.habitat?.colorway === "red-earth";
   return {
     ...defaults,
     kind,
-    palette,
+    palette: swamp ? "swamp" : palette,
     bankClimate: ecology,
+    // A creek bed is pebbles (sand only in a desert): the same beach
+    // gradient as a river, in stone tones and a fraction of the width.
     bankMaterial: frozen
       ? "snow"
       : red
         ? "clay"
         : kind === "coast" || ecology === "desert"
           ? "sand"
-          : "mud",
-    customBankColors: !frozen && !red,
-    bankDryColor: defaults.bankDryColor,
+          : kind === "creek"
+            ? "pebbles"
+            : "mud",
+    clarity: swamp ? 0.25 : defaults.clarity,
+    rocks: swamp ? 0.05 : defaults.rocks,
+    plantType: swamp ? "reeds" : defaults.plantType,
+    customBankColors: !frozen && !red && kind !== "creek",
+    bankDryColor: swamp ? "#706449" : defaults.bankDryColor,
     bankWetColor:
-      ecology === "desert" && !red ? "#b69a6c" : defaults.bankWetColor,
+      swamp ? "#464c37" : ecology === "desert" && !red ? "#b69a6c" : defaults.bankWetColor,
     bankContactColor:
-      palette === "polar" ? "#a8c9cb" : defaults.bankContactColor,
-    beachWidth: kind === "coast" ? 8 : kind === "river" ? 1.5 : 1,
+      swamp ? "#2e4235" : palette === "polar" ? "#a8c9cb" : defaults.bankContactColor,
+    beachWidth: kind === "coast" ? 8 : kind === "river" ? 1.5 : kind === "creek" ? 0.18 : 1,
     strength:
       kind === "coast"
         ? 1.5
-        : kind === "river"
+        : kind === "river" || kind === "creek"
           ? 1
           : kind === "lake"
             ? 0.65

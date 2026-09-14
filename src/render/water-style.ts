@@ -123,6 +123,13 @@ export function waterBand(
           : 4;
 }
 export function waterStyle(c: TopographyCell) {
+  if (c.habitat?.colorway === "swamp") return {
+    ...wetland,
+    depths: ["#a3ae77", "#768d66", "#526f59", "#395749", "#293f39"],
+    texture: ["#abb781", "#809771", "#5c7963", "#436153", "#334943"],
+    bank: ["#343f2e", "#51563c", "#706449"] as const,
+    foam: "#a1ad83", glint: "#a5b59a",
+  };
   return waterPalette(
     c.waterVisual?.ecology ?? "grassland",
     c.waterVisual?.kind ?? "river",

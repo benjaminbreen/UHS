@@ -1,6 +1,7 @@
 import type { TopographyCell, TopographySample } from "../core/topography";
 import { rasterHabitatTile, type GroundTileData } from "./habitat-raster";
 import { paintedGround } from "./material-edges";
+import type { WaterTileData } from "./water-raster";
 
 type Surface = { x: number; y: number; cell: TopographyCell };
 const natural = (c: TopographyCell | undefined): c is TopographyCell =>
@@ -18,8 +19,10 @@ export function contourSurfaces(
   groundTiles: readonly GroundTileData[],
   ox: number,
   oy: number,
+  waterTiles: readonly WaterTileData[] = [],
 ) {
   const tiles = new Map(groundTiles.map((t) => [`${t.x},${t.y}`, t.pixels]));
+  const water = new Map(waterTiles.map((t) => [`${t.x},${t.y}`, t.pixels]));
   const candidates = new Map<string, Surface[]>();
   const owner = (px: number, py: number, tier: number): Surface | undefined => {
     const x = Math.floor(px / 16),
@@ -65,13 +68,20 @@ export function contourSurfaces(
     const moved = x !== surface.x || y !== surface.y || tier !== surface.cell.height;
     const key = moved ? `${x},${y}:${surface.x},${surface.y}:${tier}` : `${x},${y}`;
     let pixels = tiles.get(key);
+    if (!pixels && !moved && surface.cell.surface === "water")
+      pixels = water.get(key);
     if (!pixels && paintedGround(surface.cell)) {
+      // A borrowed tier paints this location's own ground at the donor's
+      // height and surface. Copying the donor cell wholesale dragged its
+      // path strokes and exposed patches a cell across the contour.
+      const here = sample(x, y);
       const cell = moved ? {
-        ...surface.cell,
+        ...(here && natural(here) ? here : surface.cell),
         height: tier,
+        surface: surface.cell.surface,
         // Shore distance belongs to this location, never to the donor tile.
-        waterVisual: surface.cell.surface === "sand" || sample(x, y)?.height === surface.cell.height
-          ? sample(x, y)?.waterVisual : undefined,
+        waterVisual: surface.cell.surface === "sand" || here?.height === surface.cell.height
+          ? here?.waterVisual : undefined,
       } : surface.cell;
       pixels = rasterHabitatTile(sample, x, y, ox, oy, undefined, cell).pixels;
       tiles.set(key, pixels);

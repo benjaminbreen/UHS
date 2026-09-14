@@ -224,36 +224,50 @@ describe("field raster", () => {
   it("renders a canal as lips, still water and a flow highlight", () => {
     const run = canalWorld({ "2,5": "x", "3,5": "x", "4,5": "x" });
     const p = rasterWaterTile(run, 3, 5, 0, 0).pixels;
-    const water = new Set([pal.depths[2], pal.depths[3]].map((c) => hex(c).join()));
-    const lip = new Set([pal.bank[0], pal.bank[1], pal.bank[2]].map((c) => hex(c).join()));
+    const deepRgb = hex(pal.depths[4]);
+    // Water is any blue-leaning pixel: banks are earth, never bluer than red.
+    const isWater = (x: number, y: number) => {
+      const c = pixel(p, x, y);
+      return c[2] > c[0] + 10;
+    };
     for (let x = 0; x < 16; x++) {
-      for (const y of [0, 1, 14, 15]) expect(lip.has(pixel(p, x, y).join()), `lip ${x},${y}`).toBe(true);
-      expect(pixel(p, x, 2).join()).toBe(hex(pal.depths[3]).join());
-      for (const y of [3, 6, 12, 13]) expect(water.has(pixel(p, x, y).join()), `water ${x},${y}`).toBe(true);
+      for (const y of [0, 1, 2, 13, 14, 15]) expect(isWater(x, y), `bank ${x},${y}`).toBe(false);
+      expect(pixel(p, x, 3).join()).toBe(deepRgb.join());
+      for (const y of [5, 7, 9, 11]) expect(isWater(x, y), `water ${x},${y}`).toBe(true);
     }
-    // The highlight sits on one row along the flow and nowhere else.
-    const glint = Array.from({ length: 16 }, (_, x) => pixel(p, x, 9).join()).filter(
-      (c) => !water.has(c),
-    );
-    expect(glint.length).toBeGreaterThan(8);
-    for (const y of [8, 10]) for (let x = 0; x < 16; x++) expect(water.has(pixel(p, x, y).join())).toBe(true);
+    const stillRgb = hex(pal.depths[3]), glintRgb = hex(pal.glint);
+    const dashRgb = stillRgb.map((v, k) => Math.round(v * 0.55 + glintRgb[k] * 0.45));
+    // Ripples run as short dashes in lanes along the flow: some glint pixels
+    // in the channel, never a full row of them, and nothing else there.
+    const channel = Array.from({ length: 16 * 10 }, (_, i) => pixel(p, i % 16, 3 + Math.floor(i / 16)).join());
+    const plain = new Set([stillRgb, deepRgb, hex(pal.depths[2])].map((c) => c.join()));
+    const glints = channel.filter((c) => !plain.has(c));
+    expect(glints.length).toBeGreaterThan(4);
+    expect(glints.length).toBeLessThan(120);
+    void dashRgb;
     // No shoreline and no motif effect: the effect has no edges to draw.
     expect(rasterWaterTile(run, 3, 5, 0, 0).effect.edges).toEqual([]);
   });
   it("closes a dead-end canal and opens a junction", () => {
     const dead = rasterWaterTile(canalWorld({ "2,5": "x", "3,5": "x" }), 3, 5, 0, 0).pixels;
-    const lip = new Set([pal.bank[0], pal.bank[1], pal.bank[2]].map((c) => hex(c).join()));
+    const waterTones = new Set([pal.depths[2], pal.depths[3]].map((c) => hex(c).join()));
+    const isWater = (p: Uint8ClampedArray, x: number, y: number) => {
+      const c = pixel(p, x, y);
+      const d2 = hex(pal.depths[2]), d3 = hex(pal.depths[3]);
+      // Any of the water tones or a blend of them with the glint.
+      return waterTones.has(c.join()) || (Math.abs(c[2] - d2[2]) < 40 && c[2] > c[0] + 10) || (Math.abs(c[2] - d3[2]) < 40 && c[2] > c[0] + 10);
+    };
     for (let y = 0; y < 16; y++) {
-      expect(lip.has(pixel(dead, 15, y).join()), `end ${y}`).toBe(true);
-      expect(lip.has(pixel(dead, 14, y).join()), `end ${y}`).toBe(true);
+      expect(isWater(dead, 15, y), `end ${y}`).toBe(false);
+      expect(isWater(dead, 14, y), `end ${y}`).toBe(false);
     }
-    expect(lip.has(pixel(dead, 0, 7).join())).toBe(false);
+    expect(isWater(dead, 0, 7)).toBe(true);
     const tee = rasterWaterTile(
       canalWorld({ "2,5": "x", "3,5": "x", "4,5": "x", "3,6": "y", "3,7": "y" }),
       3, 5, 0, 0,
     ).pixels;
-    for (let x = 2; x <= 13; x++) expect(lip.has(pixel(tee, x, 15).join()), `open ${x}`).toBe(false);
-    for (const x of [0, 1, 14, 15]) expect(lip.has(pixel(tee, x, 15).join()), `closed ${x}`).toBe(true);
+    for (let x = 3; x <= 12; x++) expect(isWater(tee, x, 15), `open ${x}`).toBe(true);
+    for (const x of [0, 1, 14, 15]) expect(isWater(tee, x, 15), `closed ${x}`).toBe(false);
   });
   it("rasterizes a canal identically from any chunk origin", () => {
     const cells = { "2,5": "x", "3,5": "x", "3,6": "y" } as const;

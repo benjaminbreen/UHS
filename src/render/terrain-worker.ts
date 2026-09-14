@@ -7,6 +7,7 @@ import { batchGroundPage, type GroundPage } from "./ground-pages";
 import { paintedGround } from "./material-edges";
 import { rasterHabitatTile, type GroundTileData } from "./habitat-raster";
 import { rasterWaterTile, type WaterTileData } from "./water-raster";
+import { waterDistance } from "./water-style";
 import type { Pack, WorldModel } from "../core/types";
 import { createSettlementWorld } from "../world/v3/generate";
 import type { PreparedSettlement } from "../world/v3/prepared";
@@ -93,6 +94,9 @@ export function handleTerrainRequest(data: TerrainRequest) {
     const paintSample = (x: number, y: number) => {
       const c = sample(x, y);
       if (!livingEnabled || !c.waterVisual) return c;
+      // A creek keeps its own narrow shore: the living beach width is for
+      // rivers and coasts and would give it the river's sand ramp.
+      if (c.waterVisual.shoreWidth < 1.2) return c;
       const key = `${x},${y}`;
       let painted = paintCells.get(key);
       if (!painted) {
@@ -131,10 +135,42 @@ export function handleTerrainRequest(data: TerrainRequest) {
           groundTiles.push(
             rasterHabitatTile(paintSample, x, y, region.x, region.y),
           );
-        if (cell.surface === "water" || cell.bridge)
-          waterTiles.push(
-            rasterWaterTile(cachedSample, x, y, region.x, region.y),
-          );
+        if (cell.surface === "water" || cell.bridge) {
+          const tile = rasterWaterTile(cachedSample, x, y, region.x, region.y);
+          // A creek's cell is mostly turf: the water tile keeps only its
+          // water pixels and the rest is the ground raster, so the old
+          // sand-and-gravel ramp never appears round a small stream.
+          if (
+            !cell.bridge &&
+            cell.waterVisual &&
+            cell.waterVisual.shoreWidth < 1.2 &&
+            cell.habitat
+          ) {
+            const ground = rasterHabitatTile(
+              paintSample,
+              x,
+              y,
+              region.x,
+              region.y,
+              undefined,
+              { ...cell, surface: "grass", waterVisual: undefined, waterDepth: undefined },
+            );
+            for (let py = 0; py < 16; py++)
+              for (let px = 0; px < 16; px++) {
+                const d = waterDistance(
+                  cachedSample,
+                  x + (px + 0.5) / 16,
+                  y + (py + 0.5) / 16,
+                );
+                if (d >= 0)
+                  tile.pixels.set(
+                    ground.pixels.subarray((py * 16 + px) * 4, (py * 16 + px) * 4 + 4),
+                    (py * 16 + px) * 4,
+                  );
+              }
+          }
+          waterTiles.push(tile);
+        }
       }
     const rimList: number[] = [];
     const receiverData: Partial<TerrainReceivers> = {};
@@ -147,6 +183,7 @@ export function handleTerrainRequest(data: TerrainRequest) {
       groundTiles,
       rimList,
       receiverData,
+      waterTiles,
     );
     const rims = Int16Array.from(rimList);
     const receivers = receiverData.tiers
@@ -190,8 +227,10 @@ export function handleTerrainRequest(data: TerrainRequest) {
             )
               continue;
             const i = (sy - receivers.y) * receivers.width + sx - receivers.x;
-            if (receivers.tiers[i] !== 0 || receivers.rows[i] !== layer.row)
-              continue;
+            // Clear the plateau's own painted water too, so terrace creeks
+            // show the living water beneath rather than the flat tile.
+            const tier = receivers.tiers[i];
+            if (tier === -2 || receivers.rows[i] !== layer.row) continue;
             if (living.pixels[((sy + 96) * living.width + sx) * 4 + 3])
               layer.pixels[(y * layer.width + x) * 4 + 3] = 0;
           }

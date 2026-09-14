@@ -256,6 +256,9 @@ export function shorePixel(
   wy: number,
 ) {
   const p = waterStyle(cell);
+  const creek = (cell.waterVisual?.shoreWidth ?? 3) < 1.2;
+  // A creek or its pond: one wet dark line, the turf runs to it.
+  if (creek) return rgb(p.bank[0]);
   const pool =
     cell.waterVisual?.kind === "lake" && (cell.waterVisual.shoreWidth ?? 3) < 1;
   if (pool) {

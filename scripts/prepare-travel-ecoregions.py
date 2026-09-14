@@ -40,7 +40,7 @@ for record in reader.iterShapeRecords():
         name = re.split(r'\b(?:sclerophyllous|semi-deciduous|semi-evergreen|moist|dry|deciduous|conifer|hardwood|forests?|woodlands?|savanna|grasslands?|shrublands?|bushlands?|thickets?|xeric|taiga|tundra|mallee|subalpine)\b', name, maxsplit=1, flags=re.I)[0].rstrip(' ,-/')
     if not name or len(name) > 34 or name.lower() in ['rock and ice', 'lake', 'lakes']:
         name = None
-    regions.append({'id':identity, 'name':name, 'sourceName':full, 'realm':p['REALM']})
+    regions.append({'id':identity, 'name':name, 'sourceName':full, 'realm':p['REALM'], 'biome':int(p['BIOME_NUM'])})
     geometry = shape(record.shape.__geo_interface__)
     w,s,e,n = geometry.bounds
     x0, x1 = max(0, int((w+180)*4)), min(width, int((e+180)*4)+1)
@@ -53,5 +53,5 @@ starts = np.r_[0, np.flatnonzero(flat[1:] != flat[:-1])+1]
 ends = np.r_[starts[1:], flat.size]
 runs = [[int(a),int(b),int(flat[a])] for a,b in zip(starts,ends) if flat[a]]
 out = ROOT/'src/content/geography/travel/generated/ecoregions.json'
-out.write_text(json.dumps({'width':width, 'height':height, 'regions':sorted(regions,key=lambda r:r['id']), 'runs':runs, 'source':{'url':URL,'sha256':SHA,'license':'CC BY 4.0','attribution':'RESOLVE Ecoregions 2017 — Dinerstein et al. (2017), doi:10.1093/biosci/bix014','modifications':'Rasterized to quarter-degree cell centers; shortened display names. Used as geographic naming fallback, not historical vegetation.'}},separators=(',',':'),ensure_ascii=False)+'\n')
+out.write_text(json.dumps({'width':width, 'height':height, 'regions':sorted(regions,key=lambda r:r['id']), 'runs':runs, 'source':{'url':URL,'sha256':SHA,'license':'CC BY 4.0','attribution':'RESOLVE Ecoregions 2017 — Dinerstein et al. (2017), doi:10.1093/biosci/bix014','modifications':'Rasterized to quarter-degree cell centers; shortened display names; biome number kept. Used as geographic naming fallback and as the broad biome map for generated ecology, not historical vegetation.'}},separators=(',',':'),ensure_ascii=False)+'\n')
 print(f'{len(regions)} ecoregions, {len(runs)} runs, {out.stat().st_size:,} bytes; {sum(r["name"] is None for r in regions)} labels need shorter refinements')

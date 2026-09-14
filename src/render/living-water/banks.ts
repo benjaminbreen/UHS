@@ -8,6 +8,7 @@ export const bankClimates = {
   wetland: "Wetland",
   "dry-scrub": "Dry scrub",
   grassland: "Grassland",
+  savanna: "Savanna",
 } as const;
 export type BankClimate = keyof typeof bankClimates;
 export type BankMaterial =

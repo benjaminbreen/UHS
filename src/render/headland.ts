@@ -24,6 +24,7 @@ const headlandRamps: Record<Ecology, string[]> = {
   wetland: ["#7e6444", "#bfa87c", "#ccb88d", "#a48c62"],
   "dry-scrub": ["#a07240", "#dcbe82", "#e9cf97", "#c5a063"],
   desert: ["#a97d4a", "#e0c388", "#edd59d", "#caa566"],
+  savanna: ["#a37444", "#dcbd82", "#e9d097", "#c4a064"],
 };
 export const headlandRamp = Object.fromEntries(
   Object.entries(headlandRamps).map(([k, v]) => [k, v.map(decode)]),

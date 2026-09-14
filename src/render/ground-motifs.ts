@@ -21,6 +21,7 @@ export type GroundMotifTuning = {
 // of each blade, 2 blade body, 3 highlight up the centre blade. Which of the
 // three tone levels it is drawn in is chosen per tuft by the raster.
 const turfMotifs = [
+  // Tall five-blade tuft.
   [
     "000010000",
     "000013000",
@@ -41,6 +42,16 @@ const turfMotifs = [
     "122122100",
     "012221000",
   ],
+  // Short three-blade clump.
+  ["0100300", "1200210", "1221210", "0122100"],
+  ["0030010", "0120210", "1221210", "0112100"],
+  // Leaning wisp.
+  ["000030", "000200", "102200", "122100", "011000"],
+  ["030000", "002000", "002201", "012210", "001100"],
+  // Wide low sward.
+  ["01003000100", "12002301210", "01221221210", "00112211100"],
+  // Two blades and a seed head.
+  ["0003000", "0002010", "0102020", "0122100", "0011000"],
 ];
 // Round pebbles: 1 shadow, 2 body, 3 lit top.
 const pebbleMotifs = [
@@ -103,8 +114,8 @@ export function groundMotif(
   const clusteredDensity =
     kind === "stone"
       ? colony > 0.5
-        ? 0.84
-        : 0.45
+        ? 0.62
+        : 0.2
       : kind === "earth"
         ? 0.56
       : kind === "pebble"
@@ -119,7 +130,7 @@ export function groundMotif(
             ? 0.85
             : 0.5;
   const clustering = tuning?.clustering ?? 1;
-  const meanDensity = kind === "stone" ? 0.645 : kind === "turf" ? 0.675 : 0.43;
+  const meanDensity = kind === "stone" ? 0.41 : kind === "turf" ? 0.675 : 0.43;
   const density = Math.max(
     0,
     Math.min(
@@ -145,11 +156,11 @@ export function groundMotif(
   // Turf keeps to the lattice with a two-pixel wobble; other marks roam.
   const ox =
     kind === "turf"
-      ? Math.floor(slackX / 2) + Math.floor(hash(bx, by, 405) * 5) - 2
+      ? Math.floor(slackX / 2) + Math.floor(hash(bx, by, 405) * 9) - 4
       : Math.floor(hash(bx, by, 405) * slackX);
   const oy =
     kind === "turf"
-      ? Math.floor(slackY / 2) + Math.floor(hash(bx, by, 407) * 5) - 2
+      ? Math.floor(slackY / 2) + Math.floor(hash(bx, by, 407) * 7) - 3
       : Math.floor(hash(bx, by, 407) * slackY);
   const x = wx - shift - bx * stepX - ox;
   const y = wy - by * stepY - oy;
@@ -248,6 +259,62 @@ export function turfTick(
   const tile = tiles[v % tiles.length];
   return tile[((wy % 8) + 8) % 8]?.[((wx % 8) + 8) % 8] === "1";
 }
+// All-over blade hatch under the tufts: short dark strokes with an occasional
+// lit tip, so turf reads as grass at every pixel rather than as a flat fill
+// with clumps on it. 1 dark blade, 2 lit tip. Tiles rotate and flip by block.
+const hatchTiles = [
+  [
+    "00000000",
+    "01100000",
+    "00010010",
+    "00000110",
+    "00000000",
+    "00110000",
+    "01000000",
+    "00000210",
+  ],
+  [
+    "00000110",
+    "00001000",
+    "01100000",
+    "00010000",
+    "00000000",
+    "00000011",
+    "00000100",
+    "21000000",
+  ],
+  [
+    "00000000",
+    "00011000",
+    "00100000",
+    "00000011",
+    "00000100",
+    "01100000",
+    "00010000",
+    "00000020",
+  ],
+  [
+    "00000011",
+    "00000100",
+    "01100000",
+    "00010000",
+    "00000000",
+    "00001100",
+    "00010000",
+    "20000000",
+  ],
+];
+export function swardHatch(wx: number, wy: number) {
+  const bx = Math.floor(wx / 8),
+    by = Math.floor(wy / 8);
+  const choice = Math.floor(hash(bx, by, 461) * 32);
+  let x = wx - bx * 8,
+    y = wy - by * 8;
+  if (choice & 4) x = 7 - x;
+  if (choice & 8) y = 7 - y;
+  if (choice & 16) [x, y] = [y, x];
+  return Number(hatchTiles[choice & 3][y][x]);
+}
 // Regular sparse dark speckle for bare earth.
 export function earthSpeckle(wx: number, wy: number) {
   const x = ((wx % 8) + 8) % 8,
@@ -266,3 +333,45 @@ export const edgeTufts = [
   ["000300", "000200", "301200", "221210", "011100"],
   ["030000", "020000", "020103", "122202", "011110"],
 ];
+
+/** Forest floor. Leaves: 1 shadow, 2 body, 3 lit edge. Fern: 1 stem, 2 blade,
+ * 3 one lit tip. Both anchored at their top-left; the raster places them in
+ * colonies off any lattice. */
+export const leafGlyphs = [
+  ["0330", "1221", "0110"],
+  ["0300", "3210", "0110"],
+  ["0033", "0221", "1100"],
+];
+export const fernGlyph = [
+  "000030000",
+  "000020000",
+  "020120020",
+  "002121200",
+  "000121000",
+  "022121220",
+  "000010000",
+];
+/** Where a leaf or frond sits inside a placement block, or 0. Each block of
+ * `step` pixels holds at most one glyph, jittered, and whole blocks are
+ * empty where the colony hash says so. Returns the glyph ink at (wx, wy). */
+export function floorMark(
+  wx: number,
+  wy: number,
+  step: number,
+  glyphs: readonly string[][],
+  fill: number,
+  salt: number,
+) {
+  const bx = Math.floor(wx / step),
+    by = Math.floor(wy / step);
+  if (hash(bx, by, salt) > fill) return 0;
+  const glyph = glyphs[Math.floor(hash(bx, by, salt + 1) * glyphs.length)];
+  const ox = Math.floor(hash(bx, by, salt + 2) * (step - glyph[0].length + 1)),
+    oy = Math.floor(hash(bx, by, salt + 3) * (step - glyph.length + 1));
+  const x = wx - bx * step - ox,
+    y = wy - by * step - oy;
+  const flip = hash(bx, by, salt + 4) > 0.5;
+  const row = glyph[y];
+  if (!row) return 0;
+  return Number(row[flip ? row.length - 1 - x : x] ?? 0);
+}

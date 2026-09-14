@@ -4,7 +4,7 @@ import {
   populations,
   starts,
   householdForms,
-  desertColorways,
+  colorways,
 } from "../ecology/profiles";
 import { z } from "zod";
 import { patterns } from "../settlements/profiles";
@@ -97,13 +97,14 @@ export const settingSchema = z
       ])
       .optional(),
     ecologyRevision: z.literal(1).optional(),
-    playableMap: z.object({ id: z.string(), name: z.string().optional(), size: z.union([z.literal(304), z.literal(384), z.literal(512)]), exits: z.array(z.object({ id: z.string(), to: z.string(), bearing: z.string(), mode: z.string(), seam: z.object({side:z.enum(["N","E","S","W"]), start:z.number(),end:z.number(),water:z.array(z.number()),sea:z.array(z.boolean()),height:z.array(z.number()),road:z.boolean(),roadAt:z.number(),band:z.number().optional(),walkable:z.number()}).optional() })).default([]) }).strict().optional(),
+    hydrologyRevision: z.union([z.literal(1), z.literal(2)]).optional(),
+    playableMap: z.object({ id: z.string(), name: z.string().optional(), size: z.union([z.literal(304), z.literal(384), z.literal(512)]), exits: z.array(z.object({ id: z.string(), to: z.string(), bearing: z.string(), mode: z.string(), neighbor: z.object({ lon: z.number(), lat: z.number(), ecology: z.enum(ecologies), colorway: z.enum(colorways).optional(), relief: z.number(), climate: z.enum(climates), water: z.enum(waters), landform: z.enum(landforms), size: z.number(), geographyMode: z.enum(["earth", "configured"]) }).optional(), seam: z.object({side:z.enum(["N","E","S","W"]), start:z.number(),end:z.number(),water:z.array(z.number()),sea:z.array(z.boolean()),height:z.array(z.number()),road:z.boolean(),roadAt:z.number(),band:z.number().optional(),walkable:z.number()}).optional() })).default([]) }).strict().optional(),
     geographyMode: z.enum(["earth", "configured"]).optional(),
     terrainRevision: z.union([z.literal(1), z.literal(2)]).optional(),
     environment: z
       .object({
         ecology: z.enum(ecologies),
-        colorway: z.enum(desertColorways).optional(),
+        colorway: z.enum(colorways).optional(),
         vegetation: z.enum(["savanna", "steppe", "alpine"]).optional(),
         landform: z.enum(landforms),
         population: z.enum(populations),

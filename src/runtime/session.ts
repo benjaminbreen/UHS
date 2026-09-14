@@ -35,6 +35,10 @@ import { packForSetting } from "../content/geography/pack";
 import { createSettlementWorld } from "../world/v3/generate";
 import { createAtlasWorld } from "../world/v2/generate";
 import { integratedSetting } from "../content/geography/defaults";
+import { ecologyProfiles } from "../content/ecology/profiles";
+import { colorwayLabels } from "../content/ecology/variants";
+import { biomeNames, ecoregionNear } from "../content/geography/ecoregions";
+import { fromAtlas, toAtlas } from "../world/geography/atlas";
 export function createSession(
   packId = "roman",
   seed = packs[packId]?.defaultSeed ?? "earth-2",
@@ -666,6 +670,45 @@ export class Runtime {
       arc: { height: 11, duration: 320 },
     };
     this.emit();
+  }
+  /** Command-click: what the ground here is, in the event bar. */
+  inspectCell(x: number, y: number) {
+    const w = this.engine.world;
+    const s = w.pack.setting;
+    const cell = w.topography?.(x, y);
+    const h = cell?.habitat;
+    const parts: string[] = [];
+    if (h) {
+      const label = ecologyProfiles[h.ecology]?.label ?? h.ecology;
+      parts.push(
+        h.colorway ? `${label} · ${colorwayLabels[h.colorway]}` : label,
+      );
+      parts.push(
+        `${h.kind}${h.vegetation ? ` (${h.vegetation})` : ""}, wet ${h.wet.toFixed(2)}, cover ${h.cover.toFixed(2)}, exposed ${h.exposed.toFixed(2)}`,
+      );
+    }
+    if (cell) {
+      parts.push(
+        `tier ${cell.height}, ${cell.surface}${cell.feature ? ` ${cell.feature}` : ""}${cell.waterVisual ? `, ${cell.waterVisual.kind} ${cell.waterVisual.distance.toFixed(1)} cells` : ""}`,
+      );
+      if (cell.pathArt?.length) parts.push("path");
+      if (cell.field) parts.push(`field ${cell.field.crop} ${cell.field.stage}`);
+    }
+    const d = w.decoration?.(x, y);
+    if (d) parts.push(d.sprite.replace(/^(nature-|ecology-)/, ""));
+    if (s && typeof s.lon === "number") {
+      const o = toAtlas(s.lon, s.lat);
+      const ll = fromAtlas(x + o.x, y + o.y);
+      const region = ecoregionNear(ll.lon, ll.lat);
+      parts.push(
+        `${ll.lat.toFixed(3)}, ${ll.lon.toFixed(3)}` +
+          (region
+            ? ` · ${region.sourceName} (${biomeNames[region.biome] ?? "unmapped"})`
+            : ""),
+      );
+    }
+    this.engine.event(`Cell ${x},${y}: ${parts.join(" · ")}`, "action");
+    this.emit(false);
   }
   walkTo(target: Point) {
     this.stop(false);

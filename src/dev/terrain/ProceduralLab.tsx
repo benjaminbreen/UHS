@@ -1,4 +1,6 @@
 import { shorePolishDefaults } from "../../render/living-water/polish";
+import { colorwayLabels, colorwaysFor } from "../../content/ecology/variants";
+import type { Colorway } from "../../content/ecology/profiles";
 import { prepareSettingSession } from "../../runtime/preparation";
 import { useEffect, useRef, useState } from "react";
 import Phaser from "phaser";
@@ -12,7 +14,7 @@ import {
   populations,
   starts,
   householdForms,
-  desertColorways,
+  colorways,
 } from "../../content/ecology/profiles";
 import { patterns } from "../../content/settlements/profiles";
 import { waters, type WorldSetting } from "../../content/geography/types";
@@ -25,7 +27,7 @@ type Config = {
   place?: string;
   seed: string;
   ecology: (typeof ecologies)[number];
-  colorway: (typeof desertColorways)[number];
+  colorway: (typeof colorways)[number] | "auto";
   vegetation: "auto" | "savanna" | "steppe" | "alpine";
   landform: (typeof landforms)[number];
   population: (typeof populations)[number];
@@ -41,7 +43,7 @@ type Config = {
 const defaults: Config = {
   seed: "ecology-01",
   ecology: "temperate-woodland",
-  colorway: "highland",
+  colorway: "auto",
   vegetation: "auto",
   landform: "rolling",
   // The lab defaults to an empty landscape: households and residents dominate
@@ -171,6 +173,7 @@ function readConfig(): Config {
     "season",
   ] as const)
     if (q.has(key)) (c as any)[key] = q.get(key);
+  if (q.has("variant")) c.colorway = q.get("variant") as Config["colorway"];
   if (q.has("place") && places.some((p) => p.id === q.get("place")))
     c.place = q.get("place")!;
   if (q.has("year")) c.year = Number(q.get("year"));
@@ -184,6 +187,7 @@ export function labSetting(c: Config): WorldSetting {
   );
   const climate: Record<Config["ecology"], WorldSetting["climate"]> = {
     grassland: "temperate",
+    savanna: "tropical",
     "temperate-woodland": "temperate",
     "boreal-woodland": "boreal",
     "tropical-woodland": "tropical",
@@ -204,7 +208,9 @@ export function labSetting(c: Config): WorldSetting {
     environment: {
       ecology: c.ecology,
       vegetation: c.vegetation === "auto" ? undefined : c.vegetation,
-      colorway: c.ecology === "desert" ? c.colorway : undefined,
+      colorway: colorwaysFor[c.ecology].includes(c.colorway as Colorway)
+        ? (c.colorway as Colorway)
+        : undefined,
       landform: c.landform,
       population: c.population,
       start:
@@ -638,8 +644,12 @@ export function ProceduralLab() {
             ecologies,
             (v) => ecologyProfiles[v as Config["ecology"]].label,
           )}
-          {draft.ecology === "desert" &&
-            select("Desert colourway", "colorway", desertColorways)}
+          {select(
+            "Regional variant",
+            "colorway",
+            ["auto", ...colorwaysFor[draft.ecology]],
+            (v) => (v === "auto" ? "Envelope default" : colorwayLabels[v as Colorway]),
+          )}
           {select("Vegetation pattern", "vegetation", [
             "auto",
             "savanna",

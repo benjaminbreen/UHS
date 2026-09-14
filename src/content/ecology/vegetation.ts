@@ -1,4 +1,5 @@
 import type { WorldSetting } from "../geography/types";
+import type { Colorway } from "./profiles";
 import type { Habitat, VegetationPattern } from "../../world/v3/habitats";
 import type { LandSample } from "../../world/geography/landscape";
 
@@ -9,6 +10,9 @@ export function vegetationPattern(
   if ((s.vegetationRevision ?? 0) < 6) return undefined;
   if (s.environment?.vegetation) return s.environment.vegetation;
   const ecology = s.environment?.ecology;
+  const colorway = s.environment?.colorway;
+  if (ecology === "savanna") return "savanna";
+  if (colorway === "steppe" || colorway === "montane") return "steppe";
   // A local high-mountain proxy, not a measured global treeline.
   if (s.relief > 0.7 && land.elevation / (land.summit ?? 126) > 0.7)
     return "alpine";
@@ -36,8 +40,22 @@ const palm = "nature-feather-palm",
   fern = "nature-understory-woodland-fern",
   heath = "nature-understory-flowering-heath",
   sage = "nature-understory-sagebrush",
-  ginger = "nature-understory-tropical-ginger";
+  ginger = "nature-understory-tropical-ginger",
+  eucalyptus = "nature-eucalyptus",
+  baobab = "nature-baobab",
+  saguaro = "nature-saguaro",
+  larch = "nature-larch",
+  juniper = "nature-juniper",
+  maple = "nature-maple",
+  mangrove = "nature-mangrove";
 export const natureTreeSprites = [
+  eucalyptus,
+  baobab,
+  saguaro,
+  larch,
+  juniper,
+  maple,
+  mangrove,
   "nature-bamboo-clump",
   "nature-teak",
   "nature-broadleaf-sapling",
@@ -76,7 +94,60 @@ const sahel: Mix = [
   [thorn, 9],
   ["acacia", 1],
 ];
+// Colourway mixes take precedence over the latitude and longitude boxes below.
+const regional: Partial<Record<Colorway, Mix>> = {
+  sahara: [[palm, 1]],
+  "red-earth": [[eucalyptus, 2], [scrub, 3]],
+  sonoran: [[saguaro, 6], [scrub, 3], [juniper, 1]],
+  atacama: [[scrub, 1]],
+  kalahari: [[thorn, 6], [baobab, 1]],
+  highland: [[juniper, 3], [scrub, 4]],
+  maquis: [["olive", 5], [pine, 3], ["oak", 2]],
+  chaparral: [["oak", 4], [juniper, 3], [pine, 2]],
+  mallee: [[eucalyptus, 8], [scrub, 2]],
+  fynbos: [[scrub, 6], [juniper, 1]],
+  matorral: [["oak", 3], [juniper, 3], [scrub, 2]],
+  sahel: [[thorn, 8], [baobab, 1], ["acacia", 1]],
+  prairie: [["oak", 5], [maple, 3], [willow, 2]],
+  steppe: [[juniper, 3], [birch, 2], ["oak", 1]],
+  pampas: [[willow, 4], ["oak", 3], [juniper, 1]],
+  montane: [[juniper, 4], [pine, 3], [birch, 2]],
+  acacia: [[thorn, 7], ["acacia", 2], [baobab, 1]],
+  cerrado: [[tropical, 4], [thorn, 3], [palm, 2]],
+  eucalypt: [[eucalyptus, 8], [thorn, 1]],
+  "oak-hickory": [["oak", 5], [maple, 4], [pine, 1]],
+  "east-asian": [[maple, 4], ["oak", 3], [pine, 2], ["nature-bamboo-clump", 1]],
+  "southern-beech": [["oak", 4], [eucalyptus, 3], [pine, 2]],
+  conifer: [[pine, 6], [spruce, 3], [birch, 1]],
+  larch: [[larch, 7], [birch, 2], [spruce, 1]],
+  coastal: [[spruce, 6], [pine, 3], [birch, 1]],
+  marsh: [[willow, 7], ["oak", 3]],
+  papyrus: [[palm, 4], [thorn, 2], [tropical, 2]],
+  pantanal: [[palm, 5], [tropical, 4]],
+  bog: [[spruce, 5], [birch, 4], [larch, 1]],
+  mangrove: [[mangrove, 9], [palm, 1]],
+  swamp: [[tropical, 7], [palm, 3]],
+};
 export function treeMix(s: WorldSetting): Mix {
+  const colorway = s.environment?.colorway;
+  if (
+    colorway &&
+    (s.vegetationRevision ?? 0) >= 6 &&
+    s.environment?.ecology !== "tropical-woodland"
+  ) {
+    const mix = regional[colorway];
+    if (mix) return mix;
+  }
+  if (
+    colorway === "monsoon" &&
+    s.environment?.ecology === "tropical-woodland"
+  )
+    return [
+      ["nature-teak", 5],
+      [tropical, 3],
+      ["nature-bamboo-clump", 1],
+      [thorn, 1],
+    ];
   if (
     (s.vegetationRevision ?? 0) >= 4 &&
     s.environment?.ecology === "tropical-woodland"
@@ -112,6 +183,8 @@ export function treeMix(s: WorldSetting): Mix {
               [pine, 6],
               ["oak", 4],
             ];
+    case "savanna":
+      return sahel;
     case "wetland":
       return Math.abs(s.lat) < 25 ||
         s.climate === "tropical" ||
@@ -140,10 +213,13 @@ export function vegetationTree(
   roll: number,
 ) {
   if (h.ecology === "tundra" || h.vegetation === "alpine") return undefined;
-  if (h.vegetation === "savanna")
+  if (h.vegetation === "savanna") {
+    const mix = h.colorway && regional[h.colorway];
+    if (mix) return choose(mix, roll);
     return Math.abs(s.lat) < 30 && s.lon > -20 && s.lon < 55
       ? choose(sahel, roll)
       : choose([[tropical, 1]], roll);
+  }
   const fresh =
     land.kind !== "sea" &&
     land.water > (land.shoreWidth ?? 3) &&
@@ -209,6 +285,12 @@ export function vegetationUnderstory(
       return s.lon > -130 && s.lon < -100 && s.lat > 28 && s.lat < 55
         ? sage
         : scrub;
+    case "savanna":
+      return h.wet > 0.5
+        ? "nature-understory-sedge"
+        : roll < 0.75
+          ? "nature-understory-dry-bunchgrass"
+          : scrub;
     case "grassland":
       if (
         s.lon > -130 &&

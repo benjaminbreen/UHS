@@ -3,6 +3,7 @@ import { waterNoise, waterHash } from "../water-style";
 import { WIDTH as W, HEIGHT as H, beachExtent, type Settings } from "./model";
 
 export const waterRamps = {
+  swamp: ["#a3ae77", "#8c9d70", "#768d66", "#647e60", "#526f59", "#45634f", "#395749", "#304b41", "#293f39"],
   tropical: [
     "#c4f4cf",
     "#8fe5c8",

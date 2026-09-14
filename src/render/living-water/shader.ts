@@ -15,16 +15,16 @@ uniform vec4 waveParams;
 varying vec2 fragCoord;
 float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
 float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x),f.y);}
-vec3 tone(float n,float row){return texture2D(iChannel1,vec2((clamp(n,0.,15.)+.5)/16.,(row+.5)/128.)).rgb;}
+vec3 tone(float n,float row){return texture2D(iChannel1,vec2((clamp(n,0.,15.)+.5)/16.,(row+.5)/240.)).rgb;}
 void main(){
  vec2 local=floor(vec2(fragCoord.x,resolution.y-fragCoord.y));
  vec4 m=texture2D(iChannel0,(local+.5)/resolution);
  float row=floor(m.g*255.+.5)-1.;if(row<0.)discard;
- float raw=floor(m.r*255.+.5),kind=floor(mod(row,32.)/8.);
+ float raw=floor(m.r*255.+.5),kind=floor(mod(row,40.)/8.);
  vec2 p=worldOrigin+local;
  if(raw<128.){
    float d=(128.-raw)/127.;
-   float extent=kind<.5?1.5:kind<1.5?8.:1.;
+   float extent=kind<.5?1.5:kind<1.5?8.:kind>3.5?.45:1.;
    float steps=max(1.,bankParams.z-1.);
    float band=floor(clamp(d/(bankParams.x/extent),0.,1.)*steps)/steps;
    vec3 dry=tone(9.,row),wet=tone(10.,row),contact=tone(11.,row);
@@ -52,7 +52,7 @@ void main(){
  vec4 bends=texture2D(iChannel3,(local+.5)/resolution);
  float encoded=floor(bends.b*255.+.5),solid=step(128.,encoded),delay=mod(encoded,128.)/8.;
  vec2 displacement=(bends.rg*255.-128.)/4.;
- vec2 q=p+displacement-flow*t*(kind<.5?13.:kind>2.5?1.5:kind>1.5?3.:8.);
+ vec2 q=p+displacement-flow*t*(kind<.5||kind>3.5?13.:kind>2.5?1.5:kind>1.5?3.:8.);
  if(ocean)q=p+displacement+vec2(sin(t*.55+p.y/100.)*2.,cos(t*.43+p.x/110.)*2.);
  float warp=sin(q.y/19.+t*.35)*5.+sin(q.x/33.-q.y/27.)*5.;
  float a=sin((q.x+warp)/12.+sin(q.y/16.)*1.3);
@@ -72,7 +72,7 @@ void main(){
  float gradSteps=ocean?8.:2.;
  float k=clamp(floor(z+1.),0.,8.),f=floor(fract(max(0.,z+1.))*gradSteps)/gradSteps;
  vec3 color=mix(tone(k,row),tone(min(k+1.,8.),row),f);
- color=mix(color,tone(0.,row),caustic*(1.+polishParams.z*.8));
+ color=mix(color,tone(0.,row),caustic*(row>=160.?0.08:1.)*(1.+polishParams.z*.8));
  float fishGrid=polishParams.z>.5?40.:80.;
  vec2 fishCell=floor(p/fishGrid),fishLocal=mod(p,fishGrid);
  float fishSeed=hash(fishCell);
@@ -86,7 +86,7 @@ void main(){
    float crest=(.55+waveParams.x*.6)*(1.-smoothstep(7.,13.,depth));
    color=mix(color,mix(tone(0.,row),vec3(1.),.6),crest);
  }
- float wash=fract(t*(kind>2.5?.15:.35)+sin((p.x+p.y)/27.)*.12);
+ float wash=fract(t*(kind>2.5&&kind<3.5?.15:.35)+sin((p.x+p.y)/27.)*.12);
  float target=(1.-wash)*(kind>.5&&kind<1.5?.6:.28);
  if(solid<.5&&abs(depth-target)<.06&&noise(p/vec2(11.,9.))>.32)color=mix(color,vec3(.91,.98,.87),sin(wash*3.14159)*.4);
  if(polishParams.z>.5&&solid<.5){

@@ -35,7 +35,17 @@ export function broadleafAge(roll: number) {
         ? "nature-broadleaf-mature"
         : "nature-broadleaf-giant";
 }
+const regionalCrowns: Record<string, number> = {
+  "nature-eucalyptus": 2.5,
+  "nature-baobab": 3,
+  "nature-saguaro": 1,
+  "nature-larch": 1.8,
+  "nature-juniper": 1.4,
+  "nature-maple": 2.4,
+  "nature-mangrove": 2.2,
+};
 export function crownRadius(sprite: string) {
+  if (sprite in regionalCrowns) return regionalCrowns[sprite];
   return sprite === "nature-teak"
     ? 2.75
     : sprite.endsWith("giant")

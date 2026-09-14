@@ -6,9 +6,14 @@ import { lightingAt } from "../lighting";
 
 export const WIDTH = 384,
   HEIGHT = 256;
-export type WaterKind = "river" | "pond" | "lake" | "coast";
+export type WaterKind = "river" | "creek" | "pond" | "lake" | "coast";
 export type System = "current" | "tiles" | "depth";
 export const palettes = {
+  swamp: {
+    label: "Swamp · peat green",
+    colors: ["#a3ae77", "#768d66", "#526f59", "#395749", "#293f39"],
+    bed: "#635e42", foam: "#b3bd91",
+  },
   tropical: {
     label: "Tropical · turquoise lagoon",
     colors: ["#b4efd1", "#52d5cf", "#139fc9", "#096cb0", "#103a77"],
@@ -163,7 +168,7 @@ export function fixture(s: Settings) {
       waterDepth: d < -2 ? "deep" : "shallow",
       waterVisual: {
         distance: d,
-        kind: s.kind === "coast" ? "sea" : s.kind === "pond" ? "lake" : s.kind,
+        kind: s.kind === "coast" ? "sea" : s.kind === "pond" ? "lake" : s.kind === "creek" ? "river" : s.kind,
         ecology:
           s.palette === "tropical"
             ? "tropical-woodland"

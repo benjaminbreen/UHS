@@ -116,6 +116,7 @@ export function planSettlement(
     traffic: new Set(),
     reserved: new Set(),
     solid: new Set(),
+    built: new Set(),
     work: new Map(),
     stations: new Map(),
     slots: new Map(),
@@ -1385,7 +1386,7 @@ export function planSettlement(
     }
     if (lot.religious) {
       const id = `${site.id}-religious`;
-      eachCell(rect, (x, y) => plan.solid.add(cellKey(x, y)));
+      eachCell(rect, (x, y) => { plan.solid.add(cellKey(x, y)); plan.built!.add(cellKey(x, y)); });
       paint(rect, "dirt");
       // An apron rings the sanctuary, so its precinct reads on the ground and
       // a way round it always exists.
@@ -1436,7 +1437,7 @@ export function planSettlement(
     }
     if (lot.civic) {
       const id = `${site.id}-civic`;
-      eachCell(rect, (x, y) => plan.solid.add(cellKey(x, y)));
+      eachCell(rect, (x, y) => { plan.solid.add(cellKey(x, y)); plan.built!.add(cellKey(x, y)); });
       paint(rect, "dirt");
       plan.places.push({
         id,
@@ -1526,7 +1527,7 @@ export function planSettlement(
     // left a farmstead with no pen, no gate and no animals at all.
     if (livelihood ? livelihood.activity === HERDING : role === "Herder")
       herders.add(owner);
-    eachCell(rect, (x, y) => plan.solid.add(cellKey(x, y)));
+    eachCell(rect, (x, y) => { plan.solid.add(cellKey(x, y)); plan.built!.add(cellKey(x, y)); });
     if (!connect(workPoint, door, `yard-access${i}`, 0)) {
       eachCell(rect, (x, y) => plan.solid.delete(cellKey(x, y)));
       continue;
