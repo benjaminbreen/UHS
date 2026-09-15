@@ -17,12 +17,17 @@ export function validateIntents(engine: Engine, intents: Intent[]) {
   if (intents.length > MAX_INTENTS) return "Too many things at once.";
   const p = engine.state.player;
   for (const i of intents)
-    if (i.type === "receive") {
-      const actor = engine.state.actors.find((a) => a.id === i.from);
+    if (i.type === "receive" || i.type === "converse") {
+      const id = i.type === "receive" ? i.from : i.with;
+      const actor = engine.state.actors.find((a) => a.id === id);
       if (!actor || actor.kind !== "human")
-        return "That person cannot give you anything.";
+        return i.type === "receive"
+          ? "That person cannot give you anything."
+          : "There is nobody there to speak with.";
       if (distance(p.pos, actor.pos) > 2.5)
-        return "Move closer before accepting that.";
+        return i.type === "receive"
+          ? "Move closer before accepting that."
+          : "Move closer to speak with them.";
     }
   for (const i of intents)
     if (i.type === "invent")
@@ -59,8 +64,22 @@ export function resolveIntents(engine: Engine, intents: Intent[]): string[] {
       }
       case "receive":
         return receive(engine, i);
+      case "converse":
+        return converse(engine, i);
     }
   });
+}
+/* A conversation the player has already had. Kept on the person spoken to
+ * rather than on every witness: the exchange was with them. */
+function converse(engine: Engine, i: Extract<Intent, { type: "converse" }>) {
+  const actor = engine.state.actors.find((a) => a.id === i.with);
+  if (!actor) return "That person is no longer here.";
+  const delta = clamp(Math.round(i.delta), -2, 2);
+  actor.trust += delta;
+  actor.memories.push(`spoke:${delta > 0 ? "+" : ""}${delta}:${i.said.slice(0, 80)}`);
+  if (actor.memories.length > 40) actor.memories.shift();
+  engine.advance(60, actor.id);
+  return `Spoke with ${actor.name}, regard ${delta > 0 ? "+" : ""}${delta}.`;
 }
 function receive(engine: Engine, i: Extract<Intent, { type: "receive" }>) {
   const s = engine.state,

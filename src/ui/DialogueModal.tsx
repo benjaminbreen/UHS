@@ -19,6 +19,7 @@ export function DialogueModal({ runtime, actorId, onClose }: { runtime: Runtime;
   const [error, setError] = useState("");
   const [giftNotice, setGiftNotice] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const abort = useRef<AbortController>(null);
   const latest = history.at(-1);
 
   const commitGift = (gift?: DialogueGift) => {
@@ -31,10 +32,19 @@ export function DialogueModal({ runtime, actorId, onClose }: { runtime: Runtime;
     }
   };
 
+  /** The exchange itself, recorded on the person spoken to. */
+  const commitExchange = (said: string, regard?: number) => {
+    if (!said.trim()) return;
+    runtime.narrate([
+      { type: "converse", with: actorId, said: said.slice(0, 120), delta: regard ?? 0 },
+    ]);
+  };
+
   useEffect(() => {
-    let live = true;
-    void dialogueTurn(runtime, actorId, "", []).then((result) => {
-      if (!live) return;
+    const controller = new AbortController();
+    abort.current = controller;
+    void dialogueTurn(runtime, actorId, "", [], controller.signal).then((result) => {
+      if (controller.signal.aborted) return;
       setBusy(false);
       if (result.error) setError(result.error);
       else {
@@ -42,7 +52,9 @@ export function DialogueModal({ runtime, actorId, onClose }: { runtime: Runtime;
         commitGift(result.receive);
       }
     });
-    return () => { live = false; };
+    // Closing the conversation stops the request rather than paying for a
+    // reply nobody will read.
+    return () => abort.current?.abort();
   }, [actorId, runtime]);
 
   useEffect(() => {
@@ -59,17 +71,25 @@ export function DialogueModal({ runtime, actorId, onClose }: { runtime: Runtime;
     setInput("");
     setBusy(true);
     setError("");
-    const result = await dialogueTurn(runtime, actorId, text, next);
+    const controller = new AbortController();
+    abort.current = controller;
+    const result = await dialogueTurn(runtime, actorId, text, next, controller.signal);
+    if (controller.signal.aborted) return;
     setBusy(false);
     if (result.error) setError(result.error);
     else {
       setHistory([...next, { speaker: "npc", text: result.text }]);
+      commitExchange(text, result.regard);
       commitGift(result.receive);
     }
   };
+  const close = () => {
+    abort.current?.abort();
+    onClose();
+  };
   return (
     <section className={`modal modal-dialogue${responding ? " is-responding" : ""}`} role="dialog" aria-modal="true" aria-label={`Conversation with ${actor.name}`}>
-      <button className="close-modal icon-button" aria-label="Close conversation" onClick={onClose}><X size={20} /></button>
+      <button className="close-modal icon-button" aria-label="Close conversation" onClick={close}><X size={20} /></button>
       <div className="dialogue-heading">
         <div className="dialogue-portrait"><CharacterSprite appearance={appearance} portrait age={actor.age ?? 30} /></div>
         <div><h2>{actor.name}</h2><p>{genderLabel(actor)} · {actor.age ?? "adult"} · {actor.role}</p></div>
@@ -82,7 +102,7 @@ export function DialogueModal({ runtime, actorId, onClose }: { runtime: Runtime;
       </div>
       <div className="dialogue-actions">
         {!responding && <button className="dialogue-respond" onClick={() => setResponding(true)}>Respond</button>}
-        <button className="dialogue-continue" onClick={onClose}>Continue <span>▸</span></button>
+        <button className="dialogue-continue" onClick={close}>Continue <span>▸</span></button>
       </div>
       {responding && <form className="dialogue-input" onSubmit={(event) => { event.preventDefault(); void submit(); }}><input autoFocus value={input} onChange={(event) => setInput(event.target.value)} placeholder={`Speak to ${actor.name}…`} aria-label="Your response" disabled={busy} /><button aria-label="Send response" disabled={!input.trim() || busy}><Send size={16} /></button></form>}
     </section>

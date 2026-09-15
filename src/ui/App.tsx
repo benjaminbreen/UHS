@@ -82,6 +82,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
   const { observation: obs, selection, pack } = view;
   const p = obs.player;
   const propControls = runtime.propControls();
+  const speaker = runtime.nearestSpeaker();
   const [audio, setAudio] = useState<AudioDirector | null>(null);
   const [audioOpen, setAudioOpen] = useState(false);
   const [characterOpen, setCharacterOpen] = useState(false);
@@ -149,6 +150,11 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
   const [earthMap, setEarthMap] = useState(false);
   // Reads the live snapshot so the keyboard listener never sees a stale world.
   const talkToNearest = () => {
+    const inReach = runtime.nearestSpeaker();
+    if (inReach) {
+      openDialogue(inReach.id);
+      return;
+    }
     const { observation: o } = runtime.getSnapshot();
     const nearest = o.actors
       .filter((a) => a.kind === "human")
@@ -298,6 +304,10 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
       if (e.key === "0") runtime.setZoom(2);
       if (e.key.toLowerCase() === "i") setModal("inventory");
       if (e.key.toLowerCase() === "q") talkToNearest();
+      if (e.key === "Enter" && !e.repeat && runtime.nearestSpeaker()) {
+        e.preventDefault();
+        talkToNearest();
+      }
       if (e.key.toLowerCase() === "r") setModal("map");
       if (e.key.toLowerCase() === "t")
         runtime.command({ type: "wait", seconds: 300 });
@@ -522,6 +532,11 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
                 Press E to {propControls.secondaryLabel?.toLowerCase()}
               </button>
             )}
+            {speaker && (
+              <button className="talk-prompt" onClick={() => openDialogue(speaker.id)}>
+                Enter · Talk to {speaker.name}
+              </button>
+            )}
           </div>
           <div className="map-controls">
             <button
@@ -622,7 +637,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
               <button onClick={talkToNearest}>
                 <MessageCircle size={17} />
                 <span>Talk</span>
-                <kbd>Q</kbd>
+                <kbd>{speaker ? "Enter" : "Q"}</kbd>
               </button>
               <button
                 onClick={() => {

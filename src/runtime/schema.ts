@@ -131,6 +131,14 @@ const intent = z.discriminatedUnion("type", [
     .strict(),
   z
     .object({
+      type: z.literal("converse"),
+      with: z.string().max(100),
+      said: z.string().max(120),
+      delta: z.number().min(-2).max(2),
+    })
+    .strict(),
+  z
+    .object({
       type: z.literal("receive"),
       from: z.string().max(100),
       item: z

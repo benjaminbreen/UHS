@@ -2274,6 +2274,13 @@ button:disabled {
     serif;
 }
 
+/* A person in reach is the one prompt worth more than the prop it sits beside. */
+.prop-prompts .talk-prompt {
+  color: #f3e3b8;
+  border-color: #d3b167;
+  box-shadow: 0 0 0 1px #d3b16733;
+}
+
 /* World Weaver: an atlas desk, framed in brass. */
 .modal-world {
   width: min(1130px, 100%);

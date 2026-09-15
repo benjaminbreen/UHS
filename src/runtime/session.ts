@@ -555,6 +555,24 @@ export class Runtime {
     this.emit();
     return { ...result, observation: structuredClone(this.observation!) };
   }
+  /**
+   * The person close enough to speak with, if any. The reach matches the
+   * distance `validateIntents` enforces, so a prompt never offers a
+   * conversation the engine will then refuse.
+   */
+  nearestSpeaker() {
+    const s = this.engine.state,
+      p = s.player;
+    return s.actors
+      .filter(
+        (a) =>
+          a.kind === "human" &&
+          a.pos.space === p.pos.space &&
+          distance(a.pos, p.pos) <= 2.5 &&
+          this.engine.visible(a.pos),
+      )
+      .sort((a, b) => distance(a.pos, p.pos) - distance(b.pos, p.pos))[0];
+  }
   propControls() {
     const s = this.engine.state,
       held = heldObject(s),
