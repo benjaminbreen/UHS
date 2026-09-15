@@ -1709,7 +1709,17 @@ export function createSettlementWorld(
       const cell = world.topography!(x,y), t = terrain(x,y);
       return { ...site, landUse: cell.field || t === "field" ? "cultivated" : cell.solid || ["floor","paving","bridge","dirt"].includes(t) ? "built" : "natural" };
     },
-    mapTerrain: (x, y) => previewNeighbor?.(x, y) ?? { terrain: ground(x, y), habitat: environment ? habitat(x, y) : undefined },
+    mapTerrain: (x, y) => {
+      const neighbor = previewNeighbor?.(x, y);
+      if (neighbor) return neighbor;
+      // Past the playable map with no neighbouring region sited here, there is
+      // nothing to generate from: the caller paints coarse atlas ground rather
+      // than pay a noise sample per pixel for terrain the region never covered.
+      const half = pack.setting?.playableMap && pack.setting.playableMap.size / 2;
+      if (half && (x < -half || x >= half || y < -half || y >= half))
+        return undefined;
+      return { terrain: ground(x, y), habitat: environment ? habitat(x, y) : undefined };
+    },
     overview: (x, y) => {
       if (regional)
         return regional.placeAt(x, y) &&

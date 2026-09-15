@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import { faunaProfile } from "../content/fauna";
 import atlas from "../render/generated/atlas.json" with { type: "json" };
 import { surfaceAt } from "../render/materials";
+import { atlasSample, broadEnvironment, fromAtlas, toAtlas } from "../world/geography/atlas";
 import type { Runtime } from "../runtime/session";
 import type { WorldModel, Point } from "../core/types";
 const PAD = 32;
@@ -86,6 +87,18 @@ function buildingTones(sprite: string, image: HTMLImageElement) {
   roofCache.set(sprite, tones);
   return tones;
 }
+/** Ground far outside the region, read from the Earth atlas: one coastline
+ *  lookup instead of generating terrain the region never sited. */
+function atlasGround(ax: number, ay: number) {
+  const { coast } = atlasSample(ax, ay);
+  if (coast < 0) return "water";
+  const { lon, lat } = fromAtlas(ax, ay);
+  const { relief, moisture, cold } = broadEnvironment(lon, lat);
+  if (cold) return "snow";
+  if (relief > 0.55) return "rock";
+  if (coast < 6) return "sand";
+  return moisture < 0.25 ? "sand" : moisture < 0.45 ? "dry" : "grass";
+}
 function paintBackground(
   canvas: HTMLCanvasElement,
   world: WorldModel,
@@ -124,17 +137,23 @@ function paintBackground(
       wy = Math.floor(origin.y + ((y - height / 2) * extent) / size);
     return { x, y, wx, wy };
   };
+  const mapHalf = world.pack.setting?.playableMap?.size;
+  const anchor = toAtlas(world.pack.anchor.lon, world.pack.anchor.lat);
   // Terrain pass.
   for (let j = 0; j < rows; j++)
     for (let i = 0; i < cols; i++) {
       const { x, y, wx, wy } = at(i, j);
-      const mapHalf = world.pack.setting?.playableMap?.size;
       const inMap = mapHalf === undefined || (wx >= -mapHalf / 2 && wx < mapHalf / 2 && wy >= -mapHalf / 2 && wy < mapHalf / 2);
-      const preview = world.mapTerrain?.(wx, wy);
+      // Once a pixel spans several cells, generated ground is sub-pixel detail:
+      // in-map habitat tint and the neighbouring-region preview both cost a
+      // full terrain sample for it, so the atlas carries the frame instead.
+      const preview = coarse ? undefined : world.mapTerrain?.(wx, wy);
       let k: string =
-        preview && !inMap ? preview.terrain : coarse && world.overview
-          ? world.overview(wx, wy)
-          : surfaceAt(world, wx, wy);
+        !inMap
+          ? (preview?.terrain ?? atlasGround(anchor.x + wx, anchor.y + wy))
+          : coarse && world.overview
+            ? world.overview(wx, wy)
+            : surfaceAt(world, wx, wy);
       let fill = colorway[k] ?? colors[k] ?? colors.grass;
       if (world.topography && extent <= 320 && inMap) {
         const cell = world.topography(wx, wy);

@@ -450,7 +450,8 @@ export interface WorldModel {
   regionExtent?: number;
   overview?(x: number, y: number): Terrain;
   habitatAt?(x: number, y: number): import("../content/ecology/communities").HabitatSite | undefined;
-  mapTerrain?(x: number, y: number): { terrain: Terrain; habitat?: import("../world/v3/habitats").Habitat };
+  /** Undefined past the playable map where no neighbouring region is sited. */
+  mapTerrain?(x: number, y: number): { terrain: Terrain; habitat?: import("../world/v3/habitats").Habitat } | undefined;
   pack: Pack;
   settlements: Settlement[];
   enclosures: {
