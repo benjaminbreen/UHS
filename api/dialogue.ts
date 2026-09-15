@@ -1,1 +1,1 @@
-export { dialogue as default } from "../server/dist/dialogue.mjs";
+export { handleDialogue as default } from "../server/dist/node-handler.mjs";

@@ -1,1 +1,1 @@
-export { worldWeaver as default } from "../server/dist/world-weaver.mjs";
+export { handleWorldWeaver as default } from "../server/dist/node-handler.mjs";
