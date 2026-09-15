@@ -7,7 +7,7 @@ import {
   type AppearancePalette,
   type CharacterAppearance,
 } from "../../core/character";
-import { drawCharacter } from "./draw";
+import { drawCharacter } from "./renderers";
 import { loadCarriedArt, type CarriedArt } from "./props";
 import type { CharacterPose } from "./poses";
 /** Bounded scene-owned frame cache. Only current visible combinations are retained. */

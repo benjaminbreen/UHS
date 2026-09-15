@@ -78,6 +78,12 @@ const intent = z.discriminatedUnion("type", [
     .strict(),
   z
     .object({
+      type: z.literal("climb"),
+      target: z.string(),
+    })
+    .strict(),
+  z
+    .object({
       type: z.literal("invent"),
       item: z
         .object({
@@ -146,7 +152,16 @@ const intent = z.discriminatedUnion("type", [
           name: z.string().min(1).max(40),
           description: z.string().max(160),
           value: z.number().min(0).max(3),
-          look: z.enum(["rock", "plant", "food", "wood", "cloth", "tool", "vessel", "creature"]),
+          look: z.enum([
+            "rock",
+            "plant",
+            "food",
+            "wood",
+            "cloth",
+            "tool",
+            "vessel",
+            "creature",
+          ]),
         })
         .strict(),
     })
@@ -264,6 +279,9 @@ const actor = z.object({
   consentUntil: z.number().optional(),
   memories: z.array(z.string()),
   held: z.string().optional(),
+  perch: z
+    .object({ on: z.string(), label: z.string(), rise: z.number() })
+    .optional(),
   direction: z.number().int().min(0).max(3),
   offRoutine: z.boolean().optional(),
   lastUpdated: z.number().int().optional(),

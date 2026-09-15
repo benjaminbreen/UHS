@@ -395,6 +395,65 @@ export class Engine {
     // so a jump reaches open ground only.
     return { kind: "blocked", reason: "There is no way over that." };
   }
+  /** What the player could climb from where they stand: a solid prop, a
+   * building, or ground one to three steps higher. Adjacent only — you climb
+   * what you can reach. Ordered nearest first so the prompt is predictable. */
+  climbable(): { id: string; label: string; rise: number } | undefined {
+    const p = this.state.player;
+    if (p.perch) return undefined;
+    const near = (q: Point) =>
+      Math.max(Math.abs(q.x - p.pos.x), Math.abs(q.y - p.pos.y)) <= 1;
+    const object = this.state.objects
+      .filter(
+        (o) =>
+          o.pos.space === p.pos.space &&
+          near(o.pos) &&
+          !o.carriedBy &&
+          !o.broken &&
+          !!o.prop &&
+          !!propDefs[o.prop]?.solid,
+      )
+      .sort((a, b) => distance(p.pos, a.pos) - distance(p.pos, b.pos))[0];
+    // object.name, not inspect(): inspect() asks this method for its climb
+    // affordance, so reaching back into it recurses until the stack blows.
+    if (object) return { id: object.id, label: object.name, rise: 12 };
+    const place = (this.world.places ?? []).find((q) => near(q.entrance));
+    if (place) return { id: place.id, label: place.name, rise: 22 };
+    if (p.pos.space === "outside" && this.world.topography) {
+      const here = this.world.topography(p.pos.x, p.pos.y);
+      for (const [dx, dy] of [
+        [1, 0],
+        [-1, 0],
+        [0, 1],
+        [0, -1],
+      ]) {
+        const cell = this.world.topography(p.pos.x + dx, p.pos.y + dy);
+        const rise = here && cell ? cell.height - here.height : 0;
+        if (cell && !cell.solid && rise >= 1 && rise <= 3)
+          return {
+            id: `ledge:${p.pos.x + dx},${p.pos.y + dy}`,
+            label: "the ledge",
+            rise: rise * 8,
+          };
+      }
+    }
+    return undefined;
+  }
+  /** Shared by the C key, the affordance and the narrator's climb intent. */
+  perch(target: { id: string; label: string; rise: number }) {
+    const p = this.state.player;
+    p.perch = { on: target.id, label: target.label, rise: target.rise };
+    this.advance(40);
+    this.event(`You climb ${target.label} and settle at the top.`);
+  }
+  descend() {
+    const p = this.state.player;
+    if (!p.perch) return;
+    const label = p.perch.label;
+    p.perch = undefined;
+    this.advance(20);
+    this.event(`You climb down from ${label}.`);
+  }
   gateAt(p: Point, space = this.state.player.pos.space) {
     if (this.gatesAt)
       return this.gatesAt.get(`${space}:${p.x},${p.y}`)?.find((o) => !o.open);
@@ -618,6 +677,10 @@ export class Engine {
       enabled = close,
       reason?: string,
     ) => add(label, { type: "interact", target: id, action }, enabled, reason);
+    const reachable = this.climbable();
+    if (reachable?.id === id) interact("climb", `Climb ${reachable.label}`);
+    if (this.state.player.perch?.on === id)
+      interact("descend", "Climb down", true);
     if (actor) {
       if (actor.kind === "human") {
         interact("talk", "Talk");
@@ -887,6 +950,14 @@ export class Engine {
   }
   validate(c: PlayerCommand): string | undefined {
     const p = this.state.player;
+    if (c.type === "interact" && c.action === "descend")
+      return p.perch ? undefined : "You are not up anything.";
+    if (c.type === "interact" && c.action === "climb") {
+      if (p.perch) return `You are already up ${p.perch.label}.`;
+      return this.climbable() ? undefined : "There is nothing here to climb.";
+    }
+    if (p.perch && (c.type === "move" || c.type === "throw"))
+      return `Climb down from ${p.perch.label} first.`;
     if (c.type === "move" || c.type === "throw") {
       if (
         !Number.isInteger(c.dx) ||
@@ -1384,6 +1455,14 @@ export class Engine {
           this.advance(3);
           this.event(`You ${c.action} the gate.`);
         }
+        break;
+      case "climb": {
+        const target = this.climbable();
+        if (target) this.perch(target);
+        break;
+      }
+      case "descend":
+        this.descend();
         break;
       case "drink":
         p.inventory.water = Math.max(p.inventory.water ?? 0, 2);

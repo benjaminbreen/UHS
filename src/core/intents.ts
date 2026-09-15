@@ -44,6 +44,8 @@ export function resolveIntents(engine: Engine, intents: Intent[]): string[] {
         return attempt(engine, i);
       case "forage":
         return forage(engine, i.item);
+      case "climb":
+        return climb(engine, i.target);
       case "invent":
         return invent(engine, i);
       case "pass": {
@@ -76,7 +78,9 @@ function converse(engine: Engine, i: Extract<Intent, { type: "converse" }>) {
   if (!actor) return "That person is no longer here.";
   const delta = clamp(Math.round(i.delta), -2, 2);
   actor.trust += delta;
-  actor.memories.push(`spoke:${delta > 0 ? "+" : ""}${delta}:${i.said.slice(0, 80)}`);
+  actor.memories.push(
+    `spoke:${delta > 0 ? "+" : ""}${delta}:${i.said.slice(0, 80)}`,
+  );
   if (actor.memories.length > 40) actor.memories.shift();
   engine.advance(60, actor.id);
   return `Spoke with ${actor.name}, regard ${delta > 0 ? "+" : ""}${delta}.`;
@@ -115,6 +119,26 @@ function attempt(engine: Engine, i: Extract<Intent, { type: "attempt" }>) {
   engine.advance(clamp(Math.round(i.minutes ?? 2), 1, 120) * 60);
   engine.event(ok ? i.success : i.failure);
   return `${i.check} check (${difficulty}/5): ${ok ? "success" : "failure"}.`;
+}
+/** The narrator names a target in its own words. Prefer a real thing the
+ * player could actually have climbed; otherwise take it at its word and use
+ * the reachable climb, so a granted climb always lands somewhere. */
+function climb(engine: Engine, target: string) {
+  const p = engine.state.player;
+  if (p.perch) return `Already perched on ${p.perch.label}.`;
+  const named = engine.inspect(target);
+  const reachable = engine.climbable();
+  const rise = named
+    ? engine.state.objects.find((o) => o.id === target)?.prop
+      ? 12
+      : 22
+    : (reachable?.rise ?? 18);
+  engine.perch({
+    id: named?.id ?? reachable?.id ?? target,
+    label: named?.name ?? reachable?.label ?? target,
+    rise,
+  });
+  return `Climbed onto ${named?.name ?? reachable?.label ?? target}.`;
 }
 function forage(engine: Engine, wanted?: ItemId) {
   const p = engine.state.player;

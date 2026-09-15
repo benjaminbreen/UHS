@@ -22,7 +22,11 @@ import {
 } from "../core/character";
 import { characterAppearanceSchema } from "../runtime/schema";
 import type { Runtime } from "../runtime/session";
-import { drawCharacter } from "../render/characters/draw";
+import {
+  defaultRenderer,
+  renderers,
+  type RendererId,
+} from "../render/characters/renderers";
 import {
   poses,
   poseTiming,
@@ -84,6 +88,8 @@ export function CharacterLab({
     [target, setTarget] = useState("player"),
     [locked, setLocked] = useState(false);
   const [lighting, setLighting] = useState<LightingId>("midday");
+  // Defaults to whatever the game draws; "a" stays selectable for comparison.
+  const [engine, setEngine] = useState<RendererId | "ab">(defaultRenderer);
   const shadowCanvas = useRef<HTMLCanvasElement>(null);
   const hero = useRef<HTMLCanvasElement>(null),
     sheet = useRef<HTMLCanvasElement>(null),
@@ -121,6 +127,8 @@ export function CharacterLab({
     buffer.width = 80;
     buffer.height = 80;
     const b = buffer.getContext("2d")!;
+    const compare = engine === "ab";
+    const drawCharacter = renderers[compare ? "b" : engine].draw;
     const galleryPhases = new Map<number, HTMLCanvasElement>();
     let sheetPainted = false;
     const paint = (time: number) => {
@@ -136,8 +144,14 @@ export function CharacterLab({
         }
         if (hero.current) {
           const c = hero.current.getContext("2d")!;
-          c.clearRect(0, 0, 80, 80);
-          c.drawImage(buffer, 0, 0);
+          c.clearRect(0, 0, hero.current.width, 80);
+          c.drawImage(buffer, compare ? 80 : 0, 0);
+          if (compare) {
+            renderers.a.draw(b, appearance, direction, pose, f, art);
+            c.drawImage(buffer, 0, 0);
+            // The shadow and every other panel follow B, so leave it in place.
+            renderers.b.draw(b, appearance, direction, pose, f, art);
+          }
           hero.current.dataset.frame = String(f);
         }
         if (sheet.current && !sheetPainted) {
@@ -193,6 +207,7 @@ export function CharacterLab({
     count,
     displayVariants,
     lighting,
+    engine,
   ]);
   const change = <K extends keyof CharacterAppearance>(
     key: K,
@@ -218,15 +233,19 @@ export function CharacterLab({
       >
         {values.map((v) => (
           <option key={v} value={v}>
-            {label === "Facing"
-              ? ["North", "East", "South", "West"][Number(v)]
-              : label === "Height"
-                ? heightLabels[Number(v) as CharacterAppearance["height"]]
-                : label === "Build"
-                  ? ["Narrow · default", "Previous width", "Broad", "Full"][
-                      Number(v) + 1
-                    ]
-                  : v}
+            {label === "Renderer"
+              ? v === "ab"
+                ? "A | B side by side"
+                : renderers[v as RendererId].label
+              : label === "Facing"
+                ? ["North", "East", "South", "West"][Number(v)]
+                : label === "Height"
+                  ? heightLabels[Number(v) as CharacterAppearance["height"]]
+                  : label === "Build"
+                    ? ["Narrow · default", "Previous width", "Broad", "Full"][
+                        Number(v) + 1
+                      ]
+                    : v}
           </option>
         ))}
       </select>
@@ -580,12 +599,17 @@ export function CharacterLab({
               <div className="cl-ground-line" />
               <canvas
                 ref={hero}
-                width={80}
+                key={engine}
+                width={engine === "ab" ? 160 : 80}
                 height={80}
                 aria-label="Animated character preview"
-                style={{ width: 80 * zoom, height: 80 * zoom }}
+                style={{
+                  width: (engine === "ab" ? 160 : 80) * zoom,
+                  height: 80 * zoom,
+                }}
               />
               <span className="cl-preview-label">
+                {engine === "ab" ? "A | B · " : renderers[engine].label + " · "}
                 {pose} · {["north", "east", "south", "west"][direction]} ·{" "}
                 {zoom}×
               </span>
@@ -623,6 +647,9 @@ export function CharacterLab({
                 String(zoom),
                 ["2", "3", "4", "5", "6", "8"],
                 (v) => setZoom(Number(v)),
+              )}
+              {select("Renderer", engine, ["a", "b", "ab"], (v) =>
+                setEngine(v as RendererId | "ab"),
               )}
               {color("Ground", background, setBackground)}
             </div>

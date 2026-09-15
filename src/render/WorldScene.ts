@@ -1,14 +1,14 @@
-import { waterDepthAt, wadingCost } from "../core/water-field";
+import {
+  waterDepthAt,
+  wadingCost,
+  MAX_WADING_DEPTH,
+} from "../core/water-field";
 import { WadingEffects } from "./characters/wading";
 import { shorePolishDefaults } from "./living-water/polish";
 import { updateLivingWater } from "./living-water/game";
 import { natureTreeSprites } from "../content/ecology/vegetation";
 import { rockFrame } from "../content/ecology/rocks";
-import {
-  aerialStates,
-  type FaunaGroup,
-  type FaunaState,
-} from "../core/fauna";
+import { aerialStates, type FaunaGroup, type FaunaState } from "../core/fauna";
 import { canopyHidesPlayer } from "./canopy-visibility";
 import { WorldCharacters } from "./characters/world";
 import { entityInView, npcMotion } from "./entity-presentation";
@@ -446,6 +446,13 @@ export class WorldScene extends Phaser.Scene {
       ? surfaceElevation(w.topography, x / 16 - 0.5, y / 16 - 1) * TERRAIN_RISE
       : 0;
   }
+  /** A perched player renders above whatever they climbed. The tile position
+   * is unchanged, so collision and pathfinding never see the lift. */
+  private perchRise(id: string) {
+    return id === "player"
+      ? (this.runtime.engine.state.player.perch?.rise ?? 0)
+      : 0;
+  }
   /** Sends a sprite along a parabola to its landing tile. The height above the
    * ground is published as `arcLift`, which is what keeps the shadow behind. */
   private launch(
@@ -745,13 +752,13 @@ export class WorldScene extends Phaser.Scene {
       }
     if (!cells.length) return 0;
     const id = `dev-fauna-${++this.testFaunaSerial}`;
-    const members = cells.slice(0, Math.max(1, Math.min(12, count))).map(
-      ({ x, y }, index) => ({
+    const members = cells
+      .slice(0, Math.max(1, Math.min(12, count)))
+      .map(({ x, y }, index) => ({
         x,
         y,
         direction: (index % 2 ? 3 : 1) as 1 | 3,
-      }),
-    );
+      }));
     const pos = { ...members[0], space: "outside" as const };
     this.testFauna.push({
       id,
@@ -837,16 +844,29 @@ export class WorldScene extends Phaser.Scene {
     this.shadowPhase = p.space === "outside" ? this.light.id : "night";
     const c = this.cameras.main;
     this.setCameraZoom(rt.zoom);
-    const footprint = p.space === "outside" && !this.options.overview ? w.pack.setting?.playableMap?.size : undefined;
+    const footprint =
+      p.space === "outside" && !this.options.overview
+        ? w.pack.setting?.playableMap?.size
+        : undefined;
     const margin = 20 / rt.zoom;
-    if (footprint) c.setBounds(-footprint*8-margin, -footprint*8-margin, footprint*16+margin*2, footprint*16+margin*2);
+    if (footprint)
+      c.setBounds(
+        -footprint * 8 - margin,
+        -footprint * 8 - margin,
+        footprint * 16 + margin * 2,
+        footprint * 16 + margin * 2,
+      );
     else c.removeBounds();
     const viewCenter = (value: number, pixels: number) => {
       if (!footprint) return value;
-      const reach = Math.max(0, footprint/2 - pixels/rt.zoom/32 + margin/16);
-      return Math.max(-reach, Math.min(reach,value));
+      const reach = Math.max(
+        0,
+        footprint / 2 - pixels / rt.zoom / 32 + margin / 16,
+      );
+      return Math.max(-reach, Math.min(reach, value));
     };
-    const viewX = viewCenter(p.x, this.scale.width), viewY = viewCenter(p.y, this.scale.height);
+    const viewX = viewCenter(p.x, this.scale.width),
+      viewY = viewCenter(p.y, this.scale.height);
     if (w !== this.drawnWorld) {
       this.pendingDirection = undefined;
       c.centerOn(p.x * 16 + 8, p.y * 16 + 8);
@@ -1141,7 +1161,9 @@ export class WorldScene extends Phaser.Scene {
                 const ecology = Math.max(
                   0.08,
                   1 +
-                    this.liveGraphics.rockAltitudeBias * (altitude - 0.35) * 1.7 +
+                    this.liveGraphics.rockAltitudeBias *
+                      (altitude - 0.35) *
+                      1.7 +
                     this.liveGraphics.rockDrynessBias * (dryness - 0.5) * 1.35,
                 );
                 const scale = this.liveGraphics.rockClusterScale;
@@ -1258,7 +1280,8 @@ export class WorldScene extends Phaser.Scene {
             ) {
               const cell = w.topography(x, y);
               const h = cell?.habitat;
-              const woodland = !!h?.layeredForest || !!h?.ecology.includes("woodland");
+              const woodland =
+                !!h?.layeredForest || !!h?.ecology.includes("woodland");
               const allowed =
                 this.liveGraphics.litterPalette === "mixed" ||
                 (this.liveGraphics.litterPalette === "woodland" && woodland) ||
@@ -1476,7 +1499,11 @@ export class WorldScene extends Phaser.Scene {
       keep.add(id);
       let im = this.entities.get(id);
       const tx = pos.x * 16 + 8,
-        ty = pos.y * 16 + 16 - this.lift(pos.x * 16 + 8, pos.y * 16 + 16);
+        ty =
+          pos.y * 16 +
+          16 -
+          this.lift(pos.x * 16 + 8, pos.y * 16 + 16) -
+          this.perchRise(id);
       if (!im) {
         im = this.add
           .image(tx, ty, this.texture(frame), frame)
@@ -1802,7 +1829,9 @@ export class WorldScene extends Phaser.Scene {
           : state === "wander" || state === "stalk" || state === "approach"
             ? 140
             : 260;
-    const n = this.options.freeze ? 0 : Math.floor(this.time.now / ms + phase) % 8;
+    const n = this.options.freeze
+      ? 0
+      : Math.floor(this.time.now / ms + phase) % 8;
     return `faunab-${species}-${state}-${n}`;
   }
   update(time: number) {
@@ -1952,9 +1981,11 @@ export class WorldScene extends Phaser.Scene {
       // Height above the tile, mid-jump. Depth sorts on where the feet would
       // be, or a jumper passes behind whatever they are jumping over.
       const arcLift = (im.getData("arcLift") as number) ?? 0;
+      const perched = this.perchRise(id);
       const depth =
         im.y +
         arcLift +
+        perched * 2 +
         this.lift(im.x, (this.destinations.get(id)?.y ?? 0) * 16 + 16) -
         (frame ? 2 : 6);
       if (im.depth !== depth) im.setDepth(depth);
@@ -1982,7 +2013,8 @@ export class WorldScene extends Phaser.Scene {
         const heldSprite = this.heldSprites.get(id);
         let pose: CharacterPose = moving ? "walk" : "idle";
         if (active) pose = action.pose;
-        else if (moving) pose = "walk";
+        else if (moving)
+          pose = id === "player" && this.shiftHeld ? "run" : "walk";
         else if (at) pose = this.ambientPose(id, at, time);
         else if (/rest|sleep/i.test(human.activity)) pose = "sit";
         else if (/gathering|working/i.test(human.activity)) pose = "work";
@@ -2010,7 +2042,9 @@ export class WorldScene extends Phaser.Scene {
         this.wading?.update(
           id,
           im,
-          Number.isFinite(water) ? water : 0,
+          // Legacy water and canals report an unbounded depth; wading still
+          // has to draw something, so clamp rather than fall back to dry land.
+          Number.isFinite(water) ? water : MAX_WADING_DEPTH,
           this.options.freeze ? 0 : time,
           moving,
           sample && wetPos

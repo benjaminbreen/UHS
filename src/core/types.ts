@@ -107,6 +107,9 @@ export type Actor = {
   consentUntil?: number;
   memories: string[];
   direction: number;
+  /** Perched on top of something: one cell, no roaming. `rise` is the sprite
+   * lift in world pixels, which is also what the view reaches over. */
+  perch?: { on: string; label: string; rise: number };
   held?: string;
   /** Set while a need has pulled this actor off their daily routine. Absent is
    * the normal case, so a resident is drawn from the schedule from the first
@@ -265,6 +268,8 @@ export type PlayerCommand =
         | "pickup"
         | "drop"
         | "strike"
+        | "climb"
+        | "descend"
         | "look";
     }
   | {
@@ -331,6 +336,9 @@ export type Intent =
       minutes?: number;
     }
   | { type: "forage"; item?: ItemId }
+  /** Puts the player on top of something the narrator has just described them
+   * climbing. Without it a granted climb is prose and nothing else. */
+  | { type: "climb"; target: string }
   | {
       type: "invent";
       item: {
@@ -365,7 +373,15 @@ export type Intent =
         name: string;
         description: string;
         value: number;
-        look: "rock" | "plant" | "food" | "wood" | "cloth" | "tool" | "vessel" | "creature";
+        look:
+          | "rock"
+          | "plant"
+          | "food"
+          | "wood"
+          | "cloth"
+          | "tool"
+          | "vessel"
+          | "creature";
       };
     };
 export type Affordance = {
@@ -449,9 +465,17 @@ export interface WorldModel {
   restoreDistricts?(entityIds: string[]): void;
   regionExtent?: number;
   overview?(x: number, y: number): Terrain;
-  habitatAt?(x: number, y: number): import("../content/ecology/communities").HabitatSite | undefined;
+  habitatAt?(
+    x: number,
+    y: number,
+  ): import("../content/ecology/communities").HabitatSite | undefined;
   /** Undefined past the playable map where no neighbouring region is sited. */
-  mapTerrain?(x: number, y: number): { terrain: Terrain; habitat?: import("../world/v3/habitats").Habitat } | undefined;
+  mapTerrain?(
+    x: number,
+    y: number,
+  ):
+    | { terrain: Terrain; habitat?: import("../world/v3/habitats").Habitat }
+    | undefined;
   pack: Pack;
   settlements: Settlement[];
   enclosures: {

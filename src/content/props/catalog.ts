@@ -219,6 +219,9 @@ export const propDefs: Record<string, PropDef> = {
     solid: true,
     name: "Grinding stone",
     family: "grinder",
+    // The atlas only carries two; the default of three asked for a frame
+    // that does not exist and Phaser warned on every draw.
+    variants: 2,
   },
   tin: {
     solid: true,
@@ -247,6 +250,7 @@ export const propDefs: Record<string, PropDef> = {
     family: "stick",
     portable: true,
     strike: true,
+    variants: 1,
   },
 };
 export { propKit } from "./selection";

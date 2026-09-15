@@ -168,9 +168,15 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
     }
   };
   const openDialogue = (id: string) => {
-    const actor = runtime.engine.state.actors.find((candidate) => candidate.id === id);
+    const actor = runtime.engine.state.actors.find(
+      (candidate) => candidate.id === id,
+    );
     if (!actor || actor.kind !== "human") return;
-    const result = runtime.command({ type: "interact", target: id, action: "talk" });
+    const result = runtime.command({
+      type: "interact",
+      target: id,
+      action: "talk",
+    });
     if (result?.status !== "completed") return;
     setDialogueActorId(id);
     setModal("dialogue");
@@ -307,6 +313,10 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
       if (e.key === "Enter" && !e.repeat && runtime.nearestSpeaker()) {
         e.preventDefault();
         talkToNearest();
+      }
+      if (e.key.toLowerCase() === "c" && !e.repeat) {
+        e.preventDefault();
+        runtime.climb();
       }
       if (e.key.toLowerCase() === "r") setModal("map");
       if (e.key.toLowerCase() === "t")
@@ -533,8 +543,19 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
               </button>
             )}
             {speaker && (
-              <button className="talk-prompt" onClick={() => openDialogue(speaker.id)}>
+              <button
+                className="talk-prompt"
+                onClick={() => openDialogue(speaker.id)}
+              >
                 Enter · Talk to {speaker.name}
+              </button>
+            )}
+            {(view.perch || view.climbable) && (
+              <button className="talk-prompt" onClick={() => runtime.climb()}>
+                C ·{" "}
+                {view.perch
+                  ? `Climb down from ${view.perch.label}`
+                  : `Climb ${view.climbable!.label}`}
               </button>
             )}
           </div>
@@ -716,7 +737,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
                 <kbd>D</kbd> walk
               </span>
               <span>
-                <kbd>SHIFT</kbd> run
+                <kbd>SHIFT</kbd> run <kbd>C</kbd> climb
               </span>
               <span title="Tap to jump; hold for a longer jump. Nearby items take priority. No jumping while carrying.">
                 <kbd>SPACE</kbd>{" "}

@@ -269,7 +269,9 @@ export class Runtime {
       if (leap)
         this.characterAction = {
           serial: ++this.characterSerial,
-          pose: "jump",
+          // A ledge scramble already reports itself as a climb; it was
+          // animating as a jump because there was no climb pose to play.
+          pose: leap.kind === "climb" && !command.jump ? "climb" : "jump",
           at: performance.now(),
           arc: {
             height: command.jump
@@ -301,6 +303,8 @@ export class Runtime {
       {
         pickup: "pickup",
         drop: "drop",
+        climb: "climb",
+        descend: "climb",
         throw: "swing",
         strike: "swing",
         talk: "talk",
@@ -367,6 +371,9 @@ export class Runtime {
         ),
       },
       selection: this.selected ? this.engine.inspect(this.selected) : undefined,
+      // Drives the C prompt. Recomputed per view so it follows the player.
+      climbable: this.engine.climbable(),
+      perch: observation.player.perch,
       notice: this.notice,
       running: this.running,
       zoom: this.zoom,
@@ -569,6 +576,19 @@ export class Runtime {
    * distance `validateIntents` enforces, so a prompt never offers a
    * conversation the engine will then refuse.
    */
+  /** One key for both directions: climb what is in reach, or come back down. */
+  climb() {
+    const p = this.engine.state.player;
+    if (p.perch)
+      return this.command({
+        type: "interact",
+        target: p.perch.on,
+        action: "descend",
+      });
+    const target = this.engine.climbable();
+    if (target)
+      this.command({ type: "interact", target: target.id, action: "climb" });
+  }
   nearestSpeaker() {
     const s = this.engine.state,
       p = s.player;
@@ -592,7 +612,10 @@ export class Runtime {
   };
   propControls() {
     const revision = this.engine.state.revision;
-    if (this.propCache?.view === this.cached && this.propCache.revision === revision)
+    if (
+      this.propCache?.view === this.cached &&
+      this.propCache.revision === revision
+    )
       return this.propCache.value;
     const value = this.buildPropControls();
     this.propCache = { view: this.cached, revision, value };
@@ -744,21 +767,37 @@ export class Runtime {
       const region = h.site?.region ?? h;
       const label = ecologyProfiles[region.ecology]?.label ?? region.ecology;
       parts.push(
-        region.colorway ? `${label} · ${colorwayLabels[region.colorway]}` : label,
+        region.colorway
+          ? `${label} · ${colorwayLabels[region.colorway]}`
+          : label,
       );
       if (h.site) {
         const c = h.site.conditions;
-        parts.push(communityLabels[h.site.primary], c.inundated ? "Inundated ground" : c.saturation > .45 ? "Saturated ground" : "Drained ground", c.canopy > .6 ? "Dense vegetation" : c.canopy > .3 ? "Open vegetation" : "Sparse vegetation");
-      } else parts.push(
-        `${h.kind}${h.vegetation ? ` (${h.vegetation})` : ""}, wet ${h.wet.toFixed(2)}, cover ${h.cover.toFixed(2)}, exposed ${h.exposed.toFixed(2)}`,
-      );
+        parts.push(
+          communityLabels[h.site.primary],
+          c.inundated
+            ? "Inundated ground"
+            : c.saturation > 0.45
+              ? "Saturated ground"
+              : "Drained ground",
+          c.canopy > 0.6
+            ? "Dense vegetation"
+            : c.canopy > 0.3
+              ? "Open vegetation"
+              : "Sparse vegetation",
+        );
+      } else
+        parts.push(
+          `${h.kind}${h.vegetation ? ` (${h.vegetation})` : ""}, wet ${h.wet.toFixed(2)}, cover ${h.cover.toFixed(2)}, exposed ${h.exposed.toFixed(2)}`,
+        );
     }
     if (cell) {
       parts.push(
         `tier ${cell.height}, ${cell.surface}${cell.feature ? ` ${cell.feature}` : ""}${cell.waterVisual ? `, ${cell.waterVisual.kind} ${cell.waterVisual.distance.toFixed(1)} cells` : ""}`,
       );
       if (cell.pathArt?.length) parts.push("path");
-      if (cell.field) parts.push(`field ${cell.field.crop} ${cell.field.stage}`);
+      if (cell.field)
+        parts.push(`field ${cell.field.crop} ${cell.field.stage}`);
     }
     const d = w.decoration?.(x, y);
     if (d) parts.push(d.sprite.replace(/^(nature-|ecology-)/, ""));

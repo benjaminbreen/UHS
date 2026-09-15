@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import type { CharacterAppearance } from "../core/character";
-import { drawCharacter } from "../render/characters/draw";
+import { drawCharacter } from "../render/characters/renderers";
 import {
   drawConstructedPortrait,
   PORTRAIT_HEIGHT,

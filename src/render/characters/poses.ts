@@ -2,6 +2,8 @@ export const poses = [
   "idle",
   "breathe",
   "walk",
+  "run",
+  "climb",
   "wade",
   "carry",
   "pickup",
@@ -28,6 +30,10 @@ export type CharacterPose = (typeof poses)[number];
 export const poseFrames = 4;
 export function poseTiming(pose: CharacterPose) {
   if (pose === "wade") return 210;
+  // A run reads as a run through cadence as much as through the pose.
+  if (pose === "run") return 95;
+  // Four frames across the 340ms ledge scramble in animateCommand.
+  if (pose === "climb") return 85;
   if (pose === "breathe") return 1000;
   if (pose === "stoop" || pose === "sway") return 320;
   if (pose === "kneel" || pose === "tug" || pose === "lift") return 240;
