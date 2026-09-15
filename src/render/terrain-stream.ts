@@ -224,14 +224,12 @@ export class TerrainStream {
   update() {
     if (!this.completed.length && !this.queue.length) return;
     const start = performance.now();
-    // Drain a small bounded batch. Workers often finish together; installing
-    // only one result per frame leaves completed terrain waiting needlessly.
+    // One chunk a frame. A chunk still costs more than a frame's budget, so
+    // draining a batch of them stalled for the sum: three at once was the
+    // visible hitch on walking into new ground. The first fill needs dozens,
+    // but at a frame each that is still well under a second.
     let installed = 0;
-    while (
-      this.completed.length &&
-      installed < 3 &&
-      performance.now() - start < 7
-    ) {
+    while (this.completed.length && installed < 1) {
       const done = this.completed.shift()!;
       const {
         id,
