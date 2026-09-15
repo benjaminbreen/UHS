@@ -129,6 +129,20 @@ const intent = z.discriminatedUnion("type", [
   z
     .object({ type: z.literal("fact"), text: z.string().min(1).max(160) })
     .strict(),
+  z
+    .object({
+      type: z.literal("receive"),
+      from: z.string().max(100),
+      item: z
+        .object({
+          name: z.string().min(1).max(40),
+          description: z.string().max(160),
+          value: z.number().min(0).max(3),
+          look: z.enum(["rock", "plant", "food", "wood", "cloth", "tool", "vessel", "creature"]),
+        })
+        .strict(),
+    })
+    .strict(),
 ]);
 const point = z.object({
   x: z.number().int().min(-1000000).max(1000000),

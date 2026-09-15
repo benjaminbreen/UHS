@@ -1,3 +1,15 @@
+# Current habitat model — September 14, 2026
+
+Ecology revision 2 separates regional ecology from local habitat identity. `src/content/ecology/landscapes.ts` contains reusable regional recipes; `communities.ts` classifies physical conditions into a local community. `world/v3/habitats.ts` supplies continuous canopy and exposure fields constrained by those recipes and drainage. Large habitat patches have meaning; small texture variation remains presentation.
+
+Each `HabitatSite` has a primary community, normalized transition weights, its regional ecology, and moisture/saturation/slope/canopy/exposure/freshwater/inundation conditions. Saturated wooded ground is swamp, open saturated ground is marsh, boreal wet ground is bog, and channels remain water. The classification is a compact procedural approximation; saturation is not a water-table simulation and rock does not imply a particular mineral deposit.
+
+`render/habitat-appearance.ts` resolves regional palettes and community colors once by shared rules for the minimap and ground raster. Main-map texture, shadows and shoreline detail remain richer than the minimap. Vegetation uses community weights instead of adding an unrelated clearing pattern. Existing cultural architecture, fields, roads, navigation and water geometry continue through their established systems.
+
+For gameplay, use `world.habitatAt(x,y)` on integer cells inside the playable map. It returns the same community used by the graphics, plus land use (`natural`, `cultivated`, `built`). `supportsHabitatResource(site, "reeds" | "timber" | "stone")` is eligibility only, excluding managed ground. Resource placement/abundance and reachable-patch search belong to future economic behavior; no resource inventory or search index is created speculatively. Outside playable bounds the gameplay query returns undefined; minimap neighbor previews remain natural-terrain previews.
+
+New creation pins ecology 2/hydrology 3 and invalidates prepared geometry with cache version 7. Below are historical implementation notes for earlier versions.
+
 > New-world integration (September 8): ordinary creation and the explorer now use geography revision 1 through the same terrain pipeline. Earth geography supplies broad constraints; explorer environment controls apply to a bounded starting area. Regional land use and coordinate-based content are described in `WORLDS.md`. The revision-two notes below also document the earlier configured-world baseline.
 
 # Procedural environments and household livelihoods

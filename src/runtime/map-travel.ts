@@ -1,3 +1,4 @@
+import { edgeCrossings, sharedCrossings } from "../world/travel/waterways";
 import { Engine } from "../core/engine";
 import type { PlayerCommand, Snapshot } from "../core/types";
 import type { Runtime } from "./session";
@@ -19,6 +20,7 @@ export function travelSetting(
   year: number,
 ) {
   const setting = settingForTravelStop(map, year);
+  setting.hydrologyRevision = 3;
   setting.playableMap = {
     id: map.networkId,
     name: map.name,
@@ -26,8 +28,16 @@ export function travelSetting(
     exits: exits.map(({ id, to, bearing, mode, seam }) => {
       const destination = permanentMap(to, year);
       const next = settingForTravelStop(destination, year);
+      const peer = permanentExits(to, year).find((e) => e.id === id)?.seam;
+      const ownSize = map.size === 384 ? 384 : 304;
+      const nextSize = destination.size === 384 ? 384 : 304;
+      const a = seam && setting.water !== "ocean" && setting.water !== "island" ? edgeCrossings(setting, map.networkId, ownSize, seam) : [];
+      const b = peer && next.water !== "ocean" && next.water !== "island" ? edgeCrossings(next, to, nextSize, peer) : [];
+      const waterways = map.networkId < to ? sharedCrossings(a, b)
+        : sharedCrossings(b, a).map((p) => ({ ...p, flow: -p.flow }));
       return {
-        id, to, bearing, mode, seam,
+        id, to, bearing, mode, seam, waterways,
+        peer: peer ? { side: peer.side, start: peer.start, end: peer.end } : undefined,
         neighbor: {
           lon: next.lon, lat: next.lat, relief: next.relief,
           climate: next.climate, water: next.water,

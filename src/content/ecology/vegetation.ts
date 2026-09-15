@@ -231,7 +231,7 @@ export function vegetationTree(
     roll < 0.7
   )
     return willow;
-  return choose(treeMix(s), roll);
+  return choose(treeMix(land.drainage ? { ...s, environment: { ...s.environment!, ecology: h.ecology, colorway: h.colorway } } : s), roll);
 }
 export function vegetationUnderstory(
   s: WorldSetting,
@@ -239,6 +239,18 @@ export function vegetationUnderstory(
   land: LandSample,
   roll: number,
 ): string | undefined {
+  if (h.site) {
+    if (land.snow || h.site.primary === "water") return undefined;
+    switch (h.site.primary) {
+      case "marsh": return roll < .7 ? "reeds" : "nature-understory-sedge";
+      case "swamp": return roll < .5 ? "nature-understory-sedge" : fern;
+      case "bog": return roll < .6 ? "nature-understory-sedge" : heath;
+      case "scrub": return roll < .65 ? scrub : "nature-understory-dry-bunchgrass";
+      case "grassland": return roll < .8 ? "nature-understory-dry-bunchgrass" : "flowers";
+      case "rocky": case "barren": case "shore": return undefined;
+      case "woodland": case "riparian-woodland": break;
+    }
+  }
   const wet = land.kind !== "sea" && land.water < 16;
   if (h.vegetation && !land.snow && land.water > (land.shoreWidth ?? 3)) {
     if (h.vegetation === "alpine")

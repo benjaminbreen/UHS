@@ -58,6 +58,7 @@ export class TerrainStream {
   private maxInstall = 0;
   private maxGroundInstall = 0;
   private batchedTiles = 0;
+  private prepared?: PreparedSettlement;
   private center = { x: 0, y: 0 };
   private reach = { x: 0, y: 0 };
   private sun: SunPhase = NO_SUN;
@@ -118,6 +119,9 @@ export class TerrainStream {
     const prepare = (this.world as { prepare?: () => PreparedSettlement })
       .prepare;
     if (this.pool.length >= WORKER_LIMIT || !prepare) return;
+    // Preparing the same world for every raster worker repeated a large
+    // structured clone during initial loading.
+    this.prepared ??= prepare.call(this.world);
     const r: Rasterizer = {
       worker: new Worker(new URL("../world/worker.ts", import.meta.url), {
         type: "module",
@@ -127,7 +131,7 @@ export class TerrainStream {
     r.worker.postMessage({
       pack: this.world.pack,
       seed: this.seed,
-      prepared: prepare.call(this.world),
+      prepared: this.prepared,
     } satisfies TerrainRequest);
     r.worker.postMessage(this.styling);
     this.pool.push(r);
@@ -219,9 +223,15 @@ export class TerrainStream {
   update() {
     if (!this.completed.length && !this.queue.length) return;
     const start = performance.now();
-    // Keep installation bounded while workers prepare the next chunks.
-    const done = this.completed.shift();
-    if (done) {
+    // Drain a small bounded batch. Workers often finish together; installing
+    // only one result per frame leaves completed terrain waiting needlessly.
+    let installed = 0;
+    while (
+      this.completed.length &&
+      installed < 3 &&
+      performance.now() - start < 7
+    ) {
+      const done = this.completed.shift()!;
       const {
         id,
         layers,
@@ -285,6 +295,7 @@ export class TerrainStream {
         this.count++;
         this.dirty = true;
       }
+      installed++;
     }
     this.maxInstall = Math.max(this.maxInstall, performance.now() - start);
     this.dispatch();

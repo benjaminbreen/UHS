@@ -1,3 +1,4 @@
+import { ecoregionNear } from "../../content/geography/ecoregions";
 import { noise } from "../geography/noise";
 import {
   ecologyProfiles,
@@ -294,6 +295,7 @@ export function createRegionalContext(start: WorldSetting) {
     const here = profilesAt(x, y),
       namedPlace = placeAt(x, y);
     let baseKey = `${ambient.relief}|${climate}|${localStart}|${namedPlace?.id}`;
+    if (start.ecologyRevision === 2) baseKey += `|${ecoregionNear(ll.lon, ll.lat)?.id ?? 0}|${Math.floor(ll.lat / 5)}|${Math.floor(ll.lon / 5)}`;
     for (const p of here) baseKey += "|" + p.id;
     let base = baseCache.get(baseKey);
     if (!base) {
@@ -335,11 +337,15 @@ export function createRegionalContext(start: WorldSetting) {
       if (start.year < -9999 && !namedPlace)
         s = { ...s, settlement: "camp", architecture: "shelter" };
       s.environment = {
-        ...environmentFor(s),
+        ...environmentFor(start.ecologyRevision === 2 ? { ...s, ...ll, geographyMode: "earth" } : s, ambient.moisture),
+        ...(start.ecologyRevision === 2 ? namedPlace?.defaults.ecology ?? [...here].reverse().find((p) => p.defaults.ecology)?.defaults.ecology : undefined),
         start: start.environment!.start,
         household: start.environment!.household,
       };
-      if (start.geographyMode === "configured" && localStart)
+      if (
+        start.geographyMode === "configured" ||
+        (start.climate === "arid" && start.environment?.ecology === "desert")
+      )
         s.environment = { ...start.environment! };
       trimCache(baseCache, 512);
       baseCache.set(baseKey, (base = s));
@@ -369,7 +375,8 @@ export function createRegionalContext(start: WorldSetting) {
     const tx = smooth((ax + warp - gx) / L),
       ty = smooth((ay - warp - gy) / L);
     const distance = Math.hypot(x, y) + warp;
-    const home = 1 - smooth(Math.max(0, Math.min(1, (distance - 80) / 208)));
+    const home = start.ecologyRevision === 2 && start.geographyMode !== "configured"
+      ? 0 : 1 - smooth(Math.max(0, Math.min(1, (distance - 80) / 208)));
     const parts: {
       ecology: Ecology;
       colorway?: Colorway;

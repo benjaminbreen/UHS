@@ -1,3 +1,5 @@
+import { classifyCommunity, type HabitatSite } from "../../content/ecology/communities";
+import { landscapeRecipe } from "../../content/ecology/landscapes";
 import type { Colorway, Ecology } from "../../content/ecology/profiles";
 import { habitatLayout } from "../../content/ecology/variants";
 import type { LandSample } from "../geography/landscape";
@@ -13,6 +15,7 @@ export type HabitatKind =
   | "exposed";
 export type VegetationPattern = "savanna" | "steppe" | "alpine";
 export type Habitat = {
+  site?: HabitatSite;
   blend?: { ecology: Ecology; colorway?: Colorway; weight: number }[];
   vegetation?: VegetationPattern;
   layeredForest?: boolean;
@@ -37,6 +40,27 @@ export function habitatAt(
   land: LandSample,
   colorway?: Colorway,
 ): Habitat {
+  if (land.drainage && land.ecologyParts) {
+    const dominant = land.ecologyParts.reduce((a,b) => b.weight > a.weight ? b : a);
+    const region = { ecology: dominant.ecology, colorway: dominant.colorway };
+    const recipe = landscapeRecipe(land.ecologyParts);
+    const d = land.drainage;
+    const patch = noise(seed, x, y, 42, "habitat-stand");
+    const wet = clamp(d.saturation + recipe.moisture * 0.15);
+    const riparian = land.kind !== "sea" ? clamp(1 - Math.max(0, land.water) / 24) : 0;
+    const cover = clamp(recipe.canopy + (patch - 0.5) * 0.7 + riparian * (.25 + .45 * (1-recipe.canopy)) + d.lowland * .08 - d.slope * .2);
+    const exposed = clamp(recipe.mineral + d.slope * 0.45 + (noise(seed, x, y, 31, "habitat-substrate") - 0.5) * 0.22 - wet * 0.4);
+    const flooded = clamp((d.saturation - 0.3) / 0.3);
+    let blend = land.ecologyParts;
+    if (flooded > 0 && land.kind !== "sea" && d.waterDistance >= 0) {
+      const woodland = recipe.canopy > 0.45;
+      const wetColorway = woodland ? (ecology === "boreal-woodland" ? "bog" : "swamp") : "marsh";
+      blend = [...blend.map((p) => ({ ...p, weight: p.weight * (1 - flooded) })), { ecology: "wetland", colorway: wetColorway, weight: flooded }];
+      if (flooded > 0.5) { ecology = "wetland"; colorway = wetColorway; }
+    }
+    const kind: HabitatKind = exposed > 0.58 ? "exposed" : wet > 0.62 ? "hollow" : cover > 0.5 ? "woodland" : cover > 0.28 ? "scrub" : wet > 0.3 ? "meadow" : "open";
+    return { ecology, colorway, season, wet, cover, exposed, kind, blend, site: classifyCommunity(region, land, cover, exposed) };
+  }
   const layout = habitatLayout(colorway);
   const warp = (noise(seed, x, y, 65, "habitat-warp") - 0.5) * 17;
   const drainage = noise(seed, x + warp, y - warp, 22, "habitat-drainage");
@@ -126,6 +150,10 @@ export function habitatTree(
 
 /** Revision 5 gives the same wetness/exposure field a visible canopy effect. */
 export function treeGrouping(h: Habitat, ecologyAware = false) {
+  if (h.site) {
+    const w = h.site.weights;
+    return (w.woodland ?? 0) * 2.4 + (w["riparian-woodland"] ?? 0) * 2.6 + (w.swamp ?? 0) * 2 + (w.scrub ?? 0) * .22 + (w.bog ?? 0) * .12;
+  }
   const base = Math.max(0, h.cover - 0.22) * 2.6;
   if (!ecologyAware) return base;
   if (h.vegetation === "alpine") return 0;

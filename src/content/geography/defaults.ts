@@ -2,9 +2,10 @@ import type { WorldSetting } from "./types";
 import { regionalEcology } from "../ecology/variants";
 
 export function environmentFor(
-  s: Pick<WorldSetting, "climate" | "lon" | "lat" | "relief" | "settlement">,
+  s: Pick<WorldSetting, "climate" | "lon" | "lat" | "relief" | "settlement"> & Partial<Pick<WorldSetting, "ecologyRevision" | "geographyMode">>,
+  moisture?: number,
 ): NonNullable<WorldSetting["environment"]> {
-  const { ecology, colorway } = regionalEcology(s.lon, s.lat, s.climate);
+  const { ecology, colorway } = regionalEcology(s.lon, s.lat, s.climate, moisture, s.ecologyRevision === 2 && s.geographyMode !== "configured");
   return {
     ecology,
     colorway,
@@ -24,8 +25,8 @@ export function integratedSetting(s: WorldSetting): WorldSetting {
       ...s,
       characterRevision: s.characterRevision ?? 1,
       vegetationRevision: 6,
-      ecologyRevision: 1,
-      hydrologyRevision: 2,
+      ecologyRevision: 2,
+      hydrologyRevision: 3,
     };
   return {
     ...s,
@@ -34,10 +35,10 @@ export function integratedSetting(s: WorldSetting): WorldSetting {
     urbanRevision: 2,
     roadRevision: 1,
     vegetationRevision: 6,
-    ecologyRevision: 1,
-    hydrologyRevision: 2,
+    ecologyRevision: 2,
+    hydrologyRevision: 3,
     geographyMode: s.environment ? "configured" : "earth",
     terrainRevision: 2,
-    environment: s.environment ?? environmentFor(s),
+    environment: s.environment ?? environmentFor({ ...s, ecologyRevision: 2, geographyMode: "earth" }),
   };
 }

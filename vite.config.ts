@@ -1,6 +1,6 @@
 import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
-import { handleNarrator, handleWorldWeaver } from "./server/node-handler";
+import { handleDialogue, handleNarrator, handleWorldWeaver } from "./server/node-handler";
 import { execFile } from "node:child_process";
 import { writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -28,6 +28,9 @@ export default defineConfig({
         });
         server.middlewares.use("/api/narrator", (req, res) => {
           void handleNarrator(req, res);
+        });
+        server.middlewares.use("/api/dialogue", (req, res) => {
+          void handleDialogue(req, res);
         });
         // Dev only: the building panel writes a recipe file and recompiles
         // the art. Paths are confined to the graphics content directory.

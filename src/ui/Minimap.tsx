@@ -1,3 +1,4 @@
+import { habitatAppearance } from "../render/habitat-appearance";
 import { defaultGrassArt } from "../content/graphics/grass-art";
 import { soils } from "../render/habitat-raster";
 import { paletteKey } from "../content/ecology/profiles";
@@ -9,16 +10,11 @@ import { surfaceAt } from "../render/materials";
 import type { Runtime } from "../runtime/session";
 import type { WorldModel, Point } from "../core/types";
 const PAD = 32;
-let natureImage: HTMLImageElement | undefined;
 let atlasImage: HTMLImageElement | undefined;
 function sprites() {
   if (!atlasImage) {
     atlasImage = new Image();
     atlasImage.src = "/packs/atlas.png";
-  }
-  if (!natureImage) {
-    natureImage = new Image();
-    natureImage.src = "/nature/atlas.png";
   }
   return atlasImage;
 }
@@ -161,7 +157,7 @@ function paintBackground(
           const index = mineral ? 2 : h.wet > 0.6 ? 7 : h.cover > 0.55 ? 2 : 0;
           return sum + ramp[index][channel] * part.weight;
         }, 0)));
-        fill = hex(rgb);
+        fill = hex(h.site ? habitatAppearance(h).ground : rgb);
       }
       kind[j * cols + i] = k;
       // Sparse darker speckle gives grass and soil their pixel grain.
@@ -424,18 +420,14 @@ export function Minimap({
     const ready = () => {
       if (
         image.complete &&
-        image.naturalWidth &&
-        natureImage?.complete &&
-        natureImage.naturalWidth
+        image.naturalWidth
       )
         draw();
     };
     ready();
     image.addEventListener("load", ready);
-    natureImage!.addEventListener("load", ready);
     return () => {
       image.removeEventListener("load", ready);
-      natureImage!.removeEventListener("load", ready);
     };
   }, [
     world,

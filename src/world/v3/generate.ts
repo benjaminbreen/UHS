@@ -455,12 +455,16 @@ export function createSettlementWorld(
     return tiles;
   }
   const previewNeighbor = pack.setting ? adjacentTerrain(pack.setting) : undefined;
+  const settingAt = (x: number, y: number) =>
+    pack.setting?.geographyMode === "configured"
+      ? pack.setting
+      : regional?.settingAt(x, y) ?? pack.setting!;
   const habitatCache = new Map<string, ReturnType<typeof habitatAt>>();
   function habitat(x: number, y: number) {
     const key = cellKey(x, y);
     let value = habitatCache.get(key);
     if (!value) {
-      const setting = regional?.settingAt(x, y) ?? pack.setting!;
+      const setting = settingAt(x, y);
       value = habitatAt(
         setting.environment!.ecology,
         setting.season,
@@ -470,8 +474,8 @@ export function createSettlementWorld(
         land.sample(x, y),
         setting.environment!.colorway,
       );
-      if (pack.setting?.ecologyRevision && regional) value.blend = regional.ecologyAt(x,y).parts;
-      const pattern = vegetationPattern(setting, land.sample(x, y));
+      if (pack.setting?.ecologyRevision === 1 && regional) value.blend = regional.ecologyAt(x,y).parts;
+      const pattern = value.site ? undefined : vegetationPattern(setting, land.sample(x, y));
       if (pattern) value.vegetation = pattern;
       if (value.vegetation === "savanna" || value.vegetation === "steppe") {
         value.exposed *= 0.55;
@@ -488,7 +492,7 @@ export function createSettlementWorld(
   function ground(x: number, y: number): Terrain {
     const f = land.sample(x, y);
     if (
-      regional &&
+      !f.ecologyParts && regional &&
       f.water >= (f.shoreWidth ?? 3) &&
       (regional.landUse(x, y) === "rock" ||
         ((f.summit ? f.elevation / f.summit >= 0.6 : f.elevation >= 28) &&
@@ -504,11 +508,17 @@ export function createSettlementWorld(
       return "rock";
     if (f.travelRoad) return "dirt";
     if (regional?.landUse(x, y) === "fields" && f.water >= 0) return "field";
+    if (environment && f.ecologyParts) {
+      if (f.water < 0) return "water";
+      if (f.snow) return "snow";
+      const id = habitat(x,y).site!.primary;
+      return id === "rocky" ? "rock" : id === "barren" || id === "shore" ? "sand" : ["marsh","swamp","bog"].includes(id) ? "marsh" : id === "scrub" ? "dry" : "grass";
+    }
     if (environment) {
       const profile =
         ecologyProfiles[
           localEcology(
-            regional?.settingAt(x, y) ?? pack.setting!,
+            settingAt(x, y),
             seed,
             x + (regional ? land.origin.x : 0),
             y + (regional ? land.origin.y : 0),
@@ -634,7 +644,7 @@ export function createSettlementWorld(
         )
       ) {
         let sprite = vegetationTree(
-          regional?.settingAt(x, y) ?? pack.setting!,
+          settingAt(x, y),
           h,
           f,
           random(seed, "vegetation-species", ax, ay),
@@ -742,11 +752,6 @@ export function createSettlementWorld(
     const scape = f.landscape;
     if (scape && scape.kind === "arroyo" && scape.strength > 0.35) return;
     if (
-      environment &&
-      saltPan(seed, x + land.origin.x, y + land.origin.y, habitat(x, y).colorway, f.elevation === 0, habitat(x, y).wet, f.water) > 0.3
-    )
-      return;
-    if (
       f.water < (relief ? 0 : 4) ||
       nearby(x, y).some(
         (p) =>
@@ -760,6 +765,12 @@ export function createSettlementWorld(
               p.site.profile.radius * 0.65),
       ) ||
       regionalRoads(x, y).has(k)
+    )
+      return;
+    const h = environment ? habitat(x, y) : undefined;
+    if (
+      h &&
+      saltPan(seed, x + land.origin.x, y + land.origin.y, h.colorway, f.elevation === 0, h.wet, f.water) > 0.3
     )
       return;
     const n = random(
@@ -791,11 +802,11 @@ export function createSettlementWorld(
         (environment
           ? f.water > (f.shoreWidth ?? 3) &&
             habitatTree(
-              habitat(x, y),
+              h!,
               seed,
               x + land.origin.x,
               y + land.origin.y,
-              ecologyProfiles[habitat(x, y).ecology].trees,
+              ecologyProfiles[h!.ecology].trees,
             )
           : x % 3 === 0 && y % 3 === 0 && n < f.moisture * cover * 0.38);
     const sprite =
@@ -806,7 +817,7 @@ export function createSettlementWorld(
           : tree && environment
             ? ecologyProfiles[
                 localEcology(
-                  regional?.settingAt(x, y) ?? pack.setting!,
+                  settingAt(x, y),
                   seed,
                   x + (regional ? land.origin.x : 0),
                   y + (regional ? land.origin.y : 0),
@@ -822,12 +833,12 @@ export function createSettlementWorld(
                     ? // Rocks belong to rocky ground: a trace elsewhere,
                       // real scatter only where exposure is high.
                       (0.0007 +
-                        Math.max(0, habitat(x, y).exposed - 0.3) * 0.03 +
+                        Math.max(0, h!.exposed - 0.3) * 0.03 +
                         outcrop(
                           seed,
                           x + land.origin.x,
                           y + land.origin.y,
-                          habitat(x, y).exposed,
+                          h!.exposed,
                           f.summit ? f.elevation / f.summit : 0,
                         ) *
                           0.12) *
@@ -842,9 +853,9 @@ export function createSettlementWorld(
                 : n <
                     (environment
                       ? (0.003 +
-                          Math.max(0, habitat(x, y).cover - 0.35) *
+                          Math.max(0, h!.cover - 0.35) *
                             0.16 *
-                            (habitat(x, y).ecology === "desert" ? 0.2 : 1)) *
+                            (h!.ecology === "desert" ? 0.2 : 1)) *
                         shrubColony(seed, x + land.origin.x, y + land.origin.y) *
                         (scape?.kind === "arroyo" ? 3 : 1)
                       : 0.015)
@@ -854,8 +865,7 @@ export function createSettlementWorld(
                     : undefined;
     let selected = sprite;
     if (pack.setting?.vegetationRevision && environment) {
-      const h = habitat(x, y),
-        local = regional?.settingAt(x, y) ?? pack.setting;
+      const local = settingAt(x, y);
       const roll = random(
         seed,
         "vegetation-species",
@@ -865,9 +875,9 @@ export function createSettlementWorld(
       if (tree && sprite !== "rock" && sprite !== "reeds")
         selected = spaced
           ? proposed?.sprite
-          : vegetationTree(local, h, f, roll);
+          : vegetationTree(local, h!, f, roll);
       else if (sprite === "bush" || sprite === "flowers")
-        selected = vegetationUnderstory(local, h, f, roll);
+        selected = vegetationUnderstory(local, h!, f, roll);
       else if (
         !sprite &&
         f.water > (f.shoreWidth ?? 3) &&
@@ -877,12 +887,12 @@ export function createSettlementWorld(
         // sampling keeps them from replacing rocks or changing tree collisions.
         // Colonies: whole patches of scrub with little between them.
         const density =
-          ((h.ecology === "desert"
+          ((h!.ecology === "desert"
             ? 0.006
-            : h.ecology === "tundra"
+            : h!.ecology === "tundra"
               ? 0.012
               : 0.018) +
-            h.cover * 0.035) *
+            h!.cover * 0.035) *
           shrubColony(seed, x + land.origin.x, y + land.origin.y) *
           (scape?.kind === "arroyo" ? 3 : scape?.kind === "trail" ? 0.2 : 1);
         if (
@@ -893,7 +903,7 @@ export function createSettlementWorld(
             y + land.origin.y,
           ) < density
         )
-          selected = vegetationUnderstory(local, h, f, roll);
+          selected = vegetationUnderstory(local, h!, f, roll);
       }
     }
     if (
@@ -901,7 +911,7 @@ export function createSettlementWorld(
       !tree &&
       selected &&
       selected !== "rock" &&
-      habitat(x, y).kind === "woodland" &&
+        h?.kind === "woodland" &&
       random(seed, "forest-understory", x + land.origin.x, y + land.origin.y) >
         0.3
     )
@@ -917,7 +927,7 @@ export function createSettlementWorld(
         "low-vegetation-thinning",
         x + land.origin.x,
         y + land.origin.y,
-      ) > (selected.includes("heath") || selected === "flowers" ? 0.15 : 0.225)
+      ) > (h?.site ? .65 : selected.includes("heath") || selected === "flowers" ? 0.15 : 0.225)
     )
       selected = undefined;
     if (
@@ -931,7 +941,7 @@ export function createSettlementWorld(
         "tree-density-thinning",
         x + land.origin.x,
         y + land.origin.y,
-      ) >= ((pack.setting?.vegetationRevision ?? 0) >= 4 ? 0.6 : 0.8)
+      ) >= (h?.site ? 1 : (pack.setting?.vegetationRevision ?? 0) >= 4 ? 0.6 : 0.8)
     )
       selected = undefined;
     if (
@@ -950,7 +960,7 @@ export function createSettlementWorld(
       selected &&
       selected !== "rock"
     ) {
-      const patch = noise(
+      const patch = h?.site ? 1 : noise(
         seed,
         x + land.origin.x,
         y + land.origin.y,
@@ -959,7 +969,7 @@ export function createSettlementWorld(
       );
       if (
         patch < 0.4 ||
-        (!tree &&
+        (!tree && !h?.site &&
           random(
             seed,
             "quiet-understory",
@@ -971,9 +981,8 @@ export function createSettlementWorld(
     }
     // Woodland floor: a log or stump now and then under a closed canopy.
     if (!selected && environment && !tree) {
-      const h = habitat(x, y);
       if (
-        h.kind === "woodland" &&
+        h?.kind === "woodland" &&
         h.cover > 0.6 &&
         random(seed, "woodland-floor", x + land.origin.x, y + land.origin.y) <
           0.012 * shrubColony(seed, x + land.origin.x + 37, y + land.origin.y)
@@ -1057,27 +1066,28 @@ export function createSettlementWorld(
       cell.waterVisual = {
         distance: f.water,
         kind: f.kind,
-        ecology: (regional?.settingAt(x, y) ?? pack.setting!).environment!
-          .ecology,
+        ecology: cell.habitat?.ecology ?? settingAt(x, y).environment!.ecology,
         shoreWidth: f.shoreWidth ?? 3,
         flow: f.waterFlow ?? [0, 1],
         frozenMargin: f.snow,
         ...(f.waterGradient ? { gradient: f.waterGradient } : {}),
       };
-      cell.biome = localEcology(
-        regional?.settingAt(x, y) ?? pack.setting!,
+      cell.biome = cell.habitat.site ? cell.habitat.ecology : localEcology(
+        settingAt(x, y),
         seed,
         x + (regional ? land.origin.x : 0),
         y + (regional ? land.origin.y : 0),
         f,
       );
       const eco = ecologyProfiles[cell.biome];
-      if (f.water >= 0) cell.surface = f.snow ? "snow" : f.travelRoad ? "soil" : eco.surface;
+      if (f.water >= 0) cell.surface = f.snow ? "snow" : f.travelRoad ? "soil" : cell.habitat.site
+        ? t === "rock" ? "gravel" : t === "marsh" ? "damp" : t === "sand" ? "sand" : t === "dry" ? "dry" : "grass"
+        : eco.surface;
       // A creek's edge is painted per pixel by the ground raster (a dark wet
       // line and stones on turf); marking whole cells as gravel drew a
       // stepped grey band along it.
       if (f.water >= 0 && f.water < (f.shoreWidth ?? 3) && (f.shoreWidth ?? 3) >= 1.2) {
-        const shoreEcology = (regional?.settingAt(x, y) ?? pack.setting!)
+        const shoreEcology = settingAt(x, y)
           .environment!.ecology;
         const stonyShore =
           shoreEcology === "tundra" ||
@@ -1120,7 +1130,7 @@ export function createSettlementWorld(
       if (environment) {
         cell.feature = "paving";
         cell.streetMaterial = streetMaterial(
-          regional?.settingAt(x, y) ?? pack.setting!,
+          settingAt(x, y),
         );
       }
     }
@@ -1692,6 +1702,13 @@ export function createSettlementWorld(
     },
     terrain: (x, y, space = "outside") => space !== "outside" || inside(x, y) ? terrain(x, y, space) : "water",
     decoration: (x, y) => inside(x, y) ? decoration(x, y) : undefined,
+    habitatAt: (x, y) => {
+      if (!inside(x,y) || !environment) return undefined;
+      const site = habitat(x,y).site;
+      if (!site) return undefined;
+      const cell = world.topography!(x,y), t = terrain(x,y);
+      return { ...site, landUse: cell.field || t === "field" ? "cultivated" : cell.solid || ["floor","paving","bridge","dirt"].includes(t) ? "built" : "natural" };
+    },
     mapTerrain: (x, y) => previewNeighbor?.(x, y) ?? { terrain: ground(x, y), habitat: environment ? habitat(x, y) : undefined },
     overview: (x, y) => {
       if (regional)

@@ -17,6 +17,14 @@ export function validateIntents(engine: Engine, intents: Intent[]) {
   if (intents.length > MAX_INTENTS) return "Too many things at once.";
   const p = engine.state.player;
   for (const i of intents)
+    if (i.type === "receive") {
+      const actor = engine.state.actors.find((a) => a.id === i.from);
+      if (!actor || actor.kind !== "human")
+        return "That person cannot give you anything.";
+      if (distance(p.pos, actor.pos) > 2.5)
+        return "Move closer before accepting that.";
+    }
+  for (const i of intents)
     if (i.type === "invent")
       for (const c of i.consumes ?? [])
         if ((p.inventory[c.item] ?? 0) < c.quantity)
@@ -49,8 +57,30 @@ export function resolveIntents(engine: Engine, intents: Intent[]): string[] {
         );
         return "Noted.";
       }
+      case "receive":
+        return receive(engine, i);
     }
   });
+}
+function receive(engine: Engine, i: Extract<Intent, { type: "receive" }>) {
+  const s = engine.state,
+    p = s.player,
+    actor = s.actors.find((candidate) => candidate.id === i.from);
+  if (!actor) return "The giver is no longer here.";
+  const id = "x-" + (slug(i.item.name) || "gift");
+  s.catalog ??= {};
+  const def: ItemDef = s.catalog[id] ?? {
+    id,
+    name: i.item.name.slice(0, 40),
+    description: i.item.description.slice(0, 160),
+    sprite: lookSprites[i.item.look] ?? "rock",
+    value: clamp(Math.round(i.item.value), 0, 3),
+  };
+  s.catalog[id] = def;
+  p.inventory[id] = (p.inventory[id] ?? 0) + 1;
+  engine.advance(10, actor.id);
+  engine.event(`${actor.name} gave you ${def.name}.`, "social");
+  return `${actor.name} gave you ${def.name}.`;
 }
 function attempt(engine: Engine, i: Extract<Intent, { type: "attempt" }>) {
   const p = engine.state.player,

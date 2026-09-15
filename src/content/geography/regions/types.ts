@@ -13,7 +13,7 @@ export type Provenance = {
   note: string;
   sources: readonly string[];
 };
-export type LocalDefaults = Partial<
+export type LocalDefaults = { ecology?: import("../../ecology/variants").RegionalEcology } & Partial<
   Pick<
     WorldSetting,
     | "culture"

@@ -56,57 +56,10 @@ export type GroundTileData = {
 // Trodden earth: contact shadow, shoulder, body, worn center. Kept close in
 // value to that ecology's turf and always less saturated than it, so a road
 // reads as bare ground rather than as a line drawn over the ground.
-const soilRamps: Record<PaletteKey, string[]> = {
-  grassland: ["#8f6c46", "#ab8759", "#bf9b6c", "#cca97a", "#9d8f72"],
-  tundra: ["#7d7359", "#958b71", "#a99f85", "#b8af95", "#87857a"],
-  "boreal-woodland": ["#75694c", "#8e8063", "#a4957a", "#b4a68b", "#7f8071"],
-  "temperate-woodland": ["#7d6242", "#977b55", "#ae916b", "#bea27e", "#8a826e"],
-  "tropical-woodland": ["#875e3c", "#a17651", "#b78c64", "#c69a73", "#8b7d68"],
-  wetland: ["#6b6449", "#847c5e", "#998f72", "#a89e81", "#7a7b6c"],
-  "dry-scrub": ["#977f52", "#b09769", "#c4ac80", "#d3bc92", "#9a927c"],
-  desert: ["#b39868", "#c9b083", "#dac298", "#e7d3ab", "#b3a68c"],
-  "desert:sahara": ["#c3984f", "#d6ae66", "#e6c37e", "#efd396", "#c9b07e"],
-  "desert:red-earth": ["#983f2d", "#b45233", "#cc6c42", "#e28a59", "#ae7051"],
-  savanna: ["#9a7a48", "#b5925e", "#c9a772", "#d6b785", "#a49572"],
-  "desert:sonoran": ["#a58455", "#b99b6f", "#c9ac83", "#d5bc95", "#a5957b"],
-  "desert:atacama": ["#aa9e83", "#bfb39a", "#cfc4ad", "#dbd2bc", "#aaa496"],
-  "desert:kalahari": ["#a05b46", "#bd7251", "#d68d62", "#edab7a", "#b78869"],
-  "dry-scrub:chaparral": ["#8b7552", "#a28b67", "#b49f7c", "#c2ad8c", "#8e8675"],
-  "dry-scrub:mallee": ["#8f7f58", "#a7966e", "#baaa83", "#c8b994", "#928d7a"],
-  "dry-scrub:fynbos": ["#887050", "#9e8565", "#b09879", "#bea789", "#8b8272"],
-  "dry-scrub:matorral": ["#887553", "#9e8a68", "#b09d7c", "#beab8c", "#8b8474"],
-  "dry-scrub:sahel": ["#97824b", "#b09a62", "#c4af79", "#d3be8b", "#9a9379"],
-  "grassland:prairie": ["#8c6941", "#a88453", "#bb9866", "#c8a574", "#9a8c6e"],
-  "grassland:steppe": ["#927953", "#ae9567", "#c3aa7b", "#d0b889", "#a0977b"],
-  "grassland:pampas": ["#96774d", "#b49462", "#c9a976", "#d6b784", "#a5997a"],
-  "grassland:montane": ["#886a50", "#a28364", "#b59676", "#c2a383", "#958874"],
-  "savanna:cerrado": ["#926e41", "#ac8555", "#bf9968", "#cba87b", "#9c8a6a"],
-  "savanna:eucalypt": ["#9a8358", "#b59b6f", "#c9b083", "#d6bf95", "#a4997c"],
-  "savanna:monsoon": ["#9a6e40", "#b58555", "#c99a69", "#d6ab7d", "#a48e6d"],
-  "temperate-woodland:oak-hickory": ["#7d633f", "#977c52", "#ae9268", "#bea37b", "#8a836d"],
-  "temperate-woodland:east-asian": ["#805f3d", "#9a7850", "#b18e66", "#c2a07a", "#8d836d"],
-  "temperate-woodland:southern-beech": ["#735942", "#8b7054", "#a08469", "#af947a", "#7f7768"],
-  "temperate-woodland:conifer": ["#705a43", "#887055", "#9d8469", "#ab937a", "#7c7567"],
-  "boreal-woodland:larch": ["#7b7150", "#958968", "#ac9f80", "#bdb192", "#848677"],
-  "boreal-woodland:coastal": ["#695b41", "#806f55", "#94826a", "#a29179", "#737364"],
-  "tropical-woodland:monsoon": ["#8e6d47", "#a9875d", "#c09e72", "#d0ad81", "#928771"],
-  "wetland:monsoon": ["#706544", "#8b7e59", "#a1916d", "#b0a17d", "#81816d"],
-  "wetland:papyrus": ["#6b6546", "#847d5a", "#99906e", "#a89f7d", "#797b6a"],
-  "wetland:pantanal": ["#6d6645", "#877e5a", "#9c916e", "#aba07e", "#7c7d6c"],
-  "wetland:bog": ["#5b5942", "#706e55", "#827e66", "#8f8b73", "#67695e"],
-  "wetland:swamp": ["#403f30", "#57533b", "#6b6345", "#82774f", "#4b6150"],
-  "wetland:mangrove": ["#5b523e", "#706650", "#827661", "#8f836e", "#69685c"],
-  "tundra:alpine": ["#7a6e54", "#92856b", "#a6997f", "#b4a98f", "#848176"],
-  "tundra:polar": ["#878170", "#a19a8a", "#b7b09f", "#c7c1b0", "#929189"],
-};
-const decode = (s: string) => [
-  parseInt(s.slice(1, 3), 16),
-  parseInt(s.slice(3, 5), 16),
-  parseInt(s.slice(5, 7), 16),
-];
-export const soils = Object.fromEntries(
-  Object.entries(soilRamps).map(([k, v]) => [k, v.map(decode)]),
-) as Record<PaletteKey, number[][]>;
+export { soils } from "./habitat-soils";
+import { soils } from "./habitat-soils";
+import { habitatAppearance, communityBand } from "./habitat-appearance";
+const decode = (s: string) => [parseInt(s.slice(1, 3), 16), parseInt(s.slice(3, 5), 16), parseInt(s.slice(5, 7), 16)];
 // Cut bank faces: undercut, strata, body, sunlit shoulder, embedded stone.
 // Wider in value than the road ramp, which is kept close to turf on purpose.
 const bankRamps: Record<PaletteKey, string[]> = {
@@ -235,7 +188,9 @@ export function rasterHabitatTile(
           sum + ramps[paletteKey(part.ecology,part.colorway)][i][c] * part.weight, 0))))
       : fallback;
   palette = blendPalette(art.palettes, palette);
-  const soilPalette = blendPalette(soils, soils[key]);
+  const resolved = h.site ? habitatAppearance(h, art) : undefined;
+  if (resolved) palette = resolved.palette;
+  const soilPalette = resolved?.soil ?? blendPalette(soils, soils[key]);
   const pixels = new Uint8ClampedArray(16 * 16 * 4);
   const gx = (x + ox) * 16,
     gy = (y + oy) * 16;
@@ -259,7 +214,7 @@ export function rasterHabitatTile(
     density: (motifTuning?.density ?? 1) * (0.32 + lush * 0.75),
   };
   // Grassy ecologies expose brown earth; dry and cold ones expose stone.
-  const mineralGround = h.vegetation === "alpine" || ["desert", "tundra"].includes(h.ecology);
+  const mineralGround = h.site ? ["rocky", "barren", "shore"].includes(h.site.primary) : h.vegetation === "alpine" || ["desert", "tundra"].includes(h.ecology);
   // Sand seas expose darker sand crests, not stone.
   const dune =
     h.ecology === "desert" &&
@@ -283,7 +238,7 @@ export function rasterHabitatTile(
   ) =>
     c?.feature === "field"
       ? 5
-      : a.exposed > 0.65
+      : a.site ? communityBand[a.site.primary] : a.exposed > 0.65
         ? 3
         : a.exposed > 0.4 &&
             !["desert", "tundra"].includes(a.ecology) &&
@@ -372,6 +327,21 @@ export function rasterHabitatTile(
   // that crosses tiles instead of an eight-pixel stair. Farmed cells keep
   // the authored transition tiles.
   const ease = (t: number) => t * t * (3 - 2 * t);
+  const appearances = new Map<string, ReturnType<typeof habitatAppearance>>();
+  const communityPixel = (px: number, py: number) => {
+    const u = (px + .5) / 16 - .5, v = (py + .5) / 16 - .5;
+    const cx = Math.floor(u), cy = Math.floor(v), tx = ease(u-cx), ty = ease(v-cy);
+    const rgb = [0,0,0], bands = [0,0,0,0,0,0];
+    for (const [dx,dy,w] of [[0,0,(1-tx)*(1-ty)],[1,0,tx*(1-ty)],[0,1,(1-tx)*ty],[1,1,tx*ty]]) {
+      const nx=x+cx+dx, ny=y+cy+dy, near=sample(nx,ny)?.habitat ?? h;
+      const key=`${nx},${ny}`;
+      let a=appearances.get(key);
+      if (!a) { a=habitatAppearance(near,art); appearances.set(key,a); }
+      for(let c=0;c<3;c++) rgb[c]+=a.ground[c]*w;
+      bands[near.site ? communityBand[near.site.primary] : 0]+=w;
+    }
+    return { rgb, band: bands.indexOf(Math.max(...bands)) };
+  };
   const smoothBand = (px: number, py: number) => {
     const u = (px + 0.5) / 16 - 0.5,
       v = (py + 0.5) / 16 - 0.5;
@@ -387,6 +357,7 @@ export function rasterHabitatTile(
     ];
     if (cells.some((c) => c?.feature === "field" || c?.field))
       return jitteredBand(px, py);
+    if (h.site) return communityPixel(px,py).band;
     const hs = cells.map((c) => c?.habitat ?? h);
     const w = [(1 - tx) * (1 - ty), tx * (1 - ty), (1 - tx) * ty, tx * ty];
     const mix = (k: "exposed" | "wet" | "cover") =>
@@ -465,7 +436,7 @@ export function rasterHabitatTile(
                 : b === 4
                   ? litterTone
                   : palette[b];
-      let rgb = tone(band);
+      let rgb = h.site && !tilled ? communityPixel(px,py).rgb : tone(band);
       // Interlocking clusters only within four native pixels of a real seam.
       // The interiors of transition tiles remain solid habitat colors.
       const other = [
@@ -478,7 +449,7 @@ export function rasterHabitatTile(
         .find((b) => b !== band);
       // Turf tones meet in a two-pixel checker with a darker rim on the base
       // side, so a light patch sits in the sward instead of floating on it.
-      if (grassy && band <= 2 && band !== 1) {
+      if (!h.site && grassy && band <= 2 && band !== 1) {
         const near = [
           [-1, 0],
           [1, 0],
@@ -500,7 +471,7 @@ export function rasterHabitatTile(
       }
       // Grassy ground keeps solid bands: seams are drawn as outlines below.
       if (
-        other !== undefined &&
+        !h.site && other !== undefined &&
         !grassy &&
         fringePixel(
           wx,
@@ -515,7 +486,7 @@ export function rasterHabitatTile(
             : tone(band).map((v, k) => Math.round((v + tone(other)[k]) / 2));
       }
       if (
-        h.season === "autumn" &&
+        !h.site && h.season === "autumn" &&
         !["desert", "tropical-woodland"].includes(h.ecology)
       )
         rgb = rgb.map((v, k) => Math.round(v * 0.88 + palette[1][k] * 0.12));
@@ -595,11 +566,11 @@ export function rasterHabitatTile(
       if (band === 4 && !frozen) {
         const dapple =
           (noise(wx, wy, 32, 921) - 0.5) * 14 + (noise(wx, wy, 9, 923) - 0.5) * 6;
-        const base = litterTone.map((v) => Math.round(v + dapple));
+        const base = (h.site ? rgb : litterTone).map((v) => Math.round(v + dapple * (h.site ? .35 : 1)));
         put(px, py, base);
         const colony = hash(Math.floor(wx / 26), Math.floor(wy / 22), 925);
         // Light gaps: the mottle lifts and ordinary turf shows through.
-        if (colony > 0.86 && noise(wx, wy, 7, 927) > 0.55) {
+        if (!h.site && colony > 0.86 && noise(wx, wy, 7, 927) > 0.55) {
           put(px, py, palette[0].map((v, k) => Math.round(v * 0.6 + base[k] * 0.4)));
         } else {
           const leaf = floorMark(wx, wy, 7, leafGlyphs, 0.28, 931);

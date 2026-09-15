@@ -1,3 +1,4 @@
+import { edgePoint } from "./water-edges";
 import type { WorldSetting } from "../../content/geography/types";
 import { createRegionalContext } from "../regional/context";
 import { createEnvironment } from "../v3/environment";
@@ -34,7 +35,9 @@ export function adjacentTerrain(setting: WorldSetting) {
             ...exit,
             to: map.id,
             bearing: { N: "S", S: "N", E: "W", W: "E" }[side],
-            seam: undefined,
+            seam: exit.peer && exit.seam ? { ...exit.seam, ...exit.peer } : undefined,
+            waterways: exit.waterways?.map((p) => ({ ...p, flow: -p.flow })),
+            peer: exit.seam ? { side: exit.seam.side, start: exit.seam.start, end: exit.seam.end } : undefined,
             neighbor: {
               lon: setting.lon,
               lat: setting.lat,
@@ -70,13 +73,9 @@ export function adjacentTerrain(setting: WorldSetting) {
           : side === "W"
             ? -half - x
             : x - half;
-    const along = (u - 0.5) * (n.size - 1);
-    const across =
-      side === "N" || side === "W"
-        ? n.size / 2 - 1 - depth
-        : -n.size / 2 + depth;
-    const nx = horizontal ? along : across,
-      ny = horizontal ? across : along;
+    const edge = exit.peer ?? { side: ({ N: "S", S: "N", E: "W", W: "E" } as const)[side], start: 0, end: 1 };
+    const t = (u - (exit.seam?.start ?? 0)) / ((exit.seam?.end ?? 1) - (exit.seam?.start ?? 0));
+    const [nx, ny] = edgePoint(n.size, edge, t, depth);
     const f = land.sample(nx, ny);
     const ecology = contexts.get(exit.id)!.ecologyAt(nx, ny);
     const h = habitatAt(
@@ -88,7 +87,7 @@ export function adjacentTerrain(setting: WorldSetting) {
       f,
       ecology.selected.colorway,
     );
-    h.blend = ecology.parts;
+    if (!f.ecologyParts) h.blend = ecology.parts;
     return {
       terrain:
         f.water < 0

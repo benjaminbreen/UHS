@@ -16,11 +16,12 @@ export function regionalEcology(
   lat: number,
   climate: WorldSetting["climate"],
   moisture?: number,
+  geographic = false,
 ): RegionalEcology {
-  if (climate === "tundra") return { ecology: "tundra", colorway: "polar" };
+  if (!geographic && climate === "tundra") return { ecology: "tundra", colorway: "polar" };
   // A dry climate reading wins over the map: it is what dry previews and
   // regional terrain agree on, and the biome cell may be a plateau edge.
-  if (climate === "arid")
+  if (!geographic && climate === "arid")
     return { ecology: "desert", colorway: desertColorwayFor(lon, lat) };
   const region = ecoregionNear(lon, lat);
   if (region?.sourceName.toLowerCase().includes("swamp"))
@@ -119,6 +120,8 @@ export function regionalEcology(
     case 14:
       return { ecology: "wetland", colorway: "mangrove" };
   }
+  if (geographic && climate === "temperate" && (moisture ?? 0.6) < 0.55)
+    return { ecology: "grassland", colorway: "steppe" };
   return climateEcology(lon, lat, climate);
 }
 

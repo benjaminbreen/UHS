@@ -9,6 +9,8 @@ import {
 } from "./atlas";
 import { noise, segmentDistance } from "./noise";
 export type LandSample = {
+  drainage?: import("../v3/drainage").Drainage;
+  ecologyParts?: import("../../content/ecology/landscapes").EcologyPart[];
   travelRoad?: boolean;
   /** Optional dry shoreline width in local cells, supplied by regional terrain. */
   shoreWidth?: number;

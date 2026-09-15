@@ -35,5 +35,5 @@ it("leaves dry configured countryside without invented creek ponds", () => {
 it("pins the new water policy only when creating a new world", () => {
   const { hydrologyRevision: _, ...old } = setting;
   expect("hydrologyRevision" in old).toBe(false);
-  expect(integratedSetting(old).hydrologyRevision).toBe(2);
+  expect(integratedSetting(old).hydrologyRevision).toBe(3);
 });

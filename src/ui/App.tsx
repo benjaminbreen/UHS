@@ -59,6 +59,7 @@ import { distance, type PlayerCommand } from "../core/types";
 import { describeStats, statKeys } from "../core/stats";
 import { narratorProvider, PROVIDER_KEY } from "../narrator/turn";
 import { NarratorPanel, turnTime } from "./NarratorPanel";
+import { DialogueModal } from "./DialogueModal";
 import { WorldScene } from "../render/WorldScene";
 import { WorldSetup } from "./WorldSetup";
 import { AtlasMap } from "./AtlasMap";
@@ -101,6 +102,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
     | "map"
     | "settings"
     | "narration"
+    | "dialogue"
     | "character"
     | null
   >(null);
@@ -119,6 +121,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
   const liveGraphicsRef = useRef(liveGraphics);
   const [narratorBusy, setNarratorBusy] = useState(false);
   const [narratorError, setNarratorError] = useState("");
+  const [dialogueActorId, setDialogueActorId] = useState<string | null>(null);
   const commandForm = useRef<HTMLFormElement>(null);
   const say = async () => {
     const text = command.trim();
@@ -152,11 +155,19 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
       .sort(
         (a, b) => distance(a.pos, o.player.pos) - distance(b.pos, o.player.pos),
       )[0];
-    if (nearest) runtime.select(nearest.id);
+    if (nearest) openDialogue(nearest.id);
     else {
       runtime.notice = "No one is in sight. Walk farther to meet someone.";
       runtime.emit();
     }
+  };
+  const openDialogue = (id: string) => {
+    const actor = runtime.engine.state.actors.find((candidate) => candidate.id === id);
+    if (!actor || actor.kind !== "human") return;
+    const result = runtime.command({ type: "interact", target: id, action: "talk" });
+    if (result?.status !== "completed") return;
+    setDialogueActorId(id);
+    setModal("dialogue");
   };
   const mount = useRef<HTMLDivElement>(null);
   const upload = useRef<HTMLInputElement>(null);
@@ -364,6 +375,10 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
           : `${focusActor.sprite}0`
         : undefined));
   const doAction = (c: PlayerCommand) => {
+    if (c.type === "interact" && c.action === "talk") {
+      openDialogue(c.target);
+      return;
+    }
     if (c.type === "interact" && c.action === "follow")
       runtime.startFollow(c.target);
     else runtime.command(c);
@@ -1023,7 +1038,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
           <AudioLab director={audio} onClose={() => setAudioOpen(false)} />
         </Suspense>
       )}
-      {modal && (
+      {modal && modal !== "dialogue" && (
         <div
           className="modal-backdrop"
           onMouseDown={(e) => {
@@ -1766,6 +1781,18 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
               </>
             )}
           </section>
+        </div>
+      )}
+      {modal === "dialogue" && dialogueActorId && (
+        <div className="modal-backdrop dialogue-backdrop">
+          <DialogueModal
+            runtime={runtime}
+            actorId={dialogueActorId}
+            onClose={() => {
+              setModal(null);
+              setDialogueActorId(null);
+            }}
+          />
         </div>
       )}
     </div>

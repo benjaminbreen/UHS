@@ -356,7 +356,17 @@ export type Intent =
   | { type: "pass"; minutes: number }
   | { type: "travel"; direction: "north" | "south" | "east" | "west" }
   | { type: "regard"; delta: number; reason: string }
-  | { type: "fact"; text: string };
+  | { type: "fact"; text: string }
+  | {
+      type: "receive";
+      from: string;
+      item: {
+        name: string;
+        description: string;
+        value: number;
+        look: "rock" | "plant" | "food" | "wood" | "cloth" | "tool" | "vessel" | "creature";
+      };
+    };
 export type Affordance = {
   label: string;
   command: PlayerCommand;
@@ -438,6 +448,7 @@ export interface WorldModel {
   restoreDistricts?(entityIds: string[]): void;
   regionExtent?: number;
   overview?(x: number, y: number): Terrain;
+  habitatAt?(x: number, y: number): import("../content/ecology/communities").HabitatSite | undefined;
   mapTerrain?(x: number, y: number): { terrain: Terrain; habitat?: import("../world/v3/habitats").Habitat };
   pack: Pack;
   settlements: Settlement[];

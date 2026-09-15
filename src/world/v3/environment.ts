@@ -1,3 +1,6 @@
+import { boundaryWater } from "./boundary-water";
+import { landscapeRecipe } from "../../content/ecology/landscapes";
+import { drainageAt } from "./drainage";
 import { tributary } from "./tributaries";
 import { boundarySample } from "../travel/seams";
 import { trimCache } from "../../core/cache";
@@ -26,7 +29,7 @@ export function createEnvironment(
 ) {
   const cfg = s.environment!;
   const simpleWater = !!s.hydrologyRevision;
-  const connectedWater = s.hydrologyRevision === 2;
+  const connectedWater = (s.hydrologyRevision ?? 0) >= 2;
   const origin = toAtlas(s.lon, s.lat);
   const plan = regionalLandforms(
     s,
@@ -132,7 +135,7 @@ export function createEnvironment(
   };
   // Open water from the big sources only, for stream walks to end at.
   const openWater = (x: number, y: number): number => {
-    if (connectedWater) return mainWater(x, y).water;
+    if (connectedWater) return (s.hydrologyRevision === 3 ? nativeWater(x, y) : mainWater(x, y)).water;
     const [mx, my] = meander(x, y);
     if (simpleWater && s.geographyMode === "configured")
       return s.water.startsWith("river")
@@ -264,7 +267,7 @@ export function createEnvironment(
     return Math.min(Math.round(ceiling), Math.round(Math.pow(t, 1.15) * ceiling));
   };
   const cache = new Map<number, LandSample>();
-  const mainWater = (x: number, y: number) => {
+  const nativeWater = (x: number, y: number) => {
     const fx = regional ? x + origin.x : x,
       fy = regional ? y + origin.y : y;
     const wx = x + (noise(seed, x, y, 75, "shore-warp-x") - 0.5) * 36,
@@ -309,7 +312,7 @@ export function createEnvironment(
       floodplain = shoreWidth + 4;
     } else if (s.water === "ocean") {
       // Open water, with the occasional bar or rock breaking the surface.
-      const bar = noise(seed, x, y, 54, "sandbars");
+      const bar = noise(seed, x, y, 54, "sandbars") - (s.hydrologyRevision === 3 && s.playableMap ? Math.max(0, Math.hypot(x, y) - s.playableMap.size * 0.32) / 250 : 0);
       water = bar > 0.88 ? (bar - 0.88) * 170 - 5 : -22 - (0.88 - bar) * 44;
       kind = "sea";
       shoreWidth = 1.5 + noise(seed, x, y, 33, "bar-edges") * 2;
@@ -325,7 +328,7 @@ export function createEnvironment(
       shoreWidth = 0.7 + noise(seed, x, y, 25, "lake-margin") * 3;
       floodplain = shoreWidth + noise(seed, x, y, 40, "lake-flat") * 7;
     }
-    if (cfg.ecology === "wetland" && s.water === "none") {
+    if (s.hydrologyRevision !== 3 && cfg.ecology === "wetland" && s.water === "none") {
       const pool = noise(seed, x, y, 24, "pools");
       if (pool > 0.72) {
         water = (0.72 - pool) * 70;
@@ -365,7 +368,7 @@ export function createEnvironment(
         waterFlow = atlas.riverFlow;
         riverAlong = fx * atlas.riverFlow[0] + fy * atlas.riverFlow[1];
       }
-      const feature = regional.featureAt(mx, my, [
+      const feature = s.hydrologyRevision === 3 && weight === 1 && (s.water === "ocean" || s.water === "island") ? undefined : regional.featureAt(mx, my, [
         "land",
         "sea",
         "lake",
@@ -392,7 +395,7 @@ export function createEnvironment(
         } else if (type === "land") water = Math.max(0.1, -feature.distance);
       }
     }
-    const swamp = connectedWater && (regional?.settingAt(x, y) ?? s).environment?.colorway === "swamp";
+    const swamp = s.hydrologyRevision === 2 && (regional?.settingAt(x, y) ?? s).environment?.colorway === "swamp";
     if (swamp && water > -1.2 && water < 24 && kind !== "sea") {
       const spread = 3 + noise(seed, fx, fy, 24, "swamp-inundation") * 9;
       water = Math.max(-1.2, water - spread);
@@ -401,13 +404,18 @@ export function createEnvironment(
     }
     return { water, floodplain, shoreWidth, waterFlow, kind, riverAlong };
   };
+  const connectedBoundary = boundaryWater(s, seed, nativeWater, field);
+  const mainWater = (x: number, y: number) => {
+    const native = nativeWater(x, y);
+    return s.hydrologyRevision === 3 ? { ...native, ...connectedBoundary(x, y, native) } : native;
+  };
   const calculate = (x: number, y: number): LandSample => {
     const local = regional?.settingAt(x, y) ?? s;
     const profile = ecologyProfiles[local.environment!.ecology];
     const fx = regional ? x + origin.x : x,
       fy = regional ? y + origin.y : y;
     const shape = field(x, y);
-    let { water, floodplain, shoreWidth, waterFlow, kind, riverAlong } = mainWater(x, y);
+    let { water, floodplain, shoreWidth, waterFlow, kind, riverAlong } = s.hydrologyRevision === 3 ? nativeWater(x, y) : mainWater(x, y);
     // Oxbows: a crescent of still water on the floodplain, its horns toward
     // the river, in the green envelopes.
     if (
@@ -521,12 +529,32 @@ export function createEnvironment(
         landscape = { kind: "trail", strength: 1 - d.distance / 0.9 };
       }
     }
+    if (s.hydrologyRevision === 3 && s.playableMap) {
+      const joined = connectedBoundary(x, y, { water, kind, waterFlow, floodplain, shoreWidth });
+      ({ water, kind, waterFlow, floodplain, shoreWidth } = joined);
+    }
+    const ecologyParts = s.ecologyRevision === 2
+      ? s.geographyMode === "configured"
+        ? [{ ecology: cfg.ecology, colorway: cfg.colorway, weight: 1 }]
+        : regional?.ecologyAt(x, y).parts ?? [{ ecology: cfg.ecology, colorway: cfg.colorway, weight: 1 }]
+      : undefined;
+    const recipe = ecologyParts ? landscapeRecipe(ecologyParts) : undefined;
+    const drainage = recipe ? drainageAt(field, x, y, water, recipe) : undefined;
+    if (drainage && kind !== "sea" && water >= -1.2 && !regional?.placeAt(x, y)) {
+      const edgeFade = s.playableMap ? Math.max(0, Math.min(1, (s.playableMap.size / 2 - 1 - Math.max(Math.abs(x), Math.abs(y))) / 24)) : 1;
+      const spread = Math.max(0, drainage.saturation - 0.4) * 18 * edgeFade;
+      if (spread > 0) {
+        water = Math.max(-1.2, water - spread);
+        floodplain = Math.max(floodplain, spread + 5);
+      }
+    }
     // Real pools join the terrain sample before settlement siting and routing.
     // A common basin center controls eligibility across every pixel of the pool.
-    const basin = marshBasin(seed, fx, fy, local.environment!.ecology);
+    const basin = s.hydrologyRevision === 3 ? undefined : marshBasin(seed, fx, fy, local.environment!.ecology);
     // A bog or flooded savanna admits more pools than the envelope alone.
     const pooling = habitatLayout(local.environment!.colorway).wet;
     if (
+      s.hydrologyRevision !== 3 &&
       (!simpleWater || local.environment!.ecology === "wetland") &&
       basin &&
       basin.distance < 2 &&
@@ -545,7 +573,7 @@ export function createEnvironment(
       floodplain = 2.5;
       waterFlow = [0, 0];
     }
-    const seam = s.playableMap && !(simpleWater && s.geographyMode === "earth")
+    const seam = s.playableMap && s.hydrologyRevision !== 3 && !(simpleWater && s.geographyMode === "earth")
       ? boundarySample(
           s.playableMap.size,
           s.playableMap.exits.flatMap((e) => (e.seam ? [e.seam] : [])),
@@ -687,6 +715,7 @@ export function createEnvironment(
       level = water < 1.5 ? creekLevel : groundLevel;
     }
     return {
+      ...(drainage ? { drainage, ecologyParts } : {}),
       water,
       shoreWidth,
       waterFlow,

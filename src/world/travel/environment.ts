@@ -61,16 +61,21 @@ export function resolveMapEnvironment(anchor: Coordinate, year: number) {
   if (named) defaults = { ...defaults, ...named.defaults };
   const shore = atlasSample(origin.x, origin.y);
   if (year < -9999 && anchor.lat > 48) defaults.climate = "tundra";
-  const ecology = environmentFor({
+  const ecology = { ...environmentFor({
     ...defaults,
     ...anchor,
     settlement: "camp",
-  });
+    ecologyRevision: 2,
+    // Travel's arid climate is an explicit map contract; geographic biome
+    // lookup may otherwise turn a dry atlas cell into a lush outlier.
+    geographyMode: defaults.climate === "arid" ? "configured" : "earth",
+  }, ambient.moisture), ...(named?.defaults.ecology ?? [...profiles].reverse().find((p) => p.defaults.ecology)?.defaults.ecology) };
   return {
     anchor: { ...anchor },
     year,
     ...defaults,
     ecology: ecology.ecology,
+    colorway: ecology.colorway,
     landform: ecology.landform,
     surface: shore.coast < 0 ? ("sea" as const) : ("land" as const),
     coastDistance: shore.coast,
@@ -115,7 +120,8 @@ export function settingForTravelStop(stop: TravelStop, year: number) {
     setting.geographyMode = "configured";
     setting.water = form;
   }
-  setting.environment = environmentFor(setting);
+  setting.ecologyRevision = 2;
+  setting.environment = { ...environmentFor(setting, broadEnvironment(setting.lon, setting.lat).moisture), ecology: e.ecology, colorway: e.colorway };
   return setting;
 }
 export const mapClimateLabel = (e: MapEnvironment) =>
@@ -153,14 +159,9 @@ export function mapForm(anchor: Coordinate): MapForm {
   if (atlasSample(here.x, here.y).coast < 0 && seaFraction(6, 8) === 1)
     form = "ocean";
   else {
-    // Walk outward until the land runs out in almost every direction. Land
-    // enclosed within about 160 km is small enough to be drawn whole.
-    for (const km of [40, 80, 120, 160]) {
-      if (seaFraction(km, 16) >= 0.85) {
-        form = "island";
-        break;
-      }
-    }
+    // Require the outer ring to be mostly water. A single nearby coastal
+    // island must not turn a continental map into a configured island.
+    if (seaFraction(160, 16) >= 0.85) form = "island";
   }
   forms.set(key, form);
   return form;

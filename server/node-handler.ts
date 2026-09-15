@@ -1,6 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { worldWeaver } from "./world-weaver";
 import { narrator } from "./narrator";
+import { dialogue } from "./dialogue";
 type Route = (request: Request) => Promise<Response>;
 export const handleWorldWeaver = handler(
   "/api/world-weaver",
@@ -8,6 +9,7 @@ export const handleWorldWeaver = handler(
   12000,
 );
 export const handleNarrator = handler("/api/narrator", narrator, 24000);
+export const handleDialogue = handler("/api/dialogue", dialogue, 10000);
 function handler(path: string, route: Route, limit: number) {
   return async (
     req: IncomingMessage & { body?: unknown },
