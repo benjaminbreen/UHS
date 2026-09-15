@@ -50,3 +50,49 @@ it("uses real ecoregions over rough climate while retaining explicit configured 
   );
   expect(regionalEcology(31, 38, "arid", 0.1, false).ecology).toBe("desert");
 });
+it("fades a neighbour's ecology out at both ends of its seam", () => {
+  const size = 384;
+  const region = createRegionalContext({
+    ...s,
+    playableMap: {
+      name: "Test",
+      size,
+      exits: [
+        {
+          id: "w",
+          mode: "land",
+          bearing: "W",
+          neighbor: { ecology: "tundra" },
+          seam: {
+            side: "W",
+            start: 0.1,
+            end: 0.55,
+            water: [],
+            sea: [],
+            height: [],
+            road: false,
+            roadAt: 0.5,
+            walkable: 1,
+          },
+        },
+      ],
+    },
+  } as unknown as WorldSetting);
+  const share = (y: number) =>
+    region
+      .ecologyAt(-size / 2 + 2, y)
+      .parts.filter((p) => p.ecology === "tundra")
+      .reduce((sum, p) => sum + p.weight, 0);
+  // The seam runs y = -145 to y = 17; each end now ramps over ~50 cells
+  // instead of stopping at full strength.
+  const middle = share(-60);
+  expect(middle).toBeCloseTo(0.5, 2);
+  for (const ramp of [
+    [-150, -140, -130, -120, -110],
+    [10, 0, -10, -20, -30],
+  ]) {
+    expect(share(ramp[0])).toBeLessThan(0.05);
+    for (let i = 1; i < ramp.length; i++)
+      expect(share(ramp[i])).toBeGreaterThan(share(ramp[i - 1]) + 0.05);
+  }
+});

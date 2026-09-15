@@ -25,6 +25,8 @@ import { broadEnvironment, toAtlas, fromAtlas } from "../geography/atlas";
 import { inBounds, inPolygon, nearestSegment } from "./geometry";
 
 export const REGION_CELL = 384;
+/** Cells the neighbour's ecology takes to fade out at a seam's two ends. */
+export const SEAM_FADE = 56;
 export function createRegionalContext(start: WorldSetting) {
   const origin = toAtlas(start.lon, start.lat),
     date = { year: start.year };
@@ -412,17 +414,26 @@ export function createRegionalContext(start: WorldSetting) {
         const side = e.seam?.side ?? e.bearing[0];
         const along = side === "N" || side === "S" ? x : y;
         const u = (along + map.size / 2) / (map.size - 1);
-        if (u < (e.seam?.start ?? 0) || u > (e.seam?.end ?? 1)) return [];
+        const from = e.seam?.start ?? 0,
+          to = e.seam?.end ?? 1;
+        // Feathered along the seam as well as into it. The ends used to be an
+        // in/out test, so the neighbour's ground stopped at full strength and
+        // drew a straight line across the map.
+        const fade = Math.min(SEAM_FADE / (map.size - 1), (to - from) / 2);
+        const alongEdge = Math.min((u - from) / fade, (to - u) / fade, 1);
+        if (alongEdge <= 0) return [];
         const depth = side === "N" ? y + map.size / 2 : side === "S" ? map.size / 2 - 1 - y : side === "W" ? x + map.size / 2 : map.size / 2 - 1 - x;
-        const weight = 0.5 * (1 - smooth(Math.max(0, Math.min(1, depth / 112))));
+        const weight = 0.5 * smooth(alongEdge) * (1 - smooth(Math.max(0, Math.min(1, depth / 112))));
         return weight > 0 ? [{ env: e.neighbor, weight }] : [];
       });
       if (hits.length) {
         const total = hits.reduce((sum, h) => sum + h.weight, 0);
-        parts.length = 0;
-        add(start.environment!, 1 - Math.min(0.5, total));
+        // Scale the lattice blend down rather than discarding it, so the mix
+        // returns to the countryside continuously as the seam's share fades.
+        const share = Math.min(0.5, total);
+        for (const part of parts) part.weight *= 1 - share;
         for (const hit of hits)
-          add({ ...start.environment!, ...hit.env }, hit.weight * Math.min(0.5, total) / total);
+          add({ ...start.environment!, ...hit.env }, (hit.weight * share) / total);
       }
     }
     if (start.playableMap?.exits.some((e) => e.neighbor)) {

@@ -11,6 +11,10 @@ export function characterShadow(source: HTMLCanvasElement, phase: LightingId) {
   const light = lightingPreset(phase),
     [vx, vy] = light.cast;
   const length = Math.hypot(vx, vy);
+  // The cast is pulled back by half a body so it straddles the feet: every
+  // preset points down-screen, and anchoring at the feet left the whole
+  // silhouette pooled in front of them, reading as a figure in mid-air.
+  const HALF = 16;
   const ux = length ? (vy / length) * 0.75 : 1;
   const uy = length ? (-vx / length) * 0.75 : 0;
   const mark = (x: number, y: number, alpha: number) => {
@@ -27,16 +31,18 @@ export function characterShadow(source: HTMLCanvasElement, phase: LightingId) {
     for (let x = 0; x < 80; x++) {
       if (!pixels[(y * 80 + x) * 4 + 3]) continue;
       if (light.opacity) {
-        const px = 80 + (x - 40) * ux + (79 - y) * vx;
-        const py = 32 + (x - 40) * uy + (79 - y) * vy;
+        const px = 80 + (x - 40) * ux + (79 - y) * vx - HALF * vx;
+        const py = 32 + (x - 40) * uy + (79 - y) * vy - HALF * vy;
         for (let dx = 0; dx < 2; dx++)
           for (let dy = 0; dy < 2; dy++)
             mark(px + dx, py + dy, Math.round(light.opacity * 255));
       }
       if (y >= 78)
-        for (let dx = -1; dx <= 1; dx++) {
-          mark(80 + x - 40 + dx, 32, 80);
-          mark(80 + x - 40 + dx, 33, 48);
+        for (let dx = -2; dx <= 2; dx++) {
+          mark(80 + x - 40 + dx, 31, 60);
+          mark(80 + x - 40 + dx, 32, 150);
+          mark(80 + x - 40 + dx, 33, 110);
+          mark(80 + x - 40 + dx, 34, 60);
         }
     }
   ctx.putImageData(data, 0, 0);

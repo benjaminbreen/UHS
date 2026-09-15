@@ -501,67 +501,258 @@ def build_urban_furniture(sprites):
         sprites[f'urban-stall-{index}']=im
 
 
-def build_city_walls(sprites):
-    """Defensive circuits as tiling wall segments, drawn once per perimeter cell.
+# Wall geometry in a 16x40 frame whose bottom edge is the cell's south edge.
+# The cap is a full cell-sized top surface lifted by WALL_H; the face below it
+# is exactly WALL_H tall, so the cell to the south covers it exactly and a run
+# reads as one continuous mass rather than a row of separate blocks.
+WALL_H = 16
+CAP_TOP = 24 - WALL_H
+CAP_BOT = 39 - WALL_H
+FACE_TOP = CAP_BOT + 1
+# How far the ground shade reaches below an exposed foot.
+FOOT = 2
+# Merlons stand this far proud of the walk.
+PARAPET = 3
+# The pitch divides the cell, so the teeth of one cell continue those of the
+# next exactly. Shifting them per variant, as the coursing is shifted, would
+# double or swallow a tooth at every seam.
+CRENEL_PITCH = 8
+CRENEL_WIDTH = 5
 
-    Two materials only, because two is what the content table distinguishes: a
-    coursed masonry curtain and a battered earth rampart. Each is 16 wide so it
-    tiles along a cell edge, and taller than a cell so it reads as an obstacle
-    rather than as ground. Corner turrets and gate jambs close the silhouette;
-    the opening itself is a gap in the run, not a sprite.
-    """
-    from PIL import ImageOps
-    for material, ramp, cap in [
-        ("masonry", ["#6b6857", "#8e8a74", "#a9a48b", "#c0baa0"], "#4f4d41"),
-        ("earth", ["#7d6440", "#9a7d52", "#b39468", "#c9ab7f"], "#5d4a30"),
-    ]:
-        dark, mid, light, top = ramp
-        for kind in ["run", "corner", "jamb"]:
-            im = Image.new("RGBA", (16, 32))
-            d = ImageDraw.Draw(im)
-            d.ellipse((0, 26, 15, 31), fill=(39, 44, 32, 70))
-            batter = material == "earth"
-            for row in range(8, 30):
-                # An earth rampart leans back to its base. The taper is shading,
-                # not silhouette: tapering the sprite would open a seam between
-                # every pair of segments in the run.
-                d.line((0, row, 15, row), fill=mid)
-                if batter and row > 10:
-                    d.point((0, row), fill=light)
-                    d.point((15, row), fill=dark)
-            if batter:
-                # Weathered gullies down the face, not courses.
-                for x, start in [(4, 12), (9, 10), (12, 15)]:
-                    d.line((x, start, x, 29), fill=dark)
+# ramp: mortar, shade, body, light, highlight. A fifth entry, moss, weathers
+# the foot and the walk.
+WALL_STYLES = {
+    "masonry": {
+        "ramp": ["#464a48", "#6a706c", "#868b84", "#a2a69c", "#c1c4b8"],
+        "moss": "#6b7a52",
+        "crenels": True,
+        "coursed": True,
+        "course": 5,
+        "block": 9,
+    },
+    "earth": {
+        "ramp": ["#4e4029", "#6f5c3d", "#8a7450", "#a68d63", "#c0a97f"],
+        "moss": "#7c7f4e",
+        "crenels": False,
+        "coursed": False,
+        "course": 5,
+        "block": 0,
+    },
+}
+
+
+def _hash(*args):
+    """A small deterministic mixer, so block widths and specks are repeatable
+    across builds without carrying a Random around."""
+    h = 2166136261
+    for a in args:
+        h = ((h ^ (a & 0xFFFF)) * 16777619) & 0xFFFFFFFF
+    return h
+
+
+def _crenel(along):
+    """True where a merlon stands."""
+    return along % CRENEL_PITCH < CRENEL_WIDTH
+
+
+def _course_blocks(row, v, avg):
+    """Blocks in one course as (left joint, right edge) pairs, clipped to the
+    cell. Widths wander by a pixel or two so the coursing does not read as a
+    printed grid."""
+    out, x, n = [], -((v * 3 + row * 5) % avg), 0
+    while x < 16:
+        w = max(4, avg + (_hash(row, n, v) % 5) - 2)
+        out.append((x, min(x + w - 1, 15)))
+        x += w
+        n += 1
+    return out
+
+
+def _wall_face(d, style, v, footed):
+    """The south elevation: what shows where the cell to the south is a gate,
+    a street or open ground. `footed` adds the shade the wall casts on it."""
+    mortar, shade, body, light, high = style["ramp"]
+    bottom = 39 - (FOOT if footed else 0)
+    d.rectangle((0, FACE_TOP, 15, bottom), fill=shade)
+    if style["coursed"]:
+        for i, row in enumerate(range(FACE_TOP, bottom + 1, style["course"])):
+            last = min(row + style["course"] - 2, bottom)
+            for x0, x1 in _course_blocks(i, v, style["block"]):
+                left = max(x0 + 1, 0)
+                if x1 < left:
+                    continue
+                d.rectangle((left, row, x1, last), fill=body)
+                if i:
+                    # The topmost course sits just under the coping; lighting
+                    # it too would print a second bright line under the first.
+                    d.line((left, row, x1, row), fill=light)
+                if x0 >= 0:
+                    d.line((x0, row, x0, last), fill=mortar)
+            d.line((0, min(last + 1, bottom), 15, min(last + 1, bottom)),
+                   fill=mortar)
+    else:
+        # A rammed rampart is battered, so its face darkens toward the foot,
+        # and it shows shuttering lifts and rain gullies rather than courses.
+        span = bottom - FACE_TOP
+        for row in range(FACE_TOP, bottom + 1):
+            t = (row - FACE_TOP) / max(span, 1)
+            d.line((0, row, 15, row),
+                   fill=body if t < 0.2 else shade if t < 0.65 else mortar)
+        for row in range(FACE_TOP + style["course"], bottom, style["course"]):
+            d.line((0, row, 15, row), fill=shade)
+            d.line((0, row + 1, 15, row + 1), fill=light)
+        for i in range(2):
+            h = _hash(v, i, 409)
+            x = (h + i * 7) % 16
+            d.line((x, FACE_TOP + span // 3 + h % 3, x, bottom - 1), fill=shade)
+    # The courses thin out toward the foot, where the wall sits in its own
+    # shade whatever it is made of.
+    d.line((0, bottom, 15, bottom), fill=mortar)
+    for i in range(3):
+        h = _hash(v, i, 71)
+        d.point(((h >> 3) % 16, bottom - 1 - (h >> 9) % 3), fill=style["moss"])
+    if footed:
+        d.rectangle((0, 40 - FOOT, 15, 39), fill=(24, 26, 20, 90))
+
+
+def _wall_cap(d, style, v, mask):
+    """The wall walk, seen from above. It lies between two parapets, so it
+    reads a step darker than they do."""
+    mortar, shade, body, light, high = style["ramp"]
+    d.rectangle((0, CAP_TOP, 15, CAP_BOT), fill=body)
+    if style["coursed"]:
+        # The walk is paved, but quietly: strong joints here compete with the
+        # face and make a vertical run look like a ladder.
+        for i, row in enumerate(range(CAP_TOP + 1, CAP_BOT, 5)):
+            d.line((0, row, 15, row), fill=shade)
+            d.line((0, row + 1, 15, row + 1), fill=light)
+            for x0, _ in _course_blocks(i + 8, v, 6):
+                if 0 <= x0 < 16:
+                    d.line((x0, row, x0, min(row + 4, CAP_BOT)), fill=shade)
+    else:
+        # A rampart's crown is rounded: brightest along the spine, falling
+        # away to both lips. The spine follows the run, so a length of wall
+        # standing north-south is shaded across its width, not along it.
+        along_y = mask & 5 and not mask & 10
+        for i in range(16):
+            near = abs(i - 7)
+            fill = shade if near > 5 else light if near < 2 else None
+            if not fill:
+                continue
+            if along_y:
+                d.line((i, CAP_TOP, i, CAP_BOT), fill=fill)
             else:
-                for row in range(11, 30, 5):
-                    d.line((0, row, 15, row), fill=dark)
-                    for x in range(2 if row % 10 else 7, 16, 10):
-                        d.line((x, row, x, min(row + 4, 29)), fill=dark)
-            # The crest runs flat across the whole circuit; insetting it here
-            # would scallop the top edge once per cell.
-            d.line((0, 8, 15, 8), fill=light)
-            d.line((0, 9, 15, 9), fill=top)
-            if kind == "corner":
-                # A turret breaks the run so a right angle does not read as a seam.
-                d.rectangle((2, 3, 13, 29), fill=mid)
-                d.rectangle((2, 3, 13, 4), fill=light)
-                for x in range(2, 14, 4):
-                    d.rectangle((x, 0, x + 1, 3), fill=mid)
-                d.line((2, 3, 2, 29), fill=light)
-                d.line((13, 3, 13, 29), fill=cap)
-            elif kind == "jamb":
-                d.rectangle((5, 5, 15, 29), fill=mid)
-                d.rectangle((5, 5, 15, 6), fill=light)
-                d.line((5, 6, 5, 29), fill=cap)
-            elif not batter:
-                for x in range(1, 15, 5):
-                    d.rectangle((x, 5, x + 2, 9), fill=mid)
-                    d.line((x, 5, x + 2, 5), fill=light)
-            d.line((0, 29, 15, 29), fill=cap)
-            sprites[f"wall-{material}-{kind}"] = im
-            if kind == "jamb":
-                sprites[f"wall-{material}-jamb-left"] = ImageOps.mirror(im)
+                row = CAP_TOP + i
+                if row <= CAP_BOT:
+                    d.line((0, row, 15, row), fill=fill)
+        for i in range(6):
+            h = _hash(v, i, 17)
+            d.point((h % 16, CAP_TOP + (h >> 5) % WALL_H), fill=shade)
+    for i in range(2):
+        h = _hash(v, i, 233)
+        d.point((h % 16, CAP_TOP + (h >> 7) % WALL_H), fill=style["moss"])
+
+
+def _merlon(d, style, x0, x1):
+    """One tooth of a battlement, standing PARAPET proud of the walk."""
+    mortar, shade, body, light, high = style["ramp"]
+    top = CAP_TOP - PARAPET
+    d.rectangle((x0, top, x1, CAP_TOP + 2), fill=light)
+    d.line((x0, top, x1, top), fill=high)
+    d.line((x1, top, x1, CAP_TOP + 2), fill=shade)
+    d.line((x0, CAP_TOP + 3, x1, CAP_TOP + 3), fill=mortar)
+
+
+def _parapet_north(d, style, v):
+    """The lip of the walk facing the viewer's far side. This is the edge a
+    near-overhead view can show teeth on, so it carries the battlement."""
+    mortar, shade, body, light, high = style["ramp"]
+    if not style["crenels"]:
+        # A rampart's crest is a rounded lip with the same body as a merlon,
+        # so it stands as far proud of the walk and does not read as a line.
+        d.rectangle((0, CAP_TOP - PARAPET, 15, CAP_TOP + 2), fill=body)
+        d.line((0, CAP_TOP - PARAPET, 15, CAP_TOP - PARAPET), fill=light)
+        d.line((0, CAP_TOP - PARAPET + 1, 15, CAP_TOP - PARAPET + 1), fill=high)
+        d.line((0, CAP_TOP + 3, 15, CAP_TOP + 3), fill=shade)
+        return
+    x = 0
+    while x < 16:
+        if _crenel(x):
+            run = x
+            while run < 16 and _crenel(run):
+                run += 1
+            _merlon(d, style, x, run - 1)
+            x = run
+        else:
+            d.line((x, CAP_TOP, x, CAP_TOP + 2), fill=shade)
+            x += 1
+
+
+def _parapet_south(d, style, v):
+    """The near lip is a coping course. Merlons drawn here would only notch
+    the top of the face and read as damage."""
+    mortar, shade, body, light, high = style["ramp"]
+    lip = light if style["coursed"] else body
+    d.rectangle((0, CAP_BOT - 2, 15, CAP_BOT), fill=lip)
+    d.line((0, CAP_BOT - 2, 15, CAP_BOT - 2), fill=high if style["coursed"] else light)
+    d.line((0, CAP_BOT, 15, CAP_BOT), fill=shade)
+    if style["coursed"]:
+        for x0, _ in _course_blocks(3, v, 8):
+            if 0 <= x0 < 16:
+                d.line((x0, CAP_BOT - 2, x0, CAP_BOT), fill=body)
+
+
+def _parapet_side(d, style, v, east):
+    """The lip along an east or west edge, which a vertical run shows instead
+    of a battlement seen end-on."""
+    mortar, shade, body, light, high = style["ramp"]
+    x0 = 12 if east else 0
+    d.rectangle((x0, CAP_TOP, x0 + 3, CAP_BOT), fill=light if style["crenels"] else body)
+    d.line((15 if east else 0, CAP_TOP, 15 if east else 0, CAP_BOT),
+           fill=shade if east else high)
+    if not style["crenels"]:
+        lip = x0 + (0 if east else 1)
+        d.line((lip, CAP_TOP, lip, CAP_BOT), fill=light)
+    inner = x0 - 1 if east else x0 + 4
+    if 0 <= inner < 16:
+        d.line((inner, CAP_TOP, inner, CAP_BOT), fill=shade)
+    if style["crenels"]:
+        # Embrasures cut back only the outer half. Cutting the whole parapet
+        # would leave a vertical run reading as a ladder of separate blocks
+        # rather than one rail with notches in it.
+        for y in range(CAP_TOP, CAP_BOT + 1):
+            if not _crenel(y):
+                a, b = (14, 15) if east else (0, 1)
+                d.line((a, y, b, y), fill=body)
+                d.point((15 if east else 0, y), fill=shade)
+
+
+def build_city_walls(sprites):
+    """Defensive circuits, autotiled.
+
+    The circuit is a rasterised polygon, so it jogs constantly and no single
+    "run" sprite can describe a cell. Each cell instead names its four cardinal
+    neighbours as a bitmask (n1 e2 s4 w8) and gets the lip treatment that mask
+    implies: a parapet on every open side, bare walk where the wall carries on,
+    and a grounding shade only where the foot is actually exposed. Four
+    variants per mask keep the coursing from repeating cell to cell.
+    """
+    for material, style in WALL_STYLES.items():
+        for mask in range(16):
+            for v in range(4):
+                im = Image.new("RGBA", (16, 40))
+                d = ImageDraw.Draw(im)
+                _wall_face(d, style, v, footed=not mask & 4)
+                _wall_cap(d, style, v, mask)
+                if not mask & 2:
+                    _parapet_side(d, style, v, east=True)
+                if not mask & 8:
+                    _parapet_side(d, style, v, east=False)
+                if not mask & 4:
+                    _parapet_south(d, style, v)
+                if not mask & 1:
+                    _parapet_north(d, style, v)
+                sprites[f"wall-{material}-{mask}-{v}"] = im
 
 
 def build_square_furniture(sprites):

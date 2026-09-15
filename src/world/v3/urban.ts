@@ -254,31 +254,26 @@ export function urbanNeighborhood(
   // The circuit stands before the streets, so a run that would cross it is
   // refused and only the gates let a road through.
   if (layout.wall) {
-    const { rect, material, openings } = layout.wall;
-    const corner = (p: Point) =>
-      (p.x === rect.x || p.x === rect.x + rect.w - 1) &&
-      (p.y === rect.y || p.y === rect.y + rect.h - 1);
-    const beside = (p: Point, dx: number, dy: number) =>
-      openings.has(cellKey(p.x + dx, p.y + dy));
-    const parts = layout.wall.cells
-      .filter((p) => api.dry({ ...p, w: 1, h: 1 }, false))
-      .map((p) => {
-        const vertical = p.x === rect.x || p.x === rect.x + rect.w - 1;
-        const kind = corner(p)
-          ? "corner"
-          : // A jamb only reads as a jamb across a run; beside a vertical gate a
-            // turret does the same work without a rotated sprite.
-            vertical
-            ? beside(p, 0, 1) || beside(p, 0, -1)
-              ? "corner"
-              : "run"
-            : beside(p, 1, 0)
-              ? "jamb"
-              : beside(p, -1, 0)
-                ? "jamb-left"
-                : "run";
-        return { ...p, frame: `wall-${material}-${kind}` };
-      });
+    const { material } = layout.wall;
+    const standing = layout.wall.cells.filter((p) =>
+      api.dry({ ...p, w: 1, h: 1 }, false),
+    );
+    const built = new Set(standing.map((p) => cellKey(p.x, p.y)));
+    // The circuit is a rasterised polygon, so it jogs constantly and no single
+    // "run" frame can describe a cell. Each cell names the neighbours it
+    // actually has, and the sprite carries the parapet on every open side.
+    const parts = standing.map((p) => {
+      let mask = 0;
+      for (const [bit, dx, dy] of [
+        [1, 0, -1],
+        [2, 1, 0],
+        [4, 0, 1],
+        [8, -1, 0],
+      ] as const)
+        if (built.has(cellKey(p.x + dx, p.y + dy))) mask |= bit;
+      // Four variants keep the coursing from repeating cell to cell along a run.
+      return { ...p, frame: `wall-${material}-${mask}-${(p.x + p.y) & 3}` };
+    });
     if (parts.length) {
       api.buildWall(layout.wall, parts);
       // The ring is rasterised, so it does not sit exactly on the continuous
