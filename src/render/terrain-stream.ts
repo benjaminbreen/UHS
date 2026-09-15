@@ -4,6 +4,7 @@ import { ensureWaterAtlas } from "./water-motifs";
 import type Phaser from "phaser";
 import type { WorldModel } from "../core/types";
 import { drawTopography } from "./topography";
+import { addPixelTexture } from "./resources";
 import { drawContourLayers, type TerrainReceivers } from "./terrain-contours";
 import {
   TERRAIN_CHUNK_SIZE as SIZE,
@@ -363,16 +364,7 @@ export class TerrainStream {
     if (!layers) return;
     for (const layer of layers) {
       const key = `${chunk.region.prefix}-shade-${id}-${this.sun.id}-${layer.row}`;
-      const texture = this.scene.textures.createCanvas(
-        key,
-        layer.width,
-        layer.height,
-      )!;
-      const context = texture.getContext();
-      const data = context.createImageData(layer.width, layer.height);
-      data.data.set(layer.pixels);
-      context.putImageData(data, 0, 0);
-      texture.refresh();
+      addPixelTexture(this.scene, key, layer.width, layer.height, layer.pixels);
       // Just above that row's ground strip (-7), below anything walking.
       chunk.shade.push(
         this.scene.add

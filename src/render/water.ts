@@ -14,7 +14,7 @@ export type { WaterEffect } from "./water-raster";
 export function waterCanvas(tile: WaterTileData, scratch?: HTMLCanvasElement) {
   const canvas = scratch ?? document.createElement("canvas");
   if (!scratch) canvas.width = canvas.height = 16;
-  const ctx = canvas.getContext("2d")!;
+  const ctx = canvas.getContext("2d", { willReadFrequently: true })!;
   const pixels = ctx.createImageData(16, 16);
   pixels.data.set(tile.pixels);
   ctx.putImageData(pixels, 0, 0);
@@ -30,7 +30,9 @@ export function shoreTile(
 ) {
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = 16;
-  const ctx = canvas.getContext("2d")!;
+  // Read back below: without this the tile is GPU-backed and each getImageData
+  // flushes the pipeline.
+  const ctx = canvas.getContext("2d", { willReadFrequently: true })!;
   ctx.drawImage(source, sx, sy, 16, 16, 0, 0, 16, 16);
   const p = waterStyle(cell),
     pixels = ctx.getImageData(0, 0, 16, 16);

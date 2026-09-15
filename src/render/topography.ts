@@ -27,6 +27,44 @@ import { random } from "../core/random";
 import { TERRAIN_RISE } from "./terrain-projection";
 /** Painter order is logical map Y. Tops are lifted; front walls bridge the
  * actual height difference. Low-side actors can pass behind raised terrain. */
+/** Average tone of a material tile, for the underlay beneath wall strips.
+ * Cached across chunks: a one-pixel read off a GPU-backed canvas flushes the
+ * pipeline, and rebuilding the table per chunk was most of an install. The
+ * texture object identity stands in for a restyle, which replaces it. */
+const tones = new Map<string, string>();
+let toneSource: Phaser.Textures.Texture | undefined;
+let tonePixel: CanvasRenderingContext2D | undefined;
+function toneOf(scene: Phaser.Scene, frame: string) {
+  const texture = scene.textures.get("topography");
+  if (texture !== toneSource) {
+    tones.clear();
+    toneSource = texture;
+  }
+  const cached = tones.get(frame);
+  if (cached) return cached;
+  const f = scene.textures.getFrame("topography", frame);
+  if (!tonePixel) {
+    const one = document.createElement("canvas");
+    one.width = one.height = 1;
+    tonePixel = one.getContext("2d", { willReadFrequently: true })!;
+    tonePixel.imageSmoothingEnabled = true;
+  }
+  tonePixel.drawImage(
+    f.source.image as CanvasImageSource,
+    f.cutX,
+    f.cutY,
+    f.cutWidth,
+    f.cutHeight,
+    0,
+    0,
+    1,
+    1,
+  );
+  const [r, g, b] = tonePixel.getImageData(0, 0, 1, 1).data;
+  const css = `rgb(${r},${g},${b})`;
+  tones.set(frame, css);
+  return css;
+}
 export function drawTopography(
   scene: Phaser.Scene,
   sample: TopographySample,
@@ -49,7 +87,13 @@ export function drawTopography(
   const effects: WaterEffect[] = [];
   const flowers: FlowerSpot[] = [];
   const standingCrops: CropSpot[] = [];
-  let groundScratch: HTMLCanvasElement | undefined;
+  let groundScratch:
+    | {
+        canvas: HTMLCanvasElement;
+        context: CanvasRenderingContext2D;
+        data: ImageData;
+      }
+    | undefined;
   const preparedGround = new Map(groundTiles?.map((t) => [`${t.x},${t.y}`, t]));
   let waterScratch: HTMLCanvasElement | undefined;
   const preparedWater = new Map(waterTiles?.map((t) => [`${t.x},${t.y}`, t]));
@@ -87,32 +131,7 @@ export function drawTopography(
         context.fillRect(x - cx * pageSize, y - cy * pageSize, w, h);
       }
   };
-  /** Average tone of a material tile, for the underlay beneath wall strips. */
-  const tones = new Map<string, string>();
-  const tone = (frame: string) => {
-    let css = tones.get(frame);
-    if (css) return css;
-    const f = scene.textures.getFrame("topography", frame);
-    const one = document.createElement("canvas");
-    one.width = one.height = 1;
-    const c = one.getContext("2d")!;
-    c.imageSmoothingEnabled = true;
-    c.drawImage(
-      f.source.image as CanvasImageSource,
-      f.cutX,
-      f.cutY,
-      f.cutWidth,
-      f.cutHeight,
-      0,
-      0,
-      1,
-      1,
-    );
-    const [r, g, b] = c.getImageData(0, 0, 1, 1).data;
-    css = `rgb(${r},${g},${b})`;
-    tones.set(frame, css);
-    return css;
-  };
+  const tone = (frame: string) => toneOf(scene, frame);
   const image = (
     x: number,
     y: number,
@@ -324,13 +343,24 @@ export function drawTopography(
           const tile =
             preparedGround.get(`${x},${y}`) ??
             rasterHabitatTile(sample, x, y, region?.x ?? 0, region?.y ?? 0);
-          groundScratch ??= document.createElement("canvas");
-          groundScratch.width = groundScratch.height = 16;
-          const ctx = groundScratch.getContext("2d")!;
-          const data = ctx.createImageData(16, 16);
-          data.data.set(tile.pixels);
-          ctx.putImageData(data, 0, 0);
-          painted = groundScratch;
+          // Built once: assigning width reallocates the canvas, and
+          // putImageData into a GPU-backed one uploads a texture per cell.
+          // Either costs far more than the 16x16 blit itself.
+          if (!groundScratch) {
+            const canvas = document.createElement("canvas");
+            canvas.width = canvas.height = 16;
+            const context = canvas.getContext("2d", {
+              willReadFrequently: true,
+            })!;
+            groundScratch = {
+              canvas,
+              context,
+              data: context.createImageData(16, 16),
+            };
+          }
+          groundScratch.data.data.set(tile.pixels);
+          groundScratch.context.putImageData(groundScratch.data, 0, 0);
+          painted = groundScratch.canvas;
         }
         flowers.push(
           ...flowersAt(sample, x, y, region?.x ?? 0, region?.y ?? 0, top),

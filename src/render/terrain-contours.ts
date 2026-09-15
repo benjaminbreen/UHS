@@ -1,4 +1,9 @@
-import { own, renderResources, type RenderResources } from "./resources";
+import {
+  addPixelTexture,
+  own,
+  renderResources,
+  type RenderResources,
+} from "./resources";
 import type Phaser from "phaser";
 import type { TopographySample } from "../core/topography";
 import type { TerrainRegion } from "./terrain-region";
@@ -1109,16 +1114,7 @@ export function drawContourLayers(
   for (const layer of layers) {
     const key = `${prefix}-${layer.row}-${layer.tier}${layer.flat ? "-f" : ""}`;
     resources.textures.push(key);
-    const texture = scene.textures.createCanvas(
-      key,
-      layer.width,
-      layer.height,
-    )!;
-    const context = texture.getContext();
-    const data = context.createImageData(layer.width, layer.height);
-    data.data.set(layer.pixels);
-    context.putImageData(data, 0, 0);
-    texture.refresh();
+    addPixelTexture(scene, key, layer.width, layer.height, layer.pixels);
     own(
       resources,
       scene.add
