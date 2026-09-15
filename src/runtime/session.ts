@@ -582,7 +582,23 @@ export class Runtime {
       )
       .sort((a, b) => distance(a.pos, p.pos) - distance(b.pos, p.pos))[0];
   }
+  /** Two prop scans over everything the player can see. The UI asks on every
+   * React render, which is every step; the answer only changes when the view
+   * does. */
+  private propCache?: {
+    view: unknown;
+    revision: number;
+    value: ReturnType<Runtime["buildPropControls"]>;
+  };
   propControls() {
+    const revision = this.engine.state.revision;
+    if (this.propCache?.view === this.cached && this.propCache.revision === revision)
+      return this.propCache.value;
+    const value = this.buildPropControls();
+    this.propCache = { view: this.cached, revision, value };
+    return value;
+  }
+  private buildPropControls() {
     const s = this.engine.state,
       held = heldObject(s),
       weapon = !!propDefs[held?.prop ?? ""]?.strike;
