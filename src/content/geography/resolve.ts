@@ -6,6 +6,7 @@ import { places } from "./places";
 import { urbanized } from "../settlements/urban-form";
 import { farms } from "./onsets";
 import { integratedSetting } from "./defaults";
+import { placeAtYear } from "./eras";
 import { settingSchema, type AtlasPlace, type WorldSetting } from "./types";
 export const normalize = (s: string) =>
   s
@@ -95,7 +96,10 @@ export function dateFromPrompt(
     )
   );
 }
-export function settingFor(place: AtlasPlace, year = place.year): WorldSetting {
+export function settingFor(input: AtlasPlace, year = input.year): WorldSetting {
+  // The gazetteer row is timeless; read it at the date being played before
+  // anything derives a culture, a fabric or a footprint from it.
+  const place = placeAtYear(input, year);
   const where = {
     culture: place.culture,
     lon: place.lon,

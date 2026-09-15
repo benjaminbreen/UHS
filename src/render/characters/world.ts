@@ -4,6 +4,7 @@ import Phaser from "phaser";
 import type { Actor } from "../../core/types";
 import {
   actorAppearance,
+  type AppearancePalette,
   type CharacterAppearance,
 } from "../../core/character";
 import { drawCharacter } from "./draw";
@@ -30,12 +31,16 @@ export class WorldCharacters {
     {
       sprite: string;
       age?: number;
+      palette?: AppearancePalette;
       source?: CharacterAppearance;
       appearance: CharacterAppearance;
       signature: string;
       used: number;
     }
   >();
+  /** Set by the scene from the running world; an actor spawned without an
+   * appearance is drawn from this rather than the unrestricted palette. */
+  palette?: AppearancePalette;
   private disposed = false;
   private lastPrune = 0;
   constructor(private scene: Phaser.Scene) {
@@ -60,14 +65,16 @@ export class WorldCharacters {
     let resolved = this.appearances.get(actor.id);
     if (
       !resolved ||
+      resolved.palette !== this.palette ||
       resolved.sprite !== actor.sprite ||
       resolved.age !== actor.age ||
       resolved.source !== actor.appearance
     ) {
-      const appearance = actorAppearance(actor);
+      const appearance = actorAppearance(actor, this.palette);
       resolved = {
         sprite: actor.sprite,
         age: actor.age,
+        palette: this.palette,
         source: actor.appearance,
         appearance,
         signature: this.token(JSON.stringify(appearance)),

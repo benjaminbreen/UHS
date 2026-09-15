@@ -86,6 +86,19 @@ export const populations: readonly Population[] = [
     note: "The Cape was built on slavery from 1658, with people brought from the Indonesian archipelago, India, Madagascar and Mozambique. Slavery at the Cape ended in 1834; the share here does not yet fall at that date.",
   },
   {
+    id: "population.trans-appalachian-backcountry",
+    label: "Trans-Appalachian backcountry",
+    scope: { years: [1760, 1840], bounds: [-92, 32, -78, 42] },
+    priority: 6,
+    groups: [
+      { community: "us-anglo", share: 76, unfree: 0.04 },
+      { community: "african-diaspora", share: 15, unfree: 0.93 },
+      { community: "indigenous-local", share: 9 },
+    ],
+    sources: ["https://doi.org/10.1017/CHOL9780521382892"],
+    note: "Tennessee, Kentucky and the Ohio valley in the decades after the first stations and stockades. The settler population was largely English, Scots-Irish and German; enslaved people came over the mountains with it from the start, in far smaller numbers than in the tidewater. The Cherokee, Shawnee and Chickasaw held most of this ground for most of the period, which a share of the towns' population badly understates.",
+  },
+  {
     id: "population.united-states",
     label: "United States",
     scope: { years: [1800, 2000], bounds: [-125, 25, -67, 49] },

@@ -1,11 +1,17 @@
+import { communityLabels } from "../content/ecology/communities";
 import { MapTravel } from "./map-travel";
 import { populateCharacter } from "../content/geography/character";
 import { generateCharacter } from "../content/characters/generate";
+import { resolveCharacterContext } from "../content/characters/resolve";
 import { releaseTerrainWorker } from "./terrain-worker-owner";
 import type { PreparedSettlement } from "../world/v3/prepared";
 import { wardrobeFor } from "../content/characters/wardrobes";
 import { composeWearing, wornFromWearing } from "../core/wearing";
-import { actorAppearance, generateAppearance } from "../core/character";
+import {
+  actorAppearance,
+  generateAppearance,
+  type AppearancePalette,
+} from "../core/character";
 import type { Actor, Intent, ItemId } from "../core/types";
 import type { CharacterPose } from "../render/characters/poses";
 import { allowedHeights, type CharacterAppearance } from "../core/character";
@@ -188,6 +194,19 @@ export class Runtime {
     string,
     { signature: string; value: CharacterAppearance }
   >();
+  private cachedPalette?: { key: string; value: AppearancePalette | undefined };
+  /** This world's complexion and hair range, for anyone spawned without one. */
+  palette(): AppearancePalette | undefined {
+    const setting = this.engine.world.pack.setting;
+    if (!setting) return undefined;
+    const key = `${setting.placeId}:${setting.year}:${setting.culture}`;
+    if (this.cachedPalette?.key !== key)
+      this.cachedPalette = {
+        key,
+        value: resolveCharacterContext(setting).appearance,
+      };
+    return this.cachedPalette.value;
+  }
   appearanceFor(
     actor: Pick<Actor, "id" | "sprite" | "appearance" | "age" | "worn">,
   ): CharacterAppearance {
@@ -209,7 +228,7 @@ export class Runtime {
     const signature = `${actor.sprite}:${actor.age}:${pack.id}:${pack.year}`;
     const cached = this.appearanceDefaults.get(actor.id);
     if (cached?.signature === signature) return cached.value;
-    const base = actorAppearance(actor);
+    const base = actorAppearance(actor, this.palette());
     const value = {
       ...base,
       wearing: wardrobeFor(actor.id, pack, base.wearing),
@@ -679,11 +698,15 @@ export class Runtime {
     const h = cell?.habitat;
     const parts: string[] = [];
     if (h) {
-      const label = ecologyProfiles[h.ecology]?.label ?? h.ecology;
+      const region = h.site?.region ?? h;
+      const label = ecologyProfiles[region.ecology]?.label ?? region.ecology;
       parts.push(
-        h.colorway ? `${label} · ${colorwayLabels[h.colorway]}` : label,
+        region.colorway ? `${label} · ${colorwayLabels[region.colorway]}` : label,
       );
-      parts.push(
+      if (h.site) {
+        const c = h.site.conditions;
+        parts.push(communityLabels[h.site.primary], c.inundated ? "Inundated ground" : c.saturation > .45 ? "Saturated ground" : "Drained ground", c.canopy > .6 ? "Dense vegetation" : c.canopy > .3 ? "Open vegetation" : "Sparse vegetation");
+      } else parts.push(
         `${h.kind}${h.vegetation ? ` (${h.vegetation})` : ""}, wet ${h.wet.toFixed(2)}, cover ${h.cover.toFixed(2)}, exposed ${h.exposed.toFixed(2)}`,
       );
     }

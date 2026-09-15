@@ -256,6 +256,7 @@ export class WorldScene extends Phaser.Scene {
   create() {
     this.ready = true;
     this.characters = new WorldCharacters(this);
+    this.characters.palette = this.runtime.palette();
     this.wading = new WadingEffects(this);
     this.prepareTreeStudySheet();
     this.events.once("shutdown", () => this.wading?.destroy());

@@ -351,20 +351,47 @@ export function generateAppearance(
 }
 /** Legacy sprite is the wardrobe source until explicit appearance data exists.
  * No historical garment is guessed from a person's complexion or name. */
-export function actorAppearance(actor: {
-  id: string;
-  sprite: string;
-  appearance?: CharacterAppearance;
-  age?: number;
-}): CharacterAppearance {
+/**
+ * The complexion and hair range a scene draws from. Supplied by the caller,
+ * because the art palette is researched content and this module is not allowed
+ * to know about it. Without one, an actor who never went through
+ * `generateCharacter` fell back to the unrestricted lab palette, which is how a
+ * Song-dynasty street ended up with blond and auburn hair in it.
+ */
+export type AppearancePalette = {
+  skin: readonly string[];
+  hairColors: readonly string[];
+  hairStyles: readonly CharacterAppearance["hair"][];
+};
+export function actorAppearance(
+  actor: {
+    id: string;
+    sprite: string;
+    appearance?: CharacterAppearance;
+    age?: number;
+  },
+  palette?: AppearancePalette,
+): CharacterAppearance {
   const age = actor.age ?? 30;
   if (actor.appearance) return appearanceForAge(actor.appearance, age);
   const [, skin = "0", cloth = "0"] = actor.sprite.split("-");
-  const a = generateAppearance(`${actor.id}:${actor.sprite}`, 0, age);
+  const seed = `${actor.id}:${actor.sprite}`;
+  const a = generateAppearance(seed, 0, age);
+  const from = <T>(list: readonly T[], key: string) =>
+    list[Math.floor(random(seed, "character-palette", key) * list.length)];
   return {
     ...a,
     height: actor.id === "player" && age >= 16 ? 0 : a.height,
-    skin: skinColors[Number(skin) % 3] ?? skinColors[0],
+    skin: palette
+      ? from(palette.skin, "skin")
+      : (skinColors[Number(skin) % 3] ?? skinColors[0]),
+    ...(palette && {
+      hairColor:
+        age >= 60 && random(seed, "character-palette", "grey") < 0.5
+          ? "#aaa699"
+          : from(palette.hairColors, "hair-color"),
+      hair: from(palette.hairStyles, "hair"),
+    }),
     wearing: {
       ...a.wearing,
       garment: "tunic",
