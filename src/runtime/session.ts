@@ -1,5 +1,4 @@
 import { communityLabels } from "../content/ecology/communities";
-import { MapTravel } from "./map-travel";
 import { populateCharacter } from "../content/geography/character";
 import { generateCharacter } from "../content/characters/generate";
 import { resolveCharacterContext } from "../content/characters/resolve";
@@ -44,7 +43,7 @@ import { integratedSetting } from "../content/geography/defaults";
 import { ecologyProfiles } from "../content/ecology/profiles";
 import { colorwayLabels } from "../content/ecology/variants";
 import { biomeNames, ecoregionNear } from "../content/geography/ecoregions";
-import { fromAtlas, toAtlas } from "../world/geography/atlas";
+import { fromAtlas, toAtlas } from "../world/geography/coordinates";
 export function createSession(
   packId = "roman",
   seed = packs[packId]?.defaultSeed ?? "earth-2",
@@ -329,8 +328,20 @@ export class Runtime {
     this.engine = engine;
     this.syncAmbient();
     this.cached = this.view();
+    this.startJourney(engine);
+  }
+  /** Map travel reaches h3-js, a multi-megabyte emscripten build. Loading it
+   * on demand keeps it off the startup path; nothing can issue a command
+   * before the import settles. */
+  private startJourney(engine: Engine) {
     const map = engine.state.manifest.setting?.playableMap;
-    if (map) new MapTravel(this, map.id, engine.state.manifest.setting!.year);
+    if (!map) return;
+    const id = map.id,
+      year = engine.state.manifest.setting!.year;
+    void import("./map-travel").then(({ MapTravel }) => {
+      // A replacement world may have arrived while the module loaded.
+      if (this.engine === engine) new MapTravel(this, id, year);
+    });
   }
   private view(refresh = true) {
     const pos = this.engine.state.player.pos;
@@ -425,9 +436,7 @@ export class Runtime {
     this.replay = undefined;
     this.stop();
     this.engine = engine;
-    const map = engine.state.manifest.setting?.playableMap;
-    if (!preserveJourney && map)
-      new MapTravel(this, map.id, engine.state.manifest.setting!.year);
+    if (!preserveJourney) this.startJourney(engine);
     this.selected = undefined;
     this.syncAmbient();
     this.notice = "A new day, a different world.";

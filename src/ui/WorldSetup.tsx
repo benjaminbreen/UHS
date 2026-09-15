@@ -1,5 +1,4 @@
 import { communityFor } from "../content/characters/resolve";
-import { prepareConnectedStart } from "../runtime/map-travel";
 import { randomStart } from "../content/geography/random-start";
 import {
   Sparkles,
@@ -174,6 +173,7 @@ export function WorldSetup({
         }),
         worldSeed,
       );
+      const { prepareConnectedStart } = await import("../runtime/map-travel");
       const engine = await prepareConnectedStart(
         parsed,
         worldSeed,

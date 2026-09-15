@@ -84,9 +84,9 @@ const alternateTrees = {
   apple: ["Apple Tree.png", 6],
   cherry: ["Cherry Blossom Tree.png", 6],
 } as const;
-/** Routines built per rendered frame. Around 3ms each, so this is most of a
- * frame's slack; it lasts a second or two on entering a settlement. */
-const ROUTINE_BUILDS_PER_FRAME = 2;
+/** Milliseconds of a frame spent building routines. A build is around 3ms but
+ * varies with the path search, so the budget is time rather than a count. */
+const ROUTINE_BUILD_BUDGET_MS = 2;
 /** Tiles of elbow room between drawn people. */
 const SPACING = 0.95;
 const ambientPoses: Record<StationActivity, CharacterPose> = {
@@ -1822,7 +1822,7 @@ export class WorldScene extends Phaser.Scene {
     this.terrainStream?.update();
     if (!this.options.lab && this.ready) {
       const clock = this.runtime.displayClock();
-      this.buildRoutines();
+      this.buildRoutines(clock);
       // A full pass now and then lets people walk into and out of view; in
       // between, the ones on screen are just repositioned. Someone whose routine
       // was just built has no sprite until the next full pass, so redraw sooner.
@@ -2139,21 +2139,36 @@ export class WorldScene extends Phaser.Scene {
         }
       }
   }
-  /** Builds a couple of the queued routines. A build is a path search per
-   * station, around 3ms, and a city wants a couple of hundred of them, so they
-   * are spent a frame at a time from the nearest resident outward. This is
+  /** Builds queued routines within a frame's budget. A build is a path search
+   * per station, and a city wants a couple of hundred of them, so they are
+   * spent a frame at a time from the nearest resident outward. This is
    * presentation: the engine builds its own on a fixed per-tick budget, and the
    * result is the same itinerary whoever asks first. */
-  private buildRoutines() {
-    const w = this.runtime.engine.world;
-    for (let i = 0; i < ROUTINE_BUILDS_PER_FRAME; i++) {
+  private buildRoutines(clock: number) {
+    if (!this.pendingRoutines.length) return;
+    const w = this.runtime.engine.world,
+      p = this.runtime.engine.state.player.pos,
+      range =
+        Math.max(this.scale.width, this.scale.height) / this.runtime.zoom / 32 +
+        AMBIENT_MARGIN,
+      start = performance.now();
+    do {
       const id = this.pendingRoutines.shift();
       if (id === undefined) return;
       // Already built by the engine: drop it and let the next frame continue.
       if (!w.routinePending?.(id)) continue;
-      w.itinerary?.(id);
-      this.routinesBuilt = true;
-    }
+      const routine = w.itinerary?.(id);
+      if (!routine) continue;
+      // Only a build that actually puts someone on screen needs the early full
+      // pass; most resolve to resting indoors or out of range.
+      const at = itineraryAt(routine, clock);
+      if (
+        (at.activity !== "rest" || at.moving) &&
+        Math.abs(at.x - p.x) <= range &&
+        Math.abs(at.y - p.y) <= range
+      )
+        this.routinesBuilt = true;
+    } while (performance.now() - start < ROUTINE_BUILD_BUDGET_MS);
   }
   /** Moves the people already on screen along their routines. The full pass is
    * driven by player commands, which is far too rare a beat for a village that

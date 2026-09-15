@@ -51,17 +51,48 @@ const riverEdges = buckets(
 // Exact scan-line membership near shore avoids square coast artifacts from the
 // coarse mask. Tile rows share the intersections; cache size stays bounded.
 const shoreRows = new Map<number, number[]>();
+const BAND = 0.25;
+const bandOf = (lat: number) =>
+  Math.max(0, Math.min(BANDS - 1, Math.floor((90 - lat) / BAND)));
+const BANDS = Math.round(180 / BAND);
+/** Coast segments as flat ax, ay, bx, by, with the segments crossing each
+ * latitude band listed separately: a scan line only needs the ones that reach
+ * its row, not all hundred thousand vertices of the world. Built on the first
+ * shore query, so importing the atlas stays cheap. */
+let shoreSegments: Float64Array | undefined;
+let shoreBands: Int32Array[] | undefined;
+function buildShoreIndex() {
+  const flat: number[] = [];
+  const lists: number[][] = Array.from({ length: BANDS }, () => []);
+  for (const ring of atlasLand)
+    for (let i = 1; i < ring.length; i++) {
+      const a = ring[i - 1],
+        b = ring[i];
+      // A horizontal segment never crosses a scan line.
+      if (a[1] === b[1]) continue;
+      const index = flat.length / 4;
+      flat.push(a[0], a[1], b[0], b[1]);
+      const top = bandOf(Math.max(a[1], b[1])),
+        bottom = bandOf(Math.min(a[1], b[1]));
+      for (let band = top; band <= bottom; band++) lists[band].push(index);
+    }
+  shoreSegments = Float64Array.from(flat);
+  shoreBands = lists.map((list) => Int32Array.from(list));
+}
 function landAt(lon: number, lat: number) {
   let hits = shoreRows.get(lat);
   if (!hits) {
+    if (!shoreBands) buildShoreIndex();
+    const segments = shoreSegments!;
     hits = [];
-    for (const ring of atlasLand)
-      for (let i = 1; i < ring.length; i++) {
-        const a = ring[i - 1],
-          b = ring[i];
-        if (a[1] > lat !== b[1] > lat)
-          hits.push(a[0] + ((lat - a[1]) * (b[0] - a[0])) / (b[1] - a[1]));
-      }
+    for (const i of shoreBands![bandOf(lat)]) {
+      const ax = segments[i * 4],
+        ay = segments[i * 4 + 1],
+        bx = segments[i * 4 + 2],
+        by = segments[i * 4 + 3];
+      if (ay > lat !== by > lat)
+        hits.push(ax + ((lat - ay) * (bx - ax)) / (by - ay));
+    }
     hits.sort((a, b) => a - b);
     trimCache(shoreRows, 2048);
     shoreRows.set(lat, hits);
