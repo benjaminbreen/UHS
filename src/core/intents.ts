@@ -128,6 +128,12 @@ function climb(engine: Engine, target: string) {
   if (p.perch) return `Already perched on ${p.perch.label}.`;
   const named = engine.inspect(target);
   const reachable = engine.climbable();
+  // A ledge climb ends on top of the ledge, not perched in place; only the
+  // reachable target carries that landing cell.
+  if (reachable && (!named || named.id === reachable.id)) {
+    engine.perch(reachable);
+    return `Climbed ${reachable.label}.`;
+  }
   const rise = named
     ? engine.state.objects.find((o) => o.id === target)?.prop
       ? 12

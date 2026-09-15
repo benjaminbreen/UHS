@@ -45,6 +45,11 @@ import type { Point } from "./types";
 const copy = <T>(x: T): T => structuredClone(x);
 /** Routines built in one call to `advance`. */
 const ROUTINE_BUILDS_PER_ADVANCE = 32;
+const treeName = (sprite: string) =>
+  sprite
+    .replace(/^(nature-understory|nature|ecology)-/, "")
+    .replaceAll("-", " ")
+    .replace(/^./, (c) => c.toUpperCase());
 /** Saves from before wearables carry an authored look; give them the matching worn slots. */
 function migrateWorn(snapshot: Snapshot): Snapshot {
   for (const actor of [snapshot.player, ...snapshot.actors])
@@ -395,10 +400,14 @@ export class Engine {
     // so a jump reaches open ground only.
     return { kind: "blocked", reason: "There is no way over that." };
   }
-  /** What the player could climb from where they stand: a solid prop, a
-   * building, or ground one to three steps higher. Adjacent only — you climb
-   * what you can reach. Ordered nearest first so the prompt is predictable. */
-  climbable(): { id: string; label: string; rise: number } | undefined {
+  /** What the player could climb from where they stand: a solid prop, a tree,
+   * a building or wall, or ground one to three steps higher. Adjacent only —
+   * you climb what you can reach. Ordered nearest first so the prompt is
+   * predictable. A `to` cell means the climb ends standing there rather than
+   * perched on top. */
+  climbable():
+    | { id: string; label: string; rise: number; to?: Point }
+    | undefined {
     const p = this.state.player;
     if (p.perch) return undefined;
     const near = (q: Point) =>
@@ -417,6 +426,37 @@ export class Engine {
     // object.name, not inspect(): inspect() asks this method for its climb
     // affordance, so reaching back into it recurses until the stack blows.
     if (object) return { id: object.id, label: object.name, rise: 12 };
+    if (p.pos.space === "outside") {
+      const ring: Point[] = [];
+      for (const [dx, dy] of [
+        [1, 0],
+        [-1, 0],
+        [0, 1],
+        [0, -1],
+        [1, 1],
+        [1, -1],
+        [-1, 1],
+        [-1, -1],
+      ])
+        ring.push({ x: p.pos.x + dx, y: p.pos.y + dy });
+      for (const q of ring) {
+        const plant = this.world.decoration(q.x, q.y);
+        if (plant?.solid && plant.sprite !== "rock")
+          return { id: plant.id, label: treeName(plant.sprite), rise: 24 };
+      }
+      // A blocked cell with nothing growing on it is masonry: a house wall or
+      // a town wall. Either is a scramble to the top rather than a way through.
+      for (const q of ring) {
+        if (!this.world.blocked(q.x, q.y, "outside")) continue;
+        if (this.world.decoration(q.x, q.y)?.solid) continue;
+        const place = (this.world.places ?? []).find(
+          (r) =>
+            q.x >= r.x && q.x < r.x + r.w && q.y >= r.y && q.y < r.y + r.h,
+        );
+        if (place) return { id: place.id, label: place.name, rise: 22 };
+        return { id: `wall:${q.x},${q.y}`, label: "the wall", rise: 20 };
+      }
+    }
     const place = (this.world.places ?? []).find((q) => near(q.entrance));
     if (place) return { id: place.id, label: place.name, rise: 22 };
     if (p.pos.space === "outside" && this.world.topography) {
@@ -427,21 +467,30 @@ export class Engine {
         [0, 1],
         [0, -1],
       ]) {
-        const cell = this.world.topography(p.pos.x + dx, p.pos.y + dy);
+        const to = { x: p.pos.x + dx, y: p.pos.y + dy };
+        const cell = this.world.topography(to.x, to.y);
         const rise = here && cell ? cell.height - here.height : 0;
-        if (cell && !cell.solid && rise >= 1 && rise <= 3)
+        // A one-tier step is already a walk; only a real face needs climbing.
+        if (cell && !cell.solid && rise >= 2 && rise <= 3)
           return {
-            id: `ledge:${p.pos.x + dx},${p.pos.y + dy}`,
+            id: `ledge:${to.x},${to.y}`,
             label: "the ledge",
             rise: rise * 8,
+            to,
           };
       }
     }
     return undefined;
   }
   /** Shared by the C key, the affordance and the narrator's climb intent. */
-  perch(target: { id: string; label: string; rise: number }) {
+  perch(target: { id: string; label: string; rise: number; to?: Point }) {
     const p = this.state.player;
+    if (target.to) {
+      p.pos = { ...target.to, space: p.pos.space };
+      this.advance(40);
+      this.event(`You scramble up ${target.label}.`);
+      return;
+    }
     p.perch = { on: target.id, label: target.label, rise: target.rise };
     this.advance(40);
     this.event(`You climb ${target.label} and settle at the top.`);
@@ -632,10 +681,7 @@ export class Engine {
       if (!this.visible(pos)) return;
       const plant = this.world.decoration(x, y);
       if (!plant || plant.id !== id || plant.sprite === "rock") return;
-      const name = plant.sprite
-        .replace(/^(nature-understory|nature|ecology)-/, "")
-        .replaceAll("-", " ")
-        .replace(/^./, (c) => c.toUpperCase());
+      const name = treeName(plant.sprite);
       return {
         id,
         pos,
