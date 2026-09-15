@@ -109,6 +109,9 @@ function paintBackground(
   extent: number,
   large: boolean,
   regional: boolean,
+  /** Draw only the places from this index on, over an already painted map.
+   * Activating a place used to resample the whole terrain for a few roofs. */
+  placesFrom = 0,
 ) {
   const c = canvas.getContext("2d")!;
   // Desert colourways recolour the flat map's sand and bare ground too.
@@ -140,6 +143,7 @@ function paintBackground(
   const mapHalf = world.pack.setting?.playableMap?.size;
   const anchor = toAtlas(world.pack.anchor.lon, world.pack.anchor.lat);
   // Terrain pass.
+  if (!placesFrom)
   for (let j = 0; j < rows; j++)
     for (let i = 0; i < cols; i++) {
       const { x, y, wx, wy } = at(i, j);
@@ -226,6 +230,7 @@ function paintBackground(
   };
   const stride = extent > 3200 ? extent : regional || large ? 4 : 1;
   const span = ((height + PAD * 2) * extent) / size / 2;
+  if (!placesFrom)
   for (
     let wy = Math.floor((origin.y - span) / stride) * stride;
     wy < origin.y + span;
@@ -252,7 +257,9 @@ function paintBackground(
       }
     }
   // Buildings: a roof block over a wall block, both in the sprite's own tones.
-  const sorted = [...world.places].sort((a, b) => a.y + a.h - (b.y + b.h));
+  const sorted = world.places
+    .slice(placesFrom)
+    .sort((a, b) => a.y + a.h - (b.y + b.h));
   for (const b of sorted) {
     const { x, y } = toPx(b.x + b.w / 2, b.y + b.h);
     const w = Math.max(6, Math.round((b.w * size) / extent) + 2);
@@ -277,7 +284,7 @@ function paintBackground(
       c.fillRect(left + w - 4, top + roofH + 1, 2, 2);
     }
   }
-  if (large || regional) {
+  if ((large || regional) && !placesFrom) {
     c.font = `${large ? 13 : 10}px Georgia`;
     c.fillStyle = "#fff2d2";
     const settlements =
@@ -352,14 +359,32 @@ export function Minimap({
     const draw = () => {
       const key = `${size}:${height}:${extent}:${large}:${regional}`;
       let map = backing.current;
-      if (
+      const moved =
         !map ||
         map.world !== world ||
         map.key !== key ||
-        map.places !== places ||
+        map.places > places ||
         (Math.abs(origin.x - map.origin.x) * size) / extent > PAD - 4 ||
-        (Math.abs(origin.y - map.origin.y) * size) / extent > PAD - 4
-      ) {
+        (Math.abs(origin.y - map.origin.y) * size) / extent > PAD - 4;
+      // Places activate constantly while walking. Painting the new roofs over
+      // the map we have costs a few rectangles; the full rebuild resamples the
+      // world per pixel and was stalling a frame every few seconds.
+      if (!moved && map && map.places < places) {
+        paintBackground(
+          map.canvas,
+          world,
+          image,
+          map.origin,
+          size,
+          height,
+          extent,
+          large,
+          regional,
+          map.places,
+        );
+        map.places = places;
+      }
+      if (moved) {
         const background = document.createElement("canvas");
         background.width = size + PAD * 2;
         background.height = height + PAD * 2;
@@ -385,6 +410,7 @@ export function Minimap({
           Number(canvas.dataset.mapBuilds ?? 0) + 1,
         );
       }
+      map = backing.current!;
       const ctx = canvas.getContext("2d")!;
       ctx.imageSmoothingEnabled = false;
       ctx.clearRect(0, 0, size, height);
