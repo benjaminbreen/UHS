@@ -17,7 +17,6 @@
   "include": [
     "src",
     "server",
-    "api",
     "scripts/**/*.ts",
     "tests",
     "vite.config.ts",

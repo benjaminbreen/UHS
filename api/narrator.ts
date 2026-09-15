@@ -1,1 +1,1 @@
-export { handleNarrator as default } from "../server/node-handler";
+export { narrator as default } from "../server/dist/narrator.mjs";

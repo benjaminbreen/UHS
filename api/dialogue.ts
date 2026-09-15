@@ -1,1 +1,1 @@
-export { dialogue as default } from "../server/dialogue";
+export { dialogue as default } from "../server/dist/dialogue.mjs";

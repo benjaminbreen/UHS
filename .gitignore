@@ -27,3 +27,4 @@ tilesets for experimenting/
 
 # Stray editor backups
 *.bak
+server/dist/
