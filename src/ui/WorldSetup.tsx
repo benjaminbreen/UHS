@@ -1,4 +1,5 @@
 import { communityFor } from "../content/characters/resolve";
+import { formatHistoricalYear } from "../core/calendar";
 import { randomStart } from "../content/geography/random-start";
 import {
   Sparkles,
@@ -99,6 +100,9 @@ export function WorldSetup({
   const wovenSetting =
     woven && woven.prompt === prompt.trim() ? woven.setting : undefined;
   const previewSource = wovenSetting ?? localSetting;
+  // The panel must read the setting the player will actually start in, so a
+  // woven result overrides the procedural fallback in every field.
+  const shown = previewSource;
   const preview = previewSource
     ? populateCharacter(
         {
@@ -174,7 +178,7 @@ export function WorldSetup({
   // start in, not the local fallback the request did not ask for.
   const askWeaver = async (next = prompt) => {
     const text = next.trim();
-    if (mode !== "model" || !needsModel || !text || busy) return;
+    if (mode !== "model" || !text || busy) return;
     if (requiresCode && !token) return;
     if (woven?.prompt === text) return;
     previewController.current?.abort();
@@ -201,7 +205,7 @@ export function WorldSetup({
     try {
       const worldSeed = seed.trim() || "earth-2";
       let setting = wovenSetting ?? localSetting;
-      if (mode === "model" && needsModel && !wovenSetting)
+      if (mode === "model" && prompt.trim() && !wovenSetting)
         setting = await weave(
           prompt.trim() || `${chosen.name}, ${year}`,
           controller.current.signal,
@@ -271,10 +275,21 @@ export function WorldSetup({
         </button>
       </div>
       <div className="weaver-prompt">
-        <button className="random-start" disabled={busy} onClick={randomize}>
-          <Dices />
-          Random start
-        </button>
+        {mode === "model" ? (
+          <button
+            className="random-start"
+            disabled={busy || weaving || !prompt.trim()}
+            onClick={() => void askWeaver()}
+          >
+            <Brain />
+            {weaving ? "Weaving…" : "Preview"}
+          </button>
+        ) : (
+          <button className="random-start" disabled={busy} onClick={randomize}>
+            <Dices />
+            Random start
+          </button>
+        )}
         <div>
           <input
             aria-label="Describe your starting situation"
@@ -338,10 +353,17 @@ export function WorldSetup({
             <span>Place</span>
             <select
               aria-label="Place"
-              value={localSetting?.placeId ?? place}
+              value={
+                places.some((p) => p.id === shown?.placeId)
+                  ? shown!.placeId
+                  : place
+              }
               disabled={busy}
               onChange={(e) => choose(e.target.value)}
             >
+              {shown && !places.some((p) => p.id === shown.placeId) && (
+                <option value={shown.placeId}>{shown.location}</option>
+              )}
               {places.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name}
@@ -355,7 +377,7 @@ export function WorldSetup({
             <input
               aria-label="Starting year"
               type="number"
-              value={prompt.trim() && localSetting ? localSetting.year : year}
+              value={prompt.trim() && shown ? shown.year : year}
               disabled={busy}
               onChange={(e) => {
                 editDetails();
@@ -440,7 +462,7 @@ export function WorldSetup({
             <input
               aria-label="Role"
               placeholder="Choose from the setting"
-              value={role || localSetting?.role || ""}
+              value={role || shown?.role || ""}
               disabled={busy}
               onChange={(e) => {
                 editDetails();
@@ -455,8 +477,8 @@ export function WorldSetup({
             Location on the world
           </h3>
           <AtlasMap
-            lon={localSetting?.lon ?? chosen.lon}
-            lat={localSetting?.lat ?? chosen.lat}
+            lon={shown?.lon ?? chosen.lon}
+            lat={shown?.lat ?? chosen.lat}
             onChoose={busy ? undefined : choose}
           />
           {weaving ? (
@@ -466,14 +488,16 @@ export function WorldSetup({
           )}
         </div>
       </div>
-      {prompt.trim() && needsModel && (
+      {prompt.trim() && (mode === "model" || needsModel) && (
         <p className="weaver-route">
-          {mode === "model"
-            ? "World Weaver will interpret this request."
-            : "Some details could not be matched. Refine your request or use World Weaver."}
+          {mode !== "model"
+            ? "Some details could not be matched. Refine your request or use World Weaver."
+            : wovenSetting
+              ? `World Weaver read this as ${wovenSetting.role} in ${wovenSetting.location}, ${formatHistoricalYear(wovenSetting.year)}. Begin, or edit the description and preview again.`
+              : "Press Preview to see how World Weaver reads this request."}
         </p>
       )}
-      {mode === "model" && needsModel && requiresCode && (
+      {mode === "model" && requiresCode && (
         <label className="field-label">
           World Weaver access code
           <input
