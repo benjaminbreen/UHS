@@ -30,9 +30,9 @@ export const appearanceKits: AppearanceKit[] = [
     id: "appearance.europe-broad",
     label: "Broad European visual palette",
     ...paletteEvidence(
-      "Use a varied light-to-medium complexion and hair palette for broadly scoped European scenes.",
+      "Use a light-to-olive complexion range, reaching the Mediterranean end without leaving Europe, and the full European hair range from black to fair.",
     ),
-    skin: ["#f0ceb0", "#e4b994", "#d3a16a", "#b78464", "#a97143"],
+    skin: ["#f5dcc0", "#f0ceb0", "#edc5a3", "#e4b994", "#d3a16a", "#c18a54"],
     hairColors: ["#1f1712", "#3b281c", "#6b472d", "#9a6a3f", "#c2a078"],
     hairStyles: variedHair,
     garments: [
@@ -477,6 +477,7 @@ export const communityProfiles: CommunityProfile[] = [
     label: "Congo Basin community, 1000–1800",
     scope: {
       years: [1000, 1800],
+      bounds: [12, -14, 31, 6],
       communities: ["local", "indigenous-local"],
     },
     priority: 80,

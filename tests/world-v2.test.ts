@@ -111,14 +111,29 @@ describe("shared World Weaver / procedural geography", () => {
   }, 20000);
   it("never calls a provider in free mode; protects and validates the optional World Weaver boundary", async () => {
     let calls = 0;
-    const setting = settingFor(places.find((p) => p.id === "london")!);
+    const london = places.find((p) => p.id === "london")!;
+    const setting = settingFor(london);
+    const choice = {
+      placeId: london.id,
+      placeName: london.name,
+      lon: london.lon,
+      lat: london.lat,
+      year: london.year,
+      role: setting.role,
+      characterName: setting.characterName,
+      community: setting.community,
+      climate: london.climate,
+      water: london.water,
+      relief: london.relief,
+      culture: london.culture,
+      settlement: london.settlement,
+      architecture: london.architecture,
+    };
     const provider = (async () => {
       calls++;
       return new Response(
         JSON.stringify({
-          candidates: [
-            { content: { parts: [{ text: JSON.stringify(setting) }] } },
-          ],
+          choices: [{ message: { content: JSON.stringify(choice) } }],
         }),
       );
     }) as typeof fetch;
@@ -130,14 +145,34 @@ describe("shared World Weaver / procedural geography", () => {
       });
     const env = {
       UHS_WORLD_WEAVER_ENABLED: "1",
-      GEMINI_API_KEY: "test-key",
+      OPENAI_API_KEY: "test-key",
       UHS_WORLD_WEAVER_ACCESS_CODE: "class",
     };
     expect((await worldWeaver(request(), {}, provider)).status).toBe(503);
+    expect(
+      (
+        await worldWeaver(
+          request(),
+          { OPENAI_API_KEY: "test-key", UHS_WORLD_WEAVER_ENABLED: "0" },
+          provider,
+        )
+      ).status,
+    ).toBe(503);
     expect((await worldWeaver(request("wrong"), env, provider)).status).toBe(
       401,
     );
     expect(calls).toBe(0);
+    // No code configured: open to everyone.
+    const open = await worldWeaver(
+      new Request("http://local/api/world-weaver", {
+        method: "POST",
+        body: JSON.stringify({ prompt: "Elizabethan London" }),
+      }),
+      { OPENAI_API_KEY: "test-key" },
+      provider,
+    );
+    expect(open.status).toBe(200);
+    calls = 0;
     const response = await worldWeaver(request(), env, provider);
     expect(response.status).toBe(200);
     const body = await response.json();
@@ -154,7 +189,7 @@ describe("shared World Weaver / procedural geography", () => {
           legacyRequest,
           {
             UHS_WORLD_WEAVER_ENABLED: "1",
-            GEMINI_API_KEY: "test-key",
+            OPENAI_API_KEY: "test-key",
             UHS_CLASSROOM_CODE: "class",
           },
           provider,
@@ -167,9 +202,7 @@ describe("shared World Weaver / procedural geography", () => {
     const malformed = (async () =>
       new Response(
         JSON.stringify({
-          candidates: [
-            { content: { parts: [{ text: '{"version":2,"lat":999}' }] } },
-          ],
+          choices: [{ message: { content: '{"placeId":"london","lat":999}' } }],
         }),
       )) as typeof fetch;
     expect((await worldWeaver(request(), env, malformed)).status).toBe(502);

@@ -133,6 +133,18 @@ export function validateCharacterContent() {
   }
   for (const p of communityProfiles) {
     scope(p.scope);
+    // A scoped profile outranks every regional fallback, so one with nothing
+    // but a date range repaints the whole world: a Congo Basin entry that lost
+    // its bounds put its palette on medieval Paris. Only the priority-1
+    // regional fallbacks are allowed to be worldwide, and those are pinned to
+    // a culture family.
+    if (
+      p.priority > 1 &&
+      !p.scope.bounds &&
+      !p.scope.places &&
+      !p.scope.cultures
+    )
+      throw Error(`Unbounded community profile: ${p.id}`);
     if (
       !appearanceKits.some((a) => a.id === p.appearance) ||
       !p.livelihoods.length ||

@@ -1,6 +1,7 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 import { narratorReplySchema } from "../src/runtime/schema";
+import { overLimit } from "./rate-limit";
 type Environment = Record<string, string | undefined>;
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
@@ -46,6 +47,10 @@ export async function narrator(
     )
       return json({ error: "The narrator access code is incorrect." }, 401);
   }
+  // A narrator turn is the expensive call in the game; the ceiling is lower
+  // than dialogue's for that reason.
+  if (overLimit(request, "narrator", 12))
+    return json({ error: "Too many narrator turns. Wait a moment." }, 429);
   if (inFlight >= 4)
     return json({ error: "The narrator is busy. Try again shortly." }, 429);
   let input: z.infer<typeof requestSchema>;

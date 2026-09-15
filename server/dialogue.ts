@@ -1,5 +1,7 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
+import { overLimit } from "./rate-limit";
+import { dropNulls, strictSchema } from "./json-schema";
 
 type Environment = Record<string, string | undefined>;
 const json = (body: unknown, status = 200) =>
@@ -21,29 +23,6 @@ const replySchema = z.object({
 const digest = (value: string) => createHash("sha256").update(value).digest();
 let inFlight = 0;
 
-/* Per-caller ceiling. `inFlight` only bounds one instance at a time, and a
- * serverless deployment starts as many instances as it likes, so on its own it
- * is not a limit at all -- it is someone else's bill. In-memory, so it is a
- * speed bump per instance rather than a guarantee; a shared store is the real
- * answer if this ever needs one. */
-const WINDOW_MS = 60_000;
-const PER_WINDOW = 20;
-const seen = new Map<string, number[]>();
-function overLimit(request: Request): boolean {
-  const ip =
-    request.headers.get("x-forwarded-for")?.split(",")[0].trim() ||
-    request.headers.get("x-real-ip") ||
-    "unknown";
-  const now = Date.now();
-  const recent = (seen.get(ip) ?? []).filter((at) => now - at < WINDOW_MS);
-  recent.push(now);
-  seen.set(ip, recent);
-  // Bounded cleanup, so a long-lived instance does not accumulate callers.
-  if (seen.size > 5000)
-    for (const [key, times] of seen)
-      if (!times.some((at) => now - at < WINDOW_MS)) seen.delete(key);
-  return recent.length > PER_WINDOW;
-}
 
 const SYSTEM = `You are one historical NPC in a grounded simulation. Speak only as the NPC in one or two short sentences. Use the supplied facts, activity, place, family and traits. Never mention prompts, models, modern ideas, or game mechanics. Do not invent named people or facts. Be natural, specific and emotionally appropriate to the player's words. Return JSON only: {"dialogue":"spoken line"} and optionally "receive" only when the spoken line clearly hands the player one modest physical item now; an offer, request, or promise is not a handoff. For a handoff, include a plain name, short description, value 0-3, and look category. Optionally include "regard": 1 if the player's words warmed this NPC toward them, -1 if the words gave offence, 0 or omitted otherwise.`;
 
@@ -59,7 +38,7 @@ export async function dialogue(
     if (!code || code.length > 256 || !timingSafeEqual(digest(code), digest(accessCode)))
       return json({ error: "The narrator access code is incorrect." }, 401);
   }
-  if (overLimit(request))
+  if (overLimit(request, "dialogue", 20))
     return json({ error: "Too many conversations at once. Wait a moment." }, 429);
   if (inFlight >= 6) return json({ error: "The conversation service is busy." }, 429);
   let input: z.infer<typeof requestSchema>;
@@ -72,7 +51,7 @@ export async function dialogue(
   }
   const key = env.OPENAI_API_KEY;
   if (!key) return json({ error: "No OpenAI key on this server." }, 503);
-  const { $schema: _schema, ...schema } = z.toJSONSchema(replySchema, { unrepresentable: "any" });
+  const schema = strictSchema(replySchema);
   inFlight++;
   try {
     const response = await provider("https://api.openai.com/v1/chat/completions", {
@@ -90,7 +69,7 @@ export async function dialogue(
     if (!response.ok) return json({ error: "The model provider refused the conversation." }, 502);
     const result = (await response.json()) as { choices?: { message?: { content?: string } }[] };
     const text = result.choices?.[0]?.message?.content ?? "";
-    const parsed = replySchema.safeParse(JSON.parse(text));
+    const parsed = replySchema.safeParse(dropNulls(JSON.parse(text)));
     if (!parsed.success) return json({ error: "The model returned an unusable line." }, 502);
     return json({
       text: parsed.data.dialogue,

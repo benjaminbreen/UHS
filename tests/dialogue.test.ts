@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { dialogue } from "../server/dialogue";
+import { narrator } from "../server/narrator";
 import { Runtime, createSettingSession } from "../src/runtime/session";
 import { resolveSetting } from "../src/content/geography/resolve";
 import { dialogueContext } from "../src/narrator/dialogue";
@@ -43,6 +44,36 @@ describe("dialogue endpoint", () => {
       async () => reply({ dialogue: "Sit with me.", regard: 99 }),
     );
     expect(absurd.status).toBe(502);
+  });
+});
+
+describe("narrator endpoint", () => {
+  const turn = (ip: string) =>
+    new Request("http://localhost/api/narrator", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-forwarded-for": ip },
+      body: JSON.stringify({ provider: "openai", system: "s", user: "u" }),
+    });
+  it("limits a caller, and keeps its budget separate from dialogue's", async () => {
+    const env = { OPENAI_API_KEY: "test" };
+    const model = async () =>
+      new Response(
+        JSON.stringify({
+          choices: [{ message: { content: JSON.stringify({ narration: "x" }) } }],
+        }),
+        { status: 200 },
+      );
+    const codes: number[] = [];
+    for (let i = 0; i < 15; i++)
+      codes.push((await narrator(turn("192.0.2.5"), env, model)).status);
+    expect(codes.filter((c) => c === 429)).toHaveLength(3);
+    // Spending the narrator budget must not close dialogue to the same player.
+    const chat = await dialogue(
+      post("192.0.2.5"),
+      env,
+      async () => reply({ dialogue: "Still here." }),
+    );
+    expect(chat.status).toBe(200);
   });
 });
 

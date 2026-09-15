@@ -51,8 +51,28 @@ export function WorldSetup({
   >(initialSetting?.characterCommunity);
   const [draft, setDraft] = useState(initialSetting);
   const [pattern, setPattern] = useState<Pattern | "">("");
+  // The interpreted setting, kept beside the prompt it came from so a stale
+  // preview never survives an edit.
+  const [woven, setWoven] = useState<{ prompt: string; setting: WorldSetting }>();
+  const [weaving, setWeaving] = useState(false);
+  const [requiresCode, setRequiresCode] = useState(false);
   const controller = useRef<AbortController | null>(null);
-  useEffect(() => () => controller.current?.abort(), []);
+  const previewController = useRef<AbortController | null>(null);
+  useEffect(() => {
+    const local = new AbortController();
+    void fetch("/api/world-weaver", { signal: local.signal })
+      .then((r) => r.json())
+      .then((r) => setRequiresCode(!!r?.requiresCode))
+      .catch(() => {});
+    return () => local.abort();
+  }, []);
+  useEffect(
+    () => () => {
+      controller.current?.abort();
+      previewController.current?.abort();
+    },
+    [],
+  );
   const chosen = places.find((p) => p.id === place)!;
   const numericYear = Number(year);
   const validYear =
@@ -76,14 +96,17 @@ export function WorldSetup({
     candidate?.success && (prompt.trim() || validYear)
       ? candidate.data
       : undefined;
-  const preview = localSetting
+  const wovenSetting =
+    woven && woven.prompt === prompt.trim() ? woven.setting : undefined;
+  const previewSource = wovenSetting ?? localSetting;
+  const preview = previewSource
     ? populateCharacter(
         {
-          ...localSetting,
+          ...previewSource,
           ...(community
             ? { characterCommunity: community, characterName: "Traveler" }
             : {}),
-          ...(role && role !== localSetting.role
+          ...(role && role !== previewSource.role
             ? { role, characterName: role }
             : {}),
           ...(pattern ? { settlementPattern: pattern } : {}),
@@ -98,6 +121,7 @@ export function WorldSetup({
     const p = places.find((p) => p.id === id)!;
     setDraft(undefined);
     setCommunity(undefined);
+    setWoven(undefined);
     setPlace(id);
     setYear(String(p.year));
     setPrompt("");
@@ -115,6 +139,7 @@ export function WorldSetup({
   };
   const editDetails = () => {
     setDraft(undefined);
+    setWoven(undefined);
     if (localSetting) {
       setPlace(localSetting.placeId);
       setYear(String(localSetting.year));
@@ -123,37 +148,64 @@ export function WorldSetup({
     setPrompt("");
   };
 
+  const weave = async (text: string, signal: AbortSignal) => {
+    const response = await fetch("/api/world-weaver", {
+      method: "POST",
+      signal,
+      headers: {
+        "Content-Type": "application/json",
+        "X-World-Weaver-Code": token,
+      },
+      body: JSON.stringify({ prompt: text }),
+    });
+    const result = await response.json().catch(() => {
+      throw Error(
+        "World Weaver is not available on this server. Use procedural mode or configure the World Weaver endpoint.",
+      );
+    });
+    if (!response.ok)
+      throw Error(
+        result.error ||
+          "World Weaver could not interpret this setting. You can use procedural mode.",
+      );
+    return settingSchema.parse(result.setting);
+  };
+  // Interpret on blur so the card shows the world the player will actually
+  // start in, not the local fallback the request did not ask for.
+  const askWeaver = async (next = prompt) => {
+    const text = next.trim();
+    if (mode !== "model" || !needsModel || !text || busy) return;
+    if (requiresCode && !token) return;
+    if (woven?.prompt === text) return;
+    previewController.current?.abort();
+    const local = new AbortController();
+    previewController.current = local;
+    setWeaving(true);
+    setError("");
+    try {
+      setWoven({ prompt: text, setting: await weave(text, local.signal) });
+    } catch (err) {
+      if (!local.signal.aborted)
+        setError(
+          err instanceof Error ? err.message : "Could not interpret this start.",
+        );
+    } finally {
+      if (!local.signal.aborted) setWeaving(false);
+    }
+  };
+
   const begin = async () => {
     setError("");
     setBusy(true);
     controller.current = new AbortController();
     try {
       const worldSeed = seed.trim() || "earth-2";
-      let setting = localSetting;
-      if (mode === "model" && needsModel) {
-        const response = await fetch("/api/world-weaver", {
-          method: "POST",
-          signal: controller.current.signal,
-          headers: {
-            "Content-Type": "application/json",
-            "X-World-Weaver-Code": token,
-          },
-          body: JSON.stringify({
-            prompt: prompt.trim() || `${chosen.name}, ${year}`,
-          }),
-        });
-        const result = await response.json().catch(() => {
-          throw Error(
-            "World Weaver is not available on this server. Use procedural mode or configure the World Weaver endpoint.",
-          );
-        });
-        if (!response.ok)
-          throw Error(
-            result.error ||
-              "World Weaver could not interpret this setting. You can use procedural mode.",
-          );
-        setting = settingSchema.parse(result.setting);
-      }
+      let setting = wovenSetting ?? localSetting;
+      if (mode === "model" && needsModel && !wovenSetting)
+        setting = await weave(
+          prompt.trim() || `${chosen.name}, ${year}`,
+          controller.current.signal,
+        );
       if (!setting)
         throw Error(
           "error" in resolved
@@ -231,8 +283,10 @@ export function WorldSetup({
             disabled={busy}
             onChange={(e) => {
               setPrompt(e.target.value);
+              setWoven(undefined);
               setRole("");
             }}
+            onBlur={() => void askWeaver()}
             placeholder="Describe a place, period, and character…"
           />
           {prompt && (
@@ -264,7 +318,9 @@ export function WorldSetup({
             aria-pressed={prompt === q}
             onClick={() => {
               setPrompt(q);
+              setWoven(undefined);
               setRole("");
+              void askWeaver(q);
             }}
           >
             {q}
@@ -403,7 +459,11 @@ export function WorldSetup({
             lat={localSetting?.lat ?? chosen.lat}
             onChoose={busy ? undefined : choose}
           />
-          {preview && <StartPreview setting={preview} />}
+          {weaving ? (
+            <p className="weaver-route">World Weaver is interpreting this…</p>
+          ) : (
+            preview && <StartPreview setting={preview} />
+          )}
         </div>
       </div>
       {prompt.trim() && needsModel && (
@@ -413,7 +473,7 @@ export function WorldSetup({
             : "Some details could not be matched. Refine your request or use World Weaver."}
         </p>
       )}
-      {mode === "model" && needsModel && (
+      {mode === "model" && needsModel && requiresCode && (
         <label className="field-label">
           World Weaver access code
           <input
