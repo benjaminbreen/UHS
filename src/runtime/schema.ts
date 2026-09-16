@@ -381,6 +381,8 @@ export const commandSchema = z.discriminatedUnion("type", [
         "drop",
         "strike",
         "look",
+        "climb",
+        "descend",
       ]),
     })
     .strict(),
