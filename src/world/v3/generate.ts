@@ -14,6 +14,7 @@ import {
   vegetationUnderstory,
 } from "../../content/ecology/vegetation";
 import { trimCache } from "../../core/cache";
+import type { Decoration } from "../../core/types";
 import { preparedSite, type PreparedSettlement } from "./prepared";
 import { pathArt } from "./path-art";
 import { streetMaterial } from "../../content/settlements/streets";
@@ -84,22 +85,39 @@ export function createSettlementWorld(
     plans = new Map<string, SettlementPlan>(prepared?.plans),
     links = new Map<string, Road[]>(prepared?.links),
     active = new Set<string>(prepared?.active);
-  const half = pack.setting?.playableMap ? pack.setting.playableMap.size / 2 : undefined;
-  const inside = (x: number, y: number) => half === undefined || (x >= -half && x < half && y >= -half && y < half);
+  const half = pack.setting?.playableMap
+    ? pack.setting.playableMap.size / 2
+    : undefined;
+  const inside = (x: number, y: number) =>
+    half === undefined || (x >= -half && x < half && y >= -half && y < half);
   const rawPlanner = regional
     ? regionalSettlements(regional, land.sample, seed, prepared?.regionalSites)
     : undefined;
-  const regionalPlanner = rawPlanner && half !== undefined ? {
-    ...rawPlanner,
-    sitesIn: (cx: number, cy: number) => {
-      if (pack.setting?.environment?.population === "none") return [];
-      const x = cx * DISTRICT_SIZE - land.origin.x, y = cy * DISTRICT_SIZE - land.origin.y;
-      if (x >= half || x + DISTRICT_SIZE < -half || y >= half || y + DISTRICT_SIZE < -half) return [];
-      return rawPlanner.sitesIn(cx, cy).filter((s) =>
-        Math.abs(s.center.x) + s.profile.radius < half - 4 &&
-        Math.abs(s.center.y) + s.profile.radius < half - 4);
-    },
-  } : rawPlanner;
+  const regionalPlanner =
+    rawPlanner && half !== undefined
+      ? {
+          ...rawPlanner,
+          sitesIn: (cx: number, cy: number) => {
+            if (pack.setting?.environment?.population === "none") return [];
+            const x = cx * DISTRICT_SIZE - land.origin.x,
+              y = cy * DISTRICT_SIZE - land.origin.y;
+            if (
+              x >= half ||
+              x + DISTRICT_SIZE < -half ||
+              y >= half ||
+              y + DISTRICT_SIZE < -half
+            )
+              return [];
+            return rawPlanner
+              .sitesIn(cx, cy)
+              .filter(
+                (s) =>
+                  Math.abs(s.center.x) + s.profile.radius < half - 4 &&
+                  Math.abs(s.center.y) + s.profile.radius < half - 4,
+              );
+          },
+        }
+      : rawPlanner;
   const transport =
     regional && regionalPlanner
       ? regionalTransport(regional, regionalPlanner.sitesIn, land.sample)
@@ -454,11 +472,13 @@ export function createSettlementWorld(
     roadCache.set(key, tiles);
     return tiles;
   }
-  const previewNeighbor = pack.setting ? adjacentTerrain(pack.setting) : undefined;
+  const previewNeighbor = pack.setting
+    ? adjacentTerrain(pack.setting)
+    : undefined;
   const settingAt = (x: number, y: number) =>
     pack.setting?.geographyMode === "configured"
       ? pack.setting
-      : regional?.settingAt(x, y) ?? pack.setting!;
+      : (regional?.settingAt(x, y) ?? pack.setting!);
   const habitatCache = new Map<string, ReturnType<typeof habitatAt>>();
   function habitat(x: number, y: number) {
     const key = cellKey(x, y);
@@ -474,8 +494,11 @@ export function createSettlementWorld(
         land.sample(x, y),
         setting.environment!.colorway,
       );
-      if (pack.setting?.ecologyRevision === 1 && regional) value.blend = regional.ecologyAt(x,y).parts;
-      const pattern = value.site ? undefined : vegetationPattern(setting, land.sample(x, y));
+      if (pack.setting?.ecologyRevision === 1 && regional)
+        value.blend = regional.ecologyAt(x, y).parts;
+      const pattern = value.site
+        ? undefined
+        : vegetationPattern(setting, land.sample(x, y));
       if (pattern) value.vegetation = pattern;
       if (value.vegetation === "savanna" || value.vegetation === "steppe") {
         value.exposed *= 0.55;
@@ -492,7 +515,8 @@ export function createSettlementWorld(
   function ground(x: number, y: number): Terrain {
     const f = land.sample(x, y);
     if (
-      !f.ecologyParts && regional &&
+      !f.ecologyParts &&
+      regional &&
       f.water >= (f.shoreWidth ?? 3) &&
       (regional.landUse(x, y) === "rock" ||
         ((f.summit ? f.elevation / f.summit >= 0.6 : f.elevation >= 28) &&
@@ -511,8 +535,16 @@ export function createSettlementWorld(
     if (environment && f.ecologyParts) {
       if (f.water < 0) return "water";
       if (f.snow) return "snow";
-      const id = habitat(x,y).site!.primary;
-      return id === "rocky" ? "rock" : id === "barren" || id === "shore" ? "sand" : ["marsh","swamp","bog"].includes(id) ? "marsh" : id === "scrub" ? "dry" : "grass";
+      const id = habitat(x, y).site!.primary;
+      return id === "rocky"
+        ? "rock"
+        : id === "barren" || id === "shore"
+          ? "sand"
+          : ["marsh", "swamp", "bog"].includes(id)
+            ? "marsh"
+            : id === "scrub"
+              ? "dry"
+              : "grass";
     }
     if (environment) {
       const profile =
@@ -587,13 +619,17 @@ export function createSettlementWorld(
         };
     }
   }
-  /** A canal cell: which way the water runs, from its neighbours. */
-  function canalAt(x: number, y: number): "x" | "y" | undefined {
+  /** A canal cell: which way the water runs, from its neighbours, and
+   * whether the channel has any water in it this season. */
+  function canalAt(
+    x: number,
+    y: number,
+  ): { axis: "x" | "y"; dry: boolean } | undefined {
     for (const p of nearby(x, y)) {
       if (!p.canals?.has(cellKey(x, y))) continue;
       const along =
         p.canals.has(cellKey(x + 1, y)) || p.canals.has(cellKey(x - 1, y));
-      return along ? "x" : "y";
+      return { axis: along ? "x" : "y", dry: !!p.canalsDry };
     }
   }
   function terrain(x: number, y: number, space = "outside"): Terrain {
@@ -639,7 +675,10 @@ export function createSettlementWorld(
           seed,
           ax,
           ay,
-          h.blend?.reduce((sum, p) => sum + ecologyProfiles[p.ecology].trees * p.weight, 0) ?? ecologyProfiles[h.ecology].trees,
+          h.blend?.reduce(
+            (sum, p) => sum + ecologyProfiles[p.ecology].trees * p.weight,
+            0,
+          ) ?? ecologyProfiles[h.ecology].trees,
           (pack.setting?.vegetationRevision ?? 0) >= 5,
         )
       ) {
@@ -737,8 +776,19 @@ export function createSettlementWorld(
   /** Per cell, once: the renderer, the collision test and every route search
    * ask the same cell many times, and the answer only depends on plans that
    * nearby() has already built. */
+  let decorationEdit:
+    | ((
+        x: number,
+        y: number,
+        base: Decoration | undefined,
+      ) => Decoration | undefined)
+    | undefined;
   function decoration(x: number, y: number) {
-    if (environment && land.sample(x,y).travelRoad) return undefined;
+    const grown = generated(x, y);
+    return decorationEdit ? decorationEdit(x, y, grown) : grown;
+  }
+  function generated(x: number, y: number) {
+    if (environment && land.sample(x, y).travelRoad) return undefined;
     const k = cellKey(x, y);
     const old = decorations.get(k);
     if (old !== undefined) return old ?? undefined;
@@ -770,7 +820,15 @@ export function createSettlementWorld(
     const h = environment ? habitat(x, y) : undefined;
     if (
       h &&
-      saltPan(seed, x + land.origin.x, y + land.origin.y, h.colorway, f.elevation === 0, h.wet, f.water) > 0.3
+      saltPan(
+        seed,
+        x + land.origin.x,
+        y + land.origin.y,
+        h.colorway,
+        f.elevation === 0,
+        h.wet,
+        f.water,
+      ) > 0.3
     )
       return;
     const n = random(
@@ -856,7 +914,11 @@ export function createSettlementWorld(
                           Math.max(0, h!.cover - 0.35) *
                             0.16 *
                             (h!.ecology === "desert" ? 0.2 : 1)) *
-                        shrubColony(seed, x + land.origin.x, y + land.origin.y) *
+                        shrubColony(
+                          seed,
+                          x + land.origin.x,
+                          y + land.origin.y,
+                        ) *
                         (scape?.kind === "arroyo" ? 3 : 1)
                       : 0.015)
                   ? "bush"
@@ -911,7 +973,7 @@ export function createSettlementWorld(
       !tree &&
       selected &&
       selected !== "rock" &&
-        h?.kind === "woodland" &&
+      h?.kind === "woodland" &&
       random(seed, "forest-understory", x + land.origin.x, y + land.origin.y) >
         0.3
     )
@@ -927,7 +989,12 @@ export function createSettlementWorld(
         "low-vegetation-thinning",
         x + land.origin.x,
         y + land.origin.y,
-      ) > (h?.site ? .65 : selected.includes("heath") || selected === "flowers" ? 0.15 : 0.225)
+      ) >
+        (h?.site
+          ? 0.65
+          : selected.includes("heath") || selected === "flowers"
+            ? 0.15
+            : 0.225)
     )
       selected = undefined;
     if (
@@ -941,7 +1008,8 @@ export function createSettlementWorld(
         "tree-density-thinning",
         x + land.origin.x,
         y + land.origin.y,
-      ) >= (h?.site ? 1 : (pack.setting?.vegetationRevision ?? 0) >= 4 ? 0.6 : 0.8)
+      ) >=
+        (h?.site ? 1 : (pack.setting?.vegetationRevision ?? 0) >= 4 ? 0.6 : 0.8)
     )
       selected = undefined;
     if (
@@ -960,16 +1028,19 @@ export function createSettlementWorld(
       selected &&
       selected !== "rock"
     ) {
-      const patch = h?.site ? 1 : noise(
-        seed,
-        x + land.origin.x,
-        y + land.origin.y,
-        22,
-        "vegetation-openings",
-      );
+      const patch = h?.site
+        ? 1
+        : noise(
+            seed,
+            x + land.origin.x,
+            y + land.origin.y,
+            22,
+            "vegetation-openings",
+          );
       if (
         patch < 0.4 ||
-        (!tree && !h?.site &&
+        (!tree &&
+          !h?.site &&
           random(
             seed,
             "quiet-understory",
@@ -988,7 +1059,12 @@ export function createSettlementWorld(
           0.012 * shrubColony(seed, x + land.origin.x + 37, y + land.origin.y)
       )
         selected =
-          random(seed, "woodland-floor-kind", x + land.origin.x, y + land.origin.y) < 0.5
+          random(
+            seed,
+            "woodland-floor-kind",
+            x + land.origin.x,
+            y + land.origin.y,
+          ) < 0.5
             ? "log"
             : "nature-stump";
     }
@@ -1036,8 +1112,22 @@ export function createSettlementWorld(
           ay = y + land.origin.y;
         let scape = f.landscape;
         if (!scape && f.water >= (f.shoreWidth ?? 3)) {
-          const pan = saltPan(seed, ax, ay, h.colorway, f.elevation === 0, h.wet, f.water);
-          const rocky = outcrop(seed, ax, ay, h.exposed, f.summit ? f.elevation / f.summit : 0);
+          const pan = saltPan(
+            seed,
+            ax,
+            ay,
+            h.colorway,
+            f.elevation === 0,
+            h.wet,
+            f.water,
+          );
+          const rocky = outcrop(
+            seed,
+            ax,
+            ay,
+            h.exposed,
+            f.summit ? f.elevation / f.summit : 0,
+          );
           if (pan) scape = { kind: "pan", strength: pan };
           else if (rocky) scape = { kind: "outcrop", strength: rocky };
           else {
@@ -1057,7 +1147,8 @@ export function createSettlementWorld(
             if (near < 4) {
               const trample =
                 1 - near / 4 + (noise(seed, ax, ay, 4, "trample") - 0.5) * 0.7;
-              if (trample > 0.25) scape = { kind: "trample", strength: Math.min(1, trample) };
+              if (trample > 0.25)
+                scape = { kind: "trample", strength: Math.min(1, trample) };
             }
           }
         }
@@ -1072,23 +1163,41 @@ export function createSettlementWorld(
         frozenMargin: f.snow,
         ...(f.waterGradient ? { gradient: f.waterGradient } : {}),
       };
-      cell.biome = cell.habitat.site ? cell.habitat.ecology : localEcology(
-        settingAt(x, y),
-        seed,
-        x + (regional ? land.origin.x : 0),
-        y + (regional ? land.origin.y : 0),
-        f,
-      );
+      cell.biome = cell.habitat.site
+        ? cell.habitat.ecology
+        : localEcology(
+            settingAt(x, y),
+            seed,
+            x + (regional ? land.origin.x : 0),
+            y + (regional ? land.origin.y : 0),
+            f,
+          );
       const eco = ecologyProfiles[cell.biome];
-      if (f.water >= 0) cell.surface = f.snow ? "snow" : f.travelRoad ? "soil" : cell.habitat.site
-        ? t === "rock" ? "gravel" : t === "marsh" ? "damp" : t === "sand" ? "sand" : t === "dry" ? "dry" : "grass"
-        : eco.surface;
+      if (f.water >= 0)
+        cell.surface = f.snow
+          ? "snow"
+          : f.travelRoad
+            ? "soil"
+            : cell.habitat.site
+              ? t === "rock"
+                ? "gravel"
+                : t === "marsh"
+                  ? "damp"
+                  : t === "sand"
+                    ? "sand"
+                    : t === "dry"
+                      ? "dry"
+                      : "grass"
+              : eco.surface;
       // A creek's edge is painted per pixel by the ground raster (a dark wet
       // line and stones on turf); marking whole cells as gravel drew a
       // stepped grey band along it.
-      if (f.water >= 0 && f.water < (f.shoreWidth ?? 3) && (f.shoreWidth ?? 3) >= 1.2) {
-        const shoreEcology = settingAt(x, y)
-          .environment!.ecology;
+      if (
+        f.water >= 0 &&
+        f.water < (f.shoreWidth ?? 3) &&
+        (f.shoreWidth ?? 3) >= 1.2
+      ) {
+        const shoreEcology = settingAt(x, y).environment!.ecology;
         const stonyShore =
           shoreEcology === "tundra" ||
           shoreEcology === "boreal-woodland" ||
@@ -1114,14 +1223,18 @@ export function createSettlementWorld(
     if (farmed) cell.field = farmed;
     const canal = canalAt(x, y);
     if (canal && cell.waterVisual) {
-      cell.surface = "water";
-      cell.waterDepth = "shallow";
+      // A dry channel keeps walkable ground: only the bed's art changes.
+      if (canal.dry) cell.dryChannel = true;
+      else {
+        cell.surface = "water";
+        cell.waterDepth = "shallow";
+      }
       cell.waterVisual = {
         ...cell.waterVisual,
-        distance: -1,
+        distance: canal.dry ? 1 : -1,
         kind: "canal",
         shoreWidth: 1,
-        flow: canal === "x" ? [1, 0] : [0, 1],
+        flow: canal.axis === "x" ? [1, 0] : [0, 1],
       };
     }
     if (t === "rock") cell.surface = "gravel";
@@ -1129,9 +1242,7 @@ export function createSettlementWorld(
       cell.surface = environment ? "gravel" : "soil";
       if (environment) {
         cell.feature = "paving";
-        cell.streetMaterial = streetMaterial(
-          settingAt(x, y),
-        );
+        cell.streetMaterial = streetMaterial(settingAt(x, y));
       }
     }
     if (regional && regionalRoads(x, y).has(cellKey(x, y)) && t !== "paving") {
@@ -1298,7 +1409,11 @@ export function createSettlementWorld(
         ] as const) {
           const tx = Math.abs(dy),
             ty = Math.abs(dx);
-          if (px + tx * (width - 1) >= bx + 32 || py + ty * (width - 1) >= by + 32) continue;
+          if (
+            px + tx * (width - 1) >= bx + 32 ||
+            py + ty * (width - 1) >= by + 32
+          )
+            continue;
           const hi = land.sample(px + dx, py + dy);
           if (hi.elevation !== c.elevation + 14 || hi.water < 0) continue;
           if (
@@ -1323,7 +1438,10 @@ export function createSettlementWorld(
       }
     for (const p of best.values())
       for (let k = 0; k < p.width; k++)
-        result.set(cellKey(p.x + k * Math.abs(p.dy), p.y + k * Math.abs(p.dx)), p.dir);
+        result.set(
+          cellKey(p.x + k * Math.abs(p.dy), p.y + k * Math.abs(p.dx)),
+          p.dir,
+        );
     if (naturalSlopes.size >= 96)
       naturalSlopes.delete(naturalSlopes.keys().next().value!);
     naturalSlopes.set(key, result);
@@ -1345,7 +1463,11 @@ export function createSettlementWorld(
     return "cut";
   }
   function topography(x: number, y: number): TopographyCell {
-    if (half !== undefined && (Math.abs(x) > half + 32 || Math.abs(y) > half + 32)) return { height: 0, surface: "water" };
+    if (
+      half !== undefined &&
+      (Math.abs(x) > half + 32 || Math.abs(y) > half + 32)
+    )
+      return { height: 0, surface: "water" };
     const key = cellKey(x, y),
       old = reliefCache.get(key);
     if (old) return old;
@@ -1371,7 +1493,11 @@ export function createSettlementWorld(
           hi.surface !== "water" &&
           lo.surface !== "water"
         ) {
-          const result = { ...c, ramp: dir, rampStyle: rampStyleFor(c, "road") };
+          const result = {
+            ...c,
+            ramp: dir,
+            rampStyle: rampStyleFor(c, "road"),
+          };
           reliefCache.set(key, result);
           return result;
         }
@@ -1383,7 +1509,10 @@ export function createSettlementWorld(
         const result = {
           ...c,
           ramp: slope,
-          rampStyle: rampStyleFor(c, plan.site.profile.paved ? "paved" : "town"),
+          rampStyle: rampStyleFor(
+            c,
+            plan.site.profile.paved ? "paved" : "town",
+          ),
         };
         reliefCache.set(key, result);
         return result;
@@ -1572,9 +1701,14 @@ export function createSettlementWorld(
     return out;
   }
   let entranceCache = prepared?.entrances;
-  const entrances = () => entranceCache ??= pack.setting?.playableMap
-    ? mapEntrances(world, pack.setting.playableMap.size, pack.setting.playableMap.exits)
-    : [];
+  const entrances = () =>
+    (entranceCache ??= pack.setting?.playableMap
+      ? mapEntrances(
+          world,
+          pack.setting.playableMap.size,
+          pack.setting.playableMap.exits,
+        )
+      : []);
   const keptFauna: FaunaGroup[] = [];
   const world: SettlementWorld = {
     entrances,
@@ -1676,7 +1810,9 @@ export function createSettlementWorld(
             from: { x: number; y: number },
             to: { x: number; y: number },
           ) => {
-            return inside(to.x, to.y) && terrainStep(topography, from, to).allowed;
+            return (
+              inside(to.x, to.y) && terrainStep(topography, from, to).allowed
+            );
           },
         }
       : {}),
@@ -1700,14 +1836,27 @@ export function createSettlementWorld(
       )[0];
       return nearest ? getPlan(c.x, c.y, nearest.id) : undefined;
     },
-    terrain: (x, y, space = "outside") => space !== "outside" || inside(x, y) ? terrain(x, y, space) : "water",
-    decoration: (x, y) => inside(x, y) ? decoration(x, y) : undefined,
+    terrain: (x, y, space = "outside") =>
+      space !== "outside" || inside(x, y) ? terrain(x, y, space) : "water",
+    decoration: (x, y) => (inside(x, y) ? decoration(x, y) : undefined),
+    overrideDecoration: (fn) => {
+      decorationEdit = fn;
+    },
     habitatAt: (x, y) => {
-      if (!inside(x,y) || !environment) return undefined;
-      const site = habitat(x,y).site;
+      if (!inside(x, y) || !environment) return undefined;
+      const site = habitat(x, y).site;
       if (!site) return undefined;
-      const cell = world.topography!(x,y), t = terrain(x,y);
-      return { ...site, landUse: cell.field || t === "field" ? "cultivated" : cell.solid || ["floor","paving","bridge","dirt"].includes(t) ? "built" : "natural" };
+      const cell = world.topography!(x, y),
+        t = terrain(x, y);
+      return {
+        ...site,
+        landUse:
+          cell.field || t === "field"
+            ? "cultivated"
+            : cell.solid || ["floor", "paving", "bridge", "dirt"].includes(t)
+              ? "built"
+              : "natural",
+      };
     },
     mapTerrain: (x, y) => {
       const neighbor = previewNeighbor?.(x, y);
@@ -1715,10 +1864,14 @@ export function createSettlementWorld(
       // Past the playable map with no neighbouring region sited here, there is
       // nothing to generate from: the caller paints coarse atlas ground rather
       // than pay a noise sample per pixel for terrain the region never covered.
-      const half = pack.setting?.playableMap && pack.setting.playableMap.size / 2;
+      const half =
+        pack.setting?.playableMap && pack.setting.playableMap.size / 2;
       if (half && (x < -half || x >= half || y < -half || y >= half))
         return undefined;
-      return { terrain: ground(x, y), habitat: environment ? habitat(x, y) : undefined };
+      return {
+        terrain: ground(x, y),
+        habitat: environment ? habitat(x, y) : undefined,
+      };
     },
     overview: (x, y) => {
       if (regional)
@@ -1739,9 +1892,12 @@ export function createSettlementWorld(
     blocked: (x, y, space) =>
       space !== "outside"
         ? x < 1 || x > 11 || y < 1 || y > 9
-        : !inside(x, y) || Math.abs(x + land.origin.x) > 180 * 2048 ||
+        : !inside(x, y) ||
+          Math.abs(x + land.origin.x) > 180 * 2048 ||
           Math.abs(y + land.origin.y) > 85 * 2048 ||
-          (relief ? waterDepthAt(topography, x + 0.5, y + 0.5) > MAX_WADING_DEPTH : terrain(x, y) === "water") ||
+          (relief
+            ? waterDepthAt(topography, x + 0.5, y + 0.5) > MAX_WADING_DEPTH
+            : terrain(x, y) === "water") ||
           nearby(x, y).some((p) => p.solid.has(cellKey(x, y))) ||
           !!decoration(x, y)?.solid,
     chunk: (cx, cy) =>

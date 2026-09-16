@@ -53,6 +53,9 @@ export type TopographyCell = {
     ditch?: boolean;
     stage: import("../content/agriculture/types").CropStage;
   };
+  /** An irrigation channel standing empty: dug and banked, but with no water
+   * in it. Walkable, and drawn by the canal raster with a dry bed. */
+  dryChannel?: boolean;
   waterDepth?: "shallow" | "deep";
   /** Presentation metadata only: does not change water collision or simulation. */
   waterVisual?: {

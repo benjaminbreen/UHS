@@ -250,6 +250,42 @@ export const effects = [
     icon: "⌑",
   },
   {
+    id: "chop",
+    name: "Axe · bite",
+    detail: "A dull thunk into standing timber",
+    icon: "⌁",
+  },
+  {
+    id: "timber",
+    name: "Tree · falling",
+    detail: "A long tear and a landing",
+    icon: "⌂",
+  },
+  {
+    id: "dig",
+    name: "Spade · earth",
+    detail: "A blade through soil",
+    icon: "⌓",
+  },
+  {
+    id: "reap",
+    name: "Scythe · sweep",
+    detail: "A quick cut through stalks",
+    icon: "⌇",
+  },
+  {
+    id: "pick",
+    name: "Pick · stone",
+    detail: "Iron ringing off rock",
+    icon: "⌃",
+  },
+  {
+    id: "shatter",
+    name: "Rock · breaking",
+    detail: "A boulder splitting and settling",
+    icon: "⌸",
+  },
+  {
     id: "hour",
     name: "Time · passing",
     detail: "A small, suspended cadence",
@@ -278,6 +314,37 @@ export function effectNotes(id: EffectId): Note[] {
       ["kick", 32, 0, 0.4],
       ["brush", 45, 0.07, 0.25],
       ["harp", 40, 0.16, 0.26],
+    ],
+    chop: [
+      ["kick", 38, 0, 0.5],
+      ["brush", 54, 0.01, 0.35],
+      ["keys", 45, 0.03, 0.22],
+    ],
+    timber: [
+      ["brush", 62, 0, 0.3],
+      ["brush", 55, 0.18, 0.34],
+      ["brush", 48, 0.34, 0.38],
+      ["kick", 31, 0.52, 0.5],
+      ["bass", 36, 0.54, 0.4],
+    ],
+    dig: [
+      ["brush", 44, 0, 0.4],
+      ["kick", 35, 0.08, 0.33],
+    ],
+    reap: [
+      ["brush", 76, 0, 0.36],
+      ["brush", 69, 0.06, 0.24],
+    ],
+    pick: [
+      ["kick", 44, 0, 0.42],
+      ["bell", 88, 0.01, 0.2],
+      ["brush", 72, 0.03, 0.26],
+    ],
+    shatter: [
+      ["kick", 34, 0, 0.5],
+      ["brush", 60, 0.04, 0.4],
+      ["brush", 52, 0.16, 0.32],
+      ["brush", 47, 0.3, 0.22],
     ],
     hour: [
       ["bell", 72, 0, 0.25],

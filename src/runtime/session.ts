@@ -14,12 +14,27 @@ import {
 } from "../core/character";
 import type { Actor, Intent, ItemId } from "../core/types";
 import type { CharacterPose } from "../render/characters/poses";
+import type { ToolEffect } from "../render/tool-effects";
 import { allowedHeights, type CharacterAppearance } from "../core/character";
 import { characterAppearanceSchema } from "./schema";
 import { heldObject, nearbyProp } from "../core/props";
 import { withProps } from "../content/props/place";
 import { propDefs } from "../content/props/catalog";
 import { Engine } from "../core/engine";
+import {
+  axeWork,
+  pickWork,
+  plantName,
+  TOOL_ACTIONS,
+  type ToolAction,
+} from "../core/tile-edits";
+/** A pick swings overhead like an axe. */
+const TOOL_POSES: Record<ToolAction, CharacterPose> = {
+  chop: "chop",
+  dig: "dig",
+  reap: "reap",
+  mine: "chop",
+};
 import { findPath } from "../core/pathfinding";
 import {
   distance,
@@ -245,6 +260,57 @@ export class Runtime {
     arc?: { height: number; duration: number };
   };
   private characterSerial = 0;
+  /** What the last tool blow did, for the scene to throw chips and drop a
+   * tree. Read once by serial, like `characterAction`. */
+  toolEffect?: ToolEffect;
+  /** The plant a chop is about to land on, read before the engine takes it. */
+  private toolTargetPlant(command: PlayerCommand) {
+    if (command.type !== "interact" || command.action !== "chop") return;
+    const at = /^tile:(-?\d+),(-?\d+)$/.exec(command.target);
+    return at
+      ? this.engine.world.decoration(Number(at[1]), Number(at[2]))?.sprite
+      : undefined;
+  }
+  private recordToolEffect(command: PlayerCommand, previousPlant?: string) {
+    if (command.type !== "interact") return;
+    const action = command.action;
+    if (
+      action !== "chop" &&
+      action !== "dig" &&
+      action !== "reap" &&
+      action !== "mine"
+    )
+      return;
+    const parsed = /^tile:(-?\d+),(-?\d+)$/.exec(command.target);
+    if (!parsed) return;
+    const at = { x: Number(parsed[1]), y: Number(parsed[2]) };
+    const stage = this.engine.state.tiles?.[`${at.x},${at.y}`]?.stage;
+    const kind: ToolEffect["kind"] =
+      action === "dig"
+        ? "dig"
+        : action === "reap"
+          ? "reap"
+          : action === "mine"
+            ? stage === "rubble" || stage === "clear"
+              ? "shatter"
+              : "mine"
+            : stage === "logs"
+              ? "fell"
+              : stage === "stump"
+                ? "buck"
+                : stage === "stems" || stage === "clear"
+                  ? "cut"
+                  : "hit";
+    const p = this.engine.state.player.pos;
+    this.toolEffect = {
+      serial: ++this.characterSerial,
+      kind,
+      at,
+      from: { x: p.x, y: p.y },
+      facing: this.engine.state.player.direction,
+      sprite: previousPlant,
+    };
+  }
   customizeCharacter(id: string, appearance: CharacterAppearance) {
     const parsed = characterAppearanceSchema.parse(appearance);
     const actor =
@@ -263,8 +329,10 @@ export class Runtime {
     command: PlayerCommand,
     accepted: boolean,
     previousProp?: string,
+    previousPlant?: string,
   ) {
     if (!accepted) return;
+    this.recordToolEffect(command, previousPlant);
     if (command.type === "move") {
       const leap = this.engine.lastLeap;
       if (leap)
@@ -308,6 +376,10 @@ export class Runtime {
         descend: "climb",
         throw: "swing",
         strike: "swing",
+        chop: "chop",
+        dig: "dig",
+        reap: "reap",
+        mine: "chop",
         talk: "talk",
         trade: "give",
         harvest: "work",
@@ -540,12 +612,18 @@ export class Runtime {
       };
     }
     const previousProp = heldObject(this.engine.state)?.sprite;
+    const previousPlant = this.toolTargetPlant(command);
     const result = this.engine.act({
       actionId: `ui-${this.engine.state.revision}-${++this.serial}`,
       expectedRevision: this.engine.state.revision,
       command,
     });
-    this.animateCommand(command, result.status !== "rejected", previousProp);
+    this.animateCommand(
+      command,
+      result.status !== "rejected",
+      previousProp,
+      previousPlant,
+    );
     this.notice = result.reason ?? "";
     if (result.status !== "rejected") this.onChange?.();
     this.emit();
@@ -571,8 +649,14 @@ export class Runtime {
       };
     }
     const previousProp = heldObject(this.engine.state)?.sprite;
+    const previousPlant = this.toolTargetPlant(command);
     const result = this.engine.act({ ...request, command });
-    this.animateCommand(command, result.status !== "rejected", previousProp);
+    this.animateCommand(
+      command,
+      result.status !== "rejected",
+      previousProp,
+      previousPlant,
+    );
     if (result.status !== "rejected") this.onChange?.();
     this.emit();
     return { ...result, observation: structuredClone(this.observation!) };
@@ -650,6 +734,32 @@ export class Runtime {
         : held && propDefs[held.prop!]?.container
           ? held
           : nearby;
+    const tool = propDefs[held?.prop ?? ""]?.tool;
+    const toolAction = tool ? TOOL_ACTIONS[tool] : undefined;
+    let toolCommand:
+      | { type: "interact"; target: string; action: ToolAction }
+      | undefined;
+    let toolProblem: string | undefined;
+    let toolLabel: string | undefined;
+    if (toolAction) {
+      const p = s.player.pos;
+      const facing = this.engine.facingCell();
+      // A spade or scythe also works the cell underfoot; an axe needs a target
+      // in front of it.
+      const cells =
+        toolAction === "chop" ? [facing] : [facing, { x: p.x, y: p.y }];
+      for (const at of cells) {
+        const target = Engine.tileTarget(at.x, at.y);
+        const problem = this.engine.toolProblem(toolAction, target);
+        toolProblem ??= problem;
+        if (!problem) {
+          toolProblem = undefined;
+          toolCommand = { type: "interact", target, action: toolAction };
+          toolLabel = this.toolLabel(toolAction, at);
+          break;
+        }
+      }
+    }
     const primary = target
       ? {
           type: "interact" as const,
@@ -668,19 +778,48 @@ export class Runtime {
       : undefined;
     return {
       held,
-      primary,
+      primary: toolCommand ?? primary,
       secondary,
-      primaryLabel: primary
-        ? `${held ? "Strike" : "Pick up"} ${target!.name.toLowerCase()}`
-        : held
-          ? "Space: put down held object"
-          : "Move near a portable object",
+      // A tool with nothing in front of it still leaves the ordinary prop
+      // actions; only when there is nothing else to do does the label explain
+      // why the tool will not bite.
+      primaryLabel: toolCommand
+        ? toolLabel!
+        : primary
+          ? `${held ? "Strike" : "Pick up"} ${target!.name.toLowerCase()}`
+          : toolAction
+            ? (toolProblem ?? "")
+            : held
+              ? "Space: put down held object"
+              : "Move near a portable object",
       secondaryLabel: context
         ? propDefs[context.prop!]?.drink
           ? "Drink water"
           : `Look inside ${context.name.toLowerCase()}`
         : undefined,
     };
+  }
+  private toolLabel(action: ToolAction, at: { x: number; y: number }) {
+    if (action === "dig") return "Dig a furrow";
+    if (action === "mine") {
+      const rock = this.engine.world.decoration(at.x, at.y);
+      const work = pickWork(rock?.sprite);
+      return work === "clear"
+        ? "Clear the broken rock"
+        : work === "grub"
+          ? "Grub out the stump"
+          : `Break the ${plantName(rock?.sprite)}`;
+    }
+    const crop = this.engine.cropAt(at.x, at.y);
+    if (action === "reap")
+      return crop ? `Cut the ${crop.name.toLowerCase()}` : "Cut the growth";
+    const plant = this.engine.world.decoration(at.x, at.y);
+    const work = axeWork(plant?.sprite);
+    return work === "buck"
+      ? "Buck the fallen trunk"
+      : work === "clear"
+        ? "Clear the cut stems"
+        : `Chop the ${plantName(plant?.sprite)}`;
   }
   propAction(key: "Space" | "KeyE" | "KeyG" | "KeyF") {
     this.stop(false);
@@ -715,13 +854,26 @@ export class Runtime {
         propDefs[controls.held.prop ?? ""]?.strike &&
         !this.replay
       ) {
+        const tool = propDefs[controls.held.prop ?? ""]?.tool;
         this.characterAction = {
           serial: ++this.characterSerial,
-          pose: "swing",
+          pose: tool ? TOOL_POSES[TOOL_ACTIONS[tool]] : "swing",
           at: performance.now(),
           prop: controls.held.sprite,
         };
-        this.notice = "You swing through the air.";
+        if (tool) {
+          const p = this.engine.state.player.pos;
+          this.toolEffect = {
+            serial: ++this.characterSerial,
+            kind: "miss",
+            at: this.engine.facingCell(),
+            from: { x: p.x, y: p.y },
+            facing: this.engine.state.player.direction,
+          };
+        }
+        this.notice = tool
+          ? controls.primaryLabel
+          : "You swing through the air.";
         this.emit();
         return;
       }

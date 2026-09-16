@@ -36,6 +36,33 @@ const POST = [
 type Post = { x: number; y: number };
 type Rail = { a: Post; b: Post };
 
+const tone = (c: Rgb, v: number) =>
+  v ? c.map((n) => Math.max(0, Math.min(255, n + v))) : c;
+
+/** A post's own character: which way it leans, whether it has settled into
+ * the ground, and how weathered its timber is. Every value comes from the
+ * post's world position, so the same post is drawn identically from each of
+ * the tiles that reach it and no seam appears between them. */
+function character(p: Post) {
+  const tilt = hash(p.x, p.y, 971);
+  // Most posts stand; a minority have been shoved out of true by stock or
+  // frost. More than a pixel of lean at this height reads as a broken fence.
+  const lean = tilt > 0.84 ? 1 : tilt < 0.16 ? -1 : 0;
+  const sink = hash(p.x, p.y, 973) > 0.8 ? 1 : 0;
+  // Weathering moves in stretches, not post by post: a length of fence put
+  // up or repaired at one time greys together.
+  const age = hash(Math.floor(p.x / 96), Math.floor(p.y / 96), 977);
+  return { lean, sink, weather: Math.round((age - 0.5) * 16) };
+}
+
+/** Rails rot out in stretches. The run is still read as a fence by the posts
+ * left standing, so a gap tells of neglect rather than of a way through. */
+function railGone(a: Post, b: Post) {
+  const mx = Math.floor((a.x + b.x) / 128),
+    my = Math.floor((a.y + b.y) / 128);
+  return hash(mx, my, 979) > 0.88;
+}
+
 /** Foot of the post on a fence edge: mid-edge, pushed out by FENCE_OUT. */
 function mid(cx: number, cy: number, bit: number): Post {
   const X = cx * 16,
@@ -55,6 +82,36 @@ function mid(cx: number, cy: number, bit: number): Post {
 
 const fenced = (f: Field | undefined) =>
   !!f && !f.ditch && ["fence", "wire"].includes(f.enclosure ?? f.boundary);
+
+/** The height a post stands above its foot, in pixels: what it shadows with. */
+export const POST_HEIGHT = 15;
+
+/** Feet of every standing fence post in a cell range, in world pixels. Shares
+ * `mid`, `fenced` and the shared-edge rule with the drawing pass, so a post
+ * that casts a shadow is always a post that was drawn. */
+export function fencePostFeet(
+  field: (cx: number, cy: number) => Field | undefined,
+  x0: number,
+  y0: number,
+  x1: number,
+  y1: number,
+): Post[] {
+  const stands = (cx: number, cy: number, bit: number) => {
+    const f = field(cx, cy);
+    return fenced(f) && fenceStands(f!, bit, cx, cy);
+  };
+  const out: Post[] = [];
+  for (let cy = y0; cy < y1; cy++)
+    for (let cx = x0; cx < x1; cx++)
+      for (const bit of [1, 2, 4, 8]) {
+        if (!stands(cx, cy, bit)) continue;
+        // Two fields facing across a gap share one fence, as in `gather`.
+        if (bit === 1 && stands(cx, cy - 3, 4)) continue;
+        if (bit === 8 && stands(cx - 3, cy, 2)) continue;
+        out.push(mid(cx, cy, bit));
+      }
+  return out;
+}
 
 /** Posts and rails of every standing fence edge within two cells of the
  * tile. Rails join a post to the next along the outline: the straight
@@ -151,6 +208,8 @@ export function paintFences(
       dy = b.y - a.y;
     const n = Math.max(Math.abs(dx), Math.abs(dy));
     if (!n) continue;
+    const grey = character(a).weather;
+    const bare = !isWire && railGone(a, b);
     if (Math.abs(dx) >= Math.abs(dy)) {
       // Two rails across, at set heights above the interpolated foot.
       for (let i = 0; i <= n; i++) {
@@ -161,10 +220,12 @@ export function paintFences(
           set(wx, wy - 7, [78, 72, 64]);
           continue;
         }
-        set(wx, wy - 9, rgb[2]);
-        set(wx, wy - 8, rgb[1]);
-        set(wx, wy - 5, rgb[1]);
-        set(wx, wy - 4, rgb[0]);
+        if (!bare) {
+          set(wx, wy - 9, tone(rgb[2], grey));
+          set(wx, wy - 8, tone(rgb[1], grey));
+        }
+        set(wx, wy - 5, tone(rgb[1], grey));
+        set(wx, wy - 4, tone(rgb[0], grey));
       }
     } else {
       // A single rail along, three wide, at top-rail height.
@@ -176,22 +237,31 @@ export function paintFences(
           set(wx, wy + 2, [78, 72, 64]);
           continue;
         }
-        set(wx - 1, wy, rgb[0]);
-        set(wx, wy, rgb[2]);
-        set(wx + 1, wy, rgb[3]);
+        if (bare) continue;
+        set(wx - 1, wy, tone(rgb[0], grey));
+        set(wx, wy, tone(rgb[2], grey));
+        set(wx + 1, wy, tone(rgb[3], grey));
       }
     }
   }
   posts.sort((p, q) => p.y - q.y);
   for (const p of posts) {
+    const { lean, sink, weather } = character(p);
     for (let r = 0; r < 16; r++)
       for (let c = 0; c < 10; c++) {
         const ink = fenceInk(POST[r][c]);
-        if (ink >= 0) set(p.x - 5 + c, p.y - 15 + r, rgb[ink]);
+        // Shear about the foot, so a leaning post keeps its footing and
+        // only its head moves.
+        if (ink >= 0)
+          set(
+            p.x - 5 + c + Math.round((lean * (15 - r)) / 15),
+            p.y - 15 + r + sink,
+            tone(rgb[ink], weather),
+          );
       }
     for (let c = 1; c < 9; c++) {
       const px = p.x - 5 + c - gx,
-        py = p.y + 1 - gy;
+        py = p.y + 1 + sink - gy;
       if (px >= 0 && py >= 0 && px < 16 && py < 16) shadow(px, py);
     }
   }

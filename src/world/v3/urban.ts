@@ -225,6 +225,7 @@ export function urbanNeighborhood(
     (x, y) => api.dry({ x, y, w: 1, h: 1 }, false),
     density(),
     site.aspect,
+    pack.year,
   );
   const used = new Set<string>();
   const reserve = (r: Rect) => {

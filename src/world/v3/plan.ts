@@ -25,7 +25,11 @@ import type { FaunaGroup, FaunaMember } from "../../core/fauna";
 import { crops } from "../../content/agriculture/crops";
 import { farms } from "../../content/geography/onsets";
 import { route } from "../../core/routing";
-import { ornaments } from "../../content/settlements/ornaments";
+import {
+  lampFor,
+  ornaments,
+  stallFor,
+} from "../../content/settlements/ornaments";
 import type { Actor, Pack, Point, Position, Terrain } from "../../core/types";
 import { proceduralName } from "../../content/geography/character";
 import { random } from "../../core/random";
@@ -135,6 +139,36 @@ export function planSettlement(
   const rand = (...k: (string | number)[]) =>
     random(seed, "settlement-3", site.id, ...k);
   const pos = (p: Point): Position => ({ ...p, space: "outside" });
+  /** Cut grain stands at the field edge once the harvest is in; the renderer
+   * only draws it in the seasons listed, so a summer field stays clear. */
+  const sheaves = (
+    id: string,
+    rect: { x: number; y: number; w: number; h: number },
+    access: Point,
+    free: (x: number, y: number) => boolean,
+  ) => {
+    let placed = 0;
+    for (let i = 0; i < 9 && placed < 3; i++) {
+      const along = Math.floor(rand(id, "sheaf-x", i) * rect.w);
+      const x = rect.x + along;
+      const near = access.y > rect.y + rect.h / 2;
+      const row = i % 3;
+      const y = near ? rect.y + rect.h - 1 - row : rect.y + row;
+      if (!free(x, y)) continue;
+      placed++;
+      plan.objects.push({
+        id: `${id}-sheaf${i}`,
+        name: "Sheaf of grain",
+        kind: "container",
+        prop: "sheaf",
+        pos: pos({ x, y }),
+        sprite: `study-propb-sheaf-${Math.floor(rand(id, "sheaf-art", i) * 3)}`,
+        inventory: { grain: 2 },
+        seasons: ["autumn", "winter"],
+        claim: "landscape",
+      });
+    }
+  };
   /** Surfaces are painted by rank, not by paint order: a footway, a yard or
    * an access path never overwrites the street it meets. Bridge 10, square 9,
    * main street 8, street 7, paved lane 6, footway 5, earth path 4, yard 3,
@@ -634,19 +668,21 @@ export function planSettlement(
       for (const [i, x] of [
         court.x + inset,
         court.x + court.w - inset - 1,
-      ].entries())
+      ].entries()) {
+        const stall = stallFor(pack, i + Math.floor(rand("stall") * 3));
         plan.objects.push({
           id: `${site.id}-market-${i}`,
-          name: "Market counter",
+          name: stall.label,
           prop: "marketCounter",
           kind: "container",
-          sprite: `urban-stall-${i}`,
+          sprite: stall.sprite,
           pos: pos({ x, y: court.y + court.h - 2 }),
           inventory: characterContext
             ? eligibleInventory({ grain: 6 }, characterContext)
             : { grain: 6 },
           owner: `${site.id}-community`,
         });
+      }
     };
     const paintForecourt = (rect: Rect) => {
       const material = squareStone;
@@ -970,11 +1006,13 @@ export function planSettlement(
       }
       const item = ornaments[piece.kind === "lamp" ? "lamp" : "planter"];
       if (!item) return;
+      // A lamp is whatever this place and date lit its streets with.
+      const lamp = piece.kind === "lamp" ? lampFor(pack) : undefined;
       plan.objects.push({
         id: `${site.id}-${item.id}-${piece.x}-${piece.y}`,
-        name: item.label,
+        name: lamp?.label ?? item.label,
         kind: item.kind,
-        sprite: item.sprite,
+        sprite: lamp?.sprite ?? item.sprite,
         pos: pos(piece),
         inventory: {},
       });
@@ -1868,6 +1906,7 @@ export function planSettlement(
     if (farmland) {
       plan.fields = farmland.fields;
       plan.canals = farmland.canals;
+      plan.canalsDry = farmland.canalsDry;
       plan.culverts = farmland.culverts;
       plan.parcels = farmland.parcels;
       plan.territory = farmland.territory;
@@ -1877,8 +1916,9 @@ export function planSettlement(
         noRoad.add(k);
       }
       // A canal is water a cell wide; a track crosses it on a culvert deck.
+      // A dry one is walkable ground, so it keeps the field surface.
       for (const k of farmland.canals) {
-        setSurface(k, "water", 6);
+        if (!farmland.canalsDry) setSurface(k, "water", 6);
         plan.reserved.add(k);
         noRoad.add(k);
       }
@@ -1927,6 +1967,11 @@ export function planSettlement(
           access: parcel.access,
         });
         const crop = crops[parcel.crop];
+        // A worked parcel is stooked after harvest; a pasture or fallow is not.
+        if (crop.kind !== "pasture" && crop.kind !== "fallow")
+          sheaves(id, parcel.rect, parcel.access, (x, y) =>
+            farmland.fields.has(cellKey(x, y)),
+          );
         if (crop.kind === "pasture" || crop.kind === "fallow") continue;
         // A few tended plants per parcel: what the farmer's round visits and
         // the harvest comes from. The ground raster draws the crop itself.
@@ -2021,6 +2066,7 @@ export function planSettlement(
             owner,
             claim: "landscape",
           });
+      sheaves(id, field, access, (x, y) => !plan.solid.has(cellKey(x, y)));
       const a = plan.actors.find((a) => a.id === owner)!;
       if (a) {
         a.role = "Farmer";
@@ -2114,7 +2160,7 @@ export function planSettlement(
         name: "Animal trough",
         kind: "container",
         prop: "trough",
-        sprite: "study-prop-trough-0",
+        sprite: `study-propb-trough-${Math.floor(rand(id, "trough-art") * 3)}`,
         inventory: { water: 4 },
         owner,
         pos: pos({ x: pen.x + 2, y: pen.y + 2 }),
@@ -2149,7 +2195,7 @@ export function planSettlement(
           name: "Feeding trough",
           kind: "container",
           prop: "trough",
-          sprite: "study-prop-trough-1",
+          sprite: `study-propb-trough-${Math.floor(rand(id, "paddock-trough-art") * 3)}`,
           inventory: { fodder: 3, water: 2 },
           owner,
           pos: pos({
@@ -2252,6 +2298,41 @@ export function planSettlement(
   if (penFields.length) {
     plan.fields ??= new Map();
     for (const [k, cell] of penFields) plan.fields.set(k, cell);
+  }
+  // A town does not share one wellhead: each quarter draws from its own.
+  // Placed off a doorstep rather than in a yard slot, because a dense city
+  // has no spare yard, and the prop kit gives an urban site the big well.
+  if (urban) {
+    const wells: Point[] = [];
+    for (const b of plan.places) {
+      if (wells.length >= 3) break;
+      const out = [
+        { x: b.entrance.x, y: b.entrance.y + 2 },
+        { x: b.entrance.x + 2, y: b.entrance.y },
+        { x: b.entrance.x - 2, y: b.entrance.y },
+        { x: b.entrance.x, y: b.entrance.y - 2 },
+      ].find(
+        (p) =>
+          !plan.solid.has(cellKey(p.x, p.y)) &&
+          !plan.traffic.has(cellKey(p.x, p.y)) &&
+          !plan.reserved.has(cellKey(p.x, p.y)) &&
+          dry({ ...p, w: 1, h: 1 }, false),
+      );
+      if (!out) continue;
+      const far = (p: Point, d: number) =>
+        Math.abs(p.x - out.x) + Math.abs(p.y - out.y) >= d;
+      if (!far(socialCenter, 16) || !wells.every((w) => far(w, 20))) continue;
+      wells.push({ ...out });
+      plan.solid.add(cellKey(out.x, out.y));
+      plan.objects.push({
+        id: `${site.id}-quarter-well${wells.length}`,
+        name: "Shared water source",
+        kind: "well",
+        pos: pos(out),
+        sprite: "well",
+        inventory: {},
+      });
+    }
   }
   // A few hens scratching about the yard, for households that keep them.
   if (flockSpecies) {

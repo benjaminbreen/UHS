@@ -13,7 +13,7 @@ export function Sprite({ name, scale = 2 }: { name: string; scale?: number }) {
       ? nature
     : name.startsWith("ecology-")
       ? ecology
-      : name.startsWith("study-prop-") || name.startsWith("prop-broken-")
+      : name.startsWith("study-prop") || name.startsWith("prop-broken-")
         ? props
         : atlas;
   const f = (

@@ -60,6 +60,9 @@ export { soils } from "./habitat-soils";
 import { soils } from "./habitat-soils";
 import { habitatAppearance, communityBand } from "./habitat-appearance";
 // Prevailing wind for sand seas, as a fixed heading the ripples run across.
+/** Cover below this leaves the ground alone: a few trees on a meadow do not
+ * shade it. */
+const CANOPY_SHADE_FROM = 0.5;
 const DUNE_COS = Math.cos(0.72),
   DUNE_SIN = Math.sin(0.72);
 const decode = (s: string) => [parseInt(s.slice(1, 3), 16), parseInt(s.slice(3, 5), 16), parseInt(s.slice(5, 7), 16)];
@@ -373,6 +376,7 @@ export function rasterHabitatTile(
       cover = mix("cover");
     const i = (tx > 0.5 ? 1 : 0) + (ty > 0.5 ? 2 : 0);
     const near = hs[i];
+    canopy[at(px, py)] = Math.round(cover * 255);
     return e > 0.65
       ? 3
       : e > 0.42 && !["desert", "tundra"].includes(near.ecology)
@@ -400,6 +404,8 @@ export function rasterHabitatTile(
   ];
   // 18x18 apron: band per pixel, and 1 = bare earth band, 2 = trodden soil.
   const apron = new Uint8Array(18 * 18);
+  /** Interpolated canopy cover per pixel, 0-255, for the shade pass. */
+  const canopy = new Uint8Array(18 * 18);
   const earth = new Uint8Array(18 * 18);
   // Pixels the path pass fills: the grass edge must not draw over a road.
   const trodden = new Uint8Array(18 * 18);
@@ -986,6 +992,25 @@ export function rasterHabitatTile(
         }
       }
   }
+  // Under a closed canopy the floor sits in shade all day. Without the value
+  // drop a wood reads as open ground with trees standing on it, and a clearing
+  // does not read as a clearing at all. Ramped in above half cover so ordinary
+  // scattered trees leave the field alone.
+  if (!h.site)
+    for (let py = 0; py < 16; py++)
+      for (let px = 0; px < 16; px++) {
+        const cover = canopy[at(px, py)] / 255;
+        if (cover <= CANOPY_SHADE_FROM) continue;
+        const depth = Math.min(
+          1,
+          (cover - CANOPY_SHADE_FROM) / (0.92 - CANOPY_SHADE_FROM),
+        );
+        const i = (py * 16 + px) * 4;
+        // Shade cools as it deepens: less red, blue nearly held.
+        pixels[i] -= Math.round(depth * 17);
+        pixels[i + 1] -= Math.round(depth * 14);
+        pixels[i + 2] -= Math.round(depth * 8);
+      }
   // Dune crests: the exposed band in a sand sea is a ridge, lit on its
   // north-west lip and shaded where it falls away.
   //

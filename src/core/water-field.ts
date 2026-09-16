@@ -127,7 +127,7 @@ export function waterDepthAt(sample: TopographySample, x: number, y: number) {
     return 0;
   // Legacy terrain keeps its original collision contract.
   if (!c.waterVisual) return c.surface === "water" ? Infinity : 0;
-  if (c.waterVisual.kind === "canal") return Infinity;
+  if (c.waterVisual.kind === "canal") return c.dryChannel ? 0 : Infinity;
   if (c.waterVisual.distance > 3) return 0;
   const d = Math.max(
     0,

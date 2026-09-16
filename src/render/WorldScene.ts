@@ -40,7 +40,13 @@ import {
   defaultLiveGraphicsSettings,
   type LiveGraphicsSettings,
 } from "./live-graphics";
-import { windProfile, windSway, type WindProfile } from "./wind";
+import { ToolEffects } from "./tool-effects";
+import {
+  HANGING,
+  windProfile,
+  windSway,
+  type WindProfile,
+} from "./wind";
 /** Poll interval while a jump is in the air, matched to the sprite's arc. */
 const DIRECTION_KEYS = [
   "arrowleft",
@@ -71,6 +77,8 @@ import {
   SMOKE_MS,
   SMOKE_PUFFS,
   animatedBase,
+  motionFrames,
+  MOTION_FRAME_MS,
   animatedFrames,
   ensureFireTextures,
   ensureHearthSmoke,
@@ -117,7 +125,10 @@ const ambientPoses: Record<StationActivity, CharacterPose> = {
   play: "sway",
   cook: "stoop",
   warm: "sit",
+  "haul-catch": "carry",
 };
+/** What an actor on the catch errand is holding. */
+const CATCH = "study-propb-catch-0";
 const workAlternates: Partial<
   Record<CharacterPose, [CharacterPose, CharacterPose]>
 > = {
@@ -168,7 +179,17 @@ export class WorldScene extends Phaser.Scene {
    * than at a guessed offset. Decorations are not entities, so their sprites
    * cannot be looked up later. */
   private plantHeights = new Map<string, number>();
+  /** The images standing on a cell, so a blow can rock the right plant. */
+  private plantImages = new Map<string, Phaser.GameObjects.Image[]>();
+  private toolEffects?: ToolEffects;
   private windSprites: WindSprite[] = [];
+  /** Hanging layers drawn over a prop's rigid frame, swayed by the same wind.
+   * Kept per entity rather than in windSprites, which only clears on a full
+   * rebuild and would hold sprites of objects that have gone. */
+  private hangings = new Map<
+    string,
+    { image: Phaser.GameObjects.Image; phase: number; baseX: number }
+  >();
   private ambient = new Map<string, Ambient>();
   /** Not drawn: indoors, or waiting on a routine. */
   private indoors = new Set<string>();
@@ -208,6 +229,12 @@ export class WorldScene extends Phaser.Scene {
   private hearths = new Map<string, Phaser.GameObjects.Image[]>();
   private fires = new Map<string, FireEffect>();
   private fireFrames = new Set<string>();
+  private motionFrames = new Set<string>();
+  /** Props that animate on their own, keyed by entity. */
+  private motions = new Map<
+    string,
+    { image: Phaser.GameObjects.Image; base: string; phase: number }
+  >();
   private nextInput = 0;
   private motionDuration = 140;
   private heldDirections = new Set<string>();
@@ -286,9 +313,13 @@ export class WorldScene extends Phaser.Scene {
     this.wading = new WadingEffects(this);
     this.prepareTreeStudySheet();
     this.events.once("shutdown", () => this.wading?.destroy());
+    this.events.once("shutdown", () => this.toolEffects?.dispose());
     this.events.once("shutdown", () => this.characters?.destroy());
     ensureFireTextures(this);
     this.fireFrames = animatedFrames(
+      this.textures.get("props").getFrameNames(),
+    );
+    this.motionFrames = motionFrames(
       this.textures.get("props").getFrameNames(),
     );
     // Watched rather than queried: the input gate runs on every frame.
@@ -585,8 +616,10 @@ export class WorldScene extends Phaser.Scene {
     isTree = false,
   ) {
     const profile = windProfile(frame, isTree);
-    if (profile)
+    if (profile) {
+      image.setData("wind", true);
       this.windSprites.push({ image, baseX: image.x, phase, profile });
+    }
   }
   private addBuildingAnimation(
     id: string,
@@ -636,7 +669,9 @@ export class WorldScene extends Phaser.Scene {
     const cold = (this.weather?.tempC ?? 20) < 9;
     if (!cooking && !cold) return false;
     const share = cooking ? 0.7 : 0.45;
-    return random(this.runtime.engine.state.manifest.seed, "hearth", id) < share;
+    return (
+      random(this.runtime.engine.state.manifest.seed, "hearth", id) < share
+    );
   }
   /** A thread of smoke off the roof, leaning downwind. Anchored at the ridge
    * rather than the middle of the sprite: a thatched house vents through the
@@ -669,7 +704,10 @@ export class WorldScene extends Phaser.Scene {
         const air = wind();
         const lean = Math.cos(air.angle) * (16 + air.strength * 52);
         const jitter = (Math.random() - 0.5) * 5;
-        puff.setPosition(x + jitter, y).setAlpha(0.72).setFrame(HEARTH_FRAMES[0]);
+        puff
+          .setPosition(x + jitter, y)
+          .setAlpha(0.72)
+          .setFrame(HEARTH_FRAMES[0]);
         this.tweens.add({
           targets: puff,
           y: y - 58 - Math.random() * 14,
@@ -681,9 +719,7 @@ export class WorldScene extends Phaser.Scene {
           // pixel blob stops matching the grid everything else sits on.
           onUpdate: (tween) =>
             puff.setFrame(
-              HEARTH_FRAMES[
-                Math.min(2, Math.floor(tween.progress * 3))
-              ],
+              HEARTH_FRAMES[Math.min(2, Math.floor(tween.progress * 3))],
             ),
           onComplete: rise,
         });
@@ -759,9 +795,18 @@ export class WorldScene extends Phaser.Scene {
     if (frame.startsWith("nature-")) return "nature";
     if (frame.startsWith("faunab-")) return "faunab";
     if (frame.startsWith("ecology-")) return "ecology";
-    return frame.startsWith("study-prop-") || frame.startsWith("prop-broken-")
+    // "study-propb-" is the same atlas: match the prefix without the hyphen.
+    return frame.startsWith("study-prop") || frame.startsWith("prop-broken-")
       ? "props"
       : "atlas";
+  }
+  /** A prop whose hangings are a separate frame: the entity draws the rigid
+   * part and the hangings ride over it. The whole sprite stays in the atlas
+   * for the lab, the UI and the shadow mask. */
+  private layerOf(frame: string, layer: "frame" | "hang" | "fallen") {
+    if (!frame.startsWith("study-propb-")) return undefined;
+    const key = `${frame}-${layer}`;
+    return this.textures.get("props").has(key) ? key : undefined;
   }
   private textureFrame(frame: string): string | number {
     if (frame.startsWith("study-sheet-tree-")) return frame.slice(17);
@@ -1105,6 +1150,7 @@ export class WorldScene extends Phaser.Scene {
     if (!this.entities.has("player") && !this.options.overview)
       c.centerOn(p.x * 16 + 8, p.y * 16 + 8);
     if (w !== this.drawnWorld || p.space !== "outside") {
+      this.toolEffects?.dispose();
       this.terrainStream?.dispose();
       this.terrainStream = undefined;
       this.terrainAnchor = undefined;
@@ -1139,6 +1185,8 @@ export class WorldScene extends Phaser.Scene {
       e.state.manifest.seed,
       w.pack.id,
       p.space,
+      // Felled trees, cut growth and fresh furrows change the scenery.
+      e.state.tilesRevision ?? 0,
       bx,
       by,
       rt.zoom,
@@ -1158,6 +1206,7 @@ export class WorldScene extends Phaser.Scene {
       this.layers = [];
       this.canopies = [];
       this.plantHeights.clear();
+      this.plantImages.clear();
       this.windSprites = [];
       this.ripples = [];
       this.buildings.clear();
@@ -1462,17 +1511,20 @@ export class WorldScene extends Phaser.Scene {
                 );
                 if (turn) tint = blendTint(tint, turn);
               }
-              const variety = propVariety(
-                e.state.manifest.seed,
-                frame,
-                x,
-                y,
-              );
+              const variety = propVariety(e.state.manifest.seed, frame, x, y);
               if (variety.flip) decoration.setFlipX(true);
-              if (variety.tint !== 0xffffff) tint = blendTint(tint, variety.tint);
+              if (variety.tint !== 0xffffff)
+                tint = blendTint(tint, variety.tint);
               if (tint !== this.tint) decoration.setTint(tint);
               if (d?.solid)
                 this.plantHeights.set(d.id, decoration.displayHeight);
+              if (d) {
+                const key = `${x},${y}`;
+                this.plantImages.set(key, [
+                  ...(this.plantImages.get(key) ?? []),
+                  decoration,
+                ]);
+              }
               if (d && d.sprite !== "rock" && !this.options.lab) {
                 decoration.setInteractive(
                   variety.flip
@@ -1524,6 +1576,7 @@ export class WorldScene extends Phaser.Scene {
                 if (variety.flip) trunk.setFlipX(true);
                 if (tint !== this.tint) trunk.setTint(tint);
                 trunk.setCrop(0, cut, trunk.width, trunk.height - cut);
+                this.plantImages.get(`${x},${y}`)?.push(trunk);
               }
               if (spriteName === "rock" && w.topography) {
                 const cell = w.topography(x, y);
@@ -1804,8 +1857,10 @@ export class WorldScene extends Phaser.Scene {
       }
       // One source pixel is one world pixel, for objects and their shadows.
       const texture = this.texture(frame);
-      if (im.texture.key !== texture || animatedBase(im.frame.name) !== frame)
-        im.setTexture(texture, frame);
+      const rigid = this.layerOf(frame, "frame");
+      const drawn = rigid ?? frame;
+      if (im.texture.key !== texture || animatedBase(im.frame.name) !== drawn)
+        im.setTexture(texture, drawn);
       const fire = frame === "fire" || this.fireFrames.has(frame);
       if (this.fireFrames.has(frame)) this.lightFire(id, im, frame, tx, ty);
       else if (this.fires.has(id)) this.quenchFire(id);
@@ -1814,6 +1869,38 @@ export class WorldScene extends Phaser.Scene {
       if (im.tintTopLeft !== tint) im.setTint(tint);
       const depth = pos.y * 16 + (actor ? 14 : 10);
       if (im.depth !== depth) im.setDepth(depth);
+      if (this.motionFrames.has(drawn)) {
+        const motion = this.motions.get(id);
+        if (!motion || motion.base !== drawn)
+          this.motions.set(id, {
+            image: im,
+            base: drawn,
+            phase: this.poseOffset(id) % 4,
+          });
+      } else if (this.motions.has(id)) this.motions.delete(id);
+      const swinging = rigid && this.layerOf(frame, "hang");
+      if (swinging) {
+        let hang = this.hangings.get(id);
+        if (!hang) {
+          const image = this.add
+            .image(tx, ty, texture, swinging)
+            .setOrigin(0.5, 1);
+          hang = {
+            image,
+            baseX: tx,
+            phase: random(e.state.manifest.seed, "hang-phase", id) * 6.3,
+          };
+          // Not a static layer: this follows its entity's life, and the
+          // scenery rebuild would destroy it behind this map's back.
+          this.hangings.set(id, hang);
+        }
+        if (hang.image.frame.name !== swinging)
+          hang.image.setTexture(texture, swinging);
+        hang.baseX = tx;
+        hang.image.setY(ty);
+        if (hang.image.depth !== depth + 1) hang.image.setDepth(depth + 1);
+        if (hang.image.tintTopLeft !== this.tint) hang.image.setTint(this.tint);
+      }
       const shade = this.shadows.get(id);
       const shadowKey = shadowFrame(this.shadowPhase, frame);
       const shadowTexture =
@@ -1933,6 +2020,7 @@ export class WorldScene extends Phaser.Scene {
             !["ecology-fruit-tree", "ecology-berry-bush"].includes(o.sprite)))
       )
         continue;
+      if (o.seasons && !o.seasons.includes(this.season)) continue;
       if (o.kind === "crop") {
         // Visual clumps share one authoritative harvest target, including depletion.
         for (const row of [-2, 0, 2]) {
@@ -2031,6 +2119,9 @@ export class WorldScene extends Phaser.Scene {
         if (shade) this.tweens.killTweensOf(shade);
         this.wading?.remove(id);
         image.destroy();
+        this.hangings.get(id)?.image.destroy();
+        this.hangings.delete(id);
+        this.motions.delete(id);
         this.quenchFire(id);
         this.entities.delete(id);
         this.destinations.delete(id);
@@ -2190,6 +2281,14 @@ export class WorldScene extends Phaser.Scene {
         if (fire.glow.depth !== fire.image.depth - 1)
           fire.glow.setDepth(fire.image.depth - 1);
       }
+    if (perf.fires)
+      for (const motion of this.motions.values()) {
+        const n = this.options.freeze
+          ? 0
+          : Math.floor(time / MOTION_FRAME_MS + motion.phase) % 4;
+        const name = n ? `${motion.base}-m${n}` : motion.base;
+        if (motion.image.frame.name !== name) motion.image.setFrame(name);
+      }
     mark("fires");
     if (perf.buildingAnimations)
       for (const animation of this.buildingAnimations.values()) {
@@ -2217,6 +2316,23 @@ export class WorldScene extends Phaser.Scene {
         if (wind.image.rotation !== sway.angle)
           wind.image.setRotation(sway.angle);
       }
+    if (perf.wind)
+      for (const [, hang] of this.hangings) {
+        const sway = this.options.freeze
+          ? { x: 0 }
+          : windSway(time, hang.phase, HANGING, hang.baseX, hang.image.y);
+        const x = hang.baseX + sway.x;
+        if (hang.image.x !== x) hang.image.setX(x);
+      }
+    this.toolEffects ??= new ToolEffects(this, {
+      tint: () => this.tint,
+      lift: (x, y) => this.lift(x, y),
+      plantAt: (x, y) => this.plantImages.get(`${x},${y}`) ?? [],
+      texture: (frame) => this.texture(frame),
+      frame: (frame) => this.textureFrame(frame),
+    });
+    this.toolEffects.consume(this.runtime.toolEffect);
+    this.toolEffects.update(time);
     mark("wind");
     const active = document.activeElement;
     const typing =
@@ -2348,6 +2464,7 @@ export class WorldScene extends Phaser.Scene {
               : this.poseFrame(id, pose, time);
         const prop =
           heldSprite ??
+          (at?.activity === "haul-catch" ? CATCH : undefined) ??
           // A thrown object stays in the hand through the windup. Striking
           // also swings, but then the hand is still full and this never runs.
           (active &&

@@ -161,6 +161,9 @@ export function composeUrban(
   density?: (x: number, y: number) => number,
   /** Width over height of the built extent, where the place dictates it. */
   aspect?: number,
+  /** The settlement's date. A fabric's furniture list says what this kind of
+   * place has; the date says whether its streets were lit at all. */
+  year?: number,
 ): UrbanLayout {
   const half = urbanFootprint(radius, form);
   const rand = (...keys: (string | number)[]) =>
@@ -1024,7 +1027,9 @@ export function composeUrban(
         }
       }
     }
-  if (wants("lamp")) {
+  // Lit streets are a modern fabric's habit, but any city from about 1700 on
+  // put lamps on its arterials, and before that a square still had its fire.
+  if (wants("lamp") || (year !== undefined && year >= 1700)) {
     const lampAt = (x: number, y: number) => {
       if (!holds(x, y, 1) || lines.has(cellKey(x, y))) return;
       if (

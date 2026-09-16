@@ -571,6 +571,62 @@ function circuit(
     minutes: 20,
   }));
 }
+/** A household that works the water keeps a drying rack in its yard. Placed
+ * here rather than by the prop overlay because a routine has to be able to
+ * walk to it, and the overlay runs after the plan is closed. */
+function attachRack(
+  plan: SettlementPlan,
+  seed: string,
+  pack: Pack,
+  id: string,
+  site: WorkSite,
+) {
+  if (site.rackId) return;
+  // Open-air racks belong to a waterside that still cures its own catch. A
+  // modern city buys its fish already dried.
+  const form = pack.setting?.settlement;
+  if (pack.year >= 1900 && form !== "port" && form !== "farm" && form !== "village")
+    return;
+  const taken = new Set(plan.objects.map((o) => cellKey(o.pos.x, o.pos.y)));
+  const free = (p: Point) =>
+    !plan.solid.has(cellKey(p.x, p.y)) &&
+    !plan.traffic.has(cellKey(p.x, p.y)) &&
+    !plan.reserved.has(cellKey(p.x, p.y)) &&
+    !taken.has(cellKey(p.x, p.y));
+  // A yard if the household has one. A dense quarter has none, so fall back to
+  // the ground beside their work, then to the waterside itself.
+  const ring = (centre: Point) => {
+    const out: Point[] = [];
+    for (let r = 1; r <= 3; r++)
+      for (let dy = -r; dy <= r; dy++)
+        for (let dx = -r; dx <= r; dx++)
+          if (Math.max(Math.abs(dx), Math.abs(dy)) === r)
+            out.push({ x: centre.x + dx, y: centre.y + dy });
+    return out;
+  };
+  const spot = [
+    ...(plan.slots.get(id)?.yard ?? []),
+    ...ring(site.work),
+    ...(plan.outdoors?.shore ? ring(plan.outdoors.shore) : []),
+  ].find(free);
+  if (!spot) return;
+  const rackId = `${id}-rack`;
+  site.rackId = rackId;
+  plan.solid.add(cellKey(spot.x, spot.y));
+  plan.objects.push({
+    id: rackId,
+    name: "Drying rack",
+    kind: "container",
+    prop: "dryingRack",
+    pos: { ...spot, space: "outside" },
+    sprite: `study-propb-drying-rack-${Math.floor(random(seed, "rack-art", id) * 3)}`,
+    inventory: {},
+    open: true,
+    owner: id,
+    claim: "landscape",
+  });
+}
+
 /** One routine per resident, built from the features the plan placed and the
  * country around it, chosen by what the livelihood actually does. */
 export function planRoutines(
@@ -584,6 +640,9 @@ export function planRoutines(
   for (const [id, site] of plan.work) {
     const actor = plan.actors.find((a) => a.id === id);
     if (site.gateId && actor?.kind !== "human") continue;
+    const kit = livelihoodOf(pack, actor);
+    if (kit && workplaceFor(kit.activity) === "water")
+      attachRack(plan, seed, pack, id, site);
     plan.stations.set(id, routineFor(plan, seed, pack, id, site, actor));
   }
 }
@@ -709,10 +768,38 @@ function workdayFor(
             ...haul,
           ]
         : [];
-    case "water":
-      return outdoors.shore
-        ? [...circuit(plan, seed, id, [outdoors.shore], label, "work"), ...haul]
+    case "water": {
+      // Yesterday's catch comes down before the boat goes out, and today's
+      // goes up on the way home. The rack itself shows which it is.
+      const rack = plan.objects.find((o) => o.id === site.rackId);
+      const atRack = (
+        label: string,
+        minutes: number,
+        activity: Station["activity"] = "tend",
+      ) =>
+        rack
+          ? [
+              {
+                pos: nearby(plan, seed, `${id}-rack`, rack.pos),
+                activity,
+                label,
+                minutes,
+              },
+            ]
+          : [];
+      const water = outdoors.shore
+        ? circuit(plan, seed, id, [outdoors.shore], label, "work")
         : [];
+      // A waterside household with neither shore nor rack has no day here;
+      // leave it to the craft fallback rather than inventing one.
+      if (!water.length && !rack) return [];
+      return [
+        ...atRack("Taking down the dry fish", 12),
+        ...water,
+        ...atRack("Hanging the catch", 18, "haul-catch"),
+        ...haul,
+      ];
+    }
     case "carrying": {
       if (label === "Running errands") {
         const doors = neighbours(plan, id, home);

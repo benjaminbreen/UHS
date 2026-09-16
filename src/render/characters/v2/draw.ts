@@ -77,11 +77,17 @@ export function drawCharacter(
               ? [0, 3, 6, 2][f]
               : pose === "work"
                 ? [0, 0, 4, 2][f]
-                : pose === "hurt"
-                  ? [0, 2, 3, 1][f]
-                  : climbing
-                    ? [3, 4, 3, 4][f]
-                    : 0);
+                : pose === "chop"
+                  ? [0, -1, 4, 2][f]
+                  : pose === "dig"
+                    ? [2, 1, 5, 4][f]
+                    : pose === "reap"
+                      ? [2, 1, 3, 3][f]
+                      : pose === "hurt"
+                        ? [0, 2, 3, 1][f]
+                        : climbing
+                          ? [3, 4, 3, 4][f]
+                          : 0);
   const tall = a.height * 3,
     torso = a.height * 2,
     wide = Math.max(0, a.build),
@@ -160,6 +166,40 @@ export function drawCharacter(
         [16 + wide, 19],
       ] as Point[]
     )[f];
+  // An axe is taken past the shoulder and brought down in front of the feet.
+  if (pose === "chop")
+    near = (
+      [
+        [16 + wide, 12],
+        [12 + wide, 4],
+        [22 + wide, 24],
+        [19 + wide, 20],
+      ] as Point[]
+    )[f];
+  // A spade is driven down close to the body, then levered back.
+  if (pose === "dig") {
+    near = (
+      [
+        [17 + wide, 16],
+        [17 + wide, 12],
+        [19 + wide, 24 + torso],
+        [16 + wide, 20 + torso],
+      ] as Point[]
+    )[f];
+    far = [side ? 12 : 5 - wide, near[1] - 3];
+  }
+  // A scythe sweeps across the body at shin height.
+  if (pose === "reap") {
+    near = (
+      [
+        [side ? 6 : 8 - wide, 18 + torso],
+        [side ? 9 : 11 - wide, 20 + torso],
+        [side ? 19 : 20 + wide, 21 + torso],
+        [side ? 22 : 23 + wide, 19 + torso],
+      ] as Point[]
+    )[f];
+    far = [side ? 12 : 6 - wide, 19 + torso];
+  }
   if (pose === "stoop") {
     near = [side ? 15 : 13 + wide, 25 + torso - bend + [0, 1, 1, 0][f]];
     far = [side ? 13 : 8 - wide, near[1]];
@@ -214,6 +254,11 @@ export function drawCharacter(
     near = [side ? 19 : 16 + wide, 21 + torso - [0, 2, 3, 0][f]];
     far = [side ? 16 : 4 - wide, near[1]];
   }
+  if (
+    prop?.kind === "tool" &&
+    !["chop", "dig", "reap", "swing", "thrust"].includes(pose)
+  )
+    near = [17 + wide, 20 + torso + (moving && f % 2 ? -1 : 0)];
   if (prop?.kind === "stick" && !["swing", "thrust"].includes(pose))
     near = [18 + wide, 21 + torso + (moving && f % 2 ? -1 : 0)];
   if (prop?.kind === "side")
@@ -260,6 +305,32 @@ export function drawCharacter(
       ];
       p.line(branch, [branch[0] + 3, branch[1] - 1], wood.shade);
       p.rect(tip[0], tip[1], 1, 1, wood.light);
+    } else if (prop.kind === "tool") {
+      // A spade hangs blade-down from a grip at the top of its art; an axe or
+      // sickle is held at the butt of a haft that runs up to the right.
+      const hangs = prop.sprite.includes("-spade-");
+      const angle =
+        (
+          (hangs
+            ? {
+                dig: [-30, -50, 25, 5],
+                swing: [-30, -50, 25, 5],
+                thrust: [15, 15, 15, 15],
+              }
+            : {
+                chop: [-35, -75, 55, 15],
+                dig: [-15, -30, 60, 35],
+                reap: [45, 10, -35, -10],
+                swing: [-35, -75, 55, 15],
+                thrust: [20, 20, 20, 20],
+              }) as Record<string, number[]>
+        )[pose]?.[f] ?? 0;
+      ctx.save();
+      ctx.translate(near[0], near[1] + 1);
+      ctx.rotate((angle * Math.PI) / 180);
+      if (hangs) ctx.drawImage(prop.image, -Math.round(prop.width / 2), -2);
+      else ctx.drawImage(prop.image, -2, -prop.height + 2);
+      ctx.restore();
     } else
       ctx.drawImage(
         prop.image,

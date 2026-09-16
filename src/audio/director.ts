@@ -39,6 +39,12 @@ interface Run {
   score: Score;
 }
 const PREF_KEY = "uhs-audio-v1";
+/** The director the game is running under. The scene plays tool and footfall
+ * sounds through it without threading a reference through every layer. */
+let active: AudioDirector | undefined;
+export function gameAudio() {
+  return active;
+}
 export class AudioDirector {
   private ctx?: AudioContext;
   private master?: GainNode;
@@ -65,6 +71,7 @@ export class AudioDirector {
     error: "",
   };
   constructor() {
+    active = this;
     try {
       const p = JSON.parse(localStorage.getItem(PREF_KEY) || "{}");
       for (const key of ["volume", "sfxVolume"] as const)
@@ -332,6 +339,7 @@ export class AudioDirector {
     stems.forEach((stem) => this.setLevel(stem, 1));
   }
   dispose() {
+    if (active === this) active = undefined;
     this.disposed = true;
     this.generation++;
     this.resumeOnVisible = false;

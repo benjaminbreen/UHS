@@ -320,6 +320,8 @@ const object = z.object({
   open: z.boolean().optional(),
   depleted: z.boolean().optional(),
   claim: z.string().optional(),
+  seasons: z.array(z.string()).optional(),
+  tipped: z.boolean().optional(),
 });
 const event = z.object({
   id: z.number().int(),
@@ -383,6 +385,12 @@ export const commandSchema = z.discriminatedUnion("type", [
         "look",
         "climb",
         "descend",
+        "chop",
+        "dig",
+        "reap",
+        "mine",
+        "right",
+        "topple",
       ]),
     })
     .strict(),
@@ -539,4 +547,23 @@ export const snapshotSchema = z.object({
     .max(200)
     .optional(),
   ledger: z.array(z.string().max(160)).max(12).optional(),
+  // Ground the player has worked. Without it here, zod strips the key and
+  // every felled tree grows back on load.
+  tiles: z
+    .record(
+      z.string().max(32),
+      z
+        .object({
+          chops: z.number().int().nonnegative().max(99).optional(),
+          stage: z
+            .enum(["logs", "stump", "stems", "rubble", "clear"])
+            .optional(),
+          wood: z.number().int().nonnegative().max(99).optional(),
+          cut: z.boolean().optional(),
+          dug: z.boolean().optional(),
+        })
+        .strict(),
+    )
+    .optional(),
+  tilesRevision: z.number().int().nonnegative().optional(),
 });

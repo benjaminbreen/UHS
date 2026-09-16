@@ -159,6 +159,10 @@ export type WorldObject = {
   open?: boolean;
   depleted?: boolean;
   claim?: string;
+  /** Drawn only in these seasons. Standing sheaves are not a summer sight. */
+  seasons?: string[];
+  /** Knocked over: draws its fallen sprite and spills what it held. */
+  tipped?: boolean;
 };
 export type Decoration = Point & { id: string; sprite: string; solid: boolean };
 export type Terrain =
@@ -270,6 +274,12 @@ export type PlayerCommand =
         | "strike"
         | "climb"
         | "descend"
+        | "chop"
+        | "dig"
+        | "reap"
+        | "mine"
+        | "right"
+        | "topple"
         | "look";
     }
   | {
@@ -319,6 +329,11 @@ export type Snapshot = {
   permissions: Record<string, number>;
   /** Items invented during play. */
   catalog?: Record<ItemId, ItemDef>;
+  /** Ground the player has worked: felled plants, cut grass, dug furrows.
+   * Keyed by cell. */
+  tiles?: import("./tile-edits").TileEdits;
+  /** Bumped with every tile edit, so the scenery cache knows to rebuild. */
+  tilesRevision?: number;
   /** Standing facts the narrator has established. Newest last. */
   ledger?: string[];
   /** Narrator turns, oldest first. */
@@ -453,6 +468,7 @@ export interface WorldModel {
         social: Point;
         pasture?: Point;
         gateId?: string;
+        rackId?: string;
         label: string;
         offset: number;
       }
@@ -493,6 +509,15 @@ export interface WorldModel {
   spawn: Position;
   terrain(x: number, y: number, space?: string): Terrain;
   decoration(x: number, y: number): Decoration | undefined;
+  /** Lets the engine rewrite what grows on a cell after generation, so the
+   * renderer, collision and pathing all see a felled tree. */
+  overrideDecoration?(
+    fn: (
+      x: number,
+      y: number,
+      base: Decoration | undefined,
+    ) => Decoration | undefined,
+  ): void;
   blocked(x: number, y: number, space: string): boolean;
   chunk(cx: number, cy: number): Terrain[];
   riverX(y: number): number;

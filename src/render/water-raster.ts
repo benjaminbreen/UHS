@@ -34,9 +34,13 @@ const cardinal = [
 ] as const;
 const mod = (n: number, d: number) => ((n % d) + d) % d;
 
-/** Water one cell wide, so the shoreline machinery does not apply. */
+/** A dug channel one cell wide, so the shoreline machinery does not apply.
+ * Covers a dry one: the bed is empty but the cut and its berms are the same. */
 export const isCanal = (c?: TopographyCell) =>
-  !!c && c.surface === "water" && c.waterVisual?.kind === "canal" && !c.bridge;
+  !!c &&
+  !c.bridge &&
+  (c.dryChannel ||
+    (c.surface === "water" && c.waterVisual?.kind === "canal"));
 
 /** A cut channel seen from above and a little in front: a raised earth berm
  * outside each lip, a lit far (south/east) bank face, a shadow thrown by the
@@ -64,7 +68,7 @@ function rasterCanalTile(
   const axis = (cell.waterVisual?.flow[0] ?? 0) !== 0 ? "x" : "y";
   const open = (dx: number, dy: number) => {
     const n = sample(x + dx, y + dy);
-    return !!n && (n.surface === "water" || !!n.bridge);
+    return !!n && (n.surface === "water" || isCanal(n) || !!n.bridge);
   };
   const openN = open(0, -1),
     openE = open(1, 0),
@@ -94,6 +98,7 @@ function rasterCanalTile(
     px < 0 || py < 0 || px > 15 || py > 15 ? undefined : water[py * 16 + px];
   // Water: the river's mid and deep tones, so a canal is the same water as
   // the river that feeds it, not a grey wash.
+  const dry = !!cell.dryChannel;
   const still = rgb(palette.depths[3]),
     deep = rgb(palette.depths[4]),
     light = rgb(palette.depths[2]),
@@ -111,7 +116,16 @@ function rasterCanalTile(
       const c = axis === "x" ? py : px;
       const along = axis === "x" ? wx : wy;
       let tone: number[];
-      if (at(px, py)) {
+      if (at(px, py) && dry) {
+        // An empty bed: silt on the floor, cracked into plates, darker in the
+        // lee of the near bank where the last water stood.
+        const damp = at(px, py - 1) === 0 || at(px - 1, py) === 0;
+        const plate = waterHash(Math.floor(along / 5), Math.floor(c / 2), 915);
+        tone = mix(bermFoot, bermSide, plate * 0.5);
+        if (damp) tone = shade(tone, -14);
+        if (mod(along + Math.floor(plate * 5), 7) === 0 && c >= 5 && c <= 11)
+          tone = shade(tone, -12);
+      } else if (at(px, py)) {
         // Near (north/west) bank throws a two-pixel shadow onto the water;
         // ripples drift along the channel as short dashes in lanes.
         const shadow2 = at(px, py - 1) === 0 || at(px - 1, py) === 0;
@@ -187,8 +201,7 @@ export function rasterWaterTile(
     kind = cell.waterVisual?.kind ?? "river";
   const gx = (x + ox) * 16,
     gy = (y + oy) * 16;
-  if (kind === "canal" && !cell.bridge)
-    return rasterCanalTile(sample, x, y, gx, gy, cell, palette);
+  if (isCanal(cell)) return rasterCanalTile(sample, x, y, gx, gy, cell, palette);
   const edges = cardinal.flatMap(([dx, dy]) => {
     const n = sample(x + dx, y + dy);
     return n && n.surface !== "water" && !n.bridge

@@ -1,11 +1,15 @@
 {
   "version": 1,
-  "status": "review studies; not gameplay definitions or historical eligibility",
+  "status": "review studies; not gameplay definitions or historical eligibility. size is the pixel budget for the family at the character's scale (~17px per metre).",
   "families": [
     {
       "id": "earthen-pot",
       "name": "Plain earthen pot",
       "group": "Storage & carrying",
+      "size": [
+        12,
+        13
+      ],
       "description": "A squat rounded pot with a thick uneven rim, dark opening and a few clustered firing marks.",
       "variants": [
         "Terracotta",
@@ -17,6 +21,10 @@
       "id": "storage-jar",
       "name": "Large storage jar",
       "group": "Storage & carrying",
+      "size": [
+        15,
+        22
+      ],
       "description": "A broad-bellied jar with a narrow shoulder and removable clay or fiber lid.",
       "variants": [
         "Terracotta",
@@ -28,6 +36,10 @@
       "id": "water-jug",
       "name": "Handled water jug",
       "group": "Storage & carrying",
+      "size": [
+        14,
+        19
+      ],
       "description": "A narrow-necked jug with one readable loop handle and a bright highlight along its shoulder.",
       "variants": [
         "Terracotta",
@@ -39,6 +51,10 @@
       "id": "amphora",
       "name": "Transport amphora",
       "group": "Storage & carrying",
+      "size": [
+        13,
+        25
+      ],
       "description": "An elongated vessel with two strong handles, a small sealed mouth and a visibly supported base.",
       "variants": [
         "Terracotta",
@@ -50,6 +66,10 @@
       "id": "glazed-jar",
       "name": "Glazed jar",
       "group": "Storage & carrying",
+      "size": [
+        14,
+        18
+      ],
       "description": "A rounded storage vessel with a darker foot, glossy clustered highlights and an optional simple painted band.",
       "variants": [
         "Green glaze",
@@ -61,6 +81,10 @@
       "id": "metal-vessel",
       "name": "Metal water vessel",
       "group": "Storage & carrying",
+      "size": [
+        12,
+        15
+      ],
       "description": "A rounded metal vessel with a turned collar, deep opening and sharply contrasting reflected bands.",
       "variants": [
         "Brass",
@@ -69,9 +93,73 @@
       ]
     },
     {
+      "id": "pithos",
+      "name": "Storage vat",
+      "group": "Storage & carrying",
+      "size": [
+        25,
+        27
+      ],
+      "description": "A vat sunk to its shoulder in the floor, over a metre across the rim: a household's whole year of grain or oil.",
+      "variants": [
+        "Terracotta",
+        "Buff clay",
+        "Red earth"
+      ]
+    },
+    {
+      "id": "flask",
+      "name": "Stoppered flask",
+      "group": "Storage & carrying",
+      "size": [
+        12,
+        18
+      ],
+      "description": "A small flask with a cork and a carrying cord: what a traveller takes, not what a house keeps.",
+      "variants": [
+        "Terracotta",
+        "Buff clay",
+        "Cream glaze"
+      ]
+    },
+    {
+      "id": "bowl",
+      "name": "Open bowl",
+      "group": "Storage & carrying",
+      "size": [
+        14,
+        10
+      ],
+      "description": "A wide shallow bowl, most of what you see being the inside of it.",
+      "variants": [
+        "Terracotta",
+        "Buff clay",
+        "Cream glaze"
+      ]
+    },
+    {
+      "id": "cooking-pot",
+      "name": "Cooking pot",
+      "group": "Household",
+      "size": [
+        17,
+        18
+      ],
+      "description": "A three-legged pot with a bail handle: soot on the shaded side, the fire-lit belly catching light down its left.",
+      "variants": [
+        "Cast iron",
+        "Grey iron",
+        "Copper"
+      ]
+    },
+    {
       "id": "gourd",
       "name": "Gourd vessel",
       "group": "Storage & carrying",
+      "size": [
+        9,
+        13
+      ],
       "description": "An asymmetric natural gourd with a cut opening, mottled surface and optional fiber carrying loop.",
       "variants": [
         "Warm rind",
@@ -83,6 +171,10 @@
       "id": "open-basket",
       "name": "Open work basket",
       "group": "Storage & carrying",
+      "size": [
+        13,
+        12
+      ],
       "description": "A shallow oval basket with a thick woven rim and large, legible bands of wicker.",
       "variants": [
         "Dry fiber",
@@ -94,6 +186,10 @@
       "id": "lidded-basket",
       "name": "Lidded storage basket",
       "group": "Storage & carrying",
+      "size": [
+        13,
+        16
+      ],
       "description": "A taller woven container with a distinct fitted lid, binding straps and a shaded lower edge.",
       "variants": [
         "Dry fiber",
@@ -105,6 +201,10 @@
       "id": "sack",
       "name": "Sack or hide bag",
       "group": "Storage & carrying",
+      "size": [
+        16,
+        19
+      ],
       "description": "A slumped soft container with gathered folds, a tied neck and material-specific cloth or hide shading.",
       "variants": [
         "Natural",
@@ -116,6 +216,10 @@
       "id": "plain-box",
       "name": "Plain wooden box",
       "group": "Storage & carrying",
+      "size": [
+        19,
+        13
+      ],
       "description": "A low rectangular box with a lift-off lid, broad boards and simple corner joints.",
       "variants": [
         "Warm wood",
@@ -125,8 +229,12 @@
     },
     {
       "id": "bound-chest",
-      "name": "Bound wooden chest",
+      "name": "Large bound chest",
       "group": "Storage & carrying",
+      "size": [
+        36,
+        34
+      ],
       "description": "A heavier chest with a hinged lid, two dark reinforcing bands and a clearly visible fastening.",
       "variants": [
         "Warm wood",
@@ -135,9 +243,28 @@
       ]
     },
     {
+      "id": "strapped-chest",
+      "name": "Strapped chest",
+      "group": "Storage & carrying",
+      "size": [
+        30,
+        24
+      ],
+      "description": "A smaller trunk seen square on: domed lid in board courses, two iron straps riveted lid to plinth, brass lock plate.",
+      "variants": [
+        "Oak",
+        "Walnut",
+        "Ash"
+      ]
+    },
+    {
       "id": "painted-chest",
       "name": "Painted wooden chest",
       "group": "Storage & carrying",
+      "size": [
+        19,
+        14
+      ],
       "description": "A raised or footed chest with colored panels and restrained trim that changes its silhouette from the plain box.",
       "variants": [
         "Oxide red",
@@ -149,6 +276,10 @@
       "id": "barrel",
       "name": "Barrel",
       "group": "Storage & carrying",
+      "size": [
+        17,
+        23
+      ],
       "description": "A bulging stave-built barrel with an elliptical top, dark hoops and a small bung or lid.",
       "variants": [
         "Warm wood",
@@ -160,6 +291,10 @@
       "id": "crate",
       "name": "Transport crate",
       "group": "Storage & carrying",
+      "size": [
+        19,
+        15
+      ],
       "description": "An open-slatted rectangular crate with thick corner posts and visible gaps between boards.",
       "variants": [
         "Warm wood",
@@ -171,6 +306,10 @@
       "id": "bucket",
       "name": "Bucket or pail",
       "group": "Storage & carrying",
+      "size": [
+        11,
+        13
+      ],
       "description": "A stave-built wooden pail with a curved metal handle, wooden grip, open mouth and iron hoops.",
       "variants": [
         "Warm wood",
@@ -182,6 +321,10 @@
       "id": "trough",
       "name": "Water or feed trough",
       "group": "Water sources",
+      "size": [
+        48,
+        23
+      ],
       "description": "A long low receptacle with a deep shaded interior and separately authored hollowed-wood or masonry forms.",
       "variants": [
         "Hollowed wood",
@@ -193,6 +336,10 @@
       "id": "well",
       "name": "Low well or cistern mouth",
       "group": "Water sources",
+      "size": [
+        43,
+        32
+      ],
       "description": "A low masonry shaft with staggered stone courses, chipped capstones and a recessed opening.",
       "variants": [
         "Grey stone",
@@ -204,6 +351,10 @@
       "id": "framed-well",
       "name": "Timber-framed well",
       "group": "Water sources",
+      "size": [
+        47,
+        51
+      ],
       "description": "A water opening beneath two posts and a crossbeam, with a clear rope-and-bucket silhouette and optional small roof.",
       "variants": [
         "Stone blocks",
@@ -212,9 +363,28 @@
       ]
     },
     {
+      "id": "town-well",
+      "name": "Public town well",
+      "group": "Water sources",
+      "size": [
+        54,
+        42
+      ],
+      "description": "A broad public wellhead with a swing arm, a bucket on the rope and grass breaking through the kerb; the size a town square carries.",
+      "variants": [
+        "Granite",
+        "Sandstone",
+        "Limestone"
+      ]
+    },
+    {
       "id": "pump",
       "name": "Hand pump",
       "group": "Water sources",
+      "size": [
+        14,
+        29
+      ],
       "description": "A compact upright pump with a curved handle, projecting spout and a small stained base.",
       "variants": [
         "Copper-toned",
@@ -226,6 +396,10 @@
       "id": "grinder",
       "name": "Grinding stone and handstone",
       "group": "Work & agriculture",
+      "size": [
+        17,
+        11
+      ],
       "description": "A low stone slab with a worn hollow and a smaller contrasting handstone resting across it.",
       "variants": [
         "Grey stone",
@@ -236,6 +410,10 @@
       "id": "mortar",
       "name": "Mortar and pestle",
       "group": "Work & agriculture",
+      "size": [
+        9,
+        10
+      ],
       "description": "A deep stone or wooden bowl with a thick rim and a pestle angled against its edge.",
       "variants": [
         "Grey stone",
@@ -247,7 +425,26 @@
       "id": "hoe",
       "name": "Hoe or digging tool",
       "group": "Work & agriculture",
+      "size": [
+        16,
+        20
+      ],
       "description": "A long worn handle ends in a clearly shaped working head, with separate stone, composite and metal forms.",
+      "variants": [
+        "Stone/composite study",
+        "Iron study",
+        "Pale metal study"
+      ]
+    },
+    {
+      "id": "pick",
+      "name": "Pickaxe",
+      "group": "Work & agriculture",
+      "size": [
+        16,
+        21
+      ],
+      "description": "A hafted head that crosses the handle: one arm a point for rock, the other a narrow chisel.",
       "variants": [
         "Stone/composite study",
         "Iron study",
@@ -258,6 +455,10 @@
       "id": "sickle",
       "name": "Sickle",
       "group": "Work & agriculture",
+      "size": [
+        16,
+        10
+      ],
       "description": "A short gripped handle supports a strongly curved cutting edge, with distinct composite and metal constructions.",
       "variants": [
         "Stone/composite study",
@@ -269,6 +470,10 @@
       "id": "spade",
       "name": "Shovel or spade",
       "group": "Work & agriculture",
+      "size": [
+        7,
+        24
+      ],
       "description": "A straight handle ends in a broad readable blade, differentiated through wooden and metal head shapes.",
       "variants": [
         "Stone/composite study",
@@ -277,9 +482,73 @@
       ]
     },
     {
+      "id": "rake",
+      "name": "Rake",
+      "group": "Work & agriculture",
+      "size": [
+        18,
+        47
+      ],
+      "description": "A head of teeth on a shaft as long as a man, stood where it was last left.",
+      "variants": [
+        "Wooden head",
+        "Rusted teeth",
+        "Fine-toothed"
+      ]
+    },
+    {
+      "id": "pitchfork",
+      "name": "Pitchfork",
+      "group": "Work & agriculture",
+      "size": [
+        18,
+        48
+      ],
+      "description": "Tines on an iron socket for hay or muck.",
+      "variants": [
+        "Three tines",
+        "Four tines",
+        "Rusted"
+      ]
+    },
+    {
+      "id": "shovel",
+      "name": "Long shovel",
+      "group": "Work & agriculture",
+      "size": [
+        50,
+        58
+      ],
+      "description": "A navvy's shovel: a long haft and a broad dished blade that opens two spits at a stroke.",
+      "variants": [
+        "D grip",
+        "T grip",
+        "Rusted"
+      ]
+    },
+    {
+      "id": "scythe",
+      "name": "Scythe",
+      "group": "Work & agriculture",
+      "size": [
+        50,
+        58
+      ],
+      "description": "An S-curved snath with two nibs and a long blade that lays a swathe.",
+      "variants": [
+        "Oak snath",
+        "Walnut snath",
+        "Pale snath"
+      ]
+    },
+    {
       "id": "woodpile",
       "name": "Firewood pile",
       "group": "Work & agriculture",
+      "size": [
+        29,
+        17
+      ],
       "description": "A compact stack of irregular logs shows bright cut ends, dark bark and gaps between pieces.",
       "variants": [
         "Warm wood",
@@ -291,6 +560,10 @@
       "id": "sheaf",
       "name": "Harvest bundle",
       "group": "Work & agriculture",
+      "size": [
+        20,
+        24
+      ],
       "description": "A tied sheaf of crop-specific stalks fans out above and below a narrow binding.",
       "variants": [
         "Dry fiber",
@@ -299,9 +572,28 @@
       ]
     },
     {
+      "id": "catch",
+      "name": "Day's catch",
+      "group": "Work & agriculture",
+      "size": [
+        14,
+        17
+      ],
+      "description": "Two fish on a hand-line, carried from the water to the drying rack and taken down again when they are dry.",
+      "variants": [
+        "Silver",
+        "Bronze-backed",
+        "Dark"
+      ]
+    },
+    {
       "id": "drying-rack",
       "name": "Drying rack",
       "group": "Work & agriculture",
+      "size": [
+        47,
+        32
+      ],
       "description": "A lightweight pole frame carries a few separated hanging objects or a shallow woven drying surface.",
       "variants": [
         "Natural",
@@ -313,6 +605,10 @@
       "id": "scarecrow",
       "name": "Bird-scaring figure or rig",
       "group": "Work & agriculture",
+      "size": [
+        25,
+        35
+      ],
       "description": "A rough pole structure carries ragged cloth, fiber bundles or hanging strips appropriate to the selected tradition.",
       "variants": [
         "Natural",
@@ -324,6 +620,10 @@
       "id": "hearth",
       "name": "Open firepit",
       "group": "Household",
+      "size": [
+        31,
+        15
+      ],
       "description": "A ring of stones round an ash bed, two logs and a layered flame.",
       "variants": [
         "Lit firepit"
@@ -334,6 +634,10 @@
       "id": "oven",
       "name": "Communal bake oven",
       "group": "Household",
+      "size": [
+        27,
+        29
+      ],
       "description": "A clay dome on a stone base, its mouth glowing and a lick of flame at the lip.",
       "variants": [
         "Terracotta",
@@ -346,6 +650,10 @@
       "id": "long-fire",
       "name": "Long fire",
       "group": "Household",
+      "size": [
+        41,
+        17
+      ],
       "description": "A trench of embers with three low flames along a single log, the fire of a cold-country camp.",
       "variants": [
         "Lit"
@@ -356,6 +664,10 @@
       "id": "tannur",
       "name": "Sunken clay oven",
       "group": "Household",
+      "size": [
+        25,
+        23
+      ],
       "description": "A clay cylinder set in a packed-earth collar, flame rising from its open top.",
       "variants": [
         "Terracotta",
@@ -368,6 +680,10 @@
       "id": "brazier",
       "name": "Standing brazier",
       "group": "Household",
+      "size": [
+        17,
+        25
+      ],
       "description": "A metal bowl on three splayed legs holding coals and a flame.",
       "variants": [
         "Bronze",
@@ -379,6 +695,10 @@
       "id": "stove",
       "name": "Brick stove and kettle",
       "group": "Household",
+      "size": [
+        27,
+        27
+      ],
       "description": "A brick block with a firebox in front and an iron kettle steaming on top.",
       "variants": [
         "Red brick",
@@ -391,6 +711,10 @@
       "id": "fire-basket",
       "name": "Iron fire basket",
       "group": "Household",
+      "size": [
+        15,
+        21
+      ],
       "description": "A barred iron cage on legs with coals and a flame between the bars.",
       "variants": [
         "Iron"
@@ -401,6 +725,10 @@
       "id": "oil-drum",
       "name": "Oil-drum fire",
       "group": "Household",
+      "size": [
+        15,
+        21
+      ],
       "description": "A steel drum with rust and burn holes, flame standing out of its open top.",
       "variants": [
         "Steel"
@@ -411,6 +739,10 @@
       "id": "oil-lamp",
       "name": "Oil lamp",
       "group": "Household",
+      "size": [
+        9,
+        7
+      ],
       "description": "A small vessel has a distinct wick nozzle, warm flame and a darkened patch around the burning edge.",
       "variants": [
         "Terracotta",
@@ -422,6 +754,10 @@
       "id": "lantern",
       "name": "Lantern",
       "group": "Household",
+      "size": [
+        11,
+        17
+      ],
       "description": "A framed lamp has a strong carrying loop and a warm central light behind locally appropriate panel construction.",
       "variants": [
         "Copper-toned",
@@ -433,6 +769,10 @@
       "id": "stool",
       "name": "Low stool",
       "group": "Household",
+      "size": [
+        18,
+        16
+      ],
       "description": "A compact seat rests on visibly separated legs, with wood, woven-seat or later metal variants.",
       "variants": [
         "Warm wood",
@@ -444,6 +784,10 @@
       "id": "bench",
       "name": "Bench",
       "group": "Household",
+      "size": [
+        42,
+        17
+      ],
       "description": "A long simple seat has stout supports, a worn upper edge and optional locally selected backrest.",
       "variants": [
         "Warm wood",
@@ -455,6 +799,10 @@
       "id": "workbench",
       "name": "Table or workbench",
       "group": "Household",
+      "size": [
+        31,
+        19
+      ],
       "description": "A sturdy rectangular surface has clear legs, an overhanging edge and a few task-specific surface marks.",
       "variants": [
         "Warm wood",
@@ -463,9 +811,43 @@
       ]
     },
     {
+      "id": "anvil",
+      "name": "Anvil and block",
+      "group": "Work & agriculture",
+      "size": [
+        24,
+        26
+      ],
+      "description": "A smith's anvil on a bound block: horn drawn out to the left, face struck smooth, iron hoop round the staves.",
+      "variants": [
+        "Oak block",
+        "Pale block",
+        "Log stump"
+      ]
+    },
+    {
+      "id": "loom",
+      "name": "Upright loom",
+      "group": "Work & agriculture",
+      "size": [
+        46,
+        51
+      ],
+      "description": "A standing loom nearly two metres tall: warp hanging taut from the top beam, woven cloth growing over the cloth beam, beater pressed down.",
+      "variants": [
+        "Plain web",
+        "Banded web",
+        "Shuttle parked"
+      ]
+    },
+    {
       "id": "bedroll",
       "name": "Sleeping mat or bedroll",
       "group": "Household",
+      "size": [
+        27,
+        13
+      ],
       "description": "A woven mat or rolled bedding has a soft folded edge, restrained stripes and a small raised pillow or bundle.",
       "variants": [
         "Natural",
@@ -477,6 +859,10 @@
       "id": "metal-tin",
       "name": "Metal canister or tin",
       "group": "Storage & carrying",
+      "size": [
+        9,
+        13
+      ],
       "description": "A cylindrical or rectangular industrial container has folded seams, a distinct lid and restrained dents or rust.",
       "variants": [
         "Copper-toned",
@@ -485,9 +871,73 @@
       ]
     },
     {
+      "id": "dustbin",
+      "name": "Galvanised bin",
+      "group": "Storage & carrying",
+      "size": [
+        21,
+        28
+      ],
+      "description": "A ribbed steel bin with a domed lid and a handle each side: the yard's refuse, from the factory age on.",
+      "variants": [
+        "Galvanised",
+        "Painted",
+        "Rusted"
+      ]
+    },
+    {
+      "id": "steel-drum",
+      "name": "Steel drum",
+      "group": "Storage & carrying",
+      "size": [
+        20,
+        27
+      ],
+      "description": "A two-hundred-litre drum with rolling hoops and a bung: fuel, water or whatever else, rusting where it stands.",
+      "variants": [
+        "Painted blue",
+        "Rusted",
+        "Bare steel"
+      ]
+    },
+    {
+      "id": "wheelbarrow",
+      "name": "Wheelbarrow",
+      "group": "Work & agriculture",
+      "size": [
+        39,
+        22
+      ],
+      "description": "A single-wheeled barrow with a flared tray and a handle bar: a yard, a building site, a smallholding.",
+      "variants": [
+        "Oak",
+        "Walnut",
+        "Pressed steel"
+      ]
+    },
+    {
+      "id": "washing-line",
+      "name": "Washing line",
+      "group": "Household",
+      "size": [
+        59,
+        41
+      ],
+      "description": "A line strung between two poles, pegged with washing that lifts in the wind.",
+      "variants": [
+        "Linen",
+        "Mixed",
+        "Bright"
+      ]
+    },
+    {
       "id": "plastic-bin",
       "name": "Plastic bucket or bin",
       "group": "Storage & carrying",
+      "size": [
+        11,
+        13
+      ],
       "description": "A molded container has a thick lip, simple handle or lid, and broad clean color blocks with modest scuffing.",
       "variants": [
         "Sage green",
@@ -499,11 +949,405 @@
       "id": "cardboard-box",
       "name": "Cardboard carton",
       "group": "Storage & carrying",
+      "size": [
+        13,
+        13
+      ],
       "description": "A folded box has readable top flaps, dark crease lines and an optional plain packing mark or tape strip.",
       "variants": [
         "Kraft",
         "Red-brown board",
         "Blue packing board"
+      ]
+    },
+    {
+      "id": "torch-post",
+      "name": "Torch post",
+      "group": "Street furniture",
+      "size": [
+        13,
+        40
+      ],
+      "description": "A brand burning in an iron cresset on a timber post: what a gate or a market corner had before street lighting.",
+      "variants": [
+        "Oak",
+        "Walnut",
+        "Pale timber"
+      ]
+    },
+    {
+      "id": "brazier-post",
+      "name": "Brazier column",
+      "group": "Street furniture",
+      "size": [
+        15,
+        44
+      ],
+      "description": "An iron fire basket on a stone column, lit at dusk by whoever the square pays to do it.",
+      "variants": [
+        "Granite",
+        "Sandstone",
+        "Limestone"
+      ]
+    },
+    {
+      "id": "lantern-post",
+      "name": "Lantern post",
+      "group": "Street furniture",
+      "size": [
+        19,
+        44
+      ],
+      "description": "A paper lantern in a small roofed box on a timber post.",
+      "variants": [
+        "White paper",
+        "Red paper",
+        "Pale timber"
+      ]
+    },
+    {
+      "id": "gas-lamp",
+      "name": "Gas lamp",
+      "group": "Street furniture",
+      "size": [
+        17,
+        56
+      ],
+      "description": "A fluted cast-iron column with a ladder bar and four panes of glass: the eighteenth and nineteenth century street.",
+      "variants": [
+        "Painted iron",
+        "Galvanised",
+        "Brass fittings"
+      ]
+    },
+    {
+      "id": "electric-lamp",
+      "name": "Electric street lamp",
+      "group": "Street furniture",
+      "size": [
+        26,
+        58
+      ],
+      "description": "A swan neck and an enamel shade over a filament lamp, 1890 to the war.",
+      "variants": [
+        "Painted iron",
+        "Galvanised",
+        "Mercury vapour"
+      ]
+    },
+    {
+      "id": "sodium-lamp",
+      "name": "Sodium lamp",
+      "group": "Street furniture",
+      "size": [
+        30,
+        70
+      ],
+      "description": "A tapered steel column with a long arm and a cut-off head, the road since about 1960.",
+      "variants": [
+        "Galvanised",
+        "Mercury white",
+        "Painted"
+      ]
+    },
+    {
+      "id": "stall-trestle",
+      "name": "Trestle stall",
+      "group": "Street furniture",
+      "size": [
+        38,
+        19
+      ],
+      "description": "Boards on trestles heaped with produce: the oldest and plainest way to sell anything.",
+      "variants": [
+        "Fruit and greens",
+        "Grain and pots",
+        "Fish"
+      ]
+    },
+    {
+      "id": "stall-awning",
+      "name": "Awning stall",
+      "group": "Street furniture",
+      "size": [
+        49,
+        35
+      ],
+      "description": "A counter under a striped cloth on poles, with a valance over the front.",
+      "variants": [
+        "Madder red",
+        "Indigo",
+        "Olive"
+      ]
+    },
+    {
+      "id": "stall-booth",
+      "name": "Market booth",
+      "group": "Street furniture",
+      "size": [
+        52,
+        38
+      ],
+      "description": "A roofed kiosk with a boarded front and goods hung from the lintel.",
+      "variants": [
+        "Tiled roof",
+        "Timber roof",
+        "Pale timber"
+      ]
+    },
+    {
+      "id": "stall-cart",
+      "name": "Market cart",
+      "group": "Street furniture",
+      "size": [
+        43,
+        32
+      ],
+      "description": "A two-wheeled cart tipped down to sell from, under a canvas tilt.",
+      "variants": [
+        "Oak",
+        "Walnut",
+        "Pale timber"
+      ]
+    },
+    {
+      "id": "stall-modern",
+      "name": "Market barrow",
+      "group": "Street furniture",
+      "size": [
+        50,
+        35
+      ],
+      "description": "A tubular frame under a canvas tilt, crates below and a scale on the end.",
+      "variants": [
+        "Canvas",
+        "Blue",
+        "Red"
+      ]
+    },
+    {
+      "id": "plough",
+      "name": "Plough",
+      "group": "Work & agriculture",
+      "size": [
+        60,
+        40
+      ],
+      "description": "A beam, a share and two handles: a scratch ard, a wheeled plough, or a steel mouldboard.",
+      "variants": [
+        "Ard",
+        "Wheeled",
+        "Steel mouldboard"
+      ]
+    },
+    {
+      "id": "water-butt",
+      "name": "Water butt",
+      "group": "Work & agriculture",
+      "size": [
+        33,
+        47
+      ],
+      "description": "A barrel under a downpipe with a tap at its foot.",
+      "variants": [
+        "Oak",
+        "Walnut",
+        "Pale timber"
+      ]
+    },
+    {
+      "id": "beehive",
+      "name": "Beehive",
+      "group": "Work & agriculture",
+      "size": [
+        43,
+        46
+      ],
+      "description": "A coiled straw skep, or a box hive stacked on its stand.",
+      "variants": [
+        "Straw skep",
+        "Dark skep",
+        "Box hive"
+      ]
+    },
+    {
+      "id": "milk-churn",
+      "name": "Milk churn",
+      "group": "Work & agriculture",
+      "size": [
+        29,
+        45
+      ],
+      "description": "A conical churn with a clamped lid and carrying handles.",
+      "variants": [
+        "Galvanised",
+        "Pewter",
+        "Brass"
+      ]
+    },
+    {
+      "id": "farm-cart",
+      "name": "Farm cart",
+      "group": "Work & agriculture",
+      "size": [
+        85,
+        54
+      ],
+      "description": "A two-wheeled cart with its shafts down, standing in the yard.",
+      "variants": [
+        "Empty",
+        "Loaded with hay",
+        "Pale timber"
+      ]
+    },
+    {
+      "id": "privy-shed",
+      "name": "Privy shed",
+      "group": "Household",
+      "size": [
+        52,
+        71
+      ],
+      "description": "A board shed over a pit, leaning a little, with a cut in the door and the spoil heaped behind it.",
+      "variants": [
+        "Boards and planks",
+        "Wattle and thatch",
+        "Corrugated sheet"
+      ]
+    },
+    {
+      "id": "privy-screen",
+      "name": "Screened pit",
+      "group": "Household",
+      "size": [
+        56,
+        46
+      ],
+      "description": "A reed or matting screen in a horseshoe round a pit, on poles.",
+      "variants": [
+        "Reed",
+        "Grass thatch",
+        "Cloth"
+      ]
+    },
+    {
+      "id": "privy-bench",
+      "name": "Bench latrine",
+      "group": "Household",
+      "size": [
+        70,
+        55
+      ],
+      "description": "A stone bench of keyhole seats over a running channel: a town's public one.",
+      "variants": [
+        "Granite",
+        "Sandstone",
+        "Limestone"
+      ]
+    },
+    {
+      "id": "privy-stone",
+      "name": "Stone privy",
+      "group": "Household",
+      "size": [
+        58,
+        71
+      ],
+      "description": "A masonry privy block with a tiled roof and a chute down its side: the town house's own.",
+      "variants": [
+        "Granite",
+        "Sandstone",
+        "Limestone"
+      ]
+    },
+    {
+      "id": "privy-nightsoil",
+      "name": "Night-soil privy",
+      "group": "Household",
+      "size": [
+        60,
+        71
+      ],
+      "description": "A shed with a collection hatch at the back, a tub and a carrying yoke: what comes out goes on the fields.",
+      "variants": [
+        "Tiled",
+        "Planked",
+        "Sheet roof"
+      ]
+    },
+    {
+      "id": "privy-outhouse",
+      "name": "Brick outhouse",
+      "group": "Household",
+      "size": [
+        58,
+        69
+      ],
+      "description": "Brick, a slate roof, a cistern and a soil pipe.",
+      "variants": [
+        "Red brick",
+        "Buff brick",
+        "Sheet cabin"
+      ]
+    },
+    {
+      "id": "granary-staddle",
+      "name": "Staddle granary",
+      "group": "Work & agriculture",
+      "size": [
+        88,
+        93
+      ],
+      "description": "A boarded granary lifted clear of the ground on mushroom stones, with a ladder up to its door.",
+      "variants": [
+        "Thatched, three stones",
+        "Tiled, three stones",
+        "Shingled, four stones"
+      ]
+    },
+    {
+      "id": "granary-mud",
+      "name": "Mud granary",
+      "group": "Work & agriculture",
+      "size": [
+        87,
+        75
+      ],
+      "description": "Round mud stores under conical thatch, filled through a hole high on the side.",
+      "variants": [
+        "One large",
+        "A pair",
+        "Large and small"
+      ]
+    },
+    {
+      "id": "granary-stilt",
+      "name": "Stilted granary",
+      "group": "Work & agriculture",
+      "size": [
+        93,
+        101
+      ],
+      "description": "A plank granary on posts with rat guards: the rice barn of monsoon Asia.",
+      "variants": [
+        "Thatched",
+        "Tiled",
+        "No guards"
+      ]
+    },
+    {
+      "id": "granary-clay",
+      "name": "Clay silo",
+      "group": "Work & agriculture",
+      "size": [
+        73,
+        82
+      ],
+      "description": "A bulbous clay store with a board lid and a drawing hole low down.",
+      "variants": [
+        "Bulbous",
+        "Straight-sided",
+        "Open, filled"
       ]
     }
   ]

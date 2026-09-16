@@ -7,12 +7,13 @@ from art.broadleaf_ages import broadleaf_ages
 from art.small_shrubs import small_shrubs
 from art.habitat_plants import habitat_plants
 from art.regional_trees import regional_trees
+from art.worked_ground import worked_ground
 from art.rocks import rocks
 from art.atlas import pack_atlas
 from art.shadows import build_shadows
 root=Path(__file__).resolve().parent.parent
 out=root/'public/nature';out.mkdir(exist_ok=True)
-sprites={**trees(), **understory(), **broadleaf_ages(), **small_shrubs(), **habitat_plants(), **regional_trees(), **rocks()}
+sprites={**trees(), **understory(), **broadleaf_ages(), **small_shrubs(), **habitat_plants(), **regional_trees(), **worked_ground(), **rocks()}
 for name,im in sprites.items():
     assert set(im.getchannel('A').getdata()) <= {0,255},name
     assert len(im.getcolors(im.width*im.height)) <= 24,name

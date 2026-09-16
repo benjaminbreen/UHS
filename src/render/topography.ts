@@ -315,7 +315,7 @@ export function* topographySteps(
         continue;
       }
       let painted: HTMLCanvasElement | undefined;
-      if (c.surface === "water" || c.bridge) {
+      if (c.surface === "water" || c.bridge || c.dryChannel) {
         const water =
           preparedWater.get(`${x},${y}`) ??
           rasterWaterTile(sample, x, y, region?.x ?? 0, region?.y ?? 0);

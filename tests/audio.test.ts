@@ -72,7 +72,7 @@ describe("original soundtrack scores", () => {
     expect(midi("F#4")).toBe(66);
     expect(() => midi("garbage")).toThrow();
   });
-  it("provides six finite, bounded SFX cues", () => {
+  it("provides finite, bounded SFX cues", () => {
     for (const effect of effects)
       for (const note of effectNotes(effect.id)) {
         expect(note.beat).toBeLessThan(1);

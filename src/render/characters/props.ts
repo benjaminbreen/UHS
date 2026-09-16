@@ -2,7 +2,7 @@ import atlas from "../../../public/props/atlas.json";
 import { propDefs } from "../../content/props/catalog";
 export type CarriedArt = {
   sprite: string;
-  kind: "stick" | "side" | "both";
+  kind: "stick" | "tool" | "side" | "both";
   image: HTMLCanvasElement;
   width: number;
   height: number;
@@ -58,9 +58,11 @@ export function loadCarriedArt() {
             );
           const kind = sprite.includes("stick")
             ? "stick"
-            : /sack|water-jug|metal-tin/.test(sprite)
-              ? "side"
-              : "both";
+            : /-(spade|hoe|sickle|pick)-/.test(sprite)
+              ? "tool"
+              : /sack|water-jug|metal-tin/.test(sprite)
+                ? "side"
+                : "both";
           result.set(sprite, {
             sprite,
             kind,

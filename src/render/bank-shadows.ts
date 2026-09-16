@@ -1,6 +1,7 @@
 import type { TerrainReceivers } from "./terrain-contours";
 import type { TopographyCell } from "../core/topography";
 import { TERRAIN_RISE } from "./terrain-projection";
+import { fencePostFeet, POST_HEIGHT } from "./fence-pass";
 import {
   TERRAIN_CHUNK_SIZE as SIZE,
   TERRAIN_CHUNK_PAD as PAD,
@@ -26,9 +27,13 @@ export function rasterBankShadows(
   cast: readonly [number, number],
   opacity: number,
   receivers?: TerrainReceivers,
+  /** Chunk origin in world cells, for the fence posts that also cast here. */
+  origin?: { x: number; y: number },
 ): ShadowLayer[] | undefined {
   let [vx, vy] = cast;
-  if (!rims.length || opacity <= 0 || (!vx && !vy)) return;
+  // Fence posts cast here too, and most farmland is flat: bailing on an empty
+  // rim list would leave every post on level ground without a shadow.
+  if (opacity <= 0 || (!vx && !vy) || (!rims.length && !origin)) return;
   // A bank is only a few metres tall, so a high sun would leave it with no
   // visible shadow at all. Keep the direction, floor the length.
   const len = Math.hypot(vx, vy);
@@ -112,6 +117,45 @@ export function rasterBankShadows(
       }
     }
   }
+  // Fence posts cast with the same sun. They stand on the ground rather than
+  // on a rim, so each one shades from its own foot, and its three-pixel spread
+  // keeps the shadow a slab rather than a wire.
+  if (origin)
+    for (const post of fencePostFeet(
+      (cx, cy) =>
+        cells[(cy - origin.y + PAD) * stride + cx - origin.x + PAD]?.field,
+      origin.x - PAD,
+      origin.y - PAD,
+      origin.x + SIZE + PAD,
+      origin.y + SIZE + PAD,
+    )) {
+      const fx = post.x - origin.x * 16,
+        fy = post.y - origin.y * 16;
+      // A post on the outer apron can sit past the map: an unchecked read
+      // there returns undefined, which passes every comparison below.
+      if (fx < -PAD * 16 || fx >= SIZE * 16 + PAD * 16) continue;
+      if (fy < top || fy >= top + H) continue;
+      const below = tierAt(fx, fy);
+      if (!(below >= 0)) continue;
+      const steps = Math.ceil(POST_HEIGHT * Math.hypot(vx, vy));
+      for (let k = 0; k <= steps; k++) {
+        const t = steps ? k / steps : 0;
+        for (let spread = -1; spread <= 1; spread++) {
+          const px = Math.round(fx + vx * POST_HEIGHT * t) + spread,
+            py = Math.round(fy + vy * POST_HEIGHT * t);
+          if (px < -PAD * 16 || px >= SIZE * 16 + PAD * 16) continue;
+          if (py < top || py >= top + H) continue;
+          const j = at(px, py);
+          const tier = tierAt(px, py);
+          if (tier < 0 || tier > below || a <= alpha[j]) continue;
+          alpha[j] = a;
+          if (px < x0) x0 = px;
+          if (px > x1) x1 = px;
+          if (py < y0) y0 = py;
+          if (py > y1) y1 = py;
+        }
+      }
+    }
   if (x1 < x0) return;
   // One layer per logical row of the ground it falls on, so it sits above
   // that row's ground strip and below anything standing there.

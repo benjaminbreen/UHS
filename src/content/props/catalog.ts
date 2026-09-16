@@ -8,14 +8,31 @@ export type PropDef = {
   /** Occupies its ground tile while intact and on the ground. */
   solid?: boolean;
   container?: boolean;
-  breakable?: "clay" | "wood" | "fiber";
+  /** What it leaves on the ground when it breaks. */
+  breakable?:
+    | "clay"
+    | "glaze"
+    | "wood"
+    | "fiber"
+    | "metal"
+    | "plastic"
+    | "paper";
   drink?: boolean;
   strike?: boolean;
+  /** What this tool does to the ground in front of you. */
+  tool?: "axe" | "spade" | "scythe" | "pick";
+  /** How wide a bite it takes: one cell, or a swathe of them. */
+  sweep?: number;
   contents?: Inventory;
   /** The settlement's shared fire. Keeps the `fire` object kind. */
   fire?: boolean;
   /** Sprite variants the family has; three unless said otherwise. */
   variants?: number;
+  /** Too solid to break: a blow knocks it over instead. */
+  tips?: boolean;
+  /** Where this belongs. A washing line hangs behind a house, not on the
+   * square; a crate stands at a works or a farm, not on a shopping street. */
+  where?: "backyard" | "worksite" | "privy";
 };
 export const propDefs: Record<string, PropDef> = {
   ...urbanProps,
@@ -59,13 +76,38 @@ export const propDefs: Record<string, PropDef> = {
     container: true,
     breakable: "clay",
   },
+  vat: {
+    solid: true,
+    name: "Storage vat",
+    family: "pithos",
+    container: true,
+    breakable: "clay",
+    contents: { grain: 4 },
+  },
+  flask: {
+    solid: true,
+    name: "Stoppered flask",
+    family: "flask",
+    portable: true,
+    container: true,
+    breakable: "clay",
+    contents: { water: 1 },
+  },
+  bowl: {
+    solid: true,
+    name: "Open bowl",
+    family: "bowl",
+    portable: true,
+    container: true,
+    breakable: "clay",
+  },
   glazed: {
     solid: true,
     name: "Glazed jar",
     family: "glazed-jar",
     portable: true,
     container: true,
-    breakable: "clay",
+    breakable: "glaze",
   },
   basket: {
     solid: true,
@@ -74,6 +116,7 @@ export const propDefs: Record<string, PropDef> = {
     portable: true,
     container: true,
     breakable: "fiber",
+    tips: true,
   },
   liddedBasket: {
     solid: true,
@@ -82,6 +125,7 @@ export const propDefs: Record<string, PropDef> = {
     portable: true,
     container: true,
     breakable: "fiber",
+    tips: true,
   },
   sack: {
     solid: true,
@@ -98,6 +142,22 @@ export const propDefs: Record<string, PropDef> = {
     container: true,
     breakable: "wood",
   },
+  cookingPot: {
+    solid: true,
+    name: "Cooking pot",
+    family: "cooking-pot",
+    portable: true,
+    container: true,
+    tips: true,
+  },
+  strappedChest: {
+    solid: true,
+    name: "Strapped chest",
+    family: "strapped-chest",
+    portable: true,
+    container: true,
+    breakable: "wood",
+  },
   paintedChest: {
     solid: true,
     name: "Painted chest",
@@ -107,6 +167,7 @@ export const propDefs: Record<string, PropDef> = {
     breakable: "wood",
   },
   crate: {
+    where: "worksite",
     solid: true,
     name: "Transport crate",
     family: "crate",
@@ -129,6 +190,7 @@ export const propDefs: Record<string, PropDef> = {
     portable: true,
     container: true,
     breakable: "wood",
+    tips: true,
   },
   well: {
     solid: true,
@@ -154,6 +216,228 @@ export const propDefs: Record<string, PropDef> = {
     family: "trough",
     container: true,
     contents: { water: 4 },
+  },
+  townWell: {
+    solid: true,
+    name: "Public well",
+    family: "town-well",
+    drink: true,
+  },
+  sickle: {
+    solid: true,
+    name: "Sickle",
+    family: "sickle",
+    portable: true,
+    strike: true,
+    tool: "scythe",
+  },
+  axe: {
+    solid: true,
+    name: "Hafted axe",
+    family: "hoe",
+    portable: true,
+    strike: true,
+    tool: "axe",
+  },
+  pick: {
+    solid: true,
+    name: "Pickaxe",
+    family: "pick",
+    portable: true,
+    strike: true,
+    tool: "pick",
+  },
+  dryingRack: {
+    where: "worksite",
+    solid: true,
+    name: "Drying rack",
+    family: "drying-rack",
+    container: true,
+  },
+  pump: {
+    solid: true,
+    name: "Hand pump",
+    family: "pump",
+    drink: true,
+  },
+  spade: {
+    solid: true,
+    name: "Spade",
+    family: "spade",
+    portable: true,
+    strike: true,
+    tool: "spade",
+  },
+  shovel: {
+    solid: true,
+    name: "Long shovel",
+    family: "shovel",
+    portable: true,
+    strike: true,
+    tool: "spade",
+    // A navvy's shovel opens the cell you face and the one beyond it.
+    sweep: 2,
+    where: "worksite",
+  },
+  scythe: {
+    solid: true,
+    name: "Scythe",
+    family: "scythe",
+    portable: true,
+    strike: true,
+    tool: "scythe",
+    // A swathe, not a handful: four cells to the sickle's one.
+    sweep: 2,
+    where: "worksite",
+  },
+  sheaf: {
+    solid: true,
+    name: "Sheaf of grain",
+    family: "sheaf",
+    container: true,
+    breakable: "fiber",
+    contents: { grain: 2 },
+  },
+  anvil: {
+    solid: true,
+    name: "Anvil and block",
+    family: "anvil",
+  },
+  loom: {
+    solid: true,
+    name: "Upright loom",
+    family: "loom",
+  },
+  bench: {
+    solid: true,
+    name: "Bench",
+    family: "bench",
+  },
+  stool: {
+    solid: true,
+    name: "Stool",
+    family: "stool",
+    portable: true,
+    tips: true,
+  },
+  privyShed: {
+    solid: true,
+    name: "Privy",
+    family: "privy-shed",
+    where: "privy",
+  },
+  privyScreen: {
+    solid: true,
+    name: "Screened pit",
+    family: "privy-screen",
+    where: "privy",
+  },
+  privyBench: {
+    solid: true,
+    name: "Public latrine",
+    family: "privy-bench",
+    where: "privy",
+  },
+  privyStone: {
+    solid: true,
+    name: "Stone privy",
+    family: "privy-stone",
+    where: "privy",
+  },
+  privyNightSoil: {
+    solid: true,
+    name: "Privy",
+    family: "privy-nightsoil",
+    where: "privy",
+  },
+  privyOuthouse: {
+    solid: true,
+    name: "Outhouse",
+    family: "privy-outhouse",
+    where: "privy",
+  },
+  granaryStaddle: {
+    solid: true,
+    name: "Granary",
+    family: "granary-staddle",
+    container: true,
+    contents: { grain: 12 },
+    where: "worksite",
+  },
+  granaryMud: {
+    solid: true,
+    name: "Granary",
+    family: "granary-mud",
+    container: true,
+    contents: { grain: 12 },
+    where: "worksite",
+  },
+  granaryStilt: {
+    solid: true,
+    name: "Granary",
+    family: "granary-stilt",
+    container: true,
+    contents: { grain: 12 },
+    where: "worksite",
+  },
+  granaryClay: {
+    solid: true,
+    name: "Grain silo",
+    family: "granary-clay",
+    container: true,
+    contents: { grain: 12 },
+    where: "worksite",
+  },
+  plough: {
+    solid: true,
+    name: "Plough",
+    family: "plough",
+    where: "worksite",
+  },
+  waterButt: {
+    solid: true,
+    name: "Water butt",
+    family: "water-butt",
+    container: true,
+    contents: { water: 6 },
+    where: "backyard",
+  },
+  rake: {
+    solid: true,
+    name: "Rake",
+    family: "rake",
+    portable: true,
+    strike: true,
+    where: "worksite",
+  },
+  pitchfork: {
+    solid: true,
+    name: "Pitchfork",
+    family: "pitchfork",
+    portable: true,
+    strike: true,
+    where: "worksite",
+  },
+  beehive: {
+    solid: true,
+    name: "Beehive",
+    family: "beehive",
+    where: "worksite",
+  },
+  milkChurn: {
+    solid: true,
+    name: "Milk churn",
+    family: "milk-churn",
+    container: true,
+    portable: true,
+    where: "worksite",
+  },
+  farmCart: {
+    solid: true,
+    name: "Farm cart",
+    family: "farm-cart",
+    container: true,
+    where: "worksite",
   },
   firepit: {
     solid: true,
@@ -209,6 +493,7 @@ export const propDefs: Record<string, PropDef> = {
     variants: 1,
   },
   woodpile: {
+    where: "worksite",
     solid: true,
     name: "Firewood stack",
     family: "woodpile",
@@ -223,12 +508,44 @@ export const propDefs: Record<string, PropDef> = {
     // that does not exist and Phaser warned on every draw.
     variants: 2,
   },
+  dustbin: {
+    where: "backyard",
+    solid: true,
+    name: "Galvanised bin",
+    family: "dustbin",
+    container: true,
+    tips: true,
+  },
+  drum: {
+    where: "worksite",
+    solid: true,
+    name: "Steel drum",
+    family: "steel-drum",
+    container: true,
+    contents: { water: 6 },
+    tips: true,
+  },
+  barrow: {
+    where: "worksite",
+    solid: true,
+    name: "Wheelbarrow",
+    family: "wheelbarrow",
+    container: true,
+  },
+  washingLine: {
+    where: "backyard",
+    solid: true,
+    name: "Washing line",
+    family: "washing-line",
+  },
   tin: {
+    where: "worksite",
     solid: true,
     name: "Metal canister",
     family: "metal-tin",
     portable: true,
     container: true,
+    breakable: "metal",
   },
   plastic: {
     solid: true,
@@ -236,6 +553,7 @@ export const propDefs: Record<string, PropDef> = {
     family: "plastic-bin",
     portable: true,
     container: true,
+    breakable: "plastic",
   },
   carton: {
     solid: true,
@@ -243,6 +561,7 @@ export const propDefs: Record<string, PropDef> = {
     family: "cardboard-box",
     portable: true,
     container: true,
+    breakable: "paper",
   },
   stick: {
     solid: false,

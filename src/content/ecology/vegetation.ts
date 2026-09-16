@@ -2,6 +2,7 @@ import type { WorldSetting } from "../geography/types";
 import type { Colorway } from "./profiles";
 import type { Habitat, VegetationPattern } from "../../world/v3/habitats";
 import type { LandSample } from "../../world/geography/landscape";
+import natureAtlas from "../../../public/nature/atlas.json";
 
 export function vegetationPattern(
   s: WorldSetting,
@@ -18,12 +19,13 @@ export function vegetationPattern(
     return "alpine";
   if (ecology === "desert" || ecology === "tundra" || ecology === "wetland")
     return undefined;
-  if (Math.abs(s.lat) < 30 && land.moisture < 0.6)
-    return "savanna";
+  if (Math.abs(s.lat) < 30 && land.moisture < 0.6) return "savanna";
   if (
-    Math.abs(s.lat) >= 30 && land.moisture < 0.48 &&
+    Math.abs(s.lat) >= 30 &&
+    land.moisture < 0.48 &&
     ecology !== "boreal-woodland"
-  ) return "steppe";
+  )
+    return "steppe";
   return undefined;
 }
 
@@ -97,36 +99,143 @@ const sahel: Mix = [
 // Colourway mixes take precedence over the latitude and longitude boxes below.
 const regional: Partial<Record<Colorway, Mix>> = {
   sahara: [[palm, 1]],
-  "red-earth": [[eucalyptus, 2], [scrub, 3]],
-  sonoran: [[saguaro, 6], [scrub, 3], [juniper, 1]],
+  "red-earth": [
+    [eucalyptus, 2],
+    [scrub, 3],
+  ],
+  sonoran: [
+    [saguaro, 6],
+    [scrub, 3],
+    [juniper, 1],
+  ],
   atacama: [[scrub, 1]],
-  kalahari: [[thorn, 6], [baobab, 1]],
-  highland: [[juniper, 3], [scrub, 4]],
-  maquis: [["olive", 5], [pine, 3], ["oak", 2]],
-  chaparral: [["oak", 4], [juniper, 3], [pine, 2]],
-  mallee: [[eucalyptus, 8], [scrub, 2]],
-  fynbos: [[scrub, 6], [juniper, 1]],
-  matorral: [["oak", 3], [juniper, 3], [scrub, 2]],
-  sahel: [[thorn, 8], [baobab, 1], ["acacia", 1]],
-  prairie: [["oak", 5], [maple, 3], [willow, 2]],
-  steppe: [[juniper, 3], [birch, 2], ["oak", 1]],
-  pampas: [[willow, 4], ["oak", 3], [juniper, 1]],
-  montane: [[juniper, 4], [pine, 3], [birch, 2]],
-  acacia: [[thorn, 7], ["acacia", 2], [baobab, 1]],
-  cerrado: [[tropical, 4], [thorn, 3], [palm, 2]],
-  eucalypt: [[eucalyptus, 8], [thorn, 1]],
-  "oak-hickory": [["oak", 5], [maple, 4], [pine, 1]],
-  "east-asian": [[maple, 4], ["oak", 3], [pine, 2], ["nature-bamboo-clump", 1]],
-  "southern-beech": [["oak", 4], [eucalyptus, 3], [pine, 2]],
-  conifer: [[pine, 6], [spruce, 3], [birch, 1]],
-  larch: [[larch, 7], [birch, 2], [spruce, 1]],
-  coastal: [[spruce, 6], [pine, 3], [birch, 1]],
-  marsh: [[willow, 7], ["oak", 3]],
-  papyrus: [[palm, 4], [thorn, 2], [tropical, 2]],
-  pantanal: [[palm, 5], [tropical, 4]],
-  bog: [[spruce, 5], [birch, 4], [larch, 1]],
-  mangrove: [[mangrove, 9], [palm, 1]],
-  swamp: [[tropical, 7], [palm, 3]],
+  kalahari: [
+    [thorn, 6],
+    [baobab, 1],
+  ],
+  highland: [
+    [juniper, 3],
+    [scrub, 4],
+  ],
+  maquis: [
+    ["olive", 5],
+    [pine, 3],
+    ["oak", 2],
+  ],
+  chaparral: [
+    ["oak", 4],
+    [juniper, 3],
+    [pine, 2],
+  ],
+  mallee: [
+    [eucalyptus, 8],
+    [scrub, 2],
+  ],
+  fynbos: [
+    [scrub, 6],
+    [juniper, 1],
+  ],
+  matorral: [
+    ["oak", 3],
+    [juniper, 3],
+    [scrub, 2],
+  ],
+  sahel: [
+    [thorn, 8],
+    [baobab, 1],
+    ["acacia", 1],
+  ],
+  prairie: [
+    ["oak", 5],
+    [maple, 3],
+    [willow, 2],
+  ],
+  steppe: [
+    [juniper, 3],
+    [birch, 2],
+    ["oak", 1],
+  ],
+  pampas: [
+    [willow, 4],
+    ["oak", 3],
+    [juniper, 1],
+  ],
+  montane: [
+    [juniper, 4],
+    [pine, 3],
+    [birch, 2],
+  ],
+  acacia: [
+    [thorn, 7],
+    ["acacia", 2],
+    [baobab, 1],
+  ],
+  cerrado: [
+    [tropical, 4],
+    [thorn, 3],
+    [palm, 2],
+  ],
+  eucalypt: [
+    [eucalyptus, 8],
+    [thorn, 1],
+  ],
+  "oak-hickory": [
+    ["oak", 5],
+    [maple, 4],
+    [pine, 1],
+  ],
+  "east-asian": [
+    [maple, 4],
+    ["oak", 3],
+    [pine, 2],
+    ["nature-bamboo-clump", 1],
+  ],
+  "southern-beech": [
+    ["oak", 4],
+    [eucalyptus, 3],
+    [pine, 2],
+  ],
+  conifer: [
+    [pine, 6],
+    [spruce, 3],
+    [birch, 1],
+  ],
+  larch: [
+    [larch, 7],
+    [birch, 2],
+    [spruce, 1],
+  ],
+  coastal: [
+    [spruce, 6],
+    [pine, 3],
+    [birch, 1],
+  ],
+  marsh: [
+    [willow, 7],
+    ["oak", 3],
+  ],
+  papyrus: [
+    [palm, 4],
+    [thorn, 2],
+    [tropical, 2],
+  ],
+  pantanal: [
+    [palm, 5],
+    [tropical, 4],
+  ],
+  bog: [
+    [spruce, 5],
+    [birch, 4],
+    [larch, 1],
+  ],
+  mangrove: [
+    [mangrove, 9],
+    [palm, 1],
+  ],
+  swamp: [
+    [tropical, 7],
+    [palm, 3],
+  ],
 };
 export function treeMix(s: WorldSetting): Mix {
   const colorway = s.environment?.colorway;
@@ -138,10 +247,7 @@ export function treeMix(s: WorldSetting): Mix {
     const mix = regional[colorway];
     if (mix) return mix;
   }
-  if (
-    colorway === "monsoon" &&
-    s.environment?.ecology === "tropical-woodland"
-  )
+  if (colorway === "monsoon" && s.environment?.ecology === "tropical-woodland")
     return [
       ["nature-teak", 5],
       [tropical, 3],
@@ -231,7 +337,21 @@ export function vegetationTree(
     roll < 0.7
   )
     return willow;
-  return choose(treeMix(land.drainage ? { ...s, environment: { ...s.environment!, ecology: h.ecology, colorway: h.colorway } } : s), roll);
+  return choose(
+    treeMix(
+      land.drainage
+        ? {
+            ...s,
+            environment: {
+              ...s.environment!,
+              ecology: h.ecology,
+              colorway: h.colorway,
+            },
+          }
+        : s,
+    ),
+    roll,
+  );
 }
 export function vegetationUnderstory(
   s: WorldSetting,
@@ -242,13 +362,23 @@ export function vegetationUnderstory(
   if (h.site) {
     if (land.snow || h.site.primary === "water") return undefined;
     switch (h.site.primary) {
-      case "marsh": return roll < .7 ? "reeds" : "nature-understory-sedge";
-      case "swamp": return roll < .5 ? "nature-understory-sedge" : fern;
-      case "bog": return roll < .6 ? "nature-understory-sedge" : heath;
-      case "scrub": return roll < .65 ? scrub : "nature-understory-dry-bunchgrass";
-      case "grassland": return roll < .8 ? "nature-understory-dry-bunchgrass" : "flowers";
-      case "rocky": case "barren": case "shore": return undefined;
-      case "woodland": case "riparian-woodland": break;
+      case "marsh":
+        return roll < 0.7 ? "reeds" : "nature-understory-sedge";
+      case "swamp":
+        return roll < 0.5 ? "nature-understory-sedge" : fern;
+      case "bog":
+        return roll < 0.6 ? "nature-understory-sedge" : heath;
+      case "scrub":
+        return roll < 0.65 ? scrub : "nature-understory-dry-bunchgrass";
+      case "grassland":
+        return roll < 0.8 ? "nature-understory-dry-bunchgrass" : "flowers";
+      case "rocky":
+      case "barren":
+      case "shore":
+        return undefined;
+      case "woodland":
+      case "riparian-woodland":
+        break;
     }
   }
   const wet = land.kind !== "sea" && land.water < 16;
@@ -329,4 +459,56 @@ export function understorySize(sprite: string, roll: number): string {
   if (sprite === fern || sprite === "bush")
     return roll < 0.65 ? "nature-understory-low-leafy-shrub" : sprite;
   return sprite;
+}
+
+/** What a tool can do to a plant. Rocks and water features take no edge. */
+export type PlantClass =
+  | "none"
+  | "grass"
+  | "shrub"
+  | "small"
+  | "medium"
+  | "large";
+const worked = new Set([
+  "nature-stump",
+  "nature-logs",
+  "nature-furrow",
+  "nature-stubble",
+  "nature-cut-stems",
+  "nature-cut-thorns",
+]);
+const lowPlants = new Set([
+  "flowers",
+  "grass",
+  "reeds",
+  "ecology-grazing",
+  "nature-understory-dry-bunchgrass",
+  "nature-understory-sedge",
+  "nature-understory-low-heath",
+]);
+const frameHeight = (sprite: string) =>
+  (natureAtlas.frames as Record<string, { frame: { h: number } }>)[sprite]
+    ?.frame.h;
+export function plantClass(sprite: string | undefined): PlantClass {
+  if (!sprite) return "none";
+  if (sprite === "rock" || sprite.startsWith("nature-rock")) return "none";
+  // Worked ground is not a plant: an axe has no business with a furrow.
+  if (worked.has(sprite) || sprite === "nature-waterfall") return "none";
+  if (lowPlants.has(sprite) || sprite.startsWith("ecology-")) return "grass";
+  // Understory and scrub are brush whatever their silhouette: one cut takes
+  // any of them off at the root.
+  if (sprite.includes("understory") || sprite.includes("scrub")) return "shrub";
+  const h = frameHeight(sprite);
+  // Pack art outside the nature atlas is a plain tree; treat it as mid-sized.
+  if (h === undefined) return sprite === "bush" ? "shrub" : "medium";
+  if (h <= 44) return "shrub";
+  if (h <= 64) return "small";
+  if (h <= 96) return "medium";
+  return "large";
+}
+/** Axe blows to fell a plant. Zero where an axe is the wrong tool. */
+export function fellingSwings(sprite: string | undefined): number {
+  return { none: 0, grass: 0, shrub: 1, small: 3, medium: 6, large: 9 }[
+    plantClass(sprite)
+  ];
 }

@@ -10,12 +10,16 @@ const reeds: WindProfile = { period: 2400, lateral: 0.55, angle: 0.03 };
 const willow: WindProfile = { period: 6000, lateral: 0.7, angle: 0.009 };
 const palm: WindProfile = { period: 5200, lateral: 0.65, angle: 0.009 };
 const tree: WindProfile = { period: 5600, lateral: 0.35, angle: 0.004 };
+/** Fish or cloth on a cord: a wide, slow swing and no rotation at all. The
+ * rack itself is rigid, so only this layer moves. */
+export const HANGING: WindProfile = { period: 2200, lateral: 0.9, angle: 0 };
 
 /** Returns the quietest useful profile for a rendered plant. */
 export function windProfile(
   frame: string,
   isTree = false,
 ): WindProfile | undefined {
+  if (frame.endsWith("-hang")) return HANGING;
   if (frame === "reeds") return reeds;
   if (frame.includes("willow")) return willow;
   if (frame.includes("palm")) return palm;

@@ -53,6 +53,8 @@ export type WorkSite = {
   social: Point;
   pasture?: Point;
   gateId?: string;
+  /** A drying rack this household keeps, if their work is on the water. */
+  rackId?: string;
   label: string;
   offset: number;
 };
@@ -86,6 +88,8 @@ export type SettlementPlan = {
    * with its lanes and the slots kept free for outlying sites. */
   fields?: Map<string, import("./farmland").FieldCell>;
   canals?: Set<string>;
+  /** The canals stand empty this season: dug, banked, but unwatered. */
+  canalsDry?: boolean;
   culverts?: Set<string>;
   parcels?: import("./farmland").Parcel[];
   territory?: import("./farmland").Territory;

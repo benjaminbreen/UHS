@@ -6,7 +6,7 @@ import { groundStyle, setGroundStyle, type GroundStyle } from "./ground-style";
 import { batchGroundPage, type GroundPage } from "./ground-pages";
 import { paintedGround } from "./material-edges";
 import { rasterHabitatTile, type GroundTileData } from "./habitat-raster";
-import { rasterWaterTile, type WaterTileData } from "./water-raster";
+import { isCanal, rasterWaterTile, type WaterTileData } from "./water-raster";
 import { waterDistance } from "./water-style";
 import type { Pack, WorldModel } from "../core/types";
 import { createSettlementWorld } from "../world/v3/generate";
@@ -135,13 +135,16 @@ export function handleTerrainRequest(data: TerrainRequest) {
           groundTiles.push(
             rasterHabitatTile(paintSample, x, y, region.x, region.y),
           );
-        if (cell.surface === "water" || cell.bridge) {
+        if (cell.surface === "water" || cell.bridge || cell.dryChannel) {
           const tile = rasterWaterTile(cachedSample, x, y, region.x, region.y);
           // A creek's cell is mostly turf: the water tile keeps only its
           // water pixels and the rest is the ground raster, so the old
-          // sand-and-gravel ramp never appears round a small stream.
+          // sand-and-gravel ramp never appears round a small stream. A canal
+          // is dug, not found: its tile draws its own banks, and blending it
+          // against the shore distance erased the channel altogether.
           if (
             !cell.bridge &&
+            !isCanal(cell) &&
             cell.waterVisual &&
             cell.waterVisual.shoreWidth < 1.2 &&
             cell.habitat

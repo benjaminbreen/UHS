@@ -435,6 +435,7 @@ export class TerrainStream {
       this.sun.cast,
       this.sun.opacity,
       chunk.receivers,
+      chunk.region,
     );
     if (!layers) return;
     for (const layer of layers) {

@@ -15,6 +15,8 @@ export const stationActivities = [
   "cook",
   /** Sat at the shared fire in the evening. */
   "warm",
+  /** Carrying the day's catch to the drying rack, and holding it there. */
+  "haul-catch",
 ] as const;
 export type StationActivity = (typeof stationActivities)[number];
 export type Station = {
@@ -75,6 +77,7 @@ const dwellCap: Record<StationActivity, number> = {
   play: 3,
   cook: 24,
   warm: 40,
+  "haul-catch": 12,
 };
 const MIN_NIGHT = 300;
 const MAX_NIGHT = 480;

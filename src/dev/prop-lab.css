@@ -291,3 +291,24 @@
     max-width: 100%;
   }
 }
+
+.prop-ab {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.prop-ab figure {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.prop-ab figcaption {
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.7;
+  text-align: center;
+}

@@ -1,7 +1,7 @@
 import type { Pack, Point } from "../../core/types";
 import { random } from "../../core/random";
 import { noise } from "../geography/noise";
-import type { Sample } from "./roads";
+import { line, type Sample } from "./roads";
 import { cellKey, type Rect, type Road, type Site } from "./types";
 import type {
   Boundary,
@@ -72,8 +72,11 @@ export type Farmland = {
   system: FarmSystem;
   territory: Territory;
   fields: Map<string, FieldCell>;
-  /** Irrigation channels: water one cell wide, fed from the river or lake. */
+  /** Irrigation channels: one cell wide, fed from the river or lake. */
   canals: Set<string>;
+  /** The network stands empty: no source reached it, or the season has
+   * drained it. The cut and its berms are still there. */
+  canalsDry: boolean;
   /** Where a track crosses a canal on a culvert. */
   culverts: Set<string>;
   /** Wells where the system waters from the ground. */
@@ -165,7 +168,7 @@ export function planFarmland(input: {
   // Two clear cells between enclosures: a trodden headland, a bank and the
   // fence on each side, with ground between.
   const boundaryWidth = 2;
-  const irrigated = IRRIGATED.has(system.irrigation);
+  const systemIrrigates = IRRIGATED.has(system.irrigation);
   const mix = cropsFor(system, setting.climate);
   const pastoral = mix.every((m) => m.id === "pasture" || m.id === "fallow");
   const orchardKinds = mix.filter((m) =>
@@ -365,9 +368,10 @@ export function planFarmland(input: {
         slotCells.add(cellKey(x, y));
 
   // --- Canals -----------------------------------------------------------------
-  // A trunk along each axis spoke, a lateral along every headland, and a
-  // feeder from the nearest open water to the nearest trunk. All straight:
-  // a channel is dug by the rod, not wandered.
+  // A trunk along each axis spoke, a lateral along every headland, a ring
+  // joining the trunks, and a feeder from the nearest open water. A channel
+  // is dug by the rod, but it holds its level: it shifts a cell across
+  // rather than climb, and steps down only where the ground makes it.
   const canals = new Set<string>();
   const culverts = new Set<string>();
   const channel = (p: Point) => {
@@ -375,15 +379,93 @@ export function planFarmland(input: {
     if (laneCells.has(k)) culverts.add(k);
     else canals.add(k);
   };
+  // The nearest fresh water worth digging to. Found before anything is laid:
+  // whether there is a source at all decides both who irrigates and whether
+  // the channels have water in them.
+  const source = (() => {
+    let best = Infinity,
+      found: Point | undefined;
+    for (let y = c.y - outer - 24; y <= c.y + outer + 24; y += 3)
+      for (let x = c.x - outer - 24; x <= c.x + outer + 24; x += 3) {
+        const f = sample(x, y);
+        // Real fresh water only: a beach cell at the shore is not a source.
+        if (f.water >= -1 || f.kind === "sea") continue;
+        const d = Math.hypot(x - c.x, y - c.y);
+        if (d > edge + 4 && d < best) {
+          best = d;
+          found = { x, y };
+        }
+      }
+    return found;
+  })();
+  // A system that documents irrigation digs wherever it settles; anywhere
+  // dry enough to need it digs too, so long as there is water to divert.
+  const thirsty = ["arid", "mediterranean"].includes(setting.climate);
+  const irrigated = systemIrrigates || (thirsty && !!source);
+  // Empty channels: a flood system outside its flood, high summer in a dry
+  // country, when the head is spent upstream, or a dry country with no
+  // source at all. Where the rain is reliable an unfed channel still runs.
+  const canalsDry =
+    irrigated &&
+    ((system.irrigation === "flood" && setting.season !== "autumn") ||
+      (thirsty && (setting.season === "summer" || !source)));
+  const tierAt = (x: number, y: number) =>
+    Math.round(sample(x, y).elevation / 14);
+  const diggable = (p: Point) =>
+    arable(p.x, p.y) || laneCells.has(cellKey(p.x, p.y));
+  /** Digs a run. `point(along, across)` places a cell; the run holds the tier
+   * it starts on, drifting up to two cells across to stay level, and takes a
+   * step down only where the ground offers nothing on its own tier. */
+  const dig = (
+    point: (along: number, across: number) => Point,
+    from: number,
+    to: number,
+    across: number,
+  ) => {
+    let b = across;
+    const first = point(from, b);
+    let level = tierAt(first.x, first.y);
+    for (let a = from; a <= to; a++) {
+      const here = point(a, b);
+      if (diggable(here) && tierAt(here.x, here.y) !== level) {
+        // One cell across at a time, and never more than two off the line.
+        for (const d of [1, -1]) {
+          if (Math.abs(b + d - across) > 2) continue;
+          const q = point(a, b + d);
+          if (!diggable(q) || tierAt(q.x, q.y) !== level) continue;
+          channel(here);
+          b += d;
+          break;
+        }
+      }
+      const p = point(a, b);
+      if (diggable(p)) {
+        channel(p);
+        level = tierAt(p.x, p.y);
+      } else if (b !== across && diggable(point(a, across))) {
+        // Lost the contour: back to the line the field was laid to.
+        b = across;
+        const q = point(a, b);
+        channel(q);
+        level = tierAt(q.x, q.y);
+      }
+    }
+  };
   const trunkV = wander + 2;
+  const trunkEnds: Point[] = [];
   if (irrigated)
     for (const k of axisSpokes) {
       const f = FRAMES[k];
-      for (let u = inner; u <= outer; u++) {
-        const p = at(c, f, u, trunkV);
-        if (arable(p.x, p.y) || laneCells.has(cellKey(p.x, p.y))) channel(p);
-      }
+      dig((u, v) => at(c, f, u, v), inner, outer, trunkV);
+      trunkEnds.push(at(c, f, inner, trunkV));
     }
+  // A ring at the inner edge ties the trunks together, so the network reads
+  // as one system rather than four unrelated lines.
+  for (const [i, a] of trunkEnds.entries()) {
+    const b = trunkEnds[(i + 1) % trunkEnds.length];
+    if (trunkEnds.length < 2 || (trunkEnds.length === 2 && i === 1)) break;
+    for (const p of line(a, b)) if (diggable(p)) channel(p);
+  }
 
   // --- Parcels ----------------------------------------------------------------
   // A town's fields are a ring or two of big parcels, a village's a handful
@@ -493,12 +575,10 @@ export function planFarmland(input: {
             `headland-${k}-${band}-e`,
           ),
         ].filter((l) => l.length);
-        if (laid.length && irrigated && axisSpokes.has(k))
-          for (let v = lo; v <= hi; v++) {
-            const p = at(c, f, laneU + 1, v);
-            if (arable(p.x, p.y) || laneCells.has(cellKey(p.x, p.y)))
-              channel(p);
-          }
+        // A ditch along every headland, spoke or no spoke: field channels ran
+        // by the furlong, not only beside the main track.
+        if (laid.length && irrigated)
+          dig((v, u) => at(c, f, u, v), lo, hi, laneU + 1);
       }
       const orchard = band === 0 && system.orchard > 0;
       let v = -half + 2;
@@ -629,21 +709,8 @@ export function planFarmland(input: {
 
   // --- Feeder -----------------------------------------------------------------
   // From the nearest open water to the nearest trunk, two straight legs.
-  if (irrigated && canals.size) {
-    let source: Point | undefined,
-      best = Infinity;
-    for (let y = c.y - outer - 24; y <= c.y + outer + 24; y += 3)
-      for (let x = c.x - outer - 24; x <= c.x + outer + 24; x += 3) {
-        const f = sample(x, y);
-        // Real fresh water only: a beach cell at the shore is not a source.
-        if (f.water >= -1 || f.kind === "sea") continue;
-        const d = Math.hypot(x - c.x, y - c.y);
-        if (d > edge + 4 && d < best) {
-          best = d;
-          source = { x, y };
-        }
-      }
-    if (source) {
+  if (irrigated && canals.size && source) {
+    {
       let target: Point | undefined,
         near = Infinity;
       for (const k of canals) {
@@ -823,6 +890,7 @@ export function planFarmland(input: {
     territory: { center: { ...c }, inner, outer, spokes, slots },
     fields,
     canals,
+    canalsDry,
     culverts,
     wells,
     parcels,

@@ -176,7 +176,10 @@ it("generates every new plant in suitable worlds without placing them in water o
             "nature-maple",
             "nature-mangrove",
             "nature-waterfall",
+            // Worked ground and stumps are made by the player, not grown.
             "nature-stump",
+            "nature-furrow",
+            "nature-stubble",
           ].includes(id) &&
           !id.startsWith("nature-broadleaf-") &&
           !id.startsWith("nature-rock-") &&

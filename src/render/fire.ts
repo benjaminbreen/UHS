@@ -1,8 +1,14 @@
 import type { LightingId } from "./lighting";
 /** Animated fire props: frame `x` has siblings `x-f1..x-f3` in the atlas. */
-export const animatedBase = (frame: string) => frame.replace(/-f\d+$/, "");
+export const animatedBase = (frame: string) =>
+  frame.replace(/-(f|m)\d+$/, "");
 export const animatedFrames = (names: string[]) =>
   new Set(names.filter((n) => /-f1$/.test(n)).map(animatedBase));
+/** Props that move without being on fire: a hive with bees round it. Frame
+ * `x` has siblings `x-m1..`, cycled slower than a flame. */
+export const motionFrames = (names: string[]) =>
+  new Set(names.filter((n) => /-m1$/.test(n)).map(animatedBase));
+export const MOTION_FRAME_MS = 190;
 /** Local light from a fire, by band. A little even at midday, so the glow
  * does not pop on at dusk. */
 export const glowAlpha: Record<LightingId, number> = {

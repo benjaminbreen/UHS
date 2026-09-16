@@ -13,6 +13,30 @@ type Frame = {
 };
 const frames = atlas.frames as Record<string, Frame>;
 const masks = shadows.frames as Record<string, Frame>;
+/** Families with a B study: redrawn on a canvas sized to the object itself. */
+const altFamilies = new Set(
+  Object.keys(atlas.frames)
+    .filter((k) => k.startsWith("study-propb-"))
+    .map((k) => k.slice(12, k.lastIndexOf("-"))),
+);
+/** Families drawn only in the B set: there is no A study to compare against. */
+const bOnly = new Set(
+  [...altFamilies].filter(
+    (id) =>
+      !Object.keys(atlas.frames).some((k) => k.startsWith(`study-prop-${id}-`)),
+  ),
+);
+/** The stage grows with the biggest study: a fixed 96x72 box clipped the
+ * loom and the town well, which are deliberately larger than a 48px canvas. */
+const stage = (() => {
+  let w = 96,
+    h = 72;
+  for (const f of Object.values(frames)) {
+    w = Math.max(w, f.frame.w + 44);
+    h = Math.max(h, f.frame.h + 20);
+  }
+  return { w, h, feet: h - 13 };
+})();
 const backgrounds: Record<string, string> = {
   Sand: "#d6c8a2",
   Grass: "#85965a",
@@ -40,6 +64,7 @@ function PropCanvas({
   background = "Sand",
   light = "morning",
   reference = false,
+  set = "a",
 }: {
   family: Family;
   variant: number;
@@ -47,6 +72,7 @@ function PropCanvas({
   background?: string;
   light?: string;
   reference?: boolean;
+  set?: "a" | "b";
 }) {
   const ref = useRef<HTMLCanvasElement>(null);
   const [error, setError] = useState(false);
@@ -62,14 +88,14 @@ function PropCanvas({
         ctx.setTransform(scale, 0, 0, scale, 0, 0);
         ctx.imageSmoothingEnabled = false;
         ctx.fillStyle = backgrounds[background];
-        ctx.fillRect(0, 0, 96, 72);
+        ctx.fillRect(0, 0, stage.w, stage.h);
         if (background === "Checker") {
           ctx.fillStyle = "#aeb3aa";
-          for (let y = 0; y < 72; y += 8)
-            for (let x = 0; x < 96; x += 8)
+          for (let y = 0; y < stage.h; y += 8)
+            for (let x = 0; x < stage.w; x += 8)
               if ((x + y) % 16 === 0) ctx.fillRect(x, y, 8, 8);
         }
-        const key = `study-prop-${family.id}-${variant}`;
+        const key = `study-prop${set === "b" ? "b" : ""}-${family.id}-${variant}`;
         const draw = (
           image: HTMLImageElement,
           frame: Frame,
@@ -89,13 +115,15 @@ function PropCanvas({
             f.h,
           );
         };
-        if (light !== "none") draw(shadow, masks[`${light}:${key}`], 48, 59);
-        draw(sprites, frames[key], 48, 59);
+        const mid = Math.round(stage.w / 2) - 8;
+        if (light !== "none")
+          draw(shadow, masks[`${light}:${key}`], mid, stage.feet);
+        draw(sprites, frames[key], mid, stage.feet);
         if (reference) {
           const person = (worldAtlas.frames as Record<string, Frame>)[
             "human-0-1-2-0"
           ];
-          draw(people, person, 79, 56);
+          draw(people, person, stage.w - 17, stage.feet - 3);
         }
         canvas.dataset.ready = "true";
       })
@@ -105,16 +133,16 @@ function PropCanvas({
     return () => {
       cancelled = true;
     };
-  }, [family.id, variant, scale, background, light, reference]);
+  }, [family.id, variant, scale, background, light, reference, set]);
   return (
     <>
       {error && <span role="alert">Preview image could not load.</span>}
       <canvas
         ref={ref}
-        width={96 * scale}
-        height={72 * scale}
+        width={stage.w * scale}
+        height={stage.h * scale}
         role="img"
-        aria-label={`${family.name} — ${family.variants[variant]}`}
+        aria-label={`${family.name} — ${family.variants[variant]}${set === "b" ? " (B study)" : ""}`}
       />
     </>
   );
@@ -129,6 +157,7 @@ export default function PropLab({ onClose }: { onClose: () => void }) {
   const [light, setLight] = useState("morning");
   const [zoom, setZoom] = useState(() => (innerWidth < 700 ? 3 : 4));
   const [reference, setReference] = useState(true);
+  const [compare, setCompare] = useState(false);
   const [message, setMessage] = useState("");
   const panel = useRef<HTMLElement>(null);
   const close = useRef<HTMLButtonElement>(null);
@@ -291,6 +320,7 @@ export default function PropLab({ onClose }: { onClose: () => void }) {
                     variant={0}
                     background={background}
                     light={light}
+                    set={bOnly.has(f.id) ? "b" : "a"}
                   />
                   <span>
                     <small>
@@ -301,6 +331,7 @@ export default function PropLab({ onClose }: { onClose: () => void }) {
                   <em>
                     {f.variants.length}{" "}
                     {f.variants.length === 1 ? "study" : "variants"}
+                    {altFamilies.has(f.id) ? " · A/B" : ""}
                   </em>
                 </button>
               ))}
@@ -314,15 +345,43 @@ export default function PropLab({ onClose }: { onClose: () => void }) {
             <h2>{selected.name}</h2>
             <p>{selected.description}</p>
             <div className="prop-detail-stage">
-              <PropCanvas
-                family={selected}
-                variant={variant}
-                scale={zoom}
-                background={background}
-                light={light}
-                reference={reference}
-              />
+              {compare && altFamilies.has(selected.id) && !bOnly.has(selected.id) ? (
+                <div className="prop-ab">
+                  {(["a", "b"] as const).map((set) => (
+                    <figure key={set}>
+                      <PropCanvas
+                        family={selected}
+                        variant={variant}
+                        scale={zoom}
+                        background={background}
+                        light={light}
+                        reference={reference}
+                        set={set}
+                      />
+                      <figcaption>
+                        {set === "a" ? "A · current" : "B · sized study"}
+                      </figcaption>
+                    </figure>
+                  ))}
+                </div>
+              ) : (
+                <PropCanvas
+                  family={selected}
+                  variant={variant}
+                  scale={zoom}
+                  background={background}
+                  light={light}
+                  reference={reference}
+                  set={bOnly.has(selected.id) ? "b" : "a"}
+                />
+              )}
             </div>
+            {compare && !altFamilies.has(selected.id) && (
+              <p className="prop-note">No B study for this family yet.</p>
+            )}
+            {bOnly.has(selected.id) && (
+              <p className="prop-note">New family: B study only.</p>
+            )}
             <label>
               Inspect at
               <select
@@ -335,6 +394,14 @@ export default function PropLab({ onClose }: { onClose: () => void }) {
                   </option>
                 ))}
               </select>
+            </label>
+            <label className="prop-check">
+              <input
+                type="checkbox"
+                checked={compare}
+                onChange={(e) => setCompare(e.target.checked)}
+              />
+              A/B compare ({altFamilies.size} redrawn)
             </label>
             <label className="prop-check">
               <input

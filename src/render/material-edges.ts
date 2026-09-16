@@ -6,7 +6,14 @@ import { waterNoise, waterHash, waterStyle, waterBand } from "./water-style";
 import { groundStyle } from "./ground-style";
 
 export function paintedGround(c: TopographyCell) {
-  return !!c.habitat && !c.ramp && !c.bridge && c.surface !== "water";
+  // A dry channel is ground, but the canal raster draws its bed and berms.
+  return (
+    !!c.habitat &&
+    !c.ramp &&
+    !c.bridge &&
+    !c.dryChannel &&
+    c.surface !== "water"
+  );
 }
 export function shoreOnTier(sample: TopographySample, x: number, y: number) {
   const cell = sample(x, y);

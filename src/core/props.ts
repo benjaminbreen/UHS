@@ -54,6 +54,11 @@ export function propAffordances(
       !!propDefs[held?.prop ?? ""]?.strike,
       "Equip a stout stick first.",
     );
+  // Shoving something over needs no tool, and does not break it. A stick to
+  // a basket still breaks the basket; a shoulder to it only lays it down.
+  if (d.tips && !o.broken && !o.tipped && !o.carriedBy)
+    add("topple", "Knock it over");
+  if (o.tipped && !o.broken && !o.carriedBy) add("right", "Set it upright");
   return actions;
 }
 export function heldObject(s: Snapshot) {

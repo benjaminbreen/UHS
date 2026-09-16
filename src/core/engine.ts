@@ -11,11 +11,20 @@ import {
 } from "./livelihood";
 import { propDefs } from "../content/props/catalog";
 import { propAffordances, heldObject } from "./props";
+
+/** Which pile of remains, and which arrangement of it. Three per material, so
+ * a yard of broken crockery is not the same pile stamped out three times. */
+function brokenSprite(id: string, material: string) {
+  let hash = 7;
+  for (const ch of id) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
+  return `prop-broken-${material}-${hash % 3}`;
+}
 import {
   distance,
   SIGHT,
   type Actor,
   type Affordance,
+  type Decoration,
   type CommandRequest,
   type CommandResult,
   type GameEvent,
@@ -38,6 +47,22 @@ import { itineraryAt, type Itinerary } from "./itinerary";
 import { route, type RouteResult } from "./routing";
 import { terrainJump, terrainLeap, type LeapResult } from "./topography";
 import { advanceFauna } from "./fauna-sim";
+import {
+  axeWork,
+  pickWork,
+  type ToolAction,
+  ROCK_BLOWS,
+  STUMP_BLOWS,
+  editedDecoration,
+  fellingSwings,
+  plantClass,
+  tileKey,
+  woodYield,
+  isWorkedGround,
+  plantName,
+  STUMP_SPRITE,
+  type TileEdit,
+} from "./tile-edits";
 
 /** Elevation carried by one altitude step, matching the terrain renderer. */
 const TERRAIN_STEP = 14;
@@ -45,6 +70,9 @@ import type { Point } from "./types";
 const copy = <T>(x: T): T => structuredClone(x);
 /** Routines built in one call to `advance`. */
 const ROUTINE_BUILDS_PER_ADVANCE = 32;
+/** The generated decoration function of each world, before any engine wrapped
+ * it in its own tile edits. */
+const grownDecoration = new WeakMap<WorldModel, WorldModel["decoration"]>();
 const treeName = (sprite: string) =>
   sprite
     .replace(/^(nature-understory|nature|ecology)-/, "")
@@ -113,6 +141,19 @@ export class Engine {
           log: [],
           permissions: {},
         };
+    const edited = (x: number, y: number, base: Decoration | undefined) =>
+      editedDecoration(base, this.state.tiles?.[tileKey(x, y)], x, y);
+    // The generator hook is what lets collision and pathing see a felled tree;
+    // wrapping the public function covers worlds built without it. A world
+    // outlives the engine that first wrapped it — map travel builds a new
+    // engine on the same world — so wrap the original each time rather than
+    // stacking one engine's edits on the last one's.
+    world.overrideDecoration?.(edited);
+    const grown = (grownDecoration.get(world) ??
+      grownDecoration
+        .set(world, world.decoration.bind(world))
+        .get(world)!) as WorldModel["decoration"];
+    world.decoration = (x, y) => edited(x, y, grown(x, y));
   }
   initialize(seed: string) {
     this.state.manifest.seed = seed;
@@ -427,6 +468,277 @@ export class Engine {
    * you climb what you can reach. Ordered nearest first so the prompt is
    * predictable. A `to` cell means the climb ends standing there rather than
    * perched on top. */
+  /** The cell a held tool lands on: the one the player faces. */
+  facingCell(): Point {
+    const p = this.state.player,
+      d = [
+        [0, -1],
+        [1, 0],
+        [0, 1],
+        [-1, 0],
+      ][p.direction];
+    return { x: p.pos.x + d[0], y: p.pos.y + d[1] };
+  }
+  heldTool() {
+    return propDefs[heldObject(this.state)?.prop ?? ""]?.tool;
+  }
+  /** `tile:x,y`. Tool work has no object to address, only ground. */
+  static tileTarget(x: number, y: number) {
+    return `tile:${x},${y}`;
+  }
+  private tileAt(target: string): Point | undefined {
+    const m = /^tile:(-?\d+),(-?\d+)$/.exec(target);
+    return m ? { x: Number(m[1]), y: Number(m[2]) } : undefined;
+  }
+  private editAt(x: number, y: number): TileEdit {
+    const tiles = (this.state.tiles ??= {});
+    return (tiles[tileKey(x, y)] ??= {});
+  }
+  /** Scenery is cached until something tells the renderer the ground changed. */
+  private tilesChanged() {
+    this.state.tilesRevision = (this.state.tilesRevision ?? 0) + 1;
+  }
+  cropAt(x: number, y: number) {
+    return this.state.objects.find(
+      (o) =>
+        o.kind === "crop" &&
+        !o.depleted &&
+        o.pos.space === "outside" &&
+        o.pos.x === x &&
+        o.pos.y === y,
+    );
+  }
+  /** Why this tool cannot be used on this cell, or undefined if it can. */
+  toolProblem(action: ToolAction, target: string): string | undefined {
+    const tool = this.heldTool();
+    const needed = {
+      chop: "axe",
+      dig: "spade",
+      reap: "scythe",
+      mine: "pick",
+    }[action];
+    if (tool !== needed)
+      return `You need ${needed === "axe" ? "an axe" : `a ${needed}`} in hand.`;
+    const at = this.tileAt(target);
+    const p = this.state.player;
+    if (!at) return "Aim at a patch of ground.";
+    if (p.pos.space !== "outside") return "There is no ground to work indoors.";
+    if (p.perch) return `Climb down from ${p.perch.label} first.`;
+    const reach = Math.max(Math.abs(at.x - p.pos.x), Math.abs(at.y - p.pos.y));
+    if (reach > 1) return "Stand next to it.";
+    const plant = this.world.decoration(at.x, at.y);
+    if (action === "chop")
+      return reach === 0
+        ? "Face what you mean to fell."
+        : axeWork(plant?.sprite)
+          ? undefined
+          : "There is nothing here to fell.";
+    if (action === "mine")
+      return reach === 0
+        ? "Face what you mean to break."
+        : pickWork(plant?.sprite)
+          ? undefined
+          : "There is no rock here to break.";
+    const edit = this.state.tiles?.[tileKey(at.x, at.y)];
+    if (action === "dig") {
+      if (edit?.dug) return "This ground is already turned.";
+      // A spade turns grass under; anything woodier has to come out first.
+      if (plant && plantClass(plant.sprite) !== "grass")
+        return plant.sprite === STUMP_SPRITE
+          ? "A stump is rooted here."
+          : `${this.plantName(plant.sprite, true)} is in the way.`;
+      const surface = this.world.terrain(at.x, at.y, "outside");
+      return ["grass", "dry", "dirt", "sand", "field"].includes(surface)
+        ? undefined
+        : `You cannot dig ${surface}.`;
+    }
+    if (this.cropAt(at.x, at.y)) return undefined;
+    return plantClass(plant?.sprite) === "grass"
+      ? undefined
+      : "Nothing here to cut.";
+  }
+  /** The cells a tool takes in one stroke. A long shovel opens the cell you
+   * face and the one beyond it; a scythe lays a two-by-two swathe. Anything
+   * in the swathe that cannot be worked is simply skipped. */
+  private swathe(action: ToolAction, at: Point): Point[] {
+    const sweep =
+      propDefs[heldObject(this.state)?.prop ?? ""]?.sweep ?? 1;
+    if (sweep < 2) return [at];
+    const p = this.state.player;
+    const d = [
+      [0, -1],
+      [1, 0],
+      [0, 1],
+      [-1, 0],
+    ][p.direction];
+    const beyond = { x: at.x + d[0], y: at.y + d[1] };
+    if (action === "dig") return [at, beyond];
+    const side = { x: -d[1], y: d[0] };
+    return [
+      at,
+      { x: at.x + side.x, y: at.y + side.y },
+      beyond,
+      { x: beyond.x + side.x, y: beyond.y + side.y },
+    ];
+  }
+  /** Whether a cell in the swathe beyond the aimed one can take the stroke. */
+  private workable(action: ToolAction, at: Point) {
+    if (this.world.blocked(at.x, at.y, "outside")) return false;
+    const plant = this.world.decoration(at.x, at.y);
+    if (action === "dig") {
+      if (this.state.tiles?.[tileKey(at.x, at.y)]?.dug) return false;
+      if (plant && plantClass(plant.sprite) !== "grass") return false;
+      return ["grass", "dry", "dirt", "sand", "field"].includes(
+        this.world.terrain(at.x, at.y, "outside"),
+      );
+    }
+    return !!this.cropAt(at.x, at.y) || plantClass(plant?.sprite) === "grass";
+  }
+  /** Axe, spade and scythe. Validation has already run on the aimed cell. */
+  private useTool(action: ToolAction, target: string) {
+    const at = this.tileAt(target)!;
+    const p = this.state.player;
+    const edit = this.editAt(at.x, at.y);
+    if (action === "dig") {
+      const cells = this.swathe(action, at).filter(
+        (q) => (q.x === at.x && q.y === at.y) || this.workable(action, q),
+      );
+      for (const q of cells) this.editAt(q.x, q.y).dug = true;
+      this.tilesChanged();
+      this.advance(cells.length > 1 ? 70 : 45);
+      this.event(
+        cells.length > 1
+          ? "You drive the shovel through two spits of earth."
+          : "You turn the earth into a furrow of broken soil.",
+      );
+      return;
+    }
+    if (action === "reap") {
+      const cells = this.swathe(action, at).filter(
+        (q) => (q.x === at.x && q.y === at.y) || this.workable(action, q),
+      );
+      const cut: string[] = [];
+      let stubble = false;
+      for (const q of cells) {
+        const crop = this.cropAt(q.x, q.y);
+        if (crop) {
+          harvestResource(p, crop, this.state.clock);
+          crop.depleted = true;
+          cut.push(crop.name.toLowerCase());
+        } else {
+          this.editAt(q.x, q.y).cut = true;
+          stubble = true;
+        }
+      }
+      if (stubble) this.tilesChanged();
+      this.advance(cut.length ? 30 : 15);
+      this.event(
+        cut.length > 1
+          ? `You lay a swathe of ${cut[0]} and gather it.`
+          : cut.length
+            ? `You cut the ${cut[0]} and gather it.`
+            : "You cut the growth back to stubble.",
+      );
+      return;
+    }
+    const plant = this.world.decoration(at.x, at.y);
+    if (action === "mine") return this.usePick(plant, edit);
+    const work = axeWork(plant?.sprite);
+    if (work === "buck") {
+      const wood = edit.wood ?? 1;
+      edit.stage = "stump";
+      edit.wood = 0;
+      p.inventory.wood = (p.inventory.wood ?? 0) + wood;
+      this.tilesChanged();
+      this.advance(60);
+      this.event(
+        `You buck the fallen trunk into ${wood} firewood. A stump is left in the ground.`,
+      );
+      return;
+    }
+    if (work === "clear") {
+      edit.stage = "clear";
+      p.inventory.wood = (p.inventory.wood ?? 0) + 1;
+      this.tilesChanged();
+      this.advance(20);
+      this.event("You clear the cut stems away. The ground is bare.");
+      return;
+    }
+    const needed = fellingSwings(plant?.sprite);
+    edit.chops = (edit.chops ?? 0) + 1;
+    this.advance(30);
+    if (edit.chops < needed) {
+      const left = needed - edit.chops;
+      // Nine blows on an oak should not fill the log with nine lines: the
+      // first one and the last one before it goes are the ones worth keeping.
+      if (edit.chops === 1 || left === 1)
+        this.event(
+          `You sink the axe into ${this.plantName(plant?.sprite)}. ${left} more ${left === 1 ? "blow" : "blows"} will bring it down.`,
+        );
+      return;
+    }
+    edit.chops = 0;
+    if (plantClass(plant?.sprite) === "shrub") {
+      edit.stage = "stems";
+      this.tilesChanged();
+      this.event(`You cut ${this.plantName(plant?.sprite)} off at the root.`);
+      return;
+    }
+    edit.stage = "logs";
+    edit.wood = woodYield(plant?.sprite);
+    this.tilesChanged();
+    this.event(
+      `${this.plantName(plant?.sprite, true)} comes down with a crash and lies where it fell.`,
+    );
+  }
+  /** The pick: boulders open into rubble, rubble clears, stumps come out. */
+  private usePick(plant: Decoration | undefined, edit: TileEdit) {
+    const p = this.state.player;
+    const work = pickWork(plant?.sprite);
+    const take = (item: ItemId, n: number) =>
+      (p.inventory[item] = (p.inventory[item] ?? 0) + n);
+    if (work === "clear") {
+      edit.stage = "clear";
+      edit.chops = 0;
+      take("stone", 1);
+      if (this.rng("flint") < 0.3) take("flint", 1);
+      this.tilesChanged();
+      this.advance(40);
+      this.event(
+        "You clear the broken stone away and pocket what is worth keeping.",
+      );
+      return;
+    }
+    const needed = work === "grub" ? STUMP_BLOWS : ROCK_BLOWS;
+    edit.chops = (edit.chops ?? 0) + 1;
+    this.advance(40);
+    if (edit.chops < needed) {
+      const left = needed - edit.chops;
+      if (edit.chops === 1 || left === 1)
+        this.event(
+          work === "grub"
+            ? `You lever at the stump. ${left} more ${left === 1 ? "heave" : "heaves"} will have it out.`
+            : `The pick rings off the rock. ${left} more ${left === 1 ? "blow" : "blows"} will split it.`,
+        );
+      return;
+    }
+    edit.chops = 0;
+    if (work === "grub") {
+      edit.stage = "clear";
+      take("wood", 1);
+      this.tilesChanged();
+      this.event("You lever the stump out of the ground. The cell is clear.");
+      return;
+    }
+    edit.stage = "rubble";
+    take("stone", 2);
+    this.tilesChanged();
+    this.event("The rock splits open. Broken stone lies where it stood.");
+  }
+  private plantName(sprite: string | undefined, capital = false) {
+    const name = plantName(sprite);
+    return capital ? `The ${name}` : `the ${name}`;
+  }
   climbable():
     | { id: string; label: string; rise: number; at: Point; to?: Point }
     | undefined {
@@ -483,11 +795,9 @@ export class Engine {
         if (!this.world.blocked(q.x, q.y, "outside")) continue;
         if (this.world.decoration(q.x, q.y)?.solid) continue;
         const place = (this.world.places ?? []).find(
-          (r) =>
-            q.x >= r.x && q.x < r.x + r.w && q.y >= r.y && q.y < r.y + r.h,
+          (r) => q.x >= r.x && q.x < r.x + r.w && q.y >= r.y && q.y < r.y + r.h,
         );
-        if (place)
-          return { id: place.id, label: place.name, rise: 22, at: q };
+        if (place) return { id: place.id, label: place.name, rise: 22, at: q };
         // A wall walk is a surface, not a perch: step onto it and the wall
         // top is ground until you climb down the far side.
         if (this.wallAt(q.x, q.y, "outside"))
@@ -769,16 +1079,21 @@ export class Engine {
       if (!this.visible(pos)) return;
       const plant = this.world.decoration(x, y);
       if (!plant || plant.id !== id || plant.sprite === "rock") return;
-      const name = treeName(plant.sprite);
+      const worked = isWorkedGround(plant.sprite);
+      const name = worked
+        ? plantName(plant.sprite).replace(/^./, (c) => c.toUpperCase())
+        : treeName(plant.sprite);
       return {
         id,
         pos,
         name,
         sprite: plant.sprite,
         kind: "vegetation",
-        description: plant.solid
-          ? "A tree growing in the surrounding landscape."
-          : "Low vegetation growing in the surrounding landscape.",
+        description: worked
+          ? "Ground you have worked."
+          : plant.solid
+            ? "A tree growing in the surrounding landscape."
+            : "Low vegetation growing in the surrounding landscape.",
         affordances: [],
       };
     }
@@ -1086,6 +1401,14 @@ export class Engine {
     const p = this.state.player;
     if (c.type === "interact" && c.action === "descend")
       return p.perch || this.onWall() ? undefined : "You are not up anything.";
+    if (
+      c.type === "interact" &&
+      (c.action === "chop" ||
+        c.action === "dig" ||
+        c.action === "reap" ||
+        c.action === "mine")
+    )
+      return this.toolProblem(c.action, c.target);
     if (c.type === "interact" && c.action === "climb") {
       if (p.perch) return `You are already up ${p.perch.label}.`;
       return this.climbable() ? undefined : "There is nothing here to climb.";
@@ -1347,7 +1670,7 @@ export class Engine {
         prop.broken = true;
         prop.open = true;
         prop.depleted = false;
-        prop.sprite = `prop-broken-${def.breakable}`;
+        prop.sprite = brokenSprite(prop.id, def.breakable);
         this.event(
           `You hurl ${prop.name.toLowerCase()}. It shatters where it lands.`,
         );
@@ -1464,7 +1787,12 @@ export class Engine {
     }
     if (c.type === "interact") {
       const prop = this.state.objects.find((o) => o.id === c.target && o.prop);
-      if (prop && ["pickup", "drop", "strike", "look"].includes(c.action)) {
+      if (
+        prop &&
+        ["pickup", "drop", "strike", "look", "right", "topple"].includes(
+          c.action,
+        )
+      ) {
         const def = propDefs[prop.prop!];
         if (c.action === "pickup") {
           prop.carriedBy = "player";
@@ -1494,16 +1822,31 @@ export class Engine {
               ? `Inside ${prop.name.toLowerCase()}: ${contents.join(", ")}.`
               : `${prop.name} is empty.`,
           );
-        } else if (c.action === "strike") {
+        } else if (c.action === "right") {
+          prop.tipped = false;
+          this.event(`You stand ${prop.name.toLowerCase()} back up.`);
+        } else if (c.action === "topple") {
+          // Knocked over, not broken: it empties where it lies.
+          this.propOwnership(prop, "break");
+          prop.tipped = true;
+          prop.open = true;
+          this.event(
+            `You knock ${prop.name.toLowerCase()} over. What it held rolls out.`,
+          );
+        } else if (c.action === "strike" && def.breakable) {
           this.propOwnership(prop, "break");
           prop.damage = (prop.damage ?? 0) + 1;
           const resistance =
-            def.breakable === "wood" ? 3 : def.breakable === "fiber" ? 2 : 1;
+            def.breakable === "wood" || def.breakable === "metal"
+              ? 3
+              : def.breakable === "fiber" || def.breakable === "plastic"
+                ? 2
+                : 1;
           if (prop.damage >= resistance) {
             prop.broken = true;
             prop.open = true;
             prop.depleted = false;
-            prop.sprite = `prop-broken-${def.breakable}`;
+            prop.sprite = brokenSprite(prop.id, def.breakable);
             this.event(
               `You break ${prop.name.toLowerCase()}. Its contents spill onto the ground.`,
             );
@@ -1512,7 +1855,7 @@ export class Engine {
               `You strike ${prop.name.toLowerCase()}. It is damaged but still holds together.`,
             );
         }
-        this.advance(c.action === "strike" ? 4 : 2);
+        this.advance(c.action === "strike" || c.action === "topple" ? 4 : 2);
         return;
       }
     }
@@ -1624,6 +1967,12 @@ export class Engine {
             `You contribute ${amount} supplies to the household stores.`,
           );
         }
+        break;
+      case "chop":
+      case "dig":
+      case "reap":
+      case "mine":
+        this.useTool(c.action, c.target);
         break;
       case "harvest":
         if (o) {
@@ -1850,10 +2199,17 @@ export class Engine {
     const at = itineraryAt(routine, clock);
     const household = this.household(a.householdId);
     a.offRoutine = false;
-    const gateId = this.world.activitySites?.(a.id)?.gateId;
+    const sites = this.world.activitySites?.(a.id);
+    const gateId = sites?.gateId;
     if (gateId) {
       const gate = this.object(gateId);
       if (gate) gate.open = at.activity !== "rest";
+    }
+    // The catch hangs while the household is up. The routine puts them at the
+    // rack at both ends of the day, so the change happens where you can see it.
+    if (sites?.rackId) {
+      const rack = this.object(sites.rackId);
+      if (rack) rack.open = at.activity !== "rest";
     }
     if (at.activity === "rest" && household?.residence) {
       const index = Math.max(0, household.members.indexOf(a.id));
