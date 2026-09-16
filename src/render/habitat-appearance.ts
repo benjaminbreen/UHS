@@ -67,10 +67,64 @@ export function habitatAppearance(h: Habitat, art: GrassArt = defaultGrassArt) {
         ),
       )
     : palette[0];
-  if (
-    h.season === "autumn" &&
-    !["desert", "tropical-woodland"].includes(h.ecology)
-  )
-    ground = mix(ground, palette[1], 0.12);
+  const tint = wilt(h.ecology, h.season);
+  if (tint) {
+    // Blades and ground must turn together, or a brown autumn field keeps a
+    // vivid green sward standing in it.
+    const dun = mix(palette[4], palette[8], 0.4);
+    for (const i of greens) palette[i] = drain(mix(palette[i], dun, tint[0]), tint[1]);
+    ground = drain(mix(ground, dun, tint[0]), tint[1]);
+  }
   return { palette, soil, ground: ground.map(Math.round) };
+}
+
+/** Palette rows that carry chlorophyll: base, light, dark, blade shadow, blade
+ * light. The mineral, litter, wet and bare rows stay put through the year. */
+const greens = [0, 1, 2, 5, 6];
+
+// How far the sward goes toward dead-grass colour, and how much colour it
+// loses, by season. A temperate meadow browns in autumn; a mediterranean or
+// savanna one browns through high summer and greens up in the wet winter.
+const cycles: Record<string, [number, number][]> = {
+  temperate: [
+    [0, 0],
+    [0.12, 0.04],
+    [0.38, 0.12],
+    [0.34, 0.3],
+  ],
+  dry: [
+    [0.08, 0],
+    [0.46, 0.12],
+    [0.3, 0.08],
+    [0, 0],
+  ],
+  cold: [
+    [0, 0],
+    [0.08, 0],
+    [0.3, 0.1],
+    [0.22, 0.35],
+  ],
+};
+const order = ["spring", "summer", "autumn", "winter"];
+const cycleOf: Record<string, keyof typeof cycles | undefined> = {
+  grassland: "temperate",
+  "temperate-woodland": "temperate",
+  wetland: "temperate",
+  savanna: "dry",
+  "dry-scrub": "dry",
+  "boreal-woodland": "cold",
+  tundra: "cold",
+};
+function wilt(ecology: string, season: string) {
+  const cycle = cycleOf[ecology];
+  const i = order.indexOf(season);
+  if (!cycle || i < 0) return undefined;
+  const step = cycles[cycle][i];
+  return step[0] || step[1] ? step : undefined;
+}
+/** Pull a colour toward its own luminance. */
+function drain(c: number[], amount: number) {
+  if (!amount) return c;
+  const grey = c[0] * 0.3 + c[1] * 0.59 + c[2] * 0.11;
+  return c.map((v) => v * (1 - amount) + grey * amount);
 }

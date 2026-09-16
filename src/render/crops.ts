@@ -1,4 +1,5 @@
 import type Phaser from "phaser";
+import { gustAt } from "./wind";
 import { crops } from "../content/agriculture/crops";
 import type { Crop, CropId, CropStage } from "../content/agriculture/types";
 import type { TopographySample } from "../core/topography";
@@ -288,7 +289,7 @@ function sway(patch: Patch, frame: number) {
   if (patch.frame === frame) return;
   patch.frame = frame;
   for (const { spot, image, crop } of patch.sprites) {
-    const gust = Math.sin(frame * 0.16 - spot.wx * 0.04 - spot.wy * 0.02 + spot.phase);
+    const gust = gustAt(frame * 120, spot.wx, spot.wy, spot.phase);
     const f = gust > 0.5 ? 1 : 0;
     const name = frameName(crop, spot.stage, f);
     if (image.frame.name !== name) image.setFrame(name);

@@ -1,63 +1,169 @@
 import { useEffect, useState } from "react";
+import {
+  HITCH_MS,
+  frameTick,
+  resetProfile,
+  sampleProfile,
+  setProfiling,
+  type FrameBreakdown,
+} from "../render/perf-switches";
 
 type Sample = {
   fps: number;
-  low: number;
   frame: number;
+  low: number;
   chunks: string;
   install: string;
+  hitches: number;
+  sinceHitch: number;
+  log: FrameBreakdown[];
+  history: number[];
+  scenery: number;
+  sceneryAgo: number;
+  sceneryCount: number;
+  mapBuilds: string;
+};
+
+const EMPTY: Sample = {
+  fps: 0,
+  frame: 0,
+  low: 0,
+  chunks: "-",
+  install: "-",
+  hitches: 0,
+  sinceHitch: 0,
+  log: [],
+  history: [],
+  scenery: 0,
+  sceneryAgo: 0,
+  sceneryCount: 0,
+  mapBuilds: "-",
 };
 
 /** Frame timing readout for the live render-tuning panel. */
 export function FpsMeter() {
-  const [sample, setSample] = useState<Sample>({
-    fps: 0,
-    low: 0,
-    frame: 0,
-    chunks: "-",
-    install: "-",
-  });
+  const [sample, setSample] = useState<Sample>(EMPTY);
   useEffect(() => {
+    setProfiling(true);
     let raf = 0;
-    let last = performance.now();
-    const frames: number[] = [];
-    let reported = last;
+    let reported = performance.now();
+    let frames = 0;
+    const history: number[] = [];
     const tick = (now: number) => {
-      const delta = now - last;
-      last = now;
-      frames.push(delta);
-      if (frames.length > 600) frames.shift();
+      frameTick(now);
+      frames++;
       if (now - reported > 400) {
+        const elapsed = now - reported;
         reported = now;
-        const recent = frames.slice(-120);
-        const mean = recent.reduce((a, b) => a + b, 0) / recent.length;
-        // The worst frame in the window matters more than the average: a
-        // hitch on a chunk install is what a smooth average hides.
-        const worst = Math.max(...recent);
+        const profile = sampleProfile(now);
+        // Each bar is the worst frame since the previous bar. Sampling a
+        // trailing window instead would smear one hitch across five bars.
+        history.push(profile.worst);
+        if (history.length > 40) history.shift();
         const canvas = document.querySelector(
           ".game-container canvas",
         ) as HTMLCanvasElement | null;
         setSample({
-          fps: Math.round(1000 / mean),
-          low: Math.round(1000 / worst),
-          frame: Math.round(mean * 10) / 10,
+          fps: Math.round((frames / elapsed) * 1000),
+          frame: Math.round((elapsed / frames) * 10) / 10,
+          low: Math.round(profile.worst * 10) / 10,
           chunks: canvas?.dataset.terrainChunkCount ?? "-",
           install: canvas?.dataset.terrainInstallMaxMs ?? "-",
+          hitches: profile.hitches,
+          sinceHitch: Math.round(profile.sinceHitch / 100) / 10,
+          log: [...profile.log],
+          history: [...history],
+          scenery: Number(canvas?.dataset.sceneryDrawMs ?? 0),
+          sceneryAgo: canvas?.dataset.sceneryDrawAt
+            ? Math.round((now - Number(canvas.dataset.sceneryDrawAt)) / 100) /
+              10
+            : 0,
+          sceneryCount: Number(canvas?.dataset.sceneryDrawCount ?? 0),
+          mapBuilds:
+            (
+              document.querySelector(
+                "canvas[data-map-builds]",
+              ) as HTMLCanvasElement | null
+            )?.dataset.mapBuilds ?? "-",
         });
+        frames = 0;
       }
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
+    return () => {
+      cancelAnimationFrame(raf);
+      setProfiling(false);
+    };
   }, []);
+  const peak = Math.max(33, ...sample.history);
   return (
     <div className="fps-meter" data-testid="fps-meter">
-      <strong>{sample.fps} fps</strong>
-      <span>{sample.frame} ms/frame</span>
-      <span>{sample.low} fps worst</span>
-      <span>
-        {sample.chunks} chunks · {sample.install} ms install
-      </span>
+      <div className="fps-meter-top">
+        <strong>{sample.fps} fps</strong>
+        <span>{sample.frame} ms/frame</span>
+        <span data-warn={sample.low >= HITCH_MS || undefined}>
+          {sample.low} ms worst
+        </span>
+      </div>
+      <div
+        className="fps-spark"
+        aria-label={`Worst frame per 400 ms, peak ${Math.round(peak)} ms`}
+      >
+        {sample.history.map((ms, i) => (
+          <i
+            key={i}
+            style={{ height: `${Math.min(100, (ms / peak) * 100)}%` }}
+            data-hitch={ms >= HITCH_MS || undefined}
+          />
+        ))}
+      </div>
+      <div className="fps-meter-rows">
+        <span>
+          {sample.hitches} hitch{sample.hitches === 1 ? "" : "es"} / 10s (&gt;
+          {HITCH_MS} ms) · {sample.sinceHitch}s since last
+        </span>
+        <span>
+          {sample.chunks} chunks · {sample.install} ms install
+        </span>
+        <span data-warn={sample.scenery >= HITCH_MS || undefined}>
+          scenery rebuild {sample.scenery} ms · {sample.sceneryAgo}s ago ·{" "}
+          {sample.sceneryCount} total
+        </span>
+        <span>{sample.mapBuilds} minimap rebuilds</span>
+      </div>
+      <div className="fps-worst">
+        <span>
+          Last hitches
+          <button
+            onClick={() => {
+              resetProfile();
+              setSample((s) => ({ ...s, log: [] }));
+            }}
+          >
+            reset
+          </button>
+        </span>
+        {!sample.log.length && <p>none yet</p>}
+        {sample.log.map((hitch) => (
+          <div key={hitch.at} className="fps-hitch">
+            <b>
+              {hitch.total.toFixed(1)} ms
+              <em>
+                {hitch.gap ? `+${(hitch.gap / 1000).toFixed(1)}s` : "first"}
+              </em>
+            </b>
+            <ul>
+              {hitch.sections.map(([name, ms]) => (
+                <li key={name}>
+                  <span>{name}</span>
+                  <em>{ms.toFixed(1)}</em>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

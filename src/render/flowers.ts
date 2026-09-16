@@ -2,6 +2,7 @@ import type Phaser from "phaser";
 import type { TopographyCell, TopographySample } from "../core/topography";
 import type { Ecology } from "../content/ecology/profiles";
 import { waterHash as hash } from "./water-style";
+import { gustAt } from "./wind";
 
 export const FLOWER_ATLAS = "flowers-1";
 const kinds = ["daisy", "buttercup", "bluet", "clover", "poppy"] as const;
@@ -174,8 +175,8 @@ const managers = new WeakMap<
   Phaser.Scene,
   { patches: Set<Patch>; frame: number }
 >();
-/** One container per chunk; a slow gust rolls across the field so neighbours
- * sway together rather than each flower flickering on its own clock. */
+/** One container per chunk; the scene's gust rolls across the field so
+ * neighbours sway together rather than each flower keeping its own clock. */
 export function addFlowers(scene: Phaser.Scene, spots: FlowerSpot[]) {
   if (!spots.length) return;
   ensureFlowerAtlas(scene);
@@ -245,9 +246,7 @@ function sway(patch: Patch, frame: number) {
   if (patch.frame === frame) return;
   patch.frame = frame;
   for (const { spot, image } of patch.sprites) {
-    const gust = Math.sin(
-      frame * 0.18 - spot.wx * 0.045 - spot.wy * 0.02 + spot.phase,
-    );
+    const gust = gustAt(frame * 120, spot.wx, spot.wy, spot.phase);
     const f = gust > 0.6 ? 1 : gust < -0.6 ? 2 : 0;
     image.setFrame(`${spot.kind}-${f}`);
   }

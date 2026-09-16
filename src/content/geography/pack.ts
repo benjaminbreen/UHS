@@ -83,7 +83,12 @@ export function packForSetting(setting: WorldSetting): Pack {
     : architecture === "shelter"
       ? ["shelter-hide", "shelter-reed"]
       : architecture === "timber" &&
-          (setting.placeId === "london" ||
+          // Thatch is the ordinary roof over a timber frame until early
+          // modern slate and tile reach the countryside, and stays the rule
+          // in the wet tropics after. It also has oriented recipes, so a
+          // village built from it faces four ways instead of one.
+          (setting.year < 1500 ||
+            setting.placeId === "london" ||
             setting.climate === "monsoon" ||
             setting.climate === "tropical")
         ? ["house-thatch"]

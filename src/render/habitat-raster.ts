@@ -59,6 +59,9 @@ export type GroundTileData = {
 export { soils } from "./habitat-soils";
 import { soils } from "./habitat-soils";
 import { habitatAppearance, communityBand } from "./habitat-appearance";
+// Prevailing wind for sand seas, as a fixed heading the ripples run across.
+const DUNE_COS = Math.cos(0.72),
+  DUNE_SIN = Math.sin(0.72);
 const decode = (s: string) => [parseInt(s.slice(1, 3), 16), parseInt(s.slice(3, 5), 16), parseInt(s.slice(5, 7), 16)];
 // Cut bank faces: undercut, strata, body, sunlit shoulder, embedded stone.
 // Wider in value than the road ramp, which is kept close to turf on purpose.
@@ -527,7 +530,14 @@ export function rasterHabitatTile(
           );
         else put(px, py, rgb, turfTick(wx, wy, art.motifs) ? 7 : 0);
       } else if (grassy || tilled) {
-        const wash = Math.round((noise(wx, wy, 14, 469) - 0.5) * 12);
+        // Fine grain alone leaves a field one flat value when the camera
+        // pulls back. The broad terms are what give it shape at low zoom:
+        // grazed ground pales off, hollows and shaded turf go deeper.
+        const wash = Math.round(
+          (noise(wx, wy, 14, 469) - 0.5) * 12 +
+            (noise(wx, wy, 340, 471) - 0.5) * 14 +
+            (noise(wx, wy, 88, 473) - 0.5) * 8,
+        );
         put(px, py, rgb, wash + (earthSpeckle(wx, wy) ? -10 : 0));
       } else {
         const grain = materialGrain(wx, wy);
@@ -703,9 +713,9 @@ export function rasterHabitatTile(
   // borrow the path field and get the same shoulder and margin treatment.
   const wearOf = (xx: number, yy: number) => {
     const c = sample(xx, yy);
-    // A canal's own cell counts as fully worn so the verge beside it fades
-    // from the berm into the turf instead of stopping at the tile edge.
-    if (c?.surface === "water" && c.waterVisual?.kind === "canal") return 0.9;
+    // A canal only softens the turf at its foot: the berm in the canal tile
+    // carries the transition. Full wear here bled a dirt path down both banks.
+    if (c?.surface === "water" && c.waterVisual?.kind === "canal") return 0.25;
     const l = c?.landscape;
     return l && (l.kind === "trample" || l.kind === "trail")
       ? l.strength * (l.kind === "trail" ? 0.82 : 0.95)
@@ -978,7 +988,17 @@ export function rasterHabitatTile(
   }
   // Dune crests: the exposed band in a sand sea is a ridge, lit on its
   // north-west lip and shaded where it falls away.
+  //
+  // Open sand holds one exposure band for miles, so that pass alone leaves a
+  // flat field. The surface itself comes from a world-anchored wind field:
+  // long dune bodies lit on the windward rise and dark down the slip face,
+  // with fine ripples running the same way. Both headings turn slowly across
+  // the map, so a dune field curves instead of ruling straight to the horizon.
   if (dune) {
+    const tinge = (px: number, py: number, delta: number) => {
+      const i = (py * 16 + px) * 4;
+      for (let k = 0; k < 3; k++) pixels[i + k] += delta;
+    };
     for (let py = 0; py < 16; py++)
       for (let px = 0; px < 16; px++) {
         const band = apron[at(px, py)];
@@ -987,6 +1007,24 @@ export function rasterHabitatTile(
             put(px, py, palette[6]);
         } else if (apron[at(px, py + 1)] === 3 || apron[at(px + 1, py)] === 3)
           put(px, py, palette[5].map((v, k) => Math.round((v + palette[0][k]) / 2)));
+        // Bare sand only: roads, wet wadi floors and site ground keep theirs.
+        if (trodden[at(px, py)] || (band !== 0 && band !== 3)) continue;
+        const wx = gx + px,
+          wy = gy + py;
+        // One heading for the whole field, bent by noise at three scales.
+        // Turning the heading itself instead would curl the level sets into
+        // bullseyes wherever the rotation doubled back on itself.
+        const along =
+          wx * DUNE_COS +
+          wy * DUNE_SIN +
+          (noise(wx, wy, 190, 811) - 0.5) * 30 +
+          (noise(wx, wy, 44, 813) - 0.5) * 8 +
+          (noise(wx, wy, 13, 817) - 0.5) * 2;
+        const body = Math.sin((along / 76) * Math.PI * 2);
+        const ripple = Math.sin((along / 5) * Math.PI * 2);
+        const delta =
+          Math.round(body * 6) + (ripple > 0.72 ? 7 : ripple < -0.72 ? -6 : 0);
+        if (delta) tinge(px, py, delta);
       }
   }
   // Tufts lining a path margin are what make it read as worn ground rather

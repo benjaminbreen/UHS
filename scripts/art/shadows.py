@@ -6,6 +6,8 @@ import json, math
 from PIL import Image, ImageDraw
 from art.atlas import pack_atlas
 
+BUILDING_CAST_CAP=0.95
+
 def build_shadows(root, sprites, buildings, output=None, atlas_name='lighting-shadows'):
     phases=json.loads((root/'src/content/graphics/lighting.json').read_text())
     props=['oak','olive','hackberry','acacia','cypress','bush','flowers','flax','rock','rock-1','rock-2','reeds','wheat','basket','amphora','jug','well','fire','hall','sheep0','sheep1','goat0','goat1','chicken0','chicken1','lizard0','lizard1','bed','oven','crate','fence','gate','gate-open','crop-leafy','fountain','statue','stele','market-cross','kiosk','altar-platform','monument-cross','monument-statue','monument-obelisk','monument-fountain','planter','post','lamp-post','lamp-post-lit']
@@ -28,6 +30,13 @@ def build_shadows(root, sprites, buildings, output=None, atlas_name='lighting-sh
         left,right=(6,w-8) if model else (min(feet)-1,max(feet)+1)
         for phase in phases:
             vx,vy=phase['cast'];alpha=round(255*phase['opacity'])
+            # Low sun is for trees, people and vessels. A house is tall enough
+            # that the same angle would lay its shadow across the whole
+            # village, and the atlas would carry the cost of every pixel of it.
+            if model:
+                reach=math.hypot(vx,vy)
+                if reach>BUILDING_CAST_CAP:
+                    vx,vy=vx/reach*BUILDING_CAST_CAP,vy/reach*BUILDING_CAST_CAP
             points=[]
             # An upright silhouette's width must lie across the cast direction.
             # Keeping it screen-horizontal makes low-angle shadows nearly singular:

@@ -4,10 +4,16 @@ import { soils } from "../render/habitat-raster";
 import { paletteKey } from "../content/ecology/profiles";
 import { natureTreeSprites } from "../content/ecology/vegetation";
 import { useEffect, useRef, useState } from "react";
+import { timed } from "../render/perf-switches";
 import { faunaProfile } from "../content/fauna";
 import atlas from "../render/generated/atlas.json" with { type: "json" };
 import { surfaceAt } from "../render/materials";
-import { atlasSample, broadEnvironment, fromAtlas, toAtlas } from "../world/geography/atlas";
+import {
+  atlasSample,
+  broadEnvironment,
+  fromAtlas,
+  toAtlas,
+} from "../world/geography/atlas";
 import type { Runtime } from "../runtime/session";
 import type { WorldModel, Point } from "../core/types";
 const PAD = 32;
@@ -99,7 +105,10 @@ function atlasGround(ax: number, ay: number) {
   if (coast < 6) return "sand";
   return moisture < 0.25 ? "sand" : moisture < 0.45 ? "dry" : "grass";
 }
-function paintBackground(
+/** Repaints the map in resumable slices. A full rebuild resamples the world
+ * once per screen pixel, which is far past a frame's budget, so the caller
+ * spends it a few milliseconds at a time while the previous map stays up. */
+function* paintBackgroundSteps(
   canvas: HTMLCanvasElement,
   world: WorldModel,
   sprites: HTMLImageElement,
@@ -112,7 +121,7 @@ function paintBackground(
   /** Draw only the places from this index on, over an already painted map.
    * Activating a place used to resample the whole terrain for a few roofs. */
   placesFrom = 0,
-) {
+): Generator<void> {
   const c = canvas.getContext("2d")!;
   // Desert colourways recolour the flat map's sand and bare ground too.
   const env = world.pack.setting?.environment;
@@ -144,53 +153,76 @@ function paintBackground(
   const anchor = toAtlas(world.pack.anchor.lon, world.pack.anchor.lat);
   // Terrain pass.
   if (!placesFrom)
-  for (let j = 0; j < rows; j++)
-    for (let i = 0; i < cols; i++) {
-      const { x, y, wx, wy } = at(i, j);
-      const inMap = mapHalf === undefined || (wx >= -mapHalf / 2 && wx < mapHalf / 2 && wy >= -mapHalf / 2 && wy < mapHalf / 2);
-      // Once a pixel spans several cells, generated ground is sub-pixel detail:
-      // in-map habitat tint and the neighbouring-region preview both cost a
-      // full terrain sample for it, so the atlas carries the frame instead.
-      const preview = coarse ? undefined : world.mapTerrain?.(wx, wy);
-      let k: string =
-        !inMap
+    for (let j = 0; j < rows; j++) {
+      if (j && j % 8 === 0) yield;
+      for (let i = 0; i < cols; i++) {
+        const { x, y, wx, wy } = at(i, j);
+        const inMap =
+          mapHalf === undefined ||
+          (wx >= -mapHalf / 2 &&
+            wx < mapHalf / 2 &&
+            wy >= -mapHalf / 2 &&
+            wy < mapHalf / 2);
+        // Once a pixel spans several cells, generated ground is sub-pixel detail:
+        // in-map habitat tint and the neighbouring-region preview both cost a
+        // full terrain sample for it, so the atlas carries the frame instead.
+        const preview = coarse ? undefined : world.mapTerrain?.(wx, wy);
+        let k: string = !inMap
           ? (preview?.terrain ?? atlasGround(anchor.x + wx, anchor.y + wy))
           : coarse && world.overview
             ? world.overview(wx, wy)
             : surfaceAt(world, wx, wy);
-      let fill = colorway[k] ?? colors[k] ?? colors.grass;
-      if (world.topography && extent <= 320 && inMap) {
-        const cell = world.topography(wx, wy);
-        if (cell.surface === "water") {
-          k = "water";
-          fill = cell.waterDepth === "shallow" ? "#3d93b0" : "#2a6f93";
-        } else if (cell.height > world.topography(wx, wy + 1).height) {
-          k = "cliff";
-          fill = "#8d6640";
+        let fill = colorway[k] ?? colors[k] ?? colors.grass;
+        if (world.topography && extent <= 320 && inMap) {
+          const cell = world.topography(wx, wy);
+          if (cell.surface === "water") {
+            k = "water";
+            fill = cell.waterDepth === "shallow" ? "#3d93b0" : "#2a6f93";
+          } else if (cell.height > world.topography(wx, wy + 1).height) {
+            k = "cliff";
+            fill = "#8d6640";
+          }
         }
+        const h = preview?.habitat;
+        if (k === "water" && h?.colorway === "swamp") fill = "#536f59";
+        if (h && ["grass", "dry", "sand", "marsh", "rock"].includes(k)) {
+          const parts = h.blend ?? [
+            { ecology: h.ecology, colorway: h.colorway, weight: 1 },
+          ];
+          const rgb = [0, 1, 2].map((channel) =>
+            Math.round(
+              parts.reduce((sum, part) => {
+                const key = paletteKey(part.ecology, part.colorway);
+                const mineral =
+                  part.ecology === "desert" || k === "sand" || k === "rock";
+                const ramp = mineral
+                  ? soils[key]
+                  : defaultGrassArt.palettes[key];
+                const index = mineral
+                  ? 2
+                  : h.wet > 0.6
+                    ? 7
+                    : h.cover > 0.55
+                      ? 2
+                      : 0;
+                return sum + ramp[index][channel] * part.weight;
+              }, 0),
+            ),
+          );
+          fill = hex(h.site ? habitatAppearance(h).ground : rgb);
+        }
+        kind[j * cols + i] = k;
+        // Sparse darker speckle gives grass and soil their pixel grain.
+        if (!h && shade[k] && hash(wx, wy) < 0.16) fill = shade[k];
+        c.fillStyle = fill;
+        c.fillRect(x, y, px, px);
       }
-      const h = preview?.habitat;
-      if (k === "water" && h?.colorway === "swamp") fill = "#536f59";
-      if (h && ["grass", "dry", "sand", "marsh", "rock"].includes(k)) {
-        const parts = h.blend ?? [{ ecology: h.ecology, colorway: h.colorway, weight: 1 }];
-        const rgb = [0, 1, 2].map((channel) => Math.round(parts.reduce((sum, part) => {
-          const key = paletteKey(part.ecology, part.colorway);
-          const mineral = part.ecology === "desert" || k === "sand" || k === "rock";
-          const ramp = mineral ? soils[key] : defaultGrassArt.palettes[key];
-          const index = mineral ? 2 : h.wet > 0.6 ? 7 : h.cover > 0.55 ? 2 : 0;
-          return sum + ramp[index][channel] * part.weight;
-        }, 0)));
-        fill = hex(h.site ? habitatAppearance(h).ground : rgb);
-      }
-      kind[j * cols + i] = k;
-      // Sparse darker speckle gives grass and soil their pixel grain.
-      if (!h && shade[k] && hash(wx, wy) < 0.16) fill = shade[k];
-      c.fillStyle = fill;
-      c.fillRect(x, y, px, px);
     }
+  yield;
   // Outline pass: a darker seam wherever the ground type changes, plus a pale
   // shoreline on the water side.
-  for (let j = 0; j < rows; j++)
+  for (let j = 0; j < rows; j++) {
+    if (j && j % 8 === 0) yield;
     for (let i = 0; i < cols; i++) {
       const k = kind[j * cols + i];
       const right = i + 1 < cols ? kind[j * cols + i + 1] : k,
@@ -209,6 +241,8 @@ function paintBackground(
       if (k !== right) c.fillRect(x + px - 1, y, 1, px);
       if (k !== down) c.fillRect(x, y + px - 1, px, 1);
     }
+  }
+  yield;
   const toPx = (wx: number, wy: number) => ({
     x: Math.round(((wx - origin.x) * size) / extent + size / 2),
     y: Math.round(((wy - origin.y) * size) / extent + height / 2),
@@ -231,31 +265,34 @@ function paintBackground(
   const stride = extent > 3200 ? extent : regional || large ? 4 : 1;
   const span = ((height + PAD * 2) * extent) / size / 2;
   if (!placesFrom)
-  for (
-    let wy = Math.floor((origin.y - span) / stride) * stride;
-    wy < origin.y + span;
-    wy += stride
-  )
     for (
-      let wx =
-        Math.floor((origin.x - extent / 2 - (PAD * extent) / size) / stride) *
-        stride;
-      wx < origin.x + extent / 2 + (PAD * extent) / size;
-      wx += stride
-    ) {
-      const prop =
-        world.geography && extent > 320 ? undefined : world.decoration(wx, wy);
-      if (
-        prop &&
-        (world.pack.trees.includes(prop.sprite) ||
-          natureTreeSprites.includes(prop.sprite))
+      let wy = Math.floor((origin.y - span) / stride) * stride;
+      wy < origin.y + span;
+      wy += stride
+    )
+      for (
+        let wx =
+          Math.floor((origin.x - extent / 2 - (PAD * extent) / size) / stride) *
+          stride;
+        wx < origin.x + extent / 2 + (PAD * extent) / size;
+        wx += stride
       ) {
-        // Thin dense cover so canopies stay readable as separate icons.
-        if (hash(wx + 7, wy + 3) < (regional || large ? 0.4 : 0.3)) continue;
-        const { x, y } = toPx(wx, wy);
-        tree(x, y);
+        const prop =
+          world.geography && extent > 320
+            ? undefined
+            : world.decoration(wx, wy);
+        if (
+          prop &&
+          (world.pack.trees.includes(prop.sprite) ||
+            natureTreeSprites.includes(prop.sprite))
+        ) {
+          // Thin dense cover so canopies stay readable as separate icons.
+          if (hash(wx + 7, wy + 3) < (regional || large ? 0.4 : 0.3)) continue;
+          const { x, y } = toPx(wx, wy);
+          tree(x, y);
+        }
       }
-    }
+  yield;
   // Buildings: a roof block over a wall block, both in the sprite's own tones.
   const sorted = world.places
     .slice(placesFrom)
@@ -284,6 +321,7 @@ function paintBackground(
       c.fillRect(left + w - 4, top + roofH + 1, 2, 2);
     }
   }
+  yield;
   if ((large || regional) && !placesFrom) {
     c.font = `${large ? 13 : 10}px Georgia`;
     c.fillStyle = "#fff2d2";
@@ -318,6 +356,13 @@ function paintBackground(
   }
   c.restore();
 }
+
+/** Whole repaint in one go: the first map, and the cheap places-only pass. */
+function paintBackground(...args: Parameters<typeof paintBackgroundSteps>) {
+  const steps = paintBackgroundSteps(...args);
+  while (!steps.next().done);
+}
+
 type Backing = {
   world: WorldModel;
   origin: Point;
@@ -325,6 +370,10 @@ type Backing = {
   canvas: HTMLCanvasElement;
   places: number;
 };
+/** A repaint being spent a few milliseconds a frame. */
+type Rebuild = Backing & { steps: Generator<void> };
+/** Milliseconds a frame may spend repainting the map. */
+const MAP_BUDGET_MS = 4;
 export function Minimap({
   runtime,
   large = false,
@@ -338,6 +387,8 @@ export function Minimap({
 }) {
   const ref = useRef<HTMLCanvasElement>(null);
   const backing = useRef<Backing | undefined>(undefined);
+  const job = useRef<Rebuild | undefined>(undefined);
+  const redraw = useRef<() => void>(() => {});
   /** Animal groups on the map this draw, for the hover label. */
   const pins = useRef<{ x: number; y: number; text: string }[]>([]);
   const [pin, setPin] = useState<{ x: number; y: number; text: string }>();
@@ -353,23 +404,53 @@ export function Minimap({
   const origin =
     (large || regional) && !world.pack.setting ? { x: 20, y: 25 } : p;
   const places = world.places.length;
+  // Spends the frame's map budget on a deferred rebuild. The old map stays on
+  // screen until the new one is finished, which is a beat later at most.
+  useEffect(() => {
+    let raf = requestAnimationFrame(function pump() {
+      raf = requestAnimationFrame(pump);
+      const building = job.current;
+      if (!building) return;
+      timed("minimap rebuild", () => {
+        const start = performance.now();
+        let step = building.steps.next();
+        while (!step.done && performance.now() - start < MAP_BUDGET_MS)
+          step = building.steps.next();
+        if (!step.done) return;
+        backing.current = building;
+        job.current = undefined;
+        const canvas = ref.current;
+        if (canvas)
+          canvas.dataset.mapBuilds = String(
+            Number(canvas.dataset.mapBuilds ?? 0) + 1,
+          );
+        redraw.current();
+      });
+    });
+    return () => cancelAnimationFrame(raf);
+  }, []);
   useEffect(() => {
     const canvas = ref.current!;
     const image = sprites();
     const draw = () => {
       const key = `${size}:${height}:${extent}:${large}:${regional}`;
       let map = backing.current;
-      const moved =
-        !map ||
-        map.world !== world ||
-        map.key !== key ||
-        map.places > places ||
-        (Math.abs(origin.x - map.origin.x) * size) / extent > PAD - 4 ||
-        (Math.abs(origin.y - map.origin.y) * size) / extent > PAD - 4;
+      // A rebuild already under way is the freshest origin there is, so it is
+      // what a further move is measured against; otherwise walking restarts
+      // the same rebuild every emit and it never lands.
+      const target = job.current ?? map;
+      const shifted =
+        !!target &&
+        ((Math.abs(origin.x - target.origin.x) * size) / extent > PAD - 4 ||
+          (Math.abs(origin.y - target.origin.y) * size) / extent > PAD - 4);
+      // A different world, zoom or map size cannot be shown by the map we
+      // have, so it is rebuilt at once. Only walking is deferred.
+      const stale =
+        !map || map.world !== world || map.key !== key || map.places > places;
       // Places activate constantly while walking. Painting the new roofs over
       // the map we have costs a few rectangles; the full rebuild resamples the
       // world per pixel and was stalling a frame every few seconds.
-      if (!moved && map && map.places < places) {
+      if (!stale && !shifted && map && map.places < places) {
         paintBackground(
           map.canvas,
           world,
@@ -384,20 +465,27 @@ export function Minimap({
         );
         map.places = places;
       }
-      if (moved) {
+      const surface = () => {
         const background = document.createElement("canvas");
         background.width = size + PAD * 2;
         background.height = height + PAD * 2;
-        paintBackground(
-          background,
-          world,
-          image,
-          origin,
-          size,
-          height,
-          extent,
-          large,
-          regional,
+        return background;
+      };
+      if (stale) {
+        job.current = undefined;
+        const background = surface();
+        timed("minimap rebuild", () =>
+          paintBackground(
+            background,
+            world,
+            image,
+            origin,
+            size,
+            height,
+            extent,
+            large,
+            regional,
+          ),
         );
         map = backing.current = {
           world,
@@ -409,6 +497,26 @@ export function Minimap({
         canvas.dataset.mapBuilds = String(
           Number(canvas.dataset.mapBuilds ?? 0) + 1,
         );
+      } else if (shifted) {
+        const background = surface();
+        job.current = {
+          world,
+          origin: { ...origin },
+          key,
+          canvas: background,
+          places,
+          steps: paintBackgroundSteps(
+            background,
+            world,
+            image,
+            origin,
+            size,
+            height,
+            extent,
+            large,
+            regional,
+          ),
+        };
       }
       map = backing.current!;
       const ctx = canvas.getContext("2d")!;
@@ -463,12 +571,9 @@ export function Minimap({
       }
     };
     const ready = () => {
-      if (
-        image.complete &&
-        image.naturalWidth
-      )
-        draw();
+      if (image.complete && image.naturalWidth) draw();
     };
+    redraw.current = draw;
     ready();
     image.addEventListener("load", ready);
     return () => {
@@ -511,7 +616,11 @@ export function Minimap({
               best = d;
             }
           }
-          setPin(best ? { x: best.x / sx, y: best.y / sy, text: best.text } : undefined);
+          setPin(
+            best
+              ? { x: best.x / sx, y: best.y / sy, text: best.text }
+              : undefined,
+          );
         }}
         onMouseLeave={() => setPin(undefined)}
       />

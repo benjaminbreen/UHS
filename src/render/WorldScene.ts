@@ -6,9 +6,10 @@ import {
 import { WadingEffects } from "./characters/wading";
 import { shorePolishDefaults } from "./living-water/polish";
 import { updateLivingWater } from "./living-water/game";
-import { perf, beginFrame, mark, endFrame } from "./perf-switches";
+import { perf, open, mark, span, timed } from "./perf-switches";
 import { natureTreeSprites } from "../content/ecology/vegetation";
 import { rockFrame } from "../content/ecology/rocks";
+import { propVariety } from "./prop-variety";
 import { aerialStates, type FaunaGroup, type FaunaState } from "../core/fauna";
 import { canopyHidesPlayer } from "./canopy-visibility";
 import { WorldCharacters } from "./characters/world";
@@ -58,6 +59,10 @@ import {
 } from "../core/itinerary";
 import { lightingAt, lightingPreset, shadowFrame } from "./lighting";
 import { Drift } from "./drift";
+import { Mist } from "./mist";
+import { AmbientLife, critterFor } from "./ambient-life";
+import { weatherAt, type Weather } from "../core/weather";
+import { setWind, wind } from "./wind";
 
 import { driftStyle, foliageTint } from "./season-art";
 import { seasonAt } from "../core/livelihood";
@@ -68,13 +73,17 @@ import {
   animatedBase,
   animatedFrames,
   ensureFireTextures,
+  ensureHearthSmoke,
+  HEARTH_FRAMES,
   glowAlpha,
 } from "./fire";
 import terrainFrames from "./generated/terrain.json" with { type: "json" };
-const SCENERY_CACHE_REACH = 8;
 /** People drawn at once. Beyond roughly this many the per-head frame cache,
  * not the simulation, is what costs the frame. */
 const CROWD_LIMIT = 24;
+/** A hearth plume: fewer, slower and taller than a campfire's. */
+const HEARTH_PUFFS = 4;
+const HEARTH_MS = 3400;
 /** Tiles of slack beyond the view for routine lookups. `entityInView` allows
  * 8 on x and 12 on y, so this must clear 12. */
 const AMBIENT_MARGIN = 16;
@@ -94,6 +103,8 @@ const alternateTrees = {
 const ROUTINE_BUILD_BUDGET_MS = 2;
 /** Tiles of elbow room between drawn people. */
 const SPACING = 0.95;
+/** How far a town wall's coping stands above the ground it runs across. */
+const WALL_WALK_RISE = 11;
 const ambientPoses: Record<StationActivity, CharacterPose> = {
   rest: "sit",
   work: "work",
@@ -194,6 +205,7 @@ export class WorldScene extends Phaser.Scene {
   private drawnWorld?: WorldModel;
   private buildings = new Map<string, Phaser.GameObjects.Image>();
   private buildingAnimations = new Map<string, BuildingAnimation>();
+  private hearths = new Map<string, Phaser.GameObjects.Image[]>();
   private fires = new Map<string, FireEffect>();
   private fireFrames = new Set<string>();
   private nextInput = 0;
@@ -216,6 +228,9 @@ export class WorldScene extends Phaser.Scene {
   private shadowPhase = this.light.id;
   private night?: Phaser.GameObjects.Graphics;
   private drift?: Drift;
+  private mist?: Mist;
+  private life?: AmbientLife;
+  private weather?: Weather;
   private season = "summer";
   constructor(
     runtime: Runtime,
@@ -303,6 +318,8 @@ export class WorldScene extends Phaser.Scene {
     this.routeOverlay = this.add.graphics().setDepth(20000);
     this.night = this.add.graphics().setDepth(19000).setScrollFactor(0);
     this.drift = new Drift(this);
+    this.mist = new Mist(this);
+    this.life = new AmbientLife(this);
     this.input.keyboard!.removeCapture([
       "UP",
       "DOWN",
@@ -438,7 +455,22 @@ export class WorldScene extends Phaser.Scene {
     );
     const onResize = () => this.draw();
     this.scale.on("resize", onResize);
-    this.unsubscribe = this.runtime.subscribe(() => this.draw());
+    this.unsubscribe = this.runtime.subscribe(() =>
+      timed("scene draw", () => this.draw()),
+    );
+    // Phaser's own render pass, which the scene update does not cover.
+    let renderStart = 0;
+    const preRender = () => {
+      renderStart = performance.now();
+    };
+    const postRender = () =>
+      span("phaser render", performance.now() - renderStart);
+    this.game.events.on("prerender", preRender);
+    this.game.events.on("postrender", postRender);
+    this.events.once("shutdown", () => {
+      this.game.events.off("prerender", preRender);
+      this.game.events.off("postrender", postRender);
+    });
     const cleanup = () => {
       this.ready = false;
       this.scale.off("resize", onResize);
@@ -463,7 +495,9 @@ export class WorldScene extends Phaser.Scene {
   private perchRise(id: string) {
     if (id !== "player") return 0;
     const perch = this.runtime.engine.state.player.perch;
-    if (!perch) return 0;
+    // A wall walk has no perch target: the player's own cell is the wall, and
+    // the lift is the drawn height of its masonry.
+    if (!perch) return this.runtime.engine.onWall() ? WALL_WALK_RISE : 0;
     // The thing's own sprite is the honest height: a firewood stack stands
     // three times a pot. Overlap a couple of pixels so the feet sit in it
     // rather than float above the silhouette.
@@ -521,6 +555,29 @@ export class WorldScene extends Phaser.Scene {
     this.layers.push(image);
     return image;
   }
+  /** Phaser reads the alpha mask straight off the texture and knows nothing
+   * about flipX, so a mirrored sprite stays clickable along its old
+   * silhouette. Mirror the probe back before it reaches the mask. */
+  private mirroredHit?: Phaser.Types.Input.HitAreaCallback;
+  private mirroredHitArea() {
+    if (!this.mirroredHit) {
+      const pixel = this.input.makePixelPerfect() as (
+        ...args: Parameters<Phaser.Types.Input.HitAreaCallback>
+      ) => boolean;
+      this.mirroredHit = (hitArea, x, y, gameObject) =>
+        pixel(
+          hitArea,
+          (gameObject as Phaser.GameObjects.Image).width - x,
+          y,
+          gameObject,
+        );
+    }
+    return {
+      hitArea: {},
+      hitAreaCallback: this.mirroredHit,
+      useHandCursor: true,
+    };
+  }
   private addWind(
     image: Phaser.GameObjects.Image,
     frame: string,
@@ -566,6 +623,76 @@ export class WorldScene extends Phaser.Scene {
       period: Math.max(120, animation.period ?? 280),
       phase: animation.phase ?? 0,
     });
+  }
+  /** Whether this household has a fire in today. Hearths are lit to cook
+   * morning and evening, and kept in all day when it is cold; not every
+   * house at once, so a village is not a row of identical chimneys. */
+  private hearthLit(id: string) {
+    if (this.options.freeze || !perf.fires) return false;
+    const hour = Math.floor(
+      (((this.runtime.engine.state.clock / 3600) % 24) + 24) % 24,
+    );
+    const cooking = (hour >= 5 && hour < 10) || (hour >= 16 && hour < 22);
+    const cold = (this.weather?.tempC ?? 20) < 9;
+    if (!cooking && !cold) return false;
+    const share = cooking ? 0.7 : 0.45;
+    return random(this.runtime.engine.state.manifest.seed, "hearth", id) < share;
+  }
+  /** A thread of smoke off the roof, leaning downwind. Anchored at the ridge
+   * rather than the middle of the sprite: a thatched house vents through the
+   * roof, not out of its front wall. */
+  private lightHearth(
+    id: string,
+    placement: ReturnType<typeof buildingPlacement>,
+  ) {
+    if (this.hearths.has(id)) return;
+    const key = ensureHearthSmoke(this);
+    const x =
+      placement.x -
+      placement.model.anchor[0] +
+      placement.model.bounds[2] * 0.62;
+    // Just clear of the ridge: a puff drawn on the roofline reads as part of
+    // the roof rather than as something leaving it.
+    const y = placement.y - placement.model.anchor[1] - 2;
+    const puffs: Phaser.GameObjects.Image[] = [];
+    for (let i = 0; i < HEARTH_PUFFS; i++) {
+      const puff = this.add
+        .image(x, y, key, HEARTH_FRAMES[0])
+        .setAlpha(0)
+        .setDepth(placement.depth + 2);
+      this.layers.push(puff);
+      const rise = () => {
+        // The scenery cache can be thrown away between the delayed call being
+        // booked and its firing, taking the puff with it.
+        if (!puff.scene || this.hearths.get(id) !== puffs) return;
+        // Read the wind each cycle, so a plume leans over as the day gets up.
+        const air = wind();
+        const lean = Math.cos(air.angle) * (16 + air.strength * 52);
+        const jitter = (Math.random() - 0.5) * 5;
+        puff.setPosition(x + jitter, y).setAlpha(0.72).setFrame(HEARTH_FRAMES[0]);
+        this.tweens.add({
+          targets: puff,
+          y: y - 58 - Math.random() * 14,
+          x: x + jitter + lean,
+          alpha: 0,
+          duration: HEARTH_MS,
+          ease: "Sine.easeOut",
+          // The puff widens by changing frame, never by scaling: a scaled
+          // pixel blob stops matching the grid everything else sits on.
+          onUpdate: (tween) =>
+            puff.setFrame(
+              HEARTH_FRAMES[
+                Math.min(2, Math.floor(tween.progress * 3))
+              ],
+            ),
+          onComplete: rise,
+        });
+      };
+      this.time.delayedCall((i * HEARTH_MS) / HEARTH_PUFFS, rise);
+      puffs.push(puff);
+    }
+    this.hearths.set(id, puffs);
+    this.game.canvas.dataset.hearths = String(this.hearths.size);
   }
   /** Flame frames, a ground glow and a few drifting puffs of smoke. */
   private lightFire(
@@ -831,6 +958,22 @@ export class WorldScene extends Phaser.Scene {
       },
     );
   }
+  /** How much direct sun reaches the ground. Cloud takes the edge off a cast
+   * shadow and a downpour removes it: there is no sun behind the rain. */
+  private sunStrength() {
+    switch (this.weather?.condition) {
+      case "rain":
+        return 0.12;
+      case "overcast":
+        return 0.28;
+      case "mist":
+        return 0.45;
+      case "light-clouds":
+        return 0.85;
+      default:
+        return 1;
+    }
+  }
   private shadow(frame: string, x: number, y: number, transient = false) {
     if (this.options.shadows === false) return undefined;
     const key = shadowFrame(this.shadowPhase, frame);
@@ -845,6 +988,8 @@ export class WorldScene extends Phaser.Scene {
       .image(x, transient ? y : y - this.lift(x, y), texture, key)
       .setOriginFromFrame()
       .setDepth(this.runtime.engine.world.topography ? -1000 : -60000);
+    const sun = this.sunStrength();
+    if (sun < 1) image.setAlpha(sun);
     if (!transient) this.layers.push(image);
     return image;
   }
@@ -873,15 +1018,54 @@ export class WorldScene extends Phaser.Scene {
     this.season = setting
       ? (seasonAt(setting.season, e.state.clock) ?? setting.season)
       : "summer";
+    this.weather = setting
+      ? weatherAt(
+          e.state.manifest.seed,
+          setting.climate,
+          setting.season,
+          e.state.clock,
+        )
+      : undefined;
+    // One wind for the scene: grass, canopies and anything airborne read it.
+    if (this.weather) setWind(this.weather.wind);
+    const outdoors =
+      p.space === "outside" && (!this.options.overview || this.options.lab);
     this.drift?.set(
-      p.space === "outside" && setting && (!this.options.overview || this.options.lab)
+      outdoors && setting && this.weather
         ? driftStyle(
             this.season,
             setting.environment?.ecology ?? "grassland",
             setting.climate,
+            this.weather.condition,
+            this.weather.tempC,
           )
         : undefined,
       hashSeed(e.state.manifest.seed),
+    );
+    this.life?.set(
+      outdoors && setting && this.weather && perf.fauna
+        ? critterFor(
+            this.season,
+            setting.environment?.ecology ?? "grassland",
+            setting.climate,
+            this.light.id,
+            this.weather.condition,
+            this.weather.tempC,
+            this.weather.wetness,
+          )
+        : undefined,
+      hashSeed(e.state.manifest.seed),
+    );
+    this.mist?.set(
+      outdoors && this.weather && this.options.colorGrade !== false
+        ? this.weather.condition === "mist"
+          ? 0.55
+          : this.weather.condition === "rain"
+            ? 0.16
+            : this.weather.condition === "overcast"
+              ? 0.08
+              : 0
+        : 0,
     );
     const c = this.cameras.main;
     this.setCameraZoom(rt.zoom);
@@ -936,7 +1120,7 @@ export class WorldScene extends Phaser.Scene {
       this.terrainStream.setSun({
         id: this.shadowPhase,
         cast: lightingPreset(this.shadowPhase).cast as [number, number],
-        opacity: lightingPreset(this.shadowPhase).opacity,
+        opacity: lightingPreset(this.shadowPhase).opacity * this.sunStrength(),
       });
     }
     // Scenery has a small movement allowance; the expensive ground and
@@ -944,8 +1128,9 @@ export class WorldScene extends Phaser.Scene {
     if (
       w.topography &&
       (!this.terrainAnchor ||
-        Math.abs(viewX - this.terrainAnchor.x) > SCENERY_CACHE_REACH ||
-        Math.abs(viewY - this.terrainAnchor.y) > SCENERY_CACHE_REACH)
+        (perf.sceneryRebuilds &&
+          (Math.abs(viewX - this.terrainAnchor.x) > perf.sceneryReach ||
+            Math.abs(viewY - this.terrainAnchor.y) > perf.sceneryReach)))
     )
       this.terrainAnchor = { x: Math.floor(viewX), y: Math.floor(viewY) };
     const bx = w.topography ? this.terrainAnchor!.x : Math.floor(p.x / 16) * 16,
@@ -959,6 +1144,9 @@ export class WorldScene extends Phaser.Scene {
       rt.zoom,
       this.light.id,
       this.tint,
+      // Shadow strength is baked into the cached sprites, so a shower has to
+      // invalidate them the way an hour change does.
+      this.sunStrength(),
       this.scale.width,
       this.scale.height,
     ].join(":");
@@ -974,9 +1162,13 @@ export class WorldScene extends Phaser.Scene {
       this.ripples = [];
       this.buildings.clear();
       this.buildingAnimations.clear();
+      for (const puffs of this.hearths.values())
+        for (const puff of puffs) this.tweens.killTweensOf(puff);
+      this.hearths.clear();
+      this.game.canvas.dataset.hearths = "0";
       this.ground?.destroy();
       this.tilemap?.destroy();
-      const margin = w.topography ? SCENERY_CACHE_REACH + 6 : 20;
+      const margin = w.topography ? perf.sceneryReach + 6 : 20;
       const halfX = Math.ceil(this.scale.width / rt.zoom / 32) + margin,
         halfY = Math.ceil(this.scale.height / rt.zoom / 32) + margin;
       const mapHalf =
@@ -1258,6 +1450,9 @@ export class WorldScene extends Phaser.Scene {
                 spriteName.startsWith("study-sheet-tree-")
               )
                 decoration.setScale(this.liveGraphics.treeScale);
+              // sprite() already carries the hour-of-day grade; the season and
+              // the per-prop tone multiply into it.
+              let tint = this.tint;
               if (originalIsTree && w.pack.setting) {
                 const turn = foliageTint(
                   originalName,
@@ -1265,15 +1460,25 @@ export class WorldScene extends Phaser.Scene {
                   w.pack.setting.environment?.ecology ?? "grassland",
                   random(e.state.manifest.seed, "foliage", x, y),
                 );
-                // sprite() already carries the hour-of-day grade.
-                if (turn) decoration.setTint(blendTint(this.tint, turn));
+                if (turn) tint = blendTint(tint, turn);
               }
-              if (d?.solid) this.plantHeights.set(d.id, decoration.displayHeight);
+              const variety = propVariety(
+                e.state.manifest.seed,
+                frame,
+                x,
+                y,
+              );
+              if (variety.flip) decoration.setFlipX(true);
+              if (variety.tint !== 0xffffff) tint = blendTint(tint, variety.tint);
+              if (tint !== this.tint) decoration.setTint(tint);
+              if (d?.solid)
+                this.plantHeights.set(d.id, decoration.displayHeight);
               if (d && d.sprite !== "rock" && !this.options.lab) {
-                decoration.setInteractive({
-                  pixelPerfect: true,
-                  useHandCursor: true,
-                });
+                decoration.setInteractive(
+                  variety.flip
+                    ? this.mirroredHitArea()
+                    : { pixelPerfect: true, useHandCursor: true },
+                );
                 decoration.on(
                   "pointerdown",
                   (
@@ -1314,6 +1519,10 @@ export class WorldScene extends Phaser.Scene {
                   spriteName.startsWith("study-sheet-tree-")
                 )
                   trunk.setScale(this.liveGraphics.treeScale);
+                // The canopy above it is the same sprite: a trunk that does
+                // not mirror with it splits the tree down the middle.
+                if (variety.flip) trunk.setFlipX(true);
+                if (tint !== this.tint) trunk.setTint(tint);
                 trunk.setCrop(0, cut, trunk.width, trunk.height - cut);
               }
               if (spriteName === "rock" && w.topography) {
@@ -1399,6 +1608,8 @@ export class WorldScene extends Phaser.Scene {
             ).animation;
             if (animation)
               this.addBuildingAnimation(b.id, placement, animation);
+            if (b.access === "household" && this.hearthLit(b.id))
+              this.lightHearth(b.id, placement);
           }
         for (const fence of w.enclosures) {
           // A city circuit is far wider than a pen, so the cull tests the whole
@@ -1460,6 +1671,7 @@ export class WorldScene extends Phaser.Scene {
       this.game.canvas.dataset.sceneryDrawMs = String(
         Math.round(performance.now() - sceneryStart),
       );
+      this.game.canvas.dataset.sceneryDrawAt = String(Math.round(sceneryStart));
       this.game.canvas.dataset.sceneryDrawCount = String(
         Number(this.game.canvas.dataset.sceneryDrawCount ?? 0) + 1,
       );
@@ -1637,7 +1849,8 @@ export class WorldScene extends Phaser.Scene {
       // cannot say whether there is anything to redraw.
       const perchKey =
         id === "player"
-          ? (this.runtime.engine.state.player.perch?.on ?? "")
+          ? (this.runtime.engine.state.player.perch?.on ??
+            (this.runtime.engine.onWall() ? "wall" : ""))
           : "";
       const moved =
         !previous ||
@@ -1864,6 +2077,7 @@ export class WorldScene extends Phaser.Scene {
         );
       }
     }
+    const wash = this.weatherWash();
     this.night!.clear()
       .fillStyle(
         parseInt(this.light.ambient, 16),
@@ -1875,7 +2089,29 @@ export class WorldScene extends Phaser.Scene {
         this.scale.width * 9,
         this.scale.height * 9,
       );
+    if (wash > 0)
+      this.night!.fillStyle(0x2a3a55, wash).fillRect(
+        -this.scale.width * 4,
+        -this.scale.height * 4,
+        this.scale.width * 9,
+        this.scale.height * 9,
+      );
     this.game.canvas.dataset.lighting = this.light.id;
+  }
+  /** Cloud and wet ground both take the light out of a scene. Ground the
+   * player can see is soaked long after the shower has passed. */
+  private weatherWash() {
+    const w = this.weather;
+    if (!w || this.options.colorGrade === false) return 0;
+    const cloud =
+      w.condition === "rain"
+        ? 1
+        : w.condition === "overcast"
+          ? 0.45
+          : w.condition === "mist"
+            ? 0.2
+            : 0;
+    return Math.min(0.3, cloud * 0.16 + w.wetness * 0.12);
   }
   /** Frame of an animal's eight-step cycle at scene time; states share the
    * lab's timings so a walk in the world matches the walk in the lab. */
@@ -1897,8 +2133,11 @@ export class WorldScene extends Phaser.Scene {
     return `faunab-${species}-${state}-${n}`;
   }
   update(time: number) {
-    beginFrame();
+    open();
     this.drift?.update(time, !!this.options.freeze);
+    this.mist?.update(time, !!this.options.freeze);
+    this.life?.update(time, !!this.options.freeze);
+    mark("weather");
     if (perf.fauna)
       for (const [id, f] of this.faunaSprites) {
         const im = this.entities.get(id);
@@ -1972,7 +2211,7 @@ export class WorldScene extends Phaser.Scene {
       for (const wind of this.windSprites) {
         const sway = this.options.freeze
           ? { x: 0, angle: 0 }
-          : windSway(time, wind.phase, wind.profile);
+          : windSway(time, wind.phase, wind.profile, wind.baseX, wind.image.y);
         const x = wind.baseX + sway.x;
         if (wind.image.x !== x) wind.image.setX(x);
         if (wind.image.rotation !== sway.angle)
@@ -2214,7 +2453,7 @@ export class WorldScene extends Phaser.Scene {
       marker && destination ? marker.x - (destination.x * 16 + 8) : 0,
       marker && destination ? marker.y - (destination.y * 16 + 16) : 0,
     );
-    endFrame();
+    mark("scene update tail");
   }
   /** Nudges drawn people out of each other. Presentation only: the schedule
    * still says where somebody is standing, this only decides how they stand

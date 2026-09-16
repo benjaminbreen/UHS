@@ -1,3 +1,4 @@
+import { timed } from "../render/perf-switches";
 import { communityLabels } from "../content/ecology/communities";
 import { populateCharacter } from "../content/geography/character";
 import { generateCharacter } from "../content/characters/generate";
@@ -373,7 +374,12 @@ export class Runtime {
       selection: this.selected ? this.engine.inspect(this.selected) : undefined,
       // Drives the C prompt. Recomputed per view so it follows the player.
       climbable: this.engine.climbable(),
-      perch: observation.player.perch,
+      // A wall walk is not a perch, but it offers the same way back down.
+      perch:
+        observation.player.perch ??
+        (this.engine.onWall()
+          ? { on: "wall", label: "the wall", rise: 0 }
+          : undefined),
       notice: this.notice,
       running: this.running,
       zoom: this.zoom,
@@ -417,7 +423,7 @@ export class Runtime {
         this.engine.state.manifest.generator,
       );
     this.journey?.observe();
-    this.cached = this.view(refresh);
+    this.cached = timed("runtime view", () => this.view(refresh));
     for (const listener of this.subscribers) listener();
   }
   select(id?: string) {
@@ -579,10 +585,10 @@ export class Runtime {
   /** One key for both directions: climb what is in reach, or come back down. */
   climb() {
     const p = this.engine.state.player;
-    if (p.perch)
+    if (p.perch || this.engine.onWall())
       return this.command({
         type: "interact",
-        target: p.perch.on,
+        target: p.perch?.on ?? "wall",
         action: "descend",
       });
     const target = this.engine.climbable();

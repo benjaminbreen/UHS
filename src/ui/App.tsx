@@ -41,6 +41,7 @@ import {
   ScrollText,
 } from "lucide-react";
 import { weatherAt } from "../core/weather";
+import { seasonFor } from "../core/season";
 import { lightingAt } from "../render/lighting";
 import { regionAt } from "../content/geography/region-label";
 import { WeatherPanel } from "./WeatherPanel";
@@ -354,6 +355,11 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
   const setting = pack.setting;
   const weather = weatherAt(
     obs.manifest.seed,
+    setting?.climate ?? "temperate",
+    setting?.season ?? "spring",
+    obs.clock,
+  );
+  const season = seasonFor(
     setting?.climate ?? "temperate",
     setting?.season ?? "spring",
     obs.clock,
@@ -778,7 +784,13 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
             <div className="place-heading">
               <h2>{regionLabel}</h2>
               <p title={`Day ${day} · ${timeLabel(obs.clock)}`}>
-                {pack.date} <span>·</span> {period}
+                {pack.date} <span>·</span>{" "}
+                <em
+                  className={`season season-${season.id}`}
+                  style={{ ["--season" as string]: season.color }}
+                >
+                  {season.label}
+                </em>
               </p>
               <small>{landscape}</small>
             </div>

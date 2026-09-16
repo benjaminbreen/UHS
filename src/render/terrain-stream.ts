@@ -3,8 +3,12 @@ import { takeTerrainWorker } from "../runtime/terrain-worker-owner";
 import { ensureWaterAtlas } from "./water-motifs";
 import type Phaser from "phaser";
 import type { WorldModel } from "../core/types";
-import { drawTopography } from "./topography";
-import { addPixelTexture } from "./resources";
+import { topographySteps } from "./topography";
+import {
+  addPixelTexture,
+  renderResources,
+  type RenderResources,
+} from "./resources";
 import { drawContourLayers, type TerrainReceivers } from "./terrain-contours";
 import {
   TERRAIN_CHUNK_SIZE as SIZE,
@@ -16,6 +20,7 @@ import { groundStyle, setGroundStyle, type GroundStyle } from "./ground-style";
 import { rasterBankShadows } from "./bank-shadows";
 import type { TopographyCell } from "../core/topography";
 import type { PreparedSettlement } from "../world/v3/prepared";
+import { perf, span, timed } from "./perf-switches";
 
 type Chunk = {
   region: TerrainRegion;
@@ -28,6 +33,19 @@ type Chunk = {
 };
 /** One rasterising worker and the chunk it is busy with, if any. */
 type Rasterizer = { worker: Worker; busy?: string };
+/** A chunk part-way through being composed, resumed a slice at a time. */
+type Install = {
+  key: string;
+  region: TerrainRegion;
+  done: TerrainResponse;
+  steps: Generator<void, RenderResources>;
+  resources: RenderResources;
+  /** Objects already moved into world space; the rest are new this slice. */
+  shifted: number;
+  /** Set once the ground generator is exhausted and contours are drawn. */
+  stage: "ground" | "contours" | "shade";
+  chunk?: Chunk;
+};
 export type SunPhase = {
   id: string;
   cast: readonly [number, number];
@@ -57,6 +75,8 @@ export class TerrainStream {
   /** Bumped on restyle; responses rasterised under an older style are dropped. */
   private generation = 0;
   private maxInstall = 0;
+  /** The chunk currently being composed, if any. */
+  private job?: Install;
   private maxGroundInstall = 0;
   private batchedTiles = 0;
   private prepared?: PreparedSettlement;
@@ -101,13 +121,18 @@ export class TerrainStream {
   }
   private listen(r: Rasterizer) {
     const canvas = this.scene.game.canvas;
-    r.worker.onmessage = ({ data }) => {
+    r.worker.onmessage = (event) => {
+      // The structured clone is already deserialised by the time this runs;
+      // what is timed here is only the handover, not the decode.
+      const handled = performance.now();
+      const { data } = event;
       r.busy = undefined;
       if (data.error) {
         canvas.dataset.terrainError = data.error;
         return;
       }
       this.completed.push(data);
+      span("worker message", performance.now() - handled);
     };
     r.worker.onerror = (event) => {
       r.busy = undefined;
@@ -147,7 +172,9 @@ export class TerrainStream {
       if (r.busy) continue;
       while (
         this.queue.length &&
-        (this.chunks.has(this.queue[0][0]) || this.inFlight(this.queue[0][0]))
+        (this.chunks.has(this.queue[0][0]) ||
+          this.inFlight(this.queue[0][0]) ||
+          this.job?.key === this.queue[0][0])
       )
         this.queue.shift();
       const next = this.queue.shift();
@@ -215,90 +242,137 @@ export class TerrainStream {
         this.chunks.delete(id);
       }
     }
+    if (this.job && !this.wanted.has(this.job.key)) this.abort();
     this.queue = [...this.wanted]
-      .filter(([id]) => !this.chunks.has(id) && !this.inFlight(id))
+      .filter(
+        ([id]) =>
+          !this.chunks.has(id) && !this.inFlight(id) && this.job?.key !== id,
+      )
       .sort(([, a], [, b]) => this.priority(a) - this.priority(b));
     this.dirty = true;
     this.metrics();
   }
   update() {
-    if (!this.completed.length && !this.queue.length) return;
+    if (!this.job && !this.completed.length && !this.queue.length) return;
+    // A chunk costs several frames' budget to compose, so it is spent in
+    // slices: the generator stops between ground rows and the walk keeps its
+    // frame. Draining whole chunks was the hitch on walking into new ground.
+    // Nothing to stutter before the first fill lands, and a blank world is
+    // worse than a long frame, so the budget only bites once loaded.
+    const budget = this.loaded
+      ? perf.terrainInstallBudget
+      : Math.max(perf.terrainInstallBudget, 16);
+    if (perf.terrainInstallBudget <= 0) return;
     const start = performance.now();
-    // One chunk a frame. A chunk still costs more than a frame's budget, so
-    // draining a batch of them stalled for the sum: three at once was the
-    // visible hitch on walking into new ground. The first fill needs dozens,
-    // but at a frame each that is still well under a second.
-    let installed = 0;
-    while (this.completed.length && installed < 1) {
+    while (performance.now() - start < budget) {
+      if (!this.job && !this.begin()) break;
+      this.slice();
+    }
+    this.maxInstall = Math.max(this.maxInstall, performance.now() - start);
+    this.dispatch();
+    if (this.dirty) this.metrics();
+  }
+  /** Takes the next finished raster and opens an install for it. */
+  private begin() {
+    while (this.completed.length) {
       const done = this.completed.shift()!;
-      const {
-        id,
-        layers,
-        cells,
-        bridges,
-        waterTiles,
-        groundTiles,
-        groundPage,
-        rims,
-        receivers,
-        living,
-      } = done;
-      const [gen, key] = id.split(":");
+      const [gen, key] = done.id.split(":");
       const region =
         Number(gen) === this.generation ? this.wanted.get(key) : undefined;
-      const id2 = key;
-      if (region) {
-        const groundStart = performance.now();
-        const resources = drawTopography(
+      if (!region || this.chunks.has(key)) continue;
+      const cells = done.cells;
+      const resources = renderResources();
+      this.job = {
+        key,
+        region,
+        done,
+        steps: topographySteps(
           this.scene,
           (x, y) => cells[(y + PAD) * (SIZE + PAD * 2) + x + PAD],
           SIZE,
           SIZE,
           region,
-          bridges,
-          waterTiles,
-          groundTiles,
-          living,
-          groundPage,
-        );
-        this.maxGroundInstall = Math.max(
-          this.maxGroundInstall,
-          performance.now() - groundStart,
-        );
-        if (groundPage)
-          this.batchedTiles += groundPage.tiles.reduce(
-            (sum, value) => sum + value,
-            0,
-          );
-        drawContourLayers(this.scene, layers, region.prefix, resources);
-        const { objects, textures } = resources;
-        for (const object of objects) {
-          const o = object as Phaser.GameObjects.Image;
-          o.x += region.x * 16;
-          o.y += region.y * 16;
-          // All ground pages share the lowest plane; logical row determines
-          // the overlap of lifted tiles at adjacent chunk boundaries.
-          o.depth += region.y * 16;
-        }
-        const chunk: Chunk = {
-          region,
-          objects,
-          textures,
-          rims,
-          receivers,
-          cells,
-          shade: [],
-        };
-        this.shadeChunk(chunk, id2);
-        this.chunks.set(id2, chunk);
-        this.count++;
-        this.dirty = true;
-      }
-      installed++;
+          done.bridges,
+          done.waterTiles,
+          done.groundTiles,
+          done.living,
+          done.groundPage,
+          resources,
+        ),
+        resources,
+        shifted: 0,
+        stage: "ground",
+      };
+      return true;
     }
-    this.maxInstall = Math.max(this.maxInstall, performance.now() - start);
-    this.dispatch();
-    if (this.dirty) this.metrics();
+    return false;
+  }
+  /** One step of the open install. Each step ends with the objects it created
+   * moved into world space, so a part-built chunk is never drawn at origin. */
+  private slice() {
+    const job = this.job!;
+    const groundStart = performance.now();
+    if (job.stage === "ground") {
+      const step = job.steps.next();
+      if (step.done) job.stage = "contours";
+      this.maxGroundInstall = Math.max(
+        this.maxGroundInstall,
+        performance.now() - groundStart,
+      );
+    } else if (job.stage === "contours") {
+      drawContourLayers(
+        this.scene,
+        job.done.layers,
+        job.region.prefix,
+        job.resources,
+      );
+      job.stage = "shade";
+    } else {
+      const { objects, textures } = job.resources;
+      const chunk: Chunk = {
+        region: job.region,
+        objects,
+        textures,
+        rims: job.done.rims,
+        receivers: job.done.receivers,
+        cells: job.done.cells,
+        shade: [],
+      };
+      this.shadeChunk(chunk, job.key);
+      this.chunks.set(job.key, chunk);
+      if (job.done.groundPage)
+        this.batchedTiles += job.done.groundPage.tiles.reduce(
+          (sum, value) => sum + value,
+          0,
+        );
+      this.count++;
+      this.dirty = true;
+      this.job = undefined;
+      return;
+    }
+    this.shift(job);
+  }
+  /** Moves this slice's new objects from chunk-local to world coordinates. */
+  private shift(job: Install) {
+    const objects = job.resources.objects;
+    for (let i = job.shifted; i < objects.length; i++) {
+      const o = objects[i] as Phaser.GameObjects.Image;
+      o.x += job.region.x * 16;
+      o.y += job.region.y * 16;
+      // All ground pages share the lowest plane; logical row determines the
+      // overlap of lifted tiles at adjacent chunk boundaries.
+      o.depth += job.region.y * 16;
+    }
+    job.shifted = objects.length;
+  }
+  /** Releases a part-built chunk. Its objects are already in world space, so
+   * they would otherwise stay on screen with nothing owning them. */
+  private abort() {
+    if (!this.job) return;
+    const { objects, textures } = this.job.resources;
+    for (const object of objects) object.destroy();
+    for (const key of textures) this.scene.textures.remove(key);
+    this.job = undefined;
   }
   private priority(r: TerrainRegion) {
     const dx = Math.abs(r.x + SIZE / 2 - this.center.x),
@@ -336,9 +410,11 @@ export class TerrainStream {
     }
   }
   private release(chunk: Chunk) {
-    this.unshade(chunk);
-    for (const object of chunk.objects) object.destroy();
-    for (const key of chunk.textures) this.scene.textures.remove(key);
+    timed("chunk release", () => {
+      this.unshade(chunk);
+      for (const object of chunk.objects) object.destroy();
+      for (const key of chunk.textures) this.scene.textures.remove(key);
+    });
   }
   private unshade(chunk: Chunk) {
     for (const image of chunk.shade) {
@@ -352,6 +428,7 @@ export class TerrainStream {
    * small shadow textures are rebuilt; ground and contour pages are kept. */
   private shadeChunk(chunk: Chunk, id: string) {
     this.unshade(chunk);
+    if (!perf.bankShadows) return;
     const layers = rasterBankShadows(
       chunk.rims,
       chunk.cells,
@@ -376,6 +453,10 @@ export class TerrainStream {
       );
     }
   }
+  /** Rebuild every chunk's bank shadows, after the diagnostic toggle flips. */
+  reshade() {
+    for (const [id, chunk] of this.chunks) this.shadeChunk(chunk, id);
+  }
   setSun(sun: SunPhase) {
     if (sun.id === this.sun.id) return;
     this.sun = sun;
@@ -392,6 +473,7 @@ export class TerrainStream {
       // chunk has to look free again or nothing would re-request it.
       r.busy = undefined;
     }
+    this.abort();
     for (const chunk of this.chunks.values()) this.release(chunk);
     this.chunks.clear();
     this.completed = [];
@@ -409,6 +491,7 @@ export class TerrainStream {
   }
   dispose() {
     live.delete(this);
+    this.abort();
     for (const r of this.pool) r.worker.terminate();
     this.pool = [];
     for (const chunk of this.chunks.values()) this.release(chunk);
@@ -427,6 +510,11 @@ export function setTerrainReach(cells: number) {
     stream.replan();
     stream.restyle(groundStyle() ?? null);
   }
+}
+
+/** Diagnostics: re-apply bank shadows to loaded chunks on every live stream. */
+export function reshadeTerrain() {
+  for (const stream of live) stream.reshade();
 }
 
 /** Lab-facing entry point: restyle every terrain surface in one call, on both

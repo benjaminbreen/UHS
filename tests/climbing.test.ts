@@ -17,6 +17,20 @@ it("climbs a tree, a wall and a ledge, and comes back down", () => {
   engine.state.actors = [];
   engine.state.objects = [];
   engine.world.blocked = (x) => x === 2;
+  engine.world.enclosures = [
+    {
+      x: 2,
+      y: -4,
+      w: 1,
+      h: 9,
+      gate: { x: 2, y: 4 },
+      parts: Array.from({ length: 9 }, (_, i) => ({
+        x: 2,
+        y: i - 4,
+        frame: "wall",
+      })),
+    },
+  ];
   engine.world.decoration = (x, y) =>
     x === -1 && y === 0
       ? { id: "decor--1-0", x, y, sprite: "nature-oak", solid: true }
@@ -38,8 +52,16 @@ it("climbs a tree, a wall and a ledge, and comes back down", () => {
   engine.state.player.pos = { x: 1, y: 0, space: "outside" };
   expect(engine.climbable()).toMatchObject({ label: "the wall" });
   runtime.climb();
-  expect(engine.state.player.perch?.label).toBe("the wall");
+  // A wall is walked on, not perched on: the player stands on the wall cell.
+  expect(engine.state.player.pos).toMatchObject({ x: 2, y: 0 });
+  expect(engine.state.player.perch).toBeUndefined();
+  expect(engine.onWall()).toBe(true);
+  // Along the wall is open; off the wall is a climb down.
+  expect(runtime.move(0, 1)?.status).toBe("completed");
+  expect(engine.state.player.pos).toMatchObject({ x: 2, y: 1 });
+  expect(engine.climbable()).toBeUndefined();
   runtime.climb();
+  expect(engine.onWall()).toBe(false);
 
   // A ledge is climbed onto, not perched on: the player ends up standing there.
   engine.world.blocked = () => false;

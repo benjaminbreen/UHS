@@ -1,7 +1,7 @@
 import type { LivingMask } from "./living-water/mask";
 import type { GroundPage } from "./ground-pages";
 import { usesLivingWater, addLivingWater } from "./living-water/game";
-import { own, renderResources } from "./resources";
+import { own, renderResources, type RenderResources } from "./resources";
 import { paintedGround } from "./material-edges";
 import { rasterHabitatTile, type GroundTileData } from "./habitat-raster";
 import { isCanal, rasterWaterTile, type WaterTileData } from "./water-raster";
@@ -65,7 +65,10 @@ function toneOf(scene: Phaser.Scene, frame: string) {
   tones.set(frame, css);
   return css;
 }
-export function drawTopography(
+/** Composes a chunk in resumable slices. Installing a 16x16 chunk is over a
+ * frame's budget in one go, so the caller spends it a few milliseconds at a
+ * time; the ground fills in row by row instead of stalling the walk. */
+export function* topographySteps(
   scene: Phaser.Scene,
   sample: TopographySample,
   width: number,
@@ -76,8 +79,10 @@ export function drawTopography(
   groundTiles?: GroundTileData[],
   livingMask?: LivingMask,
   groundPage?: GroundPage,
-) {
-  const resources = renderResources();
+  /** Passed in when the caller spends the install over several frames: it
+   * needs a handle on the objects built so far, not only the finished set. */
+  resources: RenderResources = renderResources(),
+): Generator<void, RenderResources> {
   // Static ground is composed into small canvas pages, rather than keeping
   // tens of thousands of ground/blend GameObjects in every animation frame.
   const pageSize = region ? 256 : 512;
@@ -241,6 +246,7 @@ export function drawTopography(
     pages.set(key, page);
     resources.textures.push(key);
     own(resources, scene.add.image(0, 0, key).setOrigin(0).setDepth(-10000));
+    yield;
   }
   const bounded = sample;
   if (groundPage) {
@@ -268,6 +274,7 @@ export function drawTopography(
             groundPage.x - cx * pageSize,
             groundPage.y - cy * pageSize,
           );
+    yield;
   }
   if (!region)
     sample = (x, y) => bounded(x, Math.max(0, Math.min(height - 1, y)));
@@ -282,7 +289,7 @@ export function drawTopography(
     "sand",
     "snow",
   ];
-  for (let y = region ? 0 : -3; y < height + (region ? 0 : 4); y++)
+  for (let y = region ? 0 : -3; y < height + (region ? 0 : 4); y++) {
     for (let x = 0; x < width; x++) {
       const c = sample(x, y)!;
       const batched = !!groundPage?.tiles[y * width + x];
@@ -438,16 +445,21 @@ export function drawTopography(
       )
         image(x * 16, top, "tuft", depth + 0.3);
     }
+    yield;
+  }
   for (const page of pages.values()) page.refresh();
+  yield;
   if (usesLivingWater(scene))
     addLivingWater(scene, sample, width, height, region, resources, livingMask);
   const water = usesLivingWater(scene)
     ? undefined
     : addWaterEffects(scene, effects);
   if (water) own(resources, water);
+  yield;
   const blooms = addFlowers(scene, flowers);
   if (blooms) own(resources, blooms);
   addCrops(scene, standingCrops, resources);
+  yield;
   const covers = drawBridges(
     scene,
     sample,
@@ -468,4 +480,15 @@ export function drawTopography(
       groundTiles,
     );
   return resources;
+}
+
+/** Whole-chunk install, for callers with no frame to protect: labs, previews
+ * and the unstreamed single-region path. */
+export function drawTopography(
+  ...args: Parameters<typeof topographySteps>
+): RenderResources {
+  const steps = topographySteps(...args);
+  let step = steps.next();
+  while (!step.done) step = steps.next();
+  return step.value;
 }

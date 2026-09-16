@@ -6,11 +6,20 @@ export type WeatherCondition =
   | "overcast"
   | "rain"
   | "mist";
+export type Wind = {
+  /** Direction the wind blows toward, in screen radians: 0 is east, PI/2 south. */
+  angle: number;
+  /** 0 still, 1 a gale. */
+  strength: number;
+};
 export type Weather = {
   condition: WeatherCondition;
   label: string;
   tempC: number;
   night: boolean;
+  wind: Wind;
+  /** How wet the ground is, 0 to 1. Rain soaks it and it dries out after. */
+  wetness: number;
 };
 
 const labels: Record<WeatherCondition, string> = {
@@ -54,6 +63,59 @@ function hash(s: string) {
   return (h >>> 0) / 4294967296;
 }
 
+function conditionFor(
+  seed: string,
+  day: number,
+  rain: number,
+  hour: number,
+): WeatherCondition {
+  const roll = hash(`${seed}:${day}:sky`);
+  return roll < rain
+    ? "rain"
+    : roll < rain + 0.15
+      ? "overcast"
+      : roll < rain + 0.4
+        ? "light-clouds"
+        : roll > 0.93 && hour < 9
+          ? "mist"
+          : "clear";
+}
+
+/** How much water a day's weather puts on the ground. */
+const soak: Record<WeatherCondition, number> = {
+  rain: 1,
+  overcast: 0.12,
+  mist: 0.2,
+  "light-clouds": 0,
+  clear: 0,
+};
+
+// Prevailing wind. The monsoon reverses with the season, which is the whole
+// point of it; elsewhere the day's direction is diced and drifts a little.
+function windFor(
+  seed: string,
+  day: number,
+  hour: number,
+  climate: string,
+  si: number,
+  condition: WeatherCondition,
+): Wind {
+  const monsoon = climate === "monsoon" ? (si === 1 ? 0 : Math.PI) : undefined;
+  const dice = hash(`${seed}:${day}:wind`);
+  const angle =
+    (monsoon ?? dice * Math.PI * 2) +
+    (hash(`${seed}:${day}:veer`) - 0.5) * (monsoon === undefined ? 0.9 : 0.5) +
+    Math.sin(hour / 5 + dice * 6) * 0.25;
+  // Afternoons are breezier than dawn, and a wet day is rarely a still one.
+  const diurnal = 0.72 + 0.28 * -Math.cos(((hour - 2) / 24) * Math.PI * 2);
+  const wet = condition === "rain" ? 0.3 : condition === "overcast" ? 0.12 : 0;
+  const strength = Math.max(
+    0.05,
+    Math.min(1, (0.15 + hash(`${seed}:${day}:force`) * 0.6) * diurnal + wet),
+  );
+  return { angle, strength };
+}
+
 /** Deterministic daily weather; the day is diced once so it never flickers. */
 export function weatherAt(
   seed: string,
@@ -70,17 +132,7 @@ export function weatherAt(
   );
   const band = bands[climate] ?? bands.temperate;
   const rain = (rainChance[climate] ?? rainChance.temperate)[si];
-  const roll = hash(`${seed}:${day}:sky`);
-  const condition: WeatherCondition =
-    roll < rain
-      ? "rain"
-      : roll < rain + 0.15
-        ? "overcast"
-        : roll < rain + 0.4
-          ? "light-clouds"
-          : roll > 0.93 && hour < 9
-            ? "mist"
-            : "clear";
+  const condition = conditionFor(seed, day, rain, hour);
   // Coolest before dawn, warmest mid-afternoon.
   const diurnal = -Math.cos(((hour - 4) / 24) * Math.PI * 2);
   const noise = (hash(`${seed}:${day}:temp`) - 0.5) * 6;
@@ -88,11 +140,21 @@ export function weatherAt(
   const tempC = Math.round(
     band.temps[si] + (diurnal * band.swing) / 2 + noise + cloudCool,
   );
+  // Today's rain builds through the day; yesterday's is still drying off.
+  const today = soak[condition];
+  const before = soak[conditionFor(seed, day - 1, rain, 20)];
+  const wetness = Math.max(
+    today * Math.min(1, 0.4 + hour / 14),
+    before - hour / (condition === "clear" ? 7 : 14),
+    0,
+  );
   return {
     condition,
     label: labels[condition],
     tempC,
     night: hour < 5 || hour >= 20,
+    wind: windFor(seed, day, hour, climate, si, condition),
+    wetness: Math.min(1, wetness),
   };
 }
 

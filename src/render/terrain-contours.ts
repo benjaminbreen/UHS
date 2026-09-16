@@ -400,8 +400,10 @@ export function wallOwnsCell(sample: TopographySample, x: number, y: number) {
   // nothing to copy the surface texture from otherwise.
   // Water above the valley floor (a creek on its terrace) is drawn here too,
   // from its own rasterised tile.
-  if (c && c.surface === "water" && c.height > 0) return true;
-  if (!c || !paintedGround(c) || c.feature === "paving" || c.field)
+  // Raised water still needs a height change nearby: away from one the wall
+  // pass paints nothing, and claiming the cell only suppressed its water tile.
+  const raisedWater = !!c && c.surface === "water" && c.height > 0;
+  if (!c || (!raisedWater && (!paintedGround(c) || c.feature === "paving" || c.field)))
     return false;
   for (let dy = -1; dy <= 1; dy++)
     for (let dx = -1; dx <= 1; dx++) {

@@ -249,6 +249,28 @@ export class Engine {
   private householdsById?: Map<string, Household>;
   private resourceObjects?: WorldObject[];
   private terrainCollision = new Map<string, boolean>();
+  private wallCells?: Set<string>;
+  private wallCellsFor = -1;
+  /** A cell belonging to an enclosure circuit: a wall you can stand on, as
+   * opposed to a building footprint or a tree. Districts push enclosures as
+   * they activate, so the index is rebuilt when their number changes. */
+  wallAt(x: number, y: number, space = this.state.player.pos.space) {
+    if (space !== "outside") return false;
+    const all = this.world.enclosures ?? [];
+    if (!this.wallCells || this.wallCellsFor !== all.length) {
+      this.wallCells = new Set();
+      for (const e of all)
+        for (const part of e.parts ?? [])
+          this.wallCells.add(`${part.x},${part.y}`);
+      this.wallCellsFor = all.length;
+    }
+    return this.wallCells.has(`${x},${y}`);
+  }
+  /** Standing on top of a wall, rather than beside it. */
+  onWall() {
+    const p = this.state.player.pos;
+    return this.wallAt(p.x, p.y, p.space);
+  }
   /** Re-files an actor in actorsAt after any write to a.pos, including ones
    * made by livelihood callbacks the engine does not own. */
   private syncActor(a: Actor) {
@@ -409,7 +431,7 @@ export class Engine {
     | { id: string; label: string; rise: number; at: Point; to?: Point }
     | undefined {
     const p = this.state.player;
-    if (p.perch) return undefined;
+    if (p.perch || this.onWall()) return undefined;
     const near = (q: Point) =>
       Math.max(Math.abs(q.x - p.pos.x), Math.abs(q.y - p.pos.y)) <= 1;
     const object = this.state.objects
@@ -466,6 +488,16 @@ export class Engine {
         );
         if (place)
           return { id: place.id, label: place.name, rise: 22, at: q };
+        // A wall walk is a surface, not a perch: step onto it and the wall
+        // top is ground until you climb down the far side.
+        if (this.wallAt(q.x, q.y, "outside"))
+          return {
+            id: `wall:${q.x},${q.y}`,
+            label: "the wall",
+            rise: 20,
+            at: q,
+            to: q,
+          };
         return {
           id: `wall:${q.x},${q.y}`,
           label: "the wall",
@@ -534,6 +566,25 @@ export class Engine {
   }
   descend() {
     const p = this.state.player;
+    if (!p.perch && this.onWall()) {
+      const down = [
+        [1, 0],
+        [-1, 0],
+        [0, 1],
+        [0, -1],
+      ]
+        .map(([dx, dy]) => ({ x: p.pos.x + dx, y: p.pos.y + dy }))
+        .find(
+          (q) =>
+            !this.wallAt(q.x, q.y, "outside") &&
+            !this.blocked(q.x, q.y, "outside"),
+        );
+      if (!down) return;
+      p.pos = { ...down, space: p.pos.space };
+      this.advance(20);
+      this.event("You climb down off the wall.");
+      return;
+    }
     if (!p.perch) return;
     const label = p.perch.label;
     p.perch = undefined;
@@ -1034,7 +1085,7 @@ export class Engine {
   validate(c: PlayerCommand): string | undefined {
     const p = this.state.player;
     if (c.type === "interact" && c.action === "descend")
-      return p.perch ? undefined : "You are not up anything.";
+      return p.perch || this.onWall() ? undefined : "You are not up anything.";
     if (c.type === "interact" && c.action === "climb") {
       if (p.perch) return `You are already up ${p.perch.label}.`;
       return this.climbable() ? undefined : "There is nothing here to climb.";
@@ -1089,7 +1140,8 @@ export class Engine {
             x: p.pos.x + c.dx,
             y: p.pos.y + c.dy,
           })) ||
-        this.blocked(p.pos.x + c.dx, p.pos.y + c.dy) ||
+        (this.blocked(p.pos.x + c.dx, p.pos.y + c.dy) &&
+          !(this.onWall() && this.wallAt(p.pos.x + c.dx, p.pos.y + c.dy))) ||
         (c.dx !== 0 &&
           c.dy !== 0 &&
           (this.blocked(p.pos.x + c.dx, p.pos.y) ||
