@@ -109,7 +109,7 @@ export type Actor = {
   direction: number;
   /** Perched on top of something: one cell, no roaming. `rise` is the sprite
    * lift in world pixels, which is also what the view reaches over. */
-  perch?: { on: string; label: string; rise: number };
+  perch?: { on: string; label: string; rise: number; at?: Point };
   held?: string;
   /** Set while a need has pulled this actor off their daily routine. Absent is
    * the normal case, so a resident is drawn from the schedule from the first

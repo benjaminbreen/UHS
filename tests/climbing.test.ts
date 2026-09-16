@@ -29,6 +29,9 @@ it("climbs a tree, a wall and a ledge, and comes back down", () => {
   expect(engine.climbable()).toMatchObject({ id: "decor--1-0", label: "Oak" });
   runtime.climb();
   expect(engine.state.player.perch?.on).toBe("decor--1-0");
+  // The renderer draws the player over the thing, not the ground beside it.
+  expect(engine.state.player.perch?.at).toEqual({ x: -1, y: 0 });
+  expect(engine.state.player.pos).toMatchObject({ x: 0, y: 0 });
   runtime.climb();
   expect(engine.state.player.perch).toBeUndefined();
 

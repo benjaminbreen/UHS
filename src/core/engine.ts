@@ -406,7 +406,7 @@ export class Engine {
    * predictable. A `to` cell means the climb ends standing there rather than
    * perched on top. */
   climbable():
-    | { id: string; label: string; rise: number; to?: Point }
+    | { id: string; label: string; rise: number; at: Point; to?: Point }
     | undefined {
     const p = this.state.player;
     if (p.perch) return undefined;
@@ -425,7 +425,13 @@ export class Engine {
       .sort((a, b) => distance(p.pos, a.pos) - distance(p.pos, b.pos))[0];
     // object.name, not inspect(): inspect() asks this method for its climb
     // affordance, so reaching back into it recurses until the stack blows.
-    if (object) return { id: object.id, label: object.name, rise: 12 };
+    if (object)
+      return {
+        id: object.id,
+        label: object.name,
+        rise: 12,
+        at: { x: object.pos.x, y: object.pos.y },
+      };
     if (p.pos.space === "outside") {
       const ring: Point[] = [];
       for (const [dx, dy] of [
@@ -442,7 +448,12 @@ export class Engine {
       for (const q of ring) {
         const plant = this.world.decoration(q.x, q.y);
         if (plant?.solid && plant.sprite !== "rock")
-          return { id: plant.id, label: treeName(plant.sprite), rise: 24 };
+          return {
+            id: plant.id,
+            label: treeName(plant.sprite),
+            rise: 24,
+            at: q,
+          };
       }
       // A blocked cell with nothing growing on it is masonry: a house wall or
       // a town wall. Either is a scramble to the top rather than a way through.
@@ -453,12 +464,24 @@ export class Engine {
           (r) =>
             q.x >= r.x && q.x < r.x + r.w && q.y >= r.y && q.y < r.y + r.h,
         );
-        if (place) return { id: place.id, label: place.name, rise: 22 };
-        return { id: `wall:${q.x},${q.y}`, label: "the wall", rise: 20 };
+        if (place)
+          return { id: place.id, label: place.name, rise: 22, at: q };
+        return {
+          id: `wall:${q.x},${q.y}`,
+          label: "the wall",
+          rise: 20,
+          at: q,
+        };
       }
     }
     const place = (this.world.places ?? []).find((q) => near(q.entrance));
-    if (place) return { id: place.id, label: place.name, rise: 22 };
+    if (place)
+      return {
+        id: place.id,
+        label: place.name,
+        rise: 22,
+        at: { ...place.entrance },
+      };
     if (p.pos.space === "outside" && this.world.topography) {
       const here = this.world.topography(p.pos.x, p.pos.y);
       for (const [dx, dy] of [
@@ -476,6 +499,7 @@ export class Engine {
             id: `ledge:${to.x},${to.y}`,
             label: "the ledge",
             rise: rise * 8,
+            at: to,
             to,
           };
       }
@@ -483,7 +507,13 @@ export class Engine {
     return undefined;
   }
   /** Shared by the C key, the affordance and the narrator's climb intent. */
-  perch(target: { id: string; label: string; rise: number; to?: Point }) {
+  perch(target: {
+    id: string;
+    label: string;
+    rise: number;
+    at?: Point;
+    to?: Point;
+  }) {
     const p = this.state.player;
     if (target.to) {
       p.pos = { ...target.to, space: p.pos.space };
@@ -491,7 +521,14 @@ export class Engine {
       this.event(`You scramble up ${target.label}.`);
       return;
     }
-    p.perch = { on: target.id, label: target.label, rise: target.rise };
+    p.perch = {
+      on: target.id,
+      label: target.label,
+      rise: target.rise,
+      // Standing on the thing, not beside it: the renderer draws the player
+      // over this cell while pos, and so collision, stays put.
+      ...(target.at ? { at: { ...target.at } } : {}),
+    };
     this.advance(40);
     this.event(`You climb ${target.label} and settle at the top.`);
   }

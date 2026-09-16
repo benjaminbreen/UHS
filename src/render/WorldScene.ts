@@ -6,6 +6,7 @@ import {
 import { WadingEffects } from "./characters/wading";
 import { shorePolishDefaults } from "./living-water/polish";
 import { updateLivingWater } from "./living-water/game";
+import { perf, beginFrame, mark, endFrame } from "./perf-switches";
 import { natureTreeSprites } from "../content/ecology/vegetation";
 import { rockFrame } from "../content/ecology/rocks";
 import { aerialStates, type FaunaGroup, type FaunaState } from "../core/fauna";
@@ -446,12 +447,24 @@ export class WorldScene extends Phaser.Scene {
       ? surfaceElevation(w.topography, x / 16 - 0.5, y / 16 - 1) * TERRAIN_RISE
       : 0;
   }
-  /** A perched player renders above whatever they climbed. The tile position
-   * is unchanged, so collision and pathfinding never see the lift. */
+  /** A perched player renders on top of whatever they climbed. The tile
+   * position is unchanged, so collision and pathfinding never see the lift. */
   private perchRise(id: string) {
+    if (id !== "player") return 0;
+    const perch = this.runtime.engine.state.player.perch;
+    if (!perch) return 0;
+    // The thing's own sprite is the honest height: a firewood stack stands
+    // three times a pot. Overlap a couple of pixels so the feet sit in it
+    // rather than float above the silhouette.
+    const on = this.entities.get(perch.on);
+    return on ? Math.max(4, Math.round(on.displayHeight) - 3) : perch.rise;
+  }
+  /** The cell a perched player is drawn over, which is the thing they climbed
+   * rather than the ground they walked in from. */
+  private perchCell(id: string) {
     return id === "player"
-      ? (this.runtime.engine.state.player.perch?.rise ?? 0)
-      : 0;
+      ? this.runtime.engine.state.player.perch?.at
+      : undefined;
   }
   /** Sends a sprite along a parabola to its landing tile. The height above the
    * ground is published as `arcLift`, which is what keeps the shadow behind. */
@@ -1498,11 +1511,12 @@ export class WorldScene extends Phaser.Scene {
     ) => {
       keep.add(id);
       let im = this.entities.get(id);
-      const tx = pos.x * 16 + 8,
+      const on = this.perchCell(id) ?? pos;
+      const tx = on.x * 16 + 8,
         ty =
-          pos.y * 16 +
+          on.y * 16 +
           16 -
-          this.lift(pos.x * 16 + 8, pos.y * 16 + 16) -
+          this.lift(on.x * 16 + 8, on.y * 16 + 16) -
           this.perchRise(id);
       if (!im) {
         im = this.add
@@ -1835,21 +1849,27 @@ export class WorldScene extends Phaser.Scene {
     return `faunab-${species}-${state}-${n}`;
   }
   update(time: number) {
-    for (const [id, f] of this.faunaSprites) {
-      const im = this.entities.get(id);
-      if (!im) continue;
-      const name = this.faunaFrame(f.species, f.state, f.phase);
-      if (im.frame.name !== name) im.setFrame(name);
-    }
+    beginFrame();
+    if (perf.fauna)
+      for (const [id, f] of this.faunaSprites) {
+        const im = this.entities.get(id);
+        if (!im) continue;
+        const name = this.faunaFrame(f.species, f.state, f.phase);
+        if (im.frame.name !== name) im.setFrame(name);
+      }
+    mark("fauna");
     updateLivingWater(
       this,
       time,
       this.light.id,
-      this.options.waterAnimation === false ||
+      !perf.livingWater ||
+        this.options.waterAnimation === false ||
         (!!this.options.freeze && this.options.waterAnimation !== true),
     );
+    mark("water");
     this.terrainStream?.update();
-    if (!this.options.lab && this.ready) {
+    mark("terrain");
+    if (!this.options.lab && this.ready && perf.ambientPeople) {
       const clock = this.runtime.displayClock();
       this.buildRoutines(clock);
       // A full pass now and then lets people walk into and out of view; in
@@ -1859,33 +1879,38 @@ export class WorldScene extends Phaser.Scene {
         this.draw();
       else this.moveAmbient(clock);
     }
-    const phase = this.options.freeze ? 0 : Math.floor(time / 800) % 4;
+    mark("ambient people");
+    const phase =
+      this.options.freeze || !perf.ripples ? 0 : Math.floor(time / 800) % 4;
     if (phase !== this.rippleTime) {
       this.rippleTime = phase;
       for (const r of this.ripples)
         r.image.setFrame(`ripple-${(phase + r.phase) % 4}`);
     }
-    for (const fire of this.fires.values()) {
-      const n = this.options.freeze
-        ? 0
-        : Math.floor(time / FIRE_FRAME_MS + fire.phase) % 4;
-      const name = n ? `${fire.base}-f${n}` : fire.base;
-      if (fire.image.frame.name !== name) fire.image.setFrame(name);
-      const pulse = this.options.freeze
-        ? 1
-        : 0.88 + 0.12 * Math.sin(time / 210 + fire.phase * 1.7);
-      const alpha = glowAlpha[this.light.id] * pulse;
-      if (fire.glow.alpha !== alpha) fire.glow.setAlpha(alpha);
-      if (fire.glow.depth !== fire.image.depth - 1)
-        fire.glow.setDepth(fire.image.depth - 1);
-    }
-    for (const animation of this.buildingAnimations.values()) {
-      const frame = this.options.freeze
-        ? 0
-        : Math.floor(time / animation.period + animation.phase) % 4;
-      const name = `animation-roof-fan-${frame}`;
-      if (animation.image.frame.name !== name) animation.image.setFrame(name);
-    }
+    if (perf.fires)
+      for (const fire of this.fires.values()) {
+        const n = this.options.freeze
+          ? 0
+          : Math.floor(time / FIRE_FRAME_MS + fire.phase) % 4;
+        const name = n ? `${fire.base}-f${n}` : fire.base;
+        if (fire.image.frame.name !== name) fire.image.setFrame(name);
+        const pulse = this.options.freeze
+          ? 1
+          : 0.88 + 0.12 * Math.sin(time / 210 + fire.phase * 1.7);
+        const alpha = glowAlpha[this.light.id] * pulse;
+        if (fire.glow.alpha !== alpha) fire.glow.setAlpha(alpha);
+        if (fire.glow.depth !== fire.image.depth - 1)
+          fire.glow.setDepth(fire.image.depth - 1);
+      }
+    mark("fires");
+    if (perf.buildingAnimations)
+      for (const animation of this.buildingAnimations.values()) {
+        const frame = this.options.freeze
+          ? 0
+          : Math.floor(time / animation.period + animation.phase) % 4;
+        const name = `animation-roof-fan-${frame}`;
+        if (animation.image.frame.name !== name) animation.image.setFrame(name);
+      }
     if (
       this.game.canvas.dataset.buildingAnimations !==
       String(this.buildingAnimations.size)
@@ -1893,15 +1918,18 @@ export class WorldScene extends Phaser.Scene {
       this.game.canvas.dataset.buildingAnimations = String(
         this.buildingAnimations.size,
       );
-    for (const wind of this.windSprites) {
-      const sway = this.options.freeze
-        ? { x: 0, angle: 0 }
-        : windSway(time, wind.phase, wind.profile);
-      const x = wind.baseX + sway.x;
-      if (wind.image.x !== x) wind.image.setX(x);
-      if (wind.image.rotation !== sway.angle)
-        wind.image.setRotation(sway.angle);
-    }
+    mark("building animations");
+    if (perf.wind)
+      for (const wind of this.windSprites) {
+        const sway = this.options.freeze
+          ? { x: 0, angle: 0 }
+          : windSway(time, wind.phase, wind.profile);
+        const x = wind.baseX + sway.x;
+        if (wind.image.x !== x) wind.image.setX(x);
+        if (wind.image.rotation !== sway.angle)
+          wind.image.setRotation(sway.angle);
+      }
+    mark("wind");
     const active = document.activeElement;
     const typing =
       active instanceof HTMLInputElement ||
@@ -1964,7 +1992,7 @@ export class WorldScene extends Phaser.Scene {
       ) {
         this.lastTick = time;
         this.motionDuration = 140;
-        this.runtime.tick();
+        if (perf.worldTicks) this.runtime.tick();
         if (this.runtime.running) {
           const p = this.runtime.engine.state.player.pos,
             sample = this.runtime.engine.world.topography;
@@ -1985,7 +2013,9 @@ export class WorldScene extends Phaser.Scene {
       const depth =
         im.y +
         arcLift +
-        perched * 2 +
+        // A fixed nudge, not the lift: a perched player shares the cell with
+        // what they climbed and only has to sort in front of it.
+        (perched ? 4 : 0) +
         this.lift(im.x, (this.destinations.get(id)?.y ?? 0) * 16 + 16) -
         (frame ? 2 : 6);
       if (im.depth !== depth) im.setDepth(depth);
@@ -1993,7 +2023,7 @@ export class WorldScene extends Phaser.Scene {
       if (id === "player" && !this.options.lab)
         this.cameras.main.setFollowOffset(0, -arcLift);
       const human = this.humanActors.get(id);
-      if (human && this.characters) {
+      if (human && this.characters && perf.characterPoses) {
         const at = this.ambient.get(id);
         const moving = at ? at.moving : this.tweens.isTweening(im);
         const action =
@@ -2127,6 +2157,7 @@ export class WorldScene extends Phaser.Scene {
       if (alpha !== image.alpha) image.setAlpha(alpha);
     }
     this.characters?.prune();
+    mark("actors");
     const selected = this.runtime.selected;
     const marker = this.entities.get(selected ?? "player");
     const destination = this.destinations.get(selected ?? "player");
@@ -2134,6 +2165,7 @@ export class WorldScene extends Phaser.Scene {
       marker && destination ? marker.x - (destination.x * 16 + 8) : 0,
       marker && destination ? marker.y - (destination.y * 16 + 16) : 0,
     );
+    endFrame();
   }
   /** Nudges drawn people out of each other. Presentation only: the schedule
    * still says where somebody is standing, this only decides how they stand
@@ -2147,7 +2179,7 @@ export class WorldScene extends Phaser.Scene {
       const at = this.ambient.get(id);
       if (at) people.push(at);
     }
-    if (people.length < 2) return;
+    if (people.length < 2 || !perf.crowdSeparation) return;
     for (let pass = 0; pass < 3; pass++)
       for (let i = 0; i < people.length; i++) {
         const a = people[i];
@@ -2179,7 +2211,7 @@ export class WorldScene extends Phaser.Scene {
    * presentation: the engine builds its own on a fixed per-tick budget, and the
    * result is the same itinerary whoever asks first. */
   private buildRoutines(clock: number) {
-    if (!this.pendingRoutines.length) return;
+    if (!this.pendingRoutines.length || !perf.routineBuilding) return;
     const w = this.runtime.engine.world,
       p = this.runtime.engine.state.player.pos,
       range =
