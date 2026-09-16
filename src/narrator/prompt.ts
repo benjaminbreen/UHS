@@ -1,5 +1,7 @@
 import type { Engine } from "../core/engine";
 import { describeStats, statsOf } from "../core/stats";
+import { describeStanding, standingOf } from "../core/standing";
+import { describeOutlook, outlookOf } from "../core/outlook";
 import { weatherAt } from "../core/weather";
 import { seasonAt } from "../core/livelihood";
 import { distance, type Actor, type Position } from "../core/types";
@@ -48,7 +50,9 @@ export function worldCard(engine: Engine): string {
   const { pack } = engine.world,
     s = engine.state,
     p = s.player,
-    setting = pack.setting;
+    setting = pack.setting,
+    standing = standingOf(s.manifest.seed, p),
+    outlook = setting ? outlookOf(s.manifest.seed, p, setting) : undefined;
   const household = s.households?.find((h) => h.members.includes("player"));
   const kin = (p.relations ?? [])
     .map((r) => {
@@ -75,7 +79,7 @@ export function worldCard(engine: Engine): string {
     evidence.length ? `Grounding:\n${evidence.join("\n")}` : "",
     "",
     "PLAYER",
-    `${p.name}, ${p.age ?? "adult"}, ${p.role}${p.origin ? ` (${p.origin.livelihood}, ${p.origin.community})` : ""}. ${p.stats ? `Traits: ${describeStats(p.stats).join(", ") || "unremarkable"}.` : ""}`,
+    `${p.name}, ${p.age ?? "adult"}, ${p.role}${p.origin ? ` (${p.origin.livelihood}, ${p.origin.community})` : ""}. ${standing ? `Standing: ${describeStanding(standing)}. ` : ""}${p.stats ? `Traits: ${describeStats(p.stats).join(", ") || "unremarkable"}.` : ""}${outlook?.stances.length ? ` Holds: ${describeOutlook(outlook)}.` : ""}`,
     `Concern: ${pack.concern}`,
     household
       ? `Household of ${household.members.length}${kin.length ? `: ${kin.join(", ")}` : ""}.`
@@ -117,9 +121,12 @@ export function sceneDigest(engine: Engine, input: string): string {
   const people = near(s.actors, 10, 8).map((a: Actor) => {
     const traits =
       a.kind === "human" ? describeStats(statsOf(seed, a)).slice(0, 3) : [];
+    const standing = a.kind === "human" ? standingOf(seed, a) : undefined;
+    const outlook =
+      a.kind === "human" && setting ? outlookOf(seed, a, setting) : undefined;
     const rel = (p.relations ?? []).find((r) => r.other === a.id)?.kind;
     const mood = a.trust < 0 ? "wary of you" : a.trust > 2 ? "friendly" : "";
-    return `- ${a.id} "${a.name}", ${a.role}${a.age ? `, ${a.age}` : ""}${rel ? `, your ${rel}` : ""}, ${compass(p.pos, a.pos)}: ${a.activity.toLowerCase()}${a.held ? `, holding ${a.held}` : ""}${traits.length ? `; ${traits.join(", ")}` : ""}${mood ? `; ${mood}` : ""}${affordances(a.id) ? ` [${affordances(a.id)}]` : ""}`;
+    return `- ${a.id} "${a.name}", ${a.role}${a.age ? `, ${a.age}` : ""}${rel ? `, your ${rel}` : ""}, ${compass(p.pos, a.pos)}: ${a.activity.toLowerCase()}${a.held ? `, holding ${a.held}` : ""}${standing ? `; ${describeStanding(standing)}` : ""}${traits.length ? `; ${traits.join(", ")}` : ""}${outlook?.stances.length ? `; ${describeOutlook(outlook, 1)}` : ""}${mood ? `; ${mood}` : ""}${affordances(a.id) ? ` [${affordances(a.id)}]` : ""}`;
   });
   const things = near(
     s.objects.filter((o) => !o.carriedBy && o.kind !== "exit"),

@@ -1,5 +1,7 @@
 import type { Actor } from "../core/types";
 import { describeStats, statsOf } from "../core/stats";
+import { describeStanding, standingOf } from "../core/standing";
+import { outlookOf } from "../core/outlook";
 import { communityProfiles } from "../content/characters/profiles/communities";
 import type { Runtime } from "../runtime/session";
 
@@ -44,9 +46,14 @@ export function dialogueContext(runtime: Runtime, actor: Actor) {
     ?.label.split(",")[0];
   // The role is already on the line above; the drawn livelihood label often
   // disagrees with it, and sending both just contradicts the prompt.
+  const standing = standingOf(state.manifest.seed, actor);
   const background = [
     community ?? "local to this place",
-    actor.origin?.standing === "unfree" ? "held in bondage" : undefined,
+    standing
+      ? describeStanding(standing)
+      : actor.origin?.standing === "unfree"
+        ? "held in bondage"
+        : undefined,
   ].filter(Boolean);
   // Only what this person remembers of the player: a conversation the player
   // has already had should not have to be had again.
@@ -56,16 +63,27 @@ export function dialogueContext(runtime: Runtime, actor: Actor) {
     .map((memory) => memory.split(":").slice(2).join(":"))
     .filter(Boolean);
   const feeling = actor.trust < 0 ? "wary of you" : actor.trust > 2 ? "warm toward you" : "neutral toward you";
+  // This prompt is built for one person, so it can afford the whole outlook
+  // and what each position actually holds, which is what stops the model
+  // writing a label it has only half-heard of.
+  const holds = setting
+    ? outlookOf(state.manifest.seed, actor, setting).stances.map(
+        (stance) => `${stance.label}${stance.note ? ` — ${stance.note}` : ""}`,
+      )
+    : [];
   return [
     `NPC: ${actor.name}; ${sexLabel(actor)}; age ${actor.age ?? "adult"}; ${actor.role}.`,
     `Background: ${background.join("; ")}.`,
     `Doing: ${actor.activity.toLowerCase()}. Location: ${location}.`,
     family.length ? `Family: ${family.join(", ")}.` : household ? "Family: household member." : "Family: lives alone.",
     traits.length ? `Traits: ${traits.join(", ")}.` : "Traits: ordinary temperament.",
+    holds.length ? `Holds:\n- ${holds.join("\n- ")}` : "",
     possessions.length ? `Has: ${possessions.join(", ")}.` : "Has: ordinary work things.",
     met.length ? `Already ${feeling}; remembers you saying: ${met.join("; ")}.` : "Has not spoken with the player before.",
     `Setting: ${engine.world.pack.name}, ${engine.world.pack.date}.`,
-  ].join("\n");
+  ]
+    .filter(Boolean)
+    .join("\n");
 }
 
 export async function dialogueTurn(

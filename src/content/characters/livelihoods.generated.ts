@@ -12,6 +12,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "prehistoric",
     cultures: ["south-asian","australian-pacific"],
     weight: 12,
+    rank: "labouring",
     inventory: {"water":2,"berries":2,"fruit":1},
   },
   {
@@ -70,6 +71,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
       { scope: {"years":[-2000,1900],"bounds":[130,-25,-130,25]}, label: "Fruit-bat Hunter" },
       { scope: {"years":[-1500,1900],"bounds":[130,-25,-130,25]}, label: "Sea-turtle Hunter" },
     ],
+    rank: "labouring",
     inventory: {"water":2,"tool":1},
   },
   {
@@ -98,6 +100,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
       { scope: {"years":[-1000,1900],"bounds":[28,40,55,50]}, label: "Sturgeon Fisher" },
       { scope: {"years":[-1000,1950],"bounds":[-140,35,60,70]}, ecologies: ["boreal-woodland","temperate-woodland"], label: "Trout Fisher" },
     ],
+    rank: "labouring",
     inventory: {"water":2,"fish":2,"tool":1},
   },
   {
@@ -105,6 +108,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     label: "Trapper",
     activity: "Looking for game",
     tier: "prehistoric",
+    rank: "labouring",
     inventory: {"water":2,"tool":1},
   },
   {
@@ -112,6 +116,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     label: "Fowler",
     activity: "Looking for game",
     tier: "prehistoric",
+    rank: "labouring",
     inventory: {"water":2,"tool":1},
   },
   {
@@ -119,6 +124,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     label: "Shellfish Gatherer",
     activity: "Gathering plants",
     tier: "prehistoric",
+    rank: "labouring",
     inventory: {"water":2,"berries":2,"fruit":1},
   },
   {
@@ -126,6 +132,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     label: "Root Digger",
     activity: "Gathering plants",
     tier: "prehistoric",
+    rank: "labouring",
     inventory: {"water":2,"berries":2,"fruit":1},
   },
   {
@@ -133,6 +140,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     label: "Flintknapper",
     activity: "Making tools",
     tier: "prehistoric",
+    rank: "labouring",
     inventory: {"water":1,"obsidian":2,"tool":1},
   },
   {
@@ -140,6 +148,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     label: "Toolmaker",
     activity: "Making tools",
     tier: "prehistoric",
+    rank: "labouring",
     inventory: {"water":1,"obsidian":2,"tool":1},
   },
   {
@@ -147,6 +156,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     label: "Hide Worker",
     activity: "Working hides",
     tier: "prehistoric",
+    rank: "labouring",
     inventory: {"water":2,"tool":1},
   },
   {
@@ -154,6 +164,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     label: "Cordage Maker",
     activity: "Twisting fibre",
     tier: "prehistoric",
+    rank: "labouring",
     inventory: {"water":1,"flax":3},
   },
   {
@@ -161,6 +172,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     label: "Basket Weaver",
     activity: "Weaving",
     tier: "prehistoric",
+    rank: "labouring",
     inventory: {"water":1,"reeds":2,"flax":1},
   },
   {
@@ -168,6 +180,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     label: "Firekeeper",
     activity: "Keeping the fire",
     tier: "prehistoric",
+    rank: "labouring",
     inventory: {"water":1,"wood":2},
   },
   {
@@ -176,6 +189,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     activity: "Carrying water",
     tier: "prehistoric",
     years: [-3000, 1930],
+    rank: "labouring",
     inventory: {"water":4},
   },
   {
@@ -183,6 +197,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     label: "Wood Gatherer",
     activity: "Gathering fuel",
     tier: "prehistoric",
+    rank: "labouring",
     inventory: {"water":1,"wood":3},
   },
   {
@@ -190,6 +205,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     label: "Healer",
     activity: "Tending the sick",
     tier: "prehistoric",
+    rank: "middling",
     inventory: {"water":2,"berries":1},
   },
   {
@@ -198,6 +214,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     activity: "Household work",
     tier: "prehistoric",
     sex: "female",
+    rank: "labouring",
     inventory: {"water":2,"bread":1},
   },
   {
@@ -206,6 +223,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     activity: "Turning pots",
     tier: "village-craft",
     years: [-7000, 10001],
+    rank: "middling",
     inventory: {"water":3,"tool":1},
   },
   {
@@ -213,6 +231,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     label: "Weaver",
     activity: "Working cloth",
     tier: "village-craft",
+    rank: "labouring",
     inventory: {"water":1,"wool":2,"flax":1},
   },
   {
@@ -222,6 +241,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "village-craft",
     years: [-5000, 1850],
     sex: "female",
+    rank: "labouring",
     inventory: {"water":1,"wool":2,"flax":1},
   },
   {
@@ -230,6 +250,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     activity: "Working cloth",
     tier: "village-craft",
     years: [-3000, 10001],
+    rank: "labouring",
     inventory: {"water":1,"wool":2,"flax":1},
   },
   {
@@ -237,6 +258,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     label: "Tanner",
     activity: "Working leather",
     tier: "village-craft",
+    rank: "labouring",
     inventory: {"water":2,"tool":1},
   },
   {
@@ -244,6 +266,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     label: "Leatherworker",
     activity: "Working leather",
     tier: "village-craft",
+    rank: "labouring",
     inventory: {"water":2,"tool":1},
   },
   {
@@ -251,6 +274,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     label: "Carpenter",
     activity: "Working wood",
     tier: "village-craft",
+    rank: "middling",
     inventory: {"water":1,"wood":2,"tool":1},
   },
   {
@@ -259,6 +283,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     activity: "Cutting timber",
     tier: "village-craft",
     sex: "male",
+    rank: "labouring",
     inventory: {"water":2,"wood":3,"tool":1},
   },
   {
@@ -268,6 +293,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "village-craft",
     years: [-3000, 1900],
     sex: "male",
+    rank: "labouring",
     inventory: {"water":1,"wood":4},
   },
   {
@@ -277,6 +303,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "village-craft",
     years: [-3000, 1900],
     sex: "male",
+    rank: "labouring",
     inventory: {"water":1,"reeds":3},
   },
   {
@@ -285,6 +312,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     activity: "Twisting fibre",
     tier: "village-craft",
     years: [-3000, 1930],
+    rank: "labouring",
     inventory: {"water":1,"flax":3},
   },
   {
@@ -292,6 +320,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     label: "Net Maker",
     activity: "Working near water",
     tier: "village",
+    rank: "labouring",
     inventory: {"water":2,"fish":2,"tool":1},
   },
   {
@@ -299,6 +328,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     label: "Basket Maker",
     activity: "Weaving",
     tier: "village-craft",
+    rank: "labouring",
     inventory: {"water":1,"reeds":2,"flax":1},
   },
   {
@@ -307,6 +337,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     activity: "Keeping the hives",
     tier: "village-craft",
     years: [-2400, 10001],
+    rank: "middling",
     inventory: {"water":1,"fruit":2},
   },
   {
@@ -316,6 +347,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "village-craft",
     years: [-2000, 1920],
     sex: "female",
+    rank: "labouring",
     inventory: {"water":2,"bread":1},
   },
   {
@@ -324,6 +356,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     activity: "Tending the sick",
     tier: "village-craft",
     sex: "female",
+    rank: "middling",
     inventory: {"water":2,"berries":1},
   },
   {
@@ -331,6 +364,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     label: "Herbalist",
     activity: "Tending the sick",
     tier: "village-craft",
+    rank: "middling",
     inventory: {"water":2,"berries":1},
   },
   {
@@ -340,6 +374,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "village-craft",
     years: [-1000, 1960],
     sex: "female",
+    rank: "labouring",
     inventory: {"water":2,"bread":1},
   },
   {
@@ -348,6 +383,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     activity: "Household work",
     tier: "village-craft",
     anyCapability: ["heritable_land","urban_settlement","market_exchange"],
+    rank: "labouring",
     inventory: {"water":2,"bread":1},
   },
   {
@@ -357,6 +393,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "village-craft",
     anyCapability: ["heritable_land","urban_settlement"],
     sex: "female",
+    rank: "labouring",
     inventory: {"water":2,"bread":1},
   },
   {
@@ -365,6 +402,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     activity: "Preparing food",
     tier: "village-craft",
     anyCapability: ["heritable_land","urban_settlement"],
+    rank: "labouring",
     inventory: {"water":2,"bread":2,"grain":1},
   },
   {
@@ -373,6 +411,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     activity: "Carrying a load",
     tier: "village-craft",
     sex: "male",
+    rank: "labouring",
     inventory: {"water":2,"grain":1},
   },
   {
@@ -381,6 +420,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     activity: "Working stone",
     tier: "village-craft",
     anyCapability: ["urban_settlement","heritable_land"],
+    rank: "middling",
     inventory: {"water":2,"obsidian":1,"tool":1},
   },
   {
@@ -390,6 +430,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "village-craft",
     years: [-3000, 1950],
     anyCapability: ["urban_settlement","settled_agriculture"],
+    rank: "labouring",
     inventory: {"water":2,"tool":1},
   },
   {
@@ -399,6 +440,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "village-craft",
     anyCapability: ["urban_settlement","metallurgy"],
     sex: "male",
+    rank: "labouring",
     inventory: {"water":2,"obsidian":2,"tool":1},
   },
   {
@@ -409,6 +451,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     years: [-2000, 1950],
     anyCapability: ["urban_settlement","metallurgy"],
     sex: "male",
+    rank: "labouring",
     inventory: {"water":2,"wood":2},
   },
   {
@@ -417,6 +460,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     activity: "Working the salt",
     tier: "village-craft",
     years: [-5000, 10001],
+    rank: "labouring",
     inventory: {"water":2,"tool":1},
   },
   {
@@ -425,6 +469,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     activity: "Preparing food",
     tier: "village-craft",
     capabilities: ["settled_agriculture"],
+    rank: "middling",
     inventory: {"water":2,"bread":2,"grain":1},
   },
   {
@@ -434,6 +479,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "village",
     years: [-300, 10001],
     capabilities: ["settled_agriculture"],
+    rank: "middling",
     inventory: {"water":1,"grain":4},
   },
   {
@@ -442,6 +488,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     activity: "Brewing",
     tier: "village-craft",
     capabilities: ["settled_agriculture"],
+    rank: "middling",
     inventory: {"water":3,"grain":2},
   },
   {
@@ -450,6 +497,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     activity: "Preparing food",
     tier: "village-craft",
     sex: "male",
+    rank: "middling",
     inventory: {"water":2,"bread":2,"grain":1},
   },
   {
@@ -458,6 +506,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     activity: "Pressing oil",
     tier: "village-craft",
     years: [-3000, 10001],
+    rank: "middling",
     inventory: {"water":2,"fruit":2},
   },
   {
@@ -466,6 +515,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     activity: "Working metal",
     tier: "village-craft",
     capabilities: ["metallurgy"],
+    rank: "middling",
     inventory: {"water":2,"tool":2},
   },
   {
@@ -475,6 +525,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "village-craft",
     capabilities: ["metallurgy"],
     sex: "male",
+    rank: "labouring",
     inventory: {"water":2,"obsidian":2,"tool":1},
   },
   {
@@ -485,6 +536,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     years: [-2000, 1950],
     capabilities: ["draft_animals"],
     sex: "male",
+    rank: "labouring",
     inventory: {"water":2,"grain":1},
   },
   {
@@ -495,6 +547,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     years: [-3000, 1900],
     capabilities: ["draft_animals"],
     sex: "male",
+    rank: "labouring",
     inventory: {"water":2,"wool":2,"fodder":1},
   },
   {
@@ -503,6 +556,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     activity: "Carrying a load",
     tier: "village-craft",
     sex: "male",
+    rank: "labouring",
     inventory: {"water":2,"grain":1},
   },
   {
@@ -511,6 +565,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     activity: "Carrying a load",
     tier: "village-craft",
     sex: "male",
+    rank: "labouring",
     inventory: {"water":2,"grain":1},
   },
   {
@@ -520,6 +575,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "village-craft",
     capabilities: ["market_exchange"],
     sex: "female",
+    rank: "middling",
     inventory: {"water":2,"coin":2,"fruit":1},
   },
   {
@@ -528,6 +584,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     activity: "Exchanging goods",
     tier: "village-craft",
     capabilities: ["market_exchange"],
+    rank: "labouring",
     inventory: {"water":2,"coin":2,"fruit":1},
   },
   {
@@ -536,6 +593,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     activity: "Exchanging goods",
     tier: "village-craft",
     capabilities: ["market_exchange"],
+    rank: "destitute",
     inventory: {"water":2,"coin":2,"fruit":1},
   },
   {
@@ -544,6 +602,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     activity: "Keeping the house",
     tier: "village-craft",
     capabilities: ["urban_settlement"],
+    rank: "middling",
     inventory: {"water":2,"bread":1,"coin":1},
   },
   {
@@ -553,6 +612,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "village-craft",
     years: [-3000, 1850],
     capabilities: ["writing"],
+    rank: "middling",
     inventory: {"water":1,"reeds":2},
   },
   {
@@ -561,6 +621,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     activity: "Attending on someone",
     tier: "village-craft",
     capabilities: ["urban_settlement"],
+    rank: "middling",
     inventory: {"water":2,"tool":1},
   },
   {
@@ -569,6 +630,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     activity: "Clearing waste",
     tier: "village-craft",
     capabilities: ["urban_settlement"],
+    rank: "destitute",
     inventory: {"water":2,"tool":1},
   },
   {
@@ -579,6 +641,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     years: [-500, 1920],
     capabilities: ["urban_settlement"],
     sex: "male",
+    rank: "destitute",
     inventory: {"water":2,"tool":1},
   },
   {
@@ -587,6 +650,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     activity: "Working metal",
     tier: "town",
     capabilities: ["metallurgy"],
+    rank: "middling",
     inventory: {"water":2,"tool":2},
   },
   {
@@ -597,6 +661,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     years: [-100, 10001],
     bounds: [-25,25,60,72],
     sex: "male",
+    rank: "middling",
     inventory: {"water":1,"wood":3,"tool":1},
   },
   {
@@ -604,6 +669,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     label: "Cobbler",
     activity: "Making shoes",
     tier: "town",
+    rank: "middling",
     inventory: {"water":1,"tool":1},
   },
   {
@@ -611,6 +677,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     label: "Tailor",
     activity: "Making clothes",
     tier: "town",
+    rank: "middling",
     inventory: {"water":1,"wool":2,"flax":1},
   },
   {
@@ -619,6 +686,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     activity: "Making clothes",
     tier: "town",
     sex: "female",
+    rank: "labouring",
     inventory: {"water":1,"wool":2,"flax":1},
   },
   {
@@ -627,6 +695,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     activity: "Working cloth",
     tier: "town",
     years: [-500, 1800],
+    rank: "labouring",
     inventory: {"water":1,"wool":2,"flax":1},
   },
   {
@@ -635,6 +704,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     activity: "Working cloth",
     tier: "town",
     years: [-1000, 1850],
+    rank: "labouring",
     inventory: {"water":1,"wool":2,"flax":1},
   },
   {
@@ -644,6 +714,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "town",
     years: [-800, 1950],
     capabilities: ["draft_animals"],
+    rank: "middling",
     inventory: {"water":2,"tool":1},
   },
   {
@@ -653,6 +724,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "town",
     years: [-1000, 1950],
     capabilities: ["draft_animals"],
+    rank: "middling",
     inventory: {"water":1,"wood":2,"tool":1},
   },
   {
@@ -661,6 +733,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     activity: "Making candles",
     tier: "town",
     years: [-200, 10001],
+    rank: "middling",
     inventory: {"water":1,"tool":1},
   },
   {
@@ -669,6 +742,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     activity: "Boiling soap",
     tier: "town",
     years: [-100, 10001],
+    rank: "labouring",
     inventory: {"water":3},
   },
   {
@@ -678,6 +752,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "town",
     years: [1200, 10001],
     capabilities: ["urban_settlement"],
+    rank: "middling",
     inventory: {"water":2,"obsidian":1,"tool":1},
   },
   {
@@ -687,6 +762,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "town",
     years: [-2000, 1920],
     sex: "male",
+    rank: "labouring",
     inventory: {"water":1,"wood":3,"tool":1},
   },
   {
@@ -697,6 +773,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     years: [-1000, 1940],
     capabilities: ["draft_animals"],
     sex: "male",
+    rank: "labouring",
     inventory: {"water":2,"fodder":2},
   },
   {
@@ -707,6 +784,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     years: [-1000, 1950],
     capabilities: ["draft_animals"],
     sex: "male",
+    rank: "labouring",
     inventory: {"water":2,"grain":1},
   },
   {
@@ -717,6 +795,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     years: [1200, 1900],
     bounds: [-11,43,30,61],
     capabilities: ["market_exchange"],
+    rank: "labouring",
     inventory: {"water":2,"coin":2,"fruit":1},
   },
   {
@@ -728,6 +807,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     bounds: [-11,49,3,61],
     capabilities: ["market_exchange"],
     sex: "female",
+    rank: "labouring",
     inventory: {"water":3,"grain":2},
   },
   {
@@ -737,6 +817,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "town",
     years: [-1000, 1960],
     sex: "female",
+    rank: "labouring",
     inventory: {"water":2,"bread":1},
   },
   {
@@ -745,6 +826,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     activity: "Household work",
     tier: "town",
     years: [1200, 1950],
+    rank: "destitute",
     inventory: {"water":2,"bread":1},
   },
   {
@@ -756,6 +838,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     bounds: [-11,34,45,62],
     capabilities: ["urban_settlement"],
     sex: "male",
+    rank: "labouring",
     inventory: {"water":1,"bread":1},
   },
   {
@@ -765,6 +848,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "town",
     capabilities: ["urban_settlement"],
     sex: "male",
+    rank: "labouring",
     inventory: {"water":2,"wood":1},
   },
   {
@@ -773,6 +857,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     activity: "Gathering fuel",
     tier: "town",
     bounds: [-11,50,30,71],
+    rank: "labouring",
     inventory: {"water":1,"wood":3},
   },
   {
@@ -782,6 +867,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "industrial",
     years: [1780, 10001],
     capabilities: ["wage_labor"],
+    rank: "labouring",
     inventory: {"water":1,"coin":1},
   },
   {
@@ -792,6 +878,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     years: [1780, 10001],
     capabilities: ["wage_labor"],
     sex: "female",
+    rank: "labouring",
     inventory: {"water":1,"wool":2,"flax":1},
   },
   {
@@ -802,6 +889,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     years: [1780, 10001],
     capabilities: ["wage_labor"],
     sex: "female",
+    rank: "labouring",
     inventory: {"water":1,"wool":2,"flax":1},
   },
   {
@@ -812,6 +900,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     years: [1780, 10001],
     capabilities: ["metallurgy"],
     sex: "male",
+    rank: "labouring",
     inventory: {"water":2,"obsidian":2,"tool":1},
   },
   {
@@ -822,6 +911,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     years: [1780, 10001],
     capabilities: ["metallurgy"],
     sex: "male",
+    rank: "labouring",
     inventory: {"water":2,"tool":2},
   },
   {
@@ -832,6 +922,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     years: [1750, 1950],
     capabilities: ["wage_labor"],
     sex: "male",
+    rank: "labouring",
     inventory: {"water":2,"wood":2,"tool":1},
   },
   {
@@ -842,6 +933,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     years: [1780, 10001],
     capabilities: ["wage_labor"],
     sex: "male",
+    rank: "labouring",
     inventory: {"water":2,"tool":1},
   },
   {
@@ -852,6 +944,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     years: [1780, 10001],
     capabilities: ["wage_labor"],
     sex: "male",
+    rank: "labouring",
     inventory: {"water":2,"wood":1},
   },
   {
@@ -862,6 +955,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     years: [1650, 1940],
     capabilities: ["urban_settlement"],
     sex: "male",
+    rank: "labouring",
     inventory: {"water":2,"grain":1},
   },
   {
@@ -871,6 +965,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "industrial",
     years: [1780, 10001],
     capabilities: ["market_exchange"],
+    rank: "destitute",
     inventory: {"water":2,"coin":2,"fruit":1},
   },
   {
@@ -881,6 +976,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     years: [1500, 1950],
     bounds: [-11,49,3,61],
     capabilities: ["market_exchange"],
+    rank: "destitute",
     inventory: {"water":2,"coin":2,"fruit":1},
   },
   {
@@ -890,6 +986,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "industrial",
     years: [1780, 10001],
     sex: "female",
+    rank: "destitute",
     inventory: {"water":2,"bread":1},
   },
   {
@@ -899,6 +996,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "industrial",
     years: [1780, 10001],
     sex: "female",
+    rank: "labouring",
     inventory: {"water":2,"bread":1},
   },
   {
@@ -909,6 +1007,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     years: [1500, 1960],
     capabilities: ["urban_settlement"],
     sex: "male",
+    rank: "destitute",
     inventory: {"water":2,"tool":1},
   },
   {
@@ -917,6 +1016,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     activity: "Working stone",
     tier: "industrial",
     years: [-3000, 10001],
+    rank: "middling",
     inventory: {"water":2,"obsidian":1,"tool":1},
   },
   {
@@ -926,6 +1026,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "industrial",
     years: [-200, 10001],
     capabilities: ["urban_settlement"],
+    rank: "middling",
     inventory: {"water":2,"bread":1,"coin":1},
   },
   {
@@ -935,6 +1036,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "industrial",
     years: [1780, 10001],
     capabilities: ["market_exchange"],
+    rank: "labouring",
     inventory: {"water":1,"coin":2,"fruit":2},
   },
   {
@@ -945,6 +1047,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     years: [1750, 1960],
     capabilities: ["urban_settlement"],
     sex: "male",
+    rank: "destitute",
     inventory: {"water":2,"coin":1},
   },
   {
@@ -954,6 +1057,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "industrial",
     years: [1780, 10001],
     sex: "female",
+    rank: "middling",
     inventory: {"water":2,"berries":1},
   },
   {
@@ -963,6 +1067,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "industrial",
     years: [-3000, 10001],
     sex: "male",
+    rank: "labouring",
     inventory: {"water":3,"fish":1,"tool":1},
   },
   {
@@ -973,6 +1078,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     years: [1780, 10001],
     capabilities: ["metallurgy"],
     sex: "male",
+    rank: "labouring",
     inventory: {"water":2,"tool":2},
   },
   {
@@ -983,6 +1089,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     years: [1830, 1940],
     capabilities: ["wage_labor"],
     sex: "female",
+    rank: "destitute",
     inventory: {"water":1,"coin":1},
   },
   {
@@ -992,6 +1099,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "modern",
     years: [1900, 10001],
     sex: "female",
+    rank: "labouring",
     inventory: {"water":3},
   },
   {
@@ -1001,6 +1109,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "modern",
     years: [1900, 10001],
     sex: "female",
+    rank: "labouring",
     inventory: {"water":2,"bread":1},
   },
   {
@@ -1009,6 +1118,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     activity: "Tending the sick",
     tier: "modern",
     years: [1900, 10001],
+    rank: "labouring",
     inventory: {"water":2,"berries":1},
   },
   {
@@ -1017,6 +1127,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     activity: "Cooking",
     tier: "modern",
     years: [1900, 10001],
+    rank: "labouring",
     inventory: {"water":2,"bread":1,"grain":1},
   },
   {
@@ -1025,6 +1136,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     activity: "Carrying a load",
     tier: "modern",
     years: [1900, 10001],
+    rank: "labouring",
     inventory: {"water":2,"grain":1},
   },
   {
@@ -1034,6 +1146,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "modern",
     years: [1900, 10001],
     sex: "male",
+    rank: "labouring",
     inventory: {"water":2,"grain":1},
   },
   {
@@ -1043,6 +1156,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "modern",
     years: [1900, 10001],
     sex: "male",
+    rank: "labouring",
     inventory: {"water":2,"tool":1},
   },
   {
@@ -1052,6 +1166,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "modern",
     years: [1900, 10001],
     sex: "male",
+    rank: "destitute",
     inventory: {"water":2,"tool":1},
   },
   {
@@ -1061,6 +1176,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "modern",
     years: [1900, 10001],
     sex: "male",
+    rank: "labouring",
     inventory: {"water":2,"wood":2,"tool":1},
   },
   {
@@ -1069,6 +1185,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     activity: "At the machine",
     tier: "modern",
     years: [1900, 10001],
+    rank: "labouring",
     inventory: {"water":1,"coin":1},
   },
   {
@@ -1078,6 +1195,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "modern",
     years: [1900, 10001],
     sex: "male",
+    rank: "middling",
     inventory: {"water":1,"wood":1,"tool":1},
   },
   {
@@ -1087,6 +1205,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "modern",
     years: [1900, 10001],
     sex: "male",
+    rank: "middling",
     inventory: {"water":1,"wood":1,"tool":1},
   },
   {
@@ -1096,6 +1215,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "modern",
     years: [1900, 10001],
     sex: "female",
+    rank: "middling",
     inventory: {"water":2,"tool":1},
   },
   {
@@ -1105,6 +1225,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "modern",
     years: [1900, 10001],
     sex: "female",
+    rank: "labouring",
     inventory: {"water":2,"bread":1},
   },
   {
@@ -1114,6 +1235,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "modern",
     years: [1900, 10001],
     sex: "male",
+    rank: "labouring",
     inventory: {"water":2,"fish":2,"tool":1},
   },
   {
@@ -1122,6 +1244,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     activity: "Exchanging goods",
     tier: "modern",
     years: [1900, 10001],
+    rank: "destitute",
     inventory: {"water":2,"coin":2,"fruit":1},
   },
   {
@@ -1131,6 +1254,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "modern",
     years: [1900, 10001],
     sex: "female",
+    rank: "labouring",
     inventory: {"water":4},
   },
   {
@@ -1140,6 +1264,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "modern",
     years: [-1000, 10001],
     sex: "male",
+    rank: "labouring",
     inventory: {"water":2,"tool":1},
   },
   {
@@ -1149,6 +1274,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "modern",
     years: [-3000, 10001],
     sex: "male",
+    rank: "labouring",
     inventory: {"water":2,"wood":2,"tool":1},
   },
   {
@@ -1158,6 +1284,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "modern",
     years: [1900, 10001],
     sex: "male",
+    rank: "labouring",
     inventory: {"water":1,"wood":1,"tool":1},
   },
   {
@@ -1167,6 +1294,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "modern",
     years: [1900, 10001],
     sex: "male",
+    rank: "labouring",
     inventory: {"water":2,"tool":2},
   },
   {
@@ -1176,6 +1304,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "modern",
     years: [1900, 10001],
     sex: "male",
+    rank: "middling",
     inventory: {"water":1,"wood":1,"tool":1},
   },
   {
@@ -1184,6 +1313,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     activity: "Keeping the house",
     tier: "modern",
     years: [1900, 10001],
+    rank: "labouring",
     inventory: {"water":2,"bread":1,"coin":1},
   },
   {
@@ -1258,6 +1388,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
       { scope: {"years":[-500,1900],"bounds":[45,38,120,55]}, label: "Barley Farmer" },
       { scope: {"years":[-1000,1900],"bounds":[45,38,120,55]}, label: "Millet Farmer" },
     ],
+    rank: "middling",
     inventory: {"water":2,"grain":3,"tool":1},
   },
   {
@@ -1267,6 +1398,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "village",
     cultures: ["european"],
     weight: 16,
+    rank: "labouring",
     inventory: {"water":2,"grain":3,"tool":1},
   },
   {
@@ -1276,6 +1408,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "village",
     cultures: ["european","east-asian","inner-eurasian"],
     weight: 12,
+    rank: "middling",
     inventory: {"water":2,"grain":3,"tool":1},
   },
   {
@@ -1286,6 +1419,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     years: [-8000, 1960],
     cultures: ["european","north-african-west-asian"],
     weight: 14,
+    rank: "labouring",
     inventory: {"water":2,"wool":2,"fodder":1},
   },
   {
@@ -1296,6 +1430,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     years: [-5000, 1900],
     cultures: ["european"],
     weight: 10,
+    rank: "labouring",
     inventory: {"water":2,"grain":3,"tool":1},
   },
   {
@@ -1307,6 +1442,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     cultures: ["european"],
     weight: 12,
     sex: "male",
+    rank: "labouring",
     inventory: {"water":2,"grain":3,"tool":1},
   },
   {
@@ -1317,6 +1453,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     years: [1200, 1900],
     cultures: ["european"],
     weight: 8,
+    rank: "labouring",
     inventory: {"water":2,"grain":2,"fruit":1},
   },
   {
@@ -1327,6 +1464,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     years: [-800, 1900],
     cultures: ["european"],
     weight: 8,
+    rank: "labouring",
     inventory: {"water":2,"fruit":3,"tool":1},
   },
   {
@@ -1338,6 +1476,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     cultures: ["european"],
     weight: 6,
     sex: "female",
+    rank: "labouring",
     inventory: {"water":2,"wool":1,"fodder":1},
   },
   {
@@ -1348,6 +1487,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     years: [-3000, 1900],
     cultures: ["european"],
     weight: 8,
+    rank: "labouring",
     inventory: {"water":2,"wool":2,"fodder":1},
   },
   {
@@ -1358,6 +1498,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     years: [1600, 10001],
     cultures: ["european"],
     weight: 16,
+    rank: "labouring",
     inventory: {"water":2,"grain":3,"tool":1},
   },
   {
@@ -1367,6 +1508,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "village",
     cultures: ["european"],
     weight: 8,
+    rank: "labouring",
     inventory: {"water":2,"grain":2,"fruit":1},
   },
   {
@@ -1377,6 +1519,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     years: [1500, 10001],
     cultures: ["european"],
     weight: 8,
+    rank: "middling",
     inventory: {"water":2,"fruit":2,"tool":1},
   },
   {
@@ -1386,6 +1529,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "village",
     cultures: ["east-asian","inner-eurasian"],
     weight: 26,
+    rank: "labouring",
     inventory: {"water":2,"grain":3,"tool":1},
   },
   {
@@ -1395,6 +1539,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "village",
     cultures: ["east-asian","inner-eurasian","south-asian","north-african-west-asian","west-central-african","east-southern-african"],
     weight: 16,
+    rank: "labouring",
     inventory: {"water":2,"grain":3,"tool":1},
   },
   {
@@ -1404,6 +1549,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "village",
     years: [800, 10001],
     cultures: ["east-asian","inner-eurasian"],
+    rank: "middling",
     inventory: {"water":2,"berries":1,"tool":1},
   },
   {
@@ -1413,6 +1559,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "village-craft",
     years: [-2000, 10001],
     cultures: ["east-asian","inner-eurasian"],
+    rank: "middling",
     inventory: {"water":2,"flax":2,"tool":1},
   },
   {
@@ -1434,6 +1581,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
       { scope: {"years":[-2000,10001],"bounds":[-82,-25,-66,12]}, label: "Alpaca Herd" },
       { scope: {"years":[-1000,10001],"bounds":[-17,12,78,40]}, ecologies: ["desert","dry-scrub"], label: "Camel Herd" },
     ],
+    rank: "labouring",
     inventory: {"water":2,"wool":2,"fodder":1},
   },
   {
@@ -1443,6 +1591,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "village",
     cultures: ["south-asian","west-central-african","east-southern-african"],
     weight: 26,
+    rank: "labouring",
     inventory: {"water":2,"grain":3,"tool":1},
   },
   {
@@ -1452,6 +1601,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "village",
     cultures: ["south-asian"],
     weight: 12,
+    rank: "labouring",
     inventory: {"water":2,"grain":3,"tool":1},
   },
   {
@@ -1461,6 +1611,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "village",
     years: [-1500, 10001],
     cultures: ["south-asian"],
+    rank: "labouring",
     inventory: {"water":2,"flax":2,"tool":1},
   },
   {
@@ -1472,6 +1623,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     cultures: ["south-asian"],
     weight: 6,
     sex: "female",
+    rank: "labouring",
     inventory: {"water":2,"wool":1,"fodder":1},
   },
   {
@@ -1482,6 +1634,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     years: [1500, 10001],
     cultures: ["south-asian","other-indigenous-american","mesoamerican"],
     weight: 12,
+    rank: "labouring",
     inventory: {"water":2,"grain":3,"tool":1},
   },
   {
@@ -1492,6 +1645,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     years: [1830, 10001],
     cultures: ["south-asian"],
     sex: "female",
+    rank: "labouring",
     inventory: {"water":2,"berries":1,"tool":1},
   },
   {
@@ -1501,6 +1655,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "village",
     years: [1830, 10001],
     cultures: ["south-asian"],
+    rank: "labouring",
     inventory: {"water":2,"flax":2,"tool":1},
   },
   {
@@ -1511,6 +1666,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     years: [700, 1960],
     cultures: ["north-african-west-asian"],
     weight: 22,
+    rank: "labouring",
     inventory: {"water":2,"grain":3,"tool":1},
   },
   {
@@ -1521,6 +1677,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     years: [-3000, 10001],
     cultures: ["north-african-west-asian"],
     weight: 12,
+    rank: "labouring",
     inventory: {"water":2,"fruit":3,"tool":1},
   },
   {
@@ -1531,6 +1688,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     years: [-8000, 1950],
     cultures: ["north-african-west-asian","west-central-african","east-southern-african"],
     weight: 12,
+    rank: "labouring",
     inventory: {"water":2,"wool":2,"fodder":1},
   },
   {
@@ -1540,6 +1698,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "village",
     cultures: ["australian-pacific"],
     weight: 26,
+    rank: "labouring",
     inventory: {"water":2,"fruit":2,"tool":1},
   },
   {
@@ -1549,6 +1708,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "village",
     cultures: ["australian-pacific","west-central-african","east-southern-african"],
     weight: 18,
+    rank: "labouring",
     inventory: {"water":2,"fruit":2,"tool":1},
   },
   {
@@ -1558,6 +1718,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "village",
     cultures: ["australian-pacific"],
     weight: 12,
+    rank: "labouring",
     inventory: {"water":2,"fish":2,"tool":1},
   },
   {
@@ -1567,6 +1728,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "village",
     cultures: ["australian-pacific"],
     weight: 8,
+    rank: "labouring",
     inventory: {"water":2,"wool":2,"fodder":1},
   },
   {
@@ -1577,6 +1739,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     cultures: ["australian-pacific"],
     weight: 4,
     sex: "male",
+    rank: "middling",
     inventory: {"water":1,"wood":2,"tool":1},
   },
   {
@@ -1587,6 +1750,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     cultures: ["australian-pacific"],
     weight: 4,
     sex: "female",
+    rank: "labouring",
     inventory: {"water":1,"wool":2,"flax":1},
   },
   {
@@ -1596,6 +1760,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "village",
     cultures: ["andean"],
     weight: 16,
+    rank: "labouring",
     inventory: {"water":2,"grain":3,"tool":1},
   },
   {
@@ -1606,6 +1771,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     years: [-4000, 10001],
     cultures: ["andean"],
     weight: 26,
+    rank: "labouring",
     inventory: {"water":2,"grain":3,"tool":1},
   },
   {
@@ -1616,6 +1782,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     years: [-2000, 10001],
     cultures: ["andean"],
     weight: 18,
+    rank: "labouring",
     inventory: {"water":2,"grain":3,"tool":1},
   },
   {
@@ -1625,6 +1792,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "village",
     cultures: ["andean"],
     weight: 14,
+    rank: "labouring",
     inventory: {"water":2,"wool":2,"fodder":1},
   },
   {
@@ -1634,6 +1802,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "village",
     years: [-1000, 10001],
     cultures: ["andean"],
+    rank: "labouring",
     inventory: {"water":2,"berries":1,"tool":1},
   },
   {
@@ -1643,6 +1812,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "village",
     years: [1720, 10001],
     cultures: ["andean"],
+    rank: "labouring",
     inventory: {"water":2,"berries":1,"tool":1},
   },
   {
@@ -1654,6 +1824,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     cultures: ["andean"],
     weight: 8,
     sex: "male",
+    rank: "labouring",
     inventory: {"water":2,"wool":2,"fodder":1},
   },
   {
@@ -1663,6 +1834,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "village",
     cultures: ["other-indigenous-american","mesoamerican"],
     weight: 16,
+    rank: "labouring",
     inventory: {"water":2,"grain":3,"tool":1},
   },
   {
@@ -1673,6 +1845,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     years: [1780, 10001],
     cultures: ["other-indigenous-american","mesoamerican"],
     weight: 10,
+    rank: "middling",
     inventory: {"water":2,"grain":3,"tool":1},
   },
   {
@@ -1684,6 +1857,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     cultures: ["other-indigenous-american","mesoamerican"],
     weight: 8,
     sex: "male",
+    rank: "labouring",
     inventory: {"water":2,"wool":2,"fodder":1},
   },
   {
@@ -1694,6 +1868,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     years: [1700, 10001],
     cultures: ["other-indigenous-american","mesoamerican"],
     weight: 8,
+    rank: "middling",
     inventory: {"water":2,"wool":1,"fodder":1},
   },
   {
@@ -1703,6 +1878,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "village",
     cultures: ["west-central-african","east-southern-african"],
     weight: 26,
+    rank: "labouring",
     inventory: {"water":2,"grain":3,"tool":1},
   },
   {
@@ -1712,6 +1888,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "village",
     cultures: ["west-central-african","east-southern-african"],
     weight: 14,
+    rank: "labouring",
     inventory: {"water":2,"wool":2,"fodder":1},
   },
   {
@@ -1721,6 +1898,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "village",
     years: [1830, 10001],
     cultures: ["west-central-african","east-southern-african"],
+    rank: "labouring",
     inventory: {"water":2,"grain":3,"tool":1},
   },
   {
@@ -1731,6 +1909,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     cultures: ["west-central-african","east-southern-african"],
     weight: 8,
     sex: "male",
+    rank: "labouring",
     inventory: {"water":2,"fruit":2,"tool":1},
   },
   {
@@ -1742,6 +1921,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     bounds: [-17,12,78,40],
     ecologies: ["desert","dry-scrub"],
     weight: 14,
+    rank: "labouring",
     inventory: {"water":2,"wool":2,"fodder":1},
   },
   {
@@ -1753,6 +1933,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     bounds: [5,58,180,78],
     ecologies: ["tundra","boreal-woodland"],
     weight: 18,
+    rank: "labouring",
     inventory: {"water":2,"wool":2,"fodder":1},
   },
   {
@@ -1764,6 +1945,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     bounds: [72,26,103,40],
     ecologies: ["grassland","tundra"],
     weight: 16,
+    rank: "labouring",
     inventory: {"water":2,"wool":2,"fodder":1},
   },
   {
@@ -1774,6 +1956,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     years: [-2000, 10001],
     ecologies: ["grassland"],
     weight: 12,
+    rank: "labouring",
     inventory: {"water":2,"wool":2,"fodder":1},
   },
   {
@@ -1785,6 +1968,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     bounds: [-85,-25,160,35],
     ecologies: ["tropical-woodland","temperate-woodland"],
     weight: 20,
+    rank: "labouring",
     inventory: {"water":2,"grain":3,"tool":1},
   },
   {
@@ -1795,6 +1979,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     years: [-1000, 10001],
     bounds: [66,-11,140,40],
     weight: 16,
+    rank: "labouring",
     inventory: {"water":2,"grain":3,"tool":1},
   },
   {
@@ -1805,6 +1990,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     years: [-4000, 10001],
     ecologies: ["desert","dry-scrub","grassland"],
     weight: 8,
+    rank: "labouring",
     inventory: {"water":2,"grain":3,"tool":1},
   },
   {
@@ -1815,6 +2001,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     years: [-5000, 10001],
     weight: 12,
     needs: ["water"],
+    rank: "labouring",
     inventory: {"water":2,"fish":2,"tool":1},
   },
   {
@@ -1824,6 +2011,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "village-craft",
     weight: 12,
     fromBeliefs: true,
+    rank: "gentry",
     inventory: {"water":1,"tool":1},
   },
   {
@@ -1834,6 +2022,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     bounds: [-100,-35,60,45],
     weight: 30,
     standing: "unfree",
+    rank: "labouring",
     inventory: {"water":2,"grain":3,"tool":1},
   },
   {
@@ -1844,6 +2033,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     bounds: [-100,-35,100,45],
     weight: 14,
     standing: "unfree",
+    rank: "labouring",
     inventory: {"water":2,"bread":1},
   },
   {
@@ -1853,6 +2043,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "village-craft",
     weight: 10,
     standing: "unfree",
+    rank: "labouring",
     inventory: {"water":1},
   },
   {
@@ -1863,6 +2054,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     years: [1600, 1800],
     weight: 8,
     standing: "unfree",
+    rank: "labouring",
     inventory: {"water":2,"bread":1},
   },
   {
@@ -1874,6 +2066,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     bounds: [-5,43,30,56],
     weight: 26,
     standing: "unfree",
+    rank: "labouring",
     inventory: {"water":2,"grain":3,"tool":1},
   },
   {
@@ -1885,6 +2078,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     bounds: [22,44,65,66],
     weight: 26,
     standing: "unfree",
+    rank: "labouring",
     inventory: {"water":2,"grain":3,"tool":1},
   },
   {
@@ -1894,6 +2088,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "village-craft",
     weight: 3,
     sex: "male",
+    rank: "middling",
     inventory: {"water":1,"tool":1},
   },
   {
@@ -1904,6 +2099,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     weight: 2,
     capabilities: ["retained_military_service"],
     sex: "male",
+    rank: "middling",
     inventory: {"water":1,"tool":1},
   },
   {
@@ -1914,6 +2110,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     years: [-1000, 10001],
     weight: 2,
     capabilities: ["urban_settlement"],
+    rank: "labouring",
     inventory: {"water":1,"tool":1},
   },
   {
@@ -1923,6 +2120,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "town",
     weight: 1,
     capabilities: ["urban_settlement"],
+    rank: "labouring",
     inventory: {"water":1,"tool":1},
   },
   {
@@ -1932,6 +2130,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "village-craft",
     weight: 1,
     capabilities: ["metallurgy"],
+    rank: "middling",
     inventory: {"water":2,"tool":2},
   },
   {
@@ -1940,6 +2139,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     activity: "Working wood",
     tier: "village-craft",
     weight: 1,
+    rank: "middling",
     inventory: {"water":1,"wood":2,"tool":1},
   },
   {
@@ -1969,6 +2169,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
       { scope: {"years":[-1000000,10001]}, label: "Apprentice Painter" },
     ],
     capabilities: ["guild_apprenticeship"],
+    rank: "labouring",
     inventory: {"water":1,"tool":1},
   },
   {
@@ -1998,6 +2199,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
       { scope: {"years":[-1000000,10001]}, label: "Journeyman Painter" },
     ],
     capabilities: ["guild_apprenticeship"],
+    rank: "middling",
     inventory: {"water":1,"tool":1},
   },
   {
@@ -2027,6 +2229,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
       { scope: {"years":[-1000000,10001]}, label: "Master Painter" },
     ],
     capabilities: ["guilds"],
+    rank: "gentry",
     inventory: {"water":1,"tool":1},
   },
   {
@@ -2036,6 +2239,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "town",
     weight: 1,
     capabilities: ["coinage"],
+    rank: "middling",
     inventory: {"water":2,"coin":2,"fruit":1},
   },
   {
@@ -2044,6 +2248,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     activity: "Keeping the record",
     tier: "village-craft",
     weight: 1,
+    rank: "gentry",
     inventory: {"water":1},
   },
   {
@@ -2052,6 +2257,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     activity: "Keeping the record",
     tier: "village-craft",
     weight: 2,
+    rank: "gentry",
     inventory: {"water":1},
   },
   {
@@ -2061,6 +2267,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "town",
     weight: 1,
     capabilities: ["writing"],
+    rank: "gentry",
     inventory: {"water":1},
   },
   {
@@ -2070,6 +2277,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "town",
     weight: 1,
     capabilities: ["market_exchange"],
+    rank: "gentry",
     inventory: {"water":1},
   },
   {
@@ -2078,6 +2286,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     activity: "Playing and telling",
     tier: "village-craft",
     weight: 2,
+    rank: "labouring",
     inventory: {"water":1},
   },
   {
@@ -2086,6 +2295,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     activity: "Playing and telling",
     tier: "village-craft",
     weight: 2,
+    rank: "labouring",
     inventory: {"water":1},
   },
   {
@@ -2094,6 +2304,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     activity: "Working wood",
     tier: "village-craft",
     weight: 2,
+    rank: "middling",
     inventory: {"water":1,"wood":2,"tool":1},
   },
   {
@@ -2104,6 +2315,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     years: [-5000, 10001],
     weight: 2,
     needs: ["water"],
+    rank: "middling",
     inventory: {"water":1,"wood":2,"tool":1},
   },
   {
@@ -2113,6 +2325,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "village-craft",
     weight: 1,
     needs: ["water"],
+    rank: "labouring",
     inventory: {"water":1,"tool":1},
   },
   {
@@ -2122,6 +2335,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "town",
     years: [1500, 10001],
     weight: 4,
+    rank: "middling",
     inventory: {"water":2,"coin":2,"fruit":1},
   },
   {
@@ -2131,6 +2345,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "town",
     years: [1600, 10001],
     weight: 3,
+    rank: "middling",
     inventory: {"water":2,"coin":2,"fruit":1},
   },
   {
@@ -2140,6 +2355,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "town",
     years: [1700, 10001],
     weight: 2,
+    rank: "middling",
     inventory: {"water":1,"bread":2},
   },
   {
@@ -2150,6 +2366,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     years: [1700, 10001],
     weight: 3,
     sex: "female",
+    rank: "middling",
     inventory: {"water":1,"wool":2,"flax":1},
   },
   {
@@ -2160,6 +2377,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     years: [1700, 10001],
     weight: 2,
     sex: "female",
+    rank: "middling",
     inventory: {"water":1,"wool":2,"flax":1},
   },
   {
@@ -2170,6 +2388,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     years: [1500, 10001],
     weight: 4,
     capabilities: ["writing"],
+    rank: "middling",
     inventory: {"water":1},
   },
   {
@@ -2180,6 +2399,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     years: [1700, 10001],
     weight: 2,
     capabilities: ["coinage"],
+    rank: "middling",
     inventory: {"water":1},
   },
   {
@@ -2190,6 +2410,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     years: [1470, 10001],
     weight: 2,
     capabilities: ["writing"],
+    rank: "middling",
     inventory: {"water":1,"tool":1},
   },
   {
@@ -2200,6 +2421,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     years: [1600, 10001],
     weight: 3,
     capabilities: ["writing"],
+    rank: "middling",
     inventory: {"water":1},
   },
   {
@@ -2209,6 +2431,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "town",
     years: [1700, 10001],
     weight: 2,
+    rank: "labouring",
     inventory: {"water":1},
   },
   {
@@ -2218,6 +2441,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "town",
     years: [1820, 10001],
     weight: 2,
+    rank: "middling",
     inventory: {"water":1,"tool":1},
   },
   {
@@ -2227,6 +2451,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "town",
     years: [1800, 1950],
     weight: 1,
+    rank: "labouring",
     inventory: {"water":1,"tool":1},
   },
   {
@@ -2236,6 +2461,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "town",
     years: [1840, 10001],
     weight: 1,
+    rank: "middling",
     inventory: {"water":1},
   },
   {
@@ -2245,6 +2471,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "town",
     years: [1600, 10001],
     weight: 2,
+    rank: "middling",
     inventory: {"water":1,"wood":2,"tool":1},
   },
   {
@@ -2254,6 +2481,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "town",
     years: [1600, 10001],
     weight: 1,
+    rank: "middling",
     inventory: {"water":1,"tool":1},
   },
   {
@@ -2263,6 +2491,7 @@ export const commonLivelihoods: readonly Livelihood[] = [
     tier: "town",
     years: [1600, 10001],
     weight: 2,
+    rank: "middling",
     inventory: {"water":2,"berries":1},
   },
 ];

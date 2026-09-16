@@ -221,5 +221,23 @@ export type Livelihood = {
    * much as the same fields and households worked under compulsion.
    */
   standing?: "free" | "unfree";
+  /**
+   * Where this work placed a person locally. Not wealth, and not a ladder
+   * anyone climbs: a merchant barred from office is `middling` however rich.
+   * Absent on work that says nothing about rank.
+   */
+  rank?: Rank;
   inventory: Inventory;
 };
+/**
+ * Ordered from the bottom. `elite` is deliberately unused by the ordinary-work
+ * table: nobody in it rules anything.
+ */
+export const ranks = [
+  "destitute",
+  "labouring",
+  "middling",
+  "gentry",
+  "elite",
+] as const;
+export type Rank = (typeof ranks)[number];

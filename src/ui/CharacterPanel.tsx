@@ -50,6 +50,11 @@ import {
 import { glyphForPower } from "../content/beliefs/icons";
 import { deityIconFor } from "../content/beliefs/deity-icons";
 import { GlyphIcon } from "./GlyphIcon";
+import { stanceIcon } from "./StanceIcon";
+import { useWikiSummary } from "./useWikiSummary";
+import { outlookOf, outlookSentence, shortLabel } from "../core/outlook";
+import { describeStanding, standingOf as rankOf } from "../core/standing";
+import type { Stance, StanceTag } from "../content/outlook/types";
 import { sexFromName } from "../content/characters/name-sex";
 import type { Runtime } from "../runtime/session";
 import type { Actor, PlayerCommand } from "../core/types";
@@ -62,6 +67,7 @@ const dayIcons: Record<StationActivity, LucideIcon> = {
   work: Hammer,
   tend: Sprout,
   haul: Package,
+  "haul-catch": Package,
   "draw-water": Waves,
   gather: Leaf,
   visit: Users,
@@ -219,8 +225,11 @@ export function CharacterPanel({
   onSelect: (id: string) => void;
 }) {
   const [tab, setTab] = useState<
-    "profile" | "household" | "abilities" | "beliefs"
+    "profile" | "household" | "abilities" | "beliefs" | "ideology"
   >("profile");
+  const [selectedStanceId, setSelectedStanceId] = useState<string | undefined>(
+    undefined,
+  );
   const [shown, setShown] = useState<string | undefined>(undefined);
   const [selectedPowerName, setSelectedPowerName] = useState<
     string | undefined
@@ -264,6 +273,19 @@ export function CharacterPanel({
     belief.patron ??
     hierarchy.nodes[0]?.power ??
     belief.system.powers[0]!;
+  const outlook = pack.setting
+    ? outlookOf(seed, actor, pack.setting)
+    : { stances: [] as Stance[], tags: new Set<StanceTag>() };
+  const stance =
+    outlook.stances.find((s) => s.id === selectedStanceId) ??
+    outlook.stances[0];
+  // Called here rather than in the tab body: a hook cannot sit behind a
+  // condition, and the fetch is cheap and cached either way. A general's
+  // article is the nearest one rather than one about the stance itself —
+  // prosperity theology for "wealth is a sign of favour" — so it is offered
+  // as a link and not quoted.
+  const excerpt = useWikiSummary(stance?.fallback ? undefined : stance?.wiki);
+  const rank = rankOf(seed, actor);
   const routine = runtime.engine.world.itinerary?.(actor.id);
   const plan = routine ? dayPlan(routine, state.clock) : [];
   const inspection = isPlayer ? undefined : runtime.engine.inspect(actor.id);
@@ -294,7 +316,7 @@ export function CharacterPanel({
   if (actor.hunger > 55 && actor.hunger <= 70) condition.push("Thirsty");
 
   return (
-    <div className="character-panel">
+    <div className="character-panel" data-tab={tab}>
       <header className="character-header">
         <i className="character-mark" aria-hidden="true" />
         <h2>{actor.name}</h2>
@@ -313,6 +335,7 @@ export function CharacterPanel({
             ["household", "Household"],
             ["abilities", "Abilities"],
             ["beliefs", "Beliefs"],
+            ["ideology", "Ideology"],
           ] as const
         ).map(([id, label]) => (
           <button
@@ -328,12 +351,14 @@ export function CharacterPanel({
       {tab === "profile" && (
         <div className="character-body">
           <aside className="character-aside">
-            <div className="character-portrait">
-              <CharacterSprite
-                appearance={runtime.appearanceFor(actor)}
-                age={actor.age}
-                portrait
-              />
+            <div className="portrait-frame corner-frame">
+              <div className="character-portrait">
+                <CharacterSprite
+                  appearance={runtime.appearanceFor(actor)}
+                  age={actor.age}
+                  portrait
+                />
+              </div>
             </div>
             <ul className="condition">
               {condition.map((c) => {
@@ -357,6 +382,10 @@ export function CharacterPanel({
                 <span>Nothing in hand</span>
               )}
             </div>
+            <i className="rule-diamond" aria-hidden="true" />
+            <p className="character-quote">
+              &ldquo;A quiet life keeps the village strong.&rdquo;
+            </p>
             {follow && (
               <button
                 className="follow-day"
@@ -373,6 +402,7 @@ export function CharacterPanel({
             )}
           </aside>
           <div className="character-main">
+            <h3>Currently</h3>
             <h1>
               {livelihood?.activity ??
                 `${they} ${isPlayer ? "keep" : "keeps"} to the day's work.`}
@@ -386,8 +416,9 @@ export function CharacterPanel({
                 .filter(Boolean)
                 .join(" · ")}
             </p>
-            <h3>Today</h3>
-            {plan.length > 0 ? (
+            <div className="panel-card">
+              <h3>Today</h3>
+              {plan.length > 0 ? (
               <ol className="day-plan">
                 {plan.map((entry, i) => {
                   const Icon = dayIcons[entry.activity] ?? Hand;
@@ -412,34 +443,50 @@ export function CharacterPanel({
                   );
                 })}
               </ol>
-            ) : (
-              <ol className="day-plan">
-                {[...state.events]
-                  .reverse()
-                  .slice(0, 4)
-                  .map((e) => (
-                    <li key={e.id} data-state="done">
-                      <Moon size={17} />
-                      <time>{timeLabel(e.time)}</time>
-                      <span>{e.text}</span>
-                    </li>
-                  ))}
-              </ol>
-            )}
-            <h3>Abilities</h3>
-            <ul className="ability-list">
-              {held.map(({ ability, rank }) => {
-                const Icon = icons[ability.icon] ?? Hand;
-                return (
-                  <li key={ability.id}>
-                    <Icon size={16} />
-                    <span>{ability.label}</span>
-                    <Pips rank={rank} tone={ability.stat} />
-                  </li>
-                );
-              })}
-            </ul>
-            <dl className="bearing">
+              ) : (
+                <ol className="day-plan">
+                  {[...state.events]
+                    .reverse()
+                    .slice(0, 4)
+                    .map((e) => (
+                      <li key={e.id} data-state="done">
+                        <Moon size={17} />
+                        <time>{timeLabel(e.time)}</time>
+                        <span>{e.text}</span>
+                      </li>
+                    ))}
+                </ol>
+              )}
+            </div>
+            <div className="character-pair">
+              <div className="panel-card">
+                <h3>About</h3>
+                <p className="character-about">
+                  {actor.name.split(" ")[0]} is a {roleLabel.toLowerCase()}
+                  {actor.origin?.community
+                    ? ` of the ${actor.origin.community}`
+                    : ""}
+                  , known for {dispositionOf(stats).toLowerCase()} habits.{" "}
+                  {they} take part in the daily work of the settlement.
+                </p>
+              </div>
+              <div className="panel-card">
+                <h3>Abilities</h3>
+                <ul className="ability-list">
+                  {held.map(({ ability, rank }) => {
+                    const Icon = icons[ability.icon] ?? Hand;
+                    return (
+                      <li key={ability.id}>
+                        <Icon size={16} />
+                        <span>{ability.label}</span>
+                        <Pips rank={rank} tone={ability.stat} />
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            </div>
+            <dl className="bearing panel-card">
               <div>
                 <dt>Disposition</dt>
                 <dd>{dispositionOf(stats)}</dd>
@@ -800,12 +847,125 @@ export function CharacterPanel({
           </div>
         </div>
       )}
+      {tab === "ideology" && (
+        <div className="outlook-layout">
+          <aside className="outlook-aside">
+            <div className="portrait-frame corner-frame outlook-portrait">
+              <CharacterSprite
+                appearance={runtime.appearanceFor(actor)}
+                age={actor.age}
+                portrait
+              />
+            </div>
+            <h1>Outlook</h1>
+            <i className="rule-diamond" aria-hidden="true" />
+            <p>
+              {outlook.stances.length
+                ? outlookSentence(outlook)
+                : "Nothing is recorded of what people here held, beyond their religious practice."}
+            </p>
+            {outlook.tags.size > 0 && (
+              <ul className="outlook-tags">
+                {[...outlook.tags].map((tag) => (
+                  <li key={tag}>{tag}</li>
+                ))}
+              </ul>
+            )}
+            {rank && (
+              <dl className="outlook-measures">
+                <div>
+                  <dt>Standing</dt>
+                  <dd>{describeStanding(rank)}</dd>
+                </div>
+              </dl>
+            )}
+          </aside>
+          <div className="outlook-main">
+            <h3>Ideology and outlook</h3>
+            <h1>{stance ? stance.label : "No recorded positions"}</h1>
+            <p className="outlook-lede">
+              Held alongside {actor.name.split(" ")[0]}&apos;s religious
+              practice, and drawn from what was available here and then.
+            </p>
+            <div className="stance-row">
+              {outlook.stances.map((held) => {
+                const Icon = stanceIcon(held.icon);
+                return (
+                  <button
+                    key={held.id}
+                    className="stance-card"
+                    data-kind={held.kind}
+                    data-selected={stance?.id === held.id}
+                    onClick={() => setSelectedStanceId(held.id)}
+                    aria-pressed={stance?.id === held.id}
+                  >
+                    <Icon size={28} strokeWidth={1.5} aria-hidden="true" />
+                    <strong>{shortLabel(held)}</strong>
+                    <small>{held.kind}</small>
+                  </button>
+                );
+              })}
+            </div>
+            {stance && (
+              <div className="stance-detail corner-frame">
+                <div className="stance-identity">
+                  <span className="stance-tile" data-kind={stance.kind}>
+                    {(() => {
+                      const Icon = stanceIcon(stance.icon);
+                      return (
+                        <Icon size={26} strokeWidth={1.5} aria-hidden="true" />
+                      );
+                    })()}
+                  </span>
+                  <h2>{stance.label}</h2>
+                  <small>{stance.kind}</small>
+                  <dl>
+                    <div>
+                      <dt>Leaning</dt>
+                      <dd>{stance.lean ?? "settled"}</dd>
+                    </div>
+                    <div>
+                      <dt>Held by</dt>
+                      <dd>
+                        {stance.ranks ? stance.ranks.join(", ") : "every rank"}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Commonness</dt>
+                      <dd>
+                        {stance.weight >= 16
+                          ? "ordinary"
+                          : stance.weight >= 8
+                            ? "widely held"
+                            : "a minority"}
+                      </dd>
+                    </div>
+                  </dl>
+                </div>
+                <div className="stance-copy">
+                  <p>{stance.note}</p>
+                  {excerpt && <p className="stance-excerpt">{excerpt}</p>}
+                  <a href={stance.wiki} target="_blank" rel="noreferrer">
+                    {stance.fallback ? "Related reading ↗" : "View source ↗"}
+                  </a>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
       <footer>
         <span>
           <i aria-hidden="true" />
-          Some personal details are reconstructed
-          {describeStats(stats).length > 0 &&
-            ` · ${describeStats(stats).join(", ")}`}
+          {tab === "ideology" ? (
+            <em>A person&apos;s outlook shapes what they make of the day.</em>
+          ) : (
+            <>
+              Some personal details are reconstructed
+              {describeStats(stats).length > 0 &&
+                ` · ${describeStats(stats).join(", ")}`}
+            </>
+          )}
         </span>
         <button onClick={onClose}>Close</button>
       </footer>

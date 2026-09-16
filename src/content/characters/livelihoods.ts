@@ -13,6 +13,7 @@ import { commonLivelihoods } from "./livelihoods.generated";
 export const livelihoods: readonly Livelihood[] = [
   {
     id: "gatherer",
+    rank: "labouring",
     weight: 14,
     label: "Gatherer",
     activity: "Gathering supplies",
@@ -20,6 +21,7 @@ export const livelihoods: readonly Livelihood[] = [
   },
   {
     id: "hunter",
+    rank: "labouring",
     weight: 8,
     label: "Hunter",
     activity: "Looking for game",
@@ -27,6 +29,7 @@ export const livelihoods: readonly Livelihood[] = [
   },
   {
     id: "fisher",
+    rank: "labouring",
     weight: 8,
     label: "Fisher",
     activity: "Working near water",
@@ -35,6 +38,7 @@ export const livelihoods: readonly Livelihood[] = [
   },
   {
     id: "farmer",
+    rank: "middling",
     weight: 24,
     label: "Farmer",
     activity: "Tending cultivation",
@@ -44,6 +48,7 @@ export const livelihoods: readonly Livelihood[] = [
   },
   {
     id: "herder",
+    rank: "labouring",
     weight: 10,
     label: "Herder",
     activity: "Tending animals",
@@ -52,6 +57,7 @@ export const livelihoods: readonly Livelihood[] = [
   },
   {
     id: "craftsperson",
+    rank: "labouring",
     weight: 3,
     label: "Craftsperson",
     activity: "Household craft work",
@@ -59,6 +65,7 @@ export const livelihoods: readonly Livelihood[] = [
   },
   {
     id: "trader",
+    rank: "middling",
     weight: 1,
     label: "Trader",
     activity: "Exchanging supplies",
@@ -68,6 +75,7 @@ export const livelihoods: readonly Livelihood[] = [
   },
   {
     id: "traveler",
+    rank: "labouring",
     weight: 1,
     label: "Traveler",
     activity: "Traveling",

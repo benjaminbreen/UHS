@@ -624,14 +624,22 @@ button:hover:not(:disabled) {
   color: var(--cream);
   font-size: 16px;
 }
-.condition {
+/* Both sit in a 184px column beside the portrait. The word counts are
+ * trimmed to fit in JS; this is the guarantee that a long one cannot push
+ * the card to two lines anyway. */
+.condition,
+.traits {
   display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.condition {
   color: #9ec98e;
   font-size: 15px;
   margin-top: 4px;
 }
 .traits {
-  display: block;
   color: var(--muted);
   font-size: 13px;
   font-style: italic;
@@ -653,6 +661,15 @@ button:hover:not(:disabled) {
 .stats .needs {
   margin-top: 12px;
   gap: 8px;
+}
+.stats .outlook {
+  margin: 10px 0 0;
+  padding-left: 16px;
+  opacity: 0.8;
+  line-height: 1.5;
+}
+.stats .outlook a {
+  color: inherit;
 }
 .wealth {
   display: flex;
@@ -3179,7 +3196,7 @@ button:disabled {
   border-bottom: 1px solid var(--line-soft);
 }
 .character-panel header h2 {
-  font-size: 30px;
+  font-size: 34px;
   color: var(--cream);
   line-height: 1.1;
 }
@@ -3206,14 +3223,16 @@ button:disabled {
   border: none;
   border-bottom: 2px solid transparent;
   color: var(--muted);
-  font: inherit;
-  font-size: 15px;
-  padding: 11px 0;
+  font-family: var(--sans);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 13px 0;
   cursor: pointer;
 }
 .character-panel nav button[aria-selected="true"] {
-  color: var(--gold);
-  border-bottom-color: var(--rose-line);
+  color: var(--belief-cyan);
+  border-bottom-color: var(--belief-coral);
 }
 .character-body {
   display: grid;
@@ -3667,15 +3686,13 @@ button:disabled {
   padding: 0;
   border-radius: 1px;
   border-color: #c09b4e;
-  background: radial-gradient(
-    circle at 78% 32%,
-    #272847 0,
-    #191e39 34%,
-    #11172c 78%
-  );
+  /* Flat and dark: the painted scene behind each tab is the visible layer,
+   * and a gradient here would sit on top of it. */
+  background: #0c1021;
   box-shadow:
-    0 0 0 5px #12172a,
-    0 0 0 7px #806a3c,
+    inset 0 0 0 1px #a68c5c4d,
+    0 0 0 4px #0c1021,
+    0 0 0 5px #806a3c,
     0 30px 100px #080b12b8;
 }
 .modal-character > .close-modal {
@@ -3689,6 +3706,108 @@ button:disabled {
   --belief-coral: #ef766d;
   --belief-indigo: #292f58;
   --sans: "DM Sans", system-ui, sans-serif;
+  position: relative;
+  isolation: isolate;
+}
+/* A painted landscape behind the whole panel, one per tab, sunk under a
+ * gradient heavy enough that body text still reads against it. */
+.character-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    linear-gradient(
+      212deg,
+      #16234d2b 0%,
+      #131f4573 32%,
+      #101a3ac4 62%,
+      #0c1430ef 100%
+    ),
+    var(--panel-scene, none) top right/cover no-repeat;
+}
+.character-panel[data-tab="ideology"] {
+  --panel-scene: url("/ui/panel-ideology.png");
+}
+.character-panel[data-tab="profile"],
+.character-panel[data-tab="abilities"] {
+  --panel-scene: url("/ui/panel-profile.png");
+}
+.character-panel[data-tab="household"] {
+  --panel-scene: url("/ui/panel-household.png");
+}
+.character-panel[data-tab="beliefs"] {
+  --panel-scene: url("/ui/panel-ideology.png");
+}
+/* Gold brackets at the four corners, the frame the mockups put round a
+ * portrait or a panel. Drawn as eight gradients so nothing is nested. */
+.corner-frame {
+  position: relative;
+  --corner: 14px;
+  --corner-line: var(--line);
+  background-image:
+    linear-gradient(var(--corner-line), var(--corner-line)),
+    linear-gradient(var(--corner-line), var(--corner-line)),
+    linear-gradient(var(--corner-line), var(--corner-line)),
+    linear-gradient(var(--corner-line), var(--corner-line)),
+    linear-gradient(var(--corner-line), var(--corner-line)),
+    linear-gradient(var(--corner-line), var(--corner-line)),
+    linear-gradient(var(--corner-line), var(--corner-line)),
+    linear-gradient(var(--corner-line), var(--corner-line));
+  background-repeat: no-repeat;
+  background-size:
+    var(--corner) 1px,
+    1px var(--corner),
+    var(--corner) 1px,
+    1px var(--corner),
+    var(--corner) 1px,
+    1px var(--corner),
+    var(--corner) 1px,
+    1px var(--corner);
+  background-position:
+    left top,
+    left top,
+    right top,
+    right top,
+    left bottom,
+    left bottom,
+    right bottom,
+    right bottom;
+}
+.corner-frame::after {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  pointer-events: none;
+  background-image:
+    linear-gradient(var(--corner-line), var(--corner-line)),
+    linear-gradient(var(--corner-line), var(--corner-line)),
+    linear-gradient(var(--corner-line), var(--corner-line)),
+    linear-gradient(var(--corner-line), var(--corner-line)),
+    linear-gradient(var(--corner-line), var(--corner-line)),
+    linear-gradient(var(--corner-line), var(--corner-line)),
+    linear-gradient(var(--corner-line), var(--corner-line)),
+    linear-gradient(var(--corner-line), var(--corner-line));
+  background-repeat: no-repeat;
+  background-size:
+    calc(var(--corner) * 0.5) 1px,
+    1px calc(var(--corner) * 0.5),
+    calc(var(--corner) * 0.5) 1px,
+    1px calc(var(--corner) * 0.5),
+    calc(var(--corner) * 0.5) 1px,
+    1px calc(var(--corner) * 0.5),
+    calc(var(--corner) * 0.5) 1px,
+    1px calc(var(--corner) * 0.5);
+  background-position:
+    left top,
+    left top,
+    right top,
+    right top,
+    left bottom,
+    left bottom,
+    right bottom,
+    right bottom;
+  opacity: 0.55;
 }
 .character-panel .character-header {
   position: relative;
@@ -3742,36 +3861,39 @@ button:disabled {
   border-bottom-color: var(--belief-coral);
 }
 .character-body {
-  grid-template-columns: 275px minmax(480px, 1fr) 340px;
+  grid-template-columns: 260px minmax(460px, 1fr) 320px;
   gap: 0;
-  min-height: 635px;
   padding: 0;
   align-items: stretch;
 }
 .character-aside,
 .character-side {
-  padding: 24px;
-  background: linear-gradient(180deg, #36417026, #12192e0a);
+  padding: 20px 22px;
+  background: linear-gradient(180deg, #36417021, #12192e00);
 }
 .character-aside {
   border-right: 1px solid var(--line);
 }
 .character-side {
   border-left: 1px solid var(--line);
-  background: linear-gradient(180deg, #553d592b, #151a310f);
+  background: linear-gradient(180deg, #553d5924, #151a3100);
 }
 .character-main {
-  padding: 26px 32px;
+  padding: 20px 26px 22px;
 }
 .character-panel h1 {
-  font-size: 30px;
+  font-size: 28px;
   font-weight: 400;
-  line-height: 1.18;
+  line-height: 1.15;
 }
 .character-panel h3 {
-  margin: 24px 0 10px;
-  font-size: 13px;
-  letter-spacing: 0.12em;
+  margin: 16px 0 8px;
+  color: var(--gold);
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
 }
 .character-panel .summary {
   color: #b7b9ce;
@@ -3779,16 +3901,16 @@ button:disabled {
   font-size: 14px;
 }
 .character-portrait {
-  height: 288px;
+  height: 232px;
   aspect-ratio: auto;
   border-color: #566399;
   border-radius: 1px;
   background: linear-gradient(145deg, #323a68, #263052);
 }
 .character-aside .condition {
-  gap: 11px;
-  margin: 20px 8px;
-  padding-bottom: 20px;
+  gap: 8px;
+  margin: 14px 8px;
+  padding-bottom: 14px;
   border-bottom: 1px solid var(--line-soft);
 }
 .character-aside .condition li {
@@ -3806,7 +3928,7 @@ button:disabled {
   color: var(--belief-coral);
 }
 .carrying {
-  min-height: 54px;
+  min-height: 32px;
   font-family: var(--sans);
   color: #d3d3df;
 }
@@ -3821,18 +3943,18 @@ button:disabled {
   gap: 0;
 }
 .day-plan li {
-  grid-template-columns: 28px 62px minmax(0, 1fr) auto;
-  min-height: 58px;
-  padding: 8px 10px;
+  grid-template-columns: 24px 56px minmax(0, 1fr) auto;
+  min-height: 36px;
+  padding: 4px 10px;
   border-radius: 1px;
   font-family: var(--sans);
   font-size: 15px;
 }
 .day-plan li:not(:last-child)::after {
-  left: 23px;
-  top: 37px;
-  bottom: -12px;
-  background: #d7ae58a8;
+  left: 21px;
+  top: 30px;
+  bottom: -4px;
+  background: #d7ae5877;
 }
 .day-plan li[data-state="now"] {
   border-left: 2px solid var(--belief-cyan);
@@ -3845,7 +3967,7 @@ button:disabled {
   font-size: 12px;
 }
 .ability-list {
-  gap: 10px;
+  gap: 6px;
 }
 .ability-list li {
   font-family: var(--sans);
@@ -4044,6 +4166,296 @@ button:disabled {
 .power-map path[data-relation="aspect-of"] {
   stroke: var(--belief-coral);
   stroke-dasharray: 7 5;
+}
+/* Profile: the mockup groups the day, the description and the abilities into
+ * bordered cards rather than running them together down the column. */
+.panel-card {
+  margin-top: 12px;
+  padding: 12px 16px;
+  background: #141d3547;
+  border: 1px solid var(--line-soft);
+  border-radius: 2px;
+}
+.panel-card > h3:first-child {
+  margin-top: 0;
+}
+.character-pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+.character-about {
+  margin: 8px 0 0;
+  color: #cfd4e4;
+  font-size: 14px;
+  line-height: 1.55;
+}
+.portrait-frame {
+  --corner: 16px;
+  padding: 9px;
+}
+.portrait-frame > .character-portrait {
+  border-radius: 1px;
+}
+.character-aside .rule-diamond {
+  margin: 16px 0 12px;
+}
+.character-quote {
+  margin: 0;
+  color: #a4abc4;
+  font-size: 14px;
+  font-style: italic;
+  line-height: 1.5;
+  text-align: center;
+}
+.bearing.panel-card {
+  display: flex;
+  gap: 48px;
+}
+/* The Ideology tab. Positions have no hierarchy to draw, so they sit in a row
+ * rather than on a map, and the panel is chrome rather than world: line icons
+ * in the same weight as the type, not the pixel glyphs the Beliefs tab uses. */
+.outlook-layout {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  min-height: 600px;
+}
+.outlook-aside {
+  padding: 26px 28px;
+  border-right: 1px solid var(--line-soft);
+}
+.outlook-portrait {
+  --corner: 18px;
+  height: 246px;
+  padding: 10px;
+  overflow: hidden;
+  background-color: #1d2647;
+}
+.outlook-portrait > * {
+  height: 100%;
+}
+.outlook-aside h1 {
+  margin-top: 22px;
+  font-size: 30px;
+}
+.rule-diamond {
+  display: block;
+  height: 9px;
+  margin: 14px 0 16px;
+  background:
+    linear-gradient(var(--line-soft), var(--line-soft)) left center/100% 1px
+      no-repeat,
+    linear-gradient(45deg, transparent 42%, var(--gold) 42% 58%, transparent 58%)
+      center/9px 9px no-repeat;
+}
+.outlook-aside > p {
+  color: #b8bbcf;
+  font-family: var(--sans);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.outlook-tags {
+  display: flex;
+  margin: 18px 0 0;
+  padding: 0;
+  gap: 7px;
+  flex-wrap: wrap;
+  list-style: none;
+}
+.outlook-tags li {
+  padding: 5px 11px;
+  color: var(--belief-cyan);
+  background: #1d2a4a80;
+  border: 1px solid #62d4ca44;
+  border-radius: 2px;
+  font-family: var(--sans);
+  font-size: 10px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+.outlook-measures {
+  margin-top: 22px;
+}
+.outlook-measures div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line-soft);
+  font-family: var(--sans);
+  font-size: 12px;
+}
+.outlook-measures dd {
+  color: var(--belief-cyan);
+  text-transform: capitalize;
+}
+.outlook-main {
+  min-width: 0;
+  padding: 26px 32px 30px;
+}
+.outlook-main h1 {
+  margin-top: 6px;
+  font-size: 38px;
+}
+.outlook-lede {
+  margin-top: 9px;
+  color: #a4abc4;
+  font-family: var(--sans);
+  font-size: 12.5px;
+}
+.stance-row {
+  display: flex;
+  gap: 14px;
+  margin-top: 22px;
+}
+.stance-card {
+  position: relative;
+  display: flex;
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 18px 8px 14px;
+  flex-direction: column;
+  align-items: center;
+  color: var(--cream);
+  background: #16203c73;
+  border: 1px solid var(--line-soft);
+  border-radius: 2px;
+  font: inherit;
+  cursor: pointer;
+}
+.stance-card:hover {
+  border-color: #6b7aa8;
+}
+.stance-card[data-selected="true"] {
+  border-color: var(--belief-cyan);
+  background: #1b2c4c80;
+}
+/* The notch the mockup puts on the selected card, at the top edge. */
+.stance-card[data-selected="true"]::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: -5px;
+  width: 9px;
+  height: 9px;
+  background: var(--belief-cyan);
+  transform: translateX(-50%) rotate(45deg);
+}
+.stance-card svg,
+.stance-tile svg {
+  color: var(--kind-color, var(--cream));
+}
+.stance-card[data-kind="temper"],
+.stance-tile[data-kind="temper"] {
+  --kind-color: var(--gold);
+}
+.stance-card[data-kind="cosmic"],
+.stance-tile[data-kind="cosmic"] {
+  --kind-color: var(--belief-cyan);
+}
+.stance-card[data-kind="political"],
+.stance-tile[data-kind="political"] {
+  --kind-color: var(--cream);
+}
+.stance-card[data-kind="ethical"],
+.stance-tile[data-kind="ethical"] {
+  --kind-color: #e9a8c0;
+}
+.stance-card[data-kind="economic"],
+.stance-tile[data-kind="economic"] {
+  --kind-color: #9fc79a;
+}
+.stance-card strong {
+  display: block;
+  max-width: 100%;
+  margin-top: 12px;
+  overflow: hidden;
+  font-size: 16px;
+  font-weight: 400;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.stance-card small {
+  margin-top: 4px;
+  color: var(--gold);
+  font-family: var(--sans);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.stance-detail {
+  --corner: 16px;
+  border: 1px solid #a68c5c2e;
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: 34px;
+  margin-top: 22px;
+  padding: 26px 30px;
+  background-color: #141d3559;
+}
+.stance-identity h2 {
+  margin: 14px 0 0;
+  font-size: 27px;
+  font-weight: 400;
+}
+.stance-identity > small {
+  color: var(--gold);
+  font-family: var(--sans);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.stance-tile {
+  display: inline-flex;
+  width: 46px;
+  height: 46px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line-soft);
+  border-radius: 2px;
+  background: #1d2a4a66;
+}
+.stance-identity dl {
+  margin: 20px 0 0;
+  padding-top: 16px;
+  border-top: 1px solid var(--line-soft);
+}
+.stance-identity dl div {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 5px 0;
+  font-family: var(--sans);
+  font-size: 12px;
+}
+.stance-identity dt {
+  color: #8f9ab4;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 10px;
+}
+.stance-identity dd {
+  margin: 0;
+  color: var(--cream);
+  text-transform: capitalize;
+}
+.stance-copy p {
+  margin: 0 0 12px;
+  color: #cfd4e4;
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.65;
+}
+.stance-excerpt {
+  color: #a9b1c8 !important;
+  font-size: 12.5px !important;
+}
+.stance-copy a {
+  color: var(--belief-cyan);
+  font-family: var(--sans);
+  font-size: 12px;
 }
 .power-node {
   position: absolute;

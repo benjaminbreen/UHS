@@ -58,6 +58,20 @@ const formatZoom = (z: number) =>
 import { download } from "../runtime/storage";
 import { distance, type PlayerCommand } from "../core/types";
 import { describeStats, statKeys } from "../core/stats";
+import { describeStanding, standingOf } from "../core/standing";
+import { outlookOf, shortLabel } from "../core/outlook";
+
+/** Both lines under the role must stay on one line each: as many words as fit,
+ * fewer when they are long ones like "set in their ways". */
+const fit = (words: string[], most: number, room: number, sep: string) => {
+  for (let n = Math.min(most, words.length); n > 1; n--) {
+    const line = words.slice(0, n).join(sep);
+    if (line.length <= room) return line;
+  }
+  return words[0] ?? "";
+};
+const fitTraits = (words: string[]) => fit(words, 4, 28, ", ");
+const fitOutlook = (words: string[]) => fit(words, 2, 25, " · ");
 import { narratorProvider, PROVIDER_KEY } from "../narrator/turn";
 import { NarratorPanel, turnTime } from "./NarratorPanel";
 import { DialogueModal } from "./DialogueModal";
@@ -827,19 +841,20 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
                   )}
                   {p.age !== undefined && <span> · {p.age}</span>}
                 </div>
-                <span className="condition">
-                  {[
-                    (p.health ?? 100) < 40
-                      ? "Unwell"
-                      : p.hunger > 70
-                        ? "Hungry"
-                        : "Healthy",
-                    p.fatigue > 65 ? "Tired" : "Rested",
-                  ].join(" · ")}
-                </span>
+                {pack.setting && (
+                  <span className="condition">
+                    {fitOutlook(
+                      outlookOf(
+                        obs.manifest.seed,
+                        p,
+                        pack.setting,
+                      ).stances.map(shortLabel),
+                    )}
+                  </span>
+                )}
                 {p.stats && (
                   <span className="traits">
-                    {describeStats(p.stats).join(", ") || "unremarkable"}
+                    {fitTraits(describeStats(p.stats)) || "unremarkable"}
                   </span>
                 )}
                 {(pack.currency ||
@@ -1215,7 +1230,11 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
                   <div className="stats">
                     <p>
                       You are{" "}
-                      {describeStats(p.stats).join(", ") || "unremarkable"}.{" "}
+                      {describeStats(p.stats).join(", ") || "unremarkable"}
+                      {((s) => (s ? `, ${describeStanding(s)}` : ""))(
+                        standingOf(obs.manifest.seed, p),
+                      )}
+                      .{" "}
                       <button
                         className="link"
                         onClick={() => setStatDetails((v) => !v)}
@@ -1223,6 +1242,26 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
                         {statDetails ? "Hide details" : "Details"}
                       </button>
                     </p>
+                    {pack.setting && (
+                      <ul className="outlook">
+                        {outlookOf(
+                          obs.manifest.seed,
+                          p,
+                          pack.setting,
+                        ).stances.map((stance) => (
+                          <li key={stance.id}>
+                            <a
+                              href={stance.wiki}
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              {stance.label}
+                            </a>
+                            {stance.note ? ` — ${stance.note}` : ""}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                     {statDetails && (
                       <div className="needs">
                         {statKeys.map((k) => (
