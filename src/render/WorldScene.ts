@@ -57,6 +57,10 @@ import {
   type StationActivity,
 } from "../core/itinerary";
 import { lightingAt, lightingPreset, shadowFrame } from "./lighting";
+import { Drift } from "./drift";
+
+import { driftStyle, foliageTint } from "./season-art";
+import { seasonAt } from "../core/livelihood";
 import {
   FIRE_FRAME_MS,
   SMOKE_MS,
@@ -149,6 +153,10 @@ export class WorldScene extends Phaser.Scene {
     >
   >();
   private canopies: { image: Phaser.GameObjects.Image; cut: number }[] = [];
+  /** Drawn height of each solid plant, so a climber sits at its fork rather
+   * than at a guessed offset. Decorations are not entities, so their sprites
+   * cannot be looked up later. */
+  private plantHeights = new Map<string, number>();
   private windSprites: WindSprite[] = [];
   private ambient = new Map<string, Ambient>();
   /** Not drawn: indoors, or waiting on a routine. */
@@ -207,6 +215,8 @@ export class WorldScene extends Phaser.Scene {
   private tint = 0xffffff;
   private shadowPhase = this.light.id;
   private night?: Phaser.GameObjects.Graphics;
+  private drift?: Drift;
+  private season = "summer";
   constructor(
     runtime: Runtime,
     private options: RenderOptions = {},
@@ -292,6 +302,7 @@ export class WorldScene extends Phaser.Scene {
     this.selection = this.add.graphics().setDepth(20000);
     this.routeOverlay = this.add.graphics().setDepth(20000);
     this.night = this.add.graphics().setDepth(19000).setScrollFactor(0);
+    this.drift = new Drift(this);
     this.input.keyboard!.removeCapture([
       "UP",
       "DOWN",
@@ -457,7 +468,10 @@ export class WorldScene extends Phaser.Scene {
     // three times a pot. Overlap a couple of pixels so the feet sit in it
     // rather than float above the silhouette.
     const on = this.entities.get(perch.on);
-    return on ? Math.max(4, Math.round(on.displayHeight) - 3) : perch.rise;
+    if (on) return Math.max(4, Math.round(on.displayHeight) - 3);
+    // Up a tree you sit in the fork, not on the canopy.
+    const plant = this.plantHeights.get(perch.on);
+    return plant ? Math.max(6, Math.round(plant * 0.45)) : perch.rise;
   }
   /** The cell a perched player is drawn over, which is the thing they climbed
    * rather than the ground they walked in from. */
@@ -855,6 +869,20 @@ export class WorldScene extends Phaser.Scene {
         ? 0xffffff
         : parseInt(this.light.tint, 16);
     this.shadowPhase = p.space === "outside" ? this.light.id : "night";
+    const setting = w.pack.setting;
+    this.season = setting
+      ? (seasonAt(setting.season, e.state.clock) ?? setting.season)
+      : "summer";
+    this.drift?.set(
+      p.space === "outside" && setting && (!this.options.overview || this.options.lab)
+        ? driftStyle(
+            this.season,
+            setting.environment?.ecology ?? "grassland",
+            setting.climate,
+          )
+        : undefined,
+      hashSeed(e.state.manifest.seed),
+    );
     const c = this.cameras.main;
     this.setCameraZoom(rt.zoom);
     const footprint =
@@ -941,6 +969,7 @@ export class WorldScene extends Phaser.Scene {
       for (const l of this.layers) l.destroy();
       this.layers = [];
       this.canopies = [];
+      this.plantHeights.clear();
       this.windSprites = [];
       this.ripples = [];
       this.buildings.clear();
@@ -1229,6 +1258,17 @@ export class WorldScene extends Phaser.Scene {
                 spriteName.startsWith("study-sheet-tree-")
               )
                 decoration.setScale(this.liveGraphics.treeScale);
+              if (originalIsTree && w.pack.setting) {
+                const turn = foliageTint(
+                  originalName,
+                  this.season,
+                  w.pack.setting.environment?.ecology ?? "grassland",
+                  random(e.state.manifest.seed, "foliage", x, y),
+                );
+                // sprite() already carries the hour-of-day grade.
+                if (turn) decoration.setTint(blendTint(this.tint, turn));
+              }
+              if (d?.solid) this.plantHeights.set(d.id, decoration.displayHeight);
               if (d && d.sprite !== "rock" && !this.options.lab) {
                 decoration.setInteractive({
                   pixelPerfect: true,
@@ -1593,11 +1633,18 @@ export class WorldScene extends Phaser.Scene {
         return;
       }
       const previous = this.destinations.get(id);
+      // Climbing moves the sprite without moving the tile, so the tile alone
+      // cannot say whether there is anything to redraw.
+      const perchKey =
+        id === "player"
+          ? (this.runtime.engine.state.player.perch?.on ?? "")
+          : "";
       const moved =
         !previous ||
         previous.x !== pos.x ||
         previous.y !== pos.y ||
-        previous.space !== pos.space;
+        previous.space !== pos.space ||
+        im.getData("perch") !== perchKey;
       const pending = id === "player" ? rt.characterAction : undefined;
       const arc =
         pending?.arc && pending.serial !== this.arcSerial
@@ -1608,6 +1655,7 @@ export class WorldScene extends Phaser.Scene {
       if (arc && !moved) this.launch(im, arc, im.x, im.y);
       if (!moved) return;
       this.destinations.set(id, { ...pos });
+      im.setData("perch", perchKey);
       if (
         previous?.space === pos.space &&
         (im.x !== tx || im.y !== ty) &&
@@ -1850,6 +1898,7 @@ export class WorldScene extends Phaser.Scene {
   }
   update(time: number) {
     beginFrame();
+    this.drift?.update(time, !!this.options.freeze);
     if (perf.fauna)
       for (const [id, f] of this.faunaSprites) {
         const im = this.entities.get(id);
@@ -2361,4 +2410,23 @@ export class WorldScene extends Phaser.Scene {
       has("arrowdown", "s") - has("arrowup", "w"),
     ];
   }
+}
+
+/** Multiply two tints channel-wise, as a shader would. */
+function blendTint(a: number, b: number) {
+  let out = 0;
+  for (let shift = 16; shift >= 0; shift -= 8) {
+    const v = Math.round((((a >> shift) & 255) * ((b >> shift) & 255)) / 255);
+    out |= v << shift;
+  }
+  return out;
+}
+
+function hashSeed(s: string) {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return (h >>> 0) / 4294967296;
 }
