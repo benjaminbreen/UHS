@@ -82,6 +82,13 @@ export type SettlementPlan = {
   work: Map<string, WorkSite>;
   /** Places people stop to talk, spread through the settlement. */
   gatherings?: Point[];
+  /** Somewhere to go when the work is done. Open venues have no building and
+   * borrow a gathering point; the rest name a door. */
+  venues?: {
+    venue: import("../../content/venues").Venue;
+    pos: Point;
+    placeId?: string;
+  }[];
   /** Country round the settlement, kept for routines built after planning. */
   outdoors?: { wild: Point[]; shore?: Point; quarry?: Point; roadOut?: Point };
   /** Farmland round the town: crop per cell, the parcels, and the territory

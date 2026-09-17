@@ -1,0 +1,735 @@
+{
+ "materials": {
+  "theatre-stone": {
+   "wall": [
+    "#23262c",
+    "#454b55",
+    "#666d78",
+    "#8b929c",
+    "#b0b6bd"
+   ],
+   "trim": [
+    "#4a4c4a",
+    "#7d7f7a",
+    "#a9aaa2",
+    "#cfcec4",
+    "#efeee2"
+   ],
+   "roof": [
+    "#29383e",
+    "#40505c",
+    "#566e79",
+    "#76888d"
+   ],
+   "foundation": [
+    "#33322b",
+    "#66645a",
+    "#a09c8c"
+   ]
+  },
+  "theatre-stucco": {
+   "wall": [
+    "#33291f",
+    "#6b5744",
+    "#a08768",
+    "#cbb392",
+    "#e8d6b8"
+   ],
+   "trim": [
+    "#5c5346",
+    "#918a7a",
+    "#bdb5a3",
+    "#ded8c7",
+    "#f4f0e2"
+   ],
+   "roof": [
+    "#3b322d",
+    "#635040",
+    "#896b4e",
+    "#ad8b63"
+   ],
+   "foundation": [
+    "#3a332a",
+    "#6e6355",
+    "#a89c88"
+   ]
+  },
+  "theatre-brick": {
+   "wall": [
+    "#2c1f1b",
+    "#5d3a30",
+    "#8a5442",
+    "#b0765c",
+    "#d29c7c"
+   ],
+   "trim": [
+    "#544c46",
+    "#8a837a",
+    "#b5aea3",
+    "#d8d2c6",
+    "#f2ede0"
+   ],
+   "roof": [
+    "#2d3939",
+    "#444f4a",
+    "#606f61",
+    "#85927c"
+   ],
+   "foundation": [
+    "#332a24",
+    "#63564c",
+    "#9a8b7c"
+   ]
+  }
+ },
+ "buildings": {
+  "opera-house": {
+   "label": "Opera house",
+   "family": "theatre",
+   "form": "colonnade",
+   "description": "A columned theatre front. The order, the wall treatment, what is carved in the pediment and what stands along the roofline are separate choices, so one recipe covers a Palladian theatre, a Baroque court opera and a Beaux-Arts opera house. Dimensions are illustrative.",
+   "footprint": [
+    12,
+    9
+   ],
+   "entrance": [
+    6,
+    9
+   ],
+   "wall": "theatre-stone",
+   "roofMaterial": "slate",
+   "podiumHeight": 12,
+   "wallHeight": 78,
+   "columns": 6,
+   "storeys": 2,
+   "pediment": true,
+   "acroterion": true,
+   "arched": true,
+   "seed": 3101,
+   "scales": {
+    "small": {
+     "label": "Theatre",
+     "footprint": [
+      5,
+      4
+     ],
+     "entrance": [
+      2,
+      4
+     ],
+     "wallHeight": 58,
+     "columns": 4,
+     "storeys": 1,
+     "podiumHeight": 9
+    },
+    "medium": {
+     "label": "Opera house",
+     "footprint": [
+      12,
+      9
+     ],
+     "entrance": [
+      6,
+      9
+     ]
+    },
+    "large": {
+     "label": "Grand opera house",
+     "footprint": [
+      16,
+      12
+     ],
+     "entrance": [
+      8,
+      12
+     ],
+     "wallHeight": 92,
+     "columns": 8,
+     "podiumHeight": 15
+    }
+   },
+   "looks": [
+    {
+     "label": "Palladian theatre",
+     "style": "palladian",
+     "order": "doric",
+     "pedimentMotif": "relief",
+     "roofline": "urns",
+     "wall": "theatre-stone",
+     "roofMaterial": "slate"
+    },
+    {
+     "label": "Baroque court opera",
+     "style": "baroque",
+     "order": "ionic",
+     "pedimentMotif": "sculpture-group",
+     "roofline": "statues",
+     "paired": true,
+     "bandedShafts": true,
+     "wall": "theatre-stucco",
+     "roofMaterial": "grey-tile"
+    },
+    {
+     "label": "Rococo opera house",
+     "style": "rococo",
+     "order": "corinthian",
+     "pedimentMotif": "broken",
+     "roofline": "urns",
+     "paired": true,
+     "wall": "theatre-stucco",
+     "roofMaterial": "terracotta",
+     "acroterion": false
+    },
+    {
+     "label": "Beaux-Arts opera house",
+     "style": "beaux-arts",
+     "order": "corinthian",
+     "pedimentMotif": "cartouche",
+     "roofline": "quadriga",
+     "wings": true,
+     "wall": "theatre-stone",
+     "roofMaterial": "slate"
+    }
+   ],
+   "style": "palladian",
+   "order": "doric",
+   "pedimentMotif": "plain",
+   "roofline": "plain",
+   "paired": false,
+   "bandedShafts": false,
+   "wings": false,
+   "roofCover": "ring",
+   "hangings": "none",
+   "stairTurret": false,
+   "roofForm": "hipped",
+   "finial": "none",
+   "railing": false,
+   "lanterns": 0,
+   "bannerStyle": "strips",
+   "marqueeStyle": "canopy",
+   "facadeMotif": "none",
+   "flag": false,
+   "tiers": 3,
+   "tierHeight": 22,
+   "plinth": 10,
+   "pillarHeight": 44,
+   "roofRise": 30,
+   "overhang": 8,
+   "painting": false,
+   "bridge": false,
+   "wallFinish": "ashlar",
+   "doors": 2,
+   "banners": 0,
+   "bannerDrop": 0,
+   "marquee": false,
+   "tower": false,
+   "sign": false,
+   "signHeight": 0,
+   "parapet": false
+  },
+  "playhouse": {
+   "label": "Playhouse",
+   "family": "theatre",
+   "form": "ring",
+   "description": "A timber amphitheatre of the sixteenth and seventeenth centuries: a polygonal drum of galleries round an open yard, thatched over the seating, with a flag flown on playing days. Dimensions are illustrative.",
+   "footprint": [
+    10,
+    10
+   ],
+   "entrance": [
+    5,
+    10
+   ],
+   "wall": "theatre-stucco",
+   "roofMaterial": "thatch",
+   "tiers": 3,
+   "tierHeight": 22,
+   "flag": true,
+   "seed": 3221,
+   "scales": {
+    "small": {
+     "label": "Playing yard",
+     "footprint": [
+      5,
+      5
+     ],
+     "entrance": [
+      2,
+      5
+     ],
+     "tiers": 2
+    },
+    "medium": {
+     "label": "Playhouse",
+     "footprint": [
+      10,
+      10
+     ],
+     "entrance": [
+      5,
+      10
+     ]
+    },
+    "large": {
+     "label": "Great playhouse",
+     "footprint": [
+      13,
+      13
+     ],
+     "entrance": [
+      6,
+      13
+     ],
+     "tiers": 3,
+     "tierHeight": 26
+    }
+   },
+   "looks": [
+    {
+     "label": "Thatched playhouse",
+     "roofCover": "ring",
+     "hangings": "painted",
+     "stairTurret": true,
+     "wall": "theatre-stucco",
+     "flag": true
+    },
+    {
+     "label": "Inn-yard stage",
+     "roofCover": "half",
+     "hangings": "none",
+     "stairTurret": false,
+     "wall": "theatre-brick",
+     "flag": false,
+     "tiers": 2
+    },
+    {
+     "label": "Unroofed playing yard",
+     "roofCover": "none",
+     "hangings": "heraldic",
+     "stairTurret": true,
+     "wall": "theatre-stucco",
+     "flag": true
+    }
+   ],
+   "roofCover": "ring",
+   "hangings": "painted",
+   "stairTurret": true,
+   "roofForm": "hipped",
+   "finial": "none",
+   "railing": false,
+   "lanterns": 0,
+   "bannerStyle": "strips",
+   "marqueeStyle": "canopy",
+   "facadeMotif": "none",
+   "style": "palladian",
+   "order": "doric",
+   "pedimentMotif": "plain",
+   "roofline": "plain",
+   "paired": false,
+   "bandedShafts": false,
+   "wings": false,
+   "pediment": true,
+   "acroterion": false,
+   "arched": false,
+   "columns": 4,
+   "storeys": 1,
+   "podiumHeight": 9,
+   "wallHeight": 50,
+   "plinth": 10,
+   "pillarHeight": 44,
+   "roofRise": 30,
+   "overhang": 8,
+   "painting": false,
+   "bridge": false,
+   "wallFinish": "ashlar",
+   "doors": 2,
+   "banners": 0,
+   "bannerDrop": 0,
+   "marquee": false,
+   "tower": false,
+   "sign": false,
+   "signHeight": 0,
+   "parapet": false
+  },
+  "noh-stage": {
+   "label": "Noh stage",
+   "family": "theatre",
+   "form": "open-stage",
+   "description": "A roofed stage open on three sides, raised on a plinth, with four pillars, a painted pine on the back panel and a bridgeway at the left by which performers enter. Dimensions are illustrative.",
+   "footprint": [
+    9,
+    8
+   ],
+   "entrance": [
+    4,
+    8
+   ],
+   "wall": "theatre-stucco",
+   "roofMaterial": "grey-tile",
+   "plinth": 10,
+   "pillarHeight": 44,
+   "roofRise": 34,
+   "overhang": 8,
+   "painting": true,
+   "bridge": true,
+   "seed": 3307,
+   "scales": {
+    "small": {
+     "label": "Village stage",
+     "footprint": [
+      5,
+      4
+     ],
+     "entrance": [
+      2,
+      4
+     ],
+     "pillarHeight": 36,
+     "roofRise": 26,
+     "painting": false,
+     "bridge": false
+    },
+    "medium": {
+     "label": "Noh stage",
+     "footprint": [
+      9,
+      8
+     ],
+     "entrance": [
+      4,
+      8
+     ]
+    },
+    "large": {
+     "label": "Great noh stage",
+     "footprint": [
+      12,
+      10
+     ],
+     "entrance": [
+      6,
+      10
+     ],
+     "pillarHeight": 52,
+     "roofRise": 42,
+     "overhang": 10
+    }
+   },
+   "looks": [
+    {
+     "label": "Noh stage",
+     "roofForm": "hipped",
+     "finial": "none",
+     "railing": true,
+     "lanterns": 0,
+     "roofMaterial": "grey-tile"
+    },
+    {
+     "label": "Shrine stage",
+     "roofForm": "hip-and-gable",
+     "finial": "onigawara",
+     "railing": true,
+     "lanterns": 2,
+     "roofMaterial": "shingle"
+    },
+    {
+     "label": "Thatched village stage",
+     "roofForm": "gabled",
+     "finial": "none",
+     "railing": false,
+     "lanterns": 0,
+     "roofMaterial": "thatch",
+     "painting": false
+    }
+   ],
+   "roofForm": "hipped",
+   "finial": "none",
+   "railing": true,
+   "lanterns": 0,
+   "roofCover": "ring",
+   "hangings": "none",
+   "stairTurret": false,
+   "bannerStyle": "strips",
+   "marqueeStyle": "canopy",
+   "facadeMotif": "none",
+   "style": "palladian",
+   "order": "doric",
+   "pedimentMotif": "plain",
+   "roofline": "plain",
+   "paired": false,
+   "bandedShafts": false,
+   "wings": false,
+   "pediment": true,
+   "acroterion": false,
+   "arched": false,
+   "columns": 4,
+   "storeys": 1,
+   "podiumHeight": 9,
+   "wallHeight": 50,
+   "flag": false,
+   "tiers": 3,
+   "tierHeight": 22,
+   "wallFinish": "ashlar",
+   "doors": 2,
+   "banners": 0,
+   "bannerDrop": 0,
+   "marquee": false,
+   "tower": false,
+   "sign": false,
+   "signHeight": 0,
+   "parapet": false
+  },
+  "kabuki-theatre": {
+   "label": "Kabuki theatre",
+   "family": "theatre",
+   "form": "front-house",
+   "description": "A townsman's theatre: a boarded street front hung with the day's banners, several doors, and the licensed drum tower over the entrance. Dimensions are illustrative.",
+   "footprint": [
+    11,
+    8
+   ],
+   "entrance": [
+    5,
+    8
+   ],
+   "wall": "theatre-stucco",
+   "roofMaterial": "grey-tile",
+   "wallFinish": "boards",
+   "wallHeight": 56,
+   "doors": 3,
+   "banners": 5,
+   "bannerDrop": 30,
+   "marquee": false,
+   "tower": true,
+   "sign": false,
+   "signHeight": 0,
+   "parapet": false,
+   "arched": false,
+   "seed": 3413,
+   "scales": {
+    "small": {
+     "label": "Playhouse",
+     "footprint": [
+      5,
+      4
+     ],
+     "entrance": [
+      2,
+      4
+     ],
+     "wallHeight": 46,
+     "doors": 2,
+     "banners": 3,
+     "tower": false
+    },
+    "medium": {
+     "label": "Kabuki theatre",
+     "footprint": [
+      11,
+      8
+     ],
+     "entrance": [
+      5,
+      8
+     ]
+    },
+    "large": {
+     "label": "Great kabuki theatre",
+     "footprint": [
+      14,
+      10
+     ],
+     "entrance": [
+      7,
+      10
+     ],
+     "wallHeight": 66,
+     "doors": 4,
+     "banners": 7
+    }
+   },
+   "looks": [
+    {
+     "label": "Kabuki theatre",
+     "bannerStyle": "strips",
+     "tower": true,
+     "facadeMotif": "none",
+     "wall": "theatre-stucco"
+    },
+    {
+     "label": "Licensed playhouse",
+     "bannerStyle": "nobori",
+     "tower": true,
+     "facadeMotif": "lattice",
+     "wall": "theatre-brick",
+     "bannerDrop": 36
+    },
+    {
+     "label": "Fairground stage",
+     "bannerStyle": "pennant",
+     "tower": false,
+     "facadeMotif": "none",
+     "wall": "theatre-stucco",
+     "banners": 6
+    }
+   ],
+   "bannerStyle": "strips",
+   "marqueeStyle": "canopy",
+   "facadeMotif": "none",
+   "roofCover": "ring",
+   "hangings": "none",
+   "stairTurret": false,
+   "roofForm": "hipped",
+   "finial": "none",
+   "railing": false,
+   "lanterns": 0,
+   "style": "palladian",
+   "order": "doric",
+   "pedimentMotif": "plain",
+   "roofline": "plain",
+   "paired": false,
+   "bandedShafts": false,
+   "wings": false,
+   "pediment": true,
+   "acroterion": false,
+   "columns": 4,
+   "storeys": 1,
+   "podiumHeight": 9,
+   "flag": false,
+   "tiers": 3,
+   "tierHeight": 22,
+   "plinth": 10,
+   "pillarHeight": 44,
+   "roofRise": 30,
+   "overhang": 8,
+   "painting": false,
+   "bridge": false
+  },
+  "picture-house": {
+   "label": "Picture house",
+   "family": "theatre",
+   "form": "front-house",
+   "description": "A twentieth-century cinema: a flat frontage under a lit marquee, a vertical sign at the corner and a rank of doors beneath. Dimensions are illustrative.",
+   "footprint": [
+    11,
+    7
+   ],
+   "entrance": [
+    5,
+    7
+   ],
+   "wall": "theatre-brick",
+   "roofMaterial": "grey-tile",
+   "wallFinish": "ashlar",
+   "wallHeight": 58,
+   "doors": 4,
+   "banners": 0,
+   "bannerDrop": 0,
+   "marquee": true,
+   "tower": false,
+   "sign": true,
+   "signHeight": 40,
+   "parapet": true,
+   "arched": false,
+   "seed": 3517,
+   "scales": {
+    "small": {
+     "label": "Picture hall",
+     "footprint": [
+      5,
+      4
+     ],
+     "entrance": [
+      2,
+      4
+     ],
+     "wallHeight": 46,
+     "doors": 2,
+     "signHeight": 28
+    },
+    "medium": {
+     "label": "Picture house",
+     "footprint": [
+      11,
+      7
+     ],
+     "entrance": [
+      5,
+      7
+     ]
+    },
+    "large": {
+     "label": "Picture palace",
+     "footprint": [
+      15,
+      9
+     ],
+     "entrance": [
+      7,
+      9
+     ],
+     "wallHeight": 70,
+     "doors": 5,
+     "signHeight": 52
+    }
+   },
+   "looks": [
+    {
+     "label": "Deco picture palace",
+     "marqueeStyle": "blade",
+     "facadeMotif": "chevrons",
+     "sign": true,
+     "wall": "theatre-stucco",
+     "parapet": true
+    },
+    {
+     "label": "Streamline cinema",
+     "marqueeStyle": "box",
+     "facadeMotif": "streamline",
+     "sign": true,
+     "wall": "theatre-stone",
+     "parapet": true
+    },
+    {
+     "label": "Brick picture house",
+     "marqueeStyle": "canopy",
+     "facadeMotif": "none",
+     "sign": false,
+     "wall": "theatre-brick",
+     "parapet": false
+    }
+   ],
+   "bannerStyle": "strips",
+   "marqueeStyle": "canopy",
+   "facadeMotif": "none",
+   "roofCover": "ring",
+   "hangings": "none",
+   "stairTurret": false,
+   "roofForm": "hipped",
+   "finial": "none",
+   "railing": false,
+   "lanterns": 0,
+   "style": "palladian",
+   "order": "doric",
+   "pedimentMotif": "plain",
+   "roofline": "plain",
+   "paired": false,
+   "bandedShafts": false,
+   "wings": false,
+   "pediment": true,
+   "acroterion": false,
+   "columns": 4,
+   "storeys": 1,
+   "podiumHeight": 9,
+   "flag": false,
+   "tiers": 3,
+   "tierHeight": 22,
+   "plinth": 10,
+   "pillarHeight": 44,
+   "roofRise": 30,
+   "overhang": 8,
+   "painting": false,
+   "bridge": false
+  }
+ }
+}

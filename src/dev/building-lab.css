@@ -1,5 +1,9 @@
+/* The panel fills the viewport and the three columns scroll on their own:
+ * scrolling the page to reach the end of the list moved the preview too. */
 .building-lab {
+  height: 100dvh;
   min-height: 100dvh;
+  overflow: hidden;
   background: #20282b;
   color: #e5dfce;
   font:
@@ -40,6 +44,12 @@
   grid-template-columns: 260px 1fr 320px;
   flex: 1;
   min-height: 0;
+  overflow: hidden;
+}
+.building-body > main,
+.building-body > section {
+  min-height: 0;
+  overflow: auto;
 }
 .building-body aside {
   border-right: 1px solid #515749;
@@ -59,7 +69,23 @@
   list-style: none;
   margin: 0;
   padding: 0 0 20px;
-  overflow: auto;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+/* A sticky heading for each group, so a long list stays navigable. */
+.building-body aside li.group {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 6px 14px 4px;
+  background: #20282b;
+  border-bottom: 1px solid #515749;
+  color: #9aa38f;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
 .building-body aside button {
   width: 100%;

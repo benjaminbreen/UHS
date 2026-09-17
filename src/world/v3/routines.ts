@@ -8,6 +8,12 @@ import {
 import { resolveCharacterContext } from "../../content/characters/resolve";
 import type { Sample } from "./roads";
 import { random } from "../../core/random";
+import { outlookOf } from "../../core/outlook";
+import { standingOf } from "../../core/standing";
+import { venuesFor, type Venue } from "../../content/venues";
+import type { Rank } from "../../content/characters/context-types";
+import type { StanceTag } from "../../content/outlook/types";
+import type { WorldSetting } from "../../content/geography/types";
 import { cellKey, type SettlementPlan, type WorkSite } from "./types";
 /** Ordered from the evening rest, so the leftover hours of a short routine
  * lengthen the night instead of padding an errand. */
@@ -637,6 +643,7 @@ export function planRoutines(
 ) {
   plan.gatherings = gatherings(plan, seed);
   plan.outdoors = outdoorSites(plan, seed, sample);
+  attachOpenVenues(plan, pack);
   for (const [id, site] of plan.work) {
     const actor = plan.actors.find((a) => a.id === id);
     if (site.gateId && actor?.kind !== "human") continue;
@@ -708,7 +715,7 @@ export function routineFor(
     ...(errands.length
       ? errands
       : craftRoutine(plan, seed, id, id, home, site.work, label)),
-    socialStop(plan, seed, id, home),
+    socialStop(plan, seed, id, home, actor, pack.setting),
     ...fireside(plan, seed, id, home, pack.year),
     night(home),
   ];
@@ -870,7 +877,85 @@ function workdayFor(
 }
 /** The knot this resident drinks and gossips at: the nearest of the scattered
  * spots most of the time, a further one now and then, so the groups mix. */
+/**
+ * The venues with no building of their own — the crossroads, the market
+ * ground, the wrestling pitch — take a gathering point each, so every
+ * settlement has somewhere to go even where nothing is authored for it.
+ */
+function attachOpenVenues(plan: SettlementPlan, pack: Pack) {
+  const spots = plan.gatherings ?? [];
+  if (!spots.length) return;
+  plan.venues ??= [];
+  const open = venuesFor(pack.setting, plan.places.length).filter(
+    (v) => v.open && !plan.venues!.some((held) => held.venue.id === v.id),
+  );
+  open.forEach((venue, i) =>
+    plan.venues!.push({ venue, pos: spots[i % spots.length] }),
+  );
+}
+/**
+ * How strongly a venue draws this person. Admission is a gate; everything else
+ * is a nudge, and the seeded draw in `socialStop` does the rest. Deliberately
+ * crude: the interest is meant to come from the content, not from the scoring.
+ */
+function venueScore(
+  venue: Venue,
+  rank: Rank | undefined,
+  tags: Set<StanceTag>,
+  livelihood: string | undefined,
+): number {
+  if (venue.ranks && (!rank || !venue.ranks.includes(rank))) return 0;
+  if (venue.livelihoods && (!livelihood || !venue.livelihoods.includes(livelihood)))
+    return 0;
+  const shared = (venue.tags ?? []).filter((t) => tags.has(t)).length;
+  return venue.weight + shared * 6;
+}
 export function socialStop(
+  plan: SettlementPlan,
+  seed: string,
+  id: string,
+  home: Point,
+  actor?: Actor,
+  setting?: WorldSetting,
+): Station {
+  const drawn = actor && setting ? venueFor(plan, seed, actor, setting) : undefined;
+  if (drawn)
+    return {
+      pos: nearby(plan, seed, id, drawn.pos),
+      activity: drawn.venue.activity,
+      label: `At ${drawn.venue.label.replace(/^The /, "the ")}`,
+      minutes: drawn.venue.minutes,
+    };
+  return legacySocialStop(plan, seed, id, home);
+}
+/** Which venue draws this person tonight, if any does. */
+function venueFor(
+  plan: SettlementPlan,
+  seed: string,
+  actor: Actor,
+  setting: WorldSetting,
+) {
+  const built = plan.venues ?? [];
+  if (!built.length) return undefined;
+  const outlook = outlookOf(seed, actor, setting);
+  const rank = standingOf(seed, actor)?.rank;
+  const scored = built
+    .map((entry) => ({
+      ...entry,
+      score: venueScore(
+        entry.venue,
+        rank,
+        outlook.tags,
+        actor.origin?.livelihood,
+      ),
+    }))
+    .filter((entry) => entry.score > 0);
+  if (!scored.length) return undefined;
+  const total = scored.reduce((n, entry) => n + entry.score, 0);
+  let roll = random(seed, "venue", actor.id) * total;
+  return scored.find((entry) => (roll -= entry.score) < 0) ?? scored[0];
+}
+function legacySocialStop(
   plan: SettlementPlan,
   seed: string,
   id: string,

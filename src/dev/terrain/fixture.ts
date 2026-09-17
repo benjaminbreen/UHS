@@ -33,7 +33,7 @@ export const reliefPlaces = [
 ];
 export type StudyProp = TerrainPoint & {
   frame: string;
-  texture?: "topography";
+  texture?: "topography" | "buildings";
   blocking?: boolean;
 };
 export type TerrainFixture = {
@@ -244,9 +244,9 @@ export function terrainFixture(
     props.push({ x: 7, y: 8, frame: "gravel-bar", texture: "topography" });
     // Pads and vegetation follow the finished landform.
     rect(16, 4, 5, 4, { height: 1, surface: "soil", solid: true });
-    props.push({ x: 18, y: 7, frame: "house-mud-0" });
+    props.push({ x: 18, y: 7, frame: "house-mud-0", texture: "buildings" });
     rect(28, 19, 5, 4, { height: 1, surface: "soil", solid: true });
-    props.push({ x: 30, y: 22, frame: "house-mud-1" });
+    props.push({ x: 30, y: 22, frame: "house-mud-1", texture: "buildings" });
     for (const [x, y] of [
       [2, 6],
       [2, 20],

@@ -7,7 +7,7 @@ import {
   studies,
 } from "../src/dev/fixtures";
 import { findPath } from "../src/core/pathfinding";
-import atlas from "../src/render/generated/atlas.json" with { type: "json" };
+import buildings from "../src/render/generated/buildings.json" with { type: "json" };
 
 it("every construction family has usable entrance geometry and matching compiled art", () => {
   for (const study of Object.keys(studies))
@@ -21,7 +21,7 @@ it("every construction family has usable entrance geometry and matching compiled
         expect(m.footprint).toEqual([p.w, p.h]);
         expect(w.blocked(p.entrance.x, p.entrance.y, "outside")).toBe(false);
         const source = (
-          atlas.frames as Record<
+          buildings.frames as Record<
             string,
             { sourceSize: { w: number; h: number } }
           >

@@ -176,12 +176,20 @@ build_shadows(ROOT, S, buildings)
 from art.fields import build_fields
 S.update(build_fields())
 from art.atlas import pack_atlas
+# Buildings pack separately. They are the largest sprites in the game and the
+# one family still growing; sharing a page with everything else is what put
+# the main atlas against its 4096px ceiling. The renderer already routes by
+# frame prefix, so another named atlas costs one branch there.
+ALL=dict(S)
+building_frames={k:S.pop(k) for k in list(buildings) if k in S}
 atlas=pack_atlas(S,OUT,'atlas')
+buildings_atlas=pack_atlas(building_frames,OUT,'buildings')
+print(f'Buildings atlas {buildings_atlas.size}; {len(building_frames)} frames.')
 # Reviewable original-asset proof at exactly 3x nearest-neighbor scaling.
 proof=Image.new('RGB',(1120,900),'#202127');d=ImageDraw.Draw(proof)
 d.text((30,20),'UHS / ORIGINAL PIXEL LANGUAGE / 16px terrain / multi-cell silhouettes / graphics polish',fill='#d8c9a5')
 for n,x,y in [('house-roman-0',20,55),('house-roman-2',285,55),('house-mud-0',565,95),('house-mud-1',820,95),('hall',20,440),('olive',390,490),('cypress',550,490),('hackberry',690,490),('portrait-human-0-1',900,420),('portrait-human-1-4',900,660),('amphora',380,775),('basket',450,775),('sheep0',520,775),('human-0-0-2-0',630,775),('human-1-3-2-0',715,775)]:
- im=S[n].resize((S[n].width*3,S[n].height*3),Image.Resampling.NEAREST);proof.paste(im,(x,y),im);d.text((x,y+im.height+6),{'human-0-0-2-0':'traveler','human-1-3-2-0':'farmer','portrait-human-0-1':'traveler portrait','portrait-human-1-4':'farmer portrait'}.get(n,n),fill='#b9b5aa')
+ im=ALL[n].resize((ALL[n].width*3,ALL[n].height*3),Image.Resampling.NEAREST);proof.paste(im,(x,y),im);d.text((x,y+im.height+6),{'human-0-0-2-0':'traveler','human-1-3-2-0':'farmer','portrait-human-0-1':'traveler portrait','portrait-human-1-4':'farmer portrait'}.get(n,n),fill='#b9b5aa')
 (ROOT/'artifacts').mkdir(exist_ok=True);proof.save(ROOT/'artifacts/art-proof.png')
 print(f'Built {len(S)} original frames; atlas {atlas.size}.')
 names=[n for n,im in S.items() if im.size==(16,16) and not n.startswith(('edge-','bank-','ripple-','quay-','shadow-'))]
@@ -191,4 +199,4 @@ tiles.save(OUT/'terrain.png');(OUT/'terrain.json').write_text(json.dumps({n:i fo
 
 # Vite imports source manifests; Phaser fetches public copies. Both are generated here.
 generated=ROOT/'src/render/generated';generated.mkdir(exist_ok=True,parents=True)
-for name in ['atlas.json','terrain.json']:(generated/name).write_bytes((OUT/name).read_bytes())
+for name in ['atlas.json','buildings.json','terrain.json']:(generated/name).write_bytes((OUT/name).read_bytes())

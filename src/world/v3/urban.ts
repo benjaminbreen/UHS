@@ -1,4 +1,5 @@
 import { civicProfile } from "../../content/settlements/civic";
+import { venuesFor } from "../../content/venues";
 import type { CivicProfile } from "../../content/settlements/civic/types";
 import {
   religiousProfile,
@@ -38,6 +39,9 @@ export type UrbanLot = {
   workPoint: Point;
   civic?: CivicProfile;
   religious?: ReligiousProfile & { scale: "small" | "medium" | "large" };
+  /** Somewhere people go after work. Stage one gives it no building of its
+   * own: it is an ordinary house with a public door and a different name. */
+  venue?: import("../../content/venues").Venue;
 };
 
 export type UrbanSurface = {
@@ -511,6 +515,85 @@ export function urbanNeighborhood(
       api.reserveGround(chosen.forecourt);
       api.paintForecourt(chosen.forecourt);
     }
+  }
+  // Venues with a building of their own are placed like the sanctuary, but a
+  // block back: an opera house wants the streets round the square, not a side
+  // of it. Anything that does not fit falls back to a house with a mark at
+  // its door, which is what plan.ts gives the rest.
+  // The flat profile count is what a village would hold; a composed city
+  // carries what its own extent and fabric allow, which is the number a
+  // theatre's size gate is written against.
+  const carries = urbanBuildingLimit(
+    site.profile.radius,
+    form,
+    site.profile.buildings,
+    pack.setting?.year ?? 0,
+  );
+  for (const venue of venuesFor(pack.setting, carries)) {
+    if (!venue.building) continue;
+    // Scale is the outer loop: a landmark on the far side of the square beats
+    // a shrunken one on the near side.
+    const placed = (["large", "medium", "small"] as const).flatMap((scale) =>
+      (
+        [
+          [0, -1],
+          [0, 1],
+          [1, 0],
+          [-1, 0],
+        ] as [number, number][]
+      ).flatMap(([nx, ny]) => {
+        const facing =
+          nx > 0 ? "west" : nx < 0 ? "east" : ny > 0 ? "north" : "south";
+        const base = `${venue.building}-${scale}-0`;
+        const frame = facing === "south" ? base : `${base}-${facing}`;
+        if (!buildingModels[frame]) return [];
+        const model = buildingModel(frame);
+        const [w, h] = model.footprint;
+        // A block back from the square, and shifted along it so several
+        // venues do not stack on the same approach.
+        const set = form.tiers[0] + 4;
+        return [0, 1, -1, 2, -2].map((step) => {
+          const shift = step * (w + 3);
+          return {
+            frame,
+            model,
+            nx,
+            ny,
+            rect: {
+              x: nx
+                ? nx < 0
+                  ? plaza.x - w - set
+                  : plaza.x + plaza.w + set
+                : Math.floor(plaza.x + (plaza.w - w) / 2) + shift,
+              y: ny
+                ? ny < 0
+                  ? plaza.y - h - set
+                  : plaza.y + plaza.h + set
+                : Math.floor(plaza.y + (plaza.h - h) / 2) + shift,
+              w,
+              h,
+            },
+          };
+        });
+      }),
+    ).find((c) => fits(c.rect));
+    if (!placed) continue;
+    const point = {
+      x: placed.rect.x + placed.model.entrance[0],
+      y: placed.rect.y + placed.model.entrance[1],
+    };
+    lots.push({
+      point,
+      nx: placed.nx,
+      ny: placed.ny,
+      frame: placed.frame,
+      rect: placed.rect,
+      yard: placed.rect,
+      workPoint: point,
+      venue,
+    });
+    reserve(placed.rect);
+    api.reserveGround(placed.rect);
   }
   api.paintCourt(plaza, civic.square, civicRect);
   for (const [i, r] of layout.squares.entries()) api.paintSquare(r, i);

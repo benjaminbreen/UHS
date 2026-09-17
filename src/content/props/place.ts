@@ -1,17 +1,34 @@
 import type { WorldModel, WorldObject, Position } from "../../core/types";
 import { random } from "../../core/random";
 import { propDefs, propKit, type PropContext } from "./catalog";
+import { techFor } from "./selection";
+import { doorwayFor } from "../settlements/ornaments";
+import { venueOfClaim } from "../venues";
 import bFamilies from "../../render/generated/props-b.json" with { type: "json" };
 
 const redrawn = new Set<string>(bFamilies);
 /** The one fitting a trade cannot work without. Keyed off the building's own
  * name, which is where the generator records the household's trade. */
-function tradeFitting(name: string, year: number) {
+function tradeFitting(name: string, year: number, balance: boolean) {
+  // Everything an Old World market sold went over a balance first. A
+  // redistributive economy without markets had no use for one.
+  if (balance && /market|grocer|trader|merchant|shop|apothec|spice/i.test(name))
+    return "beamScale";
   if (/smith|forge|founder|farrier/i.test(name))
     return year >= -1199 ? "anvil" : undefined;
   if (/weav|loom|spin|cloth|draper|fuller/i.test(name))
     return year >= -5999 ? "loom" : undefined;
   return undefined;
+}
+/** Which shop board this street hangs, if it hangs one. */
+function signRegion(culture?: string) {
+  return culture === "east-asian"
+    ? 0
+    : culture === "south-asian"
+      ? 1
+      : culture === "southeast-asian"
+        ? 2
+        : undefined;
 }
 /** Work premises: a spade leans here, a chest does not. */
 const worksite = /farm|field|herd|garden|workshop|shop|stores|yard|smith|mason|potter|tann|brew|mill|weav|carpent/i;
@@ -23,6 +40,9 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
   const kit = propKit(world.pack),
     done = new Set<string>(),
     places = new Set<string>();
+  const tech = techFor(world.pack);
+  const region = signRegion(world.pack.setting?.culture);
+  const doorway = doorwayFor(world.pack);
   const urbanPack =
     world.pack.setting?.settlement === "city" ||
     world.pack.setting?.settlement === "port";
@@ -128,6 +148,14 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
     if (where === "backyard") return !central;
     return works || !urbanPack;
   };
+  /** A cell beside a doorway. The general test refuses anything within a step
+   * of an entrance, which is precisely where a sign or a lantern hangs. */
+  const freeAtDoor = (p: Position) =>
+    !world.blocked(p.x, p.y, p.space) &&
+    // A board hangs over the street and a lantern above the step, so neither
+    // needs the cell kept clear the way a barrel does.
+    !objectsAt.get(at(p))?.length &&
+    !actorsAt.has(at(p));
   const populate = () => {
     if (world.places.length) {
       let far = 0;
@@ -180,13 +208,14 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
         }
       }
     }
-    // Half the buildings in a town get nothing outside at all. Every house
-    // with its own bin and washing line is what made a street read as a yard.
     const bare = urbanPack ? 0.55 : 0.2;
     for (const b of world.places) {
       if (places.has(b.id)) continue;
       places.add(b.id);
-      if (random(seed, "yard-empty", b.id) < bare) continue;
+      // Half the buildings in a town get nothing in the yard at all. Every
+      // house with its own bin and washing line is what made a street read as
+      // a back yard. The frontage below is placed either way.
+      const bareYard = random(seed, "yard-empty", b.id) < bare;
       // Side-of-house and yard pockets, never entrance tiles or street centers.
       const planned = world.propSlots?.(b.id);
       const candidates: Position[] = planned
@@ -203,7 +232,7 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
       const domestic = b.access === "household";
       for (
         let slot = 0;
-        slot < (random(seed, "yard-density", b.id) < 0.3 ? 2 : 1);
+        !bareYard && slot < (random(seed, "yard-density", b.id) < 0.3 ? 2 : 1);
         slot++
       ) {
         const pos = candidates.find((p) => usable(p));
@@ -220,7 +249,9 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
         // The trade's own fitting goes in the work slot when the building
         // names a trade that needs one; otherwise tools, otherwise the yard.
         const fitting =
-          slot === 0 ? tradeFitting(b.name, world.pack.year) : undefined;
+          slot === 0
+            ? tradeFitting(b.name, world.pack.year, tech.balance)
+            : undefined;
         const works = worksite.test(`${b.name} ${b.entranceLabel}`);
         const tools =
           slot !== 1 && (works || random(seed, "tool-slot", o.id) < 0.16);
@@ -241,6 +272,61 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
         world.initialObjects.push(o);
         index(o);
         done.add(o.id);
+      }
+      // At the door: a board if the place trades, a pair of lanterns if it
+      // does not. One or the other, never both on the same frontage. A venue
+      // says which in its own row and always gets one — until each archetype
+      // has a building of its own, the mark at the door is how a tavern is
+      // told from the house beside it.
+      const venue = venueOfClaim(b.claim);
+      if (region !== undefined || venue || doorway !== undefined) {
+        const trades = /shop|market|grocer|trader|merchant|stall|apothec|tea/i.test(
+          b.name,
+        );
+        const wanted = venue
+          ? venue.sign === "board"
+            ? "shopSign"
+            : venue.sign === "lantern"
+              ? "doorLantern"
+              : undefined
+          : trades && region !== undefined
+            ? "shopSign"
+            : doorway !== undefined && random(seed, "lantern", b.id) < 0.5
+              ? "doorLantern"
+              : undefined;
+        const beside = wanted
+          ? [
+              [1, 0], [-1, 0], [1, 1], [-1, 1], [0, 1], [2, 0], [-2, 0],
+            ]
+              .map(([dx, dy]) => ({
+                x: b.entrance.x + dx,
+                y: b.entrance.y + dy,
+                space: "outside" as const,
+              }))
+              .find((p) => freeAtDoor(p))
+          : undefined;
+        if (wanted && beside) {
+          const o: WorldObject = {
+            id: `${b.id}-frontage`,
+            name: "",
+            kind: "container",
+            pos: beside,
+            sprite: "",
+            inventory: {},
+            owner: b.owner,
+          };
+          stamp(o, wanted);
+          if (venue) o.name = venue.label;
+          // A board takes the region's script; a doorway marker takes
+          // whatever that culture and date actually hung there.
+          o.sprite =
+            wanted === "shopSign"
+              ? `study-propb-shop-sign-${region ?? 1}`
+              : `study-propb-door-lantern-${doorway ?? 0}`;
+          world.initialObjects.push(o);
+          index(o);
+          done.add(o.id);
+        }
       }
       // One privy per household, at the far end of the yard and at least half
       // a dozen paces from the water. Downwind is not modelled; distance is.

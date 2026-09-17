@@ -5,6 +5,7 @@ import {
   eligibleInventory,
 } from "../../content/characters/generate";
 import { resolveCharacterContext, workAt } from "../../content/characters/resolve";
+import { venuesFor } from "../../content/venues";
 import {
   streetPalette,
   chooseStreetSurface,
@@ -26,6 +27,7 @@ import { crops } from "../../content/agriculture/crops";
 import { farms } from "../../content/geography/onsets";
 import { route } from "../../core/routing";
 import {
+  focusFor,
   lampFor,
   ornaments,
   stallFor,
@@ -556,11 +558,14 @@ export function planSettlement(
           return;
         }
         if (focus) plan.solid.add(cellKey(spot.x, spot.y));
+        // A square's centrepiece is the one ornament that has to be local.
+        const local = focus ? focusFor(pack) : undefined;
         plan.objects.push({
           id: `${site.id}-${piece.id}-${tag}`,
-          name: piece.label,
+          name: local?.label ?? piece.label,
           kind: piece.kind,
-          sprite: (focus && piece.focusSprite) || piece.sprite,
+          sprite:
+            local?.sprite ?? ((focus && piece.focusSprite) || piece.sprite),
           pos: pos(spot),
           inventory: {},
         });
@@ -1379,6 +1384,43 @@ export function planSettlement(
         )
       : profile.buildings;
   plan.diagnostics.timing!.streets = Math.round(now() - tStreets);
+  // Venues before the houses, so the ones that need a door take the lots
+  // nearest the centre. A venue with no building of its own is recorded
+  // straight away against a gathering point.
+  const wanted = venuesFor(pack.setting, limit);
+  plan.venues = [];
+  const already = new Set(
+    frontage.flatMap((lot) => (lot.venue ? [lot.venue.id] : [])),
+  );
+  const central = frontage
+    .filter((lot) => !lot.religious && !lot.civic && !lot.venue)
+    .sort(
+      (a, b) =>
+        Math.hypot(a.point.x - site.cx, a.point.y - site.cy) -
+        Math.hypot(b.point.x - site.cx, b.point.y - site.cy),
+    );
+  const taken = new Set<(typeof central)[number]>();
+  // A venue with a building of its own needs ground that will hold it. Those
+  // go first and take the nearest lot big enough; the rest, which are houses
+  // with a mark at the door, fit anywhere and take what is left.
+  const housed = wanted
+    .filter((v) => !v.open && !already.has(v.id))
+    .sort((a, b) => (b.building ? 1 : 0) - (a.building ? 1 : 0));
+  for (const venue of housed) {
+    // Its own building where the ground allows; otherwise the nearest lot and
+    // the mark at the door, which is better than the venue not existing.
+    const lot =
+      (venue.building &&
+        central.find(
+          (candidate) =>
+            !taken.has(candidate) &&
+            venueBuildingFrame(venue.building!, "south", candidate.rect),
+        )) ||
+      central.find((candidate) => !taken.has(candidate));
+    if (!lot) continue;
+    taken.add(lot);
+    lot.venue = venue;
+  }
   const tBuildings = now();
   for (let j = 0; j < frontage.length && plan.places.length < limit; j++) {
     const lot = frontage[j];
@@ -1388,7 +1430,14 @@ export function planSettlement(
       pack.buildings[Math.floor(rand("building", j) * pack.buildings.length)];
     const facing =
       nx > 0 ? "west" : nx < 0 ? "east" : ny > 0 ? "north" : "south";
+    // A venue with a building of its own takes the largest scale that fits
+    // the lot it was given; without one it falls back to the house frame and
+    // is told apart by the mark at its door.
+    const venueFrame = lot.venue?.building
+      ? venueBuildingFrame(lot.venue.building, facing, lot.rect)
+      : undefined;
     const frame =
+        venueFrame ??
         lot.frame ??
         (buildingModels[`${base}-${facing}`] ? `${base}-${facing}` : base),
       model = buildingModel(frame),
@@ -1403,12 +1452,15 @@ export function planSettlement(
     const door = lot.rect
       ? point
       : { x: point.x + nx * setback, y: point.y + ny * setback };
-    const rect = lot.rect ?? {
-      x: door.x - model.entrance[0],
-      y: door.y - model.entrance[1],
-      w,
-      h,
-    };
+    const rect =
+      venueFrame || !lot.rect
+        ? {
+            x: door.x - model.entrance[0],
+            y: door.y - model.entrance[1],
+            w,
+            h,
+          }
+        : lot.rect;
     const yard = lot.yard ?? {
       x: rect.x - 1 + (nx < 0 ? -4 : 0),
       y: rect.y - 1 + (ny < 0 ? -4 : 0),
@@ -1572,10 +1624,12 @@ export function planSettlement(
     }
     const shopfront =
       lot.quarter === "market" || lot.quarter === "craft" || i % 4 === 1;
+    if (lot.venue) plan.venues!.push({ venue: lot.venue, pos: door, placeId: id });
     plan.places.push({
       id,
-      name:
-        lot.quarter === "market"
+      name: lot.venue
+        ? lot.venue.label
+        : lot.quarter === "market"
           ? `${role}'s shop`
           : lot.quarter === "elite"
             ? "Townhouse"
@@ -1591,9 +1645,9 @@ export function planSettlement(
       h,
       sprite: frame,
       entrance: door,
-      access: shopfront ? "public" : "household",
+      access: lot.venue || shopfront ? "public" : "household",
       owner,
-      claim: "landscape",
+      claim: lot.venue ? `venue-${lot.venue.id}` : "landscape",
       entranceLabel,
     });
     if (urban) {
@@ -2517,6 +2571,18 @@ export function planSettlement(
       plan.solid.has(cellKey(plot.access.x, plot.access.y))
     )
       plot.access = { ...socialCenter };
+  // A lot can still be rejected after a venue was assigned to it — wet
+  // ground, no route to the door. Rather than chase each cause, anything the
+  // settlement was meant to have and has not falls back to open ground, so a
+  // venue never silently disappears from a place that wanted one.
+  for (const venue of wanted) {
+    // Open venues are attached later, against the gathering points, which do
+    // not exist yet.
+    if (venue.open) continue;
+    if (plan.venues!.some((v) => v.venue.id === venue.id)) continue;
+    const spot = plan.gatherings?.[0] ?? plan.places[0]?.entrance;
+    if (spot) plan.venues!.push({ venue, pos: spot });
+  }
   plan.diagnostics.timing!.buildings = Math.round(now() - tBuildings);
   // Routes through the territory are searched after the fields are cut, so
   // a field cell a road ended up on gives way to it.
@@ -2530,4 +2596,27 @@ export function planSettlement(
   plan.diagnostics.timing!.routines = Math.round(now() - tRoutines);
   plan.diagnostics.timing!.total = Math.round(now() - tPlan);
   return plan;
+}
+
+/**
+ * The frame for a venue's own building: the largest authored scale that fits
+ * the ground the lot has, in the facing the street asks for. A lot with no
+ * rect of its own is a roadside frontage, where the building sets its own
+ * extent and the largest scale is simply the one meant for a city.
+ */
+function venueBuildingFrame(
+  recipe: string,
+  facing: string,
+  rect?: { w: number; h: number },
+): string | undefined {
+  for (const scale of ["large", "medium", "small"] as const) {
+    const base = `${recipe}-${scale}-0`;
+    const name = facing === "south" ? base : `${base}-${facing}`;
+    const model = buildingModels[name];
+    if (!model) continue;
+    const [w, h] = model.footprint;
+    if (rect && (w > rect.w || h > rect.h)) continue;
+    return name;
+  }
+  return undefined;
 }

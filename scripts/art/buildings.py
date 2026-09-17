@@ -230,8 +230,9 @@ def build_buildings(root, sprites):
     build_city_walls(sprites)
     build_square_furniture(sprites)
     from art.religious import ReligiousBuilding, religious_recipes
+    from art.theatres import TheatreBuilding, theatre_recipes
     from art.period import PeriodBuilding, period_recipes
-    recipes={**source['buildings'], **urban_recipes(root, source), **religious_recipes(root, source), **period_recipes(root, source)}
+    recipes={**source['buildings'], **urban_recipes(root, source), **religious_recipes(root, source), **theatre_recipes(root, source), **period_recipes(root, source)}
     for name,r in list(recipes.items()):
         if r['roof']=='shelter': continue
         fw,fh=r['footprint']
@@ -241,6 +242,7 @@ def build_buildings(root, sprites):
         painter=(InfillBuilding if r.get('candidate') else
                  PeriodBuilding if r.get('period') else
                  ReligiousBuilding if r.get('religious') else
+                 TheatreBuilding if r.get('theatre') else
                  UrbanBuilding if r.get('urban') else Building)
         im=painter(r,source['materials'][r['wall']]).render()
         sprites[name]=im
@@ -252,6 +254,7 @@ def build_buildings(root, sprites):
             'wall':r['wall'],'roof':r['roof'],'roofMaterial':r['roofMaterial'],'attachments':r['attachments'],
             'opening':r['opening'],'description':r['description'],
             **({'religious':True,'family':r['family'],'recipe':r['recipe']} if r.get('religious') else {}),
+            **({'theatre':True,'family':r['family'],'form':r['form'],'recipe':r['recipe']} if r.get('theatre') else {}),
             **({'candidate':True,'candidateType':r['candidateType'],
                 'candidateGroup':r['candidateGroup'],'variant':r['variant'],
                 'business':r.get('business',''),'sign':r.get('sign','')}

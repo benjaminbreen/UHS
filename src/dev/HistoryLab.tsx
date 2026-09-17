@@ -13,6 +13,7 @@ import {
   type ResolveInput,
 } from "../content/history/types";
 import atlas from "../render/generated/atlas.json" with { type: "json" };
+import buildings from "../render/generated/buildings.json" with { type: "json" };
 import "./history-lab.css";
 
 function readInput(): ResolveInput {
@@ -72,9 +73,10 @@ function EvidenceView({ evidence }: { evidence: Evidence }) {
   );
 }
 function Sprite({ id }: { id?: string }) {
+  const sheet = id && id in buildings.frames ? buildings : atlas;
   const frame = id
     ? (
-        atlas.frames as Record<
+        sheet.frames as Record<
           string,
           { frame: { x: number; y: number; w: number; h: number } }
         >
@@ -89,7 +91,11 @@ function Sprite({ id }: { id?: string }) {
       role="img"
     >
       <image
-        href="/packs/atlas.png"
+        href={
+          id && id in buildings.frames
+            ? "/packs/buildings.png"
+            : "/packs/atlas.png"
+        }
         width={atlas.meta.size.w}
         height={atlas.meta.size.h}
       />

@@ -1,8 +1,55 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import graphics from "../content/graphics/buildings.json" with { type: "json" };
 import religious from "../content/graphics/religious.json" with { type: "json" };
 import period from "../content/graphics/period.json" with { type: "json" };
+import theatres from "../content/graphics/theatres.json" with { type: "json" };
 import "./building-lab.css";
+
+/** Fields whose values are a fixed set. The editor renders a dropdown for
+ * anything listed here, so adding a motif to a recipe is one line rather than
+ * another branch in the form. */
+const enumFields: Record<string, string[]> = {
+  roofMaterial: ["slate", "terracotta", "grey-tile", "shingle", "thatch"],
+  tower: ["west", "east", "none"],
+  towerRoof: ["pyramid", "saddle"],
+  // Theatres.
+  form: ["colonnade", "ring", "open-stage", "front-house"],
+  style: ["palladian", "baroque", "rococo", "beaux-arts"],
+  order: ["doric", "ionic", "corinthian"],
+  pedimentMotif: [
+    "plain",
+    "relief",
+    "cartouche",
+    "clock",
+    "sculpture-group",
+    "broken",
+  ],
+  roofline: ["plain", "balustrade", "urns", "statues", "quadriga", "dome"],
+  roofCover: ["ring", "half", "none"],
+  hangings: ["none", "painted", "heraldic"],
+  roofForm: ["hipped", "gabled", "hip-and-gable"],
+  finial: ["none", "onigawara", "gilt"],
+  bannerStyle: ["strips", "pennant", "nobori"],
+  marqueeStyle: ["canopy", "box", "blade"],
+  facadeMotif: ["none", "chevrons", "streamline", "lattice"],
+  wallFinish: ["ashlar", "boards"],
+};
+
+/** Which heading a model sits under in the list. */
+const groupOf = (model: Model | undefined, id = "") =>
+  !model
+    ? ""
+    : model.theatre
+      ? "Theatres"
+      : model.period
+        ? "Period facades"
+        : model.candidate
+          ? "Modern infill"
+          : id.startsWith("religious-")
+            ? "Religious"
+            : id.includes("-urban-")
+              ? "Urban fabric"
+              : "Houses";
 
 type Frame = { frame: { x: number; y: number; w: number; h: number } };
 type Model = {
@@ -14,6 +61,8 @@ type Model = {
   height: number;
   description: string;
   religious?: boolean;
+  theatre?: boolean;
+  form?: string;
   family?: string;
   period?: boolean;
   periodGroup?: string;
@@ -126,7 +175,10 @@ export function BuildingLab() {
   const [periodRecipes, setPeriodRecipes] = useState<Record<string, Recipe>>(
     period.buildings as Record<string, Recipe>,
   );
-  const [materials] = useState(religious.materials);
+  const [theatreRecipes, setTheatreRecipes] = useState<Record<string, Recipe>>(
+    theatres.buildings as unknown as Record<string, Recipe>,
+  );
+  const [materials] = useState({ ...religious.materials, ...theatres.materials });
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -135,8 +187,11 @@ export function BuildingLab() {
     let cancelled = false;
     Promise.all([
       loadJSON<Record<string, Model>>("/packs/buildings.json", version),
-      loadJSON<{ frames: Record<string, Frame> }>("/packs/atlas.json", version),
-      loadImage(`/packs/atlas.png?v=${version}`),
+      loadJSON<{ frames: Record<string, Frame> }>(
+        "/packs/buildings.json",
+        version,
+      ),
+      loadImage(`/packs/buildings.png?v=${version}`),
     ])
       .then(([m, a, img]) => {
         if (cancelled) return;
@@ -154,18 +209,22 @@ export function BuildingLab() {
     const ids = Object.keys(models).filter(
       (k) => !/-(north|east|west)$/.test(k),
     );
+    // Theatres first: they are the family under active work, and the list is
+    // long enough that anything at the bottom is effectively hidden.
     const rank = (k: string) =>
-      models[k].period
+      models[k].theatre
         ? 0
-        : models[k].candidate
+        : models[k].period
           ? 1
-          : k.startsWith("religious-")
+          : models[k].candidate
             ? 2
-            : /-urban-(hall|colonnade)/.test(k)
+            : k.startsWith("religious-")
               ? 3
-              : k.includes("-urban-")
+              : /-urban-(hall|colonnade)/.test(k)
                 ? 4
-                : 5;
+                : k.includes("-urban-")
+                  ? 5
+                  : 6;
     return ids
       .filter(
         (k) =>
@@ -185,7 +244,12 @@ export function BuildingLab() {
   const model = models[frameKey] ?? models[selected];
   const recipeId =
     (models[selected] as Model & { recipe?: string })?.recipe ?? "";
-  const recipe = recipeId ? recipes[recipeId] : undefined;
+  const isTheatre = Boolean((models[selected] as Model)?.theatre);
+  const recipe = recipeId
+    ? isTheatre
+      ? theatreRecipes[recipeId]
+      : recipes[recipeId]
+    : undefined;
   const candidateRecipe = model?.candidate ? candidateRecipes[selected] : undefined;
   const periodId = selected.replace(/^period-/, "");
   const periodRecipe = model?.period ? periodRecipes[periodId] : undefined;
@@ -275,7 +339,10 @@ export function BuildingLab() {
   }, [atlas, frames, model, frameKey, scale, background]);
 
   const setField = (key: string, value: Recipe[string]) =>
-    setRecipes((r) => ({ ...r, [recipeId]: { ...r[recipeId], [key]: value } }));
+    (isTheatre ? setTheatreRecipes : setRecipes)((r) => ({
+      ...r,
+      [recipeId]: { ...r[recipeId], [key]: value },
+    }));
   const setCandidateField = (key: string, value: Recipe[string]) =>
     setCandidateRecipes((r) => ({
       ...r,
@@ -296,14 +363,18 @@ export function BuildingLab() {
             ? "src/content/graphics/period.json"
             : candidate
               ? "src/content/graphics/buildings.json"
-              : "src/content/graphics/religious.json",
+              : isTheatre
+                ? "src/content/graphics/theatres.json"
+                : "src/content/graphics/religious.json",
           content:
             JSON.stringify(
               isPeriod
                 ? { materials: period.materials, buildings: periodRecipes }
                 : candidate
                   ? { materials: graphics.materials, buildings: candidateRecipes }
-                  : { materials, buildings: recipes },
+                  : isTheatre
+                    ? { materials: theatres.materials, buildings: theatreRecipes }
+                    : { materials: religious.materials, buildings: recipes },
               null,
               2,
             ) + "\n",
@@ -345,8 +416,12 @@ export function BuildingLab() {
             onChange={(e) => setFilter(e.target.value)}
           />
           <ul>
-            {bases.map((id) => (
-              <li key={id}>
+            {bases.map((id, i) => (
+              <Fragment key={id}>
+                {groupOf(models[id], id) !== groupOf(models[bases[i - 1]], bases[i - 1]) && (
+                  <li className="group">{groupOf(models[id], id)}</li>
+                )}
+                <li>
                 <button
                   className={id === selected ? "on" : ""}
                   onClick={() => setSelected(id)}
@@ -360,7 +435,8 @@ export function BuildingLab() {
                         : id.replace(/^religious-/, "")}
                   </small>
                 </button>
-              </li>
+                </li>
+              </Fragment>
             ))}
           </ul>
         </aside>
@@ -460,6 +536,15 @@ export function BuildingLab() {
                         {key === "footprint" ? "w × d, max 14" : "x, y"}
                       </small>
                     </span>
+                  ) : enumFields[key] ? (
+                    <select
+                      value={String(value)}
+                      onChange={(e) => setField(key, e.target.value)}
+                    >
+                      {enumFields[key].map((m) => (
+                        <option key={m}>{m}</option>
+                      ))}
+                    </select>
                   ) : key === "wall" ? (
                     <select
                       value={value}

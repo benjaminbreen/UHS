@@ -60,6 +60,11 @@ export class TerrainScene extends Phaser.Scene {
       "/topography/atlas.json",
     );
     this.load.atlas("world-art", "/packs/atlas.png", "/packs/atlas.json");
+    this.load.atlas(
+      "buildings",
+      "/packs/buildings.png",
+      "/packs/buildings.json",
+    );
   }
   create() {
     const f = this.fixture;

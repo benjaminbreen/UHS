@@ -6,7 +6,7 @@ import { natureTreeSprites } from "../content/ecology/vegetation";
 import { useEffect, useRef, useState } from "react";
 import { timed } from "../render/perf-switches";
 import { faunaProfile } from "../content/fauna";
-import atlas from "../render/generated/atlas.json" with { type: "json" };
+import buildings from "../render/generated/buildings.json" with { type: "json" };
 import { surfaceAt } from "../render/materials";
 import {
   atlasSample,
@@ -21,7 +21,7 @@ let atlasImage: HTMLImageElement | undefined;
 function sprites() {
   if (!atlasImage) {
     atlasImage = new Image();
-    atlasImage.src = "/packs/atlas.png";
+    atlasImage.src = "/packs/buildings.png";
   }
   return atlasImage;
 }
@@ -58,7 +58,7 @@ function buildingTones(sprite: string, image: HTMLImageElement) {
   const cached = roofCache.get(sprite);
   if (cached) return cached;
   const f = (
-    atlas.frames as Record<
+    buildings.frames as Record<
       string,
       { frame: { x: number; y: number; w: number; h: number } }
     >

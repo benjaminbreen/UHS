@@ -77,7 +77,7 @@ import {
   SMOKE_PUFFS,
   animatedBase,
   motionFrames,
-  MOTION_FRAME_MS,
+  motionPeriod,
   animatedFrames,
   ensureFireTextures,
   ensureHearthSmoke,
@@ -229,11 +229,16 @@ export class WorldScene extends Phaser.Scene {
   private hearths = new Map<string, Phaser.GameObjects.Image[]>();
   private fires = new Map<string, FireEffect>();
   private fireFrames = new Set<string>();
-  private motionFrames = new Set<string>();
+  private motionFrames = new Map<string, number>();
   /** Props that animate on their own, keyed by entity. */
   private motions = new Map<
     string,
-    { image: Phaser.GameObjects.Image; base: string; phase: number }
+    {
+      image: Phaser.GameObjects.Image;
+      base: string;
+      phase: number;
+      frames: number;
+    }
   >();
   private nextInput = 0;
   private motionDuration = 140;
@@ -285,6 +290,11 @@ export class WorldScene extends Phaser.Scene {
       "/props/shadows.json",
     );
     this.load.atlas("atlas", "/packs/atlas.png", "/packs/atlas.json");
+    this.load.atlas(
+      "buildings",
+      "/packs/buildings.png",
+      "/packs/buildings.json",
+    );
     this.load.atlas(
       "lighting-shadows",
       "/packs/lighting-shadows.png",
@@ -822,7 +832,16 @@ export class WorldScene extends Phaser.Scene {
     }
     this.fires.delete(id);
   }
+  /** Frames that live in the buildings atlas, read off the texture once it is
+   * loaded. A name test would need every recipe prefix; the atlas already
+   * knows what it holds. */
+  private buildingFrames?: Set<string>;
   private texture(frame: string) {
+    if (!this.buildingFrames && this.textures.exists("buildings"))
+      this.buildingFrames = new Set(
+        this.textures.get("buildings").getFrameNames(),
+      );
+    if (this.buildingFrames?.has(frame)) return "buildings";
     if (frame.startsWith("study-sheet-tree-")) return "tree-study";
     if (frame.startsWith("study-tree-"))
       return frame.slice(0, frame.lastIndexOf("-"));
@@ -1912,6 +1931,7 @@ export class WorldScene extends Phaser.Scene {
             image: im,
             base: drawn,
             phase: this.poseOffset(id) % 4,
+            frames: this.motionFrames.get(drawn) ?? 4,
           });
       } else if (this.motions.has(id)) this.motions.delete(id);
       const swinging = rigid && this.layerOf(frame, "hang");
@@ -2334,7 +2354,8 @@ export class WorldScene extends Phaser.Scene {
       for (const motion of this.motions.values()) {
         const n = this.options.freeze
           ? 0
-          : Math.floor(time / MOTION_FRAME_MS + motion.phase) % 4;
+          : Math.floor(time / motionPeriod(motion.frames) + motion.phase) %
+            motion.frames;
         const name = n ? `${motion.base}-m${n}` : motion.base;
         if (motion.image.frame.name !== name) motion.image.setFrame(name);
       }
