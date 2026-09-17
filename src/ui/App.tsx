@@ -154,7 +154,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
   const [error, setError] = useState("");
   const [note, setNote] = useState("");
   const [command, setCommand] = useState("");
-  const [sidebar, setSidebar] = useState(() => window.innerWidth > 640);
+  const [sidebar, setSidebar] = useState(true);
   const [sheetSnap, setSheetSnap] = useState<"peek" | "half" | "full">("peek");
   const sheetPointerStart = useRef<number | null>(null);
   const [mapRegion, setMapRegion] = useState(false);
@@ -217,6 +217,8 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
         height: mount.current.clientHeight,
       },
       scene,
+      // Two touches for pinch-zoom, plus a spare so a third finger is ignored.
+      input: { activePointers: 3 },
       audio: { noAudio: true },
       banner: false,
     });
@@ -786,14 +788,18 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
           >
             <span />
           </button>
-          <div className="mobile-sheet-summary">
+          <button
+            className="mobile-sheet-summary"
+            aria-label="Expand character panel"
+            onClick={() => setSheetSnap("half")}
+          >
             <CharacterSprite appearance={runtime.appearanceFor(p)} />
             <span>
               <strong>{p.name}</strong>
               <small>{p.role}</small>
             </span>
             <ChevronDown aria-hidden="true" />
-          </div>
+          </button>
           <section className="sky-card frame">
             <div className="place-heading">
               <h2>{regionLabel}</h2>
@@ -844,11 +850,9 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
                 {pack.setting && (
                   <span className="condition">
                     {fitOutlook(
-                      outlookOf(
-                        obs.manifest.seed,
-                        p,
-                        pack.setting,
-                      ).stances.map(shortLabel),
+                      outlookOf(obs.manifest.seed, p, pack.setting).stances.map(
+                        shortLabel,
+                      ),
                     )}
                   </span>
                 )}

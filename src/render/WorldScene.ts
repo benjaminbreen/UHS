@@ -41,12 +41,7 @@ import {
   type LiveGraphicsSettings,
 } from "./live-graphics";
 import { ToolEffects } from "./tool-effects";
-import {
-  HANGING,
-  windProfile,
-  windSway,
-  type WindProfile,
-} from "./wind";
+import { HANGING, windProfile, windSway, type WindProfile } from "./wind";
 /** Poll interval while a jump is in the air, matched to the sprite's arc. */
 const DIRECTION_KEYS = [
   "arrowleft",
@@ -219,6 +214,7 @@ export class WorldScene extends Phaser.Scene {
   private routeOverlay?: Phaser.GameObjects.Graphics;
   private actorFrames = new Map<string, string>();
   private wheelAccum = 0;
+  private pinchStart?: { spread: number; zoom: number };
   private unsubscribe?: () => void;
   private staticKey = "";
   private terrainStream?: TerrainStream;
@@ -427,6 +423,8 @@ export class WorldScene extends Phaser.Scene {
     );
     this.input.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
       if (pointer.rightButtonDown() || this.options.lab) return;
+      // A second finger means a pinch, not a walk order.
+      if (this.pinchSpread() !== undefined) return;
       const p = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
       let x = Math.floor(p.x / 16),
         y = Math.floor(p.y / 16);
@@ -469,6 +467,28 @@ export class WorldScene extends Phaser.Scene {
         this.runtime.walkTo({ x, y });
       }
     });
+    this.input.on("pointermove", () => {
+      if (this.options.lab) return;
+      const spread = this.pinchSpread();
+      if (spread === undefined) {
+        this.pinchStart = undefined;
+        return;
+      }
+      if (!this.pinchStart) {
+        // The first finger already issued a walk order; a pinch cancels it.
+        this.runtime.stop();
+        this.pinchStart = { spread, zoom: this.runtime.zoom };
+        return;
+      }
+      this.runtime.setZoom(
+        this.pinchStart.zoom * (spread / this.pinchStart.spread),
+      );
+    });
+    const endPinch = () => {
+      this.pinchStart = undefined;
+    };
+    this.input.on("pointerup", endPinch);
+    this.input.on("pointerupoutside", endPinch);
     this.input.on(
       "wheel",
       (_p: unknown, _g: unknown, _dx: number, dy: number) => {
@@ -514,6 +534,16 @@ export class WorldScene extends Phaser.Scene {
     this.draw();
     this.options.onReady?.();
   }
+  /** Distance between the two active touches, or undefined when not pinching. */
+  private pinchSpread() {
+    const touches = this.input.manager.pointers.filter(
+      (p) => p.isDown && p.wasTouch,
+    );
+    if (touches.length < 2) return undefined;
+    const [a, b] = touches;
+    return Math.hypot(a.x - b.x, a.y - b.y) || undefined;
+  }
+
   private lift(x: number, y: number) {
     const w = this.runtime.engine.world;
     return w.topography &&

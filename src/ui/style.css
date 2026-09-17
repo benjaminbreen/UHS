@@ -1900,6 +1900,19 @@ kbd {
     font-size: 17px;
   }
 }
+/* The centred world selector runs under the wordmark before the layout is
+   wide enough for both; drop to the compass mark instead. */
+@media (max-width: 1280px) {
+  .brand > div {
+    display: none;
+  }
+  .brand > svg {
+    display: block;
+  }
+  .brand {
+    flex: 0;
+  }
+}
 @media (max-width: 1150px) {
   .topbar {
     gap: 15px;
@@ -2023,6 +2036,27 @@ kbd {
 @media (max-width: 640px) {
   .app {
     min-height: 0;
+    padding: max(6px, env(safe-area-inset-top))
+      max(6px, env(safe-area-inset-right)) max(6px, env(safe-area-inset-bottom))
+      max(6px, env(safe-area-inset-left));
+    gap: 6px;
+  }
+  .brand {
+    padding: 0 4px;
+  }
+  /* Centring the selector against the desktop sidebar pushes it off a phone
+     screen, so let it sit in the flex row instead. */
+  .world-selector {
+    position: static;
+    transform: none;
+    flex: 1;
+    min-width: 0;
+    gap: 8px;
+    padding: 0 10px;
+    font-size: 14px;
+  }
+  .world-selector svg {
+    display: none;
   }
   .header-actions {
     width: auto;
@@ -2066,7 +2100,8 @@ kbd {
   .mobile-sheet-grabber {
     display: flex;
     width: 100%;
-    height: 32px;
+    flex: none;
+    height: 22px;
     align-items: center;
     justify-content: center;
     touch-action: none;
@@ -2082,10 +2117,13 @@ kbd {
     background: #c9a865aa;
   }
   .mobile-sheet-summary {
+    width: 100%;
+    flex: none;
+    text-align: left;
     align-items: center;
     gap: 10px;
-    min-height: 38px;
-    padding: 0 8px 8px;
+    min-height: 34px;
+    padding: 0 8px 6px;
     color: var(--cream);
   }
   .mobile-sheet-summary .pixel-sprite {
@@ -2135,7 +2173,31 @@ kbd {
     z-index: 6;
   }
   .sidebar .portrait {
-    width: 106px;
+    width: 78px;
+    height: 88px;
+  }
+  .sidebar .character {
+    min-width: 0;
+    gap: 10px;
+  }
+  .sidebar .character h1 {
+    font-size: 19px;
+  }
+  .sidebar .place-heading h2 {
+    font-size: 20px;
+  }
+  /* Sized for the desktop rail; at phone width it swallows the name. */
+  .sidebar .sky {
+    width: 50%;
+    height: 132px;
+    padding: 8px 10px 26px 24px;
+  }
+  .sidebar .sky-condition,
+  .sidebar .sky-period {
+    font-size: 11px;
+  }
+  .sidebar[data-sheet-snap="peek"] {
+    height: 68px;
   }
   .bottom-bar {
     height: 76px;
@@ -4246,7 +4308,12 @@ button:disabled {
   background:
     linear-gradient(var(--line-soft), var(--line-soft)) left center/100% 1px
       no-repeat,
-    linear-gradient(45deg, transparent 42%, var(--gold) 42% 58%, transparent 58%)
+    linear-gradient(
+        45deg,
+        transparent 42%,
+        var(--gold) 42% 58%,
+        transparent 58%
+      )
       center/9px 9px no-repeat;
 }
 .outlook-aside > p {
