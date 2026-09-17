@@ -100,6 +100,7 @@ export function drawCharacter(
     lower = ramp(a.wearing.lowerColor),
     cloak = ramp(a.wearing.cloakColor),
     leather = ramp("#72503b"),
+    iron = ramp("#8b929a"),
     wood = ramp("#ae7e49");
   ctx.save();
   ctx.translate(30 + shift, 46 - tall + bend + bob);
@@ -254,6 +255,59 @@ export function drawCharacter(
     near = [side ? 19 : 16 + wide, 21 + torso - [0, 2, 3, 0][f]];
     far = [side ? 16 : 4 - wide, near[1]];
   }
+  // A pitchfork, rake, scythe or navvy's shovel is carried across the body in
+  // two hands, the head out in front and low, not stood on end like a staff.
+  // The art for these is a whole tool standing in a yard, twice the height of
+  // the person holding it, so the carried version is drawn here at body scale.
+  const haftVector: Point | undefined =
+    prop?.kind === "haft"
+      ? (
+          {
+            till: [
+              [13, -3],
+              [11, -8],
+              [18, 10],
+              [16, 6],
+            ],
+            dig: [
+              [9, -7],
+              [7, -11],
+              [11, 12],
+              [11, 8],
+            ],
+            reap: [
+              [-11, 7],
+              [-5, 11],
+              [9, 12],
+              [15, 7],
+            ],
+            chop: [
+              [6, -14],
+              [2, -17],
+              [15, 8],
+              [14, 3],
+            ],
+            swing: [
+              [6, -14],
+              [2, -17],
+              [15, 8],
+              [14, 3],
+            ],
+          } as Record<string, Point[]>
+        )[pose]?.[f] ?? [15, 5 + (moving && f % 2 ? -1 : 0)]
+      : undefined;
+  if (haftVector) {
+    // Both hands on the shaft: the forward one where the work is, the other a
+    // little behind it and higher, as anyone holding a long handle does.
+    near = [
+      15 + wide + Math.round(haftVector[0] / 6),
+      20 + torso + Math.round(haftVector[1] / 4),
+    ];
+    far = [
+      near[0] - Math.round(haftVector[0] * 0.42) - 2,
+      near[1] - Math.round(haftVector[1] * 0.42),
+    ];
+  }
   if (
     prop?.kind === "tool" &&
     !["chop", "dig", "reap", "swing", "thrust"].includes(pose)
@@ -278,6 +332,49 @@ export function drawCharacter(
   }
   const drawProp = () => {
     if (!prop) return;
+    if (prop.kind === "haft" && haftVector) {
+      const v = haftVector;
+      const length = Math.hypot(v[0], v[1]) || 1;
+      // Along the shaft, and across it.
+      const ux = v[0] / length,
+        uy = v[1] / length,
+        nx = -uy,
+        ny = ux;
+      const at = (d: number, across: number): Point => [
+        near[0] + v[0] + ux * d + nx * across,
+        near[1] + v[1] + uy * d + ny * across,
+      ];
+      const butt: Point = [
+        near[0] - Math.round(v[0] * 0.75),
+        near[1] - Math.round(v[1] * 0.75),
+      ];
+      p.limb([butt, at(0, 0)], 2, wood);
+      const head = /pitchfork/.test(prop.sprite)
+        ? "fork"
+        : /rake/.test(prop.sprite)
+          ? "rake"
+          : /scythe/.test(prop.sprite)
+            ? "blade"
+            : "blade-square";
+      if (head === "fork")
+        for (const k of [-1, 0, 1]) {
+          p.line(at(0, k * 2), at(5, k * 3), iron.base);
+          p.rect(at(5, k * 3)[0], at(5, k * 3)[1], 1, 1, iron.light);
+        }
+      else if (head === "rake") {
+        p.limb([at(0, -4), at(0, 4)], 2, wood);
+        for (const k of [-3, -1, 1, 3]) p.line(at(0, k), at(3, k), iron.base);
+      } else if (head === "blade")
+        // A scythe blade: off the heel of the shaft, curving away from it.
+        p.limb([at(0, 0), at(4, -5), at(2, -10)], 1, iron);
+      else {
+        // A shovel blade: a flat pan on the end of the handle.
+        p.limb([at(1, -2), at(1, 2)], 2, iron);
+        p.limb([at(4, -2), at(4, 2)], 2, iron);
+        p.rect(at(3, 0)[0], at(3, 0)[1], 1, 1, iron.light);
+      }
+      return;
+    }
     if (prop.kind === "stick") {
       const v: Point =
         pose === "swing"

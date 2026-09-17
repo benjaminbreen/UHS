@@ -4,11 +4,24 @@ export const animatedBase = (frame: string) =>
   frame.replace(/-(f|m)\d+$/, "");
 export const animatedFrames = (names: string[]) =>
   new Set(names.filter((n) => /-f1$/.test(n)).map(animatedBase));
-/** Props that move without being on fire: a hive with bees round it. Frame
- * `x` has siblings `x-m1..`, cycled slower than a flame. */
-export const motionFrames = (names: string[]) =>
-  new Set(names.filter((n) => /-m1$/.test(n)).map(animatedBase));
+/** Props that move without being on fire: a hive with bees round it, a beam
+ * scale settling. Frame `x` has siblings `x-m1..`; the count is read from the
+ * atlas so a prop can take as many as its movement needs. */
+export const motionFrames = (names: string[]) => {
+  const counts = new Map<string, number>();
+  for (const name of names) {
+    const m = /-m(\d+)$/.exec(name);
+    if (!m) continue;
+    const base = animatedBase(name);
+    counts.set(base, Math.max(counts.get(base) ?? 1, Number(m[1]) + 1));
+  }
+  return counts;
+};
 export const MOTION_FRAME_MS = 190;
+/** More frames means a slower movement, not a faster one: a scale settling
+ * takes a few seconds, a bee's round takes under one. */
+export const motionPeriod = (frames: number) =>
+  frames > 4 ? MOTION_FRAME_MS * 2 : MOTION_FRAME_MS;
 /** Local light from a fire, by band. A little even at midday, so the glow
  * does not pop on at dusk. */
 export const glowAlpha: Record<LightingId, number> = {

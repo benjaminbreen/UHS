@@ -1619,6 +1619,18 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
                     Prop gallery · ⌘2 / Ctrl+2
                   </button>
                   <a
+                    className="action settings-featured"
+                    href="/art-audit"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Art audit{" "}
+                    <small>
+                      Measure every shipped sprite and filter for the ones that
+                      break the style
+                    </small>
+                  </a>
+                  <a
                     className="action"
                     href="/graphics-lab"
                     target="_blank"

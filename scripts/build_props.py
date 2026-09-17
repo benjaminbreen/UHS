@@ -30,7 +30,8 @@ B_ONLY={'town-well','anvil','loom','pick','strapped-chest','cooking-pot','catch'
         'stall-trestle','stall-awning','stall-booth','stall-cart','stall-modern',
         'plough','water-butt','rake','pitchfork','shovel','scythe','beehive','milk-churn','farm-cart',
         'privy-shed','privy-screen','privy-bench','privy-stone','privy-nightsoil','privy-outhouse',
-        'granary-staddle','granary-mud','granary-stilt','granary-clay'}
+        'granary-staddle','granary-mud','granary-stilt','granary-clay',
+        'shop-sign','door-lantern','square-focus','hitching-post','beam-scale'}
 for family in catalog['families']:
     # A family drawn only in the B set has no A study to build.
     for variant in ([] if family['id'] in B_ONLY else range(len(family['variants']))):

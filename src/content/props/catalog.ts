@@ -388,6 +388,27 @@ export const propDefs: Record<string, PropDef> = {
     contents: { grain: 12 },
     where: "worksite",
   },
+  // Both hang above head height, so neither blocks the cell it stands on.
+  shopSign: {
+    solid: false,
+    name: "Shop sign",
+    family: "shop-sign",
+  },
+  doorLantern: {
+    solid: false,
+    name: "Door lanterns",
+    family: "door-lantern",
+  },
+  hitchingPost: {
+    solid: true,
+    name: "Hitching post",
+    family: "hitching-post",
+  },
+  beamScale: {
+    solid: true,
+    name: "Beam scale",
+    family: "beam-scale",
+  },
   plough: {
     solid: true,
     name: "Plough",

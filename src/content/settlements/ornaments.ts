@@ -50,13 +50,16 @@ export function stallFor(pack: Pack, index = 0): { sprite: string; label: string
   const year = pack.year;
   const culture = pack.setting?.culture;
   const eastern = culture === "east-asian" || culture === "southeast-asian";
+  // Region before date for the booth: the roofed pitch was the east and
+  // southeast Asian street into the twentieth century, and a Qing city was
+  // getting European market barrows before this rule was the other way round.
   const build =
     year >= 1900
       ? "stall-modern"
-      : year >= 1650
-        ? "stall-cart"
-        : eastern && year >= 500
-          ? "stall-booth"
+      : eastern && year >= 500
+        ? "stall-booth"
+        : year >= 1650
+          ? "stall-cart"
           : year >= -499
             ? "stall-awning"
             : "stall-trestle";
@@ -72,6 +75,63 @@ export function stallFor(pack: Pack, index = 0): { sprite: string; label: string
             : "Trestle stall";
   // Neighbouring pitches are not the same pitch twice.
   return { sprite: `study-propb-${build}-${index % 3}`, label };
+}
+
+/** What a square is built round. Undefined leaves the fabric's own choice
+ * alone, which is the right answer for a camp, a hamlet, and for places whose
+ * assembly ground never had a monument in it. */
+export function focusFor(
+  pack: Pack,
+): { sprite: string; label: string } | undefined {
+  const year = pack.year;
+  const culture = pack.setting?.culture;
+  const urban =
+    pack.setting?.settlement === "city" || pack.setting?.settlement === "port";
+  const piece = (n: number, label: string) => ({
+    sprite: `study-propb-square-focus-${n}`,
+    label,
+  });
+  if (culture === "european")
+    return year >= 1870 ? piece(8, "War memorial") : undefined;
+  if (culture === "east-asian") return piece(0, "Memorial arch");
+  if (culture === "southeast-asian") return piece(2, "Spirit house");
+  if (culture === "south-asian") return piece(1, "Inscribed stele");
+  // The canopied fountain is the civic gift of an Islamic city; before that
+  // the classical vocabulary the fabric already has is the better answer.
+  if (culture === "north-african-west-asian")
+    return year >= 699 ? piece(3, "Public fountain") : undefined;
+  if (
+    culture === "west-central-african" ||
+    culture === "east-southern-african"
+  )
+    return piece(4, "Assembly tree");
+  if (culture === "mesoamerican") return piece(5, "Stepped platform");
+  if (culture === "andean") return piece(6, "Stone dais");
+  if (culture === "inner-eurasian") return piece(7, "Cairn");
+  if (culture === "australian-pacific") return piece(10, "Carved post");
+  // Anywhere else, a nineteenth-century town square got a clock.
+  return year >= 1900 && urban ? piece(9, "Clock tower") : undefined;
+}
+
+/** What hangs at a door, where anything does. A lantern is an east and
+ * southeast Asian habit; elsewhere the threshold object is a different shape,
+ * and most places have none at all. */
+export function doorwayFor(pack: Pack): number | undefined {
+  const year = pack.year;
+  switch (pack.setting?.culture) {
+    case "east-asian":
+      return 0;
+    case "southeast-asian":
+      return 2;
+    case "south-asian":
+      return 6;
+    case "north-african-west-asian":
+      return year >= 699 ? 3 : undefined;
+    case "european":
+      return year >= 1820 ? 4 : year >= 1099 ? 5 : undefined;
+    default:
+      return undefined;
+  }
 }
 
 export const ornaments: Record<string, Ornament> = {

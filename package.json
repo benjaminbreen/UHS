@@ -11,6 +11,7 @@
     "art:fauna-b": "python3 scripts/build_fauna_b.py",
     "art:fauna-c": "python3 scripts/build_fauna_c.py",
     "art:props": "python3 scripts/build_props.py",
+    "art:audit": "python3 scripts/art_audit.py",
     "build": "tsc -b && vite build && node scripts/build-api.mjs",
     "test": "vitest run",
     "test:browser": "playwright test",

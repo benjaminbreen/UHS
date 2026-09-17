@@ -85,7 +85,10 @@ skep away.
 A prop can also carry its own animation frames. List it in `ANIMATED` in
 `scripts/art/props_b/__init__.py` with a frame count and give its draw
 function a `frame` argument; the build emits `-m1..` beside the base sprite
-and the renderer cycles them at 190ms, slower than a flame. The beehive uses
+and the renderer cycles them at 190ms, slower than a flame. The frame count
+comes from the atlas, and more frames means a *slower* movement: over four,
+the period doubles, so a beam scale settling takes three seconds while a bee's
+round takes under one. The beehive uses
 this for the bees going round it. Keep the moving part *outside* the
 silhouette — bees drawn over the straw read as specks in the weave.
 
@@ -136,6 +139,29 @@ see: a canvas edge cutting through the drawing, a sprite over its budget,
 part-transparent alpha the shadow builder cannot use, shading too flat to read,
 and a sprite that is mostly outline. It does not tell you whether the thing
 looks like a well.
+
+## The art audit
+
+`npm run art:audit` measures every sprite in the shipped atlases -- props,
+buildings, characters, terrain -- and writes `public/art-audit.json`. Open
+Settings -> Developer -> Art audit, or `/art-audit`.
+
+It reports numbers, not verdicts, because the useful question is usually
+"which of these is unlike its neighbours", not "does this pass". Filter with
+the sliders until the sprites listed are the ones that actually look wrong;
+that range is the rule worth writing into this file. The presets are the
+questions we ask most: hard keylines, thick outlines, neutral ink, off
+palette, no light on it, banding.
+
+Four overlays, because most of these faults are invisible at 1x: **Rim**
+paints only the near-darkest boundary pixels, so a tinted rim nearly vanishes
+and a keyline draws the whole outline; **Off palette** magentas any colour in
+no declared ramp; **Value** throws the colour away; **Steps** recolours each
+tone by its rank, which shows how many steps a surface really uses and where
+they jump.
+
+Every metric is compared against the median for its own kind, so a building
+is judged against buildings.
 
 ## Reviewing
 

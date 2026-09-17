@@ -15,6 +15,9 @@ from .stalls import STALLS
 from .farm import FARM
 from .privy import PRIVY
 from .granary import GRANARY
+from .asia import ASIA
+from .civic import CIVIC
+from .market import MARKET
 from .vessels import (pot, storage_jar, water_jug, amphora, glazed_jar,
                       metal_vessel, pithos, flask, bowl, bucket,
                       open_basket, lidded_basket)
@@ -61,16 +64,24 @@ DRAW_B = {
  **FARM,
  **PRIVY,
  **GRANARY,
+ **ASIA,
+ **CIVIC,
+ **MARKET,
 }
 
 # Families drawn in separable layers. The renderer places the frame and sways
 # the hangings against it; the unsuffixed sprite stays whole for the lab, the
 # UI and the shadow mask.
-LAYERED = {'drying-rack': ('frame', 'hang'), 'washing-line': ('frame', 'hang')}
+LAYERED = {
+ 'drying-rack': ('frame', 'hang'),
+ 'washing-line': ('frame', 'hang'),
+ 'door-lantern': ('frame', 'hang'),
+}
 
 # Props that move on their own: the base sprite plus `-m1..` motion frames.
 ANIMATED = {
  'beehive': 4,
+ 'beam-scale': 8,
  'privy-shed': 4,
  'privy-screen': 4,
  'privy-bench': 4,

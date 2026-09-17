@@ -486,8 +486,8 @@
       "name": "Rake",
       "group": "Work & agriculture",
       "size": [
-        18,
-        47
+        19,
+        50
       ],
       "description": "A head of teeth on a shaft as long as a man, stood where it was last left.",
       "variants": [
@@ -501,8 +501,8 @@
       "name": "Pitchfork",
       "group": "Work & agriculture",
       "size": [
-        18,
-        48
+        19,
+        50
       ],
       "description": "Tines on an iron socket for hay or muck.",
       "variants": [
@@ -516,8 +516,8 @@
       "name": "Long shovel",
       "group": "Work & agriculture",
       "size": [
-        50,
-        58
+        18,
+        46
       ],
       "description": "A navvy's shovel: a long haft and a broad dished blade that opens two spits at a stroke.",
       "variants": [
@@ -531,8 +531,8 @@
       "name": "Scythe",
       "group": "Work & agriculture",
       "size": [
-        50,
-        58
+        45,
+        57
       ],
       "description": "An S-curved snath with two nibs and a long blade that lays a swathe.",
       "variants": [
@@ -1348,6 +1348,93 @@
         "Bulbous",
         "Straight-sided",
         "Open, filled"
+      ]
+    },
+    {
+      "id": "shop-sign",
+      "name": "Shop sign",
+      "group": "Street furniture",
+      "size": [
+        29,
+        59
+      ],
+      "description": "A trade's board at the street: a lacquered panel under a tiled cap, a painted board with a flag, or a cloth banner on bamboo.",
+      "variants": [
+        "East Asian",
+        "South Asian",
+        "Southeast Asian"
+      ]
+    },
+    {
+      "id": "door-lantern",
+      "name": "Doorway marker",
+      "group": "Street furniture",
+      "size": [
+        37,
+        46
+      ],
+      "description": "What hangs at a door: paper lanterns, a pierced brass lamp, a gas bracket, a horn lantern, or a garland across the lintel.",
+      "variants": [
+        "Red paper",
+        "Saffron paper",
+        "Cream paper",
+        "Pierced brass",
+        "Gas bracket",
+        "Horn lantern",
+        "Garland"
+      ]
+    },
+    {
+      "id": "square-focus",
+      "name": "Square centrepiece",
+      "group": "Street furniture",
+      "size": [
+        83,
+        92
+      ],
+      "description": "What a square is built round: an arch, a stele, a spirit house, a fountain, an assembly tree, a stepped platform, a stone dais, a cairn, a memorial, a clock tower, a carved post.",
+      "variants": [
+        "Memorial arch",
+        "Stele",
+        "Spirit house",
+        "Sabil",
+        "Assembly tree",
+        "Stepped platform",
+        "Stone dais",
+        "Cairn",
+        "War memorial",
+        "Clock tower",
+        "Carved post"
+      ]
+    },
+    {
+      "id": "hitching-post",
+      "name": "Hitching post",
+      "group": "Street furniture",
+      "size": [
+        55,
+        43
+      ],
+      "description": "Somewhere to tie an animal: a post with a ring, a mounting block beside one, or a rail between two.",
+      "variants": [
+        "Post and ring",
+        "Mounting block",
+        "Rail"
+      ]
+    },
+    {
+      "id": "beam-scale",
+      "name": "Beam scale",
+      "group": "Street furniture",
+      "size": [
+        52,
+        48
+      ],
+      "description": "A balance on a post with a pan on each cord and a box of weights; the beam never quite settles.",
+      "variants": [
+        "Brass pans",
+        "Iron pans",
+        "Brass beam"
       ]
     }
   ]

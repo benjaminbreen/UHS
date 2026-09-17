@@ -18,6 +18,23 @@ export type PropKit = {
   contexts: Record<PropContext, string[]>;
   note: string;
 };
+/** Which Old World kit a place has. Not a claim about who invented what: a
+ * statement about which props belong in a settlement at all. Wheeled vehicles,
+ * draught traction, coopered barrels, dairying and the balance scale are Old
+ * World things, and in the Americas and Oceania they arrive with contact.
+ * A wagon and a pair of scales in the 1485 Andes is the error this prevents. */
+export function techFor(pack: Pack) {
+  const culture = pack.setting?.culture;
+  const year = pack.year;
+  const americas =
+    culture === "andean" ||
+    culture === "mesoamerican" ||
+    culture === "other-indigenous-american";
+  const oceania = culture === "australian-pacific";
+  const kit = americas ? year >= 1550 : oceania ? year >= 1800 : true;
+  return { wheels: kit, draught: kit, cooperage: kit, dairy: kit, balance: kit };
+}
+
 /** Broad, explicitly provisional material-culture defaults, not universal dates
  * of invention. Local refinements override flat lists; behavior never uses era. */
 export function propKit(pack: Pack): PropKit {
@@ -34,6 +51,7 @@ export function propKit(pack: Pack): PropKit {
     tool: ["stick"],
     privy: ["privyShed"],
   };
+  const tech = techFor(pack);
   const rural =
     pack.setting?.settlement === "farm" ||
     pack.setting?.settlement === "village" ||
@@ -87,7 +105,8 @@ export function propKit(pack: Pack): PropKit {
   if (urban && year >= -1999 && year < 1900)
     contexts.water = [...contexts.water, "townWell", "townWell"];
   // A metal pot for the hearth, once smiths are working iron in quantity.
-  if (year >= -799) contexts.household.push("cookingPot");
+  // Where there was no iron, the clay pot and the vat already cover cooking.
+  if (year >= -799 && tech.dairy) contexts.household.push("cookingPot");
   if (year >= 500 && oldWorld) {
     contexts.household.push("chest", "sack");
     contexts.yard.push("bucket");
@@ -112,16 +131,21 @@ export function propKit(pack: Pack): PropKit {
     if (year >= -5999) contexts.work.push(granary);
   }
   if (rural || pack.setting?.settlement === "village") {
-    if (year >= -2999) contexts.work.push("plough", "beehive");
+    if (year >= -2999) contexts.work.push("beehive");
+    // A beam plough wants an animal in front of it; the Andes had a foot
+    // plough, which is a different object and not drawn here.
+    if (year >= -2999 && tech.draught) contexts.work.push("plough");
     if (year >= -3999) contexts.tool.push("rake", "pitchfork");
     // The long shovel and the scythe are the two-handed versions of tools
     // the kit already has; the scythe is a later invention than the sickle.
     if (year >= -999) contexts.tool.push("shovel");
     if (year >= -499) contexts.tool.push("scythe");
-    if (year >= -999) contexts.work.push("farmCart");
-    if (year >= 1850) contexts.work.push("milkChurn");
+    if (year >= -999 && tech.wheels) contexts.work.push("farmCart");
+    if (year >= 1850 && tech.dairy) contexts.work.push("milkChurn");
   }
-  if (year >= -999) contexts.yard.push("waterButt");
+  if (year >= -999 && tech.cooperage) contexts.yard.push("waterButt");
+  // Somewhere to tie an animal, until the animals stop coming into town.
+  if (year < 1920 && tech.draught) contexts.work.push("hitchingPost");
   // One privy per household, in whatever form the place and date built them.
   // Nothing else in the yard kit competes with it: it is placed on its own
   // rule, far from the water.
@@ -203,7 +227,7 @@ export function propKit(pack: Pack): PropKit {
   }
   // The factory age's own furniture: pressed steel, and a barrow that is
   // older than that but only becomes common with cheap iron tyres.
-  if (year >= 1750) contexts.work.push("barrow");
+  if (year >= 1750 && tech.wheels) contexts.work.push("barrow");
   if (year >= 1860) {
     contexts.yard.push("dustbin", "washingLine");
     contexts.work.push("drum");
@@ -231,7 +255,9 @@ export function propKit(pack: Pack): PropKit {
     // standpipe or fountain a square still has; there is no art for a tap.
     contexts.household = ["carton", "plastic", "tin"];
     contexts.yard = ["plastic", "tin", "crate", "dustbin", "washingLine"];
-    contexts.work = ["crate", "drum", "barrow", "stick"];
+    contexts.work = tech.wheels
+      ? ["crate", "drum", "barrow", "stick"]
+      : ["crate", "drum", "stick"];
     contexts.tool = ["spade", "pick", "stick"];
     contexts.fire = ["drumFire", "fireBasket"];
   }
@@ -244,7 +270,8 @@ export function propKit(pack: Pack): PropKit {
     contexts.yard = without(contexts.yard, ["jug", "pot"]);
     // A country yard is where the washing actually hangs, so it weighs twice.
     contexts.yard.push("dustbin", "washingLine", "washingLine");
-    contexts.work.push("drum", "barrow");
+    contexts.work.push("drum");
+    if (tech.wheels) contexts.work.push("barrow");
   }
   // Named local exceptions, intentionally not a culture × era master table.
   if (pack.setting?.placeId === "konya" || pack.id === "neolithic") {

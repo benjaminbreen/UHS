@@ -51,6 +51,43 @@ to something the plan placed. The drying rack is the worked example.
 The same three pieces — a planned object, stations that visit it, one boolean
 the engine writes — are what any other worked prop needs.
 
+### Asian street furniture
+
+Three families with one variant per region — east, south, southeast Asian:
+
+- **Shop sign** at the frontage of any building whose name gives a trade: a
+  lacquered board under a tiled cap, a painted board with a flag, a cloth
+  banner on bamboo. The lettering is bars, not glyphs; a real script at this
+  size is noise pretending to be language.
+- **Door lanterns** at every other household door, hung from a bracket and
+  swayed by the wind like the drying rack's fish.
+- **Square centrepiece**, chosen in `focusFor(pack)` by culture and date,
+  overriding the fabric's own focus: memorial arch, stele, spirit house,
+  sabil, assembly tree, stepped platform, stone dais, cairn, war memorial,
+  clock tower, carved post. Undefined leaves the fabric alone, which is the
+  right answer for a camp, a hamlet, and for places whose assembly ground
+  never had a monument in it.
+- **Doorway marker**, chosen in `doorwayFor(pack)`: paper lanterns in east and
+  southeast Asia, a garland across the lintel in south Asia, a pierced brass
+  lamp in west Asia from 700, a horn lantern in Europe from 1100 and a gas
+  bracket from 1820. Most cultures return nothing, because most doors had
+  nothing on them.
+
+Both frontage props are `solid: false` — a board hangs over the street and a
+lantern above the step, so neither needs its cell kept clear. They are placed
+beside the entrance by their own test, because the general one refuses every
+cell within a step of a door, which is exactly where they belong.
+
+### Market and street
+
+A **beam scale** goes in the work slot of any building whose name gives a
+trade — everything a market sold went over a balance first. It carries eight
+motion frames and the renderer runs them at half speed, so the beam settles
+one way and then the other over about three seconds rather than flicking.
+
+A **hitching post** joins the work kit for any date before 1920: a post with a
+ring, a mounting block beside one, or a rail between two.
+
 ### Granaries
 
 Four builds, chosen in `selection.ts` by culture and date and placed from the
@@ -148,6 +185,18 @@ underneath, and its mouth becomes a disc you look into from the side.
 opens the object and spills what it held where it lies. **Set it upright**
 puts it back. A stick to a basket still breaks the basket; a shoulder to it
 only lays it down.
+
+### Old World kit
+
+`techFor(pack)` says whether a settlement has wheeled vehicles, draught
+traction, cooperage, dairying or the balance scale. These are Old World
+things: in the Americas they arrive with contact, which the kit takes as 1550,
+and in Oceania later still, taken as 1800. Before that the cart, the
+wheelbarrow, the hitching post, the beam plough, the coopered water butt, the
+milk churn, the iron cooking pot and the beam scale are all withheld.
+
+It is not a claim about who invented what. It is what stops a wagon and a pair
+of scales standing in a square in the 1485 Andes.
 
 ### Era ceilings
 

@@ -292,17 +292,19 @@ def pitchfork(v=0):
  c = Canvas(18, 50)
  w = RAMPS[WOOD7[v]]
  m = RAMPS['blackiron7'] if v != 2 else RAMPS['rustred7']
- _shaft(c, 7, 1, 35, w, lean=-2)
- c.hline(5, 7, 1, w[6])
+ # The head hangs off wherever the shaft actually ends: with the offset
+ # hard-coded, any lean at all left the tines floating beside the handle.
+ cx = _shaft(c, 6, 1, 35, w, lean=1) + 1
+ c.hline(cx - 2, cx, 1, w[6])
  for y in range(35, 39):                           # the socket
   half = (y - 35) // 2 + 1
-  for x in range(6 - half, 7 + half):
-   c.set(x, y, m[5] if x < 7 else m[3])
-  c.set(6 - half, y, m[2]); c.set(6 + half, y, m[1])
- c.hline(3, 10, 39, m[6])
+  for x in range(cx - half, cx + half + 1):
+   c.set(x, y, m[5] if x < cx else m[3])
+  c.set(cx - half, y, m[2]); c.set(cx + half, y, m[1])
+ c.hline(cx - 4, cx + 3, 39, m[6])
  tines = [(-4, 1), (0, 0), (4, 1)] if v != 1 else [(-5, 2), (-2, 0), (2, 0), (5, 2)]
  for dx, short in tines:                           # tines, curving into the ground
-  x = 7 + dx
+  x = cx + dx
   for k in range(9 - short):
    y = 40 + k
    bend = round(dx * k * 0.06)
