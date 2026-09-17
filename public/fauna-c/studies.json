@@ -1,0 +1,133 @@
+{
+  "horse": {
+    "palette": [
+      "#2f1d14",
+      "#4a2e1f",
+      "#6b452c",
+      "#8d5c38",
+      "#ae7c51",
+      "#ece2d2",
+      "#150e09",
+      "#23202c"
+    ],
+    "states": {
+      "idle": 8,
+      "graze": 8,
+      "wander": 8,
+      "flee": 8,
+      "rest": 8
+    },
+    "directions": [
+      "south",
+      "east",
+      "north",
+      "west"
+    ],
+    "size": [
+      40,
+      41
+    ],
+    "standing": [
+      40,
+      35
+    ]
+  },
+  "foal": {
+    "palette": [
+      "#5c3f26",
+      "#836039",
+      "#a8834f",
+      "#c6a375",
+      "#e0c49b",
+      "#f2e9d8",
+      "#241810",
+      "#3b4257"
+    ],
+    "states": {
+      "idle": 8,
+      "graze": 8,
+      "wander": 8,
+      "flee": 8,
+      "rest": 8
+    },
+    "directions": [
+      "south",
+      "east",
+      "north",
+      "west"
+    ],
+    "size": [
+      24,
+      29
+    ],
+    "standing": [
+      24,
+      23
+    ]
+  },
+  "rabbit": {
+    "palette": [
+      "#7d5a33",
+      "#a67c48",
+      "#c79d68",
+      "#e0bf92",
+      "#f4ddb6",
+      "#fbf3e2",
+      "#241810",
+      "#d79a97"
+    ],
+    "states": {
+      "idle": 8,
+      "forage": 8,
+      "wander": 8,
+      "flee": 8,
+      "rest": 8
+    },
+    "directions": [
+      "south",
+      "east",
+      "north",
+      "west"
+    ],
+    "size": [
+      16,
+      24
+    ],
+    "standing": [
+      16,
+      16
+    ]
+  },
+  "rabbit-kit": {
+    "palette": [
+      "#828b9c",
+      "#aab3c0",
+      "#ced5de",
+      "#e8edf2",
+      "#ffffff",
+      "#bcc4d0",
+      "#262b34",
+      "#d7a5a2"
+    ],
+    "states": {
+      "idle": 8,
+      "forage": 8,
+      "wander": 8,
+      "flee": 8
+    },
+    "directions": [
+      "south",
+      "east",
+      "north",
+      "west"
+    ],
+    "size": [
+      10,
+      17
+    ],
+    "standing": [
+      10,
+      10
+    ]
+  }
+}

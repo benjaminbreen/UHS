@@ -26,6 +26,16 @@ test("pinch zooms the world and a tap still walks", async ({ page }) => {
     "true",
     { timeout: 40000 },
   );
+  // Without this the browser pinch-zooms the page over the game instead.
+  await expect(canvas).toHaveCSS("touch-action", "none");
+  expect(
+    await page.evaluate(() =>
+      [...document.querySelectorAll("input,textarea,select")].every(
+        (e) => parseFloat(getComputedStyle(e).fontSize) >= 16,
+      ),
+    ),
+  ).toBe(true);
+
   const zoom = () => page.evaluate(() => (window as any).__uhs.zoom);
   const before = await zoom();
   const cdp = await page.context().newCDPSession(page);

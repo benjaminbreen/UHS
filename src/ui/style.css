@@ -59,6 +59,7 @@ textarea:focus-visible {
 button,
 a {
   touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 h1,
 h2,
@@ -98,6 +99,14 @@ button:hover:not(:disabled) {
 }
 .pixel-sprite {
   image-rendering: pixelated;
+}
+/* The scene handles its own pan and pinch; the browser must not also scroll,
+   zoom or pull-to-refresh on top of it. */
+.game-container canvas {
+  touch-action: none;
+}
+body {
+  overscroll-behavior: none;
 }
 .app {
   height: 100dvh;
@@ -2221,8 +2230,13 @@ kbd {
     display: none;
   }
   .command-input input {
-    font-size: 13px;
+    font-size: 16px;
     padding: 8px;
+  }
+  input,
+  textarea,
+  select {
+    font-size: 16px;
   }
   .command-input button {
     width: 33px;
@@ -2232,7 +2246,46 @@ kbd {
     padding-inline: 10px;
   }
   .modal-backdrop {
-    padding: 12px;
+    padding: max(12px, env(safe-area-inset-top))
+      max(12px, env(safe-area-inset-right))
+      max(12px, env(safe-area-inset-bottom))
+      max(12px, env(safe-area-inset-left));
+  }
+  .weaver-modes > span {
+    flex: 0 0 100%;
+  }
+  /* The map modal's mode chips share a class with the Weaver's wide cards,
+     including the nowrap that keeps those two cards side by side. */
+  .weaver-modes button {
+    max-width: 100%;
+  }
+  .modal-map .weaver-modes {
+    flex-wrap: wrap;
+  }
+  .modal-map .weaver-modes button {
+    flex: none;
+    width: auto;
+    white-space: nowrap;
+  }
+  .day-plan li {
+    grid-template-columns: 18px 44px minmax(0, 1fr) auto;
+    gap: 8px;
+    padding: 7px 4px;
+    font-size: 14px;
+  }
+  .day-plan li:not(:last-child)::after {
+    left: 13px;
+  }
+  .ability-list li {
+    gap: 7px;
+    font-size: 14px;
+  }
+  .bearing.panel-card {
+    gap: 20px;
+  }
+  .character-body,
+  .character-tab {
+    padding: 16px 12px;
   }
   .modal {
     padding: 24px 18px;
@@ -2315,6 +2368,10 @@ kbd {
   flex-wrap: wrap;
   align-items: center;
   margin: 12px 0;
+}
+.weaver-modes > span {
+  font-size: 13px;
+  color: var(--muted);
 }
 .weaver-modes button,
 .weaver-examples button {
@@ -3416,6 +3473,8 @@ button:disabled {
   list-style: none;
   display: grid;
   gap: 2px;
+  margin: 16px 0;
+  padding: 0;
 }
 .day-plan li {
   position: relative;
@@ -4801,5 +4860,259 @@ button:disabled {
   .belief-practices {
     padding: 14px 0 0;
     border-top: 1px solid var(--line);
+  }
+  /* Two columns leave the about text three words wide and collapse the
+     ability labels to zero, so they print over their own pips. */
+  .character-pair {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Household tab: the roster on the left in kin groups, shared conditions and
+ * the family's past on the right. */
+.household-tab .household-line {
+  margin: 0 0 16px;
+  color: #cfd4e4;
+  font-size: 16px;
+}
+.household-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.78fr);
+  gap: 20px;
+  align-items: start;
+}
+.household-grid .panel-card {
+  margin-top: 0;
+  padding: 18px 20px;
+}
+.household-grid .panel-card > h3:first-child {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 23px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--cream);
+  margin: 0 0 16px;
+}
+.household-grid .panel-card > h3 svg {
+  color: var(--gold);
+}
+.household-grid .panel-card > h3 em {
+  margin-left: auto;
+  font-size: 12px;
+  font-style: italic;
+  color: var(--muted);
+  letter-spacing: 0;
+}
+.household-groups {
+  display: grid;
+  gap: 8px;
+}
+/* The kin group reads as a bracket: a label, a stem out to a rail, and a tick
+ * into each row. */
+.household-group {
+  display: grid;
+  grid-template-columns: 76px 22px minmax(0, 1fr);
+  align-items: center;
+  gap: 0;
+}
+.household-group-label {
+  font-size: 13px;
+  color: var(--muted);
+  text-align: right;
+  padding-right: 8px;
+}
+.household-stem {
+  align-self: stretch;
+  position: relative;
+}
+.household-stem::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 11px;
+  border-top: 1px solid var(--line-soft);
+}
+.household-rows {
+  --rail-inset: 36px;
+  list-style: none;
+  display: grid;
+  gap: 8px;
+  position: relative;
+  padding-left: 11px;
+}
+.household-rows:has(li:only-child)::before {
+  display: none;
+}
+/* The rail joins the rows, so it stops at the first and last row's midpoint
+ * instead of running past them. */
+.household-rows::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: var(--rail-inset, 50%);
+  bottom: var(--rail-inset, 50%);
+  border-left: 1px solid var(--line-soft);
+}
+.household-rows li {
+  position: relative;
+}
+.household-rows li::before {
+  content: "";
+  position: absolute;
+  left: -11px;
+  top: 50%;
+  width: 11px;
+  border-top: 1px solid var(--line-soft);
+}
+.household-rows button {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  text-align: left;
+  background: #ffffff08;
+  border: 1px solid var(--line-soft);
+  border-radius: 3px;
+  padding: 8px 16px 8px 8px;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.household-rows button:hover {
+  border-color: var(--gold);
+}
+.household-rows button[aria-current="true"] {
+  background: #ffffff0f;
+}
+.household-portrait {
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  flex-shrink: 0;
+  border: 1px solid var(--line-soft);
+  border-radius: 2px;
+  background: #0d162c66;
+  overflow: hidden;
+}
+.household-portrait canvas {
+  image-rendering: pixelated;
+}
+.household-who {
+  display: grid;
+  gap: 3px;
+}
+.household-who b {
+  font-family: var(--serif);
+  font-size: 21px;
+  font-weight: 400;
+  line-height: 1.1;
+  color: var(--cream);
+}
+.household-who small {
+  font-size: 14px;
+  color: var(--muted);
+}
+.household-who small i {
+  font-style: normal;
+  margin: 0 7px;
+}
+.household-note {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  flex-shrink: 0;
+  text-align: right;
+}
+.household-note i {
+  font-style: italic;
+  font-size: 15px;
+  color: #b6bcd2;
+}
+.household-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-style: normal;
+  font-size: 15px;
+  color: var(--cream);
+}
+.household-chip svg {
+  color: var(--gold);
+}
+.household-chip.is-self {
+  color: var(--belief-cyan);
+}
+.household-chip .rule-diamond {
+  margin: 0;
+}
+.household-more {
+  margin: 14px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+.household-side {
+  display: grid;
+  gap: 20px;
+}
+.household-stats {
+  display: grid;
+  gap: 0;
+}
+.household-stats > div {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--line-soft);
+}
+.household-stats > div:last-child {
+  border-bottom: none;
+}
+.household-stats svg {
+  color: var(--gold);
+}
+.household-stats dt {
+  font-size: 16px;
+  color: #cfd4e4;
+}
+.household-stats dd {
+  margin: 0;
+  font-size: 16px;
+  color: var(--cream);
+}
+.household-history {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.6;
+  color: #cfd4e4;
+}
+@media (max-width: 900px) {
+  .household-grid {
+    grid-template-columns: 1fr;
+  }
+  .household-group {
+    grid-template-columns: 1fr;
+  }
+  .household-group-label {
+    text-align: left;
+    padding: 0 0 4px;
+  }
+  .household-stem,
+  .household-rows::before,
+  .household-rows li::before {
+    display: none;
+  }
+  .household-rows {
+    padding-left: 0;
+  }
+  .household-note {
+    display: none;
   }
 }

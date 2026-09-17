@@ -1,6 +1,7 @@
 import type { FaunaState } from "../../core/fauna";
 import type { CharacterScope } from "../characters/context-types";
 import studies from "../../../public/fauna/studies.json" with { type: "json" };
+import studiesC from "../../../public/fauna-c/studies.json" with { type: "json" };
 
 export type HabitatTag =
   | "settlement"
@@ -38,6 +39,8 @@ export type FaunaProfile = {
   needs?: "herding" | "settled";
   /** Expected groups per 64-cell block where every cell is ideal habitat. */
   density: number;
+  /** Young of this species, spawned beside the adults rather than alone. */
+  young?: { id: string; chance: number };
   /** Cells per six-second step at a walk; a person walks one. */
   pace: number;
   /** Scrambles a terrace step the way a person can. Others need a slope. */
@@ -52,8 +55,14 @@ export type FaunaProfile = {
   diet: readonly DietTag[];
   preyTags?: readonly DietTag[];
   palette: readonly string[];
+  /** Frames for the default facing. A species without this is side-view only
+   * and is mirrored for west; one with it has art authored per direction. */
+  directions?: readonly FaunaFacing[];
   art: Partial<Record<FaunaState, readonly string[]>>;
 };
+
+export const faunaFacings = ["south", "east", "north", "west"] as const;
+export type FaunaFacing = (typeof faunaFacings)[number];
 
 export function study(
   species: keyof typeof studies,
@@ -70,4 +79,37 @@ export function study(
       ]),
     ),
   };
+}
+
+/** Four-direction species. `art` carries the south frames; the other facings
+ * differ only in the direction segment of the id. */
+export function directionalStudy(
+  species: keyof typeof studiesC,
+): Pick<FaunaProfile, "art" | "palette" | "directions"> {
+  const study = studiesC[species];
+  return {
+    palette: study.palette,
+    directions: study.directions as readonly FaunaFacing[],
+    art: Object.fromEntries(
+      Object.entries(study.states).map(([state, count]) => [
+        state,
+        Array.from(
+          { length: count },
+          (_, frame) => `faunac-${species}-${state}-south-${frame}`,
+        ),
+      ]),
+    ),
+  };
+}
+
+/** The frames to play for one facing. Side-view species ignore it; the caller
+ * mirrors east art for west instead. */
+export function faunaFrames(
+  profile: FaunaProfile,
+  state: FaunaState,
+  facing: FaunaFacing,
+): readonly string[] {
+  const frames = profile.art[state] ?? [];
+  if (!profile.directions) return frames;
+  return frames.map((id) => id.replace("-south-", `-${facing}-`));
 }

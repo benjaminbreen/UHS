@@ -59,8 +59,15 @@ export function stepAllowed(
   return a.height === b.height || !!a.ramp || !!b.ramp;
 }
 
-function face(m: FaunaMember, dx: number) {
-  if (dx > 0) m.direction = 1;
+/** Face the way the step went. Four-direction species use all four; the rest
+ * keep their east/west facing through a purely vertical step. */
+function face(m: FaunaMember, dx: number, dy: number, all: boolean) {
+  if (Math.abs(dx) >= Math.abs(dy)) {
+    if (dx > 0) m.direction = 1;
+    else if (dx < 0) m.direction = 3;
+    else if (all && dy) m.direction = dy > 0 ? 2 : 0;
+  } else if (all) m.direction = dy > 0 ? 2 : 0;
+  else if (dx > 0) m.direction = 1;
   else if (dx < 0) m.direction = 3;
 }
 
@@ -224,9 +231,10 @@ function moveMember(
   m: FaunaMember,
   to: Point,
   taken: Set<string>,
+  all = false,
 ) {
   taken.delete(`${m.x},${m.y}`);
-  face(m, to.x - m.x);
+  face(m, to.x - m.x, to.y - m.y, all);
   m.x = to.x;
   m.y = to.y;
   taken.add(`${m.x},${m.y}`);
@@ -246,6 +254,7 @@ export function advanceFauna(
     if (!p || !g.members.length) continue;
     const bird = p.locomotion === "ground-and-flight";
     const kept = p.category !== "wild";
+    const turns = Boolean(p.directions);
     const airborne = aerialStates.has(g.state);
     const threat = nearestHuman(world.humans, g.pos, alertRadius(p));
 
@@ -316,7 +325,8 @@ export function advanceFauna(
           const goal = { x: g.target.x + ox, y: g.target.y + oy };
           const dx = Math.sign(goal.x - m.x),
             dy = Math.sign(goal.y - m.y);
-          if (dx || dy) moveMember(m, { x: m.x + dx, y: m.y + dy }, taken);
+          if (dx || dy)
+            moveMember(m, { x: m.x + dx, y: m.y + dy }, taken, turns);
         }
         if (hyp(leader, g.target) < 1) {
           g.state = "landing";
@@ -329,9 +339,9 @@ export function advanceFauna(
         for (const m of g.members) {
           const to = bestStep(world, p, taken, m, threat, true);
           if (to) {
-            moveMember(m, to, taken);
+            moveMember(m, to, taken, turns);
             moved = true;
-          } else face(m, threat.x - m.x);
+          } else face(m, threat.x - m.x, threat.y - m.y, turns);
         }
         // Cornered: nothing to do but face whoever is coming.
         if (!moved) steps = 0;
@@ -339,12 +349,12 @@ export function advanceFauna(
         for (const m of g.members)
           if (hyp(m, threat) < alertRadius(p)) {
             const to = bestStep(world, p, taken, m, threat, true);
-            if (to) moveMember(m, to, taken);
+            if (to) moveMember(m, to, taken, turns);
           }
         steps = 0;
       } else if (g.target && !airborne) {
         const to = bestStep(world, p, taken, leader, g.target, false);
-        if (to) moveMember(leader, to, taken);
+        if (to) moveMember(leader, to, taken, turns);
         if (!to || hyp(leader, g.target) < 1) {
           g.target = undefined;
           if (g.state === "wander" || g.state === "stalk") {
@@ -353,20 +363,22 @@ export function advanceFauna(
           }
           steps = 0;
         }
+        const follow = Math.max(1.6, p.separationRadius + 0.6);
         for (const m of g.members.slice(1))
-          if (hyp(m, leader) > p.cohesionRadius) {
+          if (hyp(m, leader) > follow) {
             const near = bestStep(world, p, taken, m, leader, false);
-            if (near) moveMember(m, near, taken);
+            if (near) moveMember(m, near, taken, turns);
           }
       } else if (
         (g.state === "forage" || g.state === "graze" || g.state === "idle") &&
         !airborne
       ) {
-        // Grazing shuffle: one animal at a time drifts a cell, keeping close.
-        const i = Math.floor(world.rng(`fauna-${g.id}-drift`) * g.members.length);
-        const m = g.members[i];
-        if (world.rng(`fauna-${g.id}-drift`) < 0.35) {
-          const n = NEIGHBOURS[Math.floor(world.rng(`fauna-${g.id}-drift`) * 4)];
+        // Grazing shuffle: each animal drifts on its own account, so a feeding
+        // group mills about instead of one of them twitching per tick.
+        const drift = g.state === "idle" ? 0.1 : 0.25;
+        for (const m of g.members) {
+          if (world.rng(`fauna-${g.id}-drift`) >= drift) continue;
+          const n = NEIGHBOURS[Math.floor(world.rng(`fauna-${g.id}-drift`) * 8)];
           const to = { x: m.x + n.x, y: m.y + n.y };
           if (
             hyp(to, leader) <= p.cohesionRadius &&
@@ -375,7 +387,7 @@ export function advanceFauna(
             !world.occupied(to.x, to.y) &&
             stepAllowed(world, p, m, to)
           )
-            moveMember(m, to, taken);
+            moveMember(m, to, taken, turns);
         }
         steps = 0;
       } else steps = 0;

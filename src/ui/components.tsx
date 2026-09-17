@@ -1,6 +1,7 @@
 import nature from "../../public/nature/atlas.json" with { type: "json" };
 import fauna from "../../public/fauna/atlas.json" with { type: "json" };
 import faunaB from "../../public/fauna-b/atlas.json" with { type: "json" };
+import faunaC from "../../public/fauna-c/atlas.json" with { type: "json" };
 import ecology from "../../public/ecology/atlas.json" with { type: "json" };
 import props from "../render/generated/props.json" with { type: "json" };
 import atlas from "../render/generated/atlas.json" with { type: "json" };
@@ -9,6 +10,8 @@ export function Sprite({ name, scale = 2 }: { name: string; scale?: number }) {
     ? fauna
     : name.startsWith("faunab-")
       ? faunaB
+    : name.startsWith("faunac-")
+      ? faunaC
     : name.startsWith("nature-")
       ? nature
     : name.startsWith("ecology-")
@@ -36,6 +39,8 @@ export function Sprite({ name, scale = 2 }: { name: string; scale?: number }) {
             ? "url(/fauna/atlas.png)"
             : source === faunaB
               ? "url(/fauna-b/atlas.png)"
+            : source === faunaC
+              ? "url(/fauna-c/atlas.png)"
             : source === nature
             ? "url(/nature/atlas.png)"
             : source === ecology

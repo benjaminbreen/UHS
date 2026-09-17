@@ -2,7 +2,10 @@ import { wearSlots } from "../core/character";
 import { useState } from "react";
 import {
   Amphora,
+  BarChart3,
   BedDouble,
+  BookOpen,
+  Crown,
   Droplet,
   Flame,
   Footprints,
@@ -38,7 +41,7 @@ import { CharacterSprite } from "./CharacterSprite";
 import { Sprite, timeLabel } from "./components";
 import { dayPlan } from "../core/itinerary";
 import { dispositionOf, standingOf } from "../core/persona";
-import { describeStats, statsOf, statKeys } from "../core/stats";
+import { statsOf, statKeys } from "../core/stats";
 import { abilitiesOf } from "../content/characters/abilities";
 import { livelihoodById } from "../content/characters/livelihoods";
 import {
@@ -114,6 +117,107 @@ const relationLabels: Record<string, string> = {
   child: "child",
   "co-resident": "household",
 };
+type HouseholdRow = {
+  person: Actor;
+  note: string;
+  isSelf: boolean;
+  isHead: boolean;
+};
+type HouseholdGroup = { label: string; rows: HouseholdRow[] };
+
+function roleOf(person: Actor): string {
+  if (person.age !== undefined && person.age < 2) return "Infant";
+  if (person.age !== undefined && person.age < 14) return "Child";
+  return (
+    person.origin?.roleLabel ??
+    (person.origin
+      ? (livelihoodById(person.origin.livelihood)?.label ?? person.role)
+      : person.role)
+  );
+}
+
+/* Groups the roof-sharers the way a household reads from the inside: the couple
+ * at its head, then the generation above, then the children. */
+function groupHousehold(
+  actor: Actor,
+  members: string[],
+  everyone: Actor[],
+): { groups: HouseholdGroup[]; hidden: number } {
+  const by = (id: string) => everyone.find((a) => a.id === id);
+  const kind = new Map(
+    (actor.relations ?? []).map((r) => [r.other, r.kind] as const),
+  );
+  const partner = members
+    .filter((id) => kind.get(id) === "partner")
+    .map(by)
+    .find(Boolean);
+  const parentNames = [actor.name, partner?.name].filter(Boolean).join(" and ");
+  const sexOf = (p: Actor) => p.origin?.sex ?? sexFromName(p.name);
+  const head = members[0];
+
+  const row = (person: Actor, note: string): HouseholdRow => ({
+    person,
+    note,
+    isSelf: person.id === actor.id,
+    isHead: person.id === head,
+  });
+
+  const parents: HouseholdRow[] = [];
+  const elders: HouseholdRow[] = [];
+  const children: HouseholdRow[] = [];
+  const rest: HouseholdRow[] = [];
+  for (const id of members) {
+    const person = by(id);
+    if (!person) continue;
+    if (id === actor.id) {
+      parents.push(row(person, ""));
+      continue;
+    }
+    switch (kind.get(id)) {
+      case "partner":
+        // Only the first counts as the partner; the generator can list more.
+        if (person.id === partner?.id)
+          parents.push(row(person, `Partner of ${actor.name}`));
+        else rest.push(row(person, "Shares the hearth"));
+        break;
+      case "parent": {
+        const sex = sexOf(person);
+        const word =
+          sex === "female" ? "Mother" : sex === "male" ? "Father" : "Parent";
+        elders.push(row(person, `${word} of ${actor.name}`));
+        break;
+      }
+      case "child":
+        children.push(row(person, `Child of ${parentNames}`));
+        break;
+      default:
+        rest.push(row(person, "Shares the hearth"));
+    }
+  }
+  children.sort((a, b) => (b.person.age ?? 0) - (a.person.age ?? 0));
+  const ordered: HouseholdGroup[] = [
+    { label: parents.length > 1 ? "Parents" : "Household", rows: parents },
+    { label: "Elder kin", rows: elders },
+    { label: "Children", rows: children },
+    { label: "Also here", rows: rest },
+  ].filter((g) => g.rows.length > 0);
+
+  // Eight is as many faces as the card holds; the rest are counted, not listed.
+  let left = 8;
+  const groups: HouseholdGroup[] = [];
+  let hidden = 0;
+  for (const group of ordered) {
+    if (left <= 0) {
+      hidden += group.rows.length;
+      continue;
+    }
+    groups.push({ label: group.label, rows: group.rows.slice(0, left) });
+    hidden += Math.max(0, group.rows.length - left);
+    left -= group.rows.length;
+  }
+  return { groups, hidden };
+}
+
 const Pips = ({ rank, tone }: { rank: number; tone: string }) => (
   <span className="pips" data-tone={tone} aria-label={`${rank} of 3`}>
     {[1, 2, 3].map((i) => (
@@ -252,6 +356,47 @@ export function CharacterPanel({
   const roleLabel = actor.origin?.roleLabel ?? livelihood?.label ?? actor.role;
   const sex = actor.origin?.sex ?? sexFromName(actor.name);
   const they = sex === "female" ? "She" : sex === "male" ? "He" : "They";
+  const householdView = household
+    ? groupHousehold(actor, household.members, everyone)
+    : undefined;
+  // Placeholder until households carry real stores, tools and a recorded past.
+  const size = household?.members.length ?? 0;
+  const householdStats = [
+    {
+      icon: Home,
+      label: "Shelter",
+      value: size > 6 ? "Longhouse" : "Wood-and-bark house",
+    },
+    {
+      icon: Hammer,
+      label: "Tools",
+      value: size > 5 ? "Shared and varied" : "Basic",
+    },
+    { icon: BedDouble, label: "Sleeping places", value: String(size) },
+    { icon: Package, label: "Craft goods", value: "Some" },
+    {
+      icon: Users,
+      label: "Dependents",
+      value: String(
+        household?.members.filter((id) => {
+          const age = everyone.find((a) => a.id === id)?.age;
+          return age !== undefined && age < 14;
+        }).length ?? 0,
+      ),
+    },
+  ];
+  const raised =
+    householdView?.groups
+      .find((g) => g.label === "Children")
+      ?.rows.map((r) => r.person.name) ?? [];
+  const familyHistory = household
+    ? `${actor.name}'s household was established near here several years ago. ` +
+      (raised.length
+        ? `${raised.join(", ")} ${raised.length > 1 ? "were" : "was"} born into the household and raised here. `
+        : "") +
+      "The family lives by daily work, exchange with nearby households, and " +
+      "seasonal shares. They continue to keep one shelter, one hearth, and common stores."
+    : "";
   const members = (actor.relations ?? [])
     .map((r) => ({
       relation: relationLabels[r.kind] ?? r.kind,
@@ -625,42 +770,108 @@ export function CharacterPanel({
         </div>
       )}
       {tab === "household" && (
-        <div className="character-tab">
-          {household ? (
+        <div className="character-tab household-tab">
+          {household && householdView ? (
             <>
-              <p>
-                {household.members.length} people, sharing one store and one
-                roof.
+              <p className="household-line">
+                {household.members.length} people sharing one roof, one hearth,
+                and stored provisions.
               </p>
-              <ul className="household-list wide">
-                {household.members.map((id) => {
-                  const person = everyone.find((a) => a.id === id);
-                  if (!person) return null;
-                  const relation = (actor.relations ?? []).find(
-                    (r) => r.other === id,
-                  );
-                  return (
-                    <li key={id}>
-                      <button onClick={() => onSelect(id)}>
-                        <CharacterSprite
-                          appearance={runtime.appearanceFor(person)}
-                        />
-                        <span>
-                          {person.name}
-                          <small>
-                            {id === actor.id
-                              ? "this person"
-                              : (relationLabels[relation?.kind ?? ""] ??
-                                "household")}
-                            {person.age !== undefined && ` · ${person.age}`} ·{" "}
-                            {person.role}
-                          </small>
+              <div className="household-grid">
+                <section className="panel-card household-card">
+                  <h3>
+                    <Home size={18} /> Household
+                  </h3>
+                  <div className="household-groups">
+                    {householdView.groups.map((group) => (
+                      <div className="household-group" key={group.label}>
+                        <span className="household-group-label">
+                          {group.label}
                         </span>
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
+                        <i className="household-stem" aria-hidden="true" />
+                        <ul className="household-rows">
+                          {group.rows.map(({ person, note, isSelf, isHead }) => (
+                            <li key={person.id}>
+                              <button
+                                onClick={() => onSelect(person.id)}
+                                aria-current={isSelf ? "true" : undefined}
+                              >
+                                <span
+                                  className="household-portrait"
+                                  aria-hidden="true"
+                                >
+                                  <CharacterSprite
+                                    appearance={runtime.appearanceFor(person)}
+                                    scale={2}
+                                  />
+                                </span>
+                                <span className="household-who">
+                                  <b>{person.name}</b>
+                                  <small>
+                                    {person.age !== undefined && (
+                                      <>
+                                        Age {person.age}
+                                        <i aria-hidden="true">·</i>
+                                      </>
+                                    )}
+                                    {roleOf(person)}
+                                  </small>
+                                </span>
+                                <span className="household-note">
+                                  {isHead && (
+                                    <em className="household-chip">
+                                      <Crown size={13} /> Head of household
+                                    </em>
+                                  )}
+                                  {isSelf && (
+                                    <em className="household-chip is-self">
+                                      <i
+                                        className="rule-diamond"
+                                        aria-hidden="true"
+                                      />{" "}
+                                      This person
+                                    </em>
+                                  )}
+                                  {!isSelf && note && <i>{note}</i>}
+                                </span>
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ))}
+                  </div>
+                  {householdView.hidden > 0 && (
+                    <p className="household-more">
+                      {householdView.hidden} more share the roof.
+                    </p>
+                  )}
+                </section>
+                <div className="household-side">
+                  <section className="panel-card">
+                    <h3>
+                      <BarChart3 size={18} /> Household stats
+                      <em>Shared material conditions.</em>
+                    </h3>
+                    <dl className="household-stats">
+                      {householdStats.map(({ icon: Icon, label, value }) => (
+                        <div key={label}>
+                          <Icon size={16} />
+                          <dt>{label}</dt>
+                          <dd>{value}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                  </section>
+                  <section className="panel-card">
+                    <h3>
+                      <BookOpen size={18} /> Family history
+                      <em>A simple record of the household's past.</em>
+                    </h3>
+                    <p className="household-history">{familyHistory}</p>
+                  </section>
+                </div>
+              </div>
             </>
           ) : (
             <p>No household is recorded for {actor.name}.</p>
@@ -955,18 +1166,7 @@ export function CharacterPanel({
         </div>
       )}
       <footer>
-        <span>
-          <i aria-hidden="true" />
-          {tab === "ideology" ? (
-            <em>A person&apos;s outlook shapes what they make of the day.</em>
-          ) : (
-            <>
-              Some personal details are reconstructed
-              {describeStats(stats).length > 0 &&
-                ` · ${describeStats(stats).join(", ")}`}
-            </>
-          )}
-        </span>
+        <span />
         <button onClick={onClose}>Close</button>
       </footer>
     </div>

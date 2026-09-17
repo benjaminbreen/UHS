@@ -2294,6 +2294,122 @@ export function planSettlement(
         });
       }
     }
+  // A horse paddock: bigger than a livestock pen, no herder routine and no
+  // gate to open, because horses at grass are left at grass. Placed only where
+  // the people of the day actually keep horses.
+  const horseSpecies = kept.find((k) => k.id === "horse");
+  const foalSpecies = kept.find((k) => k.id === "foal");
+  if (horseSpecies && owners.length && rand("paddock") < 0.7) {
+    const paddock =
+      landPlot(20, 16, "paddock") ??
+      landPlot(16, 13, "paddock") ??
+      landPlot(13, 11, "paddock");
+    if (paddock) {
+      const gate = {
+        x: paddock.x + Math.floor(paddock.w / 2),
+        y: paddock.y + paddock.h - 1,
+      };
+      const outside = { x: gate.x, y: gate.y + 1 };
+      eachCell(paddock, (x, y) => noRoad.add(cellKey(x, y)));
+      if (!connect(c, outside, "pen-access-paddock", 0))
+        eachCell(paddock, (x, y) => noRoad.delete(cellKey(x, y)));
+      else {
+        const owner = herdOwners[0] ?? owners[0];
+        const id = `${site.id}-paddock`;
+        plan.enclosures.push({ ...paddock, gate, parts: [] });
+        const interior: Point[] = [];
+        eachCell(paddock, (x, y) => {
+          const k = cellKey(x, y);
+          plan.reserved.add(k);
+          const edge =
+            x === paddock.x ||
+            x === paddock.x + paddock.w - 1 ||
+            y === paddock.y ||
+            y === paddock.y + paddock.h - 1;
+          if (edge && (x !== gate.x || y !== gate.y)) plan.solid.add(k);
+          if (edge) return;
+          let bits = 0;
+          if (y === paddock.y + 1) bits |= 1;
+          if (x === paddock.x + paddock.w - 2) bits |= 2;
+          if (y === paddock.y + paddock.h - 2 && x !== gate.x) bits |= 4;
+          if (x === paddock.x + 1) bits |= 8;
+          penFields.push([k, fenceCell(100020, bits)]);
+          setSurface(k, "grass", 3);
+          interior.push({ x, y });
+        });
+        plan.objects.push({
+          id: `${id}-gate`,
+          name: "Paddock gate",
+          kind: "gate",
+          pos: pos(gate),
+          sprite: "gate",
+          inventory: {},
+          open: false,
+          owner,
+        });
+        plan.objects.push({
+          id: `${id}-trough`,
+          name: "Water trough",
+          kind: "container",
+          prop: "trough",
+          sprite: `study-propb-trough-${Math.floor(rand(id, "trough-art") * 3)}`,
+          inventory: { water: 5 },
+          owner,
+          pos: pos({ x: paddock.x + 2, y: paddock.y + 2 }),
+        });
+        plan.plots.push({
+          ...paddock,
+          id,
+          kind: "pasture",
+          owner,
+          access: outside,
+        });
+        const middle = {
+          x: paddock.x + Math.floor(paddock.w / 2),
+          y: paddock.y + Math.floor(paddock.h / 2),
+        };
+        const spread = (count: number, from: number) => {
+          const stride = Math.max(1, Math.floor(interior.length / (count + 1)));
+          return Array.from({ length: count }, (_, j) => ({
+            ...interior[(from + j * stride) % interior.length],
+            direction: (j % 4) as 0 | 1 | 2 | 3,
+          }));
+        };
+        const horses = Math.min(
+          4,
+          2 + Math.floor(rand(id, "horses") * 3),
+        );
+        (plan.fauna ??= []).push({
+          id: `${id}-horses`,
+          speciesId: horseSpecies.id,
+          members: spread(horses, 1),
+          pos: pos(middle),
+          home: pos(middle),
+          homeRadius: Math.max(paddock.w, paddock.h),
+          state: "graze",
+          nextDecisionAt: 0,
+          stride: 0,
+          since: 0,
+          owner,
+        });
+        // A foal or two, only alongside the mares.
+        if (foalSpecies && rand(id, "foals") < 0.55)
+          plan.fauna.push({
+            id: `${id}-foals`,
+            speciesId: foalSpecies.id,
+            members: spread(1 + Math.floor(rand(id, "foal-count") * 2), 5),
+            pos: pos(middle),
+            home: pos(middle),
+            homeRadius: Math.max(paddock.w, paddock.h),
+            state: "idle",
+            nextDecisionAt: 0,
+            stride: 0,
+            since: 0,
+            owner,
+          });
+      }
+    }
+  }
   if (farmed) layFarmland();
   if (penFields.length) {
     plan.fields ??= new Map();

@@ -21,7 +21,7 @@ export const temperateFauna: readonly FaunaProfile[] = [
     // Europe, Anatolia, the Caucasus and the Atlas; the Central Asian
     // forms are close enough to draw the same way.
     presence: [{ years: always, bounds: [-11, 30, 100, 65] }],
-    density: 0.18,
+    density: 0.9,
     pace: 1,
     settlementTolerance: 0.1,
     minimumSettlementDistance: 28,
@@ -57,7 +57,7 @@ export const temperateFauna: readonly FaunaProfile[] = [
       { years: always, bounds: [-170, 15, -50, 80] },
       { years: always, bounds: [60, 5, 100, 36] },
     ],
-    density: 0.08,
+    density: 0.3,
     pace: 1.5,
     climbs: true,
     settlementTolerance: 0.05,

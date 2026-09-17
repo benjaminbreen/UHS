@@ -445,7 +445,12 @@ const faunaGroup = z
         z.object({
           x: z.number().int(),
           y: z.number().int(),
-          direction: z.union([z.literal(1), z.literal(3)]),
+          direction: z.union([
+            z.literal(0),
+            z.literal(1),
+            z.literal(2),
+            z.literal(3),
+          ]),
         }),
       )
       .max(32),

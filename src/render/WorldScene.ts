@@ -11,6 +11,10 @@ import { natureTreeSprites } from "../content/ecology/vegetation";
 import { rockFrame } from "../content/ecology/rocks";
 import { propVariety } from "./prop-variety";
 import { aerialStates, type FaunaGroup, type FaunaState } from "../core/fauna";
+import { faunaProfile, type FaunaFacing } from "../content/fauna";
+
+/** Actor facing numbers as the art names them. */
+const FACINGS: readonly FaunaFacing[] = ["north", "east", "south", "west"];
 import { canopyHidesPlayer } from "./canopy-visibility";
 import { WorldCharacters } from "./characters/world";
 import { entityInView, npcMotion } from "./entity-presentation";
@@ -199,7 +203,7 @@ export class WorldScene extends Phaser.Scene {
   /** Drawn animals, for the frame cycle in update(). */
   private faunaSprites = new Map<
     string,
-    { species: string; state: FaunaState; phase: number }
+    { species: string; state: FaunaState; phase: number; facing: FaunaFacing }
   >();
   private testFauna: FaunaGroup[] = [];
   private testFaunaSerial = 0;
@@ -267,6 +271,7 @@ export class WorldScene extends Phaser.Scene {
   preload() {
     this.load.atlas("nature", "/nature/atlas.png", "/nature/atlas.json");
     this.load.atlas("faunab", "/fauna-b/atlas.png", "/fauna-b/atlas.json");
+    this.load.atlas("faunac", "/fauna-c/atlas.png", "/fauna-c/atlas.json");
     this.load.atlas(
       "nature-shadows",
       "/nature/shadows.png",
@@ -824,6 +829,7 @@ export class WorldScene extends Phaser.Scene {
     if (frame.startsWith("study-litter-")) return "tree-study";
     if (frame.startsWith("nature-")) return "nature";
     if (frame.startsWith("faunab-")) return "faunab";
+    if (frame.startsWith("faunac-")) return "faunac";
     if (frame.startsWith("ecology-")) return "ecology";
     // "study-propb-" is the same atlas: match the prefix without the hyphen.
     return frame.startsWith("study-prop") || frame.startsWith("prop-broken-")
@@ -2116,27 +2122,33 @@ export class WorldScene extends Phaser.Scene {
         continue;
       // In the air the sprite rides a cell and a quarter above its ground cell.
       const lift = aerialStates.has(g.state) ? 1.25 : 0;
+      // Four-direction species have an authored frame per facing; the rest
+      // are side views flipped for west.
+      const turns = Boolean(faunaProfile(g.speciesId)?.directions);
       for (const [i, m] of g.members.entries()) {
         const id = `${g.id}-${i}`;
         const at = { x: m.x, y: m.y - lift, space: "outside" };
         if (!visible(at)) continue;
         const phase = this.poseOffset(id) % 8;
+        const facing = FACINGS[m.direction] ?? "east";
         renderEntity(
           id,
-          this.faunaFrame(g.speciesId, g.state, phase),
+          this.faunaFrame(g.speciesId, g.state, phase, facing),
           at,
           true,
           g.id,
         );
         const im = this.entities.get(id)!;
         if (g.id.startsWith("dev-fauna-")) im.disableInteractive();
-        if (im.flipX !== (m.direction === 3)) im.setFlipX(m.direction === 3);
+        const flip = !turns && m.direction === 3;
+        if (im.flipX !== flip) im.setFlipX(flip);
         // Three clear rows under the hooves in every study frame.
         im.setOrigin(0.5, (im.frame.height - 3) / im.frame.height);
         this.faunaSprites.set(id, {
           species: g.speciesId,
           state: g.state,
           phase,
+          facing,
         });
       }
     }
@@ -2236,7 +2248,12 @@ export class WorldScene extends Phaser.Scene {
   }
   /** Frame of an animal's eight-step cycle at scene time; states share the
    * lab's timings so a walk in the world matches the walk in the lab. */
-  private faunaFrame(species: string, state: FaunaState, phase: number) {
+  private faunaFrame(
+    species: string,
+    state: FaunaState,
+    phase: number,
+    facing: FaunaFacing,
+  ) {
     const ms =
       state === "flight"
         ? 85
@@ -2251,7 +2268,9 @@ export class WorldScene extends Phaser.Scene {
     const n = this.options.freeze
       ? 0
       : Math.floor(this.time.now / ms + phase) % 8;
-    return `faunab-${species}-${state}-${n}`;
+    return faunaProfile(species)?.directions
+      ? `faunac-${species}-${state}-${facing}-${n}`
+      : `faunab-${species}-${state}-${n}`;
   }
   update(time: number) {
     open();
@@ -2263,7 +2282,7 @@ export class WorldScene extends Phaser.Scene {
       for (const [id, f] of this.faunaSprites) {
         const im = this.entities.get(id);
         if (!im) continue;
-        const name = this.faunaFrame(f.species, f.state, f.phase);
+        const name = this.faunaFrame(f.species, f.state, f.phase, f.facing);
         if (im.frame.name !== name) im.setFrame(name);
       }
     mark("fauna");

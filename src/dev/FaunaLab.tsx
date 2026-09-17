@@ -1,9 +1,12 @@
 import faunaAtlas from "../../public/fauna/atlas.json" with { type: "json" };
 import faunaAtlasB from "../../public/fauna-b/atlas.json" with { type: "json" };
 import studiesB from "../../public/fauna-b/studies.json" with { type: "json" };
+import faunaAtlasC from "../../public/fauna-c/atlas.json" with { type: "json" };
+import studiesC from "../../public/fauna-c/studies.json" with { type: "json" };
 import { useEffect, useMemo, useState } from "react";
 import type { FaunaState } from "../core/fauna";
-import { faunaProfiles } from "../content/fauna";
+import type { FaunaFacing, FaunaProfile } from "../content/fauna";
+import { faunaFacings, faunaFrames, faunaProfiles } from "../content/fauna";
 import { Sprite } from "../ui/components";
 import "./fauna-lab.css";
 
@@ -15,7 +18,7 @@ const aerial = new Set<FaunaState>([
 ]);
 
 /** Two art sets share one species/state/frame naming; only the prefix differs. */
-export type Version = "a" | "b";
+export type Version = "a" | "b" | "c";
 type Frame = { x: number; y: number; w: number; h: number };
 const versions = {
   a: {
@@ -30,20 +33,45 @@ const versions = {
     atlas: faunaAtlasB,
     image: "/fauna-b/atlas.png",
   },
+  c: {
+    label: "C · four-direction",
+    prefix: "faunac-",
+    atlas: faunaAtlasC,
+    image: "/fauna-c/atlas.png",
+  },
 } as const;
+
+/** Sets A and B share one side-view naming; set C authors its own ids and
+ * carries the facing in them, so it is never rewritten from another set. */
+const abVersions = ["a", "b"] as const;
 
 function firstState(index: number) {
   return Object.keys(faunaProfiles[index].art)[0] as FaunaState;
 }
 
 function frameId(id: string, version: Version) {
+  if (id.startsWith("faunac-")) return id;
   return id.replace(/^fauna-/, versions[version].prefix);
 }
 
+/** Four-direction canvases carry empty rows on top for airborne frames, so the
+ * canvas height overstates the animal. Report the standing size instead. */
+function standingSize(profile: FaunaProfile) {
+  const study = (studiesC as Record<string, { standing: number[] }>)[
+    profile.id
+  ];
+  return profile.directions ? study?.standing : undefined;
+}
+
+function setOf(profile: FaunaProfile, version: Version): Version {
+  return profile.directions ? "c" : version === "c" ? "b" : version;
+}
+
 function frameInfo(id: string, version: Version): Frame | undefined {
-  return (
-    versions[version].atlas.frames as Record<string, { frame: Frame }>
-  )[frameId(id, version)]?.frame;
+  const set = id.startsWith("faunac-") ? "c" : version;
+  return (versions[set].atlas.frames as Record<string, { frame: Frame }>)[
+    frameId(id, set)
+  ]?.frame;
 }
 
 function initialVersion(): Version {
@@ -57,7 +85,7 @@ export function FaunaLab() {
   const [state, setState] = useState<FaunaState>(firstState(0));
   const [frame, setFrame] = useState(0);
   const [playing, setPlaying] = useState(true);
-  const [direction, setDirection] = useState<"east" | "west">("east");
+  const [direction, setDirection] = useState<FaunaFacing>("east");
   const [scale, setScale] = useState(3);
   const [members, setMembers] = useState(1);
   const [speed, setSpeed] = useState(1);
@@ -69,11 +97,21 @@ export function FaunaLab() {
   const [compare, setCompare] = useState(true);
   const [message, setMessage] = useState("");
   const states = Object.keys(profile.art) as FaunaState[];
-  const frames = profile.art[state] ?? [];
+  const directional = Boolean(profile.directions);
+  // Four-direction art has its own frame for west; everything else is the east
+  // frame flipped.
+  const facing: FaunaFacing = directional
+    ? direction
+    : direction === "west"
+      ? "east"
+      : direction;
+  const mirrored = !directional && direction === "west";
+  const activeSet = setOf(profile, version);
+  const frames = faunaFrames(profile, state, facing);
   const baseId = frames[frame % Math.max(1, frames.length)] ?? states[0];
-  const id = frameId(baseId, version);
+  const id = frameId(baseId, activeSet);
   const flying = aerial.has(state);
-  const dimensions = frameInfo(baseId, version);
+  const dimensions = frameInfo(baseId, activeSet);
   const frameDuration =
     state === "flight"
       ? 85
@@ -119,14 +157,16 @@ export function FaunaLab() {
     setState(next);
     setFrame(0);
     setMessage("");
+    if (!faunaProfiles[index].directions && direction !== "west")
+      setDirection("east");
   };
 
   async function exportPNG() {
     try {
       const image = new Image();
-      image.src = versions[version].image;
+      image.src = versions[activeSet].image;
       await image.decode();
-      const source = frameInfo(baseId, version)!;
+      const source = frameInfo(baseId, activeSet)!;
       const canvas = document.createElement("canvas");
       canvas.width = source.w;
       canvas.height = source.h;
@@ -173,15 +213,18 @@ export function FaunaLab() {
     },
   };
 
+  const studySet: Record<Version, Record<string, { palette: string[] }>> = {
+    a: {},
+    b: studiesB,
+    c: studiesC,
+  };
   const palette =
-    version === "b"
-      ? (studiesB as Record<string, { palette: string[] }>)[profile.id]
-          ?.palette ?? []
-      : profile.palette;
+    studySet[activeSet][profile.id]?.palette ?? profile.palette;
 
   const renderGroup = (which: Version, centerPercent: number) => {
     const size = frameInfo(baseId, which);
-    const groupScale = compare ? Math.min(scale, 3) : scale;
+    const memberIds = faunaFrames(profile, state, facing);
+    const groupScale = compare && !directional ? Math.min(scale, 3) : scale;
     return group.map((member, index) => {
       const memberFrame = (frame + index * 3) % frames.length;
       const progress = memberFrame / (frames.length - 1);
@@ -213,11 +256,11 @@ export function FaunaLab() {
             style={{
               left: `calc(${centerPercent}% + ${member.x * groupScale}px)`,
               top: `calc(62% + ${member.y * groupScale - lift}px)`,
-              transform: `translate(-50%, -100%) scaleX(${direction === "west" ? -1 : 1})`,
+              transform: `translate(-50%, -100%) scaleX(${mirrored ? -1 : 1})`,
             }}
           >
             <Sprite
-              name={frameId(frames[memberFrame], which)}
+              name={frameId(memberIds[memberFrame], which)}
               scale={groupScale}
             />
           </span>
@@ -235,7 +278,7 @@ export function FaunaLab() {
           <p>Small silhouettes · soft palettes · lively movement.</p>
         </div>
         <div className="fauna-version" role="group" aria-label="Art version">
-          {(Object.keys(versions) as Version[]).map((candidate) => (
+          {abVersions.map((candidate) => (
             <button
               key={candidate}
               className="action"
@@ -248,7 +291,8 @@ export function FaunaLab() {
           <label className="fauna-check">
             <input
               type="checkbox"
-              checked={compare}
+              checked={compare && !directional}
+              disabled={directional}
               onChange={(event) => setCompare(event.target.checked)}
             />
             Side by side
@@ -261,11 +305,17 @@ export function FaunaLab() {
 
       <section className="fauna-lineup" aria-label="Shared pixel scale">
         <div className="eyebrow">WORLD-SCALE LINEUP · EVERY SPECIES AT 2×</div>
-        {(Object.keys(versions) as Version[]).map((which) => (
+        {(["a", "b", "c"] as Version[]).map((which) => (
           <div className="fauna-lineup-row" key={which}>
             <strong>{versions[which].label}</strong>
             <div className="fauna-lineup-animals">
-              {faunaProfiles.map((candidate) => {
+              {faunaProfiles
+                .filter((candidate) =>
+                  which === "c"
+                    ? candidate.directions
+                    : !candidate.directions,
+                )
+                .map((candidate) => {
                 const names =
                   candidate.art.idle ??
                   candidate.art.perch ??
@@ -278,7 +328,8 @@ export function FaunaLab() {
                     </span>
                     <small>{candidate.label.replace(" study", "")}</small>
                     <small>
-                      {size?.w} × {size?.h} px
+                      {standingSize(candidate)?.[0] ?? size?.w} ×{" "}
+                      {standingSize(candidate)?.[1] ?? size?.h} px
                     </small>
                   </div>
                 );
@@ -306,7 +357,10 @@ export function FaunaLab() {
                 >
                   <span className="fauna-thumb">
                     <Sprite
-                      name={frameId(candidate.art[previewState]![0], version)}
+                      name={frameId(
+                        candidate.art[previewState]![0],
+                        setOf(candidate, version),
+                      )}
                       scale={2}
                     />
                   </span>
@@ -356,17 +410,20 @@ export function FaunaLab() {
           <div className="fauna-title">
             <h2>
               {profile.label}{" "}
-              <span className="fauna-version-tag">{versions[version].label}</span>
+              <span className="fauna-version-tag">
+                {versions[activeSet].label}
+              </span>
             </h2>
             <span>
-              {dimensions?.w} × {dimensions?.h} px
+              {standingSize(profile)?.[0] ?? dimensions?.w} ×{" "}
+              {standingSize(profile)?.[1] ?? dimensions?.h} px
             </span>
           </div>
           <div
             className={`fauna-stage fauna-bg-${background}`}
             data-testid="fauna-preview"
           >
-            {compare ? (
+            {compare && !directional ? (
               <>
                 {renderGroup("a", 27)}
                 {renderGroup("b", 73)}
@@ -378,11 +435,12 @@ export function FaunaLab() {
                 </span>
               </>
             ) : (
-              renderGroup(version, 50)
+              renderGroup(activeSet, 50)
             )}
             <span className="fauna-stage-caption">
               {members === 1 ? "Single-animal study" : "Group study"} ·{" "}
-              {compare ? Math.min(scale, 3) : scale}× native pixels
+              {compare && !directional ? Math.min(scale, 3) : scale}× native
+              pixels
             </span>
           </div>
 
@@ -397,7 +455,7 @@ export function FaunaLab() {
                   setFrame(index);
                 }}
               >
-                <Sprite name={frameId(name, version)} scale={1} />
+                <Sprite name={frameId(name, activeSet)} scale={1} />
                 <small>{String(index + 1).padStart(2, "0")}</small>
               </button>
             ))}
@@ -423,11 +481,17 @@ export function FaunaLab() {
               <select
                 value={direction}
                 onChange={(event) =>
-                  setDirection(event.target.value as "east" | "west")
+                  setDirection(event.target.value as FaunaFacing)
                 }
               >
-                <option value="east">East</option>
-                <option value="west">West</option>
+                {(directional
+                  ? faunaFacings
+                  : (["east", "west"] as const)
+                ).map((candidate) => (
+                  <option key={candidate} value={candidate}>
+                    {candidate[0].toUpperCase() + candidate.slice(1)}
+                  </option>
+                ))}
               </select>
             </label>
             <label>

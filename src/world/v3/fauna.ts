@@ -1,7 +1,12 @@
 import { random } from "../../core/random";
 import type { WorldModel } from "../../core/types";
 import type { FaunaGroup } from "../../core/fauna";
-import { faunaAt, type FaunaProfile, type HabitatTag } from "../../content/fauna";
+import {
+  faunaAt,
+  faunaProfile,
+  type FaunaProfile,
+  type HabitatTag,
+} from "../../content/fauna";
 
 /** What the cell offers an animal, read off the topography it already has. */
 export function habitatTagsAt(world: WorldModel, x: number, y: number) {
@@ -61,7 +66,19 @@ function suitability(profile: FaunaProfile, tags: Set<HabitatTag>) {
 }
 
 const spawned = new WeakMap<WorldModel, Set<string>>();
-const ATTEMPTS = 4;
+const ATTEMPTS = 8;
+
+/** The 64-cell block a cell belongs to. */
+export function faunaBlockOf(x: number, y: number) {
+  return `${Math.floor(x / 64)},${Math.floor(y / 64)}`;
+}
+
+/** Let a block spawn again. The engine calls this when it drops the groups of
+ * a block the player has walked far away from, so walking a long way does not
+ * grow the save without bound and walking back still finds animals there. */
+export function forgetFaunaBlock(world: WorldModel, key: string) {
+  spawned.get(world)?.delete(key);
+}
 
 /** Wild and commensal groups for the 64-cell blocks round (x, y) that have
  * not been visited yet. Same seed, same block, same animals. */
@@ -113,6 +130,36 @@ export function spawnFauna(
             stride: 0,
             since: 0,
           });
+          // Young keep to the adults: a colony of kits with no doe is wrong.
+          const young = p.young && faunaProfile(p.young.id);
+          if (
+            young &&
+            random(seed, "fauna", k, p.id, i, "young") < p.young!.chance
+          ) {
+            const yx = px + 2,
+              yy = py + 1;
+            const kits = placeMembers(
+              world,
+              seed,
+              `${k}:${young.id}:${i}`,
+              young,
+              yx,
+              yy,
+            );
+            if (kits.length)
+              groups.push({
+                id: `fauna-${young.id}-${cx}-${cy}-${i}`,
+                speciesId: young.id,
+                members: kits,
+                pos: { x: yx, y: yy, space: "outside" },
+                home: { x: px, y: py, space: "outside" },
+                homeRadius: young.cohesionRadius * 2,
+                state: "idle",
+                nextDecisionAt: 0,
+                stride: 0,
+                since: 0,
+              });
+          }
         }
       }
     }

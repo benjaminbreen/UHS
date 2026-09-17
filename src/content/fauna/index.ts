@@ -1,4 +1,5 @@
 import { birds } from "./birds";
+import { directionalFauna } from "./directional";
 import { domesticFauna } from "./domestic";
 import { temperateFauna } from "./temperate";
 import type { WorldSetting } from "../geography/types";
@@ -7,7 +8,12 @@ import {
   subsistenceFor,
 } from "../characters/resolve";
 
-export const faunaProfiles = [...birds, ...domesticFauna, ...temperateFauna];
+export const faunaProfiles = [
+  ...birds,
+  ...domesticFauna,
+  ...temperateFauna,
+  ...directionalFauna,
+];
 
 export function faunaProfile(id: string) {
   return faunaProfiles.find((profile) => profile.id === id);
@@ -25,4 +31,5 @@ export function faunaAt(setting: WorldSetting) {
   );
 }
 
-export type { FaunaProfile, HabitatTag, DietTag } from "./types";
+export type { FaunaProfile, HabitatTag, DietTag, FaunaFacing } from "./types";
+export { faunaFacings, faunaFrames } from "./types";

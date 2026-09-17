@@ -27,7 +27,7 @@ import type { GeographicArea } from "../../core/geography";
 import { createEnvironment, localEcology } from "./environment";
 import { ecologyProfiles } from "../../content/ecology/profiles";
 import { populateHouseholds, addWildResources } from "./population";
-import { spawnFauna } from "./fauna";
+import { forgetFaunaBlock, spawnFauna } from "./fauna";
 import type { FaunaGroup } from "../../core/fauna";
 import { createReliefLandscape, reliefCell } from "./topography";
 import {
@@ -1953,6 +1953,7 @@ export function createSettlementWorld(
       ...keptFauna,
       ...(environment ? spawnFauna(world, seed, x, y) : []),
     ],
+    forgetFauna: (block) => forgetFaunaBlock(world, block),
     restoreDistricts: (ids) => {
       for (const id of ids) {
         const p = planForEntity(id);

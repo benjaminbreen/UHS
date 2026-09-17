@@ -47,6 +47,10 @@ import { itineraryAt, type Itinerary } from "./itinerary";
 import { route, type RouteResult } from "./routing";
 import { terrainJump, terrainLeap, type LeapResult } from "./topography";
 import { advanceFauna } from "./fauna-sim";
+import { faunaBlockOf } from "../world/v3/fauna";
+
+/** Cells either side of the player whose animal groups stay in the save. */
+const FAUNA_KEEP = 160;
 import {
   axeWork,
   pickWork,
@@ -1577,6 +1581,20 @@ export class Engine {
       }
     if (this.world.fauna) {
       this.state.fauna ??= [];
+      // Groups far behind the player are dropped and their block released, so
+      // a long walk does not grow the save without bound; coming back spawns
+      // the same animals from the same seed.
+      const stale = new Set<string>();
+      this.state.fauna = this.state.fauna.filter((g) => {
+        if (
+          Math.abs(g.pos.x - p.x) <= FAUNA_KEEP &&
+          Math.abs(g.pos.y - p.y) <= FAUNA_KEEP
+        )
+          return true;
+        if (!g.gateId) stale.add(faunaBlockOf(g.home.x, g.home.y));
+        return !!g.gateId;
+      });
+      for (const key of stale) this.world.forgetFauna?.(key);
       const known = new Set(this.state.fauna.map((g) => g.id));
       for (const g of this.world.fauna(p.x, p.y))
         if (!known.has(g.id)) {

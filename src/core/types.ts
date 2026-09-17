@@ -478,6 +478,9 @@ export interface WorldModel {
   activate?(x: number, y: number): void;
   /** Animal groups for the districts round (x, y); ids repeat, the engine keeps the first. */
   fauna?(x: number, y: number): import("./fauna").FaunaGroup[];
+  /** Let a 64-cell block spawn its wild groups again after the engine has
+   * dropped them for being far away. */
+  forgetFauna?(block: string): void;
   restoreDistricts?(entityIds: string[]): void;
   regionExtent?: number;
   overview?(x: number, y: number): Terrain;
