@@ -27,6 +27,7 @@ import type { GeographicArea } from "../../core/geography";
 import { createEnvironment, localEcology } from "./environment";
 import { ecologyProfiles } from "../../content/ecology/profiles";
 import { populateHouseholds, addWildResources } from "./population";
+import { addBoulders } from "./boulders";
 import { forgetFaunaBlock, spawnFauna } from "./fauna";
 import { faunaAt } from "../../content/fauna";
 import type { FaunaGroup } from "../../core/fauna";
@@ -1948,7 +1949,10 @@ export function createSettlementWorld(
     },
     activate: (x, y) => {
       for (const p of nearby(x, y)) activate(p);
-      if (environment) addWildResources(world, seed, x, y);
+      if (environment) {
+        addWildResources(world, seed, x, y);
+        addBoulders(world, seed, x, y);
+      }
     },
     fauna: (x, y) => [
       ...keptFauna,

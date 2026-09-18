@@ -95,6 +95,7 @@ export class TerrainStream {
   private maxGroundInstall = 0;
   private batchedTiles = 0;
   private prepared?: PreparedSettlement;
+  private hidden = false;
   private center = { x: 0, y: 0 };
   private reach = { x: 0, y: 0 };
   private sun: SunPhase = NO_SUN;
@@ -295,9 +296,7 @@ export class TerrainStream {
    * view is covered in about the time one chunk takes to raster properly. */
   private sweep() {
     const pending = [...this.wanted]
-      .filter(
-        ([id]) => !this.chunks.has(id) && !this.previews.has(id),
-      )
+      .filter(([id]) => !this.chunks.has(id) && !this.previews.has(id))
       .sort(([, a], [, b]) => this.priority(a) - this.priority(b))
       .map(([id, region]) => ({ id: `${this.generation}:${id}`, region }));
     if (!pending.length) {
@@ -313,6 +312,7 @@ export class TerrainStream {
     free.worker.postMessage({ previews: pending } satisfies TerrainRequest);
   }
   update() {
+    if (this.hidden) return;
     if (!this.job && !this.completed.length && !this.queue.length) return;
     // A chunk costs several frames' budget to compose, so it is spent in
     // slices: the generator stops between ground rows and the walk keeps its
@@ -474,7 +474,8 @@ export class TerrainStream {
   /** A chunk's flat colours, drawn under everything until it is composed. */
   private showPreview(tagged: string, preview: TerrainPreview) {
     const [gen, key] = tagged.split(":");
-    const region = Number(gen) === this.generation ? this.wanted.get(key) : undefined;
+    const region =
+      Number(gen) === this.generation ? this.wanted.get(key) : undefined;
     if (!region || this.chunks.has(key) || this.previews.has(key)) return;
     const name = `${region.prefix}-preview`;
     if (this.scene.textures.exists(name)) this.scene.textures.remove(name);
@@ -484,11 +485,7 @@ export class TerrainStream {
     this.previews.set(
       key,
       this.scene.add
-        .image(
-          region.x * 16,
-          region.y * 16 - preview.tier * TERRAIN_RISE,
-          name,
-        )
+        .image(region.x * 16, region.y * 16 - preview.tier * TERRAIN_RISE, name)
         .setOrigin(0)
         .setDisplaySize(SIZE * 16, SIZE * 16)
         .setDepth(PREVIEW_DEPTH),
@@ -583,6 +580,23 @@ export class TerrainStream {
   replan() {
     this.reach = { x: -1, y: -1 };
     this.setView(this.center.x, this.center.y, this.asked.x, this.asked.y);
+  }
+  /** Indoors the ground belongs to the interior, but the street outside is
+   * still rasterised. Hiding rather than disposing is what keeps stepping back
+   * out from re-streaming a settlement a quadrant at a time. */
+  setHidden(hidden: boolean) {
+    if (this.hidden === hidden) return;
+    this.hidden = hidden;
+    for (const chunk of this.chunks.values()) {
+      for (const object of chunk.objects)
+        (object as Partial<Phaser.GameObjects.Image>).setVisible?.(!hidden);
+      for (const shade of chunk.shade) shade.setVisible(!hidden);
+    }
+    for (const preview of this.previews.values()) preview.setVisible(!hidden);
+  }
+  /** Chunks loaded, for tests and diagnostics. */
+  get size() {
+    return this.chunks.size;
   }
   dispose() {
     live.delete(this);

@@ -44,6 +44,20 @@ export function doorId(place: Place) {
   return `${place.id}-door`;
 }
 
+/** Stable per-place hash, so which doors stand open replays the same. */
+function hash(id: string) {
+  let h = 2166136261;
+  for (let i = 0; i < id.length; i++)
+    h = Math.imul(h ^ id.charCodeAt(i), 16777619) >>> 0;
+  return h / 4294967296;
+}
+
+/** A shop or temple stands open through the day; so does a minority of
+ * households, which is what makes a street look lived in rather than sealed. */
+export function startsOpen(place: Place) {
+  return place.access === "public" || hash(place.id) < 0.3;
+}
+
 export function makeDoor(place: Place): WorldObject {
   return {
     id: doorId(place),
@@ -53,7 +67,7 @@ export function makeDoor(place: Place): WorldObject {
     pos: { ...doorCell(place), space: "outside" },
     sprite: "door-open",
     inventory: {},
-    open: false,
+    open: startsOpen(place),
     owner: place.owner,
   };
 }

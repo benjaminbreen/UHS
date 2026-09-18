@@ -9,11 +9,12 @@ from art.habitat_plants import habitat_plants
 from art.regional_trees import regional_trees
 from art.worked_ground import worked_ground
 from art.rocks import rocks
+from art.boulders import boulders
 from art.atlas import pack_atlas
 from art.shadows import build_shadows
 root=Path(__file__).resolve().parent.parent
 out=root/'public/nature';out.mkdir(exist_ok=True)
-sprites={**trees(), **understory(), **broadleaf_ages(), **small_shrubs(), **habitat_plants(), **regional_trees(), **worked_ground(), **rocks()}
+sprites={**trees(), **understory(), **broadleaf_ages(), **small_shrubs(), **habitat_plants(), **regional_trees(), **worked_ground(), **rocks(), **boulders()}
 for name,im in sprites.items():
     assert set(im.getchannel('A').getdata()) <= {0,255},name
     assert len(im.getcolors(im.width*im.height)) <= 24,name
@@ -22,7 +23,7 @@ for name,im in sprites.items():
     im.save(out/f'{name}.png')
 pack_atlas(sprites,out,'atlas',512)
 build_shadows(root,sprites,{},out,'shadows')
-review_sprites={**trees(), **understory(), **regional_trees(), **rocks()}
+review_sprites={**trees(), **understory(), **regional_trees(), **rocks(), **boulders()}
 review=Image.new('RGB',(4*320,((len(review_sprites)+3)//4)*400),'#829456')
 for i,(name,im) in enumerate(review_sprites.items()):
     enlarged=im.resize((im.width*3,im.height*3),Image.Resampling.NEAREST)

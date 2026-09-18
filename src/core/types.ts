@@ -146,6 +146,8 @@ export type WorldObject = {
   prop?: string;
   carriedBy?: "player";
   broken?: boolean;
+  /** Went into water over its head. Still drawn, on the bed, but out of play. */
+  submerged?: boolean;
   damage?: number;
   id: string;
   name: string;

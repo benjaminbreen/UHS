@@ -54,7 +54,7 @@ import {
   defaultLiveGraphicsSettings,
   type LiveGraphicsSettings,
 } from "./live-graphics";
-import { ToolEffects } from "./tool-effects";
+import { ToolEffects, ROLL_MS } from "./tool-effects";
 import {
   facingFromDirection,
   facingFromStep,
@@ -343,6 +343,8 @@ export class WorldScene extends Phaser.Scene {
   private arcSerial = 0;
   private pendingDirection?: [number, number];
   private destinations = new Map<string, Position>();
+  /** The last roll animated, so a later shove of the same stone is a step. */
+  private rolledSerial = -1;
   private lastTick = 0;
   private ready = false;
   private liveGraphics = { ...defaultLiveGraphicsSettings };
@@ -998,7 +1000,12 @@ export class WorldScene extends Phaser.Scene {
       .setDepth(placement.depth + 1)
       .setVisible(false);
     this.layers.push(image);
-    this.doors.set(place.id, { image, openness: 0, shut: true });
+    // Born at the state it is already in. Scenery is rebuilt every few steps,
+    // and easing from shut each time made every open door blink.
+    const shut = !this.runtime.engine.doorOf(place.id)?.open;
+    const openness = shut ? 0 : 1;
+    if (!shut) image.setFrame("door-leaf-3").setVisible(true);
+    this.doors.set(place.id, { image, openness, shut });
   }
   /** Doors swing to follow the door objects the engine owns.
    *
@@ -1665,14 +1672,21 @@ export class WorldScene extends Phaser.Scene {
     }
     if (!this.entities.has("player") && !this.options.overview)
       c.centerOn(p.x * 16 + 8, p.y * 16 + 8);
-    if (w !== this.drawnWorld || p.space !== "outside") {
+    if (w !== this.drawnWorld) {
       this.toolEffects?.dispose();
       this.terrainStream?.dispose();
       this.terrainStream = undefined;
       this.terrainAnchor = undefined;
+    } else if (p.space !== "outside") {
+      // Indoors the street is only out of sight. Rasterising it again on the
+      // way back out is what made a settlement fill in a quadrant at a time.
+      this.toolEffects?.dispose();
+      this.terrainStream?.setHidden(true);
+      this.terrainAnchor = undefined;
     }
     if (w.topography && p.space === "outside") {
       this.terrainStream ??= new TerrainStream(this, w, e.state.manifest.seed);
+      this.terrainStream.setHidden(false);
       this.terrainStream.setView(
         viewX,
         viewY,
@@ -2454,10 +2468,17 @@ export class WorldScene extends Phaser.Scene {
       if (!moved) return;
       this.destinations.set(id, { ...pos });
       im.setData("perch", perchKey);
+      const roll =
+        rt.shoveEffect?.path &&
+        rt.shoveEffect.serial !== this.rolledSerial &&
+        rt.shoveEffect.ids.includes(id)
+          ? rt.shoveEffect.path.length
+          : 0;
+      if (roll) this.rolledSerial = rt.shoveEffect!.serial;
       if (
         previous?.space === pos.space &&
         (im.x !== tx || im.y !== ty) &&
-        Math.hypot(im.x - tx, im.y - ty) < (arc ? 120 : 65)
+        Math.hypot(im.x - tx, im.y - ty) < (arc ? 120 : roll ? 16 * 22 : 65)
       ) {
         this.tweens.killTweensOf(im);
         if (shade) this.tweens.killTweensOf(shade);
@@ -2484,22 +2505,24 @@ export class WorldScene extends Phaser.Scene {
                 frame.startsWith("human-"),
                 e.state.clock,
               )
-            : {
-                duration:
-                  actor && w.topography && pos.space === "outside"
-                    ? Math.max(
-                        this.motionDuration,
-                        140 *
-                          wadingCost(
-                            waterDepthAt(
-                              w.topography,
-                              pos.x + 0.5,
-                              pos.y + 0.5,
+            : roll
+              ? { duration: ROLL_MS * roll }
+              : {
+                  duration:
+                    actor && w.topography && pos.space === "outside"
+                      ? Math.max(
+                          this.motionDuration,
+                          140 *
+                            wadingCost(
+                              waterDepthAt(
+                                w.topography,
+                                pos.x + 0.5,
+                                pos.y + 0.5,
+                              ),
                             ),
-                          ),
-                      )
-                    : this.motionDuration,
-              }),
+                        )
+                      : this.motionDuration,
+                }),
           ease: "Linear",
         });
       } else {
@@ -2534,6 +2557,13 @@ export class WorldScene extends Phaser.Scene {
             o.id,
           );
         }
+        continue;
+      }
+      if (o.submerged) {
+        renderEntity(o.id, o.sprite, o.pos);
+        const under = this.entities.get(o.id);
+        under?.setTint(0x4a6f86).setAlpha(0.72);
+        this.shadows.get(o.id)?.setVisible(false);
         continue;
       }
       renderEntity(
@@ -2839,12 +2869,14 @@ export class WorldScene extends Phaser.Scene {
       tint: () => this.tint,
       lift: (x, y) => this.lift(x, y),
       plantAt: (x, y) => this.plantImages.get(`${x},${y}`) ?? [],
+      entityAt: (id) => this.entities.get(id),
       texture: (frame) => this.texture(frame),
       frame: (frame) => this.textureFrame(frame),
     });
     this.toolEffects.consume(this.runtime.toolEffect);
     this.toolEffects.consumeSwing(this.runtime.swingEffect);
     this.toolEffects.consumeThrow(this.runtime.throwEffect);
+    this.toolEffects.consumeShove(this.runtime.shoveEffect);
     this.toolEffects.update(time);
     mark("wind");
     const active = document.activeElement;

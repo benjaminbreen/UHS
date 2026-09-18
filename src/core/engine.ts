@@ -17,6 +17,21 @@ import {
 import { weatherAt } from "./weather";
 import { propDefs } from "../content/props/catalog";
 import { propAffordances, heldObject } from "./props";
+import {
+  planShove,
+  type ShovePlan,
+  type ShoveRefusal,
+  type ShoveWorld,
+} from "./shove";
+import { statsOf } from "./stats";
+import {
+  energyOf,
+  rollPath,
+  settle,
+  type Landing,
+  type RollWorld,
+  type SettleWorld,
+} from "./settle";
 
 /** Which pile of remains, and which arrangement of it. Three per material, so
  * a yard of broken crockery is not the same pile stamped out three times. */
@@ -62,6 +77,7 @@ import {
   pickWork,
   type ToolAction,
   ROCK_BLOWS,
+  AXE_ROCK_BLOWS,
   STUMP_BLOWS,
   editedDecoration,
   fellingSwings,
@@ -85,6 +101,14 @@ import {
   isShutBarrier,
   type DoorVerdict,
 } from "./doors";
+
+/** North, east, south, west: the order `direction` is stored in. */
+const CARDINALS: [number, number][] = [
+  [0, -1],
+  [1, 0],
+  [0, 1],
+  [-1, 0],
+];
 import {
   isSolid,
   reactionFor,
@@ -95,6 +119,20 @@ import {
   type ToolClass,
 } from "./reactions";
 import type { Place, Point } from "./types";
+const GROUND_HIT: Record<string, HitClass> = {
+  water: "water",
+  marsh: "marsh",
+  sand: "sand",
+  snow: "snow",
+  dirt: "soil",
+  dry: "soil",
+  field: "soil",
+  grass: "grass",
+  rock: "stone",
+  paving: "stone",
+  bridge: "timber",
+  floor: "timber",
+};
 const copy = <T>(x: T): T => structuredClone(x);
 /** Routines built in one call to `advance`. */
 const ROUTINE_BUILDS_PER_ADVANCE = 32;
@@ -428,7 +466,8 @@ export class Engine {
             (!!o.prop &&
               !!propDefs[o.prop]?.solid &&
               !o.carriedBy &&
-              !o.broken)) &&
+              !o.broken &&
+              !o.submerged)) &&
           o.pos.space === space &&
           o.pos.x === x &&
           o.pos.y === y,
@@ -575,24 +614,11 @@ export class Engine {
       }
       if (this.cropAt(x, y)) return { hit: "crop" };
     }
-    const ground = this.world.terrain(x, y, space);
-    const hit = (
-      {
-        water: "water",
-        marsh: "marsh",
-        sand: "sand",
-        snow: "snow",
-        dirt: "soil",
-        dry: "soil",
-        field: "soil",
-        grass: "grass",
-        rock: "stone",
-        paving: "stone",
-        bridge: "timber",
-        floor: "timber",
-      } as Record<string, HitClass>
-    )[ground];
-    return { hit: hit ?? "air" };
+    return { hit: this.groundClass(x, y, space) };
+  }
+  /** The bare surface of a cell, with nothing standing on it. */
+  groundClass(x: number, y: number, space: string): HitClass {
+    return GROUND_HIT[this.world.terrain(x, y, space)] ?? "air";
   }
   /** The three cells a swing sweeps: what you face, and the corner to each
    * side of it. */
@@ -661,6 +687,203 @@ export class Engine {
     sprite?: string;
     hit: Hit;
   };
+  /** The last shove, for the scuff it leaves and the sound it makes. */
+  lastShove?: {
+    from: { x: number; y: number };
+    to: { x: number; y: number };
+    ids: string[];
+    ground: HitClass;
+    /** Cells a rolling stone passed through, when it did more than shift. */
+    path?: Point[];
+    /** What it found where it stopped. */
+    landing?: Landing;
+    refused?: ShoveRefusal["refused"];
+  };
+  /** A solid prop standing on the cell, whether or not it can be moved.
+   * Reads the per-tick cell index when there is one, like `blocked` does. */
+  private solidPropAt(x: number, y: number, space: string) {
+    const key = `${space}:${x},${y}`;
+    const here =
+      this.tickObstacles?.get(key) ??
+      (this.tickObstacles ? [] : this.state.objects);
+    return here.find(
+      (o) =>
+        !!o.prop &&
+        !!propDefs[o.prop]?.solid &&
+        !o.carriedBy &&
+        !o.broken &&
+        !o.submerged &&
+        o.pos.space === space &&
+        o.pos.x === x &&
+        o.pos.y === y,
+    );
+  }
+  private shoveWorld(): ShoveWorld {
+    return {
+      ground: (x, y, space) => this.world.blocked(x, y, space),
+      propAt: (x, y, space) => this.solidPropAt(x, y, space),
+      actorAt: (x, y, space) =>
+        this.state.actors.some(
+          (a) => a.pos.space === space && a.pos.x === x && a.pos.y === y,
+        ),
+      crossable: (from, to, space) =>
+        space !== "outside" ||
+        !this.world.canCross ||
+        this.world.canCross({ ...this.state.player.pos, ...from }, to),
+      shoveOf: (o) => propDefs[o.prop ?? ""]?.shove,
+    };
+  }
+  /** What a step in this direction would do to whatever is standing there.
+   * Undefined when the cell holds nothing a shoulder could ever move, so the
+   * ordinary blocked path still answers for walls, wells and shut gates. */
+  shovePlan(dx: number, dy: number): ShovePlan | ShoveRefusal | undefined {
+    const p = this.state.player;
+    if (p.perch || (dx !== 0 && dy !== 0)) return undefined;
+    const target = this.solidPropAt(p.pos.x + dx, p.pos.y + dy, p.pos.space);
+    if (!target || !propDefs[target.prop ?? ""]?.shove) return undefined;
+    return planShove(
+      this.shoveWorld(),
+      target,
+      { dx, dy },
+      statsOf(this.state.manifest.seed, p).strength,
+    );
+  }
+  private settleWorld(): SettleWorld {
+    return {
+      depth: (x, y, space) =>
+        space === "outside" && this.world.topography
+          ? waterDepthAt(this.world.topography, x + 0.5, y + 0.5)
+          : 0,
+      groundHit: (x, y, space) => this.groundClass(x, y, space),
+      actorAt: (x, y, space) =>
+        this.state.actors.find(
+          (a) => a.pos.space === space && a.pos.x === x && a.pos.y === y,
+        ),
+      fireAt: (x, y, space) =>
+        this.state.objects.some(
+          (o) =>
+            o.kind === "fire" &&
+            o.pos.space === space &&
+            o.pos.x === x &&
+            o.pos.y === y,
+        ),
+      cropAt: (x, y, space) => space === "outside" && !!this.cropAt(x, y),
+    };
+  }
+  private rollWorld(space: string): RollWorld {
+    return {
+      elevation: (x, y) =>
+        space === "outside" && this.world.elevation
+          ? this.world.elevation(x, y)
+          : 0,
+      // A person stops a stone: the roll ends against them, and the landing
+      // table is what decides whether that hurt.
+      clear: (x, y) =>
+        !this.world.blocked(x, y, space) &&
+        !this.solidPropAt(x, y, space) &&
+        !this.state.actors.some(
+          (a) => a.pos.space === space && a.pos.x === x && a.pos.y === y,
+        ),
+    };
+  }
+  /** Applies a landing to the world and reports it. A stone in deep water is
+   * gone: it keeps its cell so the renderer can show it on the bed, but it
+   * stops blocking and stops answering to a shoulder. */
+  private land(object: WorldObject, cell: Point, energy: number): Landing {
+    const space = object.pos.space;
+    const def = propDefs[object.prop ?? ""];
+    const result = settle(
+      this.settleWorld(),
+      !!def?.breakable && !object.broken,
+      cell,
+      space,
+      energy,
+    );
+    if (result.kind === "sink") object.submerged = true;
+    if (result.kind === "shatter" && def?.breakable) {
+      this.propOwnership(object, "break");
+      object.broken = true;
+      object.open = true;
+      object.depleted = false;
+      object.sprite = brokenSprite(object.id, def.breakable);
+    }
+    if (result.kind === "crush" && result.victim) {
+      const victim = this.state.actors.find((a) => a.id === result.victim);
+      if (victim) {
+        victim.health = Math.max(
+          0,
+          (victim.health ?? 100) - (result.damage ?? 1) * 6,
+        );
+        victim.memories.push(`Struck by ${object.name.toLowerCase()}`);
+        victim.trust -= 4;
+        this.event(`${victim.name} is caught by ${object.name.toLowerCase()}.`);
+      }
+    }
+    // A flattened crop is spent, not harvested: it stands there depleted.
+    const crop = result.kind === "flatten" && this.cropAt(cell.x, cell.y);
+    if (crop) crop.depleted = true;
+    return result;
+  }
+  /** A stone let go on a slope runs to the foot of it and settles there. */
+  private rollOn(object: WorldObject, dx: number, dy: number) {
+    const space = object.pos.space;
+    const run = rollPath(
+      this.rollWorld(space),
+      { x: object.pos.x, y: object.pos.y },
+      { dx, dy },
+      TERRAIN_STEP,
+    );
+    const end = run.path[run.path.length - 1];
+    if (end) object.pos = { ...object.pos, x: end.x, y: end.y };
+    const mass = propDefs[object.prop ?? ""]?.shove?.mass ?? 1;
+    // What it ran into takes the blow; otherwise the ground it stopped on does.
+    const target = run.against ?? end;
+    const landing = target
+      ? this.land(object, target, energyOf(mass, run.fell))
+      : undefined;
+    return { run, landing };
+  }
+  /** The thing a step in this direction would lean on. */
+  shoveTargetId(dx: number, dy: number) {
+    const p = this.state.player.pos;
+    return this.solidPropAt(p.x + dx, p.y + dy, p.space)?.id;
+  }
+  /** Moves the pile and reports what the step should cost on top of a walk. */
+  private applyShove(plan: ShovePlan, dx: number, dy: number) {
+    const p = this.state.player.pos;
+    const first = this.object(plan.moves[plan.moves.length - 1].id)!;
+    const from = { x: first.pos.x, y: first.pos.y };
+    const rolls = !!propDefs[first.prop ?? ""]?.shove?.rolls;
+    for (const move of plan.moves) {
+      // A roller finds its own cell: the plan only proves the first one is free.
+      if (rolls && move.id === first.id) continue;
+      const o = this.object(move.id);
+      if (!o) continue;
+      o.pos = { ...o.pos, x: move.to.x, y: move.to.y };
+    }
+    const rolled = rolls ? this.rollOn(first, dx, dy) : undefined;
+    this.lastShove = {
+      from,
+      to: { x: first.pos.x, y: first.pos.y },
+      ids: plan.moves.map((m) => m.id),
+      ground: this.groundClass(from.x, from.y, p.space),
+      ...(rolled?.run.path.length ? { path: rolled.run.path } : {}),
+      ...(rolled?.landing ? { landing: rolled.landing } : {}),
+    };
+    const ran = rolled?.run.path.length ?? 0;
+    this.event(
+      rolled?.landing?.kind === "sink"
+        ? `${first.name} rolls ${ran} pace${ran === 1 ? "" : "s"} and goes under the water.`
+        : rolled?.landing?.kind === "crush"
+          ? `${first.name} rolls away and catches someone.`
+          : ran > 1
+            ? `You set ${first.name.toLowerCase()} rolling. It runs ${ran} paces before it stops.`
+            : plan.moves.length > 1
+              ? `You shove ${first.name.toLowerCase()} along, and what is behind it with it.`
+              : `You shove ${first.name.toLowerCase()} one pace.`,
+    );
+    return plan.seconds;
+  }
   /** Aim assist: if the cone is empty but something solid stands to either
    * side, turn to it. Forgiving aim is most of what makes a swing feel good. */
   private aimAt(direction: number) {
@@ -860,6 +1083,7 @@ export class Engine {
       this.event("You clear the cut stems away. The ground is bare.");
       return;
     }
+    if (work === "split") return this.splitRock(plant, edit);
     const needed = fellingSwings(plant?.sprite);
     edit.chops = (edit.chops ?? 0) + 1;
     this.advance(30);
@@ -885,6 +1109,40 @@ export class Engine {
     this.tilesChanged();
     this.event(
       `${this.plantName(plant?.sprite, true)} comes down with a crash and lies where it fell.`,
+    );
+  }
+  /** An axe on stone. It works, in the sense that the rock does open, but it
+   * takes half as long again and the edge pays for every blow. */
+  private splitRock(plant: Decoration | undefined, edit: TileEdit) {
+    const p = this.state.player;
+    edit.chops = (edit.chops ?? 0) + 1;
+    this.advance(45);
+    const axe = heldObject(this.state);
+    // The haft survives; the edge does not. A blunted axe still fells trees,
+    // so this is a cost the player can feel without losing the tool outright.
+    const blunted =
+      axe && this.rng("blunt") < 0.45
+        ? ((axe.damage = Math.min(3, (axe.damage ?? 0) + 1)), true)
+        : false;
+    const needed = AXE_ROCK_BLOWS;
+    if (edit.chops < needed) {
+      const left = needed - edit.chops;
+      if (edit.chops === 1 || left === 1 || blunted)
+        this.event(
+          edit.chops === 1
+            ? `You swing the axe at ${this.plantName(plant?.sprite)}. It is not the tool for this, and it will take ${left} more ${left === 1 ? "blow" : "blows"}.`
+            : blunted
+              ? "The axe rings off the stone and turns its edge."
+              : `${left} more ${left === 1 ? "blow" : "blows"} will split it.`,
+        );
+      return;
+    }
+    edit.chops = 0;
+    edit.stage = "rubble";
+    p.inventory.stone = (p.inventory.stone ?? 0) + 2;
+    this.tilesChanged();
+    this.event(
+      "The rock splits open at last. Broken stone lies where it stood, and the axe is the worse for it.",
     );
   }
   /** The pick: boulders open into rubble, rubble clears, stumps come out. */
@@ -1097,17 +1355,73 @@ export class Engine {
     this.advance(20);
     this.event(`You climb down from ${label}.`);
   }
+  /** The door within reach, preferring the one the player faces. Deliberately
+   * not the strict cardinal test buildings use: a doorstep is a place you
+   * stand near, not a cell you have to land on. */
+  doorNear(p: Point, direction?: number, radius = 2) {
+    this.doorOf("");
+    let best: WorldObject | undefined,
+      bestScore = Infinity;
+    const d = direction === undefined ? undefined : CARDINALS[direction];
+    for (let dx = -radius; dx <= radius; dx++)
+      for (let dy = -radius; dy <= radius; dy++) {
+        const door = this.doorsByCell!.get(`${p.x + dx},${p.y + dy}`);
+        if (!door) continue;
+        const ahead = d && dx * d[0] + dy * d[1] > 0 ? 0 : 1;
+        const score = ahead * 8 + Math.abs(dx) + Math.abs(dy);
+        if (score < bestScore) ((bestScore = score), (best = door));
+      }
+    return best;
+  }
+  /** Stepping into an open doorway is how you go in; a shut door is solid, so
+   * this can only ever fire on one somebody opened. */
+  private walkThroughDoor() {
+    const p = this.state.player;
+    if (p.pos.space === "outside") {
+      const door = this.doorsByCell?.get(`${p.pos.x},${p.pos.y}`);
+      if (!door?.open || !door.placeId) return;
+      const place = this.world.place(door.placeId);
+      if (!place) return;
+      p.pos = { x: 6, y: 8, space: place.id };
+      p.activity = "Indoors";
+      this.event(
+        `You ${this.world.pack.entryLabel.toLowerCase()} ${place.name.toLowerCase()}.`,
+      );
+      return;
+    }
+    // Indoors, the way out is the exit every interior is built with.
+    const place = this.world.place(p.pos.space);
+    if (!place) return;
+    const out = this.state.objects.some(
+      (o) =>
+        o.kind === "exit" &&
+        o.pos.space === p.pos.space &&
+        o.pos.x === p.pos.x &&
+        o.pos.y === p.pos.y,
+    );
+    if (!out) return;
+    const door = this.doorOf(place.id);
+    if (door) door.open = true;
+    p.pos = { ...doorApproach(place), space: "outside" };
+    p.activity = "Exploring";
+    this.event("You step back out into the open air.");
+  }
   doorOf(placeId: string) {
     if (!this.doorsByPlace) {
       this.doorsByPlace = new Map();
+      this.doorsByCell = new Map();
       for (const o of this.state.objects)
-        if (o.kind === "door" && o.placeId) this.doorsByPlace.set(o.placeId, o);
+        if (o.kind === "door" && o.placeId) {
+          this.doorsByPlace.set(o.placeId, o);
+          this.doorsByCell.set(`${o.pos.x},${o.pos.y}`, o);
+        }
     }
     return this.doorsByPlace.get(placeId);
   }
   /** Doors are created with the world and never added or removed, so the
    * index only has to survive a reload. */
   private doorsByPlace?: Map<string, WorldObject>;
+  private doorsByCell?: Map<string, WorldObject>;
   /** Who just answered a knock, for the UI to open the conversation on. Read
    * once and cleared; never part of the saved state. */
   doorAnswer?: string;
@@ -1707,6 +2021,8 @@ export class Engine {
         ) > MAX_WADING_DEPTH
       )
         return "Too deep to wade — find a shallower crossing or a bridge.";
+      const push = this.shovePlan(c.dx, c.dy);
+      if (push && "refused" in push) return push.reason;
       if (
         (p.pos.space === "outside" &&
           this.world.canCross &&
@@ -1714,7 +2030,8 @@ export class Engine {
             x: p.pos.x + c.dx,
             y: p.pos.y + c.dy,
           })) ||
-        (this.blocked(p.pos.x + c.dx, p.pos.y + c.dy) &&
+        (!push &&
+          this.blocked(p.pos.x + c.dx, p.pos.y + c.dy) &&
           !(this.onWall() && this.wallAt(p.pos.x + c.dx, p.pos.y + c.dy))) ||
         (c.dx !== 0 &&
           c.dy !== 0 &&
@@ -2000,33 +2317,45 @@ export class Engine {
         Math.abs(landed.x - p.pos.x),
         Math.abs(landed.y - p.pos.y),
       );
-      const sprite = prop.sprite;
       // Read the landing cell before the prop is standing in it.
       const ground = this.hitClass(landed.x, landed.y, landed.space);
+      const sprite = prop.sprite;
       prop.pos = landed;
       delete prop.carriedBy;
       delete p.held;
       const def = propDefs[prop.prop ?? ""];
-      const kind = reactionFor(ground.hit, "thrown");
-      // Soft ground and water catch a pot; anything else bursts it.
-      const bursts = !!def?.breakable && kind === "shatter" && distance > 0;
-      if (bursts) {
-        this.propOwnership(prop, "break");
-        prop.broken = true;
-        prop.open = true;
-        prop.depleted = false;
-        prop.sprite = brokenSprite(prop.id, def.breakable!);
-      }
+      // A throw carries force of its own, and a throw from a height carries
+      // the drop as well. Both feed the one number the landing table reads.
+      const fell =
+        landed.space === "outside" && this.world.elevation
+          ? Math.max(
+              0,
+              Math.floor(
+                (this.world.elevation(p.pos.x, p.pos.y) -
+                  this.world.elevation(landed.x, landed.y)) /
+                  TERRAIN_STEP,
+              ),
+            )
+          : 0;
+      const landing = distance
+        ? this.land(
+            prop,
+            landed,
+            energyOf((def?.shove?.mass ?? 1) * (c.run ? 3 : 2), fell),
+          )
+        : undefined;
+      const kind = landing?.reaction ?? reactionFor(ground.hit, "thrown");
+      const bursts = landing?.kind === "shatter";
       this.lastThrow = {
         from: { x: p.pos.x, y: p.pos.y },
         to: { x: landed.x, y: landed.y },
         sprite,
         hit: {
           at: { x: landed.x, y: landed.y },
-          hit: ground.hit,
-          kind: bursts ? "shatter" : kind,
-          solid: isSolid(bursts ? "shatter" : kind),
-          damaged: bursts,
+          hit: landing?.hit ?? ground.hit,
+          kind,
+          solid: isSolid(kind),
+          damaged: bursts || landing?.kind === "crush",
         },
       };
       if (!distance)
@@ -2034,6 +2363,10 @@ export class Engine {
       else if (bursts)
         this.event(
           `You hurl ${prop.name.toLowerCase()}. It shatters where it lands.`,
+        );
+      else if (landing?.kind === "sink")
+        this.event(
+          `You hurl ${prop.name.toLowerCase()}. It goes under and does not come back.`,
         );
       else if (kind === "splash")
         this.event(
@@ -2047,6 +2380,7 @@ export class Engine {
       return;
     }
     if (c.type === "move") {
+      delete this.lastShove;
       const leap =
         c.traverse || c.jump
           ? this.traversal(p.pos, c.dx, c.dy, c.jump, c.run)
@@ -2069,6 +2403,9 @@ export class Engine {
         return;
       }
       delete this.lastLeap;
+      const push = this.shovePlan(c.dx, c.dy);
+      const effort =
+        push && !("refused" in push) ? this.applyShove(push, c.dx, c.dy) : 0;
       p.pos.x += c.dx;
       p.pos.y += c.dy;
       p.direction = c.dy < 0 ? 0 : c.dx > 0 ? 1 : c.dy > 0 ? 2 : 3;
@@ -2097,10 +2434,13 @@ export class Engine {
         Math.ceil(
           (c.run && !depth ? (c.dx && c.dy ? 2 : 1) : c.dx && c.dy ? 3 : 2) *
             wadingCost(depth),
-        ) + (slope > 1 ? 1 : 0),
+        ) +
+          (slope > 1 ? 1 : 0) +
+          effort,
       );
       const key = `${Math.floor(p.pos.x / 64)},${Math.floor(p.pos.y / 64)}`;
       if (!this.state.visited.includes(key)) this.state.visited.push(key);
+      this.walkThroughDoor();
       return;
     }
     if (c.type === "pass") {

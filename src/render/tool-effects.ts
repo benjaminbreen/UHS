@@ -43,6 +43,23 @@ export type ThrowEffect = {
   sprite?: string;
   hit: Hit;
 };
+/** A pile shifting one cell, or refusing to. */
+export type ShoveEffect = {
+  serial: number;
+  /** The cell the leading object left, and the one it entered. */
+  from: { x: number; y: number };
+  to: { x: number; y: number };
+  /** The surface being scraped over, for the colour of the dust. */
+  ground: HitClass;
+  ids: string[];
+  /** Cells a rolling stone ran through, so the dust follows it. */
+  path?: { x: number; y: number }[];
+  /** What it found where it stopped: the splash, the crack, the person. */
+  hit?: Hit;
+  refused?: "wheels" | "heavy" | "wall";
+};
+/** How long a rolling stone spends on each cell it crosses. */
+export const ROLL_MS = 110;
 type Shake = {
   image: Phaser.GameObjects.Image;
   until: number;
@@ -110,6 +127,7 @@ export class ToolEffects {
   private played = 0;
   private playedSwing = 0;
   private playedThrow = 0;
+  private playedShove = 0;
   /** Bumped when the world changes, so a swing scheduled against the old one
    * does not land in the new. */
   private generation = 0;
@@ -120,6 +138,8 @@ export class ToolEffects {
       lift: (x: number, y: number) => number;
       /** The images standing on a cell, so a blow can rock them. */
       plantAt: (x: number, y: number) => Phaser.GameObjects.Image[];
+      /** A world object's sprite, so a shove can rock what will not move. */
+      entityAt: (id: string) => Phaser.GameObjects.Image | undefined;
       texture: (frame: string) => string;
       frame: (frame: string) => string | number;
     },
@@ -162,10 +182,57 @@ export class ToolEffects {
     if (id) void gameAudio()?.effect(id);
     if (facing) this.react(facing, 1);
     // The corners rattle rather than break: half the debris, no sound.
-    for (const hit of corners) if (hit.solid || hit.kind === "swish") this.react(hit, 0.45);
+    for (const hit of corners)
+      if (hit.solid || hit.kind === "swish") this.react(hit, 0.45);
     if (loudest?.kind === "shatter" || loudest?.kind === "topple")
       this.scene.cameras.main.shake(110, 0.0022);
     else if (loudest?.damaged) this.scene.cameras.main.shake(70, 0.0011);
+  }
+  /** A shove: dust off the trailing edge, or the thing rocking in place.
+   * The slide itself is the entity tween — this only dresses it. */
+  consumeShove(effect: ShoveEffect | undefined) {
+    if (!effect || effect.serial === this.playedShove) return;
+    this.playedShove = effect.serial;
+    if (effect.refused) {
+      // Nothing moved, so the only thing to read is the object shrugging.
+      const now = this.scene.time.now;
+      for (const id of effect.ids) {
+        const image = this.view.entityAt(id);
+        if (image)
+          this.shakes.push({
+            image,
+            until: now + 200,
+            ox: image.x,
+            wind: !!image.getData("wind"),
+          });
+      }
+      void gameAudio()?.effect(effect.refused === "wheels" ? "swish" : "thud");
+      return;
+    }
+    void gameAudio()?.effect("dig");
+    // Dust rises where the load left, not where it arrived.
+    this.burst(this.point(effect.from), DEBRIS[effect.ground] ?? SOIL, 5, 0.7);
+    const run = effect.path ?? [];
+    // A rolling stone throws dust off each cell as it passes, on the same
+    // clock as the sprite crossing them.
+    const generation = this.generation;
+    run.forEach((cell, i) => {
+      if (i === run.length - 1) return;
+      this.scene.time.delayedCall(ROLL_MS * (i + 1), () => {
+        if (generation !== this.generation) return;
+        this.burst(this.point(cell), DEBRIS[effect.ground] ?? SOIL, 3, 0.6);
+      });
+    });
+    if (effect.hit) {
+      const hit = effect.hit;
+      this.scene.time.delayedCall(ROLL_MS * Math.max(1, run.length), () => {
+        if (generation !== this.generation) return;
+        const id = REACTION_SOUND[hit.kind];
+        if (id) void gameAudio()?.effect(id);
+        this.react(hit, 1.3);
+        if (hit.damaged) this.scene.cameras.main.shake(130, 0.003);
+      });
+    }
   }
   /** A thrown thing crossing the ground, then landing. */
   consumeThrow(effect: ThrowEffect | undefined) {
@@ -190,7 +257,12 @@ export class ToolEffects {
       return;
     }
     const image = this.scene.add
-      .image(from.x, from.y - 10, this.view.texture(frame), this.view.frame(frame))
+      .image(
+        from.x,
+        from.y - 10,
+        this.view.texture(frame),
+        this.view.frame(frame),
+      )
       .setOrigin(0.5, 1)
       .setTint(this.view.tint())
       .setDepth(to.y * 16 + 4600);
@@ -226,7 +298,8 @@ export class ToolEffects {
     } else if (hit.hit === "tree" || hit.hit === "trunk") {
       // Dust off the bark at the strike point, and leaves shaken loose above.
       this.burst({ x: at.x, y: at.y - 9 }, palette, count, 1.2);
-      if (hit.hit === "tree") this.burst({ x: at.x, y: at.y - 22 }, LEAF, 3, 1.6);
+      if (hit.hit === "tree")
+        this.burst({ x: at.x, y: at.y - 22 }, LEAF, 3, 1.6);
     } else if (hit.kind === "shatter") {
       this.burst({ x: at.x, y: at.y - 6 }, palette, count + 5, 2.3);
     } else {

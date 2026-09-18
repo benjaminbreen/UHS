@@ -273,9 +273,9 @@ it("keeps each tool to its own work", () => {
   ground(engine);
   plant(engine, { id: "decor-1-0", x: 1, y: 0, sprite: "rock", solid: true });
   holding(engine, "axe");
-  expect(engine.toolProblem("chop", "tile:1,0")).toBe(
-    "There is nothing here to fell.",
-  );
+  // An axe on stone is allowed, and costly; asking to mine with it is not the
+  // way in — the chop action is.
+  expect(engine.toolProblem("chop", "tile:1,0")).toBeUndefined();
   expect(engine.toolProblem("mine", "tile:1,0")).toBe(
     "You need a pick in hand.",
   );
@@ -290,4 +290,41 @@ it("keeps each tool to its own work", () => {
   expect(engine.toolProblem("mine", "tile:1,0")).toBe(
     "There is no rock here to break.",
   );
+});
+
+it("splits a rock with an axe, slower than a pick and at the axe's expense", () => {
+  const engine = createSession("roman", "tools-axe-rock");
+  ground(engine);
+  plant(engine, { id: "decor-1-0", x: 1, y: 0, sprite: "rock", solid: true });
+  holding(engine, "axe");
+  const runtime = new Runtime(engine, { cacheTerrain: false });
+  expect(runtime.propControls().primaryLabel).toBe("Split the rock");
+  // A pick would have it open in four.
+  for (let i = 0; i < 4; i++) runtime.propAction("KeyF");
+  expect(engine.world.decoration(1, 0)?.sprite).toBe("rock");
+  for (let i = 0; i < 3; i++) runtime.propAction("KeyF");
+  expect(engine.world.decoration(1, 0)?.sprite).toBe("nature-rubble");
+  expect(engine.state.player.inventory.stone).toBe(2);
+  // Seven blows on stone leave a mark on the edge.
+  const axe = engine.state.objects.find((o) => o.id === "tool");
+  expect(axe?.damage).toBeGreaterThan(0);
+  // Clearing the rubble is still the pick's work.
+  expect(runtime.propControls().primaryLabel).not.toBe("Clear the broken rock");
+});
+
+it("still fells a tree with a blunted axe", () => {
+  const engine = createSession("roman", "tools-blunt");
+  ground(engine);
+  plant(engine, {
+    id: "decor-1-0",
+    x: 1,
+    y: 0,
+    sprite: "nature-silver-birch",
+    solid: true,
+  });
+  holding(engine, "axe");
+  engine.state.objects.find((o) => o.id === "tool")!.damage = 3;
+  const runtime = new Runtime(engine, { cacheTerrain: false });
+  for (let i = 0; i < 6; i++) runtime.propAction("KeyF");
+  expect(engine.world.decoration(1, 0)?.sprite).toBe("nature-logs");
 });

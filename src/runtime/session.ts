@@ -17,12 +17,13 @@ import {
   generateAppearance,
   type AppearancePalette,
 } from "../core/character";
-import type { Actor, Intent, ItemId, Place } from "../core/types";
+import type { Actor, Intent, ItemId } from "../core/types";
 import type { CharacterPose } from "../render/characters/poses";
 import type {
   ToolEffect,
   SwingEffect,
   ThrowEffect,
+  ShoveEffect,
 } from "../render/tool-effects";
 import { allowedHeights, type CharacterAppearance } from "../core/character";
 import { characterAppearanceSchema } from "./schema";
@@ -338,6 +339,8 @@ export class Runtime {
   swingEffect?: SwingEffect;
   /** The last thrown prop's flight, read once by serial. */
   throwEffect?: ThrowEffect;
+  /** The last shove, or the last one that came to nothing. */
+  shoveEffect?: ShoveEffect;
   /** The plant a chop is about to land on, read before the engine takes it. */
   private toolTargetPlant(command: PlayerCommand) {
     if (command.type !== "interact" || command.action !== "chop") return;
@@ -369,13 +372,17 @@ export class Runtime {
             ? stage === "rubble" || stage === "clear"
               ? "shatter"
               : "mine"
-            : stage === "logs"
-              ? "fell"
-              : stage === "stump"
-                ? "buck"
-                : stage === "stems" || stage === "clear"
-                  ? "cut"
-                  : "hit";
+            : // An axe can open a rock too, and that wants the shatter, not a
+              // chop's chips.
+              stage === "rubble"
+              ? "shatter"
+              : stage === "logs"
+                ? "fell"
+                : stage === "stump"
+                  ? "buck"
+                  : stage === "stems" || stage === "clear"
+                    ? "cut"
+                    : "hit";
     const p = this.engine.state.player.pos;
     this.toolEffect = {
       serial: ++this.characterSerial,
@@ -406,9 +413,31 @@ export class Runtime {
     previousProp?: string,
     previousPlant?: string,
   ) {
-    if (!accepted) return;
+    // A refused step still has something to show if it was a failed shove.
+    if (!accepted) {
+      if (command.type === "move" && !command.jump && !command.traverse) {
+        const push = this.engine.shovePlan(command.dx, command.dy);
+        const at = push && "refused" in push ? push : undefined;
+        if (at) {
+          const p = this.engine.state.player.pos;
+          const cell = { x: p.x + command.dx, y: p.y + command.dy };
+          this.shoveEffect = {
+            serial: ++this.characterSerial,
+            from: cell,
+            to: cell,
+            ground: this.engine.groundClass(cell.x, cell.y, p.space),
+            ids: [this.engine.shoveTargetId(command.dx, command.dy) ?? ""],
+            refused: at.refused,
+          };
+        }
+      }
+      return;
+    }
     this.recordToolEffect(command, previousPlant);
     if (command.type === "move") {
+      const shove = this.engine.lastShove;
+      if (shove)
+        this.shoveEffect = { serial: ++this.characterSerial, ...shove };
       const leap = this.engine.lastLeap;
       if (leap)
         this.characterAction = {
@@ -966,7 +995,9 @@ export class Runtime {
       ? "Buck the fallen trunk"
       : work === "clear"
         ? "Clear the cut stems"
-        : `Chop the ${plantName(plant?.sprite)}`;
+        : work === "split"
+          ? `Split the ${plantName(plant?.sprite)}`
+          : `Chop the ${plantName(plant?.sprite)}`;
   }
   /** The one speaker the action key will reach: in range, and roughly in
    * front, so walking past someone does not hijack F. */
@@ -1008,14 +1039,14 @@ export class Runtime {
   /** Open, knock at, or step through the door of the building in front of the
    * player. Undefined when there is no door within a stride, or when it will
    * not answer them at all. */
-  doorVerb(place: Place): Verb | undefined {
+  doorVerb(): Verb | undefined {
     const p = this.engine.state.player;
-    const door = this.engine.doorOf(place.id);
-    if (
-      !door ||
-      Math.abs(door.pos.x - p.pos.x) + Math.abs(door.pos.y - p.pos.y) > 2
-    )
-      return undefined;
+    if (p.pos.space !== "outside") return undefined;
+    const door = this.engine.doorNear(p.pos, p.direction);
+    const place = door?.placeId
+      ? this.engine.world.place(door.placeId)
+      : undefined;
+    if (!door || !place) return undefined;
     const command = (action: "open" | "knock") =>
       ({ type: "interact", target: door.id, action }) as Verb["command"];
     if (door.open)
@@ -1049,7 +1080,7 @@ export class Runtime {
     const speaker = this.facingSpeaker();
     const other = speaker ? undefined : this.nearestSpeaker();
     const place = this.facingPlace();
-    const door = place ? this.doorVerb(place) : undefined;
+    const door = this.doorVerb();
     const descend = !!p.perch || this.engine.onWall();
     const climbTarget = descend ? undefined : this.engine.climbable();
     const climb: Verb | undefined =
@@ -1089,7 +1120,7 @@ export class Runtime {
       primary = { kind: "drop", label: `Put ${item.name.toLowerCase()} away` };
     else if (c.primary?.action === "pickup")
       primary = { kind: "pickup", label: c.primaryLabel, command: c.primary };
-    else if (place && door) primary = door;
+    else if (door) primary = door;
     else if (place)
       primary = {
         kind: "inspect",

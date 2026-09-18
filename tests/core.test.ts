@@ -177,17 +177,13 @@ describe("shared deterministic foundation", () => {
     const e = createSession();
     const b = e.world.places.find((p) => p.access === "public")!;
     reach(e, { ...b.entrance, space: "outside" });
-    // A door is a door: it is shut until somebody opens it.
-    expect(
-      act(e, { type: "interact", target: b.id, action: "enter" }).status,
-    ).toBe("rejected");
-    expect(
-      act(e, {
-        type: "interact",
-        target: `${b.id}-door`,
-        action: "open",
-      }).status,
-    ).toBe("completed");
+    // A public building stands open through the day; a shut one has to be
+    // opened first, and either way entering needs an open door.
+    const door = e.doorOf(b.id)!;
+    if (!door.open)
+      expect(
+        act(e, { type: "interact", target: door.id, action: "open" }).status,
+      ).toBe("completed");
     expect(
       act(e, { type: "interact", target: b.id, action: "enter" }).status,
     ).toBe("completed");

@@ -4,6 +4,7 @@ import {
   doorApproach,
   doorCell,
   makeDoor,
+  startsOpen,
 } from "../src/core/doors";
 import type { Place } from "../src/core/types";
 import { createSession } from "../src/runtime/session";
@@ -53,9 +54,11 @@ describe("doors", () => {
     });
   });
 
-  it("starts shut and carries the place it opens", () => {
+  it("carries the place it opens, and starts as its kind of door does", () => {
     const door = makeDoor(place());
-    expect(door.open).toBe(false);
+    expect(door.open).toBe(startsOpen(place()));
+    // A shop stands open; a house is shut unless its own hash says otherwise.
+    expect(startsOpen(place({ access: "public" }))).toBe(true);
     expect(door.placeId).toBe("house");
     expect(door.owner).toBe("elder");
     expect(door.pos).toEqual({ x: 13, y: 13, space: "outside" });
@@ -148,5 +151,48 @@ describe("knocking", () => {
     act(e, { type: "interact", target: door.id, action: "knock" });
     expect(e.state.events.at(-1)?.text).toMatch(/daylight/);
     expect(door.open).toBe(false);
+  });
+});
+
+describe("walking through", () => {
+  it("goes in at an open door and back out at the interior's exit", () => {
+    const e = createSession();
+    const b = e.world.places.find((p) => e.doorOf(p.id))!;
+    const door = e.doorOf(b.id)!;
+    door.open = true;
+    // One step short of the doorway, facing it.
+    const from = doorApproach(b);
+    e.state.player.pos = { ...from, space: "outside" };
+    act(e, {
+      type: "move",
+      dx: door.pos.x - from.x,
+      dy: door.pos.y - from.y,
+    });
+    expect(e.state.player.pos.space).toBe(b.id);
+
+    const exit = e.state.objects.find(
+      (o) => o.kind === "exit" && o.pos.space === b.id,
+    )!;
+    const p = e.state.player.pos;
+    act(e, { type: "move", dx: exit.pos.x - p.x, dy: exit.pos.y - p.y });
+    expect(e.state.player.pos).toEqual({
+      ...doorApproach(b),
+      space: "outside",
+    });
+  });
+
+  it("will not walk through a shut door", () => {
+    const e = createSession();
+    const b = e.world.places.find((p) => e.doorOf(p.id))!;
+    const door = e.doorOf(b.id)!;
+    door.open = false;
+    const from = doorApproach(b);
+    e.state.player.pos = { ...from, space: "outside" };
+    act(e, {
+      type: "move",
+      dx: door.pos.x - from.x,
+      dy: door.pos.y - from.y,
+    });
+    expect(e.state.player.pos.space).toBe("outside");
   });
 });

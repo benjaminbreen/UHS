@@ -84,10 +84,12 @@ export const isWorkedGround = (sprite: string | undefined) =>
  * business with it. */
 export function axeWork(
   sprite: string | undefined,
-): "buck" | "clear" | "fell" | undefined {
+): "buck" | "clear" | "fell" | "split" | undefined {
   if (!sprite) return undefined;
   if (sprite === LOGS_SPRITE) return "buck";
   if (sprite === STEMS_SPRITE || sprite === THORNS_SPRITE) return "clear";
+  // An axe will open a rock, badly. It is the wrong tool, not no tool.
+  if (isRock(sprite)) return "split";
   return fellingSwings(sprite) ? "fell" : undefined;
 }
 /** What one more blow of a pick would do here. */
@@ -99,8 +101,10 @@ export function pickWork(
   if (sprite === RUBBLE_SPRITE) return "clear";
   return sprite === STUMP_SPRITE ? "grub" : undefined;
 }
-/** Blows to break a boulder open. */
+/** Blows to break a boulder open with the tool meant for it. */
 export const ROCK_BLOWS = 4;
+/** The same work with an axe: slower, and it costs the axe its edge. */
+export const AXE_ROCK_BLOWS = 7;
 /** Blows to work a stump out of the ground. */
 export const STUMP_BLOWS = 3;
 /** Firewood in a standing plant, by how big it is. */

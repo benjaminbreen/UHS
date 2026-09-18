@@ -1,5 +1,6 @@
 import { urbanProps } from "./urban";
 import type { Inventory } from "../../core/types";
+import type { ShoveDef } from "../../core/shove";
 
 export type PropDef = {
   name: string;
@@ -34,6 +35,8 @@ export type PropDef = {
    * pots is what an even roll gives you: the common vessels are damped so the
    * rarer yard furniture gets a turn. */
   rarity?: number;
+  /** Whether a shoulder moves it, and how. Absent means it stands fast. */
+  shove?: ShoveDef;
   /** Where this belongs. A washing line hangs behind a house, not on the
    * square; a crate stands at a works or a farm, not on a shopping street. */
   where?: "backyard" | "worksite" | "privy";
@@ -85,6 +88,7 @@ export const propDefs: Record<string, PropDef> = {
     breakable: "clay",
   },
   vat: {
+    shove: { as: "free", mass: 1.8 },
     solid: true,
     name: "Storage vat",
     family: "pithos",
@@ -146,6 +150,7 @@ export const propDefs: Record<string, PropDef> = {
     container: true,
   },
   chest: {
+    shove: { as: "free", mass: 1.4 },
     solid: true,
     name: "Wooden chest",
     family: "bound-chest",
@@ -162,6 +167,7 @@ export const propDefs: Record<string, PropDef> = {
     tips: true,
   },
   strappedChest: {
+    shove: { as: "free", mass: 1.6 },
     solid: true,
     name: "Strapped chest",
     family: "strapped-chest",
@@ -170,6 +176,7 @@ export const propDefs: Record<string, PropDef> = {
     breakable: "wood",
   },
   paintedChest: {
+    shove: { as: "free", mass: 1.4 },
     solid: true,
     name: "Painted chest",
     family: "painted-chest",
@@ -177,7 +184,16 @@ export const propDefs: Record<string, PropDef> = {
     container: true,
     breakable: "wood",
   },
+  /** Wild stone, not yard furniture: placed by the land rather than a
+   * settlement, and drawn from the nature atlas in the local stone colour. */
+  boulder: {
+    solid: true,
+    name: "Boulder",
+    family: "boulder",
+    shove: { as: "free", mass: 2.6, rolls: true },
+  },
   crate: {
+    shove: { as: "free", mass: 1 },
     rarity: 0.7,
     where: "worksite",
     solid: true,
@@ -188,6 +204,7 @@ export const propDefs: Record<string, PropDef> = {
     breakable: "wood",
   },
   barrel: {
+    shove: { as: "free", mass: 1 },
     solid: true,
     name: "Wooden barrel",
     family: "barrel",
@@ -224,6 +241,7 @@ export const propDefs: Record<string, PropDef> = {
     drink: true,
   },
   trough: {
+    shove: { as: "free", mass: 2 },
     solid: true,
     name: "Animal trough",
     family: "trough",
@@ -312,6 +330,7 @@ export const propDefs: Record<string, PropDef> = {
     contents: { grain: 2 },
   },
   anvil: {
+    shove: { as: "free", mass: 3.2 },
     solid: true,
     name: "Anvil and block",
     family: "anvil",
@@ -322,11 +341,13 @@ export const propDefs: Record<string, PropDef> = {
     family: "loom",
   },
   bench: {
+    shove: { as: "free", mass: 1.2 },
     solid: true,
     name: "Bench",
     family: "bench",
   },
   stool: {
+    shove: { as: "free", mass: 0.5 },
     solid: true,
     name: "Stool",
     family: "stool",
@@ -449,6 +470,7 @@ export const propDefs: Record<string, PropDef> = {
     family: "beam-scale",
   },
   plough: {
+    shove: { as: "axle", axis: "x", mass: 2.2 },
     solid: true,
     name: "Plough",
     family: "plough",
@@ -493,6 +515,7 @@ export const propDefs: Record<string, PropDef> = {
     where: "worksite",
   },
   farmCart: {
+    shove: { as: "axle", axis: "x", mass: 2.4 },
     solid: true,
     name: "Farm cart",
     family: "farm-cart",
@@ -569,6 +592,7 @@ export const propDefs: Record<string, PropDef> = {
     variants: 2,
   },
   dustbin: {
+    shove: { as: "free", mass: 0.8 },
     rarity: 0.5,
     where: "backyard",
     solid: true,
@@ -578,6 +602,7 @@ export const propDefs: Record<string, PropDef> = {
     tips: true,
   },
   drum: {
+    shove: { as: "free", mass: 1.5 },
     where: "worksite",
     solid: true,
     name: "Steel drum",
@@ -587,6 +612,7 @@ export const propDefs: Record<string, PropDef> = {
     tips: true,
   },
   barrow: {
+    shove: { as: "axle", axis: "x", mass: 1.4 },
     where: "worksite",
     solid: true,
     name: "Wheelbarrow",
