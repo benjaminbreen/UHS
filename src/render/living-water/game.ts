@@ -12,7 +12,7 @@ import { ecologyOrder, livingProfile } from "./profile";
 import { livingFragment } from "./shader";
 import type { LightingId } from "../lighting";
 import { lightingPreset } from "../lighting";
-const LUT = "living-water-colors-2";
+const LUT = "living-water-colors-3";
 const shaders = new WeakMap<Phaser.Scene, Set<Phaser.GameObjects.Shader>>();
 let sequence = 0;
 export function usesLivingWater(scene: Phaser.Scene) {
@@ -25,64 +25,78 @@ export function usesLivingWater(scene: Phaser.Scene) {
 function colors(scene: Phaser.Scene) {
   if (scene.textures.exists(LUT)) return;
   const canvas = document.createElement("canvas");
-  canvas.width = 16;
-  canvas.height = 240;
+  canvas.width = 32;
+  canvas.height = 160;
   const ctx = canvas.getContext("2d")!;
+  const boundary =
+    "#" +
+    [1, 3, 5]
+      .map((i) =>
+        Math.round(
+          parseInt(defaults.boundaryColor.slice(i, i + 2), 16) *
+            (1 - defaults.boundaryDarkness * 0.8),
+        )
+          .toString(16)
+          .padStart(2, "0"),
+      )
+      .join("");
   // Rows: eight ecologies × five kinds (river, coast, lake, pond, creek),
-  // then frozen/red-clay sets, then swamp and frozen swamp.
-  for (let row = 0; row < 240; row++) {
+  // then the frozen and red-clay sets. Columns 0-15 are the clear ramp and
+  // bank tones, 16-31 the swamp counterpart; the shader mixes the two pairs
+  // by a per-pixel murk value.
+  for (let row = 0; row < 160; row++) {
     const kind = Math.floor((row % 40) / 8),
       ecology = ecologyOrder[row % 8];
-    const profile = livingProfile({
+    const cell = {
       height: 0,
-      surface: "water",
-      ...(row >= 160 ? { habitat: { ecology: "wetland" as const, colorway: "swamp" as const, kind: "hollow" as const, season: "summer", wet: 1, cover: 0.5, exposed: 0 } } : {}),
+      surface: "water" as const,
       waterVisual: {
-        kind: kind === 1 ? "sea" : kind === 2 || kind === 3 ? "lake" : "river",
+        kind: (kind === 1 ? "sea" : kind === 2 || kind === 3 ? "lake" : "river") as "sea" | "lake" | "river",
         shoreWidth: kind === 3 ? 0.5 : kind === 4 ? 0.9 : 2,
         distance: -2,
         ecology,
-        flow: [0, 1],
+        flow: [0, 1] as [number, number],
         frozenMargin: row % 80 >= 40,
       },
-    });
-    if (row >= 80 && row < 160) {
-      profile.customBankColors = false;
-      profile.bankMaterial = "clay";
-      profile.bankClimate = "desert";
-    }
-    const bank = bankStyle(profile);
-    const boundary =
-      "#" +
-      [1, 3, 5]
-        .map((i) =>
-          Math.round(
-            parseInt(defaults.boundaryColor.slice(i, i + 2), 16) *
-              (1 - defaults.boundaryDarkness * 0.8),
-          )
-            .toString(16)
-            .padStart(2, "0"),
-        )
-        .join("");
-    [
-      ...waterRamps[profile.palette],
-      bank.dry,
-      bank.wet,
-      bank.contact,
-      boundary,
+    };
+    const swampHabitat = {
+      ecology: "wetland" as const,
+      colorway: "swamp" as const,
+      kind: "hollow" as const,
+      season: "summer",
+      wet: 1,
+      murk: 1,
+      cover: 0.5,
+      exposed: 0,
+    };
+    [false, true].forEach((swamp) => {
+      const profile = livingProfile(swamp ? { ...cell, habitat: swampHabitat } : cell);
+      if (row >= 80) {
+        profile.customBankColors = false;
+        profile.bankMaterial = "clay";
+        profile.bankClimate = "desert";
+      }
+      const bank = bankStyle(profile);
       [
-        "#638451",
-        "#42744a",
-        "#526e53",
-        "#277d58",
-        "#527650",
-        "#8c8754",
-        "#b89464",
-        "#afb9ab",
-      ][row % 8],
-    ].forEach((color, x) => {
-      ctx.fillStyle = color;
-      ctx.fillRect(x, row, 1, 1);
+        ...waterRamps[profile.palette],
+        bank.dry,
+        bank.wet,
+        bank.contact,
+        boundary,
+        [
+          "#638451",
+          "#42744a",
+          "#526e53",
+          "#277d58",
+          "#527650",
+          "#8c8754",
+          "#b89464",
+          "#afb9ab",
+        ][row % 8],
+      ].forEach((color, x) => {
+        ctx.fillStyle = color;
+        ctx.fillRect(x + (swamp ? 16 : 0), row, 1, 1);
+      });
     });
   }
   scene.textures.addCanvas(LUT, canvas);

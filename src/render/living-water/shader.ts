@@ -15,13 +15,21 @@ uniform vec4 waveParams;
 varying vec2 fragCoord;
 float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
 float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x),f.y);}
-vec3 tone(float n,float row){return texture2D(iChannel1,vec2((clamp(n,0.,15.)+.5)/16.,(row+.5)/240.)).rgb;}
+vec3 clearTone(float n,float row){return texture2D(iChannel1,vec2((clamp(n,0.,15.)+.5)/32.,(row+.5)/160.)).rgb;}
+vec3 swampTone(float n,float row){return texture2D(iChannel1,vec2((clamp(n,0.,15.)+16.5)/32.,(row+.5)/160.)).rgb;}
+float murkMix=0.;
+vec3 tone(float n,float row){return mix(clearTone(n,row),swampTone(n,row),murkMix);}
 void main(){
  vec2 local=floor(vec2(fragCoord.x,resolution.y-fragCoord.y));
  vec4 m=texture2D(iChannel0,(local+.5)/resolution);
  float row=floor(m.g*255.+.5)-1.;if(row<0.)discard;
  float raw=floor(m.r*255.+.5),kind=floor(mod(row,40.)/8.);
  vec2 p=worldOrigin+local;
+ // Inland water packs six bits of flow angle and two of murk into blue;
+ // the sea keeps the whole byte for its sub-step depth fraction.
+ float blue=floor(m.b*255.+.5);
+ bool inland=kind<.5||kind>1.5;
+ murkMix=inland?mod(blue,4.)/3.:0.;
  if(raw<128.){
    float d=(128.-raw)/127.;
    float extent=kind<.5?1.5:kind<1.5?8.:kind>3.5?.45:1.;
@@ -44,7 +52,7 @@ void main(){
    gl_FragColor=vec4(bank,1.);return;
  }
  float depth=(raw-128.)/16.;
- float angle=m.b*6.2831853;vec2 flow=vec2(cos(angle),sin(angle));
+ float angle=(inland?floor(blue/4.)/64.:m.b)*6.2831853;vec2 flow=vec2(cos(angle),sin(angle));
  bool ocean=kind>.5&&kind<1.5;
  if(ocean&&raw>192.)depth=4.+(raw-192.)/4.;
  if(ocean)depth+=m.b*(raw>192.?.25:.0625);
@@ -72,7 +80,7 @@ void main(){
  float gradSteps=ocean?8.:2.;
  float k=clamp(floor(z+1.),0.,8.),f=floor(fract(max(0.,z+1.))*gradSteps)/gradSteps;
  vec3 color=mix(tone(k,row),tone(min(k+1.,8.),row),f);
- color=mix(color,tone(0.,row),caustic*(row>=160.?0.08:1.)*(1.+polishParams.z*.8));
+ color=mix(color,tone(0.,row),caustic*mix(1.,.08,murkMix)*(1.+polishParams.z*.8));
  float fishGrid=polishParams.z>.5?40.:80.;
  vec2 fishCell=floor(p/fishGrid),fishLocal=mod(p,fishGrid);
  float fishSeed=hash(fishCell);

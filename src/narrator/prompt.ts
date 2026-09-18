@@ -40,13 +40,14 @@ const compass = (from: Position, to: Position) => {
         : `${dy > 0 ? "S" : "N"}${dx > 0 ? "E" : "W"}`;
   return `${d} paces ${dir}`;
 };
-const hourWord = (clock: number) => {
+export const hourWord = (clock: number) => {
   const h = Math.floor(clock / 3600) % 24,
     m = Math.floor(clock / 60) % 60;
   return `${((h + 11) % 12) + 1}:${String(m).padStart(2, "0")} ${h < 12 ? "am" : "pm"}`;
 };
-/** Stable for a whole session, so the provider's prefix cache covers it. */
-export function worldCard(engine: Engine): string {
+/** The world and the character as facts, with no instructions attached: the
+ * narrator prefixes its own rules, a chronicle or an agent takes it plain. */
+export function worldFacts(engine: Engine): string {
   const { pack } = engine.world,
     s = engine.state,
     p = s.player,
@@ -68,8 +69,6 @@ export function worldCard(engine: Engine): string {
     .map((e) => `- ${e.statement}`);
   const catalog = Object.keys(engine.items).join(", ");
   return [
-    RULES,
-    "",
     "WORLD",
     `${pack.name}. ${pack.region}, ${pack.date}. ${pack.subtitle}.`,
     pack.description,
@@ -89,6 +88,10 @@ export function worldCard(engine: Engine): string {
   ]
     .filter((l) => l !== undefined)
     .join("\n");
+}
+/** Stable for a whole session, so the provider's prefix cache covers it. */
+export function worldCard(engine: Engine): string {
+  return `${RULES}\n\n${worldFacts(engine)}`;
 }
 export function sceneDigest(engine: Engine, input: string): string {
   const s = engine.state,

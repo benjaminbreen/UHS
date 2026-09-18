@@ -14,6 +14,7 @@ import {
 } from "../content/history/types";
 import atlas from "../render/generated/atlas.json" with { type: "json" };
 import buildings from "../render/generated/buildings.json" with { type: "json" };
+import civic from "../render/generated/civic.json" with { type: "json" };
 import "./history-lab.css";
 
 function readInput(): ResolveInput {
@@ -73,7 +74,12 @@ function EvidenceView({ evidence }: { evidence: Evidence }) {
   );
 }
 function Sprite({ id }: { id?: string }) {
-  const sheet = id && id in buildings.frames ? buildings : atlas;
+  const sheet =
+    id && id in buildings.frames
+      ? buildings
+      : id && id in civic.frames
+        ? civic
+        : atlas;
   const frame = id
     ? (
         sheet.frames as Record<
@@ -94,7 +100,9 @@ function Sprite({ id }: { id?: string }) {
         href={
           id && id in buildings.frames
             ? "/packs/buildings.png"
-            : "/packs/atlas.png"
+            : id && id in civic.frames
+              ? "/packs/civic.png"
+              : "/packs/atlas.png"
         }
         width={atlas.meta.size.w}
         height={atlas.meta.size.h}

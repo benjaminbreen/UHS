@@ -266,6 +266,7 @@ export function terrainJump(
   from: TerrainPoint,
   to: TerrainPoint,
   power: "short" | "long",
+  running = false,
 ): LeapResult | { kind: "blocked"; reason: string } {
   const dx = to.x - from.x,
     dy = to.y - from.y;
@@ -275,7 +276,8 @@ export function terrainJump(
   const water = (c: TopographyCell) => c.surface === "water" && !c.bridge;
   if (!start || start.solid || water(start))
     return { kind: "blocked", reason: "No room to push off." };
-  const reach = power === "long" ? 3 : 2;
+  // A run adds a tile of reach: standing 1/2, running 2/3.
+  const reach = (power === "long" ? 2 : 1) + (running ? 1 : 0);
   const rise = power === "long" ? 2 : 1;
   let landing: LeapResult | undefined;
   for (let step = 1; step <= reach; step++) {

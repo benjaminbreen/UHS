@@ -12,11 +12,25 @@ const sample =
   });
 const from = { x: 0, y: 0 },
   to = { x: 1, y: 0 };
-it("jumps two or three tiles and reserves two-tier climbs for a charged jump", () => {
+it("reaches one tile standing and two with a run-up", () => {
   expect(terrainJump(sample(), from, to, "short")).toMatchObject({
-    distance: 2,
+    distance: 1,
   });
   expect(terrainJump(sample(), from, to, "long")).toMatchObject({
+    distance: 2,
+  });
+  expect(terrainJump(sample(), from, to, "short", true)).toMatchObject({
+    distance: 2,
+  });
+  expect(terrainJump(sample(), from, to, "long", true)).toMatchObject({
+    distance: 3,
+  });
+});
+it("jumps two or three tiles and reserves two-tier climbs for a charged jump", () => {
+  expect(terrainJump(sample(), from, to, "short", true)).toMatchObject({
+    distance: 2,
+  });
+  expect(terrainJump(sample(), from, to, "long", true)).toMatchObject({
     distance: 3,
   });
   const ledge = sample({
@@ -24,13 +38,13 @@ it("jumps two or three tiles and reserves two-tier climbs for a charged jump", (
     "2,0": { height: 2 },
     "3,0": { height: 2 },
   });
-  expect(terrainJump(ledge, from, to, "short").kind).toBe("blocked");
-  expect(terrainJump(ledge, from, to, "long")).toMatchObject({
+  expect(terrainJump(ledge, from, to, "short", true).kind).toBe("blocked");
+  expect(terrainJump(ledge, from, to, "long", true)).toMatchObject({
     distance: 3,
     kind: "climb",
   });
   expect(
-    terrainJump(sample({ "1,0": { height: 3 } }), from, to, "long").kind,
+    terrainJump(sample({ "1,0": { height: 3 } }), from, to, "long", true).kind,
   ).toBe("blocked");
 });
 it("requires dry land and cannot pass through walls or diagonal corners", () => {
@@ -38,10 +52,10 @@ it("requires dry land and cannot pass through walls or diagonal corners", () => 
     "1,0": { surface: "water" },
     "2,0": { surface: "water" },
   });
-  expect(terrainJump(stream, from, to, "short").kind).toBe("blocked");
-  expect(terrainJump(stream, from, to, "long")).toMatchObject({ distance: 3 });
+  expect(terrainJump(stream, from, to, "short", true).kind).toBe("blocked");
+  expect(terrainJump(stream, from, to, "long", true)).toMatchObject({ distance: 3 });
   expect(
-    terrainJump(sample({ "1,0": { solid: true } }), from, to, "long").kind,
+    terrainJump(sample({ "1,0": { solid: true } }), from, to, "long", true).kind,
   ).toBe("blocked");
   expect(
     terrainJump(
@@ -52,7 +66,7 @@ it("requires dry land and cannot pass through walls or diagonal corners", () => 
     ).kind,
   ).toBe("blocked");
   expect(
-    terrainJump(sample({ "2,0": { solid: true } }), from, to, "long"),
+    terrainJump(sample({ "2,0": { solid: true } }), from, to, "long", true),
   ).toMatchObject({ distance: 1 });
 });
 it("keeps legacy moves unchanged, runs faster, and enforces pickup/drop and carrying rules", () => {
@@ -68,7 +82,7 @@ it("keeps legacy moves unchanged, runs faster, and enforces pickup/drop and carr
   expect(runtime.move(1, 0)?.elapsedSeconds).toBe(2);
   expect(runtime.move(1, 0, false, true)?.elapsedSeconds).toBe(1);
   const start = engine.state.player.pos.x;
-  expect(runtime.jump(1, 0, "long")?.status).toBe("completed");
+  expect(runtime.jump(1, 0, "long", true)).toBe(3);
   expect(engine.state.player.pos.x).toBe(start + 3);
   const prop = {
     id: "controls-pot",
@@ -83,8 +97,10 @@ it("keeps legacy moves unchanged, runs faster, and enforces pickup/drop and carr
   engine.state.objects.push(prop);
   runtime.propAction("Space");
   expect(engine.state.player.held).toBe(prop.id);
-  expect(runtime.jump(1, 0, "short")?.status).toBe("rejected");
-  expect(runtime.jump(1, 0, "long")?.status).toBe("rejected");
+  const carrying = engine.state.player.pos.x;
+  runtime.jump(1, 0, "short", true);
+  runtime.jump(1, 0, "long", true);
+  expect(engine.state.player.pos.x).toBe(carrying);
   runtime.propAction("Space");
   expect(engine.state.player.held).toBeUndefined();
   expect(engine.traversal(engine.state.player.pos, 1, 0).kind).toBe("blocked");

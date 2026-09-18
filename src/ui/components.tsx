@@ -6,6 +6,7 @@ import ecology from "../../public/ecology/atlas.json" with { type: "json" };
 import props from "../render/generated/props.json" with { type: "json" };
 import atlas from "../render/generated/atlas.json" with { type: "json" };
 import buildings from "../render/generated/buildings.json" with { type: "json" };
+import civic from "../render/generated/civic.json" with { type: "json" };
 export function Sprite({ name, scale = 2 }: { name: string; scale?: number }) {
   const source = name.startsWith("fauna-")
     ? fauna
@@ -21,7 +22,9 @@ export function Sprite({ name, scale = 2 }: { name: string; scale?: number }) {
         ? props
         : name in buildings.frames
           ? buildings
-          : atlas;
+          : name in civic.frames
+            ? civic
+            : atlas;
   const f = (
     source.frames as Record<
       string,
@@ -52,7 +55,9 @@ export function Sprite({ name, scale = 2 }: { name: string; scale?: number }) {
                 ? "url(/props/atlas.png)"
                 : source === buildings
                   ? "url(/packs/buildings.png)"
-                  : "url(/packs/atlas.png)",
+                  : source === civic
+                    ? "url(/packs/civic.png)"
+                    : "url(/packs/atlas.png)",
         backgroundPosition: `-${f.x * scale}px -${f.y * scale}px`,
         backgroundSize: `${source.meta.size.w * scale}px ${source.meta.size.h * scale}px`,
         imageRendering: "pixelated",

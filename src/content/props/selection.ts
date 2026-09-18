@@ -150,6 +150,9 @@ export function propKit(pack: Pack): PropKit {
   // Nothing else in the yard kit competes with it: it is placed on its own
   // rule, far from the water.
   const eastern = culture === "east-asian" || culture === "southeast-asian";
+  // A built privy is a town's habit. A farming hamlet threw everything on one
+  // heap at the bottom of the yard, and a farm with stock kept the muck
+  // separate because manure was worth keeping.
   contexts.privy = [
     year >= 1850
       ? "privyOuthouse"
@@ -159,12 +162,23 @@ export function propKit(pack: Pack): PropKit {
           ? "privyStone"
           : year >= -499 && year < 600 && urban && oldWorld
             ? "privyBench"
-            : pack.setting?.settlement === "camp" ||
-                climate === "arid" ||
-                year < -3999
+            : pack.setting?.settlement === "camp" || climate === "arid"
               ? "privyScreen"
-              : "privyShed",
+              : // Nothing built: what a place has before it has a town to
+                // copy from. The midden takes everything the household throws
+                // out; a farmyard keeps its muck separate, because manure is
+                // worth spreading.
+                year < -1999 || (!urban && year < 499)
+                ? "privyMidden"
+                : "privyShed",
   ];
+  if (
+    contexts.privy[0] === "privyMidden" &&
+    tech.draught &&
+    year >= -3999 &&
+    (pack.setting?.settlement === "farm" || rural)
+  )
+    contexts.privy.push("privyDung");
   // A board to sit on is older than any of this; it needs sawn timber and a
   // settled house, so it starts with the farming villages rather than a camp.
   if (year >= -5999 && pack.setting?.settlement !== "camp") {

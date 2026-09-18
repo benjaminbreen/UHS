@@ -20,6 +20,7 @@ export function startGame(root: Root, engine: Engine) {
     Object.assign(window, {
       __uhs: runtime,
       say: (text: string) => runtime.say(text).then(console.log),
+      chronicle: () => runtime.downloadChronicle(),
     });
   root.render(
     <PropLabHost onOpen={() => runtime.stop()}>

@@ -117,6 +117,11 @@ if (args.includes("--demo")) {
     output.replace(".json", "-save.json"),
     JSON.stringify(engine.snapshot(), null, 2),
   );
+  writeFileSync(output.replace(".json", "-chronicle.md"), adapter.chronicle.markdown());
+  writeFileSync(
+    output.replace(".json", "-chronicle.jsonl"),
+    `${adapter.chronicle.headerLine()}\n${adapter.chronicle.jsonl()}\n`,
+  );
   process.stdout.write(
     JSON.stringify(
       {

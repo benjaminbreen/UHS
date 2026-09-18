@@ -378,6 +378,7 @@ export const commandSchema = z.discriminatedUnion("type", [
         "follow",
         "take",
         "rest",
+        "sleep",
         "return",
         "pickup",
         "drop",
@@ -407,6 +408,12 @@ export const commandSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("use"), item }).strict(),
   z.object({ type: z.literal("wear"), item }).strict(),
   z.object({ type: z.literal("remove"), slot: z.enum(wearSlots) }).strict(),
+  z
+    .object({
+      type: z.literal("sleep"),
+      seconds: z.number().int().min(600).max(24 * 3600),
+    })
+    .strict(),
   z
     .object({ type: z.literal("narrate"), intents: z.array(intent).max(6) })
     .strict(),

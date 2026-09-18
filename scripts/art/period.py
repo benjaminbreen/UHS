@@ -9,6 +9,7 @@ under 200px.
 """
 from PIL import Image, ImageDraw
 from art.buildings import Building, ROOFS
+from art.roof_light import course_tone
 from art.urban import InfillBuilding
 
 ROOFS.update({
@@ -481,10 +482,11 @@ class PeriodBuilding(Building):
         mask = Image.new('L', self.im.size); ImageDraw.Draw(mask).polygon(polygon, fill=255)
         layer = Image.new('RGBA', self.im.size); ld = ImageDraw.Draw(layer)
         ld.rectangle((0, 0, self.w, self.h), fill=pal[0])
-        for row, y in enumerate(range(start, self.top + 4, pitch)):
+        rows = list(range(start, self.top + 4, pitch))
+        for row, y in enumerate(rows):
             off = tw // 2 if (stagger and row % 2) else 0
-            for x in range(-tw + off, self.w + tw, tw):
-                tone = pal[2] if self.rng.random() < .85 else pal[1]
+            for col, x in enumerate(range(-tw + off, self.w + tw, tw)):
+                tone = course_tone(pal, row, len(rows), col)
                 ld.rectangle((x, y, x + tw - 2, y + pitch - 2), fill=tone)
                 ld.line((x, y, x + tw - 3, y), fill=pal[3])
                 if (x + row) % 7 == 0: ld.point((x + 1, y + 1), fill=pal[4])

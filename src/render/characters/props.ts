@@ -1,5 +1,7 @@
 import atlas from "../../../public/props/atlas.json";
 import { propDefs } from "../../content/props/catalog";
+import propsB from "../generated/props-b.json";
+const redrawnFamilies = new Set<string>(propsB);
 export type CarriedArt = {
   sprite: string;
   kind: "stick" | "tool" | "haft" | "side" | "both";
@@ -79,6 +81,12 @@ export function loadCarriedArt() {
     },
   ));
 }
+/** A redrawn family has no A study left in the atlas, so the carried sprite
+ *  takes the B one, the same way the world does in content/props/place.ts. */
 export const portableProps = Object.entries(propDefs)
   .filter(([, d]) => d.portable)
-  .map(([id, d]) => ({ id, name: d.name, sprite: `study-prop-${d.family}-0` }));
+  .map(([id, d]) => ({
+    id,
+    name: d.name,
+    sprite: `study-prop${redrawnFamilies.has(d.family) ? "b" : ""}-${d.family}-0`,
+  }));

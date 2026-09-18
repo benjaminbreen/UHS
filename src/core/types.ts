@@ -268,6 +268,7 @@ export type PlayerCommand =
         | "follow"
         | "take"
         | "rest"
+        | "sleep"
         | "return"
         | "pickup"
         | "drop"
@@ -295,6 +296,9 @@ export type PlayerCommand =
   | { type: "wear"; item: ItemId }
   /** Take the item in a slot off, into the inventory. */
   | { type: "remove"; slot: WearSlot }
+  /** Sleep or long rest. Time passes in one step, the night can leave a mark,
+   * and shelter decides how much good it does. */
+  | { type: "sleep"; seconds: number }
   | { type: "narrate"; intents: Intent[] };
 export type CommandRequest = {
   actionId: string;

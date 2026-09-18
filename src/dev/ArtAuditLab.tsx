@@ -22,6 +22,7 @@ import "./art-audit-lab.css";
 
 const ATLAS: Record<Sprite["source"], string> = {
   packs: "/packs/atlas.png",
+  buildings: "/packs/buildings.png",
   props: "/props/atlas.png",
 };
 
@@ -34,12 +35,11 @@ const BACKDROPS: [string, string][] = [
   ["Void", "#ff00ff"],
 ];
 
-type Overlay = "none" | "rim" | "offramp" | "value" | "steps";
+type Overlay = "none" | "rim" | "value" | "steps";
 
 const OVERLAYS: [Overlay, string, string][] = [
   ["none", "Art", "The sprite as it ships."],
   ["rim", "Rim", "Only the near-darkest boundary pixels. A tinted rim nearly vanishes; a keyline draws the whole outline."],
-  ["offramp", "Off palette", "Pixels in no declared ramp, in magenta."],
   ["value", "Value", "Colour thrown away, so shape has to carry on light alone."],
   ["steps", "Steps", "Each distinct tone by its rank, dark to light. Shows how many steps a surface really uses and where they jump."],
 ];
@@ -141,9 +141,6 @@ function SpriteView({
             parseInt(c.slice(3, 5), 16),
             parseInt(c.slice(5, 7), 16),
           );
-        } else if (overlay === "offramp") {
-          if (palette.has(hex(p[i], p[i + 1], p[i + 2]))) paint(30, 34, 38, 90);
-          else paint(255, 0, 200);
         } else if (overlay === "rim") {
           const edge =
             !opaque(px + 1, py) || !opaque(px - 1, py) ||
@@ -231,6 +228,9 @@ export function ArtAuditLab() {
   const [zoom, setZoom] = useState(3);
   const [faultsOnly, setFaultsOnly] = useState(false);
   const [selected, setSelected] = useState<Sprite | null>(null);
+  // A sprite held on the left while you browse for something to put beside it.
+  // Style drift is a comparison: the amphora only looks crude next to a lantern.
+  const [pinned, setPinned] = useState<Sprite | null>(null);
   const [showAll, setShowAll] = useState(false);
 
   useEffect(() => {
@@ -530,21 +530,46 @@ export function ArtAuditLab() {
           <aside className="aa-detail">
             <header>
               <h3>{selected.key}</h3>
+              <button
+                className="aa-pin"
+                onClick={() => setPinned(pinned?.key === selected.key ? null : selected)}
+                title="Hold this one beside the next sprite you click"
+              >
+                {pinned?.key === selected.key ? "unpin" : "pin"}
+              </button>
               <button onClick={() => setSelected(null)}>×</button>
             </header>
-            <div className="aa-detail-art" style={{ background: backdrop }}>
-              <SpriteView
-                sprite={selected}
-                atlas={atlas}
-                zoom={Math.max(2, Math.min(8, Math.floor(260 / selected.w)))}
-                overlay={overlay}
-                palette={palette}
-              />
+            <div className="aa-compare">
+              {pinned && pinned.key !== selected.key && (
+                <figure style={{ background: backdrop }}>
+                  <SpriteView
+                    sprite={pinned}
+                    atlas={atlas}
+                    zoom={Math.max(2, Math.min(6, Math.floor(130 / pinned.w)))}
+                    overlay={overlay}
+                    palette={palette}
+                  />
+                  <figcaption>{pinned.key.replace(/^study-prop[b]?-/, "")}</figcaption>
+                </figure>
+              )}
+              <figure style={{ background: backdrop }}>
+                <SpriteView
+                  sprite={selected}
+                  atlas={atlas}
+                  zoom={Math.max(
+                    2,
+                    Math.min(pinned && pinned.key !== selected.key ? 6 : 8,
+                             Math.floor((pinned ? 130 : 250) / selected.w)),
+                  )}
+                  overlay={overlay}
+                  palette={palette}
+                />
+                <figcaption>{selected.key.replace(/^study-prop[b]?-/, "")}</figcaption>
+              </figure>
             </div>
             <p className="aa-meta">
               {selected.kind} · {selected.family} · {selected.w}×{selected.h} ·{" "}
               {selected.pixels} px
-              {selected.ramps?.length ? ` · ${selected.ramps.join(", ")}` : ""}
             </p>
             {(selected.edgeCut.length > 0 || !selected.binaryAlpha) && (
               <p className="aa-fault">
@@ -559,24 +584,43 @@ export function ArtAuditLab() {
                 <i
                   key={colour}
                   style={{ background: colour }}
-                  title={`${colour} · ${n}px${palette.has(colour) ? "" : " · off palette"}`}
-                  className={palette.has(colour) ? "" : "off"}
+                  title={`${colour} · ${n}px`}
                 />
               ))}
             </div>
             <table className="aa-table">
+              <thead>
+                <tr>
+                  <th />
+                  {pinned && pinned.key !== selected.key && <td>pinned</td>}
+                  <td>this</td>
+                  <td className="aa-bar" />
+                  <td className="aa-norm">med.</td>
+                </tr>
+              </thead>
               <tbody>
                 {METRICS.map((m) => {
                   const v = selected[m.id as keyof Sprite];
                   if (typeof v !== "number") return null;
+                  const other = pinned?.[m.id as keyof Sprite];
                   const norm = norms[selected.kind]?.[m.id] ?? 0;
                   const format = m.format ?? ((n: number) => n.toFixed(2));
                   // The bar is the sprite against its own kind's median, so
-                  // "unusual for a building" is legible without knowing the units.
+                  // "unusual for a prop" is legible without knowing the units.
                   const ratio = norm ? Math.min(2, Math.abs(v) / Math.abs(norm)) : 1;
+                  // Worth a second look when it sits on the bad side of the
+                  // median by half again.
+                  const off =
+                    norm !== 0 &&
+                    (m.worse === "high" ? v > norm * 1.5 : v < norm * 0.6);
                   return (
-                    <tr key={m.id}>
+                    <tr key={m.id} className={off ? "aa-off" : ""}>
                       <th title={m.note}>{m.label}</th>
+                      {pinned && pinned.key !== selected.key && (
+                        <td className="aa-norm">
+                          {typeof other === "number" ? format(other) : "–"}
+                        </td>
+                      )}
                       <td>{format(v)}</td>
                       <td className="aa-bar">
                         <i style={{ width: `${(ratio / 2) * 100}%` }} />
@@ -588,7 +632,9 @@ export function ArtAuditLab() {
               </tbody>
             </table>
             <p className="aa-hint">
-              Right column is the median for every other {selected.kind}.
+              Last column is the median for every other {selected.kind}; a
+              highlighted row sits well on the bad side of it. Pin one sprite and
+              click another to read them against each other.
             </p>
           </aside>
         )}

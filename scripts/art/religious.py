@@ -4,6 +4,7 @@ left. Recipes live in src/content/graphics/religious.json."""
 import random
 from PIL import Image, ImageDraw
 from art.buildings import ROOFS
+from art.roof_light import course_tone
 
 OUTLINE = '#2f2a22'
 BELL = ['#5c4a2a', '#9a7a3c', '#d1ac58']
@@ -123,9 +124,11 @@ class ReligiousBuilding:
         ld = ImageDraw.Draw(layer)
         ld.rectangle((0, 0, self.w, self.h), fill=pal[0])
         ys = [p[1] for p in polygon]
-        for row, y in enumerate(range(min(ys), max(ys) + 4, 4)):
+        rows = list(range(min(ys), max(ys) + 4, 4))
+        for row, y in enumerate(rows):
             for col, x in enumerate(range(-4 + (row % 2) * 3, self.w + 4, 6)):
-                t = pal[2 + shade] if self.rng.random() < .75 else pal[1 + shade]
+                t = course_tone(pal, row, len(rows), col,
+                                lit=3 + shade, dark=max(0, 1 + shade - 1))
                 ld.rectangle((x, y, x + 4, y + 3), fill=t)
                 ld.line((x, y, x + 3, y), fill=pal[3 + shade] if shade < 1 else pal[3])
                 ld.point((x + 4, y + 3), fill=pal[0])

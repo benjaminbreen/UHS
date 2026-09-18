@@ -22,6 +22,8 @@ it("an actual MCP client observes, inspects, acts, and retries safely", async ()
     const listed = await client.listTools();
     expect(listed.tools.map((t) => t.name).sort()).toEqual([
       "act",
+      "digest",
+      "goto",
       "inspect",
       "observe",
     ]);

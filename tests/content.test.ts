@@ -4,11 +4,13 @@ import { packs, items, resolvePrompt } from "../src/content/packs";
 import { createWorld } from "../src/world/generate";
 import atlas from "../src/render/generated/atlas.json" with { type: "json" };
 import buildings from "../src/render/generated/buildings.json" with { type: "json" };
+import civic from "../src/render/generated/civic.json" with { type: "json" };
 it("resolves every asset and item used by both generated packs", () => {
   // Buildings pack to their own atlas; a sprite may be in either.
   const frames = new Set([
     ...Object.keys(atlas.frames),
     ...Object.keys(buildings.frames),
+    ...Object.keys(civic.frames),
   ]);
   for (const pack of Object.values(packs)) {
     const w = createWorld(pack, "content");

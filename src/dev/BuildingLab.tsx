@@ -3,6 +3,12 @@ import graphics from "../content/graphics/buildings.json" with { type: "json" };
 import religious from "../content/graphics/religious.json" with { type: "json" };
 import period from "../content/graphics/period.json" with { type: "json" };
 import theatres from "../content/graphics/theatres.json" with { type: "json" };
+import halls from "../content/graphics/halls.json" with { type: "json" };
+import {
+  cornerTint,
+  lightPhases,
+  paintCornerTint,
+} from "../render/corner-tint";
 import "./building-lab.css";
 
 /** Fields whose values are a fixed set. The editor renders a dropdown for
@@ -13,7 +19,19 @@ const enumFields: Record<string, string[]> = {
   tower: ["west", "east", "none"],
   towerRoof: ["pyramid", "saddle"],
   // Theatres.
-  form: ["colonnade", "ring", "open-stage", "front-house"],
+  form: [
+    "colonnade",
+    "ring",
+    "open-stage",
+    "front-house",
+    "domed",
+    "vaulted",
+    "bath-shed",
+    "arcaded",
+    "portal",
+    "long-hall",
+  ],
+  belfry: ["none", "lantern", "spire"],
   style: ["palladian", "baroque", "rococo", "beaux-arts"],
   order: ["doric", "ionic", "corinthian"],
   pedimentMotif: [
@@ -41,6 +59,8 @@ const groupOf = (model: Model | undefined, id = "") =>
     ? ""
     : model.theatre
       ? "Theatres"
+      : model.hall
+        ? "Baths and halls"
       : model.period
         ? "Period facades"
         : model.candidate
@@ -62,6 +82,7 @@ type Model = {
   description: string;
   religious?: boolean;
   theatre?: boolean;
+  hall?: boolean;
   form?: string;
   family?: string;
   period?: boolean;
@@ -164,6 +185,9 @@ export function BuildingLab() {
   const [selected, setSelected] = useState("period-georgian-townhouse");
   const [facing, setFacing] = useState<(typeof facings)[number]>("south");
   const [scale, setScale] = useState(3);
+  // "flat" is the shipped look: one tint over the whole sprite.
+  const [lightPhase, setLightPhase] = useState("flat");
+  const [swing, setSwing] = useState(1);
   const [background, setBackground] = useState("Grass");
   const [filter, setFilter] = useState("");
   const [recipes, setRecipes] = useState<Record<string, Recipe>>(
@@ -178,7 +202,16 @@ export function BuildingLab() {
   const [theatreRecipes, setTheatreRecipes] = useState<Record<string, Recipe>>(
     theatres.buildings as unknown as Record<string, Recipe>,
   );
-  const [materials] = useState({ ...religious.materials, ...theatres.materials });
+  const [hallRecipes, setHallRecipes] = useState<Record<string, Recipe>>(
+    halls.buildings as unknown as Record<string, Recipe>,
+  );
+  const [materials] = useState({
+    ...religious.materials,
+    ...theatres.materials,
+    ...halls.materials,
+  });
+  const [civicAtlas, setCivicAtlas] = useState<HTMLImageElement>();
+  const [civicFrames, setCivicFrames] = useState<Set<string>>(new Set());
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -186,18 +219,23 @@ export function BuildingLab() {
   useEffect(() => {
     let cancelled = false;
     Promise.all([
-      loadJSON<Record<string, Model>>("/packs/buildings.json", version),
-      loadJSON<{ frames: Record<string, Frame> }>(
-        "/packs/buildings.json",
-        version,
-      ),
+      // Two files, not one: models.json is the recipe manifest, buildings.json
+      // the packed atlas. They shared a name until the atlas started clobbering it.
+      loadJSON<Record<string, Model>>("/packs/models.json", version),
+      // Houses and landmarks pack to separate pages; the lab holds both and
+      // picks the sheet a frame actually lives on.
+      loadJSON<{ frames: Record<string, Frame> }>("/packs/buildings.json", version),
       loadImage(`/packs/buildings.png?v=${version}`),
+      loadJSON<{ frames: Record<string, Frame> }>("/packs/civic.json", version),
+      loadImage(`/packs/civic.png?v=${version}`),
     ])
-      .then(([m, a, img]) => {
+      .then(([m, a, img, c, civicImg]) => {
         if (cancelled) return;
         setModels(m);
-        setFrames(a.frames);
+        setFrames({ ...a.frames, ...c.frames });
         setAtlas(img);
+        setCivicAtlas(civicImg);
+        setCivicFrames(new Set(Object.keys(c.frames)));
       })
       .catch((e) => setStatus(String(e)));
     return () => {
@@ -214,6 +252,8 @@ export function BuildingLab() {
     const rank = (k: string) =>
       models[k].theatre
         ? 0
+        : models[k].hall
+          ? 0.5
         : models[k].period
           ? 1
           : models[k].candidate
@@ -245,10 +285,13 @@ export function BuildingLab() {
   const recipeId =
     (models[selected] as Model & { recipe?: string })?.recipe ?? "";
   const isTheatre = Boolean((models[selected] as Model)?.theatre);
+  const isHall = Boolean((models[selected] as Model)?.hall);
   const recipe = recipeId
     ? isTheatre
       ? theatreRecipes[recipeId]
-      : recipes[recipeId]
+      : isHall
+        ? hallRecipes[recipeId]
+        : recipes[recipeId]
     : undefined;
   const candidateRecipe = model?.candidate ? candidateRecipes[selected] : undefined;
   const periodId = selected.replace(/^period-/, "");
@@ -259,9 +302,10 @@ export function BuildingLab() {
       [periodId]: { ...r[periodId], [key]: value },
     }));
 
+  const sheet = civicFrames.has(frameKey) ? civicAtlas : atlas;
   useEffect(() => {
     const c = canvas.current;
-    if (!c || !atlas || !model || !frames[frameKey]) return;
+    if (!c || !sheet || !model || !frames[frameKey]) return;
     const f = frames[frameKey].frame;
     const [fw, fh] = model.footprint;
     const pad = 32;
@@ -303,7 +347,7 @@ export function BuildingLab() {
       const ax = ox + (fw * 16) / 2 - model.anchor[0],
         ay = oy + fh * 16 - model.anchor[1];
       ctx.drawImage(
-        atlas,
+        sheet,
         f.x,
         f.y,
         f.w,
@@ -313,11 +357,28 @@ export function BuildingLab() {
         f.w,
         f.h,
       );
+      const lit = lightPhases.find((p) => p.id === lightPhase);
+      if (lit) {
+        // Tinted off-screen, where the background is still transparent. Read
+        // back from the stage instead and the grid under the building is
+        // opaque, so the tint lands on a rectangle rather than on the sprite.
+        const off = document.createElement("canvas");
+        off.width = f.w;
+        off.height = f.h;
+        const octx = off.getContext("2d", { willReadFrequently: true })!;
+        octx.drawImage(sheet, f.x, f.y, f.w, f.h, 0, 0, f.w, f.h);
+        const region = octx.getImageData(0, 0, f.w, f.h);
+        paintCornerTint(region, cornerTint(lit, parseInt(lit.tint, 16), swing));
+        octx.putImageData(region, 0, 0);
+        // Same silhouette and same alpha, so this replaces the untinted draw
+        // exactly. Clearing first would punch a hole in the grid under it.
+        ctx.drawImage(off, Math.round(ax), Math.round(ay));
+      }
       if (animation?.kind === "roof-fan") {
         const fan = frames[`animation-roof-fan-${phase}`]?.frame;
         if (fan)
           ctx.drawImage(
-            atlas,
+            sheet,
             fan.x,
             fan.y,
             fan.w,
@@ -336,10 +397,10 @@ export function BuildingLab() {
       draw();
     }, Math.max(120, animation.period ?? 280));
     return () => window.clearInterval(timer);
-  }, [atlas, frames, model, frameKey, scale, background]);
+  }, [sheet, frames, model, frameKey, scale, background, lightPhase, swing]);
 
   const setField = (key: string, value: Recipe[string]) =>
-    (isTheatre ? setTheatreRecipes : setRecipes)((r) => ({
+    (isTheatre ? setTheatreRecipes : isHall ? setHallRecipes : setRecipes)((r) => ({
       ...r,
       [recipeId]: { ...r[recipeId], [key]: value },
     }));
@@ -365,7 +426,9 @@ export function BuildingLab() {
               ? "src/content/graphics/buildings.json"
               : isTheatre
                 ? "src/content/graphics/theatres.json"
-                : "src/content/graphics/religious.json",
+                : isHall
+                  ? "src/content/graphics/halls.json"
+                  : "src/content/graphics/religious.json",
           content:
             JSON.stringify(
               isPeriod
@@ -374,7 +437,9 @@ export function BuildingLab() {
                   ? { materials: graphics.materials, buildings: candidateRecipes }
                   : isTheatre
                     ? { materials: theatres.materials, buildings: theatreRecipes }
-                    : { materials: religious.materials, buildings: recipes },
+                    : isHall
+                      ? { materials: halls.materials, buildings: hallRecipes }
+                      : { materials: religious.materials, buildings: recipes },
               null,
               2,
             ) + "\n",
@@ -470,6 +535,30 @@ export function BuildingLab() {
                 <option key={b}>{b}</option>
               ))}
             </select>
+            <select
+              value={lightPhase}
+              onChange={(e) => setLightPhase(e.target.value)}
+              title="Four-corner tint from the sun angle in lighting.json"
+            >
+              <option value="flat">Flat tint (shipped)</option>
+              {lightPhases.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.label}
+                </option>
+              ))}
+            </select>
+            <label className="building-zoom">
+              Swing{" "}
+              <input
+                type="range"
+                min={0}
+                max={2}
+                step={0.1}
+                value={swing}
+                onChange={(e) => setSwing(Number(e.target.value))}
+              />
+              {swing.toFixed(1)}×
+            </label>
           </div>
           <div className="building-stage">
             <canvas ref={canvas} />

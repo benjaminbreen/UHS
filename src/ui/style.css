@@ -3695,6 +3695,31 @@ button:disabled {
   border-color: var(--rose-line);
   background: #b96a8a24;
 }
+/* Abilities: two cards rather than a bare list adrift on the painting. */
+.abilities-tab {
+  display: grid;
+  grid-template-columns: minmax(0, 340px) minmax(0, 1fr);
+  align-items: start;
+  gap: 20px;
+  max-width: 1040px;
+  padding: 22px 32px;
+}
+.abilities-tab .panel-card {
+  margin-top: 0;
+  padding: 14px 18px 18px;
+}
+.abilities-tab .ability-list.wide li {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 0;
+  font-family: var(--sans);
+  font-size: 15px;
+}
+.abilities-tab .ability-list.wide li + li {
+  border-top: 1px solid var(--line-soft);
+}
 .stat-bars {
   list-style: none;
   display: grid;
@@ -3703,7 +3728,7 @@ button:disabled {
 }
 .stat-bars li {
   display: grid;
-  grid-template-columns: 130px minmax(0, 1fr);
+  grid-template-columns: 116px minmax(0, 1fr);
   align-items: center;
   gap: 10px;
   font-size: 14px;
@@ -3804,6 +3829,8 @@ button:disabled {
 
 .modal-character {
   width: min(1500px, 100%);
+  height: min(900px, 90dvh);
+  overflow: hidden;
   padding: 0;
   border-radius: 1px;
   border-color: #c09b4e;
@@ -3823,11 +3850,28 @@ button:disabled {
   color: #d6d5df;
 }
 .character-panel {
+  /* The scene and every card are tinted toward the culture accent, so a
+   * turquoise zone reads green-blue and a gold one reads warm. */
+  --culture-dark: color-mix(
+    in oklab,
+    var(--culture-accent, #62d4ca) 8%,
+    #0a1029
+  );
+  /* The wash over the painting: the scheme stays blue, the accent only
+   * colours it. */
+  --culture-deep: color-mix(
+    in oklab,
+    var(--culture-accent, #62d4ca) 11%,
+    #060c20
+  );
   --belief-cyan: #62d4ca;
   --belief-coral: #ef766d;
   --belief-indigo: #292f58;
   --sans: "DM Sans", system-ui, sans-serif;
   position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
   isolation: isolate;
 }
 /* A painted landscape behind the whole panel, one per tab, sunk under a
@@ -3838,27 +3882,36 @@ button:disabled {
   inset: 0;
   z-index: -1;
   background:
-    linear-gradient(
-      212deg,
-      #16234d2b 0%,
-      #131f4573 32%,
-      #101a3ac4 62%,
-      #0c1430ef 100%
+    /* The painting shows through at the upper right and is shaded away
+     * towards the left and the foot of the panel. */
+    radial-gradient(
+      125% 135% at 100% -5%,
+      color-mix(in srgb, var(--culture-deep) 18%, transparent) 0%,
+      color-mix(in srgb, var(--culture-deep) 58%, transparent) 34%,
+      color-mix(in srgb, var(--culture-deep) 88%, transparent) 72%,
+      var(--culture-deep) 100%
     ),
-    var(--panel-scene, none) top right/cover no-repeat;
+    linear-gradient(
+      180deg,
+      transparent 0%,
+      color-mix(in srgb, var(--culture-dark) 30%, transparent) 26%,
+      color-mix(in srgb, var(--culture-dark) 62%, transparent) 60%,
+      color-mix(in srgb, var(--culture-dark) 80%, transparent) 100%
+    ),
+    var(--panel-scene, none) top center/cover no-repeat;
 }
-.character-panel[data-tab="ideology"] {
-  --panel-scene: url("/ui/panel-ideology.png");
-}
-.character-panel[data-tab="profile"],
-.character-panel[data-tab="abilities"] {
-  --panel-scene: url("/ui/panel-profile.png");
-}
-.character-panel[data-tab="household"] {
-  --panel-scene: url("/ui/panel-household.png");
-}
-.character-panel[data-tab="beliefs"] {
-  --panel-scene: url("/ui/panel-ideology.png");
+/* A woven border keyed to the culture zone, tiled from one SVG motif. */
+.culture-strip {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 46px;
+  z-index: -1;
+  background:
+    linear-gradient(180deg, #0c142f8c, #0c142f5c),
+    var(--culture-pattern) center top/44px 44px repeat-y,
+    linear-gradient(180deg, #1a2450, #0c1430);
+  border-right: 1px solid var(--line);
+  opacity: 0.95;
 }
 /* Gold brackets at the four corners, the frame the mockups put round a
  * portrait or a panel. Drawn as eight gradients so nothing is nested. */
@@ -3930,23 +3983,49 @@ button:disabled {
     right bottom;
   opacity: 0.55;
 }
+.character-panel > *:not(.culture-strip) {
+  margin-left: 46px;
+}
+.character-panel > .character-body,
+.character-panel > .character-tab,
+.character-panel > .belief-layout,
+.character-panel > .outlook-layout {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #4a5a86 transparent;
+}
+.character-panel > .character-header,
+.character-panel > nav {
+  flex: 0 0 auto;
+}
 .character-panel .character-header {
   position: relative;
   display: flex;
   align-items: baseline;
   min-height: 88px;
   gap: 24px;
-  padding: 24px 150px 20px 76px;
+  padding: 24px 150px 20px 136px;
   border-bottom: 1px solid var(--line);
 }
-.character-mark {
+/* Circular full-body sprite, ringed in the culture accent. */
+.header-avatar {
   position: absolute;
-  left: 34px;
-  top: 37px;
-  width: 12px;
-  height: 12px;
-  transform: rotate(45deg);
-  background: var(--belief-coral);
+  left: 62px;
+  top: 18px;
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  overflow: hidden;
+  border: 2px solid var(--culture-accent, var(--belief-coral));
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 35%, #2b3766, #131c3a);
+}
+.header-avatar canvas {
+  transform: scale(1.35) translateY(3px);
+  image-rendering: pixelated;
 }
 .character-panel .character-header h2 {
   font-size: 42px;
@@ -3968,7 +4047,7 @@ button:disabled {
   align-items: flex-end;
   min-height: 62px;
   gap: 34px;
-  padding: 0 34px;
+  padding: 0 34px 0 62px;
   border-bottom-color: var(--line);
 }
 .character-panel > nav button {
@@ -3978,8 +4057,8 @@ button:disabled {
   border-bottom-width: 4px;
 }
 .character-panel > nav button[aria-selected="true"] {
-  color: var(--belief-cyan);
-  border-bottom-color: var(--belief-coral);
+  color: var(--culture-accent, var(--belief-cyan));
+  border-bottom-color: var(--culture-accent, var(--belief-coral));
 }
 .character-body {
   grid-template-columns: 260px minmax(460px, 1fr) 320px;
@@ -3987,17 +4066,23 @@ button:disabled {
   padding: 0;
   align-items: stretch;
 }
+/* The side columns carry running text over the painting, so they sit on a
+ * heavier wash than the cards do. */
 .character-aside,
 .character-side {
   padding: 20px 22px;
-  background: linear-gradient(180deg, #36417021, #12192e00);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--culture-dark) 62%, transparent),
+    color-mix(in srgb, var(--culture-dark) 88%, transparent)
+  );
+  backdrop-filter: blur(2px);
 }
 .character-aside {
   border-right: 1px solid var(--line);
 }
 .character-side {
   border-left: 1px solid var(--line);
-  background: linear-gradient(180deg, #553d5924, #151a3100);
 }
 .character-main {
   padding: 20px 26px 22px;
@@ -4022,7 +4107,7 @@ button:disabled {
   font-size: 14px;
 }
 .character-portrait {
-  height: 232px;
+  height: 196px;
   aspect-ratio: auto;
   border-color: #566399;
   border-radius: 1px;
@@ -4119,8 +4204,8 @@ button:disabled {
   gap: 8px;
 }
 .household-list button {
-  min-height: 66px;
-  padding: 8px 10px;
+  min-height: 74px;
+  padding: 8px 12px;
   border-radius: 1px;
   font-family: var(--sans);
 }
@@ -4130,7 +4215,7 @@ button:disabled {
   background: #41508446;
 }
 .belongings {
-  grid-auto-rows: 76px;
+  grid-auto-rows: 84px;
   gap: 9px;
 }
 .belongings li,
@@ -4146,24 +4231,6 @@ button:disabled {
   border-color: transparent;
   background: linear-gradient(90deg, #a64f59, #c46968);
 }
-.character-panel footer {
-  min-height: 54px;
-  padding: 12px 34px;
-  font-family: var(--sans);
-  font-size: 12px;
-  font-style: normal;
-}
-.character-panel footer span {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-.character-panel footer span i {
-  width: 9px;
-  height: 9px;
-  transform: rotate(45deg);
-  border: 1px solid var(--gold);
-}
 .character-panel footer > button {
   border-radius: 1px;
 }
@@ -4171,63 +4238,56 @@ button:disabled {
   min-height: 635px;
   padding: 28px 34px;
 }
-.belief-layout {
-  display: grid;
-  grid-template-columns: 255px minmax(0, 1fr);
-  min-height: 635px;
-}
-.belief-aside {
-  padding: 24px;
-  border-right: 1px solid var(--line);
-  background: linear-gradient(180deg, #35406c2b, #13192e0a);
-}
-.belief-portrait {
-  height: 192px;
+
+.outlook-overview > p {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   overflow: hidden;
-  border: 1px solid #56639970;
-  background: linear-gradient(145deg, #323a68, #263052);
-}
-.belief-aside h1 {
-  margin-top: 20px;
-  font-size: 27px;
-}
-.belief-aside > p,
-.belief-tradition p {
   color: #b8bbcf;
   font-family: var(--sans);
   font-size: 13px;
   line-height: 1.55;
 }
 .belief-measures {
-  margin-top: 20px;
+  display: flex;
+  gap: 24px;
+  margin: 8px 0 0;
 }
 .belief-measures div {
   display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 11px 0;
-  border-bottom: 1px solid #d7ae5825;
+  gap: 8px;
   font-family: var(--sans);
   font-size: 12px;
 }
 .belief-measures dd {
+  margin: 0;
   color: var(--belief-cyan);
-  text-align: right;
   text-transform: capitalize;
-}
-.belief-tradition {
-  margin-top: 20px;
-  padding-top: 1px;
-  border-top: 1px solid var(--line-soft);
 }
 .belief-main {
   min-width: 0;
   padding: 23px 28px;
 }
+/* The overview sits beside the title rather than in a left column, so the
+ * map and the stance cards get the full width. */
 .belief-intro {
-  display: flex;
-  align-items: flex-end;
+  max-width: 900px;
+}
+.outlook-intro {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(420px, 640px);
+  align-items: center;
   gap: 28px;
+}
+.outlook-overview {
+  margin-top: 0;
+  padding: 10px 14px 12px;
+  font-size: 13px;
+}
+
+.outlook-overview > h3:first-child {
+  margin-top: 0;
 }
 .belief-intro h3 {
   margin: 0 0 7px;
@@ -4236,34 +4296,19 @@ button:disabled {
   font-size: 27px;
 }
 .belief-intro p {
-  margin-top: 4px;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  margin-top: 6px;
   color: #b8bbcf;
   font-family: var(--sans);
-  font-size: 12px;
-}
-.belief-legend {
-  display: flex;
-  gap: 18px;
-  margin-left: auto;
-  padding-bottom: 4px;
-  color: #b8bbcf;
-  font-family: var(--sans);
-  font-size: 10px;
-  white-space: nowrap;
-}
-.belief-legend i {
-  display: inline-block;
-  width: 27px;
-  margin-right: 6px;
-  vertical-align: middle;
-  border-top: 1px solid var(--gold);
-}
-.belief-legend i.personal {
-  border-top-style: dotted;
+  font-size: 13.5px;
+  line-height: 1.5;
 }
 .power-map {
   position: relative;
-  height: 300px;
+  height: 268px;
   margin-top: 5px;
   border-bottom: 1px solid var(--line);
 }
@@ -4293,7 +4338,12 @@ button:disabled {
 .panel-card {
   margin-top: 12px;
   padding: 12px 16px;
-  background: #141d3547;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--culture-dark) 70%, transparent),
+    color-mix(in srgb, var(--culture-dark) 90%, transparent)
+  );
+  backdrop-filter: blur(3px);
   border: 1px solid var(--line-soft);
   border-radius: 2px;
 }
@@ -4337,29 +4387,7 @@ button:disabled {
 /* The Ideology tab. Positions have no hierarchy to draw, so they sit in a row
  * rather than on a map, and the panel is chrome rather than world: line icons
  * in the same weight as the type, not the pixel glyphs the Beliefs tab uses. */
-.outlook-layout {
-  display: grid;
-  grid-template-columns: 300px minmax(0, 1fr);
-  min-height: 600px;
-}
-.outlook-aside {
-  padding: 26px 28px;
-  border-right: 1px solid var(--line-soft);
-}
-.outlook-portrait {
-  --corner: 18px;
-  height: 246px;
-  padding: 10px;
-  overflow: hidden;
-  background-color: #1d2647;
-}
-.outlook-portrait > * {
-  height: 100%;
-}
-.outlook-aside h1 {
-  margin-top: 22px;
-  font-size: 30px;
-}
+
 .rule-diamond {
   display: block;
   height: 9px;
@@ -4375,60 +4403,13 @@ button:disabled {
       )
       center/9px 9px no-repeat;
 }
-.outlook-aside > p {
-  color: #b8bbcf;
-  font-family: var(--sans);
-  font-size: 13px;
-  line-height: 1.6;
-}
-.outlook-tags {
-  display: flex;
-  margin: 18px 0 0;
-  padding: 0;
-  gap: 7px;
-  flex-wrap: wrap;
-  list-style: none;
-}
-.outlook-tags li {
-  padding: 5px 11px;
-  color: var(--belief-cyan);
-  background: #1d2a4a80;
-  border: 1px solid #62d4ca44;
-  border-radius: 2px;
-  font-family: var(--sans);
-  font-size: 10px;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-}
-.outlook-measures {
-  margin-top: 22px;
-}
-.outlook-measures div {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  padding-top: 14px;
-  border-top: 1px solid var(--line-soft);
-  font-family: var(--sans);
-  font-size: 12px;
-}
-.outlook-measures dd {
-  color: var(--belief-cyan);
-  text-transform: capitalize;
-}
 .outlook-main {
   min-width: 0;
-  padding: 26px 32px 30px;
+  padding: 20px 32px 26px;
 }
 .outlook-main h1 {
   margin-top: 6px;
   font-size: 38px;
-}
-.outlook-lede {
-  margin-top: 9px;
-  color: #a4abc4;
-  font-family: var(--sans);
-  font-size: 12.5px;
 }
 .stance-row {
   display: flex;
@@ -4567,6 +4548,13 @@ button:disabled {
   color: var(--cream);
   text-transform: capitalize;
 }
+.stance-copy > p:first-child {
+  margin-bottom: 16px;
+  color: #e7e9f4;
+  font-family: inherit;
+  font-size: 22px;
+  line-height: 1.35;
+}
 .stance-copy p {
   margin: 0 0 12px;
   color: #cfd4e4;
@@ -4670,9 +4658,10 @@ button:disabled {
 }
 .power-detail {
   display: grid;
-  grid-template-columns: 205px minmax(290px, 1fr) 280px;
+  grid-template-columns: 158px minmax(290px, 1fr) 280px;
   gap: 24px;
-  padding-top: 18px;
+  align-items: start;
+  padding-top: 14px;
 }
 .power-detail h1 {
   margin-bottom: 10px;
@@ -4680,30 +4669,21 @@ button:disabled {
 }
 .power-identity {
   display: grid;
-  grid-template-columns: 96px 1fr;
+  justify-items: center;
   align-content: start;
-  gap: 0 12px;
-}
-.power-identity h1 {
-  grid-column: 1 / -1;
-}
-.power-identity > p {
-  align-self: center;
-  color: #c5c6d6;
-  font-size: 13px;
-  line-height: 1.4;
+  text-align: center;
 }
 .power-portrait {
   display: flex;
-  width: 96px;
-  height: 96px;
+  width: 72px;
+  height: 72px;
   align-items: center;
   justify-content: center;
   background: linear-gradient(135deg, #c5a365, #86613d);
 }
 .power-portrait .deity-icon {
-  width: 86px;
-  height: 86px;
+  width: 64px;
+  height: 64px;
   object-fit: contain;
   image-rendering: pixelated;
 }
@@ -4713,16 +4693,26 @@ button:disabled {
   border-left: 1px solid var(--line);
 }
 .power-copy h2 {
-  margin: 3px 0 8px;
-  font-size: 18px;
+  margin: 3px 0 10px;
+  color: #e7e9f4;
+  font-size: 22px;
   font-weight: 400;
+  line-height: 1.35;
 }
+.power-copy h2::first-letter {
+  text-transform: uppercase;
+}
+/* Capped rather than free-running: the panel keeps one height on every tab. */
 .power-copy > p {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 5;
+  overflow: hidden;
   margin: 7px 0;
   color: #b8bbcf;
   font-family: var(--sans);
-  font-size: 12px;
-  line-height: 1.45;
+  font-size: 13.5px;
+  line-height: 1.5;
 }
 .power-copy dl {
   margin-top: 12px;
@@ -4744,7 +4734,9 @@ button:disabled {
 }
 .power-copy dd {
   color: var(--cream);
-  text-transform: capitalize;
+}
+.power-copy dd::first-letter {
+  text-transform: uppercase;
 }
 .belief-practices h3 {
   margin-top: 3px;
@@ -4797,9 +4789,6 @@ button:disabled {
   .power-detail {
     grid-template-columns: 180px minmax(260px, 1fr) 230px;
   }
-  .belief-layout {
-    grid-template-columns: 220px minmax(0, 1fr);
-  }
 }
 @media (max-width: 860px) {
   .character-panel .character-header {
@@ -4825,13 +4814,15 @@ button:disabled {
     overflow-x: auto;
     padding-inline: 18px;
   }
-  .character-body,
-  .belief-layout {
+  .character-body {
     grid-template-columns: 1fr;
   }
-  .character-aside,
-  .belief-aside {
+  .character-aside {
     display: none;
+  }
+  .belief-intro,
+  .outlook-intro {
+    grid-template-columns: 1fr;
   }
   .character-side,
   .power-copy,
@@ -4843,12 +4834,6 @@ button:disabled {
   }
   .belief-main {
     padding: 20px 16px;
-  }
-  .belief-intro {
-    display: block;
-  }
-  .belief-legend {
-    margin-top: 12px;
   }
   .power-map {
     height: 340px;
@@ -5115,4 +5100,27 @@ button:disabled {
   .household-note {
     display: none;
   }
+}
+/* Rest menu */
+.rest-menu {
+  position: relative;
+  display: flex;
+}
+.rest-options {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 5px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--bg);
+  z-index: 5;
+}
+.quick-actions .rest-options button {
+  padding: 6px 12px;
+  font-size: 15px;
+  min-width: 168px;
 }

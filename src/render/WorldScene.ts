@@ -32,8 +32,7 @@ import { buildingContains, buildingPlacement } from "./buildings";
 import { terrainVariant, type RenderOptions } from "./appearance";
 import Phaser from "phaser";
 import {
-  JUMP_MS,
-  LONG_JUMP_MS,
+  jumpMs,
   JUMP_CHARGE_MS,
   type Runtime,
 } from "../runtime/session";
@@ -85,6 +84,11 @@ import {
   glowAlpha,
 } from "./fire";
 import terrainFrames from "./generated/terrain.json" with { type: "json" };
+import artVersion from "./generated/art-version.json" with { type: "json" };
+/** Moves when the packed art moves, so a rebuild is not hidden by a cached
+ *  texture. The atlases are served from public/ by plain path, which the
+ *  browser is entitled to hold on to indefinitely without it. */
+const artStamp = artVersion.stamp;
 /** People drawn at once. Beyond roughly this many the per-head frame cache,
  * not the simulation, is what costs the frame. */
 const CROWD_LIMIT = 24;
@@ -247,6 +251,9 @@ export class WorldScene extends Phaser.Scene {
   private spaceDown = false;
   private jumpStarted?: number;
   private queuedJump?: "short" | "long";
+  /** Whether the player was running when Space went down: a running jump
+   * clears an extra tile. */
+  private jumpRunning = false;
   private arcSerial = 0;
   private pendingDirection?: [number, number];
   private destinations = new Map<string, Position>();
@@ -274,38 +281,62 @@ export class WorldScene extends Phaser.Scene {
     this.options.shorePolish ??= { ...shorePolishDefaults };
   }
   preload() {
-    this.load.atlas("nature", "/nature/atlas.png", "/nature/atlas.json");
-    this.load.atlas("faunab", "/fauna-b/atlas.png", "/fauna-b/atlas.json");
-    this.load.atlas("faunac", "/fauna-c/atlas.png", "/fauna-c/atlas.json");
+    this.load.atlas(
+      "nature",
+      `/nature/atlas.png?v=${artStamp}`,
+      `/nature/atlas.json?v=${artStamp}`,
+    );
+    this.load.atlas(
+      "faunab",
+      `/fauna-b/atlas.png?v=${artStamp}`,
+      `/fauna-b/atlas.json?v=${artStamp}`,
+    );
+    this.load.atlas(
+      "faunac",
+      `/fauna-c/atlas.png?v=${artStamp}`,
+      `/fauna-c/atlas.json?v=${artStamp}`,
+    );
     this.load.atlas(
       "nature-shadows",
-      "/nature/shadows.png",
-      "/nature/shadows.json",
+      `/nature/shadows.png?v=${artStamp}`,
+      `/nature/shadows.json?v=${artStamp}`,
     );
-    this.load.atlas("ecology", "/ecology/atlas.png", "/ecology/atlas.json");
-    this.load.atlas("props", "/props/atlas.png", "/props/atlas.json");
+    this.load.atlas(
+      "ecology",
+      `/ecology/atlas.png?v=${artStamp}`,
+      `/ecology/atlas.json?v=${artStamp}`,
+    );
+    this.load.atlas(
+      "props",
+      `/props/atlas.png?v=${artStamp}`,
+      `/props/atlas.json?v=${artStamp}`,
+    );
     this.load.atlas(
       "prop-shadows",
-      "/props/shadows.png",
-      "/props/shadows.json",
+      `/props/shadows.png?v=${artStamp}`,
+      `/props/shadows.json?v=${artStamp}`,
     );
-    this.load.atlas("atlas", "/packs/atlas.png", "/packs/atlas.json");
+    this.load.atlas(
+      "atlas",
+      `/packs/atlas.png?v=${artStamp}`,
+      `/packs/atlas.json?v=${artStamp}`,
+    );
     this.load.atlas(
       "buildings",
-      "/packs/buildings.png",
-      "/packs/buildings.json",
+      `/packs/buildings.png?v=${artStamp}`,
+      `/packs/buildings.json?v=${artStamp}`,
     );
     this.load.atlas(
       "lighting-shadows",
-      "/packs/lighting-shadows.png",
-      "/packs/lighting-shadows.json",
+      `/packs/lighting-shadows.png?v=${artStamp}`,
+      `/packs/lighting-shadows.json?v=${artStamp}`,
     );
     this.load.atlas(
       "topography",
-      "/topography/atlas.png",
-      "/topography/atlas.json",
+      `/topography/atlas.png?v=${artStamp}`,
+      `/topography/atlas.json?v=${artStamp}`,
     );
-    this.load.image("terrain", "/packs/terrain.png");
+    this.load.image("terrain", `/packs/terrain.png?v=${artStamp}`);
     this.load.image(
       "tree-study-source",
       new URL("../../trees.png", import.meta.url).href,
@@ -397,6 +428,7 @@ export class WorldScene extends Phaser.Scene {
         const controls = this.runtime.propControls();
         if (controls.held || controls.primary) this.runtime.propAction("Space");
         else {
+          this.jumpRunning = this.shiftHeld || this.runtime.running;
           this.runtime.stop(false);
           this.jumpStarted = this.time.now;
         }
@@ -429,6 +461,7 @@ export class WorldScene extends Phaser.Scene {
       this.heldDirections.clear();
       this.shiftHeld = this.spaceDown = false;
       this.jumpStarted = this.queuedJump = undefined;
+      this.jumpRunning = false;
       this.pendingDirection = undefined;
       this.runtime.stop();
     };
@@ -836,12 +869,16 @@ export class WorldScene extends Phaser.Scene {
    * loaded. A name test would need every recipe prefix; the atlas already
    * knows what it holds. */
   private buildingFrames?: Set<string>;
+  private civicFrames?: Set<string>;
   private texture(frame: string) {
     if (!this.buildingFrames && this.textures.exists("buildings"))
       this.buildingFrames = new Set(
         this.textures.get("buildings").getFrameNames(),
       );
+    if (!this.civicFrames && this.textures.exists("civic"))
+      this.civicFrames = new Set(this.textures.get("civic").getFrameNames());
     if (this.buildingFrames?.has(frame)) return "buildings";
+    if (this.civicFrames?.has(frame)) return "civic";
     if (frame.startsWith("study-sheet-tree-")) return "tree-study";
     if (frame.startsWith("study-tree-"))
       return frame.slice(0, frame.lastIndexOf("-"));
@@ -2430,10 +2467,11 @@ export class WorldScene extends Phaser.Scene {
         this.queuedJump = undefined;
         const [dx, dy] = this.jumpDirection();
         this.pendingDirection = undefined;
-        this.motionDuration = power === "long" ? LONG_JUMP_MS : JUMP_MS;
+        const running = this.jumpRunning;
+        this.jumpRunning = false;
+        this.motionDuration = jumpMs(this.runtime.jump(dx, dy, power, running));
         this.nextInput = time + this.motionDuration;
         this.lastTick = time;
-        this.runtime.jump(dx, dy, power);
       } else if (time >= this.nextInput && this.jumpStarted === undefined) {
         const held = this.direction();
         const [dx, dy] = held.some(Boolean)

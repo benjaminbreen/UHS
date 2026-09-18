@@ -1231,6 +1231,36 @@
       ]
     },
     {
+      "id": "privy-midden",
+      "name": "Midden",
+      "group": "Household",
+      "size": [
+        58,
+        40
+      ],
+      "description": "No privy at all: the heap at the bottom of the yard, ash and sherds and bone, with a plank laid across it.",
+      "variants": [
+        "Loam",
+        "Red earth",
+        "Sand"
+      ]
+    },
+    {
+      "id": "privy-dung",
+      "name": "Dung heap",
+      "group": "Household",
+      "size": [
+        61,
+        42
+      ],
+      "description": "The farmyard muck heap, boarded in and forked over, with the straw still showing through.",
+      "variants": [
+        "Byre straw",
+        "Dry dung",
+        "Deep litter"
+      ]
+    },
+    {
       "id": "privy-bench",
       "name": "Bench latrine",
       "group": "Household",
@@ -1363,6 +1393,44 @@
         "East Asian",
         "South Asian",
         "Southeast Asian"
+      ]
+    },
+    {
+      "id": "sign-hanging",
+      "name": "Hanging shop sign",
+      "group": "Street furniture",
+      "size": [
+        42,
+        50
+      ],
+      "description": "A gallows post at the kerb, an iron arm and chains, and a board with the trade painted on it. No lettering: the picture is the message.",
+      "variants": [
+        "Alehouse tankard",
+        "Shears and cloth",
+        "Hammer and anvil",
+        "Baker's loaf",
+        "Cobbler's boot",
+        "Potter's jar",
+        "The bell"
+      ]
+    },
+    {
+      "id": "sign-souk",
+      "name": "Souk shopfront",
+      "group": "Street furniture",
+      "size": [
+        41,
+        48
+      ],
+      "description": "The stock hung at the door on a short bracket, which is how an open-fronted suq shop was told apart. The one lettered form is the carved foundation plaque a public building carried.",
+      "variants": [
+        "Coffee pot",
+        "Hanging rug",
+        "Coppersmith's tray",
+        "Ring loaves",
+        "Slippers",
+        "Dealer's balance",
+        "Foundation plaque"
       ]
     },
     {

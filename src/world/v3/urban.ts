@@ -554,29 +554,40 @@ export function urbanNeighborhood(
         const set = form.tiers[0] + 4;
         return [0, 1, -1, 2, -2].map((step) => {
           const shift = step * (w + 3);
-          return {
-            frame,
-            model,
-            nx,
-            ny,
-            rect: {
-              x: nx
-                ? nx < 0
-                  ? plaza.x - w - set
-                  : plaza.x + plaza.w + set
-                : Math.floor(plaza.x + (plaza.w - w) / 2) + shift,
-              y: ny
-                ? ny < 0
-                  ? plaza.y - h - set
-                  : plaza.y + plaza.h + set
-                : Math.floor(plaza.y + (plaza.h - h) / 2) + shift,
-              w,
-              h,
-            },
+          const rect = {
+            x: nx
+              ? nx < 0
+                ? plaza.x - w - set
+                : plaza.x + plaza.w + set
+              : Math.floor(plaza.x + (plaza.w - w) / 2) + shift,
+            y: ny
+              ? ny < 0
+                ? plaza.y - h - set
+                : plaza.y + plaza.h + set
+              : Math.floor(plaza.y + (plaza.h - h) / 2) + shift,
+            w,
+            h,
           };
+          // The ground the door opens onto has to be usable too, or the
+          // building lands correctly and nobody can reach it.
+          const apron =
+            nx || ny
+              ? { x: rect.x + (nx > 0 ? -2 : nx < 0 ? w : 0),
+                  y: rect.y + (ny > 0 ? -2 : ny < 0 ? h : 0),
+                  w: nx ? 2 : w,
+                  h: ny ? 2 : h }
+              : { x: rect.x, y: rect.y + h, w, h: 2 };
+          return { frame, model, nx, ny, rect, apron };
         });
       }),
-    ).find((c) => fits(c.rect));
+    // Only that the apron is usable ground: requiring it unreserved as well
+    // rejects every lot, because the strip toward the square is already the
+    // square's.
+    // Inside the settlement as well as on dry ground: a wall-less town has
+    // nothing else stopping a landmark being placed off the edge of the map.
+    ).find(
+      (c) => within(c.rect) && fits(c.rect) && api.dry(c.apron, false),
+    );
     if (!placed) continue;
     const point = {
       x: placed.rect.x + placed.model.entrance[0],
@@ -594,6 +605,11 @@ export function urbanNeighborhood(
     });
     reserve(placed.rect);
     api.reserveGround(placed.rect);
+    // The strip in front of the door is paved, as the sanctuary's forecourt
+    // is: without it the building is placed correctly and nothing ever routes
+    // to its entrance. It is not reserved — the door stands in it, and a
+    // reserved apron makes the lot itself unusable.
+    api.paintForecourt(placed.apron);
   }
   api.paintCourt(plaza, civic.square, civicRect);
   for (const [i, r] of layout.squares.entries()) api.paintSquare(r, i);

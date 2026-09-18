@@ -80,7 +80,7 @@ def low_well(v=0):
  cx, cy = 20.5, 9.5
  kerb(c, cx, cy, 20, 7.5, 15.5, 5.6, 15, STONE[v])
  shaft(c, cx, cy, 15.5, 5.6, STONE[v])
- c.outline(RAMPS[STONE[v]][0])
+ c.rim(RAMPS[STONE[v]])
  g = RAMPS['grass']
  for x, y in [(6, 16), (7, 16), (33, 22), (34, 22), (12, 27), (28, 13)]:
   if c.get(x, y): c.set(x, y, g[1])
@@ -116,7 +116,7 @@ def framed_well(v=0):
  cx, cy = 23, 30
  kerb(c, cx, cy, 17, 6.5, 13, 4.8, 13, STONE[v], courses=3, across=5)
  shaft(c, cx, cy, 13, 4.8, STONE[v])
- c.outline(RAMPS[STONE[v]][0])
+ c.rim(RAMPS[STONE[v]])
  w = RAMPS[style['post']]
  beam = 4 + style['pitch']
  for px in (7, 35):                                    # posts, with a foot brace
@@ -154,7 +154,7 @@ def framed_well(v=0):
  else:
   for y in range(rope_top, cy - 1): c.set(23, y, r[2] if y % 2 else r[3])
   c.set(23, cy - 1, r[1])
- c.outline(w[0])
+ c.rim(w)
  return c.image()
 
 
@@ -205,7 +205,7 @@ def trough(v=0):
  for lx in (3, 39):                               # feet
   c.rect(lx, base + 1, lx + 3, base + 2, w[2])
   c.hline(lx, lx + 3, base + 2, w[0])
- c.outline(w[0])
+ c.rim(w)
  grass(c, [(0, 25, 2), (44, 25, 2)])
  return c.image()
 
@@ -229,5 +229,5 @@ def pump(v=0):
  for i, (x, y) in enumerate([(7, 2), (5, 1), (3, 0)]):  # lever
   c.rect(x, y, x + 1, y + 1, m[3] if i else m[2]); c.set(x, y, m[4])
  c.set(2, 1, m[2])
- c.outline(m[0])
+ c.rim(m)
  return c.image()

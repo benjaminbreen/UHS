@@ -16,6 +16,7 @@ from .farm import FARM
 from .privy import PRIVY
 from .granary import GRANARY
 from .asia import ASIA
+from .signs import SIGNS
 from .civic import CIVIC
 from .market import MARKET
 from .vessels import (pot, storage_jar, water_jug, amphora, glazed_jar,
@@ -65,6 +66,7 @@ DRAW_B = {
  **PRIVY,
  **GRANARY,
  **ASIA,
+ **SIGNS,
  **CIVIC,
  **MARKET,
 }
@@ -87,6 +89,8 @@ ANIMATED = {
  'privy-bench': 4,
  'privy-stone': 4,
  'privy-nightsoil': 4,
+ 'privy-midden': 4,
+ 'privy-dung': 4,
 }
 
 # Knocked-over states, drawn as their own sprite rather than a rotation.

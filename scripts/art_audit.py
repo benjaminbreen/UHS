@@ -18,32 +18,43 @@ sys.path.insert(0, str(ROOT / 'scripts'))
 from art.quality.metrics import measure                          # noqa: E402
 from art.quality.palette import registry, lookup                 # noqa: E402
 
+# Buildings pack to their own page: they are the largest sprites in the game
+# and sharing one put the main atlas against its 4096px ceiling.
 ATLASES = [
     ('packs', 'public/packs/atlas.png', 'public/packs/atlas.json'),
+    ('buildings', 'public/packs/buildings.png', 'public/packs/buildings.json'),
     ('props', 'public/props/atlas.png', 'public/props/atlas.json'),
 ]
 
-# Which family a sprite belongs to, and what kind of thing it is. Sprites are
-# compared against their own kind: a building is meant to be bigger and flatter
-# than a pot, and a shared threshold would only ever flag one of them.
+# The audit is for the art a person sees on the map: props and buildings. The
+# atlases also carry terrain blend tiles, the deprecated character sheets and
+# the superseded portraits, and measuring those buries the handful of sprites
+# that are actually worth redrawing.
+SKIP = re.compile(
+    r'^(edge|bank|water\d|water-teal|wall|quay|animation)-?'
+    r'|^(human|portrait)-'
+    r'|^study-prop-'          # the superseded A studies; the B set is what ships
+)
+
 KINDS = [
     ('prop', re.compile(r'^study-propb-(.+?)-\d+(?:-\w+)?$')),
-    ('prop-legacy', re.compile(r'^study-prop-(.+?)-\d+')),
     ('prop', re.compile(r'^prop-(?:broken-)?(.+?)(?:-\d+)?$')),
-    # The building keys carry facings and forms after the variant, so anchoring
-    # on a trailing number puts half of them in "other" and skews every median.
-    ('building', re.compile(r'^(house|modern|period|candidate|religious|theatre|monument|quay)-([a-z]+)')),
-    ('character', re.compile(r'^(human|portrait)-')),
-    ('terrain', re.compile(r'^(edge|bank|water|wall)-')),
+    # Building keys carry facings and forms after the variant, so anchoring on a
+    # trailing number puts half of them in "other" and skews every median.
+    ('building', re.compile(
+        r'^(house|modern|period|candidate|religious|theatre|monument)-([a-z]+)')),
     ('flora', re.compile(r'^(crop|farm)-')),
 ]
 
-# Families drawn by the tree and vegetation scripts have bare names.
+# Trees and shrubs are drawn by the vegetation scripts under bare names.
 FLORA = {'oak', 'olive', 'hackberry', 'palm', 'pine', 'birch', 'cypress',
-         'willow', 'poplar', 'fig', 'cedar', 'acacia', 'baobab', 'juniper'}
+         'willow', 'poplar', 'fig', 'cedar', 'acacia', 'baobab', 'juniper',
+         'date', 'citrus', 'mulberry', 'plane', 'spruce', 'larch'}
 
 
 def classify(key):
+    if SKIP.match(key):
+        return None, None
     for kind, pattern in KINDS:
         m = pattern.match(key)
         if m:
@@ -53,7 +64,8 @@ def classify(key):
     head = key.split('-')[0]
     if head in FLORA:
         return 'flora', head
-    return 'other', head
+    # Everything left in these atlases is a hand-drawn prop under a bare name.
+    return 'prop', head
 
 
 def run(limit=None):
@@ -65,12 +77,16 @@ def run(limit=None):
         frames = json.loads((ROOT / meta).read_text())['frames']
         keys = sorted(frames)[:limit]
         for i, key in enumerate(keys):
+            # Classified before measuring: the terrain tiles alone are a
+            # thousand sprites we would measure only to throw away.
+            kind, family = classify(key)
+            if kind is None:
+                continue
             f = frames[key]['frame']
             image = sheet.crop((f['x'], f['y'], f['x'] + f['w'], f['y'] + f['h']))
             m = measure(image, by_colour, flat)
             if m.get('empty'):
                 continue
-            kind, family = classify(key)
             m.update(key=key, kind=kind, family=family, source=source,
                      atlas=[f['x'], f['y'], f['w'], f['h']])
             sprites.append(m)

@@ -1,9 +1,20 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
-import { existsSync, readFileSync, writeFileSync, renameSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  writeFileSync,
+  renameSync,
+  appendFileSync,
+} from "node:fs";
 import { createSession, restoreSession } from "../src/runtime/session";
-import { PlayerAdapter, requestSchema } from "../src/agents/player";
+import {
+  PlayerAdapter,
+  gotoSchema,
+  requestSchema,
+} from "../src/agents/player";
 const args = process.argv.slice(2);
 const arg = (name: string) => {
   const i = args.indexOf(name);
@@ -15,6 +26,26 @@ const engine =
     ? restoreSession(JSON.parse(readFileSync(path, "utf8")))
     : createSession(arg("--pack") ?? "roman", arg("--seed"));
 const player = new PlayerAdapter(engine);
+const runs = arg("--chronicle") ?? "runs";
+mkdirSync(runs, { recursive: true });
+const stem = `${runs}/${player.chronicle.header.id}`;
+/** Append as we go, so an interrupted run still leaves a readable record. */
+const flush = () => {
+  if (!existsSync(`${stem}.jsonl`))
+    writeFileSync(`${stem}.jsonl`, player.chronicle.headerLine() + "\n");
+  const pending = player.chronicle.drain();
+  if (pending.length)
+    appendFileSync(
+      `${stem}.jsonl`,
+      pending.map((t) => JSON.stringify(t)).join("\n") + "\n",
+    );
+  writeFileSync(`${stem}.md`, player.chronicle.markdown());
+};
+const save = () => {
+  if (!path) return;
+  writeFileSync(path + ".tmp", JSON.stringify(engine.snapshot()));
+  renameSync(path + ".tmp", path);
+};
 const server = new McpServer({
   name: "universal-history-simulator",
   version: "0.1.0",
@@ -33,6 +64,16 @@ server.registerTool(
   async () => text(player.observe()),
 );
 server.registerTool(
+  "digest",
+  {
+    description:
+      "Read the scene as prose: the world, this character and what the people, things and buildings in reach allow. Cheaper than observe; prefer it. Costs no simulated time.",
+    inputSchema: {},
+    annotations: { readOnlyHint: true },
+  },
+  async () => ({ content: [{ type: "text" as const, text: player.digest() }] }),
+);
+server.registerTool(
   "inspect",
   {
     description:
@@ -43,6 +84,20 @@ server.registerTool(
   async ({ targetId }) => text(player.inspect(targetId)),
 );
 server.registerTool(
+  "goto",
+  {
+    description:
+      "Walk to a visible person, object or entrance, by id or by x and y. One call covers the whole walk; use it instead of stepping. Advances simulated time and stops early if the way closes.",
+    inputSchema: gotoSchema.shape,
+  },
+  async (request) => {
+    const result = player.goto(request);
+    flush();
+    save();
+    return text(result);
+  },
+);
+server.registerTool(
   "act",
   {
     description:
@@ -51,10 +106,8 @@ server.registerTool(
   },
   async (request) => {
     const result = player.act(request);
-    if (path) {
-      writeFileSync(path + ".tmp", JSON.stringify(engine.snapshot()));
-      renameSync(path + ".tmp", path);
-    }
+    flush();
+    save();
     return text(result);
   },
 );

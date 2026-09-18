@@ -65,7 +65,7 @@ def chest(v=0):
  c.set(14, lid_base + 3, m[0]); c.set(15, lid_base + 2, br[5])
  for hx in (9, 20):                                # lid hinges
   c.rect(hx, lid_base - 2, hx + 1, lid_base + 1, m[3]); c.set(hx, lid_base, m[6])
- c.outline(m[0])
+ c.rim(m)
  return c.image()
 
 
@@ -97,7 +97,7 @@ def bench(v=0):
  c.hline(x0, x1, seat - 1, w[6])
  for x in (2, 14, 26):                            # nail heads
   c.set(x, seat - 2, RAMPS['iron7'][5]); c.set(x, seat - 1, RAMPS['iron7'][2])
- c.outline(w[0])
+ c.rim(w)
  return c.image()
 
 
@@ -141,7 +141,7 @@ def anvil(v=0):
   for x in range(8, 19, 3): c.vline(x, 12, 23, w[1])
   for y in range(12, 23):
    if jitter(y, 3) % 4 == 0: c.hline(9, 17, y, w[2])
- c.outline(m[0])
+ c.rim(m)
  return c.image()
 
 
@@ -174,7 +174,7 @@ def loom(v=0):
    c.hline(0, 43, y + i, w[5] if i == 0 else (w[4] if i < h - 1 else w[2]))
   streak(c, 0, 43, y + 1, w, 4)
   c.hline(0, 43, y + h, w[1])
- c.outline(w[0])                                 # frame only: outlining after
+ c.rim(w)                                 # frame only: outlining after
  # the warp is threaded rings every thread in black and it reads as a cage.
  for x in (left + 1, right + 1):                  # lashings at the joints
   for y, kind in beams:

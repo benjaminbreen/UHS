@@ -25,13 +25,10 @@ def trim(image):
     return cut
 
 sprites={};over=[]
-B_ONLY={'town-well','anvil','loom','pick','strapped-chest','cooking-pot','catch','pithos','flask','bowl','dustbin','steel-drum','wheelbarrow','washing-line',
-        'torch-post','brazier-post','lantern-post','gas-lamp','electric-lamp','sodium-lamp',
-        'stall-trestle','stall-awning','stall-booth','stall-cart','stall-modern',
-        'plough','water-butt','rake','pitchfork','shovel','scythe','beehive','milk-churn','farm-cart',
-        'privy-shed','privy-screen','privy-bench','privy-stone','privy-nightsoil','privy-outhouse',
-        'granary-staddle','granary-mud','granary-stilt','granary-clay',
-        'shop-sign','door-lantern','square-focus','hitching-post','beam-scale'}
+# A redrawn family has no A study built: the B set is what the world, the
+# carried props and the lab all draw, so packing the old one wastes atlas room
+# and puts superseded art in front of anyone reviewing.
+B_ONLY=set(DRAW_B)
 for family in catalog['families']:
     # A family drawn only in the B set has no A study to build.
     for variant in ([] if family['id'] in B_ONLY else range(len(family['variants']))):
@@ -104,4 +101,6 @@ proof.save(ROOT/'artifacts/prop-review-sheet.png')
 if over:
     print(f'{len(over)} audit notes:')
     for line in over:print(f'  {line}')
+from art.stamp import write_stamp
+print(f'Art stamp {write_stamp(ROOT)}')
 print(f'Built {len(catalog["families"])} prop families / {len(sprites)} study frames.')

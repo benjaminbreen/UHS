@@ -5,7 +5,7 @@ roof above it, lit from the upper left, with the eaves throwing a line of
 shadow down onto the wall. A region is a choice of materials, not a redraw.
 """
 from .building import DIRT, _door, _flies, _ground, _roof, _wall
-from .core import Canvas, RAMPS, jitter, soft_outline, grass
+from .core import Canvas, RAMPS, blob, jitter, soft_outline, grass
 
 def plank_shed(v=0, frame=0):
  """A board shed over a pit: the default almost everywhere, almost always."""
@@ -213,6 +213,140 @@ def brick_outhouse(v=0, frame=0):
  return c.image()
 
 
+
+
+def _heap(c, shapes, ramp, base):
+ """A tipped mass, shaded as a solid rather than a row of columns. Everything
+ below the standing line is cut away: the near face meets trodden earth."""
+ mask = blob(c, shapes, ramp, light=(-0.5, -0.66), gamma=0.9)
+ for (x, y) in list(c.px):
+  if y > base: del c.px[(x, y)]
+ return {k: v for k, v in mask.items() if k[1] <= base}
+
+
+def midden(v=0, frame=0):
+ """No privy at all: the heap the village throws everything on.
+
+ What a farming hamlet before towns actually had — ash, sherds, bone and
+ nightsoil on one mound at the bottom of the yard. It is tipped, so it reads
+ in layers: a pale lens of hearth ash, then a season of muck over it.
+ """
+ c = Canvas(58, 44)
+ soil = RAMPS[['buffclay7', 'redearth7', 'sandstone'][v]]
+ ash = RAMPS['limestone']
+ base = 38
+ # Higher on the right and steeper on the left: a heap grows where the last
+ # basket was tipped, not evenly.
+ mask = _heap(c, [(33, 40, 18, 24), (16, 40, 13, 15), (45, 40, 12, 17)], soil, base)
+ top = {}
+ for (x, y) in mask:
+  if y < top.get(x, 99): top[x] = y
+ for (x, y), i in list(mask.items()):              # nothing here is smooth
+  n = jitter(x, y)
+  c.set(x, y, soil[max(min(i - 1 + (n % 5 == 0) + (n % 11 == 0), 6), 1)])
+ def lens(x0, x1, depth, ramp, tone, thick=2):
+  """A tipped layer, following the surface down rather than lying flat."""
+  for x in range(x0, x1 + 1):
+   if x not in top: continue
+   d = depth + abs(x - (x0 + x1) // 2) // 4
+   for k in range(thick):
+    y = top[x] + d + k
+    if (x, y) in mask and jitter(x, y) % 7:
+     c.set(x, y, ramp[max(tone - k, 1)])
+ lens(9, 34, 5, ash, 5, 3)                         # hearth ash, a winter of it
+ lens(30, 52, 3, ash, 4, 2)
+ lens(12, 44, 12, soil, 1, 2)                      # the muck tipped over it
+ lens(20, 50, 18, soil, 6, 1)
+ # The fresh corner: darker and wetter, and where the flies are. Without it
+ # the heap is a pile of soil rather than what the household uses.
+ for (x, y), i in list(mask.items()):
+  u, d = (x - 21) / 8.0, (y - 33) / 4.5
+  if u * u + d * d <= 1 and jitter(x, y) % 5:
+   c.set(x, y, soil[max(i - 3, 0)])
+ for x in range(14, 29):
+  if jitter(x, 4) % 3: c.set(x, 33 - abs(x - 21) // 3 - 4, soil[6])
+ sherd = RAMPS['terracotta7']                      # thrown pot, down the slope
+ for sx, sy, n, up in ((38, 25, 6, -1), (46, 32, 4, 1), (30, 18, 5, -1), (12, 28, 4, 1)):
+  for k in range(n):
+   x, y = sx + k, sy - (k // 2) * up
+   c.set(x, y, sherd[6 if k else 5]); c.set(x, y + 1, sherd[2])
+ for k, half in enumerate((3, 5, 6, 6, 5, 4, 3)):   # a pot, broken and half sunk
+  for x in range(43 - half, 44 + half):
+   if k == 0 and jitter(x, 3) % 3 == 0: continue   # the jagged break at the rim
+   u = (x - (43 - half)) / max(half * 2, 1)
+   c.set(x, 19 + k, sherd[5] if u < 0.3 else sherd[4] if u < 0.7 else sherd[2])
+  if k == 1: c.hline(43 - half, 44 + half, 20, sherd[6])
+ bone = RAMPS['limestone']                         # and what the dogs left
+ for bx, by, run in ((18, 36, 6), (48, 27, 5)):
+  for k in range(run): c.set(bx + k, by + k // 4, bone[6 if k % 2 else 5])
+  c.set(bx - 1, by - 1, bone[4]); c.set(bx + run, by + 1, bone[3])
+ w = RAMPS['ash7']
+ for k in range(11):                               # a stick pushed in at an angle
+  c.set(33 + k // 3, 15 - k, w[5]); c.set(34 + k // 3, 15 - k, w[2])
+ _ground(c, 28, base, 27)
+ _flies(c, frame, [(28, 28, 21, 8, 1.0), (33, 20, 14, 9, -1.0), (17, 32, 9, 5, 1.0)])
+ soft_outline(c, soil[0], soil[2])
+ grass(c, [(1, 42, 3), (55, 42, 2)])
+ return c.image()
+
+
+def dung_heap(v=0, frame=0):
+ """The farmyard muck heap: byre straw and dung, forked out and rotting down.
+
+ Manure is worth money, so it is boarded in and squared up rather than tipped
+ down a bank. The fork stays in it between loads.
+ """
+ c = Canvas(62, 48)
+ straw = RAMPS['straw']
+ muck = RAMPS[['walnut7', 'redearth7', 'oak7'][v]]
+ w = RAMPS['ash7']
+ base = 42
+ mask = _heap(c, [(31, 43, 24, 21), (17, 44, 13, 15), (45, 44, 14, 14)], muck, base)
+ top = {}
+ for (x, y) in mask:
+  if y < top.get(x, 99): top[x] = y
+ # Fresh straw on top, dark rotted muck under it: a heap in its second year
+ # is two materials, not one, and the line between them is what reads.
+ for (x, y), i in list(mask.items()):
+  depth = y - top[x]
+  n = jitter(x * 3, y * 7)
+  if depth < 4 + n % 4:
+   c.set(x, y, straw[max(min(i + 1 - n % 2, 6), 2)])
+  else:
+   tone = max(i - 2, 1)
+   c.set(x, y, straw[min(tone + 2, 6)] if n % 6 == 0 else muck[tone])
+ for i in range(11):                               # loose straw over the crest
+  sx = 8 + i * 4
+  if sx not in top: continue
+  for k in range(3 + jitter(sx, i) % 3):
+   c.set(sx + k, top[sx] - 1 - jitter(sx, k) % 2, straw[6 if k % 2 else 5])
+ for px, side in ((5, 1), (54, -1)):               # the boards that hold it in
+  for y in range(30, base + 1):
+   c.set(px, y, w[5]); c.set(px + side, y, w[3]); c.set(px + side * 2, y, w[1])
+  c.set(px, 29, w[6])
+ for x in range(5, 57):                            # a rail along the near side
+  if x % 7 == 0: continue
+  c.set(x, 37 + (x > 31), w[4]); c.set(x, 38 + (x > 31), w[2])
+ m = RAMPS['blackiron7']
+ hw = RAMPS['walnut7']
+ for k in range(30):                               # a fork left standing in it
+  x, y = 45 - k // 5, 38 - k
+  c.set(x, y, hw[5]); c.set(x + 1, y, hw[3]); c.set(x + 2, y, hw[0])
+ for off in (-4, 0, 4):                            # its head, three tines
+  for k in range(8): c.set(40 + off, 8 + k, m[5 if k % 2 else 4])
+  c.set(40 + off, 7, m[6]); c.set(40 + off + 1, 8 + 7, m[1])
+ c.hline(36, 44, 16, m[4]); c.hline(36, 44, 17, m[1])
+ for k in range(3): c.set(40 + k, 18 + k, hw[4])   # the socket onto the shaft
+ for i in range(4):                                # seepage at the foot
+  x = 13 + i * 11
+  for k in range(5): c.set(x + k, base + 1, '#332d1e')
+ _ground(c, 31, base, 29)
+ _flies(c, frame, [(31, 32, 23, 8, 1.0), (36, 24, 15, 10, -1.0), (19, 36, 10, 5, 1.0)])
+ soft_outline(c, muck[0], muck[2])
+ grass(c, [(2, 46, 3), (58, 46, 2)])
+ return c.image()
+
+
 PRIVY = {
  'privy-shed': plank_shed,
  'privy-screen': reed_screen,
@@ -220,4 +354,6 @@ PRIVY = {
  'privy-stone': stone_privy,
  'privy-nightsoil': night_soil,
  'privy-outhouse': brick_outhouse,
+ 'privy-midden': midden,
+ 'privy-dung': dung_heap,
 }

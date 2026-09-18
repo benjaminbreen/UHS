@@ -92,6 +92,26 @@ const CharacterLab = lazy(() =>
 const PortraitLab = lazy(() =>
   import("../dev/PortraitLab").then((m) => ({ default: m.PortraitLab })),
 );
+/** Rest is the only way to move the clock by hand, so it offers the three
+ * spans that matter: a pause, an afternoon, and the night. */
+const REST_OPTIONS: {
+  label: string;
+  command: (runtime: Runtime) => PlayerCommand;
+}[] = [
+  { label: "Rest an hour", command: () => ({ type: "sleep", seconds: 3600 }) },
+  {
+    label: "Rest five hours",
+    command: () => ({ type: "sleep", seconds: 5 * 3600 }),
+  },
+  {
+    label: "Sleep until morning",
+    command: (runtime) => ({
+      type: "sleep",
+      seconds: runtime.engine.untilMorning(),
+    }),
+  },
+];
+
 export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
   const view = useSyncExternalStore(runtime.subscribe, runtime.getSnapshot);
   const { observation: obs, selection, pack } = view;
@@ -110,6 +130,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
     return () => director.dispose();
   }, []);
   useEffect(() => audio?.updateWorld(obs.clock), [audio, obs.clock]);
+  const [restOpen, setRestOpen] = useState(false);
   const [modal, setModal] = useState<
     | "world"
     | "inventory"
@@ -336,8 +357,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
         runtime.climb();
       }
       if (e.key.toLowerCase() === "r") setModal("map");
-      if (e.key.toLowerCase() === "t")
-        runtime.command({ type: "wait", seconds: 300 });
+      if (e.key.toLowerCase() === "t") setRestOpen((open) => !open);
       if (e.key.toLowerCase() === "m") setModal("map");
       if (e.key.toLowerCase() === "j" || e.key.toLowerCase() === "n")
         setModal("notebook");
@@ -506,7 +526,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
           <div
             className="game-container"
             ref={mount}
-            aria-label="Playable historical world. WASD or arrows to walk, Shift to run, Space to jump or pick up and drop items. Hold Space for a long jump."
+            aria-label="Playable historical world. WASD or arrows to walk, Shift to run, Space to jump or pick up and drop items. Hold Space to charge a longer jump; jumping while running clears an extra tile."
             tabIndex={0}
           />
           {graphicsOpen && (
@@ -715,13 +735,32 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
                 <span>Travel</span>
                 <kbd>R</kbd>
               </button>
-              <button
-                onClick={() => runtime.command({ type: "wait", seconds: 300 })}
-              >
-                <Hourglass size={17} />
-                <span>Wait</span>
-                <kbd>T</kbd>
-              </button>
+              <div className="rest-menu">
+                {restOpen && (
+                  <div className="rest-options" role="menu">
+                    {REST_OPTIONS.map((option) => (
+                      <button
+                        key={option.label}
+                        role="menuitem"
+                        onClick={() => {
+                          setRestOpen(false);
+                          runtime.command(option.command(runtime));
+                        }}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <button
+                  aria-expanded={restOpen}
+                  onClick={() => setRestOpen((open) => !open)}
+                >
+                  <Hourglass size={17} />
+                  <span>Rest</span>
+                  <kbd>T</kbd>
+                </button>
+              </div>
             </div>
             <form
               ref={commandForm}
@@ -761,7 +800,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
               <span>
                 <kbd>SHIFT</kbd> run <kbd>C</kbd> climb
               </span>
-              <span title="Tap to jump; hold for a longer jump. Nearby items take priority. No jumping while carrying.">
+              <span title="Tap to jump; hold to charge. A running jump clears an extra tile. Nearby items take priority. No jumping while carrying.">
                 <kbd>SPACE</kbd>{" "}
                 {propControls.held
                   ? "drop"

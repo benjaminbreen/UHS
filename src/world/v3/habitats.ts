@@ -23,6 +23,9 @@ export type Habitat = {
   colorway?: Colorway;
   kind: HabitatKind;
   wet: number;
+  /** How far this ground has gone over to peat-stained swamp water, 0-1.
+   * Continuous so the renderer can crossfade instead of stepping at patch edges. */
+  murk?: number;
   cover: number;
   exposed: number;
   season: string;
@@ -52,14 +55,18 @@ export function habitatAt(
     const exposed = clamp(recipe.mineral + d.slope * 0.45 + (noise(seed, x, y, 31, "habitat-substrate") - 0.5) * 0.22 - wet * 0.4);
     const flooded = clamp((d.saturation - 0.3) / 0.3);
     let blend = land.ecologyParts;
+    let murk = colorway === "swamp" ? 1 : 0;
     if (flooded > 0 && land.kind !== "sea" && d.waterDistance >= 0) {
       const woodland = recipe.canopy > 0.45;
       const wetColorway = woodland ? (ecology === "boreal-woodland" ? "bog" : "swamp") : "marsh";
       blend = [...blend.map((p) => ({ ...p, weight: p.weight * (1 - flooded) })), { ecology: "wetland", colorway: wetColorway, weight: flooded }];
       if (flooded > 0.5) { ecology = "wetland"; colorway = wetColorway; }
+      // Centred on the 0.5 cutoff above, so swamp interiors stay fully swamp
+      // and only the margin carries a partial value.
+      if (wetColorway === "swamp") murk = Math.max(murk, clamp((flooded - 0.2) / 0.4));
     }
     const kind: HabitatKind = exposed > 0.58 ? "exposed" : wet > 0.62 ? "hollow" : cover > 0.5 ? "woodland" : cover > 0.28 ? "scrub" : wet > 0.3 ? "meadow" : "open";
-    return { ecology, colorway, season, wet, cover, exposed, kind, blend, site: classifyCommunity(region, land, cover, exposed) };
+    return { ecology, colorway, season, wet, murk, cover, exposed, kind, blend, site: classifyCommunity(region, land, cover, exposed) };
   }
   const layout = habitatLayout(colorway);
   const warp = (noise(seed, x, y, 65, "habitat-warp") - 0.5) * 17;
@@ -125,7 +132,7 @@ export function habitatAt(
           : wet > 0.3
             ? "meadow"
             : "open";
-  return { ecology, colorway, season, wet, cover, exposed, kind };
+  return { ecology, colorway, season, wet, murk: colorway === "swamp" ? 1 : 0, cover, exposed, kind };
 }
 /** One jittered candidate per 2x2 cell, admitted in connected habitat colonies.
  * Independent hashes avoid coupling tree selection to sprite/rock selection. */

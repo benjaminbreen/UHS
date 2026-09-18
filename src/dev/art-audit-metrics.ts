@@ -3,13 +3,18 @@
  * `scripts/art_audit.py` writes the numbers and takes no view on them. The
  * thresholds live here so a question like "how dark is too dark for a rim"
  * can be answered by dragging a slider instead of by rebuilding the art.
+ *
+ * There is deliberately no palette-conformance metric. Limiting colour to a
+ * declared list flags the door lanterns, which are good, and the game wants
+ * many palettes so climates and seasons read differently. What is worth
+ * measuring is how a surface is drawn, not which colours it is drawn in.
  */
 
 export type Sprite = {
   key: string;
   kind: string;
   family: string;
-  source: "packs" | "props";
+  source: "packs" | "buildings" | "props";
   atlas: [number, number, number, number];
   pixels: number;
   w: number;
@@ -28,9 +33,9 @@ export type Sprite = {
   rimGap: number;
   rimChroma: number;
   darkestFrac: number;
-  offRamp: number;
-  offRampDist: number;
-  ramps?: string[];
+  flatTone: number;
+  interiorTones: number;
+  hardEdges: number;
   chroma: number;
   hueShift?: number;
   hueSpread: number;
@@ -49,7 +54,7 @@ export type Report = {
 };
 
 export type Metric = {
-  id: keyof Sprite & string;
+  id: string;
   label: string;
   /** What a high number means, in one line, shown under the slider. */
   note: string;
@@ -62,8 +67,38 @@ export type Metric = {
 };
 
 const pct = (v: number) => `${Math.round(v * 100)}%`;
+const two = (v: number) => v.toFixed(2);
 
 export const METRICS: Metric[] = [
+  {
+    id: "flatTone",
+    label: "Flat body",
+    note: "Largest share of the interior held by one colour. The difference between a lit surface and a flat shape with a dark patch on it: the amphora sits at 36%, the door lantern at 13%.",
+    min: 0,
+    max: 1,
+    step: 0.01,
+    worse: "high",
+    format: pct,
+  },
+  {
+    id: "hardEdges",
+    label: "Hard steps",
+    note: "Share of touching interior pixels that jump more than a quarter of the sprite's range. A turned surface steps a little many times; a pasted-on shadow steps a lot, rarely.",
+    min: 0,
+    max: 1,
+    step: 0.01,
+    worse: "high",
+    format: pct,
+  },
+  {
+    id: "interiorTones",
+    label: "Interior tones",
+    note: "Colours inside the rim. Judge against size, which the median beside it does for you.",
+    min: 0,
+    max: 40,
+    step: 1,
+    worse: "low",
+  },
   {
     id: "ringDark",
     label: "Keyline",
@@ -92,36 +127,17 @@ export const METRICS: Metric[] = [
     max: 1.2,
     step: 0.01,
     worse: "high",
-    format: (v) => v.toFixed(2),
+    format: two,
   },
   {
     id: "rimChroma",
     label: "Rim colour",
-    note: "Rim saturation against the body's. Below about 0.7 the outline has had the colour drained out of it, which is a shared black ink rather than the material's own dark step.",
+    note: "Rim saturation against the body's. Below about 0.7 the outline has had the colour drained out of it: a shared near-black rather than the material's own dark step.",
     min: 0,
     max: 1.6,
     step: 0.01,
     worse: "low",
-    format: (v) => v.toFixed(2),
-  },
-  {
-    id: "offRamp",
-    label: "Off palette",
-    note: "Share of pixels whose colour is in no declared ramp. High means colours typed into a draw call by hand.",
-    min: 0,
-    max: 1,
-    step: 0.01,
-    worse: "high",
-    format: pct,
-  },
-  {
-    id: "offRampDist",
-    label: "Palette distance",
-    note: "How far those off-palette colours sit from the nearest declared one. Small is a near-miss worth snapping; large is a different colour entirely.",
-    min: 0,
-    max: 120,
-    step: 1,
-    worse: "high",
+    format: two,
   },
   {
     id: "gradY",
@@ -131,7 +147,7 @@ export const METRICS: Metric[] = [
     max: 1.5,
     step: 0.01,
     worse: "low",
-    format: (v) => v.toFixed(2),
+    format: two,
   },
   {
     id: "gradX",
@@ -141,16 +157,7 @@ export const METRICS: Metric[] = [
     max: 1.5,
     step: 0.01,
     worse: "low",
-    format: (v) => v.toFixed(2),
-  },
-  {
-    id: "tones",
-    label: "Tones",
-    note: "Distinct colours used. Under about six over a large sprite cannot carry grain, a rim and a lit edge at once.",
-    min: 0,
-    max: 60,
-    step: 1,
-    worse: "low",
+    format: two,
   },
   {
     id: "banding",
@@ -163,9 +170,18 @@ export const METRICS: Metric[] = [
     format: pct,
   },
   {
+    id: "tones",
+    label: "Tones",
+    note: "Distinct colours used, rim included.",
+    min: 0,
+    max: 60,
+    step: 1,
+    worse: "low",
+  },
+  {
     id: "lumRange",
     label: "Value range",
-    note: "Darkest to lightest. A low range is a sprite that will vanish against the ground; a very high one is usually a black keyline.",
+    note: "Darkest to lightest. A low range is a sprite that will vanish against the ground.",
     min: 0,
     max: 255,
     step: 1,
@@ -174,7 +190,7 @@ export const METRICS: Metric[] = [
   {
     id: "lumMean",
     label: "Mean value",
-    note: "Overall brightness. Compare against the family, not in the absolute: this is how you find the one prop that is too dark for its neighbours.",
+    note: "Overall brightness. Compare against the family, not in the absolute: this is how you find the one prop too dark for its neighbours.",
     min: 0,
     max: 255,
     step: 1,
@@ -193,7 +209,7 @@ export const METRICS: Metric[] = [
   {
     id: "chroma",
     label: "Chroma",
-    note: "Mean saturation. Useful for spotting the one prop that is more colourful than everything around it.",
+    note: "Mean saturation. Useful for spotting the one prop more colourful than everything around it.",
     min: 0,
     max: 1,
     step: 0.01,
@@ -223,7 +239,7 @@ export const METRICS: Metric[] = [
   {
     id: "fill",
     label: "Fill",
-    note: "Opaque share of the bounding box. Very low is a sprite that is mostly empty space, which wastes atlas room.",
+    note: "Opaque share of the bounding box.",
     min: 0,
     max: 1,
     step: 0.01,
@@ -259,6 +275,14 @@ export type Preset = {
 
 export const PRESETS: Preset[] = [
   {
+    id: "crude",
+    label: "Crude modelling",
+    blurb:
+      "A body carrying one flat colour with hard steps in it, rather than a turned surface. This is the amphora-against-the-door-lantern question: both are round, only one is lit.",
+    ranges: { flatTone: [0.28, 1], hardEdges: [0.18, 1] },
+    sort: "flatTone",
+  },
+  {
     id: "keyline",
     label: "Hard keylines",
     blurb:
@@ -275,15 +299,6 @@ export const PRESETS: Preset[] = [
     sort: "ringDepth",
   },
   {
-    id: "flat",
-    label: "No light on it",
-    blurb:
-      "Texture but no gradient in either axis. Roofs and walls land here when tone is chosen per tile at random.",
-    ranges: { gradY: [-0.12, 0.12], gradX: [-0.12, 0.12], pixels: [1200, 40000] },
-    sort: "pixels",
-    desc: true,
-  },
-  {
     id: "ink",
     label: "Neutral ink",
     blurb:
@@ -292,12 +307,17 @@ export const PRESETS: Preset[] = [
     sort: "rimChroma",
   },
   {
-    id: "offpalette",
-    label: "Off palette",
+    id: "flat",
+    label: "No light on it",
     blurb:
-      "Colours in no declared ramp. Sort by palette distance: near-misses are a snap, far ones are a decision someone made alone.",
-    ranges: { offRamp: [0.35, 1] },
-    sort: "offRamp",
+      "Texture but no gradient in either axis. Roofs and walls land here when tone is chosen per tile at random.",
+    ranges: {
+      gradY: [-0.12, 0.12],
+      gradX: [-0.12, 0.12],
+      pixels: [1200, 40000],
+    },
+    sort: "pixels",
+    desc: true,
   },
   {
     id: "banding",
@@ -312,14 +332,6 @@ export const PRESETS: Preset[] = [
     blurb:
       "Shadow and light share a hue, so the ramp is a brightness slider rather than a lit surface.",
     ranges: { hueShift: [-4, 4], pixels: [600, 40000] },
-    sort: "pixels",
-    desc: true,
-  },
-  {
-    id: "thin",
-    label: "Too few tones",
-    blurb: "A large sprite carrying fewer tones than it needs to read as solid.",
-    ranges: { tones: [0, 7], pixels: [900, 40000] },
     sort: "pixels",
     desc: true,
   },
@@ -339,7 +351,5 @@ export function median(values: number[]) {
   if (!values.length) return 0;
   const sorted = [...values].sort((a, b) => a - b);
   const mid = sorted.length >> 1;
-  return sorted.length % 2
-    ? sorted[mid]
-    : (sorted[mid - 1] + sorted[mid]) / 2;
+  return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
 }

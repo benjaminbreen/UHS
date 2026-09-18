@@ -10,7 +10,7 @@ def town_well(v=0):
  st = STONE[v]
  kerb(c, cx, cy, 25, 9, 19, 6.8, 18, st, courses=4, across=8, blocks=13)
  shaft(c, cx, cy, 19, 6.8, st)
- c.outline(RAMPS[st][0])
+ c.rim(RAMPS[st])
  w = RAMPS[WOOD[(v + 1) % 3]]
  c.rect(43, 4, 46, 30, w[3])                      # post
  c.vline(43, 4, 30, w[1]); c.vline(44, 5, 29, w[4]); c.vline(46, 4, 30, w[1])
@@ -26,7 +26,7 @@ def town_well(v=0):
  c.hline(20, 29, 13, w[5]); c.hline(20, 29, 22, w[1])
  for y in (15, 20): c.hline(20, 29, y, RAMPS['iron'][3])
  c.set(24, 12, RAMPS['iron'][4]); c.set(24, 13, RAMPS['iron'][4])
- c.outline(w[0])
+ c.rim(w)
  g, s = RAMPS['grass'], RAMPS[st]
  grass(c, [(2, 33, 3), (7, 37, 2), (44, 36, 3), (50, 33, 2), (16, 40, 2), (33, 41, 2)])
  for x, y in [(4, 38), (10, 40), (48, 39), (39, 41)]:                # pebbles
@@ -124,7 +124,7 @@ def axe(v=0):
  for x, y in [(10, 6), (10, 7), (11, 7), (11, 8)]:
   c.set(x, y, m[1])                               # eye, gripping the haft
  c.set(10, 9, m[2])
- c.outline(m[0])
+ c.rim(m)
  return c.image()
 
 
@@ -160,7 +160,7 @@ def pick(v=0):
  c.rect(8, 6, 10, 9, m[2])
  c.set(8, 7, m[4]); c.set(10, 8, m[1])
  c.set(9, 7, m[3]); c.set(9, 8, m[3])
- c.outline(m[0])
+ c.rim(m)
  return c.image()
 
 
@@ -218,7 +218,7 @@ def drying_rack(v=0, layer='all'):
      if .25 < t < .75 and k % 2: c.set(x, top + k, f[5])
     c.set(x - 2, top + h + 1, f[2]); c.set(x + 2, top + h + 1, f[2])
     c.set(x - 1, top + h + 1, f[3]); c.set(x + 1, top + h + 1, f[3])
- c.outline(w[0])
+ c.rim(w)
  if layer != 'hang':
   grass(c, [(1, 35, 3), (21, 35, 2), (44, 35, 3)])
  return c.image()

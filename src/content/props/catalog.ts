@@ -356,6 +356,18 @@ export const propDefs: Record<string, PropDef> = {
     family: "privy-outhouse",
     where: "privy",
   },
+  privyMidden: {
+    solid: true,
+    name: "Midden",
+    family: "privy-midden",
+    where: "privy",
+  },
+  privyDung: {
+    solid: true,
+    name: "Dung heap",
+    family: "privy-dung",
+    where: "privy",
+  },
   granaryStaddle: {
     solid: true,
     name: "Granary",
@@ -393,6 +405,20 @@ export const propDefs: Record<string, PropDef> = {
     solid: false,
     name: "Shop sign",
     family: "shop-sign",
+  },
+  shopSignEuro: {
+    solid: false,
+    name: "Shop sign",
+    family: "sign-hanging",
+    // One board per trade, plus a bell for a house that is not a shop.
+    variants: 7,
+  },
+  shopSignSouk: {
+    solid: false,
+    name: "Shop sign",
+    family: "sign-souk",
+    // The same seven trades as the European board, hung rather than painted.
+    variants: 7,
   },
   doorLantern: {
     solid: false,

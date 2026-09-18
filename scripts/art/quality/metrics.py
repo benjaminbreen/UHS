@@ -127,6 +127,34 @@ def measure(image, ramp_colours=None, ramp_list=None):
         m['rimGap'] = 0.0
         m['rimChroma'] = 1.0
 
+    # --- modelling ------------------------------------------------------
+    # What separates a modelled form from a crude one is not the outline. It is
+    # whether the body is a lit surface or a single flat colour with a dark
+    # patch on it. Measured on the interior, because the rim is a different job.
+    interior = {xy: c for xy, c in opaque.items() if xy not in set(boundary)}
+    if interior:
+        inner_counts = {}
+        for c in interior.values():
+            inner_counts[c] = inner_counts.get(c, 0) + 1
+        m['flatTone'] = round(max(inner_counts.values()) / len(interior), 3)
+        m['interiorTones'] = len(inner_counts)
+        # Value jumps between touching pixels. A turned surface steps a little
+        # many times; a flat body with a shadow pasted on steps a lot, rarely.
+        pairs = jumps = 0
+        for (x, y), c in interior.items():
+            for dx, dy in ((1, 0), (0, 1)):
+                n = interior.get((x + dx, y + dy))
+                if n is None:
+                    continue
+                pairs += 1
+                if abs(lums[c] - lums[n]) > 0.25 * span:
+                    jumps += 1
+        m['hardEdges'] = round(jumps / pairs, 3) if pairs else 0.0
+    else:
+        m['flatTone'] = 1.0
+        m['interiorTones'] = 1
+        m['hardEdges'] = 0.0
+
     # --- palette --------------------------------------------------------
     if ramp_colours is not None:
         off = 0

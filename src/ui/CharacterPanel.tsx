@@ -1,5 +1,5 @@
 import { wearSlots } from "../core/character";
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import {
   Amphora,
   BarChart3,
@@ -38,6 +38,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { CharacterSprite } from "./CharacterSprite";
+import { accentFor, patternFor, sceneFor } from "./culture-theme";
 import { Sprite, timeLabel } from "./components";
 import { dayPlan } from "../core/itinerary";
 import { dispositionOf, standingOf } from "../core/persona";
@@ -56,14 +57,13 @@ import { GlyphIcon } from "./GlyphIcon";
 import { stanceIcon } from "./StanceIcon";
 import { useWikiSummary } from "./useWikiSummary";
 import { outlookOf, outlookSentence, shortLabel } from "../core/outlook";
-import { describeStanding, standingOf as rankOf } from "../core/standing";
 import type { Stance, StanceTag } from "../content/outlook/types";
 import { sexFromName } from "../content/characters/name-sex";
 import type { Runtime } from "../runtime/session";
 import type { Actor, PlayerCommand } from "../core/types";
 import type { StationActivity } from "../core/itinerary";
 import type { PersonalBelief } from "../content/beliefs";
-import type { Power } from "../content/beliefs/types";
+import type { Power, RelationKind } from "../content/beliefs/types";
 
 const dayIcons: Record<StationActivity, LucideIcon> = {
   rest: Moon,
@@ -271,45 +271,72 @@ export function beliefHierarchy(belief: PersonalBelief) {
         !featured.some((candidate) => candidate.name === power.name),
     )
     .slice(0, 5);
+  // Rows span most of the width rather than bunching in the middle; a lone
+  // node still sits centred.
+  const spread = (index: number, count: number) =>
+    count > 1 ? 120 + (index * 760) / (count - 1) : 500;
   const nodes: PowerNode[] = [
     ...featured.map((power, index) => ({
       power,
-      x: ((index + 1) * 1000) / (featured.length + 1),
-      y: 62,
+      x: spread(index, featured.length),
+      y: 60,
       tier: "primary" as const,
     })),
     ...secondary.map((power, index) => ({
       power,
-      x: ((index + 1) * 1000) / (secondary.length + 1),
-      y: 232,
+      x: spread(index, secondary.length),
+      y: 212,
       tier: "secondary" as const,
     })),
   ];
   const positions = new Map(nodes.map((node) => [node.power.name, node]));
-  const edges = nodes.flatMap((node) =>
-    (node.power.relations ?? []).flatMap((relation) => {
-      const target = positions.get(relation.of);
-      if (!target || target.power.name === node.power.name) return [];
-      // Between rows the line leaves from the facing edges. Within a row it
-      // leaves from the far side and loops clear, so it never crosses the
-      // icons sitting between the two ends.
-      const sameRow = node.tier === target.tier;
-      const startY = node.tier === "primary" ? node.y + 42 : node.y - 42;
-      const endY = target.tier === "primary" ? target.y + 42 : target.y - 42;
-      // Within a row the line runs through the gap between the rows, clear of
-      // the icons standing between its two ends.
-      const midY = sameRow
-        ? startY + (node.tier === "primary" ? 20 : -20)
-        : Math.round((startY + endY) / 2);
-      return [
-        {
-          key: `${node.power.name}-${relation.kind}-${target.power.name}`,
-          kind: relation.kind,
-          path: `M ${node.x} ${startY} V ${midY} H ${target.x} V ${endY}`,
-        },
-      ];
-    }),
-  );
+  const edges: { key: string; kind: RelationKind | "tier"; path: string }[] =
+    nodes.flatMap((node) =>
+      (node.power.relations ?? []).flatMap((relation) => {
+        const target = positions.get(relation.of);
+        if (!target || target.power.name === node.power.name) return [];
+        // Between rows the line leaves from the facing edges. Within a row it
+        // leaves from the far side and loops clear, so it never crosses the
+        // icons sitting between the two ends.
+        const sameRow = node.tier === target.tier;
+        const startY = node.tier === "primary" ? node.y + 42 : node.y - 42;
+        const endY = target.tier === "primary" ? target.y + 42 : target.y - 42;
+        // Within a row the line runs through the gap between the rows, clear of
+        // the icons standing between its two ends.
+        const midY = sameRow
+          ? startY + (node.tier === "primary" ? 20 : -20)
+          : Math.round((startY + endY) / 2);
+        return [
+          {
+            key: `${node.power.name}-${relation.kind}-${target.power.name}`,
+            kind: relation.kind,
+            path: `M ${node.x} ${startY} V ${midY} H ${target.x} V ${endY}`,
+          },
+        ];
+      }),
+    );
+  // Some systems record no relations at all. The tiers are still a claim
+  // worth drawing, so fall back to linking each secondary to the nearest
+  // primary rather than leaving the icons floating loose.
+  if (!edges.length) {
+    const primaries = nodes.filter((node) => node.tier === "primary");
+    for (const node of nodes.filter((n) => n.tier === "secondary")) {
+      const parent = primaries.reduce<PowerNode | undefined>(
+        (best, candidate) =>
+          !best || Math.abs(candidate.x - node.x) < Math.abs(best.x - node.x)
+            ? candidate
+            : best,
+        undefined,
+      );
+      if (!parent) continue;
+      const midY = Math.round((parent.y + 42 + (node.y - 42)) / 2);
+      edges.push({
+        key: `${parent.power.name}-tier-${node.power.name}`,
+        kind: "tier",
+        path: `M ${parent.x} ${parent.y + 42} V ${midY} H ${node.x} V ${node.y - 42}`,
+      });
+    }
+  }
   return { nodes, edges, hidden: belief.system.powers.length - nodes.length };
 }
 
@@ -345,6 +372,7 @@ export function CharacterPanel({
   const actor = everyone.find((a) => a.id === actorId);
   if (!actor) return null;
   const isPlayer = actor.id === state.player.id;
+  const culture = pack.setting?.culture;
   const stats = statsOf(seed, actor),
     held = abilitiesOf(seed, actor),
     household = state.households?.find((h) => h.members.includes(actor.id));
@@ -430,7 +458,6 @@ export function CharacterPanel({
   // prosperity theology for "wealth is a sign of favour" — so it is offered
   // as a link and not quoted.
   const excerpt = useWikiSummary(stance?.fallback ? undefined : stance?.wiki);
-  const rank = rankOf(seed, actor);
   const routine = runtime.engine.world.itinerary?.(actor.id);
   const plan = routine ? dayPlan(routine, state.clock) : [];
   const inspection = isPlayer ? undefined : runtime.engine.inspect(actor.id);
@@ -461,9 +488,25 @@ export function CharacterPanel({
   if (actor.hunger > 55 && actor.hunger <= 70) condition.push("Thirsty");
 
   return (
-    <div className="character-panel" data-tab={tab}>
+    <div
+      className="character-panel"
+      data-tab={tab}
+      style={
+        {
+          "--panel-scene": `url("${sceneFor(culture, pack.setting?.year)}")`,
+          "--culture-accent": accentFor(culture),
+          "--culture-pattern": patternFor(culture),
+        } as CSSProperties
+      }
+    >
+      <i className="culture-strip" aria-hidden="true" />
       <header className="character-header">
-        <i className="character-mark" aria-hidden="true" />
+        <span className="header-avatar" aria-hidden="true">
+          <CharacterSprite
+            appearance={runtime.appearanceFor(actor)}
+            age={actor.age}
+          />
+        </span>
         <h2>{actor.name}</h2>
         <p>
           {actor.role}
@@ -564,30 +607,30 @@ export function CharacterPanel({
             <div className="panel-card">
               <h3>Today</h3>
               {plan.length > 0 ? (
-              <ol className="day-plan">
-                {plan.map((entry, i) => {
-                  const Icon = dayIcons[entry.activity] ?? Hand;
-                  const next =
-                    entry.state === "later" &&
-                    !plan.some((e, j) => j < i && e.state === "later");
-                  return (
-                    <li key={entry.label} data-state={entry.state}>
-                      <Icon size={17} />
-                      <time>{timeLabel(entry.minute * 60)}</time>
-                      <span>{entry.label}</span>
-                      <em>
-                        {entry.state === "now"
-                          ? "now"
-                          : entry.state === "done"
-                            ? "done"
-                            : next
-                              ? "next"
-                              : "later"}
-                      </em>
-                    </li>
-                  );
-                })}
-              </ol>
+                <ol className="day-plan">
+                  {plan.map((entry, i) => {
+                    const Icon = dayIcons[entry.activity] ?? Hand;
+                    const next =
+                      entry.state === "later" &&
+                      !plan.some((e, j) => j < i && e.state === "later");
+                    return (
+                      <li key={entry.label} data-state={entry.state}>
+                        <Icon size={17} />
+                        <time>{timeLabel(entry.minute * 60)}</time>
+                        <span>{entry.label}</span>
+                        <em>
+                          {entry.state === "now"
+                            ? "now"
+                            : entry.state === "done"
+                              ? "done"
+                              : next
+                                ? "next"
+                                : "later"}
+                        </em>
+                      </li>
+                    );
+                  })}
+                </ol>
               ) : (
                 <ol className="day-plan">
                   {[...state.events]
@@ -651,6 +694,7 @@ export function CharacterPanel({
                     <button onClick={() => onSelect(person!.id)}>
                       <CharacterSprite
                         appearance={runtime.appearanceFor(person!)}
+                        scale={1.5}
                       />
                       <span>
                         {person!.name}
@@ -689,7 +733,7 @@ export function CharacterPanel({
                     disabled={!isPlayer || slot === "body"}
                     onClick={() => runtime.command({ type: "remove", slot })}
                   >
-                    <Sprite name={runtime.item(id)?.sprite ?? ""} scale={1} />
+                    <Sprite name={runtime.item(id)?.sprite ?? ""} scale={2} />
                   </button>
                 </li>
               ))}
@@ -707,7 +751,7 @@ export function CharacterPanel({
                     aria-pressed={shown === id}
                     onClick={() => setShown(id)}
                   >
-                    <Sprite name={runtime.item(id)?.sprite ?? ""} scale={1} />
+                    <Sprite name={runtime.item(id)?.sprite ?? ""} scale={2} />
                     {n > 1 && <b>×{n}</b>}
                   </button>
                 </li>
@@ -790,53 +834,55 @@ export function CharacterPanel({
                         </span>
                         <i className="household-stem" aria-hidden="true" />
                         <ul className="household-rows">
-                          {group.rows.map(({ person, note, isSelf, isHead }) => (
-                            <li key={person.id}>
-                              <button
-                                onClick={() => onSelect(person.id)}
-                                aria-current={isSelf ? "true" : undefined}
-                              >
-                                <span
-                                  className="household-portrait"
-                                  aria-hidden="true"
+                          {group.rows.map(
+                            ({ person, note, isSelf, isHead }) => (
+                              <li key={person.id}>
+                                <button
+                                  onClick={() => onSelect(person.id)}
+                                  aria-current={isSelf ? "true" : undefined}
                                 >
-                                  <CharacterSprite
-                                    appearance={runtime.appearanceFor(person)}
-                                    scale={2}
-                                  />
-                                </span>
-                                <span className="household-who">
-                                  <b>{person.name}</b>
-                                  <small>
-                                    {person.age !== undefined && (
-                                      <>
-                                        Age {person.age}
-                                        <i aria-hidden="true">·</i>
-                                      </>
+                                  <span
+                                    className="household-portrait"
+                                    aria-hidden="true"
+                                  >
+                                    <CharacterSprite
+                                      appearance={runtime.appearanceFor(person)}
+                                      scale={2}
+                                    />
+                                  </span>
+                                  <span className="household-who">
+                                    <b>{person.name}</b>
+                                    <small>
+                                      {person.age !== undefined && (
+                                        <>
+                                          Age {person.age}
+                                          <i aria-hidden="true">·</i>
+                                        </>
+                                      )}
+                                      {roleOf(person)}
+                                    </small>
+                                  </span>
+                                  <span className="household-note">
+                                    {isHead && (
+                                      <em className="household-chip">
+                                        <Crown size={13} /> Head of household
+                                      </em>
                                     )}
-                                    {roleOf(person)}
-                                  </small>
-                                </span>
-                                <span className="household-note">
-                                  {isHead && (
-                                    <em className="household-chip">
-                                      <Crown size={13} /> Head of household
-                                    </em>
-                                  )}
-                                  {isSelf && (
-                                    <em className="household-chip is-self">
-                                      <i
-                                        className="rule-diamond"
-                                        aria-hidden="true"
-                                      />{" "}
-                                      This person
-                                    </em>
-                                  )}
-                                  {!isSelf && note && <i>{note}</i>}
-                                </span>
-                              </button>
-                            </li>
-                          ))}
+                                    {isSelf && (
+                                      <em className="household-chip is-self">
+                                        <i
+                                          className="rule-diamond"
+                                          aria-hidden="true"
+                                        />{" "}
+                                        This person
+                                      </em>
+                                    )}
+                                    {!isSelf && note && <i>{note}</i>}
+                                  </span>
+                                </button>
+                              </li>
+                            ),
+                          )}
                         </ul>
                       </div>
                     ))}
@@ -879,83 +925,57 @@ export function CharacterPanel({
         </div>
       )}
       {tab === "abilities" && (
-        <div className="character-tab">
-          <ul className="ability-list wide">
-            {held.map(({ ability, rank }) => {
-              const Icon = icons[ability.icon] ?? Hand;
-              return (
-                <li key={ability.id}>
-                  <Icon size={16} />
-                  <span>{ability.label}</span>
-                  <Pips rank={rank} tone={ability.stat} />
+        <div className="character-tab abilities-tab">
+          <section className="panel-card">
+            <h3>What {actor.name.split(" ")[0]} can do</h3>
+            <ul className="ability-list wide">
+              {held.map(({ ability, rank }) => {
+                const Icon = icons[ability.icon] ?? Hand;
+                return (
+                  <li key={ability.id}>
+                    <Icon size={16} />
+                    <span>{ability.label}</span>
+                    <Pips rank={rank} tone={ability.stat} />
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+          <section className="panel-card">
+            <h3>Measures</h3>
+            <ul className="stat-bars">
+              {statKeys.map((key) => (
+                <li key={key}>
+                  <span>{key}</span>
+                  <i>
+                    <b style={{ width: `${stats[key]}%` }} />
+                  </i>
                 </li>
-              );
-            })}
-          </ul>
-          <h3>Measures</h3>
-          <ul className="stat-bars">
-            {statKeys.map((key) => (
-              <li key={key}>
-                <span>{key}</span>
-                <i>
-                  <b style={{ width: `${stats[key]}%` }} />
-                </i>
-              </li>
-            ))}
-          </ul>
+              ))}
+            </ul>
+          </section>
         </div>
       )}
       {tab === "beliefs" && (
         <div className="belief-layout">
-          <aside className="belief-aside">
-            <div className="belief-portrait">
-              <CharacterSprite
-                appearance={runtime.appearanceFor(actor)}
-                age={actor.age}
-                portrait
-              />
-            </div>
-            <h1>Spiritual life</h1>
-            <p>
-              {belief.system.label}. {belief.keeps ?? belief.system.practice[0]}
-            </p>
-            <dl className="belief-measures">
-              <div>
-                <dt>Observance</dt>
-                <dd>{belief.observance}</dd>
-              </div>
-              {belief.patron && (
-                <div>
-                  <dt>Personal devotion</dt>
-                  <dd>{belief.patron.name}</dd>
-                </div>
-              )}
-              <div>
-                <dt>Evidence</dt>
-                <dd>{belief.system.evidence.status}</dd>
-              </div>
-            </dl>
-            {belief.system.specialist && (
-              <div className="belief-tradition">
-                <h3>Officiated by</h3>
-                <p>{belief.system.specialist}</p>
-              </div>
-            )}
-          </aside>
           <div className="belief-main">
             <div className="belief-intro">
               <div>
                 <h3>Belief and devotion</h3>
                 <h1>{belief.system.label}</h1>
-                <p>
-                  The central figures in {actor.name.split(" ")[0]}'s religious
-                  world.
-                </p>
-              </div>
-              <div className="belief-legend" aria-label="Relationship legend">
-                <span>
-                  <i /> named relation
-                </span>
+                <p>{belief.keeps ?? belief.system.practice[0]}</p>
+                <dl className="belief-measures">
+                  <div>
+                    <dt>Observance</dt>
+                    <dd>{belief.observance}</dd>
+                  </div>
+                  {belief.patron && (
+                    <div>
+                      <dt>Personal devotion</dt>
+                      <dd>{belief.patron.name}</dd>
+                    </div>
+                  )}
+                </dl>
               </div>
             </div>
             <div className="power-map">
@@ -999,7 +1019,6 @@ export function CharacterPanel({
                 <div className="power-portrait">
                   <PowerIcon power={selectedPower} large />
                 </div>
-                <p>{selectedPower.domain}</p>
               </div>
               <div className="power-copy">
                 <h2>{selectedPower.domain}.</h2>
@@ -1060,44 +1079,21 @@ export function CharacterPanel({
       )}
       {tab === "ideology" && (
         <div className="outlook-layout">
-          <aside className="outlook-aside">
-            <div className="portrait-frame corner-frame outlook-portrait">
-              <CharacterSprite
-                appearance={runtime.appearanceFor(actor)}
-                age={actor.age}
-                portrait
-              />
-            </div>
-            <h1>Outlook</h1>
-            <i className="rule-diamond" aria-hidden="true" />
-            <p>
-              {outlook.stances.length
-                ? outlookSentence(outlook)
-                : "Nothing is recorded of what people here held, beyond their religious practice."}
-            </p>
-            {outlook.tags.size > 0 && (
-              <ul className="outlook-tags">
-                {[...outlook.tags].map((tag) => (
-                  <li key={tag}>{tag}</li>
-                ))}
-              </ul>
-            )}
-            {rank && (
-              <dl className="outlook-measures">
-                <div>
-                  <dt>Standing</dt>
-                  <dd>{describeStanding(rank)}</dd>
-                </div>
-              </dl>
-            )}
-          </aside>
           <div className="outlook-main">
-            <h3>Ideology and outlook</h3>
-            <h1>{stance ? stance.label : "No recorded positions"}</h1>
-            <p className="outlook-lede">
-              Held alongside {actor.name.split(" ")[0]}&apos;s religious
-              practice, and drawn from what was available here and then.
-            </p>
+            <div className="outlook-intro">
+              <div>
+                <h3>Ideology and outlook</h3>
+                <h1>{stance ? stance.label : "No recorded positions"}</h1>
+              </div>
+              <aside className="outlook-overview panel-card">
+                <h3>Outlook</h3>
+                <p>
+                  {outlook.stances.length
+                    ? outlookSentence(outlook)
+                    : "Nothing is recorded of what people here held, beyond their religious practice."}
+                </p>
+              </aside>
+            </div>
             <div className="stance-row">
               {outlook.stances.map((held) => {
                 const Icon = stanceIcon(held.icon);
@@ -1165,10 +1161,6 @@ export function CharacterPanel({
           </div>
         </div>
       )}
-      <footer>
-        <span />
-        <button onClick={onClose}>Close</button>
-      </footer>
     </div>
   );
 }

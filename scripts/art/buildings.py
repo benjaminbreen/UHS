@@ -4,6 +4,11 @@ Recipes own materials/forms; neither this compiler nor the runtime knows an era.
 import json
 import random
 from PIL import Image, ImageDraw
+from art.roof_light import course_tone
+
+# Tone by position rather than by coin toss, so a roof carries the light.
+# Off only for the before/after in scripts/art/relight_proof.py.
+RELIGHT = True
 
 ROOFS = {
     'thatch': ['#50452b', '#7c6737', '#aa8b47', '#c7ac62', '#e0c888'],
@@ -33,6 +38,11 @@ class Building:
         dark, shade, base, light, hi = self.p['wall']
         d.rectangle((4,t,w-7,b), fill=dark)
         d.rectangle((5,t,self.front,b-2), fill=base)
+        # No lateral gradient here on purpose. A front wall seen square on is
+        # a plane facing the viewer, so the light across it barely falls off;
+        # banding it reads as a wall painted in two colours, and any seam soft
+        # enough to hide is too weak to see. What a wall wants is what it has:
+        # a lit near edge, the return face in shade, and the eaves' own shadow.
         d.rectangle((self.front+1,t,w-8,b-2), fill=shade)
         d.line((5,t+2,5,b-3), fill=light)
         # Broad wear at the base and a few chipped plaster islands, not noise.
@@ -49,6 +59,35 @@ class Building:
         if self.r['wall']=='weatherboard':
             for y in range(t+7,b-9,5):
                 d.line((6,y,self.front,y),fill=shade);d.line((6,y+1,self.front,y+1),fill=light)
+
+    def eave_shadow(self):
+        """The line of shade an overhang throws down the wall below it.
+
+        Drawn after the roof, because the roof's own bottom courses paint over
+        the top of the wall. This is the one thing that seats a roof on a
+        building instead of leaving it balanced on top: deepest just under the
+        eaves, a step out below that, then a dithered edge, because a cast
+        shadow has a soft bottom.
+        """
+        d,t,w=self.d,self.top,self.w
+        wall=self.p['wall']
+        dark,shade,base,light,hi=wall
+        # Only wall goes into shadow. A window, a beam or a sign in these rows
+        # is its own thing and keeps its drawing; darkening everything in a
+        # band is what cut the tops off the upper windows.
+        skin={tuple(int(c.lstrip('#')[i:i+2],16) for i in (0,2,4)) for c in wall}
+        px=self.im.load()
+        def step(x,y,tone):
+            if 0<=x<self.w and 0<=y<self.h and px[x,y][:3] in skin:
+                d.point((x,y),fill=tone)
+        top=t+3 if self.r['roof']!='flat' else t+1
+        for y in range(top,top+3):
+            for x in range(5,self.front+1): step(x,y,dark)
+        for y in range(top+3,top+6):
+            for x in range(5,self.front+1): step(x,y,shade)
+        for i,y in enumerate((top+6,top+7)):
+            for x in range(5,self.front+1):
+                if (x+y+i)%2: step(x,y,shade)
 
     def foundation(self):
         d,b=self.d,self.bottom
@@ -94,6 +133,15 @@ class Building:
         d.rectangle((3,7,w-7,27),fill=ink)
         d.rectangle((4,8,w-9,25),fill=shade)
         d.rectangle((6,10,w-11,23),fill=base)
+        if RELIGHT:
+            # The deck is a surface seen from above, so it runs from the lit
+            # far edge down into the parapet's own shadow at the near one.
+            for i,tone in enumerate((hi,base,shade)):
+                y0=10+round(13*i/3); y1=10+round(13*(i+1)/3)
+                d.rectangle((6,y0,w-11,y1),fill=tone)
+                if i:
+                    for x in range(6,w-10):
+                        if (x+y0)%2: d.point((x,y0),fill=(hi,base,shade)[i-1])
         # Parapet thickness, inner shadow, and a broken light edge.
         d.line((4,7,w-9,7),fill=hi);d.line((3,8,3,25),fill=hi)
         d.line((6,10,w-12,10),fill=shade)
@@ -121,7 +169,8 @@ class Building:
         for row in range(7):
             y=9+row*4
             for col,x in enumerate(range(-3,w+3,5)):
-                tone=pal[2] if self.rng.random()<.7 else pal[1]
+                tone=(course_tone(pal,row,7,col) if RELIGHT
+                      else (pal[2] if self.rng.random()<.7 else pal[1]))
                 ld.rectangle((x,y,x+3,y+3),fill=tone)
                 ld.line((x,y,x+2,y),fill=pal[3])
                 ld.line((x,y+1,x,y+2),fill=pal[4] if (col+row)%4==0 else pal[3])
@@ -203,6 +252,7 @@ class Building:
         self.openings()
         if self.r['roof']=='flat':self.flat_roof()
         else:self.tiled_roof()
+        if RELIGHT:self.eave_shadow()
         for part in self.r['attachments']:
             if part!='timber-frame' and not (part=='ladder' and self.facing!='south'):self.attachment(part)
         # Directional variants redraw openings while retaining the shared light direction.
@@ -231,8 +281,9 @@ def build_buildings(root, sprites):
     build_square_furniture(sprites)
     from art.religious import ReligiousBuilding, religious_recipes
     from art.theatres import TheatreBuilding, theatre_recipes
+    from art.halls import HallBuilding, hall_recipes
     from art.period import PeriodBuilding, period_recipes
-    recipes={**source['buildings'], **urban_recipes(root, source), **religious_recipes(root, source), **theatre_recipes(root, source), **period_recipes(root, source)}
+    recipes={**source['buildings'], **urban_recipes(root, source), **religious_recipes(root, source), **theatre_recipes(root, source), **hall_recipes(root, source), **period_recipes(root, source)}
     for name,r in list(recipes.items()):
         if r['roof']=='shelter': continue
         fw,fh=r['footprint']
@@ -243,6 +294,7 @@ def build_buildings(root, sprites):
                  PeriodBuilding if r.get('period') else
                  ReligiousBuilding if r.get('religious') else
                  TheatreBuilding if r.get('theatre') else
+                 HallBuilding if r.get('hall') else
                  UrbanBuilding if r.get('urban') else Building)
         im=painter(r,source['materials'][r['wall']]).render()
         sprites[name]=im
@@ -255,6 +307,7 @@ def build_buildings(root, sprites):
             'opening':r['opening'],'description':r['description'],
             **({'religious':True,'family':r['family'],'recipe':r['recipe']} if r.get('religious') else {}),
             **({'theatre':True,'family':r['family'],'form':r['form'],'recipe':r['recipe']} if r.get('theatre') else {}),
+            **({'hall':True,'family':r['family'],'form':r['form'],'recipe':r['recipe']} if r.get('hall') else {}),
             **({'candidate':True,'candidateType':r['candidateType'],
                 'candidateGroup':r['candidateGroup'],'variant':r['variant'],
                 'business':r.get('business',''),'sign':r.get('sign','')}
@@ -263,6 +316,8 @@ def build_buildings(root, sprites):
             **({'period':True,'periodGroup':r['group'],'style':r['style'],'variant':r.get('variant',0),
                 'sign':r.get('sign',''),'role':r.get('role','house'),'stories':r['stories']} if r.get('period') else {}),
             **({'animation':r['animation']} if r.get('animation') else {})}
-    (root/'public/packs/buildings.json').write_text(json.dumps(models))
+    # Not buildings.json: that name belongs to the packed atlas, which is
+    # written later in the build and would silently clobber this.
+    (root/'public/packs/models.json').write_text(json.dumps(models))
     (root/'src/content/graphics/models.generated.json').write_text(json.dumps(models))
     return models

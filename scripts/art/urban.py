@@ -5,6 +5,7 @@ The building's ground footprint remains separate from its projected upper floors
 """
 from PIL import Image, ImageDraw
 from art.buildings import Building, ROOFS
+from art.roof_light import course_tone
 
 
 class UrbanBuilding(Building):
@@ -87,9 +88,10 @@ class UrbanBuilding(Building):
         mask=Image.new('L',self.im.size);ImageDraw.Draw(mask).polygon(roof,fill=255)
         layer=Image.new('RGBA',self.im.size);ld=ImageDraw.Draw(layer)
         ld.rectangle((0,0,w,t),fill=pal[0])
-        for row,y in enumerate(range(9,t,5)):
+        rows=list(range(9,t,5))
+        for row,y in enumerate(rows):
             for col,x in enumerate(range(-2,w+4,6)):
-                tone=pal[2] if self.rng.random()<.84 else pal[1]
+                tone=course_tone(pal,row,len(rows),col)
                 ld.rectangle((x,y,x+4,y+4),fill=tone)
                 # Curved tile highlight, shaded channel, overlapping lower lip.
                 ld.line((x+1,y+1,x+2,y+1),fill=pal[4])

@@ -108,36 +108,6 @@ for name in ['sheep','goat','lizard','chicken']:
 im,d=new(112,88);d.rectangle((5,72,106,83),fill='#9d9d87');d.rectangle((9,70,102,76),fill='#d3c9a5');d.rectangle((14,33,97,70),fill='#b7a783');d.polygon([(5,33),(55,7),(106,33)],fill='#9b674a');d.polygon([(10,31),(55,11),(101,31)],fill='#d3bf92');d.line((11,33,101,33),fill='#e2d2a7',width=3)
 for x in [17,37,69,89]:d.rectangle((x,37,x+5,69),fill='#d6c9a6');d.line((x+5,38,x+5,69),fill='#a99978');d.rectangle((x-2,35,x+7,38),fill='#e0d3ae');d.rectangle((x-2,68,x+7,71),fill='#e0d3ae')
 d.rectangle((49,45,63,71),fill='#5d5b48');add('hall',im)
-# Portraits use the same identities and cloth palette as world sprites, drawn at 56 x 60.
-# Stepped silhouettes, a fixed upper-left light, and small reusable facial planes.
-for skin_i,(skin,light,shade) in enumerate([('#c49468','#e4b387','#98633f'),('#a77550','#c69a70','#785037'),('#dbb58a','#efcca2','#ad805b')]):
- for cloth_i,cloth in enumerate(['#ded5b4','#9a5c46','#527b7b','#7d8060','#ad8d53','#6b6b86']):
-  im,d=new(56,60);d.rectangle((0,0,55,59),fill='#625d52')
-  d.polygon([(0,0),(43,0),(24,59),(0,59)],fill='#716957')
-  outline='#252524';hair='#302e29';hair_hi='#504a3e'
-  d.polygon([(2,59),(2,52),(7,47),(17,43),(20,38),(20,32),(15,28),(15,16),(19,8),(27,4),(37,5),(43,10),(46,17),(44,23),(46,31),(41,37),(35,40),(35,43),(47,48),(53,54),(54,59)],fill=outline)
-  d.polygon([(5,59),(5,53),(11,48),(21,44),(31,47),(37,44),(47,49),(51,55),(51,59)],fill=cloth)
-  d.polygon([(7,53),(16,48),(19,49),(14,59),(6,59)],fill='#c3b390' if cloth_i==0 else '#ab795b')
-  d.polygon([(20,34),(33,34),(34,43),(39,47),(32,52),(24,48),(17,46),(21,41)],fill=shade)
-  d.polygon([(22,35),(31,37),(30,43),(35,46),(30,48),(21,43)],fill=skin)
-  d.polygon([(19,16),(26,12),(37,13),(42,18),(41,24),(43,28),(41,34),(35,38),(27,38),(22,34),(20,29),(17,27),(17,22),(20,22)],fill=shade)
-  d.polygon([(22,17),(28,14),(37,16),(40,19),(39,24),(41,28),(38,32),(31,35),(25,32),(23,27)],fill=skin)
-  d.polygon([(23,18),(29,16),(34,17),(31,22),(24,23)],fill=light)
-  d.rectangle((18,23,20,27),fill=skin);d.point((19,24),fill=light)
-  d.polygon([(16,20),(16,15),(19,9),(25,6),(33,6),(40,9),(43,14),(42,19),(38,17),(37,13),(34,16),(31,13),(28,16),(25,15),(22,19),(22,27),(20,27),(20,19)],fill=hair)
-  for x,y in [(19,13),(22,10),(27,8),(31,9),(36,10),(39,13),(24,13),(29,11),(17,17)]:
-   d.rectangle((x,y,x+2,y+1),fill=hair_hi);d.point((x,y-1),fill='#645c49')
-  d.line((25,22,29,21),fill=hair);d.line((35,21,38,22),fill=hair)
-  d.rectangle((27,23,28,24),fill=outline);d.rectangle((36,23,37,24),fill=outline)
-  d.line((33,23,32,28),fill=light);d.line((33,29,36,29),fill=shade)
-  d.line((29,33,36,33),fill='#694832');d.point((30,32),fill=light)
-  if skin_i==0:
-   d.polygon([(22,28),(25,32),(29,34),(31,32),(36,32),(39,29),(39,35),(35,39),(28,38),(24,35)],fill=hair)
-   d.line((29,33,35,33),fill=shade);d.line((28,36,31,37),fill=hair_hi);d.point((36,35),fill=hair_hi)
-  d.polygon([(38,44),(44,46),(39,59),(29,59)],fill='#653e32' if cloth_i==1 else '#776950')
-  d.line((39,46,33,58),fill='#c58a65' if cloth_i==1 else '#dfcba1',width=2)
-  d.line((13,51,11,58),fill='#8b795c');d.line((22,49,19,57),fill='#8b795c');d.line((47,52,48,59),fill='#503f34')
-  add(f'portrait-human-{skin_i}-{cloth_i}',im)
 # Stone river retaining walls live on the water side, preserving walkable bank tiles.
 for side in ['east','west','north','south']:
  im,d=new(16,16)
@@ -181,16 +151,27 @@ from art.atlas import pack_atlas
 # the main atlas against its 4096px ceiling. The renderer already routes by
 # frame prefix, so another named atlas costs one branch there.
 ALL=dict(S)
+# Three pages rather than one. Houses and urban fabric are many and small;
+# the landmark families are few and very large, and a single page cannot hold
+# both. The renderer routes by frame, so a page costs one branch there.
+def _landmark(name):
+    m=buildings.get(name) or {}
+    return bool(m.get('religious') or m.get('theatre') or m.get('hall'))
+civic_frames={k:S.pop(k) for k in list(buildings) if k in S and _landmark(k)}
 building_frames={k:S.pop(k) for k in list(buildings) if k in S}
 atlas=pack_atlas(S,OUT,'atlas')
 buildings_atlas=pack_atlas(building_frames,OUT,'buildings')
-print(f'Buildings atlas {buildings_atlas.size}; {len(building_frames)} frames.')
+civic_atlas=pack_atlas(civic_frames,OUT,'civic')
+print(f'Buildings atlas {buildings_atlas.size} ({len(building_frames)} frames); '
+      f'civic atlas {civic_atlas.size} ({len(civic_frames)} frames).')
 # Reviewable original-asset proof at exactly 3x nearest-neighbor scaling.
 proof=Image.new('RGB',(1120,900),'#202127');d=ImageDraw.Draw(proof)
 d.text((30,20),'UHS / ORIGINAL PIXEL LANGUAGE / 16px terrain / multi-cell silhouettes / graphics polish',fill='#d8c9a5')
-for n,x,y in [('house-roman-0',20,55),('house-roman-2',285,55),('house-mud-0',565,95),('house-mud-1',820,95),('hall',20,440),('olive',390,490),('cypress',550,490),('hackberry',690,490),('portrait-human-0-1',900,420),('portrait-human-1-4',900,660),('amphora',380,775),('basket',450,775),('sheep0',520,775),('human-0-0-2-0',630,775),('human-1-3-2-0',715,775)]:
- im=ALL[n].resize((ALL[n].width*3,ALL[n].height*3),Image.Resampling.NEAREST);proof.paste(im,(x,y),im);d.text((x,y+im.height+6),{'human-0-0-2-0':'traveler','human-1-3-2-0':'farmer','portrait-human-0-1':'traveler portrait','portrait-human-1-4':'farmer portrait'}.get(n,n),fill='#b9b5aa')
+for n,x,y in [('house-roman-0',20,55),('house-roman-2',285,55),('house-mud-0',565,95),('house-mud-1',820,95),('hall',20,440),('olive',390,490),('cypress',550,490),('hackberry',690,490),('amphora',380,775),('basket',450,775),('sheep0',520,775),('human-0-0-2-0',630,775),('human-1-3-2-0',715,775)]:
+ im=ALL[n].resize((ALL[n].width*3,ALL[n].height*3),Image.Resampling.NEAREST);proof.paste(im,(x,y),im);d.text((x,y+im.height+6),{'human-0-0-2-0':'traveler','human-1-3-2-0':'farmer'}.get(n,n),fill='#b9b5aa')
 (ROOT/'artifacts').mkdir(exist_ok=True);proof.save(ROOT/'artifacts/art-proof.png')
+from art.stamp import write_stamp
+print(f'Art stamp {write_stamp(ROOT)}')
 print(f'Built {len(S)} original frames; atlas {atlas.size}.')
 names=[n for n,im in S.items() if im.size==(16,16) and not n.startswith(('edge-','bank-','ripple-','quay-','shadow-'))]
 tiles=Image.new('RGBA',(16*len(names),16))
@@ -199,4 +180,4 @@ tiles.save(OUT/'terrain.png');(OUT/'terrain.json').write_text(json.dumps({n:i fo
 
 # Vite imports source manifests; Phaser fetches public copies. Both are generated here.
 generated=ROOT/'src/render/generated';generated.mkdir(exist_ok=True,parents=True)
-for name in ['atlas.json','buildings.json','terrain.json']:(generated/name).write_bytes((OUT/name).read_bytes())
+for name in ['atlas.json','buildings.json','civic.json','terrain.json']:(generated/name).write_bytes((OUT/name).read_bytes())

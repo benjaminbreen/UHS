@@ -18,7 +18,7 @@ def sheaf(v=0):
   for bx in (5, 14):
    c.vline(bx, 1, 13, r[1]); c.vline(bx + 1, 1, 13, r[3])
   c.hline(1, 18, 13, straw[1])
-  c.outline(straw[0])
+  c.rim(straw)
   grass(c, [(0, 14, 2), (18, 14, 2)])
   return c.image()
  c = Canvas(17, 22)
@@ -40,7 +40,7 @@ def sheaf(v=0):
  r = RAMPS['rope']
  c.hline(4, 12, tie, r[1]); c.hline(4, 12, tie + 1, r[3]); c.hline(4, 12, tie + 2, r[1])
  c.set(12, tie + 1, r[0]); c.set(5, tie + 1, r[2])
- c.outline(straw[0])
+ c.rim(straw)
  grass(c, [(1, 21, 2), (14, 21, 2)])
  return c.image()
 

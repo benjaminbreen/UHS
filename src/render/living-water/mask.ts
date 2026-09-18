@@ -2,7 +2,7 @@ import type { TerrainReceivers } from "../terrain-contours";
 import { waterContactDistance } from "../../core/water-field";
 import { coastDistance, coastBeachWidth } from "./coast";
 import type { ShorePolish } from "./polish";
-import { waterHash } from "../water-style";
+import { waterHash, waterNoise } from "../water-style";
 import type { WaterObject } from "./scenery";
 import type { TopographySample } from "../../core/topography";
 import type { TerrainRegion } from "../terrain-region";
@@ -32,6 +32,29 @@ export function rasterLivingWater(
     shift = 96;
   const pixels = { data: new Uint8ClampedArray(W * H * 4) };
   let count = 0;
+  const murkGrid = new Float32Array((width + 2) * (height + 2));
+  for (let ty = -1; ty <= height; ty++)
+    for (let tx = -1; tx <= width; tx++) {
+      const h = sample(tx, ty)?.habitat;
+      murkGrid[(ty + 1) * (width + 2) + tx + 1] =
+        h?.murk ?? (h?.colorway === "swamp" ? 1 : 0);
+    }
+  // Bilinear between tile centres: a tile-wide step would put the palette
+  // boundary on the grid, which is what made the old swamp edges rectangular.
+  const murkAt = (fx: number, fy: number) => {
+    const gx = Math.max(-0.5, Math.min(width - 0.5, fx - 0.5)),
+      gy = Math.max(-0.5, Math.min(height - 0.5, fy - 0.5));
+    const ix = Math.floor(gx),
+      iy = Math.floor(gy),
+      sx = gx - ix,
+      sy = gy - iy;
+    const at = (x: number, y: number) =>
+      murkGrid[(y + 1) * (width + 2) + x + 1] ?? 0;
+    return (
+      (at(ix, iy) * (1 - sx) + at(ix + 1, iy) * sx) * (1 - sy) +
+      (at(ix, iy + 1) * (1 - sx) + at(ix + 1, iy + 1) * sx) * sy
+    );
+  };
   for (let ty = 0; ty < height; ty++)
     for (let tx = 0; tx < width; tx++) {
       const cell = sample(tx, ty);
@@ -75,7 +98,7 @@ export function rasterLivingWater(
                 ? 32
                 : 0) +
         (visual.frozenMargin ? 40 : 0) +
-        (cell.habitat?.colorway === "swamp" ? 160 : cell.habitat?.colorway === "red-earth" ? 80 : 0);
+        (cell.habitat?.colorway === "red-earth" ? 80 : 0);
       const angle =
         profile.kind === "coast"
           ? Math.atan2(
@@ -139,10 +162,28 @@ export function rasterLivingWater(
           pixels.data[i + 1] = row + 1;
           // Sea pixels ignore flow angle, so blue carries the depth fraction
           // below one byte step; without it wave crests snap between contours.
-          pixels.data[i + 2] =
-            sea && d < 0
-              ? Math.floor((level - Math.floor(level)) * 255)
-              : Math.round(((angle / (Math.PI * 2) + 1) % 1) * 255);
+          if (sea) {
+            pixels.data[i + 2] =
+              d < 0
+                ? Math.floor((level - Math.floor(level)) * 255)
+                : Math.round(((angle / (Math.PI * 2) + 1) % 1) * 255);
+          } else {
+            // Six bits of flow angle plus two of murk: 5.6 degree steps are
+            // invisible in the wave direction, and the four murk levels are
+            // dithered here so the crossfade breaks up into pixel clumps.
+            const wx = (region?.x ?? 0) * 16 + sx,
+              wy = (region?.y ?? 0) * 16 + sy;
+            const jitter =
+              waterNoise(wx, wy, 5, 771) * 0.6 +
+              waterNoise(wx, wy, 2, 772) * 0.4;
+            const murk = murkAt(tx + (px + 0.5) / 16, ty + (py + 0.5) / 16);
+            const murkLevel = Math.max(
+              0,
+              Math.min(3, Math.floor(murk * 3 + jitter)),
+            );
+            const turn = Math.round(((angle / (Math.PI * 2) + 1) % 1) * 63) % 64;
+            pixels.data[i + 2] = turn * 4 + murkLevel;
+          }
           pixels.data[i + 3] = 255;
           count++;
         }

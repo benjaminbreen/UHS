@@ -54,6 +54,30 @@ RAMPS['wood'] = ['#2b231d','#4a3524','#6a4b30','#8a6440','#a87e52','#c69c6c']
 STONE = ['granite', 'sandstone', 'limestone']
 WOOD = ['wood', 'darkwood', 'palewood']
 
+# Every ramp above is a hue at several brightnesses. The shift gives the ends
+# somewhere to go -- shadows toward blue, lights toward warm -- without moving
+# value or touching which ramp a family uses, so climates stay as different as
+# they were. The tables here stay the authored colour; set_hue_shift derives.
+BASE_RAMPS = {name: list(ramp) for name, ramp in RAMPS.items()}
+
+
+def set_hue_shift(on=True, strength=None):
+    """Mutates RAMPS in place: the draw functions look up by name at call
+    time, so the before and after can be rendered in one process."""
+    from art.quality.hue import shift_ramp, STRENGTH
+    RAMPS.update({
+        name: (shift_ramp(ramp, STRENGTH if strength is None else strength)
+               if on else list(ramp))
+        for name, ramp in BASE_RAMPS.items()})
+
+
+set_hue_shift(True)
+
+
+# Tinted rims instead of a hard keyline. See Canvas.rim. Off only for the
+# before/after in scripts/art/rim_proof.py.
+SOFT_RIM = True
+
 
 class Canvas:
  """Bottom-centre anchored pixel buffer. Integer coordinates, no blending."""
@@ -97,6 +121,16 @@ class Canvas:
   for y in range(s.h):
    for x in range(s.w):
     if px[x, y]: s.set(x, y, c)
+
+ def rim(s, ramp):
+  """The material's own dark step round the silhouette, not a shared black.
+
+  Every family drew its edge with `outline(ramp[0])`, the darkest tone in the
+  ramp, which is what makes the wells and the anvil sit on top of the ground
+  instead of in it. The flag is here so the two can be compared on the art.
+  """
+  if not SOFT_RIM: return s.outline(ramp[0])
+  soft_outline(s, ramp[1], ramp[min(3, len(ramp) - 1)])
 
  def outline(s, c):
   filled = set(s.px)
