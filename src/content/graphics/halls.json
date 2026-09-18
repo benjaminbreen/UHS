@@ -1,0 +1,1207 @@
+{
+ "materials": {
+  "theatre-stone": {
+   "wall": [
+    "#23262c",
+    "#454b55",
+    "#666d78",
+    "#8b929c",
+    "#b0b6bd"
+   ],
+   "trim": [
+    "#4a4c4a",
+    "#7d7f7a",
+    "#a9aaa2",
+    "#cfcec4",
+    "#efeee2"
+   ],
+   "roof": [
+    "#29383e",
+    "#40505c",
+    "#566e79",
+    "#76888d"
+   ],
+   "foundation": [
+    "#33322b",
+    "#66645a",
+    "#a09c8c"
+   ]
+  },
+  "theatre-stucco": {
+   "wall": [
+    "#33291f",
+    "#6b5744",
+    "#a08768",
+    "#cbb392",
+    "#e8d6b8"
+   ],
+   "trim": [
+    "#5c5346",
+    "#918a7a",
+    "#bdb5a3",
+    "#ded8c7",
+    "#f4f0e2"
+   ],
+   "roof": [
+    "#3b322d",
+    "#635040",
+    "#896b4e",
+    "#ad8b63"
+   ],
+   "foundation": [
+    "#3a332a",
+    "#6e6355",
+    "#a89c88"
+   ]
+  },
+  "theatre-brick": {
+   "wall": [
+    "#2c1f1b",
+    "#5d3a30",
+    "#8a5442",
+    "#b0765c",
+    "#d29c7c"
+   ],
+   "trim": [
+    "#544c46",
+    "#8a837a",
+    "#b5aea3",
+    "#d8d2c6",
+    "#f2ede0"
+   ],
+   "roof": [
+    "#2d3939",
+    "#444f4a",
+    "#606f61",
+    "#85927c"
+   ],
+   "foundation": [
+    "#332a24",
+    "#63564c",
+    "#9a8b7c"
+   ]
+  }
+ },
+ "buildings": {
+  "hammam": {
+   "label": "Hammam",
+   "family": "bath",
+   "form": "domed",
+   "description": "A bath house under a run of low domes pierced with star-shaped rooflights, the furnace chimney behind and an arcaded front. Dimensions are illustrative.",
+   "footprint": [
+    11,
+    8
+   ],
+   "entrance": [
+    5,
+    8
+   ],
+   "wall": "theatre-stucco",
+   "roofMaterial": "grey-tile",
+   "wallHeight": 52,
+   "domes": 3,
+   "domeRadius": 20,
+   "domeLights": 5,
+   "ribbed": false,
+   "arcade": true,
+   "chimneyHeight": 34,
+   "seed": 4101,
+   "scales": {
+    "small": {
+     "label": "Bath house",
+     "footprint": [
+      6,
+      5
+     ],
+     "entrance": [
+      3,
+      5
+     ],
+     "wallHeight": 42,
+     "domes": 1,
+     "domeRadius": 16,
+     "chimneyHeight": 26
+    },
+    "medium": {
+     "label": "Hammam",
+     "footprint": [
+      11,
+      8
+     ],
+     "entrance": [
+      5,
+      8
+     ]
+    },
+    "large": {
+     "label": "Great hammam",
+     "footprint": [
+      14,
+      10
+     ],
+     "entrance": [
+      7,
+      10
+     ],
+     "wallHeight": 60,
+     "domes": 4,
+     "domeRadius": 24
+    }
+   },
+   "looks": [
+    {
+     "label": "Hammam",
+     "wall": "theatre-stucco"
+    },
+    {
+     "label": "Domed bath",
+     "wall": "theatre-stone",
+     "ribbed": true,
+     "arcade": false,
+     "domes": 2
+    },
+    {
+     "label": "Brick bath house",
+     "wall": "theatre-brick",
+     "domeLights": 3,
+     "arcade": false
+    }
+   ],
+   "roofRise": 24,
+   "overhang": 8,
+   "ridgeVent": false,
+   "curtain": false,
+   "arcadeHeight": 28,
+   "bays": 3,
+   "parapet": false,
+   "belfry": "none",
+   "belfryHeight": 30,
+   "clock": false,
+   "windowHead": "flat",
+   "portalWidth": 36,
+   "pointed": false,
+   "band": false,
+   "minarets": 0,
+   "minaretHeight": 0,
+   "wallFinish": "ashlar",
+   "arched": false,
+   "porch": false,
+   "gableFront": true,
+   "oculus": false,
+   "flagpole": false,
+   "skin": "hide",
+   "doorWidth": 7,
+   "flap": false,
+   "smoke": false,
+   "fire": false,
+   "drumRadius": 30,
+   "drumRise": 16,
+   "ventShaft": false,
+   "postHeight": 26,
+   "thatchDepth": 18,
+   "posts": 4,
+   "roofStuff": "thatch",
+   "carved": false,
+   "bench": false,
+   "stiltHeight": 0,
+   "painted": false,
+   "finialFigure": false
+  },
+  "thermae": {
+   "label": "Baths",
+   "family": "bath",
+   "form": "vaulted",
+   "description": "A vaulted bathing hall: a tall centre lit by a great arched clerestory window, lower wings either side, and the furnace stack at the end. Dimensions are illustrative.",
+   "footprint": [
+    12,
+    9
+   ],
+   "entrance": [
+    6,
+    9
+   ],
+   "wall": "theatre-stone",
+   "roofMaterial": "terracotta",
+   "wallHeight": 74,
+   "chimneyHeight": 26,
+   "seed": 4203,
+   "scales": {
+    "small": {
+     "label": "Bathing hall",
+     "footprint": [
+      7,
+      5
+     ],
+     "entrance": [
+      3,
+      5
+     ],
+     "wallHeight": 58,
+     "chimneyHeight": 20
+    },
+    "medium": {
+     "label": "Baths",
+     "footprint": [
+      12,
+      9
+     ],
+     "entrance": [
+      6,
+      9
+     ]
+    },
+    "large": {
+     "label": "Great baths",
+     "footprint": [
+      15,
+      11
+     ],
+     "entrance": [
+      7,
+      11
+     ],
+     "wallHeight": 88
+    }
+   },
+   "looks": [
+    {
+     "label": "Baths",
+     "wall": "theatre-stone"
+    },
+    {
+     "label": "Brick baths",
+     "wall": "theatre-brick",
+     "roofMaterial": "grey-tile"
+    },
+    {
+     "label": "Rendered baths",
+     "wall": "theatre-stucco",
+     "chimneyHeight": 0
+    }
+   ],
+   "domes": 1,
+   "domeRadius": 16,
+   "domeLights": 0,
+   "ribbed": false,
+   "arcade": false,
+   "roofRise": 24,
+   "overhang": 8,
+   "ridgeVent": false,
+   "curtain": false,
+   "arcadeHeight": 28,
+   "bays": 3,
+   "parapet": false,
+   "belfry": "none",
+   "belfryHeight": 30,
+   "clock": false,
+   "windowHead": "flat",
+   "portalWidth": 36,
+   "pointed": false,
+   "band": false,
+   "minarets": 0,
+   "minaretHeight": 0,
+   "wallFinish": "ashlar",
+   "arched": false,
+   "porch": false,
+   "gableFront": true,
+   "oculus": false,
+   "flagpole": false,
+   "skin": "hide",
+   "doorWidth": 7,
+   "flap": false,
+   "smoke": false,
+   "fire": false,
+   "drumRadius": 30,
+   "drumRise": 16,
+   "ventShaft": false,
+   "postHeight": 26,
+   "thatchDepth": 18,
+   "posts": 4,
+   "roofStuff": "thatch",
+   "carved": false,
+   "bench": false,
+   "stiltHeight": 0,
+   "painted": false,
+   "finialFigure": false
+  },
+  "sento": {
+   "label": "Bath house",
+   "family": "bath",
+   "form": "bath-shed",
+   "description": "A timber bath house: boarded walls, a deep hipped roof with a ridge vent, the boiler chimney behind and a split curtain over the door. Dimensions are illustrative.",
+   "footprint": [
+    9,
+    7
+   ],
+   "entrance": [
+    4,
+    7
+   ],
+   "wall": "theatre-stucco",
+   "roofMaterial": "grey-tile",
+   "wallHeight": 46,
+   "roofRise": 28,
+   "overhang": 8,
+   "chimneyHeight": 40,
+   "ridgeVent": true,
+   "curtain": true,
+   "seed": 4307,
+   "scales": {
+    "small": {
+     "label": "Village bath",
+     "footprint": [
+      6,
+      4
+     ],
+     "entrance": [
+      3,
+      4
+     ],
+     "wallHeight": 38,
+     "roofRise": 22,
+     "chimneyHeight": 30
+    },
+    "medium": {
+     "label": "Bath house",
+     "footprint": [
+      9,
+      7
+     ],
+     "entrance": [
+      4,
+      7
+     ]
+    },
+    "large": {
+     "label": "Town bath house",
+     "footprint": [
+      12,
+      8
+     ],
+     "entrance": [
+      6,
+      8
+     ],
+     "wallHeight": 54,
+     "roofRise": 34
+    }
+   },
+   "looks": [
+    {
+     "label": "Bath house",
+     "curtain": true,
+     "ridgeVent": true
+    },
+    {
+     "label": "Shingled bath",
+     "roofMaterial": "shingle",
+     "ridgeVent": false
+    },
+    {
+     "label": "Plain bath house",
+     "curtain": false,
+     "chimneyHeight": 28
+    }
+   ],
+   "domes": 1,
+   "domeRadius": 16,
+   "domeLights": 0,
+   "ribbed": false,
+   "arcade": false,
+   "arcadeHeight": 28,
+   "bays": 3,
+   "parapet": false,
+   "belfry": "none",
+   "belfryHeight": 30,
+   "clock": false,
+   "windowHead": "flat",
+   "portalWidth": 36,
+   "pointed": false,
+   "band": false,
+   "minarets": 0,
+   "minaretHeight": 0,
+   "wallFinish": "ashlar",
+   "arched": false,
+   "porch": false,
+   "gableFront": true,
+   "oculus": false,
+   "flagpole": false,
+   "skin": "hide",
+   "doorWidth": 7,
+   "flap": false,
+   "smoke": false,
+   "fire": false,
+   "drumRadius": 30,
+   "drumRise": 16,
+   "ventShaft": false,
+   "postHeight": 26,
+   "thatchDepth": 18,
+   "posts": 4,
+   "roofStuff": "thatch",
+   "carved": false,
+   "bench": false,
+   "stiltHeight": 0,
+   "painted": false,
+   "finialFigure": false
+  },
+  "town-hall": {
+   "label": "Town hall",
+   "family": "civic",
+   "form": "arcaded",
+   "description": "A hall over an open arcade, the measures kept under it and the council above, with a belfry and a clock. Dimensions are illustrative.",
+   "footprint": [
+    11,
+    8
+   ],
+   "entrance": [
+    5,
+    8
+   ],
+   "wall": "theatre-stone",
+   "roofMaterial": "terracotta",
+   "wallHeight": 74,
+   "arcadeHeight": 30,
+   "bays": 4,
+   "roofRise": 22,
+   "parapet": false,
+   "belfry": "lantern",
+   "belfryHeight": 34,
+   "clock": true,
+   "windowHead": "triangular",
+   "seed": 4409,
+   "scales": {
+    "small": {
+     "label": "Market hall",
+     "footprint": [
+      7,
+      5
+     ],
+     "entrance": [
+      3,
+      5
+     ],
+     "wallHeight": 58,
+     "bays": 3,
+     "belfry": "none",
+     "arcadeHeight": 26
+    },
+    "medium": {
+     "label": "Town hall",
+     "footprint": [
+      11,
+      8
+     ],
+     "entrance": [
+      5,
+      8
+     ]
+    },
+    "large": {
+     "label": "Guildhall",
+     "footprint": [
+      14,
+      10
+     ],
+     "entrance": [
+      7,
+      10
+     ],
+     "wallHeight": 88,
+     "bays": 5,
+     "belfryHeight": 44
+    }
+   },
+   "looks": [
+    {
+     "label": "Town hall",
+     "belfry": "lantern",
+     "clock": true
+    },
+    {
+     "label": "Market hall",
+     "belfry": "none",
+     "parapet": false,
+     "wall": "theatre-brick",
+     "windowHead": "segmental"
+    },
+    {
+     "label": "Civic palace",
+     "belfry": "spire",
+     "parapet": true,
+     "clock": false,
+     "wall": "theatre-stucco"
+    }
+   ],
+   "domes": 1,
+   "domeRadius": 16,
+   "domeLights": 0,
+   "ribbed": false,
+   "arcade": false,
+   "chimneyHeight": 0,
+   "overhang": 8,
+   "ridgeVent": false,
+   "curtain": false,
+   "portalWidth": 36,
+   "pointed": false,
+   "band": false,
+   "minarets": 0,
+   "minaretHeight": 0,
+   "wallFinish": "ashlar",
+   "arched": false,
+   "porch": false,
+   "gableFront": true,
+   "oculus": false,
+   "flagpole": false,
+   "skin": "hide",
+   "doorWidth": 7,
+   "flap": false,
+   "smoke": false,
+   "fire": false,
+   "drumRadius": 30,
+   "drumRise": 16,
+   "ventShaft": false,
+   "postHeight": 26,
+   "thatchDepth": 18,
+   "posts": 4,
+   "roofStuff": "thatch",
+   "carved": false,
+   "bench": false,
+   "stiltHeight": 0,
+   "painted": false,
+   "finialFigure": false
+  },
+  "madrasa": {
+   "label": "Madrasa",
+   "family": "civic",
+   "form": "portal",
+   "description": "A great arched recess between two lower arcaded bays, banded with tilework, with minarets flanking the portal. Dimensions are illustrative.",
+   "footprint": [
+    12,
+    9
+   ],
+   "entrance": [
+    6,
+    9
+   ],
+   "wall": "theatre-stucco",
+   "roofMaterial": "grey-tile",
+   "wallHeight": 78,
+   "portalWidth": 44,
+   "pointed": true,
+   "band": true,
+   "minarets": 2,
+   "minaretHeight": 40,
+   "seed": 4511,
+   "scales": {
+    "small": {
+     "label": "Teaching house",
+     "footprint": [
+      7,
+      5
+     ],
+     "entrance": [
+      3,
+      5
+     ],
+     "wallHeight": 58,
+     "portalWidth": 30,
+     "minarets": 0,
+     "minaretHeight": 0
+    },
+    "medium": {
+     "label": "Madrasa",
+     "footprint": [
+      12,
+      9
+     ],
+     "entrance": [
+      6,
+      9
+     ]
+    },
+    "large": {
+     "label": "Great madrasa",
+     "footprint": [
+      15,
+      11
+     ],
+     "entrance": [
+      7,
+      11
+     ],
+     "wallHeight": 92,
+     "portalWidth": 56,
+     "minaretHeight": 52
+    }
+   },
+   "looks": [
+    {
+     "label": "Madrasa",
+     "pointed": true,
+     "band": true,
+     "minarets": 2
+    },
+    {
+     "label": "Lodge",
+     "pointed": true,
+     "band": false,
+     "minarets": 0,
+     "wall": "theatre-brick"
+    },
+    {
+     "label": "Caravanserai gate",
+     "pointed": false,
+     "band": true,
+     "minarets": 0,
+     "wall": "theatre-stone"
+    }
+   ],
+   "domes": 1,
+   "domeRadius": 16,
+   "domeLights": 0,
+   "ribbed": false,
+   "arcade": false,
+   "chimneyHeight": 0,
+   "roofRise": 24,
+   "overhang": 8,
+   "ridgeVent": false,
+   "curtain": false,
+   "arcadeHeight": 28,
+   "bays": 3,
+   "parapet": false,
+   "belfry": "none",
+   "belfryHeight": 30,
+   "clock": false,
+   "windowHead": "flat",
+   "wallFinish": "ashlar",
+   "arched": false,
+   "porch": false,
+   "gableFront": true,
+   "oculus": false,
+   "flagpole": false,
+   "skin": "hide",
+   "doorWidth": 7,
+   "flap": false,
+   "smoke": false,
+   "fire": false,
+   "drumRadius": 30,
+   "drumRise": 16,
+   "ventShaft": false,
+   "postHeight": 26,
+   "thatchDepth": 18,
+   "posts": 4,
+   "roofStuff": "thatch",
+   "carved": false,
+   "bench": false,
+   "stiltHeight": 0,
+   "painted": false,
+   "finialFigure": false
+  },
+  "union-hall": {
+   "label": "Union hall",
+   "family": "civic",
+   "form": "long-hall",
+   "description": "A plain meeting hall with wide doors, a porch and a gable front: the room a trade or an order hires and then keeps. Dimensions are illustrative.",
+   "footprint": [
+    10,
+    7
+   ],
+   "entrance": [
+    5,
+    7
+   ],
+   "wall": "theatre-brick",
+   "roofMaterial": "slate",
+   "wallFinish": "ashlar",
+   "wallHeight": 56,
+   "roofRise": 26,
+   "windowHead": "flat",
+   "arched": false,
+   "porch": true,
+   "gableFront": true,
+   "oculus": true,
+   "flagpole": true,
+   "seed": 4613,
+   "scales": {
+    "small": {
+     "label": "Meeting room",
+     "footprint": [
+      6,
+      4
+     ],
+     "entrance": [
+      3,
+      4
+     ],
+     "wallHeight": 44,
+     "roofRise": 20,
+     "porch": false,
+     "flagpole": false
+    },
+    "medium": {
+     "label": "Union hall",
+     "footprint": [
+      10,
+      7
+     ],
+     "entrance": [
+      5,
+      7
+     ]
+    },
+    "large": {
+     "label": "Great hall",
+     "footprint": [
+      13,
+      9
+     ],
+     "entrance": [
+      6,
+      9
+     ],
+     "wallHeight": 68,
+     "roofRise": 32
+    }
+   },
+   "looks": [
+    {
+     "label": "Union hall",
+     "wall": "theatre-brick",
+     "gableFront": true
+    },
+    {
+     "label": "Assembly house",
+     "wall": "theatre-stone",
+     "gableFront": false,
+     "porch": true,
+     "arched": true,
+     "windowHead": "triangular"
+    },
+    {
+     "label": "Timber meeting house",
+     "wall": "theatre-stucco",
+     "wallFinish": "boards",
+     "gableFront": true,
+     "oculus": false,
+     "porch": false
+    }
+   ],
+   "domes": 1,
+   "domeRadius": 16,
+   "domeLights": 0,
+   "ribbed": false,
+   "arcade": false,
+   "chimneyHeight": 0,
+   "overhang": 8,
+   "ridgeVent": false,
+   "curtain": false,
+   "arcadeHeight": 28,
+   "bays": 3,
+   "parapet": false,
+   "belfry": "none",
+   "belfryHeight": 30,
+   "clock": false,
+   "portalWidth": 36,
+   "pointed": false,
+   "band": false,
+   "minarets": 0,
+   "minaretHeight": 0,
+   "skin": "hide",
+   "doorWidth": 7,
+   "flap": false,
+   "smoke": false,
+   "fire": false,
+   "drumRadius": 30,
+   "drumRise": 16,
+   "ventShaft": false,
+   "postHeight": 26,
+   "thatchDepth": 18,
+   "posts": 4,
+   "roofStuff": "thatch",
+   "carved": false,
+   "bench": false,
+   "stiltHeight": 0,
+   "painted": false,
+   "finialFigure": false
+  },
+  "sweat-lodge": {
+   "label": "Sweat lodge",
+   "family": "bath",
+   "form": "sweat-lodge",
+   "description": "A low dome over a bent frame, covered with hides or earth, with the fire that heats the stones outside the door. Dimensions are illustrative.",
+   "footprint": [
+    6,
+    5
+   ],
+   "entrance": [
+    3,
+    5
+   ],
+   "wall": "theatre-stucco",
+   "roofMaterial": "thatch",
+   "domeRadius": 38,
+   "skin": "hide",
+   "doorWidth": 9,
+   "flap": true,
+   "smoke": true,
+   "fire": true,
+   "seed": 5101,
+   "scales": {
+    "small": {
+     "label": "Sweat lodge",
+     "footprint": [
+      4,
+      4
+     ],
+     "entrance": [
+      2,
+      4
+     ],
+     "domeRadius": 28,
+     "doorWidth": 8
+    },
+    "medium": {
+     "label": "Sweat lodge",
+     "footprint": [
+      6,
+      5
+     ],
+     "entrance": [
+      3,
+      5
+     ]
+    },
+    "large": {
+     "label": "Great sweat lodge",
+     "footprint": [
+      8,
+      6
+     ],
+     "entrance": [
+      4,
+      6
+     ],
+     "domeRadius": 48,
+     "doorWidth": 11
+    }
+   },
+   "looks": [
+    {
+     "label": "Sweat lodge",
+     "skin": "hide"
+    },
+    {
+     "label": "Temazcal",
+     "skin": "masonry",
+     "wall": "theatre-stucco",
+     "flap": false,
+     "fire": true
+    },
+    {
+     "label": "Earth sweat house",
+     "skin": "earth",
+     "flap": true,
+     "smoke": true
+    }
+   ],
+   "drumRadius": 30,
+   "drumRise": 16,
+   "ventShaft": false,
+   "postHeight": 26,
+   "thatchDepth": 18,
+   "posts": 4,
+   "roofStuff": "thatch",
+   "carved": false,
+   "bench": false,
+   "stiltHeight": 0,
+   "painted": false,
+   "finialFigure": false
+  },
+  "kiva": {
+   "label": "Kiva",
+   "family": "civic",
+   "form": "kiva",
+   "description": "A round chamber sunk into the ground: a low masonry drum at grade, an earth roof on beams, and a ladder out of the roof hatch. Dimensions are illustrative.",
+   "footprint": [
+    5,
+    5
+   ],
+   "entrance": [
+    2,
+    5
+   ],
+   "wall": "theatre-stone",
+   "roofMaterial": "grey-tile",
+   "drumRadius": 34,
+   "drumRise": 18,
+   "smoke": true,
+   "ventShaft": true,
+   "seed": 5203,
+   "scales": {
+    "small": {
+     "label": "Clan kiva",
+     "footprint": [
+      4,
+      4
+     ],
+     "entrance": [
+      2,
+      4
+     ],
+     "drumRadius": 26,
+     "drumRise": 14
+    },
+    "medium": {
+     "label": "Kiva",
+     "footprint": [
+      5,
+      5
+     ],
+     "entrance": [
+      2,
+      5
+     ]
+    },
+    "large": {
+     "label": "Great kiva",
+     "footprint": [
+      8,
+      8
+     ],
+     "entrance": [
+      4,
+      8
+     ],
+     "drumRadius": 52,
+     "drumRise": 24
+    }
+   },
+   "looks": [
+    {
+     "label": "Kiva",
+     "ventShaft": true
+    },
+    {
+     "label": "Plaza kiva",
+     "ventShaft": false,
+     "wall": "theatre-stucco"
+    },
+    {
+     "label": "Rubble kiva",
+     "wall": "theatre-brick",
+     "smoke": false
+    }
+   ],
+   "skin": "hide",
+   "doorWidth": 7,
+   "flap": false,
+   "fire": false,
+   "postHeight": 26,
+   "thatchDepth": 18,
+   "posts": 4,
+   "roofStuff": "thatch",
+   "carved": false,
+   "bench": false,
+   "stiltHeight": 0,
+   "painted": false,
+   "finialFigure": false
+  },
+  "open-shelter": {
+   "label": "Talking shelter",
+   "family": "civic",
+   "form": "open-shelter",
+   "description": "Posts and a thick roof with no walls: shade to sit, argue and work under, roofed with whatever the country gives. Dimensions are illustrative.",
+   "footprint": [
+    7,
+    5
+   ],
+   "entrance": [
+    3,
+    5
+   ],
+   "wall": "theatre-stucco",
+   "roofMaterial": "thatch",
+   "postHeight": 26,
+   "thatchDepth": 22,
+   "posts": 5,
+   "roofStuff": "stalk",
+   "carved": true,
+   "bench": true,
+   "seed": 5307,
+   "scales": {
+    "small": {
+     "label": "Brush arbour",
+     "footprint": [
+      5,
+      4
+     ],
+     "entrance": [
+      2,
+      4
+     ],
+     "postHeight": 24,
+     "thatchDepth": 14,
+     "posts": 4,
+     "carved": false
+    },
+    "medium": {
+     "label": "Talking shelter",
+     "footprint": [
+      7,
+      5
+     ],
+     "entrance": [
+      3,
+      5
+     ]
+    },
+    "large": {
+     "label": "Council house",
+     "footprint": [
+      11,
+      6
+     ],
+     "entrance": [
+      5,
+      6
+     ],
+     "postHeight": 32,
+     "thatchDepth": 26,
+     "posts": 7
+    }
+   },
+   "looks": [
+    {
+     "label": "Talking shelter",
+     "roofStuff": "stalk",
+     "carved": true
+    },
+    {
+     "label": "Brush arbour",
+     "roofStuff": "thatch",
+     "carved": false,
+     "bench": false,
+     "thatchDepth": 14
+    },
+    {
+     "label": "Council shelter",
+     "roofStuff": "thatch",
+     "carved": true,
+     "posts": 6
+    }
+   ],
+   "skin": "hide",
+   "doorWidth": 7,
+   "flap": false,
+   "smoke": false,
+   "fire": false,
+   "drumRadius": 30,
+   "drumRise": 16,
+   "ventShaft": false,
+   "stiltHeight": 0,
+   "painted": false,
+   "finialFigure": false
+  },
+  "carved-gable": {
+   "label": "Meeting house",
+   "family": "civic",
+   "form": "carved-gable",
+   "description": "A steep gable on posts with carved bargeboards, a porch and a painted front: the house a community keeps its account of itself in. Dimensions are illustrative.",
+   "footprint": [
+    9,
+    7
+   ],
+   "entrance": [
+    4,
+    7
+   ],
+   "wall": "theatre-stucco",
+   "roofMaterial": "thatch",
+   "wallHeight": 40,
+   "roofRise": 46,
+   "stiltHeight": 0,
+   "painted": true,
+   "porch": true,
+   "finialFigure": true,
+   "roofStuff": "thatch",
+   "seed": 5411,
+   "scales": {
+    "small": {
+     "label": "Ancestor house",
+     "footprint": [
+      6,
+      5
+     ],
+     "entrance": [
+      3,
+      5
+     ],
+     "wallHeight": 32,
+     "roofRise": 36,
+     "porch": false
+    },
+    "medium": {
+     "label": "Meeting house",
+     "footprint": [
+      9,
+      7
+     ],
+     "entrance": [
+      4,
+      7
+     ]
+    },
+    "large": {
+     "label": "Great meeting house",
+     "footprint": [
+      12,
+      8
+     ],
+     "entrance": [
+      6,
+      8
+     ],
+     "wallHeight": 48,
+     "roofRise": 58
+    }
+   },
+   "looks": [
+    {
+     "label": "Meeting house",
+     "form": "round-house",
+     "painted": true,
+     "finialFigure": true,
+     "roofStuff": "thatch"
+    },
+    {
+     "label": "Men's house",
+     "stiltHeight": 18,
+     "roofRise": 62,
+     "painted": true,
+     "porch": false,
+     "finialFigure": false
+    },
+    {
+     "label": "Carved hall",
+     "painted": false,
+     "roofStuff": "shingle",
+     "roofMaterial": "shingle",
+     "porch": true
+    }
+   ],
+   "skin": "hide",
+   "doorWidth": 7,
+   "flap": false,
+   "smoke": false,
+   "fire": false,
+   "drumRadius": 30,
+   "drumRise": 16,
+   "ventShaft": false,
+   "postHeight": 26,
+   "thatchDepth": 18,
+   "posts": 4,
+   "carved": false,
+   "bench": false
+  }
+ }
+}
