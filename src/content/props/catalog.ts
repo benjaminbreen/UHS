@@ -468,7 +468,7 @@ export const propDefs: Record<string, PropDef> = {
     family: "rake",
     portable: true,
     strike: true,
-    where: "worksite",
+    where: "backyard",
   },
   pitchfork: {
     solid: true,
@@ -476,7 +476,7 @@ export const propDefs: Record<string, PropDef> = {
     family: "pitchfork",
     portable: true,
     strike: true,
-    where: "worksite",
+    where: "backyard",
   },
   beehive: {
     solid: true,
@@ -628,6 +628,16 @@ export const propDefs: Record<string, PropDef> = {
   stick: {
     solid: false,
     name: "Stout stick",
+    family: "stick",
+    portable: true,
+    strike: true,
+    variants: 1,
+  },
+  /** The same length of wood, found rather than kept: it lies under trees in
+   * every period, so there is always something to hand to swing. */
+  branch: {
+    solid: false,
+    name: "Fallen branch",
     family: "stick",
     portable: true,
     strike: true,

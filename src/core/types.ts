@@ -23,6 +23,9 @@ export type ItemDef = {
   value: number;
   /** A wearable: the slot it occupies and the look it adds when worn. */
   wear?: { slot: WearSlot; look: Partial<CharacterAppearance["wearing"]> };
+  /** Can be taken in hand. `strike` means it swings; `edge` means it cuts
+   * rather than thumps. */
+  hand?: { strike?: boolean; edge?: boolean };
   /** Hunger relieved when eaten. */
   edible?: number;
   /** Health change when eaten. */
@@ -113,6 +116,9 @@ export type Actor = {
    * lift in world pixels, which is also what the view reaches over. */
   perch?: { on: string; label: string; rise: number; at?: Point };
   held?: string;
+  /** An inventory item taken in hand. A carried world object wins over this,
+   * and the engine never lets both be set. */
+  heldItem?: ItemId;
   /** Set while a need has pulled this actor off their daily routine. Absent is
    * the normal case, so a resident is drawn from the schedule from the first
    * frame, before the simulation has ticked at all. */
@@ -250,6 +256,9 @@ export type PlayerCommand =
     }
   /** `run` is a throw taken at a sprint: it carries twice as far. */
   | { type: "throw"; dx: number; dy: number; run?: boolean }
+  /** A swing of whatever is in hand, at whatever the arc finds. Takes no
+   * target: the cone in front of the player is the target. */
+  | { type: "swing" }
   | { type: "wait"; seconds: number }
   /** Time passing while the player stands still. Logged so a replay keeps the
    * same clock, but it raises no event of its own. */
@@ -297,6 +306,11 @@ export type PlayerCommand =
   | { type: "use"; item: ItemId }
   /** Put a wearable from the inventory on; whatever held the slot comes off. */
   | { type: "wear"; item: ItemId }
+  /** Take an inventory item in hand, so it is drawn and can be swung. */
+  | { type: "hold"; item: ItemId }
+  /** Put whatever is in hand away: an item back into the inventory, a
+   * carried object down on the ground. */
+  | { type: "stow" }
   /** Take the item in a slot off, into the inventory. */
   | { type: "remove"; slot: WearSlot }
   /** Sleep or long rest. Time passes in one step, the night can leave a mark,

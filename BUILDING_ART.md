@@ -125,3 +125,41 @@ Forms are per-recipe but a `looks` entry can override `form`, so a new shape
 can join an existing recipe without new venue wiring — the round meeting house
 is look 0 of `carved-gable`, and the men's house beside it stays rectangular.
 New forms need a height branch in `hall_recipes` or the sprite is cropped.
+
+## Modern buildings are a separate painter
+
+`scripts/art/modern.py`. A concrete block wants none of what an insula wants,
+so `ModernBuilding` overrides the wall, the roof, the eave shadow and the
+openings rather than adding era branches to `UrbanBuilding`.
+
+- **A flat roof is lighter than its walls.** It faces the sky. The premodern
+  `flat_roof` drew a deep near-black slab, and a city of them was a field of
+  grey lids. `parapet_roof` draws a lit plane, a coping, and one dark line
+  where the coping turns onto the wall — that line is what seats it.
+- **Roof depth is data.** `modern.roofDepth` in `urban.json` (18, against 34-43
+  for pitched forms); the canvas is derived from it, so shrinking it shrinks
+  the sprite.
+- **Colour is data too.** `modern.walls` lists six colourways, picked by base
+  and form so a building keeps its colour between builds and a street gets all
+  six. `modern-office` keeps its glass.
+- **One concrete for every roof.** `CONCRETE` in `modern.py`, not the
+  material's roof ramp: taking it from the material gave the glass tower a
+  navy roof and the street stopped reading as one town.
+- **No speckle.** Painted render weathers in one band at the foot. A hundred
+  stray pixels per building is what makes a street read as dirt.
+- Drawing helpers (`window`, `storefront`, `glazed_door`, `parapet_roof`) are
+  module functions, not methods, so `InfillBuilding` can borrow one without
+  inheriting a mid-rise silhouette.
+
+### Modern styles
+
+`modernStyle` on the recipe picks the vocabulary, and the painter dispatches on
+it: `block` (parapet, glazed ground floor), `arcade` (a shophouse over a
+five-foot way — what faces the street is shade with piers in front of it) and
+`veranda` (a corrugated sheet roof on a shallow pitch, timber posts, the door
+behind them). `urban.json` holds which forms each style may take:
+a shophouse is two storeys and a tin-roofed house is one, whatever the street
+plan asks for.
+
+Region chooses between them in `src/content/geography/pack.ts`
+(`modernBuildings`), not in the art: 1957 Surakarta is not 1957 Ohio.

@@ -118,6 +118,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
   const { observation: obs, selection, pack } = view;
   const p = obs.player;
   const propControls = runtime.propControls();
+  const verbs = { ...runtime.verbs(), held: propControls.held };
   const speaker = runtime.nearestSpeaker();
   const [audio, setAudio] = useState<AudioDirector | null>(null);
   const [audioOpen, setAudioOpen] = useState(false);
@@ -185,6 +186,12 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
   );
   const [mapSpan, setMapSpan] = useState(1600);
   const [earthMap, setEarthMap] = useState(false);
+  // Talk is the one verb the engine cannot finish on its own: the dialogue
+  // panel is React state, so the session hands the actor back instead.
+  const runVerb = (slot: "primary" | "alternate") => {
+    const verb = runtime.runVerb(slot);
+    if (verb?.kind === "talk" && verb.actor) openDialogue(verb.actor);
+  };
   // Reads the live snapshot so the keyboard listener never sees a stale world.
   const talkToNearest = () => {
     const inReach = runtime.nearestSpeaker();
@@ -343,31 +350,21 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
       )
         return;
       if (e.code === "Space") e.preventDefault();
-      if (
-        (e.code === "KeyE" || e.code === "KeyG" || e.code === "KeyF") &&
-        !e.repeat
-      ) {
+      if ((e.code === "KeyE" || e.code === "KeyF") && !e.repeat) {
         e.preventDefault();
-        runtime.propAction(e.code);
+        runVerb(e.code === "KeyF" ? "primary" : "alternate");
       }
       if (e.key === "=" || e.key === "+") runtime.stepZoom(1);
       if (e.key === "-" || e.key === "_") runtime.stepZoom(-1);
       if (e.key === "0") runtime.setZoom(2);
       if (e.key.toLowerCase() === "i") setModal("inventory");
-      if (e.key.toLowerCase() === "q") talkToNearest();
       if (e.key === "Enter" && !e.repeat && runtime.nearestSpeaker()) {
         e.preventDefault();
         talkToNearest();
       }
-      if (e.key.toLowerCase() === "c" && !e.repeat) {
-        e.preventDefault();
-        runtime.climb();
-      }
-      if (e.key.toLowerCase() === "r") setModal("map");
       if (e.key.toLowerCase() === "t") setRestOpen((open) => !open);
       if (e.key.toLowerCase() === "m") setModal("map");
-      if (e.key.toLowerCase() === "j" || e.key.toLowerCase() === "n")
-        setModal("notebook");
+      if (e.key.toLowerCase() === "n") setModal("notebook");
     };
     window.addEventListener("keydown", listener);
     return () => window.removeEventListener("keydown", listener);
@@ -533,7 +530,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
           <div
             className="game-container"
             ref={mount}
-            aria-label="Playable historical world. WASD or arrows to walk, Shift to run, Space to jump or pick up and drop items. Hold Space to charge a longer jump; jumping while running clears an extra tile (two to four)."
+            aria-label="Playable historical world. WASD or arrows to walk, Shift to run, Space to jump. Hold Space to charge a longer jump; jumping while running clears an extra tile (two to four). F does the action shown on screen — talk, pick up, swing, throw or climb. E does the second action shown, such as putting down what you hold."
             tabIndex={0}
           />
           {graphicsOpen && (
@@ -567,44 +564,15 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
                 interactive props.
               </span>
             )}
-            {propControls.held && (
-              <span>
-                Holding: {propControls.held!.name}{" "}
-                <span title="Throw in your facing direction">X · Throw</span>{" "}
-                <button onClick={() => runtime.propAction("KeyG")}>
-                  Space · Put down
-                </button>
-              </span>
-            )}
-            {propControls.primary && (
-              <button
-                onClick={() =>
-                  runtime.propAction(propControls.held ? "KeyF" : "Space")
-                }
-              >
-                {propControls.held ? "F" : "Space"} ·{" "}
-                {propControls.primaryLabel}
+            {verbs.held && <span>Holding: {verbs.held.name}</span>}
+            {verbs.primary && (
+              <button onClick={() => runVerb("primary")}>
+                F · {verbs.primary.label}
               </button>
             )}
-            {propControls.secondary && (
-              <button onClick={() => runtime.propAction("KeyE")}>
-                Press E to {propControls.secondaryLabel?.toLowerCase()}
-              </button>
-            )}
-            {speaker && (
-              <button
-                className="talk-prompt"
-                onClick={() => openDialogue(speaker.id)}
-              >
-                Enter · Talk to {speaker.name}
-              </button>
-            )}
-            {(view.perch || view.climbable) && (
-              <button className="talk-prompt" onClick={() => runtime.climb()}>
-                C ·{" "}
-                {view.perch
-                  ? `Climb down from ${view.perch.label}`
-                  : `Climb ${view.climbable!.label}`}
+            {verbs.alternate && (
+              <button onClick={() => runVerb("alternate")}>
+                E · {verbs.alternate.label}
               </button>
             )}
           </div>
@@ -805,15 +773,13 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
                 <kbd>D</kbd> walk
               </span>
               <span>
-                <kbd>SHIFT</kbd> run <kbd>C</kbd> climb
+                <kbd>SHIFT</kbd> run
               </span>
-              <span title="Tap to jump; hold to charge. A running jump clears an extra tile. Nearby items take priority. No jumping while carrying.">
-                <kbd>SPACE</kbd>{" "}
-                {propControls.held
-                  ? "drop"
-                  : propControls.primary
-                    ? "pick up"
-                    : "jump (hold: long)"}
+              <span title="Tap to jump; hold to charge. A running jump clears an extra tile.">
+                <kbd>SPACE</kbd> jump (hold: long)
+              </span>
+              <span title="F does the action named on screen; E does the second one.">
+                <kbd>F</kbd> act <kbd>E</kbd> alt
               </span>
               <span>
                 <kbd>M</kbd> map
@@ -1228,7 +1194,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
                     )}
                     <button
                       className="action"
-                      onClick={() => runtime.propAction("KeyG")}
+                      onClick={() => runVerb("alternate")}
                     >
                       Put down
                     </button>

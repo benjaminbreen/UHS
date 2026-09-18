@@ -3676,6 +3676,64 @@ button:disabled {
 .belongings.worn button:not(:disabled):hover {
   border-color: var(--line);
 }
+
+/* The paper doll: three columns read as a body, head at the top. */
+.equipment {
+  display: grid;
+  /* minmax(0,…) or the square slots refuse to shrink and the last column
+     runs off the side of the sidebar. */
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 5px;
+  margin-bottom: 10px;
+}
+.equip-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+.equip-slot button {
+  width: 100%;
+  /* Square: narrower columns leave the icon as much room as three wide ones. */
+  aspect-ratio: 1;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: none;
+  border: 1px dashed var(--line-soft);
+  border-radius: 5px;
+  color: inherit;
+  cursor: default;
+}
+.equip-slot[data-filled] button {
+  border-style: solid;
+  border-color: var(--line);
+  background: #ffffff08;
+}
+.equip-slot[data-filled] button:not(:disabled) {
+  cursor: pointer;
+}
+.equip-slot[data-filled] button:not(:disabled):hover {
+  border-color: var(--gold);
+}
+/* Lit while a dragged item is over a slot it is allowed to land in. */
+.equip-slot[data-over] button {
+  border-style: solid;
+  border-color: var(--gold);
+  background: #d9a84517;
+}
+.equip-slot small {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.equip-slot[data-slot="hand"] small {
+  color: var(--gold);
+}
 .wear-action {
   margin-left: 8px;
   padding: 2px 9px;
@@ -3686,6 +3744,12 @@ button:disabled {
   font: inherit;
   font-size: 12px;
   cursor: pointer;
+}
+.belonging-note .rarity {
+  margin-right: 6px;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 .belonging-note {
   color: var(--muted);
@@ -4243,6 +4307,12 @@ button:disabled {
 .belongings {
   grid-auto-rows: 84px;
   gap: 9px;
+}
+.equipment {
+  gap: 6px;
+}
+.equip-slot button {
+  border-radius: 1px;
 }
 .belongings li,
 .belongings button {

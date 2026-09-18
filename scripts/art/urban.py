@@ -200,6 +200,9 @@ class InfillBuilding(UrbanBuilding):
         self.sign_text = recipe.get('sign', '')
         self.body_top = self.top + (10 if recipe.get('roofStyle') in ('gable', 'hip') else 0)
         self.window = self.WINDOW_COLORS[self.variant]
+        # Published in the model; the renderer draws the word into it.
+        self.sign_band = None
+        self.sign_paint = None
 
     def pixel_text(self, text, x, y, color, scale=1):
         """Draw tiny bitmap lettering; no font rasterizer or antialiasing."""
@@ -257,19 +260,26 @@ class InfillBuilding(UrbanBuilding):
         d.line((9, bottom - 3, w - 11, bottom - 3), fill=self.colors['trim'])
 
     def _sign(self, text=None, y=None, fill=None):
-        text = self.sign_text if text is None else text
-        if not text or self.facing != 'south':
+        """The board, not the word.
+
+        The lettering is drawn at runtime (`src/render/sign-texture.ts`) so one
+        sprite can be Guzman's, a bakery or a cafe, in whatever language the
+        place speaks. Baking it here meant one sprite was one word forever.
+        The board is drawn full width and its rect is published in the model as
+        `signBand`; the renderer centres the word in it.
+        """
+        if not self.sign_text or self.facing != 'south':
             return
         d, w = self.d, self.w
-        scale = 1
-        width = self._text_width(text, scale)
-        sign_w = min(w - 10, width + 8)
+        sign_w = w - 10
         left = (w - sign_w) // 2
         y = self.body_top + 4 if y is None else y
         fill = fill or self.colors['sign']
         d.rectangle((left - 2, y - 2, left + sign_w + 1, y + 9), fill=self.colors['trimDark'])
         d.rectangle((left, y, left + sign_w - 1, y + 7), fill=fill)
-        self.pixel_text(text, left + (sign_w - width) // 2, y + 1, '#fff0bd', scale)
+        d.line((left, y, left + sign_w - 1, y), fill=self.colors['light'])
+        self.sign_band = [left, y, sign_w, 8]
+        self.sign_paint = fill
 
     def _awning(self, y):
         d, w = self.d, self.w
@@ -372,7 +382,9 @@ class InfillBuilding(UrbanBuilding):
 
     def _business_frontage(self):
         d, w, b = self.d, self.w, self.bottom
-        self._sign()
+        # The board is hung last: a canopy or an awning drawn after it painted
+        # over the top of it, which left the runtime lettering floating on a
+        # strip of canopy instead of on a sign.
         store_y = self.body_top + (18 if self.sign_text else 8)
         if self.r.get('awning'):
             self._awning(store_y - 2)
@@ -395,9 +407,10 @@ class InfillBuilding(UrbanBuilding):
             x = 7 if self.door_x > w // 2 else w - 12
             d.rectangle((x, self.body_top - 3, x + 3, b - 1), fill=self.colors['trimDark'])
             d.rectangle((x - 2, self.body_top - 7, x + 5, self.body_top + 3), fill=self.colors['sign'])
-            sign = self.sign_text or 'OPEN'
-            if len(sign) <= 3:
-                self.pixel_text(sign, x - 1, self.body_top - 5, '#fff0bd')
+            # Blank panel: the pylon is three characters wide and the word now
+            # comes from the runtime, which draws the fascia board instead.
+            d.line((x - 1, self.body_top - 5, x + 4, self.body_top - 5),
+                   fill=self.colors['light'])
         if self.kind in ('pharmacy', 'clinic'):
             x, y = w - 14, self.body_top + 7
             d.rectangle((x, y, x + 3, y + 10), fill='#e85c55')
@@ -407,6 +420,7 @@ class InfillBuilding(UrbanBuilding):
             d.rectangle((8, b - 25, w - 10, b - 12), fill='#5e716e')
             for y in range(b - 22, b - 11, 4):
                 d.line((9, y, w - 11, y), fill='#a7b4a4')
+        self._sign()
 
     def _side_frontage(self):
         d, w, b = self.d, self.w, self.bottom
@@ -458,6 +472,7 @@ def build_animated_details(sprites):
 
 def urban_recipes(root, source):
     import json
+    from art.modern import modern_form_allowed, modern_label, modernise
     kit=json.loads((root/'src/content/graphics/urban.json').read_text())
     out={}
     for base in kit['bases']:
@@ -465,10 +480,14 @@ def urban_recipes(root, source):
         for form,shape in {**kit['forms'],**kit['civicForms']}.items():
             if 'bases' in shape and base not in shape['bases']:
                 continue
-            if form in ('midrise','office') and not base.startswith('modern-'):
+            modern_base=base.startswith('modern-')
+            if form in ('midrise','office') and not modern_base:
+                continue
+            if modern_base and not modern_form_allowed(kit,base,form,original):
                 continue
             r={**original,**shape}
             r['wall']=kit.get('wallOverrides',{}).get(base,original['wall'])
+            modern=modernise(r,kit,base,form) if modern_base else {}
             fw,fh=r['footprint']
             r.update(canvas=[fw*16,r['roofDepth']+17+r['stories']*31],
                      entrance=[fw//2,fh],opening='door',height=r['stories']*31+24,
@@ -476,7 +495,9 @@ def urban_recipes(root, source):
                      seed=original['seed']+len(form)*19,
                      label={'row':'Street-front house','shop':'Shop and workshop','wide':'Broad courtyard range','tall':'Tall residential house','midrise':'Mid-rise apartment block','office':'Glass office tower','hall':'Public hall','colonnade':'Colonnaded civic hall','cottage':'Cottage','hut':'Hut','stall':'Market stall'}[form],
                      description='A procedural urban building: shared street frontage, recessed openings and a rear court. Its form is illustrative, not a surveyed reconstruction.',
-                     urban=True,infill=bool(shape.get('infill')))
+                     urban=True,infill=bool(shape.get('infill')),**modern)
+            if modern_base:
+                r['label']=modern_label(r['modernStyle'],form,r['label'])
             out[f'{base}-urban-{form}']=r
     return out
 

@@ -154,7 +154,9 @@ function* paintBackgroundSteps(
   // Terrain pass.
   if (!placesFrom)
     for (let j = 0; j < rows; j++) {
-      if (j && j % 8 === 0) yield;
+      // Each row costs a terrain sample per pixel; eight at a time overran the
+      // frame budget, which is only checked between steps.
+      if (j) yield;
       for (let i = 0; i < cols; i++) {
         const { x, y, wx, wy } = at(i, j);
         const inMap =

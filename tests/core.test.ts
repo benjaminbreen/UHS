@@ -261,7 +261,10 @@ describe("shared deterministic foundation", () => {
     p.inventory["garment-robe"] = 1;
     act(e, { type: "wear", item: "garment-robe" });
     expect(p.worn?.body).toBe("garment-robe");
-    expect(act(e, { type: "remove", slot: "body" }).status).toBe("rejected");
+    // A bare torso is an ordinary state, not a refusal.
+    expect(act(e, { type: "remove", slot: "body" }).status).toBe("completed");
+    expect(p.worn?.body).toBeUndefined();
+    expect(p.inventory["garment-robe"]).toBe(1);
     expect(restoreSession(e.snapshot()).hash()).toBe(e.hash());
   });
   it("supports a full procedural day in each pack, with persistent activity and no API", () => {

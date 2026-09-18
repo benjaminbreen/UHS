@@ -1,162 +1,321 @@
 {
-  "bases": [
+ "bases": [
+  "house-roman-0",
+  "house-roman-1",
+  "house-roman-2",
+  "house-roman-3",
+  "study-timber",
+  "study-courtyard",
+  "study-board",
+  "modern-apartment",
+  "modern-office",
+  "modern-shop",
+  "house-thatch",
+  "house-mud-0",
+  "house-mud-1",
+  "modern-shophouse",
+  "modern-walkup",
+  "modern-kampung"
+ ],
+ "forms": {
+  "row": {
+   "footprint": [
+    8,
+    6
+   ],
+   "stories": 2,
+   "roofDepth": 43,
+   "bays": 3
+  },
+  "shop": {
+   "footprint": [
+    5,
+    5
+   ],
+   "stories": 1,
+   "roofDepth": 34,
+   "bays": 2,
+   "shop": true
+  },
+  "wide": {
+   "footprint": [
+    11,
+    7
+   ],
+   "stories": 2,
+   "roofDepth": 48,
+   "bays": 4
+  },
+  "tall": {
+   "footprint": [
+    7,
+    6
+   ],
+   "stories": 3,
+   "roofDepth": 39,
+   "bays": 3
+  },
+  "midrise": {
+   "footprint": [
+    8,
+    7
+   ],
+   "stories": 4,
+   "roofDepth": 34,
+   "bays": 4
+  },
+  "office": {
+   "footprint": [
+    10,
+    8
+   ],
+   "stories": 5,
+   "roofDepth": 30,
+   "bays": 5
+  },
+  "cottage": {
+   "footprint": [
+    4,
+    3
+   ],
+   "stories": 1,
+   "roofDepth": 28,
+   "bays": 1,
+   "infill": true
+  },
+  "hut": {
+   "footprint": [
+    3,
+    3
+   ],
+   "stories": 1,
+   "roofDepth": 26,
+   "bays": 1,
+   "infill": true
+  },
+  "stall": {
+   "footprint": [
+    3,
+    2
+   ],
+   "stories": 1,
+   "roofDepth": 22,
+   "bays": 1,
+   "shop": true,
+   "infill": true
+  }
+ },
+ "materials": {
+  "rose-plaster": {
+   "wall": [
+    "#514136",
+    "#936850",
+    "#c58d6c",
+    "#dba789",
+    "#f1c8a1"
+   ],
+   "roof": [
+    "#5d2f24",
+    "#a3452b",
+    "#cd633c",
+    "#f6945a"
+   ],
+   "foundation": [
+    "#4c5146",
+    "#939684",
+    "#cbc7af"
+   ]
+  },
+  "modern-cream": {
+   "wall": [
+    "#3d3a31",
+    "#7a705c",
+    "#b8ab8b",
+    "#dcd0aa",
+    "#f2ead0"
+   ],
+   "roof": [
+    "#4a4f49",
+    "#6f7468",
+    "#9ea08e",
+    "#c3c3ac"
+   ],
+   "foundation": [
+    "#333c3c",
+    "#68716d",
+    "#b1b2a6"
+   ]
+  },
+  "modern-mint": {
+   "wall": [
+    "#2f3b38",
+    "#5a7168",
+    "#8fa693",
+    "#b8cbb6",
+    "#dde9d6"
+   ],
+   "roof": [
+    "#454e52",
+    "#6a7478",
+    "#97a09d",
+    "#bcc2ba"
+   ],
+   "foundation": [
+    "#333c3c",
+    "#68716d",
+    "#b1b2a6"
+   ]
+  },
+  "modern-ochre": {
+   "wall": [
+    "#3f3529",
+    "#7d6642",
+    "#b39468",
+    "#d5b78c",
+    "#eddab5"
+   ],
+   "roof": [
+    "#4a4f49",
+    "#6f7468",
+    "#9ea08e",
+    "#c3c3ac"
+   ],
+   "foundation": [
+    "#333c3c",
+    "#68716d",
+    "#b1b2a6"
+   ]
+  },
+  "modern-rose": {
+   "wall": [
+    "#3d3030",
+    "#77585a",
+    "#ad8482",
+    "#d0aba4",
+    "#ead0c4"
+   ],
+   "roof": [
+    "#4a4f49",
+    "#6f7468",
+    "#9ea08e",
+    "#c3c3ac"
+   ],
+   "foundation": [
+    "#333c3c",
+    "#68716d",
+    "#b1b2a6"
+   ]
+  },
+  "modern-sky": {
+   "wall": [
+    "#2b3742",
+    "#516878",
+    "#7f9aa8",
+    "#aac0c8",
+    "#d4e2e2"
+   ],
+   "roof": [
+    "#454e52",
+    "#6a7478",
+    "#97a09d",
+    "#bcc2ba"
+   ],
+   "foundation": [
+    "#333c3c",
+    "#68716d",
+    "#b1b2a6"
+   ]
+  },
+  "modern-ash": {
+   "wall": [
+    "#33383a",
+    "#616a6b",
+    "#949b96",
+    "#bfc3b9",
+    "#e2e2d5"
+   ],
+   "roof": [
+    "#454e52",
+    "#6a7478",
+    "#97a09d",
+    "#bcc2ba"
+   ],
+   "foundation": [
+    "#333c3c",
+    "#68716d",
+    "#b1b2a6"
+   ]
+  }
+ },
+ "wallOverrides": {
+  "house-roman-2": "rose-plaster"
+ },
+ "civicForms": {
+  "hall": {
+   "footprint": [
+    12,
+    7
+   ],
+   "stories": 2,
+   "roofDepth": 49,
+   "bays": 4,
+   "bases": [
     "house-roman-0",
-    "house-roman-1",
-    "house-roman-2",
-    "house-roman-3",
     "study-timber",
     "study-courtyard",
     "study-board",
-    "modern-apartment",
-    "modern-office",
-    "modern-shop",
     "house-thatch",
-    "house-mud-0",
-    "house-mud-1"
-  ],
-  "forms": {
-    "row": {
-      "footprint": [
-        8,
-        6
-      ],
-      "stories": 2,
-      "roofDepth": 43,
-      "bays": 3
-    },
-    "shop": {
-      "footprint": [
-        5,
-        5
-      ],
-      "stories": 1,
-      "roofDepth": 34,
-      "bays": 2,
-      "shop": true
-    },
-    "wide": {
-      "footprint": [
-        11,
-        7
-      ],
-      "stories": 2,
-      "roofDepth": 48,
-      "bays": 4
-    },
-    "tall": {
-      "footprint": [
-        7,
-        6
-      ],
-      "stories": 3,
-      "roofDepth": 39,
-      "bays": 3
-    },
-    "midrise": {
-      "footprint": [
-        8,
-        7
-      ],
-      "stories": 4,
-      "roofDepth": 34,
-      "bays": 4
-    },
-    "office": {
-      "footprint": [
-        10,
-        8
-      ],
-      "stories": 5,
-      "roofDepth": 30,
-      "bays": 5
-    },
-    "cottage": {
-      "footprint": [
-        4,
-        3
-      ],
-      "stories": 1,
-      "roofDepth": 28,
-      "bays": 1,
-      "infill": true
-    },
-    "hut": {
-      "footprint": [
-        3,
-        3
-      ],
-      "stories": 1,
-      "roofDepth": 26,
-      "bays": 1,
-      "infill": true
-    },
-    "stall": {
-      "footprint": [
-        3,
-        2
-      ],
-      "stories": 1,
-      "roofDepth": 22,
-      "bays": 1,
-      "shop": true,
-      "infill": true
-    }
+    "house-mud-0"
+   ]
   },
-  "materials": {
-    "rose-plaster": {
-      "wall": [
-        "#514136",
-        "#936850",
-        "#c58d6c",
-        "#dba789",
-        "#f1c8a1"
-      ],
-      "roof": [
-        "#5d2f24",
-        "#a3452b",
-        "#cd633c",
-        "#f6945a"
-      ],
-      "foundation": [
-        "#4c5146",
-        "#939684",
-        "#cbc7af"
-      ]
-    }
-  },
-  "wallOverrides": {
-    "house-roman-2": "rose-plaster"
-  },
-  "civicForms": {
-    "hall": {
-      "footprint": [
-        12,
-        7
-      ],
-      "stories": 2,
-      "roofDepth": 49,
-      "bays": 4,
-      "bases": [
-        "house-roman-0",
-        "study-timber",
-        "study-courtyard",
-        "study-board",
-        "house-thatch",
-        "house-mud-0"
-      ]
-    },
-    "colonnade": {
-      "footprint": [
-        13,
-        7
-      ],
-      "stories": 2,
-      "roofDepth": 52,
-      "bays": 5,
-      "colonnade": true,
-      "bases": [
-        "house-roman-0"
-      ]
-    }
+  "colonnade": {
+   "footprint": [
+    13,
+    7
+   ],
+   "stories": 2,
+   "roofDepth": 52,
+   "bays": 5,
+   "colonnade": true,
+   "bases": [
+    "house-roman-0"
+   ]
   }
+ },
+ "modern": {
+  "roofDepth": 18,
+  "walls": [
+   "modern-cream",
+   "modern-mint",
+   "modern-ochre",
+   "modern-rose",
+   "modern-sky",
+   "modern-ash"
+  ],
+  "shopForms": [
+   "shop",
+   "office",
+   "midrise"
+  ],
+  "verandaRoofDepth": 30,
+  "tallBases": [
+   "modern-apartment",
+   "modern-office",
+   "modern-walkup"
+  ],
+  "formsByStyle": {
+   "veranda": [
+    "row",
+    "shop",
+    "cottage",
+    "hut",
+    "stall"
+   ]
+  },
+  "infillBases": [
+   "modern-shop",
+   "modern-shophouse",
+   "modern-kampung"
+  ]
+ }
 }

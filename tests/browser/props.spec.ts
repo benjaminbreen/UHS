@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 
-test("world props expose E/Space prompts, preserve contents and render broken remains", async ({
+test("world props expose F/E prompts, preserve contents and render broken remains", async ({
   page,
 }) => {
   const errors: string[] = [];
@@ -37,7 +37,7 @@ test("world props expose E/Space prompts, preserve contents and render broken re
   const before = await page.evaluate(
     () => (window as any).__uhs.engine.state.clock,
   );
-  await page.keyboard.press("Space");
+  await page.keyboard.press("KeyF");
   expect(
     await page.evaluate(() => (window as any).__uhs.engine.state.player.held),
   ).toBe(id);
@@ -45,7 +45,7 @@ test("world props expose E/Space prompts, preserve contents and render broken re
     await page.evaluate(() => (window as any).__uhs.engine.state.clock),
   ).toBe(before + 2);
   await expect(page.getByTestId("prop-prompts")).toContainText("Holding:");
-  await page.keyboard.press("KeyG");
+  await page.keyboard.press("KeyE");
   expect(
     await page.evaluate(() => (window as any).__uhs.engine.state.player.held),
   ).toBeUndefined();
@@ -72,7 +72,7 @@ test("world props expose E/Space prompts, preserve contents and render broken re
   const time = await page.evaluate(
     () => (window as any).__uhs.engine.state.clock,
   );
-  await page.keyboard.press("Space");
+  await page.keyboard.press("KeyF");
   expect(
     await page.evaluate(() => (window as any).__uhs.engine.state.clock),
   ).toBe(time);
@@ -104,7 +104,7 @@ test("E offers water at a well and repeat keys do not repeat a pickup", async ({
     r.emit();
   });
   await expect(page.getByTestId("prop-prompts")).toContainText(
-    "Press E to drink water",
+    "E · Drink water",
   );
   await page.locator(".game-container").focus();
   await page.keyboard.press("KeyE");
@@ -119,8 +119,8 @@ test("E offers water at a well and repeat keys do not repeat a pickup", async ({
   await page.evaluate(() =>
     window.dispatchEvent(
       new KeyboardEvent("keydown", {
-        code: "Space",
-        key: " ",
+        code: "KeyF",
+        key: "f",
         repeat: true,
         bubbles: true,
       }),

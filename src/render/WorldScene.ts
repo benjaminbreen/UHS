@@ -10,6 +10,21 @@ import { perf, open, mark, span, timed } from "./perf-switches";
 import { natureTreeSprites } from "../content/ecology/vegetation";
 import { rockFrame } from "../content/ecology/rocks";
 import { propVariety } from "./prop-variety";
+import { ensureSignTexture, inkFor, signWidth } from "./sign-texture";
+import { signLanguage, signOptions } from "../content/settlements/signs";
+/** Trades for a shopfront the kit did not name. */
+const GENERIC_TRADES = [
+  "grocery",
+  "cafe",
+  "bakery",
+  "barber",
+  "tailor",
+  "hardware",
+  "pharmacy",
+  "shop",
+];
+import type { Place } from "../core/types";
+import type { WorldSetting } from "../content/geography/types";
 import { aerialStates, type FaunaGroup, type FaunaState } from "../core/fauna";
 import { faunaProfile, type FaunaFacing } from "../content/fauna";
 
@@ -40,7 +55,11 @@ import {
   type LiveGraphicsSettings,
 } from "./live-graphics";
 import { ToolEffects } from "./tool-effects";
-import { facingFromDirection, turnToward } from "../core/facing";
+import {
+  facingFromDirection,
+  facingFromStep,
+  turnToward,
+} from "../core/facing";
 import { HANGING, windProfile, windSway, type WindProfile } from "./wind";
 /** Grit thrown up by a take-off or a landing. */
 const DUST = [0x9c8c6a, 0xbcae8c, 0x7d7054];
@@ -51,6 +70,11 @@ const JUMP_BUFFER_MS = 90;
 const RUN_GRACE_MS = 200;
 /** How long each intermediate facing is held while someone turns around. */
 const TURN_HOLD_MS = 60;
+/** A shove into whatever blocked the way: out two pixels and back. */
+const BUMP_MS = 110;
+/** How long after a refused step the player still reads as pushing. Longer
+ * than an input tick, so holding a key against a wall keeps the walk going. */
+const PUSH_MS = 240;
 /** Step times as a run gets up to speed. */
 const RUN_RAMP = [120, 100, 88, 78, 72];
 /** Poll interval while a jump is in the air, matched to the sprite's arc. */
@@ -220,6 +244,13 @@ export class WorldScene extends Phaser.Scene {
   private footfalls = new Map<string, number>();
   /** Facing actually drawn, which chases the real one a step at a time. */
   private turning = new Map<string, { facing: number; until: number }>();
+  /** Where the player is pushing while the way is blocked. The engine never
+   * saw the move, so the turn is the renderer's to remember. */
+  private blockedFacing?: number;
+  /** When the last step was refused, so pushing ends shortly after the key
+   * is released while the facing itself stays put. */
+  private pushingAt?: number;
+  private bump?: { dx: number; dy: number; at: number };
   private windSprites: WindSprite[] = [];
   /** Hanging layers drawn over a prop's rigid frame, swayed by the same wind.
    * Kept per entity rather than in windSprites, which only clears on a full
@@ -469,16 +500,12 @@ export class WorldScene extends Phaser.Scene {
         event.preventDefault();
         if (event.repeat || this.spaceDown) return;
         this.spaceDown = true;
-        const controls = this.runtime.propControls();
-        if (controls.held || controls.primary) this.runtime.propAction("Space");
-        else {
-          this.jumpRunning =
-            this.shiftHeld ||
-            this.runtime.running ||
-            this.time.now - this.lastRunStep < RUN_GRACE_MS;
-          this.runtime.stop(false);
-          this.jumpStarted = this.time.now;
-        }
+        this.jumpRunning =
+          this.shiftHeld ||
+          this.runtime.running ||
+          this.time.now - this.lastRunStep < RUN_GRACE_MS;
+        this.runtime.stop(false);
+        this.jumpStarted = this.time.now;
       }
       if (
         event.code === "KeyX" &&
@@ -967,6 +994,79 @@ export class WorldScene extends Phaser.Scene {
       phase: animation.phase ?? 0,
     });
   }
+  /** The word over a shop door.
+   *
+   * The building art paints the board and publishes its rect; the word is
+   * chosen here, from the trade, the language the street writes in, and — for
+   * the trades a family puts its own name over — the surname of whoever keeps
+   * it. The shortest word that fits the board wins, so a narrow frontage says
+   * PAIN where a wide one says BOULANGER.
+   */
+  private addBuildingSign(
+    place: Place,
+    placement: ReturnType<typeof buildingPlacement>,
+    setting: WorldSetting | undefined,
+    // The building's own drawn y: `sprite()` lifts it by the ground height,
+    // and a sign that ignores that slides down the facade on any slope.
+    top: number,
+  ) {
+    const model = placement.model as typeof placement.model & {
+      signBand?: [number, number, number, number];
+      signPaint?: string;
+      business?: string;
+    };
+    const band = model.signBand;
+    if (!band || !setting) return;
+    const language = signLanguage(setting);
+    if (!language) return;
+    const seed = this.runtime.engine.state.manifest.seed;
+    // The kit's own shopfronts carry no trade, and a street of them all
+    // reading SHOP is worse than no sign. Give each one a trade of its own.
+    const trade =
+      model.business ||
+      GENERIC_TRADES[
+        Math.floor(random(seed, "sign-trade", place.id) * GENERIC_TRADES.length)
+      ];
+    if (trade.startsWith("residential")) return;
+    const personal = random(seed, "sign-name", place.id) < 0.38;
+    const options = signOptions(
+      trade,
+      language,
+      this.ownerSurname(place),
+      personal,
+    );
+    const budget = band[2] - 6;
+    const word = options.find((option) => signWidth(option) <= budget);
+    if (!word) return;
+    const ink = inkFor(model.signPaint ?? "#b69b58");
+    const key = ensureSignTexture(this, word, ink);
+    if (!key) return;
+    const image = this.add
+      .image(
+        Math.round(placement.x - model.anchor[0] + band[0] + band[2] / 2),
+        Math.round(top - model.anchor[1] + band[1] + band[3] / 2),
+        key,
+      )
+      .setOrigin(0.5, 0.5)
+      .setTint(this.tint)
+      .setDepth(placement.depth + 1);
+    this.layers.push(image);
+  }
+
+  /** The family name of whoever keeps this place, where the culture and the
+   * century give people family names at all. Generation already decides that,
+   * so a one-word name simply yields nothing here. */
+  private ownerSurname(place: Place): string | undefined {
+    if (!place.owner) return undefined;
+    const owner = this.runtime.engine.state.actors.find(
+      (actor) => actor.id === place.owner,
+    );
+    const parts = owner?.name.trim().split(/\s+/) ?? [];
+    const family = parts.length > 1 ? parts[parts.length - 1] : undefined;
+    // Three letters is a syllable, not a name over a door.
+    return family && family.length >= 4 ? family : undefined;
+  }
+
   /** Whether this household has a fire in today. Hearths are lit to cook
    * morning and evening, and kept in all day when it is cold; not every
    * house at once, so a village is not a row of identical chimneys. */
@@ -1968,6 +2068,7 @@ export class WorldScene extends Phaser.Scene {
             ).animation;
             if (animation)
               this.addBuildingAnimation(b.id, placement, animation);
+            this.addBuildingSign(b, placement, w.pack.setting, image.y);
             if (b.access === "household" && this.hearthLit(b.id))
               this.lightHearth(b.id, placement);
           }
@@ -2124,12 +2225,21 @@ export class WorldScene extends Phaser.Scene {
       keep.add(id);
       let im = this.entities.get(id);
       const on = this.perchCell(id) ?? pos;
-      const tx = on.x * 16 + 8,
+      let tx = on.x * 16 + 8,
         ty =
           on.y * 16 +
           16 -
           this.lift(on.x * 16 + 8, on.y * 16 + 16) -
           this.perchRise(id);
+      if (id === "player" && this.bump) {
+        const t = (this.time.now - this.bump.at) / BUMP_MS;
+        if (t >= 1) this.bump = undefined;
+        else {
+          const push = Math.sin(Math.PI * t) * 2;
+          tx += this.bump.dx * push;
+          ty += this.bump.dy * push;
+        }
+      }
       if (!im) {
         im = this.add
           .image(tx, ty, this.texture(frame), frame)
@@ -2345,6 +2455,12 @@ export class WorldScene extends Phaser.Scene {
       );
     }
     this.heldSprites.clear();
+    // An item taken in hand is drawn the same way a carried prop is, but a
+    // real object in the hand wins.
+    if (e.state.player.heldItem) {
+      const sprite = this.runtime.item(e.state.player.heldItem)?.sprite;
+      if (sprite) this.heldSprites.set("player", sprite);
+    }
     for (const object of e.state.objects)
       if (object.carriedBy)
         this.heldSprites.set(object.carriedBy, object.sprite);
@@ -2629,6 +2745,8 @@ export class WorldScene extends Phaser.Scene {
       frame: (frame) => this.textureFrame(frame),
     });
     this.toolEffects.consume(this.runtime.toolEffect);
+    this.toolEffects.consumeSwing(this.runtime.swingEffect);
+    this.toolEffects.consumeThrow(this.runtime.throwEffect);
     this.toolEffects.update(time);
     mark("wind");
     const active = document.activeElement;
@@ -2692,7 +2810,35 @@ export class WorldScene extends Phaser.Scene {
           }
           this.nextInput = time + this.motionDuration;
           this.lastTick = time;
-          this.runtime.move(dx, dy, false, this.shiftHeld);
+          let moved = this.runtime.move(dx, dy, false, this.shiftHeld);
+          // A diagonal into a corner slides along whichever wall is open,
+          // rather than stopping dead. The engine is right to refuse the
+          // diagonal; it is the input that should try the other way.
+          if (moved?.status === "rejected" && dx && dy) {
+            const at = this.runtime.engine.state.player.pos;
+            const freeX = !this.runtime.engine.blocked(at.x + dx, at.y);
+            const freeY = !this.runtime.engine.blocked(at.x, at.y + dy);
+            if (freeX !== freeY)
+              moved = this.runtime.move(
+                freeX ? dx : 0,
+                freeX ? 0 : dy,
+                false,
+                this.shiftHeld,
+              );
+          }
+          // Pushing into a wall still turns you to face it, and shoves.
+          if (moved?.status === "rejected") {
+            this.blockedFacing = facingFromStep(
+              dx,
+              dy,
+              this.runtime.engine.state.player.direction,
+            );
+            this.pushingAt = time;
+            this.bump = { dx, dy, at: time };
+          } else {
+            this.blockedFacing = undefined;
+            this.pushingAt = undefined;
+          }
         }
       }
       if (
@@ -2743,7 +2889,11 @@ export class WorldScene extends Phaser.Scene {
       const human = this.humanActors.get(id);
       if (human && this.characters && perf.characterPoses) {
         const at = this.ambient.get(id);
-        const moving = at ? at.moving : this.tweens.isTweening(im);
+        const pushing =
+          id === "player" &&
+          this.pushingAt !== undefined &&
+          time - this.pushingAt < PUSH_MS;
+        const moving = (at ? at.moving : this.tweens.isTweening(im)) || pushing;
         const action =
           id === "player" ? this.runtime.characterAction : undefined;
         const elapsed = action ? performance.now() - action.at : Infinity;
@@ -2789,7 +2939,10 @@ export class WorldScene extends Phaser.Scene {
         // Turning is drawn through the facings in between. Without it a
         // half turn is a single frame, which the eight-way sprites make
         // more obvious than the four-way ones did.
-        const wanted = human.facing ?? facingFromDirection(human.direction);
+        const wanted =
+          (id === "player" ? this.blockedFacing : undefined) ??
+          human.facing ??
+          facingFromDirection(human.direction);
         let turn = this.turning.get(id);
         if (!turn) this.turning.set(id, (turn = { facing: wanted, until: 0 }));
         else if (turn.facing !== wanted && time >= turn.until) {

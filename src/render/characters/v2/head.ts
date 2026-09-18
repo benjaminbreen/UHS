@@ -515,6 +515,213 @@ export function drawHead(
     p.line([6, 5], [15, 3], a.wearing.trim);
     if (!side) p.rect(4, 6, 2, 8, cloth.shade);
   }
+  // A stiff crown and a narrow curled brim. The brim is the whole tell at this
+  // size, so it runs a pixel proud of the skull on both sides.
+  if (a.wearing.headwear === "bowler") {
+    const felt = ramp(a.wearing.lowerColor);
+    // Tall domed crown over a brim that clears the skull by a pixel each side
+    // and curls back up at the ends. Any wider and it reads as a sun hat.
+    p.shape(
+      [
+        [6, 4],
+        [7, 0],
+        [13, 0],
+        [14, 4],
+      ],
+      felt,
+    );
+    p.rect(5, 4, side ? 10 : 11, 1, felt.base);
+    p.rect(5, 5, side ? 10 : 11, 1, felt.shade);
+    p.rect(4, 4, 1, 1, felt.light);
+    if (!side) p.rect(16, 4, 1, 1, felt.light);
+    p.line([8, 2], [12, 1], felt.light);
+    p.rect(6, 3, side ? 8 : 9, 1, a.wearing.trim);
+  }
+  // Soft crown pulled forward over a short stiff peak: the newsboy cap.
+  if (a.wearing.headwear === "flat-cap") {
+    p.shape(
+      [
+        [4, 5],
+        [5, 2],
+        [10, 1],
+        [15, 2],
+        [16, 5],
+      ],
+      cloth,
+    );
+    // The peak is the tell: a dark lip across the brow, wider than the crown.
+    if (side) {
+      p.rect(15, 5, 4, 1, cloth.shade);
+      p.rect(16, 6, 3, 1, cloth.edge);
+    } else {
+      p.rect(4, 5, 13, 1, cloth.shade);
+      p.rect(5, 6, 11, 1, cloth.edge);
+    }
+    p.line([6, 3], [13, 2], cloth.light);
+  }
+  // Tall crown, long curved peak.
+  if (a.wearing.headwear === "ball-cap") {
+    // Taller crown than the flat cap, a seam up the middle, and a longer peak.
+    p.shape(
+      [
+        [5, 5],
+        [5, 1],
+        [10, -1],
+        [15, 1],
+        [15, 5],
+      ],
+      cloth,
+    );
+    if (side) {
+      p.rect(15, 5, 5, 1, cloth.shade);
+      p.rect(16, 6, 4, 1, cloth.edge);
+    } else {
+      p.rect(3, 5, 15, 1, cloth.shade);
+      p.rect(4, 6, 13, 1, cloth.edge);
+    }
+    p.line([7, 2], [13, 1], cloth.light);
+    p.rect(10, 0, 1, 5, cloth.shade);
+  }
+  // A wide brim, straw or felt, against sun or rain.
+  if (a.wearing.headwear === "brimmed") {
+    const straw = ramp(a.wearing.lowerColor);
+    p.shape(
+      [
+        [6, 5],
+        [7, 2],
+        [13, 2],
+        [14, 5],
+      ],
+      straw,
+    );
+    p.rect(0, 5, side ? 18 : 21, 1, straw.base);
+    p.rect(0, 6, side ? 18 : 21, 1, straw.shade);
+    p.rect(2, 7, side ? 15 : 17, 1, straw.edge);
+    p.rect(6, 4, side ? 8 : 9, 1, a.wearing.trim);
+  }
+  // One woven cone. The apex is a single pixel or it reads as a dunce cap.
+  if (a.wearing.headwear === "conical") {
+    const straw = ramp(a.wearing.lowerColor);
+    p.shape(
+      [
+        [10, -3],
+        [16, 5],
+        [4, 5],
+      ],
+      straw,
+    );
+    p.rect(3, 5, side ? 15 : 16, 2, straw.base);
+    p.rect(3, 6, side ? 15 : 16, 1, straw.shade);
+    p.line([10, -2], [6, 4], straw.light);
+  }
+  // Cloth wound in bulk: three bands, each offset, so it reads as wrapped
+  // rather than as one solid dome.
+  if (a.wearing.headwear === "turban") {
+    p.shape(
+      [
+        [3, 7],
+        [4, 2],
+        [9, -1],
+        [15, 1],
+        [17, 5],
+        [17, 7],
+      ],
+      cloth,
+    );
+    p.line([4, 4], [16, 3], cloth.light);
+    p.line([4, 6], [17, 5], cloth.shade);
+    p.line([5, 2], [13, 0], cloth.light);
+    if (!side) p.rect(15, 7, 2, 4, cloth.shade);
+  }
+  // Over the hair and down to the shoulders. Filled, not outlined: an open
+  // ring here just reads as uncovered hair.
+  if (a.wearing.headwear === "headscarf") {
+    p.shape(
+      [
+        [4, 7],
+        [4, 3],
+        [9, 0],
+        [15, 2],
+        [17, 6],
+        [17, 7],
+      ],
+      cloth,
+    );
+    if (!side) {
+      p.rect(3, 6, 2, 9, cloth.shade);
+      p.rect(16, 6, 2, 9, cloth.shade);
+      p.rect(3, 6, 1, 8, cloth.edge);
+    } else p.rect(3, 6, 3, 9, cloth.shade);
+    p.line([5, 4], [14, 2], cloth.light);
+    p.line([5, 6], [16, 5], cloth.base);
+  }
+  // A short brimless cylinder with a tassel down one side.
+  if (a.wearing.headwear === "fez") {
+    const felt = ramp(a.wearing.trim);
+    p.shape(
+      [
+        [6, 6],
+        [6, 1],
+        [14, 1],
+        [14, 6],
+      ],
+      felt,
+    );
+    p.rect(6, 1, 8, 1, felt.light);
+    p.rect(6, 6, side ? 8 : 9, 1, felt.shade);
+    if (!side) p.rect(14, 2, 1, 5, felt.edge);
+  }
+  // Past the shoulder, and across the lower face on the near side. Longer and
+  // more enveloping than the headscarf, which stops at the collar.
+  if (a.wearing.headwear === "veil") {
+    p.shape(
+      [
+        [3, 8],
+        [4, 3],
+        [9, 0],
+        [15, 2],
+        [17, 6],
+        [17, 8],
+      ],
+      cloth,
+    );
+    if (!side) {
+      p.rect(2, 7, 3, 13, cloth.shade);
+      p.rect(15, 7, 3, 13, cloth.shade);
+      p.rect(2, 7, 1, 12, cloth.edge);
+      // A fall across the mouth, left open at the eyes.
+      p.rect(5, 12, 10, 4, cloth.base);
+      p.rect(5, 12, 10, 1, cloth.light);
+    } else {
+      p.rect(3, 7, 4, 13, cloth.shade);
+      p.rect(7, 12, 8, 4, cloth.base);
+    }
+    p.line([5, 4], [14, 2], cloth.light);
+  }
+  // A ring sitting proud of the brow rather than flat on it: circlet, diadem,
+  // head-ring. The gap above the hair is what separates it from a headband.
+  if (a.wearing.headwear === "fillet") {
+    const metal = ramp(a.wearing.trim);
+    p.rect(4, 4, side ? 12 : 13, 1, metal.base);
+    p.rect(4, 5, side ? 12 : 13, 1, metal.shade);
+    p.rect(6, 3, side ? 8 : 9, 1, metal.light);
+    // A raised centre, which is where these carry their stone or boss.
+    p.rect(side ? 13 : 10, 2, 1, 2, metal.light);
+  }
+  // Standing above the crown. Height is the whole signal, so the quills clear
+  // the skull by a good margin and splay rather than rising parallel.
+  if (a.wearing.headwear === "plume") {
+    const quill = ramp(a.wearing.trim);
+    p.rect(4, 4, side ? 12 : 13, 2, cloth.base);
+    p.rect(4, 5, side ? 12 : 13, 1, cloth.shade);
+    const roots = side ? [[12, 3]] : [[7, 3], [10, 3], [13, 3]];
+    roots.forEach(([x], i) => {
+      const lean = i - (roots.length - 1) / 2;
+      p.line([x, 3], [x + Math.round(lean * 2), -4], quill.base);
+      p.rect(x + Math.round(lean * 2), -5, 1, 2, quill.light);
+      p.rect(x + Math.round(lean * 1.4), -1, 1, 1, quill.shade);
+    });
+  }
   if (a.wearing.earrings && !back) {
     p.rect(side ? 10 : 4, 12, 1, 2, "#dfbb70");
     if (!side) p.rect(16, 12, 1, 2, "#dfbb70");

@@ -70,6 +70,32 @@ export function periodBuildings(setting: WorldSetting): string[] {
   return [];
 }
 
+/** Street facades for a city of 1900 on. The concrete block is everywhere by
+ * then, but it is not the whole street anywhere: a shophouse arcade runs
+ * across monsoon Asia, a balconied walk-up around the Mediterranean and in
+ * Latin America, a corrugated veranda house wherever the rain is heavy. */
+export function modernBuildings(setting: WorldSetting): string[] {
+  const { culture, climate, settlement } = setting;
+  const wet = climate === "tropical" || climate === "monsoon";
+  const asia =
+    culture === "southeast-asian" ||
+    culture === "east-asian" ||
+    culture === "south-asian";
+  const walkup =
+    culture === "european" ||
+    culture === "north-african-west-asian" ||
+    culture === "andean" ||
+    culture === "mesoamerican";
+  return [
+    "modern-shop",
+    "modern-apartment",
+    ...(asia ? ["modern-shophouse"] : []),
+    ...(walkup ? ["modern-walkup"] : []),
+    ...(wet ? ["modern-kampung"] : []),
+    ...(settlement === "city" ? ["modern-office"] : []),
+  ];
+}
+
 export function packForSetting(setting: WorldSetting): Pack {
   const early = setting.year < -3499;
   const base = packTemplates[early ? "neolithic" : "roman"];
@@ -79,7 +105,7 @@ export function packForSetting(setting: WorldSetting): Pack {
     (setting.settlement === "city" || setting.settlement === "port");
   const period = periodBuildings(setting).map((b) => `period-${b}`);
   const buildings = modernCity
-    ? ["modern-apartment", "modern-office", "modern-shop"]
+    ? modernBuildings(setting)
     : architecture === "shelter"
       ? ["shelter-hide", "shelter-reed"]
       : architecture === "timber" &&

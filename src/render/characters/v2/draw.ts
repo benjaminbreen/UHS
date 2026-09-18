@@ -127,13 +127,18 @@ export function drawCharacter(
   // Mirroring the raster would mirror the sun with it, so walking west would
   // relight the whole figure. Shading is resolved in screen space instead.
   p.flip = direction === 3;
+  // A bare chest has bare arms, whatever the record's sleeve field says.
   const sleeves =
-    a.wearing.sleeves ??
-    (a.wearing.garment === "wrap"
-      ? "none"
-      : ["coat", "shirt", "robe"].includes(a.wearing.garment)
-        ? "long"
-        : "short");
+    a.wearing.garment === "none" ||
+    a.wearing.garment === "loincloth" ||
+    a.wearing.garment === "poncho"
+      ? ("none" as const)
+      : (a.wearing.sleeves ??
+        (a.wearing.garment === "wrap"
+          ? "none"
+          : ["coat", "shirt", "robe"].includes(a.wearing.garment)
+            ? "long"
+            : "short"));
   const armSwing = moving ? (sprint ? [0, 4, 0, -4] : [0, 2, 0, -2])[f] : 0;
   const shoulderNear: Point = side
       ? [10, 15 - inhale]
@@ -541,11 +546,62 @@ export function drawCharacter(
         (climbing ? (isFar ? -2 : 2) : 0),
       Math.round((hip[1] + ankle[1]) / 2),
     ];
-    const bare = a.wearing.garment === "tunic" || a.wearing.garment === "wrap",
-      base = bare ? skin : lower,
+    // Leggings win over the garment's own guess: a short tunic over hose is
+    // covered, a long robe over nothing still hides the leg anyway.
+    const legs = a.wearing.leggings ?? "none";
+    const bareLeg =
+        legs === "none" &&
+        (a.wearing.garment === "tunic" ||
+          a.wearing.garment === "wrap" ||
+          a.wearing.garment === "none"),
+      base = bareLeg ? skin : lower,
       colors = isFar ? { ...base, base: base.shade } : base;
     p.limb([hip, knee, ankle], 4, colors);
+    // Wrappings are the same cloth crossed over itself: two bands up the shin.
+    if (legs === "wrapped" && !isFar) {
+      p.line([hip[0] - 2, knee[1] + 1], [hip[0] + 2, knee[1] + 2], lower.light);
+      p.line([hip[0] - 2, knee[1] + 4], [hip[0] + 2, knee[1] + 5], lower.shade);
+    }
+    // Trousers reach the ankle; hose stop a pixel short and show the joint.
+    if (legs === "trousers" && !isFar)
+      p.rect(hip[0] - 2, ankle[1] - 2, 4, 2, lower.shade);
+    // Cut wide: the cloth falls straight and flares away from the body. The
+    // flare has to be outward only, or the two legs meet in the middle.
+    if (legs === "wide") {
+      const out = isFar === side ? -1 : 1;
+      const away = side ? 1 : hip[0] > 10 ? 1 : -1;
+      p.shape(
+        [
+          [hip[0] - 2, knee[1] - 3],
+          [hip[0] + 2, knee[1] - 3],
+          [hip[0] + 2 + (away > 0 ? 2 : 0), ankle[1]],
+          [hip[0] - 2 - (away > 0 ? 0 : 2), ankle[1]],
+        ],
+        isFar ? { ...lower, base: lower.shade } : lower,
+      );
+      if (!isFar) {
+        p.rect(hip[0] - 2, knee[1] - 3, 4, 1, lower.light);
+        p.rect(hip[0] - 2 - (away > 0 ? 0 : 2), ankle[1] - 1, 6, 1, lower.shade);
+      }
+      void out;
+    }
+    const shoe = a.wearing.footwear ?? "shoes";
+    if (shoe === "none") {
+      // Bare foot: the same silhouette in skin, with a toe rather than a welt.
+      p.shape(
+        [
+          [ankle[0] - 1, ankle[1] + 1],
+          [ankle[0] + 3, ankle[1] + 1],
+          [ankle[0] + 4, ankle[1] + 3],
+          [ankle[0] - 1, ankle[1] + 3],
+        ],
+        isFar ? { ...skin, base: skin.shade } : skin,
+      );
+      return;
+    }
     const footX = ankle[0] - 1;
+    const hide =
+      shoe === "sandals" ? { ...leather, base: leather.shade } : leather;
     p.shape(
       [
         [footX, ankle[1]],
@@ -554,12 +610,50 @@ export function drawCharacter(
         [footX + 5, ankle[1] + 3],
         [footX, ankle[1] + 3],
       ],
-      leather,
+      hide,
     );
-    p.rect(footX + 1, ankle[1] + 1, 2, 1, isFar ? leather.shade : leather.base);
+    p.rect(footX + 1, ankle[1] + 1, 2, 1, isFar ? hide.shade : hide.base);
+    // Sandals are straps over skin: cut the upper back to the foot beneath.
+    if (shoe === "sandals") {
+      p.rect(footX + 1, ankle[1], 3, 1, isFar ? skin.shade : skin.base);
+      p.rect(footX + 2, ankle[1] + 1, 1, 1, leather.light);
+    }
+    // Boots carry the shaft up the shin.
+    if (shoe === "boots")
+      p.rect(
+        ankle[0] - 2,
+        ankle[1] - 4,
+        4,
+        4,
+        isFar ? leather.shade : leather.base,
+      );
   };
   leg(true);
   leg(false);
+  // A wound sheet hangs as one piece over both legs, so it is drawn after
+  // them rather than on each: sarong, lungi, dhoti, kanga, izaar.
+  if ((a.wearing.leggings ?? "none") === "sarong") {
+    const sheet = ramp(a.wearing.lowerColor);
+    const l = (side ? 7 : 5) - wide,
+      r = (side ? 14 : 15) + wide;
+    const top = 21 + torso,
+      fall = feet - 3;
+    p.shape(
+      [
+        [l, top],
+        [r, top],
+        [r + 1 + trail, fall],
+        [l - 1 + trail, fall],
+      ],
+      sheet,
+    );
+    p.rect(l, top, r - l, 1, sheet.light);
+    p.rect(l, fall - 1, r - l, 1, sheet.shade);
+    // Where the cloth crosses itself, which is what says wound and not sewn.
+    const seam = side ? r - 3 : l + 4;
+    p.line([seam, top + 1], [seam - 1, fall - 2], sheet.shade);
+    p.rect(seam, top, 2, 2, sheet.light);
+  }
   ctx.translate(lean, 0);
   if (a.wearing.cloak) {
     const sway = drift;
@@ -581,49 +675,93 @@ export function drawCharacter(
   }
   const left = (side ? 6 - wide : 4 - wide) + small,
     right = (side ? 15 + wide : 16 + wide) - narrow;
-  const long = ["robe", "dress", "coat", "skirt", "long-tunic"].includes(
-      a.wearing.garment,
-    ),
+  // A loincloth is the bare-torso body with a panel hung off the cord, so it
+  // shares every measurement with it.
+  const naked =
+    a.wearing.garment === "none" || a.wearing.garment === "loincloth";
+  const poncho = a.wearing.garment === "poncho";
+  const openRobe = a.wearing.garment === "open-robe";
+  const long = [
+    "robe",
+    "dress",
+    "coat",
+    "skirt",
+    "long-tunic",
+    "open-robe",
+  ].includes(a.wearing.garment),
     hem =
       a.wearing.garment === "long-tunic"
         ? 27 + torso
         : long
           ? 30 + torso
-          : 23 + torso;
+          : poncho
+            ? 26 + torso
+            : 23 + torso;
+  // A poncho hangs off the shoulders and does not follow the body: straight
+  // sides are the whole silhouette.
   const flare = ["dress", "skirt"].includes(a.wearing.garment)
     ? 2
-    : long
+    : poncho
       ? 1
-      : 0;
+      : long
+        ? 1
+        : 0;
   const waist = a.bodyShape === "tapered" ? 1 : 0;
   const belly = a.bodyShape === "rounded" ? 1 : 0;
   // A long hem swings a frame behind the legs, like the cloak.
   const hemSway = long ? drift : trail;
   const hemLift =
     a.wearing.hem === "slanted" ? 2 : stance === "relaxed" ? 1 : 0;
-  p.group(cloth, () => {
+  // Bare above the waist: the torso is skin down to a short waistcloth, so
+  // the silhouette is the same body without a garment on it.
+  const body = naked ? skin : cloth;
+  const bodyHem = naked ? 22 + torso : hem;
+  p.group(body, () => {
     p.shape(
-      [
-        [left + 2, 12],
-        [right - 2, 12],
-        [right, 15 - inhale],
-        [right - waist + belly, 19 + torso],
-        [right + flare + hemSway, hem - 1 - hemLift],
-        [right - 1, hem],
-        [left - flare + hemSway, hem],
-        [left - 1, hem - 2],
-        [left + waist - belly, 19 + torso],
-        [left, 15 - inhale],
-      ],
-      cloth,
+      poncho
+        ? // Square at the shoulder, straight down, flat across the hem.
+          [
+            [left - 1, 12],
+            [right + 1, 12],
+            [right + 1 + hemSway, bodyHem],
+            [left - 1 + hemSway, bodyHem],
+          ]
+        : [
+            [left + 2, 12],
+            [right - 2, 12],
+            [right, 15 - inhale],
+            [right - waist + belly, 19 + torso],
+            [right + flare + hemSway, bodyHem - 1 - hemLift],
+            [right - 1, bodyHem],
+            [left - flare + hemSway, bodyHem],
+            [left - 1, bodyHem - 2],
+            [left + waist - belly, 19 + torso],
+            [left, 15 - inhale],
+          ],
+      body,
     );
-    if (sleeves !== "none") {
+    if (!naked && !poncho && sleeves !== "none") {
       p.ribbon(nearArm.sleeve, sleeves === "loose" ? 5 : 4, cloth);
       p.ribbon(farArm.sleeve, sleeves === "loose" ? 5 : 4, cloth);
     }
   });
+  if (naked) {
+    p.rect(left, 19 + torso, right - left, 4, lower.base);
+    p.rect(left, 19 + torso, right - left, 1, lower.light);
+    p.rect(left, 22 + torso, right - left, 1, lower.shade);
+    // A loincloth is the same cord with a panel hanging off the front of it.
+    if (a.wearing.garment === "loincloth") {
+      const mid = side ? right - 4 : Math.round((left + right) / 2) - 1;
+      p.rect(mid, 22 + torso, 3, 6, lower.base);
+      p.rect(mid, 22 + torso, 1, 6, lower.light);
+      p.rect(mid + 2, 22 + torso, 1, 6, lower.shade);
+      p.rect(mid, 27 + torso, 3, 1, lower.edge);
+    }
+    // A shallow sternum line, so a bare chest is not one flat field of skin.
+    if (!side && !back) p.line([11, 16], [11, 19 + torso], skin.shade);
+  }
   // Shoulder light flows into the sleeve; only a short underarm fold separates surfaces.
-  if (sleeves !== "none") {
+  if (!naked && sleeves !== "none") {
     if (!side) {
       p.line([left, 14], [left + 2, 13], cloth.light);
       p.line([right - 3, 13], [right, 14], cloth.base);
@@ -636,11 +774,30 @@ export function drawCharacter(
       p.rect(nearArm.shoulder[0], 15, 2, 2, cloth.base);
     }
   }
-  p.line([left + 1, 16], [left + 1, hem - 3], cloth.light);
-  p.line([right - 2, 17], [right - 2, hem - 2], cloth.shade);
+  if (!naked) {
+    p.line([left + 1, 16], [left + 1, hem - 3], cloth.light);
+    p.line([right - 2, 17], [right - 2, hem - 2], cloth.shade);
+  }
   if (long) {
     p.line([left + 3, 23 + torso], [left + 2, hem - 2], cloth.shade);
     p.line([left, hem - 2], [right - 1, hem - 2], a.wearing.trim);
+  }
+  // Open at the front over a contrasting inner layer. The inner is drawn
+  // first, then the outer panels cut back to leave a gap down the middle:
+  // that gap is the whole silhouette, and without it this is just a coat.
+  if (openRobe && !back) {
+    const inner = ramp(a.wearing.lowerColor);
+    const mid = side ? right - 3 : Math.round((left + right) / 2);
+    p.rect(mid - 2, 15, 5, hem - 17, inner.base);
+    p.rect(mid - 2, 15, 1, hem - 17, inner.shade);
+    p.rect(mid + 1, 15, 1, hem - 17, inner.light);
+    // The panel edges, lit on the left and shaded on the right.
+    p.line([mid - 3, 14], [mid - 3, hem - 2], cloth.light);
+    p.line([mid + 3, 14], [mid + 3, hem - 2], cloth.shade);
+    // A collar band running down each edge, which is where these garments
+    // carry their trim.
+    p.line([mid - 4, 15], [mid - 4, hem - 3], a.wearing.trim);
+    if (!side) p.line([mid + 4, 15], [mid + 4, hem - 3], a.wearing.trim);
   }
   if (a.wearing.garment === "wrap" && !back) {
     p.shape(
@@ -688,57 +845,85 @@ export function drawCharacter(
   // carries, so a village reads as a wardrobe rather than as one smock in
   // twelve colours. Everything here is drawn in the garment's own trim.
   const trim = ramp(a.wearing.trim);
-  const outfit = [
-    ...(a.wearing.color + a.wearing.trim + a.wearing.garment + a.wearing.belt),
-  ].reduce((n, c) => (Math.imul(n, 31) + c.charCodeAt(0)) >>> 0, 7);
-  const mid = side ? right - 3 : Math.round((left + right) / 2);
-  const chest = 18,
-    lowChest = 21 + torso;
-  if (!back) {
-    // A neckline. The shipped garments end at a bare shoulder seam.
-    if (side) p.rect(right - 4, 16, 3, 1, trim.shade);
-    else if (["shirt", "coat", "robe"].includes(a.wearing.garment)) {
-      p.line([mid - 3, 16], [mid, 19], trim.base);
-      p.line([mid + 3, 16], [mid, 19], trim.base);
-    } else p.rect(left + 2, 16, right - left - 3, 1, trim.base);
-  }
-  // Cuffs, which is where a sleeve wants a value change anyway.
-  if (sleeves === "long" || sleeves === "loose")
-    for (const arm of [nearArm, farArm])
-      p.rect(arm.cuff[0] - 1, arm.cuff[1], 3, 1, trim.shade);
-  // Hem border. Long garments already had one; short ones ended on bare cloth.
-  if (!long && hem - 2 > lowChest)
-    p.line([left + 1, hem - 2], [right - 2, hem - 2], trim.shade);
-  // A wrap already carries its own diagonal trim; a motif on top reads as dirt.
-  if (!back && a.wearing.garment !== "wrap")
-    switch (outfit % 5) {
-      case 1: // centre placket
-        p.line([mid, chest], [mid, hem - 3], trim.shade);
-        break;
-      case 2: // banded chest
-        p.rect(left + 2, chest, right - left - 3, 1, trim.shade);
-        p.rect(left + 2, lowChest, right - left - 3, 1, trim.shade);
-        break;
-      case 3: {
-        // A yoke, not a diagonal sash: a 1px diagonal is smudge at this size.
-        const yoke = ramp(a.wearing.lowerColor);
-        p.rect(left + 2, chest - 1, right - left - 3, 2, yoke.base);
-        p.rect(left + 2, chest, right - left - 3, 1, yoke.shade);
-        break;
-      }
-      case 4: // stitched seam
-        for (let y = chest; y < hem - 3; y += 3)
-          p.rect(side ? right - 3 : left + 2, y, 1, 1, trim.base);
-        break;
+  // Trim, necklines, cuffs and motifs all decorate cloth. A bare chest takes
+  // none of them; the belt and the neck below still apply.
+  if (!naked) {
+    const outfit = [
+      ...(a.wearing.color +
+        a.wearing.trim +
+        a.wearing.garment +
+        a.wearing.belt),
+    ].reduce((n, c) => (Math.imul(n, 31) + c.charCodeAt(0)) >>> 0, 7);
+    const mid = side ? right - 3 : Math.round((left + right) / 2);
+    const chest = 18,
+      lowChest = 21 + torso;
+    if (!back) {
+      // A neckline. The shipped garments end at a bare shoulder seam.
+      if (side) p.rect(right - 4, 16, 3, 1, trim.shade);
+      else if (["shirt", "coat", "robe"].includes(a.wearing.garment)) {
+        p.line([mid - 3, 16], [mid, 19], trim.base);
+        p.line([mid + 3, 16], [mid, 19], trim.base);
+      } else p.rect(left + 2, 16, right - left - 3, 1, trim.base);
     }
-  // Occlusion where the hem meets the leg. Without it the legs read as pasted
-  // on beneath the garment rather than continuing under it.
-  if (hem < feet - 4) {
-    const bareLegs =
-      a.wearing.garment === "tunic" || a.wearing.garment === "wrap";
-    const legTone = bareLegs ? skin : lower;
-    for (const x of side ? [9, 12] : [6 - wide + small, 13 + wide - narrow])
-      p.rect(x - 1, hem, 4, 1, legTone.shadowEdge ?? legTone.edge);
+    // Cuffs, which is where a sleeve wants a value change anyway.
+    if (sleeves === "long" || sleeves === "loose")
+      for (const arm of [nearArm, farArm])
+        p.rect(arm.cuff[0] - 1, arm.cuff[1], 3, 1, trim.shade);
+    // Hem border. Long garments already had one; short ones ended on bare cloth.
+    if (!long && hem - 2 > lowChest)
+      p.line([left + 1, hem - 2], [right - 2, hem - 2], trim.shade);
+    // A wrap already carries its own diagonal trim; a motif on top reads as dirt.
+    const named = a.wearing.motif ?? "auto";
+    const motif =
+      named === "auto"
+        ? outfit % 5
+        : { plain: 0, placket: 1, band: 2, yoke: 3, stitch: 4, stripes: 5 }[
+            named
+          ];
+    if (!back && a.wearing.garment !== "wrap")
+      switch (motif) {
+        case 1: // centre placket
+          p.line([mid, chest], [mid, hem - 3], trim.shade);
+          break;
+        case 2: // banded chest
+          p.rect(left + 2, chest, right - left - 3, 1, trim.shade);
+          p.rect(left + 2, lowChest, right - left - 3, 1, trim.shade);
+          break;
+        case 3: {
+          // A yoke, not a diagonal sash: a 1px diagonal is smudge at this size.
+          const yoke = ramp(a.wearing.lowerColor);
+          p.rect(left + 2, chest - 1, right - left - 3, 2, yoke.base);
+          p.rect(left + 2, chest, right - left - 3, 1, yoke.shade);
+          break;
+        }
+        case 4: // stitched seam
+          for (let y = chest; y < hem - 3; y += 3)
+            p.rect(side ? right - 3 : left + 2, y, 1, 1, trim.base);
+          break;
+        case 5: {
+          // Bands across the whole width, alternating the trim and the lower
+          // colour. The one pattern that still reads at twenty pixels.
+          const second = ramp(a.wearing.lowerColor);
+          // From the shoulder, not the chest: starting lower left only two
+          // bands showing under a mantle and a belt.
+          for (let i = 0, y = 14; y < hem - 2; y += 3, i++) {
+            const tone = i % 2 ? second : trim;
+            p.rect(left + 1, y, right - left - 2, 2, tone.base);
+            p.rect(left + 1, y + 1, right - left - 2, 1, tone.shade);
+          }
+          break;
+        }
+      }
+    // Occlusion where the hem meets the leg. Without it the legs read as pasted
+    // on beneath the garment rather than continuing under it.
+    if (hem < feet - 4) {
+      const bareLegs =
+        (a.wearing.leggings ?? "none") === "none" &&
+        (a.wearing.garment === "tunic" || a.wearing.garment === "wrap");
+      const legTone = bareLegs ? skin : lower;
+      for (const x of side ? [9, 12] : [6 - wide + small, 13 + wide - narrow])
+        p.rect(x - 1, hem, 4, 1, legTone.shadowEdge ?? legTone.edge);
+    }
   }
   const belt = a.wearing.belt ?? "leather",
     beltY = 22 + torso,
@@ -759,6 +944,29 @@ export function drawCharacter(
     p.rect(left, beltY - 1, right - left, 2, sash.base);
     p.rect(left, beltY, right - left, 1, sash.shade);
     p.rect(left, beltY - 1, 2, 3, sash.shade);
+  }
+  // A short cape over the shoulders, stopping at the elbow, and usually the
+  // brightest thing on the figure: lliclla, feather cape, paenula. Drawn over
+  // the garment, because that is what it is.
+  if (a.wearing.mantle && !a.wearing.cloak) {
+    const sway = trail;
+    const ml = (side ? 4 : 1) - wide,
+      mr = (side ? 13 : 19) + wide;
+    p.shape(
+      [
+        [ml + 2, 12],
+        [mr - 2, 12],
+        [mr, 15],
+        [mr - 1 + sway, 22 + torso],
+        [ml + 1 + sway, 22 + torso],
+        [ml, 15],
+      ],
+      cloak,
+    );
+    p.rect(ml + 1 + sway, 21 + torso, mr - ml - 2, 1, a.wearing.trim);
+    p.line([ml + 2, 14], [ml + 2 + sway, 20 + torso], cloak.light);
+    p.line([mr - 2, 14], [mr - 2 + sway, 20 + torso], cloak.shade);
+    p.rect(ml + 3, 12, mr - ml - 6, 1, cloak.light);
   }
   // Neck is a separate warm shadow between head and garment.
   const neckSide = side && !quarter;

@@ -1,4 +1,9 @@
 import { wornFromWearing } from "./wearing";
+import {
+  clothName,
+  clothWorth,
+  parseCloth,
+} from "../content/characters/wardrobe/cloth";
 import { waterDepthAt, wadingCost, MAX_WADING_DEPTH } from "./water-field";
 import { trimCache } from "./cache";
 import {
@@ -64,6 +69,8 @@ import {
   tileKey,
   woodYield,
   isWorkedGround,
+  isRock,
+  LOGS_SPRITE,
   plantName,
   STUMP_SPRITE,
   type TileEdit,
@@ -72,6 +79,15 @@ import {
 /** Elevation carried by one altitude step, matching the terrain renderer. */
 const TERRAIN_STEP = 14;
 import { facingFromStep } from "./facing";
+import {
+  isSolid,
+  reactionFor,
+  toolClass,
+  toughness,
+  type Hit,
+  type HitClass,
+  type ToolClass,
+} from "./reactions";
 import type { Point } from "./types";
 const copy = <T>(x: T): T => structuredClone(x);
 /** Routines built in one call to `advance`. */
@@ -204,7 +220,20 @@ export class Engine {
     );
   }
   item(id: ItemId): ItemDef | undefined {
-    return this.items[id] ?? this.state.catalog?.[id];
+    const known = this.items[id] ?? this.state.catalog?.[id];
+    if (known) return known;
+    // A garment carries its cloth in its id. Everything a worn item does —
+    // the look it adds, the slot it fills — comes from the base definition;
+    // the cloth only changes what it is called and what it is worth.
+    const q = parseCloth(id);
+    const base = q && (this.items[q.base] ?? this.state.catalog?.[q.base]);
+    if (!base) return undefined;
+    return {
+      ...base,
+      id,
+      name: clothName(base.name, q!.cloth, id),
+      value: Math.max(1, Math.round(base.value * clothWorth(q!.cloth))),
+    };
   }
   hash() {
     const { receipts, log, notes, narration, ...physical } = this.state;
@@ -490,6 +519,158 @@ export class Engine {
   }
   heldTool() {
     return propDefs[heldObject(this.state)?.prop ?? ""]?.tool;
+  }
+  /** What a blow landing on this cell would find. Props first, then whoever
+   * is standing there, then what grows on it, then the ground itself. */
+  hitClass(
+    x: number,
+    y: number,
+    space: string,
+  ): { hit: HitClass; sprite?: string; prop?: WorldObject } {
+    const prop = this.state.objects.find(
+      (o) =>
+        o.prop &&
+        !o.carriedBy &&
+        o.pos.x === x &&
+        o.pos.y === y &&
+        o.pos.space === space &&
+        o.id !== this.state.player.held,
+    );
+    if (prop) {
+      const def = propDefs[prop.prop!];
+      const material: Record<string, HitClass> = {
+        clay: "pottery",
+        glaze: "pottery",
+        wood: "timber",
+        metal: "metal",
+        fiber: "fiber",
+        plastic: "fiber",
+        paper: "fiber",
+      };
+      const hit: HitClass = def?.fire
+        ? "fire"
+        : (material[def?.breakable ?? ""] ?? "timber");
+      return { hit, sprite: prop.sprite, prop };
+    }
+    const actor = this.state.actors.find(
+      (a) => a.pos.x === x && a.pos.y === y && a.pos.space === space,
+    );
+    if (actor) return { hit: "creature", sprite: actor.id };
+    if (space === "outside") {
+      const plant = this.world.decoration(x, y);
+      if (plant) {
+        if (isRock(plant.sprite)) return { hit: "rock", sprite: plant.sprite };
+        if (plant.sprite === STUMP_SPRITE || plant.sprite === LOGS_SPRITE)
+          return { hit: "trunk", sprite: plant.sprite };
+        const c = plantClass(plant.sprite);
+        if (c === "grass") return { hit: "grass", sprite: plant.sprite };
+        if (c === "shrub") return { hit: "brush", sprite: plant.sprite };
+        if (c !== "none") return { hit: "tree", sprite: plant.sprite };
+      }
+      if (this.cropAt(x, y)) return { hit: "crop" };
+    }
+    const ground = this.world.terrain(x, y, space);
+    const hit = (
+      {
+        water: "water",
+        marsh: "marsh",
+        sand: "sand",
+        snow: "snow",
+        dirt: "soil",
+        dry: "soil",
+        field: "soil",
+        grass: "grass",
+        rock: "stone",
+        paving: "stone",
+        bridge: "timber",
+        floor: "timber",
+      } as Record<string, HitClass>
+    )[ground];
+    return { hit: hit ?? "air" };
+  }
+  /** The three cells a swing sweeps: what you face, and the corner to each
+   * side of it. */
+  private swingCone(direction: number) {
+    const p = this.state.player.pos;
+    const d = [
+      [0, -1],
+      [1, 0],
+      [0, 1],
+      [-1, 0],
+    ][direction];
+    // Perpendicular, for the two corners.
+    const s = [-d[1], d[0]];
+    return [
+      { x: p.x + d[0], y: p.y + d[1] },
+      { x: p.x + d[0] - s[0], y: p.y + d[1] - s[1] },
+      { x: p.x + d[0] + s[0], y: p.y + d[1] + s[1] },
+    ];
+  }
+  /** Frees the hand, whichever system was using it: an item goes back into
+   * the inventory, a carried object down on the ground. */
+  private emptyHands() {
+    const p = this.state.player;
+    if (p.heldItem) {
+      p.inventory[p.heldItem] = (p.inventory[p.heldItem] ?? 0) + 1;
+      delete p.heldItem;
+    }
+    const carried = this.state.objects.find((o) => o.id === p.held);
+    if (carried) {
+      carried.pos = this.dropSpot() ?? copy(p.pos);
+      delete carried.carriedBy;
+    }
+    delete p.held;
+  }
+  /** One blow's worth of damage to a prop. Returns what became of it. */
+  private hurtProp(
+    prop: WorldObject,
+    hit: HitClass,
+  ): "broke" | "damaged" | "tipped" | undefined {
+    const def = propDefs[prop.prop!];
+    if (!def) return undefined;
+    if (def.breakable && !prop.broken) {
+      this.propOwnership(prop, "break");
+      prop.damage = (prop.damage ?? 0) + 1;
+      if (prop.damage < (toughness(hit) ?? 2)) return "damaged";
+      prop.broken = true;
+      prop.open = true;
+      prop.depleted = false;
+      prop.sprite = brokenSprite(prop.id, def.breakable);
+      return "broke";
+    }
+    if (def.tips && !prop.tipped) {
+      this.propOwnership(prop, "break");
+      prop.tipped = true;
+      prop.open = true;
+      return "tipped";
+    }
+    return undefined;
+  }
+  /** The last swing's hits, for the renderer. Read by serial, like a leap. */
+  lastSwing?: { hits: Hit[]; tool: ToolClass; direction: number };
+  /** The last thrown prop's flight, for the renderer to arc it over. */
+  lastThrow?: {
+    from: { x: number; y: number };
+    to: { x: number; y: number };
+    sprite?: string;
+    hit: Hit;
+  };
+  /** Aim assist: if the cone is empty but something solid stands to either
+   * side, turn to it. Forgiving aim is most of what makes a swing feel good. */
+  private aimAt(direction: number) {
+    const space = this.state.player.pos.space;
+    const solid = (dir: number) =>
+      this.swingCone(dir).some(
+        (c) => !["air", "grass", "soil", "sand", "snow"].includes(
+          this.hitClass(c.x, c.y, space).hit,
+        ),
+      );
+    if (solid(direction)) return direction;
+    for (const turn of [1, 3]) {
+      const dir = (direction + turn) % 4;
+      if (solid(dir)) return dir;
+    }
+    return direction;
   }
   /** `tile:x,y`. Tool work has no object to address, only ground. */
   static tileTarget(x: number, y: number) {
@@ -1511,12 +1692,26 @@ export class Engine {
         ? undefined
         : "You cannot wear that item.";
     if (c.type === "remove")
-      return c.slot === "body"
-        ? "You keep your garment on."
-        : p.worn?.[c.slot]
-          ? undefined
-          : "There is nothing there to take off.";
+      return p.worn?.[c.slot]
+        ? undefined
+        : "There is nothing there to take off.";
     if (c.type === "narrate") return validateIntents(this, c.intents);
+    if (c.type === "swing")
+      return p.perch ? `Climb down from ${p.perch.label} first.` : undefined;
+    if (c.type === "hold") {
+      const def = this.item(c.item);
+      if (!def?.hand) return "That is not something you can take in hand.";
+      if ((p.inventory[c.item] ?? 0) < 1) return "You have none of those.";
+      return p.held && !this.dropSpot()
+        ? "There is no clear place to set down what you are holding."
+        : undefined;
+    }
+    if (c.type === "stow") {
+      if (!p.held && !p.heldItem) return "Your hands are already empty.";
+      return p.held && !this.dropSpot()
+        ? "There is no clear adjacent place to put it down."
+        : undefined;
+    }
     if (c.type === "interact" && c.action === "drop" && !this.dropSpot())
       return "There is no clear adjacent place to put it down.";
     const target = this.inspect(c.target);
@@ -1681,6 +1876,54 @@ export class Engine {
   }
   execute(c: PlayerCommand) {
     const p = this.state.player;
+    if (c.type === "swing") {
+      const held = heldObject(this.state);
+      const def = propDefs[held?.prop ?? ""];
+      const inHand = p.heldItem ? this.item(p.heldItem)?.hand : undefined;
+      const tool = held
+        ? toolClass(def.tool, def.strike)
+        : toolClass(undefined, inHand?.strike, inHand?.edge);
+      p.direction = this.aimAt(p.direction);
+      const cone = this.swingCone(p.direction);
+      const hits: Hit[] = [];
+      let told: string | undefined;
+      for (const [i, at] of cone.entries()) {
+        const found = this.hitClass(at.x, at.y, p.pos.space);
+        const kind = reactionFor(found.hit, tool);
+        const h: Hit = {
+          at,
+          hit: found.hit,
+          kind,
+          solid: isSolid(kind),
+          sprite: found.sprite,
+        };
+        // The cell you face takes the blow; the corners only rattle, so a
+        // wide arc never breaks three pots at once.
+        if (i === 0 && found.prop && tool !== "bare") {
+          const outcome = this.hurtProp(found.prop, found.hit);
+          h.damaged = !!outcome;
+          const name = found.prop.name.toLowerCase();
+          told =
+            outcome === "broke"
+              ? `You break ${name}. Its contents spill onto the ground.`
+              : outcome === "tipped"
+                ? `You knock ${name} over. What it held rolls out.`
+                : outcome === "damaged"
+                  ? `You strike ${name}. It is damaged but still holds together.`
+                  : undefined;
+        }
+        hits.push(h);
+      }
+      this.lastSwing = { hits, tool, direction: p.direction };
+      const solid = hits.find((h) => h.solid);
+      if (told) this.event(told);
+      else if (solid && solid.hit !== "creature")
+        this.event(
+          `Your swing ${solid.kind === "thwock" ? "rings off" : "thumps into"} the ${plantName(solid.sprite)}.`,
+        );
+      this.advance(solid ? 3 : 2);
+      return;
+    }
     if (c.type === "throw") {
       const prop = heldObject(this.state);
       if (!prop) throw Error("Throw validation failed");
@@ -1690,35 +1933,55 @@ export class Engine {
       const reach = c.run ? 6 : 3;
       for (let i = 1; i <= reach; i++) {
         const step = { ...p.pos, x: p.pos.x + c.dx * i, y: p.pos.y + c.dy * i };
-        if (
-          this.blocked(step.x, step.y, step.space) ||
-          (p.pos.space === "outside" &&
-            this.world.canCross &&
-            !this.world.canCross(landed, step))
-        )
-          break;
+        // A thrown thing flies: a bank it could not wade across does not stop
+        // it, though a wall still does.
+        if (this.blocked(step.x, step.y, step.space)) break;
         landed = step;
       }
       const distance = Math.max(
         Math.abs(landed.x - p.pos.x),
         Math.abs(landed.y - p.pos.y),
       );
+      const sprite = prop.sprite;
+      // Read the landing cell before the prop is standing in it.
+      const ground = this.hitClass(landed.x, landed.y, landed.space);
       prop.pos = landed;
       delete prop.carriedBy;
       delete p.held;
       const def = propDefs[prop.prop ?? ""];
-      if (!distance)
-        this.event(`You have no room to throw ${prop.name.toLowerCase()}.`);
-      else if (def?.breakable) {
+      const kind = reactionFor(ground.hit, "thrown");
+      // Soft ground and water catch a pot; anything else bursts it.
+      const bursts = !!def?.breakable && kind === "shatter" && distance > 0;
+      if (bursts) {
         this.propOwnership(prop, "break");
         prop.broken = true;
         prop.open = true;
         prop.depleted = false;
-        prop.sprite = brokenSprite(prop.id, def.breakable);
+        prop.sprite = brokenSprite(prop.id, def.breakable!);
+      }
+      this.lastThrow = {
+        from: { x: p.pos.x, y: p.pos.y },
+        to: { x: landed.x, y: landed.y },
+        sprite,
+        hit: {
+          at: { x: landed.x, y: landed.y },
+          hit: ground.hit,
+          kind: bursts ? "shatter" : kind,
+          solid: isSolid(bursts ? "shatter" : kind),
+          damaged: bursts,
+        },
+      };
+      if (!distance)
+        this.event(`You have no room to throw ${prop.name.toLowerCase()}.`);
+      else if (bursts)
         this.event(
           `You hurl ${prop.name.toLowerCase()}. It shatters where it lands.`,
         );
-      } else
+      else if (kind === "splash")
+        this.event(
+          `You hurl ${prop.name.toLowerCase()}. It lands with a splash.`,
+        );
+      else
         this.event(
           `You ${c.run ? "fling" : "throw"} ${prop.name.toLowerCase()} ${distance} pace${distance > 1 ? "s" : ""} away.`,
         );
@@ -1821,6 +2084,26 @@ export class Engine {
       this.event(`You put on the ${def.name.toLowerCase()}.`);
       return;
     }
+    if (c.type === "hold") {
+      this.emptyHands();
+      p.inventory[c.item] = (p.inventory[c.item] ?? 0) - 1;
+      if (!p.inventory[c.item]) delete p.inventory[c.item];
+      p.heldItem = c.item;
+      this.advance(4);
+      this.event(`You take ${this.item(c.item)!.name.toLowerCase()} in hand.`);
+      return;
+    }
+    if (c.type === "stow") {
+      const what = p.heldItem
+        ? this.item(p.heldItem)!.name.toLowerCase()
+        : (this.state.objects.find((o) => o.id === p.held)?.name.toLowerCase() ??
+          "it");
+      const wasItem = !!p.heldItem;
+      this.emptyHands();
+      this.advance(4);
+      this.event(wasItem ? `You put ${what} away.` : `You put down ${what}.`);
+      return;
+    }
     if (c.type === "remove") {
       const id = p.worn![c.slot]!;
       delete p.worn![c.slot];
@@ -1845,12 +2128,13 @@ export class Engine {
       ) {
         const def = propDefs[prop.prop!];
         if (c.action === "pickup") {
+          this.emptyHands();
           prop.carriedBy = "player";
           p.held = prop.id;
           prop.pos = copy(p.pos);
           this.propOwnership(prop, "pick up");
           this.event(
-            `You pick up ${prop.name.toLowerCase()}. ${def.strike ? "Space strikes a nearby breakable object." : "Press E to look inside; G puts it down."}`,
+            `You pick up ${prop.name.toLowerCase()}. ${def.strike ? "F swings it." : "F throws it; E puts it down."}`,
           );
         } else if (c.action === "drop") {
           const spot = this.dropSpot();

@@ -1,4 +1,4 @@
-import { wearSlots } from "../core/character";
+import type { WearSlot } from "../core/character";
 import { useState, type CSSProperties } from "react";
 import {
   Amphora,
@@ -60,6 +60,13 @@ import { outlookOf, outlookSentence, shortLabel } from "../core/outlook";
 import type { Stance, StanceTag } from "../content/outlook/types";
 import { sexFromName } from "../content/characters/name-sex";
 import type { Runtime } from "../runtime/session";
+import type { CharacterAppearance } from "../core/character";
+import {
+  parseCloth,
+  rarityColors,
+  rarityLabels,
+  rarityOf,
+} from "../content/characters/wardrobe/cloth";
 import type { Actor, PlayerCommand } from "../core/types";
 import type { StationActivity } from "../core/itinerary";
 import type { PersonalBelief } from "../content/beliefs";
@@ -342,6 +349,127 @@ export function beliefHierarchy(belief: PersonalBelief) {
 
 /** One panel for the player and for anybody else: the same derived facts read
  * the same way whoever is being looked at. */
+
+/** What tier a worn item is, from the cloth carried in its id. */
+function rarityFor(id: string | undefined) {
+  const q = id ? parseCloth(id) : undefined;
+  return q ? rarityOf(q.cloth) : "common";
+}
+/** The eight places something can sit on a person, read top to bottom: the
+ * head and what hangs off it, then the body and what it carries. Four across
+ * rather than three, so the grid is two rows and the sidebar stays in view. */
+const EQUIP_SLOTS = [
+  { slot: "head", label: "Head" },
+  { slot: "ears", label: "Ears" },
+  { slot: "neck", label: "Neck" },
+  { slot: "over", label: "Over" },
+  { slot: "arms", label: "Arms" },
+  { slot: "body", label: "Torso" },
+  { slot: "belt", label: "Belt" },
+  { slot: "legs", label: "Legs" },
+  { slot: "feet", label: "Feet" },
+  { slot: "hand", label: "Hand" },
+] as const;
+type EquipSlot = (typeof EQUIP_SLOTS)[number]["slot"];
+
+function Equipment({
+  runtime,
+  hand,
+  worn,
+  wearing,
+  onEquip,
+  onClear,
+}: {
+  runtime: Runtime;
+  hand?: { sprite: string; name: string };
+  worn: Partial<Record<string, string>>;
+  /** The colours the sprite is actually drawn in. The item icons are one
+   * generic shape per slot, so the swatch is what tells a purple tunic from
+   * a russet one. */
+  wearing?: CharacterAppearance["wearing"];
+  /** The dropped item, and the slot it landed on. */
+  onEquip: (item: string, slot: EquipSlot) => void;
+  onClear: (slot: EquipSlot) => void;
+}) {
+  const [over, setOver] = useState<EquipSlot | undefined>(undefined);
+  /** Where an item is allowed to go: its wear slot, or the hand. */
+  const slotFor = (item: string): EquipSlot | undefined => {
+    const def = runtime.item(item);
+    return def?.wear?.slot ?? (def?.hand ? "hand" : undefined);
+  };
+  return (
+    <div className="equipment">
+      {EQUIP_SLOTS.map(({ slot, label }) => {
+        const id = slot === "hand" ? undefined : worn[slot];
+        const filled =
+          slot === "hand" ? hand : id ? runtime.item(id) : undefined;
+        const tier = rarityFor(slot === "hand" ? undefined : id);
+        const tint =
+          !filled || !wearing
+            ? undefined
+            : slot === "body"
+              ? wearing.color
+              : slot === "over"
+                ? wearing.cloakColor
+                : slot === "belt" || slot === "neck" || slot === "ears"
+                  ? wearing.trim
+                  : slot === "head"
+                    ? wearing.lowerColor
+                    : slot === "legs" || slot === "feet"
+                      ? wearing.lowerColor
+                      : undefined;
+        return (
+          <div
+            key={slot}
+            className="equip-slot"
+            data-slot={slot}
+            data-over={over === slot || undefined}
+            data-filled={!!filled || undefined}
+            onDragOver={(e) => {
+              const item = e.dataTransfer.types.includes("text/plain");
+              if (!item) return;
+              e.preventDefault();
+              setOver(slot);
+            }}
+            onDragLeave={() => setOver((s) => (s === slot ? undefined : s))}
+            onDrop={(e) => {
+              e.preventDefault();
+              setOver(undefined);
+              const item = e.dataTransfer.getData("text/plain");
+              if (item && slotFor(item) === slot) onEquip(item, slot);
+            }}
+          >
+            <button
+              type="button"
+              disabled={!filled}
+              title={
+                filled ? `Take off ${filled.name.toLowerCase()}` : undefined
+              }
+              aria-label={
+                filled ? `Take off ${filled.name}` : `${label}: empty`
+              }
+              onClick={() => onClear(slot)}
+              style={
+                tier !== "common"
+                  ? {
+                      background: `${rarityColors[tier]}22`,
+                      borderColor: rarityColors[tier],
+                    }
+                  : tint
+                    ? { background: `${tint}2e`, borderColor: tint }
+                    : undefined
+              }
+            >
+              {filled ? <Sprite name={filled.sprite} scale={2} /> : null}
+            </button>
+            <small>{label}</small>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export function CharacterPanel({
   runtime,
   actorId,
@@ -472,11 +600,25 @@ export function CharacterPanel({
   const goods = Object.entries(actor.inventory)
     .map(([id, n]) => [id, n ?? 0] as [string, number])
     .filter(([, n]) => n > 0);
-  const worn = wearSlots.flatMap((slot) =>
-    actor.worn?.[slot] ? [[slot, actor.worn[slot]!] as const] : [],
-  );
+  const inHand = actor.heldItem ? runtime.item(actor.heldItem) : undefined;
+  const hand = carrying
+    ? { sprite: carrying.sprite, name: carrying.name }
+    : inHand
+      ? { sprite: inHand.sprite, name: inHand.name }
+      : undefined;
   const shownId = shown ?? goods[0]?.[0];
-  const wearable = shownId && runtime.item(shownId)?.wear ? shownId : undefined;
+  const shownDef =
+    shownId && (actor.inventory[shownId] ?? 0) > 0
+      ? runtime.item(shownId)
+      : undefined;
+  const equipAction = shownDef?.wear
+    ? { label: "Wear", command: { type: "wear" as const, item: shownId! } }
+    : shownDef?.hand
+      ? {
+          label: "Take in hand",
+          command: { type: "hold" as const, item: shownId! },
+        }
+      : undefined;
   const condition = [
     (actor.health ?? 100) < 40
       ? "Unwell"
@@ -561,10 +703,10 @@ export function CharacterPanel({
             </ul>
             <h3>Carrying</h3>
             <div className="carrying">
-              {carrying ? (
+              {hand ? (
                 <>
-                  <Sprite name={carrying.sprite} scale={1} />
-                  <span>{carrying.name}</span>
+                  <Sprite name={hand.sprite} scale={1} />
+                  <span>{hand.name}</span>
                 </>
               ) : (
                 <span>Nothing in hand</span>
@@ -719,36 +861,39 @@ export function CharacterPanel({
             ) : (
               <p>No household recorded here.</p>
             )}
-            <h3>Worn</h3>
-            <ul className="belongings worn">
-              {worn.map(([slot, id]) => (
-                <li key={slot}>
-                  <button
-                    aria-label={
-                      isPlayer
-                        ? `Take off ${runtime.item(id)?.name ?? id}`
-                        : (runtime.item(id)?.name ?? id)
-                    }
-                    title={runtime.item(id)?.name ?? id}
-                    disabled={!isPlayer || slot === "body"}
-                    onClick={() => runtime.command({ type: "remove", slot })}
-                  >
-                    <Sprite name={runtime.item(id)?.sprite ?? ""} scale={2} />
-                  </button>
-                </li>
-              ))}
-              {!worn.length && (
-                <li className="empty" aria-hidden="true">
-                  ·
-                </li>
-              )}
-            </ul>
+            <h3>Equipped</h3>
+            <Equipment
+              runtime={runtime}
+              hand={hand}
+              worn={actor.worn ?? {}}
+              wearing={actor.appearance?.wearing}
+              onEquip={(item, slot) =>
+                isPlayer &&
+                runtime.command(
+                  slot === "hand"
+                    ? { type: "hold", item }
+                    : { type: "wear", item },
+                )
+              }
+              onClear={(slot) =>
+                isPlayer &&
+                runtime.command(
+                  slot === "hand"
+                    ? { type: "stow" }
+                    : { type: "remove", slot: slot as WearSlot },
+                )
+              }
+            />
             <h3>Belongings</h3>
             <ul className="belongings">
               {goods.map(([id, n]) => (
                 <li key={id}>
                   <button
                     aria-pressed={shown === id}
+                    draggable={isPlayer}
+                    onDragStart={(e) =>
+                      e.dataTransfer.setData("text/plain", id)
+                    }
                     onClick={() => setShown(id)}
                   >
                     <Sprite name={runtime.item(id)?.sprite ?? ""} scale={2} />
@@ -763,6 +908,14 @@ export function CharacterPanel({
               ))}
             </ul>
             <p className="belonging-note">
+              {shownId && rarityFor(shownId) !== "common" && (
+                <b
+                  className="rarity"
+                  style={{ color: rarityColors[rarityFor(shownId)] }}
+                >
+                  {rarityLabels[rarityFor(shownId)]}
+                </b>
+              )}
               {goods.length
                 ? [
                     runtime.item(shown ?? goods[0][0])?.name,
@@ -771,14 +924,12 @@ export function CharacterPanel({
                     .filter(Boolean)
                     .join(" · ")
                 : "Carries nothing."}
-              {isPlayer && goods.length > 0 && wearable && (
+              {isPlayer && equipAction && (
                 <button
                   className="wear-action"
-                  onClick={() =>
-                    runtime.command({ type: "wear", item: wearable })
-                  }
+                  onClick={() => runtime.command(equipAction.command)}
                 >
-                  Wear
+                  {equipAction.label}
                 </button>
               )}
             </p>

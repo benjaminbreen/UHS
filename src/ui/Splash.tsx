@@ -94,9 +94,31 @@ export function Splash({
     };
   }, [panel]);
   const randomizeCall = useRef(0);
+  /** The start being generated ahead of the click, if it is still the one on
+   * screen. Generating a settlement takes about six seconds, which is time
+   * the reader is already spending on this page. */
+  const warm = useRef<{
+    seed: string;
+    setting: WorldSetting;
+    engine: Promise<Engine>;
+    abort: AbortController;
+  }>(undefined);
+  const prewarm = (next: { seed: string; setting: WorldSetting }) => {
+    if (controller.current) return;
+    warm.current?.abort.abort();
+    const abort = new AbortController();
+    const engine = import("../runtime/map-travel").then((m) =>
+      m.prepareConnectedStart(next.setting, next.seed, abort.signal),
+    );
+    // A rejection here is never awaited unless the reader clicks Begin.
+    engine.catch(() => {});
+    warm.current = { ...next, engine, abort };
+  };
+  useEffect(() => () => warm.current?.abort.abort(), []);
   const applyStart = (next: ReturnType<typeof randomStart>) => {
     const region = regionAt(next.setting.lon, next.setting.lat);
     setSelected(next);
+    prewarm(next);
     setPrompt(
       `${next.setting.role} in ${region?.label ?? next.setting.location}, ${formatHistoricalYear(next.setting.year)}`,
     );
@@ -153,11 +175,15 @@ export function Splash({
         setting = start.setting;
         worldSeed = start.seed;
       }
-      const engine = await prepareConnectedStart(
-        setting,
-        worldSeed,
-        abort.signal,
-      );
+      const ready = warm.current;
+      // Handed over: unmounting the splash must not abort the world it started.
+      warm.current = undefined;
+      const engine =
+        ready?.seed === worldSeed && ready.setting === setting
+          ? await ready.engine.catch(() =>
+              prepareConnectedStart(setting, worldSeed, abort.signal),
+            )
+          : await prepareConnectedStart(setting, worldSeed, abort.signal);
       abort.signal.throwIfAborted();
       await onStart(engine);
     } catch (err) {

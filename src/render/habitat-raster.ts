@@ -43,6 +43,7 @@ import {
   type PaletteKey,
 } from "../content/ecology/profiles";
 import type { TopographyCell, TopographySample } from "../core/topography";
+import type { Habitat } from "../world/v3/habitats";
 import { defaultGrassArt, type GrassArt } from "../content/graphics/grass-art";
 import { waterHash as hash, waterNoise as noise } from "./water-style";
 import { swardHatch } from "./ground-motifs";
@@ -165,18 +166,26 @@ function materialOf(
   return "turf";
 }
 
-export function rasterHabitatTile(
-  sample: TopographySample,
-  x: number,
-  y: number,
-  ox: number,
-  oy: number,
-  art: GrassArt = defaultGrassArt,
-  cell: TopographyCell = sample(x, y)!,
-): GroundTileData {
-  if (cell.feature === "paving") return rasterStreetTile(sample, x, y, ox, oy);
-  if (cell.field) return rasterFieldTile(sample, x, y, ox, oy, art);
-  const h = cell.habitat!;
+/** Ramps for one habitat, shared between the cells that agree on them: a
+ * blend is a reduce per channel per row and was rebuilt for all 256 cells. */
+const rampCache = new WeakMap<GrassArt, Map<string, { palette: number[][]; soilPalette: number[][] }>>();
+function habitatRamps(h: Habitat, art: GrassArt) {
+  let cache = rampCache.get(art);
+  if (!cache) rampCache.set(art, (cache = new Map()));
+  const blend = h.blend
+    ? h.blend.map((p) => `${p.ecology}:${p.colorway ?? ""}:${p.weight}`).join(",")
+    : "";
+  const site = h.site
+    ? h.site.primary +
+      ":" +
+      Object.entries(h.site.weights)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([id, w]) => `${id}=${w}`)
+        .join(",")
+    : "";
+  const id = `${h.ecology}|${h.colorway ?? ""}|${h.season ?? ""}|${h.vegetation ?? ""}|${blend}|${site}`;
+  let value = cache.get(id);
+  if (value) return value;
   const key = paletteKey(h.ecology, h.colorway);
   // A growth pattern borrows a drier palette only where the envelope has
   // none of its own; a savanna or steppe colourway keeps its ramp.
@@ -196,7 +205,24 @@ export function rasterHabitatTile(
   palette = blendPalette(art.palettes, palette);
   const resolved = h.site ? habitatAppearance(h, art) : undefined;
   if (resolved) palette = resolved.palette;
-  const soilPalette = resolved?.soil ?? blendPalette(soils, soils[key]);
+  value = { palette, soilPalette: resolved?.soil ?? blendPalette(soils, soils[key]) };
+  if (cache.size > 512) cache.clear();
+  cache.set(id, value);
+  return value;
+}
+export function rasterHabitatTile(
+  sample: TopographySample,
+  x: number,
+  y: number,
+  ox: number,
+  oy: number,
+  art: GrassArt = defaultGrassArt,
+  cell: TopographyCell = sample(x, y)!,
+): GroundTileData {
+  if (cell.feature === "paving") return rasterStreetTile(sample, x, y, ox, oy);
+  if (cell.field) return rasterFieldTile(sample, x, y, ox, oy, art);
+  const h = cell.habitat!;
+  const { palette, soilPalette } = habitatRamps(h, art);
   const pixels = new Uint8ClampedArray(16 * 16 * 4);
   const gx = (x + ox) * 16,
     gy = (y + oy) * 16;

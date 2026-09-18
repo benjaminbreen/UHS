@@ -24,10 +24,14 @@ import {
   type TerrainRegion,
 } from "./terrain-region";
 import type { TopographyCell } from "../core/topography";
+import { previewChunk, type TerrainPreview } from "./terrain-preview";
 export type TerrainRequest =
   | { pack: Pack; seed: string; prepared?: PreparedSettlement }
   | { style: GroundStyle | null; living?: boolean; polish?: ShorePolish }
-  | { id: string; region: TerrainRegion };
+  | { id: string; region: TerrainRegion }
+  | { previews: { id: string; region: TerrainRegion }[] };
+/** Sent ahead of the full response for the same id. */
+export type TerrainPreviewResponse = { id: string; preview: TerrainPreview };
 export type TerrainResponse = {
   id: string;
   layers: ContourLayer[];
@@ -59,6 +63,21 @@ export function handleTerrainRequest(data: TerrainRequest) {
       // Prepared geometry turns a four-second build into a one-millisecond
       // one, which is what makes a second rasterising worker affordable.
       world = createSettlementWorld(data.pack, data.seed, data.prepared);
+      return;
+    }
+    if ("previews" in data) {
+      // Colours only, so this samples the chunk itself and not its pad: a
+      // sweep of the whole view costs less than rastering one chunk.
+      for (const { id, region } of data.previews) {
+        const preview = previewChunk((x, y) =>
+          world.topography!(x + region.x, y + region.y),
+        );
+        self.postMessage(
+          { id, preview } satisfies TerrainPreviewResponse,
+          { transfer: [preview.pixels.buffer] },
+        );
+      }
+      self.postMessage({ previewsDone: true });
       return;
     }
     const { id, region } = data;

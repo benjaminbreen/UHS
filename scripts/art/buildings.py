@@ -283,6 +283,7 @@ def build_buildings(root, sprites):
     from art.theatres import TheatreBuilding, theatre_recipes
     from art.halls import HallBuilding, hall_recipes
     from art.period import PeriodBuilding, period_recipes
+    from art.modern import ModernBuilding
     recipes={**source['buildings'], **urban_recipes(root, source), **religious_recipes(root, source), **theatre_recipes(root, source), **hall_recipes(root, source), **period_recipes(root, source)}
     for name,r in list(recipes.items()):
         if r['roof']=='shelter': continue
@@ -291,12 +292,14 @@ def build_buildings(root, sprites):
             recipes[name+'-'+facing]={**r,'facing':facing,'entrance':entrance,'label':r['label']+' · '+facing}
     for name,r in recipes.items():
         painter=(InfillBuilding if r.get('candidate') else
+                 ModernBuilding if r.get('modern') else
                  PeriodBuilding if r.get('period') else
                  ReligiousBuilding if r.get('religious') else
                  TheatreBuilding if r.get('theatre') else
                  HallBuilding if r.get('hall') else
                  UrbanBuilding if r.get('urban') else Building)
-        im=painter(r,source['materials'][r['wall']]).render()
+        artist=painter(r,source['materials'][r['wall']])
+        im=artist.render()
         sprites[name]=im
         w,h=im.size
         models[name]={
@@ -310,9 +313,14 @@ def build_buildings(root, sprites):
             **({'hall':True,'family':r['family'],'form':r['form'],'recipe':r['recipe']} if r.get('hall') else {}),
             **({'candidate':True,'candidateType':r['candidateType'],
                 'candidateGroup':r['candidateGroup'],'variant':r['variant'],
-                'business':r.get('business',''),'sign':r.get('sign','')}
+                'business':r.get('business',''),'sign':r.get('sign',''),
+                'from':r.get('from',0)}
                if r.get('candidate') else {}),
             **({'infill':True} if r.get('infill') else {}),
+            **({'signBand':artist.sign_band,
+                'signPaint':artist.sign_paint} if getattr(artist,'sign_band',None) else {}),
+            **({'modern':True,'modernStyle':r.get('modernStyle','block'),
+                'modernRole':r.get('modernRole','home')} if r.get('modern') else {}),
             **({'period':True,'periodGroup':r['group'],'style':r['style'],'variant':r.get('variant',0),
                 'sign':r.get('sign',''),'role':r.get('role','house'),'stories':r['stories']} if r.get('period') else {}),
             **({'animation':r['animation']} if r.get('animation') else {})}

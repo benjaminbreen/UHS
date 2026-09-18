@@ -4,6 +4,7 @@ import {
   type WearSlot,
 } from "./character";
 import type { ItemDef, ItemId } from "./types";
+import { clothId, type Cloth } from "../content/characters/wardrobe/cloth";
 
 type Wearing = CharacterAppearance["wearing"];
 export type Worn = Partial<Record<WearSlot, ItemId>>;
@@ -12,12 +13,16 @@ export type Worn = Partial<Record<WearSlot, ItemId>>;
 export function bareWearing(base: Wearing): Wearing {
   return {
     ...base,
+    garment: "none",
     headwear: "none",
     necklace: false,
     earrings: false,
     cloak: false,
+    mantle: false,
     belt: "none",
     shoulderCloth: false,
+    leggings: "none",
+    footwear: "none",
   };
 }
 
@@ -38,13 +43,20 @@ export function composeWearing(
 
 /** Worn slots equivalent to an authored `wearing` record: saves made before
  * items were wearable, fresh characters, and the customizer. */
-export function wornFromWearing(w: Wearing): Worn {
-  const worn: Worn = { body: `garment-${w.garment}` };
-  if (w.headwear !== "none") worn.head = `headwear-${w.headwear}`;
-  if (w.cloak) worn.over = "cloak";
-  else if (w.shoulderCloth) worn.over = "shoulder-cloth";
-  if (w.belt && w.belt !== "none") worn.belt = `belt-${w.belt}`;
+export function wornFromWearing(w: Wearing, cloth?: Cloth): Worn {
+  // Cloth rides in the item id, so the inventory stays a plain count of ids
+  // and nothing in the save format has to change to carry it.
+  const of = (id: string) => (cloth ? clothId(id, cloth) : id);
+  const worn: Worn = {};
+  if (w.garment !== "none") worn.body = of(`garment-${w.garment}`);
+  if (w.headwear !== "none") worn.head = of(`headwear-${w.headwear}`);
+  if (w.cloak) worn.over = of("cloak");
+  else if (w.shoulderCloth) worn.over = of("shoulder-cloth");
+  if (w.belt && w.belt !== "none") worn.belt = of(`belt-${w.belt}`);
   if (w.necklace) worn.neck = "necklace";
   if (w.earrings) worn.ears = "earrings";
+  if (w.leggings && w.leggings !== "none") worn.legs = of(`leggings-${w.leggings}`);
+  if (w.footwear && w.footwear !== "none")
+    worn.feet = of(`footwear-${w.footwear}`);
   return worn;
 }

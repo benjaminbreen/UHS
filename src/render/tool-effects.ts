@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { gameAudio } from "../audio/director";
 import type { EffectId } from "../audio/synth";
+import type { Hit, HitClass, ReactionKind, ToolClass } from "../core/reactions";
 
 export type ToolEffectKind =
   | "hit"
@@ -24,6 +25,24 @@ export type ToolEffect = {
   /** Which way the player is facing, for work done on their own cell. */
   facing?: number;
 };
+/** One swing: where it came from, and what each cell of the arc found. */
+export type SwingEffect = {
+  serial: number;
+  from: { x: number; y: number };
+  facing: number;
+  tool: ToolClass;
+  /** The held prop's sprite, for tinting the chips it throws. */
+  sprite?: string;
+  hits: Hit[];
+};
+/** A thrown prop in the air, and what it found where it came down. */
+export type ThrowEffect = {
+  serial: number;
+  from: { x: number; y: number };
+  to: { x: number; y: number };
+  sprite?: string;
+  hit: Hit;
+};
 type Shake = {
   image: Phaser.GameObjects.Image;
   until: number;
@@ -34,6 +53,42 @@ const LEAF = [0x8fb45c, 0xa8c46c, 0x6f8f46, 0xc8d98a];
 const CHIP = [0xdcc292, 0xb08a5c, 0xf0e0b8];
 const SOIL = [0x8d6e47, 0xb08a5c, 0x61472c];
 const GRIT = [0x8a9199, 0xadb3ba, 0x697179, 0xd8dce0];
+/** What each surface throws off when it is struck. */
+const DEBRIS: Record<HitClass, number[]> = {
+  rock: GRIT,
+  stone: GRIT,
+  metal: [0xd8dce0, 0xa9b0b8, 0xf4f0d8],
+  tree: [0x8a6a44, 0x6d5233, 0xa8854f],
+  trunk: CHIP,
+  timber: CHIP,
+  brush: LEAF,
+  grass: LEAF,
+  crop: [0xd9c173, 0xb9a253, 0xefe0a4],
+  fiber: [0xc8ab74, 0xa78d5c, 0xe0cb9c],
+  pottery: [0xc9b096, 0xa8876a, 0xe8d8c0],
+  water: [0x8fc3d9, 0xbfe2ef, 0x5f97b4],
+  marsh: [0x7d9468, 0x5d7350, 0xa8b98c],
+  sand: [0xd9c79a, 0xc0ab7c, 0xefe2bd],
+  soil: SOIL,
+  snow: [0xf2f6fb, 0xd6e0ea, 0xffffff],
+  fire: [0xffb648, 0xff7a2f, 0xffe08a],
+  creature: [0xe6d5c0, 0xc9b199],
+  air: [0xffffff],
+};
+const REACTION_SOUND: Record<ReactionKind, EffectId | undefined> = {
+  shatter: "shatter",
+  crack: "shatter",
+  topple: "thud",
+  thwock: "thwock",
+  thud: "thud",
+  knock: "thud",
+  swish: "swish",
+  splash: "splash",
+  scuff: "dig",
+  ember: "thud",
+  flinch: "thud",
+  whoosh: "whoosh",
+};
 const sound: Partial<Record<ToolEffectKind, EffectId>> = {
   hit: "chop",
   buck: "chop",
@@ -53,6 +108,8 @@ export class ToolEffects {
   private hidden: { x: number; y: number; until: number }[] = [];
   private live = new Set<Phaser.GameObjects.GameObject>();
   private played = 0;
+  private playedSwing = 0;
+  private playedThrow = 0;
   /** Bumped when the world changes, so a swing scheduled against the old one
    * does not land in the new. */
   private generation = 0;
@@ -79,6 +136,122 @@ export class ToolEffects {
     const generation = this.generation;
     this.scene.time.delayedCall(150, () => {
       if (generation === this.generation) this.play(effect);
+    });
+  }
+  /** A swing: the arc, and whatever each cell of the cone had to say about
+   * it. Timed to the contact frame, like a tool blow. */
+  consumeSwing(effect: SwingEffect | undefined) {
+    if (!effect || effect.serial === this.playedSwing) return;
+    this.playedSwing = effect.serial;
+    const generation = this.generation;
+    this.scene.time.delayedCall(140, () => {
+      if (generation === this.generation) this.playSwing(effect);
+    });
+  }
+  private playSwing(effect: SwingEffect) {
+    const from = this.point(effect.from);
+    const [facing, ...corners] = effect.hits;
+    if (facing) this.arc(from, this.point(facing.at));
+    // One sound per swing: the heaviest thing the arc found, so three cells
+    // never play a chord.
+    const loudest =
+      effect.hits.find((h) => h.damaged) ??
+      effect.hits.find((h) => h.solid) ??
+      facing;
+    const id = loudest && REACTION_SOUND[loudest.kind];
+    if (id) void gameAudio()?.effect(id);
+    if (facing) this.react(facing, 1);
+    // The corners rattle rather than break: half the debris, no sound.
+    for (const hit of corners) if (hit.solid || hit.kind === "swish") this.react(hit, 0.45);
+    if (loudest?.kind === "shatter" || loudest?.kind === "topple")
+      this.scene.cameras.main.shake(110, 0.0022);
+    else if (loudest?.damaged) this.scene.cameras.main.shake(70, 0.0011);
+  }
+  /** A thrown thing crossing the ground, then landing. */
+  consumeThrow(effect: ThrowEffect | undefined) {
+    if (!effect || effect.serial === this.playedThrow) return;
+    this.playedThrow = effect.serial;
+    const from = this.point(effect.from),
+      to = this.point(effect.to);
+    const span = Math.max(
+      Math.abs(effect.to.x - effect.from.x),
+      Math.abs(effect.to.y - effect.from.y),
+    );
+    const flight = 90 + span * 55;
+    const land = () => {
+      const id = REACTION_SOUND[effect.hit.kind];
+      if (id) void gameAudio()?.effect(id);
+      this.react(effect.hit, 1.2);
+      if (effect.hit.damaged) this.scene.cameras.main.shake(110, 0.0022);
+    };
+    const frame = effect.sprite;
+    if (!frame || !span) {
+      this.scene.time.delayedCall(flight, land);
+      return;
+    }
+    const image = this.scene.add
+      .image(from.x, from.y - 10, this.view.texture(frame), this.view.frame(frame))
+      .setOrigin(0.5, 1)
+      .setTint(this.view.tint())
+      .setDepth(to.y * 16 + 4600);
+    this.live.add(image);
+    const generation = this.generation;
+    this.scene.tweens.add({
+      targets: image,
+      x: to.x,
+      // The rise and fall is the tween's own curve; the sprite spins as it goes.
+      y: { value: to.y, ease: "Quad.easeIn" },
+      rotation: Math.sign(to.x - from.x || 1) * 3.4,
+      duration: flight,
+      ease: "Linear",
+      onComplete: () => {
+        this.live.delete(image);
+        image.destroy();
+        if (generation === this.generation) land();
+      },
+    });
+  }
+  /** One cell's answer to a blow. */
+  private react(hit: Hit, weight: number) {
+    const at = this.point(hit.at);
+    const palette = DEBRIS[hit.hit] ?? SOIL;
+    const count = Math.max(2, Math.round((hit.solid ? 8 : 5) * weight));
+    if (hit.kind === "splash") {
+      this.ring(at, palette[0]);
+      this.burst(at, palette, count, 1.1);
+    } else if (hit.kind === "scuff") {
+      this.burst({ x: at.x, y: at.y }, palette, count, 0.9);
+    } else if (hit.kind === "swish") {
+      this.burst({ x: at.x, y: at.y - 5 }, palette, count, 1.3);
+    } else if (hit.hit === "tree" || hit.hit === "trunk") {
+      // Dust off the bark at the strike point, and leaves shaken loose above.
+      this.burst({ x: at.x, y: at.y - 9 }, palette, count, 1.2);
+      if (hit.hit === "tree") this.burst({ x: at.x, y: at.y - 22 }, LEAF, 3, 1.6);
+    } else if (hit.kind === "shatter") {
+      this.burst({ x: at.x, y: at.y - 6 }, palette, count + 5, 2.3);
+    } else {
+      this.burst({ x: at.x, y: at.y - 7 }, palette, count, 1.5);
+    }
+    if (hit.solid) this.shake(hit.at);
+  }
+  /** An expanding ring, for a blow that lands on water. */
+  private ring(at: { x: number; y: number }, color: number) {
+    const g = this.scene.add.graphics().setDepth(at.y * 16 + 4200);
+    g.lineStyle(1, color, 0.9);
+    g.strokeEllipse(0, 0, 10, 5);
+    g.setPosition(at.x, at.y - 1);
+    this.live.add(g);
+    this.scene.tweens.add({
+      targets: g,
+      scaleX: 2.6,
+      scaleY: 2.6,
+      alpha: 0,
+      duration: 380,
+      ease: "Quad.easeOut",
+      onComplete: () => {
+        this.live.delete(g);
+        g.destroy();
+      },
     });
   }
   private pixel(x: number, y: number, size: number, color: number) {

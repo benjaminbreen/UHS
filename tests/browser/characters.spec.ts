@@ -75,7 +75,7 @@ test("all carrying styles render in every direction with crisp pixels", async ({
   expect(result.checked).toBe(result.expected);
   expect(result.partial).toBe(0);
 });
-test("game renders the held stick, swings with Space and applies clothing", async ({
+test("game renders the held stick, swings with F and applies clothing", async ({
   page,
 }) => {
   const errors: string[] = [];
@@ -101,7 +101,7 @@ test("game renders the held stick, swings with Space and applies clothing", asyn
     )
     .toBe("study-prop-stick-0");
   await page.locator(".game-container").focus();
-  await page.keyboard.press("Space");
+  await page.keyboard.press("KeyF");
   await expect
     .poll(() =>
       page.evaluate(() => (window as any).__uhs.characterAction?.pose),
@@ -123,7 +123,7 @@ test("game renders the held stick, swings with Space and applies clothing", asyn
   ).toBe("coat");
   await page.getByRole("button", { name: "Back to world ×" }).click();
   await page.locator(".game-container").focus();
-  await page.keyboard.press("KeyG");
+  await page.keyboard.press("KeyE");
   await expect
     .poll(() =>
       page.evaluate(() =>

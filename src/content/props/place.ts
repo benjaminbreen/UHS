@@ -1,5 +1,6 @@
 import type { Pack, WorldModel, WorldObject, Position } from "../../core/types";
 import { random } from "../../core/random";
+import { plantClass } from "../ecology/vegetation";
 import { propDefs, propKit, type PropContext } from "./catalog";
 import { techFor } from "./selection";
 import { doorwayFor } from "../settlements/ornaments";
@@ -101,8 +102,11 @@ function signFor(pack: Pack): { key: string; form: number } | undefined {
     return year >= 599 ? { key: "shopSign", form: 1 } : undefined;
   // Painted shop signs are a Greek and Roman street habit; the wrought
   // bracket and the ale-stake are the medieval town's.
+  // It stops at 1800 because what comes next is lettering, painted across
+  // the fascia by people who expect to be read. A hanging trade board on a
+  // street of shopfronts is a heritage pub, not a city.
   if (culture === "european")
-    return year >= -299
+    return year >= -299 && year < 1800
       ? { key: "shopSignEuro", form: year >= 1100 ? 1 : 0 }
       : undefined;
   // A plaque where there are glazed tiles to make one; otherwise the wares
@@ -200,7 +204,7 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
     if (!key || !def) return;
     o.prop = key;
     o.name = def.name;
-    const variants = key === "stick" ? 1 : (def.variants ?? 3);
+    const variants = def.family === "stick" ? 1 : (def.variants ?? 3);
     o.sprite = `study-prop${redrawn.has(def.family) ? "b" : ""}-${def.family}-${variantOf(variants, random(seed, "prop-color", o.id))}`;
     o.kind = def.drink ? "well" : def.fire ? "fire" : "container";
     o.open = false;
@@ -576,6 +580,46 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
         world.initialObjects.push(o);
         break;
       }
+    }
+    // Deadwood under the trees: something to pick up and swing wherever the
+    // player wanders, not just at the spawn point.
+    if (!done.has("prop-branches")) {
+      done.add("prop-branches");
+      let dropped = 0;
+      for (let dy = -24; dy <= 24 && dropped < 10; dy++)
+        for (let dx = -24; dx <= 24 && dropped < 10; dx++) {
+          const pos = {
+            ...world.spawn,
+            x: world.spawn.x + dx,
+            y: world.spawn.y + dy,
+          };
+          if (pos.space !== "outside" || !usable(pos)) continue;
+          const wooded = [
+            [0, 1],
+            [1, 0],
+            [0, -1],
+            [-1, 0],
+          ].some(([x, y]) =>
+            ["small", "medium", "large"].includes(
+              plantClass(world.decoration(pos.x + x, pos.y + y)?.sprite),
+            ),
+          );
+          if (!wooded) continue;
+          const id = `prop-branch-${pos.x},${pos.y}`;
+          if (random(seed, "branch", id) > 0.3) continue;
+          const o: WorldObject = {
+            id,
+            name: "",
+            kind: "container",
+            pos,
+            sprite: "",
+            inventory: {},
+          };
+          stamp(o, "branch");
+          world.initialObjects.push(o);
+          index(o);
+          dropped++;
+        }
     }
   };
   const activate = world.activate?.bind(world),

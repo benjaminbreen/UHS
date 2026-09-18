@@ -29,6 +29,7 @@ def recipes():
     from art.theatres import TheatreBuilding, theatre_recipes
     from art.halls import HallBuilding, hall_recipes
     from art.period import PeriodBuilding, period_recipes
+    from art.modern import ModernBuilding
     source = json.loads((ROOT / 'src/content/graphics/buildings.json').read_text())
     source['materials'].update(
         json.loads((ROOT / 'src/content/graphics/urban.json').read_text())
@@ -36,7 +37,8 @@ def recipes():
     all_r = {**source['buildings'], **urban_recipes(ROOT, source),
              **religious_recipes(ROOT, source), **theatre_recipes(ROOT, source),
              **hall_recipes(ROOT, source), **period_recipes(ROOT, source)}
-    painters = {'candidate': InfillBuilding, 'period': PeriodBuilding,
+    painters = {'candidate': InfillBuilding, 'modern': ModernBuilding,
+                'period': PeriodBuilding,
                 'religious': ReligiousBuilding, 'theatre': TheatreBuilding,
                 'hall': HallBuilding, 'urban': UrbanBuilding}
 

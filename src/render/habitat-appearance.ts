@@ -17,7 +17,38 @@ export const communityBand: Record<Community, number> = {
   swamp: 4,
   bog: 2,
 };
+/** Colour depends on these alone, and neighbouring cells almost always agree;
+ * each cell holds its own Habitat object, so identity cannot be the key. */
+function toneKey(h: Habitat) {
+  const blend = h.blend
+    ? h.blend.map((p) => `${p.ecology}:${p.colorway ?? ""}:${p.weight}`).join(",")
+    : "";
+  const site = h.site
+    ? h.site.primary +
+      ":" +
+      Object.entries(h.site.weights)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([id, w]) => `${id}=${w}`)
+        .join(",")
+    : "";
+  return `${h.ecology}|${h.colorway ?? ""}|${h.season ?? ""}|${blend}|${site}`;
+}
+const toneCache = new WeakMap<GrassArt, Map<string, Appearance>>();
+type Appearance = ReturnType<typeof computeAppearance>;
+/** The result is shared between cells, so callers must not mutate it. */
 export function habitatAppearance(h: Habitat, art: GrassArt = defaultGrassArt) {
+  let cache = toneCache.get(art);
+  if (!cache) toneCache.set(art, (cache = new Map()));
+  const key = toneKey(h);
+  let value = cache.get(key);
+  if (!value) {
+    value = computeAppearance(h, art);
+    if (cache.size > 512) cache.clear();
+    cache.set(key, value);
+  }
+  return value;
+}
+function computeAppearance(h: Habitat, art: GrassArt) {
   const parts = h.blend ?? [
     { ecology: h.ecology, colorway: h.colorway, weight: 1 },
   ];

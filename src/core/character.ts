@@ -30,8 +30,74 @@ export const garments = [
   "shirt",
   "coat",
   "wrap",
+  /** Bare above the waist. Ordinary in hot climates and at hard labour for
+   * most of human history; the slot is empty, not missing. */
+  "none",
+  /** An over-layer that hangs open on a contrasting inner one: kaftan, kimono,
+   * boubou, sherwani, surcoat. The most widespread form the shipped set could
+   * not draw. */
+  "open-robe",
+  /** A rectangle with a slit for the head: square shoulders, straight sides,
+   * no sleeve. */
+  "poncho",
+  /** A panel hung front and back from a waist cord. */
+  "loincloth",
 ] as const;
-export const headwear = ["none", "band", "cap", "hood", "wrap"] as const;
+/** Appended, never reordered. */
+/** Appended, never reordered — see the note on `garments`. */
+export const headwear = [
+  "none",
+  "band",
+  "cap",
+  "hood",
+  "wrap",
+  /** A stiff crown with a brim: the nineteenth-century townsman's hat. */
+  "bowler",
+  /** Soft crown pulled forward over a short peak; the newsboy cap. */
+  "flat-cap",
+  /** Tall crown, long curved peak. */
+  "ball-cap",
+  /** Wide brim against sun or rain, straw or felt. */
+  "brimmed",
+  /** A cone of straw or reed, from a single woven piece. */
+  "conical",
+  /** Cloth wound in bulk around the head. */
+  "turban",
+  /** Cloth over the hair, falling to the shoulders. */
+  "headscarf",
+  /** A short brimless cylinder. */
+  "fez",
+  /** Cloth over the head and past the shoulder, sometimes across the face. */
+  "veil",
+  /** A ring sitting proud of the brow: circlet, diadem, head-ring. */
+  "fillet",
+  /** Feathers or fibre standing above the crown. */
+  "plume",
+] as const;
+/** How the garment is patterned. `auto` keeps the hashed default. */
+export const motifs = [
+  "auto",
+  "plain",
+  "placket",
+  "band",
+  "yoke",
+  "stitch",
+  /** Horizontal bands the width of the body: the Andean and Mesoamerican
+   * signature, and the one pattern that reads at this size. */
+  "stripes",
+] as const;
+/** What covers the leg between hem and ankle. */
+export const leggings = [
+  "none",
+  "hose",
+  "trousers",
+  "wrapped",
+  /** A sheet wound round the lower body: sarong, lungi, dhoti, kanga, izaar. */
+  "sarong",
+  /** Cut wide and falling straight to the ankle: hakama, salwar, sarouel. */
+  "wide",
+] as const;
+export const footwear = ["none", "sandals", "shoes", "boots"] as const;
 export const beltStyles = ["none", "cord", "sash", "leather", "wide"] as const;
 export const headShapes = [
   "original",
@@ -76,6 +142,8 @@ export const wearSlots = [
   "neck",
   "ears",
   "arms",
+  "legs",
+  "feet",
 ] as const;
 export type WearSlot = (typeof wearSlots)[number];
 export const hemStyles = ["plain", "split", "slanted"] as const;
@@ -187,6 +255,14 @@ export type CharacterAppearance = {
     cloak: boolean;
     cloakColor: string;
     headwear: (typeof headwear)[number];
+    /** A short cape over the shoulders, stopping at the elbow. Distinct from
+     * `cloak`, which falls to the hem. */
+    mantle?: boolean;
+    motif?: (typeof motifs)[number];
+    /** Optional, like sleeves and hem: saves written before legs and feet had
+     * slots read as bare. */
+    leggings?: (typeof leggings)[number];
+    footwear?: (typeof footwear)[number];
     necklace: boolean;
     earrings: boolean;
   };
@@ -334,7 +410,10 @@ export function generateAppearance(
       sleeves: sleeveStyles[n("sleeves", sleeveStyles.length)],
       hem: hemStyles[n("hem", hemStyles.length)],
       shoulderCloth: n("shoulder-cloth", 4) === 0,
-      garment: garments[n("garment", garments.length)],
+      // The base roll stays on the eight shipped garments and the five
+      // shipped hats. Era-specific dress is the wardrobe's job, not a random
+      // draw: a bowler has no business in the Neolithic.
+      garment: garments[n("garment", 8)],
       belt: (
         ["leather", "leather", "none", "none", "cord", "sash", "wide"] as const
       )[n("belt", 7)],
@@ -343,7 +422,9 @@ export function generateAppearance(
       trim: clothColors[n("trim", clothColors.length)],
       cloak: n("cloak", 4) === 0,
       cloakColor: clothColors[n("cloak-color", clothColors.length)],
-      headwear: headwear[n("headwear", headwear.length)],
+      headwear: headwear[n("headwear", 5)],
+      leggings: (["none", "none", "hose", "trousers"] as const)[n("legs", 4)],
+      footwear: (["none", "shoes", "shoes", "sandals"] as const)[n("feet", 4)],
       necklace: n("necklace", 3) === 0,
       earrings: n("earrings", 4) === 0,
     },

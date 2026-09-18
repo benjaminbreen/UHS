@@ -49,13 +49,16 @@ describe("interactive props", () => {
     expect(interaction(e, pot, "take").status).toBe("rejected");
     expect(interaction(e, pot, "pickup").status).toBe("completed");
     expect(e.state.player.held).toBe(pot.id);
-    expect(interaction(e, stick, "pickup").status).toBe("rejected");
+    // Full hands swap rather than refuse.
+    expect(interaction(e, stick, "pickup").status).toBe("completed");
+    expect(e.state.player.held).toBe(stick.id);
+    expect(pot.carriedBy).toBeUndefined();
+    expect(interaction(e, pot, "pickup").status).toBe("completed");
     expect(interaction(e, pot, "look").status).toBe("completed");
     expect(e.inspect(pot.id)?.inventory).toEqual({ grain: 3, water: 2 });
     expect(restoreSession(e.snapshot()).hash()).toBe(e.hash());
     expect(interaction(e, pot, "drop").status).toBe("completed");
     expect(pot.carriedBy).toBeUndefined();
-    expect(interaction(e, pot, "strike").status).toBe("rejected");
     expect(interaction(e, stick, "pickup").status).toBe("completed");
     expect(interaction(e, pot, "strike").status).toBe("completed");
     expect(pot.broken).toBe(true);

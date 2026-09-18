@@ -16,8 +16,10 @@ import {
   type TerrainRegion,
 } from "./terrain-region";
 import type { TerrainRequest, TerrainResponse } from "./terrain-worker";
+import type { TerrainPreview } from "./terrain-preview";
 import { groundStyle, setGroundStyle, type GroundStyle } from "./ground-style";
 import { rasterBankShadows } from "./bank-shadows";
+import { TERRAIN_RISE } from "./terrain-projection";
 import type { TopographyCell } from "../core/topography";
 import type { PreparedSettlement } from "../world/v3/prepared";
 import { perf, span, timed } from "./perf-switches";
@@ -32,7 +34,15 @@ type Chunk = {
   shade: Phaser.GameObjects.Image[];
 };
 /** One rasterising worker and the chunk it is busy with, if any. */
-type Rasterizer = { worker: Worker; busy?: string };
+type Rasterizer = {
+  worker: Worker;
+  busy?: string;
+  sweeping?: boolean;
+  /** Held back from rastering until it has swept previews at least once; a
+   * worker takes its messages in order, and one raster ahead of the sweep
+   * buries the flat pass under a second of work. */
+  reserved?: boolean;
+};
 /** A chunk part-way through being composed, resumed a slice at a time. */
 type Install = {
   key: string;
@@ -51,18 +61,23 @@ export type SunPhase = {
   cast: readonly [number, number];
   opacity: number;
 };
-/** Two extra rasterisers doubles throughput; each one holds its own copy of
- * the world, and past three they mostly compete for the same cores. */
+/** Rasterising is where the load time goes and the main thread is idle while
+ * it runs, so every spare core is worth a worker. Each holds its own copy of
+ * the world, so the cap also bounds memory. */
 const WORKER_LIMIT = Math.min(
-  3,
+  6,
   Math.max(1, (navigator.hardwareConcurrency ?? 4) - 1),
 );
+/** Under every ground page, whatever row it belongs to. */
+const PREVIEW_DEPTH = -1e6;
 const NO_SUN: SunPhase = { id: "night", cast: [0, 0], opacity: 0 };
 /** Rasterize off-thread, install one small chunk per frame, retain a bounded
  * ring for backtracking. Neither movement nor lighting re-rasterizes terrain. */
 export class TerrainStream {
   private pool: Rasterizer[] = [];
   private chunks = new Map<string, Chunk>();
+  /** Flat stand-ins, one per chunk, until the real pixels land. */
+  private previews = new Map<string, Phaser.GameObjects.Image>();
   private wanted = new Map<string, TerrainRegion>();
   private completed: TerrainResponse[] = [];
   /** Resent to every worker spawned later, and on restyle. */
@@ -93,6 +108,7 @@ export class TerrainStream {
     ensureWaterAtlas(scene);
     const retained = takeTerrainWorker(world);
     const first: Rasterizer = {
+      reserved: true,
       worker:
         retained ??
         new Worker(new URL("../world/worker.ts", import.meta.url), {
@@ -126,6 +142,15 @@ export class TerrainStream {
       // what is timed here is only the handover, not the decode.
       const handled = performance.now();
       const { data } = event;
+      if (data.preview) {
+        this.showPreview(data.id, data.preview);
+        return;
+      }
+      if (data.previewsDone) {
+        r.sweeping = false;
+        r.reserved = false;
+        return;
+      }
       r.busy = undefined;
       if (data.error) {
         canvas.dataset.terrainError = data.error;
@@ -162,6 +187,12 @@ export class TerrainStream {
     r.worker.postMessage(this.styling);
     this.pool.push(r);
   }
+  /** Every chunk the camera can see is built. */
+  private visibleReady() {
+    for (const [id, region] of this.wanted)
+      if (this.priority(region) < 100000 && !this.chunks.has(id)) return false;
+    return true;
+  }
   private inFlight(id: string) {
     return this.pool.some((r) => r.busy === id);
   }
@@ -169,7 +200,7 @@ export class TerrainStream {
   private dispatch() {
     if (this.queue.length >= 3) this.grow();
     for (const r of this.pool) {
-      if (r.busy) continue;
+      if (r.busy || r.sweeping || r.reserved) continue;
       while (
         this.queue.length &&
         (this.chunks.has(this.queue[0][0]) ||
@@ -177,8 +208,12 @@ export class TerrainStream {
           this.job?.key === this.queue[0][0])
       )
         this.queue.shift();
-      const next = this.queue.shift();
+      const next = this.queue[0];
       if (!next) return;
+      // Lookahead waits its turn: an idle worker rastering ground nobody can
+      // see competes for a core with the chunk the camera is sitting on.
+      if (this.priority(next[1]) >= 100000 && !this.visibleReady()) return;
+      this.queue.shift();
       const [id, region] = next;
       r.busy = id;
       r.worker.postMessage({
@@ -240,8 +275,11 @@ export class TerrainStream {
       ) {
         this.release(chunk);
         this.chunks.delete(id);
+        this.dropPreview(id);
       }
     }
+    for (const key of [...this.previews.keys()])
+      if (!this.wanted.has(key)) this.dropPreview(key);
     if (this.job && !this.wanted.has(this.job.key)) this.abort();
     this.queue = [...this.wanted]
       .filter(
@@ -249,8 +287,30 @@ export class TerrainStream {
           !this.chunks.has(id) && !this.inFlight(id) && this.job?.key !== id,
       )
       .sort(([, a], [, b]) => this.priority(a) - this.priority(b));
+    this.sweep();
     this.dirty = true;
     this.metrics();
+  }
+  /** Flat colours for every wanted chunk, ahead of the raster queue, so the
+   * view is covered in about the time one chunk takes to raster properly. */
+  private sweep() {
+    const pending = [...this.wanted]
+      .filter(
+        ([id]) => !this.chunks.has(id) && !this.previews.has(id),
+      )
+      .sort(([, a], [, b]) => this.priority(a) - this.priority(b))
+      .map(([id, region]) => ({ id: `${this.generation}:${id}`, region }));
+    if (!pending.length) {
+      for (const r of this.pool) r.reserved = false;
+      return;
+    }
+    const free =
+      this.pool.find((r) => r.reserved) ??
+      this.pool.find((r) => !r.busy && !r.sweeping) ??
+      this.pool[0];
+    if (free.sweeping) return;
+    free.sweeping = true;
+    free.worker.postMessage({ previews: pending } satisfies TerrainRequest);
   }
   update() {
     if (!this.job && !this.completed.length && !this.queue.length) return;
@@ -340,6 +400,7 @@ export class TerrainStream {
       };
       this.shadeChunk(chunk, job.key);
       this.chunks.set(job.key, chunk);
+      this.dropPreview(job.key);
       if (job.done.groundPage)
         this.batchedTiles += job.done.groundPage.tiles.reduce(
           (sum, value) => sum + value,
@@ -397,6 +458,7 @@ export class TerrainStream {
       [...this.wanted.keys()].filter((id) => !this.chunks.has(id)).length,
     );
     canvas.dataset.terrainChunkCount = String(this.chunks.size);
+    canvas.dataset.terrainPreviews = String(this.previews.size);
     canvas.dataset.terrainChunksBuilt = String(this.count);
     canvas.dataset.terrainWorkers = String(this.pool.length);
     canvas.dataset.terrainInstallMaxMs = this.maxInstall.toFixed(1);
@@ -408,6 +470,37 @@ export class TerrainStream {
         Math.round(performance.now() - this.started),
       );
     }
+  }
+  /** A chunk's flat colours, drawn under everything until it is composed. */
+  private showPreview(tagged: string, preview: TerrainPreview) {
+    const [gen, key] = tagged.split(":");
+    const region = Number(gen) === this.generation ? this.wanted.get(key) : undefined;
+    if (!region || this.chunks.has(key) || this.previews.has(key)) return;
+    const name = `${region.prefix}-preview`;
+    if (this.scene.textures.exists(name)) this.scene.textures.remove(name);
+    addPixelTexture(this.scene, name, SIZE, SIZE, preview.pixels);
+    // One pixel per cell, blown up: nearest keeps the cell edges square.
+    this.scene.textures.get(name).setFilter(1);
+    this.previews.set(
+      key,
+      this.scene.add
+        .image(
+          region.x * 16,
+          region.y * 16 - preview.tier * TERRAIN_RISE,
+          name,
+        )
+        .setOrigin(0)
+        .setDisplaySize(SIZE * 16, SIZE * 16)
+        .setDepth(PREVIEW_DEPTH),
+    );
+  }
+  private dropPreview(key: string) {
+    const image = this.previews.get(key);
+    if (!image) return;
+    const texture = image.texture.key;
+    image.destroy();
+    this.scene.textures.remove(texture);
+    this.previews.delete(key);
   }
   private release(chunk: Chunk) {
     timed("chunk release", () => {
@@ -477,6 +570,7 @@ export class TerrainStream {
     this.abort();
     for (const chunk of this.chunks.values()) this.release(chunk);
     this.chunks.clear();
+    for (const key of [...this.previews.keys()]) this.dropPreview(key);
     this.completed = [];
     // Keep `wanted`: WorldScene only calls setView when the camera moves, so
     // clearing it would leave a still preview with nothing to re-request.

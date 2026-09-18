@@ -112,6 +112,13 @@ export function urbanFrames(
 function isPeriod(frame: string): boolean {
   return !!(buildingModels[frame] as { period?: boolean } | undefined)?.period;
 }
+/** Modern kits carry the style they are drawn in: a concrete `block`, a
+ * shophouse `arcade`, a `veranda` house under corrugated sheet. */
+function modernStyle(frame: string): string | undefined {
+  return (buildingModels[frame] as { modernStyle?: string } | undefined)
+    ?.modernStyle;
+}
+
 function periodRole(frame: string): string {
   return (buildingModels[frame] as { role?: string }).role ?? "house";
 }
@@ -188,12 +195,24 @@ export function urbanNeighborhood(
   // Candidate buildings are deliberately kept out of the normal urban kit:
   // they are a second-pass infill vocabulary, not substitutes for the city's
   // larger apartment, office and shop forms.
-  const candidateBases: CandidateRecipe[] = modern
+  // The candidate infill kit is mid-century American — DINER, DONUTS, RX, a
+  // gas station. It belongs on a street in the United States and reads as a
+  // costume anywhere else, so every other modern city infills with its own
+  // cottages, huts and lock-up shops instead.
+  const americanStrip =
+    modern &&
+    pack.setting?.culture === "european" &&
+    (pack.setting?.lon ?? 0) < -30;
+  const candidateBases: CandidateRecipe[] = americanStrip
     ? Object.entries(buildingModels)
         .filter(([frame, model]) => {
-          const meta = model as { candidate?: boolean };
+          const meta = model as { candidate?: boolean; from?: number };
+          // A motel needs a car and a highway, a laundromat needs a coin
+          // machine. Without this the same kit builds 1905 and 1955.
           return (
-            meta.candidate === true && !/(?:-north|-east|-west)$/.test(frame)
+            meta.candidate === true &&
+            !/(?:-north|-east|-west)$/.test(frame) &&
+            (pack.setting?.year ?? 0) >= (meta.from ?? 0)
           );
         })
         .map(([base, model]) => {
@@ -635,15 +654,34 @@ export function urbanNeighborhood(
     site.profile.buildings,
     pack.setting?.year ?? 0,
   );
+  // What trade each placed building carries, so the next one can avoid it.
+  const trades: { x: number; y: number; trade: string }[] = [];
+  const tradeOf = (frame: string) =>
+    (buildingModels[frame] as { business?: string } | undefined)?.business ?? "";
+  /** Two diners side by side is the tell that a street was generated. A trade
+   * has to clear the frontage it is already on — a town can have two grocers,
+   * but not next door to each other. */
+  const repeats = (frame: string, rect: { x: number; y: number }) => {
+    const trade = tradeOf(frame);
+    if (!trade || trade.startsWith("residential")) return false;
+    return trades.some(
+      (t) =>
+        t.trade === trade &&
+        Math.abs(t.x - rect.x) + Math.abs(t.y - rect.y) < 14,
+    );
+  };
   const place = (rank: (typeof ranks)[number], lot: UrbanLot) => {
     const door = { ...lot.point, w: 1, h: 1 },
       work = { ...lot.workPoint, w: 1, h: 1 };
     if (!fits(lot.rect)) return false;
+    if (repeats(lot.frame, lot.rect)) return false;
     if (!free(door) || !free(work) || !api.dry(door, false)) return false;
     // A threshold or work pocket outside the wall has no route back in.
     if (!within(lot.point) || !within(lot.rect) || !within(lot.workPoint))
       return false;
     lots.push(lot);
+    const trade = tradeOf(lot.frame);
+    if (trade) trades.push({ x: lot.rect.x, y: lot.rect.y, trade });
     rank.built++;
     rank.coverage += lot.rect.w * lot.rect.h;
     reserve(lot.rect);
@@ -671,7 +709,7 @@ export function urbanNeighborhood(
       place(rank, lot);
     }
   }
-  if (modern && candidateBases.length)
+  if (candidateBases.length)
     for (const rank of ranks) {
       if (parkRanks.has(rank) || lots.length >= capacity) continue;
       infill(rank);
@@ -789,7 +827,28 @@ export function urbanNeighborhood(
       return chosen.length ? chosen : period;
     }
     const chosen = frames.filter((f) => want.some((w) => f.endsWith(`-${w}`)));
-    return chosen.length ? chosen : frames;
+    const pool = chosen.length ? chosen : frames;
+    return modern ? preferStyle(pool, quarter) : pool;
+  }
+
+  /** Where a modern city puts which kind of building. Concrete stands in the
+   * middle, the shophouse arcades run along the trading streets, and the
+   * houses under sheet metal are at the edge — the gradient every city that
+   * grew in the 20th century has, and the one thing that stops a street in
+   * Java looking like a street in Ohio. */
+  function preferStyle(pool: string[], quarter: Quarter): string[] {
+    const want =
+      quarter === "market"
+        ? ["arcade", "block"]
+        : quarter === "craft"
+          ? ["arcade", "veranda"]
+          : quarter === "elite"
+            ? ["block"]
+            : quarter === "edge"
+              ? ["veranda", "arcade"]
+              : ["veranda", "block"];
+    const chosen = pool.filter((f) => want.includes(modernStyle(f) ?? "block"));
+    return chosen.length ? chosen : pool;
   }
 
   /** Candidate businesses are more likely near the square; homes soften the
@@ -814,7 +873,7 @@ export function urbanNeighborhood(
    * behind it goes in facing the street. A modern city takes them all; an
    * older town thins out toward its edge. */
   function infillOpen() {
-    const pool: CandidateRecipe[] = modern
+    const pool: CandidateRecipe[] = americanStrip
       ? candidateBases
       : urbanFrames(pack, form.storeys, true).map((base) => ({
           base,
@@ -896,7 +955,12 @@ export function urbanNeighborhood(
     for (const door of doors) {
       if (lots.length >= capacity) return;
       const reach = door.d / layout.half;
-      if (!modern && rand("open", door.x, door.y) > 0.9 - 0.5 * reach) continue;
+      // Thinning is about what is filling the gaps, not the century: the
+      // candidate kit is a handful of shops per street, the kit's own infill
+      // is 3x2 stalls that would otherwise stand shoulder to shoulder from the
+      // square to the edge.
+      if (!americanStrip && rand("open", door.x, door.y) > 0.9 - 0.5 * reach)
+        continue;
       const k = cellKey(door.x, door.y);
       if (used.has(k) || !api.dry({ x: door.x, y: door.y, w: 1, h: 1 }, false))
         continue;

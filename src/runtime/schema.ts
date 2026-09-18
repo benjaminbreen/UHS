@@ -14,6 +14,9 @@ import {
   beardStyles,
   garments,
   headwear,
+  leggings,
+  footwear,
+  motifs,
   headShapes,
   jawShapes,
   bodyShapes,
@@ -222,6 +225,10 @@ export const characterAppearanceSchema = z.object({
     cloak: z.boolean(),
     cloakColor: pixelColor,
     headwear: z.enum(headwear),
+    // Optional: saves written before legs and feet had slots.
+    leggings: z.enum(leggings).optional(),
+    footwear: z.enum(footwear).optional(),
+    motif: z.enum(motifs).optional(),
     necklace: z.boolean(),
     earrings: z.boolean(),
   }),
@@ -279,6 +286,7 @@ const actor = z.object({
   consentUntil: z.number().optional(),
   memories: z.array(z.string()),
   held: z.string().optional(),
+  heldItem: z.string().max(64).optional(),
   perch: z
     .object({ on: z.string(), label: z.string(), rise: z.number() })
     .optional(),
@@ -348,6 +356,11 @@ export const commandSchema = z.discriminatedUnion("type", [
       dy: z.number().int().min(-1).max(1),
       run: z.boolean().optional(),
     })
+    .strict(),
+  z.object({ type: z.literal("swing") }).strict(),
+  z.object({ type: z.literal("stow") }).strict(),
+  z
+    .object({ type: z.literal("hold"), item: z.string().min(1).max(64) })
     .strict(),
   z
     .object({

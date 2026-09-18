@@ -286,6 +286,36 @@ export const effects = [
     icon: "⌸",
   },
   {
+    id: "thwock",
+    name: "Stick · stone",
+    detail: "A hard, dry knock off rock",
+    icon: "⌾",
+  },
+  {
+    id: "thud",
+    name: "Stick · timber",
+    detail: "A blunt knock into standing wood",
+    icon: "⌻",
+  },
+  {
+    id: "swish",
+    name: "Swing · leaves",
+    detail: "A stick dragged through brush",
+    icon: "⌁",
+  },
+  {
+    id: "whoosh",
+    name: "Swing · air",
+    detail: "A swing that finds nothing",
+    icon: "⌒",
+  },
+  {
+    id: "splash",
+    name: "Water · struck",
+    detail: "A slap on shallow water",
+    icon: "⌇",
+  },
+  {
     id: "hour",
     name: "Time · passing",
     detail: "A small, suspended cadence",
@@ -339,6 +369,29 @@ export function effectNotes(id: EffectId): Note[] {
       ["kick", 44, 0, 0.42],
       ["bell", 88, 0.01, 0.2],
       ["brush", 72, 0.03, 0.26],
+    ],
+    thwock: [
+      ["kick", 48, 0, 0.36],
+      ["keys", 84, 0, 0.22],
+      ["brush", 78, 0.02, 0.18],
+    ],
+    thud: [
+      ["kick", 36, 0, 0.42],
+      ["bass", 41, 0.01, 0.26],
+      ["brush", 50, 0.03, 0.16],
+    ],
+    swish: [
+      ["brush", 80, 0, 0.26],
+      ["brush", 73, 0.05, 0.16],
+    ],
+    whoosh: [
+      ["brush", 88, 0, 0.16],
+      ["brush", 81, 0.06, 0.09],
+    ],
+    splash: [
+      ["brush", 66, 0, 0.32],
+      ["bell", 90, 0.03, 0.16],
+      ["brush", 58, 0.1, 0.18],
     ],
     shatter: [
       ["kick", 34, 0, 0.5],

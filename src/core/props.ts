@@ -29,12 +29,8 @@ export function propAffordances(
     });
   if (o.carriedBy) add("drop", "Put down", true);
   else if (d.portable && !o.broken)
-    add(
-      "pickup",
-      "Pick up",
-      !s.player.held,
-      "Your hands are full. Put down the held object first.",
-    );
+    // Full hands swap rather than refuse: a dead end is worse than a juggle.
+    add("pickup", s.player.held ? "Swap for this" : "Pick up");
   if (d.container) {
     add("look", o.broken ? "Look through spilled contents" : "Look inside");
     if (o.open && Object.values(o.inventory).some((n) => n! > 0))
@@ -46,14 +42,7 @@ export function propAffordances(
       );
   }
   if (d.drink) add("drink", "Drink water");
-  const held = s.objects.find((p) => p.id === s.player.held);
-  if (d.breakable && !o.broken && !o.carriedBy)
-    add(
-      "strike",
-      "Strike with held object",
-      !!propDefs[held?.prop ?? ""]?.strike,
-      "Equip a stout stick first.",
-    );
+  if (d.breakable && !o.broken && !o.carriedBy) add("strike", "Strike it");
   // Shoving something over needs no tool, and does not break it. A stick to
   // a basket still breaks the basket; a shoulder to it only lays it down.
   if (d.tips && !o.broken && !o.tipped && !o.carriedBy)

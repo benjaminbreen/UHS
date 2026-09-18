@@ -77,3 +77,51 @@ New worlds pin `urbanRevision: 2`. Every town used to come out as the same four 
 Composition runs no graph search: streets are straight segments validated in place, so a settlement with two-thirds more buildings plans faster than the old one did (48-66ms against 95-152ms on the flat-ground benchmark). Terrain still refuses what will not fit, and a block whose parcels were all refused is left unpaved.
 
 This is a bounded block grammar, not a reconstruction of cadastral plans. There are no walls, no built gate structures, no suburbs and no growth over time. Cultural families with no researched entry get an explicitly fictional generic fabric. Worlds pinned to `urbanRevision: 1` keep the earlier composition in `src/world/v3/urban-v1.ts`; no migration was added. See `CITY_ART.md` for art ownership, evidence and verification.
+
+## Modern cities are not one city
+
+`modernBuildings` in `src/content/geography/pack.ts` picks the kit by region:
+shophouse arcades across East, Southeast and South Asia, a balconied walk-up
+around the Mediterranean and in Latin America, a corrugated veranda house
+wherever the rain is heavy, concrete everywhere.
+
+Inside the plan, `preferStyle` in `src/world/v3/urban.ts` sorts them by
+quarter — concrete in the centre, arcades on the trading streets, sheet-metal
+houses at the edge. That gradient is the whole difference between a street in
+Java and a street in Ohio.
+
+The `candidate-modern-*` infill kit is mid-century American (DINER, DONUTS, RX,
+a gas station) and is now gated to US cities. Everywhere else the gaps are
+filled from the city's own small forms, thinned toward the edge the way an
+older town is — without that thinning, 3x2 stalls stand shoulder to shoulder
+from the square to the boundary.
+
+## Shop signs
+
+The word over a shop door is drawn at runtime, not baked into the atlas. The
+building art paints the board and publishes its rect and its paint colour as
+`signBand` and `signPaint`; `src/render/sign-texture.ts` draws the lettering
+into a canvas texture cached by word and ink, and `WorldScene.addBuildingSign`
+hangs it on the facade the way the roof fan is hung.
+
+That split is the whole point: baking the text meant one sprite was one word
+for ever, so the entire game had twelve of them.
+
+- **The word** comes from `src/content/settlements/signs.ts`: the trade, in the
+  language the street writes in, shortest form first, and the caller takes the
+  first that fits its board. A narrow frontage says PAIN where a wide one says
+  BOULANGER.
+- **The name** is the owner's, for the trades a family puts its own name over —
+  a tailor is a person, a gas station is a brand. Generation already decides
+  whether a culture and century give people family names, so a one-word name
+  simply yields nothing.
+- **The language** comes from culture, place and date. Turkish signs start in
+  1928 because that is when the alphabet changed. Scripts the 3x5 font cannot
+  draw — Chinese, Arabic, Devanagari, Thai — get no lettering at all; those
+  streets hang their own painted boards from the prop kit, which is the right
+  answer there anyway.
+- **The ink** is black or cream by the luminance of the board it sits on. A
+  dark ink on a dark board is the one failure that makes a sign unreadable.
+
+`npx tsx scripts/capture-signs.ts` shoots three cities against the dev server
+for review.

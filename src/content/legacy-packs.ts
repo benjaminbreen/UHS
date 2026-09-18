@@ -14,7 +14,7 @@ export const items: Record<Exclude<ItemId, "fruit" | "berries" | "reeds" | "fodd
     value: 3,
   },
   wool: { id: "wool", name: "Fleece", sprite: "wool", value: 4 },
-  wood: { id: "wood", name: "Firewood", sprite: "log", value: 2 },
+  wood: { id: "wood", name: "Firewood", sprite: "log", value: 2, hand: {} },
   fish: {
     id: "fish",
     name: "Dried fish",
@@ -22,7 +22,13 @@ export const items: Record<Exclude<ItemId, "fruit" | "berries" | "reeds" | "fodd
     value: 3,
     edible: 24,
   },
-  tool: { id: "tool", name: "Small knife", sprite: "tool", value: 6 },
+  tool: {
+    id: "tool",
+    name: "Small knife",
+    sprite: "tool",
+    value: 6,
+    hand: { strike: true, edge: true },
+  },
   flax: { id: "flax", name: "Flax", sprite: "flax", value: 2 },
   lizard: {
     id: "lizard",

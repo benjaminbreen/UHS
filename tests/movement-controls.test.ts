@@ -91,13 +91,13 @@ it("keeps legacy moves unchanged, runs faster, and enforces pickup/drop and carr
     open: false,
   };
   engine.state.objects.push(prop);
-  runtime.propAction("Space");
+  runtime.propAction("KeyF");
   expect(engine.state.player.held).toBe(prop.id);
   const carrying = engine.state.player.pos.x;
   runtime.jump(1, 0, "short", true);
   runtime.jump(1, 0, "long", true);
   expect(engine.state.player.pos.x).toBe(carrying);
-  runtime.propAction("Space");
+  runtime.propAction("KeyE");
   expect(engine.state.player.held).toBeUndefined();
   expect(engine.traversal(engine.state.player.pos, 1, 0).kind).toBe("blocked");
   expect(engine.traversal(engine.state.player.pos, -1, 0)).toMatchObject({

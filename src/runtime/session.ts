@@ -6,7 +6,7 @@ import { resolveCharacterContext } from "../content/characters/resolve";
 import { releaseTerrainWorker } from "./terrain-worker-owner";
 import { startChronicle, type Chronicle } from "../chronicle/chronicle";
 import type { PreparedSettlement } from "../world/v3/prepared";
-import { wardrobeFor } from "../content/characters/wardrobes";
+import { clothFor, wardrobeFor } from "../content/characters/wardrobes";
 import { composeWearing, wornFromWearing } from "../core/wearing";
 import {
   actorAppearance,
@@ -15,7 +15,11 @@ import {
 } from "../core/character";
 import type { Actor, Intent, ItemId } from "../core/types";
 import type { CharacterPose } from "../render/characters/poses";
-import type { ToolEffect } from "../render/tool-effects";
+import type {
+  ToolEffect,
+  SwingEffect,
+  ThrowEffect,
+} from "../render/tool-effects";
 import { allowedHeights, type CharacterAppearance } from "../core/character";
 import { characterAppearanceSchema } from "./schema";
 import { heldObject, nearbyProp } from "../core/props";
@@ -30,6 +34,24 @@ import {
   type ToolAction,
 } from "../core/tile-edits";
 /** A pick swings overhead like an axe. */
+export type Verb = {
+  kind:
+    | "talk"
+    | "pickup"
+    | "strike"
+    | "throw"
+    | "drop"
+    | "look"
+    | "drink"
+    | "climb"
+    /** Select a building, as clicking it does: outline, and the sidebar. */
+    | "inspect";
+  /** What the HUD prints beside the key. */
+  label: string;
+  /** Talk: whom to open the dialogue panel on. Inspect: what to select. */
+  actor?: string;
+  command?: Extract<PlayerCommand, { type: "interact" }>;
+};
 const TOOL_POSES: Record<ToolAction, CharacterPose> = {
   chop: "chop",
   dig: "dig",
@@ -125,12 +147,24 @@ export function createSession(
           engine.state.player.age ?? 34,
         );
         appearance.wearing = wardrobeFor(
-          resolved.character.appearanceSeed,
+          {
+            id: resolved.character.appearanceSeed,
+            age: engine.state.player.age,
+            sex: engine.state.player.origin?.sex,
+            standing: engine.state.player.origin?.standing,
+            livelihood: engine.state.player.origin?.livelihood,
+          },
           pack,
           appearance.wearing,
         );
         engine.state.player.appearance = appearance;
-        engine.state.player.worn = wornFromWearing(appearance.wearing);
+        engine.state.player.worn = wornFromWearing(
+          appearance.wearing,
+          clothFor(
+            { id: resolved.character.appearanceSeed, age: engine.state.player.age },
+            pack,
+          ),
+        );
       }
     }
     engine.state.player.stats = rollStats(seed, engine.state.player);
@@ -244,16 +278,28 @@ export class Runtime {
     };
   }
   private defaultAppearance(
-    actor: Pick<Actor, "id" | "sprite" | "appearance" | "age">,
+    actor: Pick<Actor, "id" | "sprite" | "appearance" | "age" | "origin">,
   ): CharacterAppearance {
     const pack = this.engine.world.pack;
-    const signature = `${actor.sprite}:${actor.age}:${pack.id}:${pack.year}`;
+    // Origin is part of the signature now: a wardrobe keyed to sex, standing
+    // and livelihood must redraw when those resolve.
+    const signature = `${actor.sprite}:${actor.age}:${pack.id}:${pack.year}:${actor.origin?.sex ?? ""}:${actor.origin?.standing ?? ""}:${actor.origin?.livelihood ?? ""}`;
     const cached = this.appearanceDefaults.get(actor.id);
     if (cached?.signature === signature) return cached.value;
     const base = actorAppearance(actor, this.palette());
     const value = {
       ...base,
-      wearing: wardrobeFor(actor.id, pack, base.wearing),
+      wearing: wardrobeFor(
+        {
+          id: actor.id,
+          age: actor.age,
+          sex: actor.origin?.sex,
+          standing: actor.origin?.standing,
+          livelihood: actor.origin?.livelihood,
+        },
+        pack,
+        base.wearing,
+      ),
     };
     this.appearanceDefaults.set(actor.id, { signature, value });
     return value;
@@ -270,6 +316,11 @@ export class Runtime {
   /** What the last tool blow did, for the scene to throw chips and drop a
    * tree. Read once by serial, like `characterAction`. */
   toolEffect?: ToolEffect;
+  /** The arc of the last swing and everything it found, for the scene to
+   * throw chips, rock scenery and sound off. */
+  swingEffect?: SwingEffect;
+  /** The last thrown prop's flight, read once by serial. */
+  throwEffect?: ThrowEffect;
   /** The plant a chop is about to land on, read before the engine takes it. */
   private toolTargetPlant(command: PlayerCommand) {
     if (command.type !== "interact" || command.action !== "chop") return;
@@ -368,6 +419,35 @@ export class Runtime {
                   : 340,
           },
         };
+      return;
+    }
+    if (command.type === "throw") {
+      const flight = this.engine.lastThrow;
+      if (flight)
+        this.throwEffect = { serial: ++this.characterSerial, ...flight };
+    }
+    if (command.type === "swing") {
+      const swing = this.engine.lastSwing;
+      const held = heldObject(this.engine.state);
+      const item = this.engine.state.player.heldItem;
+      const tool = propDefs[held?.prop ?? ""]?.tool;
+      this.characterAction = {
+        serial: ++this.characterSerial,
+        pose: tool ? TOOL_POSES[TOOL_ACTIONS[tool]] : "swing",
+        at: performance.now(),
+        prop: held?.sprite ?? (item ? this.engine.item(item)?.sprite : undefined),
+      };
+      if (swing) {
+        const p = this.engine.state.player.pos;
+        this.swingEffect = {
+          serial: ++this.characterSerial,
+          from: { x: p.x, y: p.y },
+          facing: swing.direction,
+          tool: swing.tool,
+          sprite: held?.sprite,
+          hits: swing.hits,
+        };
+      }
       return;
     }
     const action = command.type === "interact" ? command.action : command.type;
@@ -763,14 +843,13 @@ export class Runtime {
   }
   private buildPropControls() {
     const s = this.engine.state,
-      held = heldObject(s),
-      weapon = !!propDefs[held?.prop ?? ""]?.strike;
+      held = heldObject(s);
     const target = nearbyProp(
       s,
       (p) => this.engine.visible(p),
       (o) =>
         held
-          ? weapon && !!propDefs[o.prop!]?.breakable && !o.broken
+          ? !!propDefs[o.prop!]?.breakable && !o.broken
           : !!propDefs[o.prop!]?.portable && !o.broken,
     );
     const nearby = nearbyProp(
@@ -840,7 +919,7 @@ export class Runtime {
           : toolAction
             ? (toolProblem ?? "")
             : held
-              ? "Space: put down held object"
+              ? `Swing ${held.name.toLowerCase()}`
               : "Move near a portable object",
       secondaryLabel: context
         ? propDefs[context.prop!]?.drink
@@ -871,68 +950,170 @@ export class Runtime {
         ? "Clear the cut stems"
         : `Chop the ${plantName(plant?.sprite)}`;
   }
-  propAction(key: "Space" | "KeyE" | "KeyG" | "KeyF") {
-    this.stop(false);
-    const controls = this.propControls();
-    const command =
-      key === "Space" && controls.held
-        ? {
-            type: "interact" as const,
-            target: controls.held.id,
-            action: "drop" as const,
-          }
-        : key === "Space" || key === "KeyF"
-          ? key === "KeyF" && !controls.held
-            ? undefined
-            : controls.primary
-          : key === "KeyE"
-            ? controls.secondary
-            : controls.held
-              ? {
-                  type: "interact" as const,
-                  target: controls.held.id,
-                  action: "drop" as const,
-                }
-              : undefined;
-    if (command) {
-      this.selected = command.target;
-      this.command(command);
-    } else {
-      if (
-        key === "KeyF" &&
-        controls.held &&
-        propDefs[controls.held.prop ?? ""]?.strike &&
-        !this.replay
-      ) {
-        const tool = propDefs[controls.held.prop ?? ""]?.tool;
-        this.characterAction = {
-          serial: ++this.characterSerial,
-          pose: tool ? TOOL_POSES[TOOL_ACTIONS[tool]] : "swing",
-          at: performance.now(),
-          prop: controls.held.sprite,
-        };
-        if (tool) {
-          const p = this.engine.state.player.pos;
-          this.toolEffect = {
-            serial: ++this.characterSerial,
-            kind: "miss",
-            at: this.engine.facingCell(),
-            from: { x: p.x, y: p.y },
-            facing: this.engine.state.player.direction,
-          };
-        }
-        this.notice = tool
-          ? controls.primaryLabel
-          : "You swing through the air.";
-        this.emit();
-        return;
-      }
-      this.notice =
-        key === "Space"
-          ? controls.primaryLabel
-          : "No contextual action nearby.";
-      this.emit();
+  /** The one speaker the action key will reach: in range, and roughly in
+   * front, so walking past someone does not hijack F. */
+  facingSpeaker() {
+    const p = this.engine.state.player,
+      d = [
+        [0, -1],
+        [1, 0],
+        [0, 1],
+        [-1, 0],
+      ][p.direction];
+    const a = this.nearestSpeaker();
+    if (!a) return undefined;
+    const dx = a.pos.x - p.pos.x,
+      dy = a.pos.y - p.pos.y;
+    return dx * d[0] + dy * d[1] > 0 ? a : undefined;
+  }
+  /** The building the player is facing, within a stride of its wall. Same
+   * footprint test a click uses, so F picks what a click would. */
+  facingPlace() {
+    const p = this.engine.state.player;
+    if (p.pos.space !== "outside") return undefined;
+    const d = [
+      [0, -1],
+      [1, 0],
+      [0, 1],
+      [-1, 0],
+    ][p.direction];
+    for (const step of [1, 2]) {
+      const x = p.pos.x + d[0] * step,
+        y = p.pos.y + d[1] * step;
+      const place = this.engine.world.places.find(
+        (b) => x >= b.x && x < b.x + b.w && y >= b.y && y < b.y + b.h,
+      );
+      if (place) return place;
     }
+    return undefined;
+  }
+  /** What F and E do right now. Two slots, resolved in a fixed order so the
+   * player can learn it, and labelled so they never have to guess. */
+  verbs(): { primary?: Verb; alternate?: Verb } {
+    const c = this.propControls();
+    const p = this.engine.state.player;
+    const held = c.held;
+    const def = propDefs[held?.prop ?? ""];
+    // An inventory item taken in hand stands in for a carried prop.
+    const item = !held && p.heldItem ? this.engine.item(p.heldItem) : undefined;
+    const hands = held
+      ? { name: held.name, swingable: !!(def?.strike || def?.tool) }
+      : item
+        ? { name: item.name, swingable: !!item.hand?.strike }
+        : undefined;
+    const speaker = this.facingSpeaker();
+    const other = speaker ? undefined : this.nearestSpeaker();
+    const place = this.facingPlace();
+    const descend = !!p.perch || this.engine.onWall();
+    const climbTarget = descend ? undefined : this.engine.climbable();
+    const climb: Verb | undefined =
+      descend || climbTarget
+        ? {
+            kind: "climb",
+            label: descend
+              ? `Climb down from ${p.perch?.label ?? "the wall"}`
+              : `Climb ${climbTarget!.label.toLowerCase()}`,
+          }
+        : undefined;
+    let primary: Verb | undefined;
+    if (speaker)
+      primary = {
+        kind: "talk",
+        label: `Talk to ${speaker.name}`,
+        actor: speaker.id,
+      };
+    else if (
+      c.primary &&
+      ["chop", "dig", "reap", "mine"].includes(c.primary.action)
+    )
+      primary = { kind: "strike", label: c.primaryLabel, command: c.primary };
+    else if (hands?.swingable)
+      // A tool is never thrown. Swinging at nothing is the answer, so the
+      // player learns the arc before they learn what it bites.
+      primary = {
+        kind: "strike",
+        label:
+          held && c.primary?.action === "strike"
+            ? c.primaryLabel
+            : `Swing ${hands.name.toLowerCase()}`,
+      };
+    else if (held)
+      primary = { kind: "throw", label: `Throw ${held.name.toLowerCase()}` };
+    else if (item)
+      primary = { kind: "drop", label: `Put ${item.name.toLowerCase()} away` };
+    else if (c.primary?.action === "pickup")
+      primary = { kind: "pickup", label: c.primaryLabel, command: c.primary };
+    else if (place)
+      primary = { kind: "inspect", label: `Look at ${place.name}`, actor: place.id };
+    else primary = climb ?? { kind: "strike", label: "Take a swing" };
+    let alternate: Verb | undefined;
+    // A tree you could climb is what E is for while your hands are full:
+    // a swingable in hand never loses the swing to a climb prompt.
+    if (climb && primary?.kind !== "climb") alternate = climb;
+    else if (held)
+      alternate = {
+        kind: "drop",
+        label: `Put down ${held.name.toLowerCase()}`,
+        command: { type: "interact", target: held.id, action: "drop" },
+      };
+    else if (item)
+      alternate = { kind: "drop", label: `Put ${item.name.toLowerCase()} away` };
+    else if (c.secondary)
+      alternate = {
+        kind: c.secondary.action === "drink" ? "drink" : "look",
+        label: c.secondaryLabel!,
+        command: c.secondary,
+      };
+    else if (other)
+      alternate = {
+        kind: "talk",
+        label: `Talk to ${other.name}`,
+        actor: other.id,
+      };
+    return { primary, alternate };
+  }
+  /** Runs a slot and hands the verb back. Talk is returned unrun: the
+   * dialogue panel is React's, not the engine's. */
+  runVerb(slot: "primary" | "alternate"): Verb | undefined {
+    const verb = this.verbs()[slot];
+    if (!verb) {
+      this.notice =
+        slot === "primary"
+          ? "Nothing to reach here."
+          : "No second action here.";
+      this.emit();
+      return undefined;
+    }
+    this.stop(false);
+    if (verb.kind === "talk") return verb;
+    if (verb.kind === "inspect") {
+      this.select(verb.actor);
+      return verb;
+    }
+    if (verb.kind === "climb") {
+      this.climb();
+      return verb;
+    }
+    if (verb.kind === "throw") {
+      const at = this.engine.facingCell(),
+        p = this.engine.state.player.pos;
+      this.throwHeld(at.x - p.x, at.y - p.y, this.running);
+      return verb;
+    }
+    if (verb.command) {
+      this.selected = verb.command.target;
+      this.command(verb.command);
+      return verb;
+    }
+    if (verb.kind === "drop") {
+      this.command({ type: "stow" });
+      return verb;
+    }
+    this.command({ type: "swing" });
+    return verb;
+  }
+  propAction(key: "KeyE" | "KeyF") {
+    return this.runVerb(key === "KeyF" ? "primary" : "alternate");
   }
   move(dx: number, dy: number, traverse = false, run = false) {
     this.stop(false);
