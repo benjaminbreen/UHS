@@ -337,21 +337,24 @@ export function rasterHabitatTile(
   // Small authored edge offsets break a ruler-straight seam without
   // moving the underlying habitat footprint by more than two pixels.
   const steps = [0, 0, 1, 1, 0, -1, -1, 0];
-  const jitteredBand = (px: number, py: number) => {
+  const jitter = (px: number, py: number) => {
     const wx = gx + px,
       wy = gy + py;
-    const jx =
+    return [
       steps[
         (Math.floor(wy / 3) +
           Math.floor(hash(Math.floor(wx / 32), 0, 381) * 8)) &
           7
-      ];
-    const jy =
+      ],
       steps[
         (Math.floor(wx / 3) +
           Math.floor(hash(0, Math.floor(wy / 32), 383) * 8)) &
           7
-      ];
+      ],
+    ];
+  };
+  const jitteredBand = (px: number, py: number) => {
+    const [jx, jy] = jitter(px, py);
     return bandAt(px + jx, py + jy);
   };
   // Bands read as per-pixel thresholds of the habitat fields interpolated
@@ -361,18 +364,41 @@ export function rasterHabitatTile(
   const ease = (t: number) => t * t * (3 - 2 * t);
   const appearances = new Map<string, ReturnType<typeof habitatAppearance>>();
   const communityPixel = (px: number, py: number) => {
-    const u = (px + .5) / 16 - .5, v = (py + .5) / 16 - .5;
+    // Jittered like every other band edge: sampled straight, the winner below
+    // changes along the cell lattice and the seam reads as a staircase.
+    const [jx, jy] = jitter(px, py);
+    const u = (px + jx + .5) / 16 - .5, v = (py + jy + .5) / 16 - .5;
     const cx = Math.floor(u), cy = Math.floor(v), tx = ease(u-cx), ty = ease(v-cy);
     const rgb = [0,0,0], bands = [0,0,0,0,0,0];
+    const tones: (number[] | undefined)[] = [];
     for (const [dx,dy,w] of [[0,0,(1-tx)*(1-ty)],[1,0,tx*(1-ty)],[0,1,(1-tx)*ty],[1,1,tx*ty]]) {
       const nx=x+cx+dx, ny=y+cy+dy, near=sample(nx,ny)?.habitat ?? h;
       const key=`${nx},${ny}`;
       let a=appearances.get(key);
       if (!a) { a=habitatAppearance(near,art); appearances.set(key,a); }
-      for(let c=0;c<3;c++) rgb[c]+=a.ground[c]*w;
-      bands[near.site ? communityBand[near.site.primary] : 0]+=w;
+      const b = near.site ? communityBand[near.site.primary] : 0;
+      bands[b]+=w;
+      const t = tones[b] ?? (tones[b] = [0,0,0]);
+      for(let c=0;c<3;c++) { rgb[c]+=a.ground[c]*w; t[c]+=a.ground[c]*w; }
     }
-    return { rgb, band: bands.indexOf(Math.max(...bands)) };
+    const ranked = [0,1,2,3,4,5]
+      .filter((b) => bands[b] > 0)
+      .sort((a, b) => bands[b] - bands[a]);
+    let band = ranked[0];
+    // Two communities meeting get a stipple, not a ramp: within a few pixels
+    // of a tie the loser wins on a hash, so the seam breaks up at pixel scale.
+    const rival = ranked[1];
+    if (rival !== undefined) {
+      const lead = (bands[band] - bands[rival]) / (bands[band] + bands[rival]);
+      if (lead < 0.34 && hash(gx + px, gy + py, 495) > 0.5 + lead * 1.47)
+        band = rival;
+    }
+    // Snap toward the chosen band's own colour. Within one band this is a
+    // no-op, so only a real community seam sharpens.
+    const own = tones[band]!;
+    for (let c = 0; c < 3; c++)
+      rgb[c] = rgb[c] * 0.3 + (own[c] / bands[band]) * 0.7;
+    return { rgb, band };
   };
   const smoothBand = (px: number, py: number) => {
     const u = (px + 0.5) / 16 - 0.5,
@@ -1090,7 +1116,25 @@ export function rasterHabitatTile(
   const tufted = Math.min(1, tuftedBase * (composition?.pathFringe ?? 1));
   // Colonies, not a continuous fringe: whole stretches of margin stay bare.
   const colony = hash(Math.floor(gx / 26), Math.floor(gy / 26), 431) > 0.34;
-  if ((hasPath || hasWear) && tufted && colony && h.exposed < 0.65) {
+  // Bare ground inside turf gets the same fringe as a road margin: grass gives
+  // out at the edge instead of the patch reading as a filled shape.
+  const apronAt = (px: number, py: number) =>
+    px < -1 || py < -1 || px > 16 || py > 16 ? 0 : apron[at(px, py)];
+  const hasBare =
+    grassy && apron.some((b) => b === 3) && apron.some((b) => b !== 3);
+  const bareEdge = (px: number, py: number) =>
+    apronAt(px, py) !== 3 &&
+    [
+      [-2, 0],
+      [2, 0],
+      [0, -2],
+      [0, 2],
+      [-1, -1],
+      [1, 1],
+      [1, -1],
+      [-1, 1],
+    ].some(([dx, dy]) => apronAt(px + dx, py + dy) === 3);
+  if ((hasPath || hasWear || hasBare) && tufted && colony && h.exposed < 0.65) {
     let placed = 0;
     for (const [px, py] of [
       [2, 5],
@@ -1103,21 +1147,21 @@ export function rasterHabitatTile(
       [14, 12],
     ]) {
       if (placed > 1) break;
-      const coverage = pathField(
-        sample,
-        x + (px + 0.5) / 16,
-        y + (py + 0.5) / 16,
-        ox,
-        oy,
-      ).coverage;
       // A window straddling the boundary: the base may sit just inside the
       // worn ground, which is where an overlapping tuft comes from.
-      if (
-        coverage < 0.33 ||
-        coverage > 0.6 ||
-        hash(gx + px, gy + py, 425) > tufted
-      )
-        continue;
+      const coverage =
+        hasPath || hasWear
+          ? pathField(
+              sample,
+              x + (px + 0.5) / 16,
+              y + (py + 0.5) / 16,
+              ox,
+              oy,
+            ).coverage
+          : 0;
+      const margin =
+        (coverage >= 0.33 && coverage <= 0.6) || (hasBare && bareEdge(px, py));
+      if (!margin || hash(gx + px, gy + py, 425) > tufted) continue;
       const glyph =
         edgeTufts[Math.floor(hash(gx + px, gy + py, 427) * edgeTufts.length)];
       const flip = hash(gx + px, gy + py, 429) > 0.5;
