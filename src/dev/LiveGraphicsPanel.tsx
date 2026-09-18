@@ -12,6 +12,7 @@ import {
 } from "../render/perf-switches";
 import { reshadeTerrain, setTerrainReach } from "../render/terrain-stream";
 import type {
+  FrameCap,
   LitterPalette,
   LiveGraphicsSettings,
   TreePalette,
@@ -109,6 +110,19 @@ export function LiveGraphicsPanel({
       </header>
 
       <FpsMeter />
+
+      <div className="live-frame-cap" role="group" aria-label="Frame cap">
+        <span>Frame cap</span>
+        {([30, 60] as FrameCap[]).map((cap) => (
+          <button
+            key={cap}
+            aria-pressed={settings.frameCap === cap}
+            onClick={() => onChange({ frameCap: cap })}
+          >
+            {cap} fps
+          </button>
+        ))}
+      </div>
 
       <div className="live-tabs" role="tablist">
         <button

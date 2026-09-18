@@ -7,9 +7,11 @@ import {
   setProfiling,
   type FrameBreakdown,
 } from "../render/perf-switches";
+import { engineFps } from "../render/frame-cap";
 
 type Sample = {
   fps: number;
+  engine: number;
   frame: number;
   low: number;
   chunks: string;
@@ -26,6 +28,7 @@ type Sample = {
 
 const EMPTY: Sample = {
   fps: 0,
+  engine: 0,
   frame: 0,
   low: 0,
   chunks: "-",
@@ -65,6 +68,7 @@ export function FpsMeter() {
         ) as HTMLCanvasElement | null;
         setSample({
           fps: Math.round((frames / elapsed) * 1000),
+          engine: engineFps(),
           frame: Math.round((elapsed / frames) * 10) / 10,
           low: Math.round(profile.worst * 10) / 10,
           chunks: canvas?.dataset.terrainChunkCount ?? "-",
@@ -101,6 +105,7 @@ export function FpsMeter() {
     <div className="fps-meter" data-testid="fps-meter">
       <div className="fps-meter-top">
         <strong>{sample.fps} fps</strong>
+        <span>{sample.engine} engine</span>
         <span>{sample.frame} ms/frame</span>
         <span data-warn={sample.low >= HITCH_MS || undefined}>
           {sample.low} ms worst
@@ -132,8 +137,8 @@ export function FpsMeter() {
         </span>
         <span>{sample.mapBuilds} minimap rebuilds</span>
       </div>
-      <div className="fps-worst">
-        <span>
+      <details className="fps-worst">
+        <summary>
           Last hitches
           <button
             onClick={() => {
@@ -143,7 +148,7 @@ export function FpsMeter() {
           >
             reset
           </button>
-        </span>
+        </summary>
         {!sample.log.length && <p>none yet</p>}
         {sample.log.map((hitch) => (
           <div key={hitch.at} className="fps-hitch">
@@ -163,7 +168,7 @@ export function FpsMeter() {
             </ul>
           </div>
         ))}
-      </div>
+      </details>
     </div>
   );
 }

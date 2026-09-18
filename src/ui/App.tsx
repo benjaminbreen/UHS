@@ -1,4 +1,5 @@
 import { CharacterSprite } from "./CharacterSprite";
+import { applyFrameCap, registerGame } from "../render/frame-cap";
 import { CharacterPanel } from "./CharacterPanel";
 import "./settings.css";
 import {
@@ -244,7 +245,12 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
       banner: false,
     });
     game.current = g;
+    registerGame(g);
+    g.events.once(Phaser.Core.Events.READY, () => {
+      applyFrameCap(liveGraphicsRef.current.frameCap);
+    });
     return () => {
+      registerGame(undefined);
       g.destroy(true);
     };
   }, [runtime]);
@@ -252,6 +258,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
     const next = { ...liveGraphicsRef.current, ...patch };
     liveGraphicsRef.current = next;
     setLiveGraphics(next);
+    if (patch.frameCap !== undefined) applyFrameCap(patch.frameCap);
     const scene = game.current?.scene.getScene("world") as
       | WorldScene
       | undefined;
@@ -526,7 +533,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
           <div
             className="game-container"
             ref={mount}
-            aria-label="Playable historical world. WASD or arrows to walk, Shift to run, Space to jump or pick up and drop items. Hold Space to charge a longer jump; jumping while running clears an extra tile."
+            aria-label="Playable historical world. WASD or arrows to walk, Shift to run, Space to jump or pick up and drop items. Hold Space to charge a longer jump; jumping while running clears an extra tile (two to four)."
             tabIndex={0}
           />
           {graphicsOpen && (

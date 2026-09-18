@@ -16,7 +16,10 @@ export type TreePalette =
   | "sheet-broadleaf";
 export type LitterPalette = "none" | "woodland" | "grassland" | "mixed";
 
+export type FrameCap = 30 | 60;
+
 export type LiveGraphicsSettings = {
+  frameCap: FrameCap;
   roundPixels: boolean;
   textureSampling: TextureSampling;
   canvasSampling: CanvasSampling;
@@ -44,6 +47,7 @@ export type LiveGraphicsSettings = {
 };
 
 export const defaultLiveGraphicsSettings: LiveGraphicsSettings = {
+  frameCap: 60,
   roundPixels: false,
   textureSampling: "nearest",
   canvasSampling: "pixelated",
