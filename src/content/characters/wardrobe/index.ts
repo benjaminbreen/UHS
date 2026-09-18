@@ -19,6 +19,7 @@ import {
 
 export * from "./types";
 export * from "./cloth";
+export * from "./roles";
 export { garmentKits, eraFloors, regionalKits } from "./kits";
 
 /** How many axes a kit constrains. A culture-scoped kit beats a global one
@@ -44,9 +45,14 @@ function fits(o: WearerScope, w: Wearer, band: ReturnType<typeof ageBandOf>) {
   return (
     (!o.sex || o.sex.includes(w.sex ?? "unspecified")) &&
     (!o.ages || o.ages.includes(band)) &&
-    (!o.means || o.means.includes(w.means ?? "common")) &&
+    // Anything a merchant could buy, a monarch could too.
+    (!o.means ||
+      o.means.includes(w.means ?? "common") ||
+      (w.means === "elite" && o.means.includes("wealthy"))) &&
     (!o.standing || (!!w.standing && o.standing.includes(w.standing))) &&
-    (!o.livelihoods || (!!w.livelihood && o.livelihoods.includes(w.livelihood)))
+    (!o.livelihoods ||
+      (!!w.livelihood && o.livelihoods.includes(w.livelihood))) &&
+    (!o.roles || (w.roles ?? []).some((r) => o.roles!.includes(r)))
   );
 }
 /** Most people are neither poor nor rich. Seeded per person so a street has a
@@ -62,27 +68,39 @@ function sexOf(w: Wearer): Sex {
 export function meansOf(w: Wearer): Means {
   if (w.means) return w.means;
   if (w.standing === "unfree") return "poor";
+  if ((w.roles ?? []).includes("aristocrat")) return "elite";
   const r = random(w.id, "wardrobe-means");
+  // One in five hundred. A world of a thousand people holds a couple of them,
+  // which is about right for the people who got painted.
+  if (r > 0.998) return "elite";
   return r < 0.28 ? "poor" : r < 0.88 ? "common" : "wealthy";
 }
-/** The narrowest kit that has anything to say about this slot. */
+/**
+ * The narrowest kit with something to say about this slot *to this person*.
+ * A kit whose options are all gated behind a role or a rank the wearer does
+ * not have has nothing to say to them, and must not shadow the kit below —
+ * otherwise a pressure suit's white paint becomes everyone's palette.
+ */
 function slotOptions<T>(
   kits: readonly GarmentKit[],
   key: WardrobeSlot,
+  usable: (o: Option<T>) => boolean,
 ): readonly Option<T>[] {
   for (const kit of kits) {
-    const options = kit[key];
-    if (options?.length) return options as readonly Option<T>[];
+    const options = (kit[key] ?? []) as readonly Option<T>[];
+    const mine = options.filter(usable);
+    if (mine.length) return mine;
   }
   return [];
 }
-/** What goes under a skirt: a stocking or nothing, never trousers. */
+/** What goes under a skirt or a gown: a stocking or nothing, never trousers. */
 function skirted(
   garment: CharacterAppearance["wearing"]["garment"],
   legs: NonNullable<CharacterAppearance["wearing"]["leggings"]>,
   id: string,
 ) {
-  if (garment !== "dress" && garment !== "skirt") return legs;
+  if (garment !== "dress" && garment !== "skirt" && garment !== "gown")
+    return legs;
   if (legs === "none" || legs === "hose" || legs === "wrapped") return legs;
   return random(id, "under-skirt") < 0.55 ? "hose" : "none";
 }
@@ -137,7 +155,12 @@ export function kitsFor(
           !k.scope.places &&
           !k.scope.communities,
     )
-    .sort((a, b) => rank(b) - rank(a) || specificity(a) - specificity(b));
+    .sort(
+      (a, b) =>
+        (b.priority ?? 0) - (a.priority ?? 0) ||
+        rank(b) - rank(a) ||
+        specificity(a) - specificity(b),
+    );
 }
 /**
  * What this person's cloth is: the fibre, the colour on it, and how well it
@@ -179,10 +202,10 @@ export function clothFor(
   // So a garment that came out rare or unique draws its fibre and its colour
   // from what money could reach, whoever ended up wearing it.
   const buyer = { ...w, means: quality >= 2 ? ("wealthy" as const) : w.means };
-  const dyeOptions = slotOptions<DyeId>(kits, "dye").filter((x) =>
+  const dyeOptions = slotOptions<DyeId>(kits, "dye", (x) =>
     fits(x, buyer, band),
   );
-  const fibreOptions = slotOptions<Material>(kits, "material").filter((x) =>
+  const fibreOptions = slotOptions<Material>(kits, "material", (x) =>
     fits(x, buyer, band),
   );
   // Work worth naming went onto cloth worth the work: a season's weaving does
@@ -249,7 +272,9 @@ export function wardrobeFor(
   // a period-correct body and an anachronistic hem. They must not land on the
   // body's own colour, though: banding drawn in the garment's colour is
   // invisible, which is the whole point of the pattern.
-  const palette = slotOptions<DyeId>(kits, "dye").filter(
+  const palette = slotOptions<DyeId>(
+    kits,
+    "dye",
     (o) => fits(o, w, band) && o.value !== dye,
   );
   const lower = weighted(palette, w.id, "dye-lower");

@@ -548,13 +548,14 @@ export function drawCharacter(
     ];
     // Leggings win over the garment's own guess: a short tunic over hose is
     // covered, a long robe over nothing still hides the leg anyway.
-    const legs = a.wearing.leggings ?? "none";
+    const legs =
+      a.wearing.garment === "suit" ? "trousers" : (a.wearing.leggings ?? "none");
     const bareLeg =
         legs === "none" &&
         (a.wearing.garment === "tunic" ||
           a.wearing.garment === "wrap" ||
           a.wearing.garment === "none"),
-      base = bareLeg ? skin : lower,
+      base = bareLeg ? skin : a.wearing.garment === "suit" ? cloth : lower,
       colors = isFar ? { ...base, base: base.shade } : base;
     p.limb([hip, knee, ankle], 4, colors);
     // Wrappings are the same cloth crossed over itself: two bands up the shin.
@@ -681,6 +682,8 @@ export function drawCharacter(
     a.wearing.garment === "none" || a.wearing.garment === "loincloth";
   const poncho = a.wearing.garment === "poncho";
   const openRobe = a.wearing.garment === "open-robe";
+  const gown = a.wearing.garment === "gown";
+  const suit = a.wearing.garment === "suit";
   const long = [
     "robe",
     "dress",
@@ -688,6 +691,8 @@ export function drawCharacter(
     "skirt",
     "long-tunic",
     "open-robe",
+    "gown",
+    "suit",
   ].includes(a.wearing.garment),
     hem =
       a.wearing.garment === "long-tunic"
@@ -699,13 +704,10 @@ export function drawCharacter(
             : 23 + torso;
   // A poncho hangs off the shoulders and does not follow the body: straight
   // sides are the whole silhouette.
-  const flare = ["dress", "skirt"].includes(a.wearing.garment)
-    ? 2
-    : poncho
-      ? 1
-      : long
-        ? 1
-        : 0;
+  // A court gown is the width: panniers and a stiffened underskirt carry it
+  // well past the body, which is the whole silhouette. A sealed suit is the
+  // opposite — it follows the body exactly.
+  const flare = gown ? 5 : ["dress", "skirt"].includes(a.wearing.garment) ? 2 : suit ? 0 : poncho ? 1 : long ? 1 : 0;
   const waist = a.bodyShape === "tapered" ? 1 : 0;
   const belly = a.bodyShape === "rounded" ? 1 : 0;
   // A long hem swings a frame behind the legs, like the cloak.
@@ -798,6 +800,49 @@ export function drawCharacter(
     // carry their trim.
     p.line([mid - 4, 15], [mid - 4, hem - 3], a.wearing.trim);
     if (!side) p.line([mid + 4, 15], [mid + 4, hem - 3], a.wearing.trim);
+  }
+  // A gown: a stomacher panel down the bodice and a band where the skirt is
+  // gathered onto it.
+  if (gown) {
+    // Panniers: the skirt goes out sideways at the waist and stays out, which
+    // is the whole silhouette and is lost if it only flares at the hem.
+    p.shape(
+      [
+        [left - 1, 21 + torso],
+        [right + 1, 21 + torso],
+        [right + 5 + hemSway, hem - 1],
+        [left - 5 + hemSway, hem],
+      ],
+      cloth,
+    );
+    p.line([left - 4 + hemSway, hem - 2], [right + 4 + hemSway, hem - 2], cloth.shade);
+    p.line([left - 1, 23 + torso], [left - 4 + hemSway, hem - 3], cloth.light);
+  }
+  if (gown && !back) {
+    const inner = ramp(a.wearing.lowerColor);
+    const mid = side ? right - 3 : Math.round((left + right) / 2);
+    p.shape(
+      [
+        [mid - 2, 15],
+        [mid + 2, 15],
+        [mid + 1, 21 + torso],
+        [mid - 1, 21 + torso],
+      ],
+      inner,
+    );
+    p.rect(left, 21 + torso, right - left, 1, a.wearing.trim);
+    p.line([left - 2, hem - 3], [right + 1, hem - 3], inner.light);
+  }
+  // A sealed suit: a chest seal, a collar ring, and a seam down each side.
+  if (suit) {
+    const gear = ramp(a.wearing.trim);
+    p.rect(left + 1, 14, right - left - 2, 1, gear.base);
+    if (!back) {
+      p.rect(side ? right - 5 : 9, 17, 4, 3, gear.shade);
+      p.rect(side ? right - 5 : 9, 17, 4, 1, gear.light);
+    }
+    p.line([left + 1, 16], [left + 1, hem - 2], gear.shade);
+    p.line([right - 2, 16], [right - 2, hem - 2], gear.shade);
   }
   if (a.wearing.garment === "wrap" && !back) {
     p.shape(

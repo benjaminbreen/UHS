@@ -16,7 +16,7 @@ import {
 import { asOfficiant } from "./officiant";
 import { sexFromName } from "./name-sex";
 import { wornFromWearing } from "../../core/wearing";
-import { clothFor } from "./wardrobe";
+import { clothFor, rolesFrom } from "./wardrobe";
 import type { CharacterPhysique } from "../../core/character";
 
 export type Sex = CharacterPhysique["sex"];
@@ -372,7 +372,13 @@ export function generateCharacter(
     worn: wornFromWearing(
       appearance.wearing,
       clothFor(
-        { id, age, sex: bodySex, livelihood: livelihood.id },
+        {
+          id,
+          age,
+          sex: bodySex,
+          livelihood: livelihood.id,
+          roles: rolesFrom(requestedRole, role),
+        },
         { year: s.year, setting: s },
       ),
     ),

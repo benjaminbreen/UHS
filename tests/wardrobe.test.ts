@@ -6,6 +6,7 @@ import {
   wardrobeFor,
   clothFor,
   clothId,
+  rolesFrom,
   clothName,
   dyes,
   parseCloth,
@@ -383,4 +384,83 @@ it("carries rank on the shoulder in Africa and the Pacific", () => {
   // Missionary dress reaches the islands in a generation and stays.
   const island = crowd("australian-pacific", 1900, { sex: "female" }, 200, [170, -15]);
   expect(share(island, (w) => w.garment === "dress")).toBeGreaterThan(0.3);
+});
+
+it("reads a role off whatever the world weaver called someone", () => {
+  expect(rolesFrom("Able Seaman")).toEqual(["sailor"]);
+  expect(rolesFrom("cosmonaut")).toEqual(["astronaut"]);
+  expect(rolesFrom("infantry private")).toEqual(["soldier"]);
+  expect(rolesFrom("Empress of Brazil")).toEqual(["aristocrat"]);
+  expect(rolesFrom("daughter of the King of Hawaii")).toEqual(["aristocrat"]);
+  expect(rolesFrom("22nd century farmer")).toEqual([]);
+  expect(rolesFrom(undefined, "Shogun")).toEqual(["aristocrat"]);
+});
+
+it("issues a uniform that beats whatever the place would have worn", () => {
+  for (const [culture, year] of [
+    ["european", 1969],
+    ["east-asian", 2150],
+  ] as const) {
+    const crew = crowd(culture, year, { roles: ["astronaut"] });
+    expect(crew.every((w) => w.garment === "suit")).toBe(true);
+    expect(crew.every((w) => w.footwear === "boots")).toBe(true);
+    expect(share(crew, (w) => w.headwear === "visor")).toBeGreaterThan(0.3);
+  }
+  // Nobody was in a pressure suit before there was anywhere to wear one.
+  expect(
+    crowd("european", 1900, { roles: ["astronaut"] }).map((w) => w.garment),
+  ).not.toContain("suit");
+  // And a uniform does not leak onto the people standing next to them.
+  expect(crowd("european", 1969).map((w) => w.garment)).not.toContain("suit");
+});
+
+it("puts soldiers and sailors in their own dress, in any century", () => {
+  const troops = crowd("european", 1916, { roles: ["soldier"] });
+  expect(troops.every((w) => w.footwear === "boots")).toBe(true);
+  expect(share(troops, (w) => w.headwear === "helmet")).toBeGreaterThan(0.3);
+  expect(crowd("european", 1916).map((w) => w.headwear)).not.toContain("helmet");
+  // The steppe keeps its own leg under an early soldier's coat.
+  const early = crowd("east-asian", 1200, { roles: ["soldier"] });
+  expect(share(early, (w) => w.headwear === "helmet")).toBeGreaterThan(0.3);
+  // Wide-cut legs and a striped shirt, wherever the ship happens to be.
+  for (const culture of ["european", "southeast-asian"]) {
+    const crew = crowd(culture, 1780, { roles: ["sailor"] });
+    expect(share(crew, (w) => w.leggings === "wide")).toBeGreaterThan(0.4);
+    expect(share(crew, (w) => w.motif === "stripes")).toBeGreaterThan(0.4);
+  }
+});
+
+it("spawns court dress for the few, and only while it existed", () => {
+  // About one person in five hundred: the emperor, not the merchant.
+  const rate =
+    Array.from({ length: 20000 }, (_, i) => meansOf({ id: `pop-${i}` })).filter(
+      (m) => m === "elite",
+    ).length / 20000;
+  expect(rate).toBeGreaterThan(0.001);
+  expect(rate).toBeLessThan(0.006);
+  // A stated title reaches it directly, wherever the world is set.
+  expect(meansOf({ id: "x", roles: rolesFrom("Empress of Brazil") })).toBe("elite");
+  const court = crowd("european", 1760, { means: "elite", sex: "female" });
+  expect(share(court, (w) => w.garment === "gown")).toBeGreaterThan(0.3);
+  expect(share(court, (w) => w.headwear === "wig")).toBeGreaterThan(0.3);
+  expect(court.map((w) => w.leggings)).not.toContain("trousers");
+  // Court dress reaches the elite of any region, not only Europe.
+  const hawaii = crowd("australian-pacific", 1860, { means: "elite", sex: "female" }, 200, [-157, 21]);
+  expect(share(hawaii, (w) => w.garment === "gown")).toBeGreaterThan(0.3);
+  // Nobody ordinary is wearing it, and the wig belongs to its own century.
+  expect(crowd("european", 1760).map((w) => w.headwear)).not.toContain("wig");
+  expect(crowd("european", 1900, { means: "elite" }).map((w) => w.headwear)).not.toContain("wig");
+});
+
+it("dresses the future the same way everywhere, in cloth that costs nothing", () => {
+  for (const culture of ["european", "south-asian", "andean"]) {
+    const rows = crowd(culture, 2150);
+    expect(share(rows, (w) => w.garment === "suit")).toBeGreaterThan(0.1);
+    const fibres = Array.from({ length: 100 }, (_, i) =>
+      clothFor({ id: `f-${culture}-${i}` }, { year: 2150, setting: place(culture, 2150) }),
+    );
+    expect(fibres.some((c) => c.material === "synthetic")).toBe(true);
+  }
+  // Before 2020 the regions still decide.
+  expect(crowd("south-asian", 1990).map((w) => w.garment)).not.toContain("suit");
 });

@@ -23,6 +23,8 @@ const label: Record<CharacterAppearance["wearing"]["garment"], string> = {
   "open-robe": "Open robe",
   poncho: "Poncho",
   loincloth: "Loincloth",
+  gown: "Court gown",
+  suit: "Pressure suit",
 };
 const sleeves: Partial<
   Record<
@@ -46,6 +48,9 @@ const headLabel: Record<Exclude<(typeof headwear)[number], "none">, string> = {
   veil: "Veil",
   fillet: "Circlet",
   plume: "Plumed headdress",
+  wig: "Powdered wig",
+  helmet: "Helmet",
+  visor: "Sealed helmet",
 };
 const legLabel: Record<Exclude<(typeof leggings)[number], "none">, string> = {
   hose: "Hose",

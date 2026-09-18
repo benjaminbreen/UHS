@@ -24,6 +24,14 @@ const SHEET = `(async () => {
     { cells: ch.leggings.map((l) => ({ leggings: l, garment: "tunic", _l: l })) },
     { cells: ch.footwear.map((f) => ({ footwear: f, garment: "tunic", _l: f })) },
     { cells: [
+      { garment: "gown", headwear: "wig", leggings: "hose", _l: "court" },
+      { garment: "suit", headwear: "visor", footwear: "boots", _l: "astronaut" },
+      { garment: "coat", headwear: "helmet", leggings: "wrapped", footwear: "boots", _l: "soldier" },
+      { garment: "shirt", headwear: "cap", leggings: "wide", motif: "stripes", _l: "sailor" },
+      { garment: "suit", headwear: "none", _l: "suit" },
+      { headwear: "wig", _l: "wig" },
+    ] },
+    { cells: [
       { _l: "plain" },
       { cloak: true, _l: "cloak" },
       { mantle: true, _l: "mantle" },

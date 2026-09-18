@@ -5,6 +5,7 @@ import {
   westCentralAfrica,
 } from "./regions/africa";
 import { americas } from "./regions/americas";
+import { specialSets } from "./regions/special";
 import {
   australiaPacific,
   indigenousAmerican,
@@ -226,6 +227,8 @@ export const regionalKits: readonly GarmentKit[] = [
   ...australiaPacific,
   // Cloth-only kits: they name no silhouette, so they never displace one.
   ...clothPalettes,
+  // Uniforms, court dress and the future: overlays that beat regional dress.
+  ...specialSets,
 ];
 
 export const garmentKits: readonly GarmentKit[] = [

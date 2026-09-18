@@ -722,6 +722,77 @@ export function drawHead(
       p.rect(x + Math.round(lean * 1.4), -1, 1, 1, quill.shade);
     });
   }
+  // Powdered, rolled at the sides, gathered behind. Pale whatever the hair is,
+  // because that is the point of it.
+  if (a.wearing.headwear === "wig") {
+    const powder = ramp("#e8e4d8", "hair");
+    p.shape(
+      [
+        [3, 12],
+        [4, 4],
+        [9, 1],
+        [15, 3],
+        [17, 8],
+        [17, 13],
+        [15, 12],
+        [15, 6],
+        [9, 4],
+        [5, 12],
+      ],
+      powder,
+    );
+    // The side rolls, which are the whole tell at this size.
+    p.rect(3, 8, 3, 2, powder.light);
+    if (!side) p.rect(15, 8, 3, 2, powder.base);
+    p.rect(3, 11, 3, 2, powder.base);
+    if (!side) p.rect(15, 11, 3, 2, powder.shade);
+    p.line([6, 3], [13, 2], powder.light);
+  }
+  // A hard dome with a rim standing off the skull.
+  if (a.wearing.headwear === "helmet") {
+    const steel = ramp(a.wearing.lowerColor);
+    p.shape(
+      [
+        [5, 6],
+        [6, 1],
+        [10, 0],
+        [14, 1],
+        [15, 6],
+      ],
+      steel,
+    );
+    p.rect(3, 6, side ? 14 : 15, 1, steel.base);
+    p.rect(3, 7, side ? 14 : 15, 1, steel.shade);
+    p.line([7, 3], [12, 2], steel.light);
+    if (!side) p.rect(10, 1, 1, 5, steel.light);
+  }
+  // A sealed bubble. Drawn as a ring, not a disc: the face has to show
+  // through the glass or there is nobody in the suit. The corners are cut
+  // back on both axes, or it reads as a box rather than a sphere.
+  if (a.wearing.headwear === "visor") {
+    const shell = ramp(a.wearing.lowerColor);
+    const glass = ramp(a.wearing.trim);
+    const r = side ? 16 : 18;
+    // Crown, shoulders of the sphere, then the sides.
+    p.rect(5, 0, r - 8, 1, shell.base);
+    p.rect(3, 1, r - 4, 1, shell.base);
+    p.rect(2, 2, r - 2, 1, shell.base);
+    p.rect(5, 0, 3, 1, shell.light);
+    p.rect(3, 1, 3, 1, shell.light);
+    p.rect(1, 3, 2, 8, shell.base);
+    p.rect(1, 3, 1, 6, shell.light);
+    if (!side) {
+      p.rect(r - 1, 3, 2, 8, shell.base);
+      p.rect(r, 4, 1, 6, shell.shade);
+    }
+    p.rect(2, 11, r - 2, 1, shell.shade);
+    p.rect(3, 12, r - 4, 1, shell.shade);
+    p.rect(5, 13, r - 8, 1, shell.edge);
+    // A tint at the top and bottom of the glass, thin enough to read as glass.
+    p.rect(3, 3, r - 4, 1, glass.base);
+    p.rect(3, 10, r - 4, 1, glass.shade);
+    p.rect(3, 4, 1, 3, glass.light);
+  }
   if (a.wearing.earrings && !back) {
     p.rect(side ? 10 : 4, 12, 1, 2, "#dfbb70");
     if (!side) p.rect(16, 12, 1, 2, "#dfbb70");

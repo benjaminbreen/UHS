@@ -42,6 +42,10 @@ export const garments = [
   "poncho",
   /** A panel hung front and back from a waist cord. */
   "loincloth",
+  /** A wide skirted court dress over a stiffened underskirt. */
+  "gown",
+  /** A sealed one-piece: pressure suit, flight suit, coverall. */
+  "suit",
 ] as const;
 /** Appended, never reordered. */
 /** Appended, never reordered — see the note on `garments`. */
@@ -73,6 +77,12 @@ export const headwear = [
   "fillet",
   /** Feathers or fibre standing above the crown. */
   "plume",
+  /** A powdered court wig, rolled at the sides. */
+  "wig",
+  /** A hard military helmet. */
+  "helmet",
+  /** A sealed bubble helmet with a visor across it. */
+  "visor",
 ] as const;
 /** How the garment is patterned. `auto` keeps the hashed default. */
 export const motifs = [

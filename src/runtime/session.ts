@@ -6,7 +6,11 @@ import { resolveCharacterContext } from "../content/characters/resolve";
 import { releaseTerrainWorker } from "./terrain-worker-owner";
 import { startChronicle, type Chronicle } from "../chronicle/chronicle";
 import type { PreparedSettlement } from "../world/v3/prepared";
-import { clothFor, wardrobeFor } from "../content/characters/wardrobes";
+import {
+  clothFor,
+  rolesFrom,
+  wardrobeFor,
+} from "../content/characters/wardrobes";
 import { composeWearing, wornFromWearing } from "../core/wearing";
 import {
   actorAppearance,
@@ -153,6 +157,10 @@ export function createSession(
             sex: engine.state.player.origin?.sex,
             standing: engine.state.player.origin?.standing,
             livelihood: engine.state.player.origin?.livelihood,
+            roles: rolesFrom(
+              engine.state.player.role,
+              engine.state.player.origin?.roleLabel,
+            ),
           },
           pack,
           appearance.wearing,
@@ -161,7 +169,11 @@ export function createSession(
         engine.state.player.worn = wornFromWearing(
           appearance.wearing,
           clothFor(
-            { id: resolved.character.appearanceSeed, age: engine.state.player.age },
+            {
+              id: resolved.character.appearanceSeed,
+              age: engine.state.player.age,
+              roles: rolesFrom(engine.state.player.role),
+            },
             pack,
           ),
         );
@@ -264,7 +276,8 @@ export class Runtime {
     return this.cachedPalette.value;
   }
   appearanceFor(
-    actor: Pick<Actor, "id" | "sprite" | "appearance" | "age" | "worn">,
+    actor: Pick<Actor, "id" | "sprite" | "appearance" | "age" | "worn"> &
+      Partial<Pick<Actor, "role" | "origin">>,
   ): CharacterAppearance {
     const base = actor.appearance
       ? actorAppearance(actor)
@@ -278,12 +291,13 @@ export class Runtime {
     };
   }
   private defaultAppearance(
-    actor: Pick<Actor, "id" | "sprite" | "appearance" | "age" | "origin">,
+    actor: Pick<Actor, "id" | "sprite" | "appearance" | "age"> &
+      Partial<Pick<Actor, "role" | "origin">>,
   ): CharacterAppearance {
     const pack = this.engine.world.pack;
     // Origin is part of the signature now: a wardrobe keyed to sex, standing
     // and livelihood must redraw when those resolve.
-    const signature = `${actor.sprite}:${actor.age}:${pack.id}:${pack.year}:${actor.origin?.sex ?? ""}:${actor.origin?.standing ?? ""}:${actor.origin?.livelihood ?? ""}`;
+    const signature = `${actor.sprite}:${actor.age}:${pack.id}:${pack.year}:${actor.origin?.sex ?? ""}:${actor.origin?.standing ?? ""}:${actor.origin?.livelihood ?? ""}:${actor.role ?? ""}`;
     const cached = this.appearanceDefaults.get(actor.id);
     if (cached?.signature === signature) return cached.value;
     const base = actorAppearance(actor, this.palette());
@@ -296,6 +310,7 @@ export class Runtime {
           sex: actor.origin?.sex,
           standing: actor.origin?.standing,
           livelihood: actor.origin?.livelihood,
+          roles: rolesFrom(actor.role, actor.origin?.roleLabel),
         },
         pack,
         base.wearing,

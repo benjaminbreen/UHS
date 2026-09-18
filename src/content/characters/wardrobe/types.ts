@@ -19,9 +19,11 @@ export type Sleeves = (typeof sleeveStyles)[number];
 
 export const ageBands = ["child", "youth", "adult", "elder"] as const;
 export type AgeBand = (typeof ageBands)[number];
-/** Not a researched class system: three rungs, enough to tell a bowler from a
- * flat cap. Societies without the distinction simply do not key on it. */
-export const means = ["poor", "common", "wealthy"] as const;
+/** Not a researched class system: four rungs, enough to tell a bowler from a
+ * flat cap. Societies without the distinction simply do not key on it.
+ * `elite` is deliberately vanishingly rare — the emperor, not the merchant —
+ * and anything offered to `wealthy` is also offered to them. */
+export const means = ["poor", "common", "wealthy", "elite"] as const;
 export type Means = (typeof means)[number];
 export type Sex = "male" | "female" | "unspecified";
 
@@ -33,6 +35,9 @@ export type WearerScope = {
   means?: readonly Means[];
   standing?: readonly ("free" | "unfree")[];
   livelihoods?: readonly string[];
+  /** Tags read off the person's stated role: soldier, sailor, astronaut,
+   * aristocrat. How a world-weaver prompt reaches the wardrobe. */
+  roles?: readonly string[];
 };
 /** One choice in a slot. `weight` defaults to 1. */
 export type Option<T> = WearerScope & { value: T; weight?: number };
@@ -44,6 +49,9 @@ export type GarmentKit = {
   id: string;
   label: string;
   scope: CharacterScope;
+  /** Overlays that beat ordinary regional dress whatever their scope: a
+   * uniform, a pressure suit, court dress. Default 0. */
+  priority?: number;
   garment?: readonly Option<Garment>[];
   headwear?: readonly Option<Headwear>[];
   leggings?: readonly Option<Leggings>[];
@@ -61,7 +69,10 @@ export type GarmentKit = {
   motif?: readonly Option<Motif>[];
 };
 export type Motif = (typeof motifs)[number];
-export type WardrobeSlot = Exclude<keyof GarmentKit, "id" | "label" | "scope">;
+export type WardrobeSlot = Exclude<
+  keyof GarmentKit,
+  "id" | "label" | "scope" | "priority"
+>;
 export const wardrobeSlots = [
   "garment",
   "sleeves",
@@ -84,6 +95,7 @@ export type Wearer = {
   standing?: "free" | "unfree";
   livelihood?: string;
   means?: Means;
+  roles?: readonly string[];
 };
 export function ageBandOf(age: number | undefined): AgeBand {
   if (age === undefined) return "adult";
