@@ -346,6 +346,7 @@ export const commandSchema = z.discriminatedUnion("type", [
       type: z.literal("throw"),
       dx: z.number().int().min(-1).max(1),
       dy: z.number().int().min(-1).max(1),
+      run: z.boolean().optional(),
     })
     .strict(),
   z
@@ -411,7 +412,11 @@ export const commandSchema = z.discriminatedUnion("type", [
   z
     .object({
       type: z.literal("sleep"),
-      seconds: z.number().int().min(600).max(24 * 3600),
+      seconds: z
+        .number()
+        .int()
+        .min(600)
+        .max(24 * 3600),
     })
     .strict(),
   z

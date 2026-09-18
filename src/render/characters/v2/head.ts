@@ -8,6 +8,8 @@ export function drawHead(
   back: boolean,
   pose: CharacterPose,
   f: number,
+  /** Lateral lag of anything hanging off the head, in pixels. */
+  sway = 0,
 ) {
   const skin = ramp(a.skin, "skin"),
     hair = ramp(a.hairColor, "hair"),
@@ -264,9 +266,9 @@ export function drawHead(
         [
           [4, 5],
           [8, 6],
-          [8, bottom - 1],
-          [6, bottom],
-          [3, bottom - 1],
+          [8 + sway, bottom - 1],
+          [6 + sway, bottom],
+          [3 + sway, bottom - 1],
           [3, 8],
         ],
         hair,
@@ -278,8 +280,8 @@ export function drawHead(
             [14, 6],
             [17, 5],
             [18, 9],
-            [17, bottom],
-            [14, bottom - 1],
+            [17 + sway, bottom],
+            [14 + sway, bottom - 1],
           ],
           hair,
         );
@@ -321,11 +323,13 @@ export function drawHead(
     }
     if (a.hair === "braid" && (back || side)) {
       const x = side ? 5 : 10;
+      // A braid swings further the further it hangs from the nape.
       for (let y = 11; y < 23; y += 2) {
-        p.rect(x + (y % 4 ? 0 : 1), y, 3, 2, hair.edge);
-        p.rect(x + 1, y, 1, 1, hair.light);
+        const lag = Math.round((sway * (y - 10)) / 6);
+        p.rect(x + lag + (y % 4 ? 0 : 1), y, 3, 2, hair.edge);
+        p.rect(x + lag + 1, y, 1, 1, hair.light);
       }
-      p.rect(x, 22, 3, 1, a.wearing.trim);
+      p.rect(x + sway * 2, 22, 3, 1, a.wearing.trim);
     }
   }
   if (side) {

@@ -1,4 +1,5 @@
 import { CharacterVillage } from "./CharacterVillage";
+import { facingView } from "../core/facing";
 import { characterShadow } from "../render/characters/shadow";
 import { lightingPresets, type LightingId } from "../render/lighting";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -55,6 +56,16 @@ function download(name: string, href: string) {
   a.href = href;
   a.click();
 }
+const FACING_NAMES = [
+  "north",
+  "north-east",
+  "east",
+  "south-east",
+  "south",
+  "south-west",
+  "west",
+  "north-west",
+];
 export function CharacterLab({
   runtime,
   onClose,
@@ -77,7 +88,7 @@ export function CharacterLab({
     [count, setCount] = useState(48),
     [selected, setSelected] = useState<number | null>(null);
   const [pose, setPose] = useState<CharacterPose>("walk"),
-    [direction, setDirection] = useState(2),
+    [direction, setDirection] = useState(4),
     [playing, setPlaying] = useState(true),
     [frame, setFrame] = useState(0);
   const [prop, setProp] = useState("study-prop-stick-0"),
@@ -130,13 +141,24 @@ export function CharacterLab({
     const compare = engine === "ab";
     const drawCharacter = renderers[compare ? "b" : engine].draw;
     const galleryPhases = new Map<number, HTMLCanvasElement>();
+    // `direction` is the eight-way facing here; the cardinal is what the
+    // four-view legacy renderer gets.
+    const cardinal = (d: number) => facingView(d).direction;
     let sheetPainted = false;
     const paint = (time: number) => {
       const f = playing ? Math.floor(time / poseTiming(pose)) % 4 : frame;
       if (last !== f) {
         last = f;
         const art = props.get(prop);
-        drawCharacter(b, appearance, direction, pose, f, art);
+        drawCharacter(
+          b,
+          appearance,
+          cardinal(direction),
+          pose,
+          f,
+          art,
+          direction,
+        );
         if (shadowCanvas.current) {
           const sc = shadowCanvas.current.getContext("2d")!;
           sc.clearRect(0, 0, 160, 96);
@@ -147,20 +169,28 @@ export function CharacterLab({
           c.clearRect(0, 0, hero.current.width, 80);
           c.drawImage(buffer, compare ? 80 : 0, 0);
           if (compare) {
-            renderers.a.draw(b, appearance, direction, pose, f, art);
+            renderers.a.draw(b, appearance, cardinal(direction), pose, f, art);
             c.drawImage(buffer, 0, 0);
             // The shadow and every other panel follow B, so leave it in place.
-            renderers.b.draw(b, appearance, direction, pose, f, art);
+            renderers.b.draw(
+              b,
+              appearance,
+              cardinal(direction),
+              pose,
+              f,
+              art,
+              direction,
+            );
           }
           hero.current.dataset.frame = String(f);
         }
         if (sheet.current && !sheetPainted) {
           sheetPainted = true;
           const c = sheet.current.getContext("2d")!;
-          c.clearRect(0, 0, 256, 224);
-          for (let d = 0; d < 4; d++)
+          c.clearRect(0, 0, 256, 448);
+          for (let d = 0; d < 8; d++)
             for (let j = 0; j < 4; j++) {
-              drawCharacter(b, appearance, d, pose, j, art);
+              drawCharacter(b, appearance, cardinal(d), pose, j, art, d);
               c.drawImage(buffer, 8, 24, 64, 56, j * 64, d * 56, 64, 56);
             }
         }
@@ -172,7 +202,7 @@ export function CharacterLab({
             page.height = Math.ceil(count / 6) * 56;
             const c = page.getContext("2d")!;
             displayVariants.forEach((a, i) => {
-              drawCharacter(b, a, direction, pose, f, art);
+              drawCharacter(b, a, cardinal(direction), pose, f, art, direction);
               c.drawImage(
                 buffer,
                 8,
@@ -238,7 +268,7 @@ export function CharacterLab({
                 ? "A | B side by side"
                 : renderers[v as RendererId].label
               : label === "Facing"
-                ? ["North", "East", "South", "West"][Number(v)]
+                ? FACING_NAMES[Number(v)]
                 : label === "Height"
                   ? heightLabels[Number(v) as CharacterAppearance["height"]]
                   : label === "Build"
@@ -610,8 +640,7 @@ export function CharacterLab({
               />
               <span className="cl-preview-label">
                 {engine === "ab" ? "A | B · " : renderers[engine].label + " · "}
-                {pose} · {["north", "east", "south", "west"][direction]} ·{" "}
-                {zoom}×
+                {pose} · {FACING_NAMES[direction]} · {zoom}×
               </span>
             </div>
             <div className="cl-playback">
@@ -639,8 +668,11 @@ export function CharacterLab({
                 setPlaying(false);
                 setFrame(Number(v));
               })}
-              {select("Facing", String(direction), ["0", "1", "2", "3"], (v) =>
-                setDirection(Number(v)),
+              {select(
+                "Facing",
+                String(direction),
+                ["0", "1", "2", "3", "4", "5", "6", "7"],
+                (v) => setDirection(Number(v)),
               )}
               {select(
                 "Zoom",
@@ -699,8 +731,8 @@ export function CharacterLab({
               <canvas
                 ref={sheet}
                 width={256}
-                height={224}
-                aria-label="Four direction animation sheet"
+                height={448}
+                aria-label="Eight direction animation sheet"
               />
             </div>
           </section>

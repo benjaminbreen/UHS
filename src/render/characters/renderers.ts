@@ -10,6 +10,8 @@ export type CharacterRenderer = (
   pose: CharacterPose,
   frame: number,
   prop?: CarriedArt,
+  /** Eight-way facing; renderers that only have four views ignore it. */
+  facing?: number,
 ) => void;
 export const rendererIds = ["a", "b"] as const;
 export type RendererId = (typeof rendererIds)[number];

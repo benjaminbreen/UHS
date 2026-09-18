@@ -71,6 +71,7 @@ import {
 
 /** Elevation carried by one altitude step, matching the terrain renderer. */
 const TERRAIN_STEP = 14;
+import { facingFromStep } from "./facing";
 import type { Point } from "./types";
 const copy = <T>(x: T): T => structuredClone(x);
 /** Routines built in one call to `advance`. */
@@ -569,8 +570,7 @@ export class Engine {
    * face and the one beyond it; a scythe lays a two-by-two swathe. Anything
    * in the swathe that cannot be worked is simply skipped. */
   private swathe(action: ToolAction, at: Point): Point[] {
-    const sweep =
-      propDefs[heldObject(this.state)?.prop ?? ""]?.sweep ?? 1;
+    const sweep = propDefs[heldObject(this.state)?.prop ?? ""]?.sweep ?? 1;
     if (sweep < 2) return [at];
     const p = this.state.player;
     const d = [
@@ -1685,8 +1685,10 @@ export class Engine {
       const prop = heldObject(this.state);
       if (!prop) throw Error("Throw validation failed");
       p.direction = c.dy < 0 ? 0 : c.dx > 0 ? 1 : c.dy > 0 ? 2 : 3;
+      p.facing = facingFromStep(c.dx, c.dy, p.direction);
       let landed = { ...p.pos };
-      for (let i = 1; i <= 3; i++) {
+      const reach = c.run ? 6 : 3;
+      for (let i = 1; i <= reach; i++) {
         const step = { ...p.pos, x: p.pos.x + c.dx * i, y: p.pos.y + c.dy * i };
         if (
           this.blocked(step.x, step.y, step.space) ||
@@ -1718,7 +1720,7 @@ export class Engine {
         );
       } else
         this.event(
-          `You throw ${prop.name.toLowerCase()} ${distance} pace${distance > 1 ? "s" : ""} away.`,
+          `You ${c.run ? "fling" : "throw"} ${prop.name.toLowerCase()} ${distance} pace${distance > 1 ? "s" : ""} away.`,
         );
       this.advance(3);
       return;
@@ -1733,6 +1735,7 @@ export class Engine {
         p.pos.x += c.dx * leap.distance;
         p.pos.y += c.dy * leap.distance;
         p.direction = c.dy < 0 ? 0 : c.dx > 0 ? 1 : c.dy > 0 ? 2 : 3;
+        p.facing = facingFromStep(c.dx, c.dy, p.direction);
         const depth =
           p.pos.space === "outside" && this.world.topography
             ? waterDepthAt(this.world.topography, p.pos.x + 0.5, p.pos.y + 0.5)
@@ -1748,6 +1751,7 @@ export class Engine {
       p.pos.x += c.dx;
       p.pos.y += c.dy;
       p.direction = c.dy < 0 ? 0 : c.dx > 0 ? 1 : c.dy > 0 ? 2 : 3;
+      p.facing = facingFromStep(c.dx, c.dy, p.direction);
       const depth =
         p.pos.space === "outside" && this.world.topography
           ? waterDepthAt(this.world.topography, p.pos.x + 0.5, p.pos.y + 0.5)
@@ -2406,7 +2410,8 @@ export class Engine {
       const worth = Object.entries(p.inventory)
         .filter(([, n]) => (n ?? 0) > 0)
         .sort(
-          (a, b) => (this.item(b[0])?.value ?? 0) - (this.item(a[0])?.value ?? 0),
+          (a, b) =>
+            (this.item(b[0])?.value ?? 0) - (this.item(a[0])?.value ?? 0),
         )[0];
       if (worth && (this.item(worth[0])?.value ?? 0) > 0) {
         p.inventory[worth[0]] = (p.inventory[worth[0]] ?? 0) - 1;
@@ -2415,7 +2420,6 @@ export class Engine {
             this.item(worth[0])?.name ?? worth[0]
           ).toLowerCase()} is gone.`,
         );
-
       }
     }
   }

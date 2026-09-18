@@ -183,7 +183,7 @@ const IDLE_BLOCK = 60;
 export const JUMP_MS = 260;
 export const LONG_JUMP_MS = 300;
 export const JUMP_CHARGE_MS = 240;
-/** Airtime scales with the tiles cleared: 260, 300, 340. */
+/** Airtime scales with the tiles cleared: 260, 300, 340, 380. */
 export const jumpMs = (distance: number) => 220 + 40 * distance;
 export const ZOOM_STEPS = [
   0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3, 3.5, 4, 5, 6,
@@ -595,9 +595,10 @@ export class Runtime {
       ? `You set off toward the ${found.label.toLowerCase()}, ${steps} paces away.`
       : `You can see the ${found.label.toLowerCase()} ${steps} paces off, but there is no way through.`;
     const s = this.engine.state;
-    s.narration = [...(s.narration ?? []), { clock: s.clock, input, text }].slice(
-      -200,
-    );
+    s.narration = [
+      ...(s.narration ?? []),
+      { clock: s.clock, input, text },
+    ].slice(-200);
     this.touch();
     return { text, outcomes: [] };
   }
@@ -950,9 +951,9 @@ export class Runtime {
     this.command({ type: "move", dx, dy, jump: power, run: running });
     return this.engine.leapDistance();
   }
-  throwHeld(dx: number, dy: number) {
+  throwHeld(dx: number, dy: number, running = false) {
     this.stop(false);
-    return this.command({ type: "throw", dx, dy });
+    return this.command({ type: "throw", dx, dy, run: running });
   }
   /** Jump on the spot. Expression only, like a strike that hits nothing. */
   hop() {

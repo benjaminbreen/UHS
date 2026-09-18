@@ -9,6 +9,6 @@ await page
   .getByLabel("Generated character variants")
   .screenshot({ path: "artifacts/characters/population.png" });
 await page
-  .getByLabel("Four direction animation sheet")
+  .getByLabel("Eight direction animation sheet")
   .screenshot({ path: "artifacts/characters/stick-sheet.png" });
 await browser.close();

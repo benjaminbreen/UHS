@@ -107,6 +107,8 @@ export type Actor = {
   consentUntil?: number;
   memories: string[];
   direction: number;
+  /** Render-only eight-way facing; `direction` remains authoritative. */
+  facing?: number;
   /** Perched on top of something: one cell, no roaming. `rise` is the sprite
    * lift in world pixels, which is also what the view reaches over. */
   perch?: { on: string; label: string; rise: number; at?: Point };
@@ -246,7 +248,8 @@ export type PlayerCommand =
       jump?: "short" | "long";
       run?: boolean;
     }
-  | { type: "throw"; dx: number; dy: number }
+  /** `run` is a throw taken at a sprint: it carries twice as far. */
+  | { type: "throw"; dx: number; dy: number; run?: boolean }
   | { type: "wait"; seconds: number }
   /** Time passing while the player stands still. Logged so a replay keeps the
    * same clock, but it raises no event of its own. */

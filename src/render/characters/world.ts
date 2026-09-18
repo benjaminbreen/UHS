@@ -57,7 +57,10 @@ export class WorldCharacters {
     return String(id);
   }
   frame(
-    actor: Pick<Actor, "id" | "sprite" | "appearance" | "age" | "direction">,
+    actor: Pick<
+      Actor,
+      "id" | "sprite" | "appearance" | "age" | "direction" | "facing"
+    >,
     pose: CharacterPose,
     frame: number,
     prop?: string,
@@ -85,7 +88,7 @@ export class WorldCharacters {
     resolved.used = this.scene.time.now;
     const a = resolved.appearance,
       art = prop ? this.props.get(prop) : undefined;
-    const signature = `${resolved.signature}:${actor.direction}:${pose}:${frame}:${art?.sprite ?? ""}`;
+    const signature = `${resolved.signature}:${actor.facing === undefined ? actor.direction : `f${actor.facing}`}:${pose}:${frame}:${art?.sprite ?? ""}`;
     let entry = this.cache.get(signature);
     if (!entry) {
       const key = `character-${this.scene.sys.settings.key}-${++this.serial}`;
@@ -101,6 +104,7 @@ export class WorldCharacters {
         pose,
         frame,
         art,
+        actor.facing,
       );
       this.scene.textures
         .addCanvas(key, c)

@@ -3,6 +3,7 @@ import type { CharacterPose } from "../poses";
 import type { CarriedArt } from "../props";
 import { drawHead } from "./head";
 import { Pixels, ramp, type Point, type Ramp } from "./pixels";
+import { facingView } from "../../../core/facing";
 export const CHARACTER_SIZE = 80;
 /** Same native scale as the original (29px standing body), with 3px height steps.
  * Four-view poses are rasterized once and shared by the lab and world cache. */
@@ -13,9 +14,16 @@ export function drawCharacter(
   pose: CharacterPose,
   frame: number,
   prop?: CarriedArt,
+  facing?: number,
 ) {
   ctx.clearRect(0, 0, 80, 80);
   ctx.imageSmoothingEnabled = false;
+  // A diagonal borrows the side build and turns the head off it. `direction`
+  // still decides the body, so every pose works unchanged.
+  const view = facing === undefined ? undefined : facingView(facing);
+  if (view) direction = view.direction;
+  const quarter = view?.quarter ?? false,
+    headAway = quarter && view!.away;
   const f = ((frame % 4) + 4) % 4,
     side = direction === 1 || direction === 3,
     back = direction === 0,
@@ -56,6 +64,8 @@ export function drawCharacter(
     stride = strides[f],
     // One frame behind the legs: cloth follows the body, it does not snap with it.
     trail = Math.sign(strides[(f + 3) % 4]),
+    // How far it follows. A single pixel of hem was invisible at this size.
+    drift = trail * (sprint ? 3 : 2),
     // A run drops harder on contact and tucks both legs through the flight frames.
     bob = moving && pose !== "wade" && f % 2 ? (sprint ? 2 : 1) : 0,
     flight = sprint && f % 2 === 0 ? 2 : 0,
@@ -63,6 +73,10 @@ export function drawCharacter(
   // Crouch, stretch off the ground, hang at the apex, absorb the landing.
   const airborne = pose === "jump";
   const tuck = airborne ? [0, 2, 5, 1][f] : 0;
+  // A run compresses into the contact frame and extends off it. `bend` drops
+  // the head while the feet stay planted, so it is already the squash.
+  const extend = sprint && f % 2 === 0 ? 1 : 0,
+    squat = sprint && f % 2 === 1 ? 1 : 0;
   const bend =
     (stance === "stooped" ? 2 : burden ? 1 : 0) +
     (airborne
@@ -72,9 +86,9 @@ export function drawCharacter(
         : pose === "stoop"
           ? [2, 4, 6, 4][f]
           : pose === "tug"
-            ? [1, 0, 2, 3][f]
+            ? [0, 0, 2, 3][f]
             : pose === "pickup" || pose === "drop"
-              ? [0, 3, 6, 2][f]
+              ? [-1, 3, 6, 2][f]
               : pose === "work"
                 ? [0, 0, 4, 2][f]
                 : pose === "chop"
@@ -87,10 +101,11 @@ export function drawCharacter(
                         ? [0, 2, 3, 1][f]
                         : climbing
                           ? [3, 4, 3, 4][f]
-                          : 0);
+                          : 0) -
+    extend;
   const tall = a.height * 3,
     torso = a.height * 2,
-    wide = Math.max(0, a.build),
+    wide = Math.max(0, a.build) + squat,
     // The smallest body loses a pixel each side too, or it reads as a short adult.
     small = a.height <= -2 ? 1 : 0,
     narrow = (a.build === -1 ? 1 : 0) + small,
@@ -210,7 +225,7 @@ export function drawCharacter(
     far = [side ? 13 : 6 - wide, 23 + torso - bend];
   }
   if (pose === "tug") {
-    near = [side ? 16 : 11, 20 + torso - [1, 0, 2, 3][f]];
+    near = [side ? 16 : 11, 20 + torso - [-1, 0, 2, 3][f]];
     far = [side ? 14 : 9, near[1]];
   }
   if (pose === "lift")
@@ -224,7 +239,8 @@ export function drawCharacter(
         [19, 18],
       ] as Point[]
     )[f];
-  if (pose === "pickup" || pose === "drop") near = [19, [22, 24, 25, 22][f]];
+  // The hand lifts before it goes down, the way a real reach starts.
+  if (pose === "pickup" || pose === "drop") near = [19, [20, 24, 25, 22][f]];
   if (pose === "hurt") near = [12, 18];
   if (climbing) {
     // Hand over hand, reaching past the head. Anything at shoulder height
@@ -252,7 +268,7 @@ export function drawCharacter(
     )[f];
   }
   if (pose === "give") {
-    near = [side ? 19 : 16 + wide, 21 + torso - [0, 2, 3, 0][f]];
+    near = [side ? 19 : 16 + wide, 21 + torso - [-1, 2, 3, 0][f]];
     far = [side ? 16 : 4 - wide, near[1]];
   }
   // A pitchfork, rake, scythe or navvy's shovel is carried across the body in
@@ -261,7 +277,7 @@ export function drawCharacter(
   // the person holding it, so the carried version is drawn here at body scale.
   const haftVector: Point | undefined =
     prop?.kind === "haft"
-      ? (
+      ? ((
           {
             till: [
               [13, -3],
@@ -294,7 +310,7 @@ export function drawCharacter(
               [14, 3],
             ],
           } as Record<string, Point[]>
-        )[pose]?.[f] ?? [15, 5 + (moving && f % 2 ? -1 : 0)]
+        )[pose]?.[f] ?? [15, 5 + (moving && f % 2 ? -1 : 0)])
       : undefined;
   if (haftVector) {
     // Both hands on the shaft: the forward one where the work is, the other a
@@ -503,8 +519,11 @@ export function drawCharacter(
           ? -stride
           : stride
         : Math.sign(isFar ? -stride : stride);
+    // Lifted on the passing frames, planted on the contact frames. It used to
+    // be the other way round, which left both feet flat at mid-stride and made
+    // the two passing frames identical drawings.
     const lift =
-      (moving ? ((isFar && f === 3) || (!isFar && f === 1) ? 2 : 0) : 0) +
+      (moving ? ((isFar && f === 2) || (!isFar && f === 0) ? 2 : 0) : 0) +
       flight +
       // Climbing alternates a foothold: one foot stays planted on the face
       // while the other reaches for the next hold.
@@ -517,6 +536,7 @@ export function drawCharacter(
       x +
         Math.round(walk * 0.5) +
         (side && raise ? 2 : 0) +
+        (side && moving && lift && !climbing ? 1 : 0) +
         // Knees out to the sides, so a climber straddles the face.
         (climbing ? (isFar ? -2 : 2) : 0),
       Math.round((hip[1] + ankle[1]) / 2),
@@ -542,12 +562,12 @@ export function drawCharacter(
   leg(false);
   ctx.translate(lean, 0);
   if (a.wearing.cloak) {
-    const sway = trail;
+    const sway = drift;
     p.shape(
       [
         [side ? 5 : 4 - wide, 13],
         [side ? 10 : 16 + wide, 13],
-        [side ? 9 : 18 + wide, 27 + torso],
+        [(side ? 9 : 18 + wide) + sway, 27 + torso],
         [1 - wide + sway, 27 + torso],
         [side ? 3 : 2 - wide, 18],
       ],
@@ -578,7 +598,7 @@ export function drawCharacter(
   const waist = a.bodyShape === "tapered" ? 1 : 0;
   const belly = a.bodyShape === "rounded" ? 1 : 0;
   // A long hem swings a frame behind the legs, like the cloak.
-  const hemSway = long ? trail : 0;
+  const hemSway = long ? drift : trail;
   const hemLift =
     a.wearing.hem === "slanted" ? 2 : stance === "relaxed" ? 1 : 0;
   p.group(cloth, () => {
@@ -741,8 +761,9 @@ export function drawCharacter(
     p.rect(left, beltY - 1, 2, 3, sash.shade);
   }
   // Neck is a separate warm shadow between head and garment.
-  p.rect(side ? 11 : 8, 12, side ? 3 : 5, 3, skin.shade);
-  p.rect(side ? 12 : 9, 13, 2, 1, skin.base);
+  const neckSide = side && !quarter;
+  p.rect(neckSide ? 11 : 9, 12, neckSide ? 3 : 5, 3, skin.shade);
+  p.rect(neckSide ? 12 : 10, 13, 2, 1, skin.base);
   if (side) {
     // The far hand is occluded by the body, but remains visible beyond its silhouette.
     ctx.save();
@@ -780,16 +801,23 @@ export function drawCharacter(
   ctx.save();
   if (stance === "stooped") ctx.translate(1, 1);
   p.modeling = false;
-  drawHead(p, a, side, back, pose, f);
+  if (quarter) {
+    // The front head is a pixel wider than the side body; nudge it towards
+    // the way the figure is walking so the turn reads rather than the offset.
+    ctx.save();
+    ctx.translate(1, 0);
+    drawHead(p, a, false, headAway, pose, f, trail);
+    ctx.restore();
+  } else drawHead(p, a, side, back, pose, f, trail);
   p.modeling = true;
   ctx.restore();
   if (a.wearing.necklace && !back) {
-    if (side) p.line([13, 15], [14, 17], a.wearing.trim);
+    if (neckSide) p.line([13, 15], [14, 17], a.wearing.trim);
     else {
       p.line([7, 15], [10, 17], a.wearing.trim);
       p.line([10, 17], [13, 15], a.wearing.trim);
     }
-    p.rect(side ? 14 : 10, 18, 1, 1, "#ddbd70");
+    p.rect(neckSide ? 14 : 10, 18, 1, 1, "#ddbd70");
   }
   if (!back) drawProp();
   if (prop && !back) {
