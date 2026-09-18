@@ -302,6 +302,31 @@ body {
   overflow: hidden;
   outline: none;
   background: #718649;
+  position: relative;
+}
+.world-tooltip {
+  position: absolute;
+  z-index: 5;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+  max-width: 220px;
+  padding: 3px 9px 4px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: #101728ee;
+  box-shadow: 0 2px 10px #0008;
+  color: var(--cream);
+  font-family: var(--serif);
+  font-size: 13px;
+  line-height: 1.25;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.world-tooltip.is-shown {
+  opacity: 1;
 }
 .game-container canvas {
   display: block;
@@ -3221,10 +3246,11 @@ button:disabled {
   border-top: 1px solid #3a4a45;
   font-size: 11px;
 }
-.fps-worst > span {
+.fps-worst > summary {
   display: flex;
   justify-content: space-between;
   color: #e8d6ad;
+  cursor: pointer;
 }
 .fps-worst button {
   color: #a99b78;
@@ -5123,4 +5149,27 @@ button:disabled {
   padding: 6px 12px;
   font-size: 15px;
   min-width: 168px;
+}
+.live-frame-cap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0 10px;
+}
+.live-frame-cap span {
+  color: #a99b78;
+}
+.live-frame-cap button {
+  padding: 4px 10px;
+  color: #a99b78;
+  background: #101a18;
+  border: 1px solid #4d4d3e;
+  border-radius: 4px;
+  font: inherit;
+  cursor: pointer;
+}
+.live-frame-cap button[aria-pressed="true"] {
+  color: #fff1cb;
+  background: #2b3a35;
+  border-color: #887b56;
 }

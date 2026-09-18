@@ -31,11 +31,7 @@ import {
 import { buildingContains, buildingPlacement } from "./buildings";
 import { terrainVariant, type RenderOptions } from "./appearance";
 import Phaser from "phaser";
-import {
-  jumpMs,
-  JUMP_CHARGE_MS,
-  type Runtime,
-} from "../runtime/session";
+import { jumpMs, JUMP_CHARGE_MS, type Runtime } from "../runtime/session";
 import type { Position, WorldModel } from "../core/types";
 import { surfaceAt, hasQuay } from "./materials";
 import { hash, random } from "../core/random";
@@ -44,7 +40,19 @@ import {
   type LiveGraphicsSettings,
 } from "./live-graphics";
 import { ToolEffects } from "./tool-effects";
+import { facingFromDirection, turnToward } from "../core/facing";
 import { HANGING, windProfile, windSway, type WindProfile } from "./wind";
+/** Grit thrown up by a take-off or a landing. */
+const DUST = [0x9c8c6a, 0xbcae8c, 0x7d7054];
+/** A jump pressed this long before the previous move ends still fires, so a
+ * landing never eats the next input. */
+const JUMP_BUFFER_MS = 90;
+/** A jump this soon after a running step counts as a running jump. */
+const RUN_GRACE_MS = 200;
+/** How long each intermediate facing is held while someone turns around. */
+const TURN_HOLD_MS = 60;
+/** Step times as a run gets up to speed. */
+const RUN_RAMP = [120, 100, 88, 78, 72];
 /** Poll interval while a jump is in the air, matched to the sprite's arc. */
 const DIRECTION_KEYS = [
   "arrowleft",
@@ -165,6 +173,22 @@ type FireEffect = {
   glow: Phaser.GameObjects.Image;
   smoke: Phaser.GameObjects.Image[];
 };
+const GLOW_RING = [1, 2].flatMap((r) =>
+  [
+    [-1, 0],
+    [1, 0],
+    [0, -1],
+    [0, 1],
+    [-1, -1],
+    [1, -1],
+    [-1, 1],
+    [1, 1],
+  ].map(([dx, dy]) => ({
+    dx: dx * r,
+    dy: dy * r,
+    alpha: r === 1 ? 0.85 : 0.3,
+  })),
+);
 export class WorldScene extends Phaser.Scene {
   private runtime: Runtime;
   private characters?: WorldCharacters;
@@ -174,7 +198,14 @@ export class WorldScene extends Phaser.Scene {
     string,
     Pick<
       Actor,
-      "id" | "sprite" | "appearance" | "age" | "direction" | "activity" | "held"
+      | "id"
+      | "sprite"
+      | "appearance"
+      | "age"
+      | "direction"
+      | "facing"
+      | "activity"
+      | "held"
     >
   >();
   private canopies: { image: Phaser.GameObjects.Image; cut: number }[] = [];
@@ -185,6 +216,10 @@ export class WorldScene extends Phaser.Scene {
   /** The images standing on a cell, so a blow can rock the right plant. */
   private plantImages = new Map<string, Phaser.GameObjects.Image[]>();
   private toolEffects?: ToolEffects;
+  /** Last drawn pose frame per person, so a footfall fires once per contact. */
+  private footfalls = new Map<string, number>();
+  /** Facing actually drawn, which chases the real one a step at a time. */
+  private turning = new Map<string, { facing: number; until: number }>();
   private windSprites: WindSprite[] = [];
   /** Hanging layers drawn over a prop's rigid frame, swayed by the same wind.
    * Kept per entity rather than in windSprites, which only clears on a full
@@ -218,7 +253,9 @@ export class WorldScene extends Phaser.Scene {
   private ripples: { image: Phaser.GameObjects.Image; phase: number }[] = [];
   private rippleTime = -1;
   private entities = new Map<string, Phaser.GameObjects.Image>();
-  private selection?: Phaser.GameObjects.Graphics;
+  private glowSprites: Phaser.GameObjects.Image[] = [];
+  private hoverTip?: HTMLDivElement;
+  private hoverId?: string;
   private routeOverlay?: Phaser.GameObjects.Graphics;
   private actorFrames = new Map<string, string>();
   private wheelAccum = 0;
@@ -254,6 +291,13 @@ export class WorldScene extends Phaser.Scene {
   /** Whether the player was running when Space went down: a running jump
    * clears an extra tile. */
   private jumpRunning = false;
+  /** When the last running step went out, so a jump a moment after letting go
+   * of Shift still counts as a running jump. */
+  private lastRunStep = -Infinity;
+  /** Consecutive steps held in one direction, for the run-up ramp. */
+  private runSteps = 0;
+  /** Set once the held jump has reached full charge, so the tell fires once. */
+  private chargeArmed = false;
   private arcSerial = 0;
   private pendingDirection?: [number, number];
   private destinations = new Map<string, Position>();
@@ -387,7 +431,7 @@ export class WorldScene extends Phaser.Scene {
     this.events.once("shutdown", () =>
       this.textures.off(Phaser.Textures.Events.ADD, filterTexture),
     );
-    this.selection = this.add.graphics().setDepth(20000);
+    this.createHoverTip();
     this.routeOverlay = this.add.graphics().setDepth(20000);
     this.night = this.add.graphics().setDepth(19000).setScrollFactor(0);
     this.drift = new Drift(this);
@@ -428,7 +472,10 @@ export class WorldScene extends Phaser.Scene {
         const controls = this.runtime.propControls();
         if (controls.held || controls.primary) this.runtime.propAction("Space");
         else {
-          this.jumpRunning = this.shiftHeld || this.runtime.running;
+          this.jumpRunning =
+            this.shiftHeld ||
+            this.runtime.running ||
+            this.time.now - this.lastRunStep < RUN_GRACE_MS;
           this.runtime.stop(false);
           this.jumpStarted = this.time.now;
         }
@@ -440,7 +487,15 @@ export class WorldScene extends Phaser.Scene {
       ) {
         event.preventDefault();
         const [dx, dy] = this.jumpDirection();
-        this.runtime.throwHeld(dx, dy);
+        // A throw taken at a sprint carries twice as far, on the same terms
+        // a running jump does.
+        this.runtime.throwHeld(
+          dx,
+          dy,
+          this.shiftHeld ||
+            this.runtime.running ||
+            this.time.now - this.lastRunStep < RUN_GRACE_MS,
+        );
       }
     });
     this.input.keyboard!.on("keyup", (event: KeyboardEvent) => {
@@ -462,6 +517,7 @@ export class WorldScene extends Phaser.Scene {
       this.shiftHeld = this.spaceDown = false;
       this.jumpStarted = this.queuedJump = undefined;
       this.jumpRunning = false;
+      this.runSteps = 0;
       this.pendingDirection = undefined;
       this.runtime.stop();
     };
@@ -623,6 +679,56 @@ export class WorldScene extends Phaser.Scene {
       ? this.runtime.engine.state.player.perch?.at
       : undefined;
   }
+  /** Grit kicked up off a take-off or a landing. */
+  private kickDust(x: number, y: number, count: number, spread = 1) {
+    for (let i = 0; i < count; i++) {
+      const size = i % 3 ? 2 : 3;
+      const rect = this.add
+        .rectangle(
+          x + (Math.random() - 0.5) * 8,
+          y - 1 - Math.random() * 3,
+          size,
+          size,
+          DUST[i % DUST.length],
+        )
+        .setDepth(y * 16 + 4000);
+      this.tweens.add({
+        targets: rect,
+        x: rect.x + (Math.random() - 0.5) * 22 * spread,
+        y: rect.y - 4 - Math.random() * 7,
+        alpha: 0,
+        duration: 260 + Math.random() * 120,
+        ease: "Quad.easeOut",
+        onComplete: () => rect.destroy(),
+      });
+    }
+  }
+  /** Crouch deeper as the jump charges, and pop once it is fully charged, so
+   * the player can see the long jump is armed before they let go. */
+  private chargeTell(time: number) {
+    const im = this.entities.get("player");
+    if (!im) return;
+    if (this.jumpStarted === undefined) {
+      if (im.scaleY !== 1 || im.scaleX !== 1) im.setScale(1, 1);
+      this.chargeArmed = false;
+      return;
+    }
+    const t = Math.min(1, (time - this.jumpStarted) / JUMP_CHARGE_MS);
+    im.setScale(1 + 0.12 * t, 1 - 0.16 * t);
+    if (t >= 1 && !this.chargeArmed) {
+      this.chargeArmed = true;
+      const foot = im.y + ((im.getData("arcLift") as number) ?? 0);
+      this.kickDust(im.x, foot, 5, 0.7);
+      this.tweens.add({
+        targets: im,
+        scaleX: 0.94,
+        scaleY: 1.1,
+        duration: 90,
+        yoyo: true,
+        ease: "Quad.easeOut",
+      });
+    }
+  }
   /** Sends a sprite along a parabola to its landing tile. The height above the
    * ground is published as `arcLift`, which is what keeps the shadow behind. */
   private launch(
@@ -643,10 +749,16 @@ export class WorldScene extends Phaser.Scene {
         const rise = arc.height * Math.sin(Math.PI * tween.progress);
         im.y -= rise;
         im.setData("arcLift", rise);
+        // Stretch off the ground, square at the apex, squash into the landing.
+        const p = tween.progress;
+        const shape = p < 0.25 ? p / 0.25 : p > 0.8 ? -(p - 0.8) / 0.2 : 0;
+        im.setScale(1 - 0.12 * shape, 1 + 0.16 * shape);
       },
       onComplete: () => {
         im.setPosition(tx, ty);
         im.setData("arcLift", 0);
+        im.setScale(1, 1);
+        this.kickDust(tx, ty, arc.height > 26 ? 7 : 4, arc.height / 24);
       },
     });
   }
@@ -663,6 +775,126 @@ export class WorldScene extends Phaser.Scene {
       .setDepth(depth);
     this.layers.push(image);
     return image;
+  }
+  /** One pixel-accurate hit area, a hand cursor, a hover label and a click that
+   * selects — everything the player can point at gets the same treatment. */
+  private makeSelectable(
+    image: Phaser.GameObjects.Image,
+    id: string,
+    mirrored = false,
+  ) {
+    if (this.options.lab) return;
+    image.setInteractive(
+      mirrored
+        ? this.mirroredHitArea()
+        : { pixelPerfect: true, useHandCursor: true },
+    );
+    image.on(
+      "pointerdown",
+      (
+        pointer: Phaser.Input.Pointer,
+        _x: number,
+        _y: number,
+        event: Phaser.Types.Input.EventData,
+      ) => {
+        if (pointer.rightButtonDown()) return;
+        event.stopPropagation();
+        this.runtime.select(id);
+      },
+    );
+    image.on("pointerover", (pointer: Phaser.Input.Pointer) =>
+      this.showHover(id, pointer),
+    );
+    image.on("pointermove", (pointer: Phaser.Input.Pointer) =>
+      this.moveHover(pointer),
+    );
+    image.on("pointerout", () => this.hideHover());
+    image.once("destroy", () => {
+      if (this.hoverId === id) this.hideHover();
+    });
+  }
+  private createHoverTip() {
+    const parent = this.game.canvas.parentElement;
+    if (!parent || this.options.lab) return;
+    const tip = document.createElement("div");
+    tip.className = "world-tooltip";
+    tip.setAttribute("aria-hidden", "true");
+    parent.appendChild(tip);
+    this.hoverTip = tip;
+    this.events.once("shutdown", () => tip.remove());
+  }
+  private showHover(id: string, pointer: Phaser.Input.Pointer) {
+    const tip = this.hoverTip;
+    if (!tip) return;
+    this.hoverId = id;
+    const name = this.runtime.engine.inspect(id)?.name;
+    if (!name) {
+      this.hideHover();
+      return;
+    }
+    tip.textContent = name;
+    tip.classList.add("is-shown");
+    this.moveHover(pointer);
+  }
+  private moveHover(pointer: Phaser.Input.Pointer) {
+    const tip = this.hoverTip;
+    if (!tip || !this.hoverId) return;
+    // Left of the cursor once the label would otherwise run off the canvas.
+    const flip = pointer.x + tip.offsetWidth + 22 > this.scale.width;
+    tip.style.left = `${Math.round(flip ? pointer.x - tip.offsetWidth - 14 : pointer.x + 14)}px`;
+    tip.style.top = `${Math.round(pointer.y + 14)}px`;
+  }
+  private hideHover() {
+    this.hoverId = undefined;
+    this.hoverTip?.classList.remove("is-shown");
+  }
+  private selectedImage() {
+    const id = this.runtime.selected;
+    if (!id) return undefined;
+    const decor = /^decor-(-?\d+)-(-?\d+)$/.exec(id);
+    const image = decor
+      ? this.plantImages.get(`${decor[1]},${decor[2]}`)?.[0]
+      : (this.entities.get(id) ?? this.buildings.get(id));
+    return image?.active ? image : undefined;
+  }
+  /** A ring of tinted copies behind the sprite: the fringe that shows past its
+   * own silhouette is the outline, and additive blending makes it glow. */
+  private drawSelectionGlow(time: number) {
+    const target = this.selectedImage();
+    if (!target || !target.visible) {
+      for (const g of this.glowSprites) g.setVisible(false);
+      return;
+    }
+    const pulse = 0.78 + 0.22 * Math.sin(time / 420);
+    GLOW_RING.forEach((offset, i) => {
+      let g = this.glowSprites[i];
+      if (!g) {
+        g = this.add.image(0, 0, target.texture.key, target.frame.name);
+        g.setBlendMode(Phaser.BlendModes.ADD);
+        this.glowSprites[i] = g;
+      }
+      if (
+        g.texture.key !== target.texture.key ||
+        g.frame.name !== target.frame.name
+      )
+        g.setTexture(target.texture.key, target.frame.name);
+      g.setOrigin(target.originX, target.originY)
+        .setFlipX(target.flipX)
+        .setScale(target.scaleX, target.scaleY)
+        .setPosition(target.x + offset.dx, target.y + offset.dy)
+        .setDepth(target.depth - 1)
+        .setTint(0xffd9a0)
+        .setAlpha(offset.alpha * pulse * target.alpha)
+        .setVisible(true);
+      // Trees are cropped below the canopy; the outline has to stop there too.
+      const crop = (
+        target as unknown as {
+          _crop: { x: number; y: number; width: number; height: number };
+        }
+      )._crop;
+      if (target.isCropped) g.setCrop(crop.x, crop.y, crop.width, crop.height);
+      else if (g.isCropped) g.setCrop();
+    });
   }
   /** Phaser reads the alpha mask straight off the texture and knows nothing
    * about flipX, so a mirrored sprite stays clickable along its old
@@ -1617,26 +1849,8 @@ export class WorldScene extends Phaser.Scene {
                   decoration,
                 ]);
               }
-              if (d && d.sprite !== "rock" && !this.options.lab) {
-                decoration.setInteractive(
-                  variety.flip
-                    ? this.mirroredHitArea()
-                    : { pixelPerfect: true, useHandCursor: true },
-                );
-                decoration.on(
-                  "pointerdown",
-                  (
-                    pointer: Phaser.Input.Pointer,
-                    _x: number,
-                    _y: number,
-                    event: Phaser.Types.Input.EventData,
-                  ) => {
-                    if (pointer.rightButtonDown()) return;
-                    event.stopPropagation();
-                    this.runtime.select(d.id);
-                  },
-                );
-              }
+              if (d && d.sprite !== "rock")
+                this.makeSelectable(decoration, d.id, variety.flip);
               if (
                 (w.pack.setting?.vegetationRevision ?? 0) >= 2 &&
                 (originalIsTree ||
@@ -1746,6 +1960,7 @@ export class WorldScene extends Phaser.Scene {
               placement.depth,
             ).setOrigin(placement.originX, placement.originY);
             this.buildings.set(b.id, image);
+            this.makeSelectable(image, b.id);
             const animation = (
               placement.model as typeof placement.model & {
                 animation?: BuildingAnimationRecipe;
@@ -1931,21 +2146,7 @@ export class WorldScene extends Phaser.Scene {
           ? undefined
           : this.shadow(frame, tx, ty, true);
         if (shade) this.shadows.set(id, shade);
-        if (id !== "player" && !this.options.lab) {
-          im.setInteractive({ pixelPerfect: true, useHandCursor: true });
-          im.on(
-            "pointerdown",
-            (
-              _pointer: Phaser.Input.Pointer,
-              _x: number,
-              _y: number,
-              event: Phaser.Types.Input.EventData,
-            ) => {
-              event.stopPropagation();
-              rt.select(target);
-            },
-          );
-        }
+        if (id !== "player") this.makeSelectable(im, target);
       }
       // One source pixel is one world pixel, for objects and their shadows.
       const texture = this.texture(frame);
@@ -2152,7 +2353,10 @@ export class WorldScene extends Phaser.Scene {
       if (a.kind === "human")
         this.humanActors.set(a.id, {
           ...a,
+          // An ambient itinerary only reports a cardinal direction, so drop
+          // any eight-way facing it overrides.
           direction: this.ambient.get(a.id)?.direction ?? a.direction,
+          facing: this.ambient.get(a.id) ? undefined : a.facing,
           appearance: rt.appearanceFor(a),
         });
       this.actorFrames.set(
@@ -2225,26 +2429,12 @@ export class WorldScene extends Phaser.Scene {
         this.entities.delete(id);
         this.destinations.delete(id);
         this.actorFrames.delete(id);
+        this.footfalls.delete(id);
+        this.turning.delete(id);
         shade?.destroy();
         this.shadows.delete(id);
       }
-    let g = this.selection!;
-    g.clear();
-    const selected = rt.selected ? e.inspect(rt.selected) : undefined;
-    const mark = selected?.pos ?? p;
-    const sx = mark.x * 16,
-      sy = mark.y * 16 + 9;
-    g.lineStyle(1, selected ? 0xf0cf8d : 0xf2e2b6, 0.9);
-    for (const [x, y, dx, dy] of [
-      [sx, sy, 1, 1],
-      [sx + 15, sy, -1, 1],
-      [sx, sy + 8, 1, -1],
-      [sx + 15, sy + 8, -1, -1],
-    ]) {
-      g.lineBetween(x, y, x + dx * 4, y);
-      g.lineBetween(x, y, x, y + dy * 3);
-    }
-    g = this.routeOverlay!;
+    const g = this.routeOverlay!;
     g.clear();
     if (rt.route.length) {
       g.fillStyle(0xf2dfb4, 0.45);
@@ -2455,6 +2645,7 @@ export class WorldScene extends Phaser.Scene {
       this.pendingDirection = undefined;
     }
     if (!this.options.lab && !typing) {
+      this.chargeTell(time);
       if (
         this.jumpStarted !== undefined &&
         time - this.jumpStarted >= JUMP_CHARGE_MS
@@ -2462,13 +2653,15 @@ export class WorldScene extends Phaser.Scene {
         this.jumpStarted = undefined;
         this.queuedJump = "long";
       }
-      if (time >= this.nextInput && this.queuedJump) {
+      if (time >= this.nextInput - JUMP_BUFFER_MS && this.queuedJump) {
         const power = this.queuedJump;
         this.queuedJump = undefined;
         const [dx, dy] = this.jumpDirection();
         this.pendingDirection = undefined;
         const running = this.jumpRunning;
         this.jumpRunning = false;
+        const player = this.entities.get("player");
+        if (player) this.kickDust(player.x, player.y, running ? 6 : 3, 0.8);
         this.motionDuration = jumpMs(this.runtime.jump(dx, dy, power, running));
         this.nextInput = time + this.motionDuration;
         this.lastTick = time;
@@ -2479,8 +2672,13 @@ export class WorldScene extends Phaser.Scene {
           : (this.pendingDirection ?? held);
         this.pendingDirection = undefined;
         if (dx || dy) {
+          if (this.shiftHeld) {
+            this.runSteps = Math.min(RUN_RAMP.length - 1, this.runSteps + 1);
+            this.lastRunStep = time;
+          } else this.runSteps = 0;
           this.motionDuration =
-            (this.shiftHeld ? 85 : 140) * Math.hypot(dx, dy);
+            (this.shiftHeld ? RUN_RAMP[this.runSteps] : 140) *
+            Math.hypot(dx, dy);
           const p = this.runtime.engine.state.player.pos,
             sample = this.runtime.engine.world.topography;
           if (sample && p.space === "outside") {
@@ -2520,7 +2718,15 @@ export class WorldScene extends Phaser.Scene {
       const frame = this.actorFrames.get(id);
       // Height above the tile, mid-jump. Depth sorts on where the feet would
       // be, or a jumper passes behind whatever they are jumping over.
-      const arcLift = (im.getData("arcLift") as number) ?? 0;
+      let arcLift = (im.getData("arcLift") as number) ?? 0;
+      // A launch interrupted mid-flight never reaches its onComplete, which
+      // is what reset the lift. Left alone the figure hangs in the air until
+      // the next jump lands and clears it.
+      if (arcLift && !this.tweens.isTweening(im)) {
+        im.setData("arcLift", 0);
+        im.setScale(1, 1);
+        arcLift = 0;
+      }
       const perched = this.perchRise(id);
       const depth =
         im.y +
@@ -2580,8 +2786,30 @@ export class WorldScene extends Phaser.Scene {
           index < 2
             ? action.prop
             : undefined);
-        const texture = this.characters.frame(human, pose, index, prop);
+        // Turning is drawn through the facings in between. Without it a
+        // half turn is a single frame, which the eight-way sprites make
+        // more obvious than the four-way ones did.
+        const wanted = human.facing ?? facingFromDirection(human.direction);
+        let turn = this.turning.get(id);
+        if (!turn) this.turning.set(id, (turn = { facing: wanted, until: 0 }));
+        else if (turn.facing !== wanted && time >= turn.until) {
+          turn.facing = turnToward(turn.facing, wanted);
+          turn.until = time + TURN_HOLD_MS;
+        }
+        const texture = this.characters.frame(
+          turn.facing === wanted ? human : { ...human, facing: turn.facing },
+          pose,
+          index,
+          prop,
+        );
         if (im.texture.key !== texture) im.setTexture(texture);
+        // Dust off a run's contact frames. Walking raises none, or a quiet
+        // street would be permanently hazy; jumps are covered by `launch`.
+        if (this.footfalls.get(id) !== index) {
+          this.footfalls.set(id, index);
+          if (pose === "run" && index % 2 === 1 && water <= 0.025 && !arcLift)
+            this.kickDust(im.x, im.y, 2, 0.5);
+        }
         this.wading?.update(
           id,
           im,
@@ -2610,10 +2838,10 @@ export class WorldScene extends Phaser.Scene {
           // Mid-jump the sprite is lifted off its tile; the shadow is not, and
           // it draws in a little to sell the height.
           shade.setPosition(im.x, im.y + arcLift);
-          const shrink = arcLift ? 1 - Math.min(0.3, arcLift / 48) : 1;
+          const shrink = arcLift ? 1 - Math.min(0.45, arcLift / 32) : 1;
           if (shade.scaleX !== shrink) shade.setScale(shrink);
           const fade =
-            water > 0.025 ? 0 : arcLift ? 1 - Math.min(0.4, arcLift / 36) : 1;
+            water > 0.025 ? 0 : arcLift ? 1 - Math.min(0.55, arcLift / 26) : 1;
           if (shade.alpha !== fade) shade.setAlpha(fade);
           const shadowDepth = this.runtime.engine.world.topography
             ? -1000
@@ -2671,13 +2899,7 @@ export class WorldScene extends Phaser.Scene {
     }
     this.characters?.prune();
     mark("actors");
-    const selected = this.runtime.selected;
-    const marker = this.entities.get(selected ?? "player");
-    const destination = this.destinations.get(selected ?? "player");
-    this.selection?.setPosition(
-      marker && destination ? marker.x - (destination.x * 16 + 8) : 0,
-      marker && destination ? marker.y - (destination.y * 16 + 16) : 0,
-    );
+    this.drawSelectionGlow(time);
     mark("scene update tail");
   }
   /** Nudges drawn people out of each other. Presentation only: the schedule
@@ -2761,7 +2983,11 @@ export class WorldScene extends Phaser.Scene {
       this.ambient.set(id, at);
       const human = this.humanActors.get(id);
       if (human && human.direction !== at.direction)
-        this.humanActors.set(id, { ...human, direction: at.direction });
+        this.humanActors.set(id, {
+          ...human,
+          direction: at.direction,
+          facing: undefined,
+        });
     }
     this.separate(this.runtime.engine.state.player.pos);
     this.placeAmbient();
