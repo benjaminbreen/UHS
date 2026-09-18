@@ -9,6 +9,7 @@ import {
   seasonAt,
   grazeActivity,
 } from "./livelihood";
+import { weatherAt } from "./weather";
 import { propDefs } from "../content/props/catalog";
 import { propAffordances, heldObject } from "./props";
 
@@ -92,6 +93,8 @@ function migrateWorn(snapshot: Snapshot): Snapshot {
 
 export class Engine {
   state: Snapshot;
+  /** Set by a chronicle to witness every command, human or agent. */
+  onAct?: (request: CommandRequest, result: CommandResult) => void;
   constructor(
     readonly world: WorldModel,
     readonly items: Record<ItemId, ItemDef>,
@@ -401,6 +404,7 @@ export class Engine {
     dx: number,
     dy: number,
     jump?: "short" | "long",
+    running?: boolean,
   ): LeapResult | { kind: "blocked"; reason: string } {
     const to = { x: from.x + dx, y: from.y + dy };
     const clear = (p: Point) => !this.blocked(p.x, p.y, from.space);
@@ -428,7 +432,7 @@ export class Engine {
           solid: cell.solid || obstacle || (!water && !clear({ x, y })),
         };
       };
-      const result = terrainJump(sample, from, to, jump);
+      const result = terrainJump(sample, from, to, jump, running);
       if (result.kind === "blocked") return result;
       const landing = {
         x: from.x + dx * result.distance,
@@ -1276,7 +1280,10 @@ export class Engine {
     if (object.kind === "well") interact("drink", "Drink and refill water");
     if (object.kind === "fire")
       interact("rest", "Warm yourself for 20 minutes");
-    if (object.kind === "bed") interact("rest", "Rest for 20 minutes");
+    if (object.kind === "bed") {
+      interact("rest", "Rest for 20 minutes");
+      interact("sleep", "Sleep until morning");
+    }
     if (object.kind === "tree")
       interact(
         "harvest",
@@ -1399,6 +1406,7 @@ export class Engine {
       }
     }
     this.state.receipts[request.actionId] = { payload, result: copy(result) };
+    this.onAct?.(request, result);
     return result;
   }
   validate(c: PlayerCommand): string | undefined {
@@ -1434,9 +1442,9 @@ export class Engine {
           : "You are not holding anything to throw.";
       if (c.jump && heldObject(this.state))
         return "Put down the held object before jumping.";
-      if (c.jump && (c.run || c.traverse)) return "Choose one movement style.";
+      if (c.jump && c.traverse) return "Choose one movement style.";
       if (c.traverse || c.jump) {
-        const leap = this.traversal(p.pos, c.dx, c.dy, c.jump);
+        const leap = this.traversal(p.pos, c.dx, c.dy, c.jump, c.run);
         if (leap.kind === "blocked") return leap.reason;
         const landing = {
           x: p.pos.x + c.dx * leap.distance,
@@ -1484,6 +1492,12 @@ export class Engine {
       if (occupant) return `${occupant.name} is standing there.`;
       return;
     }
+    if (c.type === "sleep")
+      return Number.isInteger(c.seconds) &&
+        c.seconds >= 600 &&
+        c.seconds <= 24 * 3600
+        ? undefined
+        : "Sleep between 10 minutes and a full day.";
     if (c.type === "wait" || c.type === "pass")
       return Number.isInteger(c.seconds) && c.seconds > 0 && c.seconds <= 3600
         ? undefined
@@ -1579,29 +1593,35 @@ export class Engine {
           );
         this.state.objects.push(next);
       }
-    if (this.world.fauna) {
-      this.state.fauna ??= [];
-      // Groups far behind the player are dropped and their block released, so
-      // a long walk does not grow the save without bound; coming back spawns
-      // the same animals from the same seed.
-      const stale = new Set<string>();
-      this.state.fauna = this.state.fauna.filter((g) => {
-        if (
-          Math.abs(g.pos.x - p.x) <= FAUNA_KEEP &&
-          Math.abs(g.pos.y - p.y) <= FAUNA_KEEP
-        )
-          return true;
-        if (!g.gateId) stale.add(faunaBlockOf(g.home.x, g.home.y));
-        return !!g.gateId;
-      });
-      for (const key of stale) this.world.forgetFauna?.(key);
-      const known = new Set(this.state.fauna.map((g) => g.id));
-      for (const g of this.world.fauna(p.x, p.y))
-        if (!known.has(g.id)) {
-          known.add(g.id);
-          this.state.fauna.push(copy(g));
-        }
-    }
+    this.syncFauna();
+  }
+  /** Copies the animal groups near the player into the snapshot and drops the
+   * ones left behind. Safe to call at any time: groups are matched by id, and
+   * `world.fauna` only hands out a block it has not handed out before. */
+  syncFauna() {
+    if (!this.world.fauna) return;
+    const p = this.state.player.pos;
+    this.state.fauna ??= [];
+    // Groups far behind the player are dropped and their block released, so
+    // a long walk does not grow the save without bound; coming back spawns
+    // the same animals from the same seed.
+    const stale = new Set<string>();
+    this.state.fauna = this.state.fauna.filter((g) => {
+      if (
+        Math.abs(g.pos.x - p.x) <= FAUNA_KEEP &&
+        Math.abs(g.pos.y - p.y) <= FAUNA_KEEP
+      )
+        return true;
+      if (!g.gateId) stale.add(faunaBlockOf(g.home.x, g.home.y));
+      return !!g.gateId;
+    });
+    for (const key of stale) this.world.forgetFauna?.(key);
+    const known = new Set(this.state.fauna.map((g) => g.id));
+    for (const g of this.world.fauna(p.x, p.y))
+      if (!known.has(g.id)) {
+        known.add(g.id);
+        this.state.fauna.push(copy(g));
+      }
   }
   /** One six-second step for the animal groups near the player. Their pace
    * is their own: a wolf outruns a person, a sheep does not keep up. */
@@ -1655,6 +1675,10 @@ export class Engine {
   /** The traversal a move resolved to, for the renderer to animate. Cleared
    * once read, so a walked step never inherits the previous jump's arc. */
   lastLeap?: LeapResult;
+  /** Tiles cleared by the last traversal; 1 for a plain step. */
+  leapDistance() {
+    return this.lastLeap?.distance ?? 1;
+  }
   execute(c: PlayerCommand) {
     const p = this.state.player;
     if (c.type === "throw") {
@@ -1702,7 +1726,7 @@ export class Engine {
     if (c.type === "move") {
       const leap =
         c.traverse || c.jump
-          ? this.traversal(p.pos, c.dx, c.dy, c.jump)
+          ? this.traversal(p.pos, c.dx, c.dy, c.jump, c.run)
           : undefined;
       if (leap && leap.kind !== "blocked") {
         this.lastLeap = leap;
@@ -1763,6 +1787,10 @@ export class Engine {
       this.event(
         `You wait ${c.seconds >= 60 ? Math.round(c.seconds / 60) + " minutes" : c.seconds + " seconds"}.`,
       );
+      return;
+    }
+    if (c.type === "sleep") {
+      this.sleep(c.seconds);
       return;
     }
     if (c.type === "use") {
@@ -1965,6 +1993,9 @@ export class Engine {
         p.fatigue = Math.max(0, p.fatigue - 2);
         this.advance(30);
         this.event("You drink cool water and refill your vessel.");
+        break;
+      case "sleep":
+        this.sleep(this.untilMorning());
         break;
       case "rest":
         p.activity = "Resting";
@@ -2277,6 +2308,118 @@ export class Engine {
       this.moveActor(a, copy(a.home));
     }
   }
+  /** Seconds from now until the next morning, for a night's sleep. */
+  untilMorning(hour = 6) {
+    const now = this.state.clock;
+    const target = Math.floor(now / 86400) * 86400 + hour * 3600;
+    return Math.max(600, (target > now ? target : target + 86400) - now);
+  }
+
+  /** Where the player would lie down: their own bed, any bed in reach, or the
+   * ground. */
+  shelter() {
+    const p = this.state.player;
+    const bed = this.state.objects.find(
+      (o) =>
+        o.kind === "bed" &&
+        o.pos.space === p.pos.space &&
+        distance(o.pos, p.pos) <= 2.5,
+    );
+    const household = this.state.households?.find((h) =>
+      h.members.includes("player"),
+    );
+    const own =
+      !!bed &&
+      (!bed.owner ||
+        bed.owner === "player" ||
+        (!!household && household.residence === p.pos.space));
+    return {
+      bed,
+      own,
+      indoors: p.pos.space !== "outside",
+      /** Under a roof of some kind, whether or not it is yours. */
+      covered: p.pos.space !== "outside" || !!bed,
+    };
+  }
+
+  /**
+   * Sleep or long rest. One step of the clock, then the night's account:
+   * shelter decides how much good it did, and a night in the open can cost
+   * something. Every roll is seeded, so a replay spends the same night.
+   */
+  sleep(seconds: number) {
+    const p = this.state.player;
+    const started = this.state.clock;
+    const { bed, own, indoors, covered } = this.shelter();
+    const setting = this.world.pack.setting;
+    const seed = this.state.manifest.seed;
+    const before = p.activity;
+    p.activity = "Sleeping";
+    this.advance(seconds);
+    p.activity = before === "Sleeping" ? "Exploring" : before;
+
+    const hours = seconds / 3600;
+    // A bed of your own is worth roughly twice the bare ground.
+    const quality = own ? 1 : bed ? 0.85 : indoors ? 0.7 : 0.45;
+    p.fatigue = Math.max(0, p.fatigue - hours * 14 * quality);
+
+    // The same fallbacks the scene shows, so a night in the visible rain is a
+    // night in the rain.
+    const weather = weatherAt(
+      seed,
+      setting?.climate ?? "temperate",
+      setting?.season ?? "spring",
+      started + seconds / 2,
+    );
+    const roll = (key: string) => random(seed, "sleep", started, key);
+    const cold = weather.tempC < 8;
+    const wet = /rain|storm|snow|sleet/i.test(weather.label);
+    const rough = !covered && hours >= 3;
+
+    const startHour = Math.floor(started / 3600) % 24;
+    const overnight = hours >= 5 && (startHour >= 18 || startHour < 4);
+    this.event(
+      hours >= 5
+        ? `You sleep ${own ? "in your own bed" : bed ? "on a bed not your own" : indoors ? "under a roof" : "on the ground"}.`
+        : `You lie down and rest ${Math.round(hours)} hour${hours >= 2 ? "s" : ""}.`,
+    );
+
+    // A proper night is the one thing that mends you; nothing else restores
+    // health but food.
+    if (covered && hours >= 5)
+      p.health = Math.min(100, (p.health ?? 100) + (own ? 6 : 4));
+
+    if (rough && (cold || wet)) {
+      const harm = Math.round(4 + (cold ? 4 : 0) + (wet ? 3 : 0));
+      p.health = Math.max(0, Math.min(100, (p.health ?? 100) - harm));
+      this.event(
+        `You wake stiff and ${cold ? "cold" : "soaked"} from ${
+          overnight ? "a night in the open" : "lying out unsheltered"
+        }.`,
+      );
+      if (roll("illness") < 0.18) {
+        p.health = Math.max(0, (p.health ?? 100) - 12);
+        this.event("Something has settled in your chest.");
+      }
+    }
+    if (rough && roll("theft") < 0.14) {
+      const worth = Object.entries(p.inventory)
+        .filter(([, n]) => (n ?? 0) > 0)
+        .sort(
+          (a, b) => (this.item(b[0])?.value ?? 0) - (this.item(a[0])?.value ?? 0),
+        )[0];
+      if (worth && (this.item(worth[0])?.value ?? 0) > 0) {
+        p.inventory[worth[0]] = (p.inventory[worth[0]] ?? 0) - 1;
+        this.event(
+          `Someone went through your things while you slept. Your ${(
+            this.item(worth[0])?.name ?? worth[0]
+          ).toLowerCase()} is gone.`,
+        );
+
+      }
+    }
+  }
+
   advance(seconds: number, heldActor?: string) {
     // Derived paths never survive a command boundary: saves and replays need no hidden routing state.
     this.routes.clear();
@@ -2326,7 +2469,10 @@ export class Engine {
       player.fatigue = Math.min(
         100,
         player.fatigue +
-          elapsed / (player.activity === "Resting" ? 100000 : 2400),
+          elapsed /
+            (player.activity === "Resting" || player.activity === "Sleeping"
+              ? 100000
+              : 2400),
       );
       if (next % 6 !== 0) continue;
       if (next % 3600 === 0) this.world.rotateRoutines?.(next);

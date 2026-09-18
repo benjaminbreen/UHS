@@ -4,6 +4,7 @@ import { populateCharacter } from "../content/geography/character";
 import { generateCharacter } from "../content/characters/generate";
 import { resolveCharacterContext } from "../content/characters/resolve";
 import { releaseTerrainWorker } from "./terrain-worker-owner";
+import { startChronicle, type Chronicle } from "../chronicle/chronicle";
 import type { PreparedSettlement } from "../world/v3/prepared";
 import { wardrobeFor } from "../content/characters/wardrobes";
 import { composeWearing, wornFromWearing } from "../core/wearing";
@@ -46,7 +47,8 @@ import {
 } from "../core/types";
 import { items, packs } from "../content/packs";
 import { rollStats } from "../core/stats";
-import { narratorTurn } from "../narrator/turn";
+import { narratorTurn, type Turn } from "../narrator/turn";
+import { findNearest, parseFind, type FindTarget } from "./find";
 import { createWorld } from "../world/generate";
 import { commandSchema, snapshotSchema } from "./schema";
 import { ChunkCache } from "./chunks";
@@ -181,6 +183,8 @@ const IDLE_BLOCK = 60;
 export const JUMP_MS = 260;
 export const LONG_JUMP_MS = 300;
 export const JUMP_CHARGE_MS = 240;
+/** Airtime scales with the tiles cleared: 260, 300, 340. */
+export const jumpMs = (distance: number) => 220 + 40 * distance;
 export const ZOOM_STEPS = [
   0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3, 3.5, 4, 5, 6,
 ];
@@ -188,6 +192,9 @@ const ZOOM_MIN = ZOOM_STEPS[0];
 const ZOOM_MAX = ZOOM_STEPS[ZOOM_STEPS.length - 1];
 export class Runtime {
   engine: Engine;
+  /** The written record of this playthrough. Human play produces the same
+   * document an agent does, minus the stated reasoning. */
+  chronicle: Chronicle;
   journey?: import("./map-travel").MapTravel;
   selected?: string;
   notice = "";
@@ -344,9 +351,7 @@ export class Runtime {
           at: performance.now(),
           arc: {
             height: command.jump
-              ? command.jump === "long"
-                ? 30
-                : 18
+              ? 12 + leap.distance * 6
               : leap.kind === "leap"
                 ? 15
                 : leap.kind === "drop"
@@ -355,9 +360,7 @@ export class Runtime {
                     ? 6
                     : 11,
             duration: command.jump
-              ? command.jump === "long"
-                ? LONG_JUMP_MS
-                : JUMP_MS
+              ? jumpMs(leap.distance)
               : command.run
                 ? 210
                 : leap.distance === 2
@@ -403,6 +406,7 @@ export class Runtime {
   constructor(engine: Engine, options: { cacheTerrain?: boolean } = {}) {
     this.chunks = new ChunkCache(options.cacheTerrain !== false);
     this.engine = engine;
+    this.chronicle = startChronicle(engine, "human");
     this.syncAmbient();
     this.cached = this.view();
     this.startJourney(engine);
@@ -521,6 +525,7 @@ export class Runtime {
     this.replay = undefined;
     this.stop();
     this.engine = engine;
+    this.chronicle = startChronicle(engine, "human");
     if (!preserveJourney) this.startJourney(engine);
     this.selected = undefined;
     this.syncAmbient();
@@ -565,9 +570,36 @@ export class Runtime {
   item(id: ItemId) {
     return this.engine.item(id);
   }
-  /** One narrator turn from free text. */
-  say(input: string) {
+  /** One narrator turn from free text. "Find the goats" and its kin are
+   * answered here instead, from the loaded world: no model call, the same
+   * answer every time, and the player walks off at once. */
+  say(input: string): Promise<Turn> {
+    const terms = parseFind(input);
+    if (terms) {
+      this.engine.syncFauna();
+      const found = findNearest(this.engine.state, terms);
+      if (found) return Promise.resolve(this.walkToFound(input, found));
+      // Nothing of that name is loaded; let the narrator answer as before.
+    }
     return narratorTurn(this, input);
+  }
+  /** Walks to a found target and logs it as a narration turn, so the search
+   * reads back in the log beside everything else the player has said. */
+  private walkToFound(input: string, found: FindTarget): Turn {
+    const p = this.engine.state.player.pos;
+    const steps = Math.round(
+      Math.hypot(found.point.x - p.x, found.point.y - p.y),
+    );
+    this.walkTo(found.point);
+    const text = this.running
+      ? `You set off toward the ${found.label.toLowerCase()}, ${steps} paces away.`
+      : `You can see the ${found.label.toLowerCase()} ${steps} paces off, but there is no way through.`;
+    const s = this.engine.state;
+    s.narration = [...(s.narration ?? []), { clock: s.clock, input, text }].slice(
+      -200,
+    );
+    this.touch();
+    return { text, outcomes: [] };
   }
   /** Marks state changed outside a command, such as the narration log. */
   touch() {
@@ -628,6 +660,23 @@ export class Runtime {
     if (result.status !== "rejected") this.onChange?.();
     this.emit();
     return result;
+  }
+  /** Save this playthrough's record. The markdown is for reading, the JSONL
+   * for analysis. */
+  downloadChronicle() {
+    const { id } = this.chronicle.header;
+    for (const [name, body] of [
+      [`${id}.md`, this.chronicle.markdown()],
+      [`${id}.jsonl`, this.chronicle.jsonl()],
+    ]) {
+      const url = URL.createObjectURL(new Blob([body], { type: "text/plain" }));
+      const link = Object.assign(document.createElement("a"), {
+        href: url,
+        download: name,
+      });
+      link.click();
+      URL.revokeObjectURL(url);
+    }
   }
   act(request: CommandRequest) {
     if (this.replay)
@@ -894,9 +943,12 @@ export class Runtime {
           : { type: "move", dx, dy },
     );
   }
-  jump(dx: number, dy: number, power: "short" | "long") {
+  /** Returns the tiles actually cleared, so the renderer can time the arc. */
+  jump(dx: number, dy: number, power: "short" | "long", running = false) {
     this.stop(false);
-    return this.command({ type: "move", dx, dy, jump: power });
+    this.engine.lastLeap = undefined;
+    this.command({ type: "move", dx, dy, jump: power, run: running });
+    return this.engine.leapDistance();
   }
   throwHeld(dx: number, dy: number) {
     this.stop(false);
