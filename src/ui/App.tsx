@@ -191,6 +191,13 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
   const runVerb = (slot: "primary" | "alternate") => {
     const verb = runtime.runVerb(slot);
     if (verb?.kind === "talk" && verb.actor) openDialogue(verb.actor);
+    // Whoever answered a knock is standing in their own doorway waiting to be
+    // spoken to; opening the conversation is what knocking was for.
+    const answered = runtime.engine.doorAnswer;
+    if (answered) {
+      runtime.engine.doorAnswer = undefined;
+      openDialogue(answered);
+    }
   };
   // Reads the live snapshot so the keyboard listener never sees a stale world.
   const talkToNearest = () => {

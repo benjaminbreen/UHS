@@ -3,7 +3,7 @@ sizes, looks and facings. Source pixels throughout; light from the upper
 left. Recipes live in src/content/graphics/religious.json."""
 import random
 from PIL import Image, ImageDraw
-from art.buildings import ROOFS
+from art.buildings import ROOFS, DOOR_W, corner_door
 from art.roof_light import course_tone
 
 OUTLINE = '#2f2a22'
@@ -162,6 +162,7 @@ class ReligiousBuilding:
             self.corbel_table(left, right, top + 1)
         self.gable_roof(left, right, top, top - r['roofPitch'] - self.rise // 2)
         cx = r['entrance'][0] * 16 + 8 if self.facing == 'south' else (left + right) // 2
+        self.door_x = cx
         span = right - left
         for i in range(r['bays']):
             wx = left + span * (i + 1) // (r['bays'] + 1)
@@ -286,6 +287,7 @@ class ReligiousBuilding:
         # The facade stays centred on the nave whichever way the door faces;
         # a side-facing frame keeps its gable and bells, only the portal moves.
         cx = r['entrance'][0] * 16 + 8 if self.facing == 'south' else (left + right) // 2
+        self.door_x = cx
         self.plaster(left, top, right, self.ground)
         # Buttress strips and a stone plinth.
         for x in range(left + 3, right - 6, max(14, (right - left) // (r['bays'] + 1))):
@@ -422,9 +424,7 @@ class ReligiousBuilding:
             self.basilica()
         if family != 'platform':
             if self.facing in ('east', 'west'):
-                x = self.w - 11 if self.facing == 'east' else 3
-                self.d.rectangle((x - 2, self.ground - 22, x + 3, self.ground), fill='#332e27')
-                self.d.line((x - 3, self.ground - 23, x + 3, self.ground - 23), fill=self.p['wall'][3])
+                self.door_x = corner_door(self, self.ground) + DOOR_W // 2
             elif self.facing == 'north':
                 self.d.rectangle((self.w // 2 - 6, 4, self.w // 2 + 6, 7), fill=self.p['foundation'][1])
         self.d.line((5, self.ground + 1, self.w - 8, self.ground + 1), fill=(30, 34, 26, 155))

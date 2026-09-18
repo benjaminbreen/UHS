@@ -298,6 +298,17 @@ export class WorldScene extends Phaser.Scene {
   private drawnWorld?: WorldModel;
   private buildings = new Map<string, Phaser.GameObjects.Image>();
   private buildingAnimations = new Map<string, BuildingAnimation>();
+  /** One leaf per drawn building, hidden while shut. */
+  private doors = new Map<
+    string,
+    {
+      image: Phaser.GameObjects.Image;
+      openness: number;
+      shut: boolean;
+      knockSeen?: number;
+      rattleUntil?: number;
+    }
+  >();
   private hearths = new Map<string, Phaser.GameObjects.Image[]>();
   private fires = new Map<string, FireEffect>();
   private fireFrames = new Set<string>();
@@ -957,6 +968,87 @@ export class WorldScene extends Phaser.Scene {
       image.setData("wind", true);
       this.windSprites.push({ image, baseX: image.x, phase, profile });
     }
+  }
+  /** The leaf over a baked-shut door.
+   *
+   * The building art paints the door shut and publishes its rect; the leaf is
+   * a single four-frame sprite shared by every building, drawn over that rect
+   * only while somebody is at the threshold.
+   */
+  private addDoor(
+    place: Place,
+    placement: ReturnType<typeof buildingPlacement>,
+    /** The drawn top of the building, which on sloped ground is not its
+     * cell position: the sign does the same. */
+    baseY: number,
+  ) {
+    const rect = (
+      placement.model as typeof placement.model & { door?: number[] }
+    ).door;
+    if (!rect) return;
+    const image = this.add
+      .image(
+        placement.x - placement.model.anchor[0] + rect[0],
+        baseY - placement.model.anchor[1] + rect[1],
+        this.texture("door-leaf-1"),
+        "door-leaf-1",
+      )
+      .setOrigin(0, 0)
+      .setTint(this.tint)
+      .setDepth(placement.depth + 1)
+      .setVisible(false);
+    this.layers.push(image);
+    this.doors.set(place.id, { image, openness: 0, shut: true });
+  }
+  /** Doors swing to follow the door objects the engine owns.
+   *
+   * The scene holds no opinion about who may open what: it reads `open` and
+   * eases the leaf toward it, so the animation can never disagree with what
+   * the simulation and the pathfinder believe.
+   */
+  private swingDoors() {
+    if (!this.doors.size) return;
+    const now = this.time.now;
+    for (const o of this.runtime.engine.state.objects) {
+      if (o.kind !== "door" || !o.placeId) continue;
+      const door = this.doors.get(o.placeId);
+      if (!door) continue;
+      door.shut = !o.open;
+      // A knock is answered on the game clock, which only moves when the
+      // player acts; the shudder is wall time, so it plays once and stops.
+      if (o.knocked !== undefined && o.knocked !== door.knockSeen) {
+        door.knockSeen = o.knocked;
+        door.rattleUntil = now + 700;
+      }
+    }
+    // A tenth of a second from shut to wide; the walk to a door is slower.
+    const step = this.options.freeze ? 1 : 0.16;
+    let open = 0;
+    for (const door of this.doors.values()) {
+      const rattling = !this.options.freeze && now < (door.rattleUntil ?? 0);
+      if (rattling) {
+        // Shut, but shaken in its frame: an inch of daylight, four times over.
+        door.openness = Math.sin(now / 45) > 0 ? 0.34 : 0;
+      } else {
+        const target = door.shut ? 0 : 1;
+        if (door.openness !== target)
+          door.openness =
+            target > door.openness
+              ? Math.min(1, door.openness + step)
+              : Math.max(0, door.openness - step);
+      }
+      if (door.openness > 0) open++;
+      const frame = Math.min(3, Math.round(door.openness * 3));
+      if (!frame) door.image.setVisible(false);
+      else {
+        const name = `door-leaf-${frame}`;
+        if (door.image.frame.name !== name) door.image.setFrame(name);
+        door.image.setVisible(true);
+      }
+    }
+    const count = `${open}/${this.doors.size}`;
+    if (this.game.canvas.dataset.doors !== count)
+      this.game.canvas.dataset.doors = count;
   }
   private addBuildingAnimation(
     id: string,
@@ -1635,6 +1727,7 @@ export class WorldScene extends Phaser.Scene {
       this.ripples = [];
       this.buildings.clear();
       this.buildingAnimations.clear();
+      this.doors.clear();
       for (const puffs of this.hearths.values())
         for (const puff of puffs) this.tweens.killTweensOf(puff);
       this.hearths.clear();
@@ -2068,6 +2161,7 @@ export class WorldScene extends Phaser.Scene {
             ).animation;
             if (animation)
               this.addBuildingAnimation(b.id, placement, animation);
+            this.addDoor(b, placement, image.y);
             this.addBuildingSign(b, placement, w.pack.setting, image.y);
             if (b.access === "household" && this.hearthLit(b.id))
               this.lightHearth(b.id, placement);
@@ -2417,6 +2511,8 @@ export class WorldScene extends Phaser.Scene {
     };
     for (const o of obs.objects) {
       if (o.carriedBy) continue;
+      // The building art already paints the door; the leaf overlay animates it.
+      if (o.kind === "door") continue;
       if (
         o.depleted &&
         (o.kind !== "tree" ||
@@ -2703,6 +2799,8 @@ export class WorldScene extends Phaser.Scene {
         if (motion.image.frame.name !== name) motion.image.setFrame(name);
       }
     mark("fires");
+    this.swingDoors();
+    mark("doors");
     if (perf.buildingAnimations)
       for (const animation of this.buildingAnimations.values()) {
         const frame = this.options.freeze

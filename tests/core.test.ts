@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { doorApproach } from "../src/core/doors";
 import { createSession, restoreSession } from "../src/runtime/session";
 import { createWorld } from "../src/world/generate";
 import { packs } from "../src/content/packs";
@@ -176,6 +177,17 @@ describe("shared deterministic foundation", () => {
     const e = createSession();
     const b = e.world.places.find((p) => p.access === "public")!;
     reach(e, { ...b.entrance, space: "outside" });
+    // A door is a door: it is shut until somebody opens it.
+    expect(
+      act(e, { type: "interact", target: b.id, action: "enter" }).status,
+    ).toBe("rejected");
+    expect(
+      act(e, {
+        type: "interact",
+        target: `${b.id}-door`,
+        action: "open",
+      }).status,
+    ).toBe("completed");
     expect(
       act(e, { type: "interact", target: b.id, action: "enter" }).status,
     ).toBe("completed");
@@ -189,8 +201,10 @@ describe("shared deterministic foundation", () => {
         action: "exit",
       }).status,
     ).toBe("completed");
+    // Out through the door, which for a back-on building is not the lot's
+    // street-side entrance.
     expect(restored.state.player.pos).toEqual({
-      ...b.entrance,
+      ...doorApproach(b),
       space: "outside",
     });
   });

@@ -80,6 +80,12 @@ import {
 const TERRAIN_STEP = 14;
 import { facingFromStep } from "./facing";
 import {
+  doorAccess,
+  doorApproach,
+  isShutBarrier,
+  type DoorVerdict,
+} from "./doors";
+import {
   isSolid,
   reactionFor,
   toolClass,
@@ -88,7 +94,7 @@ import {
   type HitClass,
   type ToolClass,
 } from "./reactions";
-import type { Point } from "./types";
+import type { Place, Point } from "./types";
 const copy = <T>(x: T): T => structuredClone(x);
 /** Routines built in one call to `advance`. */
 const ROUTINE_BUILDS_PER_ADVANCE = 32;
@@ -319,7 +325,7 @@ export class Engine {
   private tickObstacles?: Map<string, typeof this.state.objects>;
   // Per-advance indexes. All undefined outside advance(), where the callers
   // fall back to the linear scans they replace.
-  private gatesAt?: Map<string, WorldObject[]>;
+  private barriersAt?: Map<string, WorldObject[]>;
   private actorsAt?: Map<string, Actor[]>;
   private actorCell?: Map<string, string>;
   private actorsById?: Map<string, Actor>;
@@ -418,7 +424,7 @@ export class Engine {
         (this.tickObstacles ? [] : this.state.objects)
       ).some(
         (o) =>
-          ((o.kind === "gate" && !o.open) ||
+          (isShutBarrier(o) ||
             (!!o.prop &&
               !!propDefs[o.prop]?.solid &&
               !o.carriedBy &&
@@ -451,7 +457,7 @@ export class Engine {
             o.pos.space === from.space &&
             o.pos.x === x &&
             o.pos.y === y &&
-            ((o.kind === "gate" && !o.open) ||
+            (isShutBarrier(o) ||
               (!!o.prop &&
                 !!propDefs[o.prop]?.solid &&
                 !o.carriedBy &&
@@ -661,9 +667,10 @@ export class Engine {
     const space = this.state.player.pos.space;
     const solid = (dir: number) =>
       this.swingCone(dir).some(
-        (c) => !["air", "grass", "soil", "sand", "snow"].includes(
-          this.hitClass(c.x, c.y, space).hit,
-        ),
+        (c) =>
+          !["air", "grass", "soil", "sand", "snow"].includes(
+            this.hitClass(c.x, c.y, space).hit,
+          ),
       );
     if (solid(direction)) return direction;
     for (const turn of [1, 3]) {
@@ -1090,12 +1097,51 @@ export class Engine {
     this.advance(20);
     this.event(`You climb down from ${label}.`);
   }
-  gateAt(p: Point, space = this.state.player.pos.space) {
-    if (this.gatesAt)
-      return this.gatesAt.get(`${space}:${p.x},${p.y}`)?.find((o) => !o.open);
+  doorOf(placeId: string) {
+    if (!this.doorsByPlace) {
+      this.doorsByPlace = new Map();
+      for (const o of this.state.objects)
+        if (o.kind === "door" && o.placeId) this.doorsByPlace.set(o.placeId, o);
+    }
+    return this.doorsByPlace.get(placeId);
+  }
+  /** Doors are created with the world and never added or removed, so the
+   * index only has to survive a reload. */
+  private doorsByPlace?: Map<string, WorldObject>;
+  /** Who just answered a knock, for the UI to open the conversation on. Read
+   * once and cleared; never part of the saved state. */
+  doorAnswer?: string;
+  /** Whether a door opens for this caller right now. The rules are in
+   * doors.ts; the engine only supplies who is inside and who is welcome. */
+  doorVerdict(place: Place, actorId: string): DoorVerdict {
+    const invited =
+      place.access === "public"
+        ? false
+        : place.owner === actorId ||
+          (actorId === "player" &&
+            this.state.manifest.simulation === 2 &&
+            place.owner === this.state.player.id) ||
+          !!this.state.households?.some(
+            (h) =>
+              h.members.includes(actorId) && h.members.includes(place.owner),
+          ) ||
+          (actorId === "player" &&
+            (this.state.permissions[place.owner] ?? 0) > this.state.clock);
+    return doorAccess({
+      access: place.access,
+      invited,
+      occupied: this.state.actors.some((a) => a.pos.space === place.id),
+      hour: (this.state.clock / 3600) % 24,
+    });
+  }
+  barrierAt(p: Point, space = this.state.player.pos.space) {
+    if (this.barriersAt)
+      return this.barriersAt
+        .get(`${space}:${p.x},${p.y}`)
+        ?.find((o) => !o.open);
     return this.state.objects.find(
       (o) =>
-        o.kind === "gate" &&
+        (o.kind === "gate" || o.kind === "door") &&
         !o.open &&
         o.pos.space === space &&
         o.pos.x === p.x &&
@@ -1137,7 +1183,7 @@ export class Engine {
         )
           return Infinity;
         if (this.blocked(to.x, to.y, start.space)) {
-          const gate = this.gateAt(to, start.space);
+          const gate = this.barrierAt(to, start.space);
           // Humans can open a gate; animals must wait for an actual open gate.
           if (
             !gate ||
@@ -1358,20 +1404,17 @@ export class Engine {
       };
     }
     if (place) {
-      const allowed =
-        place.access === "public" ||
-        (this.state.manifest.simulation === 2 &&
-          place.owner === this.state.player.id) ||
-        this.state.households?.some(
-          (h) =>
-            h.members.includes("player") && h.members.includes(place.owner),
-        ) ||
-        (this.state.permissions[place.owner] ?? 0) > this.state.clock;
+      const door = this.doorOf(place.id);
+      const verdict = this.doorVerdict(place, "player");
       interact(
         "enter",
         place.entranceLabel,
-        close && allowed,
-        allowed ? "Walk to the entrance" : "Speak with the household first",
+        close && !!door?.open,
+        door?.open
+          ? "Walk to the entrance"
+          : verdict === "barred"
+            ? "The door is shut against you"
+            : "Open the door first",
       );
       return {
         id,
@@ -1458,6 +1501,17 @@ export class Engine {
         object.open ? "close" : "open",
         object.open ? "Close gate" : "Open gate",
       );
+    if (object.kind === "door") {
+      const place = object.placeId
+        ? this.world.place(object.placeId)
+        : undefined;
+      const verdict = place ? this.doorVerdict(place, "player") : "open";
+      if (object.open) interact("close", "Close the door");
+      else if (verdict === "open") interact("open", "Open the door");
+      // A door that will not open can still be knocked on. Whether anything
+      // answers is the knock's business, not the prompt's.
+      else interact("knock", "Knock and wait");
+    }
     if (object.kind === "well") interact("drink", "Drink and refill water");
     if (object.kind === "fire")
       interact("rest", "Warm yourself for 20 minutes");
@@ -1505,13 +1559,17 @@ export class Engine {
             : "A little shade. Dry branches lie beneath the canopy."
           : object.depleted
             ? "The container or plot has been emptied."
-            : object.kind === "gate"
+            : object.kind === "door"
               ? object.open
-                ? "The gate stands open."
-                : "The gate keeps animals inside."
-              : object.owner
-                ? "These possessions belong to a household. Access does not grant ownership."
-                : "A shared resource in the settlement.",
+                ? "The door stands open."
+                : "The door is shut."
+              : object.kind === "gate"
+                ? object.open
+                  ? "The gate stands open."
+                  : "The gate keeps animals inside."
+                : object.owner
+                  ? "These possessions belong to a household. Access does not grant ownership."
+                  : "A shared resource in the settlement.",
       kind: object.kind,
       pos,
       claim: object.claim,
@@ -2096,8 +2154,9 @@ export class Engine {
     if (c.type === "stow") {
       const what = p.heldItem
         ? this.item(p.heldItem)!.name.toLowerCase()
-        : (this.state.objects.find((o) => o.id === p.held)?.name.toLowerCase() ??
-          "it");
+        : (this.state.objects
+            .find((o) => o.id === p.held)
+            ?.name.toLowerCase() ?? "it");
       const wasItem = !!p.heldItem;
       this.emptyHands();
       this.advance(4);
@@ -2254,7 +2313,10 @@ export class Engine {
       case "exit": {
         const home = this.world.place(p.pos.space);
         if (home) {
-          p.pos = { ...home.entrance, space: "outside" };
+          // Out through the door that was drawn, not the lot's street corner.
+          p.pos = { ...doorApproach(home), space: "outside" };
+          const out = this.doorOf(home.id);
+          if (out) out.open = true;
           this.advance(10);
           this.event("You return to the open air.");
         }
@@ -2265,9 +2327,52 @@ export class Engine {
         if (o) {
           o.open = c.action === "open";
           this.advance(3);
-          this.event(`You ${c.action} the gate.`);
+          this.event(
+            o.kind === "door"
+              ? `You ${c.action} the door.`
+              : `You ${c.action} the gate.`,
+          );
         }
         break;
+      case "knock": {
+        const place = o?.placeId ? this.world.place(o.placeId) : undefined;
+        this.advance(30);
+        if (!place || !o) break;
+        // The rattle the renderer draws; cleared when the door next moves.
+        o.knocked = this.state.clock;
+        const inside = this.state.actors
+          .filter((a) => a.pos.space === place.id && a.kind === "human")
+          .sort((a, b) => (a.id < b.id ? -1 : 1));
+        const hour = (this.state.clock / 3600) % 24;
+        const answerer = inside[0];
+        if (!answerer) {
+          this.event(
+            `You knock at ${place.name.toLowerCase()}. Nobody answers.`,
+          );
+          break;
+        }
+        if (hour < 6 || hour >= 22) {
+          this.event(
+            `A voice inside tells you to come back in daylight. The door stays shut.`,
+          );
+          break;
+        }
+        if (answerer.trust < 0) {
+          this.event(
+            `${answerer.name} calls through the door for you to go away.`,
+          );
+          break;
+        }
+        // Answering is standing granted, the same way a conversation grants it,
+        // and it lapses the same way.
+        this.state.permissions[place.owner] = this.state.clock + 3600;
+        o.open = true;
+        this.moveActor(answerer, { ...place.entrance, space: "outside" });
+        answerer.activity = "Answering the door";
+        this.doorAnswer = answerer.id;
+        this.event(`${answerer.name} opens the door and looks you over.`);
+        break;
+      }
       case "climb": {
         const target = this.climbable();
         if (target) this.perch(target);
@@ -2419,7 +2524,7 @@ export class Engine {
       if (
         (a.householdId &&
           this.blocked(target.x, target.y, target.space) &&
-          !this.gateAt(target, target.space)) ||
+          !this.barrierAt(target, target.space)) ||
         this.actorAt(target, a.id)
       ) {
         const alternative = [
@@ -2443,7 +2548,7 @@ export class Engine {
         (!cached.path.length && !a.householdId) ||
         (cached.path[0] &&
           this.blocked(cached.path[0].x, cached.path[0].y, a.pos.space) &&
-          !this.gateAt(cached.path[0], a.pos.space))
+          !this.barrierAt(cached.path[0], a.pos.space))
       ) {
         cached = {
           target: key,
@@ -2453,7 +2558,7 @@ export class Engine {
       }
       const step = cached.path[0];
       if (!step) return;
-      const gate = this.gateAt(step, a.pos.space);
+      const gate = this.barrierAt(step, a.pos.space);
       if (gate && a.kind === "human" && (!gate.owner || gate.owner === a.id)) {
         gate.open = true;
         return;
@@ -2712,21 +2817,21 @@ export class Engine {
     // Derived paths never survive a command boundary: saves and replays need no hidden routing state.
     this.routes.clear();
     this.tickObstacles = new Map();
-    this.gatesAt = new Map();
+    this.barriersAt = new Map();
     this.objectsById = new Map();
     this.resourceObjects = [];
     for (const o of this.state.objects) {
       if (!this.objectsById.has(o.id)) this.objectsById.set(o.id, o);
       if (o.resource) this.resourceObjects.push(o);
-      if (o.kind !== "gate" && !o.prop) continue;
+      if (o.kind !== "gate" && o.kind !== "door" && !o.prop) continue;
       const key = `${o.pos.space}:${o.pos.x},${o.pos.y}`;
       const at = this.tickObstacles.get(key) ?? [];
       at.push(o);
       this.tickObstacles.set(key, at);
-      if (o.kind === "gate") {
-        const gates = this.gatesAt.get(key) ?? [];
+      if (o.kind === "gate" || o.kind === "door") {
+        const gates = this.barriersAt.get(key) ?? [];
         gates.push(o);
-        this.gatesAt.set(key, gates);
+        this.barriersAt.set(key, gates);
       }
     }
     this.householdsById = new Map();
@@ -2978,7 +3083,7 @@ export class Engine {
       this.stepFauna(next);
     }
     this.tickObstacles = undefined;
-    this.gatesAt = undefined;
+    this.barriersAt = undefined;
     this.actorsAt = undefined;
     this.actorCell = undefined;
     this.actorsById = undefined;

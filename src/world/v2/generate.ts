@@ -1,4 +1,5 @@
 import { trimCache } from "../../core/cache";
+import { isDoorway, makeDoor } from "../../core/doors";
 import type {
   Actor,
   Decoration,
@@ -424,7 +425,12 @@ export function createAtlasWorld(pack: Pack, seed: string): WorldModel {
       nearby(x, y).some(
         (d) =>
           d.places.some(
-            (p) => x >= p.x && x < p.x + p.w && y >= p.y && y < p.y + p.h,
+            (p) =>
+              x >= p.x &&
+              x < p.x + p.w &&
+              y >= p.y &&
+              y < p.y + p.h &&
+              !isDoorway(p, x, y),
           ) ||
           d.objects.some(
             (o) => o.kind === "tree" && o.pos.x === x && o.pos.y === y,
@@ -448,7 +454,7 @@ export function createAtlasWorld(pack: Pack, seed: string): WorldModel {
     active.add(d.id);
     if (d.settlement) settlements.push(d.settlement);
     places.push(...d.places);
-    objects.push(...d.objects);
+    objects.push(...d.objects, ...d.places.map(makeDoor));
     actors.push(...d.actors);
   }
   const world: WorldModel = {

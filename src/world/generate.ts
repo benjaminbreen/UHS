@@ -1,4 +1,5 @@
 import { buildingModel } from "../content/graphics/models";
+import { isDoorway, makeDoor } from "../core/doors";
 import {
   CHUNK_SIZE,
   type Pack,
@@ -358,7 +359,14 @@ export function createWorld(pack: Pack, seed: string): WorldModel {
     )
       return true;
     if (
-      places.some((p) => x >= p.x && x < p.x + p.w && y >= p.y && y < p.y + p.h)
+      places.some(
+        (p) =>
+          x >= p.x &&
+          x < p.x + p.w &&
+          y >= p.y &&
+          y < p.y + p.h &&
+          !isDoorway(p, x, y),
+      )
     )
       return true;
     for (const fence of enclosures) {
@@ -377,6 +385,7 @@ export function createWorld(pack: Pack, seed: string): WorldModel {
     }
     return !!decoration(x, y)?.solid;
   }
+  objects.push(...places.map(makeDoor));
   return {
     pack,
     settlements,

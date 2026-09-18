@@ -291,6 +291,7 @@ const actor = z.object({
     .object({ on: z.string(), label: z.string(), rise: z.number() })
     .optional(),
   direction: z.number().int().min(0).max(3),
+  facing: z.number().int().min(0).max(7).optional(),
   offRoutine: z.boolean().optional(),
   lastUpdated: z.number().int().optional(),
   goal: pos.optional(),
@@ -311,9 +312,12 @@ const object = z.object({
   damage: z.number().int().min(0).max(3).optional(),
   id: z.string(),
   name: z.string(),
+  placeId: z.string().optional(),
+  knocked: z.number().optional(),
   kind: z.enum([
     "container",
     "gate",
+    "door",
     "well",
     "fire",
     "crop",

@@ -18,6 +18,65 @@ ROOFS = {
     'shingle': ['#3b322d', '#635040', '#896b4e', '#ad8b63', '#c6a57b'],
 }
 
+def recess(d,p,x,y,width,height,door=False,niche=False):
+    dark,shade,base,light,hi=p['wall']
+    d.rectangle((x-2,y-2,x+width+2,y+height+2),fill=light)
+    d.rectangle((x-1,y-1,x+width+1,y+height),fill=shade)
+    d.rectangle((x,y,x+width,y+height),fill='#283536' if not door and not niche else '#312d27')
+    d.rectangle((x+2,y+2,x+width,y+height),fill='#30454b' if not door and not niche else '#453b2d')
+    d.line((x-2,y-2,x+width+2,y-2),fill=hi)
+    d.line((x+width+2,y-1,x+width+2,y+height),fill=dark)
+    if door:
+        for xx in range(x+3,x+width,3):d.line((xx,y+4,xx,y+height),fill='#685237')
+        d.point((x+width-2,y+height//2+2),fill='#c4a26c')
+    elif not niche:d.line((x+2,y+3,x+2,y+height-2),fill='#46606a')
+    d.rectangle((x-2,y+height+1,x+width+2,y+height+2),fill=hi)
+    d.line((x-1,y+height+3,x+width+2,y+height+3),fill=shade)
+
+
+DOOR_W, DOOR_H = 10, 23
+
+
+def build_doors(sprites):
+    """One leaf for every door in the game.
+
+    The shut door stays baked into each building; these frames only ever cover
+    that rect while it is open, so a new building needs no door art of its own.
+    Frame 0 is shut and is never drawn — the runtime hides the overlay instead.
+    """
+    for phase, leaf in enumerate([DOOR_W - 2, 7, 4, 2]):
+        im = Image.new('RGBA', (DOOR_W + 1, DOOR_H + 1))
+        d = ImageDraw.Draw(im)
+        d.rectangle((0, 0, DOOR_W, DOOR_H), fill='#1d1e19')
+        # A little floor inside, so an open door is a room and not a hole.
+        d.rectangle((0, DOOR_H - 4, DOOR_W, DOOR_H), fill='#2b271f')
+        d.line((0, DOOR_H - 4, DOOR_W, DOOR_H - 4), fill='#3a3428')
+        d.rectangle((0, 0, leaf, DOOR_H), fill='#453b2d')
+        d.rectangle((0, 0, leaf, 1), fill='#312d27')
+        for x in range(2, leaf, 3):
+            d.line((x, 2, x, DOOR_H - 1), fill='#685237')
+        # The swinging edge is the one edge of a door that catches the sky.
+        d.line((leaf, 1, leaf, DOOR_H), fill='#8a6f49')
+        if leaf > 4:
+            d.point((leaf - 2, DOOR_H // 2 + 2), fill='#c4a26c')
+        sprites[f'door-leaf-{phase}'] = im
+
+
+def corner_door(artist, ground, x=None):
+    """A door for a building the world has placed side-on or back-on.
+
+    The sprite only ever has a front, so the door goes on it, near the corner
+    the walk arrives at. Drawing it as a slab on the sprite edge read as a
+    black rectangle stuck to the silhouette.
+    """
+    f = artist.facing
+    if f not in ('east', 'west'): return
+    if x is None:
+        x = artist.w - 18 - DOOR_W if f == 'east' else 8
+    recess(artist.d, artist.p, x, ground - DOOR_H - 1, DOOR_W, DOOR_H, door=True)
+    return x
+
+
 class Building:
     def __init__(self, recipe, material):
         self.r = recipe
@@ -31,7 +90,9 @@ class Building:
         self.front = self.w - 12
         # This opening axis is also the walkable entrance in the world contract.
         self.facing = recipe.get('facing', 'south')
-        self.door_x = min(self.w-18,max(18,recipe['entrance'][0] * 16 + 8)) if self.facing != 'south' else recipe['entrance'][0] * 16 + 8
+        # Its own stream, so nudging the door does not reshuffle the wall wear.
+        jitter = random.Random(recipe['seed'] + 977).randrange(-5, 6)
+        self.door_x = min(self.front - 9, max(11, recipe['entrance'][0] * 16 + 8 + jitter))
 
     def wall(self):
         d, w, b, t = self.d, self.w, self.bottom, self.top
@@ -99,19 +160,7 @@ class Building:
         d.line((5,b+1,self.w-8,b+1),fill=(30,34,26,155))
 
     def recess(self,x,y,width,height,door=False,niche=False):
-        d=self.d;dark,shade,base,light,hi=self.p['wall']
-        d.rectangle((x-2,y-2,x+width+2,y+height+2),fill=light)
-        d.rectangle((x-1,y-1,x+width+1,y+height),fill=shade)
-        d.rectangle((x,y,x+width,y+height),fill='#283536' if not door and not niche else '#312d27')
-        d.rectangle((x+2,y+2,x+width,y+height),fill='#30454b' if not door and not niche else '#453b2d')
-        d.line((x-2,y-2,x+width+2,y-2),fill=hi)
-        d.line((x+width+2,y-1,x+width+2,y+height),fill=dark)
-        if door:
-            for xx in range(x+3,x+width,3):d.line((xx,y+4,xx,y+height),fill='#685237')
-            d.point((x+width-2,y+height//2+2),fill='#c4a26c')
-        elif not niche:d.line((x+2,y+3,x+2,y+height-2),fill='#46606a')
-        d.rectangle((x-2,y+height+1,x+width+2,y+height+2),fill=hi)
-        d.line((x-1,y+height+3,x+width+2,y+height+3),fill=shade)
+        recess(self.d,self.p,x,y,width,height,door,niche)
 
     def openings(self):
         if self.facing != 'south':
@@ -121,7 +170,6 @@ class Building:
             # Small sealed facade niche; roof entry is drawn after the roof.
             self.recess(12,self.top+12,6,7,niche=True)
         else:
-            self.recess(self.door_x-5,self.bottom-25,10,24,True)
             for x in [12,self.w-28]:self.recess(x,self.top+10,7,10)
             if self.r.get('stories',1)>1:
                 self.d.line((6,self.bottom-37,self.front,self.bottom-37),fill=self.p['wall'][1])
@@ -255,17 +303,26 @@ class Building:
         if RELIGHT:self.eave_shadow()
         for part in self.r['attachments']:
             if part!='timber-frame' and not (part=='ladder' and self.facing!='south'):self.attachment(part)
-        # Directional variants redraw openings while retaining the shared light direction.
+        # The door goes on last: an awning or porch is in front of the wall,
+        # but never in front of the opening.
         if self.facing in ('east','west'):
-            x=self.w-11 if self.facing=='east' else 3
-            self.d.rectangle((x-2,self.bottom-22,x+3,self.bottom),fill='#332e27')
-            self.d.line((x-3,self.bottom-23,x+3,self.bottom-23),fill=self.p['wall'][3])
-            self.d.line((x-3,self.bottom+1,x+4,self.bottom+1),fill=self.p['wall'][4])
-        elif self.facing=='north':
-            # The rear door is occluded by the roof; show its threshold at the far wall.
-            self.d.rectangle((self.w//2-6,4,self.w//2+6,7),fill=self.p['foundation'][1])
-            self.d.line((self.w//2-6,4,self.w//2+6,4),fill=self.p['foundation'][2])
+            self.door_x=corner_door(self,self.bottom)+DOOR_W//2
+        elif self.facing in ('south','north') and self.r['opening']!='roof-hatch':
+            recess(self.d,self.p,self.door_x-DOOR_W//2,self.bottom-DOOR_H-1,
+                   DOOR_W,DOOR_H,door=True)
         return self.im
+
+
+def door_rect(artist):
+    """Where the leaf overlay goes, in sprite pixels.
+
+    Every facing has one: the world moves the walkable doorway to the wall the
+    art drew it on, rather than leaving a building with a blank front.
+    """
+    ground = getattr(artist, 'bottom', None)
+    if ground is None: ground = artist.ground
+    x = getattr(artist, 'door_x', artist.w // 2)
+    return [x - DOOR_W // 2, ground - DOOR_H - 1, DOOR_W, DOOR_H]
 
 
 def build_buildings(root, sprites):
@@ -276,6 +333,7 @@ def build_buildings(root, sprites):
                            build_animated_details, build_urban_furniture,
                            build_city_walls, build_square_furniture)
     build_animated_details(sprites)
+    build_doors(sprites)
     build_urban_furniture(sprites)
     build_city_walls(sprites)
     build_square_furniture(sprites)
@@ -305,6 +363,7 @@ def build_buildings(root, sprites):
         models[name]={
             'frame':name,'label':r['label'],'footprint':r['footprint'],'entrance':r['entrance'],
             'anchor':[w/2,h-3],'bounds':[0,0,w,h],'height':r['height'],
+            **({'door':door_rect(artist)} if door_rect(artist) else {}),
             'occlusion':[4,7,w-7,h-7],'shadow':{'kind':'building','height':r['height'],'contactWidth':w-12},
             'wall':r['wall'],'roof':r['roof'],'roofMaterial':r['roofMaterial'],'attachments':r['attachments'],
             'opening':r['opening'],'description':r['description'],

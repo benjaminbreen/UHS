@@ -4,7 +4,11 @@ import {
   characterSex,
   eligibleInventory,
 } from "../../content/characters/generate";
-import { resolveCharacterContext, workAt } from "../../content/characters/resolve";
+import {
+  resolveCharacterContext,
+  workAt,
+} from "../../content/characters/resolve";
+import { workplaceFor } from "../../content/characters/workplace";
 import { venuesFor } from "../../content/venues";
 import {
   streetPalette,
@@ -54,6 +58,7 @@ import {
   type SettlementPlan,
   type Site,
 } from "./types";
+import { makeDoor } from "../../core/doors";
 /** The livelihood activity that keeps animals, as the character tables name it. */
 const HERDING = "Tending animals";
 
@@ -77,8 +82,10 @@ export function planSettlement(
   /* Ask what work is actually available rather than guessing at ids: the
    * planner used to request "farmer" and match `role === "Farmer"`, so where
    * the pool held no cultivator it laid fields nobody could work. */
-  const canFarm = !characterContext || workAt(characterContext, "field").length > 0;
-  const canHerd = !characterContext || workAt(characterContext, "pasture").length > 0;
+  const canFarm =
+    !characterContext || workAt(characterContext, "field").length > 0;
+  const canHerd =
+    !characterContext || workAt(characterContext, "pasture").length > 0;
   const sharedRoads = !!pack.setting?.roadRevision;
   const urban = urbanSite(site, pack);
   /** Resolved once: the lookup scans every dated rule, and both the square's
@@ -1372,6 +1379,8 @@ export function planSettlement(
   const tStreets = tPlan;
   /** Households whose work is keeping animals, so a pen has someone to tend it. */
   const herders = new Set<string>();
+  /** Households whose work is the fields, so a parcel has someone to till it. */
+  const tillers = new Set<string>();
   // A composed settlement's capacity comes from its own extent and fabric; the
   // flat profile count still governs villages and the older layouts.
   const limit =
@@ -1466,7 +1475,10 @@ export function planSettlement(
     }
     if (lot.religious) {
       const id = `${site.id}-religious`;
-      eachCell(rect, (x, y) => { plan.solid.add(cellKey(x, y)); plan.built!.add(cellKey(x, y)); });
+      eachCell(rect, (x, y) => {
+        plan.solid.add(cellKey(x, y));
+        plan.built!.add(cellKey(x, y));
+      });
       paint(rect, "dirt");
       // An apron rings the sanctuary, so its precinct reads on the ground and
       // a way round it always exists.
@@ -1517,7 +1529,10 @@ export function planSettlement(
     }
     if (lot.civic) {
       const id = `${site.id}-civic`;
-      eachCell(rect, (x, y) => { plan.solid.add(cellKey(x, y)); plan.built!.add(cellKey(x, y)); });
+      eachCell(rect, (x, y) => {
+        plan.solid.add(cellKey(x, y));
+        plan.built!.add(cellKey(x, y));
+      });
       paint(rect, "dirt");
       plan.places.push({
         id,
@@ -1575,11 +1590,17 @@ export function planSettlement(
           : lot.quarter === "craft"
             ? "craftsperson"
             : profile.livestock && canHerd && i % 3 === 1
-              ? workAt(characterContext!, "pasture", characterSex(seed, owner))[0]
-                  ?.id ?? "herder"
+              ? (workAt(
+                  characterContext!,
+                  "pasture",
+                  characterSex(seed, owner),
+                )[0]?.id ?? "herder")
               : profile.fields !== "none" && canFarm && i % 3 === 0
-                ? workAt(characterContext!, "field", characterSex(seed, owner))[0]
-                    ?.id ?? "farmer"
+                ? (workAt(
+                    characterContext!,
+                    "field",
+                    characterSex(seed, owner),
+                  )[0]?.id ?? "farmer")
                 : undefined;
     const livelihood = pack.setting?.characterRevision
       ? characterLivelihood(
@@ -1607,14 +1628,24 @@ export function planSettlement(
     // left a farmstead with no pen, no gate and no animals at all.
     if (livelihood ? livelihood.activity === HERDING : role === "Herder")
       herders.add(owner);
-    eachCell(rect, (x, y) => { plan.solid.add(cellKey(x, y)); plan.built!.add(cellKey(x, y)); });
+    if (
+      livelihood
+        ? (livelihood.workplace ?? workplaceFor(livelihood.activity)) === "field"
+        : role === "Farmer"
+    )
+      tillers.add(owner);
+    eachCell(rect, (x, y) => {
+      plan.solid.add(cellKey(x, y));
+      plan.built!.add(cellKey(x, y));
+    });
     if (!connect(workPoint, door, `yard-access${i}`, 0)) {
       eachCell(rect, (x, y) => plan.solid.delete(cellKey(x, y)));
       continue;
     }
     const shopfront =
       lot.quarter === "market" || lot.quarter === "craft" || i % 4 === 1;
-    if (lot.venue) plan.venues!.push({ venue: lot.venue, pos: door, placeId: id });
+    if (lot.venue)
+      plan.venues!.push({ venue: lot.venue, pos: door, placeId: id });
     plan.places.push({
       id,
       name: lot.venue
@@ -1898,13 +1929,10 @@ export function planSettlement(
       }
     return best;
   }
+  // By the work, not the label: the livelihood tables name dozens of trades,
+  // so matching "Farmer" by name left every parcel unowned.
   const fieldOwners = characterContext
-    ? owners.filter(
-        (id) =>
-          (id === "player"
-            ? pack.role
-            : plan.actors.find((a) => a.id === id)?.role) === "Farmer",
-      )
+    ? owners.filter((id) => tillers.has(id))
     : owners;
   const farmable =
     profile.fields !== "none" &&
@@ -2150,10 +2178,7 @@ export function planSettlement(
   const penFields: [string, FieldCell][] = [];
   const year = pack.setting?.year ?? 0;
   const penBoundary = year < -800 ? "wall" : eraEnclosure(year);
-  const fenceCell = (
-    parcel: number,
-    fence: number,
-  ): FieldCell => ({
+  const fenceCell = (parcel: number, fence: number): FieldCell => ({
     parcel,
     crop: "pasture",
     axis: "x",
@@ -2289,10 +2314,13 @@ export function planSettlement(
           3 + Math.floor(random(seed, id, "herd") * 2),
         );
         const stride = Math.max(1, Math.floor(interior.length / count));
-        const members: FaunaMember[] = Array.from({ length: count }, (_, j) => ({
-          ...interior[(j * stride + 1) % interior.length],
-          direction: j % 2 ? 3 : 1,
-        }));
+        const members: FaunaMember[] = Array.from(
+          { length: count },
+          (_, j) => ({
+            ...interior[(j * stride + 1) % interior.length],
+            direction: j % 2 ? 3 : 1,
+          }),
+        );
         const middle = {
           x: pen.x + Math.floor(pen.w / 2),
           y: pen.y + Math.floor(pen.h / 2),
@@ -2417,10 +2445,7 @@ export function planSettlement(
           owner,
         });
         // The young keep to the adults, never a paddock of their own.
-        if (
-          paddockYoung &&
-          rand(id, "young") < paddockSpecies.young!.chance
-        )
+        if (paddockYoung && rand(id, "young") < paddockSpecies.young!.chance)
           plan.fauna.push({
             id: `${id}-young`,
             speciesId: paddockYoung.id,
@@ -2570,10 +2595,16 @@ export function planSettlement(
       plan.fields.delete(k);
       if (plan.canals?.delete(k)) plan.culverts?.add(k);
     }
+  // Every place gets a door, last, so nothing placed earlier lands on the cell
+  // and the hole it punches in the wall survives the rest of the build.
+  for (const place of plan.places) {
+    const door = makeDoor(place);
+    plan.solid.delete(cellKey(door.pos.x, door.pos.y));
+    plan.objects.push(door);
+  }
   const tRoutines = now();
   planRoutines(plan, seed, pack, sample);
   plan.diagnostics.timing!.routines = Math.round(now() - tRoutines);
   plan.diagnostics.timing!.total = Math.round(now() - tPlan);
   return plan;
 }
-

@@ -12,7 +12,7 @@ Recipes live in src/content/graphics/halls.json.
 import math
 import random
 from PIL import Image, ImageDraw
-from art.buildings import ROOFS
+from art.buildings import ROOFS, DOOR_W, corner_door
 from art.theatres import TheatreBuilding, expand
 
 OUTLINE = '#2f2a22'
@@ -1027,10 +1027,7 @@ class HallBuilding(TheatreBuilding):
          'round-house': self.round_house,
          'carved-gable': self.carved_gable}[form]()
         if self.facing in ('east', 'west'):
-            x = self.w - 11 if self.facing == 'east' else 3
-            self.d.rectangle((x - 2, self.ground - 20, x + 3, self.ground), fill='#2b2620')
-            self.d.line((x - 3, self.ground - 21, x + 3, self.ground - 21),
-                        fill=self.p['wall'][3])
+            self.door_x = corner_door(self, self.ground) + DOOR_W // 2
         elif self.facing == 'north':
             self.d.rectangle((self.w // 2 - 7, 4, self.w // 2 + 7, 7),
                              fill=self.p['foundation'][1])

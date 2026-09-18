@@ -17,7 +17,7 @@ import {
   generateAppearance,
   type AppearancePalette,
 } from "../core/character";
-import type { Actor, Intent, ItemId } from "../core/types";
+import type { Actor, Intent, ItemId, Place } from "../core/types";
 import type { CharacterPose } from "../render/characters/poses";
 import type {
   ToolEffect,
@@ -49,7 +49,9 @@ export type Verb = {
     | "drink"
     | "climb"
     /** Select a building, as clicking it does: outline, and the sidebar. */
-    | "inspect";
+    | "inspect"
+    /** Work the door of the building in front of you. */
+    | "door";
   /** What the HUD prints beside the key. */
   label: string;
   /** Talk: whom to open the dialogue panel on. Inspect: what to select. */
@@ -450,7 +452,8 @@ export class Runtime {
         serial: ++this.characterSerial,
         pose: tool ? TOOL_POSES[TOOL_ACTIONS[tool]] : "swing",
         at: performance.now(),
-        prop: held?.sprite ?? (item ? this.engine.item(item)?.sprite : undefined),
+        prop:
+          held?.sprite ?? (item ? this.engine.item(item)?.sprite : undefined),
       };
       if (swing) {
         const p = this.engine.state.player.pos;
@@ -1002,6 +1005,33 @@ export class Runtime {
     }
     return undefined;
   }
+  /** Open, knock at, or step through the door of the building in front of the
+   * player. Undefined when there is no door within a stride, or when it will
+   * not answer them at all. */
+  doorVerb(place: Place): Verb | undefined {
+    const p = this.engine.state.player;
+    const door = this.engine.doorOf(place.id);
+    if (
+      !door ||
+      Math.abs(door.pos.x - p.pos.x) + Math.abs(door.pos.y - p.pos.y) > 2
+    )
+      return undefined;
+    const command = (action: "open" | "knock") =>
+      ({ type: "interact", target: door.id, action }) as Verb["command"];
+    if (door.open)
+      return {
+        kind: "door",
+        label: `${place.entranceLabel} ${place.name.toLowerCase()}`,
+        command: { type: "interact", target: place.id, action: "enter" },
+      };
+    return this.engine.doorVerdict(place, "player") === "open"
+      ? { kind: "door", label: "Open the door", command: command("open") }
+      : {
+          kind: "door",
+          label: `Knock at ${place.name.toLowerCase()}`,
+          command: command("knock"),
+        };
+  }
   /** What F and E do right now. Two slots, resolved in a fixed order so the
    * player can learn it, and labelled so they never have to guess. */
   verbs(): { primary?: Verb; alternate?: Verb } {
@@ -1019,6 +1049,7 @@ export class Runtime {
     const speaker = this.facingSpeaker();
     const other = speaker ? undefined : this.nearestSpeaker();
     const place = this.facingPlace();
+    const door = place ? this.doorVerb(place) : undefined;
     const descend = !!p.perch || this.engine.onWall();
     const climbTarget = descend ? undefined : this.engine.climbable();
     const climb: Verb | undefined =
@@ -1058,8 +1089,13 @@ export class Runtime {
       primary = { kind: "drop", label: `Put ${item.name.toLowerCase()} away` };
     else if (c.primary?.action === "pickup")
       primary = { kind: "pickup", label: c.primaryLabel, command: c.primary };
+    else if (place && door) primary = door;
     else if (place)
-      primary = { kind: "inspect", label: `Look at ${place.name}`, actor: place.id };
+      primary = {
+        kind: "inspect",
+        label: `Look at ${place.name}`,
+        actor: place.id,
+      };
     else primary = climb ?? { kind: "strike", label: "Take a swing" };
     let alternate: Verb | undefined;
     // A tree you could climb is what E is for while your hands are full:
@@ -1072,7 +1108,10 @@ export class Runtime {
         command: { type: "interact", target: held.id, action: "drop" },
       };
     else if (item)
-      alternate = { kind: "drop", label: `Put ${item.name.toLowerCase()} away` };
+      alternate = {
+        kind: "drop",
+        label: `Put ${item.name.toLowerCase()} away`,
+      };
     else if (c.secondary)
       alternate = {
         kind: c.secondary.action === "drink" ? "drink" : "look",
@@ -1335,7 +1374,7 @@ export class Runtime {
     }
     const upcoming = this.route[0];
     if (upcoming && this.engine.state.manifest.simulation === 2) {
-      const gate = this.engine.gateAt(upcoming);
+      const gate = this.engine.barrierAt(upcoming);
       if (gate) {
         const result = this.command({
           type: "interact",

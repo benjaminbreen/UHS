@@ -8,7 +8,7 @@ Same native grid and upper-left light as the other compilers. Story pitch is
 under 200px.
 """
 from PIL import Image, ImageDraw
-from art.buildings import Building, ROOFS
+from art.buildings import Building, ROOFS, DOOR_W, corner_door
 from art.roof_light import course_tone
 from art.urban import InfillBuilding
 
@@ -842,10 +842,7 @@ class PeriodBuilding(Building):
         elif self.facing == 'north' and 'fire-escape' in self.extras:
             self.fire_escape()
         if self.facing in ('east', 'west'):
-            x = self.w - 11 if self.facing == 'east' else 3
-            self.d.rectangle((x - 2, self.bottom - 22, x + 3, self.bottom), fill='#332e27')
-            self.d.line((x - 3, self.bottom - 23, x + 3, self.bottom - 23), fill=self.p['wall'][3])
-            self.d.line((x - 3, self.bottom + 1, x + 4, self.bottom + 1), fill=self.p['wall'][4])
+            self.door_x = corner_door(self, self.bottom) + DOOR_W // 2
         elif self.facing == 'north':
             self.d.rectangle((self.w // 2 - 6, 4, self.w // 2 + 6, 7), fill=self.p['foundation'][1])
             self.d.line((self.w // 2 - 6, 4, self.w // 2 + 6, 4), fill=self.p['foundation'][2])

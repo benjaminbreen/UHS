@@ -149,9 +149,14 @@ export type WorldObject = {
   damage?: number;
   id: string;
   name: string;
+  placeId?: string;
+  /** Clock at the last knock on this door; drives the rattle the scene draws. */
+  knocked?: number;
   kind:
     | "container"
     | "gate"
+    /** A gate in a building wall; `placeId` is what it lets you into. */
+    | "door"
     | "well"
     | "fire"
     | "crop"
@@ -277,6 +282,7 @@ export type PlayerCommand =
         | "harvest"
         | "capture"
         | "herd"
+        | "knock"
         | "follow"
         | "take"
         | "rest"

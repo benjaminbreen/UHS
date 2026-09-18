@@ -144,9 +144,15 @@ it("grazing consumes finite forage rather than manufacturing food", () => {
     setting({ ecology: "grassland", population: "none", start: "shepherd" }),
     "grazing-check",
   );
-  const sheep = e.state.actors.find((a) => a.kind === "sheep")!;
   const patch = e.state.objects.find((o) => o.resource?.item === "fodder")!;
-  sheep.pos = { ...patch.pos };
+  // The player's own flock is a fauna group, not an actor; kept livestock is.
+  const sheep = {
+    ...e.state.actors[0],
+    id: "test-sheep",
+    kind: "sheep" as const,
+    pos: { ...patch.pos },
+  };
+  e.state.actors.push(sheep);
   sheep.hunger = 20;
   e.state.player.pos = { ...patch.pos, x: patch.pos.x + 8 };
   e.state.clock = 36000;
