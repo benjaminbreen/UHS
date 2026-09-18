@@ -297,7 +297,8 @@ export function createRegionalContext(start: WorldSetting) {
     const here = profilesAt(x, y),
       namedPlace = placeAt(x, y);
     let baseKey = `${ambient.relief}|${climate}|${localStart}|${namedPlace?.id}`;
-    if (start.ecologyRevision === 2) baseKey += `|${ecoregionNear(ll.lon, ll.lat)?.id ?? 0}|${Math.floor(ll.lat / 5)}|${Math.floor(ll.lon / 5)}`;
+    if (start.ecologyRevision === 2)
+      baseKey += `|${ecoregionNear(ll.lon, ll.lat)?.id ?? 0}|${Math.floor(ll.lat / 5)}|${Math.floor(ll.lon / 5)}`;
     for (const p of here) baseKey += "|" + p.id;
     let base = baseCache.get(baseKey);
     if (!base) {
@@ -339,14 +340,27 @@ export function createRegionalContext(start: WorldSetting) {
       if (start.year < -9999 && !namedPlace)
         s = { ...s, settlement: "camp", architecture: "shelter" };
       s.environment = {
-        ...environmentFor(start.ecologyRevision === 2 ? { ...s, ...ll, geographyMode: "earth" } : s, ambient.moisture),
-        ...(start.ecologyRevision === 2 ? namedPlace?.defaults.ecology ?? [...here].reverse().find((p) => p.defaults.ecology)?.defaults.ecology : undefined),
+        ...environmentFor(
+          start.ecologyRevision === 2
+            ? { ...s, ...ll, geographyMode: "earth" }
+            : s,
+          ambient.moisture,
+        ),
+        ...(start.ecologyRevision === 2
+          ? (namedPlace?.defaults.ecology ??
+            [...here].reverse().find((p) => p.defaults.ecology)?.defaults
+              .ecology)
+          : undefined),
         start: start.environment!.start,
         household: start.environment!.household,
       };
+      // Only near the start. Without the bound a configured or desert world
+      // was the starting ecology everywhere, so you could never walk out of
+      // the Sahara into the Nile.
       if (
-        start.geographyMode === "configured" ||
-        (start.climate === "arid" && start.environment?.ecology === "desert")
+        localStart &&
+        (start.geographyMode === "configured" ||
+          (start.climate === "arid" && start.environment?.ecology === "desert"))
       )
         s.environment = { ...start.environment! };
       trimCache(baseCache, 512);
@@ -377,8 +391,10 @@ export function createRegionalContext(start: WorldSetting) {
     const tx = smooth((ax + warp - gx) / L),
       ty = smooth((ay - warp - gy) / L);
     const distance = Math.hypot(x, y) + warp;
-    const home = start.ecologyRevision === 2 && start.geographyMode !== "configured"
-      ? 0 : 1 - smooth(Math.max(0, Math.min(1, (distance - 80) / 208)));
+    const home =
+      start.ecologyRevision === 2 && start.geographyMode !== "configured"
+        ? 0
+        : 1 - smooth(Math.max(0, Math.min(1, (distance - 80) / 208)));
     const parts: {
       ecology: Ecology;
       colorway?: Colorway;
@@ -422,8 +438,18 @@ export function createRegionalContext(start: WorldSetting) {
         const fade = Math.min(SEAM_FADE / (map.size - 1), (to - from) / 2);
         const alongEdge = Math.min((u - from) / fade, (to - u) / fade, 1);
         if (alongEdge <= 0) return [];
-        const depth = side === "N" ? y + map.size / 2 : side === "S" ? map.size / 2 - 1 - y : side === "W" ? x + map.size / 2 : map.size / 2 - 1 - x;
-        const weight = 0.5 * smooth(alongEdge) * (1 - smooth(Math.max(0, Math.min(1, depth / 112))));
+        const depth =
+          side === "N"
+            ? y + map.size / 2
+            : side === "S"
+              ? map.size / 2 - 1 - y
+              : side === "W"
+                ? x + map.size / 2
+                : map.size / 2 - 1 - x;
+        const weight =
+          0.5 *
+          smooth(alongEdge) *
+          (1 - smooth(Math.max(0, Math.min(1, depth / 112))));
         return weight > 0 ? [{ env: e.neighbor, weight }] : [];
       });
       if (hits.length) {
@@ -433,17 +459,30 @@ export function createRegionalContext(start: WorldSetting) {
         const share = Math.min(0.5, total);
         for (const part of parts) part.weight *= 1 - share;
         for (const hit of hits)
-          add({ ...start.environment!, ...hit.env }, (hit.weight * share) / total);
+          add(
+            { ...start.environment!, ...hit.env },
+            (hit.weight * share) / total,
+          );
       }
     }
     if (start.playableMap?.exits.some((e) => e.neighbor)) {
-      const desert = parts.filter((p) => p.ecology === "desert").reduce((sum, p) => sum + p.weight, 0);
-      const green = parts.some((p) => p.ecology.includes("woodland") || p.ecology === "grassland");
+      const desert = parts
+        .filter((p) => p.ecology === "desert")
+        .reduce((sum, p) => sum + p.weight, 0);
+      const green = parts.some(
+        (p) => p.ecology.includes("woodland") || p.ecology === "grassland",
+      );
       if (desert > 0 && desert < 1 && green) {
         const transition = Math.min(desert, 1 - desert) * 1.2;
         for (const part of parts) part.weight *= 1 - transition;
-        add({ ...start.environment!, ecology: "dry-scrub", colorway: undefined }, transition * desert);
-        add({ ...start.environment!, ecology: "grassland", colorway: undefined }, transition * (1 - desert));
+        add(
+          { ...start.environment!, ecology: "dry-scrub", colorway: undefined },
+          transition * desert,
+        );
+        add(
+          { ...start.environment!, ecology: "grassland", colorway: undefined },
+          transition * (1 - desert),
+        );
       }
     }
     let roll = noise("ecotone", ax, ay, 12, "plant-colonies");
