@@ -1,6 +1,6 @@
 import type { FaunaState } from "../../core/fauna";
 import type { CharacterScope } from "../characters/context-types";
-import studies from "../../../public/fauna/studies.json" with { type: "json" };
+import studies from "../../../public/fauna-b/studies.json" with { type: "json" };
 import studiesC from "../../../public/fauna-c/studies.json" with { type: "json" };
 
 export type HabitatTag =
@@ -37,6 +37,11 @@ export type FaunaProfile = {
   presence: readonly CharacterScope[];
   /** What a society must do before a kept species appears with it. */
   needs?: "herding" | "settled";
+  /** Where a settlement that keeps this species puts it. A pen has a herder
+   * and a gate it is let out of; a yard animal scratches about the houses; a
+   * paddock is fenced and then left alone. `from` is the year the keeping
+   * starts, for animals kept later than they were known. */
+  keeping?: { place: "pen" | "yard" | "paddock"; from?: number };
   /** Expected groups per 64-cell block where every cell is ideal habitat. */
   density: number;
   /** Young of this species, spawned beside the adults rather than alone. */
@@ -81,6 +86,9 @@ export function study(
   };
 }
 
+/** Side-view species. Set B is the world's art, so it defines which states a
+ * species has; the ids stay unprefixed and the renderer and the lab add the
+ * prefix of the set they are drawing. */
 /** Four-direction species. `art` carries the south frames; the other facings
  * differ only in the direction segment of the id. */
 export function directionalStudy(

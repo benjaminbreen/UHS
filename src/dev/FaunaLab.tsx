@@ -64,8 +64,19 @@ function standingSize(profile: FaunaProfile) {
 }
 
 function setOf(profile: FaunaProfile, version: Version): Version {
-  return profile.directions ? "c" : version === "c" ? "b" : version;
+  if (profile.directions) return "c";
+  const set = version === "c" ? "b" : version;
+  // A was frozen at six species; anything drawn since is shown from B.
+  return set === "a" && !inA.has(profile.id) ? "b" : set;
 }
+
+/** The species the frozen A set ships, so the lab shows B for the ones drawn
+ * after it rather than an empty cell. */
+const inA = new Set(
+  Object.keys(faunaAtlas.frames).map(
+    (id) => id.replace(/^fauna-/, "").replace(/-[a-z]+-\d+$/, ""),
+  ),
+);
 
 function frameInfo(id: string, version: Version): Frame | undefined {
   const set = id.startsWith("faunac-") ? "c" : version;

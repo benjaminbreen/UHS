@@ -141,6 +141,8 @@ function decide(g: FaunaGroup, p: FaunaProfile, world: FaunaWorld, clock: number
   const calm = () =>
     clock + p.calmDecisionSeconds * (0.5 + world.rng(`fauna-${g.id}-wait`));
   g.target = undefined;
+  const feed = p.art.graze ? "graze" : p.art.forage ? "forage" : "idle";
+  const doze = p.art.rest ? "rest" : "idle";
   if (g.gateId) {
     // Kept herds: out through the gate by day when the herder has opened it,
     // back to the pen for the night.
@@ -152,14 +154,14 @@ function decide(g: FaunaGroup, p: FaunaProfile, world: FaunaWorld, clock: number
     } else if (out) {
       const local = freeCellNear(world, goal, 3, `fauna-${g.id}-graze`);
       g.state = pick(world, `fauna-${g.id}-state`, [
-        ["graze", 5],
+        [feed, 5],
         ["idle", 2],
         ["wander", local ? 2 : 0],
       ]);
       if (g.state === "wander" && local) g.target = { ...local, space: "outside" };
     } else
       g.state = pick(world, `fauna-${g.id}-state`, [
-        ["rest", resting(p, world.hour) ? 6 : 2],
+        [doze, resting(p, world.hour) ? 6 : 2],
         ["idle", 2],
       ]);
     g.nextDecisionAt = calm();
@@ -181,12 +183,11 @@ function decide(g: FaunaGroup, p: FaunaProfile, world: FaunaWorld, clock: number
     g.since = clock;
     return;
   }
-  const feed = p.art.graze ? "graze" : p.art.forage ? "forage" : "idle";
   const prowl = p.art.stalk ? "stalk" : "wander";
   const roam = freeCellNear(world, g.home, g.homeRadius, `fauna-${g.id}-roam`);
   const tired = resting(p, world.hour);
   g.state = pick(world, `fauna-${g.id}-state`, [
-    ["rest", tired ? 7 : 1],
+    [doze, tired ? 7 : 1],
     ["idle", 2],
     [feed, tired ? 1 : 4],
     [roam ? (world.rng(`fauna-${g.id}-gait`) < 0.3 ? prowl : "wander") : "idle", tired ? 1 : 3],

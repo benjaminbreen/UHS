@@ -28,6 +28,7 @@ import { createEnvironment, localEcology } from "./environment";
 import { ecologyProfiles } from "../../content/ecology/profiles";
 import { populateHouseholds, addWildResources } from "./population";
 import { forgetFaunaBlock, spawnFauna } from "./fauna";
+import { faunaAt } from "../../content/fauna";
 import type { FaunaGroup } from "../../core/fauna";
 import { createReliefLandscape, reliefCell } from "./topography";
 import {
@@ -2055,28 +2056,31 @@ export function createSettlementWorld(
   }
   world.activate!(world.spawn.x, world.spawn.y);
   if (environment?.start === "shepherd") {
-    for (let i = 0; i < 3; i++) {
-      const p = { ...world.spawn, x: world.spawn.x + i + 2 };
+    // The player's own flock, as a fauna group rather than three actors: it is
+    // the same animal the pens hold, drawn from the same art.
+    const flockSpecies = (pack.setting ? faunaAt(pack.setting) : []).find(
+      (k) => k.keeping?.place === "pen",
+    );
+    const members = [];
+    for (let i = 0; i < 4; i++) {
+      const p = { x: world.spawn.x + 2 + (i % 2), y: world.spawn.y + (i >> 1) };
       if (world.blocked(p.x, p.y, "outside")) continue;
-      world.initialActors.push({
-        id: `travel-flock-${i}`,
-        name: `Flock sheep ${i + 1}`,
-        kind: "sheep",
-        role: "Animal",
-        sprite: "sheep",
-        pos: p,
-        home: { ...world.spawn },
-        work: p,
-        owner: "player",
-        inventory: {},
-        activity: "Grazing",
-        fatigue: 0,
-        hunger: 8,
-        trust: 0,
-        memories: [],
-        direction: 0,
-      });
+      members.push({ ...p, direction: 1 as const });
     }
+    if (flockSpecies && members.length)
+      keptFauna.push({
+        id: "travel-flock",
+        speciesId: flockSpecies.id,
+        members,
+        pos: { ...members[0], space: "outside" },
+        home: { ...world.spawn },
+        homeRadius: 6,
+        state: flockSpecies.art.graze ? "graze" : "forage",
+        nextDecisionAt: 0,
+        stride: 0,
+        since: 0,
+        owner: "player",
+      });
   }
   // After the households are in, so the ranked list of residents is complete.
   warmRoutines();

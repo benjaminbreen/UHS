@@ -12,6 +12,8 @@ PALETTES = {
     "red-deer": {"o": "#6a3d22", "d": "#8f5732", "m": "#bb7941", "l": "#dc9d5f", "h": "#f1c78c", "b": "#f3e4c0", "e": "#2a1a12", "a": "#55301c"},
     "gray-wolf": {"o": "#3a4147", "d": "#535c61", "m": "#767f83", "l": "#a4aca9", "h": "#d3d6ce", "b": "#e4e5da", "e": "#1c1d1f", "a": "#c9a24d"},
     "sheep": {"o": "#7c6c57", "d": "#b3a98c", "m": "#ded6b9", "l": "#f2ecd5", "h": "#fffcec", "b": "#8a745b", "e": "#2a211a", "a": "#6b5744"},
+    "goat": {"o": "#3d3226", "d": "#6a5640", "m": "#8f7757", "l": "#b39c75", "h": "#d8c8a4", "b": "#2f2820", "e": "#17120c", "a": "#e6ddc4"},
+    "pig": {"o": "#6b4038", "d": "#9a6259", "m": "#c08d81", "l": "#d8aa9d", "h": "#efcdc0", "b": "#7d4a41", "e": "#291613", "a": "#5a3630"},
     "chicken": {"o": "#7a4a22", "d": "#b7732d", "m": "#e2a247", "l": "#f3c975", "h": "#fbe7ad", "b": "#d9402f", "e": "#26190f", "a": "#e9b53a"},
     "rock-dove": {"o": "#3f4b50", "d": "#5b6a6f", "m": "#8b9b9d", "l": "#bbc6c2", "h": "#e8eade", "b": "#6c5687", "e": "#1e2224", "a": "#cf8a6a"},
     "house-sparrow": {"o": "#4d371f", "d": "#6b4a2d", "m": "#a27848", "l": "#cba770", "h": "#f0e2bf", "b": "#3c3025", "e": "#1e1610", "a": "#d9b978"},
@@ -21,6 +23,8 @@ STATES = {
     "rock-dove": dict.fromkeys(["forage", "perch", "takeoff", "flight", "approach", "landing"], 8),
     "chicken": dict.fromkeys(["idle", "forage", "wander", "flee"], 8),
     "sheep": dict.fromkeys(["idle", "graze", "wander", "flee", "rest"], 8),
+    "goat": dict.fromkeys(["idle", "graze", "wander", "flee", "rest"], 8),
+    "pig": dict.fromkeys(["idle", "forage", "wander", "flee", "rest"], 8),
     "red-deer": dict.fromkeys(["idle", "forage", "wander", "flee", "rest"], 8),
     "gray-wolf": dict.fromkeys(["idle", "wander", "stalk", "chase", "rest"], 8),
 }
@@ -30,6 +34,8 @@ NATIVE_SIZES = {
     "rock-dove": (16, 16),
     "chicken": (18, 20),
     "sheep": (28, 26),
+    "goat": (28, 26),
+    "pig": (30, 24),
     "red-deer": (40, 40),
     "gray-wolf": (38, 26),
 }
@@ -499,6 +505,149 @@ def _sheep_rest(c, frame):
     return c.finish()
 
 
+# ---------------------------------------------------------------- goat
+def goat(state, frame):
+    """Leggier and flatter-backed than the sheep, with swept horns and a beard.
+    No fleece, so the barrel is plain rim shading."""
+    c = Canvas("goat")
+    t = frame / 8
+    moving = state in {"wander", "flee"}
+    running = state == "flee"
+    ground = 22
+    if state == "rest":
+        return _goat_rest(c, frame)
+    bounce = round(1.5 * max(0.0, math.sin(2 * math.pi * (t + 0.15)))) if running else (round(0.5 * math.cos(4 * math.pi * t) + 0.5) if moving else 0)
+    by = -bounce
+    hip_h, hip_f = (8, 14 + by), (18, 14 + by)
+    if running:
+        gait = lambda ph: walk_foot(ph, 3.5, 3.5, 0.45)
+        phases = {"fh": 0.0, "nh": 0.12, "ff": 0.55, "nf": 0.67}
+    else:
+        gait = lambda ph: walk_foot(ph, 2.2, 2.2, 0.6)
+        phases = {"fh": 0.0, "ff": 0.25, "nh": 0.5, "nf": 0.75}
+
+    def draw_leg(key, hip, hind, near):
+        dx, up = gait(t + phases[key]) if moving else (0.0, 0.0)
+        ox = 0 if near else -3
+        leg(c, (hip[0] + ox, hip[1]), (hip[0] + ox + dx, ground - up), hind, near, role="m" if near else "d", lift=up, hoof="b")
+
+    draw_leg("fh", hip_h, True, False)
+    draw_leg("ff", hip_f, False, False)
+    body = ellipse((5, 8 + by, 20, 17 + by)) | rect((8, 8 + by, 18, 11 + by))
+    c.paint(shade(body, 1, 2))
+    # tail cocked up, the way a sheep's never is
+    c.paint(flat(line((6, 9 + by), (4, 6 + by), 2), "d"))
+    stage = [0, 1, 2, 2, 2, 2, 1, 0][frame] if state == "graze" else 0
+    chew = 1 if state == "graze" and frame in (3, 5) else 0
+    hx, hy = [(19, 5 + by), (20, 9 + by), (20, 12 + by)][stage]
+    neck = polygon([(16, 9 + by), (19, 9 + by), (hx + 4, hy + 3), (hx, hy + 5)])
+    c.paint(shade(neck, 1, 1))
+    _goat_head(c, hx, hy, chew, state == "idle" and frame in (3, 4))
+    draw_leg("nh", hip_h, True, True)
+    draw_leg("nf", hip_f, False, True)
+    return c.finish()
+
+
+def _goat_rest(c, frame):
+    c.paint(flat(rect((7, 19, 11, 21)), "b"))
+    c.paint(flat(rect((15, 19, 20, 21)), "b"))
+    body = ellipse((5, 10, 21, 19)) | rect((8, 10, 18, 13))
+    c.paint(shade(body, 1, 2))
+    c.paint(flat(line((6, 11), (4, 8), 2), "d"))
+    dip = [0, 0, 1, 1, 1, 1, 0, 0][frame]
+    hx, hy = 19, 8 + dip
+    c.paint(shade(polygon([(16, 12), (19, 12), (hx + 4, hy + 3), (hx, hy + 5)]), 1, 1))
+    _goat_head(c, hx, hy, 0, False, blink=frame in (3, 4))
+    return c.finish()
+
+
+def _goat_head(c, hx, hy, chew, flick, blink=False):
+    """Wedge head with a pale muzzle, one swept horn over the neck and the far
+    horn a shade behind it, plus the beard that tells it from a sheep."""
+    # far horn first so the near one reads on top
+    c.paint(flat(line((hx + 3, hy - 1), (hx + 1, hy - 3), 1) | line((hx + 1, hy - 3), (hx - 2, hy - 3), 1), "d"))
+    head = ellipse((hx, hy, hx + 4, hy + 5)) | polygon([(hx + 3, hy + 1), (hx + 7, hy + 3), (hx + 7, hy + 5 + chew), (hx + 2, hy + 6)])
+    c.paint(shade(head, 1, 1, base="m", light="l", dark="d"))
+    # muzzle pale, the way a goat's is, so the face is not one flat mass
+    c.paint(flat(polygon([(hx + 5, hy + 2), (hx + 7, hy + 3), (hx + 7, hy + 5 + chew), (hx + 5, hy + 5 + chew)]), "h"))
+    c.paint(flat(rect((hx + 2, hy + 6 + chew, hx + 3, hy + 8 + chew)), "b"))
+    c.paint(flat(line((hx + 2, hy), (hx, hy - 4), 1) | line((hx, hy - 4), (hx - 4, hy - 3), 1), "a"))
+    c.dot(hx + 3, hy + 2, "d" if blink else "e")
+    c.dot(hx + 7, hy + 4 + chew, "e")
+    c.paint(flat(polygon([(hx + 1, hy + 2), (hx - 3, hy + 3 + (1 if flick else 0)), (hx, hy + 5)]), "b"))
+
+
+# ---------------------------------------------------------------- pig
+def pig(state, frame):
+    """Long and low: the back line runs straight from snout to rump, the legs
+    are short, and the head is carried below the shoulder when rooting."""
+    c = Canvas("pig")
+    t = frame / 8
+    moving = state in {"wander", "flee"}
+    running = state == "flee"
+    ground = 20
+    if state == "rest":
+        return _pig_rest(c, frame)
+    bounce = round(1.0 * max(0.0, math.sin(2 * math.pi * (t + 0.15)))) if running else (round(0.5 * math.cos(4 * math.pi * t) + 0.5) if moving else 0)
+    by = -bounce
+    hip_h, hip_f = (7, 15 + by), (18, 15 + by)
+    if running:
+        gait = lambda ph: walk_foot(ph, 2.6, 2.6, 0.45)
+        phases = {"fh": 0.0, "nh": 0.12, "ff": 0.55, "nf": 0.67}
+    else:
+        gait = lambda ph: walk_foot(ph, 1.6, 1.6, 0.62)
+        phases = {"fh": 0.0, "ff": 0.25, "nh": 0.5, "nf": 0.75}
+
+    def draw_leg(key, hip, hind, near):
+        dx, up = gait(t + phases[key]) if moving else (0.0, 0.0)
+        ox = 0 if near else -2
+        leg(c, (hip[0] + ox, hip[1]), (hip[0] + ox + dx, ground - up), hind, near, role="m" if near else "d", lift=up, hoof="a")
+
+    draw_leg("fh", hip_h, True, False)
+    draw_leg("ff", hip_f, False, False)
+    body = ellipse((3, 8 + by, 21, 18 + by)) | rect((6, 8 + by, 19, 13 + by))
+    c.paint(shade(body, 1, 2))
+    # curly tail, drawn clear of the rump so the outline reads it
+    for dx, dy in ((3, 9), (2, 7), (1, 5), (3, 4), (4, 6)):
+        c.dot(dx, dy + by, "d")
+    stage = [0, 1, 2, 2, 2, 2, 1, 0][frame] if state == "forage" else 0
+    root = 1 if state == "forage" and frame in (3, 5) else 0
+    hx, hy = [(19, 8 + by), (20, 10 + by), (21, 12 + by)][stage]
+    head = polygon([(hx - 3, hy - 1), (hx + 4, hy + 1), (hx + 5, hy + 6), (hx - 3, hy + 7)])
+    c.paint(shade(head, 1, 1))
+    # snout disc on the end of the wedge
+    snout = ellipse((hx + 4, hy + 2 + root, hx + 7, hy + 5 + root))
+    c.paint(flat(snout, "b"))
+    c.dot(hx + 6, hy + 3 + root, "e")
+    c.dot(hx + 6, hy + 4 + root, "e")
+    c.dot(hx + 2, hy + 2, "e")
+    # ear flops forward over the eye
+    flick = state == "idle" and frame in (3, 4)
+    c.paint(flat(polygon([(hx - 1, hy), (hx + 2, hy - 1), (hx + 3, hy + 3 + (1 if flick else 0))]), "d"))
+    draw_leg("nh", hip_h, True, True)
+    draw_leg("nf", hip_f, False, True)
+    return c.finish()
+
+
+def _pig_rest(c, frame):
+    c.paint(flat(rect((6, 18, 11, 20)), "a"))
+    c.paint(flat(rect((15, 18, 20, 20)), "a"))
+    body = ellipse((3, 9, 21, 18)) | rect((6, 9, 19, 14))
+    c.paint(shade(body, 1, 2))
+    for dx, dy in ((3, 10), (2, 8), (1, 6), (3, 5), (4, 7)):
+        c.dot(dx, dy, "d")
+    dip = [0, 0, 1, 1, 1, 1, 0, 0][frame]
+    hx, hy = 19, 11 + dip
+    head = polygon([(hx - 3, hy - 1), (hx + 4, hy + 1), (hx + 5, hy + 6), (hx - 3, hy + 7)])
+    c.paint(shade(head, 1, 1))
+    c.paint(flat(ellipse((hx + 4, hy + 2, hx + 7, hy + 5)), "b"))
+    c.dot(hx + 6, hy + 3, "e")
+    c.dot(hx + 6, hy + 4, "e")
+    c.dot(hx + 2, hy + 2, "e" if frame not in (3, 4) else "d")
+    c.paint(flat(polygon([(hx - 1, hy), (hx + 2, hy - 1), (hx + 3, hy + 3)]), "d"))
+    return c.finish()
+
+
 # ---------------------------------------------------------------- chicken
 def chicken(state, frame):
     c = Canvas("chicken")
@@ -755,6 +904,10 @@ def fauna_b():
                     im = chicken(state, frame)
                 elif species == "sheep":
                     im = sheep(state, frame)
+                elif species == "goat":
+                    im = goat(state, frame)
+                elif species == "pig":
+                    im = pig(state, frame)
                 elif species == "red-deer":
                     im = deer(state, frame)
                 else:

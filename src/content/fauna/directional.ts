@@ -30,7 +30,9 @@ export const directionalFauna: readonly FaunaProfile[] = [
       { years: [1519, 10000], bounds: [-170, -56, -30, 70] },
       { years: [1788, 10000], bounds: [110, -50, 180, -10] },
     ],
+    keeping: { place: "paddock" },
     density: 0,
+    young: { id: "foal", chance: 0.55 },
     pace: 1.6,
     settlementTolerance: 0.9,
     minimumSettlementDistance: 0,
@@ -101,6 +103,9 @@ export const directionalFauna: readonly FaunaProfile[] = [
       { years: [1500, 10000], bounds: [-170, -56, -30, 70] },
       { years: [1859, 10000], bounds: [110, -50, 180, -10] },
     ],
+    // Kept as well as wild from the Norman warrens on: a fenced coney-garth
+    // beside the village, not a wild colony that happens to be there.
+    keeping: { place: "paddock", from: 1100 },
     density: 2.6,
     young: { id: "rabbit-kit", chance: 0.45 },
     pace: 1.4,

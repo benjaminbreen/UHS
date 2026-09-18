@@ -21,7 +21,7 @@ import {
   territoryReach,
   type FieldCell,
 } from "./farmland";
-import { faunaAt } from "../../content/fauna";
+import { faunaAt, faunaProfile } from "../../content/fauna";
 import type { FaunaGroup, FaunaMember } from "../../core/fauna";
 import { crops } from "../../content/agriculture/crops";
 import { farms } from "../../content/geography/onsets";
@@ -1409,14 +1409,7 @@ export function planSettlement(
   for (const venue of housed) {
     // Its own building where the ground allows; otherwise the nearest lot and
     // the mark at the door, which is better than the venue not existing.
-    const lot =
-      (venue.building &&
-        central.find(
-          (candidate) =>
-            !taken.has(candidate) &&
-            venueBuildingFrame(venue.building!, "south", candidate.rect),
-        )) ||
-      central.find((candidate) => !taken.has(candidate));
+    const lot = central.find((candidate) => !taken.has(candidate));
     if (!lot) continue;
     taken.add(lot);
     lot.venue = venue;
@@ -1430,14 +1423,11 @@ export function planSettlement(
       pack.buildings[Math.floor(rand("building", j) * pack.buildings.length)];
     const facing =
       nx > 0 ? "west" : nx < 0 ? "east" : ny > 0 ? "north" : "south";
-    // A venue with a building of its own takes the largest scale that fits
-    // the lot it was given; without one it falls back to the house frame and
-    // is told apart by the mark at its door.
-    const venueFrame = lot.venue?.building
-      ? venueBuildingFrame(lot.venue.building, facing, lot.rect)
-      : undefined;
+    // A venue's own building comes from the plaza placement in urban.ts,
+    // which fits the ground to the model. Swapping a landmark onto a lot
+    // sized for a house here put its body across the path to its own door,
+    // so a lot-assigned venue is the house with a mark at the door.
     const frame =
-        venueFrame ??
         lot.frame ??
         (buildingModels[`${base}-${facing}`] ? `${base}-${facing}` : base),
       model = buildingModel(frame),
@@ -1452,15 +1442,15 @@ export function planSettlement(
     const door = lot.rect
       ? point
       : { x: point.x + nx * setback, y: point.y + ny * setback };
-    const rect =
-      venueFrame || !lot.rect
-        ? {
-            x: door.x - model.entrance[0],
-            y: door.y - model.entrance[1],
-            w,
-            h,
-          }
-        : lot.rect;
+    // A venue on a composed lot keeps that lot's ground: recomputing the
+    // rect from the door shifts the building off the lot it was fitted to,
+    // and the street then runs behind it rather than to its door.
+    const rect = lot.rect ?? {
+      x: door.x - model.entrance[0],
+      y: door.y - model.entrance[1],
+      w,
+      h,
+    };
     const yard = lot.yard ?? {
       x: rect.x - 1 + (nx < 0 ? -4 : 0),
       y: rect.y - 1 + (ny < 0 ? -4 : 0),
@@ -1759,10 +1749,14 @@ export function planSettlement(
       x: workPoint.x + (ny ? (urban ? -1 : 2) : 0),
       y: workPoint.y + (nx ? (urban ? -1 : 2) : 0),
     };
-    plan.slots.set(id, {
+    const slot = {
       yard: [side],
       work: [{ x: workPoint.x - (ny ? 2 : 0), y: workPoint.y - (nx ? 2 : 0) }],
-    });
+    };
+    plan.slots.set(id, slot);
+    // Also under the resident, so callers that have a person rather than a
+    // building can find their yard.
+    plan.slots.set(owner, slot);
     if (!owners.includes(owner)) {
       owners.push(owner);
       const home = pos(door);
@@ -2134,12 +2128,22 @@ export function planSettlement(
     .filter((id) => id !== "player" && herders.has(id))
     .slice(-2);
   const kept = pack.setting ? faunaAt(pack.setting) : [];
-  const herdSpecies = kept.find(
-    (k) => k.category === "domestic" && k.social === "herd",
-  );
-  const flockSpecies = kept.find(
-    (k) => k.category === "domestic" && k.social === "flock",
-  );
+  /** The species a settlement of this date keeps in a given place. Order is
+   * the seed's, not the catalogue's, so two towns of the same period do not
+   * both get the first animal in the file. */
+  const keptFor = (place: "pen" | "yard" | "paddock") =>
+    kept
+      .filter(
+        (k) =>
+          k.keeping?.place === place &&
+          (pack.setting?.year ?? 0) >= (k.keeping.from ?? -Infinity),
+      )
+      .map((k) => [k, random(seed, site.id, "keep", place, k.id)] as const)
+      .sort((a, b) => a[1] - b[1])
+      .map(([k]) => k);
+  const penStock = keptFor("pen");
+  const yardStock = keptFor("yard");
+  const paddockStock = keptFor("paddock");
   /** Pen and paddock cells drawn by the field raster, so a pen wears the same
    * wall, rails or wire as the fields of its day. Merged after the farmland so
    * they never count as cropland. */
@@ -2266,7 +2270,8 @@ export function planSettlement(
       hw.work = outside;
       hw.gateId = gateId;
       hw.label = "Tending livestock";
-      if (herdSpecies) {
+      const penSpecies = penStock[i % Math.max(1, penStock.length)];
+      if (penSpecies) {
         // One group for the pen: the engine moves it as a herd.
         const interior: Point[] = [];
         eachCell(pen, (x, y) => {
@@ -2294,7 +2299,7 @@ export function planSettlement(
         };
         (plan.fauna ??= []).push({
           id: `${id}-herd`,
-          speciesId: herdSpecies.id,
+          speciesId: penSpecies.id,
           members,
           pos: pos(members[0]),
           home: pos(middle),
@@ -2309,51 +2314,15 @@ export function planSettlement(
             ? pos({ x: pasture.x + 3, y: pasture.y + 2 })
             : undefined,
         });
-        continue;
-      }
-      for (let j = 0; j < 3; j++) {
-        const home = { x: pen.x + 3 + j * 2, y: pen.y + 4 },
-          kind = j === 2 ? "goat" : "sheep",
-          aid = `${id}-animal${j}`,
-          grazing = hasPasture
-            ? { x: gate.x - 2 + j * 2, y: gate.y + 5 }
-            : home;
-        plan.actors.push({
-          id: aid,
-          name: kind === "goat" ? "Goat" : "Sheep",
-          kind,
-          role: "Animal",
-          pos: pos(home),
-          home: pos(home),
-          work: pos(grazing),
-          sprite: kind,
-          inventory: {},
-          activity: "Resting in the enclosure",
-          fatigue: 0,
-          hunger: 0,
-          trust: 0,
-          owner,
-          memories: [],
-          direction: 2,
-        });
-        plan.work.set(aid, {
-          home,
-          work: grazing,
-          pasture: grazing,
-          water: home,
-          social: home,
-          label: "Grazing",
-          gateId,
-          offset: j * 7,
-        });
       }
     }
-  // A horse paddock: bigger than a livestock pen, no herder routine and no
-  // gate to open, because horses at grass are left at grass. Placed only where
-  // the people of the day actually keep horses.
-  const horseSpecies = kept.find((k) => k.id === "horse");
-  const foalSpecies = kept.find((k) => k.id === "foal");
-  if (horseSpecies && owners.length && rand("paddock") < 0.7) {
+  // A paddock: bigger than a livestock pen, no herder routine and no gate to
+  // open, because animals at grass are left at grass. Horses where horses are
+  // kept, a coney-garth of rabbits where and when warrens were built.
+  const paddockSpecies = paddockStock[0];
+  const paddockYoung =
+    paddockSpecies?.young && faunaProfile(paddockSpecies.young.id);
+  if (paddockSpecies && owners.length && rand("paddock") < 0.7) {
     const paddock =
       landPlot(20, 16, "paddock") ??
       landPlot(16, 13, "paddock") ??
@@ -2429,29 +2398,33 @@ export function planSettlement(
             direction: (j % 4) as 0 | 1 | 2 | 3,
           }));
         };
-        const horses = Math.min(
-          4,
-          2 + Math.floor(rand(id, "horses") * 3),
+        const [low, high] = paddockSpecies.groupSize;
+        const count = Math.min(
+          interior.length,
+          low + Math.floor(rand(id, "stock") * (high - low + 1)),
         );
         (plan.fauna ??= []).push({
-          id: `${id}-horses`,
-          speciesId: horseSpecies.id,
-          members: spread(horses, 1),
+          id: `${id}-stock`,
+          speciesId: paddockSpecies.id,
+          members: spread(count, 1),
           pos: pos(middle),
           home: pos(middle),
           homeRadius: Math.max(paddock.w, paddock.h),
-          state: "graze",
+          state: paddockSpecies.art.graze ? "graze" : "forage",
           nextDecisionAt: 0,
           stride: 0,
           since: 0,
           owner,
         });
-        // A foal or two, only alongside the mares.
-        if (foalSpecies && rand(id, "foals") < 0.55)
+        // The young keep to the adults, never a paddock of their own.
+        if (
+          paddockYoung &&
+          rand(id, "young") < paddockSpecies.young!.chance
+        )
           plan.fauna.push({
-            id: `${id}-foals`,
-            speciesId: foalSpecies.id,
-            members: spread(1 + Math.floor(rand(id, "foal-count") * 2), 5),
+            id: `${id}-young`,
+            speciesId: paddockYoung.id,
+            members: spread(1 + Math.floor(rand(id, "young-count") * 2), 5),
             pos: pos(middle),
             home: pos(middle),
             homeRadius: Math.max(paddock.w, paddock.h),
@@ -2504,18 +2477,24 @@ export function planSettlement(
       });
     }
   }
-  // A few hens scratching about the yard, for households that keep them.
-  if (flockSpecies) {
+  // Hens scratching about the yard, or a pig or two rooting by the door, for
+  // the households that keep them. Neighbours need not keep the same animal.
+  if (yardStock.length) {
     let flocks = 0;
     for (const owner of owners) {
-      if (flocks >= 2) break;
+      if (flocks >= 3) break;
       if (owner === "player") continue;
       const yard = plan.slots.get(owner)?.yard[0];
       if (!yard || plan.solid.has(cellKey(yard.x, yard.y))) continue;
       if (random(seed, owner, "hens") > 0.6) continue;
+      const species =
+        yardStock[
+          Math.floor(random(seed, owner, "yard-species") * yardStock.length)
+        ];
+      const most = species.groupSize[1];
       const members: FaunaMember[] = [];
-      for (let dy = -1; dy <= 1 && members.length < 4; dy++)
-        for (let dx = -1; dx <= 1 && members.length < 4; dx++) {
+      for (let dy = -1; dy <= 1 && members.length < most; dy++)
+        for (let dx = -1; dx <= 1 && members.length < most; dx++) {
           const x = yard.x + dx,
             y = yard.y + dy;
           if (
@@ -2529,12 +2508,12 @@ export function planSettlement(
       if (members.length < 2) continue;
       (plan.fauna ??= []).push({
         id: `${site.id}-flock-${owner}`,
-        speciesId: flockSpecies.id,
+        speciesId: species.id,
         members,
         pos: pos(members[0]),
         home: pos(yard),
         homeRadius: 4,
-        state: "forage",
+        state: species.art.forage ? "forage" : "graze",
         nextDecisionAt: 0,
         stride: 0,
         since: 0,
@@ -2598,25 +2577,3 @@ export function planSettlement(
   return plan;
 }
 
-/**
- * The frame for a venue's own building: the largest authored scale that fits
- * the ground the lot has, in the facing the street asks for. A lot with no
- * rect of its own is a roadside frontage, where the building sets its own
- * extent and the largest scale is simply the one meant for a city.
- */
-function venueBuildingFrame(
-  recipe: string,
-  facing: string,
-  rect?: { w: number; h: number },
-): string | undefined {
-  for (const scale of ["large", "medium", "small"] as const) {
-    const base = `${recipe}-${scale}-0`;
-    const name = facing === "south" ? base : `${base}-${facing}`;
-    const model = buildingModels[name];
-    if (!model) continue;
-    const [w, h] = model.footprint;
-    if (rect && (w > rect.w || h > rect.h)) continue;
-    return name;
-  }
-  return undefined;
-}

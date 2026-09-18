@@ -26,6 +26,7 @@ describe("fauna profiles", () => {
   });
 
   it("maps every state to existing native atlas frames", () => {
+    // Set B is the world's art, so it is the set a profile must be complete in.
     const knownStates = new Set<string>(faunaStates);
     for (const profile of sideView)
       for (const [state, frames] of Object.entries(profile.art)) {
@@ -34,7 +35,9 @@ describe("fauna profiles", () => {
         for (const id of frames ?? []) {
           expect(id.startsWith(`fauna-${profile.id}-`)).toBe(true);
           expect(
-            (atlas.frames as Record<string, unknown>)[id],
+            (atlasB.frames as Record<string, unknown>)[
+              id.replace(/^fauna-/, "faunab-")
+            ],
             `${profile.id}:${id}`,
           ).toBeDefined();
         }
@@ -42,18 +45,17 @@ describe("fauna profiles", () => {
     const referenced = sideView.flatMap((profile) =>
       Object.values(profile.art).flat(),
     );
-    expect(new Set(referenced).size).toBe(Object.keys(atlas.frames).length);
+    expect(new Set(referenced).size).toBe(Object.keys(atlasB.frames).length);
   });
 
-  it("ships a B frame for every A frame so the lab can toggle between them", () => {
-    const framesB = atlasB.frames as Record<string, { frame: { w: number; h: number } }>;
-    for (const profile of sideView)
-      for (const frames of Object.values(profile.art))
-        for (const id of frames ?? []) {
-          const idB = id.replace(/^fauna-/, "faunab-");
-          expect(framesB[idB], idB).toBeDefined();
-        }
-    expect(Object.keys(framesB).length).toBe(Object.keys(atlas.frames).length);
+  it("keeps the frozen A set drawable so the lab can still toggle to it", () => {
+    // A was never extended past its six species; every frame it does carry
+    // must still have a B twin, or the lab's A/B toggle breaks.
+    const framesB = atlasB.frames as Record<string, unknown>;
+    const framesA = Object.keys(atlas.frames);
+    expect(framesA.length).toBeGreaterThan(0);
+    for (const id of framesA)
+      expect(framesB[id.replace(/^fauna-/, "faunab-")], id).toBeDefined();
   });
 });
 
