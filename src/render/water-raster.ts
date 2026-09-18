@@ -1,3 +1,4 @@
+import { rasterHabitatTile } from "./habitat-raster";
 import { shoreDistance, shorePixel } from "./material-edges";
 import type { TopographyCell, TopographySample } from "../core/topography";
 import { TERRAIN_RISE } from "./terrain-projection";
@@ -65,7 +66,6 @@ function rasterCanalTile(
   const mix = (a: number[], b: number[], t: number) =>
     a.map((v, k) => Math.round(v * (1 - t) + b[k] * t));
   const shade = (a: number[], v: number) => a.map((c) => Math.max(0, Math.min(255, c + v)));
-  const axis = (cell.waterVisual?.flow[0] ?? 0) !== 0 ? "x" : "y";
   const open = (dx: number, dy: number) => {
     const n = sample(x + dx, y + dy);
     return !!n && (n.surface === "water" || isCanal(n) || !!n.bridge);
@@ -74,25 +74,61 @@ function rasterCanalTile(
     openE = open(1, 0),
     openS = open(0, 1),
     openW = open(-1, 0);
-  const [startOpen, endOpen, sideAOpen, sideBOpen] =
-    axis === "x"
-      ? [openW, openE, openN, openS]
-      : [openN, openS, openW, openE];
+  // Centreline through the cell, joining the midpoints of the open sides.
+  // Two adjacent sides are joined directly rather than through the centre,
+  // which is what lets a staircase of cells cut one straight diagonal instead
+  // of stacking boxes. Neighbours always meet at an edge midpoint, so the
+  // channel stays continuous. A junction routes through the centre; a dead
+  // end stops twelve pixels in, where the closing berm used to fall.
+  const mids: number[][] = [];
+  if (openN) mids.push([8, 0]);
+  if (openE) mids.push([16, 8]);
+  if (openS) mids.push([8, 16]);
+  if (openW) mids.push([0, 8]);
+  const segments: number[][] =
+    mids.length === 2
+      ? [[...mids[0], ...mids[1]]]
+      : mids.length === 1
+        ? [[...mids[0], mids[0][0] + (8 - mids[0][0]) * 1.5, mids[0][1] + (8 - mids[0][1]) * 1.5]]
+        : mids.length === 0
+          ? [[4, 8, 12, 8]]
+          : mids.map((m) => [...m, 8, 8]);
+  // Nearest point on the centreline, as a signed offset across the channel.
+  // Positive is the far (lit) bank: the normal pointing most to the south,
+  // then most to the east, so a straight run keeps exactly its old shading.
+  const nearest = (px: number, py: number) => {
+    let best = Infinity,
+      cross = 0,
+      run = 0;
+    for (const [ax, ay, bx, by] of segments) {
+      const dx = bx - ax,
+        dy = by - ay,
+        len = Math.hypot(dx, dy) || 1;
+      const ux = dx / len,
+        uy = dy / len;
+      const rx = px + 0.5 - ax,
+        ry = py + 0.5 - ay;
+      const t = Math.max(0, Math.min(len, rx * ux + ry * uy));
+      const d = Math.hypot(rx - t * ux, ry - t * uy);
+      if (d >= best) continue;
+      const n = ux < 0 || (ux === 0 && uy > 0) ? [uy, -ux] : [-uy, ux];
+      best = d;
+      cross = rx * n[0] + ry * n[1] >= 0 ? d : -d;
+      run = Math.round((gx + px) * ux + (gy + py) * uy);
+    }
+    return { cross, run };
+  };
   // Profile across the channel, in pixels from the near edge:
   // 0-1 berm, 2 lip, 3-12 water, 13 lip, 14-15 berm.
+  const crosses = new Float32Array(256);
+  const runs = new Int32Array(256);
   const water = new Uint8Array(256);
   for (let py = 0; py < 16; py++)
     for (let px = 0; px < 16; px++) {
-      const a = axis === "x" ? px : py,
-        c = axis === "x" ? py : px;
-      let w = c >= 3 && c <= 12;
-      if (w && !startOpen && a < 3) w = false;
-      if (w && !endOpen && a > 12) w = false;
-      if (a >= 3 && a <= 12) {
-        if (sideAOpen && c < 3) w = true;
-        if (sideBOpen && c > 12) w = true;
-      }
-      water[py * 16 + px] = w ? 1 : 0;
+      const { cross, run } = nearest(px, py);
+      crosses[py * 16 + px] = cross;
+      runs[py * 16 + px] = run;
+      water[py * 16 + px] = Math.abs(cross) <= 4.5 ? 1 : 0;
     }
   const at = (px: number, py: number) =>
     px < 0 || py < 0 || px > 15 || py > 15 ? undefined : water[py * 16 + px];
@@ -108,13 +144,42 @@ function rasterCanalTile(
     bermFoot = rgb(palette.bank[0]),
     faceLit = mix(rgb(palette.bank[1]), rgb(palette.bank[2]), 0.35),
     faceDark = shade(rgb(palette.bank[0]), -18);
+  // Spoil reaches exactly as far as a straight run's tile, so a straight canal
+  // is unchanged and a diagonal's berm follows the cut instead of filling the
+  // tile's corners. The last pixels of it dither into the ground, which is
+  // what stops the outer edge reading as a ruled line against the turf.
+  const BERM = 7.5,
+    FRINGE = 6.2;
+  const ground = cell.habitat
+    ? rasterHabitatTile(sample, x, y, gx / 16 - x, gy / 16 - y, undefined, {
+        ...cell,
+        surface: "grass",
+        waterVisual: undefined,
+        waterDepth: undefined,
+      }).pixels
+    : undefined;
   const pixels = new Uint8ClampedArray(1024);
   for (let py = 0; py < 16; py++)
     for (let px = 0; px < 16; px++) {
-      const wx = gx + px,
-        wy = gy + py;
-      const c = axis === "x" ? py : px;
-      const along = axis === "x" ? wx : wy;
+      const spread = Math.abs(crosses[py * 16 + px]);
+      if (
+        ground &&
+        (spread > BERM ||
+          (spread > FRINGE &&
+            waterHash(gx + px, gy + py, 917) <
+              (spread - FRINGE) / (BERM - FRINGE)))
+      ) {
+        const i = (py * 16 + px) * 4;
+        pixels.set(ground.subarray(i, i + 4), i);
+        continue;
+      }
+      // Cross-channel position on the old 0-15 profile, and distance along the
+      // run, so every tone below is unchanged on a straight stretch.
+      const c = Math.max(
+        0,
+        Math.min(15, Math.round(7.5 + crosses[py * 16 + px])),
+      );
+      const along = runs[py * 16 + px];
       let tone: number[];
       if (at(px, py) && dry) {
         // An empty bed: silt on the floor, cracked into plates, darker in the
@@ -148,13 +213,11 @@ function rasterCanalTile(
           at(px - 1, py) === 1 ||
           at(px, py + 1) === 1 ||
           at(px, py - 1) === 1;
-        const near = axis === "x" ? c <= 2 : c <= 2;
+        const near = c <= 2;
         if (inner) {
           // The lip: the near bank shows its shadowed face, the far bank
           // its lit face, and an end wall reads as the dark face too.
-          const farSide = axis === "x" ? c >= 13 : c >= 13;
-          tone = farSide ? faceLit : faceDark;
-          if (axis === "y" && c >= 13) tone = faceLit;
+          tone = c >= 13 ? faceLit : faceDark;
           if (waterHash(Math.floor(along / 4), c, 905) > 0.7) tone = mix(tone, bermSide, 0.4);
         } else {
           // Berm: a ridge of piled earth. The near berm shows its lit crest
