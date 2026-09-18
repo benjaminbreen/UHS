@@ -119,13 +119,34 @@ function signFor(pack: Pack): { key: string; form: number } | undefined {
 /** Work premises: a spade leans here, a chest does not. */
 const worksite = /farm|field|herd|garden|workshop|shop|stores|yard|smith|mason|potter|tann|brew|mill|weav|carpent/i;
 
+/** Pick from a list by each prop's rarity rather than evenly. */
+function weighted(list: string[], roll: number) {
+  let total = 0;
+  for (const key of list) total += propDefs[key]?.rarity ?? 1;
+  let at = roll * total;
+  for (const key of list) {
+    at -= propDefs[key]?.rarity ?? 1;
+    if (at <= 0) return key;
+  }
+  return list[list.length - 1];
+}
+/** Which colourway. The first is the plain one every household had; the rest
+ * are the glazed, painted or faded ones, and they share what is left. */
+function variantOf(variants: number, roll: number) {
+  if (variants <= 1) return 0;
+  const plain = 0.58;
+  if (roll < plain) return 0;
+  return 1 + Math.floor(((roll - plain) / (1 - plain)) * (variants - 1));
+}
+
 /** Versioned content overlay: neither old terrain nor district RNG is changed.
  * Existing storage locations become real props; extra work objects hug buildings.
  * This runs for initial districts and each newly activated district. */
 export function withProps(world: WorldModel, seed: string): WorldModel {
   const kit = propKit(world.pack),
     done = new Set<string>(),
-    places = new Set<string>();
+    places = new Set<string>(),
+    privies: Position[] = [];
   const tech = techFor(world.pack);
   const sign = signFor(world.pack);
   const doorway = doorwayFor(world.pack);
@@ -160,10 +181,19 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
         (k) => !propDefs[k]?.where && (!allow || !!propDefs[k]?.container),
       );
     if (!list.length && required) list = all;
+    // A siting rule that leaves one candidate is not a rule, it is a stamp:
+    // the 1950s city yard kit reduces to the plastic bucket alone. Take back
+    // what belongs at a house — a bin, a tub — but not the works crates.
+    if (list.length < 3 && required)
+      list = all.filter(
+        (k) =>
+          !!propDefs[k]?.container &&
+          (!propDefs[k]?.where || propDefs[k]?.where === "backyard"),
+      );
     // Nothing in this kit belongs here: leave the corner empty rather than
     // putting a washing line on the market square.
     if (!list.length) return allow ? undefined : context === "water" ? "spring" : "stick";
-    return list[Math.floor(random(seed, "props-1", id, context) * list.length)];
+    return weighted(list, random(seed, "props-1", id, context));
   };
   const stamp = (o: WorldObject, key: string | undefined) => {
     const def = key ? propDefs[key] : undefined;
@@ -171,7 +201,7 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
     o.prop = key;
     o.name = def.name;
     const variants = key === "stick" ? 1 : (def.variants ?? 3);
-    o.sprite = `study-prop${redrawn.has(def.family) ? "b" : ""}-${def.family}-${Math.floor(random(seed, "prop-color", o.id) * variants)}`;
+    o.sprite = `study-prop${redrawn.has(def.family) ? "b" : ""}-${def.family}-${variantOf(variants, random(seed, "prop-color", o.id))}`;
     o.kind = def.drink ? "well" : def.fire ? "fire" : "container";
     o.open = false;
     if (def.contents) o.inventory = { ...def.contents };
@@ -295,7 +325,7 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
         }
       }
     }
-    const bare = urbanPack ? 0.55 : 0.2;
+    const bare = urbanPack ? 0.75 : 0.2;
     for (const b of world.places) {
       if (places.has(b.id)) continue;
       places.add(b.id);
@@ -382,9 +412,16 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
         // Not every craftsman's house on the street put a board up, and a
         // street where they all did is a street of wallpaper. A venue always
         // gets its own mark; a trade house takes its chances.
+        // A fifth of the frontages, not half: most premises on any street
+        // are somebody's front room, and a board on every one of them is
+        // wallpaper again.
         const trades =
-          (emblem !== undefined && random(seed, "board", b.id) < 0.55) ||
-          /shop|market|grocer|trader|merchant|stall|apothec|tea/i.test(b.name);
+          (emblem !== undefined && random(seed, "board", b.id) < 0.2) ||
+          // Whole words: "workshop" is not a shop, and a board on every
+          // craftsman's back room is how a street becomes wallpaper.
+          /\b(shop|market|grocer|trader|merchant|stall|apothecary|tea)\b/i.test(
+            b.name,
+          );
         // Both the European board and the souk's hung stock say a trade, so
         // neither goes up without one. The Asian board is still keyed to the
         // region and the date.
@@ -404,7 +441,7 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
             : // A doorway marker is a marker: on half the houses in a town it
               // stops telling you anything and becomes wallpaper. The variant
               // is the culture's, so the only thing to vary is how many.
-              doorway !== undefined && random(seed, "lantern", b.id) < 0.16
+              doorway !== undefined && random(seed, "lantern", b.id) < 0.07
               ? "doorLantern"
               : undefined;
         const beside = wanted
@@ -450,13 +487,22 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
       }
       // One privy per household, at the far end of the yard and at least half
       // a dozen paces from the water. Downwind is not modelled; distance is.
-      if (domestic && random(seed, "privy-here", b.id) < 0.55) {
+      // A terrace shares one, which is what a town actually had; a farmstead
+      // builds its own. Spacing does the sharing: the first house on a block
+      // to roll one takes it, and its neighbours find the ground taken.
+      const spacing = urbanPack ? 11 : 5;
+      if (
+        domestic &&
+        random(seed, "privy-here", b.id) < (urbanPack ? 0.4 : 0.55) &&
+        !privies.some((p) => Math.hypot(p.x - b.x, p.y - b.y) < spacing)
+      ) {
         const drink = waters();
-        // The planned slots are few and the yard ones get used first, so this
-        // looks at the ground round the back of the house as well.
+        // The planned slots are the household's own ground. Off them the
+        // search stays tight to the wall, or a privy ends up in the street.
         const around: Position[] = [...candidates];
-        for (let dy = -3; dy <= 4; dy++)
-          for (let dx = -3; dx <= 3; dx++)
+        const reach = urbanPack ? 1 : 3;
+        for (let dy = -reach; dy <= reach + 1; dy++)
+          for (let dx = -reach; dx <= reach; dx++)
             around.push({
               x: b.x + (dx < 0 ? dx : b.w + dx),
               y: b.y + (dy < 0 ? dy : b.h + dy),
@@ -480,8 +526,9 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
         // A yard has one of whatever this place does; where the kit offers
         // both a midden and a muck heap, which one is the household's.
         const kinds = kit.contexts.privy;
-        const key =
-          kinds[Math.floor(random(seed, "privy-kind", b.id) * kinds.length)];
+        const key = kinds.length
+          ? weighted(kinds, random(seed, "privy-kind", b.id))
+          : undefined;
         if (far && key) {
           const o: WorldObject = {
             id: `${b.id}-privy`,
@@ -495,6 +542,7 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
           stamp(o, key);
           world.initialObjects.push(o);
           index(o);
+          privies.push(far);
           done.add(o.id);
         }
       }

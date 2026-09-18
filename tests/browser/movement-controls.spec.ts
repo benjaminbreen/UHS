@@ -72,27 +72,27 @@ test("Space tap/hold, pickup/drop, focus cancellation and Shift running", async 
     );
   await setup();
   await page.keyboard.press("Space");
-  await expect.poll(x).toBe(1);
+  await expect.poll(x).toBe(2);
   expect(await moves()).toEqual([
     { type: "move", dx: 1, dy: 0, jump: "short", run: false },
   ]);
   await setup();
   await page.keyboard.down("Space");
   await page.waitForTimeout(700);
-  expect(await x()).toBe(2);
+  expect(await x()).toBe(3);
   expect(await moves()).toEqual([
     { type: "move", dx: 1, dy: 0, jump: "long", run: false },
   ]);
   await page.keyboard.up("Space");
-  // A run-up buys a tile: tap clears two, charged clears three.
+  // A run-up buys a tile: tap clears three, charged clears four.
   await setup();
   await page.keyboard.down("Shift");
   await page.keyboard.press("Space");
-  await expect.poll(x).toBe(2);
+  await expect.poll(x).toBe(3);
   await setup();
   await page.keyboard.down("Space");
   await page.waitForTimeout(700);
-  expect(await x()).toBe(3);
+  expect(await x()).toBe(4);
   await page.keyboard.up("Space");
   await page.keyboard.up("Shift");
   await setup();

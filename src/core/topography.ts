@@ -197,7 +197,7 @@ export type LeapKind = "hop" | "climb" | "drop" | "leap";
 export type LeapResult = {
   kind: LeapKind;
   /** Tiles travelled along the direction. */
-  distance: 1 | 2 | 3;
+  distance: 1 | 2 | 3 | 4;
   seconds: number;
   reason: string;
 };
@@ -276,8 +276,8 @@ export function terrainJump(
   const water = (c: TopographyCell) => c.surface === "water" && !c.bridge;
   if (!start || start.solid || water(start))
     return { kind: "blocked", reason: "No room to push off." };
-  // A run adds a tile of reach: standing 1/2, running 2/3.
-  const reach = (power === "long" ? 2 : 1) + (running ? 1 : 0);
+  // A run adds a tile of reach: standing 2/3, running 3/4.
+  const reach = (power === "long" ? 3 : 2) + (running ? 1 : 0);
   const rise = power === "long" ? 2 : 1;
   let landing: LeapResult | undefined;
   for (let step = 1; step <= reach; step++) {
@@ -301,7 +301,7 @@ export function terrainJump(
           : cell.height < start.height
             ? "drop"
             : "leap",
-      distance: step as 1 | 2 | 3,
+      distance: step as 1 | 2 | 3 | 4,
       seconds: power === "long" ? 3 : 2,
       reason: power === "long" ? "You make a long jump." : "You jump forward.",
     };

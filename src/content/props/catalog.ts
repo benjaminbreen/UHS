@@ -30,6 +30,10 @@ export type PropDef = {
   variants?: number;
   /** Too solid to break: a blow knocks it over instead. */
   tips?: boolean;
+  /** How often the picker should land on this, relative to 1. A street of
+   * pots is what an even roll gives you: the common vessels are damped so the
+   * rarer yard furniture gets a turn. */
+  rarity?: number;
   /** Where this belongs. A washing line hangs behind a house, not on the
    * square; a crate stands at a works or a farm, not on a shopping street. */
   where?: "backyard" | "worksite" | "privy";
@@ -44,6 +48,7 @@ export const propDefs: Record<string, PropDef> = {
     container: true,
   },
   pot: {
+    rarity: 0.3,
     solid: true,
     name: "Earthen pot",
     family: "earthen-pot",
@@ -52,6 +57,7 @@ export const propDefs: Record<string, PropDef> = {
     breakable: "clay",
   },
   jar: {
+    rarity: 0.4,
     solid: true,
     name: "Storage jar",
     family: "storage-jar",
@@ -60,6 +66,7 @@ export const propDefs: Record<string, PropDef> = {
     breakable: "clay",
   },
   jug: {
+    rarity: 0.4,
     solid: true,
     name: "Water jug",
     family: "water-jug",
@@ -69,6 +76,7 @@ export const propDefs: Record<string, PropDef> = {
     contents: { water: 2 },
   },
   amphora: {
+    rarity: 0.6,
     solid: true,
     name: "Transport amphora",
     family: "amphora",
@@ -85,6 +93,7 @@ export const propDefs: Record<string, PropDef> = {
     contents: { grain: 4 },
   },
   flask: {
+    rarity: 0.5,
     solid: true,
     name: "Stoppered flask",
     family: "flask",
@@ -94,6 +103,7 @@ export const propDefs: Record<string, PropDef> = {
     contents: { water: 1 },
   },
   bowl: {
+    rarity: 0.5,
     solid: true,
     name: "Open bowl",
     family: "bowl",
@@ -110,6 +120,7 @@ export const propDefs: Record<string, PropDef> = {
     breakable: "glaze",
   },
   basket: {
+    rarity: 0.6,
     solid: true,
     name: "Woven basket",
     family: "open-basket",
@@ -167,6 +178,7 @@ export const propDefs: Record<string, PropDef> = {
     breakable: "wood",
   },
   crate: {
+    rarity: 0.7,
     where: "worksite",
     solid: true,
     name: "Transport crate",
@@ -184,6 +196,7 @@ export const propDefs: Record<string, PropDef> = {
     breakable: "wood",
   },
   bucket: {
+    rarity: 0.6,
     solid: true,
     name: "Wooden pail",
     family: "bucket",
@@ -556,6 +569,7 @@ export const propDefs: Record<string, PropDef> = {
     variants: 2,
   },
   dustbin: {
+    rarity: 0.5,
     where: "backyard",
     solid: true,
     name: "Galvanised bin",
@@ -586,7 +600,7 @@ export const propDefs: Record<string, PropDef> = {
     family: "washing-line",
   },
   tin: {
-    where: "worksite",
+    rarity: 0.5,
     solid: true,
     name: "Metal canister",
     family: "metal-tin",
@@ -595,6 +609,7 @@ export const propDefs: Record<string, PropDef> = {
     breakable: "metal",
   },
   plastic: {
+    rarity: 0.35,
     solid: true,
     name: "Plastic bucket",
     family: "plastic-bin",
