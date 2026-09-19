@@ -2,14 +2,17 @@ import { inventedNameNote } from "../content/characters/invented-name";
 import { resolveCharacterContext } from "../content/characters/resolve";
 import { Flag } from "lucide-react";
 import { formatHistoricalYear } from "../core/calendar";
-import { regionAt } from "../content/geography/region-label";
+import { describedRegionAt, regionAt } from "../content/geography/region-label";
 import type { WorldSetting } from "../content/geography/types";
 
 export function StartPreview({ setting }: { setting: WorldSetting }) {
   const context = setting.characterRevision
     ? resolveCharacterContext(setting)
     : undefined;
-  const region = regionAt(setting.lon, setting.lat);
+  // The culture comes from the name-tradition region, which always matches;
+  // the visible tag comes from the described one, which never shows a backstop.
+  const culture = regionAt(setting.lon, setting.lat)?.culture;
+  const region = describedRegionAt(setting.lon, setting.lat);
   return (
     <div
       className="start-preview"
@@ -22,7 +25,7 @@ export function StartPreview({ setting }: { setting: WorldSetting }) {
         <span className="start-preview-role"> · {setting.role}</span>
         <p>
           {region && (
-            <span className="region-tag" data-culture={region.culture}>
+            <span className="region-tag" data-culture={culture}>
               {region.label}
             </span>
           )}

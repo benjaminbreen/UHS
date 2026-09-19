@@ -12,9 +12,10 @@ import { openings } from "../content/geography/openings";
 import { StartPreview } from "./StartPreview";
 import type { WorldSetting } from "../content/geography/types";
 import type { Engine } from "../core/engine";
-import { regionAt } from "../content/geography/region-label";
+import { placeLabel, regionAt } from "../content/geography/region-label";
 import { formatHistoricalYear } from "../core/calendar";
 import type { randomStart } from "../content/geography/random-start";
+import { readStartMode, startModes, writeStartMode } from "./start-mode";
 import { bannerFor, defaultBanner, smokeFor } from "./splash-banner";
 import { BannerSmoke } from "./BannerSmoke";
 import { SplashStars } from "./SplashStars";
@@ -94,6 +95,7 @@ export function Splash({
     };
   }, [panel]);
   const randomizeCall = useRef(0);
+  const [startMode, setStartMode] = useState(readStartMode);
   /** The start being generated ahead of the click, if it is still the one on
    * screen. Generating a settlement takes about six seconds, which is time
    * the reader is already spending on this page. */
@@ -116,22 +118,21 @@ export function Splash({
   };
   useEffect(() => () => warm.current?.abort.abort(), []);
   const applyStart = (next: ReturnType<typeof randomStart>) => {
-    const region = regionAt(next.setting.lon, next.setting.lat);
     setSelected(next);
     prewarm(next);
     setPrompt(
-      `${next.setting.role} in ${region?.label ?? next.setting.location}, ${formatHistoricalYear(next.setting.year)}`,
+      `${next.setting.role} in ${placeLabel(next.setting)}, ${formatHistoricalYear(next.setting.year)}`,
     );
     setError("");
   };
-  const randomize = async () => {
+  const randomize = async (mode = startMode) => {
     // Draw synchronously once loaded so a click lands before the next read;
     // while loading, only the latest call may land.
-    if (starter) return applyStart(starter.randomStart());
+    if (starter) return applyStart(starter.randomStart(mode));
     const call = ++randomizeCall.current;
     const loaded = await loadStarter();
     if (call !== randomizeCall.current) return;
-    applyStart(loaded.randomStart());
+    applyStart(loaded.randomStart(mode));
   };
   // Open on a random start rather than an empty box.
   useEffect(() => {
@@ -171,7 +172,7 @@ export function Splash({
         const { randomStart } = await import(
           "../content/geography/random-start"
         );
-        const start = randomStart();
+        const start = randomStart(startMode);
         setting = start.setting;
         worldSeed = start.seed;
       }
@@ -252,6 +253,18 @@ export function Splash({
                 value={prompt}
                 disabled={!!busy}
                 maxLength={2000}
+                // Gives the field an intrinsic width, so the box around it
+                // grows to the start line instead of scrolling it.
+                size={Math.min(92, Math.max(30, prompt.length + 1))}
+                // Past the width the box can reach, the type gives way
+                // instead: a clipped year reads as a bug.
+                data-length={
+                  prompt.length > 74
+                    ? "longest"
+                    : prompt.length > 56
+                      ? "long"
+                      : "short"
+                }
                 onChange={(e) => {
                   setSelected(undefined);
                   setPrompt(e.target.value);
@@ -280,6 +293,30 @@ export function Splash({
                 Begin
               </button>
             </div>
+            <fieldset className="splash-random-mode">
+              <legend>Random start method</legend>
+              {startModes.map((m) => (
+                <label key={m.value}>
+                  <input
+                    type="radio"
+                    name="start-mode"
+                    value={m.value}
+                    checked={startMode === m.value}
+                    disabled={!!busy}
+                    onChange={() => {
+                      setStartMode(m.value);
+                      writeStartMode(m.value);
+                      // Show the change rather than waiting for the next click.
+                      void randomize(m.value);
+                    }}
+                  />
+                  {m.label}
+                  <span className="splash-tip" role="tooltip">
+                    {m.hint}
+                  </span>
+                </label>
+              ))}
+            </fieldset>
           </form>
           <button
             type="button"

@@ -153,6 +153,16 @@ for p in legacy:
   if p.get('water','none')=='none' and water: record['water']=water
   if population: record['population']=int(population)
   result[norm(p['name'])]=record;matched+=1
+# Hand-authored anchors, before the gazetteer sweep so a curated record wins a
+# name collision. Coordinates are given rather than looked up: a name search
+# finds the wrong island as often as the right one out here.
+for p in json.loads((ROOT/'scripts/data/extra-places.json').read_text())['places']:
+ p={k:v for k,v in p.items() if k!='why'}
+ lon,lat=p['lon'],p['lat'];near,water,settlement=waters(lon,lat,p.get('settlement','village'))
+ record={**defaults(lon,lat),**p,**near,'settlement':settlement}
+ if p.get('water','none')=='none' and water: record['water']=water
+ result[norm(p['name'])]=record
+
 for f in sorted(cities,key=lambda f:-(f['properties']['pop_max'] or 0)):
  p=f['properties'];name=p['name'];key=norm(name);lon,lat=p['longitude'],p['latitude']
  if p['scalerank']>4 or key in result or abs(lat)>85:continue

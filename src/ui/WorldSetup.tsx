@@ -1,6 +1,7 @@
 import { communityFor } from "../content/characters/resolve";
 import { formatHistoricalYear } from "../core/calendar";
 import { randomStart } from "../content/geography/random-start";
+import { readStartMode } from "./start-mode";
 import {
   Sparkles,
   Brain,
@@ -133,7 +134,8 @@ export function WorldSetup({
     setError("");
   };
   const randomize = () => {
-    const start = randomStart();
+    // Follows the choice made on the splash; this panel has no toggle of its own.
+    const start = randomStart(readStartMode());
     choose(start.setting.placeId);
     setYear(String(start.setting.year));
     setSeed(start.seed);

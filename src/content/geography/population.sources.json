@@ -1,0 +1,15 @@
+{
+  "sources": [
+    {
+      "url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/ca96624a56bd078437bca8184e78163e5039ad19/geojson/ne_10m_admin_0_countries.geojson",
+      "sha256": "239eec57ac17f100a11e2536cffc56752c318b50ae765b0918ff7aab4ce8f255",
+      "license": "Public domain \u2014 Natural Earth"
+    },
+    {
+      "url": "https://ourworldindata.org/grapher/population.csv?csvType=full&useColumnShortNames=true",
+      "sha256": "31c97de9a52df0792e34c4bb5ee80bf266cfa12bc0587c829715e0829a97a536",
+      "license": "CC BY 4.0 \u2014 Our World in Data"
+    }
+  ],
+  "placesByNearestCountry": 33
+}

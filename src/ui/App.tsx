@@ -44,7 +44,7 @@ import {
 import { weatherAt } from "../core/weather";
 import { seasonFor } from "../core/season";
 import { lightingAt } from "../render/lighting";
-import { regionAt } from "../content/geography/region-label";
+import { describedRegionAt } from "../content/geography/region-label";
 import { WeatherPanel } from "./WeatherPanel";
 import { sexFromName } from "../content/characters/name-sex";
 import { AudioDirector } from "../audio/director";
@@ -80,7 +80,7 @@ import { WorldScene } from "../render/WorldScene";
 import { WorldSetup } from "./WorldSetup";
 import { AtlasMap } from "./AtlasMap";
 import { toAtlas, fromAtlas } from "../world/geography/coordinates";
-import { Sprite, Minimap, timeLabel } from "./components";
+import { ItemIcon, Sprite, Minimap, timeLabel } from "./components";
 import { LiveGraphicsPanel } from "../dev/LiveGraphicsPanel";
 import {
   defaultLiveGraphicsSettings,
@@ -413,7 +413,9 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
   );
   const lighting = lightingAt(obs.clock).id;
   const regionLabel =
-    (setting && regionAt(setting.lon, setting.lat)?.label) || pack.region;
+    (setting && describedRegionAt(setting.lon, setting.lat)?.label) ||
+    setting?.location ||
+    pack.region;
   const borderHint = runtime.journey?.borderHint();
   const landscape = setting
     ? `${setting.climate[0].toUpperCase()}${setting.climate.slice(1)} ${
@@ -1065,7 +1067,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
                       .filter(([, n]) => n! > 0)
                       .map(([id, n]) => (
                         <button key={id} onClick={() => setModal("inventory")}>
-                          <Sprite name={runtime.item(id)!.sprite} scale={1} />
+                          <ItemIcon id={id} sprite={runtime.item(id)!.sprite} scale={1} />
                           <span>
                             {runtime.item(id)!.name}
                             <small>Quantity: {n}</small>
@@ -1213,7 +1215,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
                     .map(([id, n]) => (
                       <div className="inventory-item" key={id}>
                         <div className="item-art">
-                          <Sprite name={runtime.item(id)!.sprite} scale={2} />
+                          <ItemIcon id={id} sprite={runtime.item(id)!.sprite} scale={2} />
                         </div>
                         <div>
                           <strong>{runtime.item(id)!.name}</strong>

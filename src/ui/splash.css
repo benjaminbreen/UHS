@@ -83,6 +83,12 @@
   position: relative;
   z-index: 1;
 }
+/* The form is a stacking context, so the start-mode tooltip inside it cannot
+   rise above a sibling on the same layer however high its own z-index goes.
+   Lifting the form is what puts the tooltip over "More info" below it. */
+.splash form {
+  z-index: 2;
+}
 .splash-header {
   text-align: center;
   margin: clamp(28px, 7vh, 80px) 0 var(--splash-gap);
@@ -129,7 +135,11 @@
   line-height: 1.4;
 }
 .splash form {
-  width: min(100%, 760px);
+  /* Grows with the start line and stops: "Bismarck Archipelago, Indonesian and
+     Melanesian Islands" does not fit the width a one-word place needs. */
+  width: fit-content;
+  min-width: min(100%, 760px);
+  max-width: min(100%, 1140px);
   margin: 0 auto;
 }
 .splash-eyebrow {
@@ -169,6 +179,12 @@
     serif;
   padding: 12px 0;
 }
+.splash-input input[data-length="long"] {
+  font-size: clamp(15px, 2.2vh, 20px);
+}
+.splash-input input[data-length="longest"] {
+  font-size: clamp(13px, 1.9vh, 17px);
+}
 .splash-input input::placeholder {
   color: #9aa6ba;
 }
@@ -206,15 +222,33 @@
   letter-spacing: 0.3px;
   padding: 0 22px;
 }
+.splash-begin,
+.splash-random {
+  transition:
+    background-color 0.14s ease,
+    border-color 0.14s ease,
+    color 0.14s ease,
+    box-shadow 0.14s ease;
+}
 .splash-random {
   background: #1b2540;
   color: #c9cfe0;
   border: 2px solid #7c88a6;
   box-shadow: inset 0 0 0 1px #0b111f;
 }
-.splash-random:hover {
-  border-color: #a9b3cc;
-  color: #f0e6cf;
+/* Beats the global `button:hover:not(:disabled)`, which is one pseudo-class
+   more specific than a plain `.splash-begin:hover` and was replacing the gold
+   with a translucent white. */
+.splash .splash-random:hover:not(:disabled) {
+  background-color: #26314f;
+  border-color: #c3a76f;
+  color: #f4ead4;
+  box-shadow:
+    inset 0 0 0 1px #0b111f,
+    0 0 0 1px #c3a76f40;
+}
+.splash .splash-random:active:not(:disabled) {
+  background-color: #161f36;
 }
 .splash-begin {
   background: #eec97a;
@@ -222,8 +256,147 @@
   border: 2px solid #d9b477;
   box-shadow: inset 0 0 0 1px #f7e2ad;
 }
-.splash-begin:hover {
-  background: #f6d68c;
+.splash .splash-begin:hover:not(:disabled) {
+  background-color: #f9dda2;
+  border-color: #f0cd8d;
+  box-shadow:
+    inset 0 0 0 1px #fffaea,
+    0 0 16px #eec97a4d;
+}
+.splash .splash-begin:active:not(:disabled) {
+  background-color: #e4bb68;
+  box-shadow: inset 0 0 0 1px #f7e2ad;
+}
+/* Radios, not checkboxes: the two are exclusive, so arrow keys should move
+   between them. The indicator is square so they read as boxes. */
+.splash-random-mode {
+  position: relative;
+  /* Above .splash-more, which the tooltip hangs over and was showing through. */
+  z-index: 20;
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+  border: 0;
+  margin: calc(var(--splash-gap) * 3.1) 0 0;
+  padding: 0;
+}
+.splash-random-mode legend {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.splash-random-mode label {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 2px;
+  color: #8a9ab5;
+  font: 10px var(--splash-pixel);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.splash-random-mode label:hover {
+  color: #e9c785;
+}
+.splash-random-mode input {
+  appearance: none;
+  /* The global input rule pads by 12px/14px, and box-sizing floors a small box
+     at that padding: without this the 10px square rendered 30x26. */
+  padding: 0;
+  width: 10px;
+  height: 10px;
+  margin: 0;
+  border: 1px solid #55617c;
+  background: #12192c;
+  cursor: pointer;
+}
+.splash-random-mode label:hover input {
+  border-color: #e9c785;
+}
+.splash-random-mode input:checked {
+  /* A filled square rather than a tick: at this size a check mark is mud, and
+     the pixel face has no good glyph for one. */
+  border-color: #e9c785;
+  background: #e9c785;
+  box-shadow: inset 0 0 0 1.5px #12192c;
+}
+.splash-random-mode input:focus-visible {
+  outline: 1px solid #e9c785;
+  outline-offset: 2px;
+}
+.splash-random-mode input:disabled,
+.splash-random-mode input:disabled + * {
+  opacity: 0.5;
+  cursor: default;
+}
+.splash-tip {
+  position: absolute;
+  top: calc(100% + 11px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: min(300px, 78vw);
+  padding: 9px 13px;
+  background: #0b1122;
+  border: 1px solid var(--splash-gold);
+  box-shadow:
+    0 0 0 1px #0b111f,
+    0 8px 20px #05070ecc;
+  color: #ecf0fa;
+  font:
+    13.5px "Baskervville",
+    Georgia,
+    serif;
+  letter-spacing: 0.2px;
+  text-transform: none;
+  line-height: 1.45;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.12s ease;
+  pointer-events: none;
+}
+/* The notch, drawn as a corner of the panel so its border lines up. */
+.splash-tip::before {
+  content: "";
+  position: absolute;
+  top: -5px;
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  margin-left: -4px;
+  background: #0b1122;
+  border-left: 1px solid var(--splash-gold);
+  border-top: 1px solid var(--splash-gold);
+  transform: rotate(45deg);
+}
+.splash-random-mode label:hover .splash-tip,
+.splash-random-mode input:focus-visible ~ .splash-tip {
+  opacity: 1;
+  visibility: visible;
+}
+@media (prefers-reduced-motion: reduce) {
+  .splash-tip {
+    transition: none;
+  }
+}
+/* Centred on the label, a 300px panel hangs off the left of a phone screen.
+   Making the label static hands the tooltip to the fieldset instead, which is
+   centred on the page; the notch would then point at nothing, so it goes. */
+@media (max-width: 720px) {
+  .splash-random-mode label {
+    position: static;
+  }
+  .splash-tip {
+    max-width: calc(100vw - 32px);
+  }
+  .splash-tip::before {
+    display: none;
+  }
 }
 .splash-more {
   display: flex;

@@ -1,0 +1,134 @@
+{
+  "_comment": "Hand-authored anchors for places the two inputs miss. Natural Earth's populated-places file is ranked by modern prominence, so an island whose whole significance is that almost nobody lives there never clears the cut, and the legacy extraction did not cover the open Pacific at all. Coordinates are the main settlement or the island's centre, taken from the source named in `why`. Fields left out are filled by the same defaults and coast/river search as every other record.",
+  "places": [
+    {
+      "id": "area-orkney",
+      "name": "Orkney",
+      "aliases": [
+        "kirkwall",
+        "orkney islands",
+        "orcades"
+      ],
+      "lon": -2.96,
+      "lat": 58.98,
+      "climate": "temperate",
+      "water": "island",
+      "culture": "european",
+      "year": 1400,
+      "architecture": "timber",
+      "settlement": "village",
+      "relief": 0.2,
+      "why": "Continuously settled from the fourth millennium BCE — Skara Brae, Maeshowe, the Ness of Brodgar — then a Pictish province, then the seat of a Norse earldom, and Scottish only from 1468. The default climate rule made it boreal, which is wrong for a treeless oceanic archipelago."
+    },
+    {
+      "id": "area-faroe-islands",
+      "name": "Faroe Islands",
+      "aliases": [
+        "faroes",
+        "torshavn",
+        "foroyar"
+      ],
+      "lon": -6.77,
+      "lat": 62.01,
+      "climate": "temperate",
+      "water": "island",
+      "culture": "european",
+      "year": 1400,
+      "architecture": "timber",
+      "settlement": "village",
+      "relief": 0.6,
+      "why": "The middle leg of the North Atlantic crossing, with barley and sheep from the sixth century CE. With Orkney added, the whole Norse route — Orkney, Faroes, Iceland, Greenland — is now on the map."
+    },
+    {
+      "id": "area-rapa-nui",
+      "name": "Rapa Nui",
+      "aliases": [
+        "easter island",
+        "isla de pascua"
+      ],
+      "lon": -109.35,
+      "lat": -27.12,
+      "climate": "temperate",
+      "water": "island",
+      "culture": "australian-pacific",
+      "year": 1400,
+      "architecture": "timber",
+      "settlement": "village",
+      "relief": 0.4,
+      "why": "The most isolated inhabited place on Earth, and the point of the simulation is to be able to stand in one. The longitude rule would otherwise have filed it as South American."
+    },
+    {
+      "id": "area-marquesas",
+      "name": "Marquesas Islands",
+      "aliases": [
+        "nuku hiva",
+        "te henua enana",
+        "marquesas"
+      ],
+      "lon": -140.1,
+      "lat": -8.87,
+      "climate": "tropical",
+      "water": "island",
+      "culture": "australian-pacific",
+      "year": 1400,
+      "architecture": "timber",
+      "settlement": "village",
+      "relief": 0.75,
+      "why": "The dispersal hearth for East Polynesia: Hawaii, Rapa Nui and probably New Zealand were settled from here. Nothing at all stood between 120°W and 105°W south of the equator."
+    },
+    {
+      "id": "area-socotra",
+      "name": "Socotra",
+      "aliases": [
+        "suqutra",
+        "dioscorida"
+      ],
+      "lon": 53.92,
+      "lat": 12.5,
+      "climate": "arid",
+      "water": "island",
+      "culture": "north-african-west-asian",
+      "year": 1400,
+      "architecture": "mudbrick",
+      "settlement": "village",
+      "relief": 0.65,
+      "why": "A monsoon-trade waypoint named in the Periplus, with a Greek-speaking community, then a Christian one, and a flora found nowhere else. The default climate rule called it tropical on latitude alone."
+    },
+    {
+      "id": "area-chatham-islands",
+      "name": "Chatham Islands",
+      "aliases": [
+        "rekohu",
+        "wharekauri"
+      ],
+      "lon": -176.52,
+      "lat": -44.02,
+      "climate": "temperate",
+      "water": "island",
+      "culture": "australian-pacific",
+      "year": 1400,
+      "architecture": "shelter",
+      "settlement": "village",
+      "relief": 0.15,
+      "why": "The far southeastern edge of Polynesian settlement, where the Moriori gave up horticulture for a maritime forager economy because nothing they brought would grow. The anchor is the island's interior rather than Waitangi on the west coast: at atlas resolution the shore reads as open water."
+    },
+    {
+      "id": "area-pohnpei",
+      "name": "Pohnpei",
+      "aliases": [
+        "ponape",
+        "nan madol"
+      ],
+      "lon": 158.21,
+      "lat": 6.87,
+      "climate": "tropical",
+      "water": "island",
+      "culture": "australian-pacific",
+      "year": 1400,
+      "architecture": "timber",
+      "settlement": "village",
+      "relief": 0.7,
+      "why": "Nan Madol — a city of ninety-odd artificial islets walled in basalt logs, begun around 1200 CE — is the largest thing anyone built in the Pacific, and Micronesia had almost nothing between the Marshalls and the Philippines. Chosen over Tarawa because the atlas coastline has no atoll there, so a Tarawa anchor would have generated in open water. The longitude rule would otherwise have filed it as Southeast Asian."
+    }
+  ]
+}

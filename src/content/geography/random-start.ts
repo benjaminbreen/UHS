@@ -1,4 +1,5 @@
 import { places } from "./places";
+import population from "./population.generated.json" with { type: "json" };
 import { settingFor } from "./resolve";
 import { populateCharacter } from "./character";
 import { resolveCharacterContext } from "../characters/resolve";
@@ -81,14 +82,86 @@ export function randomPopulationWeightedYear(draw: number) {
   return Math.min(segment.end - 1, segment.start + Math.floor(offset));
 }
 
+/** How a start picks its place. The year is population-weighted either way. */
+export type StartMode = "any" | "realistic";
+
+/* Per-country population, and the country each place stands in. See
+ * scripts/prepare_population.py for what the two are and are not. */
+const slices = population.years as number[];
+const byCountry = population.countries as Record<string, number[]>;
+const mapped = population.places as Record<string, string>;
+/* The curated anchors in places.ts are not in the generated table, so they take
+ * the country of the nearest place that is. Without this the best-authored
+ * starts in the game — Rome, London, Delhi — would be undrawable. */
+const placeCountry: Record<string, string> = {};
+for (const p of places) {
+  if (mapped[p.id]) {
+    placeCountry[p.id] = mapped[p.id];
+    continue;
+  }
+  let best: { code: string; distance: number } | undefined;
+  for (const other of places) {
+    const code = mapped[other.id];
+    if (!code) continue;
+    const dx = (other.lon - p.lon) * Math.cos((p.lat * Math.PI) / 180);
+    const distance = Math.hypot(dx, other.lat - p.lat);
+    if (!best || distance < best.distance) best = { code, distance };
+  }
+  if (best) placeCountry[p.id] = best.code;
+}
+/** Places sharing a country, so a country's people are split between them. */
+const countryPlaces = places.reduce<Record<string, number>>((count, p) => {
+  const code = placeCountry[p.id];
+  if (code) count[code] = (count[code] ?? 0) + 1;
+  return count;
+}, {});
+
+function sliceFor(year: number) {
+  let best = 0;
+  for (let i = 1; i < slices.length; i++)
+    if (Math.abs(slices[i] - year) < Math.abs(slices[best] - year)) best = i;
+  return best;
+}
+
+/**
+ * A place drawn in proportion to the people alive in its country that year.
+ * A country's population is split evenly between its places, so this decides
+ * which country you are born in, not which kind of place within it: the atlas
+ * is ranked by modern prominence, so medieval France still means Paris.
+ */
+function populationWeightedPlace(draw: number, year: number) {
+  const at = sliceFor(year);
+  const weights = places.map((p) => {
+    const code = placeCountry[p.id];
+    const series = code ? byCountry[code] : undefined;
+    return series ? series[at] / countryPlaces[code] : 0;
+  });
+  const total = weights.reduce((sum, w) => sum + w, 0);
+  // No country in the table holds anyone that year: fall back to an even draw
+  // rather than returning nothing.
+  if (!(total > 0)) return places[draw % places.length];
+  let remaining = ((draw >>> 0) / 0x1_0000_0000) * total;
+  for (let i = 0; i < places.length; i++) {
+    remaining -= weights[i];
+    if (remaining < 0) return places[i];
+  }
+  return places[places.length - 1];
+}
+
 /**
  * Fresh browser entropy across the entire atlas and 10,000 BCE–present. A
  * start's year is population-weighted; curated examples/default years are not
  * hidden random-start inputs.
  */
-export function randomStartFromDraws(draws: Uint32Array) {
-  const place = places[draws[0] % places.length];
+export function randomStartFromDraws(
+  draws: Uint32Array,
+  mode: StartMode = "any",
+) {
   const year = randomPopulationWeightedYear(draws[2] ?? 0);
+  const place =
+    mode === "realistic"
+      ? populationWeightedPlace(draws[0], year)
+      : places[draws[0] % places.length];
   const seed = `world-${crypto.randomUUID()}`;
   const base = settingFor(place, year);
   // The work available here, rather than a fixed five; a Kyoto start can be a
@@ -99,6 +172,6 @@ export function randomStartFromDraws(draws: Uint32Array) {
   return { seed, setting };
 }
 
-export function randomStart() {
-  return randomStartFromDraws(crypto.getRandomValues(new Uint32Array(3)));
+export function randomStart(mode: StartMode = "any") {
+  return randomStartFromDraws(crypto.getRandomValues(new Uint32Array(3)), mode);
 }
