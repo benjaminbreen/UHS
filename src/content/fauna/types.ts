@@ -3,17 +3,20 @@ import type { CharacterScope } from "../characters/context-types";
 import studies from "../../../public/fauna-b/studies.json" with { type: "json" };
 import studiesC from "../../../public/fauna-c/studies.json" with { type: "json" };
 
-export type HabitatTag =
-  | "settlement"
-  | "field"
-  | "pasture"
-  | "open-grass"
-  | "scrub"
-  | "woodland"
-  | "forest-edge"
-  | "wetland"
-  | "shore"
-  | "rock";
+export const habitatTags = [
+  "settlement",
+  "field",
+  "pasture",
+  "open-grass",
+  "scrub",
+  "woodland",
+  "forest-edge",
+  "wetland",
+  "shore",
+  "rock",
+] as const;
+
+export type HabitatTag = (typeof habitatTags)[number];
 
 export type DietTag =
   | "seed"
@@ -59,6 +62,9 @@ export type FaunaProfile = {
   urgentDecisionSeconds: number;
   diet: readonly DietTag[];
   preyTags?: readonly DietTag[];
+  /** What this animal counts as on another animal's list of prey. Absent
+   * means nothing hunts it. */
+  prey?: DietTag;
   palette: readonly string[];
   /** Frames for the default facing. A species without this is side-view only
    * and is mirrored for west; one with it has art authored per direction. */

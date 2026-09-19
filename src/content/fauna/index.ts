@@ -1,14 +1,13 @@
+import { americanFauna } from "./americas";
 import { birds } from "./birds";
 import { directionalFauna } from "./directional";
 import { domesticFauna } from "./domestic";
 import { temperateFauna } from "./temperate";
 import type { WorldSetting } from "../geography/types";
-import {
-  matchesCharacterScope,
-  subsistenceFor,
-} from "../characters/resolve";
+import { matchesCharacterScope, subsistenceFor } from "../characters/resolve";
 
 export const faunaProfiles = [
+  ...americanFauna,
   ...birds,
   ...domesticFauna,
   ...temperateFauna,
@@ -32,4 +31,4 @@ export function faunaAt(setting: WorldSetting) {
 }
 
 export type { FaunaProfile, HabitatTag, DietTag, FaunaFacing } from "./types";
-export { faunaFacings, faunaFrames } from "./types";
+export { faunaFacings, faunaFrames, habitatTags } from "./types";

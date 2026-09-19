@@ -17,6 +17,13 @@ PALETTES = {
     "chicken": {"o": "#7a4a22", "d": "#b7732d", "m": "#e2a247", "l": "#f3c975", "h": "#fbe7ad", "b": "#d9402f", "e": "#26190f", "a": "#e9b53a"},
     "rock-dove": {"o": "#3f4b50", "d": "#5b6a6f", "m": "#8b9b9d", "l": "#bbc6c2", "h": "#e8eade", "b": "#6c5687", "e": "#1e2224", "a": "#cf8a6a"},
     "house-sparrow": {"o": "#4d371f", "d": "#6b4a2d", "m": "#a27848", "l": "#cba770", "h": "#f0e2bf", "b": "#3c3025", "e": "#1e1610", "a": "#d9b978"},
+    # A bull aurochs is near-black with a pale muzzle ring, a pale line down
+    # the spine and pale horns tipped in black.
+    "aurochs": {"o": "#1b1410", "d": "#2f231a", "m": "#4a3525", "l": "#6b4c33", "h": "#8f6a48", "b": "#c8b189", "e": "#0d0806", "a": "#e6dcc0"},
+    "wild-boar": {"o": "#1f1813", "d": "#372d24", "m": "#54463a", "l": "#766351", "h": "#9c8874", "b": "#2a231c", "e": "#0f0b08", "a": "#e8e2d0"},
+    "llama": {"o": "#5c4630", "d": "#8a6d4d", "m": "#b08f68", "l": "#d0b186", "h": "#eddcc0", "b": "#6b5138", "e": "#1d1510", "a": "#f4ecd9"},
+    "turkey": {"o": "#2b231d", "d": "#453931", "m": "#665547", "l": "#8d7761", "h": "#b9a184", "b": "#b8453a", "e": "#120e0a", "a": "#d9b25c"},
+    "guinea-pig": {"o": "#3f2c1e", "d": "#6f4d31", "m": "#9a6c46", "l": "#c09163", "h": "#e6c294", "b": "#f2e9d6", "e": "#150f0a", "a": "#d9a273"},
 }
 STATES = {
     "house-sparrow": dict.fromkeys(["forage", "perch", "takeoff", "flight", "approach", "landing"], 8),
@@ -27,6 +34,11 @@ STATES = {
     "pig": dict.fromkeys(["idle", "forage", "wander", "flee", "rest"], 8),
     "red-deer": dict.fromkeys(["idle", "forage", "wander", "flee", "rest"], 8),
     "gray-wolf": dict.fromkeys(["idle", "wander", "stalk", "chase", "rest"], 8),
+    "aurochs": dict.fromkeys(["idle", "graze", "wander", "flee", "rest"], 8),
+    "wild-boar": dict.fromkeys(["idle", "forage", "wander", "flee", "rest"], 8),
+    "llama": dict.fromkeys(["idle", "graze", "wander", "flee", "rest"], 8),
+    "turkey": dict.fromkeys(["idle", "forage", "wander", "flee"], 8),
+    "guinea-pig": dict.fromkeys(["idle", "forage", "wander", "flee", "rest"], 8),
 }
 # Sized against the 29px standing human: deer shoulder ~20px, wolf ~13px, sheep ~12px.
 NATIVE_SIZES = {
@@ -38,6 +50,12 @@ NATIVE_SIZES = {
     "pig": (30, 24),
     "red-deer": (40, 40),
     "gray-wolf": (38, 26),
+    # The aurochs stands a head over the man who hunted it: shoulder ~24px.
+    "aurochs": (48, 44),
+    "wild-boar": (36, 28),
+    "llama": (32, 38),
+    "turkey": (26, 26),
+    "guinea-pig": (18, 14),
 }
 
 
@@ -709,6 +727,376 @@ def chicken(state, frame):
     return c.finish()
 
 
+# ---------------------------------------------------------------- aurochs
+def aurochs(state, frame):
+    """Long in the back and long in the leg, standing a good deal taller than
+    the cattle that came out of it. The ridge over the shoulder and the horns
+    swept forward into a lyre are what tell it from anything else here."""
+    c = Canvas("aurochs")
+    t = frame / 8
+    moving = state in {"wander", "flee"}
+    running = state == "flee"
+    ground = 40
+    if state == "rest":
+        return _aurochs_rest(c, frame)
+    bounce = round(1.4 * max(0.0, math.sin(2 * math.pi * (t + 0.15)))) if running else (round(0.5 * math.cos(4 * math.pi * t) + 0.5) if moving else 0)
+    by = -bounce
+    hip_h, hip_f = (13, 25 + by), (29, 23 + by)
+    if running:
+        gait = lambda ph: walk_foot(ph, 5.0, 5.0, 0.42)
+        phases = {"fh": 0.0, "nh": 0.12, "ff": 0.55, "nf": 0.67}
+    else:
+        gait = lambda ph: walk_foot(ph, 3.0, 2.8, 0.64)
+        phases = {"fh": 0.0, "ff": 0.25, "nh": 0.5, "nf": 0.75}
+
+    def draw_leg(key, hip, hind, near):
+        dx, up = gait(t + phases[key]) if moving else (0.0, 0.0)
+        ox = 0 if near else -4
+        leg(c, (hip[0] + ox, hip[1]), (hip[0] + ox + dx, ground - up), hind, near,
+            thick=3, role="m" if near else "d", lift=up, hoof="o")
+
+    draw_leg("fh", hip_h, True, False)
+    draw_leg("ff", hip_f, False, False)
+    body = ellipse((7, 16 + by, 34, 29 + by)) | rect((12, 16 + by, 30, 24 + by))
+    body |= ellipse((20, 12 + by, 32, 22 + by))
+    c.paint(shade(body, 1, 2))
+    _aurochs_spine(c, body, by)
+    # tail hangs to the hock, tuft at the end
+    c.paint(flat(line((8, 18 + by), (5, 30 + by), 1), "d"))
+    c.paint(flat(ellipse((4, 30 + by, 6, 33 + by)), "o"))
+    stage = [0, 1, 2, 2, 2, 2, 1, 0][frame] if state == "graze" else 0
+    chew = 1 if state == "graze" and frame in (3, 5) else 0
+    hx, hy = [(35, 16 + by), (36, 23 + by), (37, 28 + by)][stage]
+    neck = polygon([(27, 14 + by), (32, 13 + by), (hx + 4, hy + 2), (hx - 1, hy + 9)])
+    c.paint(shade(neck, 1, 2))
+    _aurochs_head(c, hx, hy, chew, state == "idle" and frame in (3, 4))
+    draw_leg("nh", hip_h, True, True)
+    draw_leg("nf", hip_f, False, True)
+    return c.finish()
+
+
+def _aurochs_spine(c, body, by):
+    """The pale line down the back. Only over the barrel and the ridge: it
+    stops at the withers rather than running on down the neck."""
+    for x in range(12, 31):
+        column = [y for bx, y in body if bx == x]
+        if column:
+            c.dot(x, min(column), "b")
+
+
+def _aurochs_head(c, x, y, chew, flick):
+    """Head at (x, y) = top of the poll. A bovine carries it low and level, so
+    the muzzle sits well below the line of the back."""
+    # far horn first: pale, or it is lost against a near-black head
+    c.paint(flat(line((x + 1, y + 2), (x + 5, y), 1) | line((x + 5, y), (x + 6, y - 3), 1), "b"))
+    skull = ellipse((x, y, x + 6, y + 8))
+    muzzle = polygon([(x + 4, y + 4), (x + 10, y + 6), (x + 10, y + 9 + chew), (x + 4, y + 10)])
+    c.paint(shade(skull | muzzle, 1, 1))
+    # pale ring round the muzzle, the way every wild ox is marked
+    c.paint(flat(polygon([(x + 8, y + 6), (x + 10, y + 6), (x + 10, y + 9 + chew), (x + 8, y + 9 + chew)]), "b"))
+    c.dot(x + 10, y + 7, "e")
+    c.dot(x + 4, y + 3, "e")
+    # near horn: out and forward off the poll, then the tip turns up and in
+    c.paint(flat(line((x + 2, y + 1), (x + 8, y - 1), 2) | line((x + 8, y - 1), (x + 9, y - 5), 1), "a"))
+    c.dot(x + 9, y - 5, "o")
+    ear = polygon([(x, y + 4), (x - 4, y + 2 + (1 if flick else 0)), (x + 1, y + 7)])
+    c.paint(flat(ear, "o"))
+    c.dot(x - 1, y + 4, "d")
+
+
+def _aurochs_rest(c, frame):
+    body = ellipse((7, 24, 34, 37)) | rect((12, 24, 30, 32))
+    body |= ellipse((20, 20, 32, 30))
+    c.paint(shade(body, 1, 2))
+    _aurochs_spine(c, body, 0)
+    # folded forelegs along the ground
+    fore = rect((28, 36, 37, 38)) | rect((26, 32, 31, 37))
+    fp = shade(fore, 1, 1)
+    fp[(37, 37)] = fp[(37, 38)] = "o"
+    c.paint(fp)
+    c.paint(flat(rect((11, 37, 16, 38)), "d"))
+    dip = [0, 0, 1, 1, 1, 1, 0, 0][frame]
+    hx, hy = 35, 22 + dip
+    c.paint(shade(polygon([(27, 22), (32, 21), (hx + 4, hy + 2), (hx - 1, hy + 9)]), 1, 2))
+    _aurochs_head(c, hx, hy, 0, frame in (3, 4))
+    return c.finish()
+
+
+# ---------------------------------------------------------------- wild boar
+def wild_boar(state, frame):
+    """High in the shoulder and low at the rump, the opposite rake to the farm
+    pig, with a bristle crest along the spine and one tusk showing."""
+    c = Canvas("wild-boar")
+    t = frame / 8
+    moving = state in {"wander", "flee"}
+    running = state == "flee"
+    ground = 24
+    if state == "rest":
+        return _boar_rest(c, frame)
+    bounce = round(1.2 * max(0.0, math.sin(2 * math.pi * (t + 0.15)))) if running else (round(0.5 * math.cos(4 * math.pi * t) + 0.5) if moving else 0)
+    by = -bounce
+    hip_h, hip_f = (8, 17 + by), (21, 15 + by)
+    if running:
+        gait = lambda ph: walk_foot(ph, 3.0, 3.0, 0.44)
+        phases = {"fh": 0.0, "nh": 0.12, "ff": 0.55, "nf": 0.67}
+    else:
+        gait = lambda ph: walk_foot(ph, 1.8, 1.8, 0.62)
+        phases = {"fh": 0.0, "ff": 0.25, "nh": 0.5, "nf": 0.75}
+
+    def draw_leg(key, hip, hind, near):
+        dx, up = gait(t + phases[key]) if moving else (0.0, 0.0)
+        ox = 0 if near else -2
+        leg(c, (hip[0] + ox, hip[1]), (hip[0] + ox + dx, ground - up), hind, near,
+            role="m" if near else "d", lift=up, hoof="o")
+
+    draw_leg("fh", hip_h, True, False)
+    draw_leg("ff", hip_f, False, False)
+    body = ellipse((4, 11 + by, 24, 21 + by)) | ellipse((12, 8 + by, 26, 20 + by))
+    c.paint(shade(body, 1, 2))
+    # crest: bristles standing along the spine, raised when it runs
+    up = 1 if running else 0
+    for bx in range(9, 24, 2):
+        top = min(y for x, y in body if x == bx) if any(x == bx for x, y in body) else 10 + by
+        c.paint(flat(line((bx, top), (bx - 1, top - 2 - up), 1), "o"))
+    c.paint(flat(line((5, 13 + by), (2, 16 + by), 1), "o"))
+    stage = [0, 1, 2, 2, 2, 2, 1, 0][frame] if state == "forage" else 0
+    root = 1 if state == "forage" and frame in (3, 5) else 0
+    hx, hy = [(24, 9 + by), (25, 12 + by), (26, 15 + by)][stage]
+    head = polygon([(hx - 4, hy - 1), (hx + 3, hy + 2), (hx + 4, hy + 8), (hx - 4, hy + 9)])
+    c.paint(shade(head, 1, 1, base="b", light="d", dark="o"))
+    snout = ellipse((hx + 3, hy + 4 + root, hx + 7, hy + 8 + root))
+    c.paint(flat(snout, "d"))
+    c.dot(hx + 6, hy + 5 + root, "e")
+    c.dot(hx + 6, hy + 6 + root, "e")
+    c.dot(hx + 1, hy + 3, "e")
+    # tusk curling up out of the lower jaw
+    c.paint(flat(line((hx + 4, hy + 8 + root), (hx + 6, hy + 5 + root), 1), "a"))
+    flick = state == "idle" and frame in (3, 4)
+    c.paint(flat(polygon([(hx - 3, hy), (hx, hy - 3 - (1 if flick else 0)), (hx + 1, hy + 2)]), "o"))
+    draw_leg("nh", hip_h, True, True)
+    draw_leg("nf", hip_f, False, True)
+    return c.finish()
+
+
+def _boar_rest(c, frame):
+    c.paint(flat(rect((7, 22, 12, 24)), "o"))
+    c.paint(flat(rect((17, 22, 22, 24)), "o"))
+    body = ellipse((4, 13 + 0, 24, 23)) | ellipse((12, 10, 26, 22))
+    c.paint(shade(body, 1, 2))
+    for bx in range(9, 24, 2):
+        top = min(y for x, y in body if x == bx)
+        c.paint(flat(line((bx, top), (bx - 1, top - 2), 1), "o"))
+    dip = [0, 0, 1, 1, 1, 1, 0, 0][frame]
+    hx, hy = 24, 12 + dip
+    head = polygon([(hx - 4, hy - 1), (hx + 3, hy + 2), (hx + 4, hy + 8), (hx - 4, hy + 9)])
+    c.paint(shade(head, 1, 1, base="b", light="d", dark="o"))
+    c.paint(flat(ellipse((hx + 3, hy + 4, hx + 7, hy + 8)), "d"))
+    c.dot(hx + 6, hy + 5, "e")
+    c.dot(hx + 1, hy + 3, "e" if frame not in (3, 4) else "d")
+    c.paint(flat(line((hx + 4, hy + 8), (hx + 6, hy + 5), 1), "a"))
+    c.paint(flat(polygon([(hx - 3, hy), (hx, hy - 3), (hx + 1, hy + 2)]), "o"))
+    return c.finish()
+
+
+# ---------------------------------------------------------------- llama
+def llama(state, frame):
+    """All neck and leg. The barrel is small and woolly, the neck stands
+    straight up out of the shoulder, and the ears curve in over the skull."""
+    c = Canvas("llama")
+    t = frame / 8
+    moving = state in {"wander", "flee"}
+    running = state == "flee"
+    ground = 34
+    if state == "rest":
+        return _llama_rest(c, frame)
+    bounce = round(1.4 * max(0.0, math.sin(2 * math.pi * (t + 0.15)))) if running else (round(0.5 * math.cos(4 * math.pi * t) + 0.5) if moving else 0)
+    by = -bounce
+    hip_h, hip_f = (8, 22 + by), (20, 22 + by)
+    if running:
+        gait = lambda ph: walk_foot(ph, 4.0, 4.0, 0.44)
+        phases = {"fh": 0.0, "nh": 0.12, "ff": 0.55, "nf": 0.67}
+    else:
+        gait = lambda ph: walk_foot(ph, 2.4, 2.4, 0.62)
+        phases = {"fh": 0.0, "ff": 0.25, "nh": 0.5, "nf": 0.75}
+
+    def draw_leg(key, hip, hind, near):
+        dx, up = gait(t + phases[key]) if moving else (0.0, 0.0)
+        ox = 0 if near else -3
+        leg(c, (hip[0] + ox, hip[1]), (hip[0] + ox + dx, ground - up), hind, near,
+            role="m" if near else "d", lift=up, hoof="b")
+
+    draw_leg("fh", hip_h, True, False)
+    draw_leg("ff", hip_f, False, False)
+    # woolly barrel: a flank shape with a lumpy underline
+    body = ellipse((5, 15 + by, 24, 25 + by))
+    for cx in (7, 12, 17):
+        body |= ellipse((cx, 16 + by, cx + 6, 24 + by))
+    px = shade(body, 1, 2)
+    for x, y in body:
+        if (x, y - 1) not in body:
+            px[(x, y)] = "h"
+    c.paint(px)
+    # short tail held up and away
+    c.paint(flat(line((5, 17 + by), (3, 13 + by), 2), "d"))
+    stage = [0, 1, 2, 2, 2, 2, 1, 0][frame] if state == "graze" else 0
+    chew = 1 if state == "graze" and frame in (3, 5) else 0
+    if stage == 0:
+        neck = polygon([(18, 18 + by), (23, 17 + by), (26, 6 + by), (22, 5 + by)])
+        c.paint(shade(neck, 1, 1))
+        _llama_head(c, 22, 2 + by, "up", chew, state == "idle" and frame in (3, 4))
+    elif stage == 1:
+        neck = polygon([(18, 18 + by), (23, 17 + by), (29, 14 + by), (27, 10 + by)])
+        c.paint(shade(neck, 1, 1))
+        _llama_head(c, 25, 10 + by, "out", chew, False)
+    else:
+        neck = polygon([(18, 18 + by), (23, 17 + by), (28, 28 + by), (24, 29 + by)])
+        c.paint(shade(neck, 1, 1))
+        _llama_head(c, 24, 26 + by, "down", chew, False)
+    draw_leg("nh", hip_h, True, True)
+    draw_leg("nf", hip_f, False, True)
+    return c.finish()
+
+
+def _llama_head(c, x, y, pose, chew, flick):
+    """Small wedge head at (x, y) = back of the skull, with the two long ears
+    that are the whole silhouette from any distance."""
+    if pose == "up":
+        skull = ellipse((x, y + 2, x + 5, y + 7))
+        muzzle = polygon([(x + 3, y + 3), (x + 8, y + 4), (x + 8, y + 6 + chew), (x + 3, y + 7)])
+        c.paint(shade(skull | muzzle, 1, 1, base="b", light="m", dark="o"))
+        c.paint(flat(polygon([(x + 6, y + 4), (x + 8, y + 4), (x + 8, y + 6 + chew), (x + 6, y + 6 + chew)]), "a"))
+        c.dot(x + 4, y + 4, "e")
+        for ex, lean in ((x + 1, -1), (x + 4, 1)):
+            c.paint(flat(line((ex, y + 2), (ex + lean, y - 2 - (1 if flick else 0)), 1), "b"))
+    elif pose == "out":
+        skull = ellipse((x, y, x + 5, y + 5))
+        muzzle = polygon([(x + 3, y + 2), (x + 8, y + 4), (x + 8, y + 6 + chew), (x + 3, y + 5)])
+        c.paint(shade(skull | muzzle, 1, 1, base="b", light="m", dark="o"))
+        c.dot(x + 4, y + 2, "e")
+        for ex, lean in ((x + 1, -1), (x + 4, 1)):
+            c.paint(flat(line((ex, y), (ex + lean, y - 4), 1), "b"))
+    else:
+        skull = ellipse((x, y, x + 5, y + 5))
+        muzzle = polygon([(x + 2, y + 3), (x + 6, y + 6), (x + 4, y + 8 + chew), (x + 1, y + 5)])
+        c.paint(shade(skull | muzzle, 1, 1, base="b", light="m", dark="o"))
+        c.dot(x + 4, y + 2, "e")
+        for ex, lean in ((x, -1), (x + 3, 1)):
+            c.paint(flat(line((ex, y), (ex + lean, y - 4), 1), "b"))
+
+
+def _llama_rest(c, frame):
+    # Sitting with the legs folded under, the way a llama always rests.
+    body = ellipse((5, 22, 25, 33))
+    for cx in (7, 12, 17):
+        body |= ellipse((cx, 23, cx + 6, 32))
+    px = shade(body, 1, 2)
+    for x, y in body:
+        if (x, y - 1) not in body:
+            px[(x, y)] = "h"
+    c.paint(px)
+    c.paint(flat(line((5, 24), (3, 20), 2), "d"))
+    dip = [0, 0, 1, 1, 1, 1, 0, 0][frame]
+    neck = polygon([(18, 25), (23, 24), (26, 13 + dip), (22, 12 + dip)])
+    c.paint(shade(neck, 1, 1))
+    _llama_head(c, 22, 9 + dip, "up", 0, frame in (3, 4))
+    return c.finish()
+
+
+# ---------------------------------------------------------------- turkey
+def turkey(state, frame):
+    """Heavier and taller than the hen, carried on a deeper breast, with the
+    tail standing in a fan and a bare red head."""
+    c = Canvas("turkey")
+    t = frame / 8
+    moving = state in {"wander", "flee"}
+    running = state == "flee"
+    ground = 22
+    bob = round(0.5 * math.cos(4 * math.pi * t) + 0.5) if moving else 0
+    by = -bob
+    for key, ph, near in (("far", 0.5, False), ("near", 0.0, True)):
+        dx, up = walk_foot(t + ph, 3.0 if running else 1.8, 3 if running else 2, 0.5 if running else 0.6) if moving else (0.0, 0.0)
+        hx = 12 + (1 if near else -1)
+        foot = (hx + dx, ground - up)
+        knee = ((hx + foot[0]) / 2 + 0.5, (16 + by + foot[1]) / 2)
+        pixels = flat(line((hx, 16 + by), knee, 2) | line(knee, foot, 2), "a" if near else "d")
+        fx, fy = round(foot[0]), round(foot[1])
+        for k in (-1, 0, 1, 2, 3):
+            pixels[(fx + k, fy)] = "a" if near else "d"
+        c.paint(pixels)
+    # tail fan, standing when the bird is settled and trailing when it runs
+    if running:
+        tail = polygon([(8, 10 + by), (0, 12 + by), (0, 16 + by), (8, 16 + by)])
+    else:
+        tail = polygon([(8, 12 + by), (2, 2 + by), (0, 8 + by), (1, 15 + by), (8, 17 + by)])
+    tp = shade(tail, 1, 1, base="d", light="m", dark="o")
+    for x, y in tail:
+        if (x, y - 1) not in tail:
+            tp[(x, y)] = "h"
+    c.paint(tp)
+    body = ellipse((5, 10 + by, 19, 21 + by))
+    px = shade(body, 1, 2)
+    for x, y in body:
+        if (x, y - 1) not in body and 8 <= x <= 16:
+            px[(x, y)] = "h"
+    c.paint(px)
+    wing_up = running and frame % 2 == 0
+    wing = polygon([(8, 13 + by), (16, 13 + by), (17, 16 + by), (12, 19 + by), (8, 18 + by)]) if not wing_up else polygon([(8, 12 + by), (17, 7 + by), (18, 10 + by), (13, 15 + by), (8, 16 + by)])
+    c.paint(shade(wing, 1, 1, base="m", light="l", dark="d"))
+    # beard: the tuft of bristle on the breast
+    c.paint(flat(rect((17, 17 + by, 18, 20 + by)), "o"))
+    dip = [0, 0, 2, 6, 9, 9, 4, 0][frame] if state == "forage" else 0
+    thrust = 1 if moving and frame % 4 < 2 else 0
+    hx, hy = 16 + thrust, 4 + by + dip
+    neck = polygon([(15, 13 + by), (18, 12 + by), (hx + 4, hy + 4), (hx + 1, hy + 5)])
+    c.paint(shade(neck, 1, 1, base="b", light="b", dark="o"))
+    head = ellipse((hx, hy, hx + 4, hy + 4))
+    c.paint(shade(head, 1, 1, base="b", light="b", dark="o"))
+    # snood over the beak, wattle under the chin
+    c.dot(hx + 4, hy, "b")
+    c.dot(hx + 5, hy + 1, "b")
+    c.dot(hx + 5, hy + 2, "a")
+    c.dot(hx + 6, hy + 2, "a")
+    c.dot(hx + 3, hy + 5, "b")
+    blink = state == "idle" and frame == 6
+    c.dot(hx + 3, hy + 1, "o" if blink else "e")
+    return c.finish()
+
+
+# ---------------------------------------------------------------- guinea pig
+def guinea_pig(state, frame):
+    """No neck, no tail, no daylight under it. One loaf with a nose on the
+    front and a patch of white, which is all it is at this size."""
+    c = Canvas("guinea-pig")
+    t = frame / 8
+    moving = state in {"wander", "flee"}
+    running = state == "flee"
+    ground = 10
+    scuttle = 0 if state == "rest" else (round(math.cos(6 * math.pi * t)) if moving else 0)
+    by = -max(0, scuttle) if running else 0
+    low = 1 if state == "rest" else 0
+    body = ellipse((2, 3 + by + low, 14, 9 + by + low)) | ellipse((8, 2 + by + low, 16, 9 + by + low))
+    px = shade(body, 1, 1)
+    # a white saddle over the shoulder, the marking every kept one has
+    for x, y in body:
+        if 5 <= x <= 9 and y <= 6 + by + low:
+            px[(x, y)] = "b" if (x, y - 1) not in body else "h"
+    c.paint(px)
+    if state != "rest":
+        # feet flicker rather than stride: nothing is visible below the body
+        for fx in (4, 12):
+            step = 1 if moving and (frame + fx) % 4 < 2 else 0
+            c.paint(flat(rect((fx + step, ground + by - 1, fx + step + 1, ground + by)), "a"))
+    dip = 2 if state == "forage" and frame in (2, 3, 4, 5) else 0
+    hx, hy = 13, 3 + by + low + dip
+    head = ellipse((hx, hy, hx + 4, hy + 5))
+    c.paint(shade(head, 1, 1))
+    c.dot(hx + 4, hy + 2 + dip // 2, "e")
+    c.dot(hx + 3, hy + 1, "e" if not (state == "idle" and frame == 6) else "d")
+    # ear: a small petal laid back over the skull
+    c.paint(flat(polygon([(hx, hy), (hx + 2, hy - 1), (hx + 2, hy + 2)]), "a"))
+    return c.finish()
+
+
 # ---------------------------------------------------------------- birds (hand pixels)
 # Letters map to palette roles; '.' is clear. Grids are authored facing east with
 # the feet on row h-4. Wings are separate grids placed at absolute positions.
@@ -910,6 +1298,16 @@ def fauna_b():
                     im = pig(state, frame)
                 elif species == "red-deer":
                     im = deer(state, frame)
+                elif species == "aurochs":
+                    im = aurochs(state, frame)
+                elif species == "wild-boar":
+                    im = wild_boar(state, frame)
+                elif species == "llama":
+                    im = llama(state, frame)
+                elif species == "turkey":
+                    im = turkey(state, frame)
+                elif species == "guinea-pig":
+                    im = guinea_pig(state, frame)
                 else:
                     im = wolf(state, frame)
                 result[f"faunab-{species}-{state}-{frame}"] = im

@@ -4,6 +4,7 @@ import type { FaunaGroup } from "../../core/fauna";
 import {
   faunaAt,
   faunaProfile,
+  habitatTags,
   type FaunaProfile,
   type HabitatTag,
 } from "../../content/fauna";
@@ -61,8 +62,46 @@ export function settlementDistance(world: WorldModel, x: number, y: number) {
 
 function suitability(profile: FaunaProfile, tags: Set<HabitatTag>) {
   let best = 0;
-  for (const h of profile.habitats) if (tags.has(h.tag)) best = Math.max(best, h.weight);
+  for (const h of profile.habitats)
+    if (tags.has(h.tag)) best = Math.max(best, h.weight);
   return best;
+}
+
+/** A species' habitat weights as bit and weight, built once per species. */
+const weights = new Map<string, readonly [mask: number, weight: number][]>();
+function weightsFor(speciesId: string) {
+  let w = weights.get(speciesId);
+  if (!w) {
+    const p = faunaProfile(speciesId);
+    w = (p?.habitats ?? []).map(
+      (h) => [1 << habitatTags.indexOf(h.tag), h.weight] as const,
+    );
+    weights.set(speciesId, w);
+  }
+  return w;
+}
+
+/** How well a cell suits a species, 0 to 1. The sim asks this for every cell
+ * an animal might step on, so the tags of a cell are worked out once and kept
+ * as a bitmask; terrain does not change under us. The cache is thrown away
+ * whole when it grows past a long walk's worth of ground. */
+export function habitatScorer(world: WorldModel) {
+  const masks = new Map<string, number>();
+  return (speciesId: string, x: number, y: number) => {
+    const key = `${x},${y}`;
+    let mask = masks.get(key);
+    if (mask === undefined) {
+      if (masks.size > 60000) masks.clear();
+      mask = 0;
+      for (const tag of habitatTagsAt(world, x, y))
+        mask |= 1 << habitatTags.indexOf(tag);
+      masks.set(key, mask);
+    }
+    let best = 0;
+    for (const [bit, weight] of weightsFor(speciesId))
+      if (mask & bit && weight > best) best = weight;
+    return best;
+  };
 }
 
 const spawned = new WeakMap<WorldModel, Set<string>>();
@@ -105,17 +144,32 @@ export function spawnFauna(
       for (const p of faunaAt(setting)) {
         if (p.density <= 0) continue;
         for (let i = 0; i < ATTEMPTS; i++) {
-          const px = cx * 64 + 4 + Math.floor(random(seed, "fauna", k, p.id, i, "x") * 56),
-            py = cy * 64 + 4 + Math.floor(random(seed, "fauna", k, p.id, i, "y") * 56);
+          const px =
+              cx * 64 +
+              4 +
+              Math.floor(random(seed, "fauna", k, p.id, i, "x") * 56),
+            py =
+              cy * 64 +
+              4 +
+              Math.floor(random(seed, "fauna", k, p.id, i, "y") * 56);
           if (world.blocked(px, py, "outside") || world.protectedCell?.(px, py))
             continue;
           const d = settlementDistance(world, px, py);
           if (d < p.minimumSettlementDistance) continue;
-          let chance = (p.density / ATTEMPTS) * suitability(p, habitatTagsAt(world, px, py));
+          let chance =
+            (p.density / ATTEMPTS) *
+            suitability(p, habitatTagsAt(world, px, py));
           // Town birds keep to the town: far from one they are a rare stray.
           if (p.category === "commensal" && d > 6) chance *= 0.15;
           if (random(seed, "fauna", k, p.id, i, "present") >= chance) continue;
-          const members = placeMembers(world, seed, `${k}:${p.id}:${i}`, p, px, py);
+          const members = placeMembers(
+            world,
+            seed,
+            `${k}:${p.id}:${i}`,
+            p,
+            px,
+            py,
+          );
           if (!members.length) continue;
           const bird = p.locomotion === "ground-and-flight";
           groups.push({
@@ -177,7 +231,10 @@ export function placeMembers(
 ) {
   const count =
     p.groupSize[0] +
-    Math.floor(random(seed, "fauna", key, "count") * (p.groupSize[1] - p.groupSize[0] + 1));
+    Math.floor(
+      random(seed, "fauna", key, "count") *
+        (p.groupSize[1] - p.groupSize[0] + 1),
+    );
   const level = world.topography?.(x, y).height;
   const members: FaunaGroup["members"][number][] = [
     { x, y, direction: random(seed, "fauna", key, "face") < 0.5 ? 1 : 3 },

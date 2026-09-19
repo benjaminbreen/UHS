@@ -6,6 +6,13 @@ import { faunaFacings, faunaFrames, faunaProfiles } from "../src/content/fauna";
 import { faunaStates } from "../src/core/fauna";
 
 const sideView = faunaProfiles.filter((profile) => !profile.directions);
+/** Profiles drawn with another species' study. These are animals close enough
+ * that a 40-pixel sprite cannot tell them apart, so they do not earn a sheet
+ * of their own; anything else must be drawn as itself. */
+const borrowed: Record<string, string> = {
+  wapiti: "red-deer",
+  "wild-turkey": "turkey",
+};
 const directional = faunaProfiles.filter((profile) => profile.directions);
 
 describe("fauna profiles", () => {
@@ -33,7 +40,11 @@ describe("fauna profiles", () => {
         expect(knownStates.has(state), `${profile.id}:${state}`).toBe(true);
         expect(frames?.length, `${profile.id}:${state}`).toBe(8);
         for (const id of frames ?? []) {
-          expect(id.startsWith(`fauna-${profile.id}-`)).toBe(true);
+          const drawnAs = borrowed[profile.id] ?? profile.id;
+          expect(
+            id.startsWith(`fauna-${drawnAs}-`),
+            `${profile.id}:${id}`,
+          ).toBe(true);
           expect(
             (atlasB.frames as Record<string, unknown>)[
               id.replace(/^fauna-/, "faunab-")

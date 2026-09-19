@@ -18,9 +18,16 @@ export const temperateFauna: readonly FaunaProfile[] = [
       { tag: "open-grass", weight: 0.65 },
       { tag: "field", weight: 0.4 },
     ],
-    // Europe, Anatolia, the Caucasus and the Atlas; the Central Asian
-    // forms are close enough to draw the same way.
-    presence: [{ years: always, bounds: [-11, 30, 100, 65] }],
+    // Europe to Scandinavia, the Atlas, Anatolia and the Caucasus, on through
+    // Iran to the Tian Shan and Kashmir. The old single box ran across Arabia
+    // and the Tibetan plateau, where there has never been a red deer.
+    presence: [
+      { years: always, bounds: [-11, 36, 32, 66] },
+      { years: always, bounds: [26, 32, 60, 46] },
+      { years: always, bounds: [-2, 32, 11, 38] },
+      { years: always, bounds: [55, 35, 92, 51] },
+      { years: always, bounds: [72, 31, 81, 37] },
+    ],
     density: 0.9,
     pace: 1,
     settlementTolerance: 0.1,
@@ -30,6 +37,7 @@ export const temperateFauna: readonly FaunaProfile[] = [
     separationRadius: 2,
     calmDecisionSeconds: 75,
     urgentDecisionSeconds: 6,
+    prey: "ungulate",
     diet: ["grass", "plant"],
     ...study("red-deer"),
   },
@@ -70,5 +78,119 @@ export const temperateFauna: readonly FaunaProfile[] = [
     diet: ["small-animal", "ungulate"],
     preyTags: ["small-animal", "ungulate"],
     ...study("gray-wolf"),
+  },
+  {
+    id: "wapiti",
+    label: "Wapiti",
+    category: "wild",
+    locomotion: "ground",
+    social: "herd",
+    activity: "crepuscular",
+    groupSize: [3, 8],
+    habitats: [
+      { tag: "forest-edge", weight: 1 },
+      { tag: "open-grass", weight: 0.9 },
+      { tag: "woodland", weight: 0.7 },
+      { tag: "scrub", weight: 0.45 },
+      { tag: "field", weight: 0.35 },
+    ],
+    // The same animal as the red deer to within a hair, which is why it is
+    // drawn with the same study. North America either side of the plains: the
+    // eastern herds were shot out by about 1850, the western ones held on.
+    // The Asian box stands for the eastern red deer and for the sika that
+    // share those woods, which at this size are the same silhouette.
+    presence: [
+      { years: always, bounds: [-160, 34, -100, 66] },
+      { years: [-1000000, 1850], bounds: [-100, 33, -70, 53] },
+      { years: always, bounds: [85, 34, 146, 61] },
+    ],
+    density: 0.85,
+    pace: 1,
+    settlementTolerance: 0.1,
+    minimumSettlementDistance: 26,
+    alertRadius: 8,
+    cohesionRadius: 6,
+    separationRadius: 2,
+    calmDecisionSeconds: 75,
+    urgentDecisionSeconds: 6,
+    diet: ["grass", "plant"],
+    prey: "ungulate",
+    ...study("red-deer"),
+  },
+  {
+    id: "aurochs",
+    label: "Aurochs study",
+    category: "wild",
+    locomotion: "ground",
+    social: "herd",
+    activity: "crepuscular",
+    groupSize: [2, 7],
+    habitats: [
+      { tag: "wetland", weight: 1 },
+      { tag: "forest-edge", weight: 0.9 },
+      { tag: "open-grass", weight: 0.8 },
+      { tag: "woodland", weight: 0.6 },
+      { tag: "field", weight: 0.3 },
+    ],
+    // A river-valley animal, not a plains one. Gone from Britain by about
+    // 1300 BC and from North Africa under Rome; the last of them died in a
+    // Polish forest in 1627, which is where the continental box ends.
+    presence: [
+      { years: [-1000000, 1627], bounds: [2, 36, 60, 60] },
+      { years: [-1000000, 1627], bounds: [-10, 36, 2, 51] },
+      { years: [-1000000, -1300], bounds: [-11, 50, 2, 59] },
+      { years: [-1000000, 300], bounds: [-10, 28, 32, 37] },
+      { years: [-1000000, -1000], bounds: [65, 8, 90, 32] },
+    ],
+    density: 0.35,
+    pace: 1.1,
+    settlementTolerance: 0.05,
+    minimumSettlementDistance: 40,
+    alertRadius: 10,
+    cohesionRadius: 7,
+    separationRadius: 2.5,
+    calmDecisionSeconds: 80,
+    urgentDecisionSeconds: 6,
+    diet: ["grass", "plant"],
+    prey: "ungulate",
+    ...study("aurochs"),
+  },
+  {
+    id: "wild-boar",
+    label: "Wild boar study",
+    category: "wild",
+    locomotion: "ground",
+    social: "herd",
+    activity: "nocturnal",
+    groupSize: [2, 8],
+    habitats: [
+      { tag: "woodland", weight: 1 },
+      { tag: "forest-edge", weight: 0.9 },
+      { tag: "wetland", weight: 0.8 },
+      { tag: "scrub", weight: 0.6 },
+      { tag: "field", weight: 0.5 },
+    ],
+    // Everywhere from the Atlantic to Japan and down into the tropics, and
+    // bold enough to come into the crops at night. Hunted out of Britain by
+    // about 1300 and back in the wild there from the 1990s.
+    presence: [
+      { years: always, bounds: [-10, 30, 145, 60] },
+      { years: always, bounds: [-10, 28, 35, 38] },
+      { years: always, bounds: [68, 2, 130, 31] },
+      { years: [-1000000, 1300], bounds: [-11, 50, 2, 59] },
+      { years: [1990, 10000], bounds: [-11, 50, 2, 59] },
+    ],
+    density: 0.6,
+    pace: 1.2,
+    settlementTolerance: 0.15,
+    minimumSettlementDistance: 20,
+    alertRadius: 7,
+    cohesionRadius: 5,
+    separationRadius: 2,
+    calmDecisionSeconds: 45,
+    urgentDecisionSeconds: 4,
+    diet: ["plant", "seed", "invertebrate"],
+    prey: "ungulate",
+    ...study("wild-boar"),
   },
 ];

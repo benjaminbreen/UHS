@@ -68,7 +68,7 @@ import { itineraryAt, type Itinerary } from "./itinerary";
 import { route, type RouteResult } from "./routing";
 import { terrainJump, terrainLeap, type LeapResult } from "./topography";
 import { advanceFauna } from "./fauna-sim";
-import { faunaBlockOf } from "../world/v3/fauna";
+import { faunaBlockOf, habitatScorer } from "../world/v3/fauna";
 
 /** Cells either side of the player whose animal groups stay in the save. */
 const FAUNA_KEEP = 160;
@@ -2231,6 +2231,9 @@ export class Engine {
         this.state.fauna.push(copy(g));
       }
   }
+  /** Habitat suitability per species and cell, built on first use and kept:
+   * the sim asks for it several times per animal per tick. */
+  private habitat?: (speciesId: string, x: number, y: number) => number;
   /** One six-second step for the animal groups near the player. Their pace
    * is their own: a wolf outruns a person, a sheep does not keep up. */
   private stepFauna(clock: number) {
@@ -2276,9 +2279,12 @@ export class Engine {
         humans,
         rng: (purpose) => this.rng(purpose),
         hour: (clock / 3600) % 24,
+        habitat: (this.habitat ??= habitatScorer(this.world)),
       },
       clock,
     );
+    // A herd eaten down to nothing leaves no group behind.
+    this.state.fauna = groups.filter((g) => g.members.length);
   }
   /** The traversal a move resolved to, for the renderer to animate. Cleared
    * once read, so a walked step never inherits the previous jump's arc. */
@@ -3441,7 +3447,7 @@ export class Engine {
             a.activity =
               distance(a.pos, a.work) > 2
                 ? "Walking to work"
-                : `${a.role} at work`;
+                : atWork(a.role);
             if (distance(a.pos, a.work) > 2) this.stepToward(a, a.work);
             else if (next % 90 === 0) {
               const dx = Math.floor(this.rng("routine") * 3) - 1,

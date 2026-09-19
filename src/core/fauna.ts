@@ -45,6 +45,20 @@ export type FaunaGroup = {
   stride: number;
   /** Clock at which the current state began. */
   since: number;
+  /** Something has been noticed: the clock at which the group will act on it.
+   * Until then it has its head up, watching. Cleared when the threat goes. */
+  alarm?: number;
+  /** How hard the last fright was, 0 to 1. It sets the pace of the run and
+   * eases off once whatever caused it has gone. */
+  panic?: number;
+  /** Seconds of hard running banked. A blown animal cannot keep the pace up. */
+  hard?: number;
+  /** Hunters: the clock after which this group hunts again. A kill feeds a
+   * pack for the best part of a day. */
+  fedUntil?: number;
+  /** Hunters: the group being hunted, held between ticks so a pack does not
+   * swap quarry whenever another herd drifts closer. */
+  quarry?: string;
   /** Kept animals: who tends them, which gate they pass, where they graze. */
   owner?: string;
   gateId?: string;
