@@ -55,6 +55,8 @@ import {
   type LiveGraphicsSettings,
 } from "./live-graphics";
 import { ToolEffects, ROLL_MS } from "./tool-effects";
+import { CombatEffects, faunaSpriteId, mixTint } from "./combat-effects";
+import { TIERS } from "../core/combat";
 import {
   facingFromDirection,
   facingFromStep,
@@ -240,6 +242,7 @@ export class WorldScene extends Phaser.Scene {
   /** The images standing on a cell, so a blow can rock the right plant. */
   private plantImages = new Map<string, Phaser.GameObjects.Image[]>();
   private toolEffects?: ToolEffects;
+  private combatEffects?: CombatEffects;
   /** Last drawn pose frame per person, so a footfall fires once per contact. */
   private footfalls = new Map<string, number>();
   /** Facing actually drawn, which chases the real one a step at a time. */
@@ -443,7 +446,11 @@ export class WorldScene extends Phaser.Scene {
     this.wading = new WadingEffects(this);
     this.prepareTreeStudySheet();
     this.events.once("shutdown", () => this.wading?.destroy());
-    this.events.once("shutdown", () => this.toolEffects?.dispose());
+    this.events.once("shutdown", () => {
+      this.toolEffects?.dispose();
+      this.combatEffects?.dispose();
+      this.combatEffects = undefined;
+    });
     this.events.once("shutdown", () => this.characters?.destroy());
     ensureFireTextures(this);
     this.fireFrames = animatedFrames(
@@ -1444,6 +1451,14 @@ export class WorldScene extends Phaser.Scene {
       this.game.canvas.dataset.cameraZoom = String(this.zoomTarget);
     }
   }
+  private combat() {
+    return (this.combatEffects ??= new CombatEffects(this, {
+      tint: () => this.tint,
+      lift: (x, y) => this.lift(x, y),
+      entityAt: (id) => this.entities.get(id),
+      shadowOf: (id) => this.shadows.get(id),
+    }));
+  }
   addTestFauna(speciesId: string, state: FaunaState, count: number) {
     const player = this.runtime.engine.state.player;
     if (player.pos.space !== "outside") return 0;
@@ -1674,6 +1689,8 @@ export class WorldScene extends Phaser.Scene {
       c.centerOn(p.x * 16 + 8, p.y * 16 + 8);
     if (w !== this.drawnWorld) {
       this.toolEffects?.dispose();
+      this.combatEffects?.dispose();
+      this.combatEffects = undefined;
       this.terrainStream?.dispose();
       this.terrainStream = undefined;
       this.terrainAnchor = undefined;
@@ -1681,6 +1698,8 @@ export class WorldScene extends Phaser.Scene {
       // Indoors the street is only out of sight. Rasterising it again on the
       // way back out is what made a settlement fill in a quadrant at a time.
       this.toolEffects?.dispose();
+      this.combatEffects?.dispose();
+      this.combatEffects = undefined;
       this.terrainStream?.setHidden(true);
       this.terrainAnchor = undefined;
     }
@@ -2620,6 +2639,7 @@ export class WorldScene extends Phaser.Scene {
       );
     }
     this.faunaSprites.clear();
+    const struck = this.combat().pending(rt.swingEffect, rt.throwEffect);
     for (const g of [...(e.state.fauna ?? []), ...this.testFauna]) {
       if (Math.abs(g.pos.x - p.x) > range || Math.abs(g.pos.y - p.y) > range)
         continue;
@@ -2629,27 +2649,35 @@ export class WorldScene extends Phaser.Scene {
       // are side views flipped for west.
       const turns = Boolean(faunaProfile(g.speciesId)?.directions);
       for (const [i, m] of g.members.entries()) {
-        const id = `${g.id}-${i}`;
+        const id =
+          m.n === undefined ? `${g.id}-${i}` : faunaSpriteId(g.id, m.n);
         const at = { x: m.x, y: m.y - lift, space: "outside" };
         if (!visible(at)) continue;
+        // A blow is about to throw this one: the knockback moves the sprite,
+        // so tell the tween below it has nowhere to go.
+        if (struck.has(id) && this.entities.has(id))
+          this.destinations.set(id, at);
         const phase = this.poseOffset(id) % 8;
         const facing = FACINGS[m.direction] ?? "east";
         renderEntity(
           id,
-          this.faunaFrame(g.speciesId, g.state, phase, facing),
+          this.faunaFrame(g.speciesId, m.pose ?? g.state, phase, facing),
           at,
           true,
           g.id,
         );
         const im = this.entities.get(id)!;
-        if (g.id.startsWith("dev-fauna-")) im.disableInteractive();
+        const tier = TIERS[m.tier ?? "ordinary"];
+        if (im.getData("tier") !== tier.scale)
+          im.setData("tier", tier.scale).setScale(tier.scale);
+        if (tier.tint !== 0xffffff) im.setTint(mixTint(this.tint, tier.tint));
         const flip = !turns && m.direction === 3;
         if (im.flipX !== flip) im.setFlipX(flip);
         // Three clear rows under the hooves in every study frame.
         im.setOrigin(0.5, (im.frame.height - 3) / im.frame.height);
         this.faunaSprites.set(id, {
           species: g.speciesId,
-          state: g.state,
+          state: m.pose ?? g.state,
           phase,
           facing,
         });
@@ -2662,8 +2690,11 @@ export class WorldScene extends Phaser.Scene {
         this.tweens.killTweensOf(image);
         const shade = this.shadows.get(id);
         if (shade) this.tweens.killTweensOf(shade);
+        // Killed by the swing in flight: the body is the effect's to drop.
+        const dying = struck.get(id)?.killed;
+        if (dying) this.combat().adopt(id, image, shade);
         this.wading?.remove(id);
-        image.destroy();
+        if (!dying) image.destroy();
         this.hangings.get(id)?.image.destroy();
         this.hangings.delete(id);
         this.motions.delete(id);
@@ -2673,7 +2704,7 @@ export class WorldScene extends Phaser.Scene {
         this.actorFrames.delete(id);
         this.footfalls.delete(id);
         this.turning.delete(id);
-        shade?.destroy();
+        if (!dying) shade?.destroy();
         this.shadows.delete(id);
       }
     const g = this.routeOverlay!;
@@ -2878,6 +2909,11 @@ export class WorldScene extends Phaser.Scene {
     this.toolEffects.consumeThrow(this.runtime.throwEffect);
     this.toolEffects.consumeShove(this.runtime.shoveEffect);
     this.toolEffects.update(time);
+    this.combat().consume(this.runtime.swingEffect);
+    this.combat().consumeThrow(this.runtime.throwEffect);
+    this.combat().consumeEvents(this.runtime.engine.combatEvents);
+    this.combat().charging(this.runtime.charge);
+    this.combat().update(time);
     mark("wind");
     const active = document.activeElement;
     const typing =

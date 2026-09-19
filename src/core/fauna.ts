@@ -26,7 +26,35 @@ export const aerialStates = new Set<FaunaState>([
 
 /** One animal's cell and facing, numbered as for actors: 0 north, 1 east,
  * 2 south, 3 west. Side-view species only ever hold 1 or 3. */
-export type FaunaMember = { x: number; y: number; direction: 0 | 1 | 2 | 3 };
+export type FaunaMember = {
+  x: number;
+  y: number;
+  direction: 0 | 1 | 2 | 3;
+  /** Stable within the group, so a death does not renumber the rest. Absent
+   * until the engine first sees the animal, like `tier` and `hp`. */
+  n?: number;
+  tier?: "weak" | "ordinary" | "strong" | "very-strong" | "legendary";
+  hp?: number;
+  /** Clock until which a blow has it reeling: it does not move. */
+  stun?: number;
+  /** Legendaries only: "the grey boar of the ford". */
+  name?: string;
+  /** Art to show instead of the group's, while this one is doing something
+   * the rest are not: pawing the ground, running in. */
+  pose?: FaunaState;
+};
+
+/** One animal's attack on the player, a phase at a time. `dir` is fixed when
+ * the run starts, which is what makes a sidestep work. */
+export type FaunaAttack = {
+  n: number;
+  phase: "windup" | "charge" | "recover";
+  until: number;
+  dir?: { x: number; y: number };
+  from?: { x: number; y: number };
+  /** Cells run so far. */
+  ran?: number;
+};
 
 /** One simulation decision drives every member; members keep their own cells
  * so a person can corner one. */
@@ -59,6 +87,16 @@ export type FaunaGroup = {
   /** Hunters: the group being hunted, held between ticks so a pack does not
    * swap quarry whenever another herd drifts closer. */
   quarry?: string;
+  /** The last member number handed out. */
+  serial?: number;
+  /** Clock until which the group runs from people because one of them hit it.
+   * Kept animals need this: nothing else makes a sheep bolt from its herder. */
+  hurtUntil?: number;
+  /** Clock until which the group means the player harm. */
+  provoked?: number;
+  attack?: FaunaAttack;
+  /** Packs: how far round the ring they have worked, in eighths of a turn. */
+  ring?: number;
   /** Kept animals: who tends them, which gate they pass, where they graze. */
   owner?: string;
   gateId?: string;

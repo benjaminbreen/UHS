@@ -1,3 +1,4 @@
+import { SKILLS, levelOf, rankOf, skillIds } from "../core/skills";
 import type { Engine } from "../core/engine";
 import { describeStats, statsOf } from "../core/stats";
 import { describeStanding, standingOf } from "../core/standing";
@@ -173,17 +174,35 @@ export function sceneDigest(engine: Engine, input: string): string {
   const recent = (s.narration ?? [])
     .slice(-3)
     .map((t) => `> ${t.input}\n${t.text.slice(0, 240)}`);
+  // What the district says about its animals: anyone here might bring it up.
+  const talk = Object.values(s.legends ?? {})
+    .filter((l) => Math.hypot(l.at.x - p.pos.x, l.at.y - p.pos.y) < 400)
+    .slice(0, 3)
+    .map(
+      (l) =>
+        `- ${l.name}, a ${l.species.replace(/-/g, " ")} everyone here knows of${l.slain !== undefined ? "; the player killed it" : ", still at large"}`,
+    );
+  const able = skillIds
+    .map((id) => ({ id, level: levelOf(p.skills?.[id]) }))
+    .filter((x) => x.level >= 3)
+    .map(
+      (x) =>
+        `${SKILLS[x.id].name.toLowerCase()} (${rankOf(x.level).toLowerCase()})`,
+    );
   return [
     "SCENE",
     `Day ${Math.floor(s.clock / 86400) + 1}, ${hourWord(s.clock)}, ${season}. ${weather.label}, ${Math.round(weather.tempC)}°C${weather.night ? ", dark" : ""}.`,
     `You are ${inside ? `inside ${inside.name}` : `outdoors on ${terrain}`}${held ? `, carrying ${held.toLowerCase()}` : ""}. You feel ${condition}.`,
     `Inventory: ${inventory || "nothing"}.`,
+    able.length ? `You are known to be good at: ${able.join(", ")}.` : "",
+    p.injury ? `You are nursing a ${p.injury.name}.` : "",
     people.length ? `People nearby:\n${people.join("\n")}` : "Nobody in sight.",
     things.length ? `Things nearby:\n${things.join("\n")}` : "",
     places.length ? `Buildings nearby:\n${places.join("\n")}` : "",
     s.ledger?.length
       ? `Standing facts:\n${s.ledger.map((f) => `- ${f}`).join("\n")}`
       : "",
+    talk.length ? `Local talk:\n${talk.join("\n")}` : "",
     events.length ? `Since last turn:\n${events.join("\n")}` : "",
     recent.length ? `Recent turns:\n${recent.join("\n")}` : "",
     "",

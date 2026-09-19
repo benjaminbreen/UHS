@@ -3110,6 +3110,11 @@ button:disabled {
   box-shadow: 0 10px 30px #0a1110a8;
   font: 12px var(--sans);
 }
+.combat-test-panel {
+  left: auto;
+  right: 14px;
+  width: min(240px, calc(100% - 28px));
+}
 .live-graphics-panel header,
 .live-graphics-panel footer,
 .live-graphics-panel label > span {
@@ -3343,6 +3348,7 @@ button:disabled {
   background: #2b3a35;
   border-color: #887b56;
 }
+.combat-test-panel .live-animal-actions,
 .live-perf .live-animal-actions {
   flex-wrap: wrap;
 }
@@ -5429,4 +5435,265 @@ button:disabled {
 }
 .hand-actions button:hover {
   border-color: var(--gold);
+}
+
+/* Health in the corner of the world, and the hurt beside it. */
+.vitals {
+  position: absolute;
+  top: 14px;
+  left: 16px;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 9px 5px 7px;
+  color: #e0645a;
+  background: #0f1526cc;
+  border: 1px solid var(--line-soft);
+  border-radius: 999px;
+  pointer-events: none;
+}
+.vitals-bar {
+  width: 92px;
+  height: 6px;
+  border-radius: 3px;
+  background: #ffffff14;
+  overflow: hidden;
+}
+.vitals-bar i {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(#f08478, #c9473f);
+  transition: width 0.35s ease-out;
+}
+.vitals[data-low] {
+  border-color: #e0645a;
+  animation: vitals-low 0.9s ease-in-out infinite;
+}
+.vitals-injury {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-left: 7px;
+  border-left: 1px solid var(--line-soft);
+  color: var(--cream);
+  font-size: 12px;
+}
+@keyframes vitals-low {
+  50% {
+    box-shadow: 0 0 0 3px #e0645a33;
+  }
+}
+/* Ten pips per skill; the one being earned fills from the left. */
+.skill-pips {
+  display: flex;
+  gap: 2px;
+}
+.skill-pips i {
+  position: relative;
+  width: 9px;
+  height: 5px;
+  border-radius: 1px;
+  background: #ffffff14;
+  overflow: hidden;
+}
+.skill-pips i.full {
+  background: var(--gold);
+}
+.skill-pips i::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--fill, 0);
+  background: #d9b47788;
+  transition: width 0.5s ease-out;
+}
+.skill-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 26px;
+  height: 26px;
+  color: var(--gold);
+  border: 1px solid var(--line-soft);
+  border-radius: 5px;
+  background: #ffffff08;
+}
+.skill-toast {
+  position: absolute;
+  left: 50%;
+  bottom: 168px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 6px 12px 7px 7px;
+  text-align: left;
+  color: var(--cream);
+  background: #0f1526e6;
+  border: 1px solid var(--line-soft);
+  border-radius: 7px;
+  transform: translateX(-50%);
+  animation: skill-toast-in 0.22s ease-out;
+}
+.skill-toast-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.skill-toast small {
+  font-size: 12px;
+  color: var(--muted);
+}
+.skill-toast small b {
+  color: var(--gold);
+  font-weight: 400;
+}
+.skill-toast[data-level-up] {
+  padding: 10px 16px 11px 11px;
+  border-color: var(--gold);
+  box-shadow:
+    0 0 0 3px #d9b47722,
+    0 12px 30px #05081299;
+  animation: skill-level-in 0.5s cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+.skill-toast[data-level-up] .skill-icon {
+  width: 38px;
+  height: 38px;
+  border-color: var(--gold);
+}
+.skill-toast[data-level-up] small {
+  font: 10px var(--pixel);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+.skill-toast strong {
+  font: 20px var(--serif);
+  line-height: 1;
+}
+.skill-toast em {
+  max-width: 260px;
+  font-size: 12px;
+  font-style: normal;
+  color: var(--muted);
+}
+@keyframes skill-toast-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 6px);
+  }
+}
+@keyframes skill-level-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 10px) scale(0.92);
+  }
+}
+.skills-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+}
+/* Land, craft, people, road: a rule between groups says it without a heading. */
+.skills-panel section + section {
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid var(--line-soft);
+}
+.skill-row {
+  display: grid;
+  grid-template-columns: 26px 1fr auto auto;
+  align-items: center;
+  gap: 3px 9px;
+  width: 100%;
+  padding: 3px 6px;
+  text-align: left;
+  color: var(--cream);
+  border: 1px solid transparent;
+  border-radius: 5px;
+}
+.skill-row:hover,
+.skill-row[aria-expanded="true"] {
+  border-color: var(--line-soft);
+  background: #ffffff05;
+}
+.skill-row[data-untried] {
+  color: var(--muted);
+}
+.skill-row[data-untried] .skill-icon {
+  color: var(--muted);
+}
+.skill-name {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  font-size: 14px;
+}
+.skill-name small {
+  font-size: 11px;
+  color: var(--muted);
+}
+.skill-row .skill-icon {
+  width: 24px;
+  height: 24px;
+}
+.skill-level {
+  font: 18px var(--serif);
+  color: var(--gold);
+}
+.skill-row[data-untried] .skill-level {
+  color: var(--muted);
+}
+.skill-detail {
+  grid-column: 2 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-bottom: 3px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.collapse-notice {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  background: #05070fe8;
+  animation: collapse-in 1.2s ease-out;
+}
+.collapse-notice > div {
+  max-width: 420px;
+  padding: 0 24px;
+  text-align: center;
+}
+.collapse-notice small {
+  font: 10px var(--pixel);
+  letter-spacing: 0.14em;
+  color: var(--gold);
+}
+.collapse-notice h2 {
+  margin: 6px 0 10px;
+  font: 30px var(--serif);
+  color: var(--cream);
+}
+.collapse-notice p {
+  margin-bottom: 18px;
+  line-height: 1.5;
+  color: var(--text);
+}
+.collapse-notice button {
+  padding: 8px 22px;
+  color: var(--ink);
+  background: var(--gold);
+  border-radius: 5px;
+}
+@keyframes collapse-in {
+  from {
+    background: #6a0f0f;
+    opacity: 0;
+  }
 }

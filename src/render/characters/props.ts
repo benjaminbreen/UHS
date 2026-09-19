@@ -60,7 +60,7 @@ export function loadCarriedArt() {
             );
           const kind = sprite.includes("stick")
             ? "stick"
-            : /-(pitchfork|rake|scythe|shovel)-/.test(sprite)
+            : /-(pitchfork|rake|scythe|shovel|spear)-/.test(sprite)
               ? "haft"
               : /-(spade|hoe|sickle|pick)-/.test(sprite)
                 ? "tool"

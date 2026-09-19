@@ -512,6 +512,14 @@
       ]
     },
     {
+      "id": "spear",
+      "name": "Spear",
+      "group": "Work & agriculture",
+      "size": [12, 52],
+      "description": "A hunting spear stood on its butt, the blade a leaf of stone or metal.",
+      "variants": ["Stone point", "Bronze", "Iron"]
+    },
+    {
       "id": "shovel",
       "name": "Long shovel",
       "group": "Work & agriculture",

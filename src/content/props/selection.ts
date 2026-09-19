@@ -299,11 +299,14 @@ export function propKit(pack: Pack): PropKit {
     contexts.yard = pottery ? ["pot", "basket"] : ["basket"];
   }
   if (year < -25999) {
-    contexts.tool = ["stick"];
+    contexts.tool = ["stick", "spear"];
     contexts.household = ["hideBag"];
     contexts.yard = ["hideBag"];
     contexts.fire = cold ? ["longFire"] : ["firepit"];
   }
+  // The spear hunts and guards in every countryside until the gun replaces it.
+  else if (year < 1700 && pack.setting?.settlement !== "city")
+    contexts.tool.push("spear");
   const placeId =
     pack.setting?.placeId ??
     (pack.id === "roman"

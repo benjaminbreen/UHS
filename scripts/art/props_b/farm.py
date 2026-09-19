@@ -316,6 +316,26 @@ def pitchfork(v=0):
  return c.image()
 
 
+def spear(v=0):
+ """A hunting spear stood on its butt: grey stone, bronze, then iron."""
+ c = Canvas(12, 52)
+ w = RAMPS[WOOD7[v]]
+ m = RAMPS['pewter7'] if v == 0 else RAMPS['copper7'] if v == 1 else RAMPS['iron7']
+ cx = _shaft(c, 5, 12, 50, w, lean=0, thick=2)
+ for y in (12, 13, 14):                            # the lashing or the socket
+  c.hline(cx - 1, cx + 2, y, m[2] if v else w[1])
+  c.set(cx - 1, y, m[4] if v else w[5])
+ for i, half in enumerate([0, 0, 1, 1, 2, 2, 2, 2, 1, 1, 1]):   # leaf blade, point up
+  y = 1 + i
+  for x in range(cx - half, cx + half + 2):
+   c.set(x, y, m[5] if x <= cx else m[3])
+  c.set(cx + half + 1, y, m[1])
+ for y in range(3, 11): c.set(cx, y, m[6])         # the midrib catches the light
+ soft_outline(c, w[0], w[2])
+ grass(c, [(1, 51, 2), (8, 51, 2)])
+ return c.image()
+
+
 def shovel(v=0):
  """A navvy's shovel: a long haft and a blade that takes two cuts at once."""
  c = Canvas(18, 46)
@@ -463,6 +483,7 @@ FARM = {
  'water-butt': water_butt,
  'rake': rake,
  'pitchfork': pitchfork,
+ 'spear': spear,
  'shovel': shovel,
  'scythe': scythe,
  'beehive': beehive,

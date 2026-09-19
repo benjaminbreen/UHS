@@ -146,6 +146,11 @@ function variantOf(variants: number, roll: number) {
 /** Versioned content overlay: neither old terrain nor district RNG is changed.
  * Existing storage locations become real props; extra work objects hug buildings.
  * This runs for initial districts and each newly activated district. */
+/** The first colourway of a prop's sprite, for a prop made outside placement. */
+export function propSprite(key: string) {
+  const def = propDefs[key];
+  return def && `study-prop${redrawn.has(def.family) ? "b" : ""}-${def.family}-${variantOf(1, 0)}`;
+}
 export function withProps(world: WorldModel, seed: string): WorldModel {
   const kit = propKit(world.pack),
     done = new Set<string>(),

@@ -1,4 +1,6 @@
 import { faunaStates } from "../core/fauna";
+import { faunaTiers } from "../core/combat";
+import { skillIds } from "../core/skills";
 import {
   hairStyles,
   eyeSizes,
@@ -243,6 +245,8 @@ export const characterAppearanceSchema = z.object({
 const actor = z.object({
   stats: stats.optional(),
   health: z.number().min(0).max(100).optional(),
+  skills: z.partialRecord(z.enum(skillIds), z.number()).optional(),
+  injury: z.object({ name: z.string(), until: z.number() }).optional(),
   origin: z
     .object({
       revision: z.literal(1),
@@ -372,7 +376,12 @@ export const commandSchema = z.discriminatedUnion("type", [
       run: z.boolean().optional(),
     })
     .strict(),
-  z.object({ type: z.literal("swing") }).strict(),
+  z
+    .object({
+      type: z.literal("swing"),
+      power: z.union([z.literal(1), z.literal(2)]).optional(),
+    })
+    .strict(),
   z.object({ type: z.literal("stow") }).strict(),
   z.object({ type: z.literal("drop") }).strict(),
   z
@@ -405,6 +414,7 @@ export const commandSchema = z.discriminatedUnion("type", [
         "close",
         "knock",
         "drink",
+        "cook",
         "store",
         "harvest",
         "capture",
@@ -496,6 +506,12 @@ const faunaGroup = z
             z.literal(2),
             z.literal(3),
           ]),
+          n: z.number().int().optional(),
+          tier: z.enum(faunaTiers).optional(),
+          hp: z.number().optional(),
+          stun: z.number().optional(),
+          name: z.string().optional(),
+          pose: z.enum(faunaStates).optional(),
         }),
       )
       .max(32),
@@ -507,6 +523,25 @@ const faunaGroup = z
     nextDecisionAt: z.number(),
     stride: z.number(),
     since: z.number(),
+    alarm: z.number().optional(),
+    panic: z.number().optional(),
+    hard: z.number().optional(),
+    fedUntil: z.number().optional(),
+    quarry: z.string().optional(),
+    serial: z.number().int().optional(),
+    hurtUntil: z.number().optional(),
+    provoked: z.number().optional(),
+    attack: z
+      .object({
+        n: z.number().int(),
+        phase: z.enum(["windup", "charge", "recover"]),
+        until: z.number(),
+        dir: z.object({ x: z.number(), y: z.number() }).optional(),
+        from: z.object({ x: z.number(), y: z.number() }).optional(),
+        ran: z.number().optional(),
+      })
+      .optional(),
+    ring: z.number().optional(),
     owner: z.string().optional(),
     gateId: z.string().optional(),
     pasture: pos.optional(),
@@ -514,6 +549,17 @@ const faunaGroup = z
   .strict();
 export const snapshotSchema = z.object({
   fauna: z.array(faunaGroup).max(5000).optional(),
+  legends: z
+    .record(
+      z.string(),
+      z.object({
+        name: z.string(),
+        species: z.string(),
+        at: z.object({ x: z.number(), y: z.number() }),
+        slain: z.number().optional(),
+      }),
+    )
+    .optional(),
   households: z
     .array(
       z.object({

@@ -82,6 +82,8 @@ import { AtlasMap } from "./AtlasMap";
 import { toAtlas, fromAtlas } from "../world/geography/coordinates";
 import { ItemIcon, Sprite, Minimap, timeLabel } from "./components";
 import { LiveGraphicsPanel } from "../dev/LiveGraphicsPanel";
+import { CombatTestPanel } from "../dev/CombatTestPanel";
+import { CollapseNotice, SkillsPanel, SkillToast, Vitals } from "./Skills";
 import {
   defaultLiveGraphicsSettings,
   type LiveGraphicsSettings,
@@ -115,6 +117,9 @@ const REST_OPTIONS: {
 
 export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
   const view = useSyncExternalStore(runtime.subscribe, runtime.getSnapshot);
+  // Dev builds only: a handle for driving the game from the console.
+  if (import.meta.env.DEV)
+    (window as unknown as { uhs?: Runtime }).uhs = runtime;
   const { observation: obs, selection, pack } = view;
   const p = obs.player;
   const propControls = runtime.propControls();
@@ -152,6 +157,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
   };
   const [narratorOpen, setNarratorOpen] = useState(false);
   const [graphicsOpen, setGraphicsOpen] = useState(false);
+  const [combatOpen, setCombatOpen] = useState(false);
   const [liveGraphics, setLiveGraphics] = useState<LiveGraphicsSettings>(
     () => ({
       ...defaultLiveGraphicsSettings,
@@ -181,9 +187,9 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
   const [sheetSnap, setSheetSnap] = useState<"peek" | "half" | "full">("peek");
   const sheetPointerStart = useRef<number | null>(null);
   const [mapRegion, setMapRegion] = useState(false);
-  const [sideTab, setSideTab] = useState<"around" | "inventory" | "today">(
-    "around",
-  );
+  const [sideTab, setSideTab] = useState<
+    "around" | "inventory" | "skills" | "today"
+  >("around");
   const [mapSpan, setMapSpan] = useState(1600);
   const [earthMap, setEarthMap] = useState(false);
   // Talk is the one verb the engine cannot finish on its own: the dialogue
@@ -198,6 +204,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
       runtime.engine.doorAnswer = undefined;
       openDialogue(answered);
     }
+    return verb;
   };
   // Reads the live snapshot so the keyboard listener never sees a stale world.
   const talkToNearest = () => {
@@ -259,6 +266,8 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
       banner: false,
     });
     game.current = g;
+    if (import.meta.env.DEV)
+      (window as unknown as { uhsGame?: Phaser.Game }).uhsGame = g;
     registerGame(g);
     g.events.once(Phaser.Core.Events.READY, () => {
       applyFrameCap(liveGraphicsRef.current.frameCap);
@@ -359,7 +368,10 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
       if (e.code === "Space") e.preventDefault();
       if ((e.code === "KeyE" || e.code === "KeyF") && !e.repeat) {
         e.preventDefault();
-        runVerb(e.code === "KeyF" ? "primary" : "alternate");
+        const verb = runVerb(e.code === "KeyF" ? "primary" : "alternate");
+        // A swing at nothing in particular can be held into a wide one.
+        if (e.code === "KeyF" && verb?.kind === "strike" && !verb.command)
+          runtime.beginCharge();
       }
       if (e.key === "=" || e.key === "+") runtime.stepZoom(1);
       if (e.key === "-" || e.key === "_") runtime.stepZoom(-1);
@@ -373,8 +385,19 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
       if (e.key.toLowerCase() === "m") setModal("map");
       if (e.key.toLowerCase() === "n") setModal("notebook");
     };
+    const release = (e: KeyboardEvent) => {
+      if (e.code === "KeyF") runtime.releaseCharge();
+    };
+    // A keyup lost to another window would leave the wind-up running.
+    const cancel = () => (runtime.charge = undefined);
     window.addEventListener("keydown", listener);
-    return () => window.removeEventListener("keydown", listener);
+    window.addEventListener("keyup", release);
+    window.addEventListener("blur", cancel);
+    return () => {
+      window.removeEventListener("keydown", listener);
+      window.removeEventListener("keyup", release);
+      window.removeEventListener("blur", cancel);
+    };
   }, [modal, audioOpen, runtime]);
   useEffect(() => {
     const listener = (e: KeyboardEvent) => {
@@ -566,6 +589,27 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
               }
             />
           )}
+          {combatOpen && (
+            <CombatTestPanel
+              onSpawn={(species, count, tier) =>
+                runtime.devSpawnFauna(species, count, tier)
+              }
+              onClear={() => runtime.devClearFauna()}
+              onArm={(prop) => runtime.devArm(prop)}
+              onHeal={() => runtime.devHeal()}
+              onClose={() => setCombatOpen(false)}
+            />
+          )}
+          <Vitals
+            health={p.health ?? 100}
+            injury={p.injury}
+            clock={obs.clock}
+          />
+          <SkillToast
+            gains={runtime.engine.skillGains}
+            onOpen={() => setSideTab("skills")}
+          />
+          <CollapseNotice collapse={runtime.engine.lastCollapse} />
           <div className="prop-prompts" data-testid="prop-prompts">
             {obs.manifest.content === 1 && (
               <span>
@@ -1043,6 +1087,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
                     [
                       ["around", "Around you"],
                       ["inventory", "Inventory"],
+                      ["skills", "Skills"],
                       ["today", "Today"],
                     ] as const
                   ).map(([id, label]) => (
@@ -1109,6 +1154,9 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
                       <p>You carry nothing.</p>
                     )}
                   </div>
+                )}
+                {sideTab === "skills" && (
+                  <SkillsPanel skills={runtime.engine.skills()} />
                 )}
                 {sideTab === "today" && (
                   <div className="event-log">
@@ -1596,6 +1644,16 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
                   className="settings-tools"
                 >
                   <p>Inspect artwork and content in the development labs.</p>
+                  <button
+                    className="action settings-featured"
+                    onClick={() => {
+                      setModal(null);
+                      setCombatOpen(true);
+                    }}
+                  >
+                    Combat test · summon animals, pick a weapon
+                    <small>Opens a panel over the world you are in</small>
+                  </button>
                   <a
                     className="action"
                     href="/water-experiments"

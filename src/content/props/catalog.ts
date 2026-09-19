@@ -659,6 +659,15 @@ export const propDefs: Record<string, PropDef> = {
     strike: true,
     variants: 1,
   },
+  /** The hunting weapon of every period before the gun, and most after. */
+  spear: {
+    solid: false,
+    name: "Spear",
+    family: "spear",
+    portable: true,
+    strike: true,
+    where: "backyard",
+  },
   /** The same length of wood, found rather than kept: it lies under trees in
    * every period, so there is always something to hand to swing. */
   branch: {

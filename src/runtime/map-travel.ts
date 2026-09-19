@@ -305,6 +305,8 @@ export class MapTravel {
       this.arrival = { id: exit.id, ...incoming.point };
       this.staged = undefined;
       this.runtime.replace(destination.engine, true);
+      // New country is what the road teaches.
+      destination.engine.grantXp("wayfaring", 40);
       this.runtime.notice =
         "You arrive in " + permanentMap(this.id, this.year).name + ".";
     } catch (e) {

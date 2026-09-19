@@ -51,6 +51,13 @@ export function propAffordances(
       );
   }
   if (d.drink) add("drink", "Drink water");
+  if (d.fire && !o.carriedBy)
+    add(
+      "cook",
+      "Cook meat",
+      (s.player.inventory.meat ?? 0) > 0,
+      "You have no raw meat",
+    );
   if (d.breakable && !o.broken && !o.carriedBy) add("strike", "Strike it");
   // Shoving something over needs no tool, and does not break it. A stick to
   // a basket still breaks the basket; a shoulder to it only lays it down.

@@ -68,7 +68,33 @@ import { findPath } from "./pathfinding";
 import { itineraryAt, type Itinerary } from "./itinerary";
 import { route, type RouteResult } from "./routing";
 import { terrainJump, terrainLeap, type LeapResult } from "./topography";
-import { advanceFauna } from "./fauna-sim";
+import { advanceFauna, stepAllowed } from "./fauna-sim";
+import { aerialStates, type FaunaGroup, type FaunaMember } from "./fauna";
+import {
+  ensureVitals,
+  faunaName,
+  maxHp,
+  legendKey,
+  memberAt,
+  TIERS,
+  weaponOf,
+  type CombatEvent,
+  type CombatEventInput,
+  type CreatureHit,
+  type FaunaTier,
+  type Weapon,
+} from "./combat";
+import { faunaCombat, faunaProfile } from "../content/fauna";
+import { propSprite } from "../content/props/place";
+import {
+  levelOf,
+  PER_LEVEL,
+  SKILLS,
+  rankOf,
+  startingSkills,
+  type SkillGain,
+  type SkillId,
+} from "./skills";
 import { faunaBlockOf, habitatScorer } from "../world/v3/fauna";
 
 /** Cells either side of the player whose animal groups stay in the save. */
@@ -622,6 +648,7 @@ export class Engine {
     );
     if (actor) return { hit: "creature", sprite: actor.id };
     if (space === "outside") {
+      if (this.faunaAt(x, y)) return { hit: "creature" };
       const plant = this.world.decoration(x, y);
       if (plant) {
         if (isRock(plant.sprite)) return { hit: "rock", sprite: plant.sprite };
@@ -642,7 +669,7 @@ export class Engine {
   }
   /** The three cells a swing sweeps: what you face, and the corner to each
    * side of it. */
-  private swingCone(direction: number) {
+  private swingCone(direction: number, power = 0, reach = 0) {
     const p = this.state.player.pos;
     const d = [
       [0, -1],
@@ -652,10 +679,29 @@ export class Engine {
     ][direction];
     // Perpendicular, for the two corners.
     const s = [-d[1], d[0]];
-    return [
+    // A spear: the cell faced and those beyond it, nothing to the sides.
+    if (reach)
+      return Array.from({ length: reach + (power ? 1 : 0) }, (_, i) => ({
+        x: p.x + d[0] * (i + 1),
+        y: p.y + d[1] * (i + 1),
+      }));
+    const front = [
       { x: p.x + d[0], y: p.y + d[1] },
       { x: p.x + d[0] - s[0], y: p.y + d[1] - s[1] },
       { x: p.x + d[0] + s[0], y: p.y + d[1] + s[1] },
+    ];
+    if (!power) return front;
+    const sides = [
+      { x: p.x - s[0], y: p.y - s[1] },
+      { x: p.x + s[0], y: p.y + s[1] },
+    ];
+    if (power === 1) return [...front, ...sides];
+    return [
+      ...front,
+      ...sides,
+      { x: p.x - d[0], y: p.y - d[1] },
+      { x: p.x - d[0] - s[0], y: p.y - d[1] - s[1] },
+      { x: p.x - d[0] + s[0], y: p.y - d[1] + s[1] },
     ];
   }
   /** Frees the hand, whichever system was using it: an item goes back into
@@ -699,13 +745,380 @@ export class Engine {
     return undefined;
   }
   /** The last swing's hits, for the renderer. Read by serial, like a leap. */
-  lastSwing?: { hits: Hit[]; tool: ToolClass; direction: number };
+  lastSwing?: {
+    hits: Hit[];
+    tool: ToolClass;
+    direction: number;
+    creatures: CreatureHit[];
+    /** 0 a plain swing, 1 a half circle, 2 all the way round. */
+    power: number;
+    /** A spear goes straight in rather than round. */
+    thrust: boolean;
+  };
+  /** Clock until which a fight is on. The runtime keeps the world ticking
+   * through it instead of letting an idle player freeze the animals. */
+  combatUntil = 0;
+  /** Holding something made to be swung, which is no bar to jumping. */
+  armed() {
+    const def = propDefs[heldObject(this.state)?.prop ?? ""];
+    return !!def?.strike && !def.container;
+  }
+  /** An animal standing on a cell. One in the air is out of reach. */
+  private faunaAt(x: number, y: number) {
+    for (const g of this.state.fauna ?? []) {
+      if (Math.abs(g.pos.x - x) > 24 || Math.abs(g.pos.y - y) > 24) continue;
+      if (aerialStates.has(g.state)) continue;
+      const m = memberAt(g, x, y);
+      if (m) return { g, m };
+    }
+    return undefined;
+  }
+  /** One blow on one animal: damage, the shove, and what the herd makes of
+   * it. `share` is 1 for the cell faced and less for the corners of the arc. */
+  private strikeFauna(
+    g: FaunaGroup,
+    m: FaunaMember,
+    weapon: Weapon,
+    d: readonly number[],
+    share: number,
+  ): CreatureHit | undefined {
+    // A spear set against a charge takes the animal's own weight.
+    const braced =
+      !!weapon.brace && g.attack?.phase === "charge" && g.attack.n === m.n;
+    const profile = faunaProfile(g.speciesId);
+    if (!profile) return undefined;
+    const seed = this.state.manifest.seed;
+    ensureVitals(seed, g);
+    const combat = faunaCombat(profile);
+    const strength = statsOf(seed, this.state.player).strength;
+    const crit = this.rng("combat-crit") < 0.1;
+    let damage = Math.max(
+      1,
+      Math.round(
+        weapon.damage *
+          (0.7 + strength * 0.006) *
+          (0.8 + this.rng("combat-roll") * 0.4) *
+          share *
+          (crit ? 2 : 1) *
+          (braced ? weapon.brace! : 1) *
+          (1 + this.skillLevel("hunting") * PER_LEVEL.huntingDamage) *
+          (this.injured() ? 0.7 : 1),
+      ),
+    );
+    const reach = Math.min(
+      3,
+      Math.max(0, weapon.knock + 1 + (crit ? 1 : 0) - combat.mass),
+    );
+    const from = { x: m.x, y: m.y };
+    let to = from,
+      slammed = false;
+    for (let i = 1; i <= reach; i++) {
+      const next = { x: from.x + d[0] * i, y: from.y + d[1] * i };
+      if (
+        this.actorAt({ ...next, space: "outside" }, "") ||
+        this.faunaAt(next.x, next.y) ||
+        !stepAllowed(
+          {
+            blocked: (x, y) => this.blocked(x, y, "outside"),
+            canCross: this.world.canCross
+              ? (a, b) => this.world.canCross!(a, b)
+              : undefined,
+            topography: this.world.topography
+              ? (x, y) => this.world.topography!(x, y)
+              : undefined,
+          },
+          profile,
+          to,
+          next,
+        )
+      ) {
+        slammed = true;
+        break;
+      }
+      to = next;
+    }
+    // Thrown against a wall or another animal hurts more than the blow did.
+    if (slammed) damage += Math.ceil(weapon.damage / 2);
+    const clock = this.state.clock;
+    const full = maxHp(g.speciesId, m.tier ?? "ordinary");
+    m.hp = (m.hp ?? full) - damage;
+    m.x = to.x;
+    m.y = to.y;
+    m.stun = clock + 6;
+    const killed = m.hp <= 0;
+    const hit: CreatureHit = {
+      group: g.id,
+      n: m.n!,
+      species: g.speciesId,
+      tier: m.tier ?? "ordinary",
+      from,
+      to,
+      damage,
+      crit,
+      slammed,
+      killed,
+      hp: Math.max(0, m.hp),
+      maxHp: full,
+      feathered: profile.locomotion === "ground-and-flight",
+      drops: [],
+    };
+    this.combatUntil = clock + 90;
+    // A blow breaks whatever it was in the middle of.
+    if (g.attack?.n === m.n) {
+      g.attack = { n: m.n!, phase: "recover", until: clock + 12 };
+      m.pose = undefined;
+    }
+    this.strikeOwned(g, killed);
+    // Practice is the blow that lands; the lesson is the animal brought down.
+    if (!g.owner)
+      this.grantXp(
+        "hunting",
+        Math.min(damage, full) * 0.5 +
+          (killed ? full * 1.5 * TIERS[m.tier ?? "ordinary"].yield : 0),
+      );
+    if (killed) {
+      g.members.splice(g.members.indexOf(m), 1);
+      const p = this.state.player;
+      for (const [item, n] of Object.entries(combat.yields)) {
+        const def = this.items[item];
+        const count = Math.max(
+          1,
+          Math.round(n * TIERS[m.tier ?? "ordinary"].yield),
+        );
+        if (!def) continue;
+        p.inventory[item] = (p.inventory[item] ?? 0) + count;
+        hit.drops.push({ item, count, sprite: def.sprite });
+      }
+      const took = hit.drops
+        .map((d) => `${d.count} ${this.items[d.item].name.toLowerCase()}`)
+        .join(", ");
+      this.event(
+        `You kill ${m.name ?? `the ${faunaName(g, m)}`}.${took ? ` You take ${took}.` : ""}`,
+      );
+      const legend = this.state.legends?.[legendKey(g.id, m.n!)];
+      if (legend) legend.slain = clock;
+    }
+    const lead = g.members[0];
+    if (lead) g.pos = { x: lead.x, y: lead.y, space: "outside" };
+    // An animal that fights does so until it is badly hurt or one of its own
+    // is down. Everything else bolts.
+    const fights = combat.temper !== "bolt" && !killed && m.hp > full * 0.3;
+    if (fights) {
+      g.provoked = clock + 240;
+      g.hurtUntil = undefined;
+    } else {
+      g.provoked = undefined;
+      g.attack = undefined;
+      for (const o of g.members) o.pose = undefined;
+      g.hurtUntil = clock + 180;
+      g.panic = 1;
+      g.alarm = clock;
+      g.target = undefined;
+      if (profile.locomotion !== "ground-and-flight" && profile.art.flee) {
+        g.state = "flee";
+        g.since = clock;
+      }
+    }
+    return hit;
+  }
+  /** Skill gains since the UI last looked. Never saved. */
+  skillGains: SkillGain[] = [];
+  private gainSerial = 0;
+  /** The player's skills, rolled from their occupation the first time. */
+  skills() {
+    const p = this.state.player;
+    return (p.skills ??= startingSkills(this.state.manifest.seed, p));
+  }
+  skillLevel(skill: SkillId) {
+    return levelOf(this.skills()[skill]);
+  }
+  /** Experience for work done. The attribute behind a skill makes it come a
+   * little easier or harder: 0.8 to 1.2 across the range. */
+  grantXp(skill: SkillId, amount: number) {
+    if (amount <= 0) return;
+    const skills = this.skills();
+    const aptitude =
+      0.8 +
+      statsOf(this.state.manifest.seed, this.state.player)[SKILLS[skill].stat] *
+        0.004;
+    const before = skills[skill] ?? 0;
+    const xp = before + amount * aptitude;
+    skills[skill] = xp;
+    const level = levelOf(xp);
+    const rose = level > levelOf(before);
+    // Small gains from walking would drown the toast; they still count.
+    if (amount >= 1 || rose) {
+      this.skillGains.push({
+        serial: ++this.gainSerial,
+        skill,
+        amount,
+        xp,
+        level: rose ? level : undefined,
+      });
+      if (this.skillGains.length > 12) this.skillGains.shift();
+    }
+    if (rose)
+      this.event(
+        `${SKILLS[skill].name} ${level}: ${rankOf(level).toLowerCase()}. ${SKILLS[skill].perk(level)}.`,
+      );
+  }
+  /** A practised hand sometimes gets two blows' work out of one. */
+  private deft(skill: SkillId) {
+    return this.rng(`deft-${skill}`) <
+      this.skillLevel(skill) * PER_LEVEL.deftBlow
+      ? 1
+      : 0;
+  }
+  private injured() {
+    const injury = this.state.player.injury;
+    if (injury && injury.until <= this.state.clock) {
+      delete this.state.player.injury;
+      this.event(`Your ${injury.name} has mended.`);
+      return false;
+    }
+    return !!injury;
+  }
+  /** How loud the player is to an animal: 1 is a person walking in plain
+   * view. Running carries; standing still, and practice, do not. */
+  private noise() {
+    const since = this.state.clock - this.lastStep.clock;
+    const gait = since > 4 ? 0.55 : this.lastStep.run ? 1.3 : 0.8;
+    return (
+      gait * (1 - this.skillLevel("hunting") * PER_LEVEL.huntingQuiet)
+    );
+  }
+  private lastStep = { clock: -99, run: false };
+  private lastJump = -99;
+  /** Striking a kept animal is striking its keeper's property. Anyone who
+   * sees it thinks less of you; the keeper most of all, and they say so. */
+  private strikeOwned(g: FaunaGroup, killed: boolean) {
+    if (!g.owner) return;
+    const p = this.state.player;
+    const memory = `${killed ? "killed" : "struck"}:${g.id}`;
+    if (p.memories.includes(memory)) return;
+    p.memories.push(memory);
+    const label = faunaProfile(g.speciesId)?.label.toLowerCase() ?? "animal";
+    for (const witness of this.state.actors.filter(
+      (a) =>
+        a.kind === "human" &&
+        distance(a.pos, p.pos) < 12 &&
+        this.visibleFrom(a.pos, p.pos),
+    )) {
+      const theirs = witness.id === g.owner;
+      witness.trust -= (theirs ? 8 : 3) * (killed ? 2 : 1);
+      witness.memories.push(
+        `Saw player ${killed ? "kill" : "strike"} ${theirs ? "my" : "a neighbour's"} ${label}`,
+      );
+      this.event(
+        theirs
+          ? `${witness.name} shouts at you: that ${label} is theirs.`
+          : `${witness.name} saw you ${killed ? "kill" : "strike"} a ${label} that is not yours.`,
+        "social",
+      );
+    }
+  }
+  /** What the animals have done since the renderer last looked. */
+  combatEvents: CombatEvent[] = [];
+  private combatSerial = 0;
+  private emitCombat(event: CombatEventInput) {
+    this.combatEvents.push({
+      ...event,
+      serial: ++this.combatSerial,
+    } as CombatEvent);
+    if (this.combatEvents.length > 24) this.combatEvents.shift();
+  }
+  /** An animal has run the player down: the hurt, and being thrown by it. */
+  private mauled(g: FaunaGroup, m: FaunaMember, dir: Point, damage: number) {
+    const p = this.state.player;
+    const from = { x: p.pos.x, y: p.pos.y };
+    for (let i = 0; i < 2; i++) {
+      const next = { ...p.pos, x: p.pos.x + dir.x, y: p.pos.y + dir.y };
+      if (
+        this.blocked(next.x, next.y, next.space) ||
+        this.actorAt(next, "") ||
+        this.faunaAt(next.x, next.y)
+      )
+        break;
+      p.pos = next;
+    }
+    p.health = Math.max(0, (p.health ?? 100) - damage);
+    this.emitCombat({
+      kind: "mauled",
+      group: g.id,
+      n: m.n!,
+      damage,
+      from,
+      to: { x: p.pos.x, y: p.pos.y },
+    });
+    const name = m.name ?? `the ${faunaName(g, m)}`;
+    const Name = `${name[0].toUpperCase()}${name.slice(1)}`;
+    if (p.health > 0) {
+      this.event(`${Name} hits you hard.`);
+      return;
+    }
+    for (const o of this.state.fauna ?? []) {
+      o.provoked = undefined;
+      o.attack = undefined;
+      for (const om of o.members) om.pose = undefined;
+    }
+    // Settled once the tick that did it has finished.
+    this.pendingCollapse = { by: Name, part: g.speciesId === "gray-wolf" ? "torn arm" : "gored leg" };
+  }
+  private pendingCollapse?: { by: string; part: string };
+  /** What the player reads when they come round. Never saved. */
+  lastCollapse?: { serial: number; title: string; text: string };
+  /** Nothing here kills the player. It costs them the day, what they were
+   * carrying in their hands, some of the game in their bag, and a hurt that
+   * takes days to mend. Someone near enough carries them home. */
+  private collapse(by: string, part: string) {
+    const p = this.state.player;
+    const rescuer = this.state.actors
+      .filter((a) => a.kind === "human" && a.pos.space === "outside")
+      .map((a) => ({ a, d: distance(a.pos, p.pos) }))
+      .filter((e) => e.d < 60)
+      .sort((x, y) => x.d - y.d)[0]?.a;
+    this.emptyHands();
+    const lost: string[] = [];
+    for (const item of ["meat", "hide", "feathers"]) {
+      const n = p.inventory[item] ?? 0;
+      const gone = Math.ceil(n / 2);
+      if (!gone) continue;
+      p.inventory[item] = n - gone;
+      lost.push(`${gone} ${this.items[item]?.name.toLowerCase() ?? item}`);
+    }
+    if (rescuer) p.pos = copy(p.home);
+    p.perch = undefined;
+    p.activity = "Resting";
+    this.advance((rescuer ? 10 : 5) * 3600);
+    p.activity = "Exploring";
+    p.health = rescuer ? 35 : 20;
+    p.hunger = Math.min(100, p.hunger + 15);
+    p.injury = { name: part, until: this.state.clock + 3 * 86400 };
+    const text = [
+      `${by} put you on the ground.`,
+      rescuer
+        ? `${rescuer.name} found you and had you carried home. You wake ten hours later.`
+        : "Nobody came. You come round where you fell, hours later, cold and alone.",
+      lost.length ? `Gone from your bag: ${lost.join(", ")}.` : "",
+      `Your ${part} will trouble you for three days: weaker blows, and you tire sooner.`,
+    ]
+      .filter(Boolean)
+      .join(" ");
+    this.event(text);
+    this.lastCollapse = {
+      serial: (this.lastCollapse?.serial ?? 0) + 1,
+      title: rescuer ? "Carried home" : "Left for dead",
+      text,
+    };
+  }
   /** The last thrown prop's flight, for the renderer to arc it over. */
   lastThrow?: {
     from: { x: number; y: number };
     to: { x: number; y: number };
     sprite?: string;
     hit: Hit;
+    /** An animal it struck on the way. */
+    creature?: CreatureHit;
   };
   /** The last shove, for the scuff it leaves and the sound it makes. */
   lastShove?: {
@@ -1044,7 +1457,8 @@ export class Engine {
       );
       for (const q of cells) this.editAt(q.x, q.y).dug = true;
       this.tilesChanged();
-      this.advance(cells.length > 1 ? 70 : 45);
+      this.advance(this.fieldPace(cells.length > 1 ? 70 : 45));
+      this.grantXp("farming", 5 * cells.length);
       this.event(
         cells.length > 1
           ? "You drive the shovel through two spits of earth."
@@ -1070,7 +1484,8 @@ export class Engine {
         }
       }
       if (stubble) this.tilesChanged();
-      this.advance(cut.length ? 30 : 15);
+      this.advance(this.fieldPace(cut.length ? 30 : 15));
+      this.grantXp("farming", cut.length * 6 + (cells.length - cut.length));
       this.event(
         cut.length > 1
           ? `You lay a swathe of ${cut[0]} and gather it.`
@@ -1090,6 +1505,7 @@ export class Engine {
       p.inventory.wood = (p.inventory.wood ?? 0) + wood;
       this.tilesChanged();
       this.advance(60);
+      this.grantXp("woodcraft", 8 + wood * 2);
       this.event(
         `You buck the fallen trunk into ${wood} firewood. A stump is left in the ground.`,
       );
@@ -1100,13 +1516,15 @@ export class Engine {
       p.inventory.wood = (p.inventory.wood ?? 0) + 1;
       this.tilesChanged();
       this.advance(20);
+      this.grantXp("woodcraft", 3);
       this.event("You clear the cut stems away. The ground is bare.");
       return;
     }
     if (work === "split") return this.splitRock(plant, edit);
     const needed = fellingSwings(plant?.sprite);
-    edit.chops = (edit.chops ?? 0) + 1;
+    edit.chops = (edit.chops ?? 0) + 1 + this.deft("woodcraft");
     this.advance(30);
+    this.grantXp("woodcraft", 4);
     if (edit.chops < needed) {
       const left = needed - edit.chops;
       // Nine blows on an oak should not fill the log with nine lines: the
@@ -1126,6 +1544,7 @@ export class Engine {
     }
     edit.stage = "logs";
     edit.wood = woodYield(plant?.sprite);
+    this.grantXp("woodcraft", 6 + needed * 2);
     this.tilesChanged();
     this.event(
       `${this.plantName(plant?.sprite, true)} comes down with a crash and lies where it fell.`,
@@ -1135,8 +1554,9 @@ export class Engine {
    * takes half as long again and the edge pays for every blow. */
   private splitRock(plant: Decoration | undefined, edit: TileEdit) {
     const p = this.state.player;
-    edit.chops = (edit.chops ?? 0) + 1;
+    edit.chops = (edit.chops ?? 0) + 1 + this.deft("quarrying");
     this.advance(45);
+    this.grantXp("quarrying", 5);
     const axe = heldObject(this.state);
     // The haft survives; the edge does not. A blunted axe still fells trees,
     // so this is a cost the player can feel without losing the tool outright.
@@ -1159,6 +1579,7 @@ export class Engine {
     }
     edit.chops = 0;
     edit.stage = "rubble";
+    this.grantXp("quarrying", 15);
     p.inventory.stone = (p.inventory.stone ?? 0) + 2;
     this.tilesChanged();
     this.event(
@@ -1178,14 +1599,17 @@ export class Engine {
       if (this.rng("flint") < 0.3) take("flint", 1);
       this.tilesChanged();
       this.advance(40);
+      this.grantXp("quarrying", 4);
       this.event(
         "You clear the broken stone away and pocket what is worth keeping.",
       );
       return;
     }
     const needed = work === "grub" ? STUMP_BLOWS : ROCK_BLOWS;
-    edit.chops = (edit.chops ?? 0) + 1;
+    const skill = work === "grub" ? "woodcraft" : "quarrying";
+    edit.chops = (edit.chops ?? 0) + 1 + this.deft(skill);
     this.advance(40);
+    this.grantXp(skill, 5);
     if (edit.chops < needed) {
       const left = needed - edit.chops;
       if (edit.chops === 1 || left === 1)
@@ -1206,8 +1630,15 @@ export class Engine {
     }
     edit.stage = "rubble";
     take("stone", 2);
+    this.grantXp("quarrying", 15);
     this.tilesChanged();
     this.event("The rock splits open. Broken stone lies where it stood.");
+  }
+  /** Seconds of field work, less for someone who has done a lot of it. */
+  private fieldPace(seconds: number) {
+    return Math.round(
+      seconds * (1 - this.skillLevel("farming") * PER_LEVEL.farmingPace),
+    );
   }
   private plantName(sprite: string | undefined, capital = false) {
     const name = plantName(sprite);
@@ -2032,7 +2463,8 @@ export class Engine {
         return heldObject(this.state)
           ? undefined
           : "You are not holding anything to throw.";
-      if (c.jump && heldObject(this.state))
+      // A stick or a spear goes with you; a crate does not.
+      if (c.jump && heldObject(this.state) && !this.armed())
         return "Put down the held object before jumping.";
       if (c.jump && c.traverse) return "Choose one movement style.";
       if (c.traverse || c.jump) {
@@ -2169,7 +2601,12 @@ export class Engine {
         (a.inventory[c.take] ?? 0) < c.takeQuantity
       )
         return "One side does not have the offered goods.";
-      if (give.value * c.giveQuantity < take.value * c.takeQuantity)
+      if (
+        give.value *
+          c.giveQuantity *
+          (1 + this.skillLevel("trade") * PER_LEVEL.tradeTerms) <
+        take.value * c.takeQuantity
+      )
         return "They decline those terms.";
       return;
     }
@@ -2245,6 +2682,94 @@ export class Engine {
         known.add(g.id);
         this.state.fauna.push(copy(g));
       }
+    for (const g of this.state.fauna) this.enrol(g);
+  }
+  /** Vitals for new arrivals, and the legends among them onto the register.
+   * One already slain does not come back with its block. */
+  private enrol(g: FaunaGroup) {
+    if (g.members.every((m) => m.n !== undefined)) return;
+    ensureVitals(this.state.manifest.seed, g);
+    const legends = (this.state.legends ??= {});
+    g.members = g.members.filter((m) => {
+      if (!m.name) return true;
+      const key = legendKey(g.id, m.n!);
+      if (legends[key]?.slain !== undefined) return false;
+      legends[key] ??= {
+        name: m.name,
+        species: g.speciesId,
+        at: { x: g.home.x, y: g.home.y },
+      };
+      return true;
+    });
+  }
+  private devSerial = 0;
+  /** Dev panel: real, simulated animals in a ring round the player. */
+  devSpawnFauna(speciesId: string, count: number, tier?: FaunaTier) {
+    const profile = faunaProfile(speciesId);
+    const at = this.state.player.pos;
+    if (!profile || at.space !== "outside") return 0;
+    const members: FaunaMember[] = [];
+    for (let ring = 3; ring <= 9 && members.length < count; ring++)
+      for (let dy = -ring; dy <= ring && members.length < count; dy++)
+        for (let dx = -ring; dx <= ring && members.length < count; dx++) {
+          if (Math.max(Math.abs(dx), Math.abs(dy)) !== ring) continue;
+          if ((dx + dy) % 2) continue;
+          const x = at.x + dx,
+            y = at.y + dy;
+          if (this.blocked(x, y, "outside") || this.faunaAt(x, y)) continue;
+          members.push({ x, y, direction: dx < 0 ? 1 : 3, tier });
+        }
+    if (!members.length) return 0;
+    const pos = { x: members[0].x, y: members[0].y, space: "outside" };
+    while (this.state.fauna?.some((g) => g.id === `dev-fauna-${this.devSerial}`))
+      this.devSerial++;
+    const group: FaunaGroup = {
+      id: `dev-fauna-${this.devSerial++}`,
+      speciesId,
+      members,
+      pos,
+      home: { ...pos },
+      homeRadius: 10,
+      state: profile.art.idle ? "idle" : profile.art.perch ? "perch" : "rest",
+      nextDecisionAt: this.state.clock + 30,
+      stride: 0,
+      since: this.state.clock,
+    };
+    this.enrol(group);
+    (this.state.fauna ??= []).push(group);
+    this.state.revision++;
+    return members.length;
+  }
+  devClearFauna() {
+    this.state.fauna = this.state.fauna?.filter(
+      (g) => !g.id.startsWith("dev-fauna-"),
+    );
+    this.state.revision++;
+  }
+  /** Dev panel: put a prop straight into the player's hands, or empty them. */
+  devArm(prop?: string) {
+    const p = this.state.player;
+    const old = heldObject(this.state);
+    if (old?.id.startsWith("dev-weapon-"))
+      this.state.objects = this.state.objects.filter((o) => o !== old);
+    this.emptyHands();
+    const def = prop ? propDefs[prop] : undefined;
+    const sprite = prop && propSprite(prop);
+    if (prop && def && sprite) {
+      const id = `dev-weapon-${this.devSerial++}`;
+      this.state.objects.push({
+        id,
+        name: def.name,
+        kind: "container",
+        prop,
+        sprite,
+        inventory: {},
+        pos: copy(p.pos),
+        carriedBy: "player",
+      });
+      p.held = id;
+    }
+    this.state.revision++;
   }
   /** Habitat suitability per species and cell, built on first use and kept:
    * the sim asks for it several times per animal per tick. */
@@ -2295,9 +2820,23 @@ export class Engine {
         rng: (purpose) => this.rng(purpose),
         hour: (clock / 3600) % 24,
         habitat: (this.habitat ??= habitatScorer(this.world)),
+        noise: this.noise(),
+        dodging: clock - this.lastJump <= 6,
+        onMaul: (g, m, dir, damage) => this.mauled(g, m, dir, damage),
+        emit: (event) => this.emitCombat(event),
       },
       clock,
     );
+    for (const g of near)
+      for (const m of g.members) {
+        if (!m.name || Math.hypot(m.x - focus.x, m.y - focus.y) > 12) continue;
+        const memory = `seen:${legendKey(g.id, m.n!)}`;
+        if (player.memories.includes(memory)) continue;
+        player.memories.push(memory);
+        this.event(`You catch sight of ${m.name}.`);
+      }
+    if (near.some((g) => g.provoked !== undefined))
+      this.combatUntil = Math.max(this.combatUntil, clock + 30);
     // A herd eaten down to nothing leaves no group behind.
     this.state.fauna = groups.filter((g) => g.members.length);
   }
@@ -2318,11 +2857,38 @@ export class Engine {
         ? toolClass(def.tool, def.strike)
         : toolClass(undefined, inHand?.strike, inHand?.edge);
       p.direction = this.aimAt(p.direction);
-      const cone = this.swingCone(p.direction);
+      const power = c.power ?? 0;
+      const weapon = weaponOf(held?.prop, held ? undefined : inHand);
+      const cone = this.swingCone(p.direction, power, weapon.reach);
       const hits: Hit[] = [];
+      const creatures: CreatureHit[] = [];
+      const force = [1, 1.5, 2][power];
+      const push = [
+        [0, -1],
+        [1, 0],
+        [0, 1],
+        [-1, 0],
+      ][p.direction];
       let told: string | undefined;
       for (const [i, at] of cone.entries()) {
+        const animal =
+          p.pos.space === "outside" ? this.faunaAt(at.x, at.y) : undefined;
         const found = this.hitClass(at.x, at.y, p.pos.space);
+        if (animal) {
+          // A wound-up swing throws things outward from the player, not
+          // along the way they happen to be facing.
+          const out = power
+            ? [Math.sign(at.x - p.pos.x), Math.sign(at.y - p.pos.y)]
+            : push;
+          const struck = this.strikeFauna(
+            animal.g,
+            animal.m,
+            power ? { ...weapon, knock: weapon.knock + 1 } : weapon,
+            out,
+            (i === 0 || power || weapon.reach ? 1 : 0.6) * force,
+          );
+          if (struck) creatures.push(struck);
+        }
         const kind = reactionFor(found.hit, tool);
         const h: Hit = {
           at,
@@ -2348,14 +2914,24 @@ export class Engine {
         }
         hits.push(h);
       }
-      this.lastSwing = { hits, tool, direction: p.direction };
+      this.lastSwing = {
+        hits,
+        tool,
+        direction: p.direction,
+        creatures,
+        power,
+        thrust: !!weapon.reach,
+      };
+      if (power) p.fatigue = Math.min(100, p.fatigue + power * 0.6);
+      if (creatures.length)
+        this.state.fauna = this.state.fauna?.filter((g) => g.members.length);
       const solid = hits.find((h) => h.solid);
       if (told) this.event(told);
       else if (solid && solid.hit !== "creature")
         this.event(
           `Your swing ${solid.kind === "thwock" ? "rings off" : "thumps into"} the ${plantName(solid.sprite)}.`,
         );
-      this.advance(solid ? 3 : 2);
+      this.advance((solid ? 3 : 2) + power * 2);
       return;
     }
     if (c.type === "throw") {
@@ -2371,7 +2947,12 @@ export class Engine {
         // it, though a wall still does.
         if (this.blocked(step.x, step.y, step.space)) break;
         landed = step;
+        if (step.space === "outside" && this.faunaAt(step.x, step.y)) break;
       }
+      const quarry =
+        landed.space === "outside"
+          ? this.faunaAt(landed.x, landed.y)
+          : undefined;
       const distance = Math.max(
         Math.abs(landed.x - p.pos.x),
         Math.abs(landed.y - p.pos.y),
@@ -2405,7 +2986,25 @@ export class Engine {
         : undefined;
       const kind = landing?.reaction ?? reactionFor(ground.hit, "thrown");
       const bursts = landing?.kind === "shatter";
+      const thrown = weaponOf(prop.prop);
+      const struck =
+        quarry && distance
+          ? this.strikeFauna(
+              quarry.g,
+              quarry.m,
+              {
+                damage:
+                  thrown.damage * (thrown.thrown ?? 0.8) * (c.run ? 1.3 : 1),
+                knock: 1,
+              },
+              [c.dx, c.dy],
+              1,
+            )
+          : undefined;
+      if (struck)
+        this.state.fauna = this.state.fauna?.filter((g) => g.members.length);
       this.lastThrow = {
+        creature: struck,
         from: { x: p.pos.x, y: p.pos.y },
         to: { x: landed.x, y: landed.y },
         sprite,
@@ -2446,6 +3045,7 @@ export class Engine {
           : undefined;
       if (leap && leap.kind !== "blocked") {
         this.lastLeap = leap;
+        if (c.jump) this.lastJump = this.state.clock;
         p.pos.x += c.dx * leap.distance;
         p.pos.y += c.dy * leap.distance;
         p.direction = c.dy < 0 ? 0 : c.dx > 0 ? 1 : c.dy > 0 ? 2 : 3;
@@ -2474,6 +3074,9 @@ export class Engine {
           ? waterDepthAt(this.world.topography, p.pos.x + 0.5, p.pos.y + 0.5)
           : 0;
       p.activity = depth > 0 ? "Wading" : "Exploring";
+      this.lastStep = { clock: this.state.clock, run: !!c.run };
+      if (p.pos.space === "outside")
+        this.grantXp(depth > 0 ? "watercraft" : "wayfaring", depth > 0 ? 0.6 : 0.15);
       this.populateNearby();
       const rise =
         p.pos.space === "outside" && this.world.elevation
@@ -2492,7 +3095,9 @@ export class Engine {
       this.advance(
         Math.ceil(
           (c.run && !depth ? (c.dx && c.dy ? 2 : 1) : c.dx && c.dy ? 3 : 2) *
-            wadingCost(depth),
+            (1 +
+              (wadingCost(depth) - 1) *
+                (1 - this.skillLevel("watercraft") * PER_LEVEL.watercraftPace)),
         ) +
           (slope > 1 ? 1 : 0) +
           effort,
@@ -2605,6 +3210,7 @@ export class Engine {
       return;
     }
     if (c.type === "narrate") {
+      this.grantXp("speech", 3);
       this.lastOutcomes = resolveIntents(this, c.intents);
       return;
     }
@@ -2707,6 +3313,10 @@ export class Engine {
       p.inventory[c.take] = (p.inventory[c.take] ?? 0) + c.takeQuantity;
       this.advance(60, a.id);
       a.trust++;
+      this.grantXp(
+        "trade",
+        Math.min(40, 5 + this.items[c.take].value * c.takeQuantity),
+      );
       this.event(
         `${a.name} accepts: ${c.giveQuantity} ${this.items[c.give].name.toLowerCase()} for ${c.takeQuantity} ${this.items[c.take].name.toLowerCase()}.`,
         "social",
@@ -2718,7 +3328,15 @@ export class Engine {
       case "talk":
         if (a) {
           this.advance(90, a.id);
-          if (a.trust >= 0) a.trust++;
+          if (a.trust >= 0) {
+            a.trust++;
+            if (
+              this.rng("speech") <
+              this.skillLevel("speech") * PER_LEVEL.speechWarmth
+            )
+              a.trust++;
+          }
+          this.grantXp("speech", 8);
           const owner = this.world.places.find((b) => b.owner === a.id);
           if (a.trust >= 2) {
             this.state.permissions[a.id] = this.state.clock + 3600 * 3;
@@ -2860,10 +3478,32 @@ export class Engine {
       case "mine":
         this.useTool(c.action, c.target);
         break;
+      case "cook":
+        if (o) {
+          const raw = Math.min(4, p.inventory.meat ?? 0);
+          if (!raw) break;
+          p.inventory.meat = (p.inventory.meat ?? 0) - raw;
+          p.inventory["cooked-meat"] = (p.inventory["cooked-meat"] ?? 0) + raw;
+          this.advance(240 * raw);
+          this.event(
+            `You cook ${raw} ${raw === 1 ? "piece" : "pieces"} of meat over ${o.name.toLowerCase()}.`,
+          );
+        }
+        break;
       case "harvest":
         if (o) {
           if (!harvestResource(p, o, this.state.clock)) break;
           this.advance(180);
+          if (o.resource || o.kind === "tree") {
+            if (
+              o.resource &&
+              this.rng("forage") <
+                this.skillLevel("foraging") * PER_LEVEL.foragingExtra
+            )
+              p.inventory[o.resource.item] =
+                (p.inventory[o.resource.item] ?? 0) + 1;
+            this.grantXp("foraging", o.resource ? 12 : 6);
+          } else this.grantXp("farming", 10);
           this.event(
             o.resource
               ? `You gather ${this.items[o.resource.item].name.toLowerCase()}. The resource is depleted until it replenishes in season.`
@@ -3309,7 +3949,10 @@ export class Engine {
           elapsed /
             (player.activity === "Resting" || player.activity === "Sleeping"
               ? 100000
-              : 2400),
+              : (2400 / (player.injury ? 1.5 : 1)) *
+                (1 +
+                  levelOf(player.skills?.wayfaring) *
+                    PER_LEVEL.wayfaringStamina)),
       );
       if (next % 6 !== 0) continue;
       if (next % 3600 === 0) this.world.rotateRoutines?.(next);
@@ -3534,5 +4177,10 @@ export class Engine {
     this.objectsById = undefined;
     this.householdsById = undefined;
     this.resourceObjects = undefined;
+    const fallen = this.pendingCollapse;
+    if (fallen) {
+      this.pendingCollapse = undefined;
+      this.collapse(fallen.by, fallen.part);
+    }
   }
 }

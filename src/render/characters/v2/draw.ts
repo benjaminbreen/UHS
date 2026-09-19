@@ -370,14 +370,20 @@ export function drawCharacter(
         near[1] - Math.round(v[1] * 0.75),
       ];
       p.limb([butt, at(0, 0)], 2, wood);
-      const head = /pitchfork/.test(prop.sprite)
-        ? "fork"
+      const head = /spear/.test(prop.sprite)
+        ? "point"
+        : /pitchfork/.test(prop.sprite)
+          ? "fork"
         : /rake/.test(prop.sprite)
           ? "rake"
           : /scythe/.test(prop.sprite)
             ? "blade"
             : "blade-square";
-      if (head === "fork")
+      if (head === "point") {
+        // A leaf blade, in line with the shaft.
+        p.limb([at(0, 0), at(5, 0)], 2, iron);
+        p.rect(at(6, 0)[0], at(6, 0)[1], 1, 1, iron.light);
+      } else if (head === "fork")
         for (const k of [-1, 0, 1]) {
           p.line(at(0, k * 2), at(5, k * 3), iron.base);
           p.rect(at(5, k * 3)[0], at(5, k * 3)[1], 1, 1, iron.light);

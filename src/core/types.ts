@@ -84,6 +84,11 @@ export type CharacterOrigin = {
 export type Actor = {
   stats?: Stats;
   health?: number;
+  /** Experience by skill. The player's only; residents have none stored. */
+  skills?: import("./skills").Skills;
+  /** A hurt that outlasts the fight: weaker blows and quicker tiring until
+   * the clock passes `until`. */
+  injury?: { name: string; until: number };
   origin?: CharacterOrigin;
   appearance?: CharacterAppearance;
   /** Items on the body, by slot. Not counted in `inventory`; `wearing` derives from these. */
@@ -270,7 +275,7 @@ export type PlayerCommand =
   | { type: "throw"; dx: number; dy: number; run?: boolean }
   /** A swing of whatever is in hand, at whatever the arc finds. Takes no
    * target: the cone in front of the player is the target. */
-  | { type: "swing" }
+  | { type: "swing"; power?: 1 | 2 }
   | { type: "wait"; seconds: number }
   /** Time passing while the player stands still. Logged so a replay keeps the
    * same clock, but it raises no event of its own. */
@@ -285,6 +290,7 @@ export type PlayerCommand =
         | "open"
         | "close"
         | "drink"
+        | "cook"
         | "store"
         | "harvest"
         | "capture"
@@ -352,6 +358,8 @@ export type Snapshot = {
   households?: Household[];
   /** Animal groups: wild ones spawned as districts open, kept ones from pens. */
   fauna?: import("./fauna").FaunaGroup[];
+  /** Animals the district has a name for, by group and member number. */
+  legends?: Record<string, import("./combat").Legend>;
   manifest: WorldManifest;
   clock: number;
   revision: number;

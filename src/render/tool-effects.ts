@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import { gameAudio } from "../audio/director";
 import type { EffectId } from "../audio/synth";
 import type { Hit, HitClass, ReactionKind, ToolClass } from "../core/reactions";
+import type { CreatureHit } from "../core/combat";
 
 export type ToolEffectKind =
   | "hit"
@@ -34,6 +35,12 @@ export type SwingEffect = {
   /** The held prop's sprite, for tinting the chips it throws. */
   sprite?: string;
   hits: Hit[];
+  /** Animals the arc caught. Played by `CombatEffects`, on the same beat. */
+  creatures?: CreatureHit[];
+  /** 1 a half circle, 2 all the way round. */
+  power?: number;
+  /** A spear: straight in, not round. */
+  thrust?: boolean;
 };
 /** A thrown prop in the air, and what it found where it came down. */
 export type ThrowEffect = {
@@ -42,6 +49,7 @@ export type ThrowEffect = {
   to: { x: number; y: number };
   sprite?: string;
   hit: Hit;
+  creature?: CreatureHit;
 };
 /** A pile shifting one cell, or refusing to. */
 export type ShoveEffect = {
@@ -171,7 +179,8 @@ export class ToolEffects {
   private playSwing(effect: SwingEffect) {
     const from = this.point(effect.from);
     const [facing, ...corners] = effect.hits;
-    if (facing) this.arc(from, this.point(facing.at));
+    // A wound-up swing draws its own ring; see CombatEffects.
+    if (facing && !effect.power) this.arc(from, this.point(facing.at));
     // One sound per swing: the heaviest thing the arc found, so three cells
     // never play a chord.
     const loudest =

@@ -6,7 +6,13 @@ import {
   type FaunaMember,
   type FaunaState,
 } from "./fauna";
-import { faunaProfile, type FaunaProfile } from "../content/fauna";
+import {
+  faunaCombat,
+  faunaProfile,
+  type FaunaCombat,
+  type FaunaProfile,
+} from "../content/fauna";
+import { TIERS, type CombatEventInput } from "./combat";
 
 /** What a group needs from the world to move: the engine supplies it once per tick. */
 export type FaunaWorld = {
@@ -23,6 +29,15 @@ export type FaunaWorld = {
   /** How well a cell suits a species, 0 to 1. The engine caches it; without
    * it animals wander without regard for the ground. */
   habitat?(speciesId: string, x: number, y: number): number;
+  /** How well the player carries to an animal: 1 is a person walking in the
+   * open, less is quieter. Other people are always 1. */
+  noise?: number;
+  /** The player is in the air this tick, and a charge goes under them. */
+  dodging?: boolean;
+  /** An animal has reached the player. `dir` is the way it was travelling. */
+  onMaul?(g: FaunaGroup, m: FaunaMember, dir: Point, damage: number): void;
+  /** Something for the renderer to play. */
+  emit?(event: CombatEventInput): void;
   /** A hunter has pulled a member of `prey` down on `at`. */
   onKill?(hunter: FaunaGroup, prey: FaunaGroup, at: Point): void;
 };
@@ -112,16 +127,18 @@ function alertRadius(p: FaunaProfile) {
   return p.locomotion === "ground-and-flight" ? 2 : 1.2;
 }
 
+/** `noise` applies to the first threat only, which is the player. */
 function nearestThreat(
   threats: readonly Position[],
   at: Point,
   radius: number,
+  noise = 1,
 ) {
   let best: Position | undefined,
     bestD = radius;
-  for (const h of threats) {
+  for (const [i, h] of threats.entries()) {
     if (h.space !== "outside") continue;
-    const d = hyp(h, at);
+    const d = hyp(h, at) / (i ? 1 : noise);
     if (d < bestD) {
       best = h;
       bestD = d;
@@ -371,17 +388,200 @@ function keepStation(
   }
 }
 
+/** The tick being run, so a move can tell whether the animal is still reeling. */
+let now = 0;
+
 function moveMember(
   m: FaunaMember,
   to: Point,
   taken: Set<string>,
   all = false,
 ) {
+  if ((m.stun ?? 0) > now) return;
   taken.delete(`${m.x},${m.y}`);
   face(m, to.x - m.x, to.y - m.y, all);
   m.x = to.x;
   m.y = to.y;
   taken.add(`${m.x},${m.y}`);
+}
+
+/** Seconds an animal paws the ground before it comes. Long enough to read. */
+const WINDUP = 18;
+/** Cells a charge carries before the animal pulls up. */
+const CHARGE_RUN = 9;
+/** How far a pack stands off while it circles. */
+const RING = 3.2;
+/** Past this the quarrel is over. */
+const LOSE_INTEREST = 18;
+
+function endAttack(g: FaunaGroup) {
+  g.attack = undefined;
+  for (const m of g.members) m.pose = undefined;
+}
+
+/** The running part of a charge or a lunge: straight down the line fixed when
+ * it started, so whoever was standing there has until then to be elsewhere. */
+function run(
+  g: FaunaGroup,
+  m: FaunaMember,
+  p: FaunaProfile,
+  combat: FaunaCombat,
+  world: FaunaWorld,
+  clock: number,
+  taken: Set<string>,
+  target: Point,
+  reach: number,
+) {
+  const a = g.attack!,
+    dir = a.dir!,
+    tier = TIERS[m.tier ?? "ordinary"];
+  const from = a.from!;
+  let steps = Math.ceil(3 * tier.speed);
+  const rest = (seconds: number) => {
+    a.phase = "recover";
+    a.until = clock + seconds;
+    m.pose = p.art.idle ? "idle" : undefined;
+  };
+  while (steps-- > 0) {
+    const ran = (a.ran ?? 0) + 1;
+    const next = {
+      x: from.x + Math.round(dir.x * ran),
+      y: from.y + Math.round(dir.y * ran),
+    };
+    a.ran = ran;
+    if (next.x === m.x && next.y === m.y) continue;
+    if (next.x === target.x && next.y === target.y) {
+      face(m, next.x - m.x, next.y - m.y, Boolean(p.directions));
+      if (world.dodging) {
+        world.emit?.({ kind: "dodged", group: g.id, n: m.n! });
+        return rest(12);
+      }
+      world.onMaul?.(
+        g,
+        m,
+        { x: Math.sign(dir.x), y: Math.sign(dir.y) },
+        Math.max(1, Math.round(combat.damage * tier.damage)),
+      );
+      return rest(12);
+    }
+    if (
+      taken.has(`${next.x},${next.y}`) ||
+      world.occupied(next.x, next.y) ||
+      !stepAllowed(world, p, m, next)
+    ) {
+      // Ran into something. That is the opening.
+      if (ran > 2) {
+        m.stun = clock + 18;
+        world.emit?.({ kind: "slam", group: g.id, n: m.n!, at: next });
+        return rest(24);
+      }
+      return rest(12);
+    }
+    moveMember(m, next, taken, Boolean(p.directions));
+    if (ran >= reach) {
+      if (hyp(m, target) <= 2.5)
+        world.emit?.({ kind: "dodged", group: g.id, n: m.n! });
+      return rest(12);
+    }
+  }
+}
+
+/** A provoked group's tick. Returns false when it has no fight left in it and
+ * the ordinary rules should take over. */
+function fight(
+  g: FaunaGroup,
+  p: FaunaProfile,
+  world: FaunaWorld,
+  clock: number,
+  taken: Set<string>,
+) {
+  const target = world.humans[0];
+  const lead = g.members[0];
+  if (
+    (g.provoked ?? 0) <= clock ||
+    !target ||
+    target.space !== "outside" ||
+    hyp(lead, target) > LOSE_INTEREST
+  ) {
+    g.provoked = undefined;
+    endAttack(g);
+    return false;
+  }
+  const combat = faunaCombat(p);
+  const turns = Boolean(p.directions);
+  const pack = combat.temper === "pack";
+  g.target = undefined;
+  g.alarm = undefined;
+  if (g.state !== "idle" && p.art.idle) {
+    g.state = "idle";
+    g.since = clock;
+  }
+  let a = g.attack;
+  let m = a && g.members.find((o) => o.n === a!.n);
+  if (a && !m) a = g.attack = undefined;
+  if (pack) {
+    // The ring turns an eighth a tick; each wolf makes for its own place on it.
+    g.ring = ((g.ring ?? 0) + 1) % 64;
+    g.members.forEach((o, i) => {
+      if (o === m) return;
+      const angle = (g.ring! / 8 + i / g.members.length) * Math.PI * 2;
+      const goal = {
+        x: Math.round(target.x + Math.cos(angle) * RING),
+        y: Math.round(target.y + Math.sin(angle) * RING),
+      };
+      o.pose = p.art.stalk ? "stalk" : undefined;
+      for (let step = 0; step < 2; step++) {
+        if (hyp(o, goal) < 1) break;
+        const to = bestStep(world, p, taken, o, goal, false);
+        if (!to || (to.x === target.x && to.y === target.y)) break;
+        moveMember(o, to, taken, turns);
+      }
+      face(o, target.x - o.x, target.y - o.y, turns);
+    });
+  } else
+    for (const o of g.members)
+      if (o !== m) face(o, target.x - o.x, target.y - o.y, turns);
+  if (!a || !m) {
+    const ready = g.members
+      .filter((o) => (o.stun ?? 0) <= clock)
+      .sort((x, y) => hyp(x, target) - hyp(y, target))[0];
+    if (!ready) return true;
+    if (hyp(ready, target) > (pack ? RING + 2 : CHARGE_RUN - 1)) {
+      // Too far to come from here: close the distance first.
+      if (!pack) {
+        ready.pose = p.art.wander ? "wander" : undefined;
+        const to = bestStep(world, p, taken, ready, target, false);
+        if (to) moveMember(ready, to, taken, turns);
+      }
+      return true;
+    }
+    const seconds = pack ? 12 : WINDUP;
+    g.attack = { n: ready.n!, phase: "windup", until: clock + seconds };
+    ready.pose =
+      pack && p.art.stalk ? "stalk" : p.art.idle ? "idle" : undefined;
+    face(ready, target.x - ready.x, target.y - ready.y, turns);
+    world.emit?.({ kind: "windup", group: g.id, n: ready.n!, seconds });
+    return true;
+  }
+  if ((m.stun ?? 0) > clock) return true;
+  if (a.phase === "windup") {
+    face(m, target.x - m.x, target.y - m.y, turns);
+    if (clock < a.until) return true;
+    const d = hyp(m, target) || 1;
+    a.phase = "charge";
+    a.dir = { x: (target.x - m.x) / d, y: (target.y - m.y) / d };
+    a.ran = 0;
+    a.from = { x: m.x, y: m.y };
+    m.pose = p.art.chase ? "chase" : p.art.flee ? "flee" : undefined;
+    world.emit?.({ kind: pack ? "lunge" : "charge", group: g.id, n: m.n! });
+  }
+  if (a.phase === "charge")
+    run(g, m, p, combat, world, clock, taken, target, pack ? 5 : CHARGE_RUN);
+  else if (clock >= a.until) {
+    m.pose = undefined;
+    g.attack = undefined;
+  }
+  return true;
 }
 
 /** The group a hunter is after this tick, or undefined when it is fed, has
@@ -438,6 +638,7 @@ export function advanceFauna(
   world: FaunaWorld,
   clock: number,
 ) {
+  now = clock;
   const taken = new Set<string>();
   for (const g of groups) for (const m of g.members) taken.add(`${m.x},${m.y}`);
   const herds = groups
@@ -468,6 +669,11 @@ export function advanceFauna(
   for (const g of [...groups].sort((a, b) => (a.id < b.id ? -1 : 1))) {
     const p = faunaProfile(g.speciesId);
     if (!p || !g.members.length) continue;
+    if (g.provoked !== undefined && fight(g, p, world, clock, taken)) {
+      const lead = g.members[0];
+      g.pos = { x: lead.x, y: lead.y, space: "outside" };
+      continue;
+    }
     const near = !player || hyp(player, g.pos) <= DETAIL;
     const chasers = stalkers(p);
     const menaces = chasers.length
@@ -477,14 +683,23 @@ export function advanceFauna(
     const kept = p.category !== "wild";
     const turns = Boolean(p.directions);
     const airborne = aerialStates.has(g.state);
-    const radius = alertRadius(p);
-    const threat = nearestThreat(menaces, g.pos, radius);
+    // Struck by a person: even a kept animal runs, and from further off.
+    const hurt = (g.hurtUntil ?? 0) > clock;
+    const radius = hurt ? Math.max(p.alertRadius, 10) : alertRadius(p);
+    // A hurt animal is past being crept up on.
+    const noise = hurt ? 1 : (world.noise ?? 1);
+    const threat = nearestThreat(menaces, g.pos, radius, noise);
     // How close the trouble is as a share of the radius: 0 on top of the
     // animal, 1 at the edge of what it notices.
-    const close = threat ? Math.min(1, hyp(threat, g.pos) / radius) : 1;
+    const close = threat
+      ? Math.min(
+          1,
+          hyp(threat, g.pos) / (threat === player ? noise : 1) / radius,
+        )
+      : 1;
     // A kept animal's radius is already the width of a shove, so there is no
     // watching band inside it: anything it notices, it steps away from.
-    const band = kept ? 1 : ALERT_BAND;
+    const band = kept || hurt ? 1 : ALERT_BAND;
 
     // A thing that is hunting you is not a shape on the skyline: it is seen
     // at once and run from flat out.
@@ -540,7 +755,10 @@ export function advanceFauna(
         );
         g.target = { ...(land ?? away), space: "outside" };
         g.nextDecisionAt = clock + TICK;
-      } else if ((!kept || chasers.includes(threat)) && g.state !== "flee") {
+      } else if (
+        (!kept || hurt || chasers.includes(threat)) &&
+        g.state !== "flee"
+      ) {
         g.state = "flee";
         g.since = clock;
         g.target = undefined;
@@ -613,7 +831,9 @@ export function advanceFauna(
               1.8
             : g.state === "stalk"
               ? 0.5
-              : 1) * (running ? winded : 1);
+              : 1) *
+      (running ? winded : 1) *
+      TIERS[g.members[0].tier ?? "ordinary"].speed;
     g.stride += p.pace * boost;
     let steps = Math.min(3, Math.floor(g.stride));
     g.stride -= steps;

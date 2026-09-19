@@ -1,3 +1,4 @@
+import type { FaunaTier } from "../core/combat";
 import { timed } from "../render/perf-switches";
 import { communityLabels } from "../content/ecology/communities";
 import { populateCharacter } from "../content/geography/character";
@@ -497,6 +498,9 @@ export class Runtime {
           tool: swing.tool,
           sprite: held?.sprite,
           hits: swing.hits,
+          creatures: swing.creatures,
+          power: swing.power,
+          thrust: swing.thrust,
         };
       }
       return;
@@ -901,13 +905,15 @@ export class Runtime {
       (o) =>
         held
           ? !!propDefs[o.prop!]?.breakable && !o.broken
-          : o.kind === "item" ||
-            (!!propDefs[o.prop!]?.portable && !o.broken),
+          : o.kind === "item" || (!!propDefs[o.prop!]?.portable && !o.broken),
     );
     const nearby = nearbyProp(
       s,
       (p) => this.engine.visible(p),
-      (o) => !!propDefs[o.prop!]?.drink || !!propDefs[o.prop!]?.container,
+      (o) =>
+        !!propDefs[o.prop!]?.drink ||
+        !!propDefs[o.prop!]?.container ||
+        (!!propDefs[o.prop!]?.fire && (s.player.inventory.meat ?? 0) > 0),
     );
     const context =
       nearby && propDefs[nearby.prop!]?.drink
@@ -954,7 +960,9 @@ export class Runtime {
           target: context.id,
           action: propDefs[context.prop!]?.drink
             ? ("drink" as const)
-            : ("look" as const),
+            : propDefs[context.prop!]?.fire
+              ? ("cook" as const)
+              : ("look" as const),
         }
       : undefined;
     return {
@@ -976,7 +984,9 @@ export class Runtime {
       secondaryLabel: context
         ? propDefs[context.prop!]?.drink
           ? "Drink water"
-          : `Look inside ${context.name.toLowerCase()}`
+          : propDefs[context.prop!]?.fire
+            ? "Cook meat"
+            : `Look inside ${context.name.toLowerCase()}`
         : undefined,
     };
   }
@@ -1136,7 +1146,14 @@ export class Runtime {
     let alternate: Verb | undefined;
     // Something in hand and somebody in front of you: handing it over is what
     // the second slot is for, ahead of any scenery.
-    if (item && speaker)
+    // A fire and raw meat: cooking comes before putting the stick down.
+    if (c.secondary?.action === "cook")
+      alternate = {
+        kind: "look",
+        label: c.secondaryLabel!,
+        command: c.secondary,
+      };
+    else if (item && speaker)
       alternate = {
         kind: "give",
         label: `Give ${item.name.toLowerCase()} to ${speaker.name}`,
@@ -1214,12 +1231,52 @@ export class Runtime {
     }
     if (verb.kind === "give") {
       const item = this.engine.state.player.heldItem;
-      if (item)
-        this.command({ type: "give", target: verb.actor!, item });
+      if (item) this.command({ type: "give", target: verb.actor!, item });
       return verb;
     }
     this.command({ type: "swing" });
     return verb;
+  }
+  /** F held after a swing: the wind-up for a wide one. `half` and `full` are
+   * the milliseconds at which it becomes a half circle and a whole one. */
+  charge?: { at: number; half: number; full: number };
+  beginCharge() {
+    if (this.replay) return;
+    const quick = this.engine.skillLevel("hunting") >= 5 ? 0.75 : 1;
+    this.charge = {
+      at: performance.now(),
+      half: 550 * quick,
+      full: 1100 * quick,
+    };
+  }
+  releaseCharge() {
+    const c = this.charge;
+    this.charge = undefined;
+    if (!c) return;
+    const held = performance.now() - c.at;
+    const power = held >= c.full ? 2 : held >= c.half ? 1 : 0;
+    if (power) this.command({ type: "swing", power });
+  }
+  /** Dev panel hooks. Outside the command log, so a replay will not have them. */
+  devSpawnFauna(species: string, count: number, tier?: FaunaTier) {
+    this.flushAmbient();
+    const added = this.engine.devSpawnFauna(species, count, tier);
+    this.emit();
+    return added;
+  }
+  devClearFauna() {
+    this.engine.devClearFauna();
+    this.emit();
+  }
+  devHeal() {
+    this.engine.state.player.health = 100;
+    delete this.engine.state.player.injury;
+    this.engine.state.revision++;
+    this.emit();
+  }
+  devArm(prop?: string) {
+    this.engine.devArm(prop);
+    this.emit();
   }
   propAction(key: "KeyE" | "KeyF") {
     return this.runVerb(key === "KeyF" ? "primary" : "alternate");
@@ -1265,7 +1322,8 @@ export class Runtime {
   }
   /** Jump on the spot. Expression only, like a strike that hits nothing. */
   hop() {
-    if (this.replay || heldObject(this.engine.state)) return;
+    if (this.replay || (heldObject(this.engine.state) && !this.engine.armed()))
+      return;
     this.stop(false);
     this.characterAction = {
       serial: ++this.characterSerial,
@@ -1415,7 +1473,11 @@ export class Runtime {
       // is simulated in one frame: 600 seconds at once is a visible hitch, and
       // anyone the engine rather than a routine moves stands frozen until it
       // lands.
-      if (this.displayClock() - this.engine.state.clock >= IDLE_BLOCK)
+      // In a fight the block is one animal tick, or the quarry stands frozen
+      // whenever the player does.
+      const block =
+        this.engine.state.clock < this.engine.combatUntil ? 6 : IDLE_BLOCK;
+      if (this.displayClock() - this.engine.state.clock >= block)
         this.flushAmbient();
       return;
     }
