@@ -4,6 +4,7 @@ import {
   characterSex,
   eligibleInventory,
 } from "../../content/characters/generate";
+import { atWork } from "../../core/brief";
 import {
   resolveCharacterContext,
   workAt,
@@ -1839,7 +1840,7 @@ export function planSettlement(
             ? "Weaving"
             : role === "Merchant"
               ? "Trading"
-              : `${role} at work`,
+              : atWork(role),
         offset: Math.floor(rand(owner, "schedule") * 150),
       });
     }

@@ -907,6 +907,37 @@ body {
 .focus-thumbnail .pixel-sprite {
   transform: scale(1.2);
 }
+.focus-thumbnail.portrait {
+  background: linear-gradient(145deg, #323a68, #263052);
+  border-radius: 5px;
+  align-items: flex-end;
+}
+.focus-thumbnail.portrait .pixel-sprite {
+  transform: none;
+}
+.focus-card .brief p {
+  margin-top: 3px;
+}
+/* The first line is scanned rather than read, so it sits back a shade. */
+.focus-card .brief p:first-child {
+  color: var(--muted);
+  margin-top: 1px;
+}
+.focus-card .brief .role {
+  color: var(--gold);
+  font-size: inherit;
+  font-variant-caps: small-caps;
+  letter-spacing: 0.02em;
+}
+.focus-card .brief .name {
+  color: var(--cream);
+}
+.focus-card .brief .thing {
+  color: #9fc6a0;
+}
+.focus-card .brief .state {
+  color: #e0a487;
+}
 .context-actions {
   display: flex;
   flex-direction: column;

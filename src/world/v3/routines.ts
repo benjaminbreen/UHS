@@ -125,6 +125,7 @@ function farmerRoutine(
       pos: nearby(plan, seed, id, field.access),
       activity: "work",
       label: "At the field",
+      toward: "the field",
       minutes: 15,
     },
     ...picked.map((pos, i) => ({
@@ -164,7 +165,13 @@ function herderRoutine(
 ): Station[] {
   const water = wellAt(plan);
   return [
-    { pos: gatePos, activity: "work", label: "Opening the pen", minutes: 15 },
+    {
+      pos: gatePos,
+      activity: "work",
+      label: "Opening the pen",
+      toward: "the pen",
+      minutes: 15,
+    },
     {
       pos: pasture ?? gatePos,
       activity: "graze",
@@ -181,7 +188,13 @@ function herderRoutine(
           },
         ]
       : []),
-    { pos: gatePos, activity: "work", label: "Penning the flock", minutes: 20 },
+    {
+      pos: gatePos,
+      activity: "work",
+      label: "Penning the flock",
+      toward: "the pen",
+      minutes: 20,
+    },
   ];
 }
 function craftRoutine(
@@ -391,6 +404,7 @@ export function memberRoutine(
                 : when === "industrial"
                   ? "At the market"
                   : "Trading at the square",
+            toward: when === "premodern" ? "the square" : "the market",
             minutes: 30,
           }
         : call
@@ -419,6 +433,7 @@ export function memberRoutine(
             pos: nearby(plan, seed, `${id}-step`, home),
             activity: "visit" as const,
             label: "On the doorstep",
+            toward: "their own door",
             minutes: 10,
           },
         ]),
@@ -591,7 +606,12 @@ function attachRack(
   // Open-air racks belong to a waterside that still cures its own catch. A
   // modern city buys its fish already dried.
   const form = pack.setting?.settlement;
-  if (pack.year >= 1900 && form !== "port" && form !== "farm" && form !== "village")
+  if (
+    pack.year >= 1900 &&
+    form !== "port" &&
+    form !== "farm" &&
+    form !== "village"
+  )
     return;
   const taken = new Set(plan.objects.map((o) => cellKey(o.pos.x, o.pos.y)));
   const free = (p: Point) =>
@@ -820,6 +840,7 @@ function workdayFor(
               pos: nearby(plan, seed, id, outdoors.roadOut),
               activity: "haul",
               label: "On the road out of town",
+              toward: "the road out of town",
               minutes: 25,
             },
             ...haul,
@@ -905,7 +926,10 @@ function venueScore(
   livelihood: string | undefined,
 ): number {
   if (venue.ranks && (!rank || !venue.ranks.includes(rank))) return 0;
-  if (venue.livelihoods && (!livelihood || !venue.livelihoods.includes(livelihood)))
+  if (
+    venue.livelihoods &&
+    (!livelihood || !venue.livelihoods.includes(livelihood))
+  )
     return 0;
   const shared = (venue.tags ?? []).filter((t) => tags.has(t)).length;
   return venue.weight + shared * 6;
@@ -918,12 +942,14 @@ export function socialStop(
   actor?: Actor,
   setting?: WorldSetting,
 ): Station {
-  const drawn = actor && setting ? venueFor(plan, seed, actor, setting) : undefined;
+  const drawn =
+    actor && setting ? venueFor(plan, seed, actor, setting) : undefined;
   if (drawn)
     return {
       pos: nearby(plan, seed, id, drawn.pos),
       activity: drawn.venue.activity,
       label: `At ${drawn.venue.label.replace(/^The /, "the ")}`,
+      toward: drawn.venue.label.replace(/^The /, "the "),
       minutes: drawn.venue.minutes,
     };
   return legacySocialStop(plan, seed, id, home);
@@ -977,6 +1003,7 @@ function legacySocialStop(
     pos: pick ? nearby(plan, seed, id, pick) : home,
     activity: "visit",
     label: "Stopping to talk",
+    toward: "a corner where people stop to talk",
     minutes: 40,
   };
 }

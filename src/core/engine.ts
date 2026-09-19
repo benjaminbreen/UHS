@@ -16,6 +16,7 @@ import {
 } from "./livelihood";
 import { weatherAt } from "./weather";
 import { propDefs } from "../content/props/catalog";
+import { atWork, briefText, personBrief } from "./brief";
 import { propAffordances, heldObject, lowProp } from "./props";
 import {
   planShove,
@@ -1724,13 +1725,27 @@ export class Engine {
       } else if (actor.kind === "lizard")
         interact("capture", "Attempt capture");
       else interact("herd", "Guide toward the enclosure");
+      const brief =
+        actor.kind === "human"
+          ? personBrief(
+              actor,
+              (other) =>
+                [this.state.player, ...this.state.actors].find(
+                  (a) => a.id === other,
+                )?.name,
+              (item) => this.items[item]?.name.toLowerCase(),
+              actor.held
+                ? this.object(actor.held)?.name.toLowerCase()
+                : undefined,
+            )
+          : undefined;
       return {
         id,
         name: actor.name,
-        description:
-          actor.kind === "human"
-            ? `${actor.role}${actor.age !== undefined ? `, age ${actor.age}` : ""}. ${actor.activity}. ${(actor.relations ?? []).map((r) => `${r.kind}: ${[this.state.player, ...this.state.actors].find((a) => a.id === r.other)?.name ?? r.other}`).join("; ")}. ${actor.trust < 0 ? "They seem wary of you." : "They notice your approach."}`
-            : `${actor.activity}. ${actor.owner ? "Part of a household’s flock." : "Moving through the landscape."}`,
+        brief,
+        description: brief
+          ? briefText(brief)
+          : `${actor.activity}. ${actor.owner ? "Part of a household’s flock." : "Moving through the landscape."}`,
         kind: actor.kind,
         pos,
         affordances,

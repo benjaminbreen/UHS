@@ -953,14 +953,40 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
                   </button>
                 </div>
                 <div className="focus-card">
-                  {focusSprite && (
-                    <div className="focus-thumbnail">
-                      <Sprite name={focusSprite} scale={1} />
+                  {focusActor?.kind === "human" ? (
+                    <div className="focus-thumbnail portrait">
+                      <CharacterSprite
+                        appearance={runtime.appearanceFor(focusActor)}
+                        age={focusActor.age}
+                        portrait
+                      />
                     </div>
+                  ) : (
+                    focusSprite && (
+                      <div className="focus-thumbnail">
+                        <Sprite name={focusSprite} scale={1} />
+                      </div>
+                    )
                   )}
                   <div>
                     <h2>{selection.name}</h2>
-                    <p>{selection.description}</p>
+                    {selection.brief ? (
+                      <div className="brief">
+                        {[selection.brief.identity, selection.brief.moment].map(
+                          (line, l) => (
+                            <p key={l}>
+                              {line.map((span, i) => (
+                                <span key={i} className={span.tone}>
+                                  {span.text}
+                                </span>
+                              ))}
+                            </p>
+                          ),
+                        )}
+                      </div>
+                    ) : (
+                      <p>{selection.description}</p>
+                    )}
                   </div>
                 </div>
                 {distance(p.pos, selection.pos) > 2.5 && (
@@ -1067,7 +1093,11 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
                       .filter(([, n]) => n! > 0)
                       .map(([id, n]) => (
                         <button key={id} onClick={() => setModal("inventory")}>
-                          <ItemIcon id={id} sprite={runtime.item(id)!.sprite} scale={1} />
+                          <ItemIcon
+                            id={id}
+                            sprite={runtime.item(id)!.sprite}
+                            scale={1}
+                          />
                           <span>
                             {runtime.item(id)!.name}
                             <small>Quantity: {n}</small>
@@ -1215,7 +1245,11 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
                     .map(([id, n]) => (
                       <div className="inventory-item" key={id}>
                         <div className="item-art">
-                          <ItemIcon id={id} sprite={runtime.item(id)!.sprite} scale={2} />
+                          <ItemIcon
+                            id={id}
+                            sprite={runtime.item(id)!.sprite}
+                            scale={2}
+                          />
                         </div>
                         <div>
                           <strong>{runtime.item(id)!.name}</strong>

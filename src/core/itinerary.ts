@@ -19,10 +19,29 @@ export const stationActivities = [
   "haul-catch",
 ] as const;
 export type StationActivity = (typeof stationActivities)[number];
+/** Where a walk toward each errand is heading, when the station does not name
+ * somewhere more specific. */
+const destination: Record<StationActivity, string> = {
+  rest: "home",
+  work: "work",
+  tend: "the fields",
+  haul: "the store",
+  "haul-catch": "the drying rack",
+  "draw-water": "the well",
+  gather: "the edge of the settlement",
+  visit: "a neighbour's house",
+  graze: "the pasture",
+  play: "the open ground",
+  cook: "the hearth",
+  warm: "the fire",
+};
 export type Station = {
   pos: Point;
   activity: StationActivity;
   label: string;
+  /** Destination noun for the walk to this station. The label is a verb phrase,
+   * so "Walking to ${label}" reads as "walking to calling on a neighbour". */
+  toward?: string;
   /** Requested dwell in minutes. Padded or trimmed to make the day close. */
   minutes: number;
   /** On the night station only: this resident's share of the day out of
@@ -157,7 +176,7 @@ export function buildItinerary(
       // A leg out of the house belongs to the errand: marked "rest" it would
       // count as time indoors and never be drawn.
       activity: from.activity === "rest" ? to.activity : from.activity,
-      label: `Walking to ${to.label.toLowerCase()}`,
+      label: `Walking to ${to.toward ?? destination[to.activity]}`,
     });
     at += leg.length * pace;
   };

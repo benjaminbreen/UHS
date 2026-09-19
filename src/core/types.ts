@@ -1,3 +1,4 @@
+import type { PersonBrief } from "./brief";
 import type { CharacterAppearance, WearSlot } from "./character";
 import type { LandscapeStyle } from "../content/graphics/landscapes";
 import type { WorldSetting } from "../content/geography/types";
@@ -444,6 +445,8 @@ export type Affordance = {
 };
 export type Inspection = {
   sprite?: string;
+  /** Humans only: the focus card's two lines, already split for colouring. */
+  brief?: PersonBrief;
   id: string;
   name: string;
   description: string;
