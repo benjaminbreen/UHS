@@ -92,6 +92,7 @@ const conditionIcons: Record<string, LucideIcon> = {
   rested: BedDouble,
   tired: BedDouble,
   hungry: Soup,
+  fed: Soup,
   thirsty: Droplet,
 };
 
@@ -624,15 +625,21 @@ export function CharacterPanel({
           command: { type: "hold" as const, item: shownId! },
         }
       : undefined;
+  // All three needs always show; only a pressing one is coloured, so the
+  // column reads at a glance instead of changing length.
   const condition = [
     (actor.health ?? 100) < 40
-      ? "Unwell"
-      : actor.hunger > 70
-        ? "Hungry"
-        : "Healthy",
-    actor.fatigue > 65 ? "Tired" : "Rested",
+      ? { label: "Unwell", urgent: true }
+      : { label: "Healthy", urgent: false },
+    actor.fatigue > 65
+      ? { label: "Tired", urgent: true }
+      : { label: "Rested", urgent: false },
+    actor.hunger > 70
+      ? { label: "Hungry", urgent: true }
+      : actor.hunger > 55
+        ? { label: "Thirsty", urgent: true }
+        : { label: "Fed", urgent: false },
   ];
-  if (actor.hunger > 55 && actor.hunger <= 70) condition.push("Thirsty");
 
   return (
     <div
@@ -697,11 +704,11 @@ export function CharacterPanel({
             </div>
             <ul className="condition">
               {condition.map((c) => {
-                const Icon = conditionIcons[c.toLowerCase()] ?? HeartPulse;
+                const Icon = conditionIcons[c.label.toLowerCase()] ?? HeartPulse;
                 return (
-                  <li key={c} data-state={c.toLowerCase()}>
-                    <Icon size={16} />
-                    {c}
+                  <li key={c.label} data-urgent={c.urgent || undefined}>
+                    <Icon size={18} />
+                    {c.label}
                   </li>
                 );
               })}
@@ -749,7 +756,7 @@ export function CharacterPanel({
             )}
           </aside>
           <div className="character-main">
-            <h3>Currently</h3>
+            <h3 className="eyebrow">Currently</h3>
             <h1>
               {livelihood?.activity ??
                 `${they} ${isPlayer ? "keep" : "keeps"} to the day's work.`}
@@ -773,8 +780,12 @@ export function CharacterPanel({
                       entry.state === "later" &&
                       !plan.some((e, j) => j < i && e.state === "later");
                     return (
-                      <li key={entry.label} data-state={entry.state}>
-                        <Icon size={17} />
+                      <li
+                        key={entry.label}
+                        data-state={entry.state}
+                        data-activity={entry.activity}
+                      >
+                        <Icon size={22} />
                         <time>{timeLabel(entry.minute * 60)}</time>
                         <span>{entry.label}</span>
                         <em>
@@ -823,8 +834,8 @@ export function CharacterPanel({
                   {held.map(({ ability, rank }) => {
                     const Icon = icons[ability.icon] ?? Hand;
                     return (
-                      <li key={ability.id}>
-                        <Icon size={16} />
+                      <li key={ability.id} data-tone={ability.stat}>
+                        <Icon size={22} />
                         <span>{ability.label}</span>
                         <Pips rank={rank} tone={ability.stat} />
                       </li>
@@ -906,25 +917,26 @@ export function CharacterPanel({
               {goods.map(([id, n]) => (
                 <li key={id}>
                   <button
-                    aria-pressed={shown === id}
+                    aria-pressed={(shown ?? goods[0]?.[0]) === id}
                     draggable={isPlayer}
                     onDragStart={(e) =>
                       e.dataTransfer.setData("text/plain", id)
                     }
                     onClick={() => setShown(id)}
                   >
-                    <ItemIcon id={id} sprite={runtime.item(id)?.sprite} scale={2} />
+                    <ItemIcon id={id} sprite={runtime.item(id)?.sprite} scale={3} />
                     {n > 1 && <b>×{n}</b>}
                   </button>
                 </li>
               ))}
-              {Array.from({ length: Math.max(0, 6 - goods.length) }, (_, i) => (
-                <li key={`empty-${i}`} className="empty" aria-hidden="true">
-                  +
-                </li>
-              ))}
+              {Array.from(
+                { length: (3 - (goods.length % 3)) % 3 || (goods.length ? 0 : 3) },
+                (_, i) => (
+                  <li key={`empty-${i}`} className="empty" aria-hidden="true" />
+                ),
+              )}
             </ul>
-            <p className="belonging-note">
+            <div className="belonging-note">
               {shownId && rarityFor(shownId) !== "common" && (
                 <b
                   className="rarity"
@@ -933,14 +945,14 @@ export function CharacterPanel({
                   {rarityLabels[rarityFor(shownId)]}
                 </b>
               )}
-              {goods.length
-                ? [
-                    runtime.item(shown ?? goods[0][0])?.name,
-                    runtime.item(shown ?? goods[0][0])?.description,
-                  ]
-                    .filter(Boolean)
-                    .join(" · ")
-                : "Carries nothing."}
+              <strong>
+                {goods.length
+                  ? (runtime.item(shown ?? goods[0][0])?.name ?? "")
+                  : "Carries nothing."}
+              </strong>
+              {goods.length > 0 && (
+                <span>{runtime.item(shown ?? goods[0][0])?.description}</span>
+              )}
               {isPlayer && equipAction && (
                 <button
                   className="wear-action"
@@ -949,7 +961,7 @@ export function CharacterPanel({
                   {equipAction.label}
                 </button>
               )}
-            </p>
+            </div>
             {inspection && (
               <>
                 <h3>Available</h3>

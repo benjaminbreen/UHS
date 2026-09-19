@@ -2293,13 +2293,16 @@ kbd {
     white-space: nowrap;
   }
   .day-plan li {
-    grid-template-columns: 18px 44px minmax(0, 1fr) auto;
+    grid-template-columns: 24px 44px minmax(0, 1fr) auto;
     gap: 8px;
     padding: 7px 4px;
     font-size: 14px;
   }
   .day-plan li:not(:last-child)::after {
-    left: 13px;
+    left: 16px;
+  }
+  .character-panel h3 {
+    font-size: 17px;
   }
   .ability-list li {
     gap: 7px;
@@ -3444,13 +3447,16 @@ button:disabled {
   display: flex;
   align-items: center;
   gap: 9px;
-  color: #9ec98e;
+  color: #7f8aa8;
   font-size: 16px;
 }
-.character-aside .condition li[data-state="unwell"],
-.character-aside .condition li[data-state="hungry"],
-.character-aside .condition li[data-state="thirsty"],
-.character-aside .condition li[data-state="tired"] {
+.character-aside .condition li svg {
+  color: #6f9c64;
+}
+.character-aside .condition li[data-urgent] {
+  color: var(--rose);
+}
+.character-aside .condition li[data-urgent] svg {
   color: var(--rose);
 }
 .character-aside p {
@@ -3505,7 +3511,7 @@ button:disabled {
 .day-plan li {
   position: relative;
   display: grid;
-  grid-template-columns: 22px 54px minmax(0, 1fr) auto;
+  grid-template-columns: 28px 54px minmax(0, 1fr) auto;
   gap: 12px;
   align-items: center;
   padding: 9px;
@@ -3516,24 +3522,45 @@ button:disabled {
 .day-plan li:not(:last-child)::after {
   content: "";
   position: absolute;
-  left: 19px;
+  left: 22px;
   top: 30px;
   bottom: -4px;
   width: 1px;
   background: var(--line-soft);
 }
 .day-plan svg {
-  color: var(--muted);
+  color: var(--gold);
+  opacity: 0.85;
+}
+/* One colour per kind of errand, so the day reads by shape and hue at once. */
+.day-plan li[data-activity="draw-water"] svg,
+.day-plan li[data-activity="rest"] svg {
+  color: #7fd3c4;
+}
+.day-plan li[data-activity="tend"] svg,
+.day-plan li[data-activity="gather"] svg,
+.day-plan li[data-activity="graze"] svg {
+  color: #9ec98e;
+}
+.day-plan li[data-activity="visit"] svg,
+.day-plan li[data-activity="play"] svg {
+  color: #c8a2d8;
+}
+.day-plan li[data-activity="cook"] svg,
+.day-plan li[data-activity="warm"] svg {
+  color: var(--rose);
 }
 .day-plan li[data-state="now"] svg {
-  color: var(--gold);
+  opacity: 1;
 }
 .day-plan li[data-state="now"] {
   background: #ffffff0f;
 }
-.day-plan li[data-state="done"],
-.day-plan li[data-state="done"] svg {
+.day-plan li[data-state="done"] {
   color: var(--muted);
+}
+.day-plan li[data-state="done"] svg {
+  opacity: 0.4;
 }
 .day-plan time {
   color: var(--muted);
@@ -3551,13 +3578,22 @@ button:disabled {
 }
 .ability-list li {
   display: grid;
-  grid-template-columns: 20px minmax(0, 1fr) auto;
+  grid-template-columns: 26px minmax(0, 1fr) auto;
   gap: 10px;
   align-items: center;
-  font-size: 15px;
+  font-size: 16px;
 }
+/* Icons take the stat's colour; the pips stay uniform so rank still reads. */
 .ability-list svg {
-  color: var(--muted);
+  color: var(--gold);
+}
+.ability-list li[data-tone="strength"] svg,
+.ability-list li[data-tone="endurance"] svg {
+  color: var(--rose);
+}
+.ability-list li[data-tone="wit"] svg,
+.ability-list li[data-tone="conscientiousness"] svg {
+  color: #7fd3c4;
 }
 .pips {
   display: inline-flex;
@@ -3588,28 +3624,43 @@ button:disabled {
 .available {
   list-style: none;
   display: grid;
-  gap: 5px;
+  gap: 6px;
+  margin: 0;
+  /* Without this the UL keeps its 40px indent and the third belongings
+   * tile runs off the side of the column. */
+  padding: 0;
 }
 .household-list button {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 10px;
   width: 100%;
   text-align: left;
   background: #ffffff08;
   border: 1px solid transparent;
-  border-radius: 5px;
-  padding: 6px 8px;
+  border-left: 2px solid transparent;
+  border-radius: 4px;
+  padding: 7px 9px;
   color: inherit;
   font: inherit;
   cursor: pointer;
+  transition:
+    background 120ms ease,
+    border-color 120ms ease;
 }
 .household-list button:hover {
-  border-color: var(--line-soft);
+  background: #ffffff12;
+  border-left-color: var(--culture-accent, var(--gold));
+}
+.household-list canvas {
+  flex-shrink: 0;
 }
 .household-list span {
   display: grid;
+  gap: 1px;
+  min-width: 0;
   font-size: 15px;
+  line-height: 1.25;
 }
 .household-list small,
 .character-panel .available button[disabled] {
@@ -3637,21 +3688,25 @@ button:disabled {
   background: var(--rose-line);
 }
 .belongings {
-  grid-template-columns: repeat(3, 1fr);
-  grid-auto-rows: 52px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
 }
 .belongings li {
   position: relative;
+  aspect-ratio: 1;
   border: 1px solid var(--line-soft);
-  border-radius: 5px;
+  border-radius: 4px;
+  background: #ffffff08;
   display: flex;
   align-items: center;
   justify-content: center;
 }
+/* Empty cells only mark where the next thing would go; they should not
+ * carry the same weight as a held object. */
 .belongings li.empty {
+  border-color: #ffffff10;
   border-style: dashed;
-  color: #ffffff24;
-  font-size: 18px;
+  background: none;
 }
 .belongings button {
   width: 100%;
@@ -3663,9 +3718,21 @@ button:disabled {
   border: 1px solid transparent;
   border-radius: 4px;
   cursor: pointer;
+  transition:
+    transform 120ms ease,
+    box-shadow 120ms ease,
+    border-color 120ms ease;
+}
+.belongings button:hover {
+  transform: translateY(-2px);
+  border-color: var(--line);
+  box-shadow: 0 4px 10px #00000055;
 }
 .belongings button[aria-pressed="true"] {
   border-color: var(--gold);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--gold) 35%, transparent),
+    0 0 12px color-mix(in srgb, var(--gold) 22%, transparent);
 }
 .belongings.worn {
   margin-bottom: 10px;
@@ -3703,7 +3770,7 @@ button:disabled {
   justify-content: center;
   padding: 0;
   background: none;
-  border: 1px dashed var(--line-soft);
+  border: 1px dashed #ffffff10;
   border-radius: 5px;
   color: inherit;
   cursor: default;
@@ -3726,17 +3793,21 @@ button:disabled {
   background: #d9a84517;
 }
 .equip-slot small {
-  font-size: 10px;
-  letter-spacing: 0.06em;
+  font-family: var(--sans);
+  font-size: 9px;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--muted);
+  color: #69739c;
 }
-.equip-slot[data-slot="hand"] small {
+.equip-slot[data-filled] small {
+  color: #a3abcb;
+}
+.equip-slot[data-slot="hand"][data-filled] small {
   color: var(--gold);
 }
 .wear-action {
   margin-left: 8px;
-  padding: 2px 9px;
+  padding: 4px 11px;
   border: 1px solid var(--gold);
   border-radius: 3px;
   background: none;
@@ -3752,16 +3823,37 @@ button:disabled {
   text-transform: uppercase;
 }
 .belonging-note {
+  display: grid;
+  gap: 2px;
   color: var(--muted);
   font-size: 13px;
-  margin-top: 8px;
+  line-height: 1.4;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid #ffffff0d;
+}
+.belonging-note strong {
+  font-family: var(--serif);
+  font-size: 16px;
+  font-weight: 400;
+  color: var(--cream);
+}
+.belonging-note .rarity,
+.belonging-note .wear-action {
+  justify-self: start;
+  margin: 4px 0 0;
 }
 .belongings b {
   position: absolute;
-  right: 3px;
-  bottom: 1px;
-  font-size: 11px;
-  color: var(--muted);
+  right: 4px;
+  bottom: 4px;
+  padding: 0 4px;
+  border-radius: 7px;
+  background: #0a102999;
+  font-family: var(--sans);
+  font-size: 10px;
+  font-variant-numeric: normal;
+  color: #c3c7dc;
 }
 .available button {
   display: flex;
@@ -4160,7 +4252,7 @@ button:disabled {
  * heavier wash than the cards do. */
 .character-aside,
 .character-side {
-  padding: 20px 22px;
+  padding: 22px 24px 28px;
   background: linear-gradient(
     180deg,
     color-mix(in srgb, var(--culture-dark) 62%, transparent),
@@ -4170,9 +4262,23 @@ button:disabled {
 }
 .character-aside {
   border-right: 1px solid var(--line);
+  box-shadow: inset -1px 0 0 #ffffff0d;
 }
 .character-side {
   border-left: 1px solid var(--line);
+  /* A step lighter and warmer than the middle, so the three columns separate. */
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--culture-accent, #62d4ca) 5%, transparent),
+      transparent 60%
+    ),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--culture-dark) 48%, transparent),
+      color-mix(in srgb, var(--culture-dark) 74%, transparent)
+    );
+  box-shadow: inset 1px 0 0 #ffffff12;
 }
 .character-main {
   padding: 20px 26px 22px;
@@ -4183,7 +4289,33 @@ button:disabled {
   line-height: 1.15;
 }
 .character-panel h3 {
-  margin: 16px 0 8px;
+  margin: 18px 0 10px;
+  color: var(--cream);
+  font-family: var(--serif);
+  font-size: 20px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.character-side h3,
+.character-aside h3 {
+  margin: 26px 0 12px;
+  padding-bottom: 7px;
+  font-size: 19px;
+  border-bottom: 1px solid #ffffff14;
+}
+.character-side > h3:first-child,
+.character-aside > h3:first-child {
+  margin-top: 0;
+}
+.character-panel h3 > svg {
+  vertical-align: -3px;
+  margin-right: 6px;
+  color: var(--gold);
+}
+/* The one label that sits above a headline stays a small-caps eyebrow. */
+.character-panel h3.eyebrow {
+  margin-bottom: 4px;
   color: var(--gold);
   font-family: var(--sans);
   font-size: 11px;
@@ -4309,7 +4441,11 @@ button:disabled {
   gap: 9px;
 }
 .equipment {
-  gap: 6px;
+  gap: 7px;
+  margin-bottom: 0;
+}
+.equip-slot {
+  gap: 4px;
 }
 .equip-slot button {
   border-radius: 1px;
