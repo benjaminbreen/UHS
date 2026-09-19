@@ -1,0 +1,311 @@
+{
+  "_comment": "Regions authored here rather than inherited from the Historical Persona Generator, which left continent-sized holes: a start in the Sierra Madre Oriental or on the middle Yangtze matched no named region at all and fell through to a backstop, so it drew its names from a continental pool and announced itself on the splash as 'North America'. `like` names an existing region whose windows this one copies; bounds are [W, S, E, N]. Copying is the honest default — these are neighbours of the region they borrow from, and inventing a separate set of traditions for each would claim a distinction the sources do not support. Anywhere the copy is wrong, name-windows.json can override it by id.",
+  "regions": {
+    "north-american-northern-mexico": {
+      "label": "Northern Mexico",
+      "bounds": [
+        -117,
+        21,
+        -97,
+        32
+      ],
+      "culture": "mesoamerican",
+      "like": "north-american-southwest",
+      "why": "Aridoamerica, not the Mesoamerican highlands: Monterrey, Chihuahua, Baja California and the Sierra Madre Oriental sit closer to the Southwest than to the Valley of Mexico."
+    },
+    "north-american-great-lakes": {
+      "label": "Great Lakes and Ohio Valley",
+      "bounds": [
+        -95,
+        37,
+        -76,
+        49
+      ],
+      "culture": "other-indigenous-american",
+      "like": "north-american-northeast-woodlands"
+    },
+    "north-american-maritime-canada": {
+      "label": "Maritime Canada",
+      "bounds": [
+        -67,
+        43,
+        -52,
+        52
+      ],
+      "culture": "other-indigenous-american",
+      "like": "north-american-canada"
+    },
+    "north-american-greenland": {
+      "label": "Greenland",
+      "bounds": [
+        -73,
+        59,
+        -20,
+        84
+      ],
+      "culture": "other-indigenous-american",
+      "like": "north-american-arctic-and-subarctic",
+      "why": "Thule and Norse both, and the Norse are already covered by the Old Norse tradition the Arctic window carries."
+    },
+    "north-american-aleutians": {
+      "label": "Aleutian Islands",
+      "bounds": [
+        -180,
+        50,
+        -155,
+        62
+      ],
+      "culture": "other-indigenous-american",
+      "like": "north-american-arctic-and-subarctic"
+    },
+    "south-american-peruvian-coast": {
+      "label": "Peruvian Coast",
+      "bounds": [
+        -82,
+        -18,
+        -74,
+        1
+      ],
+      "culture": "andean",
+      "like": "south-american-andes-north",
+      "why": "Lima, Trujillo and the Moche and Chimu valleys lay west of the Andes box and matched nothing."
+    },
+    "south-american-chilean-valley": {
+      "label": "Chilean Central Valley",
+      "bounds": [
+        -75,
+        -42,
+        -70,
+        -30
+      ],
+      "culture": "andean",
+      "like": "south-american-andes-south"
+    },
+    "south-american-mato-grosso": {
+      "label": "Mato Grosso and the Pantanal",
+      "bounds": [
+        -64,
+        -26,
+        -47,
+        -12
+      ],
+      "culture": "andean",
+      "like": "south-american-gran-chaco-and-pampas"
+    },
+    "mena-sahara": {
+      "label": "Sahara",
+      "bounds": [
+        -18,
+        18,
+        26,
+        32
+      ],
+      "culture": "north-african-west-asian",
+      "like": "mena-maghreb",
+      "why": "Tamanrasset, Sabha and the Tibesti are Tuareg and Toubou country; the Maghrebi pool is the closest thing the table holds."
+    },
+    "mena-libyan-coast": {
+      "label": "Libyan Coast",
+      "bounds": [
+        9,
+        30,
+        25,
+        34
+      ],
+      "culture": "north-african-west-asian",
+      "like": "mena-maghreb"
+    },
+    "european-cyprus": {
+      "label": "Cyprus",
+      "bounds": [
+        32,
+        34.5,
+        34.7,
+        35.8
+      ],
+      "culture": "european",
+      "like": "european-greece-and-aegean"
+    },
+    "european-malta": {
+      "label": "Malta",
+      "bounds": [
+        14,
+        35.7,
+        14.7,
+        36.1
+      ],
+      "culture": "european",
+      "like": "european-italy"
+    },
+    "european-azores-and-madeira": {
+      "label": "Azores and Madeira",
+      "bounds": [
+        -32,
+        32,
+        -15,
+        40
+      ],
+      "culture": "european",
+      "like": "european-iberian-peninsula",
+      "why": "Uninhabited until the Portuguese arrived in the fifteenth century, so the Iberian pool is not an approximation here."
+    },
+    "sub-saharan-african-cape-verde": {
+      "label": "Cape Verde",
+      "bounds": [
+        -26,
+        14,
+        -22,
+        18
+      ],
+      "culture": "west-central-african",
+      "like": "sub-saharan-african-upper-guinea"
+    },
+    "sub-saharan-african-angolan-highlands": {
+      "label": "Angolan Highlands",
+      "bounds": [
+        11,
+        -18,
+        20,
+        -8
+      ],
+      "culture": "west-central-african",
+      "like": "sub-saharan-african-kongo-coast"
+    },
+    "sub-saharan-african-zambezi": {
+      "label": "Zambezi and Mozambique",
+      "bounds": [
+        25,
+        -26,
+        42,
+        -10
+      ],
+      "culture": "east-southern-african",
+      "like": "sub-saharan-african-east-african-rift"
+    },
+    "sub-saharan-african-chad-basin": {
+      "label": "Chad Basin and Cameroon",
+      "bounds": [
+        8,
+        4,
+        22,
+        13
+      ],
+      "culture": "west-central-african",
+      "like": "sub-saharan-african-lower-guinea-and-congo-basin"
+    },
+    "sub-saharan-african-upper-nile": {
+      "label": "Upper Nile and the Sudd",
+      "bounds": [
+        26,
+        4,
+        36,
+        12
+      ],
+      "culture": "east-southern-african",
+      "like": "sub-saharan-african-horn-of-africa"
+    },
+    "sub-saharan-african-sao-tome": {
+      "label": "São Tomé and Príncipe",
+      "bounds": [
+        6,
+        -1,
+        8,
+        2
+      ],
+      "culture": "west-central-african",
+      "like": "sub-saharan-african-lower-guinea-and-congo-basin"
+    },
+    "south-asian-bengal-delta": {
+      "label": "Bengal Delta",
+      "bounds": [
+        86,
+        20,
+        93,
+        26
+      ],
+      "culture": "south-asian",
+      "like": "south-asian-gangetic-plain"
+    },
+    "south-asian-maldives-and-laccadives": {
+      "label": "Maldives and Laccadives",
+      "bounds": [
+        71,
+        -1,
+        75,
+        13
+      ],
+      "culture": "south-asian",
+      "like": "south-asian-sri-lanka"
+    },
+    "east-asian-sichuan-and-yunnan": {
+      "label": "Sichuan and Yunnan",
+      "bounds": [
+        97,
+        21,
+        110,
+        33
+      ],
+      "culture": "east-asian",
+      "like": "east-asian-south-china"
+    },
+    "east-asian-middle-yangtze": {
+      "label": "Middle Yangtze",
+      "bounds": [
+        108,
+        26,
+        119,
+        33
+      ],
+      "culture": "east-asian",
+      "like": "east-asian-yangtze-delta"
+    },
+    "east-asian-loess-plateau": {
+      "label": "Loess Plateau",
+      "bounds": [
+        103,
+        33,
+        114,
+        41
+      ],
+      "culture": "east-asian",
+      "like": "east-asian-north-china-plain",
+      "why": "Chang'an and the Wei valley were the centre of the Chinese state for a thousand years and matched no region at all."
+    },
+    "east-asian-amur-and-sakhalin": {
+      "label": "Amur and Sakhalin",
+      "bounds": [
+        128,
+        42,
+        146,
+        56
+      ],
+      "culture": "inner-eurasian",
+      "like": "east-asian-siberia",
+      "why": "Nivkh, Ainu and Tungusic country, which the Mongolian and Manchurian pool to its west does not cover."
+    },
+    "oceania-chatham-islands": {
+      "label": "Chatham Islands",
+      "bounds": [
+        -178,
+        -45,
+        -175,
+        -43
+      ],
+      "culture": "australian-pacific",
+      "like": "oceania-new-zealand",
+      "why": "Moriori, who came from New Zealand; the region sits the other side of the dateline from it, so no widening reaches."
+    },
+    "oceania-mascarenes": {
+      "label": "Mascarene Islands",
+      "bounds": [
+        53,
+        -22,
+        62,
+        -18
+      ],
+      "culture": "east-southern-african",
+      "like": "sub-saharan-african-madagascar-and-islands",
+      "why": "Uninhabited before the seventeenth century, then settled from Madagascar, France and India."
+    }
+  }
+}

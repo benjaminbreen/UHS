@@ -292,12 +292,13 @@ it("uses stable fictional names for still-uncovered contexts without claiming lo
   const { inventedName } = await import(
     "../src/content/characters/invented-name"
   );
-  // The Amazon now has a Guarani naming tradition, so the uncovered case is
-  // the Falklands before settlement: no tradition claims those coordinates.
+  // The Amazon has a Guarani tradition, and the Falklands fell inside Patagonia
+  // once its box was widened to cover them, so the uncovered case is now the
+  // Antarctic Peninsula: no naming region claims it, and none should.
   const s = {
     ...settingFor(place("amazon"), 1400),
-    lon: -60,
-    lat: -52,
+    lon: -64,
+    lat: -69,
     placeId: "uncovered-indigenous-american-context",
   };
   const people = Array.from({ length: 96 }, (_, i) =>

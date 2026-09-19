@@ -690,6 +690,1229 @@
           ]
         }
       ]
+    },
+    "mena-nile-valley": {
+      "why": "HPG ran one prehistoric window from 3100 BCE to Alexander, so three thousand years of dynastic Egypt — the best-attested name corpus in the ancient world — produced invented prehistoric names. Split by the conventional dynastic periods, with Greek and then Roman names added where those communities actually lived.",
+      "replace": [
+        {
+          "years": [
+            -1000000,
+            -3400
+          ],
+          "options": [
+            {
+              "tradition": "early-west-eurasia",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            -3400,
+            -2700
+          ],
+          "options": [
+            {
+              "tradition": "prehistoric-mena",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            -2700,
+            -1550
+          ],
+          "options": [
+            {
+              "tradition": "egyptian-old-middle-kingdom",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            -1550,
+            -664
+          ],
+          "options": [
+            {
+              "tradition": "egyptian-new-kingdom",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            -664,
+            -332
+          ],
+          "options": [
+            {
+              "tradition": "egyptian-late-period",
+              "weight": 8
+            },
+            {
+              "tradition": "egyptian-new-kingdom",
+              "weight": 2
+            }
+          ]
+        },
+        {
+          "years": [
+            -332,
+            30
+          ],
+          "options": [
+            {
+              "tradition": "egyptian-late-period",
+              "weight": 6
+            },
+            {
+              "tradition": "ancient-greek",
+              "weight": 4
+            }
+          ]
+        },
+        {
+          "years": [
+            30,
+            395
+          ],
+          "options": [
+            {
+              "tradition": "egyptian-late-period",
+              "weight": 4
+            },
+            {
+              "tradition": "ancient-greek",
+              "weight": 3
+            },
+            {
+              "tradition": "ancient-roman",
+              "weight": 3
+            }
+          ]
+        },
+        {
+          "years": [
+            395,
+            641
+          ],
+          "options": [
+            {
+              "tradition": "egyptian-coptic",
+              "weight": 6
+            },
+            {
+              "tradition": "ancient-greek",
+              "weight": 3
+            },
+            {
+              "tradition": "byzantine",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            641,
+            1100
+          ],
+          "options": [
+            {
+              "tradition": "egyptian-coptic",
+              "weight": 1
+            },
+            {
+              "tradition": "arabic-levant",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            1100,
+            1517
+          ],
+          "options": [
+            {
+              "tradition": "arabic-levant",
+              "weight": 1
+            },
+            {
+              "tradition": "egyptian-coptic",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            1517,
+            1882
+          ],
+          "options": [
+            {
+              "tradition": "arabic-levant",
+              "weight": 1
+            },
+            {
+              "tradition": "egyptian-coptic",
+              "weight": 1
+            },
+            {
+              "tradition": "turkish",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            1882,
+            10001
+          ],
+          "options": [
+            {
+              "tradition": "arabic-levant",
+              "weight": 12
+            },
+            {
+              "tradition": "egyptian-coptic",
+              "weight": 2
+            },
+            {
+              "tradition": "greek",
+              "weight": 1
+            },
+            {
+              "tradition": "french",
+              "weight": 1
+            },
+            {
+              "tradition": "english",
+              "weight": 1
+            }
+          ]
+        }
+      ]
+    },
+    "mena-mesopotamia": {
+      "why": "One window and one pool covered 3000 BCE to 539 CE, which flattens Sumerian, Akkadian, Assyrian and Babylonian into a single undifferentiated tradition and then runs it a thousand years past the Achaemenid conquest. Split by language and by which city held the plain.",
+      "replace": [
+        {
+          "years": [
+            -1000000,
+            -3400
+          ],
+          "options": [
+            {
+              "tradition": "early-west-eurasia",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            -3400,
+            -3200
+          ],
+          "options": [
+            {
+              "tradition": "prehistoric-mena",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            -3200,
+            -2350
+          ],
+          "options": [
+            {
+              "tradition": "sumerian",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            -2350,
+            -1900
+          ],
+          "options": [
+            {
+              "tradition": "akkadian",
+              "weight": 6
+            },
+            {
+              "tradition": "sumerian",
+              "weight": 4
+            }
+          ]
+        },
+        {
+          "years": [
+            -1900,
+            -1595
+          ],
+          "options": [
+            {
+              "tradition": "akkadian",
+              "weight": 8
+            },
+            {
+              "tradition": "sumerian",
+              "weight": 1
+            },
+            {
+              "tradition": "assyrian",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            -1595,
+            -1000
+          ],
+          "options": [
+            {
+              "tradition": "babylonian",
+              "weight": 6
+            },
+            {
+              "tradition": "assyrian",
+              "weight": 3
+            },
+            {
+              "tradition": "akkadian",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            -1000,
+            -609
+          ],
+          "options": [
+            {
+              "tradition": "assyrian",
+              "weight": 6
+            },
+            {
+              "tradition": "babylonian",
+              "weight": 4
+            }
+          ]
+        },
+        {
+          "years": [
+            -609,
+            -331
+          ],
+          "options": [
+            {
+              "tradition": "babylonian",
+              "weight": 7
+            },
+            {
+              "tradition": "persian-ancient",
+              "weight": 2
+            },
+            {
+              "tradition": "hebrew",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            -331,
+            224
+          ],
+          "options": [
+            {
+              "tradition": "babylonian",
+              "weight": 4
+            },
+            {
+              "tradition": "ancient-greek",
+              "weight": 3
+            },
+            {
+              "tradition": "persian-ancient",
+              "weight": 3
+            }
+          ]
+        },
+        {
+          "years": [
+            224,
+            633
+          ],
+          "options": [
+            {
+              "tradition": "persian-ancient",
+              "weight": 6
+            },
+            {
+              "tradition": "aramaic",
+              "weight": 2
+            },
+            {
+              "tradition": "babylonian",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            633,
+            1258
+          ],
+          "options": [
+            {
+              "tradition": "arabian-hejaz",
+              "weight": 1
+            },
+            {
+              "tradition": "arabic-traditional",
+              "weight": 1
+            },
+            {
+              "tradition": "persian-farsi",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            1258,
+            1534
+          ],
+          "options": [
+            {
+              "tradition": "arabic-levant",
+              "weight": 1
+            },
+            {
+              "tradition": "persian-farsi",
+              "weight": 1
+            },
+            {
+              "tradition": "turkic-steppe",
+              "weight": 1
+            },
+            {
+              "tradition": "mongolian-traditional",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            1534,
+            1918
+          ],
+          "options": [
+            {
+              "tradition": "arabic-levant",
+              "weight": 1
+            },
+            {
+              "tradition": "persian-farsi",
+              "weight": 1
+            },
+            {
+              "tradition": "turkish",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            1918,
+            10001
+          ],
+          "options": [
+            {
+              "tradition": "arabic-levant",
+              "weight": 1
+            },
+            {
+              "tradition": "persian-farsi",
+              "weight": 1
+            }
+          ]
+        }
+      ]
+    },
+    "mena-anatolia": {
+      "why": "Bronze Age Anatolia was given Persian and Greek names, both of which arrive centuries too early. The Hittite and Luwian archive at Hattusa is large and dated; use it for the period it covers.",
+      "replace": [
+        {
+          "years": [
+            -1000000,
+            -3400
+          ],
+          "options": [
+            {
+              "tradition": "early-west-eurasia",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            -3400,
+            -1650
+          ],
+          "options": [
+            {
+              "tradition": "prehistoric-mena",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            -1650,
+            -1180
+          ],
+          "options": [
+            {
+              "tradition": "hittite",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            -1180,
+            -700
+          ],
+          "options": [
+            {
+              "tradition": "hittite",
+              "weight": 5
+            },
+            {
+              "tradition": "prehistoric-mena",
+              "weight": 3
+            },
+            {
+              "tradition": "ancient-greek",
+              "weight": 2
+            }
+          ]
+        },
+        {
+          "years": [
+            -700,
+            -334
+          ],
+          "options": [
+            {
+              "tradition": "ancient-greek",
+              "weight": 5
+            },
+            {
+              "tradition": "persian-ancient",
+              "weight": 4
+            },
+            {
+              "tradition": "hittite",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            -334,
+            330
+          ],
+          "options": [
+            {
+              "tradition": "ancient-greek",
+              "weight": 6
+            },
+            {
+              "tradition": "ancient-roman",
+              "weight": 3
+            },
+            {
+              "tradition": "armenian",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            330,
+            1071
+          ],
+          "options": [
+            {
+              "tradition": "byzantine",
+              "weight": 1
+            },
+            {
+              "tradition": "armenian",
+              "weight": 1
+            },
+            {
+              "tradition": "georgian",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            1071,
+            1453
+          ],
+          "options": [
+            {
+              "tradition": "turkic-steppe",
+              "weight": 1
+            },
+            {
+              "tradition": "byzantine",
+              "weight": 1
+            },
+            {
+              "tradition": "armenian",
+              "weight": 1
+            },
+            {
+              "tradition": "greek",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            1453,
+            1922
+          ],
+          "options": [
+            {
+              "tradition": "turkish",
+              "weight": 1
+            },
+            {
+              "tradition": "greek",
+              "weight": 1
+            },
+            {
+              "tradition": "armenian",
+              "weight": 1
+            },
+            {
+              "tradition": "jewish-ashkenazi",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            1922,
+            10001
+          ],
+          "options": [
+            {
+              "tradition": "turkish",
+              "weight": 1
+            }
+          ]
+        }
+      ]
+    },
+    "mena-levant": {
+      "why": "The Bronze and Iron Age Levant was given Mesopotamian names, which is the wrong language family. Canaanite, and then Phoenician on the coast, is what the inscriptions hold; Hebrew belongs to the Iron Age kingdoms, not to 3000 BCE.",
+      "replace": [
+        {
+          "years": [
+            -1000000,
+            -3400
+          ],
+          "options": [
+            {
+              "tradition": "early-west-eurasia",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            -3400,
+            -1500
+          ],
+          "options": [
+            {
+              "tradition": "prehistoric-mena",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            -1500,
+            -1000
+          ],
+          "options": [
+            {
+              "tradition": "canaanite-phoenician",
+              "weight": 8
+            },
+            {
+              "tradition": "akkadian",
+              "weight": 1
+            },
+            {
+              "tradition": "egyptian-new-kingdom",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            -1000,
+            -332
+          ],
+          "options": [
+            {
+              "tradition": "canaanite-phoenician",
+              "weight": 5
+            },
+            {
+              "tradition": "hebrew",
+              "weight": 4
+            },
+            {
+              "tradition": "assyrian",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            -332,
+            324
+          ],
+          "options": [
+            {
+              "tradition": "ancient-greek",
+              "weight": 4
+            },
+            {
+              "tradition": "ancient-roman",
+              "weight": 3
+            },
+            {
+              "tradition": "hebrew",
+              "weight": 3
+            }
+          ]
+        },
+        {
+          "years": [
+            324,
+            636
+          ],
+          "options": [
+            {
+              "tradition": "aramaic",
+              "weight": 4
+            },
+            {
+              "tradition": "byzantine",
+              "weight": 3
+            },
+            {
+              "tradition": "ancient-greek",
+              "weight": 2
+            },
+            {
+              "tradition": "hebrew",
+              "weight": 2
+            }
+          ]
+        },
+        {
+          "years": [
+            636,
+            1099
+          ],
+          "options": [
+            {
+              "tradition": "arabic-levant",
+              "weight": 1
+            },
+            {
+              "tradition": "byzantine",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            1099,
+            1291
+          ],
+          "options": [
+            {
+              "tradition": "arabic-levant",
+              "weight": 1
+            },
+            {
+              "tradition": "french-medieval",
+              "weight": 1
+            },
+            {
+              "tradition": "italian",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            1291,
+            1918
+          ],
+          "options": [
+            {
+              "tradition": "arabic-levant",
+              "weight": 1
+            },
+            {
+              "tradition": "levantine",
+              "weight": 1
+            },
+            {
+              "tradition": "turkish",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            1918,
+            10001
+          ],
+          "options": [
+            {
+              "tradition": "arabic-levant",
+              "weight": 6
+            },
+            {
+              "tradition": "levantine",
+              "weight": 2
+            },
+            {
+              "tradition": "hebrew",
+              "weight": 3
+            }
+          ]
+        }
+      ]
+    },
+    "mena-persian-plateau": {
+      "why": "Persian names began at 1500 BCE, covering Elam — a different language with a two-thousand-year written record at Susa — with the speech of people who had not yet arrived on the plateau.",
+      "replace": [
+        {
+          "years": [
+            -1000000,
+            -2700
+          ],
+          "options": [
+            {
+              "tradition": "early-west-eurasia",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            -2700,
+            -1000
+          ],
+          "options": [
+            {
+              "tradition": "elamite",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            -1000,
+            -550
+          ],
+          "options": [
+            {
+              "tradition": "elamite",
+              "weight": 6
+            },
+            {
+              "tradition": "persian-ancient",
+              "weight": 4
+            }
+          ]
+        },
+        {
+          "years": [
+            -550,
+            651
+          ],
+          "options": [
+            {
+              "tradition": "persian-ancient",
+              "weight": 8
+            },
+            {
+              "tradition": "sogdian",
+              "weight": 2
+            },
+            {
+              "tradition": "elamite",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            651,
+            1220
+          ],
+          "options": [
+            {
+              "tradition": "persian-farsi",
+              "weight": 1
+            },
+            {
+              "tradition": "persian-khorasan",
+              "weight": 1
+            },
+            {
+              "tradition": "arabian-hejaz",
+              "weight": 1
+            },
+            {
+              "tradition": "arabic-traditional",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            1220,
+            1501
+          ],
+          "options": [
+            {
+              "tradition": "persian-farsi",
+              "weight": 1
+            },
+            {
+              "tradition": "mongolian-traditional",
+              "weight": 1
+            },
+            {
+              "tradition": "turkic-steppe",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            1501,
+            10001
+          ],
+          "options": [
+            {
+              "tradition": "persian-farsi",
+              "weight": 1
+            }
+          ]
+        }
+      ]
+    },
+    "mena-nubian-corridor": {
+      "why": "One window covered 3000 BCE to 785 CE. Kerma, the Egyptian occupation, Napata and Kush, and Meroe are four different situations; at minimum the Egyptian centuries should use Egyptian names of the right period.",
+      "replace": [
+        {
+          "years": [
+            -1000000,
+            -3400
+          ],
+          "options": [
+            {
+              "tradition": "early-west-eurasia",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            -3400,
+            -2500
+          ],
+          "options": [
+            {
+              "tradition": "prehistoric-mena",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            -2500,
+            -1550
+          ],
+          "options": [
+            {
+              "tradition": "nubian",
+              "weight": 7
+            },
+            {
+              "tradition": "prehistoric-mena",
+              "weight": 3
+            }
+          ]
+        },
+        {
+          "years": [
+            -1550,
+            -1070
+          ],
+          "options": [
+            {
+              "tradition": "nubian",
+              "weight": 5
+            },
+            {
+              "tradition": "egyptian-new-kingdom",
+              "weight": 5
+            }
+          ]
+        },
+        {
+          "years": [
+            -1070,
+            -332
+          ],
+          "options": [
+            {
+              "tradition": "nubian",
+              "weight": 6
+            },
+            {
+              "tradition": "egyptian-late-period",
+              "weight": 4
+            }
+          ]
+        },
+        {
+          "years": [
+            -332,
+            350
+          ],
+          "options": [
+            {
+              "tradition": "nubian",
+              "weight": 7
+            },
+            {
+              "tradition": "egyptian-late-period",
+              "weight": 2
+            },
+            {
+              "tradition": "ancient-greek",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            350,
+            785
+          ],
+          "options": [
+            {
+              "tradition": "nubian",
+              "weight": 7
+            },
+            {
+              "tradition": "egyptian-coptic",
+              "weight": 2
+            },
+            {
+              "tradition": "byzantine",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            785,
+            10001
+          ],
+          "options": [
+            {
+              "tradition": "nubian",
+              "weight": 1
+            },
+            {
+              "tradition": "arabic-traditional",
+              "weight": 1
+            }
+          ]
+        }
+      ]
+    },
+    "north-american-great-lakes": {
+      "why": "Copied from the Northeast Woodlands, whose present-day window names seven traditions at equal weight. The Great Lakes took Anglophone settlement first, with the German, Irish and Polish waves behind it.",
+      "add": [
+        {
+          "years": [
+            1783,
+            10001
+          ],
+          "options": [
+            {
+              "tradition": "english",
+              "weight": 6
+            },
+            {
+              "tradition": "german",
+              "weight": 3
+            },
+            {
+              "tradition": "celtic-irish",
+              "weight": 2
+            },
+            {
+              "tradition": "polish-modern",
+              "weight": 2
+            },
+            {
+              "tradition": "italian",
+              "weight": 1
+            },
+            {
+              "tradition": "french",
+              "weight": 1
+            }
+          ]
+        }
+      ]
+    },
+    "north-american-greenland": {
+      "why": "Copied from the Arctic, which carries Russian and Scandinavian settler pools at the same weight as Inuit. Greenland is Kalaallit with a Danish administration, and never had the others.",
+      "add": [
+        {
+          "years": [
+            1730,
+            10001
+          ],
+          "options": [
+            {
+              "tradition": "inuit",
+              "weight": 8
+            },
+            {
+              "tradition": "scandinavian",
+              "weight": 2
+            }
+          ]
+        }
+      ]
+    },
+    "north-american-aleutians": {
+      "why": "Same copy, different colonists: Russian America to 1867, American since.",
+      "add": [
+        {
+          "years": [
+            1730,
+            10001
+          ],
+          "options": [
+            {
+              "tradition": "inuit",
+              "weight": 7
+            },
+            {
+              "tradition": "russian",
+              "weight": 2
+            },
+            {
+              "tradition": "english",
+              "weight": 2
+            }
+          ]
+        }
+      ]
+    },
+    "south-american-mato-grosso": {
+      "why": "Copied from the Chaco and Pampas, where the Italian and German waves weigh as much as Spanish. Mato Grosso is Brazilian and its interior is Guarani and Bororo country.",
+      "add": [
+        {
+          "years": [
+            1816,
+            10001
+          ],
+          "options": [
+            {
+              "tradition": "portuguese-brazil",
+              "weight": 6
+            },
+            {
+              "tradition": "guarani",
+              "weight": 3
+            },
+            {
+              "tradition": "spanish-latin-american",
+              "weight": 1
+            },
+            {
+              "tradition": "italian",
+              "weight": 1
+            },
+            {
+              "tradition": "german",
+              "weight": 1
+            }
+          ]
+        }
+      ]
+    },
+    "european-azores-and-madeira": {
+      "why": "Copied from Iberia, which splits evenly between Castilian, Portuguese and Galician. These islands were settled from Portugal.",
+      "add": [
+        {
+          "years": [
+            1492,
+            10001
+          ],
+          "options": [
+            {
+              "tradition": "portuguese",
+              "weight": 9
+            },
+            {
+              "tradition": "spanish-castilian",
+              "weight": 1
+            },
+            {
+              "tradition": "galician",
+              "weight": 1
+            }
+          ]
+        }
+      ]
     }
   },
   "deepTime": {

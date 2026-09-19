@@ -282,6 +282,38 @@ for (const [zone, byRegion] of Object.entries(REGION_NAME_MAPPING) as [
   }
 }
 
+/* Regions authored in UHS, filling the holes HPG's own geography left. Each
+ * copies the windows of the `like` region named beside it, so it must run after
+ * HPG's table is built and before the overrides, which may then customise one
+ * by id. */
+const EXTRA_REGIONS: Record<
+  string,
+  { label: string; bounds: number[]; culture: string; like: string }
+> = JSON.parse(
+  readFileSync("scripts/data/name-regions-extra.json", "utf8"),
+).regions;
+for (const [id, extra] of Object.entries(EXTRA_REGIONS)) {
+  if (regions.has(id)) {
+    console.error(`extra region already exists upstream: ${id}`);
+    continue;
+  }
+  const source = regions.get(extra.like);
+  if (!source) {
+    console.error(`extra region ${id} copies unknown region: ${extra.like}`);
+    continue;
+  }
+  regions.set(id, {
+    id,
+    label: extra.label,
+    bounds: extra.bounds as any,
+    culture: extra.culture as any,
+    windows: source.windows.map((w) => ({
+      years: [...w.years] as [number, number],
+      options: w.options.map((o) => ({ ...o })),
+    })),
+  });
+}
+
 /* UHS window overrides, applied after HPG's table. `replace` swaps a region's
  * windows wholesale; `add` merges and clips whatever HPG windows it overlaps,
  * so the two cannot both claim a year. */
