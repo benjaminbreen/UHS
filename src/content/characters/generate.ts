@@ -15,6 +15,7 @@ import {
 } from "./resolve";
 import { asOfficiant } from "./officiant";
 import { sexFromName } from "./name-sex";
+import { pickBeard } from "../../core/character";
 import { wornFromWearing } from "../../core/wearing";
 import { clothFor, rolesFrom } from "./wardrobe";
 import { plausibleHair } from "../../core/character";
@@ -282,6 +283,36 @@ export function characterAppearance(
   const a = generateAppearance(`${seed}:character-v1:${id}`, 0, age, { sex });
   const kit = context.appearance;
   a.skin = pick(kit.skin, seed, id, "skin");
+  // The face follows the kit for the same reason skin and hair do: these are
+  // population frequencies, never rules. Every form still occurs everywhere.
+  if (a.face)
+    a.face = {
+      ...a.face,
+      eyelid: kit.eyelids
+        ? pick(kit.eyelids, seed, id, "eyelid")
+        : a.face.eyelid,
+      epicanthus:
+        kit.epicanthicFold === undefined
+          ? a.face.epicanthus
+          : random(seed, "character-v1", id, "epicanthus") <
+            kit.epicanthicFold,
+      hairTexture: kit.hairTextures
+        ? pick(kit.hairTextures, seed, id, "hair-texture")
+        : a.face.hairTexture,
+      noseBridge: kit.noseBridges
+        ? pick(kit.noseBridges, seed, id, "nose-bridge")
+        : a.face.noseBridge,
+      mouth: kit.mouths ? pick(kit.mouths, seed, id, "mouth") : a.face.mouth,
+    };
+  if (kit.heads) a.head = pick(kit.heads, seed, id, "head");
+  // Re-roll the beard against the kit's density, not against the base roll:
+  // filtering the base result would compound the two and leave almost every
+  // man clean-shaven. The sex and age gate is the same one the base applies.
+  if (a.physique?.sex === "male" && age >= 16)
+    a.beard = pickBeard(
+      random(seed, "character-v1", id, "beard"),
+      kit.facialHair,
+    );
   a.hairColor =
     age >= 60 && random(seed, "character-v1", id, "grey") < 0.5
       ? "#aaa699"

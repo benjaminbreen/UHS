@@ -10,6 +10,48 @@ export const hairStyles = [
   "topknot",
   "bald",
 ] as const;
+export type FacialHair = "sparse" | "average" | "full";
+
+/**
+ * How often each is actually worn. A flat list put a goatee, a handlebar and
+ * a forked beard each on one man in twelve, which is why every other face in
+ * the street had one. Rare styles have to be rare by weight, not by being one
+ * entry among many.
+ */
+export const beardWeights = {
+  none: 30,
+  stubble: 20,
+  short: 14,
+  long: 6,
+  moustache: 5,
+  sideburns: 2,
+  chinstrap: 1,
+  goatee: 0.6,
+  handlebar: 0.6,
+  forked: 0.4,
+} as const;
+
+/** Populations differ in how much facial hair grows, so the kits carry it. */
+const facialHairScale: Record<FacialHair, Record<string, number>> = {
+  sparse: { none: 3.2, stubble: 1.4, moustache: 0.9, short: 0.35, long: 0.15, forked: 0.1, sideburns: 0.3, chinstrap: 0.3 },
+  average: {},
+  full: { none: 0.6, stubble: 0.9, short: 1.5, long: 1.8, forked: 1.4 },
+};
+
+export function pickBeard(r: number, density: FacialHair = "average") {
+  const scale = facialHairScale[density];
+  const entries = (
+    Object.entries(beardWeights) as [keyof typeof beardWeights, number][]
+  ).map(([k, w]) => [k, w * (scale[k] ?? 1)] as const);
+  const total = entries.reduce((sum, [, w]) => sum + w, 0);
+  let x = r * total;
+  for (const [style, w] of entries) {
+    x -= w;
+    if (x < 0) return style;
+  }
+  return "none" as const;
+}
+
 export const beardStyles = [
   "none",
   "stubble",
@@ -126,12 +168,24 @@ export const jawShapes = [
 ] as const;
 export const eyeSizes = ["small", "medium", "large"] as const;
 export const eyeShapes = ["round", "almond", "narrow"] as const;
+/**
+ * The upper lid. A crease folds well above the lash line; a low crease sits
+ * close to it and is partly hidden by it; a monolid has none. All three occur
+ * everywhere, in proportions that differ by population — which is why the
+ * regional kits carry the proportions rather than the drawing carrying one.
+ */
+export const eyelidFolds = ["crease", "low-crease", "monolid"] as const;
+export type EyelidFold = (typeof eyelidFolds)[number];
 export const eyeSpacings = ["close", "average", "wide"] as const;
 export const browShapes = ["straight", "arched", "heavy"] as const;
 export const noseShapes = ["short", "straight", "broad", "aquiline"] as const;
 export const mouthShapes = ["narrow", "soft", "full", "wide"] as const;
 export const chinShapes = ["short", "average", "long"] as const;
 export const hairTextures = ["straight", "wavy", "curly", "coiled"] as const;
+export type HairTexture = (typeof hairTextures)[number];
+/** Height of the nasal bridge at the root, between the eyes. */
+export const noseBridges = ["low", "average", "high"] as const;
+export type NoseBridge = (typeof noseBridges)[number];
 export const hairlines = ["low", "average", "high", "widows-peak"] as const;
 export const faceDetails = ["clear", "freckles", "lines", "weathered"] as const;
 export const bodyShapes = ["straight", "tapered", "rounded"] as const;
@@ -167,11 +221,17 @@ export type CharacterFace = {
   eyeSize: (typeof eyeSizes)[number];
   eyeShape: (typeof eyeShapes)[number];
   eyeSpacing: (typeof eyeSpacings)[number];
+  /** Optional: faces recorded before the lid was described read as "crease". */
+  eyelid?: EyelidFold;
+  /** A fold of the upper lid covering the inner corner of the eye. */
+  epicanthus?: boolean;
   brows: (typeof browShapes)[number];
   nose: (typeof noseShapes)[number];
   mouth: (typeof mouthShapes)[number];
   chin: (typeof chinShapes)[number];
   hairTexture: (typeof hairTextures)[number];
+  /** Optional: faces recorded before the bridge was described read as average. */
+  noseBridge?: NoseBridge;
   hairline: (typeof hairlines)[number];
   detail: (typeof faceDetails)[number];
 };
@@ -185,11 +245,15 @@ export function generateFace(seed: string, index = 0, age = 30): CharacterFace {
     eyeSize: pick("eye-size", eyeSizes),
     eyeShape: pick("eye-shape", eyeShapes),
     eyeSpacing: pick("eye-spacing", eyeSpacings),
+    // The unplaced default. A regional kit overrides both of these.
+    eyelid: pick("eyelid", ["crease", "crease", "low-crease"] as const),
+    epicanthus: random(seed, "portrait-face-v1", index, "epicanthus") < 0.12,
     brows: pick("brows", browShapes),
     nose: pick("nose", noseShapes),
     mouth: pick("mouth", mouthShapes),
     chin: pick("chin", chinShapes),
     hairTexture: pick("hair-texture", hairTextures),
+    noseBridge: pick("nose-bridge", ["average", "average", "high", "low"] as const),
     hairline: pick("hairline", hairlines),
     detail:
       age >= 55
@@ -407,22 +471,7 @@ export function generateAppearance(
     beard:
       age < 16 || sex !== "male"
         ? "none"
-        : (
-            [
-              "none",
-              "none",
-              "stubble",
-              "moustache",
-              "handlebar",
-              "goatee",
-              "sideburns",
-              "chinstrap",
-              "short",
-              "short",
-              "long",
-              "forked",
-            ] as const
-          )[n("beard", 12)],
+        : pickBeard(random(seed, "character-art", index, "beard")),
     wearing: {
       sleeves: sleeveStyles[n("sleeves", sleeveStyles.length)],
       hem: hemStyles[n("hem", hemStyles.length)],

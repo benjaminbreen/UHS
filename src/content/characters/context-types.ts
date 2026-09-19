@@ -1,4 +1,8 @@
-import type { CharacterAppearance } from "../../core/character";
+import type {
+  CharacterAppearance,
+  CharacterFace,
+  FacialHair,
+} from "../../core/character";
 import type { Inventory } from "../../core/types";
 import type { Ecology } from "../ecology/profiles";
 import type { CultureId } from "../history/types";
@@ -107,6 +111,26 @@ export type NameRegion = {
 /** Palette weights are art direction, never measured demographic probabilities. */
 export type AppearanceKit = QualifiedContent & {
   skin: readonly string[];
+  /**
+   * Upper-lid forms to draw from, and how often the inner corner is covered
+   * by an epicanthic fold (0..1). Both are ordinary anatomical variation that
+   * differs in frequency between populations, carried here for the same
+   * reason skin and hair colour are: so a face is regional rather than one
+   * default face recoloured. Omitted kits fall back to a worldwide spread.
+   */
+  eyelids?: readonly CharacterFace["eyelid"][];
+  epicanthicFold?: number;
+  /** Hair textures to draw from. Picked worldwide-uniform before this, which
+   * put straight hair on the Congo and coiled hair on Kyoto. */
+  hairTextures?: readonly CharacterFace["hairTexture"][];
+  /** Nasal bridge heights to draw from. */
+  noseBridges?: readonly CharacterFace["noseBridge"][];
+  /** How much facial hair grows here. Scales the style weights; it never
+   * forbids a style. */
+  facialHair?: FacialHair;
+  /** Skull proportions and lip fullness to draw from. */
+  heads?: readonly CharacterAppearance["head"][];
+  mouths?: readonly CharacterFace["mouth"][];
   hairColors: readonly string[];
   hairStyles: readonly CharacterAppearance["hair"][];
   garments: readonly CharacterAppearance["wearing"]["garment"][];

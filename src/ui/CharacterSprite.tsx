@@ -1,10 +1,11 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import type { CharacterAppearance } from "../core/character";
 import { drawCharacter } from "../render/characters/renderers";
 import {
   drawConstructedPortrait,
   PORTRAIT_HEIGHT,
   PORTRAIT_WIDTH,
+  type Blink,
 } from "../render/portraits/constructed";
 
 type PortraitSource = {
@@ -51,27 +52,39 @@ function portraitSource(appearance: CharacterAppearance, key: string) {
 const portraits = new Map<string, HTMLCanvasElement>();
 /** Region of the 64×80 bust shown in the UI: hair top to the shoulders. */
 const CROP = { x: 2, y: 2, w: 60, h: 70 };
-/** Three-quarter bust from the same recipe, cached per appearance and age. */
+/**
+ * Three-quarter bust from the same recipe, cached per appearance, age and
+ * blink frame. A blink is then two drawImage calls, not a re-render: the shut
+ * frame is only ever painted for the faces that actually blink.
+ */
 function portraitCanvas(
   appearance: CharacterAppearance,
   age: number,
   key: string,
+  blink: Blink = 0,
 ) {
-  const cached = portraits.get(key);
+  const id = blink ? `${key}|${blink}` : key;
+  const cached = portraits.get(id);
   if (cached) {
-    portraits.delete(key);
-    portraits.set(key, cached);
+    portraits.delete(id);
+    portraits.set(id, cached);
     return cached;
   }
   const source = document.createElement("canvas");
   source.width = PORTRAIT_WIDTH;
   source.height = PORTRAIT_HEIGHT;
-  drawConstructedPortrait(source.getContext("2d")!, appearance, age);
-  portraits.set(key, source);
+  drawConstructedPortrait(source.getContext("2d")!, appearance, age, { blink });
+  portraits.set(id, source);
   if (portraits.size > SOURCE_LIMIT)
     portraits.delete(portraits.keys().next().value!);
   return source;
 }
+
+/** Shut for about this long, with the half-lidded frame either side of it. */
+const SHUT_MS = 90;
+const LID_MS = 45;
+const GAP_MIN = 5000;
+const GAP_SPAN = 5000;
 
 /** UI and world read the identical appearance recipe; no legacy portrait lookup. */
 export function CharacterSprite({
@@ -88,55 +101,111 @@ export function CharacterSprite({
   scale?: number;
 }) {
   const ref = useRef<HTMLCanvasElement>(null);
-  const rendered = useRef<{ key: string; portrait: boolean } | undefined>(
-    undefined,
+  // The key is the identity of the drawing. Deriving it here rather than
+  // inside the effect keeps the blink timer from restarting every time the
+  // parent re-renders with an equal-but-new appearance object.
+  const key = useMemo(
+    () =>
+      portrait
+        ? `${age}:${JSON.stringify(appearance)}`
+        : JSON.stringify(appearance),
+    [appearance, portrait, age],
   );
+  // Equal key means an identical drawing, so the effect can depend on the key
+  // alone and read the latest record through a ref. Depending on `appearance`
+  // would restart the timer on every parent render and it would never blink.
+  const latest = useRef({ appearance, age });
+  latest.current = { appearance, age };
+  // Set by the effect while the timer is live, so a click can interrupt it.
+  // Left null under reduced motion, which is what makes the click a no-op too.
+  const poke = useRef<(() => void) | null>(null);
   useEffect(() => {
     const canvas = ref.current;
     if (!canvas) return;
-    const key = portrait
-      ? `${age}:${JSON.stringify(appearance)}`
-      : JSON.stringify(appearance);
-    if (rendered.current?.key === key && rendered.current.portrait === portrait)
-      return;
+    const { appearance, age } = latest.current;
     const out = canvas.getContext("2d")!;
-    out.clearRect(0, 0, canvas.width, canvas.height);
     out.imageSmoothingEnabled = false;
-    if (portrait) {
-      // Bust crop at two whole pixels per native pixel.
-      out.drawImage(
-        portraitCanvas(appearance, age, key),
-        CROP.x,
-        CROP.y,
-        CROP.w,
-        CROP.h,
-        0,
-        0,
-        CROP.w * 2,
-        CROP.h * 2,
+    const paint = (blink: Blink) => {
+      out.clearRect(0, 0, canvas.width, canvas.height);
+      if (portrait) {
+        // Bust crop at two whole pixels per native pixel.
+        out.drawImage(
+          portraitCanvas(appearance, age, key, blink),
+          CROP.x,
+          CROP.y,
+          CROP.w,
+          CROP.h,
+          0,
+          0,
+          CROP.w * 2,
+          CROP.h * 2,
+        );
+      } else {
+        const { source, x0, y0, width, height } = portraitSource(
+          appearance,
+          key,
+        );
+        out.drawImage(
+          source,
+          x0,
+          y0,
+          width,
+          height,
+          Math.floor((32 - width) / 2),
+          40 - height,
+          width,
+          height,
+        );
+      }
+    };
+    paint(0);
+    if (!portrait) return;
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+
+    let timer = 0;
+    const at = (ms: number, then: () => void) => {
+      timer = window.setTimeout(then, ms);
+    };
+    // Now and then a second blink follows close behind the first, which is
+    // what stops the loop reading as a metronome.
+    const blink = (again: boolean) =>
+      at(LID_MS, () => {
+        paint(1);
+        at(LID_MS, () => {
+          paint(2);
+          at(SHUT_MS, () => {
+            paint(1);
+            at(LID_MS, () => {
+              paint(0);
+              if (again) blink(false);
+              else wait();
+            });
+          });
+        });
+      });
+    const wait = () =>
+      at(GAP_MIN + Math.random() * GAP_SPAN, () =>
+        blink(Math.random() < 0.22),
       );
-    } else {
-      const { source, x0, y0, width, height } = portraitSource(appearance, key);
-      out.drawImage(
-        source,
-        x0,
-        y0,
-        width,
-        height,
-        Math.floor((32 - width) / 2),
-        40 - height,
-        width,
-        height,
-      );
-    }
-    rendered.current = { key, portrait };
-  }, [appearance, portrait, age]);
+    // A click gets a double blink, cutting short whatever was pending.
+    poke.current = () => {
+      window.clearTimeout(timer);
+      paint(0);
+      blink(true);
+    };
+    wait();
+    return () => {
+      poke.current = null;
+      window.clearTimeout(timer);
+    };
+  }, [key, portrait]);
   return (
     <canvas
       ref={ref}
       width={portrait ? CROP.w * 2 : 32}
       height={portrait ? CROP.h * 2 : 40}
       aria-label={portrait ? "Character appearance" : "Person appearance"}
+      onClick={portrait ? () => poke.current?.() : undefined}
       data-skin={appearance.skin}
       style={{
         width: portrait ? "100%" : 24 * scale,

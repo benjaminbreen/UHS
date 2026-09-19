@@ -12,6 +12,10 @@ import {
   type Tones,
 } from "./raster";
 
+/** A blink is three frames: the lid on its way down, shut, and on its way up
+ * again is the same middle frame played back. */
+export type Blink = 0 | 1 | 2;
+
 export const PORTRAIT_WIDTH = 64;
 export const PORTRAIT_HEIGHT = 80;
 
@@ -95,11 +99,11 @@ export function drawConstructedPortrait(
   ctx: CanvasRenderingContext2D,
   appearance: CharacterAppearance,
   age = 30,
-  options?: { tuning?: Partial<ConstructedTuning> },
+  options?: { tuning?: Partial<ConstructedTuning>; blink?: Blink },
 ) {
   ctx.clearRect(0, 0, PORTRAIT_WIDTH, PORTRAIT_HEIGHT);
   ctx.imageSmoothingEnabled = false;
-  paintConstructed(appearance, age, options?.tuning).blit(ctx);
+  paintConstructed(appearance, age, options?.tuning, options?.blink).blit(ctx);
 }
 
 type Model = {
@@ -140,6 +144,8 @@ type Model = {
   /** Stable per-face roll for the traits the record does not name: lash
    * length, lid crease, brow density, under-eye. */
   variant: number;
+  /** 0 open, 1 half closed, 2 shut. The only thing that animates. */
+  blink: Blink;
   head: Pt[];
 };
 
@@ -147,9 +153,10 @@ export function paintConstructed(
   appearance: CharacterAppearance,
   age = 30,
   tuning?: Partial<ConstructedTuning>,
+  blink: Blink = 0,
 ): Raster {
   const r = new Raster(PORTRAIT_WIDTH, PORTRAIT_HEIGHT);
-  const m = model(appearance, age, { ...constructedDefaults, ...tuning });
+  const m = model(appearance, age, { ...constructedDefaults, ...tuning }, blink);
   const hood = m.a.wearing.headwear === "hood";
 
   drawTorso(r, m);
@@ -183,6 +190,7 @@ function model(
   a: CharacterAppearance,
   age: number,
   t: ConstructedTuning,
+  blink: Blink = 0,
 ): Model {
   const face = portraitFace(a, age);
   const child = age < 13;
@@ -325,6 +333,7 @@ function model(
     neckWidth: t.neckWidth - (child ? 1.5 : youth ? 0.5 : 0),
     bodyScale: child ? 0.78 : youth ? 0.9 : 1,
     recede,
+    blink,
     variant: [
       ...(a.skin + a.hairColor + a.hair + head + jaw + face.eyeShape),
     ].reduce((n, c) => (Math.imul(n, 31) + c.charCodeAt(0)) >>> 0, 11),
@@ -1248,58 +1257,270 @@ function drawNeck(r: Raster, m: Model) {
   );
 }
 
+// ------------------------------------------------------------------- face
+
+/**
+ * Skin tones. Shadows on skin are not the base colour darkened: they shift
+ * cooler and more saturated as they deepen, and the light shifts warmer. A
+ * single grey axis is what makes rendered skin look like plastic.
+ */
+type SkinRamp = {
+  core: string;
+  deep: string;
+  shade: string;
+  base: string;
+  light: string;
+  high: string;
+  /** Light bouncing back onto the shadow side. Cool, and never bright. */
+  bounce: string;
+};
+
+function skinRamp(base: string): SkinRamp {
+  const scale = (f: number) => {
+    const v = parseInt(base.slice(1), 16);
+    return `#${[16, 8, 0]
+      .map((s) =>
+        Math.round(((v >> s) & 255) * f)
+          .toString(16)
+          .padStart(2, "0"),
+      )
+      .join("")}`;
+  };
+  return {
+    core: mix(scale(0.47), "#3b2a4d", 0.32),
+    deep: mix(scale(0.63), "#5e3550", 0.24),
+    shade: mix(scale(0.83), "#8d4a54", 0.15),
+    base,
+    light: mix(base, "#ffd9a6", 0.19),
+    high: mix(base, "#fff0cd", 0.34),
+    bounce: mix(scale(0.72), "#7d86b4", 0.3),
+  };
+}
+
+/**
+ * The skull's landmarks, as the control points of the drawn shapes rather than
+ * as scalar amounts of light. Varying where the shadow's edge runs changes a
+ * face's structure; varying how dark it is only changes the contrast.
+ */
+type FaceForm = {
+  /** Height of the cheekbone above the mouth, and how far forward it pushes
+   * the edge of the shadow. */
+  cheekRise: number;
+  cheekOut: number;
+  /** Hollow under the cheekbone: a separate mark, on gaunt and old faces. */
+  hollow: boolean;
+  /** Width of the jaw at its angle. */
+  jaw: number;
+  /** Depth of the socket under the brow. */
+  brow: number;
+  /** Temple falling in behind the brow ridge. */
+  temple: boolean;
+  cleft: boolean;
+  /** Colour in the cheeks, not shape. */
+  flush: number;
+};
+
+function faceForm(m: Model): FaceForm {
+  const { a, age, variant: v } = m;
+  const sex = a.physique?.sex ?? "unspecified";
+  const male = sex === "male";
+  const lean = a.build < 0;
+  const heavy = a.build > 1;
+  const strength = (a.physique?.strength ?? 50) / 100;
+  // Each trait takes its own slice of the roll, so changing one does not walk
+  // the others.
+  const roll = (shift: number) => ((v >> shift) & 255) / 255 - 0.5;
+  return {
+    cheekRise: roll(2) * 2.2,
+    cheekOut: 1.4 + (lean ? 0.7 : 0) + (heavy ? -0.5 : 0) + roll(6) * 0.9,
+    hollow: (lean || age >= 55 || roll(10) > 0.28) && age >= 20,
+    jaw: (male ? 1 : 0) + strength * 1.4 + (heavy ? 1 : 0) + roll(14) * 1.2,
+    brow: 1 + (male ? 0.6 : 0) + roll(18) * 0.8,
+    temple: lean || male || roll(22) > 0.2,
+    cleft: ((v >> 26) & 7) === 0 && age >= 16,
+    flush: Math.max(0, 0.16 + roll(9) * 0.3) * (age < 14 ? 1.4 : 1),
+  };
+}
+
+/** Smooth 0..1 bump, 1 at the centre and 0 at the ellipse's edge. */
+function bump(
+  x: number,
+  y: number,
+  cx: number,
+  cy: number,
+  rx: number,
+  ry: number,
+) {
+  const dx = (x - cx) / rx,
+    dy = (y - cy) / ry;
+  const d = dx * dx + dy * dy;
+  return d < 1 ? 1 - d : 0;
+}
+
 function drawHead(r: Raster, m: Model) {
-  const { skin, farX, nearX, top, chin, eyeY, mid } = m;
-  r.poly(m.head, skin.base, MAT.skin);
+  const { farX, nearX, top, chin, eyeY, browY, mid, noseBase } = m;
+  const S = skinRamp(m.a.skin);
+  const f = faceForm(m);
+  const sc = m.shadowScale;
+  r.poly(m.head, S.base, MAT.skin);
   const head = r.region(m.head);
-  // The front plane turns away from the light: everything right of the
-  // nose line darkens toward the far edge.
-  shadeRamp(
-    r,
-    head,
-    [mid + 1, 30],
-    [farX + 2, 30],
-    0.3 * m.shadowScale,
-    SHADOW,
-    [MAT.skin],
+  const inHead = new Set(head);
+  // Everything below is clipped to the head, so the shapes can run wide.
+  const onFace = (pts: Pt[]) =>
+    r.region(pts).filter((i) => inHead.has(i) && r.mat[i] === MAT.skin);
+  // A tone laid down as a shape keeps its interior flat; only the boundary is
+  // broken up, and only where the form is soft. Hard planes keep hard edges.
+  const lay = (pts: Pt[], colour: string, soft = false) => {
+    const region = onFace(pts);
+    if (soft) {
+      const set = new Set(region);
+      for (const i of region) {
+        const x = i % r.w,
+          y = (i - x) / r.w;
+        const edge =
+          !set.has(i - 1) || !set.has(i + 1) || !set.has(i - r.w) || !set.has(i + r.w);
+        if (edge && (x + y) & 1) continue;
+        r.color[i] = colour;
+      }
+    } else for (const i of region) r.color[i] = colour;
+  };
+
+  const ck = eyeY + 6 + f.cheekRise;
+  // The shadow side. Its inner edge is the whole drawing: narrow at the
+  // temple, bulging forward where the cheekbone catches the light, tucking
+  // back as the cheek falls to the jaw. A vertical line here splits the face
+  // in half; the terminator on a turned head is never vertical.
+  const turn = smooth(
+    [
+      [mid + 5, top + 3],
+      [mid + 4, browY - 1],
+      [mid + 3.2, eyeY + 2],
+      [mid + 2 + f.cheekOut, ck],
+      [mid + 3.5, ck + 4.5],
+      [mid + 4.5, chin - 7],
+      [mid + 2, chin - 2.5],
+      [farX + 3, chin - 2],
+      [farX + 3, top],
+    ],
+    4,
   );
-  // Lower face and the underside of the chin.
-  shadeRamp(r, head, [30, chin - 5], [30, chin + 1], 0.24, SHADOW, [MAT.skin]);
-  // The side plane of the skull behind the temple falls off a little.
-  shadeRamp(r, head, [nearX + 6, 28], [nearX - 1, 28], 0.16, SHADOW, [
-    MAT.skin,
-  ]);
-  // Forehead and near cheek catch the light.
-  r.paint(r.ellipse(31, top + 10, 5.5, 3), lift(0.16), {
-    only: [MAT.skin],
-    soft: true,
-  });
-  r.paint(r.ellipse(27.5, eyeY + 6.5, 4, 2.5), lift(0.16), {
-    only: [MAT.skin],
-    soft: true,
-  });
-  if (m.age >= 60) {
-    // Cheeks hollow below the cheekbone on both sides.
-    r.paint(r.ellipse(27, eyeY + 10.5, 3, 2), shadow(0.16), {
-      only: [MAT.skin],
-      soft: true,
-    });
-    r.paint(r.ellipse(mid + 5, eyeY + 10, 2.5, 2), shadow(0.14), {
-      only: [MAT.skin],
-      soft: true,
-    });
-  }
-  // Brow ridge shadow over both sockets.
-  r.paint(
-    r.region([
-      [24, eyeY - 2],
-      [34, eyeY - 2],
-      [34, eyeY],
-      [24, eyeY],
+  lay(turn, S.shade, true);
+  // A little deeper right at the edge of the turn, under the cheekbone only.
+  lay(
+    [
+      [mid + 5, ck + 2],
+      [farX + 3, ck + 1],
+      [farX + 3, chin - 5],
+      [mid + 4, chin - 4],
+    ],
+    S.deep,
+    true,
+  );
+
+  // The socket under the brow ridge. Curved, and only as deep as the brow is
+  // heavy: a straight bar across the forehead reads as a headband.
+  lay(
+    smooth([
+      [nearX + 2, browY + 2.5],
+      [nearX + 3, browY + 0.5],
+      [31, browY - 0.5],
+      [mid + 1, browY + 0.5],
+      [mid + 1, browY + 2],
+      [31, browY + 1.5],
     ]),
-    shadow(0.14),
-    { only: [MAT.skin], dither: true },
+    f.brow > 1.3 ? S.deep : S.shade,
+    true,
   );
+
+  // Two places light actually sits: the forehead plane and the near
+  // cheekbone. Both soft-edged, because both are curved surfaces.
+  lay(
+    smooth([
+      [nearX + 4, top + 7],
+      [30, top + 4.5],
+      [mid - 2, top + 6],
+      [mid - 2.5, browY - 3],
+      [30, browY - 2],
+      [nearX + 3.5, browY - 3.5],
+    ]),
+    S.light,
+    true,
+  );
+  lay(
+    smooth([
+      [nearX + 3.5, ck - 1],
+      [nearX + 7, ck - 2.5],
+      [nearX + 10, ck - 1],
+      [nearX + 9, ck + 1.5],
+      [nearX + 5, ck + 2],
+    ]),
+    S.light,
+    true,
+  );
+  if (f.hollow)
+    lay(
+      smooth([
+        [nearX + 3, ck + 4],
+        [nearX + 8, ck + 3],
+        [nearX + 7.5, ck + 6.5],
+        [nearX + 3.5, ck + 6.5],
+      ]),
+      S.shade,
+      true,
+    );
+  // The jaw turns under along its whole length.
+  lay(
+    smooth([
+      [nearX + 2, chin - 7 + f.jaw * 0.4],
+      [29, chin - 2],
+      [mid - 1, chin],
+      [mid - 1, chin + 1],
+      [28, chin + 0.5],
+      [nearX + 1, chin - 4],
+    ]),
+    S.shade,
+    true,
+  );
+
+  // Reflected light along the far contour. One pixel of cool bounce is what
+  // lifts the head off the background.
+  for (const i of head) {
+    const x = i % r.w,
+      y = (i - x) / r.w;
+    if (y < browY || y > chin - 2) continue;
+    if (inHead.has(i + 1)) continue;
+    r.color[i] = mix(r.color[i], S.bounce, 0.75);
+  }
+
+  if (f.cleft) {
+    r.stroke(
+      [
+        [mid - 2, chin - 6],
+        [mid - 2, chin - 3.5],
+      ],
+      S.deep,
+      0,
+      undefined,
+      MAT.skin,
+    );
+    r.put(mid - 3, chin - 5, S.light);
+  }
+
+  // Colour last: warmth over the cheek and the nose, never the whole face.
+  if (f.flush > 0.02) {
+    const warm = "#c4645c";
+    for (const i of head) {
+      const x = i % r.w,
+        y = (i - x) / r.w;
+      if ((x + y) & 1) continue;
+      const t =
+        bump(x, y, nearX + 6, ck + 2, 6, 3.5) +
+        bump(x, y, mid + 1, noseBase - 2, 3, 2.5) * 0.6;
+      if (t <= 0) continue;
+      r.color[i] = mix(r.color[i], warm, Math.min(0.22, t * f.flush));
+    }
+  }
+  void sc;
 }
 
 function drawEar(r: Raster, m: Model) {
@@ -1367,7 +1588,14 @@ function drawFeatures(r: Raster, m: Model) {
   const v = m.variant;
   const female = a.physique?.sex === "female";
   const lashes = female || (v & 1) === 1;
-  const crease = (v >> 1) % 3 !== 0 && !child;
+  // The upper lid. A monolid has no visible fold and the lid runs smooth from
+  // brow to lash; a low crease sits close enough to the lash line to be half
+  // hidden by it. The record carries which, because it is regional.
+  const lid2 = face.eyelid ?? "crease";
+  const mono = lid2 === "monolid";
+  const lowLid = lid2 === "low-crease";
+  const crease = !mono && !child;
+  const fold = face.epicanthus ?? false;
   const bushy =
     face.brows === "heavy" ||
     (!female && (v >> 3) % 4 === 0 && age > 20 && age < 65);
@@ -1379,8 +1607,15 @@ function drawFeatures(r: Raster, m: Model) {
     (face.eyeSize === "large" ? 7 : face.eyeSize === "small" ? 5 : 6) +
     (child ? 1 : 0);
   const fw = nw - 1;
+  // A monolid presents a shallower opening, and more lid between brow and
+  // lash. Both read at this size; the fold alone does not.
   const h =
-    face.eyeShape === "round" || face.eyeSize === "large" || child ? 3 : 2;
+    mono && !child
+      ? 2
+      : face.eyeShape === "round" || face.eyeSize === "large" || child
+        ? 3
+        : 2;
+  const browLift = mono ? 1.5 : lowLid ? 0.5 : 0;
   const spacing =
     face.eyeSpacing === "wide" ? 1 : face.eyeSpacing === "close" ? -1 : 0;
   const nx = 32 - nw - spacing;
@@ -1392,6 +1627,53 @@ function drawFeatures(r: Raster, m: Model) {
   const eye = (x0: number, w: number, near: boolean) => {
     const narrow = face.eyeShape === "narrow";
     const top = eyeY + (narrow ? 0.5 : 0);
+    const outerX = near ? x0 - 1 : x0 + w;
+    if (m.blink === 2) {
+      // Shut. The lid is a plane of skin catching the light from above, and
+      // the lashes gather in a shallow curve that dips toward the outer
+      // corner. No white, no iris: an eye drawn closed shows neither.
+      r.rect(x0 - 1, eyeY - 1, w + 2, h + 1, skin.base);
+      r.rect(x0 - 1, eyeY - 1, w + 2, 1, mix(skin.base, skin.light, 0.4));
+      const ly = eyeY + h - 1;
+      r.stroke(
+        [
+          [outerX, ly - 0.5],
+          [x0 + w * 0.5, ly + 1],
+          [near ? x0 + w : x0, ly],
+        ],
+        lash,
+        0,
+        undefined,
+        MAT.skin,
+      );
+      if (lashes)
+        r.put(
+          outerX + (near ? -1 : 1),
+          ly + 1,
+          mix(lash, skin.base, 0.4),
+        );
+      // The crease deepens as the lid comes down.
+      r.stroke(
+        [
+          [x0, eyeY - 1.5],
+          [x0 + w * 0.5, eyeY - 2],
+          [x0 + w, eyeY - 1],
+        ],
+        mix(skin.base, skin.deep, 0.4),
+        0,
+        undefined,
+        MAT.skin,
+      );
+      r.rect(x0 + 1, eyeY + h, w - 2, 1, mix(skin.base, skin.light, 0.5));
+      r.rect(
+        x0 + 1,
+        eyeY + h + 1,
+        w - 2,
+        1,
+        mix(skin.base, skin.shade, hollow ? 0.55 : 0.3),
+      );
+      return;
+    }
     r.rect(x0, eyeY, w, h, white);
     // The upper lid casts across the top of the white; the inner corner sits
     // deepest. Without this the eye is a sticker rather than a socket.
@@ -1453,27 +1735,71 @@ function drawFeatures(r: Raster, m: Model) {
     );
     if (hollow)
       r.rect(x0 + 2, eyeY + h + 2, w - 4, 1, mix(skin.base, skin.shade, 0.3));
-    // Lid crease above the lash line, following its arch.
+    if (m.blink === 1) {
+      // Mid-blink: the lash line is one row lower and the iris is cut off by
+      // it, which is what the eye actually does on the way down.
+      r.rect(x0, eyeY - 1, w, 1, mix(skin.base, skin.light, 0.3));
+      r.rect(x0, eyeY, w, 1, lash);
+      r.put(outerX, eyeY, mix(lash, skin.base, 0.5));
+    }
+    // Lid crease above the lash line. A low crease runs a pixel closer to it
+    // and fades at the inner end, where the lid is fullest.
     if (crease)
       r.stroke(
         [
-          [x0 + (near ? 0 : 1), eyeY - 3],
-          [x0 + w / 2, eyeY - 3.5],
-          [x0 + w - (near ? 1 : 0), eyeY - 2.5],
+          [x0 + (near ? 0 : 1), eyeY - (lowLid ? 2 : 3)],
+          [x0 + w / 2, eyeY - (lowLid ? 2.5 : 3.5)],
+          [x0 + w - (near ? 1 : 0), eyeY - (lowLid ? 2 : 2.5)],
         ],
-        mix(skin.base, skin.deep, 0.34),
+        mix(skin.base, skin.deep, lowLid ? 0.24 : 0.34),
+        lowLid ? 2 : 0,
+        undefined,
+        MAT.skin,
+      );
+    if (mono) {
+      // The lid is one smooth plane running to the brow, so it catches light
+      // across its whole height rather than breaking at a fold.
+      r.rect(x0 - 1, eyeY - 4, w + 2, 3, mix(skin.base, skin.light, 0.34));
+      r.rect(x0, eyeY - 2, w, 1, mix(skin.base, skin.light, 0.5));
+    }
+    if (fold || mono) {
+      // An epicanthic fold covers the inner corner: the lash line turns down
+      // into it instead of ending in a point, and the caruncle is hidden.
+      // The opening also slants, the outer corner sitting above the inner —
+      // which is the part that actually reads at this size.
+      const ix = near ? x0 + w - 1 : x0;
+      const ox = near ? x0 - 1 : x0 + w;
+      const slant = fold ? 1.5 : 0.8;
+      r.stroke(
+        [
+          [ox, eyeY - 0.5 - slant],
+          [x0 + w / 2, eyeY - 1.2],
+          [ix, eyeY - 1 + slant * 0.5],
+        ],
+        lash,
         0,
         undefined,
         MAT.skin,
       );
+      r.put(ox, eyeY - 1, mix(lash, skin.base, 0.4));
+      if (fold) {
+        // The fold itself: lid skin carried over the inner corner, hiding it.
+        r.put(ix, eyeY, mix(lash, skin.base, 0.3));
+        r.put(ix, eyeY + 1, mix(skin.base, skin.shade, 0.35));
+        r.put(ix + (near ? 1 : -1), eyeY, mix(skin.base, skin.shade, 0.25));
+        r.put(ix + (near ? 1 : -1), eyeY - 1, mix(skin.base, skin.light, 0.2));
+      }
+    }
     void top;
   };
   eye(nx, nw, true);
   eye(fx, fw, false);
   // Socket shadow either side of the bridge.
-  r.put(nx + nw, eyeY + 1, mix(skin.base, skin.shade, 0.7));
-  r.put(fx - 1, eyeY + 1, skin.shade);
-  r.put(fx - 1, eyeY, mix(skin.base, skin.deep, 0.5));
+  // A monolid sits on a fuller, flatter orbit: the bridge shadow is shallow
+  // and there is no hollow above the lash line.
+  r.put(nx + nw, eyeY + 1, mix(skin.base, skin.shade, mono ? 0.4 : 0.7));
+  r.put(fx - 1, eyeY + 1, mono ? mix(skin.base, skin.shade, 0.55) : skin.shade);
+  if (!mono) r.put(fx - 1, eyeY, mix(skin.base, skin.deep, 0.5));
 
   // Brows. The near brow reads long and arched; the far one is short. Density
   // is a second row, not a darker colour: a black bar is not a brow.
@@ -1485,16 +1811,16 @@ function drawFeatures(r: Raster, m: Model) {
         : hair.deep;
   const arch = face.brows === "arched" ? 1 : 0;
   const nearBrow: Pt[] = [
-    [nx - 1, browY + 1.5],
-    [nx + 2, browY - arch],
-    [nx + nw - 1, browY - arch],
-    [nx + nw + 1, browY + 0.5],
+    [nx - 1, browY + 1.5 - browLift],
+    [nx + 2, browY - arch - browLift],
+    [nx + nw - 1, browY - arch - browLift],
+    [nx + nw + 1, browY + 0.5 - browLift],
   ];
   const farBrow: Pt[] = [
-    [fx - 1, browY],
-    [fx + 1, browY - arch],
-    [fx + fw, browY + 0.5],
-    [fx + fw + 1, browY + 1.5],
+    [fx - 1, browY - browLift],
+    [fx + 1, browY - arch - browLift],
+    [fx + fw, browY + 0.5 - browLift],
+    [fx + fw + 1, browY + 1.5 - browLift],
   ];
   const drawBrow = (pts: Pt[], head: boolean) => {
     r.stroke(pts, browColor, 0, undefined, MAT.skin);
@@ -1533,9 +1859,14 @@ function drawFeatures(r: Raster, m: Model) {
   // down and right to the tip, and the base turns back under it.
   const bump = face.nose === "aquiline" ? 1 : 0;
   const tipX = mid + 2 + (face.nose === "broad" ? 1 : 0);
+  // Where the bridge starts. A low root leaves the space between the eyes
+  // flat, so the profile line begins part way down the nose rather than up at
+  // the brow — which is most of what separates one nose from another here.
+  const bridge = face.noseBridge ?? "average";
+  const root = bridge === "low" ? 3.5 : bridge === "high" ? -0.5 : 1.5;
   const profile: Pt[] = [
-    [mid - 1, eyeY],
-    [mid + bump, eyeY + 2],
+    [mid - 1, eyeY + root],
+    [mid + bump, eyeY + 2 + root * 0.3],
     [mid + 1 + bump, eyeY + 4],
     [tipX, noseBase - 2],
     [tipX + 0.5, noseBase - 1],
@@ -1554,13 +1885,18 @@ function drawFeatures(r: Raster, m: Model) {
   // Lit side of the bridge.
   r.stroke(
     [
-      [mid - 2, eyeY + 1],
-      [mid - 1 + bump, eyeY + 3],
+      [mid - 2, eyeY + 1 + root],
+      [mid - 1 + bump, eyeY + 3 + root * 0.3],
       [tipX - 2, noseBase - 3],
     ],
-    skin.light,
-    child ? 2 : 0,
+    bridge === "low" ? mix(skin.base, skin.light, 0.45) : skin.light,
+    child || bridge === "low" ? 2 : 0,
   );
+  // A high root catches light between the brows; a low one is shadowed there,
+  // which is what makes the eyes read as set on a flatter plane.
+  if (bridge === "high") r.put(mid - 1, eyeY - 1, skin.high);
+  else if (bridge === "low")
+    r.rect(mid - 2, eyeY - 1, 3, 2, mix(skin.base, skin.shade, 0.3));
   if (bump) r.put(mid + 1, eyeY + 2, skin.high);
   r.put(tipX - 1, noseBase - 2, skin.high);
   // Base and nostrils.
@@ -1862,23 +2198,18 @@ type HairRamp = {
 
 function hairRamp(base: string): HairRamp {
   const t = tones(base, "hair");
-  const n = parseInt(base.slice(1), 16);
-  const lum =
-    (0.299 * ((n >> 16) & 255) +
-      0.587 * ((n >> 8) & 255) +
-      0.114 * (n & 255)) /
-    255;
-  // Room left above the base colour. Black hair can take a wide sheen; grey
-  // hair has nowhere to go and only needs a hint.
-  const head = Math.max(0.2, 1 - lum);
+  // Mixing toward the light by a share scaled up for dark hair was wrong: it
+  // put a pale grey-olive blob on black hair, because black has no hue to
+  // carry a wide lift. A fixed, modest share is correct at both ends — black
+  // hair keeps a dark specular, grey hair does not blow out.
   return {
     core: mix(t.edge, "#241a2e", 0.35),
     deep: t.deep,
     shade: t.shade,
     base,
-    light: mix(base, "#e8c88e", 0.1 + 0.22 * head),
-    sheen: mix(base, "#f2d9a4", 0.16 + 0.4 * head),
-    glint: mix(base, "#fdf1cf", 0.24 + 0.56 * head),
+    light: mix(base, "#e8c88e", 0.15),
+    sheen: mix(base, "#f2d9a4", 0.28),
+    glint: mix(base, "#fdf1cf", 0.38),
   };
 }
 
@@ -1959,7 +2290,7 @@ function drawHairDetail(r: Raster, m: Model) {
           : 0.09;
   // Coiled hair scatters: it never takes one broad specular, so its band is
   // capped and its glint suppressed.
-  const specular = texture === "coiled" ? 0.95 : 0.88;
+  const specular = texture === "coiled" ? 0.97 : 0.91;
   const steps: [number, string][] = [
     [0.1, H.core],
     [0.3, H.deep],
@@ -2004,8 +2335,8 @@ function drawHairDetail(r: Raster, m: Model) {
     },
     { only: [MAT.hair] },
   );
-  // The glint: the few pixels nearest the light, and only where the hair is
-  // smooth enough to hold one.
+  // The glint: the handful of pixels facing the light most directly, inside
+  // the sheen and never larger than it. Coiled hair scatters and holds none.
   if (texture !== "coiled")
     r.paint(
       body,
@@ -2013,10 +2344,8 @@ function drawHairDetail(r: Raster, m: Model) {
         if (beardAt(x, y)) return c;
         const ux = (x + 0.5 - cx) / rx,
           uy = (y + 0.5 - cy) / ry;
-        const d2 = ux * ux + uy * uy;
-        const nz = Math.sqrt(Math.max(0, 1 - Math.min(1, d2)));
-        const l = ux * lx + uy * ly + nz * lz;
-        return l > 0.93 ? H.glint : c;
+        const nz = Math.sqrt(Math.max(0, 1 - Math.min(1, ux * ux + uy * uy)));
+        return ux * lx + uy * ly + nz * lz > 0.979 ? H.glint : c;
       },
       { only: [MAT.hair] },
     );
