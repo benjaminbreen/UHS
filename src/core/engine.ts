@@ -16,7 +16,7 @@ import {
 } from "./livelihood";
 import { weatherAt } from "./weather";
 import { propDefs } from "../content/props/catalog";
-import { propAffordances, heldObject } from "./props";
+import { propAffordances, heldObject, lowProp } from "./props";
 import {
   planShove,
   type ShovePlan,
@@ -275,7 +275,10 @@ export class Engine {
     return {
       ...base,
       id,
-      name: clothName(base.name, q!.cloth, id),
+      name: clothName(base.name, q!.cloth, id, {
+        year: this.world.pack.year,
+        id: q!.base,
+      }),
       value: Math.max(1, Math.round(base.value * clothWorth(q!.cloth))),
     };
   }
@@ -491,7 +494,7 @@ export class Engine {
             : { height: 0, surface: "grass" as const };
         if (!cell) return cell;
         const water = cell.surface === "water" && !cell.bridge;
-        const obstacle = this.state.objects.some(
+        const blocking = this.state.objects.filter(
           (o) =>
             o.pos.space === from.space &&
             o.pos.x === x &&
@@ -502,9 +505,14 @@ export class Engine {
                 !o.carriedBy &&
                 !o.broken)),
         );
+        // A pot or a basket is cleared in the air; a loom or a well is not.
+        const overable =
+          blocking.length > 0 && blocking.every((o) => lowProp(o));
+        const obstacle = blocking.length > 0 && !overable;
         return {
           ...cell,
-          solid: cell.solid || obstacle || (!water && !clear({ x, y })),
+          over: overable || undefined,
+          solid: cell.solid || obstacle || (!water && !overable && !clear({ x, y })),
         };
       };
       const result = terrainJump(sample, from, to, jump, running);
@@ -545,6 +553,17 @@ export class Engine {
     // Without a terrain contract there is no way to tell a ditch from a wall,
     // so a jump reaches open ground only.
     return { kind: "blocked", reason: "There is no way over that." };
+  }
+  /** A knee-high prop in the next cell: what a step bumps into and a hop
+   * clears. Diagonals count the corners too, since those block the step. */
+  lowPropAhead(dx: number, dy: number) {
+    const p = this.state.player.pos;
+    const at = (x: number, y: number) =>
+      this.state.objects.find(
+        (o) =>
+          o.pos.space === p.space && o.pos.x === x && o.pos.y === y && lowProp(o),
+      );
+    return at(p.x + dx, p.y + dy);
   }
   /** What the player could climb from where they stand: a solid prop, a tree,
    * a building or wall, or ground one to three steps higher. Adjacent only —
@@ -1810,6 +1829,11 @@ export class Engine {
       };
     }
 
+    if (object.kind === "item")
+      interact(
+        "pickup",
+        this.state.player.heldItem ? "Swap for this" : "Pick up",
+      );
     if (object.kind === "gate")
       interact(
         object.open ? "close" : "open",
@@ -2075,7 +2099,7 @@ export class Engine {
       return p.perch ? `Climb down from ${p.perch.label} first.` : undefined;
     if (c.type === "hold") {
       const def = this.item(c.item);
-      if (!def?.hand) return "That is not something you can take in hand.";
+      if (!def) return "That is not something you can take in hand.";
       if ((p.inventory[c.item] ?? 0) < 1) return "You have none of those.";
       return p.held && !this.dropSpot()
         ? "There is no clear place to set down what you are holding."
@@ -2087,11 +2111,25 @@ export class Engine {
         ? "There is no clear adjacent place to put it down."
         : undefined;
     }
+    if (c.type === "drop") {
+      if (!p.heldItem) return "You are holding nothing to set down.";
+      return this.dropSpot()
+        ? undefined
+        : "There is no clear adjacent place to set it down.";
+    }
     if (c.type === "interact" && c.action === "drop" && !this.dropSpot())
       return "There is no clear adjacent place to put it down.";
     const target = this.inspect(c.target);
     if (!target) return "That target is not visible.";
     if (distance(p.pos, target.pos) > 2.5) return "Move closer first.";
+    if (c.type === "give") {
+      const a = this.state.actors.find((a) => a.id === c.target);
+      if (!a || a.kind !== "human") return "There is nobody there to take it.";
+      if (p.heldItem !== c.item) return "You are not holding that.";
+      // A gift is not a way around a grievance.
+      if (a.trust < 0) return "They will not take anything from you yet.";
+      return undefined;
+    }
     if (c.type === "trade") {
       const a = this.state.actors.find((a) => a.id === c.target);
       if (!a || a.kind !== "human") return "You cannot trade with this target.";
@@ -2503,6 +2541,38 @@ export class Engine {
       this.event(wasItem ? `You put ${what} away.` : `You put down ${what}.`);
       return;
     }
+    if (c.type === "drop") {
+      const id = p.heldItem!;
+      const def = this.item(id)!;
+      const spot = this.dropSpot()!;
+      delete p.heldItem;
+      this.state.objects.push({
+        id: `dropped-${id}-${this.state.revision}`,
+        name: def.name,
+        kind: "item",
+        item: id,
+        sprite: def.sprite,
+        pos: spot,
+        inventory: {},
+      });
+      this.advance(4);
+      this.event(`You set ${def.name.toLowerCase()} down.`);
+      return;
+    }
+    if (c.type === "give") {
+      const a = this.state.actors.find((a) => a.id === c.target)!;
+      const def = this.item(c.item)!;
+      delete p.heldItem;
+      a.inventory[c.item] = (a.inventory[c.item] ?? 0) + 1;
+      a.trust++;
+      a.memories.push(`You gave them ${def.name.toLowerCase()}.`);
+      this.advance(20, a.id);
+      this.event(
+        `You hand ${def.name.toLowerCase()} to ${a.name}. They take it.`,
+        "social",
+      );
+      return;
+    }
     if (c.type === "remove") {
       const id = p.worn![c.slot]!;
       delete p.worn![c.slot];
@@ -2516,6 +2586,19 @@ export class Engine {
     if (c.type === "narrate") {
       this.lastOutcomes = resolveIntents(this, c.intents);
       return;
+    }
+    if (c.type === "interact" && c.action === "pickup") {
+      const loose = this.state.objects.find(
+        (o) => o.id === c.target && o.kind === "item",
+      );
+      if (loose) {
+        this.emptyHands();
+        p.heldItem = loose.item;
+        this.state.objects = this.state.objects.filter((o) => o !== loose);
+        this.advance(2);
+        this.event(`You pick up ${loose.name.toLowerCase()}.`);
+        return;
+      }
     }
     if (c.type === "interact") {
       const prop = this.state.objects.find((o) => o.id === c.target && o.prop);

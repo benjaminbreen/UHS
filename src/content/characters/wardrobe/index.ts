@@ -4,7 +4,7 @@ import { random } from "../../../core/random";
 import { matchesCharacterScope } from "../resolve";
 import { garmentKits } from "./kits";
 import type { Cloth, DyeId, Material } from "./cloth";
-import { dyes } from "./cloth";
+import { dyeAt, dyes } from "./cloth";
 import {
   ageBandOf,
   wardrobeSlots,
@@ -171,6 +171,10 @@ export function clothFor(
   wearer: Wearer,
   place: { year: number; setting?: WorldSetting },
   pool: readonly GarmentKit[] = garmentKits,
+  /** The colour the figure is already drawn in. Cloth and appearance are
+   * resolved separately, and two independent dye rolls put a yellow tunic in
+   * the item list on a man drawn in brown. */
+  drawn?: string,
 ): Cloth {
   const kits = kitsFor(place.setting, place.year, pool);
   const band = ageBandOf(wearer.age);
@@ -229,6 +233,9 @@ export function clothFor(
       w.id,
       "dye",
     ) ?? "undyed";
+  const shown = dyeAt(drawn);
+  if (shown && material !== "hide" && material !== "fur")
+    return { material, dye: shown, quality };
   // A skin takes the colour it had. Bark cloth was painted and dyed; hide and
   // fur were not.
   if (material === "hide" || material === "fur") {

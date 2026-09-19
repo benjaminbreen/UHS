@@ -1,3 +1,4 @@
+import { dyeWord, garmentWord, materialWord, synthetic } from "./vocabulary";
 /**
  * What a garment is made of, what coloured it, and how well it was made.
  * Dyes are listed once and referenced by id from the regional kits, because
@@ -98,6 +99,11 @@ export const dyes = {
   morinda: { name: "morinda-red", hex: "#9a4436", tier: "distinctive" },
   safflower: { name: "safflower", hex: "#d4674f", tier: "distinctive" },
   indigo: { name: "indigo", hex: "#33507e", tier: "rare" },
+  // East Asian dyestuffs. Weld and kermes never grew here; kariyasu grass and
+  // gardenia pods are the yellows, and gromwell root the costly purple.
+  kariyasu: { name: "kariyasu yellow", hex: "#cbb44c", tier: "distinctive" },
+  kuchinashi: { name: "gardenia yellow", hex: "#dfae3c", tier: "distinctive" },
+  murasaki: { name: "gromwell purple", hex: "#6a5a8e", tier: "rare" },
   logwood: { name: "logwood-purple", hex: "#4a3b5c", tier: "rare" },
   lac: { name: "lac-crimson", hex: "#8e2f3f", tier: "rare" },
   kermes: { name: "kermes-scarlet", hex: "#9c2b33", tier: "rare" },
@@ -121,6 +127,15 @@ export const dyes = {
   white: { name: "bright white", hex: "#f2f2ee", tier: "common" },
 } as const satisfies Record<string, Dye>;
 export type DyeId = keyof typeof dyes;
+/** Colour back to dye. The appearance record carries hexes, not ids; this is
+ * how a worn item recovers the dye the wardrobe actually chose for that part
+ * of the outfit. */
+const byHex: Record<string, DyeId> = Object.fromEntries(
+  Object.entries(dyes).map(([id, d]) => [d.hex.toLowerCase(), id as DyeId]),
+);
+export function dyeAt(hex: string | undefined): DyeId | undefined {
+  return hex ? byHex[hex.toLowerCase()] : undefined;
+}
 
 /**
  * One garment as an item id: the base id, then material, dye and quality.
@@ -162,19 +177,38 @@ export function rarityOf(c: Cloth): Rarity {
         ? "distinctive"
         : "common";
 }
-/** "finely spun indigo silk robe", "ragged undyed hemp loincloth". */
-export function clothName(base: string, c: Cloth, seed: string) {
+/** "finely spun indigo silk robe", "faded blue polyester T-shirt". `base` is
+ * the item's display name; pass its id and the year to have the words come out
+ * of the right century. */
+export function clothName(
+  base: string,
+  c: Cloth,
+  seed: string,
+  era?: { year: number; id: string },
+) {
   const pick = (list: readonly string[]) =>
     list[Math.abs(hash(seed)) % list.length];
+  const year = era?.year ?? 0;
   const rarity = rarityOf(c);
   const skin = c.material === "hide" || c.material === "fur";
+  const man = era !== undefined && c.material === "synthetic";
   const adjective =
     c.quality < 0
-      ? pick(skin ? wornSkins : wornWords)
+      ? pick(man ? synthetic.worn : skin ? wornSkins : wornWords)
       : rarity === "common"
         ? undefined
-        : pick((skin ? fineSkins : fineWords)[rarity]);
-  const words = [adjective, dyes[c.dye].name, c.material, base.toLowerCase()];
+        : pick(
+            man
+              ? synthetic[rarity]
+              : (skin ? fineSkins : fineWords)[rarity],
+          );
+  const noun = era ? garmentWord(era.id, year, base.toLowerCase()) : base.toLowerCase();
+  const words = [
+    adjective,
+    era ? dyeWord(c.dye, year, dyes[c.dye].name) : dyes[c.dye].name,
+    era ? materialWord(c.material, year, pick) : c.material,
+    noun,
+  ];
   const out = words.filter(Boolean).join(" ");
   return out.charAt(0).toUpperCase() + out.slice(1);
 }

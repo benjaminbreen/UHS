@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import nature from "../../public/nature/atlas.json" with { type: "json" };
 import fauna from "../../public/fauna/atlas.json" with { type: "json" };
 import faunaB from "../../public/fauna-b/atlas.json" with { type: "json" };
@@ -7,6 +8,14 @@ import props from "../render/generated/props.json" with { type: "json" };
 import atlas from "../render/generated/atlas.json" with { type: "json" };
 import buildings from "../render/generated/buildings.json" with { type: "json" };
 import civic from "../render/generated/civic.json" with { type: "json" };
+import { parseCloth } from "../content/characters/wardrobe/cloth";
+import {
+  drawGarmentIcon,
+  garmentIconFor,
+  itemIconFor,
+  GARMENT_ICON,
+} from "../render/garment-icons";
+
 export function Sprite({ name, scale = 2 }: { name: string; scale?: number }) {
   const source = name.startsWith("fauna-")
     ? fauna
@@ -60,6 +69,48 @@ export function Sprite({ name, scale = 2 }: { name: string; scale?: number }) {
                     : "url(/packs/atlas.png)",
         backgroundPosition: `-${f.x * scale}px -${f.y * scale}px`,
         backgroundSize: `${source.meta.size.w * scale}px ${source.meta.size.h * scale}px`,
+        imageRendering: "pixelated",
+        flexShrink: 0,
+      }}
+    />
+  );
+}
+/** A worn item's own art, coloured by the cloth in its id. Falls back to the
+ * atlas sprite for anything without a drawing. */
+export function ItemIcon({
+  id,
+  sprite,
+  scale = 2,
+}: {
+  id: string;
+  sprite?: string;
+  scale?: number;
+}) {
+  const parsed = parseCloth(id);
+  const base = parsed?.base ?? id;
+  const icon = garmentIconFor(base) ?? itemIconFor(base);
+  const ref = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    const canvas = ref.current;
+    if (!canvas || !icon) return;
+    const ctx = canvas.getContext("2d")!;
+    ctx.clearRect(0, 0, GARMENT_ICON, GARMENT_ICON);
+    drawGarmentIcon(ctx, icon, 0, 0, parsed?.cloth);
+  }, [icon, id]);
+  if (!icon) return sprite ? <Sprite name={sprite} scale={scale} /> : null;
+  return (
+    <canvas
+      ref={ref}
+      width={GARMENT_ICON}
+      height={GARMENT_ICON}
+      aria-hidden="true"
+      style={{
+        width: GARMENT_ICON * scale,
+        height: GARMENT_ICON * scale,
+        // The art is wider than the sprites it replaces; a tight slot shrinks
+        // it rather than cropping the hem off.
+        maxWidth: "100%",
+        maxHeight: "100%",
         imageRendering: "pixelated",
         flexShrink: 0,
       }}

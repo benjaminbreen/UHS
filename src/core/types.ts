@@ -166,10 +166,14 @@ export type WorldObject = {
     | "exit"
     | "bed"
     /** Looked at, not used. Carries no interaction of its own. */
-    | "monument";
+    | "monument"
+    /** An inventory item set down on the ground, waiting to be picked up. */
+    | "item";
   pos: Position;
   sprite: string;
   inventory: Inventory;
+  /** What a `kind: "item"` object is: the id that goes back into a pocket. */
+  item?: ItemId;
   owner?: string;
   open?: boolean;
   depleted?: boolean;
@@ -319,6 +323,10 @@ export type PlayerCommand =
   /** Put whatever is in hand away: an item back into the inventory, a
    * carried object down on the ground. */
   | { type: "stow" }
+  /** Set the item in hand down on the ground, where anyone can take it. */
+  | { type: "drop" }
+  /** Hand the item in hand to somebody. They keep it. */
+  | { type: "give"; target: string; item: ItemId }
   /** Take the item in a slot off, into the inventory. */
   | { type: "remove"; slot: WearSlot }
   /** Sleep or long rest. Time passes in one step, the night can leave a mark,

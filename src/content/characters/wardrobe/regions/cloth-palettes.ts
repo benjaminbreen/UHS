@@ -55,8 +55,8 @@ const palettes: Record<CultureId, Palette> = {
     fibres: ["hemp", "ramie", "cotton", "felt", "wool"],
     rich: ["silk"],
     plain: ["undyed", "greige", "ash", "soot", "bark", "umber"],
-    fine: ["indigo", "safflower", "weld", "walnut"],
-    costly: ["vermilion", "goldthread", "saffron"],
+    fine: ["indigo", "kariyasu", "kuchinashi", "safflower"],
+    costly: ["murasaki", "vermilion", "goldthread"],
   },
   "southeast-asian": {
     fibres: ["cotton", "barkcloth", "hemp", "ramie"],
@@ -122,16 +122,27 @@ const opts = <T,>(
   means?: readonly ("poor" | "common" | "wealthy")[],
 ): Option<T>[] => values.map((value) => ({ value, weight, ...(means && { means }) }));
 
+/** How loud cloth is allowed to be. Dyeing at scale wants a dyehouse and
+ * something to trade it for, so before the first states a bright garment is a
+ * rarity rather than a quarter of the street; `modern` is the other end, where
+ * colour costs nothing. */
+type Era = "early" | "settled" | "modern";
+
 function kit(
   culture: CultureId,
   p: Palette,
   years: readonly [number, number],
-  modern: boolean,
+  era: Era,
 ): GarmentKit {
+  const modern = era === "modern";
   return {
-    id: `cloth-${culture}${modern ? "-modern" : ""}`,
+    id: `cloth-${culture}${era === "settled" ? "" : `-${era}`}`,
     label: `${culture} cloth`,
     scope: { years, cultures: [culture] },
+    // Below ordinary dress: a kit that names the local dyes for a place and a
+    // date is closer to the truth than a palette for a whole culture region,
+    // whichever of the two happens to be narrower in years.
+    priority: -1,
     material: [
       ...opts(p.fibres, 6),
       ...opts(p.skins ?? [], 1),
@@ -140,8 +151,8 @@ function kit(
     ],
     dye: [
       ...opts(p.plain, 6),
-      ...opts(p.fine ?? [], 3, ["common", "wealthy"]),
-      ...opts(p.costly ?? [], 2, ["wealthy"]),
+      ...opts(p.fine ?? [], era === "early" ? 1 : 3, ["common", "wealthy"]),
+      ...(era === "early" ? [] : opts(p.costly ?? [], 2, ["wealthy"])),
       ...(modern ? opts(SYNTHETIC, 5) : []),
     ],
   };
@@ -149,6 +160,7 @@ function kit(
 export const clothPalettes: readonly GarmentKit[] = Object.entries(
   palettes,
 ).flatMap(([culture, p]) => [
-  kit(culture as CultureId, p, [-1000000, 1850], false),
-  kit(culture as CultureId, p, [1850, 10001], true),
+  kit(culture as CultureId, p, [-1000000, -500], "early"),
+  kit(culture as CultureId, p, [-500, 1850], "settled"),
+  kit(culture as CultureId, p, [1850, 10001], "modern"),
 ]);

@@ -39,7 +39,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { CharacterSprite } from "./CharacterSprite";
 import { accentFor, patternFor, sceneFor } from "./culture-theme";
-import { Sprite, timeLabel } from "./components";
+import { ItemIcon, timeLabel } from "./components";
 import { dayPlan } from "../core/itinerary";
 import { dispositionOf, standingOf } from "../core/persona";
 import { statsOf, statKeys } from "../core/stats";
@@ -392,10 +392,11 @@ function Equipment({
   onClear: (slot: EquipSlot) => void;
 }) {
   const [over, setOver] = useState<EquipSlot | undefined>(undefined);
-  /** Where an item is allowed to go: its wear slot, or the hand. */
+  /** Where an item is allowed to go: its wear slot, or the hand. Anything a
+   * person can carry can be held, whether or not it swings. */
   const slotFor = (item: string): EquipSlot | undefined => {
     const def = runtime.item(item);
-    return def?.wear?.slot ?? (def?.hand ? "hand" : undefined);
+    return def?.wear?.slot ?? (def ? "hand" : undefined);
   };
   return (
     <div className="equipment">
@@ -460,7 +461,9 @@ function Equipment({
                     : undefined
               }
             >
-              {filled ? <Sprite name={filled.sprite} scale={2} /> : null}
+              {filled ? (
+                <ItemIcon id={id ?? ""} sprite={filled.sprite} scale={2} />
+              ) : null}
             </button>
             <small>{label}</small>
           </div>
@@ -602,18 +605,20 @@ export function CharacterPanel({
     .filter(([, n]) => n > 0);
   const inHand = actor.heldItem ? runtime.item(actor.heldItem) : undefined;
   const hand = carrying
-    ? { sprite: carrying.sprite, name: carrying.name }
+    ? { id: carrying.id, sprite: carrying.sprite, name: carrying.name }
     : inHand
-      ? { sprite: inHand.sprite, name: inHand.name }
+      ? { id: actor.heldItem!, sprite: inHand.sprite, name: inHand.name }
       : undefined;
   const shownId = shown ?? goods[0]?.[0];
   const shownDef =
     shownId && (actor.inventory[shownId] ?? 0) > 0
       ? runtime.item(shownId)
       : undefined;
+  // Anything a person can carry can be held: the `hand` flag says whether it
+  // swings, not whether it can be picked up.
   const equipAction = shownDef?.wear
     ? { label: "Wear", command: { type: "wear" as const, item: shownId! } }
-    : shownDef?.hand
+    : shownDef
       ? {
           label: "Take in hand",
           command: { type: "hold" as const, item: shownId! },
@@ -705,13 +710,25 @@ export function CharacterPanel({
             <div className="carrying">
               {hand ? (
                 <>
-                  <Sprite name={hand.sprite} scale={1} />
+                  <ItemIcon id={hand.id} sprite={hand.sprite} scale={1} />
                   <span>{hand.name}</span>
                 </>
               ) : (
                 <span>Nothing in hand</span>
               )}
             </div>
+            {isPlayer && hand && (
+              <div className="hand-actions">
+                <button onClick={() => runtime.command({ type: "stow" })}>
+                  Put away
+                </button>
+                {inHand && (
+                  <button onClick={() => runtime.command({ type: "drop" })}>
+                    Set down
+                  </button>
+                )}
+              </div>
+            )}
             <i className="rule-diamond" aria-hidden="true" />
             <p className="character-quote">
               &ldquo;A quiet life keeps the village strong.&rdquo;
@@ -896,7 +913,7 @@ export function CharacterPanel({
                     }
                     onClick={() => setShown(id)}
                   >
-                    <Sprite name={runtime.item(id)?.sprite ?? ""} scale={2} />
+                    <ItemIcon id={id} sprite={runtime.item(id)?.sprite} scale={2} />
                     {n > 1 && <b>×{n}</b>}
                   </button>
                 </li>

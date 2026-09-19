@@ -8,6 +8,7 @@ import {
   clothId,
   rolesFrom,
   clothName,
+  dyeAt,
   dyes,
   parseCloth,
   rarityOf,
@@ -463,4 +464,74 @@ it("dresses the future the same way everywhere, in cloth that costs nothing", ()
   }
   // Before 2020 the regions still decide.
   expect(crowd("south-asian", 1990).map((w) => w.garment)).not.toContain("suit");
+});
+
+it("names modern cloth the way a modern wearer would", () => {
+  const modern = { year: 2025, id: "garment-long-tunic" };
+  const name = clothName(
+    "Long tunic",
+    { material: "synthetic", dye: "bleached", quality: 0 },
+    "x",
+    modern,
+  );
+  expect(name).toMatch(/^White (polyester|nylon|acrylic) tunic dress$/);
+  // Polyester fades; it does not fray or spin.
+  expect(
+    clothName("Shirt", { material: "synthetic", dye: "vat", quality: -1 }, "q", {
+      year: 2025,
+      id: "garment-shirt",
+    }),
+  ).toMatch(/^(Faded|Pilled|Bobbled|Stained|Sun-bleached) blue polyester shirt$/i);
+  // Rayon before the war, and nothing renamed before the shops.
+  expect(
+    clothName("Tunic", { material: "synthetic", dye: "woad", quality: 0 }, "x", {
+      year: 1930,
+      id: "garment-tunic",
+    }),
+  ).toMatch(/^Blue (rayon|viscose) T-shirt$/);
+  // Nothing is renamed before the shops that sold it.
+  expect(
+    clothName("Tunic", { material: "linen", dye: "woad", quality: 0 }, "x", {
+      year: 1200,
+      id: "garment-tunic",
+    }),
+  ).toBe("Woad-blue linen tunic");
+});
+
+it("draws every wearable it offers", async () => {
+  const { garmentIconFor } = await import("../src/render/garment-icons");
+  const { wearableItems } = await import("../src/content/characters/wearables");
+  const missing = Object.keys(wearableItems).filter((id) => !garmentIconFor(id));
+  expect(missing).toEqual([]);
+});
+
+it("gives each worn item the colour the figure is drawn in", async () => {
+  const { wornFromWearing } = await import("../src/core/wearing");
+  const setting = place("east-asian", -1135, 137, 35);
+  const loud: string[] = [];
+  for (let i = 0; i < 200; i++) {
+    const id = `jp-${i}`;
+    const w = wardrobeFor({ id, age: 30 }, { year: -1135, setting }, base);
+    const c = clothFor({ id, age: 30 }, { year: -1135, setting }, undefined, w.color);
+    // The item list says what the figure shows: one dye per part, not one
+    // dye for the whole person.
+    const body = wornFromWearing(w, c).body;
+    if (body)
+      expect(parseCloth(body)?.cloth.dye).toBe(dyeAt(w.color) ?? c.dye);
+    if (dyes[c.dye].tier !== "common") loud.push(c.dye);
+  }
+  // Dyeing at scale is a later thing: Bronze Age cloth is mostly earth.
+  expect(loud.length).toBeLessThan(30);
+  expect(loud).not.toContain("weld");
+});
+
+it("draws every item a person can pick up", async () => {
+  const { garmentIconFor, itemIconFor } = await import(
+    "../src/render/garment-icons"
+  );
+  const { items } = await import("../src/content/packs");
+  const missing = Object.values(items)
+    .filter((i) => !garmentIconFor(i.id) && !itemIconFor(i.id))
+    .map((i) => i.id);
+  expect(missing).toEqual([]);
 });

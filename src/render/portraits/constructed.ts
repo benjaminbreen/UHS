@@ -1,4 +1,5 @@
 import type { CharacterAppearance, CharacterFace } from "../../core/character";
+import type { Material } from "../../content/characters/wardrobe/cloth";
 import { mix } from "../characters/pixels";
 import { portraitFace } from "./layered";
 import {
@@ -66,6 +67,18 @@ export const constructedRanges: Record<
   shadow: { label: "Shadow strength", min: 0.4, max: 2.4, step: 0.1 },
 };
 
+/** Headwear that hides the crown: no parting, crown highlight or texture. */
+const COVERED = new Set([
+  "hood",
+  "wrap",
+  "turban",
+  "headscarf",
+  "veil",
+  "helmet",
+  "visor",
+  "wig",
+]);
+
 const SHADOW = "#3a2040";
 const LIGHT = "#fff1c8";
 const shadow = (t: number) => (c: string) => mix(c, SHADOW, t);
@@ -124,6 +137,9 @@ type Model = {
   bodyScale: number;
   /** Hairline retreat at the temples for elders, in pixels. */
   recede: number;
+  /** Stable per-face roll for the traits the record does not name: lash
+   * length, lid crease, brow density, under-eye. */
+  variant: number;
   head: Pt[];
 };
 
@@ -141,6 +157,7 @@ export function paintConstructed(
   else drawBackHair(r, m);
   drawNeck(r, m);
   if (!hood) drawCollar(r, m);
+  drawClothEdge(r, m);
   drawHead(r, m);
   drawEar(r, m);
   drawBeard(r, m);
@@ -158,6 +175,7 @@ export function paintConstructed(
   r.castShadows(0.26);
   drawFeatures(r, m);
   drawHairDetail(r, m);
+  if (m.a.wearing.headwear === "helmet") drawNasal(r, m);
   return r;
 }
 
@@ -307,94 +325,280 @@ function model(
     neckWidth: t.neckWidth - (child ? 1.5 : youth ? 0.5 : 0),
     bodyScale: child ? 0.78 : youth ? 0.9 : 1,
     recede,
+    variant: [
+      ...(a.skin + a.hairColor + a.hair + head + jaw + face.eyeShape),
+    ].reduce((n, c) => (Math.imul(n, 31) + c.charCodeAt(0)) >>> 0, 11),
     head: smooth(headPts, 5),
   };
 }
 
 // ---------------------------------------------------------------- body
 
-function necklineFor(m: Model): Pt[] {
-  const garment = m.a.wearing.garment;
-  const vNeck = garment === "shirt" || garment === "coat";
-  const high = garment === "robe" || garment === "wrap";
-  const points: Pt[] = high
-    ? [
-        [25, 49],
-        [36, 50.5],
-        [46, 49],
-      ]
-    : vNeck
-      ? [
-          [25, 49],
-          [30, 52.5],
-          [36, 57],
-          [42, 52.5],
-          [46, 49],
-        ]
-      : [
-          [24, 48.5],
-          [29, 51.5],
-          [36, 53],
-          [42, 51.5],
-          [46.5, 48.5],
-        ];
-  return points.map(([x, y]) => [36 + (x - 36) * m.bodyScale, y] as Pt);
+/**
+ * What a garment does to the bust: where it stops at the neck, how the
+ * shoulder sits, what binds the neckline, and how much skin is left showing.
+ * Everything below the chest is out of frame, so this is the whole of a
+ * garment's identity in a portrait.
+ */
+type Cut = {
+  neck: "round" | "high" | "v" | "deep" | "scoop" | "square" | "slit" | "none";
+  /** Squarer shoulders on tailored cloth; softer on a draped garment. */
+  square: number;
+  spread: number;
+  collar: "none" | "band" | "stand" | "lapel" | "bertha";
+  /** Skin left showing: a bare chest, bare shoulders, or one shoulder out. */
+  bare: "none" | "all" | "shoulders" | "far";
+  /** A contrasting layer under an open front. */
+  inner: "none" | "shirt" | "panel";
+};
+
+const CUTS: Record<string, Cut> = {
+  none: { neck: "none", square: 0, spread: 0, collar: "none", bare: "all", inner: "none" },
+  loincloth: { neck: "none", square: 0, spread: 0, collar: "none", bare: "all", inner: "none" },
+  tunic: { neck: "round", square: 0, spread: 0, collar: "band", bare: "none", inner: "none" },
+  "long-tunic": { neck: "round", square: 0, spread: 0, collar: "band", bare: "none", inner: "none" },
+  skirt: { neck: "round", square: 0, spread: -1, collar: "band", bare: "none", inner: "none" },
+  robe: { neck: "high", square: 0, spread: 1, collar: "stand", bare: "none", inner: "none" },
+  dress: { neck: "scoop", square: -1, spread: -1, collar: "band", bare: "none", inner: "none" },
+  shirt: { neck: "v", square: 1, spread: 0, collar: "stand", bare: "none", inner: "none" },
+  coat: { neck: "deep", square: 2, spread: 1, collar: "lapel", bare: "none", inner: "shirt" },
+  suit: { neck: "deep", square: 2, spread: 1, collar: "lapel", bare: "none", inner: "shirt" },
+  "open-robe": { neck: "deep", square: 0, spread: 2, collar: "lapel", bare: "none", inner: "panel" },
+  wrap: { neck: "high", square: 0, spread: 1, collar: "none", bare: "far", inner: "none" },
+  poncho: { neck: "slit", square: 3, spread: 3, collar: "none", bare: "none", inner: "none" },
+  gown: { neck: "square", square: -1, spread: 0, collar: "bertha", bare: "shoulders", inner: "panel" },
+};
+
+function cutFor(m: Model): Cut {
+  return CUTS[m.a.wearing.garment] ?? CUTS.tunic;
 }
 
-function drawTorso(r: Raster, m: Model) {
-  const { cloth, skin, trim, a } = m;
-  const s = m.shoulder;
+const NECKLINES: Record<Cut["neck"], Pt[]> = {
+  high: [
+    [25, 49],
+    [36, 50.5],
+    [46, 49],
+  ],
+  round: [
+    [24, 48.5],
+    [29, 51.5],
+    [36, 53],
+    [42, 51.5],
+    [46.5, 48.5],
+  ],
+  scoop: [
+    [22, 47.5],
+    [28, 52.5],
+    [36, 55],
+    [44, 52.5],
+    [50, 47.5],
+  ],
+  square: [
+    [21, 47],
+    [22, 53],
+    [29, 55],
+    [43, 55],
+    [50, 53],
+    [51, 47],
+  ],
+  v: [
+    [25, 49],
+    [30, 52.5],
+    [36, 58],
+    [42, 52.5],
+    [46, 49],
+  ],
+  deep: [
+    [25, 48.5],
+    [29, 52],
+    [36, 64],
+    [43, 52],
+    [47, 48.5],
+  ],
+  slit: [
+    [23, 48],
+    [31, 49.5],
+    [36, 52],
+    [41, 49.5],
+    [49, 48],
+  ],
+  none: [
+    [25, 49],
+    [36, 50],
+    [47, 49],
+  ],
+};
+
+function necklineFor(m: Model): Pt[] {
+  return NECKLINES[cutFor(m).neck].map(
+    ([x, y]) => [36 + (x - 36) * m.bodyScale, y] as Pt,
+  );
+}
+
+/** The bust silhouette. `cut.square` lifts and hardens the shoulder; a poncho
+ * hangs off it straight, which is the whole shape. */
+function bustShape(m: Model, cut: Cut, neckline: Pt[]): Pt[] {
+  const s = m.shoulder - cut.spread;
+  const bs = m.bodyScale;
+  const q = cut.square;
   const nearArm = 4 + s,
     farArm = 60 - s;
-  const high = ["robe", "wrap"].includes(a.wearing.garment);
-  const neckline = necklineFor(m);
-  const bs = m.bodyScale;
-  // Torso x positions shrink toward the centre for small bodies.
-  const bx = (x: number) => 36 + (x - 36) * bs;
-  const body = smooth(
+  if (cut.neck === "slit")
+    // Straight sides from a flat shoulder: no spline, or it reads as a tunic.
+    return [
+      ...neckline,
+      [36 + 19 * bs, 49],
+      [farArm - 1, 51],
+      [farArm - 1, 84],
+      [nearArm + 1, 84],
+      [nearArm + 1, 51],
+      [36 - 19 * bs, 49],
+    ];
+  return smooth(
     [
       ...neckline,
-      [36 + 17 * bs, 50.5],
-      [57.5 - s, 56],
-      [farArm - 0.5, 64],
+      [36 + 17 * bs, 50.5 - q * 0.5],
+      [57.5 - s, 56 - q],
+      [farArm - 0.5, 64 - q * 0.5],
       [farArm, 80],
       [farArm, 84],
       [nearArm, 84],
       [nearArm, 80],
-      [nearArm + 0.5, 64],
-      [7 + s, 56.5],
-      [36 - 24 * bs, 51],
-      [36 - 17 * bs, 48.5],
+      [nearArm + 0.5, 64 - q * 0.5],
+      [7 + s, 56.5 - q],
+      [36 - 24 * bs, 51 - q * 0.5],
+      [36 - 17 * bs, 48.5 - q * 0.5],
     ],
     4,
   );
-  r.poly(body, cloth.base, MAT.cloth);
-  const torso = r.region(body);
-  shadeRamp(r, torso, [34, 60], [62, 66], 0.3, SHADOW, [MAT.cloth]);
-  shadeRamp(r, torso, [22, 60], [6, 54], 0.16, LIGHT, [MAT.cloth]);
-  // Folds fall from the neckline toward the belt.
-  r.stroke(
-    [
-      [bx(29), 60],
-      [bx(27), 70],
-      [bx(28), 79],
-    ],
-    cloth.shade,
-    3,
-  );
-  r.stroke(
-    [
-      [bx(44), 59],
-      [bx(46), 69],
-      [bx(47), 79],
-    ],
-    cloth.shade,
-    3,
-  );
+}
+
+/** Torso the garment does not cover: both shoulders out of a gown, the far
+ * shoulder out of a wrap. */
+function bareArea(m: Model, cut: Cut): Pt[] | undefined {
+  const bs = m.bodyScale;
+  const bx = (x: number) => 36 + (x - 36) * bs;
+  if (cut.bare === "shoulders")
+    return [
+      [0, 44],
+      [64, 44],
+      [64, 68],
+      ...smooth(
+        [
+          [bx(56), 64],
+          [bx(50), 60],
+          [bx(45), 56],
+          [bx(43), 54.5],
+          [bx(29), 54.5],
+          [bx(27), 56],
+          [bx(22), 60],
+          [bx(16), 64],
+          [bx(16), 70],
+          [bx(56), 70],
+        ],
+        4,
+      ).filter(([, y]) => y < 68),
+      [0, 68],
+    ];
+  if (cut.bare === "far")
+    // A wrap passes under the far arm and over the near shoulder, so the
+    // diagonal edge runs from the far shoulder down across the chest.
+    return [
+      [bx(40), 44],
+      [64, 44],
+      [64, 84],
+      [bx(43), 84],
+      [bx(46), 62],
+    ];
+  return undefined;
+}
+
+function drawTorso(r: Raster, m: Model) {
+  const { cloth, skin, trim, a } = m;
+  const cut = cutFor(m);
+  const s = m.shoulder - cut.spread;
+  const nearArm = 4 + s,
+    farArm = 60 - s;
+  const neckline = necklineFor(m);
+  const bs = m.bodyScale;
+  // Torso x positions shrink toward the centre for small bodies.
+  const bx = (x: number) => 36 + (x - 36) * bs;
+  const bust = r.region(bustShape(m, cut, neckline));
+
+  // Skin first wherever the garment leaves the body showing; the cloth is
+  // then laid over what it actually covers.
+  const bare = bareArea(m, cut);
+  const open = bare ? new Set(r.region(bare)) : undefined;
+  const skinArea =
+    cut.bare === "all" ? bust : open ? bust.filter((i) => open.has(i)) : [];
+  const covered =
+    cut.bare === "all" ? [] : open ? bust.filter((i) => !open.has(i)) : bust;
+  if (skinArea.length) {
+    const body = skinArea;
+    r.fill(body, skin.base, MAT.skin);
+    shadeRamp(r, body, [34, 60], [62, 66], 0.32, SHADOW, [MAT.skin]);
+    shadeRamp(r, body, [22, 60], [6, 54], 0.16, LIGHT, [MAT.skin]);
+    // Collarbones, which is the only anatomy a bare chest needs at this size.
+    r.stroke(
+      [
+        [bx(24), 54],
+        [bx(31), 56],
+        [bx(35), 55.5],
+      ],
+      mix(skin.shade, SHADOW, 0.25),
+      2,
+      undefined,
+      MAT.skin,
+    );
+    r.stroke(
+      [
+        [bx(37), 55.5],
+        [bx(42), 56.5],
+        [bx(48), 54.5],
+      ],
+      mix(skin.shade, SHADOW, 0.35),
+      2,
+      undefined,
+      MAT.skin,
+    );
+  }
+  if (covered.length) {
+    r.fill(covered, cloth.base, MAT.cloth);
+    shadeRamp(r, covered, [34, 60], [62, 66], 0.3, SHADOW, [MAT.cloth]);
+    shadeRamp(r, covered, [22, 60], [6, 54], 0.16, LIGHT, [MAT.cloth]);
+    // Folds fall from the neckline toward the belt.
+    r.stroke(
+      [
+        [bx(29), 60],
+        [bx(27), 70],
+        [bx(28), 79],
+      ],
+      cloth.shade,
+      3,
+      undefined,
+      MAT.cloth,
+    );
+    r.stroke(
+      [
+        [bx(44), 59],
+        [bx(46), 69],
+        [bx(47), 79],
+      ],
+      cloth.shade,
+      3,
+      undefined,
+      MAT.cloth,
+    );
+    applyFinish(r, m, covered);
+    drawMotif(r, m, cut, covered);
+    drawFront(r, m, cut);
+  }
+  if (cut.bare === "far") drawWrapEdge(r, m);
 
   if (a.wearing.cloak) drawCloak(r, m, nearArm, farArm);
+  else if (a.wearing.mantle) drawMantle(r, m, nearArm, farArm);
 
-  if (m.hemY < 80) {
+  if (m.hemY < 80 && cut.bare !== "all") {
     const hem = m.hemY;
     const nearIn = nearArm + 9 * bs,
       farIn = farArm - 9 * bs;
@@ -484,7 +688,7 @@ function drawTorso(r: Raster, m: Model) {
   }
 
   const belt = a.wearing.belt ?? "none";
-  if (belt !== "none" && !high) {
+  if (belt !== "none" && cut.bare !== "all" && cut.neck !== "high") {
     const y = belt === "cord" ? 76 : 74;
     const h = belt === "cord" ? 2 : belt === "wide" ? 5 : 4;
     const t =
@@ -520,22 +724,402 @@ function drawTorso(r: Raster, m: Model) {
   }
 }
 
-function drawCollar(r: Raster, m: Model) {
-  const { trim, a } = m;
-  const high = ["robe", "wrap"].includes(a.wearing.garment);
-  const neckline = necklineFor(m);
-  // Neckline binding three pixels deep; a necklace sits on top of it.
-  const depth = high ? 2 : 3;
-  const band = smooth(
+/** The selvedge of a wrap, running over the near shoulder and down across the
+ * chest. Without it the garment is a tunic with a bite out of it. */
+function drawWrapEdge(r: Raster, m: Model) {
+  const { cloth, trim } = m;
+  const bs = m.bodyScale;
+  const bx = (x: number) => 36 + (x - 36) * bs;
+  const edge: Pt[] = [
+    [bx(40), 47],
+    [bx(43), 54],
+    [bx(46), 62],
+    [bx(44), 84],
+  ];
+  r.stroke(edge, trim.base, 0, MAT.trim);
+  r.stroke(
+    edge.map(([x, y]) => [x - 1.5, y] as Pt),
+    trim.shade,
+    0,
+    MAT.trim,
+  );
+  r.stroke(
+    edge.map(([x, y]) => [x - 3, y] as Pt),
+    cloth.light,
+    2,
+    undefined,
+    MAT.cloth,
+  );
+  // Gathers pull toward the near shoulder, where the cloth is carried.
+  for (let k = 0; k < 3; k++)
+    r.stroke(
+      [
+        [bx(38 - k * 2), 56 + k * 5],
+        [bx(26 - k), 52 + k * 4],
+      ],
+      cloth.shade,
+      3,
+      undefined,
+      MAT.cloth,
+    );
+}
+
+/** What is under and over an open front: the shirt in a coat or suit, the
+ * contrasting panel in an open robe or a gown's stomacher, and the lapels. */
+function drawFront(r: Raster, m: Model, cut: Cut) {
+  if (cut.inner === "none" && cut.collar !== "lapel") return;
+  const { cloth, trim, lower, a } = m;
+  const bs = m.bodyScale;
+  const bx = (x: number) => 36 + (x - 36) * bs;
+  if (cut.inner === "shirt") {
+    // Linen: the lower colour lifted, never the garment's own cloth, or the
+    // opening vanishes.
+    const linen = tones(mix(a.wearing.lowerColor, "#efe4c8", 0.55), "cloth");
+    const panel = r.region([
+      [bx(32), 50],
+      [bx(40), 50],
+      [bx(39.5), 84],
+      [bx(32.5), 84],
+    ]);
+    r.fill(panel, linen.base, MAT.cloth);
+    shadeRamp(r, panel, [bx(34), 60], [bx(42), 60], 0.26, SHADOW, [MAT.cloth]);
+    // The coat's own shadow falling on the shirt: without it a pale coat over
+    // a pale shirt is one flat shape.
+    r.stroke(
+      [
+        [bx(32), 51],
+        [bx(32), 84],
+      ],
+      mix(linen.deep, SHADOW, 0.35),
+      0,
+      undefined,
+      MAT.cloth,
+    );
+    r.stroke(
+      [
+        [bx(33), 52],
+        [bx(33), 84],
+      ],
+      linen.shade,
+      2,
+      undefined,
+      MAT.cloth,
+    );
+    r.stroke(
+      [
+        [bx(39), 51],
+        [bx(39), 84],
+      ],
+      mix(linen.deep, SHADOW, 0.5),
+      0,
+      undefined,
+      MAT.cloth,
+    );
+    r.stroke(
+      [
+        [bx(36), 56],
+        [bx(36), 84],
+      ],
+      linen.shade,
+      2,
+      undefined,
+      MAT.cloth,
+    );
+    if (a.wearing.garment === "suit") {
+      // A knot at the throat and the blade hanging off it.
+      const tie = r.region([
+        [bx(34), 58],
+        [bx(39), 58],
+        [bx(40), 63],
+        [bx(41), 84],
+        [bx(33), 84],
+        [bx(33), 63],
+      ]);
+      r.fill(tie, trim.base, MAT.trim);
+      shadeRamp(r, tie, [bx(34), 62], [bx(41), 62], 0.3, SHADOW, [MAT.trim]);
+      r.rect(bx(34), 58, Math.round(5 * bs), 3, trim.shade, MAT.trim);
+      r.rect(bx(35), 58, Math.round(3 * bs), 1, trim.light);
+    }
+  } else if (cut.inner === "panel") {
+    const panel = r.region([
+      [bx(29), 52],
+      [bx(43), 52],
+      [bx(42), 84],
+      [bx(30), 84],
+    ]);
+    r.fill(panel, lower.base, MAT.trim);
+    shadeRamp(r, panel, [bx(32), 60], [bx(43), 60], 0.28, SHADOW, [MAT.trim]);
+    r.stroke(
+      [
+        [bx(29), 53],
+        [bx(30), 84],
+      ],
+      lower.light,
+      0,
+      undefined,
+      MAT.trim,
+    );
+    r.stroke(
+      [
+        [bx(42), 53],
+        [bx(41), 84],
+      ],
+      lower.deep,
+      0,
+      undefined,
+      MAT.trim,
+    );
+    // A gown's stomacher is laced; an open robe's panel is plain cloth.
+    if (a.wearing.garment === "gown")
+      for (let y = 56; y < 82; y += 4)
+        r.stroke(
+          [
+            [bx(31), y],
+            [bx(41), y + 1.5],
+          ],
+          lower.light,
+          0,
+          undefined,
+          MAT.trim,
+        );
+  }
+  if (cut.collar !== "lapel") return;
+  // Lapels: the cloth folded back, so they take the lit face of the ramp.
+  const near = r.region([
+    [bx(28), 49],
+    [bx(24.5), 51],
+    [bx(29), 70],
+    [bx(33), 58],
+  ]);
+  const far = r.region([
+    [bx(44), 49],
+    [bx(47.5), 51],
+    [bx(43), 71],
+    [bx(39), 58],
+  ]);
+  r.fill(near, cloth.light, MAT.cloth);
+  r.fill(far, cloth.shade, MAT.cloth);
+  shadeRamp(r, near, [bx(24), 52], [bx(33), 64], 0.2, SHADOW, [MAT.cloth]);
+  r.stroke(
     [
-      ...neckline.map(([x, y]) => [x, y - 2.5] as Pt),
-      [48, 45],
-      ...neckline
-        .slice()
-        .reverse()
-        .map(([x, y]) => [x, y + depth - 2] as Pt),
-      [22, 45],
+      [bx(29), 50],
+      [bx(33), 58],
+      [bx(29), 70],
     ],
+    cloth.deep,
+    0,
+    undefined,
+    MAT.cloth,
+  );
+  r.stroke(
+    [
+      [bx(44), 50],
+      [bx(39), 58],
+      [bx(43), 71],
+    ],
+    cloth.deep,
+    0,
+    undefined,
+    MAT.cloth,
+  );
+  // The notch, which is the one detail that says tailoring.
+  r.stroke(
+    [
+      [bx(25), 53],
+      [bx(29), 54],
+    ],
+    cloth.deep,
+    0,
+    undefined,
+    MAT.cloth,
+  );
+}
+
+/**
+ * One deterministic motif per outfit, hashed from the same fields the world
+ * sprite uses, so a person's portrait and their figure wear the same cloth.
+ */
+function drawMotif(r: Raster, m: Model, cut: Cut, torso: number[]) {
+  const { a, trim, lower } = m;
+  const bs = m.bodyScale;
+  const bx = (x: number) => 36 + (x - 36) * bs;
+  const named = a.wearing.motif ?? "auto";
+  // A wrap's own selvedge is its pattern; anything else on top reads as dirt.
+  if (cut.bare === "far" || cut.inner !== "none") return;
+  const outfit = [
+    ...(a.wearing.color + a.wearing.trim + a.wearing.garment + a.wearing.belt),
+  ].reduce((n, c) => (Math.imul(n, 31) + c.charCodeAt(0)) >>> 0, 7);
+  const motif =
+    named === "auto"
+      ? outfit % 5
+      : { plain: 0, placket: 1, band: 2, yoke: 3, stitch: 4, stripes: 5 }[named];
+  const only = [MAT.cloth];
+  // The neckline is where the chest starts, so a motif clears it whatever the
+  // garment: a band across a deep V is a band across bare skin.
+  const chest = Math.max(...necklineFor(m).map(([, y]) => y)) + 3;
+  switch (motif) {
+    case 1:
+      r.stroke(
+        [
+          [bx(36), chest],
+          [bx(35), 84],
+        ],
+        trim.shade,
+        0,
+        undefined,
+        MAT.cloth,
+      );
+      r.stroke(
+        [
+          [bx(34), chest],
+          [bx(33), 84],
+        ],
+        trim.base,
+        3,
+        undefined,
+        MAT.cloth,
+      );
+      break;
+    case 2:
+      for (const y of [chest + 2, chest + 9])
+        r.paint(
+          torso.filter((i) => {
+            const py = (i - (i % r.w)) / r.w;
+            return py === Math.round(y) || py === Math.round(y) + 1;
+          }),
+          (_c, _x, py) => (py === Math.round(y) ? trim.base : trim.shade),
+          { only },
+        );
+      break;
+    case 3: {
+      // A yoke: a band of the lower colour across both shoulders.
+      const yoke = torso.filter((i) => {
+        const py = (i - (i % r.w)) / r.w;
+        return py >= chest - 1 && py <= chest + 3;
+      });
+      r.paint(
+        yoke,
+        (_c, _x, py) =>
+          py > chest + 1 ? mix(lower.deep, trim.shade, 0.4) : lower.shade,
+        { only },
+      );
+      break;
+    }
+    case 4:
+      for (let y = chest + 1; y < 84; y += 3) {
+        r.stroke(
+          [
+            [bx(26), y],
+            [bx(26), y],
+          ],
+          trim.base,
+          0,
+          undefined,
+          MAT.cloth,
+        );
+        r.stroke(
+          [
+            [bx(47), y + 1],
+            [bx(47), y + 1],
+          ],
+          trim.shade,
+          0,
+          undefined,
+          MAT.cloth,
+        );
+      }
+      break;
+    case 5:
+      // Bands across the whole width: the one pattern that still reads small.
+      r.paint(
+        torso,
+        (c, _x, y) => {
+          if (y < chest - 4) return c;
+          const i = Math.floor((y - chest + 4) / 4);
+          if (i % 2) return c;
+          const tone = Math.floor(i / 2) % 2 ? lower : trim;
+          return (y - chest + 4) % 4 === 1 ? tone.base : tone.shade;
+        },
+        { only },
+      );
+      break;
+  }
+}
+
+/** A short cape to the elbow, over the garment: lliclla, paenula, tippet. */
+function drawMantle(r: Raster, m: Model, nearArm: number, farArm: number) {
+  const c = m.cloak;
+  const cape = smooth(
+    [
+      [36, 48],
+      [46, 50],
+      [55, 55],
+      [farArm, 63],
+      [farArm - 1, 74],
+      [50, 72],
+      [36, 74],
+      [22, 72],
+      [nearArm + 1, 74],
+      [nearArm, 63],
+      [17, 55],
+      [26, 50],
+    ],
+    3,
+  );
+  r.poly(cape, c.base, MAT.cloth);
+  const region = r.region(cape);
+  shadeRamp(r, region, [34, 58], [farArm, 66], 0.3, SHADOW, [MAT.cloth]);
+  shadeRamp(r, region, [34, 50], [34, 74], 0.18, SHADOW, [MAT.cloth]);
+  shadeRamp(r, region, [26, 58], [16, 56], 0.18, LIGHT, [MAT.cloth]);
+  // Hem band, and the fold where the cape breaks over each shoulder.
+  r.stroke(
+    [
+      [nearArm + 1, 72],
+      [36, 72],
+      [farArm - 1, 72],
+    ],
+    m.trim.base,
+    0,
+    MAT.trim,
+  );
+  for (const x of [27, 45])
+    r.stroke(
+      [
+        [x, 52],
+        [x + (x < 36 ? -4 : 4), 70],
+      ],
+      c.shade,
+      3,
+      undefined,
+      MAT.cloth,
+    );
+}
+
+function drawCollar(r: Raster, m: Model) {
+  const { trim } = m;
+  const cut = cutFor(m);
+  if (cut.collar === "none" || cut.collar === "lapel") return;
+  const neckline = necklineFor(m);
+  const depth = cut.collar === "stand" ? 2 : cut.collar === "bertha" ? 4 : 3;
+  const flat = cut.collar === "bertha";
+  const band = smooth(
+    flat
+      ? [
+          ...neckline.map(([x, y]) => [x, y - 1] as Pt),
+          ...neckline
+            .slice()
+            .reverse()
+            .map(([x, y]) => [x, y + depth] as Pt),
+        ]
+      : [
+          ...neckline.map(([x, y]) => [x, y - 2.5] as Pt),
+          [48, 45],
+          ...neckline
+            .slice()
+            .reverse()
+            .map(([x, y]) => [x, y + depth - 2] as Pt),
+          [22, 45],
+        ],
     3,
   );
   r.poly(band, trim.base, MAT.trim);
@@ -544,6 +1128,26 @@ function drawCollar(r: Raster, m: Model) {
     only: [MAT.trim],
   });
   shadeRamp(r, bandRegion, [36, 52], [50, 52], 0.28, SHADOW, [MAT.trim]);
+  if (cut.collar === "stand") {
+    // A standing collar has a lit inner face where it turns away from the neck.
+    r.stroke(
+      neckline.map(([x, y]) => [x, y - 2.5] as Pt),
+      trim.light,
+      0,
+      undefined,
+      MAT.trim,
+    );
+    r.stroke(
+      neckline.map(([x, y]) => [x, y + 1] as Pt),
+      trim.deep,
+      0,
+      undefined,
+      MAT.trim,
+    );
+  }
+  if (cut.collar === "bertha")
+    // A flat band lying on the chest, so it takes the body's own light.
+    shadeRamp(r, bandRegion, [22, 52], [12, 50], 0.2, LIGHT, [MAT.trim]);
 }
 
 function drawCloak(r: Raster, m: Model, nearArm: number, farArm: number) {
@@ -593,12 +1197,27 @@ function drawCloak(r: Raster, m: Model, nearArm: number, farArm: number) {
 function drawNeck(r: Raster, m: Model) {
   const { skin, chin } = m;
   const w = (m.a.build > 0 ? 1 : 0) + m.neckWidth;
-  const neck = r.region([
-    [29 - w, chin - 8],
-    [43 + w, chin - 8],
-    [43.5 + w, 56],
-    [28 - w, 56],
-  ]);
+  // The neck flares into the trapezius rather than ending in a straight cut,
+  // and stops wherever cloth already lies: the garment goes over the body, so
+  // its neckline is what shapes the skin, not a rectangle drawn on top.
+  const column = r.region(
+    smooth(
+      [
+        [30 - w, chin - 9],
+        [42 + w, chin - 9],
+        [43 + w, 51],
+        [47 + w, 58],
+        [47 + w, 62],
+        [25 - w, 62],
+        [25 - w, 58],
+        [29 - w, 51],
+      ],
+      3,
+    ),
+  );
+  const neck = column.filter(
+    (i) => r.mat[i] !== MAT.cloth && r.mat[i] !== MAT.trim,
+  );
   r.fill(neck, skin.base, MAT.skin);
   shadeRamp(r, neck, [32, 50], [43 + w, 50], 0.34 * m.shadowScale, SHADOW, [
     MAT.skin,
@@ -613,10 +1232,21 @@ function drawNeck(r: Raster, m: Model) {
     ],
     skin.light,
     3,
+    undefined,
+    MAT.skin,
+  );
+  // The pit of the throat, where the collarbones meet.
+  r.stroke(
+    [
+      [34, 55],
+      [38, 56],
+    ],
+    mix(skin.shade, SHADOW, 0.3),
+    0,
+    undefined,
+    MAT.skin,
   );
 }
-
-// ---------------------------------------------------------------- head
 
 function drawHead(r: Raster, m: Model) {
   const { skin, farX, nearX, top, chin, eyeY, mid } = m;
@@ -720,61 +1350,138 @@ function drawFeatures(r: Raster, m: Model) {
     age,
     child,
   } = m;
-  const eyeDark = mix(a.hairColor, "#1b1626", 0.65);
-  const iris = mix(a.hairColor, "#2d2440", 0.3);
-  const white = mix("#efe4d2", a.skin, 0.28);
+  // A closed visor is the face; nothing behind it shows.
+  if (a.wearing.headwear === "visor") return;
+  const eyeDark = mix(a.hairColor, "#120e1c", 0.72);
+  // A dark iris is still an iris: it keeps a warm lit rim, or the eye reads as
+  // a hole. The pupil is the only near-black on the face.
+  const irisBase = mix(mix(a.hairColor, "#3d2f2a", 0.4), "#2d2440", 0.16);
+  const irisLit = mix(irisBase, "#d8c39f", 0.5);
+  const irisDeep = mix(irisBase, eyeDark, 0.4);
+  const white = mix("#efe4d2", a.skin, 0.24);
   const lid = mix(skin.deep, hair.edge, 0.55);
+  const lash = mix(hair.deep, eyeDark, 0.28);
 
-  // Near eye: full almond. Far eye: foreshortened, tucked against the far edge.
+  // Sub-traits the record does not name, rolled once per face so they stay
+  // put: long lashes, a visible lid crease, a heavy brow, an under-eye.
+  const v = m.variant;
+  const female = a.physique?.sex === "female";
+  const lashes = female || (v & 1) === 1;
+  const crease = (v >> 1) % 3 !== 0 && !child;
+  const bushy =
+    face.brows === "heavy" ||
+    (!female && (v >> 3) % 4 === 0 && age > 20 && age < 65);
+  const hollow = age >= 45 || face.detail === "weathered" || (v >> 5) % 5 === 0;
+
+  // Near eye: full almond. Far eye: foreshortened by a pixel, never by the
+  // iris — two irises of different widths read as a squint, not a turn.
   const nw =
     (face.eyeSize === "large" ? 7 : face.eyeSize === "small" ? 5 : 6) +
     (child ? 1 : 0);
-  const fw = Math.max(3, nw - 2 - (face.eyeSize === "large" ? 0 : 0));
+  const fw = nw - 1;
   const h =
     face.eyeShape === "round" || face.eyeSize === "large" || child ? 3 : 2;
   const spacing =
     face.eyeSpacing === "wide" ? 1 : face.eyeSpacing === "close" ? -1 : 0;
   const nx = 32 - nw - spacing;
   const fx = 40 + spacing;
+  // One iris width for both eyes, and both look at the same point: the gaze
+  // is what the viewer reads first, and a pixel out of line breaks it.
+  const iw = face.eyeSize === "small" && !child ? 2 : 3;
 
   const eye = (x0: number, w: number, near: boolean) => {
+    const narrow = face.eyeShape === "narrow";
+    const top = eyeY + (narrow ? 0.5 : 0);
     r.rect(x0, eyeY, w, h, white);
-    r.rect(x0, eyeY - 1, w, 1, lid);
-    if (face.eyeShape === "almond" || face.eyeShape === "narrow") {
-      // Pointed corners: outer corner lower for the near eye.
-      r.put(near ? x0 - 1 : x0 + w, eyeY, lid);
-      r.put(near ? x0 : x0 + w - 1, eyeY + h - 1, skin.shade);
-      r.put(near ? x0 + w - 1 : x0, eyeY + h - 1, mix(white, skin.shade, 0.5));
-    } else {
-      r.put(x0, eyeY - 1, skin.base);
-      r.put(x0 + w - 1, eyeY - 1, skin.base);
-      r.put(x0, eyeY, lid);
-      r.put(x0 + w - 1, eyeY, lid);
+    // The upper lid casts across the top of the white; the inner corner sits
+    // deepest. Without this the eye is a sticker rather than a socket.
+    r.rect(x0, eyeY, w, 1, mix(white, lid, 0.3));
+    r.put(near ? x0 + w - 1 : x0, eyeY, mix(white, lid, 0.5));
+
+    // Iris, pushed toward the viewer in both eyes: lit rim, pupil, shade rim.
+    const ix = near ? x0 + (w >= 7 ? 2 : 2) : x0 + 1;
+    r.rect(ix, eyeY, iw, h, irisBase);
+    r.rect(ix, eyeY, 1, h, irisLit);
+    r.rect(ix + iw - 1, eyeY, 1, h, irisDeep);
+    r.rect(ix + (iw > 2 ? 1 : 0), eyeY, iw > 2 ? 1 : 1, h, eyeDark);
+    // The lid covers the top of the iris, as it does on a real eye.
+    r.paint(
+      r.region([
+        [ix, eyeY],
+        [ix + iw, eyeY],
+        [ix + iw, eyeY + 1],
+        [ix, eyeY + 1],
+      ]),
+      (c) => mix(c, lid, 0.26),
+      { only: [MAT.skin] },
+    );
+    // A single catchlight, on the iris and clear of the pupil's centre.
+    r.put(ix, eyeY, mix(irisLit, "#fdf8ee", 0.75));
+    if (h > 2) r.put(ix + iw - 1, eyeY + h - 1, mix(irisDeep, white, 0.35));
+
+    // Lash line: over the lid, running a pixel past the outer corner.
+    // Lash line: darkest over the iris, fading into skin at both corners, so
+    // it reads as lashes rather than as drawn-on liner.
+    const outer = near ? x0 - 1 : x0 + w;
+    r.rect(x0, eyeY - 1, w, 1, lash);
+    r.put(x0, eyeY - 1, mix(lash, skin.base, 0.5));
+    r.put(x0 + w - 1, eyeY - 1, mix(lash, skin.base, 0.5));
+    r.put(outer, eyeY - 1, mix(lash, skin.base, 0.65));
+    if (lashes) {
+      r.put(outer + (near ? -1 : 1), eyeY, mix(lash, skin.base, 0.45));
+      r.rect(x0 + 2, eyeY - 2, w - 4, 1, mix(lash, skin.base, 0.72));
     }
-    if (face.eyeShape === "narrow")
-      r.rect(x0, eyeY - 1, w, 1, mix(lid, eyeDark, 0.5));
-    // Iris looks at the viewer, so it sits toward the viewer's side of each eye.
-    const iw = Math.min(w - 2, face.eyeSize === "large" || child ? 3 : 2);
-    const ix = near ? x0 + Math.floor((w - iw) / 2) : x0 + 1;
-    r.rect(ix, eyeY, iw, h, iris);
-    r.rect(ix + (iw > 2 ? 1 : 0), eyeY, 1, h, eyeDark);
-    if (h > 2) r.rect(ix, eyeY + h - 1, iw, 1, mix(iris, white, 0.3));
-    r.put(ix, eyeY, "#f9f2e2");
-    r.rect(x0 + 1, eyeY + h, w - 2, 1, skin.shade);
+    // Corners: the outer one drops, the inner one tucks toward the nose.
+    if (face.eyeShape === "almond" || narrow) {
+      r.put(outer, eyeY, mix(lid, skin.shade, 0.3));
+      r.put(near ? x0 + w - 1 : x0, eyeY + h - 1, mix(white, skin.shade, 0.55));
+    } else {
+      r.put(x0, eyeY - 1, mix(lash, skin.base, 0.35));
+      r.put(x0 + w - 1, eyeY - 1, mix(lash, skin.base, 0.35));
+    }
+    if (narrow) r.rect(x0 + 1, eyeY + h - 1, w - 2, 1, mix(white, lid, 0.5));
+
+    // Lower lid: a lit ridge, then the shadow it casts. Bags are that shadow
+    // made deeper, not a separate line.
+    r.rect(x0 + 1, eyeY + h, w - 2, 1, mix(skin.base, skin.light, 0.55));
+    r.rect(
+      x0 + 1,
+      eyeY + h + 1,
+      w - 2,
+      1,
+      mix(skin.base, skin.shade, hollow ? 0.7 : 0.35),
+    );
+    if (hollow)
+      r.rect(x0 + 2, eyeY + h + 2, w - 4, 1, mix(skin.base, skin.shade, 0.3));
+    // Lid crease above the lash line, following its arch.
+    if (crease)
+      r.stroke(
+        [
+          [x0 + (near ? 0 : 1), eyeY - 3],
+          [x0 + w / 2, eyeY - 3.5],
+          [x0 + w - (near ? 1 : 0), eyeY - 2.5],
+        ],
+        mix(skin.base, skin.deep, 0.34),
+        0,
+        undefined,
+        MAT.skin,
+      );
+    void top;
   };
   eye(nx, nw, true);
   eye(fx, fw, false);
-  // Eye socket shadow at the bridge side of each eye.
+  // Socket shadow either side of the bridge.
   r.put(nx + nw, eyeY + 1, mix(skin.base, skin.shade, 0.7));
   r.put(fx - 1, eyeY + 1, skin.shade);
+  r.put(fx - 1, eyeY, mix(skin.base, skin.deep, 0.5));
 
-  // Brows. The near brow reads long and arched; the far one is short.
-  const female = a.physique?.sex === "female";
+  // Brows. The near brow reads long and arched; the far one is short. Density
+  // is a second row, not a darker colour: a black bar is not a brow.
   const browColor =
     age >= 55
       ? mix(hair.deep, skin.shade, 0.35)
       : female
-        ? mix(hair.deep, skin.base, 0.2)
+        ? mix(hair.deep, skin.base, 0.18)
         : hair.deep;
   const arch = face.brows === "arched" ? 1 : 0;
   const nearBrow: Pt[] = [
@@ -789,18 +1496,38 @@ function drawFeatures(r: Raster, m: Model) {
     [fx + fw, browY + 0.5],
     [fx + fw + 1, browY + 1.5],
   ];
-  r.stroke(nearBrow, browColor);
-  r.stroke(farBrow, browColor);
-  if (face.brows === "heavy" && age < 60 && !female) {
-    r.stroke(
-      nearBrow.map(([x, y]) => [x, y + 1] as Pt),
-      hair.base,
-    );
-    r.stroke(
-      farBrow.map(([x, y]) => [x, y + 1] as Pt),
-      hair.base,
-    );
-  }
+  const drawBrow = (pts: Pt[], head: boolean) => {
+    r.stroke(pts, browColor, 0, undefined, MAT.skin);
+    if (bushy) {
+      r.stroke(
+        pts.map(([x, y]) => [x, y + 1] as Pt),
+        mix(browColor, hair.base, 0.45),
+        0,
+        undefined,
+        MAT.skin,
+      );
+      // Hairs stray upward at the inner end, where a heavy brow is thickest.
+      r.stroke(
+        pts.slice(0, 3).map(([x, y]) => [x, y - 1] as Pt),
+        mix(browColor, skin.base, 0.3),
+        2,
+        undefined,
+        MAT.skin,
+      );
+    } else {
+      // Thin brows taper: the tail is a broken line, not a full-value stroke.
+      r.stroke(
+        pts.slice(1).map(([x, y]) => [x, y + 1] as Pt),
+        mix(browColor, skin.base, 0.72),
+        2,
+        undefined,
+        MAT.skin,
+      );
+    }
+    void head;
+  };
+  drawBrow(nearBrow, true);
+  drawBrow(farBrow, false);
 
   // Nose in profile. The bridge starts between the eyes, the far edge runs
   // down and right to the tip, and the base turns back under it.
@@ -1120,7 +1847,7 @@ function drawFrontHair(r: Raster, m: Model) {
 function drawHairDetail(r: Raster, m: Model) {
   const { a, hair, face, nearX, farX, top, volume: v } = m;
   if (a.hair === "bald") return;
-  if (a.wearing.headwear === "hood" || a.wearing.headwear === "wrap") return;
+  if (COVERED.has(a.wearing.headwear)) return;
   const crownY = top - v;
   const all = r.region([
     [0, 0],
@@ -1613,7 +2340,940 @@ function drawHeadwear(r: Raster, m: Model) {
         MAT.hair,
       );
     shadeRamp(r, rim, [30, chin - 4], [30, chin + 8], 0.3, SHADOW, [MAT.cloth]);
+    return;
   }
+  drawHat(r, m, wear);
+}
+
+// ------------------------------------------------------------------ cloth
+
+/**
+ * How a material behaves under light. The ramp is how far the body turns from
+ * lit to shadow, the sheen is a specular band across the chest, the grain is
+ * the weave or the nap, and a fringe is the cut edge of a skin.
+ *
+ * Absent a recorded material nothing here runs: an authored look and an old
+ * save draw exactly as before.
+ */
+type Finish = {
+  ramp: number;
+  sheen: number;
+  grain: "none" | "slub" | "nap" | "pelt";
+  /** Share of pixels the grain marks, 0..1. Coarse cloth marks more of them. */
+  density: number;
+  /** How far a marked pixel moves off the base tone, 0..1. */
+  strength: number;
+  /** Depth of the broken edge where the cloth is cut but not hemmed. */
+  fringe: number;
+};
+
+const FINISH: Record<Material, Finish> = {
+  // Skins: a hard ramp, hair lying in one direction, a cut edge.
+  hide: { ramp: 0.32, sheen: 0.08, grain: "pelt", density: 0.14, strength: 0.55, fringe: 1 },
+  fur: { ramp: 0.24, sheen: 0, grain: "pelt", density: 0.34, strength: 1, fringe: 2 },
+  // Beaten and matted cloth: no weave to catch light, so the grain is the look.
+  barkcloth: { ramp: 0.22, sheen: 0, grain: "slub", density: 0.18, strength: 1, fringe: 1 },
+  felt: { ramp: 0.18, sheen: 0, grain: "nap", density: 0.1, strength: 0.3, fringe: 0 },
+  wool: { ramp: 0.26, sheen: 0, grain: "nap", density: 0.2, strength: 0.6, fringe: 0 },
+  // Bast fibres, coarsest first. The thread is what separates them.
+  jute: { ramp: 0.24, sheen: 0, grain: "slub", density: 0.2, strength: 0.85, fringe: 0 },
+  hemp: { ramp: 0.26, sheen: 0, grain: "slub", density: 0.11, strength: 0.7, fringe: 0 },
+  linen: { ramp: 0.32, sheen: 0.1, grain: "slub", density: 0.05, strength: 0.5, fringe: 0 },
+  ramie: { ramp: 0.32, sheen: 0.16, grain: "slub", density: 0.035, strength: 0.4, fringe: 0 },
+  // Smooth cloth, told apart by how hard the highlight is.
+  cotton: { ramp: 0.3, sheen: 0.05, grain: "none", density: 0, strength: 0, fringe: 0 },
+  silk: { ramp: 0.4, sheen: 0.36, grain: "none", density: 0, strength: 0, fringe: 0 },
+  synthetic: { ramp: 0.14, sheen: 0.22, grain: "none", density: 0, strength: 0, fringe: 0 },
+};
+
+/** Deterministic per-pixel noise: the same cloth always slubs in the same
+ * places, so a portrait does not shimmer when it is redrawn. */
+const grainAt = (x: number, y: number, k: number) =>
+  (Math.imul(x * 73856093 ^ y * 19349663 ^ k * 83492791, 2654435761) >>> 16) &
+  255;
+
+/**
+ * Weave, nap and wear laid over a garment already shaded for its form. Called
+ * with the cloth region of the torso, so it never touches skin or trim.
+ */
+function applyFinish(r: Raster, m: Model, region: number[]) {
+  const material = m.a.wearing.material;
+  if (!material) return;
+  const f = FINISH[material];
+  const { cloth } = m;
+  const only = [MAT.cloth];
+  const quality = m.a.wearing.quality ?? 0;
+
+  // Cheap cloth turns away from the light sooner than fine cloth; a hard
+  // ramp on felt is what makes it read as felt and not as silk.
+  shadeRamp(r, region, [30, 58], [62, 68], f.ramp, SHADOW, only);
+  if (f.sheen)
+    r.paint(
+      region,
+      (c, x, y) => {
+        const d = Math.abs(x * 0.55 + y - 64);
+        return d < 2
+          ? mix(c, LIGHT, f.sheen)
+          : d < 4.5
+            ? mix(c, LIGHT, f.sheen * 0.4)
+            : d < 8
+              ? mix(c, SHADOW, f.sheen * 0.3)
+              : c;
+      },
+      { only },
+    );
+  const hi = 255 - 128 * f.density,
+    lo = 128 * f.density;
+  if (f.grain === "slub")
+    // Thick threads in the weave: single pixels, never a pattern.
+    r.paint(
+      region,
+      (c, x, y) => {
+        const g = grainAt(x, y, 1);
+        return g > hi
+          ? mix(c, cloth.light, f.strength)
+          : g < lo
+            ? mix(c, cloth.shade, f.strength)
+            : c;
+      },
+      { only },
+    );
+  else if (f.grain === "nap")
+    // A raised nap scatters light in short horizontal fibres, so the marks go
+    // in pairs: single pixels at this size read as dirt.
+    r.paint(
+      region,
+      (c, x, y) => {
+        const g = Math.max(grainAt(x, y, 2), grainAt(x - 1, y, 2));
+        return g > hi
+          ? mix(c, cloth.light, f.strength)
+          : grainAt(x, y, 7) < lo
+            ? mix(c, cloth.shade, f.strength * 0.8)
+            : c;
+      },
+      { only },
+    );
+  else if (f.grain === "pelt")
+    // Hair lies in short strokes, all falling the same way.
+    r.paint(
+      region,
+      (c, x, y) => {
+        const g = grainAt(x, y - (y & 1), 3);
+        return g > hi
+          ? mix(c, cloth.light, f.strength)
+          : g < lo
+            ? mix(c, cloth.deep, f.strength)
+            : c;
+      },
+      { only },
+    );
+  if (f.fringe) drawFringe(r, m, region, f.fringe);
+  if (quality < 0) drawWear(r, m, region);
+}
+
+/** The cut edge of a skin or a bark: it is not hemmed, so it breaks. */
+function drawFringe(r: Raster, m: Model, region: number[], depth: number) {
+  const { cloth } = m;
+  const top = new Map<number, number>();
+  for (const i of region) {
+    const x = i % r.w,
+      y = (i - x) / r.w;
+    const seen = top.get(x);
+    if (seen === undefined || y < seen) top.set(x, y);
+  }
+  for (const [x, y] of top) {
+    const g = grainAt(x, y, 4);
+    if (g < (depth > 1 ? 70 : 160)) continue;
+    r.put(x, y - 1, g > 200 ? cloth.light : cloth.shade, MAT.cloth);
+    if (depth > 1 && g > 210) r.put(x, y - 2, cloth.shade, MAT.cloth);
+  }
+}
+
+/** Worn cloth: thin where it is handled, and darkened where it is not. */
+function drawWear(r: Raster, m: Model, region: number[]) {
+  const { cloth, lower } = m;
+  r.paint(
+    region,
+    (c, x, y) => {
+      const g = grainAt(x >> 1, y >> 1, 5);
+      if (g > 232) return mix(c, SHADOW, 0.22);
+      if (g < 16) return mix(c, cloth.deep, 0.5);
+      return c;
+    },
+    { only: [MAT.cloth] },
+  );
+  // A patch sewn over the shoulder, which is where cloth goes first.
+  const patch = r.region([
+    [14, 60],
+    [23, 58],
+    [25, 66],
+    [16, 68],
+  ]).filter((i) => r.mat[i] === MAT.cloth);
+  r.paint(patch, mix(lower.shade, cloth.deep, 0.4), { only: [MAT.cloth] });
+  r.stroke(
+    [
+      [14, 60],
+      [23, 58],
+      [25, 66],
+      [16, 68],
+      [14, 60],
+    ],
+    lower.deep,
+    1,
+    undefined,
+    MAT.cloth,
+  );
+}
+
+/**
+ * What the cloth's condition does at the neckline, drawn after the collar,
+ * which would otherwise cover it: a frayed edge on worn cloth, a worked
+ * thread on fine cloth, in gold for the best of it.
+ */
+function drawClothEdge(r: Raster, m: Model) {
+  const material = m.a.wearing.material;
+  if (!material) return;
+  const quality = m.a.wearing.quality ?? 0;
+  if (!quality) return;
+  const cut = cutFor(m);
+  if (cut.bare === "all") return;
+  const neckline = necklineFor(m);
+  if (quality < 0) {
+    // The binding has gone, so the edge breaks into threads.
+    for (const [x, y] of neckline) {
+      const g = grainAt(Math.round(x), Math.round(y), 6);
+      if (g < 110) continue;
+      r.put(x, y + 1.5, m.cloth.deep);
+      if (g > 200) r.put(x + 1, y + 2.5, m.cloth.shade);
+    }
+    return;
+  }
+  const thread = quality >= 3 ? m.gold : m.trim;
+  // Clear of the collar's own binding, or the thread reads as part of it.
+  r.stroke(
+    neckline.map(([x, y]) => [x, y + 5] as Pt),
+    quality > 1 ? thread.base : thread.shade,
+    quality > 1 ? 0 : 2,
+    undefined,
+    MAT.cloth,
+  );
+  if (quality >= 3)
+    r.stroke(
+      neckline.map(([x, y]) => [x, y + 7.5] as Pt),
+      thread.light,
+      2,
+      undefined,
+      MAT.cloth,
+    );
+}
+
+// ------------------------------------------------------------------ hats
+
+/**
+ * Crown of a stiff hat: the shape the cap uses, lifted by `rise` and widened
+ * by `spread` so one outline serves cap, bowler, brimmed hat and ball cap.
+ */
+function stiffCrown(
+  m: Model,
+  rise: number,
+  spread: number,
+  brim: number,
+  dome = 0,
+): Pt[] {
+  const cv = Math.min(m.volume, 2);
+  const n = m.nearX - cv - 2 - spread,
+    f = m.farX + cv + spread;
+  const t = m.top - rise;
+  return smooth(
+    [
+      [n - 0.5, brim + 1],
+      [n + dome, t + dome],
+      [27, t - cv - 2.5 - dome * 0.5],
+      [36, t - cv - 4 - dome],
+      [45, t - cv - 2.5 - dome * 0.5],
+      [f - dome, t + dome],
+      [f + 1, brim + 1],
+      [f - 1, brim + 2.5],
+      [36, brim + 0.5],
+      [n + 1, brim + 2.5],
+    ],
+    3,
+  );
+}
+
+/** Brim under a stiff crown: an ellipse seen from a little above, so the far
+ * half hides behind the crown drawn over it. */
+function drawBrim(
+  r: Raster,
+  m: Model,
+  y: number,
+  out: number,
+  depth: number,
+  tone: Tones,
+) {
+  const cv = Math.min(m.volume, 2);
+  const n = m.nearX - cv - 3 - out,
+    f = m.farX + cv + 1 + out;
+  const brim = smooth(
+    [
+      [n, y],
+      [36, y - depth],
+      [f, y - 0.5],
+      [36, y + depth + 1.5],
+    ],
+    4,
+  );
+  r.poly(brim, tone.base, MAT.cloth);
+  const region = r.region(brim);
+  shadeRamp(r, region, [36, y - depth], [36, y + depth + 2], 0.4, SHADOW, [
+    MAT.cloth,
+  ]);
+  shadeRamp(r, region, [34, y], [f, y], 0.22, SHADOW, [MAT.cloth]);
+}
+
+/** Face opening shared by hood, headscarf and veil. `out` pushes the edges
+ * outward; `crown` is where the top of the opening sits. */
+function faceOpening(m: Model, out: number, crown: number): Pt[] {
+  const { nearX, farX } = m;
+  return smooth(
+    [
+      [nearX - 4 - out, 62],
+      [nearX - 3.5 - out, 40],
+      [nearX - 3 - out, 26],
+      [nearX - 1 - out, 14],
+      [27, crown + 1.5],
+      [36, crown],
+      [44, crown + 1.5],
+      [farX - 1 + out, 14],
+      [farX + 1.5 + out, 26],
+      [farX + 2 + out, 40],
+      [farX + 2.5 + out, 62],
+    ],
+    3,
+  );
+}
+
+/** Cloth wound over the head and falling past the jaw: scarf and veil. */
+function scarfOuter(m: Model, rise: number, drop: number): Pt[] {
+  const { nearX, farX, top, volume: v } = m;
+  const cv = Math.min(v, 2);
+  return smooth(
+    [
+      [nearX - cv - 6, drop],
+      [nearX - cv - 7, 34],
+      [nearX - cv - 6, 18],
+      [28, top - cv - rise],
+      [37, top - cv - rise - 1.5],
+      [46, top - cv - rise + 0.5],
+      [farX + cv + 5, 18],
+      [farX + cv + 7, 34],
+      [farX + cv + 6, drop],
+      [36, drop + 2],
+    ],
+    3,
+  );
+}
+
+/** The fourteen hats that are not band, cap, wrap or hood. */
+function drawHat(r: Raster, m: Model, wear: string) {
+  const { a, cloth, trim, gold, nearX, farX, top, volume: v, hairline } = m;
+  const cv = Math.min(v, 2);
+  const nearOut = nearX - v - 2,
+    farOut = farX + v;
+
+  // Fillet and plume are a metal circlet; the plume adds a feather behind it.
+  if (wear === "fillet" || wear === "plume") {
+    const y = hairline - 1;
+    const band = smooth(
+      [
+        [nearOut - 0.5, y + 3],
+        [nearOut, y + 0.5],
+        [28, y - 1.5],
+        [38, y - 2.5],
+        [farOut, y],
+        [farOut + 1, y + 2],
+        [farOut, y + 4],
+        [38, y + 0.5],
+        [28, y + 1.5],
+        [nearOut + 0.5, y + 4.5],
+      ],
+      3,
+    );
+    if (wear === "plume") {
+      // A feather off the far side, curving back over the crown. A filled
+      // blade: at this size a line of strokes reads as a twig.
+      const vane = tones(mix(a.wearing.trim, "#f2e7cf", 0.5), "cloth");
+      const tip: Pt = [28, Math.max(1, top - v - 14)];
+      const root: Pt = [farOut - 1, y + 1];
+      const blade = smooth(
+        [
+          root,
+          [farOut + 4, y - 9],
+          [farOut, top - v - 9],
+          tip,
+          [34, top - v - 8],
+          [farOut - 4, y - 8],
+        ],
+        4,
+      );
+      r.poly(blade, vane.base, MAT.trim);
+      const region = r.region(blade);
+      shadeRamp(r, region, [34, y - 14], [farOut + 4, y - 4], 0.3, SHADOW, [
+        MAT.trim,
+      ]);
+      // Rachis down the middle, with the barbs breaking the near edge.
+      r.stroke([root, [farOut + 2, y - 8], [farOut - 2, top - v - 9], tip],
+        vane.deep, 0, undefined, MAT.trim);
+      r.stroke([[farOut - 2, y - 2], [farOut - 3, y - 9], [31, top - v - 11]],
+        vane.light, 2, undefined, MAT.trim);
+    }
+    r.poly(band, gold.base, MAT.metal);
+    const region = r.region(band);
+    shadeRamp(r, region, [34, y], [farOut + 1, y], 0.34, SHADOW, [MAT.metal]);
+    r.stroke(
+      [
+        [nearOut + 3, y + 1.5],
+        [29, y - 0.5],
+        [37, y - 1.5],
+      ],
+      gold.high,
+    );
+    return;
+  }
+
+  if (wear === "bowler" || wear === "brimmed" || wear === "ball-cap") {
+    const wide = wear === "brimmed";
+    const brimY = hairline + 2;
+    drawBrim(
+      r,
+      m,
+      brimY,
+      wide ? 5 : wear === "bowler" ? 1 : 0.5,
+      wide ? 2 : 1.5,
+      cloth,
+    );
+    if (wear === "ball-cap") {
+      // A ball cap has no brim behind: a peak out over the face instead.
+      const peak = smooth(
+        [
+          [37, brimY - 0.5],
+          [farX + 4, brimY - 1],
+          [farOut + 8, brimY + 2],
+          [farOut + 6, brimY + 4],
+          [farX + 2, brimY + 3],
+          [37, brimY + 2],
+        ],
+        4,
+      );
+      r.poly(peak, cloth.shade, MAT.cloth);
+      shadeRamp(
+        r,
+        r.region(peak),
+        [37, brimY],
+        [farOut + 8, brimY + 3],
+        0.3,
+        SHADOW,
+        [MAT.cloth],
+      );
+    }
+    const crown = stiffCrown(
+      m,
+      wear === "brimmed" ? 4 : wear === "bowler" ? 2 : 0,
+      wear === "bowler" ? -1.5 : 0,
+      hairline + 1,
+      wear === "bowler" ? 2 : 0,
+    );
+    r.poly(crown, cloth.base, MAT.cloth);
+    const region = r.region(crown);
+    shadeRamp(r, region, [34, 8], [farOut + 2, 8], 0.34, SHADOW, [MAT.cloth]);
+    shadeRamp(r, region, [30, hairline - 5], [30, hairline + 2], 0.2, SHADOW, [
+      MAT.cloth,
+    ]);
+    // Hatband where the crown meets the brim.
+    if (wear !== "ball-cap")
+      r.stroke(
+        [
+          [nearX - cv - 3, hairline],
+          [36, hairline - 2],
+          [farX + cv + 1, hairline],
+        ],
+        trim.base,
+        0,
+        MAT.trim,
+      );
+    r.stroke(
+      [
+        [26, top - cv - (wear === "brimmed" ? 6 : wear === "bowler" ? 4 : 0.5)],
+        [32, top - cv - (wear === "brimmed" ? 8 : wear === "bowler" ? 6 : 2)],
+        [38, top - cv - (wear === "brimmed" ? 8 : wear === "bowler" ? 6 : 2.5)],
+      ],
+      cloth.light,
+      2,
+      undefined,
+      MAT.cloth,
+    );
+    return;
+  }
+
+  if (wear === "flat-cap") {
+    // Soft crown dragged forward over a short peak: the mass sits ahead of
+    // the skull, which is the whole silhouette.
+    const brimY = hairline + 2;
+    const body = smooth(
+      [
+        [nearOut - 1, brimY + 1],
+        [nearOut - 1.5, hairline - 3],
+        [28, top - cv - 3],
+        [38, top - cv - 3.5],
+        [farOut + 2, hairline - 3],
+        [farOut + 6, brimY - 1],
+        [farOut + 5, brimY + 2.5],
+        [farX, brimY + 1.5],
+        [36, brimY + 1],
+      ],
+      3,
+    );
+    r.poly(body, cloth.base, MAT.cloth);
+    const region = r.region(body);
+    shadeRamp(r, region, [34, 8], [farOut + 4, 8], 0.32, SHADOW, [MAT.cloth]);
+    shadeRamp(r, region, [36, hairline - 4], [36, brimY + 2], 0.22, SHADOW, [
+      MAT.cloth,
+    ]);
+    // Seam where the crown folds over the peak.
+    r.stroke(
+      [
+        [farX - 2, brimY - 2],
+        [farOut + 3, brimY - 1],
+      ],
+      cloth.deep,
+      0,
+      undefined,
+      MAT.cloth,
+    );
+    r.stroke(
+      [
+        [26, top - cv - 0.5],
+        [33, top - cv - 2],
+        [39, top - cv - 2],
+      ],
+      cloth.light,
+      2,
+      undefined,
+      MAT.cloth,
+    );
+    return;
+  }
+
+  if (wear === "conical") {
+    // Straight sides, so no spline: a rounded cone is a bell.
+    const base = hairline + 2;
+    const n = nearOut - 4,
+      f = farOut + 4;
+    const apex = Math.max(1, top - v - 13);
+    r.poly(
+      [
+        [n, base],
+        [33, apex],
+        [37, apex],
+        [f, base - 1],
+        [f - 2, base + 2.5],
+        [36, base + 3.5],
+        [n + 2, base + 2.5],
+      ],
+      cloth.base,
+      MAT.cloth,
+    );
+    const region = r.region([
+      [n, base + 4],
+      [f, base + 4],
+      [37, apex],
+      [33, apex],
+    ]);
+    shadeRamp(r, region, [34, base], [f, base], 0.36, SHADOW, [MAT.cloth]);
+    r.stroke(
+      [
+        [34, apex + 1],
+        [n + 4, base - 1],
+      ],
+      cloth.light,
+      2,
+      undefined,
+      MAT.cloth,
+    );
+    r.stroke(
+      [
+        [n + 1, base + 1],
+        [36, base + 2],
+        [f - 1, base],
+      ],
+      trim.base,
+      0,
+      MAT.trim,
+    );
+    return;
+  }
+
+  if (wear === "fez") {
+    const base = hairline + 1;
+    const crown = Math.max(1, top - cv - 7);
+    const n = nearX - cv - 2,
+      f = farX + cv;
+    r.poly(
+      [
+        [n, base + 1],
+        [n + 1, crown + 1],
+        [34, crown - 1],
+        [f - 1, crown + 1],
+        [f, base],
+        [f - 1.5, base + 2.5],
+        [36, base + 3],
+        [n + 1.5, base + 3],
+      ],
+      cloth.base,
+      MAT.cloth,
+    );
+    const region = r.region([
+      [n, base + 3],
+      [f, base + 3],
+      [f - 1, crown],
+      [n + 1, crown],
+    ]);
+    shadeRamp(r, region, [34, base], [f, base], 0.34, SHADOW, [MAT.cloth]);
+    // Flat top, then the tassel falling off the far edge.
+    r.stroke(
+      [
+        [n + 2, crown + 1],
+        [34, crown - 1],
+        [f - 2, crown + 1],
+      ],
+      cloth.light,
+      0,
+      undefined,
+      MAT.cloth,
+    );
+    r.stroke(
+      [
+        [f - 2, crown],
+        [f + 2, crown + 3],
+        [f + 3, crown + 9],
+      ],
+      trim.base,
+      0,
+      MAT.trim,
+    );
+    r.rect(Math.round(f + 2), crown + 9, 2, 3, trim.shade, MAT.trim);
+    return;
+  }
+
+  if (wear === "turban") {
+    const base = hairline + 2;
+    const n = nearX - cv - 4,
+      f = farX + cv + 4;
+    const crown = Math.max(1, top - cv - 7);
+    const mass = smooth(
+      [
+        [n - 1, base + 1],
+        [n - 2.5, base - 5],
+        [n - 1.5, crown + 4],
+        [28, crown],
+        [37, crown - 1],
+        [45, crown + 1],
+        [f + 1.5, crown + 5],
+        [f + 2.5, base - 5],
+        [f + 1, base + 1],
+        [36, base + 2.5],
+      ],
+      3,
+    );
+    r.poly(mass, cloth.base, MAT.cloth);
+    const region = r.region(mass);
+    shadeRamp(r, region, [34, 8], [f + 2, 8], 0.34, SHADOW, [MAT.cloth]);
+    shadeRamp(r, region, [30, crown], [30, base], 0.14, SHADOW, [MAT.cloth]);
+    // Four winds climbing toward the far side: a spiral, not stacked rings.
+    for (let k = 0; k < 4; k++) {
+      const y = base - k * 3.5;
+      r.stroke(
+        [
+          [n - 2, y],
+          [33, y - 4 - k * 0.5],
+          [f + 2, y - 1.5 - k],
+        ],
+        cloth.deep,
+        0,
+        undefined,
+        MAT.cloth,
+      );
+      r.stroke(
+        [
+          [n - 1, y + 1],
+          [33, y - 3 - k * 0.5],
+          [f + 1, y - 0.5 - k],
+        ],
+        cloth.light,
+        3,
+        undefined,
+        MAT.cloth,
+      );
+    }
+    // Tail tucked in at the far side.
+    r.stroke(
+      [
+        [f, crown + 4],
+        [f + 2, crown + 9],
+        [f - 1, base - 2],
+      ],
+      cloth.shade,
+      0,
+      undefined,
+      MAT.cloth,
+    );
+    return;
+  }
+
+  if (wear === "headscarf" || wear === "veil") {
+    const sheer = wear === "veil";
+    const outer = r.region(scarfOuter(m, sheer ? 2 : 1, sheer ? 60 : 56));
+    const opening = r.region(
+      faceOpening(m, sheer ? 0 : -2, hairline + (sheer ? -2 : 1)),
+    );
+    const rim = Raster.diff(outer, opening);
+    r.fill(rim, cloth.base, MAT.cloth);
+    shadeRamp(r, rim, [36, 18], [farX + 8, 18], 0.34, SHADOW, [MAT.cloth]);
+    shadeRamp(r, rim, [30, 34], [30, 58], 0.2, SHADOW, [MAT.cloth]);
+    if (sheer) {
+      // A veil is thin: the hair under it shows through on the dither.
+      r.paint(rim, (c) => mix(c, m.hair.shade, 0.3), {
+        only: [MAT.cloth],
+        dither: true,
+      });
+      r.paint(Raster.diff(r.grow(opening, 2), opening), lift(0.2), {
+        only: [MAT.cloth],
+        dither: true,
+      });
+    }
+    // Fold running from the crown down the lit side.
+    r.stroke(
+      [
+        [28, top - cv],
+        [nearX - 4, 28],
+        [nearX - 4, 50],
+      ],
+      cloth.light,
+      2,
+      undefined,
+      MAT.cloth,
+    );
+    r.stroke(
+      [
+        [42, top - cv + 1],
+        [farX + 4, 30],
+        [farX + 4, 52],
+      ],
+      cloth.deep,
+      2,
+      undefined,
+      MAT.cloth,
+    );
+    return;
+  }
+
+  if (wear === "wig") {
+    // Powdered, whatever colour the hair was: rolls over the ears under a
+    // high crown, the face cut clear so the mass never creeps onto it.
+    const wig = tones(mix(a.hairColor, "#efe9dc", 0.78), "hair");
+    const crown = Math.max(1, top - v - 7);
+    const mass = smooth(
+      [
+        [nearX - v - 7, 46],
+        [nearX - v - 9, 30],
+        [nearX - v - 6, crown + 6],
+        [28, crown],
+        [37, crown - 1],
+        [46, crown + 2],
+        [farX + v + 5, 30],
+        [farX + v + 4, 46],
+        [farX + v + 1, 50],
+        [36, 52],
+        [nearX - v - 3, 50],
+      ],
+      3,
+    );
+    const body = Raster.diff(
+      r.region(mass),
+      r.region(faceOpening(m, -3, hairline + 1)),
+    );
+    r.fill(body, wig.base, MAT.hair);
+    shadeRamp(r, body, [36, 14], [farX + v + 5, 14], 0.3, SHADOW, [MAT.hair]);
+    // Rolls over each ear: bands across the whole width of the mass, each cut
+    // from the next by a shade line. Separate blobs read as steps.
+    for (let k = 0; k < 3; k++) {
+      const y = 25 + k * 6;
+      const near = Raster.diff(
+        r.ellipse(nearX - v - 2, y + 1, 7, 3),
+        r.region(faceOpening(m, -3, hairline + 1)),
+      );
+      r.paint(near, k & 1 ? wig.light : wig.base, { only: [MAT.hair] });
+      r.paint(r.ellipse(nearX - v - 4, y, 4.5, 1.2), wig.high, {
+        only: [MAT.hair],
+      });
+      r.paint(r.ellipse(farX + v + 1, y + 3, 4, 2.5), wig.shade, {
+        only: [MAT.hair],
+      });
+      r.stroke(
+        [
+          [nearX - v - 8, y + 4],
+          [nearX - v - 1, y + 4.5],
+        ],
+        wig.deep,
+        0,
+        undefined,
+        MAT.hair,
+      );
+      r.stroke(
+        [
+          [farX + v - 1, y + 6],
+          [farX + v + 5, y + 5],
+        ],
+        wig.deep,
+        0,
+        undefined,
+        MAT.hair,
+      );
+    }
+    r.stroke(
+      [
+        [27, crown + 3],
+        [34, crown + 0.5],
+        [41, crown + 2],
+      ],
+      wig.high,
+      2,
+      undefined,
+      MAT.hair,
+    );
+    return;
+  }
+
+  if (wear === "helmet" || wear === "visor") {
+    // Bronze bowl to the nape. The helmet leaves the face clear behind a
+    // nasal bar; the visor closes it with a plate.
+    const bowl = smooth(
+      [
+        [nearX - cv - 3, 40],
+        [nearX - cv - 5, 26],
+        [nearX - cv - 3, 12],
+        [28, top - cv - 3],
+        [37, top - cv - 4],
+        [46, top - cv - 2],
+        [farX + cv + 3, 14],
+        [farX + cv + 4, 28],
+        [farX + cv + 2, 42],
+        [36, 46],
+      ],
+      3,
+    );
+    const shell =
+      wear === "visor"
+        ? r.region(bowl)
+        : Raster.diff(
+            r.region(bowl),
+            r.region(faceOpening(m, -4, hairline + 2)),
+          );
+    r.fill(shell, gold.base, MAT.metal);
+    shadeRamp(r, shell, [34, 10], [farX + cv + 4, 10], 0.38, SHADOW, [
+      MAT.metal,
+    ]);
+    shadeRamp(r, shell, [30, top], [30, 44], 0.18, SHADOW, [MAT.metal]);
+    // Specular band across the bowl: the one thing that says metal this small.
+    r.stroke(
+      [
+        [nearX - cv - 2, 22],
+        [28, 13],
+        [36, top - cv],
+      ],
+      gold.high,
+      0,
+      undefined,
+      MAT.metal,
+    );
+    r.stroke(
+      [
+        [nearX - cv - 3, 26],
+        [27, 17],
+        [34, top - cv + 2],
+      ],
+      gold.light,
+      2,
+      undefined,
+      MAT.metal,
+    );
+    // Rim over the brow.
+    r.stroke(
+      [
+        [nearX - cv - 3, hairline + 3],
+        [36, hairline + 1],
+        [farX + cv + 2, hairline + 3],
+      ],
+      gold.deep,
+      0,
+      undefined,
+      MAT.metal,
+    );
+    if (wear !== "helmet") {
+      // Sight slit, then breath holes on the lit side of the chin.
+      r.stroke(
+        [
+          [nearX + 1, m.eyeY + 1],
+          [36, m.eyeY - 1],
+          [farX - 2, m.eyeY + 1],
+        ],
+        gold.edge,
+        0,
+        undefined,
+        MAT.metal,
+      );
+      r.stroke(
+        [
+          [nearX + 1, m.eyeY + 2],
+          [36, m.eyeY],
+          [farX - 2, m.eyeY + 2],
+        ],
+        gold.edge,
+        0,
+        undefined,
+        MAT.metal,
+      );
+      r.stroke(
+        [
+          [nearX, m.eyeY - 1],
+          [36, m.eyeY - 3],
+          [farX - 1, m.eyeY - 1],
+        ],
+        gold.high,
+        2,
+        undefined,
+        MAT.metal,
+      );
+      r.rect(Math.round(m.mid - 1), m.eyeY + 3, 2, 8, gold.shade, MAT.metal);
+      for (let k = 0; k < 3; k++)
+        r.put(30 + k * 3, m.chin - 11 + (k & 1), gold.edge);
+    }
+    return;
+  }
+}
+
+/** The helmet's nasal bar. Drawn after the features, which it hangs over. */
+function drawNasal(r: Raster, m: Model) {
+  const { gold, hairline, mid } = m;
+  const x = Math.round(mid) - 2;
+  r.rect(x, hairline + 1, 3, 15, gold.shade, MAT.metal);
+  r.line([x, hairline + 1], [x, hairline + 15], gold.light);
+  r.line([x + 2, hairline + 2], [x + 2, hairline + 15], gold.edge);
+  // Flared at the tip, where it widens over the nostrils.
+  r.rect(x - 1, hairline + 13, 5, 3, gold.shade, MAT.metal);
+  r.line([x - 1, hairline + 13], [x - 1, hairline + 15], gold.light);
+  r.line([x + 3, hairline + 14], [x + 3, hairline + 15], gold.edge);
+  r.line([x - 1, hairline + 16], [x + 3, hairline + 16], gold.edge);
 }
 
 // ---------------------------------------------------------------- jewellery

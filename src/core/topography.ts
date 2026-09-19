@@ -74,6 +74,9 @@ export type TopographyCell = {
   rampStyle?: "cut" | "slope" | "steps" | "sand" | "timber";
   bridge?: boolean;
   solid?: boolean;
+  /** Knee-high: a jump passes over it, but nobody lands on it. A pot in a
+   * doorway should cost a hop, not a detour. */
+  over?: boolean;
 };
 export type TopographySample = (
   x: number,
@@ -288,12 +291,16 @@ export function terrainJump(
       const corners = [sample(at.x - dx, at.y), sample(at.x, at.y - dy)];
       if (
         corners.some(
-          (c) => !c || c.solid || water(c) || c.height > start.height + rise,
+          (c) =>
+            !c ||
+            c.solid ||
+            (water(c) && !c.over) ||
+            c.height > start.height + rise,
         )
       )
         break;
     }
-    if (water(cell)) continue;
+    if (water(cell) || cell.over) continue;
     landing = {
       kind:
         cell.height > start.height

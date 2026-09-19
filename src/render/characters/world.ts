@@ -8,7 +8,14 @@ import {
   type CharacterAppearance,
 } from "../../core/character";
 import { drawCharacter } from "./renderers";
-import { loadCarriedArt, type CarriedArt } from "./props";
+import { iconCarriedArt, loadCarriedArt, type CarriedArt } from "./props";
+import {
+  drawGarmentIcon,
+  garmentIconFor,
+  itemIconFor,
+  GARMENT_ICON,
+} from "../garment-icons";
+import { parseCloth } from "../../content/characters/wardrobe/cloth";
 import type { CharacterPose } from "./poses";
 /** Bounded scene-owned frame cache. Only current visible combinations are retained. */
 export class WorldCharacters {
@@ -50,6 +57,25 @@ export class WorldCharacters {
       })
       .catch(console.error);
   }
+  /** `icon:<item id>` is drawn from the icon art the first time it is asked
+   * for, then cached beside the prop art. */
+  private carried(prop: string | undefined): CarriedArt | undefined {
+    if (!prop) return undefined;
+    const known = this.props.get(prop);
+    if (known || !prop.startsWith("icon:")) return known;
+    const id = prop.slice(5);
+    const parsed = parseCloth(id);
+    const base = parsed?.base ?? id;
+    const icon = garmentIconFor(base) ?? itemIconFor(base);
+    if (!icon) return undefined;
+    const art = iconCarriedArt(
+      prop,
+      (ctx) => drawGarmentIcon(ctx, icon, 0, 0, parsed?.cloth),
+      GARMENT_ICON,
+    );
+    if (art) this.props.set(prop, art);
+    return art;
+  }
   private token(description: string) {
     let id = this.appearanceTokens.get(description);
     if (id === undefined)
@@ -87,7 +113,7 @@ export class WorldCharacters {
     }
     resolved.used = this.scene.time.now;
     const a = resolved.appearance,
-      art = prop ? this.props.get(prop) : undefined;
+      art = this.carried(prop);
     const signature = `${resolved.signature}:${actor.facing === undefined ? actor.direction : `f${actor.facing}`}:${pose}:${frame}:${art?.sprite ?? ""}`;
     let entry = this.cache.get(signature);
     if (!entry) {

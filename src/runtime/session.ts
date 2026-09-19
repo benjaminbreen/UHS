@@ -46,6 +46,8 @@ export type Verb = {
     | "strike"
     | "throw"
     | "drop"
+    | "give"
+    | "set-down"
     | "look"
     | "drink"
     | "climb"
@@ -178,6 +180,8 @@ export function createSession(
               roles: rolesFrom(engine.state.player.role),
             },
             pack,
+            undefined,
+            appearance.wearing.color,
           ),
         );
       }
@@ -897,7 +901,8 @@ export class Runtime {
       (o) =>
         held
           ? !!propDefs[o.prop!]?.breakable && !o.broken
-          : !!propDefs[o.prop!]?.portable && !o.broken,
+          : o.kind === "item" ||
+            (!!propDefs[o.prop!]?.portable && !o.broken),
     );
     const nearby = nearbyProp(
       s,
@@ -1129,9 +1134,17 @@ export class Runtime {
       };
     else primary = climb ?? { kind: "strike", label: "Take a swing" };
     let alternate: Verb | undefined;
+    // Something in hand and somebody in front of you: handing it over is what
+    // the second slot is for, ahead of any scenery.
+    if (item && speaker)
+      alternate = {
+        kind: "give",
+        label: `Give ${item.name.toLowerCase()} to ${speaker.name}`,
+        actor: speaker.id,
+      };
     // A tree you could climb is what E is for while your hands are full:
     // a swingable in hand never loses the swing to a climb prompt.
-    if (climb && primary?.kind !== "climb") alternate = climb;
+    else if (climb && primary?.kind !== "climb") alternate = climb;
     else if (held)
       alternate = {
         kind: "drop",
@@ -1139,9 +1152,10 @@ export class Runtime {
         command: { type: "interact", target: held.id, action: "drop" },
       };
     else if (item)
+      // Away is the pocket; down is the ground, where anyone can take it.
       alternate = {
-        kind: "drop",
-        label: `Put ${item.name.toLowerCase()} away`,
+        kind: "set-down",
+        label: `Set ${item.name.toLowerCase()} down`,
       };
     else if (c.secondary)
       alternate = {
@@ -1194,6 +1208,16 @@ export class Runtime {
       this.command({ type: "stow" });
       return verb;
     }
+    if (verb.kind === "set-down") {
+      this.command({ type: "drop" });
+      return verb;
+    }
+    if (verb.kind === "give") {
+      const item = this.engine.state.player.heldItem;
+      if (item)
+        this.command({ type: "give", target: verb.actor!, item });
+      return verb;
+    }
     this.command({ type: "swing" });
     return verb;
   }
@@ -1202,14 +1226,32 @@ export class Runtime {
   }
   move(dx: number, dy: number, traverse = false, run = false) {
     this.stop(false);
-    return this.command(
+    // A pot stops you once, which is long enough to read what it is and to
+    // pick it up if that is what you wanted. Walk into it again and you step
+    // over it: a yard of vessels should cost a hop, not a detour. A crate is
+    // shoved first — only a shove that goes nowhere becomes a hop.
+    const small =
+      !traverse &&
+      !heldObject(this.engine.state) &&
+      !!this.engine.validate({ type: "move", dx, dy }) &&
+      this.engine.lowPropAhead(dx, dy);
+    if (small && this.bump?.dx === dx && this.bump?.dy === dy) {
+      this.bump = undefined;
+      return this.command({ type: "move", dx, dy, jump: "short", run });
+    }
+    this.bump = small ? { dx, dy } : undefined;
+    const result = this.command(
       traverse
         ? { type: "move", dx, dy, traverse }
         : run
           ? { type: "move", dx, dy, run }
           : { type: "move", dx, dy },
     );
+    if (small && this.notice) this.notice += " Step again to go over it.";
+    return result;
   }
+  /** The last step refused by something small enough to step over. */
+  private bump?: { dx: number; dy: number };
   /** Returns the tiles actually cleared, so the renderer can time the arc. */
   jump(dx: number, dy: number, power: "short" | "long", running = false) {
     this.stop(false);

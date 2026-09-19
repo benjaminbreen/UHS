@@ -125,6 +125,8 @@ export function CharacterVillage({
       inventory: {},
     }));
     runtime.engine.state.player = actors[0];
+    // `icon:<item>` is an inventory item in hand, drawn from the icon art.
+    if (prop.startsWith("icon:")) runtime.engine.state.player.heldItem = prop.slice(5);
     const held = portableProps.find((p) => p.sprite === prop);
     if (held) {
       runtime.engine.state.player.held = "village-held";

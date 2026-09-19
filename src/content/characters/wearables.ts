@@ -56,7 +56,7 @@ const legLabel: Record<Exclude<(typeof leggings)[number], "none">, string> = {
   hose: "Hose",
   trousers: "Trousers",
   wrapped: "Leg wrappings",
-  sarong: "Wrapped sheet",
+  sarong: "Sarong",
   wide: "Wide trousers",
 };
 const footLabel: Record<Exclude<(typeof footwear)[number], "none">, string> = {

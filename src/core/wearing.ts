@@ -4,7 +4,12 @@ import {
   type WearSlot,
 } from "./character";
 import type { ItemDef, ItemId } from "./types";
-import { clothId, type Cloth } from "../content/characters/wardrobe/cloth";
+import {
+  clothId,
+  dyeAt,
+  parseCloth,
+  type Cloth,
+} from "../content/characters/wardrobe/cloth";
 
 type Wearing = CharacterAppearance["wearing"];
 export type Worn = Partial<Record<WearSlot, ItemId>>;
@@ -23,6 +28,8 @@ export function bareWearing(base: Wearing): Wearing {
     shoulderCloth: false,
     leggings: "none",
     footwear: "none",
+    material: undefined,
+    quality: undefined,
   };
 }
 
@@ -38,7 +45,12 @@ export function composeWearing(
     const def = id ? item(id) : undefined;
     if (def?.wear?.slot === slot) out = { ...out, ...def.wear.look };
   }
-  return out;
+  // The body garment's cloth, carried out of the item id so the drawing and
+  // the item's name describe the same thing.
+  const body = worn.body ? parseCloth(worn.body) : undefined;
+  return body
+    ? { ...out, material: body.cloth.material, quality: body.cloth.quality }
+    : out;
 }
 
 /** Worn slots equivalent to an authored `wearing` record: saves made before
@@ -46,17 +58,26 @@ export function composeWearing(
 export function wornFromWearing(w: Wearing, cloth?: Cloth): Worn {
   // Cloth rides in the item id, so the inventory stays a plain count of ids
   // and nothing in the save format has to change to carry it.
-  const of = (id: string) => (cloth ? clothId(id, cloth) : id);
+  //
+  // A person's clothes are not all cut from one bolt, and the drawn figure
+  // already says so: the garment, the lower half and the trim each have their
+  // own colour. Each worn item takes the dye of the part it covers, so the
+  // item list and the figure agree.
+  const of = (id: string, hex?: string) => {
+    if (!cloth) return id;
+    const dye = dyeAt(hex);
+    return clothId(id, dye ? { ...cloth, dye } : cloth);
+  };
   const worn: Worn = {};
-  if (w.garment !== "none") worn.body = of(`garment-${w.garment}`);
-  if (w.headwear !== "none") worn.head = of(`headwear-${w.headwear}`);
-  if (w.cloak) worn.over = of("cloak");
-  else if (w.shoulderCloth) worn.over = of("shoulder-cloth");
-  if (w.belt && w.belt !== "none") worn.belt = of(`belt-${w.belt}`);
+  if (w.garment !== "none") worn.body = of(`garment-${w.garment}`, w.color);
+  if (w.headwear !== "none") worn.head = of(`headwear-${w.headwear}`, w.lowerColor);
+  if (w.cloak) worn.over = of("cloak", w.cloakColor);
+  else if (w.shoulderCloth) worn.over = of("shoulder-cloth", w.cloakColor);
+  if (w.belt && w.belt !== "none") worn.belt = of(`belt-${w.belt}`, w.trim);
   if (w.necklace) worn.neck = "necklace";
   if (w.earrings) worn.ears = "earrings";
-  if (w.leggings && w.leggings !== "none") worn.legs = of(`leggings-${w.leggings}`);
+  if (w.leggings && w.leggings !== "none") worn.legs = of(`leggings-${w.leggings}`, w.lowerColor);
   if (w.footwear && w.footwear !== "none")
-    worn.feet = of(`footwear-${w.footwear}`);
+    worn.feet = of(`footwear-${w.footwear}`, w.lowerColor);
   return worn;
 }

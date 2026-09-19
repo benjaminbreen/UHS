@@ -38,6 +38,7 @@ import {
   portableProps,
   type CarriedArt,
 } from "../render/characters/props";
+import { items as catalogItems } from "../content/packs";
 import "./character-lab.css";
 function initialAppearance(runtime?: Runtime) {
   if (runtime) return runtime.appearanceFor(runtime.engine.state.player);
@@ -709,6 +710,13 @@ export function CharacterLab({
                     {p.name}
                   </option>
                 ))}
+                {Object.values(catalogItems)
+                  .filter((i) => !i.wear)
+                  .map((i) => (
+                    <option key={i.id} value={`icon:${i.id}`}>
+                      {i.name} (in hand)
+                    </option>
+                  ))}
               </select>
             </label>
           </section>

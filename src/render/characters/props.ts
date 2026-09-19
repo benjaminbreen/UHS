@@ -90,3 +90,59 @@ export const portableProps = Object.entries(propDefs)
     name: d.name,
     sprite: `study-prop${redrawnFamilies.has(d.family) ? "b" : ""}-${d.family}-0`,
   }));
+
+/** An inventory item in the hand, drawn from the icon art rather than the
+ * prop atlas: the things a person picks up have no prop sprite, and the icon
+ * is the picture the panel already shows them. Cropped to its own pixels so
+ * the hand holds the object, not a box of empty space. */
+export function iconCarriedArt(
+  id: string,
+  draw: (ctx: CanvasRenderingContext2D) => void,
+  size: number,
+): CarriedArt | undefined {
+  const c = document.createElement("canvas");
+  c.width = c.height = size;
+  const ctx = c.getContext("2d", { willReadFrequently: true })!;
+  draw(ctx);
+  const pixels = ctx.getImageData(0, 0, size, size).data;
+  let x0 = size,
+    y0 = size,
+    x1 = 0,
+    y1 = 0;
+  for (let y = 0; y < size; y++)
+    for (let x = 0; x < size; x++)
+      if (pixels[(y * size + x) * 4 + 3]) {
+        x0 = Math.min(x0, x);
+        y0 = Math.min(y0, y);
+        x1 = Math.max(x1, x);
+        y1 = Math.max(y1, y);
+      }
+  if (x0 === size) return undefined;
+  // The icon is drawn for a panel; a person is twenty pixels tall. Halve it,
+  // nearest-neighbour, so it sits in the hand rather than over the chest.
+  const shrink = Math.max(x1 - x0 + 1, y1 - y0 + 1) > 13 ? 2 : 1;
+  const crop = document.createElement("canvas");
+  crop.width = Math.ceil((x1 - x0 + 1) / shrink);
+  crop.height = Math.ceil((y1 - y0 + 1) / shrink);
+  const out = crop.getContext("2d")!;
+  out.imageSmoothingEnabled = false;
+  out.drawImage(
+    c,
+    x0,
+    y0,
+    x1 - x0 + 1,
+    y1 - y0 + 1,
+    0,
+    0,
+    crop.width,
+    crop.height,
+  );
+  return {
+    sprite: id,
+    // Held in front in both hands: these are objects, not tools with hafts.
+    kind: "both",
+    image: crop,
+    width: crop.width,
+    height: crop.height,
+  };
+}

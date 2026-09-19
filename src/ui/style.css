@@ -5243,3 +5243,23 @@ button:disabled {
   background: #2b3a35;
   border-color: #887b56;
 }
+
+/* Two ways to empty a hand: back into the pocket, or down on the ground. */
+.hand-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+.hand-actions button {
+  flex: 1;
+  padding: 4px 6px;
+  font-size: 11px;
+  border: 1px solid var(--line-soft);
+  border-radius: 5px;
+  background: #ffffff08;
+  color: inherit;
+  cursor: pointer;
+}
+.hand-actions button:hover {
+  border-color: var(--gold);
+}

@@ -17,6 +17,7 @@ import { asOfficiant } from "./officiant";
 import { sexFromName } from "./name-sex";
 import { wornFromWearing } from "../../core/wearing";
 import { clothFor, rolesFrom } from "./wardrobe";
+import { plausibleHair } from "../../core/character";
 import type { CharacterPhysique } from "../../core/character";
 
 export type Sex = CharacterPhysique["sex"];
@@ -285,7 +286,13 @@ export function characterAppearance(
     age >= 60 && random(seed, "character-v1", id, "grey") < 0.5
       ? "#aaa699"
       : pick(kit.hairColors, seed, id, "hair-color");
-  a.hair = pick(kit.hairStyles, seed, id, "hair");
+  a.hair = plausibleHair(
+    pick(kit.hairStyles, seed, id, "hair"),
+    sex,
+    age,
+    random(seed, "character-v1", id, "balding"),
+    kit.hairStyles,
+  );
   const garment = pick(kit.garments, seed, id, "garment");
   // Generic ornaments and headwear must not leak out of the unrestricted art lab.
   a.wearing = {
@@ -380,6 +387,8 @@ export function generateCharacter(
           roles: rolesFrom(requestedRole, role),
         },
         { year: s.year, setting: s },
+        undefined,
+        appearance.wearing.color,
       ),
     ),
     origin: {

@@ -49,8 +49,8 @@ function portraitSource(appearance: CharacterAppearance, key: string) {
 }
 
 const portraits = new Map<string, HTMLCanvasElement>();
-/** Region of the 64×80 bust shown in the UI: hair top to collar. */
-const CROP = { x: 9, y: 4, w: 46, h: 48 };
+/** Region of the 64×80 bust shown in the UI: hair top to the shoulders. */
+const CROP = { x: 2, y: 2, w: 60, h: 70 };
 /** Three-quarter bust from the same recipe, cached per appearance and age. */
 function portraitCanvas(
   appearance: CharacterAppearance,
@@ -103,7 +103,7 @@ export function CharacterSprite({
     out.clearRect(0, 0, canvas.width, canvas.height);
     out.imageSmoothingEnabled = false;
     if (portrait) {
-      // Face crop at two whole pixels per native pixel.
+      // Bust crop at two whole pixels per native pixel.
       out.drawImage(
         portraitCanvas(appearance, age, key),
         CROP.x,

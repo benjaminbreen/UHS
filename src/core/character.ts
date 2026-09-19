@@ -1,3 +1,4 @@
+import type { Material } from "../content/characters/wardrobe/cloth";
 import { random } from "./random";
 export const hairStyles = [
   "original",
@@ -275,6 +276,12 @@ export type CharacterAppearance = {
     footwear?: (typeof footwear)[number];
     necklace: boolean;
     earrings: boolean;
+    /** What the body garment is made of and how well, carried through from the
+     * worn item's id so the drawn cloth and the item's name agree. Absent on
+     * saves written before cloth had a material, and on authored looks. */
+    material?: Material;
+    /** -1 worn, 0 ordinary, 1..3 the fine tiers. */
+    quality?: number;
   };
 };
 export const skinColors = [
@@ -481,7 +488,13 @@ export function actorAppearance(
         age >= 60 && random(seed, "character-palette", "grey") < 0.5
           ? "#aaa699"
           : from(palette.hairColors, "hair-color"),
-      hair: from(palette.hairStyles, "hair"),
+      hair: plausibleHair(
+        from(palette.hairStyles, "hair"),
+        a.physique?.sex ?? "unspecified",
+        age,
+        random(seed, "character-palette", "balding"),
+        palette.hairStyles,
+      ),
     }),
     wearing: {
       ...a.wearing,
@@ -517,3 +530,33 @@ export const originalAppearance: CharacterAppearance = {
     earrings: false,
   },
 };
+
+/**
+ * Palettes list "bald" alongside the other styles, so a uniform pick made about
+ * one person in six bald regardless of sex or age. Keep the entry, but gate it:
+ * baldness is overwhelmingly male and late-onset.
+ */
+export function plausibleHair(
+  hair: CharacterAppearance["hair"],
+  sex: CharacterPhysique["sex"],
+  age: number,
+  roll: number,
+  pool: readonly CharacterAppearance["hair"][],
+): CharacterAppearance["hair"] {
+  if (hair !== "bald") return hair;
+  const chance =
+    sex !== "male"
+      ? 0.01
+      : age < 30
+        ? 0.02
+        : age < 45
+          ? 0.2
+          : age < 60
+            ? 0.4
+            : 0.55;
+  if (roll < chance) return "bald";
+  const rest = pool.filter((h) => h !== "bald" && h !== "original");
+  if (!rest.length) return "cropped";
+  // Rescale the leftover of the roll so the alternative varies too.
+  return rest[Math.floor(((roll - chance) / (1 - chance)) * rest.length)]!;
+}

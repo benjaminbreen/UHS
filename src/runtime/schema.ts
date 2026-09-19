@@ -25,6 +25,7 @@ import {
   hemStyles,
   wearSlots,
 } from "../core/character";
+import { materials } from "../content/characters/wardrobe/cloth";
 import { z } from "zod";
 import { settingSchema } from "../content/geography/types";
 const item = z.string().regex(/^[a-z][a-z0-9-]{0,39}$/);
@@ -231,6 +232,9 @@ export const characterAppearanceSchema = z.object({
     motif: z.enum(motifs).optional(),
     necklace: z.boolean(),
     earrings: z.boolean(),
+    // Optional: saves written before cloth carried a material.
+    material: z.enum(materials).optional(),
+    quality: z.number().int().min(-1).max(3).optional(),
   }),
 });
 const actor = z.object({
@@ -326,10 +330,12 @@ const object = z.object({
     "exit",
     "bed",
     "monument",
+    "item",
   ]),
   pos,
   sprite: z.string(),
   inventory,
+  item: item.optional(),
   owner: z.string().optional(),
   open: z.boolean().optional(),
   depleted: z.boolean().optional(),
@@ -365,6 +371,10 @@ export const commandSchema = z.discriminatedUnion("type", [
     .strict(),
   z.object({ type: z.literal("swing") }).strict(),
   z.object({ type: z.literal("stow") }).strict(),
+  z.object({ type: z.literal("drop") }).strict(),
+  z
+    .object({ type: z.literal("give"), target: z.string().max(100), item })
+    .strict(),
   z
     .object({ type: z.literal("hold"), item: z.string().min(1).max(64) })
     .strict(),

@@ -2583,10 +2583,10 @@ export class WorldScene extends Phaser.Scene {
     this.heldSprites.clear();
     // An item taken in hand is drawn the same way a carried prop is, but a
     // real object in the hand wins.
-    if (e.state.player.heldItem) {
-      const sprite = this.runtime.item(e.state.player.heldItem)?.sprite;
-      if (sprite) this.heldSprites.set("player", sprite);
-    }
+    if (e.state.player.heldItem)
+      this.heldSprites.set("player", `icon:${e.state.player.heldItem}`);
+    for (const a of e.state.actors)
+      if (a.heldItem) this.heldSprites.set(a.id, `icon:${a.heldItem}`);
     for (const object of e.state.objects)
       if (object.carriedBy)
         this.heldSprites.set(object.carriedBy, object.sprite);
