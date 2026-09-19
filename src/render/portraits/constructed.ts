@@ -139,8 +139,16 @@ type Model = {
   neckWidth: number;
   /** Torso narrowing for children and youths; 1 is adult. */
   bodyScale: number;
-  /** Hairline retreat at the temples for elders, in pixels. */
+  /** Hairline retreat at the temples, in pixels. */
   recede: number;
+  /**
+   * 0 up to the mid twenties, 1 by seventy-five. Ageing after that age is
+   * gradual and monotonic, so it is one ramp rather than steps at 45 and 55 —
+   * which left every face between seventeen and fifty-eight identical.
+   */
+  wear: number;
+  /** 1 at birth, 0 at eighteen. */
+  young: number;
   /** Stable per-face roll for the traits the record does not name: lash
    * length, lid crease, brow density, under-eye. */
   variant: number;
@@ -219,7 +227,13 @@ function model(
     t.noseLength -
     (child ? 1 : 0);
   const mouthY = Math.min(chin - 5, noseBase + 4 + t.mouthDrop);
-  const recede = a.hair === "bald" ? 0 : age >= 65 ? 2 : age >= 55 ? 1 : 0;
+  const wear = Math.max(0, Math.min(1, (age - 18) / 45));
+  const young = age < 18 ? (18 - age) / 18 : 0;
+  // Men recede from the mid thirties, not from fifty-five.
+  const recede =
+    a.hair === "bald"
+      ? 0
+      : Math.round(wear * (a.physique?.sex === "male" ? 3.6 : 1.4));
   const hairline =
     (face.hairline === "high" ? 12 : face.hairline === "low" ? 16 : 14) +
     (top - 7) -
@@ -333,6 +347,8 @@ function model(
     neckWidth: t.neckWidth - (child ? 1.5 : youth ? 0.5 : 0),
     bodyScale: child ? 0.78 : youth ? 0.9 : 1,
     recede,
+    wear,
+    young,
     blink,
     variant: [
       ...(a.skin + a.hairColor + a.hair + head + jaw + face.eyeShape),
@@ -1309,6 +1325,10 @@ type FaceForm = {
   cheekOut: number;
   /** Hollow under the cheekbone: a separate mark, on gaunt and old faces. */
   hollow: boolean;
+  /** Fold from the nose wing to the mouth corner. Deepens with age. */
+  fold: number;
+  /** Soft tissue breaking the jaw line. */
+  jowl: number;
   /** Width of the jaw at its angle. */
   jaw: number;
   /** Depth of the socket under the brow. */
@@ -1333,12 +1353,19 @@ function faceForm(m: Model): FaceForm {
   return {
     cheekRise: roll(2) * 2.2,
     cheekOut: 1.4 + (lean ? 0.7 : 0) + (heavy ? -0.5 : 0) + roll(6) * 0.9,
-    hollow: (lean || age >= 55 || roll(10) > 0.28) && age >= 20,
+    hollow: (lean || m.wear > 0.45 || roll(10) > 0.28) && age >= 20,
+    // A face loses fat and gains creases steadily; the old hard steps at 45
+    // and 55 were why nothing moved between seventeen and fifty-eight.
+    fold: Math.max(0, m.wear * 1.2 - 0.05) + (lean ? 0.1 : 0),
+    jowl: Math.max(0, m.wear - 0.45) * (heavy ? 1.6 : 1),
     jaw: (male ? 1 : 0) + strength * 1.4 + (heavy ? 1 : 0) + roll(14) * 1.2,
-    brow: 1 + (male ? 0.6 : 0) + roll(18) * 0.8,
+    brow: (1 + (male ? 0.6 : 0) + roll(18) * 0.8) * (1 - m.young * 0.8),
     temple: lean || male || roll(22) > 0.2,
     cleft: ((v >> 26) & 7) === 0 && age >= 16,
-    flush: Math.max(0, 0.16 + roll(9) * 0.3) * (age < 14 ? 1.4 : 1),
+    flush:
+      Math.max(0, 0.16 + roll(9) * 0.3) *
+      (1 + m.young * 0.7) *
+      (1 - m.wear * 0.4),
   };
 }
 
@@ -1482,6 +1509,84 @@ function drawHead(r: Raster, m: Model) {
     true,
   );
 
+  // The fold from the nose wing to the corner of the mouth. The single
+  // clearest mark of a face past thirty, and it was not drawn at all.
+  if (f.fold > 0.08) {
+    const deep = f.fold > 0.3;
+    r.stroke(
+      smooth([
+        [mid - 3.5, m.noseBase - 0.5],
+        [mid - 4.5, m.noseBase + 3],
+        [mid - 4, m.mouthY + 1.5],
+      ]).slice(0, 12),
+      mix(S.base, S.deep, Math.min(0.62, 0.3 + f.fold * 0.35)),
+      deep ? 0 : 2,
+      undefined,
+      MAT.skin,
+    );
+    if (deep)
+      r.stroke(
+        [
+          [mid - 2.5, m.noseBase],
+          [mid - 3.5, m.mouthY + 1],
+        ],
+        mix(S.base, S.light, 0.4),
+        0,
+        undefined,
+        MAT.skin,
+      );
+    // The far side shows only the top of the same fold.
+    r.stroke(
+      [
+        [mid + 4, m.noseBase + 0.5],
+        [mid + 4.5, m.noseBase + 3],
+      ],
+      mix(S.base, S.deep, Math.min(0.4, 0.2 + f.fold * 0.3)),
+      deep ? 0 : 2,
+      undefined,
+      MAT.skin,
+    );
+  }
+  // One line across the brow, from about forty. Two would be a caricature.
+  if (f.fold > 0.45)
+    r.stroke(
+      smooth([
+        [nearX + 5, browY - 5],
+        [31, browY - 6],
+        [mid + 1, browY - 5],
+      ]).slice(0, 14),
+      mix(S.base, S.deep, 0.3),
+      f.fold > 0.7 ? 1 : 2,
+      undefined,
+      MAT.skin,
+    );
+
+  // Soft tissue settling along the jaw: the line stops being one clean curve.
+  if (f.jowl > 0.05) {
+    lay(
+      smooth([
+        [nearX + 2, chin - 6],
+        [27, chin - 1],
+        [mid - 3, chin + 1],
+        [mid - 3, chin + 2],
+        [26, chin + 1],
+        [nearX + 1, chin - 4],
+      ]),
+      mix(S.shade, S.deep, Math.min(0.6, f.jowl)),
+      true,
+    );
+    r.stroke(
+      [
+        [nearX + 3, chin - 7],
+        [28, chin - 3],
+      ],
+      mix(S.base, S.deep, 0.3 + f.jowl * 0.2),
+      1,
+      undefined,
+      MAT.skin,
+    );
+  }
+
   // Reflected light along the far contour. One pixel of cool bounce is what
   // lifts the head off the background.
   for (const i of head) {
@@ -1605,7 +1710,7 @@ function drawFeatures(r: Raster, m: Model) {
   // iris — two irises of different widths read as a squint, not a turn.
   const nw =
     (face.eyeSize === "large" ? 7 : face.eyeSize === "small" ? 5 : 6) +
-    (child ? 1 : 0);
+    Math.round(m.young * 2);
   const fw = nw - 1;
   // A monolid presents a shallower opening, and more lid between brow and
   // lash. Both read at this size; the fold alone does not.
@@ -1615,6 +1720,8 @@ function drawFeatures(r: Raster, m: Model) {
       : face.eyeShape === "round" || face.eyeSize === "large" || child
         ? 3
         : 2;
+  // The upper lid loses its hold and covers more of the eye.
+  const droop = m.wear > 0.76 ? 1 : 0;
   const browLift = mono ? 1.5 : lowLid ? 0.5 : 0;
   const spacing =
     face.eyeSpacing === "wide" ? 1 : face.eyeSpacing === "close" ? -1 : 0;
@@ -1622,7 +1729,7 @@ function drawFeatures(r: Raster, m: Model) {
   const fx = 40 + spacing;
   // One iris width for both eyes, and both look at the same point: the gaze
   // is what the viewer reads first, and a pixel out of line breaks it.
-  const iw = face.eyeSize === "small" && !child ? 2 : 3;
+  const iw = face.eyeSize === "small" && !child ? 2 : m.young > 0.4 ? 4 : 3;
 
   const eye = (x0: number, w: number, near: boolean) => {
     const narrow = face.eyeShape === "narrow";
@@ -1675,6 +1782,10 @@ function drawFeatures(r: Raster, m: Model) {
       return;
     }
     r.rect(x0, eyeY, w, h, white);
+    if (droop) {
+      r.rect(x0, eyeY, w, 1, mix(skin.base, skin.shade, 0.3));
+      r.rect(x0, eyeY - 1, w + 1, 1, mix(skin.base, skin.light, 0.3));
+    }
     // The upper lid casts across the top of the white; the inner corner sits
     // deepest. Without this the eye is a sticker rather than a socket.
     r.rect(x0, eyeY, w, 1, mix(white, lid, 0.3));
@@ -1900,7 +2011,9 @@ function drawFeatures(r: Raster, m: Model) {
   if (bump) r.put(mid + 1, eyeY + 2, skin.high);
   r.put(tipX - 1, noseBase - 2, skin.high);
   // Base and nostrils.
-  const wing = face.nose === "broad" ? 3 : face.nose === "short" ? 1 : 2;
+  const wing =
+    (face.nose === "broad" ? 3 : face.nose === "short" ? 1 : 2) -
+    (m.young > 0.45 ? 1 : 0);
   r.rect(mid - wing, noseBase, wing + 3, 1, skin.shade);
   r.put(tipX, noseBase, skin.deep);
   r.put(mid - wing, noseBase - 1, skin.deep);
@@ -1914,7 +2027,10 @@ function drawFeatures(r: Raster, m: Model) {
   );
 
   // Mouth wraps around the turn: the near half is longer.
-  const mw = face.mouth === "wide" ? 9 : face.mouth === "narrow" ? 5 : 7;
+  const mw =
+    (face.mouth === "wide" ? 9 : face.mouth === "narrow" ? 5 : 7) -
+    Math.round(m.young * 2) -
+    (m.wear > 0.78 ? 1 : 0);
   const mx = mid - Math.ceil(mw * 0.6);
   const lipLine = mix(skin.deep, "#7d3a45", 0.45);
   const lower = mix(skin.light, "#c2646a", face.mouth === "full" ? 0.5 : 0.3);
@@ -1922,7 +2038,8 @@ function drawFeatures(r: Raster, m: Model) {
   r.put(mx, mouthY, skin.deep);
   r.put(mx + mw - 1, mouthY, skin.deep);
   r.put(mx + mw, mouthY - 1, mix(skin.base, skin.shade, 0.5));
-  if (face.mouth === "full") {
+  const thin = m.wear > 0.62;
+  if (face.mouth === "full" && !thin) {
     r.rect(mx + 1, mouthY + 1, mw - 2, 1, lower);
     r.rect(mx + 2, mouthY - 1, mw - 4, 1, mix(skin.base, lipLine, 0.45));
     r.rect(mx + 2, mouthY + 2, mw - 4, 1, skin.shade);
