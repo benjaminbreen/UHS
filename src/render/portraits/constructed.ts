@@ -1844,135 +1844,280 @@ function drawFrontHair(r: Raster, m: Model) {
     });
 }
 
+/**
+ * Hair tones. `tones()` drives its top step toward cream, which on dark hair
+ * puts near-white dots on a black mass. A head of hair is a glossy solid: the
+ * sheen stays in the hair's own hue, two steps above the body colour, and only
+ * a single glint goes near the light's colour.
+ */
+type HairRamp = {
+  core: string;
+  deep: string;
+  shade: string;
+  base: string;
+  light: string;
+  sheen: string;
+  glint: string;
+};
+
+function hairRamp(base: string): HairRamp {
+  const t = tones(base, "hair");
+  const n = parseInt(base.slice(1), 16);
+  const lum =
+    (0.299 * ((n >> 16) & 255) +
+      0.587 * ((n >> 8) & 255) +
+      0.114 * (n & 255)) /
+    255;
+  // Room left above the base colour. Black hair can take a wide sheen; grey
+  // hair has nowhere to go and only needs a hint.
+  const head = Math.max(0.2, 1 - lum);
+  return {
+    core: mix(t.edge, "#241a2e", 0.35),
+    deep: t.deep,
+    shade: t.shade,
+    base,
+    light: mix(base, "#e8c88e", 0.1 + 0.22 * head),
+    sheen: mix(base, "#f2d9a4", 0.16 + 0.4 * head),
+    glint: mix(base, "#fdf1cf", 0.24 + 0.56 * head),
+  };
+}
+
+/** How a texture breaks the light across the mass: strand direction, how far
+ * it swings the shading, and whether it holds a specular at all. */
+function strandField(texture: string, x: number, y: number) {
+  switch (texture) {
+    case "wavy":
+      return Math.sin(x * 1.05 + Math.sin(y * 0.34) * 2.4) * 0.55;
+    case "curly":
+      // Two interfering waves make blobby clumps: curls, not corrugation.
+      return (
+        Math.sin(x * 1.5 + y * 1.0) * Math.sin(y * 1.25 - x * 0.45) * 0.95
+      );
+    case "coiled":
+      return (
+        Math.sin(x * 2.3 + y * 1.8) * Math.sin(x * 1.6 - y * 2.1) * 0.8 +
+        Math.sin(x * 3.1 + y * 2.7) * 0.25
+      );
+    default:
+      // Straight hair falls in long threads: vary across the head, not down it.
+      return (
+        Math.sin(x * 1.45) * 0.42 + Math.sin(x * 0.63 + y * 0.09) * 0.5
+      );
+  }
+}
+
+const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
+
 function drawHairDetail(r: Raster, m: Model) {
-  const { a, hair, face, nearX, farX, top, volume: v } = m;
+  const { a, face, nearX, farX, top, volume: v } = m;
   if (a.hair === "bald") return;
   if (COVERED.has(a.wearing.headwear)) return;
-  const crownY = top - v;
-  const all = r.region([
-    [0, 0],
-    [64, 0],
-    [64, 80],
-    [0, 80],
-  ]);
-  // Far side and underside darken; the near back mass turns away slightly.
-  shadeRamp(r, all, [36, 20], [farX + v + 2, 20], 0.36, SHADOW, [MAT.hair]);
-  shadeRamp(r, all, [30, 26], [30, 46], 0.22, SHADOW, [MAT.hair]);
-  shadeRamp(r, all, [nearX - 1, 20], [nearX - v - 3, 20], 0.14, SHADOW, [
-    MAT.hair,
-  ]);
-  if (a.wearing.headwear === "cap") return;
+  const H = hairRamp(
+    mix(a.hairColor, "#b8b2a6", m.age >= 45 ? Math.min(0.85, (m.age - 45) / 30) : 0),
+  );
   const texture = face.hairTexture;
+  const crownY = top - v;
   const nearOut = nearX - v - 2;
-  if (texture === "curly" || texture === "coiled") {
-    const step = texture === "coiled" ? 3 : 4;
-    for (let y = crownY + 1; y < 60; y += step)
-      for (let x = nearOut; x < farX + v + 2; x += step) {
-        const j = ((x * 7 + y * 13) % 5) - 2;
-        const px = x + (y % (2 * step) ? 1 : 0) + (j > 0 ? 1 : 0),
-          py = y + (j < 0 ? 1 : 0);
-        if (
-          r.matAt(px, py) !== MAT.hair ||
-          r.matAt(px + 1, py + 1) !== MAT.hair
-        )
-          continue;
-        if (px > 40 && (px + py) % 3) continue;
-        r.put(px, py, hair.light);
-        if (texture === "coiled") r.put(px + 1, py + 1, hair.shade);
-        else r.put(px + 1, py, hair.light);
+
+  // Every hair pixel, less its silhouette: the contour is already drawn and
+  // repainting it would eat the outline that separates hair from background.
+  const mass: number[] = [];
+  for (let i = 0; i < r.mat.length; i++) if (r.mat[i] === MAT.hair) mass.push(i);
+  if (!mass.length) return;
+  const inMass = new Set(mass);
+  const body = mass.filter((i) => {
+    const x = i % r.w;
+    return (
+      x > 0 &&
+      x < r.w - 1 &&
+      inMass.has(i - 1) &&
+      inMass.has(i + 1) &&
+      inMass.has(i - r.w) &&
+      inMass.has(i + r.w)
+    );
+  });
+
+  // Hair is a shell on a sphere, so it is shaded as one: the value at a pixel
+  // is how much that part of the skull faces the light, not how far right it
+  // sits. Two linear ramps cannot put a highlight on a crown.
+  const cx = 34.5,
+    cy = top + 13;
+  const rx = (farX + v + 2 - nearOut) / 2,
+    ry = 21;
+  // Upper left, and well in front, so the band sits on the crown rather than
+  // sliding off the near edge.
+  const lx = -0.46,
+    ly = -0.63,
+    lz = 0.63;
+  const amp =
+    texture === "curly"
+      ? 0.19
+      : texture === "coiled"
+        ? 0.15
+        : texture === "wavy"
+          ? 0.14
+          : 0.09;
+  // Coiled hair scatters: it never takes one broad specular, so its band is
+  // capped and its glint suppressed.
+  const specular = texture === "coiled" ? 0.95 : 0.88;
+  const steps: [number, string][] = [
+    [0.1, H.core],
+    [0.3, H.deep],
+    [0.52, H.shade],
+    [0.73, H.base],
+    [specular, H.light],
+    [2, H.sheen],
+  ];
+
+  // A beard sits on the jaw, in front, lit by the same lamp as the face. Shade
+  // it off the skull and it comes out a black block under the chin.
+  const jaw = m.chin - 8;
+  const beardAt = (x: number, y: number) =>
+    y > jaw && x > nearX && x < farX;
+  r.paint(
+    body,
+    (_c, x, y) => {
+      let l: number;
+      if (beardAt(x, y)) {
+        l =
+          0.74 -
+          0.34 * ((x - nearX) / (farX - nearX)) -
+          0.2 * Math.min(1, (y - jaw) / 16) +
+          strandField(texture, x, y) * amp * 0.7;
+        l = Math.max(0.16, Math.min(1, l));
+      } else {
+        const ux = (x + 0.5 - cx) / rx,
+          uy = (y + 0.5 - cy) / ry;
+        const d2 = ux * ux + uy * uy;
+        const nz = Math.sqrt(Math.max(0, 1 - Math.min(1, d2)));
+        // Below the skull the shell falls away from the light, which is what
+        // makes long hair dark at the ends without a separate gradient.
+        l = ux * lx + uy * ly + nz * lz;
+        l = Math.max(0, Math.min(1, l * 0.82 + 0.16));
+        l += strandField(texture, x, y) * amp;
       }
-    return;
+      // Ordered dither across the whole ramp: a checkerboard only blends one
+      // boundary, and the steps here are close enough to band without it.
+      l += (BAYER[(y & 3) * 4 + (x & 3)] / 16 - 0.47) * 0.085;
+      for (const [cut, colour] of steps) if (l < cut) return colour;
+      return H.sheen;
+    },
+    { only: [MAT.hair] },
+  );
+  // The glint: the few pixels nearest the light, and only where the hair is
+  // smooth enough to hold one.
+  if (texture !== "coiled")
+    r.paint(
+      body,
+      (c, x, y) => {
+        if (beardAt(x, y)) return c;
+        const ux = (x + 0.5 - cx) / rx,
+          uy = (y + 0.5 - cy) / ry;
+        const d2 = ux * ux + uy * uy;
+        const nz = Math.sqrt(Math.max(0, 1 - Math.min(1, d2)));
+        const l = ux * lx + uy * ly + nz * lz;
+        return l > 0.93 ? H.glint : c;
+      },
+      { only: [MAT.hair] },
+    );
+
+  // Roots: hair is darkest where it meets the face and where it turns under.
+  r.paint(
+    body,
+    (c, x, y) =>
+      y > m.hairline - 3 && y < m.hairline + 3 && x > nearX && x < farX
+        ? mix(c, H.core, 0.4)
+        : c,
+    { only: [MAT.hair] },
+  );
+
+  // A softened hairline: a hard row of hair against a hard row of skin is the
+  // single most plastic-looking thing on the face.
+  for (const i of mass) {
+    const x = i % r.w,
+      y = (i - x) / r.w;
+    if (y < crownY + 2 || y > m.hairline + 6) continue;
+    if (r.matAt(x, y + 1) !== MAT.skin) continue;
+    if ((x + y) & 1) r.color[i] = mix(r.color[i], m.skin.base, 0.45);
+    const wisp = (Math.imul(x * 2654435761, y + 7) >>> 20) & 5;
+    if (wisp === 0) r.put(x, y + 1, mix(H.deep, m.skin.base, 0.3));
+    if (wisp === 3) r.put(x, y + 2, mix(H.shade, m.skin.base, 0.5));
   }
-  // Crown highlight on the lit side.
-  r.stroke(
-    [
-      [nearOut + 4, crownY + 5],
-      [27, crownY + 2],
-      [34, crownY + 0.5],
-    ],
-    hair.high,
-    2,
-    undefined,
-    MAT.hair,
-  );
-  r.stroke(
-    [
-      [nearOut + 5, crownY + 7],
-      [28, crownY + 4],
-      [33, crownY + 2.5],
-    ],
-    hair.light,
-    3,
-    undefined,
-    MAT.hair,
-  );
+
+  if (a.wearing.headwear === "cap") return;
+
+  // Locks. One continuous line each, dark on the shadow side and light on the
+  // lit side of the same parting, so they read as volume rather than scratches.
   const wave = texture === "wavy" ? 1.5 : 0;
-  // Parting a little left of the midline; strands fall away from it.
   if (
     a.hair !== "cropped" &&
     a.hair !== "topknot" &&
     a.wearing.headwear === "none"
-  )
+  ) {
     r.stroke(
       [
-        [31, crownY + 2],
-        [30, m.hairline - 1],
+        [31, crownY + 1.5],
+        [30.5, m.hairline - 1],
       ],
-      hair.deep,
+      H.core,
+      0,
+      undefined,
+      MAT.hair,
+    );
+    r.stroke(
+      [
+        [32, crownY + 2],
+        [31.5, m.hairline - 1],
+      ],
+      H.light,
       2,
       undefined,
       MAT.hair,
     );
-  // Strands follow the flow from the parting down both sides.
-  const strands: Pt[][] = [
-    [
-      [31, crownY + 3],
-      [26 - wave, crownY + 8],
-      [24 + wave, crownY + 14],
-      [22, crownY + 20],
-    ],
-    [
-      [38, crownY + 2],
-      [43 + wave, crownY + 6],
-      [46, crownY + 12],
-    ],
+  }
+  // Locks only where the hair hangs: a drawn line across the crown is a
+  // straight mark on a curved surface, and reads as a scar. The shading
+  // already carries the strand direction up there.
+  const locks: Pt[][] = [
     [
       [nearOut + 3, 26],
-      [nearOut + 3 + wave, 33],
-      [nearOut + 2, 40],
-      [nearOut + 3 + wave, 47],
-      [nearOut + 2, 56],
+      [nearOut + 3 + wave, 34],
+      [nearOut + 2, 42],
+      [nearOut + 3 + wave, 50],
+      [nearOut + 2, 58],
     ],
     [
-      [nearOut + 6, 30],
-      [nearOut + 6 - wave, 38],
-      [nearOut + 7, 46],
+      [nearOut + 7, 30],
+      [nearOut + 6 - wave, 39],
+      [nearOut + 7, 48],
     ],
     [
       [farX + v - 2, 26],
-      [farX + v - 2 - wave, 33],
-      [farX + v - 1, 40],
-      [farX + v - 2, 48],
-      [farX + v - 1, 56],
+      [farX + v - 2 - wave, 34],
+      [farX + v - 1, 42],
+      [farX + v - 2, 50],
+      [farX + v - 1, 58],
     ],
   ];
-  for (const s of strands)
-    r.stroke(s, hair.high, texture === "wavy" ? 3 : 4, undefined, MAT.hair);
-  for (const s of strands.slice(0, 2))
-    r.stroke(
-      s.map(([x, y]) => [x + 1, y + 1] as Pt),
-      hair.shade,
-      3,
-      undefined,
-      MAT.hair,
-    );
+  // Curls and coils have no long locks to draw; their clumps already carry it.
+  if (texture !== "curly" && texture !== "coiled")
+    for (const lock of locks) {
+      r.stroke(lock, H.shade, 2, undefined, MAT.hair);
+      r.stroke(
+        lock.map(([x, y]) => [x - 1, y] as Pt),
+        H.light,
+        4,
+        undefined,
+        MAT.hair,
+      );
+    }
   if (a.hair === "topknot")
     r.stroke(
       [
         [32, top - v - 5],
         [36, top - v - 5.5],
       ],
-      hair.light,
+      H.sheen,
       0,
       undefined,
       MAT.hair,
@@ -1980,6 +2125,37 @@ function drawHairDetail(r: Raster, m: Model) {
 }
 
 // ---------------------------------------------------------------- beard
+
+/**
+ * Fill a patch of facial hair. Hair does not end on a ruled line, so the
+ * boundary is thinned on a hash rather than filled solid: the cheek line goes
+ * thinnest, because that is where a beard actually fades into skin.
+ */
+function furFill(r: Raster, poly: Pt[], colour: string, cheekY: number) {
+  const region = r.region(poly);
+  const inside = new Set(region);
+  const solid: number[] = [];
+  const edge: number[] = [];
+  for (const i of region) {
+    const x = i % r.w;
+    const open =
+      x === 0 ||
+      x === r.w - 1 ||
+      !inside.has(i - 1) ||
+      !inside.has(i + 1) ||
+      !inside.has(i - r.w) ||
+      !inside.has(i + r.w);
+    (open ? edge : solid).push(i);
+  }
+  r.fill(solid, colour, MAT.hair);
+  for (const i of edge) {
+    const x = i % r.w,
+      y = (i - x) / r.w;
+    const keep = (Math.imul(x * 374761393, y * 668265263 + 11) >>> 25) & 7;
+    if (keep >= (y < cheekY ? 5 : 7)) continue;
+    r.put(x, y, colour, MAT.hair);
+  }
+}
 
 function drawBeard(r: Raster, m: Model) {
   const { a, hair, skin, chin, nearX, farX, mouthY, mid } = m;
@@ -2014,36 +2190,72 @@ function drawBeard(r: Raster, m: Model) {
     drawMoustache(r, m, beard === "handlebar");
     return;
   }
+  // Nothing grows on the lip. Every shape below starts under it.
+  const lip = mouthY + 2;
+  // Where a full beard stops on the cheek. The jaw path is the underside of
+  // the face; a beard that follows only that is a chinstrap.
+  const cheekLine: Pt[] = [
+    [nearX + 2, chin - 13],
+    [nearX + 4.5, chin - 9],
+    [28, chin - 5],
+    [mid - 3, lip + 1],
+    [mid + 4, lip],
+    [farX - 3, chin - 7],
+    [farX - 1.5, chin - 12],
+  ];
   const length = beard === "long" || beard === "forked" ? 12 : 4;
   let region: Pt[];
-  if (beard === "goatee")
-    region = [
-      [mid - 5, chin - 5],
-      [mid + 4, chin - 5],
-      [mid + 4.5, chin + 2],
-      [mid, chin + 5],
-      [mid - 5, chin + 2],
-    ];
-  else if (beard === "sideburns")
-    region = [
-      [nearX + 1, chin - 17],
-      [nearX + 5, chin - 17],
-      [nearX + 6, chin - 8],
-      [nearX + 2.5, chin - 8],
-    ];
-  else if (beard === "chinstrap")
-    region = [
-      ...jaw,
-      [farX - 1.5, chin - 6],
-      [mid + 4, chin + 1],
-      [mid - 2, chin + 2],
-      [28, chin],
-      [nearX + 2, chin - 6],
-    ];
-  else
+  let cheek = chin - 8;
+  if (beard === "goatee") {
+    // A chin tuft, on the chin rather than on the midline: the feature axis
+    // runs right of the chin's mass in a three-quarter view. Narrow under the
+    // lip, widest at the jaw, rounded off below it.
+    const gx = mid - 1.5;
+    region = smooth(
+      [
+        [gx - 2, lip - 1],
+        [gx + 1.5, lip - 1],
+        [gx + 3.5, lip + 2.5],
+        [gx + 5, chin - 1],
+        [gx + 3.5, chin + 4],
+        [gx - 0.5, chin + 5],
+        [gx - 3.5, chin + 3],
+        [gx - 5, chin - 2],
+        [gx - 3.5, lip + 2.5],
+      ],
+      4,
+    );
+    cheek = lip;
+  } else if (beard === "sideburns") {
+    region = smooth(
+      [
+        [nearX + 1, chin - 18],
+        [nearX + 5, chin - 17.5],
+        [nearX + 6, chin - 12],
+        [nearX + 4.5, chin - 7],
+        [nearX + 2.5, chin - 8],
+        [nearX + 1.5, chin - 13],
+      ],
+      3,
+    );
+    cheek = chin - 16;
+  } else if (beard === "chinstrap") {
     region = smooth(
       [
         ...jaw,
+        [farX - 1.5, chin - 5],
+        [mid + 4, chin + 1.5],
+        [mid - 2, chin + 2.5],
+        [28, chin + 0.5],
+        [nearX + 2, chin - 6],
+      ],
+      3,
+    );
+  } else {
+    cheek = chin - 10;
+    region = smooth(
+      [
+        ...cheekLine,
         [farX - 1, chin - 3],
         [mid + 5, chin + length - 2],
         [mid + 1, chin + length + (beard === "forked" ? -3 : 1)],
@@ -2053,72 +2265,89 @@ function drawBeard(r: Raster, m: Model) {
       ],
       3,
     );
-  r.poly(region, hair.base, MAT.hair);
-  if (beard === "forked")
-    r.poly(
+  }
+  furFill(r, region, hair.base, cheek);
+  if (beard === "forked") {
+    // The fork is a gap in the hair, so it shows the throat behind it.
+    const notch: Pt[] = [
+      [mid - 1.5, chin + 5],
+      [mid + 1, chin + 5],
+      [mid + 1.5, chin + length + 1],
+      [mid - 2, chin + length + 1],
+    ];
+    r.poly(notch, mix(skin.shade, SHADOW, 0.4), MAT.skin);
+    r.stroke(
       [
-        [mid - 2, chin + 5],
-        [mid + 1, chin + 5],
-        [mid + 2, chin + length + 1],
-        [mid - 3, chin + length + 1],
+        [mid - 1.5, chin + 5],
+        [mid - 2, chin + length],
       ],
-      skin.base,
+      mix(skin.deep, SHADOW, 0.3),
+      0,
+      undefined,
       MAT.skin,
     );
-  if (!["goatee", "chinstrap", "sideburns"].includes(beard)) {
-    // Keep the mouth clear, then add the moustache over it.
+  }
+  if (beard !== "sideburns") {
+    // Clear the lip, whatever the shape: a beard drawn over the mouth is the
+    // first thing that reads as wrong.
     r.poly(
       [
-        [mid - 6, mouthY - 0.5],
-        [mid + 4, mouthY - 0.5],
-        [mid + 4, mouthY + 2.5],
+        [mid - 6, mouthY - 1.5],
+        [mid + 5, mouthY - 1.5],
+        [mid + 5, mouthY + 2.5],
         [mid - 6, mouthY + 2.5],
       ],
       skin.base,
       MAT.skin,
     );
-    drawMoustache(r, m, false);
+    if (beard !== "goatee" && beard !== "chinstrap") drawMoustache(r, m, false);
   }
-  shadeRamp(
-    r,
-    r.region([
-      [mid, chin - 12],
-      [farX + 1, chin - 12],
-      [farX + 1, chin + 14],
-      [mid, chin + 14],
-    ]),
-    [mid, 40],
-    [farX, 40],
-    0.32,
-    SHADOW,
-    [MAT.hair],
-  );
-  for (const [x, y] of [
-    [27, chin - 1],
-    [31, chin + 2],
-    [26, chin - 5],
-  ] as Pt[])
-    if (r.matAt(x, y) === MAT.hair) r.put(x, y, hair.light);
 }
 
 function drawMoustache(r: Raster, m: Model, handlebar: boolean) {
-  const { hair, mouthY, mid } = m;
+  const { hair, mouthY, mid, noseBase } = m;
+  // It fills the upper lip, from under the nose down onto the lip line, with
+  // a dip at the philtrum. Floating it above the lip was the whole problem.
+  const top = Math.min(noseBase + 1, mouthY - 3);
+  const bottom = mouthY - 0.5;
   r.poly(
-    [
-      [mid - 7, mouthY - 2],
-      [mid - 1, mouthY - 3.5],
-      [mid + 4.5, mouthY - 2.5],
-      [mid + 5, mouthY - 0.5],
-      [mid, mouthY - 1],
-      [mid - 7.5, mouthY - 0.5],
-    ],
+    smooth(
+      [
+        [mid - 8, bottom + 1],
+        [mid - 7.5, top + 1.5],
+        [mid - 4, top],
+        [mid - 1, top + 2],
+        [mid + 1.5, top + 0.5],
+        [mid + 4.5, top + 1],
+        [mid + 6, bottom],
+        [mid + 4, bottom + 1],
+        [mid - 1, bottom + 0.5],
+        [mid - 5, bottom + 1],
+      ],
+      3,
+    ),
     hair.base,
     MAT.hair,
   );
-  if (handlebar) {
-    r.line([mid - 8, mouthY - 1], [mid - 9, mouthY + 2], hair.base, MAT.hair);
-    r.line([mid + 5, mouthY - 1], [mid + 6, mouthY + 2], hair.base, MAT.hair);
-  }
+  if (handlebar)
+    // The tails curl up and away, which is the only thing that says handlebar.
+    for (const [x0, dir] of [
+      [mid - 8, -1],
+      [mid + 6, 1],
+    ] as const) {
+      r.stroke(
+        [
+          [x0, bottom],
+          [x0 + dir * 2, bottom - 0.5],
+          [x0 + dir * 3, bottom - 3],
+          [x0 + dir * 2, bottom - 4.5],
+        ],
+        hair.base,
+        0,
+        MAT.hair,
+      );
+      r.put(x0 + dir, bottom - 1, hair.base, MAT.hair);
+    }
 }
 
 // ---------------------------------------------------------------- headwear
