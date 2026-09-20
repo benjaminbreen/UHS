@@ -5,9 +5,21 @@ import {
   PORTRAIT_WIDTH,
 } from "./layered";
 import { drawThreeQuarterPortrait } from "./three-quarter";
-import { drawConstructedPortrait, type ConstructedTuning } from "./constructed";
+import {
+  drawConstructedPortrait,
+  type Blink,
+  type ConstructedTuning,
+  type Expression,
+} from "./constructed";
 
-export type PortraitRenderOptions = { tuning?: Partial<ConstructedTuning> };
+export type PortraitRenderOptions = {
+  tuning?: Partial<ConstructedTuning>;
+  /** Slot C only; the earlier slots draw one resting face. */
+  expression?: Expression;
+  intensity?: number;
+  blink?: Blink;
+  speaking?: boolean;
+};
 
 export type PortraitRenderer = (
   context: CanvasRenderingContext2D,

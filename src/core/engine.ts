@@ -63,6 +63,7 @@ import {
   type WorldObject,
 } from "./types";
 import { canonical, random, stateHash } from "./random";
+import { regardCue } from "./regard";
 import { resolveIntents, validateIntents } from "./intents";
 import { findPath } from "./pathfinding";
 import { itineraryAt, type Itinerary } from "./itinerary";
@@ -98,6 +99,7 @@ import {
   type SkillId,
 } from "./skills";
 import { faunaBlockOf, habitatScorer } from "../world/v3/fauna";
+import { herdNoun } from "../content/fauna/herding";
 
 /** Cells either side of the player whose animal groups stay in the save. */
 const FAUNA_KEEP = 160;
@@ -382,11 +384,7 @@ export class Engine {
   regard(a: Actor, delta: number, cue?: CueKind) {
     if (!delta) return;
     a.trust += delta;
-    this.cue(
-      a.id,
-      cue ?? (delta < 0 ? "anger" : delta >= 2 ? "warm" : "nod"),
-      this.state.player.pos,
-    );
+    this.cue(a.id, cue ?? regardCue(delta, a.trust), this.state.player.pos);
   }
   /** Something done in front of people that they hold against the player.
    * Whoever it belonged to minds most; the rest are startled by it. */
@@ -575,9 +573,16 @@ export class Engine {
                 !o.broken)),
         );
         // A pot or a basket is cleared in the air; a loom or a well is not.
+        // A hen is cleared in the air like a pot; a sheep is not.
+        const beast = from.space === "outside" ? this.faunaAt(x, y) : undefined;
+        const beastMass = beast
+          ? faunaCombat(faunaProfile(beast.g.speciesId)!).mass
+          : 0;
         const overable =
-          blocking.length > 0 && blocking.every((o) => lowProp(o));
-        const obstacle = blocking.length > 0 && !overable;
+          (blocking.length > 0 || !!beast) &&
+          blocking.every((o) => lowProp(o)) &&
+          beastMass === 0;
+        const obstacle = (blocking.length > 0 || !!beast) && !overable;
         return {
           ...cell,
           over: overable || undefined,
@@ -591,7 +596,8 @@ export class Engine {
         x: from.x + dx * result.distance,
         y: from.y + dy * result.distance,
       };
-      return clear(landing)
+      return clear(landing) &&
+        !(from.space === "outside" && this.faunaAt(landing.x, landing.y))
         ? result
         : { kind: "blocked", reason: "Something is in the way." };
     }
@@ -602,7 +608,8 @@ export class Engine {
       if (result.kind === "blocked") return result;
       const landing =
         result.distance === 2 ? { x: to.x + dx, y: to.y + dy } : to;
-      return clear(landing)
+      return clear(landing) &&
+        !(from.space === "outside" && this.faunaAt(landing.x, landing.y))
         ? result
         : { kind: "blocked", reason: "Something is in the way." };
     }
@@ -1224,13 +1231,22 @@ export class Engine {
     const p = this.state.player;
     if (p.pos.space !== "outside") return undefined;
     const at = { x: p.pos.x + dx, y: p.pos.y + dy };
-    const found = this.faunaAt(at.x, at.y);
+    const found = this.faunaAt(at.x, at.y) ?? this.faunaCrossing(at.x, at.y);
     if (!found) return undefined;
     const { g, m } = found;
     const profile = faunaProfile(g.speciesId);
     const mass = profile ? faunaCombat(profile).mass : 3;
     const label = (profile?.label ?? "animal").replace(/ study$/, "");
-    const stands = { found, label, small: false, to: undefined };
+    const stands = {
+      found,
+      label,
+      small: false,
+      to: undefined,
+      crossing: false,
+    };
+    // Still clearing the cell it just left: a bump, and nothing to push.
+    if (m.x !== at.x || m.y !== at.y)
+      return mass === 0 ? undefined : { ...stands, crossing: true };
     // A fight is not the moment, and nor is one still reeling from a blow.
     if (mass >= 3 || g.provoked || g.attack || (m.stun ?? 0) > this.state.clock)
       return stands;
@@ -1282,7 +1298,23 @@ export class Engine {
           !this.faunaAt(c.x, c.y) &&
           !this.actorAt({ ...c, space: "outside" }, ""),
       );
-    return { found, label, small: mass === 0, to };
+    return { found, label, small: mass === 0, to, crossing: false };
+  }
+  /** An animal part-way out of this cell. Hens are under your feet anyway. */
+  private faunaCrossing(x: number, y: number) {
+    for (const g of this.state.fauna ?? []) {
+      if (Math.abs(g.pos.x - x) > 24 || Math.abs(g.pos.y - y) > 24) continue;
+      if (aerialStates.has(g.state)) continue;
+      const m = g.members.find(
+        (m) =>
+          m.trail &&
+          m.trail.x === x &&
+          m.trail.y === y &&
+          m.trail.until > this.state.clock,
+      );
+      if (m) return { g, m };
+    }
+    return undefined;
   }
   /** The last shove, for the scuff it leaves and the sound it makes. */
   lastShove?: {
@@ -2689,7 +2721,7 @@ export class Engine {
       );
       if (occupant) return `${occupant.name} is standing there.`;
       const beast = this.jostle(c.dx, c.dy);
-      if (beast && !beast.to && !beast.small)
+      if (beast && !beast.to && !beast.small && !beast.crossing)
         return `The ${beast.label.toLowerCase()} does not move for you.`;
       return;
     }
@@ -2857,6 +2889,53 @@ export class Engine {
         this.state.fauna.push(copy(g));
       }
     for (const g of this.state.fauna) this.enrol(g);
+    // A herd at grass brings its herders with it: they join the world's list
+    // as the herd is made, which is after that list was last read.
+    const here = new Set(this.state.actors.map((a) => a.id));
+    for (const actor of this.world.initialActors)
+      if (actor.tends && !here.has(actor.id))
+        this.state.actors.push({
+          ...copy(actor),
+          lastUpdated: this.state.clock,
+        });
+  }
+  /** A herder's day is the herd's: keep to a place beside it, move when it
+   * moves, and sit up with it at night. They eat what they carry. */
+  private tendHerd(a: Actor, clock: number) {
+    const herd = this.state.fauna?.find((g) => g.id === a.tends!.herd);
+    a.hunger = Math.min(a.hunger, 30);
+    a.offRoutine = true;
+    const hour = (clock / 3600) % 24;
+    const label = herd ? herdNoun(herd.speciesId) : "herd";
+    a.activity =
+      hour < 5 || hour >= 20
+        ? `Watching the ${label} by night`
+        : herd && ["flee", "chase"].includes(herd.state)
+          ? `Going after the ${label}`
+          : `Minding the ${label}`;
+    if (!herd?.members.length) return;
+    // The middle of the animals as they stand, not where the herd began.
+    const cx = herd.members.reduce((s, m) => s + m.x, 0) / herd.members.length,
+      cy = herd.members.reduce((s, m) => s + m.y, 0) / herd.members.length;
+    const [dx, dy] = (
+      [
+        [3, 1],
+        [-3, 2],
+        [1, -3],
+      ] as const
+    )[a.tends!.seat % 3];
+    const target = {
+      x: Math.round(cx) + dx,
+      y: Math.round(cy) + dy,
+      space: "outside",
+    };
+    if (distance(a.pos, target) > 2.5) this.stepToward(a, target);
+    else {
+      const fx = cx - a.pos.x,
+        fy = cy - a.pos.y;
+      a.direction =
+        Math.abs(fx) >= Math.abs(fy) ? (fx > 0 ? 1 : 3) : fy > 0 ? 2 : 0;
+    }
   }
   /** Vitals for new arrivals, and the legends among them onto the register.
    * One already slain does not come back with its block. */
@@ -3292,6 +3371,20 @@ export class Engine {
       delete this.lastLeap;
       delete this.lastJostle;
       const beast = this.jostle(c.dx, c.dy);
+      if (beast?.crossing) {
+        // Its body is still in the way; a moment and it is gone.
+        const { g, m } = beast.found;
+        this.lastJostle = {
+          group: g.id,
+          n: m.n ?? 0,
+          yielded: false,
+          small: false,
+        };
+        p.direction = c.dy < 0 ? 0 : c.dx > 0 ? 1 : c.dy > 0 ? 2 : 3;
+        p.facing = facingFromStep(c.dx, c.dy, p.direction);
+        this.advance(2);
+        return;
+      }
       if (beast) {
         const { g, m } = beast.found;
         const from = { x: m.x, y: m.y };
@@ -3299,6 +3392,10 @@ export class Engine {
         const to = beast.to ?? { ...p.pos };
         m.x = to.x;
         m.y = to.y;
+        // The player takes the cell it left, so that cell is not held; and it
+        // does not stop one square off, it goes.
+        delete m.trail;
+        m.shy = { x: p.pos.x, y: p.pos.y, until: this.state.clock + 40 };
         const sx = to.x - from.x,
           sy = to.y - from.y;
         if (sx) m.direction = sx > 0 ? 1 : 3;
@@ -4256,6 +4353,10 @@ export class Engine {
             !this.blocked(target.x, target.y, target.space)
           )
             this.moveActor(a, copy(target));
+        }
+        if (a.kind === "human" && a.tends) {
+          if (next % 12 === 0) this.tendHerd(a, next);
+          continue;
         }
         if (a.kind === "human") {
           // Past the routine budget a resident is furniture: home, fed, and

@@ -1,4 +1,4 @@
-import type { WearSlot } from "../core/character";
+import { describeAdornment, type WearSlot } from "../core/character";
 import { useState, type CSSProperties } from "react";
 import {
   Amphora,
@@ -640,6 +640,17 @@ export function CharacterPanel({
         ? { label: "Thirsty", urgent: true }
         : { label: "Fed", urgent: false },
   ];
+  // The portrait shows what the condition column says. Worst thing first: a
+  // wound outranks exhaustion, exhaustion outranks an empty stomach.
+  const adornment = describeAdornment(runtime.appearanceFor(actor));
+  const look =
+    actor.injury || (actor.health ?? 100) < 40
+      ? "sad"
+      : actor.fatigue > 65
+        ? "tired"
+        : actor.hunger > 70
+          ? "worried"
+          : "neutral";
 
   return (
     <div
@@ -699,6 +710,7 @@ export function CharacterPanel({
                   appearance={runtime.appearanceFor(actor)}
                   age={actor.age}
                   portrait
+                  expression={look}
                 />
               </div>
             </div>
@@ -713,6 +725,18 @@ export function CharacterPanel({
                 );
               })}
             </ul>
+            {adornment.length > 0 && (
+              <>
+                <h3>Worn and marked</h3>
+                <ul className="adornment">
+                  {adornment.map((note) => (
+                    <li key={note.label} data-kind={note.kind}>
+                      {note.label}
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
             <h3>Carrying</h3>
             <div className="carrying">
               {hand ? (

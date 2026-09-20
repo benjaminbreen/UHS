@@ -49,6 +49,34 @@ test("portrait lab compares one recipe across two renderer slots", async ({
   await page.waitForTimeout(200);
   expect(await stageData()).toBe(cBefore);
 
+  // Twelve expressions, all drawn from the one recipe and all different.
+  await expect(page.locator(".portrait-expression-strip canvas")).toHaveCount(
+    12,
+  );
+  const poses = await page
+    .locator(".portrait-expression-strip canvas")
+    .evaluateAll((list) =>
+      list.map((c) => (c as HTMLCanvasElement).toDataURL()),
+    );
+  expect(new Set(poses).size).toBe(12);
+  // An ornament the recipe did not ask for is not drawn; one it does ask for is.
+  const stage = () =>
+    page
+      .locator(".portrait-stage canvas")
+      .evaluate((c) => (c as HTMLCanvasElement).toDataURL());
+  const plain = await stage();
+  await page.getByLabel("Ear ornament").selectOption("hoop");
+  await page.waitForTimeout(200);
+  expect(await stage()).not.toBe(plain);
+  await page.getByLabel("Face marks").selectOption("cheek-lines");
+  await page.waitForTimeout(200);
+  const marked = await stage();
+  await page.getByLabel("Ear ornament").selectOption("none");
+  await page.getByLabel("Face marks").selectOption("none");
+  await page.waitForTimeout(200);
+  expect(await stage()).toBe(plain);
+  expect(marked).not.toBe(plain);
+
   await page.getByLabel("Grid size").selectOption("24");
   await expect(page.locator(".portrait-contact-sheet canvas")).toHaveCount(24);
   const seedBefore = await page.getByLabel("Seed").inputValue();

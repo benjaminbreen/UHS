@@ -3,13 +3,23 @@ import { gameAudio } from "../audio/director";
 import type { Inventory } from "../core/types";
 import { ItemIcon } from "./components";
 
-const calm = () =>
+export const calm = () =>
   typeof window !== "undefined" &&
   !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
 /** Text arriving a letter at a time, with a breath at punctuation and a soft
  * tick as it goes. `skip` shows the rest at once. */
-export function useTypewriter(text: string, instant = false, sound = true) {
+export function useTypewriter(
+  text: string,
+  instant = false,
+  sound = true,
+  /** Called with each letter as it lands, for a mouth to follow. */
+  onLetter?: (letter: string) => void,
+) {
+  // Read through a ref so a fresh closure each render does not restart the
+  // line, which would type the first word over and over.
+  const letter = useRef(onLetter);
+  letter.current = onLetter;
   const [shown, setShown] = useState(instant || calm() ? text.length : 0);
   useEffect(() => {
     if (instant || calm()) {
@@ -24,6 +34,7 @@ export function useTypewriter(text: string, instant = false, sound = true) {
       setShown(at);
       if (at >= text.length) return;
       const ch = text[at - 1];
+      letter.current?.(ch);
       // The director spaces effects out itself, so this patters, not buzzes.
       if (sound && /\S/.test(ch)) void gameAudio()?.effect("blip");
       timer = window.setTimeout(

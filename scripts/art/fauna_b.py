@@ -257,18 +257,20 @@ def deer(state, frame):
         chew = 0
     if stage == 0:
         nod = 1 if moving and not running and frame % 4 in (1, 2) else 0
-        top = (34 + nod, 6 + by + nod) if not running else (36, 9 + by)
-        neck = polygon([(22, 16 + by), (31, 21 + by), (top[0] + 2, top[1] + 3), (top[0] - 3, top[1])])
+        # A deer's neck is short and its head small. Carried any higher or
+        # further out it reads as a llama, and the muzzle leaves the canvas.
+        top = (31 + nod, 10 + by + nod) if not running else (32, 12 + by)
+        neck = polygon([(24, 16 + by), (30, 21 + by), (top[0] + 2, top[1] + 3), (top[0] - 2, top[1])])
         c.paint(over(c, shade(neck, top=1, bottom=1)))
         _deer_head(c, top[0] - 2, top[1] - 2, "fwd", frame, running, chew)
     elif stage == 1:
-        neck = polygon([(22, 16 + by), (31, 21 + by), (36, 20 + by), (33, 23 + by)])
+        neck = polygon([(24, 16 + by), (30, 21 + by), (34, 21 + by), (32, 24 + by)])
         c.paint(over(c, shade(neck, 1, 1)))
-        _deer_head(c, 32, 19 + by, "low", frame, False, chew)
+        _deer_head(c, 31, 19 + by, "low", frame, False, chew)
     else:
-        neck = polygon([(22, 16 + by), (31, 21 + by), (35, 26 + by), (31, 28 + by)])
+        neck = polygon([(24, 16 + by), (30, 21 + by), (34, 26 + by), (31, 28 + by)])
         c.paint(over(c, shade(neck, 1, 1)))
-        _deer_head(c, 31, 25 + by, "down", frame, False, chew)
+        _deer_head(c, 30, 25 + by, "down", frame, False, chew)
 
     # near legs on top
     draw_leg("nh", hip_h, True, True)
@@ -280,17 +282,17 @@ def _deer_head(c, x, y, pose, frame, running, chew=0):
     """Head anchored at (x, y) = back of skull. fwd: alert; low: lowering; down: grazing."""
     if pose == "fwd":
         c.paint(flat(polygon([(x, y + 2), (x - 2, y - 3), (x + 3, y + 1)]), "d"))
-        head = ellipse((x, y, x + 7, y + 6)) | polygon([(x + 5, y + 1), (x + 9, y + 3), (x + 9, y + 5), (x + 5, y + 6)])
+        head = ellipse((x, y, x + 5, y + 5)) | polygon([(x + 4, y + 1), (x + 8, y + 3), (x + 8, y + 4), (x + 4, y + 5)])
         c.paint(shade(head, 1, 1))
-        c.paint(flat(polygon([(x + 6, y + 3), (x + 9, y + 3), (x + 9, y + 5), (x + 6, y + 6)]), "d"))
-        c.dot(x + 9, y + 4, "e")
-        c.dot(x + 4, y + 2, "e")
+        c.paint(flat(polygon([(x + 6, y + 3), (x + 8, y + 3), (x + 8, y + 4), (x + 6, y + 5)]), "d"))
+        c.dot(x + 8, y + 3, "e")
+        c.dot(x + 3, y + 2, "e")
         flick = frame in (3, 4) and not running
         ear = polygon([(x + 2, y + 1), (x + 1 + (2 if flick else 0), y - 4), (x + 5, y)])
         c.paint(flat(ear, "m"))
         c.dot(x + 2 + (1 if flick else 0), y - 2, "b")
         if frame == 6 and not running:
-            c.dot(x + 4, y + 2, "d")
+            c.dot(x + 3, y + 2, "d")
     elif pose == "low":
         c.paint(flat(polygon([(x - 2, y + 2), (x - 4, y - 2), (x + 1, y + 1)]), "d"))
         head = ellipse((x, y, x + 6, y + 6)) | polygon([(x + 3, y + 3), (x + 7, y + 7), (x + 6, y + 9), (x + 2, y + 6)])
@@ -328,8 +330,8 @@ def _deer_rest(c, frame):
     c.paint(flat(rect((9, 34, 12, 35)), "d"))
     c.paint(flat(polygon([(6, 26), (8, 25), (8, 30), (5, 29)]), "b"))
     dip = [0, 0, 0, 1, 1, 1, 0, 0][frame]
-    top = (34, 15 + dip)
-    neck = polygon([(22, 25), (30, 27), (top[0] + 2, top[1] + 3), (top[0] - 4, top[1])])
+    top = (32, 18 + dip)
+    neck = polygon([(24, 25), (30, 28), (top[0] + 2, top[1] + 3), (top[0] - 2, top[1])])
     c.paint(over(c, shade(neck, 1, 1)))
     _deer_head(c, top[0] - 2, top[1] - 2, "fwd", frame, False)
     return c.finish()

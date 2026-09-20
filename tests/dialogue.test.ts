@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { z } from "zod";
 import { dialogue } from "../server/dialogue";
+import { strictSchema } from "../server/json-schema";
 import { narrator } from "../server/narrator";
 import { Runtime, createSettingSession } from "../src/runtime/session";
 import { resolveSetting } from "../src/content/geography/resolve";
@@ -44,6 +46,54 @@ describe("dialogue endpoint", () => {
       async () => reply({ dialogue: "Sit with me.", regard: 99 }),
     );
     expect(absurd.status).toBe(502);
+  });
+  it("passes the face the NPC wears through, and refuses one it cannot draw", async () => {
+    const env = { OPENAI_API_KEY: "test" };
+    const cross = await dialogue(post("198.51.100.3"), env, async () =>
+      reply({ dialogue: "Say that again.", regard: -1, mood: "angry" }),
+    );
+    expect(await cross.json()).toMatchObject({ mood: "angry", regard: -1 });
+    // A line with no mood on it is a resting face, not an error.
+    const quiet = await dialogue(post("198.51.100.4"), env, async () =>
+      reply({ dialogue: "Mm." }),
+    );
+    expect(await quiet.json()).not.toHaveProperty("mood");
+    const invented = await dialogue(post("198.51.100.5"), env, async () =>
+      reply({ dialogue: "Hm.", mood: "smouldering" }),
+    );
+    expect(invented.status).toBe(502);
+  });
+  it("asks for how the line is taken before the line itself", async () => {
+    // Field order is generation order under strict mode, so the face and the
+    // gauge arrive first. Streaming the text later depends on this holding.
+    const env = { OPENAI_API_KEY: "test" };
+    let sent: Record<string, unknown> | undefined;
+    await dialogue(post("198.51.100.6"), env, async (_url, init) => {
+      sent = JSON.parse(String((init as RequestInit).body));
+      return reply({ dialogue: "Aye.", mood: "neutral" });
+    });
+    const schema = (
+      sent as unknown as {
+        response_format: { json_schema: { schema: { properties: object } } };
+      }
+    ).response_format.json_schema.schema.properties;
+    expect(Object.keys(schema)).toEqual([
+      "mood",
+      "regard",
+      "dialogue",
+      "receive",
+    ]);
+  });
+  it("offers the mood as a nullable enum, which is what strict mode accepts", () => {
+    // Widening the type alone leaves null outside the permitted values and
+    // the provider rejects the whole schema.
+    const schema = strictSchema(
+      z.object({ mood: z.enum(["angry", "happy"]).optional() }),
+    );
+    const mood = (schema.properties as Record<string, Record<string, unknown>>)
+      .mood;
+    expect(mood.type).toEqual(["string", "null"]);
+    expect(mood.enum).toEqual(["angry", "happy", null]);
   });
 });
 

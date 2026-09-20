@@ -137,6 +137,9 @@ export class FaunaMotion {
     gait: Gait,
     altitude: number,
     sideView: boolean,
+    /** Close enough to the player to be walked into: be where the simulation
+     * says, because that is the cell that is solid. */
+    close = false,
   ): FaunaPose | undefined {
     const b = this.bodies.get(id);
     if (!b) return undefined;
@@ -152,7 +155,7 @@ export class FaunaMotion {
       b.moving = false;
       b.speed = 0;
       b.cycle = 0;
-    } else if (b.wait > 0) b.wait -= dt;
+    } else if (b.wait > 0 && !close) b.wait -= dt;
     else {
       b.moving = true;
       if (left > 3) {
@@ -171,7 +174,9 @@ export class FaunaMotion {
       // Never slower than it takes to keep up with the simulation.
       const cruise = urgent
         ? Math.max(90, left / 0.3)
-        : Math.max(b.amble, left / 1.5);
+        : close
+          ? Math.max(b.amble * 1.6, left / 0.22)
+          : Math.max(b.amble, left / 1.5);
       const want = Math.min(cruise, Math.max(12, left * (urgent ? 10 : 6)));
       b.speed += (want - b.speed) * Math.min(1, dt / 0.12);
       let pace = b.speed;

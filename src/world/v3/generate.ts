@@ -1,3 +1,4 @@
+import { herdersFor } from "./herders";
 import { adjacentTerrain } from "../travel/terrain-preview";
 import { waterDepthAt, MAX_WADING_DEPTH } from "../../core/water-field";
 import { mapEntrances, type MapEntrance } from "../travel/entrances";
@@ -29,7 +30,7 @@ import { ecologyProfiles } from "../../content/ecology/profiles";
 import { populateHouseholds, addWildResources } from "./population";
 import { addBoulders } from "./boulders";
 import { forgetFaunaBlock, spawnFauna } from "./fauna";
-import { faunaAt } from "../../content/fauna";
+import { faunaAt, faunaProfile } from "../../content/fauna";
 import type { FaunaGroup } from "../../core/fauna";
 import { createReliefLandscape, reliefCell } from "./topography";
 import {
@@ -1956,7 +1957,7 @@ export function createSettlementWorld(
     },
     fauna: (x, y) => [
       ...keptFauna,
-      ...(environment ? spawnFauna(world, seed, x, y) : []),
+      ...(environment ? attended(spawnFauna(world, seed, x, y)) : []),
     ],
     forgetFauna: (block) => forgetFaunaBlock(world, block),
     restoreDistricts: (ids) => {
@@ -1966,6 +1967,23 @@ export function createSettlementWorld(
       }
     },
   };
+  /** Stock at grass has someone with it. The people go on the world's list of
+   * actors, which the engine reads again after it has asked for the animals. */
+  function attended(groups: FaunaGroup[]) {
+    const out = [...groups];
+    for (const herd of groups) {
+      const profile = faunaProfile(herd.speciesId);
+      if (!profile?.keeping?.ranging || profile.density > 0) continue;
+      const setting = (
+        world.geography?.packAt(herd.pos.x, herd.pos.y) ?? world.pack
+      ).setting;
+      if (!setting) continue;
+      const { actors, dog } = herdersFor(world, seed, herd, setting);
+      world.initialActors.push(...actors);
+      if (dog) out.push(dog);
+    }
+    return out;
+  }
   function activate(p: SettlementPlan) {
     if (active.has(p.site.id)) return;
     active.add(p.site.id);

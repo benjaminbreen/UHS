@@ -24,6 +24,12 @@ The player role can retain an explicitly requested specialized scenario label (f
 
 Palette weights are art direction, not measured historical population probabilities. Community selection never determines personality, strength or skill. Grey hair can arise from the existing elder age rule. Individual appearance customization wins over generated defaults.
 
+## Ornament and face marks
+
+`AppearanceKit.adornment` carries weighted pools for ear and nose ornaments, face-mark patterns, whether a mark is ink, scar or paint, its colour, and the ornament's metal. They weight by repetition like the eyelid and hair-texture pools, and a kit that names none gets none — no ornament leaks from the unrestricted art lab into a generated world.
+
+The pools say only that a practice occurs in a broad region and roughly how visible it is. The drawn patterns are schematic — a few lines, dots or a block in the places faces are marked — and stand for the practice, never for a particular community's design, meaning, status or age grade. The frequencies are art direction, not measured or attested rates, and the broad regional kits are coarser than the practices they gesture at. A kit whose convention is one sex's declares `noseSex`; marks are withheld below `marksFrom`, twelve by default, and stretched lobes below ten. Narrowing any of this to a real community needs its own scoped kit with sources, in the same way a naming kit does.
+
 ## Extension
 
 Add a real, scoped kit/profile to the relevant subject file (split regional files as coverage grows). Supply exact applicability, evidence status, sources where nonfictional, and limitations. Reuse appearance and livelihood definitions rather than copying a complete character for every era. Name and community scopes use AND across fields, OR within lists, and half-open year ranges. Do not alter the twelve global eras.

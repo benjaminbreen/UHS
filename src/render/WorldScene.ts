@@ -3069,6 +3069,7 @@ export class WorldScene extends Phaser.Scene {
         // In the air the sprite rides a cell and a quarter above its cell.
         aerial ? 20 : 0,
         !profile?.directions,
+        !!player && Math.hypot(player.x - im.x, player.y - im.y) < 72,
       );
       if (!pose) continue;
       let mood = this.faunaMood.get(id);

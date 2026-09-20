@@ -15,7 +15,11 @@ import {
 } from "./resolve";
 import { asOfficiant } from "./officiant";
 import { sexFromName } from "./name-sex";
-import { pickBeard } from "../../core/character";
+import {
+  generateAdornment,
+  metalForMeans,
+  pickBeard,
+} from "../../core/character";
 import { wornFromWearing } from "../../core/wearing";
 import { clothFor, rolesFrom } from "./wardrobe";
 import { plausibleHair } from "../../core/character";
@@ -305,6 +309,15 @@ export function characterAppearance(
       mouth: kit.mouths ? pick(kit.mouths, seed, id, "mouth") : a.face.mouth,
     };
   if (kit.heads) a.head = pick(kit.heads, seed, id, "head");
+  // Ornaments and marks come from the kit, so they are regional rather than a
+  // worldwide sprinkle. A kit that names none gets none.
+  a.adornment = generateAdornment(
+    `${seed}:character-v1:${id}`,
+    0,
+    age,
+    sex,
+    kit.adornment ?? { ears: ["none", "none", "none", "stud"] },
+  );
   // Re-roll the beard against the kit's density, not against the base roll:
   // filtering the base result would compound the two and leave almost every
   // man clean-shaven. The sex and age gate is the same one the base applies.
@@ -402,26 +415,37 @@ export function generateCharacter(
       ? (sexFromName(explicitName || naming.display) ?? sex)
       : drawn;
   const appearance = characterAppearance(s, seed, id, age, context, bodySex);
+  const cloth = clothFor(
+    {
+      id,
+      age,
+      sex: bodySex,
+      livelihood: livelihood.id,
+      roles: rolesFrom(requestedRole, role),
+    },
+    { year: s.year, setting: s },
+    undefined,
+    appearance.wearing.color,
+  );
+  // Ornament follows the cloth. Someone in a worn shift wearing gold was the
+  // one thing that made the whole ornament pass read as decoration.
+  if (appearance.adornment)
+    appearance.adornment = {
+      ...appearance.adornment,
+      metal: metalForMeans(
+        context.appearance.adornment?.metals,
+        appearance.adornment.metal ?? "gold",
+        cloth.quality,
+        seed,
+        id,
+      ),
+    };
   return {
     name: explicitName || naming.display,
     role,
     inventory: eligibleInventory(livelihood.inventory, context),
     appearance,
-    worn: wornFromWearing(
-      appearance.wearing,
-      clothFor(
-        {
-          id,
-          age,
-          sex: bodySex,
-          livelihood: livelihood.id,
-          roles: rolesFrom(requestedRole, role),
-        },
-        { year: s.year, setting: s },
-        undefined,
-        appearance.wearing.color,
-      ),
-    ),
+    worn: wornFromWearing(appearance.wearing, cloth),
     origin: {
       revision: 1 as const,
       profile: context.profile.id,

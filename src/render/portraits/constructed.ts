@@ -16,6 +16,158 @@ import {
  * again is the same middle frame played back. */
 export type Blink = 0 | 1 | 2;
 
+/**
+ * What the face is doing, over and above who it belongs to. Every field is a
+ * pixel offset from the resting face, so an expression is a handful of numbers
+ * rather than a second set of drawings: the same portrait recipe paints all of
+ * them, and two faces wearing the same expression still look like themselves.
+ */
+export type FacePose = {
+  /** Inner brow end. Up for sorrow and worry, down for anger. */
+  browInner: number;
+  /** Outer brow end. Up for surprise, down for weariness. */
+  browOuter: number;
+  /** Rows the upper lid comes down by. */
+  lidUpper: number;
+  /** Rows the cheek pushes the lower lid up by. */
+  lidLower: number;
+  /** Extra eye height. */
+  eyeOpen: number;
+  /** Mouth corners: positive up, negative down. */
+  mouthCurve: number;
+  /** Rows the lips part by. */
+  mouthOpen: number;
+  /** Mouth width. */
+  mouthWide: number;
+  /** Cheek raised: the fold beside the nose, the light on the cheekbone. */
+  cheek: number;
+  /** Where the eyes are looking, relative to the resting gaze. */
+  gazeX: number;
+  gazeY: number;
+  /** One side only. A face that is not symmetrical reads as wry. */
+  asym: number;
+};
+
+export const restingFace: FacePose = {
+  browInner: 0,
+  browOuter: 0,
+  lidUpper: 0,
+  lidLower: 0,
+  eyeOpen: 0,
+  mouthCurve: 0,
+  mouthOpen: 0,
+  mouthWide: 0,
+  cheek: 0,
+  gazeX: 0,
+  gazeY: 0,
+  asym: 0,
+};
+
+export const expressions = [
+  "neutral",
+  "smile",
+  "happy",
+  "laugh",
+  "sad",
+  "angry",
+  "stern",
+  "surprised",
+  "worried",
+  "thoughtful",
+  "wry",
+  "tired",
+] as const;
+export type Expression = (typeof expressions)[number];
+
+/** Offsets from the resting face. Unlisted fields rest. */
+const POSES: Record<Expression, Partial<FacePose>> = {
+  neutral: {},
+  smile: { mouthCurve: 1, cheek: 0.5, lidLower: 0 },
+  happy: { mouthCurve: 2, cheek: 1, lidLower: 1, browOuter: 0.5 },
+  laugh: {
+    mouthCurve: 2,
+    mouthOpen: 2,
+    mouthWide: 1,
+    cheek: 1,
+    lidLower: 1,
+    browInner: 0.5,
+    browOuter: 1,
+  },
+  sad: {
+    browInner: 2.5,
+    browOuter: -1,
+    mouthCurve: -2,
+    mouthWide: -1,
+    lidUpper: 0.4,
+    gazeY: 1,
+  },
+  angry: {
+    browInner: -2.5,
+    browOuter: 0.5,
+    lidUpper: 1,
+    mouthCurve: -1.5,
+    mouthWide: -1,
+    cheek: 0.8,
+  },
+  stern: { browInner: -1.5, lidUpper: 0.4, mouthCurve: -1, mouthWide: -1 },
+  surprised: {
+    browInner: 2,
+    browOuter: 2,
+    eyeOpen: 1,
+    mouthOpen: 2,
+    mouthWide: -2,
+  },
+  worried: {
+    browInner: 2,
+    browOuter: -1,
+    mouthCurve: -1.5,
+    mouthWide: -1,
+    gazeX: -1,
+  },
+  thoughtful: {
+    browInner: -0.5,
+    browOuter: 1.5,
+    gazeX: 2,
+    gazeY: -1,
+    mouthWide: -1,
+    asym: 1,
+  },
+  wry: { mouthCurve: 0.8, asym: 1.5, browOuter: 1.2, cheek: 0.4 },
+  tired: { browOuter: -1.5, lidUpper: 1.5, mouthCurve: -0.8, gazeY: 1 },
+};
+
+/**
+ * An expression at partial strength. Swapping straight from one pose to
+ * another is a jump cut; one frame half way makes it a movement.
+ */
+export function facePose(expression: Expression = "neutral", amount = 1): FacePose {
+  const target = POSES[expression] ?? {};
+  const out = { ...restingFace };
+  for (const key of Object.keys(out) as (keyof FacePose)[])
+    out[key] = (target[key] ?? 0) * amount;
+  return out;
+}
+
+/**
+ * The mouth shapes speech is drawn with. Three is enough at this size: a
+ * closed mouth, a narrow one for most consonants, and an open one for the
+ * vowels. Two shapes alternating reads as chewing.
+ */
+export const visemes = ["closed", "narrow", "wide"] as const;
+export type Viseme = (typeof visemes)[number];
+
+/** Which shape a letter asks for. Silence and the lip-closers shut it. */
+export function visemeFor(letter: string): Viseme {
+  const c = letter.toLowerCase();
+  if (!/\p{L}/u.test(c) || "mbp".includes(c)) return "closed";
+  return /[aeiouyàáâäãåāèéêëēìíîïīòóôöõøōùúûüū]/.test(c) ? "wide" : "narrow";
+}
+
+/** The same pose, looking a little off to one side. */
+export function glanced(pose: FacePose, by: number): FacePose {
+  return by ? { ...pose, gazeX: pose.gazeX + by } : pose;
+}
+
 export const PORTRAIT_WIDTH = 64;
 export const PORTRAIT_HEIGHT = 80;
 
@@ -104,6 +256,13 @@ export function drawConstructedPortrait(
     blink?: Blink;
     /** Mouth open, for the frames of speech it is open in. */
     speaking?: boolean;
+    expression?: Expression;
+    /** How far into the expression, 0..1. A frame at 0.5 softens the change. */
+    intensity?: number;
+    /** Which mouth shape, while speaking. */
+    viseme?: Viseme;
+    /** Eyes off the resting line, for an idle glance. */
+    glance?: number;
   },
 ) {
   ctx.clearRect(0, 0, PORTRAIT_WIDTH, PORTRAIT_HEIGHT);
@@ -114,6 +273,11 @@ export function drawConstructedPortrait(
     options?.tuning,
     options?.blink,
     options?.speaking,
+    glanced(
+      facePose(options?.expression, options?.intensity ?? 1),
+      options?.glance ?? 0,
+    ),
+    options?.viseme,
   ).blit(ctx);
 }
 
@@ -165,8 +329,14 @@ type Model = {
   variant: number;
   /** 0 open, 1 half closed, 2 shut. */
   blink: Blink;
-  /** Lips parted. With the blink, all that animates. */
+  /** Lips parted, for the frames of speech the mouth is open in. */
   speaking: boolean;
+  /** Which shape, while speaking. */
+  viseme: Viseme;
+  /** What the face is doing: brows, lids, mouth and gaze, as offsets. */
+  pose: FacePose;
+  /** Ornament metal, already in a six-step ramp. */
+  metal: Tones;
   head: Pt[];
 };
 
@@ -176,6 +346,8 @@ export function paintConstructed(
   tuning?: Partial<ConstructedTuning>,
   blink: Blink = 0,
   speaking = false,
+  pose: FacePose = restingFace,
+  viseme: Viseme = "narrow",
 ): Raster {
   const r = new Raster(PORTRAIT_WIDTH, PORTRAIT_HEIGHT);
   const m = model(
@@ -184,6 +356,8 @@ export function paintConstructed(
     { ...constructedDefaults, ...tuning },
     blink,
     speaking,
+    pose,
+    viseme,
   );
   const hood = m.a.wearing.headwear === "hood";
 
@@ -209,6 +383,7 @@ export function paintConstructed(
   });
   r.castShadows(0.26);
   drawFeatures(r, m);
+  drawNoseOrnament(r, m);
   drawHairDetail(r, m);
   if (m.a.wearing.headwear === "helmet") drawNasal(r, m);
   return r;
@@ -220,6 +395,8 @@ function model(
   t: ConstructedTuning,
   blink: Blink = 0,
   speaking = false,
+  pose: FacePose = restingFace,
+  viseme: Viseme = "narrow",
 ): Model {
   const face = portraitFace(a, age);
   const child = age < 13;
@@ -242,11 +419,7 @@ function model(
   const mid = 38 + t.turn;
   const eyeY = 25 + (child ? 2 : 0) + (head === "long" ? 1 : 0) + t.eyeHeight;
   const browY = eyeY - 3;
-  const noseBase =
-    eyeY +
-    (face.nose === "short" ? 6 : face.nose === "aquiline" ? 8 : 7) +
-    t.noseLength -
-    (child ? 1 : 0);
+  const noseBase = eyeY + noseForm(face.nose).length + t.noseLength - (child ? 1 : 0);
   const mouthY = Math.min(chin - 5, noseBase + 4 + t.mouthDrop);
   const wear = Math.max(0, Math.min(1, (age - 18) / 45));
   const young = age < 18 ? (18 - age) / 18 : 0;
@@ -372,10 +545,88 @@ function model(
     young,
     blink,
     speaking,
+    pose,
+    viseme,
+    metal: metalTones(a.adornment?.metal ?? "gold"),
     variant: [
       ...(a.skin + a.hairColor + a.hair + head + jaw + face.eyeShape),
     ].reduce((n, c) => (Math.imul(n, 31) + c.charCodeAt(0)) >>> 0, 11),
     head: smooth(headPts, 5),
+  };
+}
+
+/**
+ * A profile in five numbers. The bridge's convexity, how far the tip reaches
+ * past the midline, how far it hangs below or above the base, the width of
+ * the wings, and how far down the face the base sits.
+ */
+type NoseForm = {
+  bump: number;
+  tip: number;
+  drop: number;
+  wing: number;
+  length: number;
+  /** Bridge root pushed down: a flat nose starts low whatever the record says. */
+  root: number;
+  hook: boolean;
+  ball: boolean;
+  snub: boolean;
+  flat: boolean;
+  /** Bridge narrowed, so the lit side runs closer to the profile line. */
+  narrow: number;
+};
+
+const NOSE_BASE: NoseForm = {
+  bump: 0,
+  tip: 0,
+  drop: 0,
+  wing: 2,
+  length: 7,
+  root: 0,
+  hook: false,
+  ball: false,
+  snub: false,
+  flat: false,
+  narrow: 0,
+};
+
+const NOSES: Record<string, Partial<NoseForm>> = {
+  short: { wing: 1, length: 6 },
+  straight: {},
+  broad: { tip: 1, wing: 3 },
+  aquiline: { bump: 1, length: 8 },
+  hooked: { bump: 1.5, tip: 0.5, drop: 1.5, length: 8, hook: true },
+  snub: { bump: -0.5, tip: -0.5, drop: -1, length: 6, snub: true },
+  bulbous: { tip: 1, drop: 0.5, wing: 2, ball: true, narrow: 1 },
+  narrow: { tip: -0.5, wing: 1, narrow: 1 },
+  flat: { bump: -1, tip: -1.5, wing: 3, root: 1.5, flat: true },
+};
+
+export function noseForm(shape: string): NoseForm {
+  return { ...NOSE_BASE, ...(NOSES[shape] ?? {}) };
+}
+
+/** Ornament metals and the two things that are not metal but are worn like it. */
+const METALS: Record<string, string> = {
+  gold: "#d9a441",
+  silver: "#c3ccd4",
+  copper: "#c0713c",
+  bone: "#e0d5b8",
+  shell: "#ecdcc8",
+  jet: "#3b3440",
+};
+
+function metalTones(kind: string): Tones {
+  const base = METALS[kind] ?? METALS.gold;
+  // Bone and shell are matte: a narrower ramp, or they read as polished metal.
+  const matte = kind === "bone" || kind === "shell";
+  return {
+    edge: mix(base, "#1d1420", matte ? 0.5 : 0.68),
+    deep: mix(base, "#1d1420", matte ? 0.34 : 0.46),
+    shade: mix(base, "#402a2e", matte ? 0.16 : 0.26),
+    base,
+    light: mix(base, "#fff3d4", matte ? 0.24 : 0.36),
+    high: mix(base, "#fffdf2", matte ? 0.45 : 0.72),
   };
 }
 
@@ -1697,6 +1948,7 @@ function drawFeatures(r: Raster, m: Model) {
     a,
     age,
     child,
+    pose,
   } = m;
   // A closed visor is the face; nothing behind it shows.
   if (a.wearing.headwear === "visor") return;
@@ -1736,22 +1988,34 @@ function drawFeatures(r: Raster, m: Model) {
   const fw = nw - 1;
   // A monolid presents a shallower opening, and more lid between brow and
   // lash. Both read at this size; the fold alone does not.
-  const h =
-    mono && !child
-      ? 2
-      : face.eyeShape === "round" || face.eyeSize === "large" || child
-        ? 3
-        : 2;
+  const h = Math.max(
+    2,
+    Math.min(
+      4,
+      (mono && !child
+        ? 2
+        : face.eyeShape === "round" || face.eyeSize === "large" || child
+          ? 3
+          : 2) + Math.round(pose.eyeOpen),
+    ),
+  );
   // The upper lid loses its hold and covers more of the eye.
   const droop = m.wear > 0.76 ? 1 : 0;
   const browLift = mono ? 1.5 : lowLid ? 0.5 : 0;
   const spacing =
     face.eyeSpacing === "wide" ? 1 : face.eyeSpacing === "close" ? -1 : 0;
-  const nx = 32 - nw - spacing;
-  const fx = 40 + spacing;
+  // Both eyes sit a pixel nearer the midline than they used to. The old
+  // placement left five pixels of flat cheek between the near eye and the
+  // bridge, which read as wide-set on every face rather than on a few.
+  const nx = 33 - nw - spacing;
+  const fx = 39 + spacing;
   // One iris width for both eyes, and both look at the same point: the gaze
   // is what the viewer reads first, and a pixel out of line breaks it.
   const iw = face.eyeSize === "small" && !child ? 2 : m.young > 0.4 ? 4 : 3;
+  const gazeX = Math.round(pose.gazeX);
+  const gazeY = h > 2 ? Math.round(pose.gazeY) : 0;
+  const coverUpper = Math.round(pose.lidUpper + (droop ? 0 : 0));
+  const coverLower = Math.round(pose.lidLower);
 
   const eye = (x0: number, w: number, near: boolean) => {
     const narrow = face.eyeShape === "narrow";
@@ -1814,11 +2078,15 @@ function drawFeatures(r: Raster, m: Model) {
     r.put(near ? x0 + w - 1 : x0, eyeY, mix(white, lid, 0.5));
 
     // Iris, pushed toward the viewer in both eyes: lit rim, pupil, shade rim.
-    const ix = near ? x0 + (w >= 7 ? 2 : 2) : x0 + 1;
-    r.rect(ix, eyeY, iw, h, irisBase);
-    r.rect(ix, eyeY, 1, h, irisLit);
-    r.rect(ix + iw - 1, eyeY, 1, h, irisDeep);
-    r.rect(ix + (iw > 2 ? 1 : 0), eyeY, iw > 2 ? 1 : 1, h, eyeDark);
+    const ix = Math.max(
+      x0,
+      Math.min(x0 + w - iw, x0 + (near ? 2 : 1) + gazeX),
+    );
+    const iy = eyeY + gazeY;
+    r.rect(ix, iy, iw, h - Math.abs(gazeY), irisBase);
+    r.rect(ix, iy, 1, h - Math.abs(gazeY), irisLit);
+    r.rect(ix + iw - 1, iy, 1, h - Math.abs(gazeY), irisDeep);
+    r.rect(ix + (iw > 2 ? 1 : 0), iy, iw > 2 ? 1 : 1, h - Math.abs(gazeY), eyeDark);
     // The lid covers the top of the iris, as it does on a real eye.
     r.paint(
       r.region([
@@ -1831,7 +2099,7 @@ function drawFeatures(r: Raster, m: Model) {
       { only: [MAT.skin] },
     );
     // A single catchlight, on the iris and clear of the pupil's centre.
-    r.put(ix, eyeY, mix(irisLit, "#fdf8ee", 0.75));
+    r.put(ix, iy, mix(irisLit, "#fdf8ee", 0.75));
     if (h > 2) r.put(ix + iw - 1, eyeY + h - 1, mix(irisDeep, white, 0.35));
 
     // Lash line: over the lid, running a pixel past the outer corner.
@@ -1855,6 +2123,33 @@ function drawFeatures(r: Raster, m: Model) {
       r.put(x0 + w - 1, eyeY - 1, mix(lash, skin.base, 0.35));
     }
     if (narrow) r.rect(x0 + 1, eyeY + h - 1, w - 2, 1, mix(white, lid, 0.5));
+
+    // The cheek pushes the lower lid up over the bottom of the iris. This is
+    // the difference between a smile and a mouth with a stare above it.
+    if (coverLower > 0) {
+      r.rect(
+        x0,
+        eyeY + h - coverLower,
+        w,
+        coverLower,
+        mix(skin.base, skin.light, 0.45),
+      );
+      r.rect(
+        x0,
+        eyeY + h - coverLower,
+        w,
+        1,
+        mix(skin.base, skin.shade, 0.35),
+      );
+    }
+    // The upper lid comes down: over the eye in a squint, half way in a
+    // weary one. The lash line travels with it.
+    if (coverUpper > 0) {
+      r.rect(x0 - 1, eyeY - 1, w + 2, coverUpper, skin.base);
+      r.rect(x0, eyeY - 1 + coverUpper, w, 1, lash);
+      r.put(outer, eyeY - 1 + coverUpper, mix(lash, skin.base, 0.6));
+      r.rect(x0 - 1, eyeY - 2, w + 2, 1, mix(skin.base, skin.light, 0.35));
+    }
 
     // Lower lid: a lit ridge, then the shadow it casts. Bags are that shadow
     // made deeper, not a separate line.
@@ -1943,18 +2238,27 @@ function drawFeatures(r: Raster, m: Model) {
         ? mix(hair.deep, skin.base, 0.18)
         : hair.deep;
   const arch = face.brows === "arched" ? 1 : 0;
-  const nearBrow: Pt[] = [
-    [nx - 1, browY + 1.5 - browLift],
-    [nx + 2, browY - arch - browLift],
-    [nx + nw - 1, browY - arch - browLift],
-    [nx + nw + 1, browY + 0.5 - browLift],
-  ];
-  const farBrow: Pt[] = [
-    [fx - 1, browY - browLift],
-    [fx + 1, browY - arch - browLift],
-    [fx + fw, browY + 0.5 - browLift],
-    [fx + fw + 1, browY + 1.5 - browLift],
-  ];
+  // A brow does two things at once: the inner end rises for sorrow and drops
+  // for anger, the outer end rises for surprise. One lift for the whole brow
+  // gets neither.
+  const tilt = (t: number, extra = 0) =>
+    -(pose.browOuter * (1 - t) + (pose.browInner + extra) * t);
+  const nearBrow: Pt[] = (
+    [
+      [nx - 1, browY + 1.5 - browLift],
+      [nx + 2, browY - arch - browLift],
+      [nx + nw - 1, browY - arch - browLift],
+      [nx + nw + 1, browY + 0.5 - browLift],
+    ] as Pt[]
+  ).map(([x, y], i) => [x, y + tilt(i / 3, 0)] as Pt);
+  const farBrow: Pt[] = (
+    [
+      [fx - 1, browY - browLift],
+      [fx + 1, browY - arch - browLift],
+      [fx + fw, browY + 0.5 - browLift],
+      [fx + fw + 1, browY + 1.5 - browLift],
+    ] as Pt[]
+  ).map(([x, y], i) => [x, y + tilt(1 - i / 3, pose.asym)] as Pt);
   const drawBrow = (pts: Pt[], head: boolean) => {
     r.stroke(pts, browColor, 0, undefined, MAT.skin);
     if (bushy) {
@@ -1987,31 +2291,85 @@ function drawFeatures(r: Raster, m: Model) {
   };
   drawBrow(nearBrow, true);
   drawBrow(farBrow, false);
+  // Drawn brows pulled together leave a furrow between them; raised ones
+  // leave creases across the forehead. Both are what the muscle does.
+  if (pose.browInner < -0.5) {
+    r.stroke(
+      [
+        [mid - 3, browY - 1],
+        [mid - 3, browY + 2],
+      ],
+      mix(skin.base, skin.deep, 0.4),
+      0,
+      undefined,
+      MAT.skin,
+    );
+    r.stroke(
+      [
+        [mid - 1, browY - 1],
+        [mid - 1, browY + 2],
+      ],
+      mix(skin.base, skin.deep, 0.3),
+      0,
+      undefined,
+      MAT.skin,
+    );
+  } else if (pose.browOuter > 1.2 && !child) {
+    const f = mix(skin.base, skin.shade, 0.42);
+    r.stroke(
+      [
+        [nx, browY - 4],
+        [mid, browY - 5],
+        [fx + fw, browY - 4],
+      ],
+      f,
+      3,
+      undefined,
+      MAT.skin,
+    );
+    r.stroke(
+      [
+        [nx + 1, browY - 6],
+        [mid, browY - 7],
+        [fx + fw - 1, browY - 6],
+      ],
+      f,
+      4,
+      undefined,
+      MAT.skin,
+    );
+  }
 
   // Nose in profile. The bridge starts between the eyes, the far edge runs
   // down and right to the tip, and the base turns back under it.
-  const bump = face.nose === "aquiline" ? 1 : 0;
-  const tipX = mid + 2 + (face.nose === "broad" ? 1 : 0);
+  const nose = noseForm(face.nose);
+  const bump = nose.bump;
+  const tipX = mid + 2 + nose.tip;
   // Where the bridge starts. A low root leaves the space between the eyes
   // flat, so the profile line begins part way down the nose rather than up at
   // the brow — which is most of what separates one nose from another here.
   const bridge = face.noseBridge ?? "average";
-  const root = bridge === "low" ? 3.5 : bridge === "high" ? -0.5 : 1.5;
+  const root = (bridge === "low" ? 3.5 : bridge === "high" ? -0.5 : 1.5) + nose.root;
+  // `drop` hangs the tip below the nostril line (hooked) or lifts it above
+  // (snub), which is the whole of the difference at this size.
+  const tipY = noseBase - 2 + nose.drop;
   const profile: Pt[] = [
     [mid - 1, eyeY + root],
     [mid + bump, eyeY + 2 + root * 0.3],
     [mid + 1 + bump, eyeY + 4],
-    [tipX, noseBase - 2],
-    [tipX + 0.5, noseBase - 1],
+    [tipX, tipY],
+    [tipX + 0.5, tipY + 1],
   ];
-  // Cast shadow on the far cheek before the line goes on.
+  // Cast shadow on the far cheek before the line goes on. It starts clear of
+  // the far eye, which now sits a pixel nearer the bridge.
+  const castX = Math.max(mid + 1, fx);
   const cast = r.region([
-    [mid + 1, eyeY + 1],
+    [castX, eyeY + 1],
     [mid + 3 + bump, eyeY + 1],
-    [tipX + 3, noseBase - 2],
+    [tipX + 3, tipY],
     [tipX + 3, noseBase + 1],
     [tipX - 1, noseBase + 1],
-    [mid, noseBase - 3],
+    [castX - 1, noseBase - 3],
   ]);
   r.paint(cast, shadow(0.24), { only: [MAT.skin], soft: true });
   r.stroke(profile, skin.deep);
@@ -2020,22 +2378,46 @@ function drawFeatures(r: Raster, m: Model) {
     [
       [mid - 2, eyeY + 1 + root],
       [mid - 1 + bump, eyeY + 3 + root * 0.3],
-      [tipX - 2, noseBase - 3],
+      [tipX - 2 - nose.narrow, tipY - 1],
     ],
-    bridge === "low" ? mix(skin.base, skin.light, 0.45) : skin.light,
-    child || bridge === "low" ? 2 : 0,
+    bridge === "low" || nose.flat
+      ? mix(skin.base, skin.light, 0.45)
+      : skin.light,
+    child || bridge === "low" || nose.flat ? 2 : 0,
   );
   // A high root catches light between the brows; a low one is shadowed there,
   // which is what makes the eyes read as set on a flatter plane.
   if (bridge === "high") r.put(mid - 1, eyeY - 1, skin.high);
   else if (bridge === "low")
     r.rect(mid - 2, eyeY - 1, 3, 2, mix(skin.base, skin.shade, 0.3));
-  if (bump) r.put(mid + 1, eyeY + 2, skin.high);
-  r.put(tipX - 1, noseBase - 2, skin.high);
-  // Base and nostrils.
+  if (bump >= 1) r.put(mid + 1, eyeY + 2, skin.high);
+  if (nose.hook) {
+    // The tip hangs past the base and throws the nostril into shadow.
+    r.stroke(
+      [
+        [tipX + 0.5, tipY + 1],
+        [tipX - 1, tipY + 2],
+      ],
+      skin.deep,
+    );
+    r.put(tipX, tipY + 1, skin.shade);
+  }
+  if (nose.ball) {
+    // A wide soft tip: a lit dome over a shadowed underside.
+    r.rect(tipX - 2, tipY, 3, 1, mix(skin.base, skin.light, 0.5));
+    r.put(tipX - 2, tipY + 1, skin.base);
+    r.put(tipX - 3, tipY + 1, mix(skin.base, skin.light, 0.3));
+  }
+  if (nose.snub) {
+    // Turned up: the underside of the nose shows, so the base catches light.
+    r.rect(tipX - 2, tipY + 1, 3, 1, mix(skin.base, skin.light, 0.35));
+  }
+  r.put(tipX - 1, tipY, skin.high);
+  // Base and nostrils. Anger flares them.
   const wing =
-    (face.nose === "broad" ? 3 : face.nose === "short" ? 1 : 2) -
-    (m.young > 0.45 ? 1 : 0);
+    nose.wing -
+    (m.young > 0.45 ? 1 : 0) +
+    (pose.cheek > 0.7 && pose.mouthCurve < 0 ? 1 : 0);
   r.rect(mid - wing, noseBase, wing + 3, 1, skin.shade);
   r.put(tipX, noseBase, skin.deep);
   r.put(mid - wing, noseBase - 1, skin.deep);
@@ -2048,37 +2430,106 @@ function drawFeatures(r: Raster, m: Model) {
     mix(skin.base, skin.shade, 0.45),
   );
 
-  // Mouth wraps around the turn: the near half is longer.
-  const mw =
+  // Mouth wraps around the turn: the near half is longer. The corners carry
+  // the expression; the centre stays put, which is what a mouth does.
+  const mw = Math.max(
+    4,
     (face.mouth === "wide" ? 9 : face.mouth === "narrow" ? 5 : 7) -
-    Math.round(m.young * 2) -
-    (m.wear > 0.78 ? 1 : 0);
+      Math.round(m.young * 2) -
+      (m.wear > 0.78 ? 1 : 0) +
+      Math.round(pose.mouthWide),
+  );
   const mx = mid - Math.ceil(mw * 0.6);
   const lipLine = mix(skin.deep, "#7d3a45", 0.45);
   const lower = mix(skin.light, "#c2646a", face.mouth === "full" ? 0.5 : 0.3);
-  r.rect(mx, mouthY, mw, 1, lipLine);
-  r.put(mx, mouthY, skin.deep);
-  r.put(mx + mw - 1, mouthY, skin.deep);
-  r.put(mx + mw, mouthY - 1, mix(skin.base, skin.shade, 0.5));
+  // A smirk pulls one corner only, so the two ends do not agree.
+  const nearCorner = pose.mouthCurve + pose.asym;
+  const farCorner = pose.mouthCurve - pose.asym * 0.4;
+  const lipY = (x: number) => {
+    const t = Math.max(0, Math.min(1, (x - mx) / Math.max(1, mw - 1)));
+    const ends = 1 - Math.sin(Math.PI * t);
+    return mouthY - Math.round((nearCorner * (1 - t) + farCorner * t) * ends);
+  };
+  const lipRow = (dy: number, from: number, to: number, colour: string) => {
+    for (let x = from; x < to; x++) r.put(x, lipY(x) + dy, colour);
+  };
+  lipRow(0, mx, mx + mw, lipLine);
+  r.put(mx, lipY(mx), skin.deep);
+  r.put(mx + mw - 1, lipY(mx + mw - 1), skin.deep);
+  r.put(mx + mw, lipY(mx + mw - 1) - 1, mix(skin.base, skin.shade, 0.5));
+  // The corner itself. A pixel of shadow on the side the corner is pulled
+  // toward is what tells a smile from a frown seven pixels wide.
+  if (pose.mouthCurve > 0.4) {
+    r.put(mx - 1, lipY(mx) - 1, mix(skin.base, skin.deep, 0.55));
+    r.put(mx + mw, lipY(mx + mw - 1) - 1, mix(skin.base, skin.deep, 0.4));
+  } else if (pose.mouthCurve < -0.4) {
+    r.put(mx - 1, lipY(mx) + 1, mix(skin.base, skin.deep, 0.55));
+    r.put(mx + mw, lipY(mx + mw - 1) + 1, mix(skin.base, skin.deep, 0.4));
+  }
   const thin = m.wear > 0.62;
   if (face.mouth === "full" && !thin) {
-    r.rect(mx + 1, mouthY + 1, mw - 2, 1, lower);
-    r.rect(mx + 2, mouthY - 1, mw - 4, 1, mix(skin.base, lipLine, 0.45));
-    r.rect(mx + 2, mouthY + 2, mw - 4, 1, skin.shade);
+    lipRow(1, mx + 1, mx + mw - 1, lower);
+    lipRow(-1, mx + 2, mx + mw - 2, mix(skin.base, lipLine, 0.45));
+    lipRow(2, mx + 2, mx + mw - 2, skin.shade);
   } else if (face.mouth === "soft") {
-    r.rect(mx + 1, mouthY + 1, mw - 3, 1, mix(lower, skin.base, 0.4));
-    r.rect(mx + 2, mouthY + 2, mw - 4, 1, mix(skin.base, skin.shade, 0.6));
+    lipRow(1, mx + 1, mx + mw - 2, mix(lower, skin.base, 0.4));
+    lipRow(2, mx + 2, mx + mw - 2, mix(skin.base, skin.shade, 0.6));
   } else {
-    r.rect(mx + 1, mouthY + 1, mw - 3, 1, mix(skin.base, skin.shade, 0.55));
+    lipRow(1, mx + 1, mx + mw - 2, mix(skin.base, skin.shade, 0.55));
   }
-  if (m.speaking) {
-    // Parted: the dark of the mouth under the lip line, the lower lip a
-    // pixel further down.
-    r.rect(mx + 1, mouthY + 1, Math.max(2, mw - 3), 1, "#3a1a1e");
-    r.rect(mx + 1, mouthY + 2, Math.max(2, mw - 3), 1, lower);
+  // Open: the dark of the mouth under the upper lip, teeth where the lips are
+  // drawn back over them, and the lower lip below.
+  // While speaking, the letter asks for a shape and the pose sets the floor,
+  // so a laughing face keeps its open mouth and still forms words with it.
+  const rest = Math.round(pose.mouthOpen);
+  const shape = m.viseme === "closed" ? 0 : m.viseme === "narrow" ? 1 : 2;
+  const open = m.speaking ? Math.max(shape, rest - 1) : rest;
+  if (open > 0) {
+    const teeth = pose.mouthCurve > 1 && open > 1;
+    for (let x = mx + 1; x < mx + mw - 1; x++) {
+      const y = lipY(x);
+      for (let d = 1; d <= open; d++)
+        r.put(x, y + d, d === 1 && teeth ? mix(white, "#f3e6cf", 0.6) : "#3a1a1e");
+      r.put(x, y + open + 1, lower);
+    }
+    r.put(mx, lipY(mx) + 1, skin.deep);
+    r.put(mx + mw - 1, lipY(mx + mw - 1) + 1, skin.deep);
   }
-  r.put(mid, mouthY - 1, mix(skin.base, skin.light, 0.5));
+  r.put(mid, lipY(mid) - 1, mix(skin.base, skin.light, 0.5));
   r.rect(mid - 3, chin - 2, 4, 1, mix(skin.base, skin.light, 0.6));
+  // The cheek rides up and the fold beside the nose deepens. Without this a
+  // curved mouth is a curved mouth, not a smile.
+  if (pose.cheek > 0.25) {
+    const t = Math.min(1, pose.cheek);
+    const foldColour = mix(skin.base, skin.deep, 0.22 + 0.3 * t);
+    r.stroke(
+      [
+        [mid - wing - 1, noseBase],
+        [mx - 1, lipY(mx) - 1],
+      ],
+      foldColour,
+      t > 0.7 ? 0 : 2,
+      undefined,
+      MAT.skin,
+    );
+    r.stroke(
+      [
+        [tipX + 2, noseBase + 1],
+        [mx + mw + 1, lipY(mx + mw - 1) - 1],
+      ],
+      foldColour,
+      t > 0.7 ? 0 : 3,
+      undefined,
+      MAT.skin,
+    );
+    r.rect(
+      nx + 1,
+      eyeY + h + 3,
+      nw - 2,
+      1,
+      mix(skin.base, skin.light, 0.25 + 0.25 * t),
+    );
+  }
 
   if (face.detail === "freckles")
     for (const [x, y] of [
@@ -2097,7 +2548,7 @@ function drawFeatures(r: Raster, m: Model) {
     r.stroke(
       [
         [mid - 3, noseBase],
-        [mx - 1, mouthY + 1],
+        [mx - 1, lipY(mx) + 1],
       ],
       l,
       2,
@@ -2130,6 +2581,7 @@ function drawFeatures(r: Raster, m: Model) {
       );
     }
   }
+  drawFaceMarks(r, m, { nx, nw, fx, fw, eyeY, h, mid, noseBase, tipX, wing, mouthY, chin });
 }
 
 // ---------------------------------------------------------------- hair
@@ -3981,19 +4433,242 @@ function drawNasal(r: Raster, m: Model) {
 
 // ---------------------------------------------------------------- jewellery
 
-function drawJewellery(r: Raster, m: Model) {
-  const { a, gold, nearX, eyeY } = m;
-  if (a.wearing.earrings) {
-    const x = nearX - 1.5,
-      y = eyeY + 9;
-    r.put(x, y, gold.deep, MAT.metal);
-    r.put(x - 1, y + 1, gold.light, MAT.metal);
-    r.put(x + 1, y + 1, gold.base, MAT.metal);
-    r.put(x - 1, y + 2, gold.light, MAT.metal);
-    r.put(x + 1, y + 2, gold.shade, MAT.metal);
-    r.put(x, y + 3, gold.base, MAT.metal);
-    r.put(x - 1, y + 1, gold.high);
+/** The style actually drawn: the adornment record, or the worn-item flag. */
+function earStyle(m: Model) {
+  const chosen = m.a.adornment?.ears;
+  if (chosen && chosen !== "none") return chosen;
+  return m.a.wearing.earrings ? "drop" : "none";
+}
+
+function drawEarOrnament(r: Raster, m: Model) {
+  const style = earStyle(m);
+  if (style === "none") return;
+  const metal = m.metal;
+  // The lobe of the near ear. Only one ear shows at this turn.
+  const lx = Math.round(m.nearX);
+  const ly = m.eyeY + 6;
+  if (style === "cuff") {
+    // Clipped to the upper helix, well above the lobe.
+    const cy = m.eyeY - 1;
+    r.put(lx - 1, cy, metal.light, MAT.metal);
+    r.put(lx - 1, cy + 1, metal.shade, MAT.metal);
+    r.put(lx, cy, metal.base, MAT.metal);
+    return;
   }
+  if (style === "spool") {
+    // A plug filling a stretched lobe: a disc, not something hanging.
+    for (const [x, y, c] of [
+      [lx - 1, ly, metal.light],
+      [lx, ly, metal.base],
+      [lx - 1, ly + 1, metal.base],
+      [lx, ly + 1, metal.shade],
+      [lx - 1, ly + 2, metal.shade],
+      [lx, ly + 2, metal.deep],
+    ] as [number, number, string][])
+      r.put(x, y, c, MAT.metal);
+    r.put(lx - 1, ly, metal.high);
+    return;
+  }
+  // Stud, hoop and drop all start from a point at the lobe.
+  r.put(lx, ly, metal.base, MAT.metal);
+  r.put(lx - 1, ly, metal.high, MAT.metal);
+  if (style === "stud") {
+    r.put(lx - 1, ly + 1, metal.deep, MAT.metal);
+    return;
+  }
+  if (style === "hoop") {
+    // A ring hanging clear of the lobe: lit on the left, dark where it turns.
+    for (const [x, y, c] of [
+      [lx - 2, ly + 2, metal.light],
+      [lx - 2, ly + 3, metal.light],
+      [lx - 1, ly + 1, metal.base],
+      [lx - 1, ly + 4, metal.shade],
+      [lx, ly + 2, metal.shade],
+      [lx, ly + 3, metal.deep],
+    ] as [number, number, string][])
+      r.put(x, y, c, MAT.metal);
+    return;
+  }
+  // Drop: a short wire and a bead at the end of it.
+  r.put(lx - 1, ly + 1, metal.shade, MAT.metal);
+  r.put(lx - 1, ly + 2, metal.base, MAT.metal);
+  r.put(lx - 2, ly + 3, metal.light, MAT.metal);
+  r.put(lx - 1, ly + 3, metal.base, MAT.metal);
+  r.put(lx - 1, ly + 4, metal.deep, MAT.metal);
+  r.put(lx - 2, ly + 3, metal.high);
+}
+
+/**
+ * Nose ornaments go on after the face, because the nose is drawn as part of
+ * it. A ring on a nostril that the nostril is then painted over is no ring.
+ */
+function drawNoseOrnament(r: Raster, m: Model) {
+  const style = m.a.adornment?.nose ?? "none";
+  if (style === "none" || m.a.wearing.headwear === "visor") return;
+  const metal = m.metal;
+  const wing = noseForm(m.face.nose).wing;
+  const x = Math.round(m.mid) - wing;
+  const y = m.noseBase - 1;
+  if (style === "stud") {
+    r.put(x, y, metal.high, MAT.metal);
+    r.put(x - 1, y, metal.shade, MAT.metal);
+    return;
+  }
+  if (style === "ring") {
+    // Through the near nostril, standing a pixel off the wing.
+    r.put(x - 1, y, metal.light, MAT.metal);
+    r.put(x - 2, y, metal.base, MAT.metal);
+    r.put(x - 2, y + 1, metal.shade, MAT.metal);
+    r.put(x - 1, y + 2, metal.deep, MAT.metal);
+    r.put(x, y + 1, metal.base, MAT.metal);
+    return;
+  }
+  // Septum: hanging under the base, between the nostrils.
+  const sy = m.noseBase + 1;
+  const sx = Math.round(m.mid);
+  r.put(sx - 1, sy, metal.light, MAT.metal);
+  r.put(sx, sy, metal.base, MAT.metal);
+  r.put(sx + 1, sy, metal.shade, MAT.metal);
+  r.put(sx - 1, sy + 1, metal.base, MAT.metal);
+  r.put(sx + 1, sy + 1, metal.deep, MAT.metal);
+  r.put(sx, sy + 1, metal.shade, MAT.metal);
+  r.put(sx - 1, sy, metal.high);
+}
+
+type MarkGeometry = {
+  nx: number;
+  nw: number;
+  fx: number;
+  fw: number;
+  eyeY: number;
+  h: number;
+  mid: number;
+  noseBase: number;
+  tipX: number;
+  wing: number;
+  mouthY: number;
+  chin: number;
+};
+
+/**
+ * Tattoo, scarification and paint. The patterns are schematic — a few lines
+ * and dots in the places faces are marked — and stand for the practice, never
+ * for a particular community's design.
+ */
+function drawFaceMarks(r: Raster, m: Model, g: MarkGeometry) {
+  const pattern = m.a.adornment?.marks ?? "none";
+  if (pattern === "none") return;
+  const style = m.a.adornment?.markStyle ?? "ink";
+  const colour = m.a.adornment?.markColor ?? "#2a2740";
+  const { skin } = m;
+  // Skin only, and never over the features: a line through an eye is not a
+  // tattoo, it is a mistake.
+  const free = (x: number, y: number) => {
+    if (r.matAt(x, y) !== MAT.skin) return false;
+    const inEye = (x0: number, w: number) =>
+      x >= x0 - 2 && x < x0 + w + 2 && y >= g.eyeY - 4 && y <= g.eyeY + g.h + 2;
+    if (inEye(g.nx, g.nw) || inEye(g.fx, g.fw)) return false;
+    if (x >= g.mid - g.wing - 1 && x <= g.tipX + 1 && y >= g.eyeY && y <= g.noseBase + 1)
+      return false;
+    if (y >= g.mouthY - 2 && y <= g.mouthY + 3 && x >= g.mid - 7 && x <= g.mid + 5)
+      return false;
+    return true;
+  };
+  const mark = (x: number, y: number) => {
+    x = Math.round(x);
+    y = Math.round(y);
+    if (!free(x, y)) return;
+    const under = r.at(x, y);
+    if (style === "scar") {
+      // Raised: a lit ridge with its own small shadow under it. Scar tissue
+      // is the skin's own colour, so it takes no pigment.
+      r.put(x, y, mix(under, skin.high, 0.55));
+      if (free(x, y + 1)) r.put(x, y + 1, mix(r.at(x, y + 1), skin.deep, 0.45));
+      return;
+    }
+    r.put(x, y, mix(under, colour, style === "paint" ? 0.88 : 0.68));
+  };
+  const line = (a: Pt, b: Pt, gap = 0) => {
+    const n = Math.max(Math.abs(b[0] - a[0]), Math.abs(b[1] - a[1]), 1);
+    for (let i = 0; i <= n; i++) {
+      if (gap && i % gap === gap - 1) continue;
+      mark(a[0] + ((b[0] - a[0]) * i) / n, a[1] + ((b[1] - a[1]) * i) / n);
+    }
+  };
+  // The two cheek planes either side of the nose, in this turn's perspective.
+  const nearCheek = g.nx + 1;
+  const farCheek = g.tipX + 3;
+  const cheekY = g.eyeY + g.h + 3;
+  switch (pattern) {
+    case "cheek-lines":
+      for (let i = 0; i < 3; i++)
+        line(
+          [nearCheek, cheekY + i * 2],
+          [nearCheek + 5, cheekY + 1 + i * 2],
+        );
+      for (let i = 0; i < 2; i++)
+        line([farCheek, cheekY + i * 2], [farCheek + 3, cheekY + 1 + i * 2]);
+      break;
+    case "cheek-dots":
+      for (let i = 0; i < 4; i++) {
+        mark(nearCheek + i * 2, cheekY);
+        mark(nearCheek + 1 + i * 2, cheekY + 3);
+      }
+      for (let i = 0; i < 2; i++) {
+        mark(farCheek + i * 2, cheekY);
+        mark(farCheek + 1 + i * 2, cheekY + 3);
+      }
+      break;
+    case "chin-lines":
+      for (let i = -2; i <= 2; i++)
+        line(
+          [m.mid + i * 2 - 1, g.mouthY + 4],
+          [m.mid + i * 2 - 1, m.chin - 1],
+        );
+      break;
+    case "temple-rays":
+      for (let i = 0; i < 3; i++) {
+        line([g.nx - 2, g.eyeY - 1 + i * 2], [g.nx - 6, g.eyeY - 3 + i * 3]);
+        line([g.fx + g.fw + 1, g.eyeY + i * 2], [g.fx + g.fw + 4, g.eyeY - 2 + i * 3]);
+      }
+      break;
+    case "brow-band":
+      // Between the hairline and the brows, not up in the hair.
+      line([g.nx - 2, m.browY - 3], [g.fx + g.fw + 2, m.browY - 4]);
+      line([g.nx - 1, m.browY - 5], [g.fx + g.fw + 1, m.browY - 6], 3);
+      break;
+    case "forehead-mark": {
+      // A short upright bar over the brow line, two pixels wide so it is a
+      // mark rather than a speck of dirt.
+      const y = Math.round((m.hairline + m.browY) / 2) - 1;
+      for (let i = 0; i < 3; i++) {
+        mark(m.mid - 3, y + i);
+        mark(m.mid - 2, y + i);
+      }
+      break;
+    }
+    case "nose-bar":
+      // Across both cheekbones, below the eyes. The bridge itself is left
+      // alone so the profile still reads.
+      line([g.nx - 1, g.eyeY + g.h + 4], [g.mid - g.wing - 2, g.eyeY + g.h + 3]);
+      line([g.nx - 1, g.eyeY + g.h + 5], [g.mid - g.wing - 2, g.eyeY + g.h + 4]);
+      line([g.tipX + 2, g.eyeY + g.h + 3], [m.farX - 2, g.eyeY + g.h + 4]);
+      line([g.tipX + 2, g.eyeY + g.h + 4], [m.farX - 2, g.eyeY + g.h + 5]);
+      break;
+    case "cheek-block":
+      for (let y = cheekY - 2; y < cheekY + 4; y++)
+        for (let x = nearCheek - 1; x < nearCheek + 7; x++)
+          if ((x + y) & 1 || style === "paint") mark(x, y);
+      break;
+  }
+}
+
+function drawJewellery(r: Raster, m: Model) {
+  const { a } = m;
+  // One metal for the whole person, so the drawn beads and the described
+  // ones agree.
+  const gold = m.metal;
+  drawEarOrnament(r, m);
   if (a.wearing.necklace) {
     const bs = m.bodyScale;
     const beads: Pt[] = (

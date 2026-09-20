@@ -51,6 +51,10 @@ export type FaunaProfile = {
     from?: number;
     /** How much more often than its neighbours it is the animal kept. */
     share?: number;
+    /** Herds at grass within a morning's walk of a settlement, per 64-cell
+     * block of ideal grazing where herding is a living. Stock is not only
+     * what is shut in the pen. */
+    ranging?: number;
   };
   /** Expected groups per 64-cell block where every cell is ideal habitat. */
   density: number;

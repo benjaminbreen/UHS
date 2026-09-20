@@ -14,6 +14,12 @@ import {
   hairTextures,
   hairlines,
   faceDetails,
+  noseBridges,
+  earOrnaments,
+  noseOrnaments,
+  faceMarks,
+  markStyles,
+  ornamentMetals,
   beardStyles,
   garments,
   headwear,
@@ -197,11 +203,22 @@ export const characterAppearanceSchema = z.object({
       eyeSpacing: z.enum(eyeSpacings),
       brows: z.enum(browShapes),
       nose: z.enum(noseShapes),
+      noseBridge: z.enum(noseBridges).optional(),
       mouth: z.enum(mouthShapes),
       chin: z.enum(chinShapes),
       hairTexture: z.enum(hairTextures),
       hairline: z.enum(hairlines),
       detail: z.enum(faceDetails),
+    })
+    .optional(),
+  adornment: z
+    .object({
+      ears: z.enum(earOrnaments).optional(),
+      nose: z.enum(noseOrnaments).optional(),
+      marks: z.enum(faceMarks).optional(),
+      markStyle: z.enum(markStyles).optional(),
+      markColor: pixelColor.optional(),
+      metal: z.enum(ornamentMetals).optional(),
     })
     .optional(),
   head: z.enum(headShapes).optional(),
@@ -306,6 +323,7 @@ const actor = z.object({
   offRoutine: z.boolean().optional(),
   lastUpdated: z.number().int().optional(),
   goal: pos.optional(),
+  tends: z.object({ herd: z.string(), seat: z.number() }).optional(),
 });
 const object = z.object({
   resource: z
@@ -511,6 +529,12 @@ const faunaGroup = z
           tier: z.enum(faunaTiers).optional(),
           hp: z.number().optional(),
           stun: z.number().optional(),
+          trail: z
+            .object({ x: z.number(), y: z.number(), until: z.number() })
+            .optional(),
+          shy: z
+            .object({ x: z.number(), y: z.number(), until: z.number() })
+            .optional(),
           name: z.string().optional(),
           pose: z.enum(faunaStates).optional(),
         }),

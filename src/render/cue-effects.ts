@@ -3,17 +3,10 @@ import { gameAudio } from "../audio/director";
 import type { CueKind, Signal } from "../core/combat";
 import { facingFromStep } from "../core/facing";
 import type { CharacterPose } from "./characters/poses";
+import { CUE_BUBBLE, CUE_GLYPHS as GLYPHS } from "./cue-marks";
 
 type Sprite = Phaser.GameObjects.Image;
 
-// 5x7 glyphs, one bit per pixel, rows top to bottom.
-const GLYPHS = {
-  bang: [0b00100, 0b00100, 0b00100, 0b00100, 0b00100, 0b00000, 0b00100],
-  query: [0b01110, 0b10001, 0b00001, 0b00110, 0b00100, 0b00000, 0b00100],
-  heart: [0b00000, 0b01010, 0b11111, 0b11111, 0b01110, 0b00100, 0b00000],
-  vein: [0b10001, 0b01010, 0b00000, 0b00000, 0b00000, 0b01010, 0b10001],
-  dots: [0b00000, 0b00000, 0b00000, 0b00000, 0b00000, 0b10101, 0b00000],
-} as const;
 
 /** How each cue is acted out: the body, the mark over the head, and the small
  * movement that sells it. This table is the only place those are decided;
@@ -208,9 +201,9 @@ export class CueEffects {
       .setScale(scale)
       .setAlpha(Math.min(1, left / 160))
       .setDepth(image.y + 4700);
-    g.fillStyle(0x1a1410, 1).fillRoundedRect(-6, -12, 11, 12, 3);
+    g.fillStyle(CUE_BUBBLE.shell, 1).fillRoundedRect(-6, -12, 11, 12, 3);
     g.fillTriangle(-4, -1, -1, -1, -5, 3);
-    g.fillStyle(0xfff4d6, 1).fillRoundedRect(-5, -11, 9, 10, 2);
+    g.fillStyle(CUE_BUBBLE.fill, 1).fillRoundedRect(-5, -11, 9, 10, 2);
     g.fillTriangle(-3, -2, -1, -2, -4, 1);
     g.fillStyle(mark.color, 1);
     GLYPHS[mark.glyph].forEach((row, r) => {

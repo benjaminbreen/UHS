@@ -25,6 +25,12 @@ const variedHair: readonly CharacterAppearance["hair"][] = [
   "bald",
 ];
 
+/**
+ * Ornament and face-mark pools. These say only that a practice occurs in a
+ * broad region and roughly how visible it is; the drawn shapes are schematic
+ * and stand for no particular community's design. None of them is a claim
+ * about meaning, status or age grade.
+ */
 export const appearanceKits: AppearanceKit[] = [
   {
     id: "appearance.europe-broad",
@@ -46,6 +52,10 @@ export const appearanceKits: AppearanceKit[] = [
       "coat",
       "dress",
     ],
+    adornment: {
+      ears: ["none", "none", "none", "none", "hoop", "stud", "drop"],
+      metals: ["gold", "silver", "copper", "copper", "jet"],
+    },
   },
   {
     id: "appearance.english-colonial-light",
@@ -66,6 +76,10 @@ export const appearanceKits: AppearanceKit[] = [
     hairTextures: ["straight", "wavy", "wavy", "curly"],
     noseBridges: ["high", "average", "average"],
     garments: ["tunic", "long-tunic", "robe", "skirt", "wrap"],
+    adornment: {
+      ears: ["none", "none", "none", "none", "none", "drop", "stud"],
+      metals: ["gold", "silver", "copper"],
+    },
   },
   {
     id: "appearance.africa-broad",
@@ -80,6 +94,20 @@ export const appearanceKits: AppearanceKit[] = [
     noseBridges: ["low", "average"],
     mouths: ["full", "full", "wide", "soft"],
     garments: ["wrap", "skirt", "tunic", "long-tunic", "robe"],
+    adornment: {
+      ears: ["none", "none", "hoop", "hoop", "stud", "spool", "drop"],
+      nose: ["none", "none", "none", "none", "none", "stud", "ring"],
+      marks: [
+        ...Array<"none">(9).fill("none"),
+        "cheek-lines",
+        "cheek-lines",
+        "cheek-dots",
+        "temple-rays",
+      ],
+      markStyle: ["scar", "scar", "ink"],
+      markColors: ["#2a2740", "#1d2a30"],
+      metals: ["gold", "copper", "copper", "bone", "shell"],
+    },
   },
   {
     id: "appearance.east-asia-broad",
@@ -97,6 +125,10 @@ export const appearanceKits: AppearanceKit[] = [
     heads: ["broad", "round", "oval", "original"],
     facialHair: "sparse",
     garments: ["tunic", "long-tunic", "robe", "skirt", "wrap"],
+    adornment: {
+      ears: ["none", "none", "none", "none", "none", "stud", "drop"],
+      metals: ["gold", "silver", "jet"],
+    },
   },
   {
     id: "appearance.south-asia-broad",
@@ -112,6 +144,15 @@ export const appearanceKits: AppearanceKit[] = [
     hairTextures: ["straight", "wavy", "wavy", "curly"],
     noseBridges: ["average", "high", "low"],
     garments: ["tunic", "long-tunic", "robe", "skirt", "wrap"],
+    adornment: {
+      ears: ["none", "none", "hoop", "stud", "drop", "drop"],
+      nose: ["none", "none", "stud", "stud", "ring"],
+      noseSex: "female",
+      marks: ["none", "none", "none", "none", "none", "forehead-mark"],
+      markStyle: ["paint"],
+      markColors: ["#7a3320", "#38212e"],
+      metals: ["gold", "gold", "silver", "copper"],
+    },
   },
   {
     id: "appearance.southeast-asia-broad",
@@ -129,6 +170,13 @@ export const appearanceKits: AppearanceKit[] = [
     heads: ["round", "broad", "oval", "original"],
     facialHair: "sparse",
     garments: ["tunic", "long-tunic", "robe", "skirt", "wrap"],
+    adornment: {
+      ears: ["none", "none", "none", "stud", "hoop", "spool"],
+      marks: ["none", "none", "none", "none", "none", "none", "cheek-dots"],
+      markStyle: ["ink"],
+      markColors: ["#1d2a30", "#2a2740"],
+      metals: ["gold", "silver", "shell", "bone"],
+    },
   },
   {
     id: "appearance.west-asia-broad",
@@ -145,6 +193,15 @@ export const appearanceKits: AppearanceKit[] = [
     noseBridges: ["high", "high", "average"],
     facialHair: "full",
     garments: ["tunic", "long-tunic", "robe", "skirt", "wrap"],
+    adornment: {
+      ears: ["none", "none", "none", "hoop", "hoop", "drop", "stud"],
+      nose: ["none", "none", "none", "none", "ring", "stud"],
+      noseSex: "female",
+      marks: ["none", "none", "none", "none", "none", "chin-lines"],
+      markStyle: ["ink"],
+      markColors: ["#2a2740", "#1d2a30"],
+      metals: ["gold", "gold", "silver", "copper"],
+    },
   },
   {
     id: "appearance.americas-broad",
@@ -162,6 +219,20 @@ export const appearanceKits: AppearanceKit[] = [
     heads: ["broad", "original", "oval"],
     facialHair: "sparse",
     garments: ["wrap", "skirt", "tunic", "long-tunic", "robe"],
+    adornment: {
+      ears: ["none", "none", "none", "spool", "spool", "stud", "hoop"],
+      nose: ["none", "none", "none", "none", "septum", "ring"],
+      marks: [
+        ...Array<"none">(9).fill("none"),
+        "cheek-lines",
+        "nose-bar",
+        "cheek-block",
+        "chin-lines",
+      ],
+      markStyle: ["paint", "paint", "ink"],
+      markColors: ["#7a3320", "#7a3320", "#b8792c", "#1d2a30", "#d9cdb4"],
+      metals: ["gold", "copper", "shell", "bone", "jet"],
+    },
   },
   {
     id: "appearance.oceania-broad",
@@ -178,6 +249,19 @@ export const appearanceKits: AppearanceKit[] = [
     noseBridges: ["low", "average"],
     heads: ["broad", "original", "oval"],
     garments: ["wrap", "skirt", "tunic", "long-tunic"],
+    adornment: {
+      ears: ["none", "none", "none", "hoop", "spool", "stud"],
+      nose: ["none", "none", "none", "none", "none", "septum"],
+      marks: [
+        ...Array<"none">(9).fill("none"),
+        "chin-lines",
+        "cheek-lines",
+        "temple-rays",
+      ],
+      markStyle: ["ink", "ink", "scar"],
+      markColors: ["#1d2a30", "#2a2740"],
+      metals: ["shell", "bone", "bone", "jet"],
+    },
   },
   {
     id: "appearance.congo-basin-1000-1800",
@@ -192,6 +276,19 @@ export const appearanceKits: AppearanceKit[] = [
     noseBridges: ["low", "average"],
     mouths: ["full", "full", "wide", "soft"],
     garments: ["wrap", "skirt", "tunic", "long-tunic"],
+    adornment: {
+      ears: ["none", "none", "none", "none", "hoop", "stud", "spool"],
+      marks: [
+        ...Array<"none">(8).fill("none"),
+        "cheek-lines",
+        "cheek-dots",
+        "temple-rays",
+        "brow-band",
+      ],
+      markStyle: ["scar", "scar", "ink"],
+      markColors: ["#2a2740", "#1d2a30"],
+      metals: ["copper", "copper", "shell", "bone"],
+    },
   },
 ];
 

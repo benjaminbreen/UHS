@@ -4,6 +4,9 @@ import { describeStanding, standingOf } from "../core/standing";
 import { outlookOf } from "../core/outlook";
 import { communityProfiles } from "../content/characters/profiles/communities";
 import type { Runtime } from "../runtime/session";
+import { wearSlots } from "../core/character";
+import { parseCloth } from "../content/characters/wardrobe/cloth";
+import type { Expression } from "../render/portraits/constructed";
 
 export type DialogueLine = { speaker: "npc" | "player"; text: string };
 export type DialogueGift = {
@@ -17,6 +20,66 @@ const sexLabel = (actor: Actor) => {
   const sex = actor.origin?.sex ?? actor.appearance?.physique?.sex;
   return sex === "female" ? "Female" : sex === "male" ? "Male" : "Person";
 };
+
+/** How well turned out the player looks, by the quality of the body garment. */
+const DRESS = [
+  "in worn, poor clothes",
+  "plainly dressed",
+  "well dressed",
+  "richly dressed",
+  "dressed with a finery few here could afford",
+];
+
+/**
+ * What the player looks like standing in front of someone: what they have on,
+ * how good it is, and what is in their hand. People read this before they
+ * hear a word, and a barefoot stranger holding an axe is not owed the same
+ * answer as a well-dressed one holding a basket of figs.
+ */
+function playerPresence(runtime: Runtime) {
+  const engine = runtime.engine;
+  const p = engine.state.player;
+  const worn = p.worn ?? {};
+  const pieces = wearSlots
+    .map((slot) => (worn[slot] ? engine.item(worn[slot]!)?.name : undefined))
+    .filter(Boolean) as string[];
+  const body = worn.body ? parseCloth(worn.body) : undefined;
+  const quality = body?.cloth.quality ?? 0;
+  const dress = !pieces.length
+    ? "wearing nothing at all"
+    : `${DRESS[Math.max(0, Math.min(4, quality + 1))]}: ${pieces.slice(0, 5).join(", ")}`;
+  const carried = p.held
+    ? engine.state.objects.find((o) => o.id === p.held)
+    : undefined;
+  const item = p.heldItem ? engine.item(p.heldItem) : undefined;
+  const held = carried?.name ?? item?.name;
+  const hands = !held
+    ? "Hands empty."
+    : `Carrying ${held} in hand${item?.hand?.strike ? ", held as a weapon" : ""}.`;
+  const sex =
+    p.appearance?.physique?.sex ?? p.origin?.sex ?? "unspecified";
+  const who = sex === "female" ? "A woman" : sex === "male" ? "A man" : "A person";
+  return `${who}${p.age ? ` of about ${p.age}` : ""}, ${dress}. ${hands}`;
+}
+
+/**
+ * How much this person owes the player in the way of conversation. Read off
+ * the game's own state rather than left to the model to guess, so a stranger
+ * interrupting a day's work is not as forthcoming as a friend.
+ */
+function openness(actor: Actor, met: boolean) {
+  if (actor.trust < -1)
+    return "They want nothing to do with you. Answer curtly or refuse to answer.";
+  if (actor.trust < 0)
+    return "They are wary of you and will give you as little as they can.";
+  // Ill feeling carries across a first meeting; goodwill does not. Somebody
+  // you have never spoken to is a stranger however the number reads.
+  if (!met)
+    return "A stranger has interrupted your work. A few words at most, unless something about them earns more.";
+  if (actor.trust >= 3) return "They are glad of you and will talk freely.";
+  if (actor.trust >= 1) return "They are friendly and will answer properly.";
+  return "You have met, but barely. Civil and brief.";
+}
 
 /** Small, local-only context: enough to ground a voice without resending the world card. */
 export function dialogueContext(runtime: Runtime, actor: Actor) {
@@ -73,6 +136,9 @@ export function dialogueContext(runtime: Runtime, actor: Actor) {
     : [];
   return [
     `NPC: ${actor.name}; ${sexLabel(actor)}; age ${actor.age ?? "adult"}; ${actor.role}.`,
+    // Before the words: who has walked up, and what they are holding.
+    `In front of you: ${playerPresence(runtime)}`,
+    `Openness: ${openness(actor, met.length > 0)}`,
     `Background: ${background.join("; ")}.`,
     `Doing: ${actor.activity.toLowerCase()}. Location: ${location}.`,
     family.length ? `Family: ${family.join(", ")}.` : household ? "Family: household member." : "Family: lives alone.",
@@ -104,6 +170,7 @@ export async function dialogueTurn(
     transcript ? `Conversation so far:\n${transcript}` : "Conversation so far: none.",
     input.trim() ? `Player says: ${input.trim().slice(0, 400)}` : "Begin with one brief spoken line to the player.",
   ].join("\n\n");
+  const began = Date.now();
   try {
     const response = await fetch("/api/dialogue", {
       method: "POST",
@@ -116,9 +183,21 @@ export async function dialogueTurn(
       error?: string;
       receive?: DialogueGift;
       regard?: number;
+      mood?: Expression;
+      ms?: { upstream: number; total: number };
+      tokens?: { out: number; reasoning: number };
     };
+    // Where the wait went, in dev. `round` is the whole round trip including
+    // our own server; `upstream` is the model alone. A large gap between them
+    // is ours to fix; a small one is not.
+    if (import.meta.env.DEV && data.ms)
+      console.debug(
+        `[dialogue] ${input.trim() ? "reply" : "opening"} to ${actorId} · ` +
+          `round ${Date.now() - began}ms · upstream ${data.ms.upstream}ms · ` +
+          `${data.tokens?.out ?? 0} out (${data.tokens?.reasoning ?? 0} reasoning)`,
+      );
     if (!response.ok || !data.text) return { text: "", error: data.error ?? "The conversation is unavailable." };
-    return { text: data.text.trim(), receive: data.receive, regard: data.regard, error: undefined };
+    return { text: data.text.trim(), receive: data.receive, regard: data.regard, mood: data.mood, error: undefined };
   } catch (cause) {
     // An abort is the player closing the conversation, not a failure.
     if (cause instanceof DOMException && cause.name === "AbortError")

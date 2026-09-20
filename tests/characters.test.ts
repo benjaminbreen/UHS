@@ -35,7 +35,13 @@ describe("character recipes", () => {
     );
     expect(people.every((person) => person.face?.revision === 1)).toBe(true);
     expect(new Set(people.map((person) => person.face?.eyeShape)).size).toBe(3);
-    expect(new Set(people.map((person) => person.face?.nose)).size).toBe(4);
+    // Nine profiles are drawn, weighted toward the four common ones; ninety-six
+    // faces reach all of them.
+    expect(new Set(people.map((person) => person.face?.nose)).size).toBe(9);
+    // Weighted toward average: an even third each made a third of every crowd
+    // wide-set.
+    const spacing = people.filter((p) => p.face?.eyeSpacing === "wide").length;
+    expect(spacing).toBeLessThan(people.length / 4);
     expect(generateFace("portrait-recipe", 4, 30)).toEqual(
       generateFace("portrait-recipe", 4, 30),
     );

@@ -6,6 +6,7 @@ import {
 } from "../../content/characters/generate";
 import { atWork } from "../../core/brief";
 import {
+  subsistenceFor,
   resolveCharacterContext,
   workAt,
 } from "../../content/characters/resolve";
@@ -87,6 +88,16 @@ export function planSettlement(
     !characterContext || workAt(characterContext, "field").length > 0;
   const canHerd =
     !characterContext || workAt(characterContext, "pasture").length > 0;
+  // A town before the railway still eats what walks in on its own legs: no
+  // household pens among the houses, but a stockyard at the edge and a few
+  // people whose work is the animals in it.
+  const stockyard =
+    !profile.livestock &&
+    canHerd &&
+    !!pack.setting &&
+    pack.setting.settlement !== "camp" &&
+    pack.setting.year < 1850 &&
+    (subsistenceFor(pack.setting)?.shares.herding ?? 0) >= 0.05;
   const sharedRoads = !!pack.setting?.roadRevision;
   const urban = urbanSite(site, pack);
   /** Resolved once: the lookup scans every dated rule, and both the square's
@@ -1590,7 +1601,8 @@ export function planSettlement(
           ? "trader"
           : lot.quarter === "craft"
             ? "craftsperson"
-            : profile.livestock && canHerd && i % 3 === 1
+            : (profile.livestock && canHerd && i % 3 === 1) ||
+                (stockyard && i % 9 === 4)
               ? (workAt(
                   characterContext!,
                   "pasture",
@@ -2198,7 +2210,7 @@ export function planSettlement(
     boundary: penBoundary,
     wet: false,
   });
-  if (profile.livestock && herdOwners.length)
+  if ((profile.livestock || stockyard) && herdOwners.length)
     for (let i = 0; i < Math.min(2, herdOwners.length); i++) {
       // Terraced ground rarely offers a full-size level plot; a smaller pen
       // beats no herder at all.

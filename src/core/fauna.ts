@@ -35,6 +35,11 @@ export type FaunaMember = {
   n?: number;
   tier?: "weak" | "ordinary" | "strong" | "very-strong" | "legendary";
   hp?: number;
+  /** The cell it has just left, which its body is still crossing: solid to
+   * the player until the clock passes `until`. */
+  trail?: { x: number; y: number; until: number };
+  /** Someone walked into it: until then it keeps moving away from there. */
+  shy?: { x: number; y: number; until: number };
   /** Clock until which a blow has it reeling: it does not move. */
   stun?: number;
   /** Legendaries only: "the grey boar of the ford". */

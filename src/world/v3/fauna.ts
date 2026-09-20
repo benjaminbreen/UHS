@@ -1,6 +1,7 @@
 import { random } from "../../core/random";
 import type { WorldModel } from "../../core/types";
 import type { FaunaGroup } from "../../core/fauna";
+import { subsistenceFor } from "../../content/characters/resolve";
 import {
   faunaAt,
   faunaProfile,
@@ -141,8 +142,16 @@ export function spawnFauna(
         world.geography?.packAt(cx * 64 + 32, cy * 64 + 32) ?? world.pack
       ).setting;
       if (!setting?.environment) continue;
+      // Herding as a share of how people here live: where it is most of it,
+      // the country round a settlement is full of stock.
+      const herding = Math.min(
+        1,
+        (subsistenceFor(setting)?.shares.herding ?? 0) / 0.25,
+      );
       for (const p of faunaAt(setting)) {
-        if (p.density <= 0) continue;
+        const ranging =
+          p.density <= 0 ? (p.keeping?.ranging ?? 0) * herding : 0;
+        if (p.density <= 0 && !ranging) continue;
         for (let i = 0; i < ATTEMPTS; i++) {
           const px =
               cx * 64 +
@@ -156,8 +165,11 @@ export function spawnFauna(
             continue;
           const d = settlementDistance(world, px, py);
           if (d < p.minimumSettlementDistance) continue;
+          // Kept animals graze near home: past the last houses, and no
+          // further than they can be walked out and back in a day.
+          if (ranging && (d < 5 || d > 70)) continue;
           let chance =
-            (p.density / ATTEMPTS) *
+            ((ranging || p.density) / ATTEMPTS) *
             suitability(p, habitatTagsAt(world, px, py));
           // Town birds keep to the town: far from one they are a rare stray.
           if (p.category === "commensal" && d > 6) chance *= 0.15;
@@ -179,7 +191,7 @@ export function spawnFauna(
             pos: { x: px, y: py, space: "outside" },
             home: { x: px, y: py, space: "outside" },
             homeRadius: bird ? 10 : p.cohesionRadius * 3,
-            state: bird ? "perch" : "idle",
+            state: bird ? "perch" : ranging && p.art.graze ? "graze" : "idle",
             nextDecisionAt: 0,
             stride: 0,
             since: 0,

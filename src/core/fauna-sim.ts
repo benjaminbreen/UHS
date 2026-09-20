@@ -398,6 +398,10 @@ function moveMember(
   all = false,
 ) {
   if ((m.stun ?? 0) > now) return;
+  // A body takes a moment to clear the cell it leaves. The oldest trail is
+  // kept, because the sprite is still coming from there.
+  if (!m.trail || m.trail.until <= now)
+    m.trail = { x: m.x, y: m.y, until: now + TRAIL };
   taken.delete(`${m.x},${m.y}`);
   face(m, to.x - m.x, to.y - m.y, all);
   m.x = to.x;
@@ -405,6 +409,10 @@ function moveMember(
   taken.add(`${m.x},${m.y}`);
 }
 
+/** Game seconds a vacated cell stays solid: about one step of the player's. */
+const TRAIL = 8;
+/** How far a jostled animal goes before it settles. */
+const SHY_REACH = 4.5;
 /** Seconds an animal paws the ground before it comes. Long enough to read. */
 const WINDUP = 18;
 /** Cells a charge carries before the animal pulls up. */
@@ -915,6 +923,24 @@ export function advanceFauna(
         // group mills about instead of one of them twitching per tick.
         const drift = g.state === "idle" ? 0.1 : 0.25;
         for (const m of g.members) {
+          // Walked into: it keeps going, away from whoever did it, a step a
+          // tick until it has put some ground between them.
+          if (m.shy && m.shy.until > clock) {
+            const from = m.shy;
+            const away = NEIGHBOURS.map((n) => ({ x: m.x + n.x, y: m.y + n.y }))
+              .filter(
+                (to) =>
+                  hyp(to, from) > hyp(m, from) &&
+                  hyp(to, g.home) <= g.homeRadius + 2 &&
+                  !taken.has(`${to.x},${to.y}`) &&
+                  !world.occupied(to.x, to.y) &&
+                  stepAllowed(world, p, m, to),
+              )
+              .sort((a, b) => hyp(b, from) - hyp(a, from))[0];
+            if (away && hyp(m, from) < SHY_REACH)
+              moveMember(m, away, taken, turns);
+            continue;
+          }
           if (world.rng(`fauna-${g.id}-drift`) >= drift) continue;
           const n =
             NEIGHBOURS[Math.floor(world.rng(`fauna-${g.id}-drift`) * 8)];

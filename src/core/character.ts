@@ -178,7 +178,28 @@ export const eyelidFolds = ["crease", "low-crease", "monolid"] as const;
 export type EyelidFold = (typeof eyelidFolds)[number];
 export const eyeSpacings = ["close", "average", "wide"] as const;
 export const browShapes = ["straight", "arched", "heavy"] as const;
-export const noseShapes = ["short", "straight", "broad", "aquiline"] as const;
+/**
+ * Profile shapes. `short`, `straight`, `broad` and `aquiline` are the original
+ * four; the rest were added because four nose types over a whole world meant
+ * every fourth face shared a profile.
+ */
+export const noseShapes = [
+  "short",
+  "straight",
+  "broad",
+  "aquiline",
+  /** A convex bridge that drops past the base: the tip points down. */
+  "hooked",
+  /** Short, concave, tip turned up. */
+  "snub",
+  /** Narrow bridge, wide fleshy tip. */
+  "bulbous",
+  /** Thin bridge and small wings all the way down. */
+  "narrow",
+  /** Low flat bridge with wide wings and little projection. */
+  "flat",
+] as const;
+export type NoseShape = (typeof noseShapes)[number];
 export const mouthShapes = ["narrow", "soft", "full", "wide"] as const;
 export const chinShapes = ["short", "average", "long"] as const;
 export const hairTextures = ["straight", "wavy", "curly", "coiled"] as const;
@@ -186,6 +207,61 @@ export type HairTexture = (typeof hairTextures)[number];
 /** Height of the nasal bridge at the root, between the eyes. */
 export const noseBridges = ["low", "average", "high"] as const;
 export type NoseBridge = (typeof noseBridges)[number];
+/**
+ * Small worn ornament and body modification drawn on the head. Which of these
+ * occur, and how often, is regional content carried by the appearance kit —
+ * this file only names the shapes the painter knows how to draw.
+ */
+export const earOrnaments = [
+  "none",
+  /** A single point at the lobe. */
+  "stud",
+  /** A ring hanging clear of the lobe. */
+  "hoop",
+  /** A stud with something hanging from it. */
+  "drop",
+  /** A plug or flare filling a stretched lobe. */
+  "spool",
+  /** A band clipped to the upper helix. */
+  "cuff",
+] as const;
+export type EarOrnament = (typeof earOrnaments)[number];
+export const noseOrnaments = ["none", "stud", "ring", "septum"] as const;
+export type NoseOrnament = (typeof noseOrnaments)[number];
+/** Where a face mark sits. The pattern is schematic, never a specific design. */
+export const faceMarks = [
+  "none",
+  "cheek-lines",
+  "cheek-dots",
+  "chin-lines",
+  "temple-rays",
+  "brow-band",
+  "forehead-mark",
+  "nose-bar",
+  "cheek-block",
+] as const;
+export type FaceMark = (typeof faceMarks)[number];
+/** Ink sits in the skin, a scar stands off it, paint covers it. */
+export const markStyles = ["ink", "scar", "paint"] as const;
+export type MarkStyle = (typeof markStyles)[number];
+export const ornamentMetals = [
+  "gold",
+  "silver",
+  "copper",
+  "bone",
+  "shell",
+  "jet",
+] as const;
+export type OrnamentMetal = (typeof ornamentMetals)[number];
+export type FaceAdornment = {
+  ears?: EarOrnament;
+  nose?: NoseOrnament;
+  marks?: FaceMark;
+  markStyle?: MarkStyle;
+  /** Ink or paint colour. Scarification ignores it and uses the skin's tones. */
+  markColor?: string;
+  metal?: OrnamentMetal;
+};
 export const hairlines = ["low", "average", "high", "widows-peak"] as const;
 export const faceDetails = ["clear", "freckles", "lines", "weathered"] as const;
 export const bodyShapes = ["straight", "tapered", "rounded"] as const;
@@ -244,12 +320,38 @@ export function generateFace(seed: string, index = 0, age = 30): CharacterFace {
     revision: 1,
     eyeSize: pick("eye-size", eyeSizes),
     eyeShape: pick("eye-shape", eyeShapes),
-    eyeSpacing: pick("eye-spacing", eyeSpacings),
+    // Weighted toward average. An even third each put wide-set eyes on a
+    // third of everyone, which is not what a third of faces look like.
+    eyeSpacing: pick("eye-spacing", [
+      "average",
+      "average",
+      "average",
+      "average",
+      "close",
+      "close",
+      "wide",
+    ] as const),
     // The unplaced default. A regional kit overrides both of these.
     eyelid: pick("eyelid", ["crease", "crease", "low-crease"] as const),
     epicanthus: random(seed, "portrait-face-v1", index, "epicanthus") < 0.12,
     brows: pick("brows", browShapes),
-    nose: pick("nose", noseShapes),
+    // Weighted: the four common profiles stay common, so the five added
+    // shapes read as variation rather than as a nose lottery.
+    nose: pick("nose", [
+      "straight",
+      "straight",
+      "straight",
+      "short",
+      "short",
+      "broad",
+      "broad",
+      "aquiline",
+      "hooked",
+      "snub",
+      "bulbous",
+      "narrow",
+      "flat",
+    ] as const),
     mouth: pick("mouth", mouthShapes),
     chin: pick("chin", chinShapes),
     hairTexture: pick("hair-texture", hairTextures),
@@ -261,6 +363,187 @@ export function generateFace(seed: string, index = 0, age = 30): CharacterFace {
         : pick("detail", ["clear", "clear", "clear", "freckles"] as const),
   };
 }
+/**
+ * Which ornaments and marks a population uses, and how often. Weighted by
+ * repetition, the way the appearance kit's other pools are. Absent pools fall
+ * back to a deliberately thin worldwide spread: mostly nothing, a few ears.
+ */
+export type AdornmentPools = {
+  ears?: readonly EarOrnament[];
+  nose?: readonly NoseOrnament[];
+  /** Where a nose ornament is one sex's convention, not everyone's. */
+  noseSex?: CharacterPhysique["sex"];
+  marks?: readonly FaceMark[];
+  /** Where marks are a coming-of-age thing rather than a childhood one. */
+  marksFrom?: number;
+  markStyle?: readonly MarkStyle[];
+  markColors?: readonly string[];
+  metals?: readonly OrnamentMetal[];
+};
+const worldwideEars: readonly EarOrnament[] = [
+  "none",
+  "none",
+  "none",
+  "none",
+  "none",
+  "none",
+  "stud",
+  "hoop",
+  "hoop",
+  "drop",
+];
+const worldwideMetals: readonly OrnamentMetal[] = [
+  "gold",
+  "silver",
+  "copper",
+  "copper",
+  "bone",
+  "shell",
+];
+/** Ink blues and blacks, ochre and lime paint, and one pale chalk. */
+export const markColors = [
+  "#2a2740",
+  "#1d2a30",
+  "#38212e",
+  "#7a3320",
+  "#b8792c",
+  "#d9cdb4",
+] as const;
+/**
+ * Roughly what an ornament in this material is worth. Not a price: enough of
+ * an ordering that a person in worn cloth is not drawn in gold.
+ */
+const METAL_RANK: Record<OrnamentMetal, number> = {
+  bone: 0,
+  shell: 0,
+  copper: 1,
+  jet: 1,
+  silver: 2,
+  gold: 3,
+};
+/**
+ * The metal a person's ornaments are actually made of. The kit still decides
+ * which metals exist where; means only chooses within that, so an ornament
+ * says something about the wearer rather than only about the region. Falls
+ * back to the drawn metal where the kit's pool has nothing in range.
+ */
+export function metalForMeans(
+  pool: readonly OrnamentMetal[] | undefined,
+  chosen: OrnamentMetal,
+  /** Cloth quality: -1 worn, 0 ordinary, 1..3 the fine tiers. */
+  quality: number,
+  seed: string,
+  id: string,
+): OrnamentMetal {
+  const want = quality <= -1 ? 0 : quality === 0 ? 1 : quality === 1 ? 2 : 3;
+  const options = (pool ?? [chosen]).filter(
+    (metal) => Math.abs(METAL_RANK[metal] - want) <= 1,
+  );
+  if (!options.length) return chosen;
+  return options[
+    Math.floor(random(seed, "adornment-metal", 0, id) * options.length)
+  ];
+}
+export function generateAdornment(
+  seed: string,
+  index: number,
+  age: number,
+  sex: CharacterPhysique["sex"],
+  pools: AdornmentPools = {},
+): FaceAdornment {
+  const pick = <T>(key: string, values: readonly T[]) =>
+    values[
+      Math.floor(random(seed, "adornment-v1", index, key) * values.length)
+    ];
+  const ears = pick("ears", pools.ears ?? worldwideEars);
+  // A stretched lobe or a heavy hoop is not a small child's.
+  const child = age < 10;
+  const nosePool = pools.nose ?? (["none"] as const);
+  const wrongSex =
+    pools.noseSex !== undefined &&
+    pools.noseSex !== "unspecified" &&
+    sex !== pools.noseSex;
+  const marks: FaceMark =
+    age < (pools.marksFrom ?? 12)
+      ? "none"
+      : pick("marks", pools.marks ?? (["none"] as const));
+  return {
+    ears: child && (ears === "spool" || ears === "hoop") ? "stud" : ears,
+    nose: child || wrongSex ? "none" : pick("nose", nosePool),
+    marks,
+    markStyle: pick("mark-style", pools.markStyle ?? (["ink"] as const)),
+    markColor: pick("mark-color", pools.markColors ?? markColors),
+    metal: pick("metal", pools.metals ?? worldwideMetals),
+  };
+}
+/** What a person is wearing on the face and what is worked into the skin. */
+export type AdornmentNote = {
+  kind: "ear" | "nose" | "neck" | "mark";
+  label: string;
+};
+const METAL_WORD: Record<OrnamentMetal, string> = {
+  gold: "gold",
+  silver: "silver",
+  copper: "copper",
+  bone: "bone",
+  shell: "shell",
+  jet: "jet",
+};
+const EAR_WORD: Record<Exclude<EarOrnament, "none">, string> = {
+  stud: "stud in the ear",
+  hoop: "hoop through the lobe",
+  drop: "drop earring",
+  spool: "spool in a stretched lobe",
+  cuff: "cuff on the ear",
+};
+const NOSE_WORD: Record<Exclude<NoseOrnament, "none">, string> = {
+  stud: "stud in the nose",
+  ring: "ring through the nostril",
+  septum: "ring through the septum",
+};
+const MARK_WORD: Record<Exclude<FaceMark, "none">, string> = {
+  "cheek-lines": "Lines across both cheeks",
+  "cheek-dots": "Rows of dots on the cheeks",
+  "chin-lines": "Lines down the chin",
+  "temple-rays": "Rays at the temples",
+  "brow-band": "A band across the forehead",
+  "forehead-mark": "A mark on the forehead",
+  "nose-bar": "A bar across the cheekbones",
+  "cheek-block": "A block of colour on the cheek",
+};
+const MARK_STYLE_WORD: Record<MarkStyle, string> = {
+  ink: "inked into the skin",
+  scar: "cut into the skin",
+  paint: "painted on",
+};
+/**
+ * Says what the portrait is showing, in plain words. Description only: the
+ * drawn patterns are schematic, so nothing here names a design, a people or
+ * what a mark might mean to the person wearing it.
+ */
+export function describeAdornment(a: CharacterAppearance): AdornmentNote[] {
+  const notes: AdornmentNote[] = [];
+  const metal = METAL_WORD[a.adornment?.metal ?? "gold"];
+  const worn = a.adornment?.ears;
+  // A worn pair of earrings with no style recorded draws as a drop.
+  const ears: EarOrnament =
+    worn && worn !== "none" ? worn : a.wearing.earrings ? "drop" : "none";
+  if (ears !== "none")
+    notes.push({ kind: "ear", label: capital(`${metal} ${EAR_WORD[ears]}`) });
+  const nose = a.adornment?.nose ?? "none";
+  if (nose !== "none")
+    notes.push({ kind: "nose", label: capital(`${metal} ${NOSE_WORD[nose]}`) });
+  if (a.wearing.necklace)
+    notes.push({ kind: "neck", label: capital(`${metal} bead necklace`) });
+  const marks = a.adornment?.marks ?? "none";
+  if (marks !== "none")
+    notes.push({
+      kind: "mark",
+      label: `${MARK_WORD[marks]}, ${MARK_STYLE_WORD[a.adornment?.markStyle ?? "ink"]}`,
+    });
+  return notes;
+}
+const capital = (text: string) => text[0].toUpperCase() + text.slice(1);
 /** Weighted art direction, not a biological rule or an inference of personality. */
 export function faceFromTraits(
   seed: string,
@@ -308,6 +591,8 @@ export function faceFromTraits(
 export type CharacterAppearance = {
   physique?: CharacterPhysique;
   face?: CharacterFace;
+  /** Absent on saves written before ornaments and marks existed. */
+  adornment?: FaceAdornment;
   head?: (typeof headShapes)[number];
   jaw?: (typeof jawShapes)[number];
   bodyShape?: (typeof bodyShapes)[number];
@@ -429,6 +714,7 @@ export function generateAppearance(
   return {
     physique,
     face: generateFace(seed, index, age),
+    adornment: generateAdornment(seed, index, age, sex),
     ...faceFromTraits(seed, index, age, physique),
     bodyShape:
       physique.strength > 70

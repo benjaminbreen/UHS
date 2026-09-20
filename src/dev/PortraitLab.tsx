@@ -2,25 +2,33 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   browShapes,
   chinShapes,
+  earOrnaments,
   eyeShapes,
   eyeSizes,
   eyeSpacings,
   faceDetails,
+  faceMarks,
   generateAppearance,
   generateFace,
   hairlines,
   hairTextures,
+  markStyles,
   mouthShapes,
+  noseOrnaments,
   noseShapes,
+  ornamentMetals,
   type CharacterAppearance,
   type CharacterFace,
+  type FaceAdornment,
 } from "../core/character";
 import { random } from "../core/random";
 import type { Runtime } from "../runtime/session";
 import {
   constructedDefaults,
   constructedRanges,
+  expressions,
   type ConstructedTuning,
+  type Expression,
 } from "../render/portraits/constructed";
 import {
   portraitSystems,
@@ -98,7 +106,11 @@ export function PortraitLab({
   const [actorId, setActorId] = useState(liveActors[0]?.id ?? "generated-0");
   const [view, setView] = useState<string>("all");
   const [tuning, setTuning] = useState<ConstructedTuning>(constructedDefaults);
-  const options = useMemo<PortraitRenderOptions>(() => ({ tuning }), [tuning]);
+  const [expression, setExpression] = useState<Expression>("neutral");
+  const options = useMemo<PortraitRenderOptions>(
+    () => ({ tuning, expression }),
+    [tuning, expression],
+  );
   const tuned = (Object.keys(tuning) as (keyof ConstructedTuning)[]).filter(
     (key) => tuning[key] !== constructedDefaults[key],
   );
@@ -156,6 +168,33 @@ export function PortraitLab({
       ...current,
       face: { ...current.face!, [key]: value },
     }));
+  const adornment: FaceAdornment = edited.adornment ?? {};
+  const adorn = <T extends string>(
+    label: string,
+    key: keyof FaceAdornment,
+    values: readonly T[],
+  ) => (
+    <label>
+      {label}
+      <select
+        value={(adornment[key] as string | undefined) ?? values[0]}
+        aria-label={label}
+        onChange={(event) =>
+          setEdited((current) => ({
+            ...current,
+            adornment: {
+              ...(current.adornment ?? {}),
+              [key]: event.target.value,
+            },
+          }))
+        }
+      >
+        {values.map((option) => (
+          <option key={option}>{option}</option>
+        ))}
+      </select>
+    </label>
+  );
   const visibleSystems = portraitSystems.filter(
     (system) => view === "all" || system.id === view,
   );
@@ -285,6 +324,33 @@ export function PortraitLab({
             {select("Hairline", "hairline", face.hairline, hairlines)}
             {select("Face detail", "detail", face.detail, faceDetails)}
           </div>
+          <h2>
+            Ornament <small>worn and worked into the skin</small>
+          </h2>
+          <div className="portrait-control-grid">
+            {adorn("Ear ornament", "ears", earOrnaments)}
+            {adorn("Nose ornament", "nose", noseOrnaments)}
+            {adorn("Face marks", "marks", faceMarks)}
+            {adorn("Mark style", "markStyle", markStyles)}
+            {adorn("Ornament metal", "metal", ornamentMetals)}
+          </div>
+          <h2>
+            Expression <small>renderer C</small>
+          </h2>
+          <label>
+            Expression
+            <select
+              aria-label="Expression"
+              value={expression}
+              onChange={(event) =>
+                setExpression(event.target.value as Expression)
+              }
+            >
+              {expressions.map((option) => (
+                <option key={option}>{option}</option>
+              ))}
+            </select>
+          </label>
           <details>
             <summary>Semantic recipe</summary>
             <pre>{JSON.stringify(edited, null, 2)}</pre>
@@ -386,6 +452,36 @@ export function PortraitLab({
               </article>
             ))}
           </div>
+
+          <section className="portrait-expression-sheet">
+            <header>
+              <h2>Expressions</h2>
+              <p>
+                One face, twelve poses. Every pose is a set of pixel offsets to
+                the brows, lids, mouth and gaze — the drawing underneath is the
+                same recipe, so the person stays recognisable.
+              </p>
+            </header>
+            <div className="portrait-expression-strip">
+              {expressions.map((option) => (
+                <button
+                  key={option}
+                  aria-pressed={expression === option}
+                  onClick={() => setExpression(option)}
+                  title={option}
+                >
+                  <PortraitCanvas
+                    system={portraitSystems[2]}
+                    appearance={edited}
+                    age={activeAge}
+                    label={`${live?.name ?? "Study"}, ${option}`}
+                    options={{ tuning, expression: option }}
+                  />
+                  <span>{option}</span>
+                </button>
+              ))}
+            </div>
+          </section>
 
           <section className="portrait-contact-section">
             <header>

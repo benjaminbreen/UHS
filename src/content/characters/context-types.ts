@@ -1,4 +1,5 @@
 import type {
+  AdornmentPools,
   CharacterAppearance,
   CharacterFace,
   FacialHair,
@@ -134,6 +135,14 @@ export type AppearanceKit = QualifiedContent & {
   hairColors: readonly string[];
   hairStyles: readonly CharacterAppearance["hair"][];
   garments: readonly CharacterAppearance["wearing"]["garment"][];
+  /**
+   * Ear and nose ornaments and face marks drawn here, weighted by repetition
+   * like the pools above. These are schematic shapes and coarse frequencies,
+   * not particular designs: a drawn cheek line stands for the practice of
+   * marking the face and never for one community's actual pattern, which
+   * would need its own sources. Omitted kits get a thin worldwide spread.
+   */
+  adornment?: AdornmentPools;
 };
 export type CommunityProfile = QualifiedContent & {
   scope: CharacterScope;

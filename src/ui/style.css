@@ -1362,6 +1362,86 @@ kbd {
   padding-bottom: 15px;
   border-bottom: 1px solid var(--line-soft);
 }
+/* Holds the portrait and the mark that pops beside it; the portrait clips
+   its own canvas, so the mark cannot live inside it. */
+.dialogue-face {
+  position: relative;
+  flex: 0 0 auto;
+  display: flex;
+}
+.dialogue-took {
+  position: absolute;
+  right: -13px;
+  top: -12px;
+  z-index: 2;
+  pointer-events: none;
+  animation: took 1.4s ease-out forwards;
+  transform-origin: 20% 100%;
+}
+.dialogue-took svg {
+  display: block;
+}
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+/* Pops past full size and settles, holds long enough to read, then rises
+   away. The same shape as the mark the world plays over a person's head. */
+@keyframes took {
+  0% {
+    opacity: 0;
+    transform: translateY(5px) scale(0.6);
+  }
+  12% {
+    opacity: 1;
+    transform: translateY(-2px) scale(1.25);
+  }
+  22%,
+  72% {
+    opacity: 1;
+    transform: translateY(-3px) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-13px) scale(1);
+  }
+}
+/* The body movement the world gives each cue: a shake for offence taken, a
+   dip for a kind word. */
+.dialogue-portrait[data-took="anger"] {
+  animation: took-shake 0.44s steps(1, end) 2;
+}
+.dialogue-portrait[data-took="warm"],
+.dialogue-portrait[data-took="nod"] {
+  animation: took-dip 0.42s ease-out;
+}
+@keyframes took-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-2px);
+  }
+  75% {
+    transform: translateX(2px);
+  }
+}
+@keyframes took-dip {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  45% {
+    transform: translateY(3px);
+  }
+}
 .dialogue-portrait {
   width: 92px;
   height: 104px;
@@ -1389,6 +1469,52 @@ kbd {
   font: 11px var(--pixel);
   letter-spacing: 0.4px;
   text-transform: none;
+}
+.dialogue-regard {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 7px 0 0;
+  color: #9aa6c2;
+  font: 10px var(--pixel);
+  letter-spacing: 0.4px;
+}
+.regard-notches {
+  display: inline-flex;
+  gap: 3px;
+}
+.regard-notches i {
+  width: 7px;
+  height: 7px;
+  background: #2f3e5e;
+  box-shadow: inset 0 0 0 1px #1d2740;
+  transform: rotate(45deg);
+}
+.regard-notches i.on {
+  background: var(--gold);
+  box-shadow: inset 0 0 0 1px #6b4c14;
+}
+/* The notch that just moved catches the light, so the gauge and the mark
+   over the portrait are plainly the same event. */
+.dialogue-regard[data-moved] .regard-notches i.on:last-of-type {
+  animation: notch-lit 0.9s ease-out;
+}
+.dialogue-regard[data-moved="anger"] {
+  color: #d08a7e;
+}
+.dialogue-regard[data-moved="warm"] {
+  color: #e4c07a;
+}
+@keyframes notch-lit {
+  0%,
+  100% {
+    transform: rotate(45deg) scale(1);
+    filter: none;
+  }
+  35% {
+    transform: rotate(45deg) scale(1.5);
+    filter: brightness(1.7);
+  }
 }
 .dialogue-gift {
   margin: 14px 0 0;
@@ -3499,6 +3625,35 @@ button:disabled {
 .character-aside p {
   color: var(--text);
   font-size: 14px;
+}
+.character-aside .adornment {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 5px;
+}
+.character-aside .adornment li {
+  position: relative;
+  padding-left: 14px;
+  color: #cbb489;
+  font-family: var(--sans);
+  font-size: 13.5px;
+  line-height: 1.35;
+}
+.character-aside .adornment li::before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 7px;
+  width: 4px;
+  height: 4px;
+  background: currentColor;
+  transform: rotate(45deg);
+}
+/* Worked into the skin rather than hung on it, so it reads differently. */
+.character-aside .adornment li[data-kind="mark"] {
+  color: #b79ba8;
 }
 .carrying {
   display: flex;
@@ -5874,6 +6029,9 @@ button:disabled {
   .key-prompt,
   .world-notice,
   .dialogue-gift,
+  .dialogue-took,
+  .dialogue-regard .regard-notches i,
+  .dialogue-portrait[data-took],
   .skill-toast,
   .skill-toast .skill-pips::after,
   .collapse-notice {

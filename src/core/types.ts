@@ -131,6 +131,8 @@ export type Actor = {
   offRoutine?: boolean;
   lastUpdated?: number;
   goal?: Position;
+  /** Out with a herd at grass: stays by it, at a place of their own. */
+  tends?: { herd: string; seat: number };
 };
 export type Place = {
   id: string;

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, type RefObject } from "react";
 import type { CharacterAppearance } from "../core/character";
 import { drawCharacter } from "../render/characters/renderers";
 import {
@@ -6,6 +6,8 @@ import {
   PORTRAIT_HEIGHT,
   PORTRAIT_WIDTH,
   type Blink,
+  type Expression,
+  type Viseme,
 } from "../render/portraits/constructed";
 
 type PortraitSource = {
@@ -16,7 +18,7 @@ type PortraitSource = {
   height: number;
 };
 const sources = new Map<string, PortraitSource>();
-const SOURCE_LIMIT = 128;
+const SOURCE_LIMIT = 192;
 function portraitSource(appearance: CharacterAppearance, key: string) {
   const cached = sources.get(key);
   if (cached) {
@@ -63,8 +65,16 @@ function portraitCanvas(
   key: string,
   blink: Blink = 0,
   speaking = false,
+  expression: Expression = "neutral",
+  intensity = 1,
+  viseme: Viseme = "narrow",
+  glance = 0,
 ) {
-  const id = blink || speaking ? `${key}|${blink}${speaking ? "s" : ""}` : key;
+  const resting = expression === "neutral" || intensity === 0;
+  const id =
+    blink || speaking || !resting || glance
+      ? `${key}|${blink}${speaking ? `s${viseme[0]}` : ""}${glance}${resting ? "" : `${expression}${intensity}`}`
+      : key;
   const cached = portraits.get(id);
   if (cached) {
     portraits.delete(id);
@@ -77,6 +87,10 @@ function portraitCanvas(
   drawConstructedPortrait(source.getContext("2d")!, appearance, age, {
     blink,
     speaking,
+    expression,
+    intensity,
+    viseme,
+    glance,
   });
   portraits.set(id, source);
   if (portraits.size > SOURCE_LIMIT)
@@ -97,6 +111,8 @@ export function CharacterSprite({
   age = 30,
   scale = 1,
   speaking = false,
+  expression = "neutral",
+  viseme,
 }: {
   appearance: CharacterAppearance;
   portrait?: boolean;
@@ -106,6 +122,15 @@ export function CharacterSprite({
   scale?: number;
   /** Portraits only: the mouth works while this is set. */
   speaking?: boolean;
+  /** Portraits only: what the face is doing. Changing it plays the change. */
+  expression?: Expression;
+  /**
+   * Portraits only: which mouth shape to hold while speaking, written by
+   * whoever is producing the words. A ref rather than a prop value, because
+   * a letter arrives every few dozen milliseconds and re-rendering the
+   * conversation that often to move a lip is not a trade worth making.
+   */
+  viseme?: RefObject<Viseme>;
 }) {
   const ref = useRef<HTMLCanvasElement>(null);
   // The key is the identity of the drawing. Deriving it here rather than
@@ -129,16 +154,29 @@ export function CharacterSprite({
   // The mouth and the lids move on their own clocks and share one canvas.
   const lids = useRef<Blink>(0);
   const mouth = useRef(false);
+  const glance = useRef(0);
   const repaint = useRef<(() => void) | null>(null);
+  // The pose being drawn right now, which trails the prop while the change
+  // plays out.
+  const shown = useRef<{ expression: Expression; intensity: number }>({
+    expression,
+    intensity: 1,
+  });
   useEffect(() => {
     if (!portrait || !speaking) return;
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
-    // Uneven, so it reads as talk rather than chewing.
+    // With a viseme to follow, the shape is the letter's and the only job
+    // here is to sample it often enough to keep up. Without one, the mouth
+    // works on its own uneven clock so it reads as talk rather than chewing.
     let timer = 0;
+    const led = !!viseme;
     const flap = () => {
-      mouth.current = !mouth.current;
+      mouth.current = led ? true : !mouth.current;
       repaint.current?.();
-      timer = window.setTimeout(flap, mouth.current ? 90 : 60 + Math.random() * 110);
+      timer = window.setTimeout(
+        flap,
+        led ? 55 : mouth.current ? 90 : 60 + Math.random() * 110,
+      );
     };
     flap();
     return () => {
@@ -146,7 +184,7 @@ export function CharacterSprite({
       mouth.current = false;
       repaint.current?.();
     };
-  }, [speaking, portrait]);
+  }, [speaking, portrait, viseme]);
   useEffect(() => {
     const canvas = ref.current;
     if (!canvas) return;
@@ -159,7 +197,17 @@ export function CharacterSprite({
       if (portrait) {
         // Bust crop at two whole pixels per native pixel.
         out.drawImage(
-          portraitCanvas(appearance, age, key, blink, mouth.current),
+          portraitCanvas(
+            appearance,
+            age,
+            key,
+            blink,
+            mouth.current,
+            shown.current.expression,
+            shown.current.intensity,
+            viseme?.current ?? "narrow",
+            glance.current,
+          ),
           CROP.x,
           CROP.y,
           CROP.w,
@@ -213,9 +261,22 @@ export function CharacterSprite({
           });
         });
       });
+    // Between blinks the eyes wander. One pixel, held for about a second:
+    // it is the difference between a portrait and a portrait staring.
+    const look = (then: () => void) => {
+      glance.current = Math.random() < 0.5 ? -1 : 1;
+      paint();
+      at(700 + Math.random() * 700, () => {
+        glance.current = 0;
+        paint();
+        then();
+      });
+    };
     const wait = () =>
       at(GAP_MIN + Math.random() * GAP_SPAN, () =>
-        blink(Math.random() < 0.22),
+        Math.random() < 0.45
+          ? look(() => blink(Math.random() < 0.22))
+          : blink(Math.random() < 0.22),
       );
     // A click gets a double blink, cutting short whatever was pending.
     poke.current = () => {
@@ -226,9 +287,38 @@ export function CharacterSprite({
     wait();
     return () => {
       poke.current = null;
+      glance.current = 0;
       window.clearTimeout(timer);
     };
   }, [key, portrait]);
+  // Changing expression plays through the resting face rather than cutting to
+  // the new one: out of the old pose, into the new one, then all the way. At
+  // three frames it is barely a fifth of a second, which is what makes a face
+  // look like it changed its mind rather than like it was swapped.
+  useEffect(() => {
+    if (!portrait) return;
+    if (shown.current.expression === expression && shown.current.intensity === 1)
+      return;
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
+      shown.current = { expression, intensity: 1 };
+      repaint.current?.();
+      return;
+    }
+    const steps: { expression: Expression; intensity: number }[] = [];
+    if (shown.current.expression !== "neutral")
+      steps.push({ expression: shown.current.expression, intensity: 0.5 });
+    if (expression !== "neutral") steps.push({ expression, intensity: 0.5 });
+    steps.push({ expression, intensity: 1 });
+    let timer = 0;
+    let index = 0;
+    const step = () => {
+      shown.current = steps[index];
+      repaint.current?.();
+      if (++index < steps.length) timer = window.setTimeout(step, 55);
+    };
+    step();
+    return () => window.clearTimeout(timer);
+  }, [expression, portrait, key]);
   return (
     <canvas
       ref={ref}

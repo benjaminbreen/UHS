@@ -68,3 +68,38 @@ it("asking whether a step is allowed does not spend the random stream", () => {
   engine.validate(east);
   expect(engine.state.randomCounter).toBe(before);
 });
+
+it("bumps on the cell an animal is still leaving", () => {
+  const engine = field("jostle-trail");
+  const sheep = beside(engine, "sheep");
+  sheep.x = 2;
+  sheep.trail = { x: 1, y: 0, until: engine.state.clock + 8 };
+  expect(engine.validate(east)).toBeUndefined();
+  engine.execute(east);
+  expect(engine.state.player.pos).toMatchObject({ x: 0, y: 0 });
+  expect(engine.lastJostle).toMatchObject({ yielded: false });
+  // A moment later the cell is clear.
+  sheep.trail.until = engine.state.clock - 1;
+  engine.execute(east);
+  expect(engine.state.player.pos).toMatchObject({ x: 1, y: 0 });
+});
+
+it("sends a shouldered animal off, not one square over", () => {
+  const engine = field("jostle-shy");
+  const sheep = beside(engine, "sheep");
+  engine.state.fauna!.at(-1)!.state = "graze";
+  engine.execute(east);
+  const after = Math.hypot(sheep.x, sheep.y);
+  engine.advance(30);
+  expect(Math.hypot(sheep.x, sheep.y)).toBeGreaterThan(after + 1);
+});
+
+it("jumps a hen but not a sheep, and lands on neither", () => {
+  const over = (species: string) => {
+    const engine = field(`jostle-jump-${species}`);
+    beside(engine, species);
+    return engine.traversal(engine.state.player.pos, 1, 0, "long");
+  };
+  expect(over("chicken").kind).not.toBe("blocked");
+  expect(over("sheep").kind).toBe("blocked");
+});
