@@ -1237,11 +1237,20 @@ export class Runtime {
     this.command({ type: "swing" });
     return verb;
   }
+  /** A pose for the player that no command asked for: a flinch, say. */
+  playPose(pose: CharacterPose) {
+    this.characterAction = {
+      serial: ++this.characterSerial,
+      pose,
+      at: performance.now(),
+    };
+  }
   /** F held after a swing: the wind-up for a wide one. `half` and `full` are
    * the milliseconds at which it becomes a half circle and a whole one. */
   charge?: { at: number; half: number; full: number };
   beginCharge() {
     if (this.replay) return;
+    this.chargeSwung = false;
     const quick = this.engine.skillLevel("hunting") >= 5 ? 0.75 : 1;
     this.charge = {
       at: performance.now(),
@@ -1255,7 +1264,26 @@ export class Runtime {
     if (!c) return;
     const held = performance.now() - c.at;
     const power = held >= c.full ? 2 : held >= c.half ? 1 : 0;
+    // A press that found nothing to hit held its swing back for this.
     if (power) this.command({ type: "swing", power });
+    else if (!this.chargeSwung) this.command({ type: "swing" });
+  }
+  /** X is held and a throw is being aimed. Set by the scene. */
+  aiming = false;
+  /** Set when the press that began the wind-up already swung. */
+  chargeSwung = false;
+  /** F: swing at once if there is anything to hit. With nothing in reach the
+   * swing waits for the release, so a wind-up does not start with a flail
+   * that sends the game running before the wide one lands. */
+  pressSwing(): Verb | undefined {
+    const verb = this.verbs().primary;
+    if (verb?.kind !== "strike" || verb.command)
+      return this.runVerb("primary");
+    const now = this.engine.swingFinds();
+    if (now) this.runVerb("primary");
+    this.beginCharge();
+    this.chargeSwung = now;
+    return verb;
   }
   /** Dev panel hooks. Outside the command log, so a replay will not have them. */
   devSpawnFauna(species: string, count: number, tier?: FaunaTier) {
@@ -1275,6 +1303,15 @@ export class Runtime {
     this.emit();
   }
   devArm(prop?: string) {
+    // "item:pebble": a pocketful of something to throw, one in the hand.
+    if (prop?.startsWith("item:")) {
+      const item = prop.slice(5);
+      this.engine.devArm();
+      const bag = this.engine.state.player.inventory;
+      bag[item] = (bag[item] ?? 0) + 10;
+      this.command({ type: "hold", item });
+      return;
+    }
     this.engine.devArm(prop);
     this.emit();
   }
@@ -1316,9 +1353,15 @@ export class Runtime {
     this.command({ type: "move", dx, dy, jump: power, run: running });
     return this.engine.leapDistance();
   }
-  throwHeld(dx: number, dy: number, running = false) {
+  throwHeld(dx: number, dy: number, running = false, reach?: number) {
     this.stop(false);
-    return this.command({ type: "throw", dx, dy, run: running });
+    return this.command({
+      type: "throw",
+      dx,
+      dy,
+      run: running,
+      ...(reach ? { reach } : {}),
+    });
   }
   /** Jump on the spot. Expression only, like a strike that hits nothing. */
   hop() {
@@ -1475,8 +1518,14 @@ export class Runtime {
       // lands.
       // In a fight the block is one animal tick, or the quarry stands frozen
       // whenever the player does.
+      // The same while winding up or aiming: otherwise the wait is handed to
+      // the world in one lump just before the blow, and the quarry is gone.
       const block =
-        this.engine.state.clock < this.engine.combatUntil ? 6 : IDLE_BLOCK;
+        this.engine.state.clock < this.engine.combatUntil ||
+        this.charge ||
+        this.aiming
+          ? 6
+          : IDLE_BLOCK;
       if (this.displayClock() - this.engine.state.clock >= block)
         this.flushAmbient();
       return;

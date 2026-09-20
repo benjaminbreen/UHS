@@ -272,7 +272,14 @@ export type PlayerCommand =
       run?: boolean;
     }
   /** `run` is a throw taken at a sprint: it carries twice as far. */
-  | { type: "throw"; dx: number; dy: number; run?: boolean }
+  | {
+      type: "throw";
+      dx: number;
+      dy: number;
+      run?: boolean;
+      /** Cells aimed for. Absent is a snap throw: three, or six at a run. */
+      reach?: number;
+    }
   /** A swing of whatever is in hand, at whatever the arc finds. Takes no
    * target: the cone in front of the player is the target. */
   | { type: "swing"; power?: 1 | 2 }

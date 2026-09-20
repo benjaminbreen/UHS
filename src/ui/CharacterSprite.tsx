@@ -62,8 +62,9 @@ function portraitCanvas(
   age: number,
   key: string,
   blink: Blink = 0,
+  speaking = false,
 ) {
-  const id = blink ? `${key}|${blink}` : key;
+  const id = blink || speaking ? `${key}|${blink}${speaking ? "s" : ""}` : key;
   const cached = portraits.get(id);
   if (cached) {
     portraits.delete(id);
@@ -73,7 +74,10 @@ function portraitCanvas(
   const source = document.createElement("canvas");
   source.width = PORTRAIT_WIDTH;
   source.height = PORTRAIT_HEIGHT;
-  drawConstructedPortrait(source.getContext("2d")!, appearance, age, { blink });
+  drawConstructedPortrait(source.getContext("2d")!, appearance, age, {
+    blink,
+    speaking,
+  });
   portraits.set(id, source);
   if (portraits.size > SOURCE_LIMIT)
     portraits.delete(portraits.keys().next().value!);
@@ -92,6 +96,7 @@ export function CharacterSprite({
   portrait = false,
   age = 30,
   scale = 1,
+  speaking = false,
 }: {
   appearance: CharacterAppearance;
   portrait?: boolean;
@@ -99,6 +104,8 @@ export function CharacterSprite({
   age?: number;
   /** Multiplies the drawn size only; the raster stays at native pixels. */
   scale?: number;
+  /** Portraits only: the mouth works while this is set. */
+  speaking?: boolean;
 }) {
   const ref = useRef<HTMLCanvasElement>(null);
   // The key is the identity of the drawing. Deriving it here rather than
@@ -119,18 +126,40 @@ export function CharacterSprite({
   // Set by the effect while the timer is live, so a click can interrupt it.
   // Left null under reduced motion, which is what makes the click a no-op too.
   const poke = useRef<(() => void) | null>(null);
+  // The mouth and the lids move on their own clocks and share one canvas.
+  const lids = useRef<Blink>(0);
+  const mouth = useRef(false);
+  const repaint = useRef<(() => void) | null>(null);
+  useEffect(() => {
+    if (!portrait || !speaking) return;
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    // Uneven, so it reads as talk rather than chewing.
+    let timer = 0;
+    const flap = () => {
+      mouth.current = !mouth.current;
+      repaint.current?.();
+      timer = window.setTimeout(flap, mouth.current ? 90 : 60 + Math.random() * 110);
+    };
+    flap();
+    return () => {
+      window.clearTimeout(timer);
+      mouth.current = false;
+      repaint.current?.();
+    };
+  }, [speaking, portrait]);
   useEffect(() => {
     const canvas = ref.current;
     if (!canvas) return;
     const { appearance, age } = latest.current;
     const out = canvas.getContext("2d")!;
     out.imageSmoothingEnabled = false;
-    const paint = (blink: Blink) => {
+    const paint = (blink: Blink = lids.current) => {
+      lids.current = blink;
       out.clearRect(0, 0, canvas.width, canvas.height);
       if (portrait) {
         // Bust crop at two whole pixels per native pixel.
         out.drawImage(
-          portraitCanvas(appearance, age, key, blink),
+          portraitCanvas(appearance, age, key, blink, mouth.current),
           CROP.x,
           CROP.y,
           CROP.w,
@@ -159,6 +188,7 @@ export function CharacterSprite({
       }
     };
     paint(0);
+    repaint.current = () => paint();
     if (!portrait) return;
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
 

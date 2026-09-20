@@ -99,11 +99,22 @@ export function drawConstructedPortrait(
   ctx: CanvasRenderingContext2D,
   appearance: CharacterAppearance,
   age = 30,
-  options?: { tuning?: Partial<ConstructedTuning>; blink?: Blink },
+  options?: {
+    tuning?: Partial<ConstructedTuning>;
+    blink?: Blink;
+    /** Mouth open, for the frames of speech it is open in. */
+    speaking?: boolean;
+  },
 ) {
   ctx.clearRect(0, 0, PORTRAIT_WIDTH, PORTRAIT_HEIGHT);
   ctx.imageSmoothingEnabled = false;
-  paintConstructed(appearance, age, options?.tuning, options?.blink).blit(ctx);
+  paintConstructed(
+    appearance,
+    age,
+    options?.tuning,
+    options?.blink,
+    options?.speaking,
+  ).blit(ctx);
 }
 
 type Model = {
@@ -152,8 +163,10 @@ type Model = {
   /** Stable per-face roll for the traits the record does not name: lash
    * length, lid crease, brow density, under-eye. */
   variant: number;
-  /** 0 open, 1 half closed, 2 shut. The only thing that animates. */
+  /** 0 open, 1 half closed, 2 shut. */
   blink: Blink;
+  /** Lips parted. With the blink, all that animates. */
+  speaking: boolean;
   head: Pt[];
 };
 
@@ -162,9 +175,16 @@ export function paintConstructed(
   age = 30,
   tuning?: Partial<ConstructedTuning>,
   blink: Blink = 0,
+  speaking = false,
 ): Raster {
   const r = new Raster(PORTRAIT_WIDTH, PORTRAIT_HEIGHT);
-  const m = model(appearance, age, { ...constructedDefaults, ...tuning }, blink);
+  const m = model(
+    appearance,
+    age,
+    { ...constructedDefaults, ...tuning },
+    blink,
+    speaking,
+  );
   const hood = m.a.wearing.headwear === "hood";
 
   drawTorso(r, m);
@@ -199,6 +219,7 @@ function model(
   age: number,
   t: ConstructedTuning,
   blink: Blink = 0,
+  speaking = false,
 ): Model {
   const face = portraitFace(a, age);
   const child = age < 13;
@@ -350,6 +371,7 @@ function model(
     wear,
     young,
     blink,
+    speaking,
     variant: [
       ...(a.skin + a.hairColor + a.hair + head + jaw + face.eyeShape),
     ].reduce((n, c) => (Math.imul(n, 31) + c.charCodeAt(0)) >>> 0, 11),
@@ -2048,6 +2070,12 @@ function drawFeatures(r: Raster, m: Model) {
     r.rect(mx + 2, mouthY + 2, mw - 4, 1, mix(skin.base, skin.shade, 0.6));
   } else {
     r.rect(mx + 1, mouthY + 1, mw - 3, 1, mix(skin.base, skin.shade, 0.55));
+  }
+  if (m.speaking) {
+    // Parted: the dark of the mouth under the lip line, the lower lip a
+    // pixel further down.
+    r.rect(mx + 1, mouthY + 1, Math.max(2, mw - 3), 1, "#3a1a1e");
+    r.rect(mx + 1, mouthY + 2, Math.max(2, mw - 3), 1, lower);
   }
   r.put(mid, mouthY - 1, mix(skin.base, skin.light, 0.5));
   r.rect(mid - 3, chin - 2, 4, 1, mix(skin.base, skin.light, 0.6));

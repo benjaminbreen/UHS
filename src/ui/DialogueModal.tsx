@@ -4,6 +4,26 @@ import { sexFromName } from "../content/characters/name-sex";
 import type { Runtime } from "../runtime/session";
 import { dialogueTurn, type DialogueGift, type DialogueLine } from "../narrator/dialogue";
 import { CharacterSprite } from "./CharacterSprite";
+import { useTypewriter } from "./motion";
+
+/** What the other person is saying, arriving as speech does. A click shows
+ * the rest at once. */
+function SpokenLine({ text, heard, onSpeaking }: { text: string; heard: Set<string>; onSpeaking: (speaking: boolean) => void }) {
+  // Opening the reply box redraws the line; it has been said once already.
+  const typed = useTypewriter(text, heard.has(text));
+  useEffect(() => {
+    if (typed.done) heard.add(text);
+    onSpeaking(!typed.done);
+    return () => onSpeaking(false);
+  }, [typed.done, onSpeaking, heard, text]);
+  return (
+    <p className="dialogue-line npc" onClick={typed.skip} data-typing={!typed.done || undefined}>
+      {typed.text}
+      {/* Holds the line's full height from the first letter, so nothing below it jumps. */}
+      <span className="dialogue-unspoken" aria-hidden="true">{text.slice(typed.text.length)}</span>
+    </p>
+  );
+}
 
 const genderLabel = (actor: { name: string; origin?: { sex?: string }; appearance?: { physique?: { sex?: string } } }) => {
   const sex = actor.origin?.sex ?? actor.appearance?.physique?.sex ?? sexFromName(actor.name);
@@ -18,6 +38,8 @@ export function DialogueModal({ runtime, actorId, onClose }: { runtime: Runtime;
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState("");
   const [giftNotice, setGiftNotice] = useState<string | null>(null);
+  const [speaking, setSpeaking] = useState(false);
+  const heard = useRef(new Set<string>()).current;
   const scrollRef = useRef<HTMLDivElement>(null);
   const abort = useRef<AbortController>(null);
   const latest = history.at(-1);
@@ -91,12 +113,20 @@ export function DialogueModal({ runtime, actorId, onClose }: { runtime: Runtime;
     <section className={`modal modal-dialogue${responding ? " is-responding" : ""}`} role="dialog" aria-modal="true" aria-label={`Conversation with ${actor.name}`}>
       <button className="close-modal icon-button" aria-label="Close conversation" onClick={close}><X size={20} /></button>
       <div className="dialogue-heading">
-        <div className="dialogue-portrait"><CharacterSprite appearance={appearance} portrait age={actor.age ?? 30} /></div>
+        <div className="dialogue-portrait"><CharacterSprite appearance={appearance} portrait age={actor.age ?? 30} speaking={speaking} /></div>
         <div><h2>{actor.name}</h2><p>{genderLabel(actor)} · {actor.age ?? "adult"} · {actor.role}</p></div>
       </div>
       {giftNotice && <div className="dialogue-gift" role="status">{giftNotice}</div>}
       <div className="dialogue-history" ref={scrollRef} aria-live="polite">
-        {responding ? history.map((line, index) => <p className={`dialogue-line ${line.speaker}`} key={`${index}-${line.text}`}>{line.text}</p>) : latest && <p className="dialogue-line npc">{latest.text}</p>}
+        {responding
+          ? history.map((line, index) =>
+              line.speaker === "npc" && index === history.length - 1 ? (
+                <SpokenLine key={`${index}-${line.text}`} text={line.text} heard={heard} onSpeaking={setSpeaking} />
+              ) : (
+                <p className={`dialogue-line ${line.speaker}`} key={`${index}-${line.text}`}>{line.text}</p>
+              ),
+            )
+          : latest && <SpokenLine key={latest.text} text={latest.text} heard={heard} onSpeaking={setSpeaking} />}
         {busy && <p className="dialogue-thinking"><span /><span /><span /></p>}
         {error && <p className="dialogue-error">{error}</p>}
       </div>

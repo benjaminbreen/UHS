@@ -23,6 +23,7 @@ import {
   type SkillId,
   type Skills,
 } from "../core/skills";
+import { DrainBar } from "./motion";
 
 const ICONS: Record<SkillId, LucideIcon> = {
   hunting: Crosshair,
@@ -76,9 +77,7 @@ export function Vitals({
       aria-label={`Health ${Math.round(health)} of 100`}
     >
       <Heart size={13} fill="currentColor" />
-      <span className="vitals-bar">
-        <i style={{ width: `${Math.max(0, Math.min(100, health))}%` }} />
-      </span>
+      <DrainBar value={health} className="vitals-bar" />
       {injury && days > 0 && (
         <span className="vitals-injury">
           <Bandage size={12} /> {injury.name} · {days}d

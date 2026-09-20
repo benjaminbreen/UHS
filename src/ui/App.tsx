@@ -84,6 +84,8 @@ import { ItemIcon, Sprite, Minimap, timeLabel } from "./components";
 import { LiveGraphicsPanel } from "../dev/LiveGraphicsPanel";
 import { CombatTestPanel } from "../dev/CombatTestPanel";
 import { CollapseNotice, SkillsPanel, SkillToast, Vitals } from "./Skills";
+import { BagFlights, KeyPrompt } from "./motion";
+import { TouchControls } from "./TouchControls";
 import {
   defaultLiveGraphicsSettings,
   type LiveGraphicsSettings,
@@ -194,8 +196,9 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
   const [earthMap, setEarthMap] = useState(false);
   // Talk is the one verb the engine cannot finish on its own: the dialogue
   // panel is React state, so the session hands the actor back instead.
-  const runVerb = (slot: "primary" | "alternate") => {
-    const verb = runtime.runVerb(slot);
+  const runVerb = (slot: "primary" | "alternate", pressed = false) => {
+    // The key can be held into a wide swing; a click cannot.
+    const verb = pressed ? runtime.pressSwing() : runtime.runVerb(slot);
     if (verb?.kind === "talk" && verb.actor) openDialogue(verb.actor);
     // Whoever answered a knock is standing in their own doorway waiting to be
     // spoken to; opening the conversation is what knocking was for.
@@ -240,6 +243,8 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
     setModal("dialogue");
   };
   const mount = useRef<HTMLDivElement>(null);
+  const bagButton = useRef<HTMLButtonElement>(null);
+  const sheetSummary = useRef<HTMLButtonElement>(null);
   const upload = useRef<HTMLInputElement>(null);
   const replayUpload = useRef<HTMLInputElement>(null);
   const game = useRef<Phaser.Game | undefined>(undefined);
@@ -368,10 +373,8 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
       if (e.code === "Space") e.preventDefault();
       if ((e.code === "KeyE" || e.code === "KeyF") && !e.repeat) {
         e.preventDefault();
-        const verb = runVerb(e.code === "KeyF" ? "primary" : "alternate");
-        // A swing at nothing in particular can be held into a wide one.
-        if (e.code === "KeyF" && verb?.kind === "strike" && !verb.command)
-          runtime.beginCharge();
+        if (e.code === "KeyE") runVerb("alternate");
+        else runVerb("primary", true);
       }
       if (e.key === "=" || e.key === "+") runtime.stepZoom(1);
       if (e.key === "-" || e.key === "_") runtime.stepZoom(-1);
@@ -610,6 +613,25 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
             onOpen={() => setSideTab("skills")}
           />
           <CollapseNotice collapse={runtime.engine.lastCollapse} />
+          <BagFlights
+            inventory={p.inventory}
+            world={obs.manifest.seed}
+            from={mount}
+            bag={bagButton}
+            fallback={sheetSummary}
+            sprite={(item) => runtime.item(item)?.sprite}
+          />
+          <TouchControls
+            scene={() =>
+              game.current?.scene.getScene("world") as WorldScene | undefined
+            }
+            primary={verbs.primary}
+            alternate={verbs.alternate}
+            holding={!!(p.held || p.heldItem)}
+            onPrimaryDown={() => runVerb("primary", true)}
+            onPrimaryUp={() => runtime.releaseCharge()}
+            onAlternate={() => runVerb("alternate")}
+          />
           <div className="prop-prompts" data-testid="prop-prompts">
             {obs.manifest.content === 1 && (
               <span>
@@ -619,14 +641,23 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
             )}
             {verbs.held && <span>Holding: {verbs.held.name}</span>}
             {verbs.primary && (
-              <button onClick={() => runVerb("primary")}>
-                F · {verbs.primary.label}
-              </button>
+              <KeyPrompt
+                key={verbs.primary.label}
+                code="KeyF"
+                letter="F"
+                label={verbs.primary.label}
+                onClick={() => runVerb("primary")}
+              />
             )}
+            {(p.held || p.heldItem) && <span>X · Throw (hold to aim)</span>}
             {verbs.alternate && (
-              <button onClick={() => runVerb("alternate")}>
-                E · {verbs.alternate.label}
-              </button>
+              <KeyPrompt
+                key={verbs.alternate.label}
+                code="KeyE"
+                letter="E"
+                label={verbs.alternate.label}
+                onClick={() => runVerb("alternate")}
+              />
             )}
           </div>
           <div className="map-controls">
@@ -700,7 +731,12 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
             </div>
           )}
           {(view.notice || view.running) && (
-            <div className="world-notice" role="status">
+            <div
+              // A new notice arrives; the same one repeated does not twitch.
+              key={view.running ? "walking" : view.notice}
+              className="world-notice"
+              role="status"
+            >
               {view.running ? (
                 <>
                   <Footprints size={16} />
@@ -854,6 +890,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
             <span />
           </button>
           <button
+            ref={sheetSummary}
             className="mobile-sheet-summary"
             aria-label="Expand character panel"
             onClick={() => setSheetSnap("half")}
@@ -861,7 +898,9 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
             <CharacterSprite appearance={runtime.appearanceFor(p)} />
             <span>
               <strong>{p.name}</strong>
-              <small>{p.role}</small>
+              <small>
+                {p.role} · {period.toLowerCase()}, {season.label.toLowerCase()}
+              </small>
             </span>
             <ChevronDown aria-hidden="true" />
           </button>
@@ -1179,6 +1218,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
               <NotebookPen size={17} /> Notebook <kbd aria-hidden="true">N</kbd>
             </button>
             <button
+              ref={bagButton}
               aria-label="Inventory"
               onClick={() => setModal("inventory")}
             >

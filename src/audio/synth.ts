@@ -238,6 +238,12 @@ export const effects = [
     icon: "◇",
   },
   {
+    id: "blip",
+    name: "Speech · patter",
+    detail: "A soft tick under words as they arrive",
+    icon: "·",
+  },
+  {
     id: "gather",
     name: "Gather · found",
     detail: "A warm rising chime",
@@ -335,6 +341,7 @@ export function effectNotes(id: EffectId): Note[] {
       ["bell", 84, 0.3, 0.12],
     ],
     select: [["harp", 76, 0, 0.4]],
+    blip: [["harp", 69, 0, 0.1]],
     gather: [
       ["harp", 67, 0, 0.4],
       ["bell", 74, 0.12, 0.3],

@@ -50,6 +50,12 @@ export type ThrowEffect = {
   sprite?: string;
   hit: Hit;
   creature?: CreatureHit;
+  bounce?: { x: number; y: number };
+  straight?: boolean;
+  /** The thrown object, hidden from the scene until it lands. */
+  id?: string;
+  /** An item from the hand rather than a prop. */
+  small?: boolean;
 };
 /** A pile shifting one cell, or refusing to. */
 export type ShoveEffect = {
@@ -66,6 +72,9 @@ export type ShoveEffect = {
   hit?: Hit;
   refused?: "wheels" | "heavy" | "wall";
 };
+/** Milliseconds in the air. A spear goes flat and fast. */
+export const flightMs = (span: number, straight?: boolean) =>
+  straight ? 70 + span * 32 : 110 + span * 55;
 /** How long a rolling stone spends on each cell it crosses. */
 export const ROLL_MS = 110;
 type Shake = {
@@ -150,6 +159,8 @@ export class ToolEffects {
       entityAt: (id: string) => Phaser.GameObjects.Image | undefined;
       texture: (frame: string) => string;
       frame: (frame: string) => string | number;
+      /** The scene draws the thrown object once it has landed. */
+      redraw: () => void;
     },
   ) {}
   /** Plays once per effect serial, on the frame of the pose where the tool
@@ -243,7 +254,14 @@ export class ToolEffects {
       });
     }
   }
-  /** A thrown thing crossing the ground, then landing. */
+  private landedThrow = 0;
+  /** The object a throw still has in the air, which the scene must not draw
+   * sitting where it is going to land. */
+  flying(effect: ThrowEffect | undefined) {
+    return effect && effect.serial !== this.landedThrow ? effect.id : undefined;
+  }
+  /** A thrown thing in the air, then landing. It rises and falls over its
+   * own shadow, tumbling unless it is a spear, and a stone skips on a pace. */
   consumeThrow(effect: ThrowEffect | undefined) {
     if (!effect || effect.serial === this.playedThrow) return;
     this.playedThrow = effect.serial;
@@ -253,42 +271,115 @@ export class ToolEffects {
       Math.abs(effect.to.x - effect.from.x),
       Math.abs(effect.to.y - effect.from.y),
     );
-    const flight = 90 + span * 55;
+    const flight = flightMs(span, effect.straight);
+    const generation = this.generation;
     const land = () => {
+      if (generation !== this.generation) return;
       const id = REACTION_SOUND[effect.hit.kind];
       if (id) void gameAudio()?.effect(id);
       this.react(effect.hit, 1.2);
+      this.impact(to);
       if (effect.hit.damaged) this.scene.cameras.main.shake(110, 0.0022);
     };
     const frame = effect.sprite;
     if (!frame || !span) {
+      this.landedThrow = effect.serial;
       this.scene.time.delayedCall(flight, land);
       return;
     }
+    void gameAudio()?.effect("whoosh");
     const image = this.scene.add
       .image(
         from.x,
-        from.y - 10,
+        from.y - 12,
         this.view.texture(frame),
         this.view.frame(frame),
       )
-      .setOrigin(0.5, 1)
+      .setOrigin(0.5, 0.5)
       .setTint(this.view.tint())
       .setDepth(to.y * 16 + 4600);
-    this.live.add(image);
-    const generation = this.generation;
+    // A long thing is thrown at body scale, not at the height it stands in a yard.
+    if (effect.small) image.setScale(0.4);
+    else if (image.height > 24) image.setScale(24 / image.height);
+    const shade = this.scene.add
+      .ellipse(from.x, from.y - 1, 9, 4, 0x000000, 0.28)
+      .setDepth(to.y * 16 + 5);
+    this.live.add(image).add(shade);
+    const heading = Math.atan2(to.y - from.y, to.x - from.x);
+    if (effect.straight) image.setRotation(heading + Math.PI / 2);
+    const spin = Math.sign(to.x - from.x || 1) * (3 + span * 0.8);
+    const leg = (
+      a: { x: number; y: number },
+      b: { x: number; y: number },
+      ms: number,
+      height: number,
+      done: () => void,
+    ) => {
+      const t = { v: 0 };
+      this.scene.tweens.add({
+        targets: t,
+        v: 1,
+        duration: ms,
+        ease: "Linear",
+        onUpdate: () => {
+          const x = a.x + (b.x - a.x) * t.v,
+            y = a.y + (b.y - a.y) * t.v;
+          const rise = Math.sin(Math.PI * t.v) * height;
+          // Leaves the hand at chest height and comes down to the ground.
+          image.setPosition(x, y - rise - 12 * (a === from ? 1 - t.v : 0) - 3);
+          shade.setPosition(x, y - 1).setScale(1 - rise / 60);
+          if (!effect.straight) image.setRotation(spin * t.v);
+        },
+        onComplete: done,
+      });
+    };
+    const finish = () => {
+      this.landedThrow = effect.serial;
+      this.view.redraw();
+      this.live.delete(image);
+      this.live.delete(shade);
+      image.destroy();
+      shade.destroy();
+    };
+    leg(from, to, flight, effect.straight ? 5 : 9 + span * 3, () => {
+      land();
+      const skip = effect.bounce && this.point(effect.bounce);
+      if (!skip || generation !== this.generation) return finish();
+      leg(to, skip, 170, 7, () => {
+        this.burst(skip, DEBRIS[effect.hit.hit] ?? SOIL, 3, 0.7);
+        finish();
+      });
+    });
+  }
+  /** Four short rays where something thrown comes down: the comic-book knock. */
+  private impact(at: { x: number; y: number }) {
+    const g = this.scene.add
+      .graphics()
+      .setPosition(at.x, at.y - 5)
+      .setDepth(at.y * 16 + 4650);
+    this.live.add(g);
+    const ray = { r: 2, a: 1 };
     this.scene.tweens.add({
-      targets: image,
-      x: to.x,
-      // The rise and fall is the tween's own curve; the sprite spins as it goes.
-      y: { value: to.y, ease: "Quad.easeIn" },
-      rotation: Math.sign(to.x - from.x || 1) * 3.4,
-      duration: flight,
-      ease: "Linear",
+      targets: ray,
+      r: 9,
+      a: 0,
+      duration: 180,
+      ease: "Quad.easeOut",
+      onUpdate: () => {
+        g.clear().lineStyle(1, 0xffffff, ray.a);
+        for (let k = 0; k < 4; k++) {
+          const angle = Math.PI / 4 + (k * Math.PI) / 2;
+          g.lineBetween(
+            Math.cos(angle) * ray.r * 0.5,
+            Math.sin(angle) * ray.r * 0.5,
+            Math.cos(angle) * ray.r,
+            Math.sin(angle) * ray.r,
+          );
+        }
+      },
       onComplete: () => {
-        this.live.delete(image);
-        image.destroy();
-        if (generation === this.generation) land();
+        this.live.delete(g);
+        g.destroy();
       },
     });
   }
@@ -543,6 +634,8 @@ export class ToolEffects {
     });
   }
   dispose() {
+    // Anything caught mid-flight is on the ground as far as the scene goes.
+    this.landedThrow = this.playedThrow;
     this.generation++;
     this.hidden = [];
     for (const object of this.live) object.destroy();

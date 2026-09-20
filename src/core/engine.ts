@@ -77,6 +77,7 @@ import {
   legendKey,
   memberAt,
   TIERS,
+  missileOf,
   weaponOf,
   type CombatEvent,
   type CombatEventInput,
@@ -758,6 +759,44 @@ export class Engine {
   /** Clock until which a fight is on. The runtime keeps the world ticking
    * through it instead of letting an idle player freeze the animals. */
   combatUntil = 0;
+  /** What is in the hand, as something to throw. */
+  missile() {
+    const held = heldObject(this.state);
+    return missileOf({
+      prop: held?.prop,
+      item: held ? undefined : this.state.player.heldItem,
+      mass: propDefs[held?.prop ?? ""]?.shove?.mass,
+    });
+  }
+  /** The cells a throw crosses, ending where it comes down: short of a wall,
+   * or on the first animal in the way. The renderer aims with this too. */
+  throwPath(dx: number, dy: number, reach?: number, run?: boolean) {
+    const p = this.state.player.pos;
+    const cells: Point[] = [];
+    const most = Math.min(reach ?? (run ? 6 : 3), this.missile().range);
+    for (let i = 1; i <= most; i++) {
+      const x = p.x + dx * i,
+        y = p.y + dy * i;
+      // A thrown thing flies: a bank it could not wade across does not stop
+      // it, though a wall still does.
+      if (this.blocked(x, y, p.space)) break;
+      cells.push({ x, y });
+      if (p.space === "outside" && this.faunaAt(x, y)) break;
+    }
+    return cells;
+  }
+  /** Something within a swing's reach that a swing would do anything to. */
+  swingFinds() {
+    const p = this.state.player;
+    return [0, 1, 3].some((turn) =>
+      this.swingCone((p.direction + turn) % 4).some(
+        (c) =>
+          !["air", "grass", "soil", "sand", "snow", "stone"].includes(
+            this.hitClass(c.x, c.y, p.pos.space).hit,
+          ),
+      ),
+    );
+  }
   /** Holding something made to be swung, which is no bar to jumping. */
   armed() {
     const def = propDefs[heldObject(this.state)?.prop ?? ""];
@@ -844,7 +883,7 @@ export class Engine {
     m.hp = (m.hp ?? full) - damage;
     m.x = to.x;
     m.y = to.y;
-    m.stun = clock + 6;
+    m.stun = clock + (weapon.stun ?? 6);
     const killed = m.hp <= 0;
     const hit: CreatureHit = {
       group: g.id,
@@ -1119,6 +1158,12 @@ export class Engine {
     hit: Hit;
     /** An animal it struck on the way. */
     creature?: CreatureHit;
+    id?: string;
+    small?: boolean;
+    /** Where it skipped on to after landing. */
+    bounce?: Point;
+    /** A spear: point first, no tumbling. */
+    straight?: boolean;
   };
   /** The last shove, for the scuff it leaves and the sound it makes. */
   lastShove?: {
@@ -2460,7 +2505,7 @@ export class Engine {
           ? "Throw in one direction."
           : "Move one adjacent step.";
       if (c.type === "throw")
-        return heldObject(this.state)
+        return heldObject(this.state) || p.heldItem
           ? undefined
           : "You are not holding anything to throw.";
       // A stick or a spear goes with you; a crate does not.
@@ -2935,20 +2980,29 @@ export class Engine {
       return;
     }
     if (c.type === "throw") {
-      const prop = heldObject(this.state);
+      const item = heldObject(this.state) ? undefined : p.heldItem;
+      // An item leaves the hand as an object on the ground, like one set down.
+      const prop =
+        heldObject(this.state) ??
+        (item && {
+          id: `thrown-${item}-${this.state.revision}`,
+          name: this.item(item)!.name,
+          kind: "item" as const,
+          item,
+          sprite: this.item(item)!.sprite,
+          pos: copy(p.pos),
+          inventory: {},
+        });
       if (!prop) throw Error("Throw validation failed");
+      if (item) {
+        this.state.objects.push(prop);
+        delete p.heldItem;
+      }
       p.direction = c.dy < 0 ? 0 : c.dx > 0 ? 1 : c.dy > 0 ? 2 : 3;
       p.facing = facingFromStep(c.dx, c.dy, p.direction);
-      let landed = { ...p.pos };
-      const reach = c.run ? 6 : 3;
-      for (let i = 1; i <= reach; i++) {
-        const step = { ...p.pos, x: p.pos.x + c.dx * i, y: p.pos.y + c.dy * i };
-        // A thrown thing flies: a bank it could not wade across does not stop
-        // it, though a wall still does.
-        if (this.blocked(step.x, step.y, step.space)) break;
-        landed = step;
-        if (step.space === "outside" && this.faunaAt(step.x, step.y)) break;
-      }
+      const missile = this.missile();
+      const path = this.throwPath(c.dx, c.dy, c.reach, c.run);
+      const landed = { ...p.pos, ...(path.at(-1) ?? p.pos) };
       const quarry =
         landed.space === "outside"
           ? this.faunaAt(landed.x, landed.y)
@@ -2986,25 +3040,55 @@ export class Engine {
         : undefined;
       const kind = landing?.reaction ?? reactionFor(ground.hit, "thrown");
       const bursts = landing?.kind === "shatter";
-      const thrown = weaponOf(prop.prop);
-      const struck =
-        quarry && distance
-          ? this.strikeFauna(
-              quarry.g,
-              quarry.m,
-              {
-                damage:
-                  thrown.damage * (thrown.thrown ?? 0.8) * (c.run ? 1.3 : 1),
-                knock: 1,
-              },
-              [c.dx, c.dy],
-              1,
-            )
-          : undefined;
+      const hurl = (at: { g: FaunaGroup; m: FaunaMember }, share: number) =>
+        this.strikeFauna(
+          at.g,
+          at.m,
+          {
+            damage: missile.damage * (c.run ? 1.3 : 1),
+            knock: 1,
+            stun: missile.stun,
+          },
+          [c.dx, c.dy],
+          share,
+        );
+      let struck = quarry && distance ? hurl(quarry, 1) : undefined;
+      // A stone that lands clean skips on a pace, and may find something there.
+      let bounce: Point | undefined;
+      const rests =
+        distance >= 2 &&
+        !struck &&
+        !bursts &&
+        landing?.kind !== "sink" &&
+        kind !== "splash";
+      const next = { ...landed, x: landed.x + c.dx, y: landed.y + c.dy };
+      if (
+        rests &&
+        (item || (def?.shove?.mass ?? 1) <= 1) &&
+        !this.blocked(next.x, next.y, next.space)
+      ) {
+        bounce = { x: next.x, y: next.y };
+        const beyond =
+          next.space === "outside" ? this.faunaAt(next.x, next.y) : undefined;
+        if (beyond) struck = hurl(beyond, 0.6);
+        prop.pos = next;
+      }
+      if (item && landing?.kind === "sink")
+        this.state.objects = this.state.objects.filter((o) => o !== prop);
+      // The next stone comes to hand without asking.
+      if (item && (p.inventory[item] ?? 0) > 0) {
+        p.inventory[item]!--;
+        if (!p.inventory[item]) delete p.inventory[item];
+        p.heldItem = item;
+      }
       if (struck)
         this.state.fauna = this.state.fauna?.filter((g) => g.members.length);
       this.lastThrow = {
         creature: struck,
+        id: prop.id,
+        small: !!item,
+        bounce,
+        straight: !!prop.prop && (weaponOf(prop.prop).thrown ?? 0) > 1,
         from: { x: p.pos.x, y: p.pos.y },
         to: { x: landed.x, y: landed.y },
         sprite,

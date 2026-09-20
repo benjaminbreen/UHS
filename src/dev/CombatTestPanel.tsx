@@ -41,7 +41,9 @@ export function CombatTestPanel({
     const added = onSpawn(id, n, tier === "random" ? undefined : tier);
     setMessage(added ? `${added} added nearby.` : "Go outdoors first.");
   };
-  const stats = weaponOf(weapon || undefined);
+  const stats = weaponOf(
+    weapon.startsWith("item:") ? undefined : weapon || undefined,
+  );
   return (
     <aside
       className="live-graphics-panel combat-test-panel"
@@ -61,6 +63,7 @@ export function CombatTestPanel({
           Weapon
           <select value={weapon} onChange={(e) => arm(e.currentTarget.value)}>
             <option value="">Bare hands</option>
+            <option value="item:pebble">Ten pebbles to throw</option>
             {weaponProps.map((id) => (
               <option key={id} value={id}>
                 {propDefs[id]?.name ?? id}
@@ -69,7 +72,8 @@ export function CombatTestPanel({
           </select>
         </label>
         <p>
-          Damage {stats.damage} · knockback {stats.knock}. F swings.
+          Damage {stats.damage} · knockback {stats.knock}. F swings, hold for a
+          wide one. X throws, hold to aim.
         </p>
         <div className="live-animal-actions">
           <button onClick={() => arm(weapon)}>Take it in hand</button>

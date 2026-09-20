@@ -162,7 +162,40 @@ export type Weapon = {
   brace?: number;
   /** Share of its damage it does when thrown. Most things are poor missiles. */
   thrown?: number;
+  /** Seconds it leaves an animal reeling. A blow is 6. */
+  stun?: number;
 };
+
+/** What a thing does when thrown, and how far a good arm sends it. A stone
+ * does little harm but leaves game dazed long enough to close on. */
+export type Missile = { damage: number; stun: number; range: number };
+const STONE: Missile = { damage: 2, stun: 15, range: 7 };
+const missiles: Record<string, Missile> = {
+  pebble: STONE,
+  flint: STONE,
+  obsidian: STONE,
+  "river-rock": { damage: 3, stun: 18, range: 6 },
+  stone: { damage: 3, stun: 18, range: 6 },
+  wood: { damage: 2, stun: 12, range: 5 },
+};
+export function missileOf(thing: {
+  prop?: string;
+  item?: string;
+  mass?: number;
+}) {
+  if (thing.item)
+    return missiles[thing.item] ?? { damage: 1, stun: 6, range: 5 };
+  const w = thing.prop ? weapons[thing.prop] : undefined;
+  if (w?.thrown && w.thrown > 1)
+    return { damage: w.damage * w.thrown, stun: 6, range: 9 };
+  // Anything else goes as far as its weight allows and lands like a lump.
+  const mass = thing.mass ?? 1;
+  return {
+    damage: w ? w.damage * (w.thrown ?? 0.8) : 1 + mass * 2,
+    stun: 12,
+    range: Math.max(3, 7 - mass * 2),
+  };
+}
 const BARE: Weapon = { damage: 1, knock: 1 };
 const BLUNT: Weapon = { damage: 3, knock: 2 };
 const weapons: Record<string, Weapon> = {

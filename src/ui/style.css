@@ -5460,13 +5460,6 @@ button:disabled {
   background: #ffffff14;
   overflow: hidden;
 }
-.vitals-bar i {
-  display: block;
-  height: 100%;
-  border-radius: 3px;
-  background: linear-gradient(#f08478, #c9473f);
-  transition: width 0.35s ease-out;
-}
 .vitals[data-low] {
   border-color: #e0645a;
   animation: vitals-low 0.9s ease-in-out infinite;
@@ -5695,5 +5688,374 @@ button:disabled {
   from {
     background: #6a0f0f;
     opacity: 0;
+  }
+}
+
+/* UI motion. Small, quick, and all of it off under reduced motion. */
+.drain-bar {
+  position: relative;
+}
+.drain-bar i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 3px;
+}
+.drain-bar .drain-fill {
+  background: linear-gradient(#f08478, #c9473f);
+  transition: width 0.12s ease-out;
+}
+.drain-bar .drain-ghost {
+  background: #ffe2c4;
+  transition: width 0.7s cubic-bezier(0.5, 0, 0.6, 1);
+}
+.bag-flight {
+  position: fixed;
+  z-index: 60;
+  width: 24px;
+  height: 24px;
+  margin: -12px 0 0 -12px;
+  pointer-events: none;
+  opacity: 0;
+  animation: bag-flight 0.52s cubic-bezier(0.5, -0.1, 0.7, 0.6) forwards;
+}
+.bag-flight > * {
+  animation: bag-flight-lift 0.52s ease-out forwards;
+}
+@keyframes bag-flight {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.6);
+  }
+  12% {
+    opacity: 1;
+    transform: translate(0, 0) scale(1.25);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(var(--dx), var(--dy)) scale(0.7);
+  }
+}
+/* The rise that makes the path an arc and not a line. */
+@keyframes bag-flight-lift {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-46px);
+  }
+}
+.bag-bounce {
+  animation: bag-bounce 0.42s cubic-bezier(0.2, 1.5, 0.4, 1);
+}
+@keyframes bag-bounce {
+  0% {
+    transform: scale(1);
+  }
+  30% {
+    transform: scale(1.09, 0.92);
+  }
+  60% {
+    transform: scale(0.97, 1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.bag-gain {
+  position: fixed;
+  z-index: 60;
+  padding: 1px 6px;
+  font: 11px var(--pixel);
+  color: var(--ink);
+  background: var(--gold);
+  border-radius: 999px;
+  pointer-events: none;
+  animation: bag-gain 1.1s ease-out forwards;
+}
+@keyframes bag-gain {
+  0% {
+    opacity: 0;
+    transform: translateY(6px) scale(0.7);
+  }
+  15% {
+    opacity: 1;
+    transform: translateY(-4px) scale(1.1);
+  }
+  25%,
+  75% {
+    opacity: 1;
+    transform: translateY(-6px) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-14px);
+  }
+}
+.prop-prompts .key-prompt {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  white-space: pre;
+  animation: prompt-in 0.18s cubic-bezier(0.2, 1.3, 0.4, 1);
+  transition:
+    transform 0.06s ease-out,
+    background 0.06s;
+}
+.prop-prompts .key-prompt kbd {
+  display: inline-grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  margin-right: 1px;
+  font: 11px var(--pixel);
+  color: #202a28;
+  background: #e8d6ad;
+  border-radius: 3px;
+  box-shadow: 0 2px 0 #887b56;
+  transition:
+    transform 0.06s ease-out,
+    box-shadow 0.06s;
+}
+.prop-prompts .key-prompt[data-down] {
+  transform: translateY(1px);
+  background: #2a3633;
+}
+.prop-prompts .key-prompt[data-down] kbd {
+  transform: translateY(2px);
+  box-shadow: 0 0 0 #887b56;
+}
+@keyframes prompt-in {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+}
+.world-notice {
+  animation: notice-in 0.26s cubic-bezier(0.2, 1.25, 0.4, 1);
+}
+.dialogue-gift {
+  animation: prompt-in 0.3s cubic-bezier(0.2, 1.3, 0.4, 1);
+}
+@keyframes notice-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 10px);
+  }
+}
+.dialogue-line[data-typing] {
+  cursor: pointer;
+}
+.dialogue-unspoken {
+  visibility: hidden;
+}
+/* One pass of light across the pips when experience lands. */
+.skill-toast .skill-pips {
+  position: relative;
+  overflow: hidden;
+}
+.skill-toast .skill-pips::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 35%, #fff8 50%, transparent 65%);
+  transform: translateX(-100%);
+  animation: pip-shine 0.7s 0.25s ease-out forwards;
+}
+@keyframes pip-shine {
+  to {
+    transform: translateX(100%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bag-flight,
+  .bag-gain,
+  .bag-bounce,
+  .key-prompt,
+  .world-notice,
+  .dialogue-gift,
+  .skill-toast,
+  .skill-toast .skill-pips::after,
+  .collapse-notice {
+    animation: none !important;
+  }
+  .drain-bar i {
+    transition: none !important;
+  }
+}
+
+/* Touch controls: a thumb stick and what the hands can do. Phones only. */
+.touch-controls {
+  display: none;
+}
+@media (max-width: 640px), (pointer: coarse) and (max-width: 1024px) {
+  .touch-controls {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: calc(76px + 68px + 14px);
+    z-index: 4;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding: 0 14px;
+    pointer-events: none;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+  }
+  .touch-stick {
+    position: relative;
+    width: 104px;
+    height: 104px;
+    border-radius: 50%;
+    border: 1px solid #d9b47755;
+    background: radial-gradient(#0f152688, #0f152633);
+    pointer-events: auto;
+    touch-action: none;
+  }
+  .touch-stick[data-run] {
+    border-color: var(--gold);
+  }
+  .touch-stick i {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 44px;
+    height: 44px;
+    margin: -22px 0 0 -22px;
+    border-radius: 50%;
+    border: 1px solid var(--line);
+    background: #1c2542e6;
+    box-shadow: 0 2px 8px #0008;
+    transition: transform 0.05s linear;
+  }
+  .touch-actions {
+    display: grid;
+    grid-template-columns: repeat(2, 44px) 72px;
+    grid-auto-flow: dense;
+    align-items: end;
+    justify-items: center;
+    gap: 8px;
+    direction: rtl;
+    pointer-events: none;
+  }
+  .touch-actions > * {
+    direction: ltr;
+    pointer-events: auto;
+    touch-action: none;
+  }
+  .touch-primary,
+  .touch-small {
+    display: grid;
+    place-items: center;
+    color: var(--cream);
+    border: 1px solid var(--line);
+    border-radius: 50%;
+    background: #141b2fe6;
+    box-shadow: 0 3px 0 #0a0e1a, 0 6px 14px #0007;
+    transition:
+      transform 0.06s ease-out,
+      box-shadow 0.06s;
+  }
+  .touch-primary {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    width: 72px;
+    height: 72px;
+    gap: 0;
+    align-content: center;
+    color: var(--ink);
+    border-color: #f0d9a8;
+    background: linear-gradient(#e6c58a, #c9a35e);
+    animation: prompt-in 0.18s cubic-bezier(0.2, 1.3, 0.4, 1);
+  }
+  .touch-primary small {
+    max-width: 62px;
+    overflow: hidden;
+    font-size: 9px;
+    line-height: 1.05;
+    text-align: center;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+  .touch-small {
+    width: 44px;
+    height: 44px;
+  }
+  .touch-alternate {
+    animation: prompt-in 0.18s cubic-bezier(0.2, 1.3, 0.4, 1);
+  }
+  .touch-primary:active,
+  .touch-small:active {
+    transform: translateY(3px);
+    box-shadow: 0 0 0 #0a0e1a, 0 2px 6px #0007;
+  }
+  /* The buttons say it; the written prompts and the zoom strip are for a
+     keyboard and a mouse. Pinch zooms. */
+  .prop-prompts,
+  .map-controls {
+    display: none;
+  }
+  .skill-toast {
+    top: 46px;
+    bottom: auto;
+    max-width: calc(100% - 24px);
+  }
+  .skill-toast em {
+    max-width: 200px;
+  }
+  .world-notice:not(.border-hint) {
+    top: 46px;
+    bottom: auto;
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+  .vitals {
+    top: 8px;
+    left: 8px;
+  }
+  .vitals-bar {
+    width: 72px;
+  }
+  /* What is around you and what you carry come first; the sky and the map
+     are a swipe further down. */
+  .sidebar > .context-section {
+    order: 1;
+  }
+  .sidebar > .sky-card {
+    order: 2;
+  }
+  .sidebar > .region-section {
+    order: 3;
+  }
+  /* As tall as what it holds: the sheet scrolls, not a box inside it. */
+  .sidebar > .context-section {
+    flex: 0 0 auto !important;
+    min-height: 200px;
+  }
+  .sidebar .skills-panel {
+    overflow: visible;
+  }
+  /* Notebook and bag sit under the tabs, not pinned over whatever follows. */
+  .sidebar > .sidebar-footer {
+    order: 1;
+    position: static;
+    margin-block: 6px;
+  }
+  .skill-toast[data-level-up] small {
+    white-space: nowrap;
+  }
+  .side-tabs button {
+    padding: 8px 2px;
+    font-size: 13px;
+  }
+  .collapse-notice h2 {
+    font-size: 24px;
+  }
+  .combat-test-panel {
+    top: 44px;
+    max-height: 55%;
   }
 }

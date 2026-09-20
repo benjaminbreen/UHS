@@ -56,6 +56,7 @@ import {
 } from "./live-graphics";
 import { ToolEffects, ROLL_MS } from "./tool-effects";
 import { CombatEffects, faunaSpriteId, mixTint } from "./combat-effects";
+import { PlayerFeel } from "./player-feel";
 import { TIERS } from "../core/combat";
 import {
   facingFromDirection,
@@ -69,6 +70,11 @@ const DUST = [0x9c8c6a, 0xbcae8c, 0x7d7054];
  * landing never eats the next input. */
 const JUMP_BUFFER_MS = 90;
 /** A jump this soon after a running step counts as a running jump. */
+/** Ground items borrow scenery art, which is drawn far larger than a handful. */
+const ITEM_SCALE = 0.4;
+/** Under this, X is a snap throw; over it, the mark starts walking out. */
+const AIM_TAP_MS = 170;
+const AIM_MS = 650;
 const RUN_GRACE_MS = 200;
 /** How long each intermediate facing is held while someone turns around. */
 const TURN_HOLD_MS = 60;
@@ -243,6 +249,12 @@ export class WorldScene extends Phaser.Scene {
   private plantImages = new Map<string, Phaser.GameObjects.Image[]>();
   private toolEffects?: ToolEffects;
   private combatEffects?: CombatEffects;
+  private feelFx?: PlayerFeel;
+  private get feel() {
+    return (this.feelFx ??= new PlayerFeel(this));
+  }
+  /** Animals knocked silly by something thrown: stars go round their heads. */
+  private stunned = new Set<string>();
   /** Last drawn pose frame per person, so a footfall fires once per contact. */
   private footfalls = new Map<string, number>();
   /** Facing actually drawn, which chases the real one a step at a time. */
@@ -450,6 +462,7 @@ export class WorldScene extends Phaser.Scene {
       this.toolEffects?.dispose();
       this.combatEffects?.dispose();
       this.combatEffects = undefined;
+      this.feelFx?.dispose();
     });
     this.events.once("shutdown", () => this.characters?.destroy());
     ensureFireTextures(this);
@@ -533,21 +546,28 @@ export class WorldScene extends Phaser.Scene {
         !(active instanceof HTMLButtonElement)
       ) {
         event.preventDefault();
-        const [dx, dy] = this.jumpDirection();
-        // A throw taken at a sprint carries twice as far, on the same terms
-        // a running jump does.
-        this.runtime.throwHeld(
-          dx,
-          dy,
-          this.shiftHeld ||
+        const player = this.runtime.engine.state.player;
+        // Held, X walks a mark out along the ground; let go and it flies there.
+        if (player.held || player.heldItem) {
+          this.aimStarted = this.time.now;
+          // A throw taken at a sprint carries further, on the same terms a
+          // running jump does.
+          this.aimRunning =
+            this.shiftHeld ||
             this.runtime.running ||
-            this.time.now - this.lastRunStep < RUN_GRACE_MS,
-        );
+            this.time.now - this.lastRunStep < RUN_GRACE_MS;
+        } else this.runtime.throwHeld(...this.jumpDirection());
       }
     });
     this.input.keyboard!.on("keyup", (event: KeyboardEvent) => {
       this.shiftHeld = event.shiftKey;
       this.heldDirections.delete(event.key.toLowerCase());
+      if (event.code === "KeyX" && this.aimStarted !== undefined) {
+        const reach = this.aimReach();
+        this.aimStarted = undefined;
+        const [dx, dy] = this.jumpDirection();
+        this.runtime.throwHeld(dx, dy, this.aimRunning, reach);
+      }
       if (event.code === "Space") {
         this.spaceDown = false;
         if (this.jumpStarted !== undefined) {
@@ -756,6 +776,8 @@ export class WorldScene extends Phaser.Scene {
     const im = this.entities.get("player");
     if (!im) return;
     if (this.jumpStarted === undefined) {
+      // A landing or a skid is still springing back.
+      if (this.time.now < this.feel.springUntil) return;
       if (im.scaleY !== 1 || im.scaleX !== 1) im.setScale(1, 1);
       this.chargeArmed = false;
       return;
@@ -804,7 +826,7 @@ export class WorldScene extends Phaser.Scene {
       onComplete: () => {
         im.setPosition(tx, ty);
         im.setData("arcLift", 0);
-        im.setScale(1, 1);
+        this.feel.land(im, arc.height, tx, ty);
         this.kickDust(tx, ty, arc.height > 26 ? 7 : 4, arc.height / 24);
       },
     });
@@ -1451,12 +1473,38 @@ export class WorldScene extends Phaser.Scene {
       this.game.canvas.dataset.cameraZoom = String(this.zoomTarget);
     }
   }
+  private aimStarted?: number;
+  private aimRunning = false;
+  /** A tap is a snap throw. Held, the mark runs out to the missile's range in
+   * about two thirds of a second and waits there. */
+  private aimReach() {
+    const held = this.time.now - (this.aimStarted ?? this.time.now);
+    if (held < AIM_TAP_MS) return undefined;
+    const range = this.runtime.engine.missile().range;
+    return Math.max(
+      2,
+      Math.min(range, 2 + Math.floor(((held - AIM_TAP_MS) / AIM_MS) * range)),
+    );
+  }
+  /** The cells the throw would cross right now, for the mark on the ground. */
+  private aimPath() {
+    if (this.aimStarted === undefined) return undefined;
+    const reach = this.aimReach();
+    if (!reach) return undefined;
+    const [dx, dy] = this.jumpDirection();
+    return this.runtime.engine.throwPath(dx, dy, reach, this.aimRunning);
+  }
   private combat() {
     return (this.combatEffects ??= new CombatEffects(this, {
       tint: () => this.tint,
       lift: (x, y) => this.lift(x, y),
       entityAt: (id) => this.entities.get(id),
       shadowOf: (id) => this.shadows.get(id),
+      hurt: () => {
+        this.runtime.playPose("hurt");
+        const player = this.entities.get("player");
+        if (player) this.feel.blink(player);
+      },
     }));
   }
   addTestFauna(speciesId: string, state: FaunaState, count: number) {
@@ -2551,8 +2599,11 @@ export class WorldScene extends Phaser.Scene {
         shade?.setPosition(tx, ty);
       }
     };
+    // Whatever was just thrown is still in the air: the effect draws it
+    // until it lands, then asks for this pass again.
+    const flying = this.toolEffects?.flying(rt.throwEffect);
     for (const o of obs.objects) {
-      if (o.carriedBy) continue;
+      if (o.carriedBy || o.id === flying) continue;
       // The building art already paints the door; the leaf overlay animates it.
       if (o.kind === "door") continue;
       if (
@@ -2598,6 +2649,11 @@ export class WorldScene extends Phaser.Scene {
               : o.sprite,
         o.pos,
       );
+      // A pebble on the ground is a pebble, not the boulder its art was cut from.
+      if (o.kind === "item") {
+        this.entities.get(o.id)?.setScale(ITEM_SCALE);
+        this.shadows.get(o.id)?.setScale(ITEM_SCALE);
+      }
     }
     this.heldSprites.clear();
     // An item taken in hand is drawn the same way a carried prop is, but a
@@ -2639,6 +2695,7 @@ export class WorldScene extends Phaser.Scene {
       );
     }
     this.faunaSprites.clear();
+    this.stunned.clear();
     const struck = this.combat().pending(rt.swingEffect, rt.throwEffect);
     for (const g of [...(e.state.fauna ?? []), ...this.testFauna]) {
       if (Math.abs(g.pos.x - p.x) > range || Math.abs(g.pos.y - p.y) > range)
@@ -2667,6 +2724,9 @@ export class WorldScene extends Phaser.Scene {
           g.id,
         );
         const im = this.entities.get(id)!;
+        // Not until whatever did it has actually arrived.
+        if ((m.stun ?? 0) > e.state.clock + 6 && !struck.has(id))
+          this.stunned.add(id);
         const tier = TIERS[m.tier ?? "ordinary"];
         if (im.getData("tier") !== tier.scale)
           im.setData("tier", tier.scale).setScale(tier.scale);
@@ -2903,6 +2963,7 @@ export class WorldScene extends Phaser.Scene {
       entityAt: (id) => this.entities.get(id),
       texture: (frame) => this.texture(frame),
       frame: (frame) => this.textureFrame(frame),
+      redraw: () => this.draw(),
     });
     this.toolEffects.consume(this.runtime.toolEffect);
     this.toolEffects.consumeSwing(this.runtime.swingEffect);
@@ -2913,6 +2974,9 @@ export class WorldScene extends Phaser.Scene {
     this.combat().consumeThrow(this.runtime.throwEffect);
     this.combat().consumeEvents(this.runtime.engine.combatEvents);
     this.combat().charging(this.runtime.charge);
+    this.runtime.aiming = this.aimStarted !== undefined;
+    this.combat().aiming(this.aimPath(), time);
+    this.combat().dazed(this.stunned, time);
     this.combat().update(time);
     mark("wind");
     const active = document.activeElement;
@@ -3085,13 +3149,38 @@ export class WorldScene extends Phaser.Scene {
         else if (/eating/i.test(human.activity)) pose = "give";
         if (id === "player" && pose === "idle") pose = "breathe";
         if (moving && water > 0.025 && !active) pose = "wade";
+        const me = this.runtime.engine.state.player;
+        const fidget =
+          id === "player" && !this.options.freeze
+            ? this.feel.idle(
+                time,
+                pose === "breathe" && !this.runtime.charge && !this.aimStarted,
+                {
+                  injured: !!me.injury,
+                  tired: me.fatigue > 65,
+                  cold: (this.weather?.tempC ?? 20) < 4,
+                },
+                Math.random,
+              )
+            : undefined;
+        if (fidget?.pose) pose = fidget.pose;
+        // Something heavy in the arms shortens the stride.
+        const laden =
+          id === "player" && !!me.held && !this.runtime.engine.armed();
         const index = active
           ? Math.min(3, Math.floor(elapsed / poseTiming(pose)))
           : this.options.freeze
             ? 0
-            : pose === "wade"
-              ? (this.wading?.frame(id) ?? 0)
-              : this.poseFrame(id, pose, time);
+            : fidget?.pose
+              ? Math.min(
+                  3,
+                  Math.floor(
+                    ((time - fidget.from) / (fidget.until - fidget.from)) * 4,
+                  ),
+                )
+              : pose === "wade"
+                ? (this.wading?.frame(id) ?? 0)
+                : this.poseFrame(id, pose, laden ? time * 0.72 : time);
         const prop =
           heldSprite ??
           (at?.activity === "haul-catch" ? CATCH : undefined) ??
@@ -3105,13 +3194,24 @@ export class WorldScene extends Phaser.Scene {
         // Turning is drawn through the facings in between. Without it a
         // half turn is a single frame, which the eight-way sprites make
         // more obvious than the four-way ones did.
-        const wanted =
+        const ahead =
           (id === "player" ? this.blockedFacing : undefined) ??
           human.facing ??
           facingFromDirection(human.direction);
+        // A glance aside and back, in the second and third quarters of it.
+        const glance = fidget?.look
+          ? (time - fidget.from) / (fidget.until - fidget.from)
+          : 0;
+        const wanted =
+          glance > 0.15 && glance < 0.85
+            ? (ahead + (glance < 0.5 ? fidget!.look! : -fidget!.look!) + 8) % 8
+            : ahead;
         let turn = this.turning.get(id);
         if (!turn) this.turning.set(id, (turn = { facing: wanted, until: 0 }));
         else if (turn.facing !== wanted && time >= turn.until) {
+          // Reversing at a run digs the heels in.
+          if (pose === "run" && Math.abs(turn.facing - wanted) === 4)
+            this.kickDust(im.x, im.y, 4, 0.8);
           turn.facing = turnToward(turn.facing, wanted);
           turn.until = time + TURN_HOLD_MS;
         }
@@ -3126,8 +3226,34 @@ export class WorldScene extends Phaser.Scene {
         // street would be permanently hazy; jumps are covered by `launch`.
         if (this.footfalls.get(id) !== index) {
           this.footfalls.set(id, index);
-          if (pose === "run" && index % 2 === 1 && water <= 0.025 && !arcLift)
-            this.kickDust(im.x, im.y, 2, 0.5);
+          const afoot =
+            pose === "run" && index % 2 === 1 && water <= 0.025 && !arcLift;
+          const cell = this.destinations.get(id);
+          if (afoot && id === "player" && cell)
+            this.feel.step(
+              im,
+              this.runtime.engine.groundClass(cell.x, cell.y, cell.space),
+            );
+          else if (afoot) this.kickDust(im.x, im.y, 2, 0.5);
+        }
+        if (id === "player") {
+          const cell = this.destinations.get(id);
+          if (moving && cell && water <= 0.025 && !arcLift)
+            this.feel.track(
+              im,
+              this.runtime.engine.groundClass(cell.x, cell.y, cell.space),
+              human.direction,
+              (this.weather?.wetness ?? 0) > 0.4,
+              (this.runtime.engine.world.topography ? -1000 : -60000) - 1,
+            );
+          if (
+            this.feel.stoppedRun(pose === "run", moving, time) &&
+            !active &&
+            !this.direction().some(Boolean)
+          )
+            this.feel.skid(im, this.shadows.get(id), human.direction, DUST);
+          if (fidget?.shiver)
+            im.x = Math.round(im.x) + (Math.floor(time / 50) % 2 ? 0.6 : -0.6);
         }
         this.wading?.update(
           id,
@@ -3411,7 +3537,48 @@ export class WorldScene extends Phaser.Scene {
       ] as [number, number][]
     )[this.runtime.engine.state.player.direction];
   }
+  private touchStick?: { dx: number; dy: number; run: boolean };
+  /** The on-screen stick. It stands in for held arrow keys, and for Shift
+   * when pushed to its rim. Undefined lets go. */
+  setTouchStick(stick?: { dx: number; dy: number; run: boolean }) {
+    const was = this.touchStick;
+    this.touchStick = stick;
+    if (stick) {
+      this.shiftHeld = stick.run;
+      if (!was) this.pendingDirection = [stick.dx, stick.dy];
+    } else if (was) this.shiftHeld = false;
+  }
+  /** The on-screen jump: down and up, as Space is. */
+  touchJump(down: boolean) {
+    if (down && !this.spaceDown) {
+      this.spaceDown = true;
+      this.jumpRunning = this.shiftHeld || this.runtime.running;
+      this.runtime.stop(false);
+      this.jumpStarted = this.time.now;
+    } else if (!down && this.spaceDown) {
+      this.spaceDown = false;
+      if (this.jumpStarted !== undefined) {
+        this.queuedJump =
+          this.time.now - this.jumpStarted >= JUMP_CHARGE_MS ? "long" : "short";
+        this.jumpStarted = undefined;
+      }
+    }
+  }
+  /** The on-screen throw: held to aim, let go to throw, as X is. */
+  touchThrow(down: boolean) {
+    const player = this.runtime.engine.state.player;
+    if (down && (player.held || player.heldItem)) {
+      this.aimStarted = this.time.now;
+      this.aimRunning = this.shiftHeld || this.runtime.running;
+    } else if (!down && this.aimStarted !== undefined) {
+      const reach = this.aimReach();
+      this.aimStarted = undefined;
+      const [dx, dy] = this.jumpDirection();
+      this.runtime.throwHeld(dx, dy, this.aimRunning, reach);
+    }
+  }
   private direction(): [number, number] {
+    if (this.touchStick) return [this.touchStick.dx, this.touchStick.dy];
     const has = (arrow: string, letter: string) =>
       Number(this.heldDirections.has(arrow) || this.heldDirections.has(letter));
     return [

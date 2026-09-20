@@ -179,3 +179,42 @@ it("cooks raw meat at a fire into something worth eating", () => {
   expect(engine.state.player.inventory["cooked-meat"]).toBe(2);
   expect(engine.state.player.inventory.meat).toBe(0);
 });
+
+it("throws a stone from the hand, reloads, stuns and skips", () => {
+  const engine = field("skills-stone");
+  engine.state.player.inventory.pebble = 3;
+  engine.execute({ type: "hold", item: "pebble" });
+  const g = quarry(engine, "rabbit", { x: 4, y: 0 }, "very-strong");
+  engine.execute({ type: "throw", dx: 1, dy: 0, reach: 6 });
+  const hit = engine.lastThrow!.creature!;
+  expect(hit).toBeDefined();
+  if (!hit.killed)
+    expect(g.members[0].stun! - engine.state.clock).toBeGreaterThan(6);
+  // The next one is already in hand.
+  expect(engine.state.player.heldItem).toBe("pebble");
+  expect(engine.state.player.inventory.pebble).toBe(1);
+  // Nothing in the way: it comes down where aimed and skips one on.
+  engine.state.fauna = [];
+  engine.execute({ type: "throw", dx: 0, dy: 1, reach: 4 });
+  expect(engine.lastThrow!.to).toEqual({ x: 0, y: 4 });
+  expect(engine.lastThrow!.bounce).toEqual({ x: 0, y: 5 });
+  expect(
+    engine.state.objects.some((o) => o.item === "pebble" && o.pos.y === 5),
+  ).toBe(true);
+});
+
+it("a spear carries further than a crate", () => {
+  const engine = field("skills-range");
+  engine.devArm("spear");
+  expect(engine.throwPath(1, 0, 9)).toHaveLength(9);
+  engine.devArm("stick");
+  expect(engine.throwPath(1, 0, 9).length).toBeLessThan(9);
+});
+
+it("holds the first swing back when there is nothing to hit", () => {
+  const engine = field("skills-press");
+  engine.devArm("stick");
+  expect(engine.swingFinds()).toBe(false);
+  quarry(engine, "sheep", { x: 0, y: 1 });
+  expect(engine.swingFinds()).toBe(true);
+});

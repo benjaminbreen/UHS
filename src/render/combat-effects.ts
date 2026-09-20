@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 import { gameAudio } from "../audio/director";
 import type { CombatEvent, CreatureHit } from "../core/combat";
-import type { SwingEffect, ThrowEffect } from "./tool-effects";
+import { flightMs, type SwingEffect, type ThrowEffect } from "./tool-effects";
 
 /** The contact frame of the swing pose, as in `ToolEffects`. */
 const CONTACT_MS = 140;
@@ -62,6 +62,8 @@ export class CombatEffects {
       lift: (x: number, y: number) => number;
       entityAt: (id: string) => Sprite | undefined;
       shadowOf: (id: string) => Sprite | undefined;
+      /** The player has been hit: the scene plays the flinch. */
+      hurt: () => void;
     },
   ) {}
   /** Animals whose sprites this class is about to move: the scene must not
@@ -85,7 +87,7 @@ export class CombatEffects {
       Math.abs(effect.to.x - effect.from.x),
       Math.abs(effect.to.y - effect.from.y),
     );
-    this.scene.time.delayedCall(90 + span * 55, () => {
+    this.scene.time.delayedCall(flightMs(span, effect.straight), () => {
       this.landedThrow = effect.serial;
       this.land(effect.creature!, effect.to.x < effect.from.x ? 3 : 1);
       this.hitStop(effect.creature!.killed);
@@ -138,6 +140,61 @@ export class CombatEffects {
       },
     });
     void gameAudio()?.effect("whoosh");
+  }
+  private aimMark?: Phaser.GameObjects.Graphics;
+  /** Where the throw will come down: dots along the way, a ring at the end
+   * that turns red over an animal. */
+  aiming(path: readonly { x: number; y: number }[] | undefined, time: number) {
+    if (!path?.length) {
+      this.aimMark?.destroy();
+      this.aimMark = undefined;
+      return;
+    }
+    const g = (this.aimMark ??= this.scene.add.graphics()).clear();
+    const end = this.cell(path.at(-1)!);
+    g.setDepth(end.y * 16 + 4200);
+    for (const c of path.slice(0, -1)) {
+      const at = this.cell(c);
+      g.fillStyle(0xffffff, 0.55).fillRect(at.x - 1, at.y - 9, 2, 2);
+    }
+    const pulse = 1 + Math.sin(time / 90) * 0.12;
+    g.lineStyle(2, 0x1a1410, 0.7).strokeEllipse(
+      end.x,
+      end.y - 7,
+      15 * pulse,
+      8 * pulse,
+    );
+    g.lineStyle(1, 0xffd34d, 1).strokeEllipse(
+      end.x,
+      end.y - 7,
+      15 * pulse,
+      8 * pulse,
+    );
+  }
+  private dazeMark?: Phaser.GameObjects.Graphics;
+  /** Three stars going round the head of anything knocked silly. */
+  dazed(ids: ReadonlySet<string>, time: number) {
+    if (!ids.size) {
+      this.dazeMark?.destroy();
+      this.dazeMark = undefined;
+      return;
+    }
+    const g = (this.dazeMark ??= this.scene.add.graphics()).clear();
+    for (const id of ids) {
+      const image = this.view.entityAt(id);
+      if (!image) continue;
+      g.setDepth(image.y * 16 + 4520);
+      const top = image.y - image.displayHeight - 2;
+      for (let k = 0; k < 3; k++) {
+        const angle = time / 160 + (k * Math.PI * 2) / 3;
+        g.fillStyle(Math.sin(angle) > 0 ? 0xffe06a : 0xc9a63c, 1).fillRect(
+          Math.round(image.x + Math.cos(angle) * 6) - 1,
+          Math.round(top + Math.sin(angle) * 2) - 1,
+          2,
+          2,
+        );
+      }
+    }
   }
   private chargeRing?: Phaser.GameObjects.Graphics;
   private chargeStage = 0;
@@ -213,6 +270,7 @@ export class CombatEffects {
     }
   }
   private mauled(damage: number) {
+    this.view.hurt();
     const player = this.view.entityAt("player");
     this.scene.cameras.main.shake(200, 0.007);
     this.scene.cameras.main.flash(90, 150, 20, 10);
@@ -603,6 +661,10 @@ export class CombatEffects {
     this.tells.clear();
     this.chargeRing?.destroy();
     this.chargeRing = undefined;
+    this.aimMark?.destroy();
+    this.aimMark = undefined;
+    this.dazeMark?.destroy();
+    this.dazeMark = undefined;
     for (const o of this.live) o.destroy();
     this.live.clear();
   }
