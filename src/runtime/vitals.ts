@@ -206,6 +206,18 @@ export function watchGame(game: Phaser.Game | undefined) {
     return;
   }
   watchCount("textures", () => Object.keys(game.textures.list).length);
+  // What the sheets actually cost: a decoded texture is width x height x 4
+  // bytes whatever the PNG compressed to, and this is the budget that kills
+  // the tab.
+  watchCount("textureMB", () => {
+    let bytes = 0;
+    for (const texture of Object.values(
+      game.textures.list as Record<string, Phaser.Textures.Texture>,
+    ))
+      for (const source of texture?.source ?? [])
+        bytes += (source.width ?? 0) * (source.height ?? 0) * 4;
+    return Math.round(bytes / 1e6);
+  });
   watchCount("scenes", () => game.scene.scenes.length);
   const canvas = game.canvas;
   canvas?.addEventListener("webglcontextlost", (e) => {

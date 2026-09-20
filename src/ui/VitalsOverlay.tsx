@@ -15,9 +15,13 @@ export function vitalsEnabled() {
   return localStorage.getItem(FLAG) === "1";
 }
 
+/** Tapping cycles, so the readout never sits on the command bar for good. */
+type View = "bar" | "full" | "dot";
+const NEXT: Record<View, View> = { bar: "full", full: "dot", dot: "bar" };
+
 export function VitalsOverlay() {
   const [vitals, setVitals] = useState(() => currentVitals());
-  const [open, setOpen] = useState(false);
+  const [view, setView] = useState<View>("bar");
   useEffect(() => {
     const id = setInterval(() => setVitals(currentVitals()), 1000);
     return () => clearInterval(id);
@@ -27,37 +31,48 @@ export function VitalsOverlay() {
   const counts = Object.entries(vitals.counts)
     .map(([k, v]) => `${k} ${v}`)
     .join("  ");
+  const shell: React.CSSProperties = {
+    position: "fixed",
+    left: 4,
+    bottom: "calc(4px + env(safe-area-inset-bottom))",
+    zIndex: 99999,
+    width: "fit-content",
+    padding: view === "dot" ? "6px 8px" : "4px 6px",
+    borderRadius: 4,
+    background: crashed ? "rgba(90,0,0,.85)" : "rgba(0,0,0,.72)",
+    color: "#9f9",
+    font: "10px/1.35 ui-monospace, monospace",
+    whiteSpace: "pre-wrap",
+  };
+  if (view === "dot")
+    return (
+      <div onClick={() => setView("bar")} style={shell}>
+        {crashed ? "⚠" : "·"}
+      </div>
+    );
+  const report = (label: string, v: typeof vitals | undefined) =>
+    v
+      ? `\n\n— ${label} —\n${v.uptime}s ${v.viewport}\n` +
+        Object.entries(v.counts)
+          .map(([k, n]) => `${k} ${n}`)
+          .join("  ") +
+        `\nevents:\n${v.events.join("\n") || "none"}` +
+        `\nerrors:\n${v.errors.join("\n") || "none"}`
+      : "";
   return (
     <div
-      onClick={() => setOpen(!open)}
+      onClick={() => setView(NEXT[view])}
       style={{
-        position: "fixed",
-        left: 4,
-        bottom: 4,
-        zIndex: 99999,
+        ...shell,
         maxWidth: "calc(100vw - 8px)",
-        maxHeight: open ? "60vh" : undefined,
+        maxHeight: view === "full" ? "60vh" : undefined,
         overflow: "auto",
-        padding: "4px 6px",
-        borderRadius: 4,
-        background: crashed ? "rgba(90,0,0,.85)" : "rgba(0,0,0,.7)",
-        color: "#9f9",
-        font: "10px/1.35 ui-monospace, monospace",
-        whiteSpace: "pre-wrap",
-        pointerEvents: "auto",
       }}
     >
       {`${vitals.uptime}s  ${counts}`}
-      {crashed ? "\n⚠ last session died without unload" : ""}
-      {open && previous
-        ? `\n\n— previous session —\n${previous.uptime}s ${previous.viewport}\n` +
-          Object.entries(previous.counts)
-            .map(([k, v]) => `${k} ${v}`)
-            .join("  ") +
-          `\nevents:\n${previous.events.join("\n") || "none"}` +
-          `\nerrors:\n${previous.errors.join("\n") || "none"}`
-        : ""}
-      {open ? `\n\n— now —\nevents:\n${vitals.events.join("\n") || "none"}\nerrors:\n${vitals.errors.join("\n") || "none"}` : ""}
+      {crashed ? "\n⚠ last session died without unload — tap for detail" : ""}
+      {view === "full" ? report("previous session", previous) : ""}
+      {view === "full" ? report("now", vitals) : ""}
     </div>
   );
 }
