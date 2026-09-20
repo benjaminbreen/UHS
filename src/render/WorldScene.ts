@@ -26,13 +26,32 @@ const GENERIC_TRADES = [
 import type { Place } from "../core/types";
 import type { WorldSetting } from "../content/geography/types";
 import { aerialStates, type FaunaGroup, type FaunaState } from "../core/fauna";
-import { faunaProfile, type FaunaFacing } from "../content/fauna";
+import {
+  faunaCoats,
+  faunaLook,
+  faunaProfile,
+  type FaunaFacing,
+} from "../content/fauna";
 
 /** Actor facing numbers as the art names them. */
 const FACINGS: readonly FaunaFacing[] = ["north", "east", "south", "west"];
+/** States in which an animal is in a hurry: the sprite keeps up with the
+ * simulation instead of ambling after it. */
+const URGENT = new Set<FaunaState>([
+  "flee",
+  "chase",
+  "flight",
+  "takeoff",
+  "landing",
+  "approach",
+]);
+/** States whose art already shows the animal travelling. */
+const STRIDING = new Set<FaunaState>([...URGENT, "wander", "stalk"]);
 import { canopyHidesPlayer } from "./canopy-visibility";
 import { WorldCharacters } from "./characters/world";
 import { entityInView, npcMotion } from "./entity-presentation";
+import { FaunaMotion } from "./fauna-motion";
+import { spriteShadow } from "./characters/shadow";
 import { poseTiming, type CharacterPose } from "./characters/poses";
 import type { Actor } from "../core/types";
 import { waterStyle } from "./water-style";
@@ -297,7 +316,22 @@ export class WorldScene extends Phaser.Scene {
   /** Drawn animals, for the frame cycle in update(). */
   private faunaSprites = new Map<
     string,
-    { species: string; state: FaunaState; phase: number; facing: FaunaFacing }
+    {
+      species: string;
+      state: FaunaState;
+      phase: number;
+      facing: FaunaFacing;
+      scale: number;
+      /** Frame-name stem: the species, or its form and coat. */
+      art: string;
+    }
+  >();
+  private faunaArt = new Map<string, string>();
+  private faunaMotion = new FaunaMotion();
+  /** Cast shadows by pose, facing and lighting phase. */
+  private faunaShadows = new Map<
+    string,
+    { key: string; origin: readonly [number, number] }
   >();
   private testFauna: FaunaGroup[] = [];
   private testFaunaSerial = 0;
@@ -1340,6 +1374,66 @@ export class WorldScene extends Phaser.Scene {
    * knows what it holds. */
   private buildingFrames?: Set<string>;
   private civicFrames?: Set<string>;
+  /** A coat is the species' frames with the colours swapped, built the first
+   * time an animal wears it. Frames keep their names, with the coat in them. */
+  private coatTexture(frame: string) {
+    const plus = frame.indexOf("+");
+    const art = frame.slice("faunab-".length, plus);
+    const slug = frame.slice(plus + 1, frame.indexOf("-", plus));
+    const key = `faunab+${art}+${slug}`;
+    if (this.textures.exists(key)) return key;
+    const swap = faunaCoats(art.split(".")[0], slug.replace(/_/g, "-"));
+    const atlas = this.textures.get("faunab");
+    const stem = `faunab-${art}-`;
+    const frames = atlas
+      .getFrameNames()
+      .filter((name) => name.startsWith(stem))
+      .map((name) => atlas.get(name));
+    if (!swap || !frames.length) return "faunab";
+    const w = frames[0].cutWidth + 2,
+      h = frames[0].cutHeight + 2;
+    const canvas = document.createElement("canvas");
+    canvas.width = w * 8;
+    canvas.height = h * Math.ceil(frames.length / 8);
+    const ctx = canvas.getContext("2d", { willReadFrequently: true })!;
+    frames.forEach((f, i) =>
+      ctx.drawImage(
+        f.source.image as CanvasImageSource,
+        f.cutX,
+        f.cutY,
+        f.cutWidth,
+        f.cutHeight,
+        (i % 8) * w,
+        Math.floor(i / 8) * h,
+        f.cutWidth,
+        f.cutHeight,
+      ),
+    );
+    const image = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const d = image.data;
+    for (let i = 0; i < d.length; i += 4) {
+      if (!d[i + 3]) continue;
+      const to = swap.get((d[i] << 16) | (d[i + 1] << 8) | d[i + 2]);
+      if (to === undefined) continue;
+      d[i] = to >> 16;
+      d[i + 1] = (to >> 8) & 255;
+      d[i + 2] = to & 255;
+    }
+    ctx.putImageData(image, 0, 0);
+    const texture = this.textures.addCanvas(key, canvas)!;
+    texture.setFilter(Phaser.Textures.FilterMode.NEAREST);
+    frames.forEach((f, i) =>
+      texture.add(
+        `faunab-${art}+${slug}-${f.name.slice(stem.length)}`,
+        0,
+        (i % 8) * w,
+        Math.floor(i / 8) * h,
+        f.cutWidth,
+        f.cutHeight,
+      ),
+    );
+    return key;
+  }
   private texture(frame: string) {
     if (!this.buildingFrames && this.textures.exists("buildings"))
       this.buildingFrames = new Set(
@@ -1354,7 +1448,8 @@ export class WorldScene extends Phaser.Scene {
       return frame.slice(0, frame.lastIndexOf("-"));
     if (frame.startsWith("study-litter-")) return "tree-study";
     if (frame.startsWith("nature-")) return "nature";
-    if (frame.startsWith("faunab-")) return "faunab";
+    if (frame.startsWith("faunab-"))
+      return frame.includes("+") ? this.coatTexture(frame) : "faunab";
     if (frame.startsWith("faunac-")) return "faunac";
     if (frame.startsWith("ecology-")) return "ecology";
     // "study-propb-" is the same atlas: match the prefix without the hyphen.
@@ -1643,6 +1738,8 @@ export class WorldScene extends Phaser.Scene {
           ? { ...this.options.center, space: "outside" }
           : e.state.player.pos,
       w = e.world;
+    // Sprite ids repeat from world to world; their coats should not.
+    if (w !== this.drawnWorld) this.faunaArt.clear();
     if (this.drawnWorld && w !== this.drawnWorld && this.testFauna.length) {
       this.testFauna = [];
       this.game.canvas.dataset.testFaunaCount = "0";
@@ -2406,6 +2503,8 @@ export class WorldScene extends Phaser.Scene {
       actor = false,
       target = id,
       smooth = false,
+      // Placed every frame by something else; this only creates and dresses it.
+      own = false,
     ) => {
       keep.add(id);
       let im = this.entities.get(id);
@@ -2506,6 +2605,7 @@ export class WorldScene extends Phaser.Scene {
         this.textures.get(shadowTexture).has(shadowKey)
       )
         shade.setTexture(shadowTexture, shadowKey).setOriginFromFrame();
+      if (own) return;
       // A routine gives a position between tiles every frame, so there is
       // nothing to interpolate: tweening it would only lag the schedule.
       if (smooth) {
@@ -2710,28 +2810,52 @@ export class WorldScene extends Phaser.Scene {
     for (const g of [...(e.state.fauna ?? []), ...this.testFauna]) {
       if (Math.abs(g.pos.x - p.x) > range || Math.abs(g.pos.y - p.y) > range)
         continue;
-      // In the air the sprite rides a cell and a quarter above its ground cell.
-      const lift = aerialStates.has(g.state) ? 1.25 : 0;
       // Four-direction species have an authored frame per facing; the rest
       // are side views flipped for west.
       const turns = Boolean(faunaProfile(g.speciesId)?.directions);
       for (const [i, m] of g.members.entries()) {
         const id =
           m.n === undefined ? `${g.id}-${i}` : faunaSpriteId(g.id, m.n);
-        const at = { x: m.x, y: m.y - lift, space: "outside" };
+        const at = { x: m.x, y: m.y, space: "outside" };
         if (!visible(at)) continue;
-        // A blow is about to throw this one: the knockback moves the sprite,
-        // so tell the tween below it has nowhere to go.
-        if (struck.has(id) && this.entities.has(id))
-          this.destinations.set(id, at);
+        this.faunaMotion.aim(
+          id,
+          m.x * 16 + 8,
+          m.y * 16 + 16,
+          URGENT.has(g.state),
+          !!this.options.freeze || !this.entities.has(id),
+        );
         const phase = this.poseOffset(id) % 8;
         const facing = FACINGS[m.direction] ?? "east";
+        let art = this.faunaArt.get(id);
+        if (!art) {
+          const look = faunaLook(
+            g.speciesId,
+            e.state.manifest.seed,
+            g.id,
+            id,
+            w.pack?.setting,
+          );
+          art = look
+            ? `${look.art}+${look.coat.replace(/-/g, "_")}`
+            : g.speciesId;
+          this.faunaArt.set(id, art);
+        }
         renderEntity(
           id,
-          this.faunaFrame(g.speciesId, m.pose ?? g.state, phase, facing),
+          this.faunaFrame(
+            g.speciesId,
+            m.pose ?? g.state,
+            phase,
+            facing,
+            undefined,
+            art,
+          ),
           at,
           true,
           g.id,
+          false,
+          true,
         );
         const im = this.entities.get(id)!;
         // Not until whatever did it has actually arrived.
@@ -2750,9 +2874,13 @@ export class WorldScene extends Phaser.Scene {
           state: m.pose ?? g.state,
           phase,
           facing,
+          scale: tier.scale,
+          art,
         });
       }
     }
+    this.faunaMotion.keep(this.faunaSprites);
+    this.placeFauna(0);
     if (this.options.lab && !this.options.overview)
       c.startFollow(this.entities.get("player")!, true, 0.4, 0.4);
     for (const [id, image] of this.entities)
@@ -2843,6 +2971,10 @@ export class WorldScene extends Phaser.Scene {
     state: FaunaState,
     phase: number,
     facing: FaunaFacing,
+    /** Frames walked so far. A moving animal's legs follow the ground it
+     * covers, not the clock, or the feet slide. */
+    stride?: number,
+    art = species,
   ) {
     const ms =
       state === "flight"
@@ -2857,24 +2989,170 @@ export class WorldScene extends Phaser.Scene {
             : 260;
     const n = this.options.freeze
       ? 0
-      : Math.floor(this.time.now / ms + phase) % 8;
+      : Math.floor((stride ?? this.time.now / ms) + phase) % 8;
     return faunaProfile(species)?.directions
       ? `faunac-${species}-${state}-${facing}-${n}`
-      : `faunab-${species}-${state}-${n}`;
+      : `faunab-${art}-${state}-${n}`;
   }
-  update(time: number) {
+  /** Walks each animal towards its cell and dresses it for where it is. */
+  private placeFauna(dt: number) {
+    const topo = this.runtime.engine.world.topography;
+    const struck = this.combat().pending(
+      this.runtime.swingEffect,
+      this.runtime.throwEffect,
+    );
+    for (const [id, f] of this.faunaSprites) {
+      const im = this.entities.get(id);
+      if (!im) continue;
+      const now = this.time.now;
+      // A blow is about to throw this one: the knockback moves the sprite,
+      // and goes on moving it for a moment after the blow lands.
+      if (struck.has(id)) this.faunaMotion.hold(id, now + 450);
+      if (this.faunaMotion.held(id, now)) continue;
+      if (this.faunaMotion.released(id, now))
+        this.faunaMotion.adopt(id, im.x, im.y + this.lift(im.x, im.y));
+      const profile = faunaProfile(f.species);
+      const aerial = aerialStates.has(f.state);
+      const pose = this.faunaMotion.step(
+        id,
+        dt,
+        URGENT.has(f.state),
+        profile?.gait ?? "walk",
+        // In the air the sprite rides a cell and a quarter above its cell.
+        aerial ? 20 : 0,
+        !profile?.directions,
+      );
+      if (!pose) continue;
+      const facing = profile?.directions
+        ? (pose.heading ?? f.facing)
+        : f.facing;
+      let state = f.state;
+      if (pose.moving && !STRIDING.has(state)) state = "wander";
+      else if (!pose.moving && state === "wander") state = "idle";
+      const pace = Math.max(2, im.frame.height / 12);
+      let name = this.faunaFrame(
+        f.species,
+        state,
+        f.phase,
+        facing,
+        pose.moving && !aerial
+          ? pose.travelled / (URGENT.has(state) ? pace * 1.6 : pace)
+          : undefined,
+        f.art,
+      );
+      if (state !== f.state && !this.textures.get(this.texture(name)).has(name))
+        name = this.faunaFrame(
+          f.species,
+          f.state,
+          f.phase,
+          facing,
+          undefined,
+          f.art,
+        );
+      if (im.frame.name !== name) {
+        im.setFrame(name);
+        // Three clear rows under the hooves in every study frame.
+        im.setOrigin(0.5, (im.frame.height - 3) / im.frame.height);
+      }
+      if (!profile?.directions && pose.heading) {
+        const flip = pose.heading === "west";
+        if (im.flipX !== flip) im.setFlipX(flip);
+      }
+      const ground = pose.y - this.lift(pose.x, pose.y);
+      im.setPosition(pose.x, ground - pose.alt - pose.hop);
+      const depth = pose.y - 2;
+      if (im.depth !== depth) im.setDepth(depth);
+      this.shadeFauna(
+        id,
+        im,
+        pose.x,
+        ground,
+        pose.alt,
+        f.scale,
+        topo && pose.alt < 1
+          ? waterDepthAt(topo, pose.x / 16, (pose.y - 8) / 16)
+          : 0,
+      );
+    }
+  }
+  /** One cast per pose and facing rather than per frame: legs moving inside a
+   * shadow are not worth eight textures. */
+  private shadeFauna(
+    id: string,
+    im: Phaser.GameObjects.Image,
+    x: number,
+    y: number,
+    alt: number,
+    scale: number,
+    water: number,
+  ) {
+    if (this.options.shadows === false) return;
+    const still = im.frame.name.replace(/-\d+$/, "-0");
+    // Every coat of a form casts the same shadow.
+    const key = `${this.shadowPhase}:${still.replace(/\+[^-]+/, "")}:${im.flipX ? "w" : "e"}:${alt > 1 ? "air" : ""}`;
+    let cast = this.faunaShadows.get(key);
+    if (!cast) {
+      const frame = this.textures.getFrame(im.texture.key, still) ?? im.frame;
+      const w = frame.cutWidth,
+        h = frame.cutHeight;
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext("2d", { willReadFrequently: true })!;
+      if (im.flipX) ctx.setTransform(-1, 0, 0, 1, w, 0);
+      ctx.drawImage(
+        frame.source.image as CanvasImageSource,
+        frame.cutX,
+        frame.cutY,
+        w,
+        h,
+        0,
+        0,
+        w,
+        h,
+      );
+      const made = spriteShadow(
+        ctx.getImageData(0, 0, w, h).data,
+        w,
+        h,
+        h - 4,
+        this.shadowPhase,
+        alt <= 1,
+      );
+      const texture = `fauna-shadow-${key}`;
+      // The texture manager outlives the scene; this map does not.
+      if (this.textures.exists(texture)) this.textures.remove(texture);
+      this.textures
+        .addCanvas(texture, made.canvas)
+        ?.setFilter(Phaser.Textures.FilterMode.NEAREST);
+      cast = { key: texture, origin: made.origin };
+      this.faunaShadows.set(key, cast);
+    }
+    let shade = this.shadows.get(id);
+    if (!shade) {
+      shade = this.add.image(x, y, cast.key);
+      this.shadows.set(id, shade);
+    }
+    if (shade.texture.key !== cast.key) shade.setTexture(cast.key);
+    shade.setOrigin(cast.origin[0], cast.origin[1]);
+    shade.setPosition(x, y);
+    // Off the ground the shadow stays behind, smaller and fainter.
+    const size = scale * (1 - Math.min(0.45, alt / 32));
+    if (shade.scaleX !== size) shade.setScale(size);
+    // Like a person's, not dimmed by cloud.
+    const fade = water > 0.025 ? 0 : 1 - Math.min(0.55, alt / 26);
+    if (shade.alpha !== fade) shade.setAlpha(fade);
+    const depth = this.runtime.engine.world.topography ? -1000 : -60000;
+    if (shade.depth !== depth) shade.setDepth(depth);
+  }
+  update(time: number, delta = 16) {
     open();
     this.drift?.update(time, !!this.options.freeze);
     this.mist?.update(time, !!this.options.freeze);
     this.life?.update(time, !!this.options.freeze);
     mark("weather");
     if (perf.fauna)
-      for (const [id, f] of this.faunaSprites) {
-        const im = this.entities.get(id);
-        if (!im) continue;
-        const name = this.faunaFrame(f.species, f.state, f.phase, f.facing);
-        if (im.frame.name !== name) im.setFrame(name);
-      }
+      this.placeFauna(this.options.freeze ? 0 : Math.min(delta, 100) / 1000);
     mark("fauna");
     updateLivingWater(
       this,

@@ -56,7 +56,11 @@ describe("fauna profiles", () => {
     const referenced = sideView.flatMap((profile) =>
       Object.values(profile.art).flat(),
     );
-    expect(new Set(referenced).size).toBe(Object.keys(atlasB.frames).length);
+    // A form (faunab-cattle.zebu-…) is a second drawing of a species the
+    // profiles already name, so only the plain frames are counted.
+    expect(new Set(referenced).size).toBe(
+      Object.keys(atlasB.frames).filter((name) => !name.includes(".")).length,
+    );
   });
 
   it("keeps the frozen A set drawable so the lab can still toggle to it", () => {

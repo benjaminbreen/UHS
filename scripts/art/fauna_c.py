@@ -101,7 +101,7 @@ EQUINE = {
     "horse": dict(
         ground=33, barrel=(7, 13, 27, 24), chest=(16, 12, 30, 24),
         hip_h=(11, 22), hip_f=(26, 22), thick=2, hoof="b", sock=True,
-        neck_low=((21, 17), (26, 13)), poll=(30, 4), head=7,
+        neck_low=((18, 14), (29, 19)), throat=(3, 6), crest=(-2, 1), poll=(30, 4), head=7,
         tail_root=(8, 14), tail_tip=(3, 27), belly=(13, 27), top=(11, 27),
         amp=3.4, lift=3.0, run_amp=6.0, run_lift=5.0, graze_drop=20,
         cx=20, chest_f=(12, 12, 28, 23), leg_f=(16, 23), leg_b=(14, 25),
@@ -110,8 +110,8 @@ EQUINE = {
     ),
     "foal": dict(
         ground=22, barrel=(4, 6, 15, 13), chest=(10, 5, 17, 13),
-        hip_h=(7, 12), hip_f=(16, 12), thick=2, hoof="a", sock=False,
-        neck_low=((11, 9), (15, 6)), poll=(16, 1), head=5,
+        hip_h=(7, 12), hip_f=(16, 12), thick=1, hoof="a", sock=False,
+        neck_low=((11, 7), (16, 10)), throat=(2, 4), crest=(-1, 1), poll=(16, 1), head=5,
         tail_root=(5, 7), tail_tip=(4, 15), belly=(8, 15), top=(6, 15),
         amp=2.6, lift=2.6, run_amp=3.4, run_lift=4.0, graze_drop=14,
         cx=12, chest_f=(7, 6, 17, 13), leg_f=(9, 14), leg_b=(8, 15),
@@ -126,7 +126,7 @@ def _leg(c, hip, foot, hind, near, thick=2, lift=0.0, hoof="b", sock=False):
     hx, hy = hip
     fx, fy = foot
     mx, my = (hx + fx) / 2, (hy + fy) / 2
-    bend = 1.4 + lift * 0.5
+    bend = (0.7 if thick == 1 else 1.4) + lift * 0.5
     kx = mx - bend if hind else mx + bend * 0.6
     seg = line((hx, hy), (kx, my), thick) | line((kx, my), (fx, fy), thick)
     role = "m" if near else "d"
@@ -151,11 +151,17 @@ def _equine_neck_head_side(c, species, base, poll, frame, state, chew, by):
     p = EQUINE[species]
     (bx0, by0), (bx1, by1) = base
     px_, py_ = poll
-    neck = polygon([(bx0, by0 + by), (bx1, by1 + by), (px_ + 2, py_ + 4), (px_ - 1, py_ + 1)])
+    # Withers, point of the chest, throat, crest: wide at the shoulder and
+    # tapering, so the chest runs into the neck instead of curving in under it.
+    (tx, ty), (kx, ky) = p["throat"], p["crest"]
+    neck = polygon([(bx0, by0 + by), (bx1, by1 + by), (px_ + tx, py_ + ty), (px_ + kx, py_ + ky)])
     npx = shade(neck, 1, 1)
+    # Flat where the neck lies over the shoulder, or the two rims draw a seam
+    # across the chest.
+    npx = {xy: "m" if xy in c.px else role for xy, role in npx.items()}
     c.paint(npx)
     # crest: the mane sits on the upper-forward edge of that quad
-    crest = line((bx0 + 2, by0 + by - 1), (px_ - 1, py_ + 1), 2) | line((px_ - 1, py_), (px_ + 2, py_ + 1), 2)
+    crest = line((bx0 + 1, by0 + by), (px_ + kx, py_ + ky), 2) | line((px_ + kx, py_ + ky - 1), (px_ + 2, py_ + 1), 2)
     c.paint(flat(crest & neck, "a"))
     _equine_head_side(c, species, px_, py_, frame, state, chew)
 
@@ -200,6 +206,12 @@ def _equine_side(species, state, frame):
     else:
         bounce = 0
     by = -bounce
+    # A gallop rocks: the forehand rises as the forelegs reach, the quarters as
+    # the hind legs gather. A walk nods the head down onto each landing forefoot.
+    rock = round(math.sin(2 * math.pi * (t + 0.1))) if running else 0
+    by_f, by_h = by - rock, by + rock
+    nod = 1 if moving and not running and math.cos(4 * math.pi * (t - 0.25)) > 0.3 else 0
+    breath = 1 if state in {"idle", "graze"} and frame in (2, 3, 4) else 0
 
     if running:
         gait = lambda ph: walk_foot(ph, p["run_amp"], p["run_lift"], 0.4)
@@ -211,23 +223,30 @@ def _equine_side(species, state, frame):
     def draw_leg(key, hip, hind, near):
         dx, up = gait(t + phases[key]) if moving else (0.0, 0.0)
         ox = 0 if near else -3
-        _leg(c, (hip[0] + ox, hip[1] + by), (hip[0] + ox + dx + (1 if hind else 0), ground - up),
+        _leg(c, (hip[0] + ox, hip[1] + (by_h if hind else by_f)), (hip[0] + ox + dx + (1 if hind else 0), ground - up),
              hind, near, p["thick"], up, p["hoof"], p["sock"] and near)
 
     draw_leg("fh", p["hip_h"], True, False)
     draw_leg("ff", p["hip_f"], False, False)
 
     # tail: hung off the dock behind the barrel, swinging with the gait
-    swing = round(1.5 * math.sin(2 * math.pi * t)) if moving else (1 if state == "idle" and frame in (3, 4) else 0)
+    swing = round(1.5 * math.sin(2 * math.pi * t)) if moving else ([0, 0, 1, 2, 2, 1, 0, 0][frame] if state == "idle" else 0)
     tx, ty = p["tail_root"]
     ex, ey = p["tail_tip"]
+    by = by_h
+    if running:
+        # streaming out behind, with a wave running down it
+        span = ey - ty
+        ex, ey = tx - round(span * 0.6), ty + round(span * 0.45) + round(1.5 * math.sin(2 * math.pi * t + 1))
+        swing = 0
     tail = line((tx, ty + by), (ex - swing, ey + by), 3) | line((tx - 1, ty + 1 + by), (ex - swing + 1, ey - 4 + by), 2)
     c.paint(flat(tail, "a"))
     c.paint({(x, y): "d" for x, y in tail if (x + 1, y) not in tail})
     c.paint({(x, y): "d" for x, y in tail if (x - 1, y) not in tail})
 
-    body = ellipse((p["barrel"][0], p["barrel"][1] + by, p["barrel"][2], p["barrel"][3] + by))
-    body |= ellipse((p["chest"][0], p["chest"][1] + by, p["chest"][2], p["chest"][3] + by))
+    body = ellipse((p["barrel"][0], p["barrel"][1] + by_h, p["barrel"][2], p["barrel"][3] + by_h + breath))
+    body |= ellipse((p["chest"][0], p["chest"][1] + by_f, p["chest"][2], p["chest"][3] + by_f))
+    by = by_f
     px = shade(body, top=1, bottom=2)
     _belly(px, body, p["belly"][0], p["belly"][1], "d")
     _top_light(px, body, p["top"][0], p["top"][1])
@@ -243,7 +262,11 @@ def _equine_side(species, state, frame):
     drop = p["graze_drop"] * stage / 2
     poll = (round(px_ - drop * 0.05), round(py_ + drop) + by)
     if running:
-        poll = (poll[0], poll[1] + 2)
+        # the neck pumps: out and down as the forelegs land, back as they fold
+        pump = math.sin(2 * math.pi * (t + 0.35))
+        poll = (poll[0] + round(1.4 * pump), poll[1] + 2 + round(1.2 * pump))
+    elif moving:
+        poll = (poll[0] + nod, poll[1] + nod)
     elif state == "idle":
         poll = (poll[0], poll[1] + [0, 0, 1, 1, 1, 1, 0, 0][frame])
     base = ((p["neck_low"][0][0], p["neck_low"][0][1]), (p["neck_low"][1][0], p["neck_low"][1][1]))
@@ -321,12 +344,16 @@ def _equine_head_front(c, species, state, frame, by, running):
         drop = [0, 2, 4, 5, 5, 4, 2, 0][frame]
     elif running:
         drop = -1
+    elif state == "wander":
+        drop = [0, 1, 1, 0, 0, 1, 1, 0][frame]
     dy = by + drop
 
-    neck = polygon([(nx0, ny0 + dy), (nx1, ny0 + dy), (nx1 + 1, ny1 + by), (nx0 - 1, ny1 + by)])
+    # Flares into the shoulders; a straight column sat on the chest like a post.
+    flare = max(1, (nx1 - nx0) // 2)
+    neck = polygon([(nx0, ny0 + dy), (nx1, ny0 + dy), (nx1 + flare, ny1 + 2 + by), (nx0 - flare, ny1 + 2 + by)])
     npx = shade(neck, 1, 0)
     for x, y in neck:
-        if x <= nx0 or x >= nx1:
+        if (x - 1, y) not in neck or (x + 1, y) not in neck:
             npx[(x, y)] = "d"
     c.paint(npx)
     c.paint(flat(rect((p["cx"] - 1, ny0 + dy, p["cx"], ny0 + dy + 3)), "a"))

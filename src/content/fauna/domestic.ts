@@ -7,6 +7,7 @@ export const domesticFauna: readonly FaunaProfile[] = [
     label: "Chicken study",
     category: "domestic",
     locomotion: "ground",
+    gait: "scurry",
     social: "flock",
     activity: "diurnal",
     groupSize: [3, 6],

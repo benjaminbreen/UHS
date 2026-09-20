@@ -31,6 +31,8 @@ export type FaunaProfile = {
   label: string;
   category: "domestic" | "commensal" | "wild";
   locomotion: "ground" | "ground-and-flight";
+  /** How it covers ground on screen. Absent means a steady walk. */
+  gait?: "hop" | "scurry";
   social: "solitary" | "pair" | "flock" | "herd" | "pack";
   activity: "diurnal" | "nocturnal" | "crepuscular" | "flexible";
   groupSize: readonly [minimum: number, maximum: number];
@@ -44,7 +46,12 @@ export type FaunaProfile = {
    * and a gate it is let out of; a yard animal scratches about the houses; a
    * paddock is fenced and then left alone. `from` is the year the keeping
    * starts, for animals kept later than they were known. */
-  keeping?: { place: "pen" | "yard" | "paddock"; from?: number };
+  keeping?: {
+    place: "pen" | "yard" | "paddock";
+    from?: number;
+    /** How much more often than its neighbours it is the animal kept. */
+    share?: number;
+  };
   /** Expected groups per 64-cell block where every cell is ideal habitat. */
   density: number;
   /** Young of this species, spawned beside the adults rather than alone. */

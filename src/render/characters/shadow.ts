@@ -48,3 +48,76 @@ export function characterShadow(source: HTMLCanvasElement, phase: LightingId) {
   ctx.putImageData(data, 0, 0);
   return canvas;
 }
+
+/** The same projection for a sprite of any size, cropped to what it marked.
+ * `feet` is the lowest body row. `origin` places the feet, as a fraction of
+ * the canvas. */
+export function spriteShadow(
+  pixels: Uint8ClampedArray,
+  w: number,
+  h: number,
+  feet: number,
+  phase: LightingId,
+  contact = true,
+) {
+  const light = lightingPreset(phase),
+    [vx, vy] = light.cast;
+  const length = Math.hypot(vx, vy);
+  const ux = length ? (vy / length) * 0.75 : 1;
+  const uy = length ? (-vx / length) * 0.75 : 0;
+  // Half a body, as for a person, scaled to the animal.
+  const half = Math.round(h * 0.2);
+  const R = Math.ceil(w / 2 + h * Math.abs(vx) + 6),
+    V = Math.ceil(w / 2 + h * Math.abs(vy) + 6);
+  const W = R * 2,
+    H = V * 2;
+  const data = new Uint8ClampedArray(W * H * 4);
+  let x0 = W,
+    y0 = H,
+    x1 = -1,
+    y1 = -1;
+  const mark = (x: number, y: number, alpha: number) => {
+    x = Math.round(x);
+    y = Math.round(y);
+    if (x < 0 || x >= W || y < 0 || y >= H) return;
+    const i = (y * W + x) * 4;
+    data[i] = 39;
+    data[i + 1] = 42;
+    data[i + 2] = 33;
+    data[i + 3] = Math.max(data[i + 3], alpha);
+    if (x < x0) x0 = x;
+    if (x > x1) x1 = x;
+    if (y < y0) y0 = y;
+    if (y > y1) y1 = y;
+  };
+  for (let y = 0; y <= feet; y++)
+    for (let x = 0; x < w; x++) {
+      if (!pixels[(y * w + x) * 4 + 3]) continue;
+      if (light.opacity) {
+        const px = R + (x - w / 2) * ux + (feet - y) * vx - half * vx;
+        const py = V + (x - w / 2) * uy + (feet - y) * vy - half * vy;
+        for (let dx = 0; dx < 2; dx++)
+          for (let dy = 0; dy < 2; dy++)
+            mark(px + dx, py + dy, Math.round(light.opacity * 255));
+      }
+      if (contact && y >= feet - 1)
+        for (let dx = -1; dx <= 1; dx++) {
+          mark(R + x - w / 2 + dx, V - 1, 60);
+          mark(R + x - w / 2 + dx, V, 150);
+          mark(R + x - w / 2 + dx, V + 1, 90);
+        }
+    }
+  const canvas = document.createElement("canvas");
+  if (x1 < 0) {
+    canvas.width = canvas.height = 1;
+    return { canvas, origin: [0.5, 0.5] as const };
+  }
+  canvas.width = x1 - x0 + 1;
+  canvas.height = y1 - y0 + 1;
+  const whole = new ImageData(data, W, H);
+  canvas.getContext("2d")!.putImageData(whole, -x0, -y0);
+  return {
+    canvas,
+    origin: [(R - x0) / canvas.width, (V - y0) / canvas.height] as const,
+  };
+}

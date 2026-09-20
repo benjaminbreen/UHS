@@ -120,6 +120,12 @@ def shade(mask, top=1, bottom=1, base="m", light="l", dark="d"):
     return out
 
 
+def over(canvas, pixels):
+    """A neck laid on a shoulder is flat where they overlap, or the two rims
+    draw a seam across the chest."""
+    return {xy: "m" if xy in canvas.px else role for xy, role in pixels.items()}
+
+
 def flat(mask, role):
     return {p: role for p in mask}
 
@@ -236,9 +242,10 @@ def deer(state, frame):
     c.paint(body_px)
     # rump patch + tail
     c.paint(flat(polygon([(7, 18 + by), (9, 17 + by), (9, 23 + by), (7, 22 + by)]), "b"))
-    tail_up = state == "idle" and frame in (5, 6)
+    # a running deer flags: the tail goes up and shows its white
+    tail_up = running or (state == "idle" and frame in (5, 6))
     tail = polygon([(6, 17 + by), (8, 16 + by), (8, 21 + by), (5, 21 + by)]) if not tail_up else polygon([(6, 16 + by), (8, 15 + by), (9, 19 + by), (6, 19 + by)])
-    c.paint(flat(tail, "m"))
+    c.paint(flat(tail, "b" if running else "m"))
     c.paint({(x, y): "b" for x, y in tail if (x, y + 1) not in tail})
 
     # neck + head
@@ -249,17 +256,18 @@ def deer(state, frame):
         stage = 0
         chew = 0
     if stage == 0:
-        top = (34, 6 + by) if not running else (36, 9 + by)
-        neck = polygon([(24, 18 + by), (29, 16 + by), (top[0] + 1, top[1] + 1), (top[0] - 3, top[1])])
-        c.paint(shade(neck, top=1, bottom=1))
+        nod = 1 if moving and not running and frame % 4 in (1, 2) else 0
+        top = (34 + nod, 6 + by + nod) if not running else (36, 9 + by)
+        neck = polygon([(22, 16 + by), (31, 21 + by), (top[0] + 2, top[1] + 3), (top[0] - 3, top[1])])
+        c.paint(over(c, shade(neck, top=1, bottom=1)))
         _deer_head(c, top[0] - 2, top[1] - 2, "fwd", frame, running, chew)
     elif stage == 1:
-        neck = polygon([(24, 18 + by), (29, 16 + by), (36, 20 + by), (33, 23 + by)])
-        c.paint(shade(neck, 1, 1))
+        neck = polygon([(22, 16 + by), (31, 21 + by), (36, 20 + by), (33, 23 + by)])
+        c.paint(over(c, shade(neck, 1, 1)))
         _deer_head(c, 32, 19 + by, "low", frame, False, chew)
     else:
-        neck = polygon([(24, 18 + by), (29, 16 + by), (35, 26 + by), (31, 28 + by)])
-        c.paint(shade(neck, 1, 1))
+        neck = polygon([(22, 16 + by), (31, 21 + by), (35, 26 + by), (31, 28 + by)])
+        c.paint(over(c, shade(neck, 1, 1)))
         _deer_head(c, 31, 25 + by, "down", frame, False, chew)
 
     # near legs on top
@@ -321,8 +329,8 @@ def _deer_rest(c, frame):
     c.paint(flat(polygon([(6, 26), (8, 25), (8, 30), (5, 29)]), "b"))
     dip = [0, 0, 0, 1, 1, 1, 0, 0][frame]
     top = (34, 15 + dip)
-    neck = polygon([(23, 26), (29, 24), (top[0] + 1, top[1] + 1), (top[0] - 4, top[1])])
-    c.paint(shade(neck, 1, 1))
+    neck = polygon([(22, 25), (30, 27), (top[0] + 2, top[1] + 3), (top[0] - 4, top[1])])
+    c.paint(over(c, shade(neck, 1, 1)))
     _deer_head(c, top[0] - 2, top[1] - 2, "fwd", frame, False)
     return c.finish()
 
@@ -460,7 +468,7 @@ def sheep(state, frame):
     def draw_leg(key, hip, hind, near):
         dx, up = gait(t + phases[key]) if moving else (0.0, 0.0)
         ox = 0 if near else -3
-        leg(c, (hip[0] + ox, hip[1]), (hip[0] + ox + dx, ground - up), hind, near, role="b" if near else "a", lift=up, hoof="o")
+        leg(c, (hip[0] + ox, hip[1]), (hip[0] + ox + dx, ground - up), hind, near, role="a" if near else "e", lift=up, hoof="e")
 
     draw_leg("fh", hip_h, True, False)
     draw_leg("ff", hip_f, False, False)
@@ -475,14 +483,18 @@ def sheep(state, frame):
             px[(x, y)] = "h"
     c.paint(px)
     # tail nub
-    c.paint(flat(rect((3, 13 + by, 4, 15 + by)), "d"))
+    wag = 1 if state == "idle" and frame in (2, 4) else 0
+    c.paint(flat(rect((3 - wag, 13 + by, 4 - wag, 15 + by)), "d"))
     # head: dark face, pale fleece cap
     if state == "graze":
         stage = [0, 1, 2, 2, 2, 2, 1, 0][frame]
     else:
         stage = 0
     hx, hy = [(21, 8 + by), (22, 12 + by), (22, 15 + by)][stage]
-    chew = 1 if state == "graze" and frame in (3, 5) else 0
+    if moving and not running and frame % 4 in (1, 2):
+        hy += 1  # nods into each step
+    # cud when standing, grass when grazing
+    chew = 1 if (state == "graze" and frame in (3, 5)) or (state == "idle" and frame in (1, 3, 5)) else 0
     head = ellipse((hx, hy, hx + 5, hy + 6)) | polygon([(hx + 3, hy + 2), (hx + 6, hy + 4 + stage), (hx + 6, hy + 6 + stage + chew), (hx + 2, hy + 7)])
     hp = shade(head, 1, 1, base="b", light="a", dark="a")
     for x, y in head:
@@ -626,11 +638,15 @@ def pig(state, frame):
     body = ellipse((3, 8 + by, 21, 18 + by)) | rect((6, 8 + by, 19, 13 + by))
     c.paint(shade(body, 1, 2))
     # curly tail, drawn clear of the rump so the outline reads it
-    for dx, dy in ((3, 9), (2, 7), (1, 5), (3, 4), (4, 6)):
+    wag = 1 if (moving and frame % 2) or (state == "idle" and frame in (2, 4)) else 0
+    for dx, dy in ((2, 10), (1, 9), (1 + wag, 8), (2 + wag, 7)):
         c.dot(dx, dy + by, "d")
     stage = [0, 1, 2, 2, 2, 2, 1, 0][frame] if state == "forage" else 0
     root = 1 if state == "forage" and frame in (3, 5) else 0
     hx, hy = [(19, 8 + by), (20, 10 + by), (21, 12 + by)][stage]
+    trot = moving and frame % 4 in (1, 2)
+    if trot and not running:
+        hy += 1
     head = polygon([(hx - 3, hy - 1), (hx + 4, hy + 1), (hx + 5, hy + 6), (hx - 3, hy + 7)])
     c.paint(shade(head, 1, 1))
     # snout disc on the end of the wedge
@@ -640,7 +656,8 @@ def pig(state, frame):
     c.dot(hx + 6, hy + 4 + root, "e")
     c.dot(hx + 2, hy + 2, "e")
     # ear flops forward over the eye
-    flick = state == "idle" and frame in (3, 4)
+    # the ear flops with the trot
+    flick = (state == "idle" and frame in (3, 4)) or trot
     c.paint(flat(polygon([(hx - 1, hy), (hx + 2, hy - 1), (hx + 3, hy + 3 + (1 if flick else 0))]), "d"))
     draw_leg("nh", hip_h, True, True)
     draw_leg("nf", hip_f, False, True)
@@ -652,7 +669,7 @@ def _pig_rest(c, frame):
     c.paint(flat(rect((15, 18, 20, 20)), "a"))
     body = ellipse((3, 9, 21, 18)) | rect((6, 9, 19, 14))
     c.paint(shade(body, 1, 2))
-    for dx, dy in ((3, 10), (2, 8), (1, 6), (3, 5), (4, 7)):
+    for dx, dy in ((2, 11), (1, 10), (1, 9), (2, 8)):
         c.dot(dx, dy, "d")
     dip = [0, 0, 1, 1, 1, 1, 0, 0][frame]
     hx, hy = 19, 11 + dip
@@ -674,24 +691,29 @@ def chicken(state, frame):
     running = state == "flee"
     ground = 16
     bob = round(0.5 * math.cos(4 * math.pi * t) + 0.5) if moving else 0
-    by = -bob
+    # The body rides three rows clear of the ground, or it sits on its feet.
+    by = -bob - 3
     lean = 1 if running else 0
     # legs: two, alternating; thin accent colour with a splayed foot
     for key, ph, near in (("far", 0.5, False), ("near", 0.0, True)):
         if moving:
             dx, up = walk_foot(t + ph, 2.5 if running else 1.5, 3 if running else 2, 0.5 if running else 0.6)
+        elif state == "forage" and frame == (0 if near else 1):
+            # a scratch at the dirt with each foot before the head goes down
+            dx, up = -2.0, 1.0
         else:
             dx, up = 0.0, 0.0
         hx = 8 + (1 if near else -1)
         foot = (hx + dx, ground - up)
-        knee = ((hx + foot[0]) / 2 + 0.5, (11 + by + foot[1]) / 2)
-        pixels = flat(line((hx, 11 + by), knee) | line(knee, foot), "a" if near else "d")
+        knee = ((hx + foot[0]) / 2 + 0.5, (15 + by + foot[1]) / 2)
+        pixels = flat(line((hx, 15 + by), knee) | line(knee, foot), "a" if near else "d")
         fx, fy = round(foot[0]), round(foot[1])
         for k in (-1, 0, 1, 2):
             pixels[(fx + k, fy)] = "a" if near else "d"
         c.paint(pixels)
     # tail: fan of dark feathers up and back
-    tail = polygon([(6, 8 + by), (1, 3 + by), (0, 6 + by), (3, 10 + by), (6, 12 + by)])
+    # the tip lags the body's bob
+    tail = polygon([(6, 8 + by), (1, 4 + by + bob), (0, 6 + by + bob), (3, 10 + by), (6, 12 + by)])
     tp = shade(tail, 1, 1, base="d", light="m", dark="o")
     c.paint(tp)
     # body
@@ -707,11 +729,14 @@ def chicken(state, frame):
     c.paint(shade(wing, 1, 1, base="m", light="l", dark="d"))
     # neck + head; forage dips the head to the ground
     if state == "forage":
-        dip = [0, 0, 2, 5, 7, 7, 3, 0][frame]
+        dip = [0, 0, 5, 10, 8, 10, 4, 0][frame]  # two pecks
     else:
         dip = 0
-    thrust = (1 if moving and frame % 4 < 2 else 0)
-    hx, hy = 12 + thrust + lean, 5 + by + dip
+    # A walking hen holds her head still in the air while the body catches up,
+    # then snaps it forward: against the body that is a slide back and a jump.
+    thrust = [2, 1, 0, -1][frame % 4] if moving and not running else (2 if running else 0)
+    cock = 1 if state == "idle" and frame in (3, 4) else 0
+    hx, hy = 12 + thrust + lean + cock, 5 + by + dip - cock + (bob if moving and not running else 0)
     neck = polygon([(11, 10 + by), (13, 9 + by), (hx + 3, hy + 3), (hx + 1, hy + 4)])
     c.paint(shade(neck, 1, 1))
     head = ellipse((hx, hy, hx + 4, hy + 4))
@@ -941,16 +966,16 @@ def llama(state, frame):
     stage = [0, 1, 2, 2, 2, 2, 1, 0][frame] if state == "graze" else 0
     chew = 1 if state == "graze" and frame in (3, 5) else 0
     if stage == 0:
-        neck = polygon([(18, 18 + by), (23, 17 + by), (26, 6 + by), (22, 5 + by)])
-        c.paint(shade(neck, 1, 1))
+        neck = polygon([(16, 17 + by), (24, 21 + by), (27, 7 + by), (22, 5 + by)])
+        c.paint(over(c, shade(neck, 1, 1)))
         _llama_head(c, 22, 2 + by, "up", chew, state == "idle" and frame in (3, 4))
     elif stage == 1:
-        neck = polygon([(18, 18 + by), (23, 17 + by), (29, 14 + by), (27, 10 + by)])
-        c.paint(shade(neck, 1, 1))
+        neck = polygon([(16, 17 + by), (24, 21 + by), (29, 14 + by), (27, 10 + by)])
+        c.paint(over(c, shade(neck, 1, 1)))
         _llama_head(c, 25, 10 + by, "out", chew, False)
     else:
-        neck = polygon([(18, 18 + by), (23, 17 + by), (28, 28 + by), (24, 29 + by)])
-        c.paint(shade(neck, 1, 1))
+        neck = polygon([(16, 17 + by), (24, 21 + by), (28, 28 + by), (24, 29 + by)])
+        c.paint(over(c, shade(neck, 1, 1)))
         _llama_head(c, 24, 26 + by, "down", chew, False)
     draw_leg("nh", hip_h, True, True)
     draw_leg("nf", hip_f, False, True)
@@ -996,8 +1021,8 @@ def _llama_rest(c, frame):
     c.paint(px)
     c.paint(flat(line((5, 24), (3, 20), 2), "d"))
     dip = [0, 0, 1, 1, 1, 1, 0, 0][frame]
-    neck = polygon([(18, 25), (23, 24), (26, 13 + dip), (22, 12 + dip)])
-    c.paint(shade(neck, 1, 1))
+    neck = polygon([(16, 24), (24, 27), (27, 14 + dip), (22, 12 + dip)])
+    c.paint(over(c, shade(neck, 1, 1)))
     _llama_head(c, 22, 9 + dip, "up", 0, frame in (3, 4))
     return c.finish()
 
@@ -1012,13 +1037,14 @@ def turkey(state, frame):
     running = state == "flee"
     ground = 22
     bob = round(0.5 * math.cos(4 * math.pi * t) + 0.5) if moving else 0
-    by = -bob
+    # Three rows of leg under the breast, as for the hen.
+    by = -bob - 3
     for key, ph, near in (("far", 0.5, False), ("near", 0.0, True)):
         dx, up = walk_foot(t + ph, 3.0 if running else 1.8, 3 if running else 2, 0.5 if running else 0.6) if moving else (0.0, 0.0)
         hx = 12 + (1 if near else -1)
         foot = (hx + dx, ground - up)
-        knee = ((hx + foot[0]) / 2 + 0.5, (16 + by + foot[1]) / 2)
-        pixels = flat(line((hx, 16 + by), knee, 2) | line(knee, foot, 2), "a" if near else "d")
+        knee = ((hx + foot[0]) / 2 + 0.5, (20 + by + foot[1]) / 2)
+        pixels = flat(line((hx, 20 + by), knee, 2) | line(knee, foot, 2), "a" if near else "d")
         fx, fy = round(foot[0]), round(foot[1])
         for k in (-1, 0, 1, 2, 3):
             pixels[(fx + k, fy)] = "a" if near else "d"
@@ -1027,7 +1053,7 @@ def turkey(state, frame):
     if running:
         tail = polygon([(8, 10 + by), (0, 12 + by), (0, 16 + by), (8, 16 + by)])
     else:
-        tail = polygon([(8, 12 + by), (2, 2 + by), (0, 8 + by), (1, 15 + by), (8, 17 + by)])
+        tail = polygon([(8, 12 + by), (2, 4 + by), (0, 8 + by), (1, 15 + by), (8, 17 + by)])
     tp = shade(tail, 1, 1, base="d", light="m", dark="o")
     for x, y in tail:
         if (x, y - 1) not in tail:
@@ -1044,9 +1070,9 @@ def turkey(state, frame):
     c.paint(shade(wing, 1, 1, base="m", light="l", dark="d"))
     # beard: the tuft of bristle on the breast
     c.paint(flat(rect((17, 17 + by, 18, 20 + by)), "o"))
-    dip = [0, 0, 2, 6, 9, 9, 4, 0][frame] if state == "forage" else 0
-    thrust = 1 if moving and frame % 4 < 2 else 0
-    hx, hy = 16 + thrust, 4 + by + dip
+    dip = [0, 0, 3, 8, 12, 12, 5, 0][frame] if state == "forage" else 0
+    thrust = [2, 1, 0, -1][frame % 4] if moving and not running else (2 if running else 0)
+    hx, hy = 16 + thrust, 4 + by + dip + (bob if moving and not running else 0)
     neck = polygon([(15, 13 + by), (18, 12 + by), (hx + 4, hy + 4), (hx + 1, hy + 5)])
     c.paint(shade(neck, 1, 1, base="b", light="b", dark="o"))
     head = ellipse((hx, hy, hx + 4, hy + 4))
@@ -1056,7 +1082,8 @@ def turkey(state, frame):
     c.dot(hx + 5, hy + 1, "b")
     c.dot(hx + 5, hy + 2, "a")
     c.dot(hx + 6, hy + 2, "a")
-    c.dot(hx + 3, hy + 5, "b")
+    # the wattle swings a beat behind the head
+    c.dot(hx + 3 - (1 if moving and frame % 4 == 0 else 0), hy + 5, "b")
     blink = state == "idle" and frame == 6
     c.dot(hx + 3, hy + 1, "o" if blink else "e")
     return c.finish()

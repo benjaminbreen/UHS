@@ -1631,7 +1631,8 @@ export function planSettlement(
       herders.add(owner);
     if (
       livelihood
-        ? (livelihood.workplace ?? workplaceFor(livelihood.activity)) === "field"
+        ? (livelihood.workplace ?? workplaceFor(livelihood.activity)) ===
+          "field"
         : role === "Farmer"
     )
       tillers.add(owner);
@@ -2167,11 +2168,20 @@ export function planSettlement(
           k.keeping?.place === place &&
           (pack.setting?.year ?? 0) >= (k.keeping.from ?? -Infinity),
       )
-      .map((k) => [k, random(seed, site.id, "keep", place, k.id)] as const)
+      .map(
+        (k) =>
+          [
+            k,
+            random(seed, site.id, "keep", place, k.id) /
+              (k.keeping?.share ?? 1),
+          ] as const,
+      )
       .sort((a, b) => a[1] - b[1])
       .map(([k]) => k);
   const penStock = keptFor("pen");
-  const yardStock = keptFor("yard");
+  // A dog is not an alternative to hens: it has a pass of its own below.
+  const yardStock = keptFor("yard").filter((k) => k.id !== "dog");
+  const dog = kept.find((k) => k.id === "dog");
   const paddockStock = keptFor("paddock");
   /** Pen and paddock cells drawn by the field raster, so a pen wears the same
    * wall, rails or wire as the fields of its day. Merged after the farmland so
@@ -2546,6 +2556,51 @@ export function planSettlement(
         owner,
       } satisfies FaunaGroup);
       flocks++;
+    }
+  }
+  // Most places have a dog or two about, whatever else they keep: lying by a
+  // door, or a pair of them together.
+  if (dog) {
+    let dogs = 0;
+    for (const owner of owners) {
+      if (dogs >= 2) break;
+      if (owner === "player" || random(seed, owner, "dog") > 0.35) continue;
+      const yard = plan.slots.get(owner)?.yard.at(-1);
+      if (!yard) continue;
+      const members: FaunaMember[] = [];
+      const most = random(seed, owner, "dog-pair") < 0.3 ? 2 : 1;
+      for (const [dx, dy] of [
+        [0, 0],
+        [1, 0],
+        [0, 1],
+        [-1, 0],
+      ]) {
+        const x = yard.x + dx,
+          y = yard.y + dy;
+        if (
+          members.length >= most ||
+          plan.solid.has(cellKey(x, y)) ||
+          plan.traffic.has(cellKey(x, y)) ||
+          plan.fauna?.some((g) => g.members.some((m) => m.x === x && m.y === y))
+        )
+          continue;
+        members.push({ x, y, direction: dx < 0 ? 3 : 1 });
+      }
+      if (!members.length) continue;
+      (plan.fauna ??= []).push({
+        id: `${site.id}-dog-${owner}`,
+        speciesId: dog.id,
+        members,
+        pos: pos(members[0]),
+        home: pos(yard),
+        homeRadius: 6,
+        state: "idle",
+        nextDecisionAt: 0,
+        stride: 0,
+        since: 0,
+        owner,
+      } satisfies FaunaGroup);
+      dogs++;
     }
   }
   if (pack.setting?.characterRevision) {
