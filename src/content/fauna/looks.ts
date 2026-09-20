@@ -2,7 +2,7 @@ import { random } from "../../core/random";
 import type { CharacterScope } from "../characters/context-types";
 import { matchesCharacterScope } from "../characters/resolve";
 import type { WorldSetting } from "../geography/types";
-import studies from "../../../public/fauna-b/studies.json" with { type: "json" };
+import studies from "../../../public/fauna-c/studies.json" with { type: "json" };
 
 type Looks = {
   /** Role to colour in the coat the atlas is drawn in. */

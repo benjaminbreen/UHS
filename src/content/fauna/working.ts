@@ -1,5 +1,5 @@
 import type { FaunaProfile } from "./types";
-import { study } from "./types";
+import { directionalStudy } from "./types";
 
 /** Cattle, dog, donkey and camel: the animals a settlement works with rather
  * than only eats. Each is drawn in several forms and coats; see looks.ts. */
@@ -47,7 +47,7 @@ export const workingFauna: readonly FaunaProfile[] = [
     urgentDecisionSeconds: 7,
     prey: "ungulate",
     diet: ["grass", "plant"],
-    ...study("cattle"),
+    ...directionalStudy("cattle"),
   },
   {
     id: "dog",
@@ -80,7 +80,7 @@ export const workingFauna: readonly FaunaProfile[] = [
     calmDecisionSeconds: 30,
     urgentDecisionSeconds: 4,
     diet: ["small-animal", "plant"],
-    ...study("dog"),
+    ...directionalStudy("dog"),
   },
   {
     id: "donkey",
@@ -120,7 +120,7 @@ export const workingFauna: readonly FaunaProfile[] = [
     urgentDecisionSeconds: 6,
     prey: "ungulate",
     diet: ["grass", "plant"],
-    ...study("donkey"),
+    ...directionalStudy("donkey"),
   },
   {
     id: "camel",
@@ -159,6 +159,6 @@ export const workingFauna: readonly FaunaProfile[] = [
     urgentDecisionSeconds: 7,
     prey: "ungulate",
     diet: ["plant", "grass"],
-    ...study("camel"),
+    ...directionalStudy("camel"),
   },
 ];

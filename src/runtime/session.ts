@@ -346,6 +346,14 @@ export class Runtime {
   throwEffect?: ThrowEffect;
   /** The last shove, or the last one that came to nothing. */
   shoveEffect?: ShoveEffect;
+  /** An animal the player has just walked into. */
+  jostleEffect?: {
+    serial: number;
+    group: string;
+    n: number;
+    yielded: boolean;
+    small: boolean;
+  };
   /** The plant a chop is about to land on, read before the engine takes it. */
   private toolTargetPlant(command: PlayerCommand) {
     if (command.type !== "interact" || command.action !== "chop") return;
@@ -443,6 +451,9 @@ export class Runtime {
       const shove = this.engine.lastShove;
       if (shove)
         this.shoveEffect = { serial: ++this.characterSerial, ...shove };
+      const jostle = this.engine.lastJostle;
+      if (jostle)
+        this.jostleEffect = { serial: ++this.characterSerial, ...jostle };
       const leap = this.engine.lastLeap;
       if (leap)
         this.characterAction = {
@@ -1283,8 +1294,7 @@ export class Runtime {
    * that sends the game running before the wide one lands. */
   pressSwing(): Verb | undefined {
     const verb = this.verbs().primary;
-    if (verb?.kind !== "strike" || verb.command)
-      return this.runVerb("primary");
+    if (verb?.kind !== "strike" || verb.command) return this.runVerb("primary");
     const now = this.engine.swingFinds();
     if (now) this.runVerb("primary");
     this.beginCharge();

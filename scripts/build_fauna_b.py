@@ -3,24 +3,19 @@ from pathlib import Path
 import json
 from PIL import Image, ImageDraw
 from art.fauna_b import fauna_b, PALETTES, STATES, NATIVE_SIZES
-from art import fauna_d
 from art.atlas import pack_atlas
 
 root = Path(__file__).resolve().parent.parent
 out = root / "public/fauna-b"
 out.mkdir(exist_ok=True)
-sprites = {**fauna_b(), **fauna_d.fauna_d()}
-PALETTES = {**PALETTES, **fauna_d.PALETTES}
-STATES = {**STATES, **fauna_d.STATES}
-NATIVE_SIZES = {**NATIVE_SIZES, **fauna_d.NATIVE_SIZES}
-looks = fauna_d.looks()
+sprites = fauna_b()
 for name, im in sprites.items():
     assert set(im.getchannel("A").getdata()) <= {0, 255}, name
     assert len(im.getcolors(im.width * im.height)) <= 24, name
     bbox = im.getbbox()
     assert bbox and bbox[0] >= 0 and bbox[1] >= 0 and bbox[2] <= im.width and bbox[3] <= im.height, name
 pack_atlas(sprites, out, "atlas", 512)
-(out / "studies.json").write_text(json.dumps({species: {"palette": list(PALETTES[species].values()), "states": states, "size": NATIVE_SIZES[species], **({"looks": looks[species]} if species in looks else {})} for species, states in STATES.items()}, indent=2) + "\n")
+(out / "studies.json").write_text(json.dumps({species: {"palette": list(PALETTES[species].values()), "states": states, "size": NATIVE_SIZES[species]} for species, states in STATES.items()}, indent=2) + "\n")
 
 artifacts = root / "artifacts/fauna-lab"
 artifacts.mkdir(exist_ok=True, parents=True)

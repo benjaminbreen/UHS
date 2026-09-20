@@ -20,6 +20,8 @@ type Body = {
   heldUntil: number;
   /** Per-animal amble, px/s, so a herd does not keep step. */
   amble: number;
+  /** A startled hop: seconds in, seconds long, px high. */
+  leap?: { t: number; span: number; height: number };
 };
 
 export type FaunaPose = {
@@ -31,6 +33,9 @@ export type FaunaPose = {
   moving: boolean;
   travelled: number;
   heading?: FaunaFacing;
+  /** Squash and stretch through a startled hop; 1 otherwise. */
+  sx: number;
+  sy: number;
 };
 
 const SNAP = 16 * 12;
@@ -47,7 +52,16 @@ const HOP: Record<Gait, readonly [number, number, number] | undefined> = {
 export class FaunaMotion {
   private bodies = new Map<string, Body>();
 
-  aim(id: string, tx: number, ty: number, urgent: boolean, snap: boolean) {
+  /** `delay` is how long an urgent animal takes to get going: the ones
+   * nearest the fright go first and the rest follow. */
+  aim(
+    id: string,
+    tx: number,
+    ty: number,
+    urgent: boolean,
+    snap: boolean,
+    delay = 0,
+  ) {
     const b = this.bodies.get(id);
     if (!b || snap || Math.hypot(b.x - tx, b.y - ty) > SNAP) {
       this.bodies.set(id, {
@@ -75,7 +89,19 @@ export class FaunaMotion {
       if (urgent) b.wait = Math.min(b.wait, 0.12);
       return;
     }
-    b.wait = urgent ? Math.random() * 0.12 : 0.15 + Math.random() * 0.9;
+    b.wait = urgent ? delay + Math.random() * 0.1 : 0.15 + Math.random() * 0.9;
+  }
+
+  /** Jump on the spot, or into the step it is about to take. */
+  leap(id: string, height: number, span: number) {
+    const b = this.bodies.get(id);
+    if (b && !b.leap) b.leap = { t: 0, span, height };
+  }
+
+  /** Set off now rather than when it gets round to it. */
+  hurry(id: string) {
+    const b = this.bodies.get(id);
+    if (b) b.wait = 0;
   }
 
   /** Something else is moving the sprite: a blow's knockback. */
@@ -163,7 +189,22 @@ export class FaunaMotion {
       b.y += (dy / left) * move;
       b.travelled += move;
     }
+    let sx = 1,
+      sy = 1;
+    if (b.leap) {
+      b.leap.t += dt;
+      const u = b.leap.t / b.leap.span;
+      if (u >= 1) b.leap = undefined;
+      else {
+        hop += Math.sin(Math.PI * u) * b.leap.height;
+        // gathers, stretches through the air, and sits into the landing
+        [sx, sy] =
+          u < 0.15 ? [1.12, 0.86] : u < 0.8 ? [0.94, 1.08] : [1.08, 0.92];
+      }
+    }
     return {
+      sx,
+      sy,
       x: b.x,
       y: b.y,
       alt: b.alt,

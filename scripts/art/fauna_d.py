@@ -1,4 +1,4 @@
-"""Fauna D: cattle, dog, donkey and camel, built into set B's atlas.
+"""Fauna D: cattle, dog, donkey and camel, built into set C's atlas.
 
 Same style as set B -- masses at native size, light from above, one outline
 round the silhouette, binary alpha -- on a better skeleton: legs are two bones
@@ -15,14 +15,30 @@ import math
 from art.fauna_b import (
     Canvas as _BCanvas,
     _mask_from,
-    ellipse,
-    polygon,
     rect,
     line,
     shade,
     flat,
     walk_foot,
 )
+
+# Set B's masks start at the canvas corner, which crops an ear tip or a horn
+# drawn up into the headroom. These have a margin all round.
+_PAD = 16
+
+
+def _padded(draw_fn):
+    return {(x - _PAD, y - _PAD) for x, y in _mask_from(draw_fn, 112, 112)}
+
+
+def ellipse(box):
+    x0, y0, x1, y1 = (v + _PAD for v in box)
+    return _padded(lambda d: d.ellipse((x0, y0, x1, y1), fill=255))
+
+
+def polygon(points):
+    return _padded(lambda d: d.polygon([(x + _PAD, y + _PAD) for x, y in points], fill=255))
+
 
 # o outline · d m l h body dark to highlight · r p q the same three for pied
 # markings and lower legs · b pale muzzle and belly · e eye · a horn · k hoof
@@ -137,7 +153,7 @@ STATES = {
 # Drawing coordinates are measured with the ground line at GROUND; HEADROOM is
 # empty rows above for horns, ears and the top of a stride.
 GROUND = {"cattle": 38, "dog": 20, "donkey": 32, "camel": 46}
-HEADROOM = {"cattle": 5, "dog": 3, "donkey": 3, "camel": 3}
+HEADROOM = {"cattle": 5, "dog": 4, "donkey": 7, "camel": 3}
 WIDTH = {"cattle": 50, "dog": 32, "donkey": 40, "camel": 54}
 # Against the 29px human: a cow's withers ~22px, a donkey's 19, a village dog's
 # 10, a camel's hump 36.
@@ -161,13 +177,13 @@ def limb(a, b, w):
     """A bone of even thickness whichever way it points."""
     if w <= 1:
         return line(a, b, 1)
-    (ax, ay), (bx, by) = a, b
+    (ax, ay), (bx, by) = ((v + _PAD for v in p) for p in (a, b))
     r = (w - 1) / 2
-    return _mask_from(lambda d: (
+    return _padded(lambda d: (
         d.line([(ax, ay), (bx, by)], fill=255, width=w),
         d.ellipse((ax - r, ay - r, ax + r, ay + r), fill=255),
         d.ellipse((bx - r, by - r, bx + r, by + r), fill=255),
-    ), 96, 96)
+    ))
 
 
 def ik(hip, foot, l1, l2, back):
@@ -806,19 +822,471 @@ def _camel_rest(c, two, frame):
     return c.finish()
 
 
+# ------------------------------------------------------- head-on and tail-on
+# A quadruped seen from the front is a different silhouette, not a rotation:
+# a chest between two forelegs with the head hung in front of it; from behind,
+# a rump between two hind legs with whatever stands taller showing over it.
+def _by(s):
+    return round((s.f + s.h) / 2)
+
+
+def face_legs(c, s, xs, top, ground, w, near, keys, pied=True, pad=0):
+    """A pair of legs seen end-on: a step reads as the hoof coming up and the
+    leg swinging a little in towards the midline."""
+    mid = sum(xs) / 2
+    for x, key in zip(xs, keys):
+        dx, up = s.foot(key)
+        up = round(up * 0.8)
+        x0 = round(x + (mid - x) * min(1, up / 3) * 0.25) - w // 2
+        foot = ground - up
+        knee = (top + foot) // 2
+        px = {}
+        for y in range(top, foot):
+            for k in range(w):
+                low = y >= knee
+                if near:
+                    role = ("q" if low and pied else "l") if k == 0 else ("p" if low and pied else "m")
+                else:
+                    role = "r" if low and pied else "d"
+                px[(x0 + k, y)] = role
+        for k in range(-(pad // 2), w + (pad + 1) // 2):
+            px[(x0 + k, foot)] = "k"
+        c.paint(px)
+
+
+def face_body(c, box, cx, marks=()):
+    body = ellipse(box)
+    px = lit(body, 1, 2, (box[0] + 3, box[2] - 3))
+    for x, y in body:  # a barrel is round: the middle keeps the light
+        if abs(x - cx) <= 1 and box[1] + 3 <= y <= box[3] - 4:
+            px[(x, y)] = "l"
+    c.paint(px)
+    if marks:
+        mark(c, body, blobs(marks))
+    return body
+
+
+def hanging_tail(c, root, length, sway, tuft=3):
+    x, y = root
+    tip = (x + sway, y + length)
+    c.paint(flat(line(root, tip, 2), "d"))
+    c.paint(flat(ellipse((tip[0] - 1, tip[1], tip[0] + 2, tip[1] + tuft)), "t"))
+
+
+def _cattle_face(form, state, frame, south):
+    c = Canvas("cattle")
+    s = Stride(state, frame, walk=(2.8, 2.6, 0.64), run=(4.6, 4.2, 0.42), bounce=1.2)
+    g, cx = GROUND["cattle"], 25
+    rest = state == "rest"
+    by = (g - 30) if rest else _by(s)
+    zebu, long = form == "zebu", form == "longhorn"
+    marks = [(13, 10 + by, 21, 19 + by), (27, 16 + by, 37, 27 + by)]
+    graze = [0, 6, 13, 13, 13, 13, 6, 0][frame] if state == "graze" else 0
+    chew = (frame in (1, 3, 5)) if state in {"idle", "rest"} else (state == "graze" and frame in (3, 5))
+    jaw = (1 if frame in (1, 5) else -1) if chew else 0
+
+    def horns(hy, back):
+        role = "a"
+        for sgn in (-1, 1):
+            x = cx + sgn * 5
+            if long:
+                m = limb((x, hy), (x + sgn * 6, hy - 3), 2) | line((x + sgn * 6, hy - 3), (x + sgn * 8, hy - 9), 1)
+            elif zebu:
+                m = limb((x - sgn, hy), (x, hy - 4), 2) | line((x, hy - 4), (x - sgn, hy - 7), 1)
+            else:
+                m = limb((x, hy), (x + sgn * 4, hy - 1), 2) | line((x + sgn * 4, hy - 2), (x + sgn * 5, hy - 4), 1)
+            c.paint(flat(m, role))
+
+    def ears(hy):
+        flick = 1 if s.flick else 0
+        for sgn in (-1, 1):
+            x = cx + sgn * 6
+            if zebu:
+                e = polygon([(x, hy + 3), (x + sgn * 4, hy + 5 - flick), (x + sgn * 4, hy + 10 - flick), (x + sgn, hy + 6)])
+            else:
+                e = polygon([(x, hy + 3), (x + sgn * 5, hy + 2 + flick), (x + sgn * 4, hy + 5 + flick)])
+            c.paint(flat(e, "d"))
+            c.dot(x + sgn * 2, hy + 4 + (1 if zebu else 0), "u")
+
+    if south:
+        if not rest:
+            face_legs(c, s, (20, 30), 25 + by, g, 3, False, ("nh", "fh"))
+        if zebu:
+            c.paint(lit(ellipse((20, 4 + by, 30, 14 + by)), 1, 1, (22, 28)))
+        body = face_body(c, (13, 11 + by, 37, 29 + by), cx, marks)
+        brisket = ellipse((21, 24 + by, 29, 32 + by + (3 if zebu else 0)))
+        if not rest:
+            lay(c, brisket, 0, 2)
+            face_legs(c, s, (18, 32), 24 + by, g, 3, True, ("ff", "nf"))
+        else:  # knees folded out in front
+            for x in (15, 30):
+                c.paint(shade(rect((x, g - 3, x + 5, g - 1)), 1, 1))
+        hy = 9 + by + graze + s.nod + (1 if rest else 0)
+        horns(hy, False)
+        ears(hy)
+        skull = polygon([(cx - 5, hy), (cx + 5, hy), (cx + 6, hy + 7), (cx + 3, hy + 14), (cx - 3, hy + 14), (cx - 6, hy + 7)])
+        c.paint(shade(skull, 1, 1))
+        for y in range(hy + 1, hy + 9):
+            if c.px.get((cx, y)) in ("m", "l"):
+                c.px[(cx, y)] = "p"
+        muzzle = ellipse((cx - 4 + jaw, hy + 9, cx + 4 + jaw, hy + 15 + (1 if chew else 0)))
+        c.paint(flat(muzzle, "b"))
+        c.dot(cx - 2 + jaw, hy + 12, "k")
+        c.dot(cx + 2 + jaw, hy + 12, "k")
+        for sgn in (-1, 1):
+            c.dot(cx + sgn * 4, hy + 5, "d" if s.blink else "e")
+            c.dot(cx + sgn * 4, hy + 4, "l")
+    else:
+        hy = 8 + by + (graze // 2)
+        if not graze:
+            horns(hy + 1, True)
+            ears(hy - 1)
+            c.paint(shade(ellipse((cx - 5, hy - 1, cx + 5, hy + 8)), 1, 1))
+        if not rest:
+            face_legs(c, s, (20, 30), 25 + by, g, 3, False, ("ff", "nf"))
+        if zebu:
+            c.paint(lit(ellipse((20, 4 + by, 30, 14 + by)), 1, 1, (22, 28)))
+        body = ellipse((13, 10 + by, 37, 29 + by)) | rect((15, 11 + by, 35, 20 + by))
+        px = lit(body, 1, 2, (16, 34))
+        c.paint(px)
+        mark(c, body, blobs(marks))
+        for sgn in (-1, 1):  # hook bones
+            c.dot(cx + sgn * 8, 12 + by, "h")
+        if not rest:
+            c.paint(flat(rect((22, 28 + by, 28, 30 + by)), "u"))
+            face_legs(c, s, (18, 32), 23 + by, g, 4, True, ("nh", "fh"))
+        if s.running:
+            sway, length = round(2 * math.sin(2 * math.pi * s.t)), 6
+        elif state == "idle":
+            sway, length = [0, 0, 2, 5, 7, 4, 1, 0][frame], [16, 16, 15, 12, 9, 13, 16, 16][frame]
+        else:
+            sway, length = s.sway(2), 16
+        hanging_tail(c, (cx, 12 + by), min(length, g - 16 - by), sway)
+    return c.finish()
+
+
+def _dog_face(form, state, frame, south):
+    c = Canvas("dog")
+    hound = form == "hound"
+    g, cx = GROUND["dog"], 16
+    s = Stride(state, frame, walk=(2.4, 2.0, 0.5), run=(4.4, 3.2, 0.36), phases=TROT, bounce=1.6)
+    by = _by(s)
+    beat = frame % 2
+    pant = state in {"idle", "wander"}
+    marks = [(9, 6, 15, 13)]
+
+    def head(hy, low=False, asleep=False):
+        if hound:
+            for sgn in (-1, 1):
+                x = cx + sgn * 5
+                lift = 1 if s.moving and frame % 4 in (1, 2) else 0
+                out = 2 if south else 1
+                c.paint(flat(polygon([(x, hy + 1), (x + sgn * out, hy + 2), (x + sgn * (out + lift), hy + 8 - lift), (x, hy + 6)]), "d"))
+        else:
+            for sgn in (-1, 1):
+                x = cx + sgn * 4
+                tipx = x + sgn * (1 + (1 if s.flick and sgn > 0 else 0) + (2 if s.running else 0))
+                tipy = hy - 4 + (3 if s.running else 0)
+                c.paint(flat(polygon([(x - sgn * 2, hy + 1), (tipx, tipy), (x + sgn, hy + 3)]), "m"))
+                c.dot(x, hy, "u")
+        skull = ellipse((cx - 5, hy, cx + 5, hy + 8))
+        c.paint(shade(skull, 1, 1))
+        if south:
+            muzzle = ellipse((cx - 3, hy + 5, cx + 3, hy + 10))
+            c.paint(flat(muzzle, "b"))
+            c.paint(flat(rect((cx - 1, hy + 5, cx, hy + 6)), "k"))
+            for sgn in (-1, 1):
+                c.dot(cx + sgn * 3 - (1 if sgn > 0 else 0), hy + 3, "d" if (s.blink or asleep) else "e")
+            if pant and not low and not asleep:
+                c.dot(cx - 1, hy + 9, "k")
+                c.dot(cx, hy + 9, "k")
+                c.paint(flat(rect((cx - 1, hy + 10, cx, hy + 10 + beat)), "u"))
+
+    def tail_up(root_y):
+        if hound:
+            tip = (cx + (2 if beat else -2), root_y - 5)
+            m = limb((cx, root_y), tip, 2)
+        else:
+            m = limb((cx, root_y), (cx + 1, root_y - 4), 2) | limb((cx + 1, root_y - 4), (cx + 3 + beat, root_y - 6), 2)
+            tip = (cx + 3 + beat, root_y - 6)
+        c.paint(shade(m, 1, 1))
+        c.dot(tip[0], tip[1], "t")
+
+    if state == "idle":  # sitting
+        sweep = limb((cx + 5, g - 1), (cx + 10, g - 1 - (beat if frame < 6 else 0)), 2)
+        if south:
+            c.paint(shade(sweep, 1, 1))
+            haunch = ellipse((8, g - 9, 24, g))
+            chest = ellipse((10, g - 15, 22, g - 2 + s.breath))
+            c.paint(lit(haunch | chest, 1, 2, (11, 21)))
+            mark(c, haunch | chest, blobs([(9, g - 14, 15, g - 6)]))
+            c.paint(flat(ellipse((13, g - 12, 19, g - 4)), "b"))
+            for x in (13, 18):
+                c.paint(flat(rect((x, g - 7, x + 1, g - 1)), "p"))
+                c.paint(flat(rect((x, g, x + 1, g)), "k"))
+            for x in (8, 22):
+                c.paint(flat(rect((x, g - 1, x + 2, g)), "p"))
+            head(g - 22 - (1 if frame in (4, 5) else 0))
+        else:
+            head(g - 21 - (1 if frame in (4, 5) else 0))
+            body = ellipse((8, g - 10, 24, g)) | ellipse((10, g - 16, 22, g - 3))
+            c.paint(lit(body, 1, 2, (11, 21)))
+            mark(c, body, blobs([(9, g - 14, 15, g - 6)]))
+            c.paint(shade(sweep, 1, 1))
+            c.dot(cx + 10, g - 1 - (beat if frame < 6 else 0), "t")
+        return c.finish()
+    if state == "rest":
+        thump = 1 if frame in (3, 4) else 0
+        body = ellipse((7, g - 9 - s.breath, 25, g))
+        if south:
+            c.paint(lit(body, 1, 2, (10, 22)))
+            mark(c, body, blobs([(9, g - 10, 15, g - 3)]))
+            for x in (8, 21):
+                c.paint(flat(rect((x, g - 1, x + 3, g)), "p"))
+            s.flick = frame in (3, 4)
+            head(g - 10, low=True, asleep=frame not in (3, 4))
+        else:
+            head(g - 13, low=True)
+            c.paint(lit(body, 1, 2, (10, 22)))
+            mark(c, body, blobs([(9, g - 10, 15, g - 3)]))
+            c.paint(shade(limb((cx + 6, g - 2), (cx + 10, g - 1 - thump), 2), 1, 1))
+            c.dot(cx + 10, g - 1 - thump, "t")
+        return c.finish()
+
+    sniff = state == "forage"
+    if sniff:
+        s.moving, s.amp, s.lift, s.stance, s.phases = True, 1.2, 1.4, 0.7, WALK
+    hind, fore = ("nh", "fh"), ("ff", "nf")
+    if s.running:  # both forefeet, then both hind: a bound, seen end-on
+        hind, fore = ("nh", "nh"), ("nf", "nf")
+    if south:
+        face_legs(c, s, (13, 19), 13 + by, g, 2, False, hind, pad=1)
+        if not hound:
+            tail_up(8 + by)
+        body = face_body(c, (10, 6 + by, 22, 16 + by), cx, marks)
+        c.paint(flat(ellipse((13, 9 + by, 19, 16 + by)), "b"))
+        face_legs(c, s, (12, 19), 13 + by, g, 2, True, fore, pad=1)
+        if sniff:
+            head(9 + [0, 1, 0, 1, 0, 1, 0, 1][frame], low=True)
+        else:
+            head(-1 + by + s.nod + (2 if s.running else 0))
+    else:
+        head(-1 + by + (2 if s.running else 0) + (6 if sniff else 0), low=sniff)
+        face_legs(c, s, (13, 19), 13 + by, g, 2, False, fore, pad=1)
+        body = face_body(c, (10, 6 + by, 22, 16 + by), cx, marks)
+        face_legs(c, s, (12, 19), 12 + by, g, 2, True, hind, pad=1)
+        if s.running and hound:
+            hanging_tail(c, (cx, 9 + by), 5, 2 if beat else -2, 0)
+        elif hound and not sniff and not s.moving:
+            hanging_tail(c, (cx, 9 + by), 6, 1 if beat else -1, 0)
+        else:
+            tail_up(9 + by)
+    return c.finish()
+
+
+def _donkey_face(form, state, frame, south):
+    c = Canvas("donkey")
+    s = Stride(state, frame, walk=(2.6, 2.4, 0.62), run=(4.4, 3.8, 0.42), bounce=1.4)
+    g, cx = GROUND["donkey"], 20
+    rest = state == "rest"
+    by = (g - 26) if rest else _by(s)
+    graze = [0, 5, 12, 12, 12, 12, 5, 0][frame] if state == "graze" else 0
+    chew = state == "graze" and frame in (3, 5)
+
+    def ears(hy, back=False):
+        f = frame
+        for sgn, swivel in ((-1, state == "idle" and f in (5, 6)), (1, state in {"idle", "graze"} and f in (2, 3))):
+            x = cx + sgn * 3
+            if s.running:
+                tip = (x + sgn * 5, hy - 2)
+            elif swivel:
+                tip = (x + sgn * 5, hy - 5)
+            else:
+                tip = (x + sgn * 2, hy - 9)
+            ear = polygon([(x - sgn, hy + 1), tip, (x + sgn * 2, hy + 2)])
+            c.paint(flat(ear, "d" if back else "m"))
+            if not back:
+                for ex, ey in line((x, hy), (tip[0], tip[1] + 2), 1):
+                    if (ex, ey) in ear:
+                        c.dot(ex, ey, "u")
+            c.dot(tip[0], tip[1], "t")
+
+    if south:
+        if not rest:
+            face_legs(c, s, (16, 24), 21 + by, g, 2, False, ("nh", "fh"), pied=False)
+        body = face_body(c, (11, 12 + by, 29, 25 + by), cx)
+        for x, y in body:
+            if (x, y + 1) not in body and 14 <= x <= 26:
+                c.px[(x, y)] = "b"
+        if not rest:
+            face_legs(c, s, (15, 25), 20 + by, g, 3, True, ("ff", "nf"), pied=False)
+        else:
+            for x in (12, 24):
+                c.paint(shade(rect((x, g - 3, x + 4, g - 1)), 1, 1))
+        hy = 3 + by + graze + s.nod + (1 if s.running else 0)
+        neck = polygon([(cx - 3, hy + 4), (cx + 3, hy + 4), (cx + 6, 15 + by), (cx - 6, 15 + by)]) if not graze else set()
+        if neck:
+            npx = shade(neck, 1, 0)
+            for x, y in neck:
+                if (x - 1, y) not in neck or (x + 1, y) not in neck:
+                    npx[(x, y)] = "d"
+            c.paint(npx)
+        ears(hy)
+        c.paint(flat(rect((cx - 1, hy - 1, cx, hy + 1)), "t"))
+        head_ = ellipse((cx - 5, hy, cx + 5, hy + 10))
+        c.paint(shade(head_, 1, 1))
+        muzzle = ellipse((cx - 4, hy + 8, cx + 4, hy + 15 + (1 if chew else 0)))
+        c.paint(flat(muzzle, "b"))
+        c.dot(cx - 2, hy + 12, "k")
+        c.dot(cx + 2, hy + 12, "k")
+        for sgn in (-1, 1):
+            ex = cx + sgn * 4 - (1 if sgn > 0 else 0)
+            c.dot(ex, hy + 4, "b")
+            c.dot(ex, hy + 5, "d" if s.blink else "e")
+    else:
+        hy = 9 + by
+        if not graze:
+            c.paint(shade(ellipse((cx - 4, hy - 3, cx + 4, hy + 6)), 1, 1))
+            ears(hy - 2, back=True)
+            c.paint(flat(rect((cx - 1, hy - 4, cx, hy)), "t"))
+        if not rest:
+            face_legs(c, s, (16, 24), 21 + by, g, 2, False, ("ff", "nf"), pied=False)
+        body = face_body(c, (11, 11 + by, 29, 25 + by), cx)
+        for y in range(11 + by, 17 + by):  # the stripe down the spine
+            c.dot(cx, y, "t")
+            c.dot(cx - 1, y, "t")
+        if not rest:
+            face_legs(c, s, (15, 25), 20 + by, g, 3, True, ("nh", "fh"), pied=False)
+        if s.running:
+            sway, length = round(2 * math.sin(2 * math.pi * s.t)), 5
+        elif state == "idle":
+            sway, length = [0, 0, 1, 3, 4, 2, 0, 0][frame], [11, 11, 11, 9, 8, 10, 11, 11][frame]
+        else:
+            sway, length = s.sway(2), 11
+        hanging_tail(c, (cx, 14 + by), min(length, g - 18 - by), sway)
+    return c.finish()
+
+
+def _camel_face(form, state, frame, south):
+    c = Canvas("camel")
+    two = form == "bactrian"
+    s = Stride(state, frame, walk=(3.6, 3.0, 0.62), run=(5.6, 4.0, 0.46), phases=PACE,
+               run_phases={"fh": 0.0, "ff": 0.1, "nh": 0.5, "nf": 0.6}, bounce=1.2)
+    g, cx = GROUND["camel"], 27
+    rest = state == "rest"
+    by = (g - 35) if rest else _by(s)
+    # a pacing camel rolls from side to side, and you see it best end-on
+    roll = round(math.sin(2 * math.pi * s.t)) if s.moving else 0
+    graze = [0, 10, 26, 26, 26, 26, 10, 0][frame] if state == "graze" else 0
+    chew = state in {"idle", "graze", "rest"} and frame in (1, 2, 5, 6)
+    jaw = (1 if frame in (1, 2) else -1) if chew else 0
+
+    def humps():
+        if two:
+            back = ellipse((21 + roll, 5 + by, 33 + roll, 20 + by))
+            c.paint(lit(back, 1, 1))
+            for x, y in back:
+                if (x, y - 1) not in back or (x, y - 2) not in back:
+                    c.dot(x, y, "t")
+        front = ellipse((20 + roll, 8 + by, 34 + roll, 24 + by))
+        c.paint(lit(front, 1, 1, (23, 31)))
+        if two:
+            for x, y in front:
+                if (x, y - 1) not in front or (x, y - 2) not in front:
+                    c.dot(x, y, "t")
+
+    if south:
+        if not rest:
+            face_legs(c, s, (23, 31), 30 + by, g, 2, False, ("nh", "fh"), pied=False, pad=1)
+        humps()
+        face_body(c, (17 + roll, 18 + by, 37 + roll, 34 + by), cx + roll)
+        if not rest:
+            face_legs(c, s, (21, 33), 30 + by, g, 3, True, ("ff", "nf"), pied=False, pad=1)
+            c.paint(flat(rect((cx - 3, 33 + by, cx + 3, 34 + by)), "d"))
+        else:
+            for x in (16, 32):
+                c.paint(shade(rect((x, g - 3, x + 6, g - 1)), 1, 1))
+        bob = round(math.sin(2 * math.pi * (2 * s.t + 0.2))) if s.moving else 0
+        hy = 3 + by + graze + bob + (2 if rest else 0)
+        neck = limb((cx + roll, 29 + by), (cx + roll, hy + 8), 5)
+        npx = shade(neck, 0, 0)
+        for x, y in neck:
+            if (x - 1, y) not in neck or (x + 1, y) not in neck:
+                npx[(x, y)] = "d"
+        c.paint(npx)
+        if two:
+            for y in range(max(hy + 12, 18 + by), 30 + by):
+                c.dot(cx + roll, y, "t")
+        hx = cx + roll
+        for sgn in (-1, 1):
+            flick = 1 if s.flick and sgn > 0 else 0
+            c.paint(flat(polygon([(hx + sgn * 3, hy + 2), (hx + sgn * (6 + flick), hy + 1 - flick), (hx + sgn * 5, hy + 4)]), "d"))
+        skull = ellipse((hx - 4, hy, hx + 4, hy + 8))
+        c.paint(shade(skull, 1, 1))
+        muzzle = ellipse((hx - 3 + jaw, hy + 6, hx + 3 + jaw, hy + 12))
+        c.paint(shade(muzzle, 0, 1))
+        c.paint(flat(rect((hx + jaw, hy + 9, hx + jaw, hy + 11)), "k"))
+        c.dot(hx - 2, hy + 8, "k")
+        c.dot(hx + 2, hy + 8, "k")
+        for sgn in (-1, 1):
+            c.dot(hx + sgn * 3, hy + 3, "h")
+            c.dot(hx + sgn * 3, hy + 4, "d" if s.blink else "e")
+    else:
+        if not graze:
+            hy = 2 + by + (2 if rest else 0)
+            hx = cx + roll
+            for sgn in (-1, 1):
+                c.paint(flat(polygon([(hx + sgn * 2, hy + 2), (hx + sgn * 5, hy + 1), (hx + sgn * 4, hy + 4)]), "d"))
+            c.paint(shade(ellipse((hx - 3, hy, hx + 3, hy + 7)), 1, 1))
+            c.paint(shade(limb((hx, hy + 6), (hx, 14 + by), 4), 0, 0))
+        if not rest:
+            face_legs(c, s, (23, 31), 30 + by, g, 2, False, ("ff", "nf"), pied=False, pad=1)
+        humps()
+        face_body(c, (18 + roll, 18 + by, 36 + roll, 34 + by), cx + roll)
+        if not rest:
+            face_legs(c, s, (21, 33), 29 + by, g, 3, True, ("nh", "fh"), pied=False, pad=1)
+        else:
+            for x in (16, 32):
+                c.paint(shade(rect((x, g - 3, x + 6, g - 1)), 1, 1))
+        sway = s.sway(2) if s.moving else (2 if state == "idle" and frame in (3, 4) else 0)
+        hanging_tail(c, (cx + roll, 21 + by), min(9, g - 25 - by), sway, 2)
+    return c.finish()
+
+
+FACE = {"cattle": _cattle_face, "dog": _dog_face, "donkey": _donkey_face, "camel": _camel_face}
+DIRECTIONS = ("south", "east", "north", "west")
+
+
+def _mirror(im):
+    from PIL import Image
+    out = im.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
+    out.info["anchor"] = im.info.get("anchor")
+    return out
+
+
+def draw(species, form, state, facing, frame):
+    if facing == "east":
+        return DRAW[species](form, state, frame)
+    if facing == "west":
+        return _mirror(DRAW[species](form, state, frame))
+    return FACE[species](form, state, frame, facing == "south")
+
+
 DRAW = {"cattle": cattle, "dog": dog, "donkey": donkey, "camel": camel}
 
 
 def fauna_d():
-    """Frames for set B's atlas. The first form of a species takes the plain
-    species name, so everything that knows nothing of forms still finds it."""
+    """Frames for set C's atlas: four facings. The first form of a species
+    takes the plain species name, so everything that knows nothing of forms
+    still finds it."""
     result = {}
     for species, states in STATES.items():
         for i, form in enumerate(FORMS[species]):
             name = species if i == 0 else f"{species}.{form}"
             for state, count in states.items():
-                for frame in range(count):
-                    result[f"faunab-{name}-{state}-{frame}"] = DRAW[species](form, state, frame)
+                for facing in DIRECTIONS:
+                    for frame in range(count):
+                        result[f"faunac-{name}-{state}-{facing}-{frame}"] = draw(species, form, state, facing, frame)
     return result
 
 

@@ -581,7 +581,8 @@ export class Engine {
         return {
           ...cell,
           over: overable || undefined,
-          solid: cell.solid || obstacle || (!water && !overable && !clear({ x, y })),
+          solid:
+            cell.solid || obstacle || (!water && !overable && !clear({ x, y })),
         };
       };
       const result = terrainJump(sample, from, to, jump, running);
@@ -630,7 +631,10 @@ export class Engine {
     const at = (x: number, y: number) =>
       this.state.objects.find(
         (o) =>
-          o.pos.space === p.space && o.pos.x === x && o.pos.y === y && lowProp(o),
+          o.pos.space === p.space &&
+          o.pos.x === x &&
+          o.pos.y === y &&
+          lowProp(o),
       );
     return at(p.x + dx, p.y + dy);
   }
@@ -1066,9 +1070,7 @@ export class Engine {
   private noise() {
     const since = this.state.clock - this.lastStep.clock;
     const gait = since > 4 ? 0.55 : this.lastStep.run ? 1.3 : 0.8;
-    return (
-      gait * (1 - this.skillLevel("hunting") * PER_LEVEL.huntingQuiet)
-    );
+    return gait * (1 - this.skillLevel("hunting") * PER_LEVEL.huntingQuiet);
   }
   private lastStep = { clock: -99, run: false };
   private lastJump = -99;
@@ -1145,7 +1147,10 @@ export class Engine {
       for (const om of o.members) om.pose = undefined;
     }
     // Settled once the tick that did it has finished.
-    this.pendingCollapse = { by: Name, part: g.speciesId === "gray-wolf" ? "torn arm" : "gored leg" };
+    this.pendingCollapse = {
+      by: Name,
+      part: g.speciesId === "gray-wolf" ? "torn arm" : "gored leg",
+    };
   }
   private pendingCollapse?: { by: string; part: string };
   /** What the player reads when they come round. Never saved. */
@@ -1209,6 +1214,76 @@ export class Engine {
     /** A spear: point first, no tumbling. */
     straight?: boolean;
   };
+  /** The last animal walked into, for the hop it makes out of the way.
+   * `yielded` is false when it stood its ground. */
+  lastJostle?: { group: string; n: number; yielded: boolean; small: boolean };
+  /** Walking into an animal. Small ones scatter from under your feet and you
+   * keep going; middling ones are shouldered aside and you take the step
+   * after; an ox does not move for anybody. Returns where it would go. */
+  private jostle(dx: number, dy: number) {
+    const p = this.state.player;
+    if (p.pos.space !== "outside") return undefined;
+    const at = { x: p.pos.x + dx, y: p.pos.y + dy };
+    const found = this.faunaAt(at.x, at.y);
+    if (!found) return undefined;
+    const { g, m } = found;
+    const profile = faunaProfile(g.speciesId);
+    const mass = profile ? faunaCombat(profile).mass : 3;
+    const label = (profile?.label ?? "animal").replace(/ study$/, "");
+    const stands = { found, label, small: false, to: undefined };
+    // A fight is not the moment, and nor is one still reeling from a blow.
+    if (mass >= 3 || g.provoked || g.attack || (m.stun ?? 0) > this.state.clock)
+      return stands;
+    // Onward first, then to either side of that, then square to the side.
+    const side =
+      dx && dy
+        ? [
+            [dx, 0],
+            [0, dy],
+          ]
+        : [
+            [dx + dy, dy + dx],
+            [dx - dy, dy - dx],
+          ];
+    const square =
+      dx && dy
+        ? [
+            [dx, -dy],
+            [-dx, dy],
+          ]
+        : [
+            [dy, dx],
+            [-dy, -dx],
+          ];
+    // Validation asks this too, so it must not draw from the counted stream.
+    const flip =
+      random(this.state.manifest.seed, "jostle", g.id, m.n ?? 0, m.x, m.y) <
+      0.5;
+    const order = [
+      [dx, dy],
+      ...(flip ? side.slice().reverse() : side),
+      ...(flip ? square.slice().reverse() : square),
+    ];
+    const world = {
+      blocked: (x: number, y: number) => this.blocked(x, y, "outside"),
+      canCross: this.world.canCross
+        ? (a: Point, b: Point) => this.world.canCross!(a, b)
+        : undefined,
+      topography: this.world.topography
+        ? (x: number, y: number) => this.world.topography!(x, y)
+        : undefined,
+    };
+    const to = order
+      .map(([ox, oy]) => ({ x: at.x + ox, y: at.y + oy }))
+      .find(
+        (c) =>
+          !(c.x === p.pos.x && c.y === p.pos.y) &&
+          stepAllowed(world, profile ?? {}, at, c) &&
+          !this.faunaAt(c.x, c.y) &&
+          !this.actorAt({ ...c, space: "outside" }, ""),
+      );
+    return { found, label, small: mass === 0, to };
+  }
   /** The last shove, for the scuff it leaves and the sound it makes. */
   lastShove?: {
     from: { x: number; y: number };
@@ -2613,6 +2688,9 @@ export class Engine {
           a.pos.y === p.pos.y + c.dy,
       );
       if (occupant) return `${occupant.name} is standing there.`;
+      const beast = this.jostle(c.dx, c.dy);
+      if (beast && !beast.to && !beast.small)
+        return `The ${beast.label.toLowerCase()} does not move for you.`;
       return;
     }
     if (c.type === "sleep")
@@ -2817,7 +2895,9 @@ export class Engine {
         }
     if (!members.length) return 0;
     const pos = { x: members[0].x, y: members[0].y, space: "outside" };
-    while (this.state.fauna?.some((g) => g.id === `dev-fauna-${this.devSerial}`))
+    while (
+      this.state.fauna?.some((g) => g.id === `dev-fauna-${this.devSerial}`)
+    )
       this.devSerial++;
     const group: FaunaGroup = {
       id: `dev-fauna-${this.devSerial++}`,
@@ -2910,7 +2990,12 @@ export class Engine {
         topography: this.world.topography
           ? (x, y) => this.world.topography!(x, y)
           : undefined,
-        occupied: (x, y) => this.actorAt({ x, y, space: "outside" }, ""),
+        // The player is not among the actors, and is as solid as they are.
+        occupied: (x, y) =>
+          this.actorAt({ x, y, space: "outside" }, "") ||
+          (this.state.player.pos.space === "outside" &&
+            this.state.player.pos.x === x &&
+            this.state.player.pos.y === y),
         gateOpen: (id) => !!this.object(id)?.open,
         humans,
         rng: (purpose) => this.rng(purpose),
@@ -3205,6 +3290,34 @@ export class Engine {
         return;
       }
       delete this.lastLeap;
+      delete this.lastJostle;
+      const beast = this.jostle(c.dx, c.dy);
+      if (beast) {
+        const { g, m } = beast.found;
+        const from = { x: m.x, y: m.y };
+        // Nowhere for a hen to go: it ducks round behind you.
+        const to = beast.to ?? { ...p.pos };
+        m.x = to.x;
+        m.y = to.y;
+        const sx = to.x - from.x,
+          sy = to.y - from.y;
+        if (sx) m.direction = sx > 0 ? 1 : 3;
+        else if (faunaProfile(g.speciesId)?.directions)
+          m.direction = sy > 0 ? 2 : 0;
+        this.lastJostle = {
+          group: g.id,
+          n: m.n ?? 0,
+          yielded: true,
+          small: beast.small,
+        };
+        p.direction = c.dy < 0 ? 0 : c.dx > 0 ? 1 : c.dy > 0 ? 2 : 3;
+        p.facing = facingFromStep(c.dx, c.dy, p.direction);
+        // Shouldering something aside is the step; the next one goes through.
+        if (!beast.small) {
+          this.advance(1);
+          return;
+        }
+      }
       const push = this.shovePlan(c.dx, c.dy);
       const effort =
         push && !("refused" in push) ? this.applyShove(push, c.dx, c.dy) : 0;
@@ -3219,7 +3332,10 @@ export class Engine {
       p.activity = depth > 0 ? "Wading" : "Exploring";
       this.lastStep = { clock: this.state.clock, run: !!c.run };
       if (p.pos.space === "outside")
-        this.grantXp(depth > 0 ? "watercraft" : "wayfaring", depth > 0 ? 0.6 : 0.15);
+        this.grantXp(
+          depth > 0 ? "watercraft" : "wayfaring",
+          depth > 0 ? 0.6 : 0.15,
+        );
       this.populateNearby();
       const rise =
         p.pos.space === "outside" && this.world.elevation
@@ -4247,9 +4363,7 @@ export class Engine {
             this.stepToward(a, a.home);
           } else {
             a.activity =
-              distance(a.pos, a.work) > 2
-                ? "Walking to work"
-                : atWork(a.role);
+              distance(a.pos, a.work) > 2 ? "Walking to work" : atWork(a.role);
             if (distance(a.pos, a.work) > 2) this.stepToward(a, a.work);
             else if (next % 90 === 0) {
               const dx = Math.floor(this.rng("routine") * 3) - 1,

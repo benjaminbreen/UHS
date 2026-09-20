@@ -97,7 +97,11 @@ describe("four-direction fauna", () => {
           }
         }
       }
-    expect(seen.size).toBe(Object.keys(frames).length);
+    // A form (faunac-cattle.zebu-…) is a second drawing of a species the
+    // profiles already name, so only the plain frames are counted.
+    expect(seen.size).toBe(
+      Object.keys(frames).filter((name) => !name.includes(".")).length,
+    );
   });
 
   it("keeps the size hierarchy a person would expect", () => {

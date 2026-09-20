@@ -45,6 +45,9 @@ const URGENT = new Set<FaunaState>([
   "landing",
   "approach",
 ]);
+/** States an animal will look up from. One lying down does not bother. */
+const WATCHFUL = new Set<FaunaState>(["idle", "graze", "forage", "perch"]);
+const FAUNA_DUST = [0xb9a27a, 0x9c8762, 0xd2c09a];
 /** States whose art already shows the animal travelling. */
 const STRIDING = new Set<FaunaState>([...URGENT, "wander", "stalk"]);
 import { canopyHidesPlayer } from "./canopy-visibility";
@@ -327,6 +330,14 @@ export class WorldScene extends Phaser.Scene {
     }
   >();
   private faunaArt = new Map<string, string>();
+  /** What each animal was doing last frame, to catch the moment it bolts,
+   * and whether it has its head up watching the player. */
+  private faunaMood = new Map<
+    string,
+    { state: FaunaState; from: number; until: number; squashed: boolean }
+  >();
+  private playerSeen = { x: 0, y: 0, movedAt: -Infinity };
+  private jostleSerial = 0;
   private faunaMotion = new FaunaMotion();
   /** Cast shadows by pose, facing and lighting phase. */
   private faunaShadows = new Map<
@@ -1378,18 +1389,20 @@ export class WorldScene extends Phaser.Scene {
    * time an animal wears it. Frames keep their names, with the coat in them. */
   private coatTexture(frame: string) {
     const plus = frame.indexOf("+");
-    const art = frame.slice("faunab-".length, plus);
+    // "faunab-" or "faunac-": the side-view atlas or the four-direction one.
+    const set = frame.slice(0, 6);
+    const art = frame.slice(7, plus);
     const slug = frame.slice(plus + 1, frame.indexOf("-", plus));
-    const key = `faunab+${art}+${slug}`;
+    const key = `${set}+${art}+${slug}`;
     if (this.textures.exists(key)) return key;
     const swap = faunaCoats(art.split(".")[0], slug.replace(/_/g, "-"));
-    const atlas = this.textures.get("faunab");
-    const stem = `faunab-${art}-`;
+    const atlas = this.textures.get(set);
+    const stem = `${set}-${art}-`;
     const frames = atlas
       .getFrameNames()
       .filter((name) => name.startsWith(stem))
       .map((name) => atlas.get(name));
-    if (!swap || !frames.length) return "faunab";
+    if (!swap || !frames.length) return set;
     const w = frames[0].cutWidth + 2,
       h = frames[0].cutHeight + 2;
     const canvas = document.createElement("canvas");
@@ -1424,7 +1437,7 @@ export class WorldScene extends Phaser.Scene {
     texture.setFilter(Phaser.Textures.FilterMode.NEAREST);
     frames.forEach((f, i) =>
       texture.add(
-        `faunab-${art}+${slug}-${f.name.slice(stem.length)}`,
+        `${set}-${art}+${slug}-${f.name.slice(stem.length)}`,
         0,
         (i % 8) * w,
         Math.floor(i / 8) * h,
@@ -1450,7 +1463,8 @@ export class WorldScene extends Phaser.Scene {
     if (frame.startsWith("nature-")) return "nature";
     if (frame.startsWith("faunab-"))
       return frame.includes("+") ? this.coatTexture(frame) : "faunab";
-    if (frame.startsWith("faunac-")) return "faunac";
+    if (frame.startsWith("faunac-"))
+      return frame.includes("+") ? this.coatTexture(frame) : "faunac";
     if (frame.startsWith("ecology-")) return "ecology";
     // "study-propb-" is the same atlas: match the prefix without the hyphen.
     return frame.startsWith("study-prop") || frame.startsWith("prop-broken-")
@@ -2818,12 +2832,15 @@ export class WorldScene extends Phaser.Scene {
           m.n === undefined ? `${g.id}-${i}` : faunaSpriteId(g.id, m.n);
         const at = { x: m.x, y: m.y, space: "outside" };
         if (!visible(at)) continue;
+        // Fright runs through a herd from the side the player is on.
+        const fright = Math.hypot(m.x - p.x, m.y - p.y);
         this.faunaMotion.aim(
           id,
           m.x * 16 + 8,
           m.y * 16 + 16,
           URGENT.has(g.state),
           !!this.options.freeze || !this.entities.has(id),
+          Math.min(0.5, Math.max(0, fright - 2) * 0.07),
         );
         const phase = this.poseOffset(id) % 8;
         const facing = FACINGS[m.direction] ?? "east";
@@ -2880,6 +2897,30 @@ export class WorldScene extends Phaser.Scene {
       }
     }
     this.faunaMotion.keep(this.faunaSprites);
+    for (const id of this.faunaMood.keys())
+      if (!this.faunaSprites.has(id)) this.faunaMood.delete(id);
+    // Walked into: it hops out of the way, and the player feels the bump.
+    const jostle = rt.jostleEffect;
+    if (jostle && jostle.serial !== this.jostleSerial) {
+      this.jostleSerial = jostle.serial;
+      const id = faunaSpriteId(jostle.group, jostle.n);
+      this.faunaMotion.hurry(id);
+      this.faunaMotion.leap(
+        id,
+        jostle.small ? 5 : 3,
+        jostle.small ? 0.26 : 0.2,
+      );
+      const im = this.entities.get(id);
+      if (im) this.feel.puff(im.x, im.y, FAUNA_DUST, jostle.small ? 3 : 5);
+      if (!jostle.small) {
+        const d = e.state.player.direction;
+        this.bump = {
+          dx: d === 1 ? 1 : d === 3 ? -1 : 0,
+          dy: d === 2 ? 1 : d === 0 ? -1 : 0,
+          at: this.time.now,
+        };
+      }
+    }
     this.placeFauna(0);
     if (this.options.lab && !this.options.overview)
       c.startFollow(this.entities.get("player")!, true, 0.4, 0.4);
@@ -2991,7 +3032,7 @@ export class WorldScene extends Phaser.Scene {
       ? 0
       : Math.floor((stride ?? this.time.now / ms) + phase) % 8;
     return faunaProfile(species)?.directions
-      ? `faunac-${species}-${state}-${facing}-${n}`
+      ? `faunac-${art}-${state}-${facing}-${n}`
       : `faunab-${art}-${state}-${n}`;
   }
   /** Walks each animal towards its cell and dresses it for where it is. */
@@ -3001,6 +3042,13 @@ export class WorldScene extends Phaser.Scene {
       this.runtime.swingEffect,
       this.runtime.throwEffect,
     );
+    const player = this.entities.get("player");
+    if (
+      player &&
+      (Math.abs(player.x - this.playerSeen.x) > 0.5 ||
+        Math.abs(player.y - this.playerSeen.y) > 0.5)
+    )
+      this.playerSeen = { x: player.x, y: player.y, movedAt: this.time.now };
     for (const [id, f] of this.faunaSprites) {
       const im = this.entities.get(id);
       if (!im) continue;
@@ -3023,12 +3071,61 @@ export class WorldScene extends Phaser.Scene {
         !profile?.directions,
       );
       if (!pose) continue;
-      const facing = profile?.directions
-        ? (pose.heading ?? f.facing)
-        : f.facing;
+      let mood = this.faunaMood.get(id);
+      if (!mood)
+        this.faunaMood.set(
+          id,
+          (mood = { state: f.state, from: 0, until: 0, squashed: false }),
+        );
+      // The moment it bolts: a start, and dust from under it.
+      if (URGENT.has(f.state) && !URGENT.has(mood.state) && !aerial && dt) {
+        this.faunaMotion.leap(id, 2.5, 0.18);
+        this.feel.puff(im.x, im.y, FAUNA_DUST, 3);
+      }
+      mood.state = f.state;
+      // Someone moving close by: after a beat the head comes up and follows
+      // them, and goes down again once they have stood still a while. Not
+      // every animal bothers, and none of them at the same instant.
+      const near = player
+        ? Math.hypot(player.x - im.x, player.y - im.y)
+        : Infinity;
+      const reach = Math.min(
+        112,
+        Math.max(56, ((profile?.alertRadius ?? 1) + 3) * 16),
+      );
+      const calm = WATCHFUL.has(f.state) && !pose.moving;
+      if (calm && near < reach && now - this.playerSeen.movedAt < 400) {
+        if (
+          now > mood.until &&
+          this.poseOffset(id + Math.floor(now / 6000)) % 4 < 3
+        )
+          mood.from = now + 120 + ((this.poseOffset(id) * 97) % 520);
+        if (now >= mood.from || now <= mood.until)
+          mood.until = Math.max(
+            mood.until,
+            now + 1400 + ((this.poseOffset(id) * 53) % 1600),
+          );
+      }
+      const watching = calm && now >= mood.from && now < mood.until;
+      let facing = profile?.directions ? (pose.heading ?? f.facing) : f.facing;
       let state = f.state;
       if (pose.moving && !STRIDING.has(state)) state = "wander";
       else if (!pose.moving && state === "wander") state = "idle";
+      if (watching && player) {
+        state = "idle";
+        const dx = player.x - im.x,
+          dy = player.y - im.y;
+        if (profile?.directions)
+          facing =
+            Math.abs(dx) >= Math.abs(dy)
+              ? dx < 0
+                ? "west"
+                : "east"
+              : dy < 0
+                ? "north"
+                : "south";
+        else if (Math.abs(dx) > 4 && im.flipX !== dx < 0) im.setFlipX(dx < 0);
+      }
       const pace = Math.max(2, im.frame.height / 12);
       let name = this.faunaFrame(
         f.species,
@@ -3057,6 +3154,13 @@ export class WorldScene extends Phaser.Scene {
       if (!profile?.directions && pose.heading) {
         const flip = pose.heading === "west";
         if (im.flipX !== flip) im.setFlipX(flip);
+      }
+      if (pose.sx !== 1 || pose.sy !== 1) {
+        im.setScale(f.scale * pose.sx, f.scale * pose.sy);
+        mood.squashed = true;
+      } else if (mood.squashed) {
+        im.setScale(f.scale);
+        mood.squashed = false;
       }
       const ground = pose.y - this.lift(pose.x, pose.y);
       im.setPosition(pose.x, ground - pose.alt - pose.hop);
