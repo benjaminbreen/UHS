@@ -76,6 +76,8 @@ const fit = (words: string[], most: number, room: number, sep: string) => {
 };
 const fitTraits = (words: string[]) => fit(words, 4, 28, ", ");
 const fitOutlook = (words: string[]) => fit(words, 2, 25, " · ");
+/** Long enough to swallow a URL bar animation, short enough to feel prompt. */
+const RESIZE_SETTLE_MS = 250;
 import { narratorProvider, PROVIDER_KEY } from "../narrator/turn";
 import { NarratorPanel, turnTime } from "./NarratorPanel";
 import { DialogueModal } from "./DialogueModal";
@@ -283,6 +285,27 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
     });
     game.current = g;
     watchGame(g);
+    // iOS collapses and expands the URL bar as the page scrolls, and RESIZE
+    // mode reallocates the drawing buffer for every one of those. A phone
+    // session that was killed had logged 34 in 36 seconds, so the size is
+    // followed here instead, once the run of events has settled.
+    g.scale.stopListeners();
+    let settle: number | undefined;
+    const follow = new ResizeObserver(() => {
+      window.clearTimeout(settle);
+      settle = window.setTimeout(() => {
+        const el = mount.current;
+        if (!el || el.clientWidth < 1 || el.clientHeight < 1) return;
+        if (
+          Math.abs(g.scale.width - el.clientWidth) < 2 &&
+          Math.abs(g.scale.height - el.clientHeight) < 2
+        )
+          return;
+        markEvent(`canvas ${el.clientWidth}x${el.clientHeight}`);
+        g.scale.resize(el.clientWidth, el.clientHeight);
+      }, RESIZE_SETTLE_MS);
+    });
+    follow.observe(mount.current);
     if (import.meta.env.DEV)
       (window as unknown as { uhsGame?: Phaser.Game }).uhsGame = g;
     registerGame(g);
@@ -290,6 +313,8 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
       applyFrameCap(liveGraphicsRef.current.frameCap);
     });
     return () => {
+      window.clearTimeout(settle);
+      follow.disconnect();
       registerGame(undefined);
       watchGame(undefined);
       markEvent("game destroyed");
