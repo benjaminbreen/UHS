@@ -1,4 +1,5 @@
 import { usesLivingWater } from "./living-water/game";
+import { workerBudget } from "../runtime/device";
 import { takeTerrainWorker } from "../runtime/terrain-worker-owner";
 import { ensureWaterAtlas } from "./water-motifs";
 import type Phaser from "phaser";
@@ -63,11 +64,8 @@ export type SunPhase = {
 };
 /** Rasterising is where the load time goes and the main thread is idle while
  * it runs, so every spare core is worth a worker. Each holds its own copy of
- * the world, so the cap also bounds memory. */
-const WORKER_LIMIT = Math.min(
-  6,
-  Math.max(1, (navigator.hardwareConcurrency ?? 4) - 1),
-);
+ * the world, so the cap also bounds memory — which is what binds on a phone. */
+const WORKER_LIMIT = workerBudget();
 /** Under every ground page, whatever row it belongs to. */
 const PREVIEW_DEPTH = -1e6;
 const NO_SUN: SunPhase = { id: "night", cast: [0, 0], opacity: 0 };

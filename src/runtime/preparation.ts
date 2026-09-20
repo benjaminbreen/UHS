@@ -6,6 +6,12 @@ import { settingSchema, type WorldSetting } from "../content/geography/types";
 import type { PreparedSettlement } from "../world/v3/prepared";
 import { retainTerrainWorker } from "./terrain-worker-owner";
 import { loadPrepared, preparedKey, savePrepared } from "./prepared-store";
+import { markEvent } from "./vitals";
+
+/** A phone killed for memory takes its worker with it without firing onerror,
+ * which used to leave the splash waiting for a message that never came. Long
+ * enough that a slow device preparing a large settlement is not cut off. */
+const PREPARE_TIMEOUT_MS = 90_000;
 
 /** The same generator runs synchronously in Node and prepares cloneable geometry
  * in the browser worker. The renderer takes over that already-warm worker. */
@@ -36,7 +42,19 @@ export async function prepareSettingSession(
           worker.terminate();
           reject(signal!.reason);
         };
-        const cleanup = () => signal?.removeEventListener("abort", abort);
+        const timer = setTimeout(() => {
+          cleanup();
+          markEvent("world preparation timed out");
+          reject(
+            Error(
+              "Preparing this world took too long and was stopped. This usually means the device ran out of memory.",
+            ),
+          );
+        }, PREPARE_TIMEOUT_MS);
+        const cleanup = () => {
+          clearTimeout(timer);
+          signal?.removeEventListener("abort", abort);
+        };
         signal?.addEventListener("abort", abort, { once: true });
         worker.onmessage = ({ data }) => {
           cleanup();

@@ -41,14 +41,20 @@ export function Sprite({ name, scale = 2 }: { name: string; scale?: number }) {
     >
   )[name]?.frame;
   if (!f) return null;
-  return (
+  // The sheet is shown at its own size and the element is scaled afterwards.
+  // Scaling backgroundSize instead makes the browser rasterise the whole sheet
+  // at the zoomed size — 4096x3279 at scale 2 is 215MB for one 32px icon, and
+  // on iOS that alone ends the tab.
+  const image = (
     <span
       aria-hidden="true"
       className="pixel-sprite"
       style={{
-        display: "inline-block",
-        width: f.w * scale,
-        height: f.h * scale,
+        display: "block",
+        width: f.w,
+        height: f.h,
+        transform: scale === 1 ? undefined : `scale(${scale})`,
+        transformOrigin: "top left",
         backgroundImage:
           source === fauna
             ? "url(/fauna/atlas.png)"
@@ -67,12 +73,26 @@ export function Sprite({ name, scale = 2 }: { name: string; scale?: number }) {
                   : source === civic
                     ? "url(/packs/civic.png)"
                     : "url(/packs/atlas.png)",
-        backgroundPosition: `-${f.x * scale}px -${f.y * scale}px`,
-        backgroundSize: `${source.meta.size.w * scale}px ${source.meta.size.h * scale}px`,
+        backgroundPosition: `-${f.x}px -${f.y}px`,
+        backgroundSize: `${source.meta.size.w}px ${source.meta.size.h}px`,
         imageRendering: "pixelated",
         flexShrink: 0,
       }}
     />
+  );
+  if (scale === 1) return image;
+  return (
+    <span
+      aria-hidden="true"
+      style={{
+        display: "inline-block",
+        width: f.w * scale,
+        height: f.h * scale,
+        flexShrink: 0,
+      }}
+    >
+      {image}
+    </span>
   );
 }
 /** A worn item's own art, coloured by the cloth in its id. Falls back to the

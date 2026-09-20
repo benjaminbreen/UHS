@@ -76,6 +76,8 @@ const fitOutlook = (words: string[]) => fit(words, 2, 25, " · ");
 import { narratorProvider, PROVIDER_KEY } from "../narrator/turn";
 import { NarratorPanel, turnTime } from "./NarratorPanel";
 import { DialogueModal } from "./DialogueModal";
+import { VitalsOverlay, vitalsEnabled } from "./VitalsOverlay";
+import { markEvent, watchGame } from "../runtime/vitals";
 import { WorldScene } from "../render/WorldScene";
 import { WorldSetup } from "./WorldSetup";
 import { AtlasMap } from "./AtlasMap";
@@ -152,6 +154,10 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
     | "character"
     | null
   >(null);
+  const [showVitals] = useState(vitalsEnabled);
+  useEffect(() => {
+    markEvent(`modal ${modal ?? "closed"}`);
+  }, [modal]);
   const [characterId, setCharacterId] = useState("player");
   const openCharacter = (id: string) => {
     setCharacterId(id);
@@ -272,6 +278,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
       banner: false,
     });
     game.current = g;
+    watchGame(g);
     if (import.meta.env.DEV)
       (window as unknown as { uhsGame?: Phaser.Game }).uhsGame = g;
     registerGame(g);
@@ -280,6 +287,8 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
     });
     return () => {
       registerGame(undefined);
+      watchGame(undefined);
+      markEvent("game destroyed");
       g.destroy(true);
     };
   }, [runtime]);
@@ -2040,6 +2049,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
           </section>
         </div>
       )}
+      {showVitals && <VitalsOverlay />}
       {modal === "dialogue" && dialogueActorId && (
         <div className="modal-backdrop dialogue-backdrop">
           <DialogueModal

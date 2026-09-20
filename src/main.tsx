@@ -1,7 +1,9 @@
 import { createRoot } from "react-dom/client";
 import "./ui/style.css";
 import { PropLabHost } from "./dev/PropLabHost";
+import { installVitals } from "./runtime/vitals";
 async function start() {
+  installVitals();
   if (window.location.pathname === "/water-experiments") {
     const { WaterExperiments } = await import("./dev/WaterExperiments");
     createRoot(document.getElementById("root")!).render(<WaterExperiments />);

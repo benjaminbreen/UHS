@@ -1,4 +1,5 @@
 import { characterShadow } from "./shadow";
+import { watchCount } from "../../runtime/vitals";
 import type { LightingId } from "../lighting";
 import Phaser from "phaser";
 import type { Actor } from "../../core/types";
@@ -51,6 +52,7 @@ export class WorldCharacters {
   private disposed = false;
   private lastPrune = 0;
   constructor(private scene: Phaser.Scene) {
+    watchCount("actorFrames", () => this.cache.size);
     void loadCarriedArt()
       .then((p) => {
         if (!this.disposed) this.props = p;

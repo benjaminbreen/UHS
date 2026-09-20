@@ -53,3 +53,32 @@ The harness uses fresh contexts, installed headless Chrome, a 1440 × 1000 viewp
 The gameplay dependency graph still loads Phaser and substantial geography/content. Routing before bootstrap isolates lab entry points, but a smaller entry chunk alone is not a smaller gameplay download. The prepared index adds about 384 KB of source JSON and increases the worker bundle from approximately 1.97 MB to 2.36 MB uncompressed. Shipping geography separately with caching/compression is a future network optimization; the existing Vite large-bundle advisory remains.
 
 Initial scenery/minimap installation still has synchronous work. Snapshot coalescing reduces frequency but not the eventual cost of cloning a very long session. Dense populations, long-distance travel, maximum zoom-out and slower devices need continued measurement. No general entity-index framework, renderer rewrite or compatibility purge was added: the profile's concrete remaining hotspot was character pixel readback, not evidence for those larger changes.
+
+## Mobile memory — September 20, 2026
+
+iOS Safari kills the whole web process when a tab passes its memory budget; the
+page then shows "A problem repeatedly occurred" with no console and no
+exception. `runtime/vitals.ts` records a snapshot to `localStorage` every two
+seconds so the next load can say what the dead session was holding. Add
+`?vitals=1` to the URL for the on-screen readout (`?vitals=0` removes it), or
+read `window.__vitals.now()` and `.last()` from a remote Web Inspector. A
+previous session with no `closed` flag was killed rather than closed.
+
+Measured on a production build at a 375-wide viewport:
+
+| Draw | Cost |
+| --- | --- |
+| Terrain workers (was 6 on an 8-core phone) | each one module graph plus its own world |
+| Inlined JSON in the worker chunk | 8.3 MB of the 9.2 MB chunk, parsed per worker |
+| Textures loaded at scene start | 191 MB decoded, 174 MB of it four sheets |
+| Main-thread JS heap after load | 265 MB |
+
+`lighting-shadows` (54 MB), `civic` (54 MB), `props/shadows` (33 MB) and
+`buildings` (32 MB) are packed at about 90%, so the size is the art, not
+slack. Cutting them means loading fewer shadow frames, not repacking.
+
+Two fixes so far: `runtime/device.ts` caps the terrain pool at two workers on a
+phone, and `ui/components.tsx` no longer multiplies `backgroundSize` by the
+sprite scale — that made the browser rasterise a whole 4096x3279 sheet at the
+zoomed size, 215 MB for one 32-pixel icon, whenever a panel showed a civic or
+building sprite.
