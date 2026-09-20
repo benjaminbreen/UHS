@@ -1,4 +1,5 @@
 import { CharacterSprite } from "./CharacterSprite";
+import { usePhoneLayout } from "./use-phone";
 import { applyFrameCap, registerGame } from "../render/frame-cap";
 import { CharacterPanel } from "./CharacterPanel";
 import "./settings.css";
@@ -40,6 +41,8 @@ import {
   Music2,
   Heart,
   ScrollText,
+  Menu,
+  Maximize2,
 } from "lucide-react";
 import { weatherAt } from "../core/weather";
 import { seasonFor } from "../core/season";
@@ -155,6 +158,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
     | null
   >(null);
   const [showVitals] = useState(vitalsEnabled);
+  const phone = usePhoneLayout();
   useEffect(() => {
     markEvent(`modal ${modal ?? "closed"}`);
   }, [modal]);
@@ -519,12 +523,25 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
         </Suspense>
       )}
       <header className="topbar">
-        <div className="brand">
-          <Compass size={24} />
-          <div>
-            Universal History Simulator <i aria-hidden="true">✦</i>
+        {phone ? (
+          <button
+            className="icon-button brand-menu"
+            aria-label="Open character panel"
+            onClick={() => {
+              setSidebar(true);
+              setSheetSnap(sheetSnap === "peek" ? "half" : "peek");
+            }}
+          >
+            <Menu size={20} />
+          </button>
+        ) : (
+          <div className="brand">
+            <Compass size={24} />
+            <div>
+              Universal History Simulator <i aria-hidden="true">✦</i>
+            </div>
           </div>
-        </div>
+        )}
         <button
           className="world-selector"
           onClick={openWorld}
@@ -532,12 +549,33 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
         >
           <i aria-hidden="true">◆</i>
           <span>
-            {pack.name}, {pack.date}
+            <strong>{pack.name}</strong>
+            <small>
+              {pack.date}
+              <em>
+                {" "}
+                <i aria-hidden="true">·</i> {period}
+              </em>
+            </small>
           </span>
           <i aria-hidden="true">◆</i>
           <Pencil size={15} />
         </button>
         <div className="header-actions">
+          {phone && (
+            <button
+              className="topbar-avatar"
+              aria-label={`Open ${p.name}'s profile`}
+              onClick={() => openCharacter(p.id)}
+            >
+              <CharacterSprite
+                appearance={runtime.appearanceFor(p)}
+                age={p.age}
+                portrait
+              />
+              <i aria-hidden="true" />
+            </button>
+          )}
           <button
             className="icon-button"
             aria-label="Audio studio"
@@ -759,6 +797,33 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
                 view.notice
               )}
             </div>
+          )}
+          {phone && (
+            <button
+              className="world-minimap"
+              aria-label="Open regional map"
+              onClick={() => setModal("map")}
+            >
+              <Minimap runtime={runtime} regional={mapRegion} />
+              <span className="minimap-expand" aria-hidden="true">
+                <Maximize2 size={13} />
+              </span>
+              <span className="minimap-north" aria-hidden="true">
+                N
+              </span>
+            </button>
+          )}
+          {phone && !narratorOpen && (
+            <button
+              className="narrator-tab"
+              aria-label="Narration"
+              data-unread={
+                runtime.engine.state.narration?.length ? true : undefined
+              }
+              onClick={() => setNarratorOpen(true)}
+            >
+              <ScrollText size={20} />
+            </button>
           )}
           <NarratorPanel
             anchor={commandForm}
@@ -1023,7 +1088,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
               aria-label="Open regional map"
               onClick={() => setModal("map")}
             >
-              <Minimap runtime={runtime} regional={mapRegion} />
+              {!phone && <Minimap runtime={runtime} regional={mapRegion} />}
               <span className="north">N ↑</span>
               <span className="map-scale">
                 <i />

@@ -5,6 +5,7 @@ import {
   type RefObject,
 } from "react";
 import { ChevronDown, ScrollText } from "lucide-react";
+import { PHONE_QUERY } from "./use-phone";
 export function turnTime(clock: number) {
   const day = Math.floor(clock / 86400) + 1,
     h = Math.floor(clock / 3600) % 24,
@@ -37,11 +38,20 @@ export function NarratorPanel({
       if (!a || !pane) return;
       const r = a.getBoundingClientRect(),
         p = pane.getBoundingClientRect();
-      setStyle({
-        left: r.left - p.left,
-        width: r.width,
-        bottom: p.bottom - r.top,
-      });
+      // The action input is a narrow slot on a phone; a column that shape puts
+      // three words on a line and covers the stick. Take the whole pane there.
+      if (window.matchMedia?.(PHONE_QUERY).matches)
+        setStyle({
+          left: 0,
+          width: (pane as HTMLElement).clientWidth,
+          bottom: p.bottom - r.top,
+        });
+      else
+        setStyle({
+          left: r.left - p.left,
+          width: r.width,
+          bottom: p.bottom - r.top,
+        });
     };
     place();
     window.addEventListener("resize", place);

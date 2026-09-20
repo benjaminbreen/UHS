@@ -219,6 +219,21 @@ body {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* One line on a desktop, two on a phone. */
+.world-selector strong {
+  font-weight: 400;
+}
+.world-selector small {
+  font-size: inherit;
+  color: inherit;
+}
+.world-selector small::before {
+  content: ", ";
+}
+/* The hour has a line of its own on a phone; on a desktop the sidebar says it. */
+.world-selector small em {
+  display: none;
+}
 .world-selector svg {
   position: absolute;
   right: -26px;
@@ -6013,7 +6028,12 @@ button:disabled {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(100deg, transparent 35%, #fff8 50%, transparent 65%);
+  background: linear-gradient(
+    100deg,
+    transparent 35%,
+    #fff8 50%,
+    transparent 65%
+  );
   transform: translateX(-100%);
   animation: pip-shine 0.7s 0.25s ease-out forwards;
 }
@@ -6111,7 +6131,9 @@ button:disabled {
     border: 1px solid var(--line);
     border-radius: 50%;
     background: #141b2fe6;
-    box-shadow: 0 3px 0 #0a0e1a, 0 6px 14px #0007;
+    box-shadow:
+      0 3px 0 #0a0e1a,
+      0 6px 14px #0007;
     transition:
       transform 0.06s ease-out,
       box-shadow 0.06s;
@@ -6148,7 +6170,9 @@ button:disabled {
   .touch-primary:active,
   .touch-small:active {
     transform: translateY(3px);
-    box-shadow: 0 0 0 #0a0e1a, 0 2px 6px #0007;
+    box-shadow:
+      0 0 0 #0a0e1a,
+      0 2px 6px #0007;
   }
   /* The buttons say it; the written prompts and the zoom strip are for a
      keyboard and a mouse. Pinch zooms. */
@@ -6215,5 +6239,252 @@ button:disabled {
   .combat-test-panel {
     top: 44px;
     max-height: 55%;
+  }
+}
+
+/* ---- Phone layout: the chrome the touch build wants ---------------------- */
+@media (max-width: 640px), (pointer: coarse) and (max-width: 1024px) {
+  .app {
+    --bottom-bar-h: 88px;
+  }
+  /* Place over date and time, stacked, so the name gets the width. */
+  .world-selector {
+    height: 46px;
+    min-width: 0;
+    gap: 0;
+    padding: 0 10px;
+  }
+  /* The diamonds cost the place name two words. */
+  .world-selector > i {
+    display: none;
+  }
+  .world-selector span {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    line-height: 1.15;
+  }
+  .world-selector strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 16px;
+  }
+  .world-selector small {
+    color: var(--muted);
+    font-size: 11px;
+    letter-spacing: 0.5px;
+  }
+  .world-selector small::before {
+    content: none;
+  }
+  .world-selector small em {
+    display: inline;
+    font-style: normal;
+  }
+  .world-selector small i {
+    font-style: normal;
+    color: var(--gold);
+    font-size: inherit;
+  }
+  .topbar-avatar {
+    position: relative;
+    width: 44px;
+    height: 44px;
+    flex: none;
+    padding: 0;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: 50%;
+    background: #0f1526b0;
+    display: grid;
+    place-items: center;
+  }
+  .topbar-avatar canvas {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    pointer-events: none;
+  }
+  /* Green pip: the world is running, not paused. */
+  .topbar-avatar > i {
+    position: absolute;
+    right: 3px;
+    bottom: 3px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    border: 1px solid #0f1526;
+    background: #6fbf73;
+  }
+  /* The audio studio is a workbench; on a phone the row has no room for it. */
+  .header-actions .icon-button[aria-label="Audio studio"] {
+    display: none;
+  }
+  .topbar {
+    gap: 6px;
+    padding-inline: 0;
+  }
+  .header-actions {
+    gap: 6px;
+    padding-inline: 0;
+  }
+
+  /* The map lives over the world, not in the sheet. */
+  .world-minimap {
+    position: absolute;
+    right: 10px;
+    top: 10px;
+    z-index: 4;
+    width: 136px;
+    height: 96px;
+    padding: 4px;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #0f1526cc;
+    box-shadow: 0 4px 14px #0006;
+  }
+  .world-minimap canvas {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 5px;
+    image-rendering: pixelated;
+  }
+  .minimap-expand,
+  .minimap-north {
+    position: absolute;
+    display: grid;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    background: #0f1526cc;
+    color: var(--gold);
+    font-size: 10px;
+  }
+  .minimap-expand {
+    right: 6px;
+    top: 6px;
+  }
+  .minimap-north {
+    right: 6px;
+    bottom: 6px;
+  }
+  .sky-card .map-button {
+    display: none;
+  }
+  .vitals {
+    top: 10px;
+    left: 10px;
+    padding: 4px 8px 4px 6px;
+    gap: 6px;
+  }
+  .vitals-bar {
+    width: 64px;
+    height: 5px;
+  }
+
+  /* Icon over word, the way a phone names a button. */
+  .quick-actions {
+    gap: 3px;
+  }
+  .quick-actions button {
+    flex-direction: column;
+    gap: 3px;
+    padding: 6px 3px;
+  }
+  .quick-actions span {
+    display: block;
+    font-size: 9px;
+    letter-spacing: 0.3px;
+    color: var(--muted);
+  }
+  .bottom-bar {
+    height: var(--bottom-bar-h);
+  }
+  .command-input input {
+    padding: 10px 12px;
+  }
+  /* The name and trade are in the topbar now, so the peeking strip of the
+     character sheet is a second copy in the way. The menu button opens it. */
+  .sidebar[data-sheet-snap="peek"] {
+    display: none;
+  }
+  .sidebar {
+    bottom: calc(var(--bottom-bar-h) + env(safe-area-inset-bottom));
+    max-height: calc(
+      100dvh - 50px - var(--bottom-bar-h) - env(safe-area-inset-bottom)
+    );
+  }
+  .sidebar[data-sheet-snap="full"] {
+    height: calc(
+      100dvh - 50px - var(--bottom-bar-h) - env(safe-area-inset-bottom)
+    );
+  }
+
+  /* Closed, the narrator is a scroll in the corner; open, it is a sheet. */
+  .narrator-tab {
+    position: absolute;
+    right: 12px;
+    bottom: calc(var(--bottom-bar-h) + 8px);
+    z-index: 4;
+    width: 44px;
+    height: 44px;
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: #141b2fe6;
+    color: var(--gold);
+    box-shadow:
+      0 3px 0 #0a0e1a,
+      0 6px 14px #0007;
+  }
+  .narrator-tab[data-unread]::after {
+    content: "";
+    position: absolute;
+    right: 7px;
+    top: 7px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--gold);
+  }
+  .narrator-panel {
+    padding: 12px 16px 16px;
+    border-radius: 12px 12px 0 0;
+  }
+  .narrator-panel header {
+    margin-bottom: 8px;
+  }
+  .narrator-body {
+    font-size: 15px;
+    line-height: 1.5;
+    max-height: 38dvh;
+  }
+  .narrator-said {
+    font-size: 13px;
+  }
+
+  /* Smaller and fainter: the world is what you came to look at. */
+  .touch-controls {
+    bottom: calc(var(--bottom-bar-h) + 62px + 12px);
+  }
+  .touch-stick {
+    width: 88px;
+    height: 88px;
+    opacity: 0.55;
+    border-color: #d9b47740;
+    background: radial-gradient(#0f152655, #0f152618);
+  }
+  .touch-stick[data-run] {
+    opacity: 0.8;
+  }
+  .touch-stick i {
+    width: 38px;
+    height: 38px;
+    margin: -19px 0 0 -19px;
+    background: #1c2542b0;
   }
 }

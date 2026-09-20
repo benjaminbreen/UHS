@@ -39,9 +39,9 @@ export type TouchTarget = {
   touchThrow(down: boolean): void;
 };
 
-const RADIUS = 44;
-const DEAD = 10;
-const RUN_AT = 34;
+const RADIUS = 34;
+const DEAD = 9;
+const RUN_AT = 27;
 const buzz = (ms = 8) => navigator.vibrate?.(ms);
 
 /** A thumb stick on the left and what the hands can do on the right. A phone
