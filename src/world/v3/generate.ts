@@ -2026,9 +2026,10 @@ export function createSettlementWorld(
         ? initial.site.center
         : { x: 0, y: 0 };
     for (let r = 0; r <= (regional ? 768 : 120) && !clear; r += 2) {
-      // Probe count scales with circumference: a fixed 24 rays leave ~200 cells
-      // between probes at r=768, which steps clean over a small island.
-      const steps = Math.max(24, Math.round(r * 0.8));
+      // Probe count scales with circumference: at 0.8 rays per unit radius the
+      // probes sit ~8 cells apart, which steps clean over a small island or a
+      // spit between two bays. 3.2 keeps them ~2 cells apart.
+      const steps = Math.max(24, Math.round(r * 3.2));
       for (let i = 0; i < steps; i++) {
         const a = (i * 2 * Math.PI) / steps,
           x = from.x + Math.round(Math.cos(a) * r),
@@ -2051,7 +2052,23 @@ export function createSettlementWorld(
         if (!anyDry) anyDry = { x, y };
       }
     }
-    const spot = clear ?? anyDry;
+    // The rings still sample, not cover. On an island or a harbour shore the
+    // dry ground can be a handful of cells that every ray misses, so fall back
+    // to looking at each cell in turn near the target before giving up.
+    if (!clear && !anyDry)
+      for (let r = 1; r <= 96 && !anyDry; r++)
+        for (let dx = -r; dx <= r && !anyDry; dx++)
+          for (let dy = -r; dy <= r; dy++) {
+            if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+            const x = from.x + dx,
+              y = from.y + dy;
+            if (!inside(x, y) || land.sample(x, y).water <= 3) continue;
+            if (world.blocked(x, y, "outside")) continue;
+            anyDry = { x, y };
+            break;
+          }
+    // Last resort: the settlement's own spawn is dry by construction.
+    const spot = clear ?? anyDry ?? initial?.spawn;
     if (!spot)
       throw Error(
         "No dry starting location found; try another seed or water setting.",
