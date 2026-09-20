@@ -78,7 +78,7 @@ export class PlayerFeel {
     const ring = this.scene.add
       .ellipse(x, y - 1, 8, 3)
       .setStrokeStyle(1, 0xd8ccb0, 0.8)
-      .setDepth(y * 16 + 3900);
+      .setDepth(y + 3900);
     this.scene.tweens.add({
       targets: ring,
       scaleX: 2.2 + weight * 1.6,
@@ -152,7 +152,7 @@ export class PlayerFeel {
           size,
           palette[i % palette.length],
         )
-        .setDepth(y * 16 + 4000);
+        .setDepth(y + 4000);
       this.scene.tweens.add({
         targets: rect,
         x: rect.x + (Math.random() - 0.5) * 22 * spread,

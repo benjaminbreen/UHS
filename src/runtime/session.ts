@@ -484,7 +484,12 @@ export class Runtime {
       const tool = propDefs[held?.prop ?? ""]?.tool;
       this.characterAction = {
         serial: ++this.characterSerial,
-        pose: tool ? TOOL_POSES[TOOL_ACTIONS[tool]] : "swing",
+        // A spear goes straight in.
+        pose: tool
+          ? TOOL_POSES[TOOL_ACTIONS[tool]]
+          : swing?.thrust
+            ? "thrust"
+            : "swing",
         at: performance.now(),
         prop:
           held?.sprite ?? (item ? this.engine.item(item)?.sprite : undefined),
@@ -726,6 +731,7 @@ export class Runtime {
       Math.hypot(found.point.x - p.x, found.point.y - p.y),
     );
     this.walkTo(found.point);
+    this.engine.cue("player", this.running ? "point" : "question", found.point);
     const text = this.running
       ? `You set off toward the ${found.label.toLowerCase()}, ${steps} paces away.`
       : `You can see the ${found.label.toLowerCase()} ${steps} paces off, but there is no way through.`;

@@ -225,6 +225,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
     if (nearest) openDialogue(nearest.id);
     else {
       runtime.notice = "No one is in sight. Walk farther to meet someone.";
+      runtime.engine.cue("player", "question");
       runtime.emit();
     }
   };

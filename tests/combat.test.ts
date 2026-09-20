@@ -122,10 +122,10 @@ it("a boar paws the ground, then charges down a fixed line and hurts", () => {
   expect(g.provoked).toBeGreaterThan(engine.state.clock);
   wait(engine, 2);
   expect(g.attack?.phase).toBe("windup");
-  expect(engine.combatEvents.some((e) => e.kind === "windup")).toBe(true);
+  expect(engine.signals.some((e) => e.kind === "windup")).toBe(true);
   const before = engine.state.player.health ?? 100;
   wait(engine, 6);
-  expect(engine.combatEvents.some((e) => e.kind === "mauled")).toBe(true);
+  expect(engine.signals.some((e) => e.kind === "mauled")).toBe(true);
   expect(engine.state.player.health).toBeLessThan(before);
   expect(engine.state.player.pos.x).toBeLessThan(0);
 });
@@ -164,7 +164,7 @@ it("wolves ring the player and one comes in", () => {
   g.members[0].y = 0;
   swing(engine);
   wait(engine, 14);
-  expect(engine.combatEvents.some((e) => e.kind === "lunge")).toBe(true);
+  expect(engine.signals.some((e) => e.kind === "lunge")).toBe(true);
 });
 
 it("a kill yields meat and hide, more from a better animal", () => {

@@ -57,6 +57,7 @@ import {
 import { ToolEffects, ROLL_MS } from "./tool-effects";
 import { CombatEffects, faunaSpriteId, mixTint } from "./combat-effects";
 import { PlayerFeel } from "./player-feel";
+import { CueEffects } from "./cue-effects";
 import { TIERS } from "../core/combat";
 import {
   facingFromDirection,
@@ -249,6 +250,14 @@ export class WorldScene extends Phaser.Scene {
   private plantImages = new Map<string, Phaser.GameObjects.Image[]>();
   private toolEffects?: ToolEffects;
   private combatEffects?: CombatEffects;
+  private cueFx?: CueEffects;
+  /** How people show what they make of things. */
+  private get cues() {
+    return (this.cueFx ??= new CueEffects(this, {
+      entityAt: (id) => this.entities.get(id),
+      playerPose: (pose) => this.runtime.playPose(pose),
+    }));
+  }
   private feelFx?: PlayerFeel;
   private get feel() {
     return (this.feelFx ??= new PlayerFeel(this));
@@ -463,6 +472,7 @@ export class WorldScene extends Phaser.Scene {
       this.combatEffects?.dispose();
       this.combatEffects = undefined;
       this.feelFx?.dispose();
+      this.cueFx?.dispose();
     });
     this.events.once("shutdown", () => this.characters?.destroy());
     ensureFireTextures(this);
@@ -758,7 +768,7 @@ export class WorldScene extends Phaser.Scene {
           size,
           DUST[i % DUST.length],
         )
-        .setDepth(y * 16 + 4000);
+        .setDepth(y + 4000);
       this.tweens.add({
         targets: rect,
         x: rect.x + (Math.random() - 0.5) * 22 * spread,
@@ -2972,7 +2982,15 @@ export class WorldScene extends Phaser.Scene {
     this.toolEffects.update(time);
     this.combat().consume(this.runtime.swingEffect);
     this.combat().consumeThrow(this.runtime.throwEffect);
-    this.combat().consumeEvents(this.runtime.engine.combatEvents);
+    this.combat().consumeEvents(this.runtime.engine.signals);
+    this.cues.consume(this.runtime.engine.signals);
+    this.cues.update();
+    this.cues.sleeping(
+      [...this.humanActors]
+        .filter(([, a]) => /sleep/i.test(a.activity))
+        .map(([id]) => id),
+      time,
+    );
     this.combat().charging(this.runtime.charge);
     this.runtime.aiming = this.aimStarted !== undefined;
     this.combat().aiming(this.aimPath(), time);
@@ -3149,6 +3167,10 @@ export class WorldScene extends Phaser.Scene {
         else if (/eating/i.test(human.activity)) pose = "give";
         if (id === "player" && pose === "idle") pose = "breathe";
         if (moving && water > 0.025 && !active) pose = "wade";
+        // Someone reacting stops what they were doing to do it.
+        const cued =
+          id !== "player" && !moving ? this.cues.poseFor(id) : undefined;
+        if (cued) pose = cued.pose;
         const me = this.runtime.engine.state.player;
         const fidget =
           id === "player" && !this.options.freeze
@@ -3171,16 +3193,18 @@ export class WorldScene extends Phaser.Scene {
           ? Math.min(3, Math.floor(elapsed / poseTiming(pose)))
           : this.options.freeze
             ? 0
-            : fidget?.pose
-              ? Math.min(
-                  3,
-                  Math.floor(
-                    ((time - fidget.from) / (fidget.until - fidget.from)) * 4,
-                  ),
-                )
-              : pose === "wade"
-                ? (this.wading?.frame(id) ?? 0)
-                : this.poseFrame(id, pose, laden ? time * 0.72 : time);
+            : cued
+              ? cued.index
+              : fidget?.pose
+                ? Math.min(
+                    3,
+                    Math.floor(
+                      ((time - fidget.from) / (fidget.until - fidget.from)) * 4,
+                    ),
+                  )
+                : pose === "wade"
+                  ? (this.wading?.frame(id) ?? 0)
+                  : this.poseFrame(id, pose, laden ? time * 0.72 : time);
         const prop =
           heldSprite ??
           (at?.activity === "haul-catch" ? CATCH : undefined) ??
@@ -3196,6 +3220,7 @@ export class WorldScene extends Phaser.Scene {
         // more obvious than the four-way ones did.
         const ahead =
           (id === "player" ? this.blockedFacing : undefined) ??
+          cued?.facing ??
           human.facing ??
           facingFromDirection(human.direction);
         // A glance aside and back, in the second and third quarters of it.

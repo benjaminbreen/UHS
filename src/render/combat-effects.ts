@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 import { gameAudio } from "../audio/director";
-import type { CombatEvent, CreatureHit } from "../core/combat";
+import type { Signal, CreatureHit } from "../core/combat";
 import { flightMs, type SwingEffect, type ThrowEffect } from "./tool-effects";
 
 /** The contact frame of the swing pose, as in `ToolEffects`. */
@@ -109,7 +109,7 @@ export class CombatEffects {
     const g = this.scene.add
       .graphics()
       .setPosition(player.x, player.y - 5)
-      .setDepth(player.y * 16 + 4300);
+      .setDepth(player.y + 4300);
     this.live.add(g);
     // Screen angles: 0 east, a quarter turn south.
     const facing = [-Math.PI / 2, 0, Math.PI / 2, Math.PI][effect.facing] ?? 0;
@@ -152,7 +152,7 @@ export class CombatEffects {
     }
     const g = (this.aimMark ??= this.scene.add.graphics()).clear();
     const end = this.cell(path.at(-1)!);
-    g.setDepth(end.y * 16 + 4200);
+    g.setDepth(end.y + 4200);
     for (const c of path.slice(0, -1)) {
       const at = this.cell(c);
       g.fillStyle(0xffffff, 0.55).fillRect(at.x - 1, at.y - 9, 2, 2);
@@ -183,7 +183,7 @@ export class CombatEffects {
     for (const id of ids) {
       const image = this.view.entityAt(id);
       if (!image) continue;
-      g.setDepth(image.y * 16 + 4520);
+      g.setDepth(image.y + 4520);
       const top = image.y - image.displayHeight - 2;
       for (let k = 0; k < 3; k++) {
         const angle = time / 160 + (k * Math.PI * 2) / 3;
@@ -246,12 +246,14 @@ export class CombatEffects {
   }
   /** What the animals did on their own account: the tell before a charge,
    * the run, the wall, and the player going over. */
-  consumeEvents(events: readonly CombatEvent[]) {
+  consumeEvents(events: readonly Signal[]) {
     // A new map is a new engine, and its count starts again.
     if ((events.at(-1)?.serial ?? this.seen) < this.seen) this.seen = 0;
     for (const e of events) {
       if (e.serial <= this.seen) continue;
       this.seen = e.serial;
+      // How people took things is `CueEffects`' business.
+      if (e.kind === "cue") continue;
       const id = faunaSpriteId(e.group, e.n);
       const image = this.view.entityAt(id);
       if (e.kind === "windup") this.tell(id, e.seconds);
@@ -452,7 +454,7 @@ export class CombatEffects {
       const chunk = this.scene.add
         .rectangle(at.x, at.y - 6, 4, 4, DROP[item] ?? 0xd8c890)
         .setStrokeStyle(1, 0x1a1410)
-        .setDepth(at.y * 16 + 4100);
+        .setDepth(at.y + 4100);
       this.live.add(chunk);
       const angle = (i / pieces.length) * Math.PI * 2 + Math.random();
       const rest = {
@@ -516,7 +518,7 @@ export class CombatEffects {
           i % 3 ? 2 : 3,
           palette[i % palette.length],
         )
-        .setDepth(y * 16 + 4000);
+        .setDepth(y + 4000);
       this.live.add(p);
       const dx = (Math.random() - 0.5) * 36;
       this.scene.tweens.add({
@@ -549,7 +551,7 @@ export class CombatEffects {
     color: number,
     px: number,
   ) {
-    const g = this.scene.add.graphics().setDepth(y * 16 + 4600);
+    const g = this.scene.add.graphics().setDepth(y + 4600);
     const width = (text.length * 4 - 1) * px;
     const draw = (color: number, ox: number, oy: number) => {
       g.fillStyle(color, 1);
@@ -619,7 +621,7 @@ export class CombatEffects {
         y = Math.round(image.y - image.displayHeight) - 16 - beat;
       t.mark
         .clear()
-        .setDepth(image.y * 16 + 4550)
+        .setDepth(image.y + 4550)
         .fillStyle(0x1a1410, 1)
         .fillRect(x - 2, y - 1, 4, 9)
         .fillStyle(beat ? 0xff5a3c : 0xffd34d, 1)
@@ -638,7 +640,7 @@ export class CombatEffects {
         y = Math.round(image.y - image.displayHeight) - 4;
       bar.g
         .clear()
-        .setDepth(image.y * 16 + 4500)
+        .setDepth(image.y + 4500)
         .fillStyle(0x1a1410, 1)
         .fillRect(x - 1, y - 1, 14, 4)
         .fillStyle(

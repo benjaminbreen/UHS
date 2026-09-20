@@ -240,9 +240,38 @@ export type CreatureHit = {
   drops: { item: string; count: number; sprite: string }[];
 };
 
-/** Things an animal did that the renderer should play. Queued by the sim in
- * clock order; never saved. */
-export type CombatEvent = { serial: number } & (
+/** How somebody takes something, for the renderer to act out. The engine
+ * fires one where it changes the state that warrants it and nowhere else, so
+ * a face can never disagree with the mechanics behind it. */
+export const cueKinds = [
+  /** Something sudden: a charge beginning, a fight breaking out nearby. */
+  "alarm",
+  /** Nothing came of it: nobody in sight, nothing found. */
+  "question",
+  /** Trust lost. */
+  "anger",
+  /** Trust won, enough to matter. */
+  "warm",
+  /** A small yes: an ordinary friendly exchange. */
+  "nod",
+  /** An offer turned down. */
+  "refuse",
+  "point",
+  "beckon",
+] as const;
+export type CueKind = (typeof cueKinds)[number];
+
+/** Everything the engine tells the renderer to play: what the animals did,
+ * and how people took things. One queue, in clock order, never saved. */
+export type Signal = { serial: number } & (
+  | {
+      kind: "cue";
+      /** An actor id, or "player". */
+      who: string;
+      cue: CueKind;
+      /** What it is about, so they can turn to it. */
+      toward?: Point;
+    }
   | { kind: "windup"; group: string; n: number; seconds: number }
   | { kind: "charge" | "lunge"; group: string; n: number }
   | { kind: "slam"; group: string; n: number; at: Point }
@@ -257,8 +286,8 @@ export type CombatEvent = { serial: number } & (
   | { kind: "dodged"; group: string; n: number }
 );
 /** Distributive, so each variant keeps its own fields. */
-export type CombatEventInput = CombatEvent extends infer E
-  ? E extends CombatEvent
+export type SignalInput = Signal extends infer E
+  ? E extends Signal
     ? Omit<E, "serial">
     : never
   : never;

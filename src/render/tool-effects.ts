@@ -297,7 +297,7 @@ export class ToolEffects {
       )
       .setOrigin(0.5, 0.5)
       .setTint(this.view.tint())
-      .setDepth(to.y * 16 + 4600);
+      .setDepth(to.y + 4600);
     // A long thing is thrown at body scale, not at the height it stands in a yard.
     if (effect.small) image.setScale(0.4);
     else if (image.height > 24) image.setScale(24 / image.height);
@@ -356,7 +356,7 @@ export class ToolEffects {
     const g = this.scene.add
       .graphics()
       .setPosition(at.x, at.y - 5)
-      .setDepth(at.y * 16 + 4650);
+      .setDepth(at.y + 4650);
     this.live.add(g);
     const ray = { r: 2, a: 1 };
     this.scene.tweens.add({
@@ -409,7 +409,7 @@ export class ToolEffects {
   }
   /** An expanding ring, for a blow that lands on water. */
   private ring(at: { x: number; y: number }, color: number) {
-    const g = this.scene.add.graphics().setDepth(at.y * 16 + 4200);
+    const g = this.scene.add.graphics().setDepth(at.y + 4200);
     g.lineStyle(1, color, 0.9);
     g.strokeEllipse(0, 0, 10, 5);
     g.setPosition(at.x, at.y - 1);
@@ -430,7 +430,7 @@ export class ToolEffects {
   private pixel(x: number, y: number, size: number, color: number) {
     const rect = this.scene.add
       .rectangle(x, y, size, size, color)
-      .setDepth(y * 16 + 4000);
+      .setDepth(y + 4000);
     this.live.add(rect);
     return rect;
   }
@@ -487,7 +487,7 @@ export class ToolEffects {
   /** A quick crescent in the direction of the blow. */
   private arc(from: { x: number; y: number }, to: { x: number; y: number }) {
     const angle = Math.atan2(to.y - from.y, to.x - from.x);
-    const g = this.scene.add.graphics().setDepth(to.y * 16 + 5000);
+    const g = this.scene.add.graphics().setDepth(to.y + 5000);
     g.lineStyle(3, 0xfdfaec, 0.95);
     g.beginPath();
     g.arc(0, 0, 16, -0.95, 0.95);
@@ -580,7 +580,7 @@ export class ToolEffects {
       )
       .setOrigin(0.5, 1)
       .setTint(this.view.tint())
-      .setDepth(target.y * 16 + 4500);
+      .setDepth(target.y + 4500);
     this.live.add(image);
     this.scene.tweens.add({
       targets: image,

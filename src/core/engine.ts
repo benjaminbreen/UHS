@@ -79,8 +79,9 @@ import {
   TIERS,
   missileOf,
   weaponOf,
-  type CombatEvent,
-  type CombatEventInput,
+  type CueKind,
+  type Signal,
+  type SignalInput,
   type CreatureHit,
   type FaunaTier,
   type Weapon,
@@ -358,19 +359,59 @@ export class Engine {
     const memory = `property:${o.id}`;
     if (p.memories.includes(memory)) return;
     p.memories.push(memory);
-    for (const witness of this.state.actors.filter(
+    this.offend({
+      cost: () => 3,
+      memory: () => `Saw player ${action} ${o.id}`,
+      text: (w) => `${w.name} saw you ${action} household property.`,
+    });
+  }
+  /** People near enough, and with a clear enough view, to have seen what the
+   * player just did. */
+  witnesses(radius = 7) {
+    const p = this.state.player;
+    return this.state.actors.filter(
       (a) =>
         a.kind === "human" &&
-        distance(a.pos, p.pos) < 7 &&
+        distance(a.pos, p.pos) < radius &&
         this.visibleFrom(a.pos, p.pos),
-    )) {
-      witness.trust -= 3;
-      witness.memories.push(`Saw player ${action} ${o.id}`);
-      this.event(
-        `${witness.name} saw you ${action} household property.`,
-        "social",
-      );
+    );
+  }
+  /** The one place a person's trust in the player changes. How they take it
+   * shows on them: losing trust angers, a real gain warms, an ordinary
+   * friendly exchange is a nod. */
+  regard(a: Actor, delta: number, cue?: CueKind) {
+    if (!delta) return;
+    a.trust += delta;
+    this.cue(
+      a.id,
+      cue ?? (delta < 0 ? "anger" : delta >= 2 ? "warm" : "nod"),
+      this.state.player.pos,
+    );
+  }
+  /** Something done in front of people that they hold against the player.
+   * Whoever it belonged to minds most; the rest are startled by it. */
+  private offend(o: {
+    owner?: string;
+    radius?: number;
+    cost: (theirs: boolean) => number;
+    memory: (theirs: boolean) => string;
+    text: (witness: Actor, theirs: boolean) => string;
+  }) {
+    for (const w of this.witnesses(o.radius)) {
+      const theirs = w.id === o.owner;
+      this.regard(w, -o.cost(theirs), theirs || !o.owner ? "anger" : "alarm");
+      w.memories.push(o.memory(theirs));
+      this.event(o.text(w, theirs), "social");
     }
+  }
+  /** Asks the renderer to act something out. Cosmetic: nothing reads it back. */
+  cue(who: string, cue: CueKind, toward?: Point) {
+    this.signal({
+      kind: "cue",
+      who,
+      cue,
+      toward: toward && { x: toward.x, y: toward.y },
+    });
   }
   rng(purpose: string) {
     return random(
@@ -901,6 +942,9 @@ export class Engine {
       feathered: profile.locomotion === "ground-and-flight",
       drops: [],
     };
+    // A fight breaking out turns heads, once, not on every blow.
+    if (clock >= this.combatUntil)
+      for (const w of this.witnesses(12)) this.cue(w.id, "alarm", from);
     this.combatUntil = clock + 90;
     // A blow breaks whatever it was in the middle of.
     if (g.attack?.n === m.n) {
@@ -1037,34 +1081,34 @@ export class Engine {
     if (p.memories.includes(memory)) return;
     p.memories.push(memory);
     const label = faunaProfile(g.speciesId)?.label.toLowerCase() ?? "animal";
-    for (const witness of this.state.actors.filter(
-      (a) =>
-        a.kind === "human" &&
-        distance(a.pos, p.pos) < 12 &&
-        this.visibleFrom(a.pos, p.pos),
-    )) {
-      const theirs = witness.id === g.owner;
-      witness.trust -= (theirs ? 8 : 3) * (killed ? 2 : 1);
-      witness.memories.push(
-        `Saw player ${killed ? "kill" : "strike"} ${theirs ? "my" : "a neighbour's"} ${label}`,
-      );
-      this.event(
+    const did = killed ? "kill" : "strike";
+    this.offend({
+      owner: g.owner,
+      radius: 12,
+      cost: (theirs) => (theirs ? 8 : 3) * (killed ? 2 : 1),
+      memory: (theirs) =>
+        `Saw player ${did} ${theirs ? "my" : "a neighbour's"} ${label}`,
+      text: (w, theirs) =>
         theirs
-          ? `${witness.name} shouts at you: that ${label} is theirs.`
-          : `${witness.name} saw you ${killed ? "kill" : "strike"} a ${label} that is not yours.`,
-        "social",
-      );
-    }
+          ? `${w.name} shouts at you: that ${label} is theirs.`
+          : `${w.name} saw you ${did} a ${label} that is not yours.`,
+    });
   }
-  /** What the animals have done since the renderer last looked. */
-  combatEvents: CombatEvent[] = [];
+  private directionTo(from: Point, to: Point) {
+    const dx = to.x - from.x,
+      dy = to.y - from.y;
+    return Math.abs(dx) >= Math.abs(dy) ? (dx > 0 ? 1 : 3) : dy > 0 ? 2 : 0;
+  }
+  /** What the renderer should play: what the animals did and how people took
+   * things, in the order it happened. */
+  signals: Signal[] = [];
   private combatSerial = 0;
-  private emitCombat(event: CombatEventInput) {
-    this.combatEvents.push({
+  private signal(event: SignalInput) {
+    this.signals.push({
       ...event,
       serial: ++this.combatSerial,
-    } as CombatEvent);
-    if (this.combatEvents.length > 24) this.combatEvents.shift();
+    } as Signal);
+    if (this.signals.length > 32) this.signals.shift();
   }
   /** An animal has run the player down: the hurt, and being thrown by it. */
   private mauled(g: FaunaGroup, m: FaunaMember, dir: Point, damage: number) {
@@ -1081,7 +1125,7 @@ export class Engine {
       p.pos = next;
     }
     p.health = Math.max(0, (p.health ?? 100) - damage);
-    this.emitCombat({
+    this.signal({
       kind: "mauled",
       group: g.id,
       n: m.n!,
@@ -1293,7 +1337,7 @@ export class Engine {
           (victim.health ?? 100) - (result.damage ?? 1) * 6,
         );
         victim.memories.push(`Struck by ${object.name.toLowerCase()}`);
-        victim.trust -= 4;
+        this.regard(victim, -4);
         this.event(`${victim.name} is caught by ${object.name.toLowerCase()}.`);
       }
     }
@@ -2449,6 +2493,13 @@ export class Engine {
       const before = this.state.clock,
         lastEvent = this.state.events.at(-1)?.id ?? 0;
       const reason = this.validate(request.command);
+      // An offer actually made and turned down shows on whoever turned it down.
+      if (reason && request.command.type === "trade")
+        this.cue(
+          request.command.target,
+          /unresolved/.test(reason) ? "anger" : "refuse",
+          this.state.player.pos,
+        );
       if (reason)
         result = {
           actionId: request.actionId,
@@ -2868,7 +2919,14 @@ export class Engine {
         noise: this.noise(),
         dodging: clock - this.lastJump <= 6,
         onMaul: (g, m, dir, damage) => this.mauled(g, m, dir, damage),
-        emit: (event) => this.emitCombat(event),
+        emit: (event) => {
+          this.signal(event);
+          // The moment to be somewhere else.
+          if (event.kind === "windup") {
+            const g = near.find((o) => o.id === event.group);
+            this.cue("player", "alarm", g?.pos);
+          }
+        },
       },
       clock,
     );
@@ -2879,6 +2937,7 @@ export class Engine {
         if (player.memories.includes(memory)) continue;
         player.memories.push(memory);
         this.event(`You catch sight of ${m.name}.`);
+        this.cue("player", "alarm", m);
       }
     if (near.some((g) => g.provoked !== undefined))
       this.combatUntil = Math.max(this.combatUntil, clock + 30);
@@ -3274,7 +3333,7 @@ export class Engine {
       const def = this.item(c.item)!;
       delete p.heldItem;
       a.inventory[c.item] = (a.inventory[c.item] ?? 0) + 1;
-      a.trust++;
+      this.regard(a, 1);
       a.memories.push(`You gave them ${def.name.toLowerCase()}.`);
       this.advance(20, a.id);
       this.event(
@@ -3396,7 +3455,7 @@ export class Engine {
       a.inventory[c.take] = (a.inventory[c.take] ?? 0) - c.takeQuantity;
       p.inventory[c.take] = (p.inventory[c.take] ?? 0) + c.takeQuantity;
       this.advance(60, a.id);
-      a.trust++;
+      this.regard(a, 1);
       this.grantXp(
         "trade",
         Math.min(40, 5 + this.items[c.take].value * c.takeQuantity),
@@ -3412,14 +3471,21 @@ export class Engine {
       case "talk":
         if (a) {
           this.advance(90, a.id);
-          if (a.trust >= 0) {
-            a.trust++;
-            if (
+          // People talking look at each other.
+          p.direction = this.directionTo(p.pos, a.pos);
+          a.direction = this.directionTo(a.pos, p.pos);
+          delete p.facing;
+          delete a.facing;
+          if (a.trust >= 0)
+            this.regard(
+              a,
               this.rng("speech") <
-              this.skillLevel("speech") * PER_LEVEL.speechWarmth
-            )
-              a.trust++;
-          }
+                this.skillLevel("speech") * PER_LEVEL.speechWarmth
+                ? 2
+                : 1,
+            );
+          // Still holding a loss against you: asking again does not help.
+          else this.cue(a.id, "anger", p.pos);
           this.grantXp("speech", 8);
           const owner = this.world.places.find((b) => b.owner === a.id);
           if (a.trust >= 2) {
@@ -3440,6 +3506,7 @@ export class Engine {
           this.advance(30, a.id);
           a.consentUntil = this.state.clock + 600;
           p.follows = a.id;
+          this.cue(a.id, "beckon", p.pos);
           this.event(
             `${a.name} agrees to your company on the way to work. The invitation lasts ten minutes.`,
             "social",
@@ -3606,19 +3673,12 @@ export class Engine {
           this.event(`You take the contents of ${o.name.toLowerCase()}.`);
           if (o.owner) {
             p.memories.push(`theft:${o.id}:${JSON.stringify(taken)}`);
-            for (const witness of this.state.actors.filter(
-              (a) =>
-                a.kind === "human" &&
-                distance(a.pos, p.pos) < 7 &&
-                this.visibleFrom(a.pos, p.pos),
-            )) {
-              witness.trust -= 3;
-              witness.memories.push(`Saw player take ${o.id}`);
-              this.event(
-                `${witness.name} saw you take property belonging to the household.`,
-                "social",
-              );
-            }
+            this.offend({
+              cost: () => 3,
+              memory: () => `Saw player take ${o.id}`,
+              text: (w) =>
+                `${w.name} saw you take property belonging to the household.`,
+            });
           }
         }
         break;
@@ -3642,7 +3702,7 @@ export class Engine {
             for (const a of this.state.actors.filter((a) =>
               a.memories.some((m) => m.includes(o.id)),
             )) {
-              a.trust = Math.max(0, a.trust + 2);
+              this.regard(a, Math.max(0, a.trust + 2) - a.trust);
               a.memories.push(`Restitution for ${o.id}`);
             }
           }

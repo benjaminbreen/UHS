@@ -12,7 +12,7 @@ import {
   type FaunaCombat,
   type FaunaProfile,
 } from "../content/fauna";
-import { TIERS, type CombatEventInput } from "./combat";
+import { TIERS, type SignalInput } from "./combat";
 
 /** What a group needs from the world to move: the engine supplies it once per tick. */
 export type FaunaWorld = {
@@ -37,7 +37,7 @@ export type FaunaWorld = {
   /** An animal has reached the player. `dir` is the way it was travelling. */
   onMaul?(g: FaunaGroup, m: FaunaMember, dir: Point, damage: number): void;
   /** Something for the renderer to play. */
-  emit?(event: CombatEventInput): void;
+  emit?(event: SignalInput): void;
   /** A hunter has pulled a member of `prey` down on `at`. */
   onKill?(hunter: FaunaGroup, prey: FaunaGroup, at: Point): void;
 };

@@ -77,7 +77,7 @@ function converse(engine: Engine, i: Extract<Intent, { type: "converse" }>) {
   const actor = engine.state.actors.find((a) => a.id === i.with);
   if (!actor) return "That person is no longer here.";
   const delta = clamp(Math.round(i.delta), -2, 2);
-  actor.trust += delta;
+  engine.regard(actor, delta);
   actor.memories.push(
     `spoke:${delta > 0 ? "+" : ""}${delta}:${i.said.slice(0, 80)}`,
   );
@@ -269,16 +269,9 @@ function travel(
   return `Walked ${steps} paces ${direction}; stopped because ${why}.`;
 }
 function regard(engine: Engine, delta: number, reason: string) {
-  const s = engine.state,
-    p = s.player;
-  const witnesses = s.actors.filter(
-    (a) =>
-      a.kind === "human" &&
-      distance(a.pos, p.pos) < 7 &&
-      engine.visibleFrom(a.pos, p.pos),
-  );
+  const witnesses = engine.witnesses();
   for (const w of witnesses) {
-    w.trust += delta;
+    engine.regard(w, delta);
     w.memories.push(
       `regard:${delta > 0 ? "+" : ""}${delta}:${reason.slice(0, 80)}`,
     );
