@@ -62,6 +62,10 @@ export class Pixels {
    * switched off for the head, which is almost entirely boundary at this size
    * and comes out crumpled if every pixel takes a rim or a core value. */
   modeling = true;
+  /** For a shape drawn on top of the body, such as the near arm in profile.
+   * A full dark contour on a 3px limb leaves one pixel of colour; this keeps
+   * the dark line on the shaded side only. */
+  overlay = false;
   private groupMask?: Set<string>;
   /** Join garment pieces BEFORE computing their silhouette. Shared shoulders have no seam. */
   group(colors: Ramp, draw: () => void) {
@@ -112,6 +116,10 @@ export class Pixels {
         // Bottom and the shaded flank take the dark contour; the lit flank
         // takes a tinted one so the outline never closes into a black ring.
         const shaded = !has(x, y + 1) || !has(x - lit, y);
+        if (this.overlay) {
+          this.rect(x, y, 1, 1, shaded ? colors.edge : colors.light);
+          continue;
+        }
         this.rect(
           x,
           y,

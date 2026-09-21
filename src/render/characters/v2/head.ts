@@ -33,7 +33,11 @@ export function drawHead(
         [shape === "broad" ? 3 : 5, 4],
         [10, shape === "long" ? 1 : 2],
         [shape === "oval" ? 14 : 15, 3],
-        [17, 5],
+        // The forehead slopes back from the brow; a vertical wall from crown
+        // to nose read as a mask.
+        [16, 4],
+        [16, 6],
+        [17, 7],
         [17, 8],
         [18, 9],
         [18, 10],

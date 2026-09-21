@@ -521,22 +521,33 @@ export function drawCharacter(
     const x = side
         ? isFar
           ? 12
-          : 10
+          : 11
         : isFar
           ? 6 - wide + small
           : 13 + wide - narrow,
       // Front and back used to hold both feet still and only lift one 2px.
       // A pixel of scissor either side is enough to read as a stride head-on.
+      // The hips sit a pixel apart, so the leg that has to cross the other
+      // reaches a pixel further, or one contact frame is narrower than the other.
       walk = side
         ? isFar
-          ? -stride
-          : stride
+          ? -stride - (stride > 0 ? 1 : 0)
+          : stride + (stride > 0 ? 1 : 0)
         : Math.sign(isFar ? -stride : stride);
     // Lifted on the passing frames, planted on the contact frames. It used to
     // be the other way round, which left both feet flat at mid-stride and made
     // the two passing frames identical drawings.
     const lift =
-      (moving ? ((isFar && f === 2) || (!isFar && f === 0) ? 2 : 0) : 0) +
+      (moving
+        ? (isFar && f === 2) || (!isFar && f === 0)
+          ? side
+            ? 3
+            : 2
+          : // The trailing foot of a contact frame is up on its toe.
+            side && walk < 0
+            ? 1
+            : 0
+        : 0) +
       flight +
       // Climbing alternates a foothold: one foot stays planted on the face
       // while the other reaches for the next hold.
@@ -682,9 +693,9 @@ export function drawCharacter(
       cloak.light,
     );
   }
-  // A profile is about 60% of the front width: 7px against 12. Build goes on
+  // A profile is two thirds of the front width: 8px against 12. Build goes on
   // the front first; only the heaviest adds a pixel behind.
-  const left = side ? 9 - (wide > 1 ? 1 : 0) : 4 - wide + small,
+  const left = side ? 8 - (wide > 1 ? 1 : 0) + small : 4 - wide + small,
     right = (side ? 16 + wide : 16 + wide) - narrow;
   // A loincloth is the bare-torso body with a panel hung off the cord, so it
   // shares every measurement with it.
@@ -746,8 +757,9 @@ export function drawCharacter(
               [left + 2, 12],
               [right - 3, 12],
               [right - 1, 14],
-              [right + inhale, 16],
-              [right - waist + belly, 20 + torso],
+              [right + 1, 16 - inhale],
+              [right + 1, 18 - inhale],
+              [right + belly, 20 + torso],
               [right + belly + flare + hemSway, bodyHem - 1 - hemLift],
               [right - 1 + flare + hemSway, bodyHem],
               [left - flare + hemSway, bodyHem],
@@ -771,7 +783,9 @@ export function drawCharacter(
       body,
     );
     if (!naked && !poncho && sleeves !== "none") {
-      p.ribbon(nearArm.sleeve, sleeves === "loose" ? 5 : 4, cloth);
+      // In profile the near sleeve is drawn later with its own contour, or the
+      // arm vanishes into a torso of the same cloth.
+      if (!side) p.ribbon(nearArm.sleeve, sleeves === "loose" ? 5 : 4, cloth);
       p.ribbon(farArm.sleeve, sleeves === "loose" ? 5 : 4, cloth);
     }
   });
@@ -795,16 +809,11 @@ export function drawCharacter(
     if (!side) {
       p.line([left, 14], [left + 2, 13], cloth.light);
       p.line([right - 3, 13], [right, 14], cloth.base);
-    } else {
-      p.line(
-        [nearArm.shoulder[0] - 1, 16],
-        [nearArm.elbow[0] - 1, nearArm.elbow[1]],
-        cloth.shade,
-      );
-      p.rect(nearArm.shoulder[0], 15, 2, 2, cloth.base);
     }
   }
-  if (!naked) {
+  // The profile torso is 8px with an arm across it: the contour and the arm
+  // carry the form, and hand-placed planes only add noise.
+  if (!naked && !side) {
     p.line([left + 1, 16], [left + 1, hem - 3], cloth.light);
     p.line([right - 2, 17], [right - 2, hem - 2], cloth.shade);
   }
@@ -817,17 +826,23 @@ export function drawCharacter(
   // that gap is the whole silhouette, and without it this is just a coat.
   if (openRobe && !back) {
     const inner = ramp(a.wearing.lowerColor);
-    const mid = side ? right - 3 : Math.round((left + right) / 2);
-    p.rect(mid - 2, 15, 5, hem - 17, inner.base);
-    p.rect(mid - 2, 15, 1, hem - 17, inner.shade);
-    p.rect(mid + 1, 15, 1, hem - 17, inner.light);
-    // The panel edges, lit on the left and shaded on the right.
-    p.line([mid - 3, 14], [mid - 3, hem - 2], cloth.light);
-    p.line([mid + 3, 14], [mid + 3, hem - 2], cloth.shade);
-    // A collar band running down each edge, which is where these garments
-    // carry their trim.
-    p.line([mid - 4, 15], [mid - 4, hem - 3], a.wearing.trim);
-    if (!side) p.line([mid + 4, 15], [mid + 4, hem - 3], a.wearing.trim);
+    const mid = Math.round((left + right) / 2);
+    if (side) {
+      // In profile the opening is a strip down the front edge.
+      p.rect(right - 3, 15, 2, hem - 17, inner.base);
+      p.line([right - 4, 15], [right - 4, hem - 3], a.wearing.trim);
+    } else {
+      p.rect(mid - 2, 15, 5, hem - 17, inner.base);
+      p.rect(mid - 2, 15, 1, hem - 17, inner.shade);
+      p.rect(mid + 1, 15, 1, hem - 17, inner.light);
+      // The panel edges, lit on the left and shaded on the right.
+      p.line([mid - 3, 14], [mid - 3, hem - 2], cloth.light);
+      p.line([mid + 3, 14], [mid + 3, hem - 2], cloth.shade);
+      // A collar band running down each edge, which is where these garments
+      // carry their trim.
+      p.line([mid - 4, 15], [mid - 4, hem - 3], a.wearing.trim);
+      p.line([mid + 4, 15], [mid + 4, hem - 3], a.wearing.trim);
+    }
   }
   // A gown: a stomacher panel down the bodice and a band where the skirt is
   // gathered onto it.
@@ -895,9 +910,11 @@ export function drawCharacter(
         p.rect(seam + 1, y, 1, 1, a.wearing.trim);
   }
   // Small planes of cloth shading: chest, underarm and belt gathers, never box outlines.
-  p.rect(left + 2, 15 - inhale, side ? 2 : 4, 2, cloth.light);
-  p.line([right - 2, 18], [right - 2 - waist, 21 + torso], cloth.shade);
-  p.line([left + 3, 21 + torso], [left + 5, 20 + torso], cloth.shade);
+  if (!side) {
+    p.rect(left + 2, 15 - inhale, 4, 2, cloth.light);
+    p.line([right - 2, 18], [right - 2 - waist, 21 + torso], cloth.shade);
+    p.line([left + 3, 21 + torso], [left + 5, 20 + torso], cloth.shade);
+  }
   if (a.wearing.garment === "skirt") {
     p.shape(
       [
@@ -994,7 +1011,7 @@ export function drawCharacter(
         (a.wearing.leggings ?? "none") === "none" &&
         (a.wearing.garment === "tunic" || a.wearing.garment === "wrap");
       const legTone = bareLegs ? skin : lower;
-      for (const x of side ? [10, 12] : [6 - wide + small, 13 + wide - narrow])
+      for (const x of side ? [11, 12] : [6 - wide + small, 13 + wide - narrow])
         p.rect(x - 1, hem, 4, 1, legTone.shadowEdge ?? legTone.edge);
     }
   }
@@ -1018,13 +1035,20 @@ export function drawCharacter(
     p.rect(left, beltY, right - left, 1, sash.shade);
     p.rect(left, beltY - 1, 2, 3, sash.shade);
   }
+  if (side && !naked && !poncho && sleeves !== "none") {
+    p.overlay = true;
+    p.ribbon(nearArm.sleeve, sleeves === "loose" ? 5 : 4, cloth);
+    p.overlay = false;
+    if (sleeves !== "short")
+      p.rect(nearArm.cuff[0] - 1, nearArm.cuff[1], 3, 1, trim.shade);
+  }
   // A short cape over the shoulders, stopping at the elbow, and usually the
   // brightest thing on the figure: lliclla, feather cape, paenula. Drawn over
   // the garment, because that is what it is.
   if (a.wearing.mantle && !a.wearing.cloak) {
     const sway = trail;
-    const ml = (side ? 4 : 1) - wide,
-      mr = (side ? 13 : 19) + wide;
+    const ml = side ? 7 : 1 - wide,
+      mr = (side ? 17 : 19) + wide;
     p.shape(
       [
         [ml + 2, 12],
@@ -1055,16 +1079,18 @@ export function drawCharacter(
     forearm(farArm, true);
     ctx.restore();
   } else forearm(farArm, back);
+  p.overlay = side;
   forearm(nearArm, false);
+  p.overlay = false;
   if (a.wearing.shoulderCloth) {
     const drape = ramp(a.wearing.cloakColor);
     p.shape(
       side
         ? [
-            [7, 13],
-            [11, 14],
-            [9, 23 + torso],
-            [6, 21 + torso],
+            [9, 13],
+            [13, 14],
+            [11, 23 + torso],
+            [8, 21 + torso],
           ]
         : [
             [5, 13],
@@ -1074,8 +1100,8 @@ export function drawCharacter(
           ],
       drape,
     );
-    p.line([side ? 8 : 6, 15], [side ? 7 : 5, 20 + torso], drape.light);
-    p.line([side ? 10 : 8, 14], [side ? 13 : 12, 15], drape.base);
+    p.line([side ? 10 : 6, 15], [side ? 9 : 5, 20 + torso], drape.light);
+    p.line([side ? 12 : 8, 14], [side ? 15 : 12, 15], drape.base);
   }
   // Collar shadow under the chin so the head sits on the body.
   if (!back) p.rect(left + 1, 16, right - left - 1, 1, cloth.shade);
@@ -1083,10 +1109,10 @@ export function drawCharacter(
   if (stance === "stooped") ctx.translate(1, 1);
   p.modeling = false;
   if (quarter) {
-    // The front head is a pixel wider than the side body; nudge it towards
-    // the way the figure is walking so the turn reads rather than the offset.
+    // The profile body sits forward of the front head's centre; move the
+    // head over it.
     ctx.save();
-    ctx.translate(1, 0);
+    ctx.translate(2, 0);
     drawHead(p, a, false, headAway, pose, f, trail);
     ctx.restore();
   } else drawHead(p, a, side, back, pose, f, trail);
