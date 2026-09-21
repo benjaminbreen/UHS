@@ -132,15 +132,18 @@ export function handleTerrainRequest(data: TerrainRequest) {
                     polish,
                   )
                 : c.waterVisual.distance,
+            // Turf runs under the water layer's ragged outer beach, which
+            // cuts away to show it.
             shoreWidth:
-              c.waterVisual.kind === "sea"
+              (polish?.enabled ? 0.56 : 1) *
+              (c.waterVisual.kind === "sea"
                 ? coastBeachWidth(
                     livingBeachWidth(sample, x, y, region.x, region.y, polish),
                     x + region.x,
                     y + region.y,
                     polish,
                   )
-                : livingBeachWidth(sample, x, y, region.x, region.y, polish),
+                : livingBeachWidth(sample, x, y, region.x, region.y, polish)),
           },
         };
         paintCells.set(key, painted);

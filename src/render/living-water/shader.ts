@@ -43,8 +43,11 @@ void main(){
      float clump=noise(floor(p/2.)/5.)*.24+noise(p/23.)*.15;
      float edge=clamp((d-(1.-polishParams.x*.6)+clump-.15)/max(.1,polishParams.x*.6),0.,1.);
      edge=floor(edge*5.)/5.;
-     vec3 earth=mix(dry,tone(13.,row),.45);
-     bank=mix(bank,edge<.5?earth:tone(13.,row),edge);
+     // Past the sand the ground raster's own turf shows, not a flat green:
+     // a damp margin, a dark undercut, then nothing.
+     if(edge>.7)discard;
+     if(edge>.5)bank=tone(13.,row)*.5;
+     else if(edge>.1)bank=mix(dry,wet,.55+edge*.5);
      if(noise(floor(p/2.)/2.)>.78&&d>.24&&d<.72)bank=mix(bank,wet,.18);
    }
    vec4 bankArt=texture2D(iChannel2,(local+.5)/resolution);

@@ -812,12 +812,14 @@ function rasterWallContours(
       }
       // A lit pixel along every rim, with a shaded strip just inside the
       // west and east ones: the outline that makes a step read as a step.
-      if (rim && L) paintRgb(row, L, px, sy, trim.edge);
+      // A paved step is a stone nosing, not a turf lip.
+      const stone = material?.feature === "paving";
+      if (rim && L) paintRgb(row, L, px, sy, stone ? [198, 194, 178] : trim.edge);
       else if (
         contour.sides &&
         (lvl(px - contour.sides, py) < L || lvl(px + contour.sides, py) < L)
       )
-        paintRgb(row, L, px, sy, trim.sides);
+        paintRgb(row, L, px, sy, stone ? [122, 120, 110] : trim.sides);
       const below = rampInto(cx, row + 1, "n") ? L : lvl(px, py + 1);
       // Rim feet for the sun-cast shadow drawn on the main thread: screen
       // point on the lower ground, wall height, lower tier, which way it faces.

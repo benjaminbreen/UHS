@@ -551,7 +551,12 @@ export class WorldScene extends Phaser.Scene {
     );
     this.createHoverTip();
     this.routeOverlay = this.add.graphics().setDepth(20000);
-    this.night = this.add.graphics().setDepth(19000).setScrollFactor(0);
+    // Multiply, not a flat fill: a wash that lifts the darks greys the scene.
+    this.night = this.add
+      .graphics()
+      .setDepth(19000)
+      .setScrollFactor(0)
+      .setBlendMode(Phaser.BlendModes.MULTIPLY);
     this.drift = new Drift(this);
     this.mist = new Mist(this);
     this.life = new AmbientLife(this);
@@ -3030,7 +3035,7 @@ export class WorldScene extends Phaser.Scene {
         this.scale.height * 9,
       );
     if (wash > 0)
-      this.night!.fillStyle(0x2a3a55, wash).fillRect(
+      this.night!.fillStyle(0x4a5f80, wash).fillRect(
         -this.scale.width * 4,
         -this.scale.height * 4,
         this.scale.width * 9,

@@ -15,6 +15,8 @@ import {
   type GroundMaterial,
 } from "./ground-style";
 import { rasterStreetTile } from "./street-raster";
+import { enclosed, kerbed, pavingMask, wornEdge, VERGE } from "./paving-edge";
+import { pavingGrade, pavingStonePixel } from "./paving-stones";
 import { rasterFieldTile, tilled } from "./field-raster";
 import { bold, width as fenceWidth } from "./fences";
 import { paintFences } from "./fence-pass";
@@ -219,7 +221,78 @@ export function rasterHabitatTile(
   art: GrassArt = defaultGrassArt,
   cell: TopographyCell = sample(x, y)!,
 ): GroundTileData {
-  if (cell.feature === "paving") return rasterStreetTile(sample, x, y, ox, oy);
+  const street = cell.feature === "paving";
+  if (!street && (!cell.habitat || !wornEdge(cell)))
+    return rasterGroundTile(sample, x, y, ox, oy, art, cell);
+  if (!street && enclosed(sample, x, y)) {
+    const n = sample(x, y - 1)!,
+      pixels = new Uint8ClampedArray(1024);
+    for (let py = 0; py < 16; py++)
+      for (let px = 0; px < 16; px++)
+        pixels.set(
+          [...pavingStonePixel((x + ox) * 16 + px, (y + oy) * 16 + py, n.streetMaterial ?? "slab", pavingGrade(n.pavement)), 255],
+          (py * 16 + px) * 4,
+        );
+    return { x, y, pixels };
+  }
+  const mask =
+    cell.pavement === "dais" || kerbed(sample, x, y)
+      ? undefined
+      : pavingMask(sample, x, y, ox, oy);
+  if (!mask)
+    return street
+      ? rasterStreetTile(sample, x, y, ox, oy)
+      : rasterGroundTile(sample, x, y, ox, oy, art, cell);
+  // The nearest worn neighbour lends a paved cell its ground.
+  let under = cell,
+    lane: TopographyCell | undefined;
+  for (const [dx, dy] of [[0, -1], [-1, 0], [1, 0], [0, 1], [-1, -1], [1, -1], [-1, 1], [1, 1]]) {
+    const n = sample(x + dx, y + dy);
+    if (street && under === cell && n?.habitat && wornEdge(n))
+      under = { ...cell, feature: undefined, streetMaterial: undefined, pavement: undefined, surface: n.surface, habitat: cell.habitat ?? n.habitat };
+    if (!street && !lane && n?.feature === "paving") lane = n;
+  }
+  if (street && under === cell) return rasterStreetTile(sample, x, y, ox, oy);
+  const top = street ? rasterStreetTile(sample, x, y, ox, oy).pixels : undefined;
+  const tile = rasterGroundTile(sample, x, y, ox, oy, art, under);
+  const pixels = tile.pixels;
+  const { soilPalette: soil } = habitatRamps(under.habitat!, art);
+  const gx = (x + ox) * 16,
+    gy = (y + oy) * 16;
+  for (let py = 0; py < 16; py++)
+    for (let px = 0; px < 16; px++) {
+      const i = (py * 16 + px) * 4,
+        d = mask(px, py);
+      if (d >= 0) {
+        if (top) pixels.set(top.subarray(i, i + 4), i);
+        else if (lane) {
+          // A fillet in a ground cell: sunk edge stones of the street beside it.
+          const stone = pavingStonePixel(gx + px, gy + py, lane.streetMaterial ?? "slab", pavingGrade(lane.pavement));
+          pixels.set(d < 1 ? [169, 156, 121] : stone.map((n) => n - 8), i);
+        }
+        continue;
+      }
+      if (d < -VERGE) continue;
+      // Verge: packed earth against the stones, breaking up into the turf.
+      const grit = hash(gx + px, gy + py, 883),
+        keep = d > -1.2 ? 1 : d > -2.6 ? 0.8 : d > -3.6 ? 0.42 : 0.16;
+      if (grit > keep) continue;
+      const tone = d > -1.2 ? soil[1] : soil[grit < keep * 0.35 ? 3 : 2];
+      pixels[i] = tone[0];
+      pixels[i + 1] = tone[1];
+      pixels[i + 2] = tone[2];
+    }
+  return tile;
+}
+function rasterGroundTile(
+  sample: TopographySample,
+  x: number,
+  y: number,
+  ox: number,
+  oy: number,
+  art: GrassArt,
+  cell: TopographyCell,
+): GroundTileData {
   if (cell.field) return rasterFieldTile(sample, x, y, ox, oy, art);
   const h = cell.habitat!;
   const { palette, soilPalette } = habitatRamps(h, art);
@@ -956,10 +1029,19 @@ export function rasterHabitatTile(
               put(px, py, ((wy % 5) + 5) % 5 === 0 ? stoneLit : stoneDark);
           } else if (distance < width + jitter)
             put(px, py, shorePixel(cell, distance, wx, wy));
-          // Intermittent grass teeth and stones, not a continuous pale border.
+          // The turf ends in a lip: a dark undercut against the sand, then a
+          // broken lit edge, with blade clumps standing along it.
+          else if (!frozen && distance < width + jitter + 0.1)
+            put(px, py, palette[5], -6);
           else if (
-            distance < width + 0.18 &&
-            hash(Math.floor(wx / 3), Math.floor(wy / 3), 335) > 0.72
+            !frozen &&
+            distance < width + jitter + 0.2 &&
+            hash(Math.floor(wx / 2), Math.floor(wy / 2), 336) > 0.45
+          )
+            put(px, py, palette[1]);
+          else if (
+            distance < width + jitter + 0.42 &&
+            hash(Math.floor(wx / 3), Math.floor(wy / 3), 335) > 0.7
           )
             put(px, py, palette[5], 12);
         } else if (path > 0.3) {

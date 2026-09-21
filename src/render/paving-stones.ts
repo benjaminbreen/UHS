@@ -64,7 +64,8 @@ export function pavingStonePixel(
   // not merely different tints of the flagstone texture.
   if (material === "cobble" || material === "sett") {
     const rounded = material === "cobble";
-    const scale = grade === "fine" ? 0 : grade === "street" ? 1 : 2;
+    // A square keeps the street's stone size: a second scale read as a seam.
+    const scale = grade === "fine" ? 0 : grade === "dais" ? 2 : 1;
     const w = (rounded ? 6 : 7) + scale,
       h = (rounded ? 5 : 4) + scale;
     const row = Math.floor(wy / h),
@@ -72,7 +73,8 @@ export function pavingStonePixel(
     const col = Math.floor((wx + offset) / w);
     const x = mod(wx + offset, w),
       y = mod(wy, h);
-    const variation = Math.floor(hash(col, row, 711) * 27) - 13;
+    const variation = Math.floor(hash(col, row, 711) * 33) - 16;
+    const cast = hash(col, row, 712);
     const joint =
       x === 0 ||
       y === 0 ||
@@ -83,11 +85,17 @@ export function pavingStonePixel(
           ? [176, 172, 154]
           : [168, 176, 176]
         : rounded
-          ? [128, 126, 111]
-          : [115, 124, 125];
-    const light = y === 1 ? 12 : y === h - 1 ? -11 : 0;
-    const base: Color = rounded ? [169, 167, 148] : [155, 164, 165];
-    return tint(base, variation + light + g.lift);
+          ? [101, 99, 92]
+          : [96, 104, 106];
+    const light = y === 1 ? 12 : y === h - 1 ? -13 : 0;
+    const base: Color = rounded ? [160, 158, 146] : [150, 158, 160];
+    const stone = tint(base, variation + light + g.lift);
+    // A few stones run warm or cool so the field is not one grey.
+    return cast < 0.14
+      ? [stone[0] + 7, stone[1] + 2, stone[2] - 6]
+      : cast > 0.88
+        ? [stone[0] - 6, stone[1] - 1, stone[2] + 5]
+        : stone;
   }
   const height = g.h;
   const row = Math.floor(wy / height);
@@ -127,10 +135,10 @@ export function pavingStonePixel(
         ? tint([198, 201, 193], g.lift)
         : tint([214, 208, 188], g.lift)
     : material === "basalt"
-      ? tint([168, 178, 174], g.lift)
+      ? tint([88, 97, 97], g.lift)
       : material === "concrete"
-        ? tint([190, 194, 187], g.lift)
-        : tint([206, 199, 176], g.lift);
+        ? tint([142, 147, 142], g.lift)
+        : tint([138, 131, 110], g.lift);
   // Dressed slabs: straight joints a shade darker than the face, a lit top and
   // left bevel, a shaded bottom and right edge, so every stone has thickness.
   if (g.lightJoint) {
@@ -148,9 +156,9 @@ export function pavingStonePixel(
       return tint(face, -6);
     return face;
   }
-  // Street flagstones: pale joints, a lit top and left edge, a shaded bottom
+  // Street flagstones: dark joints, a lit top and left edge, a shaded bottom
   // and right, and each stone a shade off its neighbours.
-  const tone = Math.floor(hash(column, row, 704) * 13) - 6;
+  const tone = Math.floor(hash(column, row, 704) * 19) - 9;
   const stone = tint(face, tone);
   if (x === 0 || y === 0) return joint;
   // A nicked corner now and then keeps the grid from reading as brickwork.

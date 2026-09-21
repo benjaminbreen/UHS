@@ -1,17 +1,10 @@
 import { pavingGrade, pavingStonePixel } from "./paving-stones";
-import { raisedFieldEdge } from "./field-raster";
-import type { TopographyCell, TopographySample } from "../core/topography";
+import { kerbed, paved, pavingMask, roadwayMaterial, wornEdge } from "./paving-edge";
+import type { TopographySample } from "../core/topography";
 import type { GroundTileData } from "./habitat-raster";
 import { waterHash as hash } from "./water-style";
 const mod = (n: number, d: number) => ((n % d) + d) % d;
-const paved = (n?: TopographyCell) => n?.feature === "paving" || !!n?.bridge;
-/** A cell that reads as ground beside paving, so the edge wears rather than
- * stops. Water and a field with a standing boundary keep their own outlines. */
-export const wornEdge = (n?: TopographyCell) =>
-  !!n &&
-  !paved(n) &&
-  n.surface !== "water" &&
-  (n.field ? !raisedFieldEdge(n) : n.feature !== "field");
+export { wornEdge };
 /** Shared native-pixel paving materials. Place/date selection happens in content. */
 export function rasterStreetTile(
   sample: TopographySample,
@@ -21,7 +14,13 @@ export function rasterStreetTile(
   oy: number,
 ): GroundTileData {
   const c = sample(x, y)!,
-    material = c.streetMaterial ?? "slab",
+    kerb = kerbed(sample, x, y),
+    material =
+      (c.pavement === "footway" && !kerb
+        ? roadwayMaterial(sample, x, y)
+        : undefined) ??
+      c.streetMaterial ??
+      "slab",
     grade = pavingGrade(c.pavement),
     pixels = new Uint8ClampedArray(1024);
   const dais = c.pavement === "dais";
@@ -41,21 +40,23 @@ export function rasterStreetTile(
       n.pavement !== "dais" &&
       n.height === c.height &&
       (n.pavement === "verge" ||
-        (n.pavement === "footway" && c.pavement !== "footway"))
+        (c.pavement !== "footway" && kerbed(sample, x + dx, y + dy)))
     );
   };
   const kerbN = kerbTo(0, -1),
     kerbS = kerbTo(0, 1),
     kerbW = kerbTo(-1, 0),
     kerbE = kerbTo(1, 0);
-  const north = edge(0, -1) && !kerbN,
-    south = edge(0, 1) && !kerbS,
-    west = edge(-1, 0) && !kerbW,
-    east = edge(1, 0) && !kerbE;
   // A raised footway keeps a cut kerb; every other street edge wears into the
-  // ground beside it.
-  const kerb = c.pavement === "footway";
+  // ground beside it, along the mask's contour rather than the cell's.
+  const mask = kerb || dais ? undefined : pavingMask(sample, x, y, ox, oy);
   const worn = (dx: number, dy: number) => !kerb && wornEdge(at(dx, dy));
+  const cut = (dx: number, dy: number) =>
+    edge(dx, dy) && !(mask && worn(dx, dy));
+  const north = cut(0, -1) && !kerbN,
+    south = cut(0, 1) && !kerbS,
+    west = cut(-1, 0) && !kerbW,
+    east = cut(1, 0) && !kerbE;
   const stepN = step(0, -1),
     stepS = step(0, 1),
     stepW = step(-1, 0),
@@ -66,15 +67,21 @@ export function rasterStreetTile(
     for (let px = 0; px < 16; px++) {
       const wx = (x + ox) * 16 + px,
         wy = (y + oy) * 16 + py;
-      const border = Math.min(
+      const straight = Math.min(
         north ? py : 99,
         south ? 15 - py : 99,
         west ? px : 99,
         east ? 15 - px : 99,
       );
+      const inside = mask ? mask(px, py) : 99;
+      // Outside the contour the ground shows through.
+      if (inside < 0) continue;
+      const border = Math.min(straight, Math.floor(inside));
       let tone: readonly number[];
       const nearest =
-        border === (north ? py : 99)
+        inside < straight
+          ? true
+          : border === (north ? py : 99)
           ? worn(0, -1)
           : border === (south ? 15 - py : 99)
             ? worn(0, 1)
