@@ -12,8 +12,14 @@ exactly alone, so contrast, banding and the audit's value metrics do not move.
 """
 import colorsys
 
-SHADOW_HUE = 230 / 360   # the direction a shadow leans
-LIGHT_HUE = 45 / 360     # and the direction sunlight leans
+import json
+from pathlib import Path
+
+# One law for the painters and the ground raster (src/render/palette.ts).
+LAW = json.loads((Path(__file__).resolve().parents[3]
+                  / 'src/content/graphics/palette.json').read_text())
+SHADOW_HUE = LAW['shadow']['hsvHue'] / 360   # the direction a shadow leans
+LIGHT_HUE = LAW['light']['hsvHue'] / 360     # and the direction sunlight leans
 # Degrees of rotation at a ramp's extremes -- a fixed angle, NOT a fraction of
 # the distance to the target. Rotating a share of that distance moves the
 # materials that least need it the most: straw sits 175 degrees from the shadow

@@ -1,6 +1,7 @@
 import type { StreetMaterial } from "../content/settlements/streets";
 import type { Pavement } from "../world/v3/types";
 import { waterHash as hash } from "./water-style";
+import { shade } from "./palette";
 const mod = (n: number, d: number) => ((n % d) + d) % d;
 type Color = readonly [number, number, number];
 // The accepted v1 flagstone ramp: broad warm-gray faces with quiet value changes.
@@ -39,7 +40,10 @@ const grades: Record<
   broad: { w: 12, h: 10, lift: 4, lightJoint: true },
   dais: { w: 14, h: 11, lift: 12, lightJoint: true },
 };
-const tint = (c: Color, v: number): Color => [c[0] + v, c[1] + v, c[2] + v];
+const tint = (c: Color, v: number): Color => {
+  const s = shade(c, v);
+  return [s[0], s[1], s[2]];
+};
 
 /** Native-pixel broken flagstones, continuously addressed in world coordinates.
  * Short edge accents describe individual stones without outlining every face.

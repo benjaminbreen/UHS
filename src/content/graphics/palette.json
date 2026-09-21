@@ -1,0 +1,13 @@
+{
+  "note": "The colour law every generator shares. Ramps keep their own hue and chroma; this fixes how any colour gets darker or lighter, and the value envelope a frame should sit in. Hues are OKLCH degrees; hsvHue is the same direction for the Python painters.",
+  "shadow": { "hue": 268, "hsvHue": 230, "lean": 16, "chroma": 1.12 },
+  "light": { "hue": 88, "hsvHue": 45, "lean": 13, "chroma": 0.9 },
+  "fullLeanAt": 28,
+  "mottle": { "deep": -17, "shade": -9, "light": 8, "glint": 15 },
+  "frame": {
+    "comment": "Measured on the approved town mockup, land only.",
+    "L": { "p10": [0.3, 0.42], "p50": [0.5, 0.62], "p90": [0.66, 0.78] },
+    "groundSpread": 0.1,
+    "chromaP95": 0.11
+  }
+}

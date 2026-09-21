@@ -36,14 +36,12 @@ export function kerbed(sample: TopographySample, x: number, y: number) {
   return !!road && road !== "cobble" && road !== "slab";
 }
 
-/** A lone ground cell walled in by paving reads as a hole; draw it paved. */
+/** A one-cell slot of ground between paving reads as a hole; draw it paved. */
 export function enclosed(sample: TopographySample, x: number, y: number) {
   return (
     wornEdge(sample(x, y)) &&
-    paved(sample(x, y - 1)) &&
-    paved(sample(x, y + 1)) &&
-    paved(sample(x - 1, y)) &&
-    paved(sample(x + 1, y))
+    ((paved(sample(x - 1, y)) && paved(sample(x + 1, y))) ||
+      (paved(sample(x, y - 1)) && paved(sample(x, y + 1))))
   );
 }
 

@@ -17,6 +17,7 @@ import {
 import { rasterStreetTile } from "./street-raster";
 import { enclosed, kerbed, pavingMask, wornEdge, VERGE } from "./paving-edge";
 import { pavingGrade, pavingStonePixel } from "./paving-stones";
+import { mottle, shade } from "./palette";
 import { rasterFieldTile, tilled } from "./field-raster";
 import { bold, width as fenceWidth } from "./fences";
 import { paintFences } from "./fence-pass";
@@ -225,7 +226,7 @@ export function rasterHabitatTile(
   if (!street && (!cell.habitat || !wornEdge(cell)))
     return rasterGroundTile(sample, x, y, ox, oy, art, cell);
   if (!street && enclosed(sample, x, y)) {
-    const n = sample(x, y - 1)!,
+    const n = [sample(x - 1, y), sample(x, y - 1)].find((c) => c?.feature === "paving") ?? ({} as Partial<TopographyCell>),
       pixels = new Uint8ClampedArray(1024);
     for (let py = 0; py < 16; py++)
       for (let px = 0; px < 16; px++)
@@ -542,10 +543,11 @@ function rasterGroundTile(
       // Exposed ground, litter and tilled plots are all bare earth here.
       if (grassy && b >= 3) earth[at(px, py)] = 1;
     }
-  const put = (px: number, py: number, rgb: number[], shade = 0) => {
+  const put = (px: number, py: number, rgb: number[], dv = 0) => {
     if (px < 0 || py < 0 || px >= 16 || py >= 16) return;
-    const i = (py * 16 + px) * 4;
-    for (let k = 0; k < 3; k++) pixels[i + k] = rgb[k] + shade;
+    const i = (py * 16 + px) * 4,
+      c = dv ? shade(rgb, dv) : rgb;
+    for (let k = 0; k < 3; k++) pixels[i + k] = c[k];
     pixels[i + 3] = 255;
   };
   for (let py = 0; py < 16; py++)
@@ -643,6 +645,18 @@ function rasterGroundTile(
           wx,
           wy,
         );
+      // Broad hard-edged patches of shade and light: living ground is never
+      // one value, and a fill with marks on it reads as a fill.
+      const mottling = composition?.mottle ?? 0.65;
+      if (!frozen && !tilled && mottling > 0) {
+        const m =
+          noise(wx, wy, 23, 601) * 0.62 +
+          noise(wx, wy, 8, 602) * 0.38 +
+          (hash(wx >> 1, wy >> 1, 603) - 0.5) * 0.05;
+        const step =
+          m < 0.3 ? mottle.deep : m < 0.41 ? mottle.shade : m > 0.61 ? mottle.light : 0;
+        if (step) rgb = shade(rgb, step * mottling * (band >= 3 ? 0.6 : 1));
+      }
       if (grassy && band <= 2) {
         // Blade hatch everywhere; light grass takes a softer stroke.
         const mark = swardHatch(wx, wy);

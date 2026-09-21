@@ -36,6 +36,7 @@ export type LiveGraphicsSettings = {
   groundDetailDensity: number;
   groundDetailSpacing: number;
   groundDetailClustering: number;
+  groundMottle: number;
   pathWidth: number;
   pathWobble: number;
   pathEdgeBreakup: number;
@@ -64,6 +65,7 @@ export const defaultLiveGraphicsSettings: LiveGraphicsSettings = {
   groundDetailDensity: 1,
   groundDetailSpacing: 1,
   groundDetailClustering: 1,
+  groundMottle: 0.65,
   pathWidth: 1,
   pathWobble: 1,
   pathEdgeBreakup: 1,

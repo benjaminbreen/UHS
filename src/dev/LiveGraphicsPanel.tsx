@@ -171,6 +171,7 @@ export function LiveGraphicsPanel({
             {tune("groundDetailDensity", "Ground-mark density", 0, 2, 0.05)}
             {tune("groundDetailSpacing", "Ground-mark spacing", 0.6, 2.5, 0.05)}
             {tune("groundDetailClustering", "Quiet-patch contrast", 0, 2, 0.05)}
+            {tune("groundMottle", "Ground mottling", 0, 2, 0.05)}
           </details>
 
           <details className="live-tuning-section" open>

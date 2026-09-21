@@ -61,6 +61,8 @@ export type CompositionStyle = {
   motifDensity: number;
   motifSpacing: number;
   motifClustering: number;
+  /** Strength of the broad shade-and-light patches; 0 is a flat fill. */
+  mottle: number;
   pathWidth: number;
   pathWobble: number;
   pathEdgeBreakup: number;
@@ -119,6 +121,7 @@ export function defaultGroundStyle(): GroundStyle {
       motifDensity: 1,
       motifSpacing: 1,
       motifClustering: 1,
+      mottle: 0.65,
       pathWidth: 1,
       pathWobble: 1,
       pathEdgeBreakup: 1,
