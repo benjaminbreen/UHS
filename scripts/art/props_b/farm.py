@@ -33,42 +33,28 @@ def _knots(c, ramp, spots):
 
 
 def water_butt(v=0):
- """A butt under a downpipe: staves, four hoops, a tap and a wet patch."""
- c = Canvas(34, 46)
- w = RAMPS[WOOD7[v]]
- m = RAMPS['blackiron7']
+ """A rain butt: a big open cask seen from above the rim, water standing in
+ it, a wooden tap near the foot."""
+ from .stores import WOOD, IRON, INK, _cask
+ c = Canvas(22, 30)
+ w = WOOD[v]
+ cx = 11.0
+ _cask(c, cx, 5, 29, [9.2, 10.2, 10.6, 10.6, 10.2, 9.2], w, (7, 13, 21, 26), staves=4)
  water = RAMPS['water']
- cx = 14.0
- revolve(c, cx, belly(6, 40, [12.0, 13.2, 13.4, 12.0]), w, foot=4)
- for x in range(1, 28):                           # staves, every fourth darker
-  if (x - 2) % 4: continue
-  for y in range(7, 44):
-   if c.get(x, y): c.set(x, y, w[2])
-   if c.get(x + 1, y) and (x + y) % 3: c.set(x + 1, y, w[3])
- for y in (10, 20, 30, 39):
-  _hoop(c, 0, 28, y, m, thick=3)
- for y in range(7, 44):                           # the light down the near staves
-  if y % 3 and c.get(6, y): c.set(6, y, w[5])
- for x in range(0, 29):                           # the open top, seen at an angle
-  u = (x + .5 - cx) / 12.6
-  if abs(u) > 1: continue
-  c.set(x, 4, w[6] if u < -0.2 else w[4] if u < 0.6 else w[2])
-  c.set(x, 5, w[3] if u < 0.4 else w[1])
- for y in range(6, 9):                            # and the water standing in it
-  inset = 2 + (8 - y)
-  for x in range(2 + inset, 27 - inset):
-   c.set(x, y, water[1] if y == 6 else water[2])
- c.hline(8, 17, 7, water[4]); c.hline(10, 14, 8, water[5])
- for y in range(0, 7):                            # the downpipe feeding it
-  c.set(29, y, m[5]); c.set(30, y, m[3]); c.set(31, y, m[1])
-  if y % 3 == 0: c.set(30, y, m[6])
- c.set(28, 6, m[4]); c.set(27, 7, m[2]); c.set(26, 8, m[1])
- c.rect(12, 34, 16, 36, m[3])                     # the tap
- c.hline(12, 16, 34, m[5]); c.set(14, 37, m[2]); c.set(14, 38, m[1])
- c.set(14, 39, water[3]); c.set(14, 40, water[2])
- _knots(c, w, [(6, 16), (21, 26), (9, 35), (23, 14)])
- soft_outline(c, w[0], w[2])
- grass(c, [(0, 45, 3), (29, 45, 2)])
+ for y in range(1, 10):                          # the open top
+  for x in range(0, 22):
+   u, t = (x + .5 - cx) / 9.4, (y + .5 - 5.0) / 3.6
+   r = u * u + t * t
+   if r > 1: continue
+   if r > 0.62: c.set(x, y, w[4] if u < 0.3 and t < 0.4 else w[3] if t < 0.5 else w[2])
+   else:
+    c.set(x, y, water[3] if t < -0.35 else water[4] if u < -0.2 else water[2])
+ for x in range(7, 11): c.set(x, 4, water[6])     # sky caught on the surface
+ c.set(12, 5, water[5]); c.set(13, 5, water[5])
+ c.rect(9, 22, 11, 23, w[3]); c.set(9, 22, w[4])   # the tap
+ c.set(12, 23, w[1]); c.set(10, 24, w[1])
+ c.outline(INK)
+ grass(c, [(0, 31, 3), (21, 31, 2)])
  return c.image()
 
 

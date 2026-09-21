@@ -167,6 +167,31 @@ it("all twelve eras and culture families resolve a nonempty, known prop set", ()
     }
 });
 
+it("keeps European yard kit out of other regions", () => {
+  const kit = (culture: string, year: number, lat = 0, lon = 0) => {
+    const all = Object.values(
+      propKit({
+        ...packs.roman,
+        year,
+        setting: { culture, placeId: "test-place", settlement: "village", lat, lon },
+      } as any).contexts,
+    ).flat();
+    return new Set(all);
+  };
+  const angola = kit("west-central-african", 1455, -12.6, 13.4);
+  for (const id of ["waterButt", "privyShed", "beehive", "plough", "farmCart", "hitchingPost", "rake", "scythe"])
+    expect(angola.has(id), id).toBe(false);
+  for (const id of ["poundingMortar", "calabash", "logHive", "stockPen", "threeStoneHearth"])
+    expect(angola.has(id), id).toBe(true);
+  // The Ethiopian highlands ploughed with oxen.
+  expect(kit("east-southern-african", 1455, 9, 38.7).has("plough")).toBe(true);
+  expect(kit("south-asian", 1600).has("charpoy")).toBe(true);
+  expect(kit("south-asian", 1600).has("waterButt")).toBe(false);
+  expect(kit("european", 1700).has("waterButt")).toBe(true);
+  expect(kit("andean", 1450).has("logHive")).toBe(false);
+  expect(kit("australian-pacific", 1200).has("pot")).toBe(false);
+});
+
 it("wood takes several strikes and damage persists without spilling early", () => {
   const { e, pot, stick } = fixture();
   pot.prop = "chest";

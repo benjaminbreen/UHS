@@ -35,6 +35,30 @@ def firepit(v,frame):
  flame(a,24,37,21,6,frame)
  return a.finish()
 
+def threestone(v,frame):
+ """Three stones under a round pot, the fire fed by sticks pushed in from
+ the sides and moved inward as they burn."""
+ a=Art('stone')
+ a.ell((8,35,40,45),'#4a4238');a.ell((12,36,36,43),'#302822')
+ for p,q in [((6,38),(18,40)),((42,37),(30,40)),((20,45),(24,40))]:   # the sticks
+  a.line((*p,*q),'#5b3a26',3);a.line((p[0],p[1]-1,q[0],q[1]-1),'#8a5a35')
+ embers(a,[(21,40),(26,41),(24,39),(28,39)],frame)
+ def stone(x,y,big):
+  r=5 if big else 4
+  a.ell((x-r,y-r,x+r,y+r//2+2),'#3f362c');a.ell((x-r+1,y-r,x+r-2,y),'#6e604e');a.ell((x-r+2,y-r+1,x,y-2),'#978468')
+ stone(24,33,False)                                                     # the back stone
+ flame(a,17,40,9,3,frame,1);flame(a,31,40,9,3,frame,2)
+ # The pot: round-bellied, sooted at the base, mouth open to the sky.
+ a.ell((15,23,33,40),'#4a2a1c');a.ell((16,23,31,38),'#8d5836');a.ell((17,24,27,33),'#ab7149');a.ell((18,25,23,29),'#c58f63')
+ a.ell((16,33,32,40),'#2d1a13');a.ell((18,33,30,38),'#4a2a1c')
+ a.ell((19,20,29,25),'#4a2a1c');a.ell((19,20,29,24),'#c58f63');a.ell((21,21,27,23),'#2d1a13')
+ f=frame%4
+ for i,(sx,sy) in enumerate([(23,16),(25,13),(24,10)]):                    # steam
+  if (i+f)%4!=3:a.rect((sx+[0,1,0,-1][(i+f)%4],sy-f%2,sx+1+[0,1,0,-1][(i+f)%4],sy-f%2),'#d8d2c4')
+ stone(15,41,True);stone(33,41,True)                                      # the front two
+ flame(a,24,43,7,3,frame)
+ return a.finish()
+
 def longfire(v,frame):
  a=Art('stone')
  a.poly([(5,36),(12,32),(38,32),(43,37),(40,43),(8,44)],'#3d3a33');a.poly([(8,36),(13,34),(36,34),(40,37),(38,41),(10,42)],'#2a2320')
@@ -120,4 +144,4 @@ def drum(v,frame):
  a.line((15,17,33,17),3)
  return a.finish()
 
-FIRES={'hearth':firepit,'long-fire':longfire,'tannur':tannur,'brazier':brazier,'oven':oven,'stove':stove,'fire-basket':firebasket,'oil-drum':drum}
+FIRES={'three-stone-hearth':threestone,'hearth':firepit,'long-fire':longfire,'tannur':tannur,'brazier':brazier,'oven':oven,'stove':stove,'fire-basket':firebasket,'oil-drum':drum}

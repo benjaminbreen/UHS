@@ -1160,10 +1160,10 @@
       "name": "Water butt",
       "group": "Work & agriculture",
       "size": [
-        33,
-        47
+        24,
+        33
       ],
-      "description": "A barrel under a downpipe with a tap at its foot.",
+      "description": "An open rain cask seen from above the rim, water standing in it, a tap near the foot.",
       "variants": [
         "Oak",
         "Walnut",
@@ -1658,6 +1658,95 @@
         "Carved post",
         "Stone figure"
       ]
+    },
+    {
+      "id": "calabash",
+      "name": "Calabash",
+      "group": "Storage & carrying",
+      "size": [
+        24,
+        19
+      ],
+      "description": "A stoppered bottle gourd in a string sling beside a half-calabash bowl.",
+      "variants": [
+        "Ochre rind",
+        "Pale rind",
+        "Smoked, with burnt bands"
+      ]
+    },
+    {
+      "id": "pounding-mortar",
+      "name": "Standing mortar",
+      "group": "Work & agriculture",
+      "size": [
+        22,
+        42
+      ],
+      "description": "A waisted wooden mortar for pounding grain, with its pestle stood in it.",
+      "variants": [
+        "Oak",
+        "Walnut, two pestles",
+        "Pale timber"
+      ]
+    },
+    {
+      "id": "charpoy",
+      "name": "Rope bed",
+      "group": "Household",
+      "size": [
+        36,
+        22
+      ],
+      "description": "A charpoy: a wooden frame strung with rope or cotton tape on four turned legs.",
+      "variants": [
+        "Jute rope",
+        "Coloured tape",
+        "Rope, quilt folded at the head"
+      ]
+    },
+    {
+      "id": "log-hive",
+      "name": "Log hive",
+      "group": "Work & agriculture",
+      "size": [
+        32,
+        26
+      ],
+      "description": "A bark or hollow-log hive slung on forked posts, its end stopped with grass and dung.",
+      "variants": [
+        "Dark bark",
+        "Fresh bark",
+        "Two hives"
+      ]
+    },
+    {
+      "id": "stock-pen",
+      "name": "Stock pen",
+      "group": "Work & agriculture",
+      "size": [
+        50,
+        32
+      ],
+      "description": "A night kraal of cut thorn or close-set poles round trodden dung, the gap barred.",
+      "variants": [
+        "Thorn",
+        "Poles",
+        "Thorn and posts"
+      ]
+    },
+    {
+      "id": "three-stone-hearth",
+      "name": "Three-stone hearth",
+      "group": "Household",
+      "size": [
+        38,
+        38
+      ],
+      "description": "A round clay pot on three stones, sticks pushed in from the sides.",
+      "variants": [
+        "Lit hearth"
+      ],
+      "frames": 4
     }
   ]
 }

@@ -11,7 +11,7 @@ from art.prop_audit import audit
 ROOT=Path(__file__).resolve().parent.parent
 OUT=ROOT/'public/props'; OUT.mkdir(parents=True,exist_ok=True)
 catalog=json.loads((ROOT/'src/content/graphics/props.json').read_text())
-SHADOW_FROM={'oil-lamp':35,'hearth':30,'long-fire':32,'tannur':22,'brazier':25,'stove':16,'fire-basket':23,'oil-drum':16}
+SHADOW_FROM={'oil-lamp':35,'hearth':30,'three-stone-hearth':36,'long-fire':32,'tannur':22,'brazier':25,'stove':16,'fire-basket':23,'oil-drum':16}
 def trim(image):
     """Pack the real silhouette, not the canvas it was drawn on.
 

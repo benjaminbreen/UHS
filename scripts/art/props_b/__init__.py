@@ -20,6 +20,7 @@ from .signs import SIGNS
 from .civic import CIVIC
 from .market import MARKET
 from .stores import STORES
+from .regional import REGIONAL
 from .vessels import (pot, storage_jar, water_jug, amphora, glazed_jar,
                       metal_vessel, pithos, flask, bowl, bucket,
                       open_basket, lidded_basket)
@@ -71,6 +72,7 @@ DRAW_B = {
  **SIGNS,
  **CIVIC,
  **MARKET,
+ **REGIONAL,
 }
 
 from .wayside import WAYSIDE

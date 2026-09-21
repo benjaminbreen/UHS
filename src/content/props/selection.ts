@@ -32,7 +32,30 @@ export function techFor(pack: Pack) {
     culture === "other-indigenous-american";
   const oceania = culture === "australian-pacific";
   const kit = americas ? year >= 1550 : oceania ? year >= 1800 : true;
-  return { wheels: kit, draught: kit, cooperage: kit, dairy: kit, balance: kit };
+  // South of the Sahara the tsetse belt kept out the ox plough and the cart
+  // until colonial rule. The Ethiopian highlands ploughed with oxen throughout.
+  const african =
+    culture === "west-central-african" || culture === "east-southern-african";
+  const ethiopia =
+    !!pack.setting &&
+    pack.setting.lat > 5 &&
+    pack.setting.lat < 16 &&
+    pack.setting.lon > 34 &&
+    pack.setting.lon < 43;
+  const hoe = african && year < 1900 && !ethiopia;
+  // Coopered casks are a Roman and European craft; East Asia coopered tubs and
+  // buckets. Elsewhere liquids went in jars, skins and gourds.
+  const cooperage =
+    culture === "european" ||
+    (culture === "east-asian" && year >= 1000) ||
+    year >= 1850;
+  return {
+    wheels: kit && !hoe,
+    draught: kit && !hoe,
+    cooperage,
+    dairy: kit,
+    balance: kit,
+  };
 }
 
 /** Broad, explicitly provisional material-culture defaults, not universal dates
@@ -68,10 +91,38 @@ export function propKit(pack: Pack): PropKit {
   ].includes(culture);
   // These conservative defaults are selection hypotheses; exact place rules below
   // are the extension point for early pottery and regional material exceptions.
+  // Aboriginal Australia never made pots, and Polynesia gave them up after
+  // Lapita; the Pacific cooked in earth ovens and carried water in gourds.
   const pottery =
     (oldWorld && year >= -6999) ||
-    (!oldWorld && year >= -1999) ||
+    (!oldWorld &&
+      year >= -1999 &&
+      (culture !== "australian-pacific" || year < 1)) ||
     (culture === "east-asian" && year >= -15999);
+  const african =
+    culture === "west-central-african" || culture === "east-southern-african";
+  const americas =
+    culture === "mesoamerican" ||
+    culture === "andean" ||
+    culture === "other-indigenous-american";
+  // Pounding in a standing wooden mortar is how grain, yams and palm fruit
+  // were dehusked and milled across Africa, South and Southeast Asia, and the
+  // eastern woodlands of North America.
+  const pounds =
+    african ||
+    culture === "southeast-asian" ||
+    culture === "south-asian" ||
+    culture === "other-indigenous-american";
+  // The bottle gourd is the vessel wherever pottery was scarce or water was
+  // carried far: Africa, the Americas and the Pacific.
+  const gourds =
+    year >= -7999 &&
+    year < 1950 &&
+    (african || americas || culture === "australian-pacific");
+  if (gourds) {
+    contexts.household.push("calabash");
+    contexts.yard.push("calabash");
+  }
   if (pottery) {
     contexts.household.push("pot", "jar", "bowl");
     contexts.yard.push("jug", "pot", "flask");
@@ -106,7 +157,9 @@ export function propKit(pack: Pack): PropKit {
     contexts.water = [...contexts.water, "townWell", "townWell"];
   // A metal pot for the hearth, once smiths are working iron in quantity.
   // Where there was no iron, the clay pot and the vat already cover cooking.
-  if (year >= -799 && tech.dairy) contexts.household.push("cookingPot");
+  // Cast-iron trade pots reach Africa and the Americas with the Atlantic trade.
+  if (year >= -799 && tech.dairy && (oldWorld || year >= 1700))
+    contexts.household.push("cookingPot");
   if (year >= 500 && oldWorld) {
     contexts.household.push("chest", "sack");
     contexts.yard.push("bucket");
@@ -130,26 +183,68 @@ export function propKit(pack: Pack): PropKit {
             : "granaryClay";
     if (year >= -5999) contexts.work.push(granary);
   }
+  if (pounds && year >= -2999 && year < 1950) {
+    contexts.work.push("poundingMortar");
+    contexts.yard.push("poundingMortar");
+  }
+  // The rope bed stands in every South Asian yard by day.
+  if (culture === "south-asian" && year >= 1000) {
+    contexts.yard.push("charpoy", "charpoy");
+    contexts.work.push("charpoy");
+  }
   if (rural || pack.setting?.settlement === "village") {
-    if (year >= -2999) contexts.work.push("beehive");
+    // The straw skep is northern European. Log and bark hives are hung in
+    // trees across Africa and the Russian forest, and the Maya kept stingless
+    // bees in hollow logs; the Andes had no honeybee at all.
+    if (year >= -2999 && culture === "european") contexts.work.push("beehive");
+    if (
+      year >= -2999 &&
+      (african ||
+        culture === "inner-eurasian" ||
+        culture === "east-asian" ||
+        (culture === "mesoamerican" && year >= -299))
+    )
+      contexts.work.push("logHive");
+    // Cattle and goats come in at night to a thorn or pole kraal.
+    if (african && year >= -1999 && year < 1950)
+      contexts.work.push("stockPen");
     // A beam plough wants an animal in front of it; the Andes had a foot
     // plough, which is a different object and not drawn here.
     if (year >= -2999 && tech.draught) contexts.work.push("plough");
-    if (year >= -3999) contexts.tool.push("rake", "pitchfork");
+    // Rakes and forks go with hay and threshing floors; hoe farming and the
+    // Americas used neither.
+    const hay =
+      culture === "european" ||
+      culture === "north-african-west-asian" ||
+      culture === "inner-eurasian" ||
+      culture === "east-asian";
+    if (year >= -3999 && hay) contexts.tool.push("rake", "pitchfork");
     // The long shovel and the scythe are the two-handed versions of tools
     // the kit already has; the scythe is a later invention than the sickle.
     if (year >= -999) contexts.tool.push("shovel");
-    if (year >= -499) contexts.tool.push("scythe");
+    if (
+      year >= -499 &&
+      (culture === "european" || culture === "inner-eurasian")
+    )
+      contexts.tool.push("scythe");
     if (year >= -999 && tech.wheels) contexts.work.push("farmCart");
     if (year >= 1850 && tech.dairy) contexts.work.push("milkChurn");
   }
-  if (year >= -999 && tech.cooperage) contexts.yard.push("waterButt");
+  // A butt catches rain off a gutter, which European houses have from about
+  // 1600.
+  if (year >= 1600 && culture === "european") contexts.yard.push("waterButt");
   // Somewhere to tie an animal, until the animals stop coming into town.
   if (year < 1920 && tech.draught) contexts.work.push("hitchingPost");
   // One privy per household, in whatever form the place and date built them.
   // Nothing else in the yard kit competes with it: it is placed on its own
   // rule, far from the water.
   const eastern = culture === "east-asian" || culture === "southeast-asian";
+  // The board privy is a European and West Asian building. Elsewhere a
+  // village went to the bush or the midden until colonial sanitary rules.
+  const privyBuilders =
+    culture === "european" ||
+    culture === "north-african-west-asian" ||
+    culture === "inner-eurasian";
   // A built privy is a town's habit. A farming hamlet threw everything on one
   // heap at the bottom of the yard, and a farm with stock kept the muck
   // separate because manure was worth keeping.
@@ -170,7 +265,12 @@ export function propKit(pack: Pack): PropKit {
                 // worth spreading.
                 year < -1999 || (!urban && year < 499)
                 ? "privyMidden"
-                : "privyShed",
+                : // Tenochtitlan collected night soil by canoe for the fields.
+                  culture === "mesoamerican" && urban && year < 1550
+                  ? "privyNightSoil"
+                  : privyBuilders
+                    ? "privyShed"
+                    : "privyMidden",
   ];
   if (
     contexts.privy[0] === "privyMidden" &&
@@ -186,7 +286,7 @@ export function propKit(pack: Pack): PropKit {
     contexts.work.push("stool");
   }
   if (year >= 900 && oldWorld) contexts.household.push("strappedChest");
-  if (year >= 1500) {
+  if (year >= 1500 && (oldWorld || year >= 1800)) {
     contexts.household.push("chest", "strappedChest", "sack");
     contexts.yard.push("crate");
   }
@@ -229,8 +329,20 @@ export function propKit(pack: Pack): PropKit {
   if (year >= -500 && culture === "east-asian") contexts.fire = ["brazier"];
   if (year >= 500 && culture === "european") contexts.fire = ["bakeOven"];
   if (year >= 1000 && culture === "east-asian") contexts.fire = ["teaStove"];
+  // Three stones under the pot: the African, Southeast Asian and
+  // Mesoamerican kitchen fire (the Nahuatl tenamaztli).
+  if (
+    pottery &&
+    (african ||
+      culture === "southeast-asian" ||
+      culture === "mesoamerican")
+  )
+    contexts.fire = ["threeStoneHearth"];
   if (year >= 1550 && ["mesoamerican", "andean"].includes(culture))
-    contexts.fire = ["bakeOven", "firepit"];
+    contexts.fire = [
+      "bakeOven",
+      culture === "mesoamerican" ? "threeStoneHearth" : "firepit",
+    ];
   if (year >= 1600 && culture === "european")
     contexts.fire = ["fireBasket", "bakeOven"];
   if (year >= 1750 && culture === "inner-eurasian")
