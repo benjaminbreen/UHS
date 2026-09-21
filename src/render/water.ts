@@ -8,6 +8,7 @@ import {
 import type Phaser from "phaser";
 import type { TopographyCell } from "../core/topography";
 import { waterHash, waterStyle } from "./water-style";
+import { canvasStat } from "./canvas-stat";
 import type { WaterEffect, WaterTileData } from "./water-raster";
 export type { WaterEffect } from "./water-raster";
 
@@ -92,6 +93,7 @@ export function addWaterEffects(scene: Phaser.Scene, effects: WaterEffect[]) {
     manager = { patches: new Set(), frame: -1 };
     managers.set(scene, manager);
     const m = manager;
+    let worst = 0;
     const update = (time: number) => {
       const options = (
         scene as unknown as {
@@ -123,16 +125,17 @@ export function addWaterEffects(scene: Phaser.Scene, effects: WaterEffect[]) {
         drawEffects(patch, frame);
         motifs += patch.active;
       }
-      scene.game.canvas.dataset.waterPatches = String(visible);
-      scene.game.canvas.dataset.waterTiles = String(count);
-      scene.game.canvas.dataset.waterFrame = String(frame);
-      scene.game.canvas.dataset.waterMotifs = String(motifs);
+      const canvas = scene.game.canvas;
+      canvasStat(canvas, "waterPatches", visible);
+      canvasStat(canvas, "waterTiles", count);
+      canvasStat(canvas, "waterFrame", frame);
+      canvasStat(canvas, "waterMotifs", motifs);
       const cost = performance.now() - start;
-      scene.game.canvas.dataset.waterUpdateMs = cost.toFixed(2);
-      scene.game.canvas.dataset.waterUpdateMaxMs = Math.max(
-        cost,
-        Number(scene.game.canvas.dataset.waterUpdateMaxMs ?? 0),
-      ).toFixed(2);
+      canvasStat(canvas, "waterUpdateMs", cost.toFixed(1));
+      if (cost > worst) {
+        worst = cost;
+        canvasStat(canvas, "waterUpdateMaxMs", cost.toFixed(2));
+      }
     };
     scene.events.on("update", update);
     scene.events.once("shutdown", () => {

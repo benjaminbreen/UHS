@@ -12,6 +12,7 @@ import { ecologyOrder, livingProfile } from "./profile";
 import { livingFragment } from "./shader";
 import type { LightingId } from "../lighting";
 import { lightingPreset } from "../lighting";
+import { canvasStat } from "../canvas-stat";
 const LUT = "living-water-colors-3";
 const shaders = new WeakMap<Phaser.Scene, Set<Phaser.GameObjects.Shader>>();
 let sequence = 0;
@@ -258,12 +259,12 @@ export function updateLivingWater(
     shader.setUniform("waterTime.value", freeze ? 0 : time / 1000);
     shader.setUniform("sun.value", sun);
   }
-  Object.assign(scene.game.canvas.dataset, {
-    waterRenderer: "living-c",
-    waterTiles: String(tiles),
-    waterMotifs: "0",
-    waterPatches: String(visible),
-    waterFrame: String(freeze ? 0 : Math.floor(time / 100)),
-    waterUpdateMs: (performance.now() - start).toFixed(2),
-  });
+  const canvas = scene.game.canvas;
+  canvasStat(canvas, "waterRenderer", "living-c");
+  canvasStat(canvas, "waterTiles", tiles);
+  canvasStat(canvas, "waterMotifs", 0);
+  canvasStat(canvas, "waterPatches", visible);
+  canvasStat(canvas, "waterFrame", freeze ? 0 : Math.floor(time / 100));
+  // One decimal: finer than that and the value changes every frame.
+  canvasStat(canvas, "waterUpdateMs", (performance.now() - start).toFixed(1));
 }

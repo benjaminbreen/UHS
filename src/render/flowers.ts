@@ -3,6 +3,7 @@ import type { TopographyCell, TopographySample } from "../core/topography";
 import type { Ecology } from "../content/ecology/profiles";
 import { waterHash as hash } from "./water-style";
 import { gustAt } from "./wind";
+import { canvasStat } from "./canvas-stat";
 
 export const FLOWER_ATLAS = "flowers-2";
 const kinds = [
@@ -253,7 +254,7 @@ export function addFlowers(scene: Phaser.Scene, spots: FlowerSpot[]) {
         visible++;
         sway(patch, frame);
       }
-      scene.game.canvas.dataset.flowerPatches = String(visible);
+      canvasStat(scene.game.canvas, "flowerPatches", visible);
     };
     scene.events.on("update", update);
     scene.events.once("shutdown", () => {

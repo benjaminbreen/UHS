@@ -18,7 +18,8 @@ float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(ha
 vec3 clearTone(float n,float row){return texture2D(iChannel1,vec2((clamp(n,0.,15.)+.5)/32.,(row+.5)/160.)).rgb;}
 vec3 swampTone(float n,float row){return texture2D(iChannel1,vec2((clamp(n,0.,15.)+16.5)/32.,(row+.5)/160.)).rgb;}
 float murkMix=0.;
-vec3 tone(float n,float row){return mix(clearTone(n,row),swampTone(n,row),murkMix);}
+// Clear water skips the swamp fetch: the sea is most of the pixels.
+vec3 tone(float n,float row){return murkMix>0.?mix(clearTone(n,row),swampTone(n,row),murkMix):clearTone(n,row);}
 void main(){
  vec2 local=floor(vec2(fragCoord.x,resolution.y-fragCoord.y));
  vec4 m=texture2D(iChannel0,(local+.5)/resolution);
@@ -60,6 +61,7 @@ void main(){
  if(ocean&&raw>192.)depth=4.+(raw-192.)/4.;
  if(ocean)depth+=m.b*(raw>192.?.25:.0625);
  float t=waterTime*.5;
+ vec4 art=texture2D(iChannel2,(local+.5)/resolution);
  vec4 bends=texture2D(iChannel3,(local+.5)/resolution);
  float encoded=floor(bends.b*255.+.5),solid=step(128.,encoded),delay=mod(encoded,128.)/8.;
  vec2 displacement=(bends.rg*255.-128.)/4.;
@@ -107,8 +109,7 @@ void main(){
    if(depth<rim+.07&&depth>rim-.06&&broken>.2)color=mix(color,vec3(.96,1.,.92),polishParams.y*(.75+.2*lap));
    if(depth>.15&&depth<.65&&abs(depth-rim-.23)<.045&&broken>.48)color=mix(color,vec3(.92,1.,.94),polishParams.y*.45);
    vec4 above=texture2D(iChannel2,(local+vec2(.5,-.5))/resolution);
-   vec4 here=texture2D(iChannel2,(local+.5)/resolution);
-   if(delay>.5&&above.a>.6&&here.a<.4&&sin(t*2.+p.x*.6)>.0)color=mix(color,vec3(.95,1.,.94),polishParams.y*.8);
+   if(delay>.5&&above.a>.6&&art.a<.4&&sin(t*2.+p.x*.6)>.0)color=mix(color,vec3(.95,1.,.94),polishParams.y*.8);
  }
  // Sparse, world-anchored reflective facets follow the same daylight phase as shadows.
  vec2 glitterCell=floor(p/vec2(13.,9.));vec2 g=mod(p,vec2(13.,9.));
@@ -122,7 +123,6 @@ void main(){
    vec3 deep=mix(tone(5.,row),tone(6.,row),deepMix);
    color=mix(color,deep,offshore);
  }
- vec4 art=texture2D(iChannel2,(local+.5)/resolution);
  color=mix(color,art.rgb,art.a);
  gl_FragColor=vec4(color,1.);
 }`;

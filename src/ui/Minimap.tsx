@@ -6,7 +6,7 @@ import { natureTreeSprites } from "../content/ecology/vegetation";
 import { useEffect, useRef, useState } from "react";
 import { timed } from "../render/perf-switches";
 import { faunaProfile } from "../content/fauna";
-import buildings from "../render/generated/buildings.json" with { type: "json" };
+import { currentSheets, loadSheets, sheetImage } from "./sprite-atlas";
 import { surfaceAt } from "../render/materials";
 import {
   atlasSample,
@@ -21,7 +21,8 @@ let atlasImage: HTMLImageElement | undefined;
 function sprites() {
   if (!atlasImage) {
     atlasImage = new Image();
-    atlasImage.src = "/packs/buildings.png";
+    atlasImage.src = sheetImage("buildings");
+    void loadSheets().catch(() => {});
   }
   return atlasImage;
 }
@@ -57,14 +58,11 @@ const roofCache = new Map<string, { roof: string; wall: string }>();
 function buildingTones(sprite: string, image: HTMLImageElement) {
   const cached = roofCache.get(sprite);
   if (cached) return cached;
-  const f = (
-    buildings.frames as Record<
-      string,
-      { frame: { x: number; y: number; w: number; h: number } }
-    >
-  )[sprite]?.frame;
   const fallback = { roof: "#4a5560", wall: "#d8cfb0" };
-  if (!f || !image.complete || !image.naturalWidth) return fallback;
+  const frames = currentSheets()?.buildings.frames;
+  if (!frames || !image.complete || !image.naturalWidth) return fallback;
+  const f = frames[sprite]?.frame;
+  if (!f) return fallback;
   const c = document.createElement("canvas");
   c.width = f.w;
   c.height = f.h;

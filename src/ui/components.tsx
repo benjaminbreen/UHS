@@ -1,13 +1,5 @@
 import { useEffect, useRef } from "react";
-import nature from "../../public/nature/atlas.json" with { type: "json" };
-import fauna from "../../public/fauna/atlas.json" with { type: "json" };
-import faunaB from "../../public/fauna-b/atlas.json" with { type: "json" };
-import faunaC from "../../public/fauna-c/atlas.json" with { type: "json" };
-import ecology from "../../public/ecology/atlas.json" with { type: "json" };
-import props from "../render/generated/props.json" with { type: "json" };
-import atlas from "../render/generated/atlas.json" with { type: "json" };
-import buildings from "../render/generated/buildings.json" with { type: "json" };
-import civic from "../render/generated/civic.json" with { type: "json" };
+import { useSheets } from "./sprite-atlas";
 import { parseCloth } from "../content/characters/wardrobe/cloth";
 import {
   drawGarmentIcon,
@@ -17,29 +9,26 @@ import {
 } from "../render/garment-icons";
 
 export function Sprite({ name, scale = 2 }: { name: string; scale?: number }) {
+  const sheets = useSheets();
+  if (!sheets) return null;
   const source = name.startsWith("fauna-")
-    ? fauna
+    ? sheets.fauna
     : name.startsWith("faunab-")
-      ? faunaB
-    : name.startsWith("faunac-")
-      ? faunaC
-    : name.startsWith("nature-")
-      ? nature
-    : name.startsWith("ecology-")
-      ? ecology
-      : name.startsWith("study-prop") || name.startsWith("prop-broken-")
-        ? props
-        : name in buildings.frames
-          ? buildings
-          : name in civic.frames
-            ? civic
-            : atlas;
-  const f = (
-    source.frames as Record<
-      string,
-      { frame: { x: number; y: number; w: number; h: number } }
-    >
-  )[name]?.frame;
+      ? sheets.faunaB
+      : name.startsWith("faunac-")
+        ? sheets.faunaC
+        : name.startsWith("nature-")
+          ? sheets.nature
+          : name.startsWith("ecology-")
+            ? sheets.ecology
+            : name.startsWith("study-prop") || name.startsWith("prop-broken-")
+              ? sheets.props
+              : name in sheets.buildings.frames
+                ? sheets.buildings
+                : name in sheets.civic.frames
+                  ? sheets.civic
+                  : sheets.atlas;
+  const f = source.frames[name]?.frame;
   if (!f) return null;
   // The sheet is shown at its own size and the element is scaled afterwards.
   // Scaling backgroundSize instead makes the browser rasterise the whole sheet
@@ -55,24 +44,7 @@ export function Sprite({ name, scale = 2 }: { name: string; scale?: number }) {
         height: f.h,
         transform: scale === 1 ? undefined : `scale(${scale})`,
         transformOrigin: "top left",
-        backgroundImage:
-          source === fauna
-            ? "url(/fauna/atlas.png)"
-            : source === faunaB
-              ? "url(/fauna-b/atlas.png)"
-            : source === faunaC
-              ? "url(/fauna-c/atlas.png)"
-            : source === nature
-            ? "url(/nature/atlas.png)"
-            : source === ecology
-              ? "url(/ecology/atlas.png)"
-              : source === props
-                ? "url(/props/atlas.png)"
-                : source === buildings
-                  ? "url(/packs/buildings.png)"
-                  : source === civic
-                    ? "url(/packs/civic.png)"
-                    : "url(/packs/atlas.png)",
+        backgroundImage: `url(${source.image})`,
         backgroundPosition: `-${f.x}px -${f.y}px`,
         backgroundSize: `${source.meta.size.w}px ${source.meta.size.h}px`,
         imageRendering: "pixelated",

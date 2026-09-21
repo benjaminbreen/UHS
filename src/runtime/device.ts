@@ -28,7 +28,9 @@ export function smallMemoryDevice() {
  */
 export function workerBudget() {
   if (smallMemoryDevice()) return 2;
-  return Math.min(6, Math.max(1, (navigator.hardwareConcurrency ?? 4) - 1));
+  // Three, not six: load time measured the same with 2, 3 and 6, because each
+  // worker first parses ~9MB of geography and rebuilds the world.
+  return Math.min(3, Math.max(1, (navigator.hardwareConcurrency ?? 4) - 1));
 }
 
 /** The screens the touch controls and the phone stylesheet claim. */

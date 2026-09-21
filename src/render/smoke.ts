@@ -1,5 +1,6 @@
 import type Phaser from "phaser";
 import { gustAt, wind } from "./wind";
+import { canvasStat } from "./canvas-stat";
 
 /** Smoke off a roof. One texture, one clock, no tweens: every plume in view is
  * stepped together ten times a second, and a puff's place is a function of the
@@ -126,7 +127,7 @@ export function addPlume(
         drawn++;
         place(plume, step * STEP_MS, air);
       }
-      scene.game.canvas.dataset.plumes = String(drawn);
+      canvasStat(scene.game.canvas, "plumes", drawn);
     };
     scene.events.on("update", update);
     scene.events.once("shutdown", () => {
