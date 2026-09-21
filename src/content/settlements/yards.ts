@@ -174,6 +174,20 @@ const croft: YardKit = {
       where: "yard",
       chance: 0.3,
     },
+    {
+      prop: "hideFrame",
+      family: "hide-frame",
+      name: "Hide on a drying frame",
+      where: "wall",
+      chance: 0.35,
+    },
+    {
+      prop: "knappingFloor",
+      family: "knapping-floor",
+      name: "Knapping floor",
+      where: "door",
+      chance: 0.3,
+    },
   ],
 };
 

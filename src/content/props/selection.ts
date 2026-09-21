@@ -54,7 +54,8 @@ export function techFor(pack: Pack) {
     draught: kit && !hoe,
     cooperage,
     dairy: kit,
-    balance: kit,
+    // Balance weights appear in Egypt and Mesopotamia in the third millennium.
+    balance: kit && year >= -2500,
   };
 }
 

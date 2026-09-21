@@ -106,7 +106,6 @@ for _key in OBLIQUE:
 LAYERED = {
  'drying-rack': ('frame', 'hang'),
  'washing-line': ('frame', 'hang'),
- 'hide-frame': ('frame', 'hang'),
  'door-lantern': ('frame', 'hang'),
 }
 

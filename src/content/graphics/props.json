@@ -1491,6 +1491,25 @@
       ]
     },
     {
+      "id": "sacred-marker",
+      "name": "Sacred marker",
+      "group": "Street furniture",
+      "size": [
+        50,
+        74
+      ],
+      "description": "What stands in the open ground of a place of worship: a Siberian spirit storehouse, an East Asian incense burner, a South Asian lamp pillar, a churchyard cross, a classical altar, a mosque's ablution fountain, a Theravada chedi.",
+      "variants": [
+        "Spirit storehouse",
+        "Incense burner",
+        "Lamp pillar",
+        "Churchyard cross",
+        "Altar",
+        "Ablution fountain",
+        "Chedi"
+      ]
+    },
+    {
       "id": "hitching-post",
       "name": "Hitching post",
       "group": "Street furniture",
@@ -1854,8 +1873,8 @@
       "name": "Hide on a drying frame",
       "group": "Work & agriculture",
       "size": [
-        36,
-        40
+        44,
+        44
       ],
       "description": "A hide laced into a pole frame to dry and be scraped.",
       "variants": [
@@ -1869,10 +1888,10 @@
       "name": "Knapping floor",
       "group": "Work & agriculture",
       "size": [
-        28,
-        16
+        38,
+        24
       ],
-      "description": "A sitting stone, a core, a hammerstone and a spray of flakes.",
+      "description": "A hide laid to catch the waste, a half-worked core, blades in a row, an antler billet, a hammerstone and a spray of flakes.",
       "variants": [
         "Flint",
         "Obsidian",
@@ -1899,14 +1918,14 @@
       "name": "Storage pit",
       "group": "Storage & carrying",
       "size": [
-        26,
-        14
+        70,
+        36
       ],
-      "description": "A clay-sealed pit mouth under a stone or wicker lid.",
+      "description": "Storage pits dug together in trodden clay: one sealed with a clay dome, one open, one under a weighted wicker lid, a basket of grain beside.",
       "variants": [
-        "Stone lid",
-        "Wicker lid",
-        "Stone lid"
+        "Sealed, open, wicker",
+        "Wicker, sealed, open",
+        "Open, wicker, sealed"
       ]
     },
     {
@@ -1914,8 +1933,8 @@
       "name": "Skull on a post",
       "group": "Wayside",
       "size": [
-        26,
-        36
+        34,
+        40
       ],
       "description": "A cattle skull set on a post by a gate or a shrine.",
       "variants": [
@@ -1929,8 +1948,8 @@
       "name": "Shaduf",
       "group": "Water",
       "size": [
-        52,
-        50
+        58,
+        54
       ],
       "description": "A sweep pole on a post frame, a mud counterweight at one end and a bucket at the other.",
       "variants": [
@@ -1944,7 +1963,7 @@
       "name": "Zir water jar",
       "group": "Storage & carrying",
       "size": [
-        24,
+        28,
         36
       ],
       "description": "A big porous water jar on a wooden stand, a dish beneath for the drip.",
