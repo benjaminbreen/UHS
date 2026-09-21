@@ -22,7 +22,7 @@ import {
 } from "../../core/character";
 import { wornFromWearing } from "../../core/wearing";
 import { clothFor, rolesFrom } from "./wardrobe";
-import { plausibleHair } from "../../core/character";
+import { pickHair } from "../../core/character";
 import type { CharacterPhysique } from "../../core/character";
 
 export type Sex = CharacterPhysique["sex"];
@@ -283,6 +283,7 @@ export function characterAppearance(
   age = 34,
   context = resolveCharacterContext(s),
   sex: Sex = characterSex(seed, id),
+  labouring = false,
 ): CharacterAppearance {
   const a = generateAppearance(`${seed}:character-v1:${id}`, 0, age, { sex });
   const kit = context.appearance;
@@ -330,12 +331,13 @@ export function characterAppearance(
     age >= 60 && random(seed, "character-v1", id, "grey") < 0.5
       ? "#aaa699"
       : pick(kit.hairColors, seed, id, "hair-color");
-  a.hair = plausibleHair(
-    pick(kit.hairStyles, seed, id, "hair"),
+  a.hair = pickHair(
+    random(seed, "character-v1", id, "hair"),
+    random(seed, "character-v1", id, "balding"),
     sex,
     age,
-    random(seed, "character-v1", id, "balding"),
     kit.hairStyles,
+    { scale: kit.hairScale, labouring },
   );
   const garment = pick(kit.garments, seed, id, "garment");
   // Generic ornaments and headwear must not leak out of the unrestricted art lab.
@@ -414,7 +416,15 @@ export function generateCharacter(
     drawn === "unspecified"
       ? (sexFromName(explicitName || naming.display) ?? sex)
       : drawn;
-  const appearance = characterAppearance(s, seed, id, age, context, bodySex);
+  const appearance = characterAppearance(
+    s,
+    seed,
+    id,
+    age,
+    context,
+    bodySex,
+    livelihood.rank === "labouring" || livelihood.rank === "destitute",
+  );
   const cloth = clothFor(
     {
       id,

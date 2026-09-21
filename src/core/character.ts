@@ -340,9 +340,8 @@ export function generateFace(seed: string, index = 0, age = 30): CharacterFace {
     nose: pick("nose", [
       "straight",
       "straight",
-      "straight",
       "short",
-      "short",
+      "broad",
       "broad",
       "broad",
       "aquiline",
@@ -823,11 +822,11 @@ export function actorAppearance(
         age >= 60 && random(seed, "character-palette", "grey") < 0.5
           ? "#aaa699"
           : from(palette.hairColors, "hair-color"),
-      hair: plausibleHair(
-        from(palette.hairStyles, "hair"),
+      hair: pickHair(
+        random(seed, "character-palette", "hair"),
+        random(seed, "character-palette", "balding"),
         a.physique?.sex ?? "unspecified",
         age,
-        random(seed, "character-palette", "balding"),
         palette.hairStyles,
       ),
     }),
@@ -866,20 +865,41 @@ export const originalAppearance: CharacterAppearance = {
   },
 };
 
+type HairStyle = CharacterAppearance["hair"];
+export type HairWeights = Partial<Record<HairStyle, number>>;
+
 /**
- * Palettes list "bald" alongside the other styles, so a uniform pick made about
- * one person in six bald regardless of sex or age. Keep the entry, but gate it:
- * baldness is overwhelmingly male and late-onset.
+ * How often each style is worn, by sex. A flat pick from a kit's list gave
+ * five men in seven hair to the shoulders, since only "cropped" is short.
+ * The kit still decides which styles occur; these decide how often.
  */
-export function plausibleHair(
-  hair: CharacterAppearance["hair"],
+export const hairWeights: Record<"male" | "female", HairWeights> = {
+  male: { cropped: 50, curls: 20, long: 8, topknot: 5, braid: 3, bob: 2 },
+  female: { long: 30, braid: 25, bob: 15, topknot: 15, curls: 10, cropped: 3 },
+};
+
+/** Manual work favours hair cut short or tied out of the way. */
+const labourScale: Record<"male" | "female", HairWeights> = {
+  male: { cropped: 1.5, long: 0.5, bob: 0.5 },
+  female: { braid: 1.4, topknot: 1.4, long: 0.6, bob: 0.8 },
+};
+
+/**
+ * Baldness is gated separately: it is overwhelmingly male and late-onset, so
+ * "bald" in a kit's list means only that shaving or balding occurs there.
+ */
+export function pickHair(
+  roll: number,
+  baldRoll: number,
   sex: CharacterPhysique["sex"],
   age: number,
-  roll: number,
-  pool: readonly CharacterAppearance["hair"][],
-): CharacterAppearance["hair"] {
-  if (hair !== "bald") return hair;
-  const chance =
+  pool: readonly HairStyle[],
+  options: {
+    scale?: Partial<Record<"male" | "female", HairWeights>>;
+    labouring?: boolean;
+  } = {},
+): HairStyle {
+  const baldChance =
     sex !== "male"
       ? 0.01
       : age < 30
@@ -889,9 +909,27 @@ export function plausibleHair(
           : age < 60
             ? 0.4
             : 0.55;
-  if (roll < chance) return "bald";
-  const rest = pool.filter((h) => h !== "bald" && h !== "original");
-  if (!rest.length) return "cropped";
-  // Rescale the leftover of the roll so the alternative varies too.
-  return rest[Math.floor(((roll - chance) / (1 - chance)) * rest.length)]!;
+  if (pool.includes("bald") && baldRoll < baldChance) return "bald";
+  const sexes: ("male" | "female")[] =
+    sex === "unspecified" ? ["male", "female"] : [sex];
+  const weight = (h: HairStyle) =>
+    sexes.reduce(
+      (sum, x) =>
+        sum +
+        (hairWeights[x][h] ?? 0) *
+          (options.scale?.[x]?.[h] ?? 1) *
+          (options.labouring ? (labourScale[x][h] ?? 1) : 1),
+      0,
+    );
+  const entries = pool
+    .filter((h) => h !== "bald" && h !== "original")
+    .map((h) => [h, weight(h)] as const);
+  const total = entries.reduce((sum, [, w]) => sum + w, 0);
+  if (!total) return "cropped";
+  let x = roll * total;
+  for (const [h, w] of entries) {
+    x -= w;
+    if (x < 0) return h;
+  }
+  return entries[entries.length - 1]![0];
 }

@@ -437,7 +437,9 @@ function model(
     (a.hair === "cropped" || a.hair === "bald"
       ? 1
       : a.hair === "curls"
-        ? 5
+        ? closeCurls(a)
+          ? 3
+          : 5
         : a.hair === "braid" || a.hair === "topknot"
           ? 2
           : a.hair === "bob" || a.hair === "long"
@@ -578,10 +580,10 @@ type NoseForm = {
 
 const NOSE_BASE: NoseForm = {
   bump: 0,
-  tip: 0,
+  tip: 0.5,
   drop: 0,
-  wing: 2,
-  length: 7,
+  wing: 3,
+  length: 8,
   root: 0,
   hook: false,
   ball: false,
@@ -591,15 +593,15 @@ const NOSE_BASE: NoseForm = {
 };
 
 const NOSES: Record<string, Partial<NoseForm>> = {
-  short: { wing: 1, length: 6 },
+  short: { wing: 2, length: 7 },
   straight: {},
-  broad: { tip: 1, wing: 3 },
-  aquiline: { bump: 1, length: 8 },
-  hooked: { bump: 1.5, tip: 0.5, drop: 1.5, length: 8, hook: true },
-  snub: { bump: -0.5, tip: -0.5, drop: -1, length: 6, snub: true },
-  bulbous: { tip: 1, drop: 0.5, wing: 2, ball: true, narrow: 1 },
-  narrow: { tip: -0.5, wing: 1, narrow: 1 },
-  flat: { bump: -1, tip: -1.5, wing: 3, root: 1.5, flat: true },
+  broad: { tip: 1.5, wing: 4 },
+  aquiline: { bump: 1, tip: 1, length: 9 },
+  hooked: { bump: 1.5, tip: 1, drop: 1.5, length: 9, hook: true },
+  snub: { bump: -0.5, tip: 0, drop: -1, length: 7, snub: true },
+  bulbous: { tip: 1.5, drop: 0.5, wing: 3, ball: true, narrow: 1 },
+  narrow: { tip: 0, wing: 2, narrow: 1 },
+  flat: { bump: -1, tip: -1, wing: 4, root: 1.5, flat: true },
 };
 
 export function noseForm(shape: string): NoseForm {
@@ -2387,10 +2389,10 @@ function drawFeatures(r: Raster, m: Model) {
   );
   // A high root catches light between the brows; a low one is shadowed there,
   // which is what makes the eyes read as set on a flatter plane.
-  if (bridge === "high") r.put(mid - 1, eyeY - 1, skin.high);
+  if (bridge === "high") r.put(mid - 1, eyeY - 1, skin.light);
   else if (bridge === "low")
     r.rect(mid - 2, eyeY - 1, 3, 2, mix(skin.base, skin.shade, 0.3));
-  if (bump >= 1) r.put(mid + 1, eyeY + 2, skin.high);
+  if (bump >= 1) r.put(mid + 1, eyeY + 2, skin.light);
   if (nose.hook) {
     // The tip hangs past the base and throws the nostril into shadow.
     r.stroke(
@@ -2412,7 +2414,7 @@ function drawFeatures(r: Raster, m: Model) {
     // Turned up: the underside of the nose shows, so the base catches light.
     r.rect(tipX - 2, tipY + 1, 3, 1, mix(skin.base, skin.light, 0.35));
   }
-  r.put(tipX - 1, tipY, skin.high);
+  r.put(tipX - 1, tipY, mix(skin.base, skin.light, 0.7));
   // Base and nostrils. Anger flares them.
   const wing =
     nose.wing -
@@ -2586,6 +2588,10 @@ function drawFeatures(r: Raster, m: Model) {
 
 // ---------------------------------------------------------------- hair
 
+/** Men's curls are worn close to the head, with nothing falling behind. */
+const closeCurls = (a: CharacterAppearance) =>
+  a.hair === "curls" && a.physique?.sex === "male";
+
 /** Outer hair silhouette: the near side carries the back of the skull. */
 function hairOuter(m: Model, length: number): Pt[] {
   const { nearX, farX, top, volume: v, chin } = m;
@@ -2645,7 +2651,7 @@ function hairOuter(m: Model, length: number): Pt[] {
 function drawBackHair(r: Raster, m: Model) {
   const { a, hair, nearX, farX, volume: v } = m;
   const style = a.hair;
-  if (style === "bald" || style === "cropped") return;
+  if (style === "bald" || style === "cropped" || closeCurls(a)) return;
   const length =
     style === "long"
       ? 72
@@ -2708,7 +2714,9 @@ function drawFrontHair(r: Raster, m: Model) {
       ? 44
       : 60
     : style === "curls"
-      ? 38
+      ? closeCurls(a)
+        ? eyeY + 1
+        : 38
       : style === "cropped"
         ? eyeY - 2
         : eyeY + 6;

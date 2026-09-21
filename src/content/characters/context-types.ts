@@ -3,6 +3,7 @@ import type {
   CharacterAppearance,
   CharacterFace,
   FacialHair,
+  HairWeights,
 } from "../../core/character";
 import type { Inventory } from "../../core/types";
 import type { Ecology } from "../ecology/profiles";
@@ -134,6 +135,9 @@ export type AppearanceKit = QualifiedContent & {
   mouths?: readonly CharacterFace["mouth"][];
   hairColors: readonly string[];
   hairStyles: readonly CharacterAppearance["hair"][];
+  /** Multiplies the default per-sex hair weights where a style's frequency
+   * differs here, e.g. long hair on men. */
+  hairScale?: Partial<Record<"male" | "female", HairWeights>>;
   garments: readonly CharacterAppearance["wearing"]["garment"][];
   /**
    * Ear and nose ornaments and face marks drawn here, weighted by repetition
