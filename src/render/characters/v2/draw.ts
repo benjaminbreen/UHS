@@ -63,17 +63,27 @@ export function drawCharacter(
           : [0, 3, 0, -3]
       : [0, 0, 0, 0],
     stride = strides[f],
-    // One frame behind the legs: cloth follows the body, it does not snap with it.
-    trail = Math.sign(strides[(f + 3) % 4]),
+    // One frame behind the legs: cloth follows the body, it does not snap with
+    // it. A runner's cloth streams behind instead of swinging.
+    trail = sprint && side ? -1 : Math.sign(strides[(f + 3) % 4]),
     // How far it follows. A single pixel of hem was invisible at this size.
-    drift = trail * (sprint ? 3 : 2),
-    // A run drops harder on contact and tucks both legs through the flight frames.
-    bob = moving && pose !== "wade" && f % 2 ? (sprint ? 2 : 1) : 0,
-    flight = sprint && f % 2 === 0 ? 2 : 0,
-    shift = pose === "sway" ? [-1, 0, 1, 0][f] : 0;
-  // Crouch, stretch off the ground, hang at the apex, absorb the landing.
-  const airborne = pose === "jump";
+    drift = sprint && side ? -2 - (f % 2) : trail * (sprint ? 3 : 2),
+    bob = moving && pose !== "wade" && f % 2 ? 1 : 0,
+    // Head-on, a run is a side-to-side roll over the planted foot.
+    shift =
+      pose === "sway"
+        ? [-1, 0, 1, 0][f]
+        : sprint && !side
+          ? [1, 0, -1, 0][f]
+          : 0;
+  // Crouch, stretch off the ground, hang at the apex, reach for the ground.
+  const airborne = pose === "jump",
+    landing = pose === "land";
   const tuck = airborne ? [0, 2, 5, 1][f] : 0;
+  // Knees bent deep enough that they have to go somewhere.
+  const crouched = (airborne && f === 0) || (landing && f < 3);
+  // Cloth lifts at the top of a jump.
+  const float = airborne ? [0, 0, 2, 1][f] : 0;
   // A run compresses into the contact frame and extends off it. `bend` drops
   // the head while the feet stay planted, so it is already the squash.
   const extend = sprint && f % 2 === 0 ? 1 : 0,
@@ -81,8 +91,10 @@ export function drawCharacter(
   const bend =
     (stance === "stooped" ? 2 : burden ? 1 : 0) +
     (airborne
-      ? [4, -1, 0, 3][f]
-      : pose === "sit" || pose === "kneel"
+      ? [4, -1, 0, 0][f]
+      : landing
+        ? [6, 5, 2, 0][f]
+        : pose === "sit" || pose === "kneel"
         ? 6
         : pose === "stoop"
           ? [2, 4, 6, 4][f]
@@ -111,6 +123,31 @@ export function drawCharacter(
     small = a.height <= -2 ? 1 : 0,
     narrow = (a.build === -1 ? 1 : 0) + small,
     feet = 35 + tall - bend - bob;
+  // `flat` is a true profile. A diagonal is drawn with the front view's
+  // detail, moved a pixel toward the way it faces, and none of it when the
+  // figure is walking away.
+  const flat = side && !quarter,
+    rear = back || headAway;
+  // A profile is two thirds of the front width: 8px against 12. Build goes on
+  // the front first; only the heaviest adds a pixel behind. A diagonal sits
+  // between the two at 10px.
+  const left = quarter
+      ? 7 - (wide > 1 ? 1 : 0) + small
+      : side
+        ? 8 - (wide > 1 ? 1 : 0) + small
+        : 4 - wide + small,
+    right = (quarter ? 17 : 16) + wide - narrow,
+    centre = quarter ? Math.round((left + right) / 2) + 1 : 10;
+  // Shoulders and head carried forward of the hips: a runner, a crouch, a landing.
+  const pitch = side
+    ? sprint
+      ? 1
+      : airborne
+        ? [2, 0, 0, 0][f]
+        : landing
+          ? [2, 2, 1, 0][f]
+          : 0
+    : 0;
   const skin = ramp(a.skin, "skin"),
     cloth = ramp(a.wearing.color),
     lower = ramp(a.wearing.lowerColor),
@@ -140,25 +177,39 @@ export function drawCharacter(
           : ["coat", "shirt", "robe"].includes(a.wearing.garment)
             ? "long"
             : "short"));
-  const armSwing = moving ? (sprint ? [0, 4, 0, -4] : [0, 3, 0, -3])[f] : 0;
+  const armSwing = moving
+    ? (sprint ? [0, 4, 0, -4] : quarter ? [0, 2, 0, -2] : [0, 3, 0, -3])[f]
+    : 0;
   // The profile hangs its arms from the middle of a 7px torso.
-  const shoulderNear: Point = side
-      ? [12, 15 - inhale]
-      : [16 + wide - narrow, 15 - inhale],
-    shoulderFar: Point = side
-      ? [14 - narrow, 15 - inhale]
-      : [4 - wide + small, 15 - inhale];
+  // On a diagonal the near arm hangs over the near edge of the chest and the
+  // far shoulder shows past the other.
+  const shoulderNear: Point = quarter
+      ? [left + 2 + pitch, 15 - inhale]
+      : side
+        ? [12 + pitch, 15 - inhale]
+        : [16 + wide - narrow, 15 - inhale],
+    shoulderFar: Point = quarter
+      ? [right - 1 + pitch, 15 - inhale]
+      : side
+        ? [14 - narrow + pitch, 15 - inhale]
+        : [4 - wide + small, 15 - inhale];
   // Two pixels below the belt: clear of the waist, where hands at 22 read as
   // arms folded on the stomach, but well short of the knee.
   const hang = (sprint ? 20 : 24) + torso;
   let near: Point = side
-      ? [12 - armSwing, hang - (armSwing < 0 ? 2 : armSwing > 0 ? 1 : 0)]
+      ? [
+          shoulderNear[0] - pitch - armSwing,
+          hang - (armSwing < 0 ? 2 : armSwing > 0 ? 1 : 0),
+        ]
       : [
           16 + wide - narrow - (stride < 0 ? 1 : 0),
           hang + Math.round(stride / 3),
         ],
     far: Point = side
-      ? [14 - narrow + armSwing, hang - (armSwing > 0 ? 2 : armSwing < 0 ? 1 : 0)]
+      ? [
+          shoulderFar[0] - pitch + armSwing,
+          hang - (armSwing > 0 ? 2 : armSwing < 0 ? 1 : 0),
+        ]
       : [
           4 - wide + small + (stride > 0 ? 1 : 0),
           hang - Math.round(stride / 3),
@@ -255,24 +306,85 @@ export function drawCharacter(
     near = [side ? 17 : 17 + wide, [4, 8, 9, 5][f]];
     far = [side ? 13 : 2 - wide, [9, 5, 4, 8][f]];
   }
+  // Explicit elbows, for arms that are bent on purpose. Without one the elbow
+  // is the midpoint, which is a straight arm.
+  let nearElbow: Point | undefined, farElbow: Point | undefined;
+  const bent = (s: Point, elbow: Point, hand: Point): [Point, Point] => [
+    [s[0] + elbow[0], s[1] + elbow[1]],
+    [s[0] + hand[0], s[1] + hand[1]],
+  ];
+  if (sprint) {
+    if (side) {
+      // Elbows locked near a right angle and swung from the shoulder: hand to
+      // the chest in front, elbow high behind. Opposite the legs.
+      const pump = (s: Point, phase: number) =>
+        phase === 0
+          ? bent(s, [-3, 3], [-2, 7])
+          : phase === 2
+            ? bent(s, [2, 4], [5, 1])
+            : bent(s, [-1, 4], [2, 5]);
+      [nearElbow, near] = pump(shoulderNear, [0, 1, 2, 1][f]);
+      [farElbow, far] = pump(shoulderFar, [2, 1, 0, 1][f]);
+    } else {
+      // Head-on the pump is a hand coming up to the chest and dropping to the hip.
+      const pump = (s: Point, out: number, phase: number) =>
+        phase === 0
+          ? bent(s, [out * 2, 5], [-out * 2, 2])
+          : phase === 2
+            ? bent(s, [out, 4], [0, 8])
+            : bent(s, [out, 4], [0, 6]);
+      [nearElbow, near] = pump(shoulderNear, 1, [0, 1, 2, 1][f]);
+      [farElbow, far] = pump(shoulderFar, -1, [2, 1, 0, 1][f]);
+    }
+  }
   if (airborne) {
-    // Arms wind back, swing overhead through the launch, then reach out to land.
-    near = (
-      [
-        [side ? 8 : 11 + wide, 24 + torso],
-        [side ? 15 : 16 + wide, 11],
-        [side ? 21 : 21 + wide, 13],
-        [side ? 18 : 18 + wide, 19 + torso],
-      ] as Point[]
-    )[f];
-    far = (
-      [
-        [side ? 6 : 6 - wide, 24 + torso],
-        [side ? 11 : 2 - wide, 12],
-        [side ? 8 : -1 - wide, 14],
-        [side ? 13 : 4 - wide, 20 + torso],
-      ] as Point[]
-    )[f];
+    if (side) {
+      // Wound back, thrown up, level at the apex, out for balance. A raised
+      // hand has to clear the face, or the head hides it.
+      const arms: [Point, Point][] = [
+        [[-3, 3], [-5, 6 + torso]],
+        [[4, -2], [7, -8]],
+        [[3, 2], [6, 0]],
+        [[4, 1], [7, -2]],
+      ];
+      [nearElbow, near] = bent(shoulderNear, ...arms[f]);
+      [farElbow, far] =
+        f === 3
+          ? bent(shoulderFar, [-5, 1], [-9, 2])
+          : bent(shoulderFar, ...arms[f]);
+    } else {
+      near = (
+        [
+          [11 + wide, 24 + torso],
+          [16 + wide, 11],
+          [21 + wide, 13],
+          [20 + wide, 12],
+        ] as Point[]
+      )[f];
+      far = (
+        [
+          [6 - wide, 24 + torso],
+          [2 - wide, 12],
+          [-1 - wide, 14],
+          [0 - wide, 12],
+        ] as Point[]
+      )[f];
+    }
+  }
+  if (landing && f < 3) {
+    if (side) {
+      // Hands thrown forward and down to catch the weight.
+      const reach: [Point, Point] = [
+        [2, 4],
+        [[5, 7], [5, 8], [3, 8]][f] as Point,
+      ];
+      [nearElbow, near] = bent(shoulderNear, ...reach);
+      [farElbow, far] = bent(shoulderFar, ...reach);
+    } else {
+      const out = [3, 3, 1][f];
+      near = [16 + wide + out, 21 + torso];
+      far = [4 - wide - out, 21 + torso];
+    }
   }
   if (pose === "give") {
     near = [side ? 19 : 16 + wide, 21 + torso - [-1, 2, 3, 0][f]];
@@ -345,6 +457,9 @@ export function drawCharacter(
     ];
   if (prop?.kind === "side")
     near[1] = Math.min(near[1], feet - prop.height + 2);
+  // A hand that is holding something goes where the thing is.
+  if (prop) nearElbow = undefined;
+  if (prop?.kind === "both" || haftVector) farElbow = undefined;
   let propX = 0,
     propY = 0;
   if (prop?.kind === "both") {
@@ -464,8 +579,8 @@ export function drawCharacter(
         prop.kind === "both" ? propY : near[1] - 2,
       );
   };
-  const armGeometry = (shoulder: Point, hand: Point) => {
-    const elbow: Point = [
+  const armGeometry = (shoulder: Point, hand: Point, given?: Point) => {
+    const elbow: Point = given ?? [
       Math.round((shoulder[0] + hand[0]) / 2) +
         (hand[1] < 17 ? (side ? -1 : 1) : 0),
       hand[1] < 17
@@ -491,15 +606,19 @@ export function drawCharacter(
       sleeve: long ? [shoulder, elbow, cuff] : [shoulder, cuff],
     };
   };
-  const nearArm = armGeometry(shoulderNear, near),
-    farArm = armGeometry(shoulderFar, far);
+  const nearArm = armGeometry(shoulderNear, near, nearElbow),
+    farArm = armGeometry(shoulderFar, far, farElbow);
   const forearm = (arm: ReturnType<typeof armGeometry>, isFar: boolean) => {
     const material: Ramp = isFar
       ? { ...skin, base: skin.shade, light: skin.base }
       : skin;
     const bare = sleeves === "none";
     p.ribbon(
-      bare ? [arm.shoulder, arm.elbow, arm.hand] : [arm.cuff, arm.hand],
+      bare
+        ? [arm.shoulder, arm.elbow, arm.hand]
+        : sleeves === "short"
+          ? [arm.cuff, arm.elbow, arm.hand]
+          : [arm.cuff, arm.hand],
       3,
       material,
     );
@@ -521,7 +640,9 @@ export function drawCharacter(
     const x = side
         ? isFar
           ? 12
-          : 11
+          : quarter
+            ? 10
+            : 11
         : isFar
           ? 6 - wide + small
           : 13 + wide - narrow,
@@ -529,16 +650,22 @@ export function drawCharacter(
       // A pixel of scissor either side is enough to read as a stride head-on.
       // The hips sit a pixel apart, so the leg that has to cross the other
       // reaches a pixel further, or one contact frame is narrower than the other.
-      walk = side
-        ? isFar
-          ? -stride - (stride > 0 ? 1 : 0)
-          : stride + (stride > 0 ? 1 : 0)
-        : Math.sign(isFar ? -stride : stride);
+      // A diagonal stride is foreshortened to two thirds.
+      walk = quarter
+        ? (isFar ? -1 : 1) * (stride > 0 ? 3 : stride < 0 ? -1 : 0)
+        : side
+          ? isFar
+            ? -stride - (stride > 0 ? 1 : 0)
+            : stride + (stride > 0 ? 1 : 0)
+          : Math.sign(isFar ? -stride : stride);
     // Lifted on the passing frames, planted on the contact frames. It used to
     // be the other way round, which left both feet flat at mid-stride and made
     // the two passing frames identical drawings.
     const lift =
-      (moving
+      (sprint
+        ? // Head-on, a knee driven up is a leg drawn short.
+          [5, 2, 1, 0][(f + (isFar ? 2 : 0)) % 4]
+        : moving
         ? (isFar && f === 2) || (!isFar && f === 0)
           ? side
             ? 3
@@ -548,23 +675,66 @@ export function drawCharacter(
             ? 1
             : 0
         : 0) +
-      flight +
+      // The far foot of a diagonal stands further up the screen, and so does
+      // whichever foot is stepping away from the viewer.
+      (quarter ? (isFar ? 1 : 0) + (headAway && walk > 0 ? 1 : 0) : 0) +
       // Climbing alternates a foothold: one foot stays planted on the face
       // while the other reaches for the next hold.
       (climbing ? ((isFar ? f % 2 : (f + 1) % 2) ? 4 : 0) : 0);
     // The trailing leg tucks a pixel less, so the pair reads as a stride in air.
     const raise = tuck && isFar ? tuck - 1 : tuck;
-    const ankle: Point = [x + walk, feet - 2 - lift - raise],
-      hip: Point = [x, 22 + torso];
-    const knee: Point = [
+    let ankle: Point = [x + walk, feet - 2 - lift - raise];
+    const hip: Point = [x, 22 + torso];
+    let knee: Point = [
       x +
         Math.round(walk * 0.5) +
         (side && raise ? 2 : 0) +
         (side && moving && lift && !climbing ? 1 : 0) +
-        // Knees out to the sides, so a climber straddles the face.
-        (climbing ? (isFar ? -2 : 2) : 0),
+        // Knees out to the sides: a climber straddling the face, or a crouch
+        // seen head-on.
+        (climbing || (crouched && !side) ? (isFar ? -2 : 2) : 0),
       Math.round((hip[1] + ankle[1]) / 2),
     ];
+    // In profile a run, a jump and a landing are posed joint by joint, as
+    // offsets from the hip. `ground` is how far below it the ankle stands.
+    let toeDown = false;
+    if (side && (sprint || airborne || crouched)) {
+      const ground = feet - 2 - hip[1];
+      const scale = (v: number) => Math.round((v * (11 + a.height)) / 11);
+      let k: Point, n: Point;
+      if (sprint) {
+        // Flight frames carry the widest split; on a contact frame one foot is
+        // under the hips and the other heel is kicked up behind a driving knee.
+        const phase = (f + (isFar ? 2 : 0)) % 4;
+        [k, n] = (
+          [
+            [[4, scale(4)], [6, ground - 3]],
+            [[1, scale(5)], [-1, ground]],
+            [[-2, scale(5)], [-6, ground - 4]],
+            [[5, scale(3)], [1, ground - 4]],
+          ] as [Point, Point][]
+        )[phase];
+        toeDown = phase > 1;
+      } else if (crouched) {
+        k = [ground < 8 ? 3 : 2, Math.round(ground * 0.45)];
+        n = [isFar ? 0 : -1, ground];
+      } else if (f === 1) {
+        // Off the toes.
+        k = [0, scale(6)];
+        n = [-1, ground - 2];
+        toeDown = true;
+      } else if (f === 2) {
+        k = isFar ? [3, scale(4)] : [4, scale(3)];
+        n = isFar ? [0, scale(8)] : [2, scale(7)];
+        toeDown = isFar;
+      } else {
+        // Legs coming back down, feet ahead of the hips.
+        k = [2, scale(5)];
+        n = [isFar ? 1 : 3, ground - 1];
+      }
+      knee = [hip[0] + k[0], hip[1] + k[1]];
+      ankle = [hip[0] + n[0], hip[1] + n[1] - (quarter && isFar ? 1 : 0)];
+    }
     // Leggings win over the garment's own guess: a short tunic over hose is
     // covered, a long robe over nothing still hides the leg anyway.
     const legs =
@@ -584,7 +754,7 @@ export function drawCharacter(
     }
     // Trousers reach the ankle; hose stop a pixel short and show the joint.
     if (legs === "trousers" && !isFar)
-      p.rect(hip[0] - 2, ankle[1] - 2, 4, 2, lower.shade);
+      p.rect(ankle[0] - 2, ankle[1] - 2, 4, 2, lower.shade);
     // Cut wide: the cloth falls straight and flares away from the body. The
     // flare has to be outward only, or the two legs meet in the middle.
     if (legs === "wide") {
@@ -606,6 +776,21 @@ export function drawCharacter(
       void out;
     }
     const shoe = a.wearing.footwear ?? "shoes";
+    if (toeDown) {
+      // A foot off the ground hangs from the ankle, toe down.
+      const hide = shoe === "none" ? skin : leather;
+      p.shape(
+        [
+          [ankle[0] - 1, ankle[1]],
+          [ankle[0] + 2, ankle[1]],
+          [ankle[0] + 2, ankle[1] + 2],
+          [ankle[0] + 1, ankle[1] + 5],
+          [ankle[0] - 1, ankle[1] + 4],
+        ],
+        isFar ? { ...hide, base: hide.shade } : hide,
+      );
+      return;
+    }
     if (shoe === "none") {
       // Bare foot: the same silhouette in skin, with a toe rather than a welt.
       p.shape(
@@ -654,8 +839,8 @@ export function drawCharacter(
   // them rather than on each: sarong, lungi, dhoti, kanga, izaar.
   if ((a.wearing.leggings ?? "none") === "sarong") {
     const sheet = ramp(a.wearing.lowerColor);
-    const l = side ? 8 : 5 - wide,
-      r = (side ? 15 : 15) + wide;
+    const l = side ? left : 5 - wide,
+      r = side ? right - 1 : 15 + wide;
     const top = 21 + torso,
       fall = feet - 3;
     p.shape(
@@ -681,8 +866,8 @@ export function drawCharacter(
       [
         [side ? 8 : 4 - wide, 13],
         [side ? 12 : 16 + wide, 13],
-        [(side ? 11 : 18 + wide) + sway, 27 + torso],
-        [(side ? 4 : 1 - wide) + sway, 27 + torso],
+        [(side ? 11 : 18 + wide) + sway, 27 + torso - float],
+        [(side ? 4 : 1 - wide) + sway - float, 27 + torso - float],
         [side ? 6 : 2 - wide, 18],
       ],
       cloak,
@@ -693,10 +878,6 @@ export function drawCharacter(
       cloak.light,
     );
   }
-  // A profile is two thirds of the front width: 8px against 12. Build goes on
-  // the front first; only the heaviest adds a pixel behind.
-  const left = side ? 8 - (wide > 1 ? 1 : 0) + small : 4 - wide + small,
-    right = (side ? 16 + wide : 16 + wide) - narrow;
   // A loincloth is the bare-torso body with a panel hung off the cord, so it
   // shares every measurement with it.
   const naked =
@@ -734,7 +915,8 @@ export function drawCharacter(
   // A long hem swings a frame behind the legs, like the cloak.
   const hemSway = long ? drift : trail;
   const hemLift =
-    a.wearing.hem === "slanted" ? 2 : stance === "relaxed" ? 1 : 0;
+    (a.wearing.hem === "slanted" ? 2 : stance === "relaxed" ? 1 : 0) +
+    (float ? 1 : 0);
   // Bare above the waist: the torso is skin down to a short waistcloth, so
   // the silhouette is the same body without a garment on it.
   const body = naked ? skin : cloth;
@@ -749,24 +931,24 @@ export function drawCharacter(
             [right + 1 + hemSway, bodyHem],
             [left - 1 + hemSway, bodyHem],
           ]
-        : side
+        : flat
           ? // Profile: chest forward under the chin, the back two pixels behind
             // the neck, a hollow at the lumbar and a seat below it. The front
             // view's hem drape pushed the back out and tucked the belly in.
             [
-              [left + 2, 12],
-              [right - 3, 12],
-              [right - 1, 14],
-              [right + 1, 16 - inhale],
-              [right + 1, 18 - inhale],
+              [left + 2 + pitch, 12],
+              [right - 3 + pitch, 12],
+              [right - 1 + pitch, 14],
+              [right + 1 + pitch, 16 - inhale],
+              [right + 1 + pitch, 18 - inhale],
               [right + belly, 20 + torso],
               [right + belly + flare + hemSway, bodyHem - 1 - hemLift],
               [right - 1 + flare + hemSway, bodyHem],
               [left - flare + hemSway, bodyHem],
               ...((bodyHem > 24 + torso ? [[left, 23 + torso]] : []) as Point[]),
               [left + 1, 20 + torso],
-              [left, 16],
-              [left, 14],
+              [left + pitch, 16],
+              [left + pitch, 14],
             ]
           : [
             [left + 2, 12],
@@ -795,7 +977,7 @@ export function drawCharacter(
     p.rect(left, 22 + torso, right - left, 1, lower.shade);
     // A loincloth is the same cord with a panel hanging off the front of it.
     if (a.wearing.garment === "loincloth") {
-      const mid = side ? right - 4 : Math.round((left + right) / 2) - 1;
+      const mid = flat ? right - 4 : Math.round((left + right) / 2) - 1;
       p.rect(mid, 22 + torso, 3, 6, lower.base);
       p.rect(mid, 22 + torso, 1, 6, lower.light);
       p.rect(mid + 2, 22 + torso, 1, 6, lower.shade);
@@ -824,10 +1006,10 @@ export function drawCharacter(
   // Open at the front over a contrasting inner layer. The inner is drawn
   // first, then the outer panels cut back to leave a gap down the middle:
   // that gap is the whole silhouette, and without it this is just a coat.
-  if (openRobe && !back) {
+  if (openRobe && !rear) {
     const inner = ramp(a.wearing.lowerColor);
-    const mid = Math.round((left + right) / 2);
-    if (side) {
+    const mid = Math.round((left + right) / 2) + (quarter ? 1 : 0);
+    if (flat) {
       // In profile the opening is a strip down the front edge.
       p.rect(right - 3, 15, 2, hem - 17, inner.base);
       p.line([right - 4, 15], [right - 4, hem - 3], a.wearing.trim);
@@ -861,9 +1043,9 @@ export function drawCharacter(
     p.line([left - 4 + hemSway, hem - 2], [right + 4 + hemSway, hem - 2], cloth.shade);
     p.line([left - 1, 23 + torso], [left - 4 + hemSway, hem - 3], cloth.light);
   }
-  if (gown && !back) {
+  if (gown && !rear) {
     const inner = ramp(a.wearing.lowerColor);
-    const mid = side ? right - 3 : Math.round((left + right) / 2);
+    const mid = flat ? right - 3 : Math.round((left + right) / 2);
     p.shape(
       [
         [mid - 2, 15],
@@ -880,14 +1062,14 @@ export function drawCharacter(
   if (suit) {
     const gear = ramp(a.wearing.trim);
     p.rect(left + 1, 14, right - left - 2, 1, gear.base);
-    if (!back) {
-      p.rect(side ? right - 5 : 9, 17, 4, 3, gear.shade);
-      p.rect(side ? right - 5 : 9, 17, 4, 1, gear.light);
+    if (!rear) {
+      p.rect(flat ? right - 5 : centre - 1, 17, 4, 3, gear.shade);
+      p.rect(flat ? right - 5 : centre - 1, 17, 4, 1, gear.light);
     }
     p.line([left + 1, 16], [left + 1, hem - 2], gear.shade);
     p.line([right - 2, 16], [right - 2, hem - 2], gear.shade);
   }
-  if (a.wearing.garment === "wrap" && !back) {
+  if (a.wearing.garment === "wrap" && !rear) {
     p.shape(
       [
         [left + 2, 13],
@@ -901,11 +1083,11 @@ export function drawCharacter(
   }
   if (
     (a.wearing.garment === "shirt" || a.wearing.garment === "coat") &&
-    !back
+    !rear
   ) {
-    const seam = side ? right - 2 : 10;
+    const seam = flat ? right - 2 : centre;
     p.line([seam, 15], [seam, hem - 2], cloth.shade);
-    if (!side)
+    if (!flat)
       for (let y = 16; y < hem - 2; y += 3)
         p.rect(seam + 1, y, 1, 1, a.wearing.trim);
   }
@@ -929,7 +1111,7 @@ export function drawCharacter(
     p.line([right - 3, 24 + torso], [right - 2, hem - 2], lower.shade);
   }
   if (a.wearing.hem === "split")
-    p.rect(side ? right - 2 : 10, hem - 2, 1, 2, lower.shade);
+    p.rect(flat ? right - 2 : centre, hem - 2, 1, 2, lower.shade);
   // --- cloth detail ------------------------------------------------------
   // One deterministic motif per outfit, from fields the appearance already
   // carries, so a village reads as a wardrobe rather than as one smock in
@@ -944,12 +1126,14 @@ export function drawCharacter(
         a.wearing.garment +
         a.wearing.belt),
     ].reduce((n, c) => (Math.imul(n, 31) + c.charCodeAt(0)) >>> 0, 7);
-    const mid = side ? right - 3 : Math.round((left + right) / 2);
+    const mid = flat
+      ? right - 3
+      : Math.round((left + right) / 2) + (quarter ? 1 : 0);
     const chest = 18,
       lowChest = 21 + torso;
-    if (!back) {
+    if (!rear) {
       // A neckline. The shipped garments end at a bare shoulder seam.
-      if (side) p.rect(right - 4, 16, 3, 1, trim.shade);
+      if (flat) p.rect(right - 4, 16, 3, 1, trim.shade);
       else if (["shirt", "coat", "robe"].includes(a.wearing.garment)) {
         p.line([mid - 3, 16], [mid, 19], trim.base);
         p.line([mid + 3, 16], [mid, 19], trim.base);
@@ -970,7 +1154,7 @@ export function drawCharacter(
         : { plain: 0, placket: 1, band: 2, yoke: 3, stitch: 4, stripes: 5 }[
             named
           ];
-    if (!back && a.wearing.garment !== "wrap")
+    if (!rear && a.wearing.garment !== "wrap")
       switch (motif) {
         case 1: // centre placket
           p.line([mid, chest], [mid, hem - 3], trim.shade);
@@ -988,7 +1172,7 @@ export function drawCharacter(
         }
         case 4: // stitched seam
           for (let y = chest; y < hem - 3; y += 3)
-            p.rect(side ? right - 3 : left + 2, y, 1, 1, trim.base);
+            p.rect(flat ? right - 3 : left + 2, y, 1, 1, trim.base);
           break;
         case 5: {
           // Bands across the whole width, alternating the trim and the lower
@@ -1011,13 +1195,13 @@ export function drawCharacter(
         (a.wearing.leggings ?? "none") === "none" &&
         (a.wearing.garment === "tunic" || a.wearing.garment === "wrap");
       const legTone = bareLegs ? skin : lower;
-      for (const x of side ? [11, 12] : [6 - wide + small, 13 + wide - narrow])
+      for (const x of quarter ? [10, 12] : side ? [11, 12] : [6 - wide + small, 13 + wide - narrow])
         p.rect(x - 1, hem, 4, 1, legTone.shadowEdge ?? legTone.edge);
     }
   }
   const belt = a.wearing.belt ?? "leather",
     beltY = 22 + torso,
-    buckleX = side ? right - 2 : 10;
+    buckleX = flat ? right - 2 : centre;
   if (belt === "leather") {
     p.rect(left, beltY, right - left, 1, leather.edge);
     p.rect(buckleX, beltY, 2, 1, a.wearing.trim);
@@ -1047,8 +1231,8 @@ export function drawCharacter(
   // the garment, because that is what it is.
   if (a.wearing.mantle && !a.wearing.cloak) {
     const sway = trail;
-    const ml = side ? 7 : 1 - wide,
-      mr = (side ? 17 : 19) + wide;
+    const ml = side ? left - 1 : 1 - wide,
+      mr = side ? right + 1 : 19 + wide;
     p.shape(
       [
         [ml + 2, 12],
@@ -1066,9 +1250,10 @@ export function drawCharacter(
     p.rect(ml + 3, 12, mr - ml - 6, 1, cloak.light);
   }
   // Neck is a separate warm shadow between head and garment.
-  const neckSide = side && !quarter;
-  p.rect(neckSide ? 11 : 9, 12, neckSide ? 3 : 5, 3, skin.shade);
-  p.rect(neckSide ? 12 : 10, 13, 2, 1, skin.base);
+  const neckSide = flat,
+    neckX = (neckSide ? 11 : quarter ? 10 : 9) + pitch;
+  p.rect(neckX, 12, neckSide ? 3 : 5, 3, skin.shade);
+  p.rect(neckX + 1, 13, 2, 1, skin.base);
   if (side) {
     // The far hand is occluded by the body, but remains visible beyond its silhouette.
     ctx.save();
@@ -1104,21 +1289,22 @@ export function drawCharacter(
     p.line([side ? 12 : 8, 14], [side ? 15 : 12, 15], drape.base);
   }
   // Collar shadow under the chin so the head sits on the body.
-  if (!back) p.rect(left + 1, 16, right - left - 1, 1, cloth.shade);
+  if (!rear) p.rect(left + 1 + pitch, 16, right - left - 1, 1, cloth.shade);
   ctx.save();
   if (stance === "stooped") ctx.translate(1, 1);
+  ctx.translate(pitch, 0);
   p.modeling = false;
   if (quarter) {
     // The profile body sits forward of the front head's centre; move the
     // head over it.
     ctx.save();
-    ctx.translate(2, 0);
-    drawHead(p, a, false, headAway, pose, f, trail);
+    ctx.translate(1, 0);
+    drawHead(p, a, false, headAway, pose, f, trail, true);
     ctx.restore();
   } else drawHead(p, a, side, back, pose, f, trail);
   p.modeling = true;
   ctx.restore();
-  if (a.wearing.necklace && !back) {
+  if (a.wearing.necklace && !rear) {
     if (neckSide) p.line([13, 15], [14, 17], a.wearing.trim);
     else {
       p.line([7, 15], [10, 17], a.wearing.trim);

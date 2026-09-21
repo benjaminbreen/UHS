@@ -3576,7 +3576,17 @@ export class WorldScene extends Phaser.Scene {
         const action =
           id === "player" ? this.runtime.characterAction : undefined;
         const elapsed = action ? performance.now() - action.at : Infinity;
-        const active = action && elapsed < poseTiming(action.pose) * 4;
+        // A jump is spread over its own arc, so the apex frame is drawn at
+        // the apex whatever the distance, and a landing follows it. The
+        // landing gives way to walking after its first frame.
+        const arcMs =
+          action?.pose === "jump" ? (action.arc?.duration ?? 360) : undefined;
+        const active =
+          action && elapsed < (arcMs ?? poseTiming(action.pose) * 4);
+        const sinceLanding = arcMs === undefined ? -1 : elapsed - arcMs;
+        const landed =
+          sinceLanding >= 0 &&
+          sinceLanding < poseTiming("land") * (moving ? 1 : 4);
         const sample = this.runtime.engine.world.topography;
         const wetPos = this.destinations.get(id);
         const water =
@@ -3590,6 +3600,7 @@ export class WorldScene extends Phaser.Scene {
         const heldSprite = this.heldSprites.get(id);
         let pose: CharacterPose = moving ? "walk" : "idle";
         if (active) pose = action.pose;
+        else if (landed) pose = "land";
         else if (moving)
           pose = id === "player" && this.shiftHeld ? "run" : "walk";
         else if (at) pose = this.ambientPose(id, at, time);
@@ -3621,8 +3632,13 @@ export class WorldScene extends Phaser.Scene {
         const laden =
           id === "player" && !!me.held && !this.runtime.engine.armed();
         const index = active
-          ? Math.min(3, Math.floor(elapsed / poseTiming(pose)))
-          : this.options.freeze
+          ? arcMs
+            ? // Crouch, launch, a long apex, then the reach for the ground.
+              [0.12, 0.4, 0.8].filter((t) => elapsed / arcMs >= t).length
+            : Math.min(3, Math.floor(elapsed / poseTiming(pose)))
+          : landed
+            ? Math.min(3, Math.floor(sinceLanding / poseTiming("land")))
+            : this.options.freeze
             ? 0
             : cued
               ? cued.index

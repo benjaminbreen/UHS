@@ -10,6 +10,8 @@ export function drawHead(
   f: number,
   /** Lateral lag of anything hanging off the head, in pixels. */
   sway = 0,
+  /** A front or back head turned a little toward +x, for the diagonals. */
+  turn = false,
 ) {
   const skin = ramp(a.skin, "skin"),
     hair = ramp(a.hairColor, "hair"),
@@ -139,19 +141,23 @@ export function drawHead(
     p.rect(6, 6, 9, 5, skin.base);
     p.rect(7, 6, 6, 1, skin.light);
     if (!back) {
-      p.rect(7, 8, 2, blink ? 1 : 2, blink ? skin.shade : eye);
-      p.rect(12, 8, 2, blink ? 1 : 2, blink ? skin.shade : eye);
+      // Turned, the features move a pixel toward the facing, the far eye
+      // narrows and the far cheek falls into shade.
+      const t = turn ? 1 : 0;
+      p.rect(7 + t, 8, 2, blink ? 1 : 2, blink ? skin.shade : eye);
+      p.rect(12 + t, 8, 2 - t, blink ? 1 : 2, blink ? skin.shade : eye);
       if (!blink) {
-        p.rect(7, 8, 1, 1, glint);
-        p.rect(12, 8, 1, 1, glint);
+        p.rect(7 + t, 8, 1, 1, glint);
+        p.rect(12 + t, 8, 1, 1, glint);
       }
-      p.rect(10, 10, 2, 1, skin.light);
-      p.rect(9, 12, 3, 1, skin.shade);
-      if (pose === "talk" && f % 2) p.rect(10, 12, 2, 2, skin.edge);
-      if (pose === "startle") p.rect(10, 12, 2, 2, skin.edge);
+      p.rect(10 + t, 10, 2, 1, skin.light);
+      if (turn) p.rect(13, 10, 1, 1, skin.shade);
+      p.rect(9 + t, 12, 3, 1, skin.shade);
+      if (pose === "talk" && f % 2) p.rect(10 + t, 12, 2, 2, skin.edge);
+      if (pose === "startle") p.rect(10 + t, 12, 2, 2, skin.edge);
       if (pose === "hurt") {
-        p.rect(7, 7, 2, 1, skin.shade);
-        p.rect(12, 7, 2, 1, skin.shade);
+        p.rect(7 + t, 7, 2, 1, skin.shade);
+        p.rect(12 + t, 7, 2 - t, 1, skin.shade);
       }
     }
   }
@@ -340,6 +346,14 @@ export function drawHead(
     // Ear sits between hair mass and cheek, not at the back outline.
     p.rect(9, 9, 2, 3, skin.shade);
     p.rect(10, 9, 1, 2, skin.light);
+  } else if (turn && !back) {
+    // The near ear comes into view as the head turns.
+    p.rect(5, 9, 2, 3, skin.shade);
+    p.rect(6, 9, 1, 2, skin.light);
+  } else if (turn) {
+    // From behind, the turn shows an ear and a sliver of cheek.
+    p.rect(16, 8, 1, 4, skin.base);
+    p.rect(15, 9, 1, 2, skin.shade);
   }
   if (!back && a.beard !== "none") {
     const b = a.beard;

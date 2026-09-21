@@ -27,6 +27,7 @@ export const poses = [
   "lift",
   "startle",
   "jump",
+  "land",
   "hurt",
   "sit",
 ] as const;
@@ -41,8 +42,11 @@ export function poseTiming(pose: CharacterPose) {
   if (pose === "breathe") return 1000;
   if (pose === "stoop" || pose === "sway") return 320;
   if (pose === "kneel" || pose === "tug" || pose === "lift") return 240;
-  // Four frames across a ~360ms arc: crouch, launch, apex, land.
+  // Crouch, launch, apex, reach for the ground. The scene spreads these over
+  // the arc itself; this is the lab's cadence.
   if (pose === "jump") return 90;
+  // Impact, hold, rise, settle.
+  if (pose === "land") return 70;
   // A chop is a swing with a heavier head; a dig and a sweep are slower still.
   if (pose === "chop") return 120;
   if (pose === "dig" || pose === "reap" || pose === "till") return 150;
