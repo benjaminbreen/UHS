@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
+import { PHONE_QUERY } from "../runtime/device";
 
-/** The same screens the touch controls and the phone stylesheet claim. */
-export const PHONE_QUERY =
-  "(max-width: 640px), (pointer: coarse) and (max-width: 1024px)";
+export { PHONE_QUERY };
 
 /** Whether the phone layout is on. Used where the two layouts want different
  * markup, not merely different CSS — a second Minimap costs a rebuild per

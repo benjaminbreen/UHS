@@ -30,3 +30,12 @@ export function workerBudget() {
   if (smallMemoryDevice()) return 2;
   return Math.min(6, Math.max(1, (navigator.hardwareConcurrency ?? 4) - 1));
 }
+
+/** The screens the touch controls and the phone stylesheet claim. */
+export const PHONE_QUERY =
+  "(max-width: 640px), (pointer: coarse) and (max-width: 1024px)";
+
+/** Whether the phone layout is on right now. */
+export function phoneLayout() {
+  return window.matchMedia?.(PHONE_QUERY).matches ?? false;
+}

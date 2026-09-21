@@ -67,6 +67,7 @@ import {
 } from "./terrain-projection";
 import { buildingContains, buildingPlacement } from "./buildings";
 import { terrainVariant, type RenderOptions } from "./appearance";
+import { phoneLayout } from "../runtime/device";
 import Phaser from "phaser";
 import { jumpMs, JUMP_CHARGE_MS, type Runtime } from "../runtime/session";
 import type { Position, WorldModel } from "../core/types";
@@ -678,6 +679,14 @@ export class WorldScene extends Phaser.Scene {
         this.runtime.inspectCell(x, y);
         return;
       }
+      // A finger is a blunt pointer and walking is what it is mostly for: on a
+      // phone a tap goes where it points instead of opening a panel over the
+      // world. The Inspect button and the Around you list still select.
+      if (phoneLayout()) {
+        this.runtime.select(undefined);
+        this.runtime.walkTo({ x, y });
+        return;
+      }
       const obs = this.runtime.getSnapshot().observation;
       const actor = obs.actors.find(
         (a) => Math.abs(a.pos.x - x) <= 0.7 && Math.abs(a.pos.y - y) <= 0.7,
@@ -922,6 +931,8 @@ export class WorldScene extends Phaser.Scene {
         event: Phaser.Types.Input.EventData,
       ) => {
         if (pointer.rightButtonDown()) return;
+        // Let the tap through to the scene, which walks.
+        if (phoneLayout()) return;
         event.stopPropagation();
         this.runtime.select(id);
       },
