@@ -70,16 +70,32 @@ export function chooseBuildingScale(
   context: BuildingScaleContext,
   roll: number,
 ): BuildingScale {
+  const prehistoricCamp =
+    context.settlement === "camp" &&
+    frames.some(
+      (frame) =>
+        (buildingModels[frame] as { prehistoricExpansion?: string } | undefined)
+          ?.prehistoricExpansion,
+    );
   const available = (["small", "medium", "large"] as const).filter((scale) =>
     frames.some((frame) => buildingScale(frame) === scale),
   );
+  const weight = (scale: BuildingScale) =>
+    buildingScaleWeight(scale, context) *
+    (prehistoricCamp
+      ? scale === "small"
+        ? 0.1
+        : scale === "medium"
+          ? 4
+          : 1
+      : 1);
   const total = available.reduce(
-    (sum, scale) => sum + buildingScaleWeight(scale, context),
+    (sum, scale) => sum + weight(scale),
     0,
   );
   let at = roll * total;
   for (const scale of available) {
-    at -= buildingScaleWeight(scale, context);
+    at -= weight(scale);
     if (at <= 0) return scale;
   }
   return available.at(-1) ?? "small";

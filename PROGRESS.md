@@ -1,3 +1,28 @@
+## Enlarged prehistoric house families — September 21, 2026
+
+The six early families omitted from the first gold-master pass now retain their
+small sprites and compile two native-pixel medium variants plus one rare large
+or communal variant: bark or mat domes, hide pole lodges, pit houses, stone
+round houses, painted round houses and Aegean flat-roofed houses. Together with
+the existing expanded round, mudbrick and longhouse families, every family in
+the prehistoric regional selector now has meaningful scale tiers.
+
+Seeded treatments change material history rather than merely hue: sewn panels,
+repair patches, restrained ochre marks, reed or turf cover, lime or cream wash,
+and regional geometric bands. The Great Plains lodge deliberately avoids later
+historic painted-tipi iconography; the Aegean house avoids modern Cycladic
+blue-and-white styling. These are explicit illustrative hypotheses, not claims
+of excavated decoration.
+
+Great Plains now resolves as a scoped 5141 BCE seasonal camp profile, so it can
+be generated and reviewed without inheriting a generic early-farming place.
+For expanded prehistoric camp families, medium is the ordinary dwelling while
+the old small art remains a light or auxiliary shelter; communal large houses
+remain rare. Review sheets: `artifacts/prehistoric-expansion.png` and
+`artifacts/towns/great-plains-5141bce.png`. Oblique audit passed and the atlas
+was rebuilt; broader tests and playtesting are intentionally deferred to the
+requested pre-commit test run.
+
 ## Prop silhouette spacing and social house scale — September 21, 2026
 
 Broad yard props now reserve their readable silhouettes rather than only an

@@ -83,5 +83,10 @@
     "name": "steppe-bronze-age",
     "query": "Bronze Age Mongolia",
     "radius": 36
+  },
+  {
+    "name": "great-plains-5141bce",
+    "query": "Great Plains 5141 BCE",
+    "radius": 36
   }
 ]

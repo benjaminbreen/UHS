@@ -49,8 +49,17 @@ scale marker.
 Settlement selection treats these tiers as social and spatial information,
 not duplicate entries in a flat random list. Dense central lots and wealthy or
 elite quarters can carry more medium and occasional large houses; camps, farms
-and settlement edges overwhelmingly retain small houses. The shared weights
-live in `src/content/graphics/building-scale.ts`.
+and settlement edges suppress exceptional large houses. In prehistoric camps
+with expanded families, medium is the normal occupied dwelling and the retained
+small art reads as a light or auxiliary shelter. The shared weights live in
+`src/content/graphics/building-scale.ts`.
+
+The second prehistoric sheet is `artifacts/prehistoric-expansion.png`, built
+with `npm run art:prehistoric`. It covers bark or mat domes, hide pole lodges,
+pit houses, stone round houses, painted round houses and Aegean stone houses.
+Surface treatments belong to the recipe and regional pack: repairs, seams,
+lime, earth and small geometric bands are allowed; a later iconic national or
+ethnic style is not back-projected into prehistory.
 
 ### What passes
 

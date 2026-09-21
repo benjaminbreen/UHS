@@ -7,16 +7,16 @@ composition without adding another painter branch.
 """
 
 
-def gold_master_recipes(source):
+def scaled_family_recipes(source, table, suffix, marker=None):
     out = {}
-    for family, spec in source.get('goldMasters', {}).items():
+    for family, spec in source.get(table, {}).items():
         base = source['buildings'][spec['source']]
         for scale, shape in spec['sizes'].items():
             count = shape.get('variants', 1)
             for variant in range(count):
                 fw, fh = shape['footprint']
                 stories = shape.get('stories', base.get('stories', 1))
-                name = f'{family}-gold-{scale}-{variant}'
+                name = f'{family}-{suffix}-{scale}-{variant}'
                 entrance_x = shape.get('entrance', fw // 2)
                 out[name] = {
                     **base,
@@ -29,9 +29,17 @@ def gold_master_recipes(source):
                     'seed': base['seed'] + shape.get('seedOffset', 0) + variant * 97,
                     'label': f"{spec['label']} · {scale} {variant + 1}",
                     'description': spec['description'],
-                    'goldMaster': family,
                     'goldScale': scale,
                     'goldVariant': variant,
+                    **({marker: family} if marker else {}),
                 }
     return out
 
+
+def gold_master_recipes(source):
+    return scaled_family_recipes(source, 'goldMasters', 'gold', 'goldMaster')
+
+
+def prehistoric_expansion_recipes(source):
+    return scaled_family_recipes(
+        source, 'prehistoricExpansions', 'expanded', 'prehistoricExpansion')

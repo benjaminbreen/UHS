@@ -139,21 +139,62 @@ function prehistoricBuildings(setting: WorldSetting): string[] | undefined {
     "house-mudbrick-ob-gold-medium-1",
     "house-mudbrick-ob-gold-large-0",
   ];
+  const dome = [
+    "house-dome-0",
+    "house-dome-1",
+    "house-dome-expanded-medium-0",
+    "house-dome-expanded-medium-1",
+    "house-dome-expanded-large-0",
+  ];
+  const tent = [
+    "house-tent-0",
+    "house-tent-1",
+    "house-tent-expanded-medium-0",
+    "house-tent-expanded-medium-1",
+    "house-tent-expanded-large-0",
+  ];
+  const pit = [
+    "house-pit-0",
+    "house-pit-1",
+    "house-pit-expanded-medium-0",
+    "house-pit-expanded-medium-1",
+    "house-pit-expanded-large-0",
+  ];
+  const stoneRound = [
+    "house-round-stone-0",
+    "house-round-stone-expanded-medium-0",
+    "house-round-stone-expanded-medium-1",
+    "house-round-stone-expanded-large-0",
+  ];
+  const rondavel = [
+    "house-rondavel-0",
+    "house-rondavel-1",
+    "house-rondavel-expanded-medium-0",
+    "house-rondavel-expanded-medium-1",
+    "house-rondavel-expanded-large-0",
+  ];
+  const aegean = [
+    "house-aegean-0",
+    "house-aegean-1",
+    "house-aegean-expanded-medium-0",
+    "house-aegean-expanded-medium-1",
+    "house-aegean-expanded-large-0",
+  ];
   if (culture === "north-african-west-asian") return mudbrick;
   if (architecture === "shelter") {
     if (culture === "australian-pacific") return;
     return culture === "inner-eurasian" ||
       climate === "tundra" ||
       climate === "boreal"
-      ? ["house-tent-0", "house-tent-1"]
-      : ["house-dome-0", "house-dome-1", "house-tent-0"];
+      ? tent
+      : [...dome, ...tent];
   }
   switch (culture) {
     case "european":
       if (climate === "mediterranean")
         return year >= -3200
-          ? ["house-aegean-0", "house-aegean-1", "house-round-stone-0"]
-          : ["house-round-stone-0", ...round];
+          ? [...aegean, ...stoneRound]
+          : [...stoneRound, ...round];
       // The long houses of the first farmers, then the round house.
       return year < -4000
         ? [
@@ -164,20 +205,20 @@ function prehistoricBuildings(setting: WorldSetting): string[] | undefined {
             "house-longhouse-gold-large-0",
             "house-round-2",
           ]
-        : [...round, "house-round-stone-0"];
+        : [...round, ...stoneRound];
     case "east-asian":
-      return ["house-pit-0", "house-pit-1", "house-round-2"];
+      return [...pit, "house-round-2"];
     case "south-asian":
       return year >= -3300
         ? ["house-mudbrick-ob-0", "house-mudbrick-ob-2", "house-round-0"]
         : round;
     case "west-central-african":
     case "east-southern-african":
-      return ["house-rondavel-0", "house-rondavel-1"];
+      return rondavel;
     case "other-indigenous-american":
-      return ["house-dome-0", "house-dome-1", "house-pit-0"];
+      return [...dome, ...tent, ...pit];
     case "inner-eurasian":
-      return ["house-tent-0", "house-tent-1", "house-pit-0"];
+      return [...tent, ...pit];
     default:
       // The place data calls every early setting mudbrick; believe it only
       // where nothing better is known.

@@ -37,8 +37,18 @@ def h2(x, y):
 class ObliqueBuilding:
     def __init__(self, recipe, material):
         self.r = recipe
-        self.p = material
         self.rng = random.Random(recipe['seed'])
+        treatments = recipe.get('surfaceTreatments', [])
+        self.treatment = (treatments[self.rng.randrange(len(treatments))]
+                          if treatments else 'plain')
+        if self.treatment == 'limewash':
+            self.p = dict(material, wall=['#5d594e', '#8b8677', '#bbb6a5', '#ddd8c8', '#f0ecde'], texture='stucco')
+        elif self.treatment == 'creamwash':
+            self.p = dict(material, wall=['#594b3b', '#8a745b', '#b59a76', '#d4ba91', '#e7d0a7'], texture='stucco')
+        elif self.treatment == 'ochre-geometry':
+            self.p = dict(material, wall=['#574438', '#806653', '#ad8d70', '#ceb18e', '#e5cba8'], texture='stucco')
+        else:
+            self.p = material
         fw, fh = recipe['footprint']
         self.tiles = fw
         self.stories = int(recipe.get('stories', 1))
@@ -245,6 +255,12 @@ class ObliqueBuilding:
         im, d = self.wall_face(self.fw, self.wh, self.p, True)
         b, fw = self.wh, self.fw
         dark = self.p['wall'][0]
+        if self.treatment == 'ochre-geometry':
+            ochre = '#85402d'
+            y = b - 12
+            d.line((2, y + 4, fw - 3, y + 4), fill=ochre)
+            for x in range(4, fw - 8, 10):
+                d.line((x, y, x + 4, y - 3, x + 8, y), fill=ochre)
         for s in range(1, self.stories):
             y = self.floor_y(s)
             if self.frame:
@@ -275,7 +291,7 @@ class ObliqueBuilding:
             regular = self.lights != 'casement'
             # A large gold-master facade keeps blank wall between opening
             # groups. Filling every bay made the derived ranges read as grids.
-            planned = self.windows if self.r.get('goldMaster') else None
+            planned = self.windows if self.r.get('goldMaster') or self.r.get('prehistoricExpansion') else None
             for slot in (planned if planned is not None else self.windows if s == 0 and not regular else
                          [t for t in range(self.tiles) if regular and not (s == 0 and t == self.slot)
                           and (self.lights != 'mullion' or (t - self.slot) % 3 != 2)
@@ -362,7 +378,7 @@ class ObliqueBuilding:
 
     def side(self):
         """Wall and gable as one sheet; the apex sits over the middle column."""
-        mat = darker(self.p, bool(self.r.get('goldMaster')))
+        mat = darker(self.p, bool(self.r.get('goldMaster') or self.r.get('prehistoricExpansion')))
         top, sw = self.rise, self.sw
         im, d = self.wall_face(sw, self.wh + top, mat, False)
         b = self.wh + top

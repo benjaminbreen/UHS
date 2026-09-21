@@ -267,6 +267,62 @@
    }
   }
  },
+ "prehistoricExpansions": {
+  "house-dome": {
+   "source": "house-dome-0",
+   "label": "Bark or mat dome",
+   "description": "A larger bent-sapling household shelter with layered bark or mat covering, repair patches and restrained ochre marking. Illustrative and regionally resolved by the settlement pack.",
+   "sizes": {
+    "medium": {"footprint": [5, 4], "entrance": 2, "variants": 2, "seedOffset": 5600, "surfaceTreatments": ["plain", "repaired", "ochre"]},
+    "large": {"footprint": [7, 5], "entrance": 3, "variants": 1, "seedOffset": 5900, "surfaceTreatments": ["repaired", "ochre"]}
+   }
+  },
+  "house-tent": {
+   "source": "house-tent-0",
+   "label": "Hide-covered pole lodge",
+   "description": "A larger conical pole lodge with sewn hide panels, smoke flaps and occasional non-figurative ochre treatment. Illustrative; it does not reproduce later historic Plains painted lodges.",
+   "sizes": {
+    "medium": {"footprint": [5, 4], "entrance": 2, "variants": 2, "seedOffset": 6200, "surfaceTreatments": ["plain", "sewn", "ochre"]},
+    "large": {"footprint": [7, 5], "entrance": 3, "variants": 1, "seedOffset": 6500, "surfaceTreatments": ["sewn", "ochre"]}
+   }
+  },
+  "house-pit": {
+   "source": "house-pit-0",
+   "label": "Substantial pit house",
+   "description": "A medium or communal semi-subterranean house under reed, turf or weathered thatch. Illustrative, with size representing household or shared winter occupation rather than status alone.",
+   "sizes": {
+    "medium": {"footprint": [6, 5], "entrance": 3, "variants": 2, "seedOffset": 6800, "covers": [1, 2, 3], "surfaceTreatments": ["plain", "repaired"]},
+    "large": {"footprint": [8, 6], "entrance": 4, "variants": 1, "seedOffset": 7100, "covers": [2, 3], "surfaceTreatments": ["repaired"]}
+   }
+  },
+  "house-round-stone": {
+   "source": "house-round-stone-0",
+   "label": "Stone round house",
+   "description": "A larger drystone household under reed or turf, with the masonry and roof treated as separate quiet materials. Illustrative rather than a reconstruction of one excavated plan.",
+   "sizes": {
+    "medium": {"footprint": [6, 5], "entrance": 3, "variants": 2, "seedOffset": 7400, "covers": [2, 3], "surfaceTreatments": ["plain", "repaired"]},
+    "large": {"footprint": [8, 6], "entrance": 4, "variants": 1, "seedOffset": 7700, "covers": [2, 3], "surfaceTreatments": ["repaired"]}
+   }
+  },
+  "house-rondavel": {
+   "source": "house-rondavel-0",
+   "label": "Painted round house",
+   "description": "A larger daubed round house whose seeded lime, ochre and dark-earth bands use a small geometric vocabulary. The treatment is illustrative and selected only for suitable regional packs.",
+   "sizes": {
+    "medium": {"footprint": [6, 5], "entrance": 3, "variants": 2, "seedOffset": 8000, "surfaceTreatments": ["ochre-band", "whitewash-band", "dark-band"]},
+    "large": {"footprint": [8, 6], "entrance": 4, "variants": 1, "seedOffset": 8300, "surfaceTreatments": ["ochre-band", "whitewash-band"]}
+   }
+  },
+  "house-aegean": {
+   "source": "house-aegean-0",
+   "label": "Aegean stone and plaster house",
+   "description": "A larger rubble-built, partly plastered flat-roofed household. Seeded finishes use lime, warm earth and restrained ochre geometry; modern blue-and-white island styling is deliberately excluded.",
+   "sizes": {
+    "medium": {"footprint": [6, 4], "entrance": 2, "variants": 2, "seedOffset": 8600, "surfaceTreatments": ["limewash", "creamwash", "ochre-geometry"]},
+    "large": {"footprint": [8, 5], "entrance": 3, "variants": 1, "seedOffset": 8900, "surfaceTreatments": ["limewash", "ochre-geometry"]}
+   }
+  }
+ },
  "buildings": {
   "house-roman-0": {
    "label": "Tiled courtyard house",

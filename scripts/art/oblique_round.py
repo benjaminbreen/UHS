@@ -47,8 +47,10 @@ class ObliqueRound:
         covers = {'cone': THATCH, 'pit': THATCH, 'dome': BARK, 'tent': HIDE}[self.form]
         named = recipe.get('covers')
         self.cover = covers[rng.choice(named) if named else rng.randrange(len(covers))]
+        treatments = recipe.get('surfaceTreatments', ['plain'])
+        self.treatment = treatments[rng.randrange(len(treatments))]
         self.hurdles = self.form == 'cone' and rng.random() < .6
-        self.band = recipe.get('band') and rng.random() < .7
+        self.band = (recipe.get('band') and rng.random() < .7) or self.treatment.endswith('-band')
         self.ox = 6 + (8 if self.hurdles else 0)
         self.w = self.W + 2 * self.ox
         self.h = self.wall + self.rise + self.base_ry + 22
@@ -67,6 +69,10 @@ class ObliqueRound:
     def drum(self, d, top, bottom):
         dark, shade, base, light, hi = self.p['wall']
         ramp = [dark, shade, base, light, hi]
+        if self.treatment == 'whitewash-band':
+            ramp = ['#5d5545', '#8e856f', '#beb69d', '#ded8c1', '#f0ecd9']
+        elif self.treatment == 'dark-band':
+            ramp = ['#40291f', '#694332', '#94634a', '#bb8968', '#d9ad87']
         cx, rx, ry = self.cx, self.rx, self.base_ry
         stone = self.p['foundation']
         rubble = self.p.get('texture') == 'rubble'
@@ -90,11 +96,15 @@ class ObliqueRound:
                 sag = round(ry * math.sqrt(max(0, 1 - ((x - cx) / rx) ** 2)))
                 d.line((x, max(top, top + sag - ry + 2), x, bottom + sag - 4), fill=TIMBER[2] if a < 0 else TIMBER[1])
         if self.band:
+            stripe = ('#ece4cc' if self.treatment == 'whitewash-band' else
+                      '#3f251b' if self.treatment == 'dark-band' else '#8e2a1e')
+            stripe_shadow = '#a9a18b' if self.treatment == 'whitewash-band' else '#5a1a14'
             for x in range(int(cx - rx) + 1, int(cx + rx)):
                 u = (x - cx) / rx
                 sag = round(ry * math.sqrt(max(0, 1 - u * u)))
-                d.point((x, bottom + sag - 9), fill='#8e2a1e' if u < .5 else '#5a1a14')
-                if x % 4 == 0: d.point((x, bottom + sag - 11), fill='#e9e4d2')
+                d.point((x, bottom + sag - 9), fill=stripe if u < .45 else stripe_shadow)
+                if x % 6 in (0, 1):
+                    d.point((x, bottom + sag - 12 + (x // 3) % 2 * 2), fill=stripe)
 
     def cone(self, d, apex_y, eave_y):
         """Thatch laid in courses round a cone, ragged at every lap."""
@@ -128,6 +138,12 @@ class ObliqueRound:
         for dx, tone in ((-3, TIMBER[3]), (0, TIMBER[2]), (3, TIMBER[1])):
             d.line((cx + dx, apex_y - 7, cx - dx // 2, apex_y + 3), fill=tone)
         d.ellipse((cx - 3, apex_y - 1, cx + 3, apex_y + 3), fill=ramp[1], outline=ramp[0])
+        if self.treatment == 'repaired':
+            x = cx - round(rx * .48)
+            y = apex_y + round((eave_y - apex_y) * .62)
+            d.polygon([(x, y), (x + 10, y - 2), (x + 13, y + 5), (x + 3, y + 8)],
+                      fill=ramp[2], outline=ramp[0])
+            d.line((x + 2, y + 1, x + 11, y + 4), fill=ramp[3])
 
     def shell(self, d, top, bottom, ramp, bands, poles=False):
         """One skin from the ground up: a dome of mats or a cone of hides."""
@@ -154,6 +170,30 @@ class ObliqueRound:
             d.polygon([(cx - 2, top + 2), (cx + 3, top + 2), (cx + 1, top + 9)], fill='#1d1711')   # the smoke flap
         else:
             d.ellipse((cx - 3, top, cx + 3, top + 3), fill='#1d1711')                              # the smoke hole
+        self.skin_treatment(d, top, bottom, ramp, poles)
+
+    def skin_treatment(self, d, top, bottom, ramp, poles):
+        """Low-contrast seams, repairs and abstract ochre marks, never a
+        culture claim encoded by the painter itself."""
+        if self.treatment in ('sewn', 'repaired'):
+            for side in (-1, 1):
+                x0 = self.cx + side * round(self.rx * .48)
+                d.line((x0, top + self.rise // 3, x0 + side * 3, bottom - 5),
+                       fill=ramp[1])
+                for y in range(top + self.rise // 3 + 2, bottom - 5, 5):
+                    d.point((x0 + side * ((y // 5) % 2), y), fill=ramp[4])
+        if self.treatment == 'repaired':
+            x = self.cx - round(self.rx * .55)
+            y = top + round(self.rise * .58)
+            d.polygon([(x, y), (x + 8, y - 2), (x + 10, y + 6), (x + 2, y + 8)],
+                      fill=ramp[2], outline=ramp[1])
+            d.line((x + 2, y + 2, x + 8, y + 4), fill=ramp[3])
+        if self.treatment == 'ochre':
+            ochre = '#8b3f2c'
+            y = bottom - 11
+            for x in range(self.cx - round(self.rx * .48),
+                           self.cx + round(self.rx * .48), 8):
+                d.line((x, y, x + 3, y - 3, x + 6, y), fill=ochre)
 
     def doorway(self, d, gy):
         """Two posts and a lintel set into the roof line: the door is the one
