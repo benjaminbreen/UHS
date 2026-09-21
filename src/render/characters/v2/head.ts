@@ -20,6 +20,7 @@ export function drawHead(
   const eye = mix(a.hairColor, "#2a2230", 0.75),
     // Faint glint, kept close to the iris so eyes don't read as gray.
     glint = mix(eye, skin.light, 0.3),
+    frame = a.wearing.eyewear === "sunglasses" ? "#1c1a1e" : "#3a3238",
     blink = pose === "idle" && f === 3;
   const shape = a.head ?? "original",
     jaw = a.jaw ?? "original";
@@ -89,6 +90,13 @@ export function drawHead(
     p.rect(14, 7, 1, blink ? 1 : 2, blink ? skin.shade : eye);
     if (!blink) p.rect(14, 7, 1, 1, glint);
     p.rect(15, 7, 1, 1, skin.light);
+    if (a.wearing.eyewear === "sunglasses") {
+      p.rect(13, 7, 3, 2, frame);
+      p.rect(11, 7, 2, 1, frame);
+    } else if (a.wearing.eyewear === "glasses") {
+      p.rect(13, 6, 3, 1, frame);
+      p.rect(11, 7, 2, 1, frame);
+    }
     p.rect(15, 11, 2, 1, skin.shade);
     p.rect(13, 13, 2, 1, skin.shade);
   } else {
@@ -149,6 +157,17 @@ export function drawHead(
       if (!blink) {
         p.rect(7 + t, 8, 1, 1, glint);
         p.rect(12 + t, 8, 1, 1, glint);
+      }
+      if (a.wearing.eyewear === "sunglasses") {
+        p.rect(6 + t, 8, 4, 2, frame);
+        p.rect(11 + t, 8, 4 - t, 2, frame);
+        p.rect(10 + t, 8, 1, 1, frame);
+        p.rect(7 + t, 8, 1, 1, "#5a5660");
+      } else if (a.wearing.eyewear === "glasses") {
+        // Frames only: the eyes stay readable through them.
+        p.rect(6 + t, 7, 4, 1, frame);
+        p.rect(11 + t, 7, 4 - t, 1, frame);
+        p.rect(10 + t, 8, 1, 1, frame);
       }
       p.rect(10 + t, 10, 2, 1, skin.light);
       if (turn) p.rect(13, 10, 1, 1, skin.shade);

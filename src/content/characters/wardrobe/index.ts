@@ -290,6 +290,7 @@ export function wardrobeFor(
     w.id,
     "dye-trim",
   );
+  const neck = chosen.neck as "none" | "beads" | "chain" | undefined;
   const over = chosen.over as
     | "none"
     | "cloak"
@@ -337,6 +338,12 @@ export function wardrobeFor(
       (chosen.footwear as CharacterAppearance["wearing"]["footwear"]) ?? "none",
     belt: (chosen.belt as CharacterAppearance["wearing"]["belt"]) ?? base.belt,
     motif: chosen.motif as CharacterAppearance["wearing"]["motif"],
+    eyewear:
+      (chosen.eyewear as CharacterAppearance["wearing"]["eyewear"]) ?? "none",
+    ...(neck && {
+      necklace: neck !== "none",
+      neckStyle: neck === "chain" ? ("chain" as const) : ("beads" as const),
+    }),
     cloak: over === "cloak",
     mantle: over === "mantle",
     shoulderCloth: over === "shoulder-cloth",

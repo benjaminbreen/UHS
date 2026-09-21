@@ -26,6 +26,8 @@ import {
   leggings,
   footwear,
   motifs,
+  eyewear,
+  neckStyles,
   headShapes,
   jawShapes,
   bodyShapes,
@@ -253,6 +255,8 @@ export const characterAppearanceSchema = z.object({
     footwear: z.enum(footwear).optional(),
     motif: z.enum(motifs).optional(),
     necklace: z.boolean(),
+    neckStyle: z.enum(neckStyles).optional(),
+    eyewear: z.enum(eyewear).optional(),
     earrings: z.boolean(),
     // Optional: saves written before cloth carried a material.
     material: z.enum(materials).optional(),

@@ -11,6 +11,7 @@ import {
   clothFor,
   rolesFrom,
   wardrobeFor,
+  type Sex,
 } from "../content/characters/wardrobes";
 import { composeWearing, wornFromWearing } from "../core/wearing";
 import {
@@ -160,7 +161,10 @@ export function createSession(
           {
             id: resolved.character.appearanceSeed,
             age: engine.state.player.age,
-            sex: engine.state.player.origin?.sex,
+            sex: wearerSex(
+              engine.state.player.origin?.sex,
+              appearance.physique?.sex,
+            ),
             standing: engine.state.player.origin?.standing,
             livelihood: engine.state.player.origin?.livelihood,
             roles: rolesFrom(
@@ -178,6 +182,10 @@ export function createSession(
             {
               id: resolved.character.appearanceSeed,
               age: engine.state.player.age,
+              sex: wearerSex(
+                engine.state.player.origin?.sex,
+                appearance.physique?.sex,
+              ),
               roles: rolesFrom(engine.state.player.role),
             },
             pack,
@@ -191,6 +199,11 @@ export function createSession(
     engine.state.player.health = 100;
   }
   return engine;
+}
+/** Origin records "unspecified" where the name kit decided sex; the drawn
+ * body still has one, and dressing without it puts men in dresses. */
+function wearerSex(origin?: Sex, body?: Sex): Sex | undefined {
+  return origin && origin !== "unspecified" ? origin : body;
 }
 export function createSettingSession(setting: WorldSetting, seed = "earth-2") {
   return createSession(
@@ -315,7 +328,7 @@ export class Runtime {
         {
           id: actor.id,
           age: actor.age,
-          sex: actor.origin?.sex,
+          sex: wearerSex(actor.origin?.sex, base.physique?.sex),
           standing: actor.origin?.standing,
           livelihood: actor.origin?.livelihood,
           roles: rolesFrom(actor.role, actor.origin?.roleLabel),

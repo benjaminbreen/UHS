@@ -63,6 +63,7 @@ const footLabel: Record<Exclude<(typeof footwear)[number], "none">, string> = {
   sandals: "Sandals",
   shoes: "Shoes",
   boots: "Boots",
+  sneakers: "Sneakers",
 };
 const beltLabel: Record<
   Exclude<(typeof beltStyles)[number], "none">,
@@ -169,6 +170,36 @@ export const wearableItems: Record<ItemId, ItemDef> = Object.fromEntries([
       sprite: "coin",
       value: 5,
       wear: { slot: "neck", look: { necklace: true } },
+    },
+  ],
+  [
+    "chain",
+    {
+      id: "chain",
+      name: "Chain",
+      sprite: "coin",
+      value: 6,
+      wear: { slot: "neck", look: { necklace: true, neckStyle: "chain" } },
+    },
+  ],
+  [
+    "glasses",
+    {
+      id: "glasses",
+      name: "Glasses",
+      sprite: "coin",
+      value: 4,
+      wear: { slot: "eyes", look: { eyewear: "glasses" } },
+    },
+  ],
+  [
+    "sunglasses",
+    {
+      id: "sunglasses",
+      name: "Sunglasses",
+      sprite: "coin",
+      value: 3,
+      wear: { slot: "eyes", look: { eyewear: "sunglasses" } },
     },
   ],
   [

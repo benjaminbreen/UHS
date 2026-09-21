@@ -155,6 +155,17 @@ export function propKit(pack: Pack): PropKit {
   if (year >= 1860) contexts.water = ["pump", "pump", "well"];
   if (urban && year >= -1999 && year < 1900)
     contexts.water = [...contexts.water, "townWell", "townWell"];
+  // Lifting river water with a counterweighted sweep: the Nile, the two rivers
+  // and the Indus plain.
+  const river = pack.setting?.water?.startsWith("river");
+  if (
+    river &&
+    !urban &&
+    year >= -2499 &&
+    year < 1900 &&
+    (culture === "north-african-west-asian" || culture === "south-asian")
+  )
+    contexts.water = [...contexts.water, "shaduf", "shaduf"];
   // A metal pot for the hearth, once smiths are working iron in quantity.
   // Where there was no iron, the clay pot and the vat already cover cooking.
   // Cast-iron trade pots reach Africa and the Americas with the Atlantic trade.
@@ -183,6 +194,43 @@ export function propKit(pack: Pack): PropKit {
             : "granaryClay";
     if (year >= -5999) contexts.work.push(granary);
   }
+  // Early farming and the ancient world. A hide stretched to dry wherever
+  // people still hunted or herded for their clothes; stone worked where metal
+  // had not come; storage pits under the yard before granaries rose above it.
+  const herders =
+    culture === "inner-eurasian" ||
+    culture === "other-indigenous-american" ||
+    culture === "east-southern-african";
+  if (year < -2999 || (herders && year < 1900)) contexts.work.push("hideFrame");
+  if (
+    (oldWorld && year < -1999) ||
+    (americas && year < 1550) ||
+    (culture === "australian-pacific" && year < 1800)
+  )
+    contexts.work.push("knappingFloor");
+  if (
+    year >= -5999 &&
+    ((culture === "european" && year < (cold ? 1500 : 1000)) ||
+      (culture === "north-african-west-asian" && year < -999))
+  )
+    contexts.work.push("warpLoom");
+  if (
+    year >= -7999 &&
+    year < 500 &&
+    ["european", "north-african-west-asian", "inner-eurasian", "east-asian"].includes(culture) &&
+    pack.setting?.settlement !== "city"
+  )
+    contexts.yard.push("grainPit");
+  if (
+    (culture === "european" && year >= -5999 && year < -799) ||
+    (culture === "east-southern-african" && year < 1900)
+  )
+    contexts.work.push("skullPost");
+  // The porous jar on its stand, cooling the water it sweats through.
+  if (culture === "north-african-west-asian" && year >= -999 && year < 1950) {
+    contexts.yard.push("zir");
+    contexts.household.push("zir");
+  }
   if (pounds && year >= -2999 && year < 1950) {
     contexts.work.push("poundingMortar");
     contexts.yard.push("poundingMortar");
@@ -197,6 +245,9 @@ export function propKit(pack: Pack): PropKit {
     // trees across Africa and the Russian forest, and the Maya kept stingless
     // bees in hollow logs; the Andes had no honeybee at all.
     if (year >= -2999 && culture === "european") contexts.work.push("beehive");
+    // Egypt and the Levant kept bees in stacked clay pipes.
+    if (year >= -2499 && culture === "north-african-west-asian")
+      contexts.work.push("pipeHive");
     if (
       year >= -2999 &&
       (african ||
@@ -307,10 +358,24 @@ export function propKit(pack: Pack): PropKit {
     contexts.yard.push("barrel", "crateStack", "flowerTub");
   // Threshed grain is sacked wherever cloth is woven and cereals are grown.
   if (year >= -2999 && oldWorld) contexts.yard.push("grainSacks");
-  // The shared fire in its period form. A cold-country camp keeps a long
-  // fire; oven cultures move the fire into a clay body early; the classical
-  // Mediterranean and East Asia raise it onto a brazier; from the factory
-  // age the public fire is an iron basket, then a drum.
+  // The shared fire in its period form. Foragers keep a camp fire; the first
+  // farming villages a broad kerbed hearth to sit round; a cold country a
+  // long fire; oven cultures move the fire into a clay body early; the
+  // classical Mediterranean and East Asia raise it onto a brazier; from the
+  // factory age the public fire is an iron basket, then a drum.
+  contexts.fire = [year < -8999 ? "campHearth" : "firepit"];
+  if (
+    year >= -8999 &&
+    year < 500 &&
+    [
+      "european",
+      "north-african-west-asian",
+      "inner-eurasian",
+      "south-asian",
+      "east-asian",
+    ].includes(culture)
+  )
+    contexts.fire = ["communalHearth"];
   if (cold && year < 1500) contexts.fire = ["longFire"];
   if (
     pottery &&
@@ -319,14 +384,17 @@ export function propKit(pack: Pack): PropKit {
       culture,
     )
   )
-    contexts.fire = ["tannur"];
+    contexts.fire = [...contexts.fire, "tannur"];
+  // The brazier is a town's fire; the countryside kept its hearth.
   if (
     year >= -800 &&
     year < 650 &&
+    urban &&
     ["european", "north-african-west-asian"].includes(culture)
   )
     contexts.fire = ["brazier"];
-  if (year >= -500 && culture === "east-asian") contexts.fire = ["brazier"];
+  if (year >= -500 && urban && culture === "east-asian")
+    contexts.fire = ["brazier"];
   if (year >= 500 && culture === "european") contexts.fire = ["bakeOven"];
   if (year >= 1000 && culture === "east-asian") contexts.fire = ["teaStove"];
   // Three stones under the pot: the African, Southeast Asian and
@@ -338,6 +406,17 @@ export function propKit(pack: Pack): PropKit {
       culture === "mesoamerican")
   )
     contexts.fire = ["threeStoneHearth"];
+  // Logs laid like spokes and pushed in as they burn, in the eastern
+  // woodlands and on the plains.
+  if (culture === "other-indigenous-american" && year >= -8999 && year < 1850)
+    contexts.fire = ["councilFire"];
+  // Aboriginal Australia cooked on open fires; the islands in earth ovens.
+  if (culture === "australian-pacific" && year < 1900) {
+    const lon = pack.setting?.lon ?? 0,
+      lat = pack.setting?.lat ?? 0;
+    const australia = lon > 112 && lon < 154 && lat < -10;
+    contexts.fire = australia || year < -999 ? ["campHearth"] : ["earthOven"];
+  }
   if (year >= 1550 && ["mesoamerican", "andean"].includes(culture))
     contexts.fire = [
       "bakeOven",
@@ -410,14 +489,14 @@ export function propKit(pack: Pack): PropKit {
   }
   if (pack.setting?.settlement === "camp") {
     contexts.water = ["spring"];
-    contexts.fire = cold ? ["longFire"] : ["firepit"];
+    if (!contexts.fire.includes("councilFire")) contexts.fire = ["campHearth"];
     contexts.yard = pottery ? ["pot", "basket"] : ["basket"];
   }
   if (year < -25999) {
     contexts.tool = ["stick", "spear"];
     contexts.household = ["hideBag"];
     contexts.yard = ["hideBag"];
-    contexts.fire = cold ? ["longFire"] : ["firepit"];
+    contexts.fire = ["campHearth"];
   }
   // The spear hunts and guards in every countryside until the gun replaces it.
   else if (year < 1700 && pack.setting?.settlement !== "city")

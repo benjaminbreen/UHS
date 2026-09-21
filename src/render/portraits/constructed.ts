@@ -1252,7 +1252,16 @@ function drawMotif(r: Raster, m: Model, cut: Cut, torso: number[]) {
   const motif =
     named === "auto"
       ? outfit % 5
-      : { plain: 0, placket: 1, band: 2, yoke: 3, stitch: 4, stripes: 5 }[named];
+      : {
+          plain: 0,
+          placket: 1,
+          band: 2,
+          yoke: 3,
+          stitch: 4,
+          stripes: 5,
+          plaid: 6,
+          jersey: 7,
+        }[named];
   const only = [MAT.cloth];
   // The neckline is where the chest starts, so a motif clears it whatever the
   // garment: a band across a deep V is a band across bare skin.
@@ -1343,6 +1352,31 @@ function drawMotif(r: Raster, m: Model, cut: Cut, torso: number[]) {
         { only },
       );
       break;
+    case 6:
+      // Flannel check: two sets of bands crossing, darker where they meet.
+      r.paint(
+        torso,
+        (c, x, y) => {
+          const across = Math.floor(y / 3) % 2 === 0;
+          const down = Math.floor(x / 3) % 2 === 0;
+          if (across && down) return mix(trim.shade, lower.deep, 0.4);
+          if (across || down) return mix(c, trim.base, 0.45);
+          return c;
+        },
+        { only },
+      );
+      break;
+    case 7: {
+      // Jersey: contrast shoulders and a chest number.
+      r.paint(
+        torso,
+        (c, _x, y) => (y < chest + 2 ? lower.base : c),
+        { only },
+      );
+      for (const x of [bx(32), bx(38)])
+        r.rect(Math.round(x), chest + 6, 2, 8, lower.light, MAT.cloth);
+      break;
+    }
   }
 }
 
@@ -2230,6 +2264,27 @@ function drawFeatures(r: Raster, m: Model) {
   r.put(nx + nw, eyeY + 1, mix(skin.base, skin.shade, mono ? 0.4 : 0.7));
   r.put(fx - 1, eyeY + 1, mono ? mix(skin.base, skin.shade, 0.55) : skin.shade);
   if (!mono) r.put(fx - 1, eyeY, mix(skin.base, skin.deep, 0.5));
+  const specs = a.wearing.eyewear ?? "none";
+  if (specs !== "none") {
+    const dark = specs === "sunglasses";
+    const rim = dark ? "#18161b" : "#2e2a2f";
+    const lens = (x0: number, w: number) => {
+      if (dark) {
+        r.rect(x0 - 1, eyeY - 1, w + 2, h + 2, "#1d1b21");
+        r.rect(x0, eyeY - 1, 2, 1, "#4a4852");
+      } else {
+        r.rect(x0 - 1, eyeY - 2, w + 2, 1, rim);
+        r.rect(x0 - 1, eyeY + h + 1, w + 2, 1, rim);
+        r.rect(x0 - 1, eyeY - 2, 1, h + 4, rim);
+        r.rect(x0 + w, eyeY - 2, 1, h + 4, rim);
+      }
+    };
+    lens(nx, nw);
+    lens(fx, fw);
+    r.rect(nx + nw + 1, eyeY - 1, fx - nx - nw - 2, 1, rim);
+    // Temple arm back towards the ear.
+    r.rect(nx - 4, eyeY - 1, 3, 1, rim);
+  }
 
   // Brows. The near brow reads long and arched; the far one is short. Density
   // is a second row, not a darker colour: a black bar is not a brow.
@@ -4677,7 +4732,29 @@ function drawJewellery(r: Raster, m: Model) {
   // ones agree.
   const gold = m.metal;
   drawEarOrnament(r, m);
-  if (a.wearing.necklace) {
+  if (a.wearing.necklace && a.wearing.neckStyle === "chain") {
+    // A rope chain: continuous, lying close, one bright link at the front.
+    const bs = m.bodyScale;
+    const links: Pt[] = (
+      [
+        [25, 51],
+        [29, 54.5],
+        [36, 56.5],
+        [43, 54.5],
+        [47, 51],
+      ] as Pt[]
+    ).map(([x, y]) => [Math.round(36 + (x - 36) * bs), y]);
+    for (let i = 0; i + 1 < links.length; i++) {
+      r.line(links[i], links[i + 1], gold.base, MAT.metal);
+      r.line(
+        [links[i][0], links[i][1] + 1],
+        [links[i + 1][0], links[i + 1][1] + 1],
+        gold.shade,
+        MAT.metal,
+      );
+    }
+    r.put(36, 56.5, gold.high, MAT.metal);
+  } else if (a.wearing.necklace) {
     const bs = m.bodyScale;
     const beads: Pt[] = (
       [

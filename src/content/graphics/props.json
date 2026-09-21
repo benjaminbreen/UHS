@@ -636,14 +636,14 @@
       "name": "Open firepit",
       "group": "Household",
       "size": [
-        31,
-        15
+        34,
+        42
       ],
-      "description": "A ring of stones round an ash bed, two logs and a layered flame.",
+      "description": "A ring of grey kerb stones round a few burning sticks; the small fire and the fallback.",
       "variants": [
         "Lit firepit"
       ],
-      "frames": 4
+      "frames": 8
     },
     {
       "id": "oven",
@@ -666,14 +666,14 @@
       "name": "Long fire",
       "group": "Household",
       "size": [
-        41,
-        17
+        74,
+        46
       ],
-      "description": "A trench of embers with three low flames along a single log, the fire of a cold-country camp.",
+      "description": "A stone-kerbed trench of fire, logs laid end to end, three fires along it.",
       "variants": [
-        "Lit"
+        "Lit long hearth"
       ],
-      "frames": 4
+      "frames": 8
     },
     {
       "id": "tannur",
@@ -1739,14 +1739,235 @@
       "name": "Three-stone hearth",
       "group": "Household",
       "size": [
-        38,
-        38
+        42,
+        42
       ],
       "description": "A round clay pot on three stones, sticks pushed in from the sides.",
       "variants": [
         "Lit hearth"
       ],
-      "frames": 4
+      "frames": 8
+    },
+    {
+      "id": "camp-hearth",
+      "name": "Camp fire",
+      "group": "Household",
+      "size": [
+        42,
+        44
+      ],
+      "description": "A fire in a scooped hollow banked with big stones, meat on a spit between forked sticks.",
+      "variants": [
+        "Lit camp fire"
+      ],
+      "frames": 8
+    },
+    {
+      "id": "communal-hearth",
+      "name": "Communal hearth",
+      "group": "Household",
+      "size": [
+        60,
+        60
+      ],
+      "description": "A broad oval hearth kerbed with big stones, a tripod over it carrying a pot on a chain.",
+      "variants": [
+        "Lit communal hearth"
+      ],
+      "frames": 8
+    },
+    {
+      "id": "council-fire",
+      "name": "Council fire",
+      "group": "Household",
+      "size": [
+        58,
+        52
+      ],
+      "description": "Long logs laid like spokes and pushed inward as they burn, in a ring of trodden earth.",
+      "variants": [
+        "Lit council fire"
+      ],
+      "frames": 8
+    },
+    {
+      "id": "earth-oven",
+      "name": "Earth oven",
+      "group": "Household",
+      "size": [
+        60,
+        46
+      ],
+      "description": "A dome of earth and banana leaves steaming over hot stones, the heating fire beside it.",
+      "variants": [
+        "Earth oven"
+      ],
+      "frames": 8
+    },
+    {
+      "id": "seat-log",
+      "name": "Log seat",
+      "group": "Household",
+      "size": [
+        32,
+        16
+      ],
+      "description": "A log rolled up to the fire, a split log on stubs, or a stump.",
+      "variants": [
+        "Log",
+        "Split log bench",
+        "Stump"
+      ]
+    },
+    {
+      "id": "seat-stone",
+      "name": "Sitting stone",
+      "group": "Household",
+      "size": [
+        22,
+        16
+      ],
+      "description": "A flat boulder dragged up to the fire, one with a hide over it.",
+      "variants": [
+        "Grey",
+        "Hide over it",
+        "Low and wide"
+      ]
+    },
+    {
+      "id": "seat-mat",
+      "name": "Woven mat",
+      "group": "Household",
+      "size": [
+        26,
+        14
+      ],
+      "description": "A pandanus mat laid out by the fire.",
+      "variants": [
+        "Natural",
+        "Darker",
+        "Dyed bands"
+      ]
+    },
+    {
+      "id": "hide-frame",
+      "name": "Hide on a drying frame",
+      "group": "Work & agriculture",
+      "size": [
+        36,
+        40
+      ],
+      "description": "A hide laced into a pole frame to dry and be scraped.",
+      "variants": [
+        "Deer",
+        "Cattle",
+        "Dappled"
+      ]
+    },
+    {
+      "id": "knapping-floor",
+      "name": "Knapping floor",
+      "group": "Work & agriculture",
+      "size": [
+        28,
+        16
+      ],
+      "description": "A sitting stone, a core, a hammerstone and a spray of flakes.",
+      "variants": [
+        "Flint",
+        "Obsidian",
+        "Chert"
+      ]
+    },
+    {
+      "id": "warp-loom",
+      "name": "Warp-weighted loom",
+      "group": "Work & agriculture",
+      "size": [
+        36,
+        42
+      ],
+      "description": "Two posts and a beam, cloth growing down, the warp held by clay weights.",
+      "variants": [
+        "Undyed",
+        "Madder",
+        "Woad"
+      ]
+    },
+    {
+      "id": "grain-pit",
+      "name": "Storage pit",
+      "group": "Storage & carrying",
+      "size": [
+        26,
+        14
+      ],
+      "description": "A clay-sealed pit mouth under a stone or wicker lid.",
+      "variants": [
+        "Stone lid",
+        "Wicker lid",
+        "Stone lid"
+      ]
+    },
+    {
+      "id": "skull-post",
+      "name": "Skull on a post",
+      "group": "Wayside",
+      "size": [
+        26,
+        36
+      ],
+      "description": "A cattle skull set on a post by a gate or a shrine.",
+      "variants": [
+        "Upswept horns",
+        "Drooping horns",
+        "Upswept horns"
+      ]
+    },
+    {
+      "id": "shaduf",
+      "name": "Shaduf",
+      "group": "Water",
+      "size": [
+        52,
+        50
+      ],
+      "description": "A sweep pole on a post frame, a mud counterweight at one end and a bucket at the other.",
+      "variants": [
+        "Timber posts",
+        "Hide bucket",
+        "Mud pillars"
+      ]
+    },
+    {
+      "id": "zir",
+      "name": "Zir water jar",
+      "group": "Storage & carrying",
+      "size": [
+        24,
+        36
+      ],
+      "description": "A big porous water jar on a wooden stand, a dish beneath for the drip.",
+      "variants": [
+        "Buff",
+        "Terracotta",
+        "Red earth"
+      ]
+    },
+    {
+      "id": "pipe-hive",
+      "name": "Clay pipe hives",
+      "group": "Work & agriculture",
+      "size": [
+        36,
+        28
+      ],
+      "description": "Clay pipes stacked on their sides in a mud bank, flight holes toward us.",
+      "variants": [
+        "Four across",
+        "Three across",
+        "Two rows"
+      ]
     }
   ]
 }

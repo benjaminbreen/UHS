@@ -14,6 +14,10 @@ const patterns: Record<string, RegExp> = {
     /\b(soldier|infantry|infantryman|trooper|private|corporal|sergeant|rifleman|legionary|legionnaire|hoplite|musketeer|grenadier|conscript|marine|warrior|men-at-arms|man-at-arms|guardsman)\b/,
   sailor:
     /\b(sailor|seaman|seafarer|mariner|deckhand|boatswain|bosun|able seaman|whaler|navigator|helmsman|ship'?s? (boy|mate|cook)|crewman)\b/,
+  tradesman:
+    /\b(boilermaker|welder|mechanic|machinist|plumber|electrician|pipefitter|ironworker|steelworker|roofer|mason|bricklayer|labou?rer|construction|longshoreman|dockworker|trucker|truck driver|lineman|miner|carpenter|roughneck|factory worker)\b/,
+  office:
+    /\b(clerk|accountant|lawyer|attorney|banker|manager|executive|secretary|receptionist|teacher|professor|analyst|salesman|saleswoman|realtor|insurance|administrator|consultant|doctor|pharmacist)\b/,
   aristocrat:
     /\b(emperor|empress|king|queen|prince|princess|duke|duchess|earl|count|countess|marquess|marquis|baron|baroness|viscount|noble|nobleman|noblewoman|aristocrat|courtier|patrician|grandee|lord|lady|shogun|maharaja|maharani|sultan|sultana|tsar|tsarina|khan|pharaoh)\b/,
 };

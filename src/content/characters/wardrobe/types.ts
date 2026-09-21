@@ -1,4 +1,5 @@
 import type {
+  eyewear,
   beltStyles,
   motifs,
   footwear,
@@ -67,6 +68,9 @@ export type GarmentKit = {
   material?: readonly Option<Material>[];
   dye?: readonly Option<DyeId>[];
   motif?: readonly Option<Motif>[];
+  eyewear?: readonly Option<(typeof eyewear)[number]>[];
+  /** A kit that says nothing leaves the base roll's necklace alone. */
+  neck?: readonly Option<"none" | "beads" | "chain">[];
 };
 export type Motif = (typeof motifs)[number];
 export type WardrobeSlot = Exclude<
@@ -84,6 +88,8 @@ export const wardrobeSlots = [
   "material",
   "dye",
   "motif",
+  "eyewear",
+  "neck",
 ] as const;
 
 /** The person a kit is dressing. Everything but `id` is optional: an actor

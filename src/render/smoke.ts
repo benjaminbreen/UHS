@@ -11,7 +11,7 @@ const FRAMES = 8;
 const CELL = 17;
 const STEP_MS = 100;
 
-export type SmokeKind = "chimney" | "vent";
+export type SmokeKind = "chimney" | "vent" | "fire";
 type Plume = {
   x: number;
   y: number;
@@ -135,7 +135,7 @@ export function addPlume(
       managers.delete(scene);
     });
   }
-  const count = kind === "chimney" ? 6 : 7;
+  const count = kind === "chimney" ? 6 : kind === "fire" ? 8 : 7;
   const puffs = Array.from({ length: count }, () =>
     scene.add
       .image(x, y, key, "0")
@@ -161,10 +161,11 @@ function place(
   time: number,
   air: { angle: number; strength: number },
 ) {
-  const chimney = plume.kind === "chimney";
+  // An open fire is a stack with no chimney: quick, and it keeps going up.
+  const chimney = plume.kind === "chimney" || plume.kind === "fire";
   // A stack draws: a narrow quick column. A roof vent seeps: slow and wide.
-  const period = chimney ? 4300 : 6200;
-  const height = chimney ? 66 : 50;
+  const period = plume.kind === "fire" ? 3600 : chimney ? 4300 : 6200;
+  const height = plume.kind === "fire" ? 78 : chimney ? 66 : 50;
   const n = plume.puffs.length;
   const gust = gustAt(time, plume.x, plume.y, plume.seed * 6.28);
   const lean =

@@ -143,14 +143,13 @@ import { driftStyle, foliageTint } from "./season-art";
 import { seasonAt } from "../core/livelihood";
 import {
   FIRE_FRAME_MS,
-  SMOKE_MS,
-  SMOKE_PUFFS,
+  LIGHT_FLICKER,
   animatedBase,
   motionFrames,
   motionPeriod,
   animatedFrames,
-  ensureFireTextures,
-  glowAlpha,
+  ensureFireLight,
+  lightAlpha,
 } from "./fire";
 import terrainFrames from "./generated/terrain.json" with { type: "json" };
 import artVersion from "./generated/art-version.json" with { type: "json" };
@@ -228,6 +227,7 @@ type BuildingAnimation = {
 type FireEffect = {
   image: Phaser.GameObjects.Image;
   base: string;
+  frames: number;
   phase: number;
   glow: Phaser.GameObjects.Image;
   smoke: Phaser.GameObjects.Image[];
@@ -400,7 +400,7 @@ export class WorldScene extends Phaser.Scene {
   >();
   private hearths = new Map<string, Phaser.GameObjects.Image[]>();
   private fires = new Map<string, FireEffect>();
-  private fireFrames = new Set<string>();
+  private fireFrames = new Map<string, number>();
   private motionFrames = new Map<string, number>();
   /** Props that animate on their own, keyed by entity. */
   private motions = new Map<
@@ -540,7 +540,6 @@ export class WorldScene extends Phaser.Scene {
       this.cueFx?.dispose();
     });
     this.events.once("shutdown", () => this.characters?.destroy());
-    ensureFireTextures(this);
     this.fireFrames = animatedFrames(
       this.textures.get("props").getFrameNames(),
     );
@@ -1587,7 +1586,7 @@ export class WorldScene extends Phaser.Scene {
     this.hearths.set(id, puffs);
     this.game.canvas.dataset.hearths = String(this.hearths.size);
   }
-  /** Flame frames, a ground glow and a few drifting puffs of smoke. */
+  /** Flame frames, a pool of light over the night wash, and smoke. */
   private lightFire(
     id: string,
     image: Phaser.GameObjects.Image,
@@ -1598,50 +1597,41 @@ export class WorldScene extends Phaser.Scene {
     const existing = this.fires.get(id);
     if (existing && existing.base === base) return;
     if (existing) this.quenchFire(id);
-    const phase = Math.floor(this.poseOffset(id) % 4);
+    const phase = Math.floor(this.poseOffset(id) % 8);
+    // The light reaches about three times the fire's own width.
+    const radius = Math.max(40, Math.round((image.width * 1.5) / 4) * 4);
     const glow = this.add
-      .image(x, y - 10, "fire-glow")
+      .image(Math.round(x), Math.round(y - 6), ensureFireLight(this, radius), "0")
       .setBlendMode(Phaser.BlendModes.ADD)
-      .setScale(1.4, 1)
-      .setAlpha(glowAlpha[this.light.id])
-      .setDepth(image.depth - 1);
-    const smoke: Phaser.GameObjects.Image[] = [];
-    if (!this.options.freeze)
-      for (let i = 0; i < SMOKE_PUFFS; i++) {
-        const puff = this.add
-          .image(x, y - 34, "fire-smoke")
-          .setAlpha(0)
-          .setDepth(image.depth + 1);
-        const drift = () => {
-          const dx = (Math.random() - 0.5) * 6;
-          puff
-            .setPosition(x + dx, y - 32)
-            .setAlpha(0.32)
-            .setScale(0.5);
-          this.tweens.add({
-            targets: puff,
-            y: y - 60,
-            x: x + dx + (Math.random() - 0.3) * 10,
-            alpha: 0,
-            scale: 1.7,
-            duration: SMOKE_MS,
-            ease: "Sine.easeOut",
-            onComplete: drift,
-          });
-        };
-        this.time.delayedCall((i * SMOKE_MS) / SMOKE_PUFFS, drift);
-        smoke.push(puff);
-      }
-    this.fires.set(id, { image, base, phase, glow, smoke });
+      .setAlpha(lightAlpha[this.light.id])
+      .setDepth(19001);
+    // Smoke leaves from the top of the flame, not the middle of the sprite.
+    const smoke = this.options.freeze
+      ? []
+      : addPlume(
+          this,
+          Math.round(x),
+          Math.round(y - image.height * 0.72),
+          "fire",
+          1,
+          image.depth + 2,
+          this.tint,
+        );
+    for (const puff of smoke) this.layers.push(puff);
+    this.fires.set(id, {
+      image,
+      base,
+      frames: this.fireFrames.get(base) ?? 4,
+      phase,
+      glow,
+      smoke,
+    });
   }
   private quenchFire(id: string) {
     const fire = this.fires.get(id);
     if (!fire) return;
     fire.glow.destroy();
-    for (const puff of fire.smoke) {
-      this.tweens.killTweensOf(puff);
-      puff.destroy();
-    }
+    for (const puff of fire.smoke) puff.destroy();
     this.fires.delete(id);
   }
   /** Frames that live in the buildings atlas, read off the texture once it is
@@ -3562,18 +3552,17 @@ export class WorldScene extends Phaser.Scene {
     }
     if (perf.fires)
       for (const fire of this.fires.values()) {
-        const n = this.options.freeze
+        const step = this.options.freeze
           ? 0
-          : Math.floor(time / FIRE_FRAME_MS + fire.phase) % 4;
+          : Math.floor(time / FIRE_FRAME_MS + fire.phase);
+        const n = step % fire.frames;
         const name = n ? `${fire.base}-f${n}` : fire.base;
         if (fire.image.frame.name !== name) fire.image.setFrame(name);
-        const pulse = this.options.freeze
-          ? 1
-          : 0.88 + 0.12 * Math.sin(time / 210 + fire.phase * 1.7);
-        const alpha = glowAlpha[this.light.id] * pulse;
+        const size = String(LIGHT_FLICKER[step % LIGHT_FLICKER.length]);
+        if (fire.glow.frame.name !== size) fire.glow.setFrame(size);
+        const alpha = lightAlpha[this.light.id];
         if (fire.glow.alpha !== alpha) fire.glow.setAlpha(alpha);
-        if (fire.glow.depth !== fire.image.depth - 1)
-          fire.glow.setDepth(fire.image.depth - 1);
+        if (fire.glow.visible !== alpha > 0) fire.glow.setVisible(alpha > 0);
       }
     if (perf.fires)
       for (const motion of this.motions.values()) {

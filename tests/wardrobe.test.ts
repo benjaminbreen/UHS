@@ -535,3 +535,18 @@ it("draws every item a person can pick up", async () => {
     .map((i) => i.id);
   expect(missing).toEqual([]);
 });
+
+it("keeps modern men out of dresses, hemp and mauve", () => {
+  const setting = place("european", 2009);
+  for (let i = 0; i < 200; i++) {
+    const man = { id: `nola-${i}`, sex: "male" as const, age: 34 };
+    const w = wardrobeFor(man, { year: 2009, setting }, base);
+    expect(["dress", "skirt", "gown"]).not.toContain(w.garment);
+    const c = clothFor(man, { year: 2009, setting });
+    expect(c.dye).not.toBe("aniline");
+  }
+  const hemp = Array.from({ length: 300 }, (_, i) =>
+    clothFor({ id: `h-${i}` }, { year: 2009, setting }).material,
+  ).filter((m) => m === "hemp").length;
+  expect(hemp).toBeLessThan(15);
+});

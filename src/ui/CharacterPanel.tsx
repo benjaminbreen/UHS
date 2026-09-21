@@ -364,7 +364,7 @@ const EQUIP_SLOTS = [
   { slot: "ears", label: "Ears" },
   { slot: "neck", label: "Neck" },
   { slot: "over", label: "Over" },
-  { slot: "arms", label: "Arms" },
+  { slot: "eyes", label: "Eyes" },
   { slot: "body", label: "Torso" },
   { slot: "belt", label: "Belt" },
   { slot: "legs", label: "Legs" },

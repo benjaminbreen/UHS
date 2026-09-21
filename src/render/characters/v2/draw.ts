@@ -183,6 +183,8 @@ export function drawCharacter(
     lower = ramp(a.wearing.lowerColor),
     cloak = ramp(a.wearing.cloakColor),
     leather = ramp("#72503b"),
+    sneaker = ramp("#d9d5cc"),
+    trimTone = ramp(a.wearing.trim),
     iron = ramp("#8b929a"),
     wood = ramp("#ae7e49");
   ctx.save();
@@ -1124,7 +1126,11 @@ export function drawCharacter(
     }
     const footX = ankle[0] - 1;
     const hide =
-      shoe === "sandals" ? { ...leather, base: leather.shade } : leather;
+      shoe === "sandals"
+        ? { ...leather, base: leather.shade }
+        : shoe === "sneakers"
+          ? sneaker
+          : leather;
     p.shape(
       [
         [footX, ankle[1]],
@@ -1140,6 +1146,11 @@ export function drawCharacter(
     if (shoe === "sandals") {
       p.rect(footX + 1, ankle[1], 3, 1, isFar ? skin.shade : skin.base);
       p.rect(footX + 2, ankle[1] + 1, 1, 1, leather.light);
+    }
+    // A white rubber sole and one stripe of colour: what reads as a trainer.
+    if (shoe === "sneakers") {
+      p.rect(footX, ankle[1] + 2, 5, 1, "#f1eee6");
+      p.rect(footX + 2, ankle[1] + 1, 2, 1, trimTone.base);
     }
     // Boots carry the shaft up the shin.
     if (shoe === "boots")
@@ -1485,9 +1496,16 @@ export function drawCharacter(
     const motif =
       named === "auto"
         ? outfit % 5
-        : { plain: 0, placket: 1, band: 2, yoke: 3, stitch: 4, stripes: 5 }[
-            named
-          ];
+        : {
+            plain: 0,
+            placket: 1,
+            band: 2,
+            yoke: 3,
+            stitch: 4,
+            stripes: 5,
+            plaid: 6,
+            jersey: 7,
+          }[named];
     if (!rear && a.wearing.garment !== "wrap")
       switch (motif) {
         case 1: // centre placket
@@ -1518,6 +1536,26 @@ export function drawCharacter(
             const tone = i % 2 ? second : trim;
             p.rect(left + 1, y, right - left - 2, 2, tone.base);
             p.rect(left + 1, y + 1, right - left - 2, 1, tone.shade);
+          }
+          break;
+        }
+        case 6: {
+          // A check: shaded cross-bands every third pixel, crossing at a
+          // darker square. Reads as flannel at sprite size.
+          for (let y = 15; y < hem - 1; y += 3)
+            p.rect(left + 1, y, right - left - 2, 1, trim.shade);
+          for (let x = left + 2; x < right - 1; x += 3)
+            for (let y = 14; y < hem - 1; y++)
+              p.rect(x, y, 1, 1, (y - 15) % 3 === 0 ? trim.edge : trim.base);
+          break;
+        }
+        case 7: {
+          // Contrast shoulders and a block number on the chest.
+          const second = ramp(a.wearing.lowerColor);
+          p.rect(left + 1, 14, right - left - 2, 2, second.base);
+          if (!flat) {
+            p.rect(mid - 1, chest + 1, 1, 4, second.light);
+            p.rect(mid + 1, chest + 1, 1, 4, second.light);
           }
           break;
         }
@@ -1642,7 +1680,15 @@ export function drawCharacter(
   } else drawHead(p, a, side, back, pose, f, trail);
   p.modeling = true;
   ctx.restore();
-  if (a.wearing.necklace && !rear) {
+  if (a.wearing.necklace && !rear && a.wearing.neckStyle === "chain") {
+    // A chain hangs close and catches the light along its length.
+    if (neckSide) p.line([13, 15], [14, 17], "#d8b35a");
+    else {
+      p.line([8, 15], [10, 17], "#d8b35a");
+      p.line([10, 17], [12, 15], "#d8b35a");
+      p.rect(10, 17, 1, 1, "#f3dc92");
+    }
+  } else if (a.wearing.necklace && !rear) {
     if (neckSide) p.line([13, 15], [14, 17], a.wearing.trim);
     else {
       p.line([7, 15], [10, 17], a.wearing.trim);

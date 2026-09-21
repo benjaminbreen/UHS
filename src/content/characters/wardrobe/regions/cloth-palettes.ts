@@ -115,7 +115,9 @@ const palettes: Record<CultureId, Palette> = {
   },
 };
 /** Anywhere, once colour stopped costing what the dyestuff cost. */
-const SYNTHETIC: readonly DyeId[] = ["vat", "chrome", "white", "aniline", "bleached"];
+const SYNTHETIC: readonly DyeId[] = ["vat", "chrome", "white", "bleached"];
+/** Kept off men once colour is coded by sex; see `kit`. */
+const FEMININE: readonly DyeId[] = ["aniline"];
 const opts = <T,>(
   values: readonly T[],
   weight: number,
@@ -126,7 +128,7 @@ const opts = <T,>(
  * something to trade it for, so before the first states a bright garment is a
  * rarity rather than a quarter of the street; `modern` is the other end, where
  * colour costs nothing. */
-type Era = "early" | "settled" | "modern";
+type Era = "early" | "settled" | "modern" | "contemporary";
 
 function kit(
   culture: CultureId,
@@ -134,7 +136,10 @@ function kit(
   years: readonly [number, number],
   era: Era,
 ): GarmentKit {
-  const modern = era === "modern";
+  const modern = era === "modern" || era === "contemporary";
+  // After the war nearly everything is bought: cotton and synthetics, a
+  // little wool. Hemp and felt survive as rarities, not as a work shirt.
+  const bought = era === "contemporary";
   return {
     id: `cloth-${culture}${era === "settled" ? "" : `-${era}`}`,
     label: `${culture} cloth`,
@@ -144,16 +149,30 @@ function kit(
     // whichever of the two happens to be narrower in years.
     priority: -1,
     material: [
-      ...opts(p.fibres, 6),
-      ...opts(p.skins ?? [], 1),
+      ...(bought
+        ? opts(
+            p.fibres.filter((f) => f !== "cotton" && f !== "wool"),
+            1,
+          )
+        : opts(p.fibres, 6)),
+      ...(bought ? [] : opts(p.skins ?? [], 1)),
       ...opts(p.rich ?? [], 3, ["wealthy"]),
       ...(modern ? opts(["cotton", "synthetic"] as Material[], 6) : []),
+      ...(bought ? opts(["cotton"] as Material[], 10) : []),
+      ...(bought ? opts(["wool"] as Material[], 2) : []),
     ],
     dye: [
       ...opts(p.plain, 6),
       ...opts(p.fine ?? [], era === "early" ? 1 : 3, ["common", "wealthy"]),
-      ...(era === "early" ? [] : opts(p.costly ?? [], 2, ["wealthy"])),
+      // Tyrian purple and gold thread are not what money buys in 2009.
+      ...(era === "early" || bought
+        ? []
+        : opts(p.costly ?? [], 2, ["wealthy"])),
       ...(modern ? opts(SYNTHETIC, 5) : []),
+      // Mauve reads as a women's colour by the late twentieth century.
+      ...(bought
+        ? FEMININE.map((value) => ({ value, weight: 4, sex: ["female" as const] }))
+        : []),
     ],
   };
 }
@@ -162,5 +181,6 @@ export const clothPalettes: readonly GarmentKit[] = Object.entries(
 ).flatMap(([culture, p]) => [
   kit(culture as CultureId, p, [-1000000, -500], "early"),
   kit(culture as CultureId, p, [-500, 1850], "settled"),
-  kit(culture as CultureId, p, [1850, 10001], "modern"),
+  kit(culture as CultureId, p, [1850, 1950], "modern"),
+  kit(culture as CultureId, p, [1950, 10001], "contemporary"),
 ]);

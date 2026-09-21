@@ -21,6 +21,8 @@ export function bareWearing(base: Wearing): Wearing {
     garment: "none",
     headwear: "none",
     necklace: false,
+    neckStyle: undefined,
+    eyewear: "none",
     earrings: false,
     cloak: false,
     mantle: false,
@@ -74,7 +76,8 @@ export function wornFromWearing(w: Wearing, cloth?: Cloth): Worn {
   if (w.cloak) worn.over = of("cloak", w.cloakColor);
   else if (w.shoulderCloth) worn.over = of("shoulder-cloth", w.cloakColor);
   if (w.belt && w.belt !== "none") worn.belt = of(`belt-${w.belt}`, w.trim);
-  if (w.necklace) worn.neck = "necklace";
+  if (w.necklace) worn.neck = w.neckStyle === "chain" ? "chain" : "necklace";
+  if (w.eyewear && w.eyewear !== "none") worn.eyes = w.eyewear;
   if (w.earrings) worn.ears = "earrings";
   if (w.leggings && w.leggings !== "none") worn.legs = of(`leggings-${w.leggings}`, w.lowerColor);
   if (w.footwear && w.footwear !== "none")

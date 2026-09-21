@@ -183,6 +183,14 @@ function migrateWorn(snapshot: Snapshot): Snapshot {
   return snapshot;
 }
 
+/** Whether an object stands on a cell. A wide prop, such as a big hearth,
+ * covers the cells its `span` reaches either side of its own. */
+const covers = (o: WorldObject, x: number, y: number) => {
+  const span = o.prop ? propDefs[o.prop]?.span : undefined;
+  return span
+    ? Math.abs(o.pos.x - x) <= span[0] && Math.abs(o.pos.y - y) <= span[1]
+    : o.pos.x === x && o.pos.y === y;
+};
 export class Engine {
   state: Snapshot;
   /** Set by a chronicle to witness every command, human or agent. */
@@ -539,8 +547,7 @@ export class Engine {
               !o.broken &&
               !o.submerged)) &&
           o.pos.space === space &&
-          o.pos.x === x &&
-          o.pos.y === y,
+          covers(o, x, y),
       )
     );
   }
@@ -4294,9 +4301,14 @@ export class Engine {
       if (o.resource) this.resourceObjects.push(o);
       if (o.kind !== "gate" && o.kind !== "door" && !o.prop) continue;
       const key = `${o.pos.space}:${o.pos.x},${o.pos.y}`;
-      const at = this.tickObstacles.get(key) ?? [];
-      at.push(o);
-      this.tickObstacles.set(key, at);
+      const [sx, sy] = (o.prop && propDefs[o.prop]?.span) || [0, 0];
+      for (let dy = -sy; dy <= sy; dy++)
+        for (let dx = -sx; dx <= sx; dx++) {
+          const k = dx || dy ? `${o.pos.space}:${o.pos.x + dx},${o.pos.y + dy}` : key;
+          const at = this.tickObstacles.get(k) ?? [];
+          at.push(o);
+          this.tickObstacles.set(k, at);
+        }
       if (o.kind === "gate" || o.kind === "door") {
         const gates = this.barriersAt.get(key) ?? [];
         gates.push(o);

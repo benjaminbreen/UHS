@@ -138,6 +138,10 @@ export const motifs = [
   /** Horizontal bands the width of the body: the Andean and Mesoamerican
    * signature, and the one pattern that reads at this size. */
   "stripes",
+  /** Two-way check: flannel, madras, tartan. */
+  "plaid",
+  /** Contrast shoulders and a chest number: the sports jersey. */
+  "jersey",
 ] as const;
 /** What covers the leg between hem and ankle. */
 export const leggings = [
@@ -150,7 +154,16 @@ export const leggings = [
   /** Cut wide and falling straight to the ankle: hakama, salwar, sarouel. */
   "wide",
 ] as const;
-export const footwear = ["none", "sandals", "shoes", "boots"] as const;
+export const footwear = [
+  "none",
+  "sandals",
+  "shoes",
+  "boots",
+  /** Rubber-soled canvas or leather trainers; white sole. */
+  "sneakers",
+] as const;
+export const eyewear = ["none", "glasses", "sunglasses"] as const;
+export const neckStyles = ["beads", "chain"] as const;
 export const beltStyles = ["none", "cord", "sash", "leather", "wide"] as const;
 export const headShapes = [
   "original",
@@ -282,9 +295,9 @@ export const wearSlots = [
   "head",
   "neck",
   "ears",
-  "arms",
   "legs",
   "feet",
+  "eyes",
 ] as const;
 export type WearSlot = (typeof wearSlots)[number];
 export const hemStyles = ["plain", "split", "slanted"] as const;
@@ -533,7 +546,14 @@ export function describeAdornment(a: CharacterAppearance): AdornmentNote[] {
   if (nose !== "none")
     notes.push({ kind: "nose", label: capital(`${metal} ${NOSE_WORD[nose]}`) });
   if (a.wearing.necklace)
-    notes.push({ kind: "neck", label: capital(`${metal} bead necklace`) });
+    notes.push({
+      kind: "neck",
+      label: capital(
+        a.wearing.neckStyle === "chain"
+          ? `${metal} chain`
+          : `${metal} bead necklace`,
+      ),
+    });
   const marks = a.adornment?.marks ?? "none";
   if (marks !== "none")
     notes.push({
@@ -623,6 +643,9 @@ export type CharacterAppearance = {
     leggings?: (typeof leggings)[number];
     footwear?: (typeof footwear)[number];
     necklace: boolean;
+    /** Absent reads as beads, the older default. */
+    neckStyle?: (typeof neckStyles)[number];
+    eyewear?: (typeof eyewear)[number];
     earrings: boolean;
     /** What the body garment is made of and how well, carried through from the
      * worn item's id so the drawn cloth and the item's name agree. Absent on

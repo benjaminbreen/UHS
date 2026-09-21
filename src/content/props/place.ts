@@ -311,7 +311,7 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
       else if (o.kind === "well" && o.sprite === "well")
         stamp(o, pick(o.id, "water", o.pos));
       // The shared fire takes its period form the same way.
-      else if (false && o.kind === "fire" && o.sprite === "fire")
+      else if (o.kind === "fire" && o.sprite === "fire")
         stamp(o, pick(o.id, "fire", o.pos));
       if (o.prop && !usable(o.pos, o.id)) {
         const original = { ...o.pos };
@@ -333,6 +333,47 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
           index(o);
         }
       }
+    }
+    // Seats round a big fire: logs or stones at the back and sides, one in
+    // front, each kept a step clear of the next.
+    for (const o of [...world.initialObjects]) {
+      const def = o.prop ? propDefs[o.prop] : undefined;
+      if (!def?.seats || done.has(`${o.id}-seats`)) continue;
+      done.add(`${o.id}-seats`);
+      const reach = (def.span?.[0] ?? 0) + 2;
+      const spots: [number, number, number][] = [
+        [-reach, 0, 2],
+        [reach, 0, 2],
+        [-2, -2, 0],
+        [2, -2, 1],
+        [0, 2, 0],
+      ];
+      const key =
+        def.seats === "log"
+          ? "seatLog"
+          : def.seats === "stone"
+            ? "seatStone"
+            : "seatMat";
+      spots.forEach(([dx, dy, variant], n) => {
+        const at = { ...o.pos, x: o.pos.x + dx, y: o.pos.y + dy };
+        if (!usable(at) || random(seed, "seat", o.id, n) < 0.15) return;
+        const seat: WorldObject = {
+          id: `${o.id}-seat-${n}`,
+          name: "",
+          kind: "container",
+          pos: at,
+          sprite: "",
+          inventory: {},
+        };
+        stamp(seat, key);
+        // A log turns its end to the fire at the sides; the stones and mats
+        // take whichever shape they rolled.
+        if (key === "seatLog")
+          seat.sprite = `study-propb-seat-log-${variant}`;
+        world.initialObjects.push(seat);
+        index(seat);
+        done.add(seat.id);
+      });
     }
     const bare = urbanPack ? 0.75 : 0.2;
     for (const b of world.places) {

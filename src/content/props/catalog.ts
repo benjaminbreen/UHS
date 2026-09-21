@@ -40,6 +40,11 @@ export type PropDef = {
   /** Where this belongs. A washing line hangs behind a house, not on the
    * square; a crate stands at a works or a farm, not on a shopping street. */
   where?: "backyard" | "worksite" | "privy";
+  /** Cells blocked either side of its own, [x, y], for a prop wider than a
+   * cell: a village hearth is three cells of stone and fire, not one. */
+  span?: [number, number];
+  /** What people sit on round it, set out when the settlement is placed. */
+  seats?: "log" | "stone" | "mat";
 };
 export const propDefs: Record<string, PropDef> = {
   ...urbanProps,
@@ -561,6 +566,57 @@ export const propDefs: Record<string, PropDef> = {
     family: "beehive",
     where: "worksite",
   },
+  hideFrame: {
+    solid: true,
+    name: "Hide on a drying frame",
+    family: "hide-frame",
+    where: "worksite",
+  },
+  knappingFloor: {
+    solid: false,
+    name: "Knapping floor",
+    family: "knapping-floor",
+    where: "worksite",
+  },
+  warpLoom: {
+    solid: true,
+    name: "Warp-weighted loom",
+    family: "warp-loom",
+    where: "worksite",
+  },
+  grainPit: {
+    solid: false,
+    name: "Storage pit",
+    family: "grain-pit",
+    container: true,
+    contents: { grain: 3 },
+  },
+  skullPost: {
+    solid: true,
+    name: "Skull on a post",
+    family: "skull-post",
+  },
+  shaduf: {
+    solid: true,
+    name: "Shaduf",
+    family: "shaduf",
+    drink: true,
+  },
+  zir: {
+    shove: { as: "free", mass: 1.8 },
+    solid: true,
+    name: "Zir water jar",
+    family: "zir",
+    container: true,
+    breakable: "clay",
+    contents: { water: 4 },
+  },
+  pipeHive: {
+    solid: true,
+    name: "Clay pipe hives",
+    family: "pipe-hive",
+    where: "worksite",
+  },
   logHive: {
     solid: true,
     name: "Log hive",
@@ -621,6 +677,42 @@ export const propDefs: Record<string, PropDef> = {
     fire: true,
     variants: 1,
   },
+  campHearth: {
+    solid: true,
+    name: "Camp fire",
+    family: "camp-hearth",
+    fire: true,
+    variants: 1,
+    span: [1, 0],
+    seats: "stone",
+  },
+  communalHearth: {
+    solid: true,
+    name: "Village hearth",
+    family: "communal-hearth",
+    fire: true,
+    variants: 1,
+    span: [1, 0],
+    seats: "log",
+  },
+  councilFire: {
+    solid: true,
+    name: "Council fire",
+    family: "council-fire",
+    fire: true,
+    variants: 1,
+    span: [1, 0],
+    seats: "log",
+  },
+  earthOven: {
+    solid: true,
+    name: "Earth oven",
+    family: "earth-oven",
+    fire: true,
+    variants: 1,
+    span: [1, 0],
+    seats: "mat",
+  },
   threeStoneHearth: {
     solid: true,
     name: "Three-stone hearth",
@@ -634,6 +726,25 @@ export const propDefs: Record<string, PropDef> = {
     family: "long-fire",
     fire: true,
     variants: 1,
+    span: [2, 0],
+    seats: "log",
+  },
+  /** Seating set round a big fire. */
+  seatLog: {
+    shove: { as: "free", mass: 1.6 },
+    solid: true,
+    name: "Log seat",
+    family: "seat-log",
+  },
+  seatStone: {
+    solid: true,
+    name: "Sitting stone",
+    family: "seat-stone",
+  },
+  seatMat: {
+    solid: false,
+    name: "Woven mat",
+    family: "seat-mat",
   },
   tannur: {
     solid: true,

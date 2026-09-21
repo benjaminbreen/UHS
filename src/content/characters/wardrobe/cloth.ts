@@ -1,4 +1,10 @@
-import { dyeWord, garmentWord, materialWord, synthetic } from "./vocabulary";
+import {
+  dyeWord,
+  garmentWord,
+  materialWord,
+  modernNoun,
+  synthetic,
+} from "./vocabulary";
 /**
  * What a garment is made of, what coloured it, and how well it was made.
  * Dyes are listed once and referenced by id from the regional kits, because
@@ -202,11 +208,17 @@ export function clothName(
               ? synthetic[rarity]
               : (skin ? fineSkins : fineWords)[rarity],
           );
-  const noun = era ? garmentWord(era.id, year, base.toLowerCase()) : base.toLowerCase();
+  const named = era ? garmentWord(era.id, year, base.toLowerCase()) : base.toLowerCase();
+  const modern = era ? modernNoun(named, c, year, pick) : undefined;
+  const noun = modern?.noun ?? named;
   const words = [
     adjective,
     era ? dyeWord(c.dye, year, dyes[c.dye].name) : dyes[c.dye].name,
-    era ? materialWord(c.material, year, pick) : c.material,
+    modern && !modern.material
+      ? undefined
+      : era
+        ? materialWord(c.material, year, pick)
+        : c.material,
     noun,
   ];
   const out = words.filter(Boolean).join(" ");
