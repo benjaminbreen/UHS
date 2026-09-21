@@ -27,7 +27,8 @@ import {
   type Period,
   type Season,
 } from "../audio/score";
-import { effects, renderWav } from "../audio/synth";
+import { renderWav } from "../audio/synth";
+import { catalog } from "../audio/sfx";
 import "./audio-lab.css";
 
 const periodSymbols = { dawn: "◔", day: "☀", dusk: "◑", night: "☾" };
@@ -447,19 +448,19 @@ export function AudioLab({
               </div>
               <h3>Objects, gestures, little discoveries.</h3>
               <p>
-                Original synthesized sketches. Audition here; these are not yet
-                attached to world actions.
+                Synthesized from the tool, the surface and the ground underfoot.
+                Each play differs slightly.
               </p>
               <div className="audio-effect-grid">
-                {effects.map((effect) => (
+                {catalog.map((effect) => (
                   <button
-                    key={effect.id}
+                    key={effect.name}
                     onClick={() => {
-                      void director.effect(effect.id);
+                      void director.sound(effect.make());
                       setLastEffect(effect.name);
                     }}
                   >
-                    <span>{effect.icon}</span>
+                    <span>{effect.name.startsWith("Event") ? "✧" : "⌁"}</span>
                     <div>
                       <strong>{effect.name}</strong>
                       <small>{effect.detail}</small>

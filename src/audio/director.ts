@@ -8,14 +8,8 @@ import {
   type Score,
   type Stem,
 } from "./score";
-import {
-  createMix,
-  effectNotes,
-  scheduleNote,
-  prepareScore,
-  type EffectId,
-  type MixBus,
-} from "./synth";
+import { createMix, scheduleNote, prepareScore, type MixBus } from "./synth";
+import { events, playSound, type EventId, type Sound } from "./sfx";
 
 export interface AudioState {
   loading: boolean;
@@ -57,7 +51,7 @@ export class AudioDirector {
   private generation = 0;
   private resumeOnVisible = false;
   private disposed = false;
-  private lastSfx = 0;
+  private lastSfx = new Map<string, number>();
   private state: AudioState = {
     loading: false,
     playing: false,
@@ -321,19 +315,24 @@ export class AudioDirector {
       /* Optional preference. */
     }
   }
-  async effect(id: EffectId) {
-    if (performance.now() - this.lastSfx < 75) return;
-    this.lastSfx = performance.now();
+  /** Plays a built sound. Sounds sharing a `key` are throttled together, so
+   * a burst of the same cue does not stack into a buzz. */
+  async sound(sound: Sound | undefined, key = "") {
+    if (!sound?.length) return;
+    const now = performance.now();
+    if (now - (this.lastSfx.get(key) ?? 0) < 60) return;
+    this.lastSfx.set(key, now);
     try {
       const ctx = await this.unlock();
-      effectNotes(id).forEach((n) =>
-        scheduleNote(ctx, this.sfx!, n, ctx.currentTime + n.beat + 0.01, 1),
-      );
-      this.patch({ error: "" });
+      playSound(ctx, this.sfx!, sound, ctx.currentTime + 0.01);
+      if (this.state.error) this.patch({ error: "" });
     } catch (error) {
       if (!this.disposed)
         this.patch({ error: `Sound effect unavailable: ${String(error)}` });
     }
+  }
+  event(id: EventId) {
+    return this.sound(events[id](), id);
   }
   resetMix() {
     stems.forEach((stem) => this.setLevel(stem, 1));

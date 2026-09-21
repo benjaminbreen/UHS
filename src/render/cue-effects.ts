@@ -18,7 +18,7 @@ const ACTS: Record<
     ms: number;
     mark?: { glyph: keyof typeof GLYPHS; color: number };
     move?: "hop" | "shake" | "dip";
-    sound?: "select";
+    sound?: "alarm";
   }
 > = {
   alarm: {
@@ -27,7 +27,7 @@ const ACTS: Record<
     ms: 1000,
     mark: { glyph: "bang", color: 0xd9523f },
     move: "hop",
-    sound: "select",
+    sound: "alarm",
   },
   question: {
     pose: "shrug",
@@ -121,7 +121,7 @@ export class CueEffects {
     if (act.mark) p.mark = this.scene.add.graphics();
     this.playing.set(who, p);
     if (act.pose && who === "player") this.view.playerPose(act.pose);
-    if (act.sound) void gameAudio()?.effect(act.sound);
+    if (act.sound) void gameAudio()?.event(act.sound);
   }
 
   private stop(who: string) {

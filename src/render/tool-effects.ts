@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 import { gameAudio } from "../audio/director";
-import type { EffectId } from "../audio/synth";
-import type { Hit, HitClass, ReactionKind, ToolClass } from "../core/reactions";
+import { scrape, strike, work } from "../audio/sfx";
+import type { Hit, HitClass, ToolClass } from "../core/reactions";
 import type { CreatureHit } from "../core/combat";
 
 export type ToolEffectKind =
@@ -109,30 +109,6 @@ const DEBRIS: Record<HitClass, number[]> = {
   creature: [0xe6d5c0, 0xc9b199],
   air: [0xffffff],
 };
-const REACTION_SOUND: Record<ReactionKind, EffectId | undefined> = {
-  shatter: "shatter",
-  crack: "shatter",
-  topple: "thud",
-  thwock: "thwock",
-  thud: "thud",
-  knock: "thud",
-  swish: "swish",
-  splash: "splash",
-  scuff: "dig",
-  ember: "thud",
-  flinch: "thud",
-  whoosh: "whoosh",
-};
-const sound: Partial<Record<ToolEffectKind, EffectId>> = {
-  hit: "chop",
-  buck: "chop",
-  fell: "timber",
-  cut: "chop",
-  dig: "dig",
-  reap: "reap",
-  mine: "pick",
-  shatter: "shatter",
-};
 /** Everything a tool throws off: chips, dust, the arc of the swing and the
  * tree going over. Sprites here are owned by this class, not by the scenery
  * layer, so a rebuild in the same frame does not sweep them away mid-fall. */
@@ -198,8 +174,11 @@ export class ToolEffects {
       effect.hits.find((h) => h.damaged) ??
       effect.hits.find((h) => h.solid) ??
       facing;
-    const id = loudest && REACTION_SOUND[loudest.kind];
-    if (id) void gameAudio()?.effect(id);
+    if (loudest)
+      void gameAudio()?.sound(
+        strike(effect.tool, loudest.hit, loudest.kind, loudest.damaged),
+        "strike",
+      );
     if (facing) this.react(facing, 1);
     // The corners rattle rather than break: half the debris, no sound.
     for (const hit of corners)
@@ -226,10 +205,10 @@ export class ToolEffects {
             wind: !!image.getData("wind"),
           });
       }
-      void gameAudio()?.effect(effect.refused === "wheels" ? "swish" : "thud");
+      void gameAudio()?.sound(scrape(effect.ground, effect.refused), "scrape");
       return;
     }
-    void gameAudio()?.effect("dig");
+    void gameAudio()?.sound(scrape(effect.ground), "scrape");
     // Dust rises where the load left, not where it arrived.
     this.burst(this.point(effect.from), DEBRIS[effect.ground] ?? SOIL, 5, 0.7);
     const run = effect.path ?? [];
@@ -247,8 +226,10 @@ export class ToolEffects {
       const hit = effect.hit;
       this.scene.time.delayedCall(ROLL_MS * Math.max(1, run.length), () => {
         if (generation !== this.generation) return;
-        const id = REACTION_SOUND[hit.kind];
-        if (id) void gameAudio()?.effect(id);
+        void gameAudio()?.sound(
+          strike("thrown", hit.hit, hit.kind, hit.damaged),
+          "strike",
+        );
         this.react(hit, 1.3);
         if (hit.damaged) this.scene.cameras.main.shake(130, 0.003);
       });
@@ -275,8 +256,10 @@ export class ToolEffects {
     const generation = this.generation;
     const land = () => {
       if (generation !== this.generation) return;
-      const id = REACTION_SOUND[effect.hit.kind];
-      if (id) void gameAudio()?.effect(id);
+      void gameAudio()?.sound(
+        strike("thrown", effect.hit.hit, effect.hit.kind, effect.hit.damaged),
+        "strike",
+      );
       this.react(effect.hit, 1.2);
       this.impact(to);
       if (effect.hit.damaged) this.scene.cameras.main.shake(110, 0.0022);
@@ -287,7 +270,7 @@ export class ToolEffects {
       this.scene.time.delayedCall(flight, land);
       return;
     }
-    void gameAudio()?.effect("whoosh");
+    void gameAudio()?.sound(strike("haft", "air", "whoosh"), "throw");
     const image = this.scene.add
       .image(
         from.x,
@@ -441,8 +424,12 @@ export class ToolEffects {
     return { x, y: y - this.view.lift(x, y) };
   }
   private play(effect: ToolEffect) {
-    const id = sound[effect.kind];
-    if (id) void gameAudio()?.effect(id);
+    void gameAudio()?.sound(
+      effect.kind === "miss"
+        ? strike("haft", "air", "whoosh")
+        : work(effect.kind),
+      "work",
+    );
     const target = this.point(effect.at);
     const from = this.point(effect.from);
     // Work underfoot has no direction of its own; take it from the player.
@@ -589,7 +576,6 @@ export class ToolEffects {
       duration: 620,
       ease: "Back.easeIn",
       onComplete: () => {
-        void gameAudio()?.effect("timber");
         this.burst({ x: target.x + away * 14, y: target.y }, LEAF, 9, 2);
         this.burst({ x: target.x + away * 8, y: target.y }, SOIL, 5, 1.6);
         this.scene.tweens.add({

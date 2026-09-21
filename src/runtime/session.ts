@@ -1,4 +1,6 @@
 import type { FaunaTier } from "../core/combat";
+import { gameAudio } from "../audio/director";
+import type { EventId } from "../audio/sfx";
 import { timed } from "../render/perf-switches";
 import { communityLabels } from "../content/ecology/communities";
 import { populateCharacter } from "../content/geography/character";
@@ -565,6 +567,19 @@ export class Runtime {
         use: "give",
       } as Record<string, CharacterPose>
     )[action];
+    const event = (
+      {
+        pickup: "pickup",
+        drop: "drop",
+        harvest: "harvest",
+        drink: "drink",
+        trade: "trade",
+        use: "use",
+        rest: "rest",
+        talk: "talk",
+      } as Record<string, EventId>
+    )[action];
+    if (event) void gameAudio()?.event(event);
     if (pose)
       this.characterAction = {
         serial: ++this.characterSerial,

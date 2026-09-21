@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import { gameAudio } from "../audio/director";
+import { strike } from "../audio/sfx";
 import type { Signal, CreatureHit } from "../core/combat";
 import { flightMs, type SwingEffect, type ThrowEffect } from "./tool-effects";
 
@@ -95,7 +96,10 @@ export class CombatEffects {
   }
   private hitStop(hard: boolean) {
     this.scene.cameras.main.shake(hard ? 140 : 90, hard ? 0.004 : 0.002);
-    void gameAudio()?.effect("thud");
+    void gameAudio()?.sound(
+      strike("blunt", "creature", "flinch", hard),
+      "hurt",
+    );
     // Everything holds for a beat, then flies.
     this.scene.tweens.timeScale = 0;
     this.scene.time.delayedCall(HIT_STOP_MS, () => {
@@ -139,7 +143,7 @@ export class CombatEffects {
         g.destroy();
       },
     });
-    void gameAudio()?.effect("whoosh");
+    void gameAudio()?.sound(strike("blunt", "air", "whoosh"), "air");
   }
   private aimMark?: Phaser.GameObjects.Graphics;
   /** Where the throw will come down: dots along the way, a ring at the end
@@ -214,7 +218,7 @@ export class CombatEffects {
     if (stage > this.chargeStage) {
       this.chargeStage = stage;
       this.burst(player.x, player.y - 2, STARS, stage * 5);
-      void gameAudio()?.effect("select");
+      void gameAudio()?.event("select");
     }
     const t = Math.min(1, held / charge.full);
     const g = (this.chargeRing ??= this.scene.add.graphics());
@@ -260,14 +264,15 @@ export class CombatEffects {
       else if (e.kind === "charge" || e.kind === "lunge") {
         this.endTell(id);
         if (image) this.burst(image.x, image.y - 2, DUST, 8);
-        void gameAudio()?.effect("whoosh");
+        void gameAudio()?.sound(strike("blunt", "air", "whoosh"), "air");
       } else if (e.kind === "slam") {
         this.endTell(id);
         const at = this.cell(e.at);
         this.burst(at.x, at.y - 8, STARS, 10);
         this.scene.cameras.main.shake(160, 0.005);
-        void gameAudio()?.effect("thud");
-      } else if (e.kind === "dodged") void gameAudio()?.effect("swish");
+        void gameAudio()?.sound(strike("blunt", "soil", "thud", true), "slam");
+      } else if (e.kind === "dodged")
+        void gameAudio()?.sound(strike("haft", "air", "whoosh"), "air");
       else if (e.kind === "mauled") this.mauled(e.damage);
     }
   }
@@ -276,7 +281,7 @@ export class CombatEffects {
     const player = this.view.entityAt("player");
     this.scene.cameras.main.shake(200, 0.007);
     this.scene.cameras.main.flash(90, 150, 20, 10);
-    void gameAudio()?.effect("thud");
+    void gameAudio()?.event("hurt");
     if (!player) return;
     this.burst(player.x, player.y - 10, BLOOD, 6);
     this.number(player.x, player.y - 30, String(damage), 0xff6a55, 2);
@@ -497,7 +502,7 @@ export class CombatEffects {
       onComplete: () => {
         this.live.delete(chunk);
         chunk.destroy();
-        void gameAudio()?.effect("gather");
+        void gameAudio()?.event("pickup");
       },
     });
   }

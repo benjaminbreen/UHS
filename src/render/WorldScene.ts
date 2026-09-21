@@ -73,6 +73,8 @@ import Phaser from "phaser";
 import { jumpMs, JUMP_CHARGE_MS, type Runtime } from "../runtime/session";
 import type { Position, WorldModel } from "../core/types";
 import { surfaceAt, hasQuay } from "./materials";
+import { gameAudio } from "../audio/director";
+import { footstep, landing, takeoff } from "../audio/sfx";
 import { hash, random } from "../core/random";
 import {
   defaultLiveGraphicsSettings,
@@ -295,6 +297,8 @@ export class WorldScene extends Phaser.Scene {
   /** Facing actually drawn, which chases the real one a step at a time. */
   private turning = new Map<string, { facing: number; until: number }>();
   /** Where the player is pushing while the way is blocked. The engine never
+  /** Where the player last made a footstep sound. */
+  private lastStep = { x: 0, y: 0 };
    * saw the move, so the turn is the renderer's to remember. */
   private blockedFacing?: number;
   /** A player pose the scene plays on its own account, over everything else:
@@ -873,6 +877,11 @@ export class WorldScene extends Phaser.Scene {
     const t = Math.min(1, (time - this.jumpStarted) / JUMP_CHARGE_MS);
     im.setScale(1 + 0.12 * t, 1 - 0.16 * t);
     if (t >= 1 && !this.chargeArmed) {
+  /** What the player is standing on, for the sound of it. */
+  private groundUnderPlayer() {
+    const p = this.runtime.engine.state.player.pos;
+    return this.runtime.engine.groundClass(p.x, p.y, p.space);
+  }
       this.chargeArmed = true;
       const foot = im.y + ((im.getData("arcLift") as number) ?? 0);
       this.kickDust(im.x, foot, 5, 0.7);
@@ -913,6 +922,18 @@ export class WorldScene extends Phaser.Scene {
         // Sine, not a parabola: it leaves and meets the ground less abruptly.
         const rise = arc.height * Math.sin(Math.PI * tween.progress);
         im.y -= rise;
+    const isPlayer = im === this.entities.get("player");
+    if (isPlayer) {
+      // The engine has already moved the player, so the take-off cell is the
+      // one the sprite is still drawn in.
+      const p = this.runtime.engine.state.player.pos;
+      const ground = this.runtime.engine.groundClass(
+        Math.floor(im.x / 16),
+        Math.floor((im.y - 1) / 16),
+        p.space,
+      );
+      void gameAudio()?.sound(takeoff(ground), "jump");
+    }
         im.setData("arcLift", rise);
         // Stretch off the ground, square at the apex, squash into the landing.
         const p = tween.progress;
@@ -950,6 +971,14 @@ export class WorldScene extends Phaser.Scene {
             duration: carry,
             ease: "Quad.easeOut",
           });
+        if (isPlayer)
+          void gameAudio()?.sound(
+            landing(
+              this.groundUnderPlayer(),
+              heavy ? 2 : 0.7 + arc.height / 40,
+            ),
+            "land",
+          );
         if (im === this.entities.get("player"))
           this.onlookers(tx, ty, heavy ? 4 : 1.5, heavy ? "alarm" : "question");
       },
@@ -1123,6 +1152,7 @@ export class WorldScene extends Phaser.Scene {
         this.textureFrame(frame),
       )
       .setOrigin(0.5, 1)
+        void gameAudio()?.sound(landing(this.groundUnderPlayer(), 0.8), "land");
       .setTint(this.tint)
       .setDepth(depth);
     this.layers.push(image);
@@ -4028,6 +4058,24 @@ export class WorldScene extends Phaser.Scene {
           shade.setPosition(im.x, im.y + arcLift);
           const shrink = arcLift ? 1 - Math.min(0.45, arcLift / 32) : 1;
           if (shade.scaleX !== shrink) shade.setScale(shrink);
+          // Half a tile a footfall. Only ground that gives underfoot is heard.
+          if (
+            moving &&
+            cell &&
+            !arcLift &&
+            Math.hypot(im.x - this.lastStep.x, im.y - this.lastStep.y) >= 8
+          ) {
+            this.lastStep = { x: im.x, y: im.y };
+            void gameAudio()?.sound(
+              footstep(
+                water > 0.025
+                  ? "water"
+                  : this.runtime.engine.groundClass(cell.x, cell.y, cell.space),
+                pose === "run",
+              ),
+              "step",
+            );
+          }
           const fade =
             water > 0.025 ? 0 : arcLift ? 1 - Math.min(0.55, arcLift / 26) : 1;
           if (shade.alpha !== fade) shade.setAlpha(fade);

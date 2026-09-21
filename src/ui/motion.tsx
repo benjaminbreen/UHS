@@ -36,7 +36,7 @@ export function useTypewriter(
       const ch = text[at - 1];
       letter.current?.(ch);
       // The director spaces effects out itself, so this patters, not buzzes.
-      if (sound && /\S/.test(ch)) void gameAudio()?.effect("blip");
+      if (sound && /\S/.test(ch)) void gameAudio()?.event("blip");
       timer = window.setTimeout(
         next,
         /[.!?…]/.test(ch) ? 260 : /[,;:—]/.test(ch) ? 120 : 24,

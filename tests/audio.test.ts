@@ -9,7 +9,7 @@ import {
   themes,
   worldMusicSlot,
 } from "../src/audio/score";
-import { effectNotes, effects } from "../src/audio/synth";
+import { catalog } from "../src/audio/sfx";
 
 describe("original soundtrack scores", () => {
   it("writes complete phrases and playable notes in every season, time and era", () => {
@@ -73,10 +73,15 @@ describe("original soundtrack scores", () => {
     expect(() => midi("garbage")).toThrow();
   });
   it("provides finite, bounded SFX cues", () => {
-    for (const effect of effects)
-      for (const note of effectNotes(effect.id)) {
-        expect(note.beat).toBeLessThan(1);
-        expect(note.velocity).toBeLessThanOrEqual(0.5);
+    for (const entry of catalog) {
+      const sound = entry.make();
+      expect(sound.length).toBeGreaterThan(0);
+      for (const layer of sound) {
+        expect(layer.at + layer.dur).toBeLessThan(2.5);
+        expect(layer.gain).toBeGreaterThan(0);
+        expect(layer.gain).toBeLessThanOrEqual(0.5);
+        expect(layer.freq).toBeGreaterThan(20);
       }
+    }
   });
 });

@@ -74,7 +74,7 @@ export function DialogueModal({ runtime, actorId, onClose }: { runtime: Runtime;
       // whatever the line was. The item's flight to the bag is already
       // handled, off the player's inventory changing.
       setMood("smile");
-      void gameAudio()?.effect("gather");
+      void gameAudio()?.event("gather");
     } else if (result.result?.reason) {
       setError(result.result.reason);
     }
@@ -112,8 +112,8 @@ export function DialogueModal({ runtime, actorId, onClose }: { runtime: Runtime;
   /** Plays the mark, and the small movement and note that sell it. */
   const show = (cue: CueKind) => {
     setTook({ cue, serial: Date.now() });
-    if (cue === "warm") void gameAudio()?.effect("gather");
-    else if (cue === "anger") void gameAudio()?.effect("thud");
+    if (cue === "warm") void gameAudio()?.event("warm");
+    else if (cue === "anger") void gameAudio()?.event("anger");
   };
 
   useEffect(() => {
