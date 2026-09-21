@@ -21,6 +21,7 @@ from .civic import CIVIC
 from .market import MARKET
 from .stores import STORES
 from .regional import REGIONAL
+from .ancient import ANCIENT
 from .vessels import (pot, storage_jar, water_jug, amphora, glazed_jar,
                       metal_vessel, pithos, flask, bowl, bucket,
                       open_basket, lidded_basket)
@@ -73,6 +74,7 @@ DRAW_B = {
  **CIVIC,
  **MARKET,
  **REGIONAL,
+ **ANCIENT,
 }
 
 from .wayside import WAYSIDE
@@ -104,6 +106,7 @@ for _key in OBLIQUE:
 LAYERED = {
  'drying-rack': ('frame', 'hang'),
  'washing-line': ('frame', 'hang'),
+ 'hide-frame': ('frame', 'hang'),
  'door-lantern': ('frame', 'hang'),
 }
 

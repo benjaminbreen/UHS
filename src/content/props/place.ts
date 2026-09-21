@@ -334,19 +334,25 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
         }
       }
     }
-    // Seats round a big fire: logs or stones at the back and sides, one in
-    // front, each kept a step clear of the next.
+    // Seats round a big fire: a log behind and one in front, a stump or a
+    // stone at each side. Close to the ring, so the general one-step clearance
+    // does not apply; only the seat's own cell has to be free.
+    const seatFree = (p: Position) =>
+      !world.blocked(p.x, p.y, p.space) &&
+      !(p.space === "outside" && world.protectedCell?.(p.x, p.y)) &&
+      !objectsAt.get(at(p))?.length &&
+      !actorsAt.has(at(p)) &&
+      !doorsAt.has(at(p));
     for (const o of [...world.initialObjects]) {
       const def = o.prop ? propDefs[o.prop] : undefined;
       if (!def?.seats || done.has(`${o.id}-seats`)) continue;
       done.add(`${o.id}-seats`);
-      const reach = (def.span?.[0] ?? 0) + 2;
+      const side = (def.span?.[0] ?? 0) + 1;
       const spots: [number, number, number][] = [
-        [-reach, 0, 2],
-        [reach, 0, 2],
-        [-2, -2, 0],
-        [2, -2, 1],
-        [0, 2, 0],
+        [-side, 0, 2],
+        [side, 0, 2],
+        [0, -2, 0],
+        [0, 2, 1],
       ];
       const key =
         def.seats === "log"
@@ -355,13 +361,13 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
             ? "seatStone"
             : "seatMat";
       spots.forEach(([dx, dy, variant], n) => {
-        const at = { ...o.pos, x: o.pos.x + dx, y: o.pos.y + dy };
-        if (!usable(at) || random(seed, "seat", o.id, n) < 0.15) return;
+        const spot = { ...o.pos, x: o.pos.x + dx, y: o.pos.y + dy };
+        if (!seatFree(spot) || random(seed, "seat", o.id, n) < 0.1) return;
         const seat: WorldObject = {
           id: `${o.id}-seat-${n}`,
           name: "",
           kind: "container",
-          pos: at,
+          pos: spot,
           sprite: "",
           inventory: {},
         };

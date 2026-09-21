@@ -145,3 +145,7 @@ def drum(v,frame):
  return a.finish()
 
 FIRES={'three-stone-hearth':threestone,'hearth':firepit,'long-fire':longfire,'tannur':tannur,'brazier':brazier,'oven':oven,'stove':stove,'fire-basket':firebasket,'oil-drum':drum}
+
+# The open fires are redrawn at their own sizes with eight flame frames.
+from art.props_b.fire import FIRES_B
+FIRES.update(FIRES_B)

@@ -1598,10 +1598,10 @@ export class WorldScene extends Phaser.Scene {
     if (existing && existing.base === base) return;
     if (existing) this.quenchFire(id);
     const phase = Math.floor(this.poseOffset(id) % 8);
-    // The light reaches about three times the fire's own width.
-    const radius = Math.max(40, Math.round((image.width * 1.5) / 4) * 4);
+    // The light reaches a little past the fire's own width either side.
+    const radius = Math.max(32, Math.round((image.width * 0.85) / 4) * 4);
     const glow = this.add
-      .image(Math.round(x), Math.round(y - 6), ensureFireLight(this, radius), "0")
+      .image(Math.round(x), Math.round(y - 10), ensureFireLight(this, radius), "0")
       .setBlendMode(Phaser.BlendModes.ADD)
       .setAlpha(lightAlpha[this.light.id])
       .setDepth(19001);

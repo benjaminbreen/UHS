@@ -11,7 +11,7 @@ from art.prop_audit import audit
 ROOT=Path(__file__).resolve().parent.parent
 OUT=ROOT/'public/props'; OUT.mkdir(parents=True,exist_ok=True)
 catalog=json.loads((ROOT/'src/content/graphics/props.json').read_text())
-SHADOW_FROM={'oil-lamp':35,'hearth':30,'three-stone-hearth':36,'long-fire':32,'tannur':22,'brazier':25,'stove':16,'fire-basket':23,'oil-drum':16}
+SHADOW_FROM={'oil-lamp':35,'tannur':22,'brazier':25,'stove':16,'fire-basket':23,'oil-drum':16}
 def trim(image):
     """Pack the real silhouette, not the canvas it was drawn on.
 
@@ -35,10 +35,11 @@ for family in catalog['families']:
         key=f"study-prop-{family['id']}-{variant}"
         for frame in range(family.get('frames',1)):
             image=draw_prop(family['id'],variant,frame)
-            image.info['anchor']=[24,48]
+            # Redrawn fires carry their own canvas and anchor.
+            if not image.info.get('own'):image.info['anchor']=[24,48]
             image=trim(image)
             # A flame casts no shadow: only the stones, body or legs under it.
-            if family['id'] in SHADOW_FROM:image.info['shadowMinY']=SHADOW_FROM[family['id']]
+            if family['id'] in SHADOW_FROM and not image.info.get('own'):image.info['shadowMinY']=SHADOW_FROM[family['id']]
             assert image.getbbox(), f'Empty sprite: {key}'
             # Shadows come from the real silhouette, not ellipses painted into art.
             assert all(alpha in (0,255) for alpha in image.getchannel('A').getdata())

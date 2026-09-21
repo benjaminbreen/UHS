@@ -192,6 +192,27 @@ it("keeps European yard kit out of other regions", () => {
   expect(kit("australian-pacific", 1200).has("pot")).toBe(false);
 });
 
+it("gives the shared fire its regional form", () => {
+  const fire = (culture: string, year: number, extra: object = {}) =>
+    propKit({
+      ...packs.roman,
+      year,
+      setting: { culture, placeId: "test-place", settlement: "village", lat: 0, lon: 0, ...extra },
+    } as any).contexts.fire;
+  expect(fire("european", -3000)).toEqual(["communalHearth"]);
+  expect(fire("european", 900, { climate: "boreal" })).toEqual(["longFire"]);
+  expect(fire("european", -30000)).toEqual(["campHearth"]);
+  expect(fire("other-indigenous-american", 1400)).toEqual(["councilFire"]);
+  expect(fire("australian-pacific", 1400, { lat: -18, lon: 178 })).toEqual(["earthOven"]);
+  expect(fire("australian-pacific", 1400, { lat: -33, lon: 151 })).toEqual(["campHearth"]);
+  expect(fire("west-central-african", 1455)).toEqual(["threeStoneHearth"]);
+  expect(fire("andean", 1450)).toEqual(["firepit"]);
+  // The brazier stays in town.
+  expect(fire("european", 100, { settlement: "city" })).toEqual(["brazier"]);
+  for (const key of ["campHearth", "communalHearth", "councilFire", "earthOven", "longFire"])
+    expect(propDefs[key].seats).toBeTruthy();
+});
+
 it("wood takes several strikes and damage persists without spilling early", () => {
   const { e, pot, stick } = fixture();
   pot.prop = "chest";

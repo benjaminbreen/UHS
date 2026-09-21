@@ -376,7 +376,6 @@ export function propKit(pack: Pack): PropKit {
     ].includes(culture)
   )
     contexts.fire = ["communalHearth"];
-  if (cold && year < 1500) contexts.fire = ["longFire"];
   if (
     pottery &&
     year >= -6999 &&
@@ -397,6 +396,9 @@ export function propKit(pack: Pack): PropKit {
     contexts.fire = ["brazier"];
   if (year >= 500 && culture === "european") contexts.fire = ["bakeOven"];
   if (year >= 1000 && culture === "east-asian") contexts.fire = ["teaStove"];
+  // A cold country's village fire is a long hearth, until the chimney.
+  if (cold && year < 1500 && (oldWorld || culture === "inner-eurasian"))
+    contexts.fire = ["longFire"];
   // Three stones under the pot: the African, Southeast Asian and
   // Mesoamerican kitchen fire (the Nahuatl tenamaztli).
   if (
