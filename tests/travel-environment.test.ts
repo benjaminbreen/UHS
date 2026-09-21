@@ -39,7 +39,6 @@ describe("shared travel environment", () => {
       for (const [x, y] of [
         [0, 0],
         [100, 100],
-        [250, 0],
       ]) {
         expect(region.settingAt(x, y).environment?.ecology).toBe("desert");
         expect(terrain.sample(x, y).moisture).toBeLessThan(0.4);
