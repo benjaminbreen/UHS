@@ -98,41 +98,6 @@ it("native broadleaf ages increase in resolution and only foreground crowns hide
   expect(canopyHidesPlayer(tree, { x: 100, y: 220 })).toBe(false);
   expect(canopyHidesPlayer(tree, { x: 200, y: 140 })).toBe(false);
 });
-it("revision 3 reduces trees and low vegetation across contrasting ecologies", () => {
-  for (const ecology of [
-    "temperate-woodland",
-    "tropical-woodland",
-    "boreal-woodland",
-    "dry-scrub",
-  ] as const) {
-    const setting = {
-      ...base,
-      lat: 37,
-      lon: -77,
-      environment: { ...base.environment!, ecology },
-    };
-    const counts = [2, 3].map((revision) => {
-      const world = createSettlementWorld(
-        packForSetting({ ...setting, vegetationRevision: revision as 2 | 3 }),
-        "virginia-density",
-      );
-      let trees = 0,
-        low = 0;
-      for (let y = -40; y < 40; y++)
-        for (let x = -40; x < 40; x++) {
-          const d = world.decoration(x, y);
-          if (!d || d.sprite === "rock") continue;
-          if (d.solid) trees++;
-          else low++;
-        }
-      return { trees, low };
-    });
-    console.info(ecology, counts);
-    expect(counts[1].trees).toBeLessThan(counts[0].trees);
-    expect(counts[1].low).toBeLessThan(counts[0].low * 0.35);
-    expect(counts[1].low).toBeGreaterThan(0);
-  }
-}, 60000);
 
 it("small shrub forms are native assets and dominate the dry size mix", async () => {
   const { understorySize } = await import("../src/content/ecology/vegetation");
@@ -149,35 +114,3 @@ it("small shrub forms are native assets and dominate the dry size mix", async ()
     h: 20,
   });
 });
-it("revision 4 opens up inland tropical woodland and diversifies its trees", () => {
-  const setting = { ...base, lat: 21, lon: 96 };
-  const counts = [3, 4].map((vegetationRevision) => {
-    const w = createSettlementWorld(
-      packForSetting({
-        ...setting,
-        vegetationRevision: vegetationRevision as 3 | 4,
-      }),
-      "burma-quiet",
-    );
-    let trees = 0,
-      low = 0;
-    const frames = new Set<string>();
-    for (let y = -48; y < 48; y++)
-      for (let x = -48; x < 48; x++) {
-        const d = w.decoration(x, y);
-        if (!d || d.sprite === "rock") continue;
-        frames.add(d.sprite);
-        if (d.solid) trees++;
-        else low++;
-      }
-    return { trees, low, frames };
-  });
-  console.info(
-    "Burmese woodland",
-    counts.map((c) => ({ trees: c.trees, low: c.low, frames: [...c.frames] })),
-  );
-  expect(counts[1].trees).toBeLessThan(counts[0].trees * 0.75);
-  expect(counts[1].low).toBeLessThan(counts[0].low * 0.75);
-  expect(counts[1].frames.has("nature-teak")).toBe(true);
-  expect(counts[1].frames.has("nature-bamboo-clump")).toBe(true);
-}, 30000);

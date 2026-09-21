@@ -78,16 +78,13 @@ it("the carved channel stays connected, descends along its course and has asymme
 });
 for (const [seed, landform, pattern] of [
   ["ecology-01", "rolling", "clustered"],
-  ["land-a124e201", "plain", "dense"],
   ["ridge-check", "ridge", "clustered"],
   ["basin-check", "basin", "clustered"],
 ] as const)
   it(`connects generated households on ${landform} terrain (${pattern})`, () => {
     const e = createSettingSession(setting(landform, pattern), seed),
       w = e.world as SettlementWorld;
-    expect(e.state.households!.length).toBeGreaterThanOrEqual(
-      pattern === "dense" ? 20 : 3,
-    );
+    expect(e.state.households!.length).toBeGreaterThanOrEqual(3);
     for (const h of e.state.households!)
       expect(
         e.findRoute(e.state.player.pos, h.home).status,

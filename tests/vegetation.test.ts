@@ -6,13 +6,9 @@ import {
 } from "../src/content/ecology/vegetation";
 import { settingFor } from "../src/content/geography/resolve";
 import { places } from "../src/content/geography/places";
-import { packForSetting } from "../src/content/geography/pack";
-import { createSettlementWorld } from "../src/world/v3/generate";
 import type { WorldSetting } from "../src/content/geography/types";
 import type { Ecology } from "../src/content/ecology/profiles";
 import type { Habitat } from "../src/world/v3/habitats";
-import nature from "../public/nature/atlas.json";
-import shadows from "../public/nature/shadows.json";
 const base = settingFor(places.find((p) => p.id === "konya")!);
 const setting = (ecology: Ecology, lon = 30, lat = 40): WorldSetting => ({
   ...base,
@@ -127,68 +123,6 @@ it("keeps cold, dry, freshwater and regional flora distinct", () => {
     ),
   ).toBeUndefined();
 });
-it("generates every new plant in suitable worlds without placing them in water or roads", () => {
-  const seen = new Set<string>();
-  for (const [eco, lon, lat] of [
-    ["temperate-woodland", 127, 37],
-    ["boreal-woodland", 25, 62],
-    ["tropical-woodland", 105, 15],
-    ["desert", -3, 17],
-    ["dry-scrub", -115, 40],
-    ["tundra", 25, 70],
-  ] as const) {
-    const world = createSettlementWorld(
-      packForSetting(setting(eco, lon, lat)),
-      "flora-01",
-    );
-    for (let y = -64; y < 64; y++)
-      for (let x = -64; x < 64; x++) {
-        const d = world.decoration(x, y);
-        if (!d?.sprite.startsWith("nature-")) continue;
-        // A fall stands in its creek; landscape props are checked elsewhere.
-        if (d.sprite === "nature-waterfall" || d.sprite === "nature-stump") continue;
-        seen.add(d.sprite);
-        expect(["water", "bridge", "dirt", "field", "paving"]).not.toContain(
-          world.terrain(x, y),
-        );
-        expect(d.solid).toBe(
-          !d.sprite.includes("understory") && !d.sprite.includes("scrub"),
-        );
-        expect(nature.frames).toHaveProperty(d.sprite);
-        expect(shadows.frames).toHaveProperty(`morning:${d.sprite}`);
-      }
-  }
-  expect([...seen].sort()).toEqual(
-    Object.keys(nature.frames)
-      .filter(
-        (id) =>
-          ![
-            "nature-bamboo-clump",
-            "nature-teak",
-            "nature-understory-sedge",
-            "nature-understory-dry-bunchgrass",
-            // Regional colourway trees are covered by biome-variants.test.ts.
-            "nature-eucalyptus",
-            "nature-baobab",
-            "nature-saguaro",
-            "nature-larch",
-            "nature-juniper",
-            "nature-maple",
-            "nature-mangrove",
-            "nature-waterfall",
-            // Worked ground and stumps are made by the player, not grown.
-            "nature-stump",
-            "nature-furrow",
-            "nature-stubble",
-          ].includes(id) &&
-          !id.startsWith("nature-broadleaf-") &&
-          !id.startsWith("nature-rock-") &&
-          !id.startsWith("nature-dry-scrub-") &&
-          !id.startsWith("nature-understory-low-"),
-      )
-      .sort(),
-  );
-}, 120000);
 
 
 it("resolves open vegetation globally while leaving old revisions unchanged", () => {

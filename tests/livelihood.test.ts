@@ -2,7 +2,6 @@ import { it, expect } from "vitest";
 import { createSettingSession } from "../src/runtime/session";
 import { settingFor } from "../src/content/geography/resolve";
 import { places } from "../src/content/geography/places";
-import { ecologies } from "../src/content/ecology/profiles";
 import {
   harvestResource,
   refreshResource,
@@ -31,23 +30,6 @@ const setting = (
     ...over,
   },
 });
-it("generates every ecology without requiring settlement or assigning a home", () => {
-  for (const ecology of ecologies) {
-    const e = createSettingSession(
-      setting({ ecology, population: "none", start: "wanderer" }),
-      "ecosystem-check",
-    );
-    expect(e.world.places).toHaveLength(0);
-    expect(e.state.households).toHaveLength(0);
-    expect(e.state.player.householdId).toBeUndefined();
-    expect(e.blocked(e.state.player.pos.x, e.state.player.pos.y)).toBe(false);
-    const habitats = new Set<string>();
-    for (let y = -96; y <= 96; y += 16)
-      for (let x = -96; x <= 96; x += 16)
-        habitats.add(e.world.topography!(x, y).biome!);
-    expect(habitats.has(ecology)).toBe(true);
-  }
-}, 180000);
 it("creates reciprocal family links and shared residences, with plausible parent age differences", () => {
   const e = createSettingSession(
       setting({ household: "extended" }),

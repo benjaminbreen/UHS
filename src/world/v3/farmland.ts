@@ -323,11 +323,8 @@ export function planFarmland(input: {
     if (spokes.some((s) => angleGap(s.bearing, bearing) < Math.PI / 4))
       continue;
     const gate = at(c, f, edge, 0);
-    // A gate the streets cannot reach (a yard fence on it, say) would leave
-    // the whole spoke joined to nothing.
     const joined = join(gate, `spoke-${k}-join`);
-    if (!joined) continue;
-    remember(joined);
+    if (joined) remember(joined);
     const points = polyline(
       f,
       jogged(`spoke-${k}`, outer, edge, 0).map(({ a, b }) => ({ u: a, v: b })),
