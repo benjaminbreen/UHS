@@ -19,6 +19,7 @@ import type { Decoration } from "../../core/types";
 import { preparedSite, type PreparedSettlement } from "./prepared";
 import { pathArt } from "./path-art";
 import { streetMaterial } from "../../content/settlements/streets";
+import { crossingStyle, edgeStyle } from "../../content/settlements/terraces";
 import { gravelBar, outcrop, saltPan, shrubColony } from "./features";
 import { habitatAt, habitatTree } from "./habitats";
 import { createRegionalContext } from "../regional/context";
@@ -79,7 +80,7 @@ export function createSettlementWorld(
   const relief = !!pack.setting?.terrainRevision;
   const environment =
     pack.setting?.terrainRevision === 2 ? pack.setting.environment : undefined;
-  const land = environment
+  const rawLand = environment
       ? createEnvironment(pack.setting!, seed, regional)
       : relief
         ? createReliefLandscape(pack.setting!, seed)
@@ -94,7 +95,12 @@ export function createSettlementWorld(
   const inside = (x: number, y: number) =>
     half === undefined || (x >= -half && x < half && y >= -half && y < half);
   const rawPlanner = regional
-    ? regionalSettlements(regional, land.sample, seed, prepared?.regionalSites)
+    ? regionalSettlements(
+        regional,
+        rawLand.sample,
+        seed,
+        prepared?.regionalSites,
+      )
     : undefined;
   const regionalPlanner =
     rawPlanner && half !== undefined
@@ -102,8 +108,8 @@ export function createSettlementWorld(
           ...rawPlanner,
           sitesIn: (cx: number, cy: number) => {
             if (pack.setting?.environment?.population === "none") return [];
-            const x = cx * DISTRICT_SIZE - land.origin.x,
-              y = cy * DISTRICT_SIZE - land.origin.y;
+            const x = cx * DISTRICT_SIZE - rawLand.origin.x,
+              y = cy * DISTRICT_SIZE - rawLand.origin.y;
             if (
               x >= half ||
               x + DISTRICT_SIZE < -half ||
@@ -123,11 +129,11 @@ export function createSettlementWorld(
       : rawPlanner;
   const transport =
     regional && regionalPlanner
-      ? regionalTransport(regional, regionalPlanner.sitesIn, land.sample)
+      ? regionalTransport(regional, regionalPlanner.sitesIn, rawLand.sample)
       : undefined;
   const home = {
-    x: Math.floor(land.origin.x / DISTRICT_SIZE),
-    y: Math.floor(land.origin.y / DISTRICT_SIZE),
+    x: Math.floor(rawLand.origin.x / DISTRICT_SIZE),
+    y: Math.floor(rawLand.origin.y / DISTRICT_SIZE),
   };
   const startingSite = regionalPlanner
     ? [-1, 0, 1]
@@ -150,6 +156,67 @@ export function createSettlementWorld(
         )[0]
     : undefined;
   if (startingSite) regionalPlanner!.setHome(startingSite.id);
+  // Towns stand on straightened ground. Site choice reads the raw land, or
+  // terracing would recurse into it.
+  const terraces = !!pack.setting?.terraceRevision && !!environment;
+  const land = terraces ? { ...rawLand, sample: terracedSample } : rawLand;
+  const TERRACE_BLOCK = 6;
+  const terraceReach = (s: Site) => Math.max(14, s.profile.radius * 0.62);
+  const townBuckets = new Map<string, Site[]>();
+  /** The settlement whose built ground covers this cell, if any. */
+  function townAt(x: number, y: number): Site | undefined {
+    const bx = Math.floor(x / 32),
+      by = Math.floor(y / 32),
+      key = cellKey(bx, by);
+    let near = townBuckets.get(key);
+    if (!near) {
+      const c = coord(bx * 32 + 16, by * 32 + 16);
+      near = [];
+      for (let dy = -1; dy <= 1; dy++)
+        for (let dx = -1; dx <= 1; dx++)
+          for (const s of sitesIn(c.x + dx, c.y + dy))
+            if (
+              Math.hypot(s.center.x - bx * 32 - 16, s.center.y - by * 32 - 16) <
+              terraceReach(s) + 24
+            )
+              near.push(s);
+      townBuckets.set(key, near);
+    }
+    let best: Site | undefined,
+      distance = Infinity;
+    for (const s of near) {
+      const d = Math.hypot(x - s.center.x, y - s.center.y);
+      if (d < terraceReach(s) && d < distance) {
+        best = s;
+        distance = d;
+      }
+    }
+    return best;
+  }
+  const terraceCache = new Map<string, ReturnType<typeof rawLand.sample>>();
+  /** Inside a town the contour follows a coarse grid anchored on the centre,
+   * so steps run straight for whole blocks and turn only at right angles. */
+  function terracedSample(x: number, y: number) {
+    const f = rawLand.sample(x, y);
+    if (f.water < 2) return f;
+    const s = townAt(x, y);
+    if (!s) return f;
+    const key = cellKey(x, y),
+      old = terraceCache.get(key);
+    if (old) return old;
+    const B = TERRACE_BLOCK;
+    const g = rawLand.sample(
+      s.center.x + Math.floor((x - s.center.x) / B) * B + B / 2,
+      s.center.y + Math.floor((y - s.center.y) / B) * B + B / 2,
+    );
+    const result =
+      g.water < 2 || g.elevation === f.elevation
+        ? f
+        : { ...f, elevation: g.elevation };
+    trimCache(terraceCache, 131072);
+    terraceCache.set(key, result);
+    return result;
+  }
   const coord = (x: number, y: number) => ({
     x: Math.floor((x + land.origin.x) / DISTRICT_SIZE),
     y: Math.floor((y + land.origin.y) / DISTRICT_SIZE),
@@ -190,13 +257,13 @@ export function createSettlementWorld(
     });
     if (environment) {
       const suitability = (p: { x: number; y: number }) => {
-        const f = land.sample(p.x, p.y),
+        const f = rawLand.sample(p.x, p.y),
           near = [
             [-6, -6],
             [6, -6],
             [-6, 6],
             [6, 6],
-          ].map(([dx, dy]) => land.sample(p.x + dx, p.y + dy));
+          ].map(([dx, dy]) => rawLand.sample(p.x + dx, p.y + dy));
         return (
           near.reduce(
             (n, q) =>
@@ -218,7 +285,7 @@ export function createSettlementWorld(
         [-6, 6],
         [6, 6],
         [0, 0],
-      ].map(([x, y]) => land.sample(p.x + x, p.y + y));
+      ].map(([x, y]) => rawLand.sample(p.x + x, p.y + y));
       if (
         samples.some((f) => f.water < 5) ||
         Math.max(...samples.map((f) => f.elevation)) -
@@ -1088,10 +1155,60 @@ export function createSettlementWorld(
   >();
   const roadCenters = new WeakMap<SettlementPlan, Set<string>>();
   const bridgeDecks = new WeakMap<SettlementPlan, Set<string>>();
+  const streetLevelCache = new WeakMap<SettlementPlan, Map<string, number>>();
+  /** A street is level across its width: every cell of a cross-section takes
+   * the centreline's tier, so a step meets a street square-on at a kerb and
+   * never runs down the middle of one. */
+  function streetLevels(p: SettlementPlan) {
+    let levels = streetLevelCache.get(p);
+    if (levels) return levels;
+    levels = new Map();
+    streetLevelCache.set(p, levels);
+    for (const road of p.roads) {
+      if (road.kind !== "street" && road.kind !== "lane") continue;
+      for (const pt of road.points) {
+        const f = land.sample(pt.x, pt.y);
+        if (f.water < 0 || townAt(pt.x, pt.y)?.id !== p.site.id) continue;
+        const tier = Math.round(f.elevation / 14);
+        roadCells({ ...road, points: [pt] }, (a, b) => {
+          const key = cellKey(a, b);
+          if (!levels!.has(key)) levels!.set(key, tier);
+        });
+      }
+    }
+    // Footways beside the carriageway take its level.
+    for (let pass = 0; pass < 2; pass++) {
+      const next: [string, number][] = [];
+      for (const key of p.pavement?.keys() ?? []) {
+        if (levels.has(key)) continue;
+        const [a, b] = key.split(",").map(Number);
+        for (const [dx, dy] of [
+          [0, -1],
+          [1, 0],
+          [0, 1],
+          [-1, 0],
+        ]) {
+          const near = levels.get(cellKey(a + dx, b + dy));
+          if (near === undefined) continue;
+          next.push([key, near]);
+          break;
+        }
+      }
+      for (const [key, tier] of next) levels.set(key, tier);
+    }
+    return levels;
+  }
   function rawCell(x: number, y: number): TopographyCell {
     const f = land.sample(x, y),
       t = terrain(x, y);
     let height = Math.round(f.elevation / 14) as HeightTier;
+    if (terraces && f.water >= 0)
+      for (const p of nearby(x, y)) {
+        const level = streetLevels(p).get(cellKey(x, y));
+        if (level === undefined) continue;
+        height = level;
+        break;
+      }
     for (const p of nearby(x, y)) {
       let deck = bridgeDecks.get(p);
       if (!deck) {
@@ -1321,6 +1438,16 @@ export function createSettlementWorld(
           radius: s.radius,
         }));
     }
+    if (terraces && cell.surface !== "water") {
+      const town = townAt(x, y);
+      if (town) {
+        const eco = cell.habitat?.ecology;
+        cell.edge = edgeStyle(
+          town.pack?.setting ?? settingAt(x, y),
+          eco === "boreal-woodland" || eco === "tundra",
+        );
+      }
+    }
     return cell;
   }
   const slopePlans = new Map<string, Map<string, "n" | "s" | "e" | "w">>();
@@ -1367,6 +1494,23 @@ export function createSettlementWorld(
         if (!companion) continue;
         result.set(cellKey(p.x, p.y), dir);
         result.set(cellKey(companion.x, companion.y), dir);
+        // The whole street climbs, kerb to kerb, not a notch in its middle.
+        if (terraces) {
+          const levels = streetLevels(plan);
+          for (const sign of [-1, 1])
+            for (let k = 1; k <= 8; k++) {
+              const qx = p.x + sign * k * Math.abs(dy),
+                qy = p.y + sign * k * Math.abs(dx);
+              if (
+                !levels.has(cellKey(qx, qy)) ||
+                rawCell(qx, qy).height !== c.height ||
+                rawCell(qx + dx, qy + dy).height !== hi.height ||
+                rawCell(qx - dx, qy - dy).height !== c.height
+              )
+                break;
+              result.set(cellKey(qx, qy), dir);
+            }
+        }
         chosen.push(p);
         break;
       }
@@ -1403,7 +1547,20 @@ export function createSettlementWorld(
         const c = land.sample(px, py);
         if (c.water < 0) continue;
         const roll = random(seed, "pass-width", px, py);
-        const width = roll < 0.25 ? 1 : roll < 0.75 ? 2 : 3;
+        // Terraced worlds favour broad grass slopes over notches.
+        const width = terraces
+          ? roll < 0.3
+            ? 2
+            : roll < 0.6
+              ? 3
+              : roll < 0.85
+                ? 4
+                : 6
+          : roll < 0.25
+            ? 1
+            : roll < 0.75
+              ? 2
+              : 3;
         for (const [dx, dy, dir] of [
           [0, -1, "n"],
           [1, 0, "e"],
@@ -1456,10 +1613,20 @@ export function createSettlementWorld(
   function rampStyleFor(
     c: TopographyCell,
     use: "natural" | "road" | "town" | "paved",
+    x: number,
+    y: number,
   ): NonNullable<TopographyCell["rampStyle"]> {
     const eco = c.habitat?.ecology;
     if (eco === "desert") return "sand";
     if (use === "natural") return "slope";
+    if (terraces) {
+      const style = crossingStyle(
+        settingAt(x, y),
+        use === "paved" || c.feature === "paving",
+      );
+      if (style !== "cut") return style;
+      if (use === "paved") return "cut";
+    }
     if (use === "paved") return "steps";
     if (use === "town" && (eco === "boreal-woodland" || eco === "tundra"))
       return "timber";
@@ -1499,7 +1666,7 @@ export function createSettlementWorld(
           const result = {
             ...c,
             ramp: dir,
-            rampStyle: rampStyleFor(c, "road"),
+            rampStyle: rampStyleFor(c, "road", x, y),
           };
           reliefCache.set(key, result);
           return result;
@@ -1515,6 +1682,8 @@ export function createSettlementWorld(
           rampStyle: rampStyleFor(
             c,
             plan.site.profile.paved ? "paved" : "town",
+            x,
+            y,
           ),
         };
         reliefCache.set(key, result);
@@ -1536,7 +1705,7 @@ export function createSettlementWorld(
       const slope = naturalSlopesFor(x, y).get(key);
       if (slope) {
         c.ramp = slope;
-        c.rampStyle = rampStyleFor(c, "natural");
+        c.rampStyle = rampStyleFor(c, "natural", x, y);
       }
     }
     trimCache(reliefCache, 65536);

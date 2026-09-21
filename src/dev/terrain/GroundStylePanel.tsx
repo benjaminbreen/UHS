@@ -43,6 +43,8 @@ const CONTOUR_FIELDS: {
   { key: "scale", label: "Wobble scale", min: 1, max: 20, step: 1 },
   { key: "smoothing", label: "Contour smoothing", min: 0, max: 4, step: 1 },
   { key: "sides", label: "Side rim (px)", min: 0, max: 4, step: 1 },
+  { key: "sideFace", label: "Side face (px)", min: 0, max: 6, step: 1 },
+  { key: "hillshade", label: "Hillshade", min: 0, max: 1.5, step: 0.05 },
 ];
 
 const BANK_FIELDS: {
@@ -53,6 +55,7 @@ const BANK_FIELDS: {
   step: number;
 }[] = [
   { key: "lip", label: "Grass lip (px)", min: 0, max: 8, step: 1 },
+  { key: "rim", label: "Rim brightness", min: 0, max: 1, step: 0.05 },
   { key: "fringe", label: "Overhanging fringe", min: 0, max: 1, step: 0.05 },
   { key: "strata", label: "Strata", min: 0, max: 2, step: 0.05 },
   { key: "lobes", label: "Earth lobes", min: 0, max: 1.5, step: 0.05 },
@@ -289,7 +292,7 @@ export function GroundStylePanel({
               min={f.min}
               max={f.max}
               step={f.step}
-              value={style.contour[f.key]}
+              value={style.contour[f.key] ?? 0}
               onChange={(v) =>
                 setStyle((s) => ({
                   ...s,

@@ -45,6 +45,10 @@ export type BankStyle = {
   /** Pixels of lift per altitude step. Presentation only: the world model
    * still counts elevation in fixed units. */
   rise: number;
+  /** How much of the turf lip's full brightness survives, 0–1. */
+  rim?: number;
+  /** Weeds and scree at the foot of a bank, a gutter under a wall. */
+  foot?: boolean;
 };
 
 export type ContourStyle = {
@@ -55,6 +59,10 @@ export type ContourStyle = {
   smoothing: number;
   /** Pixels of exposed earth drawn along a west/east/north rim. */
   sides: number;
+  /** Width in pixels of the face sliver along an east or west drop. */
+  sideFace?: number;
+  /** Strength of the light-above, dark-below wash beside a step. */
+  hillshade?: number;
 };
 
 export type CompositionStyle = {
@@ -116,7 +124,14 @@ export function defaultGroundStyle(): GroundStyle {
   return {
     materials,
     tiers,
-    contour: { wobble: 0.95, scale: 13, smoothing: 1, sides: 2 },
+    contour: {
+      wobble: 0.95,
+      scale: 13,
+      smoothing: 1,
+      sides: 2,
+      sideFace: 2,
+      hillshade: 1,
+    },
     composition: {
       motifDensity: 1,
       motifSpacing: 1,
@@ -133,12 +148,14 @@ export function defaultGroundStyle(): GroundStyle {
       lobes: 1.1,
       roots: 0.2,
       stones: 0.035,
-      shadow: 6,
+      shadow: 8,
       fringe: 0.55,
       outline: true,
       brightness: 0.92,
       contrast: 1.15,
       rise: 20,
+      rim: 0.1,
+      foot: true,
     },
   };
 }

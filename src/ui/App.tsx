@@ -1921,6 +1921,18 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
                   </a>
                   <a
                     className="action settings-featured"
+                    href="/edge-lab"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Altitude edge lab ↗
+                    <small>
+                      Mockup · terraced towns, retaining walls, slopes and
+                      crags against today's banks
+                    </small>
+                  </a>
+                  <a
+                    className="action settings-featured"
                     href="/grass-lab"
                     target="_blank"
                     rel="noreferrer"

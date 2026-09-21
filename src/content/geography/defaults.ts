@@ -24,6 +24,7 @@ export function integratedSetting(s: WorldSetting): WorldSetting {
     return {
       ...s,
       characterRevision: s.characterRevision ?? 1,
+      terraceRevision: 1,
       vegetationRevision: 6,
       ecologyRevision: 2,
       hydrologyRevision: 3,
@@ -34,6 +35,7 @@ export function integratedSetting(s: WorldSetting): WorldSetting {
     geographyRevision: 1,
     urbanRevision: 2,
     roadRevision: 1,
+    terraceRevision: 1,
     vegetationRevision: 6,
     ecologyRevision: 2,
     hydrologyRevision: 3,

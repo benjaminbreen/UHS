@@ -71,7 +71,10 @@ export type TopographyCell = {
   /** On the lower tile, pointing toward its one-tier-higher neighbor. */
   ramp?: Direction;
   /** How the ramp is drawn; movement does not read it. */
-  rampStyle?: "cut" | "slope" | "steps" | "sand" | "timber";
+  rampStyle?: "cut" | "slope" | "steps" | "sand" | "timber" | "graded";
+  /** How a settlement walls a step below this cell; absent, an earth bank.
+   * Presentation only. */
+  edge?: import("../content/settlements/terraces").EdgeStyle;
   bridge?: boolean;
   solid?: boolean;
   /** Knee-high: a jump passes over it, but nobody lands on it. A pot in a

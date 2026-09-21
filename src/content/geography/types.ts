@@ -89,6 +89,8 @@ export const settingSchema = z
     // the street. Absent, `settlementLayout()` decides from place and date.
     settlementLayout: z.enum(["plots", "rows"]).optional(),
     roadRevision: z.literal(1).optional(),
+    // Towns straighten the contours under them and wall their steps.
+    terraceRevision: z.literal(1).optional(),
     vegetationRevision: z
       .union([
         z.literal(1),
