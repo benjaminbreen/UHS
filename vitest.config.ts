@@ -1,9 +1,25 @@
 import { defineConfig } from "vitest/config";
+
+// World-building suites take minutes each; `npm test` skips them and
+// `npm run test:full` runs everything.
+export const slow = [
+  "livelihood",
+  "regional-composition",
+  "city-panel",
+  "preparation",
+  "vegetation-composition",
+  "vegetation",
+  "settlements",
+  "map-seams",
+  "water-rendering",
+  "topography",
+  "farmland",
+].map((name) => `tests/${name}.test.ts`);
+
 export default defineConfig({
   test: {
     include: ["tests/*.test.ts"],
-    // Several suites build whole worlds, which is seconds of real work each.
-    // The 5s default was timing those out and reporting it as a failure.
+    exclude: process.env.FULL ? [] : slow,
     testTimeout: 60000,
     hookTimeout: 60000,
   },

@@ -1,7 +1,7 @@
 import type { TerrainReceivers } from "./terrain-contours";
 import type { TopographyCell } from "../core/topography";
 import { TERRAIN_RISE } from "./terrain-projection";
-import { fencePostFeet, POST_HEIGHT } from "./fence-pass";
+import { boundaryCasts } from "./fence-pass";
 import {
   TERRAIN_CHUNK_SIZE as SIZE,
   TERRAIN_CHUNK_PAD as PAD,
@@ -117,45 +117,69 @@ export function rasterBankShadows(
       }
     }
   }
-  // Fence posts cast with the same sun. They stand on the ground rather than
-  // on a rim, so each one shades from its own foot, and its three-pixel spread
-  // keeps the shadow a slab rather than a wire.
-  if (origin)
-    for (const post of fencePostFeet(
-      (cx, cy) =>
-        cells[(cy - origin.y + PAD) * stride + cx - origin.x + PAD]?.field,
-      origin.x - PAD,
-      origin.y - PAD,
-      origin.x + SIZE + PAD,
-      origin.y + SIZE + PAD,
-    )) {
-      const fx = post.x - origin.x * 16,
-        fy = post.y - origin.y * 16;
-      // A post on the outer apron can sit past the map: an unchecked read
-      // there returns undefined, which passes every comparison below.
-      if (fx < -PAD * 16 || fx >= SIZE * 16 + PAD * 16) continue;
-      if (fy < top || fy >= top + H) continue;
-      const below = tierAt(fx, fy);
-      if (!(below >= 0)) continue;
-      const steps = Math.ceil(POST_HEIGHT * Math.hypot(vx, vy));
-      for (let k = 0; k <= steps; k++) {
-        const t = steps ? k / steps : 0;
-        for (let spread = -1; spread <= 1; spread++) {
-          const px = Math.round(fx + vx * POST_HEIGHT * t) + spread,
-            py = Math.round(fy + vy * POST_HEIGHT * t);
-          if (px < -PAD * 16 || px >= SIZE * 16 + PAD * 16) continue;
-          if (py < top || py >= top + H) continue;
-          const j = at(px, py);
-          const tier = tierAt(px, py);
-          if (tier < 0 || tier > below || a <= alpha[j]) continue;
-          alpha[j] = a;
-          if (px < x0) x0 = px;
-          if (px > x1) x1 = px;
-          if (py < y0) y0 = py;
-          if (py > y1) y1 = py;
-        }
-      }
-    }
+  // Fences, walls and hedges cast with the same sun, each solid column from
+  // its own foot, lifted with the ground it stands on. Only this chunk's own
+  // boundaries cast; any boundary in reach masks, so no shadow lies on one.
+  const covered = origin ? new Uint8Array(W * H) : undefined;
+  if (origin) {
+    const cellAt = (cx: number, cy: number) => {
+      const lx = cx - origin.x + PAD,
+        ly = cy - origin.y + PAD;
+      if (lx < 0 || ly < 0 || lx >= stride || ly >= stride) return;
+      return cells[ly * stride + lx];
+    };
+    const lift = (cx: number, cy: number) => {
+      const c = cellAt(cx, cy);
+      return c && !c.bridge ? c.height * R : 0;
+    };
+    const ox = origin.x * 16,
+      oy = origin.y * 16;
+    const inMap = (x: number, y: number) =>
+      x >= -PAD * 16 && x < SIZE * 16 + PAD * 16 && y >= top && y < top + H;
+    const cast = Math.hypot(vx, vy);
+    boundaryCasts(
+      (cx, cy) => cellAt(cx, cy)?.field,
+      origin.x - PAD + 3,
+      origin.y - PAD + 3,
+      origin.x + SIZE + PAD - 3,
+      origin.y + SIZE + PAD - 3,
+      (cx, cy) => {
+        if (cx < origin.x || cy < origin.y || cx >= origin.x + SIZE || cy >= origin.y + SIZE)
+          return;
+        const dz = lift(cx, cy);
+        return (fx, fy, h0, h1) => {
+          const lx = fx - ox,
+            ly = fy - oy - dz;
+          if (!inMap(lx, ly)) return;
+          const below = tierAt(lx, ly);
+          if (!(below >= 0)) return;
+          const steps = Math.max(1, Math.ceil((h1 - h0) * cast));
+          for (let k = 0; k <= steps; k++) {
+            const h = h0 + ((h1 - h0) * k) / steps;
+            const px = Math.round(lx + vx * h),
+              py = Math.round(ly + vy * h);
+            if (!inMap(px, py)) continue;
+            const j = at(px, py);
+            const tier = tierAt(px, py);
+            if (tier < 0 || tier > below || a <= alpha[j]) continue;
+            alpha[j] = a;
+            if (px < x0) x0 = px;
+            if (px > x1) x1 = px;
+            if (py < y0) y0 = py;
+            if (py > y1) y1 = py;
+          }
+        };
+      },
+      (cx, cy) => {
+        const dz = lift(cx, cy);
+        return (wx, wy) => {
+          const lx = wx - ox,
+            ly = wy - oy - dz;
+          if (inMap(lx, ly)) covered![at(lx, ly)] = 1;
+        };
+      },
+    );
+  }
   if (x1 < x0) return;
   // One layer per logical row of the ground it falls on, so it sits above
   // that row's ground strip and below anything standing there.
@@ -183,7 +207,7 @@ export function rasterBankShadows(
         const sx = bx0 + x,
           sy = by0 + y;
         const v = alpha[at(sx, sy)];
-        if (!v || rowOf(sx, sy) !== row) continue;
+        if (!v || covered?.[at(sx, sy)] || rowOf(sx, sy) !== row) continue;
         const o = (y * width + x) * 4;
         pixels[o] = 28;
         pixels[o + 1] = 35;

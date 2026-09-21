@@ -392,7 +392,9 @@ export function createRegionalContext(start: WorldSetting) {
       ty = smooth((ay - warp - gy) / L);
     const distance = Math.hypot(x, y) + warp;
     const home =
-      start.ecologyRevision === 2 && start.geographyMode !== "configured"
+      start.ecologyRevision === 2 &&
+      start.geographyMode !== "configured" &&
+      !(start.climate === "arid" && start.environment?.ecology === "desert")
         ? 0
         : 1 - smooth(Math.max(0, Math.min(1, (distance - 80) / 208)));
     const parts: {

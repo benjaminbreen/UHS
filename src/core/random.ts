@@ -79,7 +79,10 @@ export function canonical(value: unknown): string {
   if (value && typeof value === "object")
     return (
       "{" +
+      // Undefined keys are skipped, as JSON does; otherwise a state hashes
+      // differently after a round trip through the server.
       Object.keys(value)
+        .filter((k) => (value as Record<string, unknown>)[k] !== undefined)
         .sort()
         .map(
           (k) =>

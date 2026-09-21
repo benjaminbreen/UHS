@@ -1,185 +1,207 @@
 import type { TopographyCell, TopographySample } from "../core/topography";
-import { fencePalette, fenceTiles, fenceInk } from "../content/graphics/fence-art";
+import type { Boundary } from "../content/agriculture/types";
+import { boundaryStyles, type BoundaryStyle } from "../content/settlements/boundaries";
 import { fenceStands } from "./headland";
-import { waterHash as hash } from "./water-style";
+import {
+  bodied,
+  castEw,
+  castNs,
+  castPost,
+  drawEw,
+  drawNs,
+  drawPost,
+  footShadow,
+  postAt,
+  postHalf,
+  type Emit,
+  type PostRole,
+  type Put,
+  type Rgb,
+} from "./boundary-forms";
 
-type Rgb = number[];
 type Field = NonNullable<TopographyCell["field"]>;
-const rgb = fencePalette.map((c) => [
-  parseInt(c.slice(1, 3), 16),
-  parseInt(c.slice(3, 5), 16),
-  parseInt(c.slice(5, 7), 16),
-]);
+export type FieldAt = (cx: number, cy: number) => Field | undefined;
 
-/** How far outside a field cell the fence line runs, in pixels. Under
- * half a cell, so a one-cell stair in the enclosure draws as a diagonal
- * rather than a knot. */
-export const FENCE_OUT = 9;
+/** Standing boundaries run through the middle of the cell outside a field's
+ * edge: a yard's solid ring, or the gap between two fields. Each such cell
+ * is a node; `links` (n1 e2 s4 w8) joins it to the next node along the run.
+ * Corners are square, and a run that stops short (a gate, a house wall, a
+ * broken stretch) carries on to the edge of its cell and ends in a post. */
+type Node = { cx: number; cy: number; links: number; kind: Boundary };
 
-/** The post, ten wide and sixteen tall: the sheet's head over a plain
- * body. Row 15 is the foot. */
-const head = fenceTiles[1][0].slice(1, 8).map((r) => r.slice(3, 13));
-const body = "0144222441";
-const POST = [
-  "0000000000",
-  ...head,
-  body,
-  body,
-  body,
-  body,
-  body,
-  body,
-  body,
-  "0011111110",
-];
+const DIRS = [
+  [1, 0, -1],
+  [2, 1, 0],
+  [4, 0, 1],
+  [8, -1, 0],
+] as const;
+const opposite = (bit: number) => ((bit << 2) & 15) || bit >> 2;
+const key = (x: number, y: number) => (x + 1e5) * 2e5 + (y + 1e5);
 
-type Post = { x: number; y: number };
-type Rail = { a: Post; b: Post };
-
-const tone = (c: Rgb, v: number) =>
-  v ? c.map((n) => Math.max(0, Math.min(255, n + v))) : c;
-
-/** A post's own character: which way it leans, whether it has settled into
- * the ground, and how weathered its timber is. Every value comes from the
- * post's world position, so the same post is drawn identically from each of
- * the tiles that reach it and no seam appears between them. */
-function character(p: Post) {
-  const tilt = hash(p.x, p.y, 971);
-  // Most posts stand; a minority have been shoved out of true by stock or
-  // frost. More than a pixel of lean at this height reads as a broken fence.
-  const lean = tilt > 0.84 ? 1 : tilt < 0.16 ? -1 : 0;
-  const sink = hash(p.x, p.y, 973) > 0.8 ? 1 : 0;
-  // Weathering moves in stretches, not post by post: a length of fence put
-  // up or repaired at one time greys together.
-  const age = hash(Math.floor(p.x / 96), Math.floor(p.y / 96), 977);
-  return { lean, sink, weather: Math.round((age - 0.5) * 16) };
+/** The standing boundary on `bit` of the field cell at (cx, cy), if any. */
+function standingOn(field: FieldAt, cx: number, cy: number, bit: number) {
+  const f = field(cx, cy);
+  if (!f || f.ditch || !(f.fence & bit)) return;
+  const kind = f.enclosure ?? f.boundary;
+  if (!boundaryStyles[kind] || !fenceStands(f, bit, cx, cy)) return;
+  return kind;
 }
 
-/** Rails rot out in stretches. The run is still read as a fence by the posts
- * left standing, so a gap tells of neglect rather than of a way through. */
-function railGone(a: Post, b: Post) {
-  const mx = Math.floor((a.x + b.x) / 128),
-    my = Math.floor((a.y + b.y) / 128);
-  return hash(mx, my, 979) > 0.88;
+/** Cells out from the edge the run stands in. Two fields facing across a
+ * two-cell lane share one run, the northern or western field's, so the
+ * southern or eastern one reaches two cells out to meet it. */
+function reach(field: FieldAt, cx: number, cy: number, bit: number) {
+  if (bit === 1 && standingOn(field, cx, cy - 3, 4)) return 2;
+  if (bit === 8 && standingOn(field, cx - 3, cy, 2)) return 2;
+  return 1;
 }
 
-/** Foot of the post on a fence edge: mid-edge, pushed out by FENCE_OUT. */
-function mid(cx: number, cy: number, bit: number): Post {
-  const X = cx * 16,
-    Y = cy * 16;
-  const j = Math.floor(hash(cx, cy, 931 + bit) * 3) - 1;
-  switch (bit) {
-    case 1:
-      return { x: X + 8 + j, y: Y - FENCE_OUT };
-    case 4:
-      return { x: X + 8 + j, y: Y + 16 + FENCE_OUT };
-    case 2:
-      return { x: X + 16 + FENCE_OUT, y: Y + 8 + j };
-    default:
-      return { x: X - FENCE_OUT, y: Y + 8 + j };
-  }
-}
-
-const fenced = (f: Field | undefined) =>
-  !!f && !f.ditch && ["fence", "wire"].includes(f.enclosure ?? f.boundary);
-
-/** The height a post stands above its foot, in pixels: what it shadows with. */
-export const POST_HEIGHT = 15;
-
-/** Feet of every standing fence post in a cell range, in world pixels. Shares
- * `mid`, `fenced` and the shared-edge rule with the drawing pass, so a post
- * that casts a shadow is always a post that was drawn. */
-export function fencePostFeet(
-  field: (cx: number, cy: number) => Field | undefined,
+/** Every node whose links can be settled from the fields in range. */
+export function boundaryGraph(
+  field: FieldAt,
   x0: number,
   y0: number,
   x1: number,
   y1: number,
-): Post[] {
-  const stands = (cx: number, cy: number, bit: number) => {
-    const f = field(cx, cy);
-    return fenced(f) && fenceStands(f!, bit, cx, cy);
+) {
+  const nodes = new Map<number, Node>();
+  const node = (x: number, y: number, kind: Boundary) => {
+    const k = key(x, y);
+    let n = nodes.get(k);
+    if (!n) nodes.set(k, (n = { cx: x, cy: y, links: 0, kind }));
+    return n;
   };
-  const out: Post[] = [];
-  for (let cy = y0; cy < y1; cy++)
-    for (let cx = x0; cx < x1; cx++)
-      for (const bit of [1, 2, 4, 8]) {
-        if (!stands(cx, cy, bit)) continue;
-        // Two fields facing across a gap share one fence, as in `gather`.
-        if (bit === 1 && stands(cx, cy - 3, 4)) continue;
-        if (bit === 8 && stands(cx - 3, cy, 2)) continue;
-        out.push(mid(cx, cy, bit));
-      }
-  return out;
-}
-
-/** Posts and rails of every standing fence edge within two cells of the
- * tile. Rails join a post to the next along the outline: the straight
- * neighbour, the same cell's perpendicular edge at a convex corner, or
- * the diagonal cell's perpendicular edge at a concave one. */
-function gather(sample: TopographySample, x: number, y: number, ox: number, oy: number) {
-  const posts: Post[] = [];
-  const rails: Rail[] = [];
-  const at = (dx: number, dy: number) => sample(x + dx, y + dy)?.field;
-  const stands = (dx: number, dy: number, bit: number) => {
-    const f = at(dx, dy);
-    return fenced(f) && fenceStands(f!, bit, x + ox + dx, y + oy + dy);
+  const link = (ax: number, ay: number, bx: number, by: number, kind: Boundary) => {
+    const bit = bx > ax ? 2 : bx < ax ? 8 : by > ay ? 4 : 1;
+    node(ax, ay, kind).links |= bit;
+    node(bx, by, kind).links |= opposite(bit);
   };
-  // Two fields facing across the gap share one fence: the northern or
-  // western field's. A north or west edge yields to a standing south or
-  // east edge three cells over.
-  const standing = (dx: number, dy: number, bit: number) => {
-    if (!stands(dx, dy, bit)) return false;
-    if (bit === 1 && stands(dx, dy - 3, 4)) return false;
-    if (bit === 8 && stands(dx - 3, dy, 2)) return false;
-    return true;
+  const path = (ax: number, ay: number, bx: number, by: number, kind: Boundary) => {
+    const sx = Math.sign(bx - ax),
+      sy = Math.sign(by - ay);
+    while (ax !== bx || ay !== by) {
+      link(ax, ay, ax + sx, ay + sy, kind);
+      ax += sx;
+      ay += sy;
+    }
   };
-  // For each edge bit: the along axis step, and the perpendicular bits at
-  // the two ends with the diagonal cell that carries the concave edge.
-  const ends: Record<number, [number, number, number, number][]> = {
-    // [step dx, step dy, perpendicular bit at that end, bit on the diagonal cell]
-    1: [
-      [-1, 0, 8, 2],
-      [1, 0, 2, 8],
-    ],
-    4: [
-      [-1, 0, 8, 2],
-      [1, 0, 2, 8],
-    ],
-    2: [
-      [0, -1, 1, 4],
-      [0, 1, 4, 1],
-    ],
-    8: [
-      [0, -1, 1, 4],
-      [0, 1, 4, 1],
-    ],
-  };
-  for (let dy = -2; dy <= 2; dy++)
-    for (let dx = -2; dx <= 2; dx++)
-      for (const bit of [1, 2, 4, 8]) {
-        if (!standing(dx, dy, bit)) continue;
-        const cx = x + ox + dx,
-          cy = y + oy + dy;
-        const m = mid(cx, cy, bit);
-        posts.push(m);
-        for (const [sx, sy, perp, diag] of ends[bit]) {
-          const outX = bit === 2 ? 1 : bit === 8 ? -1 : 0;
-          const outY = bit === 4 ? 1 : bit === 1 ? -1 : 0;
-          let next: Post | undefined;
-          if (standing(dx + sx, dy + sy, bit))
-            next = mid(cx + sx, cy + sy, bit);
-          else if (standing(dx, dy, perp)) next = mid(cx, cy, perp);
-          else if (standing(dx + sx + outX, dy + sy + outY, diag))
-            next = mid(cx + sx + outX, cy + sy + outY, diag);
-          if (next) rails.push({ a: m, b: next });
+  for (let cy = y0 - 3; cy < y1 + 3; cy++)
+    for (let cx = x0 - 3; cx < x1 + 3; cx++) {
+      const f = field(cx, cy);
+      if (!f || !f.fence || f.ditch) continue;
+      for (const [bit, dx, dy] of DIRS) {
+        const kind = standingOn(field, cx, cy, bit);
+        if (!kind) continue;
+        const k = reach(field, cx, cy, bit);
+        const fx = cx + dx * k,
+          fy = cy + dy * k;
+        // The run's two ends, each with the bit that turns the corner there.
+        const ends = dx
+          ? ([
+              [0, -1, 1],
+              [0, 1, 4],
+            ] as const)
+          : ([
+              [-1, 0, 8],
+              [1, 0, 2],
+            ] as const);
+        for (const [ex, ey, perp] of ends) {
+          if (standingOn(field, cx, cy, perp)) {
+            // Outside corner: out to where the perpendicular run stands.
+            const kp = reach(field, cx, cy, perp);
+            path(fx, fy, fx + ex * kp, fy + ey * kp, kind);
+          } else if (standingOn(field, cx + ex, cy + ey, bit)) {
+            // Straight on. Where the next edge stands nearer the field, the
+            // deeper run steps back in to it.
+            const k2 = reach(field, cx + ex, cy + ey, bit);
+            if (k2 > k) continue;
+            link(fx, fy, fx + ex, fy + ey, kind);
+            if (k2 < k)
+              path(fx + ex, fy + ey, cx + ex + dx * k2, cy + ey + dy * k2, kind);
+          }
+          // Inside corners need nothing: the other edge's run ends here too.
         }
       }
-  return { posts, rails };
+    }
+  return nodes;
 }
 
-/** Draw the fences round the tile at (x, y). Rails first, then posts from
- * north to south so a nearer post stands in front. */
+const popcount = (n: number) => (n & 1) + ((n >> 1) & 1) + ((n >> 2) & 1) + ((n >> 3) & 1);
+
+/** Pieces keep their node's cell, which sets the ground height they stand on. */
+type Piece = { s: BoundaryStyle; depth: number; cx: number; cy: number } & (
+  | { kind: "ew" | "ns"; a: number; b: number; at: number; capA: boolean; capB: boolean }
+  | { kind: "post"; x: number; y: number; role: PostRole }
+);
+
+/** The half-runs and posts of each node, in drawing order: back to front,
+ * and at one ground row east-west runs, then north-south, then posts, so a
+ * post stands in front of the rails it carries. */
+function pieces(nodes: Map<number, Node>, inRange: (n: Node) => boolean) {
+  const out: Piece[] = [];
+  for (const n of nodes.values()) {
+    if (!inRange(n) || !n.links) continue;
+    const s = boundaryStyles[n.kind]!;
+    const X = n.cx * 16 + 8,
+      Y = n.cy * 16 + 8,
+      L = n.links,
+      end = popcount(L) === 1,
+      turns = !!(L & 5) && !!(L & 10),
+      body = bodied(s),
+      spread = body && (turns || popcount(L) > 2) ? (s.depth + 1) >> 1 : 0;
+    // East-west: the node's two halves, a free end carried to the cell edge,
+    // and a body spread over the corner it turns.
+    const west = L & 8 || (end && L === 2) ? X - 8 : X - (L & 5 ? spread : 0);
+    const east = L & 2 || (end && L === 8) ? X + 8 : X + (L & 5 ? spread : 0);
+    if (L & 10)
+      out.push({
+        kind: "ew", s, a: west, b: east, at: Y,
+        capA: !(L & 8), capB: !(L & 2), depth: Y, cx: n.cx, cy: n.cy,
+      });
+    if (L & 5) {
+      // Each half is drawn with the run it belongs to: the north half just
+      // after the node above, the south half just after this one.
+      const north = L & 1 || (end && L === 4) ? Y - 8 : Y;
+      const south = L & 4 || (end && L === 1) ? Y + 8 : Y;
+      if (north < Y)
+        out.push({
+          kind: "ns", s, a: north, b: Y, at: X, capA: !(L & 1), capB: false,
+          depth: (L & 1 ? Y - 16 : Y - 8) + 0.5, cx: n.cx, cy: n.cy,
+        });
+      if (south > Y)
+        out.push({
+          kind: "ns", s, a: Y, b: south, at: X, capA: false, capB: !(L & 4),
+          depth: Y + 0.5, cx: n.cx, cy: n.cy,
+        });
+    }
+    // Posts: at every corner and run end, and along straight runs as the
+    // style spaces them. A free end's post stands at the cell edge.
+    const role: PostRole = end ? "end" : turns || popcount(L) > 2 ? "corner" : "mid";
+    const along = L & 10 ? n.cx : n.cy;
+    if (!postAt(s, role, along)) continue;
+    let px = X,
+      py = Y;
+    if (end) {
+      const inset = 8 - postHalf(s);
+      if (L === 2) px = X - inset;
+      else if (L === 8) px = X + inset;
+      else if (L === 4) py = Y - inset;
+      else py = Y + inset;
+    }
+    out.push({ kind: "post", s, x: px, y: py, role, depth: py + 0.75, cx: n.cx, cy: n.cy });
+  }
+  return out.sort((a, b) => a.depth - b.depth);
+}
+
+function drawPieces(list: Piece[], put: Put) {
+  for (const p of list)
+    if (p.kind === "post") drawPost(p.s, p.x, p.y, p.role, put);
+    else if (p.kind === "ew") drawEw(p.s, p.a, p.b, p.at, p.capA, p.capB, put);
+    else drawNs(p.s, p.at, p.a, p.b, p.capA, p.capB, put);
+}
+
+/** Every standing boundary round the tile at (x, y): contact shadow first,
+ * onto the ground, then the boundaries themselves back to front. */
 export function paintFences(
   sample: TopographySample,
   x: number,
@@ -187,82 +209,73 @@ export function paintFences(
   ox: number,
   oy: number,
   put: (px: number, py: number, c: Rgb) => void,
-  shadow: (px: number, py: number) => void,
+  darken: (px: number, py: number, v: number) => void,
 ) {
-  const { posts, rails } = gather(sample, x, y, ox, oy);
-  if (!posts.length) return;
-  const gx = (x + ox) * 16,
-    gy = (y + oy) * 16;
-  const wire = (dx: number, dy: number) => {
-    const f = sample(x + dx, y + dy)?.field;
-    return !!f && (f.enclosure ?? f.boundary) === "wire";
+  const R = 3;
+  const cache = new Map<number, Field | undefined>();
+  const field: FieldAt = (cx, cy) => {
+    const k = key(cx, cy);
+    if (!cache.has(k)) cache.set(k, sample(cx - ox, cy - oy)?.field);
+    return cache.get(k);
   };
-  const isWire = wire(0, 0) || wire(0, -1) || wire(-1, 0) || wire(1, 0) || wire(0, 1);
-  const set = (wx: number, wy: number, c: Rgb) => {
-    const px = wx - gx,
-      py = wy - gy;
-    if (px >= 0 && py >= 0 && px < 16 && py < 16) put(px, py, c);
-  };
-  for (const { a, b } of rails) {
-    const dx = b.x - a.x,
-      dy = b.y - a.y;
-    const n = Math.max(Math.abs(dx), Math.abs(dy));
-    if (!n) continue;
-    const grey = character(a).weather;
-    const bare = !isWire && railGone(a, b);
-    if (Math.abs(dx) >= Math.abs(dy)) {
-      // Two rails across, at set heights above the interpolated foot.
-      for (let i = 0; i <= n; i++) {
-        const t = i / n;
-        const wx = Math.round(a.x + dx * t),
-          wy = Math.round(a.y + dy * t);
-        if (isWire) {
-          set(wx, wy - 7, [78, 72, 64]);
-          continue;
-        }
-        if (!bare) {
-          set(wx, wy - 9, tone(rgb[2], grey));
-          set(wx, wy - 8, tone(rgb[1], grey));
-        }
-        set(wx, wy - 5, tone(rgb[1], grey));
-        set(wx, wy - 4, tone(rgb[0], grey));
-      }
-    } else {
-      // A single rail along, three wide, at top-rail height.
-      for (let i = 0; i <= n; i++) {
-        const t = i / n;
-        const wx = Math.round(a.x + dx * t),
-          wy = Math.round(a.y + dy * t) - 9;
-        if (isWire) {
-          set(wx, wy + 2, [78, 72, 64]);
-          continue;
-        }
-        if (bare) continue;
-        set(wx - 1, wy, tone(rgb[0], grey));
-        set(wx, wy, tone(rgb[2], grey));
-        set(wx + 1, wy, tone(rgb[3], grey));
-      }
-    }
+  const cx = x + ox,
+    cy = y + oy;
+  let any = false;
+  for (let dy = -R - 3; dy <= R + 3 && !any; dy++)
+    for (let dx = -R - 3; dx <= R + 3 && !any; dx++) any = !!field(cx + dx, cy + dy)?.fence;
+  if (!any) return;
+  const nodes = boundaryGraph(field, cx - R, cy - R, cx + R + 1, cy + R + 1);
+  const list = pieces(
+    nodes,
+    (n) => Math.abs(n.cx - cx) <= R && Math.abs(n.cy - cy) <= R,
+  );
+  if (!list.length) return;
+  const gx = cx * 16,
+    gy = cy * 16;
+  const inTile = (wx: number, wy: number) =>
+    wx >= gx && wy >= gy && wx < gx + 16 && wy < gy + 16;
+  for (const p of list)
+    if (p.kind === "post") footShadow(p.s, "post", p.x, p.y, 0, dark);
+    else if (p.kind === "ew") footShadow(p.s, "ew", p.a, p.at, p.b, dark);
+    else footShadow(p.s, "ns", p.at, p.a, p.b, dark);
+  drawPieces(list, (wx, wy, c) => {
+    if (inTile(wx, wy)) put(wx - gx, wy - gy, c);
+  });
+  function dark(wx: number, wy: number, v: number) {
+    if (inTile(wx, wy)) darken(wx - gx, wy - gy, v);
   }
-  posts.sort((p, q) => p.y - q.y);
-  for (const p of posts) {
-    const { lean, sink, weather } = character(p);
-    for (let r = 0; r < 16; r++)
-      for (let c = 0; c < 10; c++) {
-        const ink = fenceInk(POST[r][c]);
-        // Shear about the foot, so a leaning post keeps its footing and
-        // only its head moves.
-        if (ink >= 0)
-          set(
-            p.x - 5 + c + Math.round((lean * (15 - r)) / 15),
-            p.y - 15 + r + sink,
-            tone(rgb[ink], weather),
-          );
-      }
-    for (let c = 1; c < 9; c++) {
-      const px = p.x - 5 + c - gx,
-        py = p.y + 1 + sink - gy;
-      if (px >= 0 && py >= 0 && px < 16 && py < 16) shadow(px, py);
+}
+
+/** The boundaries of a cell range, for the sun-cast shadow pass: what they
+ * cast, and which pixels they cover so no shadow falls on the boundary
+ * itself. Coordinates are world pixels on flat ground. */
+export function boundaryCasts(
+  field: FieldAt,
+  x0: number,
+  y0: number,
+  x1: number,
+  y1: number,
+  /** Undefined for a node that should not cast from this pass. */
+  emit: (cx: number, cy: number) => Emit | undefined,
+  cover: (cx: number, cy: number) => Put,
+) {
+  const nodes = boundaryGraph(field, x0, y0, x1, y1);
+  const list = pieces(
+    nodes,
+    (n) => n.cx >= x0 && n.cy >= y0 && n.cx < x1 && n.cy < y1,
+  );
+  for (const p of list) {
+    const e = emit(p.cx, p.cy),
+      c = cover(p.cx, p.cy);
+    if (p.kind === "post") {
+      if (e) castPost(p.s, p.x, p.y, p.role, e);
+      drawPost(p.s, p.x, p.y, p.role, c);
+    } else if (p.kind === "ew") {
+      if (e) castEw(p.s, p.a, p.b, p.at, e);
+      drawEw(p.s, p.a, p.b, p.at, p.capA, p.capB, c);
+    } else {
+      if (e) castNs(p.s, p.at, p.a, p.b, e);
+      drawNs(p.s, p.at, p.a, p.b, p.capA, p.capB, c);
     }
   }
 }

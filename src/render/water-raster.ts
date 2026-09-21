@@ -89,7 +89,7 @@ function rasterCanalTile(
     mids.length === 2
       ? [[...mids[0], ...mids[1]]]
       : mids.length === 1
-        ? [[...mids[0], mids[0][0] + (8 - mids[0][0]) * 1.5, mids[0][1] + (8 - mids[0][1]) * 1.5]]
+        ? [[...mids[0], 8, 8]]
         : mids.length === 0
           ? [[4, 8, 12, 8]]
           : mids.map((m) => [...m, 8, 8]);

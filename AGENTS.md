@@ -14,3 +14,8 @@
 - Comments: only where the code cannot speak for itself — a non-obvious why, a units or ordering trap, a bug link. Short, plain English, usually one line. Do not restate the line below, do not set a scene, do not explain the design. When in doubt, leave it out.
 - Educated guessing is the default for historical content: extrapolate from real evidence and expert speculation. Reconstructed Proto-Indo-European religion, Bronze Age belief and the like are wanted, not avoided. Do not invent evidence, but do not hedge every line or stop to verify unless asked.
 - Run tests and browser checks when asked, or when a change plainly needs them. Not as a reflex after every edit.
+- After an edit, run only the test files that cover it: `npx vitest run tests/<name>.test.ts`.
+- Before calling work done, run `npm test` (about 40s). It skips the slow world-building suites listed in `vitest.config.ts`.
+- Run `npm run test:full` (about 10 min) only before a merge or when asked, and in the background.
+- The slow suites have known failures (timeouts, old tuning targets). Compare against HEAD before blaming a change.
+- Never assert wall-clock timings in tests; use `scripts/capture-benchmark.ts` for performance.

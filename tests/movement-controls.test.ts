@@ -33,12 +33,20 @@ it("reserves two-tier climbs for a charged jump", () => {
     "3,0": { height: 2 },
     "4,0": { height: 2 },
   });
-  expect(terrainJump(ledge, from, to, "short", true).kind).toBe("blocked");
+  // A short jump only catches the edge; a charged one lands on it.
+  expect(terrainJump(ledge, from, to, "short", true)).toMatchObject({
+    kind: "climb",
+    caught: true,
+  });
   expect(terrainJump(ledge, from, to, "long", true)).toMatchObject({
     kind: "climb",
   });
+  // One tier above the climb is a ledge catch; two above is out of reach.
   expect(
-    terrainJump(sample({ "1,0": { height: 3 } }), from, to, "long", true).kind,
+    terrainJump(sample({ "1,0": { height: 3 } }), from, to, "long", true),
+  ).toMatchObject({ kind: "climb", caught: true });
+  expect(
+    terrainJump(sample({ "1,0": { height: 4 } }), from, to, "long", true).kind,
   ).toBe("blocked");
 });
 it("requires dry land and cannot pass through walls or diagonal corners", () => {

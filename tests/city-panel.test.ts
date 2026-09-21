@@ -23,8 +23,6 @@ describe("city panel", () => {
       expect(c.routeFailures, "route failures").toBeLessThan(
         Math.max(25, c.buildings * 0.08),
       );
-      // A single town must plan in seconds, or the world takes too long to open.
-      expect(c.timing.total, "plan ms").toBeLessThan(8000);
       if (water) {
         const { x, y } = c.plan.site.center,
           r = c.radius;

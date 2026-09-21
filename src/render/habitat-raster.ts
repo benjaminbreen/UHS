@@ -21,6 +21,7 @@ import { mottle, shade } from "./palette";
 import { rasterFieldTile, tilled } from "./field-raster";
 import { bold, width as fenceWidth } from "./fences";
 import { paintFences } from "./fence-pass";
+import { standingStyle } from "../content/settlements/boundaries";
 import {
   BANK,
   bankPixel,
@@ -294,7 +295,9 @@ function rasterGroundTile(
   art: GrassArt,
   cell: TopographyCell,
 ): GroundTileData {
-  if (cell.field) return rasterFieldTile(sample, x, y, ox, oy, art);
+  // Yard grass is the same turf as outside the fence; only beds are tilled.
+  if (cell.field && !(cell.field.yard && cell.field.crop === "pasture"))
+    return rasterFieldTile(sample, x, y, ox, oy, art);
   const h = cell.habitat!;
   const { palette, soilPalette } = habitatRamps(h, art);
   const pixels = new Uint8ClampedArray(16 * 16 * 4);
@@ -659,7 +662,12 @@ function rasterGroundTile(
       }
       if (grassy && band <= 2) {
         // Blade hatch everywhere; light grass takes a softer stroke.
-        const mark = swardHatch(wx, wy);
+        // Blades gather in clumps with calm turf between them: an even
+        // hatch reads as dither noise rather than as grass.
+        const clump = noise(wx, wy, 12, 611) * 0.6 + noise(wx, wy, 5, 612) * 0.4;
+        let mark = swardHatch(wx, wy);
+        if (mark === 1 && clump < 0.5 && hash(wx, wy, 613) > 0.1) mark = 0;
+        if (mark === 2 && clump < 0.56) mark = 0;
         if (mark === 1) {
           const w = band === 1 ? 0.34 : band === 2 ? 0.55 : 0.5;
           put(
@@ -924,6 +932,21 @@ function rasterGroundTile(
         // darker than their neighbours.
         const worn = path + interlock + (noise(wx, wy, 96, 467) - 0.5) * 0.08;
         const shoulder = 0.68 + (noise(wx, wy, 23, 377) - 0.5) * 0.055;
+        // Dust and thinned turf beside the road: warm soil stippled into the
+        // grass, thickest at the edge and gone within a few pixels. Patchy
+        // along the road so it never reads as a second outline.
+        if (field && grassy && inside && worn > 0.2 && worn <= 0.48) {
+          const w = (worn - 0.2) / 0.28,
+            patch = 0.45 + noise(wx, wy, 17, 479) * 0.9;
+          if (hash(wx, wy, 481) < w * w * 0.7 * patch) {
+            const i = (py * 16 + px) * 4,
+              k0 = 0.22 + w * 0.3;
+            for (let k = 0; k < 3; k++)
+              pixels[i + k] = Math.round(
+                pixels[i + k] * (1 - k0) + soil[1][k] * k0,
+              );
+          }
+        }
         // On turf the worn centre is narrower than the material boundary:
         // the shoulder is a dither of soil into grass, not a filled band.
         if (field && grassy && worn > 0.48 && worn < shoulder) {
@@ -1426,7 +1449,8 @@ function rasterGroundTile(
       dx < 0 ? 2 : dx > 0 ? 8 : dy < 0 ? 4 : 1;
     const cx = x + ox,
       cy = y + oy;
-    const around = fieldsNear(sample, x, y);
+    // A yard's grass runs up to its fence; only farmland has a headland.
+    const around = fieldsNear(sample, x, y).filter((n) => !n.field.yard);
     for (let py = 0; py < 16 && around.length; py++)
       for (let px = 0; px < 16; px++) {
         const near = nearestField(around, px, py);
@@ -1463,7 +1487,7 @@ function rasterGroundTile(
           const weed = weedPixel(wx, wy, 0.55, style);
           if (weed) put(px, py, weed);
         }
-        if (!stands || kind === "fence" || kind === "wire" || d < fence) continue;
+        if (!stands || standingStyle(kind) || d < fence) continue;
         const w = fenceWidth(kind);
         const r = Math.floor(d - fence);
         if (r < 0 || r >= w) continue;
@@ -1494,9 +1518,9 @@ function rasterGroundTile(
       }
   }
   if (!frozen)
-    paintFences(sample, x, y, ox, oy, put, (px, py) => {
+    paintFences(sample, x, y, ox, oy, put, (px, py, v) => {
       const i = (py * 16 + px) * 4;
-      for (let k = 0; k < 3; k++) pixels[i + k] = Math.max(0, pixels[i + k] - 22);
+      for (let k = 0; k < 3; k++) pixels[i + k] = Math.max(0, pixels[i + k] - v);
     });
   return { x, y, pixels };
 }

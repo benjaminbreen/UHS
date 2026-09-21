@@ -31,6 +31,8 @@ export type FieldCell = {
   /** A kitchen garden bed: planted close, cropped in succession, and drawn
    * right up to its fence. */
   garden?: boolean;
+  /** Inside a house's or church's yard, not the town's farmland. */
+  yard?: boolean;
 };
 
 /** Enclosure by era where the farm system documents none: boulders before
@@ -321,8 +323,11 @@ export function planFarmland(input: {
     if (spokes.some((s) => angleGap(s.bearing, bearing) < Math.PI / 4))
       continue;
     const gate = at(c, f, edge, 0);
+    // A gate the streets cannot reach (a yard fence on it, say) would leave
+    // the whole spoke joined to nothing.
     const joined = join(gate, `spoke-${k}-join`);
-    if (joined) remember(joined);
+    if (!joined) continue;
+    remember(joined);
     const points = polyline(
       f,
       jogged(`spoke-${k}`, outer, edge, 0).map(({ a, b }) => ({ u: a, v: b })),

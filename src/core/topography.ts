@@ -51,6 +51,9 @@ export type TopographyCell = {
     /** Era enclosure drawn on the fence edges when `boundary` has none. */
     enclosure?: import("../content/agriculture/types").Boundary;
     ditch?: boolean;
+    /** Inside a household's or church's yard rather than the farmland. */
+    yard?: boolean;
+    garden?: boolean;
     stage: import("../content/agriculture/types").CropStage;
   };
   /** An irrigation channel standing empty: dug and banked, but with no water

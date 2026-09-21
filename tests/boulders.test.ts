@@ -177,6 +177,7 @@ it("rolls a boulder onto someone and hurts them", () => {
       id: "ana",
       name: "Ana",
       kind: "human",
+      role: "Farmer",
       pos: { x: 4, y: 0, space: "outside" },
       sprite: "human-0-0",
       inventory: {},

@@ -683,6 +683,18 @@ function rasterWallContours(
     spot.layer.pixels[spot.i + 2] = rgb[2];
     spot.layer.pixels[spot.i + 3] = 255;
   };
+  /** A translucent black pixel in the face strip, where nothing is drawn. */
+  const occlude = (
+    row: number,
+    tier: number,
+    px: number,
+    sy: number,
+    alpha: number,
+  ) => {
+    const spot = at(row, px, sy, false, tier);
+    if (spot && !spot.layer.pixels[spot.i + 3])
+      spot.layer.pixels[spot.i + 3] = alpha;
+  };
   const shade = (row: number, px: number, sy: number, amount: number) => {
     const layer = layers.get(`${row}:flat`);
     if (!layer) return;
@@ -923,6 +935,13 @@ function rasterWallContours(
         if (west < L) rims.push(px - 1, py - west * R, drop_(L, west), west, 2);
         if (east < L) rims.push(px + 1, py - east * R, drop_(L, east), east, 4);
       }
+      // Ground behind a north rim is hidden by the plateau standing in front
+      // of it; a soft band along the silhouette says which is in front.
+      if (north < L && L) {
+        occlude(row, L, px, sy - 1, 70);
+        occlude(row, L, px, sy - 2, 45);
+        occlude(row, L, px, sy - 3, 20);
+      }
       // East and west drops show a sliver of the same face, so they read as
       // one object with the south wall rather than as a stray line.
       if (sideFace && L)
@@ -931,6 +950,18 @@ function rasterWallContours(
           [east, 1, 0.68],
         ]) {
           if (n >= L) continue;
+          // Follow the edge south. Ending in a south face, it is the side of
+          // a front-facing corner and earns its sliver; ending where the low
+          // side rises, it faces away from the camera and shows only a rim.
+          let j = 1;
+          while (j < 48 && lvl(px, py + j) === L && lvl(px + side, py + j) < L)
+            j++;
+          // A run longer than the search is a straight wall: keep its sliver.
+          if (j < 48 && lvl(px, py + j) >= L) {
+            occlude(row, L, px + side, sy, 70);
+            occlude(row, L, px + side * 2, sy, 35);
+            continue;
+          }
           for (let k = 1; k <= sideFace; k++) {
             const r = Math.round(((k - 1) / sideFace) * (R - 1));
             const c = facePixel(material, trim, r, R, sy + oy, px + ox);
@@ -941,7 +972,15 @@ function rasterWallContours(
               sy,
               [c[0] * tone, c[1] * tone, c[2] * tone],
             ]);
-            returns.push([row, L, px + side * k, sy + (L - n) * R, []]);
+            // Higher ground further south stands in front of this wall and
+            // hides its lower part. Unclipped, a north-east facing edge hung
+            // a strip over every step of the plateau below it.
+            let bottom = sy + (L - n) * R;
+            for (let j = 1; j <= (L - n) * R; j++) {
+              const front = lvl(px + side * k, py + j);
+              if (front > n) bottom = Math.min(bottom, py + j - front * R - 1);
+            }
+            returns.push([row, L, px + side * k, bottom, []]);
           }
         }
       if (below >= L) continue;

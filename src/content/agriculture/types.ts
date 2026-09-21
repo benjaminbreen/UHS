@@ -92,6 +92,19 @@ export type Boundary =
    * then wire. */
   | "stones"
   | "wire"
+  /** Yard and pen boundaries by region and date; see settlements/boundaries. */
+  | "wattle"
+  | "paling"
+  | "picket"
+  | "palisade"
+  | "bamboo"
+  | "reed"
+  | "thorn"
+  | "plaster"
+  | "mud"
+  | "mudbrick"
+  | "brick"
+  | "rammed"
   | "none";
 
 export type Outbuilding =

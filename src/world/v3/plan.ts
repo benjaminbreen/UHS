@@ -19,7 +19,12 @@ import {
 import { urbanForm } from "../../content/settlements/urban-form";
 import { waysideFor } from "../../content/settlements/wayside";
 import { yardKit, type YardProp } from "../../content/settlements/yards";
-import type { CropId } from "../../content/agriculture/types";
+import {
+  penBoundary as localPen,
+  pickBoundary,
+  yardBoundaries,
+} from "../../content/settlements/boundaries";
+import type { Boundary, CropId } from "../../content/agriculture/types";
 import {
   plottedTown,
   urbanNeighborhood,
@@ -404,7 +409,7 @@ export function planSettlement(
     if (run.length) runs.push(run);
     let first: Road | undefined;
     for (const [i, points] of runs.entries()) {
-      if (points.length < 3 && runs.length > 1) continue;
+      if (points.length < 2 || (points.length < 3 && runs.length > 1)) continue;
       const road: Road = {
         id: `${site.id}-${label}${i ? `-${i}` : ""}`,
         points,
@@ -1486,14 +1491,12 @@ export function planSettlement(
   }
   const tBuildings = now();
   const yards = yardKit(pack.setting);
-  const yardBoundary = () => {
-    const year = pack.setting?.year ?? 0;
-    return yards.boundary === "era"
-      ? year < -800
-        ? "wall"
-        : eraEnclosure(year)
+  const yardChoices = yardBoundaries(pack.setting);
+  /** Each household fences its own way, from what its place and day offer. */
+  const yardBoundary = (i: number): Boundary =>
+    yards.boundary === "era"
+      ? pickBoundary(yardChoices, rand("yard-boundary", i))
       : yards.boundary;
-  };
   /** Fence and plant one yard. Every yard in the game comes through here: the
    * caller says which cells are fenced and which are bed, and this lays the
    * fence bits, the soil, the garden rows and the solid ring the same way. */
@@ -1504,9 +1507,8 @@ export function planSettlement(
     bedCrop: (x: number, y: number) => CropId | undefined,
     parcel: number,
     axis: "x" | "y",
-    walled = false,
+    boundary: Boundary,
   ) => {
-    const boundary = walled ? "wall" : yardBoundary();
     const drawn = boundary !== "none";
     eachCell(area, (x, y) => {
       if (skip(x, y)) return;
@@ -1534,6 +1536,7 @@ export function planSettlement(
           boundary,
           wet: false,
           garden: !!crop,
+          yard: true,
         },
       ]);
       setSurface(k, crop ? "field" : "grass", 3);
@@ -1760,6 +1763,7 @@ export function planSettlement(
             (x, y) => (planted(x, y) ? crop : undefined),
             100200 + i * 2,
             "x",
+            yardBoundary(i),
           );
           if (gate) {
             const k = cellKey(gate.x, gate.y);
@@ -1899,6 +1903,7 @@ export function planSettlement(
         },
         100400 + i * 2,
         rows ? "x" : "y",
+        yardBoundary(i),
       );
       if (yards.tree && rand("garden-tree", i) < yards.tree.chance) {
         const at = rows
@@ -2485,6 +2490,8 @@ export function planSettlement(
       // Lanes are straight and laid from the far end in, so each ends on
       // the lane or spoke it serves; a spoke's inner end is routed the last
       // few cells onto the town's own streets.
+      // A fence or plot tree can split the straight line; route round it so
+      // the lane still reaches the spoke it serves.
       lane: (a, b, label) =>
         lay(a, b, `field-${label}`, 1, true, "path")?.points,
       join: (a, label) => connect(a, c, `field-${label}`, 0, bounds)?.points,
@@ -2698,7 +2705,8 @@ export function planSettlement(
    * they never count as cropland. */
   const penFields: [string, FieldCell][] = [];
   const year = pack.setting?.year ?? 0;
-  const penBoundary = year < -800 ? "wall" : eraEnclosure(year);
+  const penBoundary =
+    localPen(pack.setting) ?? (year < -800 ? "wall" : eraEnclosure(year));
   const fenceCell = (parcel: number, fence: number): FieldCell => ({
     parcel,
     crop: "pasture",
@@ -3128,7 +3136,7 @@ export function planSettlement(
       () => undefined,
       100800 + n,
       "x",
-      true,
+      "wall",
     );
     const spots: Point[] = [];
     eachCell(yard, (x, y) => {
@@ -3341,11 +3349,15 @@ export function planSettlement(
   plan.diagnostics.timing!.buildings = Math.round(now() - tBuildings);
   // Routes through the territory are searched after the fields are cut, so
   // a field cell a road ended up on gives way to it.
-  if (plan.fields)
+  if (plan.fields) {
     for (const k of plan.traffic) {
       plan.fields.delete(k);
       if (plan.canals?.delete(k)) plan.culverts?.add(k);
     }
+    // Yard grass is a field cell; a gravestone, tree or well stood on it
+    // since takes the cell.
+    for (const k of plan.fields.keys()) if (plan.solid.has(k)) plan.fields.delete(k);
+  }
   // Every place gets a door, last, so nothing placed earlier lands on the cell
   // and the hole it punches in the wall survives the rest of the build.
   for (const place of plan.places) {

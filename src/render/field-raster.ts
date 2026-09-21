@@ -6,6 +6,7 @@ import { defaultGrassArt, type GrassArt } from "../content/graphics/grass-art";
 import { enclosurePixel } from "./fences";
 import { headlandDepths, innerDistance, troddenPixel } from "./headland";
 import { paintFences } from "./fence-pass";
+import { standingStyle } from "../content/settlements/boundaries";
 import { groundMotif, turfTick } from "./ground-motifs";
 import type { GroundTileData } from "./habitat-raster";
 import { waterHash as hash, waterNoise as noise } from "./water-style";
@@ -293,7 +294,7 @@ export function rasterFieldTile(
       }
       // The soil stops short of the enclosure: a trodden headland with a
       // dotted lip where the last furrow ends.
-      if (f.fence && !f.ditch) {
+      if (f.fence && !f.ditch && !f.yard) {
         const { inner: m } = headlandDepths(wx, wy);
         const inner = innerDistance(f.fence, px, py, m);
         if (inner <= m) {
@@ -338,9 +339,9 @@ export function rasterFieldTile(
       }
   }
   if (!frozen)
-    paintFences(sample, x, y, ox, oy, put, (px, py) => {
+    paintFences(sample, x, y, ox, oy, put, (px, py, v) => {
       const i = (py * 16 + px) * 4;
-      for (let k = 0; k < 3; k++) pixels[i + k] = Math.max(0, pixels[i + k] - 22);
+      for (let k = 0; k < 3; k++) pixels[i + k] = Math.max(0, pixels[i + k] - v);
     });
   return { x, y, pixels };
 }
@@ -351,8 +352,7 @@ export function raisedFieldEdge(c?: TopographyCell) {
   return (
     !!c?.field &&
     !!c.field.fence &&
-    ["hedge", "wall", "fence", "baulk"].includes(
-      c.field.enclosure ?? c.field.boundary,
-    )
+    (c.field.boundary === "baulk" ||
+      !!standingStyle(c.field.enclosure ?? c.field.boundary))
   );
 }

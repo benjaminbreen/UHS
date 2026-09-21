@@ -370,8 +370,23 @@ export function vegetationUnderstory(
         return roll < 0.6 ? "nature-understory-sedge" : heath;
       case "scrub":
         return roll < 0.65 ? scrub : "nature-understory-dry-bunchgrass";
-      case "grassland":
-        return roll < 0.8 ? "nature-understory-dry-bunchgrass" : "flowers";
+      case "grassland": {
+        // Dry bunchgrass belongs to dry country and the dead season; a moist
+        // meadow in leaf carries flowers and low shrubs instead.
+        const moist = [
+          "temperate-woodland",
+          "boreal-woodland",
+          "tropical-woodland",
+          "wetland",
+        ].includes(h.site.region.ecology);
+        if (!moist || h.season === "autumn" || h.season === "winter")
+          return roll < 0.8 ? "nature-understory-dry-bunchgrass" : "flowers";
+        return roll < 0.55
+          ? "flowers"
+          : roll < 0.8
+            ? "nature-understory-low-leafy-shrub"
+            : fern;
+      }
       case "rocky":
       case "barren":
       case "shore":

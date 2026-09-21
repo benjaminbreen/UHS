@@ -1,5 +1,5 @@
 import type { WorldSetting } from "../geography/types";
-import type { CropId } from "../agriculture/types";
+import type { Boundary, CropId } from "../agriculture/types";
 
 /** What stands in a household's yard, beyond the fence and the bed. `sprite`
  * is a prop family in the redrawn set; `where` says which part of the yard. */
@@ -16,8 +16,8 @@ export type YardProp = {
 
 export type YardKit = {
   id: string;
-  /** Fence material; "era" takes the farmland's enclosure of the day. */
-  boundary: "era" | "wall" | "hedge" | "fence";
+  /** Fence material; "era" chooses by culture, date and climate. */
+  boundary: "era" | Boundary;
   /** Rows of open yard kept in front of the house. */
   front: readonly [number, number];
   /** Shares of yards that wrap the house, fence only the bed, or go unfenced. */
@@ -124,7 +124,7 @@ const toft: YardKit = {
  * vine or a few vegetables, an olive in the corner. */
 const court: YardKit = {
   id: "court",
-  boundary: "wall",
+  boundary: "era",
   front: [0, 0],
   styles: { wrap: 0, side: 0.75, open: 0.25 },
   beds: ["vine", "vegetables", "beans"],
@@ -146,7 +146,7 @@ const plain: YardKit = {
  * rack. Mostly unfenced; stock was herded, not penned at the door. */
 const croft: YardKit = {
   id: "croft",
-  boundary: "fence",
+  boundary: "era",
   front: [1, 2],
   styles: { wrap: 0.15, side: 0.4, open: 0.45 },
   beds: ["wheat", "barley", "beans", "flax"],
@@ -177,11 +177,87 @@ const croft: YardKit = {
   ],
 };
 
+/** Africa south of the Sahara before colonial rule: an open swept yard, the
+ * mortar and the water gourds by the door, a hive hung at the edge, and the
+ * stock brought into a kraal at night. */
+const compound: YardKit = {
+  id: "compound",
+  boundary: "era",
+  front: [2, 3],
+  styles: { wrap: 0.1, side: 0.3, open: 0.6 },
+  beds: ["sorghum", "millet", "beans", "yam"],
+  props: [
+    ...stores,
+    {
+      prop: "poundingMortar",
+      family: "pounding-mortar",
+      name: "Mortar and pestle",
+      where: "door",
+      chance: 0.75,
+    },
+    {
+      prop: "calabash",
+      family: "calabash",
+      name: "Calabash",
+      where: "wall",
+      chance: 0.6,
+      contents: { water: 2 },
+    },
+    {
+      prop: "logHive",
+      family: "log-hive",
+      name: "Log hive",
+      where: "yard",
+      chance: 0.15,
+    },
+    {
+      prop: "stockPen",
+      family: "stock-pen",
+      name: "Stock pen",
+      where: "yard",
+      chance: 0.5,
+      role: /herd|drover|cattle|goat|farm/i,
+    },
+  ],
+};
+
+/** South Asia: the rope bed out in the yard by day. */
+const angan: YardKit = {
+  id: "angan",
+  boundary: "era",
+  front: [1, 3],
+  styles: { wrap: 0.3, side: 0.4, open: 0.3 },
+  beds: ["vegetables", "beans"],
+  props: [
+    ...stores,
+    {
+      prop: "charpoy",
+      family: "charpoy",
+      name: "Rope bed",
+      where: "yard",
+      chance: 0.6,
+    },
+    {
+      prop: "poundingMortar",
+      family: "pounding-mortar",
+      name: "Mortar and pestle",
+      where: "door",
+      chance: 0.4,
+    },
+  ],
+};
+
 export function yardKit(setting: WorldSetting | undefined): YardKit {
   if (!setting) return plain;
   if (setting.year < -800) return croft;
   const { culture, climate, year } = setting;
   if (culture === "european" && climate === "mediterranean") return court;
   if (culture === "european" && year >= 400 && year < 1800) return toft;
+  if (
+    (culture === "west-central-african" || culture === "east-southern-african") &&
+    year < 1900
+  )
+    return compound;
+  if (culture === "south-asian" && year >= 1000 && year < 1950) return angan;
   return plain;
 }

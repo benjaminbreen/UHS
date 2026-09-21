@@ -550,8 +550,25 @@ export function createSettlementWorld(
       ? pack.setting
       : (regional?.settingAt(x, y) ?? pack.setting!);
   const habitatCache = new Map<string, ReturnType<typeof habitatAt>>();
-  function habitat(x: number, y: number) {
-    const key = cellKey(x, y);
+  /** A settlement stands in a clearing: without this a woodland village is
+   * drawn on forest-floor litter and never shows its grass. Reads sites, not
+   * plans, because planning itself samples habitat. */
+  function clearing(x: number, y: number) {
+    const c = coord(x, y);
+    let best = 0;
+    for (let dy = -1; dy <= 1; dy++)
+      for (let dx = -1; dx <= 1; dx++)
+        for (const s of sitesIn(c.x + dx, c.y + dy)) {
+          const r = s.profile.radius,
+            d = Math.hypot(x - s.center.x, y - s.center.y);
+          best = Math.max(best, Math.min(1, (r + 14 - d) / 18));
+        }
+    return best;
+  }
+  /** `wild` is the ground as it was before anyone cleared it: standing trees
+   * are chosen from that, so a village keeps some of the wood it was cut from. */
+  function habitat(x: number, y: number, wild = false) {
+    const key = wild ? `w${cellKey(x, y)}` : cellKey(x, y);
     let value = habitatCache.get(key);
     if (!value) {
       const setting = settingAt(x, y);
@@ -563,6 +580,7 @@ export function createSettlementWorld(
         y + land.origin.y,
         land.sample(x, y),
         setting.environment!.colorway,
+        wild ? 0 : clearing(x, y),
       );
       if (pack.setting?.ecologyRevision === 1 && regional)
         value.blend = regional.ecologyAt(x, y).parts;
@@ -737,9 +755,11 @@ export function createSettlementWorld(
       ay === by * 2 + Math.floor(random(seed, "tree-y", bx, by) * 2)
     ) {
       const f = land.sample(x, y),
-        h = habitat(x, y);
+        felled = clearing(x, y) * 0.6,
+        h = habitat(x, y, true);
       if (
         f.water > (f.shoreWidth ?? 3) &&
+        random(seed, "tree-felled", ax, ay) >= felled &&
         habitatTree(
           h,
           seed,

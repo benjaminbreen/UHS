@@ -21,15 +21,19 @@ describe("farmland", () => {
       // Fields keep out of the town and never sit on a building or a street.
       const r = plan.site.profile.radius,
         centre = plan.site.center;
-      let inside = 0;
-      for (const k of plan.fields!.keys()) {
+      let inside = 0,
+        farmed = 0;
+      for (const [k, cell] of plan.fields!) {
         const [x, y] = k.split(",").map(Number);
-        if (Math.hypot(x - centre.x, y - centre.y) < r) inside++;
+        if (!cell.yard) {
+          farmed++;
+          if (Math.hypot(x - centre.x, y - centre.y) < r) inside++;
+        }
         expect(plan.solid.has(k), `field on a building at ${k}`).toBe(false);
         expect(plan.traffic.has(k), `field on a street at ${k}`).toBe(false);
       }
       expect(
-        inside / plan.fields!.size,
+        inside / farmed,
         "share inside the built radius",
       ).toBeLessThan(0.02);
       // Every parcel's access cell touches a lane or open ground, not water.

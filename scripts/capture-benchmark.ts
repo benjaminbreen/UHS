@@ -108,6 +108,15 @@ try {
       }, at);
       if (ok) break;
     }
+    // Moving the camera asks for new chunks; a preview is a flat placeholder.
+    await page.waitForFunction(
+      () => {
+        const d = document.querySelector("canvas")?.dataset;
+        return d?.terrainReady === "true" && d.terrainPending === "0";
+      },
+      {},
+      { timeout: 180000 },
+    );
     await page.waitForTimeout(1500);
     await page.locator("canvas").screenshot({ path: `${out}/${s.name}.png` });
     console.log(s.name, at);
