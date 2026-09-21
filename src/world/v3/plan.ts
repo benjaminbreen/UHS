@@ -2465,6 +2465,7 @@ export function planSettlement(
     const throughRoads = new Set<string>();
     for (const road of connections)
       roadCells(road, (x, y) => throughRoads.add(cellKey(x, y)));
+    let centerlines: Set<string> | undefined;
     const farmland = planFarmland({
       site,
       pack,
@@ -2492,9 +2493,19 @@ export function planSettlement(
       // few cells onto the town's own streets.
       // A fence or plot tree can split the straight line; route round it so
       // the lane still reaches the spoke it serves.
+      // A fence or plot tree across the line would split it into pieces that
+      // join nothing, so route round it.
       lane: (a, b, label) =>
-        lay(a, b, `field-${label}`, 1, true, "path")?.points,
+        line(a, b).some((p) => plan.solid.has(cellKey(p.x, p.y)))
+          ? connect(a, b, `field-${label}`, 0, bounds)?.points
+          : lay(a, b, `field-${label}`, 1, true, "path")?.points,
       join: (a, label) => connect(a, c, `field-${label}`, 0, bounds)?.points,
+      street: (x, y) => {
+        centerlines ??= new Set(
+          plan.roads.flatMap((r) => r.points.map((q) => cellKey(q.x, q.y))),
+        );
+        return centerlines.has(cellKey(x, y));
+      },
       owners: fieldOwners,
       homeOf: (owner) => plan.work.get(owner)?.home,
     });

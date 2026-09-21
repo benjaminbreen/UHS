@@ -133,6 +133,8 @@ export function planFarmland(input: {
   lane: (a: Point, b: Point, label: string) => Point[] | undefined;
   /** Routes from a track's inner end onto the town's streets. */
   join: (a: Point, label: string) => Point[] | undefined;
+  /** A street already laid, which a field track can start from. */
+  street?: (x: number, y: number) => boolean;
   /** Households that farm, nearest parcels first. */
   owners: string[];
   /** Where each farming household lives, so its fields lie out of its own gate. */
@@ -322,12 +324,28 @@ export function planFarmland(input: {
     const bearing = Math.atan2(f.dy, f.dx);
     if (spokes.some((s) => angleGap(s.bearing, bearing) < Math.PI / 4))
       continue;
-    const gate = at(c, f, edge, 0);
-    const joined = join(gate, `spoke-${k}-join`);
-    if (joined) remember(joined);
+    // Start from the outermost street on this bearing, as a real field track
+    // leaves the end of a village lane; only without one route a gate in.
+    let gu = edge,
+      gv = 0,
+      onStreet = false;
+    search: for (let u = edge + 6; u >= 4; u--)
+      for (const v of [0, 1, -1, 2, -2, 3, -3]) {
+        const p = at(c, f, u, v);
+        if (input.street?.(p.x, p.y)) {
+          [gu, gv, onStreet] = [u, v, true];
+          break search;
+        }
+      }
+    const gate = at(c, f, gu, gv);
+    if (!onStreet) {
+      const joined = join(gate, `spoke-${k}-join`);
+      if (!joined) continue;
+      remember(joined);
+    }
     const points = polyline(
       f,
-      jogged(`spoke-${k}`, outer, edge, 0).map(({ a, b }) => ({ u: a, v: b })),
+      jogged(`spoke-${k}`, outer, gu, gv).map(({ a, b }) => ({ u: a, v: b })),
       `spoke-${k}`,
     );
     if (!points.length) continue;
