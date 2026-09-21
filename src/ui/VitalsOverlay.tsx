@@ -1,21 +1,8 @@
 import { useEffect, useState } from "react";
 import { currentVitals, lastSession } from "../runtime/vitals";
 
-/**
- * On-device readout for the counters in runtime/vitals. Off unless the URL
- * carries ?vitals=1, which sticks so the page can be reloaded after a crash
- * without losing the instrument. ?vitals=0 turns it back off.
- */
-const FLAG = "uhs.vitals.on";
-
-export function vitalsEnabled() {
-  const param = new URLSearchParams(window.location.search).get("vitals");
-  if (param === "1") localStorage.setItem(FLAG, "1");
-  if (param === "0") localStorage.removeItem(FLAG);
-  return localStorage.getItem(FLAG) === "1";
-}
-
-/** Tapping cycles, so the readout never sits on the command bar for good. */
+/** On-device readout for the counters in runtime/vitals, shown only when
+ * vitalsEnabled(). Tapping cycles, so the readout never sits on the command bar for good. */
 type View = "bar" | "full" | "dot";
 const NEXT: Record<View, View> = { bar: "full", full: "dot", dot: "bar" };
 

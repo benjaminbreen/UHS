@@ -23,6 +23,33 @@ type Snapshot = {
 };
 
 const KEY = "uhs.vitals";
+const FLAG = "uhs.vitals.until";
+/** Survives the reload after a crash, but a debugging session does not become
+ * a permanent fixture of the game. ?vitals=0 clears it at once. */
+const STICKS_FOR_MS = 12 * 60 * 60 * 1000;
+let enabled = false;
+
+/** Whether the on-screen readout should be shown, decided once at startup. */
+export function vitalsEnabled() {
+  return enabled;
+}
+
+function readFlag() {
+  const param = new URLSearchParams(window.location.search).get("vitals");
+  try {
+    if (param === "0") {
+      localStorage.removeItem(FLAG);
+      return false;
+    }
+    if (param === "1")
+      localStorage.setItem(FLAG, String(Date.now() + STICKS_FOR_MS));
+    const until = Number(localStorage.getItem(FLAG) ?? 0);
+    if (until && Date.now() > until) localStorage.removeItem(FLAG);
+    return Date.now() < until;
+  } catch {
+    return param === "1";
+  }
+}
 const WRITE_MS = 2000;
 const EVENT_LIMIT = 40;
 const ERROR_LIMIT = 20;
@@ -110,6 +137,7 @@ export function installVitals() {
   if (installed) return;
   installed = true;
   started = Date.now();
+  enabled = readFlag();
   try {
     const raw = localStorage.getItem(KEY);
     if (raw) previous = JSON.parse(raw) as Snapshot;
@@ -127,13 +155,11 @@ export function installVitals() {
   countWorkers();
   watchCount("domCanvas", () => document.getElementsByTagName("canvas").length);
   watchCount("domNodes", () => document.getElementsByTagName("*").length);
-  watchCount(
-    "heapMB",
-    () =>
-      Math.round(
-        ((performance as unknown as { memory?: { usedJSHeapSize: number } })
-          .memory?.usedJSHeapSize ?? 0) / 1e6,
-      ),
+  watchCount("heapMB", () =>
+    Math.round(
+      ((performance as unknown as { memory?: { usedJSHeapSize: number } })
+        .memory?.usedJSHeapSize ?? 0) / 1e6,
+    ),
   );
 
   // A resize storm is the other way iOS kills a Phaser tab: the URL bar
