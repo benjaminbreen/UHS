@@ -910,9 +910,57 @@ function attachOpenVenues(plan: SettlementPlan, pack: Pack) {
   const open = venuesFor(pack.setting, plan.places.length).filter(
     (v) => v.open && !plan.venues!.some((held) => held.venue.id === v.id),
   );
-  open.forEach((venue, i) =>
-    plan.venues!.push({ venue, pos: spots[i % spots.length] }),
-  );
+  open.forEach((venue, i) => {
+    const pos = spots[i % spots.length];
+    const marked = venue.marker && markOpenVenue(plan, venue, pos);
+    plan.venues!.push({ venue, pos: marked || pos });
+  });
+}
+/** Stands an open venue's marker on free ground off the street, out towards
+ * the edge of the settlement: a grove is not in the lane. */
+function markOpenVenue(plan: SettlementPlan, venue: Venue, from: Point) {
+  const c = plan.site.center,
+    r = plan.site.profile.radius;
+  const d = Math.hypot(from.x - c.x, from.y - c.y) || 1;
+  const want = {
+    x: Math.round(c.x + ((from.x - c.x) / d) * r * 0.85),
+    y: Math.round(c.y + ((from.y - c.y) / d) * r * 0.85),
+  };
+  const taken = new Set(plan.objects.map((o) => cellKey(o.pos.x, o.pos.y)));
+  const free = (x: number, y: number) =>
+    [0, 1].every((dy) =>
+      [-1, 0, 1].every((dx) => {
+        const k = cellKey(x + dx, y + dy);
+        return (
+          !plan.solid.has(k) &&
+          !plan.traffic.has(k) &&
+          !plan.reserved.has(k) &&
+          !taken.has(k)
+        );
+      }),
+    );
+  for (let ring = 0; ring <= 12; ring++)
+    for (let dy = -ring; dy <= ring; dy++)
+      for (let dx = -ring; dx <= ring; dx++) {
+        if (Math.max(Math.abs(dx), Math.abs(dy)) !== ring) continue;
+        const x = want.x + dx,
+          y = want.y + dy;
+        if (!free(x, y)) continue;
+        plan.solid.add(cellKey(x, y));
+        plan.objects.push({
+          id: `${venue.id}-marker`,
+          name: venue.marker!.name,
+          description: venue.marker!.description,
+          kind: "monument",
+          pos: { x, y, space: "outside" },
+          sprite: `study-propb-sacred-marker-${venue.marker!.variant}`,
+          inventory: {},
+          claim: "landscape",
+        });
+        // Visitors stand in front of it, not on it.
+        return { x, y: y + 1 };
+      }
+  return undefined;
 }
 /**
  * How strongly a venue draws this person. Admission is a gate; everything else

@@ -78,8 +78,10 @@ DRAW_B = {
 }
 
 from .wayside import WAYSIDE
+from .sacred import SACRED
 # Later redraws replace the first attempts at the same family.
 DRAW_B.update(WAYSIDE)
+DRAW_B.update(SACRED)
 
 # Boxy families that stand beside buildings take the buildings' oblique view.
 # Round ones are left alone: a barrel looks the same from every side.

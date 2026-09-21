@@ -2452,7 +2452,9 @@ export class Engine {
         description: [
           object.broken
             ? "Broken remains; spilled contents can be recovered."
-            : def?.strike
+            : object.description
+              ? object.description
+              : def?.strike
               ? "A stout branch. Hold it to strike breakable containers."
               : def?.drink
                 ? "A water source."
@@ -2568,7 +2570,9 @@ export class Engine {
       name: object.name,
       description: object.resource
         ? `${object.name}. ${object.depleted ? "Currently depleted or out of season." : `${object.inventory[object.resource.item] ?? 0} available.`} Harvest season: ${object.resource.seasons.join(", ")}.`
-        : object.kind === "tree"
+        : object.description
+          ? object.description
+          : object.kind === "tree"
           ? object.depleted
             ? "The fallen wood has been gathered. The tree remains."
             : "A little shade. Dry branches lie beneath the canopy."

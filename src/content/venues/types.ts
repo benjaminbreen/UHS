@@ -67,6 +67,9 @@ export type Venue = QualifiedContent & {
    * they were told apart for most of history anyway.
    */
   sign?: "board" | "lantern";
+  /** The object that stands outside it: a `sacred-marker` sprite variant,
+   * with its own name and description. */
+  marker?: { variant: number; name: string; description: string };
   /**
    * A building recipe of its own, from `src/content/graphics/theatres.json`
    * and its like. Absent means the venue takes an ordinary house with a mark

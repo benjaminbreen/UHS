@@ -489,9 +489,11 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
             ? boardable
               ? sign?.key
               : undefined
-            : venue.sign === "lantern"
+            : venue.sign === "lantern" && doorway !== undefined
               ? "doorLantern"
-              : undefined
+              : venue.marker
+                ? "marker"
+                : undefined
           : trades && boardable
             ? sign?.key
             : // A doorway marker is a marker: on half the houses in a town it
@@ -521,8 +523,15 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
             inventory: {},
             owner: b.owner,
           };
+          if (wanted === "marker" && venue?.marker) {
+            o.kind = "monument";
+            o.name = venue.marker.name;
+            o.description = venue.marker.description;
+            o.sprite = `study-propb-sacred-marker-${venue.marker.variant}`;
+          } else {
           stamp(o, wanted);
-          if (venue) o.name = venue.label;
+          if (venue)
+            o.description = `Hung at the door of ${venue.label.replace(/^The /, "the ")}.`;
           // A board takes the region's script; a doorway marker takes
           // whatever that culture and date actually hung there.
           // The region sets the script, but not every board on a street was
@@ -535,7 +544,8 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
               : Math.floor(random(seed, "sign-alt", b.id) * 3);
           o.sprite = sign && wanted === sign.key
               ? `study-propb-${propDefs[sign.key].family}-${signForm}`
-              : `study-propb-door-lantern-${doorway ?? 0}`;
+              : `study-propb-door-lantern-${doorway}`;
+          }
           world.initialObjects.push(o);
           index(o);
           done.add(o.id);

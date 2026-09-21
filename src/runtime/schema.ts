@@ -346,6 +346,7 @@ const object = z.object({
   damage: z.number().int().min(0).max(3).optional(),
   id: z.string(),
   name: z.string(),
+  description: z.string().optional(),
   placeId: z.string().optional(),
   knocked: z.number().optional(),
   kind: z.enum([
