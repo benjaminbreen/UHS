@@ -9,8 +9,15 @@ export function buildingPlacement(place: Place) {
     y: (place.y + place.h) * 16,
     originX: model.anchor[0] / model.bounds[2],
     originY: model.anchor[1] / model.bounds[3],
-    depth: (place.y + place.h) * 16 - 2,
+    // East over west on a shared row: the next house hides this one's side
+    // wall, so only the end of a terrace shows one.
+    depth: (place.y + place.h) * 16 - 2 + place.x * 0.001,
   };
+}
+export function multiplyTint(a: number, b: number) {
+  const ch = (shift: number) =>
+    Math.round((((a >> shift) & 255) * ((b >> shift) & 255)) / 255) << shift;
+  return ch(16) | ch(8) | ch(0);
 }
 /** Pixel bounds belong to the visual model, not a hard-coded two-cell roof extension. */
 export function buildingContains(place: Place, px: number, py: number) {

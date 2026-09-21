@@ -191,7 +191,7 @@
     "mission-church": {
       "label": "Mission church",
       "family": "mission",
-      "description": "A whitewashed church of Spanish America: a plain nave under red tile, a curved baroque gable over the portal, bells hung in an espadaña or in square towers, and a dome at the crossing in the largest. Composed from mission and parish churches of 1550 to 1850; dimensions are illustrative.",
+      "description": "A whitewashed church of Spanish America: a plain nave under red tile, a curved baroque gable over the portal, bells hung in an espada\u00f1a or in square towers, and a dome at the crossing in the largest. Composed from mission and parish churches of 1550 to 1850; dimensions are illustrative.",
       "footprint": [
         10,
         7
@@ -349,6 +349,83 @@
           "wall": "grey-limestone",
           "balustrade": false,
           "summit": "thatch-temple"
+        }
+      ]
+    },
+    "parish-church": {
+      "label": "Parish church",
+      "family": "parish",
+      "description": "A stone parish church of the later Middle Ages: a west tower with angle buttresses standing forward of the nave, lancet windows, and a lower chancel at the east end. Sized to its town; dimensions are illustrative.",
+      "footprint": [
+        10,
+        7
+      ],
+      "entrance": [
+        5,
+        7
+      ],
+      "wall": "grey-limestone",
+      "roofMaterial": "terracotta",
+      "naveHeight": 46,
+      "roofPitch": 30,
+      "tower": "west",
+      "towerHeight": 104,
+      "towerTop": "battlement",
+      "seed": 1356,
+      "scales": {
+        "small": {
+          "label": "Chapel",
+          "footprint": [
+            7,
+            5
+          ],
+          "entrance": [
+            3,
+            5
+          ],
+          "naveHeight": 40,
+          "towerHeight": 84
+        },
+        "medium": {
+          "label": "Parish church",
+          "footprint": [
+            10,
+            7
+          ],
+          "entrance": [
+            5,
+            7
+          ]
+        },
+        "large": {
+          "label": "Abbey church",
+          "footprint": [
+            14,
+            12
+          ],
+          "entrance": [
+            7,
+            12
+          ],
+          "naveHeight": 58,
+          "towerHeight": 136
+        }
+      },
+      "looks": [
+        {
+          "wall": "grey-limestone",
+          "roofMaterial": "terracotta",
+          "towerTop": "battlement"
+        },
+        {
+          "wall": "sandstone",
+          "roofMaterial": "slate",
+          "towerTop": "pyramid"
+        },
+        {
+          "wall": "grey-limestone",
+          "roofMaterial": "slate",
+          "towerTop": "battlement"
         }
       ]
     }

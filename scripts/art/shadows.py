@@ -24,6 +24,7 @@ def build_shadows(root, sprites, buildings, output=None, atlas_name='lighting-sh
         if not opaque:continue
         top=min(y for x,y in opaque)
         model=buildings.get(name)
+        if model and model.get('shadowFrame'):continue
         height=model['shadow']['height'] if model else bottom-top
         ground_depth=min(12,model['footprint'][1]*3) if model else 0
         feet=[x for x,y in opaque if y>=bottom-2]
@@ -68,7 +69,7 @@ def build_shadows(root, sprites, buildings, output=None, atlas_name='lighting-sh
                 for x,y in opaque:
                     if y>=bottom-1:
                         d.line((x-minx,bottom-miny,x-minx,bottom-miny+1),fill=(29,33,31,83))
-            im.info['anchor']=[w/2-minx,h-miny]
+            im.info['anchor']=[(model['anchor'][0] if model else w/2)-minx,h-miny]
             result[f"{phase['id']}:{name}"]=im
     atlas=pack_atlas(result,output or root/'public/packs',atlas_name,2048)
     print(f'Built {len(result)} lighting masks; shadow atlas {atlas.size}.')

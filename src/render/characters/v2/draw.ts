@@ -5,7 +5,8 @@ import { drawHead } from "./head";
 import { Pixels, ramp, type Point, type Ramp } from "./pixels";
 import { facingView } from "../../../core/facing";
 export const CHARACTER_SIZE = 80;
-/** Same native scale as the original (29px standing body), with 3px height steps.
+/** Two pixels taller than the original (31px standing body), both in the leg,
+ * with 3px height steps.
  * Four-view poses are rasterized once and shared by the lab and world cache. */
 export function drawCharacter(
   ctx: CanvasRenderingContext2D,
@@ -109,7 +110,7 @@ export function drawCharacter(
     // The smallest body loses a pixel each side too, or it reads as a short adult.
     small = a.height <= -2 ? 1 : 0,
     narrow = (a.build === -1 ? 1 : 0) + small,
-    feet = 33 + tall - bend - bob;
+    feet = 35 + tall - bend - bob;
   const skin = ramp(a.skin, "skin"),
     cloth = ramp(a.wearing.color),
     lower = ramp(a.wearing.lowerColor),
@@ -118,7 +119,7 @@ export function drawCharacter(
     iron = ramp("#8b929a"),
     wood = ramp("#ae7e49");
   ctx.save();
-  ctx.translate(30 + shift, 46 - tall + bend + bob);
+  ctx.translate(30 + shift, 44 - tall + bend + bob);
   if (direction === 3) {
     ctx.translate(20, 0);
     ctx.scale(-1, 1);
@@ -139,24 +140,25 @@ export function drawCharacter(
           : ["coat", "shirt", "robe"].includes(a.wearing.garment)
             ? "long"
             : "short"));
-  const armSwing = moving ? (sprint ? [0, 4, 0, -4] : [0, 2, 0, -2])[f] : 0;
+  const armSwing = moving ? (sprint ? [0, 4, 0, -4] : [0, 3, 0, -3])[f] : 0;
+  // The profile hangs its arms from the middle of a 7px torso.
   const shoulderNear: Point = side
-      ? [10, 15 - inhale]
+      ? [12, 15 - inhale]
       : [16 + wide - narrow, 15 - inhale],
     shoulderFar: Point = side
-      ? [13 - narrow, 15 - inhale]
+      ? [14 - narrow, 15 - inhale]
       : [4 - wide + small, 15 - inhale];
   // Two pixels below the belt: clear of the waist, where hands at 22 read as
   // arms folded on the stomach, but well short of the knee.
   const hang = (sprint ? 20 : 24) + torso;
   let near: Point = side
-      ? [10 - armSwing, hang - (armSwing < 0 ? 1 : 0)]
+      ? [12 - armSwing, hang - (armSwing < 0 ? 2 : armSwing > 0 ? 1 : 0)]
       : [
           16 + wide - narrow - (stride < 0 ? 1 : 0),
           hang + Math.round(stride / 3),
         ],
     far: Point = side
-      ? [13 - narrow + armSwing, hang - (armSwing > 0 ? 1 : 0)]
+      ? [14 - narrow + armSwing, hang - (armSwing > 0 ? 2 : armSwing < 0 ? 1 : 0)]
       : [
           4 - wide + small + (stride > 0 ? 1 : 0),
           hang - Math.round(stride / 3),
@@ -519,7 +521,7 @@ export function drawCharacter(
     const x = side
         ? isFar
           ? 12
-          : 9
+          : 10
         : isFar
           ? 6 - wide + small
           : 13 + wide - narrow,
@@ -641,8 +643,8 @@ export function drawCharacter(
   // them rather than on each: sarong, lungi, dhoti, kanga, izaar.
   if ((a.wearing.leggings ?? "none") === "sarong") {
     const sheet = ramp(a.wearing.lowerColor);
-    const l = (side ? 7 : 5) - wide,
-      r = (side ? 14 : 15) + wide;
+    const l = side ? 8 : 5 - wide,
+      r = (side ? 15 : 15) + wide;
     const top = 21 + torso,
       fall = feet - 3;
     p.shape(
@@ -666,22 +668,24 @@ export function drawCharacter(
     const sway = drift;
     p.shape(
       [
-        [side ? 5 : 4 - wide, 13],
-        [side ? 10 : 16 + wide, 13],
-        [(side ? 9 : 18 + wide) + sway, 27 + torso],
-        [1 - wide + sway, 27 + torso],
-        [side ? 3 : 2 - wide, 18],
+        [side ? 8 : 4 - wide, 13],
+        [side ? 12 : 16 + wide, 13],
+        [(side ? 11 : 18 + wide) + sway, 27 + torso],
+        [(side ? 4 : 1 - wide) + sway, 27 + torso],
+        [side ? 6 : 2 - wide, 18],
       ],
       cloak,
     );
     p.line(
-      [side ? 4 : 5 - wide, 17],
-      [3 - wide + sway, 25 + torso],
+      [side ? 7 : 5 - wide, 17],
+      [(side ? 6 : 3 - wide) + sway, 25 + torso],
       cloak.light,
     );
   }
-  const left = (side ? 6 - wide : 4 - wide) + small,
-    right = (side ? 15 + wide : 16 + wide) - narrow;
+  // A profile is about 60% of the front width: 7px against 12. Build goes on
+  // the front first; only the heaviest adds a pixel behind.
+  const left = side ? 9 - (wide > 1 ? 1 : 0) : 4 - wide + small,
+    right = (side ? 16 + wide : 16 + wide) - narrow;
   // A loincloth is the bare-torso body with a panel hung off the cord, so it
   // shares every measurement with it.
   const naked =
@@ -734,7 +738,25 @@ export function drawCharacter(
             [right + 1 + hemSway, bodyHem],
             [left - 1 + hemSway, bodyHem],
           ]
-        : [
+        : side
+          ? // Profile: chest forward under the chin, the back two pixels behind
+            // the neck, a hollow at the lumbar and a seat below it. The front
+            // view's hem drape pushed the back out and tucked the belly in.
+            [
+              [left + 2, 12],
+              [right - 3, 12],
+              [right - 1, 14],
+              [right + inhale, 16],
+              [right - waist + belly, 20 + torso],
+              [right + belly + flare + hemSway, bodyHem - 1 - hemLift],
+              [right - 1 + flare + hemSway, bodyHem],
+              [left - flare + hemSway, bodyHem],
+              ...((bodyHem > 24 + torso ? [[left, 23 + torso]] : []) as Point[]),
+              [left + 1, 20 + torso],
+              [left, 16],
+              [left, 14],
+            ]
+          : [
             [left + 2, 12],
             [right - 2, 12],
             [right, 15 - inhale],
@@ -972,7 +994,7 @@ export function drawCharacter(
         (a.wearing.leggings ?? "none") === "none" &&
         (a.wearing.garment === "tunic" || a.wearing.garment === "wrap");
       const legTone = bareLegs ? skin : lower;
-      for (const x of side ? [9, 12] : [6 - wide + small, 13 + wide - narrow])
+      for (const x of side ? [10, 12] : [6 - wide + small, 13 + wide - narrow])
         p.rect(x - 1, hem, 4, 1, legTone.shadowEdge ?? legTone.edge);
     }
   }

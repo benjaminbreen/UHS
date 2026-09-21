@@ -18,6 +18,15 @@ export const venueById = new Map(venues.map((v) => [v.id, v]));
 export const venueOfClaim = (claim: string) =>
   claim.startsWith("venue-") ? venueById.get(claim.slice(6)) : undefined;
 
+/** The frame family a venue is built from at this date. */
+export const venueBuilding = (venue: Venue, setting: WorldSetting) =>
+  venue.eras?.find(
+    (e) =>
+      setting.year >= e.from &&
+      setting.year < e.to &&
+      (!e.cultures || e.cultures.includes(setting.culture)),
+  )?.building ?? venue.building;
+
 export function venuesFor(
   setting: WorldSetting | undefined,
   buildings: number,

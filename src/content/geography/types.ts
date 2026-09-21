@@ -85,6 +85,9 @@ export const settingSchema = z
     // geometry. 1 is the first fixed-lattice composition; 2 is the dated,
     // regional block grammar.
     urbanRevision: z.union([z.literal(1), z.literal(2)]).optional(),
+    // How a town stands on its ground: houses in their own plots, or rows on
+    // the street. Absent, `settlementLayout()` decides from place and date.
+    settlementLayout: z.enum(["plots", "rows"]).optional(),
     roadRevision: z.literal(1).optional(),
     vegetationRevision: z
       .union([

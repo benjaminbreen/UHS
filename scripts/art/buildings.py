@@ -16,6 +16,8 @@ ROOFS = {
     'slate': ['#29383e', '#40505c', '#566e79', '#76888d', '#98a5a1'],
     'grey-tile': ['#2d3939', '#444f4a', '#606f61', '#85927c', '#a9b299'],
     'shingle': ['#3b322d', '#635040', '#896b4e', '#ad8b63', '#c6a57b'],
+    # Sun-bleached Mediterranean cover tiles, laid in ridges down a low slope.
+    'pantile': ['#5a3224', '#96492f', '#c2653d', '#dd8a58', '#f0b184'],
 }
 
 def recess(d,p,x,y,width,height,door=False,niche=False):
@@ -342,14 +344,26 @@ def build_buildings(root, sprites):
     from art.halls import HallBuilding, hall_recipes
     from art.period import PeriodBuilding, period_recipes
     from art.modern import ModernBuilding
+    from art.oblique import ObliqueBuilding, ObliquePlayhouse
+    from art.oblique_church import ObliqueChurch, build_banner
+    from art.oblique_round import ObliqueRound
+    from art.oblique_mud import ObliqueMudbrick
+    build_banner(sprites)
     recipes={**source['buildings'], **urban_recipes(root, source), **religious_recipes(root, source), **theatre_recipes(root, source), **hall_recipes(root, source), **period_recipes(root, source)}
     for name,r in list(recipes.items()):
         if r['roof']=='shelter': continue
         fw,fh=r['footprint']
         for facing,entrance in [('north',[fw//2,-1]),('east',[fw,fh//2]),('west',[-1,fh//2])]:
-            recipes[name+'-'+facing]={**r,'facing':facing,'entrance':entrance,'label':r['label']+' · '+facing}
+            recipes[name+'-'+facing]={**r,'facing':facing,'entrance':entrance,'label':r['label']+' · '+facing,
+                                      # Same silhouette whichever way it faces, so one set of cast masks.
+                                      **({'shadowFrame':name} if r.get('oblique') else {})}
     for name,r in recipes.items():
-        painter=(InfillBuilding if r.get('candidate') else
+        painter=(ObliqueMudbrick if r.get('mud') else
+                 ObliqueRound if r.get('round') else
+                 ObliquePlayhouse if r.get('form')=='oblique-ring' else
+                 ObliqueBuilding if r.get('oblique') else
+                 ObliqueChurch if r.get('family')=='parish' else
+                 InfillBuilding if r.get('candidate') else
                  ModernBuilding if r.get('modern') else
                  PeriodBuilding if r.get('period') else
                  ReligiousBuilding if r.get('religious') else
@@ -362,9 +376,9 @@ def build_buildings(root, sprites):
         w,h=im.size
         models[name]={
             'frame':name,'label':r['label'],'footprint':r['footprint'],'entrance':r['entrance'],
-            'anchor':[w/2,h-3],'bounds':[0,0,w,h],'height':r['height'],
+            'anchor':[getattr(artist,'anchor_x',w/2),h-3],'bounds':[0,0,w,h],'height':r['height'],
             **({'door':door_rect(artist)} if door_rect(artist) else {}),
-            'occlusion':[4,7,w-7,h-7],'shadow':{'kind':'building','height':r['height'],'contactWidth':w-12},
+            'occlusion':getattr(artist,'occlusion',[4,7,w-7,h-7]),'shadow':{'kind':'building','height':r['height'],'contactWidth':w-12},
             'wall':r['wall'],'roof':r['roof'],'roofMaterial':r['roofMaterial'],'attachments':r['attachments'],
             'opening':r['opening'],'description':r['description'],
             **({'religious':True,'family':r['family'],'recipe':r['recipe']} if r.get('religious') else {}),
@@ -382,6 +396,13 @@ def build_buildings(root, sprites):
                 'modernRole':r.get('modernRole','home')} if r.get('modern') else {}),
             **({'period':True,'periodGroup':r['group'],'style':r['style'],'variant':r.get('variant',0),
                 'sign':r.get('sign',''),'role':r.get('role','house'),'stories':r['stories']} if r.get('period') else {}),
+            **({'shadowFrame':r['shadowFrame']} if r.get('shadowFrame') else {}),
+            **({'banner':artist.banner} if getattr(artist,'banner',None) else {}),
+            **({'smoke':artist.smoke} if getattr(artist,'smoke',None) else {}),
+            # Cells the sprite overhangs its footprint to the right and behind,
+            # so a planner can leave them clear.
+            **({'oblique':True,'margins':[int(-(-(w-artist.anchor_x-r['footprint'][0]*8)//16)),
+                                          max(0,int(-(-(h-3-r['footprint'][1]*16)//16)))]} if r.get('oblique') else {}),
             **({'animation':r['animation']} if r.get('animation') else {})}
     # Not buildings.json: that name belongs to the packed atlas, which is
     # written later in the build and would silently clobber this.

@@ -277,8 +277,8 @@
       "name": "Barrel",
       "group": "Storage & carrying",
       "size": [
-        17,
-        23
+        18,
+        24
       ],
       "description": "A bulging stave-built barrel with an elliptical top, dark hoops and a small bung or lid.",
       "variants": [
@@ -292,10 +292,10 @@
       "name": "Transport crate",
       "group": "Storage & carrying",
       "size": [
-        19,
-        15
+        20,
+        17
       ],
-      "description": "An open-slatted rectangular crate with thick corner posts and visible gaps between boards.",
+      "description": "A framed packing case: a lid seen from above, a battened front with a crossed brace and iron nail heads.",
       "variants": [
         "Warm wood",
         "Dark wood",
@@ -515,9 +515,16 @@
       "id": "spear",
       "name": "Spear",
       "group": "Work & agriculture",
-      "size": [12, 52],
+      "size": [
+        12,
+        52
+      ],
       "description": "A hunting spear stood on its butt, the blade a leaf of stone or metal.",
-      "variants": ["Stone point", "Bronze", "Iron"]
+      "variants": [
+        "Stone point",
+        "Bronze",
+        "Iron"
+      ]
     },
     {
       "id": "shovel",
@@ -554,8 +561,8 @@
       "name": "Firewood pile",
       "group": "Work & agriculture",
       "size": [
-        29,
-        17
+        32,
+        20
       ],
       "description": "A compact stack of irregular logs shows bright cut ends, dark bark and gaps between pieces.",
       "variants": [
@@ -614,8 +621,8 @@
       "name": "Bird-scaring figure or rig",
       "group": "Work & agriculture",
       "size": [
-        25,
-        35
+        27,
+        37
       ],
       "description": "A rough pole structure carries ragged cloth, fiber bundles or hanging strips appropriate to the selected tradition.",
       "variants": [
@@ -1168,13 +1175,13 @@
       "name": "Beehive",
       "group": "Work & agriculture",
       "size": [
-        43,
-        46
+        26,
+        26
       ],
-      "description": "A coiled straw skep, or a box hive stacked on its stand.",
+      "description": "A half-metre straw skep on its stand, one under a straw hackle, or a two-box hive under a gabled lid, with bees on their rounds.",
       "variants": [
         "Straw skep",
-        "Dark skep",
+        "Skep under a hackle",
         "Box hive"
       ]
     },
@@ -1213,8 +1220,8 @@
       "name": "Privy shed",
       "group": "Household",
       "size": [
-        52,
-        71
+        26,
+        44
       ],
       "description": "A board shed over a pit, leaning a little, with a cut in the door and the spoil heaped behind it.",
       "variants": [
@@ -1288,8 +1295,8 @@
       "name": "Stone privy",
       "group": "Household",
       "size": [
-        58,
-        71
+        26,
+        44
       ],
       "description": "A masonry privy block with a tiled roof and a chute down its side: the town house's own.",
       "variants": [
@@ -1318,8 +1325,8 @@
       "name": "Brick outhouse",
       "group": "Household",
       "size": [
-        58,
-        69
+        26,
+        44
       ],
       "description": "Brick, a slate roof, a cistern and a soil pipe.",
       "variants": [
@@ -1511,6 +1518,145 @@
         "Brass pans",
         "Iron pans",
         "Brass beam"
+      ]
+    },
+    {
+      "id": "crate-stack",
+      "name": "Stacked crates",
+      "group": "Storage & carrying",
+      "size": [
+        31,
+        27
+      ],
+      "description": "Two packing cases with a smaller third set askew on top, each in its own wood.",
+      "variants": [
+        "Warm wood",
+        "Dark wood",
+        "Pale wood"
+      ]
+    },
+    {
+      "id": "grain-sacks",
+      "name": "Grain sacks",
+      "group": "Storage & carrying",
+      "size": [
+        25,
+        19
+      ],
+      "description": "Three tied sacks slumped against each other, gathered at the neck and full at the foot.",
+      "variants": [
+        "Hemp",
+        "Linen",
+        "Spilling"
+      ]
+    },
+    {
+      "id": "flower-tub",
+      "name": "Planted tub",
+      "group": "Household",
+      "size": [
+        18,
+        18
+      ],
+      "description": "Half a cask under one iron hoop, planted with a mound of leaves and small blooms.",
+      "variants": [
+        "Warm wood",
+        "Dark wood",
+        "Pale wood"
+      ]
+    },
+    {
+      "id": "waymark",
+      "name": "Waymark",
+      "group": "Street furniture",
+      "size": [
+        24,
+        36
+      ],
+      "description": "What stands where roads meet: a fingerpost, a stone wayside cross on steps, a milestone, or a cairn with a marker.",
+      "variants": [
+        "Fingerpost",
+        "Wayside cross",
+        "Milestone",
+        "Cairn"
+      ]
+    },
+    {
+      "id": "wayside-shrine",
+      "name": "Wayside shrine",
+      "group": "Street furniture",
+      "size": [
+        26,
+        40
+      ],
+      "description": "A small roadside shrine: a gabled niche on a post, a plastered niche on a plinth, a stone lantern, or a cairn strung with flags.",
+      "variants": [
+        "Post shrine",
+        "Plastered niche",
+        "Stone lantern",
+        "Flagged cairn"
+      ]
+    },
+    {
+      "id": "hay-rick",
+      "name": "Hay rick",
+      "group": "Work & agriculture",
+      "size": [
+        32,
+        32
+      ],
+      "description": "Hay stacked to shed rain: a round rick on its pole, a rick under a roped thatch cap, or a row of stooks.",
+      "variants": [
+        "Round rick",
+        "Thatched rick",
+        "Stooks"
+      ]
+    },
+    {
+      "id": "dovecote",
+      "name": "Dovecote",
+      "group": "Work & agriculture",
+      "size": [
+        22,
+        42
+      ],
+      "description": "A pigeon house on a braced post, with a bird on the sill.",
+      "variants": [
+        "Tiled",
+        "Leaded",
+        "Thatched"
+      ]
+    },
+    {
+      "id": "chicken-coop",
+      "name": "Henhouse",
+      "group": "Work & agriculture",
+      "size": [
+        26,
+        22
+      ],
+      "description": "A low boarded henhouse with its pop hole, ramp and a hen.",
+      "variants": [
+        "Thatched",
+        "Boarded",
+        "Pale"
+      ]
+    },
+    {
+      "id": "standing-stone",
+      "name": "Standing stone",
+      "group": "Street furniture",
+      "size": [
+        22,
+        42
+      ],
+      "description": "A raised marker as each country made it: a menhir with pecked spirals, a deer stone, a cup-marked slab, a carved and painted post, a figure of stacked stones.",
+      "variants": [
+        "Spiral menhir",
+        "Deer stone",
+        "Cup-marked slab",
+        "Carved post",
+        "Stone figure"
       ]
     }
   ]

@@ -15,7 +15,24 @@
   "house-mud-1",
   "modern-shophouse",
   "modern-walkup",
-  "modern-kampung"
+  "modern-kampung",
+  "house-cottage-thatch-0",
+  "house-cottage-thatch-1",
+  "house-cottage-timber-0",
+  "house-cottage-timber-1",
+  "house-early-brick-0",
+  "house-early-brick-1",
+  "house-early-timber-0",
+  "house-early-stone-0",
+  "house-early-stucco-0",
+  "house-roman-ob-0",
+  "house-roman-ob-1",
+  "house-roman-ob-2",
+  "house-roman-ob-3",
+  "house-med-0",
+  "house-med-1",
+  "house-med-2",
+  "house-med-3"
  ],
  "forms": {
   "row": {
@@ -103,6 +120,16 @@
    "bays": 1,
    "shop": true,
    "infill": true
+  },
+  "inn": {
+   "footprint": [
+    9,
+    5
+   ],
+   "stories": 2,
+   "roofDepth": 43,
+   "bays": 4,
+   "wing": true
   }
  },
  "materials": {
@@ -265,7 +292,12 @@
     "study-courtyard",
     "study-board",
     "house-thatch",
-    "house-mud-0"
+    "house-mud-0",
+    "house-cottage-timber-0",
+    "house-early-brick-0",
+    "house-early-timber-0",
+    "house-roman-ob-0",
+    "house-med-1"
    ]
   },
   "colonnade": {
@@ -278,7 +310,8 @@
    "bays": 5,
    "colonnade": true,
    "bases": [
-    "house-roman-0"
+    "house-roman-0",
+    "house-roman-ob-0"
    ]
   }
  },

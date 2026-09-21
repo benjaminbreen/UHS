@@ -49,6 +49,15 @@ export type Venue = QualifiedContent & {
   activity: StationActivity;
   /** Relative draw among the venues a person is admitted to. */
   weight: number;
+  /** The same institution housed differently by date: first match wins,
+   * else `building`. */
+  eras?: readonly {
+    from: number;
+    to: number;
+    building: string;
+    /** Only where the settlement's culture is one of these. */
+    cultures?: readonly string[];
+  }[];
   /** True where the venue is street, water or ground rather than a building,
    * and the planner should not give it a lot. */
   open?: boolean;

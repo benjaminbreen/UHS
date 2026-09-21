@@ -65,7 +65,8 @@ import {
   pickTerrain,
   TERRAIN_RISE,
 } from "./terrain-projection";
-import { buildingContains, buildingPlacement } from "./buildings";
+import { buildingContains, buildingPlacement, multiplyTint } from "./buildings";
+import { churchBanner } from "../content/settlements/religious/banners";
 import { terrainVariant, type RenderOptions } from "./appearance";
 import { phoneLayout } from "../runtime/device";
 import Phaser from "phaser";
@@ -130,7 +131,8 @@ import { Drift } from "./drift";
 import { Mist } from "./mist";
 import { AmbientLife, critterFor } from "./ambient-life";
 import { weatherAt, type Weather } from "../core/weather";
-import { setWind, wind } from "./wind";
+import { setWind } from "./wind";
+import { addPlume, type SmokeKind } from "./smoke";
 
 import { driftStyle, foliageTint } from "./season-art";
 import { seasonAt } from "../core/livelihood";
@@ -143,8 +145,6 @@ import {
   motionPeriod,
   animatedFrames,
   ensureFireTextures,
-  ensureHearthSmoke,
-  HEARTH_FRAMES,
   glowAlpha,
 } from "./fire";
 import terrainFrames from "./generated/terrain.json" with { type: "json" };
@@ -157,8 +157,6 @@ const artStamp = artVersion.stamp;
  * not the simulation, is what costs the frame. */
 const CROWD_LIMIT = 24;
 /** A hearth plume: fewer, slower and taller than a campfire's. */
-const HEARTH_PUFFS = 4;
-const HEARTH_MS = 3400;
 /** Tiles of slack beyond the view for routine lookups. `entityInView` allows
  * 8 on x and 12 on y, so this must clear 12. */
 const AMBIENT_MARGIN = 16;
@@ -1102,6 +1100,39 @@ export class WorldScene extends Phaser.Scene {
     if (!shut) image.setFrame("door-leaf-3").setVisible(true);
     this.doors.set(place.id, { image, openness, shut });
   }
+  /** The art leaves a bare pole; the cloth and its cross are tinted here, so
+   * one sprite serves every realm. */
+  private addChurchBanner(
+    place: Place,
+    placement: ReturnType<typeof buildingPlacement>,
+    setting: WorldSetting | undefined,
+    baseY: number,
+  ) {
+    const rect = (placement.model as { banner?: number[] }).banner;
+    if (!rect || !setting) return;
+    const seed = this.runtime.engine.state.manifest.seed;
+    const banner = churchBanner(
+      setting,
+      random(seed, "church-banner", place.id),
+    );
+    for (const [frame, colour] of [
+      ["church-banner-cloth", banner.field],
+      ["church-banner-cross", banner.cross],
+    ] as const) {
+      const image = this.add
+        .image(
+          placement.x - placement.model.anchor[0] + rect[0],
+          baseY - placement.model.anchor[1] + rect[1],
+          this.texture(frame),
+          frame,
+        )
+        .setOrigin(0, 0)
+        // Dyed, then dimmed with the hour like the wall behind it.
+        .setTint(multiplyTint(colour, this.tint))
+        .setDepth(placement.depth + 1);
+      this.layers.push(image);
+    }
+  }
   /** Doors swing to follow the door objects the engine owns.
    *
    * The scene holds no opinion about who may open what: it reads `open` and
@@ -1264,15 +1295,36 @@ export class WorldScene extends Phaser.Scene {
   /** Whether this household has a fire in today. Hearths are lit to cook
    * morning and evening, and kept in all day when it is cold; not every
    * house at once, so a village is not a row of identical chimneys. */
+  private hearthHour() {
+    return (((this.runtime.engine.state.clock / 3600) % 24) + 24) % 24;
+  }
+  /** How hard the fires are burning, 0..1: breakfast and the evening meal,
+   * a little at midday, banked overnight and between. */
+  private hearthStrength() {
+    const h = this.hearthHour();
+    if ((h >= 5 && h < 9) || (h >= 16.5 && h < 21)) return 1;
+    if (h >= 11 && h < 13.5) return 0.7;
+    return 0.3;
+  }
+  /** Which households have a fire going. Nearly all of them at the two meals,
+   * a third at midday, a few at any hour; a cold day keeps more alight and a
+   * cold night keeps half of them banked. */
   private hearthLit(id: string) {
     if (this.options.freeze || !perf.fires) return false;
-    const hour = Math.floor(
-      (((this.runtime.engine.state.clock / 3600) % 24) + 24) % 24,
-    );
-    const cooking = (hour >= 5 && hour < 10) || (hour >= 16 && hour < 22);
+    const h = this.hearthHour();
     const cold = (this.weather?.tempC ?? 20) < 9;
-    if (!cooking && !cold) return false;
-    const share = cooking ? 0.7 : 0.45;
+    const meal = (h >= 5 && h < 9) || (h >= 16.5 && h < 21);
+    const share = meal
+      ? 0.85
+      : h >= 11 && h < 13.5
+        ? 0.4
+        : h >= 22 || h < 5
+          ? cold
+            ? 0.5
+            : 0.08
+          : cold
+            ? 0.55
+            : 0.15;
     return (
       random(this.runtime.engine.state.manifest.seed, "hearth", id) < share
     );
@@ -1285,52 +1337,31 @@ export class WorldScene extends Phaser.Scene {
     placement: ReturnType<typeof buildingPlacement>,
   ) {
     if (this.hearths.has(id)) return;
-    const key = ensureHearthSmoke(this);
-    const x =
-      placement.x -
-      placement.model.anchor[0] +
-      placement.model.bounds[2] * 0.62;
-    // Just clear of the ridge: a puff drawn on the roofline reads as part of
-    // the roof rather than as something leaving it.
-    const y = placement.y - placement.model.anchor[1] - 2;
-    const puffs: Phaser.GameObjects.Image[] = [];
-    for (let i = 0; i < HEARTH_PUFFS; i++) {
-      const puff = this.add
-        .image(x, y, key, HEARTH_FRAMES[0])
-        .setAlpha(0)
-        .setDepth(placement.depth + 2);
-      this.layers.push(puff);
-      const rise = () => {
-        // The scenery cache can be thrown away between the delayed call being
-        // booked and its firing, taking the puff with it.
-        if (!puff.scene || this.hearths.get(id) !== puffs) return;
-        // Read the wind each cycle, so a plume leans over as the day gets up.
-        const air = wind();
-        const lean = Math.cos(air.angle) * (16 + air.strength * 52);
-        const jitter = (Math.random() - 0.5) * 5;
-        puff
-          .setPosition(x + jitter, y)
-          .setAlpha(0.72)
-          .setFrame(HEARTH_FRAMES[0]);
-        this.tweens.add({
-          targets: puff,
-          y: y - 58 - Math.random() * 14,
-          x: x + jitter + lean,
-          alpha: 0,
-          duration: HEARTH_MS,
-          ease: "Sine.easeOut",
-          // The puff widens by changing frame, never by scaling: a scaled
-          // pixel blob stops matching the grid everything else sits on.
-          onUpdate: (tween) =>
-            puff.setFrame(
-              HEARTH_FRAMES[Math.min(2, Math.floor(tween.progress * 3))],
-            ),
-          onComplete: rise,
-        });
-      };
-      this.time.delayedCall((i * HEARTH_MS) / HEARTH_PUFFS, rise);
-      puffs.push(puff);
-    }
+    const model = placement.model as typeof placement.model & {
+      smoke?: [number, number, SmokeKind][];
+    };
+    const left = placement.x - model.anchor[0],
+      top = placement.y - model.anchor[1];
+    // A painter says where its smoke leaves; older art vents at the ridge.
+    const points: [number, number, SmokeKind][] = model.smoke?.length
+      ? model.smoke
+      : [[model.bounds[2] * 0.62, -2, "vent"]];
+    const strength = this.hearthStrength();
+    const puffs = points.flatMap(([x, y, kind], n) =>
+      // A second stack draws only when the house is cooking.
+      n > 0 && strength < 0.5
+        ? []
+        : addPlume(
+            this,
+            left + x,
+            top + y,
+            kind,
+            strength,
+            placement.depth + 2,
+            this.tint,
+          ),
+    );
+    for (const puff of puffs) this.layers.push(puff);
     this.hearths.set(id, puffs);
     this.game.canvas.dataset.hearths = String(this.hearths.size);
   }
@@ -2353,7 +2384,8 @@ export class WorldScene extends Phaser.Scene {
             const placement = buildingPlacement(b);
             // The cast texture uses the source canvas's bottom anchor; model owns its offset.
             this.shadow(
-              b.sprite,
+              (placement.model as { shadowFrame?: string }).shadowFrame ??
+                b.sprite,
               placement.x,
               placement.y +
                 placement.model.bounds[3] -
@@ -2375,8 +2407,13 @@ export class WorldScene extends Phaser.Scene {
             if (animation)
               this.addBuildingAnimation(b.id, placement, animation);
             this.addDoor(b, placement, image.y);
+            this.addChurchBanner(b, placement, w.pack.setting, image.y);
             this.addBuildingSign(b, placement, w.pack.setting, image.y);
-            if (b.access === "household" && this.hearthLit(b.id))
+            if (
+              (b.access === "household" ||
+                (placement.model as { smoke?: unknown[] }).smoke?.length) &&
+              this.hearthLit(b.id)
+            )
               this.lightHearth(b.id, placement);
           }
         for (const fence of w.enclosures) {

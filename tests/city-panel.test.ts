@@ -11,7 +11,8 @@ describe("city panel", () => {
     // streets, the square and (for New York) the river take the rest.
     { place: "city-miami", year: 2001, buildings: 400, core: 0.18, water: true },
     { place: "city-new-york", year: 2000, buildings: 150, core: 0.08, water: true },
-    { place: "london", year: 1400, buildings: 150, core: 0.12, water: true },
+    // A plotted town: each house keeps its own ground, so fewer of them.
+    { place: "london", year: 1400, buildings: 120, core: 0.12, water: true },
     { place: "alexandria", year: -244, buildings: 60, core: 0.1, water: true },
   ];
   for (const { place, year, buildings, core, water } of cases)

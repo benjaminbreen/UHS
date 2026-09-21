@@ -203,7 +203,10 @@ export function propKit(pack: Pack): PropKit {
     ["east-asian", "south-asian", "north-african-west-asian"].includes(culture)
   )
     contexts.household.push("glazed", "paintedChest");
-  if (year >= 500 && culture === "european") contexts.yard.push("barrel");
+  if (year >= 500 && culture === "european")
+    contexts.yard.push("barrel", "crateStack", "flowerTub");
+  // Threshed grain is sacked wherever cloth is woven and cereals are grown.
+  if (year >= -2999 && oldWorld) contexts.yard.push("grainSacks");
   // The shared fire in its period form. A cold-country camp keeps a long
   // fire; oven cultures move the fire into a clay body early; the classical
   // Mediterranean and East Asia raise it onto a brazier; from the factory

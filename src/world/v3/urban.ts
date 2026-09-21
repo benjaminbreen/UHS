@@ -1,5 +1,5 @@
 import { civicProfile } from "../../content/settlements/civic";
-import { venuesFor } from "../../content/venues";
+import { venueBuilding, venuesFor } from "../../content/venues";
 import type { CivicProfile } from "../../content/settlements/civic/types";
 import {
   religiousProfile,
@@ -12,6 +12,7 @@ import { urbanBuildingLimit } from "../../content/settlements/scale";
 import type { Pack, Point } from "../../core/types";
 import { buildingModel, buildingModels } from "../../content/graphics/models";
 import kit from "../../content/graphics/urban.json";
+import { settlementLayout } from "../../content/settlements/layout";
 import { random } from "../../core/random";
 import {
   composeUrban,
@@ -37,6 +38,11 @@ export type UrbanLot = {
   rect: Rect;
   yard: Rect;
   workPoint: Point;
+  /** Ground behind the house held as its garden. `last` closes the row's
+   * open end; every other side is the next garden's fence. */
+  garden?: Rect & { last: boolean };
+  /** One of a terrace: its side wall is its neighbour's to hide. */
+  tight?: boolean;
   civic?: CivicProfile;
   religious?: ReligiousProfile & { scale: "small" | "medium" | "large" };
   /** Somewhere people go after work. Stage one gives it no building of its
@@ -62,6 +68,10 @@ export type UrbanSurface = {
   paintFootway(rect: Rect): void;
   /** A small public green or deliberately undeveloped lot. */
   paintPark(rect: Rect, index: number): void;
+  /** A tree on open ground inside a block. */
+  plant?(at: Point, key: number): void;
+  /** A walled yard round a church, with its trees and stones. */
+  churchyard?(yard: Rect, church: Rect): void;
   /** A lamp, street tree or planter on the cell. */
   furnish(piece: Furniture): void;
   /** Base ground of the built-up area: beaten earth or paving, with grass
@@ -105,6 +115,12 @@ export function urbanFrames(
           .map((form) => `${base}-urban-${form}`)
           .filter((frame) => !!buildingModels[frame]),
   );
+}
+
+/** Laid out in plots rather than rows. The setting decides; the sprites only
+ * say how much ground their overhang needs kept clear. */
+export function plottedTown(pack: Pack): boolean {
+  return settlementLayout(pack.setting) === "plots";
 }
 
 /** Period street facades are complete frames rather than base-and-form kits;
@@ -156,7 +172,13 @@ export function siteGate(
  * choice of settlement form is allowed to make: an explicitly planned town is
  * regular whatever the region, and a waterfront turns its public space seaward. */
 export function siteForm(site: Site, pack: Pack): UrbanForm {
-  const form = urbanForm(pack.setting!);
+  const regional = urbanForm(pack.setting!);
+  // A plotted town is cut into blocks that hold two rows of house and garden,
+  // with no paved courts inside them.
+  const form =
+    regional.plots && plottedTown(pack)
+      ? { ...regional, block: regional.plots.block, courts: 0 }
+      : regional;
   if (site.profile.pattern === "planned")
     return {
       ...form,
@@ -183,9 +205,17 @@ export function urbanNeighborhood(
   api: UrbanSurface,
 ): UrbanLot[] {
   const form = siteForm(site, pack);
-  const frames = urbanFrames(pack, form.storeys);
+  const plotted = plottedTown(pack);
+  // A plotted town also builds the plain cottages its villages do.
+  const cottages = plotted
+    ? pack.buildings.filter((b) => buildingModels[b])
+    : [];
+  const frames = [...urbanFrames(pack, form.storeys), ...cottages];
   if (!frames.length) return [];
   const modern = (pack.setting?.year ?? 0) >= 1900;
+  /** Depth of garden a plotted row holds behind it: room for the roof to
+   * overhang and a bed or a tree to show past it. */
+  const GARDEN = form.plots?.garden ?? 4;
   type CandidateRecipe = {
     base: string;
     model: ReturnType<typeof buildingModel>;
@@ -262,6 +292,79 @@ export function urbanNeighborhood(
     return true;
   };
   const fits = (r: Rect) => api.dry(r) && free(r);
+  // Where an oblique house's side wall and roof overhang its footprint, no
+  // other house may stand, and it may not stand in another's.
+  const bodies = new Set<string>(),
+    shade = new Set<string>();
+  const overhang = (lot: UrbanLot): Rect[] => {
+    const [right, behind] = (buildingModel(lot.frame) as { margins?: number[] })
+      .margins ?? [0, 0];
+    const r = lot.rect;
+    // A terrace keeps only the ground its roofs cover; a detached house also
+    // keeps a little air on every side.
+    // In rows the neighbour hides the side wall; only the roof needs room.
+    if (lot.tight || !plotted)
+      return behind ? [{ x: r.x, y: r.y - behind, w: r.w, h: behind }] : [];
+    return [
+      {
+        x: r.x - 1,
+        y: r.y - behind - 1,
+        w: r.w + right + 2,
+        h: r.h + behind + 2,
+      },
+    ];
+  };
+  // Any town whose houses overhang their footprints keeps those roofs clear.
+  const roofed =
+    plotted ||
+    frames.some((f) => (buildingModels[f] as { margins?: number[] }).margins);
+  let noted = 0;
+  const note = (lot: UrbanLot) => {
+    for (const k of cells(lot.rect)) bodies.add(k);
+    for (const r of overhang(lot)) for (const k of cells(r)) shade.add(k);
+  };
+  const cells = (r: Rect) => {
+    const out: string[] = [];
+    for (let y = r.y; y < r.y + r.h; y++)
+      for (let x = r.x; x < r.x + r.w; x++) out.push(cellKey(x, y));
+    return out;
+  };
+  /** Stand a landmark: the hall, the sanctuary or a venue. One way in for all
+   * three, so each claims its ground, its keep-out and its apron alike. */
+  const claimLandmark = (
+    lot: UrbanLot,
+    ground: { forecourt?: Rect; apron?: Rect } = {},
+  ) => {
+    lots.push(lot);
+    note(lot);
+    noted = lots.length;
+    reserve(lot.rect);
+    reserve({ ...lot.point, w: 1, h: 1 });
+    api.reserveGround(lot.rect);
+    if (ground.forecourt) {
+      reserve(ground.forecourt);
+      api.reserveGround(ground.forecourt);
+      api.paintForecourt(ground.forecourt);
+    }
+    if (ground.apron) api.paintForecourt(ground.apron);
+    // A church in a plotted town stands in its own walled yard.
+    if (lot.religious && plotted && api.churchyard) {
+      const r = lot.rect;
+      // As much of a generous yard as the ground allows.
+      const yard = [6, 4, 3]
+        .map((m) => ({
+          x: r.x - m,
+          y: r.y - 2,
+          w: r.w + 2 * m + 1,
+          h: r.h + 3,
+        }))
+        .find((y) => api.dry(y, false));
+      if (yard) {
+        reserve(yard);
+        api.churchyard(yard, r);
+      }
+    }
+  };
   /** Inside the defensive circuit, where there is one. */
   const within = (r: Point | Rect) => {
     if (!layout.wall) return true;
@@ -415,7 +518,7 @@ export function urbanNeighborhood(
     );
     if (chosen) {
       const point = door(chosen);
-      lots.push({
+      claimLandmark({
         point,
         nx: chosen.nx,
         ny: chosen.ny,
@@ -425,9 +528,6 @@ export function urbanNeighborhood(
         workPoint: point,
         civic,
       });
-      reserve(chosen.rect);
-      reserve({ ...point, w: 1, h: 1 });
-      api.reserveGround(chosen.rect);
       civicRect = chosen.rect;
     }
   }
@@ -518,21 +618,19 @@ export function urbanNeighborhood(
         x: chosen.rect.x + chosen.model.entrance[0],
         y: chosen.rect.y + chosen.model.entrance[1],
       };
-      lots.push({
-        point,
-        nx: chosen.nx,
-        ny: chosen.ny,
-        frame: chosen.frame,
-        rect: chosen.rect,
-        yard: chosen.rect,
-        workPoint: point,
-        religious: { ...religious, scale },
-      });
-      reserve(chosen.rect);
-      reserve(chosen.forecourt);
-      api.reserveGround(chosen.rect);
-      api.reserveGround(chosen.forecourt);
-      api.paintForecourt(chosen.forecourt);
+      claimLandmark(
+        {
+          point,
+          nx: chosen.nx,
+          ny: chosen.ny,
+          frame: chosen.frame,
+          rect: chosen.rect,
+          yard: chosen.rect,
+          workPoint: point,
+          religious: { ...religious, scale },
+        },
+        { forecourt: chosen.forecourt },
+      );
     }
   }
   // Venues with a building of their own are placed like the sanctuary, but a
@@ -552,83 +650,86 @@ export function urbanNeighborhood(
     if (!venue.building) continue;
     // Scale is the outer loop: a landmark on the far side of the square beats
     // a shrunken one on the near side.
-    const placed = (["large", "medium", "small"] as const).flatMap((scale) =>
-      (
-        [
-          [0, -1],
-          [0, 1],
-          [1, 0],
-          [-1, 0],
-        ] as [number, number][]
-      ).flatMap(([nx, ny]) => {
-        const facing =
-          nx > 0 ? "west" : nx < 0 ? "east" : ny > 0 ? "north" : "south";
-        const base = `${venue.building}-${scale}-0`;
-        const frame = facing === "south" ? base : `${base}-${facing}`;
-        if (!buildingModels[frame]) return [];
-        const model = buildingModel(frame);
-        const [w, h] = model.footprint;
-        // A block back from the square, and shifted along it so several
-        // venues do not stack on the same approach.
-        const set = form.tiers[0] + 4;
-        return [0, 1, -1, 2, -2].map((step) => {
-          const shift = step * (w + 3);
-          const rect = {
-            x: nx
-              ? nx < 0
-                ? plaza.x - w - set
-                : plaza.x + plaza.w + set
-              : Math.floor(plaza.x + (plaza.w - w) / 2) + shift,
-            y: ny
-              ? ny < 0
-                ? plaza.y - h - set
-                : plaza.y + plaza.h + set
-              : Math.floor(plaza.y + (plaza.h - h) / 2) + shift,
-            w,
-            h,
-          };
-          // The ground the door opens onto has to be usable too, or the
-          // building lands correctly and nobody can reach it.
-          const apron =
-            nx || ny
-              ? { x: rect.x + (nx > 0 ? -2 : nx < 0 ? w : 0),
-                  y: rect.y + (ny > 0 ? -2 : ny < 0 ? h : 0),
-                  w: nx ? 2 : w,
-                  h: ny ? 2 : h }
-              : { x: rect.x, y: rect.y + h, w, h: 2 };
-          return { frame, model, nx, ny, rect, apron };
-        });
-      }),
-    // Only that the apron is usable ground: requiring it unreserved as well
-    // rejects every lot, because the strip toward the square is already the
-    // square's.
-    // Inside the settlement as well as on dry ground: a wall-less town has
-    // nothing else stopping a landmark being placed off the edge of the map.
-    ).find(
-      (c) => within(c.rect) && fits(c.rect) && api.dry(c.apron, false),
-    );
+    const placed = (["large", "medium", "small"] as const)
+      .flatMap(
+        (scale) =>
+          (
+            [
+              [0, -1],
+              [0, 1],
+              [1, 0],
+              [-1, 0],
+            ] as [number, number][]
+          ).flatMap(([nx, ny]) => {
+            const facing =
+              nx > 0 ? "west" : nx < 0 ? "east" : ny > 0 ? "north" : "south";
+            const base = `${venueBuilding(venue, pack.setting!)}-${scale}-0`;
+            const frame = facing === "south" ? base : `${base}-${facing}`;
+            if (!buildingModels[frame]) return [];
+            const model = buildingModel(frame);
+            const [w, h] = model.footprint;
+            // A block back from the square, and shifted along it so several
+            // venues do not stack on the same approach.
+            const set = form.tiers[0] + 4;
+            return [0, 1, -1, 2, -2].map((step) => {
+              const shift = step * (w + 3);
+              const rect = {
+                x: nx
+                  ? nx < 0
+                    ? plaza.x - w - set
+                    : plaza.x + plaza.w + set
+                  : Math.floor(plaza.x + (plaza.w - w) / 2) + shift,
+                y: ny
+                  ? ny < 0
+                    ? plaza.y - h - set
+                    : plaza.y + plaza.h + set
+                  : Math.floor(plaza.y + (plaza.h - h) / 2) + shift,
+                w,
+                h,
+              };
+              // The ground the door opens onto has to be usable too, or the
+              // building lands correctly and nobody can reach it.
+              const apron =
+                nx || ny
+                  ? {
+                      x: rect.x + (nx > 0 ? -2 : nx < 0 ? w : 0),
+                      y: rect.y + (ny > 0 ? -2 : ny < 0 ? h : 0),
+                      w: nx ? 2 : w,
+                      h: ny ? 2 : h,
+                    }
+                  : { x: rect.x, y: rect.y + h, w, h: 2 };
+              return { frame, model, nx, ny, rect, apron };
+            });
+          }),
+        // Only that the apron is usable ground: requiring it unreserved as well
+        // rejects every lot, because the strip toward the square is already the
+        // square's.
+        // Inside the settlement as well as on dry ground: a wall-less town has
+        // nothing else stopping a landmark being placed off the edge of the map.
+      )
+      .find((c) => within(c.rect) && fits(c.rect) && api.dry(c.apron, false));
     if (!placed) continue;
     const point = {
       x: placed.rect.x + placed.model.entrance[0],
       y: placed.rect.y + placed.model.entrance[1],
     };
-    lots.push({
-      point,
-      nx: placed.nx,
-      ny: placed.ny,
-      frame: placed.frame,
-      rect: placed.rect,
-      yard: placed.rect,
-      workPoint: point,
-      venue,
-    });
-    reserve(placed.rect);
-    api.reserveGround(placed.rect);
     // The strip in front of the door is paved, as the sanctuary's forecourt
     // is: without it the building is placed correctly and nothing ever routes
     // to its entrance. It is not reserved — the door stands in it, and a
     // reserved apron makes the lot itself unusable.
-    api.paintForecourt(placed.apron);
+    claimLandmark(
+      {
+        point,
+        nx: placed.nx,
+        ny: placed.ny,
+        frame: placed.frame,
+        rect: placed.rect,
+        yard: placed.rect,
+        workPoint: point,
+        venue,
+      },
+      { apron: placed.apron },
+    );
   }
   api.paintCourt(plaza, civic.square, civicRect);
   for (const [i, r] of layout.squares.entries()) api.paintSquare(r, i);
@@ -657,7 +758,8 @@ export function urbanNeighborhood(
   // What trade each placed building carries, so the next one can avoid it.
   const trades: { x: number; y: number; trade: string }[] = [];
   const tradeOf = (frame: string) =>
-    (buildingModels[frame] as { business?: string } | undefined)?.business ?? "";
+    (buildingModels[frame] as { business?: string } | undefined)?.business ??
+    "";
   /** Two diners side by side is the tell that a street was generated. A trade
    * has to clear the frontage it is already on — a town can have two grocers,
    * but not next door to each other. */
@@ -674,6 +776,18 @@ export function urbanNeighborhood(
     const door = { ...lot.point, w: 1, h: 1 },
       work = { ...lot.workPoint, w: 1, h: 1 };
     if (!fits(lot.rect)) return false;
+    if (roofed) {
+      // The hall, the church and the venues were placed by other hands.
+      for (; noted < lots.length; noted++) note(lots[noted]);
+      if (cells(lot.rect).some((k) => shade.has(k))) return false;
+      const own = new Set(cells(lot.rect));
+      if (
+        overhang(lot).some((r) =>
+          cells(r).some((k) => bodies.has(k) && !own.has(k)),
+        )
+      )
+        return false;
+    }
     if (repeats(lot.frame, lot.rect)) return false;
     if (!free(door) || !free(work) || !api.dry(door, false)) return false;
     // A threshold or work pocket outside the wall has no route back in.
@@ -687,6 +801,8 @@ export function urbanNeighborhood(
     reserve(lot.rect);
     reserve(door);
     reserve(work);
+    if (lot.garden && fits(lot.garden)) reserve(lot.garden);
+    else lot.garden = undefined;
     return true;
   };
   // Greens are chosen before anything is built, so a park is a decision and
@@ -709,7 +825,7 @@ export function urbanNeighborhood(
       place(rank, lot);
     }
   }
-  if (candidateBases.length)
+  if (candidateBases.length && !plotted)
     for (const rank of ranks) {
       if (parkRanks.has(rank) || lots.length >= capacity) continue;
       infill(rank);
@@ -733,6 +849,33 @@ export function urbanNeighborhood(
     const b = rank.block;
     api.paintPark({ x: b.x + 1, y: b.y + 1, w: b.w - 2, h: b.h - 2 }, i);
   }
+  // Open ground in a plotted town grows trees: singly and in twos and
+  // threes, never in a house's overhang or its garden.
+  if (plotted && api.plant)
+    for (const { block } of ranks) {
+      const want = Math.round((block.w * block.h) / 22);
+      for (; noted < lots.length; noted++) note(lots[noted]);
+      for (let n = 0, planted = 0; n < want * 5 && planted < want; n++) {
+        const at = {
+          x:
+            block.x + Math.floor(rand("tree-x", block.x, block.y, n) * block.w),
+          y:
+            block.y + Math.floor(rand("tree-y", block.x, block.y, n) * block.h),
+        };
+        const k = cellKey(at.x, at.y);
+        if (used.has(k) || shade.has(k) || bodies.has(k)) continue;
+        // A crown stands four cells tall: not in front of a house front.
+        if (
+          cells({ x: at.x - 2, y: at.y - 5, w: 5, h: 5 }).some((c) =>
+            bodies.has(c),
+          )
+        )
+          continue;
+        reserve({ ...at, w: 1, h: 1 });
+        api.plant(at, n);
+        planted++;
+      }
+    }
   for (const piece of layout.furniture) api.furnish(piece);
   api.paintCity((x, y) => layout.holds(x, y, 1));
   return lots;
@@ -795,7 +938,7 @@ export function urbanNeighborhood(
       quarter === "market"
         ? modern
           ? ["shop", "office", "tall"]
-          : ["shop", "tall"]
+          : ["shop", "tall", "inn"]
         : quarter === "craft"
           ? modern
             ? ["row", "shop", "midrise"]
@@ -803,7 +946,7 @@ export function urbanNeighborhood(
           : quarter === "elite"
             ? modern
               ? ["wide", "office", "midrise", "tall"]
-              : ["wide", "tall"]
+              : ["wide", "tall", "inn"]
             : quarter === "edge"
               ? modern
                 ? ["shop", "row", "midrise"]
@@ -825,6 +968,16 @@ export function urbanNeighborhood(
                 : ["house", "tenement"];
       const chosen = period.filter((f) => roles.includes(periodRole(f)));
       return chosen.length ? chosen : period;
+    }
+    // A researched fabric names its own forms; `house` is the pack's own
+    // detached houses.
+    const named = plotted ? form.quarters?.[quarter] : undefined;
+    if (named) {
+      const pool = [
+        ...frames.filter((f) => named.some((w) => f.endsWith(`-urban-${w}`))),
+        ...(named.includes("house") ? cottages : []),
+      ];
+      if (pool.length) return pool;
     }
     const chosen = frames.filter((f) => want.some((w) => f.endsWith(`-${w}`)));
     const pool = chosen.length ? chosen : frames;
@@ -1181,6 +1334,7 @@ export function urbanNeighborhood(
       return out;
     }
     const gap = block.court ? 3 : 1;
+    const yard = plotted ? GARDEN : 0;
     let top = block.y,
       bottom = block.y + block.h;
     const north = terrace(
@@ -1188,7 +1342,7 @@ export function urbanNeighborhood(
       top,
       "north",
       band++,
-      Math.min(deepest, bottom - top),
+      Math.min(deepest + yard, bottom - top),
     );
     out.push(...north.lots);
     top += north.depth || Math.min(deepest, bottom - top);
@@ -1198,7 +1352,7 @@ export function urbanNeighborhood(
         bottom,
         "south",
         band++,
-        Math.min(deepest, bottom - top),
+        Math.min(deepest + yard, bottom - top),
       );
       out.push(...south.lots);
       bottom -= south.depth || Math.min(deepest, bottom - top);
@@ -1208,7 +1362,7 @@ export function urbanNeighborhood(
     // once the block is built: a lane through an empty block is a cul-de-sac
     // to nowhere.
     while (bottom - top >= gap + 2 * shallowest) {
-      const laneY = top + Math.min(deepest, (bottom - top - gap) >> 1);
+      const laneY = top + Math.min(deepest + yard, (bottom - top - gap) >> 1);
       out.push(...terrace(block, laneY, "south", band++, laneY - top).lots);
       const below = terrace(
         block,
@@ -1266,7 +1420,10 @@ export function urbanNeighborhood(
       pool[Math.floor(rand("range", block.x, block.y, key) * pool.length)];
     // Party walls in a modern centre; a cell between neighbours elsewhere, so
     // a row reads as houses rather than one wall.
-    const spacing = modern && block.reach < 0.5 ? 0 : 1;
+    // A plotted market row is a true terrace: the next house hides this
+    // one's side wall. Elsewhere each stands clear of its own overhang.
+    const tight = plotted && quarter === "market" && !vertical;
+    const spacing = tight || (modern && block.reach < 0.5) ? 0 : 1;
     const start = vertical ? block.y : block.x,
       end = vertical ? block.y + block.h : block.x + block.w;
     let cursor = start,
@@ -1280,11 +1437,23 @@ export function urbanNeighborhood(
       );
       let span = 1,
         tried = 0;
+      // Not every plot is built: an orchard or a bit of green between houses.
+      if (
+        plotted &&
+        !tight &&
+        rand("plot-empty", block.x, edge, cursor) < 0.1
+      ) {
+        cursor += 5;
+        continue;
+      }
       for (const base of choices) {
         // Bounded: only the few best frames are put to the ground. Testing
         // every frame at every position would scan the block many times over.
         if (tried >= 5) break;
-        const frame = face === "south" ? base : `${base}-${face}`;
+        // A detached house in its plot always shows its real door: the south
+        // one, with the path walking round from whichever street it fronts.
+        const round = plotted && !tight;
+        const frame = face === "south" || round ? base : `${base}-${face}`;
         const model = buildingModel(frame),
           [w, h] = model.footprint;
         const along = vertical ? h : w;
@@ -1301,22 +1470,62 @@ export function urbanNeighborhood(
         // is asked here, while there is still another frame to try.
         if (!api.dry(rect, false) || !api.dry({ ...point, w: 1, h: 1 }, false))
           continue;
+        const margins = (model as { margins?: number[] }).margins ?? [0, 0];
+        // Along a column the next house stands under this one's roof, so it
+        // keeps that clear whatever the layout. A plot also keeps a gap.
+        const clear =
+          plotted && !tight
+            ? margins[vertical ? 1 : 0] +
+              1 +
+              Math.floor(rand("plot-gap", block.x, edge, cursor) * 3)
+            : vertical
+              ? Math.max(spacing, margins[1])
+              : spacing;
+        const deep = vertical ? w : h;
+        const room = Math.min(GARDEN, maxDepth - deep);
+        const garden =
+          plotted && room >= 3
+            ? {
+                x: vertical
+                  ? face === "west"
+                    ? rect.x + w
+                    : rect.x - room
+                  : rect.x,
+                y: vertical
+                  ? rect.y
+                  : face === "north"
+                    ? // The row outside a south door stays a walk.
+                      rect.y + h + (round ? 1 : 0)
+                    : rect.y - room,
+                w: vertical ? room : w + clear,
+                h: vertical
+                  ? h + clear
+                  : room - (round && face === "north" ? 1 : 0),
+                last: false,
+              }
+            : undefined;
         out.push({
           point,
           quarter,
-          nx,
-          ny,
+          nx: round ? 0 : nx,
+          ny: round ? -1 : ny,
           frame,
           rect,
           yard: rect,
-          workPoint: { x: point.x - nx, y: point.y - ny },
+          workPoint: round
+            ? { x: point.x + 1, y: point.y }
+            : { x: point.x - nx, y: point.y - ny },
+          garden,
+          tight,
         });
-        span = along;
-        depth = Math.max(depth, vertical ? w : h);
+        span = along + clear - spacing;
+        depth = Math.max(depth, deep + (garden ? room : 0));
         break;
       }
       cursor += span + spacing;
     }
+    const closing = out.at(-1)?.garden;
+    if (closing) closing.last = true;
     return { lots: out, depth };
   }
 }

@@ -33,7 +33,12 @@ export const studies = {
   timber: {
     label: "Medieval France · construction study",
     source: "roman",
-    buildings: ["study-timber"],
+    buildings: [
+      "house-cottage-thatch-0",
+      "house-cottage-thatch-1",
+      "house-cottage-timber-0",
+      "house-cottage-timber-1",
+    ],
     note: "Shared-part stress test, not a finished or authenticated medieval content pack.",
   },
   courtyard: {

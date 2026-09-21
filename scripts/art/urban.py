@@ -483,6 +483,9 @@ def urban_recipes(root, source):
             modern_base=base.startswith('modern-')
             if form in ('midrise','office') and not modern_base:
                 continue
+            # Only the oblique painter can draw a cross wing.
+            if shape.get('wing') and not original.get('oblique'):
+                continue
             if modern_base and not modern_form_allowed(kit,base,form,original):
                 continue
             r={**original,**shape}
@@ -493,7 +496,7 @@ def urban_recipes(root, source):
                      entrance=[fw//2,fh],opening='door',height=r['stories']*31+24,
                      attachments=([part for part in original['attachments'] if part == 'timber-frame'] + (['urban-colonnade'] if shape.get('colonnade') else ['urban-shop'] if shape.get('shop') else [])),
                      seed=original['seed']+len(form)*19,
-                     label={'row':'Street-front house','shop':'Shop and workshop','wide':'Broad courtyard range','tall':'Tall residential house','midrise':'Mid-rise apartment block','office':'Glass office tower','hall':'Public hall','colonnade':'Colonnaded civic hall','cottage':'Cottage','hut':'Hut','stall':'Market stall'}[form],
+                     label={'row':'Street-front house','shop':'Shop and workshop','wide':'Broad courtyard range','tall':'Tall residential house','midrise':'Mid-rise apartment block','office':'Glass office tower','hall':'Public hall','colonnade':'Colonnaded civic hall','cottage':'Cottage','hut':'Hut','stall':'Market stall','inn':'Inn'}[form],
                      description='A procedural urban building: shared street frontage, recessed openings and a rear court. Its form is illustrative, not a surveyed reconstruction.',
                      urban=True,infill=bool(shape.get('infill')),**modern)
             if modern_base:

@@ -30,6 +30,8 @@ def recipes():
     from art.halls import HallBuilding, hall_recipes
     from art.period import PeriodBuilding, period_recipes
     from art.modern import ModernBuilding
+    from art.oblique import ObliqueBuilding, ObliquePlayhouse
+    from art.oblique_church import ObliqueChurch
     source = json.loads((ROOT / 'src/content/graphics/buildings.json').read_text())
     source['materials'].update(
         json.loads((ROOT / 'src/content/graphics/urban.json').read_text())
@@ -37,12 +39,22 @@ def recipes():
     all_r = {**source['buildings'], **urban_recipes(ROOT, source),
              **religious_recipes(ROOT, source), **theatre_recipes(ROOT, source),
              **hall_recipes(ROOT, source), **period_recipes(ROOT, source)}
-    painters = {'candidate': InfillBuilding, 'modern': ModernBuilding,
+    painters = {'oblique': ObliqueBuilding, 'candidate': InfillBuilding, 'modern': ModernBuilding,
                 'period': PeriodBuilding,
                 'religious': ReligiousBuilding, 'theatre': TheatreBuilding,
                 'hall': HallBuilding, 'urban': UrbanBuilding}
 
     def painter(r):
+        if r.get('family') == 'parish':
+            return ObliqueChurch
+        if r.get('form') == 'oblique-ring':
+            return ObliquePlayhouse
+        if r.get('mud'):
+            from art.oblique_mud import ObliqueMudbrick
+            return ObliqueMudbrick
+        if r.get('round'):
+            from art.oblique_round import ObliqueRound
+            return ObliqueRound
         for key, cls in painters.items():
             if r.get(key):
                 return cls

@@ -730,6 +730,123 @@
    "overhang": 8,
    "painting": false,
    "bridge": false
+  },
+  "globe": {
+   "family": "theatre",
+   "oblique": true,
+   "podiumHeight": 0,
+   "wallHeight": 60,
+   "storeys": 2,
+   "looks": [
+    {}
+   ],
+   "label": "Playhouse",
+   "form": "oblique-ring",
+   "description": "A polygonal timber playhouse under a ring of thatch, open to the yard within. Illustrative, after the London playhouses of about 1600.",
+   "footprint": [
+    10,
+    8
+   ],
+   "entrance": [
+    5,
+    8
+   ],
+   "wall": "half-timber",
+   "roofMaterial": "thatch",
+   "stories": 3,
+   "seed": 1599,
+   "scales": {
+    "small": {
+     "footprint": [
+      8,
+      6
+     ],
+     "entrance": [
+      4,
+      6
+     ]
+    },
+    "medium": {
+     "footprint": [
+      10,
+      8
+     ],
+     "entrance": [
+      5,
+      8
+     ]
+    },
+    "large": {
+     "footprint": [
+      12,
+      9
+     ],
+     "entrance": [
+      6,
+      9
+     ]
+    }
+   }
+  },
+  "court-opera": {
+   "family": "theatre",
+   "oblique": true,
+   "podiumHeight": 0,
+   "wallHeight": 60,
+   "storeys": 2,
+   "looks": [
+    {}
+   ],
+   "label": "Opera house",
+   "form": "oblique",
+   "description": "A stone theatre with a pedimented front and tall sashes. Illustrative.",
+   "footprint": [
+    11,
+    8
+   ],
+   "entrance": [
+    5,
+    8
+   ],
+   "wall": "limestone",
+   "roofMaterial": "slate",
+   "stories": 3,
+   "frontispiece": "pediment",
+   "windowStyle": "sash",
+   "chimneys": 0,
+   "seed": 1737,
+   "scales": {
+    "small": {
+     "footprint": [
+      8,
+      6
+     ],
+     "entrance": [
+      4,
+      6
+     ]
+    },
+    "medium": {
+     "footprint": [
+      11,
+      8
+     ],
+     "entrance": [
+      5,
+      8
+     ]
+    },
+    "large": {
+     "footprint": [
+      14,
+      9
+     ],
+     "entrance": [
+      7,
+      9
+     ]
+    }
+   }
   }
  }
 }

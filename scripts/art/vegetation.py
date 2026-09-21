@@ -82,8 +82,65 @@ def palm(name='palm'):
     return edge
 
 
+def broadleaf(name):
+    """A full round crown built from lapped leaf clumps, each lit from the
+    upper left and dark where it overhangs the one below. Drawn at 1x. The
+    crown stays above y=51, where the runtime cuts canopy from trunk."""
+    im=Image.new('RGBA',(56,72));d=ImageDraw.Draw(im)
+    rng=random.Random(185+sum(map(ord,name)))
+    bark=['#2a1e14','#4a3520','#6e4f2c','#94703f']
+    d.polygon([(24,40),(32,40),(32,60),(35,65),(40,69),(33,68),(29,66),(25,69),(16,69),(21,65),(24,60)],fill=bark[0])
+    d.polygon([(25,40),(31,40),(31,61),(33,66),(28,64),(24,67),(19,68),(23,63),(25,58)],fill=bark[1])
+    d.polygon([(25,40),(28,40),(28,60),(25,65),(22,67),(25,60)],fill=bark[2])
+    d.line((26,42,26,58),fill=bark[3])
+    for y in (47,53,59):d.line((29,y,30,y+2),fill=bark[0])
+    d.line((27,46,18,38),fill=bark[1],width=3);d.line((30,45,39,37),fill=bark[0],width=3)
+    pal=['#173a26','#23552c','#357434','#4f923d','#72ad48','#9cc95c']
+    # Back to front: the last clump to cover a pixel owns it.
+    clumps=[(22,10,8,7),(34,11,8,7),(13,18,8,7),(27,17,9,8),(41,18,8,7),
+            (8,27,7,7),(20,26,9,8),(34,26,9,8),(47,27,7,7),
+            (13,36,9,8),(28,35,10,8),(43,36,9,8),(20,43,9,7),(36,43,9,7)]
+    clumps=[(cx+rng.randrange(-1,2),cy+rng.randrange(-1,2),rx,ry) for cx,cy,rx,ry in clumps]
+    owner={}
+    for n,(cx,cy,rx,ry) in enumerate(clumps):
+        for y in range(cy-ry,cy+ry+1):
+            for x in range(cx-rx,cx+rx+1):
+                nx,ny=(x-cx)/rx,(y-cy)/ry
+                # A ragged rim, so the silhouette is leaves and not a ball.
+                if nx*nx+ny*ny<=1-.16*((x*7+y*13+n*5)%5==0) and 1<=x<55 and 1<=y<51:
+                    owner[(x,y)]=(n,nx,ny)
+    level={}
+    for (x,y),(n,nx,ny) in owner.items():
+        z=math.sqrt(max(0,1-nx*nx-ny*ny))
+        # Each clump runs the whole ramp; the crown only leans on it.
+        light=-.5*nx-.8*ny+.3*z-.12*(x-28)/28-.15*(y-26)/26
+        level[(x,y)]=1 if light<-.22 else 2 if light<.12 else 3 if light<.45 else 4 if light<.78 else 5
+    # Leaf dabs, not speckle: a few pixels lighter on the lit side of a
+    # clump, darker on its underside.
+    for _ in range(420):
+        x,y=rng.randrange(2,54),rng.randrange(2,50)
+        if (x,y) not in owner:continue
+        n,nx,ny=owner[(x,y)]
+        step=1 if ny<.1 else -1
+        for dx,dy in ((0,0),(1,0),(0,1)) if rng.random()<.6 else ((0,0),(1,0),(2,0),(1,-1)):
+            q=(x+dx,y+dy)
+            if q in owner and owner[q][0]==n:level[q]=max(1,min(5,level[q]+step))
+    for (x,y),(n,nx,ny) in owner.items():
+        v=level[(x,y)]
+        if any(q not in owner for q in ((x+1,y),(x-1,y),(x,y-1),(x,y+1))):v=0
+        else:
+            # A clump sinks into shade where the next one laps over it, and
+            # the lapping edge catches the light.
+            for reach,cap in ((1,1),(2,1),(3,2),(4,2)):
+                if owner.get((x,y+reach),(n,))[0]>n:v=min(v,cap);break
+            if owner[(x,y-1)][0]<n and nx<.5:v=max(v,4)
+        d.point((x,y),fill=pal[v])
+    return im
+
+
 def tree(name):
     if name in ('palm','date-palm'):return palm(name)
+    if name in ('oak','hackberry'):return broadleaf(name)
     im=Image.new('RGBA',(56,72));d=ImageDraw.Draw(im)
     # A substantial trunk, roots and bifurcations anchor the canopy.
     d.polygon([(23,38),(31,37),(31,62),(36,67),(29,66),(24,68),(18,68),(22,62)],fill='#3e392a')

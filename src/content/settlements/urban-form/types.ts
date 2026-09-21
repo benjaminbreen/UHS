@@ -79,6 +79,24 @@ export type UrbanForm = {
   squares?: number;
   /** Diagonal avenues cut from the square's corners to the built edge. */
   diagonals?: number;
+  /** Houses stand in their own green plots rather than in rows on the street,
+   * where the climate lets them (`settlementLayout`). The block is sized to
+   * hold two rows of house and garden back to back; `paved` says how far down
+   * the street tiers the cobbles go, the rest being earth. */
+  plots?: {
+    block: readonly [number, number];
+    garden: number;
+    paved: "arterial" | "streets" | "all";
+  };
+  /** Building forms each quarter prefers, in the urban kit's form names.
+   * `house` is the pack's own detached houses. Omitted, the planner's
+   * defaults for the date. */
+  quarters?: Partial<
+    Record<
+      "market" | "craft" | "elite" | "residential" | "edge",
+      readonly string[]
+    >
+  >;
   /** Planted grass strip, in cells, between an arterial and its footway. */
   verge?: number;
   /** Share of untouched blocks reserved for pocket parks or vacant lots. */

@@ -5,6 +5,8 @@
 - Preserve distinctions between documented evidence, inference, hypothesis and fiction. The user explicitly welcomes ambitious, sourced prehistoric hypotheses. Explain the chosen interpretation and alternatives without claiming recovered languages or invented evidence.
 - The user approved the prop visual baseline and explicitly authorized committing the entire worktree, followed by interactive props. Baseline checkpoint: `120f870`. The shared prop MVP is documented in `PROPS.md`, prop drawing rules in `PROP_ART.md` and building drawing rules in `BUILDING_ART.md`; new content-version-2 worlds use it while old saves/replays retain their original content. Geography/World Weaver remains documented in `WORLDS.md`.
 - `src/content/legacy-packs.ts` preserves generator-v1 inputs. Changes affecting existing generated worlds, saves or replay require deliberate compatibility/version handling. Run relevant tests and verify user-facing changes in the browser.
+- Buildings are drawn oblique (front, a 12px sheared right-hand wall, a roof leaning back). Read `OBLIQUE_ART.md` first; the numbers live in `scripts/art/oblique_style.py`, and `python3 scripts/art/oblique_audit.py` must pass before `npm run art`.
+- To see a generated settlement without a browser, run `npm run town:sheet` (see `OBLIQUE_ART.md`). Do this before and after changing layout, yards or building art.
 - Other agent work may be present in the shared checkout. Inspect Git status; preserve unrelated changes and do not sweep them into a task commit.
 
 - During early development, the user explicitly prioritizes terrain graphics, procedural composition and performance over saves. Do not spend effort on save restoration or save-system tests unless requested.

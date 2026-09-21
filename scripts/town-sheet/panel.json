@@ -1,0 +1,82 @@
+[
+  {
+    "name": "london-1308",
+    "query": "medieval London",
+    "radius": 45
+  },
+  {
+    "name": "normandy-village",
+    "query": "medieval Normandy",
+    "radius": 36
+  },
+  {
+    "name": "london-1650",
+    "query": "London 1650",
+    "radius": 40
+  },
+  {
+    "name": "rome-99bce",
+    "query": "Rome 100 BCE",
+    "radius": 40
+  },
+  {
+    "name": "sicily-1400",
+    "query": "Sicily 1400",
+    "radius": 36
+  },
+  {
+    "name": "cairo-1200",
+    "query": "Cairo 1200",
+    "radius": 40
+  },
+  {
+    "name": "kyoto-1700",
+    "query": "Kyoto 1700",
+    "radius": 40
+  },
+  {
+    "name": "hangzhou-1200",
+    "query": "Hangzhou 1200",
+    "radius": 40
+  },
+  {
+    "name": "tenochtitlan-1500",
+    "query": "Tenochtitlan 1500",
+    "radius": 40
+  },
+  {
+    "name": "timbuktu-1400",
+    "query": "Timbuktu 1400",
+    "radius": 40
+  },
+  {
+    "name": "catalhoyuk",
+    "query": "Neolithic Anatolia",
+    "radius": 36
+  },
+  {
+    "name": "new-york-2000",
+    "query": "New York 2000",
+    "radius": 40
+  },
+  {
+    "name": "britain-bronze-age",
+    "query": "Bronze Age Britain",
+    "radius": 36
+  },
+  {
+    "name": "danube-first-farmers",
+    "query": "Vienna 5200 BCE",
+    "radius": 36
+  },
+  {
+    "name": "yangshao",
+    "query": "Beijing 4500 BCE",
+    "radius": 36
+  },
+  {
+    "name": "steppe-bronze-age",
+    "query": "Bronze Age Mongolia",
+    "radius": 36
+  }
+]

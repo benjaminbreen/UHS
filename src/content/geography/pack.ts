@@ -31,7 +31,12 @@ export function periodBuildings(setting: WorldSetting): string[] {
   const victorian = year >= 1840;
   if (culture === "european" && lon < -30)
     return year < 1830
-      ? ["federal-house", "georgian-townhouse", "georgian-shop", "georgian-stone-house"]
+      ? [
+          "federal-house",
+          "georgian-townhouse",
+          "georgian-shop",
+          "georgian-stone-house",
+        ]
       : [
           "brownstone",
           "brownstone-pair",
@@ -40,7 +45,9 @@ export function periodBuildings(setting: WorldSetting): string[] {
           "mansard-house",
           "victorian-shop",
           "victorian-grocer",
-          ...(year >= 1860 ? ["tenement-storefront", "tenement-walkup", "cast-iron-warehouse"] : []),
+          ...(year >= 1860
+            ? ["tenement-storefront", "tenement-walkup", "cast-iron-warehouse"]
+            : []),
         ];
   if (culture === "european")
     return [
@@ -49,13 +56,24 @@ export function periodBuildings(setting: WorldSetting): string[] {
       "georgian-stone-house",
       "georgian-shop",
       ...(year >= 1800 ? ["regency-terrace"] : []),
-      ...(victorian ? ["victorian-shop", "victorian-grocer", "mansard-house", "cast-iron-warehouse"] : []),
+      ...(victorian
+        ? [
+            "victorian-shop",
+            "victorian-grocer",
+            "mansard-house",
+            "cast-iron-warehouse",
+          ]
+        : []),
     ];
   if (culture === "east-asian") {
     const japan = lon > 128 && lat > 30 && lat < 46;
     const korea = !japan && lon > 124 && lon < 130.5 && lat > 33.5 && lat < 39;
     if (japan)
-      return ["machiya", "machiya-shop", ...(year >= 1870 ? ["giyofu-house"] : [])];
+      return [
+        "machiya",
+        "machiya-shop",
+        ...(year >= 1870 ? ["giyofu-house"] : []),
+      ];
     if (korea) return ["hanok", "chinese-shophouse"];
     return ["chinese-shophouse", "chinese-courtyard-gate"];
   }
@@ -96,6 +114,60 @@ export function modernBuildings(setting: WorldSetting): string[] {
   ];
 }
 
+/** Before iron: the house a region's first farmers and herders built.
+ * The round daub-and-thatch house is the fallback, because some version of
+ * it stood on every inhabited continent; the rest are the forms the
+ * excavated record is clearest about. Inferred and illustrative. */
+function prehistoricBuildings(setting: WorldSetting): string[] | undefined {
+  const { year, culture, climate, architecture } = setting;
+  if (year >= -800) return;
+  const round = ["house-round-0", "house-round-1", "house-round-2"];
+  const mudbrick = [
+    "house-mudbrick-ob-0",
+    "house-mudbrick-ob-1",
+    "house-mudbrick-ob-2",
+    "house-mudbrick-ob-3",
+    "house-mudbrick-ob-4",
+  ];
+  if (culture === "north-african-west-asian") return mudbrick;
+  if (architecture === "shelter") {
+    if (culture === "australian-pacific") return;
+    return culture === "inner-eurasian" ||
+      climate === "tundra" ||
+      climate === "boreal"
+      ? ["house-tent-0", "house-tent-1"]
+      : ["house-dome-0", "house-dome-1", "house-tent-0"];
+  }
+  switch (culture) {
+    case "european":
+      if (climate === "mediterranean")
+        return year >= -3200
+          ? ["house-aegean-0", "house-aegean-1", "house-round-stone-0"]
+          : ["house-round-stone-0", ...round];
+      // The long houses of the first farmers, then the round house.
+      return year < -4000
+        ? ["house-longhouse-0", "house-longhouse-1", "house-round-2"]
+        : [...round, "house-round-stone-0"];
+    case "east-asian":
+      return ["house-pit-0", "house-pit-1", "house-round-2"];
+    case "south-asian":
+      return year >= -3300
+        ? ["house-mudbrick-ob-0", "house-mudbrick-ob-2", "house-round-0"]
+        : round;
+    case "west-central-african":
+    case "east-southern-african":
+      return ["house-rondavel-0", "house-rondavel-1"];
+    case "other-indigenous-american":
+      return ["house-dome-0", "house-dome-1", "house-pit-0"];
+    case "inner-eurasian":
+      return ["house-tent-0", "house-tent-1", "house-pit-0"];
+    default:
+      // The place data calls every early setting mudbrick; believe it only
+      // where nothing better is known.
+      return architecture === "mudbrick" ? mudbrick : round;
+  }
+}
+
 export function packForSetting(setting: WorldSetting): Pack {
   const early = setting.year < -3499;
   const base = packTemplates[early ? "neolithic" : "roman"];
@@ -104,27 +176,64 @@ export function packForSetting(setting: WorldSetting): Pack {
     setting.year >= 1900 &&
     (setting.settlement === "city" || setting.settlement === "port");
   const period = periodBuildings(setting).map((b) => `period-${b}`);
-  const buildings = modernCity
-    ? modernBuildings(setting)
-    : architecture === "shelter"
-      ? ["shelter-hide", "shelter-reed"]
-      : architecture === "timber" &&
-          // Thatch is the ordinary roof over a timber frame until early
-          // modern slate and tile reach the countryside, and stays the rule
-          // in the wet tropics after. It also has oriented recipes, so a
-          // village built from it faces four ways instead of one.
-          (setting.year < 1500 ||
-            setting.placeId === "london" ||
-            setting.climate === "monsoon" ||
-            setting.climate === "tropical")
-        ? ["house-thatch"]
-        : architecture === "classical"
-          ? packTemplates.roman.buildings
-          : architecture === "mudbrick"
-            ? packTemplates.neolithic.buildings
-            : [
-                `study-${architecture === "board" ? "board" : architecture === "courtyard" ? "courtyard" : "timber"}`,
-              ];
+  const prehistoric = prehistoricBuildings(setting);
+  const buildings = prehistoric
+    ? prehistoric
+    : modernCity
+      ? modernBuildings(setting)
+      : architecture === "shelter"
+        ? ["shelter-hide", "shelter-reed"]
+        : architecture === "classical" && setting.year < 700
+          ? [
+              "house-roman-ob-0",
+              "house-roman-ob-1",
+              "house-roman-ob-2",
+              "house-roman-ob-3",
+            ]
+          : setting.culture === "european" &&
+              setting.climate === "mediterranean" &&
+              setting.year >= 700 &&
+              setting.year < 1800
+            ? ["house-med-0", "house-med-1", "house-med-2", "house-med-3"]
+            : architecture === "timber" &&
+                setting.culture === "european" &&
+                setting.year >= 1500 &&
+                setting.year < 1800
+              ? [
+                  "house-early-brick-0",
+                  "house-early-brick-1",
+                  "house-early-timber-0",
+                  "house-early-stone-0",
+                  "house-early-stucco-0",
+                  "house-cottage-thatch-0",
+                ]
+              : architecture === "timber" &&
+                  setting.culture === "european" &&
+                  setting.year >= 400 &&
+                  setting.year < 1500
+                ? [
+                    "house-cottage-thatch-0",
+                    "house-cottage-thatch-1",
+                    "house-cottage-timber-0",
+                    "house-cottage-timber-1",
+                  ]
+                : architecture === "timber" &&
+                    // Thatch is the ordinary roof over a timber frame until early
+                    // modern slate and tile reach the countryside, and stays the rule
+                    // in the wet tropics after. It also has oriented recipes, so a
+                    // village built from it faces four ways instead of one.
+                    (setting.year < 1500 ||
+                      setting.placeId === "london" ||
+                      setting.climate === "monsoon" ||
+                      setting.climate === "tropical")
+                  ? ["house-thatch"]
+                  : architecture === "classical"
+                    ? packTemplates.roman.buildings
+                    : architecture === "mudbrick"
+                      ? packTemplates.neolithic.buildings
+                      : [
+                          `study-${architecture === "board" ? "board" : architecture === "courtyard" ? "courtyard" : "timber"}`,
+                        ];
   const trees =
     setting.climate === "arid"
       ? ["acacia"]

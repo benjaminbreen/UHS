@@ -330,3 +330,48 @@ def grass(c, spots):
  for x, y, h in spots:
   for i in range(h): c.set(x + (i % 2), y - i, g[2] if i else g[1])
   c.set(x + 1, y, g[0])
+
+
+def extrude(im, depth, top=True, side_tone=0.62, top_tone=1.14):
+ """Give a front-on boxy prop the buildings' oblique view: a shaded right
+ face and a lit top, both sheared up at 45 degrees, `depth` px deep.
+
+ Works on the finished sprite, so every motion frame and variant of a family
+ gets the same face. Round things do not want this: a cylinder looks the
+ same from every side. Depth comes from art.oblique_style.prop_side.
+ """
+ if depth <= 0: return im
+ w, h = im.size
+ out = Image.new('RGBA', (w + depth, h + depth))
+ out.alpha_composite(im, (0, depth))
+ src, dst = im.load(), out.load()
+ # A baked ground shadow is not part of the body and casts no face.
+ solid = lambda x, y: 0 <= x < w and 0 <= y < h and src[x, y][3] > 200
+ lum = lambda c: c[0] * 3 + c[1] * 6 + c[2]
+ def tone(c, k): return (min(255, int(c[0] * k)), min(255, int(c[1] * k)), min(255, int(c[2] * k)), 255)
+ ink = min((src[x, y] for y in range(h) for x in range(w) if solid(x, y)), key=lum)
+ face = set()
+ for py in range(h + depth):
+  for px in range(w + depth):
+   if solid(px, py - depth): continue
+   # Walk back down the shear to the body this pixel is the side or top of.
+   for i in range(1, depth + 1):
+    x, y = px - i, py - depth + i
+    if not solid(x, y): continue
+    # A one-row ground mark is not a wall.
+    if not solid(x, y - 1) and not solid(x, y + 1): break
+    on_top = not solid(x, y - 1) and solid(x + 1, y)
+    if on_top and not top: break
+    c = src[x, y]
+    inner = (x, y + 1) if on_top else (x - 1, y)
+    # The keyline is not the surface: shade from the pixel inside it.
+    if lum(c) < lum(ink) + 160 and solid(*inner): c = src[inner]
+    dst[px, py] = tone(c, top_tone if on_top else side_tone); face.add((px, py))
+    break
+ for (x, y) in face:                              # keyline round the new faces
+  if any(not (0 <= x + dx < w + depth and 0 <= y + dy < h + depth) or dst[x + dx, y + dy][3] <= 200
+         for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))):
+   dst[x, y] = ink
+ ax, ay = im.info.get('anchor', [w // 2, h])
+ out.info.update(im.info); out.info['anchor'] = [ax, ay + depth]
+ return out

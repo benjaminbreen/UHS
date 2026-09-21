@@ -179,6 +179,27 @@
     "#68716d",
     "#b1b2a6"
    ]
+  },
+  "field-stone": {
+   "texture": "rubble",
+   "wall": [
+    "#3f3d36",
+    "#77736a",
+    "#a9a597",
+    "#c9c5b3",
+    "#e6e2cf"
+   ],
+   "roof": [
+    "#5d2f24",
+    "#a3452b",
+    "#cd633c",
+    "#f6945a"
+   ],
+   "foundation": [
+    "#44463f",
+    "#80837a",
+    "#bdbfb0"
+   ]
   }
  },
  "buildings": {
@@ -564,7 +585,7 @@
    "roofDepth": 18
   },
   "candidate-modern-3x2-ranch-home": {
-   "label": "Candidate \u00b7 3\u00d72 ranch home",
+   "label": "Candidate · 3×2 ranch home",
    "footprint": [
     3,
     2
@@ -590,7 +611,7 @@
    "variant": 3,
    "candidate": true,
    "candidateType": "single-family home",
-   "candidateGroup": "3\u00d72 \u00b7 homes",
+   "candidateGroup": "3×2 · homes",
    "business": "residential",
    "garage": false,
    "porch": true,
@@ -600,7 +621,7 @@
    "from": 1900
   },
   "candidate-modern-3x2-corner-store": {
-   "label": "Candidate \u00b7 3\u00d72 corner store",
+   "label": "Candidate · 3×2 corner store",
    "footprint": [
     3,
     2
@@ -626,7 +647,7 @@
    "variant": 1,
    "candidate": true,
    "candidateType": "corner store",
-   "candidateGroup": "3\u00d72 \u00b7 shops",
+   "candidateGroup": "3×2 · shops",
    "business": "corner store",
    "sign": "MART",
    "awning": true,
@@ -635,7 +656,7 @@
    "from": 1900
   },
   "candidate-modern-3x2-gas-station": {
-   "label": "Candidate \u00b7 3\u00d72 gas station",
+   "label": "Candidate · 3×2 gas station",
    "footprint": [
     3,
     2
@@ -661,7 +682,7 @@
    "variant": 2,
    "candidate": true,
    "candidateType": "gas station",
-   "candidateGroup": "3\u00d72 \u00b7 shops",
+   "candidateGroup": "3×2 · shops",
    "business": "gas station",
    "sign": "GAS",
    "canopy": true,
@@ -678,7 +699,7 @@
    "from": 1913
   },
   "candidate-modern-3x2-donut-shop": {
-   "label": "Candidate \u00b7 3\u00d72 donut shop",
+   "label": "Candidate · 3×2 donut shop",
    "footprint": [
     3,
     2
@@ -704,7 +725,7 @@
    "variant": 5,
    "candidate": true,
    "candidateType": "donut shop",
-   "candidateGroup": "3\u00d72 \u00b7 shops",
+   "candidateGroup": "3×2 · shops",
    "business": "donut shop",
    "sign": "DONUTS",
    "awning": true,
@@ -712,7 +733,7 @@
    "from": 1935
   },
   "candidate-modern-3x2-diner": {
-   "label": "Candidate \u00b7 3\u00d72 diner",
+   "label": "Candidate · 3×2 diner",
    "footprint": [
     3,
     2
@@ -738,7 +759,7 @@
    "variant": 5,
    "candidate": true,
    "candidateType": "diner",
-   "candidateGroup": "3\u00d72 \u00b7 shops",
+   "candidateGroup": "3×2 · shops",
    "business": "diner",
    "sign": "DINER",
    "awning": true,
@@ -746,7 +767,7 @@
    "from": 1920
   },
   "candidate-modern-3x2-pharmacy": {
-   "label": "Candidate \u00b7 3\u00d72 pharmacy",
+   "label": "Candidate · 3×2 pharmacy",
    "footprint": [
     3,
     2
@@ -772,7 +793,7 @@
    "variant": 3,
    "candidate": true,
    "candidateType": "pharmacy",
-   "candidateGroup": "3\u00d72 \u00b7 shops",
+   "candidateGroup": "3×2 · shops",
    "business": "pharmacy",
    "sign": "RX",
    "awning": true,
@@ -788,7 +809,7 @@
    "from": 1900
   },
   "candidate-modern-4x2-bungalow": {
-   "label": "Candidate \u00b7 4\u00d72 bungalow",
+   "label": "Candidate · 4×2 bungalow",
    "footprint": [
     4,
     2
@@ -814,7 +835,7 @@
    "variant": 4,
    "candidate": true,
    "candidateType": "single-family home",
-   "candidateGroup": "4\u00d72 \u00b7 homes",
+   "candidateGroup": "4×2 · homes",
    "business": "residential",
    "siding": true,
    "porch": true,
@@ -823,7 +844,7 @@
    "from": 1900
   },
   "candidate-modern-4x2-duplex": {
-   "label": "Candidate \u00b7 4\u00d72 duplex",
+   "label": "Candidate · 4×2 duplex",
    "footprint": [
     4,
     2
@@ -849,7 +870,7 @@
    "variant": 1,
    "candidate": true,
    "candidateType": "single-family home",
-   "candidateGroup": "4\u00d72 \u00b7 homes",
+   "candidateGroup": "4×2 · homes",
    "business": "residential duplex",
    "stories": 2,
    "siding": true,
@@ -859,7 +880,7 @@
    "from": 1900
   },
   "candidate-modern-4x2-laundromat": {
-   "label": "Candidate \u00b7 4\u00d72 laundromat",
+   "label": "Candidate · 4×2 laundromat",
    "footprint": [
     4,
     2
@@ -885,7 +906,7 @@
    "variant": 1,
    "candidate": true,
    "candidateType": "laundromat",
-   "candidateGroup": "4\u00d72 \u00b7 shops",
+   "candidateGroup": "4×2 · shops",
    "business": "laundromat",
    "sign": "WASH",
    "awning": true,
@@ -901,7 +922,7 @@
    "from": 1934
   },
   "candidate-modern-4x2-market": {
-   "label": "Candidate \u00b7 4\u00d72 market",
+   "label": "Candidate · 4×2 market",
    "footprint": [
     4,
     2
@@ -927,7 +948,7 @@
    "variant": 3,
    "candidate": true,
    "candidateType": "neighborhood market",
-   "candidateGroup": "4\u00d72 \u00b7 shops",
+   "candidateGroup": "4×2 · shops",
    "business": "neighborhood market",
    "sign": "MART",
    "awning": true,
@@ -936,7 +957,7 @@
    "from": 1900
   },
   "candidate-modern-4x2-gas-station": {
-   "label": "Candidate \u00b7 4\u00d72 gas station",
+   "label": "Candidate · 4×2 gas station",
    "footprint": [
     4,
     2
@@ -962,7 +983,7 @@
    "variant": 0,
    "candidate": true,
    "candidateType": "gas station",
-   "candidateGroup": "4\u00d72 \u00b7 shops",
+   "candidateGroup": "4×2 · shops",
    "business": "gas station",
    "sign": "GAS",
    "canopy": true,
@@ -979,7 +1000,7 @@
    "from": 1913
   },
   "candidate-modern-4x2-cafe": {
-   "label": "Candidate \u00b7 4\u00d72 cafe",
+   "label": "Candidate · 4×2 cafe",
    "footprint": [
     4,
     2
@@ -1005,7 +1026,7 @@
    "variant": 2,
    "candidate": true,
    "candidateType": "cafe",
-   "candidateGroup": "4\u00d72 \u00b7 shops",
+   "candidateGroup": "4×2 · shops",
    "business": "cafe",
    "sign": "CAFE",
    "awning": true,
@@ -1013,7 +1034,7 @@
    "from": 1900
   },
   "candidate-modern-3x3-cottage": {
-   "label": "Candidate \u00b7 3\u00d73 cottage",
+   "label": "Candidate · 3×3 cottage",
    "footprint": [
     3,
     3
@@ -1039,7 +1060,7 @@
    "variant": 3,
    "candidate": true,
    "candidateType": "single-family home",
-   "candidateGroup": "3\u00d73 \u00b7 mixed",
+   "candidateGroup": "3×3 · mixed",
    "business": "residential",
    "porch": true,
    "siding": true,
@@ -1048,7 +1069,7 @@
    "from": 1900
   },
   "candidate-modern-3x3-clinic": {
-   "label": "Candidate \u00b7 3\u00d73 clinic",
+   "label": "Candidate · 3×3 clinic",
    "footprint": [
     3,
     3
@@ -1074,7 +1095,7 @@
    "variant": 1,
    "candidate": true,
    "candidateType": "clinic",
-   "candidateGroup": "3\u00d73 \u00b7 mixed",
+   "candidateGroup": "3×3 · mixed",
    "business": "clinic",
    "sign": "CLINIC",
    "awning": true,
@@ -1091,7 +1112,7 @@
    "from": 1920
   },
   "candidate-modern-3x3-motel": {
-   "label": "Candidate \u00b7 3\u00d73 motel",
+   "label": "Candidate · 3×3 motel",
    "footprint": [
     3,
     3
@@ -1117,7 +1138,7 @@
    "variant": 5,
    "candidate": true,
    "candidateType": "motel",
-   "candidateGroup": "3\u00d73 \u00b7 mixed",
+   "candidateGroup": "3×3 · mixed",
    "business": "motel",
    "sign": "MOTEL",
    "pylon": true,
@@ -1126,7 +1147,7 @@
    "from": 1930
   },
   "candidate-modern-3x3-workshop": {
-   "label": "Candidate \u00b7 3\u00d73 workshop",
+   "label": "Candidate · 3×3 workshop",
    "footprint": [
     3,
     3
@@ -1152,7 +1173,7 @@
    "variant": 4,
    "candidate": true,
    "candidateType": "workshop",
-   "candidateGroup": "3\u00d73 \u00b7 mixed",
+   "candidateGroup": "3×3 · mixed",
    "business": "auto workshop",
    "sign": "WORKS",
    "doorSide": "left",
@@ -1168,7 +1189,7 @@
    "from": 1915
   },
   "candidate-modern-3x3-grocery": {
-   "label": "Candidate \u00b7 3\u00d73 grocery",
+   "label": "Candidate · 3×3 grocery",
    "footprint": [
     3,
     3
@@ -1194,7 +1215,7 @@
    "variant": 2,
    "candidate": true,
    "candidateType": "grocery",
-   "candidateGroup": "3\u00d73 \u00b7 mixed",
+   "candidateGroup": "3×3 · mixed",
    "business": "grocery",
    "sign": "GROCERY",
    "awning": true,
@@ -1210,7 +1231,7 @@
    "from": 1900
   },
   "candidate-modern-3x3-diner": {
-   "label": "Candidate \u00b7 3\u00d73 diner",
+   "label": "Candidate · 3×3 diner",
    "footprint": [
     3,
     3
@@ -1236,7 +1257,7 @@
    "variant": 0,
    "candidate": true,
    "candidateType": "diner",
-   "candidateGroup": "3\u00d73 \u00b7 mixed",
+   "candidateGroup": "3×3 · mixed",
    "business": "diner",
    "sign": "DINER",
    "awning": true,
@@ -1401,6 +1422,1081 @@
    "stories": 1,
    "bays": 3,
    "roofDepth": 30
+  },
+  "house-cottage-thatch-0": {
+   "label": "Stone cottage",
+   "footprint": [
+    5,
+    3
+   ],
+   "entrance": [
+    1,
+    3
+   ],
+   "wall": "field-stone",
+   "roofMaterial": "thatch",
+   "attachments": [],
+   "seed": 1354,
+   "canvas": [
+    116,
+    96
+   ],
+   "height": 52,
+   "roof": "gable",
+   "opening": "door",
+   "oblique": true,
+   "stories": 1,
+   "description": "A cottage drawn oblique, with its gable end showing. Illustrative, not a surveyed reconstruction.",
+   "roofs": [
+    "thatch"
+   ]
+  },
+  "house-cottage-thatch-1": {
+   "label": "Daub cottage",
+   "footprint": [
+    4,
+    3
+   ],
+   "entrance": [
+    2,
+    3
+   ],
+   "wall": "mud-plaster",
+   "roofMaterial": "thatch",
+   "attachments": [],
+   "seed": 1381,
+   "canvas": [
+    100,
+    96
+   ],
+   "height": 52,
+   "roof": "gable",
+   "opening": "door",
+   "oblique": true,
+   "stories": 1,
+   "description": "A cottage drawn oblique, with its gable end showing. Illustrative, not a surveyed reconstruction.",
+   "roofs": [
+    "thatch",
+    "shingle"
+   ]
+  },
+  "house-cottage-timber-0": {
+   "label": "Timber-framed house",
+   "footprint": [
+    4,
+    3
+   ],
+   "entrance": [
+    1,
+    3
+   ],
+   "wall": "half-timber",
+   "roofMaterial": "shingle",
+   "attachments": [
+    "timber-frame"
+   ],
+   "seed": 1348,
+   "canvas": [
+    100,
+    96
+   ],
+   "height": 52,
+   "roof": "gable",
+   "opening": "door",
+   "oblique": true,
+   "stories": 1,
+   "description": "A cottage drawn oblique, with its gable end showing. Illustrative, not a surveyed reconstruction.",
+   "roofs": [
+    "shingle",
+    "terracotta",
+    "slate"
+   ]
+  },
+  "house-cottage-timber-1": {
+   "label": "Timber-framed cottage",
+   "footprint": [
+    3,
+    3
+   ],
+   "entrance": [
+    1,
+    3
+   ],
+   "wall": "white-plaster",
+   "roofMaterial": "thatch",
+   "attachments": [
+    "timber-frame"
+   ],
+   "seed": 1302,
+   "canvas": [
+    84,
+    96
+   ],
+   "height": 52,
+   "roof": "gable",
+   "opening": "door",
+   "oblique": true,
+   "stories": 1,
+   "description": "A cottage drawn oblique, with its gable end showing. Illustrative, not a surveyed reconstruction.",
+   "roofs": [
+    "thatch",
+    "shingle"
+   ]
+  },
+  "house-early-brick-0": {
+   "canvas": [
+    100,
+    96
+   ],
+   "height": 60,
+   "roof": "gable",
+   "opening": "door",
+   "oblique": true,
+   "attachments": [],
+   "label": "Brick house",
+   "footprint": [
+    4,
+    3
+   ],
+   "entrance": [
+    2,
+    3
+   ],
+   "wall": "red-brick",
+   "roofMaterial": "terracotta",
+   "roofs": [
+    "terracotta",
+    "slate"
+   ],
+   "windowStyle": "mullion",
+   "chimneys": 1,
+   "stories": 2,
+   "seed": 1603,
+   "description": "A brick house of two floors under tile. Illustrative."
+  },
+  "house-early-brick-1": {
+   "canvas": [
+    100,
+    96
+   ],
+   "height": 60,
+   "roof": "gable",
+   "opening": "door",
+   "oblique": true,
+   "attachments": [],
+   "label": "Brick cottage",
+   "footprint": [
+    4,
+    3
+   ],
+   "entrance": [
+    1,
+    3
+   ],
+   "wall": "brown-brick",
+   "roofMaterial": "terracotta",
+   "roofs": [
+    "terracotta",
+    "shingle"
+   ],
+   "chimneys": 1,
+   "stories": 1,
+   "seed": 1688,
+   "description": "A low brick cottage with a stack at the gable. Illustrative."
+  },
+  "house-early-timber-0": {
+   "canvas": [
+    100,
+    96
+   ],
+   "height": 60,
+   "roof": "gable",
+   "opening": "door",
+   "oblique": true,
+   "attachments": [
+    "timber-frame"
+   ],
+   "label": "Timber-framed house",
+   "footprint": [
+    4,
+    3
+   ],
+   "entrance": [
+    1,
+    3
+   ],
+   "wall": "half-timber",
+   "roofMaterial": "terracotta",
+   "roofs": [
+    "terracotta",
+    "shingle",
+    "thatch"
+   ],
+   "chimneys": 1,
+   "stories": 2,
+   "seed": 1574,
+   "description": "A jettied timber house, tiled. Illustrative."
+  },
+  "house-early-stone-0": {
+   "canvas": [
+    100,
+    96
+   ],
+   "height": 60,
+   "roof": "gable",
+   "opening": "door",
+   "oblique": true,
+   "attachments": [],
+   "label": "Stone house",
+   "footprint": [
+    5,
+    3
+   ],
+   "entrance": [
+    2,
+    3
+   ],
+   "wall": "field-stone",
+   "roofMaterial": "slate",
+   "roofs": [
+    "slate",
+    "thatch"
+   ],
+   "windowStyle": "mullion",
+   "chimneys": 1,
+   "stories": 1,
+   "seed": 1651,
+   "description": "A stone house with mullioned windows. Illustrative."
+  },
+  "house-early-stucco-0": {
+   "canvas": [
+    100,
+    96
+   ],
+   "height": 60,
+   "roof": "gable",
+   "opening": "door",
+   "oblique": true,
+   "attachments": [],
+   "label": "Rendered house",
+   "footprint": [
+    4,
+    3
+   ],
+   "entrance": [
+    2,
+    3
+   ],
+   "wall": "cream-stucco",
+   "roofMaterial": "slate",
+   "roofs": [
+    "slate",
+    "terracotta"
+   ],
+   "windowStyle": "sash",
+   "chimneys": 2,
+   "stories": 2,
+   "seed": 1745,
+   "description": "A rendered house with sash windows, of the eighteenth century. Illustrative."
+  },
+  "house-roman-ob-0": {
+   "canvas": [
+    100,
+    96
+   ],
+   "height": 60,
+   "roof": "gable",
+   "opening": "door",
+   "oblique": true,
+   "attachments": [],
+   "label": "Town house",
+   "footprint": [
+    5,
+    4
+   ],
+   "entrance": [
+    2,
+    4
+   ],
+   "wall": "lime-plaster",
+   "roofMaterial": "pantile",
+   "description": "A plastered house turned inward: a blank street wall with small high windows under a low tiled roof. Illustrative.",
+   "windowStyle": "slit",
+   "chimneys": 0,
+   "stories": 1,
+   "seed": 79
+  },
+  "house-roman-ob-1": {
+   "canvas": [
+    100,
+    96
+   ],
+   "height": 60,
+   "roof": "gable",
+   "opening": "door",
+   "oblique": true,
+   "attachments": [],
+   "label": "Shop and dwelling",
+   "footprint": [
+    4,
+    3
+   ],
+   "entrance": [
+    1,
+    3
+   ],
+   "wall": "ochre-plaster",
+   "roofMaterial": "pantile",
+   "description": "A shop with rooms over it, shuttered against the sun. Illustrative.",
+   "windowStyle": "shutter",
+   "chimneys": 0,
+   "stories": 2,
+   "seed": 113
+  },
+  "house-roman-ob-2": {
+   "canvas": [
+    100,
+    96
+   ],
+   "height": 60,
+   "roof": "gable",
+   "opening": "door",
+   "oblique": true,
+   "attachments": [],
+   "label": "Porticoed house",
+   "footprint": [
+    6,
+    4
+   ],
+   "entrance": [
+    3,
+    4
+   ],
+   "wall": "rose-plaster",
+   "roofMaterial": "pantile",
+   "description": "A house behind a columned walk under its own tiled pent roof. Illustrative.",
+   "windowStyle": "slit",
+   "portico": true,
+   "chimneys": 0,
+   "stories": 2,
+   "seed": 212
+  },
+  "house-roman-ob-3": {
+   "canvas": [
+    100,
+    96
+   ],
+   "height": 60,
+   "roof": "gable",
+   "opening": "door",
+   "oblique": true,
+   "attachments": [],
+   "label": "Tenement",
+   "footprint": [
+    5,
+    4
+   ],
+   "entrance": [
+    2,
+    4
+   ],
+   "wall": "lime-plaster",
+   "roofMaterial": "pantile",
+   "description": "Rented rooms stacked over the street, shuttered. Illustrative.",
+   "windowStyle": "shutter",
+   "chimneys": 0,
+   "stories": 3,
+   "seed": 64
+  },
+  "house-med-0": {
+   "canvas": [
+    100,
+    96
+   ],
+   "height": 60,
+   "roof": "gable",
+   "opening": "door",
+   "oblique": true,
+   "attachments": [],
+   "label": "Stone house",
+   "footprint": [
+    4,
+    3
+   ],
+   "entrance": [
+    1,
+    3
+   ],
+   "wall": "field-stone",
+   "roofMaterial": "pantile",
+   "description": "A low stone house under pantiles, shuttered. Illustrative.",
+   "windowStyle": "shutter",
+   "chimneys": 1,
+   "stories": 1,
+   "seed": 1204
+  },
+  "house-med-1": {
+   "canvas": [
+    100,
+    96
+   ],
+   "height": 60,
+   "roof": "gable",
+   "opening": "door",
+   "oblique": true,
+   "attachments": [],
+   "label": "Plastered house",
+   "footprint": [
+    4,
+    3
+   ],
+   "entrance": [
+    2,
+    3
+   ],
+   "wall": "ochre-plaster",
+   "roofMaterial": "pantile",
+   "description": "Two floors of ochre plaster under a low tiled roof. Illustrative.",
+   "windowStyle": "shutter",
+   "chimneys": 0,
+   "stories": 2,
+   "seed": 1388
+  },
+  "house-med-2": {
+   "canvas": [
+    100,
+    96
+   ],
+   "height": 60,
+   "roof": "gable",
+   "opening": "door",
+   "oblique": true,
+   "attachments": [],
+   "label": "Flat-roofed house",
+   "footprint": [
+    4,
+    3
+   ],
+   "entrance": [
+    2,
+    3
+   ],
+   "wall": "white-plaster",
+   "roofMaterial": "pantile",
+   "description": "A whitewashed house with a roof terrace behind a parapet. Illustrative.",
+   "windowStyle": "shutter",
+   "roofForm": "flat",
+   "chimneys": 0,
+   "stories": 1,
+   "seed": 1477
+  },
+  "house-med-3": {
+   "canvas": [
+    100,
+    96
+   ],
+   "height": 60,
+   "roof": "gable",
+   "opening": "door",
+   "oblique": true,
+   "attachments": [],
+   "label": "Loggia house",
+   "footprint": [
+    5,
+    3
+   ],
+   "entrance": [
+    2,
+    3
+   ],
+   "wall": "rose-plaster",
+   "roofMaterial": "pantile",
+   "description": "A plastered house over a columned loggia. Illustrative.",
+   "windowStyle": "shutter",
+   "portico": true,
+   "chimneys": 0,
+   "stories": 2,
+   "seed": 1561
+  },
+  "house-round-0": {
+   "canvas": [
+    80,
+    80
+   ],
+   "height": 44,
+   "roof": "gable",
+   "opening": "door",
+   "oblique": true,
+   "attachments": [],
+   "roofMaterial": "thatch",
+   "label": "Round house",
+   "footprint": [
+    4,
+    3
+   ],
+   "entrance": [
+    2,
+    3
+   ],
+   "wall": "mud-plaster",
+   "round": "cone",
+   "seed": 3100,
+   "description": "A wattle and daub round house under a cone of thatch, posts showing through the daub. Illustrative."
+  },
+  "house-round-1": {
+   "canvas": [
+    80,
+    80
+   ],
+   "height": 44,
+   "roof": "gable",
+   "opening": "door",
+   "oblique": true,
+   "attachments": [],
+   "roofMaterial": "thatch",
+   "label": "Great round house",
+   "footprint": [
+    5,
+    4
+   ],
+   "entrance": [
+    2,
+    4
+   ],
+   "wall": "ochre-plaster",
+   "round": "cone",
+   "seed": 2400,
+   "description": "A larger round house, its thatch a few winters old. Illustrative."
+  },
+  "house-round-2": {
+   "canvas": [
+    80,
+    80
+   ],
+   "height": 44,
+   "roof": "gable",
+   "opening": "door",
+   "oblique": true,
+   "attachments": [],
+   "roofMaterial": "thatch",
+   "label": "Small round house",
+   "footprint": [
+    3,
+    3
+   ],
+   "entrance": [
+    1,
+    3
+   ],
+   "wall": "mud-plaster",
+   "round": "cone",
+   "seed": 2750,
+   "description": "A small round house or store. Illustrative."
+  },
+  "house-round-stone-0": {
+   "canvas": [
+    80,
+    80
+   ],
+   "height": 44,
+   "roof": "gable",
+   "opening": "door",
+   "oblique": true,
+   "attachments": [],
+   "roofMaterial": "thatch",
+   "label": "Stone round house",
+   "footprint": [
+    4,
+    3
+   ],
+   "entrance": [
+    2,
+    3
+   ],
+   "wall": "field-stone",
+   "round": "cone",
+   "seed": 3050,
+   "description": "A drystone round house under turf or reed. Illustrative.",
+   "covers": [
+    2,
+    3
+   ]
+  },
+  "house-rondavel-0": {
+   "canvas": [
+    80,
+    80
+   ],
+   "height": 44,
+   "roof": "gable",
+   "opening": "door",
+   "oblique": true,
+   "attachments": [],
+   "roofMaterial": "thatch",
+   "label": "Painted round house",
+   "footprint": [
+    4,
+    3
+   ],
+   "entrance": [
+    2,
+    3
+   ],
+   "wall": "ochre-plaster",
+   "round": "cone",
+   "seed": 1900,
+   "description": "A daubed round house with a painted band, under thatch. Illustrative.",
+   "band": true,
+   "covers": [
+    0,
+    1
+   ]
+  },
+  "house-rondavel-1": {
+   "canvas": [
+    80,
+    80
+   ],
+   "height": 44,
+   "roof": "gable",
+   "opening": "door",
+   "oblique": true,
+   "attachments": [],
+   "roofMaterial": "thatch",
+   "label": "Round house",
+   "footprint": [
+    3,
+    3
+   ],
+   "entrance": [
+    1,
+    3
+   ],
+   "wall": "mud-plaster",
+   "round": "cone",
+   "seed": 1750,
+   "description": "A small daubed round house under thatch. Illustrative.",
+   "band": true,
+   "covers": [
+    0,
+    1
+   ]
+  },
+  "house-pit-0": {
+   "canvas": [
+    80,
+    80
+   ],
+   "height": 44,
+   "roof": "gable",
+   "opening": "door",
+   "oblique": true,
+   "attachments": [],
+   "roofMaterial": "thatch",
+   "label": "Pit house",
+   "footprint": [
+    4,
+    3
+   ],
+   "entrance": [
+    2,
+    3
+   ],
+   "wall": "mud-plaster",
+   "round": "pit",
+   "seed": 4800,
+   "description": "A house sunk into the ground, its roof coming almost to the earth. Illustrative.",
+   "covers": [
+    1,
+    2
+   ]
+  },
+  "house-pit-1": {
+   "canvas": [
+    80,
+    80
+   ],
+   "height": 44,
+   "roof": "gable",
+   "opening": "door",
+   "oblique": true,
+   "attachments": [],
+   "roofMaterial": "thatch",
+   "label": "Pit house",
+   "footprint": [
+    5,
+    4
+   ],
+   "entrance": [
+    2,
+    4
+   ],
+   "wall": "mud-plaster",
+   "round": "pit",
+   "seed": 4300,
+   "description": "A large pit house under a low heavy roof. Illustrative.",
+   "covers": [
+    1,
+    2,
+    3
+   ]
+  },
+  "house-dome-0": {
+   "canvas": [
+    80,
+    80
+   ],
+   "height": 44,
+   "roof": "gable",
+   "opening": "door",
+   "oblique": true,
+   "attachments": [],
+   "roofMaterial": "thatch",
+   "label": "Bark house",
+   "footprint": [
+    3,
+    3
+   ],
+   "entrance": [
+    1,
+    3
+   ],
+   "wall": "mud-plaster",
+   "round": "dome",
+   "seed": 2200,
+   "description": "A frame of bent saplings covered in bark or mats. Illustrative."
+  },
+  "house-dome-1": {
+   "canvas": [
+    80,
+    80
+   ],
+   "height": 44,
+   "roof": "gable",
+   "opening": "door",
+   "oblique": true,
+   "attachments": [],
+   "roofMaterial": "thatch",
+   "label": "Mat house",
+   "footprint": [
+    4,
+    3
+   ],
+   "entrance": [
+    2,
+    3
+   ],
+   "wall": "mud-plaster",
+   "round": "dome",
+   "seed": 2050,
+   "description": "A larger domed house of mats over a sapling frame. Illustrative."
+  },
+  "house-tent-0": {
+   "canvas": [
+    80,
+    80
+   ],
+   "height": 44,
+   "roof": "gable",
+   "opening": "door",
+   "oblique": true,
+   "attachments": [],
+   "roofMaterial": "thatch",
+   "label": "Hide tent",
+   "footprint": [
+    3,
+    3
+   ],
+   "entrance": [
+    1,
+    3
+   ],
+   "wall": "mud-plaster",
+   "round": "tent",
+   "seed": 3600,
+   "description": "Hides over a cone of poles, the smoke flap open. Illustrative."
+  },
+  "house-tent-1": {
+   "canvas": [
+    80,
+    80
+   ],
+   "height": 44,
+   "roof": "gable",
+   "opening": "door",
+   "oblique": true,
+   "attachments": [],
+   "roofMaterial": "thatch",
+   "label": "Hide tent",
+   "footprint": [
+    4,
+    3
+   ],
+   "entrance": [
+    2,
+    3
+   ],
+   "wall": "mud-plaster",
+   "round": "tent",
+   "seed": 3350,
+   "description": "A large tent of hides. Illustrative."
+  },
+  "house-longhouse-0": {
+   "canvas": [
+    100,
+    96
+   ],
+   "height": 60,
+   "roof": "gable",
+   "opening": "door",
+   "oblique": true,
+   "label": "Long house",
+   "footprint": [
+    7,
+    3
+   ],
+   "entrance": [
+    3,
+    3
+   ],
+   "wall": "mud-plaster",
+   "roofMaterial": "thatch",
+   "roofs": [
+    "thatch"
+   ],
+   "attachments": [
+    "timber-frame"
+   ],
+   "windowStyle": "none",
+   "chimneys": 0,
+   "stories": 1,
+   "seed": 5300,
+   "description": "A long timber house of the first farmers, daubed between its posts. Illustrative."
+  },
+  "house-longhouse-1": {
+   "canvas": [
+    100,
+    96
+   ],
+   "height": 60,
+   "roof": "gable",
+   "opening": "door",
+   "oblique": true,
+   "label": "Long house",
+   "footprint": [
+    6,
+    3
+   ],
+   "entrance": [
+    2,
+    3
+   ],
+   "wall": "ochre-plaster",
+   "roofMaterial": "thatch",
+   "roofs": [
+    "thatch"
+   ],
+   "attachments": [
+    "timber-frame"
+   ],
+   "windowStyle": "none",
+   "chimneys": 0,
+   "stories": 1,
+   "seed": 5150,
+   "description": "A timber long house under thatch. Illustrative."
+  },
+  "house-aegean-0": {
+   "canvas": [
+    100,
+    96
+   ],
+   "height": 60,
+   "roof": "gable",
+   "opening": "door",
+   "oblique": true,
+   "label": "Flat-roofed house",
+   "footprint": [
+    4,
+    3
+   ],
+   "entrance": [
+    1,
+    3
+   ],
+   "wall": "field-stone",
+   "roofMaterial": "thatch",
+   "roofForm": "flat",
+   "attachments": [],
+   "windowStyle": "slit",
+   "chimneys": 0,
+   "stories": 2,
+   "seed": 1650,
+   "description": "Two floors of rubble and plaster under a flat roof. Illustrative."
+  },
+  "house-aegean-1": {
+   "canvas": [
+    100,
+    96
+   ],
+   "height": 60,
+   "roof": "gable",
+   "opening": "door",
+   "oblique": true,
+   "label": "Plastered house",
+   "footprint": [
+    5,
+    3
+   ],
+   "entrance": [
+    2,
+    3
+   ],
+   "wall": "lime-plaster",
+   "roofMaterial": "thatch",
+   "roofForm": "flat",
+   "attachments": [
+    "ladder"
+   ],
+   "windowStyle": "slit",
+   "chimneys": 0,
+   "stories": 1,
+   "seed": 1820,
+   "description": "A plastered house with a flat working roof. Illustrative."
+  },
+  "house-mudbrick-ob-0": {
+   "canvas": [
+    100,
+    70
+   ],
+   "height": 40,
+   "roof": "flat",
+   "opening": "door",
+   "oblique": true,
+   "mud": true,
+   "attachments": [],
+   "roofMaterial": "earth",
+   "stories": 1,
+   "description": "A mudbrick house under a flat working roof, entered by ladder and hatch as well as by its door. Illustrative.",
+   "label": "Mudbrick house",
+   "footprint": [
+    5,
+    3
+   ],
+   "entrance": [
+    3,
+    3
+   ],
+   "wall": "mud-plaster",
+   "windowStyle": "none",
+   "seed": 7400
+  },
+  "house-mudbrick-ob-1": {
+   "canvas": [
+    100,
+    70
+   ],
+   "height": 40,
+   "roof": "flat",
+   "opening": "door",
+   "oblique": true,
+   "mud": true,
+   "attachments": [],
+   "roofMaterial": "earth",
+   "stories": 1,
+   "description": "A mudbrick house under a flat working roof, entered by ladder and hatch as well as by its door. Illustrative.",
+   "label": "Mudbrick house",
+   "footprint": [
+    6,
+    3
+   ],
+   "entrance": [
+    3,
+    3
+   ],
+   "wall": "mud-plaster",
+   "windowStyle": "slit",
+   "seed": 7100
+  },
+  "house-mudbrick-ob-2": {
+   "canvas": [
+    100,
+    70
+   ],
+   "height": 40,
+   "roof": "flat",
+   "opening": "door",
+   "oblique": true,
+   "mud": true,
+   "attachments": [],
+   "roofMaterial": "earth",
+   "stories": 1,
+   "description": "A mudbrick house under a flat working roof, entered by ladder and hatch as well as by its door. Illustrative.",
+   "label": "Mudbrick house",
+   "footprint": [
+    4,
+    3
+   ],
+   "entrance": [
+    1,
+    3
+   ],
+   "wall": "ochre-plaster",
+   "windowStyle": "none",
+   "seed": 6800
+  },
+  "house-mudbrick-ob-3": {
+   "canvas": [
+    100,
+    70
+   ],
+   "height": 40,
+   "roof": "flat",
+   "opening": "door",
+   "oblique": true,
+   "mud": true,
+   "attachments": [],
+   "roofMaterial": "earth",
+   "stories": 1,
+   "description": "A mudbrick house under a flat working roof, entered by ladder and hatch as well as by its door. Illustrative.",
+   "label": "Mudbrick house",
+   "footprint": [
+    6,
+    4
+   ],
+   "entrance": [
+    4,
+    4
+   ],
+   "wall": "mud-plaster",
+   "windowStyle": "slit",
+   "seed": 6500
+  },
+  "house-mudbrick-ob-4": {
+   "canvas": [
+    100,
+    70
+   ],
+   "height": 40,
+   "roof": "flat",
+   "opening": "door",
+   "oblique": true,
+   "mud": true,
+   "attachments": [],
+   "roofMaterial": "earth",
+   "stories": 1,
+   "description": "A mudbrick house under a flat working roof, entered by ladder and hatch as well as by its door. Illustrative.",
+   "label": "Mudbrick house",
+   "footprint": [
+    5,
+    3
+   ],
+   "entrance": [
+    2,
+    3
+   ],
+   "wall": "ochre-plaster",
+   "windowStyle": "slit",
+   "seed": 6200
   }
  }
 }

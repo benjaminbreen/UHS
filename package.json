@@ -24,7 +24,8 @@
     "measure:performance": "node scripts/measure-performance.mjs",
     "prepare:travel-names": "python3 scripts/prepare-travel-names.py && .venv/bin/python scripts/prepare-travel-ecoregions.py",
     "prepare:atlas": "python3 scripts/prepare_atlas.py && python3 scripts/prepare_places.py && node scripts/prepare-atlas-index.mjs",
-    "prepare:backbone-names": "tsx scripts/dump-backbone-anchors.ts && python3 scripts/prepare-backbone-names.py"
+    "prepare:backbone-names": "tsx scripts/dump-backbone-anchors.ts && python3 scripts/prepare-backbone-names.py",
+    "town:sheet": "python3 scripts/town-sheet/compose.py --dump"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",

@@ -2,7 +2,7 @@ import type Phaser from "phaser";
 import { gustAt } from "./wind";
 import { crops } from "../content/agriculture/crops";
 import type { Crop, CropId, CropStage } from "../content/agriculture/types";
-import type { TopographySample } from "../core/topography";
+import type { TopographyCell, TopographySample } from "../core/topography";
 import { own, type RenderResources } from "./resources";
 import { waterHash as hash } from "./water-style";
 
@@ -40,8 +40,10 @@ export function cropsAt(
 ): CropSpot[] {
   const c = sample(x, y);
   const f = c?.field;
+  if (!c || !f || f.ditch || c.solid) return [];
+  if ((f as { garden?: boolean }).garden) return gardenRow(f, x, y, ox, oy, top);
   // Enclosure edge cells stay clear so the fence reads.
-  if (!c || !f || f.ditch || f.fence || c.solid) return [];
+  if (f.fence) return [];
   const crop = (crops as Partial<typeof crops>)[f.crop];
   if (!crop || crop.kind === "fallow" || crop.kind === "pasture") return [];
   if (!standing(crop)) return [];
@@ -81,6 +83,36 @@ export function cropsAt(
       phase: hash(wx, wy, 655) * 6.28,
     },
   ];
+}
+/** A kitchen garden is planted close and cropped in succession: two plants
+ * to the cell in straight rows, green from sowing to the first frost, and
+ * right up to the fence. */
+function gardenRow(
+  f: NonNullable<TopographyCell["field"]>,
+  x: number,
+  y: number,
+  ox: number,
+  oy: number,
+  top: number,
+): CropSpot[] {
+  if (f.stage === "bare" || f.stage === "stubble") return [];
+  const crop = (crops as Partial<typeof crops>)[f.crop];
+  if (!crop || !standing(crop)) return [];
+  const wx = x + ox,
+    wy = y + oy;
+  return [4, 12].map((at, n) => {
+    const px = f.axis === "x" ? at : 8,
+      py = f.axis === "x" ? 10 : at;
+    return {
+      x: x * 16 + px,
+      y: top + py,
+      wx: wx * 16 + px,
+      wy: wy * 16 + py,
+      crop: f.crop,
+      stage: f.stage === "ripe" ? ("ripe" as const) : ("green" as const),
+      phase: hash(wx, wy, 655 + n) * 6.28,
+    };
+  });
 }
 const mod = (n: number, d: number) => ((n % d) + d) % d;
 

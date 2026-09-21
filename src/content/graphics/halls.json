@@ -1202,6 +1202,362 @@
    "posts": 4,
    "carved": false,
    "bench": false
+  },
+  "moot-hall": {
+   "label": "Guildhall",
+   "family": "civic",
+   "form": "oblique",
+   "oblique": true,
+   "description": "A timber-framed hall raised over an open market floor, a bell turret on the ridge. Illustrative, after the market halls of late medieval England and the Low Countries.",
+   "footprint": [
+    10,
+    6
+   ],
+   "entrance": [
+    5,
+    6
+   ],
+   "wall": "half-timber",
+   "roofMaterial": "shingle",
+   "wallHeight": 60,
+   "roofRise": 30,
+   "seed": 1421,
+   "scales": {
+    "small": {
+     "footprint": [
+      7,
+      5
+     ],
+     "entrance": [
+      3,
+      5
+     ],
+     "turret": null
+    },
+    "medium": {
+     "footprint": [
+      10,
+      6
+     ],
+     "entrance": [
+      5,
+      6
+     ]
+    },
+    "large": {
+     "footprint": [
+      13,
+      7
+     ],
+     "entrance": [
+      6,
+      7
+     ]
+    }
+   },
+   "looks": [
+    {}
+   ],
+   "timber": true,
+   "arcade": true,
+   "stories": 2,
+   "turret": "lead",
+   "chimneys": 0
+  },
+  "rathaus": {
+   "label": "Town hall",
+   "family": "civic",
+   "form": "oblique",
+   "oblique": true,
+   "description": "A brick town hall with a crow-stepped frontispiece over the door, mullioned windows and a copper clock turret. Illustrative, after the town halls of the sixteenth and seventeenth centuries.",
+   "footprint": [
+    11,
+    7
+   ],
+   "entrance": [
+    5,
+    7
+   ],
+   "wall": "red-brick",
+   "roofMaterial": "terracotta",
+   "wallHeight": 60,
+   "roofRise": 30,
+   "seed": 1571,
+   "scales": {
+    "small": {
+     "footprint": [
+      7,
+      5
+     ],
+     "entrance": [
+      3,
+      5
+     ]
+    },
+    "medium": {
+     "footprint": [
+      11,
+      7
+     ],
+     "entrance": [
+      5,
+      7
+     ]
+    },
+    "large": {
+     "footprint": [
+      14,
+      8
+     ],
+     "entrance": [
+      7,
+      8
+     ],
+     "stories": 3
+    }
+   },
+   "looks": [
+    {}
+   ],
+   "frontispiece": "stepped",
+   "windowStyle": "mullion",
+   "stories": 2,
+   "turret": "copper",
+   "chimneys": 2
+  },
+  "grammar-hall": {
+   "label": "School",
+   "family": "civic",
+   "form": "oblique",
+   "oblique": true,
+   "description": "A small stone schoolroom under a steep roof, with a bell. Illustrative.",
+   "footprint": [
+    8,
+    5
+   ],
+   "entrance": [
+    4,
+    5
+   ],
+   "wall": "field-stone",
+   "roofMaterial": "slate",
+   "wallHeight": 60,
+   "roofRise": 30,
+   "seed": 1382,
+   "scales": {
+    "small": {
+     "footprint": [
+      6,
+      4
+     ],
+     "entrance": [
+      3,
+      4
+     ]
+    },
+    "medium": {
+     "footprint": [
+      8,
+      5
+     ],
+     "entrance": [
+      4,
+      5
+     ]
+    },
+    "large": {
+     "footprint": [
+      10,
+      6
+     ],
+     "entrance": [
+      5,
+      6
+     ]
+    }
+   },
+   "looks": [
+    {}
+   ],
+   "windowStyle": "mullion",
+   "stories": 1,
+   "turret": "lead",
+   "chimneys": 1
+  },
+  "charity-school": {
+   "label": "School",
+   "family": "civic",
+   "form": "oblique",
+   "oblique": true,
+   "description": "A brick school of two floors with sash windows and a pedimented door. Illustrative.",
+   "footprint": [
+    8,
+    5
+   ],
+   "entrance": [
+    4,
+    5
+   ],
+   "wall": "red-brick",
+   "roofMaterial": "slate",
+   "wallHeight": 60,
+   "roofRise": 30,
+   "seed": 1712,
+   "scales": {
+    "small": {
+     "footprint": [
+      6,
+      4
+     ],
+     "entrance": [
+      3,
+      4
+     ]
+    },
+    "medium": {
+     "footprint": [
+      8,
+      5
+     ],
+     "entrance": [
+      4,
+      5
+     ]
+    },
+    "large": {
+     "footprint": [
+      10,
+      6
+     ],
+     "entrance": [
+      5,
+      6
+     ]
+    }
+   },
+   "looks": [
+    {}
+   ],
+   "frontispiece": "pediment",
+   "windowStyle": "sash",
+   "stories": 2,
+   "chimneys": 2
+  },
+  "stew": {
+   "label": "Bath house",
+   "family": "civic",
+   "form": "oblique",
+   "oblique": true,
+   "description": "A low timber bath house, its two great stacks always smoking. Illustrative.",
+   "footprint": [
+    8,
+    5
+   ],
+   "entrance": [
+    4,
+    5
+   ],
+   "wall": "lime-plaster",
+   "roofMaterial": "shingle",
+   "wallHeight": 60,
+   "roofRise": 30,
+   "seed": 1340,
+   "scales": {
+    "small": {
+     "footprint": [
+      6,
+      4
+     ],
+     "entrance": [
+      3,
+      4
+     ]
+    },
+    "medium": {
+     "footprint": [
+      8,
+      5
+     ],
+     "entrance": [
+      4,
+      5
+     ]
+    },
+    "large": {
+     "footprint": [
+      10,
+      6
+     ],
+     "entrance": [
+      5,
+      6
+     ]
+    }
+   },
+   "looks": [
+    {}
+   ],
+   "timber": true,
+   "stories": 1,
+   "chimneys": 2
+  },
+  "bagnio": {
+   "label": "Bath house",
+   "family": "civic",
+   "form": "oblique",
+   "oblique": true,
+   "description": "A rendered bath house of two floors with tall sashes. Illustrative.",
+   "footprint": [
+    8,
+    5
+   ],
+   "entrance": [
+    4,
+    5
+   ],
+   "wall": "cream-stucco",
+   "roofMaterial": "slate",
+   "wallHeight": 60,
+   "roofRise": 30,
+   "seed": 1690,
+   "scales": {
+    "small": {
+     "footprint": [
+      6,
+      4
+     ],
+     "entrance": [
+      3,
+      4
+     ]
+    },
+    "medium": {
+     "footprint": [
+      8,
+      5
+     ],
+     "entrance": [
+      4,
+      5
+     ]
+    },
+    "large": {
+     "footprint": [
+      10,
+      6
+     ],
+     "entrance": [
+      5,
+      6
+     ]
+    }
+   },
+   "looks": [
+    {}
+   ],
+   "windowStyle": "sash",
+   "stories": 2,
+   "chimneys": 2
   }
  }
 }

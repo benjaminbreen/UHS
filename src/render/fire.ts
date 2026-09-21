@@ -35,37 +35,6 @@ export const glowAlpha: Record<LightingId, number> = {
 export const FIRE_FRAME_MS = 130;
 export const SMOKE_PUFFS = 3;
 export const SMOKE_MS = 2400;
-export const HEARTH_FRAMES = ["0", "1", "2"];
-/** A hearth plume in pixels rather than blur: three sizes of the same rounded
- * puff, swapped as it rises, so it never has to be scaled off the grid. */
-export function ensureHearthSmoke(scene: Phaser.Scene) {
-  const key = "hearth-smoke";
-  if (scene.textures.exists(key)) return key;
-  const cell = 9;
-  const shapes = [
-    ["...", ".XX", ".XX"],
-    ["..XX.", ".XXXX", ".XXXX", "..XX."],
-    ["..XXX..", ".XXXXX.", "XXXXXXX", ".XXXXX.", "..XXX.."],
-  ];
-  const canvas = scene.textures.createCanvas(key, cell * 3, cell)!;
-  const ctx = canvas.getContext();
-  ctx.clearRect(0, 0, cell * 3, cell);
-  shapes.forEach((shape, frame) => {
-    const ox = frame * cell + Math.floor((cell - shape[0].length) / 2);
-    const oy = Math.floor((cell - shape.length) / 2);
-    shape.forEach((line, y) =>
-      [...line].forEach((pixel, x) => {
-        if (pixel !== "X") return;
-        // A touch of light on the top-left keeps it from reading as a hole.
-        ctx.fillStyle = y === 0 || (x === 0 && y < 2) ? "#cdc7b8" : "#b2ada0";
-        ctx.fillRect(ox + x, oy + y, 1, 1);
-      }),
-    );
-    canvas.add(HEARTH_FRAMES[frame], 0, frame * cell, 0, cell, cell);
-  });
-  canvas.refresh();
-  return key;
-}
 /** Radial glow and a soft smoke disc, drawn once per scene. */
 export function ensureFireTextures(scene: Phaser.Scene) {
   if (!scene.textures.exists("fire-glow")) {

@@ -19,11 +19,13 @@ from .asia import ASIA
 from .signs import SIGNS
 from .civic import CIVIC
 from .market import MARKET
+from .stores import STORES
 from .vessels import (pot, storage_jar, water_jug, amphora, glazed_jar,
                       metal_vessel, pithos, flask, bowl, bucket,
                       open_basket, lidded_basket)
 
 DRAW_B = {
+ **STORES,
  'well': low_well,
  'framed-well': framed_well,
  'trough': trough,
@@ -70,6 +72,29 @@ DRAW_B = {
  **CIVIC,
  **MARKET,
 }
+
+from .wayside import WAYSIDE
+# Later redraws replace the first attempts at the same family.
+DRAW_B.update(WAYSIDE)
+
+# Boxy families that stand beside buildings take the buildings' oblique view.
+# Round ones are left alone: a barrel looks the same from every side.
+OBLIQUE = ['crate', 'crate-stack', 'woodpile', 'trough', 'strapped-chest', 'bench',
+           'stall-trestle', 'stall-awning', 'stall-booth', 'stall-cart', 'stall-modern',
+           'farm-cart', 'privy-shed', 'privy-stone', 'privy-outhouse', 'granary-staddle', 'granary-stilt']
+
+
+def _oblique(fn):
+ from .core import extrude
+ from art.oblique_style import prop_side
+ def draw(*args):
+  im = fn(*args)
+  return extrude(im, prop_side(im.width))
+ return draw
+
+
+for _key in OBLIQUE:
+ DRAW_B[_key] = _oblique(DRAW_B[_key])
 
 # Families drawn in separable layers. The renderer places the frame and sways
 # the hangings against it; the unsuffixed sprite stays whole for the lab, the

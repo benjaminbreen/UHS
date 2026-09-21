@@ -4,34 +4,54 @@ import type { Ecology } from "../content/ecology/profiles";
 import { waterHash as hash } from "./water-style";
 import { gustAt } from "./wind";
 
-export const FLOWER_ATLAS = "flowers-1";
-const kinds = ["daisy", "buttercup", "bluet", "clover", "poppy"] as const;
+export const FLOWER_ATLAS = "flowers-2";
+const kinds = [
+  "daisy",
+  "buttercup",
+  "bluet",
+  "clover",
+  "poppy",
+  "heather",
+  "umbel",
+  "cornflower",
+  "primrose",
+] as const;
 type FlowerKind = (typeof kinds)[number];
-// Petal, centre.
-const petals: Record<FlowerKind, [string, string]> = {
-  daisy: ["#f6f3e8", "#fbe27a"],
-  buttercup: ["#f3cf3e", "#fbeea0"],
-  bluet: ["#bcc6e4", "#f6f3e8"],
-  clover: ["#e6a6c8", "#f8dcec"],
-  poppy: ["#e2533f", "#f8b9a6"],
+/** How the plant carries its flowers: one head on a stem, a spike of small
+ * ones, a flat cluster on a tall stem, or a low mat of several heads. */
+type Habit = "head" | "spike" | "umbel" | "mat";
+// Petal, centre, habit.
+const species: Record<FlowerKind, [string, string, Habit]> = {
+  daisy: ["#f6f3e8", "#fbe27a", "head"],
+  buttercup: ["#f3cf3e", "#fbeea0", "mat"],
+  bluet: ["#bcc6e4", "#f6f3e8", "mat"],
+  clover: ["#e6a6c8", "#f8dcec", "head"],
+  poppy: ["#e2533f", "#3a2a22", "head"],
+  heather: ["#a86cb4", "#d6a6dc", "spike"],
+  umbel: ["#f4f1e2", "#d9d6bf", "umbel"],
+  cornflower: ["#4f6fd0", "#9db2ee", "head"],
+  primrose: ["#f4e9a0", "#e8b83a", "mat"],
 };
 const meadow: Record<Ecology, FlowerKind[]> = {
-  grassland: ["daisy", "buttercup", "bluet", "clover"],
-  "temperate-woodland": ["daisy", "bluet", "clover"],
-  "boreal-woodland": ["bluet", "daisy"],
-  "tropical-woodland": ["poppy", "clover"],
-  wetland: ["buttercup", "bluet"],
-  "dry-scrub": ["poppy", "buttercup"],
-  savanna: ["buttercup", "poppy"],
-  tundra: ["bluet"],
+  grassland: ["daisy", "buttercup", "bluet", "clover", "cornflower", "umbel"],
+  "temperate-woodland": ["daisy", "bluet", "clover", "primrose", "umbel"],
+  "boreal-woodland": ["bluet", "daisy", "heather"],
+  "tropical-woodland": ["poppy", "clover", "primrose"],
+  wetland: ["buttercup", "bluet", "umbel"],
+  "dry-scrub": ["poppy", "buttercup", "heather"],
+  savanna: ["buttercup", "poppy", "cornflower"],
+  tundra: ["bluet", "heather"],
   desert: [],
 };
-const SIZE = 5;
-const shadow = "#2f6b33";
-/** A centre pixel and four petals over a row of shadow, no stem. Three sway
- * frames shift the head a pixel either way. */
+const W = 7,
+  H = 10;
+const STEM = "#3f7a33",
+  LEAF = "#5a9a3e",
+  shadow = "#2f6b33";
+/** A plant, not a dot: stem, a leaf or two, and its flowers in the habit of
+ * its kind, over a row of shadow. Three sway frames lean the top a pixel. */
 function flowerPixels(kind: FlowerKind, frame: number) {
-  const out = new Uint8ClampedArray(SIZE * SIZE * 4);
+  const out = new Uint8ClampedArray(W * H * 4);
   const rgb = (c: string) => [
     parseInt(c.slice(1, 3), 16),
     parseInt(c.slice(3, 5), 16),
@@ -39,37 +59,63 @@ function flowerPixels(kind: FlowerKind, frame: number) {
     255,
   ];
   const put = (x: number, y: number, c: string) => {
-    if (x < 0 || y < 0 || x >= SIZE || y >= SIZE) return;
-    out.set(rgb(c), (y * SIZE + x) * 4);
+    if (x < 0 || y < 0 || x >= W || y >= H) return;
+    out.set(rgb(c), (y * W + x) * 4);
   };
   const lean = frame === 1 ? 1 : frame === 2 ? -1 : 0;
-  const cx = 2 + lean,
-    cy = 1;
-  for (let x = 1; x <= 3; x++) put(x, 3, shadow);
-  const [petal, centre] = petals[kind];
-  put(cx, cy - 1, petal);
-  put(cx - 1, cy, petal);
-  put(cx + 1, cy, petal);
-  put(cx, cy + 1, petal);
-  put(cx, cy, centre);
+  const [petal, centre, habit] = species[kind];
+  for (let x = 2; x <= 4; x++) put(x, H - 1, shadow);
+  const head = (cx: number, cy: number) => {
+    put(cx, cy - 1, petal);
+    put(cx - 1, cy, petal);
+    put(cx + 1, cy, petal);
+    put(cx, cy + 1, petal);
+    put(cx, cy, centre);
+  };
+  if (habit === "mat") {
+    // Low and spreading: leaves on the ground, three heads just above them.
+    for (const x of [1, 2, 4, 5]) put(x, H - 2, LEAF);
+    put(3, H - 2, STEM);
+    head(1 + lean, H - 4);
+    head(5 + lean, H - 5);
+    put(3 + lean, H - 6, petal);
+    put(3 + lean, H - 5, centre);
+    return out;
+  }
+  const top = habit === "umbel" ? 2 : habit === "spike" ? 1 : 3;
+  for (let y = H - 2; y > top; y--)
+    put(3 + (y < (H + top) / 2 ? lean : 0), y, STEM);
+  put(2, H - 3, LEAF);
+  put(4, H - 4, LEAF);
+  if (habit === "head") head(3 + lean, top);
+  else if (habit === "spike")
+    for (let y = top; y < top + 5; y++) {
+      put(3 + lean, y, y % 2 ? petal : centre);
+      if (y > top) put(3 + lean + (y % 2 ? -1 : 1), y, petal);
+    }
+  else {
+    for (let x = 1; x <= 5; x++) put(x + lean, top, x % 2 ? petal : centre);
+    for (const x of [2, 4]) put(x + lean, top + 1, STEM);
+    put(3 + lean, top - 1, petal);
+  }
   return out;
 }
 export function ensureFlowerAtlas(scene: Phaser.Scene) {
   if (scene.textures.exists(FLOWER_ATLAS)) return;
-  const w = 3 * SIZE,
-    h = kinds.length * SIZE;
+  const w = 3 * W,
+    h = kinds.length * H;
   const atlas = scene.textures.createCanvas(FLOWER_ATLAS, w, h)!;
   const ctx = atlas.getContext();
   const image = ctx.createImageData(w, h);
   kinds.forEach((kind, row) => {
     for (let frame = 0; frame < 3; frame++) {
       const p = flowerPixels(kind, frame);
-      for (let y = 0; y < SIZE; y++)
+      for (let y = 0; y < H; y++)
         image.data.set(
-          p.subarray(y * SIZE * 4, (y + 1) * SIZE * 4),
-          ((row * SIZE + y) * w + frame * SIZE) * 4,
+          p.subarray(y * W * 4, (y + 1) * W * 4),
+          ((row * H + y) * w + frame * W) * 4,
         );
-      atlas.add(`${kind}-${frame}`, 0, frame * SIZE, row * SIZE, SIZE, SIZE);
+      atlas.add(`${kind}-${frame}`, 0, frame * W, row * H, W, H);
     }
   });
   ctx.putImageData(image, 0, 0);
@@ -115,9 +161,10 @@ export function flowersAt(
     wy = y + oy;
   const colony = hash(Math.floor(wx / 5), Math.floor(wy / 5), 601);
   const dense = h.kind === "meadow" ? 1.6 : h.kind === "open" ? 1 : 0.5;
-  const chance = (colony > 0.7 ? 0.22 : 0.01) * season * dense;
+  // A colony is thick with its one flower; the odd stray grows anywhere.
+  const chance = (colony > 0.62 ? 0.34 : 0.025) * season * dense;
   if (hash(wx, wy, 603) > chance) return [];
-  const count = hash(wx, wy, 605) < 0.5 ? 2 : 1;
+  const count = 1 + Math.floor(hash(wx, wy, 605) * (colony > 0.62 ? 3 : 1.4));
   const spots: FlowerSpot[] = [];
   const kind =
     choices[
@@ -218,7 +265,7 @@ export function addFlowers(scene: Phaser.Scene, spots: FlowerSpot[]) {
   const container = scene.add.container(0, 0).setDepth(-9998);
   const sprites = spots.map((spot) => {
     const image = scene.add
-      .image(spot.x - 2, spot.y - 2, FLOWER_ATLAS, `${spot.kind}-0`)
+      .image(spot.x - 3, spot.y - 8, FLOWER_ATLAS, `${spot.kind}-0`)
       .setOrigin(0);
     container.add(image);
     return { spot, image };
@@ -229,7 +276,7 @@ export function addFlowers(scene: Phaser.Scene, spots: FlowerSpot[]) {
     frame: -1,
     bounds: {
       x: Math.min(...spots.map((s) => s.x)) - 4,
-      y: Math.min(...spots.map((s) => s.y)) - 6,
+      y: Math.min(...spots.map((s) => s.y)) - 12,
       right: Math.max(...spots.map((s) => s.x)) + 4,
       bottom: Math.max(...spots.map((s) => s.y)) + 4,
     },

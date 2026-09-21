@@ -28,6 +28,9 @@ export type FieldCell = {
   enclosure?: Boundary;
   /** Standing water between bunds. */
   wet: boolean;
+  /** A kitchen garden bed: planted close, cropped in succession, and drawn
+   * right up to its fence. */
+  garden?: boolean;
 };
 
 /** Enclosure by era where the farm system documents none: boulders before
