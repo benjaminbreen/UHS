@@ -334,6 +334,9 @@ export class Runtime {
     prop?: string;
     /** Sprite arc for a jump: the shadow stays on the ground beneath it. */
     arc?: { height: number; duration: number };
+    /** What follows the arc. A fall of two tiers, or a long running jump,
+     * staggers on; three tiers rolls out of it; a near miss hangs. */
+    after?: "land" | "stumble" | "roll" | "hang";
   };
   private characterSerial = 0;
   /** What the last tool blow did, for the scene to throw chips and drop a
@@ -464,7 +467,7 @@ export class Runtime {
           at: performance.now(),
           arc: {
             height: command.jump
-              ? 12 + leap.distance * 6
+              ? 12 + leap.distance * 6 + this.leapLift
               : leap.kind === "leap"
                 ? 15
                 : leap.kind === "drop"
@@ -480,6 +483,13 @@ export class Runtime {
                   ? 400
                   : 340,
           },
+          after: leap.caught
+            ? "hang"
+            : (leap.drop ?? 0) >= 3
+              ? "roll"
+              : (leap.drop ?? 0) === 2 || (command.run && leap.distance >= 4)
+                ? "stumble"
+                : "land",
         };
       return;
     }
@@ -1363,11 +1373,26 @@ export class Runtime {
   /** The last step refused by something small enough to step over. */
   private bump?: { dx: number; dy: number };
   /** Returns the tiles actually cleared, so the renderer can time the arc. */
-  jump(dx: number, dy: number, power: "short" | "long", running = false) {
+  jump(
+    dx: number,
+    dy: number,
+    power: "short" | "long",
+    running = false,
+    /** Extra arc height in pixels: a kick off a wall starts above the ground. */
+    lift = 0,
+  ) {
     this.stop(false);
     this.engine.lastLeap = undefined;
+    this.leapLift = lift;
     this.command({ type: "move", dx, dy, jump: power, run: running });
+    this.leapLift = 0;
     return this.engine.leapDistance();
+  }
+  private leapLift = 0;
+  /** A line for the event bar that no command produced. */
+  remark(text: string) {
+    this.notice = text;
+    this.emit();
   }
   throwHeld(dx: number, dy: number, running = false, reach?: number) {
     this.stop(false);
@@ -1378,6 +1403,22 @@ export class Runtime {
       run: running,
       ...(reach ? { reach } : {}),
     });
+  }
+  /** A jump at something tall runs a step up it, and a second press kicks
+   * off. Nothing to the engine until the kick, which is an ordinary jump. */
+  wallAhead(dx: number, dy: number) {
+    const p = this.engine.state.player;
+    if (this.replay || p.perch || (dx !== 0) === (dy !== 0)) return undefined;
+    const wall = this.engine.tallAt({ x: p.pos.x + dx, y: p.pos.y + dy });
+    if (!wall) return undefined;
+    // Not with full arms, a bad leg, or nothing left; not the very young or old.
+    const able =
+      !heldObject(this.engine.state) &&
+      !p.injury &&
+      p.fatigue < 80 &&
+      (p.age ?? 30) >= 8 &&
+      (p.age ?? 30) <= 60;
+    return { ...wall, able };
   }
   /** Jump on the spot. Expression only, like a strike that hits nothing. */
   hop() {

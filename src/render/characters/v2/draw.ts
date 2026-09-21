@@ -78,10 +78,20 @@ export function drawCharacter(
           : 0;
   // Crouch, stretch off the ground, hang at the apex, reach for the ground.
   const airborne = pose === "jump",
-    landing = pose === "land";
+    landing = pose === "land",
+    kick = pose === "kick",
+    hanging = pose === "hang",
+    stumble = pose === "stumble",
+    roll = pose === "roll",
+    skid = pose === "skid";
   const tuck = airborne ? [0, 2, 5, 1][f] : 0;
   // Knees bent deep enough that they have to go somewhere.
-  const crouched = (airborne && f === 0) || (landing && f < 3);
+  const crouched =
+    (airborne && f === 0) ||
+    (landing && f < 3) ||
+    (stumble && f === 0) ||
+    (hanging && f === 3) ||
+    roll;
   // Cloth lifts at the top of a jump.
   const float = airborne ? [0, 0, 2, 1][f] : 0;
   // A run compresses into the contact frame and extends off it. `bend` drops
@@ -94,27 +104,37 @@ export function drawCharacter(
       ? [4, -1, 0, 0][f]
       : landing
         ? [6, 5, 2, 0][f]
-        : pose === "sit" || pose === "kneel"
-        ? 6
-        : pose === "stoop"
-          ? [2, 4, 6, 4][f]
-          : pose === "tug"
-            ? [0, 0, 2, 3][f]
-            : pose === "pickup" || pose === "drop"
-              ? [-1, 3, 6, 2][f]
-              : pose === "work"
-                ? [0, 0, 4, 2][f]
-                : pose === "chop"
-                  ? [0, -1, 4, 2][f]
-                  : pose === "dig"
-                    ? [2, 1, 5, 4][f]
-                    : pose === "reap"
-                      ? [2, 1, 3, 3][f]
-                      : pose === "hurt"
-                        ? [0, 2, 3, 1][f]
-                        : climbing
-                          ? [3, 4, 3, 4][f]
-                          : 0) -
+        : kick
+          ? [-1, 3, -1, 2][f]
+          : hanging
+            ? [0, 0, 2, 5][f]
+            : stumble
+              ? [6, 4, 2, 1][f]
+              : roll
+                ? [8, 8, 8, 5][f]
+                : skid
+                  ? [1, 2, 2, 1][f]
+                  : pose === "sit" || pose === "kneel"
+                    ? 6
+                    : pose === "stoop"
+                      ? [2, 4, 6, 4][f]
+                      : pose === "tug"
+                        ? [0, 0, 2, 3][f]
+                        : pose === "pickup" || pose === "drop"
+                          ? [-1, 3, 6, 2][f]
+                          : pose === "work"
+                            ? [0, 0, 4, 2][f]
+                            : pose === "chop"
+                              ? [0, -1, 4, 2][f]
+                              : pose === "dig"
+                                ? [2, 1, 5, 4][f]
+                                : pose === "reap"
+                                  ? [2, 1, 3, 3][f]
+                                  : pose === "hurt"
+                                    ? [0, 2, 3, 1][f]
+                                    : climbing
+                                      ? [3, 4, 3, 4][f]
+                                      : 0) -
     extend;
   const tall = a.height * 3,
     torso = a.height * 2,
@@ -146,7 +166,17 @@ export function drawCharacter(
         ? [2, 0, 0, 0][f]
         : landing
           ? [2, 2, 1, 0][f]
-          : 0
+          : kick
+            ? [1, 0, -1, 0][f]
+            : hanging
+              ? [0, 0, 1, 2][f]
+              : stumble
+                ? [3, 3, 2, 1][f]
+                : roll
+                  ? 2
+                  : skid
+                    ? [-1, -2, -2, -1][f]
+                    : 0
     : 0;
   const skin = ramp(a.skin, "skin"),
     cloth = ramp(a.wearing.color),
@@ -165,6 +195,14 @@ export function drawCharacter(
   // Mirroring the raster would mirror the sun with it, so walking west would
   // relight the whole figure. Shading is resolved in screen space instead.
   p.flip = direction === 3;
+  // A roll is one tucked drawing turned a quarter at a time, which pixels
+  // survive exactly. Lying on its side the ball is lower, so it is set down.
+  if (roll && side && f < 3) {
+    const cy = Math.round((feet + 2) / 2);
+    ctx.translate(11, cy + (f === 1 ? 0 : Math.round((feet - 14) / 2)));
+    ctx.rotate(((f + 1) * Math.PI) / 2);
+    ctx.translate(-11, -cy);
+  }
   // A bare chest has bare arms, whatever the record's sleeve field says.
   const sleeves =
     a.wearing.garment === "none" ||
@@ -342,10 +380,22 @@ export function drawCharacter(
       // Wound back, thrown up, level at the apex, out for balance. A raised
       // hand has to clear the face, or the head hides it.
       const arms: [Point, Point][] = [
-        [[-3, 3], [-5, 6 + torso]],
-        [[4, -2], [7, -8]],
-        [[3, 2], [6, 0]],
-        [[4, 1], [7, -2]],
+        [
+          [-3, 3],
+          [-5, 6 + torso],
+        ],
+        [
+          [4, -2],
+          [7, -8],
+        ],
+        [
+          [3, 2],
+          [6, 0],
+        ],
+        [
+          [4, 1],
+          [7, -2],
+        ],
       ];
       [nearElbow, near] = bent(shoulderNear, ...arms[f]);
       [farElbow, far] =
@@ -371,12 +421,180 @@ export function drawCharacter(
       )[f];
     }
   }
+  if (side && (kick || hanging || stumble || roll || skid)) {
+    type Arm = [Point, Point];
+    // [elbow, hand] from the shoulder, near then far.
+    const arms: [Arm, Arm] | undefined = kick
+      ? (
+          [
+            [
+              [
+                [-3, 3],
+                [-2, 7],
+              ],
+              [
+                [2, 4],
+                [5, 1],
+              ],
+            ],
+            [
+              [
+                [2, 4],
+                [5, 2],
+              ],
+              [
+                [2, 3],
+                [5, 0],
+              ],
+            ],
+            [
+              [
+                [-3, 1],
+                [-6, -2],
+              ],
+              [
+                [-3, 2],
+                [-6, 0],
+              ],
+            ],
+            [
+              [
+                [4, -1],
+                [5, -6],
+              ],
+              [
+                [4, -2],
+                [5, -8],
+              ],
+            ],
+          ] as [Arm, Arm][]
+        )[f]
+      : hanging
+        ? (
+            [
+              [
+                [
+                  [4, -3],
+                  [5, -9],
+                ],
+                [
+                  [4, -3],
+                  [5, -9],
+                ],
+              ],
+              [
+                [
+                  [4, -3],
+                  [5, -9],
+                ],
+                [
+                  [4, -3],
+                  [5, -9],
+                ],
+              ],
+              [
+                [
+                  [4, 1],
+                  [5, -4],
+                ],
+                [
+                  [4, 1],
+                  [5, -4],
+                ],
+              ],
+              [
+                [
+                  [2, 4],
+                  [5, 7],
+                ],
+                [
+                  [2, 4],
+                  [5, 7],
+                ],
+              ],
+            ] as [Arm, Arm][]
+          )[f]
+        : stumble
+          ? (
+              [
+                [
+                  [
+                    [3, 3],
+                    [7, 6],
+                  ],
+                  [
+                    [3, 3],
+                    [7, 6],
+                  ],
+                ],
+                [
+                  [
+                    [3, 2],
+                    [6, 1],
+                  ],
+                  [
+                    [-3, 1],
+                    [-6, -1],
+                  ],
+                ],
+                [
+                  [
+                    [-3, 2],
+                    [-5, 1],
+                  ],
+                  [
+                    [3, 3],
+                    [6, 3],
+                  ],
+                ],
+                undefined,
+              ] as ([Arm, Arm] | undefined)[]
+            )[f]
+          : roll
+            ? [
+                [
+                  [3, 4],
+                  [4, 8],
+                ],
+                [
+                  [3, 4],
+                  [4, 8],
+                ],
+              ]
+            : [
+                [
+                  [2, 4],
+                  [5, 3],
+                ],
+                [
+                  [-3, 3],
+                  [-6, 2],
+                ],
+              ];
+    if (arms) {
+      [nearElbow, near] = bent(shoulderNear, ...arms[0]);
+      [farElbow, far] = bent(shoulderFar, ...arms[1]);
+    }
+  } else if (kick || hanging) {
+    // Head-on, both hands are up on the face of it.
+    const up = hanging ? [4, 4, 8, 20 + torso][f] : [14, 6, 12, 5][f];
+    near = [17 + wide, up];
+    far = [2 - wide, up];
+  } else if (stumble || skid) {
+    const out = stumble ? [4, 4, 2, 0][f] : 3;
+    near = [16 + wide + out, 20 + torso];
+    far = [4 - wide - out, 20 + torso];
+  }
   if (landing && f < 3) {
     if (side) {
       // Hands thrown forward and down to catch the weight.
       const reach: [Point, Point] = [
         [2, 4],
-        [[5, 7], [5, 8], [3, 8]][f] as Point,
+        [
+          [5, 7],
+          [5, 8],
+          [3, 8],
+        ][f] as Point,
       ];
       [nearElbow, near] = bent(shoulderNear, ...reach);
       [farElbow, far] = bent(shoulderFar, ...reach);
@@ -491,11 +709,11 @@ export function drawCharacter(
         ? "point"
         : /pitchfork/.test(prop.sprite)
           ? "fork"
-        : /rake/.test(prop.sprite)
-          ? "rake"
-          : /scythe/.test(prop.sprite)
-            ? "blade"
-            : "blade-square";
+          : /rake/.test(prop.sprite)
+            ? "rake"
+            : /scythe/.test(prop.sprite)
+              ? "blade"
+              : "blade-square";
       if (head === "point") {
         // A leaf blade, in line with the shaft.
         p.limb([at(0, 0), at(5, 0)], 2, iron);
@@ -666,15 +884,15 @@ export function drawCharacter(
         ? // Head-on, a knee driven up is a leg drawn short.
           [5, 2, 1, 0][(f + (isFar ? 2 : 0)) % 4]
         : moving
-        ? (isFar && f === 2) || (!isFar && f === 0)
-          ? side
-            ? 3
-            : 2
-          : // The trailing foot of a contact frame is up on its toe.
-            side && walk < 0
-            ? 1
-            : 0
-        : 0) +
+          ? (isFar && f === 2) || (!isFar && f === 0)
+            ? side
+              ? 3
+              : 2
+            : // The trailing foot of a contact frame is up on its toe.
+              side && walk < 0
+              ? 1
+              : 0
+          : 0) +
       // The far foot of a diagonal stands further up the screen, and so does
       // whichever foot is stepping away from the viewer.
       (quarter ? (isFar ? 1 : 0) + (headAway && walk > 0 ? 1 : 0) : 0) +
@@ -698,26 +916,118 @@ export function drawCharacter(
     // In profile a run, a jump and a landing are posed joint by joint, as
     // offsets from the hip. `ground` is how far below it the ankle stands.
     let toeDown = false;
-    if (side && (sprint || airborne || crouched)) {
+    if (
+      side &&
+      (sprint || airborne || crouched || kick || hanging || stumble || skid)
+    ) {
       const ground = feet - 2 - hip[1];
       const scale = (v: number) => Math.round((v * (11 + a.height)) / 11);
-      let k: Point, n: Point;
+      let k: Point = [knee[0] - hip[0], knee[1] - hip[1]],
+        n: Point = [ankle[0] - hip[0], ankle[1] - hip[1]];
       if (sprint) {
         // Flight frames carry the widest split; on a contact frame one foot is
         // under the hips and the other heel is kicked up behind a driving knee.
         const phase = (f + (isFar ? 2 : 0)) % 4;
         [k, n] = (
           [
-            [[4, scale(4)], [6, ground - 3]],
-            [[1, scale(5)], [-1, ground]],
-            [[-2, scale(5)], [-6, ground - 4]],
-            [[5, scale(3)], [1, ground - 4]],
+            [
+              [4, scale(4)],
+              [6, ground - 3],
+            ],
+            [
+              [1, scale(5)],
+              [-1, ground],
+            ],
+            [
+              [-2, scale(5)],
+              [-6, ground - 4],
+            ],
+            [
+              [5, scale(3)],
+              [1, ground - 4],
+            ],
           ] as [Point, Point][]
         )[phase];
         toeDown = phase > 1;
       } else if (crouched) {
         k = [ground < 8 ? 3 : 2, Math.round(ground * 0.45)];
         n = [isFar ? 0 : -1, ground];
+      } else if (kick) {
+        // One foot goes up onto the wall, plants, and drives off it.
+        [k, n] = (
+          isFar
+            ? [
+                [
+                  [-1, 5],
+                  [-3, ground - 2],
+                ],
+                [
+                  [3, 3],
+                  [4, 7],
+                ],
+                [
+                  [1, 5],
+                  [0, ground - 2],
+                ],
+                [
+                  [1, 5],
+                  [1, ground - 1],
+                ],
+              ]
+            : [
+                [
+                  [4, 3],
+                  [6, 5],
+                ],
+                [
+                  [4, 1],
+                  [6, 3],
+                ],
+                [
+                  [3, 4],
+                  [6, 8],
+                ],
+                [
+                  [1, 5],
+                  [2, ground - 1],
+                ],
+              ]
+        )[f] as [Point, Point];
+        toeDown = isFar ? f !== 1 : f === 3;
+      } else if (hanging) {
+        // Dead weight, then a knee over the edge.
+        [k, n] =
+          f === 2 && !isFar
+            ? [
+                [4, 2],
+                [5, 6],
+              ]
+            : [
+                [f === 1 ? -1 : 0, 5],
+                [f === 1 ? -2 : 0, ground - 2],
+              ];
+        toeDown = true;
+      } else if (stumble || skid) {
+        // One leg thrown out ahead to catch the weight, the other behind it.
+        const lead = skid ? !isFar : (f === 1) === !isFar;
+        // The last stumble frame is back on its own legs.
+        if (skid || f < 3) {
+          [k, n] = lead
+            ? [
+                [skid ? 3 : 4, skid ? 5 : 3],
+                [skid ? 6 : 5, ground],
+              ]
+            : skid
+              ? [
+                  [1, 4],
+                  [-1, ground],
+                ]
+              : [
+                  [-1, 4],
+                  [-4, ground - 1],
+                ];
+          toeDown = !lead && !skid;
+        }
       } else if (f === 1) {
         // Off the toes.
         k = [0, scale(6)];
@@ -738,7 +1048,9 @@ export function drawCharacter(
     // Leggings win over the garment's own guess: a short tunic over hose is
     // covered, a long robe over nothing still hides the leg anyway.
     const legs =
-      a.wearing.garment === "suit" ? "trousers" : (a.wearing.leggings ?? "none");
+      a.wearing.garment === "suit"
+        ? "trousers"
+        : (a.wearing.leggings ?? "none");
     const bareLeg =
         legs === "none" &&
         (a.wearing.garment === "tunic" ||
@@ -771,7 +1083,13 @@ export function drawCharacter(
       );
       if (!isFar) {
         p.rect(hip[0] - 2, knee[1] - 3, 4, 1, lower.light);
-        p.rect(hip[0] - 2 - (away > 0 ? 0 : 2), ankle[1] - 1, 6, 1, lower.shade);
+        p.rect(
+          hip[0] - 2 - (away > 0 ? 0 : 2),
+          ankle[1] - 1,
+          6,
+          1,
+          lower.shade,
+        );
       }
       void out;
     }
@@ -887,15 +1205,15 @@ export function drawCharacter(
   const gown = a.wearing.garment === "gown";
   const suit = a.wearing.garment === "suit";
   const long = [
-    "robe",
-    "dress",
-    "coat",
-    "skirt",
-    "long-tunic",
-    "open-robe",
-    "gown",
-    "suit",
-  ].includes(a.wearing.garment),
+      "robe",
+      "dress",
+      "coat",
+      "skirt",
+      "long-tunic",
+      "open-robe",
+      "gown",
+      "suit",
+    ].includes(a.wearing.garment),
     hem =
       a.wearing.garment === "long-tunic"
         ? 27 + torso
@@ -909,7 +1227,17 @@ export function drawCharacter(
   // A court gown is the width: panniers and a stiffened underskirt carry it
   // well past the body, which is the whole silhouette. A sealed suit is the
   // opposite — it follows the body exactly.
-  const flare = gown ? 5 : ["dress", "skirt"].includes(a.wearing.garment) ? 2 : suit ? 0 : poncho ? 1 : long ? 1 : 0;
+  const flare = gown
+    ? 5
+    : ["dress", "skirt"].includes(a.wearing.garment)
+      ? 2
+      : suit
+        ? 0
+        : poncho
+          ? 1
+          : long
+            ? 1
+            : 0;
   const waist = a.bodyShape === "tapered" ? 1 : 0;
   const belly = a.bodyShape === "rounded" ? 1 : 0;
   // A long hem swings a frame behind the legs, like the cloak.
@@ -945,23 +1273,25 @@ export function drawCharacter(
               [right + belly + flare + hemSway, bodyHem - 1 - hemLift],
               [right - 1 + flare + hemSway, bodyHem],
               [left - flare + hemSway, bodyHem],
-              ...((bodyHem > 24 + torso ? [[left, 23 + torso]] : []) as Point[]),
+              ...((bodyHem > 24 + torso
+                ? [[left, 23 + torso]]
+                : []) as Point[]),
               [left + 1, 20 + torso],
               [left + pitch, 16],
               [left + pitch, 14],
             ]
           : [
-            [left + 2, 12],
-            [right - 2, 12],
-            [right, 15 - inhale],
-            [right - waist + belly, 19 + torso],
-            [right + flare + hemSway, bodyHem - 1 - hemLift],
-            [right - 1, bodyHem],
-            [left - flare + hemSway, bodyHem],
-            [left - 1, bodyHem - 2],
-            [left + waist - belly, 19 + torso],
-            [left, 15 - inhale],
-          ],
+              [left + 2, 12],
+              [right - 2, 12],
+              [right, 15 - inhale],
+              [right - waist + belly, 19 + torso],
+              [right + flare + hemSway, bodyHem - 1 - hemLift],
+              [right - 1, bodyHem],
+              [left - flare + hemSway, bodyHem],
+              [left - 1, bodyHem - 2],
+              [left + waist - belly, 19 + torso],
+              [left, 15 - inhale],
+            ],
       body,
     );
     if (!naked && !poncho && sleeves !== "none") {
@@ -1040,7 +1370,11 @@ export function drawCharacter(
       ],
       cloth,
     );
-    p.line([left - 4 + hemSway, hem - 2], [right + 4 + hemSway, hem - 2], cloth.shade);
+    p.line(
+      [left - 4 + hemSway, hem - 2],
+      [right + 4 + hemSway, hem - 2],
+      cloth.shade,
+    );
     p.line([left - 1, 23 + torso], [left - 4 + hemSway, hem - 3], cloth.light);
   }
   if (gown && !rear) {
@@ -1195,7 +1529,11 @@ export function drawCharacter(
         (a.wearing.leggings ?? "none") === "none" &&
         (a.wearing.garment === "tunic" || a.wearing.garment === "wrap");
       const legTone = bareLegs ? skin : lower;
-      for (const x of quarter ? [10, 12] : side ? [11, 12] : [6 - wide + small, 13 + wide - narrow])
+      for (const x of quarter
+        ? [10, 12]
+        : side
+          ? [11, 12]
+          : [6 - wide + small, 13 + wide - narrow])
         p.rect(x - 1, hem, 4, 1, legTone.shadowEdge ?? legTone.edge);
     }
   }

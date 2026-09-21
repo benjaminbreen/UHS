@@ -1949,6 +1949,34 @@ export class Engine {
     }
     return undefined;
   }
+  /** Something tall and solid in this cell: what a jump at it meets, and can
+   * kick off. The same things `climbable` offers, asked of one cell. */
+  tallAt(q: Point): { label: string } | undefined {
+    const p = this.state.player;
+    const object = this.state.objects.find(
+      (o) =>
+        o.pos.space === p.pos.space &&
+        o.pos.x === q.x &&
+        o.pos.y === q.y &&
+        !o.carriedBy &&
+        !o.broken &&
+        !!o.prop &&
+        !!propDefs[o.prop]?.solid &&
+        !lowProp(o),
+    );
+    if (object) return { label: object.name };
+    if (p.pos.space !== "outside") return undefined;
+    const plant = this.world.decoration(q.x, q.y);
+    if (plant?.solid)
+      return plant.sprite === "rock"
+        ? undefined
+        : { label: treeName(plant.sprite) };
+    if (!this.world.blocked(q.x, q.y, "outside")) return undefined;
+    const place = (this.world.places ?? []).find(
+      (r) => q.x >= r.x && q.x < r.x + r.w && q.y >= r.y && q.y < r.y + r.h,
+    );
+    return { label: place?.name ?? "the wall" };
+  }
   /** Shared by the C key, the affordance and the narrator's climb intent. */
   perch(target: {
     id: string;

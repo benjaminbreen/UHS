@@ -82,7 +82,7 @@ import { ToolEffects, ROLL_MS } from "./tool-effects";
 import { CombatEffects, faunaSpriteId, mixTint } from "./combat-effects";
 import { PlayerFeel } from "./player-feel";
 import { CueEffects } from "./cue-effects";
-import { TIERS } from "../core/combat";
+import { TIERS, type CueKind } from "../core/combat";
 import {
   facingFromDirection,
   facingFromStep,
@@ -110,6 +110,11 @@ const BUMP_MS = 110;
 const PUSH_MS = 240;
 /** Step times as a run gets up to speed. */
 const RUN_RAMP = [120, 100, 88, 78, 72];
+/** A reversed run: the plant and lean before the first step back. */
+const SKID_MS = 140;
+/** Run up the wall, then how long the foot stays planted waiting for Space. */
+const WALL_RUN_MS = 150,
+  WALL_KICK_WINDOW_MS = 320;
 /** Poll interval while a jump is in the air, matched to the sprite's arc. */
 const DIRECTION_KEYS = [
   "arrowleft",
@@ -292,6 +297,22 @@ export class WorldScene extends Phaser.Scene {
   /** Where the player is pushing while the way is blocked. The engine never
    * saw the move, so the turn is the renderer's to remember. */
   private blockedFacing?: number;
+  /** A player pose the scene plays on its own account, over everything else:
+   * frames `first` to `last`, `ms` apiece, until `until`, then `then`. */
+  private stunt?: Stunt;
+  /** Up against something tall after a jump at it. Space before `until`
+   * kicks off; holding toward it goes up and over instead. */
+  private wallRun?: {
+    dx: number;
+    dy: number;
+    contact: number;
+    until: number;
+    able: boolean;
+    label: string;
+    x: number;
+    y: number;
+  };
+  private lastRunDir?: [number, number];
   /** When the last step was refused, so pushing ends shortly after the key
    * is released while the facing itself stays put. */
   private pushingAt?: number;
@@ -591,6 +612,7 @@ export class WorldScene extends Phaser.Scene {
       if (event.code === "Space" && !(active instanceof HTMLButtonElement)) {
         event.preventDefault();
         if (event.repeat || this.spaceDown) return;
+        if (this.wallKick()) return;
         this.spaceDown = true;
         this.jumpRunning =
           this.shiftHeld ||
@@ -866,18 +888,26 @@ export class WorldScene extends Phaser.Scene {
     }
   }
   /** Sends a sprite along a parabola to its landing tile. The height above the
-   * ground is published as `arcLift`, which is what keeps the shadow behind. */
+   * ground is published as `arcLift`, which is what keeps the shadow behind.
+   * A heavy landing comes down short and staggers or rolls the rest of the
+   * way; a caught ledge ends hanging below it and is hauled up. */
   private launch(
     im: Phaser.GameObjects.Image,
     arc: { height: number; duration: number },
     tx: number,
     ty: number,
+    after: "land" | "stumble" | "roll" | "hang" = "land",
   ) {
     this.tweens.killTweensOf(im);
+    const travel = Math.hypot(tx - im.x, ty - im.y) || 1;
+    const short = after === "roll" ? 9 : after === "stumble" ? 6 : 0;
+    const ex = tx - ((tx - im.x) / travel) * short,
+      ey = ty - ((ty - im.y) / travel) * short + (after === "hang" ? 11 : 0);
+    const carry = poseTiming(after) * (after === "hang" ? 4 : 3);
     this.tweens.add({
       targets: im,
-      x: tx,
-      y: ty,
+      x: ex,
+      y: ey,
       duration: arc.duration,
       ease: "Linear",
       onUpdate: (tween: Phaser.Tweens.Tween) => {
@@ -891,12 +921,199 @@ export class WorldScene extends Phaser.Scene {
         im.setScale(1 - 0.12 * shape, 1 + 0.16 * shape);
       },
       onComplete: () => {
-        im.setPosition(tx, ty);
+        im.setPosition(ex, ey);
         im.setData("arcLift", 0);
-        this.feel.land(im, arc.height, tx, ty);
-        this.kickDust(tx, ty, arc.height > 26 ? 7 : 4, arc.height / 24);
+        if (after === "hang") {
+          im.setScale(1, 1);
+          // Dangle for two frames, then up over the edge.
+          this.tweens.add({
+            targets: im,
+            y: ty,
+            delay: poseTiming("hang") * 2,
+            duration: poseTiming("hang") * 2,
+            ease: "Quad.easeOut",
+          });
+          return;
+        }
+        const heavy = after !== "land";
+        this.feel.land(im, arc.height + (heavy ? 18 : 0), ex, ey);
+        this.kickDust(
+          ex,
+          ey,
+          heavy ? 9 : arc.height > 26 ? 7 : 4,
+          heavy ? 1.6 : arc.height / 24,
+        );
+        if (heavy)
+          this.tweens.add({
+            targets: im,
+            x: tx,
+            y: ty,
+            duration: carry,
+            ease: "Quad.easeOut",
+          });
+        if (im === this.entities.get("player"))
+          this.onlookers(tx, ty, heavy ? 4 : 1.5, heavy ? "alarm" : "question");
       },
     });
+  }
+  /** Plays a pose on the player over whatever else would be showing. */
+  private play(
+    stunt: Pick<Stunt, "pose" | "ms" | "first" | "last"> & {
+      then?: Stunt["then"];
+    },
+    ms: number,
+  ) {
+    const from = this.time.now;
+    this.stunt = { ...stunt, from, until: from + ms };
+  }
+  /** Extra input delay when the action just started ends in more than a
+   * landing: the stagger, the roll, the haul up over an edge. */
+  private heldSerial = 0;
+  private afterHold() {
+    const action = this.runtime.characterAction;
+    if (!action?.after || action.serial === this.heldSerial) return 0;
+    this.heldSerial = action.serial;
+    return action.after === "land" ? 0 : poseTiming(action.after) * 4;
+  }
+  /** People near enough to have seen it react. Show only. */
+  private onlookers(x: number, y: number, tiles: number, kind: CueKind) {
+    const toward = { x: (x - 8) / 16, y: (y - 16) / 16 };
+    for (const id of this.humanActors.keys()) {
+      if (id === "player") continue;
+      const im = this.entities.get(id);
+      if (!im || Math.hypot(im.x - x, im.y - y) > tiles * 16) continue;
+      this.cues.react(id, kind, toward);
+    }
+  }
+  /** A jump at something tall: a step up it, a planted foot, and a moment in
+   * which Space kicks off. The engine hears nothing unless the kick comes. */
+  private runAtWall(
+    im: Phaser.GameObjects.Image,
+    wall: { label: string; able: boolean },
+    dx: number,
+    dy: number,
+    time: number,
+  ) {
+    const now = this.time.now;
+    const wait = wall.able ? WALL_KICK_WINDOW_MS : 60;
+    this.wallRun = {
+      dx,
+      dy,
+      contact: now + WALL_RUN_MS,
+      until: now + WALL_RUN_MS + wait,
+      able: wall.able,
+      label: wall.label,
+      x: im.x,
+      y: im.y,
+    };
+    this.blockedFacing = facingFromStep(
+      dx,
+      dy,
+      this.runtime.engine.state.player.direction,
+    );
+    this.play(
+      { pose: "kick", ms: WALL_RUN_MS, first: 0, last: 1 },
+      WALL_RUN_MS + wait,
+    );
+    this.nextInput = time + WALL_RUN_MS + wait + 200;
+    const rise = 9;
+    this.tweens.killTweensOf(im);
+    this.tweens.add({
+      targets: im,
+      x: im.x + dx * 6,
+      y: im.y + dy * 6 - rise,
+      duration: WALL_RUN_MS,
+      ease: "Quad.easeOut",
+      onUpdate: (tween: Phaser.Tweens.Tween) =>
+        im.setData("arcLift", rise * tween.progress),
+      onComplete: () => this.kickDust(im.x + dx * 5, im.y - 2, 4, 0.6),
+    });
+  }
+  /** Space with a foot on the wall. Holding toward it goes up and over;
+   * anything else pushes off, the way held or straight back. */
+  private wallKick() {
+    const run = this.wallRun,
+      now = this.time.now,
+      im = this.entities.get("player");
+    if (!run || !im || !run.able || now < run.contact - 60 || now > run.until)
+      return false;
+    this.wallRun = undefined;
+    this.blockedFacing = undefined;
+    const held = this.direction();
+    this.tweens.killTweensOf(im);
+    if (held[0] === run.dx && held[1] === run.dy) {
+      im.setData("arcLift", 0);
+      this.runtime.climb();
+      this.play(
+        { pose: "hang", ms: poseTiming("hang"), first: 0, last: 3 },
+        poseTiming("hang") * 4,
+      );
+      this.nextInput = this.lastTick + poseTiming("hang") * 4;
+      this.onlookers(run.x, run.y, 5, "point");
+      return true;
+    }
+    const [kx, ky] = held.some(Boolean) ? held : [-run.dx, -run.dy];
+    // The push: grit off the wall where the foot was.
+    this.kickDust(im.x + run.dx * 5, im.y + 2, 8, 1.2);
+    this.feel.spring(im, 0.86, 1.16, 140);
+    let cleared = 0;
+    for (const power of ["long", "short"] as const) {
+      this.runtime.jump(kx, ky, power, false, 8);
+      cleared = this.runtime.engine.lastLeap
+        ? this.runtime.engine.leapDistance()
+        : 0;
+      if (cleared) break;
+    }
+    if (!cleared) {
+      this.slideDown(run, im);
+      return true;
+    }
+    this.play({ pose: "kick", ms: 90, first: 2, last: 2 }, 90);
+    this.nextInput = this.lastTick = this.time.now;
+    this.nextInput += jumpMs(cleared) + this.afterHold();
+    this.onlookers(run.x, run.y, 5, "point");
+    return true;
+  }
+  /** Nothing came of it: back down the face and onto the feet. */
+  private slideDown(
+    run: NonNullable<WorldScene["wallRun"]>,
+    im: Phaser.GameObjects.Image,
+  ) {
+    this.wallRun = undefined;
+    this.blockedFacing = undefined;
+    this.play(
+      {
+        pose: "kick",
+        ms: 180,
+        first: 3,
+        last: 3,
+        then: {
+          pose: "land",
+          ms: poseTiming("land"),
+          first: 0,
+          last: 3,
+          for: poseTiming("land") * 4,
+        },
+      },
+      180,
+    );
+    this.tweens.killTweensOf(im);
+    this.tweens.add({
+      targets: im,
+      x: run.x,
+      y: run.y,
+      duration: 180,
+      ease: "Quad.easeIn",
+      onUpdate: (tween: Phaser.Tweens.Tween) =>
+        im.setData("arcLift", 9 * (1 - tween.progress)),
+      onComplete: () => {
+        im.setData("arcLift", 0);
+        this.feel.land(im, 10, run.x, run.y);
+        this.kickDust(run.x, run.y, 3, 0.6);
+      },
+    });
+    if (!run.able)
+      this.runtime.remark(`You scrabble at ${run.label} and slide back down.`);
   }
   private sprite(frame: string, x: number, y: number, depth: number) {
     const image = this.add
@@ -2727,7 +2944,7 @@ export class WorldScene extends Phaser.Scene {
         this.tweens.killTweensOf(im);
         if (shade) this.tweens.killTweensOf(shade);
         if (arc) {
-          this.launch(im, arc, tx, ty);
+          this.launch(im, arc, tx, ty, pending?.after);
           if (shade)
             this.tweens.add({
               targets: shade,
@@ -3446,6 +3663,11 @@ export class WorldScene extends Phaser.Scene {
       this.jumpStarted = this.queuedJump = undefined;
       this.pendingDirection = undefined;
     }
+    if (this.wallRun && this.time.now > this.wallRun.until) {
+      const im = this.entities.get("player");
+      if (im) this.slideDown(this.wallRun, im);
+      else this.wallRun = undefined;
+    }
     if (!this.options.lab && !typing) {
       this.chargeTell(time);
       if (
@@ -3464,8 +3686,14 @@ export class WorldScene extends Phaser.Scene {
         this.jumpRunning = false;
         const player = this.entities.get("player");
         if (player) this.kickDust(player.x, player.y, running ? 6 : 3, 0.8);
-        this.motionDuration = jumpMs(this.runtime.jump(dx, dy, power, running));
-        this.nextInput = time + this.motionDuration;
+        const wall = player && this.runtime.wallAhead(dx, dy);
+        if (wall) this.runAtWall(player, wall, dx, dy, time);
+        else {
+          this.motionDuration = jumpMs(
+            this.runtime.jump(dx, dy, power, running),
+          );
+          this.nextInput = time + this.motionDuration + this.afterHold();
+        }
         this.lastTick = time;
       } else if (time >= this.nextInput && this.jumpStarted === undefined) {
         const held = this.direction();
@@ -3473,11 +3701,34 @@ export class WorldScene extends Phaser.Scene {
           ? held
           : (this.pendingDirection ?? held);
         this.pendingDirection = undefined;
-        if (dx || dy) {
+        const back = this.lastRunDir;
+        if (
+          (dx || dy) &&
+          this.shiftHeld &&
+          this.runSteps >= 2 &&
+          back &&
+          dx === -back[0] &&
+          dy === -back[1]
+        ) {
+          // Reversing a run costs a planted foot before the first step back.
+          this.lastRunDir = undefined;
+          this.runSteps = 0;
+          this.nextInput = time + SKID_MS;
+          this.play(
+            { pose: "skid", ms: SKID_MS / 4, first: 0, last: 3 },
+            SKID_MS,
+          );
+          const im = this.entities.get("player");
+          if (im) this.kickDust(im.x - dx * 5, im.y, 5, 0.9);
+        } else if (dx || dy) {
           if (this.shiftHeld) {
             this.runSteps = Math.min(RUN_RAMP.length - 1, this.runSteps + 1);
             this.lastRunStep = time;
-          } else this.runSteps = 0;
+            this.lastRunDir = [dx, dy];
+          } else {
+            this.runSteps = 0;
+            this.lastRunDir = undefined;
+          }
           this.motionDuration =
             (this.shiftHeld ? RUN_RAMP[this.runSteps] : 140) *
             Math.hypot(dx, dy);
@@ -3522,6 +3773,8 @@ export class WorldScene extends Phaser.Scene {
           } else {
             this.blockedFacing = undefined;
             this.pushingAt = undefined;
+            // A walked drop can land as badly as a jumped one.
+            this.nextInput += this.afterHold();
           }
         }
       }
@@ -3589,9 +3842,23 @@ export class WorldScene extends Phaser.Scene {
         const active =
           action && elapsed < (arcMs ?? poseTiming(action.pose) * 4);
         const sinceLanding = arcMs === undefined ? -1 : elapsed - arcMs;
+        // A plain landing gives way to walking; a stagger, a roll or a haul
+        // up over an edge plays out.
+        const after = action?.after ?? "land";
         const landed =
           sinceLanding >= 0 &&
-          sinceLanding < poseTiming("land") * (moving ? 1 : 4);
+          sinceLanding <
+            poseTiming(after) * (moving && after === "land" ? 1 : 4);
+        let stunt = id === "player" ? this.stunt : undefined;
+        if (stunt && this.time.now >= stunt.until) {
+          const next = stunt.then;
+          stunt = this.stunt = next && {
+            ...next,
+            from: stunt.until,
+            until: stunt.until + next.for,
+            then: undefined,
+          };
+        }
         const sample = this.runtime.engine.world.topography;
         const wetPos = this.destinations.get(id);
         const water =
@@ -3605,7 +3872,7 @@ export class WorldScene extends Phaser.Scene {
         const heldSprite = this.heldSprites.get(id);
         let pose: CharacterPose = moving ? "walk" : "idle";
         if (active) pose = action.pose;
-        else if (landed) pose = "land";
+        else if (landed) pose = after;
         else if (moving)
           pose = id === "player" && this.shiftHeld ? "run" : "walk";
         else if (at) pose = this.ambientPose(id, at, time);
@@ -3633,30 +3900,38 @@ export class WorldScene extends Phaser.Scene {
               )
             : undefined;
         if (fidget?.pose) pose = fidget.pose;
+        if (stunt) pose = stunt.pose;
         // Something heavy in the arms shortens the stride.
         const laden =
           id === "player" && !!me.held && !this.runtime.engine.armed();
-        const index = active
-          ? arcMs
-            ? // Crouch, launch, a long apex, then the reach for the ground.
-              [0.12, 0.4, 0.8].filter((t) => elapsed / arcMs >= t).length
-            : Math.min(3, Math.floor(elapsed / poseTiming(pose)))
-          : landed
-            ? Math.min(3, Math.floor(sinceLanding / poseTiming("land")))
-            : this.options.freeze
-            ? 0
-            : cued
-              ? cued.index
-              : fidget?.pose
-                ? Math.min(
-                    3,
-                    Math.floor(
-                      ((time - fidget.from) / (fidget.until - fidget.from)) * 4,
-                    ),
-                  )
-                : pose === "wade"
-                  ? (this.wading?.frame(id) ?? 0)
-                  : this.poseFrame(id, pose, laden ? time * 0.72 : time);
+        const index = stunt
+          ? Math.min(
+              stunt.last,
+              stunt.first + Math.floor((this.time.now - stunt.from) / stunt.ms),
+            )
+          : active
+            ? arcMs
+              ? // Crouch, launch, a long apex, then the reach for the ground.
+                [0.12, 0.4, 0.8].filter((t) => elapsed / arcMs >= t).length
+              : Math.min(3, Math.floor(elapsed / poseTiming(pose)))
+            : landed
+              ? Math.min(3, Math.floor(sinceLanding / poseTiming(after)))
+              : this.options.freeze
+                ? 0
+                : cued
+                  ? cued.index
+                  : fidget?.pose
+                    ? Math.min(
+                        3,
+                        Math.floor(
+                          ((time - fidget.from) /
+                            (fidget.until - fidget.from)) *
+                            4,
+                        ),
+                      )
+                    : pose === "wade"
+                      ? (this.wading?.frame(id) ?? 0)
+                      : this.poseFrame(id, pose, laden ? time * 0.72 : time);
         const prop =
           heldSprite ??
           (at?.activity === "haul-catch" ? CATCH : undefined) ??
@@ -4027,6 +4302,7 @@ export class WorldScene extends Phaser.Scene {
   }
   /** The on-screen jump: down and up, as Space is. */
   touchJump(down: boolean) {
+    if (down && !this.spaceDown && this.wallKick()) return;
     if (down && !this.spaceDown) {
       this.spaceDown = true;
       this.jumpRunning = this.shiftHeld || this.runtime.running;
@@ -4064,6 +4340,16 @@ export class WorldScene extends Phaser.Scene {
     ];
   }
 }
+
+type Stunt = {
+  pose: CharacterPose;
+  from: number;
+  ms: number;
+  first: number;
+  last: number;
+  until: number;
+  then?: Omit<Stunt, "from" | "until"> & { for: number };
+};
 
 /** Multiply two tints channel-wise, as a shader would. */
 function blendTint(a: number, b: number) {

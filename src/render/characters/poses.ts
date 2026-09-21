@@ -28,6 +28,11 @@ export const poses = [
   "startle",
   "jump",
   "land",
+  "stumble",
+  "roll",
+  "kick",
+  "hang",
+  "skid",
   "hurt",
   "sit",
 ] as const;
@@ -46,7 +51,14 @@ export function poseTiming(pose: CharacterPose) {
   // the arc itself; this is the lab's cadence.
   if (pose === "jump") return 90;
   // Impact, hold, rise, settle.
-  if (pose === "land") return 70;
+  if (pose === "land" || pose === "roll") return 70;
+  // A heavy landing staggers on for two steps.
+  if (pose === "stumble") return 85;
+  // Run at the wall, plant, push, or slide back down it.
+  if (pose === "kick") return 80;
+  // Catch, dangle, pull, over the top.
+  if (pose === "hang") return 110;
+  if (pose === "skid") return 35;
   // A chop is a swing with a heavier head; a dig and a sweep are slower still.
   if (pose === "chop") return 120;
   if (pose === "dig" || pose === "reap" || pose === "till") return 150;

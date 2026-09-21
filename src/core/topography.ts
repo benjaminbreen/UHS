@@ -203,6 +203,10 @@ export type LeapResult = {
   distance: 1 | 2 | 3 | 4;
   seconds: number;
   reason: string;
+  /** Tiers fallen, when the landing is lower than the take-off. */
+  drop?: number;
+  /** The jump came up a tier short and ended hanging from the edge. */
+  caught?: boolean;
 };
 /** Legacy traversal retained for existing commands:
  * a plain hop on open ground, a scramble up one tier, a drop down, or a leap
@@ -243,6 +247,7 @@ export function terrainLeap(
       distance: 1,
       seconds: 2,
       reason: "You drop down.",
+      drop: a.height - b.height,
     };
   // Clearing a stream or a ditch: the landing must be level with the takeoff.
   // Only water is a gap. A wall or a trunk is climbed or not passed at all.
@@ -286,6 +291,23 @@ export function terrainJump(
   for (let step = 1; step <= reach; step++) {
     const at = { x: from.x + dx * step, y: from.y + dy * step };
     const cell = sample(at.x, at.y);
+    // One tier too high is a near miss: straight on, the hands reach the edge.
+    if (
+      cell &&
+      !cell.solid &&
+      !water(cell) &&
+      !(dx && dy) &&
+      cell.height === start.height + rise + 1
+    ) {
+      landing = {
+        kind: "climb",
+        distance: step as 1 | 2 | 3 | 4,
+        seconds: 12,
+        reason: "You catch the edge and haul yourself up.",
+        caught: true,
+      };
+      break;
+    }
     if (!cell || cell.solid || cell.height > start.height + rise) break;
     if (dx && dy) {
       const corners = [sample(at.x - dx, at.y), sample(at.x, at.y - dy)];
@@ -311,6 +333,9 @@ export function terrainJump(
       distance: step as 1 | 2 | 3 | 4,
       seconds: power === "long" ? 3 : 2,
       reason: power === "long" ? "You make a long jump." : "You jump forward.",
+      ...(cell.height < start.height
+        ? { drop: start.height - cell.height }
+        : {}),
     };
   }
   return (

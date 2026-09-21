@@ -90,6 +90,12 @@ export class CueEffects {
     }
   }
 
+  /** A reaction the scene asks for itself: someone watching the player land
+   * badly or go up a wall. Show only, so nothing reaches the engine. */
+  react(who: string, kind: CueKind, toward?: { x: number; y: number }) {
+    this.play(who, kind, toward);
+  }
+
   private play(who: string, kind: CueKind, toward?: { x: number; y: number }) {
     const image = this.view.entityAt(who);
     if (!image) return;
