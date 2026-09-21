@@ -141,7 +141,7 @@ import { weatherAt, type Weather } from "../core/weather";
 import { setWind } from "./wind";
 import { addPlume, type SmokeKind } from "./smoke";
 
-import { driftStyle, foliageTint } from "./season-art";
+import { bareInWinter, driftStyle, foliageTint } from "./season-art";
 import { seasonAt } from "../core/livelihood";
 import {
   FIRE_FRAME_MS,
@@ -154,6 +154,9 @@ import {
   lightAlpha,
 } from "./fire";
 import terrainFrames from "./generated/terrain.json" with { type: "json" };
+import { bloomAt, setBloomCut } from "./flowers";
+import { setFloraRegion } from "../content/ecology/blooms";
+import { floraRegion } from "../content/ecology/flora";
 import artVersion from "./generated/art-version.json" with { type: "json" };
 /** Moves when the packed art moves, so a rebuild is not hidden by a cached
  *  texture. The atlases are served from public/ by plain path, which the
@@ -294,11 +297,11 @@ export class WorldScene extends Phaser.Scene {
   private stunned = new Set<string>();
   /** Last drawn pose frame per person, so a footfall fires once per contact. */
   private footfalls = new Map<string, number>();
+  /** Where the player last made a footstep sound. */
+  private lastStep = { x: 0, y: 0 };
   /** Facing actually drawn, which chases the real one a step at a time. */
   private turning = new Map<string, { facing: number; until: number }>();
   /** Where the player is pushing while the way is blocked. The engine never
-  /** Where the player last made a footstep sound. */
-  private lastStep = { x: 0, y: 0 };
    * saw the move, so the turn is the renderer's to remember. */
   private blockedFacing?: number;
   /** A player pose the scene plays on its own account, over everything else:
@@ -531,6 +534,7 @@ export class WorldScene extends Phaser.Scene {
   }
   create() {
     this.ready = true;
+    this.useFlora();
     this.characters = new WorldCharacters(this);
     this.characters.palette = this.runtime.palette();
     this.wading = new WadingEffects(this);
@@ -730,6 +734,17 @@ export class WorldScene extends Phaser.Scene {
         this.runtime.walkTo({ x, y });
       }
     });
+    this.input.on(
+      "pointermove",
+      (pointer: Phaser.Input.Pointer, over: unknown[]) => {
+        if (this.options.lab || over.length) return;
+        const spot = bloomAt(this, pointer.worldX, pointer.worldY);
+        const id = spot && `bloom-${spot.tx}-${spot.ty}`;
+        if (id && id === this.hoverId) this.moveHover(pointer);
+        else if (id) this.showHover(id, pointer);
+        else if (this.hoverId?.startsWith("bloom-")) this.hideHover();
+      },
+    );
     this.input.on("pointermove", () => {
       if (this.options.lab) return;
       const spread = this.pinchSpread();
@@ -862,6 +877,11 @@ export class WorldScene extends Phaser.Scene {
       });
     }
   }
+  /** What the player is standing on, for the sound of it. */
+  private groundUnderPlayer() {
+    const p = this.runtime.engine.state.player.pos;
+    return this.runtime.engine.groundClass(p.x, p.y, p.space);
+  }
   /** Crouch deeper as the jump charges, and pop once it is fully charged, so
    * the player can see the long jump is armed before they let go. */
   private chargeTell(time: number) {
@@ -877,11 +897,6 @@ export class WorldScene extends Phaser.Scene {
     const t = Math.min(1, (time - this.jumpStarted) / JUMP_CHARGE_MS);
     im.setScale(1 + 0.12 * t, 1 - 0.16 * t);
     if (t >= 1 && !this.chargeArmed) {
-  /** What the player is standing on, for the sound of it. */
-  private groundUnderPlayer() {
-    const p = this.runtime.engine.state.player.pos;
-    return this.runtime.engine.groundClass(p.x, p.y, p.space);
-  }
       this.chargeArmed = true;
       const foot = im.y + ((im.getData("arcLift") as number) ?? 0);
       this.kickDust(im.x, foot, 5, 0.7);
@@ -907,6 +922,18 @@ export class WorldScene extends Phaser.Scene {
     after: "land" | "stumble" | "roll" | "hang" = "land",
   ) {
     this.tweens.killTweensOf(im);
+    const isPlayer = im === this.entities.get("player");
+    if (isPlayer) {
+      // The engine has already moved the player, so the take-off cell is the
+      // one the sprite is still drawn in.
+      const p = this.runtime.engine.state.player.pos;
+      const ground = this.runtime.engine.groundClass(
+        Math.floor(im.x / 16),
+        Math.floor((im.y - 1) / 16),
+        p.space,
+      );
+      void gameAudio()?.sound(takeoff(ground), "jump");
+    }
     const travel = Math.hypot(tx - im.x, ty - im.y) || 1;
     const short = after === "roll" ? 9 : after === "stumble" ? 6 : 0;
     const ex = tx - ((tx - im.x) / travel) * short,
@@ -922,18 +949,6 @@ export class WorldScene extends Phaser.Scene {
         // Sine, not a parabola: it leaves and meets the ground less abruptly.
         const rise = arc.height * Math.sin(Math.PI * tween.progress);
         im.y -= rise;
-    const isPlayer = im === this.entities.get("player");
-    if (isPlayer) {
-      // The engine has already moved the player, so the take-off cell is the
-      // one the sprite is still drawn in.
-      const p = this.runtime.engine.state.player.pos;
-      const ground = this.runtime.engine.groundClass(
-        Math.floor(im.x / 16),
-        Math.floor((im.y - 1) / 16),
-        p.space,
-      );
-      void gameAudio()?.sound(takeoff(ground), "jump");
-    }
         im.setData("arcLift", rise);
         // Stretch off the ground, square at the apex, squash into the landing.
         const p = tween.progress;
@@ -956,6 +971,14 @@ export class WorldScene extends Phaser.Scene {
           return;
         }
         const heavy = after !== "land";
+        if (isPlayer)
+          void gameAudio()?.sound(
+            landing(
+              this.groundUnderPlayer(),
+              heavy ? 2 : 0.7 + arc.height / 40,
+            ),
+            "land",
+          );
         this.feel.land(im, arc.height + (heavy ? 18 : 0), ex, ey);
         this.kickDust(
           ex,
@@ -971,14 +994,6 @@ export class WorldScene extends Phaser.Scene {
             duration: carry,
             ease: "Quad.easeOut",
           });
-        if (isPlayer)
-          void gameAudio()?.sound(
-            landing(
-              this.groundUnderPlayer(),
-              heavy ? 2 : 0.7 + arc.height / 40,
-            ),
-            "land",
-          );
         if (im === this.entities.get("player"))
           this.onlookers(tx, ty, heavy ? 4 : 1.5, heavy ? "alarm" : "question");
       },
@@ -1137,6 +1152,7 @@ export class WorldScene extends Phaser.Scene {
       onComplete: () => {
         im.setData("arcLift", 0);
         this.feel.land(im, 10, run.x, run.y);
+        void gameAudio()?.sound(landing(this.groundUnderPlayer(), 0.8), "land");
         this.kickDust(run.x, run.y, 3, 0.6);
       },
     });
@@ -1152,7 +1168,6 @@ export class WorldScene extends Phaser.Scene {
         this.textureFrame(frame),
       )
       .setOrigin(0.5, 1)
-        void gameAudio()?.sound(landing(this.groundUnderPlayer(), 0.8), "land");
       .setTint(this.tint)
       .setDepth(depth);
     this.layers.push(image);
@@ -1207,16 +1222,26 @@ export class WorldScene extends Phaser.Scene {
     this.hoverTip = tip;
     this.events.once("shutdown", () => tip.remove());
   }
+  /** Blooms are drawn in the ground chunks, which never see the pack. */
+  private useFlora() {
+    const a = this.runtime.engine.world.pack.anchor;
+    if (a) setFloraRegion(floraRegion(a.lon, a.lat));
+  }
   private showHover(id: string, pointer: Phaser.Input.Pointer) {
     const tip = this.hoverTip;
     if (!tip) return;
     this.hoverId = id;
-    const name = this.runtime.engine.inspect(id)?.name;
-    if (!name) {
+    const seen = this.runtime.engine.inspect(id);
+    if (!seen?.name) {
       this.hideHover();
       return;
     }
-    tip.textContent = name;
+    tip.textContent = seen.name;
+    if (seen.latin) {
+      const latin = document.createElement("i");
+      latin.textContent = ` ${seen.latin}`;
+      tip.appendChild(latin);
+    }
     tip.classList.add("is-shown");
     this.moveHover(pointer);
   }
@@ -1631,7 +1656,12 @@ export class WorldScene extends Phaser.Scene {
     // The light reaches a little past the fire's own width either side.
     const radius = Math.max(32, Math.round((image.width * 0.85) / 4) * 4);
     const glow = this.add
-      .image(Math.round(x), Math.round(y - 10), ensureFireLight(this, radius), "0")
+      .image(
+        Math.round(x),
+        Math.round(y - 10),
+        ensureFireLight(this, radius),
+        "0",
+      )
       .setBlendMode(Phaser.BlendModes.ADD)
       .setAlpha(lightAlpha[this.light.id])
       .setDepth(19001);
@@ -2202,7 +2232,17 @@ export class WorldScene extends Phaser.Scene {
       this.scale.width,
       this.scale.height,
     ].join(":");
+    const tiles = e.state.tiles;
+    setBloomCut(
+      this,
+      `${e.state.manifest.seed}:${e.state.tilesRevision ?? 0}`,
+      (x, y) => {
+        const t = tiles?.[`${x},${y}`];
+        return !!(t && (t.cut || t.dug || t.stage));
+      },
+    );
     if (key !== this.staticKey || w !== this.drawnWorld) {
+      if (w !== this.drawnWorld) this.useFlora();
       const sceneryStart = performance.now();
       this.drawnWorld = w;
       this.staticKey = key;
@@ -2491,7 +2531,13 @@ export class WorldScene extends Phaser.Scene {
                       w.topography?.(x, y)?.habitat,
                       random(e.state.manifest.seed, "rock-art", x, y),
                     )
-                  : spriteName;
+                  : bareInWinter(
+                      spriteName,
+                      this.season,
+                      w.pack.setting?.environment?.ecology ?? "grassland",
+                      (f) => this.textures.get("nature").has(f),
+                    );
+              const bare = frame !== spriteName && frame.endsWith("-bare");
               this.shadow(frame, x * 16 + 8, y * 16 + 16);
               const decoration = this.sprite(
                 frame,
@@ -2507,7 +2553,8 @@ export class WorldScene extends Phaser.Scene {
               // sprite() already carries the hour-of-day grade; the season and
               // the per-prop tone multiply into it.
               let tint = this.tint;
-              if (originalIsTree && w.pack.setting) {
+              // Bare wood is already in winter dress; the grey wash is for leaves.
+              if (originalIsTree && w.pack.setting && !bare) {
                 const turn = foliageTint(
                   originalName,
                   this.season,
@@ -4011,6 +4058,24 @@ export class WorldScene extends Phaser.Scene {
         }
         if (id === "player") {
           const cell = this.destinations.get(id);
+          // Half a tile a footfall. Only ground that gives underfoot is heard.
+          if (
+            moving &&
+            cell &&
+            !arcLift &&
+            Math.hypot(im.x - this.lastStep.x, im.y - this.lastStep.y) >= 8
+          ) {
+            this.lastStep = { x: im.x, y: im.y };
+            void gameAudio()?.sound(
+              footstep(
+                water > 0.025
+                  ? "water"
+                  : this.runtime.engine.groundClass(cell.x, cell.y, cell.space),
+                pose === "run",
+              ),
+              "step",
+            );
+          }
           if (moving && cell && water <= 0.025 && !arcLift)
             this.feel.track(
               im,
@@ -4058,24 +4123,6 @@ export class WorldScene extends Phaser.Scene {
           shade.setPosition(im.x, im.y + arcLift);
           const shrink = arcLift ? 1 - Math.min(0.45, arcLift / 32) : 1;
           if (shade.scaleX !== shrink) shade.setScale(shrink);
-          // Half a tile a footfall. Only ground that gives underfoot is heard.
-          if (
-            moving &&
-            cell &&
-            !arcLift &&
-            Math.hypot(im.x - this.lastStep.x, im.y - this.lastStep.y) >= 8
-          ) {
-            this.lastStep = { x: im.x, y: im.y };
-            void gameAudio()?.sound(
-              footstep(
-                water > 0.025
-                  ? "water"
-                  : this.runtime.engine.groundClass(cell.x, cell.y, cell.space),
-                pose === "run",
-              ),
-              "step",
-            );
-          }
           const fade =
             water > 0.025 ? 0 : arcLift ? 1 - Math.min(0.55, arcLift / 26) : 1;
           if (shade.alpha !== fade) shade.setAlpha(fade);

@@ -72,6 +72,30 @@ const swardMotifs = [
   ["00000", "00100", "02200", "01130", "00100"],
   ["00000", "01010", "01200", "01100", "00100"],
 ];
+const SPROUT = 6;
+/** Sprouts on a finer lattice fill the gaps the clump lattice leaves, so the
+ * sward has more than one scale of mark. Sparser where clumps are sparse. */
+function sprout(
+  wx: number,
+  wy: number,
+  density: number,
+  overrides?: GroundMotifOverrides,
+) {
+  const glyphs = (overrides?.turf?.length ? overrides.turf : turfMotifs).filter(
+    (g) => g[0].length <= SPROUT,
+  );
+  if (!glyphs.length) return 0;
+  const stepX = 13,
+    stepY = 11;
+  const by = Math.floor(wy / stepY),
+    shift = by & 1 ? 6 : 0,
+    bx = Math.floor((wx - shift) / stepX);
+  if (hash(bx, by, 413) > density * 0.42) return 0;
+  const glyph = glyphs[Math.floor(hash(bx, by, 415) * glyphs.length)];
+  const x = wx - shift - bx * stepX - Math.floor(hash(bx, by, 417) * (stepX - glyph[0].length + 1)),
+    y = wy - by * stepY - Math.floor(hash(bx, by, 419) * (stepY - glyph.length + 1));
+  return Number(glyph[y]?.[x] ?? 0);
+}
 export type GroundMotif = "stone" | "turf" | "earth" | "pebble" | "sward";
 export const TURF_STEP = [24, 20] as const;
 /** Placement varies whole motifs, with quiet cells between them. World anchors
@@ -139,8 +163,9 @@ export function groundMotif(
         (tuning?.density ?? 1),
     ),
   );
-  if (hash(bx, by, 401) > density) return 0;
-  const glyphs =
+  if (hash(bx, by, 401) > density)
+    return kind === "turf" ? sprout(wx, wy, density, overrides) : 0;
+  let glyphs =
     kind === "stone"
       ? stoneMotifs
       : kind === "turf"
@@ -150,6 +175,15 @@ export function groundMotif(
         : kind === "sward"
           ? swardMotifs
         : earthMotifs;
+  if (kind === "turf") {
+    // Big clumps keep to thick colonies; thin turf gets the small ones.
+    const pick = hash(bx, by, 411),
+      max = colony > 0.4 && pick > 0.66 ? 99 : pick > 0.28 ? 10 : SPROUT;
+    const sized = glyphs.filter((g) =>
+      max === 99 ? g[0].length > 10 : g[0].length <= max && (max === SPROUT || g[0].length > SPROUT),
+    );
+    if (sized.length) glyphs = sized;
+  }
   const glyph = glyphs[Math.floor(hash(bx, by, 409) * glyphs.length)];
   const slackX = stepX - glyph[0].length + 1,
     slackY = stepY - glyph.length + 1;

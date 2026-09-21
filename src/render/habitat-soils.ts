@@ -95,6 +95,21 @@ const decode = (s: string) => [
   parseInt(s.slice(3, 5), 16),
   parseInt(s.slice(5, 7), 16),
 ];
+// Trodden earth in green country runs warmer than the ramps above were drawn:
+// against saturated turf a greyed tan reads pink. Row 4 is stone and stays.
+const WARM = /^(grassland|savanna|dry-scrub|temperate-woodland|tropical-woodland)/;
+const TAN = [205, 150, 95];
+const lum = (c: number[]) => c[0] * 0.3 + c[1] * 0.59 + c[2] * 0.11;
+// Tinted at the row's own brightness, so the ramp keeps its value steps.
+const warm = (c: number[], i: number) =>
+  i > 3
+    ? c
+    : c.map((v, k) =>
+        Math.min(255, Math.round(v * 0.7 + ((TAN[k] * lum(c)) / lum(TAN)) * 0.3)),
+      );
 export const soils = Object.fromEntries(
-  Object.entries(soilRamps).map(([k, v]) => [k, v.map(decode)]),
+  Object.entries(soilRamps).map(([k, v]) => [
+    k,
+    v.map(decode).map((c, i) => (WARM.test(k) ? warm(c, i) : c)),
+  ]),
 ) as Record<PaletteKey, number[][]>;

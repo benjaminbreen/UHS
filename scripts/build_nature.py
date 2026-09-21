@@ -41,11 +41,12 @@ for i,(name,im) in enumerate(understory().items()):
     ImageDraw.Draw(understory_review).text((i*200+25,250),name.removeprefix('nature-understory-'),fill='#172a2e')
 understory_review.save(root/'artifacts/nature-lab/understory.png')
 
-ages=Image.new('RGB',(1280,450),'#829456')
+ages=Image.new('RGB',(1280,900),'#5f9e3e')
 for i,(name,im) in enumerate(broadleaf_ages().items()):
     scaled=im.resize((im.width*2,im.height*2),Image.Resampling.NEAREST)
-    ages.paste(scaled,(i*320+(320-scaled.width)//2,400-scaled.height),scaled)
-    ImageDraw.Draw(ages).text((i*320+90,422),name.removeprefix('nature-broadleaf-'),fill='#172a2e')
+    col,row=i%4,i//4
+    ages.paste(scaled,(col*320+(320-scaled.width)//2,row*450+400-scaled.height),scaled)
+    ImageDraw.Draw(ages).text((col*320+90,row*450+422),name.removeprefix('nature-broadleaf-'),fill='#172a2e')
 ages.save(root/'artifacts/nature-lab/broadleaf-ages.png')
 
 small=Image.new('RGB',(640,180),'#829456')

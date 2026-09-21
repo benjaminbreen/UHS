@@ -19,6 +19,19 @@ export function turnsColour(sprite: string) {
   return !evergreen.some((k) => sprite.includes(k));
 }
 
+/** The leafless frame for a deciduous tree in winter, where one is drawn. */
+export function bareInWinter(
+  sprite: string,
+  season: string,
+  ecology: string,
+  has: (frame: string) => boolean,
+) {
+  if (season !== "winter" || ecology === "tropical-woodland" || ecology === "desert")
+    return sprite;
+  const bare = `${sprite}-bare`;
+  return turnsColour(sprite) && has(bare) ? bare : sprite;
+}
+
 // Multiply tints, so each is read against the canopy's own green rather than
 // replacing it. Autumn picks one per tree so a wood is mixed, not uniform.
 const autumnTints = [0xffb457, 0xf0954a, 0xffd06a, 0xd9793f, 0xe8b96a];

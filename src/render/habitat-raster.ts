@@ -320,7 +320,7 @@ function rasterGroundTile(
   );
   const turfTuning = {
     ...motifTuning,
-    density: (motifTuning?.density ?? 1) * (0.32 + lush * 0.75),
+    density: (motifTuning?.density ?? 1) * (0.45 + lush * 0.75),
   };
   // Grassy ecologies expose brown earth; dry and cold ones expose stone.
   const mineralGround = h.site ? ["rocky", "barren", "shore"].includes(h.site.primary) : h.vegetation === "alpine" || ["desert", "tundra"].includes(h.ecology);
@@ -651,6 +651,7 @@ function rasterGroundTile(
       // Broad hard-edged patches of shade and light: living ground is never
       // one value, and a fill with marks on it reads as a fill.
       const mottling = composition?.mottle ?? 0.65;
+      let shaded = false;
       if (!frozen && !tilled && mottling > 0) {
         const m =
           noise(wx, wy, 23, 601) * 0.62 +
@@ -658,7 +659,14 @@ function rasterGroundTile(
           (hash(wx >> 1, wy >> 1, 603) - 0.5) * 0.05;
         const step =
           m < 0.3 ? mottle.deep : m < 0.41 ? mottle.shade : m > 0.61 ? mottle.light : 0;
-        if (step) rgb = shade(rgb, step * mottling * (band >= 3 ? 0.6 : 1));
+        // Turf shades toward its own dark green: the shared shadow law leans
+        // blue, which turns a green field teal.
+        shaded = step < 0;
+        if (step && grassy && band <= 2) {
+          const to = step < 0 ? palette[2] : palette[1],
+            t = (Math.abs(step) / 34) * mottling;
+          rgb = rgb.map((v, k) => Math.round(v * (1 - t) + to[k] * t));
+        } else if (step) rgb = shade(rgb, step * mottling * (band >= 3 ? 0.6 : 1));
       }
       if (grassy && band <= 2) {
         // Blade hatch everywhere; light grass takes a softer stroke.
@@ -770,12 +778,13 @@ function rasterGroundTile(
             put(px, py, swardTones[ink - 1]);
             continue;
           }
-          // Solid dark tufts on full turf; on darker turf the inner blades
-          // catch a highlight.
-          const dark = palette[5],
-            deep = dark.map((v) => Math.max(0, v - 10)),
-            lit = palette[0].map((v, k) => Math.round((v + palette[6][k]) / 2));
-          const tones = [deep, dark, lit];
+          // Lit blades over a dark foot. In a shade patch the whole clump
+          // drops a tone, so the shadow falls across grass and ground alike.
+          const mix = (a: number[], b: number[], t: number) =>
+            a.map((v, k) => Math.round(v * (1 - t) + b[k] * t));
+          const tones = shaded
+            ? [mix(palette[5], [0, 0, 0], 0.12), palette[2], mix(palette[0], palette[1], 0.5)]
+            : [palette[5], mix(palette[0], palette[1], 0.6), mix(palette[1], palette[6], 0.6)];
           put(px, py, tones[ink - 1]);
           continue;
         }
@@ -1286,11 +1295,12 @@ function rasterGroundTile(
       const flip = hash(gx + px, gy + py, 429) > 0.5;
       // Blade body is fresher turf than the surrounding sward; the lit tip
       // stays short of the full highlight or the tufts read as straw.
+      // Same tones as the sward clumps, so the verge belongs to the field.
       const tones = [
         palette[5],
         palette[5],
-        palette[2],
-        palette[0].map((v, k) => Math.round((v + palette[6][k]) / 2)),
+        palette[0].map((v, k) => Math.round(v * 0.4 + palette[1][k] * 0.6)),
+        palette[1].map((v, k) => Math.round(v * 0.4 + palette[6][k] * 0.6)),
       ];
       for (let yy = 0; yy < glyph.length; yy++)
         for (let xx = 0; xx < glyph[yy].length; xx++) {
