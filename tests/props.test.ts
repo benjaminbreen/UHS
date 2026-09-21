@@ -1,8 +1,19 @@
 import { cultures } from "../src/content/history/types";
 import { eras } from "../src/content/history/dates";
 import { describe, it, expect } from "vitest";
-import { createSession, restoreSession, Runtime } from "../src/runtime/session";
-import { propKit, propDefs } from "../src/content/props/catalog";
+import {
+  createSession,
+  createSettingSession,
+  restoreSession,
+  Runtime,
+} from "../src/runtime/session";
+import {
+  propKit,
+  propDefs,
+  propVisualCells,
+} from "../src/content/props/catalog";
+import { resolveSetting } from "../src/content/geography/resolve";
+import { buildingRoofCells } from "../src/content/graphics/models";
 import { packs } from "../src/content/packs";
 import type { PlayerCommand, WorldObject } from "../src/core/types";
 import type { Engine } from "../src/core/engine";
@@ -173,15 +184,36 @@ it("keeps European yard kit out of other regions", () => {
       propKit({
         ...packs.roman,
         year,
-        setting: { culture, placeId: "test-place", settlement: "village", lat, lon },
+        setting: {
+          culture,
+          placeId: "test-place",
+          settlement: "village",
+          lat,
+          lon,
+        },
       } as any).contexts,
     ).flat();
     return new Set(all);
   };
   const angola = kit("west-central-african", 1455, -12.6, 13.4);
-  for (const id of ["waterButt", "privyShed", "beehive", "plough", "farmCart", "hitchingPost", "rake", "scythe"])
+  for (const id of [
+    "waterButt",
+    "privyShed",
+    "beehive",
+    "plough",
+    "farmCart",
+    "hitchingPost",
+    "rake",
+    "scythe",
+  ])
     expect(angola.has(id), id).toBe(false);
-  for (const id of ["poundingMortar", "calabash", "logHive", "stockPen", "threeStoneHearth"])
+  for (const id of [
+    "poundingMortar",
+    "calabash",
+    "logHive",
+    "stockPen",
+    "threeStoneHearth",
+  ])
     expect(angola.has(id), id).toBe(true);
   // The Ethiopian highlands ploughed with oxen.
   expect(kit("east-southern-african", 1455, 9, 38.7).has("plough")).toBe(true);
@@ -192,24 +224,76 @@ it("keeps European yard kit out of other regions", () => {
   expect(kit("australian-pacific", 1200).has("pot")).toBe(false);
 });
 
+it("keeps broad yard props clear of houses and one another", () => {
+  const resolved = resolveSetting("Congo 1500") as any;
+  expect(resolved.error).toBeUndefined();
+  const e = createSettingSession(resolved.setting, "yard-clearance");
+  const yard = e.state.objects.filter(
+    (o) =>
+      o.pos.space === "outside" && o.prop && propDefs[o.prop].visualClearance,
+  );
+  expect(yard.length).toBeGreaterThan(0);
+  const claimed = new Set<string>();
+  for (const o of yard) {
+    for (const p of propVisualCells(o.prop!, o.pos)) {
+      const key = `${p.x},${p.y}`;
+      expect(claimed.has(key), `${o.id} overlaps another yard prop`).toBe(
+        false,
+      );
+      claimed.add(key);
+      expect(
+        e.world.places.some(
+          (b) => p.x >= b.x && p.x < b.x + b.w && p.y >= b.y && p.y < b.y + b.h,
+        ),
+        `${o.id} overlaps a house`,
+      ).toBe(false);
+      expect(
+        e.world.places.some((b) =>
+          buildingRoofCells(b.sprite, b).some(
+            (cell) => cell.x === p.x && cell.y === p.y,
+          ),
+        ),
+        `${o.id} overlaps a roof silhouette`,
+      ).toBe(false);
+    }
+  }
+});
+
 it("gives the shared fire its regional form", () => {
   const fire = (culture: string, year: number, extra: object = {}) =>
     propKit({
       ...packs.roman,
       year,
-      setting: { culture, placeId: "test-place", settlement: "village", lat: 0, lon: 0, ...extra },
+      setting: {
+        culture,
+        placeId: "test-place",
+        settlement: "village",
+        lat: 0,
+        lon: 0,
+        ...extra,
+      },
     } as any).contexts.fire;
   expect(fire("european", -3000)).toEqual(["communalHearth"]);
   expect(fire("european", 900, { climate: "boreal" })).toEqual(["longFire"]);
   expect(fire("european", -30000)).toEqual(["campHearth"]);
   expect(fire("other-indigenous-american", 1400)).toEqual(["councilFire"]);
-  expect(fire("australian-pacific", 1400, { lat: -18, lon: 178 })).toEqual(["earthOven"]);
-  expect(fire("australian-pacific", 1400, { lat: -33, lon: 151 })).toEqual(["campHearth"]);
+  expect(fire("australian-pacific", 1400, { lat: -18, lon: 178 })).toEqual([
+    "earthOven",
+  ]);
+  expect(fire("australian-pacific", 1400, { lat: -33, lon: 151 })).toEqual([
+    "campHearth",
+  ]);
   expect(fire("west-central-african", 1455)).toEqual(["threeStoneHearth"]);
   expect(fire("andean", 1450)).toEqual(["firepit"]);
   // The brazier stays in town.
   expect(fire("european", 100, { settlement: "city" })).toEqual(["brazier"]);
-  for (const key of ["campHearth", "communalHearth", "councilFire", "earthOven", "longFire"])
+  for (const key of [
+    "campHearth",
+    "communalHearth",
+    "councilFire",
+    "earthOven",
+    "longFire",
+  ])
     expect(propDefs[key].seats).toBeTruthy();
 });
 

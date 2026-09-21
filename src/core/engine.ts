@@ -164,7 +164,17 @@ const GROUND_HIT: Record<string, HitClass> = {
   bridge: "timber",
   floor: "timber",
 };
+import {
+  floraRegion,
+  speciesAt,
+  speciesById,
+  type FloraRegion,
+  type Species,
+} from "../content/ecology/flora";
+import { bloomsAt } from "../content/ecology/blooms";
 const copy = <T>(x: T): T => structuredClone(x);
+const listing = (xs: string[]) =>
+  xs.length < 2 ? xs.join("") : `${xs.slice(0, -1).join(", ")} and ${xs.at(-1)}`;
 /** Routines built in one call to `advance`. */
 const ROUTINE_BUILDS_PER_ADVANCE = 32;
 /** The generated decoration function of each world, before any engine wrapped
@@ -1550,6 +1560,57 @@ export class Engine {
     const tiles = (this.state.tiles ??= {});
     return (tiles[tileKey(x, y)] ??= {});
   }
+  private floraCache?: FloraRegion;
+  private get flora() {
+    const a = this.world.pack.anchor;
+    return (this.floraCache ??= a ? floraRegion(a.lon, a.lat) : "europe");
+  }
+  /** The bloom colony growing on a bare cell, unless it has been cut. */
+  bloomSpecies(x: number, y: number): Species | undefined {
+    const t = this.world.topography;
+    const edit = this.state.tiles?.[tileKey(x, y)];
+    if (!t || edit?.cut || edit?.dug || edit?.stage) return undefined;
+    const spots = bloomsAt((a, b) => t(a, b), x, y, 0, 0, 0, this.flora);
+    return spots.length ? speciesById.get(spots[0].kind) : undefined;
+  }
+  /** The named plant a decoration stands for, if it is one we name. */
+  plantSpecies(sprite: string | undefined, x: number, y: number) {
+    const ecology = this.world.topography?.(x, y).habitat?.ecology;
+    return speciesAt(sprite, this.flora, ecology ?? "grassland", x, y);
+  }
+  /** A swing through low growth: grass and reeds to stubble, brush to
+   * stems, blooms away. Returns the plant cut, or false if nothing was. */
+  private cutGrowth(x: number, y: number): Species | undefined | false {
+    const plant = this.world.decoration(x, y);
+    const c = plantClass(plant?.sprite);
+    if (plant && (c === "grass" || c === "shrub")) {
+      const species = this.plantSpecies(plant.sprite, x, y);
+      if (c === "grass") this.editAt(x, y).cut = true;
+      else this.editAt(x, y).stage = "stems";
+      return species;
+    }
+    if (plant) return false;
+    const bloom = this.bloomSpecies(x, y);
+    if (!bloom) return false;
+    this.editAt(x, y).cut = true;
+    return bloom;
+  }
+  /** Rolls what a cut plant gives up and pockets it. */
+  private gather(cut: Species[]) {
+    const p = this.state.player;
+    const got: Record<string, number> = {};
+    for (const s of cut)
+      for (const [item, chance, n = 1] of s.yields)
+        if (this.rng("gather") < chance + this.skillLevel("foraging") * 0.02)
+          got[item] = (got[item] ?? 0) + n;
+    for (const [item, n] of Object.entries(got))
+      p.inventory[item] = (p.inventory[item] ?? 0) + n;
+    if (cut.length) this.grantXp("foraging", Object.keys(got).length * 3 + 1);
+    return Object.entries(got).map(([item, n]) => {
+      const name = this.item(item)?.name.toLowerCase() ?? item;
+      return n > 1 ? `${n} ${name}` : name;
+    });
+  }
   /** Scenery is cached until something tells the renderer the ground changed. */
   private tilesChanged() {
     this.state.tilesRevision = (this.state.tilesRevision ?? 0) + 1;
@@ -1674,6 +1735,7 @@ export class Engine {
         (q) => (q.x === at.x && q.y === at.y) || this.workable(action, q),
       );
       const cut: string[] = [];
+      const wild: Species[] = [];
       let stubble = false;
       for (const q of cells) {
         const crop = this.cropAt(q.x, q.y);
@@ -1682,11 +1744,14 @@ export class Engine {
           crop.depleted = true;
           cut.push(crop.name.toLowerCase());
         } else {
-          this.editAt(q.x, q.y).cut = true;
+          const species = this.cutGrowth(q.x, q.y);
+          if (species === false) this.editAt(q.x, q.y).cut = true;
+          else if (species) wild.push(species);
           stubble = true;
         }
       }
       if (stubble) this.tilesChanged();
+      const got = this.gather(wild);
       this.advance(this.fieldPace(cut.length ? 30 : 15));
       this.grantXp("farming", cut.length * 6 + (cells.length - cut.length));
       this.event(
@@ -1694,7 +1759,9 @@ export class Engine {
           ? `You lay a swathe of ${cut[0]} and gather it.`
           : cut.length
             ? `You cut the ${cut[0]} and gather it.`
-            : "You cut the growth back to stubble.",
+            : got.length
+              ? `You cut the ${wild[0].common.toLowerCase()} and gather ${listing(got)}.`
+              : "You cut the growth back to stubble.",
       );
       return;
     }
@@ -2311,13 +2378,15 @@ export class Engine {
       const plant = this.world.decoration(x, y);
       if (!plant || plant.id !== id || plant.sprite === "rock") return;
       const worked = isWorkedGround(plant.sprite);
+      const species = worked ? undefined : this.plantSpecies(plant.sprite, x, y);
       const name = worked
         ? plantName(plant.sprite).replace(/^./, (c) => c.toUpperCase())
-        : treeName(plant.sprite);
+        : (species?.common ?? treeName(plant.sprite));
       return {
         id,
         pos,
         name,
+        latin: species?.latin,
         sprite: plant.sprite,
         kind: "vegetation",
         description: worked
@@ -2325,6 +2394,24 @@ export class Engine {
           : plant.solid
             ? "A tree growing in the surrounding landscape."
             : "Low vegetation growing in the surrounding landscape.",
+        affordances: [],
+      };
+    }
+    const bloom = /^bloom-(-?\d+)-(-?\d+)$/.exec(id);
+    if (bloom) {
+      const pos = { x: Number(bloom[1]), y: Number(bloom[2]), space: "outside" };
+      const species =
+        this.visible(pos) && !this.world.decoration(pos.x, pos.y)
+          ? this.bloomSpecies(pos.x, pos.y)
+          : undefined;
+      if (!species) return;
+      return {
+        id,
+        pos,
+        name: species.common,
+        latin: species.latin,
+        kind: "vegetation",
+        description: "Wildflowers growing in the surrounding landscape.",
         affordances: [],
       };
     }
@@ -3220,6 +3307,22 @@ export class Engine {
                   : undefined;
         }
         hits.push(h);
+      }
+      if (p.pos.space === "outside") {
+        const cut: Species[] = [];
+        let changed = false;
+        for (const h of hits) {
+          if (h.solid) continue;
+          const species = this.cutGrowth(h.at.x, h.at.y);
+          if (species === false) continue;
+          changed = true;
+          h.damaged = true;
+          if (species) cut.push(species);
+        }
+        if (changed) this.tilesChanged();
+        const got = this.gather(cut);
+        if (got.length && !told)
+          told = `You cut ${cut[0].common.toLowerCase()} and gather ${listing(got)}.`;
       }
       this.lastSwing = {
         hits,

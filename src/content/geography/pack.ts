@@ -121,13 +121,23 @@ export function modernBuildings(setting: WorldSetting): string[] {
 function prehistoricBuildings(setting: WorldSetting): string[] | undefined {
   const { year, culture, climate, architecture } = setting;
   if (year >= -800) return;
-  const round = ["house-round-0", "house-round-1", "house-round-2"];
+  const round = [
+    "house-round-0",
+    "house-round-1",
+    "house-round-2",
+    "house-round-gold-medium-0",
+    "house-round-gold-medium-1",
+    "house-round-gold-large-0",
+  ];
   const mudbrick = [
     "house-mudbrick-ob-0",
     "house-mudbrick-ob-1",
     "house-mudbrick-ob-2",
     "house-mudbrick-ob-3",
     "house-mudbrick-ob-4",
+    "house-mudbrick-ob-gold-medium-0",
+    "house-mudbrick-ob-gold-medium-1",
+    "house-mudbrick-ob-gold-large-0",
   ];
   if (culture === "north-african-west-asian") return mudbrick;
   if (architecture === "shelter") {
@@ -146,7 +156,14 @@ function prehistoricBuildings(setting: WorldSetting): string[] | undefined {
           : ["house-round-stone-0", ...round];
       // The long houses of the first farmers, then the round house.
       return year < -4000
-        ? ["house-longhouse-0", "house-longhouse-1", "house-round-2"]
+        ? [
+            "house-longhouse-0",
+            "house-longhouse-1",
+            "house-longhouse-gold-medium-0",
+            "house-longhouse-gold-medium-1",
+            "house-longhouse-gold-large-0",
+            "house-round-2",
+          ]
         : [...round, "house-round-stone-0"];
     case "east-asian":
       return ["house-pit-0", "house-pit-1", "house-round-2"];
@@ -206,6 +223,12 @@ export function packForSetting(setting: WorldSetting): Pack {
                   "house-early-stone-0",
                   "house-early-stucco-0",
                   "house-cottage-thatch-0",
+                  "house-early-brick-gold-medium-0",
+                  "house-early-brick-gold-medium-1",
+                  "house-early-brick-gold-large-0",
+                  "house-early-stucco-gold-medium-0",
+                  "house-early-stucco-gold-medium-1",
+                  "house-early-stucco-gold-large-0",
                 ]
               : architecture === "timber" &&
                   setting.culture === "european" &&
@@ -216,6 +239,12 @@ export function packForSetting(setting: WorldSetting): Pack {
                     "house-cottage-thatch-1",
                     "house-cottage-timber-0",
                     "house-cottage-timber-1",
+                    "house-cottage-thatch-gold-medium-0",
+                    "house-cottage-thatch-gold-medium-1",
+                    "house-cottage-thatch-gold-large-0",
+                    "house-cottage-timber-gold-medium-0",
+                    "house-cottage-timber-gold-medium-1",
+                    "house-cottage-timber-gold-large-0",
                   ]
                 : architecture === "timber" &&
                     // Thatch is the ordinary roof over a timber frame until early

@@ -18,6 +18,7 @@ from PIL import Image, ImageDraw, ImageFont  # noqa: E402
 from art.buildings import DOOR_W, DOOR_H, door_rect  # noqa: E402
 from art.oblique_style import side_depth, roof_rise  # noqa: E402
 from art.review_sheet import recipes  # noqa: E402
+from art.reference import current_adult  # noqa: E402
 
 OWN_NUMBERS = re.compile(r'^(K|STOREY|OVER|VERGE)\s*=', re.M)
 
@@ -56,16 +57,30 @@ def audit():
         right = -(-(w - a.anchor_x - r['footprint'][0] * 8) // 16)
         if right > 2:
             say(f'overhangs {right} tiles to the right; towns leave 1-2 clear')
+    gold = {}
+    for name, r in oblique(all_r).items():
+        if r.get('goldMaster'):
+            gold.setdefault(r['goldMaster'], {}).setdefault(r['goldScale'], []).append((name, r))
+    for family, scales in gold.items():
+        if len(scales.get('medium', [])) != 2 or len(scales.get('large', [])) != 1:
+            faults.append(f'{family}: gold family needs two medium variants and one large')
+            continue
+        medium = scales['medium'][0][1]['footprint']
+        large = scales['large'][0][1]['footprint']
+        if large[0] <= medium[0] or large[1] <= medium[1]:
+            faults.append(f'{family}: large footprint must exceed medium in both axes')
+        images = []
+        for name, r in scales['medium']:
+            images.append(painter(r)(r, source['materials'][r['wall']]).render().tobytes())
+        if images[0] == images[1]:
+            faults.append(f'{family}: medium seeds render identically')
     return faults
 
 
 def sheet(out, prefixes, zoom=2):
     all_r, painter, source = recipes()
     names = [n for n in oblique(all_r) if not prefixes or any(n.startswith(p) for p in prefixes)]
-    atlas = Image.open(ROOT / 'public/packs/atlas.png')
-    import json
-    f = json.loads((ROOT / 'src/render/generated/atlas.json').read_text())['frames']['human-0-1-2-0']['frame']
-    figure = atlas.crop((f['x'], f['y'], f['x'] + f['w'], f['y'] + f['h']))
+    figure = current_adult()
     drawn = [(n, painter(all_r[n])(all_r[n], source['materials'][all_r[n]['wall']]).render()) for n in names]
     rows, row, width = [], [], 0
     for n, im in drawn:

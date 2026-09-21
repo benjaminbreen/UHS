@@ -19,6 +19,7 @@ import {
 import { urbanForm } from "../../content/settlements/urban-form";
 import { waysideFor } from "../../content/settlements/wayside";
 import { yardKit, type YardProp } from "../../content/settlements/yards";
+import { propVisualCells } from "../../content/props/catalog";
 import {
   penBoundary as localPen,
   pickBoundary,
@@ -56,7 +57,12 @@ import {
 import type { Actor, Pack, Point, Position, Terrain } from "../../core/types";
 import { proceduralName } from "../../content/geography/character";
 import { random } from "../../core/random";
-import { buildingModel, buildingModels } from "../../content/graphics/models";
+import {
+  buildingModel,
+  buildingModels,
+  buildingRoofCells,
+} from "../../content/graphics/models";
+import { chooseBuildingFrame } from "../../content/graphics/building-scale";
 import {
   crossing,
   line,
@@ -1550,9 +1556,12 @@ export function planSettlement(
     i: number,
     n: number,
   ) => {
-    const k = cellKey(at.x, at.y);
-    if (plan.solid.has(k) || roads.has(k) || propCells.has(k)) return false;
-    propCells.add(k);
+    const cells = propVisualCells(item.prop, at).map((p) => cellKey(p.x, p.y));
+    if (
+      cells.some((k) => plan.solid.has(k) || roads.has(k) || propCells.has(k))
+    )
+      return false;
+    cells.forEach((k) => propCells.add(k));
     plan.objects.push({
       id: `${id}-yard-${item.family}-${n}`,
       name: item.name,
@@ -1938,8 +1947,28 @@ export function planSettlement(
     const lot = frontage[j];
     const { point, nx, ny } = lot,
       i = plan.places.length;
-    const base =
-      pack.buildings[Math.floor(rand("building", j) * pack.buildings.length)];
+    const base = chooseBuildingFrame(
+      pack.buildings,
+      {
+        settlement: pack.setting?.settlement,
+        density: urban
+          ? Math.max(0.25, 1 - j / Math.max(1, frontage.length))
+          : 0.3,
+        wealth:
+          lot.quarter === "elite"
+            ? 78 + rand("building-means", j) * 22
+            : lot.quarter === "market"
+              ? 45 + rand("building-means", j) * 35
+              : lot.quarter === "craft"
+                ? 35 + rand("building-means", j) * 35
+                : lot.quarter === "edge"
+                  ? 10 + rand("building-means", j) * 35
+                  : 20 + rand("building-means", j) * 55,
+        quarter: lot.quarter,
+      },
+      rand("building-scale", j),
+      rand("building", j),
+    );
     const facing =
       nx > 0 ? "west" : nx < 0 ? "east" : ny > 0 ? "north" : "south";
     // A venue's own building comes from the plaza placement in urban.ts,
@@ -2288,6 +2317,9 @@ export function planSettlement(
       owner,
       access: door,
     });
+    buildingRoofCells(frame, rect).forEach((p) =>
+      propCells.add(cellKey(p.x, p.y)),
+    );
     if (organic && !urban && !lot.rect && (pack.setting?.year ?? 0) < 1800)
       layToft(rect, door, point, workPoint, id, i, role, yard);
     if (lot.garden) layGarden(lot.garden, rect, id, i);
@@ -3367,7 +3399,8 @@ export function planSettlement(
     }
     // Yard grass is a field cell; a gravestone, tree or well stood on it
     // since takes the cell.
-    for (const k of plan.fields.keys()) if (plan.solid.has(k)) plan.fields.delete(k);
+    for (const k of plan.fields.keys())
+      if (plan.solid.has(k)) plan.fields.delete(k);
   }
   // Every place gets a door, last, so nothing placed earlier lands on the cell
   // and the hole it punches in the wall survives the rest of the build.

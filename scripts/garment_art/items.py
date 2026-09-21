@@ -598,3 +598,42 @@ item('cooked-meat', '#8a4a2a', '#e8d8bc', [
  "     ooooooooooooo tt   ",
  "       ooooooooo        ",
 ])
+
+# Cut wild plants. Each borrows a drawn shape in its own colours.
+def like(name, shape, base, accent):
+    COLOR[name] = (base, accent)
+    ITEMS[name] = ITEMS[shape]
+
+like('bast', 'flax', '#c8b88a', '#9a8a60')
+like('rushes', 'reeds', '#6f8a44', '#4f6a30')
+like('grass-fibre', 'straw', '#c8c090', '#908a58')
+like('papyrus', 'reeds', '#8aa84a', '#5a7a2c')
+like('cotton', 'wool', '#f2efe6', '#8a7a5a')
+like('greens', 'herbs', '#6a9a40', '#9cc860')
+like('roots', 'herbs', '#a07a4c', '#6a8a3a')
+like('bulbs', 'acorn', '#d8c8b0', '#8a6aa8')
+like('seeds', 'grain', '#b89a5c', '#7a6438')
+like('capers', 'berries', '#6a8a40', '#4a6a2c')
+like('chilies', 'berries', '#d0301c', '#5d8a3a')
+like('roselle', 'berries', '#a01c34', '#5d8a3a')
+like('chamomile', 'berries', '#f4f1e6', '#e8c030')
+like('tea', 'herbs', '#3f6a30', '#6a9a40')
+like('coffee', 'berries', '#b02a20', '#4a6a2c')
+like('woad', 'herbs', '#5a8a6a', '#3a5a8a')
+like('weld', 'herbs', '#a8b040', '#e0d040')
+like('madder', 'bark', '#a8402c', '#7a2a1c')
+like('indigo', 'herbs', '#3a4a88', '#5a6ab0')
+like('safflower', 'berries', '#e8801c', '#e8c040')
+like('henna', 'herbs', '#6a7a38', '#a8602c')
+like('annatto', 'berries', '#c83a1c', '#7a3a20')
+like('turmeric', 'bark', '#e0a020', '#a8701c')
+like('goldenrod', 'flax', '#a8a048', '#e8c830')
+like('gromwell', 'bark', '#6a3060', '#4a2040')
+like('saffron', 'flax', '#b83018', '#e05030')
+like('poppy-pods', 'acorn', '#8aa888', '#6a5080')
+like('cannabis', 'herbs', '#5a7a30', '#8aa848')
+like('coca', 'herbs', '#4a7a34', '#7aa850')
+like('khat', 'herbs', '#5a7a3a', '#8a5a3a')
+like('tobacco', 'frond', '#8a8a44', '#6a5a30')
+like('pituri', 'herbs', '#7a7a44', '#5a5a30')
+like('ephedra', 'reeds', '#7a8a4a', '#5a6a34')

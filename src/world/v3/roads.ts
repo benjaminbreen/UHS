@@ -86,6 +86,9 @@ export function crossing(
         const length =
           Math.abs(ends[0].x - ends[1].x) + Math.abs(ends[0].y - ends[1].y);
         if (length > 56 || length < 5) continue;
+        // Banks more than a tier apart leave a deck that steps off a cliff.
+        const tiers = ends.map((q) => Math.round(sample(q.x, q.y).elevation / 14));
+        if (Math.abs(tiers[0] - tiers[1]) > 1) continue;
         const points = line(ends[0], ends[1]);
         if (
           points.some((q) =>
@@ -195,7 +198,10 @@ export function planRoad(
       bounds,
       maxNodes: organicSeed ? 5000 : step > 2 ? 5000 : 12000,
       minCost: roads.size ? 1 : 4,
-      heuristicWeight: roads.size ? 1 : organicSeed ? 1.8 : step > 2 ? 2 : 1,
+      // Off-road steps cost four or more, so an unweighted estimate floods the
+      // whole box before it arrives. Six per step with roads present still
+      // lets a search join one that lies near its line.
+      heuristicWeight: roads.size ? (step > 2 ? Number(process.env.W ?? 6) : 2) : organicSeed ? 1.8 : step > 2 ? 2.5 : 2,
     },
   );
   if (result.status !== "found") return;

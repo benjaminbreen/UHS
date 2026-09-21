@@ -18,12 +18,32 @@ A painter imports them. It never defines its own; the audit fails if it does.
 ```bash
 python3 scripts/art/review_sheet.py out.png --zoom 4 house-med-1        # one building, big
 python3 scripts/art/oblique_audit.py --sheet out.png house-med-          # a family, on grass, beside the figure
+python3 scripts/art/gold_master_sheet.py artifacts/gold-masters.png      # seven standards at three scales
 python3 scripts/art/oblique_audit.py                                     # regularity; exit 1 on a fault
 npm run art                                                              # ship
 ```
 
 Judge a single building at 4x, then the family sheet for whether it hangs
 together. Run the audit before `npm run art`.
+
+The figure on these sheets is not an atlas human. It is cropped from the
+current live renderer and kept at `scripts/art/reference/current-adult.png`.
+After changing the character renderer, run Vite and then
+`npx tsx scripts/capture-building-scale-reference.ts`. The adjacent JSON says
+which renderer, pose and occupied bounds produced it.
+
+## Gold masters and scale
+
+The seven reference families are declared in `goldMasters` in
+`src/content/graphics/buildings.json`. Their retained source is the small
+column; `scripts/art/gold_masters.py` derives two medium seeds and one large
+seed into real atlas recipes. They are ordinary world sprites, not enlarged
+bitmaps. Footprints, facade parts and roof pixels are redrawn at native size.
+
+Every family must have all four columns on the gold-master sheet. Medium is
+the normal house against the current adult. Large is uncommon fabric: a
+prosperous house, an extended household, or a communal prehistoric building.
+Do not make a large form common merely to make a town look busy.
 
 ## Adding a region
 

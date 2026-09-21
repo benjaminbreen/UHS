@@ -13,6 +13,7 @@ import type {
 import { CHUNK_SIZE } from "../../core/types";
 import { random } from "../../core/random";
 import { buildingModel } from "../../content/graphics/models";
+import { chooseBuildingFrame } from "../../content/graphics/building-scale";
 import { createLandscape } from "./landscape";
 import { noise, segmentDistance } from "./noise";
 export const DISTRICT_SIZE = 384;
@@ -98,9 +99,20 @@ export function createAtlasWorld(pack: Pack, seed: string): WorldModel {
       : 4;
     for (let i = 0; i < count; i++) {
       const model = buildingModel(
-        pack.buildings[
-          Math.floor(rand(id, i, "model") * pack.buildings.length)
-        ],
+        chooseBuildingFrame(
+          pack.buildings,
+          {
+            settlement: s.settlement,
+            density: home
+              ? s.settlement === "city" || s.settlement === "port"
+                ? 0.8
+                : 0.45
+              : 0.25,
+            wealth: 25 + rand(id, i, "means") * 60,
+          },
+          rand(id, i, "scale"),
+          rand(id, i, "model"),
+        ),
       );
       const [w, height] = model.footprint;
       let x = 0,

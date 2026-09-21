@@ -23,10 +23,11 @@ BLOOMS = ['#e8c53a', '#d9553f', '#e9e4d2']
 AGED = ['#3f3a2c', '#625a44', '#857b5e', '#a39a7a', '#c2ba9c']
 
 
-def darker(material):
-    """The side wall faces away from the sun: the same ramp, one step down."""
+def darker(material, strong=False):
+    """The side wall faces away from the sun; gold masters separate it more."""
     w = material['wall']
-    return dict(material, wall=[w[0], w[0], w[1], w[2], w[3]])
+    return dict(material, wall=([w[0], w[0], w[0], w[1], w[2]] if strong
+                                else [w[0], w[0], w[1], w[2], w[3]]))
 
 
 def h2(x, y):
@@ -272,7 +273,10 @@ class ObliqueBuilding:
                 self.arches(d, b)
                 continue
             regular = self.lights != 'casement'
-            for slot in (self.windows if s == 0 and not regular else
+            # A large gold-master facade keeps blank wall between opening
+            # groups. Filling every bay made the derived ranges read as grids.
+            planned = self.windows if self.r.get('goldMaster') else None
+            for slot in (planned if planned is not None else self.windows if s == 0 and not regular else
                          [t for t in range(self.tiles) if regular and not (s == 0 and t == self.slot)
                           and (self.lights != 'mullion' or (t - self.slot) % 3 != 2)
                           or not regular and (t + s + self.r['seed']) % 4]):
@@ -358,7 +362,7 @@ class ObliqueBuilding:
 
     def side(self):
         """Wall and gable as one sheet; the apex sits over the middle column."""
-        mat = darker(self.p)
+        mat = darker(self.p, bool(self.r.get('goldMaster')))
         top, sw = self.rise, self.sw
         im, d = self.wall_face(sw, self.wh + top, mat, False)
         b = self.wh + top

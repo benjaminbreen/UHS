@@ -1,5 +1,5 @@
 import { urbanProps } from "./urban";
-import type { Inventory } from "../../core/types";
+import type { Inventory, Point } from "../../core/types";
 import type { ShoveDef } from "../../core/shove";
 
 export type PropDef = {
@@ -43,9 +43,25 @@ export type PropDef = {
   /** Cells blocked either side of its own, [x, y], for a prop wider than a
    * cell: a village hearth is three cells of stone and fire, not one. */
   span?: [number, number];
+  /** Visual breathing room around the anchor: left, right, behind and in
+   * front, in tiles. Yard composition uses this wider silhouette even when
+   * the object's walk collision still occupies one cell. */
+  visualClearance?: [number, number, number, number];
   /** What people sit on round it, set out when the settlement is placed. */
   seats?: "log" | "stone" | "mat";
 };
+
+/** Tiles covered by the readable silhouette of a placed prop. This is an art
+ * composition envelope, not its movement collision footprint. */
+export function propVisualCells(key: string, at: Point): Point[] {
+  const [left, right, behind, front] = propDefs[key]?.visualClearance ?? [
+    0, 0, 0, 0,
+  ];
+  const cells: Point[] = [];
+  for (let y = at.y - behind; y <= at.y + front; y++)
+    for (let x = at.x - left; x <= at.x + right; x++) cells.push({ x, y });
+  return cells;
+}
 export const propDefs: Record<string, PropDef> = {
   ...urbanProps,
   hideBag: {
@@ -177,6 +193,7 @@ export const propDefs: Record<string, PropDef> = {
     name: "Hay rick",
     family: "hay-rick",
     container: true,
+    visualClearance: [1, 1, 3, 0],
   },
   dovecote: {
     solid: true,
@@ -305,6 +322,7 @@ export const propDefs: Record<string, PropDef> = {
     solid: true,
     name: "Animal trough",
     family: "trough",
+    visualClearance: [2, 2, 2, 0],
     container: true,
     contents: { water: 4 },
   },
@@ -343,6 +361,7 @@ export const propDefs: Record<string, PropDef> = {
     solid: true,
     name: "Drying rack",
     family: "drying-rack",
+    visualClearance: [2, 2, 3, 0],
     container: true,
   },
   pump: {
@@ -570,6 +589,7 @@ export const propDefs: Record<string, PropDef> = {
     solid: true,
     name: "Hide on a drying frame",
     family: "hide-frame",
+    visualClearance: [1, 1, 3, 0],
     where: "worksite",
   },
   knappingFloor: {
@@ -647,12 +667,14 @@ export const propDefs: Record<string, PropDef> = {
     name: "Rope bed",
     family: "charpoy",
     where: "backyard",
+    visualClearance: [2, 2, 2, 0],
   },
   stockPen: {
     solid: true,
     name: "Stock pen",
     family: "stock-pen",
     where: "worksite",
+    visualClearance: [2, 2, 3, 1],
   },
   milkChurn: {
     solid: true,
@@ -790,6 +812,7 @@ export const propDefs: Record<string, PropDef> = {
     solid: true,
     name: "Firewood stack",
     family: "woodpile",
+    visualClearance: [1, 1, 2, 0],
     container: true,
     contents: { wood: 3 },
   },

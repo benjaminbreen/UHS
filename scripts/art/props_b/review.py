@@ -6,7 +6,6 @@
 Writes artifacts/prop-b-review.png. Look at this, not at the source, before
 calling a prop finished: scale against the figure is most of the judgement.
 """
-import json
 import sys
 from pathlib import Path
 from PIL import Image, ImageDraw
@@ -14,15 +13,13 @@ from PIL import Image, ImageDraw
 ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT / 'scripts'))
 from art.props_b import DRAW_B                                    # noqa: E402
+from art.reference import current_adult                           # noqa: E402
 
 SCALE, PAD = 4, 12
 
 
 def person():
-    atlas = Image.open(ROOT / 'public/packs/atlas.png')
-    frames = json.loads((ROOT / 'src/render/generated/atlas.json').read_text())['frames']
-    f = frames['human-0-1-2-0']['frame']
-    return atlas.crop((f['x'], f['y'], f['x'] + f['w'], f['y'] + f['h']))
+    return current_adult()
 
 
 def sheet(keys=None, variants=1, out=None):

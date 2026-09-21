@@ -1,11 +1,17 @@
 import type { Pack, WorldModel, WorldObject, Position } from "../../core/types";
 import { random } from "../../core/random";
 import { plantClass } from "../ecology/vegetation";
-import { propDefs, propKit, type PropContext } from "./catalog";
+import {
+  propDefs,
+  propKit,
+  propVisualCells,
+  type PropContext,
+} from "./catalog";
 import { techFor } from "./selection";
 import { doorwayFor } from "../settlements/ornaments";
 import { venueOfClaim } from "../venues";
 import bFamilies from "../../render/generated/props-b.json" with { type: "json" };
+import { buildingRoofCells } from "../graphics/models";
 
 const redrawn = new Set<string>(bFamilies);
 /** The one fitting a trade cannot work without. Keyed off the building's own
@@ -32,21 +38,97 @@ function tradeFitting(name: string, year: number, balance: boolean) {
 const TRADE_EMBLEMS: string[][] = [
   // Drink. Matched whole word: "swineherd" contains "wine", and a swineherd
   // keeps no tavern.
-  ["brewer", "brewster", "alewife", "taverner", "innkeeper", "vintner",
-   "distiller", "publican", "tapster", "ale", "beer", "wine", "cider", "mead",
-   "tavern", "inn", "alehouse", "beerseller"],
-  ["weaver", "spinner", "dyer", "fuller", "tailor", "draper", "mercer",
-   "milliner", "dressmaker", "seamstress", "embroiderer", "hatter", "clothier",
-   "silk", "wool", "linen", "cloth", "weaving", "felter", "carder"],
-  ["blacksmith", "smith", "farrier", "armourer", "armorer", "cutler",
-   "founder", "tinsmith", "whitesmith", "nailer", "locksmith", "forge",
-   "smithy", "bladesmith", "coppersmith"],
+  [
+    "brewer",
+    "brewster",
+    "alewife",
+    "taverner",
+    "innkeeper",
+    "vintner",
+    "distiller",
+    "publican",
+    "tapster",
+    "ale",
+    "beer",
+    "wine",
+    "cider",
+    "mead",
+    "tavern",
+    "inn",
+    "alehouse",
+    "beerseller",
+  ],
+  [
+    "weaver",
+    "spinner",
+    "dyer",
+    "fuller",
+    "tailor",
+    "draper",
+    "mercer",
+    "milliner",
+    "dressmaker",
+    "seamstress",
+    "embroiderer",
+    "hatter",
+    "clothier",
+    "silk",
+    "wool",
+    "linen",
+    "cloth",
+    "weaving",
+    "felter",
+    "carder",
+  ],
+  [
+    "blacksmith",
+    "smith",
+    "farrier",
+    "armourer",
+    "armorer",
+    "cutler",
+    "founder",
+    "tinsmith",
+    "whitesmith",
+    "nailer",
+    "locksmith",
+    "forge",
+    "smithy",
+    "bladesmith",
+    "coppersmith",
+  ],
   ["baker", "miller", "confectioner", "pastrycook", "bakehouse", "bakery"],
-  ["cobbler", "shoemaker", "leatherworker", "tanner", "saddler", "currier",
-   "glover", "cordwainer", "harness", "leather"],
-  ["potter", "grocer", "apothecary", "pharmacist", "chandler", "spicer",
-   "merchant", "shopkeeper", "pedlar", "peddler", "fishmonger", "ironmonger",
-   "salter", "oilman", "trader", "spice", "spicer"],
+  [
+    "cobbler",
+    "shoemaker",
+    "leatherworker",
+    "tanner",
+    "saddler",
+    "currier",
+    "glover",
+    "cordwainer",
+    "harness",
+    "leather",
+  ],
+  [
+    "potter",
+    "grocer",
+    "apothecary",
+    "pharmacist",
+    "chandler",
+    "spicer",
+    "merchant",
+    "shopkeeper",
+    "pedlar",
+    "peddler",
+    "fishmonger",
+    "ironmonger",
+    "salter",
+    "oilman",
+    "trader",
+    "spice",
+    "spicer",
+  ],
 ];
 const TRADE_INDEX = new Map(
   TRADE_EMBLEMS.flatMap((words, index) =>
@@ -61,7 +143,10 @@ const VENUE_EMBLEMS: Record<string, number> = {
   "coffee-house": 5,
   market: 5,
 };
-function emblemFor(venueKind: string | undefined, ...trades: (string | undefined)[]) {
+function emblemFor(
+  venueKind: string | undefined,
+  ...trades: (string | undefined)[]
+) {
   if (venueKind) return VENUE_EMBLEMS[venueKind] ?? 6;
   // In order of authority: where the generator gave the owner a livelihood
   // that is the answer, and a generic pack role is not consulted over it.
@@ -121,7 +206,8 @@ function signFor(pack: Pack): { key: string; form: number } | undefined {
   return undefined;
 }
 /** Work premises: a spade leans here, a chest does not. */
-const worksite = /farm|field|herd|garden|workshop|shop|stores|yard|smith|mason|potter|tann|brew|mill|weav|carpent/i;
+const worksite =
+  /farm|field|herd|garden|workshop|shop|stores|yard|smith|mason|potter|tann|brew|mill|weav|carpent/i;
 
 /** Pick from a list by each prop's rarity rather than evenly. */
 function weighted(list: string[], roll: number) {
@@ -149,7 +235,10 @@ function variantOf(variants: number, roll: number) {
 /** The first colourway of a prop's sprite, for a prop made outside placement. */
 export function propSprite(key: string) {
   const def = propDefs[key];
-  return def && `study-prop${redrawn.has(def.family) ? "b" : ""}-${def.family}-${variantOf(1, 0)}`;
+  return (
+    def &&
+    `study-prop${redrawn.has(def.family) ? "b" : ""}-${def.family}-${variantOf(1, 0)}`
+  );
 }
 export function withProps(world: WorldModel, seed: string): WorldModel {
   const kit = propKit(world.pack),
@@ -201,7 +290,8 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
       );
     // Nothing in this kit belongs here: leave the corner empty rather than
     // putting a washing line on the market square.
-    if (!list.length) return allow ? undefined : context === "water" ? "spring" : "stick";
+    if (!list.length)
+      return allow ? undefined : context === "water" ? "spring" : "stick";
     return weighted(list, random(seed, "props-1", id, context));
   };
   const stamp = (o: WorldObject, key: string | undefined) => {
@@ -218,17 +308,38 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
   // Indexed by cell: a city has a thousand objects and asks about each one.
   const at = (p: Position) => `${p.space}:${p.x},${p.y}`;
   const objectsAt = new Map<string, WorldObject[]>();
+  const visualAt = new Map<string, WorldObject[]>();
+  const visualKeys = (o: WorldObject) =>
+    (o.prop ? propVisualCells(o.prop, o.pos) : [o.pos]).map((p) =>
+      at({ ...p, space: o.pos.space }),
+    );
   const index = (o: WorldObject) => {
     const k = at(o.pos),
       list = objectsAt.get(k) ?? [];
     list.push(o);
     objectsAt.set(k, list);
+    for (const visual of visualKeys(o)) {
+      const occupants = visualAt.get(visual) ?? [];
+      occupants.push(o);
+      visualAt.set(visual, occupants);
+    }
   };
   const unindex = (o: WorldObject) => {
     const list = objectsAt.get(at(o.pos));
-    if (list) list.splice(list.indexOf(o), 1);
+    const anchorIndex = list?.indexOf(o) ?? -1;
+    if (list && anchorIndex >= 0) list.splice(anchorIndex, 1);
+    for (const visual of visualKeys(o)) {
+      const occupants = visualAt.get(visual);
+      const visualIndex = occupants?.indexOf(o) ?? -1;
+      if (occupants && visualIndex >= 0) occupants.splice(visualIndex, 1);
+    }
   };
   for (const o of world.initialObjects) index(o);
+  const roofCells = new Set(
+    world.places.flatMap((b) =>
+      buildingRoofCells(b.sprite, b).map((p) => at({ ...p, space: "outside" })),
+    ),
+  );
   const actorsAt = new Set(world.initialActors.map((a) => at(a.pos)));
   const actorById = new Map(world.initialActors.map((a) => [a.id, a]));
   const doorsAt = new Set<string>();
@@ -238,19 +349,24 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
         doorsAt.add(
           at({ x: b.entrance.x + dx, y: b.entrance.y + dy, space: "outside" }),
         );
-  const occupied = (p: Position, ignore?: string) => {
-    for (let dy = -1; dy <= 1; dy++)
-      for (let dx = -1; dx <= 1; dx++)
-        for (const o of objectsAt.get(
-          at({ x: p.x + dx, y: p.y + dy, space: p.space }),
-        ) ?? [])
-          if (o.id !== ignore) return true;
+  const occupied = (p: Position, ignore?: string, prop?: string) => {
+    const footprint = prop ? propVisualCells(prop, p) : [p];
+    for (const q of footprint) {
+      if (p.space === "outside" && roofCells.has(at({ ...q, space: p.space })))
+        return true;
+      if (
+        (visualAt.get(at({ ...q, space: p.space })) ?? []).some(
+          (o) => o.id !== ignore,
+        )
+      )
+        return true;
+    }
     return false;
   };
-  const usable = (p: Position, ignore?: string) =>
+  const usable = (p: Position, ignore?: string, prop?: string) =>
     !world.blocked(p.x, p.y, p.space) &&
     !(p.space === "outside" && world.protectedCell?.(p.x, p.y)) &&
-    !occupied(p, ignore) &&
+    !occupied(p, ignore, prop) &&
     !actorsAt.has(at(p)) &&
     !doorsAt.has(at(p)) &&
     [
@@ -286,12 +402,16 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
     if (world.places.length) {
       let far = 0;
       for (const b of world.places)
-        far = Math.max(far, Math.hypot(b.x - world.spawn.x, b.y - world.spawn.y));
+        far = Math.max(
+          far,
+          Math.hypot(b.x - world.spawn.x, b.y - world.spawn.y),
+        );
       inner = Math.max(14, far * 0.45);
     }
     for (const o of [...world.initialObjects]) {
       if (done.has(o.id)) continue;
       done.add(o.id);
+      unindex(o);
       if (o.prop && world.generatorVersion === 3) {
         /* Explicit settlement furniture retains its function. */
       } else if (o.kind === "container")
@@ -313,7 +433,8 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
       // The shared fire takes its period form the same way.
       else if (o.kind === "fire" && o.sprite === "fire")
         stamp(o, pick(o.id, "fire", o.pos));
-      if (o.prop && !usable(o.pos, o.id)) {
+      index(o);
+      if (o.prop && !usable(o.pos, o.id, o.prop)) {
         const original = { ...o.pos };
         const choices: Position[] = [];
         for (let r = 1; r <= 6; r++)
@@ -326,7 +447,7 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
                   y: original.y + dy,
                 });
             }
-        const free = choices.find((p) => usable(p, o.id));
+        const free = choices.find((p) => usable(p, o.id, o.prop));
         if (free) {
           unindex(o);
           o.pos = free;
@@ -374,8 +495,7 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
         stamp(seat, key);
         // A log turns its end to the fire at the sides; the stones and mats
         // take whichever shape they rolled.
-        if (key === "seatLog")
-          seat.sprite = `study-propb-seat-log-${variant}`;
+        if (key === "seatLog") seat.sprite = `study-propb-seat-log-${variant}`;
         world.initialObjects.push(seat);
         index(seat);
         done.add(seat.id);
@@ -391,7 +511,7 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
       const bareYard = random(seed, "yard-empty", b.id) < bare;
       // Side-of-house and yard pockets, never entrance tiles or street centers.
       const planned = world.propSlots?.(b.id);
-      const candidates: Position[] = planned
+      const pockets: Position[] = planned
         ? [...planned.work, ...planned.yard].map((p) => ({
             ...p,
             space: "outside",
@@ -402,19 +522,33 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
             { x: b.x - 2, y: b.y + b.h + 2, space: "outside" },
             { x: b.x + b.w + 2, y: b.y + b.h + 2, space: "outside" },
           ];
+      // A broad prop may not fit on the slot's anchor even though the same
+      // work pocket has clear ground a few steps away. Search outward inside
+      // that local zone before dropping the object from the composition.
+      const seenCandidates = new Set<string>();
+      const candidates: Position[] = [];
+      for (const pocket of pockets)
+        for (let r = 0; r <= 4; r++)
+          for (let dy = -r; dy <= r; dy++)
+            for (let dx = -r; dx <= r; dx++) {
+              if (r && Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+              const p = { ...pocket, x: pocket.x + dx, y: pocket.y + dy };
+              const key = at(p);
+              if (seenCandidates.has(key)) continue;
+              seenCandidates.add(key);
+              candidates.push(p);
+            }
       const domestic = b.access === "household";
       for (
         let slot = 0;
         !bareYard && slot < (random(seed, "yard-density", b.id) < 0.3 ? 2 : 1);
         slot++
       ) {
-        const pos = candidates.find((p) => usable(p));
-        if (!pos) break;
         const o: WorldObject = {
           id: `${b.id}-prop${slot}`,
           name: "",
           kind: "container",
-          pos,
+          pos: candidates[0],
           sprite: "",
           inventory: {},
           owner: slot === 0 ? b.owner : undefined,
@@ -441,6 +575,9 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
                 (propDefs[key]?.where !== "backyard" || domestic),
             );
         if (!chosen) break;
+        const pos = candidates.find((p) => usable(p, undefined, chosen));
+        if (!pos) break;
+        o.pos = pos;
         stamp(o, chosen);
         world.initialObjects.push(o);
         index(o);
@@ -504,7 +641,13 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
               : undefined;
         const beside = wanted
           ? [
-              [1, 0], [-1, 0], [1, 1], [-1, 1], [0, 1], [2, 0], [-2, 0],
+              [1, 0],
+              [-1, 0],
+              [1, 1],
+              [-1, 1],
+              [0, 1],
+              [2, 0],
+              [-2, 0],
             ]
               .map(([dx, dy]) => ({
                 x: b.entrance.x + dx,
@@ -529,22 +672,23 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
             o.description = venue.marker.description;
             o.sprite = `study-propb-sacred-marker-${venue.marker.variant}`;
           } else {
-          stamp(o, wanted);
-          if (venue)
-            o.description = `Hung at the door of ${venue.label.replace(/^The /, "the ")}.`;
-          // A board takes the region's script; a doorway marker takes
-          // whatever that culture and date actually hung there.
-          // The region sets the script, but not every board on a street was
-          // made by the same hand: a third take one of the other two forms, so
-          // a row of shopfronts is not one sprite repeated.
-          const signForm = byTrade
-            ? (emblem ?? 6)
-            : random(seed, "sign-form", b.id) < 0.66
-              ? (sign?.form ?? 0)
-              : Math.floor(random(seed, "sign-alt", b.id) * 3);
-          o.sprite = sign && wanted === sign.key
-              ? `study-propb-${propDefs[sign.key].family}-${signForm}`
-              : `study-propb-door-lantern-${doorway}`;
+            stamp(o, wanted);
+            if (venue)
+              o.description = `Hung at the door of ${venue.label.replace(/^The /, "the ")}.`;
+            // A board takes the region's script; a doorway marker takes
+            // whatever that culture and date actually hung there.
+            // The region sets the script, but not every board on a street was
+            // made by the same hand: a third take one of the other two forms, so
+            // a row of shopfronts is not one sprite repeated.
+            const signForm = byTrade
+              ? (emblem ?? 6)
+              : random(seed, "sign-form", b.id) < 0.66
+                ? (sign?.form ?? 0)
+                : Math.floor(random(seed, "sign-alt", b.id) * 3);
+            o.sprite =
+              sign && wanted === sign.key
+                ? `study-propb-${propDefs[sign.key].family}-${signForm}`
+                : `study-propb-door-lantern-${doorway}`;
           }
           world.initialObjects.push(o);
           index(o);

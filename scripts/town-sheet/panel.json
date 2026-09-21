@@ -50,6 +50,11 @@
     "radius": 40
   },
   {
+    "name": "congo-1500",
+    "query": "Congo 1500",
+    "radius": 36
+  },
+  {
     "name": "catalhoyuk",
     "query": "Neolithic Anatolia",
     "radius": 36

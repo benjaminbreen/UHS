@@ -1174,7 +1174,34 @@ export function createSettlementWorld(
     ReturnType<typeof pathArt>
   >();
   const roadCenters = new WeakMap<SettlementPlan, Set<string>>();
-  const bridgeDecks = new WeakMap<SettlementPlan, Set<string>>();
+  const bridgeDecks = new WeakMap<SettlementPlan, Map<string, HeightTier>>();
+  /** A deck sits at its higher bank's tier, and the road runs level for a few
+   * cells off each end, so the only step is one road ramp beyond the approach. */
+  function deckLevels(p: SettlementPlan) {
+    const levels = new Map<string, HeightTier>();
+    bridgeDecks.set(p, levels);
+    const tier = (q: { x: number; y: number }) =>
+      Math.round(land.sample(q.x, q.y).elevation / 14);
+    for (const road of p.roads) {
+      if (road.kind !== "bridge" || road.points.length < 2) continue;
+      const a = road.points[0],
+        b = road.points.at(-1)!;
+      const level = Math.max(tier(a), tier(b)) as HeightTier;
+      const dx = Math.sign(b.x - a.x),
+        dy = Math.sign(b.y - a.y);
+      const approach = [];
+      for (let d = 1; d <= 3; d++)
+        approach.push(
+          { x: a.x - dx * d, y: a.y - dy * d },
+          { x: b.x + dx * d, y: b.y + dy * d },
+        );
+      roadCells({ ...road, points: [...road.points, ...approach] }, (x, y) => {
+        const k = cellKey(x, y);
+        if (!levels.has(k)) levels.set(k, level);
+      });
+    }
+    return levels;
+  }
   const streetLevelCache = new WeakMap<SettlementPlan, Map<string, number>>();
   /** A street is level across its width: every cell of a cross-section takes
    * the centreline's tier, so a step meets a street square-on at a kerb and
@@ -1219,8 +1246,10 @@ export function createSettlementWorld(
     return levels;
   }
   function rawCell(x: number, y: number): TopographyCell {
-    const f = land.sample(x, y),
-      t = terrain(x, y);
+    const f = land.sample(x, y);
+    let t = terrain(x, y);
+    // A deck's ends rest on the banks; only the span over water is timber.
+    if (t === "bridge" && f.water >= 0) t = "dirt";
     let height = Math.round(f.elevation / 14) as HeightTier;
     if (terraces && f.water >= 0)
       for (const p of nearby(x, y)) {
@@ -1229,18 +1258,17 @@ export function createSettlementWorld(
         height = level;
         break;
       }
+    let decked = false;
     for (const p of nearby(x, y)) {
       let deck = bridgeDecks.get(p);
-      if (!deck) {
-        deck = new Set();
-        for (const road of p.roads)
-          if (road.kind === "bridge")
-            roadCells(road, (a, b) => deck!.add(cellKey(a, b)));
-        bridgeDecks.set(p, deck);
-      }
-      if (deck.has(cellKey(x, y))) height = 1;
+      if (!deck) deck = deckLevels(p);
+      const level = deck.get(cellKey(x, y));
+      if (level === undefined) continue;
+      height = level;
+      decked = true;
+      break;
     }
-    if (t === "bridge") height = 1;
+    if (t === "bridge" && !decked) height = 1;
     const cell = reliefCell(height, f.water, f.moisture);
     if (environment) {
       cell.habitat = habitat(x, y);

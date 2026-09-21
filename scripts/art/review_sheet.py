@@ -32,11 +32,13 @@ def recipes():
     from art.modern import ModernBuilding
     from art.oblique import ObliqueBuilding, ObliquePlayhouse
     from art.oblique_church import ObliqueChurch
+    from art.gold_masters import gold_master_recipes
     source = json.loads((ROOT / 'src/content/graphics/buildings.json').read_text())
     source['materials'].update(
         json.loads((ROOT / 'src/content/graphics/urban.json').read_text())
         .get('materials', {}))
-    all_r = {**source['buildings'], **urban_recipes(ROOT, source),
+    all_r = {**source['buildings'], **gold_master_recipes(source),
+             **urban_recipes(ROOT, source),
              **religious_recipes(ROOT, source), **theatre_recipes(ROOT, source),
              **hall_recipes(ROOT, source), **period_recipes(ROOT, source)}
     painters = {'oblique': ObliqueBuilding, 'candidate': InfillBuilding, 'modern': ModernBuilding,

@@ -16,7 +16,9 @@ for (const { name, query, seed, radius, settlementLayout } of panel as any[]) {
     console.error(name, r.error);
     continue;
   }
-  const setting = settlementLayout ? { ...r.setting, settlementLayout } : r.setting;
+  const setting = settlementLayout
+    ? { ...r.setting, settlementLayout }
+    : r.setting;
   const e = createSettingSession(setting, seed ?? "panel") as any;
   const cx = Math.round(e.state.player.pos.x),
     cy = Math.round(e.state.player.pos.y);
@@ -27,11 +29,7 @@ for (const { name, query, seed, radius, settlementLayout } of panel as any[]) {
     for (let x = cx - R; x <= cx + R; x++) {
       const k = `${x},${y}`,
         t = p.surface.get(k);
-      if (t)
-        surface[k] =
-          t === "paving" && !p.traffic.has(k)
-            ? `kerb`
-            : t;
+      if (t) surface[k] = t === "paving" && !p.traffic.has(k) ? `kerb` : t;
     }
   const fields: Record<string, unknown> = {};
   for (const [k, f] of p.fields ?? []) {
@@ -51,13 +49,33 @@ for (const { name, query, seed, radius, settlementLayout } of panel as any[]) {
       R,
       surface,
       fields,
-      places: p.places.filter(near).map((b: any) => ({ sprite: b.sprite, x: b.x, y: b.y, w: b.w, h: b.h })),
+      places: p.places
+        .filter(near)
+        .map((b: any) => ({
+          sprite: b.sprite,
+          x: b.x,
+          y: b.y,
+          w: b.w,
+          h: b.h,
+        })),
       objects: e.state.objects
         .filter((o: any) => o.pos.space === "outside" && near(o.pos))
-        .map((o: any) => ({ sprite: o.sprite, kind: o.kind, x: o.pos.x, y: o.pos.y })),
+        .map((o: any) => ({
+          id: o.id,
+          prop: o.prop,
+          sprite: o.sprite,
+          kind: o.kind,
+          x: o.pos.x,
+          y: o.pos.y,
+        })),
       actors: e.state.actors
         .filter((a: any) => a.pos.space === "outside" && near(a.pos))
-        .map((a: any) => ({ kind: a.kind, sprite: a.sprite, x: Math.round(a.pos.x), y: Math.round(a.pos.y) })),
+        .map((a: any) => ({
+          kind: a.kind,
+          sprite: a.sprite,
+          x: Math.round(a.pos.x),
+          y: Math.round(a.pos.y),
+        })),
     }),
   );
   console.log(name, setting.location, setting.year, "places", p.places.length);

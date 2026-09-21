@@ -340,6 +340,9 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.world-tooltip i {
+  opacity: 0.72;
+}
 .world-tooltip.is-shown {
   opacity: 1;
 }

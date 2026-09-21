@@ -468,6 +468,8 @@ export type Inspection = {
   brief?: PersonBrief;
   id: string;
   name: string;
+  /** A plant's botanical name, shown beside the common one. */
+  latin?: string;
   description: string;
   kind: string;
   pos: Position;

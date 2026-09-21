@@ -1,4 +1,5 @@
 import { buildingModel } from "../content/graphics/models";
+import { chooseBuildingFrame } from "../content/graphics/building-scale";
 import { isDoorway, makeDoor } from "../core/doors";
 import {
   CHUNK_SIZE,
@@ -72,8 +73,18 @@ export function createWorld(pack: Pack, seed: string): WorldModel {
         col * (pack.layout === "streets" ? 10 : 8) +
         Math.floor(r(s.id, i, "x") * 2);
       const y = s.y + [-17, -7, 11, 21][row] + Math.floor(r(s.id, i, "y") * 2);
-      const variant = Math.floor(r(s.id, i, "variant") * pack.buildings.length);
-      const model = buildingModel(pack.buildings[variant]);
+      const model = buildingModel(
+        chooseBuildingFrame(
+          pack.buildings,
+          {
+            settlement: pack.setting?.settlement,
+            density: s.id === "s0" ? 0.65 : 0.3,
+            wealth: 25 + r(s.id, i, "means") * 60,
+          },
+          r(s.id, i, "scale"),
+          r(s.id, i, "variant"),
+        ),
+      );
       const [w, h] = model.footprint;
       const id = `${s.id}-house-${i}`,
         owner = `${s.id}-person-${i}`;

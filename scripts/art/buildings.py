@@ -348,8 +348,9 @@ def build_buildings(root, sprites):
     from art.oblique_church import ObliqueChurch, build_banner
     from art.oblique_round import ObliqueRound
     from art.oblique_mud import ObliqueMudbrick
+    from art.gold_masters import gold_master_recipes
     build_banner(sprites)
-    recipes={**source['buildings'], **urban_recipes(root, source), **religious_recipes(root, source), **theatre_recipes(root, source), **hall_recipes(root, source), **period_recipes(root, source)}
+    recipes={**source['buildings'], **gold_master_recipes(source), **urban_recipes(root, source), **religious_recipes(root, source), **theatre_recipes(root, source), **hall_recipes(root, source), **period_recipes(root, source)}
     for name,r in list(recipes.items()):
         if r['roof']=='shelter': continue
         fw,fh=r['footprint']
@@ -399,6 +400,8 @@ def build_buildings(root, sprites):
             **({'shadowFrame':r['shadowFrame']} if r.get('shadowFrame') else {}),
             **({'banner':artist.banner} if getattr(artist,'banner',None) else {}),
             **({'smoke':artist.smoke} if getattr(artist,'smoke',None) else {}),
+            **({'goldMaster':r['goldMaster'],'goldScale':r['goldScale'],
+                'goldVariant':r['goldVariant']} if r.get('goldMaster') else {}),
             # Cells the sprite overhangs its footprint to the right and behind,
             # so a planner can leave them clear.
             **({'oblique':True,'margins':[int(-(-(w-artist.anchor_x-r['footprint'][0]*8)//16)),

@@ -1,3 +1,43 @@
+## Prop silhouette spacing and social house scale — September 21, 2026
+
+Broad yard props now reserve their readable silhouettes rather than only an
+anchor tile. Authored yards and routine-placed drying racks keep stock pens,
+racks, troughs and stores clear of houses and one another without stripping
+the yards of dense functional clusters.
+
+Gold-master scale selection is shared by the current and fallback settlement
+planners. Settlement form, central density, household means and urban quarter
+now weight small, medium and large houses; large houses are exceptional at
+village edges and farms but credible anchors in wealthy central or elite lots.
+Focused tests cover both systems, and a Congo sheet joins the non-browser
+settlement review panel.
+
+## Oblique house gold masters and corrected figure scale — September 21, 2026
+
+Building review sheets no longer compare against the deprecated 20×32 atlas
+human. `scripts/capture-building-scale-reference.ts` crops the current default
+renderer-B adult to its real 15×37 occupied bounds; oblique and prop sheets use
+that generated reference. `BUILDING_ART.md` now requires native, enlarged,
+grayscale, family and real-settlement review, with explicit rejection of
+repeated texture and stretched facades.
+
+Seven existing oblique house families retain their small forms and now compile
+two medium seeds and one large seed from data: medieval thatch and timber,
+early-modern brick and render, prehistoric round and mudbrick, and Neolithic
+longhouse. These are native recipes with larger footprints rather than scaled
+bitmaps. Gold facades leave quiet wall between opening groups and use a darker
+right face. New worlds mix the larger forms into the applicable regional/date
+sets; large houses remain the minority. The dedicated four-column contact sheet
+is `artifacts/gold-masters.png`, generated with `npm run art:gold`.
+
+Validation: oblique audit clean; focused content, graphics and urban-form tests
+pass; atlas rebuilt. Town sheets for medieval and early-modern London,
+Çatalhöyük, Danube first farmers and Bronze Age Britain were reviewed. The
+graphics lab settlement check passed, and a direct timber-settlement browser
+run rendered without page errors. One pre-existing graphics-lab test still
+expects `/` to bypass the current start screen and failed before reaching the
+lab; its independent settlement test passed.
+
 ## Shared habitat identity and geographic ecology — September 14, 2026
 
 New worlds use ecology revision 2, hydrology revision 3, and prepared cache version 7. Regional sampling resolves ecology at the sampled coordinates and includes ecoregion identity in its cache. Valid geographic ecoregions precede broad climate fallbacks; dated regional/place defaults can explicitly specify ecology. Shared landscape recipes control moisture, canopy, substrate and floodability, including a more open seasonal monsoon forest and Mediterranean scrub/grass mosaics.

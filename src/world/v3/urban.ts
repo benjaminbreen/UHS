@@ -11,6 +11,10 @@ import type { UrbanForm } from "../../content/settlements/urban-form/types";
 import { urbanBuildingLimit } from "../../content/settlements/scale";
 import type { Pack, Point } from "../../core/types";
 import { buildingModel, buildingModels } from "../../content/graphics/models";
+import {
+  buildingScale,
+  buildingScaleWeight,
+} from "../../content/graphics/building-scale";
 import kit from "../../content/graphics/urban.json";
 import { settlementLayout } from "../../content/settlements/layout";
 import { random } from "../../core/random";
@@ -984,6 +988,33 @@ export function urbanNeighborhood(
     return modern ? preferStyle(pool, quarter) : pool;
   }
 
+  function wealthForQuarter(quarter: Quarter) {
+    return {
+      market: 62,
+      craft: 52,
+      elite: 86,
+      residential: 46,
+      edge: 30,
+    }[quarter];
+  }
+  /** Exponential weighted draw expressed as a sortable key. It preserves the
+   * row's style variation while making large houses a consequence of central,
+   * wealthy lots instead of their raw count in the asset list. */
+  function scaleKey(
+    frame: string,
+    quarter: Quarter,
+    density: number,
+    roll: number,
+  ) {
+    const weight = buildingScaleWeight(buildingScale(frame), {
+      settlement: pack.setting?.settlement,
+      density,
+      wealth: wealthForQuarter(quarter),
+      quarter,
+    });
+    return -Math.log(Math.max(1e-9, roll)) / Math.max(1e-9, weight);
+  }
+
   /** Where a modern city puts which kind of building. Concrete stands in the
    * middle, the shophouse arcades run along the trading streets, and the
    * houses under sheet metal are at the edge — the gradient every city that
@@ -1429,12 +1460,16 @@ export function urbanNeighborhood(
     let cursor = start,
       depth = 0;
     while (cursor < end - 2) {
-      const choices = [...pool].sort(
-        (a, b) =>
-          rand(block.x, edge, cursor, a) -
-          (a === dominant ? 0.55 : 0) -
-          (rand(block.x, edge, cursor, b) - (b === dominant ? 0.55 : 0)),
-      );
+      const density = Math.max(0, 1 - block.reach);
+      const choices = [...pool].sort((a, b) => {
+        const aKey =
+          scaleKey(a, quarter, density, rand(block.x, edge, cursor, a)) /
+          (a === dominant ? 1.8 : 1);
+        const bKey =
+          scaleKey(b, quarter, density, rand(block.x, edge, cursor, b)) /
+          (b === dominant ? 1.8 : 1);
+        return aKey - bKey;
+      });
       let span = 1,
         tried = 0;
       // Not every plot is built: an orchard or a bit of green between houses.

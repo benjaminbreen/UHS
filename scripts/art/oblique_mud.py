@@ -45,7 +45,7 @@ class ObliqueMudbrick:
         self.tiles = fw
         self.fw = fw * 16
         self.sw = side_depth(fh)
-        self.wh = 31 + rng.choice([0, 2, 3])
+        self.wh = recipe.get('wallHeight', 31 + rng.choice([0, 2, 3]))
         self.lip = 4
         facing = recipe.get('facing', 'south')
         slot = {'east': fw - 1, 'west': 0}.get(facing, recipe['entrance'][0])

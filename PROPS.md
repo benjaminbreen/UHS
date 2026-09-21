@@ -236,3 +236,10 @@ Natural water sources currently reuse the basin art. The initial availability of
 ## Prop bases and movement
 
 Intact solid props occupy one ground tile, independently of their sprite height and cast shadow. The common engine collision query serves direct movement, diagonal corner checks, click-route pathfinding, and NPC movement. Pots, barrels, woodpiles, containers, and water fixtures block; loose sticks do not. Carried props and broken remains do not block. Dropping restores the obstacle immediately. Empty intact containers remain solid. These definition-level corrections apply to existing interactive-prop saves without regenerating them; pre-prop content-version-1 saves remain unchanged. Existing content-version-2 recordings may produce different NPC routes with this collision correction; the original content-version-1 checkpoint recordings retain their original collision behavior.
+
+Yard composition has a separate visual footprint. Broad low objects such as
+stock pens, drying racks, troughs, woodpiles and hayricks reserve the tiles
+their sprite reads across, even when movement collision remains one cell. This
+keeps a yard dense without collapsing several silhouettes into one heap. The
+clearance is data on the prop definition rather than a regional special case;
+routine-placed drying racks use the same envelope.

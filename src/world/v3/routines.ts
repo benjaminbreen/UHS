@@ -15,6 +15,8 @@ import type { Rank } from "../../content/characters/context-types";
 import type { StanceTag } from "../../content/outlook/types";
 import type { WorldSetting } from "../../content/geography/types";
 import { cellKey, type SettlementPlan, type WorkSite } from "./types";
+import { propVisualCells } from "../../content/props/catalog";
+import { buildingRoofCells } from "../../content/graphics/models";
 /** Ordered from the evening rest, so the leftover hours of a short routine
  * lengthen the night instead of padding an errand. */
 const night = (home: Point): Station => ({
@@ -613,12 +615,24 @@ function attachRack(
     form !== "village"
   )
     return;
-  const taken = new Set(plan.objects.map((o) => cellKey(o.pos.x, o.pos.y)));
-  const free = (p: Point) =>
-    !plan.solid.has(cellKey(p.x, p.y)) &&
-    !plan.traffic.has(cellKey(p.x, p.y)) &&
-    !plan.reserved.has(cellKey(p.x, p.y)) &&
-    !taken.has(cellKey(p.x, p.y));
+  const taken = new Set(
+    plan.objects.flatMap((o) =>
+      o.prop
+        ? propVisualCells(o.prop, o.pos).map((p) => cellKey(p.x, p.y))
+        : [cellKey(o.pos.x, o.pos.y)],
+    ),
+  );
+  for (const place of plan.places)
+    for (const p of buildingRoofCells(place.sprite, place))
+      taken.add(cellKey(p.x, p.y));
+  const free = (p: Point) => {
+    const anchor = cellKey(p.x, p.y);
+    if (plan.reserved.has(anchor)) return false;
+    return propVisualCells("dryingRack", p).every((q) => {
+      const k = cellKey(q.x, q.y);
+      return !plan.solid.has(k) && !plan.traffic.has(k) && !taken.has(k);
+    });
+  };
   // A yard if the household has one. A dense quarter has none, so fall back to
   // the ground beside their work, then to the waterside itself.
   const ring = (centre: Point) => {

@@ -202,6 +202,71 @@
    ]
   }
  },
+ "goldMasters": {
+  "house-cottage-thatch": {
+   "source": "house-cottage-thatch-0",
+   "label": "Medieval thatched house",
+   "description": "A substantial medieval rural house under thatch, generated from the approved oblique cottage vocabulary. Illustrative, not a surveyed reconstruction.",
+   "sizes": {
+    "medium": {"footprint": [6, 4], "entrance": 2, "variants": 2, "seedOffset": 1100},
+    "large": {"footprint": [8, 5], "entrance": 3, "variants": 1, "seedOffset": 1400}
+   }
+  },
+  "house-cottage-timber": {
+   "source": "house-cottage-timber-0",
+   "label": "Medieval timber house",
+   "description": "A larger medieval timber-framed house with regional roof and opening variants. Illustrative, not a surveyed reconstruction.",
+   "sizes": {
+    "medium": {"footprint": [6, 4], "entrance": 2, "stories": 2, "variants": 2, "seedOffset": 1700},
+    "large": {"footprint": [8, 5], "entrance": 3, "stories": 2, "variants": 1, "seedOffset": 2000, "wing": true}
+   }
+  },
+  "house-early-brick": {
+   "source": "house-early-brick-0",
+   "label": "Early-modern brick house",
+   "description": "A substantial early-modern brick house with grouped mullioned windows and a tiled or slated roof. Illustrative.",
+   "sizes": {
+    "medium": {"footprint": [6, 4], "entrance": 2, "stories": 2, "variants": 2, "seedOffset": 2300},
+    "large": {"footprint": [8, 5], "entrance": 3, "stories": 3, "variants": 1, "seedOffset": 2600, "frontispiece": "stepped"}
+   }
+  },
+  "house-early-stucco": {
+   "source": "house-early-stucco-0",
+   "label": "Early-modern rendered house",
+   "description": "A larger rendered early-modern house with sash windows, stacks and a restrained formal front. Illustrative.",
+   "sizes": {
+    "medium": {"footprint": [6, 4], "entrance": 2, "stories": 2, "variants": 2, "seedOffset": 2900},
+    "large": {"footprint": [8, 5], "entrance": 4, "stories": 3, "variants": 1, "seedOffset": 3200, "frontispiece": "pediment"}
+   }
+  },
+  "house-round": {
+   "source": "house-round-0",
+   "label": "Prehistoric round house",
+   "description": "A medium or large daubed round house under a conical thatch roof. Scale and finish are illustrative; the structural vocabulary follows archaeological and experimental reconstructions.",
+   "sizes": {
+    "medium": {"footprint": [5, 4], "entrance": 2, "variants": 2, "seedOffset": 3500},
+    "large": {"footprint": [7, 6], "entrance": 3, "variants": 1, "seedOffset": 3800}
+   }
+  },
+  "house-mudbrick-ob": {
+   "source": "house-mudbrick-ob-0",
+   "label": "Prehistoric mudbrick house",
+   "description": "A medium or large mudbrick household block with a flat working roof, hatch, ladder and seeded roof use. Inspired by excavated forms but illustrative in arrangement.",
+   "sizes": {
+    "medium": {"footprint": [7, 5], "entrance": 3, "variants": 2, "seedOffset": 4100, "wallHeight": 38},
+    "large": {"footprint": [9, 6], "entrance": 4, "variants": 1, "seedOffset": 4400, "wallHeight": 43}
+   }
+  },
+  "house-longhouse": {
+   "source": "house-longhouse-0",
+   "label": "Neolithic longhouse",
+   "description": "A medium or large early-farming timber longhouse, daubed between its posts beneath a deep thatched roof. Illustrative rather than a reconstruction of one excavated plan.",
+   "sizes": {
+    "medium": {"footprint": [9, 5], "entrance": 4, "variants": 2, "seedOffset": 4700},
+    "large": {"footprint": [12, 6], "entrance": 5, "variants": 1, "seedOffset": 5000}
+   }
+  }
+ },
  "buildings": {
   "house-roman-0": {
    "label": "Tiled courtyard house",

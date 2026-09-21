@@ -9,6 +9,10 @@ import {
 import { findPath } from "../src/core/pathfinding";
 import buildings from "../src/render/generated/buildings.json" with { type: "json" };
 import civic from "../src/render/generated/civic.json" with { type: "json" };
+import {
+  buildingScaleWeight,
+  chooseBuildingFrame,
+} from "../src/content/graphics/building-scale";
 
 it("every construction family has usable entrance geometry and matching compiled art", () => {
   for (const study of Object.keys(studies))
@@ -71,4 +75,58 @@ it("compiles the review-only modern infill set at all three compact footprints",
     for (const facing of ["north", "east", "west"])
       expect((buildingModels as any)[`${id}-${facing}`].candidate).toBe(true);
   }
+});
+
+it("compiles seven oblique gold-master families at medium and large scale", () => {
+  const gold = Object.entries(buildingModels).filter(
+    ([id, model]) =>
+      (model as any).goldMaster && !/-(north|east|west)$/.test(id),
+  );
+  expect(gold).toHaveLength(21);
+  const families = new Map<string, any[]>();
+  for (const [, model] of gold) {
+    const m = model as any;
+    const group = families.get(m.goldMaster) ?? [];
+    group.push(m);
+    families.set(m.goldMaster, group);
+  }
+  expect(families.size).toBe(7);
+  for (const variants of families.values()) {
+    expect(variants.filter((m) => m.goldScale === "medium")).toHaveLength(2);
+    expect(variants.filter((m) => m.goldScale === "large")).toHaveLength(1);
+    const medium = variants.find((m) => m.goldScale === "medium");
+    const large = variants.find((m) => m.goldScale === "large");
+    expect(large.footprint[0]).toBeGreaterThan(medium.footprint[0]);
+    expect(large.footprint[1]).toBeGreaterThan(medium.footprint[1]);
+  }
+});
+
+it("weights gold-master scale by settlement density, means and quarter", () => {
+  const poorEdge = {
+    settlement: "village" as const,
+    density: 0.15,
+    wealth: 18,
+    quarter: "edge" as const,
+  };
+  const richCentre = {
+    settlement: "city" as const,
+    density: 0.95,
+    wealth: 88,
+    quarter: "elite" as const,
+  };
+  expect(buildingScaleWeight("large", richCentre)).toBeGreaterThan(
+    buildingScaleWeight("large", poorEdge) * 20,
+  );
+  expect(buildingScaleWeight("small", poorEdge)).toBeGreaterThan(
+    buildingScaleWeight("small", richCentre),
+  );
+  const family = [
+    "house-round-0",
+    "house-round-gold-medium-0",
+    "house-round-gold-medium-1",
+    "house-round-gold-large-0",
+  ];
+  expect(chooseBuildingFrame(family, richCentre, 0.999, 0.5)).toContain(
+    "gold-large",
+  );
 });

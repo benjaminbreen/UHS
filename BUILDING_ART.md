@@ -25,6 +25,52 @@ compare side by side.
 hangs together; it will not show you that a doorway is a black rectangle.
 Crop and magnify the one you are working on.
 
+## The acceptance package
+
+A new house family is not finished with a clean atlas build. Before it becomes
+a regional default, review all of these:
+
+1. One sprite alone at 4x, on transparency and on representative ground.
+2. Retained small, two medium seeds and one large seed beside the current live
+   adult. Medium seeds must differ structurally or materially, not by a hue
+   nudge alone.
+3. The whole family at native size. A detail which exists only at 4x does not
+   exist in the game.
+4. A grayscale copy. Roof, lit front, shaded right wall, eave and doorway must
+   remain separate.
+5. A real generated settlement before and after. Look for clear roads and
+   doors, hidden side walls, stacked roofs, empty plots and a town made entirely
+   of exceptional large houses.
+
+The seven oblique gold-master rows are the executable standard. Run
+`npm run art:gold`; do not substitute an old atlas character or a hand-drawn
+scale marker.
+
+Settlement selection treats these tiers as social and spatial information,
+not duplicate entries in a flat random list. Dense central lots and wealthy or
+elite quarters can carry more medium and occasional large houses; camps, farms
+and settlement edges overwhelmingly retain small houses. The shared weights
+live in `src/content/graphics/building-scale.ts`.
+
+### What passes
+
+- The silhouette names the form before surface detail does.
+- Roof, front and side read as three planes at native size.
+- Material texture forms clusters with quiet base colour between them.
+- Openings group into a facade; they do not fill every available bay.
+- Door, storey and prop scale agree with the live adult.
+- Wear collects at eaves, sills, thresholds and the wall foot.
+- Seeded variants preserve identity while changing meaningful parts.
+- The family includes ordinary small and medium fabric; large is visibly rare.
+
+### What fails
+
+- Repeating every tile, brick, beam or window with equal contrast.
+- Stretching a short facade into a long one without regrouping its openings.
+- Using extra noise to repair the wrong solid or weak value separation.
+- Baking grass, flowers or a private rectangle of ground into the sprite.
+- Judging only an isolated sprite or only a magnified sheet.
+
 ## Shade from a normal, not across the sprite
 
 The old code shaded a dome by how far across the sprite a pixel was:

@@ -80,12 +80,7 @@ export function regionalTransport(
         Math.round(a.y + ((b.y - a.y) * i) / 16),
       ),
     ).some((f) => f.water < 0);
-    const bridge =
-      crossesWater && !crossingCells.size
-        ? crossing(`${id}-bridge`, middle, sample, 72)
-        : undefined;
     const allowed = new Set<string>(crossingCells);
-    if (bridge) roadCells(bridge, (x, y) => allowed.add(cellKey(x, y)));
     const level = sample(a.x, a.y).elevation;
     const clear = (points: Point[]) =>
       points.every((p) =>
@@ -115,27 +110,73 @@ export function regionalTransport(
             ? [elbow({ x: b.x, y: a.y }), elbow({ x: a.x, y: b.y })]
             : [(shared ? directLine : line)(a, b)]
           ).find(clear);
-    // Open level ground needs no graph search. Relief and crossings use the shared router.
-    const road: Road | undefined = straight
-      ? {
-          id,
-          points: straight,
-          width: 1,
-          kind: "street",
-          cost: straight.length * 2.2,
+    const search = (from: Point, to: Point) =>
+      planRoad(
+        id,
+        from,
+        to,
+        sample,
+        existing,
+        allowed,
+        new Set(),
+        bounds([from, to]),
+        1,
+        4,
+      );
+    // A search only reaches a bridge that lies on its line, and otherwise
+    // floods the near bank until the budget runs out. So a crossing is routed
+    // as two land legs to the bridge's ends: a bridge already built first,
+    // then one of this road's own.
+    const over = (deck: Road): Road | undefined => {
+      const ends = [deck.points[0], deck.points[deck.points.length - 1]];
+      const d = (p: Point, q: Point) => Math.abs(p.x - q.x) + Math.abs(p.y - q.y);
+      const [near, far] =
+        d(a, ends[0]) + d(ends[1], b) <= d(a, ends[1]) + d(ends[0], b)
+          ? ends
+          : [ends[1], ends[0]];
+      const first = search(a, near),
+        second = first && search(far, b);
+      if (!first || !second) return;
+      const deckPoints =
+        near === ends[0] ? deck.points : [...deck.points].reverse();
+      return {
+        ...first,
+        points: [
+          ...first.points,
+          ...deckPoints.slice(1, -1),
+          ...second.points,
+        ],
+        cost: first.cost + deck.cost + second.cost,
+      };
+    };
+    let bridge: Road | undefined;
+    let road: Road | undefined;
+    if (straight)
+      road = {
+        id,
+        points: straight,
+        width: 1,
+        kind: "street",
+        cost: straight.length * 2.2,
+      };
+    else if (crossesWater) {
+      const d = (deck: Road) =>
+        Math.hypot(deck.points[0].x - middle.x, deck.points[0].y - middle.y);
+      for (const deck of [...knownBridges].sort((p, q) => d(p) - d(q))) {
+        if (d(deck) > 160) break;
+        if ((road = over(deck))) break;
+      }
+      if (!road) {
+        bridge = crossing(`${id}-bridge`, middle, sample, 72);
+        if (bridge) {
+          roadCells(bridge, (x, y) => allowed.add(cellKey(x, y)));
+          road = over(bridge);
+          if (!road) bridge = undefined;
         }
-      : planRoad(
-          id,
-          a,
-          b,
-          sample,
-          existing,
-          allowed,
-          new Set(),
-          bounds([a, b]),
-          1,
-          shared && allowed.size ? 1 : 4,
-        );
+      }
+      // No bridge, but the water may be a bay the road can walk round.
+      road ??= search(a, b);
+    } else road = search(a, b);
     const result = {
       record: {
         id,
@@ -255,7 +296,7 @@ export function regionalTransport(
       bridgeRoads = new Map<string, Road>();
     for (const [id, [a, b]] of ordered) {
       const e = ends(a, b);
-      let route = build(
+      const route = build(
         id,
         a.id,
         b.id,
@@ -266,22 +307,6 @@ export function regionalTransport(
         [...bridgeRoads.values()],
         e.cardinal,
       );
-      // A previous crossing may be unreachable from this bank. Retry independently
-      // rather than making the whole connection disappear.
-      if (!route.roads.length && bridges.size) {
-        cache.delete(id);
-        route = build(
-          id,
-          a.id,
-          b.id,
-          e.from,
-          e.to,
-          roads,
-          new Set(),
-          [],
-          e.cardinal,
-        );
-      }
       result.set(id, route);
       for (const road of route.roads)
         if (road.kind === "bridge") bridgeRoads.set(road.id, road);
