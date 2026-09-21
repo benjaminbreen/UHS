@@ -199,9 +199,17 @@ export function planRoad(
       maxNodes: organicSeed ? 5000 : step > 2 ? 5000 : 12000,
       minCost: roads.size ? 1 : 4,
       // Off-road steps cost four or more, so an unweighted estimate floods the
-      // whole box before it arrives. Six per step with roads present still
-      // lets a search join one that lies near its line.
-      heuristicWeight: roads.size ? (step > 2 ? Number(process.env.W ?? 6) : 2) : organicSeed ? 1.8 : step > 2 ? 2.5 : 2,
+      // whole box before it arrives. Fine searches stay near two: higher and a
+      // track stops joining a road that runs a few cells off its line.
+      heuristicWeight: roads.size
+        ? step > 2
+          ? 6
+          : 2
+        : organicSeed
+          ? 1.8
+          : step > 2
+            ? 2.5
+            : 2,
     },
   );
   if (result.status !== "found") return;
