@@ -246,7 +246,8 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
       runtime.emit();
     }
   };
-  const openDialogue = (id: string) => {
+  const [situation, setSituation] = useState<string | undefined>(undefined);
+  const openDialogue = (id: string, opening?: string) => {
     const actor = runtime.engine.state.actors.find(
       (candidate) => candidate.id === id,
     );
@@ -257,9 +258,24 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
       action: "talk",
     });
     if (result?.status !== "completed") return;
+    setSituation(opening);
     setDialogueActorId(id);
     setModal("dialogue");
   };
+  // Standing in someone's way long enough and they will say something about it.
+  useEffect(() => {
+    const complaint = runtime.engine.blockComplaint;
+    if (!complaint) return;
+    // A grievance goes stale: nobody rounds on you a minute later.
+    if (modal && obs.clock - complaint.at < 5) return;
+    runtime.engine.blockComplaint = undefined;
+    if (modal || obs.clock - complaint.at > 5) return;
+    openDialogue(
+      complaint.id,
+      "The player has been standing in your way, and you cannot get past. You are annoyed, and say so.",
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [runtime, obs.clock, modal]);
   const mount = useRef<HTMLDivElement>(null);
   const bagButton = useRef<HTMLButtonElement>(null);
   const sheetSummary = useRef<HTMLButtonElement>(null);
@@ -2248,6 +2264,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
           <DialogueModal
             runtime={runtime}
             actorId={dialogueActorId}
+            situation={situation}
             onClose={() => {
               setModal(null);
               setDialogueActorId(null);

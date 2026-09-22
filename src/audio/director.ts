@@ -1,16 +1,18 @@
 import {
   compose,
-  defaultArrangement,
-  slotThemes,
+  periods,
+  seasons,
   stems,
-  worldMusicSlot,
+  themes,
   type Arrangement,
+  type Era,
   type Score,
   type Stem,
 } from "./score";
 import { createMix, scheduleNote, prepareScore, type MixBus } from "./synth";
 import { events, playSound, type EventId, type Sound } from "./sfx";
 import { applyTuning, tuning } from "./sfx-tuning";
+import { Ambience, silence, type AmbienceMix } from "./ambience";
 
 export interface AudioState {
   loading: boolean;
@@ -34,6 +36,32 @@ interface Run {
   score: Score;
 }
 const PREF_KEY = "uhs-audio-v1";
+const eras: Era[] = ["pastoral", "chamber", "electronic"];
+// The lead line tires quickly on repeat; the game mix leaves it out.
+const defaultLevels: Record<Stem, number> = {
+  melody: 0,
+  harmony: 1,
+  bass: 1,
+  percussion: 1,
+};
+// Calm pacing: a wait before the first piece, silence between pieces, long fades.
+const FIRST_DELAY = 12000;
+const GAP_MIN = 20000,
+  GAP_SPREAD = 25000;
+const SLOW_FADE_IN = 8;
+const SLOW_FADE_OUT = 4;
+const pick = <T,>(list: readonly T[]) =>
+  list[Math.floor(Math.random() * list.length)];
+/** A random theme in a random season, period and era, never the same theme twice running. */
+function shuffled(previous?: string): Arrangement {
+  const pool = themes.filter((t) => t.id !== previous);
+  return {
+    themeId: pick(pool).id,
+    season: pick(seasons),
+    period: pick(periods),
+    era: pick(eras),
+  };
+}
 /** The director the game is running under. The scene plays tool and footfall
  * sounds through it without threading a reference through every layer. */
 let active: AudioDirector | undefined;
@@ -47,8 +75,11 @@ export class AudioDirector {
   private sfx?: GainNode;
   private run?: Run;
   private timer?: ReturnType<typeof setInterval>;
+  private pending?: ReturnType<typeof setTimeout>;
+  private ambience?: Ambience;
+  private duck?: GainNode;
+  private scene: AmbienceMix = { ...silence };
   private listeners = new Set<() => void>();
-  private clock = 0;
   private generation = 0;
   private resumeOnVisible = false;
   private disposed = false;
@@ -57,12 +88,12 @@ export class AudioDirector {
     loading: false,
     playing: false,
     beat: 0,
-    arrangement: defaultArrangement,
+    arrangement: shuffled(),
     followWorld: true,
-    volume: 0.65,
+    volume: 0.4,
     sfxVolume: 0.6,
     muted: false,
-    levels: { melody: 1, harmony: 1, bass: 1, percussion: 1 },
+    levels: { ...defaultLevels },
     error: "",
   };
   constructor() {
@@ -77,6 +108,26 @@ export class AudioDirector {
       /* Sound still works when local preferences are unavailable. */
     }
     document.addEventListener("visibilitychange", this.visibility);
+    // Browsers only allow audio after a gesture; start the score on the first one.
+    for (const type of ["pointerdown", "keydown"])
+      window.addEventListener(type, this.autoplay, { capture: true });
+  }
+  private autoplay = () => {
+    for (const type of ["pointerdown", "keydown"])
+      window.removeEventListener(type, this.autoplay, { capture: true });
+    // Weather is heard at once; the score waits.
+    this.unlock().catch(() => {});
+    this.later(FIRST_DELAY, () => this.play(SLOW_FADE_IN));
+  };
+  /** Runs `fn` after `ms` unless playback is touched in the meantime. */
+  private later(ms: number, fn: () => void) {
+    clearTimeout(this.pending);
+    const generation = this.generation;
+    this.pending = setTimeout(() => {
+      if (generation !== this.generation || this.disposed) return;
+      if (document.hidden) this.resumeOnVisible = true;
+      else fn();
+    }, ms);
   }
   subscribe = (fn: () => void) => {
     this.listeners.add(fn);
@@ -114,16 +165,21 @@ export class AudioDirector {
       this.master.connect(limiter).connect(this.ctx.destination);
       this.music = this.ctx.createGain();
       this.music.gain.value = this.state.volume;
-      this.music.connect(this.master);
+      this.duck = this.ctx.createGain();
+      this.duck.gain.value = this.scene.music;
+      this.music.connect(this.duck).connect(this.master);
       this.sfx = this.ctx.createGain();
       this.sfx.gain.value = this.state.sfxVolume;
       this.sfx.connect(this.master);
+      this.ambience = new Ambience(this.ctx, this.sfx);
+      this.ambience.set(this.scene);
     }
     if (this.ctx.state === "suspended") await this.ctx.resume();
     if (this.disposed) throw Error("Audio session has closed.");
     return this.ctx;
   }
-  async play() {
+  async play(fadeIn = 0.8) {
+    clearTimeout(this.pending);
     if (this.state.playing || this.state.loading) return;
     const generation = ++this.generation;
     this.patch({ loading: true, error: "" });
@@ -136,7 +192,7 @@ export class AudioDirector {
       );
       if (generation !== this.generation || this.state.playing) return;
       this.patch({ playing: true, loading: false, error: "" });
-      this.begin(this.state.beat);
+      this.begin(this.state.beat, fadeIn);
     } catch (error) {
       if (!this.disposed)
         this.patch({
@@ -146,13 +202,13 @@ export class AudioDirector {
         });
     }
   }
-  private begin(offset = 0) {
+  private begin(offset = 0, fadeIn = 0.8) {
     this.retire();
     const ctx = this.ctx!,
       score = this.score;
     const gain = ctx.createGain();
     gain.gain.setValueAtTime(0, ctx.currentTime);
-    gain.gain.linearRampToValueAtTime(1, ctx.currentTime + 0.8);
+    gain.gain.linearRampToValueAtTime(1, ctx.currentTime + fadeIn);
     gain.connect(this.music!);
     const mix = createMix(ctx, gain, score.bpm, this.state.levels);
     this.run = {
@@ -179,14 +235,13 @@ export class AudioDirector {
     );
     if (beat >= run.score.beats) {
       if (this.state.followWorld) {
-        const tracks = slotThemes(this.state.arrangement.season);
-        const next =
-          tracks[
-            (tracks.findIndex((t) => t.id === this.state.arrangement.themeId) +
-              1) %
-              tracks.length
-          ];
-        this.configure({ themeId: next.id });
+        this.retire(false, SLOW_FADE_OUT);
+        this.patch({ playing: false, beat: 0 });
+        const next = shuffled(this.state.arrangement.themeId);
+        this.later(GAP_MIN + Math.random() * GAP_SPREAD, () => {
+          this.configure(next);
+          void this.play(SLOW_FADE_IN);
+        });
         return;
       } else this.patch({ beat: 0 });
       this.begin();
@@ -212,14 +267,14 @@ export class AudioDirector {
     }
     this.patch({ beat });
   }
-  private retire(immediate = false) {
+  private retire(immediate = false, fadeOut = 0.8) {
     clearInterval(this.timer);
     this.timer = undefined;
     const run = this.run;
     this.run = undefined;
     if (!run || !this.ctx) return;
     const now = this.ctx.currentTime,
-      fade = immediate ? 0.025 : 0.8;
+      fade = immediate ? 0.025 : fadeOut;
     run.gain.gain.cancelAndHoldAtTime(now);
     run.gain.gain.linearRampToValueAtTime(0, now + fade);
     for (const source of run.sources) {
@@ -239,6 +294,7 @@ export class AudioDirector {
   }
   pause() {
     this.generation++;
+    clearTimeout(this.pending);
     this.retire(true);
     this.patch({ playing: false, loading: false });
   }
@@ -261,15 +317,13 @@ export class AudioDirector {
   }
   follow(enabled: boolean) {
     this.patch({ followWorld: enabled });
-    if (enabled) this.updateWorld(this.clock);
   }
-  updateWorld(clock: number) {
-    this.clock = clock;
-    if (!this.state.followWorld) return;
-    const slot = worldMusicSlot(clock),
-      current = this.state.arrangement;
-    if (slot.season !== current.season || slot.period !== current.period)
-      this.configure({ ...slot, themeId: slotThemes(slot.season)[0].id });
+  /** The world's ambient picture: weather, water, a town, a fire, a roof. */
+  setScene(mix: AmbienceMix) {
+    this.scene = mix;
+    this.ambience?.set(mix);
+    if (this.ctx)
+      this.duck?.gain.setTargetAtTime(mix.music, this.ctx.currentTime, 1.5);
   }
   setLevel(stem: Stem, value: number) {
     const level = Math.max(0, Math.min(1, value));
@@ -337,7 +391,7 @@ export class AudioDirector {
     return this.sound(events[id](), id);
   }
   resetMix() {
-    stems.forEach((stem) => this.setLevel(stem, 1));
+    stems.forEach((stem) => this.setLevel(stem, defaultLevels[stem]));
   }
   dispose() {
     if (active === this) active = undefined;
@@ -346,6 +400,8 @@ export class AudioDirector {
     this.resumeOnVisible = false;
     this.retire(true);
     document.removeEventListener("visibilitychange", this.visibility);
+    this.autoplay();
+    this.ambience?.dispose();
     void this.ctx?.close();
     this.listeners.clear();
   }

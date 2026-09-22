@@ -380,6 +380,7 @@ export class Runtime {
   jostleEffect?: {
     serial: number;
     group: string;
+    species: string;
     n: number;
     yielded: boolean;
     small: boolean;

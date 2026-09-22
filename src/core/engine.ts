@@ -1030,6 +1030,16 @@ export class Engine {
     const def = propDefs[heldObject(this.state)?.prop ?? ""];
     return !!def?.strike && !def.container;
   }
+  /** Whoever is standing on a cell: a person, or an animal, or neither. The
+   * renderer asks after a refused step, to know what the player walked into. */
+  creatureAt(x: number, y: number, space = this.state.player.pos.space) {
+    const actor = this.state.actors.find(
+      (a) => a.pos.space === space && a.pos.x === x && a.pos.y === y,
+    );
+    if (actor) return { actor };
+    const beast = space === "outside" ? this.faunaAt(x, y) : undefined;
+    return beast ? { species: beast.g.speciesId } : undefined;
+  }
   /** An animal standing on a cell. One in the air is out of reach. */
   private faunaAt(x: number, y: number) {
     for (const g of this.state.fauna ?? []) {
@@ -1399,7 +1409,13 @@ export class Engine {
   };
   /** The last animal walked into, for the hop it makes out of the way.
    * `yielded` is false when it stood its ground. */
-  lastJostle?: { group: string; n: number; yielded: boolean; small: boolean };
+  lastJostle?: {
+    group: string;
+    species: string;
+    n: number;
+    yielded: boolean;
+    small: boolean;
+  };
   /** Walking into an animal. Small ones scatter from under your feet and you
    * keep going; middling ones are shouldered aside and you take the step
    * after; an ox does not move for anybody. Returns where it would go. */
@@ -3846,6 +3862,7 @@ export class Engine {
         const { g, m } = beast.found;
         this.lastJostle = {
           group: g.id,
+          species: g.speciesId,
           n: m.n ?? 0,
           yielded: false,
           small: false,
@@ -3873,6 +3890,7 @@ export class Engine {
           m.direction = sy > 0 ? 2 : 0;
         this.lastJostle = {
           group: g.id,
+          species: g.speciesId,
           n: m.n ?? 0,
           yielded: true,
           small: beast.small,
@@ -4431,6 +4449,28 @@ export class Engine {
       from[id] = 0;
     }
   }
+  /** How long each actor has had the player square in its way, in clock
+   * seconds, and the one that has finally had enough of it. */
+  private blockedSince = new Map<string, number>();
+  blockComplaint?: { id: string; at: number };
+  /** Returns true once an actor has been stuck behind the player for a second. */
+  private blockedByPlayer(a: Actor, step: { x: number; y: number }) {
+    const p = this.state.player;
+    if (
+      p.pos.space !== a.pos.space ||
+      p.pos.x !== step.x ||
+      p.pos.y !== step.y
+    ) {
+      this.blockedSince.delete(a.id);
+      return;
+    }
+    const since = this.blockedSince.get(a.id) ?? this.state.clock;
+    this.blockedSince.set(a.id, since);
+    if (this.state.clock - since < 1 || this.blockComplaint) return;
+    this.blockedSince.delete(a.id);
+    this.blockComplaint = { id: a.id, at: this.state.clock };
+    this.cue(a.id, "anger");
+  }
   private stepToward(a: Actor, target: Position) {
     // Livelihood callbacks write a.pos behind the engine's back.
     this.syncActor(a);
@@ -4484,6 +4524,7 @@ export class Engine {
         return;
       }
       if (this.actorAt({ ...step, space: a.pos.space }, a.id)) {
+        if (a.kind === "human") this.blockedByPlayer(a, step);
         this.routes.delete(a.id);
         return;
       }

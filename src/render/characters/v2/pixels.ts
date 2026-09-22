@@ -22,6 +22,35 @@ export function mix(a: string, b: string, t: number) {
 /** Five steps instead of "flat field plus black keyline": the lit outline sits
  * close enough to the base that the silhouette opens up, and every shadow is
  * pulled toward one cool tone so unrelated materials read as one painting. */
+/** The key light's tone and side, from the scene's hour. A flat multiply tint
+ * on the finished sprite shifts every value together; this moves the light
+ * itself, so a figure at dusk is lit from the west like everything else. */
+export type SpriteLight = {
+  /** Screen side the key comes from: -1 left, 1 right. */
+  key: -1 | 1;
+  warm: string;
+  cool: string;
+  /** 0 flattens toward ambient; 1 is full sun. */
+  contrast: number;
+};
+const noon: SpriteLight = {
+  key: -1,
+  warm: "#ffe6ad",
+  cool: "#241c38",
+  contrast: 1,
+};
+let light: SpriteLight = noon;
+export function setSpriteLight(next: SpriteLight | undefined) {
+  light = next ?? noon;
+}
+/** Which side the key is on, for callers that place highlights by hand. */
+export const lightKey = () => light.key;
+/** Shadows point away from the sun, so the cast vector's x gives the side it
+ * is on. Overhead (|x| under half a pixel of cast) keeps the noon convention. */
+export function spriteLightFor(cast: readonly number[], night: boolean) {
+  const key: -1 | 1 = Math.abs(cast[0]) < 0.5 ? -1 : cast[0] < 0 ? 1 : -1;
+  return { key, contrast: night ? 0.35 : 1 };
+}
 export function ramp(
   base: string,
   material: "cloth" | "skin" | "hair" = "cloth",
@@ -36,8 +65,11 @@ export function ramp(
       )
       .join("")}`;
   };
-  const cool = material === "skin" ? "#3c1f33" : "#241c38";
-  const warm = material === "skin" ? "#ffe2b4" : "#ffe6ad";
+  const cool = mix(material === "skin" ? "#3c1f33" : "#241c38", light.cool, 0.5);
+  const warm = mix(material === "skin" ? "#ffe2b4" : "#ffe6ad", light.warm, 0.3);
+  // Overcast and night lose the key, not the material: every step collapses
+  // toward base rather than toward grey.
+  const k = light.contrast;
   return {
     base,
     // Darkest value in the material, and the only one allowed to approach black.
@@ -45,10 +77,10 @@ export function ramp(
     // Lit-side contour. Kept well above the old 0.37 so figures stop reading
     // as stickers cut out against the ground.
     edge: mix(scale(material === "hair" ? 0.62 : 0.58), cool, 0.26),
-    shade: mix(scale(0.74), cool, 0.16),
+    shade: mix(base, mix(scale(0.74), cool, 0.16), k),
     // Hair takes a much smaller step: a big move toward cream turns black hair
     // grey, and the automatic rim pass applies it along every strand.
-    light: mix(base, warm, material === "hair" ? 0.16 : 0.34),
+    light: mix(base, warm, (material === "hair" ? 0.16 : 0.34) * k),
   };
 }
 /** Raster shapes have exactly one boundary pixel, measured on the native grid.
@@ -67,6 +99,10 @@ export class Pixels {
    * the dark line on the shaded side only. */
   overlay = false;
   private groupMask?: Set<string>;
+  /** Which shape last painted each canvas pixel, in draw order. Later means
+   * nearer, which is what the contact pass needs to know. */
+  private owner = new Map<string, number>();
+  private layer = 0;
   /** Join garment pieces BEFORE computing their silhouette. Shared shoulders have no seam. */
   group(colors: Ramp, draw: () => void) {
     const outer = this.groupMask;
@@ -105,13 +141,30 @@ export class Pixels {
       for (const key of mask) this.groupMask.add(key);
       return;
     }
-    const lit = this.flip ? 1 : -1;
+    const lit = lightKey() * (this.flip ? -1 : 1);
     const has = (x: number, y: number) => mask.has(`${x},${y}`);
     const border = (x: number, y: number) =>
       has(x, y) &&
       (!has(x - 1, y) || !has(x + 1, y) || !has(x, y - 1) || !has(x, y + 1));
+    // How far the mask runs either side of a pixel. A contour ring plus a rim
+    // and a core eat four pixels, so anything narrower than five has no base
+    // left: a 3px arm came out as pure outline. Each axis is gated separately,
+    // so a thin limb still takes the modelling that runs along its length.
+    const run = (x: number, y: number, dx: number, dy: number) => {
+      let n = 1;
+      for (let i = 1; i < 8 && has(x + dx * i, y + dy * i); i++) n++;
+      for (let i = 1; i < 8 && has(x - dx * i, y - dy * i); i++) n++;
+      return n;
+    };
+    this.layer++;
+    const m = this.ctx.getTransform();
     for (const key of mask) {
       const [x, y] = key.split(",").map(Number);
+      // Ownership is recorded in canvas space so the contact pass can run once
+      // over the finished figure, whatever transform each piece was drawn under.
+      const cx = Math.round(m.a * x + m.c * y + m.e - (m.a < 0 ? 1 : 0)),
+        cy = Math.round(m.b * x + m.d * y + m.f - (m.d < 0 ? 1 : 0));
+      this.owner.set(`${cx},${cy}`, this.layer);
       if (border(x, y)) {
         // Bottom and the shaded flank take the dark contour; the lit flank
         // takes a tinted one so the outline never closes into a black ring.
@@ -135,8 +188,10 @@ export class Pixels {
       }
       // One pixel of rim inside the lit contour and one of shade inside the
       // dark one: form for free, on every shape, without hand-placed pixels.
-      const rim = border(x, y - 1) || border(x + lit, y);
-      const core = border(x, y + 1) || border(x - lit, y);
+      const wide = run(x, y, 1, 0) >= 5,
+        deep = run(x, y, 0, 1) >= 5;
+      const rim = (deep && border(x, y - 1)) || (wide && border(x + lit, y));
+      const core = (deep && border(x, y + 1)) || (wide && border(x - lit, y));
       this.rect(
         x,
         y,
@@ -200,6 +255,30 @@ export class Pixels {
           colors,
         );
     });
+  }
+  /** One pass over the finished figure: where a nearer piece ends, the piece
+   * behind it takes a pixel of shadow. Chin onto chest, brim onto face, cloak
+   * onto leg, arm onto body. Layers read as layers instead of as stickers. */
+  contact(w = 80, h = 80) {
+    if (!this.owner.size) return;
+    const image = this.ctx.getImageData(0, 0, w, h),
+      d = image.data;
+    const at = (x: number, y: number) => this.owner.get(`${x},${y}`) ?? 0;
+    const hit: number[] = [];
+    for (let y = 1; y < h; y++)
+      for (let x = 0; x < w; x++) {
+        const mine = at(x, y);
+        if (!mine) continue;
+        const above = at(x, y - 1);
+        // Only a piece drawn later — nearer the viewer — casts onto this one.
+        if (above <= mine) continue;
+        if (!d[(y * w + x) * 4 + 3]) continue;
+        hit.push((y * w + x) * 4);
+      }
+    // Collected first: shading in place would let one darkened pixel seed the next.
+    for (const i of hit)
+      for (const c of [0, 1, 2]) d[i + c] = Math.round(d[i + c] * 0.7);
+    this.ctx.putImageData(image, 0, 0);
   }
   limb(points: Point[], width: number, colors: Ramp) {
     const mask = new Set<string>();

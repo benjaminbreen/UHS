@@ -1,6 +1,6 @@
 import { characterShadow } from "./shadow";
 import { watchCount } from "../../runtime/vitals";
-import type { LightingId } from "../lighting";
+import { lightingPreset, type LightingId } from "../lighting";
 import Phaser from "phaser";
 import type { Actor } from "../../core/types";
 import {
@@ -9,6 +9,7 @@ import {
   type CharacterAppearance,
 } from "../../core/character";
 import { drawCharacter } from "./renderers";
+import { setSpriteLight, spriteLightFor } from "./v2/pixels";
 import { iconCarriedArt, loadCarriedArt, type CarriedArt } from "./props";
 import {
   drawGarmentIcon,
@@ -49,6 +50,9 @@ export class WorldCharacters {
   /** Set by the scene from the running world; an actor spawned without an
    * appearance is drawn from this rather than the unrestricted palette. */
   palette?: AppearancePalette;
+  /** The hour the figures are lit for. Frames are cached per phase, so this is
+   * six rasters of a pose in the worst case, not one per minute. */
+  light: LightingId = "midday";
   private disposed = false;
   private lastPrune = 0;
   constructor(private scene: Phaser.Scene) {
@@ -116,7 +120,7 @@ export class WorldCharacters {
     resolved.used = this.scene.time.now;
     const a = resolved.appearance,
       art = this.carried(prop);
-    const signature = `${resolved.signature}:${actor.facing === undefined ? actor.direction : `f${actor.facing}`}:${pose}:${frame}:${art?.sprite ?? ""}`;
+    const signature = `${resolved.signature}:${actor.facing === undefined ? actor.direction : `f${actor.facing}`}:${pose}:${frame}:${art?.sprite ?? ""}:${this.light}`;
     let entry = this.cache.get(signature);
     if (!entry) {
       const key = `character-${this.scene.sys.settings.key}-${++this.serial}`;
@@ -125,6 +129,12 @@ export class WorldCharacters {
       c.height = 80;
       // Shadows and Phaser's CanvasTexture read these pixels immediately.
       // Keep the tiny source on the CPU to avoid synchronous GPU readbacks.
+      const preset = lightingPreset(this.light);
+      setSpriteLight({
+        ...spriteLightFor(preset.cast, this.light === "night"),
+        warm: `#${preset.tint}`,
+        cool: preset.ambientAlpha ? `#${preset.ambient}` : "#241c38",
+      });
       drawCharacter(
         c.getContext("2d", { willReadFrequently: true })!,
         a,
@@ -134,6 +144,7 @@ export class WorldCharacters {
         art,
         actor.facing,
       );
+      setSpriteLight(undefined);
       this.scene.textures
         .addCanvas(key, c)
         ?.setFilter(Phaser.Textures.FilterMode.NEAREST);

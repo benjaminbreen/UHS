@@ -10,6 +10,8 @@ import { calm, useTypewriter } from "./motion";
 import { visemeFor, type Viseme } from "../render/portraits/constructed";
 import { CueMark } from "./CueMark";
 import { gameAudio } from "../audio/director";
+import { voice, type Sound } from "../audio/sfx";
+import { voiceOf } from "../audio/voices";
 import type { CueKind } from "../core/combat";
 import { regardCue, regardLabel, regardNotches, REGARD_NOTCHES } from "../core/regard";
 
@@ -40,10 +42,10 @@ function Glossed({ line }: { line: DialogueLine }) {
 
 /** What the other person is saying, arriving as speech does. A click shows
  * the rest at once. */
-function SpokenLine({ line, heard, onSpeaking, onLetter }: { line: DialogueLine; heard: Set<string>; onSpeaking: (speaking: boolean) => void; onLetter: (letter: string) => void }) {
+function SpokenLine({ line, heard, onSpeaking, onLetter, voice: speaking }: { line: DialogueLine; heard: Set<string>; onSpeaking: (speaking: boolean) => void; onLetter: (letter: string) => void; voice: () => Sound }) {
   const text = line.original ?? line.text;
   // Opening the reply box redraws the line; it has been said once already.
-  const typed = useTypewriter(text, heard.has(text), true, onLetter);
+  const typed = useTypewriter(text, heard.has(text), speaking, onLetter);
   useEffect(() => {
     if (typed.done) heard.add(text);
     onSpeaking(!typed.done);
@@ -64,7 +66,7 @@ const genderLabel = (actor: { name: string; origin?: { sex?: string }; appearanc
   return sex === "female" ? "Female" : sex === "male" ? "Male" : "Person";
 };
 
-export function DialogueModal({ runtime, actorId, onClose }: { runtime: Runtime; actorId: string; onClose: () => void }) {
+export function DialogueModal({ runtime, actorId, situation, onClose }: { runtime: Runtime; actorId: string; /** What the conversation opens on, when the player did not start it. */ situation?: string; onClose: () => void }) {
   const actor = runtime.engine.state.actors.find((candidate) => candidate.id === actorId);
   const [history, setHistory] = useState<DialogueLine[]>([]);
   const [input, setInput] = useState("");
@@ -96,6 +98,7 @@ export function DialogueModal({ runtime, actorId, onClose }: { runtime: Runtime;
   // Read at request time, so toggling mid-conversation takes effect on the next line.
   const realRef = useRef(realLanguage);
   realRef.current = realLanguage;
+  const situationRef = useRef(situation);
 
   const commitGift = (gift?: DialogueGift) => {
     if (!gift) return;
@@ -151,7 +154,7 @@ export function DialogueModal({ runtime, actorId, onClose }: { runtime: Runtime;
   useEffect(() => {
     const controller = new AbortController();
     abort.current = controller;
-    void dialogueTurn(runtime, actorId, "", [], controller.signal, realRef.current).then((result) => {
+    void dialogueTurn(runtime, actorId, "", [], controller.signal, realRef.current, situationRef.current).then((result) => {
       if (controller.signal.aborted) return;
       setBusy(false);
       if (result.error) setError(result.error);
@@ -194,6 +197,9 @@ export function DialogueModal({ runtime, actorId, onClose }: { runtime: Runtime;
   const resting: Expression =
     actor.trust < 0 ? "stern" : actor.trust > 2 ? "smile" : "neutral";
   const expression = busy ? "thoughtful" : (mood ?? resting);
+  // The voice follows the face: a cross line is spoken in a cross voice.
+  const cross = ["angry", "stern", "disgust", "scowl"].includes(expression);
+  const speaks = () => voice(voiceOf(actor), cross);
   const submit = async () => {
     const text = input.trim();
     if (!text || busy) return;
@@ -267,12 +273,12 @@ export function DialogueModal({ runtime, actorId, onClose }: { runtime: Runtime;
         {responding
           ? history.map((line, index) =>
               line.speaker === "npc" && index === history.length - 1 ? (
-                <SpokenLine key={`${index}-${line.text}`} line={line} heard={heard} onSpeaking={setSpeaking} onLetter={mouth} />
+                <SpokenLine key={`${index}-${line.text}`} line={line} heard={heard} onSpeaking={setSpeaking} onLetter={mouth} voice={speaks} />
               ) : (
                 <p className={`dialogue-line ${line.speaker}`} key={`${index}-${line.text}`}><Glossed line={line} /></p>
               ),
             )
-          : latest && <SpokenLine key={latest.text} line={latest} heard={heard} onSpeaking={setSpeaking} onLetter={mouth} />}
+          : latest && <SpokenLine key={latest.text} line={latest} heard={heard} onSpeaking={setSpeaking} onLetter={mouth} voice={speaks} />}
         {busy && <p className="dialogue-thinking"><span /><span /><span /></p>}
         {error && <p className="dialogue-error">{error}</p>}
       </div>

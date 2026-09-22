@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { gameAudio } from "../audio/director";
+import type { Sound } from "../audio/sfx";
 import type { Inventory } from "../core/types";
 import { ItemIcon } from "./components";
 
@@ -12,7 +13,8 @@ export const calm = () =>
 export function useTypewriter(
   text: string,
   instant = false,
-  sound = true,
+  /** True for the default patter, or a maker for this character's own voice. */
+  sound: boolean | (() => Sound) = true,
   /** Called with each letter as it lands, for a mouth to follow. */
   onLetter?: (letter: string) => void,
 ) {
@@ -36,7 +38,10 @@ export function useTypewriter(
       const ch = text[at - 1];
       letter.current?.(ch);
       // The director spaces effects out itself, so this patters, not buzzes.
-      if (sound && /\S/.test(ch)) void gameAudio()?.event("blip");
+      if (sound && /\S/.test(ch))
+        void (typeof sound === "function"
+          ? gameAudio()?.sound(sound(), "blip")
+          : gameAudio()?.event("blip"));
       timer = window.setTimeout(
         next,
         /[.!?…]/.test(ch) ? 260 : /[,;:—]/.test(ch) ? 120 : 24,

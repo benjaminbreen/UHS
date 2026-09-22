@@ -218,11 +218,11 @@ export function AudioLab({
                     checked={state.followWorld}
                     onChange={(e) => director.follow(e.target.checked)}
                   />{" "}
-                  Follow world clock
+                  Shuffle
                 </label>
                 <p className="audio-fine">
-                  When following, themes alternate after each piece. Calendar
-                  sketch: 28 days per season, starting in spring.
+                  When shuffling, each piece is followed by a random theme,
+                  season, time of day and era.
                 </p>
                 <div className="audio-library-heading">
                   <div className="audio-label">02 / THE PIECES</div>

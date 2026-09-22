@@ -76,7 +76,16 @@ import { jumpMs, JUMP_CHARGE_MS, type Runtime } from "../runtime/session";
 import type { Position, WorldModel } from "../core/types";
 import { surfaceAt, hasQuay } from "./materials";
 import { gameAudio } from "../audio/director";
-import { footstep, landing, scramble, strike, takeoff } from "../audio/sfx";
+import {
+  bumpAnimal,
+  bumpPerson,
+  footstep,
+  landing,
+  scramble,
+  strike,
+  takeoff,
+} from "../audio/sfx";
+import { beastVoiceOf, voiceOf } from "../audio/voices";
 import type { HitClass } from "../core/reactions";
 import { tuning } from "../audio/sfx-tuning";
 import { hash, random } from "../core/random";
@@ -1175,6 +1184,19 @@ export class WorldScene extends Phaser.Scene {
     });
   }
   /** Running full tilt into something solid knocks the player back. */
+  /** Whatever stopped the step, if it was alive: people and animals each get
+   * their own protest. */
+  private bumpedInto(dx: number, dy: number) {
+    const p = this.runtime.engine.state.player.pos;
+    const hit = this.runtime.engine.creatureAt(p.x + dx, p.y + dy, p.space);
+    if (!hit) return;
+    gameAudio()?.sound(
+      hit.actor
+        ? bumpPerson(voiceOf(hit.actor))
+        : bumpAnimal(beastVoiceOf(hit.species!)),
+      "bump",
+    );
+  }
   private bonkAt(dx: number, dy: number, time: number) {
     this.bump = undefined;
     this.bonk = { dx, dy, at: time };
@@ -2280,6 +2302,8 @@ export class WorldScene extends Phaser.Scene {
         ? 0xffffff
         : parseInt(this.light.tint, 16);
     this.shadowPhase = p.space === "outside" ? this.light.id : "night";
+    // The figures are lit for the same hour their shadows are cast for.
+    if (this.characters) this.characters.light = this.shadowPhase;
     const setting = w.pack.setting;
     this.season = setting
       ? (seasonAt(setting.season, e.state.clock) ?? setting.season)
@@ -3511,6 +3535,7 @@ export class WorldScene extends Phaser.Scene {
       );
       const im = this.entities.get(id);
       if (im) this.feel.puff(im.x, im.y, FAUNA_DUST, jostle.small ? 3 : 5);
+      gameAudio()?.sound(bumpAnimal(beastVoiceOf(jostle.species)), "bump");
       if (!jostle.small) {
         const d = e.state.player.direction;
         this.bump = {
@@ -4116,6 +4141,7 @@ export class WorldScene extends Phaser.Scene {
               );
               this.pushingAt = time;
               this.bump = { dx, dy, at: time };
+              this.bumpedInto(dx, dy);
             } else {
               this.blockedFacing = undefined;
               this.pushingAt = undefined;

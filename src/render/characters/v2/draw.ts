@@ -136,8 +136,14 @@ export function drawCharacter(
                                       ? [3, 4, 3, 4][f]
                                       : 0) -
     extend;
-  const tall = a.height * 3,
-    torso = a.height * 2,
+  // Two pixels of chest, above the belt rather than below it. `tall` lifts the
+  // whole figure and `torso` pushes the waist back down by the same amount, so
+  // the hips, legs and feet land exactly where they did and only the run from
+  // shoulder to waist grows — room for a collar and a neckline, which the
+  // wardrobe had nowhere to put.
+  const CHEST = 2;
+  const tall = a.height * 3 + CHEST,
+    torso = a.height * 2 + CHEST,
     wide = Math.max(0, a.build) + squat,
     // The smallest body loses a pixel each side too, or it reads as a short adult.
     small = a.height <= -2 ? 1 : 0,
@@ -1706,4 +1712,5 @@ export function drawCharacter(
     p.rect(near[0], near[1], 1, 1, skin.light);
   }
   ctx.restore();
+  p.contact();
 }

@@ -179,6 +179,8 @@ export async function dialogueTurn(
   history: DialogueLine[],
   signal?: AbortSignal,
   realLanguage = false,
+  /** What has just happened between the two of them, if anything has. */
+  situation = "",
 ) {
   const actor = runtime.engine.state.actors.find((candidate) => candidate.id === actorId);
   if (!actor) return { text: "", error: "That person is no longer here." };
@@ -189,8 +191,9 @@ export async function dialogueTurn(
   const user = [
     dialogueContext(runtime, actor),
     transcript ? `Conversation so far:\n${transcript}` : "Conversation so far: none.",
+    situation ? `Just now: ${situation}` : "",
     input.trim() ? `Player says: ${input.trim().slice(0, 400)}` : "Begin with one brief spoken line to the player.",
-  ].join("\n\n");
+  ].filter(Boolean).join("\n\n");
   const began = Date.now();
   try {
     const response = await fetch("/api/dialogue", {
