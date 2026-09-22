@@ -1,7 +1,13 @@
 import { it, expect } from "vitest";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 it("an actual MCP client observes, inspects, acts, and retries safely", async () => {
+  // The server chronicles every run. Point it at a temp directory so a test
+  // run does not leave the worktree dirty.
+  const chronicle = mkdtempSync(join(tmpdir(), "uhs-mcp-"));
   const transport = new StdioClientTransport({
     command: process.execPath,
     args: [
@@ -12,6 +18,8 @@ it("an actual MCP client observes, inspects, acts, and retries safely", async ()
       "roman",
       "--seed",
       "mcp-check",
+      "--chronicle",
+      chronicle,
     ],
     cwd: process.cwd(),
     stderr: "pipe",
@@ -65,5 +73,6 @@ it("an actual MCP client observes, inspects, acts, and retries safely", async ()
     expect(rejected.isError).toBe(true);
   } finally {
     await client.close();
+    rmSync(chronicle, { recursive: true, force: true });
   }
 }, 15000);

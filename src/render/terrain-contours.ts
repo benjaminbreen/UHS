@@ -28,7 +28,7 @@ import {
 import { TERRAIN_RISE } from "./terrain-projection";
 import { copingColor, cragPixel, hasParapet, wallPixel } from "./edge-faces";
 import { pavingGrade, pavingStonePixel } from "./paving-stones";
-import style from "./generated/topography-style.json";
+import style from "./generated/topography-style.json" with { type: "json" };
 const B = 6;
 const colors = style.palette.map((c) => [
   parseInt(c.slice(1, 3), 16),

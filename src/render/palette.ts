@@ -1,4 +1,4 @@
-import law from "../content/graphics/palette.json";
+import law from "../content/graphics/palette.json" with { type: "json" };
 
 type Rgb = readonly number[];
 const lin = (v: number) => {

@@ -12,8 +12,8 @@ import {
 } from "../src/core/character";
 import { characterAppearanceSchema } from "../src/runtime/schema";
 import { portableProps } from "../src/render/characters/props";
-import atlas from "../public/props/atlas.json";
-import natureAtlas from "../public/nature/atlas.json";
+import atlas from "../public/props/atlas.json" with { type: "json" };
+import natureAtlas from "../public/nature/atlas.json" with { type: "json" };
 import { propDefs } from "../src/content/props/catalog";
 describe("character recipes", () => {
   it("has repeatable independent body and clothing variety", () => {

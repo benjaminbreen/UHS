@@ -15,8 +15,8 @@ import { defaultGrassArt } from "../src/content/graphics/grass-art";
 import { banks, soils } from "../src/render/habitat-raster";
 import { treeMix } from "../src/content/ecology/vegetation";
 import { habitatAt } from "../src/world/v3/habitats";
-import nature from "../public/nature/atlas.json";
-import atlas from "../public/packs/atlas.json";
+import nature from "../public/nature/atlas.json" with { type: "json" };
+import atlas from "../public/packs/atlas.json" with { type: "json" };
 import type { WorldSetting } from "../src/content/geography/types";
 
 describe("regional biome variants", () => {

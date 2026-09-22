@@ -6,7 +6,7 @@ import {
   livingProfile,
 } from "../src/render/living-water/profile";
 import { rasterLivingWater } from "../src/render/living-water/mask";
-import defaults from "../src/render/living-water/defaults.json";
+import defaults from "../src/render/living-water/defaults.json" with { type: "json" };
 const cell = (distance = -2): TopographyCell => ({
   height: 0,
   surface: distance < 0 ? "water" : "sand",

@@ -26,7 +26,7 @@ import {
 } from "./geography";
 import { resolveMapEnvironment, mapClimateLabel, mapForm } from "./environment";
 import { resolveGeographicName } from "./naming";
-import backboneNames from "../../content/geography/travel/generated/backbone-names.json";
+import backboneNames from "../../content/geography/travel/generated/backbone-names.json" with { type: "json" };
 import { findTravelPath } from "./routing";
 import { trimCache } from "../../core/cache";
 import type { Coordinate, TravelStop } from "./types";

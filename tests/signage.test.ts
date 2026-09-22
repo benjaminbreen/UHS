@@ -9,8 +9,8 @@ import { propDefs } from "../src/content/props/catalog";
 import { resolveSetting } from "../src/content/geography/resolve";
 import { packs } from "../src/content/packs";
 import type { Pack } from "../src/core/types";
-import atlas from "../src/render/generated/props.json";
-import shadows from "../src/render/generated/prop-shadows.json";
+import atlas from "../src/render/generated/props.json" with { type: "json" };
+import shadows from "../src/render/generated/prop-shadows.json" with { type: "json" };
 
 function settingFor(query: string) {
   const result = resolveSetting(query);

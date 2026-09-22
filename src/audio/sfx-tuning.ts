@@ -1,4 +1,6 @@
-import saved from "./sfx-tuning.json";
+// Node needs the attribute to load JSON as a module; without it Playwright,
+// which loads this through Node rather than Vite, refuses the whole run.
+import saved from "./sfx-tuning.json" with { type: "json" };
 import type { Sound } from "./sfx";
 
 /** Per-group multipliers over the sound recipes, set from the live panel's

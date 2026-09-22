@@ -5,7 +5,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { resolveSetting } from "../../src/content/geography/resolve";
 import { createSettingSession } from "../../src/runtime/session";
-import panel from "./panel.json";
+import panel from "./panel.json" with { type: "json" };
 
 const want = process.argv.slice(2);
 mkdirSync("artifacts/towns", { recursive: true });

@@ -15,7 +15,7 @@ import {
   buildingScale,
   buildingScaleWeight,
 } from "../../content/graphics/building-scale";
-import kit from "../../content/graphics/urban.json";
+import kit from "../../content/graphics/urban.json" with { type: "json" };
 import { settlementLayout } from "../../content/settlements/layout";
 import { random } from "../../core/random";
 import {

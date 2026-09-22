@@ -1,4 +1,4 @@
-import style from "./generated/topography-style.json";
+import style from "./generated/topography-style.json" with { type: "json" };
 import type { TerrainPoint, TopographySample } from "../core/topography";
 /** One shared presentation transform for tops, feet, shadows and pointer
  * picking. Live binding: the ground style may retune it, and every importer

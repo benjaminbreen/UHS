@@ -1,4 +1,4 @@
-import ecoregions from "./travel/generated/ecoregions.json";
+import ecoregions from "./travel/generated/ecoregions.json" with { type: "json" };
 
 /** RESOLVE 2017 ecoregions on a quarter-degree grid: biome number 1–14 as in
  * Dinerstein et al., realm name, and a display name for travel labels. */

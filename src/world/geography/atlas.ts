@@ -1,5 +1,5 @@
 import { trimCache } from "../../core/cache";
-import prepared from "../../content/geography/atlas-index.generated.json";
+import prepared from "../../content/geography/atlas-index.generated.json" with { type: "json" };
 import data from "../../content/geography/atlas.generated.json" with { type: "json" };
 import { mountainBelts } from "../../content/geography/landforms";
 import { segmentDistance } from "./noise";

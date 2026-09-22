@@ -1,5 +1,5 @@
 import { MapContext } from "./water-experiments/MapContext";
-import preferredC from "../render/living-water/defaults.json";
+import preferredC from "../render/living-water/defaults.json" with { type: "json" };
 import {
   bankClimates,
   bankStyle,

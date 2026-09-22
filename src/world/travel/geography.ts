@@ -3,7 +3,7 @@ import { northAmericanLandscape } from "../../content/geography/travel/north-ame
 import { waterRegion } from "../../content/geography/travel/oceans";
 import { resolveGeographicName } from "./naming";
 import { cellToLatLng, gridDisk, latLngToCell } from "h3-js";
-import index from "../../content/geography/atlas-index.generated.json";
+import index from "../../content/geography/atlas-index.generated.json" with { type: "json" };
 import type { Coordinate, TravelCell, TravelMode } from "./types";
 export const TRAVEL_RESOLUTION = 4;
 const mask = new Uint8Array(index.width * index.height);

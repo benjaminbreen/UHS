@@ -12,7 +12,7 @@ import { settingFor } from "../src/content/geography/resolve";
 import { farms, farmingOnset } from "../src/content/geography/onsets";
 import { urbanFrames } from "../src/world/v3/urban";
 import { packForSetting } from "../src/content/geography/pack";
-import kit from "../src/content/graphics/urban.json";
+import kit from "../src/content/graphics/urban.json" with { type: "json" };
 import {
   urbanCapacity,
   URBAN_CAPACITY,

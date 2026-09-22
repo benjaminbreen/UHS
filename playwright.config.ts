@@ -14,4 +14,13 @@ export default defineConfig({
     screenshot: "only-on-failure",
   },
   workers: 1,
+  // Start the dev server if nothing is serving yet, and leave an already
+  // running one alone, so the suite does not fail with connection errors that
+  // look like broken tests.
+  webServer: {
+    command: "npm run dev",
+    url: process.env.UHS_BASE_URL ?? "http://127.0.0.1:5173",
+    reuseExistingServer: true,
+    timeout: 120000,
+  },
 });

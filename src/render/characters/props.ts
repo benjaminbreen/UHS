@@ -1,6 +1,6 @@
-import atlas from "../../../public/props/atlas.json";
+import atlas from "../../../public/props/atlas.json" with { type: "json" };
 import { propDefs } from "../../content/props/catalog";
-import propsB from "../generated/props-b.json";
+import propsB from "../generated/props-b.json" with { type: "json" };
 import { artStamp } from "../scene-assets";
 const redrawnFamilies = new Set<string>(propsB);
 export type CarriedArt = {

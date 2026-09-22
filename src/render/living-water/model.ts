@@ -1,4 +1,4 @@
-import preferredC from "./defaults.json";
+import preferredC from "./defaults.json" with { type: "json" };
 import { bankStyle, type BankClimate, type BankMaterial } from "./banks";
 import type { TopographyCell } from "../../core/topography";
 import { waterDistance, waterHash } from "../water-style";

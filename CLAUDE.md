@@ -22,7 +22,7 @@ when the task is actually about its subject:
 
 ## Verifying
 
-- `npm test` — 16s, 580 tests, **green on main**. If it is red, you broke it.
+- `npm test` — 17s, 581 tests, **green on main**. If it is red, you broke it.
 - `npx vitest run tests/<name>.test.ts` — after an edit, run just what covers it.
 - `npm run shot -- artifacts/x.png "A Roman baker in Ostia, 100 CE"` — one
   screenshot of the running game. Starts the dev server itself if needed.
@@ -33,7 +33,18 @@ when the task is actually about its subject:
   valid ones.
 - `npm run test:full` — 10 min, and has known failures. Only before a merge or
   when asked, and in the background.
-- `npm run test:browser` needs `npx playwright install` first.
+- `npm run test:browser` — Playwright, 142 tests, slow (minutes per spec for
+  the ones that build a world). It starts the dev server itself and reuses one
+  that is already up. **Not green**: a good share of specs have drifted against
+  recent UI and renderer changes, the same way the unit suite had. Check the
+  failure against HEAD before assuming your change caused it, and do not take
+  fixing the whole suite on as a side quest.
+
+The Python art pipeline (`npm run art*`, the `scripts/art/` sheets) needs PIL,
+numpy, shapely, pyproj and pyshp in a `.venv`, which a fresh checkout does not
+have. `python3 scripts/art/oblique_audit.py` needs none of them and works
+anywhere. If an art command dies on a missing module, that is the cause; say so
+rather than working around it.
 
 Review screenshots under `artifacts/` are local-only and not in the repo. Docs
 cite them as a record of past review; a missing one is expected, not a problem.
@@ -45,8 +56,9 @@ take a shot and look at it.
 
 ## Do not add scaffolding
 
-This repo has accumulated 26 near-duplicate `capture-*.ts` scripts because
-agents kept writing their own. Before you create anything:
+This repo once had 26 near-duplicate `capture-*.ts` scripts because agents
+kept writing their own instead of finding the existing one. Before you create
+anything:
 
 - **Screenshots**: use `npm run shot` for the game, `capture:characters` or
   `capture:terrain` for a review sheet. Add a preset to those rather than a
@@ -55,9 +67,43 @@ agents kept writing their own. Before you create anything:
   file needs a reason beyond "my change deserves one."
 - **Docs**: do not write a summary, report, or plan file for work you just did.
   Say it in your reply. Note it in `PROGRESS.md` only for a milestone.
-- **Comments**: only where the code cannot speak for itself — a non-obvious
-  why, a units or ordering trap, a bug link. One line, plain English. Do not
-  restate the line below. When in doubt, leave it out.
+
+## Keep it small and quiet
+
+The most common failure here is not a wrong answer, it is a correct answer
+buried in three times the code it needed and twice the prose. Write the
+smallest thing that does the job, then stop.
+
+- **Comments earn their place or they go.** Write one only for something the
+  code cannot say: a non-obvious *why*, a units or ordering trap, a constant
+  whose value came from somewhere, a bug or commit link. One line, plain
+  English.
+- **Never narrate.** Do not restate the line below, label a block with what it
+  obviously is, announce a section, explain the design in prose, or recap what
+  a function just did. A comment that would survive being deleted should be.
+- **Do not add a comment because a change felt significant.** The commit
+  message is where that belongs.
+- **Prefer the plain construction.** No wrapper, helper, options object,
+  abstraction layer or configuration hook until a second caller actually
+  needs it. Do not generalise on the first use.
+- **Leave surrounding code alone.** Match its density and idiom; do not
+  reformat, rename or "tidy" lines the task did not touch.
+
+Compare, on the same logic:
+
+```ts
+// BAD: three comments, none of which the code needed
+// Get the character's appearance from the setting
+const appearance = characterAppearance(setting, seed, id, age);
+// Loop over each direction to draw the sprite
+for (let d = 0; d < 4; d++)
+  drawCharacter(ctx, appearance, d, "walk", 0); // draw the walk frame
+
+// GOOD: silent where the code speaks, one line where it does not
+const appearance = characterAppearance(setting, seed, id, age);
+// South, east, north, west: the atlas order, not the compass order.
+for (const d of [2, 1, 0, 3]) drawCharacter(ctx, appearance, d, "walk", 0);
+```
 
 ## Working rules
 

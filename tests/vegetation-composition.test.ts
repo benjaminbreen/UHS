@@ -7,7 +7,7 @@ import type { WorldSetting } from "../src/content/geography/types";
 import { crownRadius, retainsTree } from "../src/world/v3/vegetation-spacing";
 import { treeGrouping } from "../src/world/v3/habitats";
 import { canopyHidesPlayer } from "../src/render/canopy-visibility";
-import nature from "../public/nature/atlas.json";
+import nature from "../public/nature/atlas.json" with { type: "json" };
 const base: WorldSetting = {
   ...settingFor(places.find((p) => p.id === "konya")!),
   lon: 105,

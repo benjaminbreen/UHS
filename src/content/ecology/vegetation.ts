@@ -2,7 +2,7 @@ import type { WorldSetting } from "../geography/types";
 import type { Colorway } from "./profiles";
 import type { Habitat, VegetationPattern } from "../../world/v3/habitats";
 import type { LandSample } from "../../world/geography/landscape";
-import natureAtlas from "../../../public/nature/atlas.json";
+import natureAtlas from "../../../public/nature/atlas.json" with { type: "json" };
 
 export function vegetationPattern(
   s: WorldSetting,

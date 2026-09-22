@@ -10,7 +10,7 @@ import type { WorldModel } from "../src/core/types";
 import { atlasSample, toAtlas } from "../src/world/geography/atlas";
 import { kilometers } from "../src/world/travel/geography";
 import { travelLocations } from "../src/content/geography/travel";
-import backboneNames from "../src/content/geography/travel/generated/backbone-names.json";
+import backboneNames from "../src/content/geography/travel/generated/backbone-names.json" with { type: "json" };
 it("keeps identities and reciprocal exits across dates and independent inspections", () => {
   const a = permanentMap("place:london", 1300),
     old = permanentMap("place:london", -5000);
