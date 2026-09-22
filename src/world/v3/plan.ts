@@ -17,7 +17,6 @@ import {
   ageStructure,
   conditionOf,
   fabricOf,
-  structureBlocks,
   weatherStructure,
 } from "../../core/time/structure";
 import { venuesFor } from "../../content/venues";
@@ -102,6 +101,14 @@ const HERDING = "Tending animals";
 
 const now = () =>
   typeof performance !== "undefined" ? performance.now() : Date.now();
+/** What a household has to spend, on its house and on its stock alike. */
+export const MEANS: Record<Rank, number> = {
+  destitute: 0.1,
+  labouring: 0.35,
+  middling: 0.6,
+  gentry: 0.8,
+  elite: 0.92,
+};
 export function planSettlement(
   site: Site,
   pack: Pack,
@@ -1495,14 +1502,6 @@ export function planSettlement(
     elite: 6,
   };
   const holdings = new Map<string, number>();
-  /** What a household has to spend, on its house and on its stock alike. */
-  const MEANS: Record<Rank, number> = {
-    destitute: 0.1,
-    labouring: 0.35,
-    middling: 0.6,
-    gentry: 0.8,
-    elite: 0.92,
-  };
   /** Traffic past the door. The quarter is the layout's own account of it. */
   const TRAFFIC: Record<string, number> = {
     market: 0.9,
@@ -2230,8 +2229,9 @@ export function planSettlement(
       plan.places.push(place);
       eachCell(rect, (x, y) => {
         plan.built!.add(cellKey(x, y));
-        if (structureBlocks(place, x, y)) plan.solid.add(cellKey(x, y));
+        plan.solid.add(cellKey(x, y));
       });
+      eachCell(yard, (x, y) => plan.reserved.add(cellKey(x, y)));
       continue;
     }
     const workPoint = lot.workPoint ?? {

@@ -175,6 +175,34 @@ describe("harvesting a crop cell", () => {
       "and takes it personally",
     ).toBe(true);
   });
+  it("lets the owner find an unwitnessed theft later, and blame whoever was about", () => {
+    const e = harvestWorld();
+    const at = ripeCell(e, true);
+    const house = e.state.households!.find((h) =>
+      h.members.includes(at.field.owner!),
+    )!;
+    const finder = e.state.actors.find((a) => house.members.includes(a.id));
+    const bystander = e.state.actors.find(
+      (a) => a.kind === "human" && !house.members.includes(a.id),
+    );
+    if (!finder || !bystander) return;
+    for (const a of e.state.actors)
+      a.pos = { x: at.x + 100, y: at.y, space: "outside" };
+    // About, but too far off to see what was done.
+    bystander.pos = { x: at.x + 15, y: at.y, space: "outside" };
+    e.state.player.pos = { x: at.x, y: at.y - 1, space: "outside" };
+    const trust = finder.trust;
+    e.execute(e.inspect(`crop-${at.x}-${at.y}`)!.affordances[0]!.command);
+    expect(e.state.losses, "the loss waits to be found").toHaveLength(1);
+    expect(e.state.losses![0].suspect).toBe(true);
+    expect(finder.trust, "nobody of theirs knows yet").toBe(trust);
+    finder.pos = { x: at.x + 2, y: at.y, space: "outside" };
+    e.state.clock = Math.ceil(e.state.clock / 60) * 60 + 54;
+    e.advance(6);
+    expect(e.state.losses, "found").toHaveLength(0);
+    expect(finder.trust, "and held against the player").toBeLessThan(trust);
+    expect(house.history?.at(-1)?.kind).toBe("robbed");
+  });
   it("treats unowned ground as work, not theft", () => {
     const e = harvestWorld();
     const at = ripeCell(e, false);

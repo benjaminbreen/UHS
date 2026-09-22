@@ -53,10 +53,49 @@ export type Household = {
   residence?: string;
   home: Position;
   storeId: string;
+  /** What has happened to it, oldest first. Generated as a life story, and
+   * added to when something is taken from it. */
+  history?: HouseholdEvent[];
+  /** 0-1: what it has to spend once its history is counted, not its rank. */
+  fortune?: number;
+  /** Children too small to be out in the street, counted rather than drawn. */
+  infants?: number;
+  /** Goods from `goods.ts` it makes for others. */
+  makes?: string[];
+  /** Where it gets what it does not make: a good and the household it buys from. */
+  buys?: { good: string; from: string }[];
+  owes?: string;
+};
+export type HouseholdEvent = {
+  year: number;
+  kind:
+    | "wed"
+    | "born"
+    | "died"
+    | "left"
+    | "joined"
+    | "built"
+    | "inherited"
+    | "moved"
+    | "fire"
+    | "good-year"
+    | "bad-year"
+    | "robbed";
+  name?: string;
+  /** Who they were to the householder: "wife", "son", "mother". */
+  as?: string;
 };
 export type SocialRelation = {
   other: string;
-  kind: "partner" | "parent" | "child" | "co-resident";
+  /** What `other` is to this person. */
+  kind:
+    | "partner"
+    | "parent"
+    | "child"
+    | "co-resident"
+    | "servant"
+    | "apprentice"
+    | "master";
 };
 export type Resource = {
   item: ItemId;
@@ -379,8 +418,19 @@ export type CommandResult = {
   reason?: string;
 };
 export type Receipt = { payload: string; result: CommandResult };
+/** Something taken from a household that nobody of theirs saw go. They find
+ * out when one of them next comes by. */
+export type Loss = {
+  owner: string;
+  pos: Position;
+  what: string;
+  clock: number;
+  /** The player was about, so whoever finds it has somebody to blame. */
+  suspect: boolean;
+};
 export type Snapshot = {
   households?: Household[];
+  losses?: Loss[];
   /** Animal groups: wild ones spawned as districts open, kept ones from pens. */
   fauna?: import("./fauna").FaunaGroup[];
   /** Animals the district has a name for, by group and member number. */

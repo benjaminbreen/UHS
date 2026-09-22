@@ -10,11 +10,17 @@ import type {
 } from "../../core/types";
 import type { SettlementPlan } from "./types";
 import { random } from "../../core/random";
-import { sexOf } from "../../core/brief";
+import { sexOf, type Sex } from "../../core/brief";
 import { livelihoodOf, memberRoutine, routineFor } from "./routines";
 import { ecologyProfiles } from "../../content/ecology/profiles";
+import { goods, goodsOf, standsIn } from "../../content/economy/goods";
+import { workplaceFor } from "../../content/characters/workplace";
+import { conditionOf, weatherStructure } from "../../core/time/structure";
+import { householdStory } from "./household-story";
+import { MEANS } from "./plan";
 const seasons = ["spring", "summer", "autumn", "winter"];
-/** Small explicit household patterns, not a universal nuclear-family assumption. */
+/** Households as the result of a life (household-story.ts), then the ties
+ * between them: who makes what, and whom everyone else buys it from. */
 export function populateHouseholds(
   world: WorldModel,
   plan: SettlementPlan,
@@ -22,6 +28,15 @@ export function populateHouseholds(
 ) {
   const pack = plan.site.pack ?? world.pack;
   const form = pack.setting!.environment!.household;
+  const year = pack.setting?.year ?? pack.year;
+  const made: Household[] = [];
+  const pending: {
+    id: string;
+    a: Actor;
+    child: boolean;
+    site: ReturnType<typeof plan.work.get> & {};
+    household: Household;
+  }[] = [];
   for (const [owner, sites] of plan.work) {
     if (world.households!.some((h) => h.members.includes(owner))) continue;
     const place = plan.places.find((p) => p.owner === owner)!;
@@ -36,7 +51,9 @@ export function populateHouseholds(
     const id = `household-${owner}`,
       adult = plan.actors.find((a) => a.id === owner);
     const age =
-      owner === "player" ? 34 : 28 + Math.floor(random(seed, id, "age") * 18);
+      owner === "player"
+        ? 34
+        : 22 + Math.floor(random(seed, id, "age") ** 1.3 * 44);
     const household: Household = {
       id,
       members: [owner],
@@ -45,6 +62,7 @@ export function populateHouseholds(
       storeId: store.id,
     };
     world.households!.push(household);
+    made.push(household);
     if (adult)
       Object.assign(adult, {
         age,
@@ -57,44 +75,75 @@ export function populateHouseholds(
         adult,
         generateCharacter(pack.setting, seed, adult.id, age, adult.role),
       );
-    // world.initialActors shares these objects with the completed plan.
-    const roll = random(seed, id, "form");
-    const shared = form === "shared" || (form === "mixed" && roll < 0.4);
+    const parent =
+      adult?.origin ??
+      (owner === "player" && pack.setting?.characterRevision
+        ? generateCharacter(
+            pack.setting,
+            seed,
+            owner,
+            age,
+            pack.role,
+            pack.characterName,
+          ).origin
+        : undefined);
+    const kit = livelihoodOf(pack, adult);
+    const means = MEANS[kit?.rank ?? "labouring"];
+    const fabric = place.structure?.fabric ?? "timber";
+    const built = place.structure?.built ?? year;
     // A settlement of one household form keeps it; the mixed default is
     // sampled, because a legible street wants a few people out on visible
     // errands rather than every resident stood in their own yard.
-    const size = random(seed, id, "size");
-    // A stall or a hut is one person's; a full household needs a house.
-    const small = owner !== "player" && place.w * place.h <= 12;
-    const count = small
-      ? 0
-      : owner === "player" || form === "extended" || form === "shared"
-        ? 2
-        : size < 0.45
-          ? 0
-          : size < 0.85
-            ? 1
-            : 2;
-    for (let i = 0; i < count; i++) {
+    const roll = random(seed, id, "form");
+    const shared = form === "shared" || (form === "mixed" && roll < 0.4);
+    const holderSex: Sex = adult
+      ? sexOf(adult)
+      : characterSex(seed, owner) === "female"
+        ? "female"
+        : "male";
+    const story = householdStory({
+      seed,
+      id,
+      year,
+      age,
+      sex: holderSex,
+      means,
+      shared,
+      extended: form === "extended" || owner === "player",
+      small: owner !== "player" && place.w * place.h <= 12,
+      craft:
+        place.access === "public" ||
+        (!!kit && (kit.workplace ?? workplaceFor(kit.activity)) === "workshop"),
+      player: owner === "player",
+      modern: year >= 1900,
+      built,
+      fabric,
+    });
+    Object.assign(household, {
+      history: story.history,
+      fortune: story.fortune,
+      infants: story.infants,
+      makes: goodsOf(kit),
+    });
+    // What the household can spend decides how the house has worn, and a fire
+    // started the roof and walls over.
+    if (place.structure) {
+      place.structure = {
+        ...weatherStructure(seed, place.id, fabric, story.weatherFrom, year, story.fortune),
+        built,
+      };
+      place.condition = conditionOf(place.structure);
+    }
+    let partnerId: string | undefined;
+    story.residents.forEach((m, i) => {
       const memberId = `${owner}-member-${i}`;
-      const kin = random(seed, memberId, "kin");
-      const child = !shared && (i > 0 ? kin < 0.7 : kin < 0.3);
-      const elder = !shared && !child && i === 0 && kin > 0.85;
-      // Only the first member can be a spouse. Drawing the relation
-      // independently married the householder to both of them.
-      const relation = child
-        ? "parent"
-        : elder
-          ? "child"
-          : shared || i > 0
-            ? "co-resident"
-            : "partner";
+      const child = m.role === "Child";
       const a: Actor = {
         id: memberId,
         name: pack.names[
           Math.floor(random(seed, memberId, "name") * pack.names.length)
         ],
-        role: child ? "Child" : elder ? "Elder" : "Householder",
+        role: m.role ?? "Householder",
         kind: "human",
         pos: { ...sites.home, space: "outside" },
         home: { ...sites.home, space: "outside" },
@@ -107,79 +156,61 @@ export function populateHouseholds(
         trust: 1,
         memories: [],
         direction: 2,
-        age: child
-          ? 6 +
-            Math.floor(
-              random(seed, memberId, "age") *
-                Math.max(1, Math.min(8, age - 26)),
-            )
-          : elder
-            ? age + 22
-            : age - 2,
+        age: m.age,
         householdId: id,
-        relations: [{ other: owner, kind: relation }],
+        relations: [{ other: owner, kind: m.toHead }],
         knownResources: [],
       };
       if (pack.setting?.characterRevision) {
-        const parent =
-          adult?.origin ??
-          (owner === "player"
-            ? generateCharacter(
-                pack.setting,
-                seed,
-                owner,
-                age,
-                pack.role,
-                pack.characterName,
-              ).origin
-            : undefined);
-        const partner = world.initialActors.find(
-          (other) =>
-            other.householdId === id &&
-            other.relations?.some(
-              (r) => r.other === owner && r.kind === "partner",
-            ),
-        );
+        const partner = world.initialActors.find((b) => b.id === partnerId);
+        const kin = m.fromHead === "child";
         // The parent's own recorded format, not the context's: outside the
         // hand-written kits the context has no format at all, which left every
         // household on the ported traditions with unrelated surnames.
         const format = parent?.nameFormat;
         const inherited =
-          child && format === "family-personal"
+          kin && format === "family-personal"
             ? parent?.nameFamilies
-            : child &&
+            : kin &&
                 format === "personal-two-families" &&
                 parent?.nameFamilies?.[0] &&
                 partner?.origin?.nameFamilies?.[0]
               ? [parent.nameFamilies[0], partner.origin.nameFamilies[0]]
               : undefined;
-        // A partner is drawn opposite the householder as they came out, not
-        // as first drawn: a kit without gendered names lets the name decide
-        // the body, so both can differ from the draw.
-        const holderSex = adult ? sexOf(adult) : characterSex(seed, owner);
-        const sex =
-          relation === "partner"
-            ? holderSex === "female"
-              ? "male"
-              : "female"
-            : characterSex(seed, memberId);
+        const sex = m.sex ?? characterSex(seed, memberId);
         const draw = (salt: number) =>
           generateCharacter(
             pack.setting!,
             seed,
             salt ? `${memberId}~${salt}` : memberId,
-            a.age,
-            // Adults in a household hold their own work; only children do not.
-            child ? "Child" : undefined,
+            m.age,
+            child
+              ? "Child"
+              : m.role === "Servant"
+                ? "servant"
+                : m.role === "Apprentice"
+                  ? "apprentice"
+                  : undefined,
             undefined,
             inherited,
             sex,
-            parent?.nameTradition,
+            kin ? parent?.nameTradition : undefined,
           );
+        // Where the name sets the body, redraw until it is the sex the story
+        // needs, and until it is not a name already in the house: a kit of
+        // sixteen names otherwise gives a husband his wife's.
+        const taken = new Set(
+          household.members.map((id) =>
+            world.initialActors.find((b) => b.id === id)?.name ?? adult?.name,
+          ),
+        );
         let drawn = draw(0);
-        // Where the name sets the body, redraw until it is the sex asked for.
-        for (let salt = 1; relation === "partner" && salt < 12; salt++) {
-          if (sexOf({ ...a, ...drawn }) === sex) break;
+        for (let salt = 1; salt < 12; salt++) {
+          if (
+            (!m.sex || sexOf({ ...a, ...drawn }) === m.sex) &&
+            !taken.has(drawn.name)
+          )
+            break;
           drawn = draw(salt);
         }
         Object.assign(a, drawn);
@@ -213,43 +244,100 @@ export function populateHouseholds(
       }
       household.members.push(memberId);
       world.initialActors.push(a);
-      // Members get a routine of their own so a household spreads across the
-      // settlement during the day instead of stacking on one doorstep.
-      const kit = livelihoodOf(pack, a);
-      const memberSite = {
-        ...sites,
-        label: child ? "Errands" : (kit?.activity ?? "Keeping house"),
-        offset: (sites.offset + 37 * (i + 1)) % 1440,
-      };
-      plan.work.set(memberId, memberSite);
-      plan.stations.set(
-        memberId,
-        kit && !child
-          ? routineFor(plan, seed, pack, memberId, memberSite, a)
-          : memberRoutine(plan, seed, memberId, sites.home, pack.year, child),
-      );
-      if (child) {
-        const partner = world.initialActors.find(
-          (b) =>
-            b.householdId === id &&
-            b.relations?.some((r) => r.other === owner && r.kind === "partner"),
-        );
-        if (partner) {
-          a.relations!.push({ other: partner.id, kind: "parent" });
-          partner.relations!.push({ other: a.id, kind: "child" });
-        }
+      if (m.toHead === "partner") partnerId = memberId;
+      if (m.ofPartner && partnerId) {
+        const partner = world.initialActors.find((b) => b.id === partnerId)!;
+        a.relations!.push({ other: partnerId, kind: "parent" });
+        partner.relations!.push({ other: a.id, kind: "child" });
       }
-      adult?.relations?.push({
-        other: memberId,
-        kind: child
-          ? "child"
-          : elder
-            ? "parent"
-            : relation === "partner"
-              ? "partner"
-              : "co-resident",
+      adult?.relations?.push({ other: memberId, kind: m.fromHead });
+      pending.push({ id: memberId, a, child, site: sites, household });
+    });
+  }
+
+  // Every household buys what it needs and does not make, from the nearest
+  // household that makes it, a shopfront before a back door.
+  const byId = new Map(made.map((h) => [h.id, h]));
+  const residence = (h: Household) =>
+    plan.places.find((p) => p.id === h.residence);
+  const customers = new Map<string, number>();
+  for (const h of made) {
+    const home = h.home;
+    const buys: Household["buys"] = [];
+    for (const g of goods) {
+      if (!g.need || h.makes?.includes(g.id)) continue;
+      const wanted = [g.id, standsIn[g.id]].filter(Boolean);
+      let best: Household | undefined,
+        score = Infinity;
+      for (const s of made) {
+        if (s === h || !s.makes?.some((m) => wanted.includes(m))) continue;
+        const d =
+          Math.hypot(s.home.x - home.x, s.home.y - home.y) -
+          (residence(s)?.access === "public" ? 30 : 0) +
+          random(seed, h.id, "buys", g.id, s.id) * 12;
+        if (d < score) [best, score] = [s, d];
+      }
+      if (!best) continue;
+      buys.push({
+        good: best.makes!.includes(g.id) ? g.id : standsIn[g.id],
+        from: best.id,
       });
+      customers.set(best.id, (customers.get(best.id) ?? 0) + 1);
     }
+    h.buys = buys;
+    const creditor = buys.find(
+      (b) => (byId.get(b.from)?.fortune ?? 0) > (h.fortune ?? 0) + 0.2,
+    );
+    if (creditor && (h.fortune ?? 1) < 0.3 && random(seed, h.id, "owes") < 0.6)
+      h.owes = creditor.from;
+  }
+  // A shop's trade is the custom it has, not the quarter it stands in.
+  const busy = Math.max(3, made.length * 0.1);
+  for (const h of made) {
+    const place = residence(h);
+    if (place?.trade === undefined || !h.makes?.length) continue;
+    place.trade =
+      0.3 * (h.fortune ?? 0.4) +
+      0.7 * Math.min(1, (customers.get(h.id) ?? 0) / busy);
+  }
+
+  for (const { id, a, child, site, household } of pending) {
+    // Members get a routine of their own so a household spreads across the
+    // settlement during the day instead of stacking on one doorstep.
+    const kit = livelihoodOf(pack, a);
+    const i = household.members.indexOf(id);
+    const memberSite = {
+      ...site,
+      label: child ? "Errands" : (kit?.activity ?? "Keeping house"),
+      offset: (site.offset + 37 * i) % 1440,
+    };
+    const buy =
+      household.buys?.[
+        Math.floor(random(seed, id, "shop") * (household.buys?.length ?? 0))
+      ];
+    const from = buy && byId.get(buy.from);
+    const shop = from && residence(from);
+    const seller = from && world.initialActors.find((b) => b.id === from.members[0]);
+    plan.work.set(id, memberSite);
+    plan.stations.set(
+      id,
+      kit && !child
+        ? routineFor(plan, seed, pack, id, memberSite, a)
+        : memberRoutine(
+            plan,
+            seed,
+            id,
+            site.home,
+            pack.year,
+            child,
+            shop && seller
+              ? {
+                  pos: shop.entrance,
+                  label: `Buying ${goods.find((g) => g.id === buy!.good)!.noun} from ${seller.name}`,
+                }
+              : undefined,
+          ),
+    );
   }
 }
 const populated = new WeakMap<WorldModel, Set<string>>();

@@ -130,6 +130,40 @@ describe("place brief", () => {
     );
   });
 
+  it("tells the household's story and whom it buys from", () => {
+    const baker = person({ id: "c", name: "Agnes", role: "Baker" });
+    const said = briefText(
+      placeBrief(
+        house(),
+        1400,
+        holder,
+        [holder, wife],
+        {
+          id: "h",
+          members: ["a", "b"],
+          home: { x: 0, y: 0, space: "outside" },
+          storeId: "s",
+          infants: 2,
+          history: [
+            { year: 1380, kind: "wed", as: "husband" },
+            { year: 1386, kind: "died", as: "husband" },
+            { year: 1388, kind: "wed", as: "husband" },
+            { year: 1390, kind: "inherited", as: "mother" },
+            { year: 1392, kind: "died", as: "son" },
+          ],
+          buys: [{ good: "bread", from: "hc" }],
+          owes: "hc",
+        },
+        (id) => (id === "hc" ? baker : undefined),
+      )!,
+    );
+    expect(said).toContain("two small children");
+    expect(said).toMatch(/came to (her|him|them) from their mother 10 years ago/);
+    expect(said).toMatch(/first husband died/);
+    expect(said).toMatch(/buried a child/);
+    expect(said).toMatch(/bread comes from Agnes, still owing for it/);
+  });
+
   it("does not give a civic building a householder", () => {
     const hall = house({ claim: "venue-hall", name: "The town hall" });
     const said = briefText(placeBrief(hall, 1400, holder, [holder, wife])!);

@@ -478,12 +478,58 @@ export class Engine {
     cost: (theirs: boolean) => number;
     memory: (theirs: boolean) => string;
     text: (witness: Actor, theirs: boolean) => string;
+    /** Named when the owner should find out later if none of theirs saw. */
+    lost?: { what: string; pos: Position };
   }) {
+    let seen = false;
     for (const w of this.witnesses(o.radius)) {
       const theirs = this.minds(w, o.owner);
+      seen ||= theirs;
       this.regard(w, -o.cost(theirs), theirs || !o.owner ? "anger" : "alarm");
       w.memories.push(o.memory(theirs));
       this.event(o.text(w, theirs), "social");
+    }
+    if (seen || !o.owner || !o.lost) return;
+    const p = this.state.player;
+    // Anyone about, seeing or not, is someone who can say the player was there.
+    const suspect = this.state.actors.some(
+      (a) => a.kind === "human" && distance(a.pos, p.pos) < 25,
+    );
+    (this.state.losses ??= []).push({
+      owner: o.owner,
+      ...o.lost,
+      pos: copy(o.lost.pos),
+      clock: this.state.clock,
+      suspect,
+    });
+  }
+  /** A household member who comes near a loss finds it, and holds it against
+   * the player if anyone had seen them about. */
+  private discover(a: Actor) {
+    const losses = this.state.losses;
+    if (!losses?.length || a.pos.space !== "outside") return;
+    for (let i = losses.length - 1; i >= 0; i--) {
+      const l = losses[i];
+      if (distance(a.pos, l.pos) > 6 || !this.minds(a, l.owner)) continue;
+      losses.splice(i, 1);
+      const h = this.household(a.householdId);
+      if (h) {
+        (h.history ??= []).push({
+          year: this.state.manifest.setting?.year ?? 0,
+          kind: "robbed",
+        });
+        h.fortune = Math.max(0.02, (h.fortune ?? 0.5) - 0.03);
+      }
+      if (!l.suspect) {
+        a.memories.push(`Found ${l.what} gone, and no idea who took it`);
+        continue;
+      }
+      a.memories.push(`Found ${l.what} gone; the player was seen about`);
+      this.regard(a, -3, "anger");
+      this.event(
+        `${a.name} has found ${l.what} gone, and has heard you were about.`,
+        "social",
+      );
     }
   }
   /** Asks the renderer to act something out. Cosmetic: nothing reads it back. */
@@ -629,6 +675,10 @@ export class Engine {
         theirs
           ? `${w.name} catches you taking from their own crop.`
           : `${w.name} sees you taking a crop that is not yours.`,
+      lost: {
+        what: `the ${picking.toLowerCase()} stripped`,
+        pos: { x, y, space: "outside" },
+      },
     });
     this.advance(20);
   }
@@ -1357,6 +1407,9 @@ export class Engine {
         theirs
           ? `${w.name} shouts at you: that ${label} is theirs.`
           : `${w.name} saw you ${did} a ${label} that is not yours.`,
+      ...(killed
+        ? { lost: { what: `a ${label} dead`, pos: this.state.player.pos } }
+        : {}),
     });
   }
   private directionTo(from: Point, to: Point) {
@@ -2986,6 +3039,11 @@ export class Engine {
         this.state.manifest.setting?.year ?? 0,
         resident(place.owner),
         (home?.members ?? []).map(resident).filter((a): a is Actor => !!a),
+        home,
+        (id) => {
+          const head = this.household(id)?.members[0];
+          return head ? resident(head) : undefined;
+        },
       );
       return {
         id,
@@ -4548,6 +4606,8 @@ export class Engine {
           if (o.owner) {
             p.memories.push(`theft:${o.id}:${JSON.stringify(taken)}`);
             this.offend({
+              owner: o.owner,
+              lost: { what: `${o.name.toLowerCase()} emptied`, pos: o.pos },
               cost: () => 3,
               memory: () => `Saw player take ${o.id}`,
               text: (w) =>
@@ -5046,6 +5106,7 @@ export class Engine {
           )
             this.moveActor(a, copy(target));
         }
+        if (a.kind === "human" && next % 60 === 0) this.discover(a);
         if (a.kind === "human" && a.tends) {
           if (next % 12 === 0) this.tendHerd(a, next);
           continue;

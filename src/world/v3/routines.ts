@@ -316,6 +316,8 @@ export function memberRoutine(
   home: Point,
   year: number,
   child: boolean,
+  /** The shop the household buys from, where it has one. */
+  market?: { pos: Point; label: string },
 ): Station[] {
   const when = era(year);
   const water = wellAt(plan);
@@ -401,6 +403,13 @@ export function memberRoutine(
           label: "Fetching water",
           minutes: 20,
         }
+      : market && pick < 0.8
+        ? {
+            pos: nearby(plan, seed, id, market.pos),
+            activity: "visit",
+            label: market.label,
+            minutes: 25,
+          }
       : shop && pick < 0.8
         ? {
             pos: nearby(plan, seed, id, shop),

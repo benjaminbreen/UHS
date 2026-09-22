@@ -1,3 +1,4 @@
+import { householdStory } from "../src/world/v3/household-story";
 import { it, expect } from "vitest";
 import { createSettingSession } from "../src/runtime/session";
 import { settingFor } from "../src/content/geography/resolve";
@@ -53,6 +54,43 @@ it("creates reciprocal family links and shared residences, with plausible parent
       }
     }
   }
+});
+it("builds households from a life, so they differ and their ages agree", () => {
+  const sizes = new Set<number>();
+  let widowed = 0,
+    help = 0;
+  for (let i = 0; i < 300; i++) {
+    const age = 22 + (i % 45);
+    const s = householdStory({
+      seed: "story",
+      id: `h${i}`,
+      year: 1400,
+      age,
+      sex: i % 2 ? "female" : "male",
+      means: (i % 10) / 10,
+      shared: false,
+      extended: false,
+      small: false,
+      craft: i % 3 === 0,
+      player: false,
+      modern: false,
+      built: 1400 - (i % 90),
+      fabric: "timber",
+    });
+    sizes.add(s.residents.length + s.infants);
+    if (s.history.some((e) => e.kind === "died" && /wife|husband/.test(e.as!)))
+      widowed++;
+    if (s.residents.some((r) => r.role === "Servant" || r.role === "Apprentice"))
+      help++;
+    for (const r of s.residents) {
+      if (r.fromHead === "child") expect(age - r.age).toBeGreaterThanOrEqual(15);
+      if (r.fromHead === "parent") expect(r.age - age).toBeGreaterThanOrEqual(18);
+    }
+    for (const e of s.history) expect(e.year).toBeLessThanOrEqual(1400);
+  }
+  expect(sizes.size, "household sizes vary").toBeGreaterThan(4);
+  expect(widowed).toBeGreaterThan(10);
+  expect(help).toBeGreaterThan(10);
 });
 it("harvesting conserves quantities and seasonal replenishment is bounded", () => {
   const e = createSettingSession(
