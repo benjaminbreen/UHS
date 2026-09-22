@@ -110,6 +110,8 @@ export function placeBrief(
   const moment: BriefSpan[] = [];
   const say = (text: string, tone?: BriefSpan["tone"]) =>
     moment.push(tone ? { text, tone } : { text });
+  // Who lives there comes first; what the building is heads the second line.
+  if (holder && !institution) say(`${place.description} `);
   const who = holder && !institution ? holder.name : "It";
   const came = history.find((e) =>
     ["built", "inherited", "moved"].includes(e.kind),

@@ -4,6 +4,8 @@ export type CivicProfile = {
   label: string;
   square: string;
   form: "colonnade" | "hall";
+  /** What the building is, said plainly, for the focus card. */
+  about: string;
   evidence: {
     status: "inferred" | "fictional";
     sources: string[];

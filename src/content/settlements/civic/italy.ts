@@ -9,6 +9,8 @@ export const italyCivic: CivicRule[] = [
     label: "Civic basilica",
     square: "Public square",
     form: "colonnade",
+    about:
+      "The basilica on the forum: a great roofed hall where magistrates hear lawsuits, merchants do business and people meet out of the sun and rain.",
     evidence: {
       status: "inferred",
       sources: [

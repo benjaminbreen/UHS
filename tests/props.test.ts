@@ -1,6 +1,7 @@
 import { cultures } from "../src/content/history/types";
 import { eras } from "../src/content/history/dates";
 import { describe, it, expect } from "vitest";
+import { about } from "../src/content/props/about";
 import {
   createSession,
   createSettingSession,
@@ -51,6 +52,10 @@ function fixture() {
   return { e, pot, stick };
 }
 describe("interactive props", () => {
+  it("says plainly what every prop is", () => {
+    for (const id of Object.keys(propDefs))
+      expect(about[id], `${id} needs a plain description in about.ts`).toBeTruthy();
+  });
   it("hides contents until opened, carries identity, drops and conserves goods across break and reload", () => {
     const { e, pot, stick } = fixture();
     expect(e.inspect(pot.id)?.inventory).toBeUndefined();

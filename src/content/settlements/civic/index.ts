@@ -24,6 +24,8 @@ export function civicProfile(s: WorldSetting): CivicProfile {
     label: "Public meeting hall",
     square: "Gathering square",
     form: "hall",
+    about:
+      "The hall where the community meets to hear news, settle disputes and decide things together.",
     evidence: {
       status: "fictional",
       sources: [],

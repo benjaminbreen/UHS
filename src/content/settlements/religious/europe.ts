@@ -15,6 +15,8 @@ export const europeReligious: ReligiousRule[] = [
     to: 1800,
     bounds: [-10, 36, 30, 62],
     side: "north",
+    about:
+      "The parish church, where people come to Mass, are baptised, married and buried, and where the bells mark the hours of the day.",
     forecourt: 2,
     evidence: {
       status: "inferred",

@@ -25,6 +25,8 @@ export const americasReligious: ReligiousRule[] = [
       to: 1900,
       bounds: [-118, -40, -35, 33],
       side: "east",
+      about:
+        "The parish church, where the town hears Mass, has its children baptised and buries its dead.",
       forecourt: 3,
       evidence: {
         status: "inferred",
@@ -47,6 +49,8 @@ export const americasReligious: ReligiousRule[] = [
     to: 1600,
     bounds: [-98, 29, -78, 42],
     side: "north",
+    about:
+      "A great earthen mound with a temple on top. Chiefs and priests climb it for ceremonies that the whole town gathers below to watch.",
     forecourt: 2,
     evidence: {
       status: "inferred",
@@ -68,6 +72,8 @@ export const americasReligious: ReligiousRule[] = [
     to: 1550,
     bounds: [-106, 13, -85, 23],
     side: "east",
+    about:
+      "A stepped pyramid with a temple at the top, where priests make offerings to the gods for the whole town.",
     forecourt: 2,
     evidence: {
       status: "inferred",
@@ -89,6 +95,8 @@ export const americasReligious: ReligiousRule[] = [
     to: 1600,
     bounds: [-82, -22, -65, -4],
     side: "north",
+    about:
+      "A raised stone platform with a shrine on top, where offerings are made to the gods and the ancestors.",
     forecourt: 2,
     evidence: {
       status: "inferred",

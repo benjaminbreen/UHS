@@ -9,6 +9,8 @@ export const europeCivic: CivicRule[] = [
     label: "Market hall",
     square: "Market square",
     form: "hall",
+    about:
+      "The market hall. Traders set up under the open ground floor on market days, and the town's officers meet in the room above.",
     evidence: {
       status: "inferred",
       sources: [

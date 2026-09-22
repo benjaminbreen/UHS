@@ -17,6 +17,7 @@ import {
 } from "./livelihood";
 import { weatherAt } from "./weather";
 import { propDefs } from "../content/props/catalog";
+import { about } from "../content/props/about";
 import { atWork, briefText, personBrief } from "./brief";
 import { placeBrief } from "./place-brief";
 import { propAffordances, heldObject, lowProp } from "./props";
@@ -695,6 +696,20 @@ export class Engine {
       who.id === owner ||
       !!this.household(who.householdId)?.members.includes(owner)
     );
+  }
+  /** Whose a thing is, said as a person would: by the household's name. */
+  private belongsTo(owner: string | undefined) {
+    if (!owner) return "";
+    if (owner.endsWith("-community")) return "It is shared by the whole settlement.";
+    if (this.minds(this.state.player, owner) || owner === "player")
+      return "It is your household's.";
+    const house = this.state.households?.find((h) => h.members.includes(owner));
+    const head = [this.state.player, ...this.state.actors].find(
+      (a) => a.id === (house?.members[0] ?? owner),
+    );
+    return head
+      ? `It belongs to ${head.name}'s household.`
+      : "It belongs to someone here.";
   }
   private household(id: string | undefined) {
     return this.householdsById
@@ -3049,10 +3064,7 @@ export class Engine {
         id,
         name: place.name,
         brief,
-        description:
-          (brief ? briefText(brief) + " " : "") +
-          place.description +
-          (place.access === "household" && (place.structure?.roof ?? 1) >= 0.5 ? " This is a household space." : ""),
+        description: brief ? briefText(brief) : place.description,
         kind: "building",
         pos,
         claim: place.claim,
@@ -3073,21 +3085,16 @@ export class Engine {
         description: [
           object.broken
             ? "Broken remains; spilled contents can be recovered."
-            : object.description
-              ? object.description
-              : def?.strike
-                ? "A stout branch. Hold it to strike breakable containers."
-                : def?.drink
-                  ? "A water source."
-                  : def?.container
-                    ? object.open
-                      ? "The contents are visible."
-                      : "Look inside to discover the contents."
-                    : "A household work object.",
-          object.carriedBy ? "You are holding it." : "",
-          object.owner && object.owner !== "player"
-            ? "Household property; carrying it does not change ownership."
+            : (about[object.prop] ??
+              object.description ??
+              (def?.drink ? "A place to get water." : def?.name ?? "")),
+          !object.broken && def?.container
+            ? object.open
+              ? "It is open."
+              : "Look inside to see what it holds."
             : "",
+          object.carriedBy ? "You are holding it." : "",
+          this.belongsTo(object.owner),
         ]
           .filter(Boolean)
           .join(" "),

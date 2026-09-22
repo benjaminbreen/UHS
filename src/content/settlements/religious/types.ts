@@ -13,6 +13,8 @@ export type ReligiousProfile = {
   /** Label per compiled scale; the medium label is the default. */
   labels: { small: string; medium: string; large: string };
   side: SanctuarySide;
+  /** What the building is, said plainly, for the focus card. */
+  about: string;
   /** Paved apron between the square and the door, in cells. */
   forecourt: number;
   evidence: {

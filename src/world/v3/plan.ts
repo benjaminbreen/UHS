@@ -20,6 +20,7 @@ import {
   weatherStructure,
 } from "../../core/time/structure";
 import { venuesFor } from "../../content/venues";
+import { aboutBuilding } from "../../content/settlements/about-buildings";
 import {
   streetPalette,
   chooseStreetSurface,
@@ -2112,7 +2113,7 @@ export function planSettlement(
         id,
         name: lot.religious.labels[lot.religious.scale],
         owner: `${site.id}-community`,
-        description: lot.religious.evidence.note,
+        description: lot.religious.about,
         ...rect,
         sprite: frame,
         entrance: door,
@@ -2147,7 +2148,7 @@ export function planSettlement(
         id,
         name: lot.civic.label,
         owner: `${site.id}-community`,
-        description: lot.civic.evidence.note,
+        description: lot.civic.about,
         ...rect,
         sprite: frame,
         entrance: door,
@@ -2351,7 +2352,7 @@ export function planSettlement(
               : i % 4 === 2
                 ? "Household stores"
                 : "Household",
-      description: model.description,
+      description: aboutBuilding(frame, model.wall, model.description),
       x: rect.x,
       y: rect.y,
       w,
