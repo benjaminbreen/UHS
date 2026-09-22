@@ -17,6 +17,7 @@ from .privy import PRIVY
 from .granary import GRANARY
 from .asia import ASIA
 from .signs import SIGNS
+from .signposts import SIGNPOSTS
 from .civic import CIVIC
 from .market import MARKET
 from .stores import STORES
@@ -71,6 +72,7 @@ DRAW_B = {
  **GRANARY,
  **ASIA,
  **SIGNS,
+ **SIGNPOSTS,
  **CIVIC,
  **MARKET,
  **REGIONAL,

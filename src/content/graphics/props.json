@@ -1987,6 +1987,202 @@
         "Three across",
         "Two rows"
       ]
+    },
+    {
+      "id": "signpost-oak",
+      "name": "Compact sign / oak",
+      "group": "Street furniture",
+      "size": [
+        23,
+        37
+      ],
+      "description": "A slim freestanding post and a single bold trade glyph. Shared ground anchor; no wall attachment. Interpretive game prop.",
+      "variants": [
+        "Jug",
+        "Shears",
+        "Hammer",
+        "Loaf",
+        "Boot",
+        "Jar",
+        "Bell",
+        "Fish",
+        "Book",
+        "Tea cup",
+        "Mortar",
+        "Scales",
+        "Cloth",
+        "Bath",
+        "Stage",
+        "Dice"
+      ]
+    },
+    {
+      "id": "signpost-painted",
+      "name": "Compact sign / painted",
+      "group": "Street furniture",
+      "size": [
+        23,
+        37
+      ],
+      "description": "A slim freestanding post and a single bold trade glyph. Shared ground anchor; no wall attachment. Interpretive game prop.",
+      "variants": [
+        "Jug",
+        "Shears",
+        "Hammer",
+        "Loaf",
+        "Boot",
+        "Jar",
+        "Bell",
+        "Fish",
+        "Book",
+        "Tea cup",
+        "Mortar",
+        "Scales",
+        "Cloth",
+        "Bath",
+        "Stage",
+        "Dice"
+      ]
+    },
+    {
+      "id": "signpost-iron",
+      "name": "Compact sign / iron",
+      "group": "Street furniture",
+      "size": [
+        23,
+        37
+      ],
+      "description": "A slim freestanding post and a single bold trade glyph. Shared ground anchor; no wall attachment. Interpretive game prop.",
+      "variants": [
+        "Jug",
+        "Shears",
+        "Hammer",
+        "Loaf",
+        "Boot",
+        "Jar",
+        "Bell",
+        "Fish",
+        "Book",
+        "Tea cup",
+        "Mortar",
+        "Scales",
+        "Cloth",
+        "Bath",
+        "Stage",
+        "Dice"
+      ]
+    },
+    {
+      "id": "signpost-lacquer",
+      "name": "Compact sign / lacquer",
+      "group": "Street furniture",
+      "size": [
+        23,
+        37
+      ],
+      "description": "A slim freestanding post and a single bold trade glyph. Shared ground anchor; no wall attachment. Interpretive game prop.",
+      "variants": [
+        "Jug",
+        "Shears",
+        "Hammer",
+        "Loaf",
+        "Boot",
+        "Jar",
+        "Bell",
+        "Fish",
+        "Book",
+        "Tea cup",
+        "Mortar",
+        "Scales",
+        "Cloth",
+        "Bath",
+        "Stage",
+        "Dice"
+      ]
+    },
+    {
+      "id": "signpost-split",
+      "name": "Compact sign / split",
+      "group": "Street furniture",
+      "size": [
+        23,
+        37
+      ],
+      "description": "A slim freestanding post and a single bold trade glyph. Shared ground anchor; no wall attachment. Interpretive game prop.",
+      "variants": [
+        "Jug",
+        "Shears",
+        "Hammer",
+        "Loaf",
+        "Boot",
+        "Jar",
+        "Bell",
+        "Fish",
+        "Book",
+        "Tea cup",
+        "Mortar",
+        "Scales",
+        "Cloth",
+        "Bath",
+        "Stage",
+        "Dice"
+      ]
+    },
+    {
+      "id": "signpost-pennant",
+      "name": "Compact sign / pennant",
+      "group": "Street furniture",
+      "size": [
+        23,
+        37
+      ],
+      "description": "A slim freestanding post and a single bold trade glyph. Shared ground anchor; no wall attachment. Interpretive game prop.",
+      "variants": [
+        "Jug",
+        "Shears",
+        "Hammer",
+        "Loaf",
+        "Boot",
+        "Jar",
+        "Bell",
+        "Fish",
+        "Book",
+        "Tea cup",
+        "Mortar",
+        "Scales",
+        "Cloth",
+        "Bath",
+        "Stage",
+        "Dice"
+      ]
+    },
+    {
+      "id": "signpost-bazaar",
+      "name": "Compact sign / bazaar",
+      "group": "Street furniture",
+      "size": [
+        23,
+        37
+      ],
+      "description": "A slim freestanding post and a single bold trade glyph. Shared ground anchor; no wall attachment. Interpretive game prop.",
+      "variants": [
+        "Jug",
+        "Shears",
+        "Hammer",
+        "Loaf",
+        "Boot",
+        "Jar",
+        "Bell",
+        "Fish",
+        "Book",
+        "Tea cup",
+        "Mortar",
+        "Scales",
+        "Cloth",
+        "Bath",
+        "Stage",
+        "Dice"
+      ]
     }
   ]
 }

@@ -1,3 +1,28 @@
+## Compact freestanding signage — September 21, 2026
+
+New worlds pin signage revision 1 and use seven small frame styles with sixteen
+shared trade/function glyphs. The 21×37px sprites replace the oversized hanging
+boards in new settlements; the panel carries one bold mark, with restrained
+edge light and no decorative clutter. Regional selection covers medieval oak,
+early-modern painted boards, industrial enamel, East Asian lacquer, Japanese
+split cloth, southern pennants and bazaar cloth. These are explicit game
+interpretations. Sacred markers remain locally scoped; camps, farms and
+ancient streets do not receive medieval hanging posts.
+
+Placement anchors at the post foot, reserves space for the panel, keeps door
+approaches clear, and spaces optional shop signs apart. Asian signs now identify
+the trade instead of randomly mixing regional boards. Civic and indoor public
+venues use functional glyphs. Existing settings and all old sprite keys remain
+available; no save migration or renderer-specific culture logic was added.
+
+Actual sprite proof: `artifacts/signage-concepts/implemented-signposts.png`.
+Browser checks cover the gallery and generated London/Beijing scenes. Oblique
+audit and prop compilation pass; no audit notes concern the new signs. The
+focused signage tests and TypeScript check pass. Full `npm test`: 576 passed,
+four failures matching the previously recorded character-stream, missing
+portable-boulder, river-fixture and wardrobe-wording failures, plus the existing
+Vitest worker-update timeout. Generated town sheets were reviewed before/after.
+
 ## Historical time travel — September 21, 2026
 
 Change your world now opens a separate time dialog: choose a date within

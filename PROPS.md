@@ -51,7 +51,38 @@ to something the plan placed. The drying rack is the worked example.
 The same three pieces — a planned object, stations that visit it, one boolean
 the engine writes — are what any other worked prop needs.
 
-### Asian street furniture
+### Compact trade signs
+
+New settings pin `signageRevision: 1`. `src/content/props/signage.ts` selects a
+small freestanding frame by place/date and a separate glyph by trade or venue.
+The seven builds are oak, painted wood, enamel on iron, lacquered vertical
+boards, split indigo cloth, pennants and fringed bazaar cloth. Sixteen shared
+hand-authored glyphs identify drinks, tailoring, metalwork, bread, shoes, pots,
+bells, fish, books, tea, pharmacy, civic assemblies, textiles, baths, stages
+and gaming. Tea and wine use compact 茶 / 酒 characters on lacquer boards.
+These are interpretive game conventions, not a catalogue of attested signs.
+
+`scripts/art/props_b/signposts.py` draws the final pixels directly: a 21×37
+silhouette, 13–15px panel, 3px post, 1px hangers and one high-contrast glyph.
+The panel gets a quiet field and lit edges rather than grain behind the mark.
+The anchor is the post foot; a one-cell right-side visual reserve protects the
+hanging panel. Signs occupy their base cell but never a door or its approach.
+They use the ordinary prop atlas and directional shadow pipeline, without
+runtime scaling or culture branches in the renderer.
+
+Most household workshops stay unsigned; eligible trade homes have a one-in-five
+chance, explicit shops may be signed, and neighboring optional signs keep four
+tiles of separation. Named indoor venues get a functional marker when supported.
+Sacred places retain their scoped existing markers; no universal religious
+shop symbol is added. Camps and farms receive no commercial signs. Ancient
+settings do not borrow the medieval post; their existing architecture and goods
+remain the cues. Old settings retain the previous selection and sprite keys.
+
+Review actual pixels with `python3 scripts/art/signpost_sheet.py`, or search
+“Compact sign” in Prop Lab. The sheet includes the current adult, native-size
+samples, enlarged details and the previous sign for comparison.
+
+### Legacy Asian street furniture
 
 Three families with one variant per region — east, south, southeast Asian:
 

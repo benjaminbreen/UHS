@@ -32,6 +32,7 @@ export function integratedSetting(s: WorldSetting): WorldSetting {
   return {
     ...s,
     characterRevision: 2,
+    signageRevision: 1,
     geographyRevision: 1,
     urbanRevision: 2,
     roadRevision: 1,

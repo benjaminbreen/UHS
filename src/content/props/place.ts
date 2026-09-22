@@ -1,4 +1,4 @@
-import type { Pack, WorldModel, WorldObject, Position } from "../../core/types";
+import type { WorldModel, WorldObject, Position } from "../../core/types";
 import { random } from "../../core/random";
 import { plantClass } from "../ecology/vegetation";
 import {
@@ -13,6 +13,14 @@ import { venueOfClaim } from "../venues";
 import bFamilies from "../../render/generated/props-b.json" with { type: "json" };
 import { buildingRoofCells } from "../graphics/models";
 
+import {
+  legacyEmblemFor,
+  legacySignFor,
+  signFor,
+  emblemFor,
+  signLabels,
+} from "./signage";
+
 const redrawn = new Set<string>(bFamilies);
 /** The one fitting a trade cannot work without. Keyed off the building's own
  * name, which is where the generator records the household's trade. */
@@ -25,184 +33,6 @@ function tradeFitting(name: string, year: number, balance: boolean) {
     return year >= -1199 ? "anvil" : undefined;
   if (/weav|loom|spin|cloth|draper|fuller/i.test(name))
     return year >= -5999 ? "loom" : undefined;
-  return undefined;
-}
-/** What a board says: the trade of the house it hangs outside.
- *
- * Seven emblems cover the shops a town has enough of to be worth drawing.
- * A house that sells nothing hangs nothing, so anything unmatched returns
- * undefined and no sign is placed. Matched against the livelihood id the
- * character generator gives the owner, and against the role label for the
- * older packs, which carry no livelihood.
- */
-const TRADE_EMBLEMS: string[][] = [
-  // Drink. Matched whole word: "swineherd" contains "wine", and a swineherd
-  // keeps no tavern.
-  [
-    "brewer",
-    "brewster",
-    "alewife",
-    "taverner",
-    "innkeeper",
-    "vintner",
-    "distiller",
-    "publican",
-    "tapster",
-    "ale",
-    "beer",
-    "wine",
-    "cider",
-    "mead",
-    "tavern",
-    "inn",
-    "alehouse",
-    "beerseller",
-  ],
-  [
-    "weaver",
-    "spinner",
-    "dyer",
-    "fuller",
-    "tailor",
-    "draper",
-    "mercer",
-    "milliner",
-    "dressmaker",
-    "seamstress",
-    "embroiderer",
-    "hatter",
-    "clothier",
-    "silk",
-    "wool",
-    "linen",
-    "cloth",
-    "weaving",
-    "felter",
-    "carder",
-  ],
-  [
-    "blacksmith",
-    "smith",
-    "farrier",
-    "armourer",
-    "armorer",
-    "cutler",
-    "founder",
-    "tinsmith",
-    "whitesmith",
-    "nailer",
-    "locksmith",
-    "forge",
-    "smithy",
-    "bladesmith",
-    "coppersmith",
-  ],
-  ["baker", "miller", "confectioner", "pastrycook", "bakehouse", "bakery"],
-  [
-    "cobbler",
-    "shoemaker",
-    "leatherworker",
-    "tanner",
-    "saddler",
-    "currier",
-    "glover",
-    "cordwainer",
-    "harness",
-    "leather",
-  ],
-  [
-    "potter",
-    "grocer",
-    "apothecary",
-    "pharmacist",
-    "chandler",
-    "spicer",
-    "merchant",
-    "shopkeeper",
-    "pedlar",
-    "peddler",
-    "fishmonger",
-    "ironmonger",
-    "salter",
-    "oilman",
-    "trader",
-    "spice",
-    "spicer",
-  ],
-];
-const TRADE_INDEX = new Map(
-  TRADE_EMBLEMS.flatMap((words, index) =>
-    words.map((word) => [word, index] as const),
-  ),
-);
-/** The venue kinds that sell something over a counter. The rest of the
- * archetypes — a school, a bath, a lodge — get the bell, which is what a
- * street hung outside anything that was not a shop. */
-const VENUE_EMBLEMS: Record<string, number> = {
-  tavern: 0,
-  "coffee-house": 5,
-  market: 5,
-};
-function emblemFor(
-  venueKind: string | undefined,
-  ...trades: (string | undefined)[]
-) {
-  if (venueKind) return VENUE_EMBLEMS[venueKind] ?? 6;
-  // In order of authority: where the generator gave the owner a livelihood
-  // that is the answer, and a generic pack role is not consulted over it.
-  for (const trade of trades) {
-    if (!trade) continue;
-    for (const word of trade.toLowerCase().split(/[^a-z]+/)) {
-      const index = word ? TRADE_INDEX.get(word) : undefined;
-      if (index !== undefined) return index;
-    }
-    return undefined;
-  }
-  return undefined;
-}
-/** Which shop sign this street hangs, if it hangs one at all.
- *
- * Signage is a market's habit, not a human universal: it wants a street of
- * premises competing for the same passer-by. A hamlet has neither, and a
- * Neolithic one has nothing to write a board in, so it gets nothing. The
- * three families are three regions' answers, and the form within each is
- * mostly the date. Where no sign was drawn, none is hung.
- */
-function signFor(pack: Pack): { key: string; form: number } | undefined {
-  const culture = pack.setting?.culture,
-    year = pack.year,
-    settlement = pack.setting?.settlement;
-  // A market village with a fair and an inn is late; before that a board
-  // belongs to a town.
-  const market =
-    settlement === "city" ||
-    settlement === "port" ||
-    (settlement === "village" && year >= 1200);
-  if (!market) return undefined;
-  if (culture === "east-asian" || culture === "southeast-asian")
-    return year >= 599
-      ? { key: "shopSign", form: culture === "east-asian" ? 0 : 2 }
-      : undefined;
-  if (culture === "south-asian")
-    return year >= 599 ? { key: "shopSign", form: 1 } : undefined;
-  // Painted shop signs are a Greek and Roman street habit; the wrought
-  // bracket and the ale-stake are the medieval town's.
-  // It stops at 1800 because what comes next is lettering, painted across
-  // the fascia by people who expect to be read. A hanging trade board on a
-  // street of shopfronts is a heritage pub, not a city.
-  if (culture === "european")
-    return year >= -299 && year < 1800
-      ? { key: "shopSignEuro", form: year >= 1100 ? 1 : 0 }
-      : undefined;
-  // A plaque where there are glazed tiles to make one; otherwise the wares
-  // hung at the front, which is what a bazaar mostly did. The pennant belongs
-  // to the caravan towns.
-  // The open-fronted shop with its stock on show is as old as the bazaar;
-  // the form is the trade's, not the century's.
-  if (culture === "north-african-west-asian")
-    return year >= -999 ? { key: "shopSignSouk", form: 0 } : undefined;
-  if (culture === "inner-eurasian")
-    return year >= 399 ? { key: "shopSignSouk", form: 0 } : undefined;
   return undefined;
 }
 /** Work premises: a spade leans here, a chest does not. */
@@ -246,7 +76,8 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
     places = new Set<string>(),
     privies: Position[] = [];
   const tech = techFor(world.pack);
-  const sign = signFor(world.pack);
+  const compactSigns = world.pack.setting?.signageRevision === 1;
+  const sign = compactSigns ? signFor(world.pack) : legacySignFor(world.pack);
   const doorway = doorwayFor(world.pack);
   const urbanPack =
     world.pack.setting?.settlement === "city" ||
@@ -503,7 +334,7 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
     }
     const bare = urbanPack ? 0.75 : 0.2;
     for (const b of world.places) {
-      if (places.has(b.id)) continue;
+      if (places.has(b.id) || b.structure) continue;
       places.add(b.id);
       // Half the buildings in a town get nothing in the yard at all. Every
       // house with its own bin and washing line is what made a street read as
@@ -583,31 +414,18 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
         index(o);
         done.add(o.id);
       }
-      // At the door: a board if the place trades, a pair of lanterns if it
-      // does not. One or the other, never both on the same frontage. A venue
-      // says which in its own row and always gets one — until each archetype
-      // has a building of its own, the mark at the door is how a tavern is
-      // told from the house beside it.
       const venue = venueOfClaim(b.claim);
       // The owner's own trade, which is what the board is for. A livelihood
       // where the generator set one, the role label where it did not.
       const owner = actorById.get(b.owner);
-      const emblem = emblemFor(
+      const emblem = (compactSigns ? emblemFor : legacyEmblemFor)(
         venue?.kind,
         owner?.origin?.livelihood,
         owner?.role,
         b.name,
       );
       if (sign || venue || doorway !== undefined) {
-        // A board goes up where there is a trade to advertise. On the
-        // European street that is the emblem's whole job, so no emblem means
-        // no board; the other families still hang one for a shop by name.
-        // Not every craftsman's house on the street put a board up, and a
-        // street where they all did is a street of wallpaper. A venue always
-        // gets its own mark; a trade house takes its chances.
-        // A fifth of the frontages, not half: most premises on any street
-        // are somebody's front room, and a board on every one of them is
-        // wallpaper again.
+        // Most household workshops stay unsigned.
         const trades =
           (emblem !== undefined && random(seed, "board", b.id) < 0.2) ||
           // Whole words: "workshop" is not a shop, and a board on every
@@ -615,13 +433,19 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
           /\b(shop|market|grocer|trader|merchant|stall|apothecary|tea)\b/i.test(
             b.name,
           );
-        // Both the European board and the souk's hung stock say a trade, so
-        // neither goes up without one. The Asian board is still keyed to the
-        // region and the date.
         const byTrade =
-          sign?.key === "shopSignEuro" || sign?.key === "shopSignSouk";
+          compactSigns ||
+          sign?.key === "shopSignEuro" ||
+          sign?.key === "shopSignSouk";
         const boardable = sign && (!byTrade || emblem !== undefined);
-        const wanted = venue
+        const nearbySign =
+          compactSigns &&
+          world.initialObjects.some(
+            (o) =>
+              o.prop?.startsWith("signpost-") &&
+              Math.hypot(o.pos.x - b.entrance.x, o.pos.y - b.entrance.y) < 4,
+          );
+        const legacyWanted = venue
           ? venue.sign === "board"
             ? boardable
               ? sign?.key
@@ -631,7 +455,7 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
               : venue.marker
                 ? "marker"
                 : undefined
-          : trades && boardable
+          : trades && boardable && !nearbySign
             ? sign?.key
             : // A doorway marker is a marker: on half the houses in a town it
               // stops telling you anything and becomes wallpaper. The variant
@@ -639,6 +463,17 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
               doorway !== undefined && random(seed, "lantern", b.id) < 0.07
               ? "doorLantern"
               : undefined;
+        const wanted = !compactSigns
+          ? legacyWanted
+          : venue?.marker
+            ? "marker"
+            : venue && !venue.open && boardable
+              ? sign.key
+              : venue?.sign === "lantern" && doorway !== undefined
+                ? "doorLantern"
+                : !venue && trades && boardable && !nearbySign
+                  ? sign.key
+                  : undefined;
         const beside = wanted
           ? [
               [1, 0],
@@ -654,7 +489,20 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
                 y: b.entrance.y + dy,
                 space: "outside" as const,
               }))
-              .find((p) => freeAtDoor(p))
+              .find(
+                (p) =>
+                  freeAtDoor(p) &&
+                  (!compactSigns ||
+                    !wanted?.startsWith("signpost-") ||
+                    (p.x !== b.entrance.x &&
+                      !world.places.some(
+                        (place) =>
+                          place.entrance.x === p.x &&
+                          Math.abs(place.entrance.y - p.y) <= 1,
+                      ) &&
+                      !occupied(p, undefined, wanted) &&
+                      !world.blocked(p.x + 1, p.y, p.space))),
+              )
           : undefined;
         if (wanted && beside) {
           const o: WorldObject = {
@@ -675,11 +523,6 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
             stamp(o, wanted);
             if (venue)
               o.description = `Hung at the door of ${venue.label.replace(/^The /, "the ")}.`;
-            // A board takes the region's script; a doorway marker takes
-            // whatever that culture and date actually hung there.
-            // The region sets the script, but not every board on a street was
-            // made by the same hand: a third take one of the other two forms, so
-            // a row of shopfronts is not one sprite repeated.
             const signForm = byTrade
               ? (emblem ?? 6)
               : random(seed, "sign-form", b.id) < 0.66
@@ -689,6 +532,10 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
               sign && wanted === sign.key
                 ? `study-propb-${propDefs[sign.key].family}-${signForm}`
                 : `study-propb-door-lantern-${doorway}`;
+          }
+          if (compactSigns && wanted.startsWith("signpost-")) {
+            o.name = `${signLabels[emblem ?? 5]} sign · ${b.name}`;
+            o.description = `A small freestanding sign beside the entrance to ${b.name}.`;
           }
           world.initialObjects.push(o);
           index(o);

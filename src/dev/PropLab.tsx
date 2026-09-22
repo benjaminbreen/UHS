@@ -238,8 +238,9 @@ export default function PropLab({ onClose }: { onClose: () => void }) {
             <span className="prop-eyebrow">ART REVIEW · ⌘2 / CTRL+2</span>
             <h1 id="prop-lab-title">Everyday objects</h1>
             <p>
-              40 shared families · 117 original pixel-art studies · choose an
-              object to inspect
+              {catalog.families.length} shared families ·{" "}
+              {catalog.families.reduce((n, f) => n + f.variants.length, 0)}{" "}
+              pixel-art variants · choose an object to inspect
             </p>
           </div>
           <button
@@ -298,7 +299,7 @@ export default function PropLab({ onClose }: { onClose: () => void }) {
                     aria-pressed={group === g}
                   >
                     {g}
-                    {g === "All" ? " · 40" : ""}
+                    {g === "All" ? ` · ${catalog.families.length}` : ""}
                   </button>
                 ),
               )}
@@ -345,7 +346,9 @@ export default function PropLab({ onClose }: { onClose: () => void }) {
             <h2>{selected.name}</h2>
             <p>{selected.description}</p>
             <div className="prop-detail-stage">
-              {compare && altFamilies.has(selected.id) && !bOnly.has(selected.id) ? (
+              {compare &&
+              altFamilies.has(selected.id) &&
+              !bOnly.has(selected.id) ? (
                 <div className="prop-ab">
                   {(["a", "b"] as const).map((set) => (
                     <figure key={set}>
