@@ -134,7 +134,7 @@ def clumps_for(rng, segs, tips, R, base_y, top_y, skirt=True):
     return out
 
 
-def paint_leaves(size, clumps, rng, R, tuft=0.37, gaps=0.1, leafy=False, shade=0.0):
+def paint_leaves(size, clumps, rng, R, tuft=0.37, gaps=0.1, leafy=False, shade=0.0, needle=False):
     W, H = size
     field = {}
     for idx, (cx, cy, r, zb, (p1, p2, a1, a2)) in enumerate(clumps):
@@ -149,7 +149,7 @@ def paint_leaves(size, clumps, rng, R, tuft=0.37, gaps=0.1, leafy=False, shade=0
                 re *= 1.12 if abs(math.cos(th)) > 0.7 else 1.0
                 if dy > 0:
                     re *= 0.86
-                d = math.hypot(dx, dy)
+                d = math.hypot(dx, dy * (1.9 if needle else 1.0))
                 if d > re:
                     continue
                 zc = math.sqrt(max(0.0, 1 - (d / re) ** 2))
@@ -181,7 +181,7 @@ def paint_leaves(size, clumps, rng, R, tuft=0.37, gaps=0.1, leafy=False, shade=0
     # drawn in three steps round it, with a dark underside and dark gaps
     # between neighbours, so the crown is crisp clusters rather than a cloud.
     tr = max(2.5, R * tuft)
-    step = tr * (1.3 if leafy else 1.45)
+    step = tr * (1.3 if leafy else 1.7 if needle else 1.45)
     tufts = []
     y = min(ys) - tr
     row = 0
@@ -203,7 +203,15 @@ def paint_leaves(size, clumps, rng, R, tuft=0.37, gaps=0.1, leafy=False, shade=0
                     continue
                 dx, dy = px + 0.5 - cx, py + 0.5 - cy
                 rib = False
-                if leafy:
+                if needle:
+                    # A flat sprig, wide and shallow, fringed underneath.
+                    re = r * (1.7 if abs(dx) > abs(dy) else 0.75)
+                    th = math.atan2(dy, dx * 0.45)
+                    re *= 1 + (0.22 * max(0.0, math.sin(th)) * math.sin(9 * th + ph))
+                    d = math.hypot(dx * 0.6, dy * 1.3)
+                    if d > re:
+                        continue
+                elif leafy:
                     # One big leaf: a pointed blade hanging out and down from
                     # the middle of the crown, with a lit midrib.
                     turn = math.atan2((cy - gy) * 0.6 + gry * 0.55, cx - gx) + (ph - 3.15) * 0.22
@@ -246,7 +254,9 @@ def paint_leaves(size, clumps, rng, R, tuft=0.37, gaps=0.1, leafy=False, shade=0
             tones[p] = max(1, b - 2)
         elif rib:
             tones[p] = min(5, b + 1)
-        elif not leafy and ny > 0.1 and dn > 0.55 and math.sin(7 * th + tufts[ti][3]) > 0.55:
+        elif needle and ny > 0.2 and dn > 0.45:
+            tones[p] = max(1, b - 1) if math.sin(11 * th + tufts[ti][3]) > 0 else max(1, b - 2)
+        elif not leafy and not needle and ny > 0.1 and dn > 0.55 and math.sin(7 * th + tufts[ti][3]) > 0.55:
             # Nicks along the hanging edge: the tuft ends in leaf points.
             tones[p] = max(1, b - 2)
         else:
@@ -367,3 +377,81 @@ def teak():
     large pale leaves, cream flower sprays standing on top."""
     return tree((88, 136), 8, 4, 10, 8, spread=0.5, leaf=TEAK_LEAF, wood=TEAK_WOOD, trunk=0.46,
                 tuft=0.62, gaps=0.2, leafy=True, blossom=('#f6efd6', '#cdc48e'), skirt=False, shade=0.1)
+
+
+PINE_LEAF = ['#0c221f', '#143a2e', '#1e5636', '#2c733a', '#3f8e42', '#62a850', '#95c26a']
+PINE_WOOD = ['#2c1a14', '#5a2f22', '#8a4a2e', '#b46b3c', '#d3925a', '#eab97c']
+
+
+def conifer(size, seed, R, umbrella=True, bare_trunk=0.42):
+    """A pine with a straight bole and whorls of limbs that bend up to carry
+    flat needle pads, an open umbrella crown when `umbrella`. Every seed is a
+    different tree: limb count, reach and pad placement all roll."""
+    W, H = size
+    rng = random.Random(seed)
+    base = (W // 2, H - 4)
+    top = 10 + rng.randrange(0, 8)
+    lean = rng.uniform(-0.08, 0.08)
+    segs = []
+    x, y, w = base[0], base[1], R * 1.05
+    pts = [(x, y)]
+    n = 5
+    for i in range(1, n + 1):
+        x += math.sin(lean) * (base[1] - top) / n + rng.uniform(-1.2, 1.2)
+        y = base[1] - (base[1] - top) * i / n
+        pts.append((x, y))
+    for i in range(n):
+        segs.append((*pts[i], *pts[i + 1], w * (1 - 0.13 * i), w * (1 - 0.13 * (i + 1)), 0))
+    pads = []
+    whorls = 3 + rng.randrange(0, 2)
+    for k in range(whorls):
+        t = bare_trunk + (0.92 - bare_trunk) * k / max(1, whorls - 1) + rng.uniform(-0.05, 0.05)
+        heavy = rng.choice((-1, 1))
+        py = base[1] - (base[1] - top) * t
+        px = pts[0][0] + (pts[-1][0] - pts[0][0]) * t
+        sides = [-1, 1] if rng.random() < 0.6 else [-1, 1, rng.choice((-0.35, 0.35))]
+        for side in sides:
+            reach = (W / 2 - R * 1.4) * (1 - 0.45 * t) * rng.uniform(0.85, 1.0 if side == heavy else 0.6)
+            rise = H * (0.2 if umbrella else 0.06) * rng.uniform(0.7, 1.2) * (1 - 0.5 * t)
+            mx, my = px + side * reach * 0.5, py - rise * 0.2
+            ex, ey = px + side * reach, py - rise
+            lw = w * 0.42 * (1 - 0.4 * t)
+            segs += [(px, py, mx, my, lw, lw * 0.75, 1), (mx, my, ex, ey, lw * 0.75, 1.4, 1)]
+            # A wide flat pad on the limb end, a smaller one half way out.
+            pads.append((ex, ey - 1, R * rng.uniform(1.0, 1.25), 1.0))
+            if reach > R * 2.2:
+                pads.append((mx + side * 3, my - 3, R * rng.uniform(0.7, 0.9), 0.5))
+    pads.append((pts[-1][0], pts[-1][1] + 3, R * rng.uniform(1.1, 1.3), 1.4))
+    im = Image.new('RGBA', size)
+    for p, t in paint_wood(size, segs, random.Random(seed + 2)).items():
+        if 1 <= p[0] < W - 1 and 1 <= p[1] < H - 1:
+            im.putpixel(p, rgb(PINE_WOOD[t]))
+    lrng = random.Random(seed + 3)
+    clumps = []
+    for x, y, r, zb in pads:
+        # Three clumps side by side make a plate, not a ball.
+        for ox in (-r * 0.9, 0, r * 0.9):
+            clumps.append((x + ox + lrng.uniform(-1, 1), y + lrng.uniform(-1, 1), r * lrng.uniform(0.85, 1.05),
+                           (y / H) * R * 2.2 + zb * R + lrng.uniform(0, R * 0.5),
+                           (lrng.uniform(0, 6.3), lrng.uniform(0, 6.3), 0.05, 0.03)))
+    tones = paint_leaves(size, clumps, lrng, R, tuft=0.48, gaps=0.05, needle=True, shade=0.22)
+    for p, t in tones.items():
+        im.putpixel(p, rgb(PINE_LEAF[t]))
+    return im
+
+
+MAPLE_LEAF = ['#22331f', '#365429', '#4f7a31', '#6f9c3a', '#95bd48', '#bcd65c', '#e0eb88']
+MAPLE_WOOD = ['#2b2320', '#4a3a33', '#6a5449', '#8c7262', '#ad927d', '#cdb59a']
+MAPLE_AUTUMN = [
+    ['#3a1a10', '#6b2414', '#a3341a', '#d04f1e', '#ee7c2a', '#f7a63a', '#fbd267'],
+    ['#3f1512', '#74201c', '#a82a22', '#d3402a', '#ea6a34', '#f39a4a', '#f8c878'],
+    ['#3d2410', '#6e3d12', '#a35d16', '#d38a1f', '#ecb22a', '#f5d24a', '#fbe98a'],
+]
+
+
+def maple(seed, autumn=None, bare=False):
+    """Acer: short trunk, broad dome, low-hanging outer boughs. Autumn ramps
+    run from a deep shadow red or brown up to a lit yellow."""
+    leaf = MAPLE_AUTUMN[autumn] if autumn is not None else MAPLE_LEAF
+    return tree((96, 112), seed, 4, 11, 9.5, spread=0.85, leaf=leaf, wood=MAPLE_WOOD, trunk=0.22,
+                tuft=0.34, gaps=0.08, bare=bare)

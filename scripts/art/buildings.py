@@ -18,6 +18,9 @@ ROOFS = {
     'shingle': ['#3b322d', '#635040', '#896b4e', '#ad8b63', '#c6a57b'],
     # Sun-bleached Mediterranean cover tiles, laid in ridges down a low slope.
     'pantile': ['#5a3224', '#96492f', '#c2653d', '#dd8a58', '#f0b184'],
+    'kawara': ['#20262a', '#353e44', '#4e5a61', '#6b7880', '#8d9aa2'],
+    'giwa': ['#2a2e30', '#474d50', '#646b6d', '#848b8b', '#a4aaa6'],
+    'bengal-tile': ['#4c2e26', '#7f4835', '#aa6849', '#cb8a61', '#e3ad7d'],
 }
 
 def recess(d,p,x,y,width,height,door=False,niche=False):
@@ -349,9 +352,11 @@ def build_buildings(root, sprites):
     from art.oblique_round import ObliqueRound
     from art.oblique_mud import ObliqueMudbrick
     from art.gold_masters import gold_master_recipes, prehistoric_expansion_recipes
+    from art.regional_houses import regional_house_recipes
     build_banner(sprites)
     recipes={**source['buildings'], **gold_master_recipes(source),
-             **prehistoric_expansion_recipes(source), **urban_recipes(root, source),
+             **prehistoric_expansion_recipes(source), **regional_house_recipes(root, source),
+             **urban_recipes(root, source),
              **religious_recipes(root, source), **theatre_recipes(root, source),
              **hall_recipes(root, source), **period_recipes(root, source)}
     for name,r in list(recipes.items()):
@@ -408,6 +413,13 @@ def build_buildings(root, sprites):
             **({'prehistoricExpansion':r['prehistoricExpansion'],
                 'goldScale':r['goldScale'],'goldVariant':r['goldVariant']}
                if r.get('prehistoricExpansion') else {}),
+            **({'regionalHouse':r['regionalHouse'],'regionalProfile':r['regionalProfile'],
+                'buildingFunction':r['buildingFunction'],'goldScale':r['goldScale'],
+                'goldVariant':r['goldVariant'],'stories':r['stories'],
+                'sideDepth':r['sideDepth'],'roofPlan':r['roofPlan'],
+                'roofSurfaces':r['roofSurfaces'],'roofAccess':r['roofAccess'],
+                **({'roofVoid':r['roofVoid']} if r.get('roofVoid') else {})}
+               if r.get('regionalHouse') else {}),
             # Cells the sprite overhangs its footprint to the right and behind,
             # so a planner can leave them clear.
             **({'oblique':True,'margins':[int(-(-(w-artist.anchor_x-r['footprint'][0]*8)//16)),

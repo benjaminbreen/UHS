@@ -17,8 +17,14 @@ OVER, VERGE = 4, 3
 SUN = (-0.58, -0.55, 0.60)
 
 
-def side_depth(footprint_depth):
-    """Side wall in screen px, from the footprint's depth in tiles."""
+def side_depth(footprint_depth, deep=False):
+    """Ordinary houses keep the settled 12px return at every footprint.
+
+    Deep landmarks may use 14/16px so a nave or hall does not collapse into a
+    strip, but a large house gains real plan depth without changing projection.
+    """
+    if not deep:
+        return 12
     return 12 if footprint_depth <= 5 else 14 if footprint_depth <= 8 else 16
 
 

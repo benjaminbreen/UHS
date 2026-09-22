@@ -141,7 +141,7 @@ import { weatherAt, type Weather } from "../core/weather";
 import { setWind } from "./wind";
 import { addPlume, type SmokeKind } from "./smoke";
 
-import { bareInWinter, driftStyle, foliageTint, namedShrub } from "./season-art";
+import { driftStyle, foliageTint, namedShrub, seasonFrame, treeVariant } from "./season-art";
 import { seasonAt } from "../core/livelihood";
 import {
   FIRE_FRAME_MS,
@@ -2544,23 +2544,28 @@ export class WorldScene extends Phaser.Scene {
                       ? "study-sheet-tree-broadleaf"
                       : `study-tree-${alternate}-${alternateTrees[alternate][1] - 1}`
                   : originalName;
-              const frame =
+              const frameAndDress =
                 spriteName === "rock"
                   ? rockFrame(
                       w.topography?.(x, y)?.habitat,
                       random(e.state.manifest.seed, "rock-art", x, y),
                     )
-                  : bareInWinter(
-                      namedShrub(
-                        spriteName,
-                        e.plantSpecies(spriteName, x, y)?.id,
+                  : seasonFrame(
+                      treeVariant(
+                        namedShrub(
+                          spriteName,
+                          e.plantSpecies(spriteName, x, y)?.id,
+                          (f) => this.textures.get("nature").has(f),
+                        ),
+                        random(e.state.manifest.seed, "tree-variant", x, y),
                         (f) => this.textures.get("nature").has(f),
                       ),
                       this.season,
                       w.pack.setting?.environment?.ecology ?? "grassland",
                       (f) => this.textures.get("nature").has(f),
                     );
-              const bare = frame !== spriteName && frame.endsWith("-bare");
+              const frame = Array.isArray(frameAndDress) ? frameAndDress[0] : frameAndDress;
+              const dressed = Array.isArray(frameAndDress) && frameAndDress[1];
               this.shadow(frame, x * 16 + 8, y * 16 + 16);
               const decoration = this.sprite(
                 frame,
@@ -2576,8 +2581,8 @@ export class WorldScene extends Phaser.Scene {
               // sprite() already carries the hour-of-day grade; the season and
               // the per-prop tone multiply into it.
               let tint = this.tint;
-              // Bare wood is already in winter dress; the grey wash is for leaves.
-              if (originalIsTree && w.pack.setting && !bare) {
+              // A drawn seasonal frame is already dressed; the wash is for the rest.
+              if (originalIsTree && w.pack.setting && !dressed) {
                 const turn = foliageTint(
                   originalName,
                   this.season,

@@ -262,7 +262,9 @@ def dry_thorn_scrub():
 def trees():
     return {
         'nature-feather-palm':feather_palm(),
-        'nature-spreading-pine':spreading_pine(),
+        'nature-spreading-pine':canopy.conifer((112,120),1,9),
+        'nature-spreading-pine-2':canopy.conifer((112,120),2,9),
+        'nature-spreading-pine-3':canopy.conifer((112,120),4,9),
         'nature-boreal-spruce':boreal_spruce(),
         'nature-sahel-thorn':sahel_thorn(),
         'nature-silver-birch':silver_birch(),

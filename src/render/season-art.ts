@@ -32,17 +32,30 @@ export function namedShrub(
   return has(named) ? named : sprite;
 }
 
-/** The leafless frame for a deciduous tree in winter, where one is drawn. */
-export function bareInWinter(
+/** One of a sprite's drawn variants (`-2`, `-3`), so a wood is not one tree
+ * stamped and mirrored. */
+export function treeVariant(
+  sprite: string,
+  roll: number,
+  has: (frame: string) => boolean,
+) {
+  const n = 1 + Math.floor(roll * 3);
+  return n > 1 && has(`${sprite}-${n}`) ? `${sprite}-${n}` : sprite;
+}
+/** The frame drawn for the season, where one exists: leafless in winter,
+ * turned in autumn. Returns the frame and whether it is already dressed, in
+ * which case no tint should be laid over it. */
+export function seasonFrame(
   sprite: string,
   season: string,
   ecology: string,
   has: (frame: string) => boolean,
-) {
-  if (season !== "winter" || ecology === "tropical-woodland" || ecology === "desert")
-    return sprite;
-  const bare = `${sprite}-bare`;
-  return turnsColour(sprite) && has(bare) ? bare : sprite;
+): [string, boolean] {
+  if (ecology === "tropical-woodland" || ecology === "desert" || !turnsColour(sprite))
+    return [sprite, false];
+  const dressed =
+    season === "winter" ? `${sprite}-bare` : season === "autumn" ? `${sprite}-autumn` : "";
+  return dressed && has(dressed) ? [dressed, true] : [sprite, false];
 }
 
 // Multiply tints, so each is read against the canopy's own green rather than

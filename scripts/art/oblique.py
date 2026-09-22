@@ -21,6 +21,7 @@ FRAME = ('#3a2a1c', '#6b4a2c', '#9a7444')
 BLOOMS = ['#e8c53a', '#d9553f', '#e9e4d2']
 # Thatch a few winters old, gone grey at the ridge.
 AGED = ['#3f3a2c', '#625a44', '#857b5e', '#a39a7a', '#c2ba9c']
+EARTH = ['#4b3b2b', '#735b42', '#9b7b58', '#bea078', '#dac39a']
 
 
 def darker(material, strong=False):
@@ -47,14 +48,38 @@ class ObliqueBuilding:
             self.p = dict(material, wall=['#594b3b', '#8a745b', '#b59a76', '#d4ba91', '#e7d0a7'], texture='stucco')
         elif self.treatment == 'ochre-geometry':
             self.p = dict(material, wall=['#574438', '#806653', '#ad8d70', '#ceb18e', '#e5cba8'], texture='stucco')
+        elif self.treatment == 'earthwash':
+            self.p = dict(material, wall=['#4d3827', '#77563a', '#a77c53', '#c79a6c', '#e1bb89'], texture='stucco')
+        elif self.treatment == 'warm-grey-wash':
+            self.p = dict(material, wall=['#373832', '#66665d', '#96958a', '#bdb9aa', '#ddd8c8'], texture='stucco')
+        elif self.treatment == 'soot-timber':
+            self.p = dict(material, wall=['#24231f', '#45423a', '#777064', '#aaa08d', '#d8cbb2'], texture='stucco')
+        elif self.treatment == 'earth-plaster':
+            self.p = dict(material, wall=['#493b2e', '#75614c', '#a18a6e', '#c1aa8b', '#ddc8aa'], texture='stucco')
+        elif self.treatment == 'red-brick':
+            self.p = dict(material, texture='brick')
+        elif self.treatment == 'grey-brick':
+            self.p = dict(material, texture='grey-brick')
         else:
             self.p = material
+        self.profile = recipe.get('regionalProfile')
+        self.accent = recipe.get('accent', '#8b3f2c')
+        self.motif = recipe.get('motifStyle', 'none')
+        self.parapet = recipe.get('parapetStyle', 'coping')
+        self.roof_style = recipe.get('roofStyle', 'western')
+        self.frame_style = recipe.get('frameStyle', 'western')
         fw, fh = recipe['footprint']
         self.tiles = fw
         self.stories = int(recipe.get('stories', 1))
-        self.frame = 'timber-frame' in recipe['attachments'] or bool(recipe.get('timber'))
+        self.frame = ('timber-frame' in recipe['attachments'] or
+                      bool(recipe.get('timber')) or
+                      self.frame_style == 'asian-post-beam')
         self.shop = 'urban-shop' in recipe['attachments']
         look = random.Random(recipe['seed'] + 31)
+        features = recipe.get('roofFeatures', [])
+        self.roof_feature = look.choice(features) if features else None
+        turrets = recipe.get('turretStyles', ['none'])
+        self.regional_turret = look.choice(turrets)
         roofs = [m for m in recipe.get('roofs', [recipe['roofMaterial']]) if m in ROOFS] or ['thatch']
         self.roof = look.choice(roofs)
         # Thatch over an upper floor is rarer than tile or shingle.
@@ -68,20 +93,25 @@ class ObliqueBuilding:
         self.lights = recipe.get('windowStyle', 'casement')
         self.stacks = recipe.get('chimneys')
         # A lean-to takes the footprint's first tile; the house is that much narrower.
-        self.lean = (recipe.get('windowStyle') != 'none' and not self.wing and not self.frontis and not recipe.get('hall') and not recipe.get('theatre')
+        self.lean = (recipe.get('windowStyle') != 'none' and not self.wing and not self.frontis and not recipe.get('hall') and not recipe.get('theatre') and not recipe.get('regionalHouse')
                      and self.stories == 1 and fw >= 4
                      and recipe['entrance'][0] >= 1 and recipe.get('facing', 'south') == 'south'
                      and look.random() < .4)
         self.fw = (fw - self.lean) * 16
         self.wh = 10 + STOREY * self.stories
-        self.sw = side_depth(fh)
+        self.sw = recipe.get('sideDepth', side_depth(fh))
         # A flat roof behind a parapet: no rise, no eave, a little more wall.
-        self.flat = recipe.get('roofForm') == 'flat'
+        self.courtyard = recipe.get('roofForm') == 'courtyard'
+        self.flat = recipe.get('roofForm') in ('flat', 'courtyard')
         self.portico = bool(recipe.get('portico')) or 'urban-colonnade' in recipe['attachments']
         if 'urban-colonnade' in recipe['attachments'] and not self.frontis: self.frontis = 'pediment'
         self.rise = 0 if self.flat else roof_rise(self.roof)
         if self.flat: self.wh += 6
         self.depth = self.sw / K
+        # Large plans need a legible roof without turning the right wall into
+        # isometric perspective. The wall remains 12px; only the roof leans
+        # farther back so courts and traversal bands can be read.
+        self.roof_depth = self.depth + min(16, max(0, fh - 4) * 2) if recipe.get('regionalHouse') else self.depth
         self.over, self.verge = (0, 0) if self.flat else (OVER, VERGE)
         self.drop = round(self.over * self.rise / (self.depth / 2))
         self.facing = recipe.get('facing', 'south')
@@ -103,8 +133,10 @@ class ObliqueBuilding:
         self.thatch = look.choice([STRAW, STRAW, ROOFS['thatch'], AGED])
 
         self.ox = 7 + 16 * self.lean
-        self.w = self.ox + self.fw + self.sw + self.verge + 4
-        self.h = self.wh + self.rise + self.sw // 2 + (34 if self.turret else 14 if self.has_chimney else 3) + 8
+        roof_return = round(self.roof_depth * K)
+        self.w = self.ox + self.fw + max(self.sw, roof_return) + self.verge + 4
+        regional_headroom = 26 if self.regional_turret != 'none' or self.roof_feature == 'windcatcher' else 0
+        self.h = self.wh + self.rise + max(self.sw // 2, roof_return) + max(regional_headroom, 34 if self.turret else 14 if self.has_chimney else 3) + 8
         self.bottom = self.h - 6
         self.door_x = self.ox + self.slot * 16 + 8
         self.anchor_x = 7 + recipe['footprint'][0] * 8
@@ -208,7 +240,10 @@ class ObliqueBuilding:
             d.line((cx - 5, y + 13, cx + 5, y + 13), fill=self.p['wall'][0])
         elif self.lights == 'shutter':
             # A small opening between painted shutters folded back on the wall.
-            paint = ('#2f5a4a', '#4a7f68') if self.r['seed'] % 3 else ('#6b3a2a', '#96573b') if self.r['seed'] % 3 == 1 else ('#34506a', '#5477a0')
+            paint = ((FRAME[0], self.accent) if self.profile else
+                     ('#2f5a4a', '#4a7f68') if self.r['seed'] % 3 else
+                     ('#6b3a2a', '#96573b') if self.r['seed'] % 3 == 1 else
+                     ('#34506a', '#5477a0'))
             d.rectangle((cx - 3, y, cx + 2, y + 9), fill='#1d2a30')
             d.rectangle((cx - 2, y + 1, cx + 2, y + 9), fill='#2f4650')
             for x0 in (cx - 6, cx + 3):
@@ -221,8 +256,80 @@ class ObliqueBuilding:
             d.rectangle((cx - 2, y - 2, cx + 1, y + 3), fill='#1d1e19')
             d.line((cx - 3, y + 4, cx + 2, y + 4), fill=self.p['wall'][4])
             d.line((cx - 3, y - 3, cx + 2, y - 3), fill=self.p['wall'][0])
+        elif self.lights in ('lattice', 'wood-lattice', 'paper-lattice', 'jali'):
+            dark, light = FRAME[0], self.accent
+            d.rectangle((cx - 5, y - 1, cx + 4, y + 10), fill=self.p['wall'][4])
+            paper = self.lights == 'paper-lattice'
+            d.rectangle((cx - 4, y, cx + 3, y + 9), fill='#ded8c6' if paper else '#24221d')
+            if self.lights == 'jali':
+                for yy in range(y + 1, y + 9, 3):
+                    for xx in range(cx - 3 + ((yy - y) // 3) % 2, cx + 4, 3):
+                        d.point((xx, yy), fill=dark); d.point((xx + 1, yy + 1), fill=light)
+            else:
+                for xx in range(cx - 3, cx + 4, 2):
+                    d.line((xx, y + 1, xx, y + 8), fill=dark if paper else light)
+                for yy in range(y + 2, y + 9, 3):
+                    d.line((cx - 4, yy, cx + 3, yy), fill=dark)
+            d.line((cx - 5, y + 11, cx + 4, y + 11), fill=self.p['wall'][0])
         else:
             self.window(d, cx - 4, y, 8, 10, box=box)
+
+    def facade_treatment(self, d, b, fw):
+        """Profile-controlled finish in quiet facade zones, behind openings."""
+        dark, shade, base, light, hi = self.p['wall']
+        if self.treatment == 'roman-red-dado':
+            d.rectangle((2, b - 18, fw - 3, b - 7), fill='#8f3c2f')
+            d.line((2, b - 19, fw - 3, b - 19), fill='#c77855')
+        elif self.treatment == 'red-earth-foot':
+            d.rectangle((2, b - 13, fw - 3, b - 7), fill='#875039')
+        elif self.treatment == 'white-band':
+            d.line((2, b - 15, fw - 3, b - 15), fill='#e4dcc4', width=2)
+        elif self.treatment == 'brick-reveal':
+            x = max(3, fw - 27)
+            d.polygon([(x, 7), (fw - 3, 5), (fw - 3, 20), (x + 6, 17)], fill='#8d5d3f')
+            for yy in range(8, 19, 4): d.line((x + 4, yy, fw - 4, yy), fill='#5c4132')
+        elif self.treatment == 'partial-limewash':
+            d.polygon([(2, 3), (fw * 2 // 3, 3), (fw * 2 // 3 - 8, b - 8), (2, b - 12)], fill=light)
+            for x in range(8, fw * 2 // 3 - 6, 13):
+                d.line((x, b - 14 - (x % 7), x + 5, b - 13 - (x % 7)), fill=base)
+        elif self.treatment == 'white-upper' and self.stories > 1:
+            split = self.floor_y(1)
+            d.rectangle((2, 3, fw - 3, split - 2), fill='#d8d3c3')
+            d.line((2, split - 1, fw - 3, split - 1), fill=shade)
+        elif self.treatment == 'dark-sill':
+            d.rectangle((2, b - 12, fw - 3, b - 7), fill='#4b4540')
+        if self.motif == 'roman-panel' or self.treatment == 'roman-ochre-panels':
+            y0, y1 = max(5, b - 27), b - 20
+            for x in range(4, fw - 8, 16):
+                d.rectangle((x, y0, min(x + 11, fw - 4), y1), outline=self.accent)
+        elif self.motif == 'key-band':
+            y = b - 17
+            for x in range(3, fw - 6, 8):
+                d.line((x, y, x + 4, y, x + 4, y + 3, x + 7, y + 3), fill=self.accent)
+        elif self.motif == 'white-geometry':
+            y = b - 16
+            for x in range(4, fw - 8, 10):
+                d.line((x, y, x + 4, y - 3, x + 8, y), fill='#e8dfc8')
+        elif self.motif == 'glazed-spandrel' and self.stories > 1:
+            y = self.floor_y(1) + 2
+            for x in range(5, fw - 7, 12):
+                d.rectangle((x, y, x + 7, y + 2), fill=self.accent)
+        elif self.motif == 'painted-border':
+            d.line((3, b - 16, fw - 4, b - 16), fill=self.accent)
+            for x in range(5, fw - 6, 12):
+                d.rectangle((x, b - 18, x + 4, b - 15), outline=self.accent)
+        elif self.motif == 'terracotta-band':
+            y = b - 17
+            for x in range(3, fw - 5, 7):
+                d.rectangle((x, y, x + 4, y + 2), fill='#9d583d')
+                d.point((x + 2, y + 1), fill='#d39a70')
+        elif self.motif == 'painted-beam':
+            y = 7
+            d.line((2, y, fw - 3, y), fill=self.accent, width=2)
+            for x in range(6, fw - 4, 16): d.rectangle((x, y - 2, x + 5, y + 1), fill='#8f493d')
+        elif self.motif == 'moon-gate-band':
+            y = b - 16
+            for x in range(5, fw - 9, 18): d.arc((x, y - 5, x + 10, y + 5), 180, 360, fill=self.accent)
 
     def window(self, d, x, y, w, h, box=False):
         d.rectangle((x - 1, y - 1, x + w + 1, y + h + 1), fill=FRAME[0])
@@ -255,6 +362,7 @@ class ObliqueBuilding:
         im, d = self.wall_face(self.fw, self.wh, self.p, True)
         b, fw = self.wh, self.fw
         dark = self.p['wall'][0]
+        self.facade_treatment(d, b, fw)
         if self.treatment == 'ochre-geometry':
             ochre = '#85402d'
             y = b - 12
@@ -280,8 +388,13 @@ class ObliqueBuilding:
             for s in range(self.stories):
                 top = 10 if s == self.stories - 1 else self.floor_y(s + 1) + 6
                 foot = rail - 1 if s == 0 else self.floor_y(s) - 1
-                for x0, x1 in [(4, 14), (fw - 5, fw - 15)]:
-                    d.line((x0, foot, x1, top), fill=TIMBER[1], width=2)
+                if self.frame_style == 'asian-post-beam':
+                    self.beam(d, 1, fw - 2, top)
+                    if foot >= top:
+                        for x in range(7, fw - 5, 16): self.post(d, x, top, foot)
+                else:
+                    for x0, x1 in [(4, 14), (fw - 5, fw - 15)]:
+                        d.line((x0, foot, x1, top), fill=TIMBER[1], width=2)
             self.beam(d, 1, fw - 2, rail)
         for s in range(self.stories):
             y = self.window_y(s)
@@ -291,7 +404,7 @@ class ObliqueBuilding:
             regular = self.lights != 'casement'
             # A large gold-master facade keeps blank wall between opening
             # groups. Filling every bay made the derived ranges read as grids.
-            planned = self.windows if self.r.get('goldMaster') or self.r.get('prehistoricExpansion') else None
+            planned = self.windows if self.r.get('goldMaster') or self.r.get('prehistoricExpansion') or self.r.get('regionalHouse') else None
             for slot in (planned if planned is not None else self.windows if s == 0 and not regular else
                          [t for t in range(self.tiles) if regular and not (s == 0 and t == self.slot)
                           and (self.lights != 'mullion' or (t - self.slot) % 3 != 2)
@@ -318,6 +431,29 @@ class ObliqueBuilding:
         d.line((x - 3, b - DOOR_H - 5, x + DOOR_W + 3, b - DOOR_H - 5), fill=FRAME[2])
         d.line((x - 3, b - DOOR_H - 2, x + DOOR_W + 3, b - DOOR_H - 2), fill=FRAME[0])
         for yy in (b - DOOR_H + 4, b - 7): d.line((x + 1, yy, x + 4, yy), fill='#1f2326')
+        if self.motif == 'door-frame':
+            d.line((x - 5, b - DOOR_H - 7, x + DOOR_W + 5, b - DOOR_H - 7), fill=self.accent, width=2)
+            d.line((x - 5, b - DOOR_H - 6, x - 5, b - 2), fill=self.accent)
+            d.line((x + DOOR_W + 5, b - DOOR_H - 6, x + DOOR_W + 5, b - 2), fill=self.accent)
+        elif self.motif == 'voussoir':
+            for k in range(6):
+                tone = self.p['foundation'][2 if k % 2 else 1]
+                d.rectangle((x - 4 + k * 3, b - DOOR_H - 7 - (k in (2, 3)) * 2,
+                             x - 2 + k * 3, b - DOOR_H - 4), fill=tone)
+        elif self.motif == 'red-gate':
+            d.rectangle((x - 3, b - DOOR_H - 4, x + DOOR_W + 3, b - 2), outline=self.accent, width=2)
+            d.rectangle((x + 1, b - DOOR_H, x + DOOR_W - 1, b - 2), fill=self.accent)
+            d.line((x + DOOR_W // 2, b - DOOR_H, x + DOOR_W // 2, b - 2), fill='#5b241f')
+            for xx in (x + 2, x + DOOR_W - 2):
+                for yy in range(b - DOOR_H + 4, b - 3, 6): d.point((xx, yy), fill='#d3a33f')
+        elif self.motif == 'noren':
+            d.rectangle((x - 2, b - DOOR_H - 4, x + DOOR_W + 2, b - DOOR_H + 5), fill=self.accent)
+            for xx in range(x + 1, x + DOOR_W + 1, 4):
+                d.line((xx, b - DOOR_H - 3, xx, b - DOOR_H + 5), fill='#243746')
+        elif self.motif in ('carved-lintel', 'painted-beam'):
+            tone = self.accent if self.motif == 'painted-beam' else FRAME[1]
+            d.rectangle((x - 5, b - DOOR_H - 7, x + DOOR_W + 5, b - DOOR_H - 4), fill=tone)
+            for xx in range(x - 3, x + DOOR_W + 4, 4): d.point((xx, b - DOOR_H - 6), fill=FRAME[2])
         return im
 
     def colonnade(self, d, b):
@@ -347,8 +483,9 @@ class ObliqueBuilding:
         wh, fw = self.wh, self.fw
         dark, shade, base, light, hi = self.p['wall']
         # Beaten earth over brushwood unless the recipe roofs in tile.
-        deck = self.p['roof'] if self.r.get('roofMaterial') in ('pantile', 'terracotta') else [dark, shade, base, light]
-        a, b_, c, e = self.proj(0, 0, wh), self.proj(fw, 0, wh), self.proj(fw, self.depth, wh), self.proj(0, self.depth, wh)
+        deck = (ROOFS['pantile'] if self.r.get('roofMaterial') == 'pantile' else
+                EARTH if self.r.get('roofMaterial') == 'earth' else self.p['roof'])
+        a, b_, c, e = self.proj(0, 0, wh), self.proj(fw, 0, wh), self.proj(fw, self.roof_depth, wh), self.proj(0, self.roof_depth, wh)
         d.polygon([a, b_, c, e], fill=deck[2])
         d.line((e[0], e[1], c[0], c[1]), fill=light)                 # far parapet, its inner face
         d.line((e[0], e[1] + 1, c[0] - 1, c[1] + 1), fill=hi); d.line((e[0] - 1, e[1] + 2, c[0] - 2, c[1] + 2), fill=shade)
@@ -359,12 +496,143 @@ class ObliqueBuilding:
         for k in range(3):
             x = a[0] + 8 + (self.r['seed'] * (k + 3)) % max(9, fw - 20)
             d.line((x, a[1] - 3, x + 3, a[1] - 3), fill=deck[1 if k % 2 else 3])
+        self.parapet_detail(d, a, b_)
+        self.roof_details(d)
+
+    def parapet_detail(self, d, a, b_):
+        """A profile's skyline vocabulary, kept below a person's knee."""
+        y, x0, x1 = a[1], a[0] + 2, b_[0] - 2
+        dark, shade, base, light, hi = self.p['wall']
+        if self.parapet == 'stepped':
+            for x in range(x0, x1, 14):
+                d.rectangle((x, y - 5, min(x + 7, x1), y), fill=base)
+                d.line((x, y - 5, min(x + 7, x1), y - 5), fill=hi)
+        elif self.parapet == 'rounded':
+            for x in range(x0 + 3, x1, 12):
+                d.ellipse((x - 3, y - 4, x + 3, y + 1), fill=base, outline=shade)
+        elif self.parapet == 'pierced':
+            d.rectangle((x0, y - 4, x1, y), fill=base)
+            for x in range(x0 + 4, x1 - 2, 8): d.rectangle((x, y - 3, x + 2, y - 1), fill=dark)
+            d.line((x0, y - 4, x1, y - 4), fill=self.accent)
+        elif self.parapet == 'screened':
+            for x in range(x0, x1, 5):
+                d.line((x, y - 6, x, y), fill=FRAME[1])
+                if x + 4 < x1: d.line((x, y - 5, x + 4, y - 1), fill=FRAME[2])
+        elif self.parapet == 'stone-coping':
+            d.line((x0, y - 2, x1, y - 2), fill=self.p['foundation'][2], width=2)
+        elif self.parapet == 'jali':
+            d.rectangle((x0, y - 5, x1, y), fill=base)
+            for x in range(x0 + 3, x1 - 2, 6):
+                d.point((x, y - 3), fill=dark); d.point((x + 1, y - 2), fill=dark)
+            d.line((x0, y - 5, x1, y - 5), fill=hi)
+
+    def roof_details(self, d):
+        feature = self.roof_feature
+        if (not feature or feature == 'plain') and self.regional_turret == 'none': return
+        x, y = self.proj(self.fw * .72, self.roof_depth * .55, self.wh)
+        dark, shade, base, light, hi = self.p['wall']
+        if self.regional_turret in ('corner-stair', 'windcatcher') or feature == 'windcatcher':
+            tall = 22 if self.regional_turret == 'windcatcher' or feature == 'windcatcher' else 13
+            d.rectangle((x - 6, y - tall, x + 5, y), fill=base, outline=dark)
+            d.line((x - 5, y - tall + 1, x - 5, y - 2), fill=hi)
+            if tall > 15:
+                d.rectangle((x - 3, y - tall + 4, x + 2, y - tall + 10), fill='#24221d')
+                d.line((x, y - tall + 4, x, y - tall + 10), fill=self.accent)
+            d.line((x - 7, y - tall - 1, x + 6, y - tall - 1), fill=hi)
+            return
+        if feature in ('shade-frame', 'palm-screen'):
+            cloth = '#b88a50' if feature == 'shade-frame' else '#8f7b4f'
+            for dx in (-10, 10): d.line((x + dx, y - 12, x + dx, y), fill=FRAME[1])
+            d.polygon([(x - 11, y - 13), (x + 9, y - 13), (x + 12, y - 9), (x - 8, y - 9)], fill=cloth)
+            d.line((x - 11, y - 13, x + 9, y - 13), fill='#d4b27a')
+        elif feature == 'laundry':
+            d.line((x - 11, y - 11, x - 11, y), fill=FRAME[1]); d.line((x + 11, y - 11, x + 11, y), fill=FRAME[1])
+            d.line((x - 11, y - 10, x + 11, y - 8), fill=FRAME[2])
+            for dx, colour in ((-7, '#ded4b7'), (-1, self.accent), (6, '#746b56')):
+                d.rectangle((x + dx, y - 9, x + dx + 4, y - 4), fill=colour)
+        elif feature in ('water-jars', 'terracotta-pots', 'roof-jars'):
+            for dx in (-6, 0, 6):
+                d.ellipse((x + dx - 2, y - 6, x + dx + 2, y), fill='#9c5938', outline='#533426')
+        elif feature == 'ridge-finials':
+            for dx in (-9, 9):
+                d.line((x + dx, y - 8, x + dx, y - 2), fill=FRAME[0], width=2)
+                d.point((x + dx + (1 if dx > 0 else -1), y - 9), fill=self.accent)
+        else:
+            d.rectangle((x - 5, y - 3, x + 5, y + 1), fill=shade, outline=dark)
+            d.line((x - 3, y - 3, x + 3, y - 3), fill=hi)
+
+    def courtyard_top(self, d):
+        """A continuous roof ring around a legible open court."""
+        wh, fw = self.wh, self.fw
+        dark, shade, base, light, hi = self.p['wall']
+        tiled_court = self.r.get('roofPlan') == 'tiled-courtyard'
+        deck = (ROOFS.get(self.r.get('roofMaterial')) if tiled_court else
+                ROOFS['pantile'] if self.r.get('roofMaterial') == 'pantile' else
+                EARTH if self.r.get('roofMaterial') == 'earth' else self.p['roof'])
+        a, b_, c, e = self.proj(0, 0, wh), self.proj(fw, 0, wh), self.proj(fw, self.roof_depth, wh), self.proj(0, self.roof_depth, wh)
+        d.polygon([a, b_, c, e], fill=deck[2])
+        if tiled_court:
+            # Long pan-and-cover channels make the four ranges read as roofs,
+            # while the court below erases their crossing lines.
+            for x in range(4, fw, 5):
+                p0, p1 = self.proj(x, 0, wh), self.proj(x, self.roof_depth, wh)
+                d.line((p0, p1), fill=deck[1])
+                d.point((p0[0] + 1, p0[1]), fill=deck[4])
+            for y in range(3, round(self.roof_depth), 5):
+                p0, p1 = self.proj(0, y, wh), self.proj(fw, y, wh)
+                d.line((p0, p1), fill=deck[3])
+        cx, cy, cw, ch = self.r['courtyard']
+        fh = self.r['footprint'][1]
+        depth_y = lambda tile: self.roof_depth * tile / fh
+        ia = self.proj(cx * 16, depth_y(cy), wh)
+        ib = self.proj((cx + cw) * 16, depth_y(cy), wh)
+        ic = self.proj((cx + cw) * 16, depth_y(cy + ch), wh)
+        ie = self.proj(cx * 16, depth_y(cy + ch), wh)
+        if tiled_court:
+            # Four ridge lines divide the ring into inward and outward slopes.
+            mid = lambda p, q: ((p[0] + q[0]) // 2, (p[1] + q[1]) // 2)
+            for p, q in ((mid(a, ia), mid(b_, ib)),
+                         (mid(e, ie), mid(c, ic)),
+                         (mid(a, ia), mid(e, ie)),
+                         (mid(b_, ib), mid(c, ic))):
+                d.line((p, q), fill=deck[0], width=2)
+                d.line((p[0], p[1] - 1, q[0], q[1] - 1), fill=deck[4])
+        court = '#55442f' if self.profile and self.profile.startswith('roman-') else '#8a704d'
+        d.polygon([ia, ib, ic, ie], fill=court)
+        # Inner walls establish the drop without filling the court with noise.
+        d.polygon([ia, ib, (ib[0], ib[1] + 7), (ia[0], ia[1] + 7)], fill=shade)
+        d.line((ia[0], ia[1], ib[0], ib[1]), fill=hi)
+        d.polygon([ib, ic, (ic[0], ic[1] + 5), (ib[0], ib[1] + 7)], fill=dark)
+        if self.profile and self.profile.startswith('roman-'):
+            # Impluvium and column hints make the court a room-sized void, not
+            # a decorative hole in a single roof slab.
+            mx = (ia[0] + ib[0] + ic[0] + ie[0]) // 4
+            my = (ia[1] + ib[1] + ic[1] + ie[1]) // 4 + 3
+            d.rectangle((mx - 7, my - 2, mx + 7, my + 2), fill='#53717a', outline='#c8b991')
+            for px, py in (ia, ib, ic, ie):
+                d.rectangle((px - 1, py, px + 1, py + 4), fill=self.p['foundation'][2])
+        # Broad, quiet roof bands remain unmistakable traversal space.
+        d.line((a[0], a[1], b_[0], b_[1]), fill=deck[min(3, len(deck) - 1)], width=2)
+        d.line((e[0], e[1], c[0], c[1]), fill=deck[min(3, len(deck) - 1)])
+        if tiled_court:
+            d.line((a[0] - 3, a[1] + 2, b_[0] + 3, b_[1] + 2), fill=deck[0], width=2)
+            for x in range(a[0], b_[0], 4): d.point((x, a[1] + 3), fill=deck[3])
+            for x in (a[0] - 3, b_[0] + 3):
+                d.line((x, a[1] + 1, x + (-3 if x < a[0] else 3), a[1] - 2), fill=deck[4], width=2)
+        if self.r.get('roofMaterial') == 'pantile':
+            for x in range(a[0] + 4, b_[0] - 3, 6):
+                d.line((x, a[1] - 1, x + 2, a[1] + 2), fill=deck[1])
+        self.parapet_detail(d, a, b_)
+        self.roof_details(d)
 
     def arches(self, d, b):
         """An open ground floor: the market stands under the hall."""
         dark, shade, base, light, hi = self.p['wall']
         for t in range(self.tiles):
             x = t * 16 + 2
+            if self.r.get('regionalHouse') == 'roman-insula' and t % 3 == 2:
+                self.window(d, x + 2, b - 21, 7, 9)
+                continue
             if self.frame:
                 d.rectangle((x, b - 25, x + 11, b - 6), fill='#1d1e19')
                 d.line((x, b - 25, x + 3, b - 21), fill=TIMBER[1], width=2)
@@ -378,7 +646,7 @@ class ObliqueBuilding:
 
     def side(self):
         """Wall and gable as one sheet; the apex sits over the middle column."""
-        mat = darker(self.p, bool(self.r.get('goldMaster') or self.r.get('prehistoricExpansion')))
+        mat = darker(self.p, bool(self.r.get('goldMaster') or self.r.get('prehistoricExpansion') or self.r.get('regionalHouse')))
         top, sw = self.rise, self.sw
         im, d = self.wall_face(sw, self.wh + top, mat, False)
         b = self.wh + top
@@ -386,7 +654,7 @@ class ObliqueBuilding:
         mid = int(half)
         if self.frame:
             for x in (0, sw - 3): self.post(d, x, top, b - 6)
-            self.post(d, mid - 1, 4, top)
+            if top > 4: self.post(d, mid - 1, 4, top)
             self.beam(d, 0, sw, top)
             self.beam(d, 0, sw, b - 28)
             for s in range(1, self.stories): self.beam(d, 0, sw, top + self.floor_y(s))
@@ -433,7 +701,20 @@ class ObliqueBuilding:
                 d.line((x, rows, x, rows + hang), fill=pal[2] if h2(x, 1) % 3 else pal[1])
                 d.point((x, rows + hang), fill=pal[0])
                 if hang: d.point((x, rows + hang - 1), fill=pal[1])
-        elif self.roof == 'pantile':
+        elif self.roof_style in ('chinese', 'kawara', 'giwa'):
+            d.rectangle((0, 0, width, rows), fill=pal[1])
+            for x in range(-2, width + 2, 4):
+                d.rectangle((x, 0, x + 1, rows), fill=pal[2])
+                d.line((x + 2, 0, x + 2, rows), fill=pal[0])
+                d.line((x + 3, 0, x + 3, rows), fill=pal[3])
+            for y in range(4, rows, 5):
+                d.line((0, y, width, y), fill=pal[0])
+                d.line((0, y + 1, width, y + 1), fill=pal[3])
+            d.rectangle((0, 0, width, 2), fill=pal[0])
+            d.line((0, 0, width, 0), fill=pal[4])
+            d.line((0, rows, width, rows), fill=pal[0], width=2)
+            for x in range(1, width, 4): d.point((x, rows + 2), fill=pal[3])
+        elif self.roof == 'pantile' or self.roof_style in ('bengal', 'malabar'):
             # Cover tiles in ridges down the slope, broken by the tile ends.
             for x in range(width):
                 k = x % 4
@@ -461,6 +742,37 @@ class ObliqueBuilding:
             d.rectangle((0, rows, width, rows + 2), fill=(0, 0, 0, 0))
             d.line((0, rows, width, rows), fill=pal[1]); d.line((0, rows + 1, width, rows + 1), fill=pal[0])
         return im
+
+    def regional_roof_trim(self, d, pal, lx, ex, ey, rx, ry, roof_width):
+        """Profile-specific eaves and ridges after the common roof projection."""
+        style = self.roof_style
+        if style not in ('chinese', 'kawara', 'giwa', 'bengal', 'malabar'):
+            return
+        right = lx + roof_width - 1
+        if style in ('chinese', 'kawara', 'giwa'):
+            d.line((lx, ey + 1, right, ey + 1), fill=pal[0], width=2)
+            for x in range(lx + 2, right - 1, 4):
+                d.point((x, ey + 3), fill=pal[3]); d.point((x + 1, ey + 2), fill=pal[1])
+            lift = 4 if style == 'giwa' else 3
+            d.line((lx, ey + 1, lx - 4, ey - lift), fill=pal[3], width=2)
+            d.line((right, ey + 1, right + 4, ey - lift), fill=pal[3], width=2)
+            ridge_x = lx + (rx - ex)
+            d.line((ridge_x, ry - 1, ridge_x + roof_width - 1, ry - 1), fill=pal[0], width=3)
+            d.line((ridge_x + 1, ry - 3, ridge_x + roof_width - 2, ry - 3),
+                   fill='#e0d8c3' if style == 'giwa' else pal[3])
+            for x in (ridge_x + 1, ridge_x + roof_width - 2):
+                d.line((x, ry - 7, x, ry - 2), fill=pal[0], width=2)
+                d.point((x + (1 if x > ridge_x + roof_width // 2 else -1), ry - 8), fill=self.accent)
+            if self.roof_feature == 'roof-jars':
+                for dx in (-8, 0, 8):
+                    x = ridge_x + roof_width * 3 // 4 + dx
+                    d.ellipse((x - 2, ry - 7, x + 2, ry - 2), fill='#8f4932', outline='#4f3026')
+        else:
+            mid = (lx + right) // 2
+            droop = 3 if style == 'bengal' else 1
+            d.line((lx - 3, ey - 1, mid, ey + droop, right + 3, ey - 1), fill=pal[0], width=2)
+            d.line((lx - 2, ey - 3, mid, ey + droop - 2, right + 2, ey - 3), fill=pal[3])
+            for x in range(lx, right, 4): d.point((x, ey + droop + 1), fill=pal[1])
 
     # -- assembly -----------------------------------------------------------
 
@@ -641,7 +953,7 @@ class ObliqueBuilding:
 
         pal = self.thatch if self.roof == 'thatch' else ROOFS[self.roof]
         if self.flat:
-            self.flat_top(d)
+            self.courtyard_top(d) if self.courtyard else self.flat_top(d)
             if self.has_chimney: self.chimney(fw * .7)
             else:
                 # The hearth vents through a hole in the roof deck.
@@ -667,6 +979,7 @@ class ObliqueBuilding:
         for r in range(roof.height):
             shift = round((rows - 1 - min(r, rows - 1)) * lean / (rows - 1))
             im.alpha_composite(roof.crop((0, r, roof.width, r + 1)), (lx + shift, ry + r))
+        self.regional_roof_trim(d, pal, lx, ex, ey, rx, ry, roof.width)
         d.line((ex - 1, ey - 1, rx - 1, ry), fill=pal[3])
 
         if self.wing: self.cross_wing(pal)

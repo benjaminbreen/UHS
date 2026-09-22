@@ -47,7 +47,7 @@ class ObliqueChurch:
         self.th = recipe['towerHeight']
         self.nave_h = recipe['naveHeight']
         self.chancel_h = self.nave_h - 12
-        self.sw = side_depth(fh)
+        self.sw = side_depth(fh, deep=True)
         self.rise = 26
         self.tower_side = 12
         self.set_back = 16

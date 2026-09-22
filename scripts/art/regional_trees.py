@@ -1,6 +1,7 @@
 """Original regional growth forms for the biome colourways. Integer pixels, no
 imported image pixels. Same crown/branch vocabulary as nature_trees."""
 from PIL import Image, ImageDraw
+from art import canopy
 import math
 import random
 from art.nature_trees import canvas, branch, crown, BARK
@@ -207,6 +208,14 @@ def regional_trees():
         'nature-saguaro': saguaro(),
         'nature-larch': larch(),
         'nature-juniper': juniper(),
-        'nature-maple': maple(),
+        'nature-maple': canopy.maple(1),
+        'nature-maple-2': canopy.maple(2),
+        'nature-maple-3': canopy.maple(3),
+        'nature-maple-autumn': canopy.maple(1, autumn=0),
+        'nature-maple-2-autumn': canopy.maple(2, autumn=1),
+        'nature-maple-3-autumn': canopy.maple(3, autumn=2),
+        'nature-maple-bare': canopy.maple(1, bare=True),
+        'nature-maple-2-bare': canopy.maple(2, bare=True),
+        'nature-maple-3-bare': canopy.maple(3, bare=True),
         'nature-mangrove': mangrove(),
     }
