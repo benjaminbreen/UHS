@@ -8,7 +8,7 @@ import { wearSlots } from "../core/character";
 import { parseCloth } from "../content/characters/wardrobe/cloth";
 import type { Expression } from "../render/portraits/constructed";
 
-export type DialogueLine = { speaker: "npc" | "player"; text: string };
+export type DialogueLine = { speaker: "npc" | "player"; text: string; original?: string };
 export type DialogueGift = {
   name: string;
   description: string;
@@ -45,9 +45,13 @@ function playerPresence(runtime: Runtime) {
     .filter(Boolean) as string[];
   const body = worn.body ? parseCloth(worn.body) : undefined;
   const quality = body?.cloth.quality ?? 0;
+  // Shoes alone used to read as "in worn, poor clothes", so a naked stranger
+  // got a shrug. No body garment is nakedness, whatever else is on.
   const dress = !pieces.length
-    ? "wearing nothing at all"
-    : `${DRESS[Math.max(0, Math.min(4, quality + 1))]}: ${pieces.slice(0, 5).join(", ")}`;
+    ? "stark naked"
+    : !worn.body && !worn.over
+      ? `naked but for ${pieces.slice(0, 5).join(", ")}, genitals and all on show`
+      : `${DRESS[Math.max(0, Math.min(4, quality + 1))]}: ${pieces.slice(0, 5).join(", ")}`;
   const carried = p.held
     ? engine.state.objects.find((o) => o.id === p.held)
     : undefined;
@@ -158,6 +162,7 @@ export async function dialogueTurn(
   input: string,
   history: DialogueLine[],
   signal?: AbortSignal,
+  realLanguage = false,
 ) {
   const actor = runtime.engine.state.actors.find((candidate) => candidate.id === actorId);
   if (!actor) return { text: "", error: "That person is no longer here." };
@@ -176,10 +181,11 @@ export async function dialogueTurn(
       method: "POST",
       signal,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ user }),
+      body: JSON.stringify({ user, realLanguage }),
     });
     const data = (await response.json()) as {
       text?: string;
+      original?: string;
       error?: string;
       receive?: DialogueGift;
       regard?: number;
@@ -197,7 +203,7 @@ export async function dialogueTurn(
           `${data.tokens?.out ?? 0} out (${data.tokens?.reasoning ?? 0} reasoning)`,
       );
     if (!response.ok || !data.text) return { text: "", error: data.error ?? "The conversation is unavailable." };
-    return { text: data.text.trim(), receive: data.receive, regard: data.regard, mood: data.mood, error: undefined };
+    return { text: data.text.trim(), original: data.original?.trim() || undefined, receive: data.receive, regard: data.regard, mood: data.mood, error: undefined };
   } catch (cause) {
     // An abort is the player closing the conversation, not a failure.
     if (cause instanceof DOMException && cause.name === "AbortError")

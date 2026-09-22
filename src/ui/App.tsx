@@ -52,6 +52,7 @@ import { describedRegionAt } from "../content/geography/region-label";
 import { WeatherPanel } from "./WeatherPanel";
 import { sexFromName } from "../content/characters/name-sex";
 import { AudioDirector } from "../audio/director";
+import { ambienceFor } from "../audio/ambience";
 const AudioLab = lazy(() =>
   import("../dev/AudioLab").then((m) => ({ default: m.AudioLab })),
 );
@@ -82,6 +83,7 @@ const RESIZE_SETTLE_MS = 250;
 import { narratorProvider, PROVIDER_KEY } from "../narrator/turn";
 import { NarratorPanel, turnTime } from "./NarratorPanel";
 import { DialogueModal } from "./DialogueModal";
+import { setRealLanguage, useRealLanguage } from "./real-language";
 import { VitalsOverlay } from "./VitalsOverlay";
 import { markEvent, vitalsEnabled, watchGame } from "../runtime/vitals";
 import { WorldScene } from "../render/WorldScene";
@@ -146,7 +148,6 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
     setAudio(director);
     return () => director.dispose();
   }, []);
-  useEffect(() => audio?.updateWorld(obs.clock), [audio, obs.clock]);
   const [restOpen, setRestOpen] = useState(false);
   const [modal, setModal] = useState<
     | "time"
@@ -196,6 +197,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
     setNarratorError(turn.error ?? "");
   };
   const [settingsTab, setSettingsTab] = useState("Display");
+  const realLanguage = useRealLanguage();
   const [error, setError] = useState("");
   const [note, setNote] = useState("");
   const [command, setCommand] = useState("");
@@ -480,6 +482,65 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
     obs.clock,
   );
   const lighting = lightingAt(obs.clock).id;
+  // Environmental sound. Recomputed on the tile, not the pixel: the beds glide
+  // over seconds, so a finer reading would only cost work.
+  const tileX = Math.floor(p.pos.x),
+    tileY = Math.floor(p.pos.y);
+  const ambience = useMemo(() => {
+    const world = runtime.engine.world;
+    const cell = world.topography?.(tileX, tileY);
+    const near = (a: { x: number; y: number }) =>
+      Math.hypot(a.x - p.pos.x, a.y - p.pos.y);
+    const town = world.settlements.reduce<{ d: number; size: number }>(
+      (best, s) => (near(s) < best.d ? { d: near(s), size: s.size } : best),
+      { d: Infinity, size: 0 },
+    );
+    return ambienceFor({
+      weather,
+      indoors: p.pos.space !== "outside",
+      fireDistance: Math.min(
+        ...obs.objects
+          .filter(
+            (o) =>
+              o.kind === "fire" &&
+              !o.broken &&
+              !o.submerged &&
+              o.pos.space === p.pos.space,
+          )
+          .map((o) => near(o.pos)),
+        Infinity,
+      ),
+      water: cell?.waterVisual
+        ? { kind: cell.waterVisual.kind, distance: cell.waterVisual.distance }
+        : undefined,
+      townDistance: town.d,
+      townSize: town.size,
+      peopleNear: obs.actors.filter(
+        (a) =>
+          a.kind === "human" && a.pos.space === p.pos.space && near(a.pos) <= 12,
+      ).length,
+      night: lighting === "night",
+      season: season.id,
+      climate: setting?.climate ?? "temperate",
+      hour: obs.clock / 3600 - Math.floor(obs.clock / 86400) * 24,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    runtime,
+    tileX,
+    tileY,
+    p.pos.space,
+    obs.objects,
+    obs.actors,
+    weather.condition,
+    weather.wind.strength,
+    weather.tempC,
+    lighting,
+    season.id,
+    setting?.climate,
+    hour,
+  ]);
+  useEffect(() => audio?.setScene(ambience), [audio, ambience]);
   const regionLabel =
     (setting && describedRegionAt(setting.lon, setting.lat)?.label) ||
     setting?.location ||
@@ -2057,6 +2118,14 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
                       <option value="gemini">Gemini 3.5 Flash-Lite</option>
                     </select>
                   </div>
+                  <label className="settings-row">
+                    <span>Real language (experimental)</span>
+                    <input
+                      type="checkbox"
+                      checked={realLanguage}
+                      onChange={(e) => setRealLanguage(e.target.checked)}
+                    />
+                  </label>
                 </div>
                 <div
                   role="tabpanel"

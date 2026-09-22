@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { Send, X } from "lucide-react";
+import { Languages, Send, X } from "lucide-react";
+import { setRealLanguage, useRealLanguage } from "./real-language";
 import { sexFromName } from "../content/characters/name-sex";
 import type { Runtime } from "../runtime/session";
 import { dialogueTurn, type DialogueGift, type DialogueLine } from "../narrator/dialogue";
@@ -12,9 +13,35 @@ import { gameAudio } from "../audio/director";
 import type { CueKind } from "../core/combat";
 import { regardCue, regardLabel, regardNotches, REGARD_NOTCHES } from "../core/regard";
 
+/** A line spoken in its own language. A click fades to the English and back. */
+function Glossed({ line }: { line: DialogueLine }) {
+  const [english, setEnglish] = useState(false);
+  if (!line.original) return <>{line.text}</>;
+  return (
+    <span
+      className="dialogue-glossed"
+      data-english={english || undefined}
+      role="button"
+      tabIndex={0}
+      title={english ? "Show original" : "Show English"}
+      onClick={() => setEnglish(!english)}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          setEnglish(!english);
+        }
+      }}
+    >
+      <span lang="und" aria-hidden={english}>{line.original}</span>
+      <span aria-hidden={!english}>{line.text}</span>
+    </span>
+  );
+}
+
 /** What the other person is saying, arriving as speech does. A click shows
  * the rest at once. */
-function SpokenLine({ text, heard, onSpeaking, onLetter }: { text: string; heard: Set<string>; onSpeaking: (speaking: boolean) => void; onLetter: (letter: string) => void }) {
+function SpokenLine({ line, heard, onSpeaking, onLetter }: { line: DialogueLine; heard: Set<string>; onSpeaking: (speaking: boolean) => void; onLetter: (letter: string) => void }) {
+  const text = line.original ?? line.text;
   // Opening the reply box redraws the line; it has been said once already.
   const typed = useTypewriter(text, heard.has(text), true, onLetter);
   useEffect(() => {
@@ -22,8 +49,9 @@ function SpokenLine({ text, heard, onSpeaking, onLetter }: { text: string; heard
     onSpeaking(!typed.done);
     return () => onSpeaking(false);
   }, [typed.done, onSpeaking, heard, text]);
+  if (typed.done) return <p className="dialogue-line npc"><Glossed line={line} /></p>;
   return (
-    <p className="dialogue-line npc" onClick={typed.skip} data-typing={!typed.done || undefined}>
+    <p className="dialogue-line npc" onClick={typed.skip} data-typing>
       {typed.text}
       {/* Holds the line's full height from the first letter, so nothing below it jumps. */}
       <span className="dialogue-unspoken" aria-hidden="true">{text.slice(typed.text.length)}</span>
@@ -64,6 +92,10 @@ export function DialogueModal({ runtime, actorId, onClose }: { runtime: Runtime;
   const scrollRef = useRef<HTMLDivElement>(null);
   const abort = useRef<AbortController>(null);
   const latest = history.at(-1);
+  const realLanguage = useRealLanguage();
+  // Read at request time, so toggling mid-conversation takes effect on the next line.
+  const realRef = useRef(realLanguage);
+  realRef.current = realLanguage;
 
   const commitGift = (gift?: DialogueGift) => {
     if (!gift) return;
@@ -119,14 +151,14 @@ export function DialogueModal({ runtime, actorId, onClose }: { runtime: Runtime;
   useEffect(() => {
     const controller = new AbortController();
     abort.current = controller;
-    void dialogueTurn(runtime, actorId, "", [], controller.signal).then((result) => {
+    void dialogueTurn(runtime, actorId, "", [], controller.signal, realRef.current).then((result) => {
       if (controller.signal.aborted) return;
       setBusy(false);
       if (result.error) setError(result.error);
       else {
         setMood(result.mood);
         commitGift(result.receive);
-        say(() => setHistory([{ speaker: "npc", text: result.text }]));
+        say(() => setHistory([{ speaker: "npc", text: result.text, original: result.original }]));
       }
     });
     // Closing the conversation stops the request rather than paying for a
@@ -172,7 +204,7 @@ export function DialogueModal({ runtime, actorId, onClose }: { runtime: Runtime;
     setError("");
     const controller = new AbortController();
     abort.current = controller;
-    const result = await dialogueTurn(runtime, actorId, text, next, controller.signal);
+    const result = await dialogueTurn(runtime, actorId, text, next, controller.signal, realRef.current);
     if (controller.signal.aborted) return;
     setBusy(false);
     if (result.error) setError(result.error);
@@ -180,7 +212,7 @@ export function DialogueModal({ runtime, actorId, onClose }: { runtime: Runtime;
       setMood(result.mood);
       commitExchange(text, result.regard);
       commitGift(result.receive);
-      say(() => setHistory([...next, { speaker: "npc", text: result.text }]));
+      say(() => setHistory([...next, { speaker: "npc", text: result.text, original: result.original }]));
     }
   };
   const close = () => {
@@ -190,6 +222,15 @@ export function DialogueModal({ runtime, actorId, onClose }: { runtime: Runtime;
   return (
     <section className={`modal modal-dialogue${responding ? " is-responding" : ""}`} role="dialog" aria-modal="true" aria-label={`Conversation with ${actor.name}`}>
       <button className="close-modal icon-button" aria-label="Close conversation" onClick={close}><X size={20} /></button>
+      <button
+        className="dialogue-language icon-button"
+        aria-pressed={realLanguage}
+        aria-label="Real language mode"
+        title={realLanguage ? "Real language: on (click a line for English)" : "Real language: off"}
+        onClick={() => setRealLanguage(!realLanguage)}
+      >
+        <Languages size={18} />
+      </button>
       <div className="dialogue-heading">
         <div className="dialogue-face">
           <div className="dialogue-portrait" data-took={took && !calm() ? took.cue : undefined}><CharacterSprite appearance={appearance} portrait age={actor.age ?? 30} speaking={speaking} expression={expression} viseme={viseme} /></div>
@@ -226,12 +267,12 @@ export function DialogueModal({ runtime, actorId, onClose }: { runtime: Runtime;
         {responding
           ? history.map((line, index) =>
               line.speaker === "npc" && index === history.length - 1 ? (
-                <SpokenLine key={`${index}-${line.text}`} text={line.text} heard={heard} onSpeaking={setSpeaking} onLetter={mouth} />
+                <SpokenLine key={`${index}-${line.text}`} line={line} heard={heard} onSpeaking={setSpeaking} onLetter={mouth} />
               ) : (
-                <p className={`dialogue-line ${line.speaker}`} key={`${index}-${line.text}`}>{line.text}</p>
+                <p className={`dialogue-line ${line.speaker}`} key={`${index}-${line.text}`}><Glossed line={line} /></p>
               ),
             )
-          : latest && <SpokenLine key={latest.text} text={latest.text} heard={heard} onSpeaking={setSpeaking} onLetter={mouth} />}
+          : latest && <SpokenLine key={latest.text} line={latest} heard={heard} onSpeaking={setSpeaking} onLetter={mouth} />}
         {busy && <p className="dialogue-thinking"><span /><span /><span /></p>}
         {error && <p className="dialogue-error">{error}</p>}
       </div>

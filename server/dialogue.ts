@@ -9,7 +9,7 @@ const json = (body: unknown, status = 200) =>
     status,
     headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
   });
-const requestSchema = z.object({ user: z.string().min(1).max(7000) }).strict();
+const requestSchema = z.object({ user: z.string().min(1).max(7000), realLanguage: z.boolean().optional() }).strict();
 /**
  * Field order is generation order under `strict`, so the two that describe
  * how the line is taken come before the line itself: the face and the gauge
@@ -34,6 +34,8 @@ const replySchema = z.object({
     ])
     .optional(),
   regard: z.number().int().min(-1).max(1).optional(),
+  // Before the English, so the translation is of the line, not the reverse.
+  original: z.string().min(1).max(700).optional(),
   dialogue: z.string().min(1).max(500),
   receive: z.object({
     name: z.string().min(1).max(40),
@@ -50,9 +52,15 @@ const SYSTEM = `You are one historical NPC in a grounded simulation. Speak only 
 
 Judge the person in front of you before you answer them. How they are dressed, what they are carrying, and whether they are armed is the first thing you notice, and it counts for more than what they say. Local convention governs who may speak to whom, how freely and at what length: rank, sex, age, trade, faith and being a stranger all bear on it, and the conventions are those of the given place and date, never modern ones. Follow the supplied "Openness" line.
 
+React as a real person of this time and place would, not as a polite servant of the player. A naked or blood-soaked stranger, someone waving a weapon, a blasphemy, an insult to kin: these alarm, frighten, disgust or enrage people, and they show it. Shout, curse, recoil, call for help, threaten, laugh in someone's face, go cold and silent. Write it on the page: capitals for shouting, "!" for alarm, "..." and broken-off words for fear or hesitation, oaths and idiom of the period. Equally, do not manufacture drama: an ordinary exchange gets an ordinary, flat answer. Write like a great historical novelist: concrete, idiomatic, never generic.
+
 Being brief is normal and being unhelpful is allowed. A curt answer, a refusal, "...", telling them you are busy, or naming what you want from them are all truthful replies. Do not volunteer anything about your life, your family or your work unless this person has earned it or you have some reason to want them to know.
 
 Return JSON only: {"dialogue":"spoken line"}, and optionally "receive" only when the spoken line clearly hands the player one modest physical item now; an offer, request, or promise is not a handoff. For a handoff, include a plain name, short description, value 0-3, and look category. Optionally include "regard": 1 if the player's words warmed this NPC toward them, -1 if the words gave offence, 0 or omitted otherwise. Set "mood" to the face this NPC wears while saying the line: angry or stern if the player gave offence, smile, happy or laugh if the words pleased them, and surprised, sad, worried, thoughtful, wry, tired or neutral where those fit what is said. The face and the line must agree.`;
+
+const REAL_LANGUAGE = `
+
+Real language mode is on. Also set "original" to the line as this person would actually have spoken it: the language and dialect of this place, date, community and class (Old French for twelfth-century Paris, Sumerian for Ur, Classical or Vulgar Latin, Old Norse, Nahuatl, and so on). Write it in Latin letters, using the standard scholarly transliteration and diacritics for languages written in other scripts (cuneiform, Greek, Hebrew, Chinese and so on). For languages with no written record, such as a Neolithic or Proto-Indo-European speaker, give your best reconstruction from comparative linguistics, marking nothing as uncertain in the line itself. Keep the same register, oaths, shouting and punctuation as the English. "dialogue" is then a faithful English translation of "original".`;
 
 export async function dialogue(
   request: Request,
@@ -93,9 +101,9 @@ export async function dialogue(
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
       body: JSON.stringify({
         model: "gpt-5.6-luna",
-        messages: [{ role: "system", content: SYSTEM }, { role: "user", content: input.user }],
+        messages: [{ role: "system", content: input.realLanguage ? SYSTEM + REAL_LANGUAGE : SYSTEM }, { role: "user", content: input.user }],
         response_format: { type: "json_schema", json_schema: { name: "npc_dialogue", schema, strict: true } },
-        max_completion_tokens: 300,
+        max_completion_tokens: input.realLanguage ? 600 : 300,
         reasoning_effort: "none",
       }),
     });
@@ -114,6 +122,7 @@ export async function dialogue(
       result.usage?.completion_tokens_details?.reasoning_tokens ?? 0;
     return json({
       text: parsed.data.dialogue,
+      original: input.realLanguage ? parsed.data.original : undefined,
       receive: parsed.data.receive,
       regard: parsed.data.regard,
       mood: parsed.data.mood,

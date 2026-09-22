@@ -6491,3 +6491,31 @@ button:disabled {
     background: #1c2542b0;
   }
 }
+
+/* Real language mode */
+.dialogue-language {
+  position: absolute;
+  top: 16px;
+  right: 60px;
+  opacity: 0.55;
+}
+.dialogue-language[aria-pressed="true"] {
+  opacity: 1;
+  color: var(--gold, #d8b77a);
+  border-color: currentColor;
+}
+.dialogue-glossed {
+  display: inline-grid;
+  cursor: pointer;
+}
+.dialogue-glossed > span {
+  grid-area: 1 / 1;
+  transition: opacity 0.45s ease;
+}
+.dialogue-glossed > span:first-child { font-style: italic; }
+.dialogue-glossed > span:last-child,
+.dialogue-glossed[data-english] > span:first-child { opacity: 0; }
+.dialogue-glossed[data-english] > span:last-child { opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  .dialogue-glossed > span { transition: none; }
+}
