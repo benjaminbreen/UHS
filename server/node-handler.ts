@@ -1,7 +1,9 @@
+import { timeArrival } from "./time-arrival";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { worldWeaver } from "./world-weaver";
 import { narrator } from "./narrator";
 import { dialogue } from "./dialogue";
+export const handleTimeArrival = handler("/api/time-arrival", timeArrival, 6000);
 type Route = (request: Request) => Promise<Response>;
 export const handleWorldWeaver = handler(
   "/api/world-weaver",

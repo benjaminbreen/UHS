@@ -1,6 +1,6 @@
 import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
-import { handleDialogue, handleNarrator, handleWorldWeaver } from "./server/node-handler";
+import { handleTimeArrival, handleDialogue, handleNarrator, handleWorldWeaver } from "./server/node-handler";
 import { execFile } from "node:child_process";
 import { writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -23,6 +23,7 @@ export default defineConfig({
           "UHS_NARRATOR_GEMINI_MODEL",
         ])
           if (env[key] && !process.env[key]) process.env[key] = env[key];
+        server.middlewares.use("/api/time-arrival", (req, res) => { void handleTimeArrival(req, res); });
         server.middlewares.use("/api/world-weaver", (req, res) => {
           void handleWorldWeaver(req, res);
         });

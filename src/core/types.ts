@@ -148,6 +148,7 @@ export type Place = {
   owner: string;
   claim: string;
   entranceLabel: string;
+  structure?: import("./time/structure").Structure;
   /** Snapshot date; construction remains unknown until an event establishes it. */
   baselineYear?: number;
   modifiedAt?: number;
@@ -522,6 +523,7 @@ export type Observation = {
   manifest: WorldManifest;
 };
 export interface WorldModel {
+  temporal?: { origin: import("../content/geography/types").WorldSetting; year: number };
   geography?: import("./geography").WorldGeography;
   households?: Household[];
   generatorVersion?: 3;

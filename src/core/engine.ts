@@ -2749,7 +2749,7 @@ export class Engine {
     if (place) {
       const door = this.doorOf(place.id);
       const verdict = this.doorVerdict(place, "player");
-      interact(
+      if ((place.structure?.roof ?? 1) >= 0.95) interact(
         "enter",
         place.entranceLabel,
         close && !!door?.open,
@@ -2764,7 +2764,7 @@ export class Engine {
         name: place.name,
         description:
           place.description +
-          (place.access === "household" ? " This is a household space." : ""),
+          (place.access === "household" && (place.structure?.roof ?? 1) >= 0.95 ? " This is a household space." : ""),
         kind: "building",
         pos,
         claim: place.claim,

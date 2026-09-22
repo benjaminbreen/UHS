@@ -118,6 +118,8 @@ export class TerrainStream {
     if (!retained)
       first.worker.postMessage({
         pack: world.pack,
+        temporal: world.temporal,
+        ...(world.temporal ? { prepared: (world as WorldModel & { prepare?(): PreparedSettlement }).prepare?.() } : {}),
         seed,
       } satisfies TerrainRequest);
     // A retained worker may still hold the previous scene's style.
@@ -180,6 +182,7 @@ export class TerrainStream {
     this.listen(r);
     r.worker.postMessage({
       pack: this.world.pack,
+      temporal: this.world.temporal,
       seed: this.seed,
       prepared: this.prepared,
     } satisfies TerrainRequest);
@@ -601,6 +604,8 @@ export class TerrainStream {
     this.abort();
     for (const r of this.pool) r.worker.terminate();
     this.pool = [];
+    for (const key of [...this.previews.keys()]) this.dropPreview(key);
+    this.completed = [];
     for (const chunk of this.chunks.values()) this.release(chunk);
     this.chunks.clear();
   }

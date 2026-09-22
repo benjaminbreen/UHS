@@ -255,7 +255,7 @@ export const localLabels: Readonly<
     { scope: {"years":[-1000000,10001]}, label: "Apprentice Saddler" },
     { scope: {"years":[-1000000,10001]}, label: "Apprentice Miller" },
     { scope: {"years":[-1000000,10001]}, label: "Apprentice Brewer" },
-    { scope: {"years":[-1000000,10001]}, label: "Apprentice Printer" },
+    { scope: {"years":[1470,10001]}, label: "Apprentice Printer" },
     { scope: {"years":[-1000000,10001]}, label: "Apprentice Painter" },
   ],
   "journeyman": [

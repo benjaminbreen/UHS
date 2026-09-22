@@ -14,6 +14,8 @@ function build() {
     add(t.masculine, "male");
     add(t.feminine, "female");
   }
+  add(["Sergius", "Gregorius", "Stephanus", "Johannes", "Georgius", "Theodorus"], "male");
+  add(["Maria", "Anna", "Anastasia", "Theodora"], "female");
   return m;
 }
 /** Display heuristic for characters whose kit left sex unspecified. */

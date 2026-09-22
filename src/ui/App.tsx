@@ -1,3 +1,4 @@
+import { TimeModal } from "./time/TimeModal";
 import { CharacterSprite } from "./CharacterSprite";
 import { usePhoneLayout } from "./use-phone";
 import { applyFrameCap, registerGame } from "../render/frame-cap";
@@ -148,6 +149,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
   useEffect(() => audio?.updateWorld(obs.clock), [audio, obs.clock]);
   const [restOpen, setRestOpen] = useState(false);
   const [modal, setModal] = useState<
+    | "time"
     | "world"
     | "inventory"
     | "notebook"
@@ -368,6 +370,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
   };
   useEffect(() => {
     const listener = (e: KeyboardEvent) => {
+      if (runtime.timeTravelLocked) return;
       if ((e.metaKey || e.ctrlKey) && e.code === "Digit3") {
         e.preventDefault();
         if (!e.repeat) {
@@ -570,7 +573,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
         )}
         <button
           className="world-selector"
-          onClick={openWorld}
+          onClick={() => { setModal(runtime.engine.world.pack.setting ? "time" : "world"); setError(""); }}
           title="Change your world"
         >
           <i aria-hidden="true">◆</i>
@@ -1352,8 +1355,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
           Fresh world each reload · export to keep
         </span>
         <span>
-          Seed: {obs.manifest.seed} <span className="status-divider">/</span> No
-          model calls
+          Seed: {obs.manifest.seed} <span className="status-divider">/</span> Local simulation
         </span>
         <span>Click to walk · Scroll to zoom</span>
       </div>
@@ -1362,7 +1364,8 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
           <AudioLab director={audio} onClose={() => setAudioOpen(false)} />
         </Suspense>
       )}
-      {modal && modal !== "dialogue" && (
+      {modal === "time" && <TimeModal runtime={runtime} onClose={() => setModal(null)} onNewWorld={openWorld} />}
+      {modal && modal !== "dialogue" && modal !== "time" && (
         <div
           className="modal-backdrop"
           onMouseDown={(e) => {

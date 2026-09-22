@@ -1,3 +1,5 @@
+import { temporalWorld } from "../core/time/world";
+import { packForSetting } from "../content/geography/pack";
 import { coastDistance, coastBeachWidth } from "./living-water/coast";
 import type { ShorePolish } from "./living-water/polish";
 import { livingBeachWidth } from "./living-water/profile";
@@ -26,7 +28,7 @@ import {
 import type { TopographyCell } from "../core/topography";
 import { previewChunk, type TerrainPreview } from "./terrain-preview";
 export type TerrainRequest =
-  | { pack: Pack; seed: string; prepared?: PreparedSettlement }
+  | { pack: Pack; seed: string; prepared?: PreparedSettlement; temporal?: WorldModel["temporal"] }
   | { style: GroundStyle | null; living?: boolean; polish?: ShorePolish }
   | { id: string; region: TerrainRegion }
   | { previews: { id: string; region: TerrainRegion }[] };
@@ -62,7 +64,8 @@ export function handleTerrainRequest(data: TerrainRequest) {
     if ("pack" in data) {
       // Prepared geometry turns a four-second build into a one-millisecond
       // one, which is what makes a second rasterising worker affordable.
-      world = createSettlementWorld(data.pack, data.seed, data.prepared);
+      world = createSettlementWorld(data.temporal ? packForSetting(data.temporal.origin) : data.pack, data.seed, data.prepared);
+      if (data.temporal) world = temporalWorld(world, data.seed, data.temporal.origin, data.temporal.year).world;
       return;
     }
     if ("previews" in data) {

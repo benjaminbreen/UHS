@@ -1,0 +1,53 @@
+import { expect, test } from "@playwright/test";
+
+test("a historical journey preserves the original date and connects the family", async ({ page }) => {
+  test.setTimeout(240000);
+  const errors: string[] = [];
+  page.on("pageerror", e => errors.push(e.message));
+  await page.route("**/api/time-arrival", route => route.fulfill({ json: { available: false } }));
+  await page.goto("/");
+  await page.waitForFunction(() => !!(document.querySelector("#opening-prompt") as HTMLInputElement)?.value);
+  await page.getByPlaceholder("A hunter in Anatolia, 7000 BCE").fill("Naples 100 CE");
+  await page.getByRole("button", { name: "Begin", exact: true }).click();
+  await page.locator(".game-container canvas").waitFor({ timeout: 120000 });
+  const state = () => page.evaluate(() => {
+    const r = (window as any).__uhs;
+    return { year: r.engine.state.manifest.setting.year, name: r.engine.state.player.name,
+      place: r.engine.world.pack.name, pos: r.engine.state.player.pos, locked: r.timeTravelLocked };
+  });
+  const original = await state();
+  expect(original.year).toBe(100);
+  expect(original.place).toMatch(/Naples|Neapolis/);
+  await page.getByTitle("Change your world").click();
+  await page.getByLabel("Exact destination year").fill("900");
+  await page.keyboard.press("ArrowRight");
+  expect((await state()).year).toBe(100);
+  expect((await state()).pos).toEqual(original.pos);
+  await page.getByRole("button", { name: "Start", exact: true }).click();
+  await page.getByRole("button", { name: "Continue", exact: true }).waitFor({ timeout: 90000 });
+  expect((await state()).year).toBe(900);
+  expect((await state()).place).toBe("Napoli");
+  expect((await state()).locked).toBe(true);
+  await expect(page.locator(".time-person")).toContainText("generations after");
+  await page.getByRole("button", { name: "Trace your family" }).click();
+  expect(await page.locator(".time-relative").count()).toBeGreaterThan(25);
+  await page.locator(".time-relative").first().click();
+  await expect(page.locator(".time-family h1")).toHaveText(original.name);
+  await page.getByRole("button", { name: "Close time" }).click();
+  expect((await state()).locked).toBe(false);
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByTitle("Change your world").click();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.getByLabel("Exact destination year").fill("100");
+  await page.getByRole("button", { name: "Start", exact: true }).click();
+  await page.getByRole("button", { name: "Continue", exact: true }).waitFor({ timeout: 90000 });
+  expect((await state()).name).toBe(original.name);
+  expect((await state()).year).toBe(100);
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
+  await page.getByTitle("Change your world").click();
+  await page.getByRole("button", { name: "Choose another world" }).click();
+  await expect(page.getByTestId("time-modal")).toHaveCount(0);
+  await expect(page.getByRole("dialog")).toBeVisible();
+  expect(errors).toEqual([]);
+});

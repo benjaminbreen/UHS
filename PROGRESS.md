@@ -1,3 +1,37 @@
+## Historical time travel — September 21, 2026
+
+Change your world now opens a separate time dialog: choose a date within
+±1,000 years, start a day/night passage, then meet a direct ancestor or
+descendant and browse the intervening family line. New world retains its
+existing setup dialog. The transition has original synthesized sound, a
+Shakespeare quotation, keyboard isolation and reduced-motion treatment.
+
+Deterministic site incarnations retain terrain and street alignments while
+buildings are maintained, replaced or reduced to material-specific ruins.
+Surviving wall sections control collision; burial, vegetation, roof loss and
+charring are separate state. Abandoned pottery and wooden props have different
+survival periods. Eligible dated venues replace earlier institutions on
+occupied sites. Naples has sourced historical context and a scoped inferred
+name kit. Optional server-side Luna prose summarizes committed changes with a
+local fallback; it never controls history or physics. A browser review caught
+and corrected the previously unrestricted Apprentice Printer label.
+
+Time checkpoints are local to the current map and session. The family survives
+walking between maps, but local temporal checkpoints do not. Whole-settlement
+founding, growth, migration, intervention branches, durable history, weapons,
+ignition and fire spread remain future work. See TIME.md for the architecture
+and next steps. The generic ruin painter still needs partial roofs and more
+building-specific silhouettes.
+
+Validation: 10 focused tests pass; the desktop/mobile browser journey passes,
+including date selection without mutation, family browsing and restoring the
+original character. Live Luna narration was verified. Production build passes.
+The full npm test run reports 571 passes, four failures reproduced on unchanged
+HEAD, plus one world-v2 timeout and two worker-update timeouts under contention.
+The world-v2 suite passes all four tests when rerun alone. Screenshots are in
+artifacts/time-*.png. Rapid transitions also exposed a terrain-preview cleanup
+bug; disposing their images with their textures resolved the WebGL failure.
+
 ## Settlement evolution foundation — September 21, 2026
 
 New worlds now use vegetation revision 7. Trees publish an oblique canopy

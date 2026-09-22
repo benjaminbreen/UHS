@@ -1,0 +1,551 @@
+.time-veil {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  color: #e9e3d5;
+  background: rgba(9, 17, 23, 0.91);
+  backdrop-filter: blur(9px) saturate(0.45);
+  animation: time-enter 0.8s ease both;
+  overflow: auto;
+  color-scheme: dark;
+  font-family: Georgia, "Times New Roman", serif;
+}
+.time-atmosphere {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 72% 30%, #66756d19, transparent 52%),
+    radial-gradient(ellipse at 18% 82%, #9d7c5220, transparent 48%);
+}
+.time-atmosphere:before {
+  content: "";
+  position: absolute;
+  width: 90vmin;
+  height: 90vmin;
+  left: calc(50% - 45vmin);
+  top: calc(50% - 45vmin);
+  border: 1px solid #cab99c0d;
+  border-radius: 50%;
+  box-shadow:
+    0 0 120px #b6bfba04,
+    inset 0 0 120px #b6bfba04;
+  transform: rotateX(50deg) rotate(-24deg);
+}
+.time-dialog {
+  position: relative;
+  width: min(760px, 100%);
+  min-height: 640px;
+  padding: 65px 76px 40px;
+  text-align: center;
+  outline: none;
+  box-sizing: border-box;
+}
+.time-veil button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  transition:
+    color 0.2s,
+    background 0.2s,
+    opacity 0.2s;
+}
+.time-veil button:focus-visible,
+.time-veil input:focus-visible,
+.time-veil a:focus-visible {
+  outline: 1px solid #d0bf98;
+  outline-offset: 6px;
+}
+.time-veil button:hover {
+  color: #fff8e7;
+  background: transparent;
+}
+.time-veil button:disabled {
+  opacity: 0.32;
+  cursor: default;
+}
+.time-close {
+  position: absolute;
+  right: 22px;
+  top: 22px;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  opacity: 0.65;
+}
+.time-place {
+  font-size: 20px;
+  letter-spacing: 0.02em;
+  color: #b9bbaf;
+  margin-bottom: 34px;
+}
+.time-date {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 15px;
+  font-variant-numeric: lining-nums tabular-nums;
+  line-height: 1;
+}
+.time-date > span {
+  font-size: clamp(68px, 9vw, 118px);
+  font-weight: normal;
+  letter-spacing: -0.055em;
+  text-shadow: 0 0 45px #ddd1b714;
+}
+.time-date small {
+  font-size: 18px;
+  color: #aca78f;
+  letter-spacing: 0.06em;
+}
+.time-rule {
+  height: 34px;
+  position: relative;
+  margin: 18px auto 0;
+  width: 1px;
+  background: linear-gradient(transparent, #b9ae87);
+}
+.time-rule i {
+  position: absolute;
+  bottom: 0;
+  left: -2px;
+  width: 5px;
+  height: 5px;
+  background: #c3b996;
+  border-radius: 50%;
+  box-shadow: 0 0 12px #c3b99644;
+}
+.time-timeline {
+  position: relative;
+  margin: 0 -20px 24px;
+  padding-top: 22px;
+}
+.time-ticks {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 22px;
+  opacity: 0.55;
+  mask-image: linear-gradient(
+    90deg,
+    transparent,
+    #000 8%,
+    #000 92%,
+    transparent
+  );
+}
+.time-ticks i {
+  display: block;
+  width: 1px;
+  height: 7px;
+  background: #a7aa9c;
+}
+.time-ticks i.major {
+  height: 18px;
+}
+.time-timeline input {
+  position: absolute;
+  inset: 14px 0 auto;
+  width: 100%;
+  height: 34px;
+  margin: 0;
+  appearance: none;
+  background: transparent;
+  cursor: ew-resize;
+  border: 0;
+  padding: 0;
+  box-shadow: none;
+}
+.time-timeline input::-webkit-slider-runnable-track {
+  height: 1px;
+  background: #b4ad8e35;
+}
+.time-timeline input::-webkit-slider-thumb {
+  appearance: none;
+  width: 11px;
+  height: 25px;
+  border: 1px solid #e2d4ad;
+  border-radius: 1px;
+  background: #c0ac81;
+  box-shadow: 0 0 18px #bfac8240;
+  margin-top: -12px;
+}
+.time-timeline input::-moz-range-thumb {
+  width: 10px;
+  height: 23px;
+  border: 1px solid #e2d4ad;
+  border-radius: 1px;
+  background: #c0ac81;
+}
+.time-range-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 18px;
+  font-size: 12px;
+  color: #8e998f;
+  font-variant-numeric: tabular-nums;
+}
+.time-year-entry {
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 13px;
+  color: #909d96;
+}
+.time-year-entry input {
+  width: 82px;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid #9a9f8e35;
+  border-radius: 0;
+  padding: 4px;
+  text-align: center;
+  color: #c5c8b9;
+  font: inherit;
+  box-shadow: none;
+}
+.time-year-entry button {
+  font-size: 12px;
+  margin-left: 12px;
+  opacity: 0.65;
+}
+.time-year-entry button span {
+  margin-left: 5px;
+}
+.time-veil blockquote {
+  margin: 44px 0 35px;
+  font-style: italic;
+  font-size: 22px;
+  line-height: 1.55;
+  letter-spacing: 0.015em;
+  color: #c1c1b2;
+  border: 0;
+  padding: 0;
+}
+.time-veil cite {
+  display: block;
+  font-size: 11px;
+  font-style: normal;
+  letter-spacing: 0.04em;
+  color: #7e8d86;
+  margin-top: 14px;
+}
+.time-veil .time-start {
+  display: flex;
+  gap: 32px;
+  align-items: center;
+  justify-content: center;
+  margin: 30px auto 24px;
+  padding: 14px 24px;
+  min-width: 180px;
+  border-top: 1px solid #b5a17a70;
+  border-bottom: 1px solid #b5a17a35;
+  font-size: 18px;
+  letter-spacing: 0.02em;
+  color: #e3d5b4;
+}
+.time-veil .time-start:hover:not(:disabled) {
+  background: #c4b0800b;
+  border-color: #d1bf9380;
+}
+.time-other {
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+}
+.time-other button {
+  font-size: 12px;
+  color: #a2aba1;
+  padding: 10px 0;
+}
+.time-error {
+  font: 13px/1.5 system-ui;
+  color: #e7b5a1;
+}
+.time-prepare,
+.time-travel {
+  background: rgba(8, 15, 21, 0.22);
+  backdrop-filter: saturate(0.7);
+  transition:
+    background 1.2s,
+    backdrop-filter 1.2s;
+  pointer-events: all;
+}
+.time-passage {
+  min-height: 520px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  text-shadow:
+    0 2px 35px #000,
+    0 0 80px #000;
+}
+.time-passage .time-date {
+  opacity: 0.78;
+}
+.time-passage p {
+  font-size: 13px;
+  color: #c0c8bb;
+  margin-top: 30px;
+}
+.time-orbit {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 340px;
+  height: 340px;
+  margin: -190px 0 0 -170px;
+  border-radius: 50%;
+  border: 1px solid #e3dfca23;
+  transform: rotate(calc(var(--passage) * 1080deg));
+  pointer-events: none;
+}
+.time-orbit i {
+  position: absolute;
+  left: 50%;
+  top: -2px;
+  width: 4px;
+  height: 4px;
+  background: #eee4c9;
+  border-radius: 50%;
+  box-shadow: 0 0 14px #eee4c9;
+}
+.time-arrival {
+  animation: time-enter 1.2s ease both;
+}
+.time-arrival .time-place {
+  margin-bottom: 18px;
+}
+.time-arrival h1,
+.time-family h1 {
+  font-size: 42px;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  margin: 0 0 30px;
+}
+.time-account {
+  font-size: 18px;
+  line-height: 1.85;
+  color: #c6c9bd;
+  text-align: left;
+  margin: 30px 0 36px;
+}
+.time-person {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  text-align: left;
+}
+.time-person h2 {
+  font-size: 25px;
+  font-weight: 400;
+  margin: 0 0 9px;
+}
+.time-person p {
+  font-size: 14px;
+  color: #a6b1a5;
+  line-height: 1.55;
+  max-width: 330px;
+  margin: 0;
+}
+.time-person > span {
+  flex-shrink: 0;
+}
+.time-veil .time-family-link {
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 24px auto;
+  color: #b6bca9;
+}
+.time-sources {
+  text-align: left;
+  margin-top: 26px;
+  font: 12px/1.6 system-ui;
+  color: #8d9a91;
+}
+.time-sources summary {
+  cursor: pointer;
+}
+.time-sources a {
+  display: block;
+  color: #bbb99f;
+  margin-top: 12px;
+}
+.time-sources p {
+  font-size: 12px;
+}
+.time-family {
+  text-align: left;
+}
+.time-back {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 35px;
+  font-size: 13px !important;
+  color: #a6b1a5 !important;
+}
+.time-family h1 {
+  margin-bottom: 12px;
+}
+.time-family-dates {
+  color: #adb5a4;
+  font-size: 15px;
+}
+.time-family-dates span {
+  display: block;
+  font-style: italic;
+  margin-top: 12px;
+}
+.time-family-scroll {
+  max-height: 340px;
+  overflow: auto;
+  margin: 30px 0 20px;
+  padding: 5px 12px 5px 0;
+  scrollbar-color: #7d8273 transparent;
+  scrollbar-width: thin;
+}
+.time-veil .time-relative {
+  width: 100%;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  text-align: left;
+  min-height: 57px;
+  padding: 12px 12px 12px 26px;
+  border-left: 1px solid #9b9b7f40;
+  margin-left: 6px;
+  box-sizing: border-box;
+  font-size: 15px;
+}
+.time-relative strong {
+  font-weight: 400;
+  flex: 1;
+}
+.time-relative > span:last-child {
+  font-size: 12px;
+  color: #8b9b8f;
+}
+.time-node {
+  position: absolute;
+  left: -3px;
+  top: 26px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #8d977f;
+}
+.time-veil .time-relative.selected {
+  background: #d2c3910c;
+  color: #e7d5a5;
+}
+.time-relative.selected .time-node {
+  background: #e7d5a5;
+  box-shadow: 0 0 12px #d2c39155;
+}
+.time-family-note {
+  font-size: 12px;
+  line-height: 1.6;
+  color: #84958b;
+}
+@keyframes time-enter {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (max-width: 650px) {
+  .time-dialog {
+    padding: 65px 30px 30px;
+    min-height: 600px;
+  }
+  .time-place {
+    font-size: 18px;
+    margin-bottom: 32px;
+  }
+  .time-veil blockquote {
+    font-size: 21px;
+    margin: 34px 0;
+  }
+  .time-timeline {
+    margin-left: 0;
+    margin-right: 0;
+  }
+  .time-account {
+    font-size: 16px;
+  }
+  .time-person h2 {
+    font-size: 22px;
+  }
+  .time-arrival h1 {
+    font-size: 36px;
+  }
+  .time-orbit {
+    width: 270px;
+    height: 270px;
+    margin-left: -135px;
+    margin-top: -160px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .time-veil,
+  .time-arrival {
+    animation: none;
+  }
+  .time-orbit {
+    display: none;
+  }
+  .time-veil * {
+    transition: none !important;
+  }
+}
+.time-person .time-portrait {
+  width: 72px;
+  height: 84px;
+  flex: 0 0 72px;
+  overflow: hidden;
+  border: 1px solid #c4b99126;
+  background: #d9d2b507;
+  image-rendering: pixelated;
+}
+.time-veil blockquote {
+  font-weight: 400;
+}
+.time-date > span {
+  font-weight: 400;
+}
+@media (max-height: 760px) {
+  .time-dialog {
+    min-height: 0;
+    padding-top: 40px;
+    padding-bottom: 25px;
+  }
+  .time-place {
+    margin-bottom: 20px;
+  }
+  .time-veil blockquote {
+    margin-top: 24px;
+    margin-bottom: 24px;
+  }
+  .time-arrival h1 {
+    margin-bottom: 20px;
+  }
+}

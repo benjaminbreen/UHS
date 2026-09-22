@@ -1,3 +1,4 @@
+import { ruinTexture, releaseRuins } from "./ruins";
 import {
   waterDepthAt,
   wadingCost,
@@ -2209,7 +2210,7 @@ export class WorldScene extends Phaser.Scene {
     }
     this.light = this.options.lighting
       ? lightingPreset(this.options.lighting)
-      : lightingAt(e.state.clock);
+      : lightingAt(rt.timeVisualClock ?? e.state.clock);
     this.tint =
       this.options.colorGrade === false
         ? 0xffffff
@@ -2377,9 +2378,11 @@ export class WorldScene extends Phaser.Scene {
     if (key !== this.staticKey || w !== this.drawnWorld) {
       if (w !== this.drawnWorld) this.useFlora();
       const sceneryStart = performance.now();
+      const worldChanged = w !== this.drawnWorld;
       this.drawnWorld = w;
       this.staticKey = key;
       for (const l of this.layers) l.destroy();
+      if (worldChanged) releaseRuins(this);
       this.layers = [];
       this.canopies = [];
       this.plantHeights.clear();
@@ -2816,6 +2819,14 @@ export class WorldScene extends Phaser.Scene {
             b.y + b.h > startY - 8 &&
             b.y < startY + height + 16
           ) {
+            if (b.structure && b.structure.roof < 0.95) {
+              const image = this.add.image(b.x * 16 - 32, b.y * 16 - 32 - this.lift((b.x + b.w / 2) * 16, (b.y + b.h) * 16), ruinTexture(this, b))
+                .setOrigin(0, 0).setTint(this.tint).setDepth((b.y + b.h) * 16 - 2);
+              this.layers.push(image);
+              this.buildings.set(b.id, image);
+              this.makeSelectable(image, b.id);
+              continue;
+            }
             const placement = buildingPlacement(b);
             // The cast texture uses the source canvas's bottom anchor; model owns its offset.
             this.shadow(
@@ -3767,8 +3778,9 @@ export class WorldScene extends Phaser.Scene {
     );
     mark("water");
     this.terrainStream?.update();
+    if (this.runtime.timeVisualClock !== undefined && lightingAt(this.runtime.timeVisualClock).id !== this.light.id) this.draw();
     mark("terrain");
-    if (!this.options.lab && this.ready && perf.ambientPeople) {
+    if (!this.options.lab && this.ready && perf.ambientPeople && !this.runtime.timeTravelLocked) {
       const clock = this.runtime.displayClock();
       this.buildRoutines(clock);
       // A full pass now and then lets people walk into and out of view; in

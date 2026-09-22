@@ -1,3 +1,4 @@
+import type { TimeTravel } from "./time-travel";
 import type { FaunaTier } from "../core/combat";
 import { gameAudio } from "../audio/director";
 import type { EventId } from "../audio/sfx";
@@ -260,6 +261,9 @@ export const ZOOM_STEPS = [
 const ZOOM_MIN = ZOOM_STEPS[0];
 const ZOOM_MAX = ZOOM_STEPS[ZOOM_STEPS.length - 1];
 export class Runtime {
+  timeTravel?: TimeTravel;
+  timeTravelLocked = false;
+  timeVisualClock?: number;
   engine: Engine;
   /** The written record of this playthrough. Human play produces the same
    * document an agent does, minus the stated reasoning. */
@@ -732,7 +736,9 @@ export class Runtime {
       ZOOM_STEPS[Math.min(ZOOM_STEPS.length - 1, Math.max(0, i + steps))],
     );
   }
-  replace(engine: Engine, preserveJourney = false) {
+  replace(engine: Engine, preserveJourney = false, preserveTime = false) {
+    if (preserveJourney) this.timeTravel?.rebase(engine);
+    else if (!preserveTime) this.timeTravel = undefined;
     if (!preserveJourney) this.journey?.dispose();
     releaseTerrainWorker(this.engine.world);
     this.replay = undefined;
@@ -755,6 +761,8 @@ export class Runtime {
   /** What the renderer draws: the world clock plus the time that has passed
    * since the last command. Monotonic, and never behind the simulation. */
   displayClock() {
+    if (this.timeVisualClock !== undefined) return this.timeVisualClock;
+    if (this.timeTravelLocked) return this.engine.state.clock;
     if (this.journey?.busy) return this.engine.state.clock;
     // A short grace period means the gaps between walking steps contribute
     // nothing; only actually standing still lets the clock run on.
@@ -774,6 +782,7 @@ export class Runtime {
   /** Hands the drawn time back to the simulation, so positions the player can
    * click on agree with the ones on screen. */
   flushAmbient() {
+    if (this.timeTravelLocked) return;
     if (this.journey?.busy) return;
     const seconds = Math.floor(this.displayClock() - this.engine.state.clock);
     if (seconds >= 1)
@@ -830,6 +839,7 @@ export class Runtime {
     };
   }
   command(command: PlayerCommand) {
+    if (this.timeTravelLocked) return;
     if (this.replay) {
       this.notice = "Continue from this point before taking a new action.";
       this.emit();
@@ -894,6 +904,7 @@ export class Runtime {
     }
   }
   act(request: CommandRequest) {
+    if (this.timeTravelLocked) throw Error("Time travel is in progress.");
     if (this.replay)
       throw Error("Continue from this replay point before acting.");
     const command = commandSchema.parse(request.command);
@@ -1641,6 +1652,7 @@ export class Runtime {
     }
   }
   tick() {
+    if (this.timeTravelLocked) return;
     if (this.replay) {
       if (this.replay.playing) this.stepReplay();
       return;
