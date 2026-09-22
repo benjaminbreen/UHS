@@ -18,10 +18,11 @@ def scaled_family_recipes(source, table, suffix, marker=None):
                 stories = shape.get('stories', base.get('stories', 1))
                 name = f'{family}-{suffix}-{scale}-{variant}'
                 entrance_x = shape.get('entrance', fw // 2)
+                wealth = shape.get('wealthTiers', [0, 1, 2])
                 out[name] = {
                     **base,
                     **{k: v for k, v in shape.items()
-                       if k not in ('variants', 'seedOffset', 'entrance')},
+                       if k not in ('variants', 'seedOffset', 'entrance', 'wealthTiers')},
                     'footprint': [fw, fh],
                     'entrance': [entrance_x, fh],
                     'stories': stories,
@@ -31,6 +32,8 @@ def scaled_family_recipes(source, table, suffix, marker=None):
                     'description': spec['description'],
                     'goldScale': scale,
                     'goldVariant': variant,
+                    'wealthTier': wealth[variant % len(wealth)],
+                    **({'detailSet': spec['detailSet']} if spec.get('detailSet') else {}),
                     **({marker: family} if marker else {}),
                 }
     return out

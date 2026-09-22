@@ -103,6 +103,7 @@ const bankRamps: Record<PaletteKey, string[]> = {
   "temperate-woodland:oak-hickory": ["#553928", "#755037", "#956b44", "#b38858", "#8f8a7d"],
   "temperate-woodland:east-asian": ["#573626", "#774c35", "#986542", "#b78255", "#928c7f"],
   "temperate-woodland:southern-beech": ["#4e352b", "#6c4a3b", "#896149", "#a57b5d", "#847e75"],
+  "temperate-woodland:redwood": ["#4c352c", "#694b3c", "#86624b", "#a17c5f", "#817c74"],
   "temperate-woodland:conifer": ["#4c352c", "#694b3c", "#86624b", "#a17c5f", "#817c74"],
   "boreal-woodland:larch": ["#4e412e", "#6b593c", "#8c7450", "#a89266", "#918f82"],
   "boreal-woodland:coastal": ["#433325", "#5c452f", "#785a3f", "#907352", "#7c786e"],

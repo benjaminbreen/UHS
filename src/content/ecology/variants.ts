@@ -36,7 +36,11 @@ export function regionalEcology(
       return { ecology: "tropical-woodland", colorway: "monsoon" };
     case 3:
     case 5:
-      return { ecology: "temperate-woodland", colorway: "conifer" };
+      // Redwood and Douglas fir country: the coast ranges, Cascades and Sierra.
+      return {
+        ecology: "temperate-woodland",
+        colorway: inBox(lon, lat, [-125, 35, -117, 49]) ? "redwood" : "conifer",
+      };
     case 4:
       return {
         ecology: "temperate-woodland",
@@ -154,7 +158,7 @@ export const colorwaysFor: Record<Ecology, readonly Colorway[]> = {
   "dry-scrub": ["maquis", "chaparral", "mallee", "fynbos", "matorral", "sahel"],
   grassland: ["prairie", "steppe", "pampas", "montane"],
   savanna: ["acacia", "cerrado", "eucalypt", "monsoon"],
-  "temperate-woodland": ["oak-hickory", "east-asian", "southern-beech", "conifer"],
+  "temperate-woodland": ["oak-hickory", "east-asian", "southern-beech", "conifer", "redwood"],
   "boreal-woodland": ["larch", "coastal"],
   "tropical-woodland": ["monsoon"],
   wetland: ["marsh", "monsoon", "papyrus", "pantanal", "bog", "mangrove", "swamp"],
@@ -186,6 +190,7 @@ export const colorwayLabels: Record<Colorway, string> = {
   "east-asian": "East Asian mixed",
   "southern-beech": "Southern beech",
   conifer: "Conifer",
+  redwood: "Redwood forest",
   larch: "Larch taiga",
   coastal: "Coastal rainforest",
   marsh: "Reed marsh",
@@ -238,6 +243,7 @@ const layouts: Partial<Record<Colorway, HabitatLayout>> = {
   mallee: { wet: 0.5, exposed: 1, cover: 1.1 },
   larch: { wet: 1.1, exposed: 0.8, cover: 0.9 },
   coastal: { wet: 1.2, exposed: 0.6, cover: 1.3 },
+  redwood: { wet: 1.1, exposed: 0.5, cover: 1.4 },
   alpine: { wet: 0.7, exposed: 1.4, cover: 0.5 },
   polar: { wet: 0.8, exposed: 1.3, cover: 0.3 },
 };

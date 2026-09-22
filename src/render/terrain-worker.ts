@@ -81,11 +81,13 @@ export function handleTerrainRequest(data: TerrainRequest) {
       return;
     }
     const { id, region } = data;
+    const __T: Record<string, number> = {}; let __t = performance.now(); const __m = (k: string) => { __T[k] = Math.round(performance.now() - __t); __t = performance.now(); };
     const sample = (x: number, y: number) =>
       world.topography!(x + region.x, y + region.y);
     const cells: TopographyCell[] = [];
     for (let y = -PAD; y < SIZE + PAD; y++)
       for (let x = -PAD; x < SIZE + PAD; x++) cells.push(sample(x, y));
+    __m("cells");
     const bridges = bridgeSpans(sample, SIZE, SIZE, true);
     const covers = bridges.map((b) => ({
       x: b.minX * 16 - 3,
@@ -153,12 +155,17 @@ export function handleTerrainRequest(data: TerrainRequest) {
     for (let y = 0; y < SIZE; y++)
       for (let x = 0; x < SIZE; x++) {
         const cell = cachedSample(x, y);
-        if (paintedGround(cell))
+        if (paintedGround(cell)) {
+          const __h = performance.now();
           groundTiles.push(
             rasterHabitatTile(paintSample, x, y, region.x, region.y),
           );
+          __T.habitat = (__T.habitat ?? 0) + performance.now() - __h; __T.nHab = (__T.nHab ?? 0) + 1;
+        }
         if (cell.surface === "water" || cell.bridge || cell.dryChannel) {
+          const __w = performance.now();
           const tile = rasterWaterTile(cachedSample, x, y, region.x, region.y);
+          __T.water = (__T.water ?? 0) + performance.now() - __w; __T.nWater = (__T.nWater ?? 0) + 1;
           // A creek's cell is mostly turf: the water tile keeps only its
           // water pixels and the rest is the ground raster, so the old
           // sand-and-gravel ramp never appears round a small stream. A canal
@@ -199,6 +206,7 @@ export function handleTerrainRequest(data: TerrainRequest) {
       }
     const rimList: number[] = [];
     const receiverData: Partial<TerrainReceivers> = {};
+    __m("tiles");
     const layers = rasterTerrainContours(
       paintSample,
       SIZE,
@@ -226,6 +234,7 @@ export function handleTerrainRequest(data: TerrainRequest) {
           )
             rockPositions.push({ x, y });
         }
+    __m("contours");
     const living = livingEnabled
       ? rasterLivingWater(
           cachedSample,
@@ -261,6 +270,7 @@ export function handleTerrainRequest(data: TerrainRequest) {
           }
       }
     }
+    __m("living");
     const groundPage = batchGroundPage(
       cachedSample,
       SIZE,
@@ -271,6 +281,7 @@ export function handleTerrainRequest(data: TerrainRequest) {
     const remainingGround = groundPage
       ? groundTiles.filter((tile) => !groundPage.tiles[tile.y * SIZE + tile.x])
       : groundTiles;
+    __m("groundPage"); for (const k in __T) __T[k] = Math.round(__T[k]); console.log("CHUNK", id, JSON.stringify(__T));
     self.postMessage(
       {
         id,

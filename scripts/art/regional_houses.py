@@ -58,11 +58,14 @@ def regional_house_recipes(root, source):
                     features = profile.get('roofFeatures', [])
                     turrets = profile.get('turretStyles', ['none'])
                     functions = shape.get('functions', [spec['function']])
+                    wealth = shape.get('wealthTiers', [0, 1, 2])
+                    service_styles = shape.get('serviceStyles', [])
                     out[name] = {
                         **base,
                         **profile,
                         **{k: v for k, v in resolved.items()
-                           if k not in ('variants', 'seedOffset', 'entrance', 'profileStories')},
+                           if k not in ('variants', 'seedOffset', 'entrance', 'profileStories',
+                                        'wealthTiers', 'serviceStyles')},
                         'footprint': [fw, fh],
                         'entrance': [entrance, fh],
                         'stories': stories,
@@ -84,6 +87,10 @@ def regional_house_recipes(root, source):
                         'regionalHouse': family,
                         'regionalProfile': profile_name,
                         'buildingFunction': functions[variant % len(functions)],
+                        'wealthTier': wealth[variant % len(wealth)],
+                        'detailSet': profile.get('detailSet', profile_name),
+                        **({'serviceStyle': service_styles[variant % len(service_styles)]}
+                           if service_styles else {}),
                         'goldScale': scale,
                         'goldVariant': variant,
                         'sideDepth': 12,

@@ -53,6 +53,7 @@ const soilRamps: Record<PaletteKey, string[]> = {
     "#af947a",
     "#7f7768",
   ],
+  "temperate-woodland:redwood": ["#6a4a3a", "#845e49", "#9b735c", "#ab836b", "#7a7266"],
   "temperate-woodland:conifer": [
     "#705a43",
     "#887055",

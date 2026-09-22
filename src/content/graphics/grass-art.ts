@@ -378,6 +378,17 @@ export const defaultGrassArtRecipe: GrassArtRecipe = {
       "#4a7838",
       "#8e6849",
     ),
+    "temperate-woodland:redwood": palette(
+      "#4f7d3f",
+      "#7c9c52",
+      "#34623a",
+      "#8f6a4c",
+      "#6d5440",
+      "#2a5030",
+      "#a3b86f",
+      "#426c3a",
+      "#846448",
+    ),
     "temperate-woodland:conifer": palette(
       "#598845",
       "#87a758",

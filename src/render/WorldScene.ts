@@ -157,11 +157,7 @@ import terrainFrames from "./generated/terrain.json" with { type: "json" };
 import { bloomAt, setBloomCut } from "./flowers";
 import { setFloraRegion } from "../content/ecology/blooms";
 import { floraRegion } from "../content/ecology/flora";
-import artVersion from "./generated/art-version.json" with { type: "json" };
-/** Moves when the packed art moves, so a rebuild is not hidden by a cached
- *  texture. The atlases are served from public/ by plain path, which the
- *  browser is entitled to hold on to indefinitely without it. */
-const artStamp = artVersion.stamp;
+import { alternateTrees, sceneAssets } from "./scene-assets";
 /** People drawn at once. Beyond roughly this many the per-head frame cache,
  * not the simulation, is what costs the frame. */
 const CROWD_LIMIT = 24;
@@ -169,17 +165,6 @@ const CROWD_LIMIT = 24;
 /** Tiles of slack beyond the view for routine lookups. `entityInView` allows
  * 8 on x and 12 on y, so this must clear 12. */
 const AMBIENT_MARGIN = 16;
-const alternateTrees = {
-  oak: ["Oak Tree.png", 7],
-  birch: ["Birch Tree 1.png", 6],
-  cedar: ["Cedar Tree.png", 6],
-  fir: ["Fir Tree.png", 5],
-  hazel: ["Hazel Tree.png", 5],
-  maple: ["Maple Tree.png", 5],
-  willow: ["Willow Tree.png", 5],
-  apple: ["Apple Tree.png", 6],
-  cherry: ["Cherry Blossom Tree.png", 6],
-} as const;
 /** Milliseconds of a frame spent building routines. A build is around 3ms but
  * varies with the path search, so the budget is time rather than a count. */
 const ROUTINE_BUILD_BUDGET_MS = 2;
@@ -465,82 +450,11 @@ export class WorldScene extends Phaser.Scene {
     this.options.shorePolish ??= { ...shorePolishDefaults };
   }
   preload() {
-    this.load.atlas(
-      "nature",
-      `/nature/atlas.png?v=${artStamp}`,
-      `/nature/atlas.json?v=${artStamp}`,
-    );
-    this.load.atlas(
-      "faunab",
-      `/fauna-b/atlas.png?v=${artStamp}`,
-      `/fauna-b/atlas.json?v=${artStamp}`,
-    );
-    this.load.atlas(
-      "faunac",
-      `/fauna-c/atlas.png?v=${artStamp}`,
-      `/fauna-c/atlas.json?v=${artStamp}`,
-    );
-    this.load.atlas(
-      "nature-shadows",
-      `/nature/shadows.png?v=${artStamp}`,
-      `/nature/shadows.json?v=${artStamp}`,
-    );
-    this.load.atlas(
-      "ecology",
-      `/ecology/atlas.png?v=${artStamp}`,
-      `/ecology/atlas.json?v=${artStamp}`,
-    );
-    this.load.atlas(
-      "props",
-      `/props/atlas.png?v=${artStamp}`,
-      `/props/atlas.json?v=${artStamp}`,
-    );
-    this.load.atlas(
-      "prop-shadows",
-      `/props/shadows.png?v=${artStamp}`,
-      `/props/shadows.json?v=${artStamp}`,
-    );
-    this.load.atlas(
-      "atlas",
-      `/packs/atlas.png?v=${artStamp}`,
-      `/packs/atlas.json?v=${artStamp}`,
-    );
-    this.load.atlas(
-      "buildings",
-      `/packs/buildings.png?v=${artStamp}`,
-      `/packs/buildings.json?v=${artStamp}`,
-    );
-    this.load.atlas(
-      "regional-buildings",
-      `/packs/regional-buildings.png?v=${artStamp}`,
-      `/packs/regional-buildings.json?v=${artStamp}`,
-    );
-    this.load.atlas(
-      "civic",
-      `/packs/civic.png?v=${artStamp}`,
-      `/packs/civic.json?v=${artStamp}`,
-    );
-    this.load.atlas(
-      "lighting-shadows",
-      `/packs/lighting-shadows.png?v=${artStamp}`,
-      `/packs/lighting-shadows.json?v=${artStamp}`,
-    );
-    this.load.atlas(
-      "topography",
-      `/topography/atlas.png?v=${artStamp}`,
-      `/topography/atlas.json?v=${artStamp}`,
-    );
-    this.load.image("terrain", `/packs/terrain.png?v=${artStamp}`);
-    this.load.image(
-      "tree-study-source",
-      new URL("../../trees.png", import.meta.url).href,
-    );
-    for (const [id, [file]] of Object.entries(alternateTrees))
-      this.load.spritesheet(
-        `study-tree-${id}`,
-        new URL(`../../trees pngs/${file}`, import.meta.url).href,
-        { frameWidth: 64, frameHeight: 96 },
-      );
+    const { atlases, images, sheets } = sceneAssets();
+    for (const a of atlases) this.load.atlas(a.key, a.image, a.data);
+    for (const i of images) this.load.image(i.key, i.url);
+    for (const sh of sheets)
+      this.load.spritesheet(sh.key, sh.url, { frameWidth: 64, frameHeight: 96 });
   }
   create() {
     this.ready = true;

@@ -14,6 +14,12 @@ const evergreen = [
   "teak",
   "thorn",
   "baobab",
+  "redwood",
+  "douglas-fir",
+  "cedar",
+  "cypress",
+  "olive",
+  "acacia",
 ];
 export function turnsColour(sprite: string) {
   return !evergreen.some((k) => sprite.includes(k));

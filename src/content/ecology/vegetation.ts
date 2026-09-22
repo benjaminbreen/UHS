@@ -49,8 +49,22 @@ const palm = "nature-feather-palm",
   larch = "nature-larch",
   juniper = "nature-juniper",
   maple = "nature-maple",
+  oak = "nature-oak",
+  olive = "nature-olive",
+  acacia = "nature-acacia",
+  redwood = "nature-redwood",
+  fir = "nature-douglas-fir",
+  cedar = "nature-cedar",
+  cypress = "nature-cypress",
   mangrove = "nature-mangrove";
 export const natureTreeSprites = [
+  oak,
+  olive,
+  acacia,
+  redwood,
+  fir,
+  cedar,
+  cypress,
   eucalyptus,
   baobab,
   saguaro,
@@ -79,7 +93,7 @@ const north: Mix = [
   [birch, 3],
 ];
 const temperate: Mix = [
-  ["oak", 5],
+  [oak, 5],
   [pine, 4],
   [birch, 1],
 ];
@@ -88,13 +102,13 @@ const humid: Mix = [
   [palm, 2],
 ];
 const mediterranean: Mix = [
-  ["olive", 5],
+  [olive, 5],
   [pine, 3],
-  ["oak", 2],
+  [oak, 2],
 ];
 const sahel: Mix = [
   [thorn, 9],
-  ["acacia", 1],
+  [acacia, 1],
 ];
 // Colourway mixes take precedence over the latitude and longitude boxes below.
 const regional: Partial<Record<Colorway, Mix>> = {
@@ -118,12 +132,14 @@ const regional: Partial<Record<Colorway, Mix>> = {
     [scrub, 4],
   ],
   maquis: [
-    ["olive", 5],
-    [pine, 3],
-    ["oak", 2],
+    [olive, 4],
+    [pine, 2],
+    [oak, 2],
+    [cypress, 1],
+    [cedar, 1],
   ],
   chaparral: [
-    ["oak", 4],
+    [oak, 4],
     [juniper, 3],
     [pine, 2],
   ],
@@ -136,28 +152,30 @@ const regional: Partial<Record<Colorway, Mix>> = {
     [juniper, 1],
   ],
   matorral: [
-    ["oak", 3],
-    [juniper, 3],
+    [oak, 3],
+    [juniper, 2],
     [scrub, 2],
+    [olive, 1],
+    [cypress, 1],
   ],
   sahel: [
     [thorn, 8],
     [baobab, 1],
-    ["acacia", 1],
+    [acacia, 1],
   ],
   prairie: [
-    ["oak", 5],
+    [oak, 5],
     [maple, 3],
     [willow, 2],
   ],
   steppe: [
     [juniper, 3],
     [birch, 2],
-    ["oak", 1],
+    [oak, 1],
   ],
   pampas: [
     [willow, 4],
-    ["oak", 3],
+    [oak, 3],
     [juniper, 1],
   ],
   montane: [
@@ -167,7 +185,7 @@ const regional: Partial<Record<Colorway, Mix>> = {
   ],
   acacia: [
     [thorn, 7],
-    ["acacia", 2],
+    [acacia, 2],
     [baobab, 1],
   ],
   cerrado: [
@@ -180,18 +198,18 @@ const regional: Partial<Record<Colorway, Mix>> = {
     [thorn, 1],
   ],
   "oak-hickory": [
-    ["oak", 5],
+    [oak, 5],
     [maple, 4],
     [pine, 1],
   ],
   "east-asian": [
     [maple, 4],
-    ["oak", 3],
+    [oak, 3],
     [pine, 2],
     ["nature-bamboo-clump", 1],
   ],
   "southern-beech": [
-    ["oak", 4],
+    [oak, 4],
     [eucalyptus, 3],
     [pine, 2],
   ],
@@ -200,19 +218,25 @@ const regional: Partial<Record<Colorway, Mix>> = {
     [spruce, 3],
     [birch, 1],
   ],
+  redwood: [
+    [redwood, 5],
+    [fir, 4],
+    [pine, 1],
+  ],
   larch: [
     [larch, 7],
     [birch, 2],
     [spruce, 1],
   ],
   coastal: [
-    [spruce, 6],
-    [pine, 3],
+    [spruce, 5],
+    [fir, 3],
+    [pine, 1],
     [birch, 1],
   ],
   marsh: [
     [willow, 7],
-    ["oak", 3],
+    [oak, 3],
   ],
   papyrus: [
     [palm, 4],
@@ -287,7 +311,7 @@ export function treeMix(s: WorldSetting): Mix {
           ? mediterranean
           : [
               [pine, 6],
-              ["oak", 4],
+              [oak, 4],
             ];
     case "savanna":
       return sahel;
@@ -298,7 +322,7 @@ export function treeMix(s: WorldSetting): Mix {
         ? humid
         : [
             [willow, 7],
-            ["oak", 3],
+            [oak, 3],
           ];
     default:
       return temperate;
