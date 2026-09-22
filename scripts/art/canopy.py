@@ -261,19 +261,37 @@ def paint_leaves(size, clumps, rng, R, tuft=0.37, gaps=0.1, leafy=False, shade=0
             tones[p] = max(1, b - 2)
         else:
             tones[p] = max(1, min(6, b + (1 if l > 0.42 else 0 if l > -0.3 else -1)))
-    # Leaves break the silhouette: sprigs out, nicks in.
+    # Leaves break the silhouette: sprigs out, nicks in. A sprig is a 2x2
+    # block attached to the edge, never a detached pixel.
     edge = [p for p in tones if any((p[0] + a, p[1] + b) not in tones for a, b in ((1, 0), (-1, 0), (0, 1), (0, -1)))]
     rng.shuffle(edge)
     for (x, y) in edge[: len(edge) // 7]:
         ox = -1 if (x - 1, y) not in tones else 1 if (x + 1, y) not in tones else 0
         oy = -1 if (x, y - 1) not in tones else 1 if (x, y + 1) not in tones else 0
         if rng.random() < 0.6:
-            for a, b in ((0, 0), (1, 0), (0, 1), (1, 1), (-1, 0)):
-                q = (x + ox * 2 + a, y + oy * 2 + b)
+            for a, b in ((0, 0), (1, 0), (0, 1), (1, 1)):
+                q = (x + ox + a - (1 if ox < 0 else 0), y + oy + b - (1 if oy < 0 else 0))
                 if 2 <= q[0] < W - 2 and 2 <= q[1] < H - 2:
                     tones.setdefault(q, tones[(x, y)])
         else:
             tones.pop((x, y), None)
+    # No stray pixels: a leaf mass smaller than a tuft is a fragment and goes.
+    seen = set()
+    for start in list(tones):
+        if start in seen:
+            continue
+        comp, stack = [], [start]
+        seen.add(start)
+        while stack:
+            x, y = stack.pop()
+            comp.append((x, y))
+            for q in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
+                if q in tones and q not in seen:
+                    seen.add(q)
+                    stack.append(q)
+        if len(comp) < tr * tr * 2:
+            for p in comp:
+                del tones[p]
     # Selective outline: deepest tone under and to the right, a tone up where
     # the light lands, so the crown is held without a ruled black ring.
     for p in [p for p in tones if any((p[0] + a, p[1] + b) not in tones for a, b in ((1, 0), (-1, 0), (0, 1), (0, -1)))]:
