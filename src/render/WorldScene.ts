@@ -185,6 +185,7 @@ import { setCropSelector, setCropCut } from "./crops";
 import { setFloraRegion } from "../content/ecology/blooms";
 import { floraRegion } from "../content/ecology/flora";
 import { alternateTrees, sceneAssets } from "./scene-assets";
+import { TiltShiftPipeline } from "./tilt-shift";
 /** People drawn at once. Beyond roughly this many the per-head frame cache,
  * not the simulation, is what costs the frame. */
 const CROWD_LIMIT = 24;
@@ -2141,6 +2142,43 @@ export class WorldScene extends Phaser.Scene {
       camera.setZoom(this.zoomTarget);
       this.game.canvas.dataset.cameraZoom = String(this.zoomTarget);
     }
+    this.applyTiltShift();
+  }
+  private tiltShift?: TiltShiftPipeline;
+  private applyTiltShift() {
+    const renderer = this.game.renderer;
+    if (!(renderer instanceof Phaser.Renderer.WebGL.WebGLRenderer)) return;
+    const camera = this.cameras.main;
+    const g = this.liveGraphics;
+    if (!g.tiltShift) {
+      if (this.tiltShift) camera.removePostPipeline("TiltShift");
+      this.tiltShift = undefined;
+      return;
+    }
+    if (!this.tiltShift) {
+      if (!renderer.pipelines.postPipelineClasses.has("TiltShift"))
+        renderer.pipelines.addPostPipeline("TiltShift", TiltShiftPipeline);
+      camera.setPostPipeline("TiltShift");
+      this.tiltShift = camera.getPostPipeline("TiltShift") as TiltShiftPipeline;
+    }
+    Object.assign(this.tiltShift.uniforms, {
+      focus: g.tiltFocus,
+      band: g.tiltBand,
+      falloff: g.tiltFalloff,
+      blur: g.tiltBlur,
+      topBias: g.tiltTopBias,
+      saturation: g.tiltSaturation,
+      contrast: g.tiltContrast,
+      vignette: g.tiltVignette,
+    });
+  }
+  private followTiltFocus() {
+    const player = this.entities.get("player");
+    if (!this.tiltShift || !this.liveGraphics.tiltFollow || !player) return;
+    const view = this.cameras.main.worldView;
+    const target = Phaser.Math.Clamp((player.y - view.y) / view.height, 0.1, 0.9);
+    const u = this.tiltShift.uniforms;
+    u.focus += (target - u.focus) * 0.1;
   }
   private aimStarted?: number;
   private aimRunning = false;
@@ -3904,6 +3942,7 @@ export class WorldScene extends Phaser.Scene {
     this.drift?.update(time, !!this.options.freeze);
     this.mist?.update(time, !!this.options.freeze);
     this.life?.update(time, !!this.options.freeze);
+    this.followTiltFocus();
     mark("weather");
     if (perf.fauna)
       this.placeFauna(this.options.freeze ? 0 : Math.min(delta, 100) / 1000);

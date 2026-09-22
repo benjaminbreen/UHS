@@ -45,6 +45,19 @@ export type LiveGraphicsSettings = {
   treeScale: number;
   litterPalette: LitterPalette;
   litterDensity: number;
+  tiltShift: boolean;
+  /** Follow the player's height on screen; off pins the band at tiltFocus. */
+  tiltFollow: boolean;
+  /** 0 is the top of the view, 1 the bottom. */
+  tiltFocus: number;
+  tiltBand: number;
+  tiltFalloff: number;
+  /** Canvas pixels at full blur. */
+  tiltBlur: number;
+  tiltTopBias: number;
+  tiltSaturation: number;
+  tiltContrast: number;
+  tiltVignette: number;
 };
 
 export const defaultLiveGraphicsSettings: LiveGraphicsSettings = {
@@ -74,4 +87,14 @@ export const defaultLiveGraphicsSettings: LiveGraphicsSettings = {
   treeScale: 0.72,
   litterPalette: "none",
   litterDensity: 1.5,
+  tiltShift: true,
+  tiltFollow: true,
+  tiltFocus: 0.5,
+  tiltBand: 0.39,
+  tiltFalloff: 0.42,
+  tiltBlur: 3,
+  tiltTopBias: 0.5,
+  tiltSaturation: 1.15,
+  tiltContrast: 1.05,
+  tiltVignette: 0.41,
 };

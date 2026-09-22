@@ -156,6 +156,38 @@ export function LiveGraphicsPanel({
       ) : (
         <>
           <details className="live-tuning-section" open>
+            <summary>Tilt-shift</summary>
+            <label className="live-graphics-check">
+              <input
+                type="checkbox"
+                checked={settings.tiltShift}
+                onChange={(event) =>
+                  onChange({ tiltShift: event.currentTarget.checked })
+                }
+              />
+              Miniature lens
+            </label>
+            <label className="live-graphics-check">
+              <input
+                type="checkbox"
+                checked={settings.tiltFollow}
+                onChange={(event) =>
+                  onChange({ tiltFollow: event.currentTarget.checked })
+                }
+              />
+              Focus follows the player
+            </label>
+            {!settings.tiltFollow && tune("tiltFocus", "Focus height", 0, 1, 0.01)}
+            {tune("tiltBand", "Sharp band", 0, 1, 0.01)}
+            {tune("tiltFalloff", "Falloff", 0.02, 1, 0.01)}
+            {tune("tiltBlur", "Blur", 0, 24, 0.5, " px")}
+            {tune("tiltTopBias", "Extra blur above", 0, 2, 0.05)}
+            {tune("tiltSaturation", "Saturation", 0, 2, 0.05)}
+            {tune("tiltContrast", "Contrast", 0.5, 1.5, 0.01)}
+            {tune("tiltVignette", "Vignette", 0, 1, 0.01)}
+          </details>
+
+          <details className="live-tuning-section" open>
             <summary>Rocks &amp; composition</summary>
             <label className="live-graphics-check">
               <input
