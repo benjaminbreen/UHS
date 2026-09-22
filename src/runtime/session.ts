@@ -575,6 +575,23 @@ export class Runtime {
       }
       return;
     }
+    if (command.type === "interact" && command.action === "descend") {
+      // A directional dismount is a jump off the edge; a plain one is a
+      // climb back down the way you came.
+      const leap = this.engine.lastLeap;
+      this.characterAction = {
+        serial: ++this.characterSerial,
+        pose: leap ? "jump" : "climb",
+        at: performance.now(),
+        ...(leap
+          ? {
+              arc: { height: 11 + (leap.drop ?? 1) * 5, duration: 280 },
+              after: ((leap.drop ?? 1) >= 2 ? "roll" : "land") as "roll" | "land",
+            }
+          : {}),
+      };
+      return;
+    }
     const action = command.type === "interact" ? command.action : command.type;
     const pose: CharacterPose | undefined = (
       {
@@ -943,13 +960,14 @@ export class Runtime {
    * conversation the engine will then refuse.
    */
   /** One key for both directions: climb what is in reach, or come back down. */
-  climb() {
+  climb(dx = 0, dy = 0) {
     const p = this.engine.state.player;
     if (p.perch || this.engine.onWall())
       return this.command({
         type: "interact",
         target: p.perch?.on ?? "wall",
         action: "descend",
+        ...(dx || dy ? { dx, dy } : {}),
       });
     const target = this.engine.climbable();
     if (target)

@@ -2240,8 +2240,40 @@ export class Engine {
     this.advance(40);
     this.event(`You climb ${target.label} and settle at the top.`);
   }
-  descend() {
+  /** Where a directional dismount would land, or undefined if that side is
+   * shut. A perch is left from the cell climbed, not the one walked in from,
+   * so a tree can be left on any side. */
+  dismountCell(dx: number, dy: number) {
     const p = this.state.player;
+    if (!dx && !dy) return undefined;
+    const from = p.perch?.at ?? p.pos;
+    const to = { x: from.x + dx, y: from.y + dy };
+    if (this.blocked(to.x, to.y, p.pos.space)) return undefined;
+    if (!p.perch && this.wallAt(to.x, to.y, p.pos.space)) return undefined;
+    return to;
+  }
+  descend(dir?: { dx: number; dy: number }) {
+    const p = this.state.player;
+    delete this.lastLeap;
+    const jump = dir && this.dismountCell(dir.dx, dir.dy);
+    if (jump) {
+      const label = p.perch?.label ?? "the wall";
+      const height = p.perch?.rise ?? 1;
+      p.perch = undefined;
+      p.pos = { ...jump, space: p.pos.space };
+      p.direction = dir.dy < 0 ? 0 : dir.dx > 0 ? 1 : dir.dy > 0 ? 2 : 3;
+      p.facing = facingFromStep(dir.dx, dir.dy, p.direction);
+      this.lastLeap = {
+        kind: "drop",
+        distance: 1,
+        seconds: 0,
+        drop: height >= 10 ? 2 : 1,
+        reason: `You drop clear of ${label}.`,
+      };
+      this.advance(12);
+      this.event(`You jump down from ${label} and land clear of it.`);
+      return;
+    }
     if (!p.perch && this.onWall()) {
       const down = [
         [1, 0],
@@ -4245,7 +4277,7 @@ export class Engine {
         break;
       }
       case "descend":
-        this.descend();
+        this.descend(c.dx || c.dy ? { dx: c.dx ?? 0, dy: c.dy ?? 0 } : undefined);
         break;
       case "drink":
         p.inventory.water = Math.max(p.inventory.water ?? 0, 2);

@@ -9,6 +9,7 @@ import {
   Suspense,
   type PointerEvent as ReactPointerEvent,
   useEffect,
+  useMemo,
   useRef,
   useState,
   useSyncExternalStore,
@@ -703,7 +704,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
           <div
             className="game-container"
             ref={mount}
-            aria-label="Playable historical world. WASD or arrows to walk, Shift to run, Space to jump. Hold Space to charge a longer jump; jumping while running clears an extra tile (two to four). F does the action shown on screen — talk, pick up, swing, throw or climb. E does the second action shown, such as putting down what you hold."
+            aria-label="Playable historical world. WASD or arrows to walk, Shift to run, Space to jump. Hold Space to charge a longer jump; jumping while running clears an extra tile (two to four). F does the action shown on screen — talk, pick up, swing, throw or climb. E does the second action shown, such as putting down what you hold. Up a tree or on a wall, Space with a direction jumps down that side."
             tabIndex={0}
           />
           {graphicsOpen && (

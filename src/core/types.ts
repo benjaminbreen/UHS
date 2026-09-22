@@ -332,6 +332,9 @@ export type PlayerCommand =
         | "topple"
         | "heave"
         | "look";
+      /** A descent taken over an edge rather than back the way you came. */
+      dx?: number;
+      dy?: number;
     }
   | {
       type: "trade";

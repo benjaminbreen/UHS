@@ -397,6 +397,26 @@ export function scrape(
   }
 }
 
+/** Hands and feet working up a trunk, a wall or a stack: a few scuffs and a
+ * settle at the top. `down` is the same work in reverse, softer. */
+export function scramble(ground: HitClass, down = false): Sound {
+  const span = 0.4;
+  const leafy = ground === "tree" || ground === "brush" || ground === "crop";
+  const g = down ? 0.75 : 1;
+  return [
+    ...grains(0, span, 5, (t) =>
+      noise(t, 0.1, rand(0.06, 0.12) * g, leafy ? 2400 : 1300, {
+        q: leafy ? 1.1 : 2,
+        attack: 0.015,
+      }),
+    ),
+    ...(leafy
+      ? [noise(0.05, 0.3, 0.07 * g, 4200, { q: 0.6, attack: 0.08 })]
+      : []),
+    ...shift(body(ground === "air" ? "soil" : ground, 0.45 * g), span * 0.8, 0.6),
+  ];
+}
+
 /** Feet leaving the ground. */
 export function takeoff(ground: HitClass): Sound {
   return [
@@ -530,6 +550,88 @@ export const events = {
 export type EventId = keyof typeof events;
 
 /** What the sound lab auditions. */
+/** Who is speaking. Voices differ by register, not by words: the game has no
+ * recorded speech, so pitch and bite carry sex and age. */
+export type VoiceKind = "child" | "woman" | "man" | "neutral";
+const voiceBase: Record<VoiceKind, number> = {
+  child: 470,
+  woman: 320,
+  man: 190,
+  neutral: 260,
+};
+/** One syllable of speech patter. Annoyed voices are lower, harder and fall. */
+export function voice(kind: VoiceKind, annoyed = false): Sound {
+  const base = voiceBase[kind] * (annoyed ? 0.86 : 1) * rand(0.94, 1.06);
+  const dur = annoyed ? 0.07 : 0.05;
+  return [
+    tone(0, dur, annoyed ? 0.1 : 0.06, base, {
+      to: annoyed ? base * 0.7 : base * rand(0.98, 1.12),
+      wave: annoyed ? "sawtooth" : "triangle",
+      attack: 0.004,
+    }),
+    ...(annoyed
+      ? [noise(0, 0.03, 0.035, base * 5, { q: 0.8 })]
+      : []),
+  ];
+}
+/** Walking into a person: cloth, a knock, and a word they did not choose. */
+export function bumpPerson(kind: VoiceKind, annoyed = false): Sound {
+  const base = voiceBase[kind] * rand(0.95, 1.05);
+  return [
+    noise(0, 0.09, 0.09, 700, { q: 0.7, attack: 0.006 }),
+    ...body("creature", 0.5),
+    tone(0.02, 0.13, annoyed ? 0.11 : 0.07, base, {
+      to: base * (annoyed ? 0.66 : 0.8),
+      wave: annoyed ? "sawtooth" : "triangle",
+      attack: 0.008,
+    }),
+  ];
+}
+/** Broad shapes of animal. Species matter less than size and whether it flies. */
+export type BeastVoice = "bird" | "critter" | "herd" | "beast";
+/** Walking into an animal: its own call, plus the scuff of it moving off. */
+export function bumpAnimal(kind: BeastVoice): Sound {
+  const scuff = noise(0, 0.08, 0.07, 900, { q: 0.8, attack: 0.005 });
+  switch (kind) {
+    case "bird": {
+      // Alarm call over the clap of wings.
+      const f = vary(2600, 0.15);
+      return [
+        ...grains(0, 0.22, 4, (t) =>
+          noise(t, 0.05, 0.06, vary(320, 0.2), { q: 0.5, attack: 0.01 }),
+        ),
+        tone(0.01, 0.06, 0.07, f, { to: f * 1.5, wave: "triangle" }),
+        tone(0.1, 0.05, 0.05, f * 1.1, { to: f * 0.8, wave: "triangle" }),
+      ];
+    }
+    case "critter": {
+      const f = vary(1500, 0.2);
+      return [
+        scuff,
+        tone(0, 0.07, 0.06, f, { to: f * 1.6, wave: "triangle", attack: 0.004 }),
+      ];
+    }
+    case "herd": {
+      // A bleat: one note with a fast wobble written as three short steps.
+      const f = vary(430, 0.1);
+      return [
+        scuff,
+        tone(0, 0.09, 0.09, f, { to: f * 1.1, wave: "sawtooth", attack: 0.01 }),
+        tone(0.09, 0.07, 0.07, f * 1.08, { to: f * 0.94, wave: "sawtooth" }),
+        tone(0.16, 0.1, 0.05, f * 0.96, { to: f * 0.85, wave: "sawtooth" }),
+      ];
+    }
+    default: {
+      // Something heavy: a low grunt you feel more than hear.
+      const f = vary(120, 0.12);
+      return [
+        ...body("creature", 1.1),
+        tone(0, 0.26, 0.12, f, { to: f * 0.82, wave: "sawtooth", attack: 0.02 }),
+        tone(0, 0.26, 0.05, f * 2.02, { wave: "triangle", attack: 0.03 }),
+      ];
+    }
+  }
+}
 export const catalog: { name: string; detail: string; make: () => Sound }[] = [
   ...(
     [
@@ -587,6 +689,18 @@ export const catalog: { name: string; detail: string; make: () => Sound }[] = [
       make: () => landing(ground, 1.2),
     },
   ]),
+  ...(["tree", "stone", "timber"] as HitClass[]).flatMap((ground) => [
+    {
+      name: `Climb · ${ground}`,
+      detail: "Going up it",
+      make: () => scramble(ground),
+    },
+    {
+      name: `Climb down · ${ground}`,
+      detail: "Coming back down it",
+      make: () => scramble(ground, true),
+    },
+  ]),
   ...(["water", "marsh", "sand", "snow"] as HitClass[]).map((ground) => ({
     name: `Step · ${ground}`,
     detail: "A footfall",
@@ -596,6 +710,24 @@ export const catalog: { name: string; detail: string; make: () => Sound }[] = [
     name: `Event · ${id}`,
     detail: "The shared plucked voice",
     make: events[id],
+  })),
+  ...(["child", "woman", "man"] as VoiceKind[]).flatMap((kind) => [
+    { name: `Voice · ${kind}`, detail: "Speech patter", make: () => voice(kind) },
+    {
+      name: `Voice · ${kind}, annoyed`,
+      detail: "Speech patter, put out",
+      make: () => voice(kind, true),
+    },
+    {
+      name: `Bump · ${kind}`,
+      detail: "Walked into a person",
+      make: () => bumpPerson(kind),
+    },
+  ]),
+  ...(["bird", "critter", "herd", "beast"] as BeastVoice[]).map((kind) => ({
+    name: `Bump · ${kind}`,
+    detail: "Walked into an animal",
+    make: () => bumpAnimal(kind),
   })),
 ];
 

@@ -76,7 +76,8 @@ import { jumpMs, JUMP_CHARGE_MS, type Runtime } from "../runtime/session";
 import type { Position, WorldModel } from "../core/types";
 import { surfaceAt, hasQuay } from "./materials";
 import { gameAudio } from "../audio/director";
-import { footstep, landing, strike, takeoff } from "../audio/sfx";
+import { footstep, landing, scramble, strike, takeoff } from "../audio/sfx";
+import type { HitClass } from "../core/reactions";
 import { tuning } from "../audio/sfx-tuning";
 import { hash, random } from "../core/random";
 import {
@@ -273,7 +274,11 @@ export class WorldScene extends Phaser.Scene {
       | "held"
     >
   >();
-  private canopies: { image: Phaser.GameObjects.Image; cut: number }[] = [];
+  private canopies: {
+    image: Phaser.GameObjects.Image;
+    cut: number;
+    id?: string;
+  }[] = [];
   /** Drawn height of each solid plant, so a climber sits at its fork rather
    * than at a guessed offset. Decorations are not entities, so their sprites
    * cannot be looked up later. */
@@ -779,6 +784,59 @@ export class WorldScene extends Phaser.Scene {
       this.runtime.engine.state.player.pos.space === "outside"
       ? surfaceElevation(w.topography, x / 16 - 0.5, y / 16 - 1) * TERRAIN_RISE
       : 0;
+  }
+  /** What the last thing climbed sounds like, kept so the way down matches
+   * the way up: the perch is already cleared by the time the sprite moves. */
+  private climbedSurface: HitClass = "timber";
+  /** Up a trunk or down off it. Not the jump arc: a climb keeps contact, so
+   * the reach across comes first and the haul up follows it. */
+  private climbTween(
+    im: Phaser.GameObjects.Image,
+    shade: Phaser.GameObjects.Image | undefined,
+    tx: number,
+    ty: number,
+    up: boolean,
+  ) {
+    const ms = poseTiming("climb") * 4;
+    const e = this.runtime.engine;
+    const at = e.state.player.perch?.at;
+    if (up)
+      this.climbedSurface = at
+        ? e.hitClass(at.x, at.y, e.state.player.pos.space).hit
+        : "stone";
+    this.tweens.killTweensOf(im);
+    if (shade) this.tweens.killTweensOf(shade);
+    this.play(
+      { pose: up ? "climb" : "hang", ms: poseTiming("climb"), first: 0, last: 3 },
+      ms,
+    );
+    this.nextInput = this.lastTick = this.time.now;
+    this.nextInput += ms;
+    void gameAudio()?.sound(scramble(this.climbedSurface, !up), "climb");
+    this.tweens.add({
+      targets: shade ? [im, shade] : im,
+      // The hands go across before the feet leave, and the last of the haul
+      // is the slowest part of it.
+      x: { value: tx, duration: Math.round(ms * 0.45), ease: "Quad.easeOut" },
+      y: {
+        value: ty,
+        duration: Math.round(ms * 0.85),
+        delay: up ? Math.round(ms * 0.15) : 0,
+        ease: up ? "Quad.easeOut" : "Quad.easeIn",
+      },
+      duration: ms,
+      onComplete: () => {
+        im.setPosition(tx, ty);
+        if (!up) {
+          this.feel.land(im, 8, tx, ty);
+          this.kickDust(tx, ty, 3, 0.6);
+          void gameAudio()?.sound(
+            landing(this.groundUnderPlayer(), 0.7),
+            "land",
+          );
+        }
+      },
+    });
   }
   /** A perched player renders on top of whatever they climbed. The tile
    * position is unchanged, so collision and pathfinding never see the lift. */
@@ -2741,7 +2799,7 @@ export class WorldScene extends Phaser.Scene {
               ) {
                 const cut = Math.floor(decoration.height * 0.72);
                 decoration.setCrop(0, 0, decoration.width, cut);
-                this.canopies.push({ image: decoration, cut });
+                this.canopies.push({ image: decoration, cut, id: d?.id });
                 this.addWind(
                   decoration,
                   frame,
@@ -3170,12 +3228,13 @@ export class WorldScene extends Phaser.Scene {
           ? (this.runtime.engine.state.player.perch?.on ??
             (this.runtime.engine.onWall() ? "wall" : ""))
           : "";
+      const wasPerched = (im.getData("perch") as string | undefined) ?? "";
       const moved =
         !previous ||
         previous.x !== pos.x ||
         previous.y !== pos.y ||
         previous.space !== pos.space ||
-        im.getData("perch") !== perchKey;
+        wasPerched !== perchKey;
       const pending = id === "player" ? rt.characterAction : undefined;
       const arc =
         pending?.arc && pending.serial !== this.arcSerial
@@ -3194,6 +3253,18 @@ export class WorldScene extends Phaser.Scene {
           ? rt.shoveEffect.path.length
           : 0;
       if (roll) this.rolledSerial = rt.shoveEffect!.serial;
+      // Going up something, or coming back down it, is hand over hand rather
+      // than a walk or a jump; a jump off the edge already has its arc.
+      if (
+        id === "player" &&
+        previous &&
+        wasPerched !== perchKey &&
+        !arc &&
+        previous.space === pos.space
+      ) {
+        this.climbTween(im, shade, tx, ty, !!perchKey);
+        return;
+      }
       if (
         previous?.space === pos.space &&
         (im.x !== tx || im.y !== ty) &&
@@ -3950,9 +4021,16 @@ export class WorldScene extends Phaser.Scene {
         this.jumpRunning = false;
         const player = this.entities.get("player");
         if (player) this.kickDust(player.x, player.y, running ? 6 : 3, 0.8);
-        const wall = player && this.runtime.wallAhead(dx, dy);
+        const engine = this.runtime.engine;
+        const aloft = !!engine.state.player.perch || engine.onWall();
+        const wall = !aloft && player && this.runtime.wallAhead(dx, dy);
         if (wall) this.runAtWall(player, wall, dx, dy, time);
-        else {
+        else if (aloft) {
+          // Space up a tree or on a wall is a jump off it, the way held.
+          this.runtime.climb(dx, dy);
+          this.motionDuration = 300;
+          this.nextInput = time + this.motionDuration + this.afterHold();
+        } else {
           this.motionDuration = jumpMs(
             this.runtime.jump(dx, dy, power, running),
           );
@@ -4089,9 +4167,14 @@ export class WorldScene extends Phaser.Scene {
       const depth =
         im.y +
         arcLift +
-        // A fixed nudge, not the lift: a perched player shares the cell with
-        // what they climbed and only has to sort in front of it.
-        (perched ? 4 : 0) +
+        // Standing on the thing means drawing in front of it, foliage and
+        // all, so the lift comes back off the depth. A wall walk only needs
+        // the nudge: the masonry is the cell the player is in.
+        (perched
+          ? (id === "player" && this.runtime.engine.state.player.perch
+              ? perched
+              : 0) + 4
+          : 0) +
         this.lift(im.x, (this.destinations.get(id)?.y ?? 0) * 16 + 16) -
         (frame ? 2 : 6);
       if (im.depth !== depth) im.setDepth(depth);
@@ -4364,7 +4447,10 @@ export class WorldScene extends Phaser.Scene {
         );
     }
     const player = this.entities.get("player");
-    for (const { image, cut } of this.canopies) {
+    // Up a tree you are in the foliage, not behind it: the canopy stays solid
+    // and the player draws among the branches.
+    const perchedOn = this.runtime.engine.state.player.perch?.on;
+    for (const { image, cut, id: canopyId } of this.canopies) {
       // Distant trees at full alpha have nothing to do; only ones near the
       // player can hide it, and only a fading one still needs stepping.
       const near =
@@ -4375,6 +4461,7 @@ export class WorldScene extends Phaser.Scene {
       if (!near && image.alpha === 1) continue;
       const faded =
         near &&
+        (!perchedOn || canopyId !== perchedOn) &&
         canopyHidesPlayer(
           {
             x: image.x,
