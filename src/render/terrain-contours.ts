@@ -474,10 +474,19 @@ function rasterWallContours(
     oy = (region?.y ?? 0) * 16;
   const ease = (t: number) => t * t * (3 - 2 * t);
   const levels = new Int8Array(FW * FH);
+  // Only the edge zone the wall pass owns leaves its tier, so the noise and
+  // interpolation below are spent there alone; everywhere else the level is
+  // the cell's own, and a flat chunk costs nothing.
   for (let i = 0; i < FH; i++)
     for (let j = 0; j < FW; j++) {
       const px = j - PX,
         py = i - PY;
+      const cx = Math.floor(px / 16),
+        cy = Math.floor(py / 16);
+      if (!ownsAt(cx, cy)) {
+        levels[i * FW + j] = tierAt(cx, cy);
+        continue;
+      }
       const u = (px - 8) / 16,
         v = (py - 8) / 16;
       const x0 = Math.floor(u),
@@ -492,14 +501,7 @@ function rasterWallContours(
         (a + (b - a) * fx) * (1 - fy) +
         (c + (d - c) * fx) * fy +
         (contourNoise(px + ox, py + oy, contour.scale) - 0.5) * contour.wobble;
-      const cx = Math.floor(px / 16),
-        cy = Math.floor(py / 16);
-      const own = tierAt(cx, cy);
-      // Interior ground is still blitted a whole tile at a time by the ground
-      // page, so only the edge zone the wall pass owns may leave its tier.
-      levels[i * FW + j] = ownsAt(cx, cy)
-        ? Math.max(0, Math.min(maxTier, Math.round(h)))
-        : own;
+      levels[i * FW + j] = Math.max(0, Math.min(maxTier, Math.round(h)));
     }
 
   // Wobble on its own throws off single-pixel islands that read as artefacts.
@@ -509,6 +511,12 @@ function rasterWallContours(
     const r = contour.smoothing;
     for (let i = 0; i < FH; i++)
       for (let j = 0; j < FW; j++) {
+        const cx = Math.floor((j - PX) / 16),
+          cy = Math.floor((i - PY) / 16);
+        if (!ownsAt(cx, cy)) {
+          levels[i * FW + j] = tierAt(cx, cy);
+          continue;
+        }
         counts.fill(0);
         for (let dy = -r; dy <= r; dy++)
           for (let dx = -r; dx <= r; dx++)
@@ -521,9 +529,7 @@ function rasterWallContours(
         let best = 0;
         for (let t = 1; t <= maxTier; t++)
           if (counts[t] > counts[best]) best = t;
-        const cx = Math.floor((j - PX) / 16),
-          cy = Math.floor((i - PY) / 16);
-        levels[i * FW + j] = ownsAt(cx, cy) ? best : tierAt(cx, cy);
+        levels[i * FW + j] = best;
       }
   }
   const lvl = (px: number, py: number) =>
@@ -723,6 +729,19 @@ function rasterWallContours(
   const rimKeep = bank.rim ?? 1;
   const mix = (a: readonly number[], b: readonly number[], t: number) =>
     [0, 1, 2].map((k) => Math.round(a[k] + (b[k] - a[k]) * t));
+  // The pixel loop asks once per pixel and a cell spans hundreds of them, so
+  // the answer is kept by cell object ahead of the string key.
+  const trimByCell = new WeakMap<TopographyCell, Trim>();
+  const trimOf = (cell: TopographyCell | undefined): Trim => {
+    if (!cell)
+      return trimFor(undefined, undefined, undefined);
+    let trim = trimByCell.get(cell);
+    if (!trim) {
+      trim = trimFor(cell.habitat?.ecology, cell.surface, cell.habitat?.colorway);
+      trimByCell.set(cell, trim);
+    }
+    return trim;
+  };
   const trimFor = (
     ecology: string | undefined,
     surface: string | undefined,
@@ -821,8 +840,22 @@ function rasterWallContours(
   const sampleAt = (x: number, y: number) =>
     sample(region ? x : Math.max(0, Math.min(width - 1, x)), y);
   /** The cell at (x, y) is a ramp whose high end faces `dir`. */
-  const rampInto = (x: number, y: number, dir: "n" | "e" | "s" | "w") =>
-    sampleAt(x, y)?.ramp === dir;
+  // Asked three times per pixel; a cell answers once.
+  const rampDir = new Map<number, string | undefined>();
+  const rampInto = (x: number, y: number, dir: "n" | "e" | "s" | "w") => {
+    const key = x * 4096 + y + 2048;
+    let r = rampDir.get(key);
+    if (r === undefined && !rampDir.has(key))
+      rampDir.set(key, (r = sampleAt(x, y)?.ramp));
+    return r === dir;
+  };
+  const CUE_SHADE = [0, 0.16, 0.1, 0.05];
+  const HILL_DIRS: [number, number][] = [
+    [1, 0],
+    [-1, 0],
+    [0, 1],
+    [0, -1],
+  ];
   const lo = region ? -1 : 0,
     hi = region ? height * 16 + 1 : height * 16;
   for (let px = -PX; px < width * 16 + PX; px++)
@@ -852,11 +885,7 @@ function rasterWallContours(
       const rim = west < L || east < L || north < L;
       if (cell?.ramp) continue;
       const cap = snow ? 25 : dry ? 9 : 4;
-      const trim = trimFor(
-        material?.habitat?.ecology,
-        material?.surface,
-        material?.habitat?.colorway,
-      );
+      const trim = trimOf(material);
       if (ownsAt(Math.floor(px / 16), row) && !clipped(row, px, sy)) {
         const rgba = owner && surfaces.pixel(owner, px, py, L, lvl);
         if (rgba) {
@@ -866,7 +895,7 @@ function rasterWallContours(
         // A fixed contour cue stays on its own terrace, independent of sunlight.
         for (let k = 1; k <= 3; k++) {
           if (lvl(px, py - k) >= L) continue;
-          shade(row, px, sy, [0, 0.16, 0.1, 0.05][k]);
+          shade(row, px, sy, CUE_SHADE[k]);
           break;
         }
         // Contact shade thrown forward by whatever rises immediately behind.
@@ -881,13 +910,8 @@ function rasterWallContours(
         // before its edge does.
         if (hillshade)
           search: for (let d = 2; d <= 12; d += 2)
-            for (const [dx, dy] of [
-              [d, 0],
-              [-d, 0],
-              [0, d],
-              [0, -d],
-            ]) {
-              const n = lvl(px + dx, py + dy);
+            for (const [ux, uy] of HILL_DIRS) {
+              const n = lvl(px + ux * d, py + uy * d);
               if (n === L) continue;
               shade(
                 row,
@@ -944,11 +968,11 @@ function rasterWallContours(
       }
       // East and west drops show a sliver of the same face, so they read as
       // one object with the south wall rather than as a stray line.
-      if (sideFace && L)
-        for (const [n, side, tone] of [
-          [west, -1, 0.86],
-          [east, 1, 0.68],
-        ]) {
+      if (sideFace && L && (west < L || east < L))
+        for (let s = 0; s < 2; s++) {
+          const n = s ? east : west,
+            side = s ? 1 : -1,
+            tone = s ? 0.68 : 0.86;
           if (n >= L) continue;
           // Follow the edge south. Ending in a south face, it is the side of
           // a front-facing corner and earns its sliver; ending where the low

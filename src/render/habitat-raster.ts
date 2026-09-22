@@ -440,32 +440,60 @@ function rasterGroundTile(
   // that crosses tiles instead of an eight-pixel stair. Farmed cells keep
   // the authored transition tiles.
   const ease = (t: number) => t * t * (3 - 2 * t);
-  const appearances = new Map<string, ReturnType<typeof habitatAppearance>>();
+  // Every pixel below reads the cells from x-1..x+1, y-1..y+1 and nothing
+  // else about its neighbours, so those nine are read once per tile.
+  const ring: (TopographyCell | undefined)[] = [];
+  const ringHabitat: Habitat[] = [];
+  const ringGround: number[][] = [];
+  const ringBand: number[] = [];
+  const ringFarmed: boolean[] = [];
+  for (let dy = -1; dy <= 1; dy++)
+    for (let dx = -1; dx <= 1; dx++) {
+      const c = sample(x + dx, y + dy),
+        near = c?.habitat ?? h;
+      ring.push(c);
+      ringHabitat.push(near);
+      ringFarmed.push(c?.feature === "field" || !!c?.field);
+      if (h.site) {
+        ringGround.push(habitatAppearance(near, art).ground);
+        ringBand.push(near.site ? communityBand[near.site.primary] : 0);
+      }
+    }
+  const ringAt = (cx: number, cy: number) => (cy + 1) * 3 + cx + 1;
+  const cornerW = [0, 0, 0, 0];
+  const cornerAt = [0, 0, 0, 0];
+  const rgb = [0, 0, 0],
+    bands = [0, 0, 0, 0, 0, 0],
+    tones: (number[] | undefined)[] = [];
   const communityPixel = (px: number, py: number) => {
     // Jittered like every other band edge: sampled straight, the winner below
     // changes along the cell lattice and the seam reads as a staircase.
     const [jx, jy] = jitter(px, py);
     const u = (px + jx + .5) / 16 - .5, v = (py + jy + .5) / 16 - .5;
     const cx = Math.floor(u), cy = Math.floor(v), tx = ease(u-cx), ty = ease(v-cy);
-    const rgb = [0,0,0], bands = [0,0,0,0,0,0];
-    const tones: (number[] | undefined)[] = [];
-    for (const [dx,dy,w] of [[0,0,(1-tx)*(1-ty)],[1,0,tx*(1-ty)],[0,1,(1-tx)*ty],[1,1,tx*ty]]) {
-      const nx=x+cx+dx, ny=y+cy+dy, near=sample(nx,ny)?.habitat ?? h;
-      const key=`${nx},${ny}`;
-      let a=appearances.get(key);
-      if (!a) { a=habitatAppearance(near,art); appearances.set(key,a); }
-      const b = near.site ? communityBand[near.site.primary] : 0;
+    rgb[0] = rgb[1] = rgb[2] = 0;
+    for (let b = 0; b < 6; b++) bands[b] = 0;
+    tones.length = 0;
+    cornerW[0] = (1-tx)*(1-ty); cornerW[1] = tx*(1-ty); cornerW[2] = (1-tx)*ty; cornerW[3] = tx*ty;
+    cornerAt[0] = ringAt(cx, cy); cornerAt[1] = ringAt(cx + 1, cy); cornerAt[2] = ringAt(cx, cy + 1); cornerAt[3] = ringAt(cx + 1, cy + 1);
+    for (let k = 0; k < 4; k++) {
+      const w = cornerW[k], i = cornerAt[k], ground = ringGround[i];
+      const b = ringBand[i];
       bands[b]+=w;
       const t = tones[b] ?? (tones[b] = [0,0,0]);
-      for(let c=0;c<3;c++) { rgb[c]+=a.ground[c]*w; t[c]+=a.ground[c]*w; }
+      for(let c=0;c<3;c++) { rgb[c]+=ground[c]*w; t[c]+=ground[c]*w; }
     }
-    const ranked = [0,1,2,3,4,5]
-      .filter((b) => bands[b] > 0)
-      .sort((a, b) => bands[b] - bands[a]);
-    let band = ranked[0];
+    // Heaviest band first; an equal weight keeps the lower band, as the
+    // stable sort this replaces did.
+    let band = -1, rival: number | undefined;
+    for (let b = 0; b < 6; b++) {
+      if (bands[b] <= 0) continue;
+      if (band < 0) band = b;
+      else if (bands[b] > bands[band]) { rival = band; band = b; }
+      else if (rival === undefined || bands[b] > bands[rival]) rival = b;
+    }
     // Two communities meeting get a stipple, not a ramp: within a few pixels
     // of a tie the loser wins on a hash, so the seam breaks up at pixel scale.
-    const rival = ranked[1];
     if (rival !== undefined) {
       const lead = (bands[band] - bands[rival]) / (bands[band] + bands[rival]);
       if (lead < 0.34 && hash(gx + px, gy + py, 495) > 0.5 + lead * 1.47)
@@ -474,9 +502,10 @@ function rasterGroundTile(
     // Snap toward the chosen band's own colour. Within one band this is a
     // no-op, so only a real community seam sharpens.
     const own = tones[band]!;
+    const out = [0, 0, 0];
     for (let c = 0; c < 3; c++)
-      rgb[c] = rgb[c] * 0.3 + (own[c] / bands[band]) * 0.7;
-    return { rgb, band };
+      out[c] = rgb[c] * 0.3 + (own[c] / bands[band]) * 0.7;
+    return { rgb: out, band };
   };
   const smoothBand = (px: number, py: number) => {
     const u = (px + 0.5) / 16 - 0.5,
@@ -485,19 +514,23 @@ function rasterGroundTile(
       cy = Math.floor(v);
     const tx = ease(u - cx),
       ty = ease(v - cy);
-    const cells = [
-      sample(x + cx, y + cy),
-      sample(x + cx + 1, y + cy),
-      sample(x + cx, y + cy + 1),
-      sample(x + cx + 1, y + cy + 1),
-    ];
-    if (cells.some((c) => c?.feature === "field" || c?.field))
+    const i0 = ringAt(cx, cy),
+      i1 = ringAt(cx + 1, cy),
+      i2 = ringAt(cx, cy + 1),
+      i3 = ringAt(cx + 1, cy + 1);
+    if (ringFarmed[i0] || ringFarmed[i1] || ringFarmed[i2] || ringFarmed[i3])
       return jitteredBand(px, py);
     if (h.site) return communityPixel(px,py).band;
-    const hs = cells.map((c) => c?.habitat ?? h);
-    const w = [(1 - tx) * (1 - ty), tx * (1 - ty), (1 - tx) * ty, tx * ty];
+    const h0 = ringHabitat[i0],
+      h1 = ringHabitat[i1],
+      h2 = ringHabitat[i2],
+      h3 = ringHabitat[i3];
+    const w0 = (1 - tx) * (1 - ty),
+      w1 = tx * (1 - ty),
+      w2 = (1 - tx) * ty,
+      w3 = tx * ty;
     const mix = (k: "exposed" | "wet" | "cover") =>
-      hs[0][k] * w[0] + hs[1][k] * w[1] + hs[2][k] * w[2] + hs[3][k] * w[3];
+      h0[k] * w0 + h1[k] * w1 + h2[k] * w2 + h3[k] * w3;
     const wx = gx + px,
       wy = gy + py;
     const n = (noise(wx, wy, 9, 491) - 0.5) * 0.09;
@@ -505,7 +538,7 @@ function rasterGroundTile(
       wet = mix("wet") - n * 0.6,
       cover = mix("cover");
     const i = (tx > 0.5 ? 1 : 0) + (ty > 0.5 ? 2 : 0);
-    const near = hs[i];
+    const near = i === 0 ? h0 : i === 1 ? h1 : i === 2 ? h2 : h3;
     canopy[at(px, py)] = Math.round(cover * 255);
     return e > 0.65
       ? 3
