@@ -16,23 +16,19 @@ export type GoalContext = {
   inventory: Partial<Record<ItemId, number>>;
   hunger: number;
   fatigue: number;
-  /** Nearby place names by kind, e.g. { market: "the forum" }. */
-  places: Record<string, string>;
+  /** Names and sprites of buildings in the settlement, lowercased. */
+  places: { name: string; sprite: string }[];
 };
 
-/** How a goal is judged done. Checked against player state after each tick. */
+/** How a goal is judged done. Checked against player state. */
 export type GoalCheck =
-  /** Inventory of `item` rises by `n` over the dawn count. */
-  | { type: "gain"; item: ItemId; n: number }
-  /** Any trade completes. */
+  /** Combined count of `items` rises by `n` over the dawn count. */
+  | { type: "gain"; items: ItemId[]; n: number }
   | { type: "trade" }
-  /** Player stands inside a place whose kind matches. */
-  | { type: "visit"; placeKind: string }
-  /** Player talks to any person. */
+  /** Player enters a building whose name or sprite matches. */
+  | { type: "visit"; place: string }
   | { type: "talk" }
-  /** Hunger falls below this value. */
   | { type: "eat"; below: number }
-  /** Player sleeps (fatigue falls below this value). */
   | { type: "rest"; below: number };
 
 export type GoalTemplate = {
@@ -54,7 +50,7 @@ export type DailyGoal = {
   id: string;
   text: string;
   check: GoalCheck;
-  /** Inventory count of the check item at dawn, for "gain". */
+  /** Count of the check items at dawn, for "gain". */
   base?: number;
   done?: boolean;
 };

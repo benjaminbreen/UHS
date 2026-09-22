@@ -401,12 +401,10 @@ export type Snapshot = {
   ledger?: string[];
   /** Narrator turns, oldest first. */
   narration?: { clock: number; input: string; text: string }[];
-  /** Today's goals. */
   goals?: import("../content/goals/types").DailyGoal[];
-  /** Day number when goals were last generated. */
   goalDay?: number;
-  /** Flags tracking goal progress. */
-  goalFlags?: { traded: boolean; talked: boolean };
+  /** What the player has done today that goals can't read off state. */
+  goalFlags?: { traded: boolean; talked: boolean; visited: string[] };
 };
 /** What a narrator turn may do to the world. Each one resolves
  * deterministically in the engine; the model only proposes. */

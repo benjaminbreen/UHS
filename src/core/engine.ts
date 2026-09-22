@@ -69,9 +69,11 @@ import { regardCue } from "./regard";
 import { resolveIntents, validateIntents } from "./intents";
 import { findPath } from "./pathfinding";
 import { itineraryAt, type Itinerary, DAY_MINUTES } from "./itinerary";
-import { pickGoals } from "./goals";
+import { goalDone, heldCount, pickGoals } from "./goals";
+import { GOAL_TEMPLATES } from "../content/goals/templates";
+import type { SeasonId } from "./season";
 import { livelihoodOf } from "../world/v3/routines";
-import type { GoalContext, DailyGoal } from "../content/goals/types";
+import type { GoalContext } from "../content/goals/types";
 import { route, type RouteResult } from "./routing";
 import { terrainJump, terrainLeap, type LeapResult } from "./topography";
 import { advanceFauna, stepAllowed } from "./fauna-sim";
@@ -345,66 +347,42 @@ export class Engine {
   snapshot() {
     return copy(this.state);
   }
+  /** Today's goals, picked at the first call of each game day. */
   dailyGoals() {
-    const today = Math.floor(this.state.clock / DAY_MINUTES);
-
-    // Regenerate goals if day changed
-    if (this.state.goalDay !== today) {
-      const kit = livelihoodOf(this.world.pack, this.state.player);
-      const activity = kit?.activity ?? this.state.player.role;
-      const kit_workplace = kit?.workplace;
-
-      // Build GoalContext
+    const s = this.state,
+      p = s.player,
+      pack = this.world.pack;
+    const today = Math.floor(s.clock / DAY_MINUTES);
+    if (s.goalDay !== today) {
+      const kit = livelihoodOf(pack, p);
       const context: GoalContext = {
-        activity,
-        role: this.state.player.role,
-        workplace: kit_workplace,
-        season: this.world.pack.setting
-          ? seasonAt(this.world.pack.setting.season, this.state.clock)
-          : ("spring" as const),
-        year: this.world.pack.year,
-        commodities: this.world.pack.commodities,
-        currency: this.world.pack.currency,
-        inventory: copy(this.state.player.inventory),
-        hunger: this.state.player.hunger,
-        fatigue: this.state.player.fatigue,
-        places: Object.fromEntries(
-          this.world.places
-            .filter((p) =>
-              distance({ x: p.x, y: p.y }, this.state.player.pos) < 50,
-            )
-            .map((p) => [p.id, p.name]),
-        ),
+        activity: kit?.activity ?? p.role,
+        role: p.role,
+        workplace: kit?.workplace,
+        season: (pack.setting
+          ? seasonAt(pack.setting.season, s.clock)
+          : "spring") as SeasonId,
+        year: pack.year,
+        commodities: pack.commodities,
+        currency: pack.currency,
+        inventory: p.inventory,
+        hunger: p.hunger,
+        fatigue: p.fatigue,
+        places: this.world.places
+          .filter(
+            (b) => distance({ ...b.entrance, space: "outside" }, p.pos) < 60,
+          )
+          .map((b) => ({ name: b.name, sprite: b.sprite })),
       };
-
-      // Import templates (might not exist yet, which is fine)
-      let templates: Array<any> = [];
-      try {
-        const mod = require("../content/goals/templates");
-        templates = mod.GOAL_TEMPLATES || [];
-      } catch {
-        // Templates not available yet
-      }
-
-      // Pick goals
-      this.state.goals = pickGoals(
-        this.state.manifest.seed,
-        today,
-        context,
-        templates,
-      );
-      this.state.goalDay = today;
-      this.state.goalFlags = { traded: false, talked: false };
-
-      // Store base inventory for "gain" checks
-      for (const goal of this.state.goals) {
-        if (goal.check.type === "gain") {
-          goal.base = this.state.player.inventory[goal.check.item] ?? 0;
-        }
-      }
+      s.goals = pickGoals(s.manifest.seed, today, context, GOAL_TEMPLATES);
+      for (const g of s.goals)
+        if (g.check.type === "gain") g.base = heldCount(p, g.check.items);
+      s.goalDay = today;
+      s.goalFlags = { traded: false, talked: false, visited: [] };
     }
-
-    return this.state.goals ?? [];
+    for (const g of s.goals ?? [])
+      if (!g.done && goalDone(g, p, s.goalFlags!)) g.done = true;
+    return s.goals ?? [];
   }
   private dropSpot(): Position | undefined {
     const p = this.state.player,
@@ -2298,6 +2276,9 @@ export class Engine {
       if (!place) return;
       p.pos = { x: 6, y: 8, space: place.id };
       p.activity = "Indoors";
+      this.state.goalFlags?.visited.push(
+        `${place.name} ${place.sprite}`.toLowerCase(),
+      );
       this.event(
         `You ${this.world.pack.entryLabel.toLowerCase()} ${place.name.toLowerCase()}.`,
       );
@@ -4096,6 +4077,7 @@ export class Engine {
       o = this.state.objects.find((o) => o.id === c.target),
       b = this.world.place(c.target);
     if (c.type === "trade" && a) {
+      if (this.state.goalFlags) this.state.goalFlags.traded = true;
       // Reserve both participants for this short exchange; commit both transfers together.
       p.inventory[c.give] = (p.inventory[c.give] ?? 0) - c.giveQuantity;
       a.inventory[c.give] = (a.inventory[c.give] ?? 0) + c.giveQuantity;
@@ -4117,6 +4099,7 @@ export class Engine {
     switch (c.action) {
       case "talk":
         if (a) {
+          if (this.state.goalFlags) this.state.goalFlags.talked = true;
           this.advance(90, a.id);
           // People talking look at each other.
           p.direction = this.directionTo(p.pos, a.pos);

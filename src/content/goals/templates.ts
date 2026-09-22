@@ -1,442 +1,308 @@
-import type { GoalTemplate } from "./types";
+import type { GoalContext, GoalTemplate } from "./types";
 
-// Work goals: ~28 covering every Workplace, seasonal where relevant
-// Need goals: ~7 for hunger, fatigue, water, firewood, food
-// Social goals: ~5 for talk, visit, trade
+const has = (c: GoalContext, ...ids: string[]) =>
+  ids.some((id) => (c.inventory[id] ?? 0) > 0);
+const place = (c: GoalContext, pattern: RegExp) =>
+  c.places.find((p) => pattern.test(p.name) || pattern.test(p.sprite));
+const commodity = (c: GoalContext, pattern: RegExp) =>
+  c.commodities.find((id) => pattern.test(id));
+const gain = (text: string, items: string[], n: number) => ({
+  text,
+  check: { type: "gain" as const, items, n },
+});
+const FOOD = [
+  "bread",
+  "grain",
+  "fish",
+  "fruit",
+  "berries",
+  "meat",
+  "cooked-meat",
+];
 
 export const GOAL_TEMPLATES: GoalTemplate[] = [
-  // WORK: Wild (gather, forage, hunt)
+  // Work
   {
-    id: "gather-plants",
-    trades: /gather|forag/i,
-    workplaces: ["wild"],
+    id: "forage",
     slot: "work",
-    bind: (c) => ({
-      text: "Gather some plants.",
-      check: { type: "gain", item: "flax", n: 2 },
-    }),
+    workplaces: ["wild"],
+    trades: /gather|forag|collect|honey|nut/i,
+    bind: (c) =>
+      gain(
+        c.season === "autumn"
+          ? "Gather fruit and nuts before they fall."
+          : "Gather berries and wild food.",
+        ["fruit", "berries"],
+        3,
+      ),
   },
   {
-    id: "hunt-game",
-    trades: /hunt/i,
-    workplaces: ["wild"],
+    id: "hunt",
     slot: "work",
-    bind: (c) => ({
-      text: "Hunt some game.",
-      check: { type: "gain", item: "wool", n: 1 },
-    }),
+    trades: /hunt|trap|fowler/i,
+    bind: () => gain("Bring back meat from a hunt.", ["meat"], 1),
   },
   {
-    id: "gather-fuel",
-    trades: /gather|fuel/i,
-    workplaces: ["wild"],
-    seasons: ["winter"],
+    id: "hides",
     slot: "work",
-    bind: (c) => ({
-      text: "Gather firewood.",
-      check: { type: "gain", item: "wood", n: 2 },
-    }),
+    trades: /hunt|trap|tann|leather/i,
+    seasons: ["autumn", "winter"],
+    bind: () => gain("Take a hide for the winter.", ["hide"], 1),
   },
   {
-    id: "cut-timber",
-    trades: /timber|wood|fell/i,
-    workplaces: ["wild"],
+    id: "fish",
     slot: "work",
-    bind: (c) => ({
-      text: "Cut some timber.",
-      check: { type: "gain", item: "wood", n: 3 },
-    }),
+    trades: /fish|net|boat|angl/i,
+    bind: () => gain("Catch fish enough to sell or eat.", ["fish"], 2),
   },
-  // WORK: Water (fish, washing, water work)
   {
-    id: "fish-nets",
-    trades: /fish|net/i,
+    id: "reeds",
+    slot: "work",
     workplaces: ["water"],
-    slot: "work",
-    bind: (c) => ({
-      text: "Catch some fish.",
-      check: { type: "gain", item: "fish", n: 2 },
-    }),
+    trades: /reed|mat|basket|thatch/i,
+    bind: () => gain("Cut reeds by the water.", ["reeds"], 4),
   },
   {
-    id: "haul-water",
-    trades: /water|wash/i,
-    workplaces: ["water"],
+    id: "wood",
     slot: "work",
-    bind: (c) => ({
-      text: "Haul some water.",
-      check: { type: "gain", item: "water", n: 2 },
-    }),
+    trades: /wood|timber|carpent|charcoal|fell|forest/i,
+    bind: () => gain("Cut and bring in wood.", ["wood"], 3),
   },
-  // WORK: Field (farm, sow, harvest, plough)
   {
-    id: "sow-seed",
-    trades: /farm|plough|peasant|cultivat|sow/i,
+    id: "sow",
+    slot: "work",
     workplaces: ["field"],
     seasons: ["spring"],
-    slot: "work",
-    bind: (c) => ({
-      text: "Sow some seed.",
-      check: { type: "gain", item: "grain", n: 1 },
-    }),
+    bind: (c) =>
+      has(c, "grain")
+        ? undefined
+        : gain("Find seed grain for sowing.", ["grain"], 1),
   },
   {
-    id: "tend-fields",
-    trades: /farm|plough|peasant|cultivat|tend/i,
+    id: "weed",
+    slot: "work",
     workplaces: ["field"],
     seasons: ["summer"],
-    slot: "work",
-    bind: (c) => ({
-      text: "Tend the fields.",
-      check: { type: "gain", item: "grain", n: 1 },
-    }),
+    bind: () =>
+      gain(
+        "Clear weeds and cut fodder from the edges.",
+        ["fodder", "reeds"],
+        3,
+      ),
   },
   {
-    id: "harvest-crop",
-    trades: /farm|harvest|crop|reap|gather/i,
+    id: "harvest",
+    slot: "work",
     workplaces: ["field"],
     seasons: ["autumn"],
-    slot: "work",
-    bind: (c) => ({
-      text: "Bring in the crop.",
-      check: { type: "gain", item: "grain", n: 3 },
-    }),
+    bind: () => gain("Bring in the harvest.", ["grain", "flax", "fruit"], 3),
   },
-  // WORK: Pasture (herd, shepherd, animals)
   {
-    id: "herd-animals",
-    trades: /herd|shepherd|goat|cattle|tend.*animal/i,
+    id: "winter-field",
+    slot: "work",
+    workplaces: ["field"],
+    seasons: ["winter"],
+    bind: () => gain("Lay in fuel while the fields rest.", ["wood"], 3),
+  },
+  {
+    id: "fodder",
+    slot: "work",
     workplaces: ["pasture"],
-    slot: "work",
-    bind: (c) => ({
-      text: "Mind the herd.",
-      check: { type: "gain", item: "wool", n: 2 },
-    }),
+    bind: (c) =>
+      gain(
+        c.season === "winter"
+          ? "Find fodder for the animals."
+          : "Cut fodder for the flock.",
+        ["fodder"],
+        3,
+      ),
   },
   {
-    id: "milk-animals",
-    trades: /herd|shepherd|dairy|milk/i,
+    id: "wool",
+    slot: "work",
     workplaces: ["pasture"],
-    slot: "work",
-    bind: (c) => ({
-      text: "Milk the animals.",
-      check: { type: "gain", item: "wool", n: 1 },
-    }),
+    seasons: ["spring", "summer"],
+    fit: (c) => (commodity(c, /wool/) ? 1 : 0),
+    bind: () => gain("Take wool from the flock.", ["wool"], 1),
   },
-  // WORK: Extraction (mine, quarry, salt, brick, lime)
   {
-    id: "work-mine",
-    trades: /mine|dig|extract|under/i,
+    id: "quarry",
+    slot: "work",
     workplaces: ["extraction"],
-    slot: "work",
-    bind: (c) => ({
-      text: "Work the mine.",
-      check: { type: "gain", item: "obsidian", n: 2 },
-    }),
-  },
-  {
-    id: "work-stone",
-    trades: /stone|quarry|cut.*stone/i,
-    workplaces: ["extraction"],
-    slot: "work",
-    bind: (c) => ({
-      text: "Work the stone.",
-      check: { type: "gain", item: "wood", n: 1 },
-    }),
-  },
-  {
-    id: "make-brick",
-    trades: /brick|clay|fire/i,
-    workplaces: ["extraction"],
-    slot: "work",
-    bind: (c) => ({
-      text: "Make some brick.",
-      check: { type: "gain", item: "wood", n: 2 },
-    }),
-  },
-  // WORK: Market (merchant, trader, vendor, sell, buy)
-  {
-    id: "mind-stall",
-    trades: /merchant|trader|vendor|market|stall|exchange/i,
-    workplaces: ["market"],
-    slot: "work",
-    bind: (c) => ({
-      text: `Sell at the market.`,
-      check: { type: "trade" },
-    }),
-  },
-  {
-    id: "buy-supplies",
-    trades: /merchant|trader|vendor|market|exchange/i,
-    workplaces: ["market"],
-    slot: "work",
-    bind: (c) => ({
-      text: `Buy some supplies.`,
-      check: { type: "trade" },
-    }),
-  },
-  // WORK: Civic (priest, scribe, official, building)
-  {
-    id: "keep-records",
-    trades: /priest|scribe|official|record|keeper/i,
-    workplaces: ["civic"],
-    slot: "work",
-    bind: (c) => ({
-      text: "Keep the records.",
-      check: { type: "talk" },
-    }),
-  },
-  {
-    id: "tend-sick",
-    trades: /priest|healer|doctor|tend.*sick|medicine/i,
-    workplaces: ["civic"],
-    slot: "work",
-    bind: (c) => ({
-      text: "Tend the sick.",
-      check: { type: "talk" },
-    }),
-  },
-  {
-    id: "stand-watch",
-    trades: /watch|guard|stand|official/i,
-    workplaces: ["civic"],
-    slot: "work",
-    bind: (c) => ({
-      text: "Stand watch.",
-      check: { type: "gain", item: "coin", n: 1 },
-    }),
-  },
-  // WORK: Carrying (porter, carter, boatman)
-  {
-    id: "carry-load",
-    trades: /porter|carter|carry|load|boatman/i,
-    workplaces: ["carrying"],
-    slot: "work",
-    bind: (c) => ({
-      text: "Carry a load.",
-      check: { type: "gain", item: "coin", n: 1 },
-    }),
-  },
-  {
-    id: "travel",
-    trades: /travel|porter|carry|errand/i,
-    workplaces: ["carrying"],
-    slot: "work",
-    bind: (c) => ({
-      text: "Travel.",
-      check: { type: "gain", item: "coin", n: 1 },
-    }),
-  },
-  // WORK: Workshop (smith, potter, weaver, tanner, carpenter)
-  {
-    id: "smith-work",
-    trades: /smith|metal|forge/i,
-    workplaces: ["workshop"],
-    slot: "work",
-    bind: (c) => ({
-      text: "Work the forge.",
-      check: { type: "gain", item: "obsidian", n: 1 },
-    }),
-  },
-  {
-    id: "potter-work",
-    trades: /potter|clay|ceramic/i,
-    workplaces: ["workshop"],
-    slot: "work",
-    bind: (c) => ({
-      text: "Make some pottery.",
-      check: { type: "gain", item: "coin", n: 1 },
-    }),
-  },
-  {
-    id: "weave",
-    trades: /weav|loom|fiber|textile/i,
-    workplaces: ["workshop"],
-    slot: "work",
-    bind: (c) => ({
-      text: "Weave some cloth.",
-      check: { type: "gain", item: "flax", n: 2 },
-    }),
-  },
-  {
-    id: "tanner-work",
-    trades: /tanner|leather|hide|skin/i,
-    workplaces: ["workshop"],
-    slot: "work",
-    bind: (c) => ({
-      text: "Work the leather.",
-      check: { type: "gain", item: "wool", n: 1 },
-    }),
-  },
-  {
-    id: "carpenter-work",
-    trades: /carpenter|wood|craft|build/i,
-    workplaces: ["workshop"],
-    slot: "work",
-    bind: (c) => ({
-      text: "Work the wood.",
-      check: { type: "gain", item: "wood", n: 2 },
-    }),
-  },
-  // WORK: Household (cook, preparing food, cleaning, fire)
-  {
-    id: "cook-meal",
-    trades: /cook|kitchen|food|bread|prepare/i,
-    workplaces: ["household"],
-    slot: "work",
-    bind: (c) => ({
-      text: "Prepare a meal.",
-      check: { type: "gain", item: "bread", n: 1 },
-    }),
-  },
-  {
-    id: "household-craft",
-    trades: /household|craft|clean|keep/i,
-    workplaces: ["household"],
-    slot: "work",
-    bind: (c) => ({
-      text: "Do household work.",
-      check: { type: "gain", item: "coin", n: 1 },
-    }),
-  },
-
-  // NEED: Food, water, rest, fuel
-  {
-    id: "need-eat",
-    slot: "need",
-    fit: (c) => (c.hunger > 80 ? 2 : 0),
     bind: (c) => {
-      const breadCount = c.inventory.bread ?? 0;
-      const grainCount = c.inventory.grain ?? 0;
-      if (breadCount > 0 || grainCount > 0) {
-        return {
-          text: "Eat something.",
-          check: { type: "eat", below: 50 },
-        };
-      }
-      return undefined;
+      const stone = commodity(c, /obsidian|stone|ore|salt|clay/);
+      return stone ? gain(`Dig out ${stone}.`, [stone], 2) : undefined;
     },
   },
   {
-    id: "need-rest",
+    id: "sell-goods",
+    slot: "work",
+    workplaces: ["market", "workshop"],
+    bind: (c) =>
+      c.currency
+        ? gain("Sell enough to earn some coin.", [c.currency], 2)
+        : {
+            text: "Trade some of your work for what you need.",
+            check: { type: "trade" },
+          },
+  },
+  {
+    id: "stock",
+    slot: "work",
+    workplaces: ["market"],
+    bind: (c) => {
+      const good = c.commodities.find((id) => id !== c.currency);
+      return good ? gain(`Buy in ${good} to sell on.`, [good], 2) : undefined;
+    },
+  },
+  {
+    id: "materials",
+    slot: "work",
+    workplaces: ["workshop"],
+    bind: (c) => {
+      const raw = commodity(c, /wool|flax|wood|hide|obsidian|reeds|clay/);
+      return raw ? gain(`Get ${raw} to work with.`, [raw], 2) : undefined;
+    },
+  },
+  {
+    id: "carry",
+    slot: "work",
+    workplaces: ["carrying"],
+    bind: (c) =>
+      c.currency
+        ? gain("Carry a load and get paid for it.", [c.currency], 1)
+        : {
+            text: "Carry goods to someone who needs them.",
+            check: { type: "trade" },
+          },
+  },
+  {
+    id: "civic-rounds",
+    slot: "work",
+    workplaces: ["civic"],
+    bind: () => ({
+      text: "Speak with the people in your charge.",
+      check: { type: "talk" },
+    }),
+  },
+  {
+    id: "rites",
+    slot: "work",
+    trades: /priest|priestess|shaman|monk|nun|imam|rabbi|diviner|healer/i,
+    bind: (c) => {
+      const holy = place(c, /shrine|temple|church|mosque|chapel|altar|chedi/i);
+      return holy
+        ? {
+            text: `Tend to ${holy.name}.`,
+            check: { type: "visit", place: holy.name },
+          }
+        : {
+            text: "Visit those who need your prayers.",
+            check: { type: "talk" },
+          };
+    },
+  },
+  {
+    id: "household",
+    slot: "work",
+    workplaces: ["household"],
+    bind: (c) =>
+      gain(
+        c.season === "winter"
+          ? "Keep the fire fed."
+          : "Fetch water for the house.",
+        [c.season === "winter" ? "wood" : "water"],
+        2,
+      ),
+  },
+  {
+    id: "any-work",
+    slot: "work",
+    fit: () => 0.2,
+    bind: (c) => {
+      const good = c.commodities.find((id) => id !== c.currency);
+      return good ? gain(`Get some ${good} together.`, [good], 2) : undefined;
+    },
+  },
+
+  // Needs
+  {
+    id: "eat",
     slot: "need",
-    fit: (c) => (c.fatigue > 80 ? 2 : 0),
-    bind: (c) => ({
+    fit: (c) => (c.hunger > 60 ? 3 : c.hunger > 40 ? 1 : 0),
+    bind: () => ({
+      text: "Find something to eat.",
+      check: { type: "eat", below: 25 },
+    }),
+  },
+  {
+    id: "food-store",
+    slot: "need",
+    fit: (c) => (has(c, ...FOOD) ? 0 : 2),
+    bind: () => gain("Get food to keep by you.", FOOD, 2),
+  },
+  {
+    id: "sleep",
+    slot: "need",
+    fit: (c) => (c.fatigue > 70 ? 3 : 0),
+    bind: () => ({
       text: "Get some rest.",
-      check: { type: "rest", below: 50 },
+      check: { type: "rest", below: 30 },
     }),
   },
   {
-    id: "need-fetch-water",
+    id: "water",
     slot: "need",
-    fit: (c) => ((c.inventory.water ?? 0) === 0 ? 1 : 0),
-    bind: (c) => {
-      if (!c.places.water) return undefined;
-      return {
-        text: `Get water from ${c.places.water}.`,
-        check: { type: "visit", placeKind: "water" },
-      };
-    },
+    seasons: ["summer"],
+    fit: (c) => (has(c, "water") ? 0 : 1.5),
+    bind: () => gain("Fill up with water.", ["water"], 1),
   },
   {
-    id: "need-gather-firewood",
+    id: "firewood",
     slot: "need",
-    seasons: ["winter"],
-    fit: (c) => ((c.inventory.wood ?? 0) < 2 ? 1 : 0),
-    bind: (c) => ({
-      text: "Gather firewood.",
-      check: { type: "gain", item: "wood", n: 2 },
-    }),
-  },
-  {
-    id: "need-buy-food",
-    slot: "need",
-    fit: (c) => {
-      const hasFood = (c.inventory.bread ?? 0) > 0 || (c.inventory.grain ?? 0) > 0;
-      return !hasFood && c.currency ? 1 : 0;
-    },
-    bind: (c) => {
-      if (!c.currency || !c.places.market) return undefined;
-      const canAfford = (c.inventory[c.currency] ?? 0) > 0;
-      if (!canAfford) return undefined;
-      return {
-        text: `Buy food at ${c.places.market}.`,
-        check: { type: "visit", placeKind: "market" },
-      };
-    },
-  },
-  {
-    id: "need-mend-tools",
-    slot: "need",
-    seasons: ["winter"],
-    fit: (c) => ((c.inventory.tool ?? 0) === 0 ? 1 : 0),
-    bind: (c) => ({
-      text: "Mend the tools.",
-      check: { type: "gain", item: "tool", n: 1 },
-    }),
-  },
-  {
-    id: "need-cook-bread",
-    slot: "need",
-    fit: (c) => {
-      const hasGrain = (c.inventory.grain ?? 0) > 0;
-      const hasBread = (c.inventory.bread ?? 0) > 0;
-      return hasGrain && !hasBread ? 1 : 0;
-    },
-    bind: (c) => ({
-      text: "Bake some bread.",
-      check: { type: "gain", item: "bread", n: 1 },
-    }),
+    seasons: ["winter", "autumn"],
+    fit: (c) => (has(c, "wood") ? 0.5 : 2),
+    bind: () => gain("Gather firewood before dark.", ["wood"], 2),
   },
 
-  // SOCIAL: Talk, visit, trade
+  // Social
   {
-    id: "social-talk",
+    id: "neighbour",
     slot: "social",
-    bind: (c) => ({
-      text: "Talk to someone.",
+    bind: () => ({
+      text: "Pass the time with a neighbour.",
       check: { type: "talk" },
     }),
   },
   {
-    id: "social-visit-market",
+    id: "news",
     slot: "social",
+    fit: (c) => (place(c, /market|forum|square|tavern|inn|well/i) ? 1 : 0),
     bind: (c) => {
-      if (!c.places.market) return undefined;
+      const p = place(c, /market|forum|square|tavern|inn|well/i)!;
       return {
-        text: `Visit ${c.places.market}.`,
-        check: { type: "visit", placeKind: "market" },
+        text: `Hear the news at ${p.name}.`,
+        check: { type: "visit", place: p.name },
       };
     },
   },
   {
-    id: "social-visit-shrine",
+    id: "worship",
     slot: "social",
+    fit: (c) => (place(c, /shrine|temple|church|mosque|chapel|altar/i) ? 1 : 0),
     bind: (c) => {
-      if (!c.places.shrine) return undefined;
+      const p = place(c, /shrine|temple|church|mosque|chapel|altar/i)!;
       return {
-        text: `Visit ${c.places.shrine}.`,
-        check: { type: "visit", placeKind: "shrine" },
+        text: `Make an offering at ${p.name}.`,
+        check: { type: "visit", place: p.name },
       };
     },
   },
   {
-    id: "social-visit-temple",
+    id: "barter",
     slot: "social",
-    bind: (c) => {
-      if (!c.places.temple) return undefined;
-      return {
-        text: `Visit ${c.places.temple}.`,
-        check: { type: "visit", placeKind: "temple" },
-      };
-    },
-  },
-  {
-    id: "social-trade",
-    slot: "social",
-    fit: (c) => (c.commodities.length > 0 ? 1 : 0),
-    bind: (c) => ({
-      text: "Trade with someone.",
+    bind: () => ({
+      text: "Strike a bargain with someone.",
       check: { type: "trade" },
     }),
   },
