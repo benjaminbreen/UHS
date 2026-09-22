@@ -129,6 +129,19 @@ export function dialogueContext(runtime: Runtime, actor: Actor) {
     .slice(-3)
     .map((memory) => memory.split(":").slice(2).join(":"))
     .filter(Boolean);
+  // What this person saw the player do. The engine already records these on
+  // the witness ("Saw player smash my pot"), but the prompt only ever sent
+  // the spoke/regard memories, so a smashed pot never reached the model.
+  // Object and item ids are swapped for names: nobody says "pot-3".
+  const named = (memory: string) =>
+    memory.replace(/[a-z][\w-]*\d[\w-]*/gi, (token) => {
+      const object = engine.state.objects.find((candidate) => candidate.id === token);
+      return object?.name.toLowerCase() ?? engine.item(token)?.name.toLowerCase() ?? token;
+    });
+  const grievances = (actor.memories ?? [])
+    .filter((memory) => !/^(spoke|regard):/.test(memory))
+    .slice(-4)
+    .map(named);
   const feeling = actor.trust < 0 ? "wary of you" : actor.trust > 2 ? "warm toward you" : "neutral toward you";
   // This prompt is built for one person, so it can afford the whole outlook
   // and what each position actually holds, which is what stops the model
@@ -149,6 +162,9 @@ export function dialogueContext(runtime: Runtime, actor: Actor) {
     traits.length ? `Traits: ${traits.join(", ")}.` : "Traits: ordinary temperament.",
     holds.length ? `Holds:\n- ${holds.join("\n- ")}` : "",
     possessions.length ? `Has: ${possessions.join(", ")}.` : "Has: ordinary work things.",
+    grievances.length
+      ? `Seen with your own eyes, oldest first, the last of them just now: ${grievances.join("; ")}. This happened; it is not hearsay, and you have not forgotten it.`
+      : "",
     met.length ? `Already ${feeling}; remembers you saying: ${met.join("; ")}.` : "Has not spoken with the player before.",
     `Setting: ${engine.world.pack.name}, ${engine.world.pack.date}.`,
   ]
