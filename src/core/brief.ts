@@ -13,10 +13,11 @@ export type PersonBrief = { identity: BriefSpan[]; moment: BriefSpan[] };
 export type Sex = "male" | "female" | undefined;
 
 export const sexOf = (a: Actor): Sex => {
-  const declared = a.origin?.sex ?? a.appearance?.physique?.sex;
-  return declared === "male" || declared === "female"
-    ? declared
-    : sexFromName(a.name);
+  // A kit without gendered names records "unspecified" and lets the body
+  // follow the name, so the body is the better witness.
+  for (const declared of [a.origin?.sex, a.appearance?.physique?.sex])
+    if (declared === "male" || declared === "female") return declared;
+  return sexFromName(a.name);
 };
 const pronoun = (sex: Sex) =>
   sex === "female" ? "She" : sex === "male" ? "He" : "They";

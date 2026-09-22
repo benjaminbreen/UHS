@@ -152,6 +152,9 @@ export function wallSection(
   if (dx === 0)
     return 9 + Math.min(2, Math.floor(((place.h - 1 - dy) / place.h) * 3));
 }
+/** Every generated building now carries a structure; only an abandoned one
+ * is a ruin. */
+export const isRuin = (place: Place) => place.structure?.abandoned !== undefined;
 export function structureBlocks(place: Place, x: number, y: number) {
   const section = wallSection(place, x, y);
   return (

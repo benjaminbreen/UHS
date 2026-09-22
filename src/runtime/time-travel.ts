@@ -8,6 +8,7 @@ import {
 } from "../core/time/lineage";
 import { settingAt, timeBounds, timeContext } from "../core/time/setting";
 import { temporalWorld } from "../core/time/world";
+import { isRuin } from "../core/time/structure";
 import type { Runtime } from "./session";
 import { releaseTerrainWorker } from "./terrain-worker-owner";
 import { formatHistoricalYear } from "../core/calendar";
@@ -82,9 +83,7 @@ export class TimeTravel {
         this.origin.world.pack.setting!,
         year,
       );
-      ruins = result.phases.filter(
-        (p) => p.place.structure!.roof < 0.95,
-      ).length;
+      ruins = result.phases.filter((p) => isRuin(p.place)).length;
       rebuilt = result.phases.filter((p) => p.incarnation !== 0).length;
       engine = new Engine(result.world, this.origin.items);
       engine.initialize(this.lineage.seed);
@@ -123,7 +122,7 @@ export class TimeTravel {
       engine.state.player.home = { ...engine.state.player.pos };
       engine.state.player.work = { ...engine.state.player.pos };
     }
-    ruins = engine.world.places.filter(p => (p.structure?.roof ?? 1) < 0.95).length;
+    ruins = engine.world.places.filter(isRuin).length;
     const context = timeContext(setting);
     const arrival: Arrival = {
       year,

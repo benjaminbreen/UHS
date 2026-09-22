@@ -11,6 +11,7 @@ import {
   conditionOf,
   fabricOf,
   structureBlocks,
+  isRuin,
 } from "./structure";
 import { settingAt } from "./setting";
 import { ageObject } from "./objects";
@@ -135,7 +136,7 @@ export function temporalWorld(
   const phases = base.places.map((p) => buildingAt(p, seed, origin, year));
   const venues = venuesFor(setting, base.places.length);
   for (const phase of phases) {
-    if (phase.place.structure!.roof < 0.95) continue;
+    if (isRuin(phase.place)) continue;
     const old = venueOfClaim(phase.place.claim);
     if (!old) continue;
     const next = venues.find(v => v.kind === old.kind);
@@ -151,7 +152,7 @@ export function temporalWorld(
       for (let x = place.x; x < place.x + place.w; x++)
         cells.set(`${x},${y}`, byId.get(place.id)!);
   const at = (x: number, y: number) => cells.get(`${x},${y}`);
-  const ruined = (p: Place) => (p.structure?.roof ?? 1) < 0.95;
+  const ruined = isRuin;
   const objects: WorldObject[] = base.initialObjects.flatMap((o) => {
     const p =
       byId.get(o.placeId ?? o.pos.space) ??

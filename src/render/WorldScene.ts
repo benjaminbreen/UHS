@@ -1,5 +1,6 @@
 import { Watercraft } from "./watercraft";
 import { ruinTexture, releaseRuins } from "./ruins";
+import { isRuin } from "../core/time/structure";
 import {
   waterDepthAt,
   wadingCost,
@@ -2971,7 +2972,7 @@ export class WorldScene extends Phaser.Scene {
             b.y + b.h > startY - 8 &&
             b.y < startY + height + 16
           ) {
-            if (b.structure && b.structure.roof < 0.95) {
+            if (isRuin(b)) {
               const image = this.add.image(b.x * 16 - 32, b.y * 16 - 32 - this.lift((b.x + b.w / 2) * 16, (b.y + b.h) * 16), ruinTexture(this, b))
                 .setOrigin(0, 0).setTint(this.tint).setDepth((b.y + b.h) * 16 - 2);
               this.layers.push(image);

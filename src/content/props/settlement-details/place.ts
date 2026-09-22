@@ -1,5 +1,6 @@
 import type { Pack, Place, Position, WorldModel, WorldObject } from "../../../core/types";
 import { random } from "../../../core/random";
+import { isRuin } from "../../../core/time/structure";
 import { detailProps, graveAxis, muslimBurialStyle, settlementDetails } from "./index";
 
 export type DetailPlacement = {
@@ -22,7 +23,7 @@ function edgeSpots(b: Place): Position[] {
 }
 
 export function placeSettlementDetails(world: WorldModel, seed: string, placement: DetailPlacement) {
-  const buildings = world.places.filter(b => !b.structure && b.w >= 2 && b.h >= 2);
+  const buildings = world.places.filter(b => !isRuin(b) && b.w >= 2 && b.h >= 2);
   const settlements = world.settlements.length ? world.settlements : [{ id: "local", name: world.pack.name, ...world.spawn, size: 50 }];
   const groups = new Map<string, Place[]>();
   for (const b of buildings) {

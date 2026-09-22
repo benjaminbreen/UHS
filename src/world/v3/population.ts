@@ -10,6 +10,7 @@ import type {
 } from "../../core/types";
 import type { SettlementPlan } from "./types";
 import { random } from "../../core/random";
+import { sexOf } from "../../core/brief";
 import { livelihoodOf, memberRoutine, routineFor } from "./routines";
 import { ecologyProfiles } from "../../content/ecology/profiles";
 const seasons = ["spring", "summer", "autumn", "winter"];
@@ -152,19 +153,21 @@ export function populateHouseholds(
                 partner?.origin?.nameFamilies?.[0]
               ? [parent.nameFamilies[0], partner.origin.nameFamilies[0]]
               : undefined;
-        // A partner is drawn opposite the householder; everyone else is free.
+        // A partner is drawn opposite the householder as they came out, not
+        // as first drawn: a kit without gendered names lets the name decide
+        // the body, so both can differ from the draw.
+        const holderSex = adult ? sexOf(adult) : characterSex(seed, owner);
         const sex =
           relation === "partner"
-            ? characterSex(seed, owner) === "female"
+            ? holderSex === "female"
               ? "male"
               : "female"
             : characterSex(seed, memberId);
-        Object.assign(
-          a,
+        const draw = (salt: number) =>
           generateCharacter(
-            pack.setting,
+            pack.setting!,
             seed,
-            memberId,
+            salt ? `${memberId}~${salt}` : memberId,
             a.age,
             // Adults in a household hold their own work; only children do not.
             child ? "Child" : undefined,
@@ -172,8 +175,14 @@ export function populateHouseholds(
             inherited,
             sex,
             parent?.nameTradition,
-          ),
-        );
+          );
+        let drawn = draw(0);
+        // Where the name sets the body, redraw until it is the sex asked for.
+        for (let salt = 1; relation === "partner" && salt < 12; salt++) {
+          if (sexOf({ ...a, ...drawn }) === sex) break;
+          drawn = draw(salt);
+        }
+        Object.assign(a, drawn);
         if (child) {
           a.role = "Child";
           a.inventory = { water: 1 };
@@ -236,9 +245,9 @@ export function populateHouseholds(
           ? "child"
           : elder
             ? "parent"
-            : shared
-              ? "co-resident"
-              : "partner",
+            : relation === "partner"
+              ? "partner"
+              : "co-resident",
       });
     }
   }

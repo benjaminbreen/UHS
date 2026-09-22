@@ -1,5 +1,6 @@
 import type { WorldModel, WorldObject, Position } from "../../core/types";
 import { random } from "../../core/random";
+import { isRuin } from "../../core/time/structure";
 import { plantClass } from "../ecology/vegetation";
 import {
   propDefs,
@@ -330,7 +331,7 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
     }
     const bare = urbanPack ? 0.75 : 0.2;
     for (const b of world.places) {
-      if (places.has(b.id) || b.structure) continue;
+      if (places.has(b.id) || isRuin(b)) continue;
       places.add(b.id);
       // Half the buildings in a town get nothing in the yard at all. Every
       // house with its own bin and washing line is what made a street read as

@@ -14,8 +14,10 @@ import {
 import { workplaceFor } from "../../content/characters/workplace";
 import type { Rank } from "../../content/characters/context-types";
 import {
+  ageStructure,
   conditionOf,
   fabricOf,
+  structureBlocks,
   weatherStructure,
 } from "../../core/time/structure";
 import { venuesFor } from "../../content/venues";
@@ -61,7 +63,7 @@ import {
   ornaments,
   stallFor,
 } from "../../content/settlements/ornaments";
-import type { Actor, Pack, Point, Position, Terrain } from "../../core/types";
+import type { Actor, Pack, Place, Point, Position, Terrain } from "../../core/types";
 import { proceduralName } from "../../content/geography/character";
 import { random } from "../../core/random";
 import {
@@ -2180,6 +2182,58 @@ export function planSettlement(
           : profile.pattern === "farmstead" && i % 3 !== 0
             ? owners.at(-1)!
             : `${id}-person`;
+    // Some lots have been given up: one in twenty at the crossroads, one in
+    // ten at the edge, where a failed holding is not taken up again.
+    const edge = Math.min(
+      1,
+      Math.hypot(rect.x - c.x, rect.y - c.y) / (profile.radius || 1),
+    );
+    if (
+      owner !== "player" &&
+      owner !== owners.at(-1) &&
+      !lot.venue &&
+      rand("ruin", i) < 0.05 + 0.05 * edge
+    ) {
+      const year = pack.setting?.year ?? 0;
+      const abandoned = year - 25 - Math.round(rand("abandoned", i) * 60);
+      const climate = pack.setting?.climate;
+      const place: Place = {
+        id,
+        name: "Remains of a house",
+        description:
+          "Its roof is gone and its walls are going; nobody has taken the lot up.",
+        x: rect.x,
+        y: rect.y,
+        w,
+        h,
+        sprite: frame,
+        entrance: door,
+        access: "public",
+        owner: `${site.id}-community`,
+        claim: "landscape",
+        entranceLabel: "Enter",
+        structure: ageStructure(
+          seed,
+          id,
+          fabricOf(model.wall),
+          abandoned - 20 - Math.round(rand("built", i) * 80),
+          abandoned,
+          year,
+          climate === "arid"
+            ? 0.18
+            : climate === "tropical" || climate === "monsoon"
+              ? 0.95
+              : 0.68,
+        ),
+      };
+      place.condition = conditionOf(place.structure);
+      plan.places.push(place);
+      eachCell(rect, (x, y) => {
+        plan.built!.add(cellKey(x, y));
+        if (structureBlocks(place, x, y)) plan.solid.add(cellKey(x, y));
+      });
+      continue;
+    }
     const workPoint = lot.workPoint ?? {
       x: rect.x + (nx > 0 ? w + 2 : nx < 0 ? -2 : Math.floor(w / 2)),
       y: rect.y + (ny > 0 ? h + 2 : ny < 0 ? -2 : Math.floor(h / 2)),
