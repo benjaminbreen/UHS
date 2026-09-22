@@ -1,4 +1,8 @@
 import { lightingPreset, type LightingId } from "../lighting";
+/** The cast anchors at the feet and runs one way. Its length is the body's
+ * height times the preset's vector; this trims that to the reach the presets
+ * were tuned against, when the silhouette also straddled the feet. */
+const CAST = 0.8;
 /** Native-grid projection of the composed pose, including clothing and held objects.
  * Alpha uses max coverage so overlapping body pixels never darken the cast. */
 export function characterShadow(source: HTMLCanvasElement, phase: LightingId) {
@@ -10,13 +14,6 @@ export function characterShadow(source: HTMLCanvasElement, phase: LightingId) {
   const pixels = source.getContext("2d")!.getImageData(0, 0, 80, 80).data;
   const light = lightingPreset(phase),
     [vx, vy] = light.cast;
-  const length = Math.hypot(vx, vy);
-  // The cast is pulled back by half a body so it straddles the feet: every
-  // preset points down-screen, and anchoring at the feet left the whole
-  // silhouette pooled in front of them, reading as a figure in mid-air.
-  const HALF = 16;
-  const ux = length ? (vy / length) * 0.75 : 1;
-  const uy = length ? (-vx / length) * 0.75 : 0;
   const mark = (x: number, y: number, alpha: number) => {
     x = Math.round(x);
     y = Math.round(y);
@@ -31,8 +28,8 @@ export function characterShadow(source: HTMLCanvasElement, phase: LightingId) {
     for (let x = 0; x < 80; x++) {
       if (!pixels[(y * 80 + x) * 4 + 3]) continue;
       if (light.opacity) {
-        const px = 80 + (x - 40) * ux + (79 - y) * vx - HALF * vx;
-        const py = 32 + (x - 40) * uy + (79 - y) * vy - HALF * vy;
+        const px = 80 + (x - 40) + (79 - y) * vx * CAST;
+        const py = 32 + (79 - y) * vy * CAST;
         for (let dx = 0; dx < 2; dx++)
           for (let dy = 0; dy < 2; dy++)
             mark(px + dx, py + dy, Math.round(light.opacity * 255));
@@ -62,13 +59,8 @@ export function spriteShadow(
 ) {
   const light = lightingPreset(phase),
     [vx, vy] = light.cast;
-  const length = Math.hypot(vx, vy);
-  const ux = length ? (vy / length) * 0.75 : 1;
-  const uy = length ? (-vx / length) * 0.75 : 0;
-  // Half a body, as for a person, scaled to the animal.
-  const half = Math.round(h * 0.2);
-  const R = Math.ceil(w / 2 + h * Math.abs(vx) + 6),
-    V = Math.ceil(w / 2 + h * Math.abs(vy) + 6);
+  const R = Math.ceil(w / 2 + h * Math.abs(vx) * CAST + 6),
+    V = Math.ceil(w / 2 + h * Math.abs(vy) * CAST + 6);
   const W = R * 2,
     H = V * 2;
   const data = new Uint8ClampedArray(W * H * 4);
@@ -94,8 +86,8 @@ export function spriteShadow(
     for (let x = 0; x < w; x++) {
       if (!pixels[(y * w + x) * 4 + 3]) continue;
       if (light.opacity) {
-        const px = R + (x - w / 2) * ux + (feet - y) * vx - half * vx;
-        const py = V + (x - w / 2) * uy + (feet - y) * vy - half * vy;
+        const px = R + (x - w / 2) + (feet - y) * vx * CAST;
+        const py = V + (feet - y) * vy * CAST;
         for (let dx = 0; dx < 2; dx++)
           for (let dy = 0; dy < 2; dy++)
             mark(px + dx, py + dy, Math.round(light.opacity * 255));
