@@ -1,6 +1,7 @@
 """Distinct habitat silhouettes authored directly on native pixel grids."""
 from PIL import Image, ImageDraw
 from art.nature_trees import branch
+from art import canopy
 
 def bamboo():
     im=Image.new('RGBA',(64,96));d=ImageDraw.Draw(im)
@@ -48,4 +49,4 @@ def tuft(wet):
     return im
 
 def habitat_plants():
-    return {'nature-bamboo-clump':bamboo(),'nature-teak':teak(),'nature-understory-sedge':tuft(True),'nature-understory-dry-bunchgrass':tuft(False)}
+    return {'nature-bamboo-clump':bamboo(),'nature-teak':canopy.teak(),'nature-understory-sedge':tuft(True),'nature-understory-dry-bunchgrass':tuft(False)}

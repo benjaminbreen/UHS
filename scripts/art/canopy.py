@@ -16,7 +16,7 @@ def rgb(h):
     return tuple(int(h[i:i + 2], 16) for i in (1, 3, 5)) + (255,)
 
 
-def skeleton(rng, base, height, levels, trunk_w, lean=0.0, spread=0.72):
+def skeleton(rng, base, height, levels, trunk_w, lean=0.0, spread=0.72, trunk=0.27):
     """Tapered segments (x0,y0,x1,y1,w0,w1,depth) and the tips they end in."""
     segs, tips = [], []
 
@@ -43,12 +43,22 @@ def skeleton(rng, base, height, levels, trunk_w, lean=0.0, spread=0.72):
             reach = rng.uniform(0.62, 0.8) if side else rng.uniform(0.85, 1.0)
             grow(ex, ey, child, length * reach, we * (0.9 if n == 2 else 0.8), depth + 1)
 
-    grow(base[0], base[1], lean, height * 0.27, trunk_w, 0)
+    grow(base[0], base[1], lean, height * trunk, trunk_w, 0)
     return segs, tips
 
 
-def roots(rng, base, trunk_w):
+def roots(rng, base, trunk_w, buttress=False):
     out = []
+    if buttress:
+        # Plank fins: they leave the trunk well above the ground and run out
+        # further than the trunk is wide.
+        for side in (-1.0, -0.45, 0.5, 1.0):
+            sx, sy = base[0] + side * trunk_w * 0.25, base[1] - trunk_w * rng.uniform(1.5, 2.1)
+            ex = base[0] + side * trunk_w * rng.uniform(1.35, 1.75)
+            ey = base[1] + trunk_w * (0.32 if abs(side) == 1 else 0.42)
+            mx, my = (sx + ex) / 2 - side * trunk_w * 0.18, (sy + ey) / 2 + trunk_w * 0.25
+            out += [(sx, sy, mx, my, trunk_w * 0.5, trunk_w * 0.42, 0), (mx, my, ex, ey, trunk_w * 0.42, 1.2, 0)]
+        return out
     for side in (-1, 1, rng.choice((-0.35, 0.35))):
         ex = base[0] + side * trunk_w * rng.uniform(0.95, 1.3)
         ey = base[1] + trunk_w * rng.uniform(0.28, 0.45)
@@ -96,7 +106,7 @@ def paint_wood(size, segs, rng):
     return tones
 
 
-def clumps_for(rng, segs, tips, R, base_y, top_y):
+def clumps_for(rng, segs, tips, R, base_y, top_y, skirt=True):
     """Leaf masses: one on every tip, more along the outer limbs, a few deep
     ones to close the middle. (x, y, r, z, lobes)"""
     out = []
@@ -110,7 +120,7 @@ def clumps_for(rng, segs, tips, R, base_y, top_y):
     for x, y, *_ in tips:
         add(x, y, R * rng.uniform(0.85, 1.2))
         # The lowest boughs hang: a skirt of leaves below them hides the fork.
-        if y >= low:
+        if skirt and y >= low:
             add(x + rng.uniform(-2, 2), y + R * rng.uniform(0.7, 1.1), R * rng.uniform(0.7, 0.95), R)
         if rng.random() < 0.7:
             add(x + rng.uniform(-R, R) * 0.8, y + rng.uniform(-R, R * 0.4) * 0.8, R * rng.uniform(0.6, 0.85))
@@ -118,13 +128,13 @@ def clumps_for(rng, segs, tips, R, base_y, top_y):
     for x0, y0, x1, y1, _, _, depth in segs:
         if depth >= max(2, deepest - 1):
             add((x0 + x1) / 2 + rng.uniform(-2, 2), (y0 + y1) / 2, R * rng.uniform(0.75, 1.0), -R)
-        elif depth >= 1:
+        elif depth >= (1 if skirt else 2):
             # Inner boughs carry leaves too, hung a little below the limb.
             add(x1, y1 + R * 0.5, R * rng.uniform(0.9, 1.15), -R * 0.5)
     return out
 
 
-def paint_leaves(size, clumps, rng, R):
+def paint_leaves(size, clumps, rng, R, tuft=0.37, gaps=0.1, leafy=False, shade=0.0):
     W, H = size
     field = {}
     for idx, (cx, cy, r, zb, (p1, p2, a1, a2)) in enumerate(clumps):
@@ -165,13 +175,13 @@ def paint_leaves(size, clumps, rng, R):
             if n and n[4] != idx and n[0] - z > R * 0.4:
                 v -= 0.42 if k < 3 else 0.2
                 break
-        value[(px, py)] = v
+        value[(px, py)] = v - shade
     # Leaf tufts. The masses above give the crown its form; the tufts give it
     # leaves. Each takes one base tone from the light where it sits and is
     # drawn in three steps round it, with a dark underside and dark gaps
     # between neighbours, so the crown is crisp clusters rather than a cloud.
-    tr = max(2.5, R * 0.37)
-    step = tr * 1.45
+    tr = max(2.5, R * tuft)
+    step = tr * (1.3 if leafy else 1.45)
     tufts = []
     y = min(ys) - tr
     row = 0
@@ -180,7 +190,7 @@ def paint_leaves(size, clumps, rng, R):
         while x < max(xs) + tr:
             cx, cy = x + rng.uniform(-1, 1) * step * 0.3, y + rng.uniform(-1, 1) * step * 0.3
             # Some places stay empty: dark pockets where you see into the crown.
-            if (int(cx), int(cy)) in value and rng.random() > 0.1:
+            if (int(cx), int(cy)) in value and rng.random() > gaps:
                 tufts.append((cx, cy, tr * rng.uniform(0.72, 1.4), rng.uniform(0, 6.3), rng.uniform(0, 1.5)))
             x += step
         y += step * 0.85
@@ -192,14 +202,29 @@ def paint_leaves(size, clumps, rng, R):
                 if (px, py) not in value:
                     continue
                 dx, dy = px + 0.5 - cx, py + 0.5 - cy
-                re = r * (1 + 0.16 * math.sin(3 * math.atan2(dy, dx) + ph)) * (0.85 if dy > 0 else 1)
-                d = math.hypot(dx, dy)
-                if d > re:
-                    continue
+                rib = False
+                if leafy:
+                    # One big leaf: a pointed blade hanging out and down from
+                    # the middle of the crown, with a lit midrib.
+                    turn = math.atan2((cy - gy) * 0.6 + gry * 0.55, cx - gx) + (ph - 3.15) * 0.22
+                    ux, uy = math.cos(turn), math.sin(turn)
+                    a, b = dx * ux + dy * uy, dy * ux - dx * uy
+                    la = r * 1.25
+                    lb = r * 0.8 * (1 - 0.6 * max(0.0, a / la) ** 2)
+                    q = math.hypot(a / la, b / max(0.3, lb))
+                    if q > 1:
+                        continue
+                    d, re = q * r, r
+                    rib = abs(b) < 0.55 and -0.5 * la < a < 0.85 * la
+                else:
+                    re = r * (1 + 0.16 * math.sin(3 * math.atan2(dy, dx) + ph)) * (0.85 if dy > 0 else 1)
+                    d = math.hypot(dx, dy)
+                    if d > re:
+                        continue
                 # Lower tufts overlap the ones above them, like shingles.
                 z = math.sqrt(1 - (d / re) ** 2) * r + cy * 0.22 + pr
                 if (px, py) not in own or own[(px, py)][0] < z:
-                    own[(px, py)] = (z, dx / re, dy / re, ti, d / re, math.atan2(dy, dx))
+                    own[(px, py)] = (z, dx / re, dy / re, ti, d / re, math.atan2(dy, dx), rib)
     # Unleaved rim pixels go: the silhouette is then made of leaf tufts.
     for _ in range(3):
         for p in [p for p in value if p not in own and any((p[0] + a, p[1] + b) not in value for a, b in ((1, 0), (-1, 0), (0, 1), (0, -1)))]:
@@ -213,13 +238,15 @@ def paint_leaves(size, clumps, rng, R):
         if not o:
             tones[p] = 1
             continue
-        _, nx, ny, ti, dn, th = o
+        _, nx, ny, ti, dn, th, rib = o
         b = base_of(ti)
         l = nx * LIGHT[0] + ny * LIGHT[1]
         under = own.get((p[0] + 1, p[1] + 1)) or own.get((p[0], p[1] + 1))
         if under and under[3] != ti and l < 0.1:
             tones[p] = max(1, b - 2)
-        elif ny > 0.1 and dn > 0.55 and math.sin(7 * th + tufts[ti][3]) > 0.55:
+        elif rib:
+            tones[p] = min(5, b + 1)
+        elif not leafy and ny > 0.1 and dn > 0.55 and math.sin(7 * th + tufts[ti][3]) > 0.55:
             # Nicks along the hanging edge: the tuft ends in leaf points.
             tones[p] = max(1, b - 2)
         else:
@@ -246,7 +273,9 @@ def paint_leaves(size, clumps, rng, R):
     return tones
 
 
-def tree(size, seed, levels, trunk_w, R, lean=0.0, spread=0.72, bare=False):
+def tree(size, seed, levels, trunk_w, R, lean=0.0, spread=0.72, bare=False, leaf=None, wood=None,
+         trunk=0.27, tuft=0.37, gaps=0.1, leafy=False, buttress=False, lianas=0, blossom=None,
+         skirt=True, shade=0.0):
     """One tree. `bare` keeps the skeleton of the leafed tree with the same
     seed and adds twigs in place of leaves."""
     W, H = size
@@ -254,16 +283,17 @@ def tree(size, seed, levels, trunk_w, R, lean=0.0, spread=0.72, bare=False):
     height = H - 8
     pad = R * 1.5 + 3
     # Same seed, same tree: measure it once, then grow it to fit the canvas.
-    _, tips = skeleton(random.Random(seed), base, height, levels, trunk_w, lean, spread)
+    _, tips = skeleton(random.Random(seed), base, height, levels, trunk_w, lean, spread, trunk)
     scale = min(
         (base[1] - pad) / max(1.0, base[1] - min(y for _, y, *_ in tips)),
         (W / 2 - pad) / max(1.0, max(abs(x - base[0]) for x, *_ in tips)),
     )
     rng = random.Random(seed)
-    segs, tips = skeleton(rng, base, height * scale, levels, trunk_w, lean, spread)
+    segs, tips = skeleton(rng, base, height * scale, levels, trunk_w, lean, spread, trunk)
     top = min(y for _, y, *_ in tips)
     im = Image.new('RGBA', size)
-    wood_segs = segs + roots(rng, base, trunk_w)
+    leaf, wood = leaf or LEAF, wood or WOOD
+    wood_segs = segs + roots(rng, base, trunk_w, buttress)
     if bare:
         trng = random.Random(seed + 1)
 
@@ -280,10 +310,60 @@ def tree(size, seed, levels, trunk_w, R, lean=0.0, spread=0.72, bare=False):
                 twig(x, y, ang * 0.8 + f * trng.uniform(0.25, 0.6), R * 0.9, 1)
     for p, t in paint_wood(size, wood_segs, random.Random(seed + 2)).items():
         if 1 <= p[0] < W - 1 and 1 <= p[1] < H - 1:
-            im.putpixel(p, rgb(WOOD[t]))
+            im.putpixel(p, rgb(wood[t]))
     if not bare:
         lrng = random.Random(seed + 3)
-        clumps = clumps_for(lrng, segs, tips, R, base[1], top)
-        for p, t in paint_leaves(size, clumps, lrng, R).items():
-            im.putpixel(p, rgb(LEAF[t]))
+        clumps = clumps_for(lrng, segs, tips, R, base[1], top, skirt)
+        tones = paint_leaves(size, clumps, lrng, R, tuft, gaps, leafy, shade)
+        for p, t in tones.items():
+            im.putpixel(p, rgb(leaf[t]))
+        if lianas:
+            # Vines hang from the underside of the crown, clear of the trunk.
+            under = {}
+            for (x, y) in tones:
+                under[x] = max(under.get(x, 0), y)
+            cols = [x for x in under if abs(x - base[0]) > trunk_w and under[x] < base[1] - 12]
+            for x in lrng.sample(sorted(cols), min(lianas, len(cols))):
+                for k in range(1, lrng.randrange(8, 22)):
+                    y = under[x] + k
+                    if y >= base[1] - 4 or im.getpixel((x, y))[3]:
+                        break
+                    im.putpixel((x, y), rgb(leaf[1]))
+                    if k % 4 == 2:
+                        im.putpixel((x + (1 if k % 8 == 2 else -1), y), rgb(leaf[3]))
+        if blossom:
+            # Pale flower sprays standing on the lit top of the crown.
+            lit = sorted(p for p, t in tones.items() if t >= 4 and p[1] < top + (base[1] - top) * 0.3)
+            lrng.shuffle(lit)
+            placed = []
+            for (x, y) in lit:
+                if len(placed) >= 14:
+                    break
+                if any(abs(x - a) + abs(y - b) < 7 for a, b in placed):
+                    continue
+                placed.append((x, y))
+                for dx, dy, c in ((0, 0, 0), (1, -1, 0), (-1, -1, 1), (0, -2, 0), (2, 0, 1), (1, 1, 1), (-1, 1, 1), (1, -3, 0)):
+                    q = (x + dx, y + dy)
+                    if q in tones:
+                        im.putpixel(q, rgb(blossom[c]))
     return im
+
+
+TROPIC_LEAF = ['#0b2a24', '#124636', '#1c663a', '#2f8a38', '#52ab3a', '#86c944', '#c0e266']
+TROPIC_WOOD = ['#2a1f1a', '#4d3a2c', '#73583f', '#987a56', '#bb9d72', '#d9c091']
+TEAK_LEAF = ['#1c3324', '#2f5430', '#47763a', '#64963f', '#88b348', '#b0cc5c', '#dbe489']
+TEAK_WOOD = ['#2a2622', '#4a4239', '#6c6152', '#8f8370', '#b0a48e', '#cdc3ab']
+
+
+def tropical_broadleaf():
+    """Rainforest canopy tree: plank buttresses, a clear bole, a broad crown of
+    big dark leaves, vines hanging under it."""
+    return tree((120, 136), 8, 4, 13, 10, spread=0.95, leaf=TROPIC_LEAF, wood=TROPIC_WOOD, trunk=0.4,
+                tuft=0.5, gaps=0.12, leafy=True, buttress=True, lianas=5, skirt=False, shade=0.16)
+
+
+def teak():
+    """Tectona grandis: a tall straight grey bole, a narrow open crown of very
+    large pale leaves, cream flower sprays standing on top."""
+    return tree((88, 136), 8, 4, 10, 8, spread=0.5, leaf=TEAK_LEAF, wood=TEAK_WOOD, trunk=0.46,
+                tuft=0.62, gaps=0.2, leafy=True, blossom=('#f6efd6', '#cdc48e'), skirt=False, shade=0.1)

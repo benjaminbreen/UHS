@@ -5,6 +5,7 @@ from art.nature_trees import trees
 from art.nature_understory import understory
 from art.broadleaf_ages import broadleaf_ages
 from art.small_shrubs import small_shrubs
+from art.shrubs import shrubs
 from art.habitat_plants import habitat_plants
 from art.regional_trees import regional_trees
 from art.worked_ground import worked_ground
@@ -14,7 +15,7 @@ from art.atlas import pack_atlas
 from art.shadows import build_shadows
 root=Path(__file__).resolve().parent.parent
 out=root/'public/nature';out.mkdir(exist_ok=True)
-sprites={**trees(), **understory(), **broadleaf_ages(), **small_shrubs(), **habitat_plants(), **regional_trees(), **worked_ground(), **rocks(), **boulders()}
+sprites={**trees(), **understory(), **broadleaf_ages(), **small_shrubs(), **shrubs(), **habitat_plants(), **regional_trees(), **worked_ground(), **rocks(), **boulders()}
 for name,im in sprites.items():
     assert set(im.getchannel('A').getdata()) <= {0,255},name
     assert len(im.getcolors(im.width*im.height)) <= 24,name
@@ -55,6 +56,14 @@ for i,(name,im) in enumerate(small_shrubs().items()):
     small.paste(preview,(i*160+(160-preview.width)//2,135-preview.height),preview)
     ImageDraw.Draw(small).text((i*160+8,155),name.replace('nature-understory-','').replace('nature-',''),fill='#172a2e')
 small.save(root/'artifacts/nature-lab/small-shrubs.png')
+
+named=shrubs()
+sheet=Image.new('RGB',(10*184,((len(named)+9)//10)*200),'#5f9e3e')
+for i,(name,im) in enumerate(named.items()):
+    preview=im.resize((im.width*4,im.height*4),Image.Resampling.NEAREST)
+    sheet.paste(preview,((i%10)*184+(184-preview.width)//2,(i//10)*200+170-preview.height),preview)
+    ImageDraw.Draw(sheet).text(((i%10)*184+6,(i//10)*200+180),name.removeprefix('nature-shrub-'),fill='#10240f')
+sheet.save(root/'artifacts/nature-lab/named-shrubs.png')
 
 habitats=Image.new('RGB',(960,430),'#829456')
 for i,(name,im) in enumerate(habitat_plants().items()):

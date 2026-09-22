@@ -95,7 +95,8 @@ const G: Ecology = "grassland",
   R: Ecology = "tropical-woodland",
   W: Ecology = "wetland",
   V: Ecology = "savanna",
-  N: Ecology = "tundra";
+  N: Ecology = "tundra",
+  D: Ecology = "desert";
 const look = (
   habit: BloomHabit,
   petal: string,
@@ -932,7 +933,7 @@ export const flora: Species[] = [
     "Rosa canina",
     "shrub",
     ["europe", "med", "westasia"],
-    undefined,
+    [G, T, S],
     2,
     [["berries", 0.5]],
   ),
@@ -942,7 +943,7 @@ export const flora: Species[] = [
     "Prunus spinosa",
     "shrub",
     ["europe"],
-    undefined,
+    [G, T],
     2,
     [["berries", 0.4]],
   ),
@@ -952,10 +953,10 @@ export const flora: Species[] = [
   sp("broom", "Broom", "Cytisus scoparius", "shrub", ["europe"], [G, T], 1.5, [
     ["bast", 0.3],
   ]),
-  sp("myrtle", "Myrtle", "Myrtus communis", "shrub", ["med"], undefined, 2, [
+  sp("myrtle", "Myrtle", "Myrtus communis", "shrub", ["med"], [S, T], 2, [
     ["berries", 0.5],
   ]),
-  sp("mastic", "Mastic", "Pistacia lentiscus", "shrub", ["med"], undefined, 2, [
+  sp("mastic", "Mastic", "Pistacia lentiscus", "shrub", ["med"], [S], 2, [
     ["resin", 0.3],
   ]),
   sp(
@@ -994,7 +995,7 @@ export const flora: Species[] = [
     "Carissa carandas",
     "shrub",
     ["southasia"],
-    undefined,
+    [S, V, R],
     1.5,
     [["berries", 0.6]],
   ),
@@ -1034,7 +1035,7 @@ export const flora: Species[] = [
     "Melastoma malabathricum",
     "shrub",
     ["seasia", "southasia"],
-    undefined,
+    [R, W, G],
     1.5,
     [["berries", 0.4]],
   ),
@@ -1054,7 +1055,7 @@ export const flora: Species[] = [
     "Broussonetia papyrifera",
     "shrub",
     ["eastasia", "seasia"],
-    undefined,
+    [T, R],
     1,
     [["bast", 0.8]],
   ),
@@ -1107,7 +1108,7 @@ export const flora: Species[] = [
     "Amelanchier canadensis",
     "shrub",
     ["naeast"],
-    undefined,
+    [T, B, G],
     2,
     [["berries", 0.6]],
   ),
@@ -1117,7 +1118,7 @@ export const flora: Species[] = [
     "Rhus typhina",
     "shrub",
     ["naeast"],
-    undefined,
+    [T, G],
     1.5,
     [["berries", 0.5]],
   ),
@@ -1193,7 +1194,7 @@ export const flora: Species[] = [
     "Acacia pycnantha",
     "shrub",
     ["australia"],
-    undefined,
+    [T, S, G],
     2,
     [["seeds", 0.5]],
   ),
@@ -1217,7 +1218,7 @@ export const flora: Species[] = [
     "Dichrostachys cinerea",
     "shrub",
     ["africa", "safrica"],
-    undefined,
+    [V, S, G],
     2,
     [["stick", 0.5]],
   ),
@@ -1227,7 +1228,7 @@ export const flora: Species[] = [
     "Grewia flava",
     "shrub",
     ["africa", "safrica"],
-    undefined,
+    [V, S, D],
     2,
     [["berries", 0.6]],
   ),
@@ -1237,7 +1238,7 @@ export const flora: Species[] = [
     "Leptospermum scoparium",
     "shrub",
     ["australia"],
-    undefined,
+    [T, W, S],
     2,
     [["herbs", 0.3]],
   ),
@@ -1247,7 +1248,7 @@ export const flora: Species[] = [
     "Baccharis latifolia",
     "shrub",
     ["samerica"],
-    undefined,
+    [G, S, T],
     2.5,
     [["herbs", 0.3]],
   ),
@@ -1257,7 +1258,7 @@ export const flora: Species[] = [
     "Lespedeza bicolor",
     "shrub",
     ["eastasia"],
-    undefined,
+    [G, T],
     2,
     [["fodder", 0.4]],
   ),
@@ -1267,11 +1268,11 @@ export const flora: Species[] = [
     "Kerria japonica",
     "shrub",
     ["eastasia"],
-    undefined,
+    [T],
     1.5,
     [],
   ),
-  sp("hazel", "Hazel", "Corylus avellana", "shrub", ["europe"], undefined, 2, [
+  sp("hazel", "Hazel", "Corylus avellana", "shrub", ["europe"], [T, G], 2, [
     ["stick", 0.5],
   ]),
 
@@ -1282,7 +1283,7 @@ export const flora: Species[] = [
     "Calluna vulgaris",
     "heath",
     ["europe"],
-    undefined,
+    [G, B, T, N],
     3,
     [],
   ),
@@ -1292,7 +1293,7 @@ export const flora: Species[] = [
     "Erica cinerea",
     "heath",
     ["europe"],
-    undefined,
+    [G, S],
     1.5,
     [],
   ),
@@ -1302,7 +1303,7 @@ export const flora: Species[] = [
     "Vaccinium myrtillus",
     "heath",
     ["europe", "northasia"],
-    undefined,
+    [B, T, N],
     2,
     [["berries", 0.7, 2]],
   ),
@@ -1312,7 +1313,7 @@ export const flora: Species[] = [
     "Lavandula stoechas",
     "heath",
     ["med"],
-    undefined,
+    [S],
     2,
     [["herbs", 0.7]],
   ),
@@ -1322,7 +1323,7 @@ export const flora: Species[] = [
     "Rhododendron simsii",
     "heath",
     ["eastasia"],
-    undefined,
+    [T, R],
     2,
     [],
   ),
@@ -1342,7 +1343,7 @@ export const flora: Species[] = [
     "Vaccinium angustifolium",
     "heath",
     ["naeast"],
-    undefined,
+    [B, T, G],
     2,
     [["berries", 0.7, 2]],
   ),
@@ -1352,7 +1353,7 @@ export const flora: Species[] = [
     "Arctostaphylos glauca",
     "heath",
     ["nawest"],
-    undefined,
+    [S, T],
     2,
     [["berries", 0.5]],
   ),
@@ -1368,7 +1369,7 @@ export const flora: Species[] = [
   ),
 
   // Scrub.
-  sp("gorse", "Gorse", "Ulex europaeus", "scrub", ["europe"], undefined, 2, [
+  sp("gorse", "Gorse", "Ulex europaeus", "scrub", ["europe"], [G, S], 2, [
     ["stick", 0.5],
   ]),
   sp(
@@ -1377,7 +1378,7 @@ export const flora: Species[] = [
     "Juniperus communis",
     "scrub",
     ["europe", "northasia", "westasia", "naeast", "nawest"],
-    undefined,
+    [B, N, G, S],
     1.5,
     [["berries", 0.3]],
   ),
@@ -1387,27 +1388,20 @@ export const flora: Species[] = [
     "Artemisia absinthium",
     "scrub",
     ["europe", "westasia"],
-    undefined,
+    [G, S],
     1.5,
     [["herbs", 0.6]],
   ),
-  sp(
-    "rosemary",
-    "Rosemary",
-    "Salvia rosmarinus",
-    "scrub",
-    ["med"],
-    undefined,
-    2,
-    [["herbs", 0.9]],
-  ),
+  sp("rosemary", "Rosemary", "Salvia rosmarinus", "scrub", ["med"], [S], 2, [
+    ["herbs", 0.9],
+  ]),
   sp(
     "caper",
     "Caper",
     "Capparis spinosa",
     "scrub",
     ["med", "westasia", "southasia"],
-    undefined,
+    [S, D],
     1,
     [["capers", 0.6]],
   ),
@@ -1417,7 +1411,7 @@ export const flora: Species[] = [
     "Cistus creticus",
     "scrub",
     ["med", "westasia"],
-    undefined,
+    [S],
     2,
     [["resin", 0.3]],
   ),
@@ -1427,7 +1421,7 @@ export const flora: Species[] = [
     "Ephedra distachya",
     "scrub",
     ["westasia", "med"],
-    undefined,
+    [D, S, G],
     0.5,
     [["ephedra", 0.6]],
   ),
@@ -1437,7 +1431,7 @@ export const flora: Species[] = [
     "Artemisia tridentata",
     "scrub",
     ["nawest"],
-    undefined,
+    [S, G, D],
     3,
     [
       ["bast", 0.5],
@@ -1450,7 +1444,7 @@ export const flora: Species[] = [
     "Yucca baccata",
     "scrub",
     ["nawest", "mesoamerica"],
-    undefined,
+    [D, S],
     1.5,
     [["bast", 1]],
   ),
@@ -1460,7 +1454,7 @@ export const flora: Species[] = [
     "Larrea tridentata",
     "scrub",
     ["nawest", "mesoamerica"],
-    undefined,
+    [D, S],
     2,
     [["resin", 0.4]],
   ),
@@ -1470,7 +1464,7 @@ export const flora: Species[] = [
     "Agave americana",
     "scrub",
     ["mesoamerica", "nawest"],
-    undefined,
+    [S, D],
     1.5,
     [["bast", 1, 2]],
   ),
@@ -1480,7 +1474,7 @@ export const flora: Species[] = [
     "Vachellia tortilis",
     "scrub",
     ["africa", "westasia", "safrica"],
-    undefined,
+    [V, D, S],
     2,
     [["stick", 0.5]],
   ),
@@ -1490,7 +1484,7 @@ export const flora: Species[] = [
     "Atriplex nummularia",
     "scrub",
     ["australia"],
-    undefined,
+    [S, D],
     2,
     [["greens", 0.6]],
   ),
@@ -1500,7 +1494,7 @@ export const flora: Species[] = [
     "Duboisia hopwoodii",
     "scrub",
     ["australia"],
-    undefined,
+    [D, S],
     0.2,
     [["pituri", 0.6]],
   ),
@@ -1511,7 +1505,7 @@ export const flora: Species[] = [
     "Ziziphus nummularia",
     "scrub",
     ["southasia", "westasia"],
-    undefined,
+    [S, D, V],
     2,
     [["berries", 0.5]],
   ),
@@ -1531,7 +1525,7 @@ export const flora: Species[] = [
     "Portulacaria afra",
     "scrub",
     ["safrica"],
-    undefined,
+    [S],
     2.5,
     [["greens", 0.6]],
   ),
@@ -1541,7 +1535,7 @@ export const flora: Species[] = [
     "Parastrephia lepidophylla",
     "scrub",
     ["samerica"],
-    undefined,
+    [G, N, D],
     2,
     [["stick", 0.6]],
   ),
@@ -1939,6 +1933,17 @@ const fallback: Partial<Record<FloraForm, FloraForm>> = {
   heath: "shrub",
   scrub: "shrub",
 };
+const neighbours: Partial<Record<Ecology, Ecology[]>> = {
+  grassland: [T, V, S],
+  "dry-scrub": [V, G, D],
+  "temperate-woodland": [G, B, W],
+  "boreal-woodland": [N, T],
+  "tropical-woodland": [V, W],
+  wetland: [T, R, G],
+  savanna: [S, G, R],
+  tundra: [B],
+  desert: [S, V],
+};
 const pools = new Map<string, Species[]>();
 function pool(
   form: FloraForm,
@@ -1954,13 +1959,20 @@ function pool(
   const fits = (s: Species) => !s.eco || s.eco.includes(ecology);
   const local = flora.filter(here);
   found = local.filter(fits);
-  // A region with nothing for this ecology still grows its own plants,
-  // before a circumpolar one stands in for them.
-  // Too few fit to keep a rarity rare: let the region's commoner plants in.
-  if (found.reduce((n, s) => n + s.weight, 0) < 4)
+  // Too few fit to keep a rarity rare: let in what grows in the nearest
+  // ecologies, nearest first, and only then the rest of the region. A desert
+  // borrows from dry scrub before it borrows a forest ginger.
+  const weight = () => found!.reduce((n, s) => n + s.weight, 0);
+  for (const near of neighbours[ecology] ?? []) {
+    if (weight() >= 4) break;
     found = [
-      ...new Set([...found, ...local.filter((s) => !s.range.includes("*"))]),
+      ...new Set([
+        ...found,
+        ...local.filter((s) => s.eco?.includes(near) && !s.range.includes("*")),
+      ]),
     ];
+  }
+  if (!found.length) found = local.filter((s) => !s.range.includes("*"));
   if (!found.length && fallback[form])
     found = pool(fallback[form]!, region, ecology);
   pools.set(key, found);

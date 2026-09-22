@@ -141,7 +141,7 @@ import { weatherAt, type Weather } from "../core/weather";
 import { setWind } from "./wind";
 import { addPlume, type SmokeKind } from "./smoke";
 
-import { bareInWinter, driftStyle, foliageTint } from "./season-art";
+import { bareInWinter, driftStyle, foliageTint, namedShrub } from "./season-art";
 import { seasonAt } from "../core/livelihood";
 import {
   FIRE_FRAME_MS,
@@ -509,6 +509,16 @@ export class WorldScene extends Phaser.Scene {
       "buildings",
       `/packs/buildings.png?v=${artStamp}`,
       `/packs/buildings.json?v=${artStamp}`,
+    );
+    this.load.atlas(
+      "regional-buildings",
+      `/packs/regional-buildings.png?v=${artStamp}`,
+      `/packs/regional-buildings.json?v=${artStamp}`,
+    );
+    this.load.atlas(
+      "civic",
+      `/packs/civic.png?v=${artStamp}`,
+      `/packs/civic.json?v=${artStamp}`,
     );
     this.load.atlas(
       "lighting-shadows",
@@ -1698,6 +1708,7 @@ export class WorldScene extends Phaser.Scene {
    * loaded. A name test would need every recipe prefix; the atlas already
    * knows what it holds. */
   private buildingFrames?: Set<string>;
+  private regionalBuildingFrames?: Set<string>;
   private civicFrames?: Set<string>;
   /** A coat is the species' frames with the colours swapped, built the first
    * time an animal wears it. Frames keep their names, with the coat in them. */
@@ -1768,7 +1779,15 @@ export class WorldScene extends Phaser.Scene {
       );
     if (!this.civicFrames && this.textures.exists("civic"))
       this.civicFrames = new Set(this.textures.get("civic").getFrameNames());
+    if (
+      !this.regionalBuildingFrames &&
+      this.textures.exists("regional-buildings")
+    )
+      this.regionalBuildingFrames = new Set(
+        this.textures.get("regional-buildings").getFrameNames(),
+      );
     if (this.buildingFrames?.has(frame)) return "buildings";
+    if (this.regionalBuildingFrames?.has(frame)) return "regional-buildings";
     if (this.civicFrames?.has(frame)) return "civic";
     if (frame.startsWith("study-sheet-tree-")) return "tree-study";
     if (frame.startsWith("study-tree-"))
@@ -2532,7 +2551,11 @@ export class WorldScene extends Phaser.Scene {
                       random(e.state.manifest.seed, "rock-art", x, y),
                     )
                   : bareInWinter(
-                      spriteName,
+                      namedShrub(
+                        spriteName,
+                        e.plantSpecies(spriteName, x, y)?.id,
+                        (f) => this.textures.get("nature").has(f),
+                      ),
                       this.season,
                       w.pack.setting?.environment?.ecology ?? "grassland",
                       (f) => this.textures.get("nature").has(f),

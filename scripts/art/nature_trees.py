@@ -5,6 +5,7 @@ Contours/branch placement are authored; seeded leaf plates only vary interiors.
 from PIL import Image, ImageDraw
 import math
 import random
+from art import canopy
 
 BARK = ['#302d2a', '#574033', '#805339', '#a67343', '#c79a59', '#e3be77']
 PINE = ['#0f2223', '#1a3d31', '#29603d', '#417b38', '#729a41', '#a4b85e']
@@ -265,7 +266,7 @@ def trees():
         'nature-boreal-spruce':boreal_spruce(),
         'nature-sahel-thorn':sahel_thorn(),
         'nature-silver-birch':silver_birch(),
-        'nature-tropical-broadleaf':tropical_broadleaf(),
+        'nature-tropical-broadleaf':canopy.tropical_broadleaf(),
         'nature-riverside-willow':riverside_willow(),
         'nature-dry-thorn-scrub':dry_thorn_scrub(),
     }

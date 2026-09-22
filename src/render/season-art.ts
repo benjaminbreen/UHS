@@ -19,6 +19,19 @@ export function turnsColour(sprite: string) {
   return !evergreen.some((k) => sprite.includes(k));
 }
 
+/** Shrubs are placed as a generic sprite and named afterwards; where that
+ * species has a drawing of its own, show the plant the label will name. The
+ * berry bush keeps its sprite: its picked and unpicked states are drawn. */
+export function namedShrub(
+  sprite: string,
+  species: string | undefined,
+  has: (frame: string) => boolean,
+) {
+  if (!species || sprite === "ecology-berry-bush") return sprite;
+  const named = `nature-shrub-${species}`;
+  return has(named) ? named : sprite;
+}
+
 /** The leafless frame for a deciduous tree in winter, where one is drawn. */
 export function bareInWinter(
   sprite: string,
