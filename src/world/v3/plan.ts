@@ -1,3 +1,4 @@
+import { planCamp } from "./camps";
 import {
   generateCharacter,
   characterLivelihood,
@@ -177,6 +178,7 @@ export function planSettlement(
     spawn: { ...c },
     diagnostics: { routeFailures: 0, rejectedBuildings: 0, timing: {} },
   };
+  if (pack.setting?.situation && pack.setting.situation.camp !== "none") return planCamp(plan, pack, seed);
   const centers = new Set<string>();
   const roads = plan.traffic,
     bridges = new Set<string>(),

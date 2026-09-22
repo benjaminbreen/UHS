@@ -76,7 +76,7 @@ export function createSettlementWorld(
   seed: string,
   prepared?: PreparedSettlement,
 ): SettlementWorld {
-  const regional = pack.setting?.geographyRevision
+  const regional = pack.setting?.geographyRevision && !pack.setting.situation
     ? createRegionalContext(pack.setting)
     : undefined;
   const relief = !!pack.setting?.terrainRevision;
@@ -231,6 +231,7 @@ export function createSettlementWorld(
   function site(cx: number, cy: number): Site | undefined {
     if (regionalPlanner) return regionalPlanner.sitesIn(cx, cy)[0];
     if (environment?.population === "none") return;
+    if (pack.setting?.situation && (cx !== home.x || cy !== home.y)) return;
     const id = `s${cx}_${cy}`;
     if (sites.has(id)) return sites.get(id) ?? undefined;
     const isHome = cx === home.x && cy === home.y;
@@ -914,6 +915,18 @@ export function createSettlementWorld(
     return value;
   }
   function decorate(x: number, y: number, k: string) {
+    const situation = pack.setting?.situation;
+    if (situation?.landform === "islet") {
+      const palms = Math.min(situation.palms, Math.max(1, Math.floor(situation.width / 5)));
+      for (let i = 0; i < palms; i++) {
+        const px = Math.round((i - (palms - 1) / 2) * 4), py = -1;
+        if (x === px && y === py && land.sample(x, y).water >= 0)
+          return { id: `islet-palm-${i}`, x, y, sprite: "nature-feather-palm", solid: true };
+      }
+      return;
+    }
+    if (situation?.landform === "open-ocean") return;
+    if (situation?.camp && situation.camp !== "none" && Math.hypot(x, y) < 25) return;
     const f = land.sample(x, y);
     const scape = f.landscape;
     if (scape && scape.kind === "arroyo" && scape.strength > 0.35) return;
@@ -2195,14 +2208,14 @@ export function createSettlementWorld(
     },
     activate: (x, y) => {
       for (const p of nearby(x, y)) activate(p);
-      if (environment) {
+      if (environment && !pack.setting?.situation) {
         addWildResources(world, seed, x, y);
         addBoulders(world, seed, x, y);
       }
     },
     fauna: (x, y) => [
       ...keptFauna,
-      ...(environment ? attended(spawnFauna(world, seed, x, y)) : []),
+      ...(environment && !pack.setting?.situation ? attended(spawnFauna(world, seed, x, y)) : []),
     ],
     forgetFauna: (block) => forgetFaunaBlock(world, block),
     restoreDistricts: (ids) => {
@@ -2275,6 +2288,7 @@ export function createSettlementWorld(
   world.spawn = { ...(initial?.spawn ?? { x: 0, y: 0 }), space: "outside" };
   if (
     environment &&
+    !pack.setting?.situation &&
     (environment.start !== "resident" ||
       !initial ||
       (regional && !initial.places.length))
@@ -2338,6 +2352,10 @@ export function createSettlementWorld(
       );
     world.spawn = { ...spot, space: "outside" };
   }
+  if (pack.setting?.situation?.landform === "islet")
+    world.spawn = { x: 0, y: 1, space: "outside" };
+  if (pack.setting?.situation?.landform === "open-ocean")
+    world.spawn = { x: 0, y: 0, space: "outside" };
   world.activate!(world.spawn.x, world.spawn.y);
   if (environment?.start === "shepherd") {
     // The player's own flock, as a fauna group rather than three actors: it is

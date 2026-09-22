@@ -46,10 +46,15 @@ export const studies = {
     note: "Shared-part stress test, not a finished or authenticated medieval content pack.",
   },
   courtyard: {
-    label: "18th-century China · construction study",
+    label: "Courtyards · depth and daylight",
     source: "roman",
-    buildings: ["study-courtyard"],
-    note: "Shared-part stress test, not a finished or authenticated Chinese content pack.",
+    buildings: [
+      "eastasian-courtyard-north-chinese-medium-0",
+      "eastasian-courtyard-korean-medium-1",
+      "southasian-courtyard-north-indian-medium-0",
+      "westasian-courtyard-maghrebi-medium-0",
+    ],
+    note: "Regional inner walls, recessed paving and directional daylight through a shared renderer.",
   },
   board: {
     label: "20th-century California · construction study",

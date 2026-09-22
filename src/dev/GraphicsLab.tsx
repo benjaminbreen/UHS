@@ -74,6 +74,13 @@ export function GraphicsLab() {
       graphicsLab: {
         describe: () => ({
           ...description,
+          renderedCourtyardTextures: (scene.children?.list ?? [])
+            .filter(
+              (o): o is Phaser.GameObjects.Image =>
+                o instanceof Phaser.GameObjects.Image &&
+                o.texture.key.startsWith("court:"),
+            )
+            .map((o) => o.texture.key),
           renderedShadowFrames: [
             ...new Set(
               (scene.children?.list ?? [])
@@ -116,7 +123,12 @@ export function GraphicsLab() {
         <span>Isolated fixtures · your journey stays saved</span>
         <a href="/terrain-lab">Terrain study →</a>
         <a href="/history-lab">History & content lab →</a>
-        <button className="action" onClick={() => window.dispatchEvent(new Event("uhs-open-props"))}>Prop gallery · ⌘2</button>
+        <button
+          className="action"
+          onClick={() => window.dispatchEvent(new Event("uhs-open-props"))}
+        >
+          Prop gallery · ⌘2
+        </button>
         <a className="action" href="/">
           Return to world →
         </a>

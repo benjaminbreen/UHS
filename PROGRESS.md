@@ -57,6 +57,32 @@ The world-v2 suite passes all four tests when rerun alone. Screenshots are in
 artifacts/time-*.png. Rapid transitions also exposed a terrain-preview cleanup
 bug; disposing their images with their textures resolved the WebGL failure.
 
+## Courtyard depth and directional daylight — September 21, 2026
+
+Regional courtyard houses now show recessed paving, rear and side inner walls,
+wall-foot contact shade and openings facing the court. Tiled compounds have
+separately pitched and textured roof ranges. The deeper roof view retains the
+12px exterior return; house footprints, entrances and roof traversal cells are
+unchanged. Sprite bounds, occlusion and the art version follow the new pixels.
+
+The painter publishes presentation-only courtyard polygons. WorldScene uses
+these with the existing six daylight presets: morning and afternoon shadows
+fall from opposite sides, noon has a short cast, and night darkens the recess
+without a solar shadow. Cloud cover weakens direct light. Composed textures are
+shared by visible copies and released when unused, with no per-frame repainting.
+The graphics lab courtyard study now compares Chinese, Korean, Indian and
+Maghrebi houses under the same production renderer.
+
+Validation: oblique audit, atlas build, TypeScript check, targeted graphics and
+courtyard tests, and two browser tests pass. Before/after Beijing and Seoul
+sheets were inspected. `npm test` reports 553 passes and four failures, all four
+reproduced on unchanged HEAD: character role/hair independence, a missing
+portable-boulder frame, a river fixture's missing `habitatAt`, and modern shirt
+wording. That full run also reported one Vitest worker-update timeout. The older
+six-preset browser test also fails on unchanged HEAD because it expects a
+`human-` frame in the former character-shadow atlas; the new courtyard-specific
+browser checks pass independently.
+
 ## Settlement evolution foundation — September 21, 2026
 
 New worlds now use vegetation revision 7. Trees publish an oblique canopy

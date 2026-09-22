@@ -8,6 +8,8 @@
  * upstream normalises it.
  */
 const patterns: Record<string, RegExp> = {
+  pilot: /\b(pilot|aviator|airman)\b/,
+  mountaineer: /\b(mountaineer|climber|expedition member)\b/,
   astronaut:
     /\b(astronaut|cosmonaut|taikonaut|spacer|space ?(crew|pilot|marine)|flight engineer)\b/,
   soldier:

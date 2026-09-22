@@ -159,7 +159,7 @@ def _landmark(name):
     return bool(m.get('religious') or m.get('theatre') or m.get('hall'))
 civic_frames={k:S.pop(k) for k in list(buildings) if k in S and _landmark(k)}
 regional_frames={k:S.pop(k) for k in list(buildings)
-                 if k in S and buildings[k].get('regionalHouse')}
+                 if k in S and (buildings[k].get('regionalHouse') or buildings[k].get('campStyle'))}
 building_frames={k:S.pop(k) for k in list(buildings) if k in S}
 atlas=pack_atlas(S,OUT,'atlas')
 buildings_atlas=pack_atlas(building_frames,OUT,'buildings')

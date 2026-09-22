@@ -198,6 +198,7 @@ export function createSession(
         );
       }
     }
+    if (resolved?.situation?.landform === "open-ocean") engine.state.player.inventory = { water: 2, bread: 2 };
     engine.state.player.stats = rollStats(seed, engine.state.player);
     engine.state.player.health = 100;
   }
@@ -1186,8 +1187,8 @@ export class Runtime {
     const other = speaker ? undefined : this.nearestSpeaker();
     const place = this.facingPlace();
     const door = this.doorVerb();
-    const descend = !!p.perch || this.engine.onWall();
-    const climbTarget = descend ? undefined : this.engine.climbable();
+    const descend = !p.afloat && (!!p.perch || this.engine.onWall());
+    const climbTarget = descend || p.afloat ? undefined : this.engine.climbable();
     const climb: Verb | undefined =
       descend || climbTarget
         ? {
@@ -1584,7 +1585,7 @@ export class Runtime {
     this.stop(false);
     const p = this.engine.state.player.pos;
     let candidates = [target];
-    if (this.engine.blocked(target.x, target.y))
+    if (this.engine.playerBlocked(target.x, target.y))
       candidates = [
         { x: target.x, y: target.y + 1 },
         { x: target.x + 1, y: target.y },
@@ -1592,11 +1593,11 @@ export class Runtime {
         { x: target.x, y: target.y - 1 },
       ];
     for (const end of candidates) {
-      if (this.engine.blocked(end.x, end.y)) continue;
+      if (this.engine.playerBlocked(end.x, end.y)) continue;
       const path =
         this.engine.state.manifest.simulation === 2
           ? this.engine.findRoute(p, end).path
-          : findPath(p, end, (x, y) => this.engine.blocked(x, y));
+          : findPath(p, end, (x, y) => this.engine.playerBlocked(x, y));
       if (path.length) {
         this.route = path;
         this.running = true;
@@ -1623,11 +1624,11 @@ export class Runtime {
         Math.hypot(a.x - p.x, a.y - p.y) - Math.hypot(b.x - p.x, b.y - p.y),
     );
     for (const end of candidates) {
-      if (this.engine.blocked(end.x, end.y)) continue;
+      if (this.engine.playerBlocked(end.x, end.y)) continue;
       const path =
         this.engine.state.manifest.simulation === 2
           ? this.engine.findRoute(p, end).path
-          : findPath(p, end, (x, y) => this.engine.blocked(x, y));
+          : findPath(p, end, (x, y) => this.engine.playerBlocked(x, y));
       if (path.length) {
         this.stop(false);
         this.route = path;
@@ -1695,7 +1696,7 @@ export class Runtime {
         this.route = (
           this.engine.state.manifest.simulation === 2
             ? this.engine.findRoute(p, a.pos).path
-            : findPath(p, a.pos, (x, y) => this.engine.blocked(x, y))
+            : findPath(p, a.pos, (x, y) => this.engine.playerBlocked(x, y))
         ).slice(0, 1);
       } else {
         this.command({ type: "wait", seconds: 6 });
@@ -1714,7 +1715,7 @@ export class Runtime {
         if (result?.status !== "completed") this.stop();
         return;
       }
-      if (this.engine.blocked(upcoming.x, upcoming.y)) {
+      if (this.engine.playerBlocked(upcoming.x, upcoming.y)) {
         const goal = this.route.at(-1)!;
         this.route = this.engine.findRoute(p, goal).path;
         if (!this.route.length) this.notice = "The route is now blocked.";

@@ -1,3 +1,4 @@
+import { afloatAt } from "./watercraft";
 import { wornFromWearing } from "./wearing";
 import {
   clothName,
@@ -247,7 +248,9 @@ export class Engine {
             work: copy(world.spawn),
             sprite: world.pack.playerSprite,
             inventory: copy(world.pack.startInventory),
-            activity: "Exploring",
+            activity: world.pack.setting?.situation?.support === "raft" ? "Afloat on a raft" : "Exploring",
+            ...(world.pack.setting?.situation && world.pack.setting.situation.support !== "land"
+              ? { afloat: world.pack.setting.situation.support } : {}),
             fatigue: 0,
             hunger: 12,
             trust: 0,
@@ -317,7 +320,11 @@ export class Engine {
       });
     }
     this.event(
-      "You arrive as the morning’s work begins. Walk, meet someone, or find your own way.",
+      this.state.player.afloat
+        ? `Open water stretches to the horizon. You are ${this.state.player.afloat === "swimming" ? "swimming" : `afloat in a ${this.state.player.afloat}`}. Use the movement keys or click the water to move.`
+        : this.world.pack.setting?.situation?.landform === "islet"
+          ? "You stand on a small island surrounded by ocean."
+          : "You arrive as the morning’s work begins. Walk, meet someone, or find your own way.",
       "system",
     );
   }
@@ -374,7 +381,9 @@ export class Engine {
           )
           .map((b) => ({ name: b.name, sprite: b.sprite })),
       };
-      s.goals = pickGoals(s.manifest.seed, today, context, GOAL_TEMPLATES);
+      const isolated = pack.setting?.situation?.people === 0;
+      const templates = isolated ? GOAL_TEMPLATES.filter(t => t.id === "eat" || t.id === "sleep") : GOAL_TEMPLATES;
+      s.goals = pickGoals(s.manifest.seed, today, context, templates);
       for (const g of s.goals)
         if (g.check.type === "gain") g.base = heldCount(p, g.check.items);
       s.goalDay = today;
@@ -580,6 +589,17 @@ export class Engine {
         ? undefined
         : this.objectsById.get(id)
       : this.state.objects.find((o) => o.id === id);
+  }
+  playerCanCross(from: Point, to: Point) {
+    const p = this.state.player;
+    if (afloatAt(this.world, p, from.x, from.y) && afloatAt(this.world, p, to.x, to.y))
+      return (!((from.x !== to.x) && (from.y !== to.y)) ||
+        (afloatAt(this.world, p, from.x, to.y) && afloatAt(this.world, p, to.x, from.y)));
+    return this.world.canCross?.(from, to) ?? true;
+  }
+  playerBlocked(x: number, y: number, space = this.state.player.pos.space) {
+    return space === "outside" && afloatAt(this.world, this.state.player, x, y)
+      ? false : this.blocked(x, y, space);
   }
   blocked(x: number, y: number, space = this.state.player.pos.space) {
     const key = `${space}:${x},${y}`;
@@ -2388,10 +2408,10 @@ export class Engine {
         if (
           start.space === "outside" &&
           this.world.canCross &&
-          !this.world.canCross(from, to)
+          !(actorId === "player" ? this.playerCanCross(from, to) : this.world.canCross(from, to))
         )
           return Infinity;
-        if (this.blocked(to.x, to.y, start.space)) {
+        if (actorId === "player" ? this.playerBlocked(to.x, to.y, start.space) : this.blocked(to.x, to.y, start.space)) {
           const gate = this.barrierAt(to, start.space);
           // Humans can open a gate; animals must wait for an actual open gate.
           if (
@@ -2408,6 +2428,7 @@ export class Engine {
           (occupied ? occupied.has(`${to.x},${to.y}`) : cellOccupied(to))
         )
           return Infinity;
+        if (actorId === "player" && start.space === "outside" && afloatAt(this.world, this.state.player, to.x, to.y)) return this.state.player.afloat === "swimming" ? 2.5 : 1.4;
         return start.space === "outside"
           ? (this.world.navigationCost?.(to.x, to.y, actorId) ?? 1) *
               (this.world.topography
@@ -3044,6 +3065,7 @@ export class Engine {
       if (c.jump && heldObject(this.state) && !this.armed())
         return "Put down the held object before jumping.";
       if (c.jump && c.traverse) return "Choose one movement style.";
+      if (p.afloat && (c.traverse || c.jump)) return "Paddle or swim with the movement keys while afloat.";
       if (c.traverse || c.jump) {
         const leap = this.traversal(p.pos, c.dx, c.dy, c.jump, c.run);
         if (leap.kind === "blocked") return leap.reason;
@@ -3060,6 +3082,7 @@ export class Engine {
         return there ? `${there.name} is standing there.` : undefined;
       }
       if (
+        !p.afloat &&
         p.pos.space === "outside" &&
         this.world.topography &&
         waterDepthAt(
@@ -3074,17 +3097,17 @@ export class Engine {
       if (
         (p.pos.space === "outside" &&
           this.world.canCross &&
-          !this.world.canCross(p.pos, {
+          !this.playerCanCross(p.pos, {
             x: p.pos.x + c.dx,
             y: p.pos.y + c.dy,
           })) ||
         (!push &&
-          this.blocked(p.pos.x + c.dx, p.pos.y + c.dy) &&
+          this.playerBlocked(p.pos.x + c.dx, p.pos.y + c.dy) &&
           !(this.onWall() && this.wallAt(p.pos.x + c.dx, p.pos.y + c.dy))) ||
         (c.dx !== 0 &&
           c.dy !== 0 &&
-          (this.blocked(p.pos.x + c.dx, p.pos.y) ||
-            this.blocked(p.pos.x, p.pos.y + c.dy)))
+          (this.playerBlocked(p.pos.x + c.dx, p.pos.y) ||
+            this.playerBlocked(p.pos.x, p.pos.y + c.dy)))
       )
         return "The way is blocked.";
       const occupant = this.state.actors.find(
@@ -3776,7 +3799,7 @@ export class Engine {
           p.pos.space === "outside" && this.world.topography
             ? waterDepthAt(this.world.topography, p.pos.x + 0.5, p.pos.y + 0.5)
             : 0;
-        p.activity = depth > 0 ? "Wading" : "Exploring";
+        p.activity = p.afloat ? p.afloat === "swimming" ? "Swimming" : "Paddling" : depth > 0 ? "Wading" : "Exploring";
         this.populateNearby();
         this.advance(leap.seconds);
         const key = `${Math.floor(p.pos.x / 64)},${Math.floor(p.pos.y / 64)}`;
@@ -3841,7 +3864,7 @@ export class Engine {
         p.pos.space === "outside" && this.world.topography
           ? waterDepthAt(this.world.topography, p.pos.x + 0.5, p.pos.y + 0.5)
           : 0;
-      p.activity = depth > 0 ? "Wading" : "Exploring";
+      p.activity = p.afloat ? p.afloat === "swimming" ? "Swimming" : "Paddling" : depth > 0 ? "Wading" : "Exploring";
       this.lastStep = { clock: this.state.clock, run: !!c.run };
       if (p.pos.space === "outside")
         this.grantXp(
@@ -3867,7 +3890,7 @@ export class Engine {
         Math.ceil(
           (c.run && !depth ? (c.dx && c.dy ? 2 : 1) : c.dx && c.dy ? 3 : 2) *
             (1 +
-              (wadingCost(depth) - 1) *
+              ((p.afloat ? p.afloat === "swimming" ? 2.5 : 1.4 : wadingCost(depth)) - 1) *
                 (1 - this.skillLevel("watercraft") * PER_LEVEL.watercraftPace)),
         ) +
           (slope > 1 ? 1 : 0) +
@@ -4241,7 +4264,7 @@ export class Engine {
           p.pos.space === "outside" && this.world.topography
             ? waterDepthAt(this.world.topography, p.pos.x + 0.5, p.pos.y + 0.5)
             : 0;
-        p.activity = depth > 0 ? "Wading" : "Exploring";
+        p.activity = p.afloat ? p.afloat === "swimming" ? "Swimming" : "Paddling" : depth > 0 ? "Wading" : "Exploring";
         this.event("You rest beside the household’s work. Your fatigue eases.");
         break;
       case "store":

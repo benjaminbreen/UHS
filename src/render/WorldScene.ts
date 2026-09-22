@@ -1,3 +1,4 @@
+import { Watercraft } from "./watercraft";
 import { ruinTexture, releaseRuins } from "./ruins";
 import {
   waterDepthAt,
@@ -142,6 +143,7 @@ import {
   type StationActivity,
 } from "../core/itinerary";
 import { lightingAt, lightingPreset, shadowFrame } from "./lighting";
+import { CourtyardLighting, type CourtyardLight } from "./courtyard-lighting";
 import { Drift } from "./drift";
 import { Mist } from "./mist";
 import { AmbientLife, critterFor } from "./ambient-life";
@@ -395,6 +397,8 @@ export class WorldScene extends Phaser.Scene {
   private terrainStream?: TerrainStream;
   private terrainAnchor?: { x: number; y: number };
   private drawnWorld?: WorldModel;
+  private watercraft = new Watercraft(this);
+  private courtyardLighting = new CourtyardLighting(this);
   private buildings = new Map<string, Phaser.GameObjects.Image>();
   private buildingAnimations = new Map<string, BuildingAnimation>();
   /** One leaf per drawn building, hidden while shut. */
@@ -749,6 +753,8 @@ export class WorldScene extends Phaser.Scene {
       this.ready = false;
       this.scale.off("resize", onResize);
       this.unsubscribe?.();
+      this.courtyardLighting.dispose();
+      this.watercraft.dispose();
       this.terrainStream?.dispose();
       this.terrainStream = undefined;
     };
@@ -2384,6 +2390,7 @@ export class WorldScene extends Phaser.Scene {
       for (const l of this.layers) l.destroy();
       if (worldChanged) releaseRuins(this);
       this.layers = [];
+      this.courtyardLighting.begin();
       this.canopies = [];
       this.plantHeights.clear();
       this.plantImages.clear();
@@ -2843,6 +2850,16 @@ export class WorldScene extends Phaser.Scene {
               placement.y,
               placement.depth,
             ).setOrigin(placement.originX, placement.originY);
+            const court = (
+              placement.model as { courtyardLight?: CourtyardLight }
+            ).courtyardLight;
+            if (court)
+              this.courtyardLighting.apply(
+                image,
+                court,
+                this.light.id,
+                this.options.shadows === false ? 0 : this.sunStrength(),
+              );
             this.buildings.set(b.id, image);
             this.makeSelectable(image, b.id);
             const animation = (
@@ -2862,6 +2879,7 @@ export class WorldScene extends Phaser.Scene {
             )
               this.lightHearth(b.id, placement);
           }
+        this.courtyardLighting.end();
         for (const fence of w.enclosures) {
           // A city circuit is far wider than a pen, so the cull tests the whole
           // rectangle rather than only its origin.
@@ -2897,6 +2915,7 @@ export class WorldScene extends Phaser.Scene {
                 this.sprite("fence", x * 16 + 8, y * 16 + 16, y * 16 + 10);
         }
       } else {
+        this.courtyardLighting.end();
         const dark = this.add.graphics().setDepth(-50000);
         dark.fillStyle(0x252923, 1);
         dark.fillRect(
@@ -3981,7 +4000,7 @@ export class WorldScene extends Phaser.Scene {
             Math.hypot(dx, dy);
           const p = this.runtime.engine.state.player.pos,
             sample = this.runtime.engine.world.topography;
-          if (sample && p.space === "outside") {
+          if (sample && p.space === "outside" && !this.runtime.engine.state.player.afloat) {
             const depth = Math.max(
               waterDepthAt(sample, p.x + 0.5, p.y + 0.5),
               waterDepthAt(sample, p.x + dx + 0.5, p.y + dy + 0.5),
@@ -3999,8 +4018,8 @@ export class WorldScene extends Phaser.Scene {
             // diagonal; it is the input that should try the other way.
             if (moved?.status === "rejected" && dx && dy) {
               const at = this.runtime.engine.state.player.pos;
-              const freeX = !this.runtime.engine.blocked(at.x + dx, at.y);
-              const freeY = !this.runtime.engine.blocked(at.x, at.y + dy);
+              const freeX = !this.runtime.engine.playerBlocked(at.x + dx, at.y);
+              const freeY = !this.runtime.engine.playerBlocked(at.x, at.y + dy);
               if (freeX !== freeY)
                 moved = this.runtime.move(
                   freeX ? dx : 0,
@@ -4117,8 +4136,9 @@ export class WorldScene extends Phaser.Scene {
         }
         const sample = this.runtime.engine.world.topography;
         const wetPos = this.destinations.get(id);
+        const craft = id === "player" && wetPos?.space === "outside" ? this.runtime.engine.state.player.afloat : undefined;
         const water =
-          sample && wetPos?.space === "outside" && !arcLift
+          !(craft && craft !== "swimming") && sample && wetPos?.space === "outside" && !arcLift
             ? waterDepthAt(
                 sample,
                 im.x / 16,
@@ -4137,6 +4157,9 @@ export class WorldScene extends Phaser.Scene {
         else if (/eating/i.test(human.activity)) pose = "give";
         if (id === "player" && pose === "idle") pose = "breathe";
         if (moving && water > 0.025 && !active) pose = "wade";
+        if (craft && craft !== "swimming") pose = "sit";
+        if (id === "player") this.watercraft.update(im, craft, this.tint,
+          (this.runtime.engine.state.manifest.setting?.year ?? 0) >= 1930);
         // Someone reacting stops what they were doing to do it.
         const cued =
           id !== "player" && !moving ? this.cues.poseFor(id) : undefined;

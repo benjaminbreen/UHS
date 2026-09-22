@@ -335,6 +335,10 @@ export async function prepareConnectedStart(
   seed: string,
   signal?: AbortSignal,
 ) {
+  if (setting.situation) {
+    const { prepareSettingSession } = await import("./preparation");
+    return prepareSettingSession(setting, seed, signal);
+  }
   const { travelById, travelLocations } = await import(
     "../content/geography/travel"
   );

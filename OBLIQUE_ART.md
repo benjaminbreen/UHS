@@ -73,6 +73,18 @@ pagoda as generic house trim: Chinese and Korean domestic roofs use simplified
 ridge ends and roof figures; a genuinely tiered sacred roof belongs to a
 religious or civic recipe.
 
+Courtyard roofs expose a deeper view into the opening while keeping the lateral
+return at 12px. The painter publishes `courtyardLight` polygons in sprite pixels:
+opening, visible floor, rear wall, side wall and apparent wall drop. These are
+presentation geometry, separate from the footprint-cell `roofVoid` and traversal
+surfaces. Inner wall feet, recessed openings and quiet paving establish depth;
+solar shadows are added by `src/render/courtyard-lighting.ts` using the same six
+phases and cloud strength as ground shadows. Morning and afternoon reverse the
+cast, noon shortens it, and night supplies ambient recess shade without solar
+cast. Only visible buildings retain composed textures; phase changes and scene
+shutdown release unused textures. Review them in the graphics lab's courtyard
+study with time-of-day colours both enabled and disabled.
+
 Small `serviceStyle` buildings share the profile but change function and
 silhouette: storehouse/granary, workshop, gatehouse/market pavilion and local
 hall. They are settlement texture, not replacements for venue-scale civic and

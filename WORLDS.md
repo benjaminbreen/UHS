@@ -91,3 +91,34 @@ New worlds have generator version 3, simulation version 2, atlas/schema version 
 This is broad geographic generation using the existing early-build simulation. Regional art libraries, clothes, crop varieties, household inventories, and occupational behavior still need expansion; a recognized place name does not imply a bespoke city or economy. Architecture currently reuses classical, mudbrick, timber, courtyard, board, thatched-house, and simple shelter components. Prehistoric and seasonal settings affect initial terrain/content; ice sheets, sea-level histories, and an evolving hydrological simulation are not implemented.
 
 Travel now resolves content by locality, using explicit dated coverage where supplied and broad fallback libraries elsewhere. Comprehensive historical regional profiles are not yet authored. Long-distance transport, ocean crossing, polar coverage above 85°, and dateline wrap remain outside this build. Terrain caches are bounded; explored actors and objects persist, so extremely long journeys still need entity streaming before population memory can plateau.
+
+## Explicit local situations
+
+A setting can now carry optional `situation` data, independent of its gazetteer
+place: a landform and tile dimensions, land/raft/boat/swimming support, a camp
+kind, population and palm count. World Weaver retains this data even when it
+chooses an existing catalog place. The local interpreter also handles the
+standard island, afloat and camp prompts without a provider call.
+
+These starts use configured local terrain instead of the connected Earth map.
+A `10x5` island has a 10-by-5-cell bounding box, an elliptical sand shore and a
+palm; it creates no settlement or incidental household props. An open-ocean
+start retains its water spawn and permits player movement on the selected
+support without making deep water walkable for ordinary characters. Rafts
+and boats render with the player and respond to the existing light grade.
+Boarding, ocean currents, rescue events and travel between ports are not part
+of this first implementation.
+
+Camp kits live in `src/content/settlements/camps/`, with layout in
+`src/world/v3/camps.ts` and native shelter art in `scripts/art/camps.py`.
+Military camps use ordered rows; expedition camps use clusters and dated
+canvas/dome shelters; pastoral camps have felt tents and a flock; forest
+gatherings use temporary shelters around a hearth. These are explicitly
+illustrative layouts, not reconstructions of named historical camps. Existing
+content continues to resolve the people by location and date. New camp
+shelters follow the shared 12px right return and atlas/model contract.
+
+Acceptance prompts: `tiny desert island`, `tiny desert island 20x8`,
+`ww2 pilot downed, floating in atlantic`, `Everest base camp`,
+`Everest base camp 2020`, `Roman military camp`, `pastoral camp`, and
+`tribal gathering in the forest`.

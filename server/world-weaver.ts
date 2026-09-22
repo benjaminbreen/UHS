@@ -1,7 +1,9 @@
+import { applySituation, situationSchema } from "../src/content/geography/situation";
+import { resolveSetting } from "../src/content/geography/resolve";
 import { createHash, randomUUID, timingSafeEqual } from "node:crypto";
 import { overLimit } from "./rate-limit";
 import { z } from "zod";
-import { strictSchema } from "./json-schema";
+import { dropNulls, strictSchema } from "./json-schema";
 import {
   architectures,
   climates,
@@ -30,6 +32,7 @@ const requestSchema = z
 // gazetteer at the year being played.
 const weaverSchema = z
   .object({
+    situation: situationSchema.optional(),
     placeId: z.string().min(1).max(100),
     placeName: z.string().min(1).max(120),
     lon: z.number().min(-180).max(180),
@@ -99,6 +102,8 @@ export async function worldWeaver(
       400,
     );
   }
+  const local = resolveSetting(input.prompt);
+  if (!("error" in local) && local.setting.situation) return json({ setting: local.setting });
   const q = normalize(input.prompt),
     matches = places.filter((p) =>
       [p.name, ...p.aliases].some((a) => q.includes(normalize(a))),
@@ -113,6 +118,7 @@ Years use astronomical numbering: 100 BCE = -99. When the description names an e
 Interpret vague, playful or fragmentary descriptions generously rather than refusing them: settle on one specific real place on Earth, one specific year, and one ordinary human role that a person could plausibly have held there and then. "A weird little guy in a weird place" is a fair request for, say, a reclusive toymaker in Austin in 2013, or a hermit charcoal-burner in the Harz in 1540. Never invent a fictional settlement name, magic, or a role the simulation could not stage; the player must always be an ordinary person somewhere real.
 role, characterName and community describe the person the player asked to be, not the place: an "orphan boy" is an orphan boy whatever the settlement does for a living. Give a plausible period- and culture-appropriate personal name. community is one short phrase for the household or group they belong to, or "" when they belong to none.
 climate, water, relief, culture, settlement and architecture are used only for a "custom" place; fill them plausibly regardless.
+The optional situation field preserves explicitly requested local circumstances even at a catalog location. Use islet with width/depth in game cells for tiny islands, open-ocean with raft/boat/swimming support for stranded people, or local with military/expedition/pastoral/gathering camp. people excludes the player. Never silently replace the requested camp or predicament with a conventional town. Omit situation for ordinary starts.
 Catalog: ${JSON.stringify(candidates)}
 Request id (vary your year and name with it): ${randomUUID()}
 User description: ${input.prompt}`;
@@ -155,7 +161,7 @@ User description: ${input.prompt}`;
       choices?: { message?: { content?: string } }[];
     };
     const chosen = weaverSchema.parse(
-      JSON.parse(result.choices?.[0]?.message?.content ?? ""),
+      dropNulls(JSON.parse(result.choices?.[0]?.message?.content ?? "")),
     );
     const place: AtlasPlace = places.find((p) => p.id === chosen.placeId) ?? {
       id: "custom",
@@ -177,7 +183,7 @@ User description: ${input.prompt}`;
       characterName: chosen.characterName,
       community: chosen.community,
     });
-    return json({ setting });
+    return json({ setting: chosen.situation ? applySituation(setting, chosen.situation) : setting });
   } catch {
     return json(
       {

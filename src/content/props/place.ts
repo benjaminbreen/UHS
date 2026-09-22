@@ -71,6 +71,7 @@ export function propSprite(key: string) {
   );
 }
 export function withProps(world: WorldModel, seed: string): WorldModel {
+  if (world.pack.setting?.situation) return world;
   const kit = propKit(world.pack),
     done = new Set<string>(),
     places = new Set<string>(),

@@ -59,6 +59,18 @@ export const futureDress: readonly GarmentKit[] = [
 ];
 
 export const workingSets: readonly GarmentKit[] = [
+  ...(["pilot", "mountaineer"] as const).map((role): GarmentKit => ({
+    id: `${role}-outdoors`, label: `${role} · cold weather clothing`,
+    scope: { years: [1900, 10001] }, priority: 4,
+    garment: [{ value: "coat", roles: [role] }],
+    leggings: [{ value: "trousers", roles: [role] }],
+    headwear: [{ value: "cap", roles: [role] }],
+    footwear: [{ value: "boots", roles: [role] }],
+    material: [{ value: role === "pilot" ? "hide" : "wool", roles: [role] }],
+    dye: [{ value: "soot", roles: [role] }],
+    over: [{ value: "none", roles: [role] }],
+    motif: [{ value: "plain", roles: [role] }],
+  })),
   {
     id: "astronaut",
     label: "Crew · pressure suit",

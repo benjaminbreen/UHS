@@ -82,6 +82,7 @@ export type CharacterOrigin = {
   notes: string[];
 };
 export type Actor = {
+  afloat?: "raft" | "boat" | "swimming";
   stats?: Stats;
   health?: number;
   /** Experience by skill. The player's only; residents have none stored. */

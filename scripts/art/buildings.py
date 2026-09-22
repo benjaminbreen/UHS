@@ -353,8 +353,9 @@ def build_buildings(root, sprites):
     from art.oblique_mud import ObliqueMudbrick
     from art.gold_masters import gold_master_recipes, prehistoric_expansion_recipes, service_kit_recipes
     from art.regional_houses import regional_house_recipes
+    from art.camps import CampBuilding, camp_recipes
     build_banner(sprites)
-    recipes={**source['buildings'], **gold_master_recipes(source), **service_kit_recipes(source),
+    recipes={**camp_recipes(), **source['buildings'], **gold_master_recipes(source), **service_kit_recipes(source),
              **prehistoric_expansion_recipes(source), **regional_house_recipes(root, source),
              **urban_recipes(root, source),
              **religious_recipes(root, source), **theatre_recipes(root, source),
@@ -367,7 +368,8 @@ def build_buildings(root, sprites):
                                       # Same silhouette whichever way it faces, so one set of cast masks.
                                       **({'shadowFrame':name} if r.get('oblique') else {})}
     for name,r in recipes.items():
-        painter=(ObliqueMudbrick if r.get('mud') else
+        painter=(CampBuilding if r.get('campStyle') else
+                 ObliqueMudbrick if r.get('mud') else
                  ObliqueRound if r.get('round') else
                  ObliquePlayhouse if r.get('form')=='oblique-ring' else
                  ObliqueBuilding if r.get('oblique') else
@@ -384,6 +386,7 @@ def build_buildings(root, sprites):
         sprites[name]=im
         w,h=im.size
         models[name]={
+            **({'campStyle':r['campStyle']} if r.get('campStyle') else {}),
             'frame':name,'label':r['label'],'footprint':r['footprint'],'entrance':r['entrance'],
             'anchor':[getattr(artist,'anchor_x',w/2),h-3],'bounds':[0,0,w,h],'height':r['height'],
             **({'door':door_rect(artist)} if door_rect(artist) else {}),
@@ -407,6 +410,7 @@ def build_buildings(root, sprites):
                 'sign':r.get('sign',''),'role':r.get('role','house'),'stories':r['stories']} if r.get('period') else {}),
             **({'shadowFrame':r['shadowFrame']} if r.get('shadowFrame') else {}),
             **({'banner':artist.banner} if getattr(artist,'banner',None) else {}),
+            **({'courtyardLight':artist.court_light} if getattr(artist,'court_light',None) else {}),
             **({'smoke':artist.smoke} if getattr(artist,'smoke',None) else {}),
             **({'goldMaster':r['goldMaster'],'goldScale':r['goldScale'],
                 'goldVariant':r['goldVariant'],'wealthTier':r.get('wealthTier',1),

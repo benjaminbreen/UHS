@@ -21,7 +21,7 @@ import {
   pickBeard,
 } from "../../core/character";
 import { wornFromWearing } from "../../core/wearing";
-import { clothFor, rolesFrom } from "./wardrobe";
+import { clothFor, rolesFrom, wardrobeFor } from "./wardrobe";
 import { pickHair } from "../../core/character";
 import type { CharacterPhysique } from "../../core/character";
 
@@ -425,6 +425,9 @@ export function generateCharacter(
     bodySex,
     livelihood.rank === "labouring" || livelihood.rank === "destitute",
   );
+  if (s.situation) appearance.wearing = wardrobeFor({
+    id, age, sex: bodySex, livelihood: livelihood.id, roles: rolesFrom(requestedRole, role),
+  }, { year: s.year, setting: s }, appearance.wearing);
   const cloth = clothFor(
     {
       id,

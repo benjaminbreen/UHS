@@ -34,11 +34,12 @@ def recipes():
     from art.oblique_church import ObliqueChurch
     from art.gold_masters import gold_master_recipes, prehistoric_expansion_recipes, service_kit_recipes
     from art.regional_houses import regional_house_recipes
+    from art.camps import CampBuilding, camp_recipes
     source = json.loads((ROOT / 'src/content/graphics/buildings.json').read_text())
     source['materials'].update(
         json.loads((ROOT / 'src/content/graphics/urban.json').read_text())
         .get('materials', {}))
-    all_r = {**source['buildings'], **gold_master_recipes(source), **service_kit_recipes(source),
+    all_r = {**camp_recipes(), **source['buildings'], **gold_master_recipes(source), **service_kit_recipes(source),
              **prehistoric_expansion_recipes(source),
              **regional_house_recipes(ROOT, source),
              **urban_recipes(ROOT, source),
@@ -50,6 +51,8 @@ def recipes():
                 'hall': HallBuilding, 'urban': UrbanBuilding}
 
     def painter(r):
+        if r.get('campStyle'):
+            return CampBuilding
         if r.get('family') == 'parish':
             return ObliqueChurch
         if r.get('form') == 'oblique-ring':

@@ -115,6 +115,8 @@ class ObliqueBuilding:
         # isometric perspective. The wall remains 12px; only the roof leans
         # farther back so courts and traversal bands can be read.
         self.roof_depth = self.depth + min(16, max(0, fh - 4) * 2) if recipe.get('regionalHouse') else self.depth
+        if self.courtyard:
+            self.roof_depth = max(self.roof_depth, 56 + fh * 5)
         self.over, self.verge = (0, 0) if self.flat else (OVER, VERGE)
         self.drop = round(self.over * self.rise / (self.depth / 2))
         self.facing = recipe.get('facing', 'south')
@@ -145,7 +147,7 @@ class ObliqueBuilding:
 
         self.ox = 7 + 16 * self.lean
         roof_return = round(self.roof_depth * K)
-        self.w = self.ox + self.fw + max(self.sw, roof_return) + self.verge + 4
+        self.w = self.ox + self.fw + max(self.sw, self.sw if self.courtyard else roof_return) + self.verge + 4
         regional_headroom = (26 if self.regional_turret != 'none' or self.roof_feature == 'windcatcher'
                              else 24 if self.service_style == 'neighborhood-hall' else 0)
         self.h = self.wh + self.rise + max(self.sw // 2, roof_return) + max(regional_headroom, 34 if self.turret else 14 if self.has_chimney else 3) + 8
@@ -157,7 +159,8 @@ class ObliqueBuilding:
         self.smoke = []
 
     def proj(self, x, y, z):
-        return (round(self.ox + x + y * K), round(self.bottom - z - y * K))
+        lean = self.sw / self.roof_depth if self.courtyard and z >= self.wh else K
+        return (round(self.ox + x + y * lean), round(self.bottom - z - y * K))
 
     # -- faces, painted flat ------------------------------------------------
 
@@ -719,7 +722,12 @@ class ObliqueBuilding:
         if self.r.get('roofPlan') == 'tiled-courtyard' and feature in ('plain', 'ridge-finials'):
             return
         if (not feature or feature == 'plain') and self.regional_turret == 'none': return
-        x, y = self.proj(self.fw * .72, self.roof_depth * .55, self.wh)
+        roof_x, roof_y = self.fw * .72, self.roof_depth * .55
+        if self.courtyard:
+            cx, cy, cw, ch = self.r['courtyard']
+            roof_x = ((cx + cw) * 16 + self.fw) / 2
+            roof_y = self.roof_depth * (cy + ch / 2) / self.r['footprint'][1]
+        x, y = self.proj(roof_x, roof_y, self.wh)
         dark, shade, base, light, hi = self.p['wall']
         if self.regional_turret in ('corner-stair', 'windcatcher') or feature == 'windcatcher':
             tall = 22 if self.regional_turret == 'windcatcher' or feature == 'windcatcher' else 13
@@ -751,6 +759,21 @@ class ObliqueBuilding:
             d.rectangle((x - 5, y - 3, x + 5, y + 1), fill=shade, outline=dark)
             d.line((x - 3, y - 3, x + 3, y - 3), fill=hi)
 
+    def court_roof_plane(self, d, polygon, palette, tone):
+        d.polygon(polygon, fill=palette[tone])
+        texture = Image.new('RGBA', self.im.size)
+        td = ImageDraw.Draw(texture)
+        left, right = min(p[0] for p in polygon), max(p[0] for p in polygon)
+        top, bottom = min(p[1] for p in polygon), max(p[1] for p in polygon)
+        blend = lambda other: tuple(round(int(palette[tone][i:i + 2], 16) * .65 + int(palette[other][i:i + 2], 16) * .35) for i in (1, 3, 5))
+        for y in range(top + 2, bottom, 4):
+            for x in range(left - 4, right, 5):
+                td.line((x, y + 3, x + 1, y), fill=blend(max(0, tone - 1)))
+                td.line((x + 2, y + 2, x + 3, y + 2), fill=blend(min(4, tone + 1)))
+        mask = Image.new('L', self.im.size)
+        ImageDraw.Draw(mask).polygon(polygon, fill=255)
+        self.im.paste(texture, (0, 0), Image.composite(texture.getchannel('A'), Image.new('L', self.im.size), mask))
+
     def courtyard_top(self, d):
         """A continuous roof ring around a legible open court."""
         wh, fw = self.wh, self.fw
@@ -780,41 +803,59 @@ class ObliqueBuilding:
         ie = self.proj(cx * 16, depth_y(cy + ch), wh)
         if tiled_court:
             mid = lambda p, q, lift=0: ((p[0] + q[0]) // 2, (p[1] + q[1]) // 2 - lift)
-            fa, fb = mid(a, ia, 4), mid(b_, ib, 4)
-            ba, bb = mid(e, ie, 3), mid(c, ic, 3)
+            fa, fb = mid(a, ia, 7), mid(b_, ib, 7)
+            ba, bb = mid(e, ie, 8), mid(c, ic, 8)
             # Each range has a raised ridge and two differently lit slopes.
             # The lift is deliberately shallow so the published roof cells
             # remain the usable traversal surface.
-            d.polygon([a, b_, fb, fa], fill=deck[3])
-            d.polygon([fa, fb, ib, ia], fill=deck[1])
-            d.polygon([e, ba, bb, c], fill=deck[1])
-            d.polygon([ba, ie, ic, bb], fill=deck[2])
-            d.polygon([a, fa, ba, e], fill=deck[3])
-            d.polygon([fa, ia, ie, ba], fill=deck[1])
-            d.polygon([b_, c, bb, fb], fill=deck[2])
-            d.polygon([fb, bb, ic, ib], fill=deck[0])
-            # Reassert sparse tile channels on each range after the lighting
-            # planes; quiet roof fields remain available for traversal.
-            for x in range(a[0] + 4, b_[0] - 2, 5):
-                d.line((x, a[1] + 1, x + 4, a[1] - 6), fill=deck[1])
-                d.point((x + 1, a[1]), fill=deck[4])
+            for polygon, tone in (([a, b_, fb, fa], 3), ([fa, fb, ib, ia], 1),
+                                  ([e, ba, bb, c], 1), ([ba, ie, ic, bb], 2),
+                                  ([a, fa, ba, e], 3), ([fa, ia, ie, ba], 1),
+                                  ([b_, c, bb, fb], 2), ([fb, bb, ic, ib], 1)):
+                self.court_roof_plane(d, polygon, deck, tone)
             for p, q in ((fa, fb), (ba, bb), (fa, ba), (fb, bb)):
                 d.line((p, q), fill=deck[0], width=2)
                 d.line((p[0], p[1] - 1, q[0], q[1] - 1), fill=deck[4])
-        court = '#55442f' if self.profile and self.profile.startswith('roman-') else '#8a704d'
-        d.polygon([ia, ib, ic, ie], fill=court)
-        # Inner walls establish the drop without filling the court with noise.
-        d.polygon([ia, ib, (ib[0], ib[1] + 7), (ia[0], ia[1] + 7)], fill=shade)
-        d.line((ia[0], ia[1], ib[0], ib[1]), fill=hi)
-        d.polygon([ib, ic, (ic[0], ic[1] + 5), (ib[0], ib[1] + 7)], fill=dark)
+        drop = min(12, max(4, (ia[1] - ie[1]) // 3))
+        inset = max(2, round(drop * self.sw / (self.roof_depth * K)))
+        fl = (ia[0] + inset, ia[1])
+        bl = (ie[0], ie[1] + drop)
+        br = (ic[0] - inset, ic[1] + drop)
+        floor = [fl, ib, br, bl]
+        back_wall = [ie, ic, br, bl]
+        left_wall = [ie, ia, fl, bl]
+        self.court_light = {'opening': [ia, ib, ic, ie], 'floor': floor,
+                            'backWall': back_wall, 'leftWall': left_wall,
+                            'height': drop}
+        d.polygon([ia, ib, ic, ie], fill=dark)
+        d.polygon(floor, fill='#b5a084')
+        # Paving joints stay on the floor, below the inner wall feet.
+        paving = Image.new('RGBA', self.im.size)
+        pd = ImageDraw.Draw(paving)
+        for y in range(bl[1] + 4, ia[1], 5):
+            pd.line((ia[0], y, ic[0], y), fill='#a39178')
+            for x in range(ia[0] + (y % 2) * 7, ic[0], 15):
+                pd.line((x, y, x - 4, y + 4), fill='#a39178')
+        mask = Image.new('L', self.im.size)
+        ImageDraw.Draw(mask).polygon(floor, fill=255)
+        self.im.paste(paving, (0, 0), Image.composite(paving.getchannel('A'), Image.new('L', self.im.size), mask))
+        d.polygon(back_wall, fill=base)
+        d.polygon(left_wall, fill=shade)
+        d.line((bl, br), fill=dark)
+        d.line((fl, bl), fill=dark)
+        # Recesses face the court; their lintels sit below the rear eave.
+        for x in range(ie[0] + 12, ic[0] - inset - 6, 19) if drop >= 6 else ():
+            d.rectangle((x, ie[1] + 3, x + 5, bl[1] - 2), fill=dark)
+            d.line((x, ie[1] + 3, x + 5, ie[1] + 3), fill=shade)
+            d.line((x - 1, ie[1] + 3, x - 1, bl[1] - 2), fill=light)
+        d.line((ie, ic), fill=deck[0], width=2)
+        d.line((ie, ia), fill=deck[0], width=2)
+        d.line((ia, ib), fill=deck[0], width=2)
+        d.line((ia[0], ia[1] + 2, ib[0], ib[1] + 2), fill=deck[3])
         if self.profile and self.profile.startswith('roman-'):
-            # Impluvium and column hints make the court a room-sized void, not
-            # a decorative hole in a single roof slab.
-            mx = (ia[0] + ib[0] + ic[0] + ie[0]) // 4
-            my = (ia[1] + ib[1] + ic[1] + ie[1]) // 4 + 3
+            mx = (fl[0] + ib[0] + br[0] + bl[0]) // 4
+            my = (fl[1] + ib[1] + br[1] + bl[1]) // 4
             d.rectangle((mx - 7, my - 2, mx + 7, my + 2), fill='#53717a', outline='#c8b991')
-            for px, py in (ia, ib, ic, ie):
-                d.rectangle((px - 1, py, px + 1, py + 4), fill=self.p['foundation'][2])
         # Broad, quiet roof bands remain unmistakable traversal space.
         d.line((a[0], a[1], b_[0], b_[1]), fill=deck[min(3, len(deck) - 1)], width=2)
         d.line((e[0], e[1], c[0], c[1]), fill=deck[min(3, len(deck) - 1)])
@@ -1321,13 +1362,17 @@ class ObliqueBuilding:
 
         pal = self.thatch if self.roof == 'thatch' else ROOFS[self.roof]
         if self.flat:
+            if self.courtyard:
+                d.polygon([self.proj(fw, 0, wh), self.proj(fw, self.roof_depth, wh),
+                           (gx + sw, gy - wh - sw)], fill=self.p['wall'][0])
             self.courtyard_top(d) if self.courtyard else self.flat_top(d)
             if self.has_chimney: self.chimney(fw * .7)
             else:
                 # The hearth vents through a hole in the roof deck.
                 hx, hy = self.proj(fw * .6, self.depth * .5, wh)
                 self.smoke.append([hx, hy - 1, 'vent'])
-            self.occlusion = [self.ox, gy - wh - sw, gx + sw // 2, gy - 1]
+            self.occlusion = ([self.ox, max(0, gy - wh - round(self.roof_depth * K) - 8), gx + sw, gy - 1]
+                              if self.courtyard else [self.ox, gy - wh - sw, gx + sw // 2, gy - 1])
             return im
         edge = pal if self.roof == 'thatch' else (TIMBER[0], TIMBER[1], TIMBER[2])
         ex, ey = self.proj(fw + self.verge, -self.over, wh - self.drop)

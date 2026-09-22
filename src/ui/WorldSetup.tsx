@@ -75,7 +75,7 @@ export function WorldSetup({
     },
     [],
   );
-  const chosen = places.find((p) => p.id === place)!;
+  const chosen = places.find((p) => p.id === place) ?? places[0];
   const numericYear = Number(year);
   const validYear =
     year.trim() !== "" &&
@@ -144,7 +144,7 @@ export function WorldSetup({
     setDraft(start.setting);
   };
   const editDetails = () => {
-    setDraft(undefined);
+    setDraft(previewSource);
     setWoven(undefined);
     if (localSetting) {
       setPlace(localSetting.placeId);
@@ -155,6 +155,8 @@ export function WorldSetup({
   };
 
   const weave = async (text: string, signal: AbortSignal) => {
+    const local = resolveSetting(text, seed.trim() || "earth-2");
+    if (!("error" in local) && local.setting.situation) return local.setting;
     const response = await fetch("/api/world-weaver", {
       method: "POST",
       signal,

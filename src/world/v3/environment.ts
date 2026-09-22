@@ -410,6 +410,17 @@ export function createEnvironment(
     return s.hydrologyRevision === 3 ? { ...native, ...connectedBoundary(x, y, native) } : native;
   };
   const calculate = (x: number, y: number): LandSample => {
+    const situation = s.situation;
+    if (situation && (situation.landform !== "local" || Math.hypot(x, y) < (situation.camp === "expedition" ? 27 : 32))) {
+      const island = situation.landform === "islet";
+      const land = situation.landform === "local";
+      // Signed ellipse dimensions are cell counts; coastline noise cannot swallow a five-cell island.
+      const nx = (x + (situation.width % 2 ? 0 : .5)) / (situation.width / 2), ny = (y + (situation.depth % 2 ? 0 : .5)) / (situation.depth / 2);
+      const water = land ? 1000 : island ? (1 - Math.hypot(nx, ny)) * Math.min(situation.width, situation.depth) / 2 : -40;
+      return { water, shoreWidth: island ? 6 : 0, waterFlow: [0, 0], kind: "sea",
+        moisture: .3, elevation: 0, summit: land ? 112 : 0,
+        snow: land && s.climate === "tundra" };
+    }
     const habitat = regional?.habitatAt(x, y) ?? s.environment!;
     const profile = ecologyProfiles[habitat.ecology];
     const fx = regional ? x + origin.x : x,

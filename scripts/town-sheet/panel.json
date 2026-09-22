@@ -129,5 +129,20 @@
     "name": "great-plains-5141bce",
     "query": "Great Plains 5141 BCE",
     "radius": 36
+  },
+  {
+    "name": "camp-roman",
+    "query": "Roman military camp",
+    "radius": 32
+  },
+  {
+    "name": "camp-everest",
+    "query": "Everest base camp",
+    "radius": 32
+  },
+  {
+    "name": "camp-forest",
+    "query": "tribal gathering in the forest",
+    "radius": 32
   }
 ]

@@ -1,3 +1,4 @@
+import { applySituation, situationFromPrompt } from "./situation";
 import { formatHistoricalYear } from "../../core/calendar";
 import { eraAt } from "../history/dates";
 import { random } from "../../core/random";
@@ -161,6 +162,18 @@ export function resolveSetting(
       error:
         "Enter a place, period, or starting role, or choose a place below.",
     };
+  try {
+    const intent = situationFromPrompt(input);
+    if (intent) {
+      const located = places.filter((p) => [p.name, ...p.aliases].some((a) => has(q, a)))
+        .sort((a, b) => b.name.length - a.name.length)[0];
+      const place = located ? { ...located, year: intent.place.year } : intent.place;
+      const dated = input.replace(/\b\d{1,3}\s*[x×]\s*\d{1,3}\b/gi, "");
+      const base = settingFor(place, dateFromPrompt(intent.situation.camp === "military" ? dated.replace(/\broman\b/gi, "") : dated, place.year, seed));
+      const setting = populateCharacter(applySituation({ ...base, role: intent.role, characterName: intent.role }, intent.situation), seed);
+      return { setting, description: describeSetting(setting), needsInterpretation: false };
+    }
+  } catch (error) { return { error: error instanceof Error ? error.message : "Invalid starting situation." }; }
   const generic = new Set(periods.flatMap(([words]) => words));
   const matches = places
     .map((place) => ({
