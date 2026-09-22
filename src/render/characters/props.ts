@@ -1,6 +1,7 @@
 import atlas from "../../../public/props/atlas.json";
 import { propDefs } from "../../content/props/catalog";
 import propsB from "../generated/props-b.json";
+import { artStamp } from "../scene-assets";
 const redrawnFamilies = new Set<string>(propsB);
 export type CarriedArt = {
   sprite: string;
@@ -77,7 +78,8 @@ export function loadCarriedArt() {
         }
         resolve(result);
       };
-      image.src = "/props/atlas.png";
+      // Same URL as the scene, so it is one download.
+      image.src = `/props/atlas.png?v=${artStamp}`;
     },
   ));
 }

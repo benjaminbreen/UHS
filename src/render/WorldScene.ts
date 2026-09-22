@@ -75,6 +75,7 @@ import type { Position, WorldModel } from "../core/types";
 import { surfaceAt, hasQuay } from "./materials";
 import { gameAudio } from "../audio/director";
 import { footstep, landing, takeoff } from "../audio/sfx";
+import { tuning } from "../audio/sfx-tuning";
 import { hash, random } from "../core/random";
 import {
   defaultLiveGraphicsSettings,
@@ -4005,7 +4006,8 @@ export class WorldScene extends Phaser.Scene {
             moving &&
             cell &&
             !arcLift &&
-            Math.hypot(im.x - this.lastStep.x, im.y - this.lastStep.y) >= 8
+            Math.hypot(im.x - this.lastStep.x, im.y - this.lastStep.y) >=
+              tuning("step").spacing!
           ) {
             this.lastStep = { x: im.x, y: im.y };
             void gameAudio()?.sound(

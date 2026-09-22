@@ -152,6 +152,8 @@ export function Splash({
     const abort = new AbortController();
     controller.current = abort;
     setBusy("Preparing your world…");
+    void import("../runtime/bootstrap");
+    void import("../render/scene-assets").then((m) => m.warmSceneAssets());
     try {
       const { prepareConnectedStart } = await import("../runtime/map-travel");
       let worldSeed = `world-${crypto.randomUUID()}`;
