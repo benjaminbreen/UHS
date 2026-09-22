@@ -23,6 +23,8 @@
     "test:browser": "playwright test",
     "headless": "tsx scripts/headless.ts",
     "shot": "tsx scripts/shot.ts",
+    "capture:characters": "tsx scripts/capture/characters.ts",
+    "capture:terrain": "tsx scripts/capture/terrain.ts",
     "preview": "vite preview --host 127.0.0.1",
     "mcp": "tsx scripts/mcp-server.ts",
     "prepare:geography": ".venv/bin/python scripts/prepare_geography.py",

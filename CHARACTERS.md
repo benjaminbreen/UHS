@@ -72,7 +72,7 @@ npx vitest run tests/characters.test.ts tests/props.test.ts
 npx playwright test tests/browser/characters.spec.ts tests/browser/props.spec.ts
 ```
 
-With the development server on port 5173, `scripts/capture-character-refinement.ts` captures a green-shirt/brown-hair four-direction walk and the same outfit in the world. Other `scripts/capture-character*.ts` capture the lab, population, original palette walk and all held objects. Review images live in `artifacts/characters/`.
+`npm run capture:characters -- refinement` captures a green-shirt/brown-hair four-direction walk and the same outfit in the world. Run it with no argument for every sheet, or name one of `lab`, `walk`, `heights`, `props`, `polish`, `refinement`, `village`, `sprite-light`, `sprite-study`. It starts against the development server on port 5173; review images live in `artifacts/characters/`.
 
 Before implementation, the complete existing worktree was committed as `222f0b7` and pushed to `origin/codex/character-lab`. Remote `main` contains the earlier UHS project with unrelated Git history and was preserved. The character work was subsequently reviewed and checkpointed for integration into `v2`; see the current top of `PROGRESS.md` for verification.
 
@@ -82,7 +82,7 @@ The lab exposes five head shapes and five jaw shapes, three body silhouettes, si
 
 Body taper/fullness, chest light, underarm folds, belt gathers, long tunics and lower-colored skirts provide silhouette and material variation without scaling pixels. Idle phase is offset per actor. Held burdens affect posture; hand-on-hip and clasped-hand resting poses yield to actual carried objects and actions.
 
-The lighting control affects the native preview shadow and six-person production-renderer village study. The selected recipe and held object appear alongside an original adult, strong adult, elder, child and tall adult. `scripts/capture-character-village.ts` captures matching morning, midday, dusk and night scenes. All five heights retain their existing age boundaries; ordinary adults still default to original height.
+The lighting control affects the native preview shadow and six-person production-renderer village study. The selected recipe and held object appear alongside an original adult, strong adult, elder, child and tall adult. `npm run capture:characters -- village` captures matching morning, midday, dusk and night scenes. All five heights retain their existing age boundaries; ordinary adults still default to original height.
 
 ## Final contour and motion polish
 
@@ -90,7 +90,7 @@ Skin contours now use a dark brown/plum ramp even for pale complexions. Lower/ri
 
 Idle poses no longer turn the head. Only the resting player automatically enters `breathe`: a four-second cycle with a one-pixel shoulder/chest lift, fixed head and feet, and fixed grips. The lab exposes this pose for frame stepping. NPC idle poses remain still apart from blinking.
 
-Build −1 is the new default, narrowing the torso/shoulders one native pixel without resampling the head. Previous builds 0/1/2 remain selectable and retain their geometry. Procedural adult width weights are 75% narrow, 18% previous, 6% broad and 1% full; children default narrow. Height distribution is unchanged. Review `artifacts/characters/final-polish.png` or run `scripts/capture-character-polish.ts`.
+Build −1 is the new default, narrowing the torso/shoulders one native pixel without resampling the head. Previous builds 0/1/2 remain selectable and retain their geometry. Procedural adult width weights are 75% narrow, 18% previous, 6% broad and 1% full; children default narrow. Height distribution is unchanged. Review `artifacts/characters/final-polish.png` or run `npm run capture:characters -- polish`.
 
 ## Portrait faces: ornament, noses and expression
 

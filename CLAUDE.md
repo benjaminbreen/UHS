@@ -28,6 +28,9 @@ when the task is actually about its subject:
   screenshot of the running game. Starts the dev server itself if needed.
 - `npm run town:sheet` — a generated settlement without a browser. Use before
   and after changing layout, yards or building art.
+- `npm run capture:characters -- <preset>` and `npm run capture:terrain -- <review>`
+  — the review sheets. No argument runs them all; a wrong name prints the
+  valid ones.
 - `npm run test:full` — 10 min, and has known failures. Only before a merge or
   when asked, and in the background.
 - `npm run test:browser` needs `npx playwright install` first.
@@ -45,7 +48,9 @@ take a shot and look at it.
 This repo has accumulated 26 near-duplicate `capture-*.ts` scripts because
 agents kept writing their own. Before you create anything:
 
-- **Screenshots**: use `npm run shot`. Do not write a new capture script.
+- **Screenshots**: use `npm run shot` for the game, `capture:characters` or
+  `capture:terrain` for a review sheet. Add a preset to those rather than a
+  new file; shared browser handling lives in `scripts/capture/lib.ts`.
 - **Tests**: add cases to the existing file that covers the area. A new test
   file needs a reason beyond "my change deserves one."
 - **Docs**: do not write a summary, report, or plan file for work you just did.
