@@ -148,6 +148,11 @@ export type Place = {
   owner: string;
   claim: string;
   entranceLabel: string;
+  /** Snapshot date; construction remains unknown until an event establishes it. */
+  baselineYear?: number;
+  modifiedAt?: number;
+  abandonedAt?: number;
+  condition?: number;
 };
 export type WorldObject = {
   resource?: Resource;
@@ -323,6 +328,7 @@ export type PlayerCommand =
         | "mine"
         | "right"
         | "topple"
+        | "heave"
         | "look";
     }
   | {
@@ -395,6 +401,12 @@ export type Snapshot = {
   ledger?: string[];
   /** Narrator turns, oldest first. */
   narration?: { clock: number; input: string; text: string }[];
+  /** Today's goals. */
+  goals?: import("../content/goals/types").DailyGoal[];
+  /** Day number when goals were last generated. */
+  goalDay?: number;
+  /** Flags tracking goal progress. */
+  goalFlags?: { traded: boolean; talked: boolean };
 };
 /** What a narrator turn may do to the world. Each one resolves
  * deterministically in the engine; the model only proposes. */
@@ -476,6 +488,16 @@ export type Inspection = {
   claim?: string;
   affordances: Affordance[];
   inventory?: Inventory;
+};
+export type NearbyThing = {
+  /** Absent for things that cannot be selected, such as wild animals. */
+  id?: string;
+  name: string;
+  detail?: string;
+  kind: "person" | "animal" | "object" | "place" | "plant";
+  sprite?: string;
+  dist: number;
+  count?: number;
 };
 export type Observation = {
   revision: number;

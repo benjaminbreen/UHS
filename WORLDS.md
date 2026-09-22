@@ -42,6 +42,25 @@ The imported gazetteer does not supply founding dates. Its general named-place c
 
 Future boat traffic and economic dependencies should consume these same places, links and resource queries. Add their mutable activity to the simulation rather than inventing another geographic network. No boat agents, freight, transport schedules or economic production chains were added in this pass.
 
+`landPotentialAt` is the finer local query for later settlement evolution. It
+derives normalized arable, pasture, fishing, wild-food, timber, reed, clay,
+stone and mineral-prospectivity opportunities from the existing terrain,
+drainage and habitat fields. These are physical opportunities, not stocks or
+prices. `subsistence`, `materials` and `buildability` are summaries; culture,
+technology, access and demand must weight the underlying yields before calling
+them economic value. In particular, mineral potential does not assert an ore
+deposit without authored geology.
+
+Settlement plans now expose shared `occupied`, `access` and `clearance` claims.
+The first blocks movement and construction, the second protects roads and
+thresholds, and the third protects visible roof, canopy and prop silhouettes.
+New vegetation revision 7 tests a tree's whole crown against those claims and
+regional roads. Revision-6 worlds retain their previous vegetation placement.
+Roads, plots, parcels and places carry stable ids plus a baseline year and
+minimal condition or use state for later epoch changes. The baseline is the
+date represented by the generated snapshot, not a claim about construction;
+no production or historical mutation loop is implied yet.
+
 ## Extending it
 
 `src/content/geography/regions/` contains dated regional constraints; `src/world/regional/` resolves geography, settlement identities and transport. `src/content/geography/defaults.ts` upgrades new-world inputs. `src/content/geography/places.ts` contains the featured anchors and aliases. `types.ts` defines the setting contract, `resolve.ts` interprets offline text, and `pack.ts` adapts that setting to existing content and art. `src/world/v2/landscape.ts` describes terrain; `src/world/v3/` plans new settlements and samples chunks. See [SETTLEMENTS.md](SETTLEMENTS.md) for roads, plots, farms, pens and daily activity. `server/world-weaver.ts` only interprets settings.

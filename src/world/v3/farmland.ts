@@ -46,12 +46,16 @@ export function eraEnclosure(year: number): Boundary {
 }
 export type Parcel = {
   id: number;
+  /** Stable beyond a planner run; numeric id remains the compact field-cell key. */
+  stableId?: string;
   rect: Rect;
   crop: CropId;
   cells: number;
   /** Where a worker steps off the lane into the parcel. */
   access: Point;
   owner?: string;
+  baselineYear?: number;
+  state?: "used" | "fallow" | "abandoned";
 };
 /** A place beside a lane out of town kept free for a site the hinterland
  * layer may put there: a mill, a shrine, a dairy. */
@@ -908,6 +912,11 @@ export function planFarmland(input: {
       }
       if (best && cost < 140) best.owner = owner;
     }
+  for (const parcel of parcels) {
+    parcel.stableId ??= `${site.id}-field-${parcel.id}`;
+    parcel.baselineYear ??= setting.year;
+    parcel.state ??= parcel.crop === "fallow" ? "fallow" : "used";
+  }
   return {
     system,
     territory: { center: { ...c }, inner, outer, spokes, slots },

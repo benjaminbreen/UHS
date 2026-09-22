@@ -1,3 +1,23 @@
+## Settlement evolution foundation — September 21, 2026
+
+New worlds now use vegetation revision 7. Trees publish an oblique canopy
+envelope and test that whole silhouette against buildings, roads and other
+claimed space, rather than checking only the trunk or four arbitrary cells.
+Settlement plans share three spatial claims—occupied, access and clearance—so
+later props and features can use the same placement contract. Revision-6
+manifests retain their prior tree placement.
+
+Geography now exposes a deterministic `landPotentialAt` query derived from the
+existing terrain, drainage and habitat fields. It keeps arable, pasture,
+fishing, wild food, timber, reeds, clay, stone and mineral prospectivity
+separate, with only convenience summaries for subsistence, materials and
+buildability. It does not mistake environmental opportunity for actual stock,
+production, price or ore evidence. Roads, plots, farmland parcels and places
+also carry minimal stable lifecycle metadata. The baseline year dates the
+generated snapshot rather than claiming construction dates. This lays the seam
+for later paving, reuse, abandonment and ruin passes without adding a
+speculative economy.
+
 ## Final roofline, parapet and lived-detail polish — September 21, 2026
 
 The enlarged building families now use distinct roof craft instead of sharing

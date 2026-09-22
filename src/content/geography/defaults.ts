@@ -25,7 +25,7 @@ export function integratedSetting(s: WorldSetting): WorldSetting {
       ...s,
       characterRevision: s.characterRevision ?? 1,
       terraceRevision: 1,
-      vegetationRevision: 6,
+      vegetationRevision: s.vegetationRevision ?? 6,
       ecologyRevision: 2,
       hydrologyRevision: 3,
     };
@@ -36,7 +36,7 @@ export function integratedSetting(s: WorldSetting): WorldSetting {
     urbanRevision: 2,
     roadRevision: 1,
     terraceRevision: 1,
-    vegetationRevision: 6,
+    vegetationRevision: 7,
     ecologyRevision: 2,
     hydrologyRevision: 3,
     geographyMode: s.environment ? "configured" : "earth",

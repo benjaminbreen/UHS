@@ -265,9 +265,18 @@ export const propDefs: Record<string, PropDef> = {
    * settlement, and drawn from the nature atlas in the local stone colour. */
   boulder: {
     solid: true,
+    portable: true,
     name: "Boulder",
     family: "boulder",
     shove: { as: "free", mass: 2.6, rolls: true },
+  },
+  /** A field rock lifted off the ground, which it was drawn as. */
+  fieldStone: {
+    solid: true,
+    portable: true,
+    name: "Rock",
+    family: "boulder",
+    shove: { as: "free", mass: 1.2, rolls: true },
   },
   crate: {
     shove: { as: "free", mass: 1 },

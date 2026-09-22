@@ -74,7 +74,7 @@ import { jumpMs, JUMP_CHARGE_MS, type Runtime } from "../runtime/session";
 import type { Position, WorldModel } from "../core/types";
 import { surfaceAt, hasQuay } from "./materials";
 import { gameAudio } from "../audio/director";
-import { footstep, landing, takeoff } from "../audio/sfx";
+import { footstep, landing, strike, takeoff } from "../audio/sfx";
 import { tuning } from "../audio/sfx-tuning";
 import { hash, random } from "../core/random";
 import {
@@ -108,6 +108,12 @@ const RUN_GRACE_MS = 200;
 const TURN_HOLD_MS = 60;
 /** A shove into whatever blocked the way: out two pixels and back. */
 const BUMP_MS = 110;
+/** Knocked back off a wall at a run. */
+const BONK_MS = 340;
+/** A tap shorter than this turns in place; a hold walks. */
+const TURN_MS = 95;
+/** Only from standing: mid-walk a new direction steps at once. */
+const TURN_IDLE_MS = 60;
 /** How long after a refused step the player still reads as pushing. Longer
  * than an input tick, so holding a key against a wall keeps the walk going. */
 const PUSH_MS = 240;
@@ -142,7 +148,13 @@ import { weatherAt, type Weather } from "../core/weather";
 import { setWind } from "./wind";
 import { addPlume, type SmokeKind } from "./smoke";
 
-import { driftStyle, foliageTint, namedShrub, seasonFrame, treeVariant } from "./season-art";
+import {
+  driftStyle,
+  foliageTint,
+  namedShrub,
+  seasonFrame,
+  treeVariant,
+} from "./season-art";
 import { seasonAt } from "../core/livelihood";
 import {
   FIRE_FRAME_MS,
@@ -310,6 +322,10 @@ export class WorldScene extends Phaser.Scene {
    * is released while the facing itself stays put. */
   private pushingAt?: number;
   private bump?: { dx: number; dy: number; at: number };
+  private bonk?: { dx: number; dy: number; at: number };
+  /** A heavy lift in progress: the player trembles until it goes up. */
+  private strain?: { at: number; until: number };
+  private heaveSerial = 0;
   private windSprites: WindSprite[] = [];
   /** Hanging layers drawn over a prop's rigid frame, swayed by the same wind.
    * Kept per entity rather than in windSprites, which only clears on a full
@@ -455,7 +471,10 @@ export class WorldScene extends Phaser.Scene {
     for (const a of atlases) this.load.atlas(a.key, a.image, a.data);
     for (const i of images) this.load.image(i.key, i.url);
     for (const sh of sheets)
-      this.load.spritesheet(sh.key, sh.url, { frameWidth: 64, frameHeight: 96 });
+      this.load.spritesheet(sh.key, sh.url, {
+        frameWidth: 64,
+        frameHeight: 96,
+      });
   }
   create() {
     this.ready = true;
@@ -923,6 +942,186 @@ export class WorldScene extends Phaser.Scene {
           this.onlookers(tx, ty, heavy ? 4 : 1.5, heavy ? "alarm" : "question");
       },
     });
+  }
+  /** At a run, a rock or a pot is cleared without a key press. */
+  private vault(dx: number, dy: number, time: number) {
+    if (!this.shiftHeld || this.runSteps < 2) return false;
+    const engine = this.runtime.engine;
+    if (!engine.vaultAhead(dx, dy)) return false;
+    const before = { ...engine.state.player.pos };
+    const cleared = this.runtime.jump(dx, dy, "short", true);
+    const now = engine.state.player.pos;
+    if (now.x === before.x && now.y === before.y) return false;
+    const im = this.entities.get("player");
+    if (im) this.kickDust(im.x, im.y, 5, 0.8);
+    this.motionDuration = jumpMs(cleared);
+    this.nextInput = time + this.motionDuration + this.afterHold();
+    return true;
+  }
+  /** From standing, a tap turns the player without a step, for lining up
+   * a lift or a swing. Holding on walks after TURN_MS. */
+  private turnInPlace(dx: number, dy: number, time: number) {
+    const p = this.runtime.engine.state.player;
+    const direction = dx === 0 ? (dy < 0 ? 0 : 2) : dx > 0 ? 1 : 3;
+    if (
+      this.shiftHeld ||
+      p.perch ||
+      p.direction === direction ||
+      time - this.nextInput < TURN_IDLE_MS
+    )
+      return false;
+    this.runtime.face(dx, dy);
+    this.blockedFacing = undefined;
+    this.nextInput = time + TURN_MS;
+    this.lastTick = time;
+    return true;
+  }
+  private targetMark?: Phaser.GameObjects.Graphics;
+  private targetCell?: { x: number; y: number; at: number };
+  private targetChecked = 0;
+  /** Corner brackets on the cell F or E would act on. */
+  private drawTarget(time: number) {
+    const engine = this.runtime.engine;
+    if (time - this.targetChecked > 120) {
+      this.targetChecked = time;
+      const p = engine.state.player;
+      const cell = engine.facingCell();
+      const { primary, alternate } = this.runtime.verbs();
+      const hit =
+        p.pos.space === "outside" || !p.pos.space
+          ? engine.hitClass(cell.x, cell.y, p.pos.space).hit
+          : "air";
+      const worth =
+        !p.perch &&
+        (alternate?.kind === "pickup" ||
+          (alternate?.kind === "climb" && !p.perch) ||
+          (primary?.kind === "strike" && !!primary.command) ||
+          primary?.kind === "talk" ||
+          primary?.kind === "door" ||
+          [
+            "rock",
+            "trunk",
+            "tree",
+            "brush",
+            "pottery",
+            "timber",
+            "fiber",
+            "crop",
+          ].includes(hit));
+      const same =
+        this.targetCell?.x === cell.x && this.targetCell?.y === cell.y;
+      this.targetCell = worth
+        ? same
+          ? this.targetCell
+          : { ...cell, at: time }
+        : undefined;
+    }
+    const mark = (this.targetMark ??= this.add.graphics());
+    mark.clear();
+    const at = this.targetCell;
+    if (!at || time < this.nextInput - 40) return;
+    const cx = at.x * 16 + 8,
+      cy = at.y * 16 + 8 - this.lift(at.x * 16 + 8, at.y * 16 + 16);
+    // Snaps in from wide when it first lands on a cell, then breathes.
+    const settle = Math.min(1, (time - at.at) / 140);
+    const r = 9 + (1 - settle) * 5 + Math.sin(time / 180) * 0.8;
+    const arm = 3;
+    mark.setDepth(cy + 8 + 4050).setAlpha(0.35 + 0.55 * settle);
+    for (const [color, w] of [
+      [0x1a1410, 3],
+      [0xfff4d0, 1],
+    ] as const) {
+      mark.lineStyle(w, color, 1);
+      for (const [sx, sy] of [
+        [-1, -1],
+        [1, -1],
+        [1, 1],
+        [-1, 1],
+      ]) {
+        const x = cx + sx * r,
+          y = cy + sy * r * 0.8;
+        mark.beginPath();
+        mark.moveTo(x - sx * arm, y);
+        mark.lineTo(x, y);
+        mark.lineTo(x, y - sy * arm);
+        mark.strokePath();
+      }
+    }
+  }
+  /** Squat, tremble, sweat, heave: a rock going up over the head. */
+  private heaveUp(heave: NonNullable<Runtime["heaveEffect"]>) {
+    const now = this.time.now;
+    const strain = heave.boulder ? 620 : 440;
+    this.strain = { at: now, until: now + strain };
+    this.nextInput = Math.max(this.nextInput, now + strain + 260);
+    this.play(
+      {
+        pose: "stoop",
+        ms: strain / 4,
+        first: 0,
+        last: 3,
+        then: { pose: "lift", ms: 65, first: 0, last: 3, for: 260 },
+      },
+      strain,
+    );
+    for (const [i, t] of [0.3, 0.65].entries())
+      this.time.delayedCall(strain * t, () => {
+        const im = this.entities.get("player");
+        if (im) this.sweat(im.x + (i ? -4 : 4), im.y - 26, i ? -1 : 1);
+      });
+    const x = heave.at.x * 16 + 8,
+      y =
+        heave.at.y * 16 +
+        16 -
+        this.lift(heave.at.x * 16 + 8, heave.at.y * 16 + 16);
+    this.time.delayedCall(strain, () => {
+      this.kickDust(x, y, heave.boulder ? 9 : 6, 1.1);
+      this.cameras.main.shake(90, heave.boulder ? 0.003 : 0.0018);
+      void gameAudio()?.sound(strike("blunt", "stone", "thud", true), "slam");
+      if (heave.loot.length) this.toolEffects?.spill({ x, y }, heave.loot);
+    });
+  }
+  /** One drop of sweat flicked off the brow. */
+  private sweat(x: number, y: number, side: number) {
+    const drop = this.add
+      .rectangle(x, y, 2, 3, 0xbfe6ff)
+      .setStrokeStyle(1, 0x3d6f94, 0.6)
+      .setDepth(y + 4800);
+    this.tweens.add({
+      targets: drop,
+      x: x + side * 7,
+      duration: 380,
+    });
+    this.tweens.add({
+      targets: drop,
+      y: y - 5,
+      duration: 150,
+      ease: "Quad.easeOut",
+      yoyo: false,
+      onComplete: () =>
+        this.tweens.add({
+          targets: drop,
+          y: y + 6,
+          alpha: 0,
+          duration: 230,
+          ease: "Quad.easeIn",
+          onComplete: () => drop.destroy(),
+        }),
+    });
+  }
+  /** Running full tilt into something solid knocks the player back. */
+  private bonkAt(dx: number, dy: number, time: number) {
+    this.bump = undefined;
+    this.bonk = { dx, dy, at: time };
+    this.runSteps = 0;
+    this.lastRunDir = undefined;
+    this.nextInput = time + BONK_MS;
+    this.play({ pose: "hurt", ms: BONK_MS / 4, first: 0, last: 3 }, BONK_MS);
+    const im = this.entities.get("player");
+    if (im) {
+      this.combat().bonk(im.x + dx * 6, im.y - 14 + dy * 4);
+      this.kickDust(im.x + dx * 5, im.y, 4, 0.7);
+    }
   }
   /** Plays a pose on the player over whatever else would be showing. */
   private play(
@@ -2479,7 +2678,9 @@ export class WorldScene extends Phaser.Scene {
                       w.pack.setting?.environment?.ecology ?? "grassland",
                       (f) => this.textures.get("nature").has(f),
                     );
-              const frame = Array.isArray(frameAndDress) ? frameAndDress[0] : frameAndDress;
+              const frame = Array.isArray(frameAndDress)
+                ? frameAndDress[0]
+                : frameAndDress;
               const dressed = Array.isArray(frameAndDress) && frameAndDress[1];
               this.shadow(frame, x * 16 + 8, y * 16 + 16);
               const decoration = this.sprite(
@@ -2818,6 +3019,21 @@ export class WorldScene extends Phaser.Scene {
           const push = Math.sin(Math.PI * t) * 2;
           tx += this.bump.dx * push;
           ty += this.bump.dy * push;
+        }
+      }
+      if (id === "player" && this.strain) {
+        const now = this.time.now;
+        if (now >= this.strain.until) this.strain = undefined;
+        else tx += Math.round(Math.sin((now - this.strain.at) * 0.11));
+      }
+      if (id === "player" && this.bonk) {
+        const t = (this.time.now - this.bonk.at) / BONK_MS;
+        if (t >= 1) this.bonk = undefined;
+        else {
+          // Thrown back and up, then settling onto the tile.
+          const back = Math.sin(Math.PI * Math.min(1, t * 1.3)) * 7;
+          tx -= this.bonk.dx * back;
+          ty -= this.bonk.dy * back + Math.sin(Math.PI * t) * 5;
         }
       }
       if (!im) {
@@ -3643,7 +3859,13 @@ export class WorldScene extends Phaser.Scene {
     this.toolEffects.consumeSwing(this.runtime.swingEffect);
     this.toolEffects.consumeThrow(this.runtime.throwEffect);
     this.toolEffects.consumeShove(this.runtime.shoveEffect);
+    const heave = this.runtime.heaveEffect;
+    if (heave && heave.serial !== this.heaveSerial) {
+      this.heaveSerial = heave.serial;
+      this.heaveUp(heave);
+    }
     this.toolEffects.update(time);
+    this.drawTarget(time);
     this.combat().consume(this.runtime.swingEffect);
     this.combat().consumeThrow(this.runtime.throwEffect);
     this.combat().consumeEvents(this.runtime.engine.signals);
@@ -3731,6 +3953,8 @@ export class WorldScene extends Phaser.Scene {
           );
           const im = this.entities.get("player");
           if (im) this.kickDust(im.x - dx * 5, im.y, 5, 0.9);
+        } else if ((dx || dy) && this.turnInPlace(dx, dy, time)) {
+          // Turned without stepping; a held key walks on the next poll.
         } else if (dx || dy) {
           if (this.shiftHeld) {
             this.runSteps = Math.min(RUN_RAMP.length - 1, this.runSteps + 1);
@@ -3756,36 +3980,45 @@ export class WorldScene extends Phaser.Scene {
           }
           this.nextInput = time + this.motionDuration;
           this.lastTick = time;
-          let moved = this.runtime.move(dx, dy, false, this.shiftHeld);
-          // A diagonal into a corner slides along whichever wall is open,
-          // rather than stopping dead. The engine is right to refuse the
-          // diagonal; it is the input that should try the other way.
-          if (moved?.status === "rejected" && dx && dy) {
-            const at = this.runtime.engine.state.player.pos;
-            const freeX = !this.runtime.engine.blocked(at.x + dx, at.y);
-            const freeY = !this.runtime.engine.blocked(at.x, at.y + dy);
-            if (freeX !== freeY)
-              moved = this.runtime.move(
-                freeX ? dx : 0,
-                freeX ? 0 : dy,
-                false,
-                this.shiftHeld,
+          if (!this.vault(dx, dy, time)) {
+            let moved = this.runtime.move(dx, dy, false, this.shiftHeld);
+            // A diagonal into a corner slides along whichever wall is open,
+            // rather than stopping dead. The engine is right to refuse the
+            // diagonal; it is the input that should try the other way.
+            if (moved?.status === "rejected" && dx && dy) {
+              const at = this.runtime.engine.state.player.pos;
+              const freeX = !this.runtime.engine.blocked(at.x + dx, at.y);
+              const freeY = !this.runtime.engine.blocked(at.x, at.y + dy);
+              if (freeX !== freeY)
+                moved = this.runtime.move(
+                  freeX ? dx : 0,
+                  freeX ? 0 : dy,
+                  false,
+                  this.shiftHeld,
+                );
+            }
+            // Pushing into a wall still turns you to face it, and shoves.
+            if (moved?.status === "rejected") {
+              this.runtime.face(dx, dy);
+              this.blockedFacing = facingFromStep(
+                dx,
+                dy,
+                this.runtime.engine.state.player.direction,
               );
-          }
-          // Pushing into a wall still turns you to face it, and shoves.
-          if (moved?.status === "rejected") {
-            this.blockedFacing = facingFromStep(
-              dx,
-              dy,
-              this.runtime.engine.state.player.direction,
-            );
-            this.pushingAt = time;
-            this.bump = { dx, dy, at: time };
-          } else {
-            this.blockedFacing = undefined;
-            this.pushingAt = undefined;
-            // A walked drop can land as badly as a jumped one.
-            this.nextInput += this.afterHold();
+              this.pushingAt = time;
+              this.bump = { dx, dy, at: time };
+            } else {
+              this.blockedFacing = undefined;
+              this.pushingAt = undefined;
+              // A walked drop can land as badly as a jumped one.
+              this.nextInput += this.afterHold();
+            }
+            if (
+              moved?.status === "rejected" &&
+              this.shiftHeld &&
+              this.runSteps >= 2
+            )
+              this.bonkAt(dx, dy, time);
           }
         }
       }

@@ -18,7 +18,7 @@ const DROP: Record<string, number> = {
   wool: 0xe8e0cc,
 };
 // 3x5 digits, one bit per pixel, rows top to bottom.
-const DIGITS = [
+export const DIGITS = [
   0b111101101101111, 0b010110010010111, 0b111001111100111, 0b111001111001111,
   0b101101111001001, 0b111100111001111, 0b111100111101111, 0b111001001001001,
   0b111101111101111, 0b111101111001111,
@@ -545,6 +545,44 @@ export class CombatEffects {
               p.destroy();
             },
           }),
+      });
+    }
+  }
+  /** Running into something that will not give: stars, a thud, a jolt. */
+  bonk(x: number, y: number) {
+    this.burst(x, y, STARS, 8);
+    this.scene.cameras.main.shake(140, 0.0045);
+    void gameAudio()?.sound(strike("blunt", "stone", "thud", true), "slam");
+    // Three stars circling the head for a moment.
+    for (let i = 0; i < 3; i++) {
+      const star = this.scene.add
+        .rectangle(x, y, 2, 2, STARS[i % STARS.length])
+        .setDepth(y + 4800);
+      this.live.add(star);
+      const spin = { a: (i / 3) * Math.PI * 2 };
+      this.scene.tweens.add({
+        targets: spin,
+        a: spin.a + Math.PI * 3,
+        duration: 600,
+        onUpdate: () => {
+          const player = this.view.entityAt("player");
+          const cx = player?.x ?? x,
+            cy = (player?.y ?? y + 18) - 26;
+          star.setPosition(
+            cx + Math.cos(spin.a) * 7,
+            cy + Math.sin(spin.a) * 2.5,
+          );
+        },
+      });
+      this.scene.tweens.add({
+        targets: star,
+        alpha: 0,
+        delay: 420,
+        duration: 180,
+        onComplete: () => {
+          this.live.delete(star);
+          star.destroy();
+        },
       });
     }
   }

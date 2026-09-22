@@ -19,7 +19,7 @@ import {
 import { urbanForm } from "../../content/settlements/urban-form";
 import { waysideFor } from "../../content/settlements/wayside";
 import { yardKit, type YardProp } from "../../content/settlements/yards";
-import { propVisualCells } from "../../content/props/catalog";
+import { propDefs, propVisualCells } from "../../content/props/catalog";
 import {
   penBoundary as localPen,
   pickBoundary,
@@ -82,6 +82,12 @@ import {
   type Site,
 } from "./types";
 import { makeDoor } from "../../core/doors";
+import {
+  claimEnvelope,
+  createPlacementClaims,
+  envelopeConflicts,
+  treePlacementEnvelope,
+} from "./placement";
 /** The livelihood activity that keeps animals, as the character tables name it. */
 const HERDING = "Tending animals";
 
@@ -148,6 +154,7 @@ export function planSettlement(
     h: (r + margin) * 2,
   };
   const tPlan = now();
+  const placement = createPlacementClaims();
   const plan: SettlementPlan = {
     site,
     roads: [],
@@ -159,9 +166,10 @@ export function planSettlement(
     surface: new Map(),
     pavement: new Map(),
     streetSurfaces: new Map(),
-    traffic: new Set(),
+    traffic: placement.access,
     reserved: new Set(),
-    solid: new Set(),
+    solid: placement.occupied,
+    placement,
     built: new Set(),
     work: new Map(),
     stations: new Map(),
@@ -260,6 +268,12 @@ export function planSettlement(
         ? "grass"
         : "dirt";
   const addRoad = (road: Road) => {
+    road = {
+      ...road,
+      baselineYear: road.baselineYear ?? pack.setting?.year ?? 0,
+      state: road.state ?? "used",
+      condition: road.condition ?? 1,
+    };
     const material = road.kind === "lane" ? laneSurface : stone;
     plan.roads.push(road);
     for (const p of road.points) centers.add(cellKey(p.x, p.y));
@@ -1122,29 +1136,37 @@ export function planSettlement(
           churchyard: (yard, church) => churchyards.push({ yard, church }),
           plant: (at, key) => {
             const k = cellKey(at.x, at.y);
+            const sprite = pack.trees[key % pack.trees.length],
+              envelope = treePlacementEnvelope(sprite, at);
             if (
               plan.solid.has(k) ||
               roads.has(k) ||
               plan.reserved.has(k) ||
+              envelopeConflicts(plan.placement, envelope) ||
               !dry({ ...at, w: 1, h: 1 }, false)
             )
-              return;
-            plan.solid.add(k);
+              return false;
+            claimEnvelope(plan.placement, envelope);
             plan.reserved.add(k);
             plan.objects.push({
               id: `${site.id}-plot-tree-${at.x}-${at.y}`,
               name: "Tree",
               kind: "tree",
               pos: pos(at),
-              sprite: pack.trees[key % pack.trees.length],
+              sprite,
               inventory: {},
             });
+            return true;
           },
           furnish,
           paintCity,
           paintBlock,
           reserveGround: (rect) =>
             eachCell(rect, (x, y) => noRoad.add(cellKey(x, y))),
+          reserveClearance: (rect) =>
+            eachCell(rect, (x, y) =>
+              plan.placement.clearance.add(cellKey(x, y)),
+            ),
           buildWall: (wall, parts) => {
             for (const part of parts) {
               const k = cellKey(part.x, part.y);
@@ -3405,9 +3427,33 @@ export function planSettlement(
   // Every place gets a door, last, so nothing placed earlier lands on the cell
   // and the hole it punches in the wall survives the rest of the build.
   for (const place of plan.places) {
+    place.baselineYear ??= pack.setting?.year ?? 0;
+    place.condition ??= 1;
+    for (const p of buildingRoofCells(place.sprite, place))
+      plan.placement.clearance.add(cellKey(p.x, p.y));
     const door = makeDoor(place);
     plan.solid.delete(cellKey(door.pos.x, door.pos.y));
     plan.objects.push(door);
+  }
+  for (const plot of plan.plots) {
+    plot.baselineYear ??= pack.setting?.year ?? 0;
+    plot.state ??= "used";
+  }
+  for (const object of plan.objects) {
+    if (object.kind === "tree") {
+      claimEnvelope(
+        plan.placement,
+        treePlacementEnvelope(object.sprite, object.pos),
+      );
+      continue;
+    }
+    if (object.prop)
+      claimEnvelope(plan.placement, {
+        occupied:
+          propDefs[object.prop]?.solid && !object.broken ? [object.pos] : [],
+        access: [],
+        clearance: propVisualCells(object.prop, object.pos),
+      });
   }
   const tRoutines = now();
   planRoutines(plan, seed, pack, sample);

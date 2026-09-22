@@ -17,6 +17,26 @@ export type GeographicConnection = {
   status: "proposed" | "routed" | "blocked";
   points: Point[];
 };
+export const landResourceKinds = [
+  "arable",
+  "pasture",
+  "fish",
+  "wild-food",
+  "timber",
+  "reeds",
+  "clay",
+  "stone",
+  "mineral",
+] as const;
+export type LandResourceKind = (typeof landResourceKinds)[number];
+export type LandResourcePotential = Record<LandResourceKind, number>;
+/** Stable physical opportunity. Access, technology and demand determine value. */
+export type LandPotential = {
+  yields: LandResourcePotential;
+  subsistence: number;
+  materials: number;
+  buildability: number;
+};
 /** Read-only spatial queries shared by maps, generation and future transport/economy. */
 export interface WorldGeography {
   packAt(x: number, y: number): Pack;
@@ -30,4 +50,5 @@ export interface WorldGeography {
     water: "sea" | "river" | "lake" | "none";
     potentials: string[];
   };
+  landPotentialAt(x: number, y: number): LandPotential;
 }

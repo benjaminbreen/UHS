@@ -203,7 +203,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
   const [mapRegion, setMapRegion] = useState(false);
   const [sideTab, setSideTab] = useState<
     "around" | "inventory" | "skills" | "today"
-  >("around");
+  >("today");
   const [mapSpan, setMapSpan] = useState(1600);
   const [earthMap, setEarthMap] = useState(false);
   // Talk is the one verb the engine cannot finish on its own: the dialogue
@@ -504,6 +504,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
         ? runtime.appearanceFor(p).physique?.sex
         : sexFromName(p.name);
   const focusActor = obs.actors.find((a) => a.id === selection?.id);
+  const nearby = sideTab === "around" ? runtime.engine.nearby() : [];
   const focusSprite =
     selection &&
     (selection.sprite ??
@@ -1224,7 +1225,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
                 <div className="side-tabs" role="tablist">
                   {(
                     [
-                      ["around", "Around you"],
+                      ["around", "Nearby"],
                       ["inventory", "Inventory"],
                       ["skills", "Skills"],
                       ["today", "Today"],
@@ -1242,33 +1243,37 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
                 </div>
                 {sideTab === "around" && (
                   <div className="nearby-list">
-                    {obs.actors
-                      .filter((a) => a.kind === "human")
-                      .sort(
-                        (a, b) =>
-                          distance(a.pos, p.pos) - distance(b.pos, p.pos),
-                      )
-                      .slice(0, 5)
-                      .map((a) => (
+                    {nearby.map((t) => {
+                      const actor =
+                        t.kind === "person"
+                          ? obs.actors.find((a) => a.id === t.id)
+                          : undefined;
+                      return (
                         <button
-                          key={a.id}
+                          key={t.id ?? `${t.kind}:${t.name}`}
+                          disabled={!t.id}
                           onClick={() => {
-                            runtime.select(a.id);
-                            openCharacter(a.id);
+                            if (!t.id) return;
+                            runtime.select(t.id);
+                            if (actor) openCharacter(t.id);
                           }}
                         >
-                          <CharacterSprite
-                            appearance={runtime.appearanceFor(a)}
-                          />
+                          {actor ? (
+                            <CharacterSprite
+                              appearance={runtime.appearanceFor(actor)}
+                            />
+                          ) : t.sprite ? (
+                            <Sprite name={t.sprite} scale={1} />
+                          ) : null}
                           <span>
-                            {a.name}
-                            <small>{a.role}</small>
+                            {t.count ? `${t.name} ×${t.count}` : t.name}
+                            {t.detail && <small>{t.detail}</small>}
                           </span>
-                          <ChevronDown size={13} />
+                          {t.id && <ChevronDown size={13} />}
                         </button>
-                      ))}
-                    {obs.actors.filter((a) => a.kind === "human").length ===
-                      0 && <p>{pack.concern}</p>}
+                      );
+                    })}
+                    {nearby.length === 0 && <p>{pack.concern}</p>}
                   </div>
                 )}
                 {sideTab === "inventory" && (
@@ -1299,6 +1304,19 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
                 )}
                 {sideTab === "today" && (
                   <div className="event-log">
+                    {runtime.engine.dailyGoals().length > 0 ? (
+                      runtime.engine.dailyGoals().map((g) => (
+                        <div key={g.id}>
+                          <time>{g.done ? "Done" : "Goal"}</time>
+                          <span>{g.text}</span>
+                        </div>
+                      ))
+                    ) : (
+                      <div>
+                        <time>Aim</time>
+                        <span>{pack.concern}</span>
+                      </div>
+                    )}
                     {[...runtime.engine.state.events]
                       .reverse()
                       .slice(0, 8)
@@ -1927,8 +1945,8 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
                   >
                     Altitude edge lab ↗
                     <small>
-                      Mockup · terraced towns, retaining walls, slopes and
-                      crags against today's banks
+                      Mockup · terraced towns, retaining walls, slopes and crags
+                      against today's banks
                     </small>
                   </a>
                   <a

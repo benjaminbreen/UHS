@@ -56,6 +56,7 @@ import {
   type ItemDef,
   type ItemId,
   type Observation,
+  type NearbyThing,
   type PlayerCommand,
   type Position,
   type Snapshot,
@@ -63,10 +64,14 @@ import {
   type WorldObject,
 } from "./types";
 import { canonical, random, stateHash } from "./random";
+import { rockFrame } from "../content/ecology/rocks";
 import { regardCue } from "./regard";
 import { resolveIntents, validateIntents } from "./intents";
 import { findPath } from "./pathfinding";
-import { itineraryAt, type Itinerary } from "./itinerary";
+import { itineraryAt, type Itinerary, DAY_MINUTES } from "./itinerary";
+import { pickGoals } from "./goals";
+import { livelihoodOf } from "../world/v3/routines";
+import type { GoalContext, DailyGoal } from "../content/goals/types";
 import { route, type RouteResult } from "./routing";
 import { terrainJump, terrainLeap, type LeapResult } from "./topography";
 import { advanceFauna, stepAllowed } from "./fauna-sim";
@@ -174,7 +179,9 @@ import {
 import { bloomsAt } from "../content/ecology/blooms";
 const copy = <T>(x: T): T => structuredClone(x);
 const listing = (xs: string[]) =>
-  xs.length < 2 ? xs.join("") : `${xs.slice(0, -1).join(", ")} and ${xs.at(-1)}`;
+  xs.length < 2
+    ? xs.join("")
+    : `${xs.slice(0, -1).join(", ")} and ${xs.at(-1)}`;
 /** Routines built in one call to `advance`. */
 const ROUTINE_BUILDS_PER_ADVANCE = 32;
 /** The generated decoration function of each world, before any engine wrapped
@@ -337,6 +344,67 @@ export class Engine {
   }
   snapshot() {
     return copy(this.state);
+  }
+  dailyGoals() {
+    const today = Math.floor(this.state.clock / DAY_MINUTES);
+
+    // Regenerate goals if day changed
+    if (this.state.goalDay !== today) {
+      const kit = livelihoodOf(this.world.pack, this.state.player);
+      const activity = kit?.activity ?? this.state.player.role;
+      const kit_workplace = kit?.workplace;
+
+      // Build GoalContext
+      const context: GoalContext = {
+        activity,
+        role: this.state.player.role,
+        workplace: kit_workplace,
+        season: this.world.pack.setting
+          ? seasonAt(this.world.pack.setting.season, this.state.clock)
+          : ("spring" as const),
+        year: this.world.pack.year,
+        commodities: this.world.pack.commodities,
+        currency: this.world.pack.currency,
+        inventory: copy(this.state.player.inventory),
+        hunger: this.state.player.hunger,
+        fatigue: this.state.player.fatigue,
+        places: Object.fromEntries(
+          this.world.places
+            .filter((p) =>
+              distance({ x: p.x, y: p.y }, this.state.player.pos) < 50,
+            )
+            .map((p) => [p.id, p.name]),
+        ),
+      };
+
+      // Import templates (might not exist yet, which is fine)
+      let templates: Array<any> = [];
+      try {
+        const mod = require("../content/goals/templates");
+        templates = mod.GOAL_TEMPLATES || [];
+      } catch {
+        // Templates not available yet
+      }
+
+      // Pick goals
+      this.state.goals = pickGoals(
+        this.state.manifest.seed,
+        today,
+        context,
+        templates,
+      );
+      this.state.goalDay = today;
+      this.state.goalFlags = { traded: false, talked: false };
+
+      // Store base inventory for "gain" checks
+      for (const goal of this.state.goals) {
+        if (goal.check.type === "gain") {
+          goal.base = this.state.player.inventory[goal.check.item] ?? 0;
+        }
+      }
+    }
+
+    return this.state.goals ?? [];
   }
   private dropSpot(): Position | undefined {
     const p = this.state.player,
@@ -595,8 +663,12 @@ export class Engine {
         const beastMass = beast
           ? faunaCombat(faunaProfile(beast.g.speciesId)!).mass
           : 0;
+        // A boulder is vaulted like a pot.
+        const rock =
+          from.space === "outside" &&
+          isRock(this.world.decoration(x, y)?.sprite);
         const overable =
-          (blocking.length > 0 || !!beast) &&
+          (blocking.length > 0 || !!beast || rock) &&
           blocking.every((o) => lowProp(o)) &&
           beastMass === 0;
         const obstacle = (blocking.length > 0 || !!beast) && !overable;
@@ -604,7 +676,9 @@ export class Engine {
           ...cell,
           over: overable || undefined,
           solid:
-            cell.solid || obstacle || (!water && !overable && !clear({ x, y })),
+            (cell.solid && !(rock && overable)) ||
+            obstacle ||
+            (!water && !overable && !clear({ x, y })),
         };
       };
       const result = terrainJump(sample, from, to, jump, running);
@@ -650,6 +724,16 @@ export class Engine {
   }
   /** A knee-high prop in the next cell: what a step bumps into and a hop
    * clears. Diagonals count the corners too, since those block the step. */
+  /** Something a running jump carries the player over: a low prop or a
+   * boulder in the next cell. */
+  vaultAhead(dx: number, dy: number) {
+    const p = this.state.player.pos;
+    return (
+      !!this.lowPropAhead(dx, dy) ||
+      (p.space === "outside" &&
+        isRock(this.world.decoration(p.x + dx, p.y + dy)?.sprite))
+    );
+  }
   lowPropAhead(dx: number, dy: number) {
     const p = this.state.player.pos;
     const at = (x: number, y: number) =>
@@ -776,6 +860,83 @@ export class Engine {
   }
   /** Frees the hand, whichever system was using it: an item goes back into
    * the inventory, a carried object down on the ground. */
+  /** Empties a prop into the player's pack, for the renderer to throw out. */
+  private spill(prop: WorldObject) {
+    const p = this.state.player;
+    const loot = Object.entries(prop.inventory)
+      .filter(([, n]) => n! > 0)
+      .map(([item, n]) => ({ item, n: n! }));
+    for (const { item, n } of loot) {
+      p.inventory[item] = (p.inventory[item] ?? 0) + n;
+      prop.inventory[item] = 0;
+    }
+    return loot;
+  }
+  /** Why the rock on this tile cannot be lifted, or undefined if it can. */
+  heaveProblem(target: string) {
+    const at = this.tileAt(target);
+    const p = this.state.player;
+    if (!at || p.pos.space !== "outside") return "There is no rock there.";
+    if (Math.max(Math.abs(at.x - p.pos.x), Math.abs(at.y - p.pos.y)) !== 1)
+      return "Walk closer.";
+    if (!isRock(this.world.decoration(at.x, at.y)?.sprite))
+      return "There is no rock there.";
+    return undefined;
+  }
+  /** Scenery rock to carried prop. Sometimes something was living under it. */
+  private heave(target: string) {
+    const at = this.tileAt(target)!;
+    const p = this.state.player;
+    this.emptyHands();
+    this.editAt(at.x, at.y).stage = "clear";
+    this.tilesChanged();
+    const rock: WorldObject = {
+      id: `stone-${at.x}-${at.y}-${this.state.clock}`,
+      name: "Rock",
+      kind: "monument",
+      prop: "fieldStone",
+      sprite: rockFrame(
+        this.world.topography?.(at.x, at.y)?.habitat,
+        random(this.state.manifest.seed, "rock-art", at.x, at.y),
+      ),
+      inventory: {},
+      pos: copy(p.pos),
+      carriedBy: "player",
+    };
+    this.state.objects.push(rock);
+    p.held = rock.id;
+    p.fatigue = Math.min(100, p.fatigue + 0.5);
+    const loot: { item: string; n: number }[] = [];
+    if (this.rng("heave") < 0.4) {
+      const roll = this.rng("heave-find");
+      const [item, n] =
+        roll < 0.4
+          ? ["pebble", 1 + Math.floor(this.rng("heave-n") * 3)]
+          : roll < 0.62
+            ? ["flint", 1]
+            : roll < 0.8
+              ? ["shell", 1]
+              : roll < 0.9
+                ? ["clay", 1]
+                : roll < 0.97
+                  ? ["obsidian", 1]
+                  : ["coin", 1];
+      if (this.item(item as string)) {
+        p.inventory[item as string] =
+          (p.inventory[item as string] ?? 0) + (n as number);
+        loot.push({ item: item as string, n: n as number });
+      }
+    }
+    this.lastHeave = { at, loot };
+    this.advance(3);
+    this.event(
+      loot.length
+        ? `You heave the rock up. Underneath: ${listing(loot.map(({ item, n }) => this.lootName(item, n)))}.`
+        : "You heave the rock up over your head.",
+    );
+  }
+  /** The last rock lifted, for the renderer's strain and spill. */
+  lastHeave?: { at: Point; loot: { item: string; n: number }[] };
   private emptyHands() {
     const p = this.state.player;
     if (p.heldItem) {
@@ -1606,10 +1767,14 @@ export class Engine {
     for (const [item, n] of Object.entries(got))
       p.inventory[item] = (p.inventory[item] ?? 0) + n;
     if (cut.length) this.grantXp("foraging", Object.keys(got).length * 3 + 1);
-    return Object.entries(got).map(([item, n]) => {
-      const name = this.item(item)?.name.toLowerCase() ?? item;
-      return n > 1 ? `${n} ${name}` : name;
-    });
+    this.gathered = got;
+    return Object.entries(got).map(([item, n]) => this.lootName(item, n));
+  }
+  /** The last `gather`, by item. */
+  private gathered: Record<string, number> = {};
+  private lootName(item: string, n: number) {
+    const name = this.item(item)?.name.toLowerCase() ?? item;
+    return n > 1 ? `${n} ${name}` : name;
   }
   /** Scenery is cached until something tells the renderer the ground changed. */
   private tilesChanged() {
@@ -2368,6 +2533,100 @@ export class Engine {
       manifest: s.manifest,
     });
   }
+  private nearbyPlants?: { key: string; items: NearbyThing[] };
+  /** What stands within a few cells, nearest first, one row per kind of
+   * thing. The plant scan is cached per player cell. */
+  nearby(radius = 5, limit = 8): NearbyThing[] {
+    const p = this.state.player.pos;
+    const d = (x: number, y: number) => Math.hypot(x - p.x, y - p.y);
+    const out: NearbyThing[] = [];
+    for (const a of this.state.actors)
+      if (
+        a.id !== this.state.player.id &&
+        d(a.pos.x, a.pos.y) <= radius &&
+        a.pos.space === p.space &&
+        this.visible(a.pos)
+      )
+        out.push({
+          id: a.id,
+          name: a.name,
+          detail: a.kind === "human" ? a.role : undefined,
+          kind: a.kind === "human" ? "person" : "animal",
+          sprite: a.sprite,
+          dist: d(a.pos.x, a.pos.y),
+        });
+    if (p.space === "outside")
+      for (const g of this.state.fauna ?? []) {
+        if (
+          Math.abs(g.pos.x - p.x) > radius + 24 ||
+          Math.abs(g.pos.y - p.y) > radius + 24
+        )
+          continue;
+        for (const m of g.members)
+          if (d(m.x, m.y) <= radius)
+            out.push({
+              name: faunaName(g, m).replace(/^./, (c) => c.toUpperCase()),
+              kind: "animal",
+              dist: d(m.x, m.y),
+            });
+      }
+    for (const o of this.state.objects)
+      if (
+        !o.carriedBy &&
+        !o.submerged &&
+        o.pos.space === p.space &&
+        d(o.pos.x, o.pos.y) <= radius &&
+        this.visible(o.pos)
+      )
+        out.push({
+          id: o.id,
+          name: o.name,
+          kind: "object",
+          sprite: o.sprite,
+          dist: d(o.pos.x, o.pos.y),
+        });
+    if (p.space === "outside") {
+      for (const pl of this.world.places)
+        if (d(pl.entrance.x, pl.entrance.y) <= radius)
+          out.push({
+            id: pl.id,
+            name: pl.name,
+            kind: "place",
+            sprite: pl.sprite,
+            dist: d(pl.entrance.x, pl.entrance.y),
+          });
+      const key = `${p.x},${p.y}`;
+      if (this.nearbyPlants?.key !== key) {
+        const items: NearbyThing[] = [];
+        for (let y = p.y - radius; y <= p.y + radius; y++)
+          for (let x = p.x - radius; x <= p.x + radius; x++) {
+            if (d(x, y) > radius) continue;
+            const plant = this.world.decoration(x, y);
+            const seen = this.inspect(plant ? plant.id : `bloom-${x}-${y}`);
+            if (seen)
+              items.push({
+                id: seen.id,
+                name: seen.name,
+                detail: seen.latin,
+                kind: "plant",
+                sprite: seen.sprite,
+                dist: d(x, y),
+              });
+          }
+        this.nearbyPlants = { key, items };
+      }
+      out.push(...this.nearbyPlants.items);
+    }
+    out.sort((a, b) => a.dist - b.dist);
+    const rows = new Map<string, NearbyThing>();
+    for (const t of out) {
+      const k = t.kind === "person" ? t.id! : `${t.kind}:${t.name}`;
+      const row = rows.get(k);
+      if (row) row.count = (row.count ?? 1) + 1;
+      else rows.set(k, { ...t });
+    }
+    return [...rows.values()].slice(0, limit);
+  }
   inspect(id: string): Inspection | undefined {
     const coordinates = /^decor-(-?\d+)-(-?\d+)$/.exec(id);
     if (coordinates) {
@@ -2378,7 +2637,9 @@ export class Engine {
       const plant = this.world.decoration(x, y);
       if (!plant || plant.id !== id || plant.sprite === "rock") return;
       const worked = isWorkedGround(plant.sprite);
-      const species = worked ? undefined : this.plantSpecies(plant.sprite, x, y);
+      const species = worked
+        ? undefined
+        : this.plantSpecies(plant.sprite, x, y);
       const name = worked
         ? plantName(plant.sprite).replace(/^./, (c) => c.toUpperCase())
         : (species?.common ?? treeName(plant.sprite));
@@ -2399,7 +2660,11 @@ export class Engine {
     }
     const bloom = /^bloom-(-?\d+)-(-?\d+)$/.exec(id);
     if (bloom) {
-      const pos = { x: Number(bloom[1]), y: Number(bloom[2]), space: "outside" };
+      const pos = {
+        x: Number(bloom[1]),
+        y: Number(bloom[2]),
+        space: "outside",
+      };
       const species =
         this.visible(pos) && !this.world.decoration(pos.x, pos.y)
           ? this.bloomSpecies(pos.x, pos.y)
@@ -2542,14 +2807,14 @@ export class Engine {
             : object.description
               ? object.description
               : def?.strike
-              ? "A stout branch. Hold it to strike breakable containers."
-              : def?.drink
-                ? "A water source."
-                : def?.container
-                  ? object.open
-                    ? "The contents are visible."
-                    : "Look inside to discover the contents."
-                  : "A household work object.",
+                ? "A stout branch. Hold it to strike breakable containers."
+                : def?.drink
+                  ? "A water source."
+                  : def?.container
+                    ? object.open
+                      ? "The contents are visible."
+                      : "Look inside to discover the contents."
+                    : "A household work object.",
           object.carriedBy ? "You are holding it." : "",
           object.owner && object.owner !== "player"
             ? "Household property; carrying it does not change ownership."
@@ -2660,22 +2925,22 @@ export class Engine {
         : object.description
           ? object.description
           : object.kind === "tree"
-          ? object.depleted
-            ? "The fallen wood has been gathered. The tree remains."
-            : "A little shade. Dry branches lie beneath the canopy."
-          : object.depleted
-            ? "The container or plot has been emptied."
-            : object.kind === "door"
-              ? object.open
-                ? "The door stands open."
-                : "The door is shut."
-              : object.kind === "gate"
+            ? object.depleted
+              ? "The fallen wood has been gathered. The tree remains."
+              : "A little shade. Dry branches lie beneath the canopy."
+            : object.depleted
+              ? "The container or plot has been emptied."
+              : object.kind === "door"
                 ? object.open
-                  ? "The gate stands open."
-                  : "The gate keeps animals inside."
-                : object.owner
-                  ? "These possessions belong to a household. Access does not grant ownership."
-                  : "A shared resource in the settlement.",
+                  ? "The door stands open."
+                  : "The door is shut."
+                : object.kind === "gate"
+                  ? object.open
+                    ? "The gate stands open."
+                    : "The gate keeps animals inside."
+                  : object.owner
+                    ? "These possessions belong to a household. Access does not grant ownership."
+                    : "A shared resource in the settlement.",
       kind: object.kind,
       pos,
       claim: object.claim,
@@ -2773,6 +3038,8 @@ export class Engine {
         c.action === "mine")
     )
       return this.toolProblem(c.action, c.target);
+    if (c.type === "interact" && c.action === "heave")
+      return this.heaveProblem(c.target);
     if (c.type === "interact" && c.action === "climb") {
       if (p.perch) return `You are already up ${p.perch.label}.`;
       return this.climbable() ? undefined : "There is nothing here to climb.";
@@ -3290,18 +3557,33 @@ export class Engine {
           kind,
           solid: isSolid(kind),
           sprite: found.sprite,
+          id: found.prop?.id,
         };
         // The cell you face takes the blow; the corners only rattle, so a
         // wide arc never breaks three pots at once.
-        if (i === 0 && found.prop && tool !== "bare") {
+        // Bare hands still break pottery.
+        if (
+          i === 0 &&
+          found.prop &&
+          (tool !== "bare" || found.hit === "pottery")
+        ) {
           const outcome = this.hurtProp(found.prop, found.hit);
           h.damaged = !!outcome;
           const name = found.prop.name.toLowerCase();
+          // What spills goes straight to the player, as it would in an
+          // arcade game; the renderer throws it out and back.
+          if (outcome === "broke" || outcome === "tipped") {
+            const loot = this.spill(found.prop);
+            if (loot.length) h.loot = loot;
+          }
+          const spilled = h.loot?.length
+            ? ` Out comes ${listing(h.loot.map(({ item, n }) => this.lootName(item, n)))}.`
+            : "";
           told =
             outcome === "broke"
-              ? `You break ${name}. Its contents spill onto the ground.`
+              ? `You break ${name}.${spilled || " It was empty."}`
               : outcome === "tipped"
-                ? `You knock ${name} over. What it held rolls out.`
+                ? `You knock ${name} over.${spilled || " Nothing in it."}`
                 : outcome === "damaged"
                   ? `You strike ${name}. It is damaged but still holds together.`
                   : undefined;
@@ -3311,16 +3593,23 @@ export class Engine {
       if (p.pos.space === "outside") {
         const cut: Species[] = [];
         let changed = false;
+        const got: string[] = [];
         for (const h of hits) {
           if (h.solid) continue;
           const species = this.cutGrowth(h.at.x, h.at.y);
           if (species === false) continue;
           changed = true;
           h.damaged = true;
-          if (species) cut.push(species);
+          if (!species) continue;
+          cut.push(species);
+          got.push(...this.gather([species]));
+          const loot = Object.entries(this.gathered).map(([item, n]) => ({
+            item,
+            n,
+          }));
+          if (loot.length) h.loot = loot;
         }
         if (changed) this.tilesChanged();
-        const got = this.gather(cut);
         if (got.length && !told)
           told = `You cut ${cut[0].common.toLowerCase()} and gather ${listing(got)}.`;
       }
@@ -3448,6 +3737,8 @@ export class Engine {
       }
       if (struck)
         this.state.fauna = this.state.fauna?.filter((g) => g.members.length);
+      // A pot that bursts gives up what it held, as one broken by a swing does.
+      const loot = bursts ? this.spill(prop) : [];
       this.lastThrow = {
         creature: struck,
         id: prop.id,
@@ -3463,6 +3754,7 @@ export class Engine {
           kind,
           solid: isSolid(kind),
           damaged: bursts || landing?.kind === "crush",
+          loot: loot.length ? loot : undefined,
         },
       };
       if (!distance)
@@ -3984,6 +4276,9 @@ export class Engine {
       case "mine":
         this.useTool(c.action, c.target);
         break;
+      case "heave":
+        this.heave(c.target);
+        break;
       case "cook":
         if (o) {
           const raw = Math.min(4, p.inventory.meat ?? 0);
@@ -4411,7 +4706,8 @@ export class Engine {
       const [sx, sy] = (o.prop && propDefs[o.prop]?.span) || [0, 0];
       for (let dy = -sy; dy <= sy; dy++)
         for (let dx = -sx; dx <= sx; dx++) {
-          const k = dx || dy ? `${o.pos.space}:${o.pos.x + dx},${o.pos.y + dy}` : key;
+          const k =
+            dx || dy ? `${o.pos.space}:${o.pos.x + dx},${o.pos.y + dy}` : key;
           const at = this.tickObstacles.get(k) ?? [];
           at.push(o);
           this.tickObstacles.set(k, at);

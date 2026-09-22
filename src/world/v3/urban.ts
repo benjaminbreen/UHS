@@ -73,7 +73,7 @@ export type UrbanSurface = {
   /** A small public green or deliberately undeveloped lot. */
   paintPark(rect: Rect, index: number): void;
   /** A tree on open ground inside a block. */
-  plant?(at: Point, key: number): void;
+  plant?(at: Point, key: number): boolean;
   /** A walled yard round a church, with its trees and stones. */
   churchyard?(yard: Rect, church: Rect): void;
   /** A lamp, street tree or planter on the cell. */
@@ -84,6 +84,8 @@ export type UrbanSurface = {
   paintBlock(rect: Rect): void;
   /** Hold ground against any street laid later in the same pass. */
   reserveGround(rect: Rect): void;
+  /** Hold a visible roof or crown without making it movement collision. */
+  reserveClearance(rect: Rect): void;
   /** Stand the defensive circuit, before any street is laid through its gates. */
   buildWall(wall: Wall, parts: { x: number; y: number; frame: string }[]): void;
   /** Direction of open water, for fabrics whose public space faces it. */
@@ -325,7 +327,10 @@ export function urbanNeighborhood(
   let noted = 0;
   const note = (lot: UrbanLot) => {
     for (const k of cells(lot.rect)) bodies.add(k);
-    for (const r of overhang(lot)) for (const k of cells(r)) shade.add(k);
+    for (const r of overhang(lot)) {
+      for (const k of cells(r)) shade.add(k);
+      api.reserveClearance(r);
+    }
   };
   const cells = (r: Rect) => {
     const out: string[] = [];
@@ -875,8 +880,8 @@ export function urbanNeighborhood(
           )
         )
           continue;
+        if (!api.plant(at, n)) continue;
         reserve({ ...at, w: 1, h: 1 });
-        api.plant(at, n);
         planted++;
       }
     }

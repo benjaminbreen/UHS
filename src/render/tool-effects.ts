@@ -3,6 +3,12 @@ import { gameAudio } from "../audio/director";
 import { scrape, strike, work } from "../audio/sfx";
 import type { Hit, HitClass, ToolClass } from "../core/reactions";
 import type { CreatureHit } from "../core/combat";
+import { spritePalette } from "./sprite-palette";
+import { LootEffects } from "./loot-effects";
+
+/** The freeze on a blow that lands on scenery. */
+const HIT_STOP_MS = 55;
+const FLASH_MS = 70;
 
 export type ToolEffectKind =
   | "hit"
@@ -124,6 +130,7 @@ export class ToolEffects {
   /** Bumped when the world changes, so a swing scheduled against the old one
    * does not land in the new. */
   private generation = 0;
+  private loot?: LootEffects;
   constructor(
     private scene: Phaser.Scene,
     private view: {
@@ -179,13 +186,48 @@ export class ToolEffects {
         strike(effect.tool, loudest.hit, loudest.kind, loudest.damaged),
         "strike",
       );
-    if (facing) this.react(facing, 1);
-    // The corners rattle rather than break: half the debris, no sound.
-    for (const hit of corners)
-      if (hit.solid || hit.kind === "swish") this.react(hit, 0.45);
-    if (loudest?.kind === "shatter" || loudest?.kind === "topple")
-      this.scene.cameras.main.shake(110, 0.0022);
-    else if (loudest?.damaged) this.scene.cameras.main.shake(70, 0.0011);
+    const landed = effect.hits.filter(
+      (h) => h.hit !== "creature" && (h.damaged || h.solid),
+    );
+    for (const h of landed) this.flash(h);
+    const rest = () => {
+      if (facing) this.react(facing, 1);
+      // The corners rattle rather than break: half the debris, no sound.
+      for (const hit of corners)
+        if (hit.solid || hit.kind === "swish") this.react(hit, 0.45);
+      for (const h of effect.hits)
+        if (h.loot?.length) this.spill(this.point(h.at), h.loot);
+      if (loudest?.kind === "shatter" || loudest?.kind === "topple")
+        this.scene.cameras.main.shake(110, 0.0022);
+      else if (loudest?.damaged) this.scene.cameras.main.shake(70, 0.0011);
+    };
+    if (!landed.length) return rest();
+    // Hitstop: everything tweened holds for a beat, then the debris flies.
+    const tweens = this.scene.tweens;
+    tweens.timeScale = 0;
+    const generation = this.generation;
+    this.scene.time.delayedCall(HIT_STOP_MS, () => {
+      tweens.timeScale = 1;
+      if (generation === this.generation) rest();
+    });
+  }
+  spill(at: { x: number; y: number }, loot: NonNullable<Hit["loot"]>) {
+    this.loot ??= new LootEffects(this.scene, {
+      entityAt: this.view.entityAt,
+    });
+    this.loot.spill(at, loot);
+  }
+  /** The struck thing goes white for a frame or two. */
+  private flash(hit: Hit) {
+    const entity = hit.id ? this.view.entityAt(hit.id) : undefined;
+    const images = entity ? [entity] : this.view.plantAt(hit.at.x, hit.at.y);
+    for (const image of images) {
+      const tint = image.tintTopLeft;
+      image.setTintFill(0xffffff);
+      this.scene.time.delayedCall(FLASH_MS, () => {
+        if (image.active) image.setTint(tint);
+      });
+    }
   }
   /** A shove: dust off the trailing edge, or the thing rocking in place.
    * The slide itself is the entity tween — this only dresses it. */
@@ -261,6 +303,7 @@ export class ToolEffects {
         "strike",
       );
       this.react(effect.hit, 1.2);
+      if (effect.hit.loot?.length) this.spill(to, effect.hit.loot);
       this.impact(to);
       if (effect.hit.damaged) this.scene.cameras.main.shake(110, 0.0022);
     };
@@ -369,7 +412,11 @@ export class ToolEffects {
   /** One cell's answer to a blow. */
   private react(hit: Hit, weight: number) {
     const at = this.point(hit.at);
-    const palette = DEBRIS[hit.hit] ?? SOIL;
+    const base = DEBRIS[hit.hit] ?? SOIL;
+    const drawn = this.drawnPalette(hit);
+    // Trees keep bark dust at the trunk; the drawn colours go to the crown.
+    const palette =
+      hit.hit === "tree" || hit.hit === "creature" ? base : (drawn ?? base);
     const count = Math.max(2, Math.round((hit.solid ? 8 : 5) * weight));
     if (hit.kind === "splash") {
       this.ring(at, palette[0]);
@@ -382,13 +429,34 @@ export class ToolEffects {
       // Dust off the bark at the strike point, and leaves shaken loose above.
       this.burst({ x: at.x, y: at.y - 9 }, palette, count, 1.2);
       if (hit.hit === "tree")
-        this.burst({ x: at.x, y: at.y - 22 }, LEAF, 3, 1.6);
+        this.burst(
+          { x: at.x, y: at.y - 22 },
+          drawn ?? LEAF,
+          Math.round(6 * weight) + 1,
+          1.6,
+        );
     } else if (hit.kind === "shatter") {
       this.burst({ x: at.x, y: at.y - 6 }, palette, count + 5, 2.3);
     } else {
       this.burst({ x: at.x, y: at.y - 7 }, palette, count, 1.5);
     }
     if (hit.solid) this.shake(hit.at);
+  }
+  /** The colours of what was struck, read off its sprite. */
+  private drawnPalette(hit: Hit) {
+    if (hit.hit === "creature") return undefined;
+    const got =
+      hit.sprite &&
+      spritePalette(
+        this.scene,
+        this.view.texture(hit.sprite),
+        this.view.frame(hit.sprite),
+      );
+    if (got) return got;
+    const image = this.view.plantAt(hit.at.x, hit.at.y)[0];
+    return image
+      ? spritePalette(this.scene, image.texture.key, image.frame.name)
+      : undefined;
   }
   /** An expanding ring, for a blow that lands on water. */
   private ring(at: { x: number; y: number }, color: number) {
@@ -626,6 +694,8 @@ export class ToolEffects {
     this.hidden = [];
     for (const object of this.live) object.destroy();
     this.live.clear();
+    this.loot?.clear();
+    this.scene.tweens.timeScale = 1;
     this.shakes = [];
   }
 }

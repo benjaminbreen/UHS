@@ -3,6 +3,7 @@ import { useState } from "react";
 import { faunaProfiles } from "../content/fauna";
 import type { FaunaState } from "../core/fauna";
 import { FpsMeter } from "../ui/FpsMeter";
+import { AudioTuningTab } from "./AudioTuningTab";
 import {
   perf,
   setPerf,
@@ -46,7 +47,7 @@ export function LiveGraphicsPanel({
   onAddAnimal,
   onClearAnimals,
 }: Props) {
-  const [tab, setTab] = useState<"tuning" | "perf">("tuning");
+  const [tab, setTab] = useState<"tuning" | "perf" | "audio">("tuning");
   const [species, setSpecies] = useState("house-sparrow");
   const profile = faunaProfiles.find((candidate) => candidate.id === species)!;
   const states = Object.keys(profile.art) as FaunaState[];
@@ -102,7 +103,7 @@ export function LiveGraphicsPanel({
       <header>
         <div>
           <span>LIVE RENDERER</span>
-          <strong>{tab === "tuning" ? "Pixel tuning" : "Performance"}</strong>
+          <strong>{tab === "tuning" ? "Pixel tuning" : tab === "audio" ? "Sound tuning" : "Performance"}</strong>
         </div>
         <button aria-label="Close live graphics tuning" onClick={onClose}>
           <X size={16} />
@@ -139,9 +140,18 @@ export function LiveGraphicsPanel({
         >
           Performance
         </button>
+        <button
+          role="tab"
+          aria-selected={tab === "audio"}
+          onClick={() => setTab("audio")}
+        >
+          Audio
+        </button>
       </div>
 
-      {tab === "perf" ? (
+      {tab === "audio" ? (
+        <AudioTuningTab />
+      ) : tab === "perf" ? (
         <PerformanceTab />
       ) : (
         <>
@@ -435,7 +445,7 @@ export function LiveGraphicsPanel({
               resetPerf();
               setTerrainReach(0);
               reshadeTerrain();
-            } else onReset();
+            } else if (tab !== "audio") onReset();
           }}
         >
           <RotateCcw size={14} /> Reset

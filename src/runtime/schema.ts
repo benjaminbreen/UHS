@@ -460,6 +460,7 @@ export const commandSchema = z.discriminatedUnion("type", [
         "mine",
         "right",
         "topple",
+        "heave",
       ]),
     })
     .strict(),

@@ -360,6 +360,13 @@ export class Runtime {
   /** The arc of the last swing and everything it found, for the scene to
    * throw chips, rock scenery and sound off. */
   swingEffect?: SwingEffect;
+  /** The last rock lifted: the strain, and whatever was under it. */
+  heaveEffect?: {
+    serial: number;
+    at: { x: number; y: number };
+    loot: { item: string; n: number }[];
+    boulder: boolean;
+  };
   /** The last thrown prop's flight, read once by serial. */
   throwEffect?: ThrowEffect;
   /** The last shove, or the last one that came to nothing. */
@@ -507,6 +514,23 @@ export class Runtime {
                 : "land",
         };
       return;
+    }
+    if (command.type === "interact") {
+      const lifted = heldObject(this.engine.state);
+      const heavy =
+        command.action === "heave" ||
+        (command.action === "pickup" &&
+          (lifted?.prop === "boulder" || lifted?.prop === "fieldStone"));
+      if (heavy) {
+        const heave =
+          command.action === "heave" ? this.engine.lastHeave : undefined;
+        this.heaveEffect = {
+          serial: ++this.characterSerial,
+          at: heave?.at ?? { x: lifted!.pos.x, y: lifted!.pos.y },
+          loot: heave?.loot ?? [],
+          boulder: lifted?.prop === "boulder",
+        };
+      }
     }
     if (command.type === "throw") {
       const flight = this.engine.lastThrow;
@@ -1188,8 +1212,6 @@ export class Runtime {
       primary = { kind: "throw", label: `Throw ${held.name.toLowerCase()}` };
     else if (item)
       primary = { kind: "drop", label: `Put ${item.name.toLowerCase()} away` };
-    else if (c.primary?.action === "pickup")
-      primary = { kind: "pickup", label: c.primaryLabel, command: c.primary };
     else if (door) primary = door;
     else if (place)
       primary = {
@@ -1197,7 +1219,25 @@ export class Runtime {
         label: `Look at ${place.name}`,
         actor: place.id,
       };
-    else primary = climb ?? { kind: "strike", label: "Take a swing" };
+    // Empty hands swing first; lifting and climbing go to E.
+    else primary = { kind: "strike", label: "Take a swing" };
+    const ahead = this.engine.facingCell();
+    const pickup: Verb | undefined =
+      !held && !item && c.primary?.action === "pickup"
+        ? { kind: "pickup", label: c.primaryLabel, command: c.primary }
+        : !held &&
+            !item &&
+            !this.engine.heaveProblem(Engine.tileTarget(ahead.x, ahead.y))
+          ? {
+              kind: "pickup",
+              label: "Lift the rock",
+              command: {
+                type: "interact",
+                target: Engine.tileTarget(ahead.x, ahead.y),
+                action: "heave",
+              },
+            }
+          : undefined;
     let alternate: Verb | undefined;
     // Something in hand and somebody in front of you: handing it over is what
     // the second slot is for, ahead of any scenery.
@@ -1214,9 +1254,9 @@ export class Runtime {
         label: `Give ${item.name.toLowerCase()} to ${speaker.name}`,
         actor: speaker.id,
       };
-    // A tree you could climb is what E is for while your hands are full:
-    // a swingable in hand never loses the swing to a climb prompt.
-    else if (climb && primary?.kind !== "climb") alternate = climb;
+    // E lifts or climbs; F is always the swing.
+    else if (pickup) alternate = pickup;
+    else if (climb) alternate = climb;
     else if (held)
       alternate = {
         kind: "drop",
@@ -1371,6 +1411,15 @@ export class Runtime {
   }
   propAction(key: "KeyE" | "KeyF") {
     return this.runVerb(key === "KeyF" ? "primary" : "alternate");
+  }
+  /** Turns to a blocked step without taking it, so F and E act that way. */
+  face(dx: number, dy: number) {
+    const p = this.engine.state.player;
+    if (p.perch || (!dx && !dy)) return;
+    const direction = dx === 0 ? (dy < 0 ? 0 : 2) : dx > 0 ? 1 : 3;
+    if (p.direction === direction) return;
+    p.direction = direction;
+    this.emit(false);
   }
   move(dx: number, dy: number, traverse = false, run = false) {
     this.stop(false);

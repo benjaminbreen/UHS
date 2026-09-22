@@ -45,6 +45,10 @@ export type Hit = {
   sprite?: string;
   /** Set when this blow actually changed the world. */
   damaged?: boolean;
+  /** The struck prop, so the renderer can flash its sprite. */
+  id?: string;
+  /** What the blow knocked loose, already in the player's pack. */
+  loot?: { item: string; n: number }[];
 };
 const SOLID: ReactionKind[] = [
   "shatter",

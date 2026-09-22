@@ -25,9 +25,11 @@ export function Sprite({ name, scale = 2 }: { name: string; scale?: number }) {
               ? sheets.props
               : name in sheets.buildings.frames
                 ? sheets.buildings
-                : name in sheets.civic.frames
-                  ? sheets.civic
-                  : sheets.atlas;
+                : name in sheets.regionalBuildings.frames
+                  ? sheets.regionalBuildings
+                  : name in sheets.civic.frames
+                    ? sheets.civic
+                    : sheets.atlas;
   const f = source.frames[name]?.frame;
   if (!f) return null;
   // The sheet is shown at its own size and the element is scaled afterwards.

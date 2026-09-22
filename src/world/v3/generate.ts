@@ -59,6 +59,8 @@ import { siteGate } from "./urban";
 import { territoryReach, type FieldCell } from "./farmland";
 import { cropStage } from "../../content/agriculture";
 import { propDefs } from "../../content/props/catalog";
+import { landPotential } from "./land-potential";
+import { treePlacementEnvelope } from "./placement";
 export const DISTRICT_SIZE = 384;
 /** Residents per settlement given a full daily routine. Past this the rest keep
  * the simpler needs-driven behaviour; routing every resident of a large town
@@ -839,6 +841,30 @@ export function createSettlementWorld(
         if (distance < tree.radius + 2) return false;
         if (distance < tree.radius + 12) near = true;
       }
+    if ((pack.setting?.vegetationRevision ?? 0) >= 7) {
+      const envelope = treePlacementEnvelope(tree.sprite, { x, y }),
+        visible = [...envelope.occupied, ...envelope.clearance];
+      for (const p of visible) {
+        const k = cellKey(p.x, p.y);
+        if (
+          regionalRoads(p.x, p.y).has(k) ||
+          nearby(p.x, p.y).some((plan) => {
+            const claims = plan.placement;
+            return (
+              (claims?.occupied ?? plan.solid).has(k) ||
+              (claims?.access ?? plan.traffic).has(k) ||
+              claims?.clearance.has(k)
+            );
+          })
+        )
+          return false;
+      }
+      return (
+        !near ||
+        random(seed, "settlement-tree", x + land.origin.x, y + land.origin.y) <
+          0.35
+      );
+    }
     // Trees must not lean across a road immediately beside their trunk.
     for (const [dx, dy] of [
       [-2, 0],
@@ -2018,6 +2044,8 @@ export function createSettlementWorld(
                 ],
               };
             },
+            landPotentialAt: (x: number, y: number) =>
+              landPotential(land.sample(x, y), habitat(x, y)),
           },
         }
       : {}),

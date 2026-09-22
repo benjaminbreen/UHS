@@ -39,12 +39,18 @@ export type Road = {
   span?: number;
   kind: "street" | "lane" | "path" | "bridge";
   cost: number;
+  /** Stable lifecycle seam for later paving, neglect and reuse. */
+  baselineYear?: number;
+  state?: "used" | "disused" | "ruined";
+  condition?: number;
 };
 export type Plot = Rect & {
   id: string;
   kind: "household" | "field" | "pasture" | "public";
   owner?: string;
   access: Point;
+  baselineYear?: number;
+  state?: "used" | "fallow" | "abandoned";
 };
 export type WorkSite = {
   home: Point;
@@ -77,6 +83,8 @@ export type SettlementPlan = {
   traffic: Set<string>;
   reserved: Set<string>;
   solid: Set<string>;
+  /** Shared interpretation of solid, traffic and visual keep-out cells. */
+  placement: import("./placement").PlacementClaims;
   /** Building footprints only: what wears the ground round it. */
   built?: Set<string>;
   work: Map<string, WorkSite>;

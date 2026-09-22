@@ -17,14 +17,14 @@ import {
 import type { Runtime } from "../runtime/session";
 import type { WorldModel, Point } from "../core/types";
 const PAD = 32;
-let atlasImage: HTMLImageElement | undefined;
-function sprites() {
-  if (!atlasImage) {
-    atlasImage = new Image();
-    atlasImage.src = sheetImage("buildings");
+const atlasImages: Partial<Record<"buildings" | "regionalBuildings", HTMLImageElement>> = {};
+function sprites(name: "buildings" | "regionalBuildings" = "buildings") {
+  if (!atlasImages[name]) {
+    atlasImages[name] = new Image();
+    atlasImages[name]!.src = sheetImage(name);
     void loadSheets().catch(() => {});
   }
-  return atlasImage;
+  return atlasImages[name]!;
 }
 function hash(x: number, y: number) {
   let h = (x * 374761393 + y * 668265263) | 0;
@@ -55,11 +55,14 @@ const shade: Record<string, string> = {
 };
 const roofCache = new Map<string, { roof: string; wall: string }>();
 /** Roof and wall tone read from the building's own sprite, so each region's houses keep their colours. */
-function buildingTones(sprite: string, image: HTMLImageElement) {
+function buildingTones(sprite: string) {
   const cached = roofCache.get(sprite);
   if (cached) return cached;
   const fallback = { roof: "#4a5560", wall: "#d8cfb0" };
-  const frames = currentSheets()?.buildings.frames;
+  const sheets = currentSheets();
+  const regional = Boolean(sheets?.regionalBuildings.frames[sprite]);
+  const frames = regional ? sheets?.regionalBuildings.frames : sheets?.buildings.frames;
+  const image = sprites(regional ? "regionalBuildings" : "buildings");
   if (!frames || !image.complete || !image.naturalWidth) return fallback;
   const f = frames[sprite]?.frame;
   if (!f) return fallback;
@@ -109,7 +112,6 @@ function atlasGround(ax: number, ay: number) {
 function* paintBackgroundSteps(
   canvas: HTMLCanvasElement,
   world: WorldModel,
-  sprites: HTMLImageElement,
   origin: Point,
   size: number,
   height: number,
@@ -301,7 +303,7 @@ function* paintBackgroundSteps(
     const { x, y } = toPx(b.x + b.w / 2, b.y + b.h);
     const w = Math.max(6, Math.round((b.w * size) / extent) + 2);
     const h = Math.max(6, Math.round(w * 0.8));
-    const { roof, wall } = buildingTones(b.sprite, sprites);
+    const { roof, wall } = buildingTones(b.sprite);
     const left = x - Math.floor(w / 2),
       top = y - h;
     const roofH = Math.max(3, Math.round(h * 0.45));
@@ -431,7 +433,7 @@ export function Minimap({
   }, []);
   useEffect(() => {
     const canvas = ref.current!;
-    const image = sprites();
+    const images = [sprites(), sprites("regionalBuildings")];
     const draw = () => {
       const key = `${size}:${height}:${extent}:${large}:${regional}`;
       let map = backing.current;
@@ -454,7 +456,6 @@ export function Minimap({
         paintBackground(
           map.canvas,
           world,
-          image,
           map.origin,
           size,
           height,
@@ -478,7 +479,6 @@ export function Minimap({
           paintBackground(
             background,
             world,
-            image,
             origin,
             size,
             height,
@@ -508,7 +508,6 @@ export function Minimap({
           steps: paintBackgroundSteps(
             background,
             world,
-            image,
             origin,
             size,
             height,
@@ -571,13 +570,13 @@ export function Minimap({
       }
     };
     const ready = () => {
-      if (image.complete && image.naturalWidth) draw();
+      if (images.every((image) => image.complete && image.naturalWidth)) draw();
     };
     redraw.current = draw;
     ready();
-    image.addEventListener("load", ready);
+    for (const image of images) image.addEventListener("load", ready);
     return () => {
-      image.removeEventListener("load", ready);
+      for (const image of images) image.removeEventListener("load", ready);
     };
   }, [
     world,

@@ -10,6 +10,7 @@ import {
 } from "./score";
 import { createMix, scheduleNote, prepareScore, type MixBus } from "./synth";
 import { events, playSound, type EventId, type Sound } from "./sfx";
+import { applyTuning, tuning } from "./sfx-tuning";
 
 export interface AudioState {
   loading: boolean;
@@ -319,12 +320,13 @@ export class AudioDirector {
    * a burst of the same cue does not stack into a buzz. */
   async sound(sound: Sound | undefined, key = "") {
     if (!sound?.length) return;
+    const tuned = tuning(key);
     const now = performance.now();
-    if (now - (this.lastSfx.get(key) ?? 0) < 60) return;
+    if (now - (this.lastSfx.get(key) ?? 0) < tuned.gap) return;
     this.lastSfx.set(key, now);
     try {
       const ctx = await this.unlock();
-      playSound(ctx, this.sfx!, sound, ctx.currentTime + 0.01);
+      playSound(ctx, this.sfx!, applyTuning(sound, tuned), ctx.currentTime + 0.01);
       if (this.state.error) this.patch({ error: "" });
     } catch (error) {
       if (!this.disposed)
