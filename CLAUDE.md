@@ -39,11 +39,11 @@ when the task is actually about its subject:
 - `npm run test:browser -- <pattern>` — the Playwright specs matching a name,
   e.g. `-- doors` or `-- '(props|doors)'`. **This is how to use it.** It starts
   the dev server itself and reuses one already up.
-- `npm run test:browser` with no pattern runs all 140. Do not, unless you are
-  asked to. Roughly 60% of specs currently fail against UI and renderer drift,
-  so a red spec is far more likely to be older than your change than caused by
-  it. Check it against HEAD before believing it, and never adopt fixing the
-  suite as a side quest.
+- `npm run test:browser` with no pattern runs all 140, takes 12 minutes, and
+  last came back 81 failed / 61 passed. Do not run it unless you are asked to.
+  Most of that red is UI and renderer drift older than your change, so a red
+  spec is weak evidence about anything you did: check it against HEAD before
+  believing it, and never adopt fixing the suite as a side quest.
 
 The Python art pipeline (`npm run art*`, the `scripts/art/` sheets) needs PIL,
 numpy, shapely, pyproj and pyshp in a `.venv`, which a fresh checkout does not
