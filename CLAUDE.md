@@ -22,6 +22,9 @@ when the task is actually about its subject:
 
 ## Verifying
 
+- `npm run check` — **the gate before you call work done.** Typecheck, unit
+  tests and a production build, 2.8 min, green on main. It is the only thing
+  you need to pass; nothing below is a gate.
 - `npm test` — 17s, 581 tests, **green on main**. If it is red, you broke it.
 - `npx vitest run tests/<name>.test.ts` — after an edit, run just what covers it.
 - `npm run shot -- artifacts/x.png "A Roman baker in Ostia, 100 CE"` — one
@@ -33,12 +36,14 @@ when the task is actually about its subject:
   valid ones.
 - `npm run test:full` — 10 min, and has known failures. Only before a merge or
   when asked, and in the background.
-- `npm run test:browser` — Playwright, 142 tests, slow (minutes per spec for
-  the ones that build a world). It starts the dev server itself and reuses one
-  that is already up. **Not green**: a good share of specs have drifted against
-  recent UI and renderer changes, the same way the unit suite had. Check the
-  failure against HEAD before assuming your change caused it, and do not take
-  fixing the whole suite on as a side quest.
+- `npm run test:browser -- <pattern>` — the Playwright specs matching a name,
+  e.g. `-- doors` or `-- '(props|doors)'`. **This is how to use it.** It starts
+  the dev server itself and reuses one already up.
+- `npm run test:browser` with no pattern runs all 140. Do not, unless you are
+  asked to. Roughly 60% of specs currently fail against UI and renderer drift,
+  so a red spec is far more likely to be older than your change than caused by
+  it. Check it against HEAD before believing it, and never adopt fixing the
+  suite as a side quest.
 
 The Python art pipeline (`npm run art*`, the `scripts/art/` sheets) needs PIL,
 numpy, shapely, pyproj and pyshp in a `.venv`, which a fresh checkout does not
@@ -53,6 +58,13 @@ Regenerate what you need rather than hunting for it.
 Run these when a change plainly needs them or when asked — **not as a reflex
 after every edit**. A passing suite does not establish that a world looks right;
 take a shot and look at it.
+
+**Do not spend minutes on a check that cannot change your answer.** Before
+starting something slow, ask what a red result would make you do differently.
+If a suite is mostly red already, or covers nothing you touched, running it
+buys nothing and costs the session. Prefer the narrowest check that would
+actually catch the mistake you might have made: the one test file over the
+suite, one spec over all of them, one screenshot over a full review sheet.
 
 ## Do not add scaffolding
 
