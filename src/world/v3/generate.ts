@@ -981,7 +981,7 @@ export function createSettlementWorld(
           candidate,
           (pack.setting?.vegetationRevision ?? 0) >= 3
             ? (pack.setting?.vegetationRevision ?? 0) >= 4
-              ? 0.72
+              ? 0.92
               : 0.54
             : 0.45,
         )
@@ -1138,7 +1138,7 @@ export function createSettlementWorld(
         x + land.origin.x,
         y + land.origin.y,
       ) >=
-        (h?.site ? 1 : (pack.setting?.vegetationRevision ?? 0) >= 4 ? 0.6 : 0.8)
+        (h?.site ? 1 : (pack.setting?.vegetationRevision ?? 0) >= 4 ? 0.48 : 0.8)
     )
       selected = undefined;
     if (
