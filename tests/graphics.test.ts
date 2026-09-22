@@ -8,6 +8,7 @@ import {
 } from "../src/dev/fixtures";
 import { findPath } from "../src/core/pathfinding";
 import buildings from "../src/render/generated/buildings.json" with { type: "json" };
+import regionalBuildings from "../src/render/generated/regional-buildings.json" with { type: "json" };
 import civic from "../src/render/generated/civic.json" with { type: "json" };
 import {
   buildingScaleWeight,
@@ -25,7 +26,12 @@ it("every construction family has usable entrance geometry and matching compiled
         const m = buildingModels[p.sprite];
         expect(m.footprint).toEqual([p.w, p.h]);
         expect(w.blocked(p.entrance.x, p.entrance.y, "outside")).toBe(false);
-        const sheet = p.sprite in buildings.frames ? buildings : civic;
+        const sheet =
+          p.sprite in buildings.frames
+            ? buildings
+            : p.sprite in regionalBuildings.frames
+              ? regionalBuildings
+              : civic;
         const source = (
           sheet.frames as Record<
             string,

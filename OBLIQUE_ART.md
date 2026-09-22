@@ -8,8 +8,9 @@ the oblique view.
 
 ## The numbers live in one file
 
-`scripts/art/oblique_style.py`. Side wall 12px (14 and 16 for deep halls),
-roof rise by material and independent of the side depth, eave and verge
+`scripts/art/oblique_style.py`. Every house uses a 12px side wall, including
+the new large footprints; only explicitly deep halls may use 14 or 16px. Roof
+rise is independent of the side depth, as are eave and verge
 overhang, storey height, sun direction, and the right-face depth for props.
 A painter imports them. It never defines its own; the audit fails if it does.
 
@@ -44,6 +45,49 @@ Every family must have all four columns on the gold-master sheet. Medium is
 the normal house against the current adult. Large is uncommon fabric: a
 prosperous house, an extended household, or a communal prehistoric building.
 Do not make a large form common merely to make a town look busy.
+
+Roman, North African and West Asian urban houses are declared separately in
+`src/content/graphics/regional-houses.json`. Structural families own footprint,
+storeys, courtyard plan, function and scale; profiles own materials, openings,
+surface treatment, parapet, accent and roof furniture. The compiler publishes
+`roofSurfaces`, `roofVoid` and `roofAccess` on each model. Roof rectangles use
+local footprint cells and a storey level, so a future traversal system can use
+them without reverse-engineering pixels. Keep a quiet connected route across
+each roof when adding furniture. Their contact sheet is built with
+`npm run art:regional-houses`.
+
+East and South Asian profiles use the same structural compiler and the same
+12px return. Tiled courtyard plans publish four roof-slope rectangles around a
+true courtyard void; East Asian street ranges publish paired pitched slopes;
+Indian havelis publish flat terrace rings; Bengali and Malabar forms publish
+deep monsoon slopes. Raised eaves, ridge caps and tile channels belong to the
+roof style. Paper lattice, timber grids, jali, gates, noren and painted bands
+belong to the profile. Keep these independent so a profile can vary without
+forking the renderer. Build the review sheet with `npm run art:asian-houses`.
+
+`wealthTier` is visual restraint as well as added detail. Tier 0 keeps a plain
+ridge, muted gate and work-worn finish. Tier 1 may add one lamp, sign, jar group
+or painted member. Tier 2 may add paired lanterns, a projecting gate canopy,
+painted brackets and historically suitable ridge terminals. Do not use a
+pagoda as generic house trim: Chinese and Korean domestic roofs use simplified
+ridge ends and roof figures; a genuinely tiered sacred roof belongs to a
+religious or civic recipe.
+
+Small `serviceStyle` buildings share the profile but change function and
+silhouette: storehouse/granary, workshop, gatehouse/market pavilion and local
+hall. They are settlement texture, not replacements for venue-scale civic and
+religious landmarks.
+
+Roofline polish is profile-owned. The regional painter distinguishes Chinese
+raised terminals, Japanese kawara end caps, Korean pale ridges and painted
+brackets, Bengali curved eaves, Malabar doubled rain fascia, South Asian jali or
+stone parapets, and European ridge, verge and chimney treatment. Patina is a
+small deterministic cluster, never all-over noise. Parapet kiosks, jars,
+laundry and shade frames remain at the perimeter of flat roofs; the centreline
+and the published connected route stay quiet.
+
+These oversized families live in `/packs/regional-buildings`; loaders and art
+tools must search it alongside the ordinary building and civic pages.
 
 ## Adding a region
 

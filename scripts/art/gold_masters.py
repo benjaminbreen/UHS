@@ -18,11 +18,14 @@ def scaled_family_recipes(source, table, suffix, marker=None):
                 stories = shape.get('stories', base.get('stories', 1))
                 name = f'{family}-{suffix}-{scale}-{variant}'
                 entrance_x = shape.get('entrance', fw // 2)
-                wealth = shape.get('wealthTiers', [0, 1, 2])
+                wealth = shape.get('wealthTiers', [2] if scale == 'large' else [0, 1])
+                functions = shape.get('functions', [spec.get('function', 'household')])
+                service_styles = shape.get('serviceStyles', [])
                 out[name] = {
                     **base,
                     **{k: v for k, v in shape.items()
-                       if k not in ('variants', 'seedOffset', 'entrance', 'wealthTiers')},
+                       if k not in ('variants', 'seedOffset', 'entrance', 'wealthTiers',
+                                    'functions', 'serviceStyles')},
                     'footprint': [fw, fh],
                     'entrance': [entrance_x, fh],
                     'stories': stories,
@@ -33,6 +36,9 @@ def scaled_family_recipes(source, table, suffix, marker=None):
                     'goldScale': scale,
                     'goldVariant': variant,
                     'wealthTier': wealth[variant % len(wealth)],
+                    'buildingFunction': functions[variant % len(functions)],
+                    **({'serviceStyle': service_styles[variant % len(service_styles)]}
+                       if service_styles else {}),
                     **({'detailSet': spec['detailSet']} if spec.get('detailSet') else {}),
                     **({marker: family} if marker else {}),
                 }
@@ -40,7 +46,17 @@ def scaled_family_recipes(source, table, suffix, marker=None):
 
 
 def gold_master_recipes(source):
-    return scaled_family_recipes(source, 'goldMasters', 'gold', 'goldMaster')
+    filtered = {**source, 'goldMasters': {
+        name: spec for name, spec in source['goldMasters'].items()
+        if not spec.get('serviceKit')}}
+    return scaled_family_recipes(filtered, 'goldMasters', 'gold', 'goldMaster')
+
+
+def service_kit_recipes(source):
+    filtered = {**source, 'goldMasters': {
+        name: spec for name, spec in source['goldMasters'].items()
+        if spec.get('serviceKit')}}
+    return scaled_family_recipes(filtered, 'goldMasters', 'gold', 'serviceKit')
 
 
 def prehistoric_expansion_recipes(source):

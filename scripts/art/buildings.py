@@ -351,10 +351,10 @@ def build_buildings(root, sprites):
     from art.oblique_church import ObliqueChurch, build_banner
     from art.oblique_round import ObliqueRound
     from art.oblique_mud import ObliqueMudbrick
-    from art.gold_masters import gold_master_recipes, prehistoric_expansion_recipes
+    from art.gold_masters import gold_master_recipes, prehistoric_expansion_recipes, service_kit_recipes
     from art.regional_houses import regional_house_recipes
     build_banner(sprites)
-    recipes={**source['buildings'], **gold_master_recipes(source),
+    recipes={**source['buildings'], **gold_master_recipes(source), **service_kit_recipes(source),
              **prehistoric_expansion_recipes(source), **regional_house_recipes(root, source),
              **urban_recipes(root, source),
              **religious_recipes(root, source), **theatre_recipes(root, source),
@@ -409,13 +409,22 @@ def build_buildings(root, sprites):
             **({'banner':artist.banner} if getattr(artist,'banner',None) else {}),
             **({'smoke':artist.smoke} if getattr(artist,'smoke',None) else {}),
             **({'goldMaster':r['goldMaster'],'goldScale':r['goldScale'],
-                'goldVariant':r['goldVariant']} if r.get('goldMaster') else {}),
+                'goldVariant':r['goldVariant'],'wealthTier':r.get('wealthTier',1),
+                'detailSet':r.get('detailSet','plain')} if r.get('goldMaster') else {}),
             **({'prehistoricExpansion':r['prehistoricExpansion'],
-                'goldScale':r['goldScale'],'goldVariant':r['goldVariant']}
+                'goldScale':r['goldScale'],'goldVariant':r['goldVariant'],
+                'wealthTier':r.get('wealthTier',1),'detailSet':r.get('detailSet','plain')}
                if r.get('prehistoricExpansion') else {}),
+            **({'serviceKit':r['serviceKit'],'goldScale':r['goldScale'],
+                'goldVariant':r['goldVariant'],'buildingFunction':r['buildingFunction'],
+                'serviceStyle':r.get('serviceStyle'),'wealthTier':r.get('wealthTier',1),
+                'detailSet':r.get('detailSet','plain')}
+               if r.get('serviceKit') else {}),
             **({'regionalHouse':r['regionalHouse'],'regionalProfile':r['regionalProfile'],
                 'buildingFunction':r['buildingFunction'],'goldScale':r['goldScale'],
                 'goldVariant':r['goldVariant'],'stories':r['stories'],
+                'wealthTier':r.get('wealthTier',1),'detailSet':r.get('detailSet','plain'),
+                **({'serviceStyle':r['serviceStyle']} if r.get('serviceStyle') else {}),
                 'sideDepth':r['sideDepth'],'roofPlan':r['roofPlan'],
                 'roofSurfaces':r['roofSurfaces'],'roofAccess':r['roofAccess'],
                 **({'roofVoid':r['roofVoid']} if r.get('roofVoid') else {})}

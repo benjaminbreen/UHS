@@ -58,7 +58,7 @@ def regional_house_recipes(root, source):
                     features = profile.get('roofFeatures', [])
                     turrets = profile.get('turretStyles', ['none'])
                     functions = shape.get('functions', [spec['function']])
-                    wealth = shape.get('wealthTiers', [0, 1, 2])
+                    wealth = shape.get('wealthTiers', [2] if scale == 'large' else [0, 1])
                     service_styles = shape.get('serviceStyles', [])
                     out[name] = {
                         **base,

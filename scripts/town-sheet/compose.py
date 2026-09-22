@@ -22,7 +22,7 @@ BOUNDARY = {'wall': '#8d8a7c', 'stones': '#8d8a7c', 'hedge': '#355f2a', 'wire': 
 
 def atlases():
     out = []
-    for path in ('packs/buildings', 'packs/civic', 'packs/atlas', 'props/atlas', 'nature/atlas'):
+    for path in ('packs/buildings', 'packs/regional-buildings', 'packs/civic', 'packs/atlas', 'props/atlas', 'nature/atlas'):
         out.append((Image.open(ROOT / f'public/{path}.png').convert('RGBA'),
                     json.loads((ROOT / f'public/{path}.json').read_text())['frames']))
     return out

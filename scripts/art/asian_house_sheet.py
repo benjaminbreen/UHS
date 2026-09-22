@@ -20,10 +20,18 @@ ROWS = [
     ('Deccan courtyard house', 'southasian-courtyard', 'deccan'),
     ('Bengali monsoon house', 'southasian-monsoon', 'bengali'),
     ('Malabar monsoon house', 'southasian-monsoon', 'malabar'),
+    ('North Chinese service kit', 'eastasian-service', 'north-chinese'),
+    ('Japanese service kit', 'eastasian-service', 'japanese'),
+    ('Korean service kit', 'eastasian-service', 'korean'),
+    ('North Indian service kit', 'southasian-service', 'north-indian'),
+    ('Bengali service kit', 'southasian-service', 'bengali'),
+    ('Malabar service kit', 'southasian-service', 'malabar'),
 ]
 
 
 def names(family, profile):
+    if family.endswith('-service'):
+        return [f'{family}-{profile}-small-{variant}' for variant in range(4)]
     return [f'{family}-{profile}-medium-0', f'{family}-{profile}-medium-1',
             f'{family}-{profile}-large-0', f'{family}-{profile}-large-1']
 
@@ -53,7 +61,7 @@ def make(out, zoom=2):
         font = small = ImageFont.load_default()
     draw.text((8, 7), 'EAST + SOUTH ASIAN GOLD HOUSES · 12px oblique return',
               font=font, fill='#f0d795')
-    for i, heading in enumerate(('medium A', 'medium B', 'large A', 'large B')):
+    for i, heading in enumerate(('variant A', 'variant B', 'variant C', 'variant D')):
         x = title_w + gap * 2 + sum(col_w[:i]) + gap * i
         draw.text((x + col_w[i] // 2, 21), heading, font=small,
                   fill='#aebbd0', anchor='ma')
@@ -76,7 +84,7 @@ def make(out, zoom=2):
                       f'{fp[0]}x{fp[1]} · {recipe.get("stories", 1)} storey · {treatment}',
                       font=small, fill='#d1d7df', anchor='ma')
             draw.text((x + cw // 2, ground + 14),
-                      recipe.get('buildingFunction', '').replace('-', ' '),
+                      f'{recipe.get("buildingFunction", "").replace("-", " ")} · wealth {recipe.get("wealthTier", 1)}',
                       font=small, fill='#aebbd0', anchor='ma')
             x += cw + gap
         y += rh + gap

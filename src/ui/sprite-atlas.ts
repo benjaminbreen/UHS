@@ -12,6 +12,7 @@ const sheets = {
   ecology: "/ecology/atlas",
   props: "/props/atlas",
   buildings: "/packs/buildings",
+  regionalBuildings: "/packs/regional-buildings",
   civic: "/packs/civic",
   atlas: "/packs/atlas",
 } as const;

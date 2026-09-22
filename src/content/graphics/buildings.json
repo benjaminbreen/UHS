@@ -200,47 +200,64 @@
     "#80837a",
     "#bdbfb0"
    ]
+  },
+  "grey-brick": {
+   "texture": "grey-brick",
+   "wall": ["#343633", "#62645e", "#909189", "#b6b5a9", "#d7d4c5"],
+   "roof": ["#20262a", "#353e44", "#4e5a61", "#6b7880"],
+   "foundation": ["#343733", "#696c64", "#aeb0a5"]
+  },
+  "bengal-brick": {
+   "texture": "brick",
+   "wall": ["#4d3028", "#80513e", "#ad7254", "#cf9872", "#e4b994"],
+   "roof": ["#593227", "#8c4b36", "#b66a46", "#d69161"],
+   "foundation": ["#453a31", "#776b5c", "#b4a58d"]
   }
  },
  "goldMasters": {
   "house-cottage-thatch": {
    "source": "house-cottage-thatch-0",
+   "detailSet": "europe-rural",
    "label": "Medieval thatched house",
    "description": "A substantial medieval rural house under thatch, generated from the approved oblique cottage vocabulary. Illustrative, not a surveyed reconstruction.",
    "sizes": {
-    "medium": {"footprint": [6, 4], "entrance": 2, "variants": 2, "seedOffset": 1100},
-    "large": {"footprint": [8, 5], "entrance": 3, "variants": 1, "seedOffset": 1400}
+    "medium": {"footprint": [6, 4], "entrance": 2, "variants": 2, "wealthTiers": [0, 1], "seedOffset": 1100},
+    "large": {"footprint": [8, 5], "entrance": 3, "variants": 1, "wealthTiers": [2], "seedOffset": 1400}
    }
   },
   "house-cottage-timber": {
    "source": "house-cottage-timber-0",
+   "detailSet": "europe-town",
    "label": "Medieval timber house",
    "description": "A larger medieval timber-framed house with regional roof and opening variants. Illustrative, not a surveyed reconstruction.",
    "sizes": {
-    "medium": {"footprint": [6, 4], "entrance": 2, "stories": 2, "variants": 2, "seedOffset": 1700},
-    "large": {"footprint": [8, 5], "entrance": 3, "stories": 2, "variants": 1, "seedOffset": 2000, "wing": true}
+    "medium": {"footprint": [6, 4], "entrance": 2, "stories": 2, "variants": 2, "wealthTiers": [0, 1], "seedOffset": 1700},
+    "large": {"footprint": [8, 5], "entrance": 3, "stories": 2, "variants": 1, "wealthTiers": [2], "seedOffset": 2000, "wing": true}
    }
   },
   "house-early-brick": {
    "source": "house-early-brick-0",
+   "detailSet": "europe-early-modern",
    "label": "Early-modern brick house",
    "description": "A substantial early-modern brick house with grouped mullioned windows and a tiled or slated roof. Illustrative.",
    "sizes": {
-    "medium": {"footprint": [6, 4], "entrance": 2, "stories": 2, "variants": 2, "seedOffset": 2300},
-    "large": {"footprint": [8, 5], "entrance": 3, "stories": 3, "variants": 1, "seedOffset": 2600, "frontispiece": "stepped"}
+    "medium": {"footprint": [6, 4], "entrance": 2, "stories": 2, "variants": 2, "wealthTiers": [1, 2], "seedOffset": 2300},
+    "large": {"footprint": [8, 5], "entrance": 3, "stories": 3, "variants": 1, "wealthTiers": [2], "seedOffset": 2600, "frontispiece": "stepped"}
    }
   },
   "house-early-stucco": {
    "source": "house-early-stucco-0",
+   "detailSet": "europe-early-modern",
    "label": "Early-modern rendered house",
    "description": "A larger rendered early-modern house with sash windows, stacks and a restrained formal front. Illustrative.",
    "sizes": {
-    "medium": {"footprint": [6, 4], "entrance": 2, "stories": 2, "variants": 2, "seedOffset": 2900},
-    "large": {"footprint": [8, 5], "entrance": 4, "stories": 3, "variants": 1, "seedOffset": 3200, "frontispiece": "pediment"}
+    "medium": {"footprint": [6, 4], "entrance": 2, "stories": 2, "variants": 2, "wealthTiers": [1, 2], "seedOffset": 2900},
+    "large": {"footprint": [8, 5], "entrance": 4, "stories": 3, "variants": 1, "wealthTiers": [2], "seedOffset": 3200, "frontispiece": "pediment"}
    }
   },
   "house-round": {
    "source": "house-round-0",
+   "detailSet": "neolithic-farmer",
    "label": "Prehistoric round house",
    "description": "A medium or large daubed round house under a conical thatch roof. Scale and finish are illustrative; the structural vocabulary follows archaeological and experimental reconstructions.",
    "sizes": {
@@ -250,6 +267,7 @@
   },
   "house-mudbrick-ob": {
    "source": "house-mudbrick-ob-0",
+   "detailSet": "neolithic-mudbrick",
    "label": "Prehistoric mudbrick house",
    "description": "A medium or large mudbrick household block with a flat working roof, hatch, ladder and seeded roof use. Inspired by excavated forms but illustrative in arrangement.",
    "sizes": {
@@ -259,17 +277,39 @@
   },
   "house-longhouse": {
    "source": "house-longhouse-0",
+   "detailSet": "neolithic-farmer",
    "label": "Neolithic longhouse",
    "description": "A medium or large early-farming timber longhouse, daubed between its posts beneath a deep thatched roof. Illustrative rather than a reconstruction of one excavated plan.",
    "sizes": {
     "medium": {"footprint": [9, 5], "entrance": 4, "variants": 2, "seedOffset": 4700},
     "large": {"footprint": [12, 6], "entrance": 5, "variants": 1, "seedOffset": 5000}
    }
+  },
+  "europe-service": {
+   "serviceKit": true,
+   "source": "house-cottage-timber-0",
+   "detailSet": "europe-town",
+   "label": "European neighborhood service building",
+   "description": "A small storehouse, workshop, market shed or neighborhood hall using the existing medieval oblique vocabulary. Illustrative and subordinate to venue-scale churches and civic halls.",
+   "sizes": {
+    "small": {"footprint": [5, 3], "entrance": 2, "stories": 1, "variants": 4, "wealthTiers": [0, 1, 1, 2], "seedOffset": 5250, "serviceStyles": ["storehouse", "workshop", "market-pavilion", "neighborhood-hall"], "functions": ["storehouse", "craft-workshop", "market-shed", "neighborhood-hall"]}
+   }
+  },
+  "neolithic-service": {
+   "serviceKit": true,
+   "source": "house-longhouse-0",
+   "detailSet": "neolithic-farmer",
+   "label": "Neolithic household service building",
+   "description": "A small raised store, work shed or communal building whose drying bundles and construction follow the early-farming kit. Function and finish are illustrative.",
+   "sizes": {
+    "small": {"footprint": [5, 3], "entrance": 2, "stories": 1, "variants": 3, "wealthTiers": [0, 1, 2], "seedOffset": 5400, "serviceStyles": ["granary", "workshop", "meeting-house"], "functions": ["raised-store", "work-shed", "communal-building"]}
+   }
   }
  },
  "prehistoricExpansions": {
   "house-dome": {
    "source": "house-dome-0",
+   "detailSet": "neolithic-forager",
    "label": "Bark or mat dome",
    "description": "A larger bent-sapling household shelter with layered bark or mat covering, repair patches and restrained ochre marking. Illustrative and regionally resolved by the settlement pack.",
    "sizes": {
@@ -279,6 +319,7 @@
   },
   "house-tent": {
    "source": "house-tent-0",
+   "detailSet": "neolithic-forager",
    "label": "Hide-covered pole lodge",
    "description": "A larger conical pole lodge with sewn hide panels, smoke flaps and occasional non-figurative ochre treatment. Illustrative; it does not reproduce later historic Plains painted lodges.",
    "sizes": {
@@ -288,6 +329,7 @@
   },
   "house-pit": {
    "source": "house-pit-0",
+   "detailSet": "neolithic-farmer",
    "label": "Substantial pit house",
    "description": "A medium or communal semi-subterranean house under reed, turf or weathered thatch. Illustrative, with size representing household or shared winter occupation rather than status alone.",
    "sizes": {
@@ -297,6 +339,7 @@
   },
   "house-round-stone": {
    "source": "house-round-stone-0",
+   "detailSet": "neolithic-farmer",
    "label": "Stone round house",
    "description": "A larger drystone household under reed or turf, with the masonry and roof treated as separate quiet materials. Illustrative rather than a reconstruction of one excavated plan.",
    "sizes": {
@@ -306,6 +349,7 @@
   },
   "house-rondavel": {
    "source": "house-rondavel-0",
+   "detailSet": "neolithic-farmer",
    "label": "Painted round house",
    "description": "A larger daubed round house whose seeded lime, ochre and dark-earth bands use a small geometric vocabulary. The treatment is illustrative and selected only for suitable regional packs.",
    "sizes": {
@@ -315,6 +359,7 @@
   },
   "house-aegean": {
    "source": "house-aegean-0",
+   "detailSet": "neolithic-mudbrick",
    "label": "Aegean stone and plaster house",
    "description": "A larger rubble-built, partly plastered flat-roofed household. Seeded finishes use lime, warm earth and restrained ochre geometry; modern blue-and-white island styling is deliberately excluded.",
    "sizes": {

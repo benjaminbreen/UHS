@@ -30,13 +30,54 @@
     "radius": 40
   },
   {
+    "name": "alexandria-200",
+    "query": "Alexandria 200",
+    "radius": 40
+  },
+  {
+    "name": "baghdad-1000",
+    "query": "Baghdad 1000",
+    "radius": 40
+  },
+  {
+    "name": "isfahan-1600",
+    "query": "Isfahan 1600",
+    "radius": 40
+  },
+  {
     "name": "kyoto-1700",
     "query": "Kyoto 1700",
+    "seed": "asia-gold",
+    "radius": 40
+  },
+  {
+    "name": "beijing-1450",
+    "query": "Beijing 1450",
+    "radius": 40
+  },
+  {
+    "name": "seoul-1500",
+    "query": "Seoul 1500",
     "radius": 40
   },
   {
     "name": "hangzhou-1200",
     "query": "Hangzhou 1200",
+    "radius": 40
+  },
+  {
+    "name": "delhi-1500",
+    "query": "Delhi 1500",
+    "radius": 40
+  },
+  {
+    "name": "bengal-1500",
+    "query": "Bengal 1500",
+    "radius": 40
+  },
+  {
+    "name": "kochi-1500",
+    "query": "Kochi 1500",
     "radius": 40
   },
   {

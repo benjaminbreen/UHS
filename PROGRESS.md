@@ -1,3 +1,103 @@
+## Final roofline, parapet and lived-detail polish — September 21, 2026
+
+The enlarged building families now use distinct roof craft instead of sharing
+one decorative pass. Chinese profiles have wealth-gated raised ridge terminals;
+Japanese roofs use round kawara-like ridge ends rather than Chinese beasts;
+Korean substantial buildings gain restrained painted eave brackets; Bengali
+and Malabar roofs separate curved terracotta edges from deep layered timber
+fascia. European roofs have material-specific ridge work, pegged bargeboards,
+occasional finials and prosperous early-modern chimney pots. Flat-roof profiles
+now distinguish jointed Roman coping, stepped and rounded parapets, stone caps,
+timber screens and open jali, with tiny corner kiosks only on elite north-Indian
+terraces.
+
+Weathering is deterministic and clustered—moss in damp tile courses, dust on
+dry roofs, individual repaired European tiles and lashed thatch patches—so it
+does not become visual noise. Facade-edge sockets add Korean storage jars,
+East Asian ceramic planters, South Asian water pots, early-modern herb pots and
+prehistoric baskets without blocking doors or the 12px return. Paired lanterns
+and plaques are reserved for neighborhood halls; generic household shrines are
+deliberately excluded. Published traversal surfaces and roof routes are
+unchanged.
+
+## Inhabited facades and regional service kits — September 21, 2026
+
+The enlarged East Asian, South Asian, European and Neolithic masters now carry
+deterministic social/detail tiers instead of receiving the same decoration at
+every scale. Wall faces use stepped palette clusters for sky light and foot
+shade. East Asian roofs have stronger tile courses, separately lit courtyard
+ranges, raised eaves and wealth-gated ridge terminals or simplified roof
+figures; prosperous gates gain brackets, lanterns and canopies while ordinary
+compounds remain restrained. Early-modern European houses may carry individual
+herb or flower troughs, but medieval and prehistoric houses do not. Neolithic
+details are work details—drying grain, reeds or fish—not back-projected national
+decoration.
+
+East and South Asian packs also include four uncommon 5×3 service forms per
+profile: storehouse or granary, craft building, gate or market pavilion, and a
+small neighborhood or devotional hall. Medieval and early-modern European
+packs now mix corresponding stores, workshops, market sheds and a bell-cote
+hall; the early European farming kit gains raised storage, a work shed and a
+small communal building. They reuse the regional construction grammar but have
+distinct openings, shop fronts, communal roofs or entrance markers. Major
+temples, mosques, churches, academies and administrative halls remain
+venue-scale work; the small halls are not substitutes for them.
+
+Facade details occupy deterministic sockets around openings and never the door,
+12px return or published roof route. Roof furniture remains outside the quiet
+traversal bands. Review sheets: `artifacts/east-south-asian-houses.png`,
+`artifacts/gold-masters.png` and `artifacts/prehistoric-expansion.png`.
+The cross-cultural service comparison is
+`artifacts/cultural-settlement-kits.png`.
+
+## East and South Asian house gold masters — September 21, 2026
+
+East and South Asia now use four enlarged regional families rather than the
+small generic house pool: Chinese and Korean courtyard compounds, Chinese and
+Japanese merchant/workshop ranges, North Indian and Deccan courtyard havelis,
+and Bengali and Malabar monsoon houses. Medium footprints run from 8×5 to 10×8
+cells and large footprints from 11×7 to 14×11. Chinese and Korean compounds
+remain broad, low courtyard architecture; urban rows and havelis may rise to
+three storeys. Every form retains the settled 12px right-hand return.
+
+Profiles vary construction and legible details, not just colour: grey or lime
+brick, post-and-beam frames, paper or timber lattice, jali, red gates, painted
+beams, regional bands, noren, tile families, raised eaves and deep monsoon
+eaves. Seeded surface treatments and building functions give coherent local
+variation while keeping each regional roof silhouette recognizable. These are
+historically informed illustrative types, not reconstructions of a single
+surviving or excavated building.
+
+Roof geometry is deliberately quiet and well bounded for later traversal.
+Compound roofs publish four walkable rings around their courtyard void; pitched
+rows publish connected slopes; havelis publish terrace rings. Review:
+`artifacts/east-south-asian-houses.png`, plus Beijing, Seoul, Hangzhou, Kyoto,
+Delhi, Bengal and Kochi sheets under `artifacts/towns/`.
+
+## Roman, North African and West Asian urban houses — September 21, 2026
+
+Roman domus and insula ranges now have native-pixel medium and large forms at
+10×7 through 14×10 cells; the largest insulae are three storeys. Maghrebi,
+Nile, Levantine, Iranian and Arabian courtyard houses span 6×4 one-storey,
+9×7 two-storey and 13×9 three-storey forms. Profiles vary actual fabric—stone,
+plaster, earth roof, pantile, parapet, lattice or shutter, restrained regional
+bands, windcatchers, screens, water storage and shade—rather than recolouring
+one drawing. Seeded forms also carry household, workshop, rental, merchant and
+elite-compound functions. These are historically informed illustrative types,
+not reconstructions of one excavated building.
+
+Every house retains the settled 12px right-wall return regardless of footprint.
+Large roof plans are separately proportioned for legibility and publish local
+walkable roof rectangles, courtyard voids, storey levels and roof access. This
+is data for a later traversal system; it does not yet make roofs interactive.
+The large regional set packs on its own atlas page and is routed through the
+world renderer, UI, minimap, labs, audit and town-sheet compositor.
+
+Review: `artifacts/roman-west-asian-houses.png`; generated settlement sheets
+for Rome, Alexandria, Cairo, Baghdad and Isfahan are under `artifacts/towns/`.
+Oblique audit, full art build and TypeScript check pass. Broader tests and the
+requested browser playtest remain deferred until the pre-commit test run.
+
 ## Enlarged prehistoric house families — September 21, 2026
 
 The six early families omitted from the first gold-master pass now retain their

@@ -61,6 +61,52 @@ Surface treatments belong to the recipe and regional pack: repairs, seams,
 lime, earth and small geometric bands are allowed; a later iconic national or
 ethnic style is not back-projected into prehistory.
 
+The Roman and North African/West Asian acceptance sheet is
+`artifacts/roman-west-asian-houses.png`, built with
+`npm run art:regional-houses`. Its large courtyard houses and insulae are urban
+blocks, not enlarged cottages: organize openings into bays, leave broad quiet
+planes, and make the roof or courtyard ring legible before adding regional
+detail. Up to three storeys is appropriate for the large urban tiers. Rooftop
+furniture must sit at edges or isolated points so the published walkable roof
+surfaces still read as connected space.
+
+The East and South Asian acceptance sheet is
+`artifacts/east-south-asian-houses.png`, built with
+`npm run art:asian-houses`. Its courtyard compounds must read as broad, low
+collections of rooms around a real opening, not a tall block with a brown
+rectangle painted on top. Street ranges may be taller, but their tile courses,
+ridge, eave shadow and raised ends must make one coherent roof. South Asian
+terraces need a continuous quiet route; monsoon houses need a deep, clearly
+pitched rain roof before lattice, jali, painted bands or shop details are added.
+Regional variation changes fabric and construction grammar as well as colour.
+
+Decoration is a socket, not scatter. `detailSet`, `wealthTier` and
+`serviceStyle` may add a gate canopy, lantern, sign, drying bundle, herb trough,
+shop counter or communal entrance only in painter-owned clear zones. A detail
+must never cover a door, consume the 12px return, or fragment a published roof
+route. Window boxes are limited to suitable early-modern profiles; use pots,
+work drying and planted courts for earlier settings.
+
+Roof ornament must name a construction tradition before it signals wealth.
+Chinese ridge terminals, Japanese round ridge-end caps, selective Korean
+painted eave brackets, Bengali curved terracotta eaves, Malabar layered timber
+fascia, European ridge rolls and chimney pots are separate vocabularies. Do not
+exchange them as generic "Asian" or "old-world" decoration. Prosperity may
+increase finish or add a terminal, but an ordinary house must keep the same
+structural identity. Weathering is made from two or three quiet pixel clusters:
+moss in damp lower roof courses, dust in dry tile hollows, a repaired European
+tile patch, or a lashed thatch repair. Never stipple a whole roof.
+
+Domestic clutter follows use and place. Korean jar groups, East Asian ceramic
+planters, South Asian water pots, European herb pots and prehistoric storage
+baskets sit at facade edges. Household shrines are not a universal prop;
+conspicuous plaques, paired lanterns and devotional markers belong to suitable
+communal or explicitly devotional buildings.
+
+Review small settlement fabric across cultures with
+`npm run art:cultural-kits`. Service buildings should remain subordinate in
+height and frequency while still being recognizable by function.
+
 ### What passes
 
 - The silhouette names the form before surface detail does.

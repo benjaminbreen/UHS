@@ -212,6 +212,8 @@ export function BuildingLab() {
   });
   const [civicAtlas, setCivicAtlas] = useState<HTMLImageElement>();
   const [civicFrames, setCivicFrames] = useState<Set<string>>(new Set());
+  const [regionalAtlas, setRegionalAtlas] = useState<HTMLImageElement>();
+  const [regionalFrames, setRegionalFrames] = useState<Set<string>>(new Set());
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -228,14 +230,21 @@ export function BuildingLab() {
       loadImage(`/packs/buildings.png?v=${version}`),
       loadJSON<{ frames: Record<string, Frame> }>("/packs/civic.json", version),
       loadImage(`/packs/civic.png?v=${version}`),
+      loadJSON<{ frames: Record<string, Frame> }>(
+        "/packs/regional-buildings.json",
+        version,
+      ),
+      loadImage(`/packs/regional-buildings.png?v=${version}`),
     ])
-      .then(([m, a, img, c, civicImg]) => {
+      .then(([m, a, img, c, civicImg, regional, regionalImg]) => {
         if (cancelled) return;
         setModels(m);
-        setFrames({ ...a.frames, ...c.frames });
+        setFrames({ ...a.frames, ...c.frames, ...regional.frames });
         setAtlas(img);
         setCivicAtlas(civicImg);
         setCivicFrames(new Set(Object.keys(c.frames)));
+        setRegionalAtlas(regionalImg);
+        setRegionalFrames(new Set(Object.keys(regional.frames)));
       })
       .catch((e) => setStatus(String(e)));
     return () => {
@@ -302,7 +311,11 @@ export function BuildingLab() {
       [periodId]: { ...r[periodId], [key]: value },
     }));
 
-  const sheet = civicFrames.has(frameKey) ? civicAtlas : atlas;
+  const sheet = civicFrames.has(frameKey)
+    ? civicAtlas
+    : regionalFrames.has(frameKey)
+      ? regionalAtlas
+      : atlas;
   useEffect(() => {
     const c = canvas.current;
     if (!c || !sheet || !model || !frames[frameKey]) return;

@@ -63,6 +63,9 @@ class ObliqueBuilding:
         else:
             self.p = material
         self.profile = recipe.get('regionalProfile')
+        self.detail_set = recipe.get('detailSet', self.profile or 'plain')
+        self.wealth = max(0, min(2, int(recipe.get('wealthTier', 1))))
+        self.service_style = recipe.get('serviceStyle')
         self.accent = recipe.get('accent', '#8b3f2c')
         self.motif = recipe.get('motifStyle', 'none')
         self.parapet = recipe.get('parapetStyle', 'coping')
@@ -127,15 +130,24 @@ class ObliqueBuilding:
             free.remove(self.shop_slot)
         count = rng.randint((len(free) + 1) // 2, len(free)) if free else 0
         self.windows = sorted(rng.sample(free, count))
+        if self.service_style in ('storehouse', 'granary'):
+            self.windows = self.windows[:max(1, len(self.windows) // 3)]
+        elif self.service_style in ('gatehouse', 'neighborhood-hall', 'devotional-hall'):
+            self.windows = [s for s in self.windows if abs(s - self.slot) > 1]
+        if self.service_style in ('workshop', 'market-pavilion') and free:
+            self.shop = True
+            self.shop_slot = min(free, key=lambda s: abs(s - self.slot))
         self.side_windows = [rng.random() < .6 and recipe.get('windowStyle') != 'none' for _ in range(self.stories)]
         self.has_chimney = fw >= 4 and rng.random() < .55 if self.stacks is None else self.stacks > 0
-        self.boxes = [s for s in self.windows if rng.random() < .5]
+        planter_ok = self.detail_set == 'europe-early-modern' and self.wealth > 0
+        self.boxes = [s for s in self.windows if planter_ok and rng.random() < .42]
         self.thatch = look.choice([STRAW, STRAW, ROOFS['thatch'], AGED])
 
         self.ox = 7 + 16 * self.lean
         roof_return = round(self.roof_depth * K)
         self.w = self.ox + self.fw + max(self.sw, roof_return) + self.verge + 4
-        regional_headroom = 26 if self.regional_turret != 'none' or self.roof_feature == 'windcatcher' else 0
+        regional_headroom = (26 if self.regional_turret != 'none' or self.roof_feature == 'windcatcher'
+                             else 24 if self.service_style == 'neighborhood-hall' else 0)
         self.h = self.wh + self.rise + max(self.sw // 2, roof_return) + max(regional_headroom, 34 if self.turret else 14 if self.has_chimney else 3) + 8
         self.bottom = self.h - 6
         self.door_x = self.ox + self.slot * 16 + 8
@@ -155,6 +167,18 @@ class ObliqueBuilding:
         dark, shade, base, light, hi = material['wall']
         b = height
         d.rectangle((0, 0, width - 1, b), fill=base)
+        # Stepped value bands replace a computer-smooth gradient: the upper
+        # face catches sky light, the foot receives cooler reflected shade.
+        # Sparse two-pixel clusters keep broad wall planes quiet.
+        if front and width > 24:
+            for y in range(2, max(3, b // 5)):
+                for x in range(3 + (y % 3) * 5, width - 3, 17):
+                    if h2(x, y + self.r['seed']) % 4 == 0:
+                        d.line((x, y, min(x + 2, width - 3), y), fill=light)
+            for y in range(max(3, b * 4 // 5), b - 6):
+                for x in range(6 + (y % 2) * 7, width - 3, 19):
+                    if h2(x + self.r['seed'], y) % 3 == 0:
+                        d.line((x, y, min(x + 3, width - 3), y), fill=shade)
         if material.get('texture') == 'rubble':
             # Coursed rubble: uneven stones in rough rows, mortar between.
             d.rectangle((0, 0, width - 1, b), fill=shade)
@@ -350,6 +374,139 @@ class ObliqueBuilding:
                 if h2(xx, 9) % 3 == 0:
                     d.point((xx, y + h - 2), fill=BLOOMS[h2(xx, 2) % 3])
 
+    def facade_details(self, d, b):
+        """Small profile details occupy facade sockets, never doors or roofs."""
+        door = self.slot * 16 + 8
+        east = self.detail_set in ('north-chinese', 'south-chinese', 'japanese', 'korean')
+        south = self.detail_set in ('north-indian', 'deccan', 'bengali', 'malabar')
+        if self.service_style in ('storehouse', 'granary'):
+            x0, x1, y0 = door - 9, door + 9, b - DOOR_H + 3
+            d.rectangle((x0, y0, x1, b - 3), fill='#493529', outline=FRAME[0])
+            d.line((door, y0, door, b - 3), fill=FRAME[2])
+            for x in (x0 + 3, x1 - 3):
+                for y in range(y0 + 4, b - 4, 6): d.point((x, y), fill='#c49a4d')
+        if east:
+            # Bracket ends under the eave: plain households show structure;
+            # prosperous ones add a restrained second painted member.
+            for x in range(7, self.fw - 5, 16):
+                d.line((x - 3, 5, x + 3, 5), fill=TIMBER[0], width=2)
+                d.line((x, 5, x - 2, 9), fill=TIMBER[1])
+                if self.wealth == 2:
+                    d.point((x + 2, 6), fill=self.accent)
+            if self.wealth > 0:
+                for dx in (-10, 10) if self.wealth == 2 else (10,):
+                    x = door + dx
+                    d.line((x, b - DOOR_H - 7, x, b - DOOR_H - 3), fill=FRAME[0])
+                    d.ellipse((x - 2, b - DOOR_H - 3, x + 2, b - DOOR_H + 3),
+                              fill=self.accent, outline='#4c2922')
+                    d.point((x, b - DOOR_H - 2), fill='#d3a33f')
+            if self.service_style in ('workshop', 'neighborhood-hall') or self.shop:
+                x = min(self.fw - 8, door + 16)
+                d.rectangle((x, b - 30, x + 5, b - 12), fill=FRAME[0])
+                d.rectangle((x + 1, b - 29, x + 4, b - 13), fill='#8d5a35')
+                for y in range(b - 27, b - 14, 4): d.line((x + 2, y, x + 3, y), fill='#d8b46a')
+            if self.wealth == 2 and (self.courtyard or self.service_style in ('gatehouse', 'neighborhood-hall')):
+                x0, x1, y = door - 15, door + 15, b - DOOR_H - 8
+                d.polygon([(x0, y), (x1, y), (x1 + 3, y - 4), (x0 + 3, y - 4)], fill=ROOFS[self.roof][2])
+                d.line((x0, y, x1, y), fill=ROOFS[self.roof][0], width=2)
+                d.line((x0 + 3, y - 4, x1 + 3, y - 4), fill=ROOFS[self.roof][4])
+            # Household ceramics and planted pots sit against the wall, not
+            # in the doorway. Korean jangdok are grouped; the other profiles
+            # keep one useful or ornamental vessel rather than generic clutter.
+            side = -1 if door > self.fw // 2 else 1
+            x = max(5, min(self.fw - 9, door + side * (23 if self.wealth else 19)))
+            if self.detail_set == 'korean':
+                for dx, hh in ((-4, 5), (2, 7), (7, 4)):
+                    d.ellipse((x + dx - 2, b - hh - 1, x + dx + 2, b - hh + 1), fill='#5b3326')
+                    d.rectangle((x + dx - 2, b - hh, x + dx + 2, b - 2), fill='#8b5338')
+                    d.line((x + dx - 1, b - hh + 1, x + dx + 1, b - hh + 1), fill='#d08a54')
+            elif self.wealth > 0:
+                d.polygon([(x - 3, b - 7), (x + 3, b - 7), (x + 2, b - 2), (x - 2, b - 2)],
+                          fill='#9a5738', outline='#523326')
+                d.line((x - 3, b - 7, x + 3, b - 7), fill='#d18a58')
+                if self.wealth == 2:
+                    d.line((x, b - 8, x - 1, b - 13), fill='#43663c')
+                    d.line((x - 1, b - 11, x - 5, b - 13), fill='#587d43')
+                    d.line((x - 1, b - 10, x + 4, b - 12), fill='#6f944f')
+        elif south:
+            if self.wealth > 0:
+                # A short toran or textile over the entrance; colour and
+                # geometry come from the profile rather than a global flag.
+                y = b - DOOR_H - 8
+                d.line((door - 8, y, door + 8, y), fill=self.accent, width=2)
+                for x in range(door - 7, door + 8, 4):
+                    d.polygon([(x, y + 1), (x + 2, y + 4), (x + 4, y + 1)], fill='#d1a34b')
+            if self.service_style in ('workshop', 'market-pavilion'):
+                x0 = max(3, door - 30); x1 = min(self.fw - 4, door - 12)
+                d.line((x0, b - 17, x1, b - 15), fill=FRAME[2])
+                for x, tone in ((x0 + 3, '#b54f3f'), (x0 + 9, '#d0a63e'), (x0 + 15, self.accent)):
+                    if x + 3 < x1: d.rectangle((x, b - 16, x + 3, b - 9), fill=tone)
+            if self.service_style == 'devotional-hall':
+                y = b - DOOR_H - 10
+                for x in (door - 10, door + 9):
+                    d.rectangle((x, y + 4, x + 2, b - 3), fill=self.p['foundation'][2])
+                    d.line((x + 2, y + 4, x + 2, b - 3), fill=self.p['foundation'][0])
+                d.polygon([(door - 13, y + 4), (door + 13, y + 4),
+                           (door + 8, y - 1), (door - 8, y - 1)], fill=self.p['foundation'][1])
+                d.line((door - 8, y - 1, door + 8, y - 1), fill=self.p['foundation'][2])
+                for x in (door - 14, door + 14):
+                    d.line((x, y + 2, x, y - 5), fill=FRAME[1])
+                    d.polygon([(x, y - 5), (x + 5, y - 3), (x, y - 1)], fill=self.accent)
+            # Red clay water pots, coir or work bundles are more convincing
+            # here than a universal flower box. A planted entrance pedestal is
+            # reserved for prosperous north-Indian households.
+            side = -1 if door > self.fw // 2 else 1
+            x = max(6, min(self.fw - 10, door + side * 23))
+            pots = 2 if self.detail_set in ('bengali', 'malabar') or self.wealth == 2 else 1
+            for i in range(pots):
+                px = x + i * 6 * side
+                d.ellipse((px - 3, b - 8 - i, px + 3, b - 2), fill='#a65738', outline='#593126')
+                d.line((px - 2, b - 7 - i, px + 2, b - 7 - i), fill='#dd9360')
+            if self.detail_set == 'north-indian' and self.wealth == 2:
+                d.rectangle((x - 4, b - 5, x + 4, b - 2), fill='#b87945', outline='#68422d')
+                d.line((x, b - 6, x, b - 13), fill='#4b6e3c')
+                for dx, dy in ((-3, -11), (3, -10), (-2, -14), (2, -15)):
+                    d.point((x + dx, b + dy), fill='#6f934a')
+        elif self.detail_set.startswith('europe'):
+            if self.detail_set == 'europe-early-modern' and self.wealth == 2 and self.windows:
+                # Individual herb/flower troughs are appropriate here; they
+                # are deliberately absent from medieval and prehistoric sets.
+                for slot in self.windows[:2]:
+                    x, y = slot * 16 + 3, self.window_y(0) + 11
+                    d.rectangle((x, y, x + 10, y + 3), fill='#6b452c')
+                    d.line((x, y + 4, x + 10, y + 4), fill='#35281e')
+                    for xx in range(x + 1, x + 10, 3):
+                        d.point((xx, y - 1), fill='#63833e')
+                        d.point((xx + 1, y - 2), fill=BLOOMS[(xx + self.r['seed']) % len(BLOOMS)])
+            elif self.wealth < 2 and self.windows:
+                x = self.windows[0] * 16 + 8
+                d.line((x - 5, 7, x + 5, 7), fill=FRAME[1])
+                for dx in (-3, 1, 4):
+                    d.line((x + dx, 8, x + dx - 1, 12), fill='#92794c')
+                    d.point((x + dx - 1, 13), fill='#b29a63')
+            if self.wealth > 0:
+                side = -1 if door > self.fw // 2 else 1
+                x = max(5, min(self.fw - 8, door + side * 22))
+                d.polygon([(x - 3, b - 7), (x + 3, b - 7), (x + 2, b - 2), (x - 2, b - 2)],
+                          fill='#8e5838', outline='#453126')
+                if self.detail_set == 'europe-early-modern' and self.wealth == 2:
+                    for dx in (-2, 1, 3):
+                        d.line((x, b - 8, x + dx, b - 13 - abs(dx) % 2), fill='#55783f')
+                    d.point((x - 3, b - 13), fill=BLOOMS[(self.r['seed'] + 1) % len(BLOOMS)])
+        elif self.detail_set.startswith('neolithic'):
+            # Drying grain, reeds or fish makes subsistence visible without
+            # projecting a later decorative vocabulary backwards.
+            side = -1 if door > self.fw // 2 else 1
+            x = max(6, min(self.fw - 7, door + side * 22))
+            d.line((x - 5, 8, x + 5, 8), fill=FRAME[1])
+            for dx in (-3, 0, 3):
+                d.line((x + dx, 9, x + dx - 1, 14), fill='#a88749')
+                d.point((x + dx - 1, 15), fill='#d0b36a')
+            if self.service_style in ('storehouse', 'workshop') or self.wealth > 0:
+                bx = max(5, min(self.fw - 10, x + side * 13))
+                d.ellipse((bx - 4, b - 7, bx + 4, b - 2), fill='#8a6037', outline='#463322')
+                d.line((bx - 2, b - 7, bx + 2, b - 7), fill='#c39a59')
+
     def window_y(self, storey):
         """From the wall top. Upper storeys hang from their own band."""
         return self.wh - 25 if storey == 0 else self.floor_y(storey) - 13
@@ -441,11 +598,13 @@ class ObliqueBuilding:
                 d.rectangle((x - 4 + k * 3, b - DOOR_H - 7 - (k in (2, 3)) * 2,
                              x - 2 + k * 3, b - DOOR_H - 4), fill=tone)
         elif self.motif == 'red-gate':
-            d.rectangle((x - 3, b - DOOR_H - 4, x + DOOR_W + 3, b - 2), outline=self.accent, width=2)
-            d.rectangle((x + 1, b - DOOR_H, x + DOOR_W - 1, b - 2), fill=self.accent)
+            gate = self.accent if self.wealth else '#69443a'
+            d.rectangle((x - 3, b - DOOR_H - 4, x + DOOR_W + 3, b - 2), outline=gate, width=2)
+            d.rectangle((x + 1, b - DOOR_H, x + DOOR_W - 1, b - 2), fill=gate)
             d.line((x + DOOR_W // 2, b - DOOR_H, x + DOOR_W // 2, b - 2), fill='#5b241f')
-            for xx in (x + 2, x + DOOR_W - 2):
-                for yy in range(b - DOOR_H + 4, b - 3, 6): d.point((xx, yy), fill='#d3a33f')
+            if self.wealth > 0:
+                for xx in (x + 2, x + DOOR_W - 2):
+                    for yy in range(b - DOOR_H + 4, b - 3, 6): d.point((xx, yy), fill='#d3a33f')
         elif self.motif == 'noren':
             d.rectangle((x - 2, b - DOOR_H - 4, x + DOOR_W + 2, b - DOOR_H + 5), fill=self.accent)
             for xx in range(x + 1, x + DOOR_W + 1, 4):
@@ -454,6 +613,7 @@ class ObliqueBuilding:
             tone = self.accent if self.motif == 'painted-beam' else FRAME[1]
             d.rectangle((x - 5, b - DOOR_H - 7, x + DOOR_W + 5, b - DOOR_H - 4), fill=tone)
             for xx in range(x - 3, x + DOOR_W + 4, 4): d.point((xx, b - DOOR_H - 6), fill=FRAME[2])
+        self.facade_details(d, b)
         return im
 
     def colonnade(self, d, b):
@@ -504,12 +664,15 @@ class ObliqueBuilding:
         y, x0, x1 = a[1], a[0] + 2, b_[0] - 2
         dark, shade, base, light, hi = self.p['wall']
         if self.parapet == 'stepped':
-            for x in range(x0, x1, 14):
-                d.rectangle((x, y - 5, min(x + 7, x1), y), fill=base)
-                d.line((x, y - 5, min(x + 7, x1), y - 5), fill=hi)
+            for i, x in enumerate(range(x0, x1, 14)):
+                cap = min(x + (8 if i % 2 else 6), x1)
+                d.rectangle((x, y - 5, cap, y), fill=base)
+                d.line((x - 1, y - 6, min(cap + 1, x1), y - 6), fill=hi)
+                d.line((cap, y - 4, cap, y), fill=shade)
         elif self.parapet == 'rounded':
             for x in range(x0 + 3, x1, 12):
                 d.ellipse((x - 3, y - 4, x + 3, y + 1), fill=base, outline=shade)
+                d.line((x - 2, y - 4, x + 1, y - 4), fill=hi)
         elif self.parapet == 'pierced':
             d.rectangle((x0, y - 4, x1, y), fill=base)
             for x in range(x0 + 4, x1 - 2, 8): d.rectangle((x, y - 3, x + 2, y - 1), fill=dark)
@@ -518,16 +681,43 @@ class ObliqueBuilding:
             for x in range(x0, x1, 5):
                 d.line((x, y - 6, x, y), fill=FRAME[1])
                 if x + 4 < x1: d.line((x, y - 5, x + 4, y - 1), fill=FRAME[2])
+            d.line((x0 - 1, y - 7, x1, y - 7), fill=FRAME[2])
+        elif self.parapet == 'coping':
+            d.rectangle((x0, y - 3, x1, y), fill=base)
+            d.line((x0 - 1, y - 4, x1 + 1, y - 4), fill=hi, width=2)
+            for x in range(x0 + 9, x1, 12):
+                d.line((x, y - 3, x, y), fill=shade)
+            for x in (x0, x1 - 2):
+                d.rectangle((x, y - 6, x + 3, y), fill=base)
+                d.line((x, y - 7, x + 3, y - 7), fill=hi)
         elif self.parapet == 'stone-coping':
-            d.line((x0, y - 2, x1, y - 2), fill=self.p['foundation'][2], width=2)
+            stone = self.p['foundation']
+            d.rectangle((x0, y - 3, x1, y), fill=stone[1])
+            for i, x in enumerate(range(x0, x1, 8)):
+                d.rectangle((x, y - 5 - i % 2, min(x + 7, x1), y - 3), fill=stone[2])
+                d.line((x, y - 5 - i % 2, min(x + 7, x1), y - 5 - i % 2), fill=stone[2])
+                d.line((min(x + 7, x1), y - 4, min(x + 7, x1), y), fill=stone[0])
         elif self.parapet == 'jali':
-            d.rectangle((x0, y - 5, x1, y), fill=base)
-            for x in range(x0 + 3, x1 - 2, 6):
-                d.point((x, y - 3), fill=dark); d.point((x + 1, y - 2), fill=dark)
-            d.line((x0, y - 5, x1, y - 5), fill=hi)
+            d.rectangle((x0, y - 7, x1, y), fill=base)
+            for x in range(x0 + 3, x1 - 3, 7):
+                d.polygon([(x, y - 4), (x + 2, y - 6), (x + 4, y - 4), (x + 2, y - 2)], fill=dark)
+                d.point((x + 2, y - 5), fill=shade)
+            d.line((x0 - 1, y - 8, x1 + 1, y - 8), fill=hi, width=2)
+            for x in (x0, x1 - 2):
+                d.rectangle((x, y - 10, x + 3, y), fill=base)
+                d.line((x, y - 11, x + 3, y - 11), fill=hi)
+            if self.detail_set == 'north-indian' and self.wealth == 2 and x1 - x0 > 70:
+                # Two tiny corner kiosks enrich an elite haveli without
+                # occupying the connected centre of the terrace.
+                for x in (x0 + 7, x1 - 8):
+                    d.rectangle((x - 2, y - 14, x + 2, y - 8), fill=base, outline=shade)
+                    d.polygon([(x - 5, y - 14), (x + 5, y - 14), (x, y - 19)], fill='#b77a4d')
+                    d.line((x - 5, y - 14, x, y - 19, x + 5, y - 14), fill='#70442f')
 
     def roof_details(self, d):
         feature = self.roof_feature
+        if self.r.get('roofPlan') == 'tiled-courtyard' and feature in ('plain', 'ridge-finials'):
+            return
         if (not feature or feature == 'plain') and self.regional_turret == 'none': return
         x, y = self.proj(self.fw * .72, self.roof_depth * .55, self.wh)
         dark, shade, base, light, hi = self.p['wall']
@@ -589,12 +779,26 @@ class ObliqueBuilding:
         ic = self.proj((cx + cw) * 16, depth_y(cy + ch), wh)
         ie = self.proj(cx * 16, depth_y(cy + ch), wh)
         if tiled_court:
-            # Four ridge lines divide the ring into inward and outward slopes.
-            mid = lambda p, q: ((p[0] + q[0]) // 2, (p[1] + q[1]) // 2)
-            for p, q in ((mid(a, ia), mid(b_, ib)),
-                         (mid(e, ie), mid(c, ic)),
-                         (mid(a, ia), mid(e, ie)),
-                         (mid(b_, ib), mid(c, ic))):
+            mid = lambda p, q, lift=0: ((p[0] + q[0]) // 2, (p[1] + q[1]) // 2 - lift)
+            fa, fb = mid(a, ia, 4), mid(b_, ib, 4)
+            ba, bb = mid(e, ie, 3), mid(c, ic, 3)
+            # Each range has a raised ridge and two differently lit slopes.
+            # The lift is deliberately shallow so the published roof cells
+            # remain the usable traversal surface.
+            d.polygon([a, b_, fb, fa], fill=deck[3])
+            d.polygon([fa, fb, ib, ia], fill=deck[1])
+            d.polygon([e, ba, bb, c], fill=deck[1])
+            d.polygon([ba, ie, ic, bb], fill=deck[2])
+            d.polygon([a, fa, ba, e], fill=deck[3])
+            d.polygon([fa, ia, ie, ba], fill=deck[1])
+            d.polygon([b_, c, bb, fb], fill=deck[2])
+            d.polygon([fb, bb, ic, ib], fill=deck[0])
+            # Reassert sparse tile channels on each range after the lighting
+            # planes; quiet roof fields remain available for traversal.
+            for x in range(a[0] + 4, b_[0] - 2, 5):
+                d.line((x, a[1] + 1, x + 4, a[1] - 6), fill=deck[1])
+                d.point((x + 1, a[1]), fill=deck[4])
+            for p, q in ((fa, fb), (ba, bb), (fa, ba), (fb, bb)):
                 d.line((p, q), fill=deck[0], width=2)
                 d.line((p[0], p[1] - 1, q[0], q[1] - 1), fill=deck[4])
         court = '#55442f' if self.profile and self.profile.startswith('roman-') else '#8a704d'
@@ -619,6 +823,18 @@ class ObliqueBuilding:
             for x in range(a[0], b_[0], 4): d.point((x, a[1] + 3), fill=deck[3])
             for x in (a[0] - 3, b_[0] + 3):
                 d.line((x, a[1] + 1, x + (-3 if x < a[0] else 3), a[1] - 2), fill=deck[4], width=2)
+            if self.wealth > 0:
+                # Chiwen-like ridge terminals, simplified at this scale. The
+                # prosperous tier adds a short procession of roof beasts;
+                # ordinary compounds retain only the structural ridge cap.
+                for x, facing in ((a[0] - 2, -1), (b_[0] + 2, 1)):
+                    d.line((x, a[1] - 1, x, a[1] - 7), fill=deck[0], width=2)
+                    d.line((x, a[1] - 7, x + facing * 3, a[1] - 10), fill=deck[3], width=2)
+                    d.point((x + facing * 4, a[1] - 10), fill=self.accent)
+                if self.wealth == 2:
+                    for x in range(a[0] + 18, min(b_[0] - 10, a[0] + 50), 9):
+                        d.rectangle((x, a[1] - 5, x + 2, a[1] - 3), fill=deck[0])
+                        d.point((x + 1, a[1] - 6), fill=self.accent)
         if self.r.get('roofMaterial') == 'pantile':
             for x in range(a[0] + 4, b_[0] - 3, 6):
                 d.line((x, a[1] - 1, x + 2, a[1] + 2), fill=deck[1])
@@ -741,7 +957,39 @@ class ObliqueBuilding:
                 d.line((x, 0, x + 3, 0), fill=pal[4]); d.line((x, 1, x + 3, 1), fill=pal[3])
             d.rectangle((0, rows, width, rows + 2), fill=(0, 0, 0, 0))
             d.line((0, rows, width, rows), fill=pal[1]); d.line((0, rows + 1, width, rows + 1), fill=pal[0])
+        self.roof_patina(d, width, rows, pal)
         return im
+
+    def roof_patina(self, d, width, rows, pal):
+        """A few coherent weather clusters; never a noise pass."""
+        if width < 30 or rows < 8:
+            return
+        damp = self.detail_set in ('south-chinese', 'japanese', 'korean', 'bengali', 'malabar')
+        dusty = self.detail_set in ('north-chinese', 'north-indian', 'deccan')
+        european = self.detail_set.startswith('europe')
+        prehistoric = self.detail_set.startswith('neolithic')
+        count = 3 if damp and width > 100 else 2 if damp or dusty or european else 1 if prehistoric else 0
+        for i in range(count):
+            seed = self.r['seed'] + i * 37
+            x = 8 + abs(h2(seed, 17)) % max(1, width - 16)
+            y = rows // 2 + abs(h2(seed, 29)) % max(1, rows // 2 - 2)
+            if damp:
+                colours = ('#40513b', '#586448', pal[1])
+                for dx, dy, c in ((0, 0, colours[0]), (1, 0, colours[1]), (2, -1, colours[1]),
+                                  (-1, 1, colours[0]), (3, 1, colours[2])):
+                    d.point((x + dx, min(rows - 1, y + dy)), fill=c)
+            elif dusty:
+                tone = '#796c59' if self.detail_set == 'north-chinese' else '#9c7650'
+                d.line((x - 2, y, x + 2, y), fill=tone)
+                d.point((x + 1, y - 1), fill=pal[1])
+            elif european:
+                # A replaced tile or darkened slate course reads as maintenance,
+                # not arbitrary texture.
+                d.rectangle((x - 2, y - 1, x + 2, y + 1), fill=pal[1])
+                d.line((x - 2, y - 1, x + 1, y - 1), fill=pal[3])
+            elif prehistoric and self.roof == 'thatch':
+                d.line((x - 4, y, x + 4, y + 1), fill=pal[1])
+                for dx in (-3, 0, 3): d.line((x + dx, y - 1, x + dx + 1, y + 2), fill=pal[0])
 
     def regional_roof_trim(self, d, pal, lx, ex, ey, rx, ry, roof_width):
         """Profile-specific eaves and ridges after the common roof projection."""
@@ -753,17 +1001,45 @@ class ObliqueBuilding:
             d.line((lx, ey + 1, right, ey + 1), fill=pal[0], width=2)
             for x in range(lx + 2, right - 1, 4):
                 d.point((x, ey + 3), fill=pal[3]); d.point((x + 1, ey + 2), fill=pal[1])
-            lift = 4 if style == 'giwa' else 3
+            lift = 5 if style == 'chinese' and self.detail_set == 'south-chinese' else 4 if style == 'giwa' else 3
             d.line((lx, ey + 1, lx - 4, ey - lift), fill=pal[3], width=2)
             d.line((right, ey + 1, right + 4, ey - lift), fill=pal[3], width=2)
             ridge_x = lx + (rx - ex)
             d.line((ridge_x, ry - 1, ridge_x + roof_width - 1, ry - 1), fill=pal[0], width=3)
-            d.line((ridge_x + 1, ry - 3, ridge_x + roof_width - 2, ry - 3),
-                   fill='#e0d8c3' if style == 'giwa' else pal[3])
-            for x in (ridge_x + 1, ridge_x + roof_width - 2):
-                d.line((x, ry - 7, x, ry - 2), fill=pal[0], width=2)
-                d.point((x + (1 if x > ridge_x + roof_width // 2 else -1), ry - 8), fill=self.accent)
-            if self.roof_feature == 'roof-jars':
+            if style == 'kawara':
+                # Japanese ridge tiles terminate in round onigawara-like caps,
+                # without borrowing the Chinese procession of roof beasts.
+                d.line((ridge_x + 2, ry - 4, ridge_x + roof_width - 3, ry - 4), fill=pal[3], width=2)
+                for x in (ridge_x + 1, ridge_x + roof_width - 2):
+                    d.ellipse((x - 3, ry - 7, x + 3, ry - 1), fill=pal[1], outline=pal[0])
+                    d.point((x, ry - 4), fill=pal[4])
+                if self.wealth == 2:
+                    d.line((ridge_x + roof_width // 2, ry - 5,
+                            ridge_x + roof_width // 2, ry - 10), fill=pal[0], width=2)
+                    d.polygon([(ridge_x + roof_width // 2 - 3, ry - 10),
+                               (ridge_x + roof_width // 2 + 3, ry - 10),
+                               (ridge_x + roof_width // 2, ry - 13)], fill=pal[3])
+            else:
+                ridge = '#e0d8c3' if style == 'giwa' else pal[3]
+                d.line((ridge_x + 1, ry - 3, ridge_x + roof_width - 2, ry - 3), fill=ridge)
+            if self.wealth > 0 and style != 'kawara':
+                for x in (ridge_x + 1, ridge_x + roof_width - 2):
+                    facing = 1 if x > ridge_x + roof_width // 2 else -1
+                    d.line((x, ry - 7, x, ry - 2), fill=pal[0], width=2)
+                    reach = 4 if self.detail_set == 'south-chinese' else 3
+                    d.line((x, ry - 7, x + facing * reach, ry - 10), fill=pal[3], width=2)
+                    d.point((x + facing * 4, ry - 10), fill=self.accent)
+            if self.wealth == 2 and self.roof_feature == 'ridge-finials' and style == 'chinese':
+                for x in range(ridge_x + 14, min(ridge_x + roof_width - 10, ridge_x + 48), 9):
+                    d.rectangle((x, ry - 7, x + 2, ry - 4), fill=pal[0])
+                    d.point((x + 1, ry - 8), fill=self.accent)
+            if style == 'giwa' and self.wealth > 0:
+                # Short painted bracket bands suggest dancheong on substantial
+                # Korean buildings while leaving ordinary hanok mostly timber.
+                for x in range(lx + 8, right - 4, 16):
+                    d.rectangle((x, ey + 3, x + 5, ey + 4), fill=self.accent)
+                    d.point((x + 2, ey + 3), fill='#c49743')
+            if self.roof_feature == 'roof-jars' and self.wealth > 0:
                 for dx in (-8, 0, 8):
                     x = ridge_x + roof_width * 3 // 4 + dx
                     d.ellipse((x - 2, ry - 7, x + 2, ry - 2), fill='#8f4932', outline='#4f3026')
@@ -772,7 +1048,90 @@ class ObliqueBuilding:
             droop = 3 if style == 'bengal' else 1
             d.line((lx - 3, ey - 1, mid, ey + droop, right + 3, ey - 1), fill=pal[0], width=2)
             d.line((lx - 2, ey - 3, mid, ey + droop - 2, right + 2, ey - 3), fill=pal[3])
-            for x in range(lx, right, 4): d.point((x, ey + droop + 1), fill=pal[1])
+            if style == 'bengal':
+                for x in range(lx, right, 4):
+                    d.point((x, ey + droop + 1), fill=pal[1])
+                    if self.wealth == 2 and (x - lx) % 12 == 0:
+                        d.point((x + 1, ey + droop), fill='#c3794b')
+            else:
+                # Kerala/Malabar roofs are deep layered weather shields: a
+                # timber soffit and doubled fascia matter more than a busy ridge.
+                d.line((lx - 2, ey + 1, mid, ey + droop + 2, right + 2, ey + 1), fill=FRAME[0], width=2)
+                d.line((lx, ey - 1, mid, ey + droop, right, ey - 1), fill=FRAME[2])
+                for x in range(lx + 3, right, 8): d.line((x, ey + 1, x + 2, ey + 3), fill=FRAME[1])
+                if self.wealth == 2:
+                    ridge_x = lx + (rx - ex) + roof_width // 2
+                    d.line((ridge_x, ry - 2, ridge_x, ry - 8), fill='#5a3827', width=2)
+                    d.point((ridge_x + 1, ry - 9), fill='#c49a45')
+
+    def european_roof_trim(self, d, pal, lx, ex, ey, rx, ry, roof_width):
+        """Regional ridge and verge craft for European pitched roofs."""
+        if not self.detail_set.startswith('europe'):
+            return
+        ridge_x = lx + (rx - ex)
+        right = ridge_x + roof_width - 1
+        if self.roof == 'thatch':
+            # A tied ridge roll and occasional weighted crooks, not a tile cap.
+            d.line((ridge_x, ry - 1, right, ry - 1), fill=self.thatch[3], width=2)
+            for x in range(ridge_x + 5, right - 3, 10):
+                d.line((x - 2, ry - 3, x, ry), fill=self.thatch[1])
+                d.line((x + 2, ry - 3, x, ry), fill=self.thatch[1])
+        else:
+            # Tile or stone ridge pieces read as overlapping caps rather than
+            # a perfectly machined stripe.
+            d.line((ridge_x, ry - 1, right, ry - 1), fill=pal[0], width=2)
+            for x in range(ridge_x + 2, right - 2, 6):
+                d.line((x, ry - 3, min(x + 4, right), ry - 3), fill=pal[3])
+                d.point((x + 4, ry - 2), fill=pal[1])
+        # Pegged or shaped bargeboards animate the visible rake on substantial
+        # town houses, without adding a false tower or changing the roof plane.
+        if self.detail_set in ('europe-town', 'europe-early-modern') and self.wealth > 0:
+            d.line((ex - 2, ey, rx - 2, ry - 1), fill=FRAME[1], width=2)
+            steps = max(2, (ey - ry) // 5)
+            for i in range(1, steps):
+                t = i / steps
+                x = round(ex + (rx - ex) * t) - 2
+                y = round(ey + (ry - ey) * t)
+                d.point((x - 1, y), fill=FRAME[2])
+                if self.wealth == 2 and i % 2:
+                    d.point((x - 2, y + 1), fill=self.accent)
+        if self.detail_set == 'europe-early-modern' and self.wealth == 2:
+            cx = ridge_x + roof_width // 2
+            d.line((cx, ry - 3, cx, ry - 8), fill=FRAME[0])
+            d.line((cx, ry - 8, cx + 4, ry - 7), fill='#c39a3d')
+
+    def service_roof_marker(self, d, pal):
+        """A small communal roof element, reserved for neighborhood halls."""
+        if self.service_style != 'neighborhood-hall':
+            return
+        cx, cy = self.proj(self.fw * .55, self.depth / 2, self.wh + self.rise)
+        if self.detail_set.startswith('europe'):
+            d.rectangle((cx - 6, cy - 12, cx + 6, cy - 3), fill=TIMBER[1], outline=TIMBER[0])
+            d.rectangle((cx - 2, cy - 10, cx + 2, cy - 5), fill='#25231d')
+            d.ellipse((cx - 1, cy - 9, cx + 1, cy - 5), fill='#b99449')
+            d.polygon([(cx - 9, cy - 12), (cx + 9, cy - 12), (cx, cy - 21)], fill=pal[2])
+            d.line((cx - 9, cy - 12, cx, cy - 21, cx + 9, cy - 12), fill=pal[0], width=2)
+            d.line((cx, cy - 21, cx, cy - 25), fill=TIMBER[0])
+            d.point((cx + 2, cy - 24), fill='#c9a23f')
+            return
+        d.rectangle((cx - 7, cy - 13, cx + 7, cy - 3), fill=self.p['wall'][2], outline=FRAME[0])
+        for x in (cx - 5, cx + 5): d.line((x, cy - 12, x, cy - 3), fill=FRAME[1], width=2)
+        d.polygon([(cx - 12, cy - 13), (cx + 12, cy - 13),
+                   (cx + 6, cy - 20), (cx - 5, cy - 20)], fill=pal[2])
+        d.line((cx - 12, cy - 13, cx + 12, cy - 13), fill=pal[0], width=2)
+        d.line((cx - 5, cy - 20, cx + 6, cy - 20), fill=pal[4], width=2)
+        d.line((cx - 13, cy - 13, cx - 16, cy - 16), fill=pal[3], width=2)
+        d.line((cx + 13, cy - 13, cx + 16, cy - 16), fill=pal[3], width=2)
+        d.line((cx, cy - 21, cx, cy - 25), fill=pal[0])
+        d.point((cx + 1, cy - 26), fill=self.accent)
+        # Communal East Asian halls carry a plaque and paired lanterns; this
+        # is a building-function marker, not a household shrine pasted onto
+        # every facade.
+        if self.detail_set in ('north-chinese', 'south-chinese', 'japanese', 'korean'):
+            d.rectangle((cx - 4, cy - 11, cx + 4, cy - 7), fill='#4a3022', outline='#c29a4a')
+            for dx in (-9, 9):
+                d.line((cx + dx, cy - 12, cx + dx, cy - 9), fill=FRAME[0])
+                d.ellipse((cx + dx - 2, cy - 9, cx + dx + 2, cy - 4), fill=self.accent, outline='#4c2922')
 
     # -- assembly -----------------------------------------------------------
 
@@ -793,6 +1152,15 @@ class ObliqueBuilding:
             d.point((ax + 10 + c, ty - c - 1), fill=shade)
         d.polygon([(ax, ty), (ax + 9, ty), (ax + 13, ty - 4), (ax + 4, ty - 4)], fill=light)
         d.polygon([(ax + 3, ty - 1), (ax + 8, ty - 1), (ax + 10, ty - 3), (ax + 5, ty - 3)], fill='#25221d')
+        if self.detail_set == 'europe-early-modern' and self.wealth == 2:
+            # Separate clay pots are a small but high-value early-modern
+            # skyline cue. They share one stack and therefore one smoke point.
+            for dx, tall in ((3, 6), (8, 8)):
+                d.rectangle((ax + dx, ty - tall, ax + dx + 3, ty - 3), fill='#8f4c36')
+                d.line((ax + dx - 1, ty - tall, ax + dx + 4, ty - tall), fill='#c77d56', width=2)
+                d.line((ax + dx + 3, ty - tall + 2, ax + dx + 3, ty - 3), fill='#533126')
+            self.smoke.append([ax + 10, ty - 10, 'chimney'])
+            return
         self.smoke.append([ax + 6, ty - 3, 'chimney'])
 
     def lean_to(self, pal):
@@ -980,6 +1348,8 @@ class ObliqueBuilding:
             shift = round((rows - 1 - min(r, rows - 1)) * lean / (rows - 1))
             im.alpha_composite(roof.crop((0, r, roof.width, r + 1)), (lx + shift, ry + r))
         self.regional_roof_trim(d, pal, lx, ex, ey, rx, ry, roof.width)
+        self.european_roof_trim(d, pal, lx, ex, ey, rx, ry, roof.width)
+        self.service_roof_marker(d, pal)
         d.line((ex - 1, ey - 1, rx - 1, ry), fill=pal[3])
 
         if self.wing: self.cross_wing(pal)

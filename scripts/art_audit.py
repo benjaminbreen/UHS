@@ -23,6 +23,7 @@ from art.quality.palette import registry, lookup                 # noqa: E402
 ATLASES = [
     ('packs', 'public/packs/atlas.png', 'public/packs/atlas.json'),
     ('buildings', 'public/packs/buildings.png', 'public/packs/buildings.json'),
+    ('regional-buildings', 'public/packs/regional-buildings.png', 'public/packs/regional-buildings.json'),
     ('props', 'public/props/atlas.png', 'public/props/atlas.json'),
 ]
 

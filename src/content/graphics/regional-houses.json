@@ -1,0 +1,305 @@
+{
+  "profiles": {
+    "roman-italian": {
+      "label": "Italian Roman",
+      "wall": "lime-plaster",
+      "roofMaterial": "pantile",
+      "windowStyle": "shutter",
+      "surfaceTreatments": ["roman-red-dado", "roman-ochre-panels", "limewash"],
+      "parapetStyle": "coping",
+      "accent": "#9b3f2f",
+      "motifStyle": "roman-panel",
+      "roofFeatures": ["cistern", "laundry", "terracotta-pots"]
+    },
+    "roman-north-african": {
+      "label": "North African Roman",
+      "wall": "cream-stucco",
+      "roofMaterial": "pantile",
+      "windowStyle": "shutter",
+      "surfaceTreatments": ["creamwash", "roman-red-dado", "limewash"],
+      "parapetStyle": "coping",
+      "accent": "#7d4935",
+      "motifStyle": "roman-panel",
+      "roofFeatures": ["cistern", "shade-frame", "terracotta-pots"]
+    },
+    "roman-eastern": {
+      "label": "Eastern Roman",
+      "wall": "field-stone",
+      "roofMaterial": "pantile",
+      "windowStyle": "shutter",
+      "surfaceTreatments": ["partial-limewash", "ochre-geometry", "bare-stone"],
+      "parapetStyle": "stone-coping",
+      "accent": "#91513b",
+      "motifStyle": "key-band",
+      "roofFeatures": ["cistern", "terracotta-pots", "shade-frame"]
+    },
+    "maghrebi": {
+      "label": "Maghrebi",
+      "wall": "white-plaster",
+      "roofMaterial": "earth",
+      "windowStyle": "lattice",
+      "surfaceTreatments": ["limewash", "creamwash", "red-earth-foot"],
+      "parapetStyle": "stepped",
+      "accent": "#315d65",
+      "motifStyle": "door-frame",
+      "roofFeatures": ["shade-frame", "laundry", "water-jars"],
+      "turretStyles": ["none", "corner-stair"]
+    },
+    "nile": {
+      "label": "Nile valley",
+      "wall": "mud-plaster",
+      "roofMaterial": "earth",
+      "windowStyle": "lattice",
+      "surfaceTreatments": ["earthwash", "creamwash", "white-band"],
+      "parapetStyle": "rounded",
+      "accent": "#335d68",
+      "motifStyle": "white-geometry",
+      "roofFeatures": ["palm-screen", "water-jars", "laundry"],
+      "turretStyles": ["none", "corner-stair"]
+    },
+    "levantine": {
+      "label": "Levantine",
+      "wall": "field-stone",
+      "roofMaterial": "earth",
+      "windowStyle": "shutter",
+      "surfaceTreatments": ["bare-stone", "partial-limewash", "creamwash"],
+      "parapetStyle": "stone-coping",
+      "accent": "#704337",
+      "motifStyle": "voussoir",
+      "roofFeatures": ["shade-frame", "water-jars", "cistern"],
+      "turretStyles": ["none", "corner-stair"]
+    },
+    "iranian": {
+      "label": "Iranian and Central Asian",
+      "wall": "ochre-plaster",
+      "roofMaterial": "earth",
+      "windowStyle": "lattice",
+      "surfaceTreatments": ["earthwash", "creamwash", "brick-reveal"],
+      "parapetStyle": "pierced",
+      "accent": "#2e7180",
+      "motifStyle": "glazed-spandrel",
+      "roofFeatures": ["windcatcher", "shade-frame", "water-jars"],
+      "turretStyles": ["none", "windcatcher"]
+    },
+    "arabian": {
+      "label": "Arabian",
+      "wall": "cream-stucco",
+      "roofMaterial": "earth",
+      "windowStyle": "lattice",
+      "surfaceTreatments": ["creamwash", "earthwash", "white-band"],
+      "parapetStyle": "screened",
+      "accent": "#6e4332",
+      "motifStyle": "door-frame",
+      "roofFeatures": ["palm-screen", "shade-frame", "water-jars"],
+      "turretStyles": ["none", "corner-stair"]
+    },
+    "north-chinese": {
+      "label": "North Chinese",
+      "detailSet": "north-chinese",
+      "wall": "grey-brick",
+      "roofMaterial": "giwa",
+      "roofStyle": "chinese",
+      "windowStyle": "wood-lattice",
+      "surfaceTreatments": ["grey-brick", "warm-grey-wash", "partial-limewash"],
+      "parapetStyle": "stone-coping",
+      "accent": "#9b3027",
+      "motifStyle": "red-gate",
+      "roofFeatures": ["ridge-finials", "plain", "roof-jars"]
+    },
+    "south-chinese": {
+      "label": "South Chinese",
+      "detailSet": "south-chinese",
+      "wall": "white-plaster",
+      "roofMaterial": "giwa",
+      "roofStyle": "chinese",
+      "windowStyle": "wood-lattice",
+      "surfaceTreatments": ["limewash", "warm-grey-wash", "dark-sill"],
+      "parapetStyle": "stone-coping",
+      "accent": "#704235",
+      "motifStyle": "moon-gate-band",
+      "roofFeatures": ["ridge-finials", "roof-jars", "plain"]
+    },
+    "japanese": {
+      "label": "Japanese machiya",
+      "detailSet": "japanese",
+      "wall": "half-timber",
+      "roofMaterial": "kawara",
+      "roofStyle": "kawara",
+      "windowStyle": "paper-lattice",
+      "frameStyle": "asian-post-beam",
+      "surfaceTreatments": ["soot-timber", "white-upper", "earth-plaster"],
+      "parapetStyle": "none",
+      "accent": "#304c60",
+      "motifStyle": "noren",
+      "roofFeatures": ["ridge-finials", "plain", "roof-jars"]
+    },
+    "korean": {
+      "label": "Korean hanok",
+      "detailSet": "korean",
+      "wall": "white-plaster",
+      "roofMaterial": "giwa",
+      "roofStyle": "giwa",
+      "windowStyle": "paper-lattice",
+      "frameStyle": "asian-post-beam",
+      "surfaceTreatments": ["limewash", "earth-plaster", "white-upper"],
+      "parapetStyle": "none",
+      "accent": "#49716b",
+      "motifStyle": "painted-beam",
+      "roofFeatures": ["ridge-finials", "plain", "roof-jars"]
+    },
+    "north-indian": {
+      "label": "North Indian",
+      "detailSet": "north-indian",
+      "wall": "lime-plaster",
+      "roofMaterial": "earth",
+      "windowStyle": "jali",
+      "surfaceTreatments": ["creamwash", "limewash", "red-earth-foot"],
+      "parapetStyle": "jali",
+      "accent": "#9a4935",
+      "motifStyle": "painted-border",
+      "roofFeatures": ["shade-frame", "water-jars", "laundry"],
+      "turretStyles": ["none", "corner-stair"]
+    },
+    "deccan": {
+      "label": "Deccan",
+      "detailSet": "deccan",
+      "wall": "field-stone",
+      "roofMaterial": "earth",
+      "windowStyle": "jali",
+      "surfaceTreatments": ["partial-limewash", "earthwash", "bare-stone"],
+      "parapetStyle": "stone-coping",
+      "accent": "#315d67",
+      "motifStyle": "carved-lintel",
+      "roofFeatures": ["shade-frame", "water-jars", "cistern"],
+      "turretStyles": ["none", "corner-stair"]
+    },
+    "bengali": {
+      "label": "Bengali",
+      "detailSet": "bengali",
+      "wall": "bengal-brick",
+      "roofMaterial": "bengal-tile",
+      "roofStyle": "bengal",
+      "windowStyle": "shutter",
+      "frameStyle": "asian-post-beam",
+      "surfaceTreatments": ["red-brick", "partial-limewash", "creamwash"],
+      "parapetStyle": "none",
+      "accent": "#37636a",
+      "motifStyle": "terracotta-band",
+      "roofFeatures": ["ridge-finials", "plain", "roof-jars"]
+    },
+    "malabar": {
+      "label": "Malabar and Kerala",
+      "detailSet": "malabar",
+      "wall": "white-plaster",
+      "roofMaterial": "pantile",
+      "roofStyle": "malabar",
+      "windowStyle": "wood-lattice",
+      "frameStyle": "asian-post-beam",
+      "surfaceTreatments": ["limewash", "red-earth-foot", "earth-plaster"],
+      "parapetStyle": "none",
+      "accent": "#5b3b2c",
+      "motifStyle": "carved-lintel",
+      "roofFeatures": ["ridge-finials", "plain", "roof-jars"]
+    }
+  },
+  "families": {
+    "roman-domus": {
+      "source": "house-roman-ob-0",
+      "label": "Courtyard domus",
+      "profiles": ["roman-italian", "roman-north-african", "roman-eastern"],
+      "function": "courtyard-household",
+      "description": "A Roman household arranged around an open court, with reception, work and sleeping rooms represented by a broad roof ring. Illustrative rather than a reconstruction of one excavated plan.",
+      "sizes": {
+        "medium": {"footprint": [10, 7], "entrance": 4, "stories": 1, "variants": 3, "seedOffset": 10100, "roofPlan": "courtyard", "courtyard": [3, 2, 4, 3], "roofAccess": "stairs", "functions": ["courtyard-household", "artisan-domus", "merchant-domus"]},
+        "large": {"footprint": [14, 10], "entrance": 6, "stories": 2, "variants": 2, "seedOffset": 10500, "roofPlan": "courtyard", "courtyard": [4, 3, 6, 4], "roofAccess": "stairs", "functions": ["elite-domus", "multi-household-domus"]}
+      }
+    },
+    "roman-insula": {
+      "source": "house-roman-ob-1",
+      "label": "Insula and taberna range",
+      "profiles": ["roman-italian", "roman-north-african", "roman-eastern"],
+      "function": "mixed-use-housing",
+      "description": "A street range of shops, workshops and upper-floor rooms, scaled as a substantial urban building rather than a single cottage. Illustrative.",
+      "sizes": {
+        "medium": {"footprint": [8, 6], "entrance": 3, "stories": 2, "variants": 3, "seedOffset": 10900, "roofPlan": "ridge", "roofAccess": "internal-stairs", "attachments": ["urban-shop"], "functions": ["mixed-use-housing", "workshop-range", "rental-housing"]},
+        "large": {"footprint": [12, 8], "entrance": 5, "stories": 3, "variants": 2, "seedOffset": 11300, "roofPlan": "ridge", "roofAccess": "internal-stairs", "attachments": ["urban-shop"], "arcade": true, "functions": ["market-insula", "mixed-use-insula"]}
+      }
+    },
+    "westasian-courtyard": {
+      "source": "house-aegean-1",
+      "label": "Courtyard terrace house",
+      "profiles": ["maghrebi", "nile", "levantine", "iranian", "arabian"],
+      "function": "courtyard-household",
+      "description": "An inward-looking household with rooms around a court and a usable roof terrace. Regional materials, screens and parapets are profile-driven; the plan is illustrative.",
+      "sizes": {
+        "small": {"footprint": [6, 4], "entrance": 2, "stories": 1, "variants": 3, "seedOffset": 11700, "roofPlan": "terrace", "roofAccess": "ladder", "functions": ["compact-household", "artisan-household", "shop-house"]},
+        "medium": {"footprint": [9, 7], "entrance": 4, "stories": 2, "variants": 3, "seedOffset": 12100, "roofPlan": "courtyard", "courtyard": [3, 2, 3, 3], "roofAccess": "stairs", "functions": ["courtyard-household", "merchant-courtyard", "extended-family-compound"]},
+        "large": {"footprint": [13, 9], "entrance": 6, "stories": 3, "variants": 2, "seedOffset": 12500, "roofPlan": "courtyard", "courtyard": [4, 3, 5, 3], "roofAccess": "stairs", "functions": ["elite-courtyard-compound", "caravan-merchant-house"]}
+      }
+    },
+    "eastasian-courtyard": {
+      "source": "study-courtyard",
+      "label": "Courtyard compound",
+      "profiles": ["north-chinese", "south-chinese", "korean"],
+      "function": "courtyard-household",
+      "description": "A low compound of halls and rooms around an open court, using profile-specific masonry, timber, screens and tile. It is a historically informed type rather than one surveyed plan.",
+      "sizes": {
+        "medium": {"footprint": [10, 8], "entrance": 4, "stories": 1, "variants": 3, "wealthTiers": [0, 1, 2], "seedOffset": 13100, "roofPlan": "tiled-courtyard", "courtyard": [3, 2, 4, 4], "roofAccess": "internal-stairs", "functions": ["courtyard-household", "artisan-compound", "scholar-household"]},
+        "large": {"footprint": [14, 11], "entrance": 6, "stories": 2, "profileStories": {"north-chinese": 1, "south-chinese": 1, "korean": 1}, "variants": 2, "wealthTiers": [2, 1], "seedOffset": 13500, "roofPlan": "tiled-courtyard", "courtyard": [4, 3, 6, 5], "roofAccess": "internal-stairs", "functions": ["elite-courtyard-compound", "multi-household-compound"]}
+      }
+    },
+    "eastasian-row": {
+      "source": "house-cottage-timber-0",
+      "label": "Merchant and workshop range",
+      "profiles": ["north-chinese", "south-chinese", "japanese"],
+      "function": "mixed-use-housing",
+      "description": "A deep urban street range combining shop, workshop, storage and upper rooms under a strongly articulated tiled roof. Illustrative and profile-driven.",
+      "sizes": {
+        "medium": {"footprint": [8, 5], "entrance": 3, "stories": 2, "variants": 3, "wealthTiers": [1, 0, 2], "seedOffset": 13900, "roofPlan": "ridge", "roofAccess": "internal-stairs", "attachments": ["urban-shop"], "functions": ["merchant-house", "workshop-range", "shop-house"]},
+        "large": {"footprint": [12, 7], "entrance": 5, "stories": 3, "variants": 2, "wealthTiers": [2, 1], "seedOffset": 14300, "roofPlan": "ridge", "roofAccess": "internal-stairs", "attachments": ["urban-shop"], "functions": ["merchant-warehouse", "mixed-use-row"]}
+      }
+    },
+    "eastasian-service": {
+      "source": "house-cottage-timber-0",
+      "label": "Neighborhood service building",
+      "profiles": ["north-chinese", "south-chinese", "japanese", "korean"],
+      "function": "service-building",
+      "description": "A small storehouse, workshop, gate range or neighborhood devotional or ancestral hall selected from the local profile. These illustrative forms remain subordinate to major civic and religious landmarks.",
+      "sizes": {
+        "small": {"footprint": [5, 3], "entrance": 2, "stories": 1, "variants": 4, "wealthTiers": [0, 1, 1, 2], "seedOffset": 14550, "roofPlan": "ridge", "roofAccess": "none", "serviceStyles": ["storehouse", "workshop", "gatehouse", "neighborhood-hall"], "functions": ["storehouse", "craft-workshop", "compound-gate", "neighborhood-hall"]}
+      }
+    },
+    "southasian-courtyard": {
+      "source": "house-aegean-1",
+      "label": "Haveli and courtyard house",
+      "profiles": ["north-indian", "deccan"],
+      "function": "courtyard-household",
+      "description": "An inward-looking urban household or haveli with rooms, work space and upper accommodation around a court. Regional finishes are illustrative, not a claim of one universal Indian form.",
+      "sizes": {
+        "medium": {"footprint": [9, 7], "entrance": 4, "stories": 2, "variants": 3, "wealthTiers": [0, 1, 2], "seedOffset": 14700, "roofPlan": "courtyard", "courtyard": [3, 2, 3, 3], "roofAccess": "stairs", "functions": ["courtyard-household", "artisan-haveli", "merchant-haveli"]},
+        "large": {"footprint": [13, 10], "entrance": 6, "stories": 3, "variants": 2, "wealthTiers": [2, 1], "seedOffset": 15100, "roofPlan": "courtyard", "courtyard": [4, 3, 5, 4], "roofAccess": "stairs", "functions": ["elite-haveli", "multi-household-haveli"]}
+      }
+    },
+    "southasian-monsoon": {
+      "source": "house-cottage-timber-0",
+      "label": "Monsoon courtyard and veranda house",
+      "profiles": ["bengali", "malabar"],
+      "function": "veranda-household",
+      "description": "A broad rain-country household with deep eaves, ventilated openings and a tiled or brick roof, resolved separately for Bengal and the Malabar coast. Illustrative.",
+      "sizes": {
+        "medium": {"footprint": [8, 5], "entrance": 3, "stories": 1, "variants": 3, "wealthTiers": [0, 1, 2], "seedOffset": 15500, "roofPlan": "hip", "roofAccess": "ladder", "functions": ["veranda-household", "artisan-household", "farmhouse"]},
+        "large": {"footprint": [11, 7], "entrance": 5, "stories": 2, "variants": 2, "wealthTiers": [2, 1], "seedOffset": 15900, "roofPlan": "hip", "roofAccess": "internal-stairs", "functions": ["merchant-courtyard-house", "extended-family-house"]}
+      }
+    },
+    "southasian-service": {
+      "source": "house-aegean-0",
+      "label": "Neighborhood service building",
+      "profiles": ["north-indian", "deccan", "bengali", "malabar"],
+      "function": "service-building",
+      "description": "A small granary, weaving or craft shed, market pavilion or local devotional building using the profile's fabric. Religion-specific major landmarks remain selected by place and date.",
+      "sizes": {
+        "small": {"footprint": [5, 3], "entrance": 2, "stories": 1, "variants": 4, "wealthTiers": [0, 1, 1, 2], "seedOffset": 16300, "roofPlan": "hip", "roofAccess": "none", "serviceStyles": ["granary", "workshop", "market-pavilion", "devotional-hall"], "functions": ["granary", "weaving-workshop", "market-pavilion", "devotional-hall"]}
+      }
+    }
+  }
+}

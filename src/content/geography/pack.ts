@@ -4,6 +4,12 @@ import { treeMix } from "../ecology/vegetation";
 import { civicProfile } from "../settlements/civic";
 import { packTemplates } from "../legacy-packs";
 import { landscapes } from "../graphics/landscapes";
+import {
+  eastAsianRegionalHouses,
+  romanRegionalHouses,
+  southAsianRegionalHouses,
+  westAsianRegionalHouses,
+} from "../graphics/regional-houses";
 import { formatHistoricalYear } from "../../core/calendar";
 import type { Pack } from "../../core/types";
 import type { WorldSetting } from "./types";
@@ -180,6 +186,11 @@ function prehistoricBuildings(setting: WorldSetting): string[] | undefined {
     "house-aegean-expanded-medium-1",
     "house-aegean-expanded-large-0",
   ];
+  const neolithicServices = [
+    "neolithic-service-gold-small-0",
+    "neolithic-service-gold-small-1",
+    "neolithic-service-gold-small-2",
+  ];
   if (culture === "north-african-west-asian") return mudbrick;
   if (architecture === "shelter") {
     if (culture === "australian-pacific") return;
@@ -204,6 +215,7 @@ function prehistoricBuildings(setting: WorldSetting): string[] | undefined {
             "house-longhouse-gold-medium-1",
             "house-longhouse-gold-large-0",
             "house-round-2",
+            ...neolithicServices,
           ]
         : [...round, ...stoneRound];
     case "east-asian":
@@ -235,20 +247,50 @@ export function packForSetting(setting: WorldSetting): Pack {
     (setting.settlement === "city" || setting.settlement === "port");
   const period = periodBuildings(setting).map((b) => `period-${b}`);
   const prehistoric = prehistoricBuildings(setting);
+  const romanRegional =
+    architecture === "classical" && setting.year < 700
+      ? romanRegionalHouses(setting)
+      : [];
+  const westAsianRegional =
+    setting.culture === "north-african-west-asian" &&
+    setting.year >= -800 &&
+    setting.year < 1900 &&
+    architecture !== "classical"
+      ? westAsianRegionalHouses(setting)
+      : [];
+  const eastAsianRegional =
+    setting.culture === "east-asian" &&
+    setting.year >= -200 &&
+    setting.year < 1900
+      ? eastAsianRegionalHouses(setting)
+      : [];
+  const southAsianRegional =
+    setting.culture === "south-asian" &&
+    setting.year >= -600 &&
+    setting.year < 1900
+      ? southAsianRegionalHouses(setting)
+      : [];
   const buildings = prehistoric
     ? prehistoric
     : modernCity
       ? modernBuildings(setting)
+      : romanRegional.length
+        ? [
+            "house-roman-ob-0",
+            "house-roman-ob-1",
+            "house-roman-ob-2",
+            "house-roman-ob-3",
+            ...romanRegional,
+          ]
+        : westAsianRegional.length
+          ? westAsianRegional
+          : eastAsianRegional.length
+            ? eastAsianRegional
+            : southAsianRegional.length
+              ? southAsianRegional
       : architecture === "shelter"
         ? ["shelter-hide", "shelter-reed"]
-        : architecture === "classical" && setting.year < 700
-          ? [
-              "house-roman-ob-0",
-              "house-roman-ob-1",
-              "house-roman-ob-2",
-              "house-roman-ob-3",
-            ]
-          : setting.culture === "european" &&
+        : setting.culture === "european" &&
               setting.climate === "mediterranean" &&
               setting.year >= 700 &&
               setting.year < 1800
@@ -270,6 +312,10 @@ export function packForSetting(setting: WorldSetting): Pack {
                   "house-early-stucco-gold-medium-0",
                   "house-early-stucco-gold-medium-1",
                   "house-early-stucco-gold-large-0",
+                  "europe-service-gold-small-0",
+                  "europe-service-gold-small-1",
+                  "europe-service-gold-small-2",
+                  "europe-service-gold-small-3",
                 ]
               : architecture === "timber" &&
                   setting.culture === "european" &&
@@ -286,6 +332,10 @@ export function packForSetting(setting: WorldSetting): Pack {
                     "house-cottage-timber-gold-medium-0",
                     "house-cottage-timber-gold-medium-1",
                     "house-cottage-timber-gold-large-0",
+                    "europe-service-gold-small-0",
+                    "europe-service-gold-small-1",
+                    "europe-service-gold-small-2",
+                    "europe-service-gold-small-3",
                   ]
                 : architecture === "timber" &&
                     // Thatch is the ordinary roof over a timber frame until early

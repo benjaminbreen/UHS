@@ -77,6 +77,11 @@ export function chooseBuildingScale(
         (buildingModels[frame] as { prehistoricExpansion?: string } | undefined)
           ?.prehistoricExpansion,
     );
+  const regionalHouse = frames.some(
+    (frame) =>
+      (buildingModels[frame] as { regionalHouse?: string } | undefined)
+        ?.regionalHouse,
+  );
   const available = (["small", "medium", "large"] as const).filter((scale) =>
     frames.some((frame) => buildingScale(frame) === scale),
   );
@@ -88,7 +93,13 @@ export function chooseBuildingScale(
         : scale === "medium"
           ? 4
           : 1
-      : 1);
+      : regionalHouse
+        ? scale === "small"
+          ? 0.45
+          : scale === "medium"
+            ? 1.45
+            : 2.5
+        : 1);
   const total = available.reduce(
     (sum, scale) => sum + weight(scale),
     0,
