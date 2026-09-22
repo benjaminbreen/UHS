@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[2]
 
 def main():
     rows = [('oak', [3, 1, 4, 2]), ('painted', [0, 7, 8, 10]),
-            ('iron', [4, 8, 9, 11]), ('lacquer', [9, 0, 12, 5]),
+            ('lacquer', [9, 0, 12, 5]),
             ('split', [0, 12, 9, 13]), ('pennant', [12, 10, 3, 7]),
             ('bazaar', [0, 1, 5, 11])]
     out = Image.new('RGB', (1000, 1120), '#20272a'); d = ImageDraw.Draw(out)

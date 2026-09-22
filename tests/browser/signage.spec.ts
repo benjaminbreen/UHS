@@ -1,17 +1,16 @@
 import { expect, test } from "@playwright/test";
 
-test("compact signs render all regional frames and directional shadows", async ({
+test("trade signs render all regional frames and directional shadows", async ({
   page,
 }) => {
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto("/prop-lab");
-  await page.getByLabel("Find a prop").fill("Compact sign");
-  await expect(page.locator(".prop-card")).toHaveCount(7);
+  await page.getByLabel("Find a prop").fill("Trade sign");
+  await expect(page.locator(".prop-card")).toHaveCount(6);
   for (const style of [
     "oak",
     "painted",
-    "iron",
     "lacquer",
     "split",
     "pennant",
@@ -43,9 +42,9 @@ test("compact signs render all regional frames and directional shadows", async (
 
 for (const [query, style, slug] of [
   ["London 1308", "oak", "london"],
-  ["Beijing 1880", "lacquer", "beijing"],
+  ["Beijing 1700", "lacquer", "beijing"],
 ])
-  test(`${query} uses compact trade signs beside clear entrances`, async ({
+  test(`${query} uses trade signs beside clear entrances`, async ({
     page,
   }) => {
     test.setTimeout(180000);
@@ -88,10 +87,8 @@ for (const [query, style, slug] of [
         places: places.length,
         bad: bad.length,
         sprites: signs.map((o: any) => o.sprite),
-        revision: e.state.manifest.setting.signageRevision,
       };
     });
-    expect(result.revision).toBe(1);
     expect(result.count).toBeGreaterThan(0);
     expect(result.count).toBeLessThan(result.places / 2);
     expect(result.bad).toBe(0);

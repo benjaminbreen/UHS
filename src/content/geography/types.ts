@@ -69,7 +69,6 @@ export type WaterNeighbour = {
 export const settingSchema = z
   .object({
     version: z.literal(2),
-    signageRevision: z.literal(1).optional(),
     situation: situationSchema.optional(),
     // 1 is the scoped hand-written kits; 2 adds the ported naming
     // traditions and the capability-gated workforce.

@@ -1990,11 +1990,11 @@
     },
     {
       "id": "signpost-oak",
-      "name": "Compact sign / oak",
+      "name": "Trade sign / oak",
       "group": "Street furniture",
       "size": [
-        23,
-        37
+        27,
+        40
       ],
       "description": "A slim freestanding post and a single bold trade glyph. Shared ground anchor; no wall attachment. Interpretive game prop.",
       "variants": [
@@ -2018,39 +2018,11 @@
     },
     {
       "id": "signpost-painted",
-      "name": "Compact sign / painted",
+      "name": "Trade sign / painted",
       "group": "Street furniture",
       "size": [
-        23,
-        37
-      ],
-      "description": "A slim freestanding post and a single bold trade glyph. Shared ground anchor; no wall attachment. Interpretive game prop.",
-      "variants": [
-        "Jug",
-        "Shears",
-        "Hammer",
-        "Loaf",
-        "Boot",
-        "Jar",
-        "Bell",
-        "Fish",
-        "Book",
-        "Tea cup",
-        "Mortar",
-        "Scales",
-        "Cloth",
-        "Bath",
-        "Stage",
-        "Dice"
-      ]
-    },
-    {
-      "id": "signpost-iron",
-      "name": "Compact sign / iron",
-      "group": "Street furniture",
-      "size": [
-        23,
-        37
+        27,
+        40
       ],
       "description": "A slim freestanding post and a single bold trade glyph. Shared ground anchor; no wall attachment. Interpretive game prop.",
       "variants": [
@@ -2074,11 +2046,11 @@
     },
     {
       "id": "signpost-lacquer",
-      "name": "Compact sign / lacquer",
+      "name": "Trade sign / lacquer",
       "group": "Street furniture",
       "size": [
-        23,
-        37
+        27,
+        40
       ],
       "description": "A slim freestanding post and a single bold trade glyph. Shared ground anchor; no wall attachment. Interpretive game prop.",
       "variants": [
@@ -2102,11 +2074,11 @@
     },
     {
       "id": "signpost-split",
-      "name": "Compact sign / split",
+      "name": "Trade sign / split",
       "group": "Street furniture",
       "size": [
-        23,
-        37
+        27,
+        40
       ],
       "description": "A slim freestanding post and a single bold trade glyph. Shared ground anchor; no wall attachment. Interpretive game prop.",
       "variants": [
@@ -2130,11 +2102,11 @@
     },
     {
       "id": "signpost-pennant",
-      "name": "Compact sign / pennant",
+      "name": "Trade sign / pennant",
       "group": "Street furniture",
       "size": [
-        23,
-        37
+        27,
+        40
       ],
       "description": "A slim freestanding post and a single bold trade glyph. Shared ground anchor; no wall attachment. Interpretive game prop.",
       "variants": [
@@ -2158,11 +2130,11 @@
     },
     {
       "id": "signpost-bazaar",
-      "name": "Compact sign / bazaar",
+      "name": "Trade sign / bazaar",
       "group": "Street furniture",
       "size": [
-        23,
-        37
+        27,
+        40
       ],
       "description": "A slim freestanding post and a single bold trade glyph. Shared ground anchor; no wall attachment. Interpretive game prop.",
       "variants": [
@@ -2182,6 +2154,129 @@
         "Bath",
         "Stage",
         "Dice"
+      ]
+    },
+    {
+      "id": "saint-niche",
+      "name": "Saint's shrine",
+      "size": [
+        27,
+        43
+      ],
+      "group": "Street furniture",
+      "description": "Small settlement detail. Place and date are selected by regional content; examples are inferred arrangements rather than replicas.",
+      "variants": [
+        "Timber image shrine",
+        "Stone niche",
+        "Madonna and child"
+      ]
+    },
+    {
+      "id": "burial-stone",
+      "name": "Muslim grave markers",
+      "size": [
+        29,
+        32
+      ],
+      "group": "Street furniture",
+      "description": "Small settlement detail. Place and date are selected by regional content; examples are inferred arrangements rather than replicas.",
+      "variants": [
+        "Pointed, north-south",
+        "Pointed, east-west",
+        "Plain, north-south",
+        "Plain, east-west",
+        "Ottoman, north-south",
+        "Ottoman, east-west"
+      ]
+    },
+    {
+      "id": "newsstand",
+      "name": "Newspaper stand",
+      "size": [
+        38,
+        42
+      ],
+      "group": "Street furniture",
+      "description": "Small settlement detail. Place and date are selected by regional content; examples are inferred arrangements rather than replicas.",
+      "variants": [
+        "Open paper rack",
+        "Canvas canopy",
+        "Painted kiosk"
+      ]
+    },
+    {
+      "id": "street-fountain",
+      "name": "Roman street fountain",
+      "size": [
+        35,
+        34
+      ],
+      "group": "Street furniture",
+      "description": "Small settlement detail. Place and date are selected by regional content; examples are inferred arrangements rather than replicas.",
+      "variants": [
+        "Pale limestone",
+        "Warm stone",
+        "Dark stone"
+      ]
+    },
+    {
+      "id": "street-notice",
+      "name": "Public notice board",
+      "size": [
+        33,
+        38
+      ],
+      "group": "Street furniture",
+      "description": "Small settlement detail. Place and date are selected by regional content; examples are inferred arrangements rather than replicas.",
+      "variants": [
+        "Whitened tablet",
+        "Printed broadsides",
+        "Sheltered notices"
+      ]
+    },
+    {
+      "id": "jizo",
+      "name": "Roadside Jizo",
+      "size": [
+        26,
+        34
+      ],
+      "group": "Street furniture",
+      "description": "Small settlement detail. Place and date are selected by regional content; examples are inferred arrangements rather than replicas.",
+      "variants": [
+        "Plain stone",
+        "Red bib",
+        "Timber shelter"
+      ]
+    },
+    {
+      "id": "market-display",
+      "name": "Merchant's display",
+      "size": [
+        35,
+        26
+      ],
+      "group": "Street furniture",
+      "description": "Small settlement detail. Place and date are selected by regional content; examples are inferred arrangements rather than replicas.",
+      "variants": [
+        "Spice bowls",
+        "Folded cloth",
+        "Produce baskets"
+      ]
+    },
+    {
+      "id": "water-station",
+      "name": "Shaded drinking jars",
+      "size": [
+        35,
+        33
+      ],
+      "group": "Street furniture",
+      "description": "Small settlement detail. Place and date are selected by regional content; examples are inferred arrangements rather than replicas.",
+      "variants": [
+        "Red clay",
+        "Buff clay",
+        "Open ledge"
       ]
     }
   ]

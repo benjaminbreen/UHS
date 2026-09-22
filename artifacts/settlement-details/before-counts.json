@@ -1,0 +1,26 @@
+{
+  "london-1308": {
+    "buildings": 72,
+    "scales": 10
+  },
+  "rome-99bce": {
+    "buildings": 74,
+    "scales": 9
+  },
+  "kyoto-1700": {
+    "buildings": 80,
+    "scales": 9
+  },
+  "guadalajara-1599": {
+    "buildings": 176,
+    "scales": 16
+  },
+  "istanbul-1700": {
+    "buildings": 119,
+    "scales": 24
+  },
+  "new-york-1910": {
+    "buildings": 8,
+    "scales": 0
+  }
+}

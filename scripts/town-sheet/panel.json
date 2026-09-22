@@ -144,5 +144,20 @@
     "name": "camp-forest",
     "query": "tribal gathering in the forest",
     "radius": 32
+  },
+  {
+    "name": "guadalajara-1599",
+    "query": "Guadalajara 1599",
+    "radius": 40
+  },
+  {
+    "name": "istanbul-1700",
+    "query": "Istanbul 1700",
+    "radius": 40
+  },
+  {
+    "name": "new-york-1910",
+    "query": "New York 1910",
+    "radius": 40
   }
 ]

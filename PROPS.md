@@ -51,36 +51,49 @@ to something the plan placed. The drying rack is the worked example.
 The same three pieces — a planned object, stations that visit it, one boolean
 the engine writes — are what any other worked prop needs.
 
-### Compact trade signs
+### Trade signs
 
-New settings pin `signageRevision: 1`. `src/content/props/signage.ts` selects a
-small freestanding frame by place/date and a separate glyph by trade or venue.
-The seven builds are oak, painted wood, enamel on iron, lacquered vertical
-boards, split indigo cloth, pennants and fringed bazaar cloth. Sixteen shared
-hand-authored glyphs identify drinks, tailoring, metalwork, bread, shoes, pots,
-bells, fish, books, tea, pharmacy, civic assemblies, textiles, baths, stages
-and gaming. Tea and wine use compact 茶 / 酒 characters on lacquer boards.
-These are interpretive game conventions, not a catalogue of attested signs.
+`src/content/props/signage.ts` picks a frame by place and date and a glyph by
+trade or venue. Signs are premodern only: none in Europe from 1800, none
+elsewhere from 1870. Each region has its own construction:
 
-`scripts/art/props_b/signposts.py` draws the final pixels directly: a 21×37
-silhouette, 13–15px panel, 3px post, 1px hangers and one high-contrast glyph.
-The panel gets a quiet field and lit edges rather than grain behind the mark.
-The anchor is the post foot; a one-cell right-side visual reserve protects the
-hanging panel. Signs occupy their base cell but never a door or its approach.
-They use the ordinary prop atlas and directional shadow pipeline, without
-runtime scaling or culture branches in the renderer.
+- **oak** (Europe 1100–1499): timber gallows with a knee brace, board on chains.
+- **painted** (Europe 1500–1799): wrought-iron scroll arm, gilt-framed board.
+- **lacquer** (China, Korea): standing black-lacquer panel in a red frame on
+  stone feet, under a tiled cap.
+- **split** (Japan): indigo noren on a bamboo stand, slit below the mark.
+- **pennant** (South and Southeast Asia): tall bamboo pole, swallowtail banner.
+- **bazaar** (West Asia, Inner Eurasia, Ottoman lands after 1453):
+  kilim-bordered cloth on a pole, fringed.
 
-Most household workshops stay unsigned; eligible trade homes have a one-in-five
-chance, explicit shops may be signed, and neighboring optional signs keep four
-tiles of separation. Named indoor venues get a functional marker when supported.
-Sacred places retain their scoped existing markers; no universal religious
-shop symbol is added. Camps and farms receive no commercial signs. Ancient
-settings do not borrow the medieval post; their existing architecture and goods
-remain the cues. Old settings retain the previous selection and sprite keys.
+Only trades with a mark of their own get a sign. A generic shopkeeper,
+merchant or trader gets none. Named shops are signed half the time, other
+trades 15%, and venues always. Signs keep four tiles apart, and the same glyph
+fourteen. Tea and wine use 茶 / 酒 on Chinese and Japanese boards. These are
+game conventions, not a catalogue of attested signs.
 
-Review actual pixels with `python3 scripts/art/signpost_sheet.py`, or search
-“Compact sign” in Prop Lab. The sheet includes the current adult, native-size
-samples, enlarged details and the previous sign for comparison.
+Review pixels with `python3 scripts/art/signpost_sheet.py` or search "Trade
+sign" in Prop Lab.
+
+### Settlement details
+
+`src/content/props/settlement-details/` holds small dated details, one file per
+region, placed by `placeSettlementDetails` after the yard props. Each rule sets
+a density (one per N buildings), a cap and a minimum spacing, and may require a
+trade in the building's name.
+
+- Europe: wayside saint's shrines (medieval West; later Catholic regions only),
+  Roman fountains and notice tablets, printed broadsides 1550–1950.
+- West Asia: goods displays at merchants' doors, shaded drinking jars, and one
+  small burial plot per town, four graves aligned to the qibla on the grid,
+  with a turbaned stone in Ottoman lands.
+- East Asia: roadside Jizō in Japan, sheltered notices elsewhere, shopfront goods.
+- South and Southeast Asia: water pots, cloth and spice displays.
+- Americas: colonial devotional niches and plaza goods; US newsstands and
+  bulletin boards 1880–1950.
+
+Beam scales are rare: a merchant-type building, an 8% roll, and 24 tiles from
+the next scale.
 
 ### Legacy Asian street furniture
 

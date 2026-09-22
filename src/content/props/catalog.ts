@@ -1,4 +1,5 @@
 import { signpostDefs } from "./signage";
+import { detailProps } from "./settlement-details";
 import { urbanProps } from "./urban";
 import type { Inventory, Point } from "../../core/types";
 import type { ShoveDef } from "../../core/shove";
@@ -65,6 +66,7 @@ export function propVisualCells(key: string, at: Point): Point[] {
 }
 export const propDefs: Record<string, PropDef> = {
   ...signpostDefs,
+  ...detailProps,
   ...urbanProps,
   hideBag: {
     solid: true,

@@ -18,6 +18,7 @@ from .granary import GRANARY
 from .asia import ASIA
 from .signs import SIGNS
 from .signposts import SIGNPOSTS
+from .settlement_details import DETAILS
 from .civic import CIVIC
 from .market import MARKET
 from .stores import STORES
@@ -73,6 +74,7 @@ DRAW_B = {
  **ASIA,
  **SIGNS,
  **SIGNPOSTS,
+ **DETAILS,
  **CIVIC,
  **MARKET,
  **REGIONAL,
@@ -89,6 +91,7 @@ DRAW_B.update(SACRED)
 # Round ones are left alone: a barrel looks the same from every side.
 OBLIQUE = ['crate', 'crate-stack', 'woodpile', 'trough', 'strapped-chest', 'bench',
            'stall-trestle', 'stall-awning', 'stall-booth', 'stall-cart', 'stall-modern',
+           'saint-niche', 'newsstand', 'street-fountain', 'street-notice', 'market-display', 'water-station',
            'farm-cart', 'privy-shed', 'privy-stone', 'privy-outhouse', 'granary-staddle', 'granary-stilt']
 
 

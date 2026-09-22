@@ -13,22 +13,15 @@ import { venueOfClaim } from "../venues";
 import bFamilies from "../../render/generated/props-b.json" with { type: "json" };
 import { buildingRoofCells } from "../graphics/models";
 
-import {
-  legacyEmblemFor,
-  legacySignFor,
-  signFor,
-  emblemFor,
-  signLabels,
-} from "./signage";
+import { signFor, emblemFor, signLabels } from "./signage";
+import { rareScale } from "./settlement-details";
+import { placeSettlementDetails } from "./settlement-details/place";
 
 const redrawn = new Set<string>(bFamilies);
 /** The one fitting a trade cannot work without. Keyed off the building's own
  * name, which is where the generator records the household's trade. */
-function tradeFitting(name: string, year: number, balance: boolean) {
-  // Everything an Old World market sold went over a balance first. A
-  // redistributive economy without markets had no use for one.
-  if (balance && /market|grocer|trader|merchant|shop|apothec|spice/i.test(name))
-    return "beamScale";
+function tradeFitting(name: string, year: number, scale: boolean) {
+  if (scale) return "beamScale";
   if (/smith|forge|founder|farrier/i.test(name))
     return year >= -1199 ? "anvil" : undefined;
   if (/weav|loom|spin|cloth|draper|fuller/i.test(name))
@@ -75,10 +68,10 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
   const kit = propKit(world.pack),
     done = new Set<string>(),
     places = new Set<string>(),
-    privies: Position[] = [];
+    privies: Position[] = [],
+    scales: Position[] = [];
   const tech = techFor(world.pack);
-  const compactSigns = world.pack.setting?.signageRevision === 1;
-  const sign = compactSigns ? signFor(world.pack) : legacySignFor(world.pack);
+  const sign = signFor(world.pack);
   const doorway = doorwayFor(world.pack);
   const urbanPack =
     world.pack.setting?.settlement === "city" ||
@@ -195,8 +188,10 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
     }
     return false;
   };
+  const reserved = new Set<string>();
   const usable = (p: Position, ignore?: string, prop?: string) =>
     !world.blocked(p.x, p.y, p.space) &&
+    !reserved.has(at(p)) &&
     !(p.space === "outside" && world.protectedCell?.(p.x, p.y)) &&
     !occupied(p, ignore, prop) &&
     !actorsAt.has(at(p)) &&
@@ -389,7 +384,13 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
         // names a trade that needs one; otherwise tools, otherwise the yard.
         const fitting =
           slot === 0
-            ? tradeFitting(b.name, world.pack.year, tech.balance)
+            ? tradeFitting(
+                b.name,
+                world.pack.year,
+                tech.balance &&
+                  rareScale(b.name, random(seed, "scale", b.id)) &&
+                  scales.every((p) => Math.hypot(p.x - b.x, p.y - b.y) >= 24),
+              )
             : undefined;
         const works = worksite.test(`${b.name} ${b.entranceLabel}`);
         const tools =
@@ -411,70 +412,44 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
         if (!pos) break;
         o.pos = pos;
         stamp(o, chosen);
+        if (chosen === "beamScale") scales.push(pos);
         world.initialObjects.push(o);
         index(o);
         done.add(o.id);
       }
       const venue = venueOfClaim(b.claim);
-      // The owner's own trade, which is what the board is for. A livelihood
-      // where the generator set one, the role label where it did not.
       const owner = actorById.get(b.owner);
-      const emblem = (compactSigns ? emblemFor : legacyEmblemFor)(
+      const emblem = emblemFor(
         venue?.kind,
         owner?.origin?.livelihood,
         owner?.role,
         b.name,
       );
       if (sign || venue || doorway !== undefined) {
-        // Most household workshops stay unsigned.
+        // Most household workshops stay unsigned; a named shop is signed only
+        // when its trade has a mark of its own.
         const trades =
-          (emblem !== undefined && random(seed, "board", b.id) < 0.2) ||
-          // Whole words: "workshop" is not a shop, and a board on every
-          // craftsman's back room is how a street becomes wallpaper.
-          /\b(shop|market|grocer|trader|merchant|stall|apothecary|tea)\b/i.test(
-            b.name,
-          );
-        const byTrade =
-          compactSigns ||
-          sign?.key === "shopSignEuro" ||
-          sign?.key === "shopSignSouk";
-        const boardable = sign && (!byTrade || emblem !== undefined);
-        const nearbySign =
-          compactSigns &&
-          world.initialObjects.some(
-            (o) =>
-              o.prop?.startsWith("signpost-") &&
-              Math.hypot(o.pos.x - b.entrance.x, o.pos.y - b.entrance.y) < 4,
-          );
-        const legacyWanted = venue
-          ? venue.sign === "board"
-            ? boardable
-              ? sign?.key
-              : undefined
-            : venue.sign === "lantern" && doorway !== undefined
+          emblem !== undefined &&
+          random(seed, "board", b.id) <
+            // Whole words: "workshop" is not a shop.
+            (/\b(shop|market|stall|apothecary|tea)\b/i.test(b.name) ? 0.5 : 0.15);
+        const boardable = !!sign && emblem !== undefined;
+        // Signs keep apart, and the same mark further apart still: a row
+        // of identical tea boards reads as wallpaper.
+        const nearbySign = world.initialObjects.some((o) => {
+          if (!o.prop?.startsWith("signpost-")) return false;
+          const d = Math.hypot(o.pos.x - b.entrance.x, o.pos.y - b.entrance.y);
+          return d < 4 || (d < 14 && o.sprite.endsWith(`-${emblem}`));
+        });
+        const wanted = venue?.marker
+          ? "marker"
+          : venue && !venue.open && boardable
+            ? sign!.key
+            : venue?.sign === "lantern" && doorway !== undefined
               ? "doorLantern"
-              : venue.marker
-                ? "marker"
-                : undefined
-          : trades && boardable && !nearbySign
-            ? sign?.key
-            : // A doorway marker is a marker: on half the houses in a town it
-              // stops telling you anything and becomes wallpaper. The variant
-              // is the culture's, so the only thing to vary is how many.
-              doorway !== undefined && random(seed, "lantern", b.id) < 0.07
-              ? "doorLantern"
-              : undefined;
-        const wanted = !compactSigns
-          ? legacyWanted
-          : venue?.marker
-            ? "marker"
-            : venue && !venue.open && boardable
-              ? sign.key
-              : venue?.sign === "lantern" && doorway !== undefined
-                ? "doorLantern"
-                : !venue && trades && boardable && !nearbySign
-                  ? sign.key
-                  : undefined;
+              : !venue && trades && boardable && !nearbySign
+                ? sign!.key
+                : undefined;
         const beside = wanted
           ? [
               [1, 0],
@@ -493,8 +468,7 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
               .find(
                 (p) =>
                   freeAtDoor(p) &&
-                  (!compactSigns ||
-                    !wanted?.startsWith("signpost-") ||
+                  (!wanted.startsWith("signpost-") ||
                     (p.x !== b.entrance.x &&
                       !world.places.some(
                         (place) =>
@@ -524,18 +498,13 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
             stamp(o, wanted);
             if (venue)
               o.description = `Hung at the door of ${venue.label.replace(/^The /, "the ")}.`;
-            const signForm = byTrade
-              ? (emblem ?? 6)
-              : random(seed, "sign-form", b.id) < 0.66
-                ? (sign?.form ?? 0)
-                : Math.floor(random(seed, "sign-alt", b.id) * 3);
             o.sprite =
               sign && wanted === sign.key
-                ? `study-propb-${propDefs[sign.key].family}-${signForm}`
+                ? `study-propb-${propDefs[sign.key].family}-${emblem}`
                 : `study-propb-door-lantern-${doorway}`;
           }
-          if (compactSigns && wanted.startsWith("signpost-")) {
-            o.name = `${signLabels[emblem ?? 5]} sign · ${b.name}`;
+          if (wanted.startsWith("signpost-")) {
+            o.name = `${signLabels[emblem!]} sign · ${b.name}`;
             o.description = `A small freestanding sign beside the entrance to ${b.name}.`;
           }
           world.initialObjects.push(o);
@@ -605,6 +574,15 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
         }
       }
     }
+    placeSettlementDetails(world, seed, {
+      free: (p, prop) => usable(p, undefined, prop),
+      add: (o) => {
+        world.initialObjects.push(o);
+        index(o);
+        done.add(o.id);
+      },
+      reserve: (cells) => cells.forEach((p) => reserved.add(at(p))),
+    });
     // An unowned fallen stick near the arrival point makes the initial interaction
     // discoverable without giving every character a historically specific weapon.
     if (!done.has("prop-arrival-stick")) {
