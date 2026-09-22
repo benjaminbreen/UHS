@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { panelCity } from "../scripts/review/panel";
 import { cellKey } from "../src/world/v3/types";
-import { crops } from "../src/content/agriculture/crops";
+import { crops, pickable } from "../src/content/agriculture/crops";
 import { createSettingSession } from "../src/runtime/session";
 import { panelSetting } from "../scripts/review/panel";
 
@@ -102,7 +102,7 @@ describe("harvesting a crop cell", () => {
     for (let y = spawn.y - 70; y < spawn.y + 70; y++)
       for (let x = spawn.x - 70; x < spawn.x + 70; x++) {
         const f = e.world.topography?.(x, y)?.field;
-        if (!f || f.stage !== "ripe" || !crops[f.crop]?.yields) continue;
+        if (!f || f.stage !== "ripe" || !pickable(crops[f.crop])) continue;
         if (owned ? !!f.owner && f.owner !== "player" : !f.owner)
           return { x, y, field: f };
       }
@@ -143,6 +143,25 @@ describe("harvesting a crop cell", () => {
     expect(again?.enabled).toBe(false);
     expect(again?.reason).toMatch(/picked/);
   });
+  it("counts a loss against the whole household, not just the holder", () => {
+    const e = harvestWorld();
+    const at = ripeCell(e, true);
+    const house = e.state.households?.find((h) =>
+      h.members.includes(at.field.owner!),
+    );
+    const kin = house?.members.find((m) => m !== at.field.owner);
+    const witness = e.state.actors.find((a) => a.id === kin);
+    if (!witness) return;
+    e.state.player.pos = { x: at.x, y: at.y - 1, space: "outside" };
+    witness.pos = { x: at.x + 1, y: at.y - 1, space: "outside" };
+    const trust = witness.trust;
+    e.execute(e.inspect(`crop-${at.x}-${at.y}`)!.affordances[0]!.command);
+    expect(witness.trust, "a co-resident minds").toBeLessThan(trust);
+    expect(
+      witness.memories.some((m) => /take my crop/.test(m)),
+      "and takes it personally",
+    ).toBe(true);
+  });
   it("treats unowned ground as work, not theft", () => {
     const e = harvestWorld();
     const at = ripeCell(e, false);
@@ -163,7 +182,7 @@ describe("harvesting a crop cell", () => {
     for (let y = spawn.y - 70; y < spawn.y + 70; y++)
       for (let x = spawn.x - 70; x < spawn.x + 70; x++) {
         const f = e.world.topography?.(x, y)?.field;
-        if (!f || f.stage === "ripe" || !crops[f.crop]?.yields) continue;
+        if (!f || f.stage === "ripe" || !pickable(crops[f.crop])) continue;
         e.state.player.pos = { x, y: y - 1, space: "outside" };
         const offer = e.inspect(`crop-${x}-${y}`)?.affordances[0];
         if (!offer) continue;

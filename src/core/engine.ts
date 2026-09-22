@@ -108,7 +108,7 @@ import {
 } from "./skills";
 import { faunaBlockOf, habitatScorer } from "../world/v3/fauna";
 import { herdNoun } from "../content/fauna/herding";
-import { crops } from "../content/agriculture/crops";
+import { crops, pickable } from "../content/agriculture/crops";
 
 /** How a crop's stage reads in a prompt that is telling you to come back. */
 const STAGE_WORD: Record<string, string> = {
@@ -479,7 +479,7 @@ export class Engine {
     text: (witness: Actor, theirs: boolean) => string;
   }) {
     for (const w of this.witnesses(o.radius)) {
-      const theirs = w.id === o.owner;
+      const theirs = this.minds(w, o.owner);
       this.regard(w, -o.cost(theirs), theirs || !o.owner ? "anger" : "alarm");
       w.memories.push(o.memory(theirs));
       this.event(o.text(w, theirs), "social");
@@ -593,7 +593,7 @@ export class Engine {
     const field = this.world.topography?.(x, y)?.field;
     if (!field) return;
     const crop = crops[field.crop];
-    if (!crop?.yields) return;
+    if (!pickable(crop)) return;
     const edit = this.editAt(x, y);
     edit.picked = this.state.clock;
     this.tilesChanged();
@@ -634,10 +634,16 @@ export class Engine {
   /** Whether ground held by `owner` is the player's to work: their own, their
    * household's, or nobody's. Anything else is somebody else's crop. */
   private worksFor(owner: string | undefined) {
-    if (!owner || owner === "player") return true;
-    const mine = this.state.player.householdId;
-    if (!mine) return false;
-    return !!this.household(mine)?.members.includes(owner);
+    return !owner || owner === "player" || this.minds(this.state.player, owner);
+  }
+  /** Whether a loss falls on this person: they hold the thing, or they share
+   * the household that does. A wife minds about her husband's cow. */
+  private minds(who: Actor, owner: string | undefined) {
+    if (!owner) return false;
+    return (
+      who.id === owner ||
+      !!this.household(who.householdId)?.members.includes(owner)
+    );
   }
   private household(id: string | undefined) {
     return this.householdsById
@@ -2805,38 +2811,38 @@ export class Engine {
         ? this.world.topography?.(pos.x, pos.y)?.field
         : undefined;
       const sown = field && crops[field.crop];
-      if (!sown || sown.kind === "fallow" || sown.kind === "pasture") return;
-      const crop: Affordance[] = [];
+      if (!sown || !pickable(sown)) return;
+      const mine = this.worksFor(field.owner);
       const picked = !!this.state.tiles?.[tileKey(pos.x, pos.y)]?.picked;
-      if (sown.yields) {
-        const mine = this.worksFor(field.owner);
-        const near = distance(this.state.player.pos, pos) <= 1.5;
-        const what = (sown.plant ?? sown.label).toLowerCase();
-        const enabled = near && field.stage === "ripe" && !picked;
-        crop.push({
-          label: mine ? `Harvest the ${what}` : `Take the ${what} without asking`,
-          command: { type: "interact", target: id, action: "harvest" },
-          enabled,
-          reason: enabled
-            ? undefined
-            : picked
-              ? "This plant has been picked"
-              : field.stage !== "ripe"
-                ? `Not ready: the ${what} is ${STAGE_WORD[field.stage]}`
-                : "Walk closer to reach it",
-        });
-      }
+      const near = distance(this.state.player.pos, pos) <= 1.5;
+      const what = (sown.plant ?? sown.label).toLowerCase();
+      const enabled = near && field.stage === "ripe" && !picked;
       return {
         id,
         pos,
         name: sown.plant ?? sown.label,
         latin: sown.latin,
         kind: "vegetation",
-        claim: field.owner && !this.worksFor(field.owner) ? "owned" : undefined,
+        claim: field.owner && !mine ? "owned" : undefined,
         description: field.garden
           ? "Planted in a kitchen garden beside the houses."
           : "Growing in a worked field.",
-        affordances: crop,
+        affordances: [
+          {
+            label: mine
+              ? `Harvest the ${what}`
+              : `Take the ${what} without asking`,
+            command: { type: "interact", target: id, action: "harvest" },
+            enabled,
+            reason: enabled
+              ? undefined
+              : picked
+                ? "This plant has been picked"
+                : field.stage !== "ripe"
+                  ? `Not ready: the ${what} is ${STAGE_WORD[field.stage]}`
+                  : "Walk closer to reach it",
+          },
+        ],
       };
     }
     // Wild animals are hovered and selected by their group: a herd on the

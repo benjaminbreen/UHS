@@ -437,3 +437,11 @@ export const crops: Record<CropId, Crop> = {
     },
   },
 };
+
+/** Whether a standing crop is picked plant by plant. Pasture yields hay to a
+ * scythe, not to a hand, and fallow yields nothing at all. */
+export function pickable(
+  crop: Crop | undefined,
+): crop is Crop & { yields: NonNullable<Crop["yields"]> } {
+  return !!crop?.yields && crop.kind !== "pasture" && crop.kind !== "fallow";
+}
