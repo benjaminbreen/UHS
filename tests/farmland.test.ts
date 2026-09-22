@@ -56,6 +56,19 @@ describe("farmland", () => {
           ),
           `crops for ${p.owner}`,
         ).toBe(true);
+      // Every household whose work is the fields holds some: the walk check
+      // hands a household the next parcel it can reach rather than leaving it
+      // with none.
+      const tilling = plan.plots
+        .filter((p: { kind: string; owner?: string }) => p.kind === "field")
+        .map((p: { owner?: string }) => p.owner);
+      const fieldWorkers = plan.actors.filter((a: { id: string }) =>
+        plan.stations
+          .get(a.id)
+          ?.some((s: { toward?: string }) => s.toward === "the field"),
+      );
+      for (const a of fieldWorkers.slice(0, 20))
+        expect(tilling, `${a.id} has ground to work`).toContain(a.id);
       const cellKeys = [...plan.fields!.keys()];
       expect(
         cellKeys.some((k) => plan.fields!.get(k)!.edges !== 0),

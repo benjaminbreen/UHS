@@ -107,9 +107,11 @@ function farmerRoutine(
   owner: string,
   field: { access: Point },
 ): Station[] {
-  const crops = plan.objects
-    .filter((o) => o.kind === "crop" && o.owner === owner)
-    .map((o) => ({ x: o.pos.x, y: o.pos.y }));
+  const grown = plan.objects.filter(
+    (o) => o.kind === "crop" && o.owner === owner,
+  );
+  const crops = grown.map((o) => ({ x: o.pos.x, y: o.pos.y }));
+  const load = grown.find((o) => o.resource)?.resource?.item;
   // Walk the rows in a stable order so the circuit reads as a pass over the
   // field rather than a shuffle between random plants.
   crops.sort((a, b) => a.y - b.y || a.x - b.x);
@@ -129,12 +131,14 @@ function farmerRoutine(
       label: "At the field",
       toward: "the field",
       minutes: 15,
+      carry: "tool" as const,
     },
     ...picked.map((pos, i) => ({
       pos,
       activity: "tend" as const,
       label: i % 2 ? "Weeding the rows" : "Watering the crop",
       minutes: 45,
+      carry: "tool" as const,
     })),
     ...(water
       ? [
@@ -153,6 +157,7 @@ function farmerRoutine(
             activity: "haul" as const,
             label: "Carrying the load home",
             minutes: 15,
+            ...(load ? { carry: load } : {}),
           },
         ]
       : []),

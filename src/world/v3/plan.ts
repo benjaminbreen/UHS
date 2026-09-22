@@ -12,6 +12,7 @@ import {
   workAt,
 } from "../../content/characters/resolve";
 import { workplaceFor } from "../../content/characters/workplace";
+import type { Rank } from "../../content/characters/context-types";
 import { venuesFor } from "../../content/venues";
 import {
   streetPalette,
@@ -1477,6 +1478,16 @@ export function planSettlement(
   const herders = new Set<string>();
   /** Households whose work is the fields, so a parcel has someone to till it. */
   const tillers = new Set<string>();
+  /** Parcels a tilling household works, by the standing its trade carries: a
+   * yeoman holds several strips where a cottager holds one. */
+  const HOLDING: Record<Rank, number> = {
+    destitute: 1,
+    labouring: 2,
+    middling: 3,
+    gentry: 5,
+    elite: 6,
+  };
+  const holdings = new Map<string, number>();
   // A composed settlement's capacity comes from its own extent and fabric; the
   // flat profile count still governs villages and the older layouts.
   const limit =
@@ -2210,8 +2221,10 @@ export function planSettlement(
         ? (livelihood.workplace ?? workplaceFor(livelihood.activity)) ===
           "field"
         : role === "Farmer"
-    )
+    ) {
       tillers.add(owner);
+      holdings.set(owner, HOLDING[livelihood?.rank ?? "labouring"]);
+    }
     eachCell(rect, (x, y) => {
       plan.solid.add(cellKey(x, y));
       plan.built!.add(cellKey(x, y));
@@ -2577,6 +2590,14 @@ export function planSettlement(
       },
       owners: fieldOwners,
       homeOf: (owner) => plan.work.get(owner)?.home,
+      holding: (owner) => holdings.get(owner) ?? 1,
+      reachable: (home, access) =>
+        route(
+          home,
+          access,
+          (to) => (plan.solid.has(cellKey(to.x, to.y)) ? Infinity : 1),
+          { maxNodes: 9000 },
+        ).status === "found",
     });
     if (farmland) {
       plan.fields = farmland.fields;
@@ -2618,21 +2639,6 @@ export function planSettlement(
       // far fields are scenery until someone is given them.
       for (const parcel of farmland.parcels) {
         if (!parcel.owner) continue;
-        // A field the household cannot walk to in a fair search is not its
-        // field: the gate estimate misses a wall's detour.
-        const home = plan.work.get(parcel.owner)?.home;
-        if (
-          home &&
-          route(
-            home,
-            parcel.access,
-            (to) => (plan.solid.has(cellKey(to.x, to.y)) ? Infinity : 1),
-            { maxNodes: 9000 },
-          ).status !== "found"
-        ) {
-          delete parcel.owner;
-          continue;
-        }
         const id = `${site.id}-parcel${parcel.id}`;
         plan.plots.push({
           ...parcel.rect,

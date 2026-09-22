@@ -147,6 +147,11 @@ export function planFarmland(input: {
   owners: string[];
   /** Where each farming household lives, so its fields lie out of its own gate. */
   homeOf: (owner: string) => Point | undefined;
+  /** How many parcels the household's standing supports it working. */
+  holding: (owner: string) => number;
+  /** Whether the household can actually walk there. The gate estimate misses
+   * a wall's detour, so a parcel that fails this goes to somebody else. */
+  reachable: (home: Point, access: Point) => boolean;
 }): Farmland | undefined {
   const {
     site,
@@ -161,6 +166,8 @@ export function planFarmland(input: {
     join,
     owners,
     homeOf,
+    holding,
+    reachable,
     cap,
   } = input;
   const setting = pack.setting;
@@ -886,7 +893,8 @@ export function planFarmland(input: {
   }
   // Each farming household takes the fields it can walk to: out of the
   // nearest gate and along the track, not across the town and round the
-  // wall. Three rounds, so nobody gets a second field before everyone has one.
+  // wall. Round by round, so nobody takes a second field before everyone who
+  // farms has one.
   const gates = spokes.map((sp) => sp.gate);
   const walk = (home: Point, access: Point) =>
     Math.min(
@@ -901,20 +909,21 @@ export function planFarmland(input: {
   const workable = parcels.filter(
     (p) => !["pasture", "fallow"].includes(p.crop),
   );
-  for (let round = 0; round < 3; round++)
+  const rounds = owners.reduce((m, o) => Math.max(m, holding(o)), 0);
+  for (let round = 0; round < rounds; round++)
     for (const owner of owners) {
+      if (holding(owner) <= round) continue;
       const home = homeOf(owner) ?? c;
-      let best: Parcel | undefined,
-        cost = Infinity;
-      for (const p of workable) {
-        if (p.owner) continue;
-        const d = walk(home, p.access);
-        if (d < cost) {
-          cost = d;
-          best = p;
+      const near = workable
+        .filter((p) => !p.owner && walk(home, p.access) < 140)
+        .sort((a, b) => walk(home, a.access) - walk(home, b.access));
+      // A route search costs more than the whole cut did, so only the
+      // closest few are ever put to it.
+      for (const p of near.slice(0, 3))
+        if (reachable(home, p.access)) {
+          p.owner = owner;
+          break;
         }
-      }
-      if (best && cost < 140) best.owner = owner;
     }
   for (const parcel of parcels) {
     parcel.stableId ??= `${site.id}-field-${parcel.id}`;

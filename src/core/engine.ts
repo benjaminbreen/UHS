@@ -4751,6 +4751,8 @@ export class Engine {
     const at = itineraryAt(routine, clock);
     const household = this.household(a.householdId);
     a.offRoutine = false;
+    if (at.carry) a.heldItem = at.carry;
+    else delete a.heldItem;
     const sites = this.world.activitySites?.(a.id);
     const gateId = sites?.gateId;
     if (gateId) {

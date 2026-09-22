@@ -1,4 +1,4 @@
-import type { Point } from "./types";
+import type { ItemId, Point } from "./types";
 /** Named errands rather than free-form strings: the renderer maps each to a
  * pose, so a routine reads at a distance without any per-actor state. */
 export const stationActivities = [
@@ -49,6 +49,8 @@ export type Station = {
   share?: number;
   /** On the night station only: minutes per tile. Defaults to PACE. */
   pace?: number;
+  /** What they have in their hands here, and on the walk to it. */
+  carry?: ItemId;
 };
 type Segment = {
   from: number;
@@ -58,6 +60,7 @@ type Segment = {
   pos: Point;
   activity: StationActivity;
   label: string;
+  carry?: ItemId;
 };
 export type Itinerary = {
   segments: Segment[];
@@ -73,6 +76,7 @@ export type Ambient = {
   label: string;
   moving: boolean;
   direction: number;
+  carry?: ItemId;
 };
 export const DAY_MINUTES = 1440;
 /** Minutes to cross one tile on foot. Matches the 18-second step the simulated
@@ -163,6 +167,7 @@ export function buildItinerary(
       pos: s.pos,
       activity: s.activity,
       label,
+      ...(s.carry ? { carry: s.carry } : {}),
     });
     at += minutes;
   };
@@ -177,6 +182,9 @@ export function buildItinerary(
       // count as time indoors and never be drawn.
       activity: from.activity === "rest" ? to.activity : from.activity,
       label: `Walking to ${to.toward ?? destination[to.activity]}`,
+      // A load is in hand on the way to where it is wanted, not on the way
+      // back from where it was left.
+      ...(to.carry ? { carry: to.carry } : {}),
     });
     at += leg.length * pace;
   };
@@ -218,6 +226,7 @@ export function itineraryAt(itinerary: Itinerary, clock: number): Ambient {
       label: seg.label,
       moving: false,
       direction: 2,
+      carry: seg.carry,
     };
   }
   const span = Math.max(1e-6, seg.to - seg.from);
@@ -234,6 +243,7 @@ export function itineraryAt(itinerary: Itinerary, clock: number): Ambient {
     activity: seg.activity,
     label: seg.label,
     moving: true,
+    carry: seg.carry,
     direction: Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 1 : 3) : dy > 0 ? 2 : 0,
   };
 }
