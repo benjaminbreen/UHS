@@ -28,6 +28,9 @@ it("keeps a river connected where the nearest atlas segment changes direction", 
     settingAt: () => setting,
     reliefAt: () => 0.2,
     featureAt: () => undefined,
+    // Woodland, not swamp: the swamp colorway floods the channel on purpose,
+    // and this test is about the river staying connected without it.
+    habitatAt: () => setting.environment,
   } as unknown as RegionalContext;
   for (const seed of ["borneo", "river-turn", "swamp-review"]) {
     const land = createEnvironment(setting, seed, regional);

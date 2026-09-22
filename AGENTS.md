@@ -1,21 +1,5 @@
 # Working on Universal History Simulator
 
-- Read `UHS_DESIGN.md`, `HISTORY.md` and the current top of `PROGRESS.md` before architectural changes. The twelve era IDs/boundaries in `src/content/history/dates.ts` are settled; refine history through scoped dates and profiles rather than silently changing eras.
-- Keep historical content in subject/regional files. Reuse definitions and flat kits; do not grow a single global master file or a culture × era copy of every asset. Keep renderer/interaction behavior independent of cultural-family branches.
-- Preserve distinctions between documented evidence, inference, hypothesis and fiction. The user explicitly welcomes ambitious, sourced prehistoric hypotheses. Explain the chosen interpretation and alternatives without claiming recovered languages or invented evidence.
-- The user approved the prop visual baseline and explicitly authorized committing the entire worktree, followed by interactive props. Baseline checkpoint: `120f870`. The shared prop MVP is documented in `PROPS.md`, prop drawing rules in `PROP_ART.md` and building drawing rules in `BUILDING_ART.md`; new content-version-2 worlds use it while old saves/replays retain their original content. Geography/World Weaver remains documented in `WORLDS.md`.
-- `src/content/legacy-packs.ts` preserves generator-v1 inputs. Changes affecting existing generated worlds, saves or replay require deliberate compatibility/version handling. Run relevant tests and verify user-facing changes in the browser.
-- Buildings are drawn oblique (front, a 12px sheared right-hand wall, a roof leaning back). Read `OBLIQUE_ART.md` first; the numbers live in `scripts/art/oblique_style.py`, and `python3 scripts/art/oblique_audit.py` must pass before `npm run art`.
-- To see a generated settlement without a browser, run `npm run town:sheet` (see `OBLIQUE_ART.md`). Do this before and after changing layout, yards or building art.
-- Other agent work may be present in the shared checkout. Inspect Git status; preserve unrelated changes and do not sweep them into a task commit.
-
-- During early development, the user explicitly prioritizes terrain graphics, procedural composition and performance over saves. Do not spend effort on save restoration or save-system tests unless requested.
-
-- Comments: only where the code cannot speak for itself — a non-obvious why, a units or ordering trap, a bug link. Short, plain English, usually one line. Do not restate the line below, do not set a scene, do not explain the design. When in doubt, leave it out.
-- Educated guessing is the default for historical content: extrapolate from real evidence and expert speculation. Reconstructed Proto-Indo-European religion, Bronze Age belief and the like are wanted, not avoided. Do not invent evidence, but do not hedge every line or stop to verify unless asked.
-- Run tests and browser checks when asked, or when a change plainly needs them. Not as a reflex after every edit.
-- After an edit, run only the test files that cover it: `npx vitest run tests/<name>.test.ts`.
-- Before calling work done, run `npm test` (about 40s). It skips the slow world-building suites listed in `vitest.config.ts`.
-- Run `npm run test:full` (about 10 min) only before a merge or when asked, and in the background.
-- The slow suites have known failures (timeouts, old tuning targets). Compare against HEAD before blaming a change.
-- Never assert wall-clock timings in tests; use `scripts/capture-benchmark.ts` for performance.
+See [CLAUDE.md](CLAUDE.md). It is the single set of instructions for agents
+working in this repo, kept short on purpose. This file exists so tools that
+look for `AGENTS.md` find their way there; do not duplicate guidance here.

@@ -80,6 +80,7 @@ describe("dialogue endpoint", () => {
     expect(Object.keys(schema)).toEqual([
       "mood",
       "regard",
+      "original",
       "dialogue",
       "receive",
     ]);

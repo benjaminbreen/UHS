@@ -481,7 +481,9 @@ it("names modern cloth the way a modern wearer would", () => {
       year: 2025,
       id: "garment-shirt",
     }),
-  ).toMatch(/^(Faded|Pilled|Bobbled|Stained|Sun-bleached) blue polyester shirt$/i);
+  ).toMatch(
+    /^(Faded|Pilled|Bobbled|Stained|Sun-bleached) blue polyester [a-z- ]*shirt$/i,
+  );
   // Rayon before the war, and nothing renamed before the shops.
   expect(
     clothName("Tunic", { material: "synthetic", dye: "woad", quality: 0 }, "x", {

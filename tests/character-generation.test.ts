@@ -44,7 +44,13 @@ describe("contextual character generation", () => {
     );
 
     expect(traveler.name).toBe(farmer.name);
-    expect(traveler.appearance).toEqual(farmer.appearance);
+    // Hair reads the livelihood rank on purpose (b1aea46): labouring and
+    // destitute people get practical styles, and a farmer labours where a
+    // traveler does not. Every other field must still be untouched, which is
+    // what catches one field's stream bleeding into the next.
+    const { hair: farmerHair, ...farmerRest } = farmer.appearance;
+    const { hair: travelerHair, ...travelerRest } = traveler.appearance;
+    expect(travelerRest).toEqual(farmerRest);
     expect(traveler.role).not.toBe(farmer.role);
   });
 

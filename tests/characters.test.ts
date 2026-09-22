@@ -13,6 +13,7 @@ import {
 import { characterAppearanceSchema } from "../src/runtime/schema";
 import { portableProps } from "../src/render/characters/props";
 import atlas from "../public/props/atlas.json";
+import natureAtlas from "../public/nature/atlas.json";
 import { propDefs } from "../src/content/props/catalog";
 describe("character recipes", () => {
   it("has repeatable independent body and clothing variety", () => {
@@ -77,8 +78,20 @@ describe("character recipes", () => {
     expect(portableProps.length).toBe(
       Object.values(propDefs).filter((d) => d.portable).length,
     );
-    for (const p of portableProps)
-      expect(atlas.frames).toHaveProperty(p.sprite);
+    // Wild stone is placed by the land, not a settlement, so the boulder
+    // family is drawn from the nature atlas in the local stone colour (see
+    // the note in the prop catalog). Everything else comes from the props
+    // atlas; both are checked so no portable object goes unpictured.
+    for (const p of portableProps) {
+      const wild = propDefs[p.id as keyof typeof propDefs].family === "boulder";
+      if (wild)
+        expect(
+          Object.keys(natureAtlas.frames).some((f) =>
+            f.startsWith("nature-boulder-"),
+          ),
+        ).toBe(true);
+      else expect(atlas.frames).toHaveProperty(p.sprite);
+    }
   });
   it("defaults adults to original height and reserves extremes for rare cases", () => {
     const heights = Array.from({ length: 10000 }, (_, i) =>

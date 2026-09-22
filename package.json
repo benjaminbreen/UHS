@@ -22,6 +22,7 @@
     "test:full": "FULL=1 vitest run",
     "test:browser": "playwright test",
     "headless": "tsx scripts/headless.ts",
+    "shot": "tsx scripts/shot.ts",
     "preview": "vite preview --host 127.0.0.1",
     "mcp": "tsx scripts/mcp-server.ts",
     "prepare:geography": ".venv/bin/python scripts/prepare_geography.py",
@@ -54,5 +55,11 @@
     "typescript": "5.9.2",
     "vite": "^7.3.6",
     "vitest": "^3.2.7"
+  },
+  "allowScripts": {
+    "esbuild@0.25.12": true,
+    "esbuild@0.28.2": true,
+    "fsevents@2.3.2": true,
+    "fsevents@2.3.3": true
   }
 }
