@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import type { Runtime } from "../../src/runtime/session";
+import type { Runtime } from "../../../src/runtime/session";
 
 /** Review capture for the skills UI and the wide swing. */
 test("captures the skills HUD, a level-up and a spin", async ({ page }) => {

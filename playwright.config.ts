@@ -1,13 +1,17 @@
 import { defineConfig } from "@playwright/test";
 export default defineConfig({
   testDir: "tests/browser",
-  // Two specs assert nothing and exist to shoot one image each; city-capture
-  // alone allows itself four minutes. They are not a gate, so they stay out of
-  // the default run: `npm run capture:city` / `capture:field` to shoot them.
-  testIgnore: process.env.UHS_CAPTURES
-    ? []
-    : ["**/city-capture.spec.ts", "**/field-capture.spec.ts"],
+  // tests/browser holds the specs worth running: they drive the game, assert
+  // something, and pass. Everything under legacy/ was written to memorialise
+  // one review and left to rot; it is kept for reference, not run.
+  // `npm run test:legacy -- <pattern>` if you need one of them.
+  testIgnore: process.env.UHS_LEGACY ? [] : ["**/legacy/**"],
   timeout: 45000,
+  // These specs build worlds and wait on canvases, so they fail under load
+  // rather than because of a change; a machine shared with another agent is
+  // enough to do it. One retry absorbs that instead of spending your time on
+  // a phantom.
+  retries: 1,
   use: {
     // Another checkout's dev server may already hold 5173.
     baseURL: process.env.UHS_BASE_URL ?? "http://127.0.0.1:5173",

@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import type { Runtime } from "../../src/runtime/session";
+import type { Runtime } from "../../../src/runtime/session";
 
 /** Review capture, not an assertion suite: stages one blow with the dev
  * handle and saves the frames around the contact to artifacts/combat. */

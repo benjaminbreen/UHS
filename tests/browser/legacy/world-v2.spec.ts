@@ -112,7 +112,7 @@ test("invalid manual dates stay usable and a successful classroom response persi
   page,
 }) => {
   const { resolveSetting } = await import(
-    "../../src/content/geography/resolve"
+    "../../../src/content/geography/resolve"
   );
   const result = resolveSetting("Elizabethan London");
   if ("error" in result) throw Error(result.error);
@@ -206,7 +206,7 @@ test("LLM-enabled mode stays local for clear requests and interprets ambiguous o
   page,
 }) => {
   const { resolveSetting } = await import(
-    "../../src/content/geography/resolve"
+    "../../../src/content/geography/resolve"
   );
   const interpreted = resolveSetting(
     "shaman in Mongolia 350 BCE",

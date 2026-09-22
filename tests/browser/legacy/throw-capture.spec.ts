@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import type { Runtime } from "../../src/runtime/session";
+import type { Runtime } from "../../../src/runtime/session";
 
 /** Review capture: a wide swing that lands, an aimed stone, a thrown spear. */
 test("captures a landed spin and aimed throws", async ({ page }) => {

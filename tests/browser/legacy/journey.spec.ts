@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { createSession } from "../../src/runtime/session";
+import { createSession } from "../../../src/runtime/session";
 async function ready(page: Page) {
   await page.goto("/");
   await expect(

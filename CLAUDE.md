@@ -36,14 +36,17 @@ when the task is actually about its subject:
   valid ones.
 - `npm run test:full` — 10 min, and has known failures. Only before a merge or
   when asked, and in the background.
-- `npm run test:browser -- <pattern>` — the Playwright specs matching a name,
-  e.g. `-- doors` or `-- '(props|doors)'`. **This is how to use it.** It starts
-  the dev server itself and reuses one already up.
-- `npm run test:browser` with no pattern runs everything. **Don't.** Most of
-  these specs were written to memorialise one review and never run again, so
-  the suite is long red and says nothing about your change. It is not a gate
-  and not a signal. Never adopt fixing it as a side quest, and do not report
-  its score — counting the failures is the same wasted hour as running it.
+- `npm run test:browser` — 9 tests, 30s, green. Five specs that drive the real
+  game and assert something. It starts the dev server itself and reuses one
+  already up. Worth running when you touch movement, doors, situations, time
+  travel or the mobile layout.
+- `tests/browser/legacy/` holds the other 54 specs, and nothing runs them.
+  They were written to memorialise one review and left: 37 were never revised
+  after the commit that created them, and 24 drive a developer lab rather than
+  the game. They are long red, and the red is older than you. Reach for one
+  with `npm run test:legacy -- <pattern>` only to read what it once checked.
+  Do not run them all, do not count the failures, and do not adopt fixing them
+  as a side quest.
 
 The Python art pipeline (`npm run art*`, the `scripts/art/` sheets) needs PIL,
 numpy, shapely, pyproj and pyshp in a `.venv`, which a fresh checkout does not
