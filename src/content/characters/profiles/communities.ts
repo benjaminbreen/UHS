@@ -240,6 +240,37 @@ export const appearanceKits: AppearanceKit[] = [
     },
   },
   {
+    id: "appearance.arctic-subarctic",
+    label: "Arctic and Subarctic American visual palette",
+    ...paletteEvidence(
+      "Use a light-to-medium complexion range for the Arctic and Subarctic Americas: the pan-American palette's medium-to-deep browns are a continental average that does not describe Inuit, Cree or Dene faces.",
+    ),
+    skin: ["#e8c39c", "#dcb086", "#d3a16a", "#c99b6d", "#c18a54"],
+    hairColors: ["#141110", "#1d1614", "#241814", "#2d1f19"],
+    hairStyles: ["cropped", "long", "braid", "topknot", "bob"],
+    hairScale: { male: { long: 3, topknot: 3 }, female: { braid: 5 } },
+    eyelids: ["monolid", "low-crease", "low-crease"],
+    epicanthicFold: 0.8,
+    hairTextures: ["straight", "straight", "straight"],
+    noseBridges: ["low", "low", "average"],
+    heads: ["broad", "broad", "original"],
+    mouths: ["soft", "full", "narrow"],
+    facialHair: "sparse",
+    garments: ["coat", "coat", "long-tunic", "tunic", "wrap"],
+    adornment: {
+      ears: ["none", "none", "none", "none", "stud", "hoop"],
+      nose: ["none"],
+      marks: [
+        ...Array<"none">(11).fill("none"),
+        "chin-lines",
+        "cheek-lines",
+      ],
+      markStyle: ["ink"],
+      markColors: ["#1d2a30", "#2a2740"],
+      metals: ["copper", "bone", "shell", "jet"],
+    },
+  },
+  {
     id: "appearance.oceania-broad",
     label: "Broad Oceania visual palette",
     ...paletteEvidence(
@@ -580,6 +611,23 @@ export const communityProfiles: CommunityProfile[] = [
     ],
     ...fallbackEvidence(
       "Provide a broad American visual and livelihood fallback when no scoped community profile is available.",
+    ),
+  },
+  {
+    id: "community.arctic-subarctic",
+    label: "Arctic and Subarctic American communities",
+    scope: {
+      years: [-3000, 2027],
+      bounds: [-170, 55, -55, 83],
+      cultures: ["other-indigenous-american"],
+    },
+    priority: 40,
+    appearance: "appearance.arctic-subarctic",
+    livelihoods: ["hunter", "fisher", "gatherer", "craftsperson", "trader", "traveler"],
+    allowedItems: ["water", "berries", "wood", "fish", "tool", "reeds"],
+    ...profileEvidence(
+      "Above roughly 55 degrees north there is no farming to fall back on: the Arctic and Subarctic ran on sea mammals, caribou and fish, and the broad American fallback dressed them in a lowland palette and a farmer's livelihood list.",
+      ["https://doi.org/10.5479/si.19446965.5"],
     ),
   },
   {

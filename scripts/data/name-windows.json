@@ -1913,6 +1913,95 @@
           ]
         }
       ]
+    },
+    "north-american-hudson-bay": {
+      "why": "HPG stopped Hudson Bay at 1600, so every year after it fell outward to the circumpolar Arctic box and drew Russian and Scandinavian names on James Bay while dropping Cree entirely. The bay is Cree to the south and west and Inuit along the northern and eastern coast, and from 1670 the posts add an Orkney, Highland Scots and French-Canadian stock that becomes Metis and country-born families.",
+      "replace": [
+        {
+          "years": [
+            -1000000,
+            -3000
+          ],
+          "options": [
+            {
+              "tradition": "early-americas",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            -3000,
+            1670
+          ],
+          "options": [
+            {
+              "tradition": "cree",
+              "weight": 6
+            },
+            {
+              "tradition": "inuit",
+              "weight": 4
+            }
+          ]
+        },
+        {
+          "years": [
+            1670,
+            1821
+          ],
+          "options": [
+            {
+              "tradition": "cree",
+              "weight": 50
+            },
+            {
+              "tradition": "inuit",
+              "weight": 28
+            },
+            {
+              "tradition": "hudson-bay-fur-trade",
+              "weight": 14
+            },
+            {
+              "tradition": "scottish",
+              "weight": 5
+            },
+            {
+              "tradition": "french",
+              "weight": 3
+            }
+          ]
+        },
+        {
+          "years": [
+            1821,
+            10001
+          ],
+          "options": [
+            {
+              "tradition": "cree",
+              "weight": 44
+            },
+            {
+              "tradition": "inuit",
+              "weight": 26
+            },
+            {
+              "tradition": "hudson-bay-fur-trade",
+              "weight": 22
+            },
+            {
+              "tradition": "scottish",
+              "weight": 4
+            },
+            {
+              "tradition": "french",
+              "weight": 4
+            }
+          ]
+        }
+      ]
     }
   },
   "deepTime": {
