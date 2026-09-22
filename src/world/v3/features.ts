@@ -202,18 +202,32 @@ export function streamDistance(s: Stream, x: number, y: number, radius = 4) {
     cy = y,
     tx = 1,
     ty = 0;
+  // Squared until the end, and a segment wholly beyond the radius cannot be
+  // the answer: most cells inside a long stream's bounds are near none of it.
+  let best2 = Infinity;
   for (let i = 1; i < s.points.length; i++) {
-    const [ax, ay] = s.points[i - 1],
-      [bx, by] = s.points[i];
+    const a = s.points[i - 1],
+      b = s.points[i];
+    const ax = a[0],
+      ay = a[1],
+      bx = b[0],
+      by = b[1];
+    if (
+      x < Math.min(ax, bx) - radius ||
+      x > Math.max(ax, bx) + radius ||
+      y < Math.min(ay, by) - radius ||
+      y > Math.max(ay, by) + radius
+    )
+      continue;
     const vx = bx - ax,
       vy = by - ay;
     const len2 = vx * vx + vy * vy || 1;
     const t = Math.max(0, Math.min(1, ((x - ax) * vx + (y - ay) * vy) / len2));
     const px = ax + vx * t,
       py = ay + vy * t;
-    const d = Math.hypot(x - px, y - py);
-    if (d < best) {
-      best = d;
+    const d2 = (x - px) * (x - px) + (y - py) * (y - py);
+    if (d2 < best2) {
+      best2 = d2;
       at = i - 1 + t;
       seg = i;
       cx = px;
@@ -223,6 +237,8 @@ export function streamDistance(s: Stream, x: number, y: number, radius = 4) {
       ty = vy / len;
     }
   }
+  if (best2 === Infinity) return undefined;
+  best = Math.hypot(x - cx, y - cy);
   if (best > radius) return undefined;
   const end = s.points.length - 1;
   // Outward unit normal from the centre line at this point: the gradient

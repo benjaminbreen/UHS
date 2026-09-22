@@ -1,19 +1,43 @@
 import { prefix, randomFrom } from "../../core/random";
 import { trimCache } from "../../core/cache";
 const smooth = (t: number) => t * t * (3 - 2 * t);
-type Lattice = { state: number; corners: Map<number, number> };
+type Lattice = {
+  state: number;
+  corners: Map<number, number>;
+  // The last cell's four corners. Callers walk neighbouring cells, and a cell
+  // spans tens of them, so most calls skip the map.
+  ix: number;
+  iy: number;
+  a: number;
+  b: number;
+  c: number;
+  d: number;
+};
 const lattices = new Map<string, Map<string, Lattice>>();
+let lastSeed: string | undefined,
+  lastBySeed: Map<string, Lattice> | undefined;
 // Neighbouring cells share three of four corners, and the seed and domain
 // strings are the same for every call, so both are folded once per domain.
 function lattice(seed: string, domain: string): Lattice {
-  let bySeed = lattices.get(seed);
+  let bySeed = seed === lastSeed ? lastBySeed : lattices.get(seed);
   if (!bySeed) {
     trimCache(lattices, 8);
     lattices.set(seed, (bySeed = new Map()));
   }
+  lastSeed = seed;
+  lastBySeed = bySeed;
   let l = bySeed.get(domain);
   if (!l) {
-    l = { state: prefix(seed, domain), corners: new Map() };
+    l = {
+      state: prefix(seed, domain),
+      corners: new Map(),
+      ix: NaN,
+      iy: NaN,
+      a: 0,
+      b: 0,
+      c: 0,
+      d: 0,
+    };
     trimCache(bySeed, 256);
     bySeed.set(domain, l);
   }
@@ -45,11 +69,15 @@ export function noise(
     u = smooth(x - ix),
     v = smooth(y - iy);
   const l = lattice(seed, domain);
-  const a = corner(l, ix, iy),
-    b = corner(l, ix + 1, iy),
-    c = corner(l, ix, iy + 1),
-    d = corner(l, ix + 1, iy + 1);
-  return (a * (1 - u) + b * u) * (1 - v) + (c * (1 - u) + d * u) * v;
+  if (l.ix !== ix || l.iy !== iy) {
+    l.a = corner(l, ix, iy);
+    l.b = corner(l, ix + 1, iy);
+    l.c = corner(l, ix, iy + 1);
+    l.d = corner(l, ix + 1, iy + 1);
+    l.ix = ix;
+    l.iy = iy;
+  }
+  return (l.a * (1 - u) + l.b * u) * (1 - v) + (l.c * (1 - u) + l.d * u) * v;
 }
 export function segmentDistance(
   x: number,

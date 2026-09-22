@@ -19,6 +19,12 @@ export function regionalLandforms(
   reliefAt?: (x: number, y: number) => number,
 ) {
   const angle = random(seed, "land-angle") * Math.PI * 2;
+  const cos = Math.cos(angle),
+    sin = Math.sin(angle);
+  const ease = (t: number) => {
+    const c = Math.max(0, Math.min(1, t));
+    return c * c * (3 - 2 * c);
+  };
   const reaches = new Map<number, number[]>();
   const heights = new Map<number, number>();
   const field = (x: number, y: number) => {
@@ -27,8 +33,8 @@ export function regionalLandforms(
     if (old !== undefined) return old;
     const wx = x + (noise(seed, x, y, 95, "warp-x") - 0.5) * 62,
       wy = y + (noise(seed, x, y, 110, "warp-y") - 0.5) * 62;
-    const u = wx * Math.cos(angle) + wy * Math.sin(angle),
-      v = -wx * Math.sin(angle) + wy * Math.cos(angle);
+    const u = wx * cos + wy * sin,
+      v = -wx * sin + wy * cos;
     const broad =
       noise(seed, u, v, 105, "landmass") * 0.72 +
       noise(seed, u, v, 43, "shoulders") * 0.28;
@@ -49,10 +55,6 @@ export function regionalLandforms(
       // Earth mode: the three forms cross-fade with the regional relief, so a
       // range's flank eases into rolling country and then into plain.
       const r = reliefAt(x, y);
-      const ease = (t: number) => {
-        const c = Math.max(0, Math.min(1, t));
-        return c * c * (3 - 2 * c);
-      };
       const wRidge = ease((r - 0.5) / 0.3),
         wPlain = (1 - wRidge) * (1 - ease((r - 0.12) / 0.2)),
         wRolling = Math.max(0, 1 - wRidge - wPlain);

@@ -395,7 +395,7 @@ export function createEnvironment(
         } else if (type === "land") water = Math.max(0.1, -feature.distance);
       }
     }
-    const swamp = s.hydrologyRevision === 2 && (regional?.settingAt(x, y) ?? s).environment?.colorway === "swamp";
+    const swamp = s.hydrologyRevision === 2 && (regional?.habitatAt(x, y) ?? s.environment)?.colorway === "swamp";
     if (swamp && water > -1.2 && water < 24 && kind !== "sea") {
       const spread = 3 + noise(seed, fx, fy, 24, "swamp-inundation") * 9;
       water = Math.max(-1.2, water - spread);
@@ -410,8 +410,8 @@ export function createEnvironment(
     return s.hydrologyRevision === 3 ? { ...native, ...connectedBoundary(x, y, native) } : native;
   };
   const calculate = (x: number, y: number): LandSample => {
-    const local = regional?.settingAt(x, y) ?? s;
-    const profile = ecologyProfiles[local.environment!.ecology];
+    const habitat = regional?.habitatAt(x, y) ?? s.environment!;
+    const profile = ecologyProfiles[habitat.ecology];
     const fx = regional ? x + origin.x : x,
       fy = regional ? y + origin.y : y;
     const shape = field(x, y);
@@ -423,7 +423,7 @@ export function createEnvironment(
       kind === "river" &&
       water > 5 &&
       water < 18 &&
-      !["desert", "dry-scrub", "tundra"].includes(local.environment!.ecology)
+      !["desert", "dry-scrub", "tundra"].includes(habitat.ecology)
     ) {
       const bx = Math.floor(fx / 48),
         by = Math.floor(fy / 48);
@@ -550,12 +550,12 @@ export function createEnvironment(
     }
     // Real pools join the terrain sample before settlement siting and routing.
     // A common basin center controls eligibility across every pixel of the pool.
-    const basin = s.hydrologyRevision === 3 ? undefined : marshBasin(seed, fx, fy, local.environment!.ecology);
+    const basin = s.hydrologyRevision === 3 ? undefined : marshBasin(seed, fx, fy, habitat.ecology);
     // A bog or flooded savanna admits more pools than the envelope alone.
-    const pooling = habitatLayout(local.environment!.colorway).wet;
+    const pooling = habitatLayout(habitat.colorway).wet;
     if (
       s.hydrologyRevision !== 3 &&
-      (!simpleWater || local.environment!.ecology === "wetland") &&
+      (!simpleWater || habitat.ecology === "wetland") &&
       basin &&
       basin.distance < 2 &&
       water > shoreWidth + 5 &&
@@ -611,7 +611,7 @@ export function createEnvironment(
     // relief is the floor, so a mountain place raises the ground around it
     // rather than being levelled by whatever the region averages to.
     const relief = Math.max(
-      regional?.reliefAt(x, y) ?? local.relief ?? 0,
+      regional?.reliefAt(x, y) ?? s.relief ?? 0,
       s.relief ?? 0,
       0.1,
     );
@@ -734,10 +734,10 @@ export function createEnvironment(
       // Cold envelopes keep snow on their highest steps all year once the
       // relief is mountainous, which also marks the summit from a distance.
       snow:
-        (local.environment!.ecology === "tundra" && s.season === "winter") ||
-        (local.environment!.ecology === "boreal-woodland" &&
+        (habitat.ecology === "tundra" && s.season === "winter") ||
+        (habitat.ecology === "boreal-woodland" &&
           s.season === "winter") ||
-        (["tundra", "boreal-woodland"].includes(local.environment!.ecology) &&
+        (["tundra", "boreal-woodland"].includes(habitat.ecology) &&
           ceiling >= 6 &&
           level >= ceiling - 1),
     };

@@ -377,7 +377,7 @@ export function createRegionalContext(start: WorldSetting) {
     settingCount++;
     return s;
   }
-  const ecologyCache = new Map<string, ReturnType<typeof calculateEcology>>();
+  const ecologyCache = new Map<number, ReturnType<typeof calculateEcology>>();
   function calculateEcology(x: number, y: number) {
     const ax = x + origin.x,
       ay = y + origin.y;
@@ -500,7 +500,8 @@ export function createRegionalContext(start: WorldSetting) {
     };
   }
   function ecologyAt(x: number, y: number) {
-    const key = `${x},${y}`;
+    // Packed, not a string: exact while |x| < 2^20 and |y| < 2^21.
+    const key = x * 2097152 + y;
     let value = ecologyCache.get(key);
     if (!value) {
       value = calculateEcology(x, y);
@@ -521,6 +522,16 @@ export function createRegionalContext(start: WorldSetting) {
         colorway: selected.colorway,
       },
     };
+  }
+  /** The ecology and colorway of settingAt, without building the setting: the
+   * terrain sampler asks once per cell and reads nothing else. */
+  function habitatAt(x: number, y: number): {
+    ecology: Ecology;
+    colorway?: Colorway;
+  } {
+    return start.ecologyRevision
+      ? ecologyAt(x, y).selected
+      : rawSettingAt(x, y).environment!;
   }
   function packAt(x: number, y: number) {
     const s = settingAt(x, y);
@@ -598,6 +609,7 @@ export function createRegionalContext(start: WorldSetting) {
     landUse,
     canSettle,
     settingAt,
+    habitatAt,
     ecologyAt,
     reliefAt,
     packAt,
