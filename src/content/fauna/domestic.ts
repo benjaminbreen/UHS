@@ -5,6 +5,7 @@ export const domesticFauna: readonly FaunaProfile[] = [
   {
     id: "chicken",
     label: "Chicken study",
+    latin: "Gallus gallus domesticus",
     category: "domestic",
     locomotion: "ground",
     gait: "scurry",
@@ -45,6 +46,7 @@ export const domesticFauna: readonly FaunaProfile[] = [
   {
     id: "sheep",
     label: "Sheep study",
+    latin: "Ovis aries",
     category: "domestic",
     locomotion: "ground",
     social: "herd",
@@ -84,6 +86,7 @@ export const domesticFauna: readonly FaunaProfile[] = [
   {
     id: "goat",
     label: "Goat study",
+    latin: "Capra hircus",
     category: "domestic",
     locomotion: "ground",
     social: "herd",
@@ -125,6 +128,7 @@ export const domesticFauna: readonly FaunaProfile[] = [
   {
     id: "pig",
     label: "Pig study",
+    latin: "Sus domesticus",
     category: "domestic",
     locomotion: "ground",
     social: "herd",

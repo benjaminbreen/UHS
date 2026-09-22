@@ -13,6 +13,9 @@ export type TileEdit = {
   /** Low vegetation taken off with the scythe. */
   cut?: boolean;
   dug?: boolean;
+  /** The standing crop on this cell has been picked. Cleared by nothing: a
+   * cell is picked for the rest of the season it was picked in. */
+  picked?: number;
 };
 export type TileEdits = Record<string, TileEdit>;
 /** What each tool does to the ground in front of it. */

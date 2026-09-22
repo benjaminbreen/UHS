@@ -11,21 +11,48 @@ export const CROP_ATLAS = "atlas";
 /** Procedural stand-ins, generated when the atlas has no frame for a crop. */
 export const CROP_FALLBACK_ATLAS = "crops-1";
 
+/** Drawn stages. A sown cell shows seedlings rather than nothing. */
+export type DrawnStage = "sprout" | "green" | "ripe";
+
 export type CropSpot = {
   x: number;
   y: number;
   wx: number;
   wy: number;
+  /** World cell the plant grows in, for the hover label and selection. */
+  cx: number;
+  cy: number;
   crop: CropId;
-  stage: "green" | "ripe";
+  stage: DrawnStage;
   phase: number;
 };
 
+/** Tall enough to show over the ground raster in an open field. */
 const standing = (crop: Crop) =>
   crop.kind === "tree" ||
   crop.kind === "vine" ||
   crop.height === "mid" ||
   crop.height === "tall";
+/** A garden bed is small and close to, so it draws its low crops too: the
+ * raster alone left kitchen gardens looking like bare soil. */
+const planted = (crop: Crop) =>
+  standing(crop) || crop.kind === "vegetable" || crop.kind === "root";
+
+const drawnStage = (stage: CropStage): DrawnStage | undefined =>
+  stage === "ripe"
+    ? "ripe"
+    : stage === "green"
+      ? "green"
+      : stage === "sown"
+        ? "sprout"
+        : undefined;
+
+/** Cells the player has already picked. Set by the scene each time the tile
+ * edits change; crops stream in long after, so this cannot be an argument. */
+let pickedCell: (x: number, y: number) => boolean = () => false;
+export function setCropCut(picked: (x: number, y: number) => boolean) {
+  pickedCell = picked;
+}
 
 /** Standing-crop sprites on a lattice along the furrow axis. Only crops tall
  * enough to show over the ground raster, only while there is something to
@@ -41,6 +68,7 @@ export function cropsAt(
   const c = sample(x, y);
   const f = c?.field;
   if (!c || !f || f.ditch || c.solid) return [];
+  if (pickedCell(x + ox, y + oy)) return [];
   if ((f as { garden?: boolean }).garden) return gardenRow(f, x, y, ox, oy, top);
   // Enclosure edge cells stay clear so the fence reads.
   if (f.fence) return [];
@@ -48,10 +76,8 @@ export function cropsAt(
   if (!crop || crop.kind === "fallow" || crop.kind === "pasture") return [];
   if (!standing(crop)) return [];
   const tree = crop.kind === "tree";
-  const stage: CropStage = f.stage;
-  if (stage === "stubble") return [];
-  if (stage !== "green" && stage !== "ripe" && !tree) return [];
-  const drawn: "green" | "ripe" = stage === "ripe" ? "ripe" : "green";
+  const drawn = tree ? (f.stage === "ripe" ? "ripe" : "green") : drawnStage(f.stage);
+  if (!drawn) return [];
   const wx = x + ox,
     wy = y + oy;
   const along = f.axis === "x" ? wx : wy,
@@ -78,15 +104,17 @@ export function cropsAt(
       y: top + py,
       wx: wx * 16 + px,
       wy: wy * 16 + py,
+      cx: wx,
+      cy: wy,
       crop: f.crop,
       stage: drawn,
       phase: hash(wx, wy, 655) * 6.28,
     },
   ];
 }
-/** A kitchen garden is planted close and cropped in succession: two plants
- * to the cell in straight rows, green from sowing to the first frost, and
- * right up to the fence. */
+/** A kitchen garden is hoed in succession and weeded between the plants: one
+ * to the cell, set out on a staggered lattice so the rows read as rows
+ * without closing up, and green from sowing to the first frost. */
 function gardenRow(
   f: NonNullable<TopographyCell["field"]>,
   x: number,
@@ -95,28 +123,35 @@ function gardenRow(
   oy: number,
   top: number,
 ): CropSpot[] {
-  if (f.stage === "bare" || f.stage === "stubble") return [];
+  const drawn = drawnStage(f.stage);
+  if (!drawn) return [];
   const crop = (crops as Partial<typeof crops>)[f.crop];
-  if (!crop || !standing(crop)) return [];
+  if (!crop || !planted(crop)) return [];
   const wx = x + ox,
     wy = y + oy;
-  return [4, 12].map((at, n) => {
-    const px = f.axis === "x" ? at : 8,
-      py = f.axis === "x" ? 10 : at;
-    return {
+  // One to the cell, alternating side to side down the row: twice the spacing
+  // of a solid bed, and staggered so it reads as planting rather than a grid.
+  const along = f.axis === "x" ? wx : wy;
+  const at = 8 + (mod(along, 2) ? 3 : -3);
+  const px = f.axis === "x" ? at : 8,
+    py = f.axis === "x" ? 10 : at;
+  return [
+    {
       x: x * 16 + px,
       y: top + py,
       wx: wx * 16 + px,
       wy: wy * 16 + py,
+      cx: wx,
+      cy: wy,
       crop: f.crop,
-      stage: f.stage === "ripe" ? ("ripe" as const) : ("green" as const),
-      phase: hash(wx, wy, 655 + n) * 6.28,
-    };
-  });
+      stage: drawn,
+      phase: hash(wx, wy, 655) * 6.28,
+    },
+  ];
 }
 const mod = (n: number, d: number) => ((n % d) + d) % d;
 
-const frameName = (crop: CropId, stage: "green" | "ripe", f: number) =>
+const frameName = (crop: CropId, stage: DrawnStage, f: number) =>
   `crop-${crop}-${stage}-${f}`;
 
 /** Texture and frame for a spot: the authored frame, else the authored
@@ -149,7 +184,7 @@ const mix = (a: number[], b: number[], t: number) =>
   a.map((v, k) => Math.round(v * (1 - t) + b[k] * t));
 /** Small procedural silhouettes by habit, coloured from the crop's hue, so a
  * crop with no authored art still stands in its own colour. */
-function fallbackPixels(crop: Crop, stage: "green" | "ripe", frame: number) {
+function fallbackPixels(crop: Crop, stage: DrawnStage, frame: number) {
   const out = new Uint8ClampedArray(W * H * 4);
   const hue = rgb(crop.hue);
   const leaf = mix(hue, [92, 132, 58], 0.72).map((v) => v - 8);
@@ -164,6 +199,13 @@ function fallbackPixels(crop: Crop, stage: "green" | "ripe", frame: number) {
   const lean = frame ? 1 : 0;
   const base = H - 1,
     cx = 8;
+  if (stage === "sprout") {
+    // Two seed leaves on a short stem, whatever the crop's grown habit is.
+    for (let y = base; y > base - 4; y--) put(cx, y, dark);
+    for (const dx of [-2, -1, 1, 2]) put(cx + dx + lean, base - 5, body);
+    for (const dx of [-1, 1]) put(cx + dx + lean, base - 6, lit);
+    return out;
+  }
   if (crop.kind === "tree") {
     for (let y = base; y > base - 8; y--) put(cx, y, trunk);
     const palm = crop.id === "date";
@@ -213,16 +255,16 @@ function fallbackPixels(crop: Crop, stage: "green" | "ripe", frame: number) {
   return out;
 }
 
-const drawnCrops = (Object.values(crops) as Crop[]).filter(standing);
+const drawnCrops = (Object.values(crops) as Crop[]).filter(planted);
 function ensureFallbackAtlas(scene: Phaser.Scene) {
   if (scene.textures.exists(CROP_FALLBACK_ATLAS)) return;
-  const cols = 4,
+  const cols = 6,
     rows = drawnCrops.length;
   const atlas = scene.textures.createCanvas(CROP_FALLBACK_ATLAS, cols * W, rows * H)!;
   const ctx = atlas.getContext();
   const image = ctx.createImageData(cols * W, rows * H);
   drawnCrops.forEach((crop, row) => {
-    (["green", "ripe"] as const).forEach((stage, s) => {
+    (["sprout", "green", "ripe"] as const).forEach((stage, s) => {
       for (let frame = 0; frame < 2; frame++) {
         const col = s * 2 + frame;
         const p = fallbackPixels(crop, stage, frame);
@@ -245,6 +287,18 @@ type Patch = {
   bounds: { x: number; y: number; right: number; bottom: number };
 };
 const managers = new WeakMap<Phaser.Scene, { patches: Set<Patch>; frame: number }>();
+const selectors = new WeakMap<
+  Phaser.Scene,
+  (image: Phaser.GameObjects.Image, id: string) => void
+>();
+/** What to do to each plant so the player can point at it. The scene owns the
+ * hover label and selection; crops are streamed in long after it is set up. */
+export function setCropSelector(
+  scene: Phaser.Scene,
+  select: (image: Phaser.GameObjects.Image, id: string) => void,
+) {
+  selectors.set(scene, select);
+}
 /** Loose images, one per plant, depth-sorted by their base like every other
  * standing sprite; a per-chunk patch record culls and sways them together. */
 export function addCrops(
@@ -288,6 +342,7 @@ export function addCrops(
       managers.delete(scene);
     });
   }
+  const select = selectors.get(scene);
   const sprites = spots.map((spot) => {
     const { texture, crop } = resolve(scene, spot);
     const image = own(
@@ -297,6 +352,7 @@ export function addCrops(
         .setOrigin(0.5, 1)
         .setDepth(spot.y),
     );
+    select?.(image, `crop-${spot.cx}-${spot.cy}`);
     return { spot, image, crop };
   });
   const patch: Patch = {

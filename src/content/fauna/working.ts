@@ -7,6 +7,7 @@ export const workingFauna: readonly FaunaProfile[] = [
   {
     id: "cattle",
     label: "Cattle study",
+    latin: "Bos taurus",
     category: "domestic",
     locomotion: "ground",
     social: "herd",
@@ -52,6 +53,7 @@ export const workingFauna: readonly FaunaProfile[] = [
   {
     id: "dog",
     label: "Dog study",
+    latin: "Canis familiaris",
     category: "domestic",
     locomotion: "ground",
     social: "pair",
@@ -85,6 +87,7 @@ export const workingFauna: readonly FaunaProfile[] = [
   {
     id: "donkey",
     label: "Donkey study",
+    latin: "Equus asinus",
     category: "domestic",
     locomotion: "ground",
     social: "pair",
@@ -125,6 +128,7 @@ export const workingFauna: readonly FaunaProfile[] = [
   {
     id: "camel",
     label: "Camel study",
+    latin: "Camelus dromedarius",
     category: "domestic",
     locomotion: "ground",
     social: "herd",

@@ -108,6 +108,16 @@ import {
 } from "./skills";
 import { faunaBlockOf, habitatScorer } from "../world/v3/fauna";
 import { herdNoun } from "../content/fauna/herding";
+import { crops } from "../content/agriculture/crops";
+
+/** How a crop's stage reads in a prompt that is telling you to come back. */
+const STAGE_WORD: Record<string, string> = {
+  bare: "not sown yet",
+  sown: "only just up",
+  green: "still green",
+  stubble: "already cut",
+  ripe: "ready",
+};
 
 /** Cells either side of the player whose animal groups stay in the save. */
 const FAUNA_KEEP = 160;
@@ -575,6 +585,59 @@ export class Engine {
         o.pos.x === p.x &&
         o.pos.y === p.y,
     );
+  }
+  /** Take the crop off one cell. Your own ground is work and pays in skill;
+   * somebody else's is theft, and the neighbours mind it. */
+  private pickCrop(x: number, y: number) {
+    const p = this.state.player;
+    const field = this.world.topography?.(x, y)?.field;
+    if (!field) return;
+    const crop = crops[field.crop];
+    if (!crop?.yields) return;
+    const edit = this.editAt(x, y);
+    edit.picked = this.state.clock;
+    this.tilesChanged();
+    // A practised hand gets more off the same plant.
+    const extra =
+      this.rng("harvest") < this.skillLevel("farming") * PER_LEVEL.harvestExtra
+        ? 1
+        : 0;
+    const taken = 1 + extra;
+    p.inventory[crop.yields] = (p.inventory[crop.yields] ?? 0) + taken;
+    const what = this.lootName(crop.yields, taken);
+    const picking = crop.plant ?? crop.label;
+    if (this.worksFor(field.owner)) {
+      this.grantXp("farming", 8);
+      this.event(`You take ${what} off the ${picking.toLowerCase()}.`);
+      this.advance(20);
+      return;
+    }
+    this.grantXp("farming", 3);
+    this.event(`You take ${what} from a crop that is not yours.`);
+    p.memories.push(`theft:crop-${x}-${y}:${crop.yields}`);
+    // Judged before the clock moves: whoever is standing there now is who
+    // saw it, not whoever has wandered past twenty seconds later.
+    this.offend({
+      owner: field.owner,
+      cost: (theirs) => (theirs ? 4 : 2),
+      memory: (theirs) =>
+        theirs
+          ? `Saw player take my crop at ${x},${y}`
+          : `Saw player take a neighbour's crop at ${x},${y}`,
+      text: (w, theirs) =>
+        theirs
+          ? `${w.name} catches you taking from their own crop.`
+          : `${w.name} sees you taking a crop that is not yours.`,
+    });
+    this.advance(20);
+  }
+  /** Whether ground held by `owner` is the player's to work: their own, their
+   * household's, or nobody's. Anything else is somebody else's crop. */
+  private worksFor(owner: string | undefined) {
+    if (!owner || owner === "player") return true;
+    const mine = this.state.player.householdId;
+    if (!mine) return false;
+    return !!this.household(mine)?.members.includes(owner);
   }
   private household(id: string | undefined) {
     return this.householdsById
@@ -2731,6 +2794,83 @@ export class Engine {
       };
     }
 
+    const planted = /^crop-(-?\d+)-(-?\d+)$/.exec(id);
+    if (planted) {
+      const pos = {
+        x: Number(planted[1]),
+        y: Number(planted[2]),
+        space: "outside",
+      };
+      const field = this.visible(pos)
+        ? this.world.topography?.(pos.x, pos.y)?.field
+        : undefined;
+      const sown = field && crops[field.crop];
+      if (!sown || sown.kind === "fallow" || sown.kind === "pasture") return;
+      const crop: Affordance[] = [];
+      const picked = !!this.state.tiles?.[tileKey(pos.x, pos.y)]?.picked;
+      if (sown.yields) {
+        const mine = this.worksFor(field.owner);
+        const near = distance(this.state.player.pos, pos) <= 1.5;
+        const what = (sown.plant ?? sown.label).toLowerCase();
+        const enabled = near && field.stage === "ripe" && !picked;
+        crop.push({
+          label: mine ? `Harvest the ${what}` : `Take the ${what} without asking`,
+          command: { type: "interact", target: id, action: "harvest" },
+          enabled,
+          reason: enabled
+            ? undefined
+            : picked
+              ? "This plant has been picked"
+              : field.stage !== "ripe"
+                ? `Not ready: the ${what} is ${STAGE_WORD[field.stage]}`
+                : "Walk closer to reach it",
+        });
+      }
+      return {
+        id,
+        pos,
+        name: sown.plant ?? sown.label,
+        latin: sown.latin,
+        kind: "vegetation",
+        claim: field.owner && !this.worksFor(field.owner) ? "owned" : undefined,
+        description: field.garden
+          ? "Planted in a kitchen garden beside the houses."
+          : "Growing in a worked field.",
+        affordances: crop,
+      };
+    }
+    // Wild animals are hovered and selected by their group: a herd on the
+    // move has no standing identity beyond its species.
+    const herd = this.state.fauna?.find((g) => g.id === id);
+    if (herd) {
+      const near = herd.members.reduce((best, m) =>
+        distance(this.state.player.pos, { ...m, space: "outside" }) <
+        distance(this.state.player.pos, { ...best, space: "outside" })
+          ? m
+          : best,
+      );
+      const at = { x: near.x, y: near.y, space: "outside" };
+      if (!this.visible(at)) return;
+      const profile = faunaProfile(herd.speciesId);
+      return {
+        id,
+        pos: at,
+        name: faunaName(herd, near).replace(/^./, (c) => c.toUpperCase()),
+        latin: profile?.latin,
+        kind: "animal",
+        description:
+          herd.members.length > 1
+            ? `One of a ${
+                profile?.social === "flock"
+                  ? "flock"
+                  : profile?.social === "pack"
+                    ? "pack"
+                    : "herd"
+              } of ${herd.members.length}.`
+            : "A wild animal going about its own business.",
+        affordances: [],
+      };
+    }
     const actor = this.state.actors.find((a) => a.id === id);
     const object = this.state.objects.find((o) => o.id === id);
     const place = this.world.place(id);
@@ -4068,6 +4208,13 @@ export class Engine {
         this.state.objects = this.state.objects.filter((o) => o !== loose);
         this.advance(2);
         this.event(`You pick up ${loose.name.toLowerCase()}.`);
+        return;
+      }
+    }
+    if (c.type === "interact" && c.action === "harvest") {
+      const at = /^crop-(-?\d+)-(-?\d+)$/.exec(c.target);
+      if (at) {
+        this.pickCrop(Number(at[1]), Number(at[2]));
         return;
       }
     }

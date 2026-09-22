@@ -8,6 +8,7 @@ export const crops: Record<CropId, Crop> = {
   wheat: {
     id: "wheat",
     label: "Wheat",
+    latin: "Triticum aestivum",
     kind: "grain",
     yields: "grain",
     height: "mid",
@@ -23,6 +24,7 @@ export const crops: Record<CropId, Crop> = {
   barley: {
     id: "barley",
     label: "Barley",
+    latin: "Hordeum vulgare",
     kind: "grain",
     yields: "grain",
     height: "mid",
@@ -38,6 +40,7 @@ export const crops: Record<CropId, Crop> = {
   rye: {
     id: "rye",
     label: "Rye",
+    latin: "Secale cereale",
     kind: "grain",
     yields: "grain",
     height: "tall",
@@ -53,6 +56,7 @@ export const crops: Record<CropId, Crop> = {
   oats: {
     id: "oats",
     label: "Oats",
+    latin: "Avena sativa",
     kind: "grain",
     yields: "grain",
     height: "mid",
@@ -68,6 +72,7 @@ export const crops: Record<CropId, Crop> = {
   millet: {
     id: "millet",
     label: "Millet",
+    latin: "Panicum miliaceum",
     kind: "grain",
     yields: "grain",
     height: "mid",
@@ -83,6 +88,7 @@ export const crops: Record<CropId, Crop> = {
   sorghum: {
     id: "sorghum",
     label: "Sorghum",
+    latin: "Sorghum bicolor",
     kind: "grain",
     yields: "grain",
     height: "tall",
@@ -98,6 +104,7 @@ export const crops: Record<CropId, Crop> = {
   teff: {
     id: "teff",
     label: "Teff",
+    latin: "Eragrostis tef",
     kind: "grain",
     yields: "grain",
     height: "low",
@@ -113,6 +120,7 @@ export const crops: Record<CropId, Crop> = {
   rice: {
     id: "rice",
     label: "Wet rice",
+    latin: "Oryza sativa",
     kind: "grain",
     yields: "grain",
     height: "mid",
@@ -129,6 +137,7 @@ export const crops: Record<CropId, Crop> = {
   "dry-rice": {
     id: "dry-rice",
     label: "Upland rice",
+    latin: "Oryza sativa",
     kind: "grain",
     yields: "grain",
     height: "mid",
@@ -144,6 +153,7 @@ export const crops: Record<CropId, Crop> = {
   maize: {
     id: "maize",
     label: "Maize",
+    latin: "Zea mays",
     kind: "grain",
     yields: "grain",
     height: "tall",
@@ -159,7 +169,9 @@ export const crops: Record<CropId, Crop> = {
   beans: {
     id: "beans",
     label: "Beans",
+    latin: "Phaseolus vulgaris",
     kind: "vegetable",
+    yields: "greens",
     height: "low",
     climates: ["temperate", "mediterranean", "tropical", "monsoon", "arid"],
     calendar: { spring: "sown", summer: "green", autumn: "ripe", winter: "bare" },
@@ -173,7 +185,9 @@ export const crops: Record<CropId, Crop> = {
   squash: {
     id: "squash",
     label: "Squash",
+    latin: "Cucurbita pepo",
     kind: "vegetable",
+    yields: "fruit",
     height: "low",
     climates: ["temperate", "mediterranean", "tropical", "monsoon", "arid"],
     calendar: { spring: "sown", summer: "green", autumn: "ripe", winter: "bare" },
@@ -187,7 +201,9 @@ export const crops: Record<CropId, Crop> = {
   potato: {
     id: "potato",
     label: "Potato",
+    latin: "Solanum tuberosum",
     kind: "root",
+    yields: "roots",
     height: "low",
     climates: ["temperate", "boreal", "tropical"],
     calendar: { spring: "sown", summer: "green", autumn: "ripe", winter: "bare" },
@@ -201,6 +217,7 @@ export const crops: Record<CropId, Crop> = {
   quinoa: {
     id: "quinoa",
     label: "Quinoa",
+    latin: "Chenopodium quinoa",
     kind: "grain",
     yields: "grain",
     height: "mid",
@@ -216,7 +233,9 @@ export const crops: Record<CropId, Crop> = {
   yam: {
     id: "yam",
     label: "Yam",
+    latin: "Dioscorea rotundata",
     kind: "root",
+    yields: "roots",
     height: "mid",
     climates: ["tropical", "monsoon"],
     calendar: { spring: "sown", summer: "green", autumn: "ripe", winter: "bare" },
@@ -230,7 +249,9 @@ export const crops: Record<CropId, Crop> = {
   cassava: {
     id: "cassava",
     label: "Cassava",
+    latin: "Manihot esculenta",
     kind: "root",
+    yields: "roots",
     height: "mid",
     climates: ["tropical", "monsoon"],
     calendar: { spring: "sown", summer: "green", autumn: "green", winter: "ripe" },
@@ -244,7 +265,9 @@ export const crops: Record<CropId, Crop> = {
   taro: {
     id: "taro",
     label: "Taro",
+    latin: "Colocasia esculenta",
     kind: "root",
+    yields: "roots",
     height: "low",
     wet: true,
     climates: ["tropical", "monsoon"],
@@ -259,6 +282,7 @@ export const crops: Record<CropId, Crop> = {
   sugarcane: {
     id: "sugarcane",
     label: "Sugarcane",
+    latin: "Saccharum officinarum",
     kind: "grain",
     height: "tall",
     climates: ["tropical", "monsoon", "arid"],
@@ -273,6 +297,7 @@ export const crops: Record<CropId, Crop> = {
   olive: {
     id: "olive",
     label: "Olive",
+    latin: "Olea europaea",
     kind: "tree",
     yields: "fruit",
     height: "tall",
@@ -288,6 +313,8 @@ export const crops: Record<CropId, Crop> = {
   vine: {
     id: "vine",
     label: "Vine",
+    plant: "Grapevine",
+    latin: "Vitis vinifera",
     kind: "vine",
     yields: "fruit",
     height: "low",
@@ -303,6 +330,7 @@ export const crops: Record<CropId, Crop> = {
   date: {
     id: "date",
     label: "Date palm",
+    latin: "Phoenix dactylifera",
     kind: "tree",
     yields: "fruit",
     height: "tall",
@@ -318,6 +346,7 @@ export const crops: Record<CropId, Crop> = {
   orchard: {
     id: "orchard",
     label: "Orchard",
+    plant: "Fruit tree",
     kind: "tree",
     yields: "fruit",
     height: "tall",
@@ -333,6 +362,7 @@ export const crops: Record<CropId, Crop> = {
   flax: {
     id: "flax",
     label: "Flax",
+    latin: "Linum usitatissimum",
     kind: "fibre",
     yields: "flax",
     height: "mid",
@@ -348,7 +378,9 @@ export const crops: Record<CropId, Crop> = {
   cotton: {
     id: "cotton",
     label: "Cotton",
+    latin: "Gossypium herbaceum",
     kind: "fibre",
+    yields: "cotton",
     height: "mid",
     climates: ["arid", "monsoon", "tropical", "mediterranean"],
     calendar: { spring: "sown", summer: "green", autumn: "ripe", winter: "stubble" },
@@ -362,7 +394,9 @@ export const crops: Record<CropId, Crop> = {
   vegetables: {
     id: "vegetables",
     label: "Vegetable garden",
+    plant: "Garden vegetables",
     kind: "vegetable",
+    yields: "greens",
     height: "low",
     climates: ["temperate", "mediterranean", "tropical", "monsoon", "arid", "boreal"],
     calendar: { spring: "sown", summer: "green", autumn: "ripe", winter: "bare" },

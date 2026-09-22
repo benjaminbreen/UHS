@@ -7,6 +7,7 @@ export const temperateFauna: readonly FaunaProfile[] = [
   {
     id: "red-deer",
     label: "Red deer study",
+    latin: "Cervus elaphus",
     category: "wild",
     locomotion: "ground",
     social: "herd",
@@ -44,6 +45,7 @@ export const temperateFauna: readonly FaunaProfile[] = [
   {
     id: "gray-wolf",
     label: "Gray wolf study",
+    latin: "Canis lupus",
     category: "wild",
     locomotion: "ground",
     social: "pack",
@@ -82,6 +84,7 @@ export const temperateFauna: readonly FaunaProfile[] = [
   {
     id: "wapiti",
     label: "Wapiti",
+    latin: "Cervus canadensis",
     category: "wild",
     locomotion: "ground",
     social: "herd",
@@ -120,6 +123,7 @@ export const temperateFauna: readonly FaunaProfile[] = [
   {
     id: "aurochs",
     label: "Aurochs study",
+    latin: "Bos primigenius",
     category: "wild",
     locomotion: "ground",
     social: "herd",
@@ -158,6 +162,7 @@ export const temperateFauna: readonly FaunaProfile[] = [
   {
     id: "wild-boar",
     label: "Wild boar study",
+    latin: "Sus scrofa",
     category: "wild",
     locomotion: "ground",
     social: "herd",

@@ -42,6 +42,12 @@ export type CropStage = "bare" | "sown" | "green" | "ripe" | "stubble";
 export type Crop = {
   id: CropId;
   label: string;
+  /** Binomial for the plant, where the crop is one species rather than a
+   * catch-all like an orchard or a mixed garden. */
+  latin?: string;
+  /** What one plant of it is called, where the label names the parcel rather
+   * than the thing growing in it. */
+  plant?: string;
   kind: "grain" | "root" | "tree" | "vine" | "vegetable" | "fibre" | "pasture" | "fallow";
   /** Item harvested, where the sim has one. */
   yields?: ItemId;

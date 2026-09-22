@@ -7,6 +7,7 @@ export const birds: readonly FaunaProfile[] = [
   {
     id: "house-sparrow",
     label: "House sparrow study",
+    latin: "Passer domesticus",
     category: "commensal",
     locomotion: "ground-and-flight",
     gait: "hop",
@@ -43,6 +44,7 @@ export const birds: readonly FaunaProfile[] = [
   {
     id: "rock-dove",
     label: "Rock dove study",
+    latin: "Columba livia",
     category: "commensal",
     locomotion: "ground-and-flight",
     gait: "hop",

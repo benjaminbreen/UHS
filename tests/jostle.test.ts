@@ -103,3 +103,13 @@ it("jumps a hen but not a sheep, and lands on neither", () => {
   expect(over("chicken").kind).not.toBe("blocked");
   expect(over("sheep").kind).toBe("blocked");
 });
+
+it("names a wild animal you point at, species and binomial", () => {
+  const engine = field("hover-deer");
+  const deer = beside(engine, "red-deer");
+  const seen = engine.inspect(engine.state.fauna!.at(-1)!.id);
+  expect(seen?.name).toBe("Red deer");
+  expect(seen?.latin).toBe("Cervus elaphus");
+  expect(seen?.kind).toBe("animal");
+  expect(deer.x).toBe(1);
+});

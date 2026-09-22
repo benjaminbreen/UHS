@@ -33,6 +33,10 @@ export type FieldCell = {
   garden?: boolean;
   /** Inside a house's or church's yard, not the town's farmland. */
   yard?: boolean;
+  /** Whose ground this is, where anybody holds it: the parcel's tenant, or
+   * the household whose yard or kitchen garden it belongs to. Absent is
+   * common ground, which nobody minds you picking from. */
+  owner?: string;
 };
 
 /** Enclosure by era where the farm system documents none: boulders before
@@ -917,6 +921,14 @@ export function planFarmland(input: {
     parcel.baselineYear ??= setting.year;
     parcel.state ??= parcel.crop === "fallow" ? "fallow" : "used";
   }
+  // Tenancy down onto the cells, so anything standing on a cell knows whose
+  // ground it is without a search through the parcel list.
+  const held = new Map(parcels.filter((p) => p.owner).map((p) => [p.id, p.owner!]));
+  if (held.size)
+    for (const cell of fields.values()) {
+      const owner = held.get(cell.parcel);
+      if (owner) cell.owner = owner;
+    }
   return {
     system,
     territory: { center: { ...c }, inner, outer, spokes, slots },

@@ -29,6 +29,9 @@ export type DietTag =
 export type FaunaProfile = {
   id: string;
   label: string;
+  /** Binomial for the species, shown beside the common name. Domestic breeds
+   * carry the domestic name where one is conventionally used. */
+  latin?: string;
   category: "domestic" | "commensal" | "wild";
   locomotion: "ground" | "ground-and-flight";
   /** How it covers ground on screen. Absent means a steady walk. */

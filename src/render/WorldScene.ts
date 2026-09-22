@@ -181,6 +181,7 @@ import {
 } from "./fire";
 import terrainFrames from "./generated/terrain.json" with { type: "json" };
 import { bloomAt, setBloomCut } from "./flowers";
+import { setCropSelector, setCropCut } from "./crops";
 import { setFloraRegion } from "../content/ecology/blooms";
 import { floraRegion } from "../content/ecology/flora";
 import { alternateTrees, sceneAssets } from "./scene-assets";
@@ -294,6 +295,10 @@ export class WorldScene extends Phaser.Scene {
   private plantHeights = new Map<string, number>();
   /** The images standing on a cell, so a blow can rock the right plant. */
   private plantImages = new Map<string, Phaser.GameObjects.Image[]>();
+  /** One plant per selectable crop cell, so a selected crop can be outlined
+   * the way a tree or a person is. */
+  private cropImages = new Map<string, Phaser.GameObjects.Image>();
+  private pickedRevision = -1;
   private toolEffects?: ToolEffects;
   private combatEffects?: CombatEffects;
   private cueFx?: CueEffects;
@@ -498,6 +503,13 @@ export class WorldScene extends Phaser.Scene {
   create() {
     this.ready = true;
     this.useFlora();
+    setCropSelector(this, (image, id) => {
+      this.makeSelectable(image, id);
+      this.cropImages.set(id, image);
+      image.once("destroy", () => {
+        if (this.cropImages.get(id) === image) this.cropImages.delete(id);
+      });
+    });
     this.characters = new WorldCharacters(this);
     this.characters.palette = this.runtime.palette();
     this.wading = new WadingEffects(this);
@@ -1474,7 +1486,9 @@ export class WorldScene extends Phaser.Scene {
     const decor = /^decor-(-?\d+)-(-?\d+)$/.exec(id);
     const image = decor
       ? this.plantImages.get(`${decor[1]},${decor[2]}`)?.[0]
-      : (this.entities.get(id) ?? this.buildings.get(id));
+      : (this.entities.get(id) ??
+        this.buildings.get(id) ??
+        this.cropImages.get(id));
     return image?.active ? image : undefined;
   }
   /** A ring of tinted copies behind the sprite: the fringe that shows past its
@@ -2463,6 +2477,17 @@ export class WorldScene extends Phaser.Scene {
         return !!(t && (t.cut || t.dug || t.stage));
       },
     );
+    setCropCut((x, y) => !!tiles?.[`${x},${y}`]?.picked);
+    // Chunks already on screen keep their sprites; a picked plant has to go
+    // now rather than when its chunk next streams.
+    const picks = e.state.tilesRevision ?? 0;
+    if (picks !== this.pickedRevision) {
+      this.pickedRevision = picks;
+      for (const [id, image] of this.cropImages) {
+        const at = /^crop-(-?\d+)-(-?\d+)$/.exec(id);
+        if (at && tiles?.[`${at[1]},${at[2]}`]?.picked) image.destroy();
+      }
+    }
     if (key !== this.staticKey || w !== this.drawnWorld) {
       if (w !== this.drawnWorld) this.useFlora();
       const sceneryStart = performance.now();
@@ -4411,8 +4436,14 @@ export class WorldScene extends Phaser.Scene {
             !this.direction().some(Boolean)
           )
             this.feel.skid(im, this.shadows.get(id), human.direction, DUST);
-          if (fidget?.shiver)
-            im.x = Math.round(im.x) + (Math.floor(time / 50) % 2 ? 0.6 : -0.6);
+          if (fidget?.shiver) {
+            const nudge = Math.floor(time / 50) % 2 ? 0.6 : -0.6;
+            im.x = Math.round(im.x) + nudge;
+            // The camera tracks the sprite, so cancel the shiver or the whole
+            // world shakes with it.
+            if (id === "player" && !this.options.lab)
+              this.cameras.main.setFollowOffset(nudge, -arcLift);
+          }
         }
         this.wading?.update(
           id,

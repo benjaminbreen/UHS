@@ -54,6 +54,8 @@ export type TopographyCell = {
     /** Inside a household's or church's yard rather than the farmland. */
     yard?: boolean;
     garden?: boolean;
+    /** Whose ground it is. Absent is common ground nobody minds you picking. */
+    owner?: string;
     stage: import("../content/agriculture/types").CropStage;
   };
   /** An irrigation channel standing empty: dug and banked, but with no water

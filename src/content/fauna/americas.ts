@@ -8,6 +8,7 @@ export const americanFauna: readonly FaunaProfile[] = [
   {
     id: "llama",
     label: "Llama study",
+    latin: "Lama glama",
     category: "domestic",
     locomotion: "ground",
     social: "herd",
@@ -45,6 +46,7 @@ export const americanFauna: readonly FaunaProfile[] = [
   {
     id: "guinea-pig",
     label: "Guinea pig study",
+    latin: "Cavia porcellus",
     category: "domestic",
     locomotion: "ground",
     gait: "scurry",
@@ -80,6 +82,7 @@ export const americanFauna: readonly FaunaProfile[] = [
   {
     id: "turkey",
     label: "Turkey study",
+    latin: "Meleagris gallopavo",
     category: "domestic",
     locomotion: "ground",
     gait: "scurry",
@@ -119,6 +122,7 @@ export const americanFauna: readonly FaunaProfile[] = [
   {
     id: "wild-turkey",
     label: "Wild turkey",
+    latin: "Meleagris gallopavo",
     category: "wild",
     locomotion: "ground",
     gait: "scurry",

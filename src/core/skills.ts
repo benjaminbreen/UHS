@@ -40,6 +40,7 @@ export const PER_LEVEL = {
   huntingQuiet: 0.03,
   deftBlow: 0.06,
   farmingPace: 0.04,
+  harvestExtra: 0.05,
   foragingExtra: 0.06,
   speechWarmth: 0.08,
   tradeTerms: 0.03,
@@ -70,7 +71,8 @@ export const SKILLS: Record<SkillId, SkillDef> = {
     name: "Farming",
     group: "Land",
     earned: "Turning soil, reaping, bringing in a crop",
-    perk: (l) => `Field work goes ${pct(l * PER_LEVEL.farmingPace)} faster`,
+    perk: (l) =>
+      `Field work goes ${pct(l * PER_LEVEL.farmingPace)} faster; ${pct(l * PER_LEVEL.harvestExtra)} chance of a second helping off a plant`,
     stat: "endurance",
     trades: /farm|peasant|plough|reap|cultivat|tenant|serf|gardener|planter/i,
   },

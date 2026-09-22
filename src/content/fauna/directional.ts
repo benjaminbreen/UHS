@@ -7,6 +7,7 @@ export const directionalFauna: readonly FaunaProfile[] = [
   {
     id: "horse",
     label: "Horse study",
+    latin: "Equus caballus",
     category: "domestic",
     locomotion: "ground",
     social: "herd",
@@ -48,6 +49,7 @@ export const directionalFauna: readonly FaunaProfile[] = [
   {
     id: "foal",
     label: "Foal study",
+    latin: "Equus caballus",
     category: "domestic",
     locomotion: "ground",
     social: "herd",
@@ -84,6 +86,7 @@ export const directionalFauna: readonly FaunaProfile[] = [
   {
     id: "rabbit",
     label: "Rabbit study",
+    latin: "Oryctolagus cuniculus",
     category: "wild",
     locomotion: "ground",
     gait: "hop",
@@ -127,6 +130,7 @@ export const directionalFauna: readonly FaunaProfile[] = [
   {
     id: "rabbit-kit",
     label: "Rabbit kit study",
+    latin: "Oryctolagus cuniculus",
     category: "wild",
     locomotion: "ground",
     gait: "hop",

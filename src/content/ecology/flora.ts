@@ -2058,7 +2058,7 @@ export const floraItems: Record<ItemId, ItemDef> = Object.fromEntries(
       "Seed fibre, ready for ginning and spinning.",
       { flammable: true },
     ),
-    def("greens", "Wild greens", "flowers", 1, "Tender leaves and shoots.", {
+    def("greens", "Greens", "flowers", 1, "Tender leaves and shoots.", {
       edible: 3,
     }),
     def(

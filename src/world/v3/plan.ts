@@ -1538,6 +1538,7 @@ export function planSettlement(
     parcel: number,
     axis: "x" | "y",
     boundary: Boundary,
+    owner?: string,
   ) => {
     const drawn = boundary !== "none";
     eachCell(area, (x, y) => {
@@ -1567,6 +1568,7 @@ export function planSettlement(
           wet: false,
           garden: !!crop,
           yard: true,
+          owner,
         },
       ]);
       setSurface(k, crop ? "field" : "grass", 3);
@@ -1610,6 +1612,7 @@ export function planSettlement(
     i: number,
     role: string,
     lot: Rect,
+    owner?: string,
   ) => {
     const atWork = (x: number, y: number) =>
       Math.abs(x - work.x) <= 1 && Math.abs(y - work.y) <= 1;
@@ -1688,7 +1691,10 @@ export function planSettlement(
     const tries: [number, number, number][] = [];
     for (let front = Math.max(1, deepest); front >= 1; front--)
       for (const side of [first, -first])
-        for (const bed of [5, 4, 3].slice(Math.floor(rand("toft-bed", i) * 2)))
+        // Widest bed that will fit, narrowing as the tries fall back.
+        for (const bed of [8, 7, 6, 5, 4].slice(
+          Math.floor(rand("toft-bed", i) * 3),
+        ))
           tries.push([front, side, bed]);
     yardPlans.push(() => {
       for (const [front, side, bed] of tries) {
@@ -1785,8 +1791,10 @@ export function planSettlement(
             x < rows.x + rows.w &&
             y >= rows.y &&
             y < rows.y + rows.h &&
-            // A trodden baulk splits a long bed in two.
+            // Trodden baulks the gardener works from: across a long bed, and
+            // down a wide one, so no plant is out of arm's reach.
             !(rows.h >= 4 && y === rows.y + (rows.h >> 1)) &&
+            !(rows.w >= 6 && x === rows.x + (rows.w >> 1)) &&
             !open(x, y) &&
             !propCells.has(cellKey(x, y));
           encloseYard(
@@ -1797,6 +1805,7 @@ export function planSettlement(
             100200 + i * 2,
             "x",
             yardBoundary(i),
+            owner,
           );
           if (gate) {
             const k = cellKey(gate.x, gate.y);
@@ -1879,6 +1888,7 @@ export function planSettlement(
     house: Rect,
     id: string,
     i: number,
+    owner?: string,
   ) => {
     eachCell(g, (x, y) => plan.reserved.add(cellKey(x, y)));
     const crop =
@@ -1918,7 +1928,7 @@ export function planSettlement(
         return low || high || back;
       };
       const bed = rand("garden-bed", i) < 0.7;
-      const from = Math.max(1, depth - 3);
+      const from = Math.max(1, depth - 4);
       encloseYard(
         g,
         (x, y) => taken(x, y) || plan.solid.has(cellKey(x, y)),
@@ -1930,13 +1940,16 @@ export function planSettlement(
             away(x, y) >= from &&
             away(x, y) < depth - (rear ? 1 : 0) &&
             along >= 1 &&
-            along < Math.min(span - 1, 5)
+            along < Math.min(span - 1, 8) &&
+            // A path down the middle of a wide bed.
+            !(span >= 8 && along === Math.min(span - 1, 8) >> 1)
             ? crop
             : undefined;
         },
         100400 + i * 2,
         rows ? "x" : "y",
         yardBoundary(i),
+        owner,
       );
       if (yards.tree && rand("garden-tree", i) < yards.tree.chance) {
         const at = rows
@@ -2345,8 +2358,8 @@ export function planSettlement(
       propCells.add(cellKey(p.x, p.y)),
     );
     if (organic && !urban && !lot.rect && (pack.setting?.year ?? 0) < 1800)
-      layToft(rect, door, point, workPoint, id, i, role, yard);
-    if (lot.garden) layGarden(lot.garden, rect, id, i);
+      layToft(rect, door, point, workPoint, id, i, role, yard, owner);
+    if (lot.garden) layGarden(lot.garden, rect, id, i, owner);
     const side = {
       x: workPoint.x + (ny ? (urban ? -1 : 2) : 0),
       y: workPoint.y + (nx ? (urban ? -1 : 2) : 0),
