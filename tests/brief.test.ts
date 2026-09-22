@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { atWork, briefText, personBrief } from "../src/core/brief";
-import type { Actor } from "../src/core/types";
+import { placeBrief } from "../src/core/place-brief";
+import {
+  conditionOf,
+  weatherStructure,
+} from "../src/core/time/structure";
+import type { Actor, Place } from "../src/core/types";
 
 const at = { x: 0, y: 0, space: "outside" } as const;
 const person = (over: Partial<Actor> = {}): Actor => ({
@@ -75,5 +80,60 @@ describe("person brief", () => {
     expect(text({ trust: -1 }, "a hoe")).toBe(
       "Potter. They are walking to the well, carrying a hoe. They are wary of you.",
     );
+  });
+});
+
+describe("place brief", () => {
+  const structure = weatherStructure("s", "p", "earth", 1360, 1400, 0.6);
+  const house = (over: Partial<Place> = {}): Place => ({
+    id: "p",
+    name: "Household",
+    description: "A mudbrick block.",
+    x: 0,
+    y: 0,
+    w: 4,
+    h: 3,
+    sprite: "house",
+    entrance: { x: 0, y: 0 },
+    access: "household",
+    owner: "a",
+    claim: "landscape",
+    entranceLabel: "Door to the street",
+    structure,
+    condition: conditionOf(structure),
+    ...over,
+  });
+  const holder = person({ id: "a", name: "Tesni", role: "Potter" });
+  const wife = person({
+    id: "b",
+    name: "Aneirin",
+    relations: [{ other: "a", kind: "partner" }],
+  });
+
+  it("names who lives there, how old it is and how it has fared", () => {
+    const b = placeBrief(house(), 1400, holder, [holder, wife])!;
+    const said = briefText(b);
+    expect(said).toContain("Tesni");
+    expect(said).toContain("lives here with");
+    expect(said).toContain("Aneirin");
+    expect(said).toMatch(/Put up about 40 years ago/);
+    expect(said).toMatch(/well kept|sound/);
+  });
+
+  it("says nothing about business unless the place trades", () => {
+    expect(briefText(placeBrief(house(), 1400, holder, [holder])!)).not.toMatch(
+      /Business/,
+    );
+    const shop = house({ access: "public", trade: 0.85 });
+    expect(briefText(placeBrief(shop, 1400, holder, [holder])!)).toMatch(
+      /Business is brisk/,
+    );
+  });
+
+  it("does not give a civic building a householder", () => {
+    const hall = house({ claim: "venue-hall", name: "The town hall" });
+    const said = briefText(placeBrief(hall, 1400, holder, [holder, wife])!);
+    expect(said).not.toContain("lives here");
+    expect(said).toContain("A mudbrick block.");
   });
 });

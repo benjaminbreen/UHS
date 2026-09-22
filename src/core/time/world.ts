@@ -6,7 +6,12 @@ import { packForSetting } from "../../content/geography/pack";
 import { buildingModel } from "../../content/graphics/models";
 import { random } from "../random";
 import { generateCharacter } from "../../content/characters/generate";
-import { ageStructure, fabricOf, structureBlocks } from "./structure";
+import {
+  ageStructure,
+  conditionOf,
+  fabricOf,
+  structureBlocks,
+} from "./structure";
 import { settingAt } from "./setting";
 import { ageObject } from "./objects";
 import { terrainStep } from "../topography";
@@ -102,7 +107,7 @@ export function buildingAt(
     x: place.x + model.entrance[0],
     y: place.y + model.entrance[1],
   };
-  place.condition = place.structure!.walls.reduce((a, b) => a + b, 0) / 12;
+  place.condition = conditionOf(place.structure);
   if (year > abandoned) {
     place.abandonedAt = abandoned;
     place.name = `Remains of ${base.name.toLowerCase()}`;

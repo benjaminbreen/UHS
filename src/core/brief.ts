@@ -10,9 +10,9 @@ export type BriefSpan = {
 /** Two lines: who they are, then what they are doing as you look at them. */
 export type PersonBrief = { identity: BriefSpan[]; moment: BriefSpan[] };
 
-type Sex = "male" | "female" | undefined;
+export type Sex = "male" | "female" | undefined;
 
-const sexOf = (a: Actor): Sex => {
+export const sexOf = (a: Actor): Sex => {
   const declared = a.origin?.sex ?? a.appearance?.physique?.sex;
   return declared === "male" || declared === "female"
     ? declared

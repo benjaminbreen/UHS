@@ -155,6 +155,9 @@ export type Place = {
   modifiedAt?: number;
   abandonedAt?: number;
   condition?: number;
+  /** 0-1. How a trading place is doing, from its holder's means and the
+   * traffic the quarter brings past the door. */
+  trade?: number;
 };
 export type WorldObject = {
   resource?: Resource;

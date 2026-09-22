@@ -13,6 +13,11 @@ import {
 } from "../../content/characters/resolve";
 import { workplaceFor } from "../../content/characters/workplace";
 import type { Rank } from "../../content/characters/context-types";
+import {
+  conditionOf,
+  fabricOf,
+  weatherStructure,
+} from "../../core/time/structure";
 import { venuesFor } from "../../content/venues";
 import {
   streetPalette,
@@ -1488,6 +1493,22 @@ export function planSettlement(
     elite: 6,
   };
   const holdings = new Map<string, number>();
+  /** What a household has to spend, on its house and on its stock alike. */
+  const MEANS: Record<Rank, number> = {
+    destitute: 0.1,
+    labouring: 0.35,
+    middling: 0.6,
+    gentry: 0.8,
+    elite: 0.92,
+  };
+  /** Traffic past the door. The quarter is the layout's own account of it. */
+  const TRAFFIC: Record<string, number> = {
+    market: 0.9,
+    craft: 0.7,
+    elite: 0.5,
+    residential: 0.45,
+    edge: 0.25,
+  };
   // A composed settlement's capacity comes from its own extent and fabric; the
   // flat profile count still governs villages and the older layouts.
   const limit =
@@ -2237,7 +2258,33 @@ export function planSettlement(
       lot.quarter === "market" || lot.quarter === "craft" || i % 4 === 1;
     if (lot.venue)
       plan.venues!.push({ venue: lot.venue, pos: door, placeId: id });
+    // Age out from the middle: the lots by the crossroads were built on first
+    // and rebuilt on since, and the edge is this generation's work.
+    const central =
+      1 -
+      Math.min(1, Math.hypot(rect.x - c.x, rect.y - c.y) / (profile.radius || 1));
+    const age = Math.round(
+      (4 + rand("built", i) ** 2 * 150) * (0.35 + central * 0.85),
+    );
+    const means = MEANS[livelihood?.rank ?? "labouring"];
+    const structure = weatherStructure(
+      seed,
+      id,
+      fabricOf(model.wall),
+      (pack.setting?.year ?? 0) - age,
+      pack.setting?.year ?? 0,
+      means,
+    );
     plan.places.push({
+      structure,
+      condition: conditionOf(structure),
+      ...(shopfront && !lot.venue
+        ? {
+            trade:
+              means * 0.5 +
+              (TRAFFIC[lot.quarter ?? "residential"] ?? 0.4) * 0.5,
+          }
+        : {}),
       id,
       name: lot.venue
         ? lot.venue.label

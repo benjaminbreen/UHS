@@ -52,6 +52,62 @@ export function ageStructure(
     char: 0,
   };
 }
+/** A building somebody lives in. It wears at a fraction of the abandoned
+ * rate, because a roof in use is patched before it falls in, and the fraction
+ * is what the household can spend on it. */
+export function weatherStructure(
+  seed: string,
+  id: string,
+  fabric: Fabric,
+  built: number,
+  year: number,
+  upkeep: number,
+): Structure {
+  const years = Math.max(0, year - built);
+  const kept = 1 - 0.75 * clamp(upkeep);
+  const rate = { masonry: 0.0015, earth: 0.004, timber: 0.006 }[fabric] * kept;
+  // Lived in, so it is still a building: the wall stands and the roof keeps
+  // the rain off, however long it has been since anyone was proud of it.
+  const standing = (wear: number, floor: number) =>
+    Math.max(floor, clamp(1 - wear));
+  return {
+    version: 1,
+    fabric,
+    built,
+    roof: standing(years * rate * 1.5, 0.6),
+    walls: Array.from({ length: 12 }, (_, i) =>
+      standing(years * rate * (0.6 + random(seed, id, "wear", i)), 0.35),
+    ),
+    burial: 0,
+    vegetation: clamp(years * rate * 0.5),
+    char: 0,
+  };
+}
+/** 0 is a ruin, 1 is new. The worst wall counts for as much as the average:
+ * one side falling in is what you notice about a building. */
+export function conditionOf(structure: Structure | undefined) {
+  if (!structure) return 1;
+  const walls = structure.walls;
+  const mean = walls.reduce((a, b) => a + b, 0) / walls.length;
+  return clamp(
+    Math.min(structure.roof, (mean + Math.min(...walls)) / 2) -
+      structure.char * 0.5 -
+      structure.vegetation * 0.2 -
+      structure.burial,
+  );
+}
+const BANDS: [number, string][] = [
+  [0.94, "as good as new"],
+  [0.82, "well kept"],
+  [0.66, "sound"],
+  [0.45, "worn"],
+  [0.25, "in poor repair"],
+  [0.08, "half derelict"],
+];
+/** The condition as a phrase that reads after "It is". */
+export function conditionBand(condition: number) {
+  return BANDS.find(([floor]) => condition >= floor)?.[1] ?? "a ruin";
+}
 export function damageStructure(
   state: Structure,
   impact: StructuralImpact,

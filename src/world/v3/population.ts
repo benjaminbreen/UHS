@@ -79,11 +79,13 @@ export function populateHouseholds(
       const kin = random(seed, memberId, "kin");
       const child = !shared && (i > 0 ? kin < 0.7 : kin < 0.3);
       const elder = !shared && !child && i === 0 && kin > 0.85;
+      // Only the first member can be a spouse. Drawing the relation
+      // independently married the householder to both of them.
       const relation = child
         ? "parent"
         : elder
           ? "child"
-          : shared
+          : shared || i > 0
             ? "co-resident"
             : "partner";
       const a: Actor = {

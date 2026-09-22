@@ -18,6 +18,7 @@ import {
 import { weatherAt } from "./weather";
 import { propDefs } from "../content/props/catalog";
 import { atWork, briefText, personBrief } from "./brief";
+import { placeBrief } from "./place-brief";
 import { propAffordances, heldObject, lowProp } from "./props";
 import {
   planShove,
@@ -2964,7 +2965,8 @@ export class Engine {
     if (place) {
       const door = this.doorOf(place.id);
       const verdict = this.doorVerdict(place, "player");
-      if ((place.structure?.roof ?? 1) >= 0.95) interact(
+      // A worn roof is still a roof; only a ruin's is not.
+      if ((place.structure?.roof ?? 1) >= 0.5) interact(
         "enter",
         place.entranceLabel,
         close && !!door?.open,
@@ -2974,12 +2976,25 @@ export class Engine {
             ? "The door is shut against you"
             : "Open the door first",
       );
+      const home = this.state.households?.find(
+        (h) => h.residence === place.id,
+      );
+      const resident = (who: string) =>
+        [this.state.player, ...this.state.actors].find((a) => a.id === who);
+      const brief = placeBrief(
+        place,
+        this.state.manifest.setting?.year ?? 0,
+        resident(place.owner),
+        (home?.members ?? []).map(resident).filter((a): a is Actor => !!a),
+      );
       return {
         id,
         name: place.name,
+        brief,
         description:
+          (brief ? briefText(brief) + " " : "") +
           place.description +
-          (place.access === "household" && (place.structure?.roof ?? 1) >= 0.95 ? " This is a household space." : ""),
+          (place.access === "household" && (place.structure?.roof ?? 1) >= 0.5 ? " This is a household space." : ""),
         kind: "building",
         pos,
         claim: place.claim,
