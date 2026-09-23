@@ -174,6 +174,16 @@ export const propDefs: Record<string, PropDef> = {
     portable: true,
     container: true,
   },
+  shellMidden: {
+    solid: false,
+    name: "Shell midden",
+    family: "shell-midden",
+  },
+  fishWeir: {
+    solid: true,
+    name: "Fish weir",
+    family: "fish-weir",
+  },
   standingStone: {
     solid: true,
     name: "Standing stone",

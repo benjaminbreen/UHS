@@ -66,6 +66,11 @@
     "radius": 36
   },
   {
+    "name": "arnhem-1700",
+    "query": "Arnhem Land 1700",
+    "radius": 40
+  },
+  {
     "name": "sydney-1500",
     "query": "Sydney 1500",
     "radius": 30
@@ -83,12 +88,12 @@
   {
     "name": "northwest-coast-1700",
     "query": "Pacific Northwest 1700",
-    "radius": 34
+    "radius": 50
   },
   {
     "name": "amazon-1400",
     "query": "Amazon 1400",
-    "radius": 34
+    "radius": 60
   },
   {
     "name": "maasai-1850",

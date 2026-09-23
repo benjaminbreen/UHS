@@ -1,5 +1,6 @@
 import type { WorldSetting } from "../geography/types";
 import type { CultureId } from "../history/types";
+import type { Boundary } from "../agriculture/types";
 import { subsistenceFor } from "../characters/resolve";
 import { farms } from "../geography/onsets";
 
@@ -55,6 +56,10 @@ export type Lifeway = {
     spacing: number;
     /** A larger building at the middle of a ring: the men's house. */
     centre?: boolean;
+    /** The fence round the stock at the middle of a ring. */
+    fold?: Boundary;
+    /** The fence round the whole camp, with a gate to the south. */
+    perimeter?: Boundary;
   };
   evidence: {
     status: "documented" | "inferred" | "fictional";
@@ -132,7 +137,14 @@ export const lifeways: readonly Lifeway[] = [
     to: 1950,
     bounds: [33, -7, 38.5, 2.5],
     share: { of: "herding", min: 0.4 },
-    camp: { form: "ring", groups: [1, 1], perGroup: [8, 12], spacing: 0 },
+    camp: {
+      form: "ring",
+      groups: [1, 1],
+      perGroup: [8, 12],
+      spacing: 0,
+      fold: "thorn",
+      perimeter: "thorn",
+    },
     evidence: {
       status: "documented",
       note: "A Maasai homestead is a ring of low dung-plastered houses, built by the women, round the fold where the cattle come in at night, the whole enclosed by a fence of thorn branches.",
@@ -148,7 +160,13 @@ export const lifeways: readonly Lifeway[] = [
     to: 1800,
     bounds: [16, -35, 26, -28],
     share: { of: "herding", min: 0.35 },
-    camp: { form: "ring", groups: [1, 1], perGroup: [7, 11], spacing: 0 },
+    camp: {
+      form: "ring",
+      groups: [1, 1],
+      perGroup: [7, 11],
+      spacing: 0,
+      fold: "thorn",
+    },
     evidence: {
       status: "documented",
       note: "Cape herders pitched their mat-covered domed houses in a circle round the livestock at night, and took the mats and frames down onto pack oxen when they moved.",

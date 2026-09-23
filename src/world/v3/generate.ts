@@ -483,7 +483,7 @@ export function createSettlementWorld(
           const reach =
             s.profile.radius +
             8 +
-            (s.profile.fields !== "none"
+            (s.profile.fields !== "none" || s.profile.outfields
               ? Math.max(64, territoryReach(s.profile.radius, s.pack ?? pack))
               : 64);
           if (

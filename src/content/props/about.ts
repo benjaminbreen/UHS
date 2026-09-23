@@ -91,6 +91,8 @@ export const about: Record<string, string> = {
   pitchfork: "A pitchfork for lifting hay and straw.",
   beehive: "A beehive. The bees are kept for honey and wax.",
   hideFrame: "An animal hide stretched on a frame to dry before it is scraped and cured.",
+  shellMidden: "A mound of shells left by generations of meals at a camp by the shore.",
+  fishWeir: "A line of stakes and woven branches in the shallows that funnels fish into a trap.",
   knappingFloor: "A spot where flint and stone are chipped into blades and tools. The ground is covered in sharp flakes.",
   warpLoom: "An upright loom whose threads are pulled tight by hanging clay weights.",
   grainPit: "A pit dug in the ground and sealed, to store grain through the winter.",

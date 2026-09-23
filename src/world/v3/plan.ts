@@ -162,13 +162,14 @@ export function planSettlement(
       : undefined;
   const campLots: { point: Point; nx: number; ny: number; frame?: string }[] =
     [];
+  const campFences: (() => void)[] = [];
   // Farmland reaches past the claim, and so must the ground a path may use.
   // A town farms once its region does, whatever its own profile says of
   // household fields; a camp or a hunting band does not.
   const farmed =
     !!pack.setting?.environment &&
     farms(pack.setting) &&
-    (profile.fields !== "none" || urban);
+    (profile.fields !== "none" || urban || !!profile.outfields);
   const margin = 40 + (farmed ? territoryReach(r, pack) : 0);
   const coreBounds = {
     x: c.x - r - 40,
@@ -1310,6 +1311,65 @@ export function planSettlement(
       };
       for (const dx of [0, -2, 2])
         campLots.push({ point: { x: point.x + dx, y: point.y }, nx: 0, ny: -1 });
+    }
+    // The fold is kept clear before any house is set; its thorn, and the
+    // fence round the whole homestead, go up with the yard fences.
+    const oval = (cx: number, cy: number, rx: number, ry: number) =>
+      (x: number, y: number) =>
+        ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2 <= 1;
+    const thorn = (
+      inside: (x: number, y: number) => boolean,
+      band: (x: number, y: number) => boolean,
+      area: Rect,
+      gateX: number,
+      gateY: number,
+      boundary: Boundary,
+      parcel: number,
+    ) =>
+      campFences.push(() =>
+        encloseYard(
+          area,
+          (x, y) => !inside(x, y) || !band(x, y),
+          (x, y) =>
+            !inside(x, y) &&
+            !(y > gateY && Math.abs(x - gateX) <= 1) &&
+            !roads.has(cellKey(x, y)),
+          () => undefined,
+          parcel,
+          "x",
+          boundary,
+        ),
+      );
+    if (camp.camp.fold) {
+      const fx = c.x,
+        fy = c.y - Math.round(rho * 0.45),
+        rx = Math.round(rho * 0.6),
+        ry = Math.max(3, Math.round(rho * 0.32));
+      const fold = oval(fx, fy, rx, ry);
+      const area = { x: fx - rx - 1, y: fy - ry - 1, w: rx * 2 + 3, h: ry * 2 + 3 };
+      eachCell(area, (x, y) => {
+        if (fold(x, y)) plan.reserved.add(cellKey(x, y));
+      });
+      thorn(fold, () => true, area, fx, fy, camp.camp.fold, 90001);
+    }
+    if (camp.camp.perimeter) {
+      // Round the houses, which stand from the hearth's line up to a
+      // house's depth past the top of the ring.
+      const px = c.x,
+        py = c.y - Math.round(rho / 2) - 3,
+        rx = Math.round(rho * 1.35) + 7,
+        ry = Math.round(rho / 2) + 9;
+      const inside = oval(px, py, rx, ry),
+        inner = oval(px, py, rx - 2, ry - 2);
+      thorn(
+        inside,
+        (x, y) => !inner(x, y),
+        { x: px - rx - 1, y: py - ry - 1, w: rx * 2 + 3, h: ry * 2 + 3 },
+        px,
+        py,
+        camp.camp.perimeter,
+        90002,
+      );
     }
     const large = pack.buildings.find((b) => b.includes("-large-"));
     if (centre && large)
@@ -3632,7 +3692,61 @@ export function planSettlement(
       );
     });
   }
-  for (const fence of toftQueue) fence();
+  // What a camp that lives off the water leaves at the shore: a weir staked
+  // out at the water's edge, and middens of the shells it has eaten.
+  if (camp && camp.mode !== "nomadic-pastoral") {
+    const shares = subsistenceFor(pack.setting!)?.shares;
+    const fishing = shares?.fishing ?? 0;
+    const shore: (Point & { inland: Point })[] = [];
+    for (let d = 4; d < r + 60 && shore.length < 24; d++)
+      for (let a = 0, n = Math.ceil(d * 6.3); a < n; a++) {
+        const x = c.x + Math.round(Math.cos((a / n) * Math.PI * 2) * d),
+          y = c.y + Math.round(Math.sin((a / n) * Math.PI * 2) * d);
+        const k = cellKey(x, y);
+        if (
+          sample(x, y).water >= 0 &&
+          !plan.solid.has(k) &&
+          !plan.reserved.has(k) &&
+          !roads.has(k) &&
+          [
+            [1, 0],
+            [-1, 0],
+            [0, 1],
+            [0, -1],
+          ].some(([dx, dy]) => sample(x + dx, y + dy).water < 0)
+        ) {
+          const [dx, dy] = [
+            [1, 0],
+            [-1, 0],
+            [0, 1],
+            [0, -1],
+          ].find(([dx, dy]) => sample(x + dx, y + dy).water < 0)!;
+          shore.push({ x, y, inland: { x: x - dx * 3, y: y - dy * 3 } });
+        }
+      }
+    const leave = (at: Point, family: string, prop: string, name: string, n: number) => {
+      plan.reserved.add(cellKey(at.x, at.y));
+      if (propDefs[prop]?.solid) plan.solid.add(cellKey(at.x, at.y));
+      plan.objects.push({
+        id: `${site.id}-${family}-${n}`,
+        name,
+        kind: "monument",
+        prop,
+        sprite: `study-propb-${family}-${Math.floor(rand(family, n) * 3)}`,
+        inventory: {},
+        pos: pos(at),
+      });
+    };
+    if (fishing >= 0.15 && shore[0]) leave(shore[0], "fish-weir", "fishWeir", "Fish weir", 0);
+    if (fishing >= 0.1)
+      shore
+        .filter((s, i) => i % 5 === 2 && sample(s.inland.x, s.inland.y).water >= 0)
+        .slice(0, 2)
+        .forEach((s, n) =>
+          leave(s.inland, "shell-midden", "shellMidden", "Shell midden", n),
+        );
+  }
+  for (const fence of [...toftQueue, ...campFences]) fence();
   if (penFields.length || toftFields.length) {
     plan.fields ??= new Map();
     for (const [k, cell] of [...penFields, ...toftFields])

@@ -1869,6 +1869,36 @@
       ]
     },
     {
+      "id": "shell-midden",
+      "name": "Shell midden",
+      "group": "Work & agriculture",
+      "size": [
+        48,
+        20
+      ],
+      "description": "A low mound of shells from generations of meals, dark with ash, by a coastal camp.",
+      "variants": [
+        "Oyster",
+        "Broad",
+        "Small"
+      ]
+    },
+    {
+      "id": "fish-weir",
+      "name": "Fish weir",
+      "group": "Work & agriculture",
+      "size": [
+        50,
+        24
+      ],
+      "description": "Stakes and wattle driven into the shallows, turned in at one end into a trap.",
+      "variants": [
+        "Stake",
+        "Stake",
+        "Stake"
+      ]
+    },
+    {
       "id": "hide-frame",
       "name": "Hide on a drying frame",
       "group": "Work & agriculture",

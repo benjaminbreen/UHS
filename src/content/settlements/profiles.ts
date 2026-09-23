@@ -22,6 +22,8 @@ export type SettlementProfile = {
   fields: "household" | "grouped" | "strips" | "none";
   livestock: boolean;
   paved: boolean;
+  /** Gardens out beyond the houses with none beside them: swidden. */
+  outfields?: boolean;
 };
 const profiles: Record<Pattern, SettlementProfile> = {
   band: {
@@ -145,6 +147,7 @@ export function settlementProfile(
     const { groups, perGroup } = way.camp;
     p.buildings = groups[1] * perGroup[1];
     p.livestock = way.mode === "nomadic-pastoral";
+    p.outfields = way.mode === "horticultural";
     return home ? p : { ...p, buildings: perGroup[1], radius: 60 };
   }
   if (!home) {
