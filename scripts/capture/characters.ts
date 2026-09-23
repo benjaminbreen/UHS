@@ -167,6 +167,9 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
         ["walk", 0],
         ["run", 1],
         ["run", 2],
+        ["setoff", 1],
+        ["halt", 1],
+        ["halt", 2],
       ] as const;
       const b = document.createElement("canvas"),
         c = document.createElement("canvas");
@@ -180,7 +183,17 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
       ctx.fillRect(0, 0, c.width, c.height);
       rows.forEach(([pose, d], row) => {
         for (let f = 0; f < frameCount(pose); f++) {
-          drawCharacter(bc, { ...originalAppearance, hair: "bald" }, d, pose, f);
+          drawCharacter(
+            bc,
+            {
+              ...originalAppearance,
+              hair: "long",
+              wearing: { ...originalAppearance.wearing, cloak: true },
+            },
+            d,
+            pose,
+            f,
+          );
           ctx.drawImage(b, 16, 26, 42, 54, f * 130, row * 170, 126, 162);
         }
         ctx.fillStyle = "#3a2c1c";

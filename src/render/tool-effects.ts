@@ -555,6 +555,17 @@ export class ToolEffects {
     if (effect.kind === "fill") this.burst({ x: target.x, y: target.y }, WATER, 6, 0.7);
     if (effect.kind === "hit") this.shake(effect.at);
     if (effect.kind === "fell") this.fell(effect, target);
+    // A blow that bites holds for a beat, as a swing that lands does.
+    if (["hit", "buck", "mine", "shatter", "fell"].includes(effect.kind)) {
+      const tweens = this.scene.tweens;
+      tweens.timeScale = 0;
+      this.scene.time.delayedCall(
+        effect.kind === "hit" || effect.kind === "buck"
+          ? HIT_STOP_MS
+          : HIT_STOP_MS + 35,
+        () => (tweens.timeScale = 1),
+      );
+    }
   }
   /** A quick crescent in the direction of the blow. */
   private arc(from: { x: number; y: number }, to: { x: number; y: number }) {

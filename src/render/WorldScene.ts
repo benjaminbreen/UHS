@@ -123,6 +123,11 @@ const AIM_MS = 650;
 const RUN_GRACE_MS = 200;
 /** How long each intermediate facing is held while someone turns around. */
 const TURN_HOLD_MS = 60;
+/** The lean into a first step, and the rock back and settle out of a walk. */
+const SETOFF_MS = 80;
+const HALT_MS = 200;
+/** A gap between steps shorter than this is still one walk, not a stop and a start. */
+const GAIT_GAP_MS = 60;
 /** A shove into whatever blocked the way: out two pixels and back. */
 const BUMP_MS = 110;
 /** Knocked back off a wall at a run. */
@@ -341,6 +346,12 @@ export class WorldScene extends Phaser.Scene {
   private lastStep = { x: 0, y: 0 };
   /** Facing actually drawn, which chases the real one a step at a time. */
   private turning = new Map<string, { facing: number; until: number }>();
+  /** When each person set off and came to rest, and the last walking frame
+   * drawn, held through a gap between steps. */
+  private gaits = new Map<
+    string,
+    { since: number; still?: number; frame: number; pose: CharacterPose }
+  >();
   /** When each engine-stepped NPC last got a new tile, to pace the next. */
   private stepAt = new Map<string, number>();
   /** Where the player is pushing while the way is blocked. The engine never
@@ -4664,7 +4675,53 @@ export class WorldScene extends Phaser.Scene {
         // Something heavy in the arms shortens the stride.
         const laden =
           id === "player" && !!me.held && !this.runtime.engine.armed();
-        const index = stunt
+        let g = this.gaits.get(id);
+        if (!g)
+          this.gaits.set(
+            id,
+            (g = { since: -Infinity, still: time, frame: 0, pose }),
+          );
+        if (moving) {
+          if (g.still !== undefined && time - g.still > GAIT_GAP_MS)
+            g.since = time;
+          g.still = undefined;
+        } else g.still ??= time;
+        let gaitFrame: number | undefined;
+        if (!active && !landed && !stunt && !cued && !fidget?.pose) {
+          const still = g.still === undefined ? 0 : time - g.still,
+            walked = (g.still ?? time) - g.since;
+          if (
+            (pose === "walk" || pose === "run") &&
+            time - g.since < SETOFF_MS
+          ) {
+            pose = "setoff";
+            gaitFrame = 0;
+          } else if (pose === "walk" || pose === "run")
+            // From the push-off, so every walk starts on the same foot.
+            gaitFrame =
+              Math.floor(
+                ((time - g.since - SETOFF_MS) * (laden ? 0.72 : 1)) /
+                  poseTiming(pose),
+              ) % frameCount(pose);
+          else if (
+            (pose === "idle" || pose === "breathe") &&
+            walked > 300 &&
+            still < GAIT_GAP_MS + HALT_MS
+          ) {
+            if (still < GAIT_GAP_MS) [pose, gaitFrame] = [g.pose, g.frame];
+            else {
+              pose = "halt";
+              gaitFrame = still - GAIT_GAP_MS < HALT_MS / 2 ? 0 : 1;
+            }
+          }
+        }
+        if (moving && gaitFrame !== undefined) {
+          g.frame = gaitFrame;
+          g.pose = pose;
+        }
+        const index =
+          gaitFrame ??
+          (stunt
           ? Math.min(
               stunt.last,
               stunt.first + Math.floor((this.time.now - stunt.from) / stunt.ms),
@@ -4691,7 +4748,7 @@ export class WorldScene extends Phaser.Scene {
                       )
                     : pose === "wade"
                       ? (this.wading?.frame(id) ?? 0)
-                      : this.poseFrame(id, pose, laden ? time * 0.72 : time);
+                      : this.poseFrame(id, pose, laden ? time * 0.72 : time));
         const prop =
           heldSprite ??
           (at?.activity === "haul-catch" ? CATCH : undefined) ??
@@ -4733,14 +4790,21 @@ export class WorldScene extends Phaser.Scene {
           index,
           prop,
         );
-        if (im.texture.key !== texture) im.setTexture(texture);
+        // A hit-stop holds the figures too, not only what is tweened.
+        if (this.tweens.timeScale && im.texture.key !== texture)
+          im.setTexture(texture);
         // Dust off a run's contact frames. Walking raises none, or a quiet
         // street would be permanently hazy; jumps are covered by `launch`.
         if (this.footfalls.get(id) !== index) {
           this.footfalls.set(id, index);
           const afoot =
-            pose === "run" && index % 2 === 1 && water <= 0.025 && !arcLift;
-          if (puddle === "water" && moving && index % 2 === 1)
+            pose === "run" && index % 4 === 1 && water <= 0.025 && !arcLift;
+          // Heel strikes: frames 2 and 6 of the walk, 1 and 5 of the run.
+          if (
+            puddle === "water" &&
+            moving &&
+            index % 4 === (pose === "run" ? 1 : 2)
+          )
             splashPuddle(this, im.x, im.y - 1, human.direction, pose === "run", im.depth, time);
           const cell = this.destinations.get(id);
           if (afoot && id === "player" && cell)

@@ -2,6 +2,8 @@ export const poses = [
   "idle",
   "breathe",
   "walk",
+  "setoff",
+  "halt",
   "run",
   "climb",
   "wade",

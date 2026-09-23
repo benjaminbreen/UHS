@@ -25,6 +25,15 @@ export function drawCharacter(
   if (view) direction = view.direction;
   const quarter = view?.quarter ?? false,
     headAway = quarter && view!.away;
+  // A set-off is the walk's push-off, leaning into it. A halt rocks back on
+  // feet still apart, then the knees take the weight. Hair and cloth lag the
+  // first and swing on past the second.
+  const setoff = pose === "setoff",
+    halt = pose === "halt",
+    settle = halt && frame % 2 ? 1 : 0,
+    lunge = setoff ? 2 : halt && !settle ? -1 : 0;
+  if (setoff || halt)
+    [pose, frame] = setoff ? ["walk", 1] : settle ? ["idle", 0] : ["walk", 3];
   // The walk and run go on eight frames; everything keyed to four sees each
   // pair as one, so only the tables below that want the in-betweens read `w`.
   const walking = pose === "walk",
@@ -75,15 +84,25 @@ export function drawCharacter(
     stride = walking ? [0, 2, 3, 2, 0, -2, -3, -2][w] : strides[f],
     // One frame behind the legs: cloth follows the body, it does not snap with
     // it. A runner's cloth streams behind instead of swinging.
-    trail = sprint && side ? -1 : Math.sign(strides[(f + 3) % 4]),
+    trail = lunge
+      ? -Math.sign(lunge)
+      : settle || (sprint && side)
+        ? settle || -1
+        : Math.sign(strides[(f + 3) % 4]),
     // How far it follows. A single pixel of hem was invisible at this size.
-    drift = sprint && side ? -2 - (f % 2) : trail * (sprint ? 3 : 2),
+    drift = settle
+      ? 1
+      : sprint && side && !lunge
+        ? -2 - (f % 2)
+        : trail * (sprint ? 3 : 2),
     // Highest just after passing, lowest just after contact.
-    bob = walking
-      ? [0, -1, 0, 1, 0, -1, 0, 1][w]
-      : moving && pose !== "wade" && f % 2
-        ? 1
-        : 0,
+    bob =
+      settle +
+      (walking
+        ? [0, -1, 0, 1, 0, -1, 0, 1][w]
+        : moving && pose !== "wade" && f % 2
+          ? 1
+          : 0),
     // Head-on, a run is a side-to-side roll over the planted foot.
     shift =
       pose === "sway"
@@ -118,6 +137,7 @@ export function drawCharacter(
     squat = sprint && w % 4 === 2 ? 1 : 0;
   const bend =
     (stance === "stooped" ? 2 : burden ? 1 : 0) +
+    (setoff ? 1 : 0) +
     (airborne
       ? [4, -1, 0, 0][f]
       : landing
@@ -200,7 +220,7 @@ export function drawCharacter(
                   ? 2
                   : skid
                     ? [-1, -2, -2, -1][f]
-                    : 0
+                    : lunge
     : 0;
   const skin = ramp(a.skin, "skin"),
     cloth = ramp(a.wearing.color),
