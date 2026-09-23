@@ -44,9 +44,17 @@ try {
   await page.goto(base);
   await page.getByPlaceholder(/A hunter in Anatolia/).fill(prompt);
   await page.getByRole("button", { name: "Begin", exact: true }).click();
-  // The prompt is parsed into a details dialog first; its own Begin starts play.
-  const dialog = page.getByRole("dialog");
-  await dialog.getByRole("button", { name: "Begin", exact: true }).click();
+  // A prompt that only partly matches opens the details dialog, whose own
+  // Begin starts play; one that matches outright starts at once.
+  const confirm = page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Begin", exact: true });
+  await Promise.race([
+    confirm.click({ timeout: 15000 }).catch(() => {}),
+    page.waitForFunction(() => !!(window as any).historySim, null, {
+      timeout: 15000,
+    }),
+  ]).catch(() => {});
   await page.waitForFunction(() => !!(window as any).historySim, null, {
     timeout: 120000,
   });
