@@ -30,6 +30,7 @@ import {
   neckStyles,
   headShapes,
   jawShapes,
+  headSizes,
   bodyShapes,
   postures,
   sleeveStyles,
@@ -227,6 +228,7 @@ export const characterAppearanceSchema = z.object({
     .optional(),
   head: z.enum(headShapes).optional(),
   jaw: z.enum(jawShapes).optional(),
+  headSize: z.enum(headSizes).optional(),
   bodyShape: z.enum(bodyShapes).optional(),
   posture: z.enum(postures).optional(),
   height: z.union([

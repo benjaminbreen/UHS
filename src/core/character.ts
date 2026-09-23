@@ -180,6 +180,7 @@ export const jawShapes = [
   "small",
 ] as const;
 export const eyeSizes = ["small", "medium", "large"] as const;
+export const headSizes = ["small", "medium", "large"] as const;
 export const eyeShapes = ["round", "almond", "narrow"] as const;
 /**
  * The upper lid. A crease folds well above the lash line; a low crease sits
@@ -626,7 +627,11 @@ export function faceFromTraits(
                 : r < 0.9
                   ? "pointed"
                   : "small";
-  return { head, jaw };
+  const s = random(seed, "head-size", index);
+  // Children keep the large head; it is what reads as a child at this size.
+  const headSize: (typeof headSizes)[number] =
+    age < 13 ? "large" : s < 0.2 ? "large" : s < 0.75 ? "medium" : "small";
+  return { head, jaw, headSize };
 }
 export type CharacterAppearance = {
   physique?: CharacterPhysique;
@@ -635,6 +640,8 @@ export type CharacterAppearance = {
   adornment?: FaceAdornment;
   head?: (typeof headShapes)[number];
   jaw?: (typeof jawShapes)[number];
+  /** Absent reads as medium. Large is the original head. */
+  headSize?: (typeof headSizes)[number];
   bodyShape?: (typeof bodyShapes)[number];
   posture?: (typeof postures)[number];
   height: -2 | -1 | 0 | 1 | 2;

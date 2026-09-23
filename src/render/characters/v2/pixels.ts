@@ -112,6 +112,22 @@ export class Pixels {
    * A full dark contour on a 3px limb leaves one pixel of colour; this keeps
    * the dark line on the shaded side only. */
   overlay = false;
+  /** Rows and columns cut out of whatever is drawn, in local pixels. Cut rows
+   * pull everything above them down; a column left of centre pulls the left
+   * side in, right of centre the right side. Shrinks a head around a fixed
+   * chin and eye line without redrawing it. */
+  squeeze?: { rows: number[]; cols: number[] };
+  private place(x: number, y: number): Point | undefined {
+    const s = this.squeeze;
+    if (!s) return [x, y];
+    if (s.rows.includes(y) || s.cols.includes(x)) return undefined;
+    return [
+      x +
+        s.cols.filter((c) => c < 10 && c > x).length -
+        s.cols.filter((c) => c > 10 && c < x).length,
+      y + s.rows.filter((r) => r > y).length,
+    ];
+  }
   private groupMask?: Set<string>;
   /** Which shape last painted each canvas pixel, in draw order. Later means
    * nearer, which is what the contact pass needs to know. */
@@ -132,6 +148,16 @@ export class Pixels {
   rect(x: number, y: number, w: number, h: number, color: string) {
     if (w <= 0 || h <= 0) return;
     this.ctx.fillStyle = color;
+    if (this.squeeze) {
+      const x0 = Math.round(x),
+        y0 = Math.round(y);
+      for (let j = 0; j < Math.round(h); j++)
+        for (let i = 0; i < Math.round(w); i++) {
+          const at = this.place(x0 + i, y0 + j);
+          if (at) this.ctx.fillRect(at[0], at[1], 1, 1);
+        }
+      return;
+    }
     this.ctx.fillRect(
       Math.round(x),
       Math.round(y),
@@ -174,11 +200,14 @@ export class Pixels {
     const m = this.ctx.getTransform();
     for (const key of mask) {
       const [x, y] = key.split(",").map(Number);
+      const at = this.place(x, y);
       // Ownership is recorded in canvas space so the contact pass can run once
       // over the finished figure, whatever transform each piece was drawn under.
-      const cx = Math.round(m.a * x + m.c * y + m.e - (m.a < 0 ? 1 : 0)),
-        cy = Math.round(m.b * x + m.d * y + m.f - (m.d < 0 ? 1 : 0));
-      this.owner.set(`${cx},${cy}`, this.layer);
+      if (at) {
+        const cx = Math.round(m.a * at[0] + m.c * at[1] + m.e - (m.a < 0 ? 1 : 0)),
+          cy = Math.round(m.b * at[0] + m.d * at[1] + m.f - (m.d < 0 ? 1 : 0));
+        this.owner.set(`${cx},${cy}`, this.layer);
+      }
       if (border(x, y)) {
         // Bottom and the shaded flank take the dark contour; the lit flank
         // takes a tinted one so the outline never closes into a black ring.

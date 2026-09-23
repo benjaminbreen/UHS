@@ -27,15 +27,28 @@ export function drawHead(
   const cheek =
     shape === "broad" || shape === "round" ? 1 : shape === "oval" ? -1 : 0;
   const chinY = shape === "long" ? 16 : 15;
+  // Hair hides the top of the skull; bare, the flat-topped block underneath
+  // read as a box. A bald head gets a dome with the same brow and cheeks.
+  const bald = a.hair === "bald" && a.wearing.headwear === "none";
   if (side) {
     // Actual east profile: occiput → forehead → nose → chin → neck.
     // Nose is a 1px bump. Only soft and small jaws recede well behind it; a
     // square chin comes to within a pixel, or every profile is the same weak one.
     p.shape(
       [
-        [shape === "broad" ? 3 : 5, 4],
-        [10, shape === "long" ? 1 : 2],
-        [shape === "oval" ? 14 : 15, 3],
+        ...((bald
+          ? [
+              [shape === "broad" ? 3 : 4, 6],
+              [6, 3],
+              [9, 2],
+              [13, 2],
+              [15, 3],
+            ]
+          : [
+              [shape === "broad" ? 3 : 5, 4],
+              [10, shape === "long" ? 1 : 2],
+              [shape === "oval" ? 14 : 15, 3],
+            ]) as Point[]),
         // The forehead slopes back from the brow; a vertical wall from crown
         // to nose read as a mask.
         [16, 4],
@@ -104,8 +117,17 @@ export function drawHead(
   } else {
     p.shape(
       [
-        [shape === "broad" ? 5 : shape === "round" ? 7 : 6, 3],
-        [shape === "broad" ? 15 : shape === "round" ? 13 : 14, 3],
+        ...((bald
+          ? [
+              [5 - cheek, 5],
+              [7, 3],
+              [14, 3],
+              [16 + cheek, 5],
+            ]
+          : [
+              [shape === "broad" ? 5 : shape === "round" ? 7 : 6, 3],
+              [shape === "broad" ? 15 : shape === "round" ? 13 : 14, 3],
+            ]) as Point[]),
         [17 + cheek, 6],
         [16 + cheek, 11],
         ...((jaw === "square"
@@ -360,6 +382,12 @@ export function drawHead(
       }
       p.rect(x + sway * 2, 22, 3, 1, a.wearing.trim);
     }
+  }
+  if (bald) {
+    // Sheen on the lit crown; in profile, shade under the occiput.
+    p.rect(7, side ? 3 : 4, side ? 4 : 3, 1, skin.light);
+    p.rect(6, side ? 4 : 5, 1, 1, skin.light);
+    if (side) p.rect(5, 7, 1, 2, skin.shade);
   }
   if (side) {
     // Ear sits between hair mass and cheek, not at the back outline.

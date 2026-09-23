@@ -100,6 +100,53 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
     await shootCanvas(page, out("heights"));
   },
 
+  /** Large, medium and small heads on the game renderer, bald and haired,
+   * front, profile and back. */
+  async heads(page) {
+    await characterLab(page);
+    await page.evaluate(async () => {
+      const { drawCharacter } = await import(
+        "/src/render/characters/renderers.ts" as string
+      );
+      const { originalAppearance } = await import(
+        "/src/core/character.ts" as string
+      );
+      const looks = [
+        { hair: "bald", beard: "none" },
+        { hair: "bald", beard: "full", skin: "#8d5a3b" },
+        { hair: "cropped", beard: "none", skin: "#c68d62" },
+        { hair: "long", beard: "none", hairColor: "#292823" },
+        { hair: "curls", beard: "short" },
+      ];
+      const sizes = ["large", "medium", "small"],
+        dirs = [2, 1, 0];
+      const b = document.createElement("canvas"),
+        c = document.createElement("canvas");
+      b.width = b.height = 80;
+      c.width = looks.length * dirs.length * 90;
+      c.height = sizes.length * 170;
+      const ctx = c.getContext("2d")!,
+        bc = b.getContext("2d")!;
+      ctx.imageSmoothingEnabled = false;
+      ctx.fillStyle = "#c9ad7a";
+      ctx.fillRect(0, 0, c.width, c.height);
+      sizes.forEach((headSize, row) =>
+        looks.forEach((look, i) =>
+          dirs.forEach((d, j) => {
+            drawCharacter(bc, { ...originalAppearance, ...look, headSize }, d, "idle", 0);
+            ctx.drawImage(b, 22, 26, 28, 54, (i * 3 + j) * 90, row * 170, 84, 162);
+            ctx.fillStyle = "#2a2018";
+            ctx.font = "12px monospace";
+            if (!i && !j) ctx.fillText(headSize, 4, row * 170 + 14);
+          }),
+        ),
+      );
+      document.body.replaceChildren(c);
+      c.style.imageRendering = "pixelated";
+    });
+    await shootCanvas(page, out("heads"));
+  },
+
   /** Every portable object in hand, four directions each. */
   async props(page) {
     await characterLab(page);

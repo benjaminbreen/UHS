@@ -1702,6 +1702,17 @@ export function drawCharacter(
   if (stance === "stooped") ctx.translate(1, 1);
   ctx.translate(pitch, 0);
   p.modeling = false;
+  // Cuts run through the crown and the jaw, never the eye, nose or mouth rows.
+  // A smaller head also rides a pixel higher, so a neck shows under the chin.
+  const headSize = a.headSize ?? "medium";
+  if (headSize !== "large") {
+    const small = headSize === "small";
+    p.squeeze = {
+      rows: small ? [5, 14] : [5],
+      cols: flat ? [6] : small ? [5, 15] : [5],
+    };
+    ctx.translate(0, -1);
+  }
   if (quarter) {
     // The profile body sits forward of the front head's centre; move the
     // head over it.
@@ -1710,6 +1721,7 @@ export function drawCharacter(
     drawHead(p, a, false, headAway, pose, f, trail, true);
     ctx.restore();
   } else drawHead(p, a, side, back, pose, f, trail);
+  p.squeeze = undefined;
   p.modeling = true;
   ctx.restore();
   if (a.wearing.necklace && !rear && a.wearing.neckStyle === "chain") {
