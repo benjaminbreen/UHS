@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import { timed } from "../render/perf-switches";
 import { faunaProfile } from "../content/fauna";
 import { currentSheets, loadSheets, sheetImage } from "./sprite-atlas";
+import { smallMemoryDevice } from "../runtime/device";
 import { surfaceAt } from "../render/materials";
 import {
   atlasSample,
@@ -59,6 +60,8 @@ function buildingTones(sprite: string) {
   const cached = roofCache.get(sprite);
   if (cached) return cached;
   const fallback = { roof: "#4a5560", wall: "#d8cfb0" };
+  // Keep the minimap from retaining another full-size building image on phones.
+  if (smallMemoryDevice()) return fallback;
   const sheets = currentSheets();
   const regional = Boolean(sheets?.regionalBuildings.frames[sprite]);
   const frames = regional ? sheets?.regionalBuildings.frames : sheets?.buildings.frames;
