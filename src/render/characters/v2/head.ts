@@ -29,8 +29,8 @@ export function drawHead(
   const chinY = shape === "long" ? 16 : 15;
   if (side) {
     // Actual east profile: occiput → forehead → nose → chin → neck.
-    // Nose is a 1px bump and every jaw stays 3px behind it so the head reads
-    // as sitting on the body rather than jutting past it.
+    // Nose is a 1px bump. Only soft and small jaws recede well behind it; a
+    // square chin comes to within a pixel, or every profile is the same weak one.
     p.shape(
       [
         [shape === "broad" ? 3 : 5, 4],
@@ -47,9 +47,10 @@ export function drawHead(
         [16, 11],
         ...((jaw === "square"
           ? [
-              [16, 13],
-              [15, 16],
-              [11, 16],
+              [17, 12],
+              [17, 14],
+              [16, 15],
+              [11, 15],
               [10, 13],
             ]
           : jaw === "small"
@@ -61,8 +62,9 @@ export function drawHead(
               ]
             : jaw === "pointed"
               ? [
-                  [15, 13],
-                  [14, 17],
+                  [16, 13],
+                  [16, 15],
+                  [14, 16],
                   [12, 14],
                   [10, 12],
                 ]
@@ -75,8 +77,8 @@ export function drawHead(
                     [10, 12],
                   ]
                 : [
-                    [15, 13],
-                    [13, chinY],
+                    [16, 13],
+                    [15, chinY],
                     [10, chinY - 1],
                     [10, 12],
                   ]) as Point[]),
@@ -152,12 +154,10 @@ export function drawHead(
       // Turned, the features move a pixel toward the facing, the far eye
       // narrows and the far cheek falls into shade.
       const t = turn ? 1 : 0;
-      p.rect(7 + t, 8, 2, blink ? 1 : 2, blink ? skin.shade : eye);
-      p.rect(12 + t, 8, 2 - t, blink ? 1 : 2, blink ? skin.shade : eye);
-      if (!blink) {
-        p.rect(7 + t, 8, 1, 1, glint);
-        p.rect(12 + t, 8, 1, 1, glint);
-      }
+      // One pixel each, with skin around it: a 2px eye ran into the brow and
+      // the hair and left the face without an expression.
+      p.rect(8 + t, 8, 1, blink ? 1 : 2, blink ? skin.shade : eye);
+      p.rect(12 + t, 8, 1, blink ? 1 : 2, blink ? skin.shade : eye);
       if (a.wearing.eyewear === "sunglasses") {
         p.rect(6 + t, 8, 4, 2, frame);
         p.rect(11 + t, 8, 4 - t, 2, frame);

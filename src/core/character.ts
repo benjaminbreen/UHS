@@ -304,7 +304,28 @@ export const hemStyles = ["plain", "split", "slanted"] as const;
 export type CharacterPhysique = {
   strength: number;
   sex: "unspecified" | "male" | "female";
+  /** 0 lean to 100 heavy. Width and belly are drawn from it, so a life that
+   * feeds a body well can widen it. Absent on appearances saved before it. */
+  mass?: number;
 };
+/** Width and belly from mass and strength. Most people are the narrow default;
+ * a strong body tapers rather than rounds. */
+export function bodyFromPhysique(
+  physique: CharacterPhysique,
+  age: number,
+  roll: number,
+): Pick<CharacterAppearance, "build" | "bodyShape"> {
+  const mass = physique.mass ?? 50;
+  return {
+    build: age < 16 ? -1 : mass < 72 ? -1 : mass < 90 ? 0 : mass < 98 ? 1 : 2,
+    bodyShape:
+      physique.strength > 70
+        ? "tapered"
+        : mass >= 80
+          ? "rounded"
+          : bodyShapes[Math.floor(roll * bodyShapes.length)],
+  };
+}
 export type CharacterFace = {
   revision: 1;
   eyeSize: (typeof eyeSizes)[number];
@@ -730,6 +751,11 @@ export function generateAppearance(
         : age >= 65
           ? 25 + n("strength", 40)
           : 30 + n("strength", 65),
+    // Middle age thickens a body; the young are drawn lean.
+    mass: Math.min(
+      100,
+      n("mass", 100) + Math.max(0, Math.min(15, (age - 30) * 0.5)),
+    ),
     ...traits,
     sex,
   };
@@ -738,10 +764,6 @@ export function generateAppearance(
     face: generateFace(seed, index, age),
     adornment: generateAdornment(seed, index, age, sex),
     ...faceFromTraits(seed, index, age, physique),
-    bodyShape:
-      physique.strength > 70
-        ? "tapered"
-        : bodyShapes[n("body-shape", bodyShapes.length)],
     posture:
       age >= 65 && n("elder-posture", 3) === 0
         ? "stooped"
@@ -756,16 +778,7 @@ export function generateAppearance(
             ] as const
           )[n("posture", 6)],
     height: heightForAge(seed, index, age),
-    build:
-      age < 16
-        ? -1
-        : n("build", 100) < 75
-          ? -1
-          : n("build", 100) < 93
-            ? 0
-            : n("build", 100) < 99
-              ? 1
-              : 2,
+    ...bodyFromPhysique(physique, age, n("body-shape", 3) / 3),
     skin: skinColors[n("skin", skinColors.length)],
     hairColor: [
       "#292823",

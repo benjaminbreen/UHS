@@ -42,7 +42,11 @@ export function drawCharacter(
       : pose === "idle" && f === 2
         ? 1
         : 0;
-  const stance = resting ? (a.posture ?? "upright") : "upright";
+  // A stoop is a body, not a pose: it walks with them.
+  const stance =
+    resting || (a.posture === "stooped" && !sprint)
+      ? (a.posture ?? "upright")
+      : "upright";
   const burden = !!prop && (prop.width > 24 || prop.height > 28);
   const lean = sprint
     ? side
@@ -75,7 +79,10 @@ export function drawCharacter(
         ? [-1, 0, 1, 0][f]
         : sprint && !side
           ? [1, 0, -1, 0][f]
-          : 0;
+          : // A heavy body rolls over each planted foot.
+            moving && !side && a.build >= 1 && pose !== "wade"
+            ? [1, 0, -1, 0][f]
+            : 0;
   // Crouch, stretch off the ground, hang at the apex, reach for the ground.
   const airborne = pose === "jump",
     landing = pose === "land",
@@ -1252,11 +1259,27 @@ export function drawCharacter(
         ? 0
         : poncho
           ? 1
-          : long
-            ? 1
-            : 0;
-  const waist = a.bodyShape === "tapered" ? 1 : 0;
+          : a.wearing.garment === "robe"
+            ? 2
+            : long
+              ? 1
+              : 0;
+  // A belt pulls the cloth in at the waist and the skirt of it stands off
+  // below; without it every garment was the same box.
   const belly = a.bodyShape === "rounded" ? 1 : 0;
+  const cinch =
+    !naked &&
+    !poncho &&
+    !belly &&
+    a.build < 1 &&
+    (a.wearing.belt ?? "leather") !== "none" &&
+    !["coat", "robe", "open-robe", "gown", "suit"].includes(a.wearing.garment)
+      ? 1
+      : 0;
+  const waist = (a.bodyShape === "tapered" ? 1 : 0) + cinch,
+    waistY = cinch ? 22 + torso : 19 + torso;
+  // A coat is cut square across the shoulder.
+  const shoulder = a.wearing.garment === "coat" ? 1 : 2;
   // A long hem swings a frame behind the legs, like the cloak.
   const hemSway = long ? drift : trail;
   const hemLift =
@@ -1298,15 +1321,15 @@ export function drawCharacter(
               [left + pitch, 14],
             ]
           : [
-              [left + 2, 12],
-              [right - 2, 12],
+              [left + shoulder, 12],
+              [right - shoulder, 12],
               [right, 15 - inhale],
-              [right - waist + belly, 19 + torso],
+              [right - waist + belly, waistY],
               [right + flare + hemSway, bodyHem - 1 - hemLift],
               [right - 1, bodyHem],
               [left - flare + hemSway, bodyHem],
               [left - 1, bodyHem - 2],
-              [left + waist - belly, 19 + torso],
+              [left + waist - belly, waistY],
               [left, 15 - inhale],
             ],
       body,
@@ -1583,23 +1606,26 @@ export function drawCharacter(
   }
   const belt = a.wearing.belt ?? "leather",
     beltY = 22 + torso,
-    buckleX = flat ? right - 2 : centre;
+    buckleX = flat ? right - 2 : centre,
+    // In step with the cinched waist, or the belt overhangs it.
+    bl = left + (flat ? 0 : cinch),
+    br = right - (flat ? 0 : cinch);
   if (belt === "leather") {
-    p.rect(left, beltY, right - left, 1, leather.edge);
+    p.rect(bl, beltY, br - bl, 1, leather.edge);
     p.rect(buckleX, beltY, 2, 1, a.wearing.trim);
   } else if (belt === "wide") {
-    p.rect(left, beltY - 1, right - left, 2, leather.edge);
-    p.rect(left, beltY - 1, right - left, 1, leather.shade);
+    p.rect(bl, beltY - 1, br - bl, 2, leather.edge);
+    p.rect(bl, beltY - 1, br - bl, 1, leather.shade);
     p.rect(buckleX, beltY - 1, 2, 2, a.wearing.trim);
   } else if (belt === "cord") {
     const cord = ramp(a.wearing.trim);
-    p.rect(left + 1, beltY, right - left - 2, 1, cord.shade);
+    p.rect(bl + 1, beltY, br - bl - 2, 1, cord.shade);
     p.rect(buckleX, beltY, 1, 2, cord.base);
   } else if (belt === "sash") {
     const sash = ramp(a.wearing.lowerColor);
-    p.rect(left, beltY - 1, right - left, 2, sash.base);
-    p.rect(left, beltY, right - left, 1, sash.shade);
-    p.rect(left, beltY - 1, 2, 3, sash.shade);
+    p.rect(bl, beltY - 1, br - bl, 2, sash.base);
+    p.rect(bl, beltY, br - bl, 1, sash.shade);
+    p.rect(bl, beltY - 1, 2, 3, sash.shade);
   }
   if (side && !naked && !poncho && sleeves !== "none") {
     p.overlay = true;

@@ -298,6 +298,16 @@ export function LiveGraphicsPanel({
               />
               Round camera pixels
             </label>
+            <label className="live-graphics-check">
+              <input
+                type="checkbox"
+                checked={settings.characterOutline}
+                onChange={(event) =>
+                  onChange({ characterOutline: event.currentTarget.checked })
+                }
+              />
+              Outline characters
+            </label>
 
             <label>
               Texture filtering

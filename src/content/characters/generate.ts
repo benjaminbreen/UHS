@@ -1,11 +1,12 @@
 import { inventedName } from "./invented-name";
 import { random } from "../../core/random";
 import {
+  bodyFromPhysique,
   generateAppearance,
   type CharacterAppearance,
 } from "../../core/character";
 import type { Inventory } from "../../core/types";
-import type { Livelihood } from "./context-types";
+import type { Livelihood, Rank } from "./context-types";
 import type { WorldSetting } from "../geography/types";
 import {
   characterCommunity,
@@ -283,9 +284,35 @@ export function characterAppearance(
   age = 34,
   context = resolveCharacterContext(s),
   sex: Sex = characterSex(seed, id),
-  labouring = false,
+  rank?: Rank,
 ): CharacterAppearance {
+  const labouring = rank === "labouring" || rank === "destitute";
   const a = generateAppearance(`${seed}:character-v1:${id}`, 0, age, { sex });
+  // Hard work and short commons thin a body; a full table widens it.
+  if (rank && a.physique) {
+    a.physique.mass = Math.max(
+      0,
+      Math.min(
+        100,
+        (a.physique.mass ?? 50) +
+          {
+            destitute: -25,
+            labouring: -10,
+            middling: 0,
+            gentry: 10,
+            elite: 18,
+          }[rank],
+      ),
+    );
+    Object.assign(
+      a,
+      bodyFromPhysique(
+        a.physique,
+        age,
+        random(seed, "character-v1", id, "body-shape"),
+      ),
+    );
+  }
   const kit = context.appearance;
   a.skin = pick(kit.skin, seed, id, "skin");
   // The face follows the kit for the same reason skin and hair do: these are
@@ -423,7 +450,7 @@ export function generateCharacter(
     age,
     context,
     bodySex,
-    livelihood.rank === "labouring" || livelihood.rank === "destitute",
+    livelihood.rank,
   );
   if (s.situation) appearance.wearing = wardrobeFor({
     id, age, sex: bodySex, livelihood: livelihood.id, roles: rolesFrom(requestedRole, role),

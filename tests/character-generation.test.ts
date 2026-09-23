@@ -47,9 +47,23 @@ describe("contextual character generation", () => {
     // Hair reads the livelihood rank on purpose (b1aea46): labouring and
     // destitute people get practical styles, and a farmer labours where a
     // traveler does not. Every other field must still be untouched, which is
-    // what catches one field's stream bleeding into the next.
-    const { hair: farmerHair, ...farmerRest } = farmer.appearance;
-    const { hair: travelerHair, ...travelerRest } = traveler.appearance;
+    // what catches one field's stream bleeding into the next. The body reads
+    // rank too: mass, and the width and belly drawn from it.
+    const {
+      hair: farmerHair,
+      physique: farmerBody,
+      build: farmerBuild,
+      bodyShape: farmerShape,
+      ...farmerRest
+    } = farmer.appearance;
+    const {
+      hair: travelerHair,
+      physique: travelerBody,
+      build: travelerBuild,
+      bodyShape: travelerShape,
+      ...travelerRest
+    } = traveler.appearance;
+    expect(travelerBody?.strength).toBe(farmerBody?.strength);
     expect(travelerRest).toEqual(farmerRest);
     expect(traveler.role).not.toBe(farmer.role);
   });

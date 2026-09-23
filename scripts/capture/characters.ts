@@ -25,6 +25,17 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
     console.log("wrote lab, population, stick-sheet");
   },
 
+  /** The generated population in profile: jaws, noses, hair from the side. */
+  async profiles(page) {
+    await characterLab(page, { paused: true });
+    await page.getByLabel("Carrying", { exact: true }).selectOption("");
+    await page.getByLabel("Facing", { exact: true }).selectOption("2");
+    await page
+      .getByLabel("Generated character variants")
+      .screenshot({ path: out("profiles") });
+    console.log("wrote profiles");
+  },
+
   /** An empty-handed walk sheet, then one figure large enough to read. */
   async walk(page) {
     await characterLab(page, { paused: true });

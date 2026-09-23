@@ -65,6 +65,16 @@ export function ramp(
       )
       .join("")}`;
   };
+  // Black hair drawn at its true value is a hole in the sprite: lift it, and
+  // give it a sheen the lighter heads do not need.
+  const value = parseInt(base.slice(1), 16),
+    luma =
+      (0.3 * (value >> 16) +
+        0.59 * ((value >> 8) & 255) +
+        0.11 * (value & 255)) /
+      255,
+    dark = material === "hair" ? Math.max(0, 0.25 - luma) / 0.25 : 0;
+  if (dark) base = mix(base, "#4a3c3a", 0.4 * dark);
   const cool = mix(material === "skin" ? "#3c1f33" : "#241c38", light.cool, 0.5);
   const warm = mix(material === "skin" ? "#ffe2b4" : "#ffe6ad", light.warm, 0.3);
   // Overcast and night lose the key, not the material: every step collapses
@@ -80,7 +90,11 @@ export function ramp(
     shade: mix(base, mix(scale(0.74), cool, 0.16), k),
     // Hair takes a much smaller step: a big move toward cream turns black hair
     // grey, and the automatic rim pass applies it along every strand.
-    light: mix(base, warm, (material === "hair" ? 0.16 : 0.34) * k),
+    light: mix(
+      base,
+      warm,
+      (material === "hair" ? 0.16 + 0.2 * dark : 0.34) * k,
+    ),
   };
 }
 /** Raster shapes have exactly one boundary pixel, measured on the native grid.

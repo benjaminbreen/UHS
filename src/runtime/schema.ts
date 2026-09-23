@@ -193,6 +193,7 @@ export const characterAppearanceSchema = z.object({
     .object({
       strength: z.number().int().min(0).max(100),
       sex: z.enum(["unspecified", "male", "female"]),
+      mass: z.number().min(0).max(100).optional(),
     })
     .optional(),
   face: z

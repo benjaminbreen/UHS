@@ -8,7 +8,7 @@ import {
   type AppearancePalette,
   type CharacterAppearance,
 } from "../../core/character";
-import { drawCharacter } from "./renderers";
+import { drawCharacter, outlineCharacter } from "./renderers";
 import { setSpriteLight, spriteLightFor } from "./v2/pixels";
 import { iconCarriedArt, loadCarriedArt, type CarriedArt } from "./props";
 import {
@@ -53,6 +53,7 @@ export class WorldCharacters {
   /** The hour the figures are lit for. Frames are cached per phase, so this is
    * six rasters of a pose in the worst case, not one per minute. */
   light: LightingId = "midday";
+  outline = true;
   private disposed = false;
   private lastPrune = 0;
   constructor(private scene: Phaser.Scene) {
@@ -120,7 +121,7 @@ export class WorldCharacters {
     resolved.used = this.scene.time.now;
     const a = resolved.appearance,
       art = this.carried(prop);
-    const signature = `${resolved.signature}:${actor.facing === undefined ? actor.direction : `f${actor.facing}`}:${pose}:${frame}:${art?.sprite ?? ""}:${this.light}`;
+    const signature = `${resolved.signature}:${actor.facing === undefined ? actor.direction : `f${actor.facing}`}:${pose}:${frame}:${art?.sprite ?? ""}:${this.light}:${this.outline ? 1 : 0}`;
     let entry = this.cache.get(signature);
     if (!entry) {
       const key = `character-${this.scene.sys.settings.key}-${++this.serial}`;
@@ -144,6 +145,7 @@ export class WorldCharacters {
         art,
         actor.facing,
       );
+      if (this.outline) outlineCharacter(c.getContext("2d")!);
       setSpriteLight(undefined);
       this.scene.textures
         .addCanvas(key, c)

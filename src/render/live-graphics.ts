@@ -21,6 +21,7 @@ export type FrameCap = 30 | 60;
 export type LiveGraphicsSettings = {
   frameCap: FrameCap;
   roundPixels: boolean;
+  characterOutline: boolean;
   textureSampling: TextureSampling;
   canvasSampling: CanvasSampling;
   zoomDuration: number;
@@ -63,6 +64,7 @@ export type LiveGraphicsSettings = {
 export const defaultLiveGraphicsSettings: LiveGraphicsSettings = {
   frameCap: 60,
   roundPixels: false,
+  characterOutline: true,
   textureSampling: "nearest",
   canvasSampling: "pixelated",
   zoomDuration: 130,

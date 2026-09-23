@@ -340,6 +340,8 @@ export class WorldScene extends Phaser.Scene {
   private lastStep = { x: 0, y: 0 };
   /** Facing actually drawn, which chases the real one a step at a time. */
   private turning = new Map<string, { facing: number; until: number }>();
+  /** When each engine-stepped NPC last got a new tile, to pace the next. */
+  private stepAt = new Map<string, number>();
   /** Where the player is pushing while the way is blocked. The engine never
    * saw the move, so the turn is the renderer's to remember. */
   private blockedFacing?: number;
@@ -535,6 +537,7 @@ export class WorldScene extends Phaser.Scene {
       });
     });
     this.characters = new WorldCharacters(this);
+    this.characters.outline = this.liveGraphics.characterOutline;
     this.characters.palette = this.runtime.palette();
     this.wading = new WadingEffects(this);
     this.prepareTreeStudySheet();
@@ -2107,6 +2110,12 @@ export class WorldScene extends Phaser.Scene {
     if (this.buildingFrames?.has(frame)) return "buildings";
     if (this.regionalBuildingFrames?.has(frame)) return "regional-buildings";
     if (this.civicFrames?.has(frame)) return "civic";
+    if (
+      frame.startsWith("precinct-") &&
+      this.textures.exists("precincts") &&
+      this.textures.get("precincts").has(frame)
+    )
+      return "precincts";
     if (frame.startsWith("study-sheet-tree-")) return "tree-study";
     if (frame.startsWith("study-tree-"))
       return frame.slice(0, frame.lastIndexOf("-"));
@@ -2217,6 +2226,8 @@ export class WorldScene extends Phaser.Scene {
     if (!this.cameras?.main || !this.game?.canvas) return;
     const camera = this.cameras.main;
     camera.roundPixels = this.liveGraphics.roundPixels;
+    if (this.characters)
+      this.characters.outline = this.liveGraphics.characterOutline;
     camera.setLerp(this.liveGraphics.followLerp);
     this.game.canvas.style.imageRendering = this.liveGraphics.canvasSampling;
     this.textures.each(
@@ -3549,11 +3560,14 @@ export class WorldScene extends Phaser.Scene {
           x: tx,
           y: ty,
           ...(actor && id !== "player" && !this.options.lab
-            ? npcMotion(
-                e.state.manifest.seed,
+            ? this.npcPace(
                 id,
-                frame.startsWith("human-"),
-                e.state.clock,
+                npcMotion(
+                  e.state.manifest.seed,
+                  id,
+                  frame.startsWith("human-"),
+                  e.state.clock,
+                ),
               )
             : roll
               ? { duration: ROLL_MS * roll }
@@ -3803,6 +3817,7 @@ export class WorldScene extends Phaser.Scene {
         this.actorFrames.delete(id);
         this.footfalls.delete(id);
         this.turning.delete(id);
+        this.stepAt.delete(id);
         if (!dying) shade?.destroy();
         this.shadows.delete(id);
       }
@@ -4528,6 +4543,11 @@ export class WorldScene extends Phaser.Scene {
         this.cameras.main.setFollowOffset(0, -arcLift);
       const human = this.humanActors.get(id);
       if (human && this.characters && perf.characterPoses) {
+        // The live camera scrolls by fractions of a pixel; a figure on a
+        // half pixel shimmers against the ground, which sits on whole ones.
+        im.setPosition(Math.round(im.x), Math.round(im.y));
+        const shadow = this.shadows.get(id);
+        shadow?.setPosition(Math.round(shadow.x), Math.round(shadow.y));
         const at = this.ambient.get(id);
         const pushing =
           id === "player" &&
@@ -5017,6 +5037,18 @@ export class WorldScene extends Phaser.Scene {
     }
     if (pose === "sit") return 0;
     return Math.floor((time + offset) / poseTiming(pose)) % 4;
+  }
+  /** Someone mid-route has no pause before each tile, and takes as long
+   * over it as the last one took to come, so the walk does not surge. */
+  private npcPace(id: string, motion: { delay: number; duration: number }) {
+    const now = this.time.now,
+      since = now - (this.stepAt.get(id) ?? -Infinity);
+    this.stepAt.set(id, now);
+    if (since > 1200) return motion;
+    return {
+      delay: 0,
+      duration: Math.min(1000, Math.max(motion.duration * 0.7, since)),
+    };
   }
   private jumpDirection(): [number, number] {
     const direction = this.direction();

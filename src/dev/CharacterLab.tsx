@@ -25,6 +25,7 @@ import { characterAppearanceSchema } from "../runtime/schema";
 import type { Runtime } from "../runtime/session";
 import {
   defaultRenderer,
+  outlineCharacter,
   renderers,
   type RendererId,
 } from "../render/characters/renderers";
@@ -102,6 +103,7 @@ export function CharacterLab({
   const [lighting, setLighting] = useState<LightingId>("midday");
   // Defaults to whatever the game draws; "a" stays selectable for comparison.
   const [engine, setEngine] = useState<RendererId | "ab">(defaultRenderer);
+  const [outline, setOutline] = useState(true);
   const shadowCanvas = useRef<HTMLCanvasElement>(null);
   const hero = useRef<HTMLCanvasElement>(null),
     sheet = useRef<HTMLCanvasElement>(null),
@@ -140,7 +142,13 @@ export function CharacterLab({
     buffer.height = 80;
     const b = buffer.getContext("2d")!;
     const compare = engine === "ab";
-    const drawCharacter = renderers[compare ? "b" : engine].draw;
+    const draw = renderers[compare ? "b" : engine].draw;
+    const drawCharacter: typeof draw = outline
+      ? (c, ...rest) => {
+          draw(c, ...rest);
+          outlineCharacter(c);
+        }
+      : draw;
     const galleryPhases = new Map<number, HTMLCanvasElement>();
     // `direction` is the eight-way facing here; the cardinal is what the
     // four-view legacy renderer gets.
@@ -239,6 +247,7 @@ export function CharacterLab({
     displayVariants,
     lighting,
     engine,
+    outline,
   ]);
   const change = <K extends keyof CharacterAppearance>(
     key: K,
@@ -685,6 +694,14 @@ export function CharacterLab({
                 setEngine(v as RendererId | "ab"),
               )}
               {color("Ground", background, setBackground)}
+              <label>
+                <input
+                  type="checkbox"
+                  checked={outline}
+                  onChange={(e) => setOutline(e.target.checked)}
+                />
+                Outline
+              </label>
             </div>
             <div className="cl-pose-buttons" aria-label="Animations">
               {poses.map((p) => (
