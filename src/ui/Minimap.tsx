@@ -20,9 +20,14 @@ import type { WorldModel, Point } from "../core/types";
 const PAD = 32;
 type BuildingSheet = "buildings" | "regionalBuildings" | "campBuildings";
 const atlasImages: Partial<Record<BuildingSheet, HTMLImageElement>> = {};
+const sheetLoaded = new Set<() => void>();
+/** Fetched on first use: each sheet decodes to 60 MB, and a camp needs one. */
 function sprites(name: BuildingSheet = "buildings") {
   if (!atlasImages[name]) {
     atlasImages[name] = new Image();
+    atlasImages[name]!.onload = () => {
+      for (const l of sheetLoaded) l();
+    };
     atlasImages[name]!.src = sheetImage(name);
     void loadSheets().catch(() => {});
   }
@@ -150,6 +155,10 @@ function* paintBackgroundSteps(
     rows = Math.ceil((height + PAD * 2) / px);
   const kind: string[] = new Array(cols * rows);
   const coarse = extent > (world.generatorVersion === 3 ? 320 : 3200);
+  // One putImageData per row: a fillRect per pixel was a third of the main
+  // thread in a Safari profile.
+  const row = new ImageData(cols * px, px);
+  const rgba = new Uint32Array(row.data.buffer);
   const at = (i: number, j: number) => {
     const x = i * px - PAD,
       y = j * px - PAD;
@@ -166,7 +175,7 @@ function* paintBackgroundSteps(
       // frame budget, which is only checked between steps.
       if (j) yield;
       for (let i = 0; i < cols; i++) {
-        const { x, y, wx, wy } = at(i, j);
+        const { wx, wy } = at(i, j);
         const inMap =
           mapHalf === undefined ||
           (wx >= -mapHalf / 2 &&
@@ -224,9 +233,17 @@ function* paintBackgroundSteps(
         kind[j * cols + i] = k;
         // Sparse darker speckle gives grass and soil their pixel grain.
         if (!h && shade[k] && hash(wx, wy) < 0.16) fill = shade[k];
-        c.fillStyle = fill;
-        c.fillRect(x, y, px, px);
+        const v = parseInt(fill.slice(1, 7), 16);
+        const packed =
+          (0xff000000 | ((v & 0xff) << 16) | (v & 0xff00) | (v >> 16)) >>> 0;
+        for (let dy = 0; dy < px; dy++)
+          rgba.fill(
+            packed,
+            dy * cols * px + i * px,
+            dy * cols * px + i * px + px,
+          );
       }
+      c.putImageData(row, 0, j * px);
     }
   yield;
   // Outline pass: a darker seam wherever the ground type changes, plus a pale
@@ -441,7 +458,6 @@ export function Minimap({
   }, []);
   useEffect(() => {
     const canvas = ref.current!;
-    const images = [sprites(), sprites("regionalBuildings"), sprites("campBuildings")];
     const draw = () => {
       const key = `${size}:${height}:${extent}:${large}:${regional}`;
       let map = backing.current;
@@ -577,14 +593,16 @@ export function Minimap({
         });
       }
     };
-    const ready = () => {
-      if (images.every((image) => image.complete && image.naturalWidth)) draw();
+    // A sheet arriving late repaints the roofs that fell back to plain tones.
+    const repaint = () => {
+      if (backing.current) backing.current.places = 0;
+      draw();
     };
     redraw.current = draw;
-    ready();
-    for (const image of images) image.addEventListener("load", ready);
+    draw();
+    sheetLoaded.add(repaint);
     return () => {
-      for (const image of images) image.removeEventListener("load", ready);
+      sheetLoaded.delete(repaint);
     };
   }, [
     world,

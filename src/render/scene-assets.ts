@@ -23,6 +23,16 @@ const atlases = {
   "lighting-shadows": "/packs/lighting-shadows",
   topography: "/topography/atlas",
 } as const;
+/** Building sheets, in lookup order. Each decodes to up to 64 MB and most
+ * worlds use one, so the scene loads their frame lists and fetches a sheet
+ * only once something in the world is drawn from it. */
+export const lazySheets = [
+  "buildings",
+  "regional-buildings",
+  "camp-buildings",
+  "civic",
+  "precincts",
+] as const;
 
 export const alternateTrees = {
   oak: ["Oak Tree.png", 7],

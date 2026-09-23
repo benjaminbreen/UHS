@@ -73,6 +73,8 @@ export function lowProp(o: WorldObject) {
   return !!d && !o.carriedBy && !o.broken && (!!d.portable || !!d.tips);
 }
 export function heldObject(s: Snapshot) {
+  // Called several times a frame; empty hands should not scan every object.
+  if (!s.player.held) return undefined;
   return s.objects.find(
     (o) => o.id === s.player.held && o.carriedBy === "player",
   );

@@ -212,7 +212,7 @@ import { bloomAt, setBloomCut } from "./flowers";
 import { setCropSelector, setCropCut } from "./crops";
 import { setFloraRegion } from "../content/ecology/blooms";
 import { floraRegion } from "../content/ecology/flora";
-import { alternateTrees, sceneAssets } from "./scene-assets";
+import { alternateTrees, lazySheets, sceneAssets } from "./scene-assets";
 import { TiltShiftPipeline } from "./tilt-shift";
 /** People drawn at once. Beyond roughly this many the per-head frame cache,
  * not the simulation, is what costs the frame. */
@@ -551,7 +551,25 @@ export class WorldScene extends Phaser.Scene {
     const { atlases, images, sheets } = sceneAssets(
       this.options.shadows !== false,
     );
-    for (const a of atlases) this.load.atlas(a.key, a.image, a.data);
+    const sprites = new Set(
+      this.runtime.engine.world.places.map((b) => b.sprite),
+    );
+    for (const a of atlases) {
+      if (!(lazySheets as readonly string[]).includes(a.key)) {
+        this.load.atlas(a.key, a.image, a.data);
+        continue;
+      }
+      this.sheetImages.set(a.key, a.image);
+      this.load.json(`${a.key}-index`, a.data);
+      // Queued inside preload, so the places already sited arrive drawn.
+      this.load.once(
+        `filecomplete-json-${a.key}-index`,
+        (_key: string, _type: string, json: { frames: object }) => {
+          if (Object.keys(json.frames).some((f) => sprites.has(f)))
+            this.load.atlas(a.key, a.image, json);
+        },
+      );
+    }
     for (const i of images) this.load.image(i.key, i.url);
     for (const sh of sheets)
       this.load.spritesheet(sh.key, sh.url, {
@@ -2097,13 +2115,27 @@ export class WorldScene extends Phaser.Scene {
     for (const puff of fire.smoke) puff.destroy();
     this.fires.delete(id);
   }
-  /** Frames that live in the buildings atlas, read off the texture once it is
-   * loaded. A name test would need every recipe prefix; the atlas already
-   * knows what it holds. */
-  private buildingFrames?: Set<string>;
-  private regionalBuildingFrames?: Set<string>;
-  private campBuildingFrames?: Set<string>;
-  private civicFrames?: Set<string>;
+  /** Frames each building sheet holds, read off its index. A name test would
+   * need every recipe prefix; the index already knows what it holds. */
+  private sheetFrames?: [string, Set<string>][];
+  private sheetImages = new Map<string, string>();
+  private sheetLoading = new Set<string>();
+  /** Fetches a building sheet the preload did not, then redraws the scenery
+   * that stood in for it. */
+  private loadSheet(key: string) {
+    if (this.sheetLoading.has(key)) return;
+    this.sheetLoading.add(key);
+    this.load.atlas(
+      key,
+      this.sheetImages.get(key)!,
+      this.cache.json.get(`${key}-index`),
+    );
+    this.load.once(`filecomplete-atlasjson-${key}`, () => {
+      this.staticKey = "";
+      if (this.scene?.isActive()) this.draw();
+    });
+    if (!this.load.isLoading()) this.load.start();
+  }
   /** A coat is the species' frames with the colours swapped, built the first
    * time an animal wears it. Frames keep their names, with the coat in them. */
   private coatTexture(frame: string) {
@@ -2167,33 +2199,17 @@ export class WorldScene extends Phaser.Scene {
     return key;
   }
   private texture(frame: string) {
-    if (!this.buildingFrames && this.textures.exists("buildings"))
-      this.buildingFrames = new Set(
-        this.textures.get("buildings").getFrameNames(),
-      );
-    if (!this.civicFrames && this.textures.exists("civic"))
-      this.civicFrames = new Set(this.textures.get("civic").getFrameNames());
-    if (
-      !this.regionalBuildingFrames &&
-      this.textures.exists("regional-buildings")
-    )
-      this.regionalBuildingFrames = new Set(
-        this.textures.get("regional-buildings").getFrameNames(),
-      );
-    if (this.buildingFrames?.has(frame)) return "buildings";
-    if (this.regionalBuildingFrames?.has(frame)) return "regional-buildings";
-    if (!this.campBuildingFrames && this.textures.exists("camp-buildings"))
-      this.campBuildingFrames = new Set(
-        this.textures.get("camp-buildings").getFrameNames(),
-      );
-    if (this.campBuildingFrames?.has(frame)) return "camp-buildings";
-    if (this.civicFrames?.has(frame)) return "civic";
-    if (
-      frame.startsWith("precinct-") &&
-      this.textures.exists("precincts") &&
-      this.textures.get("precincts").has(frame)
-    )
-      return "precincts";
+    this.sheetFrames ??= lazySheets.map((key) => [
+      key,
+      new Set(Object.keys(this.cache.json.get(`${key}-index`)?.frames ?? {})),
+    ]);
+    for (const [key, frames] of this.sheetFrames)
+      if (frames.has(frame)) {
+        if (this.textures.exists(key)) return key;
+        this.loadSheet(key);
+        // Transparent until the sheet lands and the scenery redraws.
+        return "__DEFAULT";
+      }
     if (frame.startsWith("study-sheet-tree-")) return "tree-study";
     if (frame.startsWith("study-tree-"))
       return frame.slice(0, frame.lastIndexOf("-"));
