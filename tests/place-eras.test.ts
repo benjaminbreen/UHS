@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { places } from "../src/content/geography/places";
 import { placeAtYear, populationAt } from "../src/content/geography/eras";
 import { settingFor } from "../src/content/geography/resolve";
+import { describedRegionAt } from "../src/content/geography/region-label";
 import {
   characterCommunity,
   resolveCharacterContext,
@@ -14,6 +15,12 @@ const byId = (id: string) => {
 };
 
 describe("dated gazetteer", () => {
+  it("places the Po Valley in northern Italy", () => {
+    const po = byId("area-po-valley");
+    expect(po.lon).toBeGreaterThan(7);
+    expect(po.lat).toBeGreaterThan(44);
+    expect(describedRegionAt(po.lon, po.lat)?.label).not.toBe("Sahel");
+  });
   it("reads a settler-era place at the date being played", () => {
     const knoxville = byId("city-knoxville");
     expect(knoxville.culture).toBe("other-indigenous-american");

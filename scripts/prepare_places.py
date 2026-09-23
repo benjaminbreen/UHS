@@ -56,7 +56,7 @@ def locate(names,hint):
   found=[c for n in names if n in table for c in table[n]]
   if not found:continue
   near=[c for c in found if apart(c,hint)<HINT_KM]
-  return max(near or found,key=lambda c:c[2])
+  if near:return max(near,key=lambda c:c[2])
  return None
 def defaults(lon,lat):
  a=abs(lat);climate='tropical' if a<23 else 'tundra' if a>66 else 'boreal' if a>55 else 'temperate'

@@ -2,6 +2,21 @@
   "_comment": "Hand-authored anchors for places the two inputs miss. Natural Earth's populated-places file is ranked by modern prominence, so an island whose whole significance is that almost nobody lives there never clears the cut, and the legacy extraction did not cover the open Pacific at all. Coordinates are the main settlement or the island's centre, taken from the source named in `why`. Fields left out are filled by the same defaults and coast/river search as every other record.",
   "places": [
     {
+      "id": "area-po-valley",
+      "name": "Po Valley",
+      "aliases": [],
+      "lon": 10.5,
+      "lat": 45.2,
+      "climate": "mediterranean",
+      "water": "river-ew",
+      "culture": "european",
+      "year": 1400,
+      "architecture": "timber",
+      "settlement": "village",
+      "relief": 0.25,
+      "why": "The Po Valley is in northern Italy; the short name Po also names an unrelated place in West Africa."
+    },
+    {
       "id": "area-orkney",
       "name": "Orkney",
       "aliases": [
