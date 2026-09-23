@@ -4,6 +4,7 @@ import data from "../../content/geography/atlas.generated.json" with { type: "js
 import { mountainBelts } from "../../content/geography/landforms";
 import { segmentDistance } from "./noise";
 import { ATLAS_SCALE, fromAtlas } from "./coordinates";
+import { climateAt, climateMoistureAt } from "../../content/geography/climate-map";
 export { ATLAS_SCALE, toAtlas, fromAtlas } from "./coordinates";
 export const atlasLand = data.land;
 export const atlasRivers = data.rivers;
@@ -149,16 +150,14 @@ export function broadEnvironment(lon: number, lat: number) {
       relief = Math.max(relief, Math.max(0, 1 - distance / ridge.width));
     }
   const a = Math.abs(lat);
-  let moisture = a < 15 ? 0.85 : a > 60 ? 0.38 : 0.6;
-  if (
-    (lon > -18 && lon < 65 && lat > 17 && lat < 34) ||
-    (lon > 115 && lon < 145 && lat < -18 && lat > -32) ||
-    (lon > 45 && lon < 105 && lat > 35 && lat < 49)
-  )
-    moisture = 0.16;
-  if (lon > 70 && lon < 140 && lat > 8 && lat < 30) moisture = 0.72;
-  if (lon > -12 && lon < 40 && lat > 31 && lat < 44) moisture = 0.38;
-  return { relief, moisture, cold: a > 58 };
+  const moisture =
+    climateMoistureAt(lon, lat) ?? (a < 15 ? 0.85 : a > 60 ? 0.38 : 0.6);
+  const climate = climateAt(lon, lat);
+  return {
+    relief,
+    moisture,
+    cold: climate ? climate === "boreal" || climate === "tundra" : a > 58,
+  };
 }
 export function nearestRiverPoint(
   x: number,

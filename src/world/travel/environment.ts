@@ -38,7 +38,7 @@ export function resolveMapEnvironment(anchor: Coordinate, year: number) {
   };
   const nearby = places.reduce((a, b) => (distance(a) <= distance(b) ? a : b));
   let defaults = {
-    climate: geographicClimate(anchor.lat, ambient.moisture),
+    climate: geographicClimate(anchor.lon, anchor.lat, ambient.moisture, year),
     relief: ambient.relief,
     culture: nearby.culture,
     architecture: nearby.architecture,

@@ -296,7 +296,7 @@ export function createRegionalContext(start: WorldSetting) {
     const ll = fromAtlas(x + origin.x, y + origin.y),
       ambient = ambientAt(x, y);
     const localStart = includeStart && Math.hypot(x, y) < 192;
-    const climate = geographicClimate(ll.lat, ambient.moisture);
+    const climate = geographicClimate(ll.lon, ll.lat, ambient.moisture, start.year);
     const here = profilesAt(x, y),
       namedPlace = placeAt(x, y);
     let baseKey = `${ambient.relief}|${climate}|${localStart}|${namedPlace?.id}`;

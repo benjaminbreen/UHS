@@ -27,8 +27,10 @@ function prepare(lon: number, lat: number, year = 1300) {
 }
 describe("shared travel environment", () => {
   it("keeps dry previews and regional terrain in the same desert envelope", () => {
+    // The Qaidam basin, not the Qinghai steppe east of it: the Koppen map
+    // has that as cold steppe, which is grassland, not desert.
     for (const [lon, lat] of [
-      [98, 36],
+      [94.5, 37.5],
       [60, 38],
       [130, -25],
       [15, 25],

@@ -1,5 +1,6 @@
 import type { WorldSetting } from "./types";
 import { regionalEcology } from "../ecology/variants";
+import { climateAt } from "./climate-map";
 
 export function environmentFor(
   s: Pick<WorldSetting, "climate" | "lon" | "lat" | "relief" | "settlement"> & Partial<Pick<WorldSetting, "ecologyRevision" | "geographyMode">>,
@@ -29,8 +30,16 @@ export function integratedSetting(s: WorldSetting): WorldSetting {
       ecologyRevision: 2,
       hydrologyRevision: 3,
     };
+  const geographyMode = s.environment ? "configured" : "earth";
+  // The map is the climate of 1991-2020. Before the Holocene the setting's own
+  // glacial reading stands.
+  const climate =
+    geographyMode === "earth" && s.year > -10000
+      ? (climateAt(s.lon, s.lat) ?? s.climate)
+      : s.climate;
   return {
     ...s,
+    climate,
     characterRevision: 2,
     geographyRevision: 1,
     urbanRevision: 2,
@@ -40,8 +49,8 @@ export function integratedSetting(s: WorldSetting): WorldSetting {
     vegetationRevision: 7,
     ecologyRevision: 2,
     hydrologyRevision: 3,
-    geographyMode: s.environment ? "configured" : "earth",
+    geographyMode,
     terrainRevision: 2,
-    environment: s.environment ?? environmentFor({ ...s, ecologyRevision: 2, geographyMode: "earth" }),
+    environment: s.environment ?? environmentFor({ ...s, climate, ecologyRevision: 2, geographyMode: "earth" }),
   };
 }
