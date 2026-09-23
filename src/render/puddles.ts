@@ -20,6 +20,8 @@ export type PuddleSpot = {
   /** Wetness this hollow needs before it holds water; drier spots fill last. */
   rank: number;
   seed: number;
+  /** Spring-fed: holds water whatever the season. */
+  pond?: boolean;
 };
 
 const earth = (c: TopographyCell | undefined, height: number) =>
@@ -44,6 +46,51 @@ export function puddlesAt(
   top: number,
 ): PuddleSpot[] {
   const c = sample(x, y);
+  const bed = (b: TopographyCell | undefined) =>
+    b?.landscape?.kind === "arroyo" && !b.landscape.cut && b.landscape.strength >= 0.5 &&
+    b.surface !== "water" && !b.bridge && b.height === c?.height;
+  if (c?.landscape?.kind === "oasis" && c.surface !== "water") {
+    if (c.landscape.strength < 0.5) return [];
+    const wx = x + ox,
+      wy = y + oy;
+    const r = 13 + hash(wx, wy, 741) * 5;
+    return [
+      {
+        x: x * 16 + 8,
+        y: top + 8,
+        ax: 1,
+        ay: 0,
+        rx: r,
+        ry: r * 0.7,
+        traffic: 1,
+        rank: 0,
+        seed: hash(wx, wy, 743) * 10,
+        pond: true,
+      },
+    ];
+  }
+  if (c && bed(c)) {
+    // A dry bed is the lowest ground about: it pools first and widest, and
+    // in a wet winter runs half water.
+    const wx = x + ox,
+      wy = y + oy;
+    if (hash(wx, wy, 731) > 0.6) return [];
+    const r = 8 + hash(wx, wy, 733) * 7;
+    const tilt = (hash(wx, wy, 735) - 0.5) * 0.8;
+    return [
+      {
+        x: x * 16 + 3 + hash(wx, wy, 737) * 10,
+        y: top + 3 + hash(wx, wy, 739) * 10,
+        ax: Math.cos(tilt),
+        ay: Math.sin(tilt),
+        rx: r,
+        ry: r * 0.58,
+        traffic: 1,
+        rank: hash(wx, wy, 707) * 0.6,
+        seed: hash(wx, wy, 709) * 10,
+      },
+    ];
+  }
   if (!c || !earth(c, c.height)) return [];
   const around = [
     [0, -1],
@@ -206,8 +253,12 @@ function paint(b: Bucket, state: GroundState | undefined, sky: Sky) {
     const water = 1.02 - state.puddles * 0.95,
       mud = 1 - state.mud * 1.1;
     const kind = state.frozen ? 2 : 1;
-    for (let i = 0; i < b.depth.length; i++)
-      if (state.puddles > 0.05 && b.depth[i] > water) b.surface[i] = kind;
+    // A pond's depth is stored as 2 + its shape; rain only widens it.
+    const pond = 0.3 - state.puddles * 0.2;
+    for (let i = 0; i < b.depth.length; i++) {
+      const d = b.depth[i];
+      if (d >= 2 ? d - 2 > pond : state.puddles > 0.05 && d > water) b.surface[i] = kind;
+    }
     const put = (i: number, r: number, g: number, bl: number, a: number) => {
       data[i * 4] = r;
       data[i * 4 + 1] = g;
@@ -241,12 +292,12 @@ function paint(b: Bucket, state: GroundState | undefined, sky: Sky) {
             if (glint) put(i, Math.min(255, sr * 1.45 + 30), Math.min(255, sg * 1.4 + 30), Math.min(255, sb * 1.3 + 30), 255);
             else put(i, sr * deep, sg * deep, sb * deep, 255);
           }
-        } else if (state.mud > 0.05 && d > mud - (speck - 0.5) * 0.08) {
+        } else if (d >= 2 || (state.mud > 0.05 && d > mud - (speck - 0.5) * 0.08)) {
           // Darkens whatever soil it lies on, so laterite and loess keep their
           // own colour when wet.
           if (state.frozen) put(i, 214, 222, 228, speck > 0.7 ? 170 : 90);
           else if (speck > 0.965) put(i, sr * 0.9, sg * 0.9, sb * 0.9, 110);
-          else put(i, 30, 21, 12, d > mud + 0.15 ? 150 : 105);
+          else put(i, 30, 21, 12, d >= 2 ? 120 : d > mud + 0.15 ? 150 : 105);
         }
       }
   }
@@ -463,6 +514,7 @@ function shape(s: PuddleSpot, px: number, py: number) {
   const d = Math.hypot(u, v) / wobble;
   // A margin past the rim still takes mud.
   if (d > 1.5) return 0;
+  if (s.pond) return 2 + 1.15 - d * 0.75;
   const strength = (1 - s.rank * 0.5) * (0.7 + 0.3 * s.traffic);
   return strength * (1.15 - d * 0.75);
 }

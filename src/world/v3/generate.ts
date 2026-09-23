@@ -24,7 +24,7 @@ import {
   wheeledTraffic,
 } from "../../content/settlements/streets/reach";
 import { crossingStyle, edgeStyle } from "../../content/settlements/terraces";
-import { gravelBar, outcrop, saltPan, shrubColony } from "./features";
+import { gravelBar, oasis, outcrop, saltPan, shrubColony } from "./features";
 import { habitatAt, habitatTree } from "./habitats";
 import { createRegionalContext } from "../regional/context";
 import { regionalSettlements, shorePreference } from "../regional/settlements";
@@ -970,6 +970,11 @@ export function createSettlementWorld(
       ) > 0.3
     )
       return;
+    if (
+      h &&
+      oasis(seed, x + land.origin.x, y + land.origin.y, h.ecology, f.elevation === 0) > 0.3
+    )
+      return;
     const n = random(
         seed,
         "v3-decoration",
@@ -1386,7 +1391,9 @@ export function createSettlementWorld(
             h.exposed,
             f.summit ? f.elevation / f.summit : 0,
           );
-          if (pan) scape = { kind: "pan", strength: pan };
+          const pond = oasis(seed, ax, ay, h.ecology, f.elevation === 0);
+          if (pond) scape = { kind: "oasis", strength: pond };
+          else if (pan) scape = { kind: "pan", strength: pan };
           else if (rocky) scape = { kind: "outcrop", strength: rocky };
           else {
             // Trodden ground at the feet of buildings: distance to the nearest

@@ -910,6 +910,12 @@ function rasterGroundTile(
               put(px, py, soil[1], -4);
             trodden[at(px, py)] = 1;
           }
+        } else if (scape.kind === "oasis") {
+          // Damp dark sand at the pond, a ring of sedge and grass around it.
+          const t = scape.strength;
+          if (t > 0.45) mixInto(px, py, soil[0], 0.45);
+          else if (group < 0.4 + t) mixInto(px, py, [82, 112, 50], 0.35 + t * 0.6);
+          trodden[at(px, py)] = 1;
         } else if (scape.kind === "outcrop") {
           const ink = groundMotif("stone", wx, wy, art.motifs, { density: 1 + scape.strength * 1.5 });
           if (ink) put(px, py, palette[3], [0, -29, -6, 22][ink]);

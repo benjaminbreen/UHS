@@ -13,7 +13,8 @@ export type LandscapeKind =
   | "outcrop"
   | "pan"
   | "gravel-bar"
-  | "creek-pool";
+  | "creek-pool"
+  | "oasis";
 export type Landscape = {
   kind: LandscapeKind;
   strength: number;
@@ -292,6 +293,13 @@ export function saltPan(seed: string, x: number, y: number, colorway: Colorway |
   if (!["atacama", "highland", "sahara", "kalahari"].includes(colorway ?? "")) return 0;
   const n = noise(seed, x, y, 38, "salt-pan");
   return n > 0.66 ? Math.min(1, (n - 0.66) / 0.2) : 0;
+}
+
+/** Oases: rare spring-fed ponds on low desert ground. */
+export function oasis(seed: string, x: number, y: number, ecology: string, low: boolean) {
+  if (ecology !== "desert" || !low) return 0;
+  const n = noise(seed, x, y, 24, "oasis") * 0.8 + noise(seed, x, y, 5, "oasis-rim") * 0.2;
+  return n > 0.8 ? Math.min(1, (n - 0.8) / 0.08) : 0;
 }
 
 /** Gravel bars along river shores, in stretches rather than everywhere. */

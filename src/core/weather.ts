@@ -180,7 +180,7 @@ const seasonMud: Record<string, [number, number, number, number]> = {
   mediterranean: [0.25, 0, 0.35, 0.55],
   tropical: [0.55, 0.65, 0.55, 0.1],
   monsoon: [0.05, 0.75, 0.4, 0.05],
-  arid: [0, 0, 0, 0.08],
+  arid: [0.15, 0, 0.1, 0.3],
   boreal: [0.7, 0.15, 0.55, 0.4],
   tundra: [0.6, 0.35, 0.45, 0.3],
 };
