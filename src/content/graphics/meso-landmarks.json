@@ -1,0 +1,58 @@
+{
+  "temples": {
+    "nahua": {
+      "label": "Nahua temple",
+      "looks": [
+        {"body": "plaster", "band": "red", "shrine": "plaster", "stair": "plaster"},
+        {"body": "stone", "band": "plaster", "shrine": "plaster", "stair": "plaster"},
+        {"body": "plaster", "band": "accent", "shrine": "plaster", "stair": "stone"}
+      ],
+      "scales": {
+        "small": {"footprint": [6, 5], "tiers": 2, "tierHeight": 8, "top": [0.22, 0.45], "summit": "thatch-shrine", "stair": "single", "braziers": 1, "banners": 1, "corners": "sharp"},
+        "medium": {"footprint": [9, 8], "tiers": 4, "tierHeight": 11, "top": [0.2, 0.6], "summit": "shrine", "stair": "single", "braziers": 2, "banners": 2, "corners": "sharp", "serpents": true},
+        "large": {"footprint": [12, 10], "tiers": 5, "tierHeight": 12, "top": [0.12, 0.62], "summit": "twin", "stair": "double", "braziers": 4, "banners": 4, "corners": "sharp", "serpents": true}
+      }
+    },
+    "maya": {
+      "label": "Maya temple",
+      "looks": [
+        {"body": "red", "band": "plaster", "shrine": "red", "stair": "plaster"},
+        {"body": "plaster", "band": "red", "shrine": "red", "stair": "plaster"},
+        {"body": "red", "band": "accent", "shrine": "red", "stair": "stone"}
+      ],
+      "scales": {
+        "small": {"footprint": [6, 5], "tiers": 2, "tierHeight": 7, "top": [0.2, 0.45], "summit": "thatch-shrine", "stair": "single", "braziers": 1, "banners": 0, "corners": "rounded"},
+        "medium": {"footprint": [8, 8], "tiers": 5, "tierHeight": 10, "top": [0.27, 0.62], "summit": "comb", "stair": "single", "braziers": 2, "banners": 0, "corners": "rounded"},
+        "large": {"footprint": [10, 10], "tiers": 8, "tierHeight": 10, "top": [0.3, 0.66], "summit": "comb", "stair": "single", "braziers": 2, "banners": 2, "corners": "rounded"}
+      }
+    }
+  },
+  "venues": {
+    "meso-ballcourt": {
+      "label": "Ball court",
+      "description": "Two parallel ranges with sloping benches either side of a plastered alley, closed at the ends into an I. A stone ring stands out from the wall. Composed from surviving courts; illustrative.",
+      "painter": "ballcourt",
+      "scales": {"small": {"footprint": [8, 4]}, "medium": {"footprint": [10, 5]}, "large": {"footprint": [13, 6], "shrine": true}}
+    },
+    "meso-temazcal": {
+      "label": "Temazcal",
+      "description": "A plastered sweat-bath vault with a stone firebox against its side, where the stones are heated before water is thrown on them. Illustrative.",
+      "painter": "sweatbath",
+      "scales": {"small": {"footprint": [3, 2]}, "medium": {"footprint": [4, 3]}, "large": {"footprint": [5, 3]}}
+    },
+    "meso-calmecac": {
+      "label": "Calmecac",
+      "description": "A temple school of plastered rooms behind a pillared porch on a platform, with braziers kept burning and paper banners on the roof. Illustrative.",
+      "painter": "hall",
+      "hallScale": "large",
+      "scales": {"small": {"footprint": [7, 4]}, "medium": {"footprint": [9, 4]}, "large": {"footprint": [11, 4]}}
+    },
+    "meso-telpochcalli": {
+      "label": "Youths' house",
+      "description": "A ward house of plastered adobe under a flat roof, with a shade porch for work and banners for the ward. Illustrative.",
+      "painter": "hall",
+      "hallScale": "medium",
+      "scales": {"small": {"footprint": [6, 3]}, "medium": {"footprint": [8, 3]}, "large": {"footprint": [9, 4]}}
+    }
+  }
+}

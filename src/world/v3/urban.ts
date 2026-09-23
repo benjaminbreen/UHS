@@ -154,7 +154,9 @@ export function urbanSite(site: Site, pack: Pack): boolean {
     (["dense", "planned", "waterfront"].includes(site.profile.pattern) ||
       pack.setting?.settlement === "city" ||
       pack.setting?.settlement === "port") &&
-    urbanFrames(pack, siteForm(site, pack).storeys).length > 0
+    (urbanFrames(pack, siteForm(site, pack).storeys).length > 0 ||
+      // A plotted town can be built of the pack's own detached houses alone.
+      (plottedTown(pack) && pack.buildings.some((b) => buildingModels[b])))
   );
 }
 

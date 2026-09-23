@@ -351,12 +351,16 @@ def build_buildings(root, sprites):
     from art.oblique_church import ObliqueChurch, build_banner
     from art.oblique_round import ObliqueRound
     from art.oblique_mud import ObliqueMudbrick
+    from art.oblique_meso import ObliqueMeso
+    from art.oblique_meso_landmarks import ObliqueMesoLandmark, build_meso_animations, meso_landmark_recipes
+    build_meso_animations(sprites)
     from art.gold_masters import gold_master_recipes, prehistoric_expansion_recipes, service_kit_recipes
     from art.regional_houses import regional_house_recipes
     from art.camps import CampBuilding, camp_recipes
     build_banner(sprites)
     recipes={**camp_recipes(), **source['buildings'], **gold_master_recipes(source), **service_kit_recipes(source),
              **prehistoric_expansion_recipes(source), **regional_house_recipes(root, source),
+             **meso_landmark_recipes(root, source),
              **urban_recipes(root, source),
              **religious_recipes(root, source), **theatre_recipes(root, source),
              **hall_recipes(root, source), **period_recipes(root, source)}
@@ -369,6 +373,8 @@ def build_buildings(root, sprites):
                                       **({'shadowFrame':name} if r.get('oblique') else {})}
     for name,r in recipes.items():
         painter=(CampBuilding if r.get('campStyle') else
+                 ObliqueMesoLandmark if r.get('mesoLandmark') else
+                 ObliqueMeso if r.get('mesoamerican') else
                  ObliqueMudbrick if r.get('mud') else
                  ObliqueRound if r.get('round') else
                  ObliquePlayhouse if r.get('form')=='oblique-ring' else
@@ -412,6 +418,7 @@ def build_buildings(root, sprites):
             **({'banner':artist.banner} if getattr(artist,'banner',None) else {}),
             **({'courtyardLight':artist.court_light} if getattr(artist,'court_light',None) else {}),
             **({'smoke':artist.smoke} if getattr(artist,'smoke',None) else {}),
+            **({'overlays':artist.overlays} if getattr(artist,'overlays',None) else {}),
             **({'goldMaster':r['goldMaster'],'goldScale':r['goldScale'],
                 'goldVariant':r['goldVariant'],'wealthTier':r.get('wealthTier',1),
                 'detailSet':r.get('detailSet','plain')} if r.get('goldMaster') else {}),

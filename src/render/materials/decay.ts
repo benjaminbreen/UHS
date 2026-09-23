@@ -285,7 +285,9 @@ export function decay(src: Uint8ClampedArray, w: number, h: number, s: Structure
     if ((ledge || isRoof(i)) && hash(x, y, seed + 11) < mossy * smooth(x, y, seed + 11, 4) * 1.4)
       [r, g, b] = MOSS[(hash(x, y, seed + 12) * 3) | 0];
     if (s.char) {
-      const k = Math.min(0.85, s.char * smooth(x, y, seed + 23, 6) * 1.4);
+      // Soot in tongues where the flames licked up, heaviest high on the wall.
+      const lick = Math.max(0, smooth(x, y * 0.5, seed + 23, 5) * 1.8 - 0.5);
+      const k = Math.min(0.7, s.char * lick * (1.1 - (y / h) * 0.6));
       r *= 1 - k;
       g *= 1 - k;
       b *= 1 - k;

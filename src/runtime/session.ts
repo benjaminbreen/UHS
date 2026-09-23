@@ -400,7 +400,9 @@ export class Runtime {
       action !== "chop" &&
       action !== "dig" &&
       action !== "reap" &&
-      action !== "mine"
+      action !== "mine" &&
+      action !== "douse" &&
+      action !== "fill"
     )
       return;
     const parsed = /^tile:(-?\d+),(-?\d+)$/.exec(command.target);
@@ -408,7 +410,9 @@ export class Runtime {
     const at = { x: Number(parsed[1]), y: Number(parsed[2]) };
     const stage = this.engine.state.tiles?.[`${at.x},${at.y}`]?.stage;
     const kind: ToolEffect["kind"] =
-      action === "dig"
+      action === "douse" || action === "fill"
+        ? action
+        : action === "dig"
         ? "dig"
         : action === "reap"
           ? "reap"
@@ -1229,7 +1233,14 @@ export class Runtime {
       .filter((o) => o.kind === "fire")
       .map((o) => ({ type: "interact" as const, target: o.id, action: "light" as const }))
       .find((command) => !this.engine.validate(command));
-    if (p.heldItem === "torch" && !this.engine.validate(burn))
+    const douse = { ...burn, action: "douse" as const };
+    const fill = [
+      { type: "interact" as const, target: Engine.tileTarget(facing.x, facing.y), action: "fill" as const },
+      ...this.engine.state.objects.map((o) => ({ type: "interact" as const, target: o.id, action: "fill" as const })),
+    ].find((command) => !this.engine.validate(command));
+    if (!this.engine.validate(douse))
+      primary = { kind: "strike", label: "Douse the fire", command: douse };
+    else if (p.heldItem === "torch" && !this.engine.validate(burn))
       primary = { kind: "strike", label: "Set it alight", command: burn };
     else if (speaker)
       primary = {
@@ -1288,6 +1299,7 @@ export class Runtime {
     // A fire and raw meat: cooking comes before putting the stick down.
     if (light)
       alternate = { kind: "look", label: "Light the stick in the fire", command: light };
+    else if (fill) alternate = { kind: "look", label: "Fill the pail", command: fill };
     else if (c.secondary?.action === "cook")
       alternate = {
         kind: "look",

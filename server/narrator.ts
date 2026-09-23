@@ -67,7 +67,7 @@ export async function narrator(
     return json({ error: `No ${input.provider} key on this server.` }, 503);
   const model =
     input.provider === "openai"
-      ? (env.UHS_NARRATOR_OPENAI_MODEL ?? "gpt-5.6-luna")
+      ? (env.UHS_NARRATOR_OPENAI_MODEL ?? "gpt-6-luna")
       : (env.UHS_NARRATOR_GEMINI_MODEL ?? "gemini-3.5-flash-lite");
   if (!MODEL_ID.test(model))
     return json({ error: "Server model configuration is invalid." }, 503);
@@ -97,8 +97,7 @@ export async function narrator(
                 json_schema: { name: "narrator_turn", schema, strict: false },
               },
               max_completion_tokens: 900,
-              // Default effort roughly doubles latency for prose this short.
-              reasoning_effort: "low",
+              reasoning_effort: "none",
             }),
           })
         : await provider(

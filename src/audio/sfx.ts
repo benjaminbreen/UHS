@@ -290,7 +290,9 @@ export type ToolWork =
   | "dig"
   | "reap"
   | "mine"
-  | "shatter";
+  | "shatter"
+  | "douse"
+  | "fill";
 /** A tool doing its own job. */
 export function work(kind: ToolWork): Sound {
   switch (kind) {
@@ -320,6 +322,14 @@ export function work(kind: ToolWork): Sound {
       ];
     case "shatter":
       return strike("blunt", "rock", "shatter", true);
+    // A pailful thrown: the slap of water, then the fire hissing under it.
+    case "douse":
+      return [
+        noise(0, 0.12, 0.4, 900, { to: 300, q: 1.2, attack: 0.01 }),
+        noise(0.08, 0.9, 0.18, 5200, { filter: "highpass", attack: 0.05 }),
+      ];
+    case "fill":
+      return [noise(0, 0.5, 0.16, 700, { to: 1100, filter: "lowpass", attack: 0.08 })];
     default:
       return strike(
         "blade",
@@ -548,6 +558,33 @@ export const events = {
   ],
 } satisfies Record<string, () => Sound>;
 export type EventId = keyof typeof events;
+
+/** Fire. `near` is 0 at the edge of hearing, 1 standing beside it. */
+export const fire = {
+  /** Sap and resin popping over a low roar; call it every fraction of a
+   * second while something burns, and no two will match. */
+  crackle: (near: number): Sound => [
+    ...Array.from({ length: 1 + Math.floor(rand(0, 4)) }, () =>
+      noise(rand(0, 0.22), rand(0.006, 0.02), rand(0.03, 0.09) * near, rand(2200, 6500), {
+        filter: "highpass",
+        attack: 0.001,
+      }),
+    ),
+    noise(0, 0.4, 0.035 * near, 260, { filter: "lowpass", attack: 0.12 }),
+  ],
+  /** The draw of air as something catches. */
+  catch: (): Sound => [
+    noise(0, 0.55, 0.22, 380, { to: 2600, q: 0.8, attack: 0.18 }),
+    noise(0.15, 0.45, 0.08, 3400, { filter: "highpass", attack: 0.1 }),
+  ],
+  /** A roof going in: timbers giving, then the weight landing. */
+  collapse: (): Sound => [
+    noise(0, 0.25, 0.18, 1600, { to: 500, q: 2 }),
+    noise(0.18, 1.1, 0.4, 220, { to: 70, filter: "lowpass", attack: 0.03 }),
+    tone(0.2, 0.8, 0.28, 58, { to: 34, wave: "triangle" }),
+    ...grains(0.45, 0.8, 9, (t) => noise(t, 0.03, 0.08, 1300, { q: 1.5 })),
+  ],
+};
 
 /** What the sound lab auditions. */
 /** Who is speaking. Voices differ by register, not by words: the game has no

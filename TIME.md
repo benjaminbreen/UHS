@@ -77,7 +77,8 @@ site chronology and discards the old map's temporal checkpoints. Branching
 player interventions and persistent history across reloads are not implemented.
 Do not represent the reconstructed family as a documented genealogy.
 
-Optional `/api/time-arrival` prose uses server-side `gpt-5.6-luna`, fixed input
+Optional `/api/time-arrival` prose uses server-side `gpt-6-luna` with reasoning
+disabled, fixed input
 limits and a timeout. It can summarize supplied history and committed state;
 it cannot invent authoritative events or change the simulation. Missing keys,
 provider failures and access-code-protected deployments retain local prose.

@@ -2142,7 +2142,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
                         }
                       }}
                     >
-                      <option value="openai">OpenAI (GPT-5.6 luna)</option>
+                      <option value="openai">OpenAI (GPT-6 luna)</option>
                       <option value="gemini">Gemini 3.5 Flash-Lite</option>
                     </select>
                   </div>

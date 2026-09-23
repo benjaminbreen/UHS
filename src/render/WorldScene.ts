@@ -1,6 +1,7 @@
 import { Watercraft } from "./watercraft";
 import { ruinTexture, releaseRuins } from "./ruins";
 import { Burning, TorchFlame } from "./burning";
+import { BUILDING_BURN } from "../content/ecology/metals";
 import { oreOverlay } from "./ore-art";
 import { showsWear, stillStanding, StructureDecay } from "./structure-decay";
 import { isRuin } from "../core/time/structure";
@@ -252,6 +253,7 @@ type BuildingAnimationRecipe = {
 };
 type BuildingAnimation = {
   image: Phaser.GameObjects.Image;
+  kind: string;
   period: number;
   phase: number;
 };
@@ -1786,8 +1788,39 @@ export class WorldScene extends Phaser.Scene {
     this.layers.push(image);
     this.buildingAnimations.set(id, {
       image,
+      kind: "roof-fan",
       period: Math.max(120, animation.period ?? 280),
       phase: animation.phase ?? 0,
+    });
+  }
+  /** Four-frame loops the art publishes at points on a building: a brazier's
+   * fire, a banner, a ball in play. Fire gives its own light, so only cloth
+   * and the ball dim with the hour. */
+  private addBuildingOverlays(
+    id: string,
+    placement: ReturnType<typeof buildingPlacement>,
+    overlays: [string, number, number][],
+  ) {
+    const seed = this.runtime.engine.state.manifest.seed;
+    overlays.forEach(([kind, x, y], i) => {
+      const frame = `animation-${kind}-0`;
+      const image = this.add
+        .image(
+          placement.x - placement.model.anchor[0] + x,
+          placement.y - placement.model.anchor[1] + y,
+          this.texture(frame),
+          frame,
+        )
+        .setOrigin(0, 0)
+        .setDepth(placement.depth + 1);
+      if (!kind.startsWith("flame")) image.setTint(this.tint);
+      this.layers.push(image);
+      this.buildingAnimations.set(`${id}-overlay-${i}`, {
+        image,
+        kind,
+        period: kind.startsWith("flame") ? 110 : kind === "ball" ? 150 : 240,
+        phase: random(seed, "building-overlay", id, i) * 4,
+      });
     });
   }
   /** The word over a shop door.
@@ -3122,7 +3155,9 @@ export class WorldScene extends Phaser.Scene {
             // Abandoned or burnt: its own art, decayed, and no lit windows,
             // smoke or signs, since nobody keeps it.
             if (isRuin(b) || b.structure?.char) {
-              if (showsWear(b)) (this.structureDecay ??= new StructureDecay(this)).request(b, image);
+              // A building alight is the fire's to draw until it goes out.
+              const burning = e.state.fires?.some((f) => f.place === b.id);
+              if (showsWear(b) && !burning) (this.structureDecay ??= new StructureDecay(this)).request(b, image);
               continue;
             }
             const animation = (
@@ -3132,6 +3167,10 @@ export class WorldScene extends Phaser.Scene {
             ).animation;
             if (animation)
               this.addBuildingAnimation(b.id, placement, animation);
+            const overlays = (
+              placement.model as { overlays?: [string, number, number][] }
+            ).overlays;
+            if (overlays) this.addBuildingOverlays(b.id, placement, overlays);
             this.addDoor(b, placement, image.y);
             this.lightWindows(b, placement, image);
             const model = placement.model as { smoke?: [number, number, string][]; door?: number[] };
@@ -4181,7 +4220,7 @@ export class WorldScene extends Phaser.Scene {
         const frame = this.options.freeze
           ? 0
           : Math.floor(time / animation.period + animation.phase) % 4;
-        const name = `animation-roof-fan-${frame}`;
+        const name = `animation-${animation.kind}-${frame}`;
         if (animation.image.frame.name !== name) animation.image.setFrame(name);
       }
     if (
@@ -4234,7 +4273,16 @@ export class WorldScene extends Phaser.Scene {
       (this.burning ??= new Burning(this)).update(
         fires,
         (f) => (f.place ? this.buildings.get(f.place) : this.plantImages.get(`${f.x},${f.y}`)?.at(-1)),
+        (f) => {
+          const s = f.place ? this.runtime.engine.world.place(f.place)?.structure : undefined;
+          if (!s) return undefined;
+          // The engine's clock only moves when the player acts; carry the
+          // roof loss on at the drawn clock so the fire never stalls.
+          const ahead = Math.max(0, this.runtime.displayClock() - this.runtime.engine.state.clock);
+          return Math.min(1, 1 - s.roof + (ahead / BUILDING_BURN[s.fabric]) * 1.1);
+        },
         this.runtime.engine.state.player.pos,
+        time,
         delta,
         lightAlpha[this.light.id],
       );

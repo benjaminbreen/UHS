@@ -2402,6 +2402,67 @@ export class Engine {
     edit.burnt = true;
     this.tilesChanged();
   }
+  /** A pail or bucket in hand, full when it holds water. */
+  private pail() {
+    const held = heldObject(this.state);
+    return held && (held.prop === "bucket" || held.prop === "plastic") ? held : undefined;
+  }
+  private fillProblem(target: string) {
+    const pail = this.pail();
+    if (!pail) return "You need a pail in hand.";
+    if (pail.inventory.water) return "The pail is already full.";
+    const p = this.state.player;
+    const source = this.state.objects.find((o) => o.id === target);
+    if (source)
+      return propDefs[source.prop ?? ""]?.drink && source.pos.space === p.pos.space && distance(source.pos, p.pos) <= 1.5
+        ? undefined
+        : "There is no water there.";
+    const at = this.tileAt(target);
+    if (!at || p.pos.space !== "outside") return "There is no water there.";
+    if (Math.max(Math.abs(at.x - p.pos.x), Math.abs(at.y - p.pos.y)) > 1) return "Stand at the water's edge.";
+    return this.world.topography?.(at.x, at.y)?.surface === "water" ? undefined : "There is no water there.";
+  }
+  private douseProblem(target: string) {
+    const pail = this.pail();
+    if (!pail) return "You need a pail in hand.";
+    if (!pail.inventory.water) return "The pail is empty.";
+    const at = this.tileAt(target);
+    const p = this.state.player;
+    if (!at || p.pos.space !== "outside") return "Aim at the fire.";
+    if (Math.max(Math.abs(at.x - p.pos.x), Math.abs(at.y - p.pos.y)) > 1) return "Stand next to it.";
+    if (!this.fireAt(at.x, at.y)) return "Nothing is burning there.";
+  }
+  /** The fire on a cell: the cell's own, or the building standing on it. */
+  private fireAt(x: number, y: number) {
+    const place = this.buildingAt(x, y)?.id;
+    return this.state.fires?.find((f) => (place ? f.place === place : !f.place && f.x === x && f.y === y));
+  }
+  /** One pailful. It puts out a burning plant, scorched but standing; a
+   * house takes several, each one holding the fire back. */
+  private douse(at: Point) {
+    const pail = this.pail()!;
+    delete pail.inventory.water;
+    const fire = this.fireAt(at.x, at.y)!;
+    this.advance(10);
+    this.grantXp("wayfaring", 3);
+    const now = this.state.clock;
+    if (fire.place) {
+      const place = this.world.place(fire.place)!;
+      fire.until -= 600;
+      if (fire.until > now + 60) {
+        this.event(`The water hisses on ${place.name.toLowerCase()}. The fire falls back, but it still burns.`);
+        return;
+      }
+      this.state.fires = this.state.fires!.filter((f) => f !== fire);
+      this.tilesChanged();
+      this.event(`You put out the fire in ${place.name.toLowerCase()}. Smoke rises from the wet thatch and timbers.`);
+      return;
+    }
+    this.state.fires = this.state.fires!.filter((f) => f !== fire);
+    this.editAt(at.x, at.y).burnt = true;
+    this.tilesChanged();
+    this.event(`You put out the ${plantName(this.world.decoration(at.x, at.y)?.sprite)}. It stands scorched.`);
+  }
   private burningPlace(id: string | undefined) {
     return !!id && !!this.state.fires?.some((f) => f.place === id);
   }
@@ -3543,6 +3604,8 @@ export class Engine {
       return this.heaveProblem(c.target);
     if (c.type === "interact" && c.action === "enter" && this.burningPlace(c.target))
       return "It is on fire.";
+    if (c.type === "interact" && c.action === "fill") return this.fillProblem(c.target);
+    if (c.type === "interact" && c.action === "douse") return this.douseProblem(c.target);
     if (c.type === "interact" && c.action === "light")
       return this.lightProblem(c.target);
     if (c.type === "interact" && c.action === "burn")
@@ -4805,6 +4868,15 @@ export class Engine {
         break;
       case "light":
         this.lightTorch(o!);
+        break;
+      case "fill": {
+        this.pail()!.inventory.water = 1;
+        this.advance(20);
+        this.event("You fill the pail.");
+        break;
+      }
+      case "douse":
+        this.douse(this.tileAt(c.target)!);
         break;
       case "burn": {
         const at = this.tileAt(c.target)!;

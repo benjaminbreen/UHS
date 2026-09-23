@@ -415,3 +415,50 @@ it("empties a burning house, and a household burnt out of it lives there no more
   expect(engine.state.households[0].residence).toBeUndefined();
   expect(engine.state.households[0].history?.at(-1)?.kind).toBe("fire");
 });
+
+it("fills a pail at a well and puts out a burning tree and, pail by pail, a house", () => {
+  const engine = createSession("roman", "tools-douse");
+  ground(engine);
+  holding(engine, "bucket");
+  engine.state.objects.push({
+    id: "well",
+    name: "Communal well",
+    kind: "well",
+    prop: "well",
+    pos: { x: 0, y: 1, space: "outside" },
+    sprite: "study-prop-well-0",
+    inventory: {},
+  });
+  const fill = { type: "interact" as const, target: "well", action: "fill" as const };
+  const douse = { type: "interact" as const, target: "tile:1,0", action: "douse" as const };
+  plant(engine, { id: "decor-1-0", x: 1, y: 0, sprite: "nature-silver-birch", solid: true });
+  engine.ignite(1, 0);
+  expect(engine.validate(douse)).toBe("The pail is empty.");
+  expect(engine.validate(fill)).toBeUndefined();
+  const runtime = new Runtime(engine, { cacheTerrain: false });
+  expect(runtime.verbs().alternate?.label).toBe("Fill the pail");
+  engine.execute(fill);
+  engine.state.revision++;
+  expect(runtime.verbs().primary?.label).toBe("Douse the fire");
+  expect(engine.validate(fill)).toBe("The pail is already full.");
+  engine.execute(douse);
+  expect(engine.state.fires).toHaveLength(0);
+  expect(engine.world.decoration(1, 0)?.sprite).toBe("nature-silver-birch");
+  expect(engine.state.tiles?.["1,0"]?.burnt).toBe(true);
+
+  const place = engine.world.places[0];
+  engine.state.player.pos = { x: place.x - 1, y: place.y, space: "outside" };
+  engine.state.objects.find((o) => o.id === "well")!.pos = { x: place.x - 1, y: place.y + 1, space: "outside" };
+  engine.ignite(place.x, place.y);
+  const house = { type: "interact" as const, target: `tile:${place.x},${place.y}`, action: "douse" as const };
+  let pails = 0;
+  while (engine.state.fires?.length && pails < 10) {
+    engine.execute(fill);
+    engine.execute(house);
+    pails++;
+  }
+  expect(engine.state.fires).toHaveLength(0);
+  expect(pails).toBeGreaterThan(1);
+  expect(place.structure!.abandoned).toBeUndefined();
+  expect(snapshotSchema.safeParse(engine.snapshot()).success).toBe(true);
+});

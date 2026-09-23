@@ -92,7 +92,7 @@ describe("historical time", () => {
     }) as typeof fetch;
     const response = await timeArrival(request(), {OPENAI_API_KEY: "test"}, provider);
     expect(response.status).toBe(200);
-    expect(body.model).toBe("gpt-5.6-luna");
+    expect(body.model).toBe("gpt-6-luna");
     expect((await response.json()).text).toContain("households");
     expect((await timeArrival(request(), {OPENAI_API_KEY: "test"}, (async () => {throw Error("offline")}) as typeof fetch)).status).toBe(502);
   });

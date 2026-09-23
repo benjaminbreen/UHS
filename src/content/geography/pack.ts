@@ -6,6 +6,7 @@ import { packTemplates } from "../legacy-packs";
 import { landscapes } from "../graphics/landscapes";
 import {
   eastAsianRegionalHouses,
+  mesoamericanRegionalHouses,
   romanRegionalHouses,
   southAsianRegionalHouses,
   westAsianRegionalHouses,
@@ -270,6 +271,10 @@ export function packForSetting(setting: WorldSetting): Pack {
     setting.year < 1900
       ? southAsianRegionalHouses(setting)
       : [];
+  const mesoamericanRegional =
+    setting.culture === "mesoamerican" && setting.year < 1540
+      ? mesoamericanRegionalHouses(setting)
+      : [];
   const buildings = prehistoric
     ? prehistoric
     : modernCity
@@ -288,6 +293,8 @@ export function packForSetting(setting: WorldSetting): Pack {
             ? eastAsianRegional
             : southAsianRegional.length
               ? southAsianRegional
+              : mesoamericanRegional.length
+                ? mesoamericanRegional
       : architecture === "shelter"
         ? ["shelter-hide", "shelter-reed"]
         : setting.culture === "european" &&

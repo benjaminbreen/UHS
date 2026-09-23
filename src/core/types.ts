@@ -384,6 +384,8 @@ export type PlayerCommand =
         | "heave"
         | "light"
         | "burn"
+        | "fill"
+        | "douse"
         | "look";
       /** A descent taken over an edge rather than back the way you came. */
       dx?: number;

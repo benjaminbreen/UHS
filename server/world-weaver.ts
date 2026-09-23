@@ -122,7 +122,7 @@ The optional situation field preserves explicitly requested local circumstances 
 Catalog: ${JSON.stringify(candidates)}
 Request id (vary your year and name with it): ${randomUUID()}
 User description: ${input.prompt}`;
-  const model = env.UHS_WORLD_WEAVER_MODEL ?? "gpt-5.6-luna";
+  const model = env.UHS_WORLD_WEAVER_MODEL ?? "gpt-6-luna";
   if (!/^[a-zA-Z0-9._-]+$/.test(model))
     return json({ error: "Server model configuration is invalid." }, 503);
   inFlight++;

@@ -162,6 +162,14 @@ export function makeBody(
   return b;
 }
 
+/** Give a pixel a different material, with that material's fuel. */
+export function retype(b: Body, i: number, m: number) {
+  b.mat[i] = m;
+  b.fuel[i] = PROPS[m].fuel;
+}
+/** Whether a pixel is alight now. */
+export const alight = (b: Body, i: number) => b.mat[i] > 0 && b.heat[i] >= PROPS[b.mat[i]].ignite && b.fuel[i] > 0;
+
 function massOf(b: Body) {
   let m = 0,
     sx = 0,
@@ -1016,6 +1024,12 @@ export class Scene {
           if (X < 0 || X >= W) continue;
           const f = I * GLOW_FALL[(dy + 3) * 7 + dx + 3],
             q = (Y * W + X) * 4;
+          // Over clear pixels the glow is its own light, a halo past the edge.
+          if (out[q + 3] < 255) {
+            if (!out[q + 3]) out.set([255, 150, 60], q);
+            out[q + 3] = Math.min(150, out[q + 3] + f * 500);
+            continue;
+          }
           out[q] += (255 - out[q]) * f;
           out[q + 1] += (255 - out[q + 1]) * f * 0.45;
           out[q + 2] += (255 - out[q + 2]) * f * 0.08;

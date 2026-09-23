@@ -40,7 +40,7 @@ def audit():
         w, h = im.size
         say = lambda m: faults.append(f'{name}: {m}')
         fh = r['footprint'][1]
-        expected_side = side_depth(fh, deep=r.get('family') == 'parish')
+        expected_side = side_depth(fh, deep=r.get('family') == 'parish' or r.get('deep', False))
         if not getattr(a, 'no_side', False) and getattr(a, 'sw', None) != expected_side:
             say(f'side wall {getattr(a, "sw", None)}px, style says {expected_side}')
         if hasattr(a, 'roof') and hasattr(a, 'flat') and not a.flat and a.rise != roof_rise(a.roof):

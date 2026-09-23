@@ -83,3 +83,18 @@ export function southAsianRegionalHouses(setting: WorldSetting) {
   );
   return [...houses, ...frames("southasian-service", profile)];
 }
+
+/** Maya on the Yucatán, Petén and Gulf lowlands; the Nahua highland house
+ * stands in for the rest until Zapotec and Mixtec profiles exist. */
+export function mesoamericanHouseProfile(setting: WorldSetting): Profile {
+  return setting.lon > -94 && setting.lat < 22 ? "maya" : "nahua";
+}
+
+export function mesoamericanRegionalHouses(setting: WorldSetting) {
+  const profile = mesoamericanHouseProfile(setting);
+  return [
+    ...frames("meso-jacal", profile),
+    ...frames("meso-terrace", profile),
+    ...frames("meso-service", profile),
+  ];
+}

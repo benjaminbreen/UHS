@@ -7,6 +7,8 @@ import type { Runtime } from "../runtime/session";
 import { wearSlots } from "../core/character";
 import { parseCloth } from "../content/characters/wardrobe/cloth";
 import type { Expression } from "../render/portraits/constructed";
+import { faunaProfile } from "../content/fauna";
+import { random } from "../core/random";
 
 export type DialogueLine = { speaker: "npc" | "player"; text: string; original?: string };
 export type DialogueGift = {
@@ -172,6 +174,53 @@ export function dialogueContext(runtime: Runtime, actor: Actor) {
     .join("\n");
 }
 
+function dialogueInterruption(runtime: Runtime, actor: Actor, exchange: number) {
+  const { state } = runtime.engine;
+  const seed = state.manifest.seed;
+  const key = ["dialogue-interruption", actor.id, state.clock, exchange] as const;
+  if (random(seed, ...key, "chance") >= 0.12) return "";
+  const nearby = (point: { x: number; y: number }) =>
+    Math.hypot(point.x - actor.pos.x, point.y - actor.pos.y) <= 8;
+  const people = state.actors.filter(
+    (other) =>
+      other.id !== actor.id &&
+      other.id !== state.player.id &&
+      other.kind === "human" &&
+      other.pos.space === actor.pos.space &&
+      nearby(other.pos),
+  );
+  const animals = (state.fauna ?? []).flatMap((group) => {
+    if (group.pos.space !== actor.pos.space) return [];
+    const member = group.members.find(nearby);
+    const species = faunaProfile(group.speciesId);
+    return member && species ? [species.label] : [];
+  });
+  const choices = [
+    ...(people.length ? ["person", "person"] : []),
+    ...(animals.length ? ["animal", "animal"] : []),
+    "fart",
+    "burp",
+    "lose-thread",
+    "sneeze",
+  ];
+  const choice = choices[Math.floor(random(seed, ...key, "kind") * choices.length)];
+  if (choice === "person") {
+    const other = people[Math.floor(random(seed, ...key, "person") * people.length)];
+    return `Just now, nearby ${other.name}, a ${other.role}, has called to you with a question while you are speaking with the player. Let the two exchanges briefly overlap if that feels natural.`;
+  }
+  if (choice === "animal") {
+    const animal = animals[Math.floor(random(seed, ...key, "animal") * animals.length)];
+    return `Just now, a nearby ${animal} has interrupted what you were doing: it is nosing, stealing, pecking, barking, or otherwise making trouble in a way plausible for that animal. React to it; this may be comic, inconvenient, or barely worth noticing.`;
+  }
+  if (choice === "fart")
+    return "Just now, you let out an audible fart in the middle of speaking. React as this person would: acknowledge it, ignore it, or be embarrassed, without making a performance of it.";
+  if (choice === "burp")
+    return "Just now, you burped while speaking. React as this person would, then carry on.";
+  if (choice === "sneeze")
+    return "Just now, a sneeze interrupted you. React briefly if this person would, then carry on.";
+  return "Just now, you lost your train of thought mid-sentence. Let the hesitation show, then recover or ask what you were saying.";
+}
+
 export async function dialogueTurn(
   runtime: Runtime,
   actorId: string,
@@ -192,6 +241,7 @@ export async function dialogueTurn(
     dialogueContext(runtime, actor),
     transcript ? `Conversation so far:\n${transcript}` : "Conversation so far: none.",
     situation ? `Just now: ${situation}` : "",
+    dialogueInterruption(runtime, actor, history.length),
     input.trim() ? `Player says: ${input.trim().slice(0, 400)}` : "Begin with one brief spoken line to the player.",
   ].filter(Boolean).join("\n\n");
   const began = Date.now();

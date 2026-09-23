@@ -200,6 +200,58 @@
       "accent": "#5b3b2c",
       "motifStyle": "carved-lintel",
       "roofFeatures": ["ridge-finials", "plain", "roof-jars"]
+    },
+    "nahua": {
+      "label": "Nahua (Basin of Mexico)",
+      "mesoamerican": true,
+      "wall": "lime-plaster",
+      "roofMaterial": "earth",
+      "surfaceTreatments": ["lime", "ochre-wash", "bare-adobe", "lime"],
+      "parapetStyles": ["plain", "stepped", "snail"],
+      "friezes": ["fret", "disks", "bands"],
+      "doorFrames": ["timber", "red-frame", "fret-lintel"],
+      "windowStyle": "vent",
+      "wallStyles": ["cane", "daub", "daub"],
+      "thatchForms": ["hip", "long-hip"],
+      "roofFeatures": ["jars", "mat", "none"],
+      "dado": true,
+      "palette": {
+        "plaster": ["#3d3245", "#6e6470", "#a39a98", "#d2c8b6", "#eee4ca", "#fffaea"],
+        "red": ["#3a1424", "#6e1f2c", "#a3302f", "#cf4b36", "#e8784a", "#f7a86c"],
+        "stone": ["#23161d", "#40222a", "#6a3130", "#91463b", "#b4644c", "#d08a68"],
+        "adobe": ["#3a2a2a", "#654535", "#8f6645", "#b58a5c", "#d3aa74", "#ecc994"],
+        "ochre": ["#3d2a28", "#6e4630", "#a3683a", "#cc8f48", "#e6b460", "#f7d68a"],
+        "thatch": ["#2e2019", "#54391f", "#836028", "#b38c3a", "#d9b453", "#f3dc86"],
+        "thatch-old": ["#2b2420", "#4c4030", "#716245", "#958560", "#b6a77c", "#d2c69c"],
+        "timber": ["#2a1b16", "#4a3020", "#70492c", "#98683c", "#bd8c52", "#dcb277"],
+        "accent": ["#10283a", "#1d4f5c", "#26807e", "#3fae9b", "#78d2b3", "#b8eed2"]
+      }
+    },
+    "maya": {
+      "label": "Maya (lowlands)",
+      "mesoamerican": true,
+      "wall": "lime-plaster",
+      "roofMaterial": "earth",
+      "surfaceTreatments": ["lime", "lime", "ochre-wash", "red"],
+      "parapetStyles": ["moulding", "double-moulding"],
+      "friezes": ["bands", "fret"],
+      "doorFrames": ["timber", "moulded", "moulded"],
+      "windowStyle": "t-vent",
+      "wallStyles": ["daub", "daub-stone"],
+      "thatchForms": ["hip"],
+      "roofFeatures": ["mat", "jars", "none"],
+      "dado": true,
+      "palette": {
+        "plaster": ["#34303f", "#636073", "#9b98a0", "#cdc8bb", "#ebe5d2", "#fdfaee"],
+        "red": ["#34101f", "#62182a", "#962a2d", "#c2432f", "#e0673f", "#f39661"],
+        "stone": ["#2f2c38", "#58545d", "#86807d", "#b1a994", "#d3caae", "#efe7cc"],
+        "adobe": ["#3a2c2c", "#63473a", "#8e6b4f", "#b69069", "#d4b28a", "#ecd3ab"],
+        "ochre": ["#3b2a24", "#6a4a2a", "#9c7334", "#c89c3e", "#e5c25a", "#f6e08e"],
+        "thatch": ["#2a2119", "#4d3d22", "#7a6330", "#a88c3e", "#cdb257", "#ecd88a"],
+        "thatch-old": ["#29251f", "#4a4232", "#6d6448", "#908762", "#b0a882", "#cec7a4"],
+        "timber": ["#28151a", "#472326", "#6d3a31", "#935641", "#b87a57", "#d7a57a"],
+        "accent": ["#142b45", "#1f4c6e", "#2b7394", "#3f9bb4", "#6fc1cc", "#aee3e0"]
+      }
     }
   },
   "families": {
@@ -299,6 +351,40 @@
       "description": "A small granary, weaving or craft shed, market pavilion or local devotional building using the profile's fabric. Religion-specific major landmarks remain selected by place and date.",
       "sizes": {
         "small": {"footprint": [5, 3], "entrance": 2, "stories": 1, "variants": 4, "wealthTiers": [0, 1, 1, 2], "seedOffset": 16300, "roofPlan": "hip", "roofAccess": "none", "serviceStyles": ["granary", "workshop", "market-pavilion", "devotional-hall"], "functions": ["granary", "weaving-workshop", "market-pavilion", "devotional-hall"]}
+      }
+    },
+    "meso-jacal": {
+      "source": "house-mudbrick-ob-0",
+      "label": "Jacal",
+      "profiles": ["nahua", "maya"],
+      "function": "farm-household",
+      "description": "A pole-framed house with cane or daubed walls under a thatched roof: the ordinary Mesoamerican dwelling, often with a shade ramada at one end. Regional walls, thatch and trim are profile-driven; illustrative.",
+      "sizes": {
+        "small": {"footprint": [3, 2], "entrance": 1, "stories": 1, "variants": 3, "seedOffset": 16700, "roofPlan": "hip", "roofAccess": "none", "roofMaterial": "thatch", "functions": ["farm-household", "widow-household", "kitchen-house"]},
+        "medium": {"footprint": [6, 3], "entrance": 3, "stories": 1, "variants": 3, "seedOffset": 16900, "roofPlan": "hip", "roofAccess": "none", "roofMaterial": "thatch", "functions": ["farm-household", "artisan-household", "extended-family-house"]},
+        "large": {"footprint": [8, 4], "entrance": 4, "stories": 1, "variants": 2, "seedOffset": 17100, "roofPlan": "hip", "roofAccess": "none", "roofMaterial": "thatch", "wealthTiers": [1, 2], "functions": ["lineage-house", "extended-family-house"]}
+      }
+    },
+    "meso-terrace": {
+      "source": "house-mudbrick-ob-0",
+      "label": "Flat-roofed house",
+      "profiles": ["nahua", "maya"],
+      "function": "town-household",
+      "description": "Adobe or masonry rooms under a flat beam-and-mortar roof, plastered and painted; the largest stand on a platform reached by a stair. Parapets, friezes and door frames are profile-driven; illustrative.",
+      "sizes": {
+        "small": {"footprint": [5, 3], "entrance": 2, "stories": 1, "variants": 3, "seedOffset": 17300, "roofPlan": "terrace", "roofAccess": "ladder", "functions": ["town-household", "artisan-household", "shop-house"]},
+        "medium": {"footprint": [8, 3], "entrance": 4, "stories": 1, "variants": 3, "seedOffset": 17500, "roofPlan": "terrace", "roofAccess": "ladder", "functions": ["calpulli-household", "merchant-household", "artisan-household"]},
+        "large": {"footprint": [10, 4], "entrance": 5, "stories": 1, "variants": 2, "seedOffset": 17700, "roofPlan": "terrace", "roofAccess": "stairs", "functions": ["noble-house", "lineage-range"]}
+      }
+    },
+    "meso-service": {
+      "source": "house-mudbrick-ob-0",
+      "label": "Granary and sweat bath",
+      "profiles": ["nahua", "maya"],
+      "function": "granary",
+      "description": "Household service buildings: the bellied clay granary on a stone footing, and the temazcal sweat bath with its firebox. Illustrative.",
+      "sizes": {
+        "small": {"footprint": [3, 2], "entrance": 1, "stories": 1, "variants": 2, "seedOffset": 17900, "roofPlan": "hip", "roofAccess": "none", "serviceStyles": ["granary", "sweatbath"], "functions": ["granary", "sweat-bath"]}
       }
     }
   }

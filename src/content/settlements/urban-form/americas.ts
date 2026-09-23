@@ -19,6 +19,15 @@ export const americasForms: UrbanFormRule[] = [
     wall: "none",
     plaza: "crossing",
     plazaScale: 0.34,
+    // Household compounds in their own ground, stucco only on the avenues.
+    plots: { block: [26, 22], garden: 4, paved: "arterial" },
+    quarters: {
+      market: ["house"],
+      craft: ["house"],
+      elite: ["house"],
+      residential: ["house"],
+      edge: ["house"],
+    },
     civic: "head",
     square: {
       focus: "altar",

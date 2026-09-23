@@ -30,7 +30,7 @@ def side_depth(footprint_depth, deep=False):
 
 # Ridge height above the eave, by roofing. Independent of the side depth, so a
 # shallow building still carries a full roof. Low for Mediterranean pantile.
-RISE = {'thatch': 22, 'pantile': 13}
+RISE = {'thatch': 22, 'pantile': 13, 'zacate': 26, 'palm': 32}
 DEFAULT_RISE = 24
 
 

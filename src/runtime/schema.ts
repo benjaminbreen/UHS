@@ -464,6 +464,8 @@ export const commandSchema = z.discriminatedUnion("type", [
         "heave",
         "light",
         "burn",
+        "fill",
+        "douse",
       ]),
       // A dismount taken over an edge carries the side it goes off.
       dx: z.number().int().min(-1).max(1).optional(),

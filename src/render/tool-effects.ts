@@ -19,6 +19,8 @@ export type ToolEffectKind =
   | "reap"
   | "mine"
   | "shatter"
+  | "douse"
+  | "fill"
   /** A swing that found nothing: the arc, and nothing else. */
   | "miss";
 export type ToolEffect = {
@@ -96,6 +98,8 @@ const CHIP = [0xdcc292, 0xb08a5c, 0xf0e0b8];
 const SOIL = [0x8d6e47, 0xb08a5c, 0x61472c];
 const GRIT = [0x8a9199, 0xadb3ba, 0x697179, 0xd8dce0];
 const SPARK = [0xfffad2, 0xffd060, 0xffa030];
+const WATER = [0x5e8ec8, 0x8ab8e0, 0xc8e0f0];
+const STEAM = [0xe8ecef, 0xd0d6da, 0xf6f8fa];
 const METAL = [0xc4c4cc, 0x9a5634, 0xc87a44];
 /** What each surface throws off when it is struck. */
 const DEBRIS: Record<HitClass, number[]> = {
@@ -544,6 +548,11 @@ export class ToolEffects {
       this.burst({ x: target.x, y: target.y - 6 }, GRIT, 14, 2.4);
       this.burst({ x: target.x, y: target.y }, SOIL, 5, 1.8);
     }
+    if (effect.kind === "douse") {
+      this.burst({ x: target.x, y: target.y - 4 }, WATER, 14, 1.8);
+      this.burst({ x: target.x, y: target.y - 14 }, STEAM, 10, 0.8);
+    }
+    if (effect.kind === "fill") this.burst({ x: target.x, y: target.y }, WATER, 6, 0.7);
     if (effect.kind === "hit") this.shake(effect.at);
     if (effect.kind === "fell") this.fell(effect, target);
   }

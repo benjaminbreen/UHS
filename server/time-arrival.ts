@@ -64,8 +64,8 @@ export async function timeArrival(
           Authorization: `Bearer ${env.OPENAI_API_KEY}`,
         },
         body: JSON.stringify({
-          model: "gpt-5.6-luna",
-          reasoning_effort: "low",
+          model: "gpt-6-luna",
+          reasoning_effort: "none",
           max_completion_tokens: 650,
           messages: [
             {
