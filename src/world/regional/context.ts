@@ -18,6 +18,7 @@ import type {
 } from "../../content/geography/regions/types";
 import { regionalProfiles } from "../../content/geography/regions";
 import { places } from "../../content/geography/places";
+import { cityPopulation } from "../../content/settlements/city-populations";
 import { containsDate } from "../../content/history/dates";
 import { environmentFor } from "../../content/geography/defaults";
 import { packForSetting } from "../../content/geography/pack";
@@ -67,11 +68,13 @@ export function createRegionalContext(start: WorldSetting) {
       (p) => Math.hypot(p.at[0] - start.lon, p.at[1] - start.lat) < 0.025,
     )
   ) {
+    const population = cityPopulation(start.placeId, start.year);
     named.set(start.placeId, {
       id: start.placeId,
       name: start.location,
       at: [start.lon, start.lat],
-      radius: 80,
+      radius: population ? 140 : 80,
+      population,
       dates: {},
       defaults: {
         culture: start.culture,

@@ -77,7 +77,8 @@ export function urbanBuildingLimit(
 export function urbanRadius(population = 20000, year = 2000): number {
   const t = Math.max(0, Math.min(1, Math.log10(population / 3000) / 3));
   const r = 30 + t * 110;
-  return Math.round(year < 1800 ? Math.max(30, r * 0.8) : r);
+  // Pre-industrial towns were compact, but a city of half a million was not.
+  return Math.round(year < 1800 && population < 500000 ? Math.max(30, r * 0.8) : r);
 }
 
 /** Street-facing buildings a place of this population and date should get.
@@ -91,7 +92,7 @@ export function urbanTarget(
     // Log scale between 3k and 1M; a metropolis past that gets the top band.
     const t = Math.max(0, Math.min(1, Math.log10(population / 3000) / 2.5));
     const target = Math.round(20 + t * (URBAN_CAPACITY - 20));
-    return population >= 800000 && s.year >= 1800
+    return population >= (s.year >= 1800 ? 800000 : 500000)
       ? Math.min(METROPOLIS_CAPACITY, Math.round(population / 15000) + 40)
       : target;
   }

@@ -1575,6 +1575,9 @@ kbd {
 .dialogue-line.npc {
   color: var(--cream);
 }
+.dialogue-action {
+  opacity: 0.6;
+}
 .dialogue-line.player {
   margin-left: auto;
   padding-left: 22px;
@@ -6526,4 +6529,20 @@ button:disabled {
 .dialogue-glossed[data-english] > span:last-child { opacity: 1; }
 @media (prefers-reduced-motion: reduce) {
   .dialogue-glossed > span { transition: none; }
+}
+.place-pick {
+  display: flex;
+  gap: 6px;
+  min-width: 0;
+}
+.place-pick button {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  padding: 0 10px;
+  background: #090f1980;
+  border: 1px solid #9b804c;
+  border-radius: 6px;
+  color: #f1c56f;
+  cursor: pointer;
 }

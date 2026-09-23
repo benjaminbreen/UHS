@@ -1,6 +1,7 @@
 import { communityFor } from "../content/characters/resolve";
 import { formatHistoricalYear } from "../core/calendar";
 import { randomStart } from "../content/geography/random-start";
+import { curatedStart } from "../content/geography/curated-starts";
 import { readStartMode } from "./start-mode";
 import {
   Sparkles,
@@ -39,12 +40,15 @@ export function WorldSetup({
   initialPrompt?: string;
   initialMode?: "local" | "model";
 }) {
+  const [first] = useState(() => curatedStart());
   const [prompt, setPrompt] = useState(initialPrompt),
-    [place, setPlace] = useState(initialSetting?.placeId ?? "rome"),
-    [year, setYear] = useState(String(initialSetting?.year ?? 100)),
+    [place, setPlace] = useState(initialSetting?.placeId ?? first.placeId),
+    [year, setYear] = useState(String(initialSetting?.year ?? first.year)),
     [seed, setSeed] = useState(initialSeed),
     [mode, setMode] = useState<"local" | "model">(initialMode);
-  const [role, setRole] = useState(initialSetting?.role ?? ""),
+  const [role, setRole] = useState(
+      initialSetting ? initialSetting.role : first.role,
+    ),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [token, setToken] = useState("");
@@ -132,6 +136,13 @@ export function WorldSetup({
     setPrompt("");
     setRole("");
     setError("");
+  };
+  const reroll = () => {
+    const start = curatedStart(place);
+    choose(start.placeId);
+    setYear(String(start.year));
+    setRole(start.role);
+    setPattern("");
   };
   const randomize = () => {
     // Follows the choice made on the splash; this panel has no toggle of its own.
@@ -359,25 +370,39 @@ export function WorldSetup({
           <label className="weaver-field">
             <MapPin />
             <span>Place</span>
-            <select
-              aria-label="Place"
-              value={
-                places.some((p) => p.id === shown?.placeId)
-                  ? shown!.placeId
-                  : place
-              }
-              disabled={busy}
-              onChange={(e) => choose(e.target.value)}
-            >
-              {shown && !places.some((p) => p.id === shown.placeId) && (
-                <option value={shown.placeId}>{shown.location}</option>
-              )}
-              {places.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
+            <div className="place-pick">
+              <select
+                aria-label="Place"
+                value={
+                  places.some((p) => p.id === shown?.placeId)
+                    ? shown!.placeId
+                    : place
+                }
+                disabled={busy}
+                onChange={(e) => choose(e.target.value)}
+              >
+                {shown && !places.some((p) => p.id === shown.placeId) && (
+                  <option value={shown.placeId}>{shown.location}</option>
+                )}
+                {places.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                aria-label="Another curated start"
+                title="Another curated start"
+                disabled={busy}
+                onClick={(e) => {
+                  e.preventDefault();
+                  reroll();
+                }}
+              >
+                <Dices />
+              </button>
+            </div>
           </label>
           <label className="weaver-field">
             <CalendarDays />
