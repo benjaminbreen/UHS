@@ -126,13 +126,16 @@ export function createSettlementWorld(
               y + DISTRICT_SIZE < -half
             )
               return [];
-            return rawPlanner
-              .sitesIn(cx, cy)
-              .filter(
-                (s) =>
-                  Math.abs(s.center.x) + s.profile.radius < half - 4 &&
-                  Math.abs(s.center.y) + s.profile.radius < half - 4,
-              );
+            // A city that overhangs the map edge is cut down to fit, not
+            // dropped: a metropolis on a small map is still a city.
+            return rawPlanner.sitesIn(cx, cy).flatMap((s) => {
+              const fit =
+                half - 5 - Math.max(Math.abs(s.center.x), Math.abs(s.center.y));
+              if (s.profile.radius <= fit) return [s];
+              return fit >= 24
+                ? [{ ...s, profile: { ...s.profile, radius: fit } }]
+                : [];
+            });
           },
         }
       : rawPlanner;

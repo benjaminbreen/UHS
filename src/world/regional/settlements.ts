@@ -149,7 +149,8 @@ export function regionalSettlements(
       // the modern centre, and the shore can be a hundred tiles off.
       const water = context.settingAt(p.x, p.y).water;
       const shore = water !== "none";
-      const reach = shore ? radius : radius * 0.35;
+      // A big claim must not send the centre half a map away to find water.
+      const reach = shore ? Math.min(radius, 64) : radius * 0.35;
       const step = shore ? 8 : 5;
       const candidates = [{ x: p.x, y: p.y }];
       for (let r = 6; r <= reach; r += step) {

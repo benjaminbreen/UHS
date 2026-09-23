@@ -1,4 +1,5 @@
 import { places } from "../places";
+import { urbanized } from "../../settlements/urban-form";
 import type { TravelLocation } from "../../../world/travel/types";
 import { britainTravel } from "./britain";
 import { northAfricaTravel } from "./north-africa";
@@ -32,6 +33,7 @@ export const travelLocations: TravelLocation[] = [
       note: "Geographic catalog anchor; historical settlement existence and scale are unresearched here. The catalog’s sample year is not a founding date.",
     })),
 ];
+const placeById = new Map(places.map((p) => [p.id, p]));
 export const travelById = new Map(travelLocations.map((p) => [p.id, p]));
 export const travelPresets = {
   britain: {
@@ -77,7 +79,13 @@ export const travelPresets = {
 export function settlementAt(p: TravelLocation, year: number) {
   if (p.kind === "landscape") return "none" as const;
   const s = p.settlement;
-  if (s && year >= s.from && year < (s.to ?? Infinity)) return s.rank;
+  if (s) return year >= s.from && year < (s.to ?? Infinity) ? s.rank : "unresearched" as const;
+  // A catalog anchor has no dated record, so read it as a direct start would.
+  const place = placeById.get(p.id);
+  if (place && urbanized({ ...place, year }))
+    return place.settlement === "city" || place.settlement === "port"
+      ? ("city" as const)
+      : ("town" as const);
   return "unresearched" as const;
 }
 export function locationName(p: TravelLocation, year: number) {
