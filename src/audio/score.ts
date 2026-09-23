@@ -1,4 +1,5 @@
 /** Original compositions. Notes and harmony remain independent of instrumentation. */
+import { culturalThemes, type CulturalTheme } from "./cultural-themes";
 export const seasons = ["spring", "summer", "autumn", "winter"] as const;
 export const periods = ["dawn", "day", "dusk", "night"] as const;
 export type Season = (typeof seasons)[number];
@@ -14,7 +15,32 @@ export type Voice =
   | "keys"
   | "bass"
   | "kick"
-  | "brush";
+  | "brush"
+  | "pluck"
+  | "oud"
+  | "reed"
+  | "ney"
+  | "drone"
+  | "balafon"
+  | "gong"
+  | "frame"
+  | "wood"
+  | "shaker"
+  | "saron"
+  | "bonang"
+  | "bronze"
+  | "chime"
+  | "sho"
+  | "mridanga"
+  | "tanpura";
+const unpitched = new Set<Voice>([
+  "kick",
+  "brush",
+  "frame",
+  "wood",
+  "shaker",
+  "mridanga",
+]);
 export interface Note {
   beat: number;
   duration: number;
@@ -23,6 +49,7 @@ export interface Note {
   stem: Stem;
   voice: Voice;
   pan: number;
+  cents?: number;
 }
 export interface Theme {
   id: string;
@@ -289,7 +316,7 @@ export interface Score {
   notes: Note[];
   bpm: number;
   beats: number;
-  theme: Theme;
+  theme: Theme | CulturalTheme;
   arrangement: Arrangement;
 }
 export const defaultArrangement: Arrangement = {
@@ -330,6 +357,8 @@ export function worldMusicSlot(clock: number): {
   };
 }
 export function compose(arrangement: Arrangement): Score {
+  const cultural = culturalThemes.find((t) => t.id === arrangement.themeId);
+  if (cultural) return composeCultural(cultural, arrangement);
   const theme = themes.find((t) => t.id === arrangement.themeId) ?? themes[0];
   const { period, era, season } = arrangement;
   const quiet = period === "night" || period === "dawn";
@@ -470,6 +499,199 @@ export function compose(arrangement: Arrangement): Score {
     notes: notes.sort((a, b) => a.beat - b.beat),
     bpm,
     beats: 128,
+    theme,
+    arrangement,
+  };
+}
+
+function composeCultural(
+  theme: CulturalTheme,
+  arrangement: Arrangement,
+): Score {
+  const { period } = arrangement;
+  const quiet = period === "night" || period === "dawn";
+  const m = theme.meter,
+    beats = 32 * m;
+  const bpm = Math.round(
+    theme.bpm * { dawn: 0.88, day: 1, dusk: 0.92, night: 0.8 }[period],
+  );
+  const notes: Note[] = [];
+  const add = (
+    beat: number,
+    duration: number,
+    pitch: number,
+    velocity: number,
+    stem: Stem,
+    voice: Voice,
+    pan = 0,
+  ) =>
+    notes.push({
+      beat,
+      duration: Math.min(duration, beats - beat),
+      midi: pitch,
+      velocity,
+      stem,
+      voice,
+      pan,
+      cents: unpitched.has(voice) ? 0 : (theme.tuning?.[pitch % 12] ?? 0),
+    });
+  const scale = [
+    ...new Set(
+      [...theme.melody, ...theme.bridge].flatMap((phrase) =>
+        phrase
+          .split(" ")
+          .map((t) => t.split(":")[0])
+          .filter((p) => p !== "-")
+          .map(midi),
+      ),
+    ),
+  ].sort((a, b) => a - b);
+  const lead = (quiet && theme.nightLead) || theme.lead;
+  for (let bar = 0; bar < 32; bar++) {
+    const section = Math.floor(bar / 8),
+      index = bar % 8,
+      bridge = section === 2,
+      start = bar * m;
+    const chord = (bridge ? theme.bridgeChords : theme.chords)[index]
+      .split(" ")
+      .map(midi);
+    const bloom = section === 0 ? 0.78 : section === 2 ? 1 : 0.9;
+    let beat = start;
+    for (const token of (bridge ? theme.bridge : theme.melody)[index].split(
+      " ",
+    )) {
+      const [pitch, length] = token.split(":"),
+        duration = Number(length);
+      if (pitch !== "-") {
+        const n = midi(pitch),
+          upper = scale.find((p) => p > n);
+        if (theme.grace && section > 0 && duration >= 1 && upper) {
+          add(beat, 0.12, upper, 0.3 * bloom, "melody", lead, -0.08);
+          add(
+            beat + 0.12,
+            duration * 0.92 - 0.12,
+            n,
+            0.48 * bloom,
+            "melody",
+            lead,
+            -0.08,
+          );
+        } else
+          add(beat, duration * 0.92, n, 0.48 * bloom, "melody", lead, -0.08);
+        if (theme.elaborate && section > 0)
+          for (let i = 0; i < duration * 2; i++)
+            add(
+              beat + i / 2,
+              0.45,
+              (i % 2 && upper ? upper : n) + 12,
+              0.16,
+              "harmony",
+              theme.answer,
+              0.35,
+            );
+        // Heterophony: the answer shadows the tune, sparsely at first.
+        else if (
+          theme.heterophony &&
+          section > 0 &&
+          (section === 3 || beat % 1 === 0)
+        )
+          add(
+            beat + 0.03,
+            duration * 0.9,
+            n + (theme.answerOctave ?? -12),
+            0.2,
+            "harmony",
+            theme.answer,
+            0.35,
+          );
+      }
+      beat += duration;
+    }
+    if (!theme.heterophony && !theme.elaborate && (section === 1 || bridge))
+      [m * 0.375, m * 0.75].forEach((b, i) =>
+        add(
+          start + b,
+          m * 0.2,
+          chord[i % chord.length] + 24,
+          0.12,
+          "harmony",
+          theme.answer,
+          0.45,
+        ),
+      );
+    if (section > 0 || !quiet)
+      for (const [b, tone] of theme.pattern)
+        if (!quiet || b % 1 === 0)
+          add(
+            start + b,
+            quiet ? 1.4 : 0.9,
+            chord[tone % chord.length] + 12,
+            (b % 1 === 0 ? 0.2 : 0.14) * bloom,
+            "harmony",
+            theme.accompany,
+            b % 2 < 1 ? -0.3 : 0.3,
+          );
+    if (theme.drone)
+      chord.forEach((n, i) =>
+        add(
+          start,
+          m * 0.98,
+          n + 12,
+          quiet ? 0.06 : 0.08,
+          "harmony",
+          theme.droneVoice ?? "drone",
+          i % 2 ? 0.25 : -0.25,
+        ),
+      );
+    const previous = (bridge ? theme.bridgeChords : theme.chords)[index - 1];
+    if (theme.steadyBass) {
+      add(
+        start,
+        quiet ? m * 0.9 : m * 0.45,
+        chord[0],
+        0.34,
+        "bass",
+        theme.steadyBass,
+      );
+      if (!quiet && m % 2 === 0)
+        add(start + m / 2, m * 0.4, chord[0], 0.22, "bass", theme.steadyBass);
+    } else if (
+      theme.bass &&
+      (!previous || midi(previous.split(" ")[0]) !== chord[0])
+    )
+      add(start, m * 0.9, chord[0], 0.24, "bass", theme.bass);
+    for (const [b, voice, pitch, velocity, every = 1] of theme.drums)
+      if (
+        bar % every === every - 1 &&
+        (!quiet || (b === 0 && voice !== "shaker"))
+      )
+        add(
+          start + b,
+          0.25,
+          pitch,
+          velocity *
+            (quiet ? 0.5 : 1) *
+            (section === 0 ? 0.65 : 1) *
+            (period === "dusk" ? 0.8 : 1),
+          "percussion",
+          voice,
+          voice === "shaker" ? 0.3 : 0,
+        );
+    if (theme.mark && index === 0 && section > 0)
+      add(
+        start,
+        m * 2,
+        theme.mark[1],
+        0.26,
+        "percussion",
+        theme.mark[0],
+        -0.15,
+      );
+  }
+  return {
+    notes: notes.sort((a, b) => a.beat - b.beat),
+    bpm,
+    beats,
     theme,
     arrangement,
   };

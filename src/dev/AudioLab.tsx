@@ -27,6 +27,7 @@ import {
   type Period,
   type Season,
 } from "../audio/score";
+import { culturalThemes } from "../audio/cultural-themes";
 import { renderWav } from "../audio/synth";
 import { catalog } from "../audio/sfx";
 import "./audio-lab.css";
@@ -118,7 +119,9 @@ export function AudioLab({
     }
   };
   const melody = score.notes.filter((n) => n.stem === "melody");
-  const phrase = Math.min(3, Math.floor(beat / 32));
+  const phrase = Math.min(3, Math.floor((beat * 4) / score.beats));
+  const meter = score.beats / 32,
+    scale = 640 / score.beats;
   return (
     <div
       className="audio-backdrop"
@@ -249,6 +252,28 @@ export function AudioLab({
                     </span>
                   </button>
                 ))}
+                <div className="audio-library-heading">
+                  <div className="audio-label">03 / PLACES & ERAS</div>
+                  <span>{culturalThemes.length} sketches</span>
+                </div>
+                {culturalThemes.map((theme, i) => (
+                  <button
+                    className={`audio-track ${theme.id === arrangement.themeId ? "selected" : ""}`}
+                    key={theme.id}
+                    aria-pressed={theme.id === arrangement.themeId}
+                    title={theme.evidence}
+                    onClick={() => director.configure({ themeId: theme.id })}
+                  >
+                    <span className="audio-track-number">P{i + 1}</span>
+                    <div>
+                      <strong>{theme.title}</strong>
+                      <small>{theme.place}</small>
+                    </div>
+                    <span className="audio-track-dot">
+                      {theme.id === arrangement.themeId ? "●" : "○"}
+                    </span>
+                  </button>
+                ))}
                 <p className="audio-fine audio-library-foot">
                   Five original compositions. Two arrangements in every season /
                   time slot. Shared themes carry the world’s musical memory.
@@ -280,13 +305,21 @@ export function AudioLab({
                   </div>
                   <span className="audio-bpm">
                     {score.bpm}
-                    <small>BPM · 4/4</small>
+                    <small>BPM · {meter === 6 ? "6/8" : `${meter}/4`}</small>
                   </span>
                 </div>
-                <p className="audio-description">{score.theme.subtitle}</p>
+                <p className="audio-description">
+                  {score.theme.subtitle}
+                  {"evidence" in score.theme && (
+                    <small className="audio-fine">
+                      {" "}
+                      {score.theme.evidence}
+                    </small>
+                  )}
+                </p>
                 <div
                   className="audio-score"
-                  aria-label={`Melody score, bar ${Math.floor(beat / 4) + 1} of 32`}
+                  aria-label={`Melody score, bar ${Math.floor(beat / meter) + 1} of 32`}
                 >
                   <svg
                     viewBox="0 0 640 74"
@@ -307,9 +340,9 @@ export function AudioLab({
                     {melody.map((n, i) => (
                       <rect
                         key={i}
-                        x={n.beat * 5}
+                        x={n.beat * scale}
                         y={62 - (n.midi - 59) * 1.8}
-                        width={Math.max(2, n.duration * 5 - 1)}
+                        width={Math.max(2, n.duration * scale - 1)}
                         height="3"
                         rx="1.5"
                         fill="currentColor"
@@ -317,8 +350,8 @@ export function AudioLab({
                       />
                     ))}
                     <line
-                      x1={beat * 5}
-                      x2={beat * 5}
+                      x1={beat * scale}
+                      x2={beat * scale}
                       y1="4"
                       y2="70"
                       stroke="#fae7b6"
@@ -375,7 +408,7 @@ export function AudioLab({
                   </button>
                   <span className="audio-time">
                     {duration((beat * 60) / score.bpm)}{" "}
-                    <span>/ {duration((128 * 60) / score.bpm)}</span>
+                    <span>/ {duration((score.beats * 60) / score.bpm)}</span>
                   </span>
                   <button
                     className="audio-export"

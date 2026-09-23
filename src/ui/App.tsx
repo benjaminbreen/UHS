@@ -580,6 +580,10 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
     hour,
   ]);
   useEffect(() => audio?.setScene(ambience), [audio, ambience]);
+  useEffect(
+    () => audio?.setSetting(setting?.culture, setting?.year),
+    [audio, setting?.culture, setting?.year],
+  );
   const regionLabel =
     (setting && describedRegionAt(setting.lon, setting.lat)?.label) ||
     setting?.location ||

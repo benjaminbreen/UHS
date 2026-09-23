@@ -9,6 +9,7 @@ import {
   themes,
   worldMusicSlot,
 } from "../src/audio/score";
+import { culturalMusic, culturalThemes } from "../src/audio/cultural-themes";
 import { catalog } from "../src/audio/sfx";
 
 describe("original soundtrack scores", () => {
@@ -54,6 +55,39 @@ describe("original soundtrack scores", () => {
       expect(melodies[0]).toEqual(melodies[1]);
       expect(melodies[1]).toEqual(melodies[2]);
     }
+  });
+  it("fills every bar of the place and era themes in every time of day", () => {
+    for (const theme of culturalThemes) {
+      for (const phrase of [...theme.melody, ...theme.bridge])
+        expect(
+          phrase
+            .split(" ")
+            .reduce((sum, token) => sum + Number(token.split(":")[1]), 0),
+        ).toBe(theme.meter);
+      for (const period of periods) {
+        const score = compose({
+          ...defaultArrangement,
+          period,
+          themeId: theme.id,
+        });
+        expect(score.theme.id).toBe(theme.id);
+        expect(score.beats).toBe(32 * theme.meter);
+        for (const n of score.notes) {
+          expect(n.beat + n.duration).toBeLessThanOrEqual(score.beats + 0.1);
+          expect(n.duration).toBeGreaterThan(0);
+          expect(n.midi).toBeGreaterThanOrEqual(24);
+          expect(n.midi).toBeLessThanOrEqual(108);
+        }
+      }
+    }
+  });
+  it("plays a culture's pieces across its eras and puts direct hits first", () => {
+    const java = culturalMusic("southeast-asian", 1400);
+    expect(java.direct.map((t) => t.id)).toEqual(["gongs-of-trowulan"]);
+    const later = culturalMusic("southeast-asian", 1850);
+    expect(later.direct).toEqual([]);
+    expect(later.family.map((t) => t.id)).toContain("gongs-of-trowulan");
+    expect(culturalMusic("andean", 1500).family).toEqual([]);
   });
   it("maps the provisional calendar at boundaries and wraps the year", () => {
     expect(worldMusicSlot(0)).toEqual({ season: "spring", period: "night" });

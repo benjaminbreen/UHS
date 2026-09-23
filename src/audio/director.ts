@@ -9,6 +9,8 @@ import {
   type Score,
   type Stem,
 } from "./score";
+import type { CultureId } from "../content/history/types";
+import { culturalMusic } from "./cultural-themes";
 import { createMix, scheduleNote, prepareScore, type MixBus } from "./synth";
 import { events, playSound, type EventId, type Sound } from "./sfx";
 import { applyTuning, tuning } from "./sfx-tuning";
@@ -52,9 +54,13 @@ const SLOW_FADE_IN = 8;
 const SLOW_FADE_OUT = 4;
 const pick = <T,>(list: readonly T[]) =>
   list[Math.floor(Math.random() * list.length)];
-/** A random theme in a random season, period and era, never the same theme twice running. */
-function shuffled(previous?: string): Arrangement {
-  const pool = themes.filter((t) => t.id !== previous);
+/** A random theme in a random season, period and era, never the same theme twice running.
+ * Pieces of the setting's culture join the default themes. */
+function shuffled(
+  previous?: string,
+  extra: readonly { id: string }[] = [],
+): Arrangement {
+  const pool = [...themes, ...extra].filter((t) => t.id !== previous);
   return {
     themeId: pick(pool).id,
     season: pick(seasons),
@@ -84,6 +90,8 @@ export class AudioDirector {
   private resumeOnVisible = false;
   private disposed = false;
   private lastSfx = new Map<string, number>();
+  private setting = "";
+  private family: readonly { id: string }[] = [];
   private state: AudioState = {
     loading: false,
     playing: false,
@@ -237,7 +245,7 @@ export class AudioDirector {
       if (this.state.followWorld) {
         this.retire(false, SLOW_FADE_OUT);
         this.patch({ playing: false, beat: 0 });
-        const next = shuffled(this.state.arrangement.themeId);
+        const next = shuffled(this.state.arrangement.themeId, this.family);
         this.later(GAP_MIN + Math.random() * GAP_SPREAD, () => {
           this.configure(next);
           void this.play(SLOW_FADE_IN);
@@ -314,6 +322,20 @@ export class AudioDirector {
       loading: false,
     });
     if (restart) void this.play();
+  }
+  /** A direct hit on culture and date plays first; the culture's other pieces join the shuffle. */
+  setSetting(culture: CultureId | undefined, year: number | undefined) {
+    const key = `${culture}:${year}`;
+    if (key === this.setting) return;
+    this.setting = key;
+    if (!culture || year === undefined) {
+      this.family = [];
+      return;
+    }
+    const { direct, family } = culturalMusic(culture, year);
+    this.family = family;
+    if (direct.length && this.state.followWorld)
+      this.configure({ themeId: pick(direct).id });
   }
   follow(enabled: boolean) {
     this.patch({ followWorld: enabled });

@@ -5,6 +5,7 @@ import { chromium } from "@playwright/test";
 import { mkdir, writeFile } from "node:fs/promises";
 import { execFileSync } from "node:child_process";
 import { join } from "node:path";
+import { culturalThemes } from "../src/audio/cultural-themes";
 import { compose, type Arrangement } from "../src/audio/score";
 
 const output = join(process.cwd(), "public/audio/previews");
@@ -31,6 +32,12 @@ const previews: Arrangement[] = [
     season: "spring" as const,
     period: "day" as const,
     era,
+  })),
+  ...culturalThemes.map((t) => ({
+    themeId: t.id,
+    season: "spring" as const,
+    period: "day" as const,
+    era: "pastoral" as const,
   })),
 ];
 const report: object[] = [];

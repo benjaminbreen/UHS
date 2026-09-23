@@ -10,31 +10,95 @@ function noiseGenerator(seed: number) {
   };
 }
 /** Small original instrument bank, synthesized locally; no recordings or external assets. */
-function instrument(ctx: Context, voice: Voice, midi: number): AudioBuffer {
+/** Karplus-Strong string; `brightness` 0–1 shapes the pluck, `nasal` adds a pluck-position comb. */
+function pluckString(
+  data: Float32Array,
+  rate: number,
+  frequency: number,
+  random: () => number,
+  brightness: number,
+  decay: number,
+  nasal: number,
+) {
+  const period = Math.max(2, Math.round(rate / frequency)),
+    loss = Math.exp(-decay / frequency);
+  let smooth = 0;
+  for (let i = 0; i < Math.min(period, data.length); i++) {
+    smooth += (random() - smooth) * brightness;
+    data[i] = smooth;
+  }
+  for (let i = period; i < data.length; i++)
+    data[i] =
+      loss * 0.5 * (data[i - period] + data[Math.max(0, i - period - 1)]);
+  const comb = Math.round(period / 5);
+  let peak = 0;
+  for (let i = data.length - 1; i >= 0; i--) {
+    data[i] -= nasal * (i >= comb ? data[i - comb] : 0);
+    peak = Math.max(peak, Math.abs(data[i]));
+  }
+  for (let i = 0; i < data.length; i++) data[i] *= 0.7 / (peak || 1);
+}
+
+function instrument(
+  ctx: Context,
+  voice: Voice,
+  midi: number,
+  cents = 0,
+): AudioBuffer {
   let cache = caches.get(ctx);
   if (!cache) {
     cache = new Map();
     caches.set(ctx, cache);
   }
-  const key = `${voice}:${midi}`;
+  const key = `${voice}:${midi}:${cents}`;
   const existing = cache.get(key);
   if (existing) return existing;
   const duration =
-    voice === "brush"
+    voice === "brush" || voice === "shaker"
       ? 0.25
-      : voice === "kick"
+      : voice === "kick" || voice === "wood"
         ? 0.5
-        : voice === "strings" || voice === "flute" || voice === "bass"
-          ? 6
-          : 4;
+        : voice === "frame" || voice === "mridanga"
+          ? 0.9
+          : voice === "strings" ||
+              voice === "flute" ||
+              voice === "bass" ||
+              voice === "reed" ||
+              voice === "ney" ||
+              voice === "drone" ||
+              voice === "gong" ||
+              voice === "sho" ||
+              voice === "bronze"
+            ? 6
+            : 4;
   const buffer = ctx.createBuffer(
     1,
     Math.ceil(duration * ctx.sampleRate),
     ctx.sampleRate,
   );
   const data = buffer.getChannelData(0),
-    frequency = 440 * 2 ** ((midi - 69) / 12);
+    frequency = 440 * 2 ** ((midi + cents / 100 - 69) / 12);
   const random = noiseGenerator(midi * 9277 + 13);
+  if (voice === "pluck" || voice === "oud" || voice === "tanpura") {
+    const [brightness, decay, nasal] = {
+      pluck: [0.45, 1.4, 0.15],
+      oud: [0.8, 2.2, 0.45],
+      // Long ring and a strong comb stand in for the jawari buzz.
+      tanpura: [0.95, 0.45, 0.35],
+    }[voice];
+    pluckString(
+      data,
+      ctx.sampleRate,
+      frequency,
+      random,
+      brightness,
+      decay,
+      nasal,
+    );
+    cache.set(key, buffer);
+    if (cache.size > 128) cache.delete(cache.keys().next().value!);
+    return buffer;
+  }
   let breath = 0;
   for (let i = 0; i < data.length; i++) {
     const t = i / ctx.sampleRate,
@@ -87,6 +151,101 @@ function instrument(ctx: Context, voice: Voice, midi: number): AudioBuffer {
           Math.sin(2 * Math.PI * (47 * t + 6 * (1 - Math.exp(-t * 24)))) *
           Math.exp(-t * 13) +
         breath * 0.13 * Math.exp(-t * 50);
+    } else if (voice === "reed" || voice === "drone") {
+      // Double reed: dense harmonics shaped by a nasal formant near 1.1 kHz.
+      const vibrato =
+        voice === "reed"
+          ? 0.02 * Math.sin(2 * Math.PI * 5.2 * t) * Math.min(1, t * 1.5)
+          : 0;
+      for (let harmonic = 1; harmonic <= 12; harmonic++) {
+        const f = frequency * harmonic;
+        if (f > ctx.sampleRate * 0.45) continue;
+        const formant = 1 / (1 + ((f - 1100) / 700) ** 2);
+        sample +=
+          ((voice === "reed" ? 0.25 + formant : 0.5 + formant * 0.3) *
+            Math.sin(harmonic * (phase + vibrato))) /
+          harmonic ** (voice === "reed" ? 0.9 : 1.4);
+      }
+      sample = sample * 0.32 + breath * 0.03;
+    } else if (voice === "ney") {
+      const vibrato =
+        0.025 * Math.sin(2 * Math.PI * 4.6 * t) * Math.min(1, t * 0.8);
+      sample =
+        0.6 * Math.sin(phase + vibrato) +
+        0.16 * Math.sin(2 * phase + vibrato) +
+        0.05 * Math.sin(3 * phase) +
+        breath * (0.16 + 0.2 * Math.exp(-t * 12));
+    } else if (voice === "balafon") {
+      const tone =
+        0.6 * Math.sin(phase) * Math.exp(-t * 5) +
+        0.22 * Math.sin(phase * 3.92) * Math.exp(-t * 18);
+      // Gourd resonators carry a spider-silk buzz on the positive half-wave.
+      sample = tone + (tone > 0 ? breath * 0.25 * Math.exp(-t * 6) : 0);
+    } else if (voice === "gong") {
+      const sag = 1 - 0.01 * Math.min(1, t * 2);
+      sample =
+        0.5 * Math.sin(phase * sag) * Math.exp(-t * 0.6) +
+        0.22 * Math.sin(phase * 1.48) * Math.exp(-t * 1.1) +
+        0.14 * Math.sin(phase * 2.13) * Math.exp(-t * 1.6) +
+        0.08 * Math.sin(phase * 2.95) * Math.exp(-t * 2.4);
+      sample *= Math.min(1, t * 60);
+    } else if (voice === "frame") {
+      sample =
+        0.8 *
+          Math.sin(
+            2 * Math.PI * frequency * (t + 0.02 * (1 - Math.exp(-t * 30))),
+          ) *
+          Math.exp(-t * 7) +
+        random() * 0.3 * Math.exp(-t * 45);
+    } else if (voice === "wood") {
+      sample =
+        0.6 * Math.sin(phase) * Math.exp(-t * 22) +
+        0.25 * Math.sin(phase * 2.71) * Math.exp(-t * 40) +
+        random() * 0.15 * Math.exp(-t * 200);
+    } else if (voice === "saron" || voice === "bonang") {
+      // Paired instruments tuned a few hertz apart give gamelan its shimmer.
+      const beat = 2 * Math.PI * (frequency + 3.5) * t;
+      sample =
+        voice === "saron"
+          ? 0.4 * (Math.sin(phase) + Math.sin(beat)) * Math.exp(-t * 1.3) +
+            0.14 * Math.sin(phase * 2.76) * Math.exp(-t * 6) +
+            0.06 * Math.sin(phase * 5.4) * Math.exp(-t * 12)
+          : 0.36 * (Math.sin(phase) + Math.sin(beat)) * Math.exp(-t * 1.8) +
+            0.16 * Math.sin(phase * 2.53) * Math.exp(-t * 4) +
+            0.07 * Math.sin(phase * 3.95) * Math.exp(-t * 7);
+      sample += random() * 0.12 * Math.exp(-t * 90);
+    } else if (voice === "bronze") {
+      sample =
+        0.45 * Math.sin(phase) * Math.exp(-t * 0.9) +
+        0.22 * Math.sin(phase * 2.02) * Math.exp(-t * 1.8) +
+        0.14 * Math.sin(phase * 2.95) * Math.exp(-t * 3) +
+        0.08 * Math.sin(phase * 4.13) * Math.exp(-t * 5) +
+        random() * 0.1 * Math.exp(-t * 60);
+    } else if (voice === "chime") {
+      sample =
+        0.5 * Math.sin(phase) * Math.exp(-t * 3.5) +
+        0.2 * Math.sin(phase * 2.32) * Math.exp(-t * 8) +
+        0.1 * Math.sin(phase * 4.25) * Math.exp(-t * 14) +
+        random() * 0.08 * Math.exp(-t * 150);
+    } else if (voice === "sho") {
+      for (let harmonic = 1; harmonic <= 8; harmonic++) {
+        if (frequency * harmonic > ctx.sampleRate * 0.45) continue;
+        sample +=
+          ((harmonic % 2 ? 1 : 0.5) * Math.sin(phase * harmonic)) /
+          harmonic ** 1.5;
+      }
+      sample *= 0.4 * (1 + 0.06 * Math.sin(2 * Math.PI * 0.7 * t));
+    } else if (voice === "mridanga") {
+      // Loaded drumheads ring with near-harmonic overtones.
+      const bend = phase * (1 + 0.04 * Math.exp(-t * 20));
+      sample =
+        0.6 * Math.sin(bend) * Math.exp(-t * 4) +
+        0.28 * Math.sin(bend * 2) * Math.exp(-t * 6) +
+        0.16 * Math.sin(bend * 3) * Math.exp(-t * 9) +
+        random() * 0.2 * Math.exp(-t * 70);
+    } else if (voice === "shaker") {
+      sample =
+        (random() - breath) * 0.6 * Math.min(1, t * 120) * Math.exp(-t * 28);
     } else sample = (random() * 0.5 + breath * 0.3) * Math.exp(-t * 32);
     data[i] = sample;
   }
@@ -105,9 +264,9 @@ export async function prepareScore(
   const prepared = new Set<string>();
   for (const note of score.notes) {
     if (!current()) return;
-    const key = `${note.voice}:${note.midi}`;
+    const key = `${note.voice}:${note.midi}:${note.cents ?? 0}`;
     if (prepared.has(key)) continue;
-    instrument(ctx, note.voice, note.midi);
+    instrument(ctx, note.voice, note.midi, note.cents);
     prepared.add(key);
     if (prepared.size % 4 === 0)
       await new Promise((resolve) => setTimeout(resolve, 0));
@@ -189,19 +348,41 @@ export function scheduleNote(
   const source = ctx.createBufferSource(),
     envelope = ctx.createGain(),
     pan = ctx.createStereoPanner();
-  source.buffer = instrument(ctx, note.voice, note.midi);
-  const sustained = note.voice === "flute" || note.voice === "strings";
+  source.buffer = instrument(ctx, note.voice, note.midi, note.cents);
+  const sustained =
+    note.voice === "sho" ||
+    note.voice === "flute" ||
+    note.voice === "strings" ||
+    note.voice === "reed" ||
+    note.voice === "ney" ||
+    note.voice === "drone";
   // Long, unlooped sustained samples avoid discontinuities in vibrato and breath.
   const duration = note.duration * secondsPerBeat;
   const attack = Math.min(
     duration * 0.3,
-    note.voice === "strings" ? 0.16 : note.voice === "flute" ? 0.055 : 0.008,
+    note.voice === "sho"
+      ? 0.5
+      : note.voice === "strings" || note.voice === "drone"
+        ? 0.16
+        : sustained
+          ? 0.055
+          : 0.008,
   );
   const release = sustained
     ? 0.2
-    : note.voice === "bell" || note.voice === "harp"
+    : note.voice === "bell" ||
+        note.voice === "harp" ||
+        note.voice === "pluck" ||
+        note.voice === "oud" ||
+        note.voice === "balafon" ||
+        note.voice === "tanpura" ||
+        note.voice === "saron" ||
+        note.voice === "bonang" ||
+        note.voice === "chime"
       ? 0.65
-      : 0.12;
+      : note.voice === "gong" || note.voice === "bronze"
+        ? 2.5
+        : 0.12;
   envelope.gain.setValueAtTime(0, at);
   envelope.gain.linearRampToValueAtTime(note.velocity, at + attack);
   envelope.gain.setValueAtTime(note.velocity, at + Math.max(attack, duration));
