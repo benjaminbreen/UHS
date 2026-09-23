@@ -1,6 +1,7 @@
 import type { WorldSetting } from "../geography/types";
 import { urbanized, urbanForm } from "./urban-form";
 import { farms } from "../geography/onsets";
+import { pastoralRegime } from "./pastoral";
 export const patterns = [
   "farmstead",
   "clustered",
@@ -8,6 +9,7 @@ export const patterns = [
   "dense",
   "planned",
   "waterfront",
+  "encampment",
 ] as const;
 export type Pattern = (typeof patterns)[number];
 export type SettlementProfile = {
@@ -21,6 +23,16 @@ export type SettlementProfile = {
   paved: boolean;
 };
 const profiles: Record<Pattern, SettlementProfile> = {
+  encampment: {
+    pattern: "encampment",
+    buildings: 10,
+    radius: 96,
+    frontage: 12,
+    plaza: "court",
+    fields: "none",
+    livestock: true,
+    paved: false,
+  },
   farmstead: {
     pattern: "farmstead",
     buildings: 5,
@@ -104,11 +116,18 @@ export function settlementProfile(
           : s.placeId === "normandy"
             ? "roadside"
             : "clustered");
-  const pattern: Pattern =
-    town || !["dense", "planned", "waterfront"].includes(requested)
+  const herders = !town && !s.settlementPattern && pastoralRegime(s);
+  const pattern: Pattern = herders
+    ? "encampment"
+    : town || !["dense", "planned", "waterfront"].includes(requested)
       ? requested
       : "clustered";
   const p = { ...profiles[pattern] };
+  if (herders) {
+    const { groups, perGroup } = herders.camp;
+    p.buildings = groups[1] * perGroup[1];
+    return home ? p : { ...p, buildings: perGroup[1], radius: 60 };
+  }
   if (!home) {
     p.buildings = Math.min(p.buildings, 8);
     p.radius = 74;

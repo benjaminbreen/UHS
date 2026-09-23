@@ -1,5 +1,6 @@
 import type { WorldSetting } from "../geography/types";
 import type { Boundary, CropId } from "../agriculture/types";
+import { pastoralRegime } from "./pastoral";
 
 /** What stands in a household's yard, beyond the fence and the bed. `sprite`
  * is a prop family in the redrawn set; `where` says which part of the yard. */
@@ -261,8 +262,44 @@ const angan: YardKit = {
   ],
 };
 
+/** A herding camp: no bed and no fence, the day's work out in the open by
+ * the door -- curd and meat on the rack, a hide stretched, water for stock. */
+const encampment: YardKit = {
+  id: "encampment",
+  boundary: "none",
+  front: [1, 2],
+  styles: { wrap: 0, side: 0, open: 1 },
+  beds: [],
+  props: [
+    {
+      prop: "dryingRack",
+      family: "drying-rack",
+      name: "Drying rack",
+      where: "yard",
+      chance: 0.5,
+    },
+    {
+      prop: "hideFrame",
+      family: "hide-frame",
+      name: "Hide on a drying frame",
+      where: "wall",
+      chance: 0.35,
+    },
+    {
+      prop: "trough",
+      family: "trough",
+      name: "Water trough",
+      where: "yard",
+      chance: 0.4,
+      role: /herd|shepherd|drover|cattle|horse|camel/i,
+      contents: { water: 4 },
+    },
+  ],
+};
+
 export function yardKit(setting: WorldSetting | undefined): YardKit {
   if (!setting) return plain;
+  if (pastoralRegime(setting)) return encampment;
   if (setting.year < -800) return croft;
   const { culture, climate, year } = setting;
   if (culture === "european" && climate === "mediterranean") return court;

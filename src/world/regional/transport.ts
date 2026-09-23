@@ -214,6 +214,10 @@ export function regionalTransport(
       cardinal: !!(from || to),
     };
   };
+  /** A camp keeps no road to its neighbours: herders cross open grass. */
+  const roadless = (s: Site) =>
+    s.pack?.setting?.settlement === "camp" ||
+    s.profile?.pattern === "encampment";
   const neighborCache = new Map<string, Site[]>();
   function neighbors(s: Site) {
     const oldNeighbors = neighborCache.get(s.id);
@@ -223,7 +227,7 @@ export function regionalTransport(
       for (let x = -1; x <= 1; x++) nearby.push(...sitesIn(s.cx + x, s.cy + y));
     const selected = new Map<number, Site>();
     for (const b of nearby.sort((a, b) => a.id.localeCompare(b.id))) {
-      if (s.id === b.id || b.pack?.setting?.settlement === "camp") continue;
+      if (s.id === b.id || roadless(b)) continue;
       const dx = b.center.x - s.center.x,
         dy = b.center.y - s.center.y;
       const dir =
@@ -238,7 +242,7 @@ export function regionalTransport(
     }
     const candidates = shared
       ? nearby.filter(
-          (p) => p.id !== s.id && p.pack?.setting?.settlement !== "camp",
+          (p) => p.id !== s.id && !roadless(p),
         )
       : [...selected.values()];
     const result = shared
@@ -256,7 +260,7 @@ export function regionalTransport(
             (p) =>
               p.id !== s.id &&
               p.id !== b.id &&
-              p.pack?.setting?.settlement !== "camp" &&
+              !roadless(p) &&
               Math.hypot(p.center.x - s.center.x, p.center.y - s.center.y) <
                 distance &&
               Math.hypot(p.center.x - b.center.x, p.center.y - b.center.y) <
@@ -278,7 +282,7 @@ export function regionalTransport(
     for (let dy = -1; dy <= 1; dy++)
       for (let dx = -1; dx <= 1; dx++)
         for (const a of sitesIn(cx + dx, cy + dy)) {
-          if (a.pack?.setting?.settlement === "camp") continue;
+          if (roadless(a)) continue;
           for (const b of neighbors(a)) {
             const [u, v] = a.id < b.id ? [a, b] : [b, a];
             if (u.cx === cx && u.cy === cy)
@@ -333,7 +337,7 @@ export function regionalTransport(
       for (let cy = minY; cy <= maxY; cy++)
         for (let cx = minX; cx <= maxX; cx++)
           for (const a of sitesIn(cx, cy)) {
-            if (a.pack?.setting?.settlement === "camp") continue;
+            if (roadless(a)) continue;
             for (const b of neighbors(a)) {
               if (!intersects(area, bounds([a.center, b.center]))) continue;
               const [first, second] = a.id < b.id ? [a, b] : [b, a];

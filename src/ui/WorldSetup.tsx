@@ -440,6 +440,7 @@ export function WorldSetup({
                       dense: "Dense town",
                       planned: "Planned streets",
                       waterfront: "Waterfront settlement",
+                      encampment: "Herding camp",
                     }[p]
                   }
                 </option>

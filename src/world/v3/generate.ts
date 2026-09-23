@@ -78,6 +78,11 @@ export type SettlementWorld = WorldModel & {
   entrances(): MapEntrance[];
   prepare(): PreparedSettlement;
 };
+/** A camp keeps no road to its neighbours: herders move across open grass. */
+const roadless = (p: Pack) =>
+  p.setting!.settlement === "camp" ||
+  settlementProfile(p.setting!).pattern === "encampment";
+
 export function createSettlementWorld(
   pack: Pack,
   seed: string,
@@ -391,7 +396,7 @@ export function createSettlementWorld(
     const old = plans.get(s.id);
     if (old) return old;
     const connections: Road[] = [];
-    if (!relief && pack.setting!.settlement !== "camp")
+    if (!relief && !roadless(pack))
       for (const [dx, dy] of [
         [1, 0],
         [-1, 0],
@@ -534,10 +539,7 @@ export function createSettlementWorld(
             for (const b of sitesIn(a.cx + ex, a.cy + ey)) {
               if (a.id === b.id || (ex === 0 && ey === 0 && a.id > b.id))
                 continue;
-              if (
-                (a.pack ?? pack).setting!.settlement === "camp" ||
-                (b.pack ?? pack).setting!.settlement === "camp"
-              )
+              if (roadless(a.pack ?? pack) || roadless(b.pack ?? pack))
                 continue;
               for (const r of link(a, b))
                 roadCells(r, (px, py) => {

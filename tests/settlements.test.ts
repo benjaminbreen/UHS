@@ -215,3 +215,17 @@ it("herders open their own pens by day and secure returned animals at night", ()
   });
   expect(gate.open).toBe(false);
 }, 120000);
+
+it("pitches a herding camp on the steppe: no fields, no garden beds, doors to the south", () => {
+  const s = setting("Mongolia 1250");
+  expect(settlementProfile(s).pattern).toBe("encampment");
+  expect(settlementProfile(setting("Beijing 1450")).pattern).not.toBe(
+    "encampment",
+  );
+  const e = createSettingSession(s, "camp");
+  const p = (e.world as SettlementWorld).planAt(0, 0)!;
+  expect(p.plots.filter((x) => x.kind === "field")).toHaveLength(0);
+  const homes = p.places.filter((x) => x.sprite.startsWith("steppe-"));
+  expect(homes.length).toBeGreaterThan(4);
+  expect(homes.every((x) => !/-(north|east|west)$/.test(x.sprite))).toBe(true);
+});

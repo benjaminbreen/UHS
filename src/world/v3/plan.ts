@@ -92,6 +92,10 @@ import {
 } from "./types";
 import { makeDoor } from "../../core/doors";
 import {
+  genericCamp,
+  pastoralRegime,
+} from "../../content/settlements/pastoral";
+import {
   claimEnvelope,
   createPlacementClaims,
   envelopeConflicts,
@@ -150,6 +154,11 @@ export function planSettlement(
   /** Worlds pinned to the first urban revision keep their fixed lattice. */
   const composed = (pack.setting?.urbanRevision ?? 0) >= 2;
   const organic = !!pack.setting?.environment && profile.pattern !== "planned";
+  const camp =
+    profile.pattern === "encampment"
+      ? (pastoralRegime(pack.setting) ?? genericCamp)
+      : undefined;
+  const campLots: { point: Point; nx: number; ny: number }[] = [];
   // Farmland reaches past the claim, and so must the ground a path may use.
   // A town farms once its region does, whatever its own profile says of
   // household fields; a camp or a hunting band does not.
@@ -1278,6 +1287,75 @@ export function planSettlement(
       connect(c, selected.points[0], "bridge-approach-a");
       connect(c, selected.points.at(-1)!, "bridge-approach-b");
     }
+  } else if (camp) {
+    // Household groups well apart, each a loose row of tents with their doors
+    // to the south, joined to the middle by tracks and nothing wider.
+    const { groups, perGroup, spacing } = camp.camp;
+    const n =
+      groups[0] + Math.floor(rand("camp-groups") * (groups[1] - groups[0] + 1));
+    const start = rand("camp-angle") * Math.PI * 2;
+    const rows: Rect[] = [];
+    for (let g = 0; g < n * 4 && rows.length < n; g++) {
+      const a =
+        start +
+        g * ((Math.PI * 2) / n + 0.35) +
+        (rand("camp-bearing", g) - 0.5) * 0.5;
+      // The first group stands just off the hearth, the rest out on the grass.
+      const d = g === 0 ? 22 : spacing * (0.7 + rand("camp-reach", g) * 0.6);
+      const q = {
+        x: c.x + Math.round(Math.cos(a) * d),
+        y: c.y + Math.round(Math.sin(a) * d * 0.8),
+      };
+      const k =
+        perGroup[0] +
+        Math.floor(rand("camp-tents", g) * (perGroup[1] - perGroup[0] + 1));
+      const row = Array.from({ length: k }, (_, t) => ({
+        x:
+          q.x +
+          Math.round((t - (k - 1) / 2) * 12 + (rand("tent-x", g, t) - 0.5) * 3),
+        y: q.y,
+      }));
+      // The ground the group takes: its tents above the row, a margin round.
+      const taken = {
+        x: row[0].x - 6,
+        y: q.y - 12,
+        w: row.at(-1)!.x - row[0].x + 12,
+        h: 15,
+      };
+      if (
+        rows.some(
+          (o) =>
+            taken.x < o.x + o.w &&
+            o.x < taken.x + taken.w &&
+            taken.y < o.y + o.h &&
+            o.y < taken.y + taken.h,
+        ) ||
+        Math.hypot(q.x - c.x, q.y - c.y) > r + 16
+      )
+        continue;
+      // The track comes in at the west end, clear of the tents above it.
+      const end = { x: row[0].x - 6, y: q.y };
+      if (
+        !dry({ x: end.x - 1, y: end.y - 1, w: 3, h: 3 }, false, {
+          ...end,
+          w: 1,
+          h: 1,
+        })
+      )
+        continue;
+      if (!connect(c, end, `camp-track${g}`, 0)) continue;
+      connect(end, row.at(-1)!, `camp-row${g}`, 0);
+      rows.push(taken);
+      // Two fallbacks either side for ground that will not take a tent; a
+      // placed tent reserves its ground, so only one of the three stands.
+      for (const point of row)
+        for (const dx of [0, -3, 3])
+          campLots.push({
+            point: { x: point.x + dx, y: point.y },
+            nx: 0,
+            ny: -1,
+          });
+    }
   } else if (organic) {
     // Local anchors precede buildings: dry courts/terraces, access to a crossing,
     // and a small number of neighborhood centers. Density does not imply a grid.
@@ -1498,8 +1576,10 @@ export function planSettlement(
     point: Point;
     nx: number;
     ny: number;
-  } & Partial<UrbanLot>)[] = [...urbanLots];
-  for (const road of urban ? [] : plan.roads.filter((p) => p.kind !== "bridge"))
+  } & Partial<UrbanLot>)[] = [...urbanLots, ...campLots];
+  for (const road of urban || camp
+    ? []
+    : plan.roads.filter((p) => p.kind !== "bridge"))
     for (
       let j = profile.frontage;
       j < road.points.length;
