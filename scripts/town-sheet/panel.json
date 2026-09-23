@@ -61,6 +61,11 @@
     "radius": 40
   },
   {
+    "name": "beijing-400bce",
+    "query": "Beijing 400 BCE",
+    "radius": 36
+  },
+  {
     "name": "hangzhou-1200",
     "query": "Hangzhou 1200",
     "radius": 40

@@ -93,6 +93,28 @@
       "roofFeatures": ["palm-screen", "shade-frame", "water-jars"],
       "turretStyles": ["none", "corner-stair"]
     },
+    "early-chinese": {
+      "label": "Early Chinese (Zhou to Han)",
+      "detailSet": "early-chinese",
+      "wall": "white-plaster",
+      "roofMaterial": "giwa",
+      "roofStyle": "chinese",
+      "sino": {
+        "curve": 0,
+        "bigTiles": true,
+        "terrace": "earth",
+        "roofByTier": [["thatch"], ["thatch", "tile"], ["tile"]],
+        "roofForms": {"hut": ["gable"], "house": ["gable"], "hall": ["gable", "hip"], "compound": ["gable"], "terrace-hall": ["hip", "double"]},
+        "walls": [["rammed-earth", "daub"], ["rammed-earth", "plaster"], ["plaster"]],
+        "posts": [["timber"], ["lacquer-black", "timber"], ["lacquer-black", "lacquer-red"]],
+        "lattice": ["bars", "bars", "lozenge"],
+        "ridgeEnds": ["plain", "upturn", "upturn"],
+        "beamPaint": ["bare", "bare", "red"],
+        "tiles": ["tile-warm", "tile"],
+        "washes": ["plaster", "plaster-ochre"],
+        "extras": ["jar", "woodpile", "drying", "tree"]
+      }
+    },
     "north-chinese": {
       "label": "North Chinese",
       "detailSet": "north-chinese",
@@ -104,7 +126,21 @@
       "parapetStyle": "stone-coping",
       "accent": "#9b3027",
       "motifStyle": "red-gate",
-      "roofFeatures": ["ridge-finials", "plain", "roof-jars"]
+      "roofFeatures": ["ridge-finials", "plain", "roof-jars"],
+      "sino": {
+        "curve": 1,
+        "terrace": "stone",
+        "roofByTier": [["thatch", "tile"], ["tile"], ["tile"]],
+        "roofForms": {"hut": ["gable"], "house": ["gable"], "hall": ["gable", "xieshan"], "compound": ["gable"], "terrace-hall": ["xieshan", "double"]},
+        "walls": [["brick-dado", "rammed-earth"], ["brick-dado"], ["brick-dado", "plaster"]],
+        "posts": [["timber", "dark-timber"], ["lacquer-red", "dark-timber"], ["lacquer-red"]],
+        "lattice": ["grid", "lozenge", "fret"],
+        "ridgeEnds": ["plain", "upturn", "chiwen"],
+        "beamPaint": ["bare", "red", "caihua"],
+        "tiles": ["tile"],
+        "washes": ["plaster", "plaster-grey"],
+        "extras": ["chimney", "couplets", "lanterns", "vat", "woodpile", "drum-stones", "tree", "drying"]
+      }
     },
     "south-chinese": {
       "label": "South Chinese",
@@ -117,7 +153,21 @@
       "parapetStyle": "stone-coping",
       "accent": "#704235",
       "motifStyle": "moon-gate-band",
-      "roofFeatures": ["ridge-finials", "roof-jars", "plain"]
+      "roofFeatures": ["ridge-finials", "roof-jars", "plain"],
+      "sino": {
+        "curve": 2,
+        "terrace": "stone",
+        "roofByTier": [["thatch", "tile"], ["tile"], ["tile"]],
+        "roofForms": {"hut": ["gable"], "house": ["gable"], "hall": ["gable", "xieshan"], "compound": ["gable"], "terrace-hall": ["xieshan"]},
+        "walls": [["plaster", "rammed-earth"], ["plaster"], ["plaster", "brick-dado"]],
+        "posts": [["dark-timber"], ["dark-timber", "lacquer-black"], ["lacquer-red", "dark-timber"]],
+        "lattice": ["ice", "fret", "grid"],
+        "ridgeEnds": ["upturn", "scroll", "scroll"],
+        "beamPaint": ["bare", "bare", "caihua"],
+        "tiles": ["tile-dark"],
+        "washes": ["plaster"],
+        "extras": ["stepped-gable", "blind", "couplets", "lanterns", "vat", "jar", "tree"]
+      }
     },
     "japanese": {
       "label": "Japanese machiya",
@@ -145,7 +195,21 @@
       "parapetStyle": "none",
       "accent": "#49716b",
       "motifStyle": "painted-beam",
-      "roofFeatures": ["ridge-finials", "plain", "roof-jars"]
+      "roofFeatures": ["ridge-finials", "plain", "roof-jars"],
+      "sino": {
+        "curve": 2,
+        "terrace": "stone",
+        "roofByTier": [["thatch"], ["tile", "thatch"], ["tile"]],
+        "roofForms": {"hut": ["gable", "hip"], "house": ["gable", "hip"], "hall": ["xieshan"], "compound": ["xieshan", "gable"], "terrace-hall": ["xieshan"]},
+        "walls": [["daub", "plaster"], ["plaster"], ["plaster"]],
+        "posts": [["timber"], ["timber"], ["timber", "lacquer-red"]],
+        "lattice": ["grid", "bars"],
+        "ridgeEnds": ["plain", "upturn", "upturn"],
+        "beamPaint": ["bare", "bare", "caihua"],
+        "tiles": ["tile-dark", "tile"],
+        "washes": ["plaster"],
+        "extras": ["jar", "vat", "woodpile", "tree", "drying"]
+      }
     },
     "north-indian": {
       "label": "North Indian",
@@ -254,6 +318,32 @@
       }
     }
   },
+  "sinoPalette": {
+    "tile": ["#22262d", "#363c45", "#4e5561", "#6a727d", "#8a929a", "#aeb4b8"],
+    "tile-dark": ["#16181d", "#23262d", "#33373f", "#474c55", "#5f656d", "#7d838a"],
+    "tile-warm": ["#2a2522", "#403833", "#5a4f47", "#76695e", "#93867a", "#b3a697"],
+    "thatch": ["#2a2119", "#4d3d22", "#7a6330", "#a88c3e", "#cdb257", "#ecd88a"],
+    "thatch-old": ["#29251f", "#4a4232", "#6d6448", "#908762", "#b0a882", "#cec7a4"],
+    "plaster": ["#3a3a44", "#6c6b72", "#a39f9f", "#cfc9bd", "#e8e2d3", "#f8f4e8"],
+    "plaster-ochre": ["#3d3128", "#6b563f", "#9a7f5c", "#c2a67a", "#dcc497", "#efdfb8"],
+    "plaster-grey": ["#2e3035", "#50535a", "#787b80", "#9fa1a2", "#bdbdb9", "#d8d6cf"],
+    "earth": ["#3a2c22", "#5e4633", "#876647", "#ab875e", "#c9a676", "#e0c495"],
+    "brick": ["#25272c", "#3c3f46", "#575b62", "#767a80", "#92969a", "#b0b3b3"],
+    "stone": ["#2c2c31", "#4b4b52", "#6f6e72", "#95928f", "#b9b4ab", "#d9d3c6"],
+    "timber": ["#28181a", "#472a25", "#6a4332", "#8d5f45", "#b07e5a", "#cfa37a"],
+    "dark-timber": ["#1e1614", "#33241e", "#4a3428", "#634636", "#7e5a45", "#9c7258"],
+    "lacquer-red": ["#2e0d12", "#561419", "#82201f", "#a8322a", "#c94c38", "#e2765a"],
+    "lacquer-black": ["#121016", "#1f1b22", "#2e2830", "#423a40", "#5a4f52", "#786a68"],
+    "paper": ["#4a4232", "#7a6d52", "#b5a47c", "#d8c89c", "#eadcb2", "#f6ecc8"],
+    "green": ["#10261f", "#1a3f31", "#26604a", "#378262", "#56a37d", "#8cc7a0"],
+    "blue": ["#101a33", "#1a2c55", "#26467c", "#3663a0", "#5286bf", "#86b1da"],
+    "gold": ["#3a2a10", "#6a4a16", "#9c7220", "#c99a30", "#e5c050", "#f5e08e"],
+    "moss": ["#1f2a18", "#2f4022", "#43582c", "#5b7336", "#7a9146", "#9fb062"],
+    "bamboo": ["#3a3418", "#5f5526", "#8a7c38", "#b0a24c", "#cdc26a", "#e5dc94"],
+    "glaze": ["#101a1c", "#1c2e32", "#2a4448", "#3c5e60", "#5a8080", "#88aaa6"],
+    "water": ["#0f2030", "#1a3448", "#2a5068", "#3c6e88", "#5a90a8", "#8ab8c8"],
+    "leaf": ["#142412", "#1f3a1a", "#2e5424", "#417030", "#5c8c3c", "#84a852"]
+  },
   "families": {
     "roman-domus": {
       "source": "house-roman-ob-0",
@@ -292,12 +382,25 @@
     "eastasian-courtyard": {
       "source": "study-courtyard",
       "label": "Courtyard compound",
-      "profiles": ["north-chinese", "south-chinese", "korean"],
+      "profiles": ["early-chinese", "north-chinese", "south-chinese", "korean"],
       "function": "courtyard-household",
       "description": "A low compound of halls and rooms around an open court, using profile-specific masonry, timber, screens and tile. It is a historically informed type rather than one surveyed plan.",
       "sizes": {
-        "medium": {"footprint": [10, 8], "entrance": 4, "stories": 1, "variants": 3, "wealthTiers": [0, 1, 2], "seedOffset": 13100, "roofPlan": "tiled-courtyard", "courtyard": [3, 2, 4, 4], "roofAccess": "internal-stairs", "functions": ["courtyard-household", "artisan-compound", "scholar-household"]},
-        "large": {"footprint": [14, 11], "entrance": 6, "stories": 2, "profileStories": {"north-chinese": 1, "south-chinese": 1, "korean": 1}, "variants": 2, "wealthTiers": [2, 1], "seedOffset": 13500, "roofPlan": "tiled-courtyard", "courtyard": [4, 3, 6, 5], "roofAccess": "internal-stairs", "functions": ["elite-courtyard-compound", "multi-household-compound"]}
+        "medium": {"footprint": [10, 8], "entrance": 4, "stories": 1, "variants": 3, "wealthTiers": [0, 1, 2], "seedOffset": 13100, "roofPlan": "tiled-courtyard", "courtyard": [3, 2, 4, 4], "roofAccess": "internal-stairs", "functions": ["courtyard-household", "artisan-compound", "scholar-household"], "sinitic": true, "sinoPlan": "compound", "symmetric": true, "profileEntrance": {"north-chinese": 8}},
+        "large": {"footprint": [14, 11], "entrance": 6, "stories": 2, "profileStories": {"north-chinese": 1, "south-chinese": 1, "korean": 1}, "variants": 2, "wealthTiers": [2, 1], "seedOffset": 13500, "roofPlan": "tiled-courtyard", "courtyard": [4, 3, 6, 5], "roofAccess": "internal-stairs", "functions": ["elite-courtyard-compound", "multi-household-compound"], "sinitic": true, "sinoPlan": "compound", "symmetric": true, "profileEntrance": {"north-chinese": 12}}
+      }
+    },
+    "eastasian-house": {
+      "source": "study-courtyard",
+      "label": "Timber-frame house and hall",
+      "profiles": ["early-chinese", "north-chinese", "south-chinese", "korean"],
+      "function": "farm-household",
+      "description": "A post-and-beam house of one to five bays under a thatched or tiled roof, from a one-room hut to a great hall on a raised terrace. Wall fabric, lacquer, lattice, tile and roof form are profile-driven; illustrative.",
+      "sizes": {
+        "tiny": {"footprint": [2, 2], "entrance": 1, "stories": 1, "variants": 3, "seedOffset": 18100, "roofPlan": "ridge", "roofAccess": "none", "sinitic": true, "sinoPlan": "hut", "symmetric": true, "wealthTiers": [0, 0, 1], "functions": ["widow-household", "kitchen-house", "store"]},
+        "small": {"footprint": [3, 2], "entrance": 1, "stories": 1, "variants": 3, "seedOffset": 18300, "roofPlan": "ridge", "roofAccess": "none", "sinitic": true, "sinoPlan": "house", "symmetric": true, "wealthTiers": [0, 1, 1], "functions": ["farm-household", "artisan-household"]},
+        "medium": {"footprint": [5, 3], "entrance": 2, "stories": 1, "variants": 3, "seedOffset": 18500, "roofPlan": "ridge", "roofAccess": "none", "sinitic": true, "sinoPlan": "hall", "symmetric": true, "wealthTiers": [1, 1, 2], "functions": ["extended-family-house", "scholar-household", "ancestral-hall"]},
+        "grand": {"footprint": [9, 5], "entrance": 4, "stories": 1, "variants": 2, "seedOffset": 18700, "roofPlan": "ridge", "roofAccess": "none", "sinitic": true, "sinoPlan": "terrace-hall", "symmetric": true, "wealthTiers": [2], "functions": ["elite-hall", "official-hall"]}
       }
     },
     "eastasian-row": {

@@ -261,7 +261,7 @@ export function packForSetting(setting: WorldSetting): Pack {
       : [];
   const eastAsianRegional =
     setting.culture === "east-asian" &&
-    setting.year >= -200 &&
+    setting.year >= -800 &&
     setting.year < 1900
       ? eastAsianRegionalHouses(setting)
       : [];

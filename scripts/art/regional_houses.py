@@ -48,8 +48,9 @@ def regional_house_recipes(root, source):
                     name = f'{family}-{profile_name}-{scale}-{variant}'
                     attachments = shape.get('attachments', base.get('attachments', []))
                     roof_plan = shape.get('roofPlan', 'ridge')
-                    offset = (-1, 0, 1)[variant % 3]
-                    entrance = max(1, min(fw - 2, shape.get('entrance', fw // 2) + offset))
+                    offset = 0 if shape.get('symmetric') else (-1, 0, 1)[variant % 3]
+                    entrance = shape.get('profileEntrance', {}).get(profile_name, shape.get('entrance', fw // 2))
+                    entrance = max(0 if fw < 3 else 1, min(fw - 1 if fw < 3 else fw - 2, entrance + offset))
                     resolved = dict(shape)
                     if shape.get('courtyard'):
                         cx, cy, cw, ch = shape['courtyard']
@@ -65,7 +66,7 @@ def regional_house_recipes(root, source):
                         **profile,
                         **{k: v for k, v in resolved.items()
                            if k not in ('variants', 'seedOffset', 'entrance', 'profileStories',
-                                        'wealthTiers', 'serviceStyles')},
+                                        'wealthTiers', 'serviceStyles', 'profileEntrance')},
                         'footprint': [fw, fh],
                         'entrance': [entrance, fh],
                         'stories': stories,
@@ -97,6 +98,8 @@ def regional_house_recipes(root, source):
                         'surfaceTreatments': [treatments[variant % len(treatments)]],
                         'roofFeatures': ([features[variant % len(features)]] if features else []),
                         'turretStyles': [turrets[variant % len(turrets)]],
+                        **({'sino': {**profile['sino'], 'palette': data['sinoPalette']}}
+                           if shape.get('sinitic') else {}),
                         'roofSurfaces': roof_surfaces(resolved, stories),
                         'roofVoid': resolved.get('courtyard'),
                         'roofAccess': shape.get('roofAccess', 'none'),

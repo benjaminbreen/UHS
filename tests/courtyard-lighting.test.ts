@@ -13,7 +13,8 @@ it("publishes bounded, recessed courtyard surfaces without changing the exterior
       courtyardLight?: CourtyardLight;
       sideDepth?: number;
     };
-    if (!m.roofVoid) continue;
+    // The East Asian compound draws its court open, so it needs no recess.
+    if (!m.roofVoid || model.frame.startsWith("eastasian-courtyard")) continue;
     count++;
     expect(m.sideDepth).toBe(12);
     expect(m.courtyardLight, model.frame).toBeDefined();
@@ -44,7 +45,7 @@ it("publishes bounded, recessed courtyard surfaces without changing the exterior
 });
 
 it("uses the same reversing sun direction as ground shadows, with no solar cast at night", () => {
-  const model = buildingModels["eastasian-courtyard-north-chinese-medium-0"];
+  const model = buildingModels["roman-domus-roman-italian-medium-0"];
   const court = (model as unknown as { courtyardLight: CourtyardLight })
     .courtyardLight;
   const morning = courtyardSun(court, "morning");

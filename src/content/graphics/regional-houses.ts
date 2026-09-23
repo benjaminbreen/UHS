@@ -48,18 +48,26 @@ export function eastAsianHouseProfile(setting: WorldSetting): Profile {
   const { lon, lat } = setting;
   if (lon >= 130 && lat >= 30 && lat <= 46) return "japanese";
   if (lon >= 124 && lon < 131 && lat >= 33 && lat <= 40) return "korean";
+  if (setting.year < 220) return "early-chinese";
   return lat < 31 ? "south-chinese" : "north-chinese";
 }
 
 export function eastAsianRegionalHouses(setting: WorldSetting) {
   const profile = eastAsianHouseProfile(setting);
-  const services = frames("eastasian-service", profile);
   if (profile === "japanese")
-    return [...frames("eastasian-row", profile), ...services];
-  if (profile === "korean")
-    return [...frames("eastasian-courtyard", profile), ...services];
-  return [
+    return [
+      ...frames("eastasian-row", profile),
+      ...frames("eastasian-service", profile),
+    ];
+  const houses = [
+    ...frames("eastasian-house", profile),
     ...frames("eastasian-courtyard", profile),
+  ];
+  if (profile === "early-chinese") return houses;
+  const services = frames("eastasian-service", profile);
+  if (profile === "korean") return [...houses, ...services];
+  return [
+    ...houses,
     ...frames("eastasian-row", profile),
     ...services,
   ];
