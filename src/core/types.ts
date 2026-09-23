@@ -134,6 +134,10 @@ export type Actor = {
   /** Clock when the torch in hand burns out. */
   torchOut?: number;
   afloat?: "raft" | "boat" | "swimming";
+  /** Overrides the name-derived roll in Engine.canSwim. */
+  canSwim?: boolean;
+  /** Tiles swum since last rested on land; drowning comes at SWIM_RANGE. */
+  swum?: number;
   stats?: Stats;
   health?: number;
   /** Experience by skill. The player's only; residents have none stored. */

@@ -65,9 +65,34 @@ it("supports direct and routed movement afloat without enabling deep-water walki
     e.findRoute(e.state.player.pos, { x: 8, y: 3 }).path.length,
   ).toBeGreaterThan(0);
   delete e.state.player.afloat;
+  e.state.player.canSwim = false;
   expect(
     e.playerCanCross(e.state.player.pos, { x: from.x + 2, y: from.y }),
   ).toBe(false);
+});
+it("lets a swimmer out past wading depth until they tire and wash ashore", () => {
+  const e = createSettingSession(resolve("tiny desert island"), "swim-test");
+  const p = e.state.player;
+  const step = (n: number) =>
+    e.act({
+      actionId: `swim-${n}`,
+      expectedRevision: e.state.revision,
+      command: { type: "move", dx: 1, dy: 0 },
+    });
+  p.canSwim = false;
+  let n = 0;
+  while (step(n++).status === "completed" && n < 40);
+  const stopped = p.pos.x;
+  expect(p.afloat).toBeUndefined();
+  p.canSwim = true;
+  for (let i = 0; i < 10; i++) step(n++);
+  expect(p.pos.x).toBeGreaterThan(stopped);
+  expect(p.afloat).toBe("swimming");
+  p.swum = 449;
+  step(n++);
+  expect(p.afloat).toBeUndefined();
+  expect(e.world.terrain(p.pos.x, p.pos.y)).not.toBe("water");
+  expect(e.lastCollapse?.title).toBe("Washed ashore");
 });
 it.each([
   ["Roman military camp", "leather", 8, 16],

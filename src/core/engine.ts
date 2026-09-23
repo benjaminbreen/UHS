@@ -147,6 +147,13 @@ import {
 
 /** Elevation carried by one altitude step, matching the terrain renderer. */
 const TERRAIN_STEP = 14;
+// About a map and a half: half a map of open water is easy, two maps is not.
+const SWIM_RANGE = 450;
+const SWIM_WARNINGS: [number, string][] = [
+  [0.5, "Your arms are growing heavy."],
+  [0.75, "You are tiring badly. Make for shore."],
+  [0.9, "You are swallowing water. You cannot keep this up much longer."],
+];
 /** Clock seconds: leaning on someone this soon after is the same collision. */
 const BUMP_GAP = 2;
 const AUTHORITY = /basilica|meeting hall|guild hall|council|palace|temple|chapel|church|shrine|mosque|synagogue/i;
@@ -736,15 +743,34 @@ export class Engine {
         : this.objectsById.get(id)
       : this.state.objects.find((o) => o.id === id);
   }
-  playerCanCross(from: Point, to: Point) {
+  /** Rolled from the name so it follows the player across maps without being saved. */
+  canSwim() {
     const p = this.state.player;
+    return p.canSwim ?? (p.afloat === "swimming" || random("can-swim", p.name) < 0.5);
+  }
+  private deep(x: number, y: number) {
+    return !!this.world.topography &&
+      waterDepthAt(this.world.topography, x + 0.5, y + 0.5) > MAX_WADING_DEPTH;
+  }
+  /** The player as they would float: a swimmer counts as afloat in deep water. */
+  private floater(deep: boolean) {
+    const p = this.state.player;
+    return deep && this.canSwim() && !p.afloat ? { ...p, afloat: "swimming" as const } : p;
+  }
+  playerCanCross(from: Point, to: Point) {
+    const deep = this.deep(from.x, from.y) || this.deep(to.x, to.y);
+    const p = this.floater(deep);
     if (afloatAt(this.world, p, from.x, from.y) && afloatAt(this.world, p, to.x, to.y))
       return (!((from.x !== to.x) && (from.y !== to.y)) ||
         (afloatAt(this.world, p, from.x, to.y) && afloatAt(this.world, p, to.x, from.y)));
+    // Hauling out of deep water onto a bank the wading rule would refuse.
+    if (p.afloat === "swimming" && afloatAt(this.world, p, from.x, from.y) &&
+      (from.x === to.x || from.y === to.y) && !this.deep(to.x, to.y))
+      return !this.blocked(to.x, to.y, "outside");
     return this.world.canCross?.(from, to) ?? true;
   }
   playerBlocked(x: number, y: number, space = this.state.player.pos.space) {
-    return space === "outside" && afloatAt(this.world, this.state.player, x, y)
+    return space === "outside" && afloatAt(this.world, this.floater(this.deep(x, y)), x, y)
       ? false : this.blocked(x, y, space);
   }
   blocked(x: number, y: number, space = this.state.player.pos.space) {
@@ -1538,6 +1564,53 @@ export class Engine {
     this.lastCollapse = {
       serial: (this.lastCollapse?.serial ?? 0) + 1,
       title: rescuer ? "Carried home" : "Left for dead",
+      text,
+    };
+  }
+  private swimStep(depth: number) {
+    const p = this.state.player;
+    if (!p.afloat && depth > MAX_WADING_DEPTH && this.canSwim()) p.afloat = "swimming";
+    else if (p.afloat === "swimming" && depth <= MAX_WADING_DEPTH) delete p.afloat;
+    if (p.afloat !== "swimming") {
+      if (p.swum) p.swum = Math.max(0, p.swum - 8) || undefined;
+      return;
+    }
+    const before = p.swum ?? 0;
+    p.swum = before + 1;
+    for (const [at, text] of SWIM_WARNINGS)
+      if (before < at * SWIM_RANGE && p.swum >= at * SWIM_RANGE) this.event(text);
+  }
+  private washAshore() {
+    const p = this.state.player;
+    const size = this.state.manifest.setting?.playableMap?.size ?? 400;
+    let shore: Point | undefined;
+    for (let r = 1; r < size && !shore; r++)
+      for (let i = -r; i <= r && !shore; i++)
+        for (const [x, y] of [[p.pos.x + i, p.pos.y - r], [p.pos.x + i, p.pos.y + r], [p.pos.x - r, p.pos.y + i], [p.pos.x + r, p.pos.y + i]])
+          if (this.world.terrain(x, y) !== "water" && !this.deep(x, y) && !this.blocked(x, y, "outside")) {
+            shore = { x, y };
+            break;
+          }
+    if (!shore) {
+      p.swum = SWIM_RANGE / 2;
+      this.event("Your strength gives out, but you catch hold of drifting wood and cling to it until it returns.");
+      return;
+    }
+    this.emptyHands();
+    p.pos = { ...shore, space: "outside" };
+    delete p.afloat;
+    delete p.swum;
+    p.activity = "Resting";
+    this.advance(6 * 3600);
+    p.activity = "Exploring";
+    p.health = Math.min(p.health ?? 100, 30);
+    p.hunger = Math.min(100, p.hunger + 15);
+    const text =
+      "Your strength gives out and the water closes over you. Hours later you wake on the shore, coughing up water, with nothing left in your hands.";
+    this.event(text);
+    this.lastCollapse = {
+      serial: (this.lastCollapse?.serial ?? 0) + 1,
+      title: "Washed ashore",
       text,
     };
   }
@@ -3660,6 +3733,7 @@ export class Engine {
       }
       if (
         !p.afloat &&
+        !this.canSwim() &&
         p.pos.space === "outside" &&
         this.world.topography &&
         waterDepthAt(
@@ -4466,6 +4540,7 @@ export class Engine {
         p.pos.space === "outside" && this.world.topography
           ? waterDepthAt(this.world.topography, p.pos.x + 0.5, p.pos.y + 0.5)
           : 0;
+      if (p.pos.space === "outside") this.swimStep(depth);
       p.activity = p.afloat ? p.afloat === "swimming" ? "Swimming" : "Paddling" : depth > 0 ? "Wading" : "Exploring";
       this.lastStep = { clock: this.state.clock, run: !!c.run };
       if (p.pos.space === "outside")
@@ -4501,6 +4576,7 @@ export class Engine {
       const key = `${Math.floor(p.pos.x / 64)},${Math.floor(p.pos.y / 64)}`;
       if (!this.state.visited.includes(key)) this.state.visited.push(key);
       this.walkThroughDoor();
+      if ((p.swum ?? 0) >= SWIM_RANGE) this.washAshore();
       return;
     }
     if (c.type === "pass") {
