@@ -35,6 +35,7 @@ export function integratedSetting(s: WorldSetting): WorldSetting {
     geographyRevision: 1,
     urbanRevision: 2,
     roadRevision: 1,
+    streetRevision: 1,
     terraceRevision: 1,
     vegetationRevision: 7,
     ecologyRevision: 2,

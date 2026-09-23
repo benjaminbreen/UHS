@@ -15,7 +15,11 @@ const distance = (p: Point, a: Point, b: Point) => {
 };
 /** Simplify four-connected route steps for art only, with less than one cell of
  * deviation. The generated route, reservations and movement rules stay intact. */
-export function pathArt(roads: readonly Road[], shared = false) {
+export function pathArt(
+  roads: readonly Road[],
+  shared = false,
+  ruts?: false,
+) {
   if (shared) roads = uniqueRoads(roads);
   const index = new Map<string, PathStroke[]>();
   for (const road of roads) {
@@ -65,6 +69,7 @@ export function pathArt(roads: readonly Road[], shared = false) {
           // cart road at the generated width painted a 48px ribbon through a
           // village, roughly twice what the reference art carries.
           radius: road.width ? road.width * 0.72 + 0.44 : shared ? 0.5 : 0.66,
+          ...(ruts === false && { ruts }),
         };
       const count = Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) * 2),
         seen = new Set<string>(),

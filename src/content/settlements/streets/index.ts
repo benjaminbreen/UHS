@@ -8,13 +8,15 @@ export type StreetMaterial =
   | "cobble"
   | "slab"
   | "brick"
-  | "sett";
+  | "sett"
+  | "plank";
 /** Content resolves place/date into material; rendering never branches on culture. */
 export function streetMaterial(s: WorldSetting): StreetMaterial {
   if (s.year >= 1900 && (s.settlement === "city" || s.settlement === "port"))
     return "asphalt";
   for (const p of [italyStreet, ...europeStreets]) {
     const [w, south, e, n] = p.bounds;
+    if (p.material === "plank" && !s.streetRevision) continue;
     if (
       s.year >= p.from &&
       s.year < p.to &&

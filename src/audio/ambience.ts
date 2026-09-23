@@ -52,6 +52,8 @@ const near = (distance: number, near: number, far: number) =>
 export function ambienceFor(scene: Scene): AmbienceMix {
   const { weather, indoors, hour, season, climate } = scene;
   const rain = weather.condition === "rain" ? 1 : 0;
+  // Falling snow deadens a place: fewer birds, fewer voices, no patter.
+  const hush = weather.condition === "snow" ? 0.6 : 0;
   const wind = Math.max(0, (weather.wind.strength - 0.2) / 0.8);
   // Dawn chorus, then a quieter daytime; birds shelter from rain and hard wind.
   const chorus = hour > 4.5 && hour < 8 ? 1 : hour < 18 ? 0.45 : 0;
@@ -59,6 +61,7 @@ export function ambienceFor(scene: Scene): AmbienceMix {
   const birds =
     chorus *
     (1 - rain) *
+    (1 - hush) *
     (1 - 0.6 * wind) *
     (season === "winter" ? (cold ? 0.15 : 0.4) : 1);
   // Crickets need a warm night. Cold places never get them.
@@ -71,11 +74,12 @@ export function ambienceFor(scene: Scene): AmbienceMix {
       Math.min(0.5, scene.peopleNear * 0.12)) *
     // People go quiet at night and under heavy rain.
     (scene.night ? 0.25 : 1) *
-    (1 - 0.5 * rain);
+    (1 - 0.5 * rain) *
+    (1 - 0.5 * hush);
   const fire = near(scene.fireDistance, 1.5, 9);
   return {
     rain,
-    wind: Math.min(1, wind + rain * 0.2),
+    wind: Math.min(1, wind * (1 - 0.4 * hush) + rain * 0.2),
     birds,
     insects,
     water,

@@ -1,3 +1,4 @@
+import { snowPixel } from "./snow-cover";
 import {
   addPixelTexture,
   own,
@@ -1336,6 +1337,8 @@ function rasterWallContours(
                   : n > 0.85
                     ? soil[3]
                     : soil[2];
+          if (style !== "steps" && style !== "timber")
+            rgb = snowPixel(rgb, wx, wy, style === "graded");
           paintFlat(cy, t, px, sy, rgb);
         }
         // Scree: a few stones tumble off a cut or slope onto the ground at

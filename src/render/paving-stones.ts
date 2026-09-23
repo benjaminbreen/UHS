@@ -54,8 +54,28 @@ export function pavingStonePixel(
   wy: number,
   material: StreetMaterial,
   grade: PavingGrade = "street",
+  /** Boards run north-south, across a street that runs east-west. */
+  across = false,
 ): Color {
   const g = grades[grade];
+  if (material === "plank") {
+    const u = across ? wx : wy,
+      v = across ? wy : wx;
+    const board = Math.floor(u / 4),
+      i = mod(u, 4);
+    const tone = Math.floor(hash(board, 0, 731) * 25) - 12;
+    // Timbers are relaid piecemeal: each board breaks at its own place.
+    const cut = mod(v + Math.floor(hash(board, 0, 733) * 29), 29);
+    if (i === 0 || cut === 0) return [58, 45, 33];
+    const wood: Color = hash(board, Math.floor(v / 29), 735) < 0.2
+      ? [118, 110, 96]
+      : [128, 96, 64];
+    const grain = hash(Math.floor(v / 3), board * 4 + i, 737) > 0.8 ? -9 : 0;
+    const edge = i === 1 ? 10 : i === 3 ? -12 : 0;
+    // A peg where the board is fixed to the sleeper beneath.
+    if (i === 2 && (cut === 2 || cut === 27)) return [70, 56, 42];
+    return tint(wood, tone + grain + edge + g.lift);
+  }
   if (material === "asphalt") {
     const variation =
       Math.floor(hash(Math.floor(wx / 3), Math.floor(wy / 3), 719) * 11) - 5;

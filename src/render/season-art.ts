@@ -138,6 +138,8 @@ export function driftStyle(
   condition: string,
   tempC: number,
 ): DriftStyle | undefined {
+  if (condition === "snow")
+    return drift("snow", ["#ffffff", "#e4eef6", "#cfe0ee"], 260);
   if (condition === "rain")
     return tempC <= 0
       ? drift("snow", ["#ffffff", "#e4eef6", "#cfe0ee"], 230)

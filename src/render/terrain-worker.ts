@@ -1,3 +1,4 @@
+import { setSnowCover } from "./snow-cover";
 import { temporalWorld } from "../core/time/world";
 import { packForSetting } from "../content/geography/pack";
 import { coastDistance, coastBeachWidth } from "./living-water/coast";
@@ -29,7 +30,12 @@ import type { TopographyCell } from "../core/topography";
 import { previewChunk, type TerrainPreview } from "./terrain-preview";
 export type TerrainRequest =
   | { pack: Pack; seed: string; prepared?: PreparedSettlement; temporal?: WorldModel["temporal"] }
-  | { style: GroundStyle | null; living?: boolean; polish?: ShorePolish }
+  | {
+      style: GroundStyle | null;
+      living?: boolean;
+      polish?: ShorePolish;
+      snow?: number;
+    }
   | { id: string; region: TerrainRegion }
   | { previews: { id: string; region: TerrainRegion }[] };
 /** Sent ahead of the full response for the same id. */
@@ -59,6 +65,7 @@ export function handleTerrainRequest(data: TerrainRequest) {
       setGroundStyle(data.style ?? undefined);
       if ("polish" in data) polish = data.polish;
       if (data.living !== undefined) livingEnabled = data.living;
+      if (data.snow !== undefined) setSnowCover(data.snow);
       return;
     }
     if ("pack" in data) {

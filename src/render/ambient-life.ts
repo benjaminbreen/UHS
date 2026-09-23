@@ -99,7 +99,7 @@ export function critterFor(
 ): CritterKind | undefined {
   const night = light === "night";
   const dusk = light === "dusk";
-  const wet = condition === "rain";
+  const wet = condition === "rain" || condition === "snow";
   if (climate === "tundra" && season !== "summer") return undefined;
   // Nothing much flies in the rain or the cold.
   if (wet || tempC < 6) return undefined;

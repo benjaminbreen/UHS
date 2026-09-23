@@ -84,7 +84,8 @@ function Scene({
   }, []);
   const dim = night || lighting === "dusk";
   const cloudy = condition !== "clear" && condition !== "mist";
-  const heavy = condition === "overcast" || condition === "rain";
+  const heavy =
+    condition === "overcast" || condition === "rain" || condition === "snow";
   return (
     <svg
       className="sky-scene"
@@ -255,6 +256,21 @@ function Scene({
           ))}
         </g>
       )}
+      {condition === "snow" && (
+        <g className="sky-rain sky-snow">
+          {rain.map((d) => (
+            <circle
+              key={d.i}
+              cx={d.x}
+              cy="-14"
+              r="1.1"
+              fill="#f4f8fc"
+              opacity="0.85"
+              style={{ animationDelay: `${-d.d * 3}s` }}
+            />
+          ))}
+        </g>
+      )}
     </svg>
   );
 }
@@ -287,7 +303,9 @@ export function WeatherPanel({
   const temp =
     unit === "C" ? `${weather.tempC}°C` : `${toFahrenheit(weather.tempC)}°F`;
   const heavy =
-    weather.condition === "overcast" || weather.condition === "rain";
+    weather.condition === "overcast" ||
+    weather.condition === "rain" ||
+    weather.condition === "snow";
   const [a, b, c] = heavy
     ? weather.night
       ? ["#0a0f22", "#232c44", "#3d4761"]

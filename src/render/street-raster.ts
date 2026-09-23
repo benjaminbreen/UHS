@@ -1,9 +1,91 @@
 import { pavingGrade, pavingStonePixel } from "./paving-stones";
 import { kerbed, paved, pavingMask, roadwayMaterial, wornEdge } from "./paving-edge";
 import type { TopographySample } from "../core/topography";
+import type { StreetMaterial } from "../content/settlements/streets";
 import type { GroundTileData } from "./habitat-raster";
 import { waterHash as hash } from "./water-style";
 const mod = (n: number, d: number) => ((n % d) + d) % d;
+type RGB = readonly number[];
+const clamp = (n: number) => Math.max(0, Math.min(255, Math.round(n)));
+/** A hue-shifted value step: light warms toward straw, shade cools toward
+ * slate, so an edge reads as lit stone rather than a lighter grey. */
+const lit = (c: RGB, v: number): RGB => {
+  const k = v * 13;
+  return [clamp(c[0] + k + v * 3), clamp(c[1] + k + v), clamp(c[2] + k - v * 4)];
+};
+const mix = (a: RGB, b: RGB, t: number): RGB => a.map((v, i) => v + (b[i] - v) * t);
+const GRIT: RGB = [150, 136, 106];
+/** Each material's dressed edge course: the mean of its own face, so an edge
+ * is the same stone cut long, not a pale band laid round everything. */
+const COURSE: Record<StreetMaterial, RGB> = {
+  slab: [176, 171, 150],
+  basalt: [132, 141, 139],
+  cobble: [154, 151, 139],
+  sett: [146, 153, 155],
+  brick: [150, 100, 70],
+  asphalt: [150, 152, 148],
+  concrete: [170, 172, 164],
+  plank: [120, 90, 60],
+};
+// Brick and asphalt streets were kerbed in stone, not in themselves.
+const kerbStone = (m: StreetMaterial) =>
+  m === "brick" ? COURSE.slab : m === "asphalt" ? COURSE.sett : COURSE[m];
+
+type Side = "n" | "s" | "w" | "e";
+/** Where paving simply ends: an outline, a lit lip on the sides that face the
+ * light, and on the south side the slab's own thickness. */
+function cutEdge(side: Side, d: number, course: RGB, face: RGB): RGB {
+  if (side === "s")
+    return d === 0 ? lit(course, -4) : d === 1 ? lit(course, -2) : lit(face, 1);
+  if (d === 0) return lit(course, -3);
+  if (d === 1) return lit(course, side === "e" ? -1 : 2);
+  return side === "e" ? face : lit(face, 1);
+}
+
+/** A raised kerb of long dressed stones (or a timber sill), `d` pixels in from
+ * the footway it retains. The oblique view shows the south-facing kerb's
+ * front: lit top, bright arris, shaded face, a contact line and a soft
+ * occlusion shadow on the road. Elsewhere only the top shows, creased where
+ * it meets the road, and the west kerb casts its shadow east. */
+function kerbTone(
+  side: Side,
+  d: number,
+  along: number,
+  diagonal: number,
+  stone: RGB,
+  road: RGB,
+  timber: boolean,
+): RGB | undefined {
+  const span = timber ? 31 : 13;
+  const at = mod(along + Math.floor(courseOffset(side) * span), span);
+  const joint = at === 0;
+  const pit = hash(along, d, 953);
+  const texture = timber
+    ? hash(Math.floor(along / 3), d, 955) > 0.75 ? -1 : 0
+    : pit > 0.9 ? -1 : pit < 0.06 ? 1 : 0;
+  const block = (v: number) =>
+    joint ? lit(stone, Math.min(v, 0) - 2) : lit(stone, v + texture);
+  // A timber sill is pegged to its posts where each length meets the next.
+  const peg = timber && (at === 3 || at === span - 3);
+  const profile: Record<Side, (RGB | undefined)[]> = {
+    n: [
+      lit(stone, -3),
+      block(2),
+      joint ? lit(stone, -2) : lit(stone, 3),
+      block(-1),
+      block(-2),
+      lit(mix(stone, road, 0.5), -4),
+      lit(road, -2),
+      diagonal % 2 ? lit(road, -1) : undefined,
+    ],
+    s: [block(1), block(2), block(1), lit(stone, -3), diagonal % 2 ? lit(road, -1) : undefined],
+    w: [block(0), block(1), block(0), lit(stone, -3), lit(road, -2), diagonal % 2 ? lit(road, -1) : undefined],
+    e: [block(0), block(0), joint ? lit(stone, -1) : lit(stone, 2), lit(stone, -3)],
+  };
+  const tone = profile[side][d];
+  return peg && tone && d === 1 ? lit(stone, -4) : tone;
+}
+const courseOffset = (side: Side) => ({ n: 0.1, s: 0.55, w: 0.3, e: 0.8 })[side];
 export { wornEdge };
 /** Shared native-pixel paving materials. Place/date selection happens in content. */
 export function rasterStreetTile(
@@ -88,21 +170,7 @@ export function rasterStreetTile(
             : border === (west ? px : 99)
               ? worn(-1, 0)
               : worn(1, 0);
-      if (border < 3 && !nearest) {
-        // Use the nearest edge's tangent, including corners and T-junctions.
-        const horizontal =
-          Math.min(north ? py : 99, south ? 15 - py : 99) <=
-          Math.min(west ? px : 99, east ? 15 - px : 99);
-        const joint = mod(horizontal ? wx : wy, 9) === 0;
-        tone =
-          border === 2
-            ? [112, 113, 96]
-            : joint
-              ? [137, 134, 112]
-              : border === 0
-                ? [202, 192, 157]
-                : [175, 166, 138];
-      } else if (material === "brick") {
+      if (material === "brick") {
         const w = 8,
           h = 4,
           row = Math.floor(wy / h);
@@ -119,45 +187,80 @@ export function rasterStreetTile(
         tone =
           a === 0 || b === 0 ? [132, 130, 112] : base.map((n) => n + light);
       } else {
-        tone = pavingStonePixel(wx, wy, material, grade);
+        tone = pavingStonePixel(
+          wx,
+          wy,
+          material,
+          grade,
+          (north || south) && !(west || east),
+        );
       }
-      // Kerb: a light stone line on the outermost pixel, jointed every eight
-      // world pixels, with its shadow on the roadway beside it.
-      const kerbBorder = Math.min(
-        kerbN ? py : 99,
-        kerbS ? 15 - py : 99,
-        kerbW ? px : 99,
-        kerbE ? 15 - px : 99,
+      const course = COURSE[material];
+      if (border < 3 && !nearest)
+        tone = cutEdge(
+          border === (north ? py : 99)
+            ? "n"
+            : border === (south ? 15 - py : 99)
+              ? "s"
+              : border === (west ? px : 99)
+                ? "w"
+                : "e",
+          border,
+          course,
+          tone,
+        );
+      // Where two pavings meet, each is finished with a dressed course of its
+      // own stone behind a shared joint, rather than one cut into the other.
+      const seam = (
+        [
+          [at(0, -1), "n", py],
+          [at(0, 1), "s", 15 - py],
+          [at(-1, 0), "w", px],
+          [at(1, 0), "e", 15 - px],
+        ] as const
+      ).find(
+        ([n, , d]) =>
+          d < 2 &&
+          !dais &&
+          n?.feature === "paving" &&
+          n.pavement !== "dais" &&
+          (n.streetMaterial ?? "slab") !== (c.streetMaterial ?? "slab"),
       );
-      if (kerbBorder < 2) {
-        const vertical =
-          Math.min(kerbW ? px : 99, kerbE ? 15 - px : 99) <
-          Math.min(kerbN ? py : 99, kerbS ? 15 - py : 99);
-        const joint = mod(vertical ? wy : wx, 8) === 0;
-        const dark =
-          material === "basalt" ||
-          material === "sett" ||
-          material === "asphalt";
+      if (seam)
         tone =
-          kerbBorder === 0
-            ? joint
-              ? dark
-                ? [150, 158, 154]
-                : [178, 170, 146]
-              : dark
-                ? [206, 212, 206]
-                : [226, 218, 194]
-            : dark
-              ? [96, 106, 104]
-              : [122, 116, 96];
+          seam[2] === 0
+            ? lit(course, -3)
+            : lit(course, seam[1] === "s" || seam[1] === "e" ? -1 : 2);
+      const kerbSide = (
+        [
+          [kerbN, "n", py, wx],
+          [kerbS, "s", 15 - py, wx],
+          [kerbW, "w", px, wy],
+          [kerbE, "e", 15 - px, wy],
+        ] as const
+      )
+        .filter(([on]) => on)
+        .sort((a, b) => a[2] - b[2])[0];
+      if (kerbSide) {
+        const edged = kerbTone(
+          kerbSide[1],
+          kerbSide[2],
+          kerbSide[3],
+          wx + wy,
+          material === "plank" ? COURSE.plank : kerbStone(material),
+          tone,
+          material === "plank",
+        );
+        if (edged) tone = edged;
       }
       // A worn edge: the outermost stones are broken and sunk, and grit from
       // the ground beside creeps over the last pixel or two.
       if (border < 2 && nearest) {
         const grit = hash(Math.floor(wx / 2), Math.floor(wy / 2), 523);
-        if (border === 0 && grit < 0.55) tone = [169, 156, 121];
-        else if (grit < 0.22) tone = [160, 152, 124];
-        else if (border === 0) tone = tone.map((n) => n - 8);
+        // Sunk and broken stones, with the ground's grit washed over them.
+        if (border === 0 && grit < 0.55) tone = lit(mix(tone, GRIT, 0.7), -1);
+        else if (grit < 0.22) tone = mix(tone, GRIT, 0.5);
+        else if (border === 0) tone = lit(tone, -1);
       }
       if (dais) {
         // A cut-stone platform with an outlined edge. Each open side carries
@@ -165,32 +268,18 @@ export function rasterStreetTile(
         // Corners take a solid cap. The south side shows its wall: kerb, a
         // lit front edge, then the riser, which continues into the cell
         // below with a lower step and the platform's cast shadow.
-        const K =
-          material === "basalt" || material === "sett"
-            ? {
-                ol: [58, 62, 60],
-                lit: [214, 220, 214],
-                kerb: [186, 194, 190],
-                cap: [166, 174, 170],
-                capLit: [200, 208, 204],
-                joint: [118, 128, 126],
-                groove: [96, 106, 104],
-                riser: [112, 122, 120],
-                riserJoint: [78, 86, 84],
-                side: [120, 130, 128],
-              }
-            : {
-                ol: [74, 69, 58],
-                lit: [244, 238, 218],
-                kerb: [226, 218, 194],
-                cap: [204, 194, 166],
-                capLit: [232, 224, 200],
-                joint: [148, 142, 122],
-                groove: [122, 118, 100],
-                riser: [138, 132, 112],
-                riserJoint: [98, 92, 76],
-                side: [146, 140, 120],
-              };
+        const K = {
+          ol: lit(course, -4),
+          lit: lit(course, 3),
+          kerb: lit(course, 1),
+          cap: lit(course, 0),
+          capLit: lit(course, 2),
+          joint: lit(course, -2),
+          groove: lit(course, -3),
+          riser: lit(course, -1),
+          riserJoint: lit(course, -3),
+          side: lit(course, -1),
+        };
         const bx = stepW ? px : stepE ? 15 - px : 99,
           by = stepN ? py : 99,
           r = stepS ? 15 - py : 99;
@@ -244,14 +333,13 @@ export function rasterStreetTile(
         // with its own edge, then cast shadow across the slabs. The east
         // side only casts.
         if (shadowed && py < 2)
-          tone = mod(wx + 4, 8) < 2 ? [98, 92, 76] : [116, 110, 92];
-        else if (shadowed && py === 2) tone = [74, 69, 58];
-        else if (shadowed && py < 5)
-          tone = py === 3 ? [236, 230, 210] : [216, 210, 188];
-        else if (shadowed && py === 5) tone = [104, 100, 84];
+          tone = lit(course, mod(wx + 4, 8) < 2 ? -3 : -1);
+        else if (shadowed && py === 2) tone = lit(course, -4);
+        else if (shadowed && py < 5) tone = lit(course, py === 3 ? 3 : 1);
+        else if (shadowed && py === 5) tone = lit(course, -3);
         else {
           const d = Math.min(shadowed ? py - 6 : 9, shadowedE ? px : 9);
-          if (d < 3) tone = tone.map((n) => n - [36, 22, 10][d]);
+          if (d < 3) tone = lit(tone, [-3, -2, -1][d]);
         }
       }
       // Chamfer exposed outer corners in native pixels. Connected road cells
@@ -262,7 +350,7 @@ export function rasterStreetTile(
         south && west ? px + 15 - py : 99,
         south && east ? 30 - px - py : 99,
       );
-      if (corner < 3) tone = kerb ? [174, 157, 112] : [169, 156, 121];
+      if (corner < 3) tone = corner === 0 ? lit(course, -3) : lit(course, corner === 1 ? 2 : 0);
       const i = (py * 16 + px) * 4;
       pixels.set([...tone, 255], i);
     }

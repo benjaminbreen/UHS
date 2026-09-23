@@ -1,6 +1,7 @@
 import type { WorldSetting } from "../../geography/types";
 import { streetMaterial, type StreetMaterial } from "./index";
 import { newYorkStreets } from "./north-america";
+import { pavingReach, type PavingReach } from "./reach";
 export type StreetSurface = StreetMaterial | "earth";
 export type StreetRole = "main" | "local" | "lane" | "square" | "footway";
 type Mix = readonly StreetSurface[];
@@ -22,6 +23,26 @@ const kits = Object.fromEntries(
     stoneTown(m),
   ]),
 ) as Record<StreetMaterial, StreetPalette>;
+
+const timberTown: StreetPalette = {
+  main: ["plank"],
+  local: ["plank"],
+  lane: ["earth", "plank"],
+  square: ["earth", "plank"],
+  footway: ["plank"],
+};
+const premodern = (stone: StreetMaterial, reach: PavingReach): StreetPalette =>
+  stone === "plank" && reach !== "none"
+    ? timberTown
+    : reach === "streets"
+    ? stoneTown(stone)
+    : {
+        main: reach === "main" ? [stone] : ["earth"],
+        local: reach === "main" ? ["earth", "earth", stone] : ["earth"],
+        lane: ["earth"],
+        square: reach === "none" ? ["earth"] : ["slab", "slab", stone],
+        footway: ["earth"],
+      };
 
 const modernCity: StreetPalette = {
   main: ["asphalt"],
@@ -48,6 +69,8 @@ export function streetPalette(setting: WorldSetting): StreetPalette {
     setting.lat <= n
   )
     return p.palette;
+  if (setting.streetRevision)
+    return premodern(streetMaterial(setting), pavingReach(setting));
   return kits[streetMaterial(setting)];
 }
 

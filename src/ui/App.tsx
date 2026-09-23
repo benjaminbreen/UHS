@@ -1894,6 +1894,17 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
                     <small>Opens a panel over the world you are in</small>
                   </button>
                   <a
+                    className="action settings-featured"
+                    href="/materials-lab"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Materials lab{" "}
+                    <small>
+                      Chop, burn and age trees and buildings pixel by pixel ↗
+                    </small>
+                  </a>
+                  <a
                     className="action"
                     href="/water-experiments"
                     target="_blank"

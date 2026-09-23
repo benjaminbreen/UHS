@@ -5,6 +5,7 @@ export type WeatherCondition =
   | "light-clouds"
   | "overcast"
   | "rain"
+  | "snow"
   | "mist";
 export type Wind = {
   /** Direction the wind blows toward, in screen radians: 0 is east, PI/2 south. */
@@ -27,6 +28,7 @@ const labels: Record<WeatherCondition, string> = {
   "light-clouds": "Light clouds",
   overcast: "Overcast",
   rain: "Rain",
+  snow: "Snow",
   mist: "Mist",
 };
 
@@ -84,6 +86,8 @@ function conditionFor(
 /** How much water a day's weather puts on the ground. */
 const soak: Record<WeatherCondition, number> = {
   rain: 1,
+  // Snow lies rather than soaks; the thaw is what wets the ground.
+  snow: 0.1,
   overcast: 0.12,
   mist: 0.2,
   "light-clouds": 0,
@@ -108,7 +112,7 @@ function windFor(
     Math.sin(hour / 5 + dice * 6) * 0.25;
   // Afternoons are breezier than dawn, and a wet day is rarely a still one.
   const diurnal = 0.72 + 0.28 * -Math.cos(((hour - 2) / 24) * Math.PI * 2);
-  const wet = condition === "rain" ? 0.3 : condition === "overcast" ? 0.12 : 0;
+  const wet = condition === "rain" || condition === "snow" ? 0.3 : condition === "overcast" ? 0.12 : 0;
   const strength = Math.max(
     0.05,
     Math.min(1, (0.15 + hash(`${seed}:${day}:force`) * 0.6) * diurnal + wet),
@@ -132,7 +136,7 @@ export function weatherAt(
   );
   const band = bands[climate] ?? bands.temperate;
   const rain = (rainChance[climate] ?? rainChance.temperate)[si];
-  const condition = conditionFor(seed, day, rain, hour);
+  let condition = conditionFor(seed, day, rain, hour);
   // Coolest before dawn, warmest mid-afternoon.
   const diurnal = -Math.cos(((hour - 4) / 24) * Math.PI * 2);
   const noise = (hash(`${seed}:${day}:temp`) - 0.5) * 6;
@@ -140,6 +144,7 @@ export function weatherAt(
   const tempC = Math.round(
     band.temps[si] + (diurnal * band.swing) / 2 + noise + cloudCool,
   );
+  if (condition === "rain" && tempC <= 1) condition = "snow";
   // Today's rain builds through the day; yesterday's is still drying off.
   const today = soak[condition];
   const before = soak[conditionFor(seed, day - 1, rain, 20)];
@@ -159,3 +164,82 @@ export function weatherAt(
 }
 
 export const toFahrenheit = (c: number) => Math.round((c * 9) / 5 + 32);
+
+/** Unpaved ground between rains: 0 dry, 1 churned to mud. The season sets the
+ * floor, today's wetness adds to it, and a hard frost freezes what is there. */
+export type GroundState = {
+  mud: number;
+  puddles: number;
+  frozen: boolean;
+  /** Snow lying on the ground, 0 bare to 1 deep. */
+  snow: number;
+};
+// Spring, summer, autumn, winter; boreal and tundra winters are frozen anyway.
+const seasonMud: Record<string, [number, number, number, number]> = {
+  temperate: [0.4, 0.08, 0.5, 0.65],
+  mediterranean: [0.25, 0, 0.35, 0.55],
+  tropical: [0.55, 0.65, 0.55, 0.1],
+  monsoon: [0.05, 0.75, 0.4, 0.05],
+  arid: [0, 0, 0, 0.08],
+  boreal: [0.7, 0.15, 0.55, 0.4],
+  tundra: [0.6, 0.35, 0.45, 0.3],
+};
+export function groundState(
+  climate: string,
+  season: string,
+  weather: Weather,
+  snow = 0,
+): GroundState {
+  const si = Math.max(0, ["spring", "summer", "autumn", "winter"].indexOf(season));
+  const base = (seasonMud[climate] ?? seasonMud.temperate)[si];
+  // A thin cover still shows the ruts through it; a deep one buries them.
+  const open = Math.max(0, 1 - snow * 1.6);
+  return {
+    mud: Math.min(1, base + weather.wetness * 0.7) * open,
+    puddles: Math.min(1, base * 0.7 + weather.wetness) * open,
+    frozen: weather.tempC <= -1,
+    snow,
+  };
+}
+
+// Cover that lies all season whatever the fortnight did: spring, summer,
+// autumn, winter.
+const snowpack: Record<string, [number, number, number, number]> = {
+  boreal: [0.2, 0, 0.1, 0.75],
+  tundra: [0.6, 0, 0.45, 0.9],
+};
+const coverCache = new Map<string, number>();
+/** Snow on the ground now: a fortnight of snowfall laid down, less whatever
+ * thaws and rain took off since. */
+export function snowCover(
+  seed: string,
+  climate: string,
+  initialSeason: string,
+  clock: number,
+): number {
+  const day = Math.floor(clock / 86400),
+    hour = (((clock / 3600) % 24) + 24) % 24;
+  const key = `${seed}:${climate}:${initialSeason}:${day}:${Math.floor(hour)}`;
+  const cached = coverCache.get(key);
+  if (cached !== undefined) return cached;
+  let cover = 0;
+  for (let d = 14; d >= 0; d--) {
+    // Today only counts as far as the clock has got.
+    const part = d ? 1 : Math.min(1, hour / 16);
+    const at = (h: number) =>
+      weatherAt(seed, climate, initialSeason, (day - d) * 86400 + h * 3600);
+    const small = at(d ? 4 : Math.min(hour, 4)),
+      warm = at(d ? 14 : Math.min(hour, 14));
+    if (small.condition === "snow" || warm.condition === "snow")
+      cover += 0.3 * part;
+    if (warm.condition === "rain") cover -= 0.3 * part;
+    if (warm.tempC > 0) cover -= warm.tempC * 0.05 * part;
+    cover = Math.max(0, Math.min(1, cover));
+  }
+  const season = seasonAt(initialSeason, clock);
+  const si = Math.max(0, ["spring", "summer", "autumn", "winter"].indexOf(season));
+  cover = Math.max(cover, snowpack[climate]?.[si] ?? 0);
+  if (coverCache.size > 64) coverCache.clear();
+  coverCache.set(key, cover);
+  return cover;
+}

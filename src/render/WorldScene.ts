@@ -158,7 +158,14 @@ import { CourtyardLighting, type CourtyardLight } from "./courtyard-lighting";
 import { Drift } from "./drift";
 import { Mist } from "./mist";
 import { AmbientLife, critterFor } from "./ambient-life";
-import { weatherAt, type Weather } from "../core/weather";
+import {
+  groundState,
+  snowCover,
+  weatherAt,
+  type Weather,
+} from "../core/weather";
+import { puddleUnder, setGroundState, splashPuddle, updatePuddles } from "./puddles";
+import { setSnowCover, snowSteps } from "./snow-cover";
 import { setWind } from "./wind";
 import { addPlume, type SmokeKind } from "./smoke";
 
@@ -482,6 +489,8 @@ export class WorldScene extends Phaser.Scene {
   private mist?: Mist;
   private life?: AmbientLife;
   private weather?: Weather;
+  /** Lying snow, in the raster's steps. */
+  private snow = 0;
   private season = "summer";
   constructor(
     runtime: Runtime,
@@ -1223,6 +1232,54 @@ export class WorldScene extends Phaser.Scene {
       this.combat().bonk(im.x + dx * 6, im.y - 14 + dy * 4);
       this.kickDust(im.x + dx * 5, im.y, 4, 0.7);
     }
+  }
+  /** What a foot lands on: snow lies over any open ground, and a puddle is
+   * water whatever it stands in. */
+  private underfoot(
+    cell: { x: number; y: number; space: string },
+    puddle?: "water" | "ice",
+  ): HitClass {
+    if (puddle === "water") return "water";
+    if (puddle === "ice") return "stone";
+    const outside = cell.space === "outside";
+    const ground =
+      outside &&
+      this.runtime.engine.world.topography?.(cell.x, cell.y)?.streetMaterial ===
+        "plank"
+        ? "timber"
+        : this.runtime.engine.groundClass(cell.x, cell.y, cell.space);
+    return outside &&
+      this.snow >= 0.34 &&
+      ["soil", "grass", "sand", "stone", "timber"].includes(ground)
+      ? "snow"
+      : ground;
+  }
+  /** Feet gone on ice: a skid, a stagger to keep upright, and at a run the
+   * slide carries on a cell before it stops. */
+  private slip(dx: number, dy: number, time: number) {
+    const running = this.shiftHeld;
+    this.runSteps = 0;
+    this.lastRunDir = undefined;
+    this.nextInput = time + this.motionDuration + (running ? 900 : 600);
+    this.time.delayedCall(this.motionDuration, () => {
+      const p = this.runtime.engine.state.player.pos;
+      if (running && !this.runtime.engine.playerBlocked(p.x + dx, p.y + dy))
+        this.runtime.move(dx, dy, false, false);
+      this.play(
+        {
+          pose: "skid",
+          ms: 35,
+          first: 0,
+          last: 3,
+          then: { pose: "stumble", ms: 85, first: 0, last: 3, for: 520 },
+        },
+        running ? 320 : 160,
+      );
+      const im = this.entities.get("player");
+      if (im) this.feel.puff(im.x, im.y, [0xffffff, 0xe3ecf5, 0xc9d8e6], 6, 0.9);
+      void gameAudio()?.sound(landing("stone", running ? 1.8 : 1.1), "step");
+      this.runtime.engine.event("You slip on the ice.");
+    });
   }
   /** Plays a pose on the player over whatever else would be showing. */
   private play(
@@ -2303,6 +2360,8 @@ export class WorldScene extends Phaser.Scene {
     switch (this.weather?.condition) {
       case "rain":
         return 0.12;
+      case "snow":
+        return 0.2;
       case "overcast":
         return 0.28;
       case "mist":
@@ -2371,6 +2430,26 @@ export class WorldScene extends Phaser.Scene {
       : undefined;
     // One wind for the scene: grass, canopies and anything airborne read it.
     if (this.weather) setWind(this.weather.wind);
+    this.snow =
+      setting && !this.options.lab
+        ? snowSteps(
+            snowCover(
+              e.state.manifest.seed,
+              setting.climate,
+              setting.season,
+              e.state.clock,
+            ),
+          )
+        : 0;
+    setSnowCover(this.snow);
+    this.terrainStream?.setSnow(this.snow);
+    setGroundState(
+      this,
+      setting && this.weather
+        ? groundState(setting.climate, this.season, this.weather, this.snow)
+        : undefined,
+      this.weather,
+    );
     const outdoors =
       p.space === "outside" && (!this.options.overview || this.options.lab);
     this.drift?.set(
@@ -2405,6 +2484,8 @@ export class WorldScene extends Phaser.Scene {
           ? 0.55
           : this.weather.condition === "rain"
             ? 0.16
+            : this.weather.condition === "snow"
+              ? 0.3
             : this.weather.condition === "overcast"
               ? 0.08
               : 0
@@ -3684,7 +3765,7 @@ export class WorldScene extends Phaser.Scene {
     const w = this.weather;
     if (!w || this.options.colorGrade === false) return 0;
     const cloud =
-      w.condition === "rain"
+      w.condition === "rain" || w.condition === "snow"
         ? 1
         : w.condition === "overcast"
           ? 0.45
@@ -3943,6 +4024,7 @@ export class WorldScene extends Phaser.Scene {
     this.drift?.update(time, !!this.options.freeze);
     this.mist?.update(time, !!this.options.freeze);
     this.life?.update(time, !!this.options.freeze);
+    updatePuddles(this, time);
     this.followTiltFocus();
     mark("weather");
     if (perf.fauna)
@@ -4173,9 +4255,18 @@ export class WorldScene extends Phaser.Scene {
               waterDepthAt(sample, p.x + 0.5, p.y + 0.5),
               waterDepthAt(sample, p.x + dx + 0.5, p.y + dy + 0.5),
             );
+            const ahead = sample(p.x + dx, p.y + dy);
             if (depth > 0)
               this.motionDuration =
                 140 * Math.hypot(dx, dy) * wadingCost(depth);
+            // Deep snow drags at every step off the beaten track.
+            else if (
+              this.snow > 0.5 &&
+              ahead &&
+              !ahead.pathArt?.length &&
+              ahead.feature !== "paving"
+            )
+              this.motionDuration *= 1 + (this.snow - 0.5) * 1.2;
           }
           this.nextInput = time + this.motionDuration;
           this.lastTick = time;
@@ -4212,6 +4303,13 @@ export class WorldScene extends Phaser.Scene {
               this.pushingAt = undefined;
               // A walked drop can land as badly as a jumped one.
               this.nextInput += this.afterHold();
+              const at = this.runtime.engine.state.player.pos;
+              if (
+                at.space === "outside" &&
+                puddleUnder(this, at.x * 16 + 8, at.y * 16 + 12, 4) === "ice" &&
+                Math.random() < (this.shiftHeld ? 0.65 : 0.25)
+              )
+                this.slip(dx, dy, time);
             }
             if (
               moved?.status === "rejected" &&
@@ -4319,6 +4417,11 @@ export class WorldScene extends Phaser.Scene {
                 (im.y + this.lift(im.x, wetPos.y * 16 + 16) - 8) / 16,
               )
             : 0;
+        // A puddle wets the feet without making anyone wade.
+        const puddle =
+          water <= 0.025 && !arcLift && wetPos?.space === "outside"
+            ? puddleUnder(this, im.x, im.y - 1)
+            : undefined;
         const heldSprite = this.heldSprites.get(id);
         let pose: CharacterPose = moving ? "walk" : "idle";
         if (active) pose = action.pose;
@@ -4433,12 +4536,11 @@ export class WorldScene extends Phaser.Scene {
           this.footfalls.set(id, index);
           const afoot =
             pose === "run" && index % 2 === 1 && water <= 0.025 && !arcLift;
+          if (puddle === "water" && moving && index % 2 === 1)
+            splashPuddle(this, im.x, im.y - 1, human.direction, pose === "run", im.depth, time);
           const cell = this.destinations.get(id);
           if (afoot && id === "player" && cell)
-            this.feel.step(
-              im,
-              this.runtime.engine.groundClass(cell.x, cell.y, cell.space),
-            );
+            this.feel.step(im, this.underfoot(cell, puddle));
           else if (afoot) this.kickDust(im.x, im.y, 2, 0.5);
         }
         if (id === "player") {
@@ -4454,9 +4556,7 @@ export class WorldScene extends Phaser.Scene {
             this.lastStep = { x: im.x, y: im.y };
             void gameAudio()?.sound(
               footstep(
-                water > 0.025
-                  ? "water"
-                  : this.runtime.engine.groundClass(cell.x, cell.y, cell.space),
+                water > 0.025 ? "water" : this.underfoot(cell, puddle),
                 pose === "run",
               ),
               "step",
@@ -4465,7 +4565,7 @@ export class WorldScene extends Phaser.Scene {
           if (moving && cell && water <= 0.025 && !arcLift)
             this.feel.track(
               im,
-              this.runtime.engine.groundClass(cell.x, cell.y, cell.space),
+              this.underfoot(cell, puddle),
               human.direction,
               (this.weather?.wetness ?? 0) > 0.4,
               (this.runtime.engine.world.topography ? -1000 : -60000) - 1,
@@ -4490,7 +4590,9 @@ export class WorldScene extends Phaser.Scene {
           im,
           // Legacy water and canals report an unbounded depth; wading still
           // has to draw something, so clamp rather than fall back to dry land.
-          Number.isFinite(water) ? water : MAX_WADING_DEPTH,
+          Number.isFinite(water)
+            ? Math.max(water, puddle === "water" ? 0.035 : 0)
+            : MAX_WADING_DEPTH,
           this.options.freeze ? 0 : time,
           moving,
           sample && wetPos

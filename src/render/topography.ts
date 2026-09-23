@@ -14,6 +14,7 @@ import {
 import type { TerrainRegion } from "./terrain-region";
 import { drawBridges, type BridgeSpan } from "./bridges";
 import { addFlowers, flowersAt, type FlowerSpot } from "./flowers";
+import { addPuddles, puddlesAt, type PuddleSpot } from "./puddles";
 import { addCrops, cropsAt, type CropSpot } from "./crops";
 import type Phaser from "phaser";
 import { drawTerrainContours, wallOwnsCell } from "./terrain-contours";
@@ -91,6 +92,7 @@ export function* topographySteps(
   const shoreTiles = new Map<string, HTMLCanvasElement>();
   const effects: WaterEffect[] = [];
   const flowers: FlowerSpot[] = [];
+  const puddles: PuddleSpot[] = [];
   const standingCrops: CropSpot[] = [];
   let groundScratch:
     | {
@@ -372,6 +374,9 @@ export function* topographySteps(
         flowers.push(
           ...flowersAt(sample, x, y, region?.x ?? 0, region?.y ?? 0, top),
         );
+        puddles.push(
+          ...puddlesAt(sample, x, y, region?.x ?? 0, region?.y ?? 0, top),
+        );
         standingCrops.push(
           ...cropsAt(sample, x, y, region?.x ?? 0, region?.y ?? 0, top),
         );
@@ -458,6 +463,8 @@ export function* topographySteps(
   yield;
   const blooms = addFlowers(scene, flowers);
   if (blooms) own(resources, blooms);
+  const wet = addPuddles(scene, puddles);
+  if (wet) own(resources, wet);
   addCrops(scene, standingCrops, resources);
   yield;
   const covers = drawBridges(

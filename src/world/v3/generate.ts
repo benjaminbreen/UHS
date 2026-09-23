@@ -19,6 +19,10 @@ import type { Decoration } from "../../core/types";
 import { preparedSite, type PreparedSettlement } from "./prepared";
 import { pathArt } from "./path-art";
 import { streetMaterial } from "../../content/settlements/streets";
+import {
+  pavingReach,
+  wheeledTraffic,
+} from "../../content/settlements/streets/reach";
 import { crossingStyle, edgeStyle } from "../../content/settlements/terraces";
 import { gravelBar, outcrop, saltPan, shrubColony } from "./features";
 import { habitatAt, habitatTree } from "./habitats";
@@ -1454,7 +1458,12 @@ export function createSettlementWorld(
     }
     if (regional && regionalRoads(x, y).has(cellKey(x, y)) && t !== "paving") {
       const local = regional.settingAt(x, y);
-      if (regional.placeAt(x, y) && settlementProfile(local).paved) {
+      if (
+        regional.placeAt(x, y) &&
+        settlementProfile(local).paved &&
+        (!local.streetRevision ||
+          ["main", "streets"].includes(pavingReach(local)))
+      ) {
         cell.surface = "gravel";
         cell.feature = "paving";
         cell.streetMaterial = streetMaterial(local);
@@ -1471,7 +1480,11 @@ export function createSettlementWorld(
             delete cell.streetMaterial;
           } else cell.streetMaterial = material;
         }
-        if (p.pavement?.has(key)) cell.pavement = p.pavement.get(key);
+        if (
+          p.pavement?.has(key) &&
+          (!pack.setting?.streetRevision || cell.feature === "paving")
+        )
+          cell.pavement = p.pavement.get(key);
         // Authored block ground and courts are areas, not thin paths. Preserve
         // their extent instead of reinterpreting only road centers as worn soil.
         if (t === "dirt" && p.surface.get(key) === "dirt" && !!p.pavement?.size)
@@ -1510,9 +1523,11 @@ export function createSettlementWorld(
       const strokes = nearby(x, y).flatMap((p) => {
         let index = pathArtCache.get(p);
         if (!index) {
+          const revised = !!pack.setting?.streetRevision;
           index = pathArt(
-            p.site.profile.paved ? [] : p.roads,
+            p.site.profile.paved && !revised ? [] : p.roads,
             !!pack.setting?.roadRevision,
+            revised && !wheeledTraffic(pack.setting!) ? false : undefined,
           );
           pathArtCache.set(p, index);
         }
@@ -1523,6 +1538,7 @@ export function createSettlementWorld(
           a: [s.a[0] - x, s.a[1] - y],
           b: [s.b[0] - x, s.b[1] - y],
           radius: s.radius,
+          ...(s.ruts === false && { ruts: s.ruts }),
         }));
     }
     if (terraces && cell.surface !== "water") {

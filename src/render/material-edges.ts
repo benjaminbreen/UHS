@@ -94,6 +94,7 @@ export type PathField = {
   cross: number;
   /** Local half-width in cells, after breathing. */
   radius: number;
+  ruts?: false;
 };
 const clamp01 = (n: number) => Math.max(0, Math.min(1, n));
 /** A worn road is not a constant-width ribbon. One slow wave sampled on the
@@ -166,7 +167,12 @@ export function pathField(
         0.48 + (0.6 * (radius - distance + wobble)) / Math.min(1.4, radius),
       );
       if (coverage > best.coverage)
-        best = { coverage, cross: distance / (radius || 1), radius };
+        best = {
+          coverage,
+          cross: distance / (radius || 1),
+          radius,
+          ...(s.ruts === false && { ruts: s.ruts }),
+        };
     }
     return best;
   }

@@ -629,6 +629,14 @@ body {
     transform: translate(-30px, 170px);
   }
 }
+.sky-snow circle {
+  animation: sky-snow 5s linear infinite;
+}
+@keyframes sky-snow {
+  to {
+    transform: translate(-18px, 170px);
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   .sky * {
     animation: none !important;

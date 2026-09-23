@@ -1,3 +1,4 @@
+import { snowCover } from "./snow-cover";
 import { usesLivingWater } from "./living-water/game";
 import { workerBudget } from "../runtime/device";
 import { takeTerrainWorker } from "../runtime/terrain-worker-owner";
@@ -131,6 +132,7 @@ export class TerrainStream {
           options: import("./appearance").RenderOptions;
         }
       ).options.shorePolish,
+      snow: snowCover(),
     };
     first.worker.postMessage(this.styling);
     this.pool.push(first);
@@ -553,6 +555,12 @@ export class TerrainStream {
     if (sun.id === this.sun.id) return;
     this.sun = sun;
     for (const [id, chunk] of this.chunks) this.shadeChunk(chunk, id);
+  }
+  /** Snow fell or thawed: re-raster under the new cover. */
+  setSnow(cover: number) {
+    if (cover === this.styling.snow) return;
+    this.styling = { ...this.styling, snow: cover };
+    this.restyle(this.styling.style);
   }
   /** Drop every rasterised chunk and ask for them again under a new style.
    * Cheaper and far less disruptive than tearing down the whole scene. */

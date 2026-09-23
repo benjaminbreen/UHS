@@ -1,3 +1,4 @@
+import { snowCover, snowOver } from "./snow-cover";
 import {
   edgeTufts,
   earthSpeckle,
@@ -223,6 +224,19 @@ export function rasterHabitatTile(
   oy: number,
   art: GrassArt = defaultGrassArt,
   cell: TopographyCell = sample(x, y)!,
+): GroundTileData {
+  const tile = bareHabitatTile(sample, x, y, ox, oy, art, cell);
+  if (snowCover()) snowOver(tile.pixels, sample, x, y, ox, oy, cell);
+  return tile;
+}
+function bareHabitatTile(
+  sample: TopographySample,
+  x: number,
+  y: number,
+  ox: number,
+  oy: number,
+  art: GrassArt,
+  cell: TopographyCell,
 ): GroundTileData {
   const street = cell.feature === "paving";
   if (!street && (!cell.habitat || !wornEdge(cell)))
@@ -1046,15 +1060,18 @@ function rasterGroundTile(
                   ? -10
                   : 0
                 : [0, -5, 6][materialGrain(wx, wy)]);
-          // Cart ruts either side of the crown on wagon-width roads, dashed so
-          // they never read as two ruled lines.
-          if (
-            field.radius > 0.95 &&
-            field.cross > 0.4 &&
-            field.cross < 0.55 &&
-            hash(Math.floor(wx / 4), Math.floor(wy / 5), 443) > 0.58
-          )
-            shade -= 6;
+          // Cart ruts either side of the crown on wagon-width roads: a dark
+          // groove with a lit lip on its outer side, broken so the pair never
+          // reads as two ruled lines.
+          if (field.radius > 0.95 && field.ruts !== false) {
+            const rut = field.cross - 0.34 - (noise(wx, wy, 19, 445) - 0.5) * 0.06;
+            if (hash(Math.floor(wx / 8), Math.floor(wy / 8), 443) > 0.2) {
+              if (rut > -0.05 && rut < 0.05) {
+                tone = soil[1];
+                shade -= 10;
+              } else if (rut >= 0.05 && rut < 0.09) shade += 7;
+            }
+          }
           // Grit collects off the treadway, not on it.
           if (field.cross > 0.46) {
             const bx = Math.floor(wx / 7),
