@@ -147,6 +147,16 @@ export function lifewayHouses(
       return frames("enkang-house", "maasai");
     case "khoikhoi":
       return frames("forager-shelter", "khoikhoi");
+    case "iroquoian":
+      return frames("iroquoian-longhouse", "iroquoian");
+    case "eastern-algonquian":
+      return frames("forager-shelter", "algonquian");
+    case "ainu":
+      return frames("ainu-chise", "ainu");
+    case "new-guinea-highlands":
+    case "ethiopian-highlands":
+    case "irish-ringforts":
+      return ["house-round-0", "house-round-1", "house-round-2"];
   }
   return [];
 }

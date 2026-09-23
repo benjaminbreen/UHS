@@ -250,3 +250,12 @@ it("rings Amazonian houses round a men's house, and rows plank houses above the 
   expect(coast.places.every((x) => x.sprite.startsWith("northwest-house-"))).toBe(true);
   expect(coast.plots.filter((x) => x.kind === "field")).toHaveLength(0);
 });
+
+it("walls Iroquoian longhouses in a palisade, and gives each Irish farm its own rath", () => {
+  const iroquoia = (createSettingSession(setting("Iroquois 1500"), "palisade").world as SettlementWorld).planAt(0, 0)!;
+  expect(iroquoia.places.every((x) => x.sprite.startsWith("iroquoian-longhouse-"))).toBe(true);
+  expect([...(iroquoia.fields?.values() ?? [])].some((f) => f.boundary === "palisade")).toBe(true);
+  const ireland = (createSettingSession(setting("Ireland 800"), "rath").world as SettlementWorld).planAt(0, 0)!;
+  expect(settlementProfile(setting("Ireland 800")).pattern).toBe("encampment");
+  expect([...(ireland.fields?.values() ?? [])].some((f) => f.boundary === "bund")).toBe(true);
+});

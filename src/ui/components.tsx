@@ -27,7 +27,9 @@ export function Sprite({ name, scale = 2 }: { name: string; scale?: number }) {
                 ? sheets.buildings
                 : name in sheets.regionalBuildings.frames
                   ? sheets.regionalBuildings
-                  : name in sheets.civic.frames
+                  : name in sheets.campBuildings.frames
+                    ? sheets.campBuildings
+                    : name in sheets.civic.frames
                     ? sheets.civic
                     : sheets.atlas;
   const f = source.frames[name]?.frame;

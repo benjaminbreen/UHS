@@ -24,6 +24,7 @@ import atlas from "../src/render/generated/atlas.json" with { type: "json" };
 // Buildings pack to their own page, so a sprite may live in either.
 import buildingAtlas from "../src/render/generated/buildings.json" with { type: "json" };
 import regionalBuildingAtlas from "../src/render/generated/regional-buildings.json" with { type: "json" };
+import campBuildingAtlas from "../src/render/generated/camp-buildings.json" with { type: "json" };
 
 const resolve = (
   input: Partial<ResolveInput> = {},
@@ -74,7 +75,8 @@ describe("permanent chronology and content selection", () => {
         expect(
           Object.hasOwn(atlas.frames, d.sprite) ||
             Object.hasOwn(buildingAtlas.frames, d.sprite) ||
-            Object.hasOwn(regionalBuildingAtlas.frames, d.sprite),
+            Object.hasOwn(regionalBuildingAtlas.frames, d.sprite) ||
+            Object.hasOwn(campBuildingAtlas.frames, d.sprite),
           d.sprite,
         ).toBe(true);
     const bad = structuredClone(historyRegistry);

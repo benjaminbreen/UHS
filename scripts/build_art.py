@@ -160,16 +160,24 @@ def _landmark(name):
 # Precinct pieces are the largest of all: a stand can be 46 cells long.
 precinct_frames={k:S.pop(k) for k in list(buildings) if k in S and k.startswith('precinct-')}
 civic_frames={k:S.pop(k) for k in list(buildings) if k in S and _landmark(k)}
+# Tents, shelters and lodges take a page of their own: the regional page was
+# full with the courtyard compounds alone.
+CAMP_FAMILIES=('steppe-','forager-','northwest-house','amazon-maloca','enkang-house','iroquoian-longhouse','ainu-chise')
+camp_frames={k:S.pop(k) for k in list(buildings)
+             if k in S and (buildings[k].get('campStyle') or
+                            (buildings[k].get('regionalHouse') or '').startswith(CAMP_FAMILIES))}
 regional_frames={k:S.pop(k) for k in list(buildings)
-                 if k in S and (buildings[k].get('regionalHouse') or buildings[k].get('campStyle'))}
+                 if k in S and buildings[k].get('regionalHouse')}
 building_frames={k:S.pop(k) for k in list(buildings) if k in S}
 atlas=pack_atlas(S,OUT,'atlas')
 buildings_atlas=pack_atlas(building_frames,OUT,'buildings')
 regional_atlas=pack_atlas(regional_frames,OUT,'regional-buildings')
+camp_atlas=pack_atlas(camp_frames,OUT,'camp-buildings')
 civic_atlas=pack_atlas(civic_frames,OUT,'civic')
 precinct_atlas=pack_atlas(precinct_frames,OUT,'precincts')
 print(f'Buildings atlas {buildings_atlas.size} ({len(building_frames)} frames); '
       f'regional atlas {regional_atlas.size} ({len(regional_frames)} frames); '
+      f'camp atlas {camp_atlas.size} ({len(camp_frames)} frames); '
       f'civic atlas {civic_atlas.size} ({len(civic_frames)} frames); '
       f'precinct atlas {precinct_atlas.size} ({len(precinct_frames)} frames).')
 # Reviewable original-asset proof at exactly 3x nearest-neighbor scaling.
@@ -188,4 +196,4 @@ tiles.save(OUT/'terrain.png');(OUT/'terrain.json').write_text(json.dumps({n:i fo
 
 # Vite imports source manifests; Phaser fetches public copies. Both are generated here.
 generated=ROOT/'src/render/generated';generated.mkdir(exist_ok=True,parents=True)
-for name in ['atlas.json','buildings.json','regional-buildings.json','civic.json','precincts.json','terrain.json']:(generated/name).write_bytes((OUT/name).read_bytes())
+for name in ['atlas.json','buildings.json','regional-buildings.json','camp-buildings.json','civic.json','precincts.json','terrain.json']:(generated/name).write_bytes((OUT/name).read_bytes())

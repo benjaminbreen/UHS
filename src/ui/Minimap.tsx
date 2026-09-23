@@ -18,8 +18,9 @@ import {
 import type { Runtime } from "../runtime/session";
 import type { WorldModel, Point } from "../core/types";
 const PAD = 32;
-const atlasImages: Partial<Record<"buildings" | "regionalBuildings", HTMLImageElement>> = {};
-function sprites(name: "buildings" | "regionalBuildings" = "buildings") {
+type BuildingSheet = "buildings" | "regionalBuildings" | "campBuildings";
+const atlasImages: Partial<Record<BuildingSheet, HTMLImageElement>> = {};
+function sprites(name: BuildingSheet = "buildings") {
   if (!atlasImages[name]) {
     atlasImages[name] = new Image();
     atlasImages[name]!.src = sheetImage(name);
@@ -63,9 +64,13 @@ function buildingTones(sprite: string) {
   // Keep the minimap from retaining another full-size building image on phones.
   if (smallMemoryDevice()) return fallback;
   const sheets = currentSheets();
-  const regional = Boolean(sheets?.regionalBuildings.frames[sprite]);
-  const frames = regional ? sheets?.regionalBuildings.frames : sheets?.buildings.frames;
-  const image = sprites(regional ? "regionalBuildings" : "buildings");
+  const sheet: BuildingSheet = sheets?.regionalBuildings.frames[sprite]
+    ? "regionalBuildings"
+    : sheets?.campBuildings.frames[sprite]
+      ? "campBuildings"
+      : "buildings";
+  const frames = sheets?.[sheet].frames;
+  const image = sprites(sheet);
   if (!frames || !image.complete || !image.naturalWidth) return fallback;
   const f = frames[sprite]?.frame;
   if (!f) return fallback;
@@ -436,7 +441,7 @@ export function Minimap({
   }, []);
   useEffect(() => {
     const canvas = ref.current!;
-    const images = [sprites(), sprites("regionalBuildings")];
+    const images = [sprites(), sprites("regionalBuildings"), sprites("campBuildings")];
     const draw = () => {
       const key = `${size}:${height}:${extent}:${large}:${regional}`;
       let map = backing.current;

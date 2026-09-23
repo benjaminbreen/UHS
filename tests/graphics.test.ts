@@ -9,6 +9,7 @@ import {
 import { findPath } from "../src/core/pathfinding";
 import buildings from "../src/render/generated/buildings.json" with { type: "json" };
 import regionalBuildings from "../src/render/generated/regional-buildings.json" with { type: "json" };
+import campBuildings from "../src/render/generated/camp-buildings.json" with { type: "json" };
 import civic from "../src/render/generated/civic.json" with { type: "json" };
 import {
   buildingScaleWeight,
@@ -31,7 +32,9 @@ it("every construction family has usable entrance geometry and matching compiled
             ? buildings
             : p.sprite in regionalBuildings.frames
               ? regionalBuildings
-              : civic;
+              : p.sprite in campBuildings.frames
+                ? campBuildings
+                : civic;
         const source = (
           sheet.frames as Record<
             string,

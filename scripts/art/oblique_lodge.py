@@ -193,8 +193,8 @@ class ObliqueLodge(ObliqueSteppe):
 
     # -- the maloca ---------------------------------------------------------
 
-    def thatch(self, lit, rows_from):
-        ramp = self.pal['palm']
+    def thatch(self, lit, rows_from, ramp_name='palm'):
+        ramp = self.pal[ramp_name]
 
         def sh(X, Y, Z, x, y):
             k = (Y - rows_from) / 4.2
@@ -314,8 +314,124 @@ class ObliqueLodge(ObliqueSteppe):
             for i in range(10):
                 for j in range(3): self.put(self.P(x1, 0, 0)[0] + 3 + i, ground - j, hide[3 - j % 2])
 
+    # -- the Iroquoian longhouse ---------------------------------------------
+
+    def bark(self, lit, along):
+        ramp = self.pal['elm-bark']
+
+        def sh(X, Y, Z, x, y):
+            u = along(X, Z)
+            sheet = int(u // 9)
+            c = lit + ((h2(sheet, int(Y // 10)) % 3) - 1) * .5
+            if u % 9 < 1: c -= 1.5
+            if int(Y) % 10 == 0: c -= 1
+            if h2(x // 2, y, 7) % 13 == 0: c -= .8
+            return ramp_at(ramp, c)
+        return sh
+
+    def render_longhouse(self):
+        """Elm bark over a frame of bent saplings, the roof a long barrel
+        vault with a smoke hole over each pair of hearths, doors at the ends."""
+        W, D = self.fw * 16, self.D
+        wh, arch = 17, 10
+        pole = self.pal['wood']
+        steps = 8
+        for k in range(steps):
+            z0, z1 = D * k / steps, D * (k + 1) / steps
+            y0 = wh + arch * math.sin(math.pi * z0 / D)
+            y1 = wh + arch * math.sin(math.pi * z1 / D)
+            self.face([(W, 0, z0), (W, 0, z1), (W, y1, z1), (W, y0, z0)], self.bark(2.4, lambda X, Z: Z * 3))
+        self.front(0, W, 0, wh, 0, self.bark(3.6, lambda X, Z: X))
+        for k in range(steps):
+            z0, z1 = D * k / steps, D * (k + 1) / steps
+            y0 = wh + arch * math.sin(math.pi * z0 / D)
+            y1 = wh + arch * math.sin(math.pi * z1 / D)
+            lit = 4.4 if k < steps / 2 else 3.2
+            self.face([(-1, y0, z0), (W + 1, y0, z0), (W + 1, y1, z1), (-1, y1, z1)],
+                      self.bark(lit, lambda X, Z: X * .9 + 4))
+        # Poles laid along the roof to hold the bark down.
+        for zf in (.2, .45, .75):
+            z = D * zf
+            y = wh + arch * math.sin(math.pi * zf)
+            a, b = self.P(-1, y + .5, z), self.P(W + 1, y + .5, z)
+            self.d.line((a, b), fill=pole[1])
+        for X in range(8, W - 6, 26):
+            hx, hy = self.P(X + 4, wh + arch, D / 2)
+            self.d.rectangle((hx - 3, hy - 1, hx + 3, hy + 1), fill=INTERIOR[0])
+            self.d.line((hx - 4, hy - 2, hx + 4, hy - 2), fill=self.pal['elm-bark'][4])
+            self.smoke.append([hx, hy - 3, 'vent'])
+        self.roof_top = self.P(0, wh + arch, D / 2)[1] - 8
+        # The door at the east end, under a bark hood.
+        cx = max(10, min(W - 9, self.r['entrance'][0] * 16 + 8))
+        gx, ground = self.P(cx, 0, 0)
+        self.doorway(gx, ground, pole)
+        top = ground - DOOR_H - 3
+        bark = self.pal['elm-bark']
+        for i in range(-8, 9):
+            for j in range(3 - abs(i) // 4):
+                self.put(gx + i, top - j, bark[4 if j == 0 else 2])
+
+    # -- the Ainu chise ------------------------------------------------------
+
+    def storehouse(self, x, ground):
+        """The pu: a little thatched store on four posts, out of reach of the
+        bears and the damp, a notched log leaning up to its door."""
+        wood, reed = self.pal['wood'], self.pal['reed']
+        for dx in (0, 13):
+            for k in range(11):
+                self.put(x + dx, ground - k, wood[2]); self.put(x + dx + 1, ground - k, wood[1])
+        self.d.rectangle((x - 1, ground - 20, x + 15, ground - 11), fill=reed[3])
+        for xx in range(x - 1, x + 16, 2): self.d.line((xx, ground - 20, xx, ground - 11), fill=reed[2])
+        for j in range(8):
+            self.d.line((x - 3 + j, ground - 21 - j, x + 17 - j, ground - 21 - j), fill=reed[4 if j < 3 else 3])
+        for k in range(12):
+            self.put(x - 4 + k // 2, ground - k, wood[3])
+            if k % 3 == 0: self.put(x - 3 + k // 2, ground - k, wood[1])
+
+    def render_chise(self):
+        """Walls and roof alike of bundled reed and grass over a pole frame,
+        a hipped roof with smoke holes at the gable ends, the porch on the
+        west, the raised store beside it."""
+        W, D = self.fw * 16, self.D
+        wh, rise = 18, 17
+        o = 3
+        zc = D / 2
+        a = W * .18
+        L, R = -o, W + o
+        ridge = wh + rise
+        reed = self.pal['reed']
+
+        def walls(lit):
+            def sh(X, Y, Z, x, y):
+                u = int(X if lit > 3 else Z * 2)
+                c = lit + (.6 if u % 3 == 0 else -.5 if u % 3 == 2 else 0)
+                if int(Y) in (6, 13): c -= 1.2
+                if h2(u, int(Y) // 4) % 9 == 0: c -= .6
+                return ramp_at(reed, c)
+            return sh
+        self.front(0, W, 0, wh, 0, walls(3.8))
+        self.side(W, 0, wh, 0, D, walls(2.6))
+        self.face([(R, wh, -o), (R, wh, D + o), (R - a, ridge, zc)], self.thatch(2, wh, 'reed'))
+        self.face([(L, wh, -o), (R, wh, -o), (R - a, ridge, zc), (L + a, ridge, zc)], self.thatch(3, wh, 'reed'))
+        r0, r1 = self.P(L + a, ridge, zc), self.P(R - a, ridge, zc)
+        for k, c in ((-2, reed[4]), (-1, reed[3]), (0, reed[1])):
+            self.d.line((r0[0], r0[1] + k, r1[0], r1[1] + k), fill=c)
+        for ex in (r0[0] + 1, r1[0] - 3):
+            self.d.polygon([(ex, r0[1] - 1), (ex + 2, r0[1] - 1), (ex + 1, r0[1] + 2)], fill=INTERIOR[0])
+        self.smoke.append([r0[0] + 2, r0[1] - 3, 'vent'])
+        self.roof_top = r0[1] - 6
+        # The porch on the west end: its own small hipped roof, the door in it.
+        gx, ground = self.P(10, 0, -4)
+        self.front(2, 18, 0, 25, -4, walls(4))
+        self.side(18, 0, 25, -4, 0, walls(2.6))
+        self.face([(0, 25, -6), (20, 25, -6), (16, 32, -2), (4, 32, -2)], self.thatch(3, 25, 'reed'))
+        self.doorway(gx, ground, self.pal['wood'])
+        if 'storehouse' in self.gear:
+            self.storehouse(self.P(W, 0, 0)[0] + 4, ground)
+
     def render(self):
-        {'plank': self.render_plank, 'maloca': self.render_maloca, 'enkang': self.render_enkang}[self.form]()
+        {'plank': self.render_plank, 'maloca': self.render_maloca, 'enkang': self.render_enkang,
+         'longhouse': self.render_longhouse, 'chise': self.render_chise}[self.form]()
         self.d.line((self.ox, self.G + 1, self.ox + self.fw * 16 + self.sw // 2, self.G + 1), fill=(30, 34, 26, 150))
         box = self.im.getbbox()
         cut = max(0, box[1] - 2)

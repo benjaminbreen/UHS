@@ -5,6 +5,7 @@ import { createWorld } from "../src/world/generate";
 import atlas from "../src/render/generated/atlas.json" with { type: "json" };
 import buildings from "../src/render/generated/buildings.json" with { type: "json" };
 import regionalBuildings from "../src/render/generated/regional-buildings.json" with { type: "json" };
+import campBuildings from "../src/render/generated/camp-buildings.json" with { type: "json" };
 import civic from "../src/render/generated/civic.json" with { type: "json" };
 it("resolves every asset and item used by both generated packs", () => {
   // Buildings pack to their own atlas; a sprite may be in either.
@@ -12,6 +13,7 @@ it("resolves every asset and item used by both generated packs", () => {
     ...Object.keys(atlas.frames),
     ...Object.keys(buildings.frames),
     ...Object.keys(regionalBuildings.frames),
+    ...Object.keys(campBuildings.frames),
     ...Object.keys(civic.frames),
   ]);
   for (const pack of Object.values(packs)) {

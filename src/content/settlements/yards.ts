@@ -329,7 +329,7 @@ const shoreYard: YardKit = {
 export function yardKit(setting: WorldSetting | undefined): YardKit {
   if (!setting) return plain;
   const way = lifeway(setting);
-  if (way)
+  if (way && way.mode !== "mixed-farming")
     return way.mode === "nomadic-pastoral"
       ? encampment
       : way.mode === "sedentary-foraging"

@@ -2050,6 +2050,7 @@ export class WorldScene extends Phaser.Scene {
    * knows what it holds. */
   private buildingFrames?: Set<string>;
   private regionalBuildingFrames?: Set<string>;
+  private campBuildingFrames?: Set<string>;
   private civicFrames?: Set<string>;
   /** A coat is the species' frames with the colours swapped, built the first
    * time an animal wears it. Frames keep their names, with the coat in them. */
@@ -2129,6 +2130,11 @@ export class WorldScene extends Phaser.Scene {
       );
     if (this.buildingFrames?.has(frame)) return "buildings";
     if (this.regionalBuildingFrames?.has(frame)) return "regional-buildings";
+    if (!this.campBuildingFrames && this.textures.exists("camp-buildings"))
+      this.campBuildingFrames = new Set(
+        this.textures.get("camp-buildings").getFrameNames(),
+      );
+    if (this.campBuildingFrames?.has(frame)) return "camp-buildings";
     if (this.civicFrames?.has(frame)) return "civic";
     if (
       frame.startsWith("precinct-") &&

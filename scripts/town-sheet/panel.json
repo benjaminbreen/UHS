@@ -71,6 +71,36 @@
     "radius": 40
   },
   {
+    "name": "iroquoia-1500",
+    "query": "Iroquois 1500",
+    "radius": 40
+  },
+  {
+    "name": "lenape-1400",
+    "query": "New York 1400",
+    "radius": 50
+  },
+  {
+    "name": "new-guinea-1500",
+    "query": "New Guinea 1500",
+    "radius": 50
+  },
+  {
+    "name": "ethiopia-1500",
+    "query": "Ethiopia 1500",
+    "radius": 50
+  },
+  {
+    "name": "ireland-800",
+    "query": "Ireland 800",
+    "radius": 55
+  },
+  {
+    "name": "hokkaido-1500",
+    "query": "Hokkaido 1500",
+    "radius": 40
+  },
+  {
     "name": "sydney-1500",
     "query": "Sydney 1500",
     "radius": 30

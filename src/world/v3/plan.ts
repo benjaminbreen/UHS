@@ -163,6 +163,55 @@ export function planSettlement(
   const campLots: { point: Point; nx: number; ny: number; frame?: string }[] =
     [];
   const campFences: (() => void)[] = [];
+  const oval = (cx: number, cy: number, rx: number, ry: number) =>
+    (x: number, y: number) =>
+      ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2 <= 1;
+  /** A camp fence round an oval, laid with the yard fences once the houses
+   * stand, gated to the south and broken wherever a path crosses. */
+  const thorn = (
+    inside: (x: number, y: number) => boolean,
+    band: (x: number, y: number) => boolean,
+    area: Rect,
+    gateX: number,
+    gateY: number,
+    boundary: Boundary,
+    parcel: number,
+  ) =>
+    campFences.push(() =>
+      encloseYard(
+        area,
+        (x, y) => !inside(x, y) || !band(x, y),
+        (x, y) =>
+          !inside(x, y) &&
+          !(y > gateY && Math.abs(x - gateX) <= 1) &&
+          !roads.has(cellKey(x, y)),
+        () => undefined,
+        parcel,
+        "x",
+        boundary,
+      ),
+    );
+  /** A fence round an oval of ground, drawn as a band just inside its edge. */
+  const fenceOval = (
+    cx: number,
+    cy: number,
+    rx: number,
+    ry: number,
+    boundary: Boundary,
+    parcel: number,
+  ) => {
+    const inside = oval(cx, cy, rx, ry),
+      inner = oval(cx, cy, rx - 2, ry - 2);
+    thorn(
+      inside,
+      (x, y) => !inner(x, y),
+      { x: cx - rx - 1, y: cy - ry - 1, w: rx * 2 + 3, h: ry * 2 + 3 },
+      cx,
+      cy,
+      boundary,
+      parcel,
+    );
+  };
   // Farmland reaches past the claim, and so must the ground a path may use.
   // A town farms once its region does, whatever its own profile says of
   // household fields; a camp or a hunting band does not.
@@ -1291,6 +1340,66 @@ export function planSettlement(
       connect(c, selected.points[0], "bridge-approach-a");
       connect(c, selected.points.at(-1)!, "bridge-approach-b");
     }
+  } else if (camp?.camp.form === "palisade") {
+    // Longhouses in parallel rows, doors at their east ends, inside a ring of
+    // palisade gated to the south; the cornfields lie outside.
+    const { groups, perGroup, perimeter } = camp.camp;
+    const width = buildingModel(pack.buildings[0]).footprint[0];
+    const rows =
+      groups[0] + Math.floor(rand("rows") * (groups[1] - groups[0] + 1));
+    let widest = 0;
+    for (let row = 0; row < rows; row++) {
+      const k =
+        perGroup[0] +
+        Math.floor(rand("row-houses", row) * (perGroup[1] - perGroup[0] + 1));
+      widest = Math.max(widest, k);
+      for (let t = 0; t < k; t++) {
+        const point = {
+          x: c.x + Math.round((t - (k - 1) / 2) * (width + 4) + (row % 2) * 3),
+          y: c.y - 4 - row * 9,
+        };
+        for (const dx of [0, -2, 2])
+          campLots.push({ point: { x: point.x + dx, y: point.y }, nx: 0, ny: -1 });
+      }
+    }
+    if (perimeter)
+      fenceOval(
+        c.x,
+        c.y - 8 - Math.round(((rows - 1) * 9) / 2),
+        Math.round((widest * (width + 4)) / 2) + 8,
+        Math.round((rows * 9) / 2) + 9,
+        perimeter,
+        90003,
+      );
+  } else if (camp?.camp.form === "hamlets") {
+    // Farms spread over their land: a few houses together, each group with
+    // its gardens beside it and, where the rule has one, its own bank.
+    const { groups, perGroup, spacing, enclosure } = camp.camp;
+    const n =
+      groups[0] + Math.floor(rand("hamlets") * (groups[1] - groups[0] + 1));
+    const start = rand("hamlet-angle") * Math.PI * 2;
+    for (let g = 0, placed = 0; g < n * 3 && placed < n; g++) {
+      const a = start + g * ((Math.PI * 2) / n + 0.4);
+      const d = g === 0 ? 16 : spacing * (0.8 + rand("hamlet-reach", g) * 0.6);
+      const q = {
+        x: c.x + Math.round(Math.cos(a) * d * 1.2),
+        y: c.y + Math.round(Math.sin(a) * d),
+      };
+      if (!dry({ x: q.x - 1, y: q.y - 1, w: 3, h: 3 }, false, { ...q, w: 1, h: 1 }))
+        continue;
+      if (!connect(c, q, `hamlet-track${g}`, 0)) continue;
+      placed++;
+      const k =
+        perGroup[0] +
+        Math.floor(rand("hamlet-houses", g) * (perGroup[1] - perGroup[0] + 1));
+      for (let t = 0; t < k; t++) {
+        const point = { x: q.x + Math.round((t - (k - 1) / 2) * 8), y: q.y };
+        for (const dx of [0, -2, 2])
+          campLots.push({ point: { x: point.x + dx, y: point.y }, nx: 0, ny: -1 });
+      }
+      if (enclosure)
+        fenceOval(q.x, q.y - 4, Math.round((k * 8) / 2) + 6, 9, enclosure, 90100 + g);
+    }
   } else if (camp?.camp.form === "ring") {
     // Houses round the plaza or the fold, as a horseshoe open to the south
     // (see CampForm); the men's house, where there is one, at the middle.
@@ -1314,32 +1423,6 @@ export function planSettlement(
     }
     // The fold is kept clear before any house is set; its thorn, and the
     // fence round the whole homestead, go up with the yard fences.
-    const oval = (cx: number, cy: number, rx: number, ry: number) =>
-      (x: number, y: number) =>
-        ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2 <= 1;
-    const thorn = (
-      inside: (x: number, y: number) => boolean,
-      band: (x: number, y: number) => boolean,
-      area: Rect,
-      gateX: number,
-      gateY: number,
-      boundary: Boundary,
-      parcel: number,
-    ) =>
-      campFences.push(() =>
-        encloseYard(
-          area,
-          (x, y) => !inside(x, y) || !band(x, y),
-          (x, y) =>
-            !inside(x, y) &&
-            !(y > gateY && Math.abs(x - gateX) <= 1) &&
-            !roads.has(cellKey(x, y)),
-          () => undefined,
-          parcel,
-          "x",
-          boundary,
-        ),
-      );
     if (camp.camp.fold) {
       const fx = c.x,
         fy = c.y - Math.round(rho * 0.45),
@@ -1352,25 +1435,17 @@ export function planSettlement(
       });
       thorn(fold, () => true, area, fx, fy, camp.camp.fold, 90001);
     }
-    if (camp.camp.perimeter) {
-      // Round the houses, which stand from the hearth's line up to a
-      // house's depth past the top of the ring.
-      const px = c.x,
-        py = c.y - Math.round(rho / 2) - 3,
-        rx = Math.round(rho * 1.35) + 7,
-        ry = Math.round(rho / 2) + 9;
-      const inside = oval(px, py, rx, ry),
-        inner = oval(px, py, rx - 2, ry - 2);
-      thorn(
-        inside,
-        (x, y) => !inner(x, y),
-        { x: px - rx - 1, y: py - ry - 1, w: rx * 2 + 3, h: ry * 2 + 3 },
-        px,
-        py,
+    // Round the houses, which stand from the hearth's line up to a house's
+    // depth past the top of the ring.
+    if (camp.camp.perimeter)
+      fenceOval(
+        c.x,
+        c.y - Math.round(rho / 2) - 3,
+        Math.round(rho * 1.35) + 7,
+        Math.round(rho / 2) + 9,
         camp.camp.perimeter,
         90002,
       );
-    }
     const large = pack.buildings.find((b) => b.includes("-large-"));
     if (centre && large)
       campLots.push({ point: { x: c.x, y: c.y - 4 }, nx: 0, ny: -1, frame: large });

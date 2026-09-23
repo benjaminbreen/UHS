@@ -13,6 +13,7 @@ const sheets = {
   props: "/props/atlas",
   buildings: "/packs/buildings",
   regionalBuildings: "/packs/regional-buildings",
+  campBuildings: "/packs/camp-buildings",
   civic: "/packs/civic",
   atlas: "/packs/atlas",
 } as const;

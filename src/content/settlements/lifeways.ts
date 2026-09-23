@@ -27,7 +27,12 @@ export type CampForm =
    * would face the wrong way. */
   | "ring"
   /** Houses in a row above the beach, facing the water. */
-  | "shore-row";
+  | "shore-row"
+  /** Farms of one to three houses spread across their own land, each with
+   * its gardens beside it, and sometimes its own bank or fence. */
+  | "hamlets"
+  /** Long houses in parallel rows inside a palisade, fields outside. */
+  | "palisade";
 
 export type Lifeway = {
   id: string;
@@ -36,7 +41,10 @@ export type Lifeway = {
     | "nomadic-pastoral"
     | "mobile-foraging"
     | "sedentary-foraging"
-    | "horticultural";
+    | "horticultural"
+    /** Fields and stock, dispersed rather than nucleated: keeps the ordinary
+     * yard and tool kit. */
+    | "mixed-farming";
   culture?: CultureId;
   from: number;
   to: number;
@@ -60,6 +68,12 @@ export type Lifeway = {
     fold?: Boundary;
     /** The fence round the whole camp, with a gate to the south. */
     perimeter?: Boundary;
+    /** The bank or fence round each hamlet. */
+    enclosure?: Boundary;
+    /** Gardens beside the houses rather than out beyond them. */
+    gardens?: boolean;
+    /** Stock kept at the houses. */
+    livestock?: boolean;
   };
   evidence: {
     status: "documented" | "inferred" | "fictional";
@@ -190,6 +204,113 @@ export const lifeways: readonly Lifeway[] = [
         "https://en.wikipedia.org/wiki/Kuikuro_people",
         "https://doi.org/10.1126/science.1086442",
       ],
+    },
+  },
+  {
+    id: "iroquoian",
+    label: "Palisaded village",
+    mode: "horticultural",
+    culture: "other-indigenous-american",
+    from: 1300,
+    to: 1700,
+    bounds: [-81, 41.8, -73.8, 46.5],
+    share: { of: "farming", min: 0.3 },
+    camp: { form: "palisade", groups: [2, 3], perGroup: [2, 3], spacing: 0, perimeter: "palisade" },
+    evidence: {
+      status: "documented",
+      note: "Iroquoian towns of the fifteenth and sixteenth centuries were rows of bark longhouses, each the home of a matrilineage, inside one or more rings of palisade, with the cornfields outside the walls.",
+      sources: [
+        "https://en.wikipedia.org/wiki/Iroquois",
+        "https://en.wikipedia.org/wiki/Longhouse",
+      ],
+    },
+  },
+  {
+    id: "eastern-algonquian",
+    label: "Wigwam hamlets",
+    mode: "horticultural",
+    culture: "other-indigenous-american",
+    from: 1000,
+    to: 1700,
+    bounds: [-80, 34, -66, 45],
+    share: { of: "farming", min: 0.3 },
+    camp: { form: "hamlets", groups: [4, 6], perGroup: [1, 3], spacing: 26, gardens: true },
+    evidence: {
+      status: "documented",
+      note: "Lenape and other coastal Algonquian peoples lived in scattered hamlets of bark- and mat-covered wigwams, each among its own maize fields, gathering in larger towns only in some seasons.",
+      sources: ["https://en.wikipedia.org/wiki/Lenape"],
+    },
+  },
+  {
+    id: "new-guinea-highlands",
+    label: "Highland hamlets",
+    mode: "horticultural",
+    culture: "australian-pacific",
+    from: -7000,
+    to: 1950,
+    bounds: [136, -11, 151, -1],
+    share: { of: "farming", min: 0.4 },
+    camp: { form: "hamlets", groups: [4, 6], perGroup: [2, 3], spacing: 28, gardens: true, livestock: true },
+    evidence: {
+      status: "documented",
+      note: "Highland people lived not in villages but in hamlets strung along the ridges, a men's house and the women's houses where the pigs were kept, each group beside its ditched and fenced gardens.",
+      sources: ["https://en.wikipedia.org/wiki/Papua_New_Guinea_Highlands"],
+    },
+  },
+  {
+    id: "ethiopian-highlands",
+    label: "Highland homesteads",
+    mode: "mixed-farming",
+    culture: "east-southern-african",
+    from: -500,
+    to: 1950,
+    bounds: [35, 6, 42, 15],
+    share: { of: "farming", min: 0.35 },
+    camp: { form: "hamlets", groups: [4, 6], perGroup: [1, 3], spacing: 26, gardens: true, livestock: true },
+    evidence: {
+      status: "documented",
+      note: "The plough farmers of the Ethiopian highlands lived in homesteads of round thatched houses scattered over the land they farmed, a church on the hill as the only centre.",
+      sources: ["https://en.wikipedia.org/wiki/Tukul"],
+    },
+  },
+  {
+    id: "irish-ringforts",
+    label: "Ringforts",
+    mode: "mixed-farming",
+    culture: "european",
+    from: 500,
+    to: 1100,
+    bounds: [-10.7, 51.4, -5.4, 55.4],
+    share: { of: "farming", min: 0.2 },
+    camp: {
+      form: "hamlets",
+      groups: [3, 5],
+      perGroup: [1, 3],
+      spacing: 30,
+      gardens: true,
+      livestock: true,
+      enclosure: "bund",
+    },
+    evidence: {
+      status: "documented",
+      note: "Early medieval Ireland had no villages: a free farmer's household lived in a rath, a round earthen bank and ditch enclosing its houses and the cattle at night, scattered one to a holding across the country; some forty-five thousand survive.",
+      sources: ["https://en.wikipedia.org/wiki/Ringfort"],
+    },
+  },
+  {
+    id: "ainu",
+    label: "Kotan",
+    mode: "sedentary-foraging",
+    culture: "east-asian",
+    from: 700,
+    to: 1870,
+    bounds: [139, 41.3, 146, 46],
+    share: { of: "fishing", min: 0.35 },
+    camp: { form: "shore-row", groups: [1, 1], perGroup: [3, 6], spacing: 0 },
+    evidence: {
+      status: "documented",
+      note: "An Ainu kotan was a handful of thatched houses strung along a river terrace above the salmon runs, each with its raised storehouse and the bear cage, and the next kotan some way downstream.",
+      sources: ["https://en.wikipedia.org/wiki/Chise", "https://en.wikipedia.org/wiki/Ainu_people"],
     },
   },
   {

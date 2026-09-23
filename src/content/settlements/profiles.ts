@@ -129,12 +129,9 @@ export function settlementProfile(
           : s.placeId === "normandy"
             ? "roadside"
             : "clustered");
-  // A regional urban onset is continental; a camp in its hinterland is
-  // still a camp.
-  const way =
-    (!town || s.settlement === "camp") && !s.settlementPattern
-      ? lifeway(s)
-      : undefined;
+  // A regional urban onset is continental; a village or camp in its
+  // hinterland keeps its own lifeway, which never applies to a city or port.
+  const way = !s.settlementPattern ? lifeway(s) : undefined;
   const pattern: Pattern = way
     ? way.camp.form === "band"
       ? "band"
@@ -146,8 +143,9 @@ export function settlementProfile(
   if (way) {
     const { groups, perGroup } = way.camp;
     p.buildings = groups[1] * perGroup[1];
-    p.livestock = way.mode === "nomadic-pastoral";
-    p.outfields = way.mode === "horticultural";
+    p.livestock = way.mode === "nomadic-pastoral" || !!way.camp.livestock;
+    p.outfields = way.mode === "horticultural" && !way.camp.gardens;
+    if (way.camp.gardens) p.fields = "household";
     return home ? p : { ...p, buildings: perGroup[1], radius: 60 };
   }
   if (!home) {

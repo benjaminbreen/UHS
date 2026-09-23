@@ -530,7 +530,7 @@ export function propKit(pack: Pack): PropKit {
   // manioc and the herds are stored on the ground and the hoof, not in a
   // granary.
   const way = lifeway(pack.setting);
-  if (way) {
+  if (way && way.mode !== "mixed-farming") {
     const foraging = /foraging/.test(way.mode);
     const settled = foraging
       ? /^(granary|spade|sickle|pick|shovel|rake|pitchfork|scythe|plough|farmCart|vat|grainPit|hitchingPost|well|roofedWell|townWell|pump|privy|warpLoom|beehive|logHive|pipeHive|stockPen)/
