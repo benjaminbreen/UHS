@@ -301,6 +301,30 @@
         "gear": ["storehouse"]
       }
     },
+    "inuit-snow": {
+      "label": "Inuit snowhouse",
+      "wall": "mud-plaster",
+      "roofMaterial": "thatch",
+      "roofStyle": "shelter",
+      "forager": {
+        "forms": ["snowhouse"],
+        "covers": ["snow"],
+        "gear": ["kayak", "meat-cache", "sled"],
+        "windbreak": false
+      }
+    },
+    "inuit-sod": {
+      "label": "Inuit sod house",
+      "wall": "mud-plaster",
+      "roofMaterial": "thatch",
+      "roofStyle": "shelter",
+      "forager": {
+        "forms": ["sodhouse"],
+        "covers": ["sod"],
+        "gear": ["kayak", "meat-cache", "sled"],
+        "windbreak": false
+      }
+    },
     "algonquian": {
       "label": "Algonquian wigwam",
       "wall": "mud-plaster",
@@ -596,7 +620,10 @@
     "ember": ["#3a0e08", "#6a1a0c", "#a02e10", "#d24e18", "#f08a2a", "#fcc860"],
     "mat": ["#3a2e1c", "#5e4a2c", "#86703e", "#a8925a", "#c4ae78", "#dccb9c"],
     "shell": ["#6a625a", "#948a7e", "#bab0a2", "#d8d0c2", "#ece6da", "#faf6ee"],
-    "mat": ["#3a3020", "#5c4c32", "#827048", "#a69262", "#c4b080", "#dccba0"]
+    "mat": ["#3a3020", "#5c4c32", "#827048", "#a69262", "#c4b080", "#dccba0"],
+    "snow": ["#4a5a70", "#7488a2", "#a2b4c8", "#c8d6e4", "#e2eaf2", "#f6f9fc"],
+    "sod": ["#2a2a20", "#44402e", "#62583e", "#7e7250", "#9a8e6a", "#b4aa88"],
+    "turf-grass": ["#2a3220", "#3e4a2c", "#566238", "#6e7a46", "#8a9458", "#a6ae70"]
   },
   "lodgePalette": {
     "cedar": ["#2c211c", "#4a3830", "#6d5446", "#8f725f", "#ad927c", "#c9b09a"],
@@ -709,7 +736,7 @@
     "forager-shelter": {
       "source": "study-timber",
       "label": "Shelter",
-      "profiles": ["aboriginal-bark", "aboriginal-arid", "san", "great-basin", "khoikhoi", "algonquian", "forager"],
+      "profiles": ["aboriginal-bark", "aboriginal-arid", "san", "great-basin", "khoikhoi", "algonquian", "inuit-snow", "inuit-sod", "forager"],
       "function": "band-household",
       "description": "A family's shelter of bark, grass, spinifex or brush over a frame of bent poles, open toward its own fire. Built in an afternoon and left when the band moved on. Forms and covers are profile-driven; illustrative.",
       "sizes": {

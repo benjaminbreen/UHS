@@ -314,6 +314,22 @@ export const lifeways: readonly Lifeway[] = [
     },
   },
   {
+    id: "inuit",
+    label: "Winter village",
+    mode: "sedentary-foraging",
+    culture: "other-indigenous-american",
+    from: 1000,
+    to: 1950,
+    bounds: [-170, 55, -10, 84],
+    share: { of: "fishing", min: 0.3 },
+    camp: { form: "shore-row", groups: [1, 1], perGroup: [3, 5], spacing: 0 },
+    evidence: {
+      status: "documented",
+      note: "From the Thule onward, winter was spent in a few houses on a shore by the sea ice: sod, stone and whalebone in Alaska, Labrador and Greenland, snow blocks on the central Arctic coast, each entered by a sunken tunnel that kept the cold out.",
+      sources: ["https://en.wikipedia.org/wiki/Qarmaq", "https://en.wikipedia.org/wiki/Igloo"],
+    },
+  },
+  {
     id: "mobile-foragers",
     label: "Foraging band camp",
     mode: "mobile-foraging",

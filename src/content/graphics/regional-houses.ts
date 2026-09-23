@@ -153,6 +153,13 @@ export function lifewayHouses(
       return frames("forager-shelter", "algonquian");
     case "ainu":
       return frames("ainu-chise", "ainu");
+    case "inuit":
+      // Snow houses on the central Arctic coast; sod, stone and whalebone
+      // where driftwood and whales were to hand, west and east of it.
+      return frames(
+        "forager-shelter",
+        setting.lon > -125 && setting.lon < -70 ? "inuit-snow" : "inuit-sod",
+      );
     case "new-guinea-highlands":
     case "ethiopian-highlands":
     case "irish-ringforts":

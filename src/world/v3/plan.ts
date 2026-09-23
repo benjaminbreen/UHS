@@ -615,7 +615,9 @@ export function planSettlement(
     urban && composed ? { ...publicArea, w: 0, h: 0 } : publicArea,
     (x, y) => {
       if (sample(x, y).water >= 0 && (!site.accepts || site.accepts(x, y))) {
-        setSurface(cellKey(x, y), profile.paved ? "paving" : "dirt", 9);
+        // A camp's middle is trodden grass round the fire, not a square.
+        if (!camp)
+          setSurface(cellKey(x, y), profile.paved ? "paving" : "dirt", 9);
         plan.reserved.add(cellKey(x, y));
         roads.add(cellKey(x, y));
       }
@@ -633,7 +635,12 @@ export function planSettlement(
     waterStand = { x: c.x + 3, y: c.y - 2 };
   plan.objects.push({
     id: `${site.id}-water`,
-    name: "Shared water source",
+    name:
+      camp?.mode === "nomadic-pastoral"
+        ? "Watering place"
+        : camp && camp.mode !== "mixed-farming"
+          ? "Waterhole"
+          : "Shared water source",
     kind: "well",
     pos: pos(water),
     sprite: "well",
@@ -2715,6 +2722,9 @@ export function planSettlement(
     }
     const shopfront =
       lot.quarter === "market" || lot.quarter === "craft" || i % 4 === 1;
+    // In a camp a house is called what it is: a felt tent, a shelter, a
+    // longhouse, whoever's trade is practised in it.
+    const dwelling = model.label.split(" · ")[0];
     if (lot.venue)
       plan.venues!.push({ venue: lot.venue, pos: door, placeId: id });
     // Age out from the middle: the lots by the crossroads were built on first
@@ -2747,7 +2757,11 @@ export function planSettlement(
       id,
       name: lot.venue
         ? lot.venue.label
-        : lot.quarter === "market"
+        : camp
+          ? shopfront
+            ? `${role}'s ${dwelling.toLowerCase()}`
+            : dwelling
+          : lot.quarter === "market"
           ? `${role}'s shop`
           : lot.quarter === "elite"
             ? "Townhouse"
@@ -2964,7 +2978,11 @@ export function planSettlement(
       {
         id: `${id}-exit`,
         name:
-          model.opening === "roof-hatch" ? "Roof ladder" : "Door to the street",
+          model.opening === "roof-hatch"
+            ? "Roof ladder"
+            : camp
+              ? "Way out"
+              : "Door to the street",
         kind: "exit",
         pos: { x: 6, y: 9, space: id },
         sprite: model.opening === "roof-hatch" ? "ladder" : "door-open",
