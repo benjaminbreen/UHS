@@ -58,7 +58,12 @@ describe("original soundtrack scores", () => {
   });
   it("fills every bar of the place and era themes in every time of day", () => {
     for (const theme of culturalThemes) {
-      for (const phrase of [...theme.melody, ...theme.bridge])
+      for (const phrase of [
+        ...theme.melody,
+        ...theme.bridge,
+        ...(theme.groove ?? []),
+        ...(theme.bridgeGroove ?? []),
+      ])
         expect(
           phrase
             .split(" ")
@@ -87,7 +92,7 @@ describe("original soundtrack scores", () => {
     const later = culturalMusic("southeast-asian", 1850);
     expect(later.direct).toEqual([]);
     expect(later.family.map((t) => t.id)).toContain("gongs-of-trowulan");
-    expect(culturalMusic("andean", 1500).family).toEqual([]);
+    expect(culturalMusic("australian-pacific", 1500).family).toEqual([]);
   });
   it("maps the provisional calendar at boundaries and wraps the year", () => {
     expect(worldMusicSlot(0)).toEqual({ season: "spring", period: "night" });

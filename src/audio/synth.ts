@@ -56,9 +56,9 @@ function instrument(
   const duration =
     voice === "brush" || voice === "shaker"
       ? 0.25
-      : voice === "kick" || voice === "wood"
+      : voice === "kick" || voice === "wood" || voice === "sistrum"
         ? 0.5
-        : voice === "frame" || voice === "mridanga"
+        : voice === "frame" || voice === "mridanga" || voice === "udu"
           ? 0.9
           : voice === "strings" ||
               voice === "flute" ||
@@ -68,6 +68,8 @@ function instrument(
               voice === "drone" ||
               voice === "gong" ||
               voice === "sho" ||
+              voice === "throat" ||
+              voice === "whistle" ||
               voice === "bronze"
             ? 6
             : 4;
@@ -243,6 +245,50 @@ function instrument(
         0.28 * Math.sin(bend * 2) * Math.exp(-t * 6) +
         0.16 * Math.sin(bend * 3) * Math.exp(-t * 9) +
         random() * 0.2 * Math.exp(-t * 70);
+    } else if (voice === "sub") {
+      sample = Math.tanh(
+        1.4 * (0.7 * Math.sin(phase) + 0.15 * Math.sin(2 * phase)),
+      );
+      sample *= 0.6 * Math.exp(-t * 0.8);
+    } else if (voice === "udu") {
+      // Water drum: the pitch sags a few percent after the strike.
+      const bend =
+        2 * Math.PI * frequency * (t + 0.006 * (1 - Math.exp(-t * 25)));
+      sample =
+        0.7 * Math.sin(bend) * Math.exp(-t * 5) +
+        0.12 * Math.sin(bend * 2) * Math.exp(-t * 9) +
+        random() * 0.08 * Math.exp(-t * 80);
+    } else if (voice === "kalimba") {
+      const tone =
+        0.6 * Math.sin(phase) * Math.exp(-t * 2.2) +
+        0.12 * Math.sin(phase * 6.3) * Math.exp(-t * 14);
+      // Shells or bottle caps on the soundboard rattle with the tine.
+      sample = tone + (tone > 0 ? breath * 0.1 * Math.exp(-t * 3) : 0);
+    } else if (voice === "throat") {
+      for (let harmonic = 1; harmonic <= 24; harmonic++) {
+        const f = frequency * harmonic;
+        if (f > ctx.sampleRate * 0.45) continue;
+        const formant =
+          1 / (1 + ((f - 650) / 250) ** 2) +
+          0.6 / (1 + ((f - 1600) / 120) ** 2);
+        sample +=
+          ((0.2 + formant) * Math.sin(phase * harmonic)) / harmonic ** 0.7;
+      }
+      sample *= 0.18;
+    } else if (voice === "whistle") {
+      const vibrato =
+        0.012 * Math.sin(2 * Math.PI * 5.5 * t) * Math.min(1, t * 1.2);
+      sample =
+        0.55 * Math.sin(phase + vibrato) +
+        0.05 * Math.sin(2 * phase) +
+        breath * 0.03;
+    } else if (voice === "sistrum") {
+      sample =
+        random() *
+        (Math.sin(2 * Math.PI * 4700 * t) + Math.sin(2 * Math.PI * 6230 * t)) *
+        0.3 *
+        Math.min(1, t * 200) *
+        Math.exp(-t * 14);
     } else if (voice === "shaker") {
       sample =
         (random() - breath) * 0.6 * Math.min(1, t * 120) * Math.exp(-t * 28);
@@ -351,6 +397,8 @@ export function scheduleNote(
   source.buffer = instrument(ctx, note.voice, note.midi, note.cents);
   const sustained =
     note.voice === "sho" ||
+    note.voice === "throat" ||
+    note.voice === "whistle" ||
     note.voice === "flute" ||
     note.voice === "strings" ||
     note.voice === "reed" ||
@@ -378,7 +426,9 @@ export function scheduleNote(
         note.voice === "tanpura" ||
         note.voice === "saron" ||
         note.voice === "bonang" ||
-        note.voice === "chime"
+        note.voice === "chime" ||
+        note.voice === "kalimba" ||
+        note.voice === "udu"
       ? 0.65
       : note.voice === "gong" || note.voice === "bronze"
         ? 2.5

@@ -32,7 +32,13 @@ export type Voice =
   | "chime"
   | "sho"
   | "mridanga"
-  | "tanpura";
+  | "tanpura"
+  | "sub"
+  | "udu"
+  | "kalimba"
+  | "throat"
+  | "whistle"
+  | "sistrum";
 const unpitched = new Set<Voice>([
   "kick",
   "brush",
@@ -40,6 +46,7 @@ const unpitched = new Set<Voice>([
   "wood",
   "shaker",
   "mridanga",
+  "sistrum",
 ]);
 export interface Note {
   beat: number;
@@ -557,9 +564,11 @@ function composeCultural(
       .map(midi);
     const bloom = section === 0 ? 0.78 : section === 2 ? 1 : 0.9;
     let beat = start;
-    for (const token of (bridge ? theme.bridge : theme.melody)[index].split(
-      " ",
-    )) {
+    const tacet =
+      theme.melodySections && !theme.melodySections.includes(section);
+    for (const token of tacet
+      ? []
+      : (bridge ? theme.bridge : theme.melody)[index].split(" ")) {
       const [pitch, length] = token.split(":"),
         duration = Number(length);
       if (pitch !== "-") {
@@ -644,7 +653,23 @@ function composeCultural(
         ),
       );
     const previous = (bridge ? theme.bridgeChords : theme.chords)[index - 1];
-    if (theme.steadyBass) {
+    const groove = bridge ? (theme.bridgeGroove ?? theme.groove) : theme.groove;
+    if (groove && theme.bass) {
+      let at = start;
+      for (const token of groove[index].split(" ")) {
+        const [pitch, length] = token.split(":");
+        if (pitch !== "-")
+          add(
+            at,
+            Number(length) * 0.9,
+            midi(pitch),
+            quiet ? 0.24 : 0.34,
+            "bass",
+            theme.bass,
+          );
+        at += Number(length);
+      }
+    } else if (theme.steadyBass) {
       add(
         start,
         quiet ? m * 0.9 : m * 0.45,
