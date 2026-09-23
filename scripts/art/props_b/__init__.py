@@ -12,6 +12,7 @@ from .industrial import dustbin, steel_drum, wheelbarrow, washing_line
 from . import fallen as _fallen
 from .lamps import LAMPS
 from .stalls import STALLS
+from .pitches import PITCHES
 from .farm import FARM
 from .privy import PRIVY
 from .granary import GRANARY
@@ -68,6 +69,7 @@ DRAW_B = {
  'washing-line': washing_line,
  **LAMPS,
  **STALLS,
+ **PITCHES,
  **FARM,
  **PRIVY,
  **GRANARY,
@@ -90,7 +92,7 @@ DRAW_B.update(SACRED)
 # Boxy families that stand beside buildings take the buildings' oblique view.
 # Round ones are left alone: a barrel looks the same from every side.
 OBLIQUE = ['crate', 'crate-stack', 'woodpile', 'trough', 'strapped-chest', 'bench',
-           'stall-trestle', 'stall-awning', 'stall-booth', 'stall-cart', 'stall-modern',
+           'stall-trestle', 'stall-awning', 'stall-booth', 'stall-cart', 'stall-modern', *PITCHES,
            'saint-niche', 'newsstand', 'street-fountain', 'street-notice', 'market-display', 'water-station',
            'farm-cart', 'privy-shed', 'privy-stone', 'privy-outhouse', 'granary-staddle', 'granary-stilt']
 
@@ -127,6 +129,8 @@ ANIMATED = {
  'privy-nightsoil': 4,
  'privy-midden': 4,
  'privy-dung': 4,
+ # Cloth stirs on a covered pitch.
+ **{key: 4 for key in PITCHES},
 }
 
 # Knocked-over states, drawn as their own sprite rather than a rotation.

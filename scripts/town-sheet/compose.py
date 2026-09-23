@@ -22,7 +22,7 @@ BOUNDARY = {'wall': '#8d8a7c', 'stones': '#8d8a7c', 'hedge': '#355f2a', 'wire': 
 
 def atlases():
     out = []
-    for path in ('packs/buildings', 'packs/regional-buildings', 'packs/civic', 'packs/atlas', 'props/atlas', 'nature/atlas'):
+    for path in ('packs/buildings', 'packs/regional-buildings', 'packs/civic', 'packs/precincts', 'packs/atlas', 'props/atlas', 'nature/atlas'):
         out.append((Image.open(ROOT / f'public/{path}.png').convert('RGBA'),
                     json.loads((ROOT / f'public/{path}.json').read_text())['frames']))
     return out
@@ -74,8 +74,12 @@ def compose(name, sheets, models, crop=None):
         draw.append((o['y'] * 16 + 10, o['sprite'], round(x + 8 - ax), y + 16 - spr.height))
     for _, n, x, y in sorted(draw, key=lambda v: v[0]):
         spr, _ = frame(n)
-        if spr and 0 <= x and 0 <= y and x + spr.width <= W and y + spr.height <= W:
-            im.alpha_composite(spr, (x, y))
+        if not spr: continue
+        # Clip rather than skip: a stand or a tower can rise past the crop.
+        a, b = max(0, -x), max(0, -y)
+        c, e = min(spr.width, W - x), min(spr.height, W - y)
+        if c > a and e > b:
+            im.alpha_composite(spr.crop((a, b, c, e)), (x + a, y + b))
     for a in t.get('actors', []):
         x, y = px(a['x'], a['y'])
         if 0 <= x < W and 0 <= y < W:

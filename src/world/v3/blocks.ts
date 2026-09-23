@@ -41,6 +41,9 @@ export type UrbanLayout = {
   plaza: Rect;
   /** Further squares at crossings, each painted like the main one. */
   squares: Rect[];
+  /** Ground cut out for each precinct requested, in order; undefined where
+   * none of its sizes would fit. */
+  grounds: (Rect | undefined)[];
   /** Planted strips beside the arterials. */
   verges: Rect[];
   furniture: Furniture[];
@@ -164,6 +167,8 @@ export function composeUrban(
   /** The settlement's date. A fabric's furniture list says what this kind of
    * place has; the date says whether its streets were lit at all. */
   year?: number,
+  /** Courts, arenas and markets, each as its sizes largest first. */
+  precincts?: { sizes: readonly (readonly [number, number])[] }[],
 ): UrbanLayout {
   const half = urbanFootprint(radius, form);
   const rand = (...keys: (string | number)[]) =>
@@ -730,6 +735,27 @@ export function composeUrban(
     }
   }
 
+  /** Streets that met this rectangle stop at its edge instead of crossing. */
+  function cutStreets(r: Rect) {
+    const cut: Segment[] = [];
+    for (const s of streets.splice(0)) {
+      const level = across(s);
+      const [c0, c1, d0, d1] =
+        axisOf(s) === "x"
+          ? [r.y - 1, r.y + r.h, r.x - 1, r.x + r.w]
+          : [r.x - 1, r.x + r.w, r.y - 1, r.y + r.h];
+      if (level < c0 || level > c1 || hi(s) < d0 || lo(s) > d1) {
+        cut.push(s);
+        continue;
+      }
+      if (lo(s) < d0)
+        cut.push({ a: point(s, lo(s)), b: point(s, d0), tier: s.tier });
+      if (hi(s) > d1)
+        cut.push({ a: point(s, d1), b: point(s, hi(s)), tier: s.tier });
+    }
+    streets.push(...cut);
+  }
+
   // --- Further squares and diagonals ----------------------------------------
   const squares: Rect[] = [];
   if (form.squares) {
@@ -779,25 +805,47 @@ export function composeUrban(
       squares.push(r);
     }
     // A street opens onto a square rather than crossing it.
-    for (const r of squares) {
-      const cut: Segment[] = [];
-      for (const s of streets.splice(0)) {
-        const level = across(s);
-        const [c0, c1, d0, d1] =
-          axisOf(s) === "x"
-            ? [r.y - 1, r.y + r.h, r.x - 1, r.x + r.w]
-            : [r.x - 1, r.x + r.w, r.y - 1, r.y + r.h];
-        if (level < c0 || level > c1 || hi(s) < d0 || lo(s) > d1) {
-          cut.push(s);
-          continue;
+    for (const r of squares) cutStreets(r);
+    lines.clear();
+    for (const s of streets) mark(s);
+  }
+
+  // --- Precinct grounds -----------------------------------------------------
+  // A court, arena or market holds more ground than a block. It is cut out
+  // like a square, nearest the plaza first, trying each size largest first.
+  const grounds: (Rect | undefined)[] = [];
+  const clearOf = (r: Rect, q: Rect, m: number) =>
+    r.x + r.w + m <= q.x ||
+    q.x + q.w + m <= r.x ||
+    r.y + r.h + m <= q.y ||
+    q.y + q.h + m <= r.y;
+  for (const [n, request] of (precincts ?? []).entries()) {
+    let found: Rect | undefined;
+    for (const [w, h] of request.sizes) {
+      for (let d = 0; d < half && !found; d += 2)
+        for (let k = 0; k < 24 && !found; k++) {
+          const a = ((k + rand("ground", n) * 24) / 24) * Math.PI * 2;
+          const r = {
+            x: Math.round(focus.x + Math.cos(a) * d - w / 2),
+            y: Math.round(focus.y + Math.sin(a) * d - h / 2),
+            w,
+            h,
+          };
+          if (!clearOf(r, plaza, arterial + 2)) continue;
+          if (squares.some((q) => !clearOf(r, q, 3))) continue;
+          if (grounds.some((q) => q && !clearOf(r, q, arterial + 4))) continue;
+          let ok = true;
+          for (let y = r.y - 2; y < r.y + r.h + 2 && ok; y++)
+            for (let x = r.x - 2; x < r.x + r.w + 2 && ok; x++)
+              ok = holds(x, y, wallMargin + 1) && (!usable || usable(x, y));
+          if (ok) found = r;
         }
-        if (lo(s) < d0)
-          cut.push({ a: point(s, lo(s)), b: point(s, d0), tier: s.tier });
-        if (hi(s) > d1)
-          cut.push({ a: point(s, d1), b: point(s, hi(s)), tier: s.tier });
-      }
-      streets.push(...cut);
+      if (found) break;
     }
+    grounds.push(found);
+    if (found) cutStreets(found);
+  }
+  if (grounds.some(Boolean)) {
     lines.clear();
     for (const s of streets) mark(s);
   }
@@ -859,6 +907,7 @@ export function composeUrban(
       for (const p of line(s.a, s.b)) clearAround(p.x, p.y, hiA + 2);
     clearRect(plaza, Math.max(loA, hiA) + 1);
     for (const r of squares) clearRect(r, Math.max(loA, hiA) + 1);
+    for (const r of grounds) if (r) clearRect(r, 1);
   }
   /** The largest open rectangle at least 8 cells each way, by the histogram
    * method over the open grid. */
@@ -1074,6 +1123,7 @@ export function composeUrban(
     blocks,
     plaza,
     squares,
+    grounds,
     verges,
     furniture,
     half,

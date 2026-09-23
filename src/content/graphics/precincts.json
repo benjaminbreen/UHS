@@ -1,0 +1,72 @@
+{
+  "ballcourt": {
+    "label": "Ball court",
+    "venue": "venue.ball-court",
+    "surface": "sand",
+    "scales": {
+      "small": {"size": [22, 10], "pieces": [
+        {"key": "north", "at": [5, 0], "footprint": [12, 3]},
+        {"key": "south", "at": [5, 8], "footprint": [12, 2], "main": true},
+        {"key": "nw", "at": [0, 0], "footprint": [5, 2]},
+        {"key": "ne", "at": [17, 0], "footprint": [5, 2]},
+        {"key": "sw", "at": [0, 8], "footprint": [5, 2]},
+        {"key": "se", "at": [17, 8], "footprint": [5, 2]}
+      ]},
+      "medium": {"size": [30, 12], "pieces": [
+        {"key": "north", "at": [6, 0], "footprint": [18, 3]},
+        {"key": "south", "at": [6, 10], "footprint": [18, 2], "main": true},
+        {"key": "nw", "at": [0, 0], "footprint": [6, 2]},
+        {"key": "ne", "at": [24, 0], "footprint": [6, 2]},
+        {"key": "sw", "at": [0, 10], "footprint": [6, 2]},
+        {"key": "se", "at": [24, 10], "footprint": [6, 2]}
+      ]},
+      "large": {"size": [40, 14], "pieces": [
+        {"key": "north", "at": [8, 0], "footprint": [24, 3]},
+        {"key": "south", "at": [8, 12], "footprint": [24, 2], "main": true},
+        {"key": "shrine", "at": [1, 4], "footprint": [6, 5]},
+        {"key": "nw", "at": [0, 0], "footprint": [8, 2]},
+        {"key": "ne", "at": [32, 0], "footprint": [8, 2]},
+        {"key": "sw", "at": [0, 12], "footprint": [8, 2]},
+        {"key": "se", "at": [32, 12], "footprint": [8, 2]}
+      ]}
+    }
+  },
+  "amphitheatre": {
+    "label": "Amphitheatre",
+    "venue": "venue.amphitheatre",
+    "surface": "sand",
+    "scales": {
+      "small": {"size": [28, 20], "pieces": [
+        {"key": "north", "at": [0, 0], "footprint": [28, 6]},
+        {"key": "west", "at": [0, 6], "footprint": [5, 10]},
+        {"key": "east", "at": [23, 6], "footprint": [5, 10]},
+        {"key": "south-l", "at": [0, 16], "footprint": [12, 4], "main": true},
+        {"key": "south-r", "at": [16, 16], "footprint": [12, 4]}
+      ]},
+      "medium": {"size": [36, 26], "pieces": [
+        {"key": "north", "at": [0, 0], "footprint": [36, 8]},
+        {"key": "west", "at": [0, 8], "footprint": [6, 13]},
+        {"key": "east", "at": [30, 8], "footprint": [6, 13]},
+        {"key": "south-l", "at": [0, 21], "footprint": [16, 5], "main": true},
+        {"key": "south-r", "at": [20, 21], "footprint": [16, 5]}
+      ]},
+      "large": {"size": [46, 32], "pieces": [
+        {"key": "north", "at": [0, 0], "footprint": [46, 10]},
+        {"key": "west", "at": [0, 10], "footprint": [8, 16]},
+        {"key": "east", "at": [38, 10], "footprint": [8, 16]},
+        {"key": "south-l", "at": [0, 26], "footprint": [21, 6], "main": true},
+        {"key": "south-r", "at": [25, 26], "footprint": [21, 6]}
+      ]}
+    }
+  },
+  "market": {
+    "label": "Market",
+    "venue": "venue.market-ground",
+    "surface": "paving",
+    "scales": {
+      "small": {"size": [18, 14], "pieces": []},
+      "medium": {"size": [26, 20], "pieces": []},
+      "large": {"size": [34, 26], "pieces": []}
+    }
+  }
+}

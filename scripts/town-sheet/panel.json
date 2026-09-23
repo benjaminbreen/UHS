@@ -83,7 +83,7 @@
   {
     "name": "tenochtitlan-1500",
     "query": "Tenochtitlan 1500",
-    "radius": 40
+    "radius": 64
   },
   {
     "name": "timbuktu-1400",
@@ -158,11 +158,6 @@
   {
     "name": "new-york-1910",
     "query": "New York 1910",
-    "radius": 40
-  },
-  {
-    "name": "tenochtitlan-1500",
-    "query": "Tenochtitlan 1500",
     "radius": 40
   }
 ]

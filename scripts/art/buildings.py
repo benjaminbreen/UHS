@@ -354,18 +354,20 @@ def build_buildings(root, sprites):
     from art.oblique_meso import ObliqueMeso
     from art.oblique_meso_landmarks import ObliqueMesoLandmark, build_meso_animations, meso_landmark_recipes
     build_meso_animations(sprites)
+    from art.precincts import PrecinctPiece, build_precinct_sprites, precinct_recipes
+    build_precinct_sprites(sprites)
     from art.gold_masters import gold_master_recipes, prehistoric_expansion_recipes, service_kit_recipes
     from art.regional_houses import regional_house_recipes
     from art.camps import CampBuilding, camp_recipes
     build_banner(sprites)
     recipes={**camp_recipes(), **source['buildings'], **gold_master_recipes(source), **service_kit_recipes(source),
              **prehistoric_expansion_recipes(source), **regional_house_recipes(root, source),
-             **meso_landmark_recipes(root, source),
+             **meso_landmark_recipes(root, source), **precinct_recipes(root, source),
              **urban_recipes(root, source),
              **religious_recipes(root, source), **theatre_recipes(root, source),
              **hall_recipes(root, source), **period_recipes(root, source)}
     for name,r in list(recipes.items()):
-        if r['roof']=='shelter': continue
+        if r['roof']=='shelter' or r.get('precinctPiece'): continue
         fw,fh=r['footprint']
         for facing,entrance in [('north',[fw//2,-1]),('east',[fw,fh//2]),('west',[-1,fh//2])]:
             recipes[name+'-'+facing]={**r,'facing':facing,'entrance':entrance,'label':r['label']+' · '+facing,
@@ -373,6 +375,7 @@ def build_buildings(root, sprites):
                                       **({'shadowFrame':name} if r.get('oblique') else {})}
     for name,r in recipes.items():
         painter=(CampBuilding if r.get('campStyle') else
+                 PrecinctPiece if r.get('precinctPiece') else
                  ObliqueMesoLandmark if r.get('mesoLandmark') else
                  ObliqueMeso if r.get('mesoamerican') else
                  ObliqueMudbrick if r.get('mud') else

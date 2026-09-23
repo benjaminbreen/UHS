@@ -1,3 +1,4 @@
+import marketKits from "../graphics/market-kits.json" with { type: "json" };
 import type { Pack, WorldObject } from "../../core/types";
 
 /** What a public square held. Content names these per fabric; the planner only
@@ -43,12 +44,50 @@ export function lampFor(pack: Pack): { sprite: string; label: string } {
   return lamp("torch-post", "Torch post");
 }
 
+type MarketKit = keyof typeof marketKits.kits;
+
+/** Which culture's pitches a market is built from, before the modern barrow.
+ * Undefined falls back to the five generic builds below. */
+function marketKit(pack: Pack): MarketKit | undefined {
+  const s = pack.setting;
+  const year = pack.year;
+  if (!s || year >= 1900) return undefined;
+  switch (s.culture) {
+    case "mesoamerican":
+      return year < 1540 ? "tianguis" : undefined;
+    case "european":
+      return year < 500 ? "roman" : year < 1800 ? "medieval" : undefined;
+    case "north-african-west-asian":
+      return year < 640 && s.architecture === "classical" ? "roman" : "souk";
+    case "east-asian":
+    case "southeast-asian":
+      return year >= 500 ? "eastasia" : undefined;
+    case "west-central-african":
+    case "east-southern-african":
+      return "westafrica";
+    default:
+      return undefined;
+  }
+}
+
 /** What a market sold from. Five builds, chosen by date and region: trestles
  * before anything else, an awning where cloth was cheap, a roofed booth for a
  * permanent pitch, a cart for the street trader, a tubular barrow after that. */
-export function stallFor(pack: Pack, index = 0): { sprite: string; label: string } {
+export function stallFor(
+  pack: Pack,
+  index = 0,
+  trade?: number,
+): { sprite: string; label: string } {
   const year = pack.year;
   const culture = pack.setting?.culture;
+  const kit = marketKit(pack);
+  if (kit) {
+    const { trades, label } = marketKits.kits[kit];
+    // One trade to a row where the caller says which; the size varies along it.
+    const t = (trade ?? index) % trades.length;
+    const variant = t * marketKits.forms + (index % marketKits.forms);
+    return { sprite: `study-propb-pitch-${kit}-${variant}`, label };
+  }
   const eastern = culture === "east-asian" || culture === "southeast-asian";
   // Region before date for the booth: the roofed pitch was the east and
   // southeast Asian street into the twentieth century, and a Qing city was

@@ -17,6 +17,7 @@ const atlases = {
   buildings: "/packs/buildings",
   "regional-buildings": "/packs/regional-buildings",
   civic: "/packs/civic",
+  precincts: "/packs/precincts",
   "lighting-shadows": "/packs/lighting-shadows",
   topography: "/topography/atlas",
 } as const;

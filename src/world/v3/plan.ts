@@ -586,6 +586,10 @@ export function planSettlement(
     inventory: {},
   });
   let urbanLots: UrbanLot[] = [];
+  const groundVenues: {
+    venue: import("../../content/venues").Venue;
+    pos: Point;
+  }[] = [];
   if (urban) {
     /** A square is composed from the fabric's spec: one centrepiece on a dais
      * scaled to the square, four corners, stalls along the lower edge. The
@@ -1177,6 +1181,59 @@ export function planSettlement(
             return true;
           },
           furnish,
+          paintGround: (rect, surface) => {
+            eachCell(rect, (x, y) => {
+              const k = cellKey(x, y);
+              if (!dry({ x, y, w: 1, h: 1 }, false)) return;
+              plan.reserved.add(k);
+              roads.add(k);
+              const paved = surface === "paving";
+              if (
+                !setSurface(k, paved && !profile.paved ? "dirt" : surface, 9) ||
+                !paved ||
+                !profile.paved
+              )
+                return;
+              plan.pavement!.set(k, "square");
+              if (squareStone) plan.streetSurfaces!.set(k, squareStone);
+            });
+            plan.plots.push({
+              ...rect,
+              id: `${site.id}-precinct-${plan.plots.length}`,
+              kind: "public",
+              access: {
+                x: rect.x + Math.floor(rect.w / 2),
+                y: rect.y + Math.floor(rect.h / 2),
+              },
+            });
+          },
+          stall: (at, i, trade) => {
+            const stall = stallFor(pack, i, trade);
+            plan.objects.push({
+              id: `${site.id}-pitch-${at.x}-${at.y}`,
+              name: stall.label,
+              prop: "marketCounter",
+              kind: "container",
+              sprite: stall.sprite,
+              pos: pos(at),
+              inventory: characterContext
+                ? eligibleInventory({ grain: 6 }, characterContext)
+                : { grain: 6 },
+              owner: `${site.id}-community`,
+            });
+          },
+          marker: (at, i) =>
+            plan.objects.push({
+              id: `${site.id}-court-marker-${at.x}-${at.y}`,
+              name: "Court marker",
+              description:
+                "A carved stone disc set in the floor of the court, where the play was judged.",
+              kind: "monument",
+              sprite: `precinct-marker-${i % 3}`,
+              pos: pos(at),
+              inventory: {},
+            }),
+          venueAt: (venue, at) => groundVenues.push({ venue, pos: at }),
           paintCity,
           paintBlock,
           reserveGround: (rect) =>
@@ -1527,10 +1584,11 @@ export function planSettlement(
   // nearest the centre. A venue with no building of its own is recorded
   // straight away against a gathering point.
   const wanted = venuesFor(pack.setting, limit);
-  plan.venues = [];
-  const already = new Set(
-    frontage.flatMap((lot) => (lot.venue ? [lot.venue.id] : [])),
-  );
+  plan.venues = [...groundVenues];
+  const already = new Set([
+    ...frontage.flatMap((lot) => (lot.venue ? [lot.venue.id] : [])),
+    ...groundVenues.map((v) => v.venue.id),
+  ]);
   const central = frontage
     .filter((lot) => !lot.religious && !lot.civic && !lot.venue)
     .sort(
@@ -2134,6 +2192,34 @@ export function planSettlement(
         id: `${id}-plot`,
         kind: "public",
         access: door,
+      });
+      continue;
+    }
+    if (lot.piece) {
+      const id = `${site.id}-piece-${i}`;
+      eachCell(rect, (x, y) => {
+        plan.solid.add(cellKey(x, y));
+        plan.built!.add(cellKey(x, y));
+      });
+      plan.places.push({
+        id,
+        name: lot.piece.name,
+        owner: `${site.id}-community`,
+        description: lot.piece.about,
+        ...rect,
+        sprite: frame,
+        entrance: door,
+        access: "public",
+        claim: "landscape",
+        entranceLabel: "Enter",
+      });
+      plan.objects.push({
+        id: `${id}-exit`,
+        name: "Return outside",
+        kind: "exit",
+        pos: { x: 6, y: 9, space: id },
+        sprite: "door-open",
+        inventory: {},
       });
       continue;
     }

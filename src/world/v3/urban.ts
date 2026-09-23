@@ -18,6 +18,8 @@ import {
 import kit from "../../content/graphics/urban.json" with { type: "json" };
 import { settlementLayout } from "../../content/settlements/layout";
 import { random } from "../../core/random";
+import { precinctPlans } from "../../content/settlements/precincts";
+import type { Terrain } from "../../core/types";
 import {
   composeUrban,
   nearestGate,
@@ -52,6 +54,8 @@ export type UrbanLot = {
   /** Somewhere people go after work. Stage one gives it no building of its
    * own: it is an ordinary house with a public door and a different name. */
   venue?: import("../../content/venues").Venue;
+  /** A building standing on a precinct's edge: public, unhoused. */
+  piece?: { name: string; about: string };
 };
 
 export type UrbanSurface = {
@@ -96,6 +100,14 @@ export type UrbanSurface = {
   paintQuay?(rect: Rect): void;
   /** Where a bridge meets this bank; an offset square gathers at it. */
   bridge?: Point;
+  /** A precinct's own ground: walkable, public, one surface. */
+  paintGround(rect: Rect, surface: Terrain): void;
+  /** A market pitch, trading like the square's counters. */
+  stall(at: Point, index: number, trade: number): void;
+  /** A marker set in a court's floor. */
+  marker(at: Point, index: number): void;
+  /** Where a venue's people gather when it is ground rather than a door. */
+  venueAt(venue: import("../../content/venues").Venue, at: Point): void;
 };
 
 /** Urban house models this pack can build, capped at `storeys`. The kit's forms
@@ -272,6 +284,19 @@ export function urbanNeighborhood(
   // the bridge lands. Other squares keep their fabric's own placement.
   const toward = (p: Point | undefined) =>
     p && { x: p.x - site.center.x, y: p.y - site.center.y };
+  // Precincts are planned with the streets: each needs ground a block cannot
+  // hold, so the layout cuts it out as it cuts out a square.
+  const carries = urbanBuildingLimit(
+    site.profile.radius,
+    form,
+    site.profile.buildings,
+    pack.setting?.year ?? 0,
+  );
+  const precincts = precinctPlans(
+    pack.setting!,
+    venuesFor(pack.setting, carries),
+    site.profile.radius,
+  );
   const layout = composeUrban(
     site.id,
     site.center,
@@ -287,6 +312,7 @@ export function urbanNeighborhood(
     density(),
     site.aspect,
     pack.year,
+    precincts.map((p) => ({ sizes: p.options.map((o) => o.size) })),
   );
   const used = new Set<string>();
   const reserve = (r: Rect) => {
@@ -461,6 +487,49 @@ export function urbanNeighborhood(
   if (api.bank) riverside();
 
   const lots: UrbanLot[] = [];
+  const precinctVenues = new Set<string>();
+  for (const [n, precinct] of precincts.entries()) {
+    const ground = layout.grounds[n];
+    if (!ground) continue;
+    const option = precinct.options.find(
+      (o) => o.size[0] === ground.w && o.size[1] === ground.h,
+    )!;
+    precinctVenues.add(precinct.venue.id);
+    api.paintGround(ground, precinct.surface);
+    reserve(ground);
+    api.reserveGround(ground);
+    const at = ([x, y]: readonly [number, number]) => ({
+      x: ground.x + x,
+      y: ground.y + y,
+    });
+    for (const piece of option.pieces) {
+      if (!buildingModels[piece.frame]) continue;
+      const model = buildingModel(piece.frame);
+      const rect = { ...at(piece.at), w: model.footprint[0], h: model.footprint[1] };
+      const point = {
+        x: rect.x + model.entrance[0],
+        y: rect.y + model.entrance[1],
+      };
+      claimLandmark({
+        point,
+        nx: 0,
+        ny: 1,
+        frame: piece.frame,
+        rect,
+        yard: rect,
+        workPoint: point,
+        piece: { name: piece.name, about: precinct.venue.note ?? precinct.label },
+      });
+    }
+    option.stalls.forEach(([x, y, row], i) =>
+      api.stall(at([x, y]), i, row + n * 3),
+    );
+    option.markers.forEach((p, i) => api.marker(at(p), i));
+    api.venueAt(precinct.venue, {
+      x: ground.x + (ground.w >> 1),
+      y: ground.y + (ground.h >> 1),
+    });
+  }
   const civic = civicProfile(pack.setting!);
   const plaza = { ...layout.plaza };
   let civicRect: Rect | undefined;
@@ -651,14 +720,8 @@ export function urbanNeighborhood(
   // The flat profile count is what a village would hold; a composed city
   // carries what its own extent and fabric allow, which is the number a
   // theatre's size gate is written against.
-  const carries = urbanBuildingLimit(
-    site.profile.radius,
-    form,
-    site.profile.buildings,
-    pack.setting?.year ?? 0,
-  );
   for (const venue of venuesFor(pack.setting, carries)) {
-    if (!venue.building) continue;
+    if (!venue.building || precinctVenues.has(venue.id)) continue;
     // Scale is the outer loop: a landmark on the far side of the square beats
     // a shrunken one on the near side.
     const placed = (["large", "medium", "small"] as const)

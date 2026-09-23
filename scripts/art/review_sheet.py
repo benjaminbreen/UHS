@@ -35,6 +35,7 @@ def recipes():
     from art.gold_masters import gold_master_recipes, prehistoric_expansion_recipes, service_kit_recipes
     from art.regional_houses import regional_house_recipes
     from art.oblique_meso_landmarks import meso_landmark_recipes
+    from art.precincts import precinct_recipes
     from art.camps import CampBuilding, camp_recipes
     source = json.loads((ROOT / 'src/content/graphics/buildings.json').read_text())
     source['materials'].update(
@@ -43,7 +44,7 @@ def recipes():
     all_r = {**camp_recipes(), **source['buildings'], **gold_master_recipes(source), **service_kit_recipes(source),
              **prehistoric_expansion_recipes(source),
              **regional_house_recipes(ROOT, source),
-             **meso_landmark_recipes(ROOT, source),
+             **meso_landmark_recipes(ROOT, source), **precinct_recipes(ROOT, source),
              **urban_recipes(ROOT, source),
              **religious_recipes(ROOT, source), **theatre_recipes(ROOT, source),
              **hall_recipes(ROOT, source), **period_recipes(ROOT, source)}
@@ -59,6 +60,9 @@ def recipes():
             return ObliqueChurch
         if r.get('form') == 'oblique-ring':
             return ObliquePlayhouse
+        if r.get('precinctPiece'):
+            from art.precincts import PrecinctPiece
+            return PrecinctPiece
         if r.get('mesoLandmark'):
             from art.oblique_meso_landmarks import ObliqueMesoLandmark
             return ObliqueMesoLandmark

@@ -48,7 +48,9 @@ def audit():
         if not 0 <= a.anchor_x <= w:
             say('anchor outside the sprite')
         x, y, dw, dh = door_rect(a)
-        if (dw, dh) != (DOOR_W, DOOR_H) or x < 0 or y < 0 or x + dw > w or y + dh > h:
+        if not r.get('enterable', True):
+            pass
+        elif (dw, dh) != (DOOR_W, DOOR_H) or x < 0 or y < 0 or x + dw > w or y + dh > h:
             say('door rect does not fit the shared leaf')
         elif im.getpixel((x + dw // 2, y + dh // 2))[3] < 255:
             say('door rect is not on the building')

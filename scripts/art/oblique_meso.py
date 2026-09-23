@@ -59,6 +59,10 @@ MASK = ["XXXXXXXXXX",
 
 
 class ObliqueMeso:
+    # Screen px sideways per px of depth: 1 is the 45-degree return. A precinct
+    # piece covers its whole footprint's depth and shears it into 12px.
+    zx = 1
+
     def __init__(self, recipe, material):
         r = self.r = recipe
         rng = self.rng = random.Random(recipe['seed'] + 509)
@@ -132,7 +136,7 @@ class ObliqueMeso:
     # -- projection -------------------------------------------------------
 
     def P(self, X, Y, Z):
-        return (round(self.ox + X + Z), round(self.G - Y - Z))
+        return (round(self.ox + X + Z * self.zx), round(self.G - Y - Z))
 
     def face(self, pts, shader):
         """Fill a planar polygon given in world points; shader(X, Y, Z, x, y)."""
@@ -145,11 +149,11 @@ class ObliqueMeso:
         O = pts[0]
         a = [pts[1][i] - O[i] for i in range(3)]
         b = [pts[-1][i] - O[i] for i in range(3)]
-        ax, ay = a[0] + a[2], -(a[1] + a[2])
-        bx, by = b[0] + b[2], -(b[1] + b[2])
+        ax, ay = a[0] + a[2] * self.zx, -(a[1] + a[2])
+        bx, by = b[0] + b[2] * self.zx, -(b[1] + b[2])
         det = ax * by - bx * ay
         if not det: return
-        sx, sy = self.ox + O[0] + O[2], self.G - O[1] - O[2]
+        sx, sy = self.ox + O[0] + O[2] * self.zx, self.G - O[1] - O[2]
         for y in range(box[1], box[3]):
             for x in range(box[0], box[2]):
                 if not m[x, y]: continue

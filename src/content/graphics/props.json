@@ -2278,6 +2278,192 @@
         "Buff clay",
         "Open ledge"
       ]
+    },
+    {
+      "id": "pitch-tianguis",
+      "name": "Tianguis pitch",
+      "group": "Street furniture",
+      "size": [
+        70,
+        58
+      ],
+      "description": "A market pitch from this culture's kit: base, cover and the goods of one trade.",
+      "variants": [
+        "maize · small",
+        "maize · medium",
+        "maize · large",
+        "chiles · small",
+        "chiles · medium",
+        "chiles · large",
+        "pottery · small",
+        "pottery · medium",
+        "pottery · large",
+        "mantas · small",
+        "mantas · medium",
+        "mantas · large",
+        "cacao · small",
+        "cacao · medium",
+        "cacao · large",
+        "feathers · small",
+        "feathers · medium",
+        "feathers · large",
+        "obsidian · small",
+        "obsidian · medium",
+        "obsidian · large",
+        "fowl · small",
+        "fowl · medium",
+        "fowl · large"
+      ]
+    },
+    {
+      "id": "pitch-roman",
+      "name": "Market stall",
+      "group": "Street furniture",
+      "size": [
+        70,
+        58
+      ],
+      "description": "A market pitch from this culture's kit: base, cover and the goods of one trade.",
+      "variants": [
+        "amphorae · small",
+        "amphorae · medium",
+        "amphorae · large",
+        "bread · small",
+        "bread · medium",
+        "bread · large",
+        "fish · small",
+        "fish · medium",
+        "fish · large",
+        "fruit · small",
+        "fruit · medium",
+        "fruit · large",
+        "pottery · small",
+        "pottery · medium",
+        "pottery · large",
+        "cloth · small",
+        "cloth · medium",
+        "cloth · large"
+      ]
+    },
+    {
+      "id": "pitch-souk",
+      "name": "Souk stall",
+      "group": "Street furniture",
+      "size": [
+        70,
+        58
+      ],
+      "description": "A market pitch from this culture's kit: base, cover and the goods of one trade.",
+      "variants": [
+        "spices · small",
+        "spices · medium",
+        "spices · large",
+        "rugs · small",
+        "rugs · medium",
+        "rugs · large",
+        "brass · small",
+        "brass · medium",
+        "brass · large",
+        "dates · small",
+        "dates · medium",
+        "dates · large",
+        "pottery · small",
+        "pottery · medium",
+        "pottery · large",
+        "cloth · small",
+        "cloth · medium",
+        "cloth · large"
+      ]
+    },
+    {
+      "id": "pitch-eastasia",
+      "name": "Market booth",
+      "group": "Street furniture",
+      "size": [
+        70,
+        58
+      ],
+      "description": "A market pitch from this culture's kit: base, cover and the goods of one trade.",
+      "variants": [
+        "greens · small",
+        "greens · medium",
+        "greens · large",
+        "tea · small",
+        "tea · medium",
+        "tea · large",
+        "silk · small",
+        "silk · medium",
+        "silk · large",
+        "lanterns · small",
+        "lanterns · medium",
+        "lanterns · large",
+        "porcelain · small",
+        "porcelain · medium",
+        "porcelain · large",
+        "fish · small",
+        "fish · medium",
+        "fish · large"
+      ]
+    },
+    {
+      "id": "pitch-westafrica",
+      "name": "Market pitch",
+      "group": "Street furniture",
+      "size": [
+        70,
+        58
+      ],
+      "description": "A market pitch from this culture's kit: base, cover and the goods of one trade.",
+      "variants": [
+        "calabashes · small",
+        "calabashes · medium",
+        "calabashes · large",
+        "cloth · small",
+        "cloth · medium",
+        "cloth · large",
+        "yams · small",
+        "yams · medium",
+        "yams · large",
+        "kola · small",
+        "kola · medium",
+        "kola · large",
+        "pottery · small",
+        "pottery · medium",
+        "pottery · large",
+        "shea · small",
+        "shea · medium",
+        "shea · large"
+      ]
+    },
+    {
+      "id": "pitch-medieval",
+      "name": "Market stall",
+      "group": "Street furniture",
+      "size": [
+        70,
+        58
+      ],
+      "description": "A market pitch from this culture's kit: base, cover and the goods of one trade.",
+      "variants": [
+        "bread · small",
+        "bread · medium",
+        "bread · large",
+        "cheese · small",
+        "cheese · medium",
+        "cheese · large",
+        "cloth · small",
+        "cloth · medium",
+        "cloth · large",
+        "fish · small",
+        "fish · medium",
+        "fish · large",
+        "fowl · small",
+        "fowl · medium",
+        "fowl · large",
+        "pottery · small",
+        "pottery · medium",
+        "pottery · large"
+      ]
     }
   ]
 }

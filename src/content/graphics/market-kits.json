@@ -1,0 +1,11 @@
+{
+  "forms": 3,
+  "kits": {
+    "tianguis": {"label": "Tianguis pitch", "trades": ["maize", "chiles", "pottery", "mantas", "cacao", "feathers", "obsidian", "fowl"]},
+    "roman": {"label": "Market stall", "trades": ["amphorae", "bread", "fish", "fruit", "pottery", "cloth"]},
+    "souk": {"label": "Souk stall", "trades": ["spices", "rugs", "brass", "dates", "pottery", "cloth"]},
+    "eastasia": {"label": "Market booth", "trades": ["greens", "tea", "silk", "lanterns", "porcelain", "fish"]},
+    "westafrica": {"label": "Market pitch", "trades": ["calabashes", "cloth", "yams", "kola", "pottery", "shea"]},
+    "medieval": {"label": "Market stall", "trades": ["bread", "cheese", "cloth", "fish", "fowl", "pottery"]}
+  }
+}
