@@ -22,6 +22,8 @@ export function useTypewriter(
   // line, which would type the first word over and over.
   const letter = useRef(onLetter);
   letter.current = onLetter;
+  const voice = useRef(sound);
+  voice.current = sound;
   const [shown, setShown] = useState(instant || calm() ? text.length : 0);
   useEffect(() => {
     if (instant || calm()) {
@@ -38,9 +40,10 @@ export function useTypewriter(
       const ch = text[at - 1];
       letter.current?.(ch);
       // The director spaces effects out itself, so this patters, not buzzes.
-      if (sound && /\S/.test(ch))
-        void (typeof sound === "function"
-          ? gameAudio()?.sound(sound(), "blip")
+      const currentSound = voice.current;
+      if (currentSound && /\S/.test(ch))
+        void (typeof currentSound === "function"
+          ? gameAudio()?.sound(currentSound(), "blip")
           : gameAudio()?.event("blip"));
       timer = window.setTimeout(
         next,
@@ -52,7 +55,7 @@ export function useTypewriter(
     // `instant` is read once, at the start of a line: it turns true as the
     // line finishes, and that must not restart anything.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [text, sound]);
+  }, [text]);
   return {
     text: text.slice(0, shown),
     done: shown >= text.length,

@@ -57,6 +57,11 @@ import { ambienceFor } from "../audio/ambience";
 const AudioLab = lazy(() =>
   import("../dev/AudioLab").then((m) => ({ default: m.AudioLab })),
 );
+const DialogueTester = import.meta.env.DEV
+  ? lazy(() =>
+      import("../dev/DialogueTester").then((m) => ({ default: m.DialogueTester })),
+    )
+  : undefined;
 import type { Runtime } from "../runtime/session";
 import { restoreSession, ZOOM_STEPS } from "../runtime/session";
 
@@ -158,6 +163,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
     | "evidence"
     | "map"
     | "settings"
+    | "dialogue-tester"
     | "narration"
     | "dialogue"
     | "character"
@@ -168,6 +174,17 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
   useEffect(() => {
     markEvent(`modal ${modal ?? "closed"}`);
   }, [modal]);
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    let active = true;
+    void import("../dev/dialogue-tester").then(({ runDialogueBatch }) => {
+      if (active) window.uhsDialogueTester = { run: runDialogueBatch };
+    });
+    return () => {
+      active = false;
+      delete window.uhsDialogueTester;
+    };
+  }, []);
   const [characterId, setCharacterId] = useState("player");
   const openCharacter = (id: string) => {
     setCharacterId(id);
@@ -1474,6 +1491,13 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
                 }}
               />
             )}
+            {modal === "dialogue-tester" &&
+              import.meta.env.DEV &&
+              DialogueTester && (
+                <Suspense fallback={<p>Loading dialogue tester…</p>}>
+                  <DialogueTester onClose={() => setModal(null)} />
+                </Suspense>
+              )}
             {modal === "character" && (
               <CharacterPanel
                 runtime={runtime}
@@ -1883,6 +1907,17 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
                   className="settings-tools"
                 >
                   <p>Inspect artwork and content in the development labs.</p>
+                  {import.meta.env.DEV && (
+                    <button
+                      className="action settings-featured"
+                      onClick={() => setModal("dialogue-tester")}
+                    >
+                      NPC dialogue tester
+                      <small>
+                        Compare one query across five generated people and places
+                      </small>
+                    </button>
+                  )}
                   <button
                     className="action settings-featured"
                     onClick={() => {

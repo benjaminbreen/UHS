@@ -11,6 +11,83 @@
     0 22px 80px #0009;
   color: #f2efee;
 }
+.modal.modal-dialogue-tester {
+  width: min(760px, 100%);
+  max-height: calc(100dvh - 40px);
+  overflow-y: auto;
+}
+.dialogue-tester > .eyebrow {
+  color: #edcd89;
+  font-size: 11px;
+  letter-spacing: 2px;
+}
+.dialogue-tester h2 {
+  margin: 8px 0 12px;
+}
+.dialogue-tester > p {
+  color: #d4d3df;
+}
+.dialogue-tester label {
+  display: block;
+  margin: 18px 0 6px;
+  font-weight: 600;
+}
+.dialogue-tester textarea {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  border: 1px solid #777097;
+  border-radius: 4px;
+  padding: 10px;
+  background: #10182f;
+  color: #f2efee;
+  font: inherit;
+}
+.dialogue-tester-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+.dialogue-tester-progress,
+.dialogue-tester-error {
+  margin: 12px 0;
+}
+.dialogue-tester-error {
+  color: #ffb3a8;
+}
+.dialogue-tester-results {
+  display: grid;
+  gap: 10px;
+  padding-left: 26px;
+}
+.dialogue-tester-results li {
+  padding: 12px;
+  border: 1px solid #514f70;
+  border-radius: 4px;
+  background: #111a37;
+}
+.dialogue-tester-person small {
+  display: block;
+  margin-top: 4px;
+  color: #b8b5ce;
+}
+.dialogue-tester-results p {
+  margin: 10px 0 0;
+  font-size: 17px;
+}
+.dialogue-tester-footnote {
+  display: block;
+  margin-top: 18px;
+  color: #b8b5ce;
+}
+.dialogue-tester-footnote code {
+  display: block;
+  margin-top: 5px;
+  overflow-wrap: anywhere;
+}
+.dialogue-tester-close {
+  margin-top: 14px;
+}
 .modal-settings > .eyebrow {
   color: #edcd89;
   font-size: 11px;

@@ -19,6 +19,7 @@ export async function prepareSettingSession(
   setting: WorldSetting,
   seed: string,
   signal?: AbortSignal,
+  cachePrepared = true,
 ) {
   const resolved = populateCharacter(
     integratedSetting(settingSchema.parse(setting)),
@@ -34,7 +35,9 @@ export async function prepareSettingSession(
     // A world seen before is handed to the worker ready-made, so it only has
     // to rebuild the functions around the geometry.
     const key = preparedKey(resolved, seed);
-    const cached = await loadPrepared(key).catch(() => undefined);
+    const cached = cachePrepared
+      ? await loadPrepared(key).catch(() => undefined)
+      : undefined;
     signal?.throwIfAborted();
     const prepared = await new Promise<PreparedSettlement>(
       (resolve, reject) => {
@@ -71,7 +74,7 @@ export async function prepareSettingSession(
       },
     );
     signal?.throwIfAborted();
-    if (!cached) void savePrepared(key, prepared);
+    if (!cached && cachePrepared) void savePrepared(key, prepared);
     const engine = createSession(
       "atlas",
       seed,
