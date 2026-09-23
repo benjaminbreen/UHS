@@ -32,6 +32,7 @@ import {
 import {
   poses,
   poseTiming,
+  frameCount,
   type CharacterPose,
 } from "../render/characters/poses";
 import {
@@ -155,7 +156,9 @@ export function CharacterLab({
     const cardinal = (d: number) => facingView(d).direction;
     let sheetPainted = false;
     const paint = (time: number) => {
-      const f = playing ? Math.floor(time / poseTiming(pose)) % 4 : frame;
+      const f = playing
+        ? Math.floor(time / poseTiming(pose)) % frameCount(pose)
+        : frame;
       if (last !== f) {
         last = f;
         const art = props.get(prop);
@@ -663,7 +666,7 @@ export function CharacterLab({
               <button
                 onClick={() => {
                   setPlaying(false);
-                  setFrame((f) => (f + 1) % 4);
+                  setFrame((f) => (f + 1) % frameCount(pose));
                 }}
               >
                 Step frame

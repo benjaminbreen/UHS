@@ -62,7 +62,7 @@ import { WorldCharacters } from "./characters/world";
 import { entityInView, npcMotion } from "./entity-presentation";
 import { FaunaMotion } from "./fauna-motion";
 import { spriteShadow } from "./characters/shadow";
-import { poseTiming, type CharacterPose } from "./characters/poses";
+import { frameCount, poseTiming, type CharacterPose } from "./characters/poses";
 import type { Actor } from "../core/types";
 import { waterStyle } from "./water-style";
 import { TerrainStream, restyleTerrain } from "./terrain-stream";
@@ -5056,7 +5056,7 @@ export class WorldScene extends Phaser.Scene {
       return (time + offset) % cycle < 130 ? 3 : 0;
     }
     if (pose === "sit") return 0;
-    return Math.floor((time + offset) / poseTiming(pose)) % 4;
+    return Math.floor((time + offset) / poseTiming(pose)) % frameCount(pose);
   }
   /** Someone mid-route has no pause before each tile, and takes as long
    * over it as the last one took to come, so the walk does not surge. */

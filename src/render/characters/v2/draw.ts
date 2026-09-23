@@ -25,7 +25,11 @@ export function drawCharacter(
   if (view) direction = view.direction;
   const quarter = view?.quarter ?? false,
     headAway = quarter && view!.away;
-  const f = ((frame % 4) + 4) % 4,
+  // The walk runs on eight frames; everything keyed to four sees each pair
+  // as one, so only the tables below that want the in-betweens read `w`.
+  const walking = pose === "walk",
+    w = ((frame % 8) + 8) % 8;
+  const f = walking ? w >> 1 : ((frame % 4) + 4) % 4,
     side = direction === 1 || direction === 3,
     back = direction === 0,
     sprint = pose === "run",
@@ -66,13 +70,19 @@ export function drawCharacter(
           ? [0, 5, 0, -5]
           : [0, 3, 0, -3]
       : [0, 0, 0, 0],
-    stride = strides[f],
+    // Pass, up, contact, down: the legs close again as the body passes over.
+    stride = walking ? [0, 2, 3, 2, 0, -2, -3, -2][w] : strides[f],
     // One frame behind the legs: cloth follows the body, it does not snap with
     // it. A runner's cloth streams behind instead of swinging.
     trail = sprint && side ? -1 : Math.sign(strides[(f + 3) % 4]),
     // How far it follows. A single pixel of hem was invisible at this size.
     drift = sprint && side ? -2 - (f % 2) : trail * (sprint ? 3 : 2),
-    bob = moving && pose !== "wade" && f % 2 ? 1 : 0,
+    // Highest just after passing, lowest just after contact.
+    bob = walking
+      ? [0, -1, 0, 1, 0, -1, 0, 1][w]
+      : moving && pose !== "wade" && f % 2
+        ? 1
+        : 0,
     // Head-on, a run is a side-to-side roll over the planted foot.
     shift =
       pose === "sway"
@@ -230,9 +240,11 @@ export function drawCharacter(
           : ["coat", "shirt", "robe"].includes(a.wearing.garment)
             ? "long"
             : "short"));
-  const armSwing = moving
-    ? (sprint ? [0, 4, 0, -4] : quarter ? [0, 2, 0, -2] : [0, 3, 0, -3])[f]
-    : 0;
+  const armSwing = walking
+    ? (quarter ? [0, 1, 2, 1, 0, -1, -2, -1] : [0, 2, 3, 2, 0, -2, -3, -2])[w]
+    : moving
+      ? (sprint ? [0, 4, 0, -4] : quarter ? [0, 2, 0, -2] : [0, 3, 0, -3])[f]
+      : 0;
   // The profile hangs its arms from the middle of a 7px torso.
   // On a diagonal the near arm hangs over the near edge of the chest and the
   // far shoulder shows past the other.
@@ -389,6 +401,25 @@ export function drawCharacter(
       [nearElbow, near] = pump(shoulderNear, 1, [0, 1, 2, 1][f]);
       [farElbow, far] = pump(shoulderFar, -1, [2, 1, 0, 1][f]);
     }
+  }
+  if (walking && side && !prop) {
+    // Swung forward, the forearm leads the upper arm and the hand comes up;
+    // swung back, the arm hangs straight. Hanging, it is barely bent.
+    const swing = (s: Point, hand: Point, ahead: number): [Point, Point] =>
+      ahead > 0
+        ? [
+            [s[0] + (ahead > 1 ? 1 : 0), s[1] + 4],
+            // Two pixels clear of the line, or the hand stays inside the chest.
+            [hand[0] + (ahead > 1 ? 2 : 1), hand[1] - (ahead > 2 ? 2 : 1)],
+          ]
+        : ahead < 0
+          ? [[Math.round((s[0] + hand[0]) / 2), s[1] + 4], hand]
+          : [
+              [s[0], s[1] + 4],
+              [hand[0] + 1, hand[1]],
+            ];
+    [nearElbow, near] = swing(shoulderNear, near, -armSwing);
+    [farElbow, far] = swing(shoulderFar, far, armSwing);
   }
   if (airborne) {
     if (side) {
@@ -898,16 +929,26 @@ export function drawCharacter(
       (sprint
         ? // Head-on, a knee driven up is a leg drawn short.
           [5, 2, 1, 0][(f + (isFar ? 2 : 0)) % 4]
-        : moving
-          ? (isFar && f === 2) || (!isFar && f === 0)
-            ? side
-              ? 3
-              : 2
-            : // The trailing foot of a contact frame is up on its toe.
-              side && walk < 0
+        : walking
+          ? (isFar ? w === 4 || w === 5 : w === 0 || w === 1)
+            ? w % 2
+              ? 1
+              : side
+                ? 3
+                : 2
+            : side && walk < 0
               ? 1
               : 0
-          : 0) +
+          : moving
+            ? (isFar && f === 2) || (!isFar && f === 0)
+              ? side
+                ? 3
+                : 2
+              : // The trailing foot of a contact frame is up on its toe.
+                side && walk < 0
+                ? 1
+                : 0
+            : 0) +
       // The far foot of a diagonal stands further up the screen, and so does
       // whichever foot is stepping away from the viewer.
       (quarter ? (isFar ? 1 : 0) + (headAway && walk > 0 ? 1 : 0) : 0) +

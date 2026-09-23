@@ -147,6 +147,50 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
     await shootCanvas(page, out("heads"));
   },
 
+  /** Every frame of the walk and the run on the game renderer: profile,
+   * front and back, one row each. */
+  async gait(page) {
+    await characterLab(page);
+    await page.evaluate(async () => {
+      const { drawCharacter } = await import(
+        "/src/render/characters/renderers.ts" as string
+      );
+      const { frameCount } = await import(
+        "/src/render/characters/poses.ts" as string
+      );
+      const { originalAppearance } = await import(
+        "/src/core/character.ts" as string
+      );
+      const rows = [
+        ["walk", 1],
+        ["walk", 2],
+        ["walk", 0],
+        ["run", 1],
+      ] as const;
+      const b = document.createElement("canvas"),
+        c = document.createElement("canvas");
+      b.width = b.height = 80;
+      c.width = 8 * 90;
+      c.height = rows.length * 170;
+      const ctx = c.getContext("2d")!,
+        bc = b.getContext("2d")!;
+      ctx.imageSmoothingEnabled = false;
+      ctx.fillStyle = "#c9ad7a";
+      ctx.fillRect(0, 0, c.width, c.height);
+      rows.forEach(([pose, d], row) => {
+        for (let f = 0; f < frameCount(pose); f++) {
+          drawCharacter(bc, { ...originalAppearance, hair: "bald" }, d, pose, f);
+          ctx.drawImage(b, 22, 26, 28, 54, f * 90, row * 170, 84, 162);
+        }
+        ctx.fillStyle = "#3a2c1c";
+        ctx.fillRect(0, row * 170 + 161, c.width, 1);
+      });
+      document.body.replaceChildren(c);
+      c.style.imageRendering = "pixelated";
+    });
+    await shootCanvas(page, out("gait"));
+  },
+
   /** Every portable object in hand, four directions each. */
   async props(page) {
     await characterLab(page);
