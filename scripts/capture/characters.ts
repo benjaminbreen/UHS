@@ -166,6 +166,7 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
         ["walk", 2],
         ["walk", 0],
         ["run", 1],
+        ["run", 2],
       ] as const;
       const b = document.createElement("canvas"),
         c = document.createElement("canvas");

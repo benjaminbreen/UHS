@@ -246,19 +246,27 @@ export function drawCharacter(
     : moving
       ? (sprint ? [0, 4, 0, -4] : quarter ? [0, 2, 0, -2] : [0, 3, 0, -3])[f]
       : 0;
+  // Shoulders counter the hips. Head-on the one over the swinging leg rises a
+  // pixel; in profile each shoulder follows its arm forward or back.
+  const tilt = walking
+      ? [-1, -1, 0, 0, 1, 1, 0, 0][w]
+      : sprint
+        ? [0, 1, 1, 0, 0, -1, -1, 0][w]
+        : 0,
+    turn = eight && Math.abs(armSwing) > 1 ? Math.sign(armSwing) : 0;
   // The profile hangs its arms from the middle of a 7px torso.
   // On a diagonal the near arm hangs over the near edge of the chest and the
   // far shoulder shows past the other.
   const shoulderNear: Point = quarter
-      ? [left + 2 + pitch, 15 - inhale]
+      ? [left + 2 + pitch - turn, 15 - inhale]
       : side
-        ? [12 + pitch, 15 - inhale]
-        : [16 + wide - narrow, 15 - inhale],
+        ? [12 + pitch - turn, 15 - inhale]
+        : [16 + wide - narrow, 15 - inhale + tilt],
     shoulderFar: Point = quarter
-      ? [right - 1 + pitch, 15 - inhale]
+      ? [right - 1 + pitch + turn, 15 - inhale]
       : side
-        ? [14 - narrow + pitch, 15 - inhale]
-        : [4 - wide + small, 15 - inhale];
+        ? [14 - narrow + pitch + turn, 15 - inhale]
+        : [4 - wide + small, 15 - inhale - tilt];
   // Two pixels below the belt: clear of the waist, where hands at 22 read as
   // arms folded on the stomach, but well short of the knee.
   const hang = (sprint ? 20 : 24) + torso;
@@ -1401,16 +1409,16 @@ export function drawCharacter(
               [left + pitch, 14],
             ]
           : [
-              [left + shoulder, 12],
-              [right - shoulder, 12],
-              [right, 15 - inhale],
+              [left + shoulder, 12 - tilt],
+              [right - shoulder, 12 + tilt],
+              [right, 15 - inhale + tilt],
               [right - waist + belly, waistY],
               [right + flare + hemSway, bodyHem - 1 - hemLift],
               [right - 1, bodyHem],
               [left - flare + hemSway, bodyHem],
               [left - 1, bodyHem - 2],
               [left + waist - belly, waistY],
-              [left, 15 - inhale],
+              [left, 15 - inhale - tilt],
             ],
       body,
     );
