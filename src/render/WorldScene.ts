@@ -4836,7 +4836,10 @@ export class WorldScene extends Phaser.Scene {
           turn.until = time + TURN_HOLD_MS;
         }
         const texture = this.characters.frame(
-          turn.facing === wanted ? human : { ...human, facing: turn.facing },
+          // Their own facing, or wherever a cue or a glance has turned them.
+          turn.facing === (human.facing ?? facingFromDirection(human.direction))
+            ? human
+            : { ...human, facing: turn.facing },
           pose,
           index,
           prop,
