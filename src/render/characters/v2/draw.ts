@@ -25,11 +25,12 @@ export function drawCharacter(
   if (view) direction = view.direction;
   const quarter = view?.quarter ?? false,
     headAway = quarter && view!.away;
-  // The walk runs on eight frames; everything keyed to four sees each pair
-  // as one, so only the tables below that want the in-betweens read `w`.
+  // The walk and run go on eight frames; everything keyed to four sees each
+  // pair as one, so only the tables below that want the in-betweens read `w`.
   const walking = pose === "walk",
+    eight = walking || pose === "run",
     w = ((frame % 8) + 8) % 8;
-  const f = walking ? w >> 1 : ((frame % 4) + 4) % 4,
+  const f = eight ? w >> 1 : ((frame % 4) + 4) % 4,
     side = direction === 1 || direction === 3,
     back = direction === 0,
     sprint = pose === "run",
@@ -113,8 +114,8 @@ export function drawCharacter(
   const float = airborne ? [0, 0, 2, 1][f] : 0;
   // A run compresses into the contact frame and extends off it. `bend` drops
   // the head while the feet stay planted, so it is already the squash.
-  const extend = sprint && f % 2 === 0 ? 1 : 0,
-    squat = sprint && f % 2 === 1 ? 1 : 0;
+  const extend = sprint && (w % 4 === 0 || w % 4 === 3) ? 1 : 0,
+    squat = sprint && w % 4 === 2 ? 1 : 0;
   const bend =
     (stance === "stooped" ? 2 : burden ? 1 : 0) +
     (airborne
@@ -383,13 +384,35 @@ export function drawCharacter(
       // Elbows locked near a right angle and swung from the shoulder: hand to
       // the chest in front, elbow high behind. Opposite the legs.
       const pump = (s: Point, phase: number) =>
-        phase === 0
-          ? bent(s, [-3, 3], [-2, 7])
-          : phase === 2
-            ? bent(s, [2, 4], [5, 1])
-            : bent(s, [-1, 4], [2, 5]);
-      [nearElbow, near] = pump(shoulderNear, [0, 1, 2, 1][f]);
-      [farElbow, far] = pump(shoulderFar, [2, 1, 0, 1][f]);
+        bent(
+          s,
+          ...(
+            [
+              [
+                [-3, 3],
+                [-2, 7],
+              ],
+              [
+                [-2, 4],
+                [0, 7],
+              ],
+              [
+                [-1, 4],
+                [2, 5],
+              ],
+              [
+                [1, 4],
+                [4, 3],
+              ],
+              [
+                [2, 4],
+                [5, 1],
+              ],
+            ] as [Point, Point][]
+          )[phase],
+        );
+      [nearElbow, near] = pump(shoulderNear, [0, 1, 2, 3, 4, 3, 2, 1][w]);
+      [farElbow, far] = pump(shoulderFar, [4, 3, 2, 1, 0, 1, 2, 3][w]);
     } else {
       // Head-on the pump is a hand coming up to the chest and dropping to the hip.
       const pump = (s: Point, out: number, phase: number) =>
@@ -981,9 +1004,9 @@ export function drawCharacter(
       let k: Point = [knee[0] - hip[0], knee[1] - hip[1]],
         n: Point = [ankle[0] - hip[0], ankle[1] - hip[1]];
       if (sprint) {
-        // Flight frames carry the widest split; on a contact frame one foot is
-        // under the hips and the other heel is kicked up behind a driving knee.
-        const phase = (f + (isFar ? 2 : 0)) % 4;
+        // Reach, contact, settle, push, toe-off, heel kick, knee drive, knee
+        // high. The feet are half a cycle apart, so frames 0 and 4 are flight.
+        const phase = (w + (isFar ? 4 : 0)) % 8;
         [k, n] = (
           [
             [
@@ -991,20 +1014,36 @@ export function drawCharacter(
               [6, ground - 3],
             ],
             [
+              [3, scale(5)],
+              [3, ground],
+            ],
+            [
               [1, scale(5)],
               [-1, ground],
+            ],
+            [
+              [-1, scale(5)],
+              [-4, ground - 1],
             ],
             [
               [-2, scale(5)],
               [-6, ground - 4],
             ],
             [
+              [-1, scale(5)],
+              [-5, scale(6)],
+            ],
+            [
+              [3, scale(4)],
+              [-1, ground - 5],
+            ],
+            [
               [5, scale(3)],
-              [1, ground - 4],
+              [2, ground - 4],
             ],
           ] as [Point, Point][]
         )[phase];
-        toeDown = phase > 1;
+        toeDown = phase > 2;
       } else if (crouched) {
         k = [ground < 8 ? 3 : 2, Math.round(ground * 0.45)];
         n = [isFar ? 0 : -1, ground];

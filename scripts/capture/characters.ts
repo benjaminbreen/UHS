@@ -170,7 +170,7 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
       const b = document.createElement("canvas"),
         c = document.createElement("canvas");
       b.width = b.height = 80;
-      c.width = 8 * 90;
+      c.width = 8 * 130;
       c.height = rows.length * 170;
       const ctx = c.getContext("2d")!,
         bc = b.getContext("2d")!;
@@ -180,7 +180,7 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
       rows.forEach(([pose, d], row) => {
         for (let f = 0; f < frameCount(pose); f++) {
           drawCharacter(bc, { ...originalAppearance, hair: "bald" }, d, pose, f);
-          ctx.drawImage(b, 22, 26, 28, 54, f * 90, row * 170, 84, 162);
+          ctx.drawImage(b, 16, 26, 42, 54, f * 130, row * 170, 126, 162);
         }
         ctx.fillStyle = "#3a2c1c";
         ctx.fillRect(0, row * 170 + 161, c.width, 1);

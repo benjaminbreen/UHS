@@ -38,15 +38,16 @@ export const poses = [
 ] as const;
 export type CharacterPose = (typeof poses)[number];
 export const poseFrames = 4;
-/** The walk alone has eight: pass, up, contact, down, for each foot. */
+/** The walk and the run have eight: four beats for each foot. */
 export const frameCount = (pose: CharacterPose) =>
-  pose === "walk" ? 8 : poseFrames;
+  pose === "walk" || pose === "run" ? 8 : poseFrames;
 export function poseTiming(pose: CharacterPose) {
   if (pose === "wade") return 210;
   // Eight frames in the time the four used to take.
   if (pose === "walk") return 80;
-  // A run reads as a run through cadence as much as through the pose.
-  if (pose === "run") return 95;
+  // A run reads as a run through cadence as much as through the pose. Eight
+  // frames at 55ms is a touch slower than the four at 95 it replaced.
+  if (pose === "run") return 55;
   // Four frames across the 340ms ledge scramble in animateCommand.
   if (pose === "climb") return 85;
   if (pose === "breathe") return 1000;
