@@ -19,6 +19,7 @@ export function pathArt(
   roads: readonly Road[],
   shared = false,
   ruts?: false,
+  dung?: false,
 ) {
   if (shared) roads = uniqueRoads(roads);
   const index = new Map<string, PathStroke[]>();
@@ -70,6 +71,7 @@ export function pathArt(
           // village, roughly twice what the reference art carries.
           radius: road.width ? road.width * 0.72 + 0.44 : shared ? 0.5 : 0.66,
           ...(ruts === false && { ruts }),
+          ...(dung === false && { dung }),
         };
       const count = Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) * 2),
         seen = new Set<string>(),

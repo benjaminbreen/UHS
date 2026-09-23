@@ -1217,6 +1217,47 @@ export function createSettlementWorld(
     ReturnType<typeof pathArt>
   >();
   const roadCenters = new WeakMap<SettlementPlan, Set<string>>();
+  const desirePaths = new WeakMap<SettlementPlan, Map<string, number>>();
+  /** Worn strips across the grass from each door to the nearest road, walked
+   * straight because nobody goes round by the street. Values are wear, 1 on
+   * the centre line and fading over about a cell either side. */
+  function desireLines(p: SettlementPlan) {
+    const wear = new Map<string, number>();
+    desirePaths.set(p, wear);
+    const road: [number, number][] = [];
+    for (const r of p.roads) roadCells(r, (x, y) => road.push([x, y]));
+    const built = p.built ?? p.solid;
+    for (const place of p.places) {
+      const e = place.entrance;
+      if (!e) continue;
+      let best: [number, number] | undefined,
+        bestD = 100;
+      for (const c of road) {
+        const d = (c[0] - e.x) ** 2 + (c[1] - e.y) ** 2;
+        if (d < bestD) (best = c), (bestD = d);
+      }
+      if (!best || bestD < 4) continue;
+      const len = Math.sqrt(bestD),
+        steps = Math.ceil(len * 4),
+        bend = (noise(seed, e.x, e.y, 1, "desire") - 0.5) * len * 0.3;
+      for (let i = 0; i <= steps; i++) {
+        const t = i / steps,
+          arc = Math.sin(Math.PI * t) * bend;
+        const cx = e.x + 0.5 + (best[0] - e.x) * t - ((best[1] - e.y) / len) * arc,
+          cy = e.y + 0.5 + (best[1] - e.y) * t + ((best[0] - e.x) / len) * arc;
+        for (let dy = -1; dy <= 1; dy++)
+          for (let dx = -1; dx <= 1; dx++) {
+            const x = Math.floor(cx) + dx,
+              y = Math.floor(cy) + dy,
+              key = cellKey(x, y);
+            if (built.has(key)) continue;
+            const w = 0.95 - Math.hypot(x + 0.5 - cx, y + 0.5 - cy) * 0.55;
+            if (w > (wear.get(key) ?? 0)) wear.set(key, w);
+          }
+      }
+    }
+    return wear;
+  }
   const bridgeDecks = new WeakMap<SettlementPlan, Map<string, HeightTier>>();
   /** A deck sits at its higher bank's tier, and the road runs level for a few
    * cells off each end, so the only step is one road ramp beyond the approach. */
@@ -1355,12 +1396,18 @@ export function createSettlementWorld(
                     near = Math.abs(dx) + Math.abs(dy);
                 }
             }
-            if (near < 4) {
-              const trample =
-                1 - near / 4 + (noise(seed, ax, ay, 4, "trample") - 0.5) * 0.7;
-              if (trample > 0.25)
-                scape = { kind: "trample", strength: Math.min(1, trample) };
-            }
+            let trample =
+              near < 4
+                ? 1 - near / 4 + (noise(seed, ax, ay, 4, "trample") - 0.5) * 0.7
+                : 0;
+            if (!fieldAt(x, y))
+              for (const p of nearby(x, y))
+                trample = Math.max(
+                  trample,
+                  (desirePaths.get(p) ?? desireLines(p)).get(cellKey(x, y)) ?? 0,
+                );
+            if (trample > 0.25)
+              scape = { kind: "trample", strength: Math.min(1, trample) };
           }
         }
         if (scape) cell.landscape = scape;
@@ -1528,6 +1575,8 @@ export function createSettlementWorld(
             p.site.profile.paved && !revised ? [] : p.roads,
             !!pack.setting?.roadRevision,
             revised && !wheeledTraffic(pack.setting!) ? false : undefined,
+            // Motor traffic had cleared horses off most streets by about 1920.
+            (pack.setting?.year ?? 0) >= 1920 ? false : undefined,
           );
           pathArtCache.set(p, index);
         }
@@ -1539,6 +1588,7 @@ export function createSettlementWorld(
           b: [s.b[0] - x, s.b[1] - y],
           radius: s.radius,
           ...(s.ruts === false && { ruts: s.ruts }),
+          ...(s.dung === false && { dung: s.dung }),
         }));
     }
     if (terraces && cell.surface !== "water") {

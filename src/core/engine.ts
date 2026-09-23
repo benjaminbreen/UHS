@@ -68,6 +68,8 @@ import {
 } from "./types";
 import { canonical, random, stateHash } from "./random";
 import { rockFrame } from "../content/ecology/rocks";
+import { BUILDING_BURN, BURN_SECONDS, oreAt, TORCH_SECONDS } from "../content/ecology/metals";
+import { conditionOf, damageStructure, fabricOf, weatherStructure, type Structure } from "./time/structure";
 import { regardCue } from "./regard";
 import { resolveIntents, validateIntents } from "./intents";
 import { findPath } from "./pathfinding";
@@ -295,6 +297,10 @@ export class Engine {
         .set(world, world.decoration.bind(world))
         .get(world)!) as WorldModel["decoration"];
     world.decoration = (x, y) => edited(x, y, grown(x, y));
+    for (const [id, structure] of Object.entries(this.state.places ?? {})) {
+      const place = world.place(id);
+      if (place) this.setStructure(place, structure);
+    }
   }
   initialize(seed: string) {
     this.state.manifest.seed = seed;
@@ -2083,7 +2089,7 @@ export class Engine {
       return;
     }
     const plant = this.world.decoration(at.x, at.y);
-    if (action === "mine") return this.usePick(plant, edit);
+    if (action === "mine") return this.usePick(plant, edit, at);
     const work = axeWork(plant?.sprite);
     if (work === "buck") {
       const wood = edit.wood ?? 1;
@@ -2174,7 +2180,7 @@ export class Engine {
     );
   }
   /** The pick: boulders open into rubble, rubble clears, stumps come out. */
-  private usePick(plant: Decoration | undefined, edit: TileEdit) {
+  private usePick(plant: Decoration | undefined, edit: TileEdit, at: Point) {
     const p = this.state.player;
     const work = pickWork(plant?.sprite);
     const take = (item: ItemId, n: number) =>
@@ -2219,7 +2225,226 @@ export class Engine {
     take("stone", 2);
     this.grantXp("quarrying", 15);
     this.tilesChanged();
+    const ore = this.oreAt(at);
+    if (ore) {
+      take(ore.item, ore.yield);
+      this.grantXp("quarrying", 10 * ore.yield);
+      this.event(
+        `The rock splits along the vein. You pick out ${this.lootName(ore.item, ore.yield)}.`,
+      );
+      return;
+    }
     this.event("The rock splits open. Broken stone lies where it stood.");
+  }
+  /** The worked ore in a boulder, if there is a boulder and a vein in it. */
+  oreAt(at: Point) {
+    if (!isRock(this.world.decoration(at.x, at.y)?.sprite) && this.state.tiles?.[tileKey(at.x, at.y)]?.stage !== "rubble")
+      return undefined;
+    return oreAt(this.state.manifest.seed, at.x, at.y, this.world.pack.setting?.year ?? 0);
+  }
+  private holdingStick() {
+    const p = this.state.player;
+    const held = heldObject(this.state);
+    return p.heldItem === "stick" || (!!held?.prop && /stick|branch/.test(held.prop));
+  }
+  private lightProblem(target: string) {
+    const fire = this.state.objects.find((o) => o.id === target);
+    if (!fire || fire.kind !== "fire") return "There is no fire there.";
+    if (!this.holdingStick()) return "Hold a stick to the fire to light it.";
+    if (this.state.player.torchOut !== undefined) return "You already have a torch alight.";
+    const p = this.state.player;
+    if (fire.pos.space !== p.pos.space || distance(fire.pos, p.pos) > 1.5) return "Stand by the fire.";
+  }
+  /** A stick held in the flames catches and becomes a torch. */
+  private lightTorch(fire: WorldObject) {
+    const p = this.state.player;
+    const held = heldObject(this.state);
+    if (held) {
+      this.state.objects = this.state.objects.filter((o) => o.id !== held.id);
+      delete p.held;
+    } else p.inventory.stick = (p.inventory.stick ?? 0) - 1;
+    p.inventory.torch = (p.inventory.torch ?? 0) + 1;
+    p.heldItem = "torch";
+    p.torchOut = this.state.clock + TORCH_SECONDS;
+    this.advance(15);
+    this.event(`You hold the stick in ${fire.name.toLowerCase()} until it catches. It burns as a torch.`);
+  }
+  private torchBurnsOut() {
+    const p = this.state.player;
+    delete p.torchOut;
+    p.inventory.torch = Math.max(0, (p.inventory.torch ?? 0) - 1);
+    if (!p.inventory.torch) delete p.inventory.torch;
+    if (p.heldItem === "torch") delete p.heldItem;
+    this.event("Your torch gutters and goes out.");
+  }
+  private burnProblem(target: string) {
+    const p = this.state.player;
+    if (p.heldItem !== "torch") return "You need a lit torch in hand.";
+    const at = this.tileAt(target);
+    if (!at || p.pos.space !== "outside") return "Aim at something outside.";
+    if (Math.max(Math.abs(at.x - p.pos.x), Math.abs(at.y - p.pos.y)) > 1) return "Stand next to it.";
+    if (!this.flammableAt(at.x, at.y) && !this.buildingAt(at.x, at.y)) return "There is nothing here that will burn.";
+  }
+  private buildingAt(x: number, y: number) {
+    return this.world.places?.find(
+      (q) => x >= q.x && y >= q.y && x < q.x + q.w && y < q.y + q.h,
+    );
+  }
+  /** Vegetation that would catch, by how big it is, or undefined. */
+  private flammableAt(x: number, y: number) {
+    const edit = this.state.tiles?.[tileKey(x, y)];
+    if (edit?.burnt || edit?.dug || edit?.stage === "clear" || edit?.stage === "rubble") return undefined;
+    const sprite = this.world.decoration(x, y)?.sprite;
+    if (!sprite || isRock(sprite)) return undefined;
+    if (edit?.stage === "logs") return "medium";
+    if (edit?.stage === "stump") return "small";
+    const size = plantClass(sprite);
+    return size === "none" ? undefined : size;
+  }
+  private burningAt(x: number, y: number, place?: string) {
+    return (this.state.fires ?? []).some((f) => (place ? f.place === place : !f.place && f.x === x && f.y === y));
+  }
+  /** Set a cell or the building on it alight. Returns what to tell the player,
+   * or undefined if nothing caught. */
+  ignite(x: number, y: number): string | undefined {
+    const fires = (this.state.fires ??= []);
+    if (fires.length >= 120) return undefined;
+    const building = this.buildingAt(x, y);
+    // A building generated before structures were kept starts sound.
+    if (building && !building.structure) {
+      const year = this.world.pack.setting?.year ?? 0;
+      this.setStructure(
+        building,
+        weatherStructure(this.state.manifest.seed, building.id, fabricOf(building.sprite), year, year, 1),
+      );
+    }
+    if (building?.structure && building.structure.roof > 0.02) {
+      if (this.burningAt(x, y, building.id)) return undefined;
+      const seconds = BUILDING_BURN[building.structure.fabric];
+      fires.push({ x, y, place: building.id, until: this.state.clock + seconds });
+      this.evacuate(building);
+      return building.structure.fabric === "masonry"
+        ? `The roof of ${building.name.toLowerCase()} catches. The stone walls will outlast it.`
+        : `Flames take hold of ${building.name.toLowerCase()}.`;
+    }
+    const size = this.flammableAt(x, y);
+    if (!size || this.burningAt(x, y)) return undefined;
+    fires.push({ x, y, until: this.state.clock + BURN_SECONDS[size] });
+    this.tilesChanged();
+    return `The ${plantName(this.world.decoration(x, y)?.sprite)} catches.`;
+  }
+  /** Every six seconds: buildings char and lose their roofs, fires reach
+   * their neighbours unless the ground is wet, and spent fires leave ash. */
+  private burnStep() {
+    const fires = this.state.fires;
+    if (!fires?.length) return;
+    const now = this.state.clock;
+    const kept: typeof fires = [];
+    const caught: [number, number][] = [];
+    for (const f of fires) {
+      if (f.place) {
+        const place = this.world.place(f.place);
+        if (!place?.structure) continue;
+        // Paced so the roof is gone about when the fire burns out; a stone
+        // house keeps its walls through it, `damageStructure` sees to that.
+        const next = damageStructure(place.structure, {
+          kind: "fire",
+          section: Math.floor(this.rng("burn") * place.structure.walls.length),
+          amount: (6 / BUILDING_BURN[place.structure.fabric]) * 1.1,
+        });
+        const gone = next.roof <= 0.02;
+        if (gone && next.abandoned === undefined) {
+          const year = this.world.pack.setting?.year ?? 0;
+          next.abandoned = year;
+        }
+        this.setStructure(place, next);
+        if (gone) this.burntOut(place);
+        if (now < f.until && !gone) {
+          kept.push(f);
+          // Sparks off a burning roof land anywhere round it.
+          if (this.rng("roof-spread") < 0.02) {
+            const side = Math.floor(this.rng("roof-side") * (place.w + place.h) * 2);
+            const x = place.x - 1 + (side % (place.w + 2)),
+              y = side < place.w + 2 ? place.y - 1 : place.y + place.h;
+            caught.push([x, y]);
+          }
+        } else this.tilesChanged();
+        continue;
+      }
+      if (now >= f.until) {
+        this.burnOut(f.x, f.y);
+        continue;
+      }
+      kept.push(f);
+      const wet = this.world.topography?.(f.x, f.y)?.habitat?.wet ?? 0.5;
+      for (const [dx, dy] of [
+        [1, 0],
+        [-1, 0],
+        [0, 1],
+        [0, -1],
+      ]) {
+        const x = f.x + dx,
+          y = f.y + dy;
+        const size = this.flammableAt(x, y);
+        const chance = (size === "grass" ? 0.025 : size ? 0.012 : this.buildingAt(x, y) ? 0.01 : 0) * (1 - wet);
+        if (chance && this.rng("spread") < chance) caught.push([x, y]);
+      }
+    }
+    this.state.fires = kept;
+    for (const [x, y] of caught) this.ignite(x, y);
+  }
+  private burnOut(x: number, y: number) {
+    const edit = this.editAt(x, y);
+    const size = plantClass(this.world.decoration(x, y)?.sprite);
+    if (edit.stage === "logs" || edit.stage === "stump" || size === "shrub") edit.stage = "clear";
+    else if (size === "grass") edit.cut = true;
+    else edit.stage = "stump";
+    edit.burnt = true;
+    this.tilesChanged();
+  }
+  private burningPlace(id: string | undefined) {
+    return !!id && !!this.state.fires?.some((f) => f.place === id);
+  }
+  /** Everyone inside a burning house comes out of the door and away. */
+  private evacuate(place: Place) {
+    const door = { ...doorApproach(place), space: "outside" };
+    let fled = 0;
+    for (const a of this.state.actors) {
+      if (a.pos.space !== place.id) continue;
+      this.moveActor(a, { ...door, x: door.x + (fled % 3) - 1, y: door.y + 1 + Math.floor(fled / 3) });
+      a.activity = "Fleeing the fire";
+      a.offRoutine = true;
+      fled++;
+    }
+    const p = this.state.player;
+    if (p.pos.space === place.id) {
+      p.pos = copy(door);
+      this.event("Smoke fills the room. You get out through the door.");
+    }
+    if (fled)
+      this.event(
+        `${fled === 1 ? "Someone runs" : `${fled} people run`} out of ${place.name.toLowerCase()} as the fire takes hold.`,
+      );
+  }
+  /** The roof is gone: nobody lives there now. The household keeps its
+   * members and its story, and sleeps out until it finds somewhere. */
+  private burntOut(place: Place) {
+    for (const h of this.state.households ?? []) {
+      if (h.residence !== place.id) continue;
+      delete h.residence;
+      h.home = { ...doorApproach(place), space: "outside" };
+      (h.history ??= []).push({ year: this.world.pack.setting?.year ?? 0, kind: "fire" });
+    }
+  }
+  /** A building the player has changed: it keeps the change across a save. */
+  private setStructure(place: Place, structure: Structure) {
+    place.structure = structure;
+    place.condition = conditionOf(structure);
+    if (structure.abandoned !== undefined && place.abandonedAt === undefined) {
+      place.abandonedAt = structure.abandoned;
+      place.name = `Remains of ${place.name.toLowerCase()}`;
+    }
+    (this.state.places ??= {})[place.id] = structure;
   }
   /** Seconds of field work, less for someone who has done a lot of it. */
   private fieldPace(seconds: number) {
@@ -3316,6 +3541,12 @@ export class Engine {
       return this.toolProblem(c.action, c.target);
     if (c.type === "interact" && c.action === "heave")
       return this.heaveProblem(c.target);
+    if (c.type === "interact" && c.action === "enter" && this.burningPlace(c.target))
+      return "It is on fire.";
+    if (c.type === "interact" && c.action === "light")
+      return this.lightProblem(c.target);
+    if (c.type === "interact" && c.action === "burn")
+      return this.burnProblem(c.target);
     if (c.type === "interact" && c.action === "climb") {
       if (p.perch) return `You are already up ${p.perch.label}.`;
       return this.climbable() ? undefined : "There is nothing here to climb.";
@@ -3868,7 +4099,11 @@ export class Engine {
         }
         hits.push(h);
       }
-      if (p.pos.space === "outside") {
+      if (p.heldItem === "torch" && p.pos.space === "outside") {
+        const lit = this.ignite(cone[0].x, cone[0].y);
+        if (lit) told = lit;
+      }
+      if (p.pos.space === "outside" && p.heldItem !== "torch") {
         const cut: Species[] = [];
         let changed = false;
         const got: string[] = [];
@@ -4568,6 +4803,15 @@ export class Engine {
       case "heave":
         this.heave(c.target);
         break;
+      case "light":
+        this.lightTorch(o!);
+        break;
+      case "burn": {
+        const at = this.tileAt(c.target)!;
+        this.advance(20);
+        this.event(this.ignite(at.x, at.y) ?? "It will not catch.");
+        break;
+      }
       case "cook":
         if (o) {
           const raw = Math.min(4, p.inventory.meat ?? 0);
@@ -4847,7 +5091,7 @@ export class Engine {
       const rack = this.object(sites.rackId);
       if (rack) rack.open = at.activity !== "rest";
     }
-    if (at.activity === "rest" && household?.residence) {
+    if (at.activity === "rest" && household?.residence && !this.burningPlace(household.residence)) {
       const index = Math.max(0, household.members.indexOf(a.id));
       this.moveActor(a, {
         x: 3 + (index % 4),
@@ -4884,7 +5128,7 @@ export class Engine {
     a.activity = "At home";
     a.hunger = Math.min(a.hunger, 30);
     a.fatigue = Math.max(0, a.fatigue - 0.1);
-    if (household?.residence) {
+    if (household?.residence && !this.burningPlace(household.residence)) {
       const index = Math.max(0, household.members.indexOf(a.id));
       this.moveActor(a, {
         x: 3 + (index % 4),
@@ -5071,6 +5315,8 @@ export class Engine {
                     PER_LEVEL.wayfaringStamina)),
       );
       if (next % 6 !== 0) continue;
+      this.burnStep();
+      if (player.torchOut !== undefined && next >= player.torchOut) this.torchBurnsOut();
       if (next % 3600 === 0) this.world.rotateRoutines?.(next);
       if (this.world.pack.setting?.environment) {
         const season = seasonAt(this.world.pack.setting.season, next);

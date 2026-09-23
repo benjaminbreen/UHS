@@ -77,7 +77,10 @@ export function decay(src: Uint8ClampedArray, w: number, h: number, s: Structure
   const abandoned = s.abandoned !== undefined;
   const isRoof = (i: number) => {
     const m = mat[i];
-    return (m === Mat.Thatch || m === Mat.Tile || m === Mat.Wood) && i / W < h * 0.55 && !glass[i];
+    // Grey tile reads as stone by colour, so the top of the sprite is roof
+    // whatever it is made of.
+    const y = i / W;
+    return !glass[i] && (y < h * 0.42 || ((m === Mat.Thatch || m === Mat.Tile || m === Mat.Wood) && y < h * 0.55));
   };
 
   // The pieces that come away whole: shingles, wall blocks, panes.
@@ -156,7 +159,10 @@ export function decay(src: Uint8ClampedArray, w: number, h: number, s: Structure
     const i = pixels[0],
       x = i % W,
       y = (i / W) | 0;
-    const section = Math.min(11, Math.max(0, Math.floor(((x - PAD_X) / w) * 12)));
+    // `wallSection` numbers the walls clockwise from the back: the front
+    // runs 8, 7, 6 left to right, and the ends show as west 10 and east 4.
+    const f0 = (x - PAD_X) / w;
+    const section = f0 < 0.12 ? 10 : f0 > 0.88 ? 4 : 8 - Math.min(2, Math.floor(((f0 - 0.12) / 0.76) * 3));
     const span = bottom - top[x];
     if (span <= FOOTING || bottom - y < FOOTING) return;
     const f = (bottom - y) / span;

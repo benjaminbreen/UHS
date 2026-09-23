@@ -319,6 +319,7 @@ const actor = z.object({
   memories: z.array(z.string()),
   held: z.string().optional(),
   heldItem: z.string().max(64).optional(),
+  torchOut: z.number().optional(),
   perch: z
     .object({ on: z.string(), label: z.string(), rise: z.number() })
     .optional(),
@@ -461,6 +462,8 @@ export const commandSchema = z.discriminatedUnion("type", [
         "right",
         "topple",
         "heave",
+        "light",
+        "burn",
       ]),
       // A dismount taken over an edge carries the side it goes off.
       dx: z.number().int().min(-1).max(1).optional(),
@@ -691,9 +694,33 @@ export const snapshotSchema = z.object({
           wood: z.number().int().nonnegative().max(99).optional(),
           cut: z.boolean().optional(),
           dug: z.boolean().optional(),
+          picked: z.number().optional(),
+          burnt: z.boolean().optional(),
         })
         .strict(),
     )
     .optional(),
   tilesRevision: z.number().int().nonnegative().optional(),
+  fires: z
+    .array(z.object({ x: z.number().int(), y: z.number().int(), place: z.string().max(100).optional(), until: z.number() }).strict())
+    .max(400)
+    .optional(),
+  places: z
+    .record(
+      z.string().max(100),
+      z
+        .object({
+          version: z.literal(1),
+          fabric: z.enum(["masonry", "earth", "timber"]),
+          built: z.number(),
+          abandoned: z.number().optional(),
+          roof: z.number().min(0).max(1),
+          walls: z.array(z.number().min(0).max(1)).max(24),
+          burial: z.number().min(0).max(1),
+          vegetation: z.number().min(0).max(1),
+          char: z.number().min(0).max(1),
+        })
+        .strict(),
+    )
+    .optional(),
 });

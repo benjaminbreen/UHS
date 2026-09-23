@@ -120,7 +120,16 @@ export type CharacterOrigin = {
   roleLabel?: string;
   notes: string[];
 };
+export type Fire = {
+  x: number;
+  y: number;
+  /** A building alight; a cell of vegetation when absent. */
+  place?: string;
+  until: number;
+};
 export type Actor = {
+  /** Clock when the torch in hand burns out. */
+  torchOut?: number;
   afloat?: "raft" | "boat" | "swimming";
   stats?: Stats;
   health?: number;
@@ -373,6 +382,8 @@ export type PlayerCommand =
         | "right"
         | "topple"
         | "heave"
+        | "light"
+        | "burn"
         | "look";
       /** A descent taken over an edge rather than back the way you came. */
       dx?: number;
@@ -455,6 +466,11 @@ export type Snapshot = {
   tiles?: import("./tile-edits").TileEdits;
   /** Bumped with every tile edit, so the scenery cache knows to rebuild. */
   tilesRevision?: number;
+  /** Cells and buildings alight now. `until` is the clock when it burns out. */
+  fires?: Fire[];
+  /** Buildings the player has changed, by place id: the structure replaces
+   * the generated one, so a burnt house stays burnt on reload. */
+  places?: Record<string, import("./time/structure").Structure>;
   /** Standing facts the narrator has established. Newest last. */
   ledger?: string[];
   /** Narrator turns, oldest first. */

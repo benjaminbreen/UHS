@@ -1072,6 +1072,35 @@ function rasterGroundTile(
               } else if (rut >= 0.05 && rut < 0.09) shade += 7;
             }
           }
+          // Dung pats toward the crown, straw strands toward the edges; both
+          // thicker on busy roads. Blocks keep them sparse and never touching.
+          if (field.dung !== false) {
+            const busy = Math.min(1, field.radius / 1.4);
+            const bx = Math.floor(wx / 12),
+              by = Math.floor(wy / 12);
+            if (field.cross < 0.55 && hash(bx, by, 491) < 0.02 + busy * 0.06) {
+              const sx = bx * 12 + 2 + Math.floor(hash(bx, by, 493) * 8),
+                sy = by * 12 + 2 + Math.floor(hash(bx, by, 495) * 8);
+              const dx = wx - sx,
+                dy = wy - sy;
+              if (dx >= 0 && dy >= 0 && dx <= 1 && dy <= 1 && !(dx && dy && hash(bx, by, 497) < 0.5)) {
+                tone = [84, 62, 40];
+                shade = dx + dy === 0 ? 14 : dy ? -12 : 0;
+              }
+            }
+            const qx = Math.floor(wx / 5),
+              qy = Math.floor(wy / 5);
+            if (hash(qx, qy, 499) < 0.03 + field.cross * 0.08 + busy * 0.04) {
+              const sx = qx * 5 + 1 + Math.floor(hash(qx, qy, 501) * 3),
+                sy = qy * 5 + 1 + Math.floor(hash(qx, qy, 503) * 3),
+                long = 1 + Math.floor(hash(qx, qy, 505) * 2);
+              const across = hash(qx, qy, 507) < 0.5;
+              if (across ? wy === sy && wx >= sx && wx <= sx + long : wx === sx && wy >= sy && wy <= sy + long) {
+                tone = [200, 174, 104];
+                shade = (across ? wx - sx : wy - sy) === long ? -14 : 0;
+              }
+            }
+          }
           // Grit collects off the treadway, not on it.
           if (field.cross > 0.46) {
             const bx = Math.floor(wx / 7),

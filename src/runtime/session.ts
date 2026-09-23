@@ -435,6 +435,7 @@ export class Runtime {
       from: { x: p.x, y: p.y },
       facing: this.engine.state.player.direction,
       sprite: previousPlant,
+      ...(action === "mine" && this.engine.oreAt(at) ? { ore: true } : {}),
     };
   }
   customizeCharacter(id: string, appearance: CharacterAppearance) {
@@ -1218,7 +1219,19 @@ export class Runtime {
           }
         : undefined;
     let primary: Verb | undefined;
-    if (speaker)
+    const facing = this.engine.facingCell();
+    const burn = {
+      type: "interact" as const,
+      target: Engine.tileTarget(facing.x, facing.y),
+      action: "burn" as const,
+    };
+    const light = this.engine.state.objects
+      .filter((o) => o.kind === "fire")
+      .map((o) => ({ type: "interact" as const, target: o.id, action: "light" as const }))
+      .find((command) => !this.engine.validate(command));
+    if (p.heldItem === "torch" && !this.engine.validate(burn))
+      primary = { kind: "strike", label: "Set it alight", command: burn };
+    else if (speaker)
       primary = {
         kind: "talk",
         label: `Talk to ${speaker.name}`,
@@ -1273,7 +1286,9 @@ export class Runtime {
     // Something in hand and somebody in front of you: handing it over is what
     // the second slot is for, ahead of any scenery.
     // A fire and raw meat: cooking comes before putting the stick down.
-    if (c.secondary?.action === "cook")
+    if (light)
+      alternate = { kind: "look", label: "Light the stick in the fire", command: light };
+    else if (c.secondary?.action === "cook")
       alternate = {
         kind: "look",
         label: c.secondaryLabel!,

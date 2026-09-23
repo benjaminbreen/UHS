@@ -599,6 +599,76 @@ item('cooked-meat', '#8a4a2a', '#e8d8bc', [
  "       ooooooooo        ",
 ])
 
+# Ore: a broken lump of country rock with the metal showing in it. The rock
+# is the body colour, the metal the accent; the grade is how much shows.
+item('ore', '#8a8680', '#b87444', [
+ "",
+ "",
+ "",
+ "",
+ "",
+ "         oooooo         ",
+ "       oooottoooo       ",
+ "     oooooottTooooo     ",
+ "    oottooooooooooo     ",
+ "    ottTooooooottoo     ",
+ "    oooooooooottTooo    ",
+ "     ooooottoooooooo    ",
+ "      ooootTooooooo     ",
+ "        ooooooooo       ",
+])
+item('ore-poor', '#8a8680', '#b87444', [
+ "",
+ "",
+ "",
+ "",
+ "",
+ "",
+ "        oooooo          ",
+ "      oooooooooo        ",
+ "     ooooooottooo       ",
+ "     oooooooottToo      ",
+ "     ooooooooooooo      ",
+ "      ooooooooooo       ",
+ "        ooooooo         ",
+])
+item('ore-rich', '#8a8680', '#b87444', [
+ "",
+ "",
+ "",
+ "",
+ "        oooooo          ",
+ "      ootttTooooo       ",
+ "    ooottTTttooooo      ",
+ "   oooootttooottooo     ",
+ "   ottooooooottTTtoo    ",
+ "   otTToooottttTtooo    ",
+ "   oottooootTTtoooooo   ",
+ "    ooooooottoooottoo   ",
+ "     oottoooooootTTo    ",
+ "      ottToooooooooo    ",
+ "        oooooooooo      ",
+])
+item('torch', '#8a6a44', '#e08a2c', [
+ "",
+ "",
+ "              T         ",
+ "             TtT        ",
+ "            TttT        ",
+ "            tTTt        ",
+ "           tTTTt        ",
+ "           ttTtt        ",
+ "          xxxxx         ",
+ "          xOxOx         ",
+ "         oxxxx          ",
+ "        ooo             ",
+ "       ooo              ",
+ "      ooo               ",
+ "     ooo                ",
+ "    ooo                 ",
+ "   ooo                  ",
+])
+
 # Cut wild plants. Each borrows a drawn shape in its own colours.
 def like(name, shape, base, accent):
     COLOR[name] = (base, accent)
@@ -637,3 +707,10 @@ like('khat', 'herbs', '#5a7a3a', '#8a5a3a')
 like('tobacco', 'frond', '#8a8a44', '#6a5a30')
 like('pituri', 'herbs', '#7a7a44', '#5a5a30')
 like('ephedra', 'reeds', '#7a8a4a', '#5a6a34')
+
+# Each metal in its own colour over the same country rock.
+for metal, accent in [('copper', '#c87a44'), ('tin', '#c8c8c0'), ('iron', '#9a5634'),
+                      ('silver', '#e0e4ec'), ('gold', '#e8c030')]:
+    like('%s-ore-poor' % metal, 'ore-poor', '#8a8680', accent)
+    like('%s-ore' % metal, 'ore', '#8a8680', accent)
+    like('%s-ore-rich' % metal, 'ore-rich', '#8a8680', accent)

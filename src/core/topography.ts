@@ -20,6 +20,8 @@ export type PathStroke = {
   radius: number;
   /** False where no carts ran; absent, wide roads are rutted. */
   ruts?: false;
+  /** False where no draft animals leave dung and straw on the road. */
+  dung?: false;
 };
 export type TopographyCell = {
   pathArt?: PathStroke[];

@@ -3,6 +3,7 @@ import { createSession, Runtime } from "../src/runtime/session";
 import { commandSchema, snapshotSchema } from "../src/runtime/schema";
 import { editedDecoration, tileKey } from "../src/core/tile-edits";
 import { fellingSwings } from "../src/content/ecology/vegetation";
+import { BURN_SECONDS, oreAt, TORCH_SECONDS } from "../src/content/ecology/metals";
 import type { Engine } from "../src/core/engine";
 import type { Decoration } from "../src/core/types";
 
@@ -327,4 +328,90 @@ it("still fells a tree with a blunted axe", () => {
   const runtime = new Runtime(engine, { cacheTerrain: false });
   for (let i = 0; i < 6; i++) runtime.propAction("KeyF");
   expect(engine.world.decoration(1, 0)?.sprite).toBe("nature-logs");
+});
+
+it("finds graded ore in a boulder and pockets it when the rock splits", () => {
+  const engine = createSession("roman", "tools-ore");
+  ground(engine);
+  const seed = engine.state.manifest.seed;
+  const year = engine.world.pack.setting?.year ?? 0;
+  let x = 1;
+  while (!oreAt(seed, x, 0, year)) x++;
+  const ore = oreAt(seed, x, 0, year)!;
+  engine.state.player.pos = { x: x - 1, y: 0, space: "outside" };
+  plant(engine, { id: `decor-${x}-0`, x, y: 0, sprite: "rock", solid: true });
+  holding(engine, "pick");
+  const runtime = new Runtime(engine, { cacheTerrain: false });
+  for (let i = 0; i < 4; i++) runtime.propAction("KeyF");
+  expect(engine.state.player.inventory[ore.item]).toBe(ore.yield);
+  expect(runtime.toolEffect?.ore).toBe(true);
+  // Before anyone smelted it, the same vein is only stone.
+  expect(oreAt(seed, x, 0, -9000)).toBeUndefined();
+});
+
+it("lights a stick at a fire, and the torch sets a tree burning down to a stump", () => {
+  const engine = createSession("roman", "tools-torch");
+  ground(engine);
+  const p = engine.state.player;
+  p.inventory.stick = 1;
+  p.heldItem = "stick";
+  engine.state.objects = [
+    {
+      id: "hearth",
+      name: "Camp fire",
+      kind: "fire",
+      prop: "hearth",
+      pos: { x: 0, y: 1, space: "outside" },
+      sprite: "study-prop-hearth-0",
+      inventory: {},
+    },
+  ];
+  const light = { type: "interact" as const, target: "hearth", action: "light" as const };
+  expect(engine.validate(light)).toBeUndefined();
+  engine.execute(light);
+  expect(p.heldItem).toBe("torch");
+  expect(p.inventory.stick).toBe(0);
+  plant(engine, { id: "decor-1-0", x: 1, y: 0, sprite: "nature-silver-birch", solid: true });
+  const burn = { type: "interact" as const, target: "tile:1,0", action: "burn" as const };
+  expect(engine.validate(burn)).toBeUndefined();
+  engine.execute(burn);
+  expect(engine.state.fires).toHaveLength(1);
+  engine.advance(BURN_SECONDS.large + 12);
+  expect(engine.state.tiles?.["1,0"]).toMatchObject({ stage: "stump", burnt: true });
+  engine.advance(TORCH_SECONDS);
+  expect(p.heldItem).toBeUndefined();
+  expect(snapshotSchema.safeParse(engine.snapshot()).success).toBe(true);
+});
+
+it("keeps a burnt building burnt through a save", () => {
+  const engine = createSession("roman", "tools-building");
+  const place = engine.world.places[0];
+  engine.state.player.pos = { x: place.x - 1, y: place.y, space: "outside" };
+  engine.state.player.inventory.torch = 1;
+  engine.state.player.heldItem = "torch";
+  expect(engine.ignite(place.x, place.y)).toBeDefined();
+  engine.advance(1200);
+  const saved = engine.state.places?.[place.id];
+  expect(saved?.char).toBeGreaterThan(0);
+  expect(saved!.roof).toBeLessThan(1);
+  expect(snapshotSchema.safeParse(engine.snapshot()).success).toBe(true);
+});
+
+it("empties a burning house, and a household burnt out of it lives there no more", () => {
+  const engine = createSession("roman", "tools-evacuate");
+  const place = engine.world.places[0];
+  const inside = engine.state.actors[0];
+  inside.pos = { x: 3, y: 3, space: place.id };
+  engine.state.households = [
+    { id: "h", members: [inside.id], residence: place.id, home: { x: 3, y: 3, space: place.id }, storeId: "s" },
+  ];
+  inside.householdId = "h";
+  engine.ignite(place.x, place.y);
+  expect(inside.pos.space).toBe("outside");
+  expect(engine.validate({ type: "interact", target: place.id, action: "enter" })).toBe("It is on fire.");
+  engine.advance(3000);
+  expect(place.structure!.abandoned).toBeDefined();
+  expect(place.name).toMatch(/^Remains of/);
+  expect(engine.state.households[0].residence).toBeUndefined();
+  expect(engine.state.households[0].history?.at(-1)?.kind).toBe("fire");
 });

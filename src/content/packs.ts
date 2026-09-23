@@ -3,6 +3,7 @@ import { resolvePlayablePacks } from "./history/playable";
 import { items as baseItems } from "./legacy-packs";
 import { ecologicalItems } from "./ecology/resources";
 import { forageItems } from "./ecology/forage";
+import { metalItems } from "./ecology/metals";
 import { floraItems } from "./ecology/flora";
 import { wearableItems } from "./characters/wearables";
 export const items: Record<
@@ -12,6 +13,7 @@ export const items: Record<
   ...baseItems,
   ...ecologicalItems,
   ...forageItems,
+  ...metalItems,
   ...floraItems,
   ...wearableItems,
 };

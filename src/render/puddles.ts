@@ -165,6 +165,9 @@ type Bucket = {
   surface: Uint8Array;
   /** Some water pixels, for rain to land on. */
   wet: number[];
+  /** Water pixels only, to clip reflections to. */
+  mask: Phaser.Textures.CanvasTexture;
+  mirror: Phaser.GameObjects.Container;
 };
 type Ring = { x: number; y: number; at: number; r: number; bucket?: Bucket };
 type Drop = { x: number; y: number; vx: number; vy: number; z: number; vz: number; at: number };
@@ -178,12 +181,15 @@ type Manager = {
   ground?: Phaser.GameObjects.Graphics;
   air?: Phaser.GameObjects.Graphics;
   last: number;
+  /** Upside-down figures standing in the water, and whether each was placed
+   * this frame. */
+  reflections: Map<string, { image: Phaser.GameObjects.Image; seen: boolean }>;
 };
 const managers = new WeakMap<Phaser.Scene, Manager>();
 const manager = (scene: Phaser.Scene) => {
   let m = managers.get(scene);
   if (!m) {
-    m = { buckets: new Set(), sky: skyOf(undefined), rings: [], drops: [], last: 0 };
+    m = { buckets: new Set(), sky: skyOf(undefined), rings: [], drops: [], last: 0, reflections: new Map() };
     managers.set(scene, m);
     scene.events.once("shutdown", () => managers.delete(scene));
   }
@@ -246,6 +252,57 @@ function paint(b: Bucket, state: GroundState | undefined, sky: Sky) {
   }
   ctx.putImageData(image, 0, 0);
   b.texture.refresh();
+  const mctx = b.mask.getContext();
+  const mask = mctx.createImageData(b.w, b.h);
+  for (let i = 0; i < b.surface.length; i++) if (b.surface[i] === 1) mask.data[i * 4 + 3] = 255;
+  mctx.putImageData(mask, 0, 0);
+  b.mask.refresh();
+}
+
+/** A figure's upside-down double in the puddle it stands at, darkened to the
+ * sky it lies under. Call each frame for everyone outdoors. */
+export function reflectIn(scene: Phaser.Scene, id: string, body: Phaser.GameObjects.Image) {
+  const m = managers.get(scene);
+  if (!m?.state?.puddles || m.state.frozen || !body.visible) return;
+  const feet = body.y + (1 - body.originY) * body.height;
+  let bucket: Bucket | undefined;
+  search: for (const b of m.buckets) {
+    const c = b.image.parentContainer;
+    const lx = Math.round(body.x - b.x - (c?.x ?? 0)),
+      ly = Math.round(feet - b.y - (c?.y ?? 0));
+    if (lx < -8 || ly < -4 || lx >= b.w + 8 || ly >= b.h + 4) continue;
+    for (let dy = -2; dy <= 14; dy += 4)
+      for (let dx = -6; dx <= 6; dx += 3) {
+        const px = lx + dx,
+          py = ly + dy;
+        if (px >= 0 && py >= 0 && px < b.w && py < b.h && b.surface[py * b.w + px] === 1) {
+          bucket = b;
+          break search;
+        }
+      }
+  }
+  let r = m.reflections.get(id);
+  if (!bucket) {
+    if (r) r.image.setVisible(false);
+    return;
+  }
+  if (!r) {
+    r = { image: scene.add.image(0, 0, body.texture.key).setFlipY(true), seen: true };
+    m.reflections.set(id, r);
+  }
+  r.seen = true;
+  if (r.image.parentContainer !== bucket.mirror) bucket.mirror.add(r.image);
+  const c = bucket.image.parentContainer;
+  const [sr, sg, sb] = m.sky.rgb;
+  r.image
+    .setTexture(body.texture.key, body.frame.name)
+    .setOrigin(body.originX, 0)
+    .setFlipX(body.flipX)
+    .setPosition(body.x - (c?.x ?? 0), feet - (c?.y ?? 0))
+    .setTint(((sr * 0.8) << 16) | ((sg * 0.8) << 8) | (sb * 0.85))
+    .setAlpha(0.55)
+    .setVisible(true);
+  bucket.mirror.setVisible(true);
 }
 
 /** The puddle under a world point, if one is showing there. */
@@ -323,6 +380,13 @@ export function updatePuddles(scene: Phaser.Scene, time: number) {
   if (!m) return;
   const dt = Math.min(0.1, Math.max(0, (time - m.last) / 1000));
   m.last = time;
+  for (const [id, r] of m.reflections) {
+    if (!r.seen || !r.image.active) {
+      if (r.image.active) r.image.destroy();
+      m.reflections.delete(id);
+    }
+    r.seen = false;
+  }
   if (!m.rings.length && !m.drops.length && !m.sky.rain) {
     m.ground?.clear();
     m.air?.clear();
@@ -433,7 +497,12 @@ export function addPuddles(scene: Phaser.Scene, spots: PuddleSpot[]) {
     const texture = scene.textures.createCanvas(key, w, h)!;
     const image = scene.add.image(x, y, key).setOrigin(0);
     container.add(image);
-    const b: Bucket = { image, texture, x, y, w, h, depth, surface: new Uint8Array(w * h), wet: [] };
+    const mask = scene.textures.createCanvas(`${key}-mask`, w, h)!;
+    const mirror = scene.add.container(0, 0).setVisible(false);
+    // The mask stands where the bucket does, off the display list.
+    mirror.setMask(scene.make.image({ x, y, key: `${key}-mask`, origin: 0 }, false).createBitmapMask());
+    container.add(mirror);
+    const b: Bucket = { image, texture, x, y, w, h, depth, surface: new Uint8Array(w * h), wet: [], mask, mirror };
     paint(b, m.state, m.sky);
     buckets.push(b);
     m.buckets.add(b);
@@ -441,7 +510,10 @@ export function addPuddles(scene: Phaser.Scene, spots: PuddleSpot[]) {
   container.once("destroy", () => {
     for (const b of buckets) {
       m.buckets.delete(b);
+      for (const r of m.reflections.values())
+        if (r.image.parentContainer === b.mirror) r.image.destroy();
       if (scene.textures.exists(b.texture.key)) scene.textures.remove(b.texture.key);
+      if (scene.textures.exists(b.mask.key)) scene.textures.remove(b.mask.key);
     }
     m.rings = m.rings.filter((r) => !r.bucket || m.buckets.has(r.bucket));
   });

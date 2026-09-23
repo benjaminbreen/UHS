@@ -31,6 +31,8 @@ export type ToolEffect = {
   sprite?: string;
   /** Which way the player is facing, for work done on their own cell. */
   facing?: number;
+  /** The rock carries a metal vein: iron on stone throws sparks. */
+  ore?: boolean;
 };
 /** One swing: where it came from, and what each cell of the arc found. */
 export type SwingEffect = {
@@ -93,6 +95,8 @@ const LEAF = [0x8fb45c, 0xa8c46c, 0x6f8f46, 0xc8d98a];
 const CHIP = [0xdcc292, 0xb08a5c, 0xf0e0b8];
 const SOIL = [0x8d6e47, 0xb08a5c, 0x61472c];
 const GRIT = [0x8a9199, 0xadb3ba, 0x697179, 0xd8dce0];
+const SPARK = [0xfffad2, 0xffd060, 0xffa030];
+const METAL = [0xc4c4cc, 0x9a5634, 0xc87a44];
 /** What each surface throws off when it is struck. */
 const DEBRIS: Record<HitClass, number[]> = {
   rock: GRIT,
@@ -526,6 +530,10 @@ export class ToolEffects {
         9,
         1.6,
       );
+    if (effect.ore && (effect.kind === "mine" || effect.kind === "shatter")) {
+      this.sparks({ x: (target.x + from.x) / 2, y: target.y - 8 }, 14);
+      this.burst({ x: target.x, y: target.y - 6 }, METAL, 5, 1.2);
+    }
     if (effect.kind === "mine") {
       this.burst({ x: (target.x + from.x) / 2, y: target.y - 6 }, GRIT, 8, 1.5);
       this.shake(effect.at);
@@ -606,6 +614,26 @@ export class ToolEffects {
               p.destroy();
             },
           }),
+      });
+    }
+  }
+  /** Bright, fast and short: they fly further than grit and do not land. */
+  private sparks(at: { x: number; y: number }, count: number) {
+    for (let i = 0; i < count; i++) {
+      const p = this.pixel(at.x, at.y, 1, SPARK[i % SPARK.length]);
+      const angle = -Math.PI / 2 + (Math.random() - 0.5) * 2.4;
+      const reach = 10 + Math.random() * 22;
+      this.scene.tweens.add({
+        targets: p,
+        x: at.x + Math.cos(angle) * reach,
+        y: at.y + Math.sin(angle) * reach + 8,
+        alpha: 0,
+        duration: 180 + Math.random() * 200,
+        ease: "Quad.easeOut",
+        onComplete: () => {
+          this.live.delete(p);
+          p.destroy();
+        },
       });
     }
   }

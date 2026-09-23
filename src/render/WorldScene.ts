@@ -1,5 +1,8 @@
 import { Watercraft } from "./watercraft";
 import { ruinTexture, releaseRuins } from "./ruins";
+import { Burning, TorchFlame } from "./burning";
+import { oreOverlay } from "./ore-art";
+import { showsWear, stillStanding, StructureDecay } from "./structure-decay";
 import { isRuin } from "../core/time/structure";
 import {
   waterDepthAt,
@@ -153,7 +156,9 @@ import {
   type Ambient,
   type StationActivity,
 } from "../core/itinerary";
-import { lightingAt, lightingPreset, shadowFrame } from "./lighting";
+import { lightingAt, lightingPreset, shadowFrame, washAt } from "./lighting";
+import { windowGlow } from "./window-light";
+import { buildingWear } from "./building-wear";
 import { CourtyardLighting, type CourtyardLight } from "./courtyard-lighting";
 import { Drift } from "./drift";
 import { Mist } from "./mist";
@@ -164,7 +169,7 @@ import {
   weatherAt,
   type Weather,
 } from "../core/weather";
-import { puddleUnder, setGroundState, splashPuddle, updatePuddles } from "./puddles";
+import { puddleUnder, reflectIn, setGroundState, splashPuddle, updatePuddles } from "./puddles";
 import { setSnowCover, snowSteps } from "./snow-cover";
 import { setWind } from "./wind";
 import { addPlume, type SmokeKind } from "./smoke";
@@ -309,6 +314,9 @@ export class WorldScene extends Phaser.Scene {
   private cropImages = new Map<string, Phaser.GameObjects.Image>();
   private pickedRevision = -1;
   private toolEffects?: ToolEffects;
+  private burning?: Burning;
+  private torchFlame?: TorchFlame;
+  private structureDecay?: StructureDecay;
   private combatEffects?: CombatEffects;
   private cueFx?: CueEffects;
   /** How people show what they make of things. */
@@ -441,6 +449,9 @@ export class WorldScene extends Phaser.Scene {
     }
   >();
   private hearths = new Map<string, Phaser.GameObjects.Image[]>();
+  /** Lit panes and their halo over the night wash, faded in with the hour. */
+  private lamps: { pane: Phaser.GameObjects.Image; halo: Phaser.GameObjects.Image }[] = [];
+  private washKey = "";
   private fires = new Map<string, FireEffect>();
   private fireFrames = new Map<string, number>();
   private motionFrames = new Map<string, number>();
@@ -2615,7 +2626,10 @@ export class WorldScene extends Phaser.Scene {
       this.drawnWorld = w;
       this.staticKey = key;
       for (const l of this.layers) l.destroy();
-      if (worldChanged) releaseRuins(this);
+      if (worldChanged) {
+        releaseRuins(this);
+        this.structureDecay?.release();
+      }
       this.layers = [];
       this.courtyardLighting.begin();
       this.canopies = [];
@@ -2629,6 +2643,7 @@ export class WorldScene extends Phaser.Scene {
       for (const puffs of this.hearths.values())
         for (const puff of puffs) this.tweens.killTweensOf(puff);
       this.hearths.clear();
+      this.lamps = [];
       this.game.canvas.dataset.hearths = "0";
       this.ground?.destroy();
       this.tilemap?.destroy();
@@ -2948,7 +2963,22 @@ export class WorldScene extends Phaser.Scene {
               if (variety.flip) decoration.setFlipX(true);
               if (variety.tint !== 0xffffff)
                 tint = blendTint(tint, variety.tint);
+              const worked = e.state.tiles?.[`${x},${y}`];
+              if (worked?.burnt) tint = blendTint(tint, 0x4a3f36);
               if (tint !== this.tint) decoration.setTint(tint);
+              const ore = d && !worked?.stage && spriteName === "rock" ? e.oreAt({ x, y }) : undefined;
+              if (ore)
+                this.layers.push(
+                  this.add
+                    .image(
+                      decoration.x,
+                      decoration.getCenter().y,
+                      oreOverlay(this, ore.metal, ore.grade),
+                    )
+                    .setOrigin(0.5, 0.5)
+                    .setDepth(y * 16 + 12.1)
+                    .setTint(tint),
+                );
               if (d?.solid)
                 this.plantHeights.set(d.id, decoration.displayHeight);
               if (d) {
@@ -3053,7 +3083,7 @@ export class WorldScene extends Phaser.Scene {
             b.y + b.h > startY - 8 &&
             b.y < startY + height + 16
           ) {
-            if (isRuin(b)) {
+            if (isRuin(b) && !stillStanding(b)) {
               const image = this.add.image(b.x * 16 - 32, b.y * 16 - 32 - this.lift((b.x + b.w / 2) * 16, (b.y + b.h) * 16), ruinTexture(this, b))
                 .setOrigin(0, 0).setTint(this.tint).setDepth((b.y + b.h) * 16 - 2);
               this.layers.push(image);
@@ -3089,6 +3119,12 @@ export class WorldScene extends Phaser.Scene {
               );
             this.buildings.set(b.id, image);
             this.makeSelectable(image, b.id);
+            // Abandoned or burnt: its own art, decayed, and no lit windows,
+            // smoke or signs, since nobody keeps it.
+            if (isRuin(b) || b.structure?.char) {
+              if (showsWear(b)) (this.structureDecay ??= new StructureDecay(this)).request(b, image);
+              continue;
+            }
             const animation = (
               placement.model as typeof placement.model & {
                 animation?: BuildingAnimationRecipe;
@@ -3097,6 +3133,22 @@ export class WorldScene extends Phaser.Scene {
             if (animation)
               this.addBuildingAnimation(b.id, placement, animation);
             this.addDoor(b, placement, image.y);
+            this.lightWindows(b, placement, image);
+            const model = placement.model as { smoke?: [number, number, string][]; door?: number[] };
+            const wear = buildingWear(this, image.texture.key, image.frame.name, {
+              climate: w.pack.setting?.climate,
+              neglect: 1 - (b.condition ?? 0.7),
+              smoke: model.smoke ?? [],
+              forge: /smith|forge/i.test(b.name) ? model.door : undefined,
+            });
+            if (wear)
+              this.layers.push(
+                this.add
+                  .image(image.x, image.y, wear)
+                  .setOrigin(image.originX, image.originY)
+                  .setTint(this.tint)
+                  .setDepth(image.depth + 0.3),
+              );
             this.addChurchBanner(b, placement, w.pack.setting, image.y);
             this.addBuildingSign(b, placement, w.pack.setting, image.y);
             if (
@@ -3738,26 +3790,63 @@ export class WorldScene extends Phaser.Scene {
         );
       }
     }
-    const wash = this.weatherWash();
-    this.night!.clear()
-      .fillStyle(
-        parseInt(this.light.ambient, 16),
-        this.options.colorGrade === false ? 0 : this.light.ambientAlpha,
-      )
-      .fillRect(
-        -this.scale.width * 4,
-        -this.scale.height * 4,
-        this.scale.width * 9,
-        this.scale.height * 9,
-      );
-    if (wash > 0)
-      this.night!.fillStyle(0x4a5f80, wash).fillRect(
-        -this.scale.width * 4,
-        -this.scale.height * 4,
-        this.scale.width * 9,
-        this.scale.height * 9,
-      );
+    this.washKey = "";
+    this.paintWash();
     this.game.canvas.dataset.lighting = this.light.id;
+  }
+  private paintWash() {
+    const clock = this.options.lighting
+      ? lightingPreset(this.options.lighting).hour * 3600
+      : this.runtime.displayClock();
+    const w = washAt(clock);
+    const weather = this.weatherWash();
+    const graded = this.options.colorGrade !== false;
+    // Low sun is lost behind cloud.
+    const golden = graded ? w.golden * 0.14 * (1 - weather / 0.3) : 0;
+    const lamps = graded ? w.lamps : 0;
+    const key = `${w.color}:${w.alpha.toFixed(3)}:${golden.toFixed(3)}:${weather.toFixed(3)}:${lamps.toFixed(2)}`;
+    if (key === this.washKey) return;
+    this.washKey = key;
+    const x = -this.scale.width * 4,
+      y = -this.scale.height * 4,
+      width = this.scale.width * 9,
+      height = this.scale.height * 9;
+    this.night!.clear().fillStyle(w.color, graded ? w.alpha : 0).fillRect(x, y, width, height);
+    if (golden > 0) this.night!.fillStyle(0xff9a4a, golden).fillRect(x, y, width, height);
+    if (weather > 0) this.night!.fillStyle(0x4a5f80, weather).fillRect(x, y, width, height);
+    for (const l of this.lamps) {
+      l.pane.setAlpha(lamps).setVisible(lamps > 0);
+      l.halo.setAlpha(lamps * 0.45).setVisible(lamps > 0);
+    }
+  }
+  /** Lamps behind the glass of an occupied house after dark: most of them
+   * in the evening, a few kept burning late. */
+  private lightWindows(
+    place: Place,
+    placement: ReturnType<typeof buildingPlacement>,
+    image: Phaser.GameObjects.Image,
+  ) {
+    const h = (((this.runtime.displayClock() / 3600) % 24) + 24) % 24;
+    const share = h >= 17 && h < 22.5 ? 0.8 : h >= 4.5 && h < 8 ? 0.45 : 0.15;
+    if (random(this.runtime.engine.state.manifest.seed, "lamp", place.id) >= share) return;
+    const key = windowGlow(
+      this,
+      image.texture.key,
+      image.frame.name,
+      (placement.model as { door?: number[] }).door,
+    );
+    if (!key) return;
+    const at = (depth: number) =>
+      this.add
+        .image(image.x, image.y, key)
+        .setOrigin(image.originX, image.originY)
+        .setDepth(depth)
+        .setVisible(false);
+    const pane = at(image.depth + 0.5);
+    const halo = at(19001).setBlendMode(Phaser.BlendModes.ADD);
+    this.layers.push(pane, halo);
+    this.lamps.push({ pane, halo });
+    this.washKey = "";
   }
   /** Cloud and wet ground both take the light out of a scene. Ground the
    * player can see is soaked long after the shower has passed. */
@@ -4025,6 +4114,7 @@ export class WorldScene extends Phaser.Scene {
     this.mist?.update(time, !!this.options.freeze);
     this.life?.update(time, !!this.options.freeze);
     updatePuddles(this, time);
+    if (this.night) this.paintWash();
     this.followTiltFocus();
     mark("weather");
     if (perf.fauna)
@@ -4139,6 +4229,24 @@ export class WorldScene extends Phaser.Scene {
       this.heaveUp(heave);
     }
     this.toolEffects.update(time);
+    const fires = this.runtime.engine.state.fires ?? [];
+    if (fires.length || this.burning)
+      (this.burning ??= new Burning(this)).update(
+        fires,
+        (f) => (f.place ? this.buildings.get(f.place) : this.plantImages.get(`${f.x},${f.y}`)?.at(-1)),
+        this.runtime.engine.state.player.pos,
+        delta,
+        lightAlpha[this.light.id],
+      );
+    this.structureDecay?.update();
+    const bearer = this.runtime.engine.state.player;
+    if (bearer.heldItem === "torch" || this.torchFlame)
+      (this.torchFlame ??= new TorchFlame(this)).update(
+        this.entities.get("player"),
+        bearer.heldItem === "torch",
+        bearer.direction,
+        lightAlpha[this.light.id],
+      );
     this.drawTarget(time);
     this.combat().consume(this.runtime.swingEffect);
     this.combat().consumeThrow(this.runtime.throwEffect);
@@ -4422,6 +4530,8 @@ export class WorldScene extends Phaser.Scene {
           water <= 0.025 && !arcLift && wetPos?.space === "outside"
             ? puddleUnder(this, im.x, im.y - 1)
             : undefined;
+        if (wetPos?.space === "outside" && !arcLift && water <= 0.025)
+          reflectIn(this, id, im);
         const heldSprite = this.heldSprites.get(id);
         let pose: CharacterPose = moving ? "walk" : "idle";
         if (active) pose = action.pose;

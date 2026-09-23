@@ -4,8 +4,8 @@ import { generateAppearance } from "../../core/character";
 import { drawCharacter } from "../../render/characters/draw";
 import type { CharacterPose } from "../../render/characters/poses";
 import { ageStructure, conditionBand, conditionOf, fabricOf, weatherStructure } from "../../core/time/structure";
-import { decay, PAD_X } from "./decay";
-import { makeBody, Mat, Scene, type Body } from "./sim";
+import { decay, PAD_X } from "../../render/materials/decay";
+import { makeBody, Mat, Scene, type Body } from "../../render/materials/sim";
 
 export const WORLD_W = 640;
 export const WORLD_H = 320;

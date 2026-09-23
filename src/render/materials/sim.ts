@@ -264,9 +264,12 @@ export class Scene {
   readonly depth: Float32Array;
   private channels: number[] = [];
 
+  /** `ground: false` leaves the background clear, for a scene drawn over the
+   * game's own terrain. */
   constructor(
     readonly W: number,
     readonly H: number,
+    ground = true,
   ) {
     this.occB = new Int32Array(W * H).fill(-1);
     this.occI = new Int32Array(W * H);
@@ -280,7 +283,7 @@ export class Scene {
       [92, 108, 56],
       [116, 130, 70],
     ];
-    for (let i = 0; i < W * H; i++) {
+    for (let i = 0; ground && i < W * H; i++) {
       const x = i % W,
         y = (i / W) | 0;
       const h = hash(x, y, 3);
@@ -938,6 +941,7 @@ export class Scene {
       out[i * 4] = c[0];
       out[i * 4 + 1] = c[1];
       out[i * 4 + 2] = c[2];
+      out[i * 4 + 3] = 255;
     }
     for (const b of this.bodies) {
       if (!b.shadow || b.state !== "rooted") continue;
@@ -992,9 +996,10 @@ export class Scene {
       out[q] = c[0];
       out[q + 1] = c[1];
       out[q + 2] = c[2];
+      out[q + 3] = 255;
       // Smoke billows: an older puff covers a 2×2 block.
       if (p.kind === P.Smoke && t < 0.7 && X + 1 < W && Y + 1 < this.H)
-        for (const k of [4, W * 4, W * 4 + 4]) if (hash(X, Y + k, 17) < 0.7) out.set(c, q + k);
+        for (const k of [4, W * 4, W * 4 + 4]) if (hash(X, Y + k, 17) < 0.7) out.set([c[0], c[1], c[2], 255], q + k);
       if (p.kind === P.Flame || p.kind === P.Spark) this.glow.push(p.x, p.y, 0.3);
     }
     // Screen-blended halo: cheap enough at a few thousand 7×7 stamps.
@@ -1053,6 +1058,7 @@ export class Scene {
         out[q] = b.px[j * 4];
         out[q + 1] = b.px[j * 4 + 1];
         out[q + 2] = b.px[j * 4 + 2];
+        out[q + 3] = 255;
         this.occB[Y * W + X] = bi;
         this.occI[Y * W + X] = j;
       }
