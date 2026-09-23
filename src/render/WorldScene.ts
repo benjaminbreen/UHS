@@ -75,7 +75,7 @@ import {
 import { buildingContains, buildingPlacement, multiplyTint } from "./buildings";
 import { churchBanner } from "../content/settlements/religious/banners";
 import { terrainVariant, type RenderOptions } from "./appearance";
-import { phoneLayout } from "../runtime/device";
+import { phoneLayout, smallMemoryDevice } from "../runtime/device";
 import Phaser from "phaser";
 import { jumpMs, JUMP_CHARGE_MS, type Runtime } from "../runtime/session";
 import type { Position, WorldModel } from "../core/types";
@@ -514,11 +514,14 @@ export class WorldScene extends Phaser.Scene {
   ) {
     super("world");
     this.runtime = runtime;
+    if (smallMemoryDevice()) this.options.shadows = false;
     this.options.waterRenderer ??= "living";
     this.options.shorePolish ??= { ...shorePolishDefaults };
   }
   preload() {
-    const { atlases, images, sheets } = sceneAssets();
+    const { atlases, images, sheets } = sceneAssets(
+      this.options.shadows !== false,
+    );
     for (const a of atlases) this.load.atlas(a.key, a.image, a.data);
     for (const i of images) this.load.image(i.key, i.url);
     for (const sh of sheets)

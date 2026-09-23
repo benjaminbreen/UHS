@@ -26,6 +26,22 @@ test("pinch zooms the world and a tap still walks", async ({ page }) => {
     "true",
     { timeout: 40000 },
   );
+  expect(
+    await page.evaluate(() => {
+      const game = (window as any).uhsGame;
+      return {
+        workers: (window as any).__vitals.now().counts.workers,
+        shadows: ["nature-shadows", "prop-shadows", "lighting-shadows"].some(
+          (key) => game.textures.exists(key),
+        ),
+        tiltShift: game.scene
+          .getScene("world")
+          .cameras.main.postPipelines.some(
+            (pipeline: any) => pipeline.name === "TiltShift",
+          ),
+      };
+    }),
+  ).toEqual({ workers: 1, shadows: false, tiltShift: false });
   // Without this the browser pinch-zooms the page over the game instead.
   await expect(canvas).toHaveCSS("touch-action", "none");
   expect(

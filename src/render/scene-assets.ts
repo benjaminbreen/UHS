@@ -1,4 +1,5 @@
 import artVersion from "./generated/art-version.json" with { type: "json" };
+import { smallMemoryDevice } from "../runtime/device";
 
 /** Moves when the packed art moves, so a rebuild is not hidden by a cached
  *  texture. The atlases are served from public/ by plain path, which the
@@ -35,13 +36,15 @@ export const alternateTrees = {
 } as const;
 
 /** Everything WorldScene.preload fetches, by loader kind. */
-export function sceneAssets() {
+export function sceneAssets(shadows = true) {
   return {
-    atlases: Object.entries(atlases).map(([key, path]) => ({
-      key,
-      image: `${path}.png?v=${artStamp}`,
-      data: `${path}.json?v=${artStamp}`,
-    })),
+    atlases: Object.entries(atlases)
+      .filter(([key]) => shadows || !key.endsWith("shadows"))
+      .map(([key, path]) => ({
+        key,
+        image: `${path}.png?v=${artStamp}`,
+        data: `${path}.json?v=${artStamp}`,
+      })),
     images: [
       { key: "terrain", url: `/packs/terrain.png?v=${artStamp}` },
       {
@@ -61,7 +64,7 @@ let warmed = false;
  * prepared in the worker, so Phaser's loader finds it there. The same URLs,
  * query string included, or the cache does not match. */
 export function warmSceneAssets() {
-  if (warmed || typeof fetch === "undefined") return;
+  if (warmed || typeof fetch === "undefined" || smallMemoryDevice()) return;
   warmed = true;
   const { atlases, images, sheets } = sceneAssets();
   const urls = [

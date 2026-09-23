@@ -2,6 +2,7 @@ import { TimeModal } from "./time/TimeModal";
 import { CharacterSprite } from "./CharacterSprite";
 import { usePhoneLayout } from "./use-phone";
 import { applyFrameCap, registerGame } from "../render/frame-cap";
+import { smallMemoryDevice } from "../runtime/device";
 import { CharacterPanel } from "./CharacterPanel";
 import "./settings.css";
 import {
@@ -196,6 +197,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
   const [liveGraphics, setLiveGraphics] = useState<LiveGraphicsSettings>(
     () => ({
       ...defaultLiveGraphicsSettings,
+      tiltShift: !smallMemoryDevice(),
     }),
   );
   const liveGraphicsRef = useRef(liveGraphics);
@@ -370,7 +372,10 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
     scene?.applyLiveGraphics(next);
   };
   const resetLiveGraphics = () => {
-    updateLiveGraphics(defaultLiveGraphicsSettings);
+    updateLiveGraphics({
+      ...defaultLiveGraphicsSettings,
+      tiltShift: !smallMemoryDevice(),
+    });
     runtime.setZoom(2);
   };
   useEffect(() => {
