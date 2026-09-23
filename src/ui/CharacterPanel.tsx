@@ -561,7 +561,7 @@ export function CharacterPanel({
     .map((r) => ({
       relation: relationLabels[r.kind] ?? r.kind,
       // Blood and partnership read as closer than sharing a roof.
-      closeness: r.kind === "co-resident" ? 2 : 3,
+      closeness: r.kind === "friend" ? 1 : r.kind === "co-resident" ? 2 : 3,
       person: everyone.find((a) => a.id === r.other),
     }))
     .filter((m) => m.person && m.person.kind === "human");

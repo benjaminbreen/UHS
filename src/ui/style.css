@@ -1575,8 +1575,19 @@ kbd {
 .dialogue-line.npc {
   color: var(--cream);
 }
+.dialogue-line.past {
+  margin-bottom: 10px;
+  font-size: 18px;
+  opacity: 0.55;
+}
 .dialogue-action {
-  opacity: 0.6;
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.72em;
+  opacity: 0.55;
+}
+.dialogue-action::first-letter {
+  text-transform: uppercase;
 }
 .dialogue-line.player {
   margin-left: auto;

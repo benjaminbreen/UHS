@@ -21,7 +21,7 @@ export const stationActivities = [
 export type StationActivity = (typeof stationActivities)[number];
 /** Where a walk toward each errand is heading, when the station does not name
  * somewhere more specific. */
-const destination: Record<StationActivity, string> = {
+export const destination: Record<StationActivity, string> = {
   rest: "home",
   work: "work",
   tend: "the fields",

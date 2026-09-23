@@ -5,6 +5,7 @@ import {
 import type {
   Actor,
   Household,
+  Point,
   WorldModel,
   WorldObject,
 } from "../../core/types";
@@ -301,6 +302,10 @@ export function populateHouseholds(
       0.7 * Math.min(1, (customers.get(h.id) ?? 0) / busy);
   }
 
+  befriend(
+    made.flatMap((h) => h.members.map((m) => ({ a: world.initialActors.find((b) => b.id === m)!, home: h.home }))).filter((p) => p.a),
+    seed,
+  );
   for (const { id, a, child, site, household } of pending) {
     // Members get a routine of their own so a household spreads across the
     // settlement during the day instead of stacking on one doorstep.
@@ -444,4 +449,37 @@ export function addWildResources(
           world.initialObjects.push(o);
         }
     }
+}
+
+/** Up to two friends each, outside the household: near in age, living close,
+ * and of the same sex past childhood, which is the rule in most places and
+ * times the simulator covers. */
+function befriend(people: { a: Actor; home: Point }[], seed: string) {
+  const pairs: { a: Actor; b: Actor; score: number }[] = [];
+  for (const [i, x] of people.entries())
+    for (const y of people.slice(i + 1)) {
+      const a = x.a,
+        b = y.a;
+      if (a.householdId === b.householdId || a.id === "player" || b.id === "player") continue;
+      const ageA = a.age ?? 30,
+        ageB = b.age ?? 30;
+      const child = ageA < 13 || ageB < 13;
+      if (Math.abs(ageA - ageB) > (child ? 3 : 12)) continue;
+      if (!child && a.origin?.sex !== b.origin?.sex) continue;
+      const apart = Math.hypot(x.home.x - y.home.x, x.home.y - y.home.y);
+      if (apart > 60) continue;
+      pairs.push({
+        a,
+        b,
+        score: apart + Math.abs(ageA - ageB) * 2 + random(seed, "friend", a.id, b.id) * 30,
+      });
+    }
+  const count = new Map<string, number>();
+  for (const { a, b } of pairs.sort((x, y) => x.score - y.score)) {
+    if ((count.get(a.id) ?? 0) >= 2 || (count.get(b.id) ?? 0) >= 2) continue;
+    (a.relations ??= []).push({ other: b.id, kind: "friend" });
+    (b.relations ??= []).push({ other: a.id, kind: "friend" });
+    count.set(a.id, (count.get(a.id) ?? 0) + 1);
+    count.set(b.id, (count.get(b.id) ?? 0) + 1);
+  }
 }

@@ -13,13 +13,19 @@ import { gameAudio } from "../audio/director";
 import { voice, type Sound } from "../audio/sfx";
 import { voiceOf } from "../audio/voices";
 import type { CueKind } from "../core/combat";
+import type { WalkOff } from "../core/types";
 import { regardCue, regardLabel, regardNotches, REGARD_NOTCHES } from "../core/regard";
+
+function Action({ text }: { text: string }) {
+  return <em className="dialogue-action">{/[.!?]$/.test(text) ? text : `${text}.`}</em>;
+}
 
 /** A line spoken in its own language. A click fades to the English and back. */
 function Glossed({ line }: { line: DialogueLine }) {
   const [english, setEnglish] = useState(false);
-  if (!line.original) return <>{line.text}</>;
-  return (
+  const action = line.action && <Action text={line.action} />;
+  if (!line.original) return <>{action}{line.text}</>;
+  return (<>{action}
     <span
       className="dialogue-glossed"
       data-english={english || undefined}
@@ -37,7 +43,7 @@ function Glossed({ line }: { line: DialogueLine }) {
       <span lang="und" aria-hidden={english}>{line.original}</span>
       <span aria-hidden={!english}>{line.text}</span>
     </span>
-  );
+  </>);
 }
 
 /** What the other person is saying, arriving as speech does. A click shows
@@ -54,6 +60,7 @@ function SpokenLine({ line, heard, onSpeaking, onLetter, voice: speaking }: { li
   if (typed.done) return <p className="dialogue-line npc"><Glossed line={line} /></p>;
   return (
     <p className="dialogue-line npc" onClick={typed.skip} data-typing>
+      {line.action && <Action text={line.action} />}
       {typed.text}
       {/* Holds the line's full height from the first letter, so nothing below it jumps. */}
       <span className="dialogue-unspoken" aria-hidden="true">{text.slice(typed.text.length)}</span>
@@ -73,6 +80,7 @@ export function DialogueModal({ runtime, actorId, situation, onClose }: { runtim
   const [responding, setResponding] = useState(false);
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState("");
+  const [left, setLeft] = useState(false);
   const [giftNotice, setGiftNotice] = useState<string | null>(null);
   const [speaking, setSpeaking] = useState(false);
   // The face the NPC wears. The model names it with the line; failing that,
@@ -116,8 +124,8 @@ export function DialogueModal({ runtime, actorId, situation, onClose }: { runtim
   };
 
   /** The exchange itself, recorded on the person spoken to. */
-  const commitExchange = (said: string, regard?: number) => {
-    if (!said.trim()) return;
+  const commitExchange = (said: string, regard?: number, leave?: WalkOff) => {
+    if (!said.trim() && !leave) return;
     // Looked up either side rather than diffed on one reference, and read
     // off the actor rather than off the model's number: the intent clamps the
     // delta and can refuse it outright, and what shows should be what
@@ -126,7 +134,7 @@ export function DialogueModal({ runtime, actorId, situation, onClose }: { runtim
       runtime.engine.state.actors.find((a) => a.id === actorId)?.trust ?? 0;
     const before = trustNow();
     runtime.narrate([
-      { type: "converse", with: actorId, said: said.slice(0, 120), delta: regard ?? 0 },
+      { type: "converse", with: actorId, said: said.slice(0, 120), delta: regard ?? 0, leave },
     ]);
     const after = trustNow();
     if (after !== before) show(regardCue(after - before, after));
@@ -161,7 +169,11 @@ export function DialogueModal({ runtime, actorId, situation, onClose }: { runtim
       else {
         setMood(result.mood);
         commitGift(result.receive);
-        say(() => setHistory([{ speaker: "npc", text: result.text, original: result.original }]));
+        if (result.leave) {
+          setLeft(true);
+          commitExchange("", 0, result.leave);
+        }
+        say(() => setHistory([{ speaker: "npc", text: result.text, original: result.original, action: result.action }]));
       }
     });
     // Closing the conversation stops the request rather than paying for a
@@ -216,9 +228,13 @@ export function DialogueModal({ runtime, actorId, situation, onClose }: { runtim
     if (result.error) setError(result.error);
     else {
       setMood(result.mood);
-      commitExchange(text, result.regard);
+      commitExchange(text, result.regard, result.leave);
       commitGift(result.receive);
-      say(() => setHistory([...next, { speaker: "npc", text: result.text, original: result.original }]));
+      if (result.leave) {
+        setLeft(true);
+        setResponding(false);
+      }
+      say(() => setHistory([...next, { speaker: "npc", text: result.text, original: result.original, action: result.action }]));
     }
   };
   const close = () => {
@@ -275,7 +291,7 @@ export function DialogueModal({ runtime, actorId, situation, onClose }: { runtim
               line.speaker === "npc" && index === history.length - 1 ? (
                 <SpokenLine key={`${index}-${line.text}`} line={line} heard={heard} onSpeaking={setSpeaking} onLetter={mouth} voice={speaks} />
               ) : (
-                <p className={`dialogue-line ${line.speaker}`} key={`${index}-${line.text}`}><Glossed line={line} /></p>
+                <p className={`dialogue-line ${line.speaker}${index < history.length - 2 ? " past" : ""}`} key={`${index}-${line.text}`}><Glossed line={line} /></p>
               ),
             )
           : latest && <SpokenLine key={latest.text} line={latest} heard={heard} onSpeaking={setSpeaking} onLetter={mouth} voice={speaks} />}
@@ -283,8 +299,8 @@ export function DialogueModal({ runtime, actorId, situation, onClose }: { runtim
         {error && <p className="dialogue-error">{error}</p>}
       </div>
       <div className="dialogue-actions">
-        {!responding && <button className="dialogue-respond" onClick={() => setResponding(true)}>Respond</button>}
-        <button className="dialogue-continue" onClick={close}>Continue <span>▸</span></button>
+        {!responding && !left && <button className="dialogue-respond" onClick={() => setResponding(true)}>Respond</button>}
+        <button className="dialogue-continue" onClick={close}>{left ? `${actor.name.split(" ")[0]} has gone` : "Continue"} <span>▸</span></button>
       </div>
       {responding && <form className="dialogue-input" onSubmit={(event) => { event.preventDefault(); void submit(); }}><input autoFocus value={input} onChange={(event) => setInput(event.target.value)} placeholder={`Speak to ${actor.name}…`} aria-label="Your response" disabled={busy} /><button aria-label="Send response" disabled={!input.trim() || busy}><Send size={16} /></button></form>}
     </section>

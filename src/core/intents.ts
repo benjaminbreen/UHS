@@ -82,6 +82,7 @@ function converse(engine: Engine, i: Extract<Intent, { type: "converse" }>) {
     `spoke:${delta > 0 ? "+" : ""}${delta}:${i.said.slice(0, 80)}`,
   );
   if (actor.memories.length > 40) actor.memories.shift();
+  if (i.leave) engine.walkOff(actor, i.leave);
   engine.advance(60, actor.id);
   return `Spoke with ${actor.name}, regard ${delta > 0 ? "+" : ""}${delta}.`;
 }

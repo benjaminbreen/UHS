@@ -149,6 +149,7 @@ import {
 const TERRAIN_STEP = 14;
 /** Clock seconds: leaning on someone this soon after is the same collision. */
 const BUMP_GAP = 2;
+const AUTHORITY = /basilica|meeting hall|guild hall|council|palace|temple|chapel|church|shrine|mosque|synagogue/i;
 /** Clock seconds: offence taken again this soon costs no more trust. */
 const AFFRONT_GAP = 30;
 import { facingFromStep } from "./facing";
@@ -175,7 +176,7 @@ import {
   type HitClass,
   type ToolClass,
 } from "./reactions";
-import type { Place, Point } from "./types";
+import type { Place, Point, WalkOff } from "./types";
 const GROUND_HIT: Record<string, HitClass> = {
   water: "water",
   marsh: "marsh",
@@ -4098,10 +4099,12 @@ export class Engine {
         ? toolClass(def.tool, def.strike)
         : toolClass(undefined, inHand?.strike, inHand?.edge);
       p.direction = this.aimAt(p.direction);
-      if (tool !== "bare")
-        for (const w of this.witnesses(3))
-          if (Math.max(Math.abs(w.pos.x - p.pos.x), Math.abs(w.pos.y - p.pos.y)) <= 2)
-            this.affront(w);
+      const swung = held?.name ?? (p.heldItem ? this.item(p.heldItem)?.name : undefined) ?? "fists";
+      for (const w of this.witnesses(3))
+        if (Math.max(Math.abs(w.pos.x - p.pos.x), Math.abs(w.pos.y - p.pos.y)) <= 2) {
+          this.nuisance.set(w.id, { what: `swung ${tool === "bare" ? "their" : "a"} ${swung.toLowerCase()} close to you`, at: this.state.clock });
+          if (tool !== "bare") this.affront(w);
+        }
       const power = c.power ?? 0;
       const weapon = weaponOf(held?.prop, held ? undefined : inHand);
       const cone = this.swingCone(p.direction, power, weapon.reach);
@@ -5033,6 +5036,9 @@ export class Engine {
    * so leaning on them or swinging again does not keep costing trust. */
   private affronts = new Map<string, number>();
   private bumpedAt = new Map<string, number>();
+  /** The last small rudeness each person suffered from the player, for dialogue.
+   * Not saved: it only matters for the next minute or two. */
+  nuisance = new Map<string, { what: string; at: number }>();
   private collide(a: Actor, by: "player" | "actor", run = false) {
     const p = this.state.player;
     const now = this.state.clock;
@@ -5047,6 +5053,8 @@ export class Engine {
       run,
     });
     if (a.kind !== "human") return;
+    if (by === "player")
+      this.nuisance.set(a.id, { what: run ? "ran full into you" : "bumped into you", at: now });
     if (!run) {
       this.cue(a.id, "alarm", p.pos);
       this.event(`You collide with ${a.name}, who starts.`, "social");
@@ -5054,6 +5062,51 @@ export class Engine {
     }
     this.affront(a);
     this.event(`You run full into ${a.name}, who rounds on you.`, "social");
+  }
+  /** Someone who has had enough of the player goes elsewhere for an hour. */
+  walkOff(a: Actor, where: WalkOff) {
+    const clock = this.state.clock;
+    const inside = a.pos.space !== "outside" ? this.world.place(a.pos.space) : undefined;
+    if (inside) this.moveActor(a, { ...doorApproach(inside), space: "outside" });
+    let to: Position | undefined;
+    let label = "";
+    if (where === "friend") {
+      const kin = (a.relations ?? [])
+        .map((r) => this.state.actors.find((o) => o.id === r.other))
+        .find((o) => o?.pos.space === "outside" && o.householdId !== a.householdId);
+      const friend =
+        kin ??
+        this.state.actors
+          .filter((o) => o.kind === "human" && o.id !== a.id && o.pos.space === "outside" && o.householdId !== a.householdId && (o.age ?? 30) >= 13)
+          .sort((x, y) => distance(x.pos, a.pos) - distance(y.pos, a.pos))[0];
+      if (friend) {
+        to = copy(friend.pos);
+        label = `Off to talk it over with ${friend.name}`;
+      }
+    } else if (where === "authority") {
+      const hall = this.world.places.find((p) => AUTHORITY.test(p.name));
+      if (hall) {
+        to = { ...doorApproach(hall), space: "outside" };
+        label = `Going to complain at the ${hall.name.replace(/^the /i, "").toLowerCase()}`;
+      }
+    } else if (where === "away") {
+      const p = this.state.player.pos;
+      const d = Math.hypot(a.pos.x - p.x, a.pos.y - p.y) || 1;
+      to = {
+        x: Math.round(a.pos.x + ((a.pos.x - p.x) / d) * 40),
+        y: Math.round(a.pos.y + ((a.pos.y - p.y) / d) * 40),
+        space: "outside",
+      };
+      label = "Walking it off";
+    }
+    if (!to) {
+      to = copy(a.home);
+      label = "Gone home in a temper";
+    }
+    a.errand = { to, label, until: clock + 3600 };
+    a.activity = label;
+    a.offRoutine = true;
+    this.routes.delete(a.id);
   }
   /** The full fit, and trust lost once per `AFFRONT_GAP`. */
   private affront(a: Actor) {
@@ -5509,6 +5562,17 @@ export class Engine {
         if (a.kind === "human" && a.tends) {
           if (next % 12 === 0) this.tendHerd(a, next);
           continue;
+        }
+        if (a.kind === "human" && a.errand) {
+          if (next < a.errand.until) {
+            a.activity = a.errand.label;
+            a.offRoutine = true;
+            // A brisk walk, not the one step an idle resident takes per tick.
+            for (let i = 0; i < 3 && distance(a.pos, a.errand.to) >= 1.5; i++)
+              this.stepToward(a, a.errand.to);
+            continue;
+          }
+          delete a.errand;
         }
         if (a.kind === "human") {
           // Past the routine budget a resident is furniture: home, fed, and

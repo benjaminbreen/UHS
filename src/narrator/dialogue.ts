@@ -1,5 +1,7 @@
-import type { Actor } from "../core/types";
+import type { Actor, WalkOff } from "../core/types";
 import { describeStats, statsOf } from "../core/stats";
+import { weatherAt } from "../core/weather";
+import { seasonAt } from "../core/livelihood";
 import { describeStanding, standingOf } from "../core/standing";
 import { outlookOf } from "../core/outlook";
 import { communityProfiles } from "../content/characters/profiles/communities";
@@ -10,7 +12,7 @@ import type { Expression } from "../render/portraits/constructed";
 import { faunaProfile } from "../content/fauna";
 import { random } from "../core/random";
 
-export type DialogueLine = { speaker: "npc" | "player"; text: string; original?: string };
+export type DialogueLine = { speaker: "npc" | "player"; text: string; original?: string; action?: string };
 export type DialogueGift = {
   name: string;
   description: string;
@@ -73,7 +75,31 @@ function playerPresence(runtime: Runtime) {
  * the game's own state rather than left to the model to guess, so a stranger
  * interrupting a day's work is not as forthcoming as a friend.
  */
+/** How this person takes finding the player inside their home uninvited. The
+ * model ignored raw trait scores here and answered like a shopkeeper. */
+function intrusionReaction(seed: string, actor: Actor, stats: ReturnType<typeof statsOf>) {
+  if (actor.trust >= 3)
+    return "They know and like you, so they are startled and puzzled more than afraid, but it is still strange and they say so.";
+  if (stats.neuroticism >= 65)
+    return stats.extraversion <= 35
+      ? "They are frightened: a gasp or scream, backing away, freezing, or a thin \"Who are you? Get out!\""
+      : "They are frightened and loud: they scream, shout for help or for family, or grab something to hold between you.";
+  if (stats.agreeableness <= 35)
+    return "They are furious: \"What the HELL are you doing in my house?\", cursing, ordering you out, maybe reaching for something heavy.";
+  if (stats.agreeableness >= 65 && stats.neuroticism <= 35)
+    return "They are taken aback but keep their manners: \"Oh... hello? This is my house. What are you doing in here?\"";
+  const middling = [
+    "They are alarmed and demand to know who you are and why you are inside.",
+    "They jump, then stare: confused more than angry at first, and working out whether you are dangerous.",
+    "They are indignant and want you out, but ask one sharp question first.",
+    "They call out to someone else in the house before they say anything to you.",
+  ];
+  return middling[Math.floor(random(seed, "intrusion", actor.id) * middling.length)];
+}
+
 function openness(actor: Actor, met: boolean) {
+  if ((actor.age ?? 30) < 13 && actor.trust >= 0)
+    return "A child. Children are curious about strangers, say what they think, ask questions back, and wander off the subject; shyness is possible, stiff adult caution is not.";
   if (actor.trust < -1)
     return "They want nothing to do with you. Answer curtly or refuse to answer.";
   if (actor.trust < 0)
@@ -87,6 +113,36 @@ function openness(actor: Actor, met: boolean) {
   return "You have met, but barely. Civil and brief.";
 }
 
+// Seeded per person per day, so the same concern colours every talk that day.
+const CONCERNS = {
+  child: ["wants to play", "was told off this morning", "is showing off something they found", "is hungry", "is scared of a bigger child", "has a secret they want to tell", "is bored of their chore", "wonders about something they saw yesterday"],
+  adult: ["is worried about money or what is owed", "is annoyed with someone in the household", "is thinking about a sick animal or relative", "has news or gossip they are itching to share", "is behind on the work and wants to finish", "is in a good mood about something small", "is fretting about the weather and the crops or trade", "has a sore back or tooth", "is waiting for someone who is late", "is planning a meal or a feast"],
+  old: ["remembers how things used to be", "has aches and complains of them", "is worried about a grandchild", "has opinions about the young", "is lonely and glad of any talk"],
+};
+
+function onTheirMind(seed: string, clock: number, actor: Actor) {
+  const age = actor.age ?? 30;
+  const list = age < 13 ? CONCERNS.child : age >= 60 ? CONCERNS.old : CONCERNS.adult;
+  const day = Math.floor(clock / 86400);
+  const pick = list[Math.floor(random(seed, "dialogue-concern", actor.id, day) * list.length)];
+  return [
+    pick,
+    actor.hunger > 60 ? "is hungry" : "",
+    actor.fatigue > 70 ? "is tired" : "",
+    actor.injury ? `is hurt (${actor.injury.name})` : "",
+  ].filter(Boolean).join("; ");
+}
+
+function now(runtime: Runtime) {
+  const { state, world } = runtime.engine;
+  const setting = world.pack.setting;
+  const clock = state.clock;
+  const hour = Math.floor((((clock / 3600) % 24) + 24) % 24);
+  const part = hour < 5 ? "night" : hour < 8 ? "early morning" : hour < 12 ? "morning" : hour < 14 ? "midday" : hour < 18 ? "afternoon" : hour < 21 ? "evening" : "night";
+  const weather = weatherAt(state.manifest.seed, setting?.climate ?? "temperate", setting?.season ?? "spring", clock);
+  return `${part}, ${seasonAt(setting?.season ?? "spring", clock)}, ${weather.label.toLowerCase()}, about ${Math.round(weather.tempC)}°C`;
+}
+
 /** Small, local-only context: enough to ground a voice without resending the world card. */
 export function dialogueContext(runtime: Runtime, actor: Actor) {
   const engine = runtime.engine;
@@ -96,13 +152,32 @@ export function dialogueContext(runtime: Runtime, actor: Actor) {
   const household = actor.householdId
     ? state.households?.find((h) => h.id === actor.householdId)
     : undefined;
+  const playerHome = state.households?.find(
+    (h) => h.residence === state.player.pos.space && h.id === actor.householdId,
+  );
+  const homePlace = playerHome
+    ? engine.world.place(playerHome.residence!)
+    : undefined;
+  const invited = homePlace?.owner
+    ? (state.permissions[homePlace.owner] ?? 0) > state.clock
+    : false;
+  // A shop or inn is walked into; the player's own family's house is theirs.
+  const intruding =
+    !!playerHome && !invited && actor.householdId !== state.player.householdId;
+  const familyPresent = playerHome?.members
+    .filter((id) => id !== actor.id)
+    .map((id) => state.actors.find((candidate) => candidate.id === id))
+    .filter((candidate) => candidate?.pos.space === state.player.pos.space)
+    .map((candidate) => candidate!.name) ?? [];
   const family = (actor.relations ?? [])
     .map((relation) => {
       const other = [state.player, ...state.actors].find((candidate) => candidate.id === relation.other);
       return other ? `${relation.kind} ${other.name}` : undefined;
     })
     .filter(Boolean);
-  const traits = describeStats(statsOf(state.manifest.seed, actor)).slice(0, 3);
+  const stats = statsOf(state.manifest.seed, actor);
+  const rude = engine.nuisance.get(actor.id);
+  const temperament = describeStats(stats).filter((word) => !["frail", "strong", "clumsy", "nimble", "easily spent", "tireless"].includes(word));
   const possessions = Object.entries(actor.inventory)
     .filter(([, quantity]) => (quantity ?? 0) > 0)
     .slice(0, 4)
@@ -157,13 +232,22 @@ export function dialogueContext(runtime: Runtime, actor: Actor) {
     `NPC: ${actor.name}; ${sexLabel(actor)}; age ${actor.age ?? "adult"}; ${actor.role}.`,
     // Before the words: who has walked up, and what they are holding.
     `In front of you: ${playerPresence(runtime)}`,
-    `Openness: ${openness(actor, met.length > 0)}`,
+    intruding
+      ? homePlace?.access === "public"
+        ? `The player has walked into ${homePlace.name}, which is your household's home as well as where you work. Whether that is normal depends on your trade: a trader, shopkeeper, innkeeper or craftsman selling goods expects buyers to walk in by day and may treat them as a customer; a herder, farmer, labourer or anyone else does not, and for them a stranger walking in is an intrusion. It is also an intrusion if the player looks odd, armed or dangerous (see "In front of you"). If it is an intrusion: ${intrusionReaction(state.manifest.seed, actor, stats)}`
+        : `THE PLAYER HAS COME INTO YOUR HOME UNINVITED and is standing inside ${homePlace?.name ?? "your house"} right now.${familyPresent.length ? ` Your family ${familyPresent.join(", ")} are here too.` : ""} This is what the conversation is about until they leave or explain themselves. ${intrusionReaction(state.manifest.seed, actor, stats)} Never greet them as a customer or ask what they need.`
+      : `Openness: ${openness(actor, met.length > 0)}`,
     `Background: ${background.join("; ")}.`,
-    `Doing: ${actor.activity.toLowerCase()}. Location: ${location}.`,
+    `Doing: ${actor.activity.toLowerCase()}. Location: ${place ? `indoors, in ${place.name}` : `outdoors in ${location}, on foot in the open; no desk, counter or furniture unless the context names it`}. Now: ${now(runtime)}.`,
+    `On their mind: ${onTheirMind(state.manifest.seed, state.clock, actor)}.`,
     family.length ? `Family: ${family.join(", ")}.` : household ? "Family: household member." : "Family: lives alone.",
-    traits.length ? `Traits: ${traits.join(", ")}.` : "Traits: ordinary temperament.",
+    temperament.length ? `Temperament: ${temperament.join(", ")}.` : "",
+    `Big Five: openness ${stats.openness}/100, conscientiousness ${stats.conscientiousness}/100, extraversion ${stats.extraversion}/100, agreeableness ${stats.agreeableness}/100, neuroticism ${stats.neuroticism}/100.`,
     holds.length ? `Holds:\n- ${holds.join("\n- ")}` : "",
     possessions.length ? `Has: ${possessions.join(", ")}.` : "Has: ordinary work things.",
+    rude && state.clock - rude.at < 180
+      ? `Just now, ${Math.max(1, Math.round((state.clock - rude.at) / 60))} minute(s) ago, the player ${rude.what}. Remark on it first, in your own way: annoyed, startled, sarcastic, amused or wary. A bump is small; a weapon swung near you is not.`
+      : "",
     grievances.length
       ? `Seen with your own eyes, oldest first, the last of them just now: ${grievances.join("; ")}. This happened; it is not hearsay, and you have not forgotten it.`
       : "",
@@ -213,11 +297,11 @@ function dialogueInterruption(runtime: Runtime, actor: Actor, exchange: number) 
     return `Just now, a nearby ${animal} has interrupted what you were doing: it is nosing, stealing, pecking, barking, or otherwise making trouble in a way plausible for that animal. React to it; this may be comic, inconvenient, or barely worth noticing.`;
   }
   if (choice === "fart")
-    return "Just now, you let out an audible fart in the middle of speaking. React as this person would: acknowledge it, ignore it, or be embarrassed, without making a performance of it.";
+    return "Just now, you let out an audible fart in the middle of speaking. Put it in \"action\", not the spoken line; the line may acknowledge it, ignore it, or show embarrassment.";
   if (choice === "burp")
-    return "Just now, you burped while speaking. React as this person would, then carry on.";
+    return "Just now, you burped while speaking. Put it in \"action\", not the spoken line; react only if this person would.";
   if (choice === "sneeze")
-    return "Just now, a sneeze interrupted you. React briefly if this person would, then carry on.";
+    return "Just now, a sneeze interrupted you. Put it in \"action\", not the spoken line.";
   return "Just now, you lost your train of thought mid-sentence. Let the hesitation show, then recover or ask what you were saying.";
 }
 
@@ -259,6 +343,8 @@ export async function dialogueTurn(
       receive?: DialogueGift;
       regard?: number;
       mood?: Expression;
+      action?: string;
+      leave?: WalkOff;
       ms?: { upstream: number; total: number };
       tokens?: { out: number; reasoning: number };
     };
@@ -272,7 +358,7 @@ export async function dialogueTurn(
           `${data.tokens?.out ?? 0} out (${data.tokens?.reasoning ?? 0} reasoning)`,
       );
     if (!response.ok || !data.text) return { text: "", error: data.error ?? "The conversation is unavailable." };
-    return { text: data.text.trim(), original: data.original?.trim() || undefined, receive: data.receive, regard: data.regard, mood: data.mood, error: undefined };
+    return { text: data.text.trim(), original: data.original?.trim() || undefined, action: data.action?.trim() || undefined, leave: data.leave, receive: data.receive, regard: data.regard, mood: data.mood, error: undefined };
   } catch (cause) {
     // An abort is the player closing the conversation, not a failure.
     if (cause instanceof DOMException && cause.name === "AbortError")

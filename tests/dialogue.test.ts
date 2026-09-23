@@ -55,7 +55,7 @@ describe("dialogue endpoint", () => {
     expect(await cross.json()).toMatchObject({ mood: "angry", regard: -1 });
     // A line with no mood on it is a resting face, not an error.
     const quiet = await dialogue(post("198.51.100.4"), env, async () =>
-      reply({ dialogue: "Mm." }),
+      reply({ dialogue: "Mm.", regard: 0 }),
     );
     expect(await quiet.json()).not.toHaveProperty("mood");
     const invented = await dialogue(post("198.51.100.5"), env, async () =>
@@ -80,8 +80,10 @@ describe("dialogue endpoint", () => {
     expect(Object.keys(schema)).toEqual([
       "mood",
       "regard",
+      "action",
       "original",
       "dialogue",
+      "leave",
       "receive",
     ]);
   });
@@ -122,7 +124,7 @@ describe("narrator endpoint", () => {
     const chat = await dialogue(
       post("192.0.2.5"),
       env,
-      async () => reply({ dialogue: "Still here." }),
+      async () => reply({ dialogue: "Still here.", regard: 0 }),
     );
     expect(chat.status).toBe(200);
   });
@@ -167,5 +169,39 @@ describe("a conversation leaves a trace", () => {
       { type: "converse", with: actor.id, said: "shouted across town", delta: 2 },
     ]);
     expect(actor.memories).toHaveLength(before);
+  });
+  it("walks off when they have had enough", () => {
+    const start = resolveSetting("knoxville 1790");
+    if ("error" in start) throw Error(start.error);
+    const runtime = new Runtime(
+      createSettingSession(start.setting, "dialogue-test"),
+      { cacheTerrain: false },
+    );
+    const state = runtime.engine.state;
+    const actor = state.actors.find((a) => a.kind === "human" && a.pos.space === "outside");
+    if (!actor) throw Error("No one to speak with.");
+    state.player.pos = { ...actor.pos, x: actor.pos.x - 1 };
+    runtime.narrate([
+      { type: "converse", with: actor.id, said: "fuck your hoop", delta: -1, leave: "away" },
+    ]);
+    expect(actor.errand?.label).toBe("Walking it off");
+    // The conversation holds them; they go once it is over.
+    runtime.engine.advance(60);
+    expect(actor.activity).toBe("Walking it off");
+    expect(Math.hypot(actor.pos.x - state.player.pos.x, actor.pos.y - state.player.pos.y)).toBeGreaterThan(3);
+  });
+  it("remembers being bumped a moment ago", () => {
+    const start = resolveSetting("knoxville 1790");
+    if ("error" in start) throw Error(start.error);
+    const runtime = new Runtime(
+      createSettingSession(start.setting, "dialogue-test"),
+      { cacheTerrain: false },
+    );
+    const state = runtime.engine.state;
+    const actor = state.actors.find((a) => a.kind === "human");
+    if (!actor) throw Error("No one to speak with.");
+    state.player.pos = { ...actor.pos, x: actor.pos.x - 1 };
+    runtime.command({ type: "move", dx: 1, dy: 0 });
+    expect(dialogueContext(runtime, actor)).toContain("bumped into you");
   });
 });

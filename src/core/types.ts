@@ -85,6 +85,8 @@ export type HouseholdEvent = {
   /** Who they were to the householder: "wife", "son", "mother". */
   as?: string;
 };
+/** Where someone who has had enough of the player goes. */
+export type WalkOff = "home" | "friend" | "authority" | "away";
 export type SocialRelation = {
   other: string;
   /** What `other` is to this person. */
@@ -95,7 +97,8 @@ export type SocialRelation = {
     | "co-resident"
     | "servant"
     | "apprentice"
-    | "master";
+    | "master"
+    | "friend";
 };
 export type Resource = {
   item: ItemId;
@@ -147,6 +150,8 @@ export type Actor = {
   relations?: SocialRelation[];
   knownResources?: string[];
   task?: { target: string; until: number };
+  /** Somewhere they have taken themselves off to, off their routine until `until`. */
+  errand?: { to: Position; label: string; until: number };
   id: string;
   name: string;
   role: string;
@@ -523,7 +528,7 @@ export type Intent =
   | { type: "travel"; direction: "north" | "south" | "east" | "west" }
   | { type: "regard"; delta: number; reason: string }
   | { type: "fact"; text: string }
-  | { type: "converse"; with: string; said: string; delta: number }
+  | { type: "converse"; with: string; said: string; delta: number; leave?: WalkOff }
   | {
       type: "receive";
       from: string;

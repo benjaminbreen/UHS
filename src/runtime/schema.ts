@@ -156,6 +156,7 @@ const intent = z.discriminatedUnion("type", [
       with: z.string().max(100),
       said: z.string().max(120),
       delta: z.number().min(-2).max(2),
+      leave: z.enum(["home", "friend", "authority", "away"]).optional(),
     })
     .strict(),
   z
@@ -295,7 +296,7 @@ const actor = z.object({
     .array(
       z.object({
         other: z.string(),
-        kind: z.enum(["partner", "parent", "child", "co-resident"]),
+        kind: z.enum(["partner", "parent", "child", "co-resident", "friend"]),
       }),
     )
     .optional(),

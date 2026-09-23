@@ -48,7 +48,10 @@ import {
   buildItinerary,
   DAY_MINUTES,
   itineraryAt,
+  PACE,
+  destination,
   type Itinerary,
+  type Station,
 } from "../../core/itinerary";
 import { route } from "../../core/routing";
 import { CHUNK_SIZE } from "../../core/types";
@@ -1907,7 +1910,7 @@ export function createSettlementWorld(
             startingSite?.id,
           )
         : planForEntity(id);
-    const stations = plan?.stations.get(id);
+    let stations = plan?.stations.get(id);
     const site = plan?.work.get(id);
     // Whether this resident is inside the settlement's budget, decided by a
     // fixed order over its own residents so the answer never depends on who
@@ -1975,13 +1978,66 @@ export function createSettlementWorld(
         );
         return result.status === "found" ? result.path : undefined;
       };
+      // A friend close by who heads the same way first thing: call at their
+      // door and set off together. The lower id leads, so nobody waits on
+      // someone who is waiting on them.
+      const bed = stations[stations.length - 1].pos;
+      const near = (a: Point, b: Point, r: number) => Math.hypot(a.x - b.x, a.y - b.y) < r;
+      const person = (who: string) => world.initialActors.find((a) => a.id === who);
+      const friends = person(id)?.relations?.filter((r) => r.kind === "friend") ?? [];
+      // The neighbour they call on is a friend, where they have one.
+      const friendly = friends
+        .map((r) => ({ door: plan!.work.get(r.other)?.home, name: person(r.other)?.name }))
+        .find((f) => f.door && f.name);
+      if (friendly)
+        stations = stations.map((s) =>
+          s.label === "Calling on a neighbour"
+            ? { ...s, pos: { x: friendly.door!.x, y: friendly.door!.y + 1 }, label: `Calling on ${friendly.name}`, toward: `${friendly.name}'s door` }
+            : s,
+        );
+      const lead = person(id)
+        ?.relations?.filter((r) => r.kind === "friend" && r.other < id)
+        .map((r) => r.other)
+        .find((other) => {
+          const theirs = plan!.stations.get(other)?.[0];
+          const door = plan!.work.get(other)?.home;
+          return !!theirs && !!door && near(theirs.pos, stations![0].pos, 40) && near(door, bed, 25);
+        });
+      // They walk the friend's own route, two tiles behind, as far as the
+      // point on it nearest their own work, and turn off there.
+      const theirDay = lead ? routineFor(lead) : undefined;
+      // Someone already walking behind a friend does not lead another.
+      const shared = theirDay?.segments.some((seg) => seg.label.startsWith("Calling for"))
+        ? undefined
+        : theirDay?.segments.find((seg) => seg.path);
+      const route0 = shared?.path ?? [];
+      let split = -1;
+      for (const [i, p] of route0.entries())
+        if (split < 0 || Math.hypot(p.x - stations[0].pos.x, p.y - stations[0].pos.y) < Math.hypot(route0[split].x - stations[0].pos.x, route0[split].y - stations[0].pos.y))
+          split = i;
+      const leader = shared && split >= 6 ? routineFor(lead!) : undefined;
+      const door = lead ? plan!.work.get(lead)!.home : undefined;
+      const name = lead ? (person(lead)?.name ?? "a friend") : "";
+      const meet: Station | undefined =
+        leader && door
+          ? { pos: { x: door.x + 1, y: door.y }, activity: "visit", label: `Calling for ${name}`, toward: `${name}'s door`, minutes: 3 }
+          : undefined;
+      const parting: Station | undefined = meet
+        ? {
+            pos: route0[split],
+            activity: stations[0].activity,
+            label: stations[0].label,
+            toward: `${stations[0].toward ?? destination[stations[0].activity]} with ${name}`,
+            minutes: 0,
+          }
+        : undefined;
       // A station the resident cannot actually walk to is dropped rather than
       // teleported through: the routine shortens, the route stays honest.
       const reachable: typeof stations = [];
       const legs: Point[][] = [];
-      let at = stations[stations.length - 1].pos;
-      for (const station of stations) {
-        const path = leg(at, station.pos);
+      let at = bed;
+      for (const station of meet && parting ? [meet, parting, ...stations] : stations) {
+        const path = station === parting ? route0.slice(0, split + 1) : leg(at, station.pos);
         if (!path) continue;
         reachable.push(station);
         legs.push(path);
@@ -1994,6 +2050,13 @@ export function createSettlementWorld(
           (_from, to) => legs[reachable.findIndex((s) => s.pos === to)] ?? [],
           random(seed, "day-phase", id),
         );
+      // Slide the whole day so they leave the friend's door just behind the
+      // friend leaving it: two tiles back, near enough to be walking together.
+      const out = leader?.segments.find((seg) => seg.path);
+      const away = built?.segments.find((seg) => seg.path && seg.pos === meet?.pos);
+      if (built && leader && out && away)
+        built.start =
+          (((leader.start + out.from + 2 * PACE - away.from) % built.period) + built.period) % built.period;
     }
     if (!built && (globalThis as Record<string, unknown>).__routineDebug)
       console.log(
