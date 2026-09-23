@@ -250,6 +250,8 @@ export const cueKinds = [
   "question",
   /** Trust lost. */
   "anger",
+  /** Pushed past patience: the full stamping, steaming fit. */
+  "fury",
   /** Trust won, enough to matter. */
   "warm",
   /** A small yes: an ordinary friendly exchange. */
@@ -271,6 +273,18 @@ export type Signal = { serial: number } & (
       cue: CueKind;
       /** What it is about, so they can turn to it. */
       toward?: Point;
+    }
+  | {
+      kind: "bump";
+      /** The actor the player collided with. */
+      who: string;
+      /** From the player toward them: each is thrown back along it. */
+      dx: number;
+      dy: number;
+      /** Who walked into whom. */
+      by: "player" | "actor";
+      /** At a run: the harder knock, and the anger. */
+      run: boolean;
     }
   | { kind: "windup"; group: string; n: number; seconds: number }
   | { kind: "charge" | "lunge"; group: string; n: number }

@@ -20,6 +20,7 @@ export const CUE_MARKS: Partial<Record<CueKind, { glyph: CueGlyph; color: number
   alarm: { glyph: "bang", color: 0xd9523f },
   question: { glyph: "query", color: 0x4a78b8 },
   anger: { glyph: "vein", color: 0xc23a2e },
+  fury: { glyph: "vein", color: 0xc23a2e },
   warm: { glyph: "heart", color: 0xd9527a },
   refuse: { glyph: "dots", color: 0x5c6470 },
 };

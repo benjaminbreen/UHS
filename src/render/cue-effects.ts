@@ -17,7 +17,7 @@ const ACTS: Record<
     pose?: CharacterPose;
     ms: number;
     mark?: { glyph: keyof typeof GLYPHS; color: number };
-    move?: "hop" | "shake" | "dip";
+    move?: "hop" | "shake" | "dip" | "stomp";
     sound?: "alarm";
   }
 > = {
@@ -40,6 +40,8 @@ const ACTS: Record<
     mark: { glyph: "vein", color: 0xc23a2e },
     move: "shake",
   },
+  // Stamps twice and steams, under a throbbing vein: the Stardew fit.
+  fury: { pose: "point", ms: 1700, move: "stomp", sound: "alarm" },
   warm: { ms: 1100, mark: { glyph: "heart", color: 0xd9527a }, move: "dip" },
   nod: { ms: 320, move: "dip" },
   refuse: { pose: "shrug", ms: 900, mark: { glyph: "dots", color: 0x5c6470 } },
@@ -51,6 +53,9 @@ const ACTS: Record<
 const HEAD = 35;
 /** The same person does not flash the same thing twice in this long. */
 const COOLDOWN_MS = 4000;
+/** Thrown apart by a collision, and settled again. */
+const RECOIL_MS = 320;
+const STEAM = [0xffffff, 0xe8e2d6];
 
 type Playing = {
   kind: CueKind;
@@ -61,6 +66,9 @@ type Playing = {
   /** The offset this class last added to the sprite, so it can take it back. */
   dx: number;
   dy: number;
+  /** The last steam jet and foot stamp of a fury, so each fires once. */
+  beat?: number;
+  stamp?: number;
 };
 
 /** People showing how they take things. One cue a person at a time, the
@@ -71,12 +79,18 @@ export class CueEffects {
   private playing = new Map<string, Playing>();
   private last = new Map<string, number>();
   private zs?: Phaser.GameObjects.Graphics;
+  private recoils = new Map<
+    string,
+    { from: number; dx: number; dy: number; ox: number; oy: number }
+  >();
   constructor(
     private scene: Phaser.Scene,
     private view: {
       entityAt: (id: string) => Sprite | undefined;
       /** The player's poses are the runtime's to play. */
       playerPose: (pose: CharacterPose) => void;
+      /** The player's half of a collision, and its sound. */
+      collided: (who: string, dx: number, dy: number, run: boolean) => void;
     },
   ) {}
 
@@ -87,7 +101,42 @@ export class CueEffects {
       if (s.serial <= this.seen) continue;
       this.seen = s.serial;
       if (s.kind === "cue") this.play(s.who, s.cue, s.toward);
+      else if (s.kind === "bump") this.bump(s.who, s.dx, s.dy, s.run);
     }
+  }
+
+  private bump(who: string, dx: number, dy: number, run: boolean) {
+    this.view.collided(who, dx, dy, run);
+    const image = this.view.entityAt(who);
+    if (!image) return;
+    const old = this.recoils.get(who);
+    if (old && image.active)
+      image.setPosition(image.x - old.ox, image.y - old.oy);
+    this.recoils.set(who, { from: this.scene.time.now, dx, dy, ox: 0, oy: 0 });
+    // Where the two met: halfway, at shoulder height.
+    this.pow(image.x - dx * 8, image.y - 14 - dy * 4, image.y);
+  }
+
+  /** A four-pointed flash where two bodies meet. */
+  private pow(x: number, y: number, depth: number) {
+    const g = this.scene.add.graphics().setPosition(x, y).setDepth(depth + 4800);
+    const s = { t: 0 };
+    this.scene.tweens.add({
+      targets: s,
+      t: 1,
+      duration: 220,
+      onUpdate: () => {
+        const r = 3 + s.t * 5;
+        g.clear().setAlpha(1 - s.t * s.t);
+        g.fillStyle(0xfff4b8, 1);
+        g.fillRect(-1, -r, 2, r * 2).fillRect(-r, -1, r * 2, 2);
+        const d = Math.round(r * 0.6);
+        for (const [sx, sy] of [[1, 1], [1, -1], [-1, 1], [-1, -1]])
+          g.fillRect(sx * d - 1, sy * d - 1, 2, 2);
+        g.fillStyle(0xffffff, 1).fillRect(-2, -2, 4, 4);
+      },
+      onComplete: () => g.destroy(),
+    });
   }
 
   /** A reaction the scene asks for itself: someone watching the player land
@@ -165,7 +214,7 @@ export class CueEffects {
       // mid-cue is not fought over.
       const early = Math.min(1, (time - p.from) / 220);
       const dx =
-        act.move === "shake" && t < 0.5
+        (act.move === "shake" && t < 0.5) || (act.move === "stomp" && t < 0.7)
           ? Math.floor(time / 40) % 2
             ? 1
             : -1
@@ -179,12 +228,91 @@ export class CueEffects {
             ? -Math.sin(Math.PI * early) * 5
             : act.move === "dip"
               ? Math.sin(Math.PI * early) * 2
-              : 0;
+              : act.move === "stomp" && t < 0.55
+                ? -Math.abs(Math.sin(t * Math.PI * 4 / 0.55)) * 4
+                : 0;
       image.setPosition(image.x - p.dx + dx, image.y - p.dy + dy);
       p.dx = dx;
       p.dy = dy;
       if (p.mark && act.mark)
         this.mark(p.mark, image, act.mark, time - p.from, p.until - time);
+      if (p.kind === "fury") this.fury(p, image, time);
+    }
+    for (const [who, r] of this.recoils) {
+      const image = this.view.entityAt(who);
+      const t = (time - r.from) / RECOIL_MS;
+      if (!image || t >= 1) {
+        if (image?.active) image.setPosition(image.x - r.ox, image.y - r.oy);
+        this.recoils.delete(who);
+        continue;
+      }
+      // Knocked back fast, eased home; a little air under it on the way.
+      const back = Math.sin(Math.PI * Math.min(1, t * 1.4)) * 6;
+      const ox = r.dx * back,
+        oy = r.dy * back - Math.sin(Math.PI * t) * 3;
+      image.setPosition(image.x - r.ox + ox, image.y - r.oy + oy);
+      r.ox = ox;
+      r.oy = oy;
+    }
+  }
+
+  /** The vein throbs over the head and steam jets from the ears; each stamp
+   * of the foot kicks up dust. */
+  private fury(p: Playing, image: Sprite, time: number) {
+    const age = time - p.from,
+      left = p.until - time;
+    const g = (p.mark ??= this.scene.add.graphics());
+    const pulse = 1 + 0.3 * Math.max(0, Math.sin(age / 55));
+    const pop = Math.min(1, age / 120);
+    g.clear()
+      .setPosition(Math.round(image.x + 8), Math.round(image.y - HEAD - 3))
+      .setScale((pop < 1 ? pop * 1.6 : 1.15) * pulse)
+      .setAlpha(Math.min(1, left / 200))
+      .setDepth(image.y + 4700);
+    // Four bent corners around an empty middle, outlined so it reads on grass.
+    const arms: [number, number][] = [[-1, -1], [1, -1], [-1, 1], [1, 1]];
+    for (const [ink, grow] of [[0x3a0c08, 1], [0xe0352b, 0]] as const)
+      for (const [sx, sy] of arms) {
+        g.fillStyle(ink, 1);
+        g.fillRect(sx * 2 - (sx < 0 ? 2 : 0) - grow, sy * 4 - (sy < 0 ? 1 : 0) - grow, 2 + grow * 2, 1 + grow * 2);
+        g.fillRect(sx * 4 - (sx < 0 ? 1 : 0) - grow, sy * 2 - (sy < 0 ? 2 : 0) - grow, 1 + grow * 2, 2 + grow * 2);
+      }
+    // A jet every 110ms, alternating ears, while the fit lasts.
+    const beat = Math.floor(age / 110);
+    if (beat !== p.beat && age < 1300) {
+      p.beat = beat;
+      const side = beat % 2 ? 1 : -1;
+      const puff = this.scene.add
+        .rectangle(image.x + side * 5, image.y - HEAD + 10, 3, 3, STEAM[beat % 2])
+        .setDepth(image.y + 4690);
+      this.scene.tweens.add({
+        targets: puff,
+        x: puff.x + side * (6 + Math.random() * 3),
+        y: puff.y - 7 - Math.random() * 3,
+        scale: 2,
+        alpha: 0,
+        duration: 420,
+        ease: "Quad.easeOut",
+        onComplete: () => puff.destroy(),
+      });
+    }
+    const stamp = Math.floor(age / (p.until - p.from) / 0.1375);
+    if (stamp !== p.stamp && stamp >= 1 && stamp <= 4) {
+      p.stamp = stamp;
+      for (const side of [-1, 1]) {
+        const dust = this.scene.add
+          .rectangle(image.x + side * 3, image.y - 1, 2, 2, 0xd8ccb0)
+          .setDepth(image.y + 4690);
+        this.scene.tweens.add({
+          targets: dust,
+          x: dust.x + side * 6,
+          y: dust.y - 2,
+          alpha: 0,
+          duration: 260,
+          ease: "Quad.easeOut",
+          onComplete: () => dust.destroy(),
+        });
+      }
     }
   }
 
@@ -242,6 +370,7 @@ export class CueEffects {
 
   dispose() {
     for (const who of [...this.playing.keys()]) this.stop(who);
+    this.recoils.clear();
     this.zs?.destroy();
     this.zs = undefined;
   }

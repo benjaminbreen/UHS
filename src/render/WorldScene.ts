@@ -326,6 +326,7 @@ export class WorldScene extends Phaser.Scene {
     return (this.cueFx ??= new CueEffects(this, {
       entityAt: (id) => this.entities.get(id),
       playerPose: (pose) => this.runtime.playPose(pose),
+      collided: (who, dx, dy, run) => this.collided(who, dx, dy, run),
     }));
   }
   private feelFx?: PlayerFeel;
@@ -1235,6 +1236,22 @@ export class WorldScene extends Phaser.Scene {
         : bumpAnimal(beastVoiceOf(hit.species!)),
       "bump",
     );
+  }
+  /** Walked into someone, or walked into by them: both are thrown apart. */
+  private collided(who: string, dx: number, dy: number, run: boolean) {
+    const im = this.entities.get("player");
+    const actor = this.runtime.engine.state.actors.find((a) => a.id === who);
+    if (actor)
+      gameAudio()?.sound(bumpPerson(voiceOf(actor), run), "bump");
+    if (!im) return;
+    const time = this.time.now;
+    this.bump = undefined;
+    this.bonk = { dx, dy, at: time };
+    this.nextInput = Math.max(this.nextInput, time + BONK_MS);
+    this.play({ pose: "stumble", ms: BONK_MS / 4, first: 0, last: 3 }, BONK_MS);
+    this.feel.spring(im, 1.18, 0.84);
+    this.cameras.main.shake(90, 0.0025);
+    this.kickDust(im.x + dx * 8, im.y, 5, 0.8);
   }
   private bonkAt(dx: number, dy: number, time: number) {
     this.bump = undefined;

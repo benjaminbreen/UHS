@@ -147,6 +147,10 @@ import {
 
 /** Elevation carried by one altitude step, matching the terrain renderer. */
 const TERRAIN_STEP = 14;
+/** Clock seconds: leaning on someone this soon after is the same collision. */
+const BUMP_GAP = 2;
+/** Clock seconds: offence taken again this soon costs no more trust. */
+const AFFRONT_GAP = 30;
 import { facingFromStep } from "./facing";
 import {
   doorAccess,
@@ -2900,6 +2904,10 @@ export class Engine {
           (occupied ? occupied.has(`${to.x},${to.y}`) : cellOccupied(to))
         )
           return Infinity;
+        // Round the player where that is cheap; through them, and a
+        // collision, where it is the only way.
+        if (actorId !== "player" && this.playerOn({ ...to, space: start.space }))
+          return 12;
         if (actorId === "player" && start.space === "outside" && afloatAt(this.world, this.state.player, to.x, to.y)) return this.state.player.afloat === "swimming" ? 2.5 : 1.4;
         return start.space === "outside"
           ? (this.world.navigationCost?.(to.x, to.y, actorId) ?? 1) *
@@ -3684,7 +3692,7 @@ export class Engine {
           a.pos.x === p.pos.x + c.dx &&
           a.pos.y === p.pos.y + c.dy,
       );
-      if (occupant) return `${occupant.name} is standing there.`;
+      if (occupant) return;
       const beast = this.jostle(c.dx, c.dy);
       if (beast && !beast.to && !beast.small && !beast.crossing)
         return `The ${beast.label.toLowerCase()} does not move for you.`;
@@ -4090,6 +4098,10 @@ export class Engine {
         ? toolClass(def.tool, def.strike)
         : toolClass(undefined, inHand?.strike, inHand?.edge);
       p.direction = this.aimAt(p.direction);
+      if (tool !== "bare")
+        for (const w of this.witnesses(3))
+          if (Math.max(Math.abs(w.pos.x - p.pos.x), Math.abs(w.pos.y - p.pos.y)) <= 2)
+            this.affront(w);
       const power = c.power ?? 0;
       const weapon = weaponOf(held?.prop, held ? undefined : inHand);
       const cone = this.swingCone(p.direction, power, weapon.reach);
@@ -4380,6 +4392,19 @@ export class Engine {
       }
       delete this.lastLeap;
       delete this.lastJostle;
+      const occupant = this.state.actors.find(
+        (a) =>
+          a.pos.space === p.pos.space &&
+          a.pos.x === p.pos.x + c.dx &&
+          a.pos.y === p.pos.y + c.dy,
+      );
+      if (occupant) {
+        p.direction = c.dy < 0 ? 0 : c.dx > 0 ? 1 : c.dy > 0 ? 2 : 3;
+        p.facing = facingFromStep(c.dx, c.dy, p.direction);
+        this.collide(occupant, "player", !!c.run);
+        this.advance(1);
+        return;
+      }
       const beast = this.jostle(c.dx, c.dy);
       if (beast?.crossing) {
         // Its body is still in the way; a moment and it is gone.
@@ -5004,6 +5029,44 @@ export class Engine {
    * seconds, and the one that has finally had enough of it. */
   private blockedSince = new Map<string, number>();
   blockComplaint?: { id: string; at: number };
+  /** Clock second each actor last took offence at a collision or a swing,
+   * so leaning on them or swinging again does not keep costing trust. */
+  private affronts = new Map<string, number>();
+  private bumpedAt = new Map<string, number>();
+  private collide(a: Actor, by: "player" | "actor", run = false) {
+    const p = this.state.player;
+    const now = this.state.clock;
+    if (now - (this.bumpedAt.get(a.id) ?? -Infinity) < BUMP_GAP) return;
+    this.bumpedAt.set(a.id, now);
+    this.signal({
+      kind: "bump",
+      who: a.id,
+      dx: Math.sign(a.pos.x - p.pos.x),
+      dy: Math.sign(a.pos.y - p.pos.y),
+      by,
+      run,
+    });
+    if (a.kind !== "human") return;
+    if (!run) {
+      this.cue(a.id, "alarm", p.pos);
+      this.event(`You collide with ${a.name}, who starts.`, "social");
+      return;
+    }
+    this.affront(a);
+    this.event(`You run full into ${a.name}, who rounds on you.`, "social");
+  }
+  /** The full fit, and trust lost once per `AFFRONT_GAP`. */
+  private affront(a: Actor) {
+    const now = this.state.clock;
+    if (now - (this.affronts.get(a.id) ?? -Infinity) < AFFRONT_GAP)
+      return this.cue(a.id, "fury", this.state.player.pos);
+    this.affronts.set(a.id, now);
+    this.regard(a, -1, "fury");
+  }
+  private playerOn(p: Position) {
+    const at = this.state.player.pos;
+    return at.space === p.space && at.x === p.x && at.y === p.y;
+  }
   /** Returns true once an actor has been stuck behind the player for a second. */
   private blockedByPlayer(a: Actor, step: { x: number; y: number }) {
     const p = this.state.player;
@@ -5074,8 +5137,13 @@ export class Engine {
         this.routes.delete(a.id);
         return;
       }
-      if (this.actorAt({ ...step, space: a.pos.space }, a.id)) {
+      if (this.playerOn({ ...step, space: a.pos.space })) {
+        this.collide(a, "actor");
         if (a.kind === "human") this.blockedByPlayer(a, step);
+        this.routes.delete(a.id);
+        return;
+      }
+      if (this.actorAt({ ...step, space: a.pos.space }, a.id)) {
         this.routes.delete(a.id);
         return;
       }
@@ -5098,7 +5166,13 @@ export class Engine {
             [dx, 0],
           ];
     for (const [x, y] of steps) {
-      if ((x || y) && !this.blocked(a.pos.x + x, a.pos.y + y, a.pos.space)) {
+      if (!x && !y) continue;
+      const to = { x: a.pos.x + x, y: a.pos.y + y, space: a.pos.space };
+      if (this.playerOn(to)) {
+        this.collide(a, "actor");
+        return;
+      }
+      if (!this.blocked(to.x, to.y, a.pos.space)) {
         a.pos.x += x;
         a.pos.y += y;
         a.direction = y < 0 ? 0 : x > 0 ? 1 : y > 0 ? 2 : 3;
@@ -5112,7 +5186,7 @@ export class Engine {
       (x, y) => this.blocked(x, y, a.pos.space),
       800,
     )[0];
-    if (step) {
+    if (step && !this.playerOn({ ...step, space: a.pos.space })) {
       a.pos.x = step.x;
       a.pos.y = step.y;
       this.syncActor(a);

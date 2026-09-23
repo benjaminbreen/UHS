@@ -257,7 +257,7 @@ export class CombatEffects {
       if (e.serial <= this.seen) continue;
       this.seen = e.serial;
       // How people took things is `CueEffects`' business.
-      if (e.kind === "cue") continue;
+      if (e.kind === "cue" || e.kind === "bump") continue;
       const id = faunaSpriteId(e.group, e.n);
       const image = this.view.entityAt(id);
       if (e.kind === "windup") this.tell(id, e.seconds);

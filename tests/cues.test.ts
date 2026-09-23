@@ -135,3 +135,30 @@ it("the player starts when a boar squares up", () => {
   expect(engine.signals.some((s) => s.kind === "windup")).toBe(true);
   expect(cues(engine, "player")).toContain("alarm");
 });
+
+it("startles when walked into, and rounds on you when run into", () => {
+  const { engine, person } = field("cue-bump");
+  const a = bystander(engine, person, 1, 0);
+  engine.execute({ type: "move", dx: 1, dy: 0 });
+  expect(engine.state.player.pos.x).toBe(0);
+  engine.execute({ type: "pass", seconds: 5 });
+  a.pos = { x: 1, y: 0, space: "outside" };
+  engine.execute({ type: "move", dx: 1, dy: 0 });
+  expect(cues(engine, a.id)).toEqual(["alarm", "alarm"]);
+  expect(a.trust).toBe(0);
+  engine.execute({ type: "pass", seconds: 5 });
+  a.pos = { x: 1, y: 0, space: "outside" };
+  engine.execute({ type: "move", dx: 1, dy: 0, run: true });
+  expect(cues(engine, a.id)).toEqual(["alarm", "alarm", "fury"]);
+  expect(a.trust).toBeLessThan(0);
+});
+
+it("angers anyone within two paces of a swung stick", () => {
+  const { engine, person } = field("cue-menace");
+  const near = bystander(engine, person, -2, 1);
+  const far = bystander(engine, person, -4, 0);
+  engine.devArm("stick");
+  engine.execute({ type: "swing" });
+  expect(cues(engine, near.id)).toContain("fury");
+  expect(cues(engine, far.id)).not.toContain("fury");
+});
