@@ -100,6 +100,8 @@ def regional_house_recipes(root, source):
                         'turretStyles': [turrets[variant % len(turrets)]],
                         **({'sino': {**profile['sino'], 'palette': data['sinoPalette']}}
                            if shape.get('sinitic') else {}),
+                        **({'steppe': {**profile['steppe'], 'palette': data['steppePalette']}}
+                           if shape.get('steppe') else {}),
                         'roofSurfaces': roof_surfaces(resolved, stories),
                         'roofVoid': resolved.get('courtyard'),
                         'roofAccess': shape.get('roofAccess', 'none'),

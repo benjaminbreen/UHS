@@ -93,6 +93,92 @@
       "roofFeatures": ["palm-screen", "shade-frame", "water-jars"],
       "turretStyles": ["none", "corner-stair"]
     },
+    "scytho-saka": {
+      "label": "Scytho-Saka (Pazyryk horizon)",
+      "wall": "mud-plaster",
+      "roofMaterial": "thatch",
+      "roofStyle": "steppe",
+      "steppe": {
+        "tentForms": ["dome", "dome", "cone"],
+        "felts": [["felt-brown", "felt-grey"], ["felt-grey", "felt-white"], ["felt-white"]],
+        "doors": [["flap"], ["flap"], ["flap"]],
+        "motifs": ["animal", "ram-horn", "cloud"],
+        "appliqueColours": ["door-red", "blue", "ochre"],
+        "ropeBands": [2],
+        "winterRoofs": ["sod"],
+        "pens": ["wattle"],
+        "extras": ["fuel", "hitching", "rack", "standard", "cart"]
+      }
+    },
+    "xiongnu": {
+      "label": "Xiongnu",
+      "wall": "mud-plaster",
+      "roofMaterial": "thatch",
+      "roofStyle": "steppe",
+      "steppe": {
+        "tentForms": ["ger", "dome"],
+        "felts": [["felt-brown", "felt-grey"], ["felt-grey", "felt-white"], ["felt-white"]],
+        "doors": [["flap"], ["flap", "painted"], ["painted"]],
+        "motifs": ["cloud", "meander", "animal"],
+        "appliqueColours": ["door-red", "ochre", "blue"],
+        "ropeBands": [2, 3],
+        "winterRoofs": ["sod"],
+        "pens": ["stone", "wattle"],
+        "extras": ["fuel", "hitching", "rack", "standard", "cart"]
+      }
+    },
+    "early-turkic": {
+      "label": "Early Turkic and Uyghur",
+      "wall": "mud-plaster",
+      "roofMaterial": "thatch",
+      "roofStyle": "steppe",
+      "steppe": {
+        "tentForms": ["ger"],
+        "felts": [["felt-grey", "felt-brown"], ["felt-white", "felt-grey"], ["felt-white"]],
+        "doors": [["flap"], ["flap", "painted"], ["painted"]],
+        "motifs": ["ram-horn", "meander", "knot"],
+        "appliqueColours": ["door-red", "blue", "green"],
+        "ropeBands": [2, 3],
+        "winterRoofs": ["sod"],
+        "pens": ["stone"],
+        "extras": ["fuel", "hitching", "rack", "standard", "cart"]
+      }
+    },
+    "mongol": {
+      "label": "Mongol",
+      "wall": "mud-plaster",
+      "roofMaterial": "thatch",
+      "roofStyle": "steppe",
+      "steppe": {
+        "tentForms": ["ger"],
+        "felts": [["felt-grey", "felt-brown"], ["felt-white", "felt-grey"], ["felt-white"]],
+        "doors": [["flap", "painted"], ["painted"], ["painted"]],
+        "motifs": ["knot", "meander", "ram-horn"],
+        "appliqueColours": ["blue", "door-red", "ochre"],
+        "ropeBands": [3],
+        "winterRoofs": ["sod"],
+        "pens": ["stone", "wattle"],
+        "extras": ["fuel", "hitching", "rack", "standard", "cart"]
+      }
+    },
+    "manchurian-forest": {
+      "label": "Manchurian forest peoples",
+      "wall": "mud-plaster",
+      "roofMaterial": "thatch",
+      "roofStyle": "steppe",
+      "steppe": {
+        "tentForms": ["cone"],
+        "coneCover": "bark",
+        "felts": [["felt-brown"], ["felt-brown", "felt-grey"], ["felt-grey"]],
+        "doors": [["flap"]],
+        "motifs": ["cloud"],
+        "appliqueColours": ["door-red"],
+        "ropeBands": [2],
+        "winterRoofs": ["bark", "sod"],
+        "pens": ["wattle"],
+        "extras": ["fuel", "rack", "hitching"]
+      }
+    },
     "early-chinese": {
       "label": "Early Chinese (Zhou to Han)",
       "detailSet": "early-chinese",
@@ -344,6 +430,25 @@
     "water": ["#0f2030", "#1a3448", "#2a5068", "#3c6e88", "#5a90a8", "#8ab8c8"],
     "leaf": ["#142412", "#1f3a1a", "#2e5424", "#417030", "#5c8c3c", "#84a852"]
   },
+  "steppePalette": {
+    "felt-white": ["#4a463e", "#7d766a", "#aba392", "#cfc7b3", "#e8e1cd", "#f7f2e2"],
+    "felt-grey": ["#3e3c38", "#625e56", "#8a857a", "#aca698", "#c8c2b2", "#ddd8c8"],
+    "felt-brown": ["#3a2c22", "#5c4636", "#7f644d", "#9f8266", "#bba080", "#d4bb9c"],
+    "bark": ["#4a4436", "#7a7260", "#a9a28c", "#cdc7b0", "#e6e1cc", "#f6f3e4"],
+    "wood": ["#2a1c14", "#45301f", "#664a2e", "#8a673f", "#ad8653", "#cda56e"],
+    "log": ["#2b1e16", "#4a3322", "#6b4c30", "#8c6a44", "#a9865a", "#c6a476"],
+    "door-red": ["#3a1210", "#6a1e16", "#9c3020", "#c8482a", "#e2703a", "#f29a58"],
+    "blue": ["#121c3a", "#1e3060", "#2a4a8c", "#3c68b0", "#5c8ccc", "#92b8e2"],
+    "ochre": ["#3b2a14", "#6a4a1e", "#9a7028", "#c49634", "#e0b84c", "#f2d882"],
+    "green": ["#14261a", "#1e3e28", "#2c5a38", "#3e7a4a", "#5a9a62", "#86bc86"],
+    "rope": ["#3a3024", "#5e4e3a", "#86725a", "#a89478", "#c6b498", "#e0d2b8"],
+    "earth": ["#3a2c22", "#5e4633", "#876647", "#ab875e", "#c9a676", "#e0c495"],
+    "sod": ["#1f2a18", "#2f4022", "#43582c", "#5b7336", "#7a9146", "#9fb062"],
+    "stone": ["#2c2c31", "#4b4b52", "#6f6e72", "#95928f", "#b9b4ab", "#d9d3c6"],
+    "dung": ["#1e1612", "#33251c", "#4a3628", "#634a36", "#7c5f46", "#967858"],
+    "horsehair": ["#141010", "#2a2220", "#3e3430", "#5a4c44", "#d8d0c0", "#f0ece2"],
+    "meat": ["#3a1414", "#62201c", "#8a3428", "#b04a36", "#cc6a4c", "#e2927a"]
+  },
   "families": {
     "roman-domus": {
       "source": "house-roman-ob-0",
@@ -401,6 +506,39 @@
         "small": {"footprint": [3, 2], "entrance": 1, "stories": 1, "variants": 3, "seedOffset": 18300, "roofPlan": "ridge", "roofAccess": "none", "sinitic": true, "sinoPlan": "house", "symmetric": true, "wealthTiers": [0, 1, 1], "functions": ["farm-household", "artisan-household"]},
         "medium": {"footprint": [5, 3], "entrance": 2, "stories": 1, "variants": 3, "seedOffset": 18500, "roofPlan": "ridge", "roofAccess": "none", "sinitic": true, "sinoPlan": "hall", "symmetric": true, "wealthTiers": [1, 1, 2], "functions": ["extended-family-house", "scholar-household", "ancestral-hall"]},
         "grand": {"footprint": [9, 5], "entrance": 4, "stories": 1, "variants": 2, "seedOffset": 18700, "roofPlan": "ridge", "roofAccess": "none", "sinitic": true, "sinoPlan": "terrace-hall", "symmetric": true, "wealthTiers": [2], "functions": ["elite-hall", "official-hall"]}
+      }
+    },
+    "steppe-tent": {
+      "source": "study-timber",
+      "label": "Felt tent",
+      "profiles": ["scytho-saka", "xiongnu", "early-turkic", "mongol", "manchurian-forest"],
+      "function": "herding-household",
+      "description": "A lattice-walled or domed felt tent on a timber frame, lashed with ropes, with its door to the south; in the forest a bark-covered cone of poles. Felt, ropes, door, applique and gear are profile-driven; the early forms are reconstructions.",
+      "sizes": {
+        "small": {"footprint": [2, 2], "entrance": 1, "stories": 1, "variants": 3, "seedOffset": 19100, "roofPlan": "ridge", "roofAccess": "none", "steppe": true, "steppePlan": "tent", "symmetric": true, "wealthTiers": [0, 0, 1], "functions": ["herding-household", "widow-household"]},
+        "medium": {"footprint": [3, 3], "entrance": 1, "stories": 1, "variants": 3, "seedOffset": 19300, "roofPlan": "ridge", "roofAccess": "none", "steppe": true, "steppePlan": "tent", "symmetric": true, "wealthTiers": [0, 1, 1], "functions": ["herding-household", "extended-family-house"]},
+        "large": {"footprint": [4, 4], "entrance": 2, "stories": 1, "variants": 2, "seedOffset": 19500, "roofPlan": "ridge", "roofAccess": "none", "steppe": true, "steppePlan": "tent", "symmetric": true, "wealthTiers": [2, 1], "functions": ["chief-household", "lineage-house"]}
+      }
+    },
+    "steppe-cart": {
+      "source": "study-timber",
+      "label": "Tent on a cart",
+      "profiles": ["scytho-saka", "xiongnu", "early-turkic", "mongol"],
+      "function": "herding-household",
+      "description": "A felt tent lashed to a wagon bed, drawn by oxen when the camp moved: the house that travelled with the herds, as classical and medieval travellers describe it. Illustrative.",
+      "sizes": {
+        "medium": {"footprint": [4, 2], "entrance": 2, "stories": 1, "variants": 2, "seedOffset": 19700, "roofPlan": "ridge", "roofAccess": "none", "steppe": true, "steppePlan": "cart", "symmetric": true, "wealthTiers": [1, 2], "functions": ["herding-household", "travelling-household"]}
+      }
+    },
+    "steppe-winter": {
+      "source": "study-timber",
+      "label": "Winter house",
+      "profiles": ["scytho-saka", "xiongnu", "early-turkic", "mongol", "manchurian-forest"],
+      "function": "herding-household",
+      "description": "A low log house banked with earth under a sod or bark roof, for the winter camp or a forest village, sometimes with a stone or wattle fold for the flock. Illustrative.",
+      "sizes": {
+        "small": {"footprint": [3, 2], "entrance": 1, "stories": 1, "variants": 2, "seedOffset": 19900, "roofPlan": "ridge", "roofAccess": "none", "steppe": true, "steppePlan": "winter", "symmetric": true, "wealthTiers": [0, 1], "functions": ["winter-household", "farm-household"]},
+        "medium": {"footprint": [5, 3], "entrance": 3, "stories": 1, "variants": 2, "seedOffset": 20100, "roofPlan": "ridge", "roofAccess": "none", "steppe": true, "steppePlan": "winter", "symmetric": true, "wealthTiers": [1, 0], "functions": ["winter-household", "herding-household"]}
       }
     },
     "eastasian-row": {

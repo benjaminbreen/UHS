@@ -66,6 +66,16 @@
     "radius": 36
   },
   {
+    "name": "mongolia-1250",
+    "query": "Mongolia 1250",
+    "radius": 36
+  },
+  {
+    "name": "mongolia-400bce",
+    "query": "Mongolia 400 BCE",
+    "radius": 36
+  },
+  {
     "name": "hangzhou-1200",
     "query": "Hangzhou 1200",
     "radius": 40

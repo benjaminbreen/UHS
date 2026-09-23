@@ -7,6 +7,7 @@ import { landscapes } from "../graphics/landscapes";
 import {
   eastAsianRegionalHouses,
   mesoamericanRegionalHouses,
+  steppeRegionalHouses,
   romanRegionalHouses,
   southAsianRegionalHouses,
   westAsianRegionalHouses,
@@ -271,6 +272,12 @@ export function packForSetting(setting: WorldSetting): Pack {
     setting.year < 1900
       ? southAsianRegionalHouses(setting)
       : [];
+  const steppeRegional =
+    setting.culture === "inner-eurasian" &&
+    setting.year >= -800 &&
+    setting.year < 1900
+      ? steppeRegionalHouses(setting)
+      : [];
   const mesoamericanRegional =
     setting.culture === "mesoamerican" && setting.year < 1540
       ? mesoamericanRegionalHouses(setting)
@@ -295,72 +302,79 @@ export function packForSetting(setting: WorldSetting): Pack {
               ? southAsianRegional
               : mesoamericanRegional.length
                 ? mesoamericanRegional
-      : architecture === "shelter"
-        ? ["shelter-hide", "shelter-reed"]
-        : setting.culture === "european" &&
-              setting.climate === "mediterranean" &&
-              setting.year >= 700 &&
-              setting.year < 1800
-            ? ["house-med-0", "house-med-1", "house-med-2", "house-med-3"]
-            : architecture === "timber" &&
-                setting.culture === "european" &&
-                setting.year >= 1500 &&
-                setting.year < 1800
-              ? [
-                  "house-early-brick-0",
-                  "house-early-brick-1",
-                  "house-early-timber-0",
-                  "house-early-stone-0",
-                  "house-early-stucco-0",
-                  "house-cottage-thatch-0",
-                  "house-early-brick-gold-medium-0",
-                  "house-early-brick-gold-medium-1",
-                  "house-early-brick-gold-large-0",
-                  "house-early-stucco-gold-medium-0",
-                  "house-early-stucco-gold-medium-1",
-                  "house-early-stucco-gold-large-0",
-                  "europe-service-gold-small-0",
-                  "europe-service-gold-small-1",
-                  "europe-service-gold-small-2",
-                  "europe-service-gold-small-3",
-                ]
-              : architecture === "timber" &&
-                  setting.culture === "european" &&
-                  setting.year >= 400 &&
-                  setting.year < 1500
-                ? [
-                    "house-cottage-thatch-0",
-                    "house-cottage-thatch-1",
-                    "house-cottage-timber-0",
-                    "house-cottage-timber-1",
-                    "house-cottage-thatch-gold-medium-0",
-                    "house-cottage-thatch-gold-medium-1",
-                    "house-cottage-thatch-gold-large-0",
-                    "house-cottage-timber-gold-medium-0",
-                    "house-cottage-timber-gold-medium-1",
-                    "house-cottage-timber-gold-large-0",
-                    "europe-service-gold-small-0",
-                    "europe-service-gold-small-1",
-                    "europe-service-gold-small-2",
-                    "europe-service-gold-small-3",
-                  ]
-                : architecture === "timber" &&
-                    // Thatch is the ordinary roof over a timber frame until early
-                    // modern slate and tile reach the countryside, and stays the rule
-                    // in the wet tropics after. It also has oriented recipes, so a
-                    // village built from it faces four ways instead of one.
-                    (setting.year < 1500 ||
-                      setting.placeId === "london" ||
-                      setting.climate === "monsoon" ||
-                      setting.climate === "tropical")
-                  ? ["house-thatch"]
-                  : architecture === "classical"
-                    ? packTemplates.roman.buildings
-                    : architecture === "mudbrick"
-                      ? packTemplates.neolithic.buildings
-                      : [
-                          `study-${architecture === "board" ? "board" : architecture === "courtyard" ? "courtyard" : "timber"}`,
-                        ];
+                : steppeRegional.length
+                  ? steppeRegional
+                  : architecture === "shelter"
+                    ? ["shelter-hide", "shelter-reed"]
+                    : setting.culture === "european" &&
+                        setting.climate === "mediterranean" &&
+                        setting.year >= 700 &&
+                        setting.year < 1800
+                      ? [
+                          "house-med-0",
+                          "house-med-1",
+                          "house-med-2",
+                          "house-med-3",
+                        ]
+                      : architecture === "timber" &&
+                          setting.culture === "european" &&
+                          setting.year >= 1500 &&
+                          setting.year < 1800
+                        ? [
+                            "house-early-brick-0",
+                            "house-early-brick-1",
+                            "house-early-timber-0",
+                            "house-early-stone-0",
+                            "house-early-stucco-0",
+                            "house-cottage-thatch-0",
+                            "house-early-brick-gold-medium-0",
+                            "house-early-brick-gold-medium-1",
+                            "house-early-brick-gold-large-0",
+                            "house-early-stucco-gold-medium-0",
+                            "house-early-stucco-gold-medium-1",
+                            "house-early-stucco-gold-large-0",
+                            "europe-service-gold-small-0",
+                            "europe-service-gold-small-1",
+                            "europe-service-gold-small-2",
+                            "europe-service-gold-small-3",
+                          ]
+                        : architecture === "timber" &&
+                            setting.culture === "european" &&
+                            setting.year >= 400 &&
+                            setting.year < 1500
+                          ? [
+                              "house-cottage-thatch-0",
+                              "house-cottage-thatch-1",
+                              "house-cottage-timber-0",
+                              "house-cottage-timber-1",
+                              "house-cottage-thatch-gold-medium-0",
+                              "house-cottage-thatch-gold-medium-1",
+                              "house-cottage-thatch-gold-large-0",
+                              "house-cottage-timber-gold-medium-0",
+                              "house-cottage-timber-gold-medium-1",
+                              "house-cottage-timber-gold-large-0",
+                              "europe-service-gold-small-0",
+                              "europe-service-gold-small-1",
+                              "europe-service-gold-small-2",
+                              "europe-service-gold-small-3",
+                            ]
+                          : architecture === "timber" &&
+                              // Thatch is the ordinary roof over a timber frame until early
+                              // modern slate and tile reach the countryside, and stays the rule
+                              // in the wet tropics after. It also has oriented recipes, so a
+                              // village built from it faces four ways instead of one.
+                              (setting.year < 1500 ||
+                                setting.placeId === "london" ||
+                                setting.climate === "monsoon" ||
+                                setting.climate === "tropical")
+                            ? ["house-thatch"]
+                            : architecture === "classical"
+                              ? packTemplates.roman.buildings
+                              : architecture === "mudbrick"
+                                ? packTemplates.neolithic.buildings
+                                : [
+                                    `study-${architecture === "board" ? "board" : architecture === "courtyard" ? "courtyard" : "timber"}`,
+                                  ];
   const trees =
     setting.climate === "arid"
       ? ["acacia"]
@@ -527,6 +541,7 @@ export function packForSetting(setting: WorldSetting): Pack {
     pack.trees = treeMix(setting).map(([id]) => id);
   // Tree-free ecologies still need a harmless court-art fallback. Wild density stays zero.
   if (!pack.trees.length) pack.trees = ["bush"];
-  if (setting.situation?.landform === "open-ocean") pack.startInventory = { water: 2, bread: 2 };
+  if (setting.situation?.landform === "open-ocean")
+    pack.startInventory = { water: 2, bread: 2 };
   return pack;
 }

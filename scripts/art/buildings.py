@@ -353,6 +353,7 @@ def build_buildings(root, sprites):
     from art.oblique_mud import ObliqueMudbrick
     from art.oblique_meso import ObliqueMeso
     from art.oblique_sinitic import ObliqueSinitic
+    from art.oblique_steppe import ObliqueSteppe
     from art.oblique_meso_landmarks import ObliqueMesoLandmark, build_meso_animations, meso_landmark_recipes
     build_meso_animations(sprites)
     from art.precincts import PrecinctPiece, build_precinct_sprites, precinct_recipes
@@ -380,6 +381,7 @@ def build_buildings(root, sprites):
                  ObliqueMesoLandmark if r.get('mesoLandmark') else
                  ObliqueMeso if r.get('mesoamerican') else
                  ObliqueSinitic if r.get('sinitic') else
+                 ObliqueSteppe if r.get('steppe') else
                  ObliqueMudbrick if r.get('mud') else
                  ObliqueRound if r.get('round') else
                  ObliquePlayhouse if r.get('form')=='oblique-ring' else

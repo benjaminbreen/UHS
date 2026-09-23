@@ -66,11 +66,7 @@ export function eastAsianRegionalHouses(setting: WorldSetting) {
   if (profile === "early-chinese") return houses;
   const services = frames("eastasian-service", profile);
   if (profile === "korean") return [...houses, ...services];
-  return [
-    ...houses,
-    ...frames("eastasian-row", profile),
-    ...services,
-  ];
+  return [...houses, ...frames("eastasian-row", profile), ...services];
 }
 
 export function southAsianHouseProfile(setting: WorldSetting): Profile {
@@ -90,6 +86,27 @@ export function southAsianRegionalHouses(setting: WorldSetting) {
     profile,
   );
   return [...houses, ...frames("southasian-service", profile)];
+}
+
+/** Felt and cart tents on the open steppe by period; the forest-edge log
+ * and bark house in Manchuria and the boreal north. */
+export function steppeHouseProfile(setting: WorldSetting): Profile {
+  const { lon, lat, year } = setting;
+  if (setting.climate === "boreal" || (lon >= 118 && lat >= 40 && lat < 55))
+    return "manchurian-forest";
+  if (year < -200) return "scytho-saka";
+  if (year < 550) return "xiongnu";
+  if (year < 1200) return "early-turkic";
+  return "mongol";
+}
+
+export function steppeRegionalHouses(setting: WorldSetting) {
+  const profile = steppeHouseProfile(setting);
+  return [
+    ...frames("steppe-tent", profile),
+    ...frames("steppe-winter", profile),
+    ...(profile === "manchurian-forest" ? [] : frames("steppe-cart", profile)),
+  ];
 }
 
 /** Maya on the Yucatán, Petén and Gulf lowlands; the Nahua highland house
