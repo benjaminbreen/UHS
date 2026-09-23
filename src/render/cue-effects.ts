@@ -46,6 +46,13 @@ const ACTS: Record<
   nod: { ms: 320, move: "dip" },
   refuse: { pose: "shrug", ms: 900, mark: { glyph: "dots", color: 0x5c6470 } },
   point: { pose: "point", ms: 800 },
+  // Stops, turns to look, and a small hop under the mark.
+  notice: {
+    pose: "idle",
+    ms: 800,
+    mark: { glyph: "query", color: 0x4a78b8 },
+    move: "hop",
+  },
   beckon: { pose: "beckon", ms: 960 },
 };
 /** Feet to just over the hair. A person's canvas is mostly empty headroom,

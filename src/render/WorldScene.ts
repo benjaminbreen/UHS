@@ -128,6 +128,15 @@ const SETOFF_MS = 80;
 const HALT_MS = 200;
 /** A gap between steps shorter than this is still one walk, not a stop and a start. */
 const GAIT_GAP_MS = 60;
+/** The rock back as a walk swings round three eighths or more. */
+const PIVOT_MS = 90;
+/** Tiles within which someone notices the player, and beyond which they
+ * forget they have; how long before the same person notices again, and the
+ * least gap between any two, so a crowd does not go off like a flashbulb. */
+const NOTICE_TILES = 3;
+const FORGET_TILES = 5;
+const NOTICE_AGAIN_MS = 60000;
+const NOTICE_GAP_MS = 1500;
 /** A shove into whatever blocked the way: out two pixels and back. */
 const BUMP_MS = 110;
 /** Knocked back off a wall at a run. */
@@ -350,8 +359,17 @@ export class WorldScene extends Phaser.Scene {
    * drawn, held through a gap between steps. */
   private gaits = new Map<
     string,
-    { since: number; still?: number; frame: number; pose: CharacterPose }
+    {
+      since: number;
+      still?: number;
+      frame: number;
+      pose: CharacterPose;
+      pivot?: number;
+    }
   >();
+  private near = new Set<string>();
+  private noticedAt = new Map<string, number>();
+  private lastNotice = -Infinity;
   /** When each engine-stepped NPC last got a new tile, to pace the next. */
   private stepAt = new Map<string, number>();
   /** Where the player is pushing while the way is blocked. The engine never
@@ -1348,6 +1366,29 @@ export class WorldScene extends Phaser.Scene {
     return action.after === "land" ? 0 : poseTiming(action.after) * 4;
   }
   /** People near enough to have seen it react. Show only. */
+  /** Someone idle or walking by looks round at the player coming close. */
+  private notice(
+    id: string,
+    im: Phaser.GameObjects.Image,
+    pose: CharacterPose,
+    time: number,
+  ) {
+    const me = this.entities.get("player");
+    if (!me) return;
+    const tiles = Math.hypot(im.x - me.x, im.y - me.y) / 16;
+    if (tiles > FORGET_TILES) this.near.delete(id);
+    if (tiles > NOTICE_TILES || this.near.has(id)) return;
+    this.near.add(id);
+    if (pose !== "idle" && pose !== "breathe" && pose !== "walk") return;
+    if (
+      time - this.lastNotice < NOTICE_GAP_MS ||
+      time - (this.noticedAt.get(id) ?? -Infinity) < NOTICE_AGAIN_MS
+    )
+      return;
+    this.lastNotice = time;
+    this.noticedAt.set(id, time);
+    this.cues.react(id, "notice", { x: (me.x - 8) / 16, y: (me.y - 16) / 16 });
+  }
   private onlookers(x: number, y: number, tiles: number, kind: CueKind) {
     const toward = { x: (x - 8) / 16, y: (y - 16) / 16 };
     for (const id of this.humanActors.keys()) {
@@ -4652,6 +4693,7 @@ export class WorldScene extends Phaser.Scene {
         if (craft && craft !== "swimming") pose = "sit";
         if (id === "player") this.watercraft.update(im, craft, this.tint,
           (this.runtime.engine.state.manifest.setting?.year ?? 0) >= 1930);
+        if (id !== "player") this.notice(id, im, pose, time);
         // Someone reacting stops what they were doing to do it.
         const cued =
           id !== "player" && !moving ? this.cues.poseFor(id) : undefined;
@@ -4696,6 +4738,9 @@ export class WorldScene extends Phaser.Scene {
           ) {
             pose = "setoff";
             gaitFrame = 0;
+          } else if (pose === "walk" && time - (g.pivot ?? -Infinity) < PIVOT_MS) {
+            pose = "halt";
+            gaitFrame = 0;
           } else if (pose === "walk" || pose === "run")
             // From the push-off, so every walk starts on the same foot.
             gaitFrame =
@@ -4715,7 +4760,7 @@ export class WorldScene extends Phaser.Scene {
             }
           }
         }
-        if (moving && gaitFrame !== undefined) {
+        if (moving && gaitFrame !== undefined && pose !== "halt") {
           g.frame = gaitFrame;
           g.pose = pose;
         }
@@ -4781,6 +4826,12 @@ export class WorldScene extends Phaser.Scene {
           // Reversing at a run digs the heels in.
           if (pose === "run" && Math.abs(turn.facing - wanted) === 4)
             this.kickDust(im.x, im.y, 4, 0.8);
+          // A walk swung hard round rocks back on the old heading first.
+          const swing = (wanted - turn.facing + 8) % 8;
+          if (pose === "walk" && swing >= 3 && swing <= 5) {
+            g.pivot = time;
+            if (id === "player") this.kickDust(im.x, im.y, 2, 0.5);
+          }
           turn.facing = turnToward(turn.facing, wanted);
           turn.until = time + TURN_HOLD_MS;
         }

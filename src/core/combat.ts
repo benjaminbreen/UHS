@@ -260,6 +260,8 @@ export const cueKinds = [
   "refuse",
   "point",
   "beckon",
+  /** Caught sight of the player close by. The scene's own, never the engine's. */
+  "notice",
 ] as const;
 export type CueKind = (typeof cueKinds)[number];
 
