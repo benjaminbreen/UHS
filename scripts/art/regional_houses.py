@@ -104,6 +104,8 @@ def regional_house_recipes(root, source):
                            if shape.get('steppe') else {}),
                         **({'forager': {**profile['forager'], 'palette': data['foragerPalette']}}
                            if shape.get('forager') else {}),
+                        **({'lodge': {**profile['lodge'], 'palette': data['lodgePalette']}}
+                           if shape.get('lodge') else {}),
                         'roofSurfaces': roof_surfaces(resolved, stories),
                         'roofVoid': resolved.get('courtyard'),
                         'roofAccess': shape.get('roofAccess', 'none'),

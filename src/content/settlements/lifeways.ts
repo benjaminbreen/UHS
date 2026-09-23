@@ -19,19 +19,30 @@ export type CampForm =
   | "scatter"
   /** A band's shelters in an arc north of the shared hearth, openings to
    * the south, with a smaller camp apart for the unmarried. */
-  | "band";
+  | "band"
+  /** Houses round a plaza or a fold, the kraal and the Amazonian ring
+   * village. Drawn as a horseshoe open to the south: the art shows every
+   * door on the face toward the viewer, so the near side of the ring
+   * would face the wrong way. */
+  | "ring"
+  /** Houses in a row above the beach, facing the water. */
+  | "shore-row";
 
 export type Lifeway = {
   id: string;
   label: string;
-  mode: "nomadic-pastoral" | "mobile-foraging";
+  mode:
+    | "nomadic-pastoral"
+    | "mobile-foraging"
+    | "sedentary-foraging"
+    | "horticultural";
   culture?: CultureId;
   from: number;
   to: number;
   /** [west, south, east, north] in degrees. */
   bounds: readonly [number, number, number, number];
   /** The share of the workforce this lifeway needs, by kind of work. */
-  share: { of: "herding" | "foraging"; min: number };
+  share: { of: "herding" | "foraging" | "fishing" | "farming"; min: number };
   /** Only where settled farming has not arrived. */
   unfarmed?: boolean;
   camp: {
@@ -42,6 +53,8 @@ export type Lifeway = {
     perGroup: readonly [number, number];
     /** Tiles between group centres, roughly. */
     spacing: number;
+    /** A larger building at the middle of a ring: the men's house. */
+    centre?: boolean;
   };
   evidence: {
     status: "documented" | "inferred" | "fictional";
@@ -89,6 +102,75 @@ export const lifeways: readonly Lifeway[] = [
       sources: [
         "https://doi.org/10.1017/CBO9781139017855",
         "https://en.wikipedia.org/wiki/Gunyah",
+      ],
+    },
+  },
+  {
+    id: "northwest-coast",
+    label: "Plank-house village",
+    mode: "sedentary-foraging",
+    from: -2000,
+    to: 1880,
+    bounds: [-136, 42, -122, 60],
+    share: { of: "fishing", min: 0.4 },
+    camp: { form: "shore-row", groups: [1, 1], perGroup: [4, 7], spacing: 0 },
+    evidence: {
+      status: "documented",
+      note: "Winter villages from the Tlingit to the Coast Salish stood in a single row of cedar plank houses along the beach above the tide line, fronts and crest poles to the water, canoes drawn up below.",
+      sources: [
+        "https://en.wikipedia.org/wiki/Plank_house",
+        "https://en.wikipedia.org/wiki/Haida_people",
+      ],
+    },
+  },
+  {
+    id: "maasai",
+    label: "Enkang",
+    mode: "nomadic-pastoral",
+    culture: "east-southern-african",
+    from: 1600,
+    to: 1950,
+    bounds: [33, -7, 38.5, 2.5],
+    share: { of: "herding", min: 0.4 },
+    camp: { form: "ring", groups: [1, 1], perGroup: [8, 12], spacing: 0 },
+    evidence: {
+      status: "documented",
+      note: "A Maasai homestead is a ring of low dung-plastered houses, built by the women, round the fold where the cattle come in at night, the whole enclosed by a fence of thorn branches.",
+      sources: ["https://en.wikipedia.org/wiki/Maasai_people"],
+    },
+  },
+  {
+    id: "khoikhoi",
+    label: "Kraal",
+    mode: "nomadic-pastoral",
+    culture: "east-southern-african",
+    from: -100,
+    to: 1800,
+    bounds: [16, -35, 26, -28],
+    share: { of: "herding", min: 0.35 },
+    camp: { form: "ring", groups: [1, 1], perGroup: [7, 11], spacing: 0 },
+    evidence: {
+      status: "documented",
+      note: "Cape herders pitched their mat-covered domed houses in a circle round the livestock at night, and took the mats and frames down onto pack oxen when they moved.",
+      sources: ["https://en.wikipedia.org/wiki/Khoikhoi", "https://en.wikipedia.org/wiki/Matjieshuis"],
+    },
+  },
+  {
+    id: "amazonian-ring",
+    label: "Ring village",
+    mode: "horticultural",
+    culture: "other-indigenous-american",
+    from: -1000,
+    to: 1950,
+    bounds: [-78, -20, -35, 6],
+    share: { of: "farming", min: 0.3 },
+    camp: { form: "ring", groups: [1, 1], perGroup: [6, 9], spacing: 0, centre: true },
+    evidence: {
+      status: "documented",
+      note: "Across the southern Amazon, from the Xingu to the Kayapo and Bororo, households stood round a cleared plaza with the men's house at its centre; the swidden gardens lay out in the forest beyond.",
+      sources: [
+        "https://en.wikipedia.org/wiki/Kuikuro_people",
+        "https://doi.org/10.1126/science.1086442",
       ],
     },
   },

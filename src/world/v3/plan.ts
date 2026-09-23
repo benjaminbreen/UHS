@@ -160,7 +160,8 @@ export function planSettlement(
       ? (lifeway(pack.setting) ??
         (profile.pattern === "band" ? genericBand : genericCamp))
       : undefined;
-  const campLots: { point: Point; nx: number; ny: number }[] = [];
+  const campLots: { point: Point; nx: number; ny: number; frame?: string }[] =
+    [];
   // Farmland reaches past the claim, and so must the ground a path may use.
   // A town farms once its region does, whatever its own profile says of
   // household fields; a camp or a hunting band does not.
@@ -1288,6 +1289,63 @@ export function planSettlement(
     if (selected) {
       connect(c, selected.points[0], "bridge-approach-a");
       connect(c, selected.points.at(-1)!, "bridge-approach-b");
+    }
+  } else if (camp?.camp.form === "ring") {
+    // Houses round the plaza or the fold, as a horseshoe open to the south
+    // (see CampForm); the men's house, where there is one, at the middle.
+    const { perGroup, centre } = camp.camp;
+    const k =
+      perGroup[0] +
+      Math.floor(rand("ring-size") * (perGroup[1] - perGroup[0] + 1));
+    // Big enough round for k houses of this width, and no bigger.
+    const width = buildingModel(pack.buildings[0]).footprint[0];
+    const rho = Math.max(10, Math.round((k * (width + 3)) / 4.4));
+    for (let t = 0; t < k; t++) {
+      const a =
+        Math.PI * (0.9 + (1.2 * (t + 0.5)) / k) +
+        (rand("ring-angle", t) - 0.5) * 0.08;
+      const point = {
+        x: c.x + Math.round(Math.cos(a) * rho * 1.35),
+        y: c.y + Math.round(Math.sin(a) * rho),
+      };
+      for (const dx of [0, -2, 2])
+        campLots.push({ point: { x: point.x + dx, y: point.y }, nx: 0, ny: -1 });
+    }
+    const large = pack.buildings.find((b) => b.includes("-large-"));
+    if (centre && large)
+      campLots.push({ point: { x: c.x, y: c.y - 4 }, nx: 0, ny: -1, frame: large });
+  } else if (camp?.camp.form === "shore-row") {
+    // One row of houses above the beach, fronts to the water.
+    let shore: [number, number, number] | undefined;
+    for (const [dx, dy] of [
+      [0, 1],
+      [0, -1],
+      [1, 0],
+      [-1, 0],
+    ])
+      for (let d = 6; d < r + 30; d++)
+        if (sample(c.x + dx * d, c.y + dy * d).water < 0) {
+          if (!shore || d < shore[2]) shore = [dx, dy, d];
+          break;
+        }
+    const [dx, dy, d] = shore ?? [0, 1, 24];
+    const back = Math.max(8, d - 7);
+    const { perGroup } = camp.camp;
+    const k =
+      perGroup[0] +
+      Math.floor(rand("row-size") * (perGroup[1] - perGroup[0] + 1));
+    for (let t = 0; t < k; t++) {
+      const off = Math.round((t - (k - 1) / 2) * 10);
+      const point = {
+        x: c.x + dx * back - dy * off,
+        y: c.y + dy * back + dx * off,
+      };
+      for (const s of [0, -2, 2])
+        campLots.push({
+          point: { x: point.x - dy * s, y: point.y + dx * s },
+          nx: -dx,
+          ny: -dy,
+        });
     }
   } else if (camp?.camp.form === "band") {
     // Each family's shelter on an arc north of the shared hearth, opening

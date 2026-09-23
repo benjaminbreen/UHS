@@ -7,6 +7,7 @@ import {
   urbanized,
 } from "../src/content/settlements/urban-form";
 import { settlementProfile } from "../src/content/settlements/profiles";
+import { lifeway } from "../src/content/settlements/lifeways";
 import { places } from "../src/content/geography/places";
 import { settingFor } from "../src/content/geography/resolve";
 import { farms, farmingOnset } from "../src/content/geography/onsets";
@@ -274,7 +275,8 @@ it("ranks and equips a place consistently across its whole history", () => {
     ["port", true],
     ["port", true],
   ]);
-  // A camp never gets fields, livestock or paving anywhere in the atlas.
+  // A camp never gets fields or paving anywhere in the atlas, nor livestock
+  // unless it is a herders' camp.
   for (const place of places)
     for (const year of [-8000, -1320, 1500]) {
       const s = settingFor(place, year);
@@ -282,7 +284,10 @@ it("ranks and equips a place consistently across its whole history", () => {
       const p = settlementProfile(s);
       const where = `${place.id} ${year}`;
       expect(p.paved, where).toBe(false);
-      expect(p.livestock, where).toBe(false);
+      expect(p.fields, where).toBe("none");
+      expect(p.livestock, where).toBe(
+        lifeway(s)?.mode === "nomadic-pastoral",
+      );
     }
 });
 

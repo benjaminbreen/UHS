@@ -256,6 +256,14 @@ const rules: OnsetRule[] = [
     note: "Catch-all for the subarctic, plains, Northwest Coast, Great Basin and southern cone, where people lived by hunting, fishing and gathering.",
   },
   {
+    id: "western-cape",
+    culture: "east-southern-african",
+    bounds: [16, -35, 24, -30],
+    farming: 1652,
+    network: 1700,
+    note: "Khoikhoi herders and San hunters held the western Cape; no crops were grown there until the Dutch station of 1652.",
+  },
+  {
     id: "kalahari",
     culture: "east-southern-african",
     bounds: [17, -27, 26, -18],

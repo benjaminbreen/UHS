@@ -526,12 +526,18 @@ export function propKit(pack: Pack): PropKit {
   };
   // A band carries what it uses: no granary, no field tools, no dug well,
   // no privy, nothing too heavy to leave behind at the next move.
-  if (lifeway(pack.setting)?.mode === "mobile-foraging") {
-    const settled =
-      /^(granary|spade|sickle|pick|shovel|rake|pitchfork|scythe|plough|farmCart|vat|grainPit|hitchingPost|well|roofedWell|townWell|pump|privy|warpLoom|beehive|logHive|pipeHive|stockPen)/;
+  // Herders and swidden gardeners keep neither ploughs nor hay tools, and
+  // manioc and the herds are stored on the ground and the hoof, not in a
+  // granary.
+  const way = lifeway(pack.setting);
+  if (way) {
+    const foraging = /foraging/.test(way.mode);
+    const settled = foraging
+      ? /^(granary|spade|sickle|pick|shovel|rake|pitchfork|scythe|plough|farmCart|vat|grainPit|hitchingPost|well|roofedWell|townWell|pump|privy|warpLoom|beehive|logHive|pipeHive|stockPen)/
+      : /^(granary|rake|pitchfork|scythe|plough|farmCart|hitchingPost|privy)/;
     for (const context of Object.keys(contexts) as PropContext[])
       contexts[context] = contexts[context].filter((k) => !settled.test(k));
-    contexts.water = ["spring"];
+    if (foraging || way.mode === "horticultural") contexts.water = ["spring"];
   }
   // Authored historical exclusions/context/capability rules outrank broad
   // prototype kits. Unresearched entries remain explicitly provisional.

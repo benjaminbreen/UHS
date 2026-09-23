@@ -144,6 +144,7 @@ export function settlementProfile(
   if (way) {
     const { groups, perGroup } = way.camp;
     p.buildings = groups[1] * perGroup[1];
+    p.livestock = way.mode === "nomadic-pastoral";
     return home ? p : { ...p, buildings: perGroup[1], radius: 60 };
   }
   if (!home) {

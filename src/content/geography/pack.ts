@@ -9,7 +9,7 @@ import {
   eastAsianRegionalHouses,
   mesoamericanRegionalHouses,
   steppeRegionalHouses,
-  foragerRegionalHouses,
+  lifewayHouses,
   romanRegionalHouses,
   southAsianRegionalHouses,
   westAsianRegionalHouses,
@@ -251,10 +251,8 @@ export function packForSetting(setting: WorldSetting): Pack {
     (setting.settlement === "city" || setting.settlement === "port");
   const period = periodBuildings(setting).map((b) => `period-${b}`);
   // A foraging band's shelters, at any date, before anything built to stay.
-  const forager =
-    lifeway(setting)?.mode === "mobile-foraging"
-      ? foragerRegionalHouses(setting)
-      : [];
+  const way = lifeway(setting);
+  const forager = way ? lifewayHouses(way, setting) : [];
   const prehistoric = forager.length ? forager : prehistoricBuildings(setting);
   const romanRegional =
     architecture === "classical" && setting.year < 700

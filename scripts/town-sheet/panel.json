@@ -81,6 +81,26 @@
     "radius": 30
   },
   {
+    "name": "northwest-coast-1700",
+    "query": "Pacific Northwest 1700",
+    "radius": 34
+  },
+  {
+    "name": "amazon-1400",
+    "query": "Amazon 1400",
+    "radius": 34
+  },
+  {
+    "name": "maasai-1850",
+    "query": "Maasai 1850",
+    "radius": 30
+  },
+  {
+    "name": "khoikhoi-1600",
+    "query": "Khoikhoi 1600",
+    "radius": 30
+  },
+  {
     "name": "mongolia-1250",
     "query": "Mongolia 1250",
     "radius": 36

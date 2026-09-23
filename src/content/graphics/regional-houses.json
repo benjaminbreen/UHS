@@ -239,6 +239,48 @@
         "windbreak": true
       }
     },
+    "northwest-coast": {
+      "label": "Northwest Coast",
+      "wall": "mud-plaster",
+      "roofMaterial": "thatch",
+      "roofStyle": "lodge",
+      "lodge": {
+        "form": "plank",
+        "gear": ["canoe", "fish-rack"]
+      }
+    },
+    "amazonian": {
+      "label": "Amazonian",
+      "wall": "mud-plaster",
+      "roofMaterial": "thatch",
+      "roofStyle": "lodge",
+      "lodge": {
+        "form": "maloca",
+        "gear": ["hammock-posts", "manioc-trough"]
+      }
+    },
+    "maasai": {
+      "label": "Maasai",
+      "wall": "mud-plaster",
+      "roofMaterial": "thatch",
+      "roofStyle": "lodge",
+      "lodge": {
+        "form": "enkang",
+        "gear": ["calabashes", "hide-bed"]
+      }
+    },
+    "khoikhoi": {
+      "label": "Khoikhoi mat house",
+      "wall": "mud-plaster",
+      "roofMaterial": "thatch",
+      "roofStyle": "shelter",
+      "forager": {
+        "forms": ["dome"],
+        "covers": ["mat"],
+        "gear": ["hide-bag", "digging-stick", "ostrich-eggs"],
+        "windbreak": false
+      }
+    },
     "early-chinese": {
       "label": "Early Chinese (Zhou to Han)",
       "detailSet": "early-chinese",
@@ -521,7 +563,22 @@
     "ash": ["#2a2826", "#4a4644", "#6e6a66", "#928e88", "#b4b0a8", "#d0ccc4"],
     "ember": ["#3a0e08", "#6a1a0c", "#a02e10", "#d24e18", "#f08a2a", "#fcc860"],
     "mat": ["#3a2e1c", "#5e4a2c", "#86703e", "#a8925a", "#c4ae78", "#dccb9c"],
-    "shell": ["#6a625a", "#948a7e", "#bab0a2", "#d8d0c2", "#ece6da", "#faf6ee"]
+    "shell": ["#6a625a", "#948a7e", "#bab0a2", "#d8d0c2", "#ece6da", "#faf6ee"],
+    "mat": ["#3a3020", "#5c4c32", "#827048", "#a69262", "#c4b080", "#dccba0"]
+  },
+  "lodgePalette": {
+    "cedar": ["#2c211c", "#4a3830", "#6d5446", "#8f725f", "#ad927c", "#c9b09a"],
+    "cedar-grey": ["#2e2c2a", "#4c4844", "#6e6860", "#8e877c", "#aca498", "#c8c0b4"],
+    "black": ["#101012", "#1c1c20", "#2a2a30", "#3c3c44", "#52525c", "#6c6c78"],
+    "ochre": ["#3a1210", "#6a1e16", "#9a2c1e", "#c0402a", "#d8643e", "#ec905e"],
+    "teal": ["#12302e", "#1e4a46", "#2c6660", "#40847a", "#5ea296", "#8cc4b4"],
+    "salmon": ["#3a1410", "#6a2418", "#a03a24", "#cc5a36", "#e8845a", "#f4b08a"],
+    "wood": ["#2e1c10", "#4e3018", "#744a26", "#9a6636", "#bc8650", "#d8a872"],
+    "palm": ["#2a2419", "#4a3f26", "#6f6234", "#978844", "#b8a85c", "#d4c67e"],
+    "dung": ["#2e2620", "#4a3e34", "#6a5c4e", "#8a7c6c", "#a89a88", "#c4b8a6"],
+    "gourd": ["#3a2a10", "#6a4a1c", "#9a7030", "#c4984a", "#dcbc6c", "#eed898"],
+    "hide": ["#3a2618", "#5e3e26", "#86603c", "#a88258", "#c4a47a", "#dcc4a0"],
+    "mat": ["#3a3020", "#5c4c32", "#827048", "#a69262", "#c4b080", "#dccba0"]
   },
   "families": {
     "roman-domus": {
@@ -618,12 +675,44 @@
     "forager-shelter": {
       "source": "study-timber",
       "label": "Shelter",
-      "profiles": ["aboriginal-bark", "aboriginal-arid", "san", "great-basin", "forager"],
+      "profiles": ["aboriginal-bark", "aboriginal-arid", "san", "great-basin", "khoikhoi", "forager"],
       "function": "band-household",
       "description": "A family's shelter of bark, grass, spinifex or brush over a frame of bent poles, open toward its own fire. Built in an afternoon and left when the band moved on. Forms and covers are profile-driven; illustrative.",
       "sizes": {
         "small": {"footprint": [2, 2], "entrance": 1, "stories": 1, "variants": 4, "seedOffset": 20500, "roofPlan": "ridge", "roofAccess": "none", "forager": true, "symmetric": true, "wealthTiers": [0], "functions": ["band-household"]},
         "medium": {"footprint": [3, 2], "entrance": 1, "stories": 1, "variants": 2, "seedOffset": 20700, "roofPlan": "ridge", "roofAccess": "none", "forager": true, "symmetric": true, "wealthTiers": [0], "functions": ["band-household"]}
+      }
+    },
+    "northwest-house": {
+      "source": "study-timber",
+      "label": "Plank house",
+      "profiles": ["northwest-coast"],
+      "function": "lineage-house",
+      "description": "A cedar plank house for several related families, gable to the beach, its front painted with the owners' crest and, in a rich house, entered through the foot of a carved pole. Illustrative.",
+      "sizes": {
+        "medium": {"footprint": [5, 3], "entrance": 2, "stories": 1, "variants": 3, "seedOffset": 21100, "roofPlan": "ridge", "roofAccess": "none", "lodge": true, "symmetric": true, "wealthTiers": [0, 1, 1], "functions": ["lineage-house"]},
+        "large": {"footprint": [7, 3], "entrance": 3, "stories": 1, "variants": 2, "seedOffset": 21300, "roofPlan": "ridge", "roofAccess": "none", "lodge": true, "symmetric": true, "wealthTiers": [2, 2], "functions": ["chief-house"]}
+      }
+    },
+    "amazon-maloca": {
+      "source": "study-timber",
+      "label": "Maloca",
+      "profiles": ["amazonian"],
+      "function": "lineage-house",
+      "description": "A long communal house of poles under palm thatch that comes nearly to the ground, home to several families; the largest stands at the centre of the plaza as the men's house. Illustrative.",
+      "sizes": {
+        "medium": {"footprint": [5, 3], "entrance": 2, "stories": 1, "variants": 3, "seedOffset": 21500, "roofPlan": "ridge", "roofAccess": "none", "lodge": true, "symmetric": true, "wealthTiers": [1], "functions": ["lineage-house"]},
+        "large": {"footprint": [7, 4], "entrance": 3, "stories": 1, "variants": 1, "seedOffset": 21700, "roofPlan": "ridge", "roofAccess": "none", "lodge": true, "symmetric": true, "wealthTiers": [2], "functions": ["mens-house"]}
+      }
+    },
+    "enkang-house": {
+      "source": "study-timber",
+      "label": "Enkang house",
+      "profiles": ["maasai"],
+      "function": "herding-household",
+      "description": "A low house of bent poles and sticks plastered with cattle dung, built by the woman who lives in it, entered by a short curving passage. Illustrative.",
+      "sizes": {
+        "small": {"footprint": [3, 2], "entrance": 1, "stories": 1, "variants": 4, "seedOffset": 21900, "roofPlan": "ridge", "roofAccess": "none", "lodge": true, "symmetric": true, "wealthTiers": [0, 1], "functions": ["herding-household"]}
       }
     },
     "eastasian-row": {

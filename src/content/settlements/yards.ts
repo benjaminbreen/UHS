@@ -308,10 +308,33 @@ const bandCamp: YardKit = {
   props: [],
 };
 
+/** A fishing village's frontage: nothing grown, the catch drying in front. */
+const shoreYard: YardKit = {
+  id: "shore",
+  boundary: "none",
+  front: [1, 2],
+  styles: { wrap: 0, side: 0, open: 1 },
+  beds: [],
+  props: [
+    {
+      prop: "dryingRack",
+      family: "drying-rack",
+      name: "Fish-drying rack",
+      where: "yard",
+      chance: 0.6,
+    },
+  ],
+};
+
 export function yardKit(setting: WorldSetting | undefined): YardKit {
   if (!setting) return plain;
   const way = lifeway(setting);
-  if (way) return way.mode === "mobile-foraging" ? bandCamp : encampment;
+  if (way)
+    return way.mode === "nomadic-pastoral"
+      ? encampment
+      : way.mode === "sedentary-foraging"
+        ? shoreYard
+        : bandCamp;
   if (setting.year < -800) return croft;
   const { culture, climate, year } = setting;
   if (culture === "european" && climate === "mediterranean") return court;

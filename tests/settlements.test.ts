@@ -240,3 +240,13 @@ it("camps a foraging band in Australia: shelters round a hearth, no farm kit", (
     p.objects.some((o) => /granary|sickle|spade|well/.test(o.sprite)),
   ).toBe(false);
 });
+
+it("rings Amazonian houses round a men's house, and rows plank houses above the beach", () => {
+  const amazon = (createSettingSession(setting("Amazon 1400"), "ring").world as SettlementWorld).planAt(0, 0)!;
+  expect(amazon.places.every((x) => x.sprite.startsWith("amazon-maloca-"))).toBe(true);
+  expect(amazon.places.some((x) => x.sprite.includes("-large-"))).toBe(true);
+  const coast = (createSettingSession(setting("Pacific Northwest 1700"), "row").world as SettlementWorld).planAt(0, 0)!;
+  expect(coast.places.length).toBeGreaterThan(3);
+  expect(coast.places.every((x) => x.sprite.startsWith("northwest-house-"))).toBe(true);
+  expect(coast.plots.filter((x) => x.kind === "field")).toHaveLength(0);
+});

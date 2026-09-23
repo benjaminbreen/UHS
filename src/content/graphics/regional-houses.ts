@@ -131,6 +131,26 @@ export function foragerRegionalHouses(setting: WorldSetting) {
   return frames("forager-shelter", profile);
 }
 
+/** The houses a lifeway builds, where it has its own; the steppe camp takes
+ * its tents from the inner-Eurasian set instead. */
+export function lifewayHouses(
+  way: { id: string; mode: string },
+  setting: WorldSetting,
+) {
+  if (way.mode === "mobile-foraging") return foragerRegionalHouses(setting);
+  switch (way.id) {
+    case "northwest-coast":
+      return frames("northwest-house", "northwest-coast");
+    case "amazonian-ring":
+      return frames("amazon-maloca", "amazonian");
+    case "maasai":
+      return frames("enkang-house", "maasai");
+    case "khoikhoi":
+      return frames("forager-shelter", "khoikhoi");
+  }
+  return [];
+}
+
 /** Maya on the Yucatán, Petén and Gulf lowlands; the Nahua highland house
  * stands in for the rest until Zapotec and Mixtec profiles exist. */
 export function mesoamericanHouseProfile(setting: WorldSetting): Profile {

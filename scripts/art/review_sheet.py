@@ -66,6 +66,9 @@ def recipes():
         if r.get('mesoLandmark'):
             from art.oblique_meso_landmarks import ObliqueMesoLandmark
             return ObliqueMesoLandmark
+        if r.get('lodge'):
+            from art.oblique_lodge import ObliqueLodge
+            return ObliqueLodge
         if r.get('forager'):
             from art.oblique_forager import ObliqueForager
             return ObliqueForager

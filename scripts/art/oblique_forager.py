@@ -81,6 +81,12 @@ class ObliqueForager(ObliqueSteppe):
             f = course % 1 + (h2(int(s_arc), int(course)) % 3) * .12
             c += .8 if f < .25 else -.9 if f > .85 else 0
             if kind == 'spinifex' and h2(int(s_arc * 2), int(course * 3)) % 4 == 0: c -= .8
+        elif kind == 'mat':
+            # Rush mats lashed on in rows, each row stitched at intervals.
+            band = t * self.rise / 5.5
+            f = band % 1
+            c += .7 if f < .2 else -.8 if f > .88 else 0
+            if f > .2 and int(s_arc + int(band) * 3) % 7 == 0: c -= 1
         elif kind == 'brush':
             n2 = h2(int(s_arc / 3), int(t * self.rise / 3))
             c += ((n2 % 5) - 2) * .45
@@ -180,6 +186,11 @@ class ObliqueForager(ObliqueSteppe):
             for i in (0, 4):
                 for yy in range(-4, 1):
                     for xx in range(-1, 2): self.put(x + i + xx, y + yy, egg[4 if xx < 0 else 3])
+        elif name == 'hide-bag':
+            hide = self.pal['mat']
+            for j in range(6):
+                for i in range(-3 + (j == 5), 4 - (j == 5)): self.put(x + i, y - j, hide[3 if i < 0 else 2])
+            self.put(x, y - 6, hide[1])
         elif name == 'net':
             for k in range(12):
                 for i in range(0, 8, 2): self.put(x + i + (k % 2), y - k, self.pal['mat'][2])
