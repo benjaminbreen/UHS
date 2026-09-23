@@ -109,6 +109,28 @@ export function steppeRegionalHouses(setting: WorldSetting) {
   ];
 }
 
+/** A band's shelters, by country: bark in the wetter south and north of
+ * Australia, spinifex and brush in the desert, grass huts in the Kalahari,
+ * brush and tule wickiups in the Great Basin. */
+export function foragerRegionalHouses(setting: WorldSetting) {
+  const { culture, climate, lon, lat } = setting;
+  const profile: Profile =
+    culture === "australian-pacific"
+      ? climate === "arid"
+        ? "aboriginal-arid"
+        : "aboriginal-bark"
+      : culture === "east-southern-african"
+        ? "san"
+        : culture === "other-indigenous-american" &&
+            lon >= -124 &&
+            lon <= -110 &&
+            lat >= 32 &&
+            lat <= 44
+          ? "great-basin"
+          : "forager";
+  return frames("forager-shelter", profile);
+}
+
 /** Maya on the Yucatán, Petén and Gulf lowlands; the Nahua highland house
  * stands in for the rest until Zapotec and Mixtec profiles exist. */
 export function mesoamericanHouseProfile(setting: WorldSetting): Profile {

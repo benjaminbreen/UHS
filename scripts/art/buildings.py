@@ -354,6 +354,7 @@ def build_buildings(root, sprites):
     from art.oblique_meso import ObliqueMeso
     from art.oblique_sinitic import ObliqueSinitic
     from art.oblique_steppe import ObliqueSteppe
+    from art.oblique_forager import ObliqueForager
     from art.oblique_meso_landmarks import ObliqueMesoLandmark, build_meso_animations, meso_landmark_recipes
     build_meso_animations(sprites)
     from art.precincts import PrecinctPiece, build_precinct_sprites, precinct_recipes
@@ -369,7 +370,9 @@ def build_buildings(root, sprites):
              **religious_recipes(root, source), **theatre_recipes(root, source),
              **hall_recipes(root, source), **period_recipes(root, source)}
     for name,r in list(recipes.items()):
-        if r['roof']=='shelter' or r.get('precinctPiece'): continue
+        # Tents and shelters draw their door on the front whatever the facing,
+        # and camps pitch them all opening south, so turned copies would lie.
+        if r['roof']=='shelter' or r.get('precinctPiece') or r.get('forager') or r.get('steppe'): continue
         fw,fh=r['footprint']
         for facing,entrance in [('north',[fw//2,-1]),('east',[fw,fh//2]),('west',[-1,fh//2])]:
             recipes[name+'-'+facing]={**r,'facing':facing,'entrance':entrance,'label':r['label']+' · '+facing,
@@ -382,6 +385,7 @@ def build_buildings(root, sprites):
                  ObliqueMeso if r.get('mesoamerican') else
                  ObliqueSinitic if r.get('sinitic') else
                  ObliqueSteppe if r.get('steppe') else
+                 ObliqueForager if r.get('forager') else
                  ObliqueMudbrick if r.get('mud') else
                  ObliqueRound if r.get('round') else
                  ObliquePlayhouse if r.get('form')=='oblique-ring' else

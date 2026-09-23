@@ -1,6 +1,6 @@
 import type { WorldSetting } from "../geography/types";
 import type { Boundary, CropId } from "../agriculture/types";
-import { pastoralRegime } from "./pastoral";
+import { lifeway } from "./lifeways";
 
 /** What stands in a household's yard, beyond the fence and the bed. `sprite`
  * is a prop family in the redrawn set; `where` says which part of the yard. */
@@ -297,9 +297,21 @@ const encampment: YardKit = {
   ],
 };
 
+/** A band's camp: the family's own fire and whatever it is working on. The
+ * shelter sprite carries the hearth and tools, so the ground stays clear. */
+const bandCamp: YardKit = {
+  id: "band",
+  boundary: "none",
+  front: [1, 2],
+  styles: { wrap: 0, side: 0, open: 1 },
+  beds: [],
+  props: [],
+};
+
 export function yardKit(setting: WorldSetting | undefined): YardKit {
   if (!setting) return plain;
-  if (pastoralRegime(setting)) return encampment;
+  const way = lifeway(setting);
+  if (way) return way.mode === "mobile-foraging" ? bandCamp : encampment;
   if (setting.year < -800) return croft;
   const { culture, climate, year } = setting;
   if (culture === "european" && climate === "mediterranean") return court;

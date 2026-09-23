@@ -2,6 +2,7 @@ import type { Pack } from "../../core/types";
 import type { CultureId } from "../history/types";
 import { eraAt } from "../history/dates";
 import { historyRegistry, resolveHistory } from "../history";
+import { lifeway } from "../settlements/lifeways";
 export type PropContext =
   | "household"
   | "yard"
@@ -523,6 +524,15 @@ export function propKit(pack: Pack): PropKit {
     tool: "workshop",
     privy: "household",
   };
+  // A band carries what it uses: no granary, no field tools, no dug well,
+  // no privy, nothing too heavy to leave behind at the next move.
+  if (lifeway(pack.setting)?.mode === "mobile-foraging") {
+    const settled =
+      /^(granary|spade|sickle|pick|shovel|rake|pitchfork|scythe|plough|farmCart|vat|grainPit|hitchingPost|well|roofedWell|townWell|pump|privy|warpLoom|beehive|logHive|pipeHive|stockPen)/;
+    for (const context of Object.keys(contexts) as PropContext[])
+      contexts[context] = contexts[context].filter((k) => !settled.test(k));
+    contexts.water = ["spring"];
+  }
   // Authored historical exclusions/context/capability rules outrank broad
   // prototype kits. Unresearched entries remain explicitly provisional.
   for (const context of Object.keys(contexts) as PropContext[]) {

@@ -229,3 +229,14 @@ it("pitches a herding camp on the steppe: no fields, no garden beds, doors to th
   expect(homes.length).toBeGreaterThan(4);
   expect(homes.every((x) => !/-(north|east|west)$/.test(x.sprite))).toBe(true);
 });
+
+it("camps a foraging band in Australia: shelters round a hearth, no farm kit", () => {
+  const s = setting("Sydney 1500");
+  expect(settlementProfile(s).pattern).toBe("band");
+  const p = (createSettingSession(s, "band").world as SettlementWorld).planAt(0, 0)!;
+  expect(p.places.every((x) => x.sprite.startsWith("forager-shelter-"))).toBe(true);
+  expect(p.places.length).toBeGreaterThan(3);
+  expect(
+    p.objects.some((o) => /granary|sickle|spade|well/.test(o.sprite)),
+  ).toBe(false);
+});

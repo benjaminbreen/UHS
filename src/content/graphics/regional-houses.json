@@ -179,6 +179,66 @@
         "extras": ["fuel", "rack", "hitching"]
       }
     },
+    "aboriginal-bark": {
+      "label": "Aboriginal bark shelter",
+      "wall": "mud-plaster",
+      "roofMaterial": "thatch",
+      "roofStyle": "shelter",
+      "forager": {
+        "forms": ["dome", "dome", "cone"],
+        "covers": ["bark-stringy", "bark-stringy", "bark-paper"],
+        "gear": ["coolamon", "spears", "grindstone", "digging-stick", "shells", "net"],
+        "windbreak": true
+      }
+    },
+    "aboriginal-arid": {
+      "label": "Aboriginal desert shelter",
+      "wall": "mud-plaster",
+      "roofMaterial": "thatch",
+      "roofStyle": "shelter",
+      "forager": {
+        "forms": ["dome"],
+        "covers": ["spinifex", "brush"],
+        "gear": ["coolamon", "grindstone", "spears", "digging-stick"],
+        "windbreak": true
+      }
+    },
+    "san": {
+      "label": "San grass hut",
+      "wall": "mud-plaster",
+      "roofMaterial": "thatch",
+      "roofStyle": "shelter",
+      "forager": {
+        "forms": ["beehive"],
+        "covers": ["grass"],
+        "gear": ["bow", "ostrich-eggs", "digging-stick"],
+        "windbreak": false
+      }
+    },
+    "great-basin": {
+      "label": "Great Basin wickiup",
+      "wall": "mud-plaster",
+      "roofMaterial": "thatch",
+      "roofStyle": "shelter",
+      "forager": {
+        "forms": ["cone", "dome"],
+        "covers": ["brush", "grass"],
+        "gear": ["grindstone", "net", "bow"],
+        "windbreak": true
+      }
+    },
+    "forager": {
+      "label": "Foragers' shelter",
+      "wall": "mud-plaster",
+      "roofMaterial": "thatch",
+      "roofStyle": "shelter",
+      "forager": {
+        "forms": ["dome", "cone"],
+        "covers": ["brush", "grass"],
+        "gear": ["grindstone", "spears", "digging-stick"],
+        "windbreak": true
+      }
+    },
     "early-chinese": {
       "label": "Early Chinese (Zhou to Han)",
       "detailSet": "early-chinese",
@@ -449,6 +509,20 @@
     "horsehair": ["#141010", "#2a2220", "#3e3430", "#5a4c44", "#d8d0c0", "#f0ece2"],
     "meat": ["#3a1414", "#62201c", "#8a3428", "#b04a36", "#cc6a4c", "#e2927a"]
   },
+  "foragerPalette": {
+    "bark-stringy": ["#2e2219", "#4a3627", "#6b5039", "#8a6c4f", "#a88a6a", "#c4a887"],
+    "bark-paper": ["#4a4238", "#7a6e5e", "#a89a84", "#cbbfa8", "#e2d8c4", "#f2ecdc"],
+    "grass": ["#3a2e18", "#5e4c26", "#86703a", "#ae9650", "#cfb870", "#e8d69a"],
+    "spinifex": ["#3a3622", "#5e5a36", "#86804e", "#aaa468", "#c6c088", "#dcd8a8"],
+    "brush": ["#1e2616", "#344024", "#4e5a32", "#6a7442", "#868e56", "#a4aa74"],
+    "branch": ["#241a12", "#3e2c1e", "#5a412c", "#76583c", "#94724e", "#b08e66"],
+    "wood": ["#2e1c10", "#4e3018", "#744a26", "#9a6636", "#bc8650", "#d8a872"],
+    "stone": ["#2c2c31", "#4b4b52", "#6f6e72", "#95928f", "#b9b4ab", "#d9d3c6"],
+    "ash": ["#2a2826", "#4a4644", "#6e6a66", "#928e88", "#b4b0a8", "#d0ccc4"],
+    "ember": ["#3a0e08", "#6a1a0c", "#a02e10", "#d24e18", "#f08a2a", "#fcc860"],
+    "mat": ["#3a2e1c", "#5e4a2c", "#86703e", "#a8925a", "#c4ae78", "#dccb9c"],
+    "shell": ["#6a625a", "#948a7e", "#bab0a2", "#d8d0c2", "#ece6da", "#faf6ee"]
+  },
   "families": {
     "roman-domus": {
       "source": "house-roman-ob-0",
@@ -539,6 +613,17 @@
       "sizes": {
         "small": {"footprint": [3, 2], "entrance": 1, "stories": 1, "variants": 2, "seedOffset": 19900, "roofPlan": "ridge", "roofAccess": "none", "steppe": true, "steppePlan": "winter", "symmetric": true, "wealthTiers": [0, 1], "functions": ["winter-household", "farm-household"]},
         "medium": {"footprint": [5, 3], "entrance": 3, "stories": 1, "variants": 2, "seedOffset": 20100, "roofPlan": "ridge", "roofAccess": "none", "steppe": true, "steppePlan": "winter", "symmetric": true, "wealthTiers": [1, 0], "functions": ["winter-household", "herding-household"]}
+      }
+    },
+    "forager-shelter": {
+      "source": "study-timber",
+      "label": "Shelter",
+      "profiles": ["aboriginal-bark", "aboriginal-arid", "san", "great-basin", "forager"],
+      "function": "band-household",
+      "description": "A family's shelter of bark, grass, spinifex or brush over a frame of bent poles, open toward its own fire. Built in an afternoon and left when the band moved on. Forms and covers are profile-driven; illustrative.",
+      "sizes": {
+        "small": {"footprint": [2, 2], "entrance": 1, "stories": 1, "variants": 4, "seedOffset": 20500, "roofPlan": "ridge", "roofAccess": "none", "forager": true, "symmetric": true, "wealthTiers": [0], "functions": ["band-household"]},
+        "medium": {"footprint": [3, 2], "entrance": 1, "stories": 1, "variants": 2, "seedOffset": 20700, "roofPlan": "ridge", "roofAccess": "none", "forager": true, "symmetric": true, "wealthTiers": [0], "functions": ["band-household"]}
       }
     },
     "eastasian-row": {

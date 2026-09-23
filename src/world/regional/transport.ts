@@ -217,7 +217,8 @@ export function regionalTransport(
   /** A camp keeps no road to its neighbours: herders cross open grass. */
   const roadless = (s: Site) =>
     s.pack?.setting?.settlement === "camp" ||
-    s.profile?.pattern === "encampment";
+    s.profile?.pattern === "encampment" ||
+    s.profile?.pattern === "band";
   const neighborCache = new Map<string, Site[]>();
   function neighbors(s: Site) {
     const oldNeighbors = neighborCache.get(s.id);

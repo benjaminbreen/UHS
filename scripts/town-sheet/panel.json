@@ -66,6 +66,21 @@
     "radius": 36
   },
   {
+    "name": "sydney-1500",
+    "query": "Sydney 1500",
+    "radius": 30
+  },
+  {
+    "name": "australia-1400",
+    "query": "Australia 1400",
+    "radius": 30
+  },
+  {
+    "name": "kalahari-1500",
+    "query": "Kalahari 1500",
+    "radius": 30
+  },
+  {
     "name": "mongolia-1250",
     "query": "Mongolia 1250",
     "radius": 36

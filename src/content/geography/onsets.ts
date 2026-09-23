@@ -255,6 +255,14 @@ const rules: OnsetRule[] = [
     network: 1800,
     note: "Catch-all for the subarctic, plains, Northwest Coast, Great Basin and southern cone, where people lived by hunting, fishing and gathering.",
   },
+  {
+    id: "kalahari",
+    culture: "east-southern-african",
+    bounds: [17, -27, 26, -18],
+    farming: Infinity,
+    network: 1900,
+    note: "The San of the Kalahari lived by hunting and gathering, trading with herders and farmers at its edges.",
+  },
   // Australia and the Pacific
   {
     id: "new-guinea-highlands",

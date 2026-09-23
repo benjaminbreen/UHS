@@ -81,7 +81,7 @@ export type SettlementWorld = WorldModel & {
 /** A camp keeps no road to its neighbours: herders move across open grass. */
 const roadless = (p: Pack) =>
   p.setting!.settlement === "camp" ||
-  settlementProfile(p.setting!).pattern === "encampment";
+  ["encampment", "band"].includes(settlementProfile(p.setting!).pattern);
 
 export function createSettlementWorld(
   pack: Pack,

@@ -92,9 +92,10 @@ import {
 } from "./types";
 import { makeDoor } from "../../core/doors";
 import {
+  genericBand,
   genericCamp,
-  pastoralRegime,
-} from "../../content/settlements/pastoral";
+  lifeway,
+} from "../../content/settlements/lifeways";
 import {
   claimEnvelope,
   createPlacementClaims,
@@ -155,8 +156,9 @@ export function planSettlement(
   const composed = (pack.setting?.urbanRevision ?? 0) >= 2;
   const organic = !!pack.setting?.environment && profile.pattern !== "planned";
   const camp =
-    profile.pattern === "encampment"
-      ? (pastoralRegime(pack.setting) ?? genericCamp)
+    profile.pattern === "encampment" || profile.pattern === "band"
+      ? (lifeway(pack.setting) ??
+        (profile.pattern === "band" ? genericBand : genericCamp))
       : undefined;
   const campLots: { point: Point; nx: number; ny: number }[] = [];
   // Farmland reaches past the claim, and so must the ground a path may use.
@@ -1287,6 +1289,48 @@ export function planSettlement(
       connect(c, selected.points[0], "bridge-approach-a");
       connect(c, selected.points.at(-1)!, "bridge-approach-b");
     }
+  } else if (camp?.camp.form === "band") {
+    // Each family's shelter on an arc north of the shared hearth, opening
+    // south toward it; where the rule has one, a smaller camp apart for the
+    // unmarried, joined by a worn path.
+    const { groups, perGroup, spacing } = camp.camp;
+    const camps = [
+      {
+        at: c,
+        k:
+          perGroup[0] +
+          Math.floor(rand("band-size") * (perGroup[1] - perGroup[0] + 1)),
+        rho: 10,
+      },
+    ];
+    if (groups[1] > 1 && rand("band-apart") < 0.7) {
+      const at = {
+        x: c.x + (rand("band-side") < 0.5 ? -1 : 1) * spacing,
+        y: c.y + 3,
+      };
+      if (
+        dry({ x: at.x - 1, y: at.y - 1, w: 3, h: 3 }, false, {
+          ...at,
+          w: 1,
+          h: 1,
+        }) &&
+        connect(c, at, "band-apart", 0)
+      )
+        camps.push({ at, k: 2 + Math.floor(rand("apart-size") * 2), rho: 6 });
+    }
+    camps.forEach(({ at, k, rho }, g) => {
+      for (let t = 0; t < k; t++) {
+        const a =
+          Math.PI * (1.08 + (0.84 * (t + 0.5)) / k) +
+          (rand("band-angle", g, t) - 0.5) * 0.12;
+        const point = {
+          x: at.x + Math.round(Math.cos(a) * rho * 1.5),
+          y: at.y + Math.round(Math.sin(a) * rho),
+        };
+        for (const dx of [0, -2, 2])
+          campLots.push({ point: { x: point.x + dx, y: point.y }, nx: 0, ny: -1 });
+      }
+    });
   } else if (camp) {
     // Household groups well apart, each a loose row of tents with their doors
     // to the south, joined to the middle by tracks and nothing wider.
@@ -2355,6 +2399,7 @@ export function planSettlement(
       Math.hypot(rect.x - c.x, rect.y - c.y) / (profile.radius || 1),
     );
     if (
+      !camp &&
       owner !== "player" &&
       owner !== owners.at(-1) &&
       !lot.venue &&

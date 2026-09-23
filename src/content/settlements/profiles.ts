@@ -1,7 +1,7 @@
 import type { WorldSetting } from "../geography/types";
 import { urbanized, urbanForm } from "./urban-form";
 import { farms } from "../geography/onsets";
-import { pastoralRegime } from "./pastoral";
+import { lifeway } from "./lifeways";
 export const patterns = [
   "farmstead",
   "clustered",
@@ -10,6 +10,7 @@ export const patterns = [
   "planned",
   "waterfront",
   "encampment",
+  "band",
 ] as const;
 export type Pattern = (typeof patterns)[number];
 export type SettlementProfile = {
@@ -23,6 +24,16 @@ export type SettlementProfile = {
   paved: boolean;
 };
 const profiles: Record<Pattern, SettlementProfile> = {
+  band: {
+    pattern: "band",
+    buildings: 7,
+    radius: 40,
+    frontage: 8,
+    plaza: "court",
+    fields: "none",
+    livestock: false,
+    paved: false,
+  },
   encampment: {
     pattern: "encampment",
     buildings: 10,
@@ -116,15 +127,22 @@ export function settlementProfile(
           : s.placeId === "normandy"
             ? "roadside"
             : "clustered");
-  const herders = !town && !s.settlementPattern && pastoralRegime(s);
-  const pattern: Pattern = herders
-    ? "encampment"
+  // A regional urban onset is continental; a camp in its hinterland is
+  // still a camp.
+  const way =
+    (!town || s.settlement === "camp") && !s.settlementPattern
+      ? lifeway(s)
+      : undefined;
+  const pattern: Pattern = way
+    ? way.camp.form === "band"
+      ? "band"
+      : "encampment"
     : town || !["dense", "planned", "waterfront"].includes(requested)
       ? requested
       : "clustered";
   const p = { ...profiles[pattern] };
-  if (herders) {
-    const { groups, perGroup } = herders.camp;
+  if (way) {
+    const { groups, perGroup } = way.camp;
     p.buildings = groups[1] * perGroup[1];
     return home ? p : { ...p, buildings: perGroup[1], radius: 60 };
   }

@@ -441,6 +441,7 @@ export function WorldSetup({
                       planned: "Planned streets",
                       waterfront: "Waterfront settlement",
                       encampment: "Herding camp",
+                      band: "Foraging band camp",
                     }[p]
                   }
                 </option>
