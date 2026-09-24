@@ -449,10 +449,50 @@ export function landing(ground: HitClass, weight = 1): Sound {
     ...(w > 1.4 ? shift(scrape(ground), 0.09, 0.6) : []),
   ];
 }
-/** A walking footfall. Firm ground is silent. */
-export function footstep(ground: HitClass, running = false): Sound | undefined {
+/** Leaves and stalks parting round the legs, laid over the footfall. */
+function brushing(through: HitClass, g: number): Sound {
+  switch (through) {
+    case "grass":
+      return [noise(0.01, 0.14, 0.05 * g, 4600, { to: 6800, q: 0.6, attack: 0.04 })];
+    case "brush":
+      return [
+        noise(0, 0.2, 0.06 * g, 2400, { to: 4000, q: 0.7, attack: 0.05 }),
+        ...grains(0.04, 0.14, 2, (t) => noise(t, 0.02, 0.035 * g, 3600, { q: 2.5 })),
+      ];
+    case "crop":
+      return [
+        noise(0.01, 0.18, 0.055 * g, 3300, { to: 5400, q: 0.8, attack: 0.04 }),
+        ...grains(0.05, 0.12, 3, (t) => noise(t, 0.014, 0.03 * g, 5200, { q: 3 })),
+      ];
+    default:
+      return [];
+  }
+}
+/** A walking footfall, with whatever it pushes through. Firm, bare ground is
+ * silent. "paddy" is ankle-deep water over mud; "furrow" is tilled soil. */
+export function footstep(
+  ground: HitClass | "paddy" | "furrow",
+  running = false,
+  through?: HitClass,
+): Sound | undefined {
   const g = running ? 1.25 : 1;
+  const step = footfall(ground, g);
+  const leaves = through ? brushing(through, g) : [];
+  return step || leaves.length ? [...(step ?? []), ...leaves] : undefined;
+}
+function footfall(ground: HitClass | "paddy" | "furrow", g: number): Sound | undefined {
   switch (ground) {
+    case "paddy":
+      return [
+        noise(0, 0.12, 0.09 * g, vary(900, 0.2), { to: 420, q: 0.9, attack: 0.01 }),
+        noise(0.05, 0.14, 0.07 * g, 480, { filter: "lowpass", attack: 0.03 }),
+        bubble(rand(0.08, 0.14), rand(240, 380), 0.05 * g),
+      ];
+    case "furrow":
+      return [
+        noise(0, 0.07, 0.05 * g, 700, { filter: "lowpass", attack: 0.01 }),
+        ...grains(0.01, 0.06, 2, (t) => noise(t, 0.015, 0.025 * g, 2600, { q: 2 })),
+      ];
     case "water":
       return [
         noise(0, 0.15, 0.13 * g, vary(1100, 0.2), {

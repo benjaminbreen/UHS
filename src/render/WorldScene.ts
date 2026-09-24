@@ -1338,6 +1338,24 @@ export class WorldScene extends Phaser.Scene {
       ? "snow"
       : ground;
   }
+  private footstepAt(
+    cell: { x: number; y: number; space: string },
+    puddle: "water" | "ice" | undefined,
+    water: number,
+    running: boolean,
+  ) {
+    if (water > 0.025) return footstep("water", running);
+    const ground = this.underfoot(cell, puddle);
+    if (cell.space !== "outside" || ground === "snow")
+      return footstep(ground, running);
+    const engine = this.runtime.engine;
+    const field = engine.world.topography?.(cell.x, cell.y)?.field;
+    const { hit } = engine.hitClass(cell.x, cell.y, cell.space);
+    const through = ["grass", "brush", "crop"].includes(hit) ? hit : undefined;
+    const surface =
+      field?.wet || field?.ditch ? "paddy" : field && ground === "soil" ? "furrow" : ground;
+    return footstep(surface, running, through);
+  }
   /** Feet gone on ice: a skid, a stagger to keep upright, and at a run the
    * slide carries on a cell before it stops. */
   private slip(dx: number, dy: number, time: number) {
@@ -4898,10 +4916,7 @@ export class WorldScene extends Phaser.Scene {
           ) {
             this.lastStep = { x: im.x, y: im.y };
             void gameAudio()?.sound(
-              footstep(
-                water > 0.025 ? "water" : this.underfoot(cell, puddle),
-                pose === "run",
-              ),
+              this.footstepAt(cell, puddle, water, pose === "run"),
               "step",
             );
           }
