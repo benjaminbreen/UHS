@@ -1,5 +1,6 @@
 import { expect, it, vi } from "vitest";
 import { createSession } from "../src/runtime/session";
+import { itineraryAt, type Itinerary } from "../src/core/itinerary";
 
 it("accepts all eight directions, charges longer diagonals and prevents corner cutting", () => {
   const e = createSession("roman", "movement");
@@ -48,4 +49,29 @@ it("accepts all eight directions, charges longer diagonals and prevents corner c
     [0.5, 1],
   ])
     expect(move(dx, dy).status).toBe("rejected");
+});
+
+it("keeps routine collision positions current between simulation ticks", () => {
+  const e = createSession("roman", "routine-position");
+  const actor = e.state.actors.find((a) => a.kind === "human")!;
+  const start = { ...actor.pos, x: actor.pos.x + 20 };
+  e.state.clock = 0;
+  actor.pos = start;
+  actor.offRoutine = false;
+  actor.hunger = 0;
+  const routine: Itinerary = {
+    start: 0,
+    period: 0.2,
+    segments: [{
+      from: 0,
+      to: 0.2,
+      pos: start,
+      path: [{ x: start.x + 1, y: start.y }, { x: start.x + 2, y: start.y }],
+      activity: "work",
+      label: "Walking",
+    }],
+  };
+  e.world.itinerary = (id) => id === actor.id ? routine : undefined;
+  e.advance(9);
+  expect(actor.pos.x).toBe(Math.round(itineraryAt(routine, e.state.clock).x));
 });

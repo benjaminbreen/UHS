@@ -5832,6 +5832,17 @@ export class Engine {
       }
       this.stepFauna(next);
     }
+    // Commands can end between routine ticks; collision must use the same
+    // itinerary time that the renderer draws after the command.
+    for (const a of actors) {
+      if (
+        a.kind !== "human" || a.offRoutine || a.task || a.tends || a.errand ||
+        a.hunger > 45 || this.world.routinePending?.(a.id)
+      )
+        continue;
+      const routine = this.world.itinerary?.(a.id);
+      if (routine) this.followRoutine(a, routine, this.state.clock);
+    }
     this.tickObstacles = undefined;
     this.barriersAt = undefined;
     this.actorsAt = undefined;
