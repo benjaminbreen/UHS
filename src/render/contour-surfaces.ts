@@ -1,5 +1,6 @@
 import type { TopographyCell, TopographySample } from "../core/topography";
 import { rasterHabitatTile, type GroundTileData } from "./habitat-raster";
+import { contourNoise } from "./ground-style";
 import { paintedGround } from "./material-edges";
 import type { WaterTileData } from "./water-raster";
 
@@ -51,11 +52,14 @@ export function contourSurfaces(
         }
       candidates.set(key, nearby);
     }
+    // Nearest centre alone cuts the borrowed ground into cell squares.
+    const jx = px + (contourNoise(px + ox * 16, py + oy * 16, 9, 141) - 0.5) * 14,
+      jy = py + (contourNoise(px + ox * 16, py + oy * 16, 9, 143) - 0.5) * 14;
     let best = original,
       distance = Infinity;
     for (const candidate of nearby) {
       const d =
-        (candidate.x * 16 + 8 - px) ** 2 + (candidate.y * 16 + 8 - py) ** 2;
+        (candidate.x * 16 + 8 - jx) ** 2 + (candidate.y * 16 + 8 - jy) ** 2;
       if (d < distance) {
         best = candidate;
         distance = d;

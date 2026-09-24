@@ -55,6 +55,8 @@ export type ContourStyle = {
   /** How far, in tiers, the drawn edge may stray from the interpolated one. */
   wobble: number;
   scale: number;
+  /** Pixels the tier lookup is displaced by, so rims leave the cell grid. */
+  warp?: number;
   /** Radius of the modal filter that removes one-pixel islands. */
   smoothing: number;
   /** Pixels of exposed earth drawn along a west/east/north rim. */
@@ -127,6 +129,7 @@ export function defaultGroundStyle(): GroundStyle {
     contour: {
       wobble: 0.95,
       scale: 13,
+      warp: 7,
       smoothing: 1,
       sides: 2,
       sideFace: 2,

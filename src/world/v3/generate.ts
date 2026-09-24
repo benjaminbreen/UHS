@@ -1342,6 +1342,25 @@ export function createSettlementWorld(
     }
     return levels;
   }
+  /** Tier of the last land cell on the way down the water distance field:
+   * the level the water actually meets. */
+  function shoreTier(x: number, y: number) {
+    let f = land.sample(x, y),
+      tier = Math.round(f.elevation / 14);
+    for (let i = 0; i < 12 && f.water >= 0; i++) {
+      let next = f,
+        nx = x,
+        ny = y;
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
+        const n = land.sample(x + dx, y + dy);
+        if (n.water < next.water) [next, nx, ny] = [n, x + dx, y + dy];
+      }
+      if (next === f) break;
+      [f, x, y] = [next, nx, ny];
+      if (f.water >= 0) tier = Math.round(f.elevation / 14);
+    }
+    return tier;
+  }
   function rawCell(x: number, y: number): TopographyCell {
     const f = land.sample(x, y);
     let t = terrain(x, y);
@@ -1487,6 +1506,20 @@ export function createSettlementWorld(
         if (cell.surface === "gravel") cell.feature = "bank";
       }
     } else if (height === 0 && f.water >= 0) cell.surface = "gravel";
+    // Shore distance ignores relief: without this, a beach's width of sand
+    // is laid over the top of the cliff above it too.
+    if (
+      environment &&
+      cell.biome &&
+      (cell.surface === "sand" || cell.surface === "gravel") &&
+      f.water >= 0 &&
+      height > shoreTier(x, y)
+    ) {
+      cell.surface =
+        ecologyProfiles[cell.biome as keyof typeof ecologyProfiles]?.surface ??
+        "grass";
+      if (cell.feature === "bank") delete cell.feature;
+    }
     if (t === "bridge") return { ...cell, surface: "soil", bridge: true };
     if (t === "field") {
       cell.surface = "soil";

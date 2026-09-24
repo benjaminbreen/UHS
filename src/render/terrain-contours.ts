@@ -456,6 +456,15 @@ function rasterWallContours(
       )
         ? 1
         : 0;
+  const rampNear = new Uint8Array(cstride * (height + cpad * 2));
+  for (let y = -cpad; y < height + cpad; y++)
+    for (let x = -cpad; x < width + cpad; x++)
+      if (sample(region ? x : Math.max(0, Math.min(width - 1, x)), y)?.ramp)
+        for (let dy = -1; dy <= 1; dy++)
+          for (let dx = -1; dx <= 1; dx++) {
+            const i = (y + dy + cpad) * cstride + x + dx + cpad;
+            if (i >= 0 && i < rampNear.length) rampNear[i] = 1;
+          }
   const ownsAt = (x: number, y: number) =>
     owns[
       Math.max(0, Math.min(height + cpad * 2 - 1, y + cpad)) * cstride +
@@ -488,8 +497,20 @@ function rasterWallContours(
         levels[i * FW + j] = tierAt(cx, cy);
         continue;
       }
-      const u = (px - 8) / 16,
-        v = (py - 8) / 16;
+      // A ramp is a square cell joined flush to its neighbours; bending the
+      // rim beside it opens gaps at the joint.
+      const warp = rampNear[
+        Math.max(0, Math.min(height + cpad * 2 - 1, cy + cpad)) * cstride +
+          Math.max(0, Math.min(cstride - 1, cx + cpad))
+      ]
+        ? 0
+        : (contour.warp ?? 0);
+      const u =
+          (px + (contourNoise(px + ox, py + oy, 23, 131) - 0.5) * 2 * warp - 8) /
+          16,
+        v =
+          (py + (contourNoise(px + ox, py + oy, 23, 137) - 0.5) * 2 * warp - 8) /
+          16;
       const x0 = Math.floor(u),
         y0 = Math.floor(v);
       const fx = ease(u - x0),
@@ -1178,6 +1199,17 @@ function rasterWallContours(
       const runPx = (before + after + 1) * 16;
       const runKey = along ? cx - before + ox / 16 : cy - before + oy / 16;
       const own = { x: cx, y: cy, cell };
+      const [sx, sy0] = { n: [0, -1], s: [0, 1], e: [1, 0], w: [-1, 0] }[dir];
+      const donor = (x: number, y: number) => {
+        const c = sampleAt(x, y);
+        return c && c.habitat && !c.ramp && c.surface !== "water"
+          ? { x, y, cell: c }
+          : own;
+      };
+      // Ground from the plateau above and the ground below, so a grassy
+      // slope onto a beach ends in sand rather than a square of turf.
+      const upper = donor(cx + sx, cy + sy0),
+        lower = donor(cx - sx, cy - sy0);
       for (let px = cx * 16; px < cx * 16 + 16; px++) {
         const wx = px + ox;
         // Screen span of this column, then each screen row finds the world
@@ -1296,7 +1328,14 @@ function rasterWallContours(
                 Math.min(18, runPx * 0.35);
             const half = (runPx > 16 ? 3 : 2) + down * 2.5;
             const off = Math.abs(U - trail);
-            const ground = surfaces.pixel(own, px, py, t, lvl) ?? turf[0];
+            const ground =
+              surfaces.pixel(
+                noise(wx, wy, 125) < down ? lower : upper,
+                px,
+                py,
+                t,
+                lvl,
+              ) ?? turf[0];
             const tone =
               (0.84 + (1 - down) * 0.12) *
               (rise % 4 === 0 && n < 0.35 ? 0.9 : 1);
@@ -1353,7 +1392,7 @@ function rasterWallContours(
           const west = px === cx * 16;
           if (west ? before === 0 : after === 0) {
             const ground =
-              surfaces.pixel(own, px, cy * 16 + 8, t, lvl) ?? turf[0];
+              surfaces.pixel(lower, px, cy * 16 + 8, t, lvl) ?? turf[0];
             const f = west ? 0.8 : 0.64;
             for (let sy = first; sy <= last + 3; sy++) {
               const downRow = Math.min(
@@ -1384,7 +1423,7 @@ function rasterWallContours(
           px === (dir === "w" ? cx * 16 + 15 : cx * 16)
         ) {
           const ground =
-            surfaces.pixel(own, px, cy * 16 + 8, t, lvl) ?? turf[0];
+            surfaces.pixel(lower, px, cy * 16 + 8, t, lvl) ?? turf[0];
           for (let v = 0; v < 16; v++) {
             const U = before * 16 + v;
             const taper = Math.min(1, Math.min(U, runPx - 1 - U) / 8);
@@ -1416,7 +1455,7 @@ function rasterWallContours(
             const sy = last + r;
             if (noise(wx, sy + oy, 113) < (r - 1) / reach) continue;
             const ground =
-              surfaces.pixel(own, px, cy * 16 + 15, t, lvl) ?? turf[0];
+              surfaces.pixel(lower, px, cy * 16 + 15, t, lvl) ?? turf[0];
             paintFlat(cy + 1, t, px, sy, [
               ground[0] * 0.86,
               ground[1] * 0.86,
@@ -1446,7 +1485,7 @@ function rasterWallContours(
           // The near flank of an earthen ramp is a battered grass slope, not
           // a cut: darker turf, falling a little past the cell, no lip.
           const ground =
-            surfaces.pixel(own, px, cy * 16 + 15, t, lvl) ?? turf[0];
+            surfaces.pixel(lower, px, cy * 16 + 15, t, lvl) ?? turf[0];
           const spill = Math.round(drop * 0.3);
           for (let r = 0; r < drop + spill; r++) {
             if (
