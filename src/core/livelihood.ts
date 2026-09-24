@@ -57,7 +57,11 @@ export function householdActivity(
   items: Record<ItemId, ItemDef>,
   move: (p: Position) => void,
   reachable: (p: Position) => boolean = () => true,
+  /** What this place carries water, gatherings and bundles in. */
+  loads?: { vessel: string; basket: string },
 ): boolean {
+  delete a.heldItem;
+  const bear = (load?: string) => load && (a.heldItem = load);
   const h = s.households?.find((h) => h.id === a.householdId);
   if (!h) return false;
   const store = s.objects.find((o) => o.id === h.storeId);
@@ -100,6 +104,7 @@ export function householdActivity(
   );
   if (carried.length) {
     a.activity = "Bringing supplies home";
+    bear(carried.length === 1 && carried[0] === "wood" ? "wood" : loads?.basket);
     if (distance(a.pos, store.pos) > 2.2) move(store.pos);
     else depositSupplies(a, store, false);
     return true;
@@ -132,12 +137,14 @@ export function householdActivity(
       .sort((u, v) => distance(a.pos, u.pos) - distance(a.pos, v.pos))[0];
     if (well && (a.inventory.water ?? 0) < 2) {
       a.activity = "Fetching household water";
+      bear(loads?.vessel);
       if (distance(a.pos, well.pos) > 2.2) move(well.pos);
       else a.inventory.water = 2;
       return true;
     }
     if ((a.inventory.water ?? 0) >= 2) {
       a.activity = "Carrying water home";
+      bear(loads?.vessel);
       if (distance(a.pos, store.pos) > 2.2) move(store.pos);
       else {
         store.inventory.water = (store.inventory.water ?? 0) + 2;
@@ -180,6 +187,7 @@ export function householdActivity(
     return false;
   }
   a.activity = `Gathering ${target.name.toLowerCase()}`;
+  if (target.resource?.item !== "wood") bear(loads?.basket);
   if (distance(a.pos, target.pos) > 2.2) {
     a.task = { target: target.id, until: 0 };
     move(target.pos);

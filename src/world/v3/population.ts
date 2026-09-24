@@ -1,3 +1,4 @@
+import { carryKit, withLoads } from "../../content/economy/carrying";
 import {
   characterSex,
   generateCharacter,
@@ -328,22 +329,27 @@ export function populateHouseholds(
     plan.work.set(id, memberSite);
     plan.stations.set(
       id,
-      kit && !child
-        ? routineFor(plan, seed, pack, id, memberSite, a)
-        : memberRoutine(
-            plan,
-            seed,
-            id,
-            site.home,
-            pack.year,
-            child,
-            shop && seller
-              ? {
-                  pos: shop.entrance,
-                  label: `Buying ${goods.find((g) => g.id === buy!.good)!.noun} from ${seller.name}`,
-                }
-              : undefined,
-          ),
+      withLoads(
+        kit && !child
+          ? routineFor(plan, seed, pack, id, memberSite, a)
+          : memberRoutine(
+              plan,
+              seed,
+              id,
+              site.home,
+              pack.year,
+              child,
+              shop && seller
+                ? {
+                    pos: shop.entrance,
+                    label: `Buying ${goods.find((g) => g.id === buy!.good)!.noun} from ${seller.name}`,
+                  }
+                : undefined,
+            ),
+        carryKit(pack),
+        buy?.good,
+        child ? undefined : goodsOf(kit)[0],
+      ),
     );
   }
 }

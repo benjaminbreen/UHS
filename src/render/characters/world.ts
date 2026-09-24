@@ -68,6 +68,20 @@ export class WorldCharacters {
    * for, then cached beside the prop art. */
   private carried(prop: string | undefined): CarriedArt | undefined {
     if (!prop) return undefined;
+    // `sprite@style` is the same art borne another way: on the head or back.
+    const [key, style] = prop.split("@");
+    if (style) {
+      let art = this.props.get(prop);
+      if (art) return art;
+      const plain = this.carried(key);
+      if (!plain) return undefined;
+      art =
+        style === "head" || style === "back"
+          ? { ...plain, sprite: prop, kind: style }
+          : plain;
+      this.props.set(prop, art);
+      return art;
+    }
     const known = this.props.get(prop);
     if (known || !prop.startsWith("icon:")) return known;
     const id = prop.slice(5);

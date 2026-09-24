@@ -1,3 +1,5 @@
+import { carryKit, withLoads } from "../../content/economy/carrying";
+import { goodsOf } from "../../content/economy/goods";
 import type { Station } from "../../core/itinerary";
 import type { Actor, Pack, Point } from "../../core/types";
 import type { Livelihood } from "../../content/characters/context-types";
@@ -698,7 +700,15 @@ export function planRoutines(
     const kit = livelihoodOf(pack, actor);
     if (kit && workplaceFor(kit.activity) === "water")
       attachRack(plan, seed, pack, id, site);
-    plan.stations.set(id, routineFor(plan, seed, pack, id, site, actor));
+    plan.stations.set(
+      id,
+      withLoads(
+        routineFor(plan, seed, pack, id, site, actor),
+        carryKit(pack),
+        undefined,
+        goodsOf(livelihoodOf(pack, actor))[0],
+      ),
+    );
   }
 }
 const kitsFor = new WeakMap<Pack, Map<string, Livelihood>>();

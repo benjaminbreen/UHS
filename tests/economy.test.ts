@@ -1,6 +1,7 @@
 import { it, expect } from "vitest";
 import { runEconomy } from "../src/core/economy";
 import { harvestResource } from "../src/core/livelihood";
+import { parseLoad, withLoads } from "../src/content/economy/carrying";
 import type { Economy, Household } from "../src/core/types";
 
 const village = (): Household[] => {
@@ -71,4 +72,29 @@ it("keeps a city fed from outside when its own bakers stop", () => {
   runEconomy(village(), city, 24 * 21, stopped, 0.7);
   expect(Object.keys(village_.short)).toHaveLength(3);
   expect(Object.keys(city.short).length).toBeLessThan(3);
+});
+
+it("sends people out with vessels and baskets and home with what they got", () => {
+  const at = { x: 0, y: 0 };
+  const kit = { vessel: "prop:jug@head", basket: "prop:basket@back", bundle: "prop:sack@hand" };
+  const stations = withLoads(
+    [
+      { pos: at, activity: "draw-water", label: "Fetching water", minutes: 20 },
+      { pos: at, activity: "play", label: "Playing", minutes: 20 },
+      { pos: at, activity: "gather", label: "Gathering", minutes: 20 },
+      { pos: at, activity: "visit", label: "Buying bread from Ada", minutes: 20 },
+      { pos: at, activity: "rest", label: "At home", minutes: 20 },
+    ],
+    kit,
+    "bread",
+  );
+  expect(stations.map((s) => s.carry)).toEqual([
+    "prop:jug@head",
+    undefined,
+    "prop:basket@back",
+    "prop:basket@back",
+    "bread",
+  ]);
+  expect(parseLoad("prop:jug@head")).toEqual({ prop: "jug", style: "head" });
+  expect(parseLoad("bread")).toBeUndefined();
 });

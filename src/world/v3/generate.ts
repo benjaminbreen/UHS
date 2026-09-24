@@ -1964,7 +1964,19 @@ export function createSettlementWorld(
       const key = plan.site.id;
       let ranked = routineRank.get(key);
       if (!ranked) {
-        ranked = [...plan.stations.keys()].sort();
+        // Nearest the player's home first, so the budget is spent on the
+        // streets they start in rather than scattered across a large town.
+        const anchor = plan.work.get("player")?.home ?? {
+          x: plan.site.cx,
+          y: plan.site.cy,
+        };
+        const from = (r: string) => {
+          const h = plan.work.get(r)?.home;
+          return h ? Math.hypot(h.x - anchor.x, h.y - anchor.y) : Infinity;
+        };
+        ranked = [...plan.stations.keys()].sort(
+          (a, b) => from(a) - from(b) || a.localeCompare(b),
+        );
         routineRank.set(key, ranked);
       }
       const rank = ranked.indexOf(id);

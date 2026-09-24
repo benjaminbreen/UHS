@@ -284,6 +284,61 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
     await shootCanvas(page, out("all-carrying"));
   },
 
+  /** Loads in each carrying style, standing and mid-stride, four directions. */
+  async loads(page) {
+    await characterLab(page);
+    await page.evaluate(async () => {
+      const { drawCharacter } = await import(
+        "/src/render/characters/renderers.ts" as string
+      );
+      const { loadCarriedArt, portableProps } = await import(
+        "/src/render/characters/props.ts" as string
+      );
+      const { originalAppearance } = await import(
+        "/src/core/character.ts" as string
+      );
+      const art = await loadCarriedArt();
+      const rows = [
+        ["jug", "head"],
+        ["pot", "head"],
+        ["basket", "head"],
+        ["basket", "back"],
+        ["sack", "back"],
+        ["bucket", "both"],
+        ["calabash", "side"],
+      ];
+      const c = document.createElement("canvas"),
+        b = document.createElement("canvas");
+      b.width = b.height = 80;
+      c.width = 8 * 110;
+      c.height = rows.length * 120;
+      const ctx = c.getContext("2d")!,
+        bc = b.getContext("2d")!;
+      ctx.imageSmoothingEnabled = false;
+      ctx.fillStyle = "#829255";
+      ctx.fillRect(0, 0, c.width, c.height);
+      rows.forEach(([id, kind], i) => {
+        const base = art.get(
+          portableProps.find((p: any) => p.id === id).sprite,
+        );
+        for (let d = 0; d < 4; d++)
+          for (const [k, pose, frame] of [
+            [0, "carry", 0],
+            [1, "walk", 2],
+          ] as const) {
+            drawCharacter(bc, originalAppearance, d, pose, frame, base && { ...base, kind });
+            ctx.drawImage(b, 16, 8, 48, 60, (d * 2 + k) * 110 + 8, i * 120, 84, 105);
+          }
+        ctx.fillStyle = "#17261d";
+        ctx.font = "12px monospace";
+        ctx.fillText(`${id} on ${kind}`, 5, i * 120 + 114);
+      });
+      document.body.replaceChildren(c);
+      c.style.imageRendering = "pixelated";
+    });
+    await shootCanvas(page, out("loads"));
+  },
+
   /** Two palettes walking, a breathing idle, and the four builds. */
   async polish(page) {
     await characterLab(page);

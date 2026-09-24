@@ -773,7 +773,11 @@ export function drawCharacter(
   if (prop?.kind === "side")
     near[1] = Math.min(near[1], feet - prop.height + 2);
   // A hand that is holding something goes where the thing is.
-  if (prop) nearElbow = undefined;
+  // Balanced on the crown, one hand up to steady it; or slung on the back,
+  // leaving both arms free.
+  const onHead = prop?.kind === "head",
+    onBack = prop?.kind === "back";
+  if (prop && !onBack) nearElbow = undefined;
   if (prop?.kind === "both" || haftVector) farElbow = undefined;
   let propX = 0,
     propY = 0;
@@ -782,6 +786,16 @@ export function drawCharacter(
     propY = 23 + torso - prop.height - (pose === "give" ? [0, 2, 3, 0][f] : 0);
     far = [propX, propY + prop.height - 2];
     near = [propX + prop.width - 2, propY + prop.height - 2];
+  }
+  if (prop && onHead) {
+    propX = Math.round((side ? 12 : back ? 11 : 10) - prop.width / 2);
+    propY = 2 - prop.height + (moving && f % 2 ? 1 : 0);
+    near = [side ? propX + prop.width - 1 : propX + prop.width, propY + prop.height - 1];
+  }
+  if (prop && onBack) {
+    propX = Math.round((side ? 7 : back ? 11 : 10) - prop.width / 2);
+    // The rim rides above the shoulders, so a pack shows from the front too.
+    propY = 10 + torso - Math.min(4, Math.round(prop.height / 4)) + (moving && f % 2 ? 1 : 0);
   }
   const drawProp = () => {
     if (!prop) return;
@@ -890,8 +904,8 @@ export function drawCharacter(
     } else
       ctx.drawImage(
         prop.image,
-        prop.kind === "both" ? propX : near[0] - 2,
-        prop.kind === "both" ? propY : near[1] - 2,
+        prop.kind === "both" || onHead || onBack ? propX : near[0] - 2,
+        prop.kind === "both" || onHead || onBack ? propY : near[1] - 2,
       );
   };
   const armGeometry = (shoulder: Point, hand: Point, given?: Point) => {
@@ -943,7 +957,10 @@ export function drawCharacter(
     p.rect(arm.hand[0] - 1, arm.hand[1], 1, 1, material.light);
     p.rect(arm.hand[0], arm.hand[1] + 1, 1, 1, material.shade);
   };
-  if (back) drawProp();
+  // A pack sits behind the body unless we see its wearer from behind; a
+  // head-load is always on top.
+  const propFirst = back ? !onHead && !onBack : onBack;
+  if (propFirst) drawProp();
   // Far arm and far leg precede the torso, as in a hand-drawn side-view sheet.
   if (side) {
     ctx.save();
@@ -1884,8 +1901,14 @@ export function drawCharacter(
     }
     p.rect(neckSide ? 14 : 10, 18, 1, 1, "#ddbd70");
   }
-  if (!back) drawProp();
-  if (prop && !back) {
+  if (!propFirst) drawProp();
+  // From the front a pack is only its straps, over each shoulder.
+  if (onBack && !back && !side && !quarter)
+    for (const [x, y] of [shoulderNear, shoulderFar]) {
+      const inward = x > 10 ? -1 : 1;
+      p.line([x + inward, y + 1], [x + inward * 2, y + 6], "#4a3020");
+    }
+  if (prop && !back && !onBack) {
     if (prop.kind === "both") {
       p.rect(far[0], far[1], 2, 2, skin.shade);
       p.rect(far[0], far[1], 1, 1, skin.light);

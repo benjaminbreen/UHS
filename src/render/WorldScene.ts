@@ -1,4 +1,6 @@
 import { shownStock } from "../core/economy";
+import { parseLoad } from "../content/economy/carrying";
+import { portableProps } from "./characters/props";
 import { Watercraft } from "./watercraft";
 import { ruinTexture, releaseRuins } from "./ruins";
 import { Burning, TorchFlame } from "./burning";
@@ -3801,7 +3803,15 @@ export class WorldScene extends Phaser.Scene {
     if (e.state.player.heldItem)
       this.heldSprites.set("player", `icon:${e.state.player.heldItem}`);
     for (const a of e.state.actors)
-      if (a.heldItem) this.heldSprites.set(a.id, `icon:${a.heldItem}`);
+      if (a.heldItem) {
+        const load = parseLoad(a.heldItem);
+        const sprite =
+          load && portableProps.find((p) => p.id === load.prop)?.sprite;
+        this.heldSprites.set(
+          a.id,
+          sprite ? `${sprite}@${load!.style}` : `icon:${a.heldItem}`,
+        );
+      }
     for (const object of e.state.objects)
       if (object.carriedBy)
         this.heldSprites.set(object.carriedBy, object.sprite);

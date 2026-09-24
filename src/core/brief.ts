@@ -1,3 +1,4 @@
+import { loadName } from "../content/economy/carrying";
 import { sexFromName } from "../content/characters/name-sex";
 import type { Actor } from "./types";
 
@@ -102,7 +103,10 @@ export function personBrief(
     { text: `${pronoun(sex)} ${is(sex)} ${clause(doing)}` },
   ];
   const held =
-    carrying ?? (actor.heldItem ? itemName(actor.heldItem) : undefined);
+    carrying ??
+    (actor.heldItem
+      ? (loadName(actor.heldItem) ?? itemName(actor.heldItem))
+      : undefined);
   if (held) moment.push({ text: ", carrying " }, { text: held, tone: "thing" });
   // One body note at most, worst first: a card that lists every gauge reads
   // like a status screen.

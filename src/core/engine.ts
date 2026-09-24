@@ -75,6 +75,7 @@ import { resolveIntents, validateIntents } from "./intents";
 import { findPath } from "./pathfinding";
 import { dayOfWork, importShare, runEconomy, stockOf } from "./economy";
 import { goods } from "../content/economy/goods";
+import { carryKit } from "../content/economy/carrying";
 import { processFor, type ProcessFamily } from "../content/economy/processes";
 import { itineraryAt, type Itinerary, DAY_MINUTES } from "./itinerary";
 import { goalDone, heldCount, pickGoals } from "./goals";
@@ -739,6 +740,7 @@ export class Engine {
   private actorsById?: Map<string, Actor>;
   private objectsById?: Map<string, WorldObject>;
   private householdsById?: Map<string, Household>;
+  private loads?: ReturnType<typeof carryKit>;
   private resourceObjects?: WorldObject[];
   private terrainCollision = new Map<string, boolean>();
   private wallCells?: Set<string>;
@@ -5863,6 +5865,7 @@ export class Engine {
               (target) => this.stepToward(a, target),
               (target) =>
                 this.findRoute(a.pos, target, a.id, 1500).status === "found",
+              (this.loads ??= carryKit(this.world.pack)),
             );
           // householdActivity moves residents indoors itself.
           this.syncActor(a);
