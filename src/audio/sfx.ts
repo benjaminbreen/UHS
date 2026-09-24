@@ -452,8 +452,6 @@ export function landing(ground: HitClass, weight = 1): Sound {
 /** Leaves and stalks parting round the legs, laid over the footfall. */
 function brushing(through: HitClass, g: number): Sound {
   switch (through) {
-    case "grass":
-      return [noise(0.01, 0.14, 0.05 * g, 4600, { to: 6800, q: 0.6, attack: 0.04 })];
     case "brush":
       return [
         noise(0, 0.2, 0.06 * g, 2400, { to: 4000, q: 0.7, attack: 0.05 }),
@@ -469,9 +467,10 @@ function brushing(through: HitClass, g: number): Sound {
   }
 }
 /** A walking footfall, with whatever it pushes through. Firm, bare ground is
- * silent. "paddy" is ankle-deep water over mud; "furrow" is tilled soil. */
+ * silent. "paddy" is ankle-deep water over mud; "furrow" is tilled soil;
+ * "sodden" is any other soft ground in heavy rain. */
 export function footstep(
-  ground: HitClass | "paddy" | "furrow",
+  ground: HitClass | "paddy" | "furrow" | "sodden",
   running = false,
   through?: HitClass,
 ): Sound | undefined {
@@ -480,13 +479,18 @@ export function footstep(
   const leaves = through ? brushing(through, g) : [];
   return step || leaves.length ? [...(step ?? []), ...leaves] : undefined;
 }
-function footfall(ground: HitClass | "paddy" | "furrow", g: number): Sound | undefined {
+function footfall(ground: HitClass | "paddy" | "furrow" | "sodden", g: number): Sound | undefined {
   switch (ground) {
     case "paddy":
       return [
         noise(0, 0.12, 0.09 * g, vary(900, 0.2), { to: 420, q: 0.9, attack: 0.01 }),
         noise(0.05, 0.14, 0.07 * g, 480, { filter: "lowpass", attack: 0.03 }),
         bubble(rand(0.08, 0.14), rand(240, 380), 0.05 * g),
+      ];
+    case "sodden":
+      return [
+        noise(0, 0.1, 0.045 * g, 520, { filter: "lowpass", attack: 0.015 }),
+        noise(0.04, 0.06, 0.02 * g, 1400, { q: 1.2, attack: 0.02 }),
       ];
     case "furrow":
       return [

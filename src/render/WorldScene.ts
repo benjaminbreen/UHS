@@ -1351,9 +1351,16 @@ export class WorldScene extends Phaser.Scene {
     const engine = this.runtime.engine;
     const field = engine.world.topography?.(cell.x, cell.y)?.field;
     const { hit } = engine.hitClass(cell.x, cell.y, cell.space);
-    const through = ["grass", "brush", "crop"].includes(hit) ? hit : undefined;
+    // Grass tufts stay silent: they cover every meadow.
+    const through = hit === "brush" || hit === "crop" ? hit : undefined;
     const surface =
-      field?.wet || field?.ditch ? "paddy" : field && ground === "soil" ? "furrow" : ground;
+      field?.wet || field?.ditch
+        ? "paddy"
+        : field && ground === "soil"
+          ? "furrow"
+          : (this.weather?.wetness ?? 0) > 0.4 && (ground === "soil" || ground === "grass")
+            ? "sodden"
+            : ground;
     return footstep(surface, running, through);
   }
   /** Feet gone on ice: a skid, a stagger to keep upright, and at a run the
