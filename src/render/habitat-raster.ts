@@ -845,6 +845,92 @@ function rasterGroundTile(
         put(px, py, rgb, frozen ? Math.round(shade * 0.4) : shade);
       }
     }
+  // Arroyo beds are drawn from a per-pixel field interpolated across cells
+  // and warped by noise, so the bed follows no tile edge. Per-cell thresholds
+  // gave a staircase with a checker of 2px blocks along the margin.
+  const arroyoOf = (xx: number, yy: number) => {
+    const l = sample(xx, yy)?.landscape;
+    return l?.kind === "arroyo" ? l.strength : 0;
+  };
+  const cutOf = (xx: number, yy: number) => {
+    const l = sample(xx, yy)?.landscape;
+    return l?.kind === "arroyo" && l.cut ? 1 : 0;
+  };
+  const bilinear = (f: (xx: number, yy: number) => number, xx: number, yy: number) => {
+    const u = xx - 0.5,
+      v = yy - 0.5;
+    const cx = Math.floor(u),
+      cy = Math.floor(v);
+    const tx = u - cx,
+      ty = v - cy;
+    return (
+      f(cx, cy) * (1 - tx) * (1 - ty) +
+      f(cx + 1, cy) * tx * (1 - ty) +
+      f(cx, cy + 1) * (1 - tx) * ty +
+      f(cx + 1, cy + 1) * tx * ty
+    );
+  };
+  const nearArroyo =
+    !frozen &&
+    cell.surface !== "water" &&
+    Array.from({ length: 9 }, (_, i) => arroyoOf(x + (i % 3) - 1, y + Math.floor(i / 3) - 1)).some((a) => a > 0);
+  if (nearArroyo) {
+    const soil = soilPalette;
+    const c = h.colorway;
+    // Bed by colourway: a gravel wash in the Sonoran and Kalahari, a darker
+    // sand wadi in the Sahara, cracked silt elsewhere.
+    const wash = c === "sonoran" || c === "kalahari";
+    const wadi = c === "sahara";
+    for (let py = 0; py < 16; py++)
+      for (let px = 0; px < 16; px++) {
+        const wx = gx + px,
+          wy = gy + py;
+        const xx = x + (px + 0.5) / 16,
+          yy = y + (py + 0.5) / 16;
+        const a =
+          bilinear(arroyoOf, xx, yy) +
+          (noise(wx, wy, 19, 541) - 0.5) * 0.3 +
+          (noise(wx, wy, 5, 543) - 0.5) * 0.08;
+        if (a < 0.3) continue;
+        if (a < 0.5) {
+          // Margin: single grains of bed sand strewn into the turf.
+          if (hash(wx, wy, 545) < (a - 0.3) * 3) put(px, py, soil[2], [0, -6, 5][materialGrain(wx, wy)]);
+          continue;
+        }
+        const cut = bilinear(cutOf, xx, yy);
+        if (cut > 0.35 && a < 0.62) {
+          // Low cut bank on the uphill side: dark clods along the lip.
+          put(px, py, soil[hash(wx >> 1, wy >> 1, 521) < 0.5 ? 0 : 1], (noise(wx, wy, 7, 535) - 0.5) * 6);
+          trodden[at(px, py)] = 1;
+          continue;
+        }
+        // Sunk below the turf: a shade band under the bank, darker again along
+        // the thalweg where damp lingers.
+        const depth = Math.min(1, (a - 0.5) / 0.5);
+        const lift = a < 0.58 ? -9 : -depth * 8;
+        const g = materialGrain(wx, wy);
+        if (wash) {
+          const bed = soil[2].map((v, k) => Math.round(v * 0.85 + [150, 146, 136][k] * 0.15));
+          put(px, py, bed, lift + (noise(wx, wy, 9, 537) - 0.5) * 8);
+          const ink = groundMotif("pebble", wx, wy, art.motifs, { density: 1.4 + depth * 1.4, spacing: 0.7 });
+          if (ink) put(px, py, soil[3], [0, -34, -18, 10][ink]);
+          else if (g === 2) put(px, py, soil[1], -3);
+        } else if (wadi) {
+          const bed = soil[1].map((v, k) => Math.round(v * 0.75 + soil[2][k] * 0.25));
+          put(px, py, bed, lift + (noise(wx, wy, 11, 527) - 0.5) * 8);
+          if ((wy + Math.floor(noise(Math.floor(wx / 5), 0, 3, 539) * 3)) % 4 === 0)
+            put(px, py, soil[2], 4 + lift);
+        } else {
+          const silt = soil[3].map((v, k) => Math.round(v * 0.8 + palette[1][k] * 0.2));
+          put(px, py, silt, lift + (noise(wx, wy, 11, 527) - 0.5) * 10);
+          if (g === 1 && hash(Math.floor(wx / 8), Math.floor(wy / 8), 529) > 0.3)
+            put(px, py, soil[1], lift);
+          const ink = groundMotif("pebble", wx, wy, art.motifs, { density: 0.8 + depth * 1.2 });
+          if (ink) put(px, py, soil[2], [0, -30, -14, 10][ink]);
+        }
+        trodden[at(px, py)] = 1;
+      }
+  }
   // Landscape features over the habitat underpainting: trodden ground and
   // trails as grouped soil dither into turf, arroyo beds as cracked silt with
   // a pebble margin, salt pans as pale cracked flats, outcrops as denser stone.
@@ -861,46 +947,7 @@ function rasterGroundTile(
         const wx = gx + px,
           wy = gy + py;
         const group = hash(Math.floor(wx / 2), Math.floor(wy / 2), 521);
-        if (scape.kind === "arroyo") {
-          // Bed by colourway: a gravel wash in the Sonoran and Kalahari, a
-          // darker sand wadi in the Sahara, cracked silt elsewhere.
-          const c = h.colorway;
-          const wash = c === "sonoran" || c === "kalahari";
-          const wadi = c === "sahara";
-          if (scape.cut && scape.strength < 0.9 && group < 0.7) {
-            // Low cut bank on the uphill side: dark clods along the lip.
-            put(px, py, soil[group < 0.35 ? 0 : 1], (noise(wx, wy, 7, 535) - 0.5) * 6);
-            trodden[at(px, py)] = 1;
-          } else if (scape.strength >= 0.5) {
-            const g = materialGrain(wx, wy);
-            if (wash) {
-              // Gravel: pebbles everywhere on a grey-brown bed.
-              const bed = soil[2].map((v, k) => Math.round(v * 0.85 + [150, 146, 136][k] * 0.15));
-              put(px, py, bed, (noise(wx, wy, 9, 537) - 0.5) * 8);
-              const ink = groundMotif("pebble", wx, wy, art.motifs, { density: 2.2, spacing: 0.7 });
-              if (ink) put(px, py, soil[3], [0, -34, -18, 10][ink]);
-              else if (g === 2) put(px, py, soil[1], -3);
-            } else if (wadi) {
-              // Wadi: darker, damp-looking sand with ripples, no stones.
-              const bed = soil[1].map((v, k) => Math.round(v * 0.75 + soil[2][k] * 0.25));
-              put(px, py, bed, (noise(wx, wy, 11, 527) - 0.5) * 8);
-              if ((wy + Math.floor(noise(Math.floor(wx / 5), 0, 3, 539) * 3)) % 4 === 0)
-                put(px, py, soil[2], 4);
-            } else {
-              // Bed: pale silt, dried cracks, a stone or two.
-              const silt = soil[3].map((v, k) => Math.round(v * 0.8 + palette[1][k] * 0.2));
-              put(px, py, silt, (noise(wx, wy, 11, 527) - 0.5) * 10);
-              if (g === 1 && hash(Math.floor(wx / 8), Math.floor(wy / 8), 529) > 0.3)
-                put(px, py, soil[1]);
-              const ink = groundMotif("pebble", wx, wy, art.motifs);
-              if (ink) put(px, py, soil[2], [0, -30, -14, 10][ink]);
-            }
-            trodden[at(px, py)] = 1;
-          } else {
-            const t = (scape.strength - 0.2) / 0.3;
-            if (t > 0 && group < t * 0.7) put(px, py, soil[2], [0, -6, 5][materialGrain(wx, wy)]);
-          }
-        } else if (scape.kind === "pan") {
+        if (scape.kind === "pan") {
           const t = scape.strength;
           if (group < t * 0.9 || t > 0.8) {
             const pale = [230, 222, 204].map((v, k) => Math.round(v * 0.8 + soil[3][k] * 0.2));

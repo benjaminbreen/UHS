@@ -23,7 +23,7 @@ type Review = {
   seed: string;
   common: string;
   /** Where to point the camera before the first shot. */
-  centre: "spawn" | "none" | "paths";
+  centre: "spawn" | "none" | "paths" | "arroyo";
   /** Print paving counts, which is what the street studies are looking at. */
   paving?: boolean;
   studies: [name: string, query: string][];
@@ -100,7 +100,38 @@ const reviews: Record<string, Review> = {
       ["wetland-summer", "ecology=wetland&season=summer&water=none&population=none"],
     ],
   },
+  arroyos: {
+    dir: "artifacts/arroyo-review",
+    title: "Arroyo beds and banks",
+    seed: "arroyo-review",
+    common: "landform=rolling&population=none&start=wanderer&water=none",
+    centre: "arroyo",
+    studies: [
+      ["sonoran-wash", "ecology=desert&colorway=sonoran&season=summer"],
+      ["dry-scrub", "ecology=dry-scrub&season=autumn"],
+      ["savanna", "ecology=savanna&season=summer"],
+    ],
+  },
 };
+
+/** Point the camera at the arroyo cell nearest the spawn. */
+async function centreOnArroyo(page: Page) {
+  const at = await page.evaluate(() => {
+    const lab = (window as any).terrainLab,
+      world = lab.runtime.engine.world;
+    const { x: sx, y: sy } = world.spawn;
+    for (let r = 0; r < 120; r++)
+      for (let y = sy - r; y <= sy + r; y++)
+        for (let x = sx - r; x <= sx + r; x++)
+          if (world.topography(x, y).landscape?.kind === "arroyo") {
+            lab.scene.options.center = { x, y };
+            lab.scene.draw();
+            return { x, y };
+          }
+  });
+  await settled(page);
+  console.log("  arroyo camera", at);
+}
 
 /** Point the camera at the best-connected stretch of path near the spawn,
  * which is what the edge study is actually about; the spawn itself often
@@ -166,6 +197,7 @@ async function run(review: Review) {
       if (review.centre === "spawn") await centreOnSpawn(page);
       if (review.centre === "paths" && name.startsWith("grassland"))
         await centreOnPaths(page);
+      if (review.centre === "arroyo") await centreOnArroyo(page);
       await page.locator("canvas").screenshot({ path: `${review.dir}/${name}.png` });
       await zoom(page, 2);
       await page
