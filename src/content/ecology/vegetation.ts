@@ -451,6 +451,16 @@ export function vegetationUnderstory(
       return "nature-understory-dry-bunchgrass";
   }
   if (land.snow || land.water < (land.shoreWidth ?? 3)) return undefined;
+  // The mycelium is always there; it fruits mostly in autumn. Lichen is year-round.
+  const fruiting =
+    h.ecology === "tundra"
+      ? 0.15
+      : h.ecology.endsWith("woodland")
+        ? h.season === "autumn"
+          ? 0.1
+          : 0.03
+        : 0;
+  if (roll > 1 - fruiting) return "nature-understory-fungi";
   if (wet && land.moisture > 0.55 && roll < 0.4) return "reeds";
   switch (h.ecology) {
     case "tropical-woodland":
@@ -537,6 +547,7 @@ const lowPlants = new Set([
   "nature-understory-dry-bunchgrass",
   "nature-understory-sedge",
   "nature-understory-low-heath",
+  "nature-understory-fungi",
 ]);
 const frameHeight = (sprite: string) =>
   (natureAtlas.frames as Record<string, { frame: { h: number } }>)[sprite]

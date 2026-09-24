@@ -15,6 +15,7 @@ import { shorePolishDefaults } from "./living-water/polish";
 import { updateLivingWater } from "./living-water/game";
 import { perf, open, mark, span, timed } from "./perf-switches";
 import { natureTreeSprites } from "../content/ecology/vegetation";
+import { Mycelium } from "./mycelium";
 import { rockFrame } from "../content/ecology/rocks";
 import { propVariety } from "./prop-variety";
 import { ensureSignTexture, inkFor, signWidth } from "./sign-texture";
@@ -453,6 +454,7 @@ export class WorldScene extends Phaser.Scene {
   private rippleTime = -1;
   private entities = new Map<string, Phaser.GameObjects.Image>();
   private glowSprites: Phaser.GameObjects.Image[] = [];
+  private mycelium?: Mycelium;
   private hoverTip?: HTMLDivElement;
   private hoverId?: string;
   private routeOverlay?: Phaser.GameObjects.Graphics;
@@ -5041,6 +5043,28 @@ export class WorldScene extends Phaser.Scene {
     this.characters?.prune();
     mark("actors");
     this.drawSelectionGlow(time);
+    // Just above the cast shadows, under every sprite.
+    this.mycelium ??= new Mycelium(
+      this,
+      this.runtime.engine.world.topography ? -999 : -59999,
+    );
+    const selected = this.selectedImage();
+    const trees = this.canopies.map((c) => c.image);
+    // The web reaches whatever roots nearby, not only other trees.
+    const plants = [...this.plantImages.values()]
+      .map((images) => images[0])
+      .filter((image) => image && !String(image.frame.name).includes("rock"));
+    this.mycelium.update(
+      time,
+      this.runtime.engine.state.manifest.seed,
+      selected &&
+        (trees.includes(selected) ||
+          natureTreeSprites.includes(selected.frame.name) ||
+          this.runtime.engine.world.pack.trees.includes(selected.frame.name))
+        ? selected
+        : undefined,
+      plants,
+    );
     mark("scene update tail");
   }
   /** Nudges drawn people out of each other. Presentation only: the schedule
