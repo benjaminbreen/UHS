@@ -81,6 +81,7 @@ import { livelihoodOf } from "../world/v3/routines";
 import type { GoalContext } from "../content/goals/types";
 import { route, type RouteResult } from "./routing";
 import { terrainJump, terrainLeap, type LeapResult } from "./topography";
+import { boundaryGraph } from "../render/fence-pass";
 import { advanceFauna, stepAllowed } from "./fauna-sim";
 import { aerialStates, type FaunaGroup, type FaunaMember } from "./fauna";
 import {
@@ -837,8 +838,9 @@ export class Engine {
         const rock =
           from.space === "outside" &&
           isRock(this.world.decoration(x, y)?.sprite);
+        const fence = x === to.x && y === to.y && this.fenceAhead(dx, dy);
         const overable =
-          (blocking.length > 0 || !!beast || rock) &&
+          (blocking.length > 0 || !!beast || rock || fence) &&
           blocking.every((o) => lowProp(o)) &&
           beastMass === 0;
         const obstacle = (blocking.length > 0 || !!beast) && !overable;
@@ -846,7 +848,7 @@ export class Engine {
           ...cell,
           over: overable || undefined,
           solid:
-            (cell.solid && !(rock && overable)) ||
+            (cell.solid && !((rock || fence) && overable)) ||
             obstacle ||
             (!water && !overable && !clear({ x, y })),
         };
@@ -900,8 +902,18 @@ export class Engine {
     const p = this.state.player.pos;
     return (
       !!this.lowPropAhead(dx, dy) ||
+      this.fenceAhead(dx, dy) ||
       (p.space === "outside" &&
         isRock(this.world.decoration(p.x + dx, p.y + dy)?.sprite))
+    );
+  }
+  fenceAhead(dx: number, dy: number) {
+    const p = this.state.player.pos;
+    if (p.space !== "outside" || !this.world.topography) return false;
+    const x = p.x + dx, y = p.y + dy;
+    const field = (cx: number, cy: number) => this.world.topography!(cx, cy)?.field;
+    return [...boundaryGraph(field, x, y, x + 1, y + 1).values()].some(
+      (node) => node.cx === x && node.cy === y && node.links !== 0,
     );
   }
   lowPropAhead(dx: number, dy: number) {

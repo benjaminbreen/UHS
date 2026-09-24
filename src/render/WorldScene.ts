@@ -1047,7 +1047,7 @@ export class WorldScene extends Phaser.Scene {
     const ex = tx - ((tx - im.x) / travel) * short,
       ey = ty - ((ty - im.y) / travel) * short + (after === "hang" ? 11 : 0);
     const carry = poseTiming(after) * (after === "hang" ? 4 : 3);
-    this.tweens.add({
+    const flight = this.tweens.add({
       targets: im,
       x: ex,
       y: ey,
@@ -1106,12 +1106,13 @@ export class WorldScene extends Phaser.Scene {
           this.onlookers(tx, ty, heavy ? 4 : 1.5, heavy ? "alarm" : "question");
       },
     });
+    im.setData("arc", flight);
   }
   /** At a run, a rock or a pot is cleared without a key press. */
   private vault(dx: number, dy: number, time: number) {
-    if (!this.shiftHeld || this.runSteps < 2) return false;
     const engine = this.runtime.engine;
     if (!engine.vaultAhead(dx, dy)) return false;
+    if ((!this.shiftHeld || this.runSteps < 2) && !engine.fenceAhead(dx, dy)) return false;
     const before = { ...engine.state.player.pos };
     const cleared = this.runtime.jump(dx, dy, "short", true);
     const now = engine.state.player.pos;
@@ -4611,8 +4612,12 @@ export class WorldScene extends Phaser.Scene {
       let arcLift = (im.getData("arcLift") as number) ?? 0;
       // A launch interrupted mid-flight never reaches its onComplete, which
       // is what reset the lift. Left alone the figure hangs in the air until
-      // the next jump lands and clears it.
-      if (arcLift && !this.tweens.isTweening(im)) {
+      // the next jump lands and clears it. A walk tween that replaced it
+      // still counts as tweening, so ask after the flight itself.
+      if (
+        arcLift &&
+        !(im.getData("arc") as Phaser.Tweens.Tween | undefined)?.isActive()
+      ) {
         im.setData("arcLift", 0);
         im.setScale(1, 1);
         arcLift = 0;
