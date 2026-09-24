@@ -264,6 +264,10 @@ it("works a trade in stages at home, stocks the house, and minds neglect", () =>
   expect(work().enabled).toBe(false);
   expect(s.economy!.stock[home.id].pots).toBeGreaterThan(before);
   expect(s.goalFlags!.worked).toBe(true);
+  s.clock += 22 * 3600 - (s.clock % 86400);
+  e.sleep(8 * 3600);
+  expect(s.evening!.work).toMatchObject({ done: 3, stages: 3 });
+  expect(s.evening!.work!.made.pots).toBeGreaterThan(0);
 
   const buyer = s.households!.find((h) =>
     h.buys?.some((b) => b.from === home.id),

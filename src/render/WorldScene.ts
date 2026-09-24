@@ -1,3 +1,4 @@
+import { shownStock } from "../core/economy";
 import { Watercraft } from "./watercraft";
 import { ruinTexture, releaseRuins } from "./ruins";
 import { Burning, TorchFlame } from "./burning";
@@ -3774,6 +3775,24 @@ export class WorldScene extends Phaser.Scene {
       if (o.kind === "item") {
         this.entities.get(o.id)?.setScale(ITEM_SCALE);
         this.shadows.get(o.id)?.setScale(ITEM_SCALE);
+      }
+    }
+    // Goods set out beside a household's store: a full house shows three.
+    const economy = e.state.economy;
+    if (economy) {
+      const seen = new Map(obs.objects.map((o) => [o.id, o]));
+      for (const h of e.state.households ?? []) {
+        const store = seen.get(h.storeId);
+        if (!store) continue;
+        shownStock(economy, h).forEach((item, i) => {
+          const sprite = e.item(item)?.sprite;
+          if (!sprite) return;
+          const id = `${store.id}:stock:${i}`;
+          renderEntity(id, sprite, store.pos);
+          const im = this.entities.get(id);
+          im?.setScale(ITEM_SCALE).setX(im.x + 9 + 5 * i);
+          this.shadows.get(id)?.setVisible(false);
+        });
       }
     }
     this.heldSprites.clear();

@@ -73,7 +73,8 @@ import { conditionOf, damageStructure, fabricOf, weatherStructure, type Structur
 import { regardCue } from "./regard";
 import { resolveIntents, validateIntents } from "./intents";
 import { findPath } from "./pathfinding";
-import { dayOfWork, importShare, runEconomy } from "./economy";
+import { dayOfWork, importShare, runEconomy, stockOf } from "./economy";
+import { goods } from "../content/economy/goods";
 import { processFor, type ProcessFamily } from "../content/economy/processes";
 import { itineraryAt, type Itinerary, DAY_MINUTES } from "./itinerary";
 import { goalDone, heldCount, pickGoals } from "./goals";
@@ -462,6 +463,45 @@ export class Engine {
       },
     ];
   }
+  private today() {
+    const s = this.state;
+    const day = Math.floor(s.clock / 86400);
+    if (s.today?.day !== day) s.today = { day, made: {}, trust: {} };
+    return s.today;
+  }
+  /** The day's account, for the card shown on waking. */
+  private evening(day: NonNullable<Snapshot["today"]> | undefined) {
+    const s = this.state;
+    const t = this.trade();
+    const closed = day?.day ?? Math.floor(s.clock / 86400) - 1;
+    const short: Record<string, number> = {};
+    for (const goods of Object.values(s.economy?.short ?? {}))
+      for (const g of goods) short[g] = (short[g] ?? 0) + 1;
+    const setting = this.world.pack.setting;
+    const w = weatherAt(
+      s.manifest.seed,
+      setting?.climate ?? "temperate",
+      setting?.season ?? "spring",
+      s.clock + 3 * 3600,
+    );
+    s.evening = {
+      day: closed,
+      season: setting ? seasonAt(setting.season, closed * 86400 + 43200) : undefined,
+      work: t && {
+        activity: t.kit.activity,
+        stages: t.process.stages.length,
+        done: s.economy?.work?.day === closed ? s.economy.work.stage : 0,
+        made: day?.made ?? {},
+      },
+      stock: t && s.economy ? stockOf(s.economy, t.household) : [],
+      regard: Object.entries(day?.trust ?? {})
+        .filter(([, delta]) => delta)
+        .map(([id, delta]) => ({ id, delta })),
+      short,
+      households: s.households?.length ?? 0,
+      tomorrow: { condition: w.condition, label: w.label, tempC: w.tempC },
+    };
+  }
   private doWork() {
     const t = this.trade();
     if (!t || t.stage >= t.process.stages.length) return;
@@ -475,12 +515,22 @@ export class Engine {
       return;
     }
     const made = dayOfWork(s.economy, household);
+    // Work that makes nothing the town trades in, a forager's or a fisher's,
+    // comes home in the hand instead.
+    if (!Object.keys(made).length)
+      for (const [item, n] of Object.entries(kit.inventory ?? {}))
+        if (n && item !== "tool" && item !== "water" && this.item(item)) {
+          s.player.inventory[item] = (s.player.inventory[item] ?? 0) + n;
+          made[item] = n;
+        }
+    const today = this.today().made;
+    for (const [g, n] of Object.entries(made)) today[g] = (today[g] ?? 0) + n;
     this.grantXp(workSkill[process.family], 20);
     if (s.goalFlags) s.goalFlags.worked = true;
     this.event(
-      made.length
-        ? `A full day's ${kit.activity.toLowerCase()} is done, and there is more ${made.join(" and ")} in the house.`
-        : `A full day's ${kit.activity.toLowerCase()} is done.`,
+      Object.keys(made).length
+        ? `A full day's work done (${kit.activity.toLowerCase()}): ${Object.keys(made).map((g) => goods.find((x) => x.id === g)?.noun ?? this.item(g)?.name.toLowerCase() ?? g).join(" and ")}.`
+        : `A full day's work done (${kit.activity.toLowerCase()}).`,
     );
   }
   /** Today's goals, picked at the first call of each game day. */
@@ -586,6 +636,8 @@ export class Engine {
   regard(a: Actor, delta: number, cue?: CueKind) {
     if (!delta) return;
     a.trust += delta;
+    const t = this.today().trust;
+    t[a.id] = (t[a.id] ?? 0) + delta;
     this.cue(a.id, cue ?? regardCue(delta, a.trust), this.state.player.pos);
   }
   /** Something done in front of people that they hold against the player.
@@ -3537,6 +3589,7 @@ export class Engine {
           const head = this.household(id)?.members[0];
           return head ? resident(head) : undefined;
         },
+        home && this.state.economy?.short[home.id],
       );
       return {
         id,
@@ -5574,6 +5627,7 @@ export class Engine {
     const setting = this.world.pack.setting;
     const seed = this.state.manifest.seed;
     const before = p.activity;
+    const day = this.state.today;
     p.activity = "Sleeping";
     this.advance(seconds);
     p.activity = before === "Sleeping" ? "Exploring" : before;
@@ -5638,6 +5692,9 @@ export class Engine {
         );
       }
     }
+    // Any long sleep that wakes into a morning closes the day, whenever it began.
+    const woke = Math.floor(this.state.clock / 3600) % 24;
+    if (hours >= 5 && woke >= 4 && woke < 12) this.evening(day);
   }
 
   advance(seconds: number, heldActor?: string) {

@@ -6557,3 +6557,335 @@ button:disabled {
   color: #f1c56f;
   cursor: pointer;
 }
+
+/* The evening account, shown on waking. */
+.evening {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  overflow: auto;
+  background: linear-gradient(
+    to bottom,
+    #03061a 0%,
+    #0a1334 42%,
+    #241f4d 74%,
+    #4b3358 100%
+  );
+  animation: evening-in 900ms ease-out both;
+}
+.evening .splash-stars {
+  position: fixed;
+}
+.evening-moon {
+  position: fixed;
+  top: 9vh;
+  right: 12vw;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 36%, #fffbe8, #f1dfae 60%, #d9c08a);
+  /* The dark side slides across with the phase: full at 0.5, new at 0 and 1. */
+  box-shadow:
+    inset calc((0.5 - var(--phase, 0.5)) * 108px) 0 0 0 #0b1436,
+    0 0 36px 10px #f6e5b433,
+    0 0 90px 30px #f6e5b414;
+}
+.evening-horizon {
+  position: fixed;
+  inset: auto 0 0 0;
+  line-height: 0;
+  pointer-events: none;
+}
+.evening-horizon img {
+  width: 100%;
+  height: auto;
+  image-rendering: pixelated;
+  filter: brightness(0.42) saturate(0.55) hue-rotate(-12deg);
+}
+.evening-horizon::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, #241f4d00 0%, #0a133466 60%, #03061acc 100%);
+}
+.evening-hearth {
+  position: fixed;
+  inset: auto 0 0 0;
+  height: 32vh;
+  background: radial-gradient(ellipse at 50% 120%, #e2874455 0%, #b0503a22 38%, transparent 70%);
+  animation: hearth 3.2s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+.evening-card {
+  position: relative;
+  z-index: 1;
+  width: min(620px, 100%);
+  padding: 30px 28px 22px;
+  background: #121932f2;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  box-shadow:
+    0 0 0 4px #121932,
+    0 0 0 5px var(--line-soft),
+    0 24px 60px #0009;
+  animation: evening-rise 700ms 200ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.evening-ribbon {
+  position: absolute;
+  top: -17px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 30px;
+  background: var(--cream);
+  color: var(--ink);
+  font-family: var(--pixel);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  clip-path: polygon(0 0, 100% 0, calc(100% - 10px) 50%, 100% 100%, 0 100%, 10px 50%);
+  filter: drop-shadow(0 2px 0 #a68c5c);
+}
+.evening-card h2 {
+  margin: 10px 0 18px;
+  text-align: center;
+  font-weight: 400;
+  font-size: 26px;
+  color: var(--cream);
+}
+.evening-rows {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.evening-rows li {
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  align-items: center;
+  gap: 14px;
+  min-height: 58px;
+  padding: 8px 12px;
+  background: linear-gradient(90deg, #f0e6cf12, #f0e6cf06);
+  border: 1px solid var(--line-soft);
+  border-left: 3px solid var(--gold);
+  border-radius: 3px;
+  opacity: 0;
+  transform: translateY(8px);
+  transition:
+    opacity 380ms ease-out,
+    transform 380ms cubic-bezier(0.2, 0.8, 0.2, 1.3);
+}
+.evening-rows li.in {
+  opacity: 1;
+  transform: none;
+}
+.ledger-label {
+  font-family: var(--pixel);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+.ledger-body {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  min-width: 0;
+}
+.ledger-detail {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text);
+}
+.ledger-none {
+  color: var(--muted);
+  font-style: italic;
+}
+.ledger-values {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-left: auto;
+}
+.ledger-value {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.ledger-good {
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  background: #0b1024;
+  border: 1px solid var(--line-soft);
+  border-radius: 3px;
+}
+.ledger-good-letter {
+  font-family: var(--pixel);
+  color: var(--gold);
+}
+.tally {
+  min-width: 42px;
+  padding: 4px 8px;
+  background: #0b1024;
+  border: 1px solid var(--line-soft);
+  box-shadow: inset 0 2px 0 #0007;
+  font-family: var(--pixel);
+  font-size: 16px;
+  text-align: right;
+  color: var(--cream);
+}
+.ledger-value.short .tally {
+  color: var(--rose);
+}
+.ledger-pips {
+  display: inline-flex;
+  gap: 3px;
+}
+.ledger-pips i {
+  width: 8px;
+  height: 8px;
+  border: 1px solid var(--gold);
+}
+.ledger-pips i.done {
+  background: var(--gold);
+}
+.ledger-bar {
+  display: inline-block;
+  width: 88px;
+  height: 10px;
+  background: #0b1024;
+  border: 1px solid var(--line-soft);
+}
+.ledger-bar i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(to bottom, #f2d596, #c89a52);
+  transition: width 900ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.ledger-people {
+  gap: 12px;
+}
+.ledger-person {
+  display: inline-grid;
+  justify-items: center;
+  gap: 2px;
+  font-size: 12px;
+}
+.ledger-portrait {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: #0b1024;
+  border: 1px solid var(--line-soft);
+}
+.ledger-portrait canvas {
+  max-width: 100%;
+  max-height: 100%;
+}
+.ledger-person.warmer .ledger-portrait {
+  box-shadow: 0 0 10px #8fd4a855;
+  border-color: #8fd4a8;
+}
+.ledger-person.warmer .ledger-person-name {
+  color: #8fd4a8;
+}
+.ledger-person.cooler .ledger-portrait {
+  border-color: var(--rose-line);
+}
+.ledger-person.cooler .ledger-person-name {
+  color: var(--rose);
+}
+.ledger-sky {
+  position: relative;
+  width: 88px;
+  height: 48px;
+  overflow: hidden;
+  border: 1px solid var(--line-soft);
+  border-radius: 3px;
+}
+.ledger-sky .sky-scene {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.evening-sleep {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 18px 0 0 auto;
+  padding: 10px 20px;
+  background: transparent;
+  color: var(--gold);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  font-family: var(--pixel);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.evening-sleep.ready {
+  background: var(--gold);
+  color: var(--ink);
+  animation: sleep-ready 1.8s ease-in-out infinite;
+}
+.evening-sleep kbd {
+  font-family: inherit;
+  opacity: 0.7;
+}
+@keyframes evening-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes evening-rise {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+}
+@keyframes hearth {
+  to {
+    opacity: 0.65;
+  }
+}
+@keyframes sleep-ready {
+  50% {
+    box-shadow: 0 0 16px #d9b47788;
+  }
+}
+@media (max-width: 560px) {
+  .evening-rows li {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+  .evening-ribbon {
+    font-size: 10px;
+    padding: 7px 22px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .evening,
+  .evening-card,
+  .evening-hearth,
+  .evening-sleep.ready {
+    animation: none;
+  }
+  .evening-rows li {
+    transition: none;
+  }
+}

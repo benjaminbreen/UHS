@@ -90,6 +90,7 @@ const RESIZE_SETTLE_MS = 250;
 import { narratorProvider, PROVIDER_KEY } from "../narrator/turn";
 import { NarratorPanel, turnTime } from "./NarratorPanel";
 import { DialogueModal } from "./DialogueModal";
+import { EveningLedger } from "./EveningLedger";
 import { setRealLanguage, useRealLanguage } from "./real-language";
 import { VitalsOverlay } from "./VitalsOverlay";
 import { markEvent, vitalsEnabled, watchGame } from "../runtime/vitals";
@@ -168,8 +169,16 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
     | "narration"
     | "dialogue"
     | "character"
+    | "evening"
     | null
   >(null);
+  const evening = runtime.engine.state.evening;
+  const eveningSeen = useRef(evening?.day);
+  useEffect(() => {
+    if (!evening || evening.day === eveningSeen.current) return;
+    eveningSeen.current = evening.day;
+    setModal("evening");
+  }, [evening]);
   const [showVitals] = useState(vitalsEnabled);
   const phone = usePhoneLayout();
   useEffect(() => {
@@ -1469,7 +1478,14 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
         </Suspense>
       )}
       {modal === "time" && <TimeModal runtime={runtime} onClose={() => setModal(null)} onNewWorld={openWorld} />}
-      {modal && modal !== "dialogue" && modal !== "time" && (
+      {modal === "evening" && evening && (
+        <EveningLedger
+          runtime={runtime}
+          evening={evening}
+          onClose={() => setModal(null)}
+        />
+      )}
+      {modal && modal !== "dialogue" && modal !== "time" && modal !== "evening" && (
         <div
           className="modal-backdrop"
           onMouseDown={(e) => {

@@ -298,7 +298,7 @@ const actor = z.object({
     .array(
       z.object({
         other: z.string(),
-        kind: z.enum(["partner", "parent", "child", "co-resident", "friend"]),
+        kind: z.enum(["partner", "parent", "child", "co-resident", "servant", "apprentice", "master", "friend"]),
       }),
     )
     .optional(),
@@ -594,6 +594,39 @@ const faunaGroup = z
   })
   .strict();
 export const snapshotSchema = z.object({
+  today: z
+    .object({
+      day: z.number().int(),
+      made: z.record(z.string(), z.number()),
+      trust: z.record(z.string(), z.number()),
+    })
+    .strict()
+    .optional(),
+  evening: z
+    .object({
+      day: z.number().int(),
+      season: z.string().optional(),
+      work: z
+        .object({
+          activity: z.string(),
+          stages: z.number().int(),
+          done: z.number().int(),
+          made: z.record(z.string(), z.number()),
+        })
+        .strict()
+        .optional(),
+      stock: z.array(
+        z.object({ good: z.string(), n: z.number(), cap: z.number() }).strict(),
+      ),
+      regard: z.array(z.object({ id: z.string(), delta: z.number() }).strict()),
+      short: z.record(z.string(), z.number()),
+      households: z.number().int(),
+      tomorrow: z
+        .object({ condition: z.string(), label: z.string(), tempC: z.number() })
+        .strict(),
+    })
+    .strict()
+    .optional(),
   economy: z
     .object({
       hour: z.number().int(),

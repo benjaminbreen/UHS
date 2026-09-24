@@ -32,7 +32,7 @@ export const goods: Good[] = [
     id: "cloth",
     noun: "cloth",
     need: true,
-    match: /weav|fuller|dyer|wool|spin|tailor|seam|flax|linen|draper/,
+    match: /weav|fuller|dyer|wool|spin|tailor|seam|flax|linen|draper|cloth|dressmak/,
   },
   {
     id: "pots",

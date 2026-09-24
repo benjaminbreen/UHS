@@ -60,6 +60,8 @@ export function placeBrief(
   household?: Household,
   /** A household's householder, for naming who they buy from. */
   headOf: (householdId: string) => Actor | undefined = () => undefined,
+  /** Needed goods it went short of this hour. */
+  short: string[] = [],
 ): PersonBrief | undefined {
   if (!holder && !place.structure) return undefined;
   const identity: BriefSpan[] = [];
@@ -148,7 +150,9 @@ export function placeBrief(
     const fortune = household?.fortune ?? 0.5;
     const hard = latest("bad-year");
     const robbed = latest("robbed");
-    if (robbed && year - robbed.year < 2) say("Someone has been stealing from them lately. ", "state");
+    const without = short.map((g) => goods.find((x) => x.id === g)?.noun ?? g);
+    if (without.length) say(`${upper(house)} is going without ${list(without)}. `, "state");
+    else if (robbed && year - robbed.year < 2) say("Someone has been stealing from them lately. ", "state");
     else if (fortune < 0.22) say("Times are hard. ", "state");
     else if (hard && year - hard.year < 3) say(`${upper(house)} had a bad year ${ago(year - hard.year)}. `);
     else if (fortune > 0.78) say(`${upper(house)} is well off. `, "state");

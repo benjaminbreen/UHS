@@ -76,6 +76,22 @@ export type Economy = {
   /** The player's place in today's work: stages done, on which day. */
   work?: { day: number; stage: number };
 };
+/** The account of a day, shown on waking. */
+export type Evening = {
+  day: number;
+  season?: string;
+  work?: {
+    activity: string;
+    stages: number;
+    done: number;
+    made: Record<string, number>;
+  };
+  stock: { good: string; n: number; cap: number }[];
+  regard: { id: string; delta: number }[];
+  short: Record<string, number>;
+  households: number;
+  tomorrow: { condition: string; label: string; tempC: number };
+};
 export type HouseholdEvent = {
   year: number;
   kind:
@@ -504,6 +520,14 @@ export type Snapshot = {
   goalDay?: number;
   /** Household stocks, run by `core/economy.ts`. */
   economy?: Economy;
+  /** What the player's day has held so far, for the evening's account. */
+  today?: {
+    day: number;
+    made: Record<string, number>;
+    trust: Record<string, number>;
+  };
+  /** The account of the day just slept on. */
+  evening?: Evening;
   /** What the player has done today that goals can't read off state. */
   goalFlags?: {
     traded: boolean;

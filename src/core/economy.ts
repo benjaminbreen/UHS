@@ -1,5 +1,5 @@
 import { goods, standsIn } from "../content/economy/goods";
-import type { Economy, Household } from "./types";
+import type { Economy, Household, ItemId } from "./types";
 
 /**
  * Per good: units a working adult makes a day, and units each member uses a
@@ -133,7 +133,7 @@ export function runEconomy(
 /** One adult's full day of work, added to a household's stock. */
 export function dayOfWork(economy: Economy, h: Household) {
   const stock = (economy.stock[h.id] ??= {});
-  const made: string[] = [];
+  const made: Record<string, number> = {};
   for (const good of h.makes ?? []) {
     const n = Math.min(
       (rates[good]?.make ?? 1) / h.makes!.length,
@@ -141,7 +141,40 @@ export function dayOfWork(economy: Economy, h: Household) {
     );
     if (n <= 0) continue;
     stock[good] = (stock[good] ?? 0) + n;
-    made.push(good);
+    made[good] = n;
   }
   return made;
+}
+
+/** The item that stands for each good when a store's stock is shown. */
+export const shownAs: Record<string, ItemId> = {
+  bread: "bread",
+  grain: "grain",
+  fish: "fish",
+  meat: "meat",
+  timber: "wood",
+  leather: "hide",
+  cloth: "wool",
+  pots: "clay",
+  ironwork: "tool",
+  light: "torch",
+};
+/** Up to three items to set out by a store: more the fuller it is. */
+export function shownStock(economy: Economy, h: Household) {
+  const out: ItemId[] = [];
+  for (const good of h.makes ?? []) {
+    const item = shownAs[good];
+    const n = Math.ceil((3 * (economy.stock[h.id]?.[good] ?? 0)) / cap(good));
+    for (let i = 0; item && i < n; i++) out.push(item);
+  }
+  return out.slice(0, 3);
+}
+
+/** A household's goods on hand, against what it keeps at most. */
+export function stockOf(economy: Economy, h: Household) {
+  return (h.makes ?? []).map((good) => ({
+    good,
+    n: economy.stock[h.id]?.[good] ?? 0,
+    cap: cap(good),
+  }));
 }

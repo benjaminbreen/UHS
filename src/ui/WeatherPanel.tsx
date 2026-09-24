@@ -275,6 +275,36 @@ function Scene({
   );
 }
 
+function skyGradient(weather: Weather, lighting: LightingId) {
+  const heavy =
+    weather.condition === "overcast" ||
+    weather.condition === "rain" ||
+    weather.condition === "snow";
+  const [a, b, c] = heavy
+    ? weather.night
+      ? ["#0a0f22", "#232c44", "#3d4761"]
+      : ["#2b3a5a", "#66758f", "#aab5c6"]
+    : skies[lighting];
+  return `linear-gradient(165deg, ${a} 0%, ${b} 55%, ${c} 115%)`;
+}
+
+/** The panel's painted sky alone, for a glimpse of other weather. */
+export function SkyScene({
+  weather,
+  lighting,
+  className,
+}: {
+  weather: Weather;
+  lighting: LightingId;
+  className?: string;
+}) {
+  return (
+    <div className={className} style={{ background: skyGradient(weather, lighting) }}>
+      <Scene weather={weather} lighting={lighting} />
+    </div>
+  );
+}
+
 export function WeatherPanel({
   weather,
   lighting,
@@ -302,22 +332,11 @@ export function WeatherPanel({
   };
   const temp =
     unit === "C" ? `${weather.tempC}°C` : `${toFahrenheit(weather.tempC)}°F`;
-  const heavy =
-    weather.condition === "overcast" ||
-    weather.condition === "rain" ||
-    weather.condition === "snow";
-  const [a, b, c] = heavy
-    ? weather.night
-      ? ["#0a0f22", "#232c44", "#3d4761"]
-      : ["#2b3a5a", "#66758f", "#aab5c6"]
-    : skies[lighting];
   return (
     <div
       className="sky"
       data-lighting={lighting}
-      style={{
-        background: `linear-gradient(165deg, ${a} 0%, ${b} 55%, ${c} 115%)`,
-      }}
+      style={{ background: skyGradient(weather, lighting) }}
     >
       <Scene weather={weather} lighting={lighting} />
       <span className="sky-period">{period}</span>

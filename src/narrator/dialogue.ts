@@ -1,4 +1,5 @@
-import type { Actor, WalkOff } from "../core/types";
+import type { Actor, Household, WalkOff } from "../core/types";
+import { goods } from "../content/economy/goods";
 import { describeStats, statsOf } from "../core/stats";
 import { weatherAt } from "../core/weather";
 import { seasonAt } from "../core/livelihood";
@@ -144,6 +145,23 @@ function now(runtime: Runtime) {
 }
 
 /** Small, local-only context: enough to ground a voice without resending the world card. */
+/** What this household has lately gone short of, and from whom. */
+function goingWithout(runtime: Runtime, household?: Household) {
+  const state = runtime.engine.state;
+  const short = household && state.economy?.short[household.id];
+  if (!short?.length) return "";
+  const lines = short.map((good) => {
+    const noun = goods.find((g) => g.id === good)?.noun ?? good;
+    const from = household!.buys?.find((b) => b.good === good)?.from;
+    if (from && from === state.player.householdId)
+      return `${noun}, which you buy from the player's household and they have not supplied`;
+    const seller = state.households?.find((h) => h.id === from);
+    const head = seller && state.actors.find((a) => a.id === seller.members[0]);
+    return head ? `${noun}; ${head.name} the ${head.role.toLowerCase()} has none to spare` : noun;
+  });
+  return `Going short of: ${lines.join("; ")}. It is on your mind and may come up.`;
+}
+
 export function dialogueContext(runtime: Runtime, actor: Actor) {
   const engine = runtime.engine;
   const state = engine.state;
@@ -240,6 +258,7 @@ export function dialogueContext(runtime: Runtime, actor: Actor) {
     `Background: ${background.join("; ")}.`,
     `Doing: ${actor.activity.toLowerCase()}. Location: ${place ? `indoors, in ${place.name}` : `outdoors in ${location}, on foot in the open; no desk, counter or furniture unless the context names it`}. Now: ${now(runtime)}.`,
     `On their mind: ${onTheirMind(state.manifest.seed, state.clock, actor)}.`,
+    goingWithout(runtime, household),
     family.length ? `Family: ${family.join(", ")}.` : household ? "Family: household member." : "Family: lives alone.",
     temperament.length ? `Temperament: ${temperament.join(", ")}.` : "",
     `Big Five: openness ${stats.openness}/100, conscientiousness ${stats.conscientiousness}/100, extraversion ${stats.extraversion}/100, agreeableness ${stats.agreeableness}/100, neuroticism ${stats.neuroticism}/100.`,

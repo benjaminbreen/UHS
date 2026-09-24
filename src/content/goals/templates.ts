@@ -26,7 +26,7 @@ export const GOAL_TEMPLATES: GoalTemplate[] = [
     id: "day-of-work",
     slot: "work",
     bind: (c) => ({
-      text: `Put in a full day at ${c.activity.toLowerCase()}.`,
+      text: `Do a full day's work: ${c.activity.toLowerCase()}.`,
       check: { type: "work" as const },
     }),
   },
