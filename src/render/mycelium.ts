@@ -60,7 +60,7 @@ export class Mycelium {
       // Roots show first; the fungus follows them out.
       const share = t.root
         ? Math.min(1, grown * 2)
-        : Math.max(0, grown * 1.6 - 0.5);
+        : Math.min(1, Math.max(0, grown * 1.6 - 0.5));
       const n = Math.floor(t.pts.length * share);
       for (let i = 0; i < n; i++) {
         const p = t.pts[i];
