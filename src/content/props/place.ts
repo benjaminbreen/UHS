@@ -17,6 +17,9 @@ import { buildingRoofCells } from "../graphics/models";
 import { signFor, emblemFor, signLabels } from "./signage";
 import { rareScale } from "./settlement-details";
 import { placeSettlementDetails } from "./settlement-details/place";
+import { middenContents, middenYears } from "./midden";
+import { faunaAt } from "../fauna";
+import type { FaunaGroup } from "../../core/fauna";
 
 const redrawn = new Set<string>(bFamilies);
 /** The one fitting a trade cannot work without. Keyed off the building's own
@@ -70,6 +73,7 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
     done = new Set<string>(),
     places = new Set<string>(),
     privies: Position[] = [],
+    scavengers: FaunaGroup[] = [],
     scales: Position[] = [];
   const tech = techFor(world.pack);
   const sign = signFor(world.pack);
@@ -79,6 +83,9 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
     world.pack.setting?.settlement === "port";
   // How far out the middle of town reaches, from how far the buildings spread.
   let inner = 14;
+  const coast =
+    world.pack.setting?.settlement === "port" ||
+    world.initialObjects.some((o) => o.prop === "shellMidden");
   const regionalKits = new WeakMap<object, ReturnType<typeof propKit>>();
   const pick = (
     id: string,
@@ -126,7 +133,13 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
     o.prop = key;
     o.name = def.name;
     const variants = def.family === "stick" ? 1 : (def.variants ?? 3);
-    o.sprite = `study-prop${redrawn.has(def.family) ? "b" : ""}-${def.family}-${variantOf(variants, random(seed, "prop-color", o.id))}`;
+    const local =
+      world.geography?.packAt(o.pos.x, o.pos.y)?.setting ?? world.pack.setting;
+    const variant =
+      (key === "privyMidden" || key === "communalMidden") && local
+        ? middenContents(local, coast)
+        : variantOf(variants, random(seed, "prop-color", o.id));
+    o.sprite = `study-prop${redrawn.has(def.family) ? "b" : ""}-${def.family}-${variant}`;
     o.kind = def.drink ? "well" : def.fire ? "fire" : "container";
     o.open = false;
     if (def.contents) o.inventory = { ...def.contents };
@@ -433,7 +446,9 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
           emblem !== undefined &&
           random(seed, "board", b.id) <
             // Whole words: "workshop" is not a shop.
-            (/\b(shop|market|stall|apothecary|tea)\b/i.test(b.name) ? 0.5 : 0.15);
+            (/\b(shop|market|stall|apothecary|tea)\b/i.test(b.name)
+              ? 0.5
+              : 0.15);
         const boardable = !!sign && emblem !== undefined;
         // Signs keep apart, and the same mark further apart still: a row
         // of identical tea boards reads as wallpaper.
@@ -575,6 +590,105 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
         }
       }
     }
+    // Each settlement's own midden, out past its last house and away from the
+    // water, with whatever scavenges it living there.
+    const setting = world.pack.setting;
+    if (setting && middenYears(setting)) {
+      const towns = world.settlements.length
+        ? world.settlements
+        : [{ id: "local", ...world.spawn }];
+      const houses = world.places.filter((b) => !isRuin(b) && b.w >= 2);
+      const drink = waters();
+      for (const town of towns) {
+        const id = `${town.id}-midden`;
+        if (done.has(id)) continue;
+        const mine = houses.filter(
+          (b) =>
+            towns.reduce((a, t) =>
+              Math.hypot(b.x - a.x, b.y - a.y) <=
+              Math.hypot(b.x - t.x, b.y - t.y)
+                ? a
+                : t,
+            ) === town,
+        );
+        if (mine.length < 3) continue;
+        const far = mine.reduce((a, b) =>
+          Math.hypot(a.x - town.x, a.y - town.y) >=
+          Math.hypot(b.x - town.x, b.y - town.y)
+            ? a
+            : b,
+        );
+        const out = Math.atan2(far.y - town.y, far.x - town.x);
+        let spot: Position | undefined;
+        for (let away = 3; away <= 9 && !spot; away++)
+          for (const turn of [0, 0.4, -0.4, 0.8, -0.8]) {
+            const p: Position = {
+              x: Math.round(
+                far.x + far.w / 2 + Math.cos(out + turn) * (away + far.w / 2),
+              ),
+              y: Math.round(
+                far.y + far.h / 2 + Math.sin(out + turn) * (away + far.h / 2),
+              ),
+              space: "outside",
+            };
+            if (
+              propVisualCells("communalMidden", p).every((q) =>
+                usable({ ...q, space: "outside" }),
+              ) &&
+              drink.every((q) => Math.hypot(q.x - p.x, q.y - p.y) >= 8)
+            ) {
+              spot = p;
+              break;
+            }
+          }
+        if (!spot) continue;
+        const o: WorldObject = {
+          id,
+          name: "",
+          kind: "container",
+          pos: spot,
+          sprite: "",
+          inventory: {},
+        };
+        stamp(o, "communalMidden");
+        world.initialObjects.push(o);
+        index(o);
+        done.add(id);
+        const local =
+          world.geography?.packAt(spot.x, spot.y)?.setting ?? setting;
+        const kept = faunaAt(local).map((f) => f.id);
+        // Pigs where they are kept, otherwise the village dogs; not every heap
+        // has someone at it when you pass.
+        const species =
+          kept.includes("pig") && random(seed, "midden-pig", id) < 0.6
+            ? "pig"
+            : kept.includes("dog")
+              ? "dog"
+              : undefined;
+        if (!species || random(seed, "midden-scavengers", id) < 0.3) continue;
+        const members = [
+          { x: spot.x - 2, y: spot.y + 1 },
+          { x: spot.x + 2, y: spot.y + 1 },
+          { x: spot.x, y: spot.y + 2 },
+        ]
+          .slice(0, species === "pig" ? 3 : 2)
+          .filter((p) => !world.blocked(p.x, p.y, "outside"))
+          .map((p) => ({ ...p, direction: 1 as const }));
+        if (members.length)
+          scavengers.push({
+            id: `${id}-${species}`,
+            speciesId: species,
+            members,
+            pos: { ...members[0], space: "outside" },
+            home: { ...spot },
+            homeRadius: 4,
+            state: "forage",
+            nextDecisionAt: 0,
+            stride: 0,
+            since: 0,
+          });
+      }
+    }
     placeSettlementDetails(world, seed, {
       free: (p, prop) => usable(p, undefined, prop),
       add: (o) => {
@@ -656,7 +770,8 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
     }
   };
   const activate = world.activate?.bind(world),
-    restore = world.restoreDistricts?.bind(world);
+    restore = world.restoreDistricts?.bind(world),
+    fauna = world.fauna?.bind(world);
   populate();
   return {
     ...world,
@@ -672,5 +787,6 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
           populate();
         }
       : undefined,
+    fauna: (x, y) => [...(fauna?.(x, y) ?? []), ...scavengers],
   };
 }

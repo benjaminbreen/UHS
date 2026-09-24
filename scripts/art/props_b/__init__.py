@@ -15,6 +15,7 @@ from .stalls import STALLS
 from .pitches import PITCHES
 from .farm import FARM
 from .privy import PRIVY
+from .midden import MIDDEN
 from .granary import GRANARY
 from .asia import ASIA
 from .signs import SIGNS
@@ -73,6 +74,7 @@ DRAW_B = {
  **PITCHES,
  **FARM,
  **PRIVY,
+ **MIDDEN,
  **GRANARY,
  **ASIA,
  **SIGNS,
@@ -130,6 +132,7 @@ ANIMATED = {
  'privy-stone': 4,
  'privy-nightsoil': 4,
  'privy-midden': 4,
+ 'midden': 4,
  'privy-dung': 4,
  # Cloth stirs on a covered pitch.
  **{key: 4 for key in PITCHES},

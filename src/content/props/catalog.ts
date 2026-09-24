@@ -497,6 +497,15 @@ export const propDefs: Record<string, PropDef> = {
     name: "Midden",
     family: "privy-midden",
     where: "privy",
+    variants: 6,
+  },
+  communalMidden: {
+    solid: true,
+    name: "Midden",
+    family: "midden",
+    variants: 6,
+    span: [1, 0],
+    visualClearance: [2, 2, 1, 0],
   },
   privyDung: {
     solid: true,

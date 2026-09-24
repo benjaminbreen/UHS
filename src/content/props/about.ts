@@ -74,6 +74,7 @@ export const about: Record<string, string> = {
   privyNightSoil: "A privy whose pit is emptied by the night-soil men, who carry the waste off to spread on the fields.",
   privyOuthouse: "An outhouse: a wooden shed with a toilet over a pit.",
   privyMidden: "A midden, the household's rubbish heap: ashes, bones, broken pots and dung. It rots down and goes on the fields.",
+  communalMidden: "The settlement's midden, where everyone's rubbish has gone for years: hearth ash, bone, broken pots and worse. Dogs and pigs work it over; the rotted bottom of it goes on the fields.",
   privyDung: "A heap of dung and straw from the animals, left to rot and spread on the fields.",
   granaryStaddle: "A granary raised on stone posts. The mushroom-shaped tops stop rats from climbing up to the grain.",
   granaryMud: "A granary made of mud, where the harvest is kept dry and safe from animals until it is needed.",

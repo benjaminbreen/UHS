@@ -1250,14 +1250,35 @@
       "name": "Midden",
       "group": "Household",
       "size": [
-        58,
-        40
+        66,
+        42
       ],
-      "description": "No privy at all: the heap at the bottom of the yard, ash and sherds and bone, with a plank laid across it.",
+      "description": "The household's tip at the bottom of the yard: ash, bone, broken pots and dung, with what is on it set by how the place lives.",
       "variants": [
-        "Loam",
-        "Red earth",
-        "Sand"
+        "Bone and hearthstone",
+        "Shell",
+        "Ash and sherd",
+        "Dung and horn",
+        "Tile and oyster",
+        "Glass and cinder"
+      ]
+    },
+    {
+      "id": "midden",
+      "name": "Communal midden",
+      "group": "Household",
+      "size": [
+        126,
+        66
+      ],
+      "description": "The settlement's heap at its edge, years of it: dark earth with lenses of hearth ash, and the bone, shell, sherd or glass of how the place lives.",
+      "variants": [
+        "Bone and hearthstone",
+        "Shell",
+        "Ash and sherd",
+        "Dung and horn",
+        "Tile and oyster",
+        "Glass and cinder"
       ]
     },
     {
