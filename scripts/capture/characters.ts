@@ -147,6 +147,45 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
     await shootCanvas(page, out("heads"));
   },
 
+  /** Generated faces front-on across the skin range, head and shoulders at
+   * 8x: how eyes, brows, nose, mouth and blush vary between people. */
+  async faces(page) {
+    await characterLab(page);
+    await page.evaluate(async () => {
+      const { drawCharacter } = await import(
+        "/src/render/characters/renderers.ts" as string
+      );
+      const { generateAppearance } = await import(
+        "/src/core/character.ts" as string
+      );
+      const skins = ["#3b2219", "#5a3522", "#7a4a2e", "#a06a42", "#c79466", "#ecc7a4"];
+      const b = document.createElement("canvas"),
+        c = document.createElement("canvas");
+      b.width = b.height = 80;
+      const cols = 8,
+        S = 8,
+        w = 26,
+        h = 26;
+      c.width = cols * w * S;
+      c.height = skins.length * h * S;
+      const ctx = c.getContext("2d")!,
+        bc = b.getContext("2d")!;
+      ctx.imageSmoothingEnabled = false;
+      ctx.fillStyle = "#b8a878";
+      ctx.fillRect(0, 0, c.width, c.height);
+      skins.forEach((skin, row) => {
+        for (let i = 0; i < cols; i++) {
+          const a = generateAppearance("faces", row * cols + i, 30);
+          drawCharacter(bc, { ...a, skin }, 2, "idle", 0);
+          ctx.drawImage(b, 21, 32, w, h, i * w * S, row * h * S, w * S, h * S);
+        }
+      });
+      document.body.replaceChildren(c);
+      c.style.imageRendering = "pixelated";
+    });
+    await shootCanvas(page, out("faces"));
+  },
+
   /** Every frame of the walk and the run on the game renderer: profile,
    * front and back, one row each. */
   async gait(page) {

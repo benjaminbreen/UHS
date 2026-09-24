@@ -1,6 +1,6 @@
 import type { CharacterAppearance } from "../../../core/character";
 import type { CharacterPose } from "../poses";
-import { lightKey, mix, Pixels, ramp, type Point } from "./pixels";
+import { flush, lightKey, luma, mix, Pixels, ramp, type Point } from "./pixels";
 export function drawHead(
   p: Pixels,
   a: CharacterAppearance,
@@ -17,7 +17,8 @@ export function drawHead(
     hair = ramp(a.hairColor, "hair"),
     cloth = ramp(a.wearing.color),
     cloak = ramp(a.wearing.cloakColor);
-  const eye = mix(a.hairColor, "#2a2230", 0.75),
+  const deep = luma(a.skin) < 0.4,
+    eye = deep ? "#130d12" : mix(a.hairColor, "#2a2230", 0.75),
     // Faint glint, kept close to the iris so eyes don't read as gray.
     glint = mix(eye, skin.light, 0.3),
     frame = a.wearing.eyewear === "sunglasses" ? "#1c1a1e" : "#3a3238",
@@ -179,10 +180,33 @@ export function drawHead(
       // Turned, the features move a pixel toward the facing, the far eye
       // narrows and the far cheek falls into shade.
       const t = turn ? 1 : 0;
-      // One pixel each, with skin around it: a 2px eye ran into the brow and
-      // the hair and left the face without an expression.
-      p.rect(8 + t, 8, 1, blink ? 1 : 2, blink ? skin.shade : eye);
-      p.rect(12 + t, 8, 1, blink ? 1 : 2, blink ? skin.shade : eye);
+      // The portrait's face, read at sprite size: every trait moves at most a
+      // pixel or two, so a crowd varies without anyone looking deformed.
+      const face = a.face,
+        gap = face?.eyeSpacing === "wide" ? 1 : face?.eyeSpacing === "close" ? -1 : 0,
+        eyes: [number, number][] = [
+          [8 + t - gap, -1],
+          [12 + t + gap, 1],
+        ],
+        slit =
+          face?.eyeShape === "narrow" ||
+          face?.eyeSize === "small" ||
+          face?.eyelid === "monolid";
+      for (const [x, out] of eyes) {
+        if (blink) {
+          p.rect(x, 9, 1, 1, skin.shade);
+          continue;
+        }
+        p.rect(x, slit ? 9 : 8, 1, slit ? 1 : 2, eye);
+        if (face?.eyeSize === "large") {
+          p.rect(x + out, 8, 1, 2, eye);
+          p.rect(x, 8, 1, 1, glint);
+        } else if (face?.eyeShape === "almond") p.rect(x + out, 8, 1, 1, skin.edge);
+        if (face?.brows === "heavy")
+          p.rect(out < 0 ? x - 1 : x, 7, 2, 1, mix(hair.edge, skin.shade, 0.3));
+        else if (face?.brows === "arched")
+          p.rect(x + out, 7, 1, 1, mix(hair.shade, skin.shade, 0.4));
+      }
       if (a.wearing.eyewear === "sunglasses") {
         p.rect(6 + t, 8, 4, 2, frame);
         p.rect(11 + t, 8, 4 - t, 2, frame);
@@ -194,12 +218,25 @@ export function drawHead(
         p.rect(11 + t, 7, 4 - t, 1, frame);
         p.rect(10 + t, 8, 1, 1, frame);
       }
-      p.rect(10 + t, 10, 2, 1, skin.light);
-      const blush = mix(skin.base, "#e0625c", 0.28);
-      p.rect(7 + t, 10, 1, 1, blush);
-      p.rect(13 + t, 10, 1, 1, blush);
+      const nose = face?.nose ?? "straight",
+        broad = nose === "broad" || nose === "bulbous" || nose === "flat";
+      p.rect(10 + t, 10, broad ? 2 : 1, 1, skin.light);
+      if (nose !== "short" && nose !== "snub")
+        p.rect(broad ? 10 + t : 11 + t, 11, broad ? 2 : 1, 1, skin.shade);
+      const detail = face?.detail ?? "clear";
+      for (const [x, out] of eyes) {
+        if (detail === "freckles") {
+          p.rect(x, 10, 1, 1, mix(skin.base, skin.shade, 0.7));
+          p.rect(x + out, 11, 1, 1, mix(skin.base, skin.shade, 0.5));
+        } else p.rect(x, 10, 1, 1, flush(a.skin));
+        if (detail === "lines" || detail === "weathered")
+          p.rect(x + out * (detail === "lines" ? 1 : 0), detail === "lines" ? 9 : 11, 1, 1, skin.shade);
+      }
+      const mouth = face?.mouth ?? "soft",
+        mw = mouth === "narrow" ? 2 : mouth === "wide" ? 4 : 3;
+      p.rect(mouth === "narrow" ? 10 + t : 9 + t, 12, mw, 1, skin.shade);
+      if (mouth === "full") p.rect(10 + t, 13, 1, 1, flush(a.skin));
       if (turn) p.rect(13, 10, 1, 1, skin.shade);
-      p.rect(9 + t, 12, 3, 1, skin.shade);
       if (pose === "talk" && f % 2) p.rect(10 + t, 12, 2, 2, skin.edge);
       if (pose === "startle") p.rect(10 + t, 12, 2, 2, skin.edge);
       if (pose === "hurt") {

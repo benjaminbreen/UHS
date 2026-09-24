@@ -82,6 +82,16 @@ function toward(h: number, target: number, deg: number) {
   const d = ((target - h + 540) % 360) - 180;
   return (h + Math.sign(d) * Math.min(Math.abs(d), deg) + 360) % 360;
 }
+export function luma(hex: string) {
+  const v = parseInt(hex.slice(1), 16);
+  return (0.3 * (v >> 16) + 0.59 * ((v >> 8) & 255) + 0.11 * (v & 255)) / 255;
+}
+/** Blood under the skin at the skin's own value: pink on pale skin, a
+ * deeper rose-brown on dark, never a pastel patch. */
+export function flush(skin: string) {
+  const [h, s, l] = toHsl(skin);
+  return mix(skin, fromHsl([toward(h, 0, 14), s + 0.08, l]), 0.6);
+}
 /** Each step darker also turns toward violet and gains saturation; each step
  * lighter turns toward gold. Darkening by scaling RGB greys every shadow into
  * the same mud, which is most of what separated these figures from Stardew's. */
@@ -107,7 +117,7 @@ export function ramp(
     mix(
       fromHsl([
         toward(h, target, turn * chroma * (material === "cloth" ? 1 : material === "hair" ? 0.5 : 0.3)),
-        ((c + sat * c * (material === "skin" ? 0 : 1)) *
+        ((c + sat * c * (material === "skin" && dl < 0 ? 0 : 1)) *
           (dl < 0 ? Math.sqrt((l + dl) / l) : 1)) /
           Math.max(0.05, 1 - Math.abs(2 * (l + dl) - 1)),
         l + dl,
@@ -139,12 +149,13 @@ export function ramp(
       tint(
         step(
           material === "hair" ? 10 : 14,
-          material === "skin" ? 0.04 : -0.02,
+          material === "skin" ? 0.25 : -0.02,
           material === "hair" ? 0.07 + 0.08 * dark : 0.11,
           material === "cloth" ? 52 : 38,
         ),
         light.warm,
-        0.15,
+        // Cream over deep skin is a grey smear; its sheen is warm and dark.
+        material === "skin" ? 0.15 * l : 0.15,
       ),
       k,
     ),
