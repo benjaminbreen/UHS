@@ -124,7 +124,9 @@ export function populateHouseholds(
       history: story.history,
       fortune: story.fortune,
       infants: story.infants,
-      makes: goodsOf(kit),
+      makes: goodsOf(
+        kit ?? (parent && livelihoodOf(pack, { origin: parent } as Actor)),
+      ),
     });
     // What the household can spend decides how the house has worn, and a fire
     // started the roof and walls over.

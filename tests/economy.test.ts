@@ -63,3 +63,12 @@ it("slows a patch's regrowth when it is taken from again and again", () => {
   };
   expect(regrowth(86400)).toBeGreaterThan(regrowth(86400 * 60));
 });
+
+it("keeps a city fed from outside when its own bakers stop", () => {
+  const village_ = ledger(), city = ledger();
+  const stopped = (h: Household) => (h.id === "farm" ? 0 : everyone(h));
+  runEconomy(village(), village_, 24 * 21, stopped);
+  runEconomy(village(), city, 24 * 21, stopped, 0.7);
+  expect(Object.keys(village_.short)).toHaveLength(3);
+  expect(Object.keys(city.short).length).toBeLessThan(3);
+});

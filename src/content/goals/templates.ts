@@ -23,6 +23,14 @@ const FOOD = [
 export const GOAL_TEMPLATES: GoalTemplate[] = [
   // Work
   {
+    id: "day-of-work",
+    slot: "work",
+    bind: (c) => ({
+      text: `Put in a full day at ${c.activity.toLowerCase()}.`,
+      check: { type: "work" as const },
+    }),
+  },
+  {
     id: "forage",
     slot: "work",
     workplaces: ["wild"],

@@ -73,7 +73,8 @@ import { conditionOf, damageStructure, fabricOf, weatherStructure, type Structur
 import { regardCue } from "./regard";
 import { resolveIntents, validateIntents } from "./intents";
 import { findPath } from "./pathfinding";
-import { runEconomy } from "./economy";
+import { dayOfWork, importShare, runEconomy } from "./economy";
+import { processFor, type ProcessFamily } from "../content/economy/processes";
 import { itineraryAt, type Itinerary, DAY_MINUTES } from "./itinerary";
 import { goalDone, heldCount, pickGoals } from "./goals";
 import { GOAL_TEMPLATES } from "../content/goals/templates";
@@ -239,6 +240,14 @@ const covers = (o: WorldObject, x: number, y: number) => {
     ? Math.abs(o.pos.x - x) <= span[0] && Math.abs(o.pos.y - y) <= span[1]
     : o.pos.x === x && o.pos.y === y;
 };
+const workSkill: Record<ProcessFamily, SkillId> = {
+  tend: "farming",
+  gather: "foraging",
+  transform: "trade",
+  carry: "wayfaring",
+  serve: "speech",
+};
+
 export class Engine {
   state: Snapshot;
   /** Set by a chronicle to witness every command, human or agent. */
@@ -395,11 +404,83 @@ export class Engine {
       s.economy = { hour, stock: {}, short: {} };
       return;
     }
+    const yesterday = Math.floor(s.economy.hour / 24);
     const adults = new Set(
       s.actors.filter((a) => (a.age ?? 20) >= 14).map((a) => a.id),
     );
-    runEconomy(s.households, s.economy, hour, (h) =>
-      h.members.filter((m) => adults.has(m)).length,
+    runEconomy(
+      s.households,
+      s.economy,
+      hour,
+      (h) => h.members.filter((m) => adults.has(m)).length,
+      importShare[this.world.pack.setting?.settlement ?? ""],
+    );
+    if (Math.floor(hour / 24) === yesterday) return;
+    // At dawn, whoever buys from the player's house and went short holds it
+    // against them.
+    const mine = s.households.find((h) => h.members.includes("player"));
+    if (!mine) return;
+    for (const h of s.households) {
+      const short = s.economy.short[h.id];
+      const letDown = h.buys?.some(
+        (b) => b.from === mine.id && short?.includes(b.good),
+      );
+      const head = letDown && s.actors.find((a) => a.id === h.members[0]);
+      if (head) this.regard(head, -1);
+    }
+  }
+  /** The player's trade, their household, and how far into today's work. */
+  private trade() {
+    const s = this.state;
+    const household = s.households?.find((h) => h.members.includes("player"));
+    const kit = livelihoodOf(this.world.pack, s.player);
+    const process = kit && processFor(kit);
+    if (!household || !kit || !process) return;
+    const day = Math.floor(s.clock / 86400);
+    const stage = s.economy?.work?.day === day ? s.economy.work.stage : 0;
+    return { household, kit, process, day, stage };
+  }
+  private workAt(o: WorldObject, close: boolean): Affordance[] {
+    const t = this.trade();
+    if (!t) return [];
+    const { process, stage } = t;
+    // Your own stores always serve; a tool or hearth, only if it is no one else's.
+    const station =
+      o.id === t.household.storeId ||
+      ((!o.owner || o.owner === "player") &&
+        process.stations.includes(propDefs[o.prop ?? ""]?.family ?? ""));
+    if (!station) return [];
+    const done = stage >= process.stages.length;
+    return [
+      {
+        label: done
+          ? "Today's work is done"
+          : `${t.kit.activity}: ${process.stages[stage]}`,
+        command: { type: "interact", target: o.id, action: "work" },
+        enabled: close && !done,
+        reason: done ? "Come back tomorrow" : close ? undefined : "Walk closer",
+      },
+    ];
+  }
+  private doWork() {
+    const t = this.trade();
+    if (!t || t.stage >= t.process.stages.length) return;
+    const s = this.state;
+    const { process, kit, household } = t;
+    this.advance((process.hours * 3600) / process.stages.length);
+    s.economy ??= { hour: Math.floor(s.clock / 3600), stock: {}, short: {} };
+    s.economy.work = { day: t.day, stage: t.stage + 1 };
+    if (t.stage + 1 < process.stages.length) {
+      this.event(`You ${process.stages[t.stage]}. ${kit.activity} goes on.`);
+      return;
+    }
+    const made = dayOfWork(s.economy, household);
+    this.grantXp(workSkill[process.family], 20);
+    if (s.goalFlags) s.goalFlags.worked = true;
+    this.event(
+      made.length
+        ? `A full day's ${kit.activity.toLowerCase()} is done, and there is more ${made.join(" and ")} in the house.`
+        : `A full day's ${kit.activity.toLowerCase()} is done.`,
     );
   }
   /** Today's goals, picked at the first call of each game day. */
@@ -3497,6 +3578,7 @@ export class Engine {
           .join(" "),
         affordances: [
           ...propAffordances(this.state, object, close),
+          ...this.workAt(object, close),
           ...(this.state.households?.some(
             (h) => h.storeId === object.id && h.members.includes("player"),
           )
@@ -4980,6 +5062,9 @@ export class Engine {
             : 0;
         p.activity = p.afloat ? p.afloat === "swimming" ? "Swimming" : "Paddling" : depth > 0 ? "Wading" : "Exploring";
         this.event("You rest beside the household’s work. Your fatigue eases.");
+        break;
+      case "work":
+        this.doWork();
         break;
       case "store":
         if (o) {

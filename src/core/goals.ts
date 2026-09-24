@@ -53,7 +53,12 @@ export const heldCount = (a: Actor, items: string[]) =>
 export function goalDone(
   g: DailyGoal,
   player: Actor,
-  flags: { traded: boolean; talked: boolean; visited: string[] },
+  flags: {
+    traded: boolean;
+    talked: boolean;
+    visited: string[];
+    worked?: boolean;
+  },
 ): boolean {
   const c = g.check;
   switch (c.type) {
@@ -61,6 +66,8 @@ export function goalDone(
       return heldCount(player, c.items) - (g.base ?? 0) >= c.n;
     case "trade":
       return flags.traded;
+    case "work":
+      return !!flags.worked;
     case "talk":
       return flags.talked;
     case "visit":

@@ -22,6 +22,13 @@ const rates: Record<string, { make: number; need?: number }> = {
 };
 /** A household stops making once it has three days' making in hand. */
 const cap = (good: string) => (rates[good]?.make ?? 1) * 3;
+/** Share of a city's needs that arrives from outside it: grain ships, wine
+ * carts, the hinterland's market days. A village feeds itself or goes short. */
+export const importShare: Partial<Record<string, number>> = {
+  city: 0.7,
+  port: 0.8,
+};
+const IMPORT = "import";
 /** Longest absence a map catches up on; a longer one is treated as this. */
 export const CATCH_UP_HOURS = 24 * 14;
 /** What a trade uses up, one for one, when someone in town makes it. */
@@ -39,10 +46,12 @@ export function runEconomy(
   economy: Economy,
   hour: number,
   workers: (h: Household) => number,
+  imports = 0,
 ) {
   const start = Math.max(economy.hour, hour - CATCH_UP_HOURS);
   economy.hour = Math.max(economy.hour, hour);
   if (hour <= start) return;
+  const market = { id: IMPORT } as Household;
   const take = (from: Household, good: string, n: number) => {
     const stock = economy.stock[from.id];
     const have = stock?.[good] ?? 0;
@@ -51,10 +60,14 @@ export function runEconomy(
   };
   const byId = new Map(households.map((h) => [h.id, h]));
   const nearest = new Map<string, Household>();
-  const wanted = new Set([...Object.values(inputs), ...Object.values(standsIn)]);
+  const wanted = new Set([
+    ...Object.values(inputs),
+    ...Object.values(standsIn),
+  ]);
   for (const h of households)
     for (const good of wanted) {
-      let best: Household | undefined, d = Infinity;
+      let best: Household | undefined,
+        d = Infinity;
       for (const s of households) {
         if (s === h || !s.makes?.includes(good)) continue;
         const e = Math.hypot(s.home.x - h.home.x, s.home.y - h.home.y);
@@ -62,10 +75,24 @@ export function runEconomy(
       }
       if (best) nearest.set(h.id + good, best);
     }
+  const people = households.reduce((n, h) => n + h.members.length, 0);
   const hands = new Map(households.map((h) => [h.id, workers(h)]));
 
-  for (let t = start; t < hour; t++)
-    for (const h of households) {
+  for (let t = start; t < hour; t++) {
+    if (imports) {
+      const pool = (economy.stock[IMPORT] ??= {});
+      for (const need of needed) {
+        const day = (rates[need]?.need ?? 0) * people * imports;
+        pool[need] = Math.min(day, (pool[need] ?? 0) + day / 24);
+      }
+    }
+    // Start the round somewhere new each hour, so what runs short falls on a
+    // different house rather than always the last in the list.
+    for (let i = 0; i < households.length; i++) {
+      const h =
+        households[
+          (i + (t % households.length) + households.length) % households.length
+        ];
       const stock = (economy.stock[h.id] ??= Object.fromEntries(
         (h.makes ?? []).map((g) => [g, rates[g]?.make ?? 1]),
       ));
@@ -94,9 +121,27 @@ export function runEconomy(
         if (take(seller, good, want)) continue;
         // Short of bread, a household buys grain from its nearest farm.
         const plain = standsIn[good] && nearest.get(h.id + standsIn[good]);
-        if (!plain || !take(plain, standsIn[good], want)) short.push(need);
+        if (plain && take(plain, standsIn[good], want)) continue;
+        if (!imports || !take(market, need, want)) short.push(need);
       }
       if (short.length) economy.short[h.id] = short;
       else delete economy.short[h.id];
     }
+  }
+}
+
+/** One adult's full day of work, added to a household's stock. */
+export function dayOfWork(economy: Economy, h: Household) {
+  const stock = (economy.stock[h.id] ??= {});
+  const made: string[] = [];
+  for (const good of h.makes ?? []) {
+    const n = Math.min(
+      (rates[good]?.make ?? 1) / h.makes!.length,
+      cap(good) - (stock[good] ?? 0),
+    );
+    if (n <= 0) continue;
+    stock[good] = (stock[good] ?? 0) + n;
+    made.push(good);
+  }
+  return made;
 }

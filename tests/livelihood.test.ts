@@ -233,3 +233,47 @@ it("advances a populated household scene through ordinary simulation commands", 
     Math.round(performance.now() - start),
   );
 });
+
+it("works a trade in stages at home, stocks the house, and minds neglect", () => {
+  const konya = places.find((p) => p.id === "konya")!;
+  const e = createSettingSession(
+    { ...settingFor(konya, -6499), role: "Potter" },
+    "probe",
+  );
+  const s = e.state;
+  const home = s.households!.find((h) => h.members.includes("player"))!;
+  const store = s.objects.find((o) => o.id === home.storeId)!;
+  s.player.pos = { ...store.pos, x: store.pos.x + 1 };
+  e.runEconomy();
+  e.dailyGoals();
+  const work = () =>
+    e
+      .inspect(store.id)!
+      .affordances.find(
+        (a) => a.command.type === "interact" && a.command.action === "work",
+      )!;
+  const before = s.economy!.stock[home.id]?.pots ?? 0;
+  for (let i = 0; i < 3; i++)
+    expect(
+      e.act({
+        actionId: `work-${i}`,
+        expectedRevision: s.revision,
+        command: work().command,
+      }).status,
+    ).toBe("completed");
+  expect(work().enabled).toBe(false);
+  expect(s.economy!.stock[home.id].pots).toBeGreaterThan(before);
+  expect(s.goalFlags!.worked).toBe(true);
+
+  const buyer = s.households!.find((h) =>
+    h.buys?.some((b) => b.from === home.id),
+  )!;
+  const head = s.actors.find((a) => a.id === buyer.members[0])!;
+  const trust = head.trust;
+  // Nobody else at home to work, and nothing on the shelf.
+  home.members = ["player"];
+  s.economy!.stock[home.id].pots = 0;
+  s.economy!.hour -= (s.economy!.hour % 24) + 1;
+  e.runEconomy();
+  expect(head.trust).toBe(trust - 1);
+}, 30000);

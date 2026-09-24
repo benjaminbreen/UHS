@@ -25,6 +25,7 @@ export type GoalCheck =
   /** Combined count of `items` rises by `n` over the dawn count. */
   | { type: "gain"; items: ItemId[]; n: number }
   | { type: "trade" }
+  | { type: "work" }
   /** Player enters a building whose name or sprite matches. */
   | { type: "visit"; place: string }
   | { type: "talk" }

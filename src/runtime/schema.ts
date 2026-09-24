@@ -447,6 +447,7 @@ export const commandSchema = z.discriminatedUnion("type", [
         "drink",
         "cook",
         "store",
+        "work",
         "harvest",
         "capture",
         "herd",
@@ -598,6 +599,10 @@ export const snapshotSchema = z.object({
       hour: z.number().int(),
       stock: z.record(z.string(), z.record(z.string(), z.number())),
       short: z.record(z.string(), z.array(z.string())),
+      work: z
+        .object({ day: z.number().int(), stage: z.number().int() })
+        .strict()
+        .optional(),
     })
     .strict()
     .optional(),

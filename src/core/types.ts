@@ -73,6 +73,8 @@ export type Economy = {
   stock: Record<string, Record<string, number>>;
   /** Needed goods each household's seller could not supply this hour. */
   short: Record<string, string[]>;
+  /** The player's place in today's work: stages done, on which day. */
+  work?: { day: number; stage: number };
 };
 export type HouseholdEvent = {
   year: number;
@@ -381,6 +383,7 @@ export type PlayerCommand =
         | "drink"
         | "cook"
         | "store"
+        | "work"
         | "harvest"
         | "capture"
         | "herd"
@@ -502,7 +505,12 @@ export type Snapshot = {
   /** Household stocks, run by `core/economy.ts`. */
   economy?: Economy;
   /** What the player has done today that goals can't read off state. */
-  goalFlags?: { traded: boolean; talked: boolean; visited: string[] };
+  goalFlags?: {
+    traded: boolean;
+    talked: boolean;
+    visited: string[];
+    worked?: boolean;
+  };
 };
 /** What a narrator turn may do to the world. Each one resolves
  * deterministically in the engine; the model only proposes. */
