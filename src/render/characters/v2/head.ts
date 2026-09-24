@@ -183,10 +183,10 @@ export function drawHead(
       // The portrait's face, read at sprite size: every trait moves at most a
       // pixel or two, so a crowd varies without anyone looking deformed.
       const face = a.face,
-        gap = face?.eyeSpacing === "wide" ? 1 : face?.eyeSpacing === "close" ? -1 : 0,
+        // Spacing stays fixed: a pixel either way is a third of the gap.
         eyes: [number, number][] = [
-          [8 + t - gap, -1],
-          [12 + t + gap, 1],
+          [8 + t, -1],
+          [12 + t, 1],
         ],
         slit =
           face?.eyeShape === "narrow" ||
