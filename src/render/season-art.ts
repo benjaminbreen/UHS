@@ -7,6 +7,8 @@ const evergreen = [
   "juniper",
   "palm",
   "saguaro",
+  "quiver",
+  "spurge",
   "mangrove",
   "eucalyptus",
   "bamboo",

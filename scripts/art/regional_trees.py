@@ -8,7 +8,6 @@ from art.nature_trees import canvas, branch, crown, BARK
 
 EUCALYPT = ['#20302a', '#3a5140', '#5f7a55', '#87a06e', '#adbf8b', '#d3dcae']
 BAOBAB = ['#2a3a2c', '#3f5a3a', '#5f7f47', '#83a054', '#a9bb66', '#cfd28a']
-SAGUARO = ['#14312a', '#1f4d3a', '#2f6d48', '#4a8a54', '#6fa562', '#a3c67e']
 LARCH = ['#233a26', '#3a5b2f', '#5f8a3a', '#86ad45', '#b2cb5e', '#dbe38c']
 JUNIPER = ['#172a25', '#25443a', '#37604b', '#4f7d5a', '#729a6b', '#a4bd8d']
 MAPLE = ['#25352a', '#3e5c34', '#5f8a3b', '#82ad44', '#a9c85a', '#d0dd82']
@@ -62,35 +61,6 @@ def baobab():
             branch(d, [(x, y), (x + 6, y - 5)], 2)
     for cx, cy, rx, ry, seed in [(14, 30, 9, 4, 521), (84, 29, 9, 4, 522), (40, 14, 9, 4, 523), (66, 14, 9, 4, 524), (30, 17, 8, 4, 525), (55, 24, 8, 4, 526), (26, 34, 7, 3, 527), (72, 33, 7, 3, 528)]:
         crown(im, cx, cy, rx, ry, BAOBAB, seed)
-    return im
-
-
-def saguaro():
-    im, d = canvas((40, 88))
-    # A ribbed column with two raised arms; spines as single light pixels.
-    def column(x0, y0, x1, y1, w):
-        d.rounded_rectangle((x0 - w, y0, x1 + w, y1), radius=w, fill=SAGUARO[0])
-        d.rounded_rectangle((x0 - w + 1, y0 + 1, x1 + w - 1, y1 - 1), radius=w - 1, fill=SAGUARO[2])
-        for x in range(x0 - w + 2, x1 + w - 1, 3):
-            d.line((x, y0 + 2, x, y1 - 2), fill=SAGUARO[1])
-            d.line((x + 1, y0 + 2, x + 1, y1 - 2), fill=SAGUARO[3])
-        d.line((x0 - w + 2, y0 + 2, x0 - w + 2, y1 - 2), fill=SAGUARO[4])
-    column(20, 14, 20, 82, 5)
-    column(8, 30, 8, 52, 3)
-    d.rounded_rectangle((5, 46, 17, 56), radius=3, fill=SAGUARO[0])
-    d.rounded_rectangle((6, 47, 16, 55), radius=3, fill=SAGUARO[2])
-    column(31, 22, 31, 48, 3)
-    d.rounded_rectangle((23, 42, 34, 52), radius=3, fill=SAGUARO[0])
-    d.rounded_rectangle((24, 43, 33, 51), radius=3, fill=SAGUARO[2])
-    d.ellipse((13, 11, 27, 19), fill=SAGUARO[0]); d.ellipse((14, 12, 26, 18), fill=SAGUARO[3])
-    d.ellipse((5, 27, 11, 33), fill=SAGUARO[0]); d.ellipse((6, 28, 10, 32), fill=SAGUARO[3])
-    d.ellipse((28, 19, 34, 25), fill=SAGUARO[0]); d.ellipse((29, 20, 33, 24), fill=SAGUARO[3])
-    rng = random.Random(3)
-    for y in range(16, 82, 5):
-        for x in (16, 19, 22, 25):
-            if rng.random() < 0.6:
-                d.point((x + rng.randrange(0, 2), y + rng.randrange(0, 3)), fill=SAGUARO[5])
-    d.polygon([(14, 81), (26, 81), (29, 85), (22, 84), (18, 86), (13, 84)], fill=SAGUARO[0])
     return im
 
 
@@ -205,7 +175,6 @@ def regional_trees():
         'nature-stump': stump(),
         'nature-eucalyptus': eucalyptus(),
         'nature-baobab': baobab(),
-        'nature-saguaro': saguaro(),
         'nature-larch': larch(),
         'nature-juniper': juniper(),
         'nature-maple': canopy.maple(1),

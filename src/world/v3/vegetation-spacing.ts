@@ -39,6 +39,8 @@ const regionalCrowns: Record<string, number> = {
   "nature-eucalyptus": 2.5,
   "nature-baobab": 3,
   "nature-saguaro": 1,
+  "nature-quiver-tree": 2.2,
+  "nature-candelabra-spurge": 2.6,
   "nature-larch": 1.8,
   "nature-juniper": 1.4,
   "nature-maple": 2.4,

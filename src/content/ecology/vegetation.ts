@@ -46,6 +46,8 @@ const palm = "nature-feather-palm",
   eucalyptus = "nature-eucalyptus",
   baobab = "nature-baobab",
   saguaro = "nature-saguaro",
+  quiver = "nature-quiver-tree",
+  candelabra = "nature-candelabra-spurge",
   larch = "nature-larch",
   juniper = "nature-juniper",
   maple = "nature-maple",
@@ -68,6 +70,8 @@ export const natureTreeSprites = [
   eucalyptus,
   baobab,
   saguaro,
+  quiver,
+  candelabra,
   larch,
   juniper,
   maple,
@@ -109,6 +113,7 @@ const mediterranean: Mix = [
 const sahel: Mix = [
   [thorn, 9],
   [acacia, 1],
+  [candelabra, 0.5],
 ];
 // Colourway mixes take precedence over the latitude and longitude boxes below.
 const regional: Partial<Record<Colorway, Mix>> = {
@@ -125,6 +130,7 @@ const regional: Partial<Record<Colorway, Mix>> = {
   atacama: [[scrub, 1]],
   kalahari: [
     [thorn, 6],
+    [quiver, 2],
     [baobab, 1],
   ],
   highland: [
@@ -187,6 +193,7 @@ const regional: Partial<Record<Colorway, Mix>> = {
     [thorn, 7],
     [acacia, 2],
     [baobab, 1],
+    [candelabra, 1],
   ],
   cerrado: [
     [tropical, 4],
@@ -303,7 +310,13 @@ export function treeMix(s: WorldSetting): Mix {
     case "tropical-woodland":
       return humid;
     case "desert":
-      return s.lat > 0 && s.lat < 30 && s.lon > -20 && s.lon < 55 ? sahel : [];
+      if (s.lat > 0 && s.lat < 30 && s.lon > -20 && s.lon < 55) return sahel;
+      // The saguaro's own range: the Sonoran Desert and nowhere else.
+      if (s.lon > -116 && s.lon < -108 && s.lat > 26 && s.lat < 35)
+        return [[saguaro, 1]];
+      if (s.lon > 12 && s.lon < 22 && s.lat > -32 && s.lat < -18)
+        return [[quiver, 1]];
+      return [];
     case "dry-scrub":
       return s.lat > 0 && s.lat < 30 && s.lon > -20 && s.lon < 55
         ? sahel
