@@ -4769,7 +4769,11 @@ export class WorldScene extends Phaser.Scene {
         if (!g)
           this.gaits.set(
             id,
-            (g = { since: -Infinity, still: time, frame: 0, pose }),
+            // Someone first drawn mid-stride has no set-off; an infinite
+            // `since` made their walk frame NaN, drawn high off the ground.
+            (g = moving
+              ? { since: time - SETOFF_MS, frame: 0, pose }
+              : { since: -Infinity, still: time, frame: 0, pose }),
           );
         if (moving) {
           if (g.still !== undefined && time - g.still > GAIT_GAP_MS)
