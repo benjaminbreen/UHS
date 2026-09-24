@@ -450,8 +450,10 @@ export function landing(ground: HitClass, weight = 1): Sound {
   ];
 }
 /** Leaves and stalks parting round the legs, laid over the footfall. */
-function brushing(through: HitClass, g: number): Sound {
+function brushing(through: HitClass | "bloom", g: number): Sound {
   switch (through) {
+    case "bloom":
+      return [noise(0.02, 0.12, 0.03 * g, 5200, { to: 7200, q: 0.6, attack: 0.04 })];
     case "brush":
       return [
         noise(0, 0.2, 0.06 * g, 2400, { to: 4000, q: 0.7, attack: 0.05 }),
@@ -472,7 +474,7 @@ function brushing(through: HitClass, g: number): Sound {
 export function footstep(
   ground: HitClass | "paddy" | "furrow" | "sodden",
   running = false,
-  through?: HitClass,
+  through?: HitClass | "bloom",
 ): Sound | undefined {
   const g = running ? 1.25 : 1;
   const step = footfall(ground, g);

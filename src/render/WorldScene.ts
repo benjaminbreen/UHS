@@ -1352,7 +1352,12 @@ export class WorldScene extends Phaser.Scene {
     const field = engine.world.topography?.(cell.x, cell.y)?.field;
     const { hit } = engine.hitClass(cell.x, cell.y, cell.space);
     // Grass tufts stay silent: they cover every meadow.
-    const through = hit === "brush" || hit === "crop" ? hit : undefined;
+    const through =
+      hit === "brush" || hit === "crop"
+        ? hit
+        : engine.bloomSpecies(cell.x, cell.y)
+          ? "bloom"
+          : undefined;
     const surface =
       field?.wet || field?.ditch
         ? "paddy"
