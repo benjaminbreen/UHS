@@ -390,7 +390,7 @@ export class Engine {
     const s = this.state,
       p = s.player,
       pack = this.world.pack;
-    const today = Math.floor(s.clock / DAY_MINUTES);
+    const today = Math.floor(s.clock / (DAY_MINUTES * 60));
     if (s.goalDay !== today) {
       const kit = livelihoodOf(pack, p);
       const context: GoalContext = {
