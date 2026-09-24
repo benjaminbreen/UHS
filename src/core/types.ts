@@ -66,6 +66,14 @@ export type Household = {
   buys?: { good: string; from: string }[];
   owes?: string;
 };
+export type Economy = {
+  /** Hour the ledger has been run up to. */
+  hour: number;
+  /** Goods on hand, by household. */
+  stock: Record<string, Record<string, number>>;
+  /** Needed goods each household's seller could not supply this hour. */
+  short: Record<string, string[]>;
+};
 export type HouseholdEvent = {
   year: number;
   kind:
@@ -106,6 +114,9 @@ export type Resource = {
   regrowSeconds: number;
   seasons: string[];
   readyAt: number;
+  /** Recent taking, halving each week; slows the next regrowth. */
+  strain?: number;
+  takenAt?: number;
 };
 export type CharacterOrigin = {
   revision: 1;
@@ -488,6 +499,8 @@ export type Snapshot = {
   narration?: { clock: number; input: string; text: string }[];
   goals?: import("../content/goals/types").DailyGoal[];
   goalDay?: number;
+  /** Household stocks, run by `core/economy.ts`. */
+  economy?: Economy;
   /** What the player has done today that goals can't read off state. */
   goalFlags?: { traded: boolean; talked: boolean; visited: string[] };
 };

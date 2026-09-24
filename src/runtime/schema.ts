@@ -342,6 +342,8 @@ const object = z.object({
       regrowSeconds: z.number(),
       seasons: z.array(z.string()),
       readyAt: z.number(),
+      strain: z.number().optional(),
+      takenAt: z.number().optional(),
     })
     .optional(),
   prop: z.string().optional(),
@@ -591,6 +593,14 @@ const faunaGroup = z
   })
   .strict();
 export const snapshotSchema = z.object({
+  economy: z
+    .object({
+      hour: z.number().int(),
+      stock: z.record(z.string(), z.record(z.string(), z.number())),
+      short: z.record(z.string(), z.array(z.string())),
+    })
+    .strict()
+    .optional(),
   fauna: z.array(faunaGroup).max(5000).optional(),
   legends: z
     .record(

@@ -4,6 +4,7 @@ import {
   type ItemDef,
   type ItemId,
   type Position,
+  type Resource,
   type Snapshot,
   type WorldObject,
 } from "./types";
@@ -28,6 +29,13 @@ export function refreshResource(o: WorldObject, clock: number, season: string) {
     o.depleted = false;
   }
 }
+/** Each take within a week or so of the last slows the next regrowth. */
+function strain(r: Resource, clock: number) {
+  const weeks = r.takenAt === undefined ? 0 : (clock - r.takenAt) / (7 * 86400);
+  r.strain = (r.strain ?? 0) * 0.5 ** weeks + 1;
+  r.takenAt = clock;
+  r.readyAt = clock + r.regrowSeconds * (1 + 0.25 * (r.strain - 1));
+}
 /** The same finite transfer is used by player harvesting and NPC work. */
 export function harvestResource(a: Actor, o: WorldObject, clock: number) {
   if (o.depleted || distance(a.pos, o.pos) > 2.2) return false;
@@ -40,7 +48,7 @@ export function harvestResource(a: Actor, o: WorldObject, clock: number) {
   }
   if (!amount) return false;
   o.depleted = true;
-  if (o.resource) o.resource.readyAt = clock + o.resource.regrowSeconds;
+  if (o.resource) strain(o.resource, clock);
   return true;
 }
 export function householdActivity(
@@ -216,7 +224,7 @@ export function grazeActivity(
     a.hunger = Math.max(0, a.hunger - 5);
     if (!patch.inventory.fodder) {
       patch.depleted = true;
-      patch.resource!.readyAt = s.clock + patch.resource!.regrowSeconds;
+      strain(patch.resource!, s.clock);
     }
   }
   return true;

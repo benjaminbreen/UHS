@@ -73,6 +73,7 @@ import { conditionOf, damageStructure, fabricOf, weatherStructure, type Structur
 import { regardCue } from "./regard";
 import { resolveIntents, validateIntents } from "./intents";
 import { findPath } from "./pathfinding";
+import { runEconomy } from "./economy";
 import { itineraryAt, type Itinerary, DAY_MINUTES } from "./itinerary";
 import { goalDone, heldCount, pickGoals } from "./goals";
 import { GOAL_TEMPLATES } from "../content/goals/templates";
@@ -384,6 +385,22 @@ export class Engine {
   }
   snapshot() {
     return copy(this.state);
+  }
+  /** Bring household stocks up to the clock; also the catch-up after an absence. */
+  runEconomy() {
+    const s = this.state;
+    const hour = Math.floor(s.clock / 3600);
+    if (!s.households?.length) return;
+    if (!s.economy) {
+      s.economy = { hour, stock: {}, short: {} };
+      return;
+    }
+    const adults = new Set(
+      s.actors.filter((a) => (a.age ?? 20) >= 14).map((a) => a.id),
+    );
+    runEconomy(s.households, s.economy, hour, (h) =>
+      h.members.filter((m) => adults.has(m)).length,
+    );
   }
   /** Today's goals, picked at the first call of each game day. */
   dailyGoals() {
@@ -5604,7 +5621,10 @@ export class Engine {
       if (next % 6 !== 0) continue;
       this.burnStep();
       if (player.torchOut !== undefined && next >= player.torchOut) this.torchBurnsOut();
-      if (next % 3600 === 0) this.world.rotateRoutines?.(next);
+      if (next % 3600 === 0) {
+        this.world.rotateRoutines?.(next);
+        this.runEconomy();
+      }
       if (this.world.pack.setting?.environment) {
         const season = seasonAt(this.world.pack.setting.season, next);
         for (const o of this.resourceObjects) refreshResource(o, next, season);

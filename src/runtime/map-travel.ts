@@ -296,6 +296,7 @@ export class MapTravel {
         .filter((o) => !carried.some((c) => c.id === o.id))
         .concat(carried);
       next.clock = source.clock;
+      destination.engine.runEconomy();
       next.notes = source.notes;
       next.catalog = { ...next.catalog, ...source.catalog };
       next.ledger = source.ledger;
