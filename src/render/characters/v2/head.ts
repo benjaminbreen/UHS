@@ -192,20 +192,15 @@ export function drawHead(
           face?.eyeShape === "narrow" ||
           face?.eyeSize === "small" ||
           face?.eyelid === "monolid";
-      for (const [x, out] of eyes) {
+      for (const [x] of eyes) {
         if (blink) {
           p.rect(x, 9, 1, 1, skin.shade);
           continue;
         }
         p.rect(x, slit ? 9 : 8, 1, slit ? 1 : 2, eye);
-        if (face?.eyeSize === "large") {
-          p.rect(x + out, 8, 1, 2, eye);
-          p.rect(x, 8, 1, 1, glint);
-        } else if (face?.eyeShape === "almond") p.rect(x + out, 8, 1, 1, skin.edge);
-        if (face?.brows === "heavy")
-          p.rect(out < 0 ? x - 1 : x, 7, 2, 1, mix(hair.edge, skin.shade, 0.3));
-        else if (face?.brows === "arched")
-          p.rect(x + out, 7, 1, 1, mix(hair.shade, skin.shade, 0.4));
+        // Always one pixel wide: a second column, or a brow above, reads as a
+        // scowl at this size.
+        if (face?.eyeSize === "large" && !slit) p.rect(x, 8, 1, 1, glint);
       }
       if (a.wearing.eyewear === "sunglasses") {
         p.rect(6 + t, 8, 4, 2, frame);
