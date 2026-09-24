@@ -515,7 +515,7 @@ function footfall(ground: HitClass | "paddy" | "furrow" | "sodden", g: number): 
       ];
     case "sand":
       return [
-        noise(0, 0.1, 0.085 * g, vary(3100, 0.15), { q: 0.6, attack: 0.015 }),
+        noise(0, 0.09, 0.035 * g, vary(2600, 0.15), { q: 0.6, attack: 0.02 }),
       ];
     case "snow":
       return [

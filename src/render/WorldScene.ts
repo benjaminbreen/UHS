@@ -92,7 +92,6 @@ import {
 } from "../audio/sfx";
 import { beastVoiceOf, voiceOf } from "../audio/voices";
 import type { HitClass } from "../core/reactions";
-import { tuning } from "../audio/sfx-tuning";
 import { hash, random } from "../core/random";
 import {
   defaultLiveGraphicsSettings,
@@ -351,8 +350,6 @@ export class WorldScene extends Phaser.Scene {
   private stunned = new Set<string>();
   /** Last drawn pose frame per person, so a footfall fires once per contact. */
   private footfalls = new Map<string, number>();
-  /** Where the player last made a footstep sound. */
-  private lastStep = { x: 0, y: 0 };
   /** Facing actually drawn, which chases the real one a step at a time. */
   private turning = new Map<string, { facing: number; until: number }>();
   /** When each person set off and came to rest, and the last walking frame
@@ -4905,33 +4902,22 @@ export class WorldScene extends Phaser.Scene {
           const afoot =
             pose === "run" && index % 4 === 1 && water <= 0.025 && !arcLift;
           // Heel strikes: frames 2 and 6 of the walk, 1 and 5 of the run.
-          if (
-            puddle === "water" &&
-            moving &&
-            index % 4 === (pose === "run" ? 1 : 2)
-          )
+          const heel = moving && index % 4 === (pose === "run" ? 1 : 2);
+          if (puddle === "water" && heel)
             splashPuddle(this, im.x, im.y - 1, human.direction, pose === "run", im.depth, time);
           const cell = this.destinations.get(id);
+          // Only ground that gives underfoot is heard.
+          if (heel && id === "player" && cell && !arcLift)
+            void gameAudio()?.sound(
+              this.footstepAt(cell, puddle, water, pose === "run"),
+              "step",
+            );
           if (afoot && id === "player" && cell)
             this.feel.step(im, this.underfoot(cell, puddle));
           else if (afoot) this.kickDust(im.x, im.y, 2, 0.5);
         }
         if (id === "player") {
           const cell = this.destinations.get(id);
-          // Half a tile a footfall. Only ground that gives underfoot is heard.
-          if (
-            moving &&
-            cell &&
-            !arcLift &&
-            Math.hypot(im.x - this.lastStep.x, im.y - this.lastStep.y) >=
-              tuning("step").spacing!
-          ) {
-            this.lastStep = { x: im.x, y: im.y };
-            void gameAudio()?.sound(
-              this.footstepAt(cell, puddle, water, pose === "run"),
-              "step",
-            );
-          }
           if (moving && cell && water <= 0.025 && !arcLift)
             this.feel.track(
               im,
