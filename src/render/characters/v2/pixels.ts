@@ -51,49 +51,102 @@ export function spriteLightFor(cast: readonly number[], night: boolean) {
   const key: -1 | 1 = Math.abs(cast[0]) < 0.5 ? -1 : cast[0] < 0 ? 1 : -1;
   return { key, contrast: night ? 0.35 : 1 };
 }
+type Hsl = [number, number, number];
+function toHsl(hex: string): Hsl {
+  const v = parseInt(hex.slice(1), 16),
+    r = (v >> 16) / 255,
+    g = ((v >> 8) & 255) / 255,
+    b = (v & 255) / 255,
+    hi = Math.max(r, g, b),
+    lo = Math.min(r, g, b),
+    l = (hi + lo) / 2,
+    d = hi - lo;
+  if (!d) return [0, 0, l];
+  const h =
+    hi === r ? ((g - b) / d + 6) % 6 : hi === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return [h * 60, d / (1 - Math.abs(2 * l - 1)), l];
+}
+function fromHsl([h, s, l]: Hsl) {
+  s = Math.min(1, Math.max(0, s));
+  l = Math.min(1, Math.max(0, l));
+  const k = (n: number) => (n + h / 30) % 12,
+    a = s * Math.min(l, 1 - l),
+    f = (n: number) =>
+      l - a * Math.max(-1, Math.min(k(n) - 3, 9 - k(n), 1));
+  return `#${[0, 8, 4]
+    .map((n) => Math.round(f(n) * 255).toString(16).padStart(2, "0"))
+    .join("")}`;
+}
+/** Turn a hue toward a target by up to `deg`, the short way round. */
+function toward(h: number, target: number, deg: number) {
+  const d = ((target - h + 540) % 360) - 180;
+  return (h + Math.sign(d) * Math.min(Math.abs(d), deg) + 360) % 360;
+}
+/** Each step darker also turns toward violet and gains saturation; each step
+ * lighter turns toward gold. Darkening by scaling RGB greys every shadow into
+ * the same mud, which is most of what separated these figures from Stardew's. */
 export function ramp(
   base: string,
   material: "cloth" | "skin" | "hair" = "cloth",
 ): Ramp {
-  const scale = (factor: number) => {
-    const value = parseInt(base.slice(1), 16);
-    return `#${[16, 8, 0]
-      .map((shift) =>
-        Math.round(((value >> shift) & 255) * factor)
-          .toString(16)
-          .padStart(2, "0"),
-      )
-      .join("")}`;
-  };
   // Black hair drawn at its true value is a hole in the sprite: lift it, and
   // give it a sheen the lighter heads do not need.
-  const value = parseInt(base.slice(1), 16),
-    luma =
-      (0.3 * (value >> 16) +
-        0.59 * ((value >> 8) & 255) +
-        0.11 * (value & 255)) /
-      255,
-    dark = material === "hair" ? Math.max(0, 0.25 - luma) / 0.25 : 0;
-  if (dark) base = mix(base, "#4a3c3a", 0.4 * dark);
-  const cool = mix(material === "skin" ? "#3c1f33" : "#241c38", light.cool, 0.5);
-  const warm = mix(material === "skin" ? "#ffe2b4" : "#ffe6ad", light.warm, 0.3);
-  // Overcast and night lose the key, not the material: every step collapses
-  // toward base rather than toward grey.
+  const [, , l0] = toHsl(base),
+    dark = material === "hair" ? Math.max(0, 0.22 - l0) / 0.22 : 0;
+  if (dark) base = mix(base, "#4a3c46", 0.4 * dark);
+  const [h, s, l] = toHsl(base),
+    // Skin shades toward rose, not violet: blood under the surface.
+    cold = material === "skin" ? 330 : 255,
+    // Pale and greyed materials barely turn: cream swung toward violet goes
+    // through orange. They take a little of the cool tone instead.
+    c = s * (1 - Math.abs(2 * l - 1)),
+    chroma = Math.min(1, c / 0.3);
+  // Chroma, not HSL saturation, is held through the step: darkening cream at
+  // constant saturation turns it into orange.
+  const step = (turn: number, sat: number, dl: number, target: number) =>
+    mix(
+      fromHsl([
+        toward(h, target, turn * chroma * (material === "cloth" ? 1 : material === "hair" ? 0.5 : 0.3)),
+        ((c + sat * c * (material === "skin" ? 0 : 1)) *
+          (dl < 0 ? Math.sqrt((l + dl) / l) : 1)) /
+          Math.max(0.05, 1 - Math.abs(2 * (l + dl) - 1)),
+        l + dl,
+      ]),
+      target === cold ? "#3a3350" : "#fff0c8",
+      0.2 * (1 - chroma),
+    );
   const k = light.contrast;
+  // Time of day still tints the whole ramp: dusk shadows purple, dawn warm.
+  const tint = (c: string, t: string, amount: number) => mix(c, t, amount);
   return {
     base,
     // Darkest value in the material, and the only one allowed to approach black.
-    shadowEdge: mix(scale(material === "skin" ? 0.36 : 0.34), cool, 0.42),
-    // Lit-side contour. Kept well above the old 0.37 so figures stop reading
-    // as stickers cut out against the ground.
-    edge: mix(scale(material === "hair" ? 0.62 : 0.58), cool, 0.26),
-    shade: mix(base, mix(scale(0.74), cool, 0.16), k),
-    // Hair takes a much smaller step: a big move toward cream turns black hair
-    // grey, and the automatic rim pass applies it along every strand.
+    shadowEdge: tint(
+      step(28, 0.12, -Math.min(0.36, l * 0.62), cold),
+      light.cool,
+      0.18,
+    ),
+    // Lit-side contour: a hue-shifted dark of the material, never a keyline.
+    edge: tint(step(20, 0.1, -Math.min(0.28, l * 0.46), cold), light.cool, 0.1),
+    shade: mix(
+      base,
+      tint(step(16, 0.08, -Math.min(0.15, l * 0.3), cold), light.cool, 0.08),
+      k,
+    ),
+    // Hair takes a smaller step: a big move toward cream turns black hair grey.
     light: mix(
       base,
-      warm,
-      (material === "hair" ? 0.16 + 0.2 * dark : 0.34) * k,
+      tint(
+        step(
+          material === "hair" ? 10 : 14,
+          material === "skin" ? 0.04 : -0.02,
+          material === "hair" ? 0.07 + 0.08 * dark : 0.11,
+          material === "cloth" ? 52 : 38,
+        ),
+        light.warm,
+        0.15,
+      ),
+      k,
     ),
   };
 }
@@ -231,10 +284,16 @@ export class Pixels {
       }
       // One pixel of rim inside the lit contour and one of shade inside the
       // dark one: form for free, on every shape, without hand-placed pixels.
-      const wide = run(x, y, 1, 0) >= 5,
+      const across = run(x, y, 1, 0),
+        wide = across >= 5,
         deep = run(x, y, 0, 1) >= 5;
+      // A torso-width shape turns away over two pixels, not one: the shadow
+      // side is a plane, and a 1px core on it read as a second outline.
+      const band = across >= 9 ? 2 : 1;
+      let away = false;
+      for (let i = 1; i <= band; i++) if (border(x - lit * i, y)) away = true;
       const rim = (deep && border(x, y - 1)) || (wide && border(x + lit, y));
-      const core = (deep && border(x, y + 1)) || (wide && border(x - lit, y));
+      const core = (deep && border(x, y + 1)) || (wide && away);
       this.rect(
         x,
         y,

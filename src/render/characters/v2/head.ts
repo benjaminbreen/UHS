@@ -1,6 +1,6 @@
 import type { CharacterAppearance } from "../../../core/character";
 import type { CharacterPose } from "../poses";
-import { mix, Pixels, ramp, type Point } from "./pixels";
+import { lightKey, mix, Pixels, ramp, type Point } from "./pixels";
 export function drawHead(
   p: Pixels,
   a: CharacterAppearance,
@@ -172,6 +172,9 @@ export function drawHead(
     );
     p.rect(6, 6, 9, 5, skin.base);
     p.rect(7, 6, 6, 1, skin.light);
+    // The cheek away from the light turns under; the face is a ball, not a card.
+    const far = lightKey() * (p.flip ? -1 : 1) < 0 ? 15 + cheek : 5 - cheek;
+    p.rect(far, 7, 1, 5, skin.shade);
     if (!back) {
       // Turned, the features move a pixel toward the facing, the far eye
       // narrows and the far cheek falls into shade.
@@ -192,6 +195,9 @@ export function drawHead(
         p.rect(10 + t, 8, 1, 1, frame);
       }
       p.rect(10 + t, 10, 2, 1, skin.light);
+      const blush = mix(skin.base, "#e0625c", 0.28);
+      p.rect(7 + t, 10, 1, 1, blush);
+      p.rect(13 + t, 10, 1, 1, blush);
       if (turn) p.rect(13, 10, 1, 1, skin.shade);
       p.rect(9 + t, 12, 3, 1, skin.shade);
       if (pose === "talk" && f % 2) p.rect(10 + t, 12, 2, 2, skin.edge);
