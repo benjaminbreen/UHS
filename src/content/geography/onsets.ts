@@ -248,6 +248,22 @@ const rules: OnsetRule[] = [
     note: "Manioc and tree crops in the lowlands.",
   },
   {
+    id: "northern-plains",
+    culture: "other-indigenous-american",
+    bounds: [-115, 42, -95, 55],
+    farming: Infinity,
+    network: 1880,
+    note: "Bison hunters until the railroads and reservations of the 1880s.",
+  },
+  {
+    id: "great-basin-plateau",
+    culture: "other-indigenous-american",
+    bounds: [-124, 35, -111, 50],
+    farming: Infinity,
+    network: 1860,
+    note: "Shoshone, Paiute and Plateau foragers until Mormon and mining settlement.",
+  },
+  {
     id: "other-indigenous-american",
     culture: "other-indigenous-american",
     bounds: [-180, -60, 180, 85],

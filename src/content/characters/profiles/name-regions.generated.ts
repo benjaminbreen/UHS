@@ -668,8 +668,9 @@ export const nameRegions: readonly NameRegion[] = [
     culture: "other-indigenous-american",
     windows: [
       { years: [-1000000, 1600], options: [{ tradition: "early-americas", weight: 1 }] },
-      { years: [1600, 1805], options: [{ tradition: "great-basin-native", weight: 1 }, { tradition: "plains-native", weight: 1 }] },
-      { years: [1805, 10001], options: [{ tradition: "english", weight: 65 }, { tradition: "scandinavian", weight: 12 }, { tradition: "german", weight: 15 }, { tradition: "great-basin-native", weight: 8 }] },
+      { years: [1600, 1860], options: [{ tradition: "plains-native", weight: 5 }, { tradition: "great-basin-native", weight: 4 }, { tradition: "french", weight: 1 }] },
+      { years: [1860, 1880], options: [{ tradition: "plains-native", weight: 4 }, { tradition: "great-basin-native", weight: 3 }, { tradition: "english", weight: 3 }] },
+      { years: [1880, 10001], options: [{ tradition: "english", weight: 65 }, { tradition: "german", weight: 15 }, { tradition: "scandinavian", weight: 12 }, { tradition: "great-basin-native", weight: 8 }] },
     ],
   },
   {
