@@ -12,6 +12,8 @@ import { workplaceFor } from "../src/content/characters/workplace";
 import { localLabel } from "../src/content/characters/officiant";
 import { livelihoods } from "../src/content/characters/livelihoods";
 import { commonLivelihoods } from "../src/content/characters/livelihoods.generated";
+import { processFor } from "../src/content/economy/processes";
+import { propDefs } from "../src/content/props/catalog";
 
 const settingFor = (q: string) => {
   const r = resolveSetting(q);
@@ -140,5 +142,14 @@ describe("what the work is called here", () => {
       ),
     );
     expect([...swiss]).not.toContain("Whaler");
+  });
+
+  it("gives every livelihood a work process at props that exist", () => {
+    const families = new Set(Object.values(propDefs).map((d) => d.family));
+    for (const kit of [...livelihoods, ...commonLivelihoods]) {
+      const p = processFor(kit);
+      expect(p, kit.activity).toBeDefined();
+      for (const st of p!.stations) expect(families, st).toContain(st);
+    }
   });
 });
