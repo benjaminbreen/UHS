@@ -357,13 +357,16 @@ export class Pixels {
           colors,
         );
       }
+      // Joints sit on the ribbon's own pixel grid. A fixed 3px square was half
+      // a pixel off a 3px forearm and bulged every elbow by one.
+      const h = width / 2;
       for (const [x, y] of points.slice(1, -1))
         this.shape(
           [
-            [x - 1, y - 1],
-            [x + 2, y - 1],
-            [x + 2, y + 2],
-            [x - 1, y + 2],
+            [x - h, y - h],
+            [x + h, y - h],
+            [x + h, y + h],
+            [x - h, y + h],
           ],
           colors,
         );

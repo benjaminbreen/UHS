@@ -1397,6 +1397,14 @@ export function drawCharacter(
   // the silhouette is the same body without a garment on it.
   const body = naked ? skin : cloth;
   const bodyHem = naked ? 22 + torso : hem;
+  // Full width at the shoulder, a pixel narrower from the elbow: a sleeve of
+  // one width all the way down hung like a board.
+  const sleeve = (arm: typeof nearArm) => {
+    const w = sleeves === "loose" ? 5 : 4;
+    if (arm.sleeve.length < 3) return p.ribbon(arm.sleeve, w, cloth);
+    p.ribbon(arm.sleeve.slice(0, 2), w, cloth);
+    p.ribbon(arm.sleeve.slice(1), sleeves === "loose" ? w : w - 1, cloth);
+  };
   p.group(body, () => {
     p.shape(
       poncho
@@ -1445,10 +1453,11 @@ export function drawCharacter(
     if (!naked && !poncho && sleeves !== "none") {
       // In profile the near sleeve is drawn later with its own contour, or the
       // arm vanishes into a torso of the same cloth.
-      if (!side) p.ribbon(nearArm.sleeve, sleeves === "loose" ? 5 : 4, cloth);
-      p.ribbon(farArm.sleeve, sleeves === "loose" ? 5 : 4, cloth);
+      if (!side) sleeve(nearArm);
+      sleeve(farArm);
     }
   });
+
   if (naked) {
     p.rect(left, 19 + torso, right - left, 4, lower.base);
     p.rect(left, 19 + torso, right - left, 1, lower.light);
@@ -1579,6 +1588,16 @@ export function drawCharacter(
     p.line([right - 2, 18], [right - 2 - waist, 21 + torso], cloth.shade);
     p.line([left + 3, 21 + torso], [left + 5, 20 + torso], cloth.shade);
   }
+  // Head-on the sleeve joins the torso in one mask, so nothing but this seam
+  // says where the arm is: without it shirt and sleeves were one box.
+  if (!naked && !poncho && !side && sleeves !== "none")
+    for (const arm of [nearArm, farArm]) {
+      const out = Math.sign(arm.shoulder[0] - 10),
+        x = arm.cuff[0] - (out > 0 ? 2 : -1);
+      if (Math.abs(arm.cuff[0] - arm.shoulder[0]) > 2) continue;
+      // The underarm is in shadow whichever side the light is on.
+      p.line([x, arm.shoulder[1] + 3], [x, arm.cuff[1] - 1], cloth.edge);
+    }
   if (a.wearing.garment === "skirt") {
     p.shape(
       [
