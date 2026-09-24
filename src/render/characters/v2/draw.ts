@@ -1598,6 +1598,23 @@ export function drawCharacter(
       // The underarm is in shadow whichever side the light is on.
       p.line([x, arm.shoulder[1] + 3], [x, arm.cuff[1] - 1], cloth.edge);
     }
+  // Below the belt a long garment falls in folds that fan toward the hem: a
+  // lit ridge beside each shaded trough, so the skirt reads as hanging cloth
+  // rather than a painted panel.
+  if (!naked && !poncho && !side && !quarter && long && !openRobe && !suit)
+    for (const dx of [-3, 2]) {
+      const top = 23 + torso,
+        spread = dx < 0 ? -Math.min(2, flare) : Math.min(2, flare),
+        x0 = centre + dx,
+        x1 = x0 + spread + hemSway;
+      p.line([x0, top], [x1, hem - 3], cloth.shade);
+      p.line([x0 - 1, top + 1], [x1 - 1, hem - 3], cloth.light);
+      // The hem dips where a trough meets it.
+      p.rect(x1, hem - 2, 1, 1, cloth.shade);
+    }
+  // A belted shirt or tunic blouses over the belt.
+  if (cinch && !side && !rear && ["shirt", "tunic", "wrap"].includes(a.wearing.garment))
+    p.line([left + 2, 21 + torso], [right - 3, 21 + torso], cloth.shade);
   if (a.wearing.garment === "skirt") {
     p.shape(
       [
