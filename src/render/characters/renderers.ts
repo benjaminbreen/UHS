@@ -45,11 +45,9 @@ export function outlineCharacter(ctx: CanvasRenderingContext2D) {
       const i = (y * w + x) * 4;
       if (src[i + 3] >= 128) continue;
       // A one-pixel gap between arm and body, or between the legs, stays open.
-      if (
-        (solid(x - 1, y) && solid(x + 1, y)) ||
-        (solid(x, y - 1) && solid(x, y + 1))
-      )
-        continue;
+      // Only side by side: a gap with figure above and below is the notch
+      // under a profile's lip, and left open it showed the ground through the jaw.
+      if (solid(x - 1, y) && solid(x + 1, y)) continue;
       let r = 0,
         g = 0,
         b = 0,

@@ -151,8 +151,8 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
    * 8x: how eyes, brows, nose, mouth and blush vary between people. */
   async faces(page) {
     await characterLab(page);
-    await page.evaluate(async () => {
-      const { drawCharacter } = await import(
+    await page.evaluate(async (facing) => {
+      const { drawCharacter, outlineCharacter } = await import(
         "/src/render/characters/renderers.ts" as string
       );
       const { generateAppearance } = await import(
@@ -164,7 +164,7 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
       b.width = b.height = 80;
       const cols = 8,
         S = 8,
-        w = 26,
+        w = 30,
         h = 26;
       c.width = cols * w * S;
       c.height = skins.length * h * S;
@@ -176,13 +176,14 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
       skins.forEach((skin, row) => {
         for (let i = 0; i < cols; i++) {
           const a = generateAppearance("faces", row * cols + i, 30);
-          drawCharacter(bc, { ...a, skin }, 2, "idle", 0);
+          drawCharacter(bc, { ...a, skin }, facing, "idle", 0);
+          outlineCharacter(bc);
           ctx.drawImage(b, 21, 32, w, h, i * w * S, row * h * S, w * S, h * S);
         }
       });
       document.body.replaceChildren(c);
       c.style.imageRendering = "pixelated";
-    });
+    }, Number(process.env.FACING ?? 2));
     await shootCanvas(page, out("faces"));
   },
 
