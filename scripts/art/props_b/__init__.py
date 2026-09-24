@@ -27,6 +27,7 @@ from .stores import STORES
 from .regional import REGIONAL
 from .ancient import ANCIENT
 from .lifeways import LIFEWAYS
+from .yardwork import YARDWORK
 from .vessels import (pot, storage_jar, water_jug, amphora, glazed_jar,
                       metal_vessel, pithos, flask, bowl, bucket,
                       open_basket, lidded_basket)
@@ -85,6 +86,7 @@ DRAW_B = {
  **REGIONAL,
  **ANCIENT,
  **LIFEWAYS,
+ **YARDWORK,
 }
 
 from .wayside import WAYSIDE
@@ -134,6 +136,11 @@ ANIMATED = {
  'privy-midden': 4,
  'midden': 4,
  'privy-dung': 4,
+ 'travois': 4,
+ 'wash-tub': 4,
+ 'backstrap-loom': 4,
+ 'dye-vats': 4,
+ 'bloomery': 4,
  # Cloth stirs on a covered pitch.
  **{key: 4 for key in PITCHES},
 }

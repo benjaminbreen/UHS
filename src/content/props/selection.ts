@@ -448,6 +448,130 @@ export function propKit(pack: Pack): PropKit {
     contexts.yard.push("plastic");
     contexts.household.push("plastic");
   }
+  // Regional kit. Where a place has its own grinding stone, it takes the
+  // generic one's slot; elsewhere the generic props stay as the fallback.
+  const lat = pack.setting?.lat ?? 0;
+  const lon = pack.setting?.lon ?? 0;
+  const regrind = (local: string) => {
+    contexts.work = contexts.work.map((k) => (k === "grinder" ? local : k));
+    contexts.tool = contexts.tool.map((k) => (k === "grinder" ? local : k));
+    if (!contexts.work.includes(local)) contexts.work.push(local);
+  };
+  const southwest = lat > 28 && lat < 39 && lon > -115 && lon < -103;
+  const plains = lat > 30 && lat < 56 && lon > -115 && lon < -94;
+  if (
+    year >= -3999 &&
+    (culture === "mesoamerican" ||
+      (culture === "other-indigenous-american" && southwest))
+  )
+    regrind("metate");
+  if (
+    year >= -499 &&
+    year < 1900 &&
+    (culture === "european" || culture === "north-african-west-asian")
+  )
+    regrind("quern");
+  if (
+    year >= -799 &&
+    (culture === "european" ||
+      culture === "inner-eurasian" ||
+      culture === "east-asian" ||
+      (!oldWorld && year >= 1650 && tech.wheels))
+  ) {
+    contexts.work.push("choppingBlock");
+    contexts.yard.push("choppingBlock");
+  }
+  if (culture === "east-asian" && year >= -199 && year < 1950 && !urban)
+    contexts.work.push("tripHammer", "tripHammer");
+  if (culture === "other-indigenous-american" && plains && year < 1900)
+    contexts.yard.push("travois", "travois");
+  if (tech.cooperage && year >= 1800 && year < 1960)
+    contexts.yard.push("washTub");
+  if (culture === "european" && year >= 1200 && year < 1950)
+    contexts.work.push("grindstone");
+  if (
+    year >= -1999 &&
+    year < 1950 &&
+    (culture === "andean" ||
+      culture === "mesoamerican" ||
+      culture === "southeast-asian")
+  )
+    contexts.yard.push("backstrapLoom");
+  if (
+    year >= -2999 &&
+    (culture === "south-asian" || culture === "inner-eurasian")
+  )
+    contexts.yard.push("dungStack", "dungStack");
+  const shore = river || /lake|coast|sea/.test(pack.setting?.water ?? "");
+  if (
+    shore &&
+    !urban &&
+    year < 1950 &&
+    (!oldWorld || african || culture === "southeast-asian" ||
+      culture === "australian-pacific")
+  )
+    contexts.yard.push("dugout");
+  const settled = pack.setting?.settlement !== "camp";
+  if (pottery && settled && year >= -5999 && year < 1900)
+    contexts.work.push("kiln");
+  if (
+    settled &&
+    year >= -7999 &&
+    (culture === "north-african-west-asian" ||
+      culture === "andean" ||
+      culture === "south-asian" ||
+      culture === "west-central-african" ||
+      (culture === "other-indigenous-american" && southwest))
+  )
+    contexts.work.push("mudBricks");
+  if (shore && year < 1990) contexts.work.push("fishingNets");
+  if (
+    rural &&
+    year >= -3999 &&
+    year < 1950 &&
+    (culture === "north-african-west-asian" ||
+      (culture === "european" && lat < 46) ||
+      (culture === "east-southern-african" && lat > 5))
+  )
+    contexts.work.push("threshingFloor");
+  const mediterranean = lat > 30 && lat < 45 && lon > -10 && lon < 40;
+  if (
+    mediterranean &&
+    year >= -1499 &&
+    year < 1900 &&
+    (culture === "european" || culture === "north-african-west-asian")
+  )
+    contexts.work.push("leverPress");
+  if (urban && oldWorld && year >= -999 && year < 1900)
+    contexts.work.push("tanningPits");
+  if (
+    year >= -999 &&
+    year < 1950 &&
+    (culture === "west-central-african" ||
+      culture === "south-asian" ||
+      culture === "east-asian")
+  )
+    contexts.work.push("dyeVats");
+  if (
+    rural &&
+    year >= -499 &&
+    (culture === "east-asian" || culture === "southeast-asian")
+  )
+    contexts.yard.push("riceRack");
+  if (
+    !urban &&
+    year < 1700 &&
+    ((african && year >= -799) || (oldWorld && year >= -1199))
+  )
+    contexts.work.push("bloomery");
+  if (
+    (culture === "inner-eurasian" && year >= -1499) ||
+    (culture === "north-african-west-asian" && year >= -999) ||
+    (culture === "european" && year >= 500 && rural) ||
+    (culture === "other-indigenous-american" && plains && year >= 1700) ||
+    (!oldWorld && year >= 1600 && tech.wheels)
+  )
+    contexts.yard.push("saddleStand");
   // Everything above builds upward from the earliest kit, so without a ceiling
   // a 1990s flat still rolls a storage jar and a city square still gets a
   // village wellhead. These are the things that actually stop being made or

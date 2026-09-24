@@ -2515,6 +2515,283 @@
         "pottery · medium",
         "pottery · large"
       ]
+    },
+    {
+      "id": "metate",
+      "name": "Metate and mano",
+      "group": "Work & agriculture",
+      "size": [
+        26,
+        17
+      ],
+      "description": "A three-legged basalt grinding slab with its hand stone, for grinding nixtamal maize into masa.",
+      "variants": [
+        "Basalt",
+        "Brown andesite"
+      ]
+    },
+    {
+      "id": "quern",
+      "name": "Rotary quern",
+      "group": "Work & agriculture",
+      "size": [
+        20,
+        17
+      ],
+      "description": "A hand quern: an upper runner stone turned by a peg handle over a fixed bedstone.",
+      "variants": [
+        "Granite",
+        "Sandstone"
+      ]
+    },
+    {
+      "id": "chopping-block",
+      "name": "Chopping block",
+      "group": "Work & agriculture",
+      "size": [
+        26,
+        22
+      ],
+      "description": "A wide stump used as a block for splitting firewood, the axe left in it.",
+      "variants": [
+        "Dark stump",
+        "Pale stump"
+      ]
+    },
+    {
+      "id": "trip-hammer",
+      "name": "Foot trip-hammer",
+      "group": "Work & agriculture",
+      "size": [
+        56,
+        24
+      ],
+      "description": "A dui: a pivoted beam worked by foot, its pestle falling into a sunken stone mortar to husk rice.",
+      "variants": [
+        "Plain timber",
+        "Dark timber"
+      ]
+    },
+    {
+      "id": "travois",
+      "name": "Travois",
+      "group": "Storage & carrying",
+      "size": [
+        82,
+        30
+      ],
+      "description": "Two lodgepoles crossed at the front with a hide web between, for a dog or horse to drag a load.",
+      "variants": [
+        "With parfleche"
+      ]
+    },
+    {
+      "id": "wash-tub",
+      "name": "Wash tub",
+      "group": "Household",
+      "size": [
+        28,
+        26
+      ],
+      "description": "A coopered wash tub on a bench with a ridged washboard.",
+      "variants": [
+        "Oak",
+        "Pale pine"
+      ]
+    },
+    {
+      "id": "grindstone",
+      "name": "Grindstone",
+      "group": "Work & agriculture",
+      "size": [
+        28,
+        28
+      ],
+      "description": "A sandstone wheel on a crank axle, running in a water trough, for sharpening blades.",
+      "variants": [
+        "Oak frame",
+        "Dark frame"
+      ]
+    },
+    {
+      "id": "backstrap-loom",
+      "name": "Backstrap loom",
+      "group": "Household",
+      "size": [
+        48,
+        24
+      ],
+      "description": "A loom stretched between a post and the weaver's own body by a strap round the back.",
+      "variants": [
+        "Red and blue",
+        "Blue and red"
+      ]
+    },
+    {
+      "id": "dung-stack",
+      "name": "Dung-cake stack",
+      "group": "Work & agriculture",
+      "size": [
+        26,
+        24
+      ],
+      "description": "A stack of dried dung cakes, the everyday fuel where wood is scarce.",
+      "variants": [
+        "Stack",
+        "Stack, cakes drying"
+      ]
+    },
+    {
+      "id": "dugout",
+      "name": "Dugout canoe",
+      "group": "Storage & carrying",
+      "size": [
+        88,
+        22
+      ],
+      "description": "A canoe hollowed from a single log, hauled up on rollers.",
+      "variants": [
+        "Pale log",
+        "Dark log"
+      ]
+    },
+    {
+      "id": "kiln",
+      "name": "Pottery kiln",
+      "group": "Work & agriculture",
+      "size": [
+        28,
+        26
+      ],
+      "description": "An updraft kiln: a clay dome over a firebox, stoked through the mouth at its foot.",
+      "variants": [
+        "Red clay",
+        "Buff clay"
+      ]
+    },
+    {
+      "id": "mud-bricks",
+      "name": "Drying mud bricks",
+      "group": "Work & agriculture",
+      "size": [
+        40,
+        18
+      ],
+      "description": "Mud bricks set out in rows to dry, with the wooden mould and the heap of tempered mud.",
+      "variants": [
+        "Brown earth",
+        "Pale earth"
+      ]
+    },
+    {
+      "id": "fishing-nets",
+      "name": "Nets on drying poles",
+      "group": "Work & agriculture",
+      "size": [
+        38,
+        28
+      ],
+      "description": "A fishing net hung between poles to dry, with basket fish traps beneath.",
+      "variants": [
+        "Undyed",
+        "Tanned"
+      ]
+    },
+    {
+      "id": "threshing-floor",
+      "name": "Threshing floor",
+      "group": "Work & agriculture",
+      "size": [
+        48,
+        22
+      ],
+      "description": "A round beaten floor where grain is threshed with a flint-studded sledge.",
+      "variants": [
+        "Floor"
+      ]
+    },
+    {
+      "id": "lever-press",
+      "name": "Beam press",
+      "group": "Work & agriculture",
+      "size": [
+        58,
+        30
+      ],
+      "description": "A beam press: a long lever weighted with a stone, squeezing baskets of olive or grape pulp.",
+      "variants": [
+        "Olive",
+        "Grape"
+      ]
+    },
+    {
+      "id": "tanning-pits",
+      "name": "Tanning pits",
+      "group": "Work & agriculture",
+      "size": [
+        42,
+        22
+      ],
+      "description": "Rows of pits where hides soak in lime, then in bark liquor, to become leather.",
+      "variants": [
+        "Stone-lined",
+        "Timber-lined"
+      ]
+    },
+    {
+      "id": "dye-vats",
+      "name": "Indigo dye vats",
+      "group": "Work & agriculture",
+      "size": [
+        36,
+        26
+      ],
+      "description": "Dye pots sunk in the ground, with indigo cloth drying on a line.",
+      "variants": [
+        "Indigo"
+      ]
+    },
+    {
+      "id": "rice-rack",
+      "name": "Rice-drying rack",
+      "group": "Work & agriculture",
+      "size": [
+        48,
+        28
+      ],
+      "description": "A bamboo rack hung with rice sheaves to dry before threshing.",
+      "variants": [
+        "Two rails",
+        "One rail"
+      ]
+    },
+    {
+      "id": "bloomery",
+      "name": "Bloomery furnace",
+      "group": "Work & agriculture",
+      "size": [
+        26,
+        32
+      ],
+      "description": "A clay shaft furnace for smelting iron, blown by a pair of bellows.",
+      "variants": [
+        "Red clay",
+        "Buff clay"
+      ]
+    },
+    {
+      "id": "saddle-stand",
+      "name": "Saddle on a stand",
+      "group": "Household",
+      "size": [
+        30,
+        24
+      ],
+      "description": "A saddle and blanket over a rail, the bridle hung on the post.",
+      "variants": [
+        "Red and blue",
+        "Blue and gold"
+      ]
     }
   ]
 }
