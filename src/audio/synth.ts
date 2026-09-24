@@ -54,9 +54,17 @@ function instrument(
   const existing = cache.get(key);
   if (existing) return existing;
   const duration =
-    voice === "brush" || voice === "shaker"
+    voice === "brush" ||
+    voice === "shaker" ||
+    voice === "clap" ||
+    voice === "guiro" ||
+    voice === "hat"
       ? 0.25
-      : voice === "kick" || voice === "wood" || voice === "sistrum"
+      : voice === "kick" ||
+          voice === "wood" ||
+          voice === "sistrum" ||
+          voice === "snare" ||
+          voice === "steam"
         ? 0.5
         : voice === "frame" || voice === "mridanga" || voice === "udu"
           ? 0.9
@@ -70,6 +78,11 @@ function instrument(
               voice === "sho" ||
               voice === "throat" ||
               voice === "whistle" ||
+              voice === "horn" ||
+              voice === "accordion" ||
+              voice === "erhu" ||
+              voice === "organ" ||
+              voice === "pad" ||
               voice === "bronze"
             ? 6
             : 4;
@@ -81,12 +94,27 @@ function instrument(
   const data = buffer.getChannelData(0),
     frequency = 440 * 2 ** ((midi + cents / 100 - 69) / 12);
   const random = noiseGenerator(midi * 9277 + 13);
-  if (voice === "pluck" || voice === "oud" || voice === "tanpura") {
+  if (
+    voice === "pluck" ||
+    voice === "oud" ||
+    voice === "tanpura" ||
+    voice === "harpsichord" ||
+    voice === "uke" ||
+    voice === "guitar" ||
+    voice === "eguitar" ||
+    voice === "fuzz"
+  ) {
     const [brightness, decay, nasal] = {
       pluck: [0.45, 1.4, 0.15],
       oud: [0.8, 2.2, 0.45],
       // Long ring and a strong comb stand in for the jawari buzz.
       tanpura: [0.95, 0.45, 0.35],
+      // Quill plucked near the bridge: bright, and quicker to fade.
+      harpsichord: [1, 1.8, 0.55],
+      uke: [0.7, 2.5, 0.25],
+      guitar: [0.6, 1.2, 0.3],
+      eguitar: [0.5, 1.6, 0.6],
+      fuzz: [0.8, 0.8, 0.3],
     }[voice];
     pluckString(
       data,
@@ -97,11 +125,16 @@ function instrument(
       decay,
       nasal,
     );
+    // Overdriven valve amplifier.
+    if (voice === "fuzz")
+      for (let i = 0; i < data.length; i++)
+        data[i] = Math.tanh(data[i] * 5) * 0.45;
     cache.set(key, buffer);
     if (cache.size > 128) cache.delete(cache.keys().next().value!);
     return buffer;
   }
-  let breath = 0;
+  let breath = 0,
+    slide = 0;
   for (let i = 0; i < data.length; i++) {
     const t = i / ctx.sampleRate,
       phase = 2 * Math.PI * frequency * t;
@@ -289,6 +322,146 @@ function instrument(
         0.3 *
         Math.min(1, t * 200) *
         Math.exp(-t * 14);
+    } else if (voice === "horn") {
+      // Brass brightens as the lips settle into the note.
+      const bright = 0.2 + 0.25 * Math.min(1, t * 5);
+      for (let harmonic = 1; harmonic <= 10; harmonic++) {
+        if (frequency * harmonic > ctx.sampleRate * 0.45) continue;
+        sample +=
+          (Math.sin(phase * harmonic) *
+            Math.exp(-(harmonic - 1) / (bright * 6))) /
+          harmonic ** 0.5;
+      }
+      sample = sample * 0.3 + breath * 0.02;
+    } else if (voice === "agogo") {
+      sample =
+        0.5 * Math.sin(phase) * Math.exp(-t * 6) +
+        0.3 * Math.sin(phase * 2.7) * Math.exp(-t * 9) +
+        0.15 * Math.sin(phase * 4.4) * Math.exp(-t * 14) +
+        random() * 0.1 * Math.exp(-t * 200);
+    } else if (voice === "clap") {
+      // Several hands a few milliseconds apart.
+      const hit = Math.min(t % 0.011, 0.011) / 0.011;
+      sample =
+        (random() - breath) *
+        (t < 0.03 ? 1 - hit * 0.7 : 1) *
+        0.7 *
+        Math.exp(-t * 30);
+    } else if (voice === "piano") {
+      // Stiff strings: overtones run slightly sharp and die faster.
+      for (let harmonic = 1; harmonic <= 8; harmonic++) {
+        const f = frequency * harmonic * Math.sqrt(1 + 0.0004 * harmonic ** 2);
+        if (f > ctx.sampleRate * 0.45) continue;
+        sample +=
+          (Math.sin(2 * Math.PI * f * t) / harmonic ** 1.1) *
+          Math.exp(-t * (0.6 + 0.45 * harmonic));
+      }
+      sample = sample * 0.45 + random() * 0.05 * Math.exp(-t * 120);
+    } else if (voice === "snare") {
+      sample =
+        0.45 * random() * Math.exp(-t * 16) +
+        0.35 * Math.sin(2 * Math.PI * 190 * t) * Math.exp(-t * 28);
+    } else if (voice === "steam") {
+      sample =
+        (random() - breath) * 0.5 * Math.min(1, t * 40) * Math.exp(-t * 7);
+    } else if (voice === "guiro") {
+      sample =
+        (random() - breath) *
+        ((t * 55) % 1 < 0.35 ? 1 : 0.1) *
+        0.5 *
+        Math.exp(-t * 5);
+    } else if (voice === "accordion") {
+      // Two reed banks tuned slightly apart: the musette tremolo.
+      for (let harmonic = 1; harmonic <= 10; harmonic++) {
+        if (frequency * harmonic > ctx.sampleRate * 0.45) continue;
+        sample +=
+          (Math.sin(phase * harmonic) + Math.sin(phase * harmonic * 1.004)) /
+          harmonic ** 1.1;
+      }
+      sample *= 0.18;
+    } else if (voice === "erhu") {
+      // Two silk strings over a snakeskin: nasal, with a wide vibrato.
+      const vibrato =
+        0.035 * Math.sin(2 * Math.PI * 6 * t) * Math.min(1, t * 1.5);
+      for (let harmonic = 1; harmonic <= 10; harmonic++) {
+        const f = frequency * harmonic;
+        if (f > ctx.sampleRate * 0.45) continue;
+        const formant = 1 / (1 + ((f - 1000) / 500) ** 2);
+        sample +=
+          ((0.3 + formant) * Math.sin(harmonic * (phase + vibrato))) / harmonic;
+      }
+      sample = sample * 0.35 + breath * 0.02;
+    } else if (voice === "vib") {
+      // The motor-driven fans give the vibraphone its pulse.
+      sample =
+        (0.6 * Math.sin(phase) * Math.exp(-t * 1.2) +
+          0.1 * Math.sin(phase * 4) * Math.exp(-t * 6)) *
+        ((1 + 0.35 * Math.sin(2 * Math.PI * 5.5 * t)) / 1.35);
+    } else if (voice === "organ") {
+      for (const [harmonic, level] of [
+        [1, 0.6],
+        [2, 0.4],
+        [3, 0.3],
+        [4, 0.2],
+        [6, 0.1],
+        [8, 0.1],
+      ])
+        if (frequency * harmonic < ctx.sampleRate * 0.45)
+          sample +=
+            level *
+            Math.sin(
+              phase * harmonic * (1 + 0.0007 * Math.sin(2 * Math.PI * 6.5 * t)),
+            );
+      sample = sample * 0.3 + random() * 0.05 * Math.exp(-t * 300);
+    } else if (voice === "rhodes") {
+      sample =
+        0.55 *
+          Math.sin(phase + 0.6 * Math.sin(phase) * Math.exp(-t * 4)) *
+          Math.exp(-t * 0.9) +
+        0.1 * Math.sin(phase * 7) * Math.exp(-t * 12);
+    } else if (voice === "ebass") {
+      sample =
+        (0.6 * Math.sin(phase) +
+          0.25 * Math.sin(2 * phase) +
+          0.1 * Math.sin(3 * phase)) *
+          Math.exp(-t * 1.2) +
+        random() * 0.1 * Math.exp(-t * 150);
+    } else if (voice === "hat") {
+      sample = (random() - breath) * 0.5 * Math.exp(-t * 60);
+    } else if (voice === "saw" || voice === "pad") {
+      // Analog oscillators; the saw's filter closes after the attack.
+      const cutoff = voice === "saw" ? 600 + 3000 * Math.exp(-t * 6) : 1800;
+      for (let harmonic = 1; harmonic <= 16; harmonic++) {
+        const f = frequency * harmonic;
+        if (f > ctx.sampleRate * 0.45) continue;
+        const level = 1 / harmonic / (1 + (f / cutoff) ** 2);
+        sample +=
+          voice === "saw"
+            ? level * Math.sin(phase * harmonic)
+            : level *
+              (Math.sin(phase * harmonic * 0.996) +
+                Math.sin(phase * harmonic * 1.004));
+      }
+      sample *= voice === "saw" ? 0.4 * Math.exp(-t * 2) : 0.15;
+    } else if (voice === "crackle") {
+      slide *= 0.9;
+      if (random() > 0.9992) slide = random();
+      sample = slide * 0.5 + random() * 0.008;
+    } else if (voice === "steel") {
+      // The bar slides up into each note, then a gentle vibrato.
+      const f =
+        frequency *
+        2 **
+          ((-1.2 * Math.exp(-t * 20) +
+            0.1 * Math.sin(2 * Math.PI * 5.5 * t) * Math.min(1, t)) /
+            12);
+      slide += (2 * Math.PI * f) / ctx.sampleRate;
+      sample =
+        (0.55 * Math.sin(slide) +
+          0.2 * Math.sin(2 * slide) +
+          0.1 * Math.sin(3 * slide) +
+          0.05 * Math.sin(4 * slide)) *
+        Math.exp(-t * 0.9);
     } else if (voice === "shaker") {
       sample =
         (random() - breath) * 0.6 * Math.min(1, t * 120) * Math.exp(-t * 28);
@@ -396,7 +569,12 @@ export function scheduleNote(
     pan = ctx.createStereoPanner();
   source.buffer = instrument(ctx, note.voice, note.midi, note.cents);
   const sustained =
+    note.voice === "organ" ||
+    note.voice === "pad" ||
+    note.voice === "accordion" ||
+    note.voice === "erhu" ||
     note.voice === "sho" ||
+    note.voice === "horn" ||
     note.voice === "throat" ||
     note.voice === "whistle" ||
     note.voice === "flute" ||
@@ -408,7 +586,7 @@ export function scheduleNote(
   const duration = note.duration * secondsPerBeat;
   const attack = Math.min(
     duration * 0.3,
-    note.voice === "sho"
+    note.voice === "sho" || note.voice === "pad"
       ? 0.5
       : note.voice === "strings" || note.voice === "drone"
         ? 0.16
@@ -428,6 +606,16 @@ export function scheduleNote(
         note.voice === "bonang" ||
         note.voice === "chime" ||
         note.voice === "kalimba" ||
+        note.voice === "harpsichord" ||
+        note.voice === "piano" ||
+        note.voice === "vib" ||
+        note.voice === "rhodes" ||
+        note.voice === "eguitar" ||
+        note.voice === "ebass" ||
+        note.voice === "steel" ||
+        note.voice === "uke" ||
+        note.voice === "guitar" ||
+        note.voice === "agogo" ||
         note.voice === "udu"
       ? 0.65
       : note.voice === "gong" || note.voice === "bronze"

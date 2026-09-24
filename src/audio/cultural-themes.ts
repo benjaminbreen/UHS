@@ -1,4 +1,5 @@
 import type { CultureId } from "../content/history/types";
+import { layeredThemes } from "./layered-themes";
 import type { Voice } from "./score";
 
 export interface CulturalTheme {
@@ -1052,7 +1053,9 @@ export const culturalThemes: CulturalTheme[] = [
 
 /** Pieces for a setting: direct hits match culture and date, the rest share the culture. */
 export function culturalMusic(culture: CultureId, year: number) {
-  const family = culturalThemes.filter((t) => t.culture === culture);
+  const family = [...culturalThemes, ...layeredThemes].filter((t) =>
+    [t.culture].flat().includes(culture),
+  );
   return {
     direct: family.filter((t) => year >= t.years[0] && year <= t.years[1]),
     family,

@@ -1,5 +1,6 @@
 /** Original compositions. Notes and harmony remain independent of instrumentation. */
 import { culturalThemes, type CulturalTheme } from "./cultural-themes";
+import { layeredThemes, type LayeredTheme } from "./layered-themes";
 export const seasons = ["spring", "summer", "autumn", "winter"] as const;
 export const periods = ["dawn", "day", "dusk", "night"] as const;
 export type Season = (typeof seasons)[number];
@@ -38,7 +39,30 @@ export type Voice =
   | "kalimba"
   | "throat"
   | "whistle"
-  | "sistrum";
+  | "sistrum"
+  | "harpsichord"
+  | "horn"
+  | "agogo"
+  | "clap"
+  | "piano"
+  | "snare"
+  | "accordion"
+  | "steam"
+  | "guiro"
+  | "steel"
+  | "uke"
+  | "guitar"
+  | "erhu"
+  | "vib"
+  | "organ"
+  | "rhodes"
+  | "eguitar"
+  | "fuzz"
+  | "ebass"
+  | "hat"
+  | "saw"
+  | "pad"
+  | "crackle";
 const unpitched = new Set<Voice>([
   "kick",
   "brush",
@@ -47,6 +71,12 @@ const unpitched = new Set<Voice>([
   "shaker",
   "mridanga",
   "sistrum",
+  "clap",
+  "snare",
+  "steam",
+  "guiro",
+  "hat",
+  "crackle",
 ]);
 export interface Note {
   beat: number;
@@ -323,7 +353,7 @@ export interface Score {
   notes: Note[];
   bpm: number;
   beats: number;
-  theme: Theme | CulturalTheme;
+  theme: Theme | CulturalTheme | LayeredTheme;
   arrangement: Arrangement;
 }
 export const defaultArrangement: Arrangement = {
@@ -366,6 +396,8 @@ export function worldMusicSlot(clock: number): {
 export function compose(arrangement: Arrangement): Score {
   const cultural = culturalThemes.find((t) => t.id === arrangement.themeId);
   if (cultural) return composeCultural(cultural, arrangement);
+  const layered = layeredThemes.find((t) => t.id === arrangement.themeId);
+  if (layered) return composeLayered(layered, arrangement);
   const theme = themes.find((t) => t.id === arrangement.themeId) ?? themes[0];
   const { period, era, season } = arrangement;
   const quiet = period === "night" || period === "dawn";
@@ -716,6 +748,62 @@ function composeCultural(
   return {
     notes: notes.sort((a, b) => a.beat - b.beat),
     bpm,
+    beats,
+    theme,
+    arrangement,
+  };
+}
+
+function composeLayered(theme: LayeredTheme, arrangement: Arrangement): Score {
+  const quiet = arrangement.period === "night" || arrangement.period === "dawn";
+  const beats = theme.bars * theme.meter;
+  const notes: Note[] = [];
+  for (const layer of theme.layers) {
+    if (quiet && layer.day) continue;
+    const events: [number, number, number[]][] = [];
+    let length = 0;
+    for (const token of layer.loop.split(" ")) {
+      const [pitch, span] = token.split(":");
+      events.push([
+        length,
+        Number(span),
+        pitch === "-"
+          ? []
+          : pitch.split("+").map((p) => midi(p) + (layer.transpose ?? 0)),
+      ]);
+      length += Number(span);
+    }
+    const end = (layer.exit ?? theme.bars) * theme.meter;
+    for (let at = (layer.enter ?? 0) * theme.meter; at < end; at += length)
+      for (const [offset, span, chord] of events)
+        chord.forEach((pitch, i) => {
+          let start = at + offset;
+          const [unit, amount] = theme.swing ?? [0, 0];
+          if (unit && Math.round(start / unit) % 2 === 1) start += amount;
+          const [spacing, count, feedback] = layer.echo ?? [0, 0, 0];
+          // A strummed chord: each string a few hundredths of a beat later.
+          for (let repeat = 0; repeat <= count; repeat++) {
+            const beat = start + i * 0.03 + repeat * spacing;
+            if (beat < end || (repeat > 0 && beat < beats))
+              notes.push({
+                beat,
+                duration: Math.min(span * 0.92, beats - beat),
+                midi: pitch,
+                velocity:
+                  layer.velocity * (quiet ? 0.75 : 1) * feedback ** repeat,
+                stem: layer.stem,
+                voice: layer.voice,
+                pan: layer.pan ?? 0,
+                cents: unpitched.has(layer.voice)
+                  ? 0
+                  : (theme.tuning?.[pitch % 12] ?? 0),
+              });
+          }
+        });
+  }
+  return {
+    notes: notes.sort((a, b) => a.beat - b.beat),
+    bpm: Math.round(theme.bpm * (quiet ? 0.85 : 1)),
     beats,
     theme,
     arrangement,

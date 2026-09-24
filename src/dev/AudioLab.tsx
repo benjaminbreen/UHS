@@ -28,6 +28,7 @@ import {
   type Season,
 } from "../audio/score";
 import { culturalThemes } from "../audio/cultural-themes";
+import { layeredThemes } from "../audio/layered-themes";
 import { renderWav } from "../audio/synth";
 import { catalog } from "../audio/sfx";
 import "./audio-lab.css";
@@ -254,9 +255,11 @@ export function AudioLab({
                 ))}
                 <div className="audio-library-heading">
                   <div className="audio-label">03 / PLACES & ERAS</div>
-                  <span>{culturalThemes.length} sketches</span>
+                  <span>
+                    {culturalThemes.length + layeredThemes.length} sketches
+                  </span>
                 </div>
-                {culturalThemes.map((theme, i) => (
+                {[...culturalThemes, ...layeredThemes].map((theme, i) => (
                   <button
                     className={`audio-track ${theme.id === arrangement.themeId ? "selected" : ""}`}
                     key={theme.id}

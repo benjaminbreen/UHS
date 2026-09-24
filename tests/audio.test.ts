@@ -10,6 +10,7 @@ import {
   worldMusicSlot,
 } from "../src/audio/score";
 import { culturalMusic, culturalThemes } from "../src/audio/cultural-themes";
+import { layeredThemes } from "../src/audio/layered-themes";
 import { catalog } from "../src/audio/sfx";
 
 describe("original soundtrack scores", () => {
@@ -86,13 +87,33 @@ describe("original soundtrack scores", () => {
       }
     }
   });
+  it("loops every layer of the layered pieces within the piece", () => {
+    for (const theme of layeredThemes)
+      for (const period of periods) {
+        const score = compose({
+          ...defaultArrangement,
+          period,
+          themeId: theme.id,
+        });
+        expect(score.beats).toBe(theme.bars * theme.meter);
+        expect(score.notes.length).toBeGreaterThan(50);
+        for (const n of score.notes) {
+          expect(n.beat + n.duration).toBeLessThanOrEqual(score.beats + 0.1);
+          expect(n.duration).toBeGreaterThan(0);
+          expect(n.midi).toBeGreaterThanOrEqual(24);
+          expect(n.midi).toBeLessThanOrEqual(108);
+        }
+      }
+    expect(culturalMusic("european", 1660).direct.map((t) => t.id)).toEqual([
+      "herengracht-ground",
+    ]);
+  });
   it("plays a culture's pieces across its eras and puts direct hits first", () => {
-    const java = culturalMusic("southeast-asian", 1400);
+    const java = culturalMusic("southeast-asian", 1450);
     expect(java.direct.map((t) => t.id)).toEqual(["gongs-of-trowulan"]);
     const later = culturalMusic("southeast-asian", 1850);
     expect(later.direct).toEqual([]);
     expect(later.family.map((t) => t.id)).toContain("gongs-of-trowulan");
-    expect(culturalMusic("australian-pacific", 1500).family).toEqual([]);
   });
   it("maps the provisional calendar at boundaries and wraps the year", () => {
     expect(worldMusicSlot(0)).toEqual({ season: "spring", period: "night" });
