@@ -459,7 +459,11 @@ export function vegetationUnderstory(
         ? h.season === "autumn"
           ? 0.1
           : 0.03
-        : 0;
+        : h.ecology === "grassland"
+          ? h.season === "autumn"
+            ? 0.03
+            : 0.008
+          : 0;
   if (roll > 1 - fruiting) return "nature-understory-fungi";
   if (wet && land.moisture > 0.55 && roll < 0.4) return "reeds";
   switch (h.ecology) {

@@ -292,6 +292,49 @@ def log_with(id_, bark, moss, shelves, pal, bands=None, caps=False):
     return im
 
 
+def cup_fungus():
+    """Cookeina: stalked pink cups on a fallen twig in rainforest litter."""
+    rng = _rng('cup-fungus')
+    pal = ramp('#e0507a')
+    im = _new(26, 18)
+    _litter(im, rng, 15, 2, 24)
+    _stem(im, ramp('#5a4a3a'), (3, 14), (23, 13), 1.2)
+    for cx, h, w in ((7, 5, 2.5), (13, 7, 3.5), (19, 4, 2.5)):
+        top = 14 - h
+        for y in range(top + 3, 14):
+            _put(im, cx, y, pal[5])
+        # A goblet: the cup flares from the stalk to a fringed rim.
+        for k in range(3):
+            half = 1 + (w - 1) * (3 - k) / 3
+            for x in range(int(cx - half), int(cx + half) + 1):
+                _put(im, x, top + k, pal[1] if k == 0 and abs(x - cx) < half - 1 else pal[5 if x < cx else 3])
+        _put(im, cx - w, top - 1, '#f0e0c8'); _put(im, cx + w, top - 1, '#f0e0c8')
+    return im
+
+
+def puffball():
+    rng = _rng('puffball')
+    pal = ramp('#e8e0cc')
+    im = _new(22, 14)
+    for cx, cy, r in ((7, 9, 3), (13, 8, 4), (18, 10, 2)):
+        _blob(im, pal, cx, cy, r, r * 0.85)
+        for _ in range(int(r * 2)):
+            _put(im, cx + rng.uniform(-r + 1, r - 1), cy - rng.uniform(0, r - 1), pal[3])
+    return im
+
+
+def field_mushroom():
+    rng = _rng('field-mushroom')
+    cap, stem = ramp('#ece6d8'), ramp('#f2eee4')
+    im = _new(22, 16)
+    for x in range(3, 19):
+        if rng.random() < 0.6:
+            _put(im, x, 13 + rng.choice((0, 1)), rng.choice(('#6a8a3a', '#8aa04a')))
+    for cx, h, rx in ((7, 5, 3), (13, 7, 4.5), (17, 3, 2)):
+        _mushroom(im, cap, stem, cx, 13, h, rx, 2.5, '#b06a6a', flat=0.3)
+    return im
+
+
 def fungi():
     return {
         'nature-understory-fungi': generic(),
@@ -315,6 +358,13 @@ def fungi():
             [(11, 11, 5, 3), (18, 9, 6, 3), (26, 11, 5, 3), (16, 13, 4, 2)], ramp('#f0a030'), bands=[5, 4, 3, 2, 5]),
         'nature-fungus-shiitake': log_with('shiitake', '#5a4a3a', '#6a8a3a',
             [(11, 9, 3, 2.5), (19, 8, 4, 3), (28, 10, 3, 2.5)], ramp('#7a4a2a'), caps=True),
+        'nature-fungus-cup-fungus': cup_fungus(),
+        'nature-fungus-puffball': puffball(),
+        'nature-fungus-field-mushroom': field_mushroom(),
+        'nature-fungus-cinnabar-bracket': log_with('cinnabar-bracket', '#5a4a3a', '#5a8a3a',
+            [(11, 11, 4, 3), (19, 10, 5, 3), (28, 11, 4, 3)], ramp('#e04a1a'), bands=[5, 4, 4, 3, 2]),
+        'nature-fungus-wood-ear': log_with('wood-ear', '#5a4a3a', '#5a8a3a',
+            [(12, 12, 3, 3), (18, 11, 4, 4), (26, 12, 3, 3)], ramp('#6a3a2a'), bands=[4, 3, 2, 1, 3]),
         'nature-fungus-ghost-fungus': log_with('ghost-fungus', '#4a4038', None,
             [(12, 11, 5, 3), (20, 10, 6, 4), (29, 11, 4, 3)], ramp('#e0dcc0'), bands=[5, 4, 4, 3, 2]),
     }

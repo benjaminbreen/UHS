@@ -1890,6 +1890,64 @@ export const flora: Species[] = [
     [["mushroom", 0.8]],
   ),
   sp(
+    "cup-fungus",
+    "Pink cup fungus",
+    "Cookeina speciosa",
+    "fungus",
+    ["samerica", "mesoamerica", "africa", "seasia"],
+    [R],
+    1.5,
+    [],
+  ),
+  sp(
+    "cinnabar-bracket",
+    "Cinnabar bracket",
+    "Trametes sanguinea",
+    "fungus",
+    [
+      "samerica",
+      "mesoamerica",
+      "africa",
+      "safrica",
+      "seasia",
+      "southasia",
+      "australia",
+    ],
+    [R, V, S],
+    1.5,
+    [],
+  ),
+  sp(
+    "wood-ear",
+    "Wood ear",
+    "Auricularia cornea",
+    "fungus",
+    ["eastasia", "seasia", "southasia", "africa"],
+    [R, T],
+    1.5,
+    [["mushroom", 0.8]],
+  ),
+  sp(
+    "puffball",
+    "Common puffball",
+    "Lycoperdon perlatum",
+    "fungus",
+    ["*"],
+    [G, T, B],
+    1,
+    [["mushroom", 0.6]],
+  ),
+  sp(
+    "field-mushroom",
+    "Field mushroom",
+    "Agaricus campestris",
+    "fungus",
+    ["europe", "med", "northasia", "westasia", "eastasia", "naeast", "nawest"],
+    [G],
+    2,
+    [["mushroom", 1]],
+  ),
+  sp(
     "ghost-fungus",
     "Ghost fungus",
     "Omphalotus nidiformis",
@@ -2324,6 +2382,8 @@ function pool(
   // ecologies, nearest first, and only then the rest of the region. A desert
   // borrows from dry scrub before it borrows a forest ginger.
   const weight = () => found!.reduce((n, s) => n + s.weight, 0);
+  // Fungi keep to their hosts: no pampas bracket borrowed from a beech wood.
+  if (form === "fungus" && found.length) return (pools.set(key, found), found);
   for (const near of neighbours[ecology] ?? []) {
     if (weight() >= 4) break;
     found = [
