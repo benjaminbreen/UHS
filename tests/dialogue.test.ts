@@ -97,11 +97,26 @@ describe("dialogue endpoint", () => {
       "mood",
       "regard",
       "action",
-      "original",
       "dialogue",
+      "original",
       "leave",
       "receive",
     ]);
+  });
+  it("generates the English meaning before translating it in real language mode", async () => {
+    let sent: Record<string, any> | undefined;
+    const request = new Request("http://localhost/api/dialogue", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-forwarded-for": "198.51.100.71" },
+      body: JSON.stringify({ user: "Setting: Paris, 1200 CE.", realLanguage: true }),
+    });
+    await dialogue(request, { OPENAI_API_KEY: "test" }, async (_url, init) => {
+      sent = JSON.parse(String((init as RequestInit).body));
+      return reply({ dialogue: "Where are you going?", original: "Où vas-tu?", regard: 0 });
+    });
+    const properties = sent?.response_format.json_schema.schema.properties;
+    expect(Object.keys(properties)).toEqual(["mood", "regard", "action", "dialogue", "original", "leave", "receive"]);
+    expect(sent?.messages[0].content).toContain("translate that exact line");
   });
   it("offers the mood as a nullable enum, which is what strict mode accepts", () => {
     // Widening the type alone leaves null outside the permitted values and
