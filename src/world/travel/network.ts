@@ -280,6 +280,26 @@ function countryside(tile: Tile, year: number, climate: string) {
   return roll < odds * 0.35 ? "settled" : roll < odds ? "sparse" : undefined;
 }
 
+/** Places standing in a year inside an atlas rectangle, for the region map. */
+export async function settlementsIn(x0: number, y0: number, x1: number, y1: number, year: number) {
+  const [i0, j0, i1, j1] = [x0, y0, x1, y1].map((v) => Math.floor(v / TILE));
+  const rows: string[] = [];
+  for (let j = j0; j <= j1 + BAND; j += BAND) rows.push(tileId({ i: i0, j: Math.min(j, j1) }));
+  await loadTileNames(rows);
+  const found: { id: string; name: string; rank: "village" | "town" | "city"; x: number; y: number }[] = [];
+  for (let j = j0; j <= j1; j++)
+    for (let i = i0; i <= i1; i++)
+      for (const p of placesIn({ i, j })) {
+        // An undated catalog anchor would stand at every date.
+        if (!p.settlement) continue;
+        const rank = settlementAt(p, year);
+        if (rank !== "village" && rank !== "town" && rank !== "city") continue;
+        const a = toAtlas(p.lon, p.lat);
+        found.push({ id: p.id, name: locationName(p, year), rank, x: a.x, y: a.y });
+      }
+  return found;
+}
+
 const mapCache = new Map<string, PermanentMap>();
 export function permanentMap(id: string, year: number): PermanentMap {
   const key = `${id}@${year}`;

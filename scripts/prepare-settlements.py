@@ -60,7 +60,8 @@ def read(name):
 
 def key(name):
     s = unicodedata.normalize('NFKD', name).encode('ascii', 'ignore').decode().lower()
-    s = re.sub(r'^(al|el|the)[- ]', '', s)
+    s = re.sub(r'\(.*?\)', '', s)
+    s = re.sub(r'^(al|el|the|saint|st)[-. ]+', '', s)
     return re.sub(r'[^a-z]', '', s)
 
 
@@ -186,10 +187,18 @@ def main():
             if known:
                 # A later source only extends the record back in time.
                 if phases[0] < known[3][0] and known[4] != 'a':
-                    known[3] = [phases[0], known[3][1]] + known[3][2:]
+                    known[3] = [phases[0], min(phases[1], known[3][1])] + known[3]
                 continue
             here[k] = [round(lon, 3), round(lat, 3), name.strip(), phases, src]
             counts[src] += 1
+    # The same place geocoded either side of a square's edge.
+    for (i, j), places in list(squares.items()):
+        for k, p in list(places.items()):
+            for di in (-1, 0, 1):
+                for dj in (-1, 0, 1):
+                    q = squares.get((i + di, j + dj), {}).get(k) if di or dj else None
+                    if q and (PRIORITY[q[4]], id(q)) < (PRIORITY[p[4]], id(p)):
+                        places.pop(k, None)
     bands = defaultdict(list)
     for (i, j), places in squares.items():
         kept = {}

@@ -7164,3 +7164,27 @@ button:disabled {
   text-shadow: 0 1px 3px #000;
   pointer-events: none;
 }
+
+.map-settlement {
+  position: absolute;
+  transform: translate(-4px, -50%);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  pointer-events: none;
+  white-space: nowrap;
+  font-size: 11px;
+  color: #f4ead2;
+  text-shadow: 0 1px 2px #000, 0 0 3px #000;
+}
+.map-settlement i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #f4ead2;
+  box-shadow: 0 0 0 1px #2a2116;
+}
+.map-settlement.is-town { font-size: 12px; font-weight: 600; }
+.map-settlement.is-town i { width: 7px; height: 7px; }
+.map-settlement.is-city { font-size: 14px; font-weight: 700; letter-spacing: 0.02em; }
+.map-settlement.is-city i { width: 9px; height: 9px; border-radius: 2px; background: #e8c46a; }

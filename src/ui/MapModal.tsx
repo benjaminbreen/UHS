@@ -29,6 +29,7 @@ export function MapModal({ runtime, onClose }: { runtime: Runtime; onClose: () =
   const [listOpen, setListOpen] = useState(true);
   const [destination, setDestination] = useState<{ lon: number; lat: number }>();
   const [plan, setPlan] = useState<{ name: string; days?: number; sea?: number; error?: string }>();
+  const [nearby, setNearby] = useState<{ id: string; name: string; rank: string; x: number; y: number }[]>([]);
   const drag = useRef<{ x: number; y: number; cx: number; cy: number; moved: boolean }>(undefined);
   const wheel = useRef(0);
   const settlements = [...world.settlements]
@@ -88,6 +89,32 @@ export function MapModal({ runtime, onClose }: { runtime: Runtime; onClose: () =
     );
     return () => { live = false; };
   }, [destination?.lon, destination?.lat]);
+
+  useEffect(() => {
+    if (earth || !pack.setting) return setNearby([]);
+    let live = true;
+    const o = toAtlas(pack.anchor.lon, pack.anchor.lat), h = (span * H) / W / 2;
+    // Villages crowd the map beyond a day's walk, towns beyond a region.
+    const ranks = span <= 12000 ? ["village", "town", "city"] : span <= 50000 ? ["town", "city"] : ["city"];
+    void import("../world/travel/network").then(async ({ settlementsIn }) => {
+      const found = await settlementsIn(
+        o.x + center.x - span / 2, o.y + center.y - h, o.x + center.x + span / 2, o.y + center.y + h,
+        pack.setting!.year,
+      );
+      if (!live) return;
+      const order = ["city", "town", "village"], kept: typeof found = [];
+      // Largest first; a label that would overlap one already placed is dropped.
+      for (const p of found
+        .map((p) => ({ ...p, x: p.x - o.x, y: p.y - o.y }))
+        // This map's own places are drawn from its plan.
+        .filter((p) => ranks.includes(p.rank) && (Math.abs(p.x) > 192 || Math.abs(p.y) > 192))
+        .sort((a, b) => order.indexOf(a.rank) - order.indexOf(b.rank)))
+        if (!kept.some((q) => Math.abs(q.x - p.x) < span * 0.1 && Math.abs(q.y - p.y) < span * 0.025))
+          kept.push(p);
+      setNearby(kept);
+    });
+    return () => { live = false; };
+  }, [earth, span, center.x, center.y]);
 
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
@@ -181,6 +208,9 @@ export function MapModal({ runtime, onClose }: { runtime: Runtime; onClose: () =
           >
             <Minimap runtime={runtime} large span={span} center={center} dims={[W, H]} route={selected} />
           </div>
+          {nearby.map((p) => <span key={p.id} className={`map-settlement is-${p.rank}`} style={toScreen(p)}>
+            <i />{p.name}
+          </span>)}
           {card && <div className="map-card" style={toScreen(card)}>
             <strong>{card.name}</strong>
             {card.metres < 30 ? <span>You are here</span> : <>
