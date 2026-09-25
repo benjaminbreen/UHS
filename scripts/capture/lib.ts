@@ -10,12 +10,18 @@ import { mkdir, writeFile } from "node:fs/promises";
 export const base =
   process.env.UHS_URL ?? `http://127.0.0.1:${process.env.PORT ?? 5173}`;
 
+/** Chrome by default; CHROME_PATH points at another build, as in playwright.config.ts. */
+export function launchBrowser() {
+  const path = process.env.CHROME_PATH;
+  return chromium.launch(path ? { executablePath: path } : { channel: "chrome" });
+}
+
 /** Open a page, run the capture, and close the browser even if it throws. */
 export async function withPage(
   { width = 1440, height = 1100 }: { width?: number; height?: number },
   run: (page: Page) => Promise<void>,
 ) {
-  const browser = await chromium.launch({ channel: "chrome" });
+  const browser = await launchBrowser();
   try {
     const page = await browser.newPage({ viewport: { width, height } });
     page.on("pageerror", (e) => console.error("pageerror", e.message));

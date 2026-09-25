@@ -9,6 +9,7 @@ import { farms } from "./onsets";
 import { integratedSetting } from "./defaults";
 import { placeAtYear } from "./eras";
 import { settingSchema, type AtlasPlace, type WorldSetting } from "./types";
+import { commonLivelihoods } from "../characters/livelihoods.generated";
 export const normalize = (s: string) =>
   s
     .normalize("NFD")
@@ -227,7 +228,14 @@ export function resolveSetting(
       [/\bweaver\b/, "Weaver"],
       [/\bsailor\b/, "Sailor"],
     ];
-    s.role = roles.find(([pattern]) => pattern.test(q))?.[1] ?? "Traveler";
+    const trade = roles.some(([pattern]) => pattern.test(q))
+      ? undefined
+      : commonLivelihoods
+          .map((l) => l.label)
+          .filter((label) => has(q, label))
+          .sort((a, b) => b.length - a.length)[0];
+    s.role =
+      roles.find(([pattern]) => pattern.test(q))?.[1] ?? trade ?? "Traveler";
     if (has(q, "free black")) s.community = "Free Black household";
     s.characterName = s.role;
     if (/\bfarm(?:er|stead)?\b/.test(q)) s.settlement = "farm";
@@ -259,6 +267,7 @@ export function resolveSetting(
       /\b\d+(?:st|nd|rd|th)?\b|\b(?:bce|bc|ce|ad|century|year)\b/g,
       " ",
     );
+    if (trade) rest = rest.split(` ${normalize(trade)} `).join(" ");
     for (const [pattern] of roles)
       rest = rest.replace(new RegExp(pattern.source, "g"), " ");
     rest = rest

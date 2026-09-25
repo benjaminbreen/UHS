@@ -7,7 +7,7 @@
  * the way out; an already-running server is left alone. This is the supported
  * way to look at the game. Prefer it to writing another capture script.
  */
-import { chromium } from "@playwright/test";
+import { launchBrowser } from "./capture/lib";
 import { spawn } from "node:child_process";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
@@ -37,7 +37,7 @@ if (!(await up())) {
   }
 }
 
-const browser = await chromium.launch({ channel: "chrome" });
+const browser = await launchBrowser();
 try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 1100 } });
   page.on("pageerror", (e) => console.error("pageerror", e.message));
@@ -55,8 +55,12 @@ try {
       timeout: 15000,
     }),
   ]).catch(() => {});
+  // The arrival card holds play until "Enter life" is pressed.
+  await page
+    .getByRole("button", { name: /Enter life/ })
+    .click({ timeout: 120000 });
   await page.waitForFunction(() => !!(window as any).historySim, null, {
-    timeout: 120000,
+    timeout: 30000,
   });
   await page.waitForSelector(".game-container canvas", { timeout: 30000 });
   // Let the first frames settle so the shot is not of a half-drawn world.
