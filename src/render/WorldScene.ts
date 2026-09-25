@@ -4549,7 +4549,8 @@ export class WorldScene extends Phaser.Scene {
       if (im) this.slideDown(this.wallRun, im);
       else this.wallRun = undefined;
     }
-    if (!this.options.lab && !typing) {
+    // A walk begun from the command box ("find the cat") runs with focus still there.
+    if (!this.options.lab && (!typing || this.runtime.running)) {
       this.chargeTell(time);
       if (
         this.jumpStarted !== undefined &&

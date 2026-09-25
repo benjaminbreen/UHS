@@ -24,14 +24,15 @@ export function Arrival({ setting, engine, onEnter, onCancel }: {
   const sex = player?.origin?.sex && player.origin.sex !== "unspecified"
     ? player.origin.sex : appearance.physique?.sex ?? sexFromName(setting.characterName);
   const birth = birthPercentile(setting.year);
-  const goal = engine?.dailyGoals()[0]?.text;
+  const work = engine?.dailyGoals().find((g) => g.slot === "work")?.text;
+  const aim = engine?.state.lifeAim?.text;
   return <div className="arrival" role="dialog" aria-modal="true" aria-label={`Begin ${setting.characterName}'s life`}>
     <div className="arrival-scene" style={{ backgroundImage: `url(${arrivalBackdrop(setting)})` }} />
     <div className="arrival-top"><span>Universal History Simulator</span><button type="button" onClick={onCancel}>Back</button></div>
     <section className="arrival-strip">
       <div className="arrival-person">
         <div className="arrival-portrait"><CharacterSprite appearance={appearance} age={age} portrait /></div>
-        <div className="arrival-identity"><h1>{player?.name ?? setting.characterName}</h1><p>{age} · {sex === "female" ? "Woman" : sex === "male" ? "Man" : "Person"} · {player?.role ?? setting.role}</p>{goal && <p className="arrival-goal">{goal}</p>}</div>
+        <div className="arrival-identity"><h1>{player?.name ?? setting.characterName}</h1><p>{age} · {sex === "female" ? "Woman" : sex === "male" ? "Man" : "Person"} · {player?.role ?? setting.role}</p>{work && <p className="arrival-goal"><small>Today's work</small>{work}</p>}{aim && <p className="arrival-aim"><small>Life aim</small>{aim}</p>}</div>
       </div>
       <div className="arrival-location"><ArrivalMap lon={setting.lon} lat={setting.lat} year={setting.year} place={setting.location} /><p>{setting.location} · {formatHistoricalYear(setting.year)}</p></div>
       <div className="arrival-time">

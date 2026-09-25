@@ -31,7 +31,7 @@ export function pickGoals(
     scored.push({
       t,
       fit,
-      goal: { id: t.id, ...bound },
+      goal: { id: t.id, slot: t.slot, ...bound },
       score: fit * (trade ? 3 : 1) * (0.5 + random(seed, "goal", day, t.id)),
     });
   }

@@ -73,6 +73,7 @@ export const settingSchema = z
     // 1 is the scoped hand-written kits; 2 adds the ported naming
     // traditions and the capability-gated workforce.
     characterRevision: z.union([z.literal(1), z.literal(2)]).optional(),
+    lifeStoryRevision: z.literal(1).optional(),
     characterCommunity: z
       .enum([
         "local",
@@ -142,6 +143,7 @@ export const settingSchema = z
         appearanceSeed: z.string().max(100).optional(),
         hunger: z.number().int().min(0).max(100),
         fatigue: z.number().int().min(0).max(100),
+        age: z.number().int().min(18).max(65).optional(),
       })
       .strict()
       .optional(),

@@ -10,6 +10,11 @@ const gain = (text: string, items: string[], n: number) => ({
   text,
   check: { type: "gain" as const, items, n },
 });
+const workText = (role: string) => {
+  const title = role.toLowerCase();
+  const article = /^[aeiou]/.test(title) ? "an" : "a";
+  return `Do a full day's work as ${article} ${title}.`;
+};
 const FOOD = [
   "bread",
   "grain",
@@ -26,7 +31,7 @@ export const GOAL_TEMPLATES: GoalTemplate[] = [
     id: "day-of-work",
     slot: "work",
     bind: (c) => ({
-      text: `Do a full day's work: ${c.activity.toLowerCase()}.`,
+      text: workText(c.role),
       check: { type: "work" as const },
     }),
   },

@@ -40,6 +40,9 @@ export function householdStory(o: {
   craft: boolean;
   player: boolean;
   modern: boolean;
+  revised?: boolean;
+  formalMarriage?: boolean;
+  apprentice?: boolean;
   built: number;
   fabric: Fabric;
 }) {
@@ -57,7 +60,7 @@ export function householdStory(o: {
   let fortune = o.means,
     infants = 0,
     children = 0;
-  let wed: number | undefined;
+  let unionYear: number | undefined;
 
   if (o.shared) {
     const n = 1 + Math.floor(r("lodgers") * 3);
@@ -68,11 +71,15 @@ export function householdStory(o: {
         fromHead: "co-resident",
         age: 18 + Math.floor(r("lodger", i) * 30),
       });
-  } else if (o.player || r("wed") < (a < 25 ? 0.5 : 0.9)) {
-    wed = at(born + 17 + Math.floor(r("wed-age") * 9));
-    // Men married younger women; a woman heading the house is often a widow
-    // who married an older man.
-    const older = (n: number) => (o.sex === "female" ? n : -n);
+  } else if (o.revised
+    ? r("union") < clamp((a - 17) / 18, 0.15, 0.82) * (o.apprentice ? 0.45 : 1)
+    : o.player || r("wed") < (a < 25 ? 0.5 : 0.9)) {
+    unionYear = at(born + (o.revised
+      ? Math.min(a, 17 + Math.floor(r("wed-age") * 9))
+      : 17 + Math.floor(r("wed-age") * 9)));
+    const older = (n: number) => o.revised
+      ? (r("gap-direction") < 0.5 ? n : -n)
+      : (o.sex === "female" ? n : -n);
     const unions: {
       from: number;
       to: number;
@@ -80,19 +87,20 @@ export function householdStory(o: {
       alive: boolean;
     }[] = [];
     const widowed =
-      !o.player &&
-      Y - wed > 2 &&
+      (!o.player || o.revised) &&
+      Y - unionYear > 2 &&
       r("widowed") < clamp((a - 30) / 70) * (o.modern ? 0.4 : 1);
-    const end = widowed ? at(wed + 1 + r("died") * (Y - wed - 1)) : Y;
+    const end = widowed ? at(unionYear + 1 + r("died") * (Y - unionYear - 1)) : Y;
     unions.push({
-      from: wed,
+      from: unionYear,
       to: end,
       partnerAge: a + older(1 + Math.floor(r("gap") * 5)),
       alive: !widowed,
     });
-    history.push({ year: wed, kind: "wed", as: spouse(other) });
+    const partnerAs = o.revised && !o.formalMarriage ? "partner" : spouse(other);
+    history.push({ year: unionYear, kind: o.revised && !o.formalMarriage ? "joined" : "wed", as: partnerAs });
     if (widowed) {
-      history.push({ year: end, kind: "died", as: spouse(other) });
+      history.push({ year: end, kind: "died", as: partnerAs });
       fortune -= 0.12;
       if (a < 52 && Y - end >= 2 && r("remarry") < 0.5) {
         const again = at(end + 1 + r("again") * Math.min(3, Y - end - 1));
@@ -102,16 +110,16 @@ export function householdStory(o: {
           partnerAge: a + older(-2 - Math.floor(r("gap2") * 8)),
           alive: true,
         });
-        history.push({ year: again, kind: "wed", as: spouse(other) });
+        history.push({ year: again, kind: o.revised && !o.formalMarriage ? "joined" : "wed", as: partnerAs });
       }
     }
     const living = unions.find((u) => u.alive);
     if (living)
       residents.push({
-        as: spouse(other),
+        as: partnerAs,
         toHead: "partner",
         fromHead: "partner",
-        age: Math.max(16, living.partnerAge),
+        age: Math.max(o.revised ? 18 : 16, living.partnerAge),
         sex: other,
       });
     unions.forEach((u, ui) => {
@@ -219,7 +227,7 @@ export function householdStory(o: {
 
   // How they came by the house. A lot older than the householder was their
   // parents'; one put up after the wedding was theirs.
-  const settled = wed ?? born + 18;
+  const settled = unionYear ?? born + 18;
   if (o.built >= settled - 1 && r("built") < 0.7)
     history.push({ year: o.built, kind: "built" });
   else if (o.built < born + 18 && r("inherit") < 0.7)

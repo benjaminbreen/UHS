@@ -723,7 +723,17 @@ export function livelihoodOf(pack: Pack, actor?: Actor) {
     );
     kitsFor.set(pack, kits);
   }
-  return kits.get(actor.origin.livelihood);
+  const kit = kits.get(actor.origin.livelihood);
+  if (kit?.id !== "apprentice")
+    return kit;
+  const specialty = actor.origin.roleLabel?.startsWith("Apprentice ")
+    ? actor.origin.roleLabel.slice("Apprentice ".length).toLowerCase()
+    : undefined;
+  const trade = kits.get(actor.origin.specialty ?? "") ??
+    [...kits.values()].find((l) => l.label.toLowerCase() === specialty);
+  return trade
+    ? { ...kit, label: actor.origin.roleLabel ?? kit.label, activity: trade.activity, workplace: trade.workplace }
+    : kit;
 }
 /** One resident's day, from what the plan gave them and what their
  * livelihood does. Used for owners at planning time and for household

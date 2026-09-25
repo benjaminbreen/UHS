@@ -487,7 +487,7 @@ export function packForSetting(setting: WorldSetting): Pack {
       setting,
       setting.character?.appearanceSeed ?? "earth-2",
       "player",
-      34,
+      setting.character?.age ?? 34,
       setting.role,
       setting.characterName,
     );

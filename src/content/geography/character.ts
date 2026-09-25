@@ -64,12 +64,25 @@ export function populateCharacter(
   setting: WorldSetting,
   seed: string,
 ): WorldSetting {
-  setting = { ...setting, characterRevision: setting.characterRevision ?? 1 };
+  setting = {
+    ...setting,
+    characterRevision: setting.characterRevision ?? 1,
+    lifeStoryRevision: 1,
+  };
+  const roll = random(seed, "starting-character", setting.placeId, setting.year, "age");
+  const characterSeed = setting.character?.appearanceSeed ?? seed;
+  const firstAge = setting.character?.age ?? 18 + Math.floor(roll * 48);
+  const first = generateCharacter(setting, characterSeed, "player", firstAge, setting.role);
+  const age = setting.character?.age ?? (first.origin.livelihood === "apprentice"
+    ? 18 + Math.floor(roll * 10)
+    : first.origin.livelihood === "guild-master"
+      ? 30 + Math.floor(roll * 36)
+      : firstAge);
   const generated = generateCharacter(
     setting,
-    seed,
+    characterSeed,
     "player",
-    34,
+    age,
     setting.role,
   );
   const pick = (key: string) =>
@@ -86,11 +99,13 @@ export function populateCharacter(
       ? {
           ...setting.character,
           appearanceSeed: setting.character.appearanceSeed ?? seed,
+          age,
         }
       : {
           appearanceSeed: seed,
           hunger: 5 + Math.floor(pick("hunger") * 15),
           fatigue: Math.floor(pick("fatigue") * 8),
+          age,
         },
   };
 }

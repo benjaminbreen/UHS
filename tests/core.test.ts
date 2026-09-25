@@ -5,8 +5,13 @@ import { createWorld } from "../src/world/generate";
 import { packs } from "../src/content/packs";
 import { findPath } from "../src/core/pathfinding";
 import { canonical } from "../src/core/random";
+import { householdStory } from "../src/world/v3/household-story";
+import { marriagePracticeFor } from "../src/content/households/practices";
+import { lifeAimOf, advanceLifeAim } from "../src/core/life-aim";
+import { settingFor } from "../src/content/geography/resolve";
+import { places } from "../src/content/geography/places";
 import type { Engine } from "../src/core/engine";
-import type { PlayerCommand, Position } from "../src/core/types";
+import type { Actor, Household, PlayerCommand, Position } from "../src/core/types";
 let serial = 0;
 const act = (e: Engine, command: PlayerCommand) =>
   e.act({
@@ -37,6 +42,115 @@ function reach(e: Engine, target: Position) {
   throw Error("No route");
 }
 describe("shared deterministic foundation", () => {
+  it("varies new player relationships without implying a wedding where none is authored", () => {
+    let partnered = 0, widowed = 0;
+    for (let i = 0; i < 300; i++) {
+      const story = householdStory({
+        seed: `relationship-${i}`, id: "player-house", year: 1200, age: 50,
+        sex: i % 2 ? "female" : "male", means: 0.6, shared: false,
+        extended: true, small: false, craft: false, player: true,
+        modern: false, revised: true, formalMarriage: false,
+        built: 1180, fabric: "timber",
+      });
+      partnered += story.residents.some((r) => r.toHead === "partner") ? 1 : 0;
+      widowed += story.history.some((e) => e.kind === "died" && e.as === "partner") ? 1 : 0;
+      expect(story.history.some((e) => e.kind === "wed")).toBe(false);
+    }
+    expect(partnered).toBeGreaterThan(50);
+    expect(partnered).toBeLessThan(290);
+    expect(widowed).toBeGreaterThan(0);
+  });
+
+  it("offers a marriage aim only for an explicit, locally scoped family plan", () => {
+    const roman = settingFor(places.find((p) => p.id === "rome")!, 100);
+    const konya = settingFor(places.find((p) => p.id === "konya")!, -6499);
+    expect(marriagePracticeFor(roman)).toBeDefined();
+    expect(marriagePracticeFor(konya)).toBeUndefined();
+    const base = createSession("roman", "aim-subject").state.player;
+    const player = { ...base, relations: [{ other: "child", kind: "child" as const }] };
+    const child = {
+      ...base, id: "child", name: "Aelia", age: 19, householdId: "home",
+      relations: [{ other: "player", kind: "parent" as const }],
+    } as Actor;
+    const household: Household = {
+      id: "home", members: ["player", "child"], home: player.home,
+      storeId: "store", familyPlans: [{ kind: "seek-match", subject: "child" }],
+    };
+    const withPlan = Array.from({ length: 40 }, (_, i) =>
+      lifeAimOf(`aim-${i}`, roman, player, [child], [household]).id
+    );
+    expect(withPlan).toContain("marriage-hope");
+    expect(lifeAimOf("aim-0", roman, player, [child], [{ ...household, familyPlans: [] }]).id)
+      .toBe("child-future");
+    expect(lifeAimOf("aim-0", konya, player, [child], [household]).id)
+      .toBe("child-future");
+  });
+
+  it("grounds life-aim sentences in known kin, age, place, and hardship", () => {
+    const setting = settingFor(places.find((p) => p.id === "konya")!, -6499);
+    const base = createSession("roman", "aim-wording").state.player;
+    const player: Actor = {
+      ...base,
+      origin: { ...base.origin!, livelihood: "farmer", roleLabel: "Farmer" },
+      relations: [{ other: "child", kind: "child" }],
+    };
+    const child: Actor = {
+      ...base, id: "child", name: "Nawelkura", age: 7, householdId: "home",
+      origin: { ...base.origin!, sex: "female" },
+    };
+    const household: Household = {
+      id: "home", members: [player.id, child.id], home: player.home, storeId: "store",
+    };
+    expect(lifeAimOf("aim-wording", setting, player, [child], [household]).text)
+      .toBe("See Nawelkura, your 7-year-old daughter, safely into adulthood, with choices of their own.");
+
+    child.age = 19;
+    const grown = lifeAimOf("aim-wording", setting, player, [child], [household]);
+    expect(grown.text).toContain("Nawelkura, your 19-year-old daughter");
+    expect(grown.text).toContain(`in ${setting.location}`);
+
+    player.relations = [];
+    household.fortune = 0.2;
+    household.history = [{ year: setting.year - 1, kind: "fire" }];
+    const hardship = lifeAimOf("aim-wording", setting, player, [child], [household]);
+    expect(hardship.text).toContain(`in ${setting.location} after the fire`);
+  });
+
+  it("advances only the named person's step through a real conversation", () => {
+    const e = createSession("roman", "aim-conversation");
+    const people = e.state.actors.filter((a) => a.kind === "human");
+    const subject = people[0], other = people[1];
+    expect(subject).toBeDefined();
+    expect(other).toBeDefined();
+    subject.pos = { ...e.state.player.pos };
+    other.pos = { ...e.state.player.pos };
+    subject.trust = 1;
+    other.trust = 1;
+    e.state.lifeAim = {
+      id: "kin", text: "Keep in touch with kin.", subjects: [subject.id], revision: 1,
+      step: { type: "talk", actor: subject.id, text: `Speak with ${subject.name}.` },
+    };
+    expect(act(e, { type: "interact", target: other.id, action: "talk" }).status).toBe("completed");
+    expect(e.state.lifeAim.step?.type === "talk" && e.state.lifeAim.step.done).toBeFalsy();
+    subject.pos = { ...e.state.player.pos };
+    expect(act(e, { type: "interact", target: subject.id, action: "talk" }).status).toBe("completed");
+    expect(e.state.lifeAim.step?.type === "talk" && e.state.lifeAim.step.done).toBe(true);
+    expect(advanceLifeAim(e.state, { type: "talk", actor: subject.id })).toBe(false);
+    e.state.lifeAim.step = {
+      type: "give", actor: subject.id, items: ["water"], text: `Bring water to ${subject.name}.`,
+    };
+    e.state.player.heldItem = "water";
+    subject.pos = { ...e.state.player.pos };
+    const water = subject.inventory.water ?? 0;
+    expect(act(e, { type: "give", target: subject.id, item: "water" }).status).toBe("completed");
+    expect(subject.inventory.water).toBe(water + 1);
+    expect(e.state.lifeAim.step.done).toBe(true);
+    e.state.lifeAim.step = { type: "work", target: 3, progress: 0, text: "Practise your trade." };
+    expect(advanceLifeAim(e.state, { type: "work" })).toBe(false);
+    expect(advanceLifeAim(e.state, { type: "work" })).toBe(false);
+    expect(advanceLifeAim(e.state, { type: "work" })).toBe(true);
+    expect(advanceLifeAim(e.state, { type: "work" })).toBe(false);
+  });
   it("replays identical commands, including uncertainty, to the same physical hash", () => {
     const a = createSession("roman", "repeat"),
       b = createSession("roman", "repeat");

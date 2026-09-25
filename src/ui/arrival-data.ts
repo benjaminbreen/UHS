@@ -4,6 +4,66 @@ export function arrivalBackdrop(setting: WorldSetting) {
   const { lon, lat, year } = setting;
   const name = `${setting.location} ${setting.placeId}`.toLowerCase();
   const special: [string, number, number, number, number, number, number][] = [
+    ["botswana-500", 20, 30.5, -26, -16, 300, 900],
+    ["mozambique-700", 31, 42, -27, -10, 300, 900],
+    ["bay-area-2000", -123.5, -121.2, 36.8, 38.8, 1970, 2100],
+    ["namaqualand-2000", 15, 22, -34, -26, 1970, 2100],
+    ["mozambique-coast-2000", 31, 42, -27, -10, 1970, 2100],
+    ["central-africa-town-2000", 12, 32, -12, 7, 1970, 2100],
+    ["southern-africa-city-2000", 16, 42, -35, -10, 1970, 2100],
+    ["east-africa-town-2000", 28, 51, -12, 15, 1970, 2100],
+    ["west-africa-city-2000", -18, 18, 4, 19, 1970, 2100],
+    ["north-africa-town-2000", -17, 38, 17, 38, 1970, 2100],
+    ["central-asia-town-2000", 46, 95, 34, 55, 1970, 2100],
+    ["south-asia-city-2000", 60, 96, 5, 38, 1970, 2100],
+    ["south-asia-rural-2000", 60, 96, 5, 38, 1970, 2100],
+    ["southeast-asia-town-2000", 95, 140, -11, 22, 1970, 2100],
+    ["east-asia-city-2000", 96, 146, 20, 55, 1970, 2100],
+    ["east-asia-rural-2000", 96, 146, 20, 55, 1970, 2100],
+    ["andes-town-2000", -82, -65, -30, 8, 1970, 2100],
+    ["amazon-town-2000", -77, -47, -15, 9, 1970, 2100],
+    ["latin-america-city-2000", -118, -34, -35, 33, 1970, 2100],
+    ["latin-america-rural-2000", -118, -34, -35, 33, 1970, 2100],
+    ["north-america-suburb-2000", -170, -50, 25, 72, 1970, 2100],
+    ["middle-east-town-2000", 34, 66, 12, 43, 1970, 2100],
+    ["europe-town-2000", -13, 60, 34, 72, 1970, 2100],
+    ["australia-town-2000", 111, 155, -46, -10, 1970, 2100],
+    ["pacific-island-town-2000", 155, 180, -30, 30, 1970, 2100],
+    ["pacific-island-town-2000", -180, -130, -30, 30, 1970, 2100],
+    ["southern-africa-1930", 16, 42, -35, -10, 1900, 1969],
+    ["east-africa-1930", 28, 51, -12, 15, 1900, 1969],
+    ["central-africa-1930", 12, 32, -12, 7, 1900, 1969],
+    ["west-africa-1930", -18, 18, 4, 19, 1900, 1949],
+    ["central-asia-1930", 46, 95, 34, 55, 1900, 1969],
+    ["middle-east-1930", 34, 66, 12, 43, 1900, 1969],
+    ["southeast-asia-1930", 95, 140, -11, 22, 1900, 1969],
+    ["europe-1930", -13, 60, 34, 72, 1900, 1969],
+    ["americas-1930", -170, -34, -55, 72, 1900, 1969],
+    ["australia-1930", 111, 155, -46, -10, 1900, 1969],
+    ["pacific-island-1930", 155, 180, -30, 30, 1900, 1969],
+    ["pacific-island-1930", -180, -130, -30, 30, 1900, 1969],
+    ["mesopotamia-farm-1800bce", 42, 49, 29, 36, -2500, -1000],
+    ["indus-hinterland-2200bce", 65, 76, 22, 33, -2700, -1700],
+    ["ganges-early-100", 76, 89, 23, 31, -500, 500],
+    ["north-china-han-100", 108, 122, 34, 42, -200, 300],
+    ["bengal-medieval-1300", 87, 93, 20, 27, 800, 1500],
+    ["ganges-medieval-900", 76, 89, 23, 31, 600, 1200],
+    ["sichuan-medieval-1200", 102, 108, 27, 33, 900, 1400],
+    ["north-china-medieval-1100", 108, 122, 34, 42, 700, 1400],
+    ["tamil-country-1100", 76, 81, 8, 13, 800, 1400],
+    ["java-medieval-1200", 105, 115, -9, -5, 900, 1500],
+    ["bengal-1800", 87, 93, 20, 27, 1650, 1899],
+    ["indo-gangetic-1700", 75, 88, 23, 31, 1500, 1850],
+    ["lower-yangtze-1700", 115, 123, 28, 34, 1500, 1850],
+    ["north-china-1700", 108, 122, 34, 42, 1500, 1850],
+    ["europe-lowlands-1650", -1, 15, 47, 55, 1500, 1800],
+    ["nile-valley-1800", 29, 34, 22, 31, 1500, 1899],
+    ["rural-japan-1800", 130, 142, 32, 41, 1700, 1899],
+    ["north-india-1930", 73, 87, 22, 33, 1900, 1969],
+    ["east-china-1930", 110, 123, 25, 42, 1900, 1969],
+    ["west-africa-1970", -18, 15, 5, 17, 1950, 2100],
+    ["northeast-woodlands-1200", -82, -59, 41, 52, 800, 1500],
+    ["hudson-lowlands-1200", -107, -75, 50, 61, 800, 1500],
     ["iberian-interior-1100", -10, 0, 37, 43, 800, 1300],
     ["baltic-coast-850", 10, 31, 54, 62, 600, 1000],
     ["eurasian-forest-steppe-100", 24, 56, 44, 55, -300, 500],
@@ -33,6 +93,7 @@ export function arrivalBackdrop(setting: WorldSetting) {
     ["southwest-1100", -115, -104, 31, 39, 800, 1400],
     ["eastern-woodlands-1100", -96, -75, 30, 45, 800, 1500],
     ["andes-1400", -81, -65, -26, -8, 1200, 1550],
+    ["amazon-1000", -62, -50, 4, 8, 500, 1500],
     ["amazon-1000", -77, -47, -13, 4, 500, 1500],
     ["manchuria-bronze", 119, 136, 39, 51, -1600, -500],
     ["yellow-river-1000bce", 106, 121, 33, 41, -1300, -600],
@@ -44,8 +105,16 @@ export function arrivalBackdrop(setting: WorldSetting) {
     ["arabian-oasis-500", 41, 58, 14, 30, 100, 800],
     ["great-lakes-africa-1100", 28, 37, -7, 2, 600, 1500],
     ["maritime-seasia-1200", 95, 139, -11, 19, 700, 1500],
+    ["california-1100", -125, -114, 32, 42, -3000, 1799],
+    ["colorado-400", -115, -101, 34, 43, -3000, 1799],
+    ["great-plains-1100", -106, -92, 30, 56, -3000, 1799],
+    ["eastern-woodlands-400", -100, -62, 25, 62, -3000, 1599],
+    ["north-atlantic-1730", -100, -50, 25, 62, 1600, 1899],
+    ["western-north-america-1850", -125, -95, 25, 62, 1800, 1899],
   ];
   const named = [
+    [/new england|acadian|maine|new brunswick|nova scotia/, "northeast-woodlands-1200"],
+    [/hudson bay/, "hudson-lowlands-1200"],
     [/sierra madre oriental/, "sierra-madre-1000"],
     [/huastec|huasteca/, "huasteca-1000"],
     [/manchuria|manchurian/, "manchuria-bronze"],
@@ -58,11 +127,56 @@ export function arrivalBackdrop(setting: WorldSetting) {
   }
   for (const [id, west, east, south, north, first, last] of special) {
     if (lon >= west && lon <= east && lat >= south && lat <= north && year >= first && year <= last) {
+      if (id === "mozambique-coast-2000" && !setting.water.startsWith("coast") && !/maputo|beira|quelimane|pemba/.test(name)) continue;
+      if (id === "andes-town-2000" && setting.relief < 0.5) continue;
+      if (id === "south-asia-city-2000" && setting.settlement !== "city" && setting.settlement !== "port") continue;
+      if (id === "east-asia-city-2000" && setting.settlement !== "city" && setting.settlement !== "port") continue;
+      if (id === "latin-america-city-2000" && setting.settlement !== "city" && setting.settlement !== "port") continue;
+      if (id === "west-africa-city-2000" && setting.settlement !== "city" && setting.settlement !== "port") continue;
+      if (id === "indus-hinterland-2200bce" && setting.settlement === "city") continue;
       if (id === "sierra-madre-1000" && setting.relief < 0.5) continue;
       if (id === "sepik-1000" && setting.relief >= 0.5) continue;
       if (id === "australian-interior-500bce" && setting.water.startsWith("coast")) continue;
       return `/opening/${id}.webp`;
     }
+  }
+  if (lon >= -170 && lon <= -50 && lat >= 25 && year < 1900) {
+    if (lat >= 62) return "/opening/arctic-north-america-1100.webp";
+    if (year >= 1800) return lon < -100
+      ? "/opening/western-north-america-1850.webp"
+      : "/opening/north-atlantic-1730.webp";
+    if (year >= 1600 && lon >= -100) return "/opening/north-atlantic-1730.webp";
+    if (lon < -125 && lat >= 42) return "/opening/pacific-northwest-1100.webp";
+    if (lon < -114 && lat < 42) return "/opening/california-1100.webp";
+    if (lon < -101 && lat < 43) return "/opening/colorado-400.webp";
+    if (lon < -92) return "/opening/great-plains-1100.webp";
+    return "/opening/eastern-woodlands-400.webp";
+  }
+  if (year >= 1900 && year <= 2100) {
+    const recent = year >= 1970;
+    const urban = setting.settlement === "city" || setting.settlement === "port";
+    if (lon < -30) {
+      if (!recent) return "/opening/americas-1930.webp";
+      if (lat > 25) return "/opening/north-america-suburb-2000.webp";
+      return urban ? "/opening/latin-america-city-2000.webp" : "/opening/latin-america-rural-2000.webp";
+    }
+    if (lon < 45 && lat < 35) {
+      if (lat < -10) return recent ? "/opening/southern-africa-city-2000.webp" : "/opening/southern-africa-1930.webp";
+      if (lat < 7) return recent ? "/opening/central-africa-town-2000.webp" : "/opening/central-africa-1930.webp";
+      if (lat < 17) return recent ? "/opening/east-africa-town-2000.webp" : "/opening/east-africa-1930.webp";
+      return recent ? "/opening/north-africa-town-2000.webp" : "/opening/middle-east-1930.webp";
+    }
+    if (lon < 60 && lat >= 35) return recent ? "/opening/europe-town-2000.webp" : "/opening/europe-1930.webp";
+    if (lon < 70) return recent ? "/opening/middle-east-town-2000.webp" : "/opening/middle-east-1930.webp";
+    if (lon < 96) return lat > 34
+      ? recent ? "/opening/central-asia-town-2000.webp" : "/opening/central-asia-1930.webp"
+      : recent ? urban ? "/opening/south-asia-city-2000.webp" : "/opening/south-asia-rural-2000.webp" : "/opening/north-india-1930.webp";
+    if (lon < 140 && lat < 22) return recent ? "/opening/southeast-asia-town-2000.webp" : "/opening/southeast-asia-1930.webp";
+    if (lon < 155 && lat < -10) return recent ? "/opening/australia-town-2000.webp" : "/opening/australia-1930.webp";
+    if (lon < 155 && lat > 15) return recent
+      ? urban ? "/opening/east-asia-city-2000.webp" : "/opening/east-asia-rural-2000.webp"
+      : "/opening/east-china-1930.webp";
+    return recent ? "/opening/pacific-island-town-2000.webp" : "/opening/pacific-island-1930.webp";
   }
   let region: string;
   if (lon < -30) region = "americas";

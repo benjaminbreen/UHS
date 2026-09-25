@@ -79,6 +79,7 @@ import { carryKit } from "../content/economy/carrying";
 import { processFor, type ProcessFamily } from "../content/economy/processes";
 import { itineraryAt, type Itinerary, DAY_MINUTES } from "./itinerary";
 import { goalDone, heldCount, pickGoals } from "./goals";
+import { advanceLifeAim } from "./life-aim";
 import { GOAL_TEMPLATES } from "../content/goals/templates";
 import type { SeasonId } from "./season";
 import { livelihoodOf } from "../world/v3/routines";
@@ -345,7 +346,7 @@ export class Engine {
     if (household) {
       Object.assign(this.state.player, {
         householdId: household.id,
-        age: 34,
+        age: this.world.pack.setting?.character?.age ?? 34,
         knownResources: [],
         relations: this.state.actors.flatMap((a) =>
           (a.relations ?? [])
@@ -533,6 +534,8 @@ export class Engine {
         ? `A full day's work done (${kit.activity.toLowerCase()}): ${Object.keys(made).map((g) => goods.find((x) => x.id === g)?.noun ?? this.item(g)?.name.toLowerCase() ?? g).join(" and ")}.`
         : `A full day's work done (${kit.activity.toLowerCase()}).`,
     );
+    if (advanceLifeAim(s, { type: "work" }))
+      this.event("You have completed a step toward your life aim.");
   }
   /** Today's goals, picked at the first call of each game day. */
   dailyGoals() {
@@ -4844,6 +4847,8 @@ export class Engine {
         `You hand ${def.name.toLowerCase()} to ${a.name}. They take it.`,
         "social",
       );
+      if (advanceLifeAim(this.state, { type: "give", actor: a.id, item: c.item }))
+        this.event("You have completed a step toward your life aim.");
       return;
     }
     if (c.type === "remove") {
@@ -5012,6 +5017,8 @@ export class Engine {
               `${a.name}: “Something has gone missing. Return it before asking for favors.”`,
               "social",
             );
+          if (a.trust >= 0 && advanceLifeAim(this.state, { type: "talk", actor: a.id }))
+            this.event("You have completed a step toward your life aim.");
         }
         break;
       case "follow":

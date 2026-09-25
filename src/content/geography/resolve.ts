@@ -7,9 +7,9 @@ import { places } from "./places";
 import { urbanized } from "../settlements/urban-form";
 import { farms } from "./onsets";
 import { integratedSetting } from "./defaults";
+import { matchesCharacterScope, resolveCharacterContext } from "../characters/resolve";
 import { placeAtYear } from "./eras";
 import { settingSchema, type AtlasPlace, type WorldSetting } from "./types";
-import { commonLivelihoods } from "../characters/livelihoods.generated";
 export const normalize = (s: string) =>
   s
     .normalize("NFD")
@@ -228,14 +228,15 @@ export function resolveSetting(
       [/\bweaver\b/, "Weaver"],
       [/\bsailor\b/, "Sailor"],
     ];
-    const trade = roles.some(([pattern]) => pattern.test(q))
-      ? undefined
-      : commonLivelihoods
-          .map((l) => l.label)
-          .filter((label) => has(q, label))
-          .sort((a, b) => b.length - a.length)[0];
-    s.role =
-      roles.find(([pattern]) => pattern.test(q))?.[1] ?? trade ?? "Traveler";
+    const context = resolveCharacterContext(s);
+    const namedRole = context.livelihoods.flatMap((livelihood) => [
+      livelihood.label,
+      ...(livelihood.labels ?? [])
+        .filter((label) => matchesCharacterScope(label.scope, s) &&
+          (!label.ecologies || !!s.environment?.ecology && label.ecologies.includes(s.environment.ecology)))
+        .map((label) => label.label),
+    ]).sort((a, b) => b.length - a.length).find((label) => has(q, label));
+    s.role = namedRole ?? roles.find(([pattern]) => pattern.test(q))?.[1] ?? "Traveler";
     if (has(q, "free black")) s.community = "Free Black household";
     s.characterName = s.role;
     if (/\bfarm(?:er|stead)?\b/.test(q)) s.settlement = "farm";
@@ -267,9 +268,10 @@ export function resolveSetting(
       /\b\d+(?:st|nd|rd|th)?\b|\b(?:bce|bc|ce|ad|century|year)\b/g,
       " ",
     );
-    if (trade) rest = rest.split(` ${normalize(trade)} `).join(" ");
     for (const [pattern] of roles)
       rest = rest.replace(new RegExp(pattern.source, "g"), " ");
+    if (namedRole)
+      rest = rest.split(` ${normalize(namedRole).replace(/-/g, " ")} `).join(" ");
     rest = rest
       .replace(
         /\b(?:a|an|the|in|at|of|from|during|as|and|or|guy|man|woman|person|spring|summer|autumn|winter|camp|life)\b/g,

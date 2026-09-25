@@ -3,9 +3,12 @@ import { generateCharacter } from "../src/content/characters/generate";
 import { resolveCharacterContext } from "../src/content/characters/resolve";
 import { integratedSetting } from "../src/content/geography/defaults";
 import { populateCharacter } from "../src/content/geography/character";
+import { packForSetting } from "../src/content/geography/pack";
+import { livelihoodOf } from "../src/world/v3/routines";
+import { goodsOf } from "../src/content/economy/goods";
 import { settingFor } from "../src/content/geography/resolve";
 import { featuredPlaces, places } from "../src/content/geography/places";
-import type { Inventory } from "../src/core/types";
+import type { Actor, Inventory } from "../src/core/types";
 
 const place = (id: string) => {
   const found = places.find((p) => p.id === id);
@@ -14,6 +17,23 @@ const place = (id: string) => {
 };
 
 describe("contextual character generation", () => {
+  it("resolves a requested apprentice specialty to its work and a suitable starting age", () => {
+    const setting = { ...settingFor(place("rome"), 100), role: "Apprentice Brewer" };
+    for (let i = 0; i < 8; i++) {
+      const seed = `brewer-${i}`;
+      const populated = populateCharacter(setting, seed);
+      const age = populated.character!.age!;
+      const person = generateCharacter(populated, seed, "player", age, populated.role);
+      const kit = livelihoodOf(packForSetting(populated), { origin: person.origin } as Actor);
+      expect(age).toBeGreaterThanOrEqual(18);
+      expect(age).toBeLessThanOrEqual(27);
+      expect(person.role).toBe("Apprentice Brewer");
+      expect(person.origin.specialty).toBe("brewer");
+      expect(kit?.activity).toBe("Brewing");
+      expect(goodsOf(kit)).toContain("drink");
+    }
+  });
+
   it("resolves and populates every featured place through the integrated path", () => {
     for (const featured of featuredPlaces) {
       const setting = integratedSetting(settingFor(featured));

@@ -284,6 +284,7 @@ const actor = z.object({
       standing: z.enum(["free", "unfree"]).optional(),
       /** The title as drawn: a belief-driven office resolves per person. */
       roleLabel: z.string().optional(),
+      specialty: z.string().max(80).optional(),
       nameFormat: z.string().optional(),
       nameFamilies: z.array(z.string()).optional(),
       livelihood: z.string(),
@@ -594,6 +595,29 @@ const faunaGroup = z
   })
   .strict();
 export const snapshotSchema = z.object({
+  goals: z.array(z.object({
+    id: z.string().max(80),
+    slot: z.enum(["work", "need", "social"]).optional(),
+    text: z.string().max(240),
+    check: z.discriminatedUnion("type", [
+      z.object({ type: z.literal("gain"), items: z.array(item).max(20), n: z.number().int().positive() }).strict(),
+      z.object({ type: z.literal("trade") }).strict(),
+      z.object({ type: z.literal("work") }).strict(),
+      z.object({ type: z.literal("visit"), place: z.string().max(120) }).strict(),
+      z.object({ type: z.literal("talk") }).strict(),
+      z.object({ type: z.literal("eat"), below: z.number() }).strict(),
+      z.object({ type: z.literal("rest"), below: z.number() }).strict(),
+    ]),
+    base: z.number().int().nonnegative().optional(),
+    done: z.boolean().optional(),
+  }).strict()).max(8).optional(),
+  goalDay: z.number().int().nonnegative().optional(),
+  goalFlags: z.object({
+    traded: z.boolean(),
+    talked: z.boolean(),
+    visited: z.array(z.string().max(240)).max(1000),
+    worked: z.boolean().optional(),
+  }).strict().optional(),
   today: z
     .object({
       day: z.number().int(),
@@ -659,6 +683,18 @@ export const snapshotSchema = z.object({
         residence: z.string().optional(),
         home: pos,
         storeId: z.string(),
+        history: z.array(z.object({
+          year: z.number().int(),
+          kind: z.enum(["wed", "born", "died", "left", "joined", "built", "inherited", "moved", "fire", "good-year", "bad-year", "robbed"]),
+          name: z.string().max(100).optional(),
+          as: z.string().max(40).optional(),
+        }).strict()).max(500).optional(),
+        fortune: z.number().min(0).max(1).optional(),
+        infants: z.number().int().nonnegative().max(100).optional(),
+        familyPlans: z.array(z.object({
+          kind: z.literal("seek-match"),
+          subject: z.string().max(100),
+        }).strict()).max(4).optional(),
       }),
     )
     .optional(),
@@ -777,5 +813,19 @@ export const snapshotSchema = z.object({
         })
         .strict(),
     )
+    .optional(),
+  lifeAim: z
+    .object({
+      id: z.string().max(80),
+      text: z.string().max(240),
+      subjects: z.array(z.string().max(100)).max(8),
+      revision: z.literal(1).optional(),
+      step: z.discriminatedUnion("type", [
+        z.object({ type: z.literal("talk"), actor: z.string().max(100), text: z.string().max(160), done: z.boolean().optional() }).strict(),
+        z.object({ type: z.literal("give"), actor: z.string().max(100), items: z.array(item).max(12), text: z.string().max(160), done: z.boolean().optional() }).strict(),
+        z.object({ type: z.literal("work"), target: z.number().int().min(1).max(30), progress: z.number().int().nonnegative().max(30), text: z.string().max(160) }).strict(),
+      ]).optional(),
+    })
+    .strict()
     .optional(),
 });

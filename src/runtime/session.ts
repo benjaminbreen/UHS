@@ -103,6 +103,8 @@ import { ecologyProfiles } from "../content/ecology/profiles";
 import { colorwayLabels } from "../content/ecology/variants";
 import { biomeNames, ecoregionNear } from "../content/geography/ecoregions";
 import { fromAtlas, toAtlas } from "../world/geography/coordinates";
+import { ensureLifeAim } from "../core/life-aim";
+import { GOAL_TEMPLATES } from "../content/goals/templates";
 export function createSession(
   packId = "roman",
   seed = packs[packId]?.defaultSeed ?? "earth-2",
@@ -150,7 +152,7 @@ export function createSession(
           resolved,
           resolved.character?.appearanceSeed ?? seed,
           "player",
-          engine.state.player.age ?? 34,
+          resolved.character?.age ?? engine.state.player.age ?? 34,
           resolved.role,
           resolved.characterName,
         ),
@@ -207,6 +209,11 @@ export function createSession(
     engine.state.player.stats = rollStats(seed, engine.state.player);
     engine.state.player.health = 100;
   }
+  for (const goal of engine.state.goals ?? []) {
+    goal.slot ??= GOAL_TEMPLATES.find((template) => template.id === goal.id)?.slot ??
+      (["eat", "food-store", "sleep", "water", "firewood"].includes(goal.id) ? "need" : "social");
+  }
+  ensureLifeAim(engine.state, pack.setting);
   return engine;
 }
 /** Origin records "unspecified" where the name kit decided sex; the drawn

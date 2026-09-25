@@ -60,6 +60,7 @@ export type Household = {
   fortune?: number;
   /** Children too small to be out in the street, counted rather than drawn. */
   infants?: number;
+  familyPlans?: { kind: "seek-match"; subject: string }[];
   /** Goods from `goods.ts` it makes for others. */
   makes?: string[];
   /** Where it gets what it does not make: a good and the household it buys from. */
@@ -150,6 +151,7 @@ export type CharacterOrigin = {
   livelihood: string;
   /** The title as drawn; a belief-driven office resolves per person. */
   roleLabel?: string;
+  specialty?: string;
   notes: string[];
 };
 export type Fire = {
@@ -521,6 +523,7 @@ export type Snapshot = {
   narration?: { clock: number; input: string; text: string }[];
   goals?: import("../content/goals/types").DailyGoal[];
   goalDay?: number;
+  lifeAim?: import("../content/goals/types").PersonalAim;
   /** Household stocks, run by `core/economy.ts`. */
   economy?: Economy;
   /** What the player's day has held so far, for the evening's account. */

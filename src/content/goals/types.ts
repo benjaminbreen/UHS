@@ -49,9 +49,22 @@ export type GoalTemplate = {
 /** A picked goal as stored in engine state. */
 export type DailyGoal = {
   id: string;
+  slot?: GoalTemplate["slot"];
   text: string;
   check: GoalCheck;
   /** Count of the check items at dawn, for "gain". */
   base?: number;
   done?: boolean;
+};
+
+/** A durable concern drawn from a character's circumstances, not a daily task. */
+export type PersonalAim = {
+  id: string;
+  text: string;
+  subjects: string[];
+  revision?: 1;
+  step?:
+    | { type: "talk"; actor: string; text: string; done?: boolean }
+    | { type: "give"; actor: string; items: ItemId[]; text: string; done?: boolean }
+    | { type: "work"; target: number; progress: number; text: string };
 };

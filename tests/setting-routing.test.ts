@@ -36,4 +36,12 @@ describe("local-first setting interpretation", () => {
     expect(resolve("Florence weaver 750").setting.year).toBe(750);
     expect(resolve("Florence weaver 100 BCE").setting.year).toBe(-99);
   });
+  it("keeps a requested local trade instead of drawing an unrelated one", () => {
+    const baker = resolve("A Roman baker in Ostia, 100 CE");
+    expect(baker.needsInterpretation).toBe(false);
+    expect(baker.setting.role.toLowerCase()).toContain("baker");
+    const brewer = resolve("A Roman apprentice brewer in Ostia, 100 CE");
+    expect(brewer.needsInterpretation).toBe(false);
+    expect(brewer.setting.role).toBe("Apprentice Brewer");
+  });
 });

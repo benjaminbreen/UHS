@@ -218,9 +218,32 @@ export function characterLivelihood(
   // craftsperson; now that the tables name a weaver, asking for one and being
   // handed a craftsperson is a downgrade, not a substitution.
   const key = requested?.toLowerCase();
+  const localRole = (l: Livelihood) => asOfficiant(l, s, seed, id);
+  const apprentice = context.livelihoods.find((l) => l.id === "apprentice");
+  const tradeFor = (label: string) => context.livelihoods.find((l) =>
+    l.id !== "apprentice" && l.label.toLowerCase() === label.toLowerCase() &&
+    allowedBy(standing, l) && (sex === "unspecified" || !l.sex || l.sex === sex)
+  );
+  const resolveApprentice = (l: Livelihood) => {
+    if (l.id !== "apprentice") return l;
+    const trade = l.label.startsWith("Apprentice ")
+      ? tradeFor(l.label.slice("Apprentice ".length))
+      : undefined;
+    return trade
+      ? { ...l, activity: trade.activity, workplace: trade.workplace }
+      : { ...l, label: "Apprentice" };
+  };
+  if (key?.startsWith("apprentice ") && apprentice && allowedBy(standing, apprentice)) {
+    const trade = tradeFor(requested!.slice("Apprentice ".length));
+    if (trade)
+      return resolveApprentice({ ...apprentice, label: requested! });
+  }
   const named = key
     ? (context.livelihoods.find((l) => l.id === key) ??
       context.livelihoods.find((l) => l.label.toLowerCase() === key) ??
+      context.livelihoods.find(
+        (l) => localRole(l)?.label.toLowerCase() === key,
+      ) ??
       (alias[key]
         ? context.livelihoods.find((l) => l.id === alias[key])
         : undefined))
@@ -228,8 +251,8 @@ export function characterLivelihood(
   // A request still has to pass the filters a drawn role passes, and a
   // religious office still takes its title from what people here believe.
   if (named && allowedBy(standing, named)) {
-    const resolved = asOfficiant(named, s, seed, id);
-    if (resolved) return resolved;
+    const resolved = localRole(named);
+    if (resolved) return resolveApprentice(resolved);
   }
   // A few kinds of work were done overwhelmingly by one sex; the rest are open.
   // "unspecified" is no constraint rather than no match -- read as a constraint
@@ -265,7 +288,7 @@ export function characterLivelihood(
   // trades: one of everything and two of nothing, and nobody growing food.
   const total = pool.reduce((n, l) => n + (l.weight ?? 1), 0);
   let roll = random(seed, "character-v1", id, "livelihood") * total;
-  return pool.find((l) => (roll -= l.weight ?? 1) < 0) ?? pool[pool.length - 1];
+  return resolveApprentice(pool.find((l) => (roll -= l.weight ?? 1) < 0) ?? pool[pool.length - 1]);
 }
 export function eligibleInventory(
   inventory: Inventory,
@@ -421,8 +444,13 @@ export function generateCharacter(
   );
   const recognized =
     !requestedRole ||
+    livelihood.label.toLowerCase() === requestedRole.toLowerCase() ||
+    requestedRole.toLowerCase().startsWith("apprentice ") ||
     context.livelihoods.some(
-      (l) => l.label.toLowerCase() === requestedRole.toLowerCase(),
+      (l) =>
+        l.label.toLowerCase() === requestedRole.toLowerCase() ||
+        asOfficiant(l, s, seed, id)?.label.toLowerCase() ===
+          requestedRole.toLowerCase(),
     ) ||
     [
       "forager",
@@ -503,6 +531,9 @@ export function generateCharacter(
         explicitName && explicitName !== naming.display ? [] : naming.families,
       livelihood: livelihood.id,
       roleLabel: livelihood.label,
+      specialty: livelihood.id === "apprentice" && livelihood.label.startsWith("Apprentice ")
+        ? context.livelihoods.find((l) => l.label.toLowerCase() === livelihood.label.slice("Apprentice ".length).toLowerCase())?.id
+        : undefined,
       notes: [
         ...context.notes,
         ...("note" in naming && naming.note ? [naming.note] : []),

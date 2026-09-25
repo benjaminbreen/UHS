@@ -2935,7 +2935,7 @@ export function planSettlement(
       if (pack.setting?.characterRevision)
         Object.assign(
           a,
-          generateCharacter(pack.setting, seed, owner, 34, role),
+          generateCharacter(pack.setting, seed, owner, pack.setting.character?.age ?? 34, role),
         );
       if (owner !== "player") plan.actors.push(a);
       // The threshold and the work pocket are held against scattered decoration.

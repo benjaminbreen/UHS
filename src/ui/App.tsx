@@ -142,6 +142,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
     (window as unknown as { uhs?: Runtime }).uhs = runtime;
   const { observation: obs, selection, pack } = view;
   const p = obs.player;
+  const aim = runtime.engine.state.lifeAim;
   const propControls = runtime.propControls();
   const verbs = { ...runtime.verbs(), held: propControls.held };
   const speaker = runtime.nearestSpeaker();
@@ -1433,10 +1434,16 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
                 )}
                 {sideTab === "today" && (
                   <div className="event-log">
+                    {aim && (
+                      <div>
+                        <time>Life aim</time>
+                        <span>{aim.text}{aim.step && <small className="life-aim-step">{aim.step.text} {aim.step.type === "work" ? `(${aim.step.progress}/${aim.step.target})` : aim.step.done ? "(done)" : ""}</small>}</span>
+                      </div>
+                    )}
                     {runtime.engine.dailyGoals().length > 0 ? (
                       runtime.engine.dailyGoals().map((g) => (
                         <div key={g.id}>
-                          <time>{g.done ? "Done" : "Goal"}</time>
+                          <time>{g.done ? "Done" : g.slot === "work" ? "Work" : g.slot === "need" ? "Need" : "Social"}</time>
                           <span>{g.text}</span>
                         </div>
                       ))
