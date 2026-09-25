@@ -89,7 +89,9 @@ describe("four-direction fauna", () => {
         expect(knownStates.has(state), `${profile.id}:${state}`).toBe(true);
         for (const facing of faunaFacings) {
           const ids = faunaFrames(profile, state as never, facing);
-          expect(ids.length, `${profile.id}:${state}:${facing}`).toBe(8);
+          expect([8, 16], `${profile.id}:${state}:${facing}`).toContain(
+            ids.length,
+          );
           for (const id of ids) {
             expect(id.startsWith(`faunac-${profile.id}-`)).toBe(true);
             expect(frames[id], id).toBeDefined();

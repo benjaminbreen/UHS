@@ -4,19 +4,19 @@ import json
 from PIL import Image, ImageDraw
 from art.fauna_c import fauna_c, PALETTES, STATES, NATIVE_SIZES, STANDING_SIZES, DIRECTIONS
 from art.atlas import pack_atlas
-from art import fauna_d
+from art import fauna_d, fox
 
 root = Path(__file__).resolve().parent.parent
 out = root / "public/fauna-c"
 out.mkdir(exist_ok=True)
 # Set D is the working animals, drawn on a later rig and in several forms and
 # coats; it shares this atlas because it shares the four facings.
-sprites = {**fauna_c(), **fauna_d.fauna_d()}
-looks = fauna_d.looks()
-PALETTES = {**PALETTES, **fauna_d.PALETTES}
-STATES = {**STATES, **fauna_d.STATES}
-NATIVE_SIZES = {**NATIVE_SIZES, **fauna_d.NATIVE_SIZES}
-STANDING_SIZES = {**STANDING_SIZES, **{k: (w, h - fauna_d.HEADROOM[k] - 3) for k, (w, h) in fauna_d.NATIVE_SIZES.items()}}
+sprites = {**fauna_c(), **fauna_d.fauna_d(), **fox.fauna_fox()}
+looks = {**fauna_d.looks(), **fox.looks()}
+PALETTES = {**PALETTES, **fauna_d.PALETTES, **fox.PALETTES}
+STATES = {**STATES, **fauna_d.STATES, **fox.STATES}
+NATIVE_SIZES = {**NATIVE_SIZES, **fauna_d.NATIVE_SIZES, **fox.NATIVE_SIZES}
+STANDING_SIZES = {**STANDING_SIZES, **{k: (w, h - fauna_d.HEADROOM[k] - 3) for k, (w, h) in fauna_d.NATIVE_SIZES.items()}, **fox.STANDING_SIZES}
 for name, im in sprites.items():
     assert set(im.getchannel("A").getdata()) <= {0, 255}, name
     assert len(im.getcolors(im.width * im.height)) <= 24, name

@@ -1383,6 +1383,12 @@ export class WorldScene extends Phaser.Scene {
   private fungusUnderfoot(cell: { x: number; y: number; space: string }) {
     if (cell.space !== "outside") return undefined;
     const engine = this.runtime.engine;
+    if (
+      engine.state.objects.some(
+        (o) => o.dung === "pat" && !o.carriedBy && o.pos.space === "outside" && o.pos.x === cell.x && o.pos.y === cell.y,
+      )
+    )
+      return "squish";
     const sprite = engine.world.decoration(cell.x, cell.y)?.sprite;
     if (sprite !== "nature-understory-fungi") return undefined;
     const id = engine.plantSpecies(sprite, cell.x, cell.y)?.id;
@@ -2645,9 +2651,12 @@ export class WorldScene extends Phaser.Scene {
     // The figures are lit for the same hour their shadows are cast for.
     if (this.characters) this.characters.light = this.shadowPhase;
     const setting = w.pack.setting;
-    this.season = setting
+    const season = setting
       ? (seasonAt(setting.season, e.state.clock) ?? setting.season)
       : "summer";
+    // A moulting coat is chosen for the season, so the choices go with it.
+    if (season !== this.season) this.faunaArt.clear();
+    this.season = season;
     this.weather = setting
       ? weatherAt(
           skySeed(e.state.manifest),
@@ -3823,8 +3832,10 @@ export class WorldScene extends Phaser.Scene {
               : o.sprite,
         o.pos,
       );
+      // Dung is drawn at world size and lies too flat to cast a shadow.
+      if (o.dung) this.shadows.get(o.id)?.setVisible(false);
       // A pebble on the ground is a pebble, not the boulder its art was cut from.
-      if (o.kind === "item") {
+      else if (o.kind === "item") {
         this.entities.get(o.id)?.setScale(ITEM_SCALE);
         this.shadows.get(o.id)?.setScale(ITEM_SCALE);
       }
@@ -3928,6 +3939,7 @@ export class WorldScene extends Phaser.Scene {
             g.id,
             id,
             w.pack?.setting,
+            this.season,
           );
           art = look
             ? `${look.art}+${look.coat.replace(/-/g, "_")}`
@@ -4143,10 +4155,12 @@ export class WorldScene extends Phaser.Scene {
           : state === "wander" || state === "stalk" || state === "approach"
             ? 140
             : 260;
+    const profile = faunaProfile(species);
+    const count = profile?.art[state]?.length || 8;
     const n = this.options.freeze
       ? 0
-      : Math.floor((stride ?? this.time.now / ms) + phase) % 8;
-    return faunaProfile(species)?.directions
+      : Math.floor((stride ?? this.time.now / ms) + phase) % count;
+    return profile?.directions
       ? `faunac-${art}-${state}-${facing}-${n}`
       : `faunab-${art}-${state}-${n}`;
   }

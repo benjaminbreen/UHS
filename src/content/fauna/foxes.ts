@@ -1,0 +1,151 @@
+import type { FaunaProfile } from "./types";
+import { directionalStudy } from "./types";
+
+const always = [-1000000, 10000] as const;
+
+/** The foxes, one rig drawn at four sizes: see scripts/art/fox.py. */
+export const foxes: readonly FaunaProfile[] = [
+  {
+    id: "red-fox",
+    label: "Red fox study",
+    latin: "Vulpes vulpes",
+    category: "wild",
+    locomotion: "ground",
+    social: "solitary",
+    activity: "crepuscular",
+    groupSize: [1, 1],
+    habitats: [
+      { tag: "forest-edge", weight: 1 },
+      { tag: "field", weight: 0.9 },
+      { tag: "scrub", weight: 0.8 },
+      { tag: "woodland", weight: 0.6 },
+      { tag: "open-grass", weight: 0.6 },
+      { tag: "settlement", weight: 0.25 },
+    ],
+    // The widest range of any wild carnivore: all of Europe and northern
+    // Asia, south to the Maghreb, Arabia, the Indian plains and southern
+    // China, and the north of North America. Loosed in Victoria in the 1850s
+    // and 1870s for the hunt.
+    presence: [
+      { years: always, bounds: [-11, 20, 180, 72] },
+      { years: always, bounds: [-17, 20, 35, 37] },
+      { years: always, bounds: [-170, 30, -52, 72] },
+      { years: [1855, 10000], bounds: [112, -44, 154, -10] },
+    ],
+    density: 0.5,
+    pace: 1.1,
+    settlementTolerance: 0.45,
+    minimumSettlementDistance: 6,
+    alertRadius: 6,
+    cohesionRadius: 2,
+    separationRadius: 1,
+    calmDecisionSeconds: 50,
+    urgentDecisionSeconds: 5,
+    prey: "small-animal",
+    diet: ["rodent", "small-animal", "invertebrate", "plant"],
+    preyTags: ["rodent", "small-animal"],
+    ...directionalStudy("red-fox"),
+  },
+  {
+    id: "arctic-fox",
+    label: "Arctic fox study",
+    latin: "Vulpes lagopus",
+    category: "wild",
+    locomotion: "ground",
+    social: "solitary",
+    activity: "flexible",
+    groupSize: [1, 1],
+    habitats: [
+      { tag: "open-grass", weight: 1 },
+      { tag: "rock", weight: 0.9 },
+      { tag: "shore", weight: 0.9 },
+      { tag: "scrub", weight: 0.6 },
+    ],
+    // Round the whole Arctic on the tundra and the pack ice, and the only land
+    // mammal native to Iceland. White in winter, brown in summer.
+    presence: [{ years: always, bounds: [-180, 60, 180, 84] }],
+    density: 0.5,
+    pace: 1.1,
+    settlementTolerance: 0.3,
+    minimumSettlementDistance: 8,
+    alertRadius: 5,
+    cohesionRadius: 2,
+    separationRadius: 1,
+    calmDecisionSeconds: 50,
+    urgentDecisionSeconds: 5,
+    prey: "small-animal",
+    diet: ["rodent", "small-animal", "invertebrate", "plant"],
+    preyTags: ["rodent", "small-animal"],
+    ...directionalStudy("arctic-fox"),
+  },
+  {
+    id: "fennec",
+    label: "Fennec study",
+    latin: "Vulpes zerda",
+    category: "wild",
+    locomotion: "ground",
+    social: "solitary",
+    activity: "nocturnal",
+    groupSize: [1, 1],
+    habitats: [
+      { tag: "open-grass", weight: 0.8 },
+      { tag: "scrub", weight: 1 },
+      { tag: "rock", weight: 0.8 },
+    ],
+    // The sand seas and stony desert of the Sahara, into Sinai and the Negev.
+    presence: [
+      { years: always, bounds: [-17, 14, 34, 34] },
+      { years: always, bounds: [32, 27, 36, 32] },
+    ],
+    density: 0.6,
+    pace: 1.1,
+    settlementTolerance: 0.35,
+    minimumSettlementDistance: 6,
+    alertRadius: 5,
+    cohesionRadius: 2,
+    separationRadius: 1,
+    calmDecisionSeconds: 50,
+    urgentDecisionSeconds: 5,
+    prey: "small-animal",
+    diet: ["rodent", "small-animal", "invertebrate", "plant"],
+    preyTags: ["rodent", "small-animal"],
+    ...directionalStudy("fennec"),
+  },
+  {
+    id: "grey-fox",
+    label: "Grey fox study",
+    latin: "Urocyon cinereoargenteus",
+    category: "wild",
+    locomotion: "ground",
+    social: "solitary",
+    activity: "crepuscular",
+    groupSize: [1, 1],
+    habitats: [
+      { tag: "woodland", weight: 1 },
+      { tag: "forest-edge", weight: 0.9 },
+      { tag: "scrub", weight: 0.9 },
+      { tag: "rock", weight: 0.5 },
+      { tag: "field", weight: 0.4 },
+    ],
+    // The broadleaf woods and brush of North America, from the Great Lakes through
+    // Mexico and Central America to the northern Andes. The one fox of the
+    // Americas that climbs trees.
+    presence: [
+      { years: always, bounds: [-125, 8, -65, 49] },
+      { years: always, bounds: [-84, 1, -60, 12] },
+    ],
+    density: 0.6,
+    pace: 1.1,
+    settlementTolerance: 0.4,
+    minimumSettlementDistance: 6,
+    alertRadius: 6,
+    cohesionRadius: 2,
+    separationRadius: 1,
+    calmDecisionSeconds: 50,
+    urgentDecisionSeconds: 5,
+    prey: "small-animal",
+    diet: ["rodent", "small-animal", "invertebrate", "plant"],
+    preyTags: ["rodent", "small-animal"],
+    ...directionalStudy("grey-fox"),
+  },
+];

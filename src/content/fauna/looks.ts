@@ -16,6 +16,8 @@ type Looks = {
   coats: Record<string, Record<string, string>>;
   /** First year a coat is seen, for the ones breeders made lately. */
   coatFrom: Record<string, number>;
+  /** A coat that moults: the coat it wears instead in a given season. */
+  seasons?: Record<string, Record<string, string>>;
 };
 
 const looks = Object.fromEntries(
@@ -42,6 +44,7 @@ export function faunaLook(
   group: string,
   member: string,
   setting?: WorldSetting,
+  season?: string,
 ): FaunaLook | undefined {
   const spec = looks[species];
   if (!spec) return undefined;
@@ -60,10 +63,11 @@ export function faunaLook(
     ([coat]) => !setting || setting.year >= (spec.coatFrom[coat] ?? -Infinity),
   );
   const herd = pick(coats, random(seed, "fauna-coat", group));
-  const coat =
+  const own =
     random(seed, "fauna-own-coat", member) < 0.6
       ? herd
       : pick(coats, random(seed, "fauna-coat", member));
+  const coat = (season && spec.seasons?.[own]?.[season]) || own;
   return {
     form: form.id,
     coat,

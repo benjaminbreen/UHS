@@ -2,6 +2,7 @@ import { americanFauna } from "./americas";
 import { birds } from "./birds";
 import { directionalFauna } from "./directional";
 import { domesticFauna } from "./domestic";
+import { foxes } from "./foxes";
 import { temperateFauna } from "./temperate";
 import { workingFauna } from "./working";
 import type { WorldSetting } from "../geography/types";
@@ -14,6 +15,7 @@ export const faunaProfiles = [
   ...workingFauna,
   ...temperateFauna,
   ...directionalFauna,
+  ...foxes,
 ];
 
 export function faunaProfile(id: string) {

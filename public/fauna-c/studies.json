@@ -1450,5 +1450,481 @@
       },
       "coatFrom": {}
     }
+  },
+  "red-fox": {
+    "palette": [
+      "#3b1c0d",
+      "#96431a",
+      "#c9651f",
+      "#e48a39",
+      "#f6b263",
+      "#b5a998",
+      "#e4dccd",
+      "#fffaf1",
+      "#6d2e11",
+      "#1a0f08",
+      "#2a1c15",
+      "#120b08",
+      "#f2ebdf",
+      "#7a4a3a"
+    ],
+    "states": {
+      "idle": 16,
+      "forage": 16,
+      "wander": 8,
+      "stalk": 8,
+      "chase": 8,
+      "flee": 8,
+      "rest": 16
+    },
+    "directions": [
+      "south",
+      "east",
+      "north",
+      "west"
+    ],
+    "size": [
+      42,
+      42
+    ],
+    "standing": [
+      42,
+      25
+    ],
+    "looks": {
+      "roles": {
+        "o": "#3b1c0d",
+        "d": "#96431a",
+        "m": "#c9651f",
+        "l": "#e48a39",
+        "h": "#f6b263",
+        "r": "#b5a998",
+        "p": "#e4dccd",
+        "q": "#fffaf1",
+        "b": "#6d2e11",
+        "e": "#1a0f08",
+        "a": "#2a1c15",
+        "k": "#120b08",
+        "t": "#f2ebdf",
+        "u": "#7a4a3a"
+      },
+      "forms": [
+        {
+          "id": "fox",
+          "weight": 1.0,
+          "where": null,
+          "coats": {
+            "red": 20,
+            "pale": 3,
+            "cross": 2,
+            "silver": 0.3
+          }
+        }
+      ],
+      "coats": {
+        "red": {
+          "o": "#3b1c0d",
+          "d": "#96431a",
+          "m": "#c9651f",
+          "l": "#e48a39",
+          "h": "#f6b263",
+          "r": "#b5a998",
+          "p": "#e4dccd",
+          "q": "#fffaf1",
+          "b": "#6d2e11",
+          "e": "#1a0f08",
+          "a": "#2a1c15",
+          "k": "#120b08",
+          "t": "#f2ebdf",
+          "u": "#7a4a3a"
+        },
+        "pale": {
+          "o": "#4d3219",
+          "d": "#a8703a",
+          "m": "#d09a58",
+          "l": "#e6b979",
+          "h": "#f5d6a2",
+          "r": "#b8ae9f",
+          "p": "#e8e1d4",
+          "q": "#fffbf3",
+          "b": "#80542b",
+          "e": "#1a0f08",
+          "a": "#3b2a1f",
+          "k": "#1a120c",
+          "t": "#f4eee2",
+          "u": "#8a6450"
+        },
+        "cross": {
+          "o": "#241209",
+          "d": "#5a2c14",
+          "m": "#8e4a22",
+          "l": "#b86a33",
+          "h": "#d98f4f",
+          "r": "#8f8375",
+          "p": "#c7bdae",
+          "q": "#ece6da",
+          "b": "#3a1a0b",
+          "e": "#0e0805",
+          "a": "#170f0b",
+          "k": "#0b0706",
+          "t": "#efe8dc",
+          "u": "#5b3a2e"
+        },
+        "silver": {
+          "o": "#0b0b0d",
+          "d": "#1b1b1f",
+          "m": "#2c2c33",
+          "l": "#474851",
+          "h": "#6d6f79",
+          "r": "#5b5b62",
+          "p": "#9a9ba2",
+          "q": "#c9cacf",
+          "b": "#141416",
+          "e": "#05050a",
+          "a": "#101014",
+          "k": "#060607",
+          "t": "#f2f2f0",
+          "u": "#3d3a3e"
+        }
+      },
+      "coatFrom": {}
+    }
+  },
+  "arctic-fox": {
+    "palette": [
+      "#66707a",
+      "#bcc5ce",
+      "#e2e7ec",
+      "#f1f4f6",
+      "#ffffff",
+      "#aab2ba",
+      "#d6dde3",
+      "#f7f9fb",
+      "#9aa4ae",
+      "#15171a",
+      "#8c949c",
+      "#2a2c30",
+      "#eaeef2",
+      "#c9b7b4"
+    ],
+    "states": {
+      "idle": 16,
+      "forage": 16,
+      "wander": 8,
+      "stalk": 8,
+      "chase": 8,
+      "flee": 8,
+      "rest": 16
+    },
+    "directions": [
+      "south",
+      "east",
+      "north",
+      "west"
+    ],
+    "size": [
+      42,
+      42
+    ],
+    "standing": [
+      42,
+      25
+    ],
+    "looks": {
+      "roles": {
+        "o": "#66707a",
+        "d": "#bcc5ce",
+        "m": "#e2e7ec",
+        "l": "#f1f4f6",
+        "h": "#ffffff",
+        "r": "#aab2ba",
+        "p": "#d6dde3",
+        "q": "#f7f9fb",
+        "b": "#9aa4ae",
+        "e": "#15171a",
+        "a": "#8c949c",
+        "k": "#2a2c30",
+        "t": "#eaeef2",
+        "u": "#c9b7b4"
+      },
+      "forms": [
+        {
+          "id": "fox",
+          "weight": 1.0,
+          "where": null,
+          "coats": {
+            "white": 10,
+            "blue": 1
+          }
+        }
+      ],
+      "coats": {
+        "white": {
+          "o": "#66707a",
+          "d": "#bcc5ce",
+          "m": "#e2e7ec",
+          "l": "#f1f4f6",
+          "h": "#ffffff",
+          "r": "#aab2ba",
+          "p": "#d6dde3",
+          "q": "#f7f9fb",
+          "b": "#9aa4ae",
+          "e": "#15171a",
+          "a": "#8c949c",
+          "k": "#2a2c30",
+          "t": "#eaeef2",
+          "u": "#c9b7b4"
+        },
+        "summer": {
+          "o": "#2b2219",
+          "d": "#4d3f31",
+          "m": "#6e5c48",
+          "l": "#8c7862",
+          "h": "#a8957d",
+          "r": "#8f8474",
+          "p": "#c2b6a3",
+          "q": "#e0d6c4",
+          "b": "#3d3127",
+          "e": "#0f0c09",
+          "a": "#3a2f25",
+          "k": "#1a1511",
+          "t": "#5d4d3c",
+          "u": "#9c8378"
+        },
+        "blue": {
+          "o": "#1c1c1f",
+          "d": "#34343a",
+          "m": "#4b4a52",
+          "l": "#63626b",
+          "h": "#7c7b84",
+          "r": "#56555b",
+          "p": "#6e6d74",
+          "q": "#88878e",
+          "b": "#2a2a2e",
+          "e": "#0a0a0c",
+          "a": "#2e2d33",
+          "k": "#111113",
+          "t": "#5a5961",
+          "u": "#7a6b6a"
+        }
+      },
+      "coatFrom": {},
+      "seasons": {
+        "white": {
+          "summer": "summer",
+          "autumn": "summer"
+        }
+      }
+    }
+  },
+  "fennec": {
+    "palette": [
+      "#6b4a2a",
+      "#c4935a",
+      "#e2b77f",
+      "#f0cf9e",
+      "#fae6c4",
+      "#c9b9a0",
+      "#efe4d0",
+      "#fffaf0",
+      "#a8763f",
+      "#1a120a",
+      "#c9975c",
+      "#5a3d22",
+      "#2a1d14",
+      "#f2c9b5"
+    ],
+    "states": {
+      "idle": 16,
+      "forage": 16,
+      "wander": 8,
+      "stalk": 8,
+      "chase": 8,
+      "flee": 8,
+      "rest": 16
+    },
+    "directions": [
+      "south",
+      "east",
+      "north",
+      "west"
+    ],
+    "size": [
+      42,
+      42
+    ],
+    "standing": [
+      42,
+      25
+    ],
+    "looks": {
+      "roles": {
+        "o": "#6b4a2a",
+        "d": "#c4935a",
+        "m": "#e2b77f",
+        "l": "#f0cf9e",
+        "h": "#fae6c4",
+        "r": "#c9b9a0",
+        "p": "#efe4d0",
+        "q": "#fffaf0",
+        "b": "#a8763f",
+        "e": "#1a120a",
+        "a": "#c9975c",
+        "k": "#5a3d22",
+        "t": "#2a1d14",
+        "u": "#f2c9b5"
+      },
+      "forms": [
+        {
+          "id": "fox",
+          "weight": 1.0,
+          "where": null,
+          "coats": {
+            "sand": 5,
+            "cream": 2
+          }
+        }
+      ],
+      "coats": {
+        "sand": {
+          "o": "#6b4a2a",
+          "d": "#c4935a",
+          "m": "#e2b77f",
+          "l": "#f0cf9e",
+          "h": "#fae6c4",
+          "r": "#c9b9a0",
+          "p": "#efe4d0",
+          "q": "#fffaf0",
+          "b": "#a8763f",
+          "e": "#1a120a",
+          "a": "#c9975c",
+          "k": "#5a3d22",
+          "t": "#2a1d14",
+          "u": "#f2c9b5"
+        },
+        "cream": {
+          "o": "#6e5634",
+          "d": "#cfae7c",
+          "m": "#ead0a4",
+          "l": "#f5e2bf",
+          "h": "#fdf1da",
+          "r": "#cdbfa8",
+          "p": "#f1e8d8",
+          "q": "#fffcf4",
+          "b": "#b58f5b",
+          "e": "#1a120a",
+          "a": "#d4b07c",
+          "k": "#5f4a30",
+          "t": "#30241a",
+          "u": "#f4d2c0"
+        }
+      },
+      "coatFrom": {}
+    }
+  },
+  "grey-fox": {
+    "palette": [
+      "#23211f",
+      "#5d5a57",
+      "#8a8783",
+      "#aba8a3",
+      "#cfccc6",
+      "#b4703a",
+      "#e6dccf",
+      "#faf6ef",
+      "#1f1d1b",
+      "#0d0c0b",
+      "#9b5a2e",
+      "#1c1612",
+      "#141312",
+      "#c07845"
+    ],
+    "states": {
+      "idle": 16,
+      "forage": 16,
+      "wander": 8,
+      "stalk": 8,
+      "chase": 8,
+      "flee": 8,
+      "rest": 16
+    },
+    "directions": [
+      "south",
+      "east",
+      "north",
+      "west"
+    ],
+    "size": [
+      42,
+      42
+    ],
+    "standing": [
+      42,
+      25
+    ],
+    "looks": {
+      "roles": {
+        "o": "#23211f",
+        "d": "#5d5a57",
+        "m": "#8a8783",
+        "l": "#aba8a3",
+        "h": "#cfccc6",
+        "r": "#b4703a",
+        "p": "#e6dccf",
+        "q": "#faf6ef",
+        "b": "#1f1d1b",
+        "e": "#0d0c0b",
+        "a": "#9b5a2e",
+        "k": "#1c1612",
+        "t": "#141312",
+        "u": "#c07845"
+      },
+      "forms": [
+        {
+          "id": "fox",
+          "weight": 1.0,
+          "where": null,
+          "coats": {
+            "grey": 5,
+            "dark": 1
+          }
+        }
+      ],
+      "coats": {
+        "grey": {
+          "o": "#23211f",
+          "d": "#5d5a57",
+          "m": "#8a8783",
+          "l": "#aba8a3",
+          "h": "#cfccc6",
+          "r": "#b4703a",
+          "p": "#e6dccf",
+          "q": "#faf6ef",
+          "b": "#1f1d1b",
+          "e": "#0d0c0b",
+          "a": "#9b5a2e",
+          "k": "#1c1612",
+          "t": "#141312",
+          "u": "#c07845"
+        },
+        "dark": {
+          "o": "#1a1917",
+          "d": "#45423f",
+          "m": "#686561",
+          "l": "#8a8781",
+          "h": "#aeaaa4",
+          "r": "#9c5e30",
+          "p": "#ddd2c3",
+          "q": "#f5f0e7",
+          "b": "#151412",
+          "e": "#0a0908",
+          "a": "#834a24",
+          "k": "#15100d",
+          "t": "#0e0d0c",
+          "u": "#a8683c"
+        }
+      },
+      "coatFrom": {}
+    }
   }
 }
