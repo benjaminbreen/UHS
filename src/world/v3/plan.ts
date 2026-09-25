@@ -4016,12 +4016,10 @@ export function planSettlement(
     .filter((o) => o !== "player")
     .sort((a, b) => grain(b) - grain(a) || a.localeCompare(b));
   const mouse = kept.find((k) => k.id === "mouse");
-  let nests = 0;
   if (mouse) {
     for (const owner of byGrain) {
       // Most houses have mice, whatever they store.
-      if (nests >= Math.max(4, byGrain.length * 0.6)) break;
-      if (random(seed, owner, "mice") > grain(owner) * 0.95) continue;
+      if (random(seed, owner, "mice") > 0.4 + grain(owner) * 0.6) continue;
       // Along the far wall from the door, where the sacks are.
       const far = freeBeside(owner, 2);
       const cells = (far.length ? far : freeBeside(owner)).slice(0, 4);
@@ -4042,15 +4040,12 @@ export function planSettlement(
         stride: 0,
         since: 0,
       } satisfies FaunaGroup);
-      nests++;
     }
   }
   if (cat) {
-    let cats = 0;
     for (const owner of byGrain) {
-      // Fewer cats than mouse nests: a cat's round takes in several houses.
-      if (cats >= Math.max(3, nests * 0.5)) break;
-      if (random(seed, owner, "cat") > 0.2 + grain(owner) * 0.6) continue;
+      // Most houses keep one: nothing else kept the grain from the mice.
+      if (random(seed, owner, "cat") > 0.45 + grain(owner) * 0.5) continue;
       const yard = freeBeside(owner)[0];
       if (!yard) continue;
       (plan.fauna ??= []).push({
@@ -4059,14 +4054,13 @@ export function planSettlement(
         members: [{ ...yard, direction: 1 }],
         pos: pos(yard),
         home: pos(yard),
-        homeRadius: 6,
+        homeRadius: 12,
         state: "rest",
         nextDecisionAt: 0,
         stride: 0,
         since: 0,
         owner,
       } satisfies FaunaGroup);
-      cats++;
     }
   }
   if (pack.setting?.characterRevision) {

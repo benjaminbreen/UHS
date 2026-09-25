@@ -166,7 +166,7 @@ function drawTerrainGlyphs(
       const { lon, lat } = fromAtlas(anchor.x + wx, anchor.y + wy);
       const env = broadEnvironment(lon, lat);
       const roll = hash(wx + 3, wy + 5);
-      const ridge = env.relief + (noise("relief", wx, wy, 3000, "map") - 0.5) * 0.5;
+      const ridge = ridgeAt(anchor, wx, wy, env.relief);
       if (ridge > 0.62 || k === "rock")
         marks.push({ x, y, draw: () => mountain(c, x, y, 7 + roll * 5) });
       else if (ridge > 0.38 && roll < 0.7)
@@ -185,6 +185,14 @@ function drawTerrainGlyphs(
   c.lineJoin = c.lineCap = "round";
   for (const m of marks.sort((a, b) => a.y - b.y)) m.draw();
   c.restore();
+}
+/** How mountainous the map draws a point; roads route around the same. */
+export function ridgeAt(anchor: Point, wx: number, wy: number, relief?: number) {
+  if (relief === undefined) {
+    const { lon, lat } = fromAtlas(anchor.x + wx, anchor.y + wy);
+    relief = broadEnvironment(lon, lat).relief;
+  }
+  return relief + (noise("relief", wx, wy, 3000, "map") - 0.5) * 0.5;
 }
 const INK = "rgba(38,44,24,0.7)";
 function mountain(c: CanvasRenderingContext2D, x: number, y: number, s: number) {

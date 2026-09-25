@@ -82,6 +82,7 @@ export const workingFauna: readonly FaunaProfile[] = [
     calmDecisionSeconds: 30,
     urgentDecisionSeconds: 4,
     diet: ["small-animal", "plant"],
+    preyTags: ["rodent"],
     ...directionalStudy("dog"),
   },
   {

@@ -41,6 +41,8 @@ export const domesticFauna: readonly FaunaProfile[] = [
     urgentDecisionSeconds: 6,
     prey: "small-animal",
     diet: ["seed", "plant", "invertebrate"],
+    // Hens run down and swallow mice.
+    preyTags: ["rodent"],
     ...study("chicken"),
   },
   {

@@ -2461,6 +2461,8 @@ export function createSettlementWorld(
     for (const [id, itinerary] of prepared.routines ?? [])
       routines.set(id, itinerary);
     for (const id of prepared.dormant ?? []) dormant.add(id);
+    // `active` came over already filled, so activate() will skip these plans.
+    for (const id of active) keptFauna.push(...(plans.get(id)?.fauna ?? []));
     if (!prepared.routines) warmRoutines();
     return world;
   }

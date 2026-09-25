@@ -608,7 +608,11 @@ function chooseQuarry(
   // A house cat hunts under people's feet; a wolf does not.
   const shy = p.category === "wild" ? p.alertRadius : 1;
   if (nearestThreat(world.humans, g.pos, shy)) return undefined;
-  const range = p.alertRadius * HUNT_RADIUS;
+  // A kept hunter works its whole round, not just what it can see from the step.
+  const range = Math.max(
+    p.alertRadius * HUNT_RADIUS,
+    p.category === "wild" ? 0 : g.homeRadius,
+  );
   const edible = herds.filter(
     (h) =>
       h.group.members.length &&
@@ -970,7 +974,10 @@ export function advanceFauna(
         const next = quarry.members[0];
         if (next) quarry.pos = { x: next.x, y: next.y, space: "outside" };
         quarry.target = undefined;
-        g.fedUntil = clock + FED;
+        // One mouse is not a meal.
+        g.fedUntil =
+          clock +
+          (faunaProfile(quarry.speciesId)?.prey === "rodent" ? FED / 4 : FED);
         g.quarry = undefined;
         g.target = undefined;
         g.state = p.art.rest ? "rest" : "idle";

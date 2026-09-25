@@ -2,11 +2,12 @@ import { useEffect, useRef, useState } from "react";
 import { Crosshair, Minus, Plus } from "lucide-react";
 import type { Runtime } from "../runtime/session";
 import type { Point } from "../core/types";
-import { Minimap } from "./Minimap";
+import { Minimap, ridgeAt } from "./Minimap";
 import { ArrivalMap } from "./ArrivalMap";
 import { ATLAS_SCALE, atlasSample, fromAtlas, toAtlas } from "../world/geography/atlas";
 import { SettlementGlyph, glyphFor } from "./map-glyphs";
 import { formatHistoricalYear } from "../core/calendar";
+import { noise } from "../world/geography/noise";
 
 const W = 880, H = 540;
 // One world tile is two metres, as the old "km across" readout had it.
@@ -31,7 +32,7 @@ export function MapModal({ runtime, onClose }: { runtime: Runtime; onClose: () =
   const [destination, setDestination] = useState<{ lon: number; lat: number; name?: string }>();
   const [plan, setPlan] = useState<{ name: string; days?: number; sea?: number; error?: string }>();
   const [nearby, setNearby] = useState<{ id: string; name: string; rank: string; x: number; y: number; glyph: ReturnType<typeof glyphFor> }[]>([]);
-  const [roads, setRoads] = useState<[Point, Point][]>([]);
+  const [roads, setRoads] = useState<Point[][]>([]);
   const drag = useRef<{ x: number; y: number; cx: number; cy: number; moved: boolean }>(undefined);
   const wheel = useRef(0);
   const settlements = [...world.settlements]
@@ -123,7 +124,11 @@ export function MapModal({ runtime, onClose }: { runtime: Runtime; onClose: () =
         const e = resolveMapEnvironment(fromAtlas(o.x + p.x, o.y + p.y), year);
         return { ...p, glyph: glyphFor(e.culture, e.architecture, year, p.rank) };
       }));
-      setRoads(roadsBetween([{ x: 0, y: 0, rank: "town" }, ...kept], (x, y) => atlasSample(o.x + x, o.y + y).coast < 0));
+      const x0 = center.x - span / 2, y0 = center.y - h;
+      setRoads(roadsBetween([{ x: 0, y: 0, rank: "town" }, ...kept], x0, y0, span, h * 2, (x, y) =>
+        atlasSample(o.x + x, o.y + y).coast < 0 ? Infinity
+          // Uneven going, so level country does not route as a grid's diagonals.
+          : 1 + Math.max(0, ridgeAt(o, x, y) - 0.3) * 12 + noise("going", x, y, span / 12, "roads") * 2));
     });
     return () => { live = false; };
   }, [earth, span, center.x, center.y]);
@@ -224,10 +229,7 @@ export function MapModal({ runtime, onClose }: { runtime: Runtime; onClose: () =
             <Minimap runtime={runtime} large span={span} center={center} dims={[W, H]} route={selected} />
           </div>
           <svg className="map-roads" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" aria-hidden="true">
-            {roads.map(([a, b]) => {
-              const pa = toFrame(a), pb = toFrame(b);
-              return <path key={`${a.x},${a.y}-${b.x},${b.y}`} d={wander(pa, pb, a.x * 12.9898 + b.y * 78.233)} />;
-            })}
+            {roads.map((road, i) => <path key={i} d={smooth(road.map(toFrame))} />)}
           </svg>
           {nearby.map((p) => <button key={p.id} className={`map-settlement is-${p.rank}`} style={toScreen(p)}
             onClick={() => { setChosen(undefined); setDestination({ ...fromAtlas(origin.x + p.x, origin.y + p.y), name: p.name }); }}>
@@ -278,42 +280,138 @@ export function MapModal({ runtime, onClose }: { runtime: Runtime; onClose: () =
   </div>;
 }
 
-// Each place joins its nearest neighbours, larger places reaching further;
-// a link that would cross open water is left out.
-function roadsBetween(places: (Point & { rank: string })[], wet: (x: number, y: number) => boolean) {
+// Each place joins its nearest neighbours, larger places reaching further.
+// Roads are routed over a coarse grid of the view by A*: water is closed,
+// ridges are dear, and ground an earlier road took is cheap, so roads merge
+// into trunks rather than running side by side.
+function roadsBetween(
+  places: (Point & { rank: string })[],
+  x0: number, y0: number, w: number, h: number,
+  cost: (x: number, y: number) => number,
+) {
   const reach = { village: 1200, town: 2400, city: 6000 } as Record<string, number>;
-  const roads = new Map<string, [Point, Point]>();
-  for (const p of places) {
-    const near = places
+  const pairs = new Map<string, [Point, Point]>();
+  for (const p of places)
+    for (const { q } of places
       .filter((q) => q !== p)
       .map((q) => ({ q, d: Math.hypot(q.x - p.x, q.y - p.y) }))
       .filter(({ q, d }) => d < Math.max(reach[p.rank], reach[q.rank]))
       .sort((a, b) => a.d - b.d)
-      .slice(0, p.rank === "village" ? 2 : 3);
-    for (const { q } of near) {
-      if ([0.2, 0.35, 0.5, 0.65, 0.8].some((t) => wet(p.x + (q.x - p.x) * t, p.y + (q.y - p.y) * t))) continue;
+      .slice(0, p.rank === "village" ? 2 : 3)) {
       const [a, b] = p.x < q.x || (p.x === q.x && p.y < q.y) ? [p, q] : [q, p];
-      roads.set(`${a.x},${a.y}-${b.x},${b.y}`, [{ x: a.x, y: a.y }, { x: b.x, y: b.y }]);
+      pairs.set(`${a.x},${a.y}-${b.x},${b.y}`, [a, b]);
     }
+  const cols = 120, rows = Math.round((cols * h) / w), cw = w / cols, ch = h / rows;
+  const base = new Float32Array(cols * rows);
+  for (let j = 0; j < rows; j++)
+    for (let i = 0; i < cols; i++) base[j * cols + i] = cost(x0 + (i + 0.5) * cw, y0 + (j + 0.5) * ch);
+  const used = new Uint8Array(cols * rows);
+  const cellOf = (p: Point) => {
+    const i = Math.max(0, Math.min(cols - 1, Math.floor((p.x - x0) / cw)));
+    const j = Math.max(0, Math.min(rows - 1, Math.floor((p.y - y0) / ch)));
+    return j * cols + i;
+  };
+  const links = new Map<number, Set<number>>(), towns = new Set<number>();
+  const link = (p: number, q: number) => {
+    (links.get(p) ?? links.set(p, new Set()).get(p)!).add(q);
+    (links.get(q) ?? links.set(q, new Set()).get(q)!).add(p);
+  };
+  const sorted = [...pairs.values()].sort(([a, b], [c, d]) => Math.hypot(b.x - a.x, b.y - a.y) - Math.hypot(d.x - c.x, d.y - c.y));
+  for (const [a, b] of sorted) {
+    const found = route(cellOf(a), cellOf(b), cols, rows, (k) => (used[k] ? base[k] * 0.3 : base[k]));
+    if (!found) continue;
+    // A knight's step goes through the cell it passes over, so roads that
+    // share ground share cells, and so links.
+    const cells = [found[0]];
+    for (const k of found.slice(1)) {
+      const p = cells.at(-1)!, dx = (k % cols) - (p % cols), dy = Math.floor(k / cols) - Math.floor(p / cols);
+      if (Math.abs(dx) + Math.abs(dy) === 3) cells.push(p + Math.trunc(dy / 2) * cols + Math.trunc(dx / 2));
+      cells.push(k);
+    }
+    // A road three times its crow-flight is not a road anyone keeps.
+    if (cells.length > (Math.hypot(b.x - a.x, b.y - a.y) / cw) * 3 + 4) continue;
+    for (let n = 1; n < cells.length; n++) link(cells[n - 1], cells[n]);
+    for (const k of cells) used[k] = 1;
+    towns.add(cells[0]).add(cells.at(-1)!);
   }
-  return [...roads.values()];
+  // Walk the network from town to fork to town, so a stretch many roads
+  // share is smoothed and drawn once.
+  const stop = (k: number) => towns.has(k) || links.get(k)!.size !== 2;
+  const seen = new Set<string>(), roads: Point[][] = [];
+  const at = (k: number) => ({ x: x0 + ((k % cols) + 0.5) * cw, y: y0 + (Math.floor(k / cols) + 0.5) * ch });
+  for (const [start, next] of links)
+    if (stop(start))
+      for (let q of next) {
+        let p = start;
+        const chain = [p];
+        while (!seen.has(`${p},${q}`)) {
+          seen.add(`${p},${q}`).add(`${q},${p}`);
+          chain.push(q);
+          if (stop(q)) break;
+          const r = [...links.get(q)!].find((n) => n !== p)!;
+          [p, q] = [q, r];
+        }
+        if (chain.length < 2) continue;
+        const kept = chain.filter((_, n) => n === 0 || n === chain.length - 1 || n % 3 === 0);
+        roads.push(chaikin(chaikin(kept.map(at))));
+      }
+  return roads;
 }
 
-// A road meanders about its line: two seeded waves, pinned at both towns,
-// smoothed through the midpoints of a dozen samples.
-function wander(a: Point, b: Point, seed: number) {
-  const dx = b.x - a.x, dy = b.y - a.y, len = Math.hypot(dx, dy);
-  const f1 = Math.sin(seed) * 43758.5453 % 1, f2 = Math.sin(seed * 1.7) * 12543.853 % 1;
-  const n = Math.max(2, Math.min(14, Math.round(len / 18)));
-  const pts = Array.from({ length: n + 1 }, (_, i) => {
-    const t = i / n;
-    const off = Math.sin(Math.PI * t) * len * (0.07 * Math.sin(2 * Math.PI * (t + f1)) + 0.035 * Math.sin(5 * Math.PI * (t + f2)));
-    return { x: a.x + dx * t - (dy / len) * off, y: a.y + dy * t + (dx / len) * off };
-  });
+// Sixteen headings: eight on a grid alone make roads of right angles and diagonals.
+const STEPS = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1],
+  [2, 1], [2, -1], [-2, 1], [-2, -1], [1, 2], [1, -2], [-1, 2], [-1, -2]];
+
+function route(from: number, to: number, cols: number, rows: number, cost: (k: number) => number) {
+  const g = new Float32Array(cols * rows).fill(Infinity), prev = new Int32Array(cols * rows).fill(-1);
+  const tx = to % cols, ty = Math.floor(to / cols);
+  const open: [number, number][] = [[0, from]];
+  g[from] = 0;
+  while (open.length) {
+    let best = 0;
+    for (let n = 1; n < open.length; n++) if (open[n][0] < open[best][0]) best = n;
+    const [, k] = open[best];
+    open[best] = open[open.length - 1];
+    open.pop();
+    if (k === to) break;
+    const x = k % cols, y = Math.floor(k / cols);
+    for (const [dx, dy] of STEPS) {
+        const nx = x + dx, ny = y + dy;
+        if (nx < 0 || ny < 0 || nx >= cols || ny >= rows) continue;
+        const n = ny * cols + nx;
+        // A knight's step also pays for the cell it passes over.
+        const over = Math.abs(dx) + Math.abs(dy) === 3 ? (y + Math.trunc(dy / 2)) * cols + x + Math.trunc(dx / 2) : n;
+        const c = n === to ? 1 : Math.max(cost(n), cost(over));
+        if (c === Infinity) continue;
+        const next = g[k] + c * Math.hypot(dx, dy);
+        if (next >= g[n]) continue;
+        g[n] = next;
+        prev[n] = k;
+        open.push([next + Math.hypot(tx - nx, ty - ny) * 0.4, n]);
+      }
+  }
+  if (g[to] === Infinity) return undefined;
+  const path = [to];
+  while (path[0] !== from) path.unshift(prev[path[0]]);
+  return path;
+}
+
+function chaikin(pts: Point[]) {
+  const out = [pts[0]];
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p = pts[i], q = pts[i + 1];
+    out.push({ x: p.x * 0.75 + q.x * 0.25, y: p.y * 0.75 + q.y * 0.25 }, { x: p.x * 0.25 + q.x * 0.75, y: p.y * 0.25 + q.y * 0.75 });
+  }
+  out.push(pts.at(-1)!);
+  return out;
+}
+
+// Grid steps smoothed into curves through their midpoints.
+function smooth(pts: Point[]) {
   let d = `M${pts[0].x} ${pts[0].y}`;
-  for (let i = 1; i < n; i++)
+  for (let i = 1; i < pts.length - 1; i++)
     d += `Q${pts[i].x} ${pts[i].y} ${(pts[i].x + pts[i + 1].x) / 2} ${(pts[i].y + pts[i + 1].y) / 2}`;
-  return d + `L${pts[n].x} ${pts[n].y}`;
+  return d + `L${pts.at(-1)!.x} ${pts.at(-1)!.y}`;
 }
 
 function distance(m: number) {
