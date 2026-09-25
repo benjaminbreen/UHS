@@ -10,7 +10,7 @@ import {
   type Stem,
 } from "./score";
 import type { CultureId } from "../content/history/types";
-import { culturalMusic } from "./cultural-themes";
+import { anywhereThemes, culturalMusic } from "./cultural-themes";
 import { createMix, scheduleNote, prepareScore, type MixBus } from "./synth";
 import { events, playSound, type EventId, type Sound } from "./sfx";
 import { applyTuning, tuning } from "./sfx-tuning";
@@ -91,7 +91,7 @@ export class AudioDirector {
   private disposed = false;
   private lastSfx = new Map<string, number>();
   private setting = "";
-  private family: readonly { id: string }[] = [];
+  private family: readonly { id: string }[] = anywhereThemes;
   private state: AudioState = {
     loading: false,
     playing: false,
@@ -334,7 +334,7 @@ export class AudioDirector {
     if (key === this.setting) return;
     this.setting = key;
     if (!culture || year === undefined) {
-      this.family = [];
+      this.family = anywhereThemes;
       return;
     }
     const { direct, family } = culturalMusic(culture, year);

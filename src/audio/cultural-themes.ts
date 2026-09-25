@@ -1051,13 +1051,16 @@ export const culturalThemes: CulturalTheme[] = [
   },
 ];
 
-/** Pieces for a setting: direct hits match culture and date, the rest share the culture. */
+export const anywhereThemes = layeredThemes.filter((t) => t.anywhere);
+
+/** Pieces for a setting: direct hits match culture and date, the rest share the culture.
+ * The anywhere pieces join every shuffle but are never a direct hit. */
 export function culturalMusic(culture: CultureId, year: number) {
   const family = [...culturalThemes, ...layeredThemes].filter((t) =>
     [t.culture].flat().includes(culture),
   );
   return {
     direct: family.filter((t) => year >= t.years[0] && year <= t.years[1]),
-    family,
+    family: [...family, ...anywhereThemes],
   };
 }
