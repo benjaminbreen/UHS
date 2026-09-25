@@ -38,6 +38,16 @@ describe("fauna presence", () => {
     expect(before).not.toContain("chicken");
     expect(before).not.toContain("red-deer");
   });
+  it("brings the cat with grain and trade, not before", () => {
+    expect(ids(-6499, "konya")).toContain("cat");
+    const china = places.find((p) => p.lon > 110 && p.lat > 30 && p.lat < 42);
+    if (china) {
+      expect(ids(300, china.id)).not.toContain("cat");
+      expect(ids(1400, china.id)).toContain("cat");
+    }
+    const mexico = places.find((p) => p.lon < -90 && p.lat > 15 && p.lat < 22);
+    if (mexico) expect(ids(1400, mexico.id)).not.toContain("cat");
+  });
   it("gives the Neolithic Near East its aurochs and boar, and takes the aurochs away again", () => {
     expect(ids(-6500, "konya")).toEqual(
       expect.arrayContaining(["aurochs", "wild-boar", "red-deer"]),

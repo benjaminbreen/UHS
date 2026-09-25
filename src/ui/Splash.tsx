@@ -19,6 +19,7 @@ import { readStartMode, startModes, writeStartMode } from "./start-mode";
 import { bannerFor, defaultBanner, smokeFor } from "./splash-banner";
 import { BannerSmoke } from "./BannerSmoke";
 import { SplashStars } from "./SplashStars";
+import { Arrival } from "./Arrival";
 import "./splash.css";
 type Starter = typeof import("../content/geography/random-start");
 let starter: Starter | null = null;
@@ -53,6 +54,7 @@ export function Splash({
   const [prompt, setPrompt] = useState("");
   const [mode, setMode] = useState<"local" | "model">("local");
   const [busy, setBusy] = useState("");
+  const [arrival, setArrival] = useState<{ setting: WorldSetting; engine?: Engine; cancel?: () => void }>();
   const [error, setError] = useState("");
   const [panel, setPanel] = useState<"world" | "about" | "sources" | null>(
     null,
@@ -178,6 +180,7 @@ export function Splash({
         setting = start.setting;
         worldSeed = start.seed;
       }
+      setArrival({ setting, cancel: () => abort.abort() });
       const ready = warm.current;
       // Handed over: unmounting the splash must not abort the world it started.
       warm.current = undefined;
@@ -188,14 +191,16 @@ export function Splash({
             )
           : await prepareConnectedStart(setting, worldSeed, abort.signal);
       abort.signal.throwIfAborted();
-      await onStart(engine);
+      setArrival({ setting, engine });
     } catch (err) {
-      if (!abort.signal.aborted)
+      if (!abort.signal.aborted) {
+        setArrival(undefined);
         setError(
           err instanceof Error
             ? err.message
             : "Could not create the world. Please try again.",
         );
+      }
     } finally {
       if (!abort.signal.aborted) {
         setBusy("");
@@ -205,6 +210,7 @@ export function Splash({
   };
   return (
     <main className="splash">
+      {arrival && <Arrival setting={arrival.setting} engine={arrival.engine} onEnter={() => { if (arrival.engine) void onStart(arrival.engine); }} onCancel={() => { arrival.cancel?.(); controller.current?.abort(); controller.current = null; setArrival(undefined); setBusy(""); }} />}
       <div className="splash-frame">
         <SplashStars />
         <div className="splash-content" inert={panel ? true : undefined}>
@@ -510,7 +516,8 @@ export function Splash({
                   initialSetting={selected?.setting}
                   initialPrompt={selected ? "" : prompt}
                   initialMode={mode}
-                  onStart={(engine) => void onStart(engine)}
+                  onPreparing={(setting, cancel) => setArrival({ setting, cancel })}
+                  onStart={(engine) => setArrival({ setting: engine.state.manifest.setting!, engine })}
                 />
               </Suspense>
             ) : panel === "about" ? (
@@ -548,13 +555,6 @@ export function Splash({
                   Once in a world, open the notebook to examine its sources and
                   historical claims.
                 </p>
-              </>
-            )}
-          </section>
-        </div>
-      )}
-    </main>
-  );
                 <p>
                   Coasts, rivers and map names come from Natural Earth (public
                   domain) and{" "}
@@ -564,4 +564,11 @@ export function Splash({
                   physical features (CC BY 4.0). Names are modern; places are
                   not yet called what they were called in the past.
                 </p>
+              </>
+            )}
+          </section>
+        </div>
+      )}
+    </main>
+  );
 }

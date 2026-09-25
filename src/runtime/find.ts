@@ -1,5 +1,5 @@
 import type { Point, Snapshot } from "../core/types";
-import { faunaProfile } from "../content/fauna";
+import { faunaProfile, faunaProfiles } from "../content/fauna";
 
 /** Something in the loaded world the player can be walked to. `words` are what
  * a typed search is matched against; `rank` breaks ties between two equally
@@ -85,8 +85,21 @@ export function parseFind(input: string) {
 
 /** A target word matches a search term on a whole word, allowing the plural a
  * player naturally types: "chickens" finds a chicken, "wolves" a wolf. */
+const IRREGULAR: Record<string, string> = {
+  mice: "mouse",
+  geese: "goose",
+  oxen: "ox",
+  kitten: "cat",
+  kittens: "cat",
+  kitty: "cat",
+};
 function hits(word: string, term: string) {
-  const stems = [term, term.replace(/ies$/, "y"), term.replace(/(?:es|s)$/, "")];
+  const stems = [
+    term,
+    IRREGULAR[term],
+    term.replace(/ies$/, "y"),
+    term.replace(/(?:es|s)$/, ""),
+  ];
   return stems.includes(word);
 }
 
@@ -109,4 +122,17 @@ export function findNearest(
     if (score < bestScore) (bestScore = score), (best = t);
   }
   return best;
+}
+
+/** The animal a search names, whether or not one is loaded: "find cat" with
+ * no cat about gets a plain no rather than a guess from the narrator. */
+export function namedAnimal(terms: string[]) {
+  if (terms.some((t) => hits("animal", t))) return "animal";
+  for (const p of faunaProfiles) {
+    const name = p.label.replace(/ study$/, "");
+    const known = words(p.id, name);
+    if (terms.some((t) => known.some((w) => hits(w, t))))
+      return name.toLowerCase();
+  }
+  return undefined;
 }

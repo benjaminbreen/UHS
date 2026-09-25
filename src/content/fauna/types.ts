@@ -24,6 +24,7 @@ export type DietTag =
   | "grass"
   | "invertebrate"
   | "small-animal"
+  | "rodent"
   | "ungulate";
 
 export type FaunaProfile = {

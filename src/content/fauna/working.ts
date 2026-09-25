@@ -1,7 +1,7 @@
 import type { FaunaProfile } from "./types";
 import { directionalStudy } from "./types";
 
-/** Cattle, dog, donkey and camel: the animals a settlement works with rather
+/** Cattle, dog, cat, donkey and camel, and the mice the cat is kept for: the animals a settlement works with rather
  * than only eats. Each is drawn in several forms and coats; see looks.ts. */
 export const workingFauna: readonly FaunaProfile[] = [
   {
@@ -83,6 +83,91 @@ export const workingFauna: readonly FaunaProfile[] = [
     urgentDecisionSeconds: 4,
     diet: ["small-animal", "plant"],
     ...directionalStudy("dog"),
+  },
+  {
+    id: "cat",
+    label: "Cat study",
+    latin: "Felis catus",
+    category: "domestic",
+    locomotion: "ground",
+    social: "solitary",
+    activity: "crepuscular",
+    groupSize: [1, 1],
+    habitats: [
+      { tag: "settlement", weight: 1 },
+      { tag: "field", weight: 0.4 },
+    ],
+    // Kept where grain is stored, and carried along the trade routes: Cyprus
+    // and the Levant by the eighth millennium BCE, Egypt by the fourth, the
+    // Greek and Roman world and then all Europe with the legions. China has
+    // the domestic cat only from the Tang, by the Silk Road. The Swahili
+    // coast has it by the ninth century; the Americas and Australia with the
+    // ships of the colonisers.
+    presence: [
+      { years: [-7500, 10000], bounds: [25, 25, 60, 42] },
+      { years: [-4000, 10000], bounds: [-17, 15, 36, 37] },
+      { years: [-600, 10000], bounds: [-10, 35, 30, 46] },
+      { years: [0, 10000], bounds: [-11, 35, 40, 72] },
+      { years: [0, 10000], bounds: [40, 35, 90, 55] },
+      { years: [-500, 10000], bounds: [60, 5, 97, 37] },
+      { years: [700, 10000], bounds: [97, 18, 146, 50] },
+      { years: [800, 10000], bounds: [92, -11, 125, 25] },
+      { years: [800, 10000], bounds: [30, -35, 52, 15] },
+      { years: [1000, 10000], bounds: [-18, 0, 30, 20] },
+      { years: [1500, 10000], bounds: [-18, -35, 52, 15] },
+      { years: [1500, 10000], bounds: [-170, -56, -30, 75] },
+      { years: [1788, 10000], bounds: [110, -45, 180, -10] },
+    ],
+    needs: "settled",
+    keeping: { place: "yard" },
+    density: 0,
+    pace: 0.8,
+    climbs: true,
+    settlementTolerance: 1,
+    minimumSettlementDistance: 0,
+    alertRadius: 2,
+    cohesionRadius: 3,
+    separationRadius: 2,
+    calmDecisionSeconds: 40,
+    urgentDecisionSeconds: 3,
+    diet: ["small-animal"],
+    // Mice, and only mice: a hen is bigger than it wants to argue with.
+    preyTags: ["rodent"],
+    ...directionalStudy("cat"),
+  },
+  {
+    id: "mouse",
+    label: "House mouse study",
+    latin: "Mus musculus",
+    category: "commensal",
+    locomotion: "ground",
+    gait: "scurry",
+    social: "flock",
+    activity: "flexible",
+    groupSize: [1, 3],
+    habitats: [{ tag: "settlement", weight: 1 }],
+    // Into the Natufian houses of the Levant with the first stored grain, the
+    // whole Old World behind farming, and the Americas and Australia in ships'
+    // holds.
+    presence: [
+      { years: [-12000, 10000], bounds: [25, 25, 60, 42] },
+      { years: [-4000, 10000], bounds: [-20, -35, 150, 72] },
+      { years: [1500, 10000], bounds: [-170, -56, -30, 75] },
+      { years: [1788, 10000], bounds: [110, -45, 180, -10] },
+    ],
+    needs: "settled",
+    density: 0,
+    pace: 1.1,
+    settlementTolerance: 1,
+    minimumSettlementDistance: 0,
+    alertRadius: 1.5,
+    cohesionRadius: 2,
+    separationRadius: 1,
+    calmDecisionSeconds: 12,
+    urgentDecisionSeconds: 2,
+    diet: ["seed"],
+    prey: "rodent",
+    ...directionalStudy("mouse"),
   },
   {
     id: "donkey",

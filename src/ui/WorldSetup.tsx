@@ -29,12 +29,14 @@ import { patterns, type Pattern } from "../content/settlements/profiles";
 import { AtlasMap } from "./AtlasMap";
 export function WorldSetup({
   onStart,
+  onPreparing,
   initialSeed,
   initialPrompt = "",
   initialMode = "local",
   initialSetting,
 }: {
   onStart: (engine: Engine) => void;
+  onPreparing?: (setting: WorldSetting, cancel: () => void) => void;
   initialSeed: string;
   initialSetting?: WorldSetting;
   initialPrompt?: string;
@@ -244,6 +246,7 @@ export function WorldSetup({
         }),
         worldSeed,
       );
+      onPreparing?.(parsed, () => controller.current?.abort());
       // The world takes seconds in the worker; the scene's code and art can be
       // on the way in the meantime.
       void import("../runtime/bootstrap");

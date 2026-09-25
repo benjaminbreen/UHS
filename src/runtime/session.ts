@@ -84,7 +84,12 @@ import {
 import { items, packs } from "../content/packs";
 import { rollStats } from "../core/stats";
 import { narratorTurn, type Turn } from "../narrator/turn";
-import { findNearest, parseFind, type FindTarget } from "./find";
+import {
+  findNearest,
+  namedAnimal,
+  parseFind,
+  type FindTarget,
+} from "./find";
 import { createWorld } from "../world/generate";
 import { commandSchema, snapshotSchema } from "./schema";
 import { ChunkCache } from "./chunks";
@@ -743,8 +748,11 @@ export class Runtime {
     this.cached = timed("runtime view", () => this.view(refresh));
     for (const listener of this.subscribers) listener();
   }
+  /** Counts clicks on what is already selected, which open its photograph. */
+  reselected = 0;
   select(id?: string) {
     if (id) this.flushAmbient();
+    if (id && id === this.selected) this.reselected++;
     this.selected = id;
     this.emit(false);
   }
@@ -825,12 +833,24 @@ export class Runtime {
       this.engine.syncFauna();
       const found = findNearest(this.engine.state, terms);
       if (found) return Promise.resolve(this.walkToFound(input, found));
+      const animal = namedAnimal(terms);
+      if (animal) return Promise.resolve(this.noneFound(input, animal));
       // Nothing of that name is loaded; let the narrator answer as before.
     }
     return narratorTurn(this, input);
   }
   /** Walks to a found target and logs it as a narration turn, so the search
    * reads back in the log beside everything else the player has said. */
+  private noneFound(input: string, animal: string): Turn {
+    const text = `There is no ${animal} anywhere nearby.`;
+    const s = this.engine.state;
+    s.narration = [
+      ...(s.narration ?? []),
+      { clock: s.clock, input, text },
+    ].slice(-200);
+    this.touch();
+    return { text, outcomes: [] };
+  }
   private walkToFound(input: string, found: FindTarget): Turn {
     const p = this.engine.state.player.pos;
     const steps = Math.round(

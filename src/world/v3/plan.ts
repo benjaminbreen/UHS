@@ -3307,8 +3307,11 @@ export function planSettlement(
       .map(([k]) => k);
   const penStock = keptFor("pen");
   // A dog is not an alternative to hens: it has a pass of its own below.
-  const yardStock = keptFor("yard").filter((k) => k.id !== "dog");
+  const yardStock = keptFor("yard").filter(
+    (k) => k.id !== "dog" && k.id !== "cat",
+  );
   const dog = kept.find((k) => k.id === "dog");
+  const cat = kept.find((k) => k.id === "cat");
   const paddockStock = keptFor("paddock");
   /** Pen and paddock cells drawn by the field raster, so a pen wears the same
    * wall, rails or wire as the fields of its day. Merged after the farmland so
@@ -3968,6 +3971,102 @@ export function planSettlement(
         owner,
       } satisfies FaunaGroup);
       dogs++;
+    }
+  }
+  // Mice where grain is kept, and the cats kept for them. A baker's, a
+  // miller's or an inn has mice for certain and a cat most likely; a farmer's
+  // store often; most other houses too. The cat lives by the mice, so
+  // a hunt is something you can come on by the bakehouse at dusk.
+  const roleOf = new Map(plan.actors.map((a) => [a.id, a.role ?? ""]));
+  const grain = (owner: string) =>
+    /bak|mill|brew|inn|tavern|granar|grain|merchant|store|cook/i.test(
+      roleOf.get(owner) ?? "",
+    )
+      ? 1
+      : /farm|cultiv|peasant/i.test(roleOf.get(owner) ?? "")
+        ? 0.6
+        : 0.35;
+  const freeBeside = (owner: string, skip = 0) => {
+    const slot = plan.slots.get(owner);
+    // A town house's yard is one cell by the work spot, often built over:
+    // the cells round it and the work spot will do.
+    return [...(slot?.yard ?? []), ...(slot?.work ?? [])]
+      .flatMap((p) =>
+        [
+          [0, 0],
+          [1, 0],
+          [-1, 0],
+          [0, 1],
+          [0, -1],
+          [1, 1],
+          [-1, -1],
+        ].map(([dx, dy]) => ({ x: p.x + dx, y: p.y + dy })),
+      )
+      .filter(
+        (p) =>
+          !plan.solid.has(cellKey(p.x, p.y)) &&
+          !plan.traffic.has(cellKey(p.x, p.y)) &&
+          !plan.fauna?.some((g) =>
+            g.members.some((m) => m.x === p.x && m.y === p.y),
+          ),
+      )
+      .slice(skip);
+  };
+  const byGrain = owners
+    .filter((o) => o !== "player")
+    .sort((a, b) => grain(b) - grain(a) || a.localeCompare(b));
+  const mouse = kept.find((k) => k.id === "mouse");
+  let nests = 0;
+  if (mouse) {
+    for (const owner of byGrain) {
+      // Most houses have mice, whatever they store.
+      if (nests >= Math.max(4, byGrain.length * 0.6)) break;
+      if (random(seed, owner, "mice") > grain(owner) * 0.95) continue;
+      // Along the far wall from the door, where the sacks are.
+      const far = freeBeside(owner, 2);
+      const cells = (far.length ? far : freeBeside(owner)).slice(0, 4);
+      const count = 1 + Math.floor(random(seed, owner, "mice-count") * 4);
+      const members = cells
+        .slice(0, count)
+        .map((p) => ({ ...p, direction: 1 as const }));
+      if (!members.length) continue;
+      (plan.fauna ??= []).push({
+        id: `${site.id}-mice-${owner}`,
+        speciesId: mouse.id,
+        members,
+        pos: pos(members[0]),
+        home: pos(members[0]),
+        homeRadius: 3,
+        state: "forage",
+        nextDecisionAt: 0,
+        stride: 0,
+        since: 0,
+      } satisfies FaunaGroup);
+      nests++;
+    }
+  }
+  if (cat) {
+    let cats = 0;
+    for (const owner of byGrain) {
+      // Fewer cats than mouse nests: a cat's round takes in several houses.
+      if (cats >= Math.max(3, nests * 0.5)) break;
+      if (random(seed, owner, "cat") > 0.2 + grain(owner) * 0.6) continue;
+      const yard = freeBeside(owner)[0];
+      if (!yard) continue;
+      (plan.fauna ??= []).push({
+        id: `${site.id}-cat-${owner}`,
+        speciesId: cat.id,
+        members: [{ ...yard, direction: 1 }],
+        pos: pos(yard),
+        home: pos(yard),
+        homeRadius: 6,
+        state: "rest",
+        nextDecisionAt: 0,
+        stride: 0,
+        since: 0,
+        owner,
+      } satisfies FaunaGroup);
+      cats++;
     }
   }
   if (pack.setting?.characterRevision) {

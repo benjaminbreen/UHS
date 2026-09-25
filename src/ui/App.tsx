@@ -103,6 +103,7 @@ import { CombatTestPanel } from "../dev/CombatTestPanel";
 import { CollapseNotice, SkillsPanel, SkillToast, Vitals } from "./Skills";
 import { BagFlights, KeyPrompt } from "./motion";
 import { TouchControls } from "./TouchControls";
+import { WikiFocus } from "./WikiFocus";
 import {
   defaultLiveGraphicsSettings,
   type LiveGraphicsSettings,
@@ -731,6 +732,14 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
             <Plus size={16} /> New world
           </button>
           <button
+            aria-label="Notebook"
+            title="Notebook (N)"
+            className="icon-button"
+            onClick={() => setModal("notebook")}
+          >
+            <NotebookPen size={19} />
+          </button>
+          <button
             aria-label="Settings"
             className="icon-button"
             onClick={() => setModal("settings")}
@@ -1286,6 +1295,12 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
                     )}
                   </div>
                 </div>
+                {selection.latin && (
+                  <WikiFocus
+                    latin={selection.latin}
+                    reopen={runtime.reselected}
+                  />
+                )}
                 {distance(p.pos, selection.pos) > 2.5 && (
                   <button
                     className="action primary"
@@ -1346,6 +1361,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
                   ).map(([id, label]) => (
                     <button
                       key={id}
+                      ref={id === "inventory" ? bagButton : undefined}
                       role="tab"
                       aria-selected={sideTab === id}
                       onClick={() => setSideTab(id)}
@@ -1444,19 +1460,6 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
               </>
             )}
           </section>
-          <div className="sidebar-footer">
-            <button aria-label="Notebook" onClick={() => setModal("notebook")}>
-              <NotebookPen size={17} /> Notebook <kbd aria-hidden="true">N</kbd>
-            </button>
-            <button
-              ref={bagButton}
-              aria-label="Inventory"
-              onClick={() => setModal("inventory")}
-            >
-              <ShoppingBag size={17} /> Inventory{" "}
-              <kbd aria-hidden="true">I</kbd>
-            </button>
-          </div>
         </aside>
       </main>
       <div className="statusbar">

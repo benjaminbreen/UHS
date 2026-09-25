@@ -856,11 +856,15 @@ body {
 }
 /* Around you / In focus */
 .context-section {
-  flex: 1 1 auto !important;
+  flex: 1 1 0 !important;
   min-height: 210px;
   padding-top: 10px !important;
   display: flex;
   flex-direction: column;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
 }
 .context-section > .section-heading {
   margin-bottom: 8px;
@@ -6204,12 +6208,6 @@ button:disabled {
   .sidebar .skills-panel {
     overflow: visible;
   }
-  /* Notebook and bag sit under the tabs, not pinned over whatever follows. */
-  .sidebar > .sidebar-footer {
-    order: 1;
-    position: static;
-    margin-block: 6px;
-  }
   .skill-toast[data-level-up] small {
     white-space: nowrap;
   }
@@ -6846,6 +6844,8 @@ button:disabled {
   }
   .evening-rows li {
     transition: none;
+  }
+}
 .wiki-focus {
   margin-bottom: 9px;
   font-size: 14px;
@@ -7163,6 +7163,4 @@ button:disabled {
   color: #f7edd4;
   text-shadow: 0 1px 3px #000;
   pointer-events: none;
-}
-  }
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { findNearest, parseFind } from "../src/runtime/find";
+import { findNearest, namedAnimal, parseFind } from "../src/runtime/find";
 import type { Snapshot } from "../src/core/types";
 
 const actor = (id: string, name: string, x: number, y: number, extra = {}) =>
@@ -66,6 +66,15 @@ describe("parseFind", () => {
 });
 
 describe("findNearest", () => {
+  it("finds cats and mice by the names a player uses", () => {
+    const s = state({ fauna: [group("cat", 4, 0), group("mouse", 2, 0)] } as Partial<Snapshot>);
+    expect(findNearest(s, parseFind("find cat")!)?.label).toBe("Cat");
+    expect(findNearest(s, parseFind("find the kitten")!)?.label).toBe("Cat");
+    expect(findNearest(s, parseFind("find mice")!)?.label).toBe("House mouse");
+    expect(findNearest(state(), parseFind("find cat")!)).toBeUndefined();
+    expect(namedAnimal(parseFind("find cats")!)).toBe("cat");
+    expect(namedAnimal(parseFind("find the blacksmith")!)).toBeUndefined();
+  });
   it("finds an animal by species, singular or plural", () => {
     const s = state({ fauna: [group("chicken", 3, 4), group("goat", 20, 0)] });
     expect(findNearest(s, ["chickens"])?.label).toBe("Chicken");

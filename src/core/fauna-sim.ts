@@ -605,7 +605,9 @@ function chooseQuarry(
   if (!p.preyTags?.length) return undefined;
   if (clock < (g.fedUntil ?? 0)) return undefined;
   if (aerialStates.has(g.state)) return undefined;
-  if (nearestThreat(world.humans, g.pos, p.alertRadius)) return undefined;
+  // A house cat hunts under people's feet; a wolf does not.
+  const shy = p.category === "wild" ? p.alertRadius : 1;
+  if (nearestThreat(world.humans, g.pos, shy)) return undefined;
   const range = p.alertRadius * HUNT_RADIUS;
   const edible = herds.filter(
     (h) =>

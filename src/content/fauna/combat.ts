@@ -54,6 +54,9 @@ const table: Record<string, FaunaCombat> = {
   horse: beast(40, 3, 12),
   cattle: beast(55, 3, 18, "charge", 12),
   dog: beast(14, 1, 2),
+  // A cat hunts, but it runs from a person; nobody eats one.
+  cat: { ...beast(5, 0, 0), damage: 1, yields: {} },
+  mouse: { ...beast(1, 0, 0), yields: {} },
   donkey: beast(30, 2, 8),
   camel: beast(60, 3, 16),
   "red-deer": beast(22, 2, 8),
