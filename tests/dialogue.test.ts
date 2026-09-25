@@ -22,6 +22,22 @@ const post = (ip: string) =>
   });
 
 describe("dialogue endpoint", () => {
+  it("explains the selected line and its language without creating a new dialogue turn", async () => {
+    let sent: Record<string, any> | undefined;
+    const request = new Request("http://localhost/api/dialogue", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-forwarded-for": "198.51.100.70" },
+      body: JSON.stringify({ user: "Setting: prehistoric Britain.\nOn their mind: food.", realLanguage: true, explain: { dialogue: "Come eat.", original: "An invented reconstruction." } }),
+    });
+    const response = await dialogue(request, { OPENAI_API_KEY: "test" }, async (_url, init) => {
+      sent = JSON.parse(String((init as RequestInit).body));
+      return reply({ explanation: "The invitation reflects their concern with food. The language is hypothetical, because no local text survives." });
+    });
+    expect(await response.json()).toEqual({ explanation: "The invitation reflects their concern with food. The language is hypothetical, because no local text survives." });
+    expect(sent?.model).toBe("gpt-6-luna");
+    expect(sent?.response_format.json_schema.name).toBe("npc_explanation");
+    expect(sent?.messages[1].content).toContain("Original-language line: An invented reconstruction.");
+  });
   it("limits one caller without touching another", async () => {
     const env = { OPENAI_API_KEY: "test" };
     const model = async () => reply({ dialogue: "Good day.", regard: 1 });

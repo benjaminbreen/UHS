@@ -6487,6 +6487,23 @@ button:disabled {
   color: var(--gold, #d8b77a);
   border-color: currentColor;
 }
+.dialogue-explain {
+  position: absolute;
+  top: 16px;
+  right: 104px;
+}
+.dialogue-explain:disabled { opacity: 0.45; cursor: default; }
+.dialogue-explain[aria-expanded="true"] { border-color: var(--gold); }
+.dialogue-explanation {
+  margin-top: 14px;
+  padding: 11px 14px;
+  border: 1px solid var(--line-soft);
+  border-radius: 6px;
+  color: var(--cream);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.dialogue-explanation strong { color: var(--gold); }
 .dialogue-glossed {
   display: inline-grid;
   cursor: pointer;

@@ -13,7 +13,7 @@ import type { Expression } from "../render/portraits/constructed";
 import { faunaProfile } from "../content/fauna";
 import { random } from "../core/random";
 
-export type DialogueLine = { speaker: "npc" | "player"; text: string; original?: string; action?: string };
+export type DialogueLine = { speaker: "npc" | "player"; text: string; original?: string; action?: string; context?: string };
 export type DialogueGift = {
   name: string;
   description: string;
@@ -377,11 +377,27 @@ export async function dialogueTurn(
           `${data.tokens?.out ?? 0} out (${data.tokens?.reasoning ?? 0} reasoning)`,
       );
     if (!response.ok || !data.text) return { text: "", error: data.error ?? "The conversation is unavailable." };
-    return { text: data.text.trim(), original: data.original?.trim() || undefined, action: data.action?.trim() || undefined, leave: data.leave, receive: data.receive, regard: data.regard, mood: data.mood, error: undefined };
+    return { text: data.text.trim(), original: data.original?.trim() || undefined, action: data.action?.trim() || undefined, context: user, leave: data.leave, receive: data.receive, regard: data.regard, mood: data.mood, error: undefined };
   } catch (cause) {
     // An abort is the player closing the conversation, not a failure.
     if (cause instanceof DOMException && cause.name === "AbortError")
       return { text: "", error: undefined, aborted: true };
     return { text: "", error: "The conversation is unavailable." };
+  }
+}
+
+export async function explainDialogue(line: DialogueLine, signal?: AbortSignal) {
+  if (!line.context) return { error: "This line has no context to explain." };
+  try {
+    const response = await fetch("/api/dialogue", {
+      method: "POST",
+      signal,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ user: line.context, realLanguage: !!line.original, explain: { dialogue: line.text, original: line.original } }),
+    });
+    const data = (await response.json()) as { explanation?: string; error?: string };
+    return response.ok && data.explanation ? { explanation: data.explanation.trim() } : { error: data.error ?? "The explanation is unavailable." };
+  } catch {
+    return { error: "The explanation is unavailable." };
   }
 }

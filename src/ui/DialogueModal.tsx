@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { Languages, Send, X } from "lucide-react";
+import { CircleHelp, Languages, Send, X } from "lucide-react";
 import { setRealLanguage, useRealLanguage } from "./real-language";
 import { sexFromName } from "../content/characters/name-sex";
 import type { Runtime } from "../runtime/session";
-import { dialogueTurn, type DialogueGift, type DialogueLine } from "../narrator/dialogue";
+import { dialogueTurn, explainDialogue, type DialogueGift, type DialogueLine } from "../narrator/dialogue";
 import { CharacterSprite } from "./CharacterSprite";
 import type { Expression } from "../render/portraits/constructed";
 import { calm, useTypewriter } from "./motion";
@@ -80,6 +80,10 @@ export function DialogueModal({ runtime, actorId, situation, onClose }: { runtim
   const [responding, setResponding] = useState(false);
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState("");
+  const [explanation, setExplanation] = useState("");
+  const [explainOpen, setExplainOpen] = useState(false);
+  const [explaining, setExplaining] = useState(false);
+  const explainAbort = useRef<AbortController>(null);
   const [left, setLeft] = useState(false);
   const [giftNotice, setGiftNotice] = useState<string | null>(null);
   const [speaking, setSpeaking] = useState(false);
@@ -173,12 +177,12 @@ export function DialogueModal({ runtime, actorId, situation, onClose }: { runtim
           setLeft(true);
           commitExchange("", 0, result.leave);
         }
-        say(() => setHistory([{ speaker: "npc", text: result.text, original: result.original, action: result.action }]));
+        say(() => setHistory([{ speaker: "npc", text: result.text, original: result.original, action: result.action, context: result.context }]));
       }
     });
     // Closing the conversation stops the request rather than paying for a
     // reply nobody will read.
-    return () => abort.current?.abort();
+    return () => { abort.current?.abort(); explainAbort.current?.abort(); };
   }, [actorId, runtime]);
 
   useEffect(() => {
@@ -220,6 +224,10 @@ export function DialogueModal({ runtime, actorId, situation, onClose }: { runtim
     setInput("");
     setBusy(true);
     setError("");
+    setExplainOpen(false);
+    setExplanation("");
+    explainAbort.current?.abort();
+    setExplaining(false);
     const controller = new AbortController();
     abort.current = controller;
     const result = await dialogueTurn(runtime, actorId, text, next, controller.signal, realRef.current);
@@ -234,16 +242,32 @@ export function DialogueModal({ runtime, actorId, situation, onClose }: { runtim
         setLeft(true);
         setResponding(false);
       }
-      say(() => setHistory([...next, { speaker: "npc", text: result.text, original: result.original, action: result.action }]));
+      say(() => setHistory([...next, { speaker: "npc", text: result.text, original: result.original, action: result.action, context: result.context }]));
     }
   };
   const close = () => {
     abort.current?.abort();
+    explainAbort.current?.abort();
     onClose();
+  };
+  const explain = async () => {
+    const line = history.at(-1);
+    if (explainOpen) { setExplainOpen(false); return; }
+    if (!line || line.speaker !== "npc" || !line.context) return;
+    setExplainOpen(true);
+    if (explanation || explaining) return;
+    const controller = new AbortController();
+    explainAbort.current = controller;
+    setExplaining(true);
+    const result = await explainDialogue(line, controller.signal);
+    if (controller.signal.aborted) return;
+    setExplaining(false);
+    setExplanation(result.explanation ?? result.error ?? "The explanation is unavailable.");
   };
   return (
     <section className={`modal modal-dialogue${responding ? " is-responding" : ""}`} role="dialog" aria-modal="true" aria-label={`Conversation with ${actor.name}`}>
       <button className="close-modal icon-button" aria-label="Close conversation" onClick={close}><X size={20} /></button>
+      <button className="dialogue-explain icon-button" aria-label="Explain this line" title="Why did they say this?" aria-expanded={explainOpen} disabled={busy || latest?.speaker !== "npc"} onClick={() => void explain()}><CircleHelp size={18} /></button>
       <button
         className="dialogue-language icon-button"
         aria-pressed={realLanguage}
@@ -285,6 +309,7 @@ export function DialogueModal({ runtime, actorId, situation, onClose }: { runtim
         </div>
       </div>
       {giftNotice && <div className="dialogue-gift" role="status">{giftNotice}</div>}
+      {explainOpen && <aside className="dialogue-explanation" role="status"><strong>Why this line?</strong> {explaining ? "Thinking…" : explanation}</aside>}
       <div className="dialogue-history" ref={scrollRef} aria-live="polite">
         {responding
           ? history.map((line, index) =>
