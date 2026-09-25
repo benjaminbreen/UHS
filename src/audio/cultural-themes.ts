@@ -59,7 +59,7 @@ export const culturalThemes: CulturalTheme[] = [
     subtitle: "Tibia and lyre over warehouse stone; the harbour at noon.",
     place: "Roman Ostia, c. 100 CE",
     culture: "european",
-    years: [-200, 400],
+    years: [-800, 500],
     evidence:
       "Documented instruments: tibia (double reed pipe), lyra/cithara, tympanum, scabellum. Drone pipe and mode are inference from Greek theory; the melody is fiction.",
     bpm: 104,
@@ -207,7 +207,7 @@ export const culturalThemes: CulturalTheme[] = [
       "Kora and balafon under the court tree; a praise song without words.",
     place: "Mali Empire, c. 1350",
     culture: "west-central-african",
-    years: [1235, 1600],
+    years: [1000, 1700],
     evidence:
       "Documented: balafon and griot praise-singing at the Mali court (Ibn Battuta, 1352). The kora is attested later; the Lydian sauta tuning and 12/8 ostinato are inference from living Mande practice.",
     bpm: 200,
@@ -283,7 +283,7 @@ export const culturalThemes: CulturalTheme[] = [
       "Huehuetl and teponaztli in the precinct; clay flutes over the lake.",
     place: "Tenochtitlan, c. 1500",
     culture: "mesoamerican",
-    years: [1325, 1521],
+    years: [950, 1600],
     evidence:
       "Documented: huehuetl, two-tone teponaztli, ayoyotl rattles, clay flutes and conch trumpets (Sahagún, surviving instruments). The pentatonic mode is inference from surviving flutes; the tune is fiction.",
     bpm: 100,

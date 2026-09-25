@@ -75,6 +75,8 @@ function instrument(
               voice === "ney" ||
               voice === "drone" ||
               voice === "gong" ||
+              voice === "carillon" ||
+              voice === "theremin" ||
               voice === "sho" ||
               voice === "throat" ||
               voice === "whistle" ||
@@ -391,6 +393,28 @@ function instrument(
           ((0.3 + formant) * Math.sin(harmonic * (phase + vibrato))) / harmonic;
       }
       sample = sample * 0.35 + breath * 0.02;
+    } else if (voice === "theremin") {
+      // A hand drifting to the pitch, then a vibrato that deepens as it holds.
+      const f =
+        frequency *
+        2 **
+          ((-2 * Math.exp(-t * 6) +
+            0.22 * Math.sin(2 * Math.PI * 5.8 * t) * Math.min(1, t * 0.8)) /
+            12);
+      slide += (2 * Math.PI * f) / ctx.sampleRate;
+      sample = 0.55 * Math.sin(slide) + 0.08 * Math.sin(2 * slide);
+    } else if (voice === "beep") {
+      sample = 0.5 * Math.sin(phase);
+    } else if (voice === "carillon") {
+      // Tuned bell partials: hum, prime, a minor-third tierce, quint, nominal.
+      sample =
+        0.3 * Math.sin(phase * 0.5) * Math.exp(-t * 0.35) +
+        0.4 * Math.sin(phase) * Math.exp(-t * 0.8) +
+        0.28 * Math.sin(phase * 1.2) * Math.exp(-t * 0.9) +
+        0.12 * Math.sin(phase * 1.5) * Math.exp(-t * 1.6) +
+        0.25 * Math.sin(phase * 2) * Math.exp(-t * 1.4) +
+        0.08 * Math.sin(phase * 2.5) * Math.exp(-t * 3) +
+        random() * 0.08 * Math.exp(-t * 90);
     } else if (voice === "vib") {
       // The motor-driven fans give the vibraphone its pulse.
       sample =
@@ -502,16 +526,17 @@ export function createMix(
   destination: AudioNode,
   bpm: number,
   levels: Record<Stem, number>,
+  [room, seconds]: [number, number] = [0.22, 2.6],
 ): MixBus {
   const input = ctx.createGain(),
     dry = ctx.createGain(),
     wet = ctx.createGain();
   dry.gain.value = 0.8;
-  wet.gain.value = 0.22;
+  wet.gain.value = room;
   const convolver = ctx.createConvolver();
   const impulse = ctx.createBuffer(
     2,
-    Math.floor(ctx.sampleRate * 2.6),
+    Math.floor(ctx.sampleRate * seconds),
     ctx.sampleRate,
   );
   const random = noiseGenerator(541);
@@ -522,7 +547,7 @@ export function createMix(
       low = low * 0.6 + random() * 0.4;
       data[i] =
         low *
-        Math.exp((-i / ctx.sampleRate) * 2.8) *
+        Math.exp(((-i / ctx.sampleRate) * 7.3) / seconds) *
         Math.min(1, i / (ctx.sampleRate * 0.035));
     }
   }
@@ -569,6 +594,7 @@ export function scheduleNote(
     pan = ctx.createStereoPanner();
   source.buffer = instrument(ctx, note.voice, note.midi, note.cents);
   const sustained =
+    note.voice === "theremin" ||
     note.voice === "organ" ||
     note.voice === "pad" ||
     note.voice === "accordion" ||
@@ -618,7 +644,9 @@ export function scheduleNote(
         note.voice === "agogo" ||
         note.voice === "udu"
       ? 0.65
-      : note.voice === "gong" || note.voice === "bronze"
+      : note.voice === "gong" ||
+          note.voice === "bronze" ||
+          note.voice === "carillon"
         ? 2.5
         : 0.12;
   envelope.gain.setValueAtTime(0, at);
@@ -645,13 +673,16 @@ export async function renderWav(
     secondsPerBeat = 60 / score.bpm;
   const ctx = new OfflineAudioContext(
     2,
-    Math.ceil((score.beats * secondsPerBeat + 4) * sampleRate),
+    Math.ceil(
+      (score.beats * secondsPerBeat + 1.5 + (score.reverb?.[1] ?? 2.6)) *
+        sampleRate,
+    ),
     sampleRate,
   );
   const master = ctx.createGain();
   master.gain.value = 0.72;
   master.connect(ctx.destination);
-  const mix = createMix(ctx, master, score.bpm, levels);
+  const mix = createMix(ctx, master, score.bpm, levels, score.reverb);
   score.notes.forEach((note) =>
     scheduleNote(
       ctx,

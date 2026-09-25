@@ -62,7 +62,10 @@ export type Voice =
   | "hat"
   | "saw"
   | "pad"
-  | "crackle";
+  | "crackle"
+  | "carillon"
+  | "theremin"
+  | "beep";
 const unpitched = new Set<Voice>([
   "kick",
   "brush",
@@ -354,6 +357,8 @@ export interface Score {
   bpm: number;
   beats: number;
   theme: Theme | CulturalTheme | LayeredTheme;
+  /** Reverb send and length in seconds, when a piece needs its own room. */
+  reverb?: [number, number];
   arrangement: Arrangement;
 }
 export const defaultArrangement: Arrangement = {
@@ -774,7 +779,11 @@ function composeLayered(theme: LayeredTheme, arrangement: Arrangement): Score {
       length += Number(span);
     }
     const end = (layer.exit ?? theme.bars) * theme.meter;
-    for (let at = (layer.enter ?? 0) * theme.meter; at < end; at += length)
+    for (
+      let at = (layer.enter ?? 0) * theme.meter;
+      at < end;
+      at += length - (layer.drift ?? 0)
+    )
       for (const [offset, span, chord] of events)
         chord.forEach((pitch, i) => {
           let start = at + offset;
@@ -805,6 +814,7 @@ function composeLayered(theme: LayeredTheme, arrangement: Arrangement): Score {
     notes: notes.sort((a, b) => a.beat - b.beat),
     bpm: Math.round(theme.bpm * (quiet ? 0.85 : 1)),
     beats,
+    reverb: theme.reverb,
     theme,
     arrangement,
   };

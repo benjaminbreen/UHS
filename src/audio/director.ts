@@ -39,7 +39,7 @@ interface Run {
 }
 const PREF_KEY = "uhs-audio-v1";
 const eras: Era[] = ["pastoral", "chamber", "electronic"];
-// The lead line tires quickly on repeat; the game mix leaves it out.
+// The original themes' lead line tires quickly on repeat; the game mix leaves it out.
 const defaultLevels: Record<Stem, number> = {
   melody: 0,
   harmony: 1,
@@ -218,7 +218,12 @@ export class AudioDirector {
     gain.gain.setValueAtTime(0, ctx.currentTime);
     gain.gain.linearRampToValueAtTime(1, ctx.currentTime + fadeIn);
     gain.connect(this.music!);
-    const mix = createMix(ctx, gain, score.bpm, this.state.levels);
+    const { levels } = this.state;
+    // Only the five original themes tire on repeat; the place pieces are written around their lead.
+    const lead = themes.some((t) => t.id === score.theme.id)
+      ? levels
+      : { ...levels, melody: Math.max(levels.melody, 1) };
+    const mix = createMix(ctx, gain, score.bpm, lead, score.reverb);
     this.run = {
       mix,
       gain,
