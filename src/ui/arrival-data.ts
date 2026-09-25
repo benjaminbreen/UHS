@@ -6,6 +6,16 @@ export function arrivalBackdrop(setting: WorldSetting) {
   const special: [string, number, number, number, number, number, number][] = [
     ["botswana-500", 20, 30.5, -26, -16, 300, 900],
     ["mozambique-700", 31, 42, -27, -10, 300, 900],
+    ["bengal-delta-100bce", 87, 94, 20, 27, -500, 500],
+    ["deccan-100bce", 72, 84, 11, 22, -500, 499],
+    ["south-china-100bce", 105, 122, 20, 27, -500, 600],
+    ["north-china-500", 106, 123, 32, 43, 301, 699],
+    ["lower-mekong-100ce", 101, 108, 9, 16, -500, 699],
+    ["java-interior-100ce", 105, 115, -9, -5, -500, 899],
+    ["middle-niger-100bce", -5, 8, 10, 19, -500, 499],
+    ["great-lakes-africa-100bce", 28, 38, -7, 3, -500, 599],
+    ["congo-100bce", 12, 31, -6, 6, -500, 499],
+    ["nile-valley-900", 29, 34.5, 22, 31, 500, 1499],
     ["bay-area-2000", -123.5, -121.2, 36.8, 38.8, 1970, 2100],
     ["namaqualand-2000", 15, 22, -34, -26, 1970, 2100],
     ["mozambique-coast-2000", 31, 42, -27, -10, 1970, 2100],
@@ -134,11 +144,20 @@ export function arrivalBackdrop(setting: WorldSetting) {
       if (id === "latin-america-city-2000" && setting.settlement !== "city" && setting.settlement !== "port") continue;
       if (id === "west-africa-city-2000" && setting.settlement !== "city" && setting.settlement !== "port") continue;
       if (id === "indus-hinterland-2200bce" && setting.settlement === "city") continue;
+      if (id === "bengal-delta-100bce" && setting.relief >= 0.5) continue;
+      if (id === "lower-mekong-100ce" && setting.relief >= 0.5) continue;
+      if (id === "congo-100bce" && setting.climate !== "tropical") continue;
+      if (id === "andes-1400" && setting.relief < 0.5) continue;
       if (id === "sierra-madre-1000" && setting.relief < 0.5) continue;
       if (id === "sepik-1000" && setting.relief >= 0.5) continue;
       if (id === "australian-interior-500bce" && setting.water.startsWith("coast")) continue;
       return `/opening/${id}.webp`;
     }
+  }
+  if (lon >= -77 && lon <= -47 && lat >= -15 && lat <= 9 && year < 1900 && setting.climate === "tropical" && setting.relief < 0.5) {
+    if (year < 500) return "/opening/amazon-400bce.webp";
+    if (year <= 1500) return "/opening/amazon-1000.webp";
+    return "/opening/amazon-1750.webp";
   }
   if (lon >= -170 && lon <= -50 && lat >= 25 && year < 1900) {
     if (lat >= 62) return "/opening/arctic-north-america-1100.webp";
