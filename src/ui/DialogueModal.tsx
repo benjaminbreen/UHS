@@ -31,7 +31,7 @@ function Glossed({ line }: { line: DialogueLine }) {
       data-english={english || undefined}
       role="button"
       tabIndex={0}
-      title={english ? "Show original" : "Show English"}
+      title={english ? "Show original" : line.language ? `${line.language}. Show English` : "Show English"}
       onClick={() => setEnglish(!english)}
       onKeyDown={(event) => {
         if (event.key === "Enter" || event.key === " ") {
@@ -177,7 +177,7 @@ export function DialogueModal({ runtime, actorId, situation, onClose }: { runtim
           setLeft(true);
           commitExchange("", 0, result.leave);
         }
-        say(() => setHistory([{ speaker: "npc", text: result.text, original: result.original, action: result.action, context: result.context }]));
+        say(() => setHistory([{ speaker: "npc", text: result.text, original: result.original, language: result.language, action: result.action, context: result.context }]));
       }
     });
     // Closing the conversation stops the request rather than paying for a
@@ -242,7 +242,7 @@ export function DialogueModal({ runtime, actorId, situation, onClose }: { runtim
         setLeft(true);
         setResponding(false);
       }
-      say(() => setHistory([...next, { speaker: "npc", text: result.text, original: result.original, action: result.action, context: result.context }]));
+      say(() => setHistory([...next, { speaker: "npc", text: result.text, original: result.original, language: result.language, action: result.action, context: result.context }]));
     }
   };
   const close = () => {

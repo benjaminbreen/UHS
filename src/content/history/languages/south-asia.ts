@@ -1,0 +1,127 @@
+import type { LanguageWindow } from ".";
+
+export const southAsia: LanguageWindow[] = [
+  {
+    id: "sa-early",
+    years: [-10000, -4000],
+    box: [[60, 5, 97, 37]],
+    hypotheses: [
+      { label: "Pre-Harappan Indus (hypothetical)", probability: 0.4, confidence: "conjectural",
+        note: "The northwest held at least one language that is neither Dravidian nor Indo-Aryan, detectable only as loanwords in later Sanskrit." },
+      { label: "Proto-Dravidian (reconstructed)", probability: 0.3, confidence: "reconstructed",
+        note: "Dravidian agricultural vocabulary aligns with the independent domestication of millets in peninsular India." },
+      { label: "Proto-Munda (reconstructed)", probability: 0.2, confidence: "reconstructed",
+        note: "Austroasiatic speech reached eastern India early, probably with rice." },
+      { label: "Himalayan isolate (hypothetical)", probability: 0.1, confidence: "conjectural",
+        note: "Burushaski and the Kusunda language show that isolates survived in the mountains." },
+    ],
+  },
+  {
+    id: "sa-harappan",
+    years: [-3300, -1900],
+    box: [[66, 23, 77, 34]],
+    hypotheses: [
+      { label: "Harappan (unread)", probability: 0.45, confidence: "conjectural",
+        note: "The Indus script exists in thousands of inscriptions and has never been read; the language behind it is unknown.",
+        draw: "Parpola's Proto-Dravidian readings of the script, or Witzel's 'Para-Munda' substrate words in the Rigveda; commit to one." },
+      { label: "Proto-Dravidian (reconstructed)", probability: 0.35, confidence: "reconstructed",
+        note: "The leading candidate for Harappan speech, though the case rests on circumstantial evidence.",
+        draw: "Krishnamurti's Proto-Dravidian; the Dravidian Etymological Dictionary." },
+      { label: "Para-Munda (hypothetical)", probability: 0.2, confidence: "conjectural", note: "Witzel's proposal for the Punjab substrate." },
+    ],
+  },
+  {
+    id: "sa-east-munda",
+    years: [-4000, -500],
+    box: [[82, 19, 92, 25]],
+    hypotheses: [
+      { label: "Proto-Munda (reconstructed)", probability: 0.55, confidence: "reconstructed",
+        note: "Austroasiatic speech reached eastern India early, probably with rice.",
+        draw: "Sidwell and Anderson's Proto-Munda; Santali and Mundari cognates." },
+      { label: "Proto-Dravidian (reconstructed)", probability: 0.3, confidence: "reconstructed", note: "Kurukh and Malto show Dravidian in the east too." },
+      { label: "Old Indo-Aryan (inferred)", probability: 0.15, confidence: "inferred", note: "Late in the window, from the west." },
+    ],
+  },
+  {
+    id: "sa-proto-indo-aryan",
+    years: [-1900, -1200],
+    box: [[66, 26, 80, 37]],
+    hypotheses: [
+      { label: "Proto-Indo-Aryan, early Rigvedic (reconstructed)", probability: 0.6, confidence: "reconstructed",
+        note: "The language of the oldest Rigvedic hymns, spoken by newcomers in the Punjab and Swat; still close to Proto-Indo-Iranian.",
+        draw: "Rigvedic Sanskrit in its oldest layer (Macdonell, Witzel, Jamison and Brereton), without later Classical Sanskrit forms." },
+      { label: "Late Harappan survival (hypothetical)", probability: 0.25, confidence: "conjectural", note: "The cities emptied; their people did not." },
+      { label: "Proto-Dravidian (reconstructed)", probability: 0.15, confidence: "reconstructed" },
+    ],
+  },
+  {
+    id: "sa-late-vedic",
+    years: [-1200, -500],
+    box: [[66, 21, 92, 37]],
+    hypotheses: [
+      { label: "Late Vedic vernacular, early Prakrit (inferred)", probability: 0.65, confidence: "inferred",
+        note: "The Ganges plain spoke a vernacular already drifting from the liturgical Vedic of the priests.",
+        draw: "Late Vedic (Brahmanas, Upanishads) with the sound changes that become Prakrit: lost clusters, -ṣ- to -s-." },
+      { label: "Dravidian or Munda (reconstructed)", probability: 0.25, confidence: "reconstructed", note: "The south and east of this box." },
+      { label: "Vedic Sanskrit (attested)", probability: 0.1, confidence: "attested", note: "Ritual speech, not the street." },
+    ],
+  },
+  {
+    id: "sa-prakrit",
+    years: [-500, 500],
+    box: [[60, 21, 92, 37]],
+    hypotheses: [
+      { label: "Middle Indo-Aryan Prakrit (attested)", probability: 0.8, confidence: "attested",
+        note: "Everyday speech: Gandhari in the northwest, Magadhi in the east, Shauraseni in between. Sanskrit is for priests and poets.",
+        draw: "The Ashokan edicts for the regional dialect, Pali, and the Prakrit lines of Sanskrit drama." },
+      { label: "Classical Sanskrit (attested)", probability: 0.1, confidence: "attested", note: "Learned speech only." },
+      { label: "Dravidian or Munda (attested)", probability: 0.1, confidence: "attested" },
+    ],
+  },
+  {
+    id: "sa-apabhramsa",
+    years: [500, 1000],
+    box: [[60, 21, 92, 37]],
+    hypotheses: [
+      { label: "Apabhramsha, late Prakrit (attested)", probability: 0.75, confidence: "attested",
+        note: "The last stage before the modern north Indian languages separate.",
+        draw: "Apabhramsha poetry (Hemacandra's grammar), leaning toward the regional descendant." },
+      { label: "Classical Sanskrit (attested)", probability: 0.15, confidence: "attested", note: "Learned speech only." },
+      { label: "Dravidian or Munda (attested)", probability: 0.1, confidence: "attested" },
+    ],
+  },
+  {
+    id: "sa-peninsula-early",
+    years: [-4000, -500],
+    box: [[72, 5, 88, 21]],
+    hypotheses: [
+      { label: "Proto-Dravidian, then Proto-South Dravidian (reconstructed)", probability: 0.7, confidence: "reconstructed",
+        note: "Dravidian agricultural vocabulary aligns with the local domestication of millets and pulses.",
+        draw: "Krishnamurti's Proto-Dravidian; the Dravidian Etymological Dictionary." },
+      { label: "Proto-Munda (reconstructed)", probability: 0.15, confidence: "reconstructed", note: "The north-east of the peninsula." },
+      { label: "Pre-Dravidian forager language (hypothetical)", probability: 0.15, confidence: "conjectural" },
+    ],
+  },
+  {
+    id: "sa-peninsula-dravidian",
+    years: [-500, 1000],
+    box: [[72, 5, 88, 21]],
+    hypotheses: [
+      { label: "Old Tamil, Old Kannada or Old Telugu (attested)", probability: 0.8, confidence: "attested",
+        note: "Tamil in the far south, Kannada and Telugu on the Deccan; Tamil-Brahmi inscriptions from about 300 BCE.",
+        draw: "Sangam poetry and Tamil-Brahmi for Tamil; early inscriptions for Kannada and Telugu." },
+      { label: "Prakrit (attested)", probability: 0.15, confidence: "attested", note: "Courts and Buddhist sites on the Deccan." },
+      { label: "Sanskrit (attested)", probability: 0.05, confidence: "attested" },
+    ],
+  },
+  {
+    id: "backstop-south-asian",
+    years: [-10000, 1000],
+    box: [[60, 5, 97, 37]],
+    hypotheses: [
+      { label: "Indo-Aryan language of the region", probability: 0.5, confidence: "inferred" },
+      { label: "Dravidian language of the region", probability: 0.35, confidence: "inferred" },
+      { label: "Munda language of the region", probability: 0.15, confidence: "inferred" },
+    ],
+  },
+];

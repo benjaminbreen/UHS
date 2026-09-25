@@ -6,6 +6,7 @@ import { narrator } from "../server/narrator";
 import { Runtime, createSettingSession } from "../src/runtime/session";
 import { resolveSetting } from "../src/content/geography/resolve";
 import { dialogueContext } from "../src/narrator/dialogue";
+import { languageBrief, languageWindow } from "../src/content/history/languages";
 
 const reply = (body: unknown) =>
   new Response(
@@ -36,7 +37,7 @@ describe("dialogue endpoint", () => {
     expect(await response.json()).toEqual({ explanation: "The invitation reflects their concern with food. The language is hypothetical, because no local text survives." });
     expect(sent?.model).toBe("gpt-6-luna");
     expect(sent?.response_format.json_schema.name).toBe("npc_explanation");
-    expect(sent?.messages[1].content).toContain("Original-language line: An invented reconstruction.");
+    expect(sent?.messages[1].content).toContain("Original-language line (language unnamed): An invented reconstruction.");
   });
   it("limits one caller without touching another", async () => {
     const env = { OPENAI_API_KEY: "test" };
@@ -98,6 +99,7 @@ describe("dialogue endpoint", () => {
       "regard",
       "action",
       "dialogue",
+      "language",
       "original",
       "leave",
       "receive",
@@ -115,8 +117,9 @@ describe("dialogue endpoint", () => {
       return reply({ dialogue: "Where are you going?", original: "Où vas-tu?", regard: 0 });
     });
     const properties = sent?.response_format.json_schema.schema.properties;
-    expect(Object.keys(properties)).toEqual(["mood", "regard", "action", "dialogue", "original", "leave", "receive"]);
+    expect(Object.keys(properties)).toEqual(["mood", "regard", "action", "dialogue", "language", "original", "leave", "receive"]);
     expect(sent?.messages[0].content).toContain("translate that exact line");
+    expect(sent?.reasoning_effort).toBe("low");
   });
   it("offers the mood as a nullable enum, which is what strict mode accepts", () => {
     // Widening the type alone leaves null outside the permitted values and
@@ -234,5 +237,18 @@ describe("a conversation leaves a trace", () => {
     state.player.pos = { ...actor.pos, x: actor.pos.x - 1 };
     runtime.command({ type: "move", dx: 1, dy: 0 });
     expect(dialogueContext(runtime, actor)).toContain("bumped into you");
+  });
+  it("resolves a deep-time language from coordinates, not the modern place name", () => {
+    // Karaganda, 2269 BCE: once answered in modern Kazakh.
+    expect(languageWindow(73.1, 49.8, -2269)?.id).toBe("kazakh-pre-sintashta");
+    expect(languageBrief(73.1, 49.8, -2269)).toMatch(/^Language: best guess Post-Botai/);
+    expect(languageWindow(73.1, 49.8, -13000)?.id).toBe("paleo-north-asia");
+    expect(languageWindow(-100, 40, -13000)?.id).toBe("paleo-anywhere");
+    expect(languageWindow(2.35, 48.85, 1200)?.id).toBe("medieval-romance");
+    expect(languageWindow(-0.1, 51.5, 100)?.id).toBe("eu-roman-britain");
+    expect(languageWindow(2.35, 48.85, 1850)).toBeUndefined();
+    // One box for the subcontinent once gave Kerala Old Indo-Aryan.
+    expect(languageWindow(76.3, 10, -1000)?.id).toBe("sa-peninsula-early");
+    expect(languageWindow(72.4, 34.8, -1500)?.id).toBe("sa-proto-indo-aryan");
   });
 });
