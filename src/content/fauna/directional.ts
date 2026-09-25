@@ -1,5 +1,5 @@
 import type { FaunaProfile } from "./types";
-import { directionalStudy } from "./types";
+import { directionalStudy, columbianExchange } from "./types";
 
 /** Four-direction art studies. Horses are kept stock; rabbits are wild and
  * present almost everywhere people are. */
@@ -28,7 +28,7 @@ export const directionalFauna: readonly FaunaProfile[] = [
       { years: [-1600, 10000], bounds: [-15, 30, 40, 62] },
       { years: [-1300, 10000], bounds: [75, 20, 135, 50] },
       { years: [-500, 10000], bounds: [-20, -5, 55, 35] },
-      { years: [1519, 10000], bounds: [-170, -56, -30, 70] },
+      ...columbianExchange,
       { years: [1788, 10000], bounds: [110, -50, 180, -10] },
     ],
     keeping: { place: "paddock" },
@@ -67,7 +67,7 @@ export const directionalFauna: readonly FaunaProfile[] = [
       { years: [-1600, 10000], bounds: [-15, 30, 40, 62] },
       { years: [-1300, 10000], bounds: [75, 20, 135, 50] },
       { years: [-500, 10000], bounds: [-20, -5, 55, 35] },
-      { years: [1519, 10000], bounds: [-170, -56, -30, 70] },
+      ...columbianExchange,
       { years: [1788, 10000], bounds: [110, -50, 180, -10] },
     ],
     density: 0,
@@ -106,13 +106,13 @@ export const directionalFauna: readonly FaunaProfile[] = [
       { years: [-100000, 10000], bounds: [-10, 35, 4, 44] },
       { years: [-200, 10000], bounds: [-10, 30, 30, 46] },
       { years: [1100, 10000], bounds: [-11, 36, 30, 60] },
-      { years: [1500, 10000], bounds: [-170, -56, -30, 70] },
+      ...columbianExchange,
       { years: [1859, 10000], bounds: [110, -50, 180, -10] },
     ],
     // Kept as well as wild from the Norman warrens on: a fenced coney-garth
     // beside the village, not a wild colony that happens to be there.
     keeping: { place: "paddock", from: 1100 },
-    density: 2.6,
+    density: 1.3,
     young: { id: "rabbit-kit", chance: 0.45 },
     pace: 1.4,
     climbs: true,
@@ -148,7 +148,7 @@ export const directionalFauna: readonly FaunaProfile[] = [
       { years: [-100000, 10000], bounds: [-10, 35, 4, 44] },
       { years: [-200, 10000], bounds: [-10, 30, 30, 46] },
       { years: [1100, 10000], bounds: [-11, 36, 30, 60] },
-      { years: [1500, 10000], bounds: [-170, -56, -30, 70] },
+      ...columbianExchange,
       { years: [1859, 10000], bounds: [110, -50, 180, -10] },
     ],
     density: 0,

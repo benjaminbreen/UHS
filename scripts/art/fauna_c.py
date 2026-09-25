@@ -635,3 +635,29 @@ def fauna_c():
                 for frame in range(count):
                     result[f"faunac-{species}-{state}-{facing}-{frame}"] = draw(species, state, facing, frame)
     return result
+
+
+# Coats the renderer swaps onto the horse (o d m l h b e a; b is the blaze and
+# socks, a the mane and tail). Before domestication horses were bay, black or
+# dun (Ludwig et al. 2009); chestnut spread with the first herds and grey much
+# later. Dun has dark points and no white, and is all a wild horse wears.
+HORSE_COATS = {
+    "bay": PALETTES["horse"],
+    "chestnut": {"o": "#3a1a0c", "d": "#6b2e12", "m": "#94441c", "l": "#b55d2a", "h": "#cf7a3f", "b": "#ece2d2", "e": "#150e09", "a": "#5a2610"},
+    "black": {"o": "#0d0b0b", "d": "#1c1918", "m": "#2a2624", "l": "#3b3532", "h": "#4f4843", "b": "#e9e2d6", "e": "#050404", "a": "#121010"},
+    "grey": {"o": "#3e3e40", "d": "#7d7c7b", "m": "#a6a4a0", "l": "#c4c2bd", "h": "#dcdad5", "b": "#f2f0ea", "e": "#151515", "a": "#6a6865"},
+    "dun": {"o": "#3a2a17", "d": "#7d6338", "m": "#a78a55", "l": "#c3a570", "h": "#d9c08c", "b": "#2a241d", "e": "#120d09", "a": "#1b1713"},
+}
+for _c in HORSE_COATS.values():
+    assert len(set(_c.values())) == len(_c)
+
+
+def looks():
+    return {"horse": {
+        "roles": PALETTES["horse"],
+        "forms": [{"id": "horse", "weight": 1.0, "where": None,
+                   "coats": {"bay": 6, "chestnut": 3, "black": 2, "grey": 1.5, "dun": 0.7}}],
+        "coats": HORSE_COATS,
+        "coatFrom": {"chestnut": -3000, "grey": -500},
+    }}
+

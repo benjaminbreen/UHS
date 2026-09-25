@@ -2,7 +2,9 @@ import { americanFauna } from "./americas";
 import { birds } from "./birds";
 import { directionalFauna } from "./directional";
 import { domesticFauna } from "./domestic";
+import { bears } from "./bears";
 import { foxes } from "./foxes";
+import { megafauna } from "./megafauna";
 import { temperateFauna } from "./temperate";
 import { workingFauna } from "./working";
 import type { WorldSetting } from "../geography/types";
@@ -16,6 +18,8 @@ export const faunaProfiles = [
   ...temperateFauna,
   ...directionalFauna,
   ...foxes,
+  ...megafauna,
+  ...bears,
 ];
 
 export function faunaProfile(id: string) {
@@ -30,7 +34,10 @@ export function faunaAt(setting: WorldSetting) {
     (p) =>
       p.presence.some((scope) => matchesCharacterScope(scope, setting, "*")) &&
       (p.needs !== "herding" || herding >= 0.05) &&
-      (p.needs !== "settled" || setting.settlement !== "camp"),
+      // Pigs, hens and yard cats belong to farmers; where people live by
+      // their herds, the stock is on the grass, not about the door.
+      (p.needs !== "settled" ||
+        (setting.settlement !== "camp" && herding < 0.4)),
   );
 }
 

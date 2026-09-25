@@ -71,6 +71,26 @@ const table: Record<string, FaunaCombat> = {
   "gray-wolf": beast(24, 1, 2, "pack", 8),
   "wild-boar": beast(30, 2, 8, "charge", 12),
   aurochs: beast(70, 3, 20, "charge", 22),
+  // A family closes round its young and the matriarch comes at the threat.
+  "woolly-mammoth": beast(220, 6, 60, "charge", 40),
+  "columbian-mammoth": beast(280, 7, 80, "charge", 45),
+  "american-mastodon": beast(180, 6, 50, "charge", 35),
+  "irish-elk": beast(45, 4, 25),
+  reindeer: beast(22, 2, 10),
+  "wild-horse": beast(30, 3, 14),
+  // A great cat at bay comes for you; there is no running from one.
+  "cave-lion": { ...beast(90, 4, 30, "charge", 30), yields: { meat: 30, hide: 1 } },
+  "american-lion": { ...beast(100, 4, 32, "charge", 32), yields: { meat: 32, hide: 1 } },
+  smilodon: { ...beast(95, 5, 30, "charge", 34), yields: { meat: 30, hide: 1 } },
+  "steppe-bison": beast(90, 5, 40, "charge", 26),
+  "american-bison": beast(85, 5, 38, "charge", 25),
+  wisent: beast(85, 5, 38, "charge", 25),
+  "woolly-rhinoceros": beast(160, 6, 50, "charge", 36),
+  // A bear stands its ground and comes at you; it is not driven off.
+  "brown-bear": { ...beast(90, 4, 25, "charge", 32), yields: { meat: 25, hide: 1 } },
+  "polar-bear": { ...beast(110, 5, 30, "charge", 36), yields: { meat: 30, hide: 1 } },
+  "cave-bear": { ...beast(110, 5, 30, "charge", 34), yields: { meat: 30, hide: 1 } },
+  "short-faced-bear": { ...beast(140, 6, 36, "charge", 40), yields: { meat: 36, hide: 1 } },
 };
 
 /** A species without an entry is sized from what the profile already says. */

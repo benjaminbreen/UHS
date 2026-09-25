@@ -4,10 +4,72 @@ import { applyBeliefKits } from "../kits/apply";
 
 const westAsiaBase: readonly BeliefSystem[] = [
   {
+    id: "natufian",
+    label: "Natufian hamlets of the Levant",
+    wiki: "https://en.wikipedia.org/wiki/Natufian_culture",
+    scope: { years: [-13000, -9500], bounds: [33, 29, 38, 37] },
+    powers: [
+      {
+        name: "The dead beneath the floor",
+        domain: "the household, its claim to this place",
+        rank: "paramount",
+      },
+      {
+        name: "The grain stands",
+        domain: "wild wheat and barley, the harvest",
+        rank: "major",
+      },
+      {
+        name: "The gazelle",
+        domain: "the herds, their return each season",
+        rank: "major",
+      },
+      {
+        name: "The eagle and the tortoise",
+        domain: "the passage between the living and the dead",
+        rank: "major",
+      },
+      {
+        name: "The dog",
+        domain: "companionship in life and in the grave",
+        rank: "local",
+      },
+      {
+        name: "The spring",
+        domain: "water, the lake shore",
+        rank: "local",
+      },
+    ],
+    practice: [
+      "The dead are buried under the house floor, and skulls are later taken up and kept.",
+      "Graves are lined with flowering sage, mint and figwort before the body is laid in.",
+      "A dog may be buried with its person, a hand resting on it.",
+      "Feasts of tortoise and wild cattle mark the burial of an important healer.",
+      "Grinding stones and sickles are made with care; some are carved with animals.",
+    ],
+    specialist:
+      "The healer who handles tortoise shell, eagle wing and the parts of wild animals.",
+    afterlife:
+      "The dead stay in the house; their skulls remain with the living.",
+    evidence: {
+      status: "inferred",
+      claim:
+        "Natufian burials are unusually rich evidence: the Hilazon Tachtit grave of an older woman with fifty tortoise shells, an eagle wing, a boar's forelimb and a human foot; the Ain Mallaha burial of a woman with her hand on a puppy; flower-lined graves at Raqefet; and repeated skull removal. The powers above are organised around those finds.",
+      sources: [
+        "Grosman, Munro and Belfer-Cohen, 'A 12,000-year-old Shaman burial from the southern Levant', PNAS 2008",
+        "Davis and Valla, 'Evidence for domestication of the dog 12,000 years ago', Nature 1978",
+        "Nadel et al., 'Earliest floral grave lining from 13,700–11,700-y-old Natufian burials', PNAS 2013",
+        "Bar-Yosef, 'The Natufian Culture in the Levant', Evolutionary Anthropology 1998",
+      ],
+      limitation:
+        "The burials are documented; that they express beliefs about a household's dead, a healer's role, or powers of eagle and tortoise is inference. No names survive and no language can be assigned to the Natufians, so none are given.",
+    },
+  },
+  {
     id: "west-asia-foragers",
     label: "Foraging communities of West Asia and North Africa",
     wiki: "https://en.wikipedia.org/wiki/Paleolithic_religion",
-    scope: { years: [-10000, -2000], bounds: [-20, 10, 65, 45] },
+    scope: { years: [-13000, -2000], bounds: [-20, 10, 65, 45] },
     powers: [
       {
         name: "*Rapiʔū",

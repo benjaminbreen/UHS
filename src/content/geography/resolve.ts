@@ -1,6 +1,6 @@
 import { applySituation, situationFromPrompt } from "./situation";
 import { formatHistoricalYear } from "../../core/calendar";
-import { eraAt } from "../history/dates";
+import { eraAt, glacialTundraLatitude } from "../history/dates";
 import { random } from "../../core/random";
 import { populateCharacter } from "./character";
 import { places } from "./places";
@@ -124,7 +124,8 @@ export function settingFor(input: AtlasPlace, year = input.year): WorldSetting {
       lat: place.lat,
       year,
       culture: place.culture,
-      climate: year < -9999 && place.lat > 48 ? "tundra" : place.climate,
+      climate:
+        place.lat > (glacialTundraLatitude(year) ?? 90) ? "tundra" : place.climate,
       relief: place.relief,
       water: place.water,
       settlement: forager ? "camp" : town ? place.settlement : "village",

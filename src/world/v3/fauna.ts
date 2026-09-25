@@ -144,9 +144,13 @@ export function spawnFauna(
       if (!setting?.environment) continue;
       // Herding as a share of how people here live: where it is most of it,
       // the country round a settlement is full of stock.
-      const herding = Math.min(
-        1,
-        (subsistenceFor(setting)?.shares.herding ?? 0) / 0.25,
+      const shares = subsistenceFor(setting)?.shares;
+      const herding = Math.min(1, (shares?.herding ?? 0) / 0.25);
+      // Farmed country is hunted out and fenced: its deer and boar keep to
+      // what woods are left. Herders hunt too, but share the grass with them.
+      const hunted = Math.max(
+        0.25,
+        1 - (shares?.farming ?? 0) * 1.3 - (shares?.herding ?? 0) * 0.5,
       );
       for (const p of faunaAt(setting)) {
         const ranging =
@@ -165,12 +169,16 @@ export function spawnFauna(
             continue;
           const d = settlementDistance(world, px, py);
           if (d < p.minimumSettlementDistance) continue;
-          // Kept animals graze near home: past the last houses, and no
-          // further than they can be walked out and back in a day.
-          if (ranging && (d < 5 || d > 70)) continue;
+          // Kept animals graze near home, no further than they can be walked
+          // out and back in a day. Within the bounds too: a place's commons,
+          // fallow and waste were grazed, and its radius takes them all in.
+          if (ranging && d > 70) continue;
+          const tags = habitatTagsAt(world, px, py);
+          if (ranging && tags.has("field")) continue;
           let chance =
-            ((ranging || p.density) / ATTEMPTS) *
-            suitability(p, habitatTagsAt(world, px, py));
+            ((ranging || p.density) / ATTEMPTS) * suitability(p, tags);
+          if (ranging && d < 0) chance *= 0.5;
+          if (p.category === "wild" && p.prey === "ungulate") chance *= hunted;
           // Town birds keep to the town: far from one they are a rare stray.
           if (p.category === "commensal" && d > 6) chance *= 0.15;
           if (random(seed, "fauna", k, p.id, i, "present") >= chance) continue;

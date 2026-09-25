@@ -3288,7 +3288,7 @@ export function planSettlement(
   /** The species a settlement of this date keeps in a given place. Order is
    * the seed's, not the catalogue's, so two towns of the same period do not
    * both get the first animal in the file. */
-  const keptFor = (place: "pen" | "yard" | "paddock") =>
+  const keptFor = (place: "pen" | "yard" | "paddock" | "tether") =>
     kept
       .filter(
         (k) =>
@@ -3313,6 +3313,7 @@ export function planSettlement(
   const dog = kept.find((k) => k.id === "dog");
   const cat = kept.find((k) => k.id === "cat");
   const paddockStock = keptFor("paddock");
+  const tethered = keptFor("tether");
   /** Pen and paddock cells drawn by the field raster, so a pen wears the same
    * wall, rails or wire as the fields of its day. Merged after the farmland so
    * they never count as cropland. */
@@ -3887,16 +3888,22 @@ export function planSettlement(
   // the households that keep them. Neighbours need not keep the same animal.
   if (yardStock.length) {
     let flocks = 0;
+    const yardWeight = yardStock.reduce((t, k) => t + (k.keeping?.share ?? 1), 0);
     for (const owner of owners) {
-      if (flocks >= 3) break;
+      if (flocks >= Math.max(3, Math.round(owners.length / 8))) break;
       if (owner === "player") continue;
       const yard = plan.slots.get(owner)?.yard[0];
       if (!yard || plan.solid.has(cellKey(yard.x, yard.y))) continue;
       if (random(seed, owner, "hens") > 0.6) continue;
+      let pick = random(seed, owner, "yard-species") * yardWeight;
       const species =
-        yardStock[
-          Math.floor(random(seed, owner, "yard-species") * yardStock.length)
-        ];
+        yardStock.find((k) => (pick -= k.keeping?.share ?? 1) < 0) ??
+        yardStock[0];
+      // Kept indoors: this house has them, you just do not see them.
+      if (random(seed, owner, "yard-seen") > (species.keeping?.seen ?? 1)) {
+        flocks++;
+        continue;
+      }
       const most = species.groupSize[1];
       const members: FaunaMember[] = [];
       for (let dy = -1; dy <= 1 && members.length < most; dy++)
@@ -3973,10 +3980,46 @@ export function planSettlement(
       dogs++;
     }
   }
-  // Mice where grain is kept, and the cats kept for them. A baker's, a
-  // miller's or an inn has mice for certain and a cat most likely; a farmer's
-  // store often; most other houses too. The cat lives by the mice, so
-  // a hunt is something you can come on by the bakehouse at dusk.
+  // A donkey tied by the door of the households that carry for a living, or
+  // just carry: water, fuel, grain to the mill.
+  if (tethered.length) {
+    let tied = 0;
+    for (const owner of owners) {
+      if (tied >= Math.max(1, Math.round(owners.length / 6))) break;
+      if (owner === "player" || random(seed, owner, "tether") > 0.3) continue;
+      const at = plan.slots
+        .get(owner)
+        ?.yard.find(
+          (p) =>
+            !plan.solid.has(cellKey(p.x, p.y)) &&
+            !plan.traffic.has(cellKey(p.x, p.y)) &&
+            !plan.fauna?.some((g) =>
+              g.members.some((m) => m.x === p.x && m.y === p.y),
+            ),
+        );
+      if (!at) continue;
+      const species = tethered[0];
+      (plan.fauna ??= []).push({
+        id: `${site.id}-tether-${owner}`,
+        speciesId: species.id,
+        members: [{ ...at, direction: 1 }],
+        pos: pos(at),
+        home: pos(at),
+        homeRadius: 1,
+        state: species.art.graze ? "graze" : "idle",
+        nextDecisionAt: 0,
+        stride: 0,
+        since: 0,
+        owner,
+      } satisfies FaunaGroup);
+      tied++;
+    }
+  }
+  // Mice where grain is kept, and the cats kept for them: a baker's, a
+  // miller's or an inn first, then a farmer's store. Every house had mice,
+  // but by day you see a few at the grain stores, not one at every door, and
+  // a street has a cat or two, not one per house. The cat lives by the mice,
+  // so a hunt is something you can come on by the bakehouse at dusk.
   const roleOf = new Map(plan.actors.map((a) => [a.id, a.role ?? ""]));
   const grain = (owner: string) =>
     /bak|mill|brew|inn|tavern|granar|grain|merchant|store|cook/i.test(
@@ -4015,15 +4058,17 @@ export function planSettlement(
   const byGrain = owners
     .filter((o) => o !== "player")
     .sort((a, b) => grain(b) - grain(a) || a.localeCompare(b));
+  const households = byGrain.length;
   const mouse = kept.find((k) => k.id === "mouse");
   if (mouse) {
+    let nests = 0;
     for (const owner of byGrain) {
-      // Most houses have mice, whatever they store.
-      if (random(seed, owner, "mice") > 0.4 + grain(owner) * 0.6) continue;
+      if (nests >= Math.max(2, Math.round(households / 10))) break;
+      if (random(seed, owner, "mice") > grain(owner) * 0.8) continue;
       // Along the far wall from the door, where the sacks are.
       const far = freeBeside(owner, 2);
       const cells = (far.length ? far : freeBeside(owner)).slice(0, 4);
-      const count = 1 + Math.floor(random(seed, owner, "mice-count") * 4);
+      const count = 1 + Math.floor(random(seed, owner, "mice-count") * 2);
       const members = cells
         .slice(0, count)
         .map((p) => ({ ...p, direction: 1 as const }));
@@ -4040,12 +4085,14 @@ export function planSettlement(
         stride: 0,
         since: 0,
       } satisfies FaunaGroup);
+      nests++;
     }
   }
   if (cat) {
+    let cats = 0;
     for (const owner of byGrain) {
-      // Most houses keep one: nothing else kept the grain from the mice.
-      if (random(seed, owner, "cat") > 0.45 + grain(owner) * 0.5) continue;
+      if (cats >= Math.max(1, Math.round(households / 15))) break;
+      if (random(seed, owner, "cat") > 0.15 + grain(owner) * 0.5) continue;
       const yard = freeBeside(owner)[0];
       if (!yard) continue;
       (plan.fauna ??= []).push({
@@ -4061,6 +4108,7 @@ export function planSettlement(
         since: 0,
         owner,
       } satisfies FaunaGroup);
+      cats++;
     }
   }
   if (pack.setting?.characterRevision) {

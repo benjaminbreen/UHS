@@ -2271,7 +2271,7 @@ export class WorldScene extends Phaser.Scene {
    * time an animal wears it. Frames keep their names, with the coat in them. */
   private coatTexture(frame: string) {
     const plus = frame.indexOf("+");
-    // "faunab-" or "faunac-": the side-view atlas or the four-direction one.
+    // "faunab-", or "faunac-" and the other four-direction sets.
     const set = frame.slice(0, 6);
     const art = frame.slice(7, plus);
     const slug = frame.slice(plus + 1, frame.indexOf("-", plus));
@@ -2351,6 +2351,14 @@ export class WorldScene extends Phaser.Scene {
       return frame.includes("+") ? this.coatTexture(frame) : "faunab";
     if (frame.startsWith("faunac-"))
       return frame.includes("+") ? this.coatTexture(frame) : "faunac";
+    // A lazy megafauna sheet; its plain frames were found above.
+    if (/^fauna[mrfgu]-/.test(frame)) {
+      const set = frame.slice(0, 6);
+      if (this.textures.exists(set))
+        return frame.includes("+") ? this.coatTexture(frame) : set;
+      this.loadSheet(set);
+      return "__DEFAULT";
+    }
     if (frame.startsWith("ecology-")) return "ecology";
     // "study-propb-" is the same atlas: match the prefix without the hyphen.
     return frame.startsWith("study-prop") || frame.startsWith("prop-broken-")
@@ -4328,8 +4336,13 @@ export class WorldScene extends Phaser.Scene {
       : state === "pounce" && began !== undefined
         ? Math.min(count - 1, Math.floor((this.time.now - began) / ms))
         : Math.floor((stride ?? this.time.now / ms) + phase) % count;
+    // A profile drawn with another species' study names that species in its
+    // frames: "faunac-horse-idle-south-0" for a wild horse.
+    const first = profile?.art[state]?.[0]?.split("-");
+    if (profile?.directions && first && art === species)
+      art = first.slice(1, -3).join("-");
     return profile?.directions
-      ? `faunac-${art}-${state}-${facing}-${n}`
+      ? `${first?.[0] ?? "faunac"}-${art}-${state}-${facing}-${n}`
       : `faunab-${art}-${state}-${n}`;
   }
   /** Walks each animal towards its cell and dresses it for where it is. */

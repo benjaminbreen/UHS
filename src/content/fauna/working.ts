@@ -1,5 +1,5 @@
 import type { FaunaProfile } from "./types";
-import { directionalStudy } from "./types";
+import { directionalStudy, columbianExchange } from "./types";
 
 /** Cattle, dog, cat, donkey and camel, and the mice the cat is kept for: the animals a settlement works with rather
  * than only eats. Each is drawn in several forms and coats; see looks.ts. */
@@ -31,7 +31,7 @@ export const workingFauna: readonly FaunaProfile[] = [
       { years: [-3000, 10000], bounds: [60, 20, 140, 55] },
       { years: [-2000, 10000], bounds: [95, -11, 125, 30] },
       { years: [-1500, 10000], bounds: [10, -35, 52, 5] },
-      { years: [1493, 10000], bounds: [-170, -56, -30, 70] },
+      ...columbianExchange,
       { years: [1788, 10000], bounds: [110, -50, 180, -10] },
     ],
     needs: "herding",
@@ -77,7 +77,7 @@ export const workingFauna: readonly FaunaProfile[] = [
       { years: [700, 10000], bounds: [25, 20, 36, 32] },
     ],
     needs: "settled",
-    keeping: { place: "pen", share: 1.5, ranging: 0.4 },
+    keeping: { place: "pen", share: 3, ranging: 0.5 },
     density: 0,
     pace: 0.4,
     settlementTolerance: 0.85,
@@ -157,7 +157,7 @@ export const workingFauna: readonly FaunaProfile[] = [
       { years: [800, 10000], bounds: [30, -35, 52, 15] },
       { years: [1000, 10000], bounds: [-18, 0, 30, 20] },
       { years: [1500, 10000], bounds: [-18, -35, 52, 15] },
-      { years: [1500, 10000], bounds: [-170, -56, -30, 75] },
+      ...columbianExchange,
       { years: [1788, 10000], bounds: [110, -45, 180, -10] },
     ],
     needs: "settled",
@@ -194,7 +194,7 @@ export const workingFauna: readonly FaunaProfile[] = [
     presence: [
       { years: [-12000, 10000], bounds: [25, 25, 60, 42] },
       { years: [-4000, 10000], bounds: [-20, -35, 150, 72] },
-      { years: [1500, 10000], bounds: [-170, -56, -30, 75] },
+      ...columbianExchange,
       { years: [1788, 10000], bounds: [110, -45, 180, -10] },
     ],
     needs: "settled",
@@ -233,11 +233,11 @@ export const workingFauna: readonly FaunaProfile[] = [
       { years: [-1500, 10000], bounds: [-12, 28, 45, 52] },
       { years: [-1000, 10000], bounds: [45, 8, 125, 46] },
       { years: [0, 10000], bounds: [-20, -35, 55, 20] },
-      { years: [1500, 10000], bounds: [-170, -56, -30, 50] },
+      ...columbianExchange,
       { years: [1800, 10000], bounds: [110, -45, 155, -10] },
     ],
     needs: "settled",
-    keeping: { place: "paddock", ranging: 0.12 },
+    keeping: { place: "tether", ranging: 0.2 },
     density: 0,
     pace: 0.6,
     climbs: true,

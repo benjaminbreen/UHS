@@ -98,7 +98,7 @@ export const birds: readonly FaunaProfile[] = [
     presence: [
       { years: always, bounds: [-18, -35, 52, 37] },
       { years: always, bounds: [-10, 36, 5, 44] },
-      { years: always, bounds: [30, 29, 62, 40] },
+      { years: always, bounds: [34, 29, 62, 37] },
       { years: always, bounds: [60, -10, 142, 36] },
       { years: [1877, 10000], bounds: [-82, -35, -34, 12] },
       { years: [1953, 10000], bounds: [-125, -35, -34, 42] },

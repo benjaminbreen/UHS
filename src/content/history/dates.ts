@@ -50,6 +50,14 @@ export function formatDate(date: HistoricalDate) {
   return formatHistoricalYear(date.year) + detail;
 }
 
+/** Latitude poleward of which land was tundra, or undefined once the
+ * Holocene began (c. 9700 BCE). Bølling–Allerød warmth (12,700–10,900 BCE)
+ * pushed birch and pine north; the Younger Dryas brought the tundra back. */
+export function glacialTundraLatitude(year: number): number | undefined {
+  if (year >= bce(9700).year) return undefined;
+  return year >= bce(12700).year && year < bce(10900).year ? 56 : 48;
+}
+
 /** Permanent chronological IDs; labels are not worldwide technology stages. */
 export const eras = [
   {

@@ -1,6 +1,6 @@
 import { places } from "../../content/geography/places";
 import { regionalProfiles } from "../../content/geography/regions";
-import { containsDate } from "../../content/history/dates";
+import { containsDate, glacialTundraLatitude } from "../../content/history/dates";
 import { environmentFor } from "../../content/geography/defaults";
 import { farms, networkOnset } from "../../content/geography/onsets";
 import { settingFor } from "../../content/geography/resolve";
@@ -66,7 +66,7 @@ export function resolveMapEnvironment(anchor: Coordinate, year: number) {
       Math.abs(shore.riverFlow[0]) >= Math.abs(shore.riverFlow[1])
         ? "river-ew"
         : "river-ns";
-  if (year < -9999 && anchor.lat > 48) defaults.climate = "tundra";
+  if (anchor.lat > (glacialTundraLatitude(year) ?? 90)) defaults.climate = "tundra";
   const ecology = { ...environmentFor({
     ...defaults,
     ...anchor,

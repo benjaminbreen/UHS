@@ -27,6 +27,17 @@ export const dungOf: Partial<Record<string, DungKind>> = {
   chicken: "droppings",
   turkey: "droppings",
   "rock-dove": "droppings",
+  // Dried bison pats, "buffalo chips", were the fuel of the treeless plains.
+  "american-bison": "pat",
+  "steppe-bison": "pat",
+  wisent: "pat",
+  "wild-horse": "pile",
+  "woolly-mammoth": "pile",
+  "columbian-mammoth": "pile",
+  "american-mastodon": "pile",
+  "woolly-rhinoceros": "pile",
+  "irish-elk": "pellets",
+  reindeer: "pellets",
 };
 
 /** Droppings per animal per day, from husbandry figures: a cow passes a dozen

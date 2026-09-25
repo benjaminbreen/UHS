@@ -12,7 +12,7 @@ const southAsiaBase: readonly BeliefSystem[] = [
     id: "prehistoric-foragers",
     label: "Prehistoric forager practice",
     wiki: "https://en.wikipedia.org/wiki/Prehistoric_religion",
-    scope: { years: [-10000, -3000], bounds: [60, 5, 92, 37] },
+    scope: { years: [-13000, -3000], bounds: [60, 5, 92, 37] },
     powers: [
       {
         name: "The ancestors",

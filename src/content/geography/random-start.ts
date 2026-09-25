@@ -4,7 +4,7 @@ import { settingFor } from "./resolve";
 import { populateCharacter } from "./character";
 import { resolveCharacterContext } from "../characters/resolve";
 
-const firstRandomYear = -9999; // 10,000 BCE in astronomical numbering
+const firstRandomYear = -12999; // 13,000 BCE in astronomical numbering
 const onePastPresent = 2027;
 /**
  * Approximate global population anchors, in millions.  The historical series
@@ -16,7 +16,8 @@ const onePastPresent = 2027;
  * population weighting needs a separately reviewed spatial dataset.
  */
 const globalPopulationMillions = [
-  [firstRandomYear, 2],
+  [firstRandomYear, 1.5],
+  [-9999, 2],
   [-4999, 18],
   [0, 188],
   [500, 210],

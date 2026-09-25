@@ -52,7 +52,7 @@ export const americanFauna: readonly FaunaProfile[] = [
     gait: "scurry",
     social: "flock",
     activity: "crepuscular",
-    groupSize: [2, 6],
+    groupSize: [2, 3],
     habitats: [
       { tag: "settlement", weight: 1 },
       { tag: "pasture", weight: 0.4 },
@@ -65,7 +65,8 @@ export const americanFauna: readonly FaunaProfile[] = [
       { years: [-1000, 10000], bounds: [-81, -35, -62, 3] },
     ],
     needs: "settled",
-    keeping: { place: "yard" },
+    // Kept in the kitchen, where they ran free by the hearth.
+    keeping: { place: "yard", share: 1.5, seen: 0.7 },
     density: 0,
     pace: 0.6,
     settlementTolerance: 0.95,

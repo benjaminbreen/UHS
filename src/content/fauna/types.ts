@@ -2,6 +2,11 @@ import type { FaunaState } from "../../core/fauna";
 import type { CharacterScope } from "../characters/context-types";
 import studies from "../../../public/fauna-b/studies.json" with { type: "json" };
 import studiesC from "../../../public/fauna-c/studies.json" with { type: "json" };
+import studiesM from "../../../public/fauna-m/studies.json" with { type: "json" };
+import studiesR from "../../../public/fauna-r/studies.json" with { type: "json" };
+import studiesF from "../../../public/fauna-f/studies.json" with { type: "json" };
+import studiesG from "../../../public/fauna-g/studies.json" with { type: "json" };
+import studiesU from "../../../public/fauna-u/studies.json" with { type: "json" };
 
 export const habitatTags = [
   "settlement",
@@ -51,10 +56,14 @@ export type FaunaProfile = {
    * paddock is fenced and then left alone. `from` is the year the keeping
    * starts, for animals kept later than they were known. */
   keeping?: {
-    place: "pen" | "yard" | "paddock";
+    /** A tether is one animal tied by its owner's door: the household donkey. */
+    place: "pen" | "yard" | "paddock" | "tether";
     from?: number;
     /** How much more often than its neighbours it is the animal kept. */
     share?: number;
+    /** The share of households keeping it whose animals are out where you
+     * would see them; the rest are indoors. */
+    seen?: number;
     /** Herds at grass within a morning's walk of a settlement, per 64-cell
      * block of ideal grazing where herding is a living. Stock is not only
      * what is shut in the pen. */
@@ -89,6 +98,15 @@ export type FaunaProfile = {
   art: Partial<Record<FaunaState, readonly string[]>>;
 };
 
+/** Old World stock in the Americas: landed with Columbus in the Caribbean,
+ * on the mainland with each conquest, and in the north with the colonies. */
+export const columbianExchange = [
+  { years: [1493, 10000], bounds: [-86, 10, -59, 24] },
+  { years: [1521, 10000], bounds: [-118, 7, -77, 33] },
+  { years: [1532, 10000], bounds: [-82, -56, -30, 10] },
+  { years: [1600, 10000], bounds: [-170, 24, -52, 70] },
+] as const;
+
 export const faunaFacings = ["south", "east", "north", "west"] as const;
 export type FaunaFacing = (typeof faunaFacings)[number];
 
@@ -115,9 +133,30 @@ export function study(
 /** Four-direction species. `art` carries the south frames; the other facings
  * differ only in the direction segment of the id. */
 export function directionalStudy(
-  species: keyof typeof studiesC,
+  species:
+    | keyof typeof studiesC
+    | keyof typeof studiesM
+    | keyof typeof studiesR
+    | keyof typeof studiesF
+    | keyof typeof studiesG
+    | keyof typeof studiesU,
 ): Pick<FaunaProfile, "art" | "palette" | "directions"> {
-  const study = studiesC[species];
+  const [set, studies] = (
+    [
+      ["faunam", studiesM],
+      ["faunar", studiesR],
+      ["faunaf", studiesF],
+      ["faunag", studiesG],
+      ["faunau", studiesU],
+      ["faunac", studiesC],
+    ] as const
+  ).find(([, s]) => species in s)!;
+  const study = (
+    studies as Record<
+      string,
+      { palette: string[]; states: Record<string, number>; directions: string[] }
+    >
+  )[species];
   return {
     palette: study.palette,
     directions: study.directions as readonly FaunaFacing[],
@@ -126,7 +165,7 @@ export function directionalStudy(
         state,
         Array.from(
           { length: count },
-          (_, frame) => `faunac-${species}-${state}-south-${frame}`,
+          (_, frame) => `${set}-${species}-${state}-south-${frame}`,
         ),
       ]),
     ),

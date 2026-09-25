@@ -107,7 +107,7 @@ export const temperateFauna: readonly FaunaProfile[] = [
       { years: [-1000000, 1850], bounds: [-100, 33, -70, 53] },
       { years: always, bounds: [85, 34, 146, 61] },
     ],
-    density: 0.85,
+    density: 0.6,
     pace: 1,
     settlementTolerance: 0.1,
     minimumSettlementDistance: 26,
@@ -137,11 +137,14 @@ export const temperateFauna: readonly FaunaProfile[] = [
       { tag: "field", weight: 0.3 },
     ],
     // A river-valley animal, not a plains one. Gone from Britain by about
-    // 1300 BC and from North Africa under Rome; the last of them died in a
-    // Polish forest in 1627, which is where the continental box ends.
+    // 1300 BC, from the Mediterranean lands and North Africa by Roman times,
+    // from France and the German forests in the Middle Ages; the last died in
+    // a Polish forest in 1627, which is where the eastern box ends.
     presence: [
-      { years: [-1000000, 1627], bounds: [2, 36, 60, 60] },
-      { years: [-1000000, 1627], bounds: [-10, 36, 2, 51] },
+      { years: [-1000000, 1627], bounds: [12, 45, 60, 60] },
+      { years: [-1000000, 1400], bounds: [2, 45, 12, 60] },
+      { years: [-1000000, 0], bounds: [2, 36, 60, 45] },
+      { years: [-1000000, 1000], bounds: [-10, 36, 2, 51] },
       { years: [-1000000, -1300], bounds: [-11, 50, 2, 59] },
       { years: [-1000000, 300], bounds: [-10, 28, 32, 37] },
       { years: [-1000000, -1000], bounds: [65, 8, 90, 32] },

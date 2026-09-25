@@ -10,6 +10,11 @@ const atlases = {
   nature: "/nature/atlas",
   faunab: "/fauna-b/atlas",
   faunac: "/fauna-c/atlas",
+  faunam: "/fauna-m/atlas",
+  faunar: "/fauna-r/atlas",
+  faunaf: "/fauna-f/atlas",
+  faunag: "/fauna-g/atlas",
+  faunau: "/fauna-u/atlas",
   "nature-shadows": "/nature/shadows",
   ecology: "/ecology/atlas",
   props: "/props/atlas",
@@ -32,6 +37,12 @@ export const lazySheets = [
   "camp-buildings",
   "civic",
   "precincts",
+  // The megafauna: most worlds are too late or too far south for them.
+  "faunam",
+  "faunar",
+  "faunaf",
+  "faunag",
+  "faunau",
 ] as const;
 
 export const alternateTrees = {

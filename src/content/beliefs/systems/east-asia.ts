@@ -8,6 +8,64 @@ import {
 
 const eastAsiaBase: readonly BeliefSystem[] = [
   {
+    id: "east-asia-pottery-foragers",
+    label: "The first potters: late Ice Age East Asia",
+    wiki: "https://en.wikipedia.org/wiki/J%C5%8Dmon_period",
+    scope: { years: [-20000, -8000], bounds: [90, 15, 150, 55] },
+    powers: [
+      {
+        name: "The fire in the pot",
+        domain: "boiling, food made safe, the gathered household",
+        rank: "paramount",
+      },
+      {
+        name: "The salmon run",
+        domain: "rivers, the autumn catch",
+        rank: "major",
+      },
+      {
+        name: "The nut groves",
+        domain: "acorns, chestnuts, walnuts, stores for winter",
+        rank: "major",
+      },
+      {
+        name: "The deer and the boar",
+        domain: "the hunted, and what is owed them",
+        rank: "major",
+      },
+      {
+        name: "The cave",
+        domain: "shelter, the dead, the return",
+        rank: "local",
+      },
+      {
+        name: "The ancestors",
+        domain: "the band's dead and their stories",
+        rank: "local",
+      },
+    ],
+    practice: [
+      "New pots are first used for fish or nuts, and their scorched residue is scraped out, not scrubbed.",
+      "Nuts are cached in pits by the stream, and the first handful is left behind.",
+      "Bones of the hunted are gathered and set in order rather than scattered.",
+      "The band returns to the same caves each winter and leaves its broken pots there.",
+    ],
+    specialist: "The elder who reads the rivers and the seasons.",
+    afterlife: "The dead go back to the cave and the land.",
+    evidence: {
+      status: "hypothesis",
+      claim:
+        "Foragers in southern China (Xianrendong, Yuchanyan) made pottery by about 18,000 BCE, and Incipient Jōmon potters in Japan by about 14,000 BCE, long before farming. Lipid residues from early Jōmon pots show fish and shellfish being boiled. The powers and practices here are extrapolated from those economies.",
+      sources: [
+        "Wu et al., 'Early pottery at 20,000 years ago in Xianrendong Cave, China', Science 2012",
+        "Craig et al., 'Earliest evidence for the use of pottery', Nature 2013",
+        "Habu, Ancient Jomon of Japan",
+      ],
+      limitation:
+        "The pottery and diets are documented; nothing about belief is. Every power and practice above is inference from later forager parallels, and no language can be assigned to anyone this early.",
+    },
+  },
+  {
     id: "neolithic-east-asia-foragers",
     label: "Neolithic East Asia foraging and early settlement",
     wiki: "https://en.wikipedia.org/wiki/Chinese_Neolithic",

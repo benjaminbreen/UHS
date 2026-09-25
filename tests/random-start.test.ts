@@ -15,8 +15,8 @@ describe("random starts", () => {
     }
   });
 
-  it("samples 10,000 BCE through the present in proportion to global population", () => {
-    expect(randomPopulationWeightedYear(0)).toBe(-9999);
+  it("samples 13,000 BCE through the present in proportion to global population", () => {
+    expect(randomPopulationWeightedYear(0)).toBe(-12999);
     expect(randomPopulationWeightedYear(0xffff_ffff)).toBe(2026);
 
     // At the median person-year, the world is already well into the Common Era.

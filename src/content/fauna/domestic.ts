@@ -1,5 +1,5 @@
 import type { FaunaProfile } from "./types";
-import { study } from "./types";
+import { study, columbianExchange } from "./types";
 
 export const domesticFauna: readonly FaunaProfile[] = [
   {
@@ -26,7 +26,7 @@ export const domesticFauna: readonly FaunaProfile[] = [
       { years: [-900, 10000], bounds: [-20, 20, 60, 70] },
       { years: [-500, 10000], bounds: [-20, -35, 55, 20] },
       { years: [-1000, 10000], bounds: [110, -50, 180, -10] },
-      { years: [1500, 10000], bounds: [-170, -56, -30, 70] },
+      ...columbianExchange,
     ],
     needs: "settled",
     keeping: { place: "yard" },
@@ -67,11 +67,12 @@ export const domesticFauna: readonly FaunaProfile[] = [
       { years: [-6500, 10000], bounds: [-20, 20, 60, 72] },
       { years: [-5000, 10000], bounds: [40, 5, 140, 55] },
       { years: [-3000, 10000], bounds: [-20, -35, 55, 20] },
-      { years: [1493, 10000], bounds: [-170, -56, -30, 70] },
+      ...columbianExchange,
       { years: [1788, 10000], bounds: [110, -50, 180, -10] },
     ],
     needs: "herding",
-    keeping: { place: "pen", ranging: 0.6 },
+    // The commonest stock from Iberia to Mongolia: most flocks were sheep.
+    keeping: { place: "pen", share: 1.5, ranging: 0.9 },
     density: 0,
     pace: 0.5,
     settlementTolerance: 0.8,
@@ -104,11 +105,11 @@ export const domesticFauna: readonly FaunaProfile[] = [
     // farmers, but further into dry and broken country: goats take scrub and
     // rock a sheep cannot use, so they reach Arabia and the Sahel early.
     presence: [
-      { years: [-8000, 10000], bounds: [35, 25, 60, 42] },
+      { years: [-8000, 10000], bounds: [25, 25, 60, 45] },
       { years: [-6000, 10000], bounds: [-20, 27, 60, 60] },
       { years: [-5000, 10000], bounds: [-20, -35, 55, 30] },
       { years: [-4000, 10000], bounds: [55, 5, 140, 55] },
-      { years: [1493, 10000], bounds: [-170, -56, -30, 70] },
+      ...columbianExchange,
       { years: [1788, 10000], bounds: [110, -50, 180, -10] },
     ],
     needs: "herding",
@@ -151,11 +152,13 @@ export const domesticFauna: readonly FaunaProfile[] = [
       { years: [-5500, 10000], bounds: [-20, 35, 40, 62] },
       { years: [-6000, 10000], bounds: [100, 18, 140, 50] },
       { years: [-1500, 10000], bounds: [95, -12, 180, 25] },
-      { years: [1493, 10000], bounds: [-170, -56, -30, 70] },
+      ...columbianExchange,
       { years: [1788, 10000], bounds: [110, -50, 180, -10] },
     ],
     needs: "settled",
-    keeping: { place: "yard" },
+    // The yard animal of Europe and China; in autumn Europe's were driven
+    // into the oak and beech woods for the mast.
+    keeping: { place: "yard", share: 1.5, ranging: 0.25 },
     density: 0,
     pace: 0.6,
     settlementTolerance: 1,

@@ -2,9 +2,9 @@
 from pathlib import Path
 import json
 from PIL import Image, ImageDraw
-from art.fauna_c import fauna_c, PALETTES, STATES, NATIVE_SIZES, STANDING_SIZES, DIRECTIONS
+from art.fauna_c import fauna_c, looks as looks_c, PALETTES, STATES, NATIVE_SIZES, STANDING_SIZES, DIRECTIONS
 from art.atlas import pack_atlas
-from art import fauna_d, fox
+from art import fauna_d, fox, proboscidean, cervid, felid, grazer, ursid
 
 root = Path(__file__).resolve().parent.parent
 out = root / "public/fauna-c"
@@ -12,7 +12,7 @@ out.mkdir(exist_ok=True)
 # Set D is the working animals, drawn on a later rig and in several forms and
 # coats; it shares this atlas because it shares the four facings.
 sprites = {**fauna_c(), **fauna_d.fauna_d(), **fox.fauna_fox()}
-looks = {**fauna_d.looks(), **fox.looks()}
+looks = {**looks_c(), **fauna_d.looks(), **fox.looks()}
 PALETTES = {**PALETTES, **fauna_d.PALETTES, **fox.PALETTES}
 STATES = {**STATES, **fauna_d.STATES, **fox.STATES}
 NATIVE_SIZES = {**NATIVE_SIZES, **fauna_d.NATIVE_SIZES, **fox.NATIVE_SIZES}
@@ -33,6 +33,33 @@ pack_atlas(sprites, out, "atlas", 1024)
     }
     for species, states in STATES.items()
 }, indent=2) + "\n")
+
+# The megafauna are several times the size of a fox and live only in the
+# deep past or far north, so each rig gets its own sheet, fetched when one
+# of its animals is in the world.
+for rig_art, sprites_of, sheet in ((proboscidean, proboscidean.fauna_megafauna, "fauna-m"),
+                                   (cervid, cervid.fauna_cervid, "fauna-r"),
+                                   (felid, felid.fauna_felid, "fauna-f"),
+                                   (grazer, grazer.fauna_grazer, "fauna-g"),
+                                   (ursid, ursid.fauna_ursid, "fauna-u")):
+    mega = sprites_of()
+    for name, im in mega.items():
+        assert set(im.getchannel("A").getdata()) <= {0, 255}, name
+        assert len(im.getcolors(im.width * im.height)) <= 24, name
+    mega_out = root / "public" / sheet
+    mega_out.mkdir(exist_ok=True)
+    pack_atlas(mega, mega_out, "atlas", 1024)
+    (mega_out / "studies.json").write_text(json.dumps({
+        species: {
+            "palette": list(rig_art.PALETTES[species].values()),
+            "states": states,
+            "directions": list(rig_art.DIRECTIONS),
+            "size": rig_art.NATIVE_SIZES[species],
+            "standing": rig_art.STANDING_SIZES[species],
+            "looks": rig_art.looks()[species],
+        }
+        for species, states in rig_art.STATES.items()
+    }, indent=2) + "\n")
 
 artifacts = root / "artifacts/fauna-lab"
 artifacts.mkdir(exist_ok=True, parents=True)

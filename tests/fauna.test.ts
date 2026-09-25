@@ -2,6 +2,11 @@ import { describe, expect, it } from "vitest";
 import atlas from "../public/fauna/atlas.json" with { type: "json" };
 import atlasB from "../public/fauna-b/atlas.json" with { type: "json" };
 import atlasC from "../public/fauna-c/atlas.json" with { type: "json" };
+import atlasM from "../public/fauna-m/atlas.json" with { type: "json" };
+import atlasR from "../public/fauna-r/atlas.json" with { type: "json" };
+import atlasF from "../public/fauna-f/atlas.json" with { type: "json" };
+import atlasG from "../public/fauna-g/atlas.json" with { type: "json" };
+import atlasU from "../public/fauna-u/atlas.json" with { type: "json" };
 import { faunaFacings, faunaFrames, faunaProfiles } from "../src/content/fauna";
 import { faunaStates } from "../src/core/fauna";
 
@@ -12,6 +17,7 @@ const sideView = faunaProfiles.filter((profile) => !profile.directions);
 const borrowed: Record<string, string> = {
   wapiti: "red-deer",
   "wild-turkey": "turkey",
+  "wild-horse": "horse",
 };
 const directional = faunaProfiles.filter((profile) => profile.directions);
 
@@ -75,7 +81,14 @@ describe("fauna profiles", () => {
 });
 
 describe("four-direction fauna", () => {
-  const frames = atlasC.frames as Record<
+  const frames = {
+    ...atlasC.frames,
+    ...atlasM.frames,
+    ...atlasR.frames,
+    ...atlasF.frames,
+    ...atlasG.frames,
+    ...atlasU.frames,
+  } as Record<
     string,
     { frame: { w: number; h: number } }
   >;
@@ -93,7 +106,9 @@ describe("four-direction fauna", () => {
             ids.length,
           );
           for (const id of ids) {
-            expect(id.startsWith(`faunac-${profile.id}-`)).toBe(true);
+            expect(
+              id.replace(/^fauna[cmrfgu]-/, "").startsWith(`${borrowed[profile.id] ?? profile.id}-`),
+            ).toBe(true);
             expect(frames[id], id).toBeDefined();
             seen.add(id);
           }
@@ -112,9 +127,13 @@ describe("four-direction fauna", () => {
     const rabbit = box("faunac-rabbit-idle-east-0");
     const foal = box("faunac-foal-idle-east-0");
     const horse = box("faunac-horse-idle-east-0");
+    const mammoth = box("faunam-woolly-mammoth-idle-east-0");
+    const columbian = box("faunam-columbian-mammoth-idle-east-0");
     expect(kit.w).toBeLessThan(rabbit.w);
     expect(rabbit.w).toBeLessThan(foal.w);
     expect(foal.w).toBeLessThan(horse.w);
+    expect(horse.h).toBeLessThan(mammoth.h);
+    expect(mammoth.h).toBeLessThan(columbian.h);
   });
 });
 
