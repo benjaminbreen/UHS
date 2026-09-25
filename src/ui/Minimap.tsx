@@ -115,7 +115,12 @@ function buildingTones(sprite: string) {
 function atlasGround(ax: number, ay: number) {
   const { coast } = atlasSample(ax, ay);
   if (coast < 0) return "water";
-  const { lon, lat } = fromAtlas(ax, ay);
+  // The environment grid is quarter-degree cells; a warped lookup frays their
+  // square edges into ragged ones. Coasts stay where they are.
+  const { lon, lat } = fromAtlas(
+    ax + (noise("warp-x", ax, ay, 400, "map") - 0.5) * 640,
+    ay + (noise("warp-y", ax, ay, 400, "map") - 0.5) * 640,
+  );
   const { relief, moisture, cold } = broadEnvironment(lon, lat);
   // Tundra is bare ground most of the year's travelling; only ice caps and
   // cold heights stay white.

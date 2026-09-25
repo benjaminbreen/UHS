@@ -1,5 +1,7 @@
 import type { CultureId } from "../history/types";
 import type { AtlasPlace } from "./types";
+import { ecoregionAt } from "./ecoregions";
+import { northAmericanLandscape } from "./travel/north-american-landscapes";
 
 /*
  * The imported gazetteer holds one row per place: modern coordinates, a modern
@@ -165,8 +167,13 @@ export function placeAtYear(place: AtlasPlace, year: number): AtlasPlace {
   const era = settlerEraFor(place);
   const population = populationAt(place, year);
   const settled = era && year >= era.from;
+  // Before the settlers came, Minot's ground was not yet Minot.
+  const before = era && !settled
+    ? northAmericanLandscape(place)?.name ?? ecoregionAt(place.lon, place.lat)?.name
+    : undefined;
   return {
     ...place,
+    ...(before ? { name: before } : {}),
     ...(settled
       ? {
           culture: era.culture,

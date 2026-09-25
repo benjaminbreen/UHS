@@ -1948,6 +1948,10 @@ kbd {
 .event-log span {
   color: var(--muted);
 }
+.event-log .life-aim-step {
+  display: block;
+  margin-top: 4px;
+}
 .evidence-card {
   padding: 18px 0;
   border-top: 1px solid var(--line);
@@ -7165,32 +7169,50 @@ button:disabled {
   pointer-events: none;
 }
 
-.map-settlement {
+.map-roads {
   position: absolute;
-  transform: translate(-4px, -50%);
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.map-roads path {
+  fill: none;
+  stroke: #6b4a2a;
+  stroke-width: 1.4;
+  stroke-dasharray: 4 3;
+  stroke-linecap: round;
+  opacity: 0.75;
+  vector-effect: non-scaling-stroke;
+}
+.map-modal .map-settlement,
+.map-modal .map-settlement:hover {
+  min-width: 0;
+  min-height: 0;
+  box-shadow: none;
+  --map-glyph-ink: #2b2118;
+  --map-glyph-fill: #f1e4c3;
+  --map-glyph-accent: #e2b65c;
+  position: absolute;
+  transform: translate(-10px, -75%);
   display: flex;
-  align-items: center;
-  gap: 4px;
+  align-items: flex-end;
+  gap: 3px;
   padding: 0;
   border: 0;
   background: none;
   cursor: pointer;
-  font: inherit;
   white-space: nowrap;
+  font-family: Georgia, "Iowan Old Style", serif;
   font-size: 11px;
-  color: #f4ead2;
-  text-shadow: 0 1px 2px #000, 0 0 3px #000;
+  font-style: italic;
+  line-height: 1;
+  color: #241a10;
+  text-shadow: 0 0 2px #f1e4c3, 0 0 3px #f1e4c3, 0 0 5px #f1e4c3aa;
 }
-.map-settlement i {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: #f4ead2;
-  box-shadow: 0 0 0 1px #2a2116;
-}
-.map-settlement:hover,
-.map-settlement:focus-visible { color: #ffd873; }
-.map-settlement.is-town { font-size: 12px; font-weight: 600; }
-.map-settlement.is-town i { width: 7px; height: 7px; }
-.map-settlement.is-city { font-size: 14px; font-weight: 700; letter-spacing: 0.02em; }
-.map-settlement.is-city i { width: 9px; height: 9px; border-radius: 2px; background: #e8c46a; }
+.map-settlement svg { flex: none; filter: drop-shadow(0 1px 0 #0006); }
+.map-settlement span { padding-bottom: 2px; }
+.map-settlement:hover span,
+.map-settlement:focus-visible span { color: #7a3d0c; }
+.map-settlement.is-town { font-size: 12.5px; font-style: normal; font-variant: small-caps; letter-spacing: 0.03em; }
+.map-settlement.is-city { font-size: 15px; font-style: normal; font-variant: small-caps; font-weight: 700; letter-spacing: 0.05em; }

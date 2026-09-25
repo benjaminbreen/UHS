@@ -4,7 +4,8 @@ import type { Runtime } from "../runtime/session";
 import type { Point } from "../core/types";
 import { Minimap } from "./Minimap";
 import { ArrivalMap } from "./ArrivalMap";
-import { fromAtlas, toAtlas } from "../world/geography/atlas";
+import { atlasSample, fromAtlas, toAtlas } from "../world/geography/atlas";
+import { SettlementGlyph, glyphFor } from "./map-glyphs";
 import { formatHistoricalYear } from "../core/calendar";
 
 const W = 880, H = 540;
@@ -29,7 +30,8 @@ export function MapModal({ runtime, onClose }: { runtime: Runtime; onClose: () =
   const [listOpen, setListOpen] = useState(true);
   const [destination, setDestination] = useState<{ lon: number; lat: number; name?: string }>();
   const [plan, setPlan] = useState<{ name: string; days?: number; sea?: number; error?: string }>();
-  const [nearby, setNearby] = useState<{ id: string; name: string; rank: string; x: number; y: number }[]>([]);
+  const [nearby, setNearby] = useState<{ id: string; name: string; rank: string; x: number; y: number; glyph: ReturnType<typeof glyphFor> }[]>([]);
+  const [roads, setRoads] = useState<[Point, Point][]>([]);
   const drag = useRef<{ x: number; y: number; cx: number; cy: number; moved: boolean }>(undefined);
   const wheel = useRef(0);
   const settlements = [...world.settlements]
@@ -48,6 +50,10 @@ export function MapModal({ runtime, onClose }: { runtime: Runtime; onClose: () =
   const toScreen = (pt: Point) => ({
     left: `${((pt.x - center.x) / span + 0.5) * 100}%`,
     top: `${((pt.y - center.y) / (span * H / W) + 0.5) * 100}%`,
+  });
+  const toFrame = (pt: Point) => ({
+    x: ((pt.x - center.x) / span + 0.5) * W,
+    y: ((pt.y - center.y) / (span * H / W) + 0.5) * H,
   });
   const zoom = (factor: number, anchor?: Point) => {
     const next = Math.max(minSpan, Math.min(MAX_SPAN, span * factor));
@@ -92,12 +98,12 @@ export function MapModal({ runtime, onClose }: { runtime: Runtime; onClose: () =
   }, [destination?.lon, destination?.lat]);
 
   useEffect(() => {
-    if (earth || !pack.setting) return setNearby([]);
+    if (earth || !pack.setting) return setNearby([]), setRoads([]);
     let live = true;
     const o = toAtlas(pack.anchor.lon, pack.anchor.lat), h = (span * H) / W / 2;
     // Villages crowd the map beyond a day's walk, towns beyond a region.
     const ranks = span <= 12000 ? ["village", "town", "city"] : span <= 50000 ? ["town", "city"] : ["city"];
-    void import("../world/travel/network").then(async ({ settlementsIn }) => {
+    void Promise.all([import("../world/travel/network"), import("../world/travel/environment")]).then(async ([{ settlementsIn }, { resolveMapEnvironment }]) => {
       const found = await settlementsIn(
         o.x + center.x - span / 2, o.y + center.y - h, o.x + center.x + span / 2, o.y + center.y + h,
         pack.setting!.year,
@@ -110,9 +116,14 @@ export function MapModal({ runtime, onClose }: { runtime: Runtime; onClose: () =
         // This map's own places are drawn from its plan.
         .filter((p) => ranks.includes(p.rank) && (Math.abs(p.x) > 192 || Math.abs(p.y) > 192))
         .sort((a, b) => order.indexOf(a.rank) - order.indexOf(b.rank)))
-        if (!kept.some((q) => Math.abs(q.x - p.x) < span * 0.1 && Math.abs(q.y - p.y) < span * 0.025))
+        if (!kept.some((q) => Math.abs(q.x - p.x) < span * 0.17 && Math.abs(q.y - p.y) < span * 0.045))
           kept.push(p);
-      setNearby(kept);
+      const year = pack.setting!.year;
+      setNearby(kept.map((p) => {
+        const e = resolveMapEnvironment(fromAtlas(o.x + p.x, o.y + p.y), year);
+        return { ...p, glyph: glyphFor(e.culture, e.architecture, year, p.rank) };
+      }));
+      setRoads(roadsBetween([{ x: 0, y: 0, rank: "town" }, ...kept], (x, y) => atlasSample(o.x + x, o.y + y).coast < 0));
     });
     return () => { live = false; };
   }, [earth, span, center.x, center.y]);
@@ -210,9 +221,18 @@ export function MapModal({ runtime, onClose }: { runtime: Runtime; onClose: () =
           >
             <Minimap runtime={runtime} large span={span} center={center} dims={[W, H]} route={selected} />
           </div>
+          <svg className="map-roads" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" aria-hidden="true">
+            {roads.map(([a, b]) => {
+              const pa = toFrame(a), pb = toFrame(b);
+              // A seeded bow, so a road is not ruled straight.
+              const bow = (Math.sin(a.x * 12.9898 + b.y * 78.233) * 0.5) * 0.18;
+              const mx = (pa.x + pb.x) / 2 - (pb.y - pa.y) * bow, my = (pa.y + pb.y) / 2 + (pb.x - pa.x) * bow;
+              return <path key={`${a.x},${a.y}-${b.x},${b.y}`} d={`M${pa.x} ${pa.y}Q${mx} ${my} ${pb.x} ${pb.y}`} />;
+            })}
+          </svg>
           {nearby.map((p) => <button key={p.id} className={`map-settlement is-${p.rank}`} style={toScreen(p)}
             onClick={() => { setChosen(undefined); setDestination({ ...fromAtlas(origin.x + p.x, origin.y + p.y), name: p.name }); }}>
-            <i />{p.name}
+            <SettlementGlyph glyph={p.glyph} rank={p.rank} /><span>{p.name}</span>
           </button>)}
           {journey}
           {card && <div className="map-card" style={toScreen(card)}>
@@ -256,6 +276,27 @@ export function MapModal({ runtime, onClose }: { runtime: Runtime; onClose: () =
       </aside>}
     </div>
   </div>;
+}
+
+// Each place joins its nearest neighbours, larger places reaching further;
+// a link that would cross open water is left out.
+function roadsBetween(places: (Point & { rank: string })[], wet: (x: number, y: number) => boolean) {
+  const reach = { village: 1200, town: 2400, city: 6000 } as Record<string, number>;
+  const roads = new Map<string, [Point, Point]>();
+  for (const p of places) {
+    const near = places
+      .filter((q) => q !== p)
+      .map((q) => ({ q, d: Math.hypot(q.x - p.x, q.y - p.y) }))
+      .filter(({ q, d }) => d < Math.max(reach[p.rank], reach[q.rank]))
+      .sort((a, b) => a.d - b.d)
+      .slice(0, p.rank === "village" ? 2 : 3);
+    for (const { q } of near) {
+      if ([0.2, 0.35, 0.5, 0.65, 0.8].some((t) => wet(p.x + (q.x - p.x) * t, p.y + (q.y - p.y) * t))) continue;
+      const [a, b] = p.x < q.x || (p.x === q.x && p.y < q.y) ? [p, q] : [q, p];
+      roads.set(`${a.x},${a.y}-${b.x},${b.y}`, [{ x: a.x, y: a.y }, { x: b.x, y: b.y }]);
+    }
+  }
+  return [...roads.values()];
 }
 
 function distance(m: number) {
