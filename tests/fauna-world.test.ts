@@ -224,6 +224,24 @@ describe("fauna behaviour", () => {
     for (let t = 6; t <= 36; t += 6) advanceFauna([wolf, sheep], world, t);
     expect(wolf.members[0].x).toBeGreaterThan(sheep.members[0].x * 2);
   });
+  it("a dog digs on soil and leaves a hole, and never on paving", () => {
+    for (const soil of [true, false]) {
+      const dog = group("dog", 0, 0);
+      dog.nextDecisionAt = 0;
+      const holes: string[] = [];
+      const world = sim({
+        canDig: () => soil,
+        onDig: (_, at) => holes.push(`${at.x},${at.y}`),
+      });
+      const seen = new Set<string>();
+      for (let t = 1; t <= 600; t++) {
+        advanceFauna([dog], world, t * 6);
+        seen.add(dog.state);
+      }
+      expect(seen.has("dig")).toBe(soil);
+      expect(holes.length > 0).toBe(soil);
+    }
+  });
   it("a sparrow takes off, flies and lands", () => {
     const bird = group("house-sparrow", 10, 10);
     bird.state = "perch";

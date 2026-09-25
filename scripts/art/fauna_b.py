@@ -36,7 +36,7 @@ STATES = {
     "goat": dict.fromkeys(["idle", "graze", "wander", "flee", "rest"], 8),
     "pig": dict.fromkeys(["idle", "forage", "wander", "flee", "rest"], 8),
     "red-deer": dict.fromkeys(["idle", "forage", "wander", "flee", "rest"], 8),
-    "gray-wolf": dict.fromkeys(["idle", "wander", "stalk", "chase", "rest"], 8),
+    "gray-wolf": dict.fromkeys(["idle", "wander", "stalk", "chase", "rest", "dig"], 8),
     "aurochs": dict.fromkeys(["idle", "graze", "wander", "flee", "rest"], 8),
     "wild-boar": dict.fromkeys(["idle", "forage", "wander", "flee", "rest"], 8),
     "llama": dict.fromkeys(["idle", "graze", "wander", "flee", "rest"], 8),
@@ -343,8 +343,74 @@ def _deer_rest(c, frame):
     return c.finish()
 
 
+EARTH = ("#5e4630", "#86683f", "#a4865a")
+
+
+def throw_earth(im, origin, frame, away=-1, top=0, hole=None):
+    """Clods flung out behind a digging animal, each on its own arc, so the
+    spray never stops while the paws go; and the loose earth at the hole.
+    Fixed colours: no coat recolours the ground. `top` shifts the image
+    rows, for a padded canvas."""
+    px = im.load()
+
+    def put(X, Y, c):
+        Y += top
+        if 0 <= X < im.width and 0 <= Y < im.height and (c != EARTH[0] or not px[X, Y][3]):
+            px[X, Y] = tuple(int(c[i:i + 2], 16) for i in (1, 3, 5)) + (255,)
+
+    if hole:
+        hx, hy = hole
+        for dx, dy in ((-2, 0), (-1, 0), (0, 0), (1, 0), (2, 0), (-1, -1), (0, -1), (1, -1), (-3, 0), (3, 0)):
+            put(hx + dx, hy + dy, EARTH[0] if dy == 0 else EARTH[1])
+    ox, oy = origin
+    for k in range(6):
+        u = ((frame + k * 1.35) % 8) / 8
+        x = ox + away * (1 + u * 12)
+        y = oy - 4 * 9 * u * (1 - u) + u * 3
+        big = k < 2 and u < 0.6
+        for dx in range(2 if big else 1):
+            for dy in range(2 if big else 1):
+                put(round(x) + dx * away, round(y) - dy, EARTH[1 + (k + frame) % 2] if dy == 0 else EARTH[2])
+    return im
+
+
+# Forepaws raking in turn: the near one reaches and drags back, the far one
+# half a beat behind. Offsets from the shoulder, in pixels.
+RAKE = [(5, 0), (3, -1), (0, 0), (1, -2), (5, 0), (3, -1), (0, 0), (1, -2)]
+
+
+def _wolf_dig(c, frame):
+    """Rump up, chest down, head in the hole; the tail going; earth flying."""
+    ground = 22
+    hip, sh = (10, 12), (25, 15)
+    for near in (False, True):
+        ox = 0 if near else -3
+        if not near:
+            leg(c, (hip[0] + ox, hip[1]), (hip[0] + ox + 1, ground), True, False, hoof="o")
+            fx, fy = RAKE[(frame + 2) % 8]
+            leg(c, (sh[0] + ox, sh[1]), (sh[0] + ox + fx, ground + fy), False, False, lift=-fy, hoof="o")
+    wag = [0, 1, 2, 1, 0, 1, 2, 1][frame]
+    tail = polygon([(7, 11), (9, 10), (10, 13), (4 - wag, 6), (2 - wag, 8)])
+    c.paint(shade(tail, 1, 1))
+    body = ellipse((5, 8, 25, 16)) | ellipse((15, 11, 30, 20))
+    px = shade(body, 1, 2)
+    for x, y in body:
+        if (x, y - 1) not in body and 8 <= x <= 22:
+            px[(x, y)] = "h"
+    c.paint(px)
+    hx, hy = 26, 14 + [0, 1, 1, 0, 0, 1, 1, 0][frame]
+    c.paint(shade(polygon([(22, 12), (28, 14), (hx + 3, hy + 5), (hx - 1, hy + 5)]), 1, 1))
+    _wolf_head(c, hx, hy, frame, "dig")
+    leg(c, hip, (hip[0] + 1, ground), True, True, hoof="o")
+    fx, fy = RAKE[frame]
+    leg(c, sh, (sh[0] + fx, ground + fy), False, True, lift=-fy, hoof="o")
+    return throw_earth(c.finish(), (7, ground - 1), frame, hole=(33, ground))
+
+
 def wolf(state, frame):
     c = Canvas("gray-wolf")
+    if state == "dig":
+        return _wolf_dig(c, frame)
     t = frame / 8
     moving = state in {"wander", "stalk", "chase"}
     running = state == "chase"

@@ -43,6 +43,10 @@ export type FaunaWorld = {
   /** A hunter home with what it carried: a fox eats it at the den, a cat
    * leaves it on the step. */
   onDrop?(hunter: FaunaGroup, prey: string, at: Point): void;
+  /** Ground an animal could dig: soil, not paving, water or a crop. */
+  canDig?(x: number, y: number): boolean;
+  /** It has been at it long enough to leave a hole. */
+  onDig?(g: FaunaGroup, at: Point): void;
 };
 
 const NEIGHBOURS: readonly Point[] = [
@@ -318,6 +322,13 @@ function decide(
     [doze, tired ? 7 : 1],
     ["idle", 2],
     [feed, tired ? 1 : 4],
+    // A dog after a smell, a wolf opening a den or a cache.
+    [
+      "dig",
+      p.art.dig && !tired && world.canDig?.(g.members[0].x, g.members[0].y)
+        ? 0.7
+        : 0,
+    ],
     [
       roam
         ? world.rng(`fauna-${g.id}-gait`) < 0.3
@@ -974,6 +985,12 @@ export function advanceFauna(
       decide(g, p, world, clock, near ? crowd : undefined);
     }
 
+    if (
+      g.state === "dig" &&
+      clock - g.since >= 2 * TICK &&
+      clock - g.since < 3 * TICK
+    )
+      world.onDig?.(g, { x: g.members[0].x, y: g.members[0].y });
     const fleeing = g.state === "flee";
     const flying = g.state === "flight";
     const running = fleeing || g.state === "chase";

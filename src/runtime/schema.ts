@@ -787,6 +787,7 @@ export const snapshotSchema = z.object({
           wood: z.number().int().nonnegative().max(99).optional(),
           cut: z.boolean().optional(),
           dug: z.boolean().optional(),
+          scraped: z.number().optional(),
           picked: z.number().optional(),
           burnt: z.boolean().optional(),
         })

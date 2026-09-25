@@ -135,6 +135,8 @@ const STAGE_WORD: Record<string, string> = {
 
 /** Cells either side of the player whose animal groups stay in the save. */
 const FAUNA_KEEP = 160;
+/** Seconds before grass closes over a hole an animal dug. */
+const SCRAPE_HEALS = 5 * 86400;
 import {
   axeWork,
   pickWork,
@@ -2248,7 +2250,7 @@ export class Engine {
           : "There is no rock here to break.";
     const edit = this.state.tiles?.[tileKey(at.x, at.y)];
     if (action === "dig") {
-      if (edit?.dug) return "This ground is already turned.";
+      if (edit?.dug && edit.scraped === undefined) return "This ground is already turned.";
       // A spade turns grass under; anything woodier has to come out first.
       if (plant && plantClass(plant.sprite) !== "grass")
         return plant.sprite === STUMP_SPRITE
@@ -2293,7 +2295,8 @@ export class Engine {
     if (this.world.blocked(at.x, at.y, "outside")) return false;
     const plant = this.world.decoration(at.x, at.y);
     if (action === "dig") {
-      if (this.state.tiles?.[tileKey(at.x, at.y)]?.dug) return false;
+      const edit = this.state.tiles?.[tileKey(at.x, at.y)];
+      if (edit?.dug && edit.scraped === undefined) return false;
       if (plant && plantClass(plant.sprite) !== "grass") return false;
       return ["grass", "dry", "dirt", "sand", "field"].includes(
         this.world.terrain(at.x, at.y, "outside"),
@@ -2312,7 +2315,11 @@ export class Engine {
         (q) => (q.x === at.x && q.y === at.y) || this.workable(action, q),
       );
       this.lastToolCells = cells;
-      for (const q of cells) this.editAt(q.x, q.y).dug = true;
+      for (const q of cells) {
+        const turned = this.editAt(q.x, q.y);
+        turned.dug = true;
+        delete turned.scraped;
+      }
       this.tilesChanged();
       this.advance(this.fieldPace(cells.length > 1 ? 70 : 45));
       this.grantXp("farming", 5 * cells.length);
@@ -4335,6 +4342,18 @@ export class Engine {
             remainsObject(kind, prey.speciesId, g.speciesId, pos, clock, `remains-${prey.id}-${clock}`),
           );
         },
+        canDig: (x, y) =>
+          !this.state.tiles?.[tileKey(x, y)]?.dug &&
+          !this.cropAt(x, y) &&
+          this.workable("dig", { x, y }),
+        // The same broken ground a spade leaves, but it grows over.
+        onDig: (_, at) => {
+          const edit = this.editAt(at.x, at.y);
+          if (edit.dug) return;
+          edit.dug = true;
+          edit.scraped = clock;
+          this.tilesChanged();
+        },
         // A fox eats at the den; a cat leaves a mouse for the household.
         onDrop: (g, prey, at) => {
           if (g.speciesId !== "cat" || this.blocked(at.x, at.y, "outside")) return;
@@ -4389,6 +4408,18 @@ export class Engine {
     }
     this.state.objects = capDung(this.state.objects);
   }
+  /** Where a dog or a wolf dug, the grass is back in five days. */
+  private healScrapes(clock: number) {
+    let healed = false;
+    for (const [key, edit] of Object.entries(this.state.tiles ?? {}))
+      if (edit.scraped !== undefined && clock - edit.scraped > SCRAPE_HEALS) {
+        delete edit.dug;
+        delete edit.scraped;
+        if (!Object.keys(edit).length) delete this.state.tiles![key];
+        healed = true;
+      }
+    if (healed) this.tilesChanged();
+  }
   /** Animals relieve themselves where they stand, a dozen times a day for a
    * cow; each hour what lies about dries a little further. */
   private dropDung(groups: FaunaGroup[], clock: number) {
@@ -4414,6 +4445,7 @@ export class Engine {
         if (o.remains) ageRemains(o, clock);
       }
       this.state.objects = pruneRemains(this.state.objects, clock);
+      this.healScrapes(clock);
       dropped = true;
     }
     if (dropped) this.state.objects = capDung(this.state.objects);

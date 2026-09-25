@@ -177,7 +177,8 @@
       "wander": 8,
       "stalk": 8,
       "chase": 8,
-      "rest": 8
+      "rest": 8,
+      "dig": 8
     },
     "size": [
       38,

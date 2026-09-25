@@ -13,6 +13,8 @@ maps back onto the body colours.
 """
 import math
 from art.fauna_b import (
+    RAKE,
+    throw_earth,
     Canvas as _BCanvas,
     _mask_from,
     rect,
@@ -189,7 +191,7 @@ COAT_FROM = {"cattle": {"black-pied": 1600}, "cat": {"black": 0, "tabby-white": 
 STATES = {
     "cattle": dict.fromkeys(["idle", "graze", "wander", "flee", "rest"], 8),
     "water-buffalo": dict.fromkeys(["idle", "graze", "wander", "flee", "rest"], 8),
-    "dog": dict.fromkeys(["idle", "forage", "wander", "flee", "rest"], 8),
+    "dog": dict.fromkeys(["idle", "forage", "wander", "flee", "rest", "dig"], 8),
     "donkey": dict.fromkeys(["idle", "graze", "wander", "flee", "rest"], 8),
     "camel": dict.fromkeys(["idle", "graze", "wander", "flee", "rest"], 8),
     "cat": dict.fromkeys(["idle", "forage", "wander", "flee", "rest", "stalk", "chase", "pounce", "carry"], 8),
@@ -515,6 +517,8 @@ def dog(form, state, frame):
         return _dog_rest(c, hound, frame)
     if state == "idle":
         return _dog_sit(c, hound, frame)
+    if state == "dig":
+        return _dog_dig(c, hound, frame)
     s = Stride(state, frame, walk=(2.4, 2.0, 0.5), run=(4.4, 3.2, 0.36), phases=TROT, bounce=1.6)
     ground = GROUND["dog"]
     sniff = state == "forage"
@@ -552,6 +556,29 @@ def dog(form, state, frame):
     put("nh", (8, 12), True, True)
     put("nf", (20, 13), False, True)
     return c.finish()
+
+
+def _dog_dig(c, hound, frame):
+    """At a hole: hind legs planted, rump up, nose down in it, forepaws
+    raking by turns, the tail going the whole time, and the earth thrown
+    back between the hind legs."""
+    s = Stride("forage", frame, (0, 0, 1), (0, 0, 1))
+    ground = GROUND["dog"]
+    hip, sh = (8, 10), (19, 13)
+    far_paw = RAKE[(frame + 2) % 8]
+    leg(c, (hip[0] - 2, hip[1]), (hip[0] - 1, ground), *bones(hip[1], ground, True), True, False, 2, 1, pad=1)
+    leg(c, (sh[0] - 2, sh[1]), (sh[0] - 2 + far_paw[0], ground + far_paw[1]), *bones(sh[1], ground, False), False, False, 2, 1, pad=1)
+    _dog_tail(c, hound, (5, 8), s, high=True, fast=True)
+    body = ellipse((4, 6, 16, 12)) | ellipse((12, 8, 22, 16))
+    c.paint(lit(body, 1, 2, (6, 18)))
+    mark(c, body, blobs([(8, 4, 16, 11), (18, 10, 24, 17)]))
+    hx, hy = 20, 11 + [0, 1, 1, 0, 0, 1, 1, 0][frame]
+    lay(c, polygon([(17, 9), (22, 13), (hx + 3, hy + 3), (hx - 1, hy - 1)]))
+    _dog_head(c, hound, hx, hy, s, down=True)
+    leg(c, hip, (hip[0] + 1, ground), *bones(hip[1], ground, True), True, True, 2, 1, pad=1)
+    paw = RAKE[frame]
+    leg(c, sh, (sh[0] + paw[0], ground + paw[1]), *bones(sh[1], ground, False), False, True, 2, 1, pad=1)
+    return throw_earth(c.finish(), (6, ground - 1), frame, top=HEADROOM["dog"], hole=(27, ground))
 
 
 def _dog_tail(c, hound, root, s, high=True, fast=True, ground=False):
@@ -1053,6 +1080,19 @@ def _cattle_face(form, state, frame, south, species="cattle"):
 
 
 def _dog_face(form, state, frame, south):
+    if state == "dig":
+        im = _dog_face(form, "forage", frame, south)
+        cx = WIDTH["dog"] // 2
+        # From the front the earth goes up over the back; from behind it comes
+        # out between the hind legs at us.
+        for away in (-1, 1):
+            throw_earth(im, (cx + away * 2, GROUND["dog"] - (8 if south else 1)), (frame + (away > 0) * 4) % 8, away, HEADROOM["dog"],
+                        hole=(cx, GROUND["dog"]) if south and away < 0 else None)
+        return im
+    return _dog_face_(form, state, frame, south)
+
+
+def _dog_face_(form, state, frame, south):
     c = Canvas("dog")
     hound = form == "hound"
     g, cx = GROUND["dog"], 16

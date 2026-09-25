@@ -607,7 +607,8 @@
       "forage": 8,
       "wander": 8,
       "flee": 8,
-      "rest": 8
+      "rest": 8,
+      "dig": 8
     },
     "directions": [
       "south",

@@ -11,6 +11,7 @@ export const faunaStates = [
   "chase",
   "pounce",
   "carry",
+  "dig",
   "perch",
   "takeoff",
   "flight",
