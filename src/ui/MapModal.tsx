@@ -27,7 +27,7 @@ export function MapModal({ runtime, onClose }: { runtime: Runtime; onClose: () =
   const [chosen, setChosen] = useState<string>();
   const [hover, setHover] = useState<string>();
   const [listOpen, setListOpen] = useState(true);
-  const [destination, setDestination] = useState<{ lon: number; lat: number }>();
+  const [destination, setDestination] = useState<{ lon: number; lat: number; name?: string }>();
   const [plan, setPlan] = useState<{ name: string; days?: number; sea?: number; error?: string }>();
   const [nearby, setNearby] = useState<{ id: string; name: string; rank: string; x: number; y: number }[]>([]);
   const drag = useRef<{ x: number; y: number; cx: number; cy: number; moved: boolean }>(undefined);
@@ -77,13 +77,14 @@ export function MapModal({ runtime, onClose }: { runtime: Runtime; onClose: () =
         await network.loadTileNames([id]);
         if (!live) return;
         const map = network.permanentMap(id, pack.setting!.year);
-        if (map.water) return setPlan({ name: map.name, error: "Open sea: choose somewhere on land." });
-        if (id === runtime.journey?.id) return setPlan({ name: map.name, error: "You are here." });
+        const name = destination.name ?? map.name;
+        if (map.water) return setPlan({ name, error: "Open sea: choose somewhere on land." });
+        if (id === runtime.journey?.id) return setPlan({ name, error: "You are here." });
         try {
           const route = travel.journeyPlan(lonLat, destination);
-          setPlan({ name: map.name, days: route.days, sea: Math.round(route.sea) });
+          setPlan({ name, days: route.days, sea: Math.round(route.sea) });
         } catch {
-          setPlan({ name: map.name, error: "No route there at this scale." });
+          setPlan({ name, error: "No route there at this scale." });
         }
       },
     );
@@ -140,6 +141,18 @@ export function MapModal({ runtime, onClose }: { runtime: Runtime; onClose: () =
   const origin = toAtlas(pack.anchor.lon, pack.anchor.lat);
   const lonLat = fromAtlas(origin.x + here.x, origin.y + here.y);
   const setting = pack.setting;
+  const journey = destination && <div className="map-journey">
+    {!plan ? <span>Finding the road…</span> : <>
+      <strong>{plan.name}</strong>
+      {plan.error ? <span>{plan.error}</span> : <span>
+        About {plan.days} day{plan.days === 1 ? "" : "s"} on the road{plan.sea ? `, ${plan.sea} km of it by sea` : ""}
+      </span>}
+      <div>
+        {!plan.error && <button className="primary" onClick={() => { void runtime.journey?.voyage(destination); onClose(); }}>Set out</button>}
+        <button onClick={() => setDestination(undefined)}>Cancel</button>
+      </div>
+    </>}
+  </div>;
 
   return <div className="map-modal">
     <header className="map-title">
@@ -158,18 +171,7 @@ export function MapModal({ runtime, onClose }: { runtime: Runtime; onClose: () =
           <>
             <ArrivalMap lon={lonLat.lon} lat={lonLat.lat} year={setting.year} place={setting.location}
               pick={destination} onPick={setDestination} />
-            {destination ? <div className="map-journey">
-              {!plan ? <span>Finding the road…</span> : <>
-                <strong>{plan.name}</strong>
-                {plan.error ? <span>{plan.error}</span> : <span>
-                  About {plan.days} day{plan.days === 1 ? "" : "s"} on the road{plan.sea ? `, ${plan.sea} km of it by sea` : ""}
-                </span>}
-                <div>
-                  {!plan.error && <button className="primary" onClick={() => { void runtime.journey?.voyage(destination); onClose(); }}>Set out</button>}
-                  <button onClick={() => setDestination(undefined)}>Cancel</button>
-                </div>
-              </>}
-            </div> : <p className="map-journey-hint">Choose a destination to plan a journey</p>}
+            {destination ? journey : <p className="map-journey-hint">Choose a destination to plan a journey</p>}
           </>
         ) : <>
           <div
@@ -208,9 +210,11 @@ export function MapModal({ runtime, onClose }: { runtime: Runtime; onClose: () =
           >
             <Minimap runtime={runtime} large span={span} center={center} dims={[W, H]} route={selected} />
           </div>
-          {nearby.map((p) => <span key={p.id} className={`map-settlement is-${p.rank}`} style={toScreen(p)}>
+          {nearby.map((p) => <button key={p.id} className={`map-settlement is-${p.rank}`} style={toScreen(p)}
+            onClick={() => { setChosen(undefined); setDestination({ ...fromAtlas(origin.x + p.x, origin.y + p.y), name: p.name }); }}>
             <i />{p.name}
-          </span>)}
+          </button>)}
+          {journey}
           {card && <div className="map-card" style={toScreen(card)}>
             <strong>{card.name}</strong>
             {card.metres < 30 ? <span>You are here</span> : <>

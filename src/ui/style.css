@@ -7171,7 +7171,11 @@ button:disabled {
   display: flex;
   align-items: center;
   gap: 4px;
-  pointer-events: none;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  font: inherit;
   white-space: nowrap;
   font-size: 11px;
   color: #f4ead2;
@@ -7184,6 +7188,8 @@ button:disabled {
   background: #f4ead2;
   box-shadow: 0 0 0 1px #2a2116;
 }
+.map-settlement:hover,
+.map-settlement:focus-visible { color: #ffd873; }
 .map-settlement.is-town { font-size: 12px; font-weight: 600; }
 .map-settlement.is-town i { width: 7px; height: 7px; }
 .map-settlement.is-city { font-size: 14px; font-weight: 700; letter-spacing: 0.02em; }
