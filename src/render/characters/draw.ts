@@ -157,6 +157,13 @@ export function drawCharacter(
         [19, 18],
       ] as Point[]
     )[f];
+  if (pose === "cast")
+    near = ([
+      [13 + wide, 13],
+      [9 + wide, 5],
+      [24 + wide, 15],
+      [19 + wide, 22],
+    ] as Point[])[f];
   if (pose === "pickup" || pose === "drop") near = [19, [22, 24, 25, 22][f]];
   if (pose === "hurt") near = [12, 18];
   if (airborne) {
@@ -182,8 +189,10 @@ export function drawCharacter(
     near = [side ? 19 : 16 + wide, 21 + torso - [0, 2, 3, 0][f]];
     far = [side ? 16 : 4 - wide, near[1]];
   }
-  if (prop?.kind === "stick" && !["swing", "thrust"].includes(pose))
+  if (prop?.kind === "stick" && !["swing", "thrust", "cast"].includes(pose))
     near = [18 + wide, 21 + torso + (moving && f % 2 ? -1 : 0)];
+  if ((prop?.kind === "blade" || prop?.kind === "brand") && !["swing", "thrust", "cast"].includes(pose))
+    near = [17 + wide, 21 + torso + (moving && f % 2 ? -1 : 0)];
   if (prop?.kind === "side")
     near = [
       side ? 15 : 17 + wide,
@@ -228,6 +237,15 @@ export function drawCharacter(
       ];
       p.line(branch, [branch[0] + 3, branch[1] - 1], wood.shade);
       p.rect(tip[0], tip[1], 1, 1, wood.light);
+    } else if (prop.kind === "blade" || prop.kind === "brand") {
+      const angle = prop.kind === "blade"
+        ? pose === "swing" ? [-25, -65, 55, 10][f] : 0
+        : pose === "thrust" ? [10, 20, 65, 15][f] : 0;
+      ctx.save();
+      ctx.translate(near[0], near[1]);
+      ctx.rotate((angle * Math.PI) / 180);
+      ctx.drawImage(prop.image, -2, -prop.height + 2);
+      ctx.restore();
     } else
       ctx.drawImage(
         prop.image,

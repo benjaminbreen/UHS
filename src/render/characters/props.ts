@@ -5,7 +5,7 @@ import { artStamp } from "../scene-assets";
 const redrawnFamilies = new Set<string>(propsB);
 export type CarriedArt = {
   sprite: string;
-  kind: "stick" | "tool" | "haft" | "side" | "both" | "head" | "back";
+  kind: "stick" | "tool" | "haft" | "blade" | "brand" | "side" | "both" | "head" | "back";
   image: HTMLCanvasElement;
   width: number;
   height: number;
@@ -141,8 +141,7 @@ export function iconCarriedArt(
   );
   return {
     sprite: id,
-    // Held in front in both hands: these are objects, not tools with hafts.
-    kind: "both",
+    kind: id === "icon:tool" ? "blade" : id === "icon:torch" ? "brand" : "both",
     image: crop,
     width: crop.width,
     height: crop.height,

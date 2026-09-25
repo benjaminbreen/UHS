@@ -125,7 +125,7 @@ it("takes an item in hand, swings it, and gives it back on stow", () => {
   expect(engine.state.player.inventory.tool).toBeUndefined();
   expect(runtime.verbs().primary).toMatchObject({
     kind: "strike",
-    label: "Swing small knife",
+    label: "Slash with small knife",
   });
 
   // A blade in hand shears brush rather than thumping it.
@@ -136,6 +136,64 @@ it("takes an item in hand, swings it, and gives it back on stow", () => {
   expect(runtime.command({ type: "stow" })!.status).toBe("completed");
   expect(engine.state.player.heldItem).toBeUndefined();
   expect(engine.state.player.inventory.tool).toBe(1);
+  runtime.dispose();
+});
+
+it("thrusts immediately at the end of a spear's reach", () => {
+  const engine = createSession("roman", "spear-input");
+  ground(engine);
+  prop(engine, "spear", 0, 0, true);
+  const pot = prop(engine, "pot", 2, 0);
+  const runtime = new Runtime(engine, { cacheTerrain: false });
+  expect(runtime.verbs().primary?.label).toBe("Thrust at pot");
+  runtime.pressSwing();
+  expect(engine.lastSwing?.hits).toHaveLength(2);
+  expect(pot.broken).toBe(true);
+  expect(runtime.characterAction?.pose).toBe("thrust");
+  expect(runtime.swingEffect?.contactMs).toBe(210);
+  runtime.releaseCharge();
+  runtime.dispose();
+});
+
+it("shows a held spear windup over empty ground before release", () => {
+  const engine = createSession("roman", "spear-windup");
+  ground(engine);
+  prop(engine, "spear", 0, 0, true);
+  const runtime = new Runtime(engine, { cacheTerrain: false });
+  runtime.pressSwing();
+  expect(runtime.characterAction?.pose).toBe("thrust");
+  expect(engine.lastSwing).toBeUndefined();
+  runtime.releaseCharge();
+  expect(engine.lastSwing?.thrust).toBe(true);
+  runtime.dispose();
+});
+
+it("gives the pitchfork a jab and the rake a pulling stroke", () => {
+  const engine = createSession("roman", "haft-actions");
+  ground(engine);
+  const fork = prop(engine, "pitchfork", 0, 0, true);
+  const runtime = new Runtime(engine, { cacheTerrain: false });
+  expect(runtime.verbs().primary?.label).toBe("Thrust pitchfork");
+  runtime.propAction("KeyF");
+  expect(engine.lastSwing?.hits).toHaveLength(2);
+  expect(runtime.characterAction?.pose).toBe("thrust");
+  fork.prop = "rake";
+  fork.name = "rake";
+  fork.sprite = "study-prop-rake-0";
+  expect(runtime.verbs().primary?.label).toBe("Rake with the rake");
+  runtime.propAction("KeyF");
+  expect(runtime.characterAction?.pose).toBe("till");
+  runtime.dispose();
+});
+
+it("casts a thrown spear after its release pose", () => {
+  const engine = createSession("roman", "spear-cast");
+  ground(engine);
+  prop(engine, "spear", 0, 0, true);
+  const runtime = new Runtime(engine, { cacheTerrain: false });
+  runtime.throwHeld(1, 0);
+  expect(runtime.characterAction?.pose).toBe("cast");
+  expect(runtime.throwEffect?.launchMs).toBe(240);
   runtime.dispose();
 });
 

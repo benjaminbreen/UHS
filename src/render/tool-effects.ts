@@ -3,6 +3,7 @@ import { gameAudio } from "../audio/director";
 import { scrape, strike, work } from "../audio/sfx";
 import type { Hit, HitClass, ToolClass } from "../core/reactions";
 import type { CreatureHit } from "../core/combat";
+import type { Point } from "../core/types";
 import { spritePalette } from "./sprite-palette";
 import { LootEffects } from "./loot-effects";
 
@@ -28,6 +29,8 @@ export type ToolEffect = {
   kind: ToolEffectKind;
   /** The worked cell, and the cell the player swung from. */
   at: { x: number; y: number };
+  cells?: Point[];
+  contactMs?: number;
   from: { x: number; y: number };
   /** The plant as it stood, before the blow landed. */
   sprite?: string;
@@ -51,6 +54,7 @@ export type SwingEffect = {
   power?: number;
   /** A spear: straight in, not round. */
   thrust?: boolean;
+  contactMs?: number;
 };
 /** A thrown prop in the air, and what it found where it came down. */
 export type ThrowEffect = {
@@ -66,6 +70,7 @@ export type ThrowEffect = {
   id?: string;
   /** An item from the hand rather than a prop. */
   small?: boolean;
+  launchMs?: number;
 };
 /** A pile shifting one cell, or refusing to. */
 export type ShoveEffect = {
@@ -162,9 +167,9 @@ export class ToolEffects {
     // The cell was rebuilt as logs the moment the engine felled the tree, so
     // hide it now rather than when the swing lands, or the logs show up under
     // a tree that is still standing.
-    if (effect.kind === "fell") this.hide(effect.at, 150 + 640);
+    if (effect.kind === "fell") this.hide(effect.at, (effect.contactMs ?? 150) + 640);
     const generation = this.generation;
-    this.scene.time.delayedCall(150, () => {
+    this.scene.time.delayedCall(effect.contactMs ?? 150, () => {
       if (generation === this.generation) this.play(effect);
     });
   }
@@ -174,7 +179,7 @@ export class ToolEffects {
     if (!effect || effect.serial === this.playedSwing) return;
     this.playedSwing = effect.serial;
     const generation = this.generation;
-    this.scene.time.delayedCall(140, () => {
+    this.scene.time.delayedCall(effect.contactMs ?? 140, () => {
       if (generation === this.generation) this.playSwing(effect);
     });
   }
@@ -182,7 +187,11 @@ export class ToolEffects {
     const from = this.point(effect.from);
     const [facing, ...corners] = effect.hits;
     // A wound-up swing draws its own ring; see CombatEffects.
-    if (facing && !effect.power) this.arc(from, this.point(facing.at));
+    if (facing && !effect.power) {
+      if (effect.thrust)
+        this.thrust(from, this.point((effect.hits.find((hit) => hit.solid) ?? effect.hits.at(-1)!).at));
+      else this.arc(from, this.point(facing.at));
+    }
     // One sound per swing: the heaviest thing the arc found, so three cells
     // never play a chord.
     const loudest =
@@ -296,6 +305,12 @@ export class ToolEffects {
   consumeThrow(effect: ThrowEffect | undefined) {
     if (!effect || effect.serial === this.playedThrow) return;
     this.playedThrow = effect.serial;
+    const generation = this.generation;
+    this.scene.time.delayedCall(effect.launchMs ?? 0, () => {
+      if (generation === this.generation) this.playThrow(effect);
+    });
+  }
+  private playThrow(effect: ThrowEffect) {
     const from = this.point(effect.from),
       to = this.point(effect.to);
     const span = Math.max(
@@ -521,9 +536,14 @@ export class ToolEffects {
     }
     if (effect.kind !== "dig") this.arc(from, target);
     if (effect.kind === "miss") return;
-    if (effect.kind === "dig") this.burst(target, SOIL, 6, 1.1);
+    if (effect.kind === "dig")
+      for (const cell of effect.cells ?? [effect.at])
+        this.burst(this.point(cell), SOIL, 6, 1.1);
     if (effect.kind === "reap" || effect.kind === "cut")
-      this.burst({ x: target.x, y: target.y - 4 }, LEAF, 7, 1.3);
+      for (const cell of effect.cells ?? [effect.at]) {
+        const cut = this.point(cell);
+        this.burst({ x: cut.x, y: cut.y - 4 }, LEAF, 7, 1.3);
+      }
     if (effect.kind === "hit" || effect.kind === "buck")
       this.burst(
         {
@@ -592,6 +612,29 @@ export class ToolEffects {
       scaleY: 1.45,
       alpha: 0,
       duration: 240,
+      ease: "Quad.easeOut",
+      onComplete: () => {
+        this.live.delete(g);
+        g.destroy();
+      },
+    });
+  }
+  private thrust(from: { x: number; y: number }, to: { x: number; y: number }) {
+    const dx = to.x - from.x,
+      dy = to.y - from.y;
+    const g = this.scene.add.graphics().setDepth(to.y + 5000);
+    const x = Math.round(from.x + dx * 0.42),
+      y = Math.round(from.y + dy * 0.42 - 11),
+      tipX = Math.round(to.x - dx * 0.08),
+      tipY = Math.round(to.y - dy * 0.08 - 11);
+    g.lineStyle(2, 0xffe6a6, 0.8).lineBetween(x, y, tipX, tipY);
+    g.lineStyle(1, 0xffffff, 1).lineBetween(x + 1, y - 1, tipX, tipY - 1);
+    g.fillStyle(0xffffff, 1).fillRect(tipX - 1, tipY - 1, 3, 3);
+    this.live.add(g);
+    this.scene.tweens.add({
+      targets: g,
+      alpha: 0,
+      duration: 150,
       ease: "Quad.easeOut",
       onComplete: () => {
         this.live.delete(g);

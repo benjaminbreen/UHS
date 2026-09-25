@@ -12,6 +12,53 @@ import { withPage, characterLab, shootCanvas, writeDataUrl, base } from "./lib";
 const out = (name: string) => `artifacts/characters/${name}.png`;
 
 const presets: Record<string, (page: Page) => Promise<void>> = {
+  async weapons(page) {
+    await characterLab(page);
+    await page.evaluate(async () => {
+      const { drawCharacter } = await import("/src/render/characters/renderers.ts" as string);
+      const { loadCarriedArt, portableProps, iconCarriedArt } = await import("/src/render/characters/props.ts" as string);
+      const { drawGarmentIcon, GARMENT_ICON } = await import("/src/render/garment-icons.ts" as string);
+      const { originalAppearance } = await import("/src/core/character.ts" as string);
+      const art = await loadCarriedArt();
+      const rows = [
+        ["Spear · thrust", "spear", "thrust"],
+        ["Spear · cast", "spear", "cast"],
+        ["Pitchfork · thrust", "pitchfork", "thrust"],
+        ["Rake · pull", "rake", "till"],
+        ["Sickle · cut", "sickle", "reap"],
+        ["Scythe · sweep", "scythe", "reap"],
+        ["Shovel · dig", "shovel", "dig"],
+        ["Axe · chop", "axe", "chop"],
+        ["Knife · slash", "tool", "swing"],
+        ["Torch · brand", "torch", "thrust"],
+      ] as const;
+      const sheet = document.createElement("canvas"), frame = document.createElement("canvas");
+      sheet.width = 8 * 116;
+      sheet.height = rows.length * 120;
+      frame.width = frame.height = 80;
+      const ctx = sheet.getContext("2d")!, fc = frame.getContext("2d")!;
+      ctx.imageSmoothingEnabled = false;
+      ctx.fillStyle = "#667c57";
+      ctx.fillRect(0, 0, sheet.width, sheet.height);
+      rows.forEach(([label, id, pose], row) => {
+        const key = portableProps.find((p: any) => p.id === id)?.sprite;
+        const held = key
+          ? art.get(key)
+          : iconCarriedArt(`icon:${id}`, (c: CanvasRenderingContext2D) => drawGarmentIcon(c, id, 0, 0), GARMENT_ICON);
+        for (let direction = 0; direction < 2; direction++)
+          for (let f = 0; f < 4; f++) {
+            drawCharacter(fc, originalAppearance, direction ? 2 : 1, pose, f, held);
+            ctx.drawImage(frame, 0, 0, 80, 80, (direction * 4 + f) * 116 + 8, row * 120 + 3, 100, 100);
+          }
+        ctx.fillStyle = "#f5e9c8";
+        ctx.font = "12px monospace";
+        ctx.fillText(label, 8, row * 120 + 116);
+      });
+      document.body.replaceChildren(sheet);
+      sheet.style.imageRendering = "pixelated";
+    });
+    await shootCanvas(page, out("weapons"));
+  },
   /** The lab's own panels: the generated population and the direction sheet. */
   async lab(page) {
     await characterLab(page, { paused: true });

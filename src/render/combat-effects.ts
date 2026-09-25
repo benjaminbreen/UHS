@@ -88,7 +88,7 @@ export class CombatEffects {
       Math.abs(effect.to.x - effect.from.x),
       Math.abs(effect.to.y - effect.from.y),
     );
-    this.scene.time.delayedCall(flightMs(span, effect.straight), () => {
+    this.scene.time.delayedCall((effect.launchMs ?? 0) + flightMs(span, effect.straight), () => {
       this.landedThrow = effect.serial;
       this.land(effect.creature!, effect.to.x < effect.from.x ? 3 : 1);
       this.hitStop(effect.creature!.killed);
@@ -240,7 +240,7 @@ export class CombatEffects {
     if (!effect || effect.serial === this.played) return;
     this.played = effect.serial;
     if (!effect.creatures?.length && !effect.power) return;
-    this.scene.time.delayedCall(CONTACT_MS, () => {
+    this.scene.time.delayedCall(effect.contactMs ?? CONTACT_MS, () => {
       this.landed = effect.serial;
       if (effect.power && !effect.thrust) this.sweep(effect);
       if (!effect.creatures?.length) return;

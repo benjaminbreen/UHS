@@ -1359,8 +1359,11 @@ export class Engine {
   /** Something within a swing's reach that a swing would do anything to. */
   swingFinds() {
     const p = this.state.player;
+    const held = heldObject(this.state);
+    const item = !held && p.heldItem ? this.item(p.heldItem)?.hand : undefined;
+    const reach = weaponOf(held?.prop, item).reach;
     return [0, 1, 3].some((turn) =>
-      this.swingCone((p.direction + turn) % 4).some(
+      this.swingCone((p.direction + turn) % 4, 0, reach).some(
         (c) =>
           !["air", "grass", "soil", "sand", "snow", "stone"].includes(
             this.hitClass(c.x, c.y, p.pos.space).hit,
@@ -2100,10 +2103,10 @@ export class Engine {
   }
   /** Aim assist: if the cone is empty but something solid stands to either
    * side, turn to it. Forgiving aim is most of what makes a swing feel good. */
-  private aimAt(direction: number) {
+  private aimAt(direction: number, reach = 0) {
     const space = this.state.player.pos.space;
     const solid = (dir: number) =>
-      this.swingCone(dir).some(
+      this.swingCone(dir, 0, reach).some(
         (c) =>
           !["air", "grass", "soil", "sand", "snow"].includes(
             this.hitClass(c.x, c.y, space).hit,
@@ -2284,6 +2287,7 @@ export class Engine {
       { x: beyond.x + side.x, y: beyond.y + side.y },
     ];
   }
+  lastToolCells?: Point[];
   /** Whether a cell in the swathe beyond the aimed one can take the stroke. */
   private workable(action: ToolAction, at: Point) {
     if (this.world.blocked(at.x, at.y, "outside")) return false;
@@ -2300,12 +2304,14 @@ export class Engine {
   /** Axe, spade and scythe. Validation has already run on the aimed cell. */
   private useTool(action: ToolAction, target: string) {
     const at = this.tileAt(target)!;
+    this.lastToolCells = [at];
     const p = this.state.player;
     const edit = this.editAt(at.x, at.y);
     if (action === "dig") {
       const cells = this.swathe(action, at).filter(
         (q) => (q.x === at.x && q.y === at.y) || this.workable(action, q),
       );
+      this.lastToolCells = cells;
       for (const q of cells) this.editAt(q.x, q.y).dug = true;
       this.tilesChanged();
       this.advance(this.fieldPace(cells.length > 1 ? 70 : 45));
@@ -2321,6 +2327,7 @@ export class Engine {
       const cells = this.swathe(action, at).filter(
         (q) => (q.x === at.x && q.y === at.y) || this.workable(action, q),
       );
+      this.lastToolCells = cells;
       const cut: string[] = [];
       const wild: Species[] = [];
       let stubble = false;
@@ -4427,7 +4434,8 @@ export class Engine {
       const tool = held
         ? toolClass(def.tool, def.strike)
         : toolClass(undefined, inHand?.strike, inHand?.edge);
-      p.direction = this.aimAt(p.direction);
+      const weapon = weaponOf(held?.prop, held ? undefined : inHand);
+      p.direction = this.aimAt(p.direction, weapon.reach);
       const swung = held?.name ?? (p.heldItem ? this.item(p.heldItem)?.name : undefined) ?? "fists";
       for (const w of this.witnesses(3))
         if (Math.max(Math.abs(w.pos.x - p.pos.x), Math.abs(w.pos.y - p.pos.y)) <= 2) {
@@ -4435,7 +4443,6 @@ export class Engine {
           if (tool !== "bare") this.affront(w);
         }
       const power = c.power ?? 0;
-      const weapon = weaponOf(held?.prop, held ? undefined : inHand);
       const cone = this.swingCone(p.direction, power, weapon.reach);
       const hits: Hit[] = [];
       const creatures: CreatureHit[] = [];
@@ -4479,7 +4486,7 @@ export class Engine {
         // wide arc never breaks three pots at once.
         // Bare hands still break pottery.
         if (
-          i === 0 &&
+          (i === 0 || (weapon.reach && !hits.some((hit) => hit.solid))) &&
           found.prop &&
           (tool !== "bare" || found.hit === "pottery")
         ) {
@@ -4980,7 +4987,7 @@ export class Engine {
           prop.pos = copy(p.pos);
           this.propOwnership(prop, "pick up");
           this.event(
-            `You pick up ${prop.name.toLowerCase()}. ${def.strike ? "F swings it." : "F throws it; E puts it down."}`,
+            `You pick up ${prop.name.toLowerCase()}. ${def.attack === "thrust" ? "F thrusts it." : def.attack === "rake" ? "F rakes with it." : def.attack === "hook" ? "F cuts with it." : def.strike ? "F swings it." : "F throws it; E puts it down."}`,
           );
         } else if (c.action === "drop") {
           const spot = this.dropSpot();

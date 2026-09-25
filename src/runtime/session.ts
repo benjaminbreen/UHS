@@ -23,7 +23,7 @@ import {
   type AppearancePalette,
 } from "../core/character";
 import type { Actor, Intent, ItemId } from "../core/types";
-import type { CharacterPose } from "../render/characters/poses";
+import { poseContactMs, type CharacterPose } from "../render/characters/poses";
 import type {
   ToolEffect,
   SwingEffect,
@@ -448,6 +448,14 @@ export class Runtime {
       serial: ++this.characterSerial,
       kind,
       at,
+      cells:
+        action === "dig" || action === "reap"
+          ? this.engine.lastToolCells
+          : undefined,
+      contactMs:
+        action === "douse" || action === "fill"
+          ? 150
+          : poseContactMs(TOOL_POSES[action as ToolAction]),
       from: { x: p.x, y: p.y },
       facing: this.engine.state.player.direction,
       sprite: previousPlant,
@@ -558,21 +566,22 @@ export class Runtime {
     if (command.type === "throw") {
       const flight = this.engine.lastThrow;
       if (flight)
-        this.throwEffect = { serial: ++this.characterSerial, ...flight };
+        this.throwEffect = {
+          serial: ++this.characterSerial,
+          ...flight,
+          launchMs: poseContactMs(
+            previousProp?.includes("-spear-") ? "cast" : "swing",
+          ),
+        };
     }
     if (command.type === "swing") {
       const swing = this.engine.lastSwing;
       const held = heldObject(this.engine.state);
       const item = this.engine.state.player.heldItem;
-      const tool = propDefs[held?.prop ?? ""]?.tool;
+      const pose = this.swingPose(swing?.thrust);
       this.characterAction = {
         serial: ++this.characterSerial,
-        // A spear goes straight in.
-        pose: tool
-          ? TOOL_POSES[TOOL_ACTIONS[tool]]
-          : swing?.thrust
-            ? "thrust"
-            : "swing",
+        pose,
         at: performance.now(),
         prop:
           held?.sprite ?? (item ? this.engine.item(item)?.sprite : undefined),
@@ -589,6 +598,7 @@ export class Runtime {
           creatures: swing.creatures,
           power: swing.power,
           thrust: swing.thrust,
+          contactMs: poseContactMs(pose),
         };
       }
       return;
@@ -617,7 +627,7 @@ export class Runtime {
         drop: "drop",
         climb: "climb",
         descend: "climb",
-        throw: "swing",
+        throw: previousProp?.includes("-spear-") ? "cast" : "swing",
         strike: "swing",
         chop: "chop",
         dig: "dig",
@@ -651,6 +661,17 @@ export class Runtime {
         at: performance.now(),
         prop: previousProp,
       };
+  }
+  private swingPose(thrust = false): CharacterPose {
+    const held = heldObject(this.engine.state);
+    const item = this.engine.state.player.heldItem;
+    const def = propDefs[held?.prop ?? ""];
+    if (def?.tool) return TOOL_POSES[TOOL_ACTIONS[def.tool]];
+    if (def?.attack === "rake") return "till";
+    if (def?.attack === "hook") return "reap";
+    return def?.attack === "thrust" || item === "torch" || thrust
+      ? "thrust"
+      : "swing";
   }
   private subscribers = new Set<() => void>();
   private cached: ReturnType<Runtime["view"]>;
@@ -919,7 +940,11 @@ export class Runtime {
         reason: this.notice,
       };
     }
-    const previousProp = heldObject(this.engine.state)?.sprite;
+    const previousProp =
+      heldObject(this.engine.state)?.sprite ??
+      (this.engine.state.player.heldItem
+        ? `icon:${this.engine.state.player.heldItem}`
+        : undefined);
     const previousPlant = this.toolTargetPlant(command);
     const result = this.engine.act({
       actionId: `ui-${this.engine.state.revision}-${++this.serial}`,
@@ -974,7 +999,11 @@ export class Runtime {
         observation: structuredClone(this.observation!),
       };
     }
-    const previousProp = heldObject(this.engine.state)?.sprite;
+    const previousProp =
+      heldObject(this.engine.state)?.sprite ??
+      (this.engine.state.player.heldItem
+        ? `icon:${this.engine.state.player.heldItem}`
+        : undefined);
     const previousPlant = this.toolTargetPlant(command);
     const result = this.engine.act({ ...request, command });
     this.animateCommand(
@@ -1230,9 +1259,22 @@ export class Runtime {
     // An inventory item taken in hand stands in for a carried prop.
     const item = !held && p.heldItem ? this.engine.item(p.heldItem) : undefined;
     const hands = held
-      ? { name: held.name, swingable: !!(def?.strike || def?.tool) }
+      ? {
+          name: held.name,
+          swingable: !!(def?.strike || def?.tool),
+          attack: def?.attack,
+        }
       : item
-        ? { name: item.name, swingable: !!item.hand?.strike }
+        ? {
+            name: item.name,
+            swingable: !!item.hand?.strike,
+            attack:
+              item.id === "torch"
+                ? "brand"
+                : item.hand?.edge
+                  ? "slice"
+                  : undefined,
+          }
         : undefined;
     const speaker = this.facingSpeaker();
     const other = speaker ? undefined : this.nearestSpeaker();
@@ -1287,8 +1329,18 @@ export class Runtime {
         kind: "strike",
         label:
           held && c.primary?.action === "strike"
-            ? c.primaryLabel
-            : `Swing ${hands.name.toLowerCase()}`,
+            ? hands.attack === "thrust"
+              ? c.primaryLabel.replace(/^Strike /, "Thrust at ")
+              : c.primaryLabel
+            : hands.attack === "thrust"
+              ? `Thrust ${hands.name.toLowerCase()}`
+              : hands.attack === "rake"
+                ? `Rake with the ${hands.name.toLowerCase()}`
+                : hands.attack === "hook" || hands.attack === "slice"
+                  ? `Slash with ${hands.name.toLowerCase()}`
+                  : hands.attack === "brand"
+                    ? `Brand with ${hands.name.toLowerCase()}`
+                    : `Swing ${hands.name.toLowerCase()}`,
       };
     else if (held)
       primary = { kind: "throw", label: `Throw ${held.name.toLowerCase()}` };
@@ -1462,6 +1514,15 @@ export class Runtime {
     if (now) this.runVerb("primary");
     this.beginCharge();
     this.chargeSwung = now;
+    if (!now) {
+      this.stop(false);
+      this.characterAction = {
+        serial: ++this.characterSerial,
+        pose: this.swingPose(),
+        at: performance.now(),
+      };
+      this.emit();
+    }
     return verb;
   }
   /** Dev panel hooks. Outside the command log, so a replay will not have them. */

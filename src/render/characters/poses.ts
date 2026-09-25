@@ -21,6 +21,7 @@ export const poses = [
   "reap",
   "till",
   "thrust",
+  "cast",
   "work",
   "stoop",
   "kneel",
@@ -70,9 +71,12 @@ export function poseTiming(pose: CharacterPose) {
   // A chop is a swing with a heavier head; a dig and a sweep are slower still.
   if (pose === "chop") return 120;
   if (pose === "dig" || pose === "reap" || pose === "till") return 150;
+  if (pose === "thrust") return 105;
+  if (pose === "cast") return 120;
   return pose === "idle"
     ? 360
     : pose === "swing" || pose === "hurt"
       ? 110
       : 160;
 }
+export const poseContactMs = (pose: CharacterPose) => poseTiming(pose) * 2;

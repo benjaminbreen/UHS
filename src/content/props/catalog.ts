@@ -22,6 +22,7 @@ export type PropDef = {
     | "paper";
   drink?: boolean;
   strike?: boolean;
+  attack?: "thrust" | "rake" | "hook";
   /** What this tool does to the ground in front of you. */
   tool?: "axe" | "spade" | "scythe" | "pick";
   /** How wide a bite it takes: one cell, or a swathe of them. */
@@ -361,6 +362,7 @@ export const propDefs: Record<string, PropDef> = {
     family: "sickle",
     portable: true,
     strike: true,
+    attack: "hook",
     tool: "scythe",
   },
   axe: {
@@ -601,6 +603,7 @@ export const propDefs: Record<string, PropDef> = {
     family: "rake",
     portable: true,
     strike: true,
+    attack: "rake",
     where: "backyard",
   },
   pitchfork: {
@@ -609,6 +612,7 @@ export const propDefs: Record<string, PropDef> = {
     family: "pitchfork",
     portable: true,
     strike: true,
+    attack: "thrust",
     where: "backyard",
   },
   beehive: {
@@ -1080,6 +1084,7 @@ export const propDefs: Record<string, PropDef> = {
     family: "spear",
     portable: true,
     strike: true,
+    attack: "thrust",
     where: "backyard",
   },
   /** The same length of wood, found rather than kept: it lies under trees in

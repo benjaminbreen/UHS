@@ -207,7 +207,7 @@ const weapons: Record<string, Weapon> = {
   sickle: { damage: 4, knock: 1 },
   scythe: { damage: 5, knock: 1 },
   pick: { damage: 6, knock: 1 },
-  pitchfork: { damage: 6, knock: 1 },
+  pitchfork: { damage: 6, knock: 1, reach: 2 },
   axe: { damage: 7, knock: 1 },
   spear: { damage: 6, knock: 1, reach: 2, brace: 2.5, thrown: 1.6 },
 };

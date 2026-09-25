@@ -168,7 +168,11 @@ export function drawCharacter(
                                 ? [2, 1, 5, 4][f]
                                 : pose === "reap"
                                   ? [2, 1, 3, 3][f]
-                                  : pose === "hurt"
+                                  : pose === "thrust"
+                                    ? [0, 1, 2, 1][f]
+                                    : pose === "cast"
+                                      ? [0, -1, 2, 1][f]
+                                    : pose === "hurt"
                                     ? [0, 2, 3, 1][f]
                                     : climbing
                                       ? [3, 4, 3, 4][f]
@@ -368,6 +372,13 @@ export function drawCharacter(
     )[f];
     far = [side ? 12 : 6 - wide, 19 + torso];
   }
+  if (pose === "reap" && prop?.sprite.includes("-sickle-"))
+    near = ([
+      [16 + wide, 18],
+      [18 + wide, 14],
+      [23 + wide, 21],
+      [17 + wide, 20],
+    ] as Point[])[f];
   if (pose === "stoop") {
     near = [side ? 15 : 13 + wide, 25 + torso - bend + [0, 1, 1, 0][f]];
     far = [side ? 13 : 8 - wide, near[1]];
@@ -391,6 +402,20 @@ export function drawCharacter(
         [19, 18],
       ] as Point[]
     )[f];
+  if (pose === "cast") {
+    near = ([
+      [13 + wide, 13],
+      [9 + wide, 5],
+      [24 + wide, 15],
+      [19 + wide, 22],
+    ] as Point[])[f];
+    far = ([
+      [8, 18],
+      [5, 14],
+      [13, 18],
+      [10, 22],
+    ] as Point[])[f];
+  }
   // The hand lifts before it goes down, the way a real reach starts.
   if (pose === "pickup" || pose === "drop") near = [19, [20, 24, 25, 22][f]];
   if (pose === "hurt") near = [12, 18];
@@ -743,6 +768,18 @@ export function drawCharacter(
               [15, 8],
               [14, 3],
             ],
+            thrust: [
+              [13, -12],
+              [4, -18],
+              [19, 0],
+              [14, -9],
+            ],
+            cast: [
+              [4, -14],
+              [-7, -17],
+              [18, -2],
+              [11, 5],
+            ],
           } as Record<string, Point[]>
         )[pose]?.[f] ?? [15, 5 + (moving && f % 2 ? -1 : 0)])
       : undefined;
@@ -757,14 +794,25 @@ export function drawCharacter(
       near[0] - Math.round(haftVector[0] * 0.42) - 2,
       near[1] - Math.round(haftVector[1] * 0.42),
     ];
+    if (pose === "thrust") {
+      near = ([
+        [14 + wide, 19],
+        [10 + wide, 18],
+        [21 + wide, 18],
+        [17 + wide, 19],
+      ] as Point[])[f];
+      far = [near[0] - Math.round(haftVector[0] * 0.42) - 2, near[1] - Math.round(haftVector[1] * 0.42)];
+    }
   }
   if (
     prop?.kind === "tool" &&
     !["chop", "dig", "reap", "swing", "thrust"].includes(pose)
   )
     near = [17 + wide, 20 + torso + (moving && f % 2 ? -1 : 0)];
-  if (prop?.kind === "stick" && !["swing", "thrust"].includes(pose))
+  if (prop?.kind === "stick" && !["swing", "thrust", "cast"].includes(pose))
     near = [18 + wide, 21 + torso + (moving && f % 2 ? -1 : 0)];
+  if ((prop?.kind === "blade" || prop?.kind === "brand") && !["swing", "thrust", "cast"].includes(pose))
+    near = [17 + wide, 21 + torso + (moving && f % 2 ? -1 : 0)];
   if (prop?.kind === "side")
     near = [
       side ? 15 : 17 + wide,
@@ -890,7 +938,7 @@ export function drawCharacter(
             : {
                 chop: [-35, -75, 55, 15],
                 dig: [-15, -30, 60, 35],
-                reap: [45, 10, -35, -10],
+                reap: prop.sprite.includes("-sickle-") ? [-25, -60, 35, 5] : [45, 10, -35, -10],
                 swing: [-35, -75, 55, 15],
                 thrust: [20, 20, 20, 20],
               }) as Record<string, number[]>
@@ -898,9 +946,21 @@ export function drawCharacter(
       ctx.save();
       ctx.translate(near[0], near[1] + 1);
       ctx.rotate((angle * Math.PI) / 180);
+      if (prop.sprite.includes("-sickle-")) ctx.scale(0.75, 0.75);
       if (hangs) ctx.drawImage(prop.image, -Math.round(prop.width / 2), -2);
       else ctx.drawImage(prop.image, -2, -prop.height + 2);
       ctx.restore();
+    } else if (prop.kind === "blade" || prop.kind === "brand") {
+      const angle = prop.kind === "blade"
+        ? pose === "swing" ? [-25, -65, 55, 10][f] : 0
+        : pose === "thrust" ? [10, 20, 65, 15][f] : 0;
+      ctx.save();
+      ctx.translate(near[0], near[1]);
+      ctx.rotate((angle * Math.PI) / 180);
+      ctx.drawImage(prop.image, -2, -prop.height + 2);
+      ctx.restore();
+      if (prop.kind === "brand" && pose === "thrust" && f === 2)
+        p.rect(near[0] + 8, near[1] - 5, 2, 2, "#ffd672");
     } else
       ctx.drawImage(
         prop.image,

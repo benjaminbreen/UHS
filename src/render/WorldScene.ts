@@ -4887,6 +4887,8 @@ export class WorldScene extends Phaser.Scene {
         const action =
           id === "player" ? this.runtime.characterAction : undefined;
         const elapsed = action ? performance.now() - action.at : Infinity;
+        const winding =
+          id === "player" && !!this.runtime.charge && !this.runtime.chargeSwung;
         // A jump is spread over its own arc, so the apex frame is drawn at
         // the apex whatever the distance, and a landing follows it. The
         // landing gives way to walking after its first frame.
@@ -4932,7 +4934,7 @@ export class WorldScene extends Phaser.Scene {
           reflectIn(this, id, im);
         const heldSprite = this.heldSprites.get(id);
         let pose: CharacterPose = moving ? "walk" : "idle";
-        if (active) pose = action.pose;
+        if (active || winding) pose = action!.pose;
         else if (landed) pose = after;
         else if (moving)
           pose = id === "player" && this.shiftHeld ? "run" : "walk";
@@ -4941,7 +4943,7 @@ export class WorldScene extends Phaser.Scene {
         else if (/gathering|working/i.test(human.activity)) pose = "work";
         else if (/eating/i.test(human.activity)) pose = "give";
         if (id === "player" && pose === "idle") pose = "breathe";
-        if (moving && water > 0.025 && !active) pose = "wade";
+        if (moving && water > 0.025 && !active && !winding) pose = "wade";
         if (craft && craft !== "swimming") pose = "sit";
         if (id === "player") this.watercraft.update(im, craft, this.tint,
           (this.runtime.engine.state.manifest.setting?.year ?? 0) >= 1930);
@@ -5021,42 +5023,44 @@ export class WorldScene extends Phaser.Scene {
           g.pose = pose;
         }
         const index =
-          gaitFrame ??
-          (stunt
-          ? Math.min(
-              stunt.last,
-              stunt.first + Math.floor((this.time.now - stunt.from) / stunt.ms),
-            )
-          : active
-            ? arcMs
-              ? // Crouch, launch, a long apex, then the reach for the ground.
-                [0.12, 0.4, 0.8].filter((t) => elapsed / arcMs >= t).length
-              : Math.min(3, Math.floor(elapsed / poseTiming(pose)))
-            : landed
-              ? Math.min(3, Math.floor(sinceLanding / poseTiming(after)))
-              : this.options.freeze
-                ? 0
-                : cued
-                  ? cued.index
-                  : fidget?.pose
-                    ? Math.min(
-                        3,
-                        Math.floor(
-                          ((time - fidget.from) /
-                            (fidget.until - fidget.from)) *
-                            4,
-                        ),
-                      )
-                    : pose === "wade"
-                      ? (this.wading?.frame(id) ?? 0)
-                      : this.poseFrame(id, pose, laden ? time * 0.72 : time));
+          winding
+            ? Math.min(1, Math.floor(elapsed / poseTiming(pose)))
+            : gaitFrame ??
+              (stunt
+                ? Math.min(
+                    stunt.last,
+                    stunt.first + Math.floor((this.time.now - stunt.from) / stunt.ms),
+                  )
+                : active
+                  ? arcMs
+                    ? // Crouch, launch, a long apex, then the reach for the ground.
+                      [0.12, 0.4, 0.8].filter((t) => elapsed / arcMs >= t).length
+                    : Math.min(3, Math.floor(elapsed / poseTiming(pose)))
+                  : landed
+                    ? Math.min(3, Math.floor(sinceLanding / poseTiming(after)))
+                    : this.options.freeze
+                      ? 0
+                      : cued
+                        ? cued.index
+                        : fidget?.pose
+                          ? Math.min(
+                              3,
+                              Math.floor(
+                                ((time - fidget.from) /
+                                  (fidget.until - fidget.from)) *
+                                  4,
+                              ),
+                            )
+                          : pose === "wade"
+                            ? (this.wading?.frame(id) ?? 0)
+                            : this.poseFrame(id, pose, laden ? time * 0.72 : time));
         const prop =
           heldSprite ??
           (at?.activity === "haul-catch" ? CATCH : undefined) ??
           // A thrown object stays in the hand through the windup. Striking
           // also swings, but then the hand is still full and this never runs.
           (active &&
-          (action.pose === "drop" || action.pose === "swing") &&
+          (action.pose === "drop" || action.pose === "swing" || action.pose === "cast") &&
           index < 2
             ? action.prop
             : undefined);
