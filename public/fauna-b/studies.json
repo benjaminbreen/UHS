@@ -297,5 +297,30 @@
       18,
       14
     ]
+  },
+  "cattle-egret": {
+    "palette": [
+      "#7b8074",
+      "#c3c8bc",
+      "#e6e9df",
+      "#f6f7f0",
+      "#ffffff",
+      "#e0ae62",
+      "#1d1d18",
+      "#e8b534",
+      "#6e6636"
+    ],
+    "states": {
+      "forage": 8,
+      "perch": 8,
+      "takeoff": 8,
+      "flight": 8,
+      "approach": 8,
+      "landing": 8
+    },
+    "size": [
+      30,
+      26
+    ]
   }
 }

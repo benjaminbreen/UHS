@@ -57,6 +57,8 @@ const TICK = 6;
 const HUNT_RADIUS = 2.5;
 /** Inside this the hunter drops the stalk and runs. */
 const POUNCE = 5;
+/** Cells an egret flock will cross to join a grazing herd. */
+const HERD_RANGE = 24;
 /** Game seconds a kill keeps a hunter off the hunt. */
 const FED = 10 * 3600;
 /** Close enough to lay hold of one. */
@@ -820,8 +822,23 @@ export function advanceFauna(
       !quarry &&
       !watching &&
       !aerialStates.has(g.state)
-    )
+    ) {
+      if (p.followsHerds) {
+        const herd = herds
+          .filter(
+            (h) =>
+              h.profile.art.graze &&
+              h.profile.locomotion === "ground" &&
+              hyp(h.group.pos, g.pos) <= HERD_RANGE,
+          )
+          .sort((a, b) => hyp(a.group.pos, g.pos) - hyp(b.group.pos, g.pos))[0];
+        if (herd) {
+          g.home = { ...herd.group.pos, space: "outside" };
+          g.homeRadius = 3;
+        }
+      }
       decide(g, p, world, clock, near ? crowd : undefined);
+    }
 
     const fleeing = g.state === "flee";
     const flying = g.state === "flight";

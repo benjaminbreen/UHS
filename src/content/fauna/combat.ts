@@ -41,6 +41,7 @@ const table: Record<string, FaunaCombat> = {
   "house-sparrow": bird(1),
   "rock-dove": bird(2, 1),
   chicken: bird(3, 1),
+  "cattle-egret": bird(3, 1),
   turkey: bird(5, 2),
   "wild-turkey": bird(6, 2),
   "guinea-pig": beast(2, 0, 1),

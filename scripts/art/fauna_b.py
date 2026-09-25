@@ -23,6 +23,9 @@ PALETTES = {
     "wild-boar": {"o": "#1f1813", "d": "#372d24", "m": "#54463a", "l": "#766351", "h": "#9c8874", "b": "#2a231c", "e": "#0f0b08", "a": "#e8e2d0"},
     "llama": {"o": "#5c4630", "d": "#8a6d4d", "m": "#b08f68", "l": "#d0b186", "h": "#eddcc0", "b": "#6b5138", "e": "#1d1510", "a": "#f4ecd9"},
     "turkey": {"o": "#2b231d", "d": "#453931", "m": "#665547", "l": "#8d7761", "h": "#b9a184", "b": "#b8453a", "e": "#120e0a", "a": "#d9b25c"},
+    # Breeding birds carry a buff wash on crown and back; legs are drawn
+    # after the outline, in k, so they stay one pixel thin.
+    "cattle-egret": {"o": "#7b8074", "d": "#c3c8bc", "m": "#e6e9df", "l": "#f6f7f0", "h": "#ffffff", "b": "#e0ae62", "e": "#1d1d18", "a": "#e8b534", "k": "#6e6636"},
     "guinea-pig": {"o": "#3f2c1e", "d": "#6f4d31", "m": "#9a6c46", "l": "#c09163", "h": "#e6c294", "b": "#f2e9d6", "e": "#150f0a", "a": "#d9a273"},
 }
 STATES = {
@@ -39,6 +42,7 @@ STATES = {
     "llama": dict.fromkeys(["idle", "graze", "wander", "flee", "rest"], 8),
     "turkey": dict.fromkeys(["idle", "forage", "wander", "flee"], 8),
     "guinea-pig": dict.fromkeys(["idle", "forage", "wander", "flee", "rest"], 8),
+    "cattle-egret": dict.fromkeys(["forage", "perch", "takeoff", "flight", "approach", "landing"], 8),
 }
 # Sized against the 29px standing human: deer shoulder ~20px, wolf ~13px, sheep ~12px.
 NATIVE_SIZES = {
@@ -56,6 +60,8 @@ NATIVE_SIZES = {
     "llama": (32, 38),
     "turkey": (26, 26),
     "guinea-pig": (18, 14),
+    # Half a man's height standing; the width is for the wingspan.
+    "cattle-egret": (30, 26),
 }
 
 
@@ -1091,6 +1097,95 @@ def turkey(state, frame):
     return c.finish()
 
 
+# ---------------------------------------------------------------- cattle egret
+def egret(state, frame):
+    """Hunched white heron with a thick jowled neck and a yellow dagger bill.
+    It walks as it feeds, head pumping, and stabs at what the herd kicks up."""
+    c = Canvas("cattle-egret")
+    ground = 23
+    flying = state in {"flight", "approach"} or (state == "takeoff" and frame >= 2) or (state == "landing" and frame < 5)
+    legs = []
+    if flying:
+        lift = {"takeoff": -(frame - 1), "landing": -(5 - frame)}.get(state, -4)
+        by = 16 + max(lift, -4)
+        beat = {"flight": [0, 0, 1, 2, 3, 3, 2, 1], "approach": [2, 2, 2, 1, 2, 2, 2, 3],
+                "takeoff": [0, 0, 0, 3, 0, 3, 1, 3], "landing": [0, 3, 0, 3, 1, 2, 2, 2]}[state][frame]
+        wings = [
+            [(11, by - 2), (18, by - 2), (16, by - 9), (12, by - 14), (8, by - 10)],
+            [(11, by - 2), (18, by - 2), (14, by - 7), (5, by - 8)],
+            [(11, by - 2), (18, by - 1), (12, by + 1), (3, by - 1)],
+            [(11, by - 1), (17, by - 1), (14, by + 4), (9, by + 8), (8, by + 3)],
+        ]
+        # far wing a shadow behind, then the body, then the near wing over it
+        c.paint(flat(shift(polygon(wings[beat]), -2, -1), "d"))
+        body = ellipse((9, by - 3, 20, by + 2))
+        c.paint(shade(body, 1, 1))
+        # neck folded back into the shoulders, head forward of the chest
+        head = ellipse((18, by - 5, 22, by - 1))
+        c.paint(shade(head, 1, 1))
+        c.dot(19, by - 5, "b")
+        c.dot(20, by - 5, "b")
+        c.paint(flat(line((23, by - 3), (25, by - 2)) | {(23, by - 2)}, "a"))
+        c.dot(21, by - 4, "e")
+        c.paint(shade(polygon(wings[beat]), 1, 1, base="l", light="h", dark="m"))
+        # legs trail past the tail
+        foot = 2 if state in {"flight", "approach"} else 0
+        legs = [((9, by + 1), (4 + foot, by + 2 - foot // 2)), ((9, by), (4 + foot, by + 1 - foot // 2))]
+        if state == "landing" and frame >= 3 or state == "takeoff" and frame < 4:
+            legs = [((12, by + 2), (11, by + 7)), ((14, by + 2), (15, by + 7))]
+    else:
+        walking = state == "forage"
+        # forage: a slow walk with the head pumping, and one stab at 4-5
+        t = frame / 8
+        stab = walking and frame in (4, 5)
+        by = 15
+        for ph in (0.0, 0.5):
+            dx, up = walk_foot(t + ph, 2.0, 2.0, 0.6) if walking and not stab else (0.0, 0.0)
+            hip = (13 + (1 if ph else 0), by + 1)
+            foot = (13 + (1 if ph else 0) + dx, ground - up)
+            knee = ((hip[0] + foot[0]) / 2 - 1, (hip[1] + foot[1]) / 2)
+            legs.append((hip, knee))
+            legs.append((knee, foot))
+        hunch = state == "perch" and frame in (6, 7)
+        body = ellipse((7, by - 6 + hunch, 18, by + 1))
+        c.paint(shade(body, 1, 2))
+        # tail tips down behind
+        c.paint(flat(polygon([(8, by - 3), (4, by + 1), (7, by + 1)]), "d"))
+        wing = polygon([(8, by - 4), (16, by - 5), (15, by - 1), (9, by)])
+        c.paint(shade(wing, 1, 1, base="m", light="l", dark="d"))
+        for x in (10, 11, 12):
+            c.dot(x, by - 5 + hunch, "b")
+        pump = [0, 1, 2, 1, 0, 0, 1, 2][frame] if walking else 0
+        if stab:
+            hx, hy = 19, by - 1 + (frame - 4) * 2
+        elif hunch:
+            hx, hy = 16, by - 9
+        else:
+            hx, hy = 16 + pump, by - 10 + (1 if pump == 2 else 0)
+            if state == "perch" and frame in (2, 3):
+                hx -= 1
+        neck = polygon([(14, by - 4), (17, by - 4), (hx + 3, hy + 3), (hx + 1, hy + 4)])
+        c.paint(over(c, shade(neck, 1, 1)))
+        head = ellipse((hx, hy, hx + 4, hy + 4))
+        c.paint(shade(head, 1, 1))
+        c.dot(hx + 1, hy, "b")
+        c.dot(hx + 2, hy, "b")
+        # the jowl: feathers bunched under the chin
+        c.dot(hx + 1, hy + 4, "l")
+        down = 1 if stab else 0
+        c.paint(flat(line((hx + 5, hy + 2), (hx + 7, hy + 2 + 2 * down)) | {(hx + 5, hy + 3)}, "a"))
+        blink = state == "perch" and frame == 5
+        c.dot(hx + 3, hy + 1, "o" if blink else "e")
+    im = c.finish()
+    px = im.load()
+    ink = _rgba(c.palette["k"])
+    for a, b in legs:
+        for x, y in line(a, b):
+            if 0 <= x < c.w and 0 <= y < c.h and (x, y) not in c.px:
+                px[x, y] = ink
+    return im
+
+
 # ---------------------------------------------------------------- guinea pig
 def guinea_pig(state, frame):
     """No neck, no tail, no daylight under it. One loaf with a nose on the
@@ -1335,6 +1430,8 @@ def fauna_b():
                     im = llama(state, frame)
                 elif species == "turkey":
                     im = turkey(state, frame)
+                elif species == "cattle-egret":
+                    im = egret(state, frame)
                 elif species == "guinea-pig":
                     im = guinea_pig(state, frame)
                 else:

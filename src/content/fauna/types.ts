@@ -66,6 +66,8 @@ export type FaunaProfile = {
   young?: { id: string; chance: number };
   /** Cells per six-second step at a walk; a person walks one. */
   pace: number;
+  /** Keeps to the nearest grazing herd and feeds on what its feet put up. */
+  followsHerds?: boolean;
   /** Scrambles a terrace step the way a person can. Others need a slope. */
   climbs?: boolean;
   settlementTolerance: number;
