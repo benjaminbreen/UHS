@@ -143,6 +143,98 @@ function hillShade(wx: number, wy: number, cell: number, k: string) {
   return 1 + Math.round(Math.max(-0.5, Math.min(0.5, slope)) * 8) / 12
     + (noise("grain", wx, wy, cell * 2, "map") - 0.5) * 0.06;
 }
+/** Hills, mountains and tree clumps stamped over flat ground, placed on a
+ * jittered grid from the atlas's relief and moisture. */
+function drawTerrainGlyphs(
+  c: CanvasRenderingContext2D,
+  kind: string[],
+  cols: number,
+  at: (i: number, j: number) => { x: number; y: number; wx: number; wy: number },
+  anchor: Point,
+) {
+  const rows = kind.length / cols;
+  const step = 9;
+  const marks: { x: number; y: number; draw: () => void }[] = [];
+  for (let j = 0; j < rows; j += step)
+    for (let i = 0; i < cols; i += step) {
+      const { wx: gx, wy: gy } = at(i, j);
+      const ji = Math.min(cols - 1, i + Math.floor(hash(gx, gy) * step));
+      const jj = Math.min(rows - 1, j + Math.floor(hash(gy + 11, gx) * step));
+      const k = kind[jj * cols + ji];
+      if (k === "water" || k === "snow") continue;
+      const { x, y, wx, wy } = at(ji, jj);
+      const { lon, lat } = fromAtlas(anchor.x + wx, anchor.y + wy);
+      const env = broadEnvironment(lon, lat);
+      const roll = hash(wx + 3, wy + 5);
+      const ridge = env.relief + (noise("relief", wx, wy, 3000, "map") - 0.5) * 0.5;
+      if (ridge > 0.62 || k === "rock")
+        marks.push({ x, y, draw: () => mountain(c, x, y, 7 + roll * 5) });
+      else if (ridge > 0.38 && roll < 0.7)
+        marks.push({ x, y, draw: () => hill(c, x, y, 5 + roll * 3) });
+      // Woods come in patches, thicker where it is wetter.
+      else if (k !== "sand" && noise("woods", wx, wy, 2500, "map") > 0.95 - env.moisture * 0.6 && roll < 0.8) {
+        const tree = env.cold ? conifer : Math.abs(lat) < 24 && env.moisture > 0.55 ? palm : broadleaf;
+        marks.push({ x, y, draw: () => {
+          tree(c, x - 3, y);
+          if (roll < 0.35) tree(c, x + 3, y + 1);
+          if (roll < 0.2) tree(c, x, y - 3);
+        } });
+      } else if (roll < 0.3) marks.push({ x, y, draw: () => tuft(c, x, y) });
+    }
+  c.save();
+  c.lineJoin = c.lineCap = "round";
+  for (const m of marks.sort((a, b) => a.y - b.y)) m.draw();
+  c.restore();
+}
+const INK = "rgba(38,44,24,0.7)";
+function mountain(c: CanvasRenderingContext2D, x: number, y: number, s: number) {
+  c.fillStyle = "rgba(255,248,220,0.35)";
+  c.beginPath(); c.moveTo(x - s, y); c.lineTo(x, y - s * 1.2); c.lineTo(x, y); c.fill();
+  c.fillStyle = "rgba(40,40,20,0.3)";
+  c.beginPath(); c.moveTo(x, y - s * 1.2); c.lineTo(x + s, y); c.lineTo(x, y); c.fill();
+  c.strokeStyle = INK; c.lineWidth = 1;
+  c.beginPath(); c.moveTo(x - s, y); c.lineTo(x, y - s * 1.2); c.lineTo(x + s, y); c.stroke();
+  c.lineWidth = 0.7;
+  c.beginPath();
+  for (let h = 0.25; h < 0.9; h += 0.22) {
+    c.moveTo(x + s * h * 0.9, y - s * 1.2 * (1 - h)); c.lineTo(x + s * h * 0.5, y);
+  }
+  c.stroke();
+}
+function hill(c: CanvasRenderingContext2D, x: number, y: number, s: number) {
+  c.strokeStyle = INK; c.lineWidth = 1;
+  c.beginPath(); c.moveTo(x - s, y); c.quadraticCurveTo(x, y - s * 1.3, x + s, y); c.stroke();
+  c.lineWidth = 0.6;
+  c.beginPath(); c.moveTo(x + s * 0.2, y - s * 0.5); c.lineTo(x + s * 0.1, y);
+  c.moveTo(x + s * 0.55, y - s * 0.3); c.lineTo(x + s * 0.4, y); c.stroke();
+}
+function tuft(c: CanvasRenderingContext2D, x: number, y: number) {
+  c.strokeStyle = "rgba(38,44,24,0.45)"; c.lineWidth = 0.8;
+  c.beginPath();
+  c.moveTo(x - 2.5, y - 2); c.lineTo(x - 1, y); c.moveTo(x, y - 3); c.lineTo(x, y); c.moveTo(x + 2.5, y - 2); c.lineTo(x + 1, y);
+  c.stroke();
+}
+function broadleaf(c: CanvasRenderingContext2D, x: number, y: number) {
+  c.fillStyle = "#3f6a2c"; c.strokeStyle = INK; c.lineWidth = 0.8;
+  c.beginPath(); c.arc(x, y - 4, 3, 0, Math.PI * 2); c.fill(); c.stroke();
+  c.beginPath(); c.moveTo(x, y - 1); c.lineTo(x, y + 1); c.stroke();
+}
+function conifer(c: CanvasRenderingContext2D, x: number, y: number) {
+  c.fillStyle = "#35573a"; c.strokeStyle = INK; c.lineWidth = 0.8;
+  c.beginPath(); c.moveTo(x, y - 8); c.lineTo(x + 3, y - 1); c.lineTo(x - 3, y - 1); c.closePath(); c.fill(); c.stroke();
+  c.beginPath(); c.moveTo(x, y - 1); c.lineTo(x, y + 1); c.stroke();
+}
+function palm(c: CanvasRenderingContext2D, x: number, y: number) {
+  c.strokeStyle = INK; c.lineWidth = 0.9;
+  c.beginPath(); c.moveTo(x, y + 1); c.quadraticCurveTo(x + 1, y - 3, x, y - 7); c.stroke();
+  c.strokeStyle = "#3d6b2a"; c.lineWidth = 1.4;
+  c.beginPath();
+  for (const d of [-1, 1]) {
+    c.moveTo(x, y - 7); c.quadraticCurveTo(x + d * 3, y - 9, x + d * 4.5, y - 5.5);
+    c.moveTo(x, y - 7); c.quadraticCurveTo(x + d * 2, y - 10, x + d * 3.5, y - 9.5);
+  }
+  c.stroke();
+}
 /** Repaints the map in resumable slices. A full rebuild resamples the world
  * once per screen pixel, which is far past a frame's budget, so the caller
  * spends it a few milliseconds at a time while the previous map stays up. */
@@ -212,7 +304,9 @@ function* paintBackgroundSteps(
         // in-map habitat tint and the neighbouring-region preview both cost a
         // full terrain sample for it, so the atlas carries the frame instead.
         const preview = coarse ? undefined : world.mapTerrain?.(wx, wy);
-        let k: string = !inMap
+        // The large map at region scale reads the town's own square from the
+        // atlas too; its plan ground drew as a pale block.
+        let k: string = !inMap || (large && coarse)
           ? (preview?.terrain ?? atlasGround(anchor.x + wx, anchor.y + wy))
           : coarse && world.overview
             ? world.overview(wx, wy)
@@ -258,7 +352,9 @@ function* paintBackgroundSteps(
         }
         kind[j * cols + i] = k;
         if (relief && reliefKinds.has(k)) {
-          const v = parseInt(fill.slice(1, 7), 16), f = hillShade(wx, wy, cell, k);
+          const v = parseInt(fill.slice(1, 7), 16), shade = hillShade(wx, wy, cell, k);
+          // The large map softens the relief under its glyphs and adds a broad wash.
+          const f = large ? 1 + (shade - 1) * 0.5 + (noise("wash", wx, wy, 16000, "map") - 0.5) * 0.12 : shade;
           fill = hex([v >> 16, (v >> 8) & 0xff, v & 0xff].map((ch) => Math.max(0, Math.min(255, Math.round(ch * f)))));
         }
         // Sparse darker speckle gives grass and soil their pixel grain.
@@ -285,7 +381,10 @@ function* paintBackgroundSteps(
       for (let i = 0; i < cols; i++) {
         if (kind[j * cols + i] !== "water") continue;
         const { wx, wy } = at(i, j);
-        const t = Math.min(1, shelf[j * cols + i] * 2.2) + noise("grain", wx, wy, cell * 3, "sea") * 0.06;
+        const s = shelf[j * cols + i];
+        let t = Math.min(1, s * 2.2) + noise("grain", wx, wy, cell * 3, "sea") * 0.06;
+        // Two thin lines following the shore, as engraved charts draw it.
+        if (large && (Math.abs(s - 0.3) < 0.012 || Math.abs(s - 0.16) < 0.01)) t += 0.25;
         const packed = (0xff000000 | (Math.round(68 + 58 * t) << 16) | (Math.round(44 + 70 * t) << 8) | Math.round(18 + 38 * t)) >>> 0;
         for (let dy = 0; dy < px; dy++)
           out.fill(packed, (j * px + dy) * cols * px + i * px, (j * px + dy) * cols * px + i * px + px);
@@ -348,6 +447,8 @@ function* paintBackgroundSteps(
     }
   }
   yield;
+  if (large && !placesFrom) drawTerrainGlyphs(c, kind, cols, at, anchor);
+  yield;
   const toPx = (wx: number, wy: number) => ({
     x: Math.round(((wx - origin.x) * size) / extent + size / 2),
     y: Math.round(((wy - origin.y) * size) / extent + height / 2),
@@ -369,7 +470,7 @@ function* paintBackgroundSteps(
   };
   const stride = extent > 3200 ? extent : regional || large ? 4 : 1;
   const span = ((height + PAD * 2) * extent) / size / 2;
-  if (!placesFrom)
+  if (!placesFrom && !large)
     for (
       let wy = Math.floor((origin.y - span) / stride) * stride;
       wy < origin.y + span;

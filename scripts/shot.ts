@@ -67,6 +67,11 @@ try {
   await page.waitForTimeout(2500);
   mkdirSync(dirname(out), { recursive: true });
   await page.screenshot({ path: out });
+  // UHS_KEYS="m" opens the region map, and so on for any key the game binds.
+  for (const key of process.env.UHS_KEYS ?? "") {
+    await page.keyboard.press(key);
+    await page.waitForTimeout(4000);
+  }
   console.log(`wrote ${out}`);
 } finally {
   await browser.close();

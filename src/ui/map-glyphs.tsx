@@ -37,14 +37,27 @@ export function glyphFor(culture: CultureId, architecture: string, year: number,
   }
 }
 
+const house = "M0 7V3.5L3 0.5L6 3.5V7Z";
+const wall = "M0 7V3H1.5V4.2H3V3H4.5V4.2H6V3H7.5V4.2H9V3H10.5V4.2H12V3H13.5V4.2H15V3H16.5V4.2H18V3H19.5V4.2H21V3H22.5V4.2H24V3H25.5V4.2H27V3H28.5V7Z";
+
+// A village is its landmark alone, a town sets houses beside it, a city
+// rings a larger landmark and its houses with a wall.
 export function SettlementGlyph({ glyph, rank }: { glyph: Glyph; rank: string }) {
   const city = rank === "city", town = rank === "town";
-  const size = city ? 28 : town ? 21 : 15;
-  return <svg width={size} height={size} viewBox="0 0 20 20" aria-hidden="true">
-    <path d={glyphs[glyph]} fill={city ? "var(--map-glyph-accent)" : "var(--map-glyph-fill)"}
-      stroke="var(--map-glyph-ink)" strokeWidth={city ? 0.9 : 1.1} strokeLinejoin="round" />
-    {(town || city) && <path
-      d={city ? "M0.5 19.5V17H2V18H3.5V17H5V18H6.5V17H8V18H9.5V17H11V18H12.5V17H14V18H15.5V17H17V18H18.5V17H19.5V19.5Z" : "M1 18H19"}
-      fill="var(--map-glyph-fill)" stroke="var(--map-glyph-ink)" strokeWidth={city ? 0.8 : 1.4} strokeLinecap="round" />}
+  const ink = { stroke: "var(--map-glyph-ink)", strokeLinejoin: "round" as const };
+  const mark = (x: number, y: number, k: number, fill: string) =>
+    <path d={glyphs[glyph]} transform={`translate(${x} ${y}) scale(${k})`} fill={fill} {...ink} strokeWidth={1.1 / k} />;
+  const home = (x: number, y: number, k = 1) =>
+    <path d={house} transform={`translate(${x} ${y}) scale(${k})`} fill="var(--map-glyph-fill)" {...ink} strokeWidth={0.8 / k} />;
+  if (city) return <svg width={44} height={36} viewBox="0 0 30 24" aria-hidden="true">
+    {home(3, 12.5)}{home(21, 12.5)}{home(8, 11, 1.1)}{home(16.5, 11.5)}
+    {mark(6.5, -0.5, 0.85, "var(--map-glyph-accent)")}
+    <path d={wall} transform="translate(0.75 16.5)" fill="var(--map-glyph-fill)" {...ink} strokeWidth={0.7} />
   </svg>;
+  if (town) return <svg width={34} height={26} viewBox="0 0 26 20" aria-hidden="true">
+    {home(2, 10)}{home(18, 10)}
+    {mark(5.5, 0, 0.75, "var(--map-glyph-fill)")}
+    <path d="M1 17.5H25" stroke="var(--map-glyph-ink)" strokeWidth={1.1} strokeLinecap="round" />
+  </svg>;
+  return <svg width={17} height={17} viewBox="0 0 20 20" aria-hidden="true">{mark(0, 0, 1, "var(--map-glyph-fill)")}</svg>;
 }

@@ -4,7 +4,7 @@ import type { Runtime } from "../runtime/session";
 import type { Point } from "../core/types";
 import { Minimap } from "./Minimap";
 import { ArrivalMap } from "./ArrivalMap";
-import { atlasSample, fromAtlas, toAtlas } from "../world/geography/atlas";
+import { ATLAS_SCALE, atlasSample, fromAtlas, toAtlas } from "../world/geography/atlas";
 import { SettlementGlyph, glyphFor } from "./map-glyphs";
 import { formatHistoricalYear } from "../core/calendar";
 
@@ -146,8 +146,10 @@ export function MapModal({ runtime, onClose }: { runtime: Runtime; onClose: () =
     return () => window.removeEventListener("keydown", key);
   });
 
-  const nice = [50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000];
-  const metresAcross = span * METRES;
+  const nice = [50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000];
+  // The region is drawn on the atlas, where a tile east to west is a
+  // longitude step, not the town plan's two metres.
+  const metresAcross = span * (regional ? (111320 * Math.cos((pack.anchor.lat * Math.PI) / 180)) / ATLAS_SCALE : METRES);
   const bar = nice.filter((m) => m <= metresAcross / 5).at(-1) ?? 50;
   const origin = toAtlas(pack.anchor.lon, pack.anchor.lat);
   const lonLat = fromAtlas(origin.x + here.x, origin.y + here.y);
@@ -224,10 +226,7 @@ export function MapModal({ runtime, onClose }: { runtime: Runtime; onClose: () =
           <svg className="map-roads" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" aria-hidden="true">
             {roads.map(([a, b]) => {
               const pa = toFrame(a), pb = toFrame(b);
-              // A seeded bow, so a road is not ruled straight.
-              const bow = (Math.sin(a.x * 12.9898 + b.y * 78.233) * 0.5) * 0.18;
-              const mx = (pa.x + pb.x) / 2 - (pb.y - pa.y) * bow, my = (pa.y + pb.y) / 2 + (pb.x - pa.x) * bow;
-              return <path key={`${a.x},${a.y}-${b.x},${b.y}`} d={`M${pa.x} ${pa.y}Q${mx} ${my} ${pb.x} ${pb.y}`} />;
+              return <path key={`${a.x},${a.y}-${b.x},${b.y}`} d={wander(pa, pb, a.x * 12.9898 + b.y * 78.233)} />;
             })}
           </svg>
           {nearby.map((p) => <button key={p.id} className={`map-settlement is-${p.rank}`} style={toScreen(p)}
@@ -251,7 +250,8 @@ export function MapModal({ runtime, onClose }: { runtime: Runtime; onClose: () =
               <button aria-label="Centre on you" onClick={() => setCenter(home)}><Crosshair size={16} /></button>
             </div>
             <div className="map-ruler" aria-label={`Scale: ${distance(bar)}`}>
-              <i style={{ width: `${(bar / metresAcross) * 100}%` }} />
+              {/* The ruler box is half the stage wide. */}
+              <i style={{ width: `${(bar / metresAcross) * 200}%` }} />
               <span>{distance(bar)}</span>
             </div>
         </>}
@@ -297,6 +297,23 @@ function roadsBetween(places: (Point & { rank: string })[], wet: (x: number, y: 
     }
   }
   return [...roads.values()];
+}
+
+// A road meanders about its line: two seeded waves, pinned at both towns,
+// smoothed through the midpoints of a dozen samples.
+function wander(a: Point, b: Point, seed: number) {
+  const dx = b.x - a.x, dy = b.y - a.y, len = Math.hypot(dx, dy);
+  const f1 = Math.sin(seed) * 43758.5453 % 1, f2 = Math.sin(seed * 1.7) * 12543.853 % 1;
+  const n = Math.max(2, Math.min(14, Math.round(len / 18)));
+  const pts = Array.from({ length: n + 1 }, (_, i) => {
+    const t = i / n;
+    const off = Math.sin(Math.PI * t) * len * (0.07 * Math.sin(2 * Math.PI * (t + f1)) + 0.035 * Math.sin(5 * Math.PI * (t + f2)));
+    return { x: a.x + dx * t - (dy / len) * off, y: a.y + dy * t + (dx / len) * off };
+  });
+  let d = `M${pts[0].x} ${pts[0].y}`;
+  for (let i = 1; i < n; i++)
+    d += `Q${pts[i].x} ${pts[i].y} ${(pts[i].x + pts[i + 1].x) / 2} ${(pts[i].y + pts[i + 1].y) / 2}`;
+  return d + `L${pts[n].x} ${pts[n].y}`;
 }
 
 function distance(m: number) {
