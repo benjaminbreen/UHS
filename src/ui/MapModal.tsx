@@ -7,6 +7,7 @@ import { ArrivalMap } from "./ArrivalMap";
 import { ATLAS_SCALE, atlasSample, fromAtlas, toAtlas } from "../world/geography/atlas";
 import { SettlementGlyph, glyphFor } from "./map-glyphs";
 import { formatHistoricalYear } from "../core/calendar";
+import { PeriodMap, footprints, periodCaptions, periodStyle } from "./period-map";
 import { noise } from "../world/geography/noise";
 
 const W = 880, H = 540;
@@ -29,9 +30,17 @@ export function MapModal({ runtime, onClose }: { runtime: Runtime; onClose: () =
   const [chosen, setChosen] = useState<string>();
   const [hover, setHover] = useState<string>();
   const [listOpen, setListOpen] = useState(true);
+  const [period, setPeriod] = useState(() => {
+    try { return localStorage.getItem("uhs.periodMap") === "1"; } catch { return false; }
+  });
+  const togglePeriod = () => {
+    setPeriod(!period);
+    try { localStorage.setItem("uhs.periodMap", period ? "0" : "1"); } catch { /* private window */ }
+  };
   const [destination, setDestination] = useState<{ lon: number; lat: number; name?: string }>();
   const [plan, setPlan] = useState<{ name: string; days?: number; sea?: number; error?: string }>();
   const [nearby, setNearby] = useState<{ id: string; name: string; rank: string; x: number; y: number; glyph: ReturnType<typeof glyphFor> }[]>([]);
+  const [homeGlyph, setHomeGlyph] = useState<ReturnType<typeof glyphFor>>();
   const [roads, setRoads] = useState<Point[][]>([]);
   const drag = useRef<{ x: number; y: number; cx: number; cy: number; moved: boolean }>(undefined);
   const wheel = useRef(0);
@@ -124,6 +133,8 @@ export function MapModal({ runtime, onClose }: { runtime: Runtime; onClose: () =
         const e = resolveMapEnvironment(fromAtlas(o.x + p.x, o.y + p.y), year);
         return { ...p, glyph: glyphFor(e.culture, e.architecture, year, p.rank) };
       }));
+      const e = resolveMapEnvironment(pack.anchor, year);
+      setHomeGlyph(glyphFor(e.culture, e.architecture, year, "town"));
       const x0 = center.x - span / 2, y0 = center.y - h;
       setRoads(roadsBetween([{ x: 0, y: 0, rank: "town" }, ...kept], x0, y0, span, h * 2, (x, y) =>
         atlasSample(o.x + x, o.y + y).coast < 0 ? Infinity
@@ -146,6 +157,7 @@ export function MapModal({ runtime, onClose }: { runtime: Runtime; onClose: () =
       } else if (e.key === "+" || e.key === "=") zoom(0.5);
       else if (e.key === "-") zoom(2);
       else if (e.key.toLowerCase() === "m") onClose();
+      else if (e.key.toLowerCase() === "p" && regional) togglePeriod();
     };
     window.addEventListener("keydown", key);
     return () => window.removeEventListener("keydown", key);
@@ -159,6 +171,7 @@ export function MapModal({ runtime, onClose }: { runtime: Runtime; onClose: () =
   const origin = toAtlas(pack.anchor.lon, pack.anchor.lat);
   const lonLat = fromAtlas(origin.x + here.x, origin.y + here.y);
   const setting = pack.setting;
+  const style = period && setting && !earth ? periodStyle(setting.culture, setting.year) : undefined;
   const journey = destination && <div className="map-journey">
     {!plan ? <span>Finding the road…</span> : <>
       <strong>{plan.name}</strong>
@@ -178,13 +191,17 @@ export function MapModal({ runtime, onClose }: { runtime: Runtime; onClose: () =
         <h2>{pack.region}</h2>
         {setting && <p>{setting.location} · {formatHistoricalYear(setting.year)}</p>}
       </div>
+      {regional && !earth && <div className="map-period">
+        <button aria-pressed={period} onClick={togglePeriod} title="Period style (P)">Period style</button>
+        {style && <small>{periodCaptions[style]}</small>}
+      </div>}
       {regional && <div className="map-toggle" role="group" aria-label="Map scale">
         <button aria-pressed={!earth} onClick={() => setEarth(false)}>Region</button>
         <button aria-pressed={earth} onClick={() => setEarth(true)}>Earth</button>
       </div>}
     </header>
     <div className="map-body">
-      <div className="map-stage">
+      <div className={style ? `map-stage period-${style}` : "map-stage"}>
         {earth && setting ? (
           <>
             <ArrivalMap lon={lonLat.lon} lat={lonLat.lat} year={setting.year} place={setting.location}
@@ -226,15 +243,28 @@ export function MapModal({ runtime, onClose }: { runtime: Runtime; onClose: () =
               wheel.current = 0;
             }}
           >
-            <Minimap runtime={runtime} large span={span} center={center} dims={[W, H]} route={selected} />
+            {style
+              ? <PeriodMap style={style} anchor={pack.anchor} center={center} span={span} dims={[W, H]} />
+              : <Minimap runtime={runtime} large span={span} center={center} dims={[W, H]} route={selected} />}
           </div>
           <svg className="map-roads" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" aria-hidden="true">
-            {roads.map((road, i) => <path key={i} d={smooth(road.map(toFrame))} />)}
+            {style === "codex"
+              ? roads.flatMap((road, i) => footprints(road.map(toFrame)).map((f, n) =>
+                <ellipse key={`${i}-${n}`} className="map-foot" cx={f.x} cy={f.y} rx={3} ry={1.5} transform={`rotate(${f.angle} ${f.x} ${f.y})`} />))
+              : roads.map((road, i) => <path key={i} d={smooth(road.map(toFrame))} />)}
           </svg>
           {nearby.map((p) => <button key={p.id} className={`map-settlement is-${p.rank}`} style={toScreen(p)}
             onClick={() => { setChosen(undefined); setDestination({ ...fromAtlas(origin.x + p.x, origin.y + p.y), name: p.name }); }}>
             <SettlementGlyph glyph={p.glyph} rank={p.rank} /><span>{p.name}</span>
           </button>)}
+          {/* The pixel map draws home from its plan; a period map marks it like any town. */}
+          {style && homeGlyph && <div className="map-settlement is-town is-home" style={toScreen(home)}>
+            <SettlementGlyph glyph={homeGlyph} rank="town" /><span>{settlements[0]?.name ?? pack.region}</span>
+          </div>}
+          {style && setting && <div className="period-cartouche">
+            <strong>{pack.region}</strong>
+            <span>{formatHistoricalYear(setting.year)}</span>
+          </div>}
           {journey}
           {card && <div className="map-card" style={toScreen(card)}>
             <strong>{card.name}</strong>

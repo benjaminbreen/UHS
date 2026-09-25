@@ -7233,3 +7233,123 @@ button:disabled {
 .map-settlement:focus-visible span { color: #7a3d0c; }
 .map-settlement.is-town { font-size: 12.5px; font-style: normal; font-variant: small-caps; letter-spacing: 0.03em; }
 .map-settlement.is-city { font-size: 15px; font-style: normal; font-variant: small-caps; font-weight: 700; letter-spacing: 0.05em; }
+
+/* Period style: the region map after a cartographic tradition of its time. */
+.map-period {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  margin-left: auto;
+  max-width: 360px;
+  text-align: center;
+}
+.map-period button {
+  padding: 6px 14px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+}
+.map-period button[aria-pressed="true"] {
+  background: var(--gold);
+  border-color: var(--gold);
+  color: #17212b;
+}
+.map-period small {
+  font-size: 11px;
+  font-style: italic;
+  color: var(--muted);
+}
+.period-canvas {
+  width: 100%;
+  height: auto;
+  display: block;
+  max-height: calc(94dvh - 70px);
+  object-fit: cover;
+}
+.map-stage[class*="period-"]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.map-stage[class*="period-"] .map-settlement svg { filter: none; }
+.map-foot { fill: #1e1812; }
+.period-cartouche {
+  position: absolute;
+  right: 64px;
+  bottom: 22px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 18px;
+  pointer-events: none;
+  font-family: Georgia, "Iowan Old Style", serif;
+  color: #2c2018;
+}
+.period-cartouche strong { font-size: 17px; font-weight: 400; font-variant: small-caps; letter-spacing: 0.08em; }
+.period-cartouche span { font-size: 11px; font-style: italic; }
+
+.period-peutinger .map-roads path { stroke: #b0302a; stroke-dasharray: none; stroke-width: 2; opacity: 0.9; }
+.period-peutinger .map-settlement { --map-glyph-fill: #f0dcb0; --map-glyph-accent: #c0442e; color: #7a2418; text-shadow: 0 0 3px #ecd9ae, 0 0 5px #ecd9ae; }
+.period-peutinger .period-cartouche { background: #ecd9ae; border: 2px solid #7a5530; color: #7a2418; }
+.period-peutinger::after { box-shadow: inset 0 0 0 6px #7a5530, inset 0 0 0 8px #ecd9ae, inset 0 0 0 9px #7a5530; }
+
+.period-portolan .map-roads path { stroke: #7a5a3a; stroke-dasharray: 2 4; opacity: 0.6; }
+.period-portolan .map-settlement { font-family: "Apple Chancery", "URW Chancery L", Georgia, serif; color: #2c2018; text-shadow: 0 0 3px #eee0be, 0 0 5px #eee0be; }
+.period-portolan .map-settlement.is-city,
+.period-portolan .map-settlement.is-town { color: #a8362a; }
+.period-portolan .map-settlement { --map-glyph-fill: #e8d6aa; --map-glyph-accent: #b8402e; --map-glyph-ink: #3a2616; }
+.period-portolan .period-cartouche { font-family: "Apple Chancery", "URW Chancery L", Georgia, serif; color: #a8362a; background: #eee0be; border: 1px solid #6a4a2a; border-radius: 40% / 50%; padding: 10px 30px; }
+.period-portolan::after { box-shadow: inset 0 0 0 5px #eee0be, inset 0 0 0 6px #6a4a2a, inset 0 0 40px #7a502a55; }
+
+.period-engraved .map-roads path { stroke: #2c2620; stroke-dasharray: none; stroke-width: 0.9; opacity: 0.8; }
+.period-engraved .map-settlement { --map-glyph-fill: #f4eee0; --map-glyph-accent: #d8b890; --map-glyph-ink: #2c2620; color: #1e1a16; text-shadow: 0 0 3px #f4eee0, 0 0 5px #f4eee0; }
+.period-engraved .period-cartouche { background: #f4eee0; border: 3px double #2c2620; }
+/* The atlas neat line, graduated black and white. */
+.period-engraved::after {
+  border: 7px solid transparent;
+  border-image: repeating-linear-gradient(45deg, #2c2620 0 12px, #f4eee0 12px 24px) 7;
+  box-shadow: inset 0 0 0 1px #2c2620;
+}
+
+.period-survey .map-roads path { stroke: #c0392b; stroke-dasharray: none; stroke-width: 1.3; opacity: 0.85; }
+.period-survey .map-settlement { font-family: "Helvetica Neue", Arial, sans-serif; font-style: normal; color: #1c2430; text-shadow: 0 0 2px #fff, 0 0 4px #fff; --map-glyph-fill: #fff; --map-glyph-accent: #e4a0a0; --map-glyph-ink: #1c2430; }
+.period-survey .period-cartouche { font-family: "Helvetica Neue", Arial, sans-serif; background: #fffffff0; border: 1px solid #1c2430; align-items: flex-start; }
+.period-survey .period-cartouche strong { font-variant: normal; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; font-size: 13px; }
+.period-survey::after { box-shadow: inset 0 0 0 6px #f7f6f0, inset 0 0 0 7px #1c2430; }
+
+.period-islamic .map-roads path { stroke: #8a2a1a; stroke-dasharray: 1 5; stroke-width: 2.2; opacity: 0.9; }
+.period-islamic .map-settlement { --map-glyph-fill: #e8c870; --map-glyph-accent: #c0402e; --map-glyph-ink: #4a1e12; color: #4a1e12; text-shadow: 0 0 3px #e2c686, 0 0 5px #e2c686; }
+.period-islamic .map-settlement.is-city { color: #a8261a; }
+.period-islamic .period-cartouche { background: #1f5a52; color: #f0d890; border: 2px solid #c89b3c; border-radius: 18px; }
+.period-islamic::after { box-shadow: inset 0 0 0 4px #c89b3c, inset 0 0 0 7px #7a2418, inset 0 0 0 9px #c89b3c; }
+
+.period-ink .map-roads path { stroke: #7a2a20; stroke-dasharray: none; stroke-width: 1.1; opacity: 0.7; }
+.period-ink .map-settlement { align-items: flex-start; --map-glyph-fill: #ece2cc; --map-glyph-accent: #b42a20; --map-glyph-ink: #1e1e1e; color: #1e1e1e; text-shadow: none; font-style: normal; }
+/* Place names in ruled boxes, written top to bottom. */
+.period-ink .map-settlement span { writing-mode: vertical-rl; padding: 3px 1px; border: 1px solid #3a3a3a; background: #ece2ccdd; letter-spacing: 0.05em; font-size: 10px; }
+.period-ink .map-settlement.is-city span { border-color: #b42a20; color: #8a1e18; font-size: 12px; }
+.period-ink .period-cartouche { right: auto; left: 22px; bottom: auto; top: 22px; writing-mode: vertical-rl; background: #ece2cc; border: 1px solid #3a3a3a; padding: 14px 8px; }
+.period-ink::after { box-shadow: inset 0 0 0 10px #6a4a30, inset 0 0 0 12px #c8a870; }
+
+.period-painted .map-roads path { stroke: #fff4d8; stroke-dasharray: 3 3; stroke-width: 2; opacity: 0.95; }
+.period-painted .map-settlement { --map-glyph-fill: #fff4d8; --map-glyph-accent: #e8b030; --map-glyph-ink: #20160f; color: #20160f; font-style: normal; font-weight: 700; text-shadow: 0 0 3px #f0c870, 0 0 5px #f0c870; }
+.period-painted .period-cartouche { background: #3a66aa; color: #fff4d8; border: 2px solid #20160f; }
+.period-painted::after { box-shadow: inset 0 0 0 8px #b8302a, inset 0 0 0 10px #f0c870, inset 0 0 0 12px #20160f; }
+
+.period-codex .map-roads path { display: none; }
+.period-codex .map-settlement { --map-glyph-fill: #f0dcb0; --map-glyph-accent: #b8412e; --map-glyph-ink: #1e1812; color: #1e1812; font-style: normal; font-weight: 700; text-shadow: 0 0 3px #eee0be, 0 0 5px #eee0be; }
+.period-codex .period-cartouche { background: #b8412e; color: #f6e8c6; border: 2px solid #1e1812; }
+.period-codex::after { box-shadow: inset 0 0 0 7px #b8412e, inset 0 0 0 9px #1e1812; }
+
+.period-sketch .map-roads path { stroke: #5a5a5a; stroke-dasharray: 5 3; stroke-width: 1; opacity: 0.8; }
+.period-sketch .map-settlement { --map-glyph-fill: #f0ece2; --map-glyph-accent: #c8c0b0; --map-glyph-ink: #4a4a4a; color: #3a3a3a; font-family: "Bradley Hand", "Segoe Print", cursive; text-shadow: 0 0 3px #f0ece2; }
+.period-sketch .period-cartouche { font-family: "Bradley Hand", "Segoe Print", cursive; color: #3a3a3a; }
+.map-stage[class*="period-"] .map-ruler span { color: #2c2018; text-shadow: none; }
+.map-stage[class*="period-"] .map-ruler i { border-color: #2c2018; box-shadow: none; }
+.map-settlement.is-home { pointer-events: none; }
