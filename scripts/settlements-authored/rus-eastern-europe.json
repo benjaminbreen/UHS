@@ -1,0 +1,5198 @@
+[
+ {
+  "name": "Olbia",
+  "lon": 31.92,
+  "lat": 46.7,
+  "phases": [
+   [
+    -650,
+    "town"
+   ],
+   [
+    -300,
+    "city"
+   ],
+   [
+    300,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Greek colony at Bug-Dnieper estuary"
+ },
+ {
+  "name": "Panticapaeum",
+  "lon": 36.47,
+  "lat": 45.35,
+  "phases": [
+   [
+    -600,
+    "town"
+   ],
+   [
+    -480,
+    "city"
+   ],
+   [
+    400,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "capital of Bosporan Kingdom, mod. Kerch"
+ },
+ {
+  "name": "Chersonesus",
+  "lon": 33.49,
+  "lat": 44.61,
+  "phases": [
+   [
+    -528,
+    "town"
+   ],
+   [
+    -300,
+    "city"
+   ],
+   [
+    1300,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Dorian Greek colony near Sevastopol"
+ },
+ {
+  "name": "Tanais",
+  "lon": 39.25,
+  "lat": 47.25,
+  "phases": [
+   [
+    -300,
+    "town"
+   ],
+   [
+    100,
+    "city"
+   ],
+   [
+    350,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Greek-Sarmatian emporium, Don delta"
+ },
+ {
+  "name": "Kamianka gorodishche",
+  "lon": 34.15,
+  "lat": 47.55,
+  "phases": [
+   [
+    -500,
+    "town"
+   ],
+   [
+    -200,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Scythian royal fortified settlement, Dnieper"
+ },
+ {
+  "name": "Bilsk gorodishche",
+  "lon": 34.85,
+  "lat": 50.05,
+  "phases": [
+   [
+    -700,
+    "town"
+   ],
+   [
+    -200,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "candidate for Herodotus's Gelonus"
+ },
+ {
+  "name": "Itil",
+  "lon": 47.97,
+  "lat": 46.35,
+  "phases": [
+   [
+    750,
+    "city"
+   ],
+   [
+    969,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Khazar capital, Volga delta, sacked by Sviatoslav"
+ },
+ {
+  "name": "Sarkel",
+  "lon": 41.35,
+  "lat": 47.62,
+  "phases": [
+   [
+    840,
+    "town"
+   ],
+   [
+    965,
+    "town"
+   ],
+   [
+    1117,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Khazar fortress on the Don, built with Byzantine aid"
+ },
+ {
+  "name": "Balanjar",
+  "lon": 47.5,
+  "lat": 43.2,
+  "phases": [
+   [
+    600,
+    "town"
+   ],
+   [
+    737,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "early Khazar capital, exact site uncertain"
+ },
+ {
+  "name": "Samandar",
+  "lon": 47.2,
+  "lat": 43.05,
+  "phases": [
+   [
+    650,
+    "town"
+   ],
+   [
+    900,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Khazar town near Makhachkala"
+ },
+ {
+  "name": "Bolghar",
+  "lon": 49.05,
+  "lat": 54.98,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1150,
+    "city"
+   ],
+   [
+    1236,
+    "city"
+   ],
+   [
+    1431,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Volga Bulgar capital, later Golden Horde mint city"
+ },
+ {
+  "name": "Bilyar",
+  "lon": 50.63,
+  "lat": 54.9,
+  "phases": [
+   [
+    1000,
+    "town"
+   ],
+   [
+    1170,
+    "city"
+   ],
+   [
+    1236,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Volga Bulgaria's largest city before Mongol sack"
+ },
+ {
+  "name": "Suvar",
+  "lon": 49.4,
+  "lat": 55.08,
+  "phases": [
+   [
+    1000,
+    "town"
+   ],
+   [
+    1236,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Volga Bulgar town, minted own coinage"
+ },
+ {
+  "name": "Oshel",
+  "lon": 48.55,
+  "lat": 54.85,
+  "phases": [
+   [
+    1100,
+    "town"
+   ],
+   [
+    1220,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Volga Bulgar fortress town"
+ },
+ {
+  "name": "Kashan (Bulgar)",
+  "lon": 49.5,
+  "lat": 54.7,
+  "phases": [
+   [
+    1150,
+    "village"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "later Kazan-area Bulgar settlement"
+ },
+ {
+  "name": "Staraya Ladoga",
+  "lon": 32.19,
+  "lat": 60.0,
+  "phases": [
+   [
+    753,
+    "village"
+   ],
+   [
+    860,
+    "town"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "earliest datable Rus emporium, Volkhov river"
+ },
+ {
+  "name": "Novgorod",
+  "lon": 31.28,
+  "lat": 58.52,
+  "phases": [
+   [
+    859,
+    "town"
+   ],
+   [
+    930,
+    "city"
+   ],
+   [
+    1478,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Primary Chronicle; Novgorod Republic capital"
+ },
+ {
+  "name": "Kiev",
+  "lon": 30.52,
+  "lat": 50.45,
+  "phases": [
+   [
+    482,
+    "village"
+   ],
+   [
+    880,
+    "town"
+   ],
+   [
+    988,
+    "city"
+   ],
+   [
+    1240,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "mother of Rus cities, Primary Chronicle"
+ },
+ {
+  "name": "Chernigov",
+  "lon": 31.3,
+  "lat": 51.5,
+  "phases": [
+   [
+    907,
+    "town"
+   ],
+   [
+    1024,
+    "city"
+   ],
+   [
+    1239,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "major Rus principality seat, sacked by Mongols 1239"
+ },
+ {
+  "name": "Smolensk",
+  "lon": 32.05,
+  "lat": 54.78,
+  "phases": [
+   [
+    863,
+    "town"
+   ],
+   [
+    1054,
+    "city"
+   ],
+   [
+    1611,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Dnieper trade route town, Primary Chronicle"
+ },
+ {
+  "name": "Suzdal",
+  "lon": 40.45,
+  "lat": 56.42,
+  "phases": [
+   [
+    1024,
+    "town"
+   ],
+   [
+    1157,
+    "city"
+   ],
+   [
+    1392,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "early Rostov-Suzdal principality capital"
+ },
+ {
+  "name": "Vladimir",
+  "lon": 40.41,
+  "lat": 56.13,
+  "phases": [
+   [
+    990,
+    "village"
+   ],
+   [
+    1108,
+    "town"
+   ],
+   [
+    1157,
+    "city"
+   ],
+   [
+    1362,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "capital of Vladimir-Suzdal, Golden Gate"
+ },
+ {
+  "name": "Pskov",
+  "lon": 28.33,
+  "lat": 57.82,
+  "phases": [
+   [
+    903,
+    "town"
+   ],
+   [
+    1348,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Primary Chronicle; Pskov Republic capital"
+ },
+ {
+  "name": "Tver",
+  "lon": 35.9,
+  "lat": 56.86,
+  "phases": [
+   [
+    1135,
+    "town"
+   ],
+   [
+    1247,
+    "city"
+   ],
+   [
+    1485,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "rival of Moscow for grand-princely title"
+ },
+ {
+  "name": "Ryazan (Old)",
+  "lon": 39.75,
+  "lat": 54.62,
+  "phases": [
+   [
+    1095,
+    "town"
+   ],
+   [
+    1237,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "destroyed by Batu Khan 1237, site now Staraya Ryazan"
+ },
+ {
+  "name": "Ryazan (new, Pereyaslavl-Ryazansky)",
+  "lon": 39.72,
+  "lat": 54.63,
+  "phases": [
+   [
+    1095,
+    "town"
+   ],
+   [
+    1237,
+    "town"
+   ],
+   [
+    1778,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "refounded seat, renamed Ryazan in 1778"
+ },
+ {
+  "name": "Moscow",
+  "lon": 37.62,
+  "lat": 55.75,
+  "phases": [
+   [
+    1147,
+    "village"
+   ],
+   [
+    1263,
+    "town"
+   ],
+   [
+    1363,
+    "city"
+   ],
+   [
+    1547,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "first chronicled by Yuri Dolgorukiy"
+ },
+ {
+  "name": "Rostov Veliky",
+  "lon": 39.42,
+  "lat": 57.19,
+  "phases": [
+   [
+    862,
+    "town"
+   ],
+   [
+    991,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Primary Chronicle, one of oldest Rus towns"
+ },
+ {
+  "name": "Pereyaslavl-Zalessky",
+  "lon": 38.85,
+  "lat": 56.73,
+  "phases": [
+   [
+    1152,
+    "town"
+   ],
+   [
+    1220,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "founded by Yuri Dolgorukiy"
+ },
+ {
+  "name": "Yaroslavl",
+  "lon": 39.87,
+  "lat": 57.63,
+  "phases": [
+   [
+    1010,
+    "town"
+   ],
+   [
+    1218,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "founded by Yaroslav the Wise per legend"
+ },
+ {
+  "name": "Vladimir-Volynsky",
+  "lon": 24.32,
+  "lat": 50.85,
+  "phases": [
+   [
+    988,
+    "town"
+   ],
+   [
+    1150,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "capital of Volhynia principality"
+ },
+ {
+  "name": "Halych",
+  "lon": 24.73,
+  "lat": 49.11,
+  "phases": [
+   [
+    898,
+    "town"
+   ],
+   [
+    1140,
+    "city"
+   ],
+   [
+    1349,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "capital of Galicia principality"
+ },
+ {
+  "name": "Lviv",
+  "lon": 24.03,
+  "lat": 49.84,
+  "phases": [
+   [
+    1256,
+    "town"
+   ],
+   [
+    1349,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "founded by Daniel of Galicia"
+ },
+ {
+  "name": "Turov",
+  "lon": 27.75,
+  "lat": 52.07,
+  "phases": [
+   [
+    980,
+    "town"
+   ],
+   [
+    1157,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "early principality seat on Pripyat"
+ },
+ {
+  "name": "Polotsk",
+  "lon": 28.78,
+  "lat": 55.48,
+  "phases": [
+   [
+    862,
+    "town"
+   ],
+   [
+    980,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Primary Chronicle, oldest Belarusian town"
+ },
+ {
+  "name": "Minsk",
+  "lon": 27.57,
+  "lat": 53.9,
+  "phases": [
+   [
+    1067,
+    "town"
+   ],
+   [
+    1413,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "first mentioned Primary Chronicle 1067 battle"
+ },
+ {
+  "name": "Vitebsk",
+  "lon": 30.2,
+  "lat": 55.19,
+  "phases": [
+   [
+    974,
+    "town"
+   ],
+   [
+    1320,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "chronicled river-crossing settlement on Dvina"
+ },
+ {
+  "name": "Pinsk",
+  "lon": 26.1,
+  "lat": 52.12,
+  "phases": [
+   [
+    1097,
+    "town"
+   ],
+   [
+    1521,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Pripyat marshes principality seat"
+ },
+ {
+  "name": "Brest (Berestye)",
+  "lon": 23.68,
+  "lat": 52.1,
+  "phases": [
+   [
+    1019,
+    "town"
+   ],
+   [
+    1319,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "border Rus fortress town, contested with Poland"
+ },
+ {
+  "name": "Galich (Merya)",
+  "lon": 42.33,
+  "lat": 58.37,
+  "phases": [
+   [
+    1159,
+    "town"
+   ],
+   [
+    1450,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Kostroma-region Rus town, distinct from Halych"
+ },
+ {
+  "name": "Kostroma",
+  "lon": 40.93,
+  "lat": 57.77,
+  "phases": [
+   [
+    1152,
+    "town"
+   ],
+   [
+    1350,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "founded by Yuri Dolgorukiy per tradition"
+ },
+ {
+  "name": "Tmutarakan",
+  "lon": 36.68,
+  "lat": 45.2,
+  "phases": [
+   [
+    965,
+    "town"
+   ],
+   [
+    1094,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "isolated Rus enclave on Taman peninsula"
+ },
+ {
+  "name": "Belgorod Kievsky",
+  "lon": 30.3,
+  "lat": 50.37,
+  "phases": [
+   [
+    991,
+    "town"
+   ],
+   [
+    1240,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "fortress town on Kiev's western approach"
+ },
+ {
+  "name": "Vyshgorod",
+  "lon": 30.6,
+  "lat": 50.59,
+  "phases": [
+   [
+    946,
+    "town"
+   ],
+   [
+    1240,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "princely residence near Kiev"
+ },
+ {
+  "name": "Lyubech",
+  "lon": 30.79,
+  "lat": 51.68,
+  "phases": [
+   [
+    882,
+    "village"
+   ],
+   [
+    1097,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "site of 1097 congress of Rus princes"
+ },
+ {
+  "name": "Pereyaslavl (South)",
+  "lon": 31.45,
+  "lat": 50.08,
+  "phases": [
+   [
+    907,
+    "town"
+   ],
+   [
+    1239,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "third great Rus city with Kiev and Chernigov"
+ },
+ {
+  "name": "Murom",
+  "lon": 42.05,
+  "lat": 55.57,
+  "phases": [
+   [
+    862,
+    "town"
+   ],
+   [
+    1096,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Primary Chronicle, Finnic-origin town on Oka"
+ },
+ {
+  "name": "Ryazan Pereyaslavl area gorodishche",
+  "lon": 39.6,
+  "lat": 54.5,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1095,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "early Vyatichi fortified settlement"
+ },
+ {
+  "name": "Dorogobuzh (Smolensk)",
+  "lon": 33.3,
+  "lat": 54.92,
+  "phases": [
+   [
+    1150,
+    "town"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "upper Dnieper fortress town"
+ },
+ {
+  "name": "Izborsk",
+  "lon": 27.85,
+  "lat": 57.71,
+  "phases": [
+   [
+    862,
+    "town"
+   ],
+   [
+    1330,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Primary Chronicle, among oldest Rus towns"
+ },
+ {
+  "name": "Novgorod-Seversky",
+  "lon": 33.26,
+  "lat": 52.0,
+  "phases": [
+   [
+    1044,
+    "town"
+   ],
+   [
+    1185,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "seat of Igor's campaign, Tale of Igor's Host"
+ },
+ {
+  "name": "Starodub (Seversk)",
+  "lon": 32.76,
+  "lat": 52.58,
+  "phases": [
+   [
+    1080,
+    "town"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Chernigov-land fortress town"
+ },
+ {
+  "name": "Putivl",
+  "lon": 33.87,
+  "lat": 51.34,
+  "phases": [
+   [
+    1146,
+    "town"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Seversk-land border fortress, Tale of Igor's Host"
+ },
+ {
+  "name": "Kursk",
+  "lon": 36.19,
+  "lat": 51.73,
+  "phases": [
+   [
+    1032,
+    "town"
+   ],
+   [
+    1240,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "early Rus frontier town, destroyed by Mongols"
+ },
+ {
+  "name": "Zvenigorod (Moscow)",
+  "lon": 36.85,
+  "lat": 55.73,
+  "phases": [
+   [
+    1152,
+    "town"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "appanage principality seat near Moscow"
+ },
+ {
+  "name": "Kolomna",
+  "lon": 38.75,
+  "lat": 55.09,
+  "phases": [
+   [
+    1177,
+    "town"
+   ],
+   [
+    1301,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Oka confluence fortress, annexed by Moscow 1301"
+ },
+ {
+  "name": "Mozhaysk",
+  "lon": 36.03,
+  "lat": 55.51,
+  "phases": [
+   [
+    1231,
+    "town"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "western Moscow-principality fortress"
+ },
+ {
+  "name": "Serpukhov",
+  "lon": 37.42,
+  "lat": 54.92,
+  "phases": [
+   [
+    1339,
+    "town"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Oka-line fortress against steppe raids"
+ },
+ {
+  "name": "Tula",
+  "lon": 37.62,
+  "lat": 54.2,
+  "phases": [
+   [
+    1146,
+    "village"
+   ],
+   [
+    1509,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Oka defensive line fortress kremlin"
+ },
+ {
+  "name": "Volokolamsk",
+  "lon": 35.96,
+  "lat": 56.03,
+  "phases": [
+   [
+    1135,
+    "town"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "portage town between Rus river systems"
+ },
+ {
+  "name": "Torzhok",
+  "lon": 34.96,
+  "lat": 57.04,
+  "phases": [
+   [
+    1139,
+    "town"
+   ],
+   [
+    1478,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Novgorod's granary town on trade route"
+ },
+ {
+  "name": "Staritsa",
+  "lon": 34.94,
+  "lat": 56.51,
+  "phases": [
+   [
+    1297,
+    "town"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Tver-principality Volga fortress"
+ },
+ {
+  "name": "Uglich",
+  "lon": 38.31,
+  "lat": 57.53,
+  "phases": [
+   [
+    937,
+    "village"
+   ],
+   [
+    1148,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Volga town, later site of Dmitri's death 1591"
+ },
+ {
+  "name": "Bezhetsk",
+  "lon": 36.68,
+  "lat": 57.78,
+  "phases": [
+   [
+    1137,
+    "town"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Novgorod-Tver borderland town"
+ },
+ {
+  "name": "Vologda",
+  "lon": 39.89,
+  "lat": 59.22,
+  "phases": [
+   [
+    1147,
+    "town"
+   ],
+   [
+    1500,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "northern trade town linking Novgorod and Volga"
+ },
+ {
+  "name": "Beloozero",
+  "lon": 37.62,
+  "lat": 60.03,
+  "phases": [
+   [
+    862,
+    "town"
+   ],
+   [
+    1238,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Primary Chronicle, White Lake trading town"
+ },
+ {
+  "name": "Ustyug Veliky",
+  "lon": 46.3,
+  "lat": 60.77,
+  "phases": [
+   [
+    1147,
+    "town"
+   ],
+   [
+    1450,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "northern Dvina fur-trade town"
+ },
+ {
+  "name": "Kholmogory",
+  "lon": 41.67,
+  "lat": 64.23,
+  "phases": [
+   [
+    1138,
+    "village"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "White Sea trade outpost before Arkhangelsk"
+ },
+ {
+  "name": "Arkhangelsk",
+  "lon": 40.55,
+  "lat": 64.55,
+  "phases": [
+   [
+    1584,
+    "town"
+   ],
+   [
+    1613,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "founded as Russia's first sea port"
+ },
+ {
+  "name": "Vyatka (Khlynov)",
+  "lon": 49.67,
+  "lat": 58.6,
+  "phases": [
+   [
+    1181,
+    "town"
+   ],
+   [
+    1489,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "independent Vyatka land capital, annexed by Moscow"
+ },
+ {
+  "name": "Nizhny Novgorod",
+  "lon": 44.0,
+  "lat": 56.33,
+  "phases": [
+   [
+    1221,
+    "town"
+   ],
+   [
+    1350,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "founded by Yuri Vsevolodovich"
+ },
+ {
+  "name": "Gorodets (Volga)",
+  "lon": 43.47,
+  "lat": 56.65,
+  "phases": [
+   [
+    1152,
+    "town"
+   ],
+   [
+    1408,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Volga fortress founded by Yuri Dolgorukiy"
+ },
+ {
+  "name": "Sarai Batu",
+  "lon": 47.32,
+  "lat": 46.85,
+  "phases": [
+   [
+    1250,
+    "city"
+   ],
+   [
+    1395,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "first Golden Horde capital, lower Volga"
+ },
+ {
+  "name": "Sarai Berke (New Sarai)",
+  "lon": 45.7,
+  "lat": 48.6,
+  "phases": [
+   [
+    1330,
+    "city"
+   ],
+   [
+    1502,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "successor Golden Horde capital"
+ },
+ {
+  "name": "Ukek",
+  "lon": 46.03,
+  "lat": 51.53,
+  "phases": [
+   [
+    1250,
+    "town"
+   ],
+   [
+    1395,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Golden Horde Volga town near Saratov"
+ },
+ {
+  "name": "Azak (Azov)",
+  "lon": 39.42,
+  "lat": 47.11,
+  "phases": [
+   [
+    1067,
+    "town"
+   ],
+   [
+    1395,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Venetian-Genoese trade town under Horde suzerainty"
+ },
+ {
+  "name": "Kaffa",
+  "lon": 35.38,
+  "lat": 45.03,
+  "phases": [
+   [
+    1266,
+    "town"
+   ],
+   [
+    1300,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Genoese Black Sea trade colony, mod. Feodosia"
+ },
+ {
+  "name": "Bakhchisaray",
+  "lon": 33.85,
+  "lat": 44.75,
+  "phases": [
+   [
+    1441,
+    "town"
+   ],
+   [
+    1532,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Crimean Khanate capital"
+ },
+ {
+  "name": "Old Crimea (Solkhat/Qirim)",
+  "lon": 35.1,
+  "lat": 45.03,
+  "phases": [
+   [
+    1250,
+    "town"
+   ],
+   [
+    1441,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "early Crimean Khanate/Horde administrative seat"
+ },
+ {
+  "name": "Kazan",
+  "lon": 49.12,
+  "lat": 55.8,
+  "phases": [
+   [
+    1177,
+    "town"
+   ],
+   [
+    1438,
+    "city"
+   ],
+   [
+    1552,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "capital of Kazan Khanate, taken by Ivan IV"
+ },
+ {
+  "name": "Astrakhan",
+  "lon": 48.04,
+  "lat": 46.35,
+  "phases": [
+   [
+    1250,
+    "town"
+   ],
+   [
+    1459,
+    "city"
+   ],
+   [
+    1556,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Astrakhan Khanate capital, annexed by Muscovy"
+ },
+ {
+  "name": "Kasimov",
+  "lon": 41.4,
+  "lat": 54.94,
+  "phases": [
+   [
+    1152,
+    "town"
+   ],
+   [
+    1452,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "seat of the Muscovite-vassal Kasimov Khanate"
+ },
+ {
+  "name": "Tyumen",
+  "lon": 65.53,
+  "lat": 57.15,
+  "phases": [
+   [
+    1586,
+    "town"
+   ],
+   [
+    1782,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "first Russian town in Siberia"
+ },
+ {
+  "name": "Tobolsk",
+  "lon": 68.25,
+  "lat": 58.2,
+  "phases": [
+   [
+    1587,
+    "town"
+   ],
+   [
+    1708,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Siberian capital, founded by Danila Chulkov"
+ },
+ {
+  "name": "Tomsk",
+  "lon": 84.97,
+  "lat": 56.48,
+  "phases": [
+   [
+    1604,
+    "town"
+   ],
+   [
+    1782,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "founded on Tatar request for protection"
+ },
+ {
+  "name": "Yeniseysk",
+  "lon": 92.17,
+  "lat": 58.45,
+  "phases": [
+   [
+    1619,
+    "town"
+   ],
+   [
+    1782,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "key fur-trade ostrog on the Yenisei"
+ },
+ {
+  "name": "Krasnoyarsk",
+  "lon": 92.87,
+  "lat": 56.02,
+  "phases": [
+   [
+    1628,
+    "town"
+   ],
+   [
+    1782,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "founded as Krasny Yar ostrog"
+ },
+ {
+  "name": "Irkutsk",
+  "lon": 104.3,
+  "lat": 52.29,
+  "phases": [
+   [
+    1661,
+    "town"
+   ],
+   [
+    1686,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "founded as ostrog near Lake Baikal"
+ },
+ {
+  "name": "Yakutsk",
+  "lon": 129.73,
+  "lat": 62.03,
+  "phases": [
+   [
+    1632,
+    "town"
+   ],
+   [
+    1782,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "founded by Pyotr Beketov on the Lena"
+ },
+ {
+  "name": "Okhotsk",
+  "lon": 143.3,
+  "lat": 59.38,
+  "phases": [
+   [
+    1647,
+    "village"
+   ],
+   [
+    1731,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Russia's first Pacific-coast port"
+ },
+ {
+  "name": "Nerchinsk",
+  "lon": 116.55,
+  "lat": 51.98,
+  "phases": [
+   [
+    1653,
+    "town"
+   ],
+   [
+    1689,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "site of 1689 treaty with Qing China"
+ },
+ {
+  "name": "Albazin",
+  "lon": 124.05,
+  "lat": 53.63,
+  "phases": [
+   [
+    1651,
+    "town"
+   ],
+   [
+    1689,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Amur ostrog destroyed under Treaty of Nerchinsk"
+ },
+ {
+  "name": "Mangazeya",
+  "lon": 82.2,
+  "lat": 66.68,
+  "phases": [
+   [
+    1601,
+    "town"
+   ],
+   [
+    1672,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Arctic fur-trade town, abandoned mid-1600s"
+ },
+ {
+  "name": "Verkhoturye",
+  "lon": 60.13,
+  "lat": 58.85,
+  "phases": [
+   [
+    1598,
+    "town"
+   ],
+   [
+    1700,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "gateway ostrog across the Urals"
+ },
+ {
+  "name": "Turinsk",
+  "lon": 63.7,
+  "lat": 58.03,
+  "phases": [
+   [
+    1600,
+    "town"
+   ],
+   [
+    1700,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "early Siberian customs ostrog"
+ },
+ {
+  "name": "Surgut",
+  "lon": 73.4,
+  "lat": 61.25,
+  "phases": [
+   [
+    1594,
+    "town"
+   ],
+   [
+    1782,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ob-river fur-trade ostrog"
+ },
+ {
+  "name": "Narym",
+  "lon": 81.62,
+  "lat": 59.02,
+  "phases": [
+   [
+    1596,
+    "village"
+   ],
+   [
+    1782,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ob-basin ostrog and later exile town"
+ },
+ {
+  "name": "Berezov",
+  "lon": 65.05,
+  "lat": 63.93,
+  "phases": [
+   [
+    1593,
+    "village"
+   ],
+   [
+    1782,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ob-basin ostrog, later Menshikov's exile"
+ },
+ {
+  "name": "Kuznetsk",
+  "lon": 87.12,
+  "lat": 53.75,
+  "phases": [
+   [
+    1618,
+    "town"
+   ],
+   [
+    1782,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "founded to secure Tom river approaches"
+ },
+ {
+  "name": "Achinsk",
+  "lon": 90.5,
+  "lat": 56.27,
+  "phases": [
+   [
+    1641,
+    "village"
+   ],
+   [
+    1782,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Chulym-river ostrog"
+ },
+ {
+  "name": "Ilimsk",
+  "lon": 103.93,
+  "lat": 56.77,
+  "phases": [
+   [
+    1630,
+    "village"
+   ],
+   [
+    1782,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "portage ostrog toward Lena basin"
+ },
+ {
+  "name": "Bratsk",
+  "lon": 101.6,
+  "lat": 56.15,
+  "phases": [
+   [
+    1631,
+    "village"
+   ],
+   [
+    1782,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Angara-river ostrog"
+ },
+ {
+  "name": "Selenginsk",
+  "lon": 106.87,
+  "lat": 51.1,
+  "phases": [
+   [
+    1665,
+    "town"
+   ],
+   [
+    1727,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Transbaikal ostrog on China trade route"
+ },
+ {
+  "name": "Nizhneudinsk",
+  "lon": 99.03,
+  "lat": 54.9,
+  "phases": [
+   [
+    1648,
+    "village"
+   ],
+   [
+    1782,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Uda-river ostrog on the trakt"
+ },
+ {
+  "name": "Anadyrsk",
+  "lon": 172.55,
+  "lat": 64.73,
+  "phases": [
+   [
+    1649,
+    "village"
+   ],
+   [
+    1764,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "remote Chukotka ostrog, abandoned 1764"
+ },
+ {
+  "name": "Verkhoyansk",
+  "lon": 133.39,
+  "lat": 67.55,
+  "phases": [
+   [
+    1638,
+    "village"
+   ],
+   [
+    1782,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Lena-basin ostrog, later cold-pole town"
+ },
+ {
+  "name": "Zashiversk",
+  "lon": 143.63,
+  "lat": 67.45,
+  "phases": [
+   [
+    1639,
+    "village"
+   ],
+   [
+    1783,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Indigirka ostrog, abandoned after epidemics"
+ },
+ {
+  "name": "Udinsk (Verkhneudinsk)",
+  "lon": 107.6,
+  "lat": 51.83,
+  "phases": [
+   [
+    1666,
+    "village"
+   ],
+   [
+    1782,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Selenga-river ostrog, later Ulan-Ude"
+ },
+ {
+  "name": "Zaporizhian Sich (Khortytsia)",
+  "lon": 35.05,
+  "lat": 47.85,
+  "phases": [
+   [
+    1552,
+    "town"
+   ],
+   [
+    1775,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "first fortified Zaporozhian Sich, Dnieper island"
+ },
+ {
+  "name": "Chyhyryn",
+  "lon": 32.66,
+  "lat": 49.08,
+  "phases": [
+   [
+    1589,
+    "town"
+   ],
+   [
+    1678,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Hetmanate capital under Bohdan Khmelnytsky"
+ },
+ {
+  "name": "Baturyn",
+  "lon": 32.87,
+  "lat": 51.34,
+  "phases": [
+   [
+    1625,
+    "town"
+   ],
+   [
+    1708,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Hetmanate capital, destroyed by Menshikov 1708"
+ },
+ {
+  "name": "Cherkasy",
+  "lon": 32.06,
+  "lat": 49.44,
+  "phases": [
+   [
+    1305,
+    "town"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Dnieper Cossack stronghold town"
+ },
+ {
+  "name": "Poltava",
+  "lon": 34.55,
+  "lat": 49.59,
+  "phases": [
+   [
+    1174,
+    "town"
+   ],
+   [
+    1667,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Cossack regiment town, 1709 battle site"
+ },
+ {
+  "name": "Kharkiv",
+  "lon": 36.23,
+  "lat": 50.0,
+  "phases": [
+   [
+    1654,
+    "town"
+   ],
+   [
+    1765,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "founded by Cossack/peasant settlers"
+ },
+ {
+  "name": "Cherkassk (Don)",
+  "lon": 40.28,
+  "lat": 47.24,
+  "phases": [
+   [
+    1570,
+    "town"
+   ],
+   [
+    1805,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "capital of the Don Cossack Host"
+ },
+ {
+  "name": "Novocherkassk",
+  "lon": 40.11,
+  "lat": 47.42,
+  "phases": [
+   [
+    1805,
+    "town"
+   ],
+   [
+    1805,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "replaced Cherkassk as Don Cossack capital"
+ },
+ {
+  "name": "Vilnius",
+  "lon": 25.28,
+  "lat": 54.68,
+  "phases": [
+   [
+    1000,
+    "village"
+   ],
+   [
+    1323,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "GDL capital, first mentioned by Gediminas"
+ },
+ {
+  "name": "Trakai",
+  "lon": 24.93,
+  "lat": 54.64,
+  "phases": [
+   [
+    1300,
+    "town"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "earlier GDL capital with island castle"
+ },
+ {
+  "name": "Kaunas",
+  "lon": 23.9,
+  "lat": 54.9,
+  "phases": [
+   [
+    1361,
+    "town"
+   ],
+   [
+    1408,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Nemunas-Neris confluence fortress town"
+ },
+ {
+  "name": "Grodno (Hrodna)",
+  "lon": 23.83,
+  "lat": 53.68,
+  "phases": [
+   [
+    1128,
+    "town"
+   ],
+   [
+    1391,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "early GDL fortress town on the Neman"
+ },
+ {
+  "name": "Brest-Litovsk",
+  "lon": 23.68,
+  "lat": 52.1,
+  "phases": [
+   [
+    1019,
+    "town"
+   ],
+   [
+    1390,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Magdeburg-rights town under GDL"
+ },
+ {
+  "name": "Lutsk",
+  "lon": 25.33,
+  "lat": 50.75,
+  "phases": [
+   [
+    1085,
+    "town"
+   ],
+   [
+    1429,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Volhynian GDL administrative centre"
+ },
+ {
+  "name": "Krakow",
+  "lon": 19.94,
+  "lat": 50.06,
+  "phases": [
+   [
+    965,
+    "town"
+   ],
+   [
+    1038,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Polish royal capital, Wawel castle"
+ },
+ {
+  "name": "Warsaw",
+  "lon": 21.01,
+  "lat": 52.23,
+  "phases": [
+   [
+    1300,
+    "town"
+   ],
+   [
+    1596,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "became Polish capital under Sigismund III"
+ },
+ {
+  "name": "Gdansk",
+  "lon": 18.65,
+  "lat": 54.35,
+  "phases": [
+   [
+    997,
+    "town"
+   ],
+   [
+    1300,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Hanseatic Baltic port, Pomeranian-Polish town"
+ },
+ {
+  "name": "Poznan",
+  "lon": 16.93,
+  "lat": 52.41,
+  "phases": [
+   [
+    940,
+    "town"
+   ],
+   [
+    968,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "early Piast dynasty seat and bishopric"
+ },
+ {
+  "name": "Wroclaw",
+  "lon": 17.03,
+  "lat": 51.11,
+  "phases": [
+   [
+    1000,
+    "town"
+   ],
+   [
+    1214,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Silesian trade town on the Oder"
+ },
+ {
+  "name": "Torun",
+  "lon": 18.6,
+  "lat": 53.01,
+  "phases": [
+   [
+    1231,
+    "town"
+   ],
+   [
+    1264,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Teutonic Order founding, Hanseatic member"
+ },
+ {
+  "name": "Lublin",
+  "lon": 22.57,
+  "lat": 51.25,
+  "phases": [
+   [
+    1198,
+    "town"
+   ],
+   [
+    1317,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "site of 1569 Union of Lublin"
+ },
+ {
+  "name": "Przemysl",
+  "lon": 22.77,
+  "lat": 49.78,
+  "phases": [
+   [
+    981,
+    "town"
+   ],
+   [
+    1340,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "border town between Rus and Poland"
+ },
+ {
+  "name": "Riga",
+  "lon": 24.11,
+  "lat": 56.95,
+  "phases": [
+   [
+    1201,
+    "town"
+   ],
+   [
+    1225,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "founded by Bishop Albert, Hanseatic League"
+ },
+ {
+  "name": "Tallinn (Reval)",
+  "lon": 24.75,
+  "lat": 59.44,
+  "phases": [
+   [
+    1154,
+    "village"
+   ],
+   [
+    1248,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Danish-founded Baltic trade town"
+ },
+ {
+  "name": "Tartu (Dorpat)",
+  "lon": 26.73,
+  "lat": 58.38,
+  "phases": [
+   [
+    1030,
+    "town"
+   ],
+   [
+    1224,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Yuri's Town, contested Rus-German border town"
+ },
+ {
+  "name": "Narva",
+  "lon": 28.19,
+  "lat": 59.38,
+  "phases": [
+   [
+    1223,
+    "town"
+   ],
+   [
+    1345,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Danish/Livonian fortress opposite Ivangorod"
+ },
+ {
+  "name": "Ivangorod",
+  "lon": 28.22,
+  "lat": 59.37,
+  "phases": [
+   [
+    1492,
+    "town"
+   ],
+   [
+    1492,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "built by Ivan III opposite Narva"
+ },
+ {
+  "name": "Klaipeda (Memel)",
+  "lon": 21.14,
+  "lat": 55.71,
+  "phases": [
+   [
+    1252,
+    "town"
+   ],
+   [
+    1252,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Teutonic Order Baltic port town"
+ },
+ {
+  "name": "Konigsberg",
+  "lon": 20.51,
+  "lat": 54.71,
+  "phases": [
+   [
+    1255,
+    "town"
+   ],
+   [
+    1286,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Teutonic Order capital, Prussian founding"
+ },
+ {
+  "name": "Cesis (Wenden)",
+  "lon": 25.28,
+  "lat": 57.31,
+  "phases": [
+   [
+    1206,
+    "town"
+   ],
+   [
+    1237,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Livonian Order headquarters town"
+ },
+ {
+  "name": "Parnu",
+  "lon": 24.5,
+  "lat": 58.38,
+  "phases": [
+   [
+    1251,
+    "town"
+   ],
+   [
+    1265,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Hanseatic Livonian coastal town"
+ },
+ {
+  "name": "Turku (Abo)",
+  "lon": 22.27,
+  "lat": 60.45,
+  "phases": [
+   [
+    1229,
+    "town"
+   ],
+   [
+    1300,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "medieval capital of Finland under Sweden"
+ },
+ {
+  "name": "Vyborg",
+  "lon": 28.75,
+  "lat": 60.71,
+  "phases": [
+   [
+    1293,
+    "town"
+   ],
+   [
+    1293,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Swedish castle-town on Karelian isthmus"
+ },
+ {
+  "name": "Korela (Kexholm)",
+  "lon": 30.65,
+  "lat": 61.05,
+  "phases": [
+   [
+    1143,
+    "village"
+   ],
+   [
+    1310,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Novgorod-founded Karelian fortress town"
+ },
+ {
+  "name": "Sortavala",
+  "lon": 30.7,
+  "lat": 61.7,
+  "phases": [
+   [
+    1400,
+    "village"
+   ],
+   [
+    1632,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Lake Ladoga Karelian trading settlement"
+ },
+ {
+  "name": "Kajaani",
+  "lon": 27.73,
+  "lat": 64.23,
+  "phases": [
+   [
+    1651,
+    "village"
+   ],
+   [
+    1651,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Swedish frontier fortress town"
+ },
+ {
+  "name": "Kuopio",
+  "lon": 27.68,
+  "lat": 62.89,
+  "phases": [
+   [
+    1300,
+    "village"
+   ],
+   [
+    1782,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Savo-region lake settlement, chartered 1782"
+ },
+ {
+  "name": "Esztergom",
+  "lon": 18.74,
+  "lat": 47.79,
+  "phases": [
+   [
+    970,
+    "town"
+   ],
+   [
+    1000,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "first Hungarian royal capital/coronation seat"
+ },
+ {
+  "name": "Buda",
+  "lon": 19.04,
+  "lat": 47.5,
+  "phases": [
+   [
+    1247,
+    "town"
+   ],
+   [
+    1361,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "royal seat after Mongol invasion, castle hill"
+ },
+ {
+  "name": "Szekesfehervar",
+  "lon": 18.41,
+  "lat": 47.19,
+  "phases": [
+   [
+    972,
+    "town"
+   ],
+   [
+    1000,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "coronation and burial city of early Arpad kings"
+ },
+ {
+  "name": "Pecs",
+  "lon": 18.23,
+  "lat": 46.08,
+  "phases": [
+   [
+    1009,
+    "town"
+   ],
+   [
+    1009,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "early Hungarian bishopric town"
+ },
+ {
+  "name": "Eger",
+  "lon": 20.38,
+  "lat": 47.9,
+  "phases": [
+   [
+    1004,
+    "town"
+   ],
+   [
+    1552,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "bishopric town, famous 1552 siege"
+ },
+ {
+  "name": "Gyor",
+  "lon": 17.63,
+  "lat": 47.68,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1200,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Roman-heritage Danube trade town"
+ },
+ {
+  "name": "Kolozsvar (Cluj)",
+  "lon": 23.6,
+  "lat": 46.77,
+  "phases": [
+   [
+    1173,
+    "town"
+   ],
+   [
+    1405,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Transylvanian Saxon-Hungarian town"
+ },
+ {
+  "name": "Nagyvarad (Oradea)",
+  "lon": 21.93,
+  "lat": 47.06,
+  "phases": [
+   [
+    1092,
+    "town"
+   ],
+   [
+    1200,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Transylvanian bishopric border town"
+ },
+ {
+  "name": "Szeged",
+  "lon": 20.15,
+  "lat": 46.25,
+  "phases": [
+   [
+    1183,
+    "town"
+   ],
+   [
+    1200,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "salt-trade town on the Tisza"
+ },
+ {
+  "name": "Prague",
+  "lon": 14.42,
+  "lat": 50.09,
+  "phases": [
+   [
+    870,
+    "town"
+   ],
+   [
+    973,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Premyslid seat, Prague Castle founding"
+ },
+ {
+  "name": "Olomouc",
+  "lon": 17.25,
+  "lat": 49.6,
+  "phases": [
+   [
+    1017,
+    "town"
+   ],
+   [
+    1063,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Moravian bishopric and princely seat"
+ },
+ {
+  "name": "Brno",
+  "lon": 16.61,
+  "lat": 49.2,
+  "phases": [
+   [
+    1000,
+    "town"
+   ],
+   [
+    1243,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Moravian margraviate capital"
+ },
+ {
+  "name": "Plzen",
+  "lon": 13.38,
+  "lat": 49.75,
+  "phases": [
+   [
+    976,
+    "village"
+   ],
+   [
+    1295,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "West Bohemian founded town, chartered 1295"
+ },
+ {
+  "name": "Bratislava (Pressburg)",
+  "lon": 17.11,
+  "lat": 48.15,
+  "phases": [
+   [
+    907,
+    "town"
+   ],
+   [
+    1291,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Danube border town, later Hungarian coronation city"
+ },
+ {
+  "name": "Kosice",
+  "lon": 21.26,
+  "lat": 48.72,
+  "phases": [
+   [
+    1230,
+    "town"
+   ],
+   [
+    1290,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "eastern Slovakia trade town"
+ },
+ {
+  "name": "Nitra",
+  "lon": 18.09,
+  "lat": 48.31,
+  "phases": [
+   [
+    828,
+    "town"
+   ],
+   [
+    880,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Great Moravia's earliest church/princely seat"
+ },
+ {
+  "name": "Pliska",
+  "lon": 27.13,
+  "lat": 43.38,
+  "phases": [
+   [
+    681,
+    "city"
+   ],
+   [
+    893,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "first Bulgarian Khanate capital"
+ },
+ {
+  "name": "Preslav",
+  "lon": 26.8,
+  "lat": 43.17,
+  "phases": [
+   [
+    893,
+    "city"
+   ],
+   [
+    971,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "First Bulgarian Empire's second capital"
+ },
+ {
+  "name": "Ohrid",
+  "lon": 20.8,
+  "lat": 41.12,
+  "phases": [
+   [
+    879,
+    "town"
+   ],
+   [
+    990,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "capital of Samuil's Bulgarian Empire"
+ },
+ {
+  "name": "Tarnovo",
+  "lon": 25.65,
+  "lat": 43.08,
+  "phases": [
+   [
+    1185,
+    "town"
+   ],
+   [
+    1185,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Second Bulgarian Empire capital"
+ },
+ {
+  "name": "Sofia (Serdica)",
+  "lon": 23.32,
+  "lat": 42.7,
+  "phases": [
+   [
+    809,
+    "town"
+   ],
+   [
+    1018,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Bulgarian-conquered Roman city, later Ottoman seat"
+ },
+ {
+  "name": "Varna",
+  "lon": 27.91,
+  "lat": 43.21,
+  "phases": [
+   [
+    681,
+    "town"
+   ],
+   [
+    1201,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Black Sea Bulgarian port town"
+ },
+ {
+  "name": "Belgrade",
+  "lon": 20.46,
+  "lat": 44.82,
+  "phases": [
+   [
+    878,
+    "town"
+   ],
+   [
+    1284,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "contested Byzantine-Hungarian-Serbian frontier city"
+ },
+ {
+  "name": "Ras",
+  "lon": 20.56,
+  "lat": 43.13,
+  "phases": [
+   [
+    850,
+    "town"
+   ],
+   [
+    1180,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "early Serbian Nemanjic capital"
+ },
+ {
+  "name": "Nis",
+  "lon": 21.9,
+  "lat": 43.32,
+  "phases": [
+   [
+    878,
+    "town"
+   ],
+   [
+    1183,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Serbian-Bulgarian-Byzantine border town"
+ },
+ {
+  "name": "Prizren",
+  "lon": 20.74,
+  "lat": 42.21,
+  "phases": [
+   [
+    1019,
+    "town"
+   ],
+   [
+    1331,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "medieval Serbian imperial capital under Dusan"
+ },
+ {
+  "name": "Smederevo",
+  "lon": 20.93,
+  "lat": 44.66,
+  "phases": [
+   [
+    1428,
+    "town"
+   ],
+   [
+    1428,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "last capital of medieval Serbian despotate"
+ },
+ {
+  "name": "Novo Brdo",
+  "lon": 21.45,
+  "lat": 42.6,
+  "phases": [
+   [
+    1330,
+    "town"
+   ],
+   [
+    1455,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Serbian silver-mining boomtown, Saxon miners"
+ },
+ {
+  "name": "Dubrovnik (Ragusa)",
+  "lon": 18.11,
+  "lat": 42.65,
+  "phases": [
+   [
+    614,
+    "town"
+   ],
+   [
+    1000,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Adriatic maritime republic trading with Balkans"
+ },
+ {
+  "name": "Curtea de Arges",
+  "lon": 24.68,
+  "lat": 45.15,
+  "phases": [
+   [
+    1330,
+    "town"
+   ],
+   [
+    1330,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "first Wallachian princely capital"
+ },
+ {
+  "name": "Targoviste",
+  "lon": 25.46,
+  "lat": 44.93,
+  "phases": [
+   [
+    1396,
+    "town"
+   ],
+   [
+    1396,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Wallachian capital under Vlad the Impaler"
+ },
+ {
+  "name": "Bucharest",
+  "lon": 26.1,
+  "lat": 44.43,
+  "phases": [
+   [
+    1459,
+    "town"
+   ],
+   [
+    1459,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "first documented under Vlad the Impaler"
+ },
+ {
+  "name": "Suceava",
+  "lon": 26.25,
+  "lat": 47.65,
+  "phases": [
+   [
+    1388,
+    "town"
+   ],
+   [
+    1388,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "medieval Moldavian princely capital"
+ },
+ {
+  "name": "Iasi",
+  "lon": 27.6,
+  "lat": 47.16,
+  "phases": [
+   [
+    1387,
+    "town"
+   ],
+   [
+    1564,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "later Moldavian capital, replaced Suceava"
+ },
+ {
+  "name": "Cetatea Alba (Akkerman)",
+  "lon": 30.35,
+  "lat": 46.2,
+  "phases": [
+   [
+    1300,
+    "town"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Moldavian Black Sea fortress port"
+ },
+ {
+  "name": "Gnezdovo",
+  "lon": 31.6,
+  "lat": 54.79,
+  "phases": [
+   [
+    880,
+    "village"
+   ],
+   [
+    1150,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "major Rus barrow-field trading site near Smolensk"
+ },
+ {
+  "name": "Sarskoye gorodishche",
+  "lon": 39.3,
+  "lat": 57.15,
+  "phases": [
+   [
+    700,
+    "village"
+   ],
+   [
+    1000,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Merya-Rus proto-urban site near Rostov"
+ },
+ {
+  "name": "Timerevo",
+  "lon": 39.75,
+  "lat": 57.55,
+  "phases": [
+   [
+    850,
+    "village"
+   ],
+   [
+    1050,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Scandinavian-Rus trading settlement near Yaroslavl"
+ },
+ {
+  "name": "Shestovitsa",
+  "lon": 30.85,
+  "lat": 51.35,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1100,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Rus druzhina site near Chernigov"
+ },
+ {
+  "name": "Rurikovo Gorodishche",
+  "lon": 31.3,
+  "lat": 58.5,
+  "phases": [
+   [
+    860,
+    "town"
+   ],
+   [
+    930,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "proto-Novgorod princely residence, Volkhov river"
+ },
+ {
+  "name": "Sarai al-Jadid environs gorodishche",
+  "lon": 45.6,
+  "lat": 48.5,
+  "phases": [
+   [
+    1330,
+    "town"
+   ],
+   [
+    1395,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "satellite settlement near New Sarai"
+ },
+ {
+  "name": "Kremenets",
+  "lon": 25.73,
+  "lat": 50.1,
+  "phases": [
+   [
+    1226,
+    "town"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Volhynian hill fortress town"
+ },
+ {
+  "name": "Ovruch",
+  "lon": 28.81,
+  "lat": 51.32,
+  "phases": [
+   [
+    977,
+    "town"
+   ],
+   [
+    1240,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Drevlyane-land Rus town"
+ },
+ {
+  "name": "Dorogichin (Drohiczyn)",
+  "lon": 22.66,
+  "lat": 52.41,
+  "phases": [
+   [
+    1142,
+    "town"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Bug-river GDL/Rus border town"
+ },
+ {
+  "name": "Kanev",
+  "lon": 31.47,
+  "lat": 49.75,
+  "phases": [
+   [
+    1144,
+    "town"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Dnieper Rus fortress town, later Cossack base"
+ },
+ {
+  "name": "Zvenigorod (Galicia)",
+  "lon": 24.71,
+  "lat": 49.41,
+  "phases": [
+   [
+    1086,
+    "town"
+   ],
+   [
+    1250,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Galician principality town, declined after Mongols"
+ },
+ {
+  "name": "Terebovlia",
+  "lon": 25.72,
+  "lat": 49.3,
+  "phases": [
+   [
+    1097,
+    "town"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Galician principality seat town"
+ },
+ {
+  "name": "Kholm (Chelm)",
+  "lon": 23.48,
+  "lat": 50.87,
+  "phases": [
+   [
+    1237,
+    "town"
+   ],
+   [
+    1237,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Danylo of Galicia's founded capital"
+ },
+ {
+  "name": "Solikamsk",
+  "lon": 56.77,
+  "lat": 59.65,
+  "phases": [
+   [
+    1430,
+    "town"
+   ],
+   [
+    1573,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ural salt-production town"
+ },
+ {
+  "name": "Kungur",
+  "lon": 56.94,
+  "lat": 57.43,
+  "phases": [
+   [
+    1648,
+    "town"
+   ],
+   [
+    1648,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ural trade town founded by settlers"
+ },
+ {
+  "name": "Kem",
+  "lon": 34.6,
+  "lat": 64.95,
+  "phases": [
+   [
+    1450,
+    "village"
+   ],
+   [
+    1657,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "White Sea Karelian trade settlement"
+ },
+ {
+  "name": "Kola",
+  "lon": 33.02,
+  "lat": 68.87,
+  "phases": [
+   [
+    1264,
+    "village"
+   ],
+   [
+    1583,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "far-north Russian Arctic trade town"
+ },
+ {
+  "name": "Kashin",
+  "lon": 37.62,
+  "lat": 57.35,
+  "phases": [
+   [
+    1238,
+    "town"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Tver-region appanage principality town"
+ },
+ {
+  "name": "Vereya",
+  "lon": 36.18,
+  "lat": 55.35,
+  "phases": [
+   [
+    1371,
+    "town"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Moscow-region appanage fortress town"
+ },
+ {
+  "name": "Dmitrov",
+  "lon": 37.52,
+  "lat": 56.35,
+  "phases": [
+   [
+    1154,
+    "town"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "founded by Yuri Dolgorukiy, canal town"
+ },
+ {
+  "name": "Zaraysk",
+  "lon": 38.87,
+  "lat": 54.76,
+  "phases": [
+   [
+    1146,
+    "town"
+   ],
+   [
+    1531,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Oka-line stone kremlin fortress"
+ },
+ {
+  "name": "Kaluga",
+  "lon": 36.26,
+  "lat": 54.51,
+  "phases": [
+   [
+    1371,
+    "town"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Oka-line frontier fortress town"
+ },
+ {
+  "name": "Aleksin",
+  "lon": 37.06,
+  "lat": 54.51,
+  "phases": [
+   [
+    1348,
+    "town"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Oka-line border fortress"
+ },
+ {
+  "name": "Vyazma",
+  "lon": 34.3,
+  "lat": 55.21,
+  "phases": [
+   [
+    1239,
+    "town"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "upper Dnieper Smolensk-land fortress"
+ },
+ {
+  "name": "Rzhev",
+  "lon": 34.33,
+  "lat": 56.26,
+  "phases": [
+   [
+    1216,
+    "town"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "upper Volga Smolensk-Tver border town"
+ },
+ {
+  "name": "Kashira",
+  "lon": 38.15,
+  "lat": 54.84,
+  "phases": [
+   [
+    1356,
+    "town"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Oka-line fortress granted as appanage"
+ },
+ {
+  "name": "Yelets",
+  "lon": 38.5,
+  "lat": 52.62,
+  "phases": [
+   [
+    1146,
+    "town"
+   ],
+   [
+    1395,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "steppe-frontier town, sacked by Tamerlane"
+ },
+ {
+  "name": "Bryansk",
+  "lon": 34.37,
+  "lat": 53.24,
+  "phases": [
+   [
+    985,
+    "town"
+   ],
+   [
+    1146,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Desna-river Chernigov-land fortress town"
+ },
+ {
+  "name": "Trubchevsk",
+  "lon": 33.78,
+  "lat": 52.58,
+  "phases": [
+   [
+    1185,
+    "town"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Seversk-land town, Tale of Igor's Host"
+ },
+ {
+  "name": "Ostrog gorodishche Vyatichi",
+  "lon": 37.0,
+  "lat": 54.0,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1150,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Vyatichi tribal fortified settlement, Oka basin"
+ },
+ {
+  "name": "Vshchizh",
+  "lon": 34.18,
+  "lat": 53.04,
+  "phases": [
+   [
+    1142,
+    "town"
+   ],
+   [
+    1238,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Chernigov-land Rus town, destroyed by Mongols"
+ },
+ {
+  "name": "Suzdal gorodishche precursor",
+  "lon": 40.3,
+  "lat": 56.3,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1024,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Finno-Ugric predecessor settlement near Suzdal"
+ },
+ {
+  "name": "Pronsk",
+  "lon": 39.24,
+  "lat": 53.85,
+  "phases": [
+   [
+    1131,
+    "town"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ryazan-land appanage fortress town"
+ },
+ {
+  "name": "Kozelsk",
+  "lon": 35.8,
+  "lat": 54.04,
+  "phases": [
+   [
+    1146,
+    "town"
+   ],
+   [
+    1238,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "besieged seven weeks by Mongols, 1238"
+ },
+ {
+  "name": "Vorotynsk",
+  "lon": 36.6,
+  "lat": 54.45,
+  "phases": [
+   [
+    1155,
+    "town"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Oka-basin appanage principality town"
+ },
+ {
+  "name": "Serensk",
+  "lon": 35.35,
+  "lat": 54.15,
+  "phases": [
+   [
+    1147,
+    "town"
+   ],
+   [
+    1238,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Chernigov-land town destroyed by Mongols"
+ },
+ {
+  "name": "Belz",
+  "lon": 24.0,
+  "lat": 50.38,
+  "phases": [
+   [
+    1030,
+    "town"
+   ],
+   [
+    1462,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Galician-Volhynian principality town"
+ },
+ {
+  "name": "Dorohobuzh (Volhynia)",
+  "lon": 26.03,
+  "lat": 50.53,
+  "phases": [
+   [
+    1084,
+    "town"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Volhynian Rus fortress town"
+ },
+ {
+  "name": "Volodava",
+  "lon": 23.55,
+  "lat": 51.55,
+  "phases": [
+   [
+    1234,
+    "town"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Bug-river border trade town"
+ },
+ {
+  "name": "Novogrudok",
+  "lon": 25.83,
+  "lat": 53.6,
+  "phases": [
+   [
+    1044,
+    "town"
+   ],
+   [
+    1253,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "early GDL capital under Mindaugas"
+ },
+ {
+  "name": "Slonim",
+  "lon": 25.32,
+  "lat": 53.09,
+  "phases": [
+   [
+    1252,
+    "town"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "GDL river-trade town"
+ },
+ {
+  "name": "Slutsk",
+  "lon": 27.55,
+  "lat": 53.02,
+  "phases": [
+   [
+    1116,
+    "town"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "GDL appanage principality town"
+ },
+ {
+  "name": "Mstsislaw",
+  "lon": 31.73,
+  "lat": 54.02,
+  "phases": [
+   [
+    1135,
+    "town"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "upper Dnieper Smolensk-land/GDL town"
+ },
+ {
+  "name": "Orsha",
+  "lon": 30.42,
+  "lat": 54.51,
+  "phases": [
+   [
+    1067,
+    "town"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Dnieper crossing GDL fortress town"
+ },
+ {
+  "name": "Mogilev",
+  "lon": 30.34,
+  "lat": 53.9,
+  "phases": [
+   [
+    1267,
+    "town"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Dnieper GDL trade town"
+ },
+ {
+  "name": "Gomel",
+  "lon": 31.0,
+  "lat": 52.43,
+  "phases": [
+   [
+    1142,
+    "town"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Sozh-river Chernigov-land/GDL town"
+ },
+ {
+  "name": "Kobrin",
+  "lon": 24.36,
+  "lat": 52.21,
+  "phases": [
+   [
+    1287,
+    "town"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "GDL Polesia border town"
+ },
+ {
+  "name": "Bielsk Podlaski",
+  "lon": 23.19,
+  "lat": 52.77,
+  "phases": [
+   [
+    1264,
+    "town"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "GDL Podlasie border town"
+ },
+ {
+  "name": "Sandomierz",
+  "lon": 21.75,
+  "lat": 50.68,
+  "phases": [
+   [
+    1079,
+    "town"
+   ],
+   [
+    1286,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "early Piast principality seat on the Vistula"
+ },
+ {
+  "name": "Plock",
+  "lon": 19.71,
+  "lat": 52.55,
+  "phases": [
+   [
+    966,
+    "town"
+   ],
+   [
+    1075,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "early Mazovian ducal and bishopric seat"
+ },
+ {
+  "name": "Kalisz",
+  "lon": 18.09,
+  "lat": 51.76,
+  "phases": [
+   [
+    1108,
+    "town"
+   ],
+   [
+    1257,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Roman-mentioned Calisia, Piast trade town"
+ },
+ {
+  "name": "Gniezno",
+  "lon": 17.58,
+  "lat": 52.53,
+  "phases": [
+   [
+    940,
+    "town"
+   ],
+   [
+    1000,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "first Polish coronation capital"
+ },
+ {
+  "name": "Szczecin",
+  "lon": 14.55,
+  "lat": 53.43,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1243,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Pomeranian Baltic trade town"
+ },
+ {
+  "name": "Kolobrzeg",
+  "lon": 15.58,
+  "lat": 54.18,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1255,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Pomeranian salt- and trade-town, bishopric"
+ },
+ {
+  "name": "Elblag",
+  "lon": 19.41,
+  "lat": 54.16,
+  "phases": [
+   [
+    1237,
+    "town"
+   ],
+   [
+    1246,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Teutonic Order Hanseatic port town"
+ },
+ {
+  "name": "Chelmno",
+  "lon": 18.42,
+  "lat": 53.35,
+  "phases": [
+   [
+    1233,
+    "town"
+   ],
+   [
+    1233,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Teutonic Order's founding town, gave Kulm law"
+ },
+ {
+  "name": "Malbork",
+  "lon": 19.03,
+  "lat": 54.04,
+  "phases": [
+   [
+    1274,
+    "town"
+   ],
+   [
+    1309,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Teutonic Order headquarters castle-town"
+ },
+ {
+  "name": "Zamosc",
+  "lon": 23.25,
+  "lat": 50.72,
+  "phases": [
+   [
+    1580,
+    "town"
+   ],
+   [
+    1580,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "ideal Renaissance planned town"
+ },
+ {
+  "name": "Sopron",
+  "lon": 16.59,
+  "lat": 47.68,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1277,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "western Hungarian border trade town"
+ },
+ {
+  "name": "Vac",
+  "lon": 19.13,
+  "lat": 47.78,
+  "phases": [
+   [
+    1074,
+    "town"
+   ],
+   [
+    1074,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Danube-bend bishopric town"
+ },
+ {
+  "name": "Sibiu (Hermannstadt)",
+  "lon": 24.15,
+  "lat": 45.79,
+  "phases": [
+   [
+    1191,
+    "town"
+   ],
+   [
+    1224,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Transylvanian Saxon settler town"
+ },
+ {
+  "name": "Brasov (Kronstadt)",
+  "lon": 25.61,
+  "lat": 45.66,
+  "phases": [
+   [
+    1211,
+    "town"
+   ],
+   [
+    1235,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Transylvanian Saxon trade town, Teutonic founding"
+ },
+ {
+  "name": "Alba Iulia",
+  "lon": 23.58,
+  "lat": 46.07,
+  "phases": [
+   [
+    1009,
+    "town"
+   ],
+   [
+    1200,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Transylvanian bishopric and voivode seat"
+ },
+ {
+  "name": "Timisoara",
+  "lon": 21.23,
+  "lat": 45.75,
+  "phases": [
+   [
+    1212,
+    "town"
+   ],
+   [
+    1315,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Banat regional administrative town"
+ },
+ {
+  "name": "Miskolc",
+  "lon": 20.78,
+  "lat": 48.1,
+  "phases": [
+   [
+    1000,
+    "village"
+   ],
+   [
+    1300,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "northeastern Hungarian market town"
+ },
+ {
+  "name": "Debrecen",
+  "lon": 21.63,
+  "lat": 47.53,
+  "phases": [
+   [
+    1235,
+    "village"
+   ],
+   [
+    1361,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "eastern Hungarian market town, later Calvinist centre"
+ },
+ {
+  "name": "Znojmo",
+  "lon": 16.05,
+  "lat": 48.86,
+  "phases": [
+   [
+    1046,
+    "town"
+   ],
+   [
+    1226,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Moravian border fortress town"
+ },
+ {
+  "name": "Jihlava",
+  "lon": 15.59,
+  "lat": 49.4,
+  "phases": [
+   [
+    1234,
+    "town"
+   ],
+   [
+    1234,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Bohemian silver-mining boomtown"
+ },
+ {
+  "name": "Kutna Hora",
+  "lon": 15.27,
+  "lat": 49.95,
+  "phases": [
+   [
+    1142,
+    "village"
+   ],
+   [
+    1300,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Bohemian silver-mining town, royal mint"
+ },
+ {
+  "name": "Trnava",
+  "lon": 17.59,
+  "lat": 48.38,
+  "phases": [
+   [
+    1211,
+    "town"
+   ],
+   [
+    1238,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "first Hungarian-crown free royal town in Slovakia"
+ },
+ {
+  "name": "Banska Stiavnica",
+  "lon": 18.9,
+  "lat": 48.46,
+  "phases": [
+   [
+    1156,
+    "town"
+   ],
+   [
+    1238,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Slovak silver/gold mining town"
+ },
+ {
+  "name": "Levoca",
+  "lon": 20.59,
+  "lat": 49.03,
+  "phases": [
+   [
+    1249,
+    "town"
+   ],
+   [
+    1249,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Spis-region Saxon merchant town"
+ },
+ {
+  "name": "Skopje",
+  "lon": 21.43,
+  "lat": 42.0,
+  "phases": [
+   [
+    518,
+    "town"
+   ],
+   [
+    1282,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Serbian-annexed Byzantine frontier town"
+ },
+ {
+  "name": "Shkoder",
+  "lon": 19.51,
+  "lat": 42.07,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1355,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Zeta/Serbian Adriatic-adjacent town"
+ },
+ {
+  "name": "Kotor",
+  "lon": 18.77,
+  "lat": 42.42,
+  "phases": [
+   [
+    168,
+    "town"
+   ],
+   [
+    1186,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Adriatic Serbian-vassal trade town"
+ },
+ {
+  "name": "Bar (Antivari)",
+  "lon": 19.1,
+  "lat": 42.1,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1089,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Zeta archbishopric coastal town"
+ },
+ {
+  "name": "Nikopol (Bulgaria)",
+  "lon": 24.9,
+  "lat": 43.7,
+  "phases": [
+   [
+    1187,
+    "town"
+   ],
+   [
+    1187,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Danube Bulgarian fortress, 1396 crusade battle"
+ },
+ {
+  "name": "Silistra",
+  "lon": 27.27,
+  "lat": 44.12,
+  "phases": [
+   [
+    681,
+    "town"
+   ],
+   [
+    900,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Danube Bulgarian fortress town"
+ },
+ {
+  "name": "Vidin",
+  "lon": 22.87,
+  "lat": 43.99,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1356,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "independent Bulgarian tsardom capital under Sratsimir"
+ },
+ {
+  "name": "Plovdiv",
+  "lon": 24.75,
+  "lat": 42.15,
+  "phases": [
+   [
+    342,
+    "town"
+   ],
+   [
+    900,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Thracian-Roman-Bulgarian trade city"
+ },
+ {
+  "name": "Cetatea Neamt town",
+  "lon": 26.33,
+  "lat": 47.22,
+  "phases": [
+   [
+    1387,
+    "town"
+   ],
+   [
+    1387,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Moldavian princely fortress town"
+ },
+ {
+  "name": "Roman (Moldavia)",
+  "lon": 26.93,
+  "lat": 46.92,
+  "phases": [
+   [
+    1392,
+    "town"
+   ],
+   [
+    1392,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Moldavian bishopric river-confluence town"
+ },
+ {
+  "name": "Chilia",
+  "lon": 29.85,
+  "lat": 45.43,
+  "phases": [
+   [
+    1300,
+    "town"
+   ],
+   [
+    1484,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Moldavian-Genoese Danube-delta port town"
+ },
+ {
+  "name": "Braila",
+  "lon": 27.96,
+  "lat": 45.27,
+  "phases": [
+   [
+    1368,
+    "town"
+   ],
+   [
+    1368,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Wallachian Danube trade port town"
+ },
+ {
+  "name": "Mangazeya successor Turukhansk",
+  "lon": 87.95,
+  "lat": 65.8,
+  "phases": [
+   [
+    1607,
+    "village"
+   ],
+   [
+    1672,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "succeeded Mangazeya as Yenisei fur post"
+ },
+ {
+  "name": "Yalutorovsk",
+  "lon": 66.32,
+  "lat": 56.65,
+  "phases": [
+   [
+    1639,
+    "village"
+   ],
+   [
+    1782,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Tobol-river ostrog"
+ },
+ {
+  "name": "Tara",
+  "lon": 74.37,
+  "lat": 56.9,
+  "phases": [
+   [
+    1594,
+    "town"
+   ],
+   [
+    1782,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Irtysh-river fortress ostrog"
+ },
+ {
+  "name": "Pelym",
+  "lon": 63.13,
+  "lat": 60.62,
+  "phases": [
+   [
+    1593,
+    "village"
+   ],
+   [
+    1782,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "early Ural-Siberian frontier ostrog"
+ },
+ {
+  "name": "Kansk",
+  "lon": 95.7,
+  "lat": 56.2,
+  "phases": [
+   [
+    1628,
+    "village"
+   ],
+   [
+    1782,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Yenisei-basin ostrog on the trakt"
+ },
+ {
+  "name": "Ust-Kut",
+  "lon": 105.78,
+  "lat": 56.78,
+  "phases": [
+   [
+    1631,
+    "village"
+   ],
+   [
+    1782,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Lena-river ostrog and portage town"
+ },
+ {
+  "name": "Olyokminsk",
+  "lon": 120.42,
+  "lat": 60.37,
+  "phases": [
+   [
+    1635,
+    "village"
+   ],
+   [
+    1782,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Lena-river fur-trade ostrog"
+ },
+ {
+  "name": "Zhigansk",
+  "lon": 123.37,
+  "lat": 66.77,
+  "phases": [
+   [
+    1632,
+    "village"
+   ],
+   [
+    1782,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "lower Lena ostrog"
+ },
+ {
+  "name": "Chita",
+  "lon": 113.5,
+  "lat": 52.05,
+  "phases": [
+   [
+    1653,
+    "village"
+   ],
+   [
+    1782,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Transbaikal zimovye turned ostrog"
+ },
+ {
+  "name": "Barguzin",
+  "lon": 109.62,
+  "lat": 53.6,
+  "phases": [
+   [
+    1648,
+    "village"
+   ],
+   [
+    1782,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Baikal-region fur-trade ostrog"
+ },
+ {
+  "name": "Argun/Nerchinsky Zavod",
+  "lon": 119.9,
+  "lat": 51.3,
+  "phases": [
+   [
+    1704,
+    "village"
+   ],
+   [
+    1782,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Transbaikal silver-mining settlement"
+ },
+ {
+  "name": "Petropavlovsk-Kamchatsky",
+  "lon": 158.65,
+  "lat": 53.02,
+  "phases": [
+   [
+    1740,
+    "village"
+   ],
+   [
+    1740,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "founded by Bering's second expedition"
+ },
+ {
+  "name": "Bolsheretsk",
+  "lon": 156.33,
+  "lat": 52.87,
+  "phases": [
+   [
+    1703,
+    "village"
+   ],
+   [
+    1740,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "first Russian administrative post on Kamchatka"
+ },
+ {
+  "name": "Hameenlinna",
+  "lon": 24.46,
+  "lat": 61.0,
+  "phases": [
+   [
+    1249,
+    "village"
+   ],
+   [
+    1639,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Swedish castle-founded Finnish inland town"
+ },
+ {
+  "name": "Porvoo",
+  "lon": 25.66,
+  "lat": 60.39,
+  "phases": [
+   [
+    1346,
+    "town"
+   ],
+   [
+    1346,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "medieval Finnish coastal trade town"
+ },
+ {
+  "name": "Rauma",
+  "lon": 21.51,
+  "lat": 61.13,
+  "phases": [
+   [
+    1442,
+    "town"
+   ],
+   [
+    1442,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Finnish Hanseatic-linked coastal town"
+ },
+ {
+  "name": "Olonets",
+  "lon": 32.97,
+  "lat": 60.98,
+  "phases": [
+   [
+    1137,
+    "village"
+   ],
+   [
+    1649,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Karelian Novgorod-tributary trade settlement"
+ },
+ {
+  "name": "Ladoga Karelian gorodishche",
+  "lon": 30.6,
+  "lat": 61.3,
+  "phases": [
+   [
+    1100,
+    "village"
+   ],
+   [
+    1478,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Karelian fortified trading settlement, Ladoga shore"
+ },
+ {
+  "name": "Valmiera (Wolmar)",
+  "lon": 25.43,
+  "lat": 57.54,
+  "phases": [
+   [
+    1224,
+    "town"
+   ],
+   [
+    1224,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Livonian Order Baltic river town"
+ },
+ {
+  "name": "Kuldiga (Goldingen)",
+  "lon": 21.97,
+  "lat": 56.97,
+  "phases": [
+   [
+    1242,
+    "town"
+   ],
+   [
+    1242,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Courland Livonian Order town"
+ },
+ {
+  "name": "Daugavpils (Dinaburg)",
+  "lon": 26.53,
+  "lat": 55.87,
+  "phases": [
+   [
+    1275,
+    "town"
+   ],
+   [
+    1275,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Livonian Order Daugava-river fortress town"
+ },
+ {
+  "name": "Pustozersk",
+  "lon": 51.29,
+  "lat": 67.53,
+  "phases": [
+   [
+    1499,
+    "village"
+   ],
+   [
+    1499,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "first Russian Arctic town beyond the Urals"
+ },
+ {
+  "name": "Salekhard (Obdorsk)",
+  "lon": 66.6,
+  "lat": 66.53,
+  "phases": [
+   [
+    1595,
+    "village"
+   ],
+   [
+    1635,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ob-mouth fur-tribute ostrog"
+ },
+ {
+  "name": "Chardyn",
+  "lon": 56.48,
+  "lat": 60.4,
+  "phases": [
+   [
+    1451,
+    "village"
+   ],
+   [
+    1535,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Perm-land pre-Yermak trade town"
+ },
+ {
+  "name": "Sviyazhsk",
+  "lon": 48.66,
+  "lat": 55.78,
+  "phases": [
+   [
+    1551,
+    "town"
+   ],
+   [
+    1551,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "built in weeks as siege base against Kazan"
+ },
+ {
+  "name": "Cheboksary",
+  "lon": 47.25,
+  "lat": 56.13,
+  "phases": [
+   [
+    1469,
+    "village"
+   ],
+   [
+    1555,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Volga fortress town founded under Ivan IV"
+ },
+ {
+  "name": "Simbirsk",
+  "lon": 48.4,
+  "lat": 54.32,
+  "phases": [
+   [
+    1648,
+    "town"
+   ],
+   [
+    1648,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Volga defensive-line fortress town"
+ },
+ {
+  "name": "Saratov",
+  "lon": 46.03,
+  "lat": 51.53,
+  "phases": [
+   [
+    1590,
+    "town"
+   ],
+   [
+    1590,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Volga defensive-line fortress town"
+ },
+ {
+  "name": "Samara",
+  "lon": 50.15,
+  "lat": 53.2,
+  "phases": [
+   [
+    1586,
+    "town"
+   ],
+   [
+    1586,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Volga defensive-line fortress town"
+ },
+ {
+  "name": "Tsaritsyn",
+  "lon": 44.51,
+  "lat": 48.71,
+  "phases": [
+   [
+    1589,
+    "town"
+   ],
+   [
+    1589,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Volga defensive-line fortress, later Volgograd"
+ },
+ {
+  "name": "Voronezh",
+  "lon": 39.2,
+  "lat": 51.67,
+  "phases": [
+   [
+    1585,
+    "town"
+   ],
+   [
+    1585,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "steppe-frontier fortress, later Peter's shipyard"
+ },
+ {
+  "name": "Belgorod (steppe line)",
+  "lon": 36.59,
+  "lat": 50.6,
+  "phases": [
+   [
+    1596,
+    "town"
+   ],
+   [
+    1596,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Belgorod defensive-line fortress town"
+ },
+ {
+  "name": "Valuyki",
+  "lon": 38.11,
+  "lat": 50.21,
+  "phases": [
+   [
+    1593,
+    "town"
+   ],
+   [
+    1593,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "steppe defensive-line fortress town"
+ },
+ {
+  "name": "Livny",
+  "lon": 37.62,
+  "lat": 52.42,
+  "phases": [
+   [
+    1571,
+    "town"
+   ],
+   [
+    1571,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "steppe watch-line fortress town"
+ },
+ {
+  "name": "Orel",
+  "lon": 36.08,
+  "lat": 52.97,
+  "phases": [
+   [
+    1566,
+    "town"
+   ],
+   [
+    1566,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Oka steppe-frontier fortress town"
+ },
+ {
+  "name": "Kromy",
+  "lon": 35.8,
+  "lat": 52.75,
+  "phases": [
+   [
+    1595,
+    "town"
+   ],
+   [
+    1595,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "steppe defensive-line fortress town"
+ }
+]

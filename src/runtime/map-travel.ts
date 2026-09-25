@@ -61,7 +61,9 @@ export function travelSetting(
     }),
   };
   setting.environment!.population =
-    map.settlement === "city" || map.settlement === "town" ? "settled" : "none";
+    map.settlement === "city" || map.settlement === "town" || map.settlement === "village"
+      ? "settled"
+      : (map.countryside ?? "none");
   setting.environment!.start = "wanderer";
   return setting;
 }

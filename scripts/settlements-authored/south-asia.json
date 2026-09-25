@@ -1,0 +1,7387 @@
+[
+ {
+  "name": "Mehrgarh",
+  "lon": 67.68,
+  "lat": 29.38,
+  "phases": [
+   [
+    -7000,
+    "village"
+   ],
+   [
+    -5500,
+    "town"
+   ],
+   [
+    -2600,
+    "town"
+   ],
+   [
+    -2000,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Earliest farming site in South Asia, Kachi plain"
+ },
+ {
+  "name": "Mundigak",
+  "lon": 65.87,
+  "lat": 31.93,
+  "phases": [
+   [
+    -4000,
+    "village"
+   ],
+   [
+    -2500,
+    "town"
+   ],
+   [
+    -1000,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Helmand-culture proto-urban site near Kandahar"
+ },
+ {
+  "name": "Shahr-i-Sokhta",
+  "lon": 61.34,
+  "lat": 31.44,
+  "phases": [
+   [
+    -3200,
+    "town"
+   ],
+   [
+    -2600,
+    "city"
+   ],
+   [
+    -1800,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Burnt City, Sistan trade hub"
+ },
+ {
+  "name": "Harappa",
+  "lon": 72.87,
+  "lat": 30.63,
+  "phases": [
+   [
+    -3300,
+    "village"
+   ],
+   [
+    -2600,
+    "city"
+   ],
+   [
+    -1300,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Type-site of the Indus Valley Civilization, Ravi valley"
+ },
+ {
+  "name": "Mohenjo-daro",
+  "lon": 68.14,
+  "lat": 27.33,
+  "phases": [
+   [
+    -2600,
+    "city"
+   ],
+   [
+    -1900,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Great Bath and citadel, Indus civilization capital"
+ },
+ {
+  "name": "Dholavira",
+  "lon": 70.21,
+  "lat": 23.89,
+  "phases": [
+   [
+    -2900,
+    "town"
+   ],
+   [
+    -2600,
+    "city"
+   ],
+   [
+    -1900,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Walled Harappan city, Kutch, water-reservoir system"
+ },
+ {
+  "name": "Lothal",
+  "lon": 72.25,
+  "lat": 22.52,
+  "phases": [
+   [
+    -2400,
+    "town"
+   ],
+   [
+    -1900,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Harappan dockyard and bead-making port, Gujarat"
+ },
+ {
+  "name": "Kalibangan",
+  "lon": 74.13,
+  "lat": 29.47,
+  "phases": [
+   [
+    -3000,
+    "village"
+   ],
+   [
+    -2600,
+    "town"
+   ],
+   [
+    -1750,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Pre-Harappan and Harappan site, ploughed field traces"
+ },
+ {
+  "name": "Rakhigarhi",
+  "lon": 76.11,
+  "lat": 29.29,
+  "phases": [
+   [
+    -3300,
+    "town"
+   ],
+   [
+    -2600,
+    "city"
+   ],
+   [
+    -1500,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Largest known Harappan settlement, Ghaggar plain"
+ },
+ {
+  "name": "Banawali",
+  "lon": 75.4,
+  "lat": 29.53,
+  "phases": [
+   [
+    -2600,
+    "town"
+   ],
+   [
+    -1700,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Fortified Harappan town, Haryana"
+ },
+ {
+  "name": "Surkotada",
+  "lon": 70.83,
+  "lat": 23.62,
+  "phases": [
+   [
+    -2300,
+    "town"
+   ],
+   [
+    -1700,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Harappan fort with earliest horse remains claim"
+ },
+ {
+  "name": "Chanhudaro",
+  "lon": 68.3,
+  "lat": 26.15,
+  "phases": [
+   [
+    -2500,
+    "town"
+   ],
+   [
+    -1900,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Harappan bead and seal manufacturing centre, Sindh"
+ },
+ {
+  "name": "Ganeriwala",
+  "lon": 71.1,
+  "lat": 28.55,
+  "phases": [
+   [
+    -2600,
+    "city"
+   ],
+   [
+    -1900,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Large unexcavated Harappan city, Cholistan desert"
+ },
+ {
+  "name": "Kot Diji",
+  "lon": 68.73,
+  "lat": 27.34,
+  "phases": [
+   [
+    -3300,
+    "village"
+   ],
+   [
+    -2600,
+    "town"
+   ],
+   [
+    -1900,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Early Harappan phase type-site, Sindh"
+ },
+ {
+  "name": "Amri",
+  "lon": 68.12,
+  "lat": 26.05,
+  "phases": [
+   [
+    -3600,
+    "village"
+   ],
+   [
+    -2000,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Pre-Harappan Amri culture site, Sindh"
+ },
+ {
+  "name": "Balakot",
+  "lon": 67.67,
+  "lat": 25.27,
+  "phases": [
+   [
+    -2900,
+    "village"
+   ],
+   [
+    -2000,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Harappan shell-working coastal site, Sindh"
+ },
+ {
+  "name": "Sutkagen Dor",
+  "lon": 62.08,
+  "lat": 25.53,
+  "phases": [
+   [
+    -2500,
+    "town"
+   ],
+   [
+    -1900,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Westernmost Harappan outpost near Makran coast"
+ },
+ {
+  "name": "Ahar",
+  "lon": 73.72,
+  "lat": 24.58,
+  "phases": [
+   [
+    -2100,
+    "village"
+   ],
+   [
+    -1500,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Ahar-Banas culture chalcolithic site, Mewar"
+ },
+ {
+  "name": "Inamgaon",
+  "lon": 74.48,
+  "lat": 18.68,
+  "phases": [
+   [
+    -1600,
+    "village"
+   ],
+   [
+    -700,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Malwa-Jorwe chalcolithic settlement, Deccan"
+ },
+ {
+  "name": "Navdatoli",
+  "lon": 75.32,
+  "lat": 22.27,
+  "phases": [
+   [
+    -2000,
+    "village"
+   ],
+   [
+    -1200,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Malwa culture chalcolithic village, Narmada"
+ },
+ {
+  "name": "Daimabad",
+  "lon": 74.7,
+  "lat": 19.5,
+  "phases": [
+   [
+    -2200,
+    "village"
+   ],
+   [
+    -1000,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Bronze hoard site, late Harappan-Deccan interface"
+ },
+ {
+  "name": "Hastinapur",
+  "lon": 78.02,
+  "lat": 29.16,
+  "phases": [
+   [
+    -1200,
+    "town"
+   ],
+   [
+    -500,
+    "city"
+   ],
+   [
+    1200,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Kuru capital in the Mahabharata tradition, Painted Grey Ware"
+ },
+ {
+  "name": "Indraprastha",
+  "lon": 77.24,
+  "lat": 28.61,
+  "phases": [
+   [
+    -1000,
+    "town"
+   ],
+   [
+    300,
+    "city"
+   ],
+   [
+    1300,
+    "city"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Legendary Pandava capital, identified with old Delhi's Purana Qila"
+ },
+ {
+  "name": "Taxila",
+  "lon": 72.79,
+  "lat": 33.74,
+  "phases": [
+   [
+    -1000,
+    "town"
+   ],
+   [
+    -500,
+    "city"
+   ],
+   [
+    500,
+    "city"
+   ],
+   [
+    1000,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Gandhara learning centre, Greek and Buddhist accounts"
+ },
+ {
+  "name": "Kapilavastu",
+  "lon": 83.05,
+  "lat": 27.53,
+  "phases": [
+   [
+    -800,
+    "town"
+   ],
+   [
+    -400,
+    "city"
+   ],
+   [
+    600,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Buddha's natal city, Shakya republic capital"
+ },
+ {
+  "name": "Kushinagar",
+  "lon": 83.89,
+  "lat": 26.74,
+  "phases": [
+   [
+    -600,
+    "town"
+   ],
+   [
+    400,
+    "town"
+   ],
+   [
+    1200,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Site of Buddha's death, Malla republic"
+ },
+ {
+  "name": "Vaishali",
+  "lon": 85.13,
+  "lat": 25.99,
+  "phases": [
+   [
+    -700,
+    "town"
+   ],
+   [
+    -500,
+    "city"
+   ],
+   [
+    600,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Licchavi republic capital, early democratic assembly"
+ },
+ {
+  "name": "Rajgir",
+  "lon": 85.42,
+  "lat": 25.03,
+  "phases": [
+   [
+    -700,
+    "town"
+   ],
+   [
+    -500,
+    "city"
+   ],
+   [
+    600,
+    "town"
+   ],
+   [
+    1200,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Old Magadha capital, Rajagriha of Buddhist texts"
+ },
+ {
+  "name": "Pataliputra",
+  "lon": 85.14,
+  "lat": 25.61,
+  "phases": [
+   [
+    -500,
+    "town"
+   ],
+   [
+    -320,
+    "city"
+   ],
+   [
+    600,
+    "city"
+   ],
+   [
+    1200,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Mauryan and Gupta imperial capital, Patna"
+ },
+ {
+  "name": "Shravasti",
+  "lon": 82.05,
+  "lat": 27.52,
+  "phases": [
+   [
+    -700,
+    "town"
+   ],
+   [
+    -400,
+    "city"
+   ],
+   [
+    700,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Kosala capital, major Buddhist pilgrimage site"
+ },
+ {
+  "name": "Ayodhya",
+  "lon": 82.2,
+  "lat": 26.8,
+  "phases": [
+   [
+    -800,
+    "town"
+   ],
+   [
+    -200,
+    "city"
+   ],
+   [
+    500,
+    "city"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Kosala capital, Ramayana tradition"
+ },
+ {
+  "name": "Kaushambi",
+  "lon": 81.38,
+  "lat": 25.33,
+  "phases": [
+   [
+    -800,
+    "town"
+   ],
+   [
+    -400,
+    "city"
+   ],
+   [
+    600,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Vatsa kingdom capital on the Yamuna"
+ },
+ {
+  "name": "Varanasi",
+  "lon": 83.0,
+  "lat": 25.32,
+  "phases": [
+   [
+    -1000,
+    "town"
+   ],
+   [
+    -500,
+    "city"
+   ],
+   [
+    2000,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Kashi kingdom capital, continuous sacred city"
+ },
+ {
+  "name": "Mathura",
+  "lon": 77.67,
+  "lat": 27.49,
+  "phases": [
+   [
+    -800,
+    "town"
+   ],
+   [
+    -300,
+    "city"
+   ],
+   [
+    300,
+    "city"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Shurasena capital, later Kushan art centre"
+ },
+ {
+  "name": "Ujjain",
+  "lon": 75.79,
+  "lat": 23.18,
+  "phases": [
+   [
+    -700,
+    "town"
+   ],
+   [
+    -400,
+    "city"
+   ],
+   [
+    1200,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Avanti capital, prime meridian of Indian astronomy"
+ },
+ {
+  "name": "Champa",
+  "lon": 86.83,
+  "lat": 25.34,
+  "phases": [
+   [
+    -800,
+    "town"
+   ],
+   [
+    -400,
+    "city"
+   ],
+   [
+    700,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Anga kingdom capital near modern Bhagalpur"
+ },
+ {
+  "name": "Rajpur Sonkh",
+  "lon": 77.58,
+  "lat": 27.3,
+  "phases": [
+   [
+    -600,
+    "village"
+   ],
+   [
+    300,
+    "town"
+   ],
+   [
+    800,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Mathura-region excavated township"
+ },
+ {
+  "name": "Ahichhatra",
+  "lon": 79.13,
+  "lat": 28.38,
+  "phases": [
+   [
+    -800,
+    "town"
+   ],
+   [
+    -300,
+    "city"
+   ],
+   [
+    1100,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Panchala kingdom capital, Bareilly district"
+ },
+ {
+  "name": "Atranjikhera",
+  "lon": 78.62,
+  "lat": 27.55,
+  "phases": [
+   [
+    -1200,
+    "village"
+   ],
+   [
+    -200,
+    "town"
+   ],
+   [
+    900,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Painted Grey Ware to early historic sequence"
+ },
+ {
+  "name": "Kandahar",
+  "lon": 65.71,
+  "lat": 31.61,
+  "phases": [
+   [
+    -500,
+    "town"
+   ],
+   [
+    300,
+    "city"
+   ],
+   [
+    1200,
+    "city"
+   ],
+   [
+    1747,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Old Kandahar, Achaemenid Arachosia satrapy, later Durrani capital"
+ },
+ {
+  "name": "Bagram",
+  "lon": 69.27,
+  "lat": 34.94,
+  "phases": [
+   [
+    -300,
+    "town"
+   ],
+   [
+    100,
+    "city"
+   ],
+   [
+    900,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Kapisa/Alexandria ad Caucasum, Kushan ivory hoard"
+ },
+ {
+  "name": "Balkh",
+  "lon": 66.9,
+  "lat": 36.76,
+  "phases": [
+   [
+    -1500,
+    "town"
+   ],
+   [
+    -500,
+    "city"
+   ],
+   [
+    1220,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Bactra, ancient Bactrian capital, destroyed by Mongols"
+ },
+ {
+  "name": "Ghazni",
+  "lon": 68.42,
+  "lat": 33.55,
+  "phases": [
+   [
+    300,
+    "town"
+   ],
+   [
+    977,
+    "city"
+   ],
+   [
+    1150,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ghaznavid empire capital under Mahmud of Ghazni"
+ },
+ {
+  "name": "Kabul",
+  "lon": 69.21,
+  "lat": 34.53,
+  "phases": [
+   [
+    -500,
+    "town"
+   ],
+   [
+    600,
+    "city"
+   ],
+   [
+    1504,
+    "city"
+   ],
+   [
+    1776,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Long-standing Afghan hub, Mughal and later Durrani capital"
+ },
+ {
+  "name": "Jalalabad",
+  "lon": 70.45,
+  "lat": 34.44,
+  "phases": [
+   [
+    1560,
+    "town"
+   ],
+   [
+    1834,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Mughal-founded garrison town on the Kabul river"
+ },
+ {
+  "name": "Charsadda",
+  "lon": 71.74,
+  "lat": 34.15,
+  "phases": [
+   [
+    -600,
+    "town"
+   ],
+   [
+    -100,
+    "city"
+   ],
+   [
+    900,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Pushkalavati, Gandhara capital before Peshawar"
+ },
+ {
+  "name": "Peshawar",
+  "lon": 71.58,
+  "lat": 34.01,
+  "phases": [
+   [
+    100,
+    "town"
+   ],
+   [
+    130,
+    "city"
+   ],
+   [
+    1000,
+    "city"
+   ],
+   [
+    1550,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Purushapura, Kushan capital, Mughal frontier city"
+ },
+ {
+  "name": "Swat (Mingora)",
+  "lon": 72.36,
+  "lat": 34.77,
+  "phases": [
+   [
+    -500,
+    "town"
+   ],
+   [
+    100,
+    "city"
+   ],
+   [
+    700,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Gandharan Buddhist heartland, Udyana"
+ },
+ {
+  "name": "Multan",
+  "lon": 71.47,
+  "lat": 30.2,
+  "phases": [
+   [
+    -300,
+    "town"
+   ],
+   [
+    400,
+    "city"
+   ],
+   [
+    1000,
+    "city"
+   ],
+   [
+    1526,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Sun-temple city, later Sufi shrine centre and Mughal province"
+ },
+ {
+  "name": "Lahore",
+  "lon": 74.34,
+  "lat": 31.55,
+  "phases": [
+   [
+    100,
+    "town"
+   ],
+   [
+    1000,
+    "city"
+   ],
+   [
+    1524,
+    "city"
+   ],
+   [
+    1799,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Punjab's premier city, Mughal and Sikh capital"
+ },
+ {
+  "name": "Uch Sharif",
+  "lon": 71.07,
+  "lat": 29.24,
+  "phases": [
+   [
+    500,
+    "town"
+   ],
+   [
+    1100,
+    "town"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Sufi shrine town on the Sutlej-Chenab confluence"
+ },
+ {
+  "name": "Debal",
+  "lon": 67.3,
+  "lat": 24.75,
+  "phases": [
+   [
+    600,
+    "town"
+   ],
+   [
+    712,
+    "city"
+   ],
+   [
+    1300,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Sindh's chief port, taken by Muhammad bin Qasim"
+ },
+ {
+  "name": "Thatta",
+  "lon": 67.92,
+  "lat": 24.75,
+  "phases": [
+   [
+    1350,
+    "town"
+   ],
+   [
+    1592,
+    "city"
+   ],
+   [
+    1739,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Sindh's capital under the Samma and Tarkhan dynasties"
+ },
+ {
+  "name": "Alor",
+  "lon": 68.87,
+  "lat": 27.68,
+  "phases": [
+   [
+    500,
+    "town"
+   ],
+   [
+    712,
+    "city"
+   ],
+   [
+    1300,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Chach's Sindh capital, later abandoned as Indus shifted"
+ },
+ {
+  "name": "Hyderabad Sindh",
+  "lon": 68.37,
+  "lat": 25.4,
+  "phases": [
+   [
+    1768,
+    "town"
+   ],
+   [
+    1768,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Founded by Kalhora ruler Ghulam Shah as Sindh's capital"
+ },
+ {
+  "name": "Sehwan Sharif",
+  "lon": 67.86,
+  "lat": 26.42,
+  "phases": [
+   [
+    -300,
+    "town"
+   ],
+   [
+    712,
+    "town"
+   ],
+   [
+    1300,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ancient Sivistan, Lal Shahbaz Qalandar shrine town"
+ },
+ {
+  "name": "Bahawalpur",
+  "lon": 71.68,
+  "lat": 29.4,
+  "phases": [
+   [
+    1748,
+    "town"
+   ],
+   [
+    1802,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Nawab of Bahawalpur's princely-state capital"
+ },
+ {
+  "name": "Shikarpur",
+  "lon": 68.64,
+  "lat": 27.96,
+  "phases": [
+   [
+    1617,
+    "town"
+   ],
+   [
+    1700,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Sindhi merchant-banking town, caravan trade to Central Asia"
+ },
+ {
+  "name": "Sialkot",
+  "lon": 74.53,
+  "lat": 32.49,
+  "phases": [
+   [
+    -100,
+    "town"
+   ],
+   [
+    600,
+    "town"
+   ],
+   [
+    1580,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ancient Sagala, Alexander-era Punjab town"
+ },
+ {
+  "name": "Sukkur",
+  "lon": 68.86,
+  "lat": 27.7,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Indus crossing point near Rohri"
+ },
+ {
+  "name": "Chittorgarh",
+  "lon": 74.63,
+  "lat": 24.89,
+  "phases": [
+   [
+    700,
+    "town"
+   ],
+   [
+    900,
+    "city"
+   ],
+   [
+    1568,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Mewar's Rajput hill-fort capital"
+ },
+ {
+  "name": "Udaipur",
+  "lon": 73.68,
+  "lat": 24.58,
+  "phases": [
+   [
+    1559,
+    "town"
+   ],
+   [
+    1559,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Founded by Udai Singh II as new Mewar capital"
+ },
+ {
+  "name": "Jodhpur",
+  "lon": 73.02,
+  "lat": 26.29,
+  "phases": [
+   [
+    1459,
+    "town"
+   ],
+   [
+    1459,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Marwar capital founded by Rao Jodha"
+ },
+ {
+  "name": "Jaisalmer",
+  "lon": 70.91,
+  "lat": 26.92,
+  "phases": [
+   [
+    1156,
+    "town"
+   ],
+   [
+    1156,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Bhati Rajput desert fortress on the trade route to Sindh"
+ },
+ {
+  "name": "Bikaner",
+  "lon": 73.31,
+  "lat": 28.02,
+  "phases": [
+   [
+    1488,
+    "town"
+   ],
+   [
+    1488,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Founded by Rao Bika, Marwar cadet state capital"
+ },
+ {
+  "name": "Ajmer",
+  "lon": 74.64,
+  "lat": 26.45,
+  "phases": [
+   [
+    700,
+    "town"
+   ],
+   [
+    1100,
+    "city"
+   ],
+   [
+    1193,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Chauhan capital, later Sufi shrine of Muinuddin Chishti"
+ },
+ {
+  "name": "Nagaur",
+  "lon": 73.74,
+  "lat": 27.2,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1300,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Rajasthan market and fort town on caravan route"
+ },
+ {
+  "name": "Amber",
+  "lon": 75.85,
+  "lat": 26.98,
+  "phases": [
+   [
+    1037,
+    "town"
+   ],
+   [
+    1592,
+    "city"
+   ],
+   [
+    1727,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Kachwaha capital before Jaipur was founded"
+ },
+ {
+  "name": "Jaipur",
+  "lon": 75.79,
+  "lat": 26.92,
+  "phases": [
+   [
+    1727,
+    "town"
+   ],
+   [
+    1727,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Planned city founded by Sawai Jai Singh II"
+ },
+ {
+  "name": "Pushkar",
+  "lon": 74.55,
+  "lat": 26.49,
+  "phases": [
+   [
+    300,
+    "village"
+   ],
+   [
+    900,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Pilgrimage town at sacred lake, Brahma temple"
+ },
+ {
+  "name": "Anhilwara (Patan)",
+  "lon": 72.12,
+  "lat": 23.85,
+  "phases": [
+   [
+    746,
+    "town"
+   ],
+   [
+    942,
+    "city"
+   ],
+   [
+    1300,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Chaulukya (Solanki) dynasty capital of Gujarat"
+ },
+ {
+  "name": "Dwarka",
+  "lon": 68.97,
+  "lat": 22.24,
+  "phases": [
+   [
+    -500,
+    "village"
+   ],
+   [
+    500,
+    "town"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Krishna's legendary city, ancient port and pilgrimage site"
+ },
+ {
+  "name": "Somnath",
+  "lon": 70.4,
+  "lat": 20.89,
+  "phases": [
+   [
+    300,
+    "town"
+   ],
+   [
+    1026,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Shiva temple town, sacked by Mahmud of Ghazni"
+ },
+ {
+  "name": "Cambay (Khambhat)",
+  "lon": 72.62,
+  "lat": 22.3,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1300,
+    "city"
+   ],
+   [
+    1600,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Premier Gujarat trading port, agate-bead export"
+ },
+ {
+  "name": "Surat",
+  "lon": 72.83,
+  "lat": 21.17,
+  "phases": [
+   [
+    1500,
+    "town"
+   ],
+   [
+    1600,
+    "city"
+   ],
+   [
+    1668,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Mughal-era chief port, English/Dutch factories"
+ },
+ {
+  "name": "Ahmedabad",
+  "lon": 72.58,
+  "lat": 23.03,
+  "phases": [
+   [
+    1411,
+    "town"
+   ],
+   [
+    1411,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Founded by Ahmad Shah I, Gujarat Sultanate capital"
+ },
+ {
+  "name": "Broach (Bharuch)",
+  "lon": 72.97,
+  "lat": 21.71,
+  "phases": [
+   [
+    -300,
+    "town"
+   ],
+   [
+    100,
+    "city"
+   ],
+   [
+    1300,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Barygaza of the Periplus, ancient Indo-Roman trade port"
+ },
+ {
+  "name": "Junagadh",
+  "lon": 70.47,
+  "lat": 21.52,
+  "phases": [
+   [
+    -300,
+    "town"
+   ],
+   [
+    300,
+    "city"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Girnar-hill fortress town, Ashokan rock edict site"
+ },
+ {
+  "name": "Vadnagar",
+  "lon": 72.64,
+  "lat": 23.79,
+  "phases": [
+   [
+    -200,
+    "village"
+   ],
+   [
+    600,
+    "town"
+   ],
+   [
+    1200,
+    "town"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Ancient Anartapura, Buddhist monastery excavations"
+ },
+ {
+  "name": "Kannauj",
+  "lon": 79.92,
+  "lat": 27.05,
+  "phases": [
+   [
+    300,
+    "town"
+   ],
+   [
+    606,
+    "city"
+   ],
+   [
+    1194,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Harsha's imperial capital, later Gahadavala kingdom"
+ },
+ {
+  "name": "Delhi (Lal Kot)",
+  "lon": 77.19,
+  "lat": 28.52,
+  "phases": [
+   [
+    1052,
+    "town"
+   ],
+   [
+    1206,
+    "city"
+   ],
+   [
+    1947,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Tomar-Chauhan fort, then Delhi Sultanate and Mughal capital"
+ },
+ {
+  "name": "Agra",
+  "lon": 78.01,
+  "lat": 27.18,
+  "phases": [
+   [
+    1080,
+    "town"
+   ],
+   [
+    1506,
+    "city"
+   ],
+   [
+    1526,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Lodi and Mughal capital, site of the Taj Mahal"
+ },
+ {
+  "name": "Fatehpur Sikri",
+  "lon": 77.66,
+  "lat": 27.1,
+  "phases": [
+   [
+    1571,
+    "city"
+   ],
+   [
+    1585,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Akbar's short-lived planned capital"
+ },
+ {
+  "name": "Jaunpur",
+  "lon": 82.68,
+  "lat": 25.75,
+  "phases": [
+   [
+    1359,
+    "town"
+   ],
+   [
+    1394,
+    "city"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Sharqi Sultanate capital, 'Shiraz of the East'"
+ },
+ {
+  "name": "Lucknow",
+  "lon": 80.95,
+  "lat": 26.85,
+  "phases": [
+   [
+    1350,
+    "town"
+   ],
+   [
+    1775,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Awadh Nawabi capital from 1775"
+ },
+ {
+  "name": "Allahabad (Prayag)",
+  "lon": 81.85,
+  "lat": 25.44,
+  "phases": [
+   [
+    -500,
+    "town"
+   ],
+   [
+    600,
+    "town"
+   ],
+   [
+    1583,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Sangam pilgrimage site, Mughal provincial capital Ilahabas"
+ },
+ {
+  "name": "Kanpur",
+  "lon": 80.35,
+  "lat": 26.47,
+  "phases": [
+   [
+    1207,
+    "village"
+   ],
+   [
+    1770,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Rose to prominence as British garrison and cantonment"
+ },
+ {
+  "name": "Bareilly",
+  "lon": 79.42,
+  "lat": 28.35,
+  "phases": [
+   [
+    1537,
+    "town"
+   ],
+   [
+    1657,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Rohilkhand market town founded under the Mughals"
+ },
+ {
+  "name": "Meerut",
+  "lon": 77.71,
+  "lat": 28.98,
+  "phases": [
+   [
+    -1200,
+    "village"
+   ],
+   [
+    1000,
+    "town"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Ancient Painted Grey Ware site, medieval market town"
+ },
+ {
+  "name": "Bhagalpur",
+  "lon": 86.98,
+  "lat": 25.25,
+  "phases": [
+   [
+    -500,
+    "town"
+   ],
+   [
+    600,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ancient Champa hinterland, silk-weaving town"
+ },
+ {
+  "name": "Gaya",
+  "lon": 84.99,
+  "lat": 24.8,
+  "phases": [
+   [
+    -600,
+    "town"
+   ],
+   [
+    300,
+    "town"
+   ],
+   [
+    1000,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Hindu and Buddhist pilgrimage town near Bodh Gaya"
+ },
+ {
+  "name": "Bodh Gaya",
+  "lon": 84.99,
+  "lat": 24.7,
+  "phases": [
+   [
+    -500,
+    "village"
+   ],
+   [
+    -300,
+    "town"
+   ],
+   [
+    600,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Site of the Buddha's enlightenment, Mahabodhi temple"
+ },
+ {
+  "name": "Nalanda",
+  "lon": 85.44,
+  "lat": 25.14,
+  "phases": [
+   [
+    -500,
+    "village"
+   ],
+   [
+    450,
+    "city"
+   ],
+   [
+    1200,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Great Buddhist monastic university, destroyed c.1200"
+ },
+ {
+  "name": "Vikramashila",
+  "lon": 87.28,
+  "lat": 25.31,
+  "phases": [
+   [
+    783,
+    "town"
+   ],
+   [
+    1200,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Pala-era Buddhist university, Bihar"
+ },
+ {
+  "name": "Munger",
+  "lon": 86.47,
+  "lat": 25.38,
+  "phases": [
+   [
+    600,
+    "town"
+   ],
+   [
+    1200,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Pala dynasty capital under Devapala, Ganga fort town"
+ },
+ {
+  "name": "Darbhanga",
+  "lon": 85.9,
+  "lat": 26.16,
+  "phases": [
+   [
+    1200,
+    "village"
+   ],
+   [
+    1557,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Mithila seat of learning, Oiniwar and Khandavala rule"
+ },
+ {
+  "name": "Sasaram",
+  "lon": 84.02,
+  "lat": 24.95,
+  "phases": [
+   [
+    1200,
+    "town"
+   ],
+   [
+    1540,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Sher Shah Suri's hometown and mausoleum site"
+ },
+ {
+  "name": "Ballia",
+  "lon": 84.15,
+  "lat": 25.76,
+  "phases": [
+   [
+    1000,
+    "village"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Gangetic market town, medieval river trade"
+ },
+ {
+  "name": "Kathmandu",
+  "lon": 85.32,
+  "lat": 27.71,
+  "phases": [
+   [
+    100,
+    "town"
+   ],
+   [
+    723,
+    "city"
+   ],
+   [
+    1200,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Kantipur, Malla-era Nepal valley capital"
+ },
+ {
+  "name": "Patan (Lalitpur)",
+  "lon": 85.32,
+  "lat": 27.68,
+  "phases": [
+   [
+    300,
+    "town"
+   ],
+   [
+    1200,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Newar Malla kingdom capital, temple city"
+ },
+ {
+  "name": "Bhaktapur",
+  "lon": 85.43,
+  "lat": 27.67,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1200,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Third Malla kingdom capital, Nepal valley"
+ },
+ {
+  "name": "Lumbini",
+  "lon": 83.28,
+  "lat": 27.47,
+  "phases": [
+   [
+    -600,
+    "village"
+   ],
+   [
+    -249,
+    "town"
+   ],
+   [
+    600,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Buddha's birthplace, Ashokan pillar"
+ },
+ {
+  "name": "Pokhara",
+  "lon": 83.99,
+  "lat": 28.21,
+  "phases": [
+   [
+    1200,
+    "village"
+   ],
+   [
+    1786,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Gandaki valley trade town, annexed by Gorkha kingdom"
+ },
+ {
+  "name": "Gorkha",
+  "lon": 84.63,
+  "lat": 28.0,
+  "phases": [
+   [
+    1559,
+    "town"
+   ],
+   [
+    1559,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Seat of the Shah dynasty that unified Nepal"
+ },
+ {
+  "name": "Janakpur",
+  "lon": 85.92,
+  "lat": 26.73,
+  "phases": [
+   [
+    -700,
+    "town"
+   ],
+   [
+    600,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Mithila capital, Sita's legendary birthplace"
+ },
+ {
+  "name": "Thimphu",
+  "lon": 89.64,
+  "lat": 27.47,
+  "phases": [
+   [
+    1216,
+    "village"
+   ],
+   [
+    1641,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Bhutanese dzong town, later national capital"
+ },
+ {
+  "name": "Punakha",
+  "lon": 89.87,
+  "lat": 27.59,
+  "phases": [
+   [
+    1637,
+    "town"
+   ],
+   [
+    1637,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Bhutan's winter capital, dzong at river confluence"
+ },
+ {
+  "name": "Paro",
+  "lon": 89.41,
+  "lat": 27.43,
+  "phases": [
+   [
+    1300,
+    "village"
+   ],
+   [
+    1646,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Bhutanese valley town with Rinpung Dzong"
+ },
+ {
+  "name": "Srinagar Kashmir",
+  "lon": 74.8,
+  "lat": 34.08,
+  "phases": [
+   [
+    -200,
+    "town"
+   ],
+   [
+    600,
+    "city"
+   ],
+   [
+    1339,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Kashmir valley capital, Pravarasena's foundation tradition"
+ },
+ {
+  "name": "Leh",
+  "lon": 77.58,
+  "lat": 34.16,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1600,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ladakh's royal capital on the trans-Himalayan trade route"
+ },
+ {
+  "name": "Hemis",
+  "lon": 77.72,
+  "lat": 33.91,
+  "phases": [
+   [
+    1630,
+    "village"
+   ],
+   [
+    1630,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ladakhi monastic settlement"
+ },
+ {
+  "name": "Vidisha",
+  "lon": 77.81,
+  "lat": 23.53,
+  "phases": [
+   [
+    -600,
+    "town"
+   ],
+   [
+    -200,
+    "city"
+   ],
+   [
+    1200,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ancient Besnagar, Sunga-era Heliodorus pillar"
+ },
+ {
+  "name": "Sanchi",
+  "lon": 77.74,
+  "lat": 23.48,
+  "phases": [
+   [
+    -300,
+    "village"
+   ],
+   [
+    -100,
+    "town"
+   ],
+   [
+    1200,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Great Stupa complex, Ashokan Buddhist site"
+ },
+ {
+  "name": "Mandu",
+  "lon": 75.39,
+  "lat": 22.34,
+  "phases": [
+   [
+    1100,
+    "town"
+   ],
+   [
+    1401,
+    "city"
+   ],
+   [
+    1732,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Malwa Sultanate capital, hilltop fortress city"
+ },
+ {
+  "name": "Dhar",
+  "lon": 75.3,
+  "lat": 22.6,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1010,
+    "city"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Paramara dynasty capital of Malwa"
+ },
+ {
+  "name": "Gwalior",
+  "lon": 78.18,
+  "lat": 26.22,
+  "phases": [
+   [
+    600,
+    "town"
+   ],
+   [
+    1023,
+    "city"
+   ],
+   [
+    1500,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Tomara Rajput hill-fort capital, central India"
+ },
+ {
+  "name": "Orchha",
+  "lon": 78.64,
+  "lat": 25.35,
+  "phases": [
+   [
+    1531,
+    "town"
+   ],
+   [
+    1531,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Bundela Rajput capital, riverside palace complex"
+ },
+ {
+  "name": "Khajuraho",
+  "lon": 79.92,
+  "lat": 24.85,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    950,
+    "town"
+   ],
+   [
+    1300,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Chandela dynasty temple town, central India"
+ },
+ {
+  "name": "Mahismati",
+  "lon": 76.35,
+  "lat": 22.26,
+  "phases": [
+   [
+    -800,
+    "town"
+   ],
+   [
+    -400,
+    "city"
+   ],
+   [
+    600,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Avanti-Narmada capital identified near Mandhata"
+ },
+ {
+  "name": "Jabalpur",
+  "lon": 79.95,
+  "lat": 23.18,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1300,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Gondwana region market town on the Narmada"
+ },
+ {
+  "name": "Raipur",
+  "lon": 81.63,
+  "lat": 21.25,
+  "phases": [
+   [
+    1000,
+    "village"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Chhattisgarh regional capital under Kalachuri rule"
+ },
+ {
+  "name": "Ratanpur",
+  "lon": 82.16,
+  "lat": 22.29,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1050,
+    "city"
+   ],
+   [
+    1741,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Kalachuri dynasty capital of Chhattisgarh"
+ },
+ {
+  "name": "Nagpur",
+  "lon": 79.09,
+  "lat": 21.15,
+  "phases": [
+   [
+    1702,
+    "town"
+   ],
+   [
+    1739,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Bhonsle Maratha capital of Berar/Nagpur kingdom"
+ },
+ {
+  "name": "Chanderi",
+  "lon": 78.14,
+  "lat": 24.72,
+  "phases": [
+   [
+    1100,
+    "town"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Malwa frontier fort and weaving town"
+ },
+ {
+  "name": "Paithan",
+  "lon": 75.38,
+  "lat": 19.48,
+  "phases": [
+   [
+    -300,
+    "town"
+   ],
+   [
+    -100,
+    "city"
+   ],
+   [
+    1300,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Pratishthana, Satavahana dynasty capital"
+ },
+ {
+  "name": "Ter (Tagara)",
+  "lon": 76.19,
+  "lat": 18.3,
+  "phases": [
+   [
+    -200,
+    "town"
+   ],
+   [
+    100,
+    "city"
+   ],
+   [
+    900,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Satavahana-era trade town named in the Periplus"
+ },
+ {
+  "name": "Junnar",
+  "lon": 73.88,
+  "lat": 19.21,
+  "phases": [
+   [
+    -200,
+    "town"
+   ],
+   [
+    100,
+    "city"
+   ],
+   [
+    900,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Satavahana-era cave complex and trade town"
+ },
+ {
+  "name": "Nashik",
+  "lon": 73.79,
+  "lat": 19.99,
+  "phases": [
+   [
+    -200,
+    "town"
+   ],
+   [
+    100,
+    "city"
+   ],
+   [
+    1300,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Satavahana rock-cut caves, Godavari river town"
+ },
+ {
+  "name": "Karad",
+  "lon": 74.18,
+  "lat": 17.29,
+  "phases": [
+   [
+    -100,
+    "village"
+   ],
+   [
+    500,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Karahakata, early Deccan river-confluence town"
+ },
+ {
+  "name": "Kolhapur",
+  "lon": 74.24,
+  "lat": 16.7,
+  "phases": [
+   [
+    -200,
+    "town"
+   ],
+   [
+    100,
+    "city"
+   ],
+   [
+    1200,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ancient Karahataka, Shilahara dynasty capital"
+ },
+ {
+  "name": "Devagiri (Daulatabad)",
+  "lon": 75.22,
+  "lat": 19.94,
+  "phases": [
+   [
+    1187,
+    "town"
+   ],
+   [
+    1187,
+    "city"
+   ],
+   [
+    1327,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Yadava capital, briefly Tughlaq imperial capital"
+ },
+ {
+  "name": "Pune",
+  "lon": 73.86,
+  "lat": 18.52,
+  "phases": [
+   [
+    750,
+    "village"
+   ],
+   [
+    1595,
+    "town"
+   ],
+   [
+    1674,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Maratha capital under Shivaji and the Peshwas"
+ },
+ {
+  "name": "Raigad",
+  "lon": 73.44,
+  "lat": 18.23,
+  "phases": [
+   [
+    1030,
+    "village"
+   ],
+   [
+    1674,
+    "city"
+   ],
+   [
+    1818,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Shivaji's coronation capital, hill fort"
+ },
+ {
+  "name": "Satara",
+  "lon": 74.02,
+  "lat": 17.69,
+  "phases": [
+   [
+    1190,
+    "village"
+   ],
+   [
+    1698,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Maratha Chhatrapati's seat after Raigad"
+ },
+ {
+  "name": "Panhala",
+  "lon": 74.11,
+  "lat": 16.81,
+  "phases": [
+   [
+    1178,
+    "town"
+   ],
+   [
+    1178,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Shilahara-built fort, later Maratha stronghold"
+ },
+ {
+  "name": "Vijayanagara (Hampi)",
+  "lon": 76.46,
+  "lat": 15.34,
+  "phases": [
+   [
+    1336,
+    "city"
+   ],
+   [
+    1565,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Vijayanagara Empire capital, sacked 1565"
+ },
+ {
+  "name": "Badami",
+  "lon": 75.68,
+  "lat": 15.92,
+  "phases": [
+   [
+    540,
+    "town"
+   ],
+   [
+    543,
+    "city"
+   ],
+   [
+    753,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Chalukya dynasty capital, rock-cut cave temples"
+ },
+ {
+  "name": "Aihole",
+  "lon": 75.88,
+  "lat": 16.02,
+  "phases": [
+   [
+    450,
+    "village"
+   ],
+   [
+    550,
+    "town"
+   ],
+   [
+    900,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Early Chalukya temple laboratory town"
+ },
+ {
+  "name": "Pattadakal",
+  "lon": 75.82,
+  "lat": 15.95,
+  "phases": [
+   [
+    600,
+    "village"
+   ],
+   [
+    733,
+    "town"
+   ],
+   [
+    900,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Chalukya coronation and temple town, UNESCO site"
+ },
+ {
+  "name": "Manyakheta",
+  "lon": 77.11,
+  "lat": 17.33,
+  "phases": [
+   [
+    753,
+    "town"
+   ],
+   [
+    757,
+    "city"
+   ],
+   [
+    973,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Rashtrakuta dynasty imperial capital"
+ },
+ {
+  "name": "Kalyani (Basavakalyan)",
+  "lon": 76.94,
+  "lat": 17.87,
+  "phases": [
+   [
+    1000,
+    "town"
+   ],
+   [
+    1050,
+    "city"
+   ],
+   [
+    1200,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Western Chalukya capital, Basava's Lingayat movement"
+ },
+ {
+  "name": "Bijapur",
+  "lon": 75.71,
+  "lat": 16.83,
+  "phases": [
+   [
+    1000,
+    "town"
+   ],
+   [
+    1347,
+    "city"
+   ],
+   [
+    1490,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Adil Shahi sultanate capital, Deccan"
+ },
+ {
+  "name": "Golconda",
+  "lon": 78.4,
+  "lat": 17.38,
+  "phases": [
+   [
+    1143,
+    "village"
+   ],
+   [
+    1518,
+    "city"
+   ],
+   [
+    1687,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Qutb Shahi capital, diamond trade centre"
+ },
+ {
+  "name": "Hyderabad Deccan",
+  "lon": 78.47,
+  "lat": 17.36,
+  "phases": [
+   [
+    1591,
+    "town"
+   ],
+   [
+    1591,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Founded by Muhammad Quli Qutb Shah, later Nizam's capital"
+ },
+ {
+  "name": "Warangal",
+  "lon": 79.6,
+  "lat": 18.0,
+  "phases": [
+   [
+    1163,
+    "town"
+   ],
+   [
+    1163,
+    "city"
+   ],
+   [
+    1323,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Kakatiya dynasty capital, Telangana"
+ },
+ {
+  "name": "Bidar",
+  "lon": 77.52,
+  "lat": 17.91,
+  "phases": [
+   [
+    1300,
+    "town"
+   ],
+   [
+    1424,
+    "city"
+   ],
+   [
+    1600,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Bahmani sultanate capital after Gulbarga"
+ },
+ {
+  "name": "Gulbarga",
+  "lon": 76.84,
+  "lat": 17.33,
+  "phases": [
+   [
+    1000,
+    "town"
+   ],
+   [
+    1347,
+    "city"
+   ],
+   [
+    1424,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "First Bahmani sultanate capital"
+ },
+ {
+  "name": "Belur",
+  "lon": 75.86,
+  "lat": 13.16,
+  "phases": [
+   [
+    1000,
+    "town"
+   ],
+   [
+    1117,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Hoysala dynasty early capital, Chennakeshava temple"
+ },
+ {
+  "name": "Halebidu",
+  "lon": 76.0,
+  "lat": 13.21,
+  "phases": [
+   [
+    1050,
+    "town"
+   ],
+   [
+    1050,
+    "city"
+   ],
+   [
+    1311,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Hoysala capital Dwarasamudra, sacked by Delhi forces"
+ },
+ {
+  "name": "Shravanabelagola",
+  "lon": 76.48,
+  "lat": 12.86,
+  "phases": [
+   [
+    300,
+    "village"
+   ],
+   [
+    981,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Jain pilgrimage centre, Gommateshvara statue"
+ },
+ {
+  "name": "Mysore",
+  "lon": 76.64,
+  "lat": 12.3,
+  "phases": [
+   [
+    1399,
+    "town"
+   ],
+   [
+    1610,
+    "city"
+   ],
+   [
+    1799,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Wadiyar dynasty capital, later Tipu Sultan era"
+ },
+ {
+  "name": "Srirangapatna",
+  "lon": 76.69,
+  "lat": 12.42,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1454,
+    "town"
+   ],
+   [
+    1610,
+    "city"
+   ],
+   [
+    1799,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Tipu Sultan's capital, fell to British 1799"
+ },
+ {
+  "name": "Bengaluru",
+  "lon": 77.59,
+  "lat": 12.97,
+  "phases": [
+   [
+    1537,
+    "town"
+   ],
+   [
+    1687,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Founded by Kempe Gowda I, Mysore kingdom market town"
+ },
+ {
+  "name": "Chitradurga",
+  "lon": 76.4,
+  "lat": 14.23,
+  "phases": [
+   [
+    1300,
+    "town"
+   ],
+   [
+    1568,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Nayaka chieftains' hill-fort capital"
+ },
+ {
+  "name": "Banavasi",
+  "lon": 74.94,
+  "lat": 14.53,
+  "phases": [
+   [
+    -200,
+    "town"
+   ],
+   [
+    100,
+    "city"
+   ],
+   [
+    600,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Kadamba dynasty capital, Karnataka"
+ },
+ {
+  "name": "Goa (Old Goa)",
+  "lon": 73.91,
+  "lat": 15.5,
+  "phases": [
+   [
+    -100,
+    "town"
+   ],
+   [
+    1054,
+    "city"
+   ],
+   [
+    1510,
+    "city"
+   ],
+   [
+    1843,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Kadamba and Adil Shahi port, Portuguese colonial capital"
+ },
+ {
+  "name": "Madurai",
+  "lon": 78.12,
+  "lat": 9.93,
+  "phases": [
+   [
+    -300,
+    "town"
+   ],
+   [
+    -100,
+    "city"
+   ],
+   [
+    1300,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Pandya dynasty capital, Sangam-era literary centre"
+ },
+ {
+  "name": "Uraiyur",
+  "lon": 78.68,
+  "lat": 10.82,
+  "phases": [
+   [
+    -300,
+    "town"
+   ],
+   [
+    -100,
+    "city"
+   ],
+   [
+    900,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Early Chola capital near Tiruchirappalli"
+ },
+ {
+  "name": "Thanjavur",
+  "lon": 79.14,
+  "lat": 10.79,
+  "phases": [
+   [
+    -200,
+    "town"
+   ],
+   [
+    850,
+    "city"
+   ],
+   [
+    1300,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Chola imperial capital, Brihadishvara temple"
+ },
+ {
+  "name": "Gangaikonda Cholapuram",
+  "lon": 79.45,
+  "lat": 11.21,
+  "phases": [
+   [
+    1025,
+    "city"
+   ],
+   [
+    1300,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Rajendra Chola I's new capital, temple city"
+ },
+ {
+  "name": "Kanchipuram",
+  "lon": 79.71,
+  "lat": 12.84,
+  "phases": [
+   [
+    -300,
+    "town"
+   ],
+   [
+    300,
+    "city"
+   ],
+   [
+    1300,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Pallava dynasty capital, temple and weaving city"
+ },
+ {
+  "name": "Mahabalipuram",
+  "lon": 80.19,
+  "lat": 12.62,
+  "phases": [
+   [
+    600,
+    "town"
+   ],
+   [
+    630,
+    "city"
+   ],
+   [
+    900,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Pallava port and rock-cut monument city"
+ },
+ {
+  "name": "Korkai",
+  "lon": 78.13,
+  "lat": 8.62,
+  "phases": [
+   [
+    -600,
+    "town"
+   ],
+   [
+    -100,
+    "city"
+   ],
+   [
+    800,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Early Pandya pearl-fishery port, Sangam literature"
+ },
+ {
+  "name": "Puhar (Kaveripattinam)",
+  "lon": 79.85,
+  "lat": 11.15,
+  "phases": [
+   [
+    -300,
+    "town"
+   ],
+   [
+    -100,
+    "city"
+   ],
+   [
+    500,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Early Chola port capital, Silappatikaram setting"
+ },
+ {
+  "name": "Muziris",
+  "lon": 76.2,
+  "lat": 10.17,
+  "phases": [
+   [
+    -200,
+    "town"
+   ],
+   [
+    -100,
+    "city"
+   ],
+   [
+    1341,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Premier Malabar pepper port, Roman trade records"
+ },
+ {
+  "name": "Kodungallur",
+  "lon": 76.2,
+  "lat": 10.23,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1102,
+    "city"
+   ],
+   [
+    1700,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Later Chera capital succeeding Muziris"
+ },
+ {
+  "name": "Quilon (Kollam)",
+  "lon": 76.6,
+  "lat": 8.88,
+  "phases": [
+   [
+    825,
+    "town"
+   ],
+   [
+    850,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Venad capital, Chinese and Arab trade port"
+ },
+ {
+  "name": "Kozhikode (Calicut)",
+  "lon": 75.78,
+  "lat": 11.26,
+  "phases": [
+   [
+    1200,
+    "town"
+   ],
+   [
+    1300,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Zamorin's capital, Vasco da Gama's 1498 landfall"
+ },
+ {
+  "name": "Kochi (Cochin)",
+  "lon": 76.24,
+  "lat": 9.97,
+  "phases": [
+   [
+    1341,
+    "town"
+   ],
+   [
+    1503,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Rose after Muziris's port silted, Portuguese first Indian base"
+ },
+ {
+  "name": "Thiruvananthapuram",
+  "lon": 76.94,
+  "lat": 8.52,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1729,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Travancore capital from Marthanda Varma's reign"
+ },
+ {
+  "name": "Palakkad",
+  "lon": 76.65,
+  "lat": 10.78,
+  "phases": [
+   [
+    1000,
+    "village"
+   ],
+   [
+    1757,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Malabar-Coimbatore gap trade town"
+ },
+ {
+  "name": "Amaravati",
+  "lon": 80.36,
+  "lat": 16.57,
+  "phases": [
+   [
+    -300,
+    "town"
+   ],
+   [
+    -100,
+    "city"
+   ],
+   [
+    600,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Satavahana capital, major Buddhist stupa site"
+ },
+ {
+  "name": "Vengi",
+  "lon": 81.15,
+  "lat": 17.05,
+  "phases": [
+   [
+    100,
+    "town"
+   ],
+   [
+    624,
+    "city"
+   ],
+   [
+    1080,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Eastern Chalukya capital, Andhra"
+ },
+ {
+  "name": "Kalinganagar",
+  "lon": 84.02,
+  "lat": 20.15,
+  "phases": [
+   [
+    -500,
+    "town"
+   ],
+   [
+    -260,
+    "city"
+   ],
+   [
+    600,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Kalinga kingdom capital contested by Ashoka"
+ },
+ {
+  "name": "Machilipatnam",
+  "lon": 81.14,
+  "lat": 16.19,
+  "phases": [
+   [
+    100,
+    "town"
+   ],
+   [
+    1400,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ancient Masulipatnam, Krishna-delta trade port"
+ },
+ {
+  "name": "Nagapattinam",
+  "lon": 79.84,
+  "lat": 10.77,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1025,
+    "city"
+   ],
+   [
+    1700,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Chola-era port linked to Southeast Asian trade"
+ },
+ {
+  "name": "Rameswaram",
+  "lon": 79.31,
+  "lat": 9.29,
+  "phases": [
+   [
+    300,
+    "village"
+   ],
+   [
+    1200,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Pilgrimage island town, Ramayana tradition"
+ },
+ {
+  "name": "Tirupati",
+  "lon": 79.42,
+  "lat": 13.68,
+  "phases": [
+   [
+    300,
+    "village"
+   ],
+   [
+    1100,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Venkateswara temple pilgrimage town, hill shrine"
+ },
+ {
+  "name": "Kanyakumari",
+  "lon": 77.56,
+  "lat": 8.08,
+  "phases": [
+   [
+    -300,
+    "village"
+   ],
+   [
+    600,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Southern tip pilgrimage and port town"
+ },
+ {
+  "name": "Vellore",
+  "lon": 79.13,
+  "lat": 12.92,
+  "phases": [
+   [
+    1200,
+    "village"
+   ],
+   [
+    1566,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Vijayanagara-era fort town, later Arcot Nawab"
+ },
+ {
+  "name": "Arcot",
+  "lon": 79.33,
+  "lat": 12.9,
+  "phases": [
+   [
+    1000,
+    "village"
+   ],
+   [
+    1710,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Carnatic Nawab's capital, 18th-century wars"
+ },
+ {
+  "name": "Trichinopoly (Tiruchirappalli)",
+  "lon": 78.7,
+  "lat": 10.79,
+  "phases": [
+   [
+    300,
+    "town"
+   ],
+   [
+    1300,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Nayak-era fort city on the Kaveri"
+ },
+ {
+  "name": "Pondicherry",
+  "lon": 79.83,
+  "lat": 11.93,
+  "phases": [
+   [
+    -100,
+    "village"
+   ],
+   [
+    1674,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "French colonial trading post from 1674"
+ },
+ {
+  "name": "Karikal",
+  "lon": 79.84,
+  "lat": 10.93,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1739,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "French colonial enclave, Kaveri delta"
+ },
+ {
+  "name": "Tranquebar",
+  "lon": 79.85,
+  "lat": 11.03,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1620,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Danish trading colony, Tarangambadi"
+ },
+ {
+  "name": "Gauda",
+  "lon": 88.14,
+  "lat": 24.87,
+  "phases": [
+   [
+    400,
+    "town"
+   ],
+   [
+    750,
+    "city"
+   ],
+   [
+    1200,
+    "city"
+   ],
+   [
+    1575,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ancient Bengal capital, later Lakhnauti/Gaur"
+ },
+ {
+  "name": "Vikrampur",
+  "lon": 90.5,
+  "lat": 23.56,
+  "phases": [
+   [
+    700,
+    "town"
+   ],
+   [
+    1080,
+    "city"
+   ],
+   [
+    1300,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Sena dynasty capital, eastern Bengal"
+ },
+ {
+  "name": "Pandua",
+  "lon": 88.15,
+  "lat": 25.13,
+  "phases": [
+   [
+    1339,
+    "town"
+   ],
+   [
+    1339,
+    "city"
+   ],
+   [
+    1500,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Bengal Sultanate capital, Adina Mosque"
+ },
+ {
+  "name": "Dhaka",
+  "lon": 90.41,
+  "lat": 23.71,
+  "phases": [
+   [
+    1200,
+    "village"
+   ],
+   [
+    1608,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Mughal Bengal capital under Islam Khan"
+ },
+ {
+  "name": "Murshidabad",
+  "lon": 88.28,
+  "lat": 24.18,
+  "phases": [
+   [
+    1704,
+    "town"
+   ],
+   [
+    1704,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Nawab of Bengal's capital, founded by Murshid Quli Khan"
+ },
+ {
+  "name": "Chittagong",
+  "lon": 91.83,
+  "lat": 22.34,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1340,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ancient Bengal-Arakan port, Arab and Chinese trade"
+ },
+ {
+  "name": "Sonargaon",
+  "lon": 90.6,
+  "lat": 23.65,
+  "phases": [
+   [
+    1200,
+    "town"
+   ],
+   [
+    1338,
+    "city"
+   ],
+   [
+    1610,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Pre-Mughal Bengal capital, muslin trade"
+ },
+ {
+  "name": "Tamralipta",
+  "lon": 87.93,
+  "lat": 21.94,
+  "phases": [
+   [
+    -500,
+    "town"
+   ],
+   [
+    -100,
+    "city"
+   ],
+   [
+    700,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ancient Bengal port, Fa Xian and Xuanzang embarkation"
+ },
+ {
+  "name": "Bishnupur",
+  "lon": 87.32,
+  "lat": 23.07,
+  "phases": [
+   [
+    1500,
+    "village"
+   ],
+   [
+    1600,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Malla dynasty capital, terracotta temples"
+ },
+ {
+  "name": "Kolkata",
+  "lon": 88.36,
+  "lat": 22.57,
+  "phases": [
+   [
+    1500,
+    "village"
+   ],
+   [
+    1690,
+    "town"
+   ],
+   [
+    1772,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Founded by Job Charnock, British Bengal Presidency capital"
+ },
+ {
+  "name": "Cuttack",
+  "lon": 85.88,
+  "lat": 20.47,
+  "phases": [
+   [
+    989,
+    "town"
+   ],
+   [
+    1568,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ganga and Gajapati dynasty capital of Odisha"
+ },
+ {
+  "name": "Bhubaneswar",
+  "lon": 85.83,
+  "lat": 20.27,
+  "phases": [
+   [
+    300,
+    "village"
+   ],
+   [
+    600,
+    "town"
+   ],
+   [
+    1100,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Kalinga temple city, Lingaraj temple"
+ },
+ {
+  "name": "Puri",
+  "lon": 85.83,
+  "lat": 19.8,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1135,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Jagannath temple pilgrimage town, Odisha coast"
+ },
+ {
+  "name": "Konark",
+  "lon": 86.09,
+  "lat": 19.89,
+  "phases": [
+   [
+    1250,
+    "town"
+   ],
+   [
+    1500,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ganga dynasty Sun Temple town"
+ },
+ {
+  "name": "Jajpur",
+  "lon": 86.33,
+  "lat": 20.85,
+  "phases": [
+   [
+    400,
+    "town"
+   ],
+   [
+    600,
+    "city"
+   ],
+   [
+    1000,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Early Kalinga/Bhauma-Kara dynasty capital"
+ },
+ {
+  "name": "Guwahati",
+  "lon": 91.74,
+  "lat": 26.18,
+  "phases": [
+   [
+    400,
+    "town"
+   ],
+   [
+    655,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ancient Pragjyotishpura, Kamarupa kingdom capital"
+ },
+ {
+  "name": "Sivasagar",
+  "lon": 94.64,
+  "lat": 26.98,
+  "phases": [
+   [
+    1699,
+    "town"
+   ],
+   [
+    1699,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ahom dynasty capital in upper Assam"
+ },
+ {
+  "name": "Garhgaon",
+  "lon": 95.09,
+  "lat": 26.98,
+  "phases": [
+   [
+    1540,
+    "town"
+   ],
+   [
+    1662,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Earlier Ahom capital before Sivasagar"
+ },
+ {
+  "name": "Silchar",
+  "lon": 92.8,
+  "lat": 24.83,
+  "phases": [
+   [
+    1500,
+    "village"
+   ],
+   [
+    1832,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Cachar kingdom market town, Barak valley"
+ },
+ {
+  "name": "Cooch Behar",
+  "lon": 89.45,
+  "lat": 26.32,
+  "phases": [
+   [
+    1586,
+    "town"
+   ],
+   [
+    1586,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Koch dynasty capital, north Bengal"
+ },
+ {
+  "name": "Burhanpur",
+  "lon": 76.23,
+  "lat": 21.31,
+  "phases": [
+   [
+    1400,
+    "town"
+   ],
+   [
+    1400,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Faruqi sultanate capital, Mughal Deccan gateway"
+ },
+ {
+  "name": "Aurangabad",
+  "lon": 75.34,
+  "lat": 19.88,
+  "phases": [
+   [
+    1610,
+    "town"
+   ],
+   [
+    1653,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Named for Aurangzeb, Mughal Deccan viceregal capital"
+ },
+ {
+  "name": "Indore",
+  "lon": 75.86,
+  "lat": 22.72,
+  "phases": [
+   [
+    1715,
+    "town"
+   ],
+   [
+    1818,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Holkar dynasty Maratha capital"
+ },
+ {
+  "name": "Baroda (Vadodara)",
+  "lon": 73.19,
+  "lat": 22.3,
+  "phases": [
+   [
+    812,
+    "village"
+   ],
+   [
+    1721,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Gaekwad Maratha dynasty capital, Gujarat"
+ },
+ {
+  "name": "Amritsar",
+  "lon": 74.87,
+  "lat": 31.63,
+  "phases": [
+   [
+    1577,
+    "town"
+   ],
+   [
+    1577,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Founded by Guru Ram Das, Sikh spiritual centre"
+ },
+ {
+  "name": "Patiala",
+  "lon": 76.4,
+  "lat": 30.34,
+  "phases": [
+   [
+    1763,
+    "town"
+   ],
+   [
+    1763,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Sikh Phulkian dynasty capital"
+ },
+ {
+  "name": "Kapurthala",
+  "lon": 75.38,
+  "lat": 31.38,
+  "phases": [
+   [
+    1780,
+    "town"
+   ],
+   [
+    1780,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Sikh Ahluwalia princely state capital"
+ },
+ {
+  "name": "Diu",
+  "lon": 70.98,
+  "lat": 20.71,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1535,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Gujarat Sultanate port, Portuguese colony from 1535"
+ },
+ {
+  "name": "Daman",
+  "lon": 72.85,
+  "lat": 20.42,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1559,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Portuguese colonial port on the Gujarat coast"
+ },
+ {
+  "name": "Chaul",
+  "lon": 72.92,
+  "lat": 18.56,
+  "phases": [
+   [
+    -100,
+    "town"
+   ],
+   [
+    100,
+    "city"
+   ],
+   [
+    1594,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ancient Indo-Roman port, later Portuguese fort"
+ },
+ {
+  "name": "Bassein (Vasai)",
+  "lon": 72.81,
+  "lat": 19.34,
+  "phases": [
+   [
+    1200,
+    "village"
+   ],
+   [
+    1534,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Portuguese fort town north of Bombay"
+ },
+ {
+  "name": "Bombay (Mumbai)",
+  "lon": 72.83,
+  "lat": 18.92,
+  "phases": [
+   [
+    1200,
+    "village"
+   ],
+   [
+    1661,
+    "town"
+   ],
+   [
+    1687,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Seven islands ceded to England, became EIC presidency"
+ },
+ {
+  "name": "Madras (Chennai)",
+  "lon": 80.27,
+  "lat": 13.08,
+  "phases": [
+   [
+    1500,
+    "village"
+   ],
+   [
+    1639,
+    "town"
+   ],
+   [
+    1746,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Fort St George founded by the East India Company"
+ },
+ {
+  "name": "Pulicat",
+  "lon": 80.32,
+  "lat": 13.42,
+  "phases": [
+   [
+    1500,
+    "village"
+   ],
+   [
+    1609,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Dutch VOC coastal factory town, Coromandel coast"
+ },
+ {
+  "name": "Nagore",
+  "lon": 79.85,
+  "lat": 10.83,
+  "phases": [
+   [
+    1000,
+    "village"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Tamil coast Sufi shrine and port town"
+ },
+ {
+  "name": "Bhirrana",
+  "lon": 75.65,
+  "lat": 29.53,
+  "phases": [
+   [
+    -7500,
+    "village"
+   ],
+   [
+    -1900,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Pre-Harappan farming site, Ghaggar-Hakra plain"
+ },
+ {
+  "name": "Farmana",
+  "lon": 76.71,
+  "lat": 28.99,
+  "phases": [
+   [
+    -2600,
+    "village"
+   ],
+   [
+    -1900,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Harappan cemetery and settlement, Haryana"
+ },
+ {
+  "name": "Sanauli",
+  "lon": 77.3,
+  "lat": 29.14,
+  "phases": [
+   [
+    -2000,
+    "village"
+   ],
+   [
+    -1500,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Bronze Age chariot-burial site, Uttar Pradesh"
+ },
+ {
+  "name": "Bhagwanpura",
+  "lon": 77.03,
+  "lat": 30.08,
+  "phases": [
+   [
+    -1400,
+    "village"
+   ],
+   [
+    -800,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Late Harappan-Painted Grey Ware overlap site"
+ },
+ {
+  "name": "Sringaverapura",
+  "lon": 81.98,
+  "lat": 25.5,
+  "phases": [
+   [
+    -1000,
+    "village"
+   ],
+   [
+    300,
+    "town"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Ramayana-associated Ganga-bank site, water tank"
+ },
+ {
+  "name": "Piprahwa",
+  "lon": 83.14,
+  "lat": 27.43,
+  "phases": [
+   [
+    -500,
+    "village"
+   ],
+   [
+    -300,
+    "town"
+   ],
+   [
+    600,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Relic stupa near Kapilavastu"
+ },
+ {
+  "name": "Sanghol",
+  "lon": 76.35,
+  "lat": 30.78,
+  "phases": [
+   [
+    -200,
+    "village"
+   ],
+   [
+    100,
+    "town"
+   ],
+   [
+    600,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Kushan-era Buddhist stupa site, Punjab"
+ },
+ {
+  "name": "Arikamedu",
+  "lon": 79.83,
+  "lat": 11.9,
+  "phases": [
+   [
+    -200,
+    "village"
+   ],
+   [
+    -100,
+    "town"
+   ],
+   [
+    300,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Indo-Roman trading station, Coromandel coast"
+ },
+ {
+  "name": "Sisupalgarh",
+  "lon": 85.85,
+  "lat": 20.24,
+  "phases": [
+   [
+    -600,
+    "village"
+   ],
+   [
+    -300,
+    "city"
+   ],
+   [
+    400,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Early historic fortified city near Bhubaneswar"
+ },
+ {
+  "name": "Adam (Nagpur)",
+  "lon": 79.35,
+  "lat": 20.85,
+  "phases": [
+   [
+    -800,
+    "village"
+   ],
+   [
+    -200,
+    "town"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Iron Age megalithic settlement, Vidarbha"
+ },
+ {
+  "name": "Bhokardan",
+  "lon": 75.79,
+  "lat": 20.26,
+  "phases": [
+   [
+    -200,
+    "village"
+   ],
+   [
+    100,
+    "town"
+   ],
+   [
+    600,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Satavahana-era trade town, Maharashtra"
+ },
+ {
+  "name": "Nevasa",
+  "lon": 74.94,
+  "lat": 19.56,
+  "phases": [
+   [
+    -1400,
+    "village"
+   ],
+   [
+    -100,
+    "town"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Chalcolithic to early historic mound, Godavari"
+ },
+ {
+  "name": "Brahmagiri",
+  "lon": 76.42,
+  "lat": 14.63,
+  "phases": [
+   [
+    -1000,
+    "village"
+   ],
+   [
+    -200,
+    "town"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "South Indian megalithic type-site, Karnataka"
+ },
+ {
+  "name": "Maski",
+  "lon": 76.65,
+  "lat": 15.96,
+  "phases": [
+   [
+    -1000,
+    "village"
+   ],
+   [
+    -260,
+    "town"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Ashokan minor rock edict site, Karnataka"
+ },
+ {
+  "name": "Sannati",
+  "lon": 76.93,
+  "lat": 16.98,
+  "phases": [
+   [
+    -300,
+    "village"
+   ],
+   [
+    -100,
+    "town"
+   ],
+   [
+    400,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Satavahana-era Buddhist site, Karnataka"
+ },
+ {
+  "name": "Kondapur",
+  "lon": 78.07,
+  "lat": 17.67,
+  "phases": [
+   [
+    -200,
+    "village"
+   ],
+   [
+    100,
+    "town"
+   ],
+   [
+    300,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Satavahana trade town, Telangana"
+ },
+ {
+  "name": "Peddabankur",
+  "lon": 79.1,
+  "lat": 18.6,
+  "phases": [
+   [
+    -200,
+    "village"
+   ],
+   [
+    100,
+    "town"
+   ],
+   [
+    300,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Satavahana-era planned town, Telangana"
+ },
+ {
+  "name": "Dhanyakataka (Dharanikota)",
+  "lon": 80.35,
+  "lat": 16.55,
+  "phases": [
+   [
+    -300,
+    "town"
+   ],
+   [
+    -100,
+    "city"
+   ],
+   [
+    600,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Satavahana capital near Amaravati stupa"
+ },
+ {
+  "name": "Salihundam",
+  "lon": 83.87,
+  "lat": 18.3,
+  "phases": [
+   [
+    -200,
+    "village"
+   ],
+   [
+    300,
+    "town"
+   ],
+   [
+    700,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Buddhist monastic site, Andhra coast"
+ },
+ {
+  "name": "Nagarjunakonda",
+  "lon": 79.24,
+  "lat": 16.53,
+  "phases": [
+   [
+    -200,
+    "village"
+   ],
+   [
+    225,
+    "city"
+   ],
+   [
+    600,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Ikshvaku dynasty capital, Buddhist university"
+ },
+ {
+  "name": "Kurukshetra",
+  "lon": 76.83,
+  "lat": 29.97,
+  "phases": [
+   [
+    -1000,
+    "village"
+   ],
+   [
+    400,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Mahabharata battlefield tradition, pilgrimage tirtha"
+ },
+ {
+  "name": "Panipat",
+  "lon": 76.98,
+  "lat": 29.39,
+  "phases": [
+   [
+    1000,
+    "village"
+   ],
+   [
+    1526,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Site of three decisive north Indian battles"
+ },
+ {
+  "name": "Thanesar",
+  "lon": 76.83,
+  "lat": 29.97,
+  "phases": [
+   [
+    500,
+    "town"
+   ],
+   [
+    606,
+    "city"
+   ],
+   [
+    1192,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Vardhana dynasty capital before Harsha moved to Kannauj"
+ },
+ {
+  "name": "Hansi",
+  "lon": 75.97,
+  "lat": 29.1,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1200,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Tomar-Chauhan frontier fort town, Haryana"
+ },
+ {
+  "name": "Kalinjar",
+  "lon": 80.48,
+  "lat": 24.95,
+  "phases": [
+   [
+    800,
+    "town"
+   ],
+   [
+    1023,
+    "city"
+   ],
+   [
+    1569,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Chandela hill fort, contested by many dynasties"
+ },
+ {
+  "name": "Mahoba",
+  "lon": 79.87,
+  "lat": 25.29,
+  "phases": [
+   [
+    831,
+    "town"
+   ],
+   [
+    1182,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Chandela dynasty secondary capital"
+ },
+ {
+  "name": "Kalpi",
+  "lon": 79.73,
+  "lat": 26.13,
+  "phases": [
+   [
+    600,
+    "town"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Yamuna river crossing and trade town"
+ },
+ {
+  "name": "Bateshwar",
+  "lon": 78.65,
+  "lat": 26.86,
+  "phases": [
+   [
+    -500,
+    "village"
+   ],
+   [
+    600,
+    "town"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Yamuna-bank temple cluster, Chambal region"
+ },
+ {
+  "name": "Ranthambore",
+  "lon": 76.45,
+  "lat": 26.02,
+  "phases": [
+   [
+    944,
+    "village"
+   ],
+   [
+    1194,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Chauhan hill fort, Rajasthan"
+ },
+ {
+  "name": "Sirohi",
+  "lon": 72.86,
+  "lat": 24.89,
+  "phases": [
+   [
+    1425,
+    "town"
+   ],
+   [
+    1425,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Deora Chauhan princely capital, Rajasthan"
+ },
+ {
+  "name": "Tonk",
+  "lon": 75.79,
+  "lat": 26.16,
+  "phases": [
+   [
+    1300,
+    "village"
+   ],
+   [
+    1806,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Pathan Nawab's princely capital, Rajasthan"
+ },
+ {
+  "name": "Kota",
+  "lon": 75.83,
+  "lat": 25.18,
+  "phases": [
+   [
+    1264,
+    "village"
+   ],
+   [
+    1631,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Hada Chauhan Rajput capital, split from Bundi"
+ },
+ {
+  "name": "Bundi",
+  "lon": 75.64,
+  "lat": 25.44,
+  "phases": [
+   [
+    1242,
+    "town"
+   ],
+   [
+    1242,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Hada Chauhan Rajput capital, Rajasthan"
+ },
+ {
+  "name": "Dungarpur",
+  "lon": 73.72,
+  "lat": 23.84,
+  "phases": [
+   [
+    1358,
+    "town"
+   ],
+   [
+    1358,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Sisodia cadet-branch princely capital"
+ },
+ {
+  "name": "Jalore",
+  "lon": 72.62,
+  "lat": 25.35,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1311,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Songara Chauhan capital, fell to Delhi Sultanate"
+ },
+ {
+  "name": "Mandsaur",
+  "lon": 75.07,
+  "lat": 24.07,
+  "phases": [
+   [
+    -100,
+    "town"
+   ],
+   [
+    400,
+    "city"
+   ],
+   [
+    1300,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ancient Dashapura, Gupta-era inscription site"
+ },
+ {
+  "name": "Ellora",
+  "lon": 75.18,
+  "lat": 20.03,
+  "phases": [
+   [
+    550,
+    "village"
+   ],
+   [
+    600,
+    "town"
+   ],
+   [
+    900,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Rashtrakuta rock-cut cave-temple site"
+ },
+ {
+  "name": "Karla",
+  "lon": 73.48,
+  "lat": 18.78,
+  "phases": [
+   [
+    -200,
+    "village"
+   ],
+   [
+    100,
+    "town"
+   ],
+   [
+    700,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Buddhist cave-monastery trade-route site, Western Ghats"
+ },
+ {
+  "name": "Bhaja",
+  "lon": 73.44,
+  "lat": 18.74,
+  "phases": [
+   [
+    -200,
+    "village"
+   ],
+   [
+    100,
+    "town"
+   ],
+   [
+    600,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Early Buddhist cave site near Karla"
+ },
+ {
+  "name": "Sopara",
+  "lon": 72.81,
+  "lat": 19.42,
+  "phases": [
+   [
+    -600,
+    "town"
+   ],
+   [
+    -260,
+    "city"
+   ],
+   [
+    1300,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ancient Shurparaka port, Ashokan edict site"
+ },
+ {
+  "name": "Kalyan",
+  "lon": 73.13,
+  "lat": 19.24,
+  "phases": [
+   [
+    -100,
+    "town"
+   ],
+   [
+    100,
+    "city"
+   ],
+   [
+    1300,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ancient Kalyana port, Chalukya and Silahara rule"
+ },
+ {
+  "name": "Ratnagiri Odisha",
+  "lon": 86.33,
+  "lat": 20.65,
+  "phases": [
+   [
+    500,
+    "village"
+   ],
+   [
+    600,
+    "town"
+   ],
+   [
+    1100,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Buddhist monastic complex, Odisha coast"
+ },
+ {
+  "name": "Lalitagiri",
+  "lon": 86.25,
+  "lat": 20.62,
+  "phases": [
+   [
+    -100,
+    "village"
+   ],
+   [
+    300,
+    "town"
+   ],
+   [
+    1100,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Buddhist stupa and monastery complex, Odisha"
+ },
+ {
+  "name": "Sirhind",
+  "lon": 76.38,
+  "lat": 30.64,
+  "phases": [
+   [
+    1200,
+    "town"
+   ],
+   [
+    1364,
+    "city"
+   ],
+   [
+    1764,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Delhi Sultanate provincial capital, Mughal mint town"
+ },
+ {
+  "name": "Hisar",
+  "lon": 75.72,
+  "lat": 29.15,
+  "phases": [
+   [
+    1354,
+    "town"
+   ],
+   [
+    1354,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Founded by Firuz Shah Tughlaq as Hisar-i Firuza"
+ },
+ {
+  "name": "Rohtas",
+  "lon": 83.9,
+  "lat": 24.95,
+  "phases": [
+   [
+    1539,
+    "town"
+   ],
+   [
+    1539,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Sher Shah Suri's fort town, Bihar"
+ },
+ {
+  "name": "Bharatpur",
+  "lon": 77.49,
+  "lat": 27.22,
+  "phases": [
+   [
+    1733,
+    "town"
+   ],
+   [
+    1733,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Jat kingdom capital, Rajasthan"
+ },
+ {
+  "name": "Alwar",
+  "lon": 76.6,
+  "lat": 27.55,
+  "phases": [
+   [
+    1503,
+    "town"
+   ],
+   [
+    1503,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Kachwaha/Naruka princely capital, Rajasthan"
+ },
+ {
+  "name": "Bhopal",
+  "lon": 77.41,
+  "lat": 23.26,
+  "phases": [
+   [
+    1707,
+    "town"
+   ],
+   [
+    1707,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Founded by Dost Mohammad Khan, princely state capital"
+ },
+ {
+  "name": "Rewa",
+  "lon": 81.3,
+  "lat": 24.53,
+  "phases": [
+   [
+    1618,
+    "town"
+   ],
+   [
+    1618,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Baghelkhand princely capital, central India"
+ },
+ {
+  "name": "Panna",
+  "lon": 80.18,
+  "lat": 24.72,
+  "phases": [
+   [
+    1731,
+    "town"
+   ],
+   [
+    1731,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Bundela princely capital, diamond mining region"
+ },
+ {
+  "name": "Baltit (Hunza)",
+  "lon": 74.65,
+  "lat": 36.32,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1548,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Hunza valley princely seat, Karakoram trade route"
+ },
+ {
+  "name": "Gilgit",
+  "lon": 74.31,
+  "lat": 35.92,
+  "phases": [
+   [
+    300,
+    "village"
+   ],
+   [
+    600,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Palola Shahi kingdom, Buddhist rock inscriptions"
+ },
+ {
+  "name": "Skardu",
+  "lon": 75.68,
+  "lat": 35.3,
+  "phases": [
+   [
+    700,
+    "village"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Baltistan valley trade and royal seat"
+ },
+ {
+  "name": "Chitral",
+  "lon": 71.79,
+  "lat": 35.85,
+  "phases": [
+   [
+    1200,
+    "village"
+   ],
+   [
+    1571,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Kator dynasty mehtar's capital, Hindu Kush"
+ },
+ {
+  "name": "Dera Ismail Khan",
+  "lon": 70.9,
+  "lat": 31.83,
+  "phases": [
+   [
+    1469,
+    "town"
+   ],
+   [
+    1469,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Founded by Baloch chief on the Indus, Punjab frontier"
+ },
+ {
+  "name": "Dera Ghazi Khan",
+  "lon": 70.64,
+  "lat": 29.99,
+  "phases": [
+   [
+    1476,
+    "town"
+   ],
+   [
+    1476,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Baloch-founded Indus-bank market town"
+ },
+ {
+  "name": "Rawalpindi",
+  "lon": 73.07,
+  "lat": 33.6,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1493,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Gakhar chieftaincy town, later British cantonment"
+ },
+ {
+  "name": "Kasur",
+  "lon": 74.45,
+  "lat": 31.12,
+  "phases": [
+   [
+    1525,
+    "town"
+   ],
+   [
+    1525,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Afghan Pathan-founded Punjab town"
+ },
+ {
+  "name": "Gujranwala",
+  "lon": 74.19,
+  "lat": 32.16,
+  "phases": [
+   [
+    1600,
+    "village"
+   ],
+   [
+    1740,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Punjab agrarian market town, Sikh-era rise"
+ },
+ {
+  "name": "Wazirabad",
+  "lon": 74.12,
+  "lat": 32.44,
+  "phases": [
+   [
+    1541,
+    "town"
+   ],
+   [
+    1541,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Mughal-founded Chenab crossing town"
+ },
+ {
+  "name": "Attock",
+  "lon": 72.36,
+  "lat": 33.77,
+  "phases": [
+   [
+    1583,
+    "town"
+   ],
+   [
+    1583,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Akbar's fort on the Indus at Attock ferry"
+ },
+ {
+  "name": "Bannu",
+  "lon": 70.61,
+  "lat": 32.99,
+  "phases": [
+   [
+    1848,
+    "town"
+   ],
+   [
+    1848,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "British-era frontier garrison town, earlier Akra site nearby"
+ },
+ {
+  "name": "Kalat",
+  "lon": 66.59,
+  "lat": 29.03,
+  "phases": [
+   [
+    1200,
+    "village"
+   ],
+   [
+    1666,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Khanate of Kalat capital, Baloch highlands"
+ },
+ {
+  "name": "Quetta",
+  "lon": 66.99,
+  "lat": 30.2,
+  "phases": [
+   [
+    1000,
+    "village"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Shal, Baloch-Pashtun highland trade town"
+ },
+ {
+  "name": "Turbat",
+  "lon": 63.06,
+  "lat": 26.0,
+  "phases": [
+   [
+    500,
+    "village"
+   ],
+   [
+    1200,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Kech valley Makran market town"
+ },
+ {
+  "name": "Gwadar",
+  "lon": 62.32,
+  "lat": 25.13,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1783,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Makran coast fishing port, Omani-leased enclave"
+ },
+ {
+  "name": "Faisalabad area (Jhang)",
+  "lon": 72.31,
+  "lat": 31.27,
+  "phases": [
+   [
+    1288,
+    "town"
+   ],
+   [
+    1288,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Sial dynasty seat, Punjab riverine town"
+ },
+ {
+  "name": "Chiniot",
+  "lon": 72.98,
+  "lat": 31.72,
+  "phases": [
+   [
+    1200,
+    "village"
+   ],
+   [
+    1550,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Punjab woodworking and trade town, Chenab"
+ },
+ {
+  "name": "Pak Pattan",
+  "lon": 73.39,
+  "lat": 30.35,
+  "phases": [
+   [
+    1200,
+    "town"
+   ],
+   [
+    1265,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Baba Farid's Chishti shrine town, Punjab"
+ },
+ {
+  "name": "Kalna",
+  "lon": 88.36,
+  "lat": 23.22,
+  "phases": [
+   [
+    1600,
+    "village"
+   ],
+   [
+    1600,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Bengal riverside temple town, Hooghly"
+ },
+ {
+  "name": "Nabadwip",
+  "lon": 88.37,
+  "lat": 23.41,
+  "phases": [
+   [
+    1063,
+    "town"
+   ],
+   [
+    1400,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Sena capital, later Chaitanya's Bhakti-movement centre"
+ },
+ {
+  "name": "Hooghly-Chinsurah",
+  "lon": 88.4,
+  "lat": 22.9,
+  "phases": [
+   [
+    1580,
+    "town"
+   ],
+   [
+    1580,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Portuguese then Dutch trading settlement, Bengal"
+ },
+ {
+  "name": "Chandannagar",
+  "lon": 88.34,
+  "lat": 22.87,
+  "phases": [
+   [
+    1673,
+    "town"
+   ],
+   [
+    1673,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "French East India Company trading post, Bengal"
+ },
+ {
+  "name": "Serampore",
+  "lon": 88.34,
+  "lat": 22.75,
+  "phases": [
+   [
+    1755,
+    "town"
+   ],
+   [
+    1755,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Danish colonial settlement, Bengal"
+ },
+ {
+  "name": "Rangpur Bengal",
+  "lon": 89.25,
+  "lat": 25.75,
+  "phases": [
+   [
+    1300,
+    "village"
+   ],
+   [
+    1700,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "North Bengal agrarian market town"
+ },
+ {
+  "name": "Comilla",
+  "lon": 91.19,
+  "lat": 23.46,
+  "phases": [
+   [
+    600,
+    "village"
+   ],
+   [
+    1300,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Samatata region, Bengal-Assam route town"
+ },
+ {
+  "name": "Barisal",
+  "lon": 90.37,
+  "lat": 22.7,
+  "phases": [
+   [
+    1600,
+    "village"
+   ],
+   [
+    1797,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Ganges-delta riverine market town"
+ },
+ {
+  "name": "Sylhet",
+  "lon": 91.87,
+  "lat": 24.9,
+  "phases": [
+   [
+    500,
+    "village"
+   ],
+   [
+    1303,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Sufi Shah Jalal's conquest town, Assam-Bengal border"
+ },
+ {
+  "name": "Rangamati",
+  "lon": 92.2,
+  "lat": 22.63,
+  "phases": [
+   [
+    1666,
+    "village"
+   ],
+   [
+    1666,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Chittagong Hill Tracts Chakma chieftaincy seat"
+ },
+ {
+  "name": "Balasore",
+  "lon": 86.93,
+  "lat": 21.49,
+  "phases": [
+   [
+    1500,
+    "village"
+   ],
+   [
+    1642,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Odisha coastal port, early European factories"
+ },
+ {
+  "name": "Sambalpur",
+  "lon": 83.98,
+  "lat": 21.47,
+  "phases": [
+   [
+    1300,
+    "village"
+   ],
+   [
+    1600,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Chauhan dynasty capital of western Odisha"
+ },
+ {
+  "name": "Kalahandi (Bhawanipatna)",
+  "lon": 83.16,
+  "lat": 19.91,
+  "phases": [
+   [
+    1200,
+    "village"
+   ],
+   [
+    1600,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Naga dynasty princely capital, western Odisha"
+ },
+ {
+  "name": "Baripada",
+  "lon": 86.72,
+  "lat": 21.93,
+  "phases": [
+   [
+    1400,
+    "village"
+   ],
+   [
+    1400,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Mayurbhanj princely-state market town"
+ },
+ {
+  "name": "Paralakhemundi",
+  "lon": 84.08,
+  "lat": 18.78,
+  "phases": [
+   [
+    1400,
+    "village"
+   ],
+   [
+    1400,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Gajapati cadet-branch princely capital, Odisha-Andhra border"
+ },
+ {
+  "name": "Chandragiri",
+  "lon": 79.34,
+  "lat": 13.59,
+  "phases": [
+   [
+    1000,
+    "village"
+   ],
+   [
+    1367,
+    "town"
+   ],
+   [
+    1600,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Last Vijayanagara capital after Hampi's fall"
+ },
+ {
+  "name": "Penukonda",
+  "lon": 77.59,
+  "lat": 14.08,
+  "phases": [
+   [
+    1000,
+    "village"
+   ],
+   [
+    1565,
+    "city"
+   ],
+   [
+    1600,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Vijayanagara refuge capital after Talikota"
+ },
+ {
+  "name": "Hospet",
+  "lon": 76.39,
+  "lat": 15.27,
+  "phases": [
+   [
+    1200,
+    "village"
+   ],
+   [
+    1520,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Market town serving Vijayanagara capital"
+ },
+ {
+  "name": "Anegondi",
+  "lon": 76.47,
+  "lat": 15.35,
+  "phases": [
+   [
+    1000,
+    "village"
+   ],
+   [
+    1336,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Pre-Vijayanagara Kampili kingdom capital, opposite Hampi"
+ },
+ {
+  "name": "Gingee",
+  "lon": 79.42,
+  "lat": 12.25,
+  "phases": [
+   [
+    1200,
+    "village"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Nayak fort town, later Maratha and Mughal contest"
+ },
+ {
+  "name": "Thirumalai (Tiruvannamalai)",
+  "lon": 79.07,
+  "lat": 12.23,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1200,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Arunachaleswara temple pilgrimage town"
+ },
+ {
+  "name": "Chidambaram",
+  "lon": 79.69,
+  "lat": 11.4,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1100,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Chola-era Nataraja temple town"
+ },
+ {
+  "name": "Srirangam",
+  "lon": 78.69,
+  "lat": 10.86,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1300,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ranganathaswamy temple town, Tiruchirappalli island"
+ },
+ {
+  "name": "Kumbakonam",
+  "lon": 79.38,
+  "lat": 10.96,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1000,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Chola-era temple and market town, Kaveri delta"
+ },
+ {
+  "name": "Tuticorin",
+  "lon": 78.13,
+  "lat": 8.76,
+  "phases": [
+   [
+    1200,
+    "village"
+   ],
+   [
+    1548,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Pearl-fishery and Portuguese-era pearl coast port"
+ },
+ {
+  "name": "Kayalpatnam",
+  "lon": 78.12,
+  "lat": 8.57,
+  "phases": [
+   [
+    1000,
+    "village"
+   ],
+   [
+    1300,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Medieval Tamil Muslim trading port"
+ },
+ {
+  "name": "Coimbatore",
+  "lon": 76.96,
+  "lat": 11.02,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Kongu-country market town, Palakkad gap route"
+ },
+ {
+  "name": "Salem",
+  "lon": 78.15,
+  "lat": 11.66,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Kongu-country iron and textile market town"
+ },
+ {
+  "name": "Bhatkal",
+  "lon": 74.56,
+  "lat": 13.98,
+  "phases": [
+   [
+    1200,
+    "village"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Vijayanagara-era Konkan spice port"
+ },
+ {
+  "name": "Honnavar",
+  "lon": 74.45,
+  "lat": 14.28,
+  "phases": [
+   [
+    1000,
+    "village"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Karnataka coast trading port"
+ },
+ {
+  "name": "Mangalore",
+  "lon": 74.86,
+  "lat": 12.87,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1345,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Alupa dynasty port, Arab trade records"
+ },
+ {
+  "name": "Barkur",
+  "lon": 74.75,
+  "lat": 13.48,
+  "phases": [
+   [
+    1000,
+    "town"
+   ],
+   [
+    1345,
+    "city"
+   ],
+   [
+    1600,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Alupa dynasty capital, Karnataka coast"
+ },
+ {
+  "name": "Udupi",
+  "lon": 74.75,
+  "lat": 13.34,
+  "phases": [
+   [
+    1000,
+    "village"
+   ],
+   [
+    1238,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Madhvacharya's Krishna-matha pilgrimage town"
+ },
+ {
+  "name": "Ujjayanta (Tripura)",
+  "lon": 91.28,
+  "lat": 23.83,
+  "phases": [
+   [
+    1400,
+    "village"
+   ],
+   [
+    1760,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Manikya dynasty capital region, Agartala area"
+ },
+ {
+  "name": "Agartala",
+  "lon": 91.28,
+  "lat": 23.83,
+  "phases": [
+   [
+    1760,
+    "town"
+   ],
+   [
+    1760,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Manikya dynasty capital of Tripura"
+ },
+ {
+  "name": "Imphal",
+  "lon": 93.94,
+  "lat": 24.82,
+  "phases": [
+   [
+    1470,
+    "village"
+   ],
+   [
+    1470,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Meitei kingdom capital, Manipur valley"
+ },
+ {
+  "name": "Kohima",
+  "lon": 94.11,
+  "lat": 25.67,
+  "phases": [
+   [
+    1600,
+    "village"
+   ],
+   [
+    1600,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Naga hills settlement, later British-era post"
+ },
+ {
+  "name": "Almora",
+  "lon": 79.65,
+  "lat": 29.6,
+  "phases": [
+   [
+    1560,
+    "town"
+   ],
+   [
+    1560,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Chand dynasty capital of Kumaon"
+ },
+ {
+  "name": "Srinagar Garhwal",
+  "lon": 78.78,
+  "lat": 30.22,
+  "phases": [
+   [
+    1358,
+    "town"
+   ],
+   [
+    1358,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Garhwal kingdom capital on the Alaknanda"
+ },
+ {
+  "name": "Nainital region",
+  "lon": 79.46,
+  "lat": 29.39,
+  "phases": [
+   [
+    1841,
+    "village"
+   ],
+   [
+    1841,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Kumaon hill settlement, later colonial hill station"
+ },
+ {
+  "name": "Dehradun",
+  "lon": 78.03,
+  "lat": 30.32,
+  "phases": [
+   [
+    1676,
+    "village"
+   ],
+   [
+    1699,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Guru Ram Rai's Sikh settlement, Doon valley"
+ },
+ {
+  "name": "Haridwar",
+  "lon": 78.17,
+  "lat": 29.95,
+  "phases": [
+   [
+    -300,
+    "village"
+   ],
+   [
+    600,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ganga pilgrimage town at the Himalayan foothills"
+ },
+ {
+  "name": "Kedarnath",
+  "lon": 79.07,
+  "lat": 30.73,
+  "phases": [
+   [
+    700,
+    "village"
+   ],
+   [
+    700,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Himalayan Shiva shrine, Char Dham pilgrimage"
+ },
+ {
+  "name": "Badrinath",
+  "lon": 79.49,
+  "lat": 30.74,
+  "phases": [
+   [
+    700,
+    "village"
+   ],
+   [
+    700,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Vishnu shrine, Char Dham pilgrimage, Adi Shankara"
+ },
+ {
+  "name": "Bhitargaon",
+  "lon": 80.3,
+  "lat": 26.31,
+  "phases": [
+   [
+    400,
+    "village"
+   ],
+   [
+    400,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Gupta-era brick temple site, Kanpur region"
+ },
+ {
+  "name": "Deogarh (UP)",
+  "lon": 78.24,
+  "lat": 24.53,
+  "phases": [
+   [
+    500,
+    "village"
+   ],
+   [
+    500,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Gupta-era Dashavatara temple site"
+ },
+ {
+  "name": "Sarnath",
+  "lon": 83.02,
+  "lat": 25.38,
+  "phases": [
+   [
+    -500,
+    "village"
+   ],
+   [
+    -528,
+    "town"
+   ],
+   [
+    1200,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Buddha's first sermon site near Varanasi"
+ },
+ {
+  "name": "Etawah",
+  "lon": 79.02,
+  "lat": 26.78,
+  "phases": [
+   [
+    1200,
+    "village"
+   ],
+   [
+    1450,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Yamuna-Chambal confluence market town"
+ },
+ {
+  "name": "Farrukhabad",
+  "lon": 79.58,
+  "lat": 27.4,
+  "phases": [
+   [
+    1714,
+    "town"
+   ],
+   [
+    1714,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Nawab-founded Rohilla-era Ganga town"
+ },
+ {
+  "name": "Shahjahanpur",
+  "lon": 79.91,
+  "lat": 27.88,
+  "phases": [
+   [
+    1647,
+    "town"
+   ],
+   [
+    1647,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Founded under Shah Jahan, Rohilkhand"
+ },
+ {
+  "name": "Muzaffarnagar",
+  "lon": 77.7,
+  "lat": 29.47,
+  "phases": [
+   [
+    1633,
+    "town"
+   ],
+   [
+    1633,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Mughal-era founded market town, western UP"
+ },
+ {
+  "name": "Saharanpur",
+  "lon": 77.55,
+  "lat": 29.97,
+  "phases": [
+   [
+    1340,
+    "village"
+   ],
+   [
+    1340,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Sufi-founded Doab market town"
+ },
+ {
+  "name": "Moradabad",
+  "lon": 78.78,
+  "lat": 28.84,
+  "phases": [
+   [
+    1625,
+    "town"
+   ],
+   [
+    1625,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Rohilkhand town founded by Rustam Khan"
+ },
+ {
+  "name": "Betul",
+  "lon": 77.9,
+  "lat": 21.9,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Central Indian plateau agrarian market town"
+ },
+ {
+  "name": "Hoshangabad",
+  "lon": 77.73,
+  "lat": 22.75,
+  "phases": [
+   [
+    1405,
+    "town"
+   ],
+   [
+    1405,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Founded by Malwa Sultan Hoshang Shah, Narmada bank"
+ },
+ {
+  "name": "Damoh",
+  "lon": 79.44,
+  "lat": 23.83,
+  "phases": [
+   [
+    1000,
+    "village"
+   ],
+   [
+    1300,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Central Indian plateau market town"
+ },
+ {
+  "name": "Chhatarpur",
+  "lon": 79.59,
+  "lat": 24.92,
+  "phases": [
+   [
+    1785,
+    "town"
+   ],
+   [
+    1785,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Bundela princely-state capital, central India"
+ },
+ {
+  "name": "Datia",
+  "lon": 78.46,
+  "lat": 25.67,
+  "phases": [
+   [
+    1626,
+    "town"
+   ],
+   [
+    1626,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Bundela Rajput princely capital"
+ },
+ {
+  "name": "Berhampur Ganjam",
+  "lon": 84.79,
+  "lat": 19.31,
+  "phases": [
+   [
+    1400,
+    "village"
+   ],
+   [
+    1768,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Odisha-Andhra coastal market town"
+ },
+ {
+  "name": "Ichchapuram",
+  "lon": 84.68,
+  "lat": 19.11,
+  "phases": [
+   [
+    1200,
+    "village"
+   ],
+   [
+    1200,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Odisha-Andhra coastal fishing and trade village"
+ },
+ {
+  "name": "Srikakulam",
+  "lon": 83.9,
+  "lat": 18.3,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1300,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Andhra coastal district market town"
+ },
+ {
+  "name": "Rajahmundry",
+  "lon": 81.78,
+  "lat": 17.0,
+  "phases": [
+   [
+    1023,
+    "town"
+   ],
+   [
+    1023,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Eastern Chalukya-Vengi capital on the Godavari"
+ },
+ {
+  "name": "Guntur",
+  "lon": 80.44,
+  "lat": 16.3,
+  "phases": [
+   [
+    1300,
+    "village"
+   ],
+   [
+    1752,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Krishna-delta agrarian market town"
+ },
+ {
+  "name": "Kurnool",
+  "lon": 78.04,
+  "lat": 15.83,
+  "phases": [
+   [
+    1350,
+    "town"
+   ],
+   [
+    1687,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Qutb Shahi and later Nawab of Kurnool capital"
+ },
+ {
+  "name": "Anantapur",
+  "lon": 77.6,
+  "lat": 14.68,
+  "phases": [
+   [
+    1300,
+    "village"
+   ],
+   [
+    1800,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Rayalaseema Deccan plateau market town"
+ },
+ {
+  "name": "Cuddapah",
+  "lon": 78.83,
+  "lat": 14.47,
+  "phases": [
+   [
+    1300,
+    "village"
+   ],
+   [
+    1600,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Rayalaseema trade town, diamond-region gateway"
+ },
+ {
+  "name": "Adoni",
+  "lon": 77.28,
+  "lat": 15.63,
+  "phases": [
+   [
+    1300,
+    "village"
+   ],
+   [
+    1600,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Vijayanagara-Bijapur contested fort town"
+ },
+ {
+  "name": "Kolar",
+  "lon": 78.13,
+  "lat": 13.14,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Gold-mining region town, Ganga dynasty and Chola rule"
+ },
+ {
+  "name": "Tumkur",
+  "lon": 77.1,
+  "lat": 13.34,
+  "phases": [
+   [
+    1000,
+    "village"
+   ],
+   [
+    1600,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Karnataka plateau agrarian market town"
+ },
+ {
+  "name": "Chikmagalur",
+  "lon": 75.77,
+  "lat": 13.32,
+  "phases": [
+   [
+    1100,
+    "village"
+   ],
+   [
+    1600,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Western Ghats coffee-country market town"
+ },
+ {
+  "name": "Bellary",
+  "lon": 76.92,
+  "lat": 15.14,
+  "phases": [
+   [
+    1000,
+    "village"
+   ],
+   [
+    1550,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Vijayanagara-era fort and market town"
+ },
+ {
+  "name": "Raichur",
+  "lon": 77.34,
+  "lat": 16.21,
+  "phases": [
+   [
+    1294,
+    "town"
+   ],
+   [
+    1520,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Contested Bijapur-Vijayanagara doab fortress town"
+ },
+ {
+  "name": "Sira",
+  "lon": 76.9,
+  "lat": 13.75,
+  "phases": [
+   [
+    1600,
+    "village"
+   ],
+   [
+    1687,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Mughal Deccan provincial administrative town"
+ },
+ {
+  "name": "Ahmadnagar",
+  "lon": 74.74,
+  "lat": 19.09,
+  "phases": [
+   [
+    1490,
+    "town"
+   ],
+   [
+    1490,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Nizam Shahi sultanate capital, Deccan"
+ },
+ {
+  "name": "Berar (Ellichpur)",
+  "lon": 77.53,
+  "lat": 21.27,
+  "phases": [
+   [
+    1400,
+    "village"
+   ],
+   [
+    1490,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Imad Shahi sultanate capital, Deccan"
+ },
+ {
+  "name": "Chandrapur",
+  "lon": 79.3,
+  "lat": 19.95,
+  "phases": [
+   [
+    1472,
+    "town"
+   ],
+   [
+    1472,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Gond kingdom capital of Chanda"
+ },
+ {
+  "name": "Nanded",
+  "lon": 77.32,
+  "lat": 19.15,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1708,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Godavari town, Guru Gobind Singh's death site"
+ },
+ {
+  "name": "Latur",
+  "lon": 76.58,
+  "lat": 18.4,
+  "phases": [
+   [
+    1000,
+    "village"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Marathwada agrarian market town"
+ },
+ {
+  "name": "Firozabad",
+  "lon": 78.4,
+  "lat": 27.15,
+  "phases": [
+   [
+    1566,
+    "town"
+   ],
+   [
+    1566,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Founded by Akbar-era noble, UP glass-town"
+ },
+ {
+  "name": "Bulandshahr",
+  "lon": 77.85,
+  "lat": 28.4,
+  "phases": [
+   [
+    1017,
+    "village"
+   ],
+   [
+    1017,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Doab market town, Ghaznavid-era raid record"
+ },
+ {
+  "name": "Aligarh (Koil)",
+  "lon": 78.08,
+  "lat": 27.88,
+  "phases": [
+   [
+    1200,
+    "village"
+   ],
+   [
+    1524,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Medieval Koil fort town, later Aligarh"
+ },
+ {
+  "name": "Mainpuri",
+  "lon": 79.02,
+  "lat": 27.23,
+  "phases": [
+   [
+    1250,
+    "village"
+   ],
+   [
+    1250,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Chauhan Rajput chieftaincy town, Doab"
+ },
+ {
+  "name": "Fatehpur UP",
+  "lon": 80.81,
+  "lat": 25.93,
+  "phases": [
+   [
+    1400,
+    "village"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Ganga-Yamuna doab market town"
+ },
+ {
+  "name": "Ghazipur",
+  "lon": 83.58,
+  "lat": 25.58,
+  "phases": [
+   [
+    1330,
+    "town"
+   ],
+   [
+    1330,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Named for Ghazi Malik, Ganga-bank town"
+ },
+ {
+  "name": "Azamgarh",
+  "lon": 83.18,
+  "lat": 26.07,
+  "phases": [
+   [
+    1500,
+    "village"
+   ],
+   [
+    1665,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Founded by Azmat Khan, eastern UP"
+ },
+ {
+  "name": "Mirzapur",
+  "lon": 82.57,
+  "lat": 25.15,
+  "phases": [
+   [
+    1400,
+    "village"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Ganga-bank carpet and market town"
+ },
+ {
+  "name": "Basti UP",
+  "lon": 82.76,
+  "lat": 26.79,
+  "phases": [
+   [
+    1200,
+    "village"
+   ],
+   [
+    1200,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Eastern UP agrarian market town"
+ },
+ {
+  "name": "Gorakhpur",
+  "lon": 83.37,
+  "lat": 26.76,
+  "phases": [
+   [
+    1400,
+    "village"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Named for Gorakhnath, Nath-sect pilgrimage town"
+ },
+ {
+  "name": "Deoria",
+  "lon": 83.79,
+  "lat": 26.5,
+  "phases": [
+   [
+    1300,
+    "village"
+   ],
+   [
+    1300,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Eastern UP agrarian village-town"
+ },
+ {
+  "name": "Sonipat",
+  "lon": 77.01,
+  "lat": 28.99,
+  "phases": [
+   [
+    -1000,
+    "village"
+   ],
+   [
+    1200,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Mahabharata-tradition Swarnaprastha, Doab town"
+ },
+ {
+  "name": "Rohtak",
+  "lon": 76.61,
+  "lat": 28.9,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1200,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Haryana plains market town"
+ },
+ {
+  "name": "Sirsa",
+  "lon": 75.03,
+  "lat": 29.53,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1200,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Sarasvati-valley Haryana market town"
+ },
+ {
+  "name": "Bhiwani",
+  "lon": 76.14,
+  "lat": 28.79,
+  "phases": [
+   [
+    1400,
+    "village"
+   ],
+   [
+    1400,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Haryana agrarian market town"
+ },
+ {
+  "name": "Merta",
+  "lon": 74.03,
+  "lat": 26.65,
+  "phases": [
+   [
+    1250,
+    "town"
+   ],
+   [
+    1250,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Rathore Rajput frontier town, Marwar"
+ },
+ {
+  "name": "Pali Rajasthan",
+  "lon": 73.32,
+  "lat": 25.77,
+  "phases": [
+   [
+    1200,
+    "village"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Marwar merchant caravan town"
+ },
+ {
+  "name": "Barmer",
+  "lon": 71.39,
+  "lat": 25.75,
+  "phases": [
+   [
+    1246,
+    "town"
+   ],
+   [
+    1246,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Founded by Bahada Rao, Thar desert town"
+ },
+ {
+  "name": "Sikar",
+  "lon": 75.14,
+  "lat": 27.61,
+  "phases": [
+   [
+    1687,
+    "town"
+   ],
+   [
+    1687,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Rajput thikana capital, Shekhawati region"
+ },
+ {
+  "name": "Fatehpur Shekhawati",
+  "lon": 74.95,
+  "lat": 27.99,
+  "phases": [
+   [
+    1451,
+    "town"
+   ],
+   [
+    1451,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Shekhawati merchant-painted haveli town"
+ },
+ {
+  "name": "Ganganagar",
+  "lon": 73.88,
+  "lat": 29.92,
+  "phases": [
+   [
+    1927,
+    "town"
+   ],
+   [
+    1927,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Colonial-era canal-colony town, Bikaner state"
+ },
+ {
+  "name": "Godhra",
+  "lon": 73.61,
+  "lat": 22.78,
+  "phases": [
+   [
+    1200,
+    "village"
+   ],
+   [
+    1200,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Gujarat plains market town"
+ },
+ {
+  "name": "Rajkot",
+  "lon": 70.8,
+  "lat": 22.3,
+  "phases": [
+   [
+    1620,
+    "town"
+   ],
+   [
+    1620,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Founded by Jadeja Rajput chief, Saurashtra"
+ },
+ {
+  "name": "Jamnagar",
+  "lon": 70.07,
+  "lat": 22.47,
+  "phases": [
+   [
+    1540,
+    "town"
+   ],
+   [
+    1540,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Jadeja Rajput capital, Saurashtra"
+ },
+ {
+  "name": "Porbandar",
+  "lon": 69.61,
+  "lat": 21.64,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ancient Sudamapuri, Saurashtra coastal port"
+ },
+ {
+  "name": "Bhavnagar",
+  "lon": 72.14,
+  "lat": 21.77,
+  "phases": [
+   [
+    1723,
+    "town"
+   ],
+   [
+    1723,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Gohil Rajput princely capital, Saurashtra"
+ },
+ {
+  "name": "Bhuj",
+  "lon": 69.67,
+  "lat": 23.24,
+  "phases": [
+   [
+    1510,
+    "town"
+   ],
+   [
+    1549,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Jadeja Rajput capital of Kutch"
+ },
+ {
+  "name": "Idar",
+  "lon": 73.0,
+  "lat": 23.83,
+  "phases": [
+   [
+    1200,
+    "village"
+   ],
+   [
+    1730,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Rathore princely capital, north Gujarat"
+ },
+ {
+  "name": "Champaner",
+  "lon": 73.53,
+  "lat": 22.48,
+  "phases": [
+   [
+    1300,
+    "village"
+   ],
+   [
+    1484,
+    "city"
+   ],
+   [
+    1535,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Gujarat Sultanate capital under Mahmud Begada"
+ }
+]

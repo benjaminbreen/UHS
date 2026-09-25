@@ -1,0 +1,4283 @@
+[
+ {
+  "name": "Kerma",
+  "lon": 32.65,
+  "lat": 19.6,
+  "phases": [
+   [
+    -2500,
+    "town"
+   ],
+   [
+    -1750,
+    "city"
+   ],
+   [
+    -1500,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Kerma culture capital, Nile cataract trade"
+ },
+ {
+  "name": "Napata",
+  "lon": 32.4,
+  "lat": 18.53,
+  "phases": [
+   [
+    -900,
+    "town"
+   ],
+   [
+    -750,
+    "city"
+   ],
+   [
+    300,
+    "town"
+   ],
+   [
+    400,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Kushite royal city, Jebel Barkal"
+ },
+ {
+  "name": "Meroe",
+  "lon": 33.75,
+  "lat": 16.93,
+  "phases": [
+   [
+    -800,
+    "town"
+   ],
+   [
+    -300,
+    "city"
+   ],
+   [
+    350,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Kushite capital, iron smelting, pyramids"
+ },
+ {
+  "name": "Kawa",
+  "lon": 32.55,
+  "lat": 19.1,
+  "phases": [
+   [
+    -1400,
+    "village"
+   ],
+   [
+    -750,
+    "town"
+   ],
+   [
+    400,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Amun temple town, Gematon"
+ },
+ {
+  "name": "Sanam",
+  "lon": 32.1,
+  "lat": 18.55,
+  "phases": [
+   [
+    -750,
+    "town"
+   ],
+   [
+    350,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Temple complex opposite Napata"
+ },
+ {
+  "name": "Faras",
+  "lon": 31.4,
+  "lat": 22.18,
+  "phases": [
+   [
+    -1500,
+    "village"
+   ],
+   [
+    400,
+    "town"
+   ],
+   [
+    1300,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Nubian Christian episcopal seat, cathedral murals"
+ },
+ {
+  "name": "Qasr Ibrim",
+  "lon": 31.98,
+  "lat": 22.65,
+  "phases": [
+   [
+    -1000,
+    "town"
+   ],
+   [
+    1800,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Fortified Nile cliff town, Nubian and Ottoman garrison"
+ },
+ {
+  "name": "Old Dongola",
+  "lon": 30.75,
+  "lat": 18.22,
+  "phases": [
+   [
+    400,
+    "town"
+   ],
+   [
+    650,
+    "city"
+   ],
+   [
+    1500,
+    "town"
+   ],
+   [
+    1820,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Makurian capital, churches and mosque-church"
+ },
+ {
+  "name": "Soba",
+  "lon": 32.68,
+  "lat": 15.55,
+  "phases": [
+   [
+    550,
+    "town"
+   ],
+   [
+    900,
+    "city"
+   ],
+   [
+    1500,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Alodia kingdom capital on Blue Nile"
+ },
+ {
+  "name": "Debeira",
+  "lon": 30.95,
+  "lat": 21.95,
+  "phases": [
+   [
+    -1500,
+    "village"
+   ],
+   [
+    600,
+    "town"
+   ],
+   [
+    1400,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Nubian Christian town, church remains"
+ },
+ {
+  "name": "Sai Island",
+  "lon": 30.72,
+  "lat": 20.63,
+  "phases": [
+   [
+    -1500,
+    "town"
+   ],
+   [
+    600,
+    "town"
+   ],
+   [
+    1500,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Fortified island, New Kingdom and Christian occupation"
+ },
+ {
+  "name": "Sennar",
+  "lon": 33.6,
+  "lat": 13.55,
+  "phases": [
+   [
+    1500,
+    "town"
+   ],
+   [
+    1504,
+    "city"
+   ],
+   [
+    1821,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Funj sultanate capital on Blue Nile"
+ },
+ {
+  "name": "Suakin",
+  "lon": 37.33,
+  "lat": 19.1,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1300,
+    "city"
+   ],
+   [
+    1885,
+    "town"
+   ],
+   [
+    1922,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Red Sea coral-built port, pilgrim and slave trade"
+ },
+ {
+  "name": "Khartoum",
+  "lon": 32.53,
+  "lat": 15.6,
+  "phases": [
+   [
+    1821,
+    "town"
+   ],
+   [
+    1885,
+    null
+   ],
+   [
+    1898,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Egyptian garrison, later Anglo-Egyptian capital"
+ },
+ {
+  "name": "Omdurman",
+  "lon": 32.48,
+  "lat": 15.65,
+  "phases": [
+   [
+    1885,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Mahdist state capital, Khalifa's tomb"
+ },
+ {
+  "name": "El Obeid",
+  "lon": 30.22,
+  "lat": 13.18,
+  "phases": [
+   [
+    1700,
+    "village"
+   ],
+   [
+    1821,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Kordofan market town on trans-Saharan route"
+ },
+ {
+  "name": "Berber",
+  "lon": 33.98,
+  "lat": 18.02,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Nile caravan-crossing town, Kushite to medieval"
+ },
+ {
+  "name": "Shendi",
+  "lon": 33.43,
+  "lat": 16.68,
+  "phases": [
+   [
+    1500,
+    "town"
+   ],
+   [
+    1822,
+    null
+   ],
+   [
+    1850,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Nile market town, Bruce and Burckhardt visited"
+ },
+ {
+  "name": "Kassala",
+  "lon": 36.4,
+  "lat": 15.45,
+  "phases": [
+   [
+    1834,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Egyptian garrison town near Eritrean border"
+ },
+ {
+  "name": "El Fasher",
+  "lon": 25.35,
+  "lat": 13.63,
+  "phases": [
+   [
+    1791,
+    "town"
+   ],
+   [
+    1791,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Darfur sultanate capital founded by Sultan Abd al-Rahman"
+ },
+ {
+  "name": "Yeha",
+  "lon": 38.98,
+  "lat": 14.22,
+  "phases": [
+   [
+    -800,
+    "town"
+   ],
+   [
+    -500,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "D'mt-era temple town, Sabaean-influenced"
+ },
+ {
+  "name": "Aksum",
+  "lon": 38.72,
+  "lat": 14.13,
+  "phases": [
+   [
+    -400,
+    "town"
+   ],
+   [
+    100,
+    "city"
+   ],
+   [
+    960,
+    null
+   ],
+   [
+    1600,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Aksumite capital, obelisks, Ezana's coins"
+ },
+ {
+  "name": "Adulis",
+  "lon": 39.65,
+  "lat": 15.27,
+  "phases": [
+   [
+    -200,
+    "town"
+   ],
+   [
+    100,
+    "city"
+   ],
+   [
+    700,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Aksumite Red Sea port, Periplus mentions it"
+ },
+ {
+  "name": "Matara",
+  "lon": 39.53,
+  "lat": 14.87,
+  "phases": [
+   [
+    -300,
+    "town"
+   ],
+   [
+    700,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Aksumite urban site, southern highlands"
+ },
+ {
+  "name": "Qohaito",
+  "lon": 39.47,
+  "lat": 15.2,
+  "phases": [
+   [
+    -300,
+    "town"
+   ],
+   [
+    700,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Aksumite plateau town, possibly ancient Koloe"
+ },
+ {
+  "name": "Lalibela",
+  "lon": 39.03,
+  "lat": 12.03,
+  "phases": [
+   [
+    1150,
+    "town"
+   ],
+   [
+    1270,
+    "city"
+   ],
+   [
+    1270,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Zagwe capital, rock-hewn churches"
+ },
+ {
+  "name": "Gondar",
+  "lon": 37.47,
+  "lat": 12.6,
+  "phases": [
+   [
+    1636,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Solomonic imperial capital, castles of Fasilides"
+ },
+ {
+  "name": "Harar",
+  "lon": 42.13,
+  "lat": 9.31,
+  "phases": [
+   [
+    1000,
+    "town"
+   ],
+   [
+    1520,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Walled Islamic city, Adal sultanate capital"
+ },
+ {
+  "name": "Zeila",
+  "lon": 43.48,
+  "lat": 11.35,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1300,
+    "city"
+   ],
+   [
+    1885,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Red Sea port, Adal and Ifat trade outlet"
+ },
+ {
+  "name": "Berbera",
+  "lon": 45.02,
+  "lat": 10.43,
+  "phases": [
+   [
+    1000,
+    "town"
+   ],
+   [
+    1400,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Somali coast port, annual trade fair"
+ },
+ {
+  "name": "Mogadishu",
+  "lon": 45.32,
+  "lat": 2.04,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1200,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Benadir coast city-state, Ibn Battuta visited"
+ },
+ {
+  "name": "Merca",
+  "lon": 44.75,
+  "lat": 1.72,
+  "phases": [
+   [
+    1000,
+    "town"
+   ],
+   [
+    1300,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Benadir coast port town"
+ },
+ {
+  "name": "Barawa",
+  "lon": 44.05,
+  "lat": 1.1,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1300,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Swahili-Somali coastal town, Brava"
+ },
+ {
+  "name": "Bilad al-Sudan Shewa",
+  "lon": 38.75,
+  "lat": 9.03,
+  "phases": [
+   [
+    1270,
+    "town"
+   ],
+   [
+    1500,
+    "city"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Shewan highland market centre near future Addis"
+ },
+ {
+  "name": "Debre Berhan",
+  "lon": 39.53,
+  "lat": 9.68,
+  "phases": [
+   [
+    1456,
+    "town"
+   ],
+   [
+    1478,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Emperor Zara Yaqob's capital town"
+ },
+ {
+  "name": "Ankober",
+  "lon": 39.72,
+  "lat": 9.55,
+  "phases": [
+   [
+    1700,
+    "town"
+   ],
+   [
+    1888,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Shewan kingdom capital before Addis Ababa"
+ },
+ {
+  "name": "Addis Ababa",
+  "lon": 38.75,
+  "lat": 9.03,
+  "phases": [
+   [
+    1886,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Menelik II's new capital, hot springs site"
+ },
+ {
+  "name": "Entoto",
+  "lon": 38.77,
+  "lat": 9.08,
+  "phases": [
+   [
+    1881,
+    "town"
+   ],
+   [
+    1886,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Menelik's hilltop capital before Addis Ababa"
+ },
+ {
+  "name": "Shewa Gondar road town Debre Tabor",
+  "lon": 38.0,
+  "lat": 11.85,
+  "phases": [
+   [
+    1700,
+    "town"
+   ],
+   [
+    1855,
+    "city"
+   ],
+   [
+    1868,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Yejju-era regional capital"
+ },
+ {
+  "name": "Bahir Dar",
+  "lon": 37.38,
+  "lat": 11.6,
+  "phases": [
+   [
+    1400,
+    "village"
+   ],
+   [
+    1900,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Lake Tana port town near Blue Nile source"
+ },
+ {
+  "name": "Axum-era Yeha region Adwa",
+  "lon": 38.9,
+  "lat": 14.17,
+  "phases": [
+   [
+    1550,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Tigrayan market and battle-site town"
+ },
+ {
+  "name": "Massawa",
+  "lon": 39.47,
+  "lat": 15.6,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1557,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Red Sea Ottoman-Egyptian port"
+ },
+ {
+  "name": "Asmara",
+  "lon": 38.93,
+  "lat": 15.33,
+  "phases": [
+   [
+    1200,
+    "village"
+   ],
+   [
+    1889,
+    "town"
+   ],
+   [
+    1897,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Highland town, Italian colonial capital from 1897"
+ },
+ {
+  "name": "Keren",
+  "lon": 38.45,
+  "lat": 15.78,
+  "phases": [
+   [
+    1400,
+    "village"
+   ],
+   [
+    1889,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Bogos highland market town, Eritrea"
+ },
+ {
+  "name": "Dire Dawa",
+  "lon": 41.87,
+  "lat": 9.6,
+  "phases": [
+   [
+    1902,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Railway junction town, Ethio-Djibouti line"
+ },
+ {
+  "name": "Jimma",
+  "lon": 36.83,
+  "lat": 7.67,
+  "phases": [
+   [
+    1830,
+    "town"
+   ],
+   [
+    1878,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Oromo kingdom capital, coffee trade"
+ },
+ {
+  "name": "Kaffa Bonga",
+  "lon": 36.25,
+  "lat": 7.28,
+  "phases": [
+   [
+    1400,
+    "town"
+   ],
+   [
+    1620,
+    "city"
+   ],
+   [
+    1897,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Kingdom of Kaffa royal town"
+ },
+ {
+  "name": "Wollega Nekemte",
+  "lon": 36.53,
+  "lat": 9.08,
+  "phases": [
+   [
+    1880,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Oromo regional market town"
+ },
+ {
+  "name": "Lamu",
+  "lon": 40.9,
+  "lat": -2.27,
+  "phases": [
+   [
+    1200,
+    "town"
+   ],
+   [
+    1370,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Swahili stone town, Friday mosque inscriptions"
+ },
+ {
+  "name": "Pate",
+  "lon": 41.05,
+  "lat": -2.1,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1200,
+    "city"
+   ],
+   [
+    1700,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Pate Chronicle city-state"
+ },
+ {
+  "name": "Manda",
+  "lon": 40.97,
+  "lat": -2.25,
+  "phases": [
+   [
+    800,
+    "town"
+   ],
+   [
+    1200,
+    "city"
+   ],
+   [
+    1500,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Early Swahili trading town, imported glass and pottery"
+ },
+ {
+  "name": "Shanga",
+  "lon": 41.05,
+  "lat": -2.12,
+  "phases": [
+   [
+    750,
+    "village"
+   ],
+   [
+    1000,
+    "town"
+   ],
+   [
+    1400,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Excavated Swahili town, early mosque sequence"
+ },
+ {
+  "name": "Malindi",
+  "lon": 40.12,
+  "lat": -3.22,
+  "phases": [
+   [
+    1000,
+    "town"
+   ],
+   [
+    1400,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Swahili city-state, welcomed Vasco da Gama 1498"
+ },
+ {
+  "name": "Mombasa",
+  "lon": 39.67,
+  "lat": -4.05,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1200,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Major Swahili port, Fort Jesus 1593"
+ },
+ {
+  "name": "Gede",
+  "lon": 40.03,
+  "lat": -3.32,
+  "phases": [
+   [
+    1100,
+    "town"
+   ],
+   [
+    1400,
+    "city"
+   ],
+   [
+    1600,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Abandoned Swahili stone town, ruins in forest"
+ },
+ {
+  "name": "Kilwa Kisiwani",
+  "lon": 39.52,
+  "lat": -8.98,
+  "phases": [
+   [
+    800,
+    "village"
+   ],
+   [
+    1100,
+    "town"
+   ],
+   [
+    1300,
+    "city"
+   ],
+   [
+    1843,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Sultanate of Kilwa, gold trade entrepot, Husuni Kubwa"
+ },
+ {
+  "name": "Songo Mnara",
+  "lon": 39.53,
+  "lat": -9.04,
+  "phases": [
+   [
+    1300,
+    "town"
+   ],
+   [
+    1550,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Stone town adjacent to Kilwa"
+ },
+ {
+  "name": "Mikindani",
+  "lon": 39.28,
+  "lat": -10.27,
+  "phases": [
+   [
+    1200,
+    "town"
+   ],
+   [
+    1500,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Swahili port, later German colonial station"
+ },
+ {
+  "name": "Kaole",
+  "lon": 38.98,
+  "lat": -6.83,
+  "phases": [
+   [
+    1000,
+    "town"
+   ],
+   [
+    1300,
+    "city"
+   ],
+   [
+    1700,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Early Swahili site near Bagamoyo, oldest mosque ruins"
+ },
+ {
+  "name": "Bagamoyo",
+  "lon": 38.9,
+  "lat": -6.44,
+  "phases": [
+   [
+    1700,
+    "town"
+   ],
+   [
+    1868,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Caravan terminus, slave and ivory trade hub"
+ },
+ {
+  "name": "Zanzibar Stone Town",
+  "lon": 39.19,
+  "lat": -6.16,
+  "phases": [
+   [
+    1000,
+    "town"
+   ],
+   [
+    1832,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Omani sultanate capital from 1832"
+ },
+ {
+  "name": "Unguja Ukuu",
+  "lon": 39.15,
+  "lat": -6.35,
+  "phases": [
+   [
+    500,
+    "village"
+   ],
+   [
+    800,
+    "town"
+   ],
+   [
+    1000,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Earliest known Swahili settlement on Zanzibar"
+ },
+ {
+  "name": "Tumbatu",
+  "lon": 39.2,
+  "lat": -5.93,
+  "phases": [
+   [
+    1000,
+    "town"
+   ],
+   [
+    1300,
+    "city"
+   ],
+   [
+    1500,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Medieval Swahili town, Zanzibar's north"
+ },
+ {
+  "name": "Kizimkazi",
+  "lon": 39.24,
+  "lat": -6.45,
+  "phases": [
+   [
+    1107,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Kufic mosque inscription, oldest dated in East Africa"
+ },
+ {
+  "name": "Chake Chake",
+  "lon": 39.77,
+  "lat": -5.25,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1200,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Pemba island Swahili town"
+ },
+ {
+  "name": "Mkumbuu",
+  "lon": 39.65,
+  "lat": -5.15,
+  "phases": [
+   [
+    800,
+    "town"
+   ],
+   [
+    1250,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Pemba island ruined Swahili town"
+ },
+ {
+  "name": "Comoro Moroni",
+  "lon": 43.26,
+  "lat": -11.7,
+  "phases": [
+   [
+    1500,
+    "town"
+   ],
+   [
+    1841,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Grande Comore sultanate capital"
+ },
+ {
+  "name": "Domoni",
+  "lon": 44.53,
+  "lat": -12.27,
+  "phases": [
+   [
+    1000,
+    "village"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Anjouan island old sultanate seat"
+ },
+ {
+  "name": "Mahilaka",
+  "lon": 48.35,
+  "lat": -13.4,
+  "phases": [
+   [
+    1000,
+    "town"
+   ],
+   [
+    1350,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Northern Madagascar Swahili-trade port, abandoned"
+ },
+ {
+  "name": "Antananarivo",
+  "lon": 47.52,
+  "lat": -18.88,
+  "phases": [
+   [
+    1610,
+    "town"
+   ],
+   [
+    1787,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Merina kingdom capital, Rova palace"
+ },
+ {
+  "name": "Fianarantsoa",
+  "lon": 47.08,
+  "lat": -21.45,
+  "phases": [
+   [
+    1830,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Betsileo regional Merina administrative town"
+ },
+ {
+  "name": "Mahajanga",
+  "lon": 46.32,
+  "lat": -15.72,
+  "phases": [
+   [
+    1600,
+    "town"
+   ],
+   [
+    1745,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Sakalava Boina kingdom port capital"
+ },
+ {
+  "name": "Toamasina (Tamatave)",
+  "lon": 49.4,
+  "lat": -18.15,
+  "phases": [
+   [
+    1700,
+    "village"
+   ],
+   [
+    1817,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "East coast Malagasy trading port"
+ },
+ {
+  "name": "Fort Dauphin",
+  "lon": 47.03,
+  "lat": -25.03,
+  "phases": [
+   [
+    1643,
+    "town"
+   ],
+   [
+    1674,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "French colonial fort, abandoned after Malagasy revolt"
+ },
+ {
+  "name": "Ambohimanga",
+  "lon": 47.55,
+  "lat": -18.76,
+  "phases": [
+   [
+    1710,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Sacred Merina royal hill, UNESCO site"
+ },
+ {
+  "name": "Ambanja",
+  "lon": 48.45,
+  "lat": -13.68,
+  "phases": [
+   [
+    1700,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Sakalava coastal trade settlement, northwest Madagascar"
+ },
+ {
+  "name": "Vohemar",
+  "lon": 50.0,
+  "lat": -13.35,
+  "phases": [
+   [
+    1200,
+    "town"
+   ],
+   [
+    1500,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Medieval Islamised trading port, northeast Madagascar"
+ },
+ {
+  "name": "Ranohira Isalo region",
+  "lon": 45.4,
+  "lat": -22.55,
+  "phases": [
+   [
+    1600,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Bara pastoralist settlement, southwest highlands"
+ },
+ {
+  "name": "Mtwapa",
+  "lon": 39.75,
+  "lat": -3.95,
+  "phases": [
+   [
+    1000,
+    "town"
+   ],
+   [
+    1600,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Swahili stone town near Mombasa, abandoned"
+ },
+ {
+  "name": "Vumba Kuu",
+  "lon": 39.3,
+  "lat": -4.68,
+  "phases": [
+   [
+    1400,
+    "village"
+   ],
+   [
+    1700,
+    "town"
+   ],
+   [
+    1890,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Digo-Swahili coastal chiefdom town"
+ },
+ {
+  "name": "Ungwana",
+  "lon": 40.2,
+  "lat": -2.83,
+  "phases": [
+   [
+    1200,
+    "town"
+   ],
+   [
+    1600,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Sabaki-mouth Swahili town, tax records mention it"
+ },
+ {
+  "name": "Mnarani",
+  "lon": 39.78,
+  "lat": -3.95,
+  "phases": [
+   [
+    1400,
+    "town"
+   ],
+   [
+    1600,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Swahili ruin town on Kilifi creek"
+ },
+ {
+  "name": "Jumba la Mtwana",
+  "lon": 39.72,
+  "lat": -4.0,
+  "phases": [
+   [
+    1350,
+    "village"
+   ],
+   [
+    1500,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Small Swahili stone town north of Mombasa"
+ },
+ {
+  "name": "Bigo bya Mugenyi",
+  "lon": 31.53,
+  "lat": -0.5,
+  "phases": [
+   [
+    1000,
+    "town"
+   ],
+   [
+    1500,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Earthwork capital, Chwezi/Bunyoro-Kitara tradition"
+ },
+ {
+  "name": "Ntusi",
+  "lon": 31.53,
+  "lat": -0.45,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1350,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Early Great Lakes settlement mound, cattle-keeping elite"
+ },
+ {
+  "name": "Mubende Hill",
+  "lon": 31.38,
+  "lat": 0.58,
+  "phases": [
+   [
+    1200,
+    "town"
+   ],
+   [
+    1600,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Chwezi ritual capital site, earthworks"
+ },
+ {
+  "name": "Hoima",
+  "lon": 31.35,
+  "lat": 1.43,
+  "phases": [
+   [
+    1400,
+    "town"
+   ],
+   [
+    1600,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Bunyoro-Kitara kingdom capital region"
+ },
+ {
+  "name": "Mparo",
+  "lon": 31.35,
+  "lat": 1.5,
+  "phases": [
+   [
+    1870,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Bunyoro royal tombs site, Kabalega's capital"
+ },
+ {
+  "name": "Kampala hills",
+  "lon": 32.58,
+  "lat": 0.31,
+  "phases": [
+   [
+    1300,
+    "village"
+   ],
+   [
+    1875,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Buganda capital hills, Kabaka's palace at Mengo"
+ },
+ {
+  "name": "Bulange Mengo",
+  "lon": 32.57,
+  "lat": 0.3,
+  "phases": [
+   [
+    1885,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Buganda parliament and royal enclosure"
+ },
+ {
+  "name": "Kasubi",
+  "lon": 32.55,
+  "lat": 0.34,
+  "phases": [
+   [
+    1882,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Buganda royal tombs"
+ },
+ {
+  "name": "Rubaga",
+  "lon": 32.56,
+  "lat": 0.31,
+  "phases": [
+   [
+    1875,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Buganda capital under Mutesa I, mission stations"
+ },
+ {
+  "name": "Nkore Kamukuzi",
+  "lon": 30.65,
+  "lat": -0.62,
+  "phases": [
+   [
+    1600,
+    "town"
+   ],
+   [
+    1901,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Ankole kingdom royal capital hill, Mbarara"
+ },
+ {
+  "name": "Nyanza (Rwanda)",
+  "lon": 29.75,
+  "lat": -2.35,
+  "phases": [
+   [
+    1600,
+    "town"
+   ],
+   [
+    1899,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Rwandan kingdom royal capital, Mwami's court"
+ },
+ {
+  "name": "Gitarama",
+  "lon": 29.75,
+  "lat": -2.07,
+  "phases": [
+   [
+    1700,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Central Rwandan hill settlement"
+ },
+ {
+  "name": "Kigali hill",
+  "lon": 30.06,
+  "lat": -1.95,
+  "phases": [
+   [
+    1700,
+    "village"
+   ],
+   [
+    1907,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "German colonial post, later Rwandan capital"
+ },
+ {
+  "name": "Gitega",
+  "lon": 29.93,
+  "lat": -3.43,
+  "phases": [
+   [
+    1600,
+    "town"
+   ],
+   [
+    1912,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Burundian royal capital, later colonial seat"
+ },
+ {
+  "name": "Muramvya",
+  "lon": 29.61,
+  "lat": -3.28,
+  "phases": [
+   [
+    1700,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Burundi kingdom royal capital before Gitega"
+ },
+ {
+  "name": "Ujiji",
+  "lon": 29.68,
+  "lat": -4.92,
+  "phases": [
+   [
+    1750,
+    "town"
+   ],
+   [
+    1840,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Lake Tanganyika caravan and slave-trade terminus"
+ },
+ {
+  "name": "Tabora (Kazeh)",
+  "lon": 32.8,
+  "lat": -5.02,
+  "phases": [
+   [
+    1830,
+    "town"
+   ],
+   [
+    1852,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Nyamwezi caravan crossroads, Arab trading post"
+ },
+ {
+  "name": "Karagwe Bweranyange",
+  "lon": 31.0,
+  "lat": -1.63,
+  "phases": [
+   [
+    1500,
+    "town"
+   ],
+   [
+    1900,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Karagwe kingdom capital, Speke visited"
+ },
+ {
+  "name": "Mwanza",
+  "lon": 32.9,
+  "lat": -2.52,
+  "phases": [
+   [
+    1858,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Lake Victoria south-shore trading and later colonial port"
+ },
+ {
+  "name": "Musoma",
+  "lon": 33.8,
+  "lat": -1.5,
+  "phases": [
+   [
+    1700,
+    "village"
+   ],
+   [
+    1900,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Lake Victoria fishing and trade town"
+ },
+ {
+  "name": "Bukoba",
+  "lon": 31.82,
+  "lat": -1.33,
+  "phases": [
+   [
+    1600,
+    "village"
+   ],
+   [
+    1890,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Haya kingdom port, German boma"
+ },
+ {
+  "name": "Toro Fort Portal region",
+  "lon": 30.28,
+  "lat": 0.66,
+  "phases": [
+   [
+    1830,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Toro kingdom capital, breakaway from Bunyoro"
+ },
+ {
+  "name": "Buhweju",
+  "lon": 30.35,
+  "lat": -0.35,
+  "phases": [
+   [
+    1600,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Small pastoral kingdom settlement, western Uganda"
+ },
+ {
+  "name": "Busoga Bugembe",
+  "lon": 33.2,
+  "lat": 0.48,
+  "phases": [
+   [
+    1600,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Busoga chiefdom centre near Jinja"
+ },
+ {
+  "name": "Jinja",
+  "lon": 33.2,
+  "lat": 0.44,
+  "phases": [
+   [
+    1862,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Nile source town, Speke's 1862 discovery point"
+ },
+ {
+  "name": "Mbanza Kongo",
+  "lon": 14.25,
+  "lat": -6.27,
+  "phases": [
+   [
+    1350,
+    "town"
+   ],
+   [
+    1491,
+    "city"
+   ],
+   [
+    1678,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Kongo kingdom capital, renamed Sao Salvador 1491"
+ },
+ {
+  "name": "Mbanza Soyo",
+  "lon": 12.37,
+  "lat": -6.13,
+  "phases": [
+   [
+    1400,
+    "town"
+   ],
+   [
+    1600,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Kongo coastal province capital, early Portuguese contact"
+ },
+ {
+  "name": "Mpinda",
+  "lon": 12.42,
+  "lat": -6.1,
+  "phases": [
+   [
+    1483,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Kongo's first port of Portuguese contact, Congo river mouth"
+ },
+ {
+  "name": "Luanda",
+  "lon": 13.23,
+  "lat": -8.82,
+  "phases": [
+   [
+    1576,
+    "town"
+   ],
+   [
+    1627,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Portuguese colonial capital, slave-trade port"
+ },
+ {
+  "name": "Mbanza Kabasa (Ndongo)",
+  "lon": 15.0,
+  "lat": -9.5,
+  "phases": [
+   [
+    1500,
+    "town"
+   ],
+   [
+    1671,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ndongo kingdom capital of Queen Nzinga's predecessors"
+ },
+ {
+  "name": "Kasanje",
+  "lon": 17.83,
+  "lat": -9.9,
+  "phases": [
+   [
+    1620,
+    "town"
+   ],
+   [
+    1912,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Imbangala kingdom trading capital, Kwango river"
+ },
+ {
+  "name": "Cavazzo Matamba",
+  "lon": 17.35,
+  "lat": -9.15,
+  "phases": [
+   [
+    1500,
+    "town"
+   ],
+   [
+    1631,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Matamba kingdom capital, Queen Nzinga's seat"
+ },
+ {
+  "name": "Mbuila",
+  "lon": 14.75,
+  "lat": -6.15,
+  "phases": [
+   [
+    1665,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Site of decisive Kongo-Portuguese battle 1665"
+ },
+ {
+  "name": "Nsundi",
+  "lon": 15.3,
+  "lat": -5.15,
+  "phases": [
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Kongo northern provincial capital"
+ },
+ {
+  "name": "Mpangu",
+  "lon": 15.05,
+  "lat": -5.6,
+  "phases": [
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Kongo provincial capital, north-east"
+ },
+ {
+  "name": "Mbata",
+  "lon": 15.6,
+  "lat": -5.6,
+  "phases": [
+   [
+    1390,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Kongo's senior allied province, 'grandfather' province"
+ },
+ {
+  "name": "Benguela",
+  "lon": 13.41,
+  "lat": -12.58,
+  "phases": [
+   [
+    1617,
+    "town"
+   ],
+   [
+    1700,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Portuguese slave-trade port, south Angola"
+ },
+ {
+  "name": "Caconda",
+  "lon": 15.07,
+  "lat": -13.73,
+  "phases": [
+   [
+    1682,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Portuguese inland presidio and trade fair town"
+ },
+ {
+  "name": "Bihe (Kuito)",
+  "lon": 16.93,
+  "lat": -12.38,
+  "phases": [
+   [
+    1770,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Ovimbundu kingdom capital, caravan trade centre"
+ },
+ {
+  "name": "Mussumba (Lunda capital)",
+  "lon": 22.42,
+  "lat": -8.68,
+  "phases": [
+   [
+    1665,
+    "town"
+   ],
+   [
+    1885,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Mwata Yamvo's Lunda empire capital"
+ },
+ {
+  "name": "Musumba Kazembe",
+  "lon": 28.75,
+  "lat": -9.8,
+  "phases": [
+   [
+    1740,
+    "town"
+   ],
+   [
+    1800,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Eastern Lunda Kazembe kingdom capital, Luapula valley"
+ },
+ {
+  "name": "Mwibele (Luba capital)",
+  "lon": 26.6,
+  "lat": -8.2,
+  "phases": [
+   [
+    1585,
+    "town"
+   ],
+   [
+    1870,
+    "city"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Luba empire royal capital tradition"
+ },
+ {
+  "name": "Nkalaany Kabambare",
+  "lon": 26.05,
+  "lat": -8.1,
+  "phases": [
+   [
+    1500,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Early Luba heartland settlement, upper Lualaba"
+ },
+ {
+  "name": "Kabinda",
+  "lon": 24.48,
+  "lat": -6.13,
+  "phases": [
+   [
+    1700,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Luba-Songye trade town, upper Congo basin"
+ },
+ {
+  "name": "Mwene Mutapa capital Zvongombe",
+  "lon": 31.0,
+  "lat": -17.5,
+  "phases": [
+   [
+    1450,
+    "city"
+   ],
+   [
+    1629,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Mutapa state early capital, Portuguese chronicled"
+ },
+ {
+  "name": "Ambaca",
+  "lon": 15.35,
+  "lat": -8.83,
+  "phases": [
+   [
+    1617,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Portuguese presidio, Kimbundu trade town"
+ },
+ {
+  "name": "Massangano",
+  "lon": 14.87,
+  "lat": -9.63,
+  "phases": [
+   [
+    1583,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Portuguese fort at Kwanza-Lucala confluence"
+ },
+ {
+  "name": "Pungo Andongo",
+  "lon": 15.6,
+  "lat": -9.7,
+  "phases": [
+   [
+    1671,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Portuguese presidio after Ndongo's fall"
+ },
+ {
+  "name": "Novo Redondo",
+  "lon": 13.42,
+  "lat": -11.2,
+  "phases": [
+   [
+    1769,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Portuguese coastal slaving port, Angola"
+ },
+ {
+  "name": "Great Zimbabwe",
+  "lon": 30.93,
+  "lat": -20.27,
+  "phases": [
+   [
+    1000,
+    "village"
+   ],
+   [
+    1250,
+    "city"
+   ],
+   [
+    1450,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Stone-walled capital, gold-and-ivory trade hub"
+ },
+ {
+  "name": "Mapungubwe",
+  "lon": 29.35,
+  "lat": -22.2,
+  "phases": [
+   [
+    1030,
+    "town"
+   ],
+   [
+    1220,
+    "city"
+   ],
+   [
+    1290,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Earliest southern African state capital, gold graves"
+ },
+ {
+  "name": "K2 (Bambandyanalo)",
+  "lon": 29.35,
+  "lat": -22.2,
+  "phases": [
+   [
+    970,
+    "town"
+   ],
+   [
+    1220,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Predecessor settlement to Mapungubwe"
+ },
+ {
+  "name": "Khami",
+  "lon": 28.85,
+  "lat": -20.2,
+  "phases": [
+   [
+    1450,
+    "town"
+   ],
+   [
+    1650,
+    "city"
+   ],
+   [
+    1683,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Torwa state capital after Great Zimbabwe's decline"
+ },
+ {
+  "name": "Danangombe (Dhlo-Dhlo)",
+  "lon": 29.35,
+  "lat": -19.05,
+  "phases": [
+   [
+    1650,
+    "town"
+   ],
+   [
+    1830,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Rozvi Changamire state capital"
+ },
+ {
+  "name": "Naletale",
+  "lon": 29.3,
+  "lat": -19.25,
+  "phases": [
+   [
+    1700,
+    "town"
+   ],
+   [
+    1830,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Rozvi stone-walled site, decorated walling"
+ },
+ {
+  "name": "Manyikeni",
+  "lon": 34.9,
+  "lat": -22.35,
+  "phases": [
+   [
+    1200,
+    "town"
+   ],
+   [
+    1650,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Zimbabwe-culture stone site, Mozambican coast link"
+ },
+ {
+  "name": "Chinhoyi Caves settlement",
+  "lon": 30.2,
+  "lat": -17.35,
+  "phases": [
+   [
+    1400,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Rozvi-era refuge and settlement site"
+ },
+ {
+  "name": "Zvongombe",
+  "lon": 31.0,
+  "lat": -17.5,
+  "phases": [
+   [
+    1450,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Mutapa provincial court town, northern Zimbabwe plateau"
+ },
+ {
+  "name": "Sena",
+  "lon": 35.02,
+  "lat": -17.45,
+  "phases": [
+   [
+    1531,
+    "town"
+   ],
+   [
+    1600,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Portuguese Zambezi prazo trading town"
+ },
+ {
+  "name": "Tete",
+  "lon": 33.58,
+  "lat": -16.15,
+  "phases": [
+   [
+    1530,
+    "town"
+   ],
+   [
+    1633,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Portuguese fortified Zambezi river port"
+ },
+ {
+  "name": "Quelimane",
+  "lon": 36.88,
+  "lat": -17.88,
+  "phases": [
+   [
+    1500,
+    "town"
+   ],
+   [
+    1544,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Zambezi delta port, early Portuguese trade"
+ },
+ {
+  "name": "Sofala",
+  "lon": 34.83,
+  "lat": -20.17,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1200,
+    "city"
+   ],
+   [
+    1700,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Swahili-Mutapa gold port, Portuguese fort 1505"
+ },
+ {
+  "name": "Ilha de Mozambique",
+  "lon": 40.73,
+  "lat": -15.03,
+  "phases": [
+   [
+    1000,
+    "town"
+   ],
+   [
+    1507,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Portuguese colonial capital island, Swahili predecessor"
+ },
+ {
+  "name": "Angoche",
+  "lon": 39.9,
+  "lat": -16.23,
+  "phases": [
+   [
+    1200,
+    "town"
+   ],
+   [
+    1500,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Swahili sultanate port, Mozambique coast"
+ },
+ {
+  "name": "Zumbo",
+  "lon": 30.53,
+  "lat": -15.6,
+  "phases": [
+   [
+    1715,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Portuguese inland Zambezi fair town at Luangwa confluence"
+ },
+ {
+  "name": "Chibuene",
+  "lon": 35.28,
+  "lat": -22.02,
+  "phases": [
+   [
+    600,
+    "village"
+   ],
+   [
+    900,
+    "town"
+   ],
+   [
+    1200,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Early Indian Ocean trade port, southern Mozambique"
+ },
+ {
+  "name": "Inhambane",
+  "lon": 35.38,
+  "lat": -23.87,
+  "phases": [
+   [
+    1000,
+    "town"
+   ],
+   [
+    1560,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Swahili-era port, later Portuguese trading station"
+ },
+ {
+  "name": "Lourenco Marques",
+  "lon": 32.58,
+  "lat": -25.97,
+  "phases": [
+   [
+    1544,
+    "town"
+   ],
+   [
+    1876,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Delagoa Bay port, later Maputo"
+ },
+ {
+  "name": "Zimbabwe-culture Nyanga terraces",
+  "lon": 32.75,
+  "lat": -18.22,
+  "phases": [
+   [
+    1300,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Nyanga agricultural-pit settlement complex"
+ },
+ {
+  "name": "Kaditshwene",
+  "lon": 26.75,
+  "lat": -25.13,
+  "phases": [
+   [
+    1750,
+    "town"
+   ],
+   [
+    1823,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Hurutshe Tswana capital, largest town Burchell recorded"
+ },
+ {
+  "name": "Dithakong",
+  "lon": 24.6,
+  "lat": -27.32,
+  "phases": [
+   [
+    1700,
+    "town"
+   ],
+   [
+    1823,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Tlhaping capital, mfecane battle site"
+ },
+ {
+  "name": "Kurrichane (Kaditshwene alt)",
+  "lon": 26.9,
+  "lat": -24.9,
+  "phases": [
+   [
+    1750,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Tswana stone-walled capital, Campbell's visit"
+ },
+ {
+  "name": "Thaba Bosiu",
+  "lon": 27.6,
+  "lat": -29.28,
+  "phases": [
+   [
+    1824,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Moshoeshoe I's mountain capital, Basotho kingdom"
+ },
+ {
+  "name": "Molepolole",
+  "lon": 25.5,
+  "lat": -24.42,
+  "phases": [
+   [
+    1650,
+    "village"
+   ],
+   [
+    1854,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Bakwena Tswana capital town"
+ },
+ {
+  "name": "Mochudi",
+  "lon": 26.15,
+  "lat": -24.42,
+  "phases": [
+   [
+    1871,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Bakgatla Tswana capital town"
+ },
+ {
+  "name": "Kanye",
+  "lon": 25.35,
+  "lat": -24.97,
+  "phases": [
+   [
+    1795,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Bangwaketse Tswana capital town"
+ },
+ {
+  "name": "Shoshong",
+  "lon": 26.5,
+  "lat": -23.05,
+  "phases": [
+   [
+    1826,
+    "town"
+   ],
+   [
+    1889,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Bangwato Tswana capital before Palapye"
+ },
+ {
+  "name": "Palapye Old Palapye",
+  "lon": 26.87,
+  "lat": -22.55,
+  "phases": [
+   [
+    1889,
+    "town"
+   ],
+   [
+    1902,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Bangwato capital under Khama III"
+ },
+ {
+  "name": "Mosega",
+  "lon": 26.3,
+  "lat": -26.05,
+  "phases": [
+   [
+    1820,
+    "town"
+   ],
+   [
+    1837,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ndebele (Mzilikazi) capital before Great Trek clashes"
+ },
+ {
+  "name": "Mhlahlandlela",
+  "lon": 28.55,
+  "lat": -27.5,
+  "phases": [
+   [
+    1826,
+    "town"
+   ],
+   [
+    1837,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Mzilikazi's Ndebele royal town, Transvaal"
+ },
+ {
+  "name": "Bulawayo (Old, Mzilikazi)",
+  "lon": 28.6,
+  "lat": -19.6,
+  "phases": [
+   [
+    1840,
+    "town"
+   ],
+   [
+    1868,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ndebele kingdom capital under Mzilikazi"
+ },
+ {
+  "name": "GuBulawayo (Lobengula)",
+  "lon": 28.62,
+  "lat": -19.55,
+  "phases": [
+   [
+    1881,
+    "town"
+   ],
+   [
+    1893,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ndebele capital under Lobengula, burnt 1893"
+ },
+ {
+  "name": "Mzilikazi's kraal region Inyathi",
+  "lon": 28.9,
+  "lat": -19.35,
+  "phases": [
+   [
+    1859,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "London Missionary Society station, Ndebele kingdom"
+ },
+ {
+  "name": "Thulamela",
+  "lon": 31.25,
+  "lat": -22.35,
+  "phases": [
+   [
+    1200,
+    "town"
+   ],
+   [
+    1650,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Stone-walled Zimbabwe-culture site, Kruger area"
+ },
+ {
+  "name": "Ondini (Ulundi)",
+  "lon": 31.42,
+  "lat": -28.32,
+  "phases": [
+   [
+    1873,
+    "town"
+   ],
+   [
+    1879,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Zulu kingdom capital under Cetshwayo"
+ },
+ {
+  "name": "Bulawayo kraal (Shaka)",
+  "lon": 31.42,
+  "lat": -28.85,
+  "phases": [
+   [
+    1817,
+    "town"
+   ],
+   [
+    1828,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Shaka's first Zulu royal homestead"
+ },
+ {
+  "name": "KwaDukuza",
+  "lon": 31.35,
+  "lat": -29.32,
+  "phases": [
+   [
+    1825,
+    "town"
+   ],
+   [
+    1828,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Shaka's capital, Stanger, site of his assassination"
+ },
+ {
+  "name": "Mgungundlovu",
+  "lon": 30.68,
+  "lat": -28.68,
+  "phases": [
+   [
+    1829,
+    "town"
+   ],
+   [
+    1838,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Dingane's Zulu capital, Piet Retief killed here"
+ },
+ {
+  "name": "Nodwengu",
+  "lon": 31.42,
+  "lat": -28.35,
+  "phases": [
+   [
+    1829,
+    "town"
+   ],
+   [
+    1873,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Mpande's Zulu royal capital near Ulundi"
+ },
+ {
+  "name": "Cape Town",
+  "lon": 18.42,
+  "lat": -33.93,
+  "phases": [
+   [
+    1652,
+    "town"
+   ],
+   [
+    1795,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Dutch East India Company refreshment station, Table Bay"
+ },
+ {
+  "name": "Stellenbosch",
+  "lon": 18.86,
+  "lat": -33.93,
+  "phases": [
+   [
+    1679,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Second oldest Cape settlement, wine farms"
+ },
+ {
+  "name": "Paarl",
+  "lon": 18.97,
+  "lat": -33.73,
+  "phases": [
+   [
+    1687,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Cape Dutch farming town, Berg river valley"
+ },
+ {
+  "name": "Swellendam",
+  "lon": 20.44,
+  "lat": -34.02,
+  "phases": [
+   [
+    1745,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Cape drostdy town, third-oldest magistracy"
+ },
+ {
+  "name": "Graaff-Reinet",
+  "lon": 24.53,
+  "lat": -32.25,
+  "phases": [
+   [
+    1786,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Cape frontier drostdy, Sneeuberg district"
+ },
+ {
+  "name": "Uitenhage",
+  "lon": 25.4,
+  "lat": -33.77,
+  "phases": [
+   [
+    1804,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Eastern Cape colonial administrative town"
+ },
+ {
+  "name": "Grahamstown",
+  "lon": 26.53,
+  "lat": -33.3,
+  "phases": [
+   [
+    1812,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "British frontier garrison, 1820 Settlers hub"
+ },
+ {
+  "name": "Port Elizabeth",
+  "lon": 25.6,
+  "lat": -33.96,
+  "phases": [
+   [
+    1820,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "1820 Settlers landing port, Algoa Bay"
+ },
+ {
+  "name": "Worcester",
+  "lon": 19.45,
+  "lat": -33.65,
+  "phases": [
+   [
+    1820,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Breede river valley Cape colonial town"
+ },
+ {
+  "name": "Beaufort West",
+  "lon": 22.58,
+  "lat": -32.35,
+  "phases": [
+   [
+    1818,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Karoo interior Cape administrative town"
+ },
+ {
+  "name": "Kimberley",
+  "lon": 24.77,
+  "lat": -28.73,
+  "phases": [
+   [
+    1871,
+    "town"
+   ],
+   [
+    1873,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Diamond rush town, De Beers founded 1888"
+ },
+ {
+  "name": "Bloemfontein",
+  "lon": 26.22,
+  "lat": -29.12,
+  "phases": [
+   [
+    1846,
+    "town"
+   ],
+   [
+    1854,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Orange Free State capital"
+ },
+ {
+  "name": "Pretoria",
+  "lon": 28.19,
+  "lat": -25.75,
+  "phases": [
+   [
+    1855,
+    "town"
+   ],
+   [
+    1860,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "South African Republic (Transvaal) capital"
+ },
+ {
+  "name": "Potchefstroom",
+  "lon": 27.1,
+  "lat": -26.72,
+  "phases": [
+   [
+    1838,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "First Voortrekker republic capital, Transvaal"
+ },
+ {
+  "name": "Pietermaritzburg",
+  "lon": 30.38,
+  "lat": -29.6,
+  "phases": [
+   [
+    1838,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Voortrekker Natalia republic capital"
+ },
+ {
+  "name": "Durban",
+  "lon": 31.03,
+  "lat": -29.85,
+  "phases": [
+   [
+    1824,
+    "town"
+   ],
+   [
+    1854,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Port Natal trading post, British colonial port"
+ },
+ {
+  "name": "Johannesburg",
+  "lon": 28.05,
+  "lat": -26.2,
+  "phases": [
+   [
+    1886,
+    "town"
+   ],
+   [
+    1896,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Witwatersrand gold-rush boomtown"
+ },
+ {
+  "name": "Mafikeng",
+  "lon": 25.55,
+  "lat": -25.87,
+  "phases": [
+   [
+    1857,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Tswana Barolong capital, later colonial town, 1899-1900 siege"
+ },
+ {
+  "name": "Kuruman",
+  "lon": 23.43,
+  "lat": -27.45,
+  "phases": [
+   [
+    1821,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Robert Moffat's mission station, Tswana country"
+ },
+ {
+  "name": "Colesberg",
+  "lon": 25.1,
+  "lat": -30.72,
+  "phases": [
+   [
+    1830,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Cape northern-frontier trekker town"
+ },
+ {
+  "name": "Buhen",
+  "lon": 31.33,
+  "lat": 21.9,
+  "phases": [
+   [
+    -2000,
+    "town"
+   ],
+   [
+    -1500,
+    "city"
+   ],
+   [
+    -1000,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Egyptian fortress town, Second Cataract"
+ },
+ {
+  "name": "Semna",
+  "lon": 31.28,
+  "lat": 21.5,
+  "phases": [
+   [
+    -1850,
+    "town"
+   ],
+   [
+    -1500,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Middle Kingdom fortress pair, Nile boundary"
+ },
+ {
+  "name": "Gebel Adda",
+  "lon": 31.85,
+  "lat": 22.42,
+  "phases": [
+   [
+    400,
+    "town"
+   ],
+   [
+    1400,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Nubian Christian and Islamic-era hilltop town"
+ },
+ {
+  "name": "Musawwarat es-Sufra",
+  "lon": 33.53,
+  "lat": 16.4,
+  "phases": [
+   [
+    -300,
+    "village"
+   ],
+   [
+    300,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Meroitic temple complex, elephant reliefs"
+ },
+ {
+  "name": "Naqa",
+  "lon": 33.28,
+  "lat": 16.27,
+  "phases": [
+   [
+    -100,
+    "village"
+   ],
+   [
+    250,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Meroitic temple town, Lion Temple of Apedemak"
+ },
+ {
+  "name": "Hobagi",
+  "lon": 32.6,
+  "lat": 16.15,
+  "phases": [
+   [
+    300,
+    "village"
+   ],
+   [
+    500,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Post-Meroitic tumulus-field settlement"
+ },
+ {
+  "name": "Fazogli",
+  "lon": 34.35,
+  "lat": 10.8,
+  "phases": [
+   [
+    1500,
+    "village"
+   ],
+   [
+    1685,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Funj-era Blue Nile gold-trade frontier town"
+ },
+ {
+  "name": "Kordofan Bara",
+  "lon": 30.35,
+  "lat": 13.7,
+  "phases": [
+   [
+    1700,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Kordofan caravan-route market village"
+ },
+ {
+  "name": "Debba",
+  "lon": 30.95,
+  "lat": 18.0,
+  "phases": [
+   [
+    1400,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Nile-bend market village, Dongola reach"
+ },
+ {
+  "name": "Beta Israel Semien",
+  "lon": 38.3,
+  "lat": 13.2,
+  "phases": [
+   [
+    1300,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Beta Israel highland village cluster, Semien mountains"
+ },
+ {
+  "name": "Tegulet",
+  "lon": 39.35,
+  "lat": 9.83,
+  "phases": [
+   [
+    1270,
+    "town"
+   ],
+   [
+    1500,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Early Solomonic dynasty capital region"
+ },
+ {
+  "name": "Debre Libanos",
+  "lon": 38.75,
+  "lat": 9.53,
+  "phases": [
+   [
+    1284,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Major Ethiopian Orthodox monastery town"
+ },
+ {
+  "name": "Ifat Zeila hinterland Aussa",
+  "lon": 41.65,
+  "lat": 11.55,
+  "phases": [
+   [
+    1577,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Adal sultanate's later capital, Awash valley"
+ },
+ {
+  "name": "Gojjam Bichena",
+  "lon": 37.9,
+  "lat": 10.45,
+  "phases": [
+   [
+    1700,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Gojjam provincial market town"
+ },
+ {
+  "name": "Tigray Yeha-Adwa corridor Aksum region Inda Selassie",
+  "lon": 38.38,
+  "lat": 14.12,
+  "phases": [
+   [
+    1500,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Tigrayan highland market village"
+ },
+ {
+  "name": "Ogaden Jijiga",
+  "lon": 42.8,
+  "lat": 9.35,
+  "phases": [
+   [
+    1300,
+    "village"
+   ],
+   [
+    1891,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Somali Ogaden regional market town"
+ },
+ {
+  "name": "Hargeisa",
+  "lon": 44.07,
+  "lat": 9.56,
+  "phases": [
+   [
+    1300,
+    "village"
+   ],
+   [
+    1870,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Somaliland interior market town"
+ },
+ {
+  "name": "Bulhar",
+  "lon": 44.43,
+  "lat": 10.38,
+  "phases": [
+   [
+    1600,
+    "village"
+   ],
+   [
+    1870,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Somali coast secondary port"
+ },
+ {
+  "name": "Lugh Ganana",
+  "lon": 42.55,
+  "lat": 3.8,
+  "phases": [
+   [
+    1200,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Somali riverine trade town, Jubba valley"
+ },
+ {
+  "name": "Wondo Genet Sidamo",
+  "lon": 38.62,
+  "lat": 7.1,
+  "phases": [
+   [
+    1400,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Sidama highland agricultural settlement"
+ },
+ {
+  "name": "Kilifi",
+  "lon": 39.85,
+  "lat": -3.63,
+  "phases": [
+   [
+    1300,
+    "town"
+   ],
+   [
+    1600,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Swahili creek-mouth town, ruins and later modern town"
+ },
+ {
+  "name": "Takwa",
+  "lon": 40.97,
+  "lat": -2.18,
+  "phases": [
+   [
+    1500,
+    "town"
+   ],
+   [
+    1700,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Swahili stone town on Manda island, abandoned"
+ },
+ {
+  "name": "Siyu",
+  "lon": 41.02,
+  "lat": -2.12,
+  "phases": [
+   [
+    1400,
+    "town"
+   ],
+   [
+    1600,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Pate island scholarly and craft town"
+ },
+ {
+  "name": "Faza",
+  "lon": 41.1,
+  "lat": -2.1,
+  "phases": [
+   [
+    1200,
+    "town"
+   ],
+   [
+    1500,
+    "city"
+   ],
+   [
+    1700,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Pate archipelago town, Portuguese-era rival"
+ },
+ {
+  "name": "Vanga",
+  "lon": 39.23,
+  "lat": -4.65,
+  "phases": [
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Southern Kenya coast Swahili border town"
+ },
+ {
+  "name": "Sadani",
+  "lon": 38.77,
+  "lat": -6.02,
+  "phases": [
+   [
+    1700,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Tanzanian coast caravan port, ivory trade"
+ },
+ {
+  "name": "Pangani",
+  "lon": 38.98,
+  "lat": -5.43,
+  "phases": [
+   [
+    1000,
+    "town"
+   ],
+   [
+    1600,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Swahili river-mouth port, caravan terminus"
+ },
+ {
+  "name": "Tanga",
+  "lon": 39.1,
+  "lat": -5.07,
+  "phases": [
+   [
+    1300,
+    "town"
+   ],
+   [
+    1600,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Northern Tanzania coast Swahili port"
+ },
+ {
+  "name": "Kunduchi",
+  "lon": 39.2,
+  "lat": -6.62,
+  "phases": [
+   [
+    1300,
+    "town"
+   ],
+   [
+    1600,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Swahili ruin town north of Dar es Salaam"
+ },
+ {
+  "name": "Dar es Salaam Mzizima",
+  "lon": 39.28,
+  "lat": -6.82,
+  "phases": [
+   [
+    1700,
+    "village"
+   ],
+   [
+    1866,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Sultan Majid's founded port, formerly Mzizima"
+ },
+ {
+  "name": "Kilwa Kivinje",
+  "lon": 39.42,
+  "lat": -8.75,
+  "phases": [
+   [
+    1800,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Successor slave-trade port to Kilwa Kisiwani"
+ },
+ {
+  "name": "Lindi",
+  "lon": 39.72,
+  "lat": -10.0,
+  "phases": [
+   [
+    1600,
+    "town"
+   ],
+   [
+    1800,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Southern Tanzania coast slaving port"
+ },
+ {
+  "name": "Mtambwe Mkuu",
+  "lon": 39.75,
+  "lat": -5.12,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1200,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Pemba island Swahili coin-hoard site"
+ },
+ {
+  "name": "Ras Mkumbuu (alt)",
+  "lon": 39.68,
+  "lat": -5.28,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1300,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Pemba's principal early medieval town"
+ },
+ {
+  "name": "Munsa",
+  "lon": 30.85,
+  "lat": 0.87,
+  "phases": [
+   [
+    1000,
+    "town"
+   ],
+   [
+    1500,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Earthwork enclosure site, Bunyoro region"
+ },
+ {
+  "name": "Kibiro",
+  "lon": 31.4,
+  "lat": 1.53,
+  "phases": [
+   [
+    1000,
+    "village"
+   ],
+   [
+    1600,
+    "town"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Salt-producing lakeshore town, Lake Albert"
+ },
+ {
+  "name": "Rusinga fishing settlements",
+  "lon": 34.17,
+  "lat": -0.42,
+  "phases": [
+   [
+    1500,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Lake Victoria island fishing settlement"
+ },
+ {
+  "name": "Rutare",
+  "lon": 30.1,
+  "lat": -1.65,
+  "phases": [
+   [
+    1500,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Rwandan hill settlement, pre-kingdom era"
+ },
+ {
+  "name": "Bushiru Ruhengeri",
+  "lon": 29.63,
+  "lat": -1.5,
+  "phases": [
+   [
+    1700,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Northern Rwandan chiefdom market town"
+ },
+ {
+  "name": "Usumbura old town",
+  "lon": 29.36,
+  "lat": -3.38,
+  "phases": [
+   [
+    1800,
+    "village"
+   ],
+   [
+    1899,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "German colonial post, predecessor to Bujumbura"
+ },
+ {
+  "name": "Kome Island settlements",
+  "lon": 32.75,
+  "lat": -2.3,
+  "phases": [
+   [
+    1400,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Lake Victoria island fishing and trade village"
+ },
+ {
+  "name": "Kyamutwara",
+  "lon": 31.75,
+  "lat": -1.55,
+  "phases": [
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Haya chiefdom capital, west Lake Victoria"
+ },
+ {
+  "name": "Mbanza Mbata",
+  "lon": 15.55,
+  "lat": -5.62,
+  "phases": [
+   [
+    1390,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Kongo province capital, eastern frontier"
+ },
+ {
+  "name": "Okango",
+  "lon": 16.2,
+  "lat": -8.9,
+  "phases": [
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Kongo-Ndongo borderland market town"
+ },
+ {
+  "name": "Lubolo",
+  "lon": 15.9,
+  "lat": -10.3,
+  "phases": [
+   [
+    1600,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Ovimbundu highland settlement, central Angola"
+ },
+ {
+  "name": "Huambo region Ekomonjo",
+  "lon": 15.73,
+  "lat": -12.78,
+  "phases": [
+   [
+    1750,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Ovimbundu kingdom market town"
+ },
+ {
+  "name": "Kabasa alt Ndongo capital",
+  "lon": 15.1,
+  "lat": -9.3,
+  "phases": [
+   [
+    1515,
+    "town"
+   ],
+   [
+    1671,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ndongo royal capital, ngola's seat"
+ },
+ {
+  "name": "Feti (Pende)",
+  "lon": 18.6,
+  "lat": -7.3,
+  "phases": [
+   [
+    1600,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Pende chiefdom settlement, Kwango basin"
+ },
+ {
+  "name": "Kikwit region",
+  "lon": 18.82,
+  "lat": -5.03,
+  "phases": [
+   [
+    1700,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Kwilu river trade village, Kongo hinterland"
+ },
+ {
+  "name": "Mbanza Nsundi",
+  "lon": 14.9,
+  "lat": -5.1,
+  "phases": [
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Kongo province capital, cataracts region"
+ },
+ {
+  "name": "Kwango Kasanje successor towns",
+  "lon": 18.1,
+  "lat": -9.6,
+  "phases": [
+   [
+    1750,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Imbangala satellite trading village"
+ },
+ {
+  "name": "Ingombe Ilede",
+  "lon": 28.6,
+  "lat": -16.05,
+  "phases": [
+   [
+    1400,
+    "town"
+   ],
+   [
+    1650,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Zambezi valley trade town, copper and gold finds"
+ },
+ {
+  "name": "Chedzurgwe",
+  "lon": 31.1,
+  "lat": -18.9,
+  "phases": [
+   [
+    1450,
+    "town"
+   ],
+   [
+    1700,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Mutapa-era stone site, eastern plateau"
+ },
+ {
+  "name": "Baranda Mutapa court",
+  "lon": 31.3,
+  "lat": -16.9,
+  "phases": [
+   [
+    1500,
+    "town"
+   ],
+   [
+    1650,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Mutapa royal court site, Chidzurgwe area"
+ },
+ {
+  "name": "Massapa fair",
+  "lon": 32.65,
+  "lat": -16.95,
+  "phases": [
+   [
+    1580,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Portuguese trade fair near Mutapa court"
+ },
+ {
+  "name": "Luabo Zambezi mouth",
+  "lon": 36.1,
+  "lat": -18.35,
+  "phases": [
+   [
+    1500,
+    "village"
+   ],
+   [
+    1600,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Zambezi delta trading village"
+ },
+ {
+  "name": "Chicoa",
+  "lon": 32.8,
+  "lat": -15.68,
+  "phases": [
+   [
+    1580,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Portuguese Zambezi gold-trade fair town"
+ },
+ {
+  "name": "Dambarare",
+  "lon": 30.9,
+  "lat": -17.3,
+  "phases": [
+   [
+    1580,
+    "town"
+   ],
+   [
+    1693,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Portuguese inland gold-trade settlement, plateau"
+ },
+ {
+  "name": "Manica",
+  "lon": 32.87,
+  "lat": -18.93,
+  "phases": [
+   [
+    1400,
+    "town"
+   ],
+   [
+    1575,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Gold-trade town, Manyika chieftaincy"
+ },
+ {
+  "name": "Quilimane hinterland Marrupa",
+  "lon": 35.88,
+  "lat": -13.2,
+  "phases": [
+   [
+    1700,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Niassa interior trade village"
+ },
+ {
+  "name": "Taung",
+  "lon": 24.77,
+  "lat": -27.55,
+  "phases": [
+   [
+    1750,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Batlhaping/Barolong Tswana settlement area"
+ },
+ {
+  "name": "Old Lattakoo",
+  "lon": 24.3,
+  "lat": -27.75,
+  "phases": [
+   [
+    1780,
+    "town"
+   ],
+   [
+    1816,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Tlhaping capital visited by early LMS missionaries"
+ },
+ {
+  "name": "Litakun new town",
+  "lon": 24.75,
+  "lat": -27.4,
+  "phases": [
+   [
+    1816,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Relocated Tlhaping capital, Moffat mission"
+ },
+ {
+  "name": "Moletsane's Taung",
+  "lon": 26.85,
+  "lat": -30.25,
+  "phases": [
+   [
+    1824,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Taung Sotho chiefdom refuge town, mfecane era"
+ },
+ {
+  "name": "Matlwang Koranna settlement",
+  "lon": 24.9,
+  "lat": -28.3,
+  "phases": [
+   [
+    1780,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Griqua/Koranna trading settlement, middle Orange river"
+ },
+ {
+  "name": "Griquatown",
+  "lon": 23.25,
+  "lat": -28.85,
+  "phases": [
+   [
+    1804,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Griqua mission and trading town, Cape interior"
+ },
+ {
+  "name": "Philippolis",
+  "lon": 25.28,
+  "lat": -30.02,
+  "phases": [
+   [
+    1826,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Griqua Adam Kok's capital, Orange river"
+ },
+ {
+  "name": "Lesotho Morija",
+  "lon": 27.47,
+  "lat": -29.62,
+  "phases": [
+   [
+    1833,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Paris Evangelical mission station, Basutoland"
+ },
+ {
+  "name": "Butha-Buthe",
+  "lon": 28.25,
+  "lat": -28.77,
+  "phases": [
+   [
+    1824,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Moshoeshoe's first mountain refuge before Thaba Bosiu"
+ },
+ {
+  "name": "Rustenburg",
+  "lon": 27.24,
+  "lat": -25.66,
+  "phases": [
+   [
+    1850,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Voortrekker Transvaal farming town"
+ },
+ {
+  "name": "Lydenburg",
+  "lon": 30.43,
+  "lat": -25.1,
+  "phases": [
+   [
+    1849,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Voortrekker eastern Transvaal republic capital"
+ },
+ {
+  "name": "Zeerust Moiloa town",
+  "lon": 26.08,
+  "lat": -25.53,
+  "phases": [
+   [
+    1795,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Hurutshe Tswana successor capital"
+ },
+ {
+  "name": "Old Gaborone",
+  "lon": 25.9,
+  "lat": -24.65,
+  "phases": [
+   [
+    1880,
+    "village"
+   ],
+   [
+    1965,
+    "city"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Tlokwa Tswana settlement, later Botswana capital"
+ }
+]

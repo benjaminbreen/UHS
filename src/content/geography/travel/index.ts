@@ -76,9 +76,15 @@ export const travelPresets = {
     mode: "sea" as const,
   },
 };
+const ranks = ["none", "village", "town", "city"] as const;
 export function settlementAt(p: TravelLocation, year: number) {
   if (p.kind === "landscape") return "none" as const;
   const s = p.settlement;
+  if (s?.phases) {
+    let rank = 0;
+    for (let k = 0; k < s.phases.length && s.phases[k] <= year; k += 2) rank = s.phases[k + 1];
+    return ranks[rank];
+  }
   if (s) return year >= s.from && year < (s.to ?? Infinity) ? s.rank : "unresearched" as const;
   // A catalog anchor has no dated record, so read it as a direct start would.
   const place = placeById.get(p.id);

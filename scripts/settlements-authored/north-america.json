@@ -1,0 +1,6794 @@
+[
+  {
+    "name": "Poverty Point",
+    "lon": -91.41,
+    "lat": 32.63,
+    "phases": [
+      [
+        -1700,
+        "town"
+      ],
+      [
+        -1100,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Massive earthwork mound complex, LA"
+  },
+  {
+    "name": "Watson Brake",
+    "lon": -92.19,
+    "lat": 32.29,
+    "phases": [
+      [
+        -3500,
+        "village"
+      ],
+      [
+        -2800,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Oldest known North American mound complex"
+  },
+  {
+    "name": "Grave Creek Mound",
+    "lon": -80.72,
+    "lat": 39.9,
+    "phases": [
+      [
+        -250,
+        "village"
+      ],
+      [
+        -1,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Adena burial mound, WV"
+  },
+  {
+    "name": "Serpent Mound",
+    "lon": -83.43,
+    "lat": 39.02,
+    "phases": [
+      [
+        -300,
+        "village"
+      ],
+      [
+        1000,
+        "village"
+      ],
+      [
+        1650,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Adena/Fort Ancient effigy mound, Ohio"
+  },
+  {
+    "name": "Newark Earthworks",
+    "lon": -82.42,
+    "lat": 40.06,
+    "phases": [
+      [
+        1,
+        "town"
+      ],
+      [
+        400,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Largest Hopewell geometric earthworks"
+  },
+  {
+    "name": "Mound City",
+    "lon": -83.03,
+    "lat": 39.03,
+    "phases": [
+      [
+        1,
+        "town"
+      ],
+      [
+        400,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Hopewell mound group, Chillicothe OH"
+  },
+  {
+    "name": "Fort Ancient",
+    "lon": -83.88,
+    "lat": 39.4,
+    "phases": [
+      [
+        100,
+        "town"
+      ],
+      [
+        500,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Hopewell hilltop enclosure, Ohio"
+  },
+  {
+    "name": "Hopewell Mound Group",
+    "lon": -83.05,
+    "lat": 39.28,
+    "phases": [
+      [
+        1,
+        "town"
+      ],
+      [
+        400,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Type site of Hopewell culture"
+  },
+  {
+    "name": "Marksville",
+    "lon": -92.06,
+    "lat": 31.13,
+    "phases": [
+      [
+        1,
+        "village"
+      ],
+      [
+        400,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Hopewellian mound site, Louisiana"
+  },
+  {
+    "name": "Crystal River",
+    "lon": -82.68,
+    "lat": 28.9,
+    "phases": [
+      [
+        -200,
+        "village"
+      ],
+      [
+        1400,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Woodland ceremonial mound complex, FL"
+  },
+  {
+    "name": "Kolomoki Mounds",
+    "lon": -84.98,
+    "lat": 31.42,
+    "phases": [
+      [
+        350,
+        "town"
+      ],
+      [
+        900,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Woodland-period mound center, Georgia"
+  },
+  {
+    "name": "Cahokia",
+    "lon": -90.06,
+    "lat": 38.66,
+    "phases": [
+      [
+        600,
+        "village"
+      ],
+      [
+        1050,
+        "city"
+      ],
+      [
+        1350,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Largest pre-Columbian city north of Mexico"
+  },
+  {
+    "name": "Moundville",
+    "lon": -87.63,
+    "lat": 33.0,
+    "phases": [
+      [
+        1000,
+        "village"
+      ],
+      [
+        1200,
+        "city"
+      ],
+      [
+        1500,
+        "town"
+      ],
+      [
+        1650,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Second-largest Mississippian mound center"
+  },
+  {
+    "name": "Etowah",
+    "lon": -84.81,
+    "lat": 34.15,
+    "phases": [
+      [
+        1000,
+        "village"
+      ],
+      [
+        1200,
+        "town"
+      ],
+      [
+        1550,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Mississippian chiefdom center, Georgia"
+  },
+  {
+    "name": "Spiro",
+    "lon": -94.63,
+    "lat": 35.3,
+    "phases": [
+      [
+        900,
+        "village"
+      ],
+      [
+        1200,
+        "town"
+      ],
+      [
+        1450,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Caddoan Mississippian ceremonial center"
+  },
+  {
+    "name": "Kincaid",
+    "lon": -88.57,
+    "lat": 37.08,
+    "phases": [
+      [
+        1050,
+        "village"
+      ],
+      [
+        1200,
+        "town"
+      ],
+      [
+        1450,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Mississippian mound center, Ohio Valley"
+  },
+  {
+    "name": "Angel Mounds",
+    "lon": -87.47,
+    "lat": 37.9,
+    "phases": [
+      [
+        1100,
+        "village"
+      ],
+      [
+        1250,
+        "town"
+      ],
+      [
+        1450,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Mississippian town, Indiana"
+  },
+  {
+    "name": "Town Creek",
+    "lon": -79.99,
+    "lat": 35.29,
+    "phases": [
+      [
+        1150,
+        "village"
+      ],
+      [
+        1300,
+        "town"
+      ],
+      [
+        1550,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Mississippian mound center, NC"
+  },
+  {
+    "name": "Ocmulgee",
+    "lon": -83.6,
+    "lat": 32.83,
+    "phases": [
+      [
+        900,
+        "village"
+      ],
+      [
+        1100,
+        "town"
+      ],
+      [
+        1450,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Mississippian mound town, Macon GA"
+  },
+  {
+    "name": "Emerald Mound",
+    "lon": -91.15,
+    "lat": 31.75,
+    "phases": [
+      [
+        1250,
+        "town"
+      ],
+      [
+        1730,
+        "town"
+      ],
+      [
+        1740,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Plaquemine Mississippian ceremonial mound, ancestral Natchez"
+  },
+  {
+    "name": "Grand Village of the Natchez",
+    "lon": -91.38,
+    "lat": 31.56,
+    "phases": [
+      [
+        1200,
+        "town"
+      ],
+      [
+        1682,
+        "town"
+      ],
+      [
+        1730,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Natchez capital destroyed by French 1730"
+  },
+  {
+    "name": "Winterville",
+    "lon": -91.0,
+    "lat": 33.09,
+    "phases": [
+      [
+        1000,
+        "village"
+      ],
+      [
+        1200,
+        "town"
+      ],
+      [
+        1450,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Mississippian mound center, Mississippi"
+  },
+  {
+    "name": "Parkin",
+    "lon": -90.57,
+    "lat": 35.28,
+    "phases": [
+      [
+        1000,
+        "village"
+      ],
+      [
+        1350,
+        "town"
+      ],
+      [
+        1550,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Late Mississippian town, possible Casqui"
+  },
+  {
+    "name": "Toqua",
+    "lon": -84.28,
+    "lat": 35.57,
+    "phases": [
+      [
+        1200,
+        "village"
+      ],
+      [
+        1400,
+        "town"
+      ],
+      [
+        1600,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Overhill Cherokee-area Mississippian mound town"
+  },
+  {
+    "name": "Shiloh Mounds",
+    "lon": -88.32,
+    "lat": 35.12,
+    "phases": [
+      [
+        1000,
+        "village"
+      ],
+      [
+        1200,
+        "town"
+      ],
+      [
+        1450,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Mississippian mound center, Tennessee River"
+  },
+  {
+    "name": "Aztalan",
+    "lon": -88.86,
+    "lat": 43.08,
+    "phases": [
+      [
+        1000,
+        "village"
+      ],
+      [
+        1100,
+        "town"
+      ],
+      [
+        1300,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Northernmost Mississippian-influenced town, Wisconsin"
+  },
+  {
+    "name": "Coweta",
+    "lon": -85.0,
+    "lat": 32.52,
+    "phases": [
+      [
+        1690,
+        "town"
+      ],
+      [
+        1836,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Lower Creek (Muscogee) talwa on Chattahoochee"
+  },
+  {
+    "name": "Cusseta",
+    "lon": -85.01,
+    "lat": 32.51,
+    "phases": [
+      [
+        1700,
+        "town"
+      ],
+      [
+        1836,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Lower Creek town, Chattahoochee River"
+  },
+  {
+    "name": "Tuckabatchee",
+    "lon": -85.75,
+    "lat": 32.51,
+    "phases": [
+      [
+        1700,
+        "town"
+      ],
+      [
+        1836,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Upper Creek principal town, Tallapoosa River"
+  },
+  {
+    "name": "Okfuskee",
+    "lon": -85.9,
+    "lat": 32.86,
+    "phases": [
+      [
+        1700,
+        "town"
+      ],
+      [
+        1836,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Upper Creek town, Tallapoosa River"
+  },
+  {
+    "name": "Chota",
+    "lon": -84.19,
+    "lat": 35.57,
+    "phases": [
+      [
+        1600,
+        "town"
+      ],
+      [
+        1788,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Cherokee 'peace town' capital, Little Tennessee"
+  },
+  {
+    "name": "Tellico",
+    "lon": -84.28,
+    "lat": 35.61,
+    "phases": [
+      [
+        1600,
+        "town"
+      ],
+      [
+        1819,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Overhill Cherokee town"
+  },
+  {
+    "name": "Tanasi",
+    "lon": -84.2,
+    "lat": 35.55,
+    "phases": [
+      [
+        1600,
+        "village"
+      ],
+      [
+        1788,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Cherokee town giving Tennessee its name"
+  },
+  {
+    "name": "New Echota",
+    "lon": -84.94,
+    "lat": 34.36,
+    "phases": [
+      [
+        1825,
+        "town"
+      ],
+      [
+        1838,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Cherokee Nation capital before removal"
+  },
+  {
+    "name": "Nanih Waiya",
+    "lon": -89.13,
+    "lat": 32.96,
+    "phases": [
+      [
+        1200,
+        "village"
+      ],
+      [
+        1830,
+        null
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "Choctaw sacred mound and origin site"
+  },
+  {
+    "name": "Chickasaw Old Fields",
+    "lon": -88.7,
+    "lat": 34.86,
+    "phases": [
+      [
+        1600,
+        "town"
+      ],
+      [
+        1832,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Chickasaw settlement cluster, Mississippi"
+  },
+  {
+    "name": "Chaco Canyon (Pueblo Bonito)",
+    "lon": -107.96,
+    "lat": 36.06,
+    "phases": [
+      [
+        850,
+        "town"
+      ],
+      [
+        1150,
+        "town"
+      ],
+      [
+        1250,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Great house and regional Chacoan center"
+  },
+  {
+    "name": "Aztec Ruins",
+    "lon": -107.99,
+    "lat": 36.83,
+    "phases": [
+      [
+        1100,
+        "town"
+      ],
+      [
+        1300,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Chacoan-Mesa Verdean great house"
+  },
+  {
+    "name": "Mesa Verde (Cliff Palace)",
+    "lon": -108.47,
+    "lat": 37.18,
+    "phases": [
+      [
+        600,
+        "village"
+      ],
+      [
+        1150,
+        "town"
+      ],
+      [
+        1300,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Ancestral Puebloan cliff-dwelling center"
+  },
+  {
+    "name": "Chimney Rock",
+    "lon": -107.31,
+    "lat": 37.28,
+    "phases": [
+      [
+        900,
+        "village"
+      ],
+      [
+        1125,
+        "town"
+      ],
+      [
+        1200,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Chacoan outlier, Colorado"
+  },
+  {
+    "name": "Salmon Ruins",
+    "lon": -108.04,
+    "lat": 36.75,
+    "phases": [
+      [
+        1090,
+        "town"
+      ],
+      [
+        1280,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Chacoan great house, San Juan River"
+  },
+  {
+    "name": "Lowry Pueblo",
+    "lon": -108.75,
+    "lat": 37.62,
+    "phases": [
+      [
+        1060,
+        "village"
+      ],
+      [
+        1170,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Chacoan-influenced pueblo, Colorado"
+  },
+  {
+    "name": "Kuaua",
+    "lon": -106.58,
+    "lat": 35.34,
+    "phases": [
+      [
+        1300,
+        "town"
+      ],
+      [
+        1680,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Ancestral Tiwa pueblo, Coronado State Monument"
+  },
+  {
+    "name": "Taos Pueblo",
+    "lon": -105.57,
+    "lat": 36.44,
+    "phases": [
+      [
+        1000,
+        "village"
+      ],
+      [
+        1350,
+        "town"
+      ],
+      [
+        2020,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Continuously inhabited Northern Tiwa pueblo"
+  },
+  {
+    "name": "Acoma Pueblo",
+    "lon": -107.58,
+    "lat": 34.91,
+    "phases": [
+      [
+        1150,
+        "village"
+      ],
+      [
+        1300,
+        "town"
+      ],
+      [
+        2020,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "'Sky City', continuously inhabited since c.1150"
+  },
+  {
+    "name": "Zuni Pueblo (Halona)",
+    "lon": -108.85,
+    "lat": 35.07,
+    "phases": [
+      [
+        1300,
+        "town"
+      ],
+      [
+        1540,
+        "town"
+      ],
+      [
+        2020,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Ashiwi capital, one of Seven Cities of Cibola"
+  },
+  {
+    "name": "Hawikuh",
+    "lon": -108.98,
+    "lat": 35.03,
+    "phases": [
+      [
+        1400,
+        "town"
+      ],
+      [
+        1680,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Zuni pueblo, first Coronado contact 1540"
+  },
+  {
+    "name": "Old Oraibi (Hopi)",
+    "lon": -110.63,
+    "lat": 35.87,
+    "phases": [
+      [
+        1100,
+        "village"
+      ],
+      [
+        1300,
+        "town"
+      ],
+      [
+        2020,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Oldest continuously inhabited settlement in US"
+  },
+  {
+    "name": "Walpi (Hopi)",
+    "lon": -110.38,
+    "lat": 35.83,
+    "phases": [
+      [
+        1100,
+        "village"
+      ],
+      [
+        1690,
+        "town"
+      ],
+      [
+        2020,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "First Mesa Hopi village"
+  },
+  {
+    "name": "Awatovi",
+    "lon": -110.28,
+    "lat": 35.79,
+    "phases": [
+      [
+        1300,
+        "town"
+      ],
+      [
+        1700,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Hopi pueblo destroyed 1700 in intra-Hopi conflict"
+  },
+  {
+    "name": "Pecos Pueblo",
+    "lon": -105.68,
+    "lat": 35.56,
+    "phases": [
+      [
+        1300,
+        "town"
+      ],
+      [
+        1450,
+        "town"
+      ],
+      [
+        1838,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Major trade pueblo, Towa-speaking"
+  },
+  {
+    "name": "San Ildefonso Pueblo",
+    "lon": -106.1,
+    "lat": 35.87,
+    "phases": [
+      [
+        1300,
+        "village"
+      ],
+      [
+        2020,
+        "village"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Northern Rio Grande Tewa pueblo"
+  },
+  {
+    "name": "Santa Clara Pueblo",
+    "lon": -106.08,
+    "lat": 35.83,
+    "phases": [
+      [
+        1300,
+        "village"
+      ],
+      [
+        2020,
+        "village"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Northern Rio Grande Tewa pueblo"
+  },
+  {
+    "name": "Cochiti Pueblo",
+    "lon": -106.33,
+    "lat": 35.61,
+    "phases": [
+      [
+        1300,
+        "village"
+      ],
+      [
+        2020,
+        "village"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Keresan-speaking Rio Grande pueblo"
+  },
+  {
+    "name": "Isleta Pueblo",
+    "lon": -106.69,
+    "lat": 34.91,
+    "phases": [
+      [
+        1300,
+        "village"
+      ],
+      [
+        2020,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Southern Tiwa pueblo on the Rio Grande"
+  },
+  {
+    "name": "Jemez Pueblo (Walatowa)",
+    "lon": -106.74,
+    "lat": 35.6,
+    "phases": [
+      [
+        1300,
+        "village"
+      ],
+      [
+        2020,
+        "village"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Towa-speaking pueblo, Jemez Valley"
+  },
+  {
+    "name": "Kotyiti",
+    "lon": -106.29,
+    "lat": 35.65,
+    "phases": [
+      [
+        1680,
+        "village"
+      ],
+      [
+        1696,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Cochiti refuge pueblo of Pueblo Revolt era"
+  },
+  {
+    "name": "Snaketown",
+    "lon": -111.87,
+    "lat": 33.16,
+    "phases": [
+      [
+        300,
+        "village"
+      ],
+      [
+        900,
+        "town"
+      ],
+      [
+        1200,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Major Hohokam settlement, Gila River"
+  },
+  {
+    "name": "Casa Grande",
+    "lon": -111.53,
+    "lat": 32.99,
+    "phases": [
+      [
+        1200,
+        "village"
+      ],
+      [
+        1350,
+        "town"
+      ],
+      [
+        1450,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Hohokam great house, Arizona"
+  },
+  {
+    "name": "Pueblo Grande",
+    "lon": -111.98,
+    "lat": 33.45,
+    "phases": [
+      [
+        900,
+        "village"
+      ],
+      [
+        1200,
+        "town"
+      ],
+      [
+        1450,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Hohokam platform mound village, Phoenix"
+  },
+  {
+    "name": "Casas Grandes (Paquime)",
+    "lon": -108.1,
+    "lat": 30.37,
+    "phases": [
+      [
+        1200,
+        "town"
+      ],
+      [
+        1300,
+        "city"
+      ],
+      [
+        1450,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Major Mogollon trade center, Chihuahua"
+  },
+  {
+    "name": "Mimbres (NAN Ranch)",
+    "lon": -108.05,
+    "lat": 32.72,
+    "phases": [
+      [
+        550,
+        "village"
+      ],
+      [
+        1000,
+        "town"
+      ],
+      [
+        1150,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Mimbres Mogollon village, famous pottery"
+  },
+  {
+    "name": "Grasshopper Pueblo",
+    "lon": -110.32,
+    "lat": 33.98,
+    "phases": [
+      [
+        1275,
+        "village"
+      ],
+      [
+        1330,
+        "town"
+      ],
+      [
+        1400,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Mogollon Rim ancestral pueblo"
+  },
+  {
+    "name": "Ozette",
+    "lon": -124.67,
+    "lat": 48.16,
+    "phases": [
+      [
+        500,
+        "village"
+      ],
+      [
+        1750,
+        "village"
+      ],
+      [
+        1930,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Makah whaling village, buried by landslide c.1750"
+  },
+  {
+    "name": "Skidegate",
+    "lon": -132.1,
+    "lat": 53.25,
+    "phases": [
+      [
+        900,
+        "village"
+      ],
+      [
+        1850,
+        "town"
+      ],
+      [
+        2020,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Haida village, Haida Gwaii"
+  },
+  {
+    "name": "Ninstints (SGang Gwaay)",
+    "lon": -131.24,
+    "lat": 52.09,
+    "phases": [
+      [
+        900,
+        "village"
+      ],
+      [
+        1880,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Haida village, UNESCO totem site"
+  },
+  {
+    "name": "Klinkwan",
+    "lon": -132.55,
+    "lat": 55.12,
+    "phases": [
+      [
+        1300,
+        "village"
+      ],
+      [
+        1900,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Kaigani Haida village, Alaska"
+  },
+  {
+    "name": "Sitka (Shee Atika)",
+    "lon": -135.33,
+    "lat": 57.05,
+    "phases": [
+      [
+        1000,
+        "village"
+      ],
+      [
+        1799,
+        "town"
+      ],
+      [
+        2020,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Tlingit settlement, later Russian capital"
+  },
+  {
+    "name": "Angoon",
+    "lon": -134.58,
+    "lat": 57.5,
+    "phases": [
+      [
+        1000,
+        "village"
+      ],
+      [
+        2020,
+        "village"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Tlingit (Xutsnoowu Kwaan) village"
+  },
+  {
+    "name": "Nootka (Yuquot)",
+    "lon": -126.62,
+    "lat": 49.59,
+    "phases": [
+      [
+        1000,
+        "village"
+      ],
+      [
+        1778,
+        "town"
+      ],
+      [
+        1900,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Nuu-chah-nulth village, Cook's landfall 1778"
+  },
+  {
+    "name": "Comox",
+    "lon": -124.93,
+    "lat": 49.67,
+    "phases": [
+      [
+        500,
+        "village"
+      ],
+      [
+        1850,
+        "village"
+      ],
+      [
+        2020,
+        "village"
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "K'omoks village, Vancouver Island"
+  },
+  {
+    "name": "Musqueam",
+    "lon": -123.2,
+    "lat": 49.23,
+    "phases": [
+      [
+        1000,
+        "village"
+      ],
+      [
+        2020,
+        "village"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Coast Salish village, Fraser River delta"
+  },
+  {
+    "name": "Cowichan",
+    "lon": -123.71,
+    "lat": 48.78,
+    "phases": [
+      [
+        500,
+        "village"
+      ],
+      [
+        2020,
+        "village"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Coast Salish village cluster, Vancouver Island"
+  },
+  {
+    "name": "Yaangna",
+    "lon": -118.24,
+    "lat": 34.05,
+    "phases": [
+      [
+        1000,
+        "village"
+      ],
+      [
+        1781,
+        "village"
+      ],
+      [
+        1850,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Tongva village, site of Los Angeles founding"
+  },
+  {
+    "name": "Kuruvungna",
+    "lon": -118.45,
+    "lat": 34.04,
+    "phases": [
+      [
+        500,
+        "village"
+      ],
+      [
+        1830,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Tongva village, West LA springs"
+  },
+  {
+    "name": "Muwu",
+    "lon": -119.1,
+    "lat": 34.13,
+    "phases": [
+      [
+        1000,
+        "village"
+      ],
+      [
+        1782,
+        "village"
+      ],
+      [
+        1850,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Chumash village, Mugu"
+  },
+  {
+    "name": "Mishopshno",
+    "lon": -119.6,
+    "lat": 34.4,
+    "phases": [
+      [
+        500,
+        "village"
+      ],
+      [
+        1804,
+        "village"
+      ],
+      [
+        1850,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Chumash village near Carpinteria"
+  },
+  {
+    "name": "Syuxtun",
+    "lon": -119.7,
+    "lat": 34.41,
+    "phases": [
+      [
+        500,
+        "village"
+      ],
+      [
+        1782,
+        "town"
+      ],
+      [
+        1850,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Chumash village at Santa Barbara"
+  },
+  {
+    "name": "Helo'",
+    "lon": -120.2,
+    "lat": 34.46,
+    "phases": [
+      [
+        500,
+        "village"
+      ],
+      [
+        1800,
+        "village"
+      ],
+      [
+        1850,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Chumash village near Goleta"
+  },
+  {
+    "name": "Liwaneluk (Tamien)",
+    "lon": -121.9,
+    "lat": 37.34,
+    "phases": [
+      [
+        1000,
+        "village"
+      ],
+      [
+        1777,
+        "village"
+      ],
+      [
+        1840,
+        null
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "Ohlone village site, later San Jose Mission area"
+  },
+  {
+    "name": "Chochenyo (Huchiun)",
+    "lon": -122.28,
+    "lat": 37.83,
+    "phases": [
+      [
+        1000,
+        "village"
+      ],
+      [
+        1797,
+        "village"
+      ],
+      [
+        1840,
+        null
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "Ohlone village territory, East Bay"
+  },
+  {
+    "name": "Petaluma (Coast Miwok)",
+    "lon": -122.65,
+    "lat": 38.23,
+    "phases": [
+      [
+        1000,
+        "village"
+      ],
+      [
+        1817,
+        "village"
+      ],
+      [
+        1840,
+        null
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "Coast Miwok village territory"
+  },
+  {
+    "name": "Kule Loklo",
+    "lon": -122.88,
+    "lat": 38.05,
+    "phases": [
+      [
+        1000,
+        "village"
+      ],
+      [
+        1830,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Coast Miwok village, Point Reyes"
+  },
+  {
+    "name": "Yokaia",
+    "lon": -123.2,
+    "lat": 39.15,
+    "phases": [
+      [
+        1000,
+        "village"
+      ],
+      [
+        1850,
+        null
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "Pomo village, Ukiah Valley"
+  },
+  {
+    "name": "Weitchpec",
+    "lon": -123.68,
+    "lat": 41.18,
+    "phases": [
+      [
+        1000,
+        "village"
+      ],
+      [
+        2020,
+        "village"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Yurok village at Klamath/Trinity confluence"
+  },
+  {
+    "name": "Requa",
+    "lon": -124.08,
+    "lat": 41.55,
+    "phases": [
+      [
+        1000,
+        "village"
+      ],
+      [
+        2020,
+        "village"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Yurok village, Klamath River mouth"
+  },
+  {
+    "name": "Celilo Village",
+    "lon": -121.18,
+    "lat": 45.66,
+    "phases": [
+      [
+        1000,
+        "village"
+      ],
+      [
+        1957,
+        "village"
+      ],
+      [
+        2020,
+        "village"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Wishram/Wasco fishing village, Columbia River"
+  },
+  {
+    "name": "Kettle Falls",
+    "lon": -118.08,
+    "lat": 48.61,
+    "phases": [
+      [
+        1000,
+        "village"
+      ],
+      [
+        1940,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Salish/Colville fishing station, Columbia River"
+  },
+  {
+    "name": "Wallula",
+    "lon": -118.9,
+    "lat": 46.06,
+    "phases": [
+      [
+        1000,
+        "village"
+      ],
+      [
+        1855,
+        null
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "Walla Walla village, Columbia River"
+  },
+  {
+    "name": "Onondaga (Historic)",
+    "lon": -76.05,
+    "lat": 42.95,
+    "phases": [
+      [
+        1450,
+        "town"
+      ],
+      [
+        2020,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Onondaga Nation capital, central fire of Haudenosaunee"
+  },
+  {
+    "name": "Cayuga Castle",
+    "lon": -76.6,
+    "lat": 42.75,
+    "phases": [
+      [
+        1500,
+        "town"
+      ],
+      [
+        1779,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Cayuga principal village, destroyed by Sullivan campaign"
+  },
+  {
+    "name": "Ganondagan",
+    "lon": -77.43,
+    "lat": 42.94,
+    "phases": [
+      [
+        1670,
+        "town"
+      ],
+      [
+        1687,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Seneca town destroyed by French 1687"
+  },
+  {
+    "name": "Cattaraugus (Seneca)",
+    "lon": -78.9,
+    "lat": 42.45,
+    "phases": [
+      [
+        1600,
+        "village"
+      ],
+      [
+        2020,
+        "village"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Seneca settlement, western NY"
+  },
+  {
+    "name": "Cayuga Ferry Neuter",
+    "lon": -79.9,
+    "lat": 42.9,
+    "phases": [
+      [
+        1400,
+        "village"
+      ],
+      [
+        1651,
+        null
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "Neutral Nation village, Ontario Peninsula"
+  },
+  {
+    "name": "Cahiague",
+    "lon": -79.35,
+    "lat": 44.47,
+    "phases": [
+      [
+        1580,
+        "town"
+      ],
+      [
+        1616,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Largest known Huron (Wendat) town, Champlain visit 1615"
+  },
+  {
+    "name": "Ossossane",
+    "lon": -80.13,
+    "lat": 44.55,
+    "phases": [
+      [
+        1500,
+        "town"
+      ],
+      [
+        1648,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Huron-Wendat village, Jesuit mission site"
+  },
+  {
+    "name": "Teanaostaiae (St. Joseph)",
+    "lon": -80.1,
+    "lat": 44.42,
+    "phases": [
+      [
+        1550,
+        "town"
+      ],
+      [
+        1648,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Huron town, Jesuit mission destroyed 1648"
+  },
+  {
+    "name": "Werowocomoco",
+    "lon": -76.73,
+    "lat": 37.35,
+    "phases": [
+      [
+        1200,
+        "village"
+      ],
+      [
+        1400,
+        "town"
+      ],
+      [
+        1610,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Powhatan paramount chiefdom capital"
+  },
+  {
+    "name": "Powhatan (village)",
+    "lon": -77.47,
+    "lat": 37.53,
+    "phases": [
+      [
+        1500,
+        "town"
+      ],
+      [
+        1646,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Powhatan's home village, near Richmond"
+  },
+  {
+    "name": "Patawomeck",
+    "lon": -77.34,
+    "lat": 38.31,
+    "phases": [
+      [
+        1300,
+        "village"
+      ],
+      [
+        1666,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Algonquian town, Potomac River, Pocahontas-linked"
+  },
+  {
+    "name": "Weyanoke",
+    "lon": -76.9,
+    "lat": 37.2,
+    "phases": [
+      [
+        1300,
+        "village"
+      ],
+      [
+        1650,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Algonquian town, James River, Virginia"
+  },
+  {
+    "name": "Sokoki (Squakheag)",
+    "lon": -72.55,
+    "lat": 42.78,
+    "phases": [
+      [
+        1500,
+        "village"
+      ],
+      [
+        1676,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Western Abenaki village, Connecticut River"
+  },
+  {
+    "name": "Norridgewock",
+    "lon": -69.79,
+    "lat": 44.72,
+    "phases": [
+      [
+        1500,
+        "town"
+      ],
+      [
+        1724,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Abenaki mission village, destroyed 1724"
+  },
+  {
+    "name": "Pennacook",
+    "lon": -71.47,
+    "lat": 43.2,
+    "phases": [
+      [
+        1400,
+        "village"
+      ],
+      [
+        1700,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Pennacook confederacy village, Merrimack River"
+  },
+  {
+    "name": "Patuxet",
+    "lon": -70.67,
+    "lat": 41.96,
+    "phases": [
+      [
+        1200,
+        "village"
+      ],
+      [
+        1620,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Wampanoag village, site of Plymouth Colony"
+  },
+  {
+    "name": "Sowams (Pokanoket)",
+    "lon": -71.27,
+    "lat": 41.75,
+    "phases": [
+      [
+        1300,
+        "town"
+      ],
+      [
+        1676,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Wampanoag Massasoit's seat, Bristol RI"
+  },
+  {
+    "name": "Mystic Fort",
+    "lon": -71.96,
+    "lat": 41.36,
+    "phases": [
+      [
+        1400,
+        "village"
+      ],
+      [
+        1637,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Pequot fortified village, destroyed 1637"
+  },
+  {
+    "name": "Weinshauks",
+    "lon": -71.97,
+    "lat": 41.45,
+    "phases": [
+      [
+        1500,
+        "town"
+      ],
+      [
+        1637,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Pequot capital village"
+  },
+  {
+    "name": "Nemasket",
+    "lon": -70.94,
+    "lat": 41.89,
+    "phases": [
+      [
+        1200,
+        "village"
+      ],
+      [
+        1675,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Wampanoag village, Middleborough MA"
+  },
+  {
+    "name": "Shinnecock",
+    "lon": -72.44,
+    "lat": 40.89,
+    "phases": [
+      [
+        1200,
+        "village"
+      ],
+      [
+        2020,
+        "village"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Shinnecock village, Long Island"
+  },
+  {
+    "name": "Montauk",
+    "lon": -71.86,
+    "lat": 41.04,
+    "phases": [
+      [
+        1200,
+        "village"
+      ],
+      [
+        1700,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Montaukett village, eastern Long Island"
+  },
+  {
+    "name": "Nanticoke Town",
+    "lon": -75.68,
+    "lat": 38.6,
+    "phases": [
+      [
+        1200,
+        "village"
+      ],
+      [
+        1740,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Nanticoke village, Chesapeake tributary"
+  },
+  {
+    "name": "Kecoughtan",
+    "lon": -76.3,
+    "lat": 37.03,
+    "phases": [
+      [
+        1300,
+        "village"
+      ],
+      [
+        1610,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Algonquian town, mouth of James River"
+  },
+  {
+    "name": "Metoac (Manhasset)",
+    "lon": -72.3,
+    "lat": 41.1,
+    "phases": [
+      [
+        1200,
+        "village"
+      ],
+      [
+        1700,
+        null
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "Algonquian village, Shelter Island NY"
+  },
+  {
+    "name": "Manahatta",
+    "lon": -73.97,
+    "lat": 40.78,
+    "phases": [
+      [
+        1000,
+        "village"
+      ],
+      [
+        1626,
+        null
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "Lenape settlement area, Manhattan"
+  },
+  {
+    "name": "Communipaw",
+    "lon": -74.08,
+    "lat": 40.72,
+    "phases": [
+      [
+        1200,
+        "village"
+      ],
+      [
+        1660,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Lenape village, later Dutch Bergen"
+  },
+  {
+    "name": "Shackamaxon",
+    "lon": -75.13,
+    "lat": 39.97,
+    "phases": [
+      [
+        1300,
+        "village"
+      ],
+      [
+        1682,
+        "village"
+      ],
+      [
+        1750,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Lenape village, Penn Treaty site"
+  },
+  {
+    "name": "Pennsbury (Lenape)",
+    "lon": -74.85,
+    "lat": 40.2,
+    "phases": [
+      [
+        1200,
+        "village"
+      ],
+      [
+        1740,
+        null
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "Lenape village territory, Delaware Valley"
+  },
+  {
+    "name": "Double Ditch",
+    "lon": -100.83,
+    "lat": 46.93,
+    "phases": [
+      [
+        1490,
+        "town"
+      ],
+      [
+        1785,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Mandan earthlodge village, Missouri River"
+  },
+  {
+    "name": "On-A-Slant Village",
+    "lon": -100.83,
+    "lat": 46.75,
+    "phases": [
+      [
+        1575,
+        "town"
+      ],
+      [
+        1780,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Mandan earthlodge village"
+  },
+  {
+    "name": "Like-a-Fishhook Village",
+    "lon": -102.38,
+    "lat": 47.55,
+    "phases": [
+      [
+        1845,
+        "town"
+      ],
+      [
+        1954,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Combined Mandan-Hidatsa-Arikara village"
+  },
+  {
+    "name": "Awatixa (Hidatsa)",
+    "lon": -101.38,
+    "lat": 47.35,
+    "phases": [
+      [
+        1600,
+        "town"
+      ],
+      [
+        1845,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Hidatsa earthlodge village, Knife River"
+  },
+  {
+    "name": "Big Hidatsa",
+    "lon": -101.4,
+    "lat": 47.35,
+    "phases": [
+      [
+        1600,
+        "town"
+      ],
+      [
+        1845,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Largest Hidatsa village, Knife River"
+  },
+  {
+    "name": "Menoken Village",
+    "lon": -100.53,
+    "lat": 46.87,
+    "phases": [
+      [
+        1300,
+        "village"
+      ],
+      [
+        1500,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Early Plains Village fortified site, ND"
+  },
+  {
+    "name": "Huff Village",
+    "lon": -100.86,
+    "lat": 46.55,
+    "phases": [
+      [
+        1450,
+        "town"
+      ],
+      [
+        1550,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Mandan fortified village"
+  },
+  {
+    "name": "Leavenworth Site (Arikara)",
+    "lon": -99.85,
+    "lat": 45.4,
+    "phases": [
+      [
+        1750,
+        "town"
+      ],
+      [
+        1832,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Arikara village, South Dakota"
+  },
+  {
+    "name": "Pawnee (Pumpkin Vine Village)",
+    "lon": -98.5,
+    "lat": 41.13,
+    "phases": [
+      [
+        1770,
+        "town"
+      ],
+      [
+        1876,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Pawnee earthlodge village, Nebraska"
+  },
+  {
+    "name": "Hidatsa-Crow origin (Awatixa)",
+    "lon": -101.42,
+    "lat": 47.36,
+    "phases": [
+      [
+        1400,
+        "village"
+      ],
+      [
+        1700,
+        "village"
+      ],
+      [
+        1780,
+        null
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "Crow-ancestral Hidatsa village tradition"
+  },
+  {
+    "name": "Wichita Village (Deer Creek)",
+    "lon": -97.3,
+    "lat": 36.42,
+    "phases": [
+      [
+        1600,
+        "town"
+      ],
+      [
+        1750,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Wichita grass-house village, Oklahoma"
+  },
+  {
+    "name": "Cheyenne Bottoms Village",
+    "lon": -98.6,
+    "lat": 38.5,
+    "phases": [
+      [
+        1400,
+        "village"
+      ],
+      [
+        1700,
+        null
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "Plains village complex, Kansas"
+  },
+  {
+    "name": "Osage Village",
+    "lon": -94.52,
+    "lat": 37.6,
+    "phases": [
+      [
+        1700,
+        "town"
+      ],
+      [
+        1825,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Osage village, Missouri/Kansas border"
+  },
+  {
+    "name": "Utqiagvik (Barrow)",
+    "lon": -156.79,
+    "lat": 71.29,
+    "phases": [
+      [
+        1000,
+        "village"
+      ],
+      [
+        2020,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Inupiat whaling village, northernmost US settlement"
+  },
+  {
+    "name": "Kotzebue (Qikiqtagruk)",
+    "lon": -162.6,
+    "lat": 66.9,
+    "phases": [
+      [
+        500,
+        "village"
+      ],
+      [
+        2020,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Inupiat trading center, Alaska"
+  },
+  {
+    "name": "Nome (Sitnasuaq)",
+    "lon": -165.41,
+    "lat": 64.5,
+    "phases": [
+      [
+        1000,
+        "village"
+      ],
+      [
+        1898,
+        "town"
+      ],
+      [
+        2020,
+        "town"
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "Inupiat site, later gold-rush town"
+  },
+  {
+    "name": "Point Hope (Tikigaq)",
+    "lon": -166.76,
+    "lat": 68.35,
+    "phases": [
+      [
+        -1500,
+        "village"
+      ],
+      [
+        2020,
+        "village"
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "One of oldest continuously inhabited sites in N. America"
+  },
+  {
+    "name": "Iqaluit",
+    "lon": -68.51,
+    "lat": 63.75,
+    "phases": [
+      [
+        1000,
+        "village"
+      ],
+      [
+        2020,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Inuit site, modern Nunavut capital"
+  },
+  {
+    "name": "St. Augustine",
+    "lon": -81.31,
+    "lat": 29.9,
+    "phases": [
+      [
+        1565,
+        "town"
+      ],
+      [
+        2020,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Oldest continuously occupied European city in US"
+  },
+  {
+    "name": "Santa Fe",
+    "lon": -105.94,
+    "lat": 35.69,
+    "phases": [
+      [
+        1610,
+        "town"
+      ],
+      [
+        2020,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Spanish colonial capital of New Mexico"
+  },
+  {
+    "name": "San Antonio de Bexar",
+    "lon": -98.49,
+    "lat": 29.42,
+    "phases": [
+      [
+        1718,
+        "town"
+      ],
+      [
+        2020,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Presidio and mission town, Texas"
+  },
+  {
+    "name": "Mission San Juan Capistrano (TX)",
+    "lon": -98.47,
+    "lat": 29.35,
+    "phases": [
+      [
+        1731,
+        "village"
+      ],
+      [
+        1824,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Franciscan mission, San Antonio"
+  },
+  {
+    "name": "Nacogdoches",
+    "lon": -94.65,
+    "lat": 31.6,
+    "phases": [
+      [
+        1716,
+        "town"
+      ],
+      [
+        2020,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Spanish mission/presidio town, East Texas"
+  },
+  {
+    "name": "El Paso del Norte",
+    "lon": -106.49,
+    "lat": 31.76,
+    "phases": [
+      [
+        1659,
+        "town"
+      ],
+      [
+        2020,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Spanish mission settlement, Rio Grande"
+  },
+  {
+    "name": "Albuquerque (Villa)",
+    "lon": -106.65,
+    "lat": 35.08,
+    "phases": [
+      [
+        1706,
+        "town"
+      ],
+      [
+        2020,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Spanish colonial villa, New Mexico"
+  },
+  {
+    "name": "San Diego de Alcala",
+    "lon": -117.19,
+    "lat": 32.75,
+    "phases": [
+      [
+        1769,
+        "town"
+      ],
+      [
+        2020,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "First California mission"
+  },
+  {
+    "name": "Monterey (Presidio)",
+    "lon": -121.9,
+    "lat": 36.6,
+    "phases": [
+      [
+        1770,
+        "town"
+      ],
+      [
+        2020,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Spanish capital of Alta California"
+  },
+  {
+    "name": "Mission San Carlos Borromeo (Carmel)",
+    "lon": -121.92,
+    "lat": 36.55,
+    "phases": [
+      [
+        1771,
+        "village"
+      ],
+      [
+        1834,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Serra's headquarters mission"
+  },
+  {
+    "name": "Mission San Gabriel Arcangel",
+    "lon": -118.11,
+    "lat": 34.1,
+    "phases": [
+      [
+        1771,
+        "village"
+      ],
+      [
+        1834,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "California mission near Los Angeles"
+  },
+  {
+    "name": "El Pueblo de Los Angeles",
+    "lon": -118.24,
+    "lat": 34.06,
+    "phases": [
+      [
+        1781,
+        "town"
+      ],
+      [
+        2020,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Spanish pueblo, founded by 44 settlers"
+  },
+  {
+    "name": "Santa Barbara Presidio",
+    "lon": -119.7,
+    "lat": 34.42,
+    "phases": [
+      [
+        1782,
+        "town"
+      ],
+      [
+        2020,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Spanish presidio, Chumash territory"
+  },
+  {
+    "name": "Mission San Francisco de Asis",
+    "lon": -122.43,
+    "lat": 37.76,
+    "phases": [
+      [
+        1776,
+        "village"
+      ],
+      [
+        1834,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Mission Dolores, founding of San Francisco"
+  },
+  {
+    "name": "Yerba Buena",
+    "lon": -122.4,
+    "lat": 37.8,
+    "phases": [
+      [
+        1835,
+        "village"
+      ],
+      [
+        1847,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Predecessor settlement to San Francisco"
+  },
+  {
+    "name": "Mission San Jose",
+    "lon": -121.93,
+    "lat": 37.53,
+    "phases": [
+      [
+        1797,
+        "village"
+      ],
+      [
+        1834,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "California mission, East Bay"
+  },
+  {
+    "name": "Mission San Luis Rey",
+    "lon": -117.28,
+    "lat": 33.24,
+    "phases": [
+      [
+        1798,
+        "village"
+      ],
+      [
+        1834,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Largest California mission"
+  },
+  {
+    "name": "San Jose (Pueblo)",
+    "lon": -121.89,
+    "lat": 37.34,
+    "phases": [
+      [
+        1777,
+        "town"
+      ],
+      [
+        2020,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "First Spanish civilian pueblo in California"
+  },
+  {
+    "name": "Tucson Presidio",
+    "lon": -110.97,
+    "lat": 32.22,
+    "phases": [
+      [
+        1775,
+        "town"
+      ],
+      [
+        2020,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Spanish presidio, Sonoran Desert"
+  },
+  {
+    "name": "Santa Cruz de Galvez (Pensacola)",
+    "lon": -87.22,
+    "lat": 30.42,
+    "phases": [
+      [
+        1698,
+        "town"
+      ],
+      [
+        2020,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Spanish presidio, later Pensacola"
+  },
+  {
+    "name": "Quebec City",
+    "lon": -71.21,
+    "lat": 46.81,
+    "phases": [
+      [
+        1608,
+        "town"
+      ],
+      [
+        2020,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Champlain's founding of New France capital"
+  },
+  {
+    "name": "Montreal (Ville-Marie)",
+    "lon": -73.57,
+    "lat": 45.5,
+    "phases": [
+      [
+        1642,
+        "town"
+      ],
+      [
+        2020,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "French colonial mission settlement"
+  },
+  {
+    "name": "Trois-Rivieres",
+    "lon": -72.55,
+    "lat": 46.34,
+    "phases": [
+      [
+        1634,
+        "town"
+      ],
+      [
+        2020,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Early French fur-trade town, Quebec"
+  },
+  {
+    "name": "Detroit (Fort Ponchartrain)",
+    "lon": -83.05,
+    "lat": 42.33,
+    "phases": [
+      [
+        1701,
+        "town"
+      ],
+      [
+        2020,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "French fort and fur-trade post"
+  },
+  {
+    "name": "Cahokia (French village)",
+    "lon": -90.19,
+    "lat": 38.57,
+    "phases": [
+      [
+        1699,
+        "village"
+      ],
+      [
+        1800,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "French mission village near Illinois Confederation"
+  },
+  {
+    "name": "Kaskaskia",
+    "lon": -90.1,
+    "lat": 37.92,
+    "phases": [
+      [
+        1703,
+        "town"
+      ],
+      [
+        1881,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "French colonial capital of Illinois Country"
+  },
+  {
+    "name": "New Orleans",
+    "lon": -90.07,
+    "lat": 29.95,
+    "phases": [
+      [
+        1718,
+        "town"
+      ],
+      [
+        2020,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "French colonial capital of Louisiana"
+  },
+  {
+    "name": "Mobile",
+    "lon": -88.04,
+    "lat": 30.69,
+    "phases": [
+      [
+        1702,
+        "town"
+      ],
+      [
+        2020,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "First capital of French Louisiana"
+  },
+  {
+    "name": "Biloxi",
+    "lon": -88.89,
+    "lat": 30.4,
+    "phases": [
+      [
+        1699,
+        "town"
+      ],
+      [
+        2020,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Early French Louisiana settlement"
+  },
+  {
+    "name": "Natchitoches",
+    "lon": -93.09,
+    "lat": 31.76,
+    "phases": [
+      [
+        1714,
+        "town"
+      ],
+      [
+        2020,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Oldest permanent European settlement in Louisiana Purchase"
+  },
+  {
+    "name": "St. Louis",
+    "lon": -90.2,
+    "lat": 38.63,
+    "phases": [
+      [
+        1764,
+        "town"
+      ],
+      [
+        2020,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "French fur-trade town, Mississippi River"
+  },
+  {
+    "name": "Vincennes",
+    "lon": -87.53,
+    "lat": 38.68,
+    "phases": [
+      [
+        1732,
+        "town"
+      ],
+      [
+        2020,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "French fort/trading post, Wabash River"
+  },
+  {
+    "name": "Fort Michilimackinac",
+    "lon": -84.73,
+    "lat": 45.78,
+    "phases": [
+      [
+        1715,
+        "town"
+      ],
+      [
+        1781,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "French fur-trade fort, Straits of Mackinac"
+  },
+  {
+    "name": "Sault Ste. Marie",
+    "lon": -84.35,
+    "lat": 46.5,
+    "phases": [
+      [
+        1668,
+        "village"
+      ],
+      [
+        2020,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "French Jesuit mission, oldest Michigan settlement"
+  },
+  {
+    "name": "Green Bay (La Baye)",
+    "lon": -88.02,
+    "lat": 44.51,
+    "phases": [
+      [
+        1634,
+        "village"
+      ],
+      [
+        2020,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "French trading post, Wisconsin"
+  },
+  {
+    "name": "Prairie du Chien",
+    "lon": -91.14,
+    "lat": 43.05,
+    "phases": [
+      [
+        1685,
+        "village"
+      ],
+      [
+        2020,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "French-Metis fur-trade town, Wisconsin"
+  },
+  {
+    "name": "New Amsterdam",
+    "lon": -74.01,
+    "lat": 40.7,
+    "phases": [
+      [
+        1625,
+        "town"
+      ],
+      [
+        1664,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Dutch colonial capital, became New York"
+  },
+  {
+    "name": "Fort Orange (Albany)",
+    "lon": -73.75,
+    "lat": 42.65,
+    "phases": [
+      [
+        1624,
+        "town"
+      ],
+      [
+        2020,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Dutch fur-trade post, upper Hudson"
+  },
+  {
+    "name": "Beverwijck",
+    "lon": -73.75,
+    "lat": 42.65,
+    "phases": [
+      [
+        1652,
+        "town"
+      ],
+      [
+        1664,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Dutch settlement around Fort Orange"
+  },
+  {
+    "name": "Wiltwyck (Kingston)",
+    "lon": -74.02,
+    "lat": 41.93,
+    "phases": [
+      [
+        1652,
+        "village"
+      ],
+      [
+        2020,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Dutch settlement, Hudson Valley"
+  },
+  {
+    "name": "Breuckelen",
+    "lon": -73.94,
+    "lat": 40.65,
+    "phases": [
+      [
+        1646,
+        "village"
+      ],
+      [
+        1898,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Dutch town, became Brooklyn"
+  },
+  {
+    "name": "New Amstel (New Castle)",
+    "lon": -75.57,
+    "lat": 39.66,
+    "phases": [
+      [
+        1651,
+        "village"
+      ],
+      [
+        2020,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Dutch/Swedish settlement, Delaware"
+  },
+  {
+    "name": "Fort Christina (Wilmington)",
+    "lon": -75.55,
+    "lat": 39.74,
+    "phases": [
+      [
+        1638,
+        "town"
+      ],
+      [
+        2020,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "New Sweden colonial capital"
+  },
+  {
+    "name": "Jamestown",
+    "lon": -76.78,
+    "lat": 37.21,
+    "phases": [
+      [
+        1607,
+        "town"
+      ],
+      [
+        1699,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "First permanent English colony in North America"
+  },
+  {
+    "name": "Plymouth",
+    "lon": -70.67,
+    "lat": 41.96,
+    "phases": [
+      [
+        1620,
+        "town"
+      ],
+      [
+        2020,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Pilgrim colony, Massachusetts"
+  },
+  {
+    "name": "Boston",
+    "lon": -71.06,
+    "lat": 42.36,
+    "phases": [
+      [
+        1630,
+        "town"
+      ],
+      [
+        2020,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Massachusetts Bay Colony capital"
+  },
+  {
+    "name": "Salem",
+    "lon": -70.9,
+    "lat": 42.52,
+    "phases": [
+      [
+        1626,
+        "town"
+      ],
+      [
+        2020,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Early Massachusetts Bay settlement"
+  },
+  {
+    "name": "Providence",
+    "lon": -71.41,
+    "lat": 41.82,
+    "phases": [
+      [
+        1636,
+        "town"
+      ],
+      [
+        2020,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Roger Williams's Rhode Island settlement"
+  },
+  {
+    "name": "Hartford",
+    "lon": -72.68,
+    "lat": 41.76,
+    "phases": [
+      [
+        1635,
+        "town"
+      ],
+      [
+        2020,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Connecticut Colony capital"
+  },
+  {
+    "name": "New Haven",
+    "lon": -72.93,
+    "lat": 41.31,
+    "phases": [
+      [
+        1638,
+        "town"
+      ],
+      [
+        2020,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Puritan colony, Connecticut"
+  },
+  {
+    "name": "Newport",
+    "lon": -71.31,
+    "lat": 41.49,
+    "phases": [
+      [
+        1639,
+        "town"
+      ],
+      [
+        2020,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Rhode Island colonial port town"
+  },
+  {
+    "name": "Portsmouth NH",
+    "lon": -70.76,
+    "lat": 43.08,
+    "phases": [
+      [
+        1630,
+        "town"
+      ],
+      [
+        2020,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Early New Hampshire colonial town"
+  },
+  {
+    "name": "York (Maine)",
+    "lon": -70.65,
+    "lat": 43.16,
+    "phases": [
+      [
+        1624,
+        "village"
+      ],
+      [
+        2020,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Early English settlement, Maine"
+  },
+  {
+    "name": "St. Mary's City",
+    "lon": -76.43,
+    "lat": 38.19,
+    "phases": [
+      [
+        1634,
+        "town"
+      ],
+      [
+        1708,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "First capital of Maryland colony"
+  },
+  {
+    "name": "Annapolis",
+    "lon": -76.49,
+    "lat": 38.98,
+    "phases": [
+      [
+        1649,
+        "town"
+      ],
+      [
+        2020,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Maryland colonial capital"
+  },
+  {
+    "name": "Charles Town (Charleston)",
+    "lon": -79.93,
+    "lat": 32.78,
+    "phases": [
+      [
+        1670,
+        "town"
+      ],
+      [
+        2020,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Carolina colony capital"
+  },
+  {
+    "name": "Savannah",
+    "lon": -81.1,
+    "lat": 32.08,
+    "phases": [
+      [
+        1733,
+        "town"
+      ],
+      [
+        2020,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Founding town of Georgia colony"
+  },
+  {
+    "name": "Philadelphia",
+    "lon": -75.16,
+    "lat": 39.95,
+    "phases": [
+      [
+        1682,
+        "town"
+      ],
+      [
+        2020,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Penn's colonial capital, Pennsylvania"
+  },
+  {
+    "name": "New York City",
+    "lon": -74.01,
+    "lat": 40.71,
+    "phases": [
+      [
+        1664,
+        "town"
+      ],
+      [
+        2020,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "English renaming of New Amsterdam"
+  },
+  {
+    "name": "Williamsburg",
+    "lon": -76.71,
+    "lat": 37.27,
+    "phases": [
+      [
+        1632,
+        "village"
+      ],
+      [
+        1699,
+        "town"
+      ],
+      [
+        1780,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Colonial Virginia capital"
+  },
+  {
+    "name": "Norfolk VA",
+    "lon": -76.29,
+    "lat": 36.85,
+    "phases": [
+      [
+        1682,
+        "town"
+      ],
+      [
+        2020,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Virginia colonial port town"
+  },
+  {
+    "name": "New Bern",
+    "lon": -77.04,
+    "lat": 35.11,
+    "phases": [
+      [
+        1710,
+        "town"
+      ],
+      [
+        2020,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "North Carolina colonial capital, Swiss/Palatine"
+  },
+  {
+    "name": "Edenton",
+    "lon": -76.61,
+    "lat": 36.06,
+    "phases": [
+      [
+        1712,
+        "town"
+      ],
+      [
+        2020,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Early North Carolina colonial town"
+  },
+  {
+    "name": "Wilmington DE",
+    "lon": -75.55,
+    "lat": 39.74,
+    "phases": [
+      [
+        1731,
+        "town"
+      ],
+      [
+        2020,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Delaware colonial port town"
+  },
+  {
+    "name": "Lancaster PA",
+    "lon": -76.31,
+    "lat": 40.04,
+    "phases": [
+      [
+        1730,
+        "town"
+      ],
+      [
+        2020,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Pennsylvania inland colonial town"
+  },
+  {
+    "name": "Germantown",
+    "lon": -75.17,
+    "lat": 40.03,
+    "phases": [
+      [
+        1683,
+        "village"
+      ],
+      [
+        1854,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "First German settlement in English America"
+  },
+  {
+    "name": "Kodiak (Pavlovskaya)",
+    "lon": -152.41,
+    "lat": 57.79,
+    "phases": [
+      [
+        1784,
+        "town"
+      ],
+      [
+        2020,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "First permanent Russian settlement in Alaska"
+  },
+  {
+    "name": "New Archangel (Sitka)",
+    "lon": -135.33,
+    "lat": 57.05,
+    "phases": [
+      [
+        1799,
+        "town"
+      ],
+      [
+        1867,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Russian-American Company capital"
+  },
+  {
+    "name": "Fort Ross",
+    "lon": -123.24,
+    "lat": 38.51,
+    "phases": [
+      [
+        1812,
+        "village"
+      ],
+      [
+        1841,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Russian fur-trade fort, California coast"
+  },
+  {
+    "name": "Unalaska",
+    "lon": -166.53,
+    "lat": 53.87,
+    "phases": [
+      [
+        1500,
+        "village"
+      ],
+      [
+        1774,
+        "town"
+      ],
+      [
+        2020,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Aleut village, Russian trade post"
+  },
+  {
+    "name": "Pittsburgh",
+    "lon": -79.99,
+    "lat": 40.44,
+    "phases": [
+      [
+        1758,
+        "town"
+      ],
+      [
+        2020,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Former Fort Duquesne, gateway to Ohio Country"
+  },
+  {
+    "name": "Cincinnati",
+    "lon": -84.51,
+    "lat": 39.1,
+    "phases": [
+      [
+        1788,
+        "town"
+      ],
+      [
+        2020,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Early Ohio River settlement"
+  },
+  {
+    "name": "Lexington KY",
+    "lon": -84.5,
+    "lat": 38.05,
+    "phases": [
+      [
+        1775,
+        "town"
+      ],
+      [
+        2020,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Early Kentucky frontier town"
+  },
+  {
+    "name": "Nashville",
+    "lon": -86.78,
+    "lat": 36.16,
+    "phases": [
+      [
+        1779,
+        "town"
+      ],
+      [
+        2020,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Cumberland settlement, Tennessee"
+  },
+  {
+    "name": "York (Toronto)",
+    "lon": -79.38,
+    "lat": 43.65,
+    "phases": [
+      [
+        1793,
+        "town"
+      ],
+      [
+        2020,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Founding of Upper Canada capital"
+  },
+  {
+    "name": "Halifax NS",
+    "lon": -63.57,
+    "lat": 44.65,
+    "phases": [
+      [
+        1749,
+        "town"
+      ],
+      [
+        2020,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "British colonial naval town, Nova Scotia"
+  },
+  {
+    "name": "Winnipeg (Fort Garry)",
+    "lon": -97.14,
+    "lat": 49.9,
+    "phases": [
+      [
+        1738,
+        "village"
+      ],
+      [
+        1822,
+        "town"
+      ],
+      [
+        2020,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Fur-trade post at Red River forks"
+  },
+  {
+    "name": "Hochelaga",
+    "lon": -73.58,
+    "lat": 45.51,
+    "phases": [
+      [
+        1400,
+        "town"
+      ],
+      [
+        1580,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "St. Lawrence Iroquoian town, visited by Cartier 1535"
+  },
+  {
+    "name": "Stadacona",
+    "lon": -71.21,
+    "lat": 46.81,
+    "phases": [
+      [
+        1400,
+        "town"
+      ],
+      [
+        1600,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "St. Lawrence Iroquoian town near Quebec"
+  },
+  {
+    "name": "Meadowood (Point Peninsula)",
+    "lon": -76.2,
+    "lat": 44.1,
+    "phases": [
+      [
+        -1000,
+        "village"
+      ],
+      [
+        -200,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Early Woodland village cluster, St. Lawrence"
+  },
+  {
+    "name": "Kincardine (Neutral)",
+    "lon": -81.63,
+    "lat": 44.18,
+    "phases": [
+      [
+        1400,
+        "village"
+      ],
+      [
+        1651,
+        null
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "Neutral Nation village, southern Ontario"
+  },
+  {
+    "name": "Ossuary at Fairty (Huron)",
+    "lon": -78.95,
+    "lat": 43.94,
+    "phases": [
+      [
+        1500,
+        "village"
+      ],
+      [
+        1636,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Huron-Wendat village, Ontario"
+  },
+  {
+    "name": "Draper Site",
+    "lon": -79.42,
+    "lat": 43.93,
+    "phases": [
+      [
+        1450,
+        "town"
+      ],
+      [
+        1550,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Large Huron ancestral village, Ontario"
+  },
+  {
+    "name": "Fort Ancient (Madisonville)",
+    "lon": -84.36,
+    "lat": 39.16,
+    "phases": [
+      [
+        1400,
+        "village"
+      ],
+      [
+        1670,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Late Fort Ancient culture village, Ohio"
+  },
+  {
+    "name": "Zimmerman Site (Kaskaskia)",
+    "lon": -88.87,
+    "lat": 41.35,
+    "phases": [
+      [
+        1673,
+        "town"
+      ],
+      [
+        1700,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Illinois Confederation village visited by Marquette"
+  },
+  {
+    "name": "Grand Village of the Illinois",
+    "lon": -89.38,
+    "lat": 41.32,
+    "phases": [
+      [
+        1650,
+        "town"
+      ],
+      [
+        1691,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Kaskaskia Illini village, Illinois River"
+  },
+  {
+    "name": "Peoria (Illini village)",
+    "lon": -89.59,
+    "lat": 40.69,
+    "phases": [
+      [
+        1650,
+        "village"
+      ],
+      [
+        1691,
+        "town"
+      ],
+      [
+        1770,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Illini Confederation village, Illinois River"
+  },
+  {
+    "name": "Grand Portage",
+    "lon": -89.68,
+    "lat": 47.96,
+    "phases": [
+      [
+        1200,
+        "village"
+      ],
+      [
+        1730,
+        "town"
+      ],
+      [
+        1850,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Ojibwe village and fur-trade rendezvous, Lake Superior"
+  },
+  {
+    "name": "Madeline Island (La Pointe)",
+    "lon": -90.78,
+    "lat": 46.8,
+    "phases": [
+      [
+        1400,
+        "village"
+      ],
+      [
+        1693,
+        "town"
+      ],
+      [
+        2020,
+        "village"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Ojibwe (Anishinaabe) spiritual center, Lake Superior"
+  },
+  {
+    "name": "Cass Lake (Ojibwe)",
+    "lon": -94.61,
+    "lat": 47.38,
+    "phases": [
+      [
+        1400,
+        "village"
+      ],
+      [
+        2020,
+        "village"
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "Ojibwe village, headwaters region, Minnesota"
+  },
+  {
+    "name": "Mille Lacs (Ojibwe)",
+    "lon": -93.66,
+    "lat": 46.25,
+    "phases": [
+      [
+        1200,
+        "village"
+      ],
+      [
+        2020,
+        "village"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Dakota then Ojibwe village site, Minnesota"
+  },
+  {
+    "name": "Kathio (Dakota)",
+    "lon": -93.75,
+    "lat": 46.13,
+    "phases": [
+      [
+        1000,
+        "village"
+      ],
+      [
+        1750,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Mdewakanton Dakota village, Mille Lacs"
+  },
+  {
+    "name": "Little Rapids (Dakota)",
+    "lon": -93.68,
+    "lat": 44.62,
+    "phases": [
+      [
+        1600,
+        "village"
+      ],
+      [
+        1853,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Wahpeton Dakota village, Minnesota River"
+  },
+  {
+    "name": "Winnebago (Ho-Chunk) village",
+    "lon": -88.42,
+    "lat": 43.86,
+    "phases": [
+      [
+        1600,
+        "village"
+      ],
+      [
+        1832,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Ho-Chunk village, Wisconsin"
+  },
+  {
+    "name": "Saukenuk",
+    "lon": -90.58,
+    "lat": 41.5,
+    "phases": [
+      [
+        1730,
+        "town"
+      ],
+      [
+        1832,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Sauk principal town, Rock River Illinois"
+  },
+  {
+    "name": "Prophetstown",
+    "lon": -86.98,
+    "lat": 40.55,
+    "phases": [
+      [
+        1808,
+        "town"
+      ],
+      [
+        1811,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Shawnee/Tecumseh confederacy town, Indiana"
+  },
+  {
+    "name": "Chillicothe (Shawnee)",
+    "lon": -83.73,
+    "lat": 39.48,
+    "phases": [
+      [
+        1740,
+        "town"
+      ],
+      [
+        1780,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Shawnee principal town, Ohio"
+  },
+  {
+    "name": "Wakatomica",
+    "lon": -82.4,
+    "lat": 40.15,
+    "phases": [
+      [
+        1750,
+        "town"
+      ],
+      [
+        1774,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Shawnee town, Ohio, destroyed by militia"
+  },
+  {
+    "name": "Kekionga (Miami)",
+    "lon": -85.14,
+    "lat": 41.08,
+    "phases": [
+      [
+        1600,
+        "town"
+      ],
+      [
+        1794,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Miami confederacy capital, Fort Wayne area"
+  },
+  {
+    "name": "Ouiatenon",
+    "lon": -86.98,
+    "lat": 40.42,
+    "phases": [
+      [
+        1717,
+        "town"
+      ],
+      [
+        1791,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Wea/Miami village and French post, Wabash River"
+  },
+  {
+    "name": "Cofitachequi",
+    "lon": -80.85,
+    "lat": 34.3,
+    "phases": [
+      [
+        1300,
+        "town"
+      ],
+      [
+        1670,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Mississippian paramount chiefdom, De Soto contact 1540"
+  },
+  {
+    "name": "Guasili",
+    "lon": -83.6,
+    "lat": 35.2,
+    "phases": [
+      [
+        1300,
+        "village"
+      ],
+      [
+        1567,
+        null
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "Mississippian town along De Soto/Pardo route"
+  },
+  {
+    "name": "Joara",
+    "lon": -81.7,
+    "lat": 35.8,
+    "phases": [
+      [
+        1400,
+        "village"
+      ],
+      [
+        1568,
+        "town"
+      ],
+      [
+        1600,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Mississippian town, site of Fort San Juan"
+  },
+  {
+    "name": "Coosa",
+    "lon": -85.1,
+    "lat": 33.95,
+    "phases": [
+      [
+        1200,
+        "town"
+      ],
+      [
+        1600,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Major Mississippian paramount chiefdom, De Soto contact"
+  },
+  {
+    "name": "Apalachee (Anhaica)",
+    "lon": -84.28,
+    "lat": 30.44,
+    "phases": [
+      [
+        1200,
+        "town"
+      ],
+      [
+        1704,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Apalachee capital, De Soto wintered there"
+  },
+  {
+    "name": "Timucua (Cofa)",
+    "lon": -81.85,
+    "lat": 29.7,
+    "phases": [
+      [
+        1200,
+        "village"
+      ],
+      [
+        1700,
+        null
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "Timucua village near St. Johns River"
+  },
+  {
+    "name": "Calusa (Mound Key)",
+    "lon": -81.88,
+    "lat": 26.53,
+    "phases": [
+      [
+        500,
+        "town"
+      ],
+      [
+        1710,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Calusa capital, shell-mound city, SW Florida"
+  },
+  {
+    "name": "Santa Elena",
+    "lon": -80.68,
+    "lat": 32.38,
+    "phases": [
+      [
+        1566,
+        "town"
+      ],
+      [
+        1587,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Spanish colonial capital of La Florida"
+  },
+  {
+    "name": "Cayuga (Goiogouen)",
+    "lon": -76.72,
+    "lat": 42.71,
+    "phases": [
+      [
+        1450,
+        "town"
+      ],
+      [
+        1779,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Cayuga principal village"
+  },
+  {
+    "name": "Onondaga (Historic Capital)",
+    "lon": -76.15,
+    "lat": 42.99,
+    "phases": [
+      [
+        1450,
+        "town"
+      ],
+      [
+        1779,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Central council fire of Haudenosaunee Confederacy"
+  },
+  {
+    "name": "Kanadesaga (Seneca)",
+    "lon": -76.95,
+    "lat": 42.85,
+    "phases": [
+      [
+        1600,
+        "town"
+      ],
+      [
+        1779,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Seneca capital, destroyed by Sullivan Expedition"
+  },
+  {
+    "name": "Tioga (Iroquois)",
+    "lon": -76.8,
+    "lat": 41.97,
+    "phases": [
+      [
+        1600,
+        "town"
+      ],
+      [
+        1778,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Confederated village, Susquehanna River"
+  },
+  {
+    "name": "Oneida Castle",
+    "lon": -75.65,
+    "lat": 43.1,
+    "phases": [
+      [
+        1500,
+        "town"
+      ],
+      [
+        1780,
+        "town"
+      ],
+      [
+        2020,
+        "village"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Oneida principal village, New York"
+  },
+  {
+    "name": "Gran Quivira",
+    "lon": -106.13,
+    "lat": 34.26,
+    "phases": [
+      [
+        1300,
+        "village"
+      ],
+      [
+        1450,
+        "town"
+      ],
+      [
+        1672,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Tompiro pueblo, salinas trade"
+  },
+  {
+    "name": "Abo Pueblo",
+    "lon": -106.38,
+    "lat": 34.35,
+    "phases": [
+      [
+        1300,
+        "village"
+      ],
+      [
+        1400,
+        "town"
+      ],
+      [
+        1673,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Tiwa/Tompiro pueblo, salinas missions"
+  },
+  {
+    "name": "Quarai",
+    "lon": -106.28,
+    "lat": 34.55,
+    "phases": [
+      [
+        1300,
+        "village"
+      ],
+      [
+        1400,
+        "town"
+      ],
+      [
+        1678,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Tiwa pueblo, salinas missions"
+  },
+  {
+    "name": "Sandia Pueblo",
+    "lon": -106.6,
+    "lat": 35.23,
+    "phases": [
+      [
+        1300,
+        "village"
+      ],
+      [
+        2020,
+        "village"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Southern Tiwa pueblo, Rio Grande"
+  },
+  {
+    "name": "Picuris Pueblo",
+    "lon": -105.72,
+    "lat": 36.23,
+    "phases": [
+      [
+        1250,
+        "village"
+      ],
+      [
+        2020,
+        "village"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Northern Tiwa pueblo, Rio Grande"
+  },
+  {
+    "name": "Nambe Pueblo",
+    "lon": -105.94,
+    "lat": 35.9,
+    "phases": [
+      [
+        1300,
+        "village"
+      ],
+      [
+        2020,
+        "village"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Tewa pueblo, Rio Grande"
+  },
+  {
+    "name": "Tesuque Pueblo",
+    "lon": -105.94,
+    "lat": 35.78,
+    "phases": [
+      [
+        1250,
+        "village"
+      ],
+      [
+        2020,
+        "village"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Tewa pueblo, first Pueblo Revolt attack 1680"
+  },
+  {
+    "name": "Santo Domingo Pueblo (Kewa)",
+    "lon": -106.36,
+    "lat": 35.53,
+    "phases": [
+      [
+        1300,
+        "village"
+      ],
+      [
+        2020,
+        "village"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Keresan pueblo, Rio Grande"
+  },
+  {
+    "name": "San Felipe Pueblo",
+    "lon": -106.44,
+    "lat": 35.43,
+    "phases": [
+      [
+        1300,
+        "village"
+      ],
+      [
+        2020,
+        "village"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Keresan pueblo, Rio Grande"
+  },
+  {
+    "name": "Wupatki",
+    "lon": -111.38,
+    "lat": 35.52,
+    "phases": [
+      [
+        1100,
+        "village"
+      ],
+      [
+        1225,
+        "town"
+      ],
+      [
+        1250,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Sinagua-Puebloan trade pueblo, Arizona"
+  },
+  {
+    "name": "Tuzigoot",
+    "lon": -112.03,
+    "lat": 34.76,
+    "phases": [
+      [
+        1000,
+        "village"
+      ],
+      [
+        1300,
+        "town"
+      ],
+      [
+        1425,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Sinagua hilltop pueblo, Verde Valley"
+  },
+  {
+    "name": "Besh-Ba-Gowah",
+    "lon": -110.86,
+    "lat": 33.4,
+    "phases": [
+      [
+        1225,
+        "village"
+      ],
+      [
+        1400,
+        "town"
+      ],
+      [
+        1450,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Salado culture pueblo, Globe AZ"
+  },
+  {
+    "name": "Montezuma Castle",
+    "lon": -111.84,
+    "lat": 34.61,
+    "phases": [
+      [
+        1100,
+        "village"
+      ],
+      [
+        1425,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Sinagua cliff dwelling, Verde Valley"
+  },
+  {
+    "name": "Etzanoa",
+    "lon": -97.28,
+    "lat": 37.15,
+    "phases": [
+      [
+        1450,
+        "town"
+      ],
+      [
+        1720,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Great Bend aspect Wichita settlement, Kansas"
+  },
+  {
+    "name": "Council Grove (Kaw village)",
+    "lon": -96.49,
+    "lat": 38.66,
+    "phases": [
+      [
+        1750,
+        "village"
+      ],
+      [
+        1873,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Kanza (Kaw) village, Neosho River"
+  },
+  {
+    "name": "Quapaw Town (Osotouy)",
+    "lon": -91.2,
+    "lat": 34.1,
+    "phases": [
+      [
+        1650,
+        "town"
+      ],
+      [
+        1830,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Quapaw village, lower Arkansas River"
+  },
+  {
+    "name": "Caddo (Hasinai) village",
+    "lon": -94.3,
+    "lat": 31.8,
+    "phases": [
+      [
+        900,
+        "town"
+      ],
+      [
+        1400,
+        "town"
+      ],
+      [
+        1835,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Hasinai Caddo confederacy village, East Texas"
+  },
+  {
+    "name": "Menard Site (Quapaw)",
+    "lon": -91.19,
+    "lat": 34.08,
+    "phases": [
+      [
+        1500,
+        "town"
+      ],
+      [
+        1750,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Quapaw village, Arkansas River"
+  },
+  {
+    "name": "Nikwasi",
+    "lon": -83.42,
+    "lat": 35.19,
+    "phases": [
+      [
+        1400,
+        "town"
+      ],
+      [
+        1819,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Middle Cherokee town, sacred mound, NC"
+  },
+  {
+    "name": "Keowee",
+    "lon": -82.98,
+    "lat": 34.85,
+    "phases": [
+      [
+        1600,
+        "town"
+      ],
+      [
+        1776,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Lower Cherokee town, destroyed in Revolutionary War"
+  },
+  {
+    "name": "Tugaloo",
+    "lon": -83.2,
+    "lat": 34.55,
+    "phases": [
+      [
+        1450,
+        "town"
+      ],
+      [
+        1716,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Lower Cherokee mound town, GA/SC border"
+  },
+  {
+    "name": "Estatoe",
+    "lon": -82.92,
+    "lat": 34.9,
+    "phases": [
+      [
+        1600,
+        "town"
+      ],
+      [
+        1776,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Lower Cherokee town, Keowee River"
+  },
+  {
+    "name": "Great Tellico",
+    "lon": -84.3,
+    "lat": 35.35,
+    "phases": [
+      [
+        1600,
+        "town"
+      ],
+      [
+        1819,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Overhill Cherokee town, Little Tennessee River"
+  },
+  {
+    "name": "Toqua (Overhill)",
+    "lon": -84.27,
+    "lat": 35.58,
+    "phases": [
+      [
+        1200,
+        "village"
+      ],
+      [
+        1600,
+        "town"
+      ],
+      [
+        1791,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Overhill Cherokee mound town"
+  },
+  {
+    "name": "Chiaha",
+    "lon": -83.9,
+    "lat": 35.7,
+    "phases": [
+      [
+        1300,
+        "town"
+      ],
+      [
+        1600,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Mississippian town, De Soto route, Tennessee"
+  },
+  {
+    "name": "Chalaque",
+    "lon": -82.6,
+    "lat": 34.9,
+    "phases": [
+      [
+        1300,
+        "village"
+      ],
+      [
+        1567,
+        null
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "Early Cherokee-area town noted by Pardo expedition"
+  },
+  {
+    "name": "Kashita",
+    "lon": -85.05,
+    "lat": 32.5,
+    "phases": [
+      [
+        1690,
+        "town"
+      ],
+      [
+        1836,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Lower Creek talwa, Chattahoochee River"
+  },
+  {
+    "name": "Hitchiti",
+    "lon": -84.2,
+    "lat": 32.6,
+    "phases": [
+      [
+        1690,
+        "town"
+      ],
+      [
+        1836,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Lower Creek/Hitchiti-speaking town, Georgia"
+  },
+  {
+    "name": "Abihka",
+    "lon": -86.0,
+    "lat": 33.3,
+    "phases": [
+      [
+        1540,
+        "town"
+      ],
+      [
+        1814,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Upper Creek mother town, Coosa River"
+  },
+  {
+    "name": "Coosada",
+    "lon": -86.25,
+    "lat": 32.48,
+    "phases": [
+      [
+        1600,
+        "town"
+      ],
+      [
+        1836,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Upper Creek town, Alabama River confluence"
+  },
+  {
+    "name": "Wetumpka",
+    "lon": -86.21,
+    "lat": 32.54,
+    "phases": [
+      [
+        1200,
+        "village"
+      ],
+      [
+        1600,
+        "town"
+      ],
+      [
+        1836,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Mississippian/Creek mound town, Alabama"
+  },
+  {
+    "name": "Tuskegee (Alabama)",
+    "lon": -85.93,
+    "lat": 32.42,
+    "phases": [
+      [
+        1600,
+        "town"
+      ],
+      [
+        1836,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Creek town near confluence of Coosa/Tallapoosa"
+  },
+  {
+    "name": "Chickasawhay",
+    "lon": -88.68,
+    "lat": 31.6,
+    "phases": [
+      [
+        1650,
+        "town"
+      ],
+      [
+        1830,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Choctaw town, southeastern Mississippi"
+  },
+  {
+    "name": "Couechitto",
+    "lon": -89.3,
+    "lat": 32.3,
+    "phases": [
+      [
+        1650,
+        "town"
+      ],
+      [
+        1830,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Choctaw principal town, central Mississippi"
+  },
+  {
+    "name": "West Abika (Choctaw)",
+    "lon": -89.1,
+    "lat": 32.45,
+    "phases": [
+      [
+        1650,
+        "village"
+      ],
+      [
+        1830,
+        null
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "Choctaw town cluster, Six Towns district"
+  },
+  {
+    "name": "Long Town (Chickasaw)",
+    "lon": -88.8,
+    "lat": 34.3,
+    "phases": [
+      [
+        1650,
+        "town"
+      ],
+      [
+        1832,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Chickasaw settlement, northern Mississippi"
+  },
+  {
+    "name": "Tupelo (Chickasaw village)",
+    "lon": -88.7,
+    "lat": 34.26,
+    "phases": [
+      [
+        1650,
+        "village"
+      ],
+      [
+        1832,
+        null
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "Chickasaw village cluster near modern Tupelo"
+  },
+  {
+    "name": "Grand Village (Yazoo)",
+    "lon": -90.9,
+    "lat": 32.85,
+    "phases": [
+      [
+        1200,
+        "village"
+      ],
+      [
+        1729,
+        null
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "Yazoo tribal village, lower Mississippi"
+  },
+  {
+    "name": "Tunica Village",
+    "lon": -91.3,
+    "lat": 31.1,
+    "phases": [
+      [
+        1200,
+        "village"
+      ],
+      [
+        1731,
+        "village"
+      ],
+      [
+        1800,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Tunica village, relocated after 1706"
+  },
+  {
+    "name": "Taensa Village",
+    "lon": -91.85,
+    "lat": 32.1,
+    "phases": [
+      [
+        1200,
+        "village"
+      ],
+      [
+        1764,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Taensa village, Mississippi River"
+  },
+  {
+    "name": "Mackinac Island (Odawa)",
+    "lon": -84.62,
+    "lat": 45.85,
+    "phases": [
+      [
+        1000,
+        "village"
+      ],
+      [
+        1780,
+        "town"
+      ],
+      [
+        2020,
+        "village"
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "Odawa/Anishinaabe island settlement, Great Lakes"
+  },
+  {
+    "name": "L'Arbre Croche",
+    "lon": -85.15,
+    "lat": 45.55,
+    "phases": [
+      [
+        1740,
+        "town"
+      ],
+      [
+        2020,
+        "village"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Odawa village cluster, Lake Michigan"
+  },
+  {
+    "name": "Waganakising (Odawa)",
+    "lon": -84.95,
+    "lat": 45.5,
+    "phases": [
+      [
+        1650,
+        "village"
+      ],
+      [
+        1850,
+        null
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "Odawa settlement area, northern Michigan"
+  },
+  {
+    "name": "Milwaukee (Potawatomi)",
+    "lon": -87.91,
+    "lat": 43.04,
+    "phases": [
+      [
+        1700,
+        "village"
+      ],
+      [
+        1830,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Potawatomi/Menominee village, Lake Michigan"
+  },
+  {
+    "name": "Chicago (Checagou)",
+    "lon": -87.63,
+    "lat": 41.88,
+    "phases": [
+      [
+        1700,
+        "village"
+      ],
+      [
+        1803,
+        "town"
+      ],
+      [
+        2020,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Potawatomi village, portage site, later Fort Dearborn"
+  },
+  {
+    "name": "Waukesha (Potawatomi)",
+    "lon": -88.23,
+    "lat": 43.01,
+    "phases": [
+      [
+        1700,
+        "village"
+      ],
+      [
+        1830,
+        null
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "Potawatomi village, southeastern Wisconsin"
+  },
+  {
+    "name": "Turtle Village (Winnebago)",
+    "lon": -89.02,
+    "lat": 42.72,
+    "phases": [
+      [
+        1600,
+        "village"
+      ],
+      [
+        1832,
+        null
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "Ho-Chunk village, Rock River, Wisconsin"
+  },
+  {
+    "name": "Menominee Village",
+    "lon": -87.95,
+    "lat": 44.9,
+    "phases": [
+      [
+        1000,
+        "village"
+      ],
+      [
+        2020,
+        "village"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Menominee village, Green Bay area"
+  },
+  {
+    "name": "Manitowish (Ojibwe)",
+    "lon": -90.1,
+    "lat": 46.13,
+    "phases": [
+      [
+        1500,
+        "village"
+      ],
+      [
+        2020,
+        "village"
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "Lake Superior Ojibwe village cluster"
+  },
+  {
+    "name": "Fond du Lac (Ojibwe)",
+    "lon": -92.19,
+    "lat": 46.68,
+    "phases": [
+      [
+        1600,
+        "village"
+      ],
+      [
+        1793,
+        "town"
+      ],
+      [
+        2020,
+        "village"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Ojibwe village and fur-trade post, St. Louis River"
+  },
+  {
+    "name": "Leech Lake (Ojibwe)",
+    "lon": -94.38,
+    "lat": 47.24,
+    "phases": [
+      [
+        1200,
+        "village"
+      ],
+      [
+        2020,
+        "village"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Pillager Ojibwe band village, Minnesota"
+  },
+  {
+    "name": "Chalco (Coast Miwok village)",
+    "lon": -122.75,
+    "lat": 38.1,
+    "phases": [
+      [
+        1000,
+        "village"
+      ],
+      [
+        1820,
+        null
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "Coast Miwok village, Marin County"
+  },
+  {
+    "name": "Olompali",
+    "lon": -122.68,
+    "lat": 38.15,
+    "phases": [
+      [
+        1000,
+        "village"
+      ],
+      [
+        1850,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Coast Miwok village, largest known in Marin"
+  },
+  {
+    "name": "Kashaya (Pomo)",
+    "lon": -123.35,
+    "lat": 38.62,
+    "phases": [
+      [
+        1000,
+        "village"
+      ],
+      [
+        2020,
+        "village"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Kashaya Pomo village territory, Sonoma coast"
+  },
+  {
+    "name": "Clear Lake (Pomo)",
+    "lon": -122.77,
+    "lat": 39.02,
+    "phases": [
+      [
+        1000,
+        "village"
+      ],
+      [
+        1850,
+        null
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "Pomo village cluster, Clear Lake basin"
+  },
+  {
+    "name": "Tuolumne (Central Miwok)",
+    "lon": -120.24,
+    "lat": 37.85,
+    "phases": [
+      [
+        1000,
+        "village"
+      ],
+      [
+        1850,
+        null
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "Central Sierra Miwok village territory"
+  },
+  {
+    "name": "Wukchumni (Yokuts)",
+    "lon": -118.9,
+    "lat": 36.4,
+    "phases": [
+      [
+        1000,
+        "village"
+      ],
+      [
+        1850,
+        null
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "Foothill Yokuts village, southern Sierra Nevada"
+  },
+  {
+    "name": "Tulare Lake (Yokuts)",
+    "lon": -119.85,
+    "lat": 36.03,
+    "phases": [
+      [
+        1000,
+        "village"
+      ],
+      [
+        1870,
+        null
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "Tachi Yokuts village, Tulare Lake basin"
+  },
+  {
+    "name": "Kawaiisu village",
+    "lon": -118.3,
+    "lat": 35.55,
+    "phases": [
+      [
+        1000,
+        "village"
+      ],
+      [
+        1850,
+        null
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "Kawaiisu village, Tehachapi region"
+  },
+  {
+    "name": "Cahuilla (Palm Springs)",
+    "lon": -116.55,
+    "lat": 33.82,
+    "phases": [
+      [
+        1000,
+        "village"
+      ],
+      [
+        2020,
+        "village"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Agua Caliente Cahuilla village, Coachella Valley"
+  },
+  {
+    "name": "Kumeyaay (Cosoy)",
+    "lon": -117.16,
+    "lat": 32.72,
+    "phases": [
+      [
+        1000,
+        "village"
+      ],
+      [
+        1769,
+        "village"
+      ],
+      [
+        1850,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Kumeyaay village, San Diego area"
+  },
+  {
+    "name": "Luiseno (Quechla)",
+    "lon": -117.28,
+    "lat": 33.24,
+    "phases": [
+      [
+        1000,
+        "village"
+      ],
+      [
+        1798,
+        null
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "Luiseno village, later Mission San Luis Rey"
+  },
+  {
+    "name": "Tulalip (Snohomish)",
+    "lon": -122.29,
+    "lat": 48.05,
+    "phases": [
+      [
+        1000,
+        "village"
+      ],
+      [
+        2020,
+        "village"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Coast Salish Snohomish village, Puget Sound"
+  },
+  {
+    "name": "Duwamish",
+    "lon": -122.33,
+    "lat": 47.53,
+    "phases": [
+      [
+        1000,
+        "village"
+      ],
+      [
+        1855,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Duwamish village, site of Seattle"
+  },
+  {
+    "name": "Suquamish",
+    "lon": -122.55,
+    "lat": 47.73,
+    "phases": [
+      [
+        1000,
+        "village"
+      ],
+      [
+        2020,
+        "village"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Suquamish village, Chief Seattle's home"
+  },
+  {
+    "name": "Makah (Neah Bay)",
+    "lon": -124.62,
+    "lat": 48.37,
+    "phases": [
+      [
+        1000,
+        "village"
+      ],
+      [
+        2020,
+        "village"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Makah whaling village, Cape Flattery"
+  },
+  {
+    "name": "Quinault",
+    "lon": -124.19,
+    "lat": 47.35,
+    "phases": [
+      [
+        1000,
+        "village"
+      ],
+      [
+        2020,
+        "village"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Quinault village, Washington coast"
+  },
+  {
+    "name": "Chinook (Village)",
+    "lon": -123.95,
+    "lat": 46.27,
+    "phases": [
+      [
+        1000,
+        "village"
+      ],
+      [
+        1830,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Chinookan trade village, Columbia River mouth"
+  },
+  {
+    "name": "Cathlapotle",
+    "lon": -122.75,
+    "lat": 45.78,
+    "phases": [
+      [
+        1450,
+        "town"
+      ],
+      [
+        1830,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Chinookan plankhouse town, Lewis and Clark contact"
+  },
+  {
+    "name": "Kalapuya village",
+    "lon": -123.1,
+    "lat": 44.5,
+    "phases": [
+      [
+        1000,
+        "village"
+      ],
+      [
+        1855,
+        null
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "Kalapuya village, Willamette Valley"
+  },
+  {
+    "name": "Tlingit (Klukwan)",
+    "lon": -135.9,
+    "lat": 59.4,
+    "phases": [
+      [
+        1000,
+        "village"
+      ],
+      [
+        2020,
+        "village"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Chilkat Tlingit village, southeast Alaska"
+  },
+  {
+    "name": "Yakutat (Tlingit)",
+    "lon": -139.73,
+    "lat": 59.55,
+    "phases": [
+      [
+        1000,
+        "village"
+      ],
+      [
+        2020,
+        "village"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Tlingit village, Gulf of Alaska"
+  },
+  {
+    "name": "Metlakatla (Tsimshian)",
+    "lon": -131.58,
+    "lat": 55.13,
+    "phases": [
+      [
+        1000,
+        "village"
+      ],
+      [
+        1887,
+        "town"
+      ],
+      [
+        2020,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Tsimshian village, Annette Island Alaska"
+  },
+  {
+    "name": "Bella Coola (Nuxalk)",
+    "lon": -126.75,
+    "lat": 52.37,
+    "phases": [
+      [
+        1000,
+        "village"
+      ],
+      [
+        2020,
+        "village"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Nuxalk village, central BC coast"
+  },
+  {
+    "name": "Kitwanga (Gitxsan)",
+    "lon": -128.03,
+    "lat": 55.1,
+    "phases": [
+      [
+        1000,
+        "village"
+      ],
+      [
+        2020,
+        "village"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Gitxsan fortified village, Skeena River"
+  },
+  {
+    "name": "Alert Bay (Kwakwaka'wakw)",
+    "lon": -126.92,
+    "lat": 50.58,
+    "phases": [
+      [
+        1000,
+        "village"
+      ],
+      [
+        1870,
+        "town"
+      ],
+      [
+        2020,
+        "village"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Kwakwaka'wakw village, Cormorant Island"
+  },
+  {
+    "name": "Koyukuk (Athabaskan)",
+    "lon": -157.7,
+    "lat": 64.9,
+    "phases": [
+      [
+        1000,
+        "village"
+      ],
+      [
+        2020,
+        "village"
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "Koyukon Athabaskan village, interior Alaska"
+  },
+  {
+    "name": "Fort Yukon (Gwich'in)",
+    "lon": -145.28,
+    "lat": 66.57,
+    "phases": [
+      [
+        1000,
+        "village"
+      ],
+      [
+        1847,
+        "town"
+      ],
+      [
+        2020,
+        "village"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Gwich'in village, Hudson's Bay post added 1847"
+  },
+  {
+    "name": "Nulato",
+    "lon": -158.1,
+    "lat": 64.72,
+    "phases": [
+      [
+        1000,
+        "village"
+      ],
+      [
+        1838,
+        "town"
+      ],
+      [
+        2020,
+        "village"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Koyukon village, Russian trading post"
+  },
+  {
+    "name": "Old Crow (Vuntut Gwitchin)",
+    "lon": -139.83,
+    "lat": 67.57,
+    "phases": [
+      [
+        1000,
+        "village"
+      ],
+      [
+        2020,
+        "village"
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "Gwich'in village, Yukon"
+  },
+  {
+    "name": "Churchill (Dene/Cree)",
+    "lon": -94.16,
+    "lat": 58.77,
+    "phases": [
+      [
+        1000,
+        "village"
+      ],
+      [
+        1717,
+        "town"
+      ],
+      [
+        2020,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Cree/Dene trade site, Hudson's Bay Company post"
+  },
+  {
+    "name": "York Factory",
+    "lon": -92.3,
+    "lat": 57.0,
+    "phases": [
+      [
+        1684,
+        "town"
+      ],
+      [
+        1957,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Hudson's Bay Company post, Cree trade partners"
+  },
+  {
+    "name": "Moose Factory (Cree)",
+    "lon": -80.61,
+    "lat": 51.26,
+    "phases": [
+      [
+        1673,
+        "town"
+      ],
+      [
+        2020,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Cree village, Hudson's Bay Company post"
+  },
+  {
+    "name": "Inuvik area (Inuvialuit)",
+    "lon": -133.72,
+    "lat": 68.36,
+    "phases": [
+      [
+        1000,
+        "village"
+      ],
+      [
+        2020,
+        "town"
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "Inuvialuit settlement area, Mackenzie Delta"
+  },
+  {
+    "name": "Igloolik",
+    "lon": -81.8,
+    "lat": 69.37,
+    "phases": [
+      [
+        1000,
+        "village"
+      ],
+      [
+        2020,
+        "village"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Inuit settlement, Foxe Basin"
+  },
+  {
+    "name": "Cape Dorset (Kinngait)",
+    "lon": -76.54,
+    "lat": 64.23,
+    "phases": [
+      [
+        -500,
+        "village"
+      ],
+      [
+        2020,
+        "village"
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Type site of Dorset culture, later Inuit village"
+  },
+  {
+    "name": "Baker Lake (Inuit)",
+    "lon": -96.08,
+    "lat": 64.32,
+    "phases": [
+      [
+        1000,
+        "village"
+      ],
+      [
+        2020,
+        "village"
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "Inuit settlement, interior Nunavut"
+  },
+  {
+    "name": "Anasazi Betatakin",
+    "lon": -110.53,
+    "lat": 36.68,
+    "phases": [
+      [
+        1250,
+        "village"
+      ],
+      [
+        1300,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Ancestral Puebloan cliff dwelling, Arizona"
+  },
+  {
+    "name": "Keet Seel",
+    "lon": -110.62,
+    "lat": 36.72,
+    "phases": [
+      [
+        1250,
+        "village"
+      ],
+      [
+        1300,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Ancestral Puebloan cliff dwelling, Arizona"
+  },
+  {
+    "name": "Canyon de Chelly (White House)",
+    "lon": -109.36,
+    "lat": 36.15,
+    "phases": [
+      [
+        350,
+        "village"
+      ],
+      [
+        1300,
+        "town"
+      ],
+      [
+        1350,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Ancestral Puebloan settlement, later Navajo canyon"
+  },
+  {
+    "name": "Hovenweep",
+    "lon": -109.08,
+    "lat": 37.38,
+    "phases": [
+      [
+        900,
+        "village"
+      ],
+      [
+        1200,
+        "town"
+      ],
+      [
+        1300,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Ancestral Puebloan towers, Utah-Colorado border"
+  },
+  {
+    "name": "Edge of the Cedars",
+    "lon": -109.53,
+    "lat": 37.6,
+    "phases": [
+      [
+        850,
+        "village"
+      ],
+      [
+        1220,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Ancestral Puebloan great house, Utah"
+  },
+  {
+    "name": "Ute (Uncompahgre band)",
+    "lon": -107.7,
+    "lat": 38.5,
+    "phases": [
+      [
+        1000,
+        "village"
+      ],
+      [
+        1880,
+        null
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "Ute band seasonal village, western Colorado"
+  },
+  {
+    "name": "Shoshone (Bear River)",
+    "lon": -111.9,
+    "lat": 41.9,
+    "phases": [
+      [
+        1000,
+        "village"
+      ],
+      [
+        1863,
+        null
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "Northwestern Shoshone winter village, Utah/Idaho"
+  },
+  {
+    "name": "Paiute (Owens Valley)",
+    "lon": -118.2,
+    "lat": 36.78,
+    "phases": [
+      [
+        1000,
+        "village"
+      ],
+      [
+        1863,
+        null
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "Owens Valley Paiute village, eastern California"
+  },
+  {
+    "name": "Washoe (Lake Tahoe)",
+    "lon": -120.03,
+    "lat": 39.1,
+    "phases": [
+      [
+        1000,
+        "village"
+      ],
+      [
+        1850,
+        null
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "Washoe seasonal village, Tahoe basin"
+  },
+  {
+    "name": "Bannock (Fort Hall)",
+    "lon": -112.44,
+    "lat": 43.03,
+    "phases": [
+      [
+        1000,
+        "village"
+      ],
+      [
+        1834,
+        "town"
+      ],
+      [
+        1870,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Shoshone-Bannock village, later HBC post"
+  },
+  {
+    "name": "Wichita village (Spanish Fort)",
+    "lon": -98.44,
+    "lat": 33.94,
+    "phases": [
+      [
+        1600,
+        "town"
+      ],
+      [
+        1811,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Wichita village, Red River, Taovaya confederation"
+  },
+  {
+    "name": "Kadohadacho (Great Bend Caddo)",
+    "lon": -93.75,
+    "lat": 33.45,
+    "phases": [
+      [
+        1000,
+        "town"
+      ],
+      [
+        1400,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Caddo confederacy capital region, Red River"
+  },
+  {
+    "name": "Nasoni (Caddo)",
+    "lon": -94.1,
+    "lat": 33.1,
+    "phases": [
+      [
+        1000,
+        "village"
+      ],
+      [
+        1800,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Caddo Nasoni village, Texas/Louisiana border"
+  },
+  {
+    "name": "Tonkawa village",
+    "lon": -97.5,
+    "lat": 32.7,
+    "phases": [
+      [
+        1600,
+        "village"
+      ],
+      [
+        1859,
+        null
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "Tonkawa village, central Texas"
+  },
+  {
+    "name": "Comanche (seasonal camp)",
+    "lon": -100.5,
+    "lat": 34.5,
+    "phases": [
+      [
+        1700,
+        "village"
+      ],
+      [
+        1875,
+        null
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "Comanche seasonal camp region, southern Plains"
+  },
+  {
+    "name": "Kiowa (seasonal camp)",
+    "lon": -99.3,
+    "lat": 35.2,
+    "phases": [
+      [
+        1700,
+        "village"
+      ],
+      [
+        1875,
+        null
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "Kiowa seasonal camp region, southern Plains"
+  },
+  {
+    "name": "Crow Creek Village",
+    "lon": -99.2,
+    "lat": 44.2,
+    "phases": [
+      [
+        1300,
+        "town"
+      ],
+      [
+        1325,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Initial Coalescent village, massacre site, South Dakota"
+  },
+  {
+    "name": "Fort Pierre (Arikara)",
+    "lon": -100.36,
+    "lat": 44.37,
+    "phases": [
+      [
+        1500,
+        "town"
+      ],
+      [
+        1832,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Arikara/Lakota trade site, Missouri River"
+  },
+  {
+    "name": "Blood Run",
+    "lon": -96.42,
+    "lat": 43.44,
+    "phases": [
+      [
+        1500,
+        "town"
+      ],
+      [
+        1704,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Oneota village complex, Iowa/South Dakota border"
+  },
+  {
+    "name": "Utz Site (Missouria)",
+    "lon": -92.9,
+    "lat": 39.3,
+    "phases": [
+      [
+        1500,
+        "town"
+      ],
+      [
+        1798,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Missouria tribal capital, Missouri River"
+  },
+  {
+    "name": "Doniphan (Kansa village)",
+    "lon": -95.7,
+    "lat": 39.6,
+    "phases": [
+      [
+        1600,
+        "village"
+      ],
+      [
+        1846,
+        null
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "Kansa (Kaw) village, Missouri River"
+  },
+  {
+    "name": "Etowah (secondary mound)",
+    "lon": -84.83,
+    "lat": 34.16,
+    "phases": [
+      [
+        1000,
+        "village"
+      ],
+      [
+        1550,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Satellite Mississippian mound site near Etowah"
+  },
+  {
+    "name": "Lake Jackson Mounds",
+    "lon": -84.3,
+    "lat": 30.51,
+    "phases": [
+      [
+        1050,
+        "village"
+      ],
+      [
+        1200,
+        "town"
+      ],
+      [
+        1500,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Fort Walton culture chiefdom center, Florida"
+  },
+  {
+    "name": "Fort Walton",
+    "lon": -86.61,
+    "lat": 30.42,
+    "phases": [
+      [
+        900,
+        "village"
+      ],
+      [
+        1500,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Fort Walton culture village, Florida panhandle"
+  },
+  {
+    "name": "Bottle Creek",
+    "lon": -87.92,
+    "lat": 31.0,
+    "phases": [
+      [
+        1250,
+        "town"
+      ],
+      [
+        1550,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Pensacola culture mound center, Mobile-Tensaw Delta"
+  },
+  {
+    "name": "Nodena",
+    "lon": -89.97,
+    "lat": 35.68,
+    "phases": [
+      [
+        1400,
+        "town"
+      ],
+      [
+        1650,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Late Mississippian town, Arkansas, possible Pacaha"
+  },
+  {
+    "name": "Wapanucka (Caddoan)",
+    "lon": -96.1,
+    "lat": 34.3,
+    "phases": [
+      [
+        1000,
+        "village"
+      ],
+      [
+        1450,
+        null
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "Caddoan mound village, southeastern Oklahoma"
+  },
+  {
+    "name": "Harlan Site (Caddo)",
+    "lon": -95.13,
+    "lat": 34.72,
+    "phases": [
+      [
+        900,
+        "village"
+      ],
+      [
+        1200,
+        "town"
+      ],
+      [
+        1400,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Early Caddoan mound center, Oklahoma"
+  },
+  {
+    "name": "Effigy Mounds (Iowa)",
+    "lon": -91.19,
+    "lat": 43.09,
+    "phases": [
+      [
+        300,
+        "village"
+      ],
+      [
+        1300,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Late Woodland effigy mound complex, Iowa"
+  },
+  {
+    "name": "Cahokia West Plaza",
+    "lon": -90.07,
+    "lat": 38.66,
+    "phases": [
+      [
+        900,
+        "town"
+      ],
+      [
+        1350,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Secondary Cahokia precinct, Mississippian metropolis"
+  },
+  {
+    "name": "Mitchell Site",
+    "lon": -90.05,
+    "lat": 38.75,
+    "phases": [
+      [
+        1000,
+        "village"
+      ],
+      [
+        1300,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Cahokia-associated mound village, American Bottom"
+  },
+  {
+    "name": "Lunsford-Pulcher",
+    "lon": -90.14,
+    "lat": 38.44,
+    "phases": [
+      [
+        900,
+        "village"
+      ],
+      [
+        1300,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Mississippian mound center, American Bottom"
+  },
+  {
+    "name": "Ninigret (Niantic)",
+    "lon": -71.68,
+    "lat": 41.35,
+    "phases": [
+      [
+        1200,
+        "village"
+      ],
+      [
+        1700,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Eastern Niantic village, Rhode Island"
+  },
+  {
+    "name": "Weantinock (Paugussett)",
+    "lon": -73.35,
+    "lat": 41.6,
+    "phases": [
+      [
+        1200,
+        "village"
+      ],
+      [
+        1700,
+        null
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "Paugussett village, Housatonic River"
+  },
+  {
+    "name": "Schaghticoke",
+    "lon": -73.6,
+    "lat": 41.68,
+    "phases": [
+      [
+        1200,
+        "village"
+      ],
+      [
+        2020,
+        "village"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Schaghticoke village, Connecticut"
+  },
+  {
+    "name": "Poospatuck",
+    "lon": -72.83,
+    "lat": 40.8,
+    "phases": [
+      [
+        1200,
+        "village"
+      ],
+      [
+        2020,
+        "village"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Unkechaug village, Long Island"
+  },
+  {
+    "name": "Nanticoke (Chicone)",
+    "lon": -75.75,
+    "lat": 38.55,
+    "phases": [
+      [
+        1200,
+        "village"
+      ],
+      [
+        1740,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Nanticoke village, Chesapeake tributary"
+  },
+  {
+    "name": "Piscataway",
+    "lon": -76.95,
+    "lat": 38.65,
+    "phases": [
+      [
+        1300,
+        "town"
+      ],
+      [
+        1697,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Piscataway paramount chiefdom, Maryland"
+  },
+  {
+    "name": "Accokeek (Piscataway)",
+    "lon": -77.02,
+    "lat": 38.68,
+    "phases": [
+      [
+        1300,
+        "village"
+      ],
+      [
+        1680,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Piscataway village, Potomac River"
+  },
+  {
+    "name": "Tsenacommacah (Pamunkey)",
+    "lon": -76.98,
+    "lat": 37.55,
+    "phases": [
+      [
+        1200,
+        "town"
+      ],
+      [
+        2020,
+        "village"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Pamunkey capital village, Virginia"
+  },
+  {
+    "name": "Chickahominy village",
+    "lon": -76.9,
+    "lat": 37.35,
+    "phases": [
+      [
+        1200,
+        "village"
+      ],
+      [
+        1646,
+        "village"
+      ],
+      [
+        2020,
+        "village"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Chickahominy village, Virginia"
+  },
+  {
+    "name": "Roanoke (Secotan)",
+    "lon": -75.75,
+    "lat": 35.85,
+    "phases": [
+      [
+        1200,
+        "village"
+      ],
+      [
+        1590,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Algonquian village near Lost Colony, NC"
+  },
+  {
+    "name": "Croatoan",
+    "lon": -75.55,
+    "lat": 35.3,
+    "phases": [
+      [
+        1200,
+        "village"
+      ],
+      [
+        1700,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Croatoan village, Outer Banks NC"
+  },
+  {
+    "name": "Pomeiooc",
+    "lon": -75.9,
+    "lat": 35.55,
+    "phases": [
+      [
+        1200,
+        "village"
+      ],
+      [
+        1600,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Algonquian village drawn by John White"
+  }
+]

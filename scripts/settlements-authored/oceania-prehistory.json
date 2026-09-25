@@ -1,0 +1,6101 @@
+[
+ {
+  "name": "Budj Bim",
+  "lon": 141.99,
+  "lat": -38.09,
+  "phases": [
+   [
+    -6600,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Gunditjmara eel-trap and stone-house village, oldest aquaculture known"
+ },
+ {
+  "name": "Lake Mungo",
+  "lon": 143.1,
+  "lat": -33.75,
+  "phases": [
+   [
+    -20000,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Willandra Lakes campsite complex; Mungo Man/Lady burials"
+ },
+ {
+  "name": "Budj Bim Tyrendarra",
+  "lon": 142.02,
+  "lat": -38.19,
+  "phases": [
+   [
+    -6600,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Stone hut cluster at Tyrendarra lava flow, Gunditjmara"
+ },
+ {
+  "name": "Brewarrina Fish Traps",
+  "lon": 146.86,
+  "lat": -29.96,
+  "phases": [
+   [
+    -3000,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Baiame's Ngunnhu stone fish weirs on the Barwon River"
+ },
+ {
+  "name": "Devon Downs Rockshelter",
+  "lon": 139.58,
+  "lat": -34.57,
+  "phases": [
+   [
+    -5000,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Murray River rockshelter with long stratified occupation"
+ },
+ {
+  "name": "Roonka",
+  "lon": 139.55,
+  "lat": -34.58,
+  "phases": [
+   [
+    -7000,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Murray River burial and camp site, South Australia"
+ },
+ {
+  "name": "Kutikina Cave",
+  "lon": 145.7,
+  "lat": -42.35,
+  "phases": [
+   [
+    -20000,
+    "village"
+   ],
+   [
+    -14000,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Franklin River ice-age hunting camp, Tasmania"
+ },
+ {
+  "name": "Warreen Cave",
+  "lon": 146.13,
+  "lat": -42.3,
+  "phases": [
+   [
+    -35000,
+    "village"
+   ],
+   [
+    -13000,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Tasmanian Pleistocene rockshelter, Florentine valley"
+ },
+ {
+  "name": "Puritjarra",
+  "lon": 132.09,
+  "lat": -23.36,
+  "phases": [
+   [
+    -32000,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Central Australian desert rockshelter, long sequence"
+ },
+ {
+  "name": "Madjedbebe",
+  "lon": 132.94,
+  "lat": -12.61,
+  "phases": [
+   [
+    -65000,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Arnhem Land rockshelter, earliest known Australian occupation"
+ },
+ {
+  "name": "Devil's Lair",
+  "lon": 115.06,
+  "lat": -34.03,
+  "phases": [
+   [
+    -47000,
+    "village"
+   ],
+   [
+    -6800,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Cape Leeuwin cave site, southwest Australia"
+ },
+ {
+  "name": "Koonalda Cave",
+  "lon": 129.03,
+  "lat": -31.95,
+  "phases": [
+   [
+    -24000,
+    "village"
+   ],
+   [
+    -15000,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Nullarbor flint-mining and art cave"
+ },
+ {
+  "name": "Cloggs Cave",
+  "lon": 147.97,
+  "lat": -37.51,
+  "phases": [
+   [
+    -25000,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Gunaikurnai cave site, East Gippsland"
+ },
+ {
+  "name": "Colless Creek",
+  "lon": 138.62,
+  "lat": -18.08,
+  "phases": [
+   [
+    -17000,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Northwest Queensland rockshelter"
+ },
+ {
+  "name": "Carpenter's Gap",
+  "lon": 125.58,
+  "lat": -17.42,
+  "phases": [
+   [
+    -45000,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Kimberley rockshelter, early occupation"
+ },
+ {
+  "name": "Riwi Cave",
+  "lon": 125.35,
+  "lat": -18.63,
+  "phases": [
+   [
+    -46000,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Kimberley cave, early human occupation"
+ },
+ {
+  "name": "Ngarrabullgan",
+  "lon": 145.16,
+  "lat": -17.35,
+  "phases": [
+   [
+    -37000,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Cape York plateau rockshelter"
+ },
+ {
+  "name": "Nawarla Gabarnmang",
+  "lon": 133.37,
+  "lat": -13.3,
+  "phases": [
+   [
+    -45000,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Arnhem Land rock art gallery and shelter"
+ },
+ {
+  "name": "Djulirri",
+  "lon": 133.55,
+  "lat": -11.97,
+  "phases": [
+   [
+    -15000,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Arnhem Land rock art complex"
+ },
+ {
+  "name": "Weaba Creek",
+  "lon": 122.2,
+  "lat": -18.0,
+  "phases": [
+   [
+    -30000,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Kimberley coastal shell midden site"
+ },
+ {
+  "name": "Bass Point",
+  "lon": 150.9,
+  "lat": -34.6,
+  "phases": [
+   [
+    -4000,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Coastal shell midden, Illawarra, NSW"
+ },
+ {
+  "name": "Wyrie Swamp",
+  "lon": 140.63,
+  "lat": -37.6,
+  "phases": [
+   [
+    -10000,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "South Australian wetland site, wooden artefacts"
+ },
+ {
+  "name": "Cuddie Springs",
+  "lon": 147.53,
+  "lat": -30.63,
+  "phases": [
+   [
+    -30000,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Megafauna and human occupation site, NSW"
+ },
+ {
+  "name": "Keilor",
+  "lon": 144.83,
+  "lat": -37.72,
+  "phases": [
+   [
+    -31000,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Maribyrnong River terrace campsite, Victoria"
+ },
+ {
+  "name": "Cranebrook Terrace",
+  "lon": 150.68,
+  "lat": -33.72,
+  "phases": [
+   [
+    -45000,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Nepean River terrace, Sydney basin early occupation"
+ },
+ {
+  "name": "Burrill Lake",
+  "lon": 150.38,
+  "lat": -35.4,
+  "phases": [
+   [
+    -20000,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "South coast NSW rockshelter"
+ },
+ {
+  "name": "Blue Mud Bay",
+  "lon": 136.6,
+  "lat": -13.3,
+  "phases": [
+   [
+    -2000,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Yolŋu coastal camp, Arnhem Land"
+ },
+ {
+  "name": "Weipa Middens",
+  "lon": 141.87,
+  "lat": -12.68,
+  "phases": [
+   [
+    -3000,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Cape York shell mound complex"
+ },
+ {
+  "name": "Roebourne",
+  "lon": 117.15,
+  "lat": -20.78,
+  "phases": [
+   [
+    -8000,
+    "village"
+   ],
+   [
+    1866,
+    "town"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Ngarluma country; colonial pearling and pastoral town founded 1866"
+ },
+ {
+  "name": "Sydney",
+  "lon": 151.21,
+  "lat": -33.87,
+  "phases": [
+   [
+    1788,
+    "town"
+   ],
+   [
+    1850,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "First British penal settlement, Port Jackson"
+ },
+ {
+  "name": "Parramatta",
+  "lon": 151.0,
+  "lat": -33.82,
+  "phases": [
+   [
+    1788,
+    "town"
+   ],
+   [
+    1870,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Early farming settlement west of Sydney"
+ },
+ {
+  "name": "Hobart",
+  "lon": 147.33,
+  "lat": -42.88,
+  "phases": [
+   [
+    1804,
+    "town"
+   ],
+   [
+    1900,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Van Diemen's Land penal colony capital"
+ },
+ {
+  "name": "Launceston",
+  "lon": 147.14,
+  "lat": -41.44,
+  "phases": [
+   [
+    1806,
+    "town"
+   ],
+   [
+    1900,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Northern Tasmanian colonial port"
+ },
+ {
+  "name": "Newcastle",
+  "lon": 151.75,
+  "lat": -32.93,
+  "phases": [
+   [
+    1804,
+    "town"
+   ],
+   [
+    1900,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Coal port and penal outstation, NSW"
+ },
+ {
+  "name": "Brisbane",
+  "lon": 153.03,
+  "lat": -27.47,
+  "phases": [
+   [
+    1824,
+    "town"
+   ],
+   [
+    1900,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Moreton Bay penal settlement"
+ },
+ {
+  "name": "Perth",
+  "lon": 115.86,
+  "lat": -31.95,
+  "phases": [
+   [
+    1829,
+    "town"
+   ],
+   [
+    1900,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Swan River Colony capital"
+ },
+ {
+  "name": "Fremantle",
+  "lon": 115.74,
+  "lat": -32.06,
+  "phases": [
+   [
+    1829,
+    "town"
+   ],
+   [
+    1900,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Swan River Colony port"
+ },
+ {
+  "name": "Adelaide",
+  "lon": 138.6,
+  "lat": -34.93,
+  "phases": [
+   [
+    1836,
+    "town"
+   ],
+   [
+    1880,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Planned free-settler colony capital"
+ },
+ {
+  "name": "Melbourne",
+  "lon": 144.96,
+  "lat": -37.81,
+  "phases": [
+   [
+    1835,
+    "town"
+   ],
+   [
+    1880,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Port Phillip District settlement"
+ },
+ {
+  "name": "Geelong",
+  "lon": 144.36,
+  "lat": -38.15,
+  "phases": [
+   [
+    1838,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Port Phillip District wool port"
+ },
+ {
+  "name": "Ballarat",
+  "lon": 143.86,
+  "lat": -37.56,
+  "phases": [
+   [
+    1838,
+    "village"
+   ],
+   [
+    1851,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Victorian goldfields boomtown"
+ },
+ {
+  "name": "Bendigo",
+  "lon": 144.28,
+  "lat": -36.76,
+  "phases": [
+   [
+    1851,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Victorian goldfields boomtown"
+ },
+ {
+  "name": "Bathurst",
+  "lon": 149.58,
+  "lat": -33.42,
+  "phases": [
+   [
+    1815,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "First inland colonial town, NSW"
+ },
+ {
+  "name": "Albany",
+  "lon": 117.88,
+  "lat": -35.02,
+  "phases": [
+   [
+    1826,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "King George Sound garrison, WA"
+ },
+ {
+  "name": "Port Essington",
+  "lon": 132.14,
+  "lat": -11.15,
+  "phases": [
+   [
+    1838,
+    "village"
+   ],
+   [
+    1849,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Failed British outpost, Cobourg Peninsula"
+ },
+ {
+  "name": "Darwin",
+  "lon": 130.84,
+  "lat": -12.46,
+  "phases": [
+   [
+    1869,
+    "town"
+   ],
+   [
+    1911,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Palmerston, Northern Territory capital"
+ },
+ {
+  "name": "Alice Springs",
+  "lon": 133.88,
+  "lat": -23.7,
+  "phases": [
+   [
+    1872,
+    "village"
+   ],
+   [
+    1929,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Overland Telegraph repeater station"
+ },
+ {
+  "name": "Townsville",
+  "lon": 146.82,
+  "lat": -19.26,
+  "phases": [
+   [
+    1864,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Queensland pastoral and port town"
+ },
+ {
+  "name": "Cairns",
+  "lon": 145.77,
+  "lat": -16.92,
+  "phases": [
+   [
+    1876,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Queensland goldfields port"
+ },
+ {
+  "name": "Rockhampton",
+  "lon": 150.51,
+  "lat": -23.38,
+  "phases": [
+   [
+    1858,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Queensland pastoral river port"
+ },
+ {
+  "name": "Toowoomba",
+  "lon": 151.95,
+  "lat": -27.56,
+  "phases": [
+   [
+    1849,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Darling Downs agricultural town, Queensland"
+ },
+ {
+  "name": "Broken Hill",
+  "lon": 141.47,
+  "lat": -31.95,
+  "phases": [
+   [
+    1883,
+    "town"
+   ],
+   [
+    1900,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "NSW silver-lead-zinc mining town"
+ },
+ {
+  "name": "Kalgoorlie",
+  "lon": 121.47,
+  "lat": -30.75,
+  "phases": [
+   [
+    1893,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "WA goldfields boomtown"
+ },
+ {
+  "name": "Coolgardie",
+  "lon": 121.16,
+  "lat": -30.96,
+  "phases": [
+   [
+    1892,
+    "town"
+   ],
+   [
+    1920,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "WA goldrush town, later declined"
+ },
+ {
+  "name": "Broome",
+  "lon": 122.24,
+  "lat": -18.0,
+  "phases": [
+   [
+    1883,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "WA pearling port"
+ },
+ {
+  "name": "Port Augusta",
+  "lon": 137.77,
+  "lat": -32.49,
+  "phases": [
+   [
+    1854,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "South Australian rail and port town"
+ },
+ {
+  "name": "Wagga Wagga",
+  "lon": 147.35,
+  "lat": -35.12,
+  "phases": [
+   [
+    1849,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Riverina agricultural town, NSW"
+ },
+ {
+  "name": "Goulburn",
+  "lon": 149.72,
+  "lat": -34.75,
+  "phases": [
+   [
+    1833,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Southern Tablelands town, NSW"
+ },
+ {
+  "name": "Maitland",
+  "lon": 151.56,
+  "lat": -32.73,
+  "phases": [
+   [
+    1818,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Hunter Valley agricultural town, NSW"
+ },
+ {
+  "name": "Port Arthur",
+  "lon": 147.85,
+  "lat": -43.14,
+  "phases": [
+   [
+    1830,
+    "village"
+   ],
+   [
+    1877,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Tasmanian penal settlement"
+ },
+ {
+  "name": "Norfolk Island Kingston",
+  "lon": 167.96,
+  "lat": -29.06,
+  "phases": [
+   [
+    1788,
+    "village"
+   ],
+   [
+    1855,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Penal settlement, resettled by Pitcairners 1856"
+ },
+ {
+  "name": "Swan Hill",
+  "lon": 143.56,
+  "lat": -35.34,
+  "phases": [
+   [
+    1836,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Murray River port town, Victoria"
+ },
+ {
+  "name": "Echuca",
+  "lon": 144.75,
+  "lat": -36.13,
+  "phases": [
+   [
+    1853,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Murray River paddlesteamer port"
+ },
+ {
+  "name": "Mount Gambier",
+  "lon": 140.78,
+  "lat": -37.83,
+  "phases": [
+   [
+    1839,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "South Australian volcanic-lake town"
+ },
+ {
+  "name": "Maungawhau (Mt Eden)",
+  "lon": 174.76,
+  "lat": -36.88,
+  "phases": [
+   [
+    1400,
+    "town"
+   ],
+   [
+    1850,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Large terraced pā, Auckland volcanic cone"
+ },
+ {
+  "name": "One Tree Hill Pā (Maungakiekie)",
+  "lon": 174.78,
+  "lat": -36.9,
+  "phases": [
+   [
+    1450,
+    "town"
+   ],
+   [
+    1800,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Largest pā in Tāmaki Makaurau, Auckland"
+ },
+ {
+  "name": "Maungarei (Mt Wellington)",
+  "lon": 174.84,
+  "lat": -36.9,
+  "phases": [
+   [
+    1400,
+    "town"
+   ],
+   [
+    1820,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Terraced volcanic cone pā, Auckland"
+ },
+ {
+  "name": "Otatara Pā",
+  "lon": 173.28,
+  "lat": -39.53,
+  "phases": [
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Hawke's Bay pā complex"
+ },
+ {
+  "name": "Ohinemutu",
+  "lon": 176.25,
+  "lat": -38.13,
+  "phases": [
+   [
+    1350,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Te Arawa lakeside kāinga, Rotorua"
+ },
+ {
+  "name": "Orakei Pā",
+  "lon": 174.81,
+  "lat": -36.86,
+  "phases": [
+   [
+    1400,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Ngāti Whātua kāinga, Auckland"
+ },
+ {
+  "name": "Otakanini Pā",
+  "lon": 174.32,
+  "lat": -36.55,
+  "phases": [
+   [
+    1500,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Kaipara Harbour pā"
+ },
+ {
+  "name": "Kaiapoi Pā",
+  "lon": 172.65,
+  "lat": -43.38,
+  "phases": [
+   [
+    1700,
+    "town"
+   ],
+   [
+    1832,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ngāi Tahu stronghold, destroyed by Te Rauparaha"
+ },
+ {
+  "name": "Ruapekapeka Pā",
+  "lon": 174.18,
+  "lat": -35.32,
+  "phases": [
+   [
+    1845,
+    "village"
+   ],
+   [
+    1846,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Musket-era pā, Northland Wars"
+ },
+ {
+  "name": "Ohaeawai Pā",
+  "lon": 173.99,
+  "lat": -35.34,
+  "phases": [
+   [
+    1845,
+    "village"
+   ],
+   [
+    1845,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Fortified pā, Battle of Ohaeawai"
+ },
+ {
+  "name": "Orongo Bay Pā",
+  "lon": 174.06,
+  "lat": -35.28,
+  "phases": [
+   [
+    1400,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Bay of Islands coastal pā"
+ },
+ {
+  "name": "Otuataua Stonefields",
+  "lon": 174.75,
+  "lat": -37.0,
+  "phases": [
+   [
+    1400,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Māori garden and settlement complex, Auckland"
+ },
+ {
+  "name": "Pouerua Pā",
+  "lon": 173.95,
+  "lat": -35.35,
+  "phases": [
+   [
+    1400,
+    "town"
+   ],
+   [
+    1820,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Multi-terraced volcanic cone pā, Bay of Islands"
+ },
+ {
+  "name": "Te Ika a Ranganui",
+  "lon": 174.2,
+  "lat": -35.9,
+  "phases": [
+   [
+    1400,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Kaipara area kāinga"
+ },
+ {
+  "name": "Kohika",
+  "lon": 176.86,
+  "lat": -38.02,
+  "phases": [
+   [
+    1300,
+    "village"
+   ],
+   [
+    1500,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Waterlogged lakeside pā, Bay of Plenty"
+ },
+ {
+  "name": "Waitangi",
+  "lon": 174.08,
+  "lat": -35.27,
+  "phases": [
+   [
+    1300,
+    "village"
+   ],
+   [
+    1840,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Treaty grounds, Bay of Islands"
+ },
+ {
+  "name": "Whakatane",
+  "lon": 176.98,
+  "lat": -37.96,
+  "phases": [
+   [
+    1300,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Mataatua canoe landing, Bay of Plenty"
+ },
+ {
+  "name": "Wairau Bar",
+  "lon": 173.85,
+  "lat": -41.5,
+  "phases": [
+   [
+    1280,
+    "village"
+   ],
+   [
+    1450,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Earliest known NZ settlement, moa-hunter site"
+ },
+ {
+  "name": "Shag River Mouth",
+  "lon": 170.79,
+  "lat": -45.47,
+  "phases": [
+   [
+    1300,
+    "village"
+   ],
+   [
+    1500,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Early moa-hunter site, Otago"
+ },
+ {
+  "name": "Katiki Point",
+  "lon": 170.82,
+  "lat": -45.42,
+  "phases": [
+   [
+    1300,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Coastal moa-hunter camp, Otago"
+ },
+ {
+  "name": "Pleasant River",
+  "lon": 170.63,
+  "lat": -45.5,
+  "phases": [
+   [
+    1300,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "South Otago early settlement"
+ },
+ {
+  "name": "Waitaha Pā (Banks Peninsula)",
+  "lon": 172.9,
+  "lat": -43.75,
+  "phases": [
+   [
+    1450,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Banks Peninsula kāinga"
+ },
+ {
+  "name": "Onawe Pā",
+  "lon": 172.93,
+  "lat": -43.78,
+  "phases": [
+   [
+    1650,
+    "village"
+   ],
+   [
+    1830,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Banks Peninsula pā, destroyed by Te Rauparaha"
+ },
+ {
+  "name": "Otakou",
+  "lon": 170.63,
+  "lat": -45.82,
+  "phases": [
+   [
+    1600,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ngāi Tahu whaling and kāinga, Otago Peninsula"
+ },
+ {
+  "name": "Ruapuke Island",
+  "lon": 168.55,
+  "lat": -46.68,
+  "phases": [
+   [
+    1600,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Foveaux Strait Ngāi Tahu settlement"
+ },
+ {
+  "name": "Moeraki",
+  "lon": 170.85,
+  "lat": -45.36,
+  "phases": [
+   [
+    1400,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Otago coast Ngāi Tahu kāinga"
+ },
+ {
+  "name": "Akaroa",
+  "lon": 172.97,
+  "lat": -43.81,
+  "phases": [
+   [
+    1700,
+    "village"
+   ],
+   [
+    1840,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Banks Peninsula, French settlement 1840"
+ },
+ {
+  "name": "Auckland",
+  "lon": 174.76,
+  "lat": -36.85,
+  "phases": [
+   [
+    1840,
+    "town"
+   ],
+   [
+    1900,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Colonial capital until 1865"
+ },
+ {
+  "name": "Wellington",
+  "lon": 174.78,
+  "lat": -41.29,
+  "phases": [
+   [
+    1840,
+    "town"
+   ],
+   [
+    1900,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "New Zealand Company settlement, later capital"
+ },
+ {
+  "name": "Christchurch",
+  "lon": 172.64,
+  "lat": -43.53,
+  "phases": [
+   [
+    1850,
+    "town"
+   ],
+   [
+    1900,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Canterbury Association settlement"
+ },
+ {
+  "name": "Dunedin",
+  "lon": 170.5,
+  "lat": -45.87,
+  "phases": [
+   [
+    1848,
+    "town"
+   ],
+   [
+    1880,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Otago Association settlement"
+ },
+ {
+  "name": "Nelson",
+  "lon": 173.28,
+  "lat": -41.27,
+  "phases": [
+   [
+    1841,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "New Zealand Company settlement, Nelson"
+ },
+ {
+  "name": "New Plymouth",
+  "lon": 174.08,
+  "lat": -39.06,
+  "phases": [
+   [
+    1841,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Taranaki settlement"
+ },
+ {
+  "name": "Napier",
+  "lon": 176.91,
+  "lat": -39.49,
+  "phases": [
+   [
+    1855,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Hawke's Bay port town"
+ },
+ {
+  "name": "Whanganui",
+  "lon": 175.05,
+  "lat": -39.93,
+  "phases": [
+   [
+    1841,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Wanganui River settlement"
+ },
+ {
+  "name": "Hamilton",
+  "lon": 175.28,
+  "lat": -37.78,
+  "phases": [
+   [
+    1864,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Waikato military settlement"
+ },
+ {
+  "name": "Invercargill",
+  "lon": 168.35,
+  "lat": -46.41,
+  "phases": [
+   [
+    1856,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Southland settlement"
+ },
+ {
+  "name": "Greymouth",
+  "lon": 171.21,
+  "lat": -42.45,
+  "phases": [
+   [
+    1865,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "West Coast goldfields port"
+ },
+ {
+  "name": "Hokitika",
+  "lon": 170.97,
+  "lat": -42.72,
+  "phases": [
+   [
+    1864,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "West Coast goldrush town"
+ },
+ {
+  "name": "Gisborne",
+  "lon": 178.02,
+  "lat": -38.66,
+  "phases": [
+   [
+    1831,
+    "village"
+   ],
+   [
+    1870,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Poverty Bay settlement, Tūranga"
+ },
+ {
+  "name": "Kuk Swamp",
+  "lon": 144.33,
+  "lat": -5.78,
+  "phases": [
+   [
+    -9000,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Earliest agricultural site in New Guinea highlands"
+ },
+ {
+  "name": "Manim",
+  "lon": 143.9,
+  "lat": -5.9,
+  "phases": [
+   [
+    -6000,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Wahgi Valley early agricultural site"
+ },
+ {
+  "name": "Yuku Rockshelter",
+  "lon": 144.6,
+  "lat": -5.5,
+  "phases": [
+   [
+    -10000,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Highlands New Guinea rockshelter"
+ },
+ {
+  "name": "Motupore Island",
+  "lon": 147.3,
+  "lat": -9.55,
+  "phases": [
+   [
+    200,
+    "village"
+   ],
+   [
+    1200,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Motu trading settlement, Papuan coast"
+ },
+ {
+  "name": "Hanuabada",
+  "lon": 147.15,
+  "lat": -9.47,
+  "phases": [
+   [
+    1500,
+    "village"
+   ],
+   [
+    1873,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Motu stilt village, later part of Port Moresby"
+ },
+ {
+  "name": "Port Moresby",
+  "lon": 147.18,
+  "lat": -9.48,
+  "phases": [
+   [
+    1873,
+    "town"
+   ],
+   [
+    1910,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "British New Guinea colonial administrative centre"
+ },
+ {
+  "name": "Mailu Island",
+  "lon": 149.87,
+  "lat": -10.1,
+  "phases": [
+   [
+    0,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Papuan trading pottery-making village"
+ },
+ {
+  "name": "Yule Island",
+  "lon": 146.5,
+  "lat": -8.78,
+  "phases": [
+   [
+    1000,
+    "village"
+   ],
+   [
+    1885,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Mekeo coast mission and trade station"
+ },
+ {
+  "name": "Wewak",
+  "lon": 143.65,
+  "lat": -3.55,
+  "phases": [
+   [
+    1000,
+    "village"
+   ],
+   [
+    1930,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Sepik coast settlement, colonial administrative post"
+ },
+ {
+  "name": "Aitape",
+  "lon": 142.35,
+  "lat": -3.13,
+  "phases": [
+   [
+    1000,
+    "village"
+   ],
+   [
+    1906,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "North coast New Guinea German station"
+ },
+ {
+  "name": "Madang",
+  "lon": 145.79,
+  "lat": -5.22,
+  "phases": [
+   [
+    500,
+    "village"
+   ],
+   [
+    1900,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "North coast trading settlement and colonial town"
+ },
+ {
+  "name": "Lae",
+  "lon": 147.0,
+  "lat": -6.73,
+  "phases": [
+   [
+    1000,
+    "village"
+   ],
+   [
+    1927,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Huon Gulf goldrush supply town"
+ },
+ {
+  "name": "Rabaul",
+  "lon": 152.2,
+  "lat": -4.2,
+  "phases": [
+   [
+    1000,
+    "village"
+   ],
+   [
+    1910,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Tolai settlement, German New Guinea capital"
+ },
+ {
+  "name": "Kokopo",
+  "lon": 152.27,
+  "lat": -4.35,
+  "phases": [
+   [
+    1000,
+    "village"
+   ],
+   [
+    1900,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Tolai area, Gazelle Peninsula"
+ },
+ {
+  "name": "Daru",
+  "lon": 143.2,
+  "lat": -9.08,
+  "phases": [
+   [
+    500,
+    "village"
+   ],
+   [
+    1893,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Western Province administrative post"
+ },
+ {
+  "name": "Samarai",
+  "lon": 150.67,
+  "lat": -10.62,
+  "phases": [
+   [
+    500,
+    "village"
+   ],
+   [
+    1888,
+    "town"
+   ],
+   [
+    1942,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Early colonial trading port, Milne Bay"
+ },
+ {
+  "name": "Teouma",
+  "lon": 168.31,
+  "lat": -17.75,
+  "phases": [
+   [
+    -3000,
+    "village"
+   ],
+   [
+    -2700,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Lapita cemetery and village site, Efate, Vanuatu"
+ },
+ {
+  "name": "Mangaasi",
+  "lon": 168.2,
+  "lat": -16.3,
+  "phases": [
+   [
+    -1000,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Type site for Mangaasi pottery, Vanuatu"
+ },
+ {
+  "name": "Arapus",
+  "lon": 168.3,
+  "lat": -17.72,
+  "phases": [
+   [
+    -3000,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Lapita site, Efate, Vanuatu"
+ },
+ {
+  "name": "Retoka (Roi Mata's Domain)",
+  "lon": 168.18,
+  "lat": -17.53,
+  "phases": [
+   [
+    1600,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Chief Roi Mata's burial site, Vanuatu, UNESCO"
+ },
+ {
+  "name": "Vao Island",
+  "lon": 167.55,
+  "lat": -15.28,
+  "phases": [
+   [
+    1000,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Malakula ceremonial village, Vanuatu"
+ },
+ {
+  "name": "Foué Peninsula",
+  "lon": 164.9,
+  "lat": -21.1,
+  "phases": [
+   [
+    -3000,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Lapita site, Koné, New Caledonia"
+ },
+ {
+  "name": "Lapita Site (Site 13)",
+  "lon": 164.86,
+  "lat": -21.02,
+  "phases": [
+   [
+    -3200,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Type site giving the Lapita culture its name, New Caledonia"
+ },
+ {
+  "name": "Nouméa",
+  "lon": 166.46,
+  "lat": -22.28,
+  "phases": [
+   [
+    1000,
+    "village"
+   ],
+   [
+    1854,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Kanak coastal area, French colonial capital founded 1854"
+ },
+ {
+  "name": "Naigani",
+  "lon": 178.62,
+  "lat": -17.63,
+  "phases": [
+   [
+    -1000,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Fijian Lapita-descendant site"
+ },
+ {
+  "name": "Bourewa",
+  "lon": 177.6,
+  "lat": -18.28,
+  "phases": [
+   [
+    -1000,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Earliest Lapita site in Fiji, Viti Levu"
+ },
+ {
+  "name": "Sigatoka Sand Dunes",
+  "lon": 177.51,
+  "lat": -18.15,
+  "phases": [
+   [
+    -2500,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Long-sequence coastal site, Fiji"
+ },
+ {
+  "name": "Bau Island",
+  "lon": 178.58,
+  "lat": -18.0,
+  "phases": [
+   [
+    1500,
+    "village"
+   ],
+   [
+    1800,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Historic Fijian chiefdom capital"
+ },
+ {
+  "name": "Levuka",
+  "lon": 178.83,
+  "lat": -17.68,
+  "phases": [
+   [
+    1500,
+    "village"
+   ],
+   [
+    1830,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "First European settlement and colonial capital of Fiji"
+ },
+ {
+  "name": "Suva",
+  "lon": 178.44,
+  "lat": -18.14,
+  "phases": [
+   [
+    1500,
+    "village"
+   ],
+   [
+    1882,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Fiji colonial capital from 1882"
+ },
+ {
+  "name": "Honiara",
+  "lon": 159.95,
+  "lat": -9.43,
+  "phases": [
+   [
+    1000,
+    "village"
+   ],
+   [
+    1945,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Solomon Islands capital, developed post-WWII"
+ },
+ {
+  "name": "Roviana Lagoon",
+  "lon": 157.2,
+  "lat": -8.3,
+  "phases": [
+   [
+    1000,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Fortified headhunting settlement, New Georgia, Solomons"
+ },
+ {
+  "name": "Nusa Roviana",
+  "lon": 157.18,
+  "lat": -8.28,
+  "phases": [
+   [
+    1200,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Roviana chiefdom centre, Solomons"
+ },
+ {
+  "name": "Tikopia",
+  "lon": 168.83,
+  "lat": -12.3,
+  "phases": [
+   [
+    900,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Polynesian outlier settlement, Solomons"
+ },
+ {
+  "name": "Anuta",
+  "lon": 169.83,
+  "lat": -11.65,
+  "phases": [
+   [
+    900,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Polynesian outlier island, Solomons"
+ },
+ {
+  "name": "Nendö (Ngraki)",
+  "lon": 166.0,
+  "lat": -10.75,
+  "phases": [
+   [
+    -1200,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Santa Cruz Islands Lapita site"
+ },
+ {
+  "name": "Nan Madol",
+  "lon": 158.33,
+  "lat": 6.84,
+  "phases": [
+   [
+    1200,
+    "town"
+   ],
+   [
+    1628,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Saudeleur dynastic centre, basalt islet complex, Pohnpei"
+ },
+ {
+  "name": "Leluh",
+  "lon": 158.3,
+  "lat": 5.33,
+  "phases": [
+   [
+    1250,
+    "town"
+   ],
+   [
+    1850,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Kosraean royal centre, walled compounds"
+ },
+ {
+  "name": "Latte Stone Village Ritidian",
+  "lon": 144.85,
+  "lat": 13.65,
+  "phases": [
+   [
+    900,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Chamorro latte-stone settlement, Guam"
+ },
+ {
+  "name": "House of Taga",
+  "lon": 145.75,
+  "lat": 15.08,
+  "phases": [
+   [
+    1200,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Largest latte stone site, Tinian, Northern Marianas"
+ },
+ {
+  "name": "Hagåtña",
+  "lon": 144.75,
+  "lat": 13.48,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1668,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Chamorro settlement, Spanish colonial capital of Guam"
+ },
+ {
+  "name": "Chalan Piao",
+  "lon": 145.72,
+  "lat": 15.18,
+  "phases": [
+   [
+    1500,
+    "village"
+   ],
+   [
+    1700,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Latte village, Saipan"
+ },
+ {
+  "name": "Kolonia",
+  "lon": 158.22,
+  "lat": 6.97,
+  "phases": [
+   [
+    1800,
+    "village"
+   ],
+   [
+    1887,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Spanish/German colonial town, Pohnpei"
+ },
+ {
+  "name": "Tol Island Village",
+  "lon": 151.63,
+  "lat": 7.38,
+  "phases": [
+   [
+    1000,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Chuuk lagoon fortified hilltop settlement"
+ },
+ {
+  "name": "Yap Village of Gachpar",
+  "lon": 138.13,
+  "lat": 9.52,
+  "phases": [
+   [
+    1000,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Traditional Yapese men's-house village"
+ },
+ {
+  "name": "Babeldaob Terraces",
+  "lon": 134.58,
+  "lat": 7.5,
+  "phases": [
+   [
+    -1000,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Earthwork terraced settlements, Palau"
+ },
+ {
+  "name": "Chelechol ra Orrak",
+  "lon": 134.47,
+  "lat": 7.3,
+  "phases": [
+   [
+    -1000,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Early Palauan burial and settlement site"
+ },
+ {
+  "name": "Nukuleka",
+  "lon": 175.15,
+  "lat": -21.13,
+  "phases": [
+   [
+    -900,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Founding Lapita settlement of Tonga"
+ },
+ {
+  "name": "Pea",
+  "lon": 175.2,
+  "lat": -21.17,
+  "phases": [
+   [
+    -800,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Early Lapita site, Tongatapu"
+ },
+ {
+  "name": "Heketa",
+  "lon": 175.35,
+  "lat": -21.13,
+  "phases": [
+   [
+    900,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Early Tu'i Tonga capital, before Lapaha"
+ },
+ {
+  "name": "Lapaha (Mu'a)",
+  "lon": 175.15,
+  "lat": -21.13,
+  "phases": [
+   [
+    1200,
+    "town"
+   ],
+   [
+    1800,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Tu'i Tonga royal capital, Tongatapu"
+ },
+ {
+  "name": "Nuku'alofa",
+  "lon": 175.2,
+  "lat": -21.14,
+  "phases": [
+   [
+    1400,
+    "village"
+   ],
+   [
+    1845,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Tongan capital from Tupou I era"
+ },
+ {
+  "name": "Mulifanua",
+  "lon": -171.83,
+  "lat": -13.83,
+  "phases": [
+   [
+    -800,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Earliest Lapita site in Samoa, Upolu"
+ },
+ {
+  "name": "Pulemelei Mound",
+  "lon": -172.15,
+  "lat": -13.82,
+  "phases": [
+   [
+    1000,
+    "town"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Largest ancient structure in Polynesia, Savai'i, Samoa"
+ },
+ {
+  "name": "Apia",
+  "lon": -171.76,
+  "lat": -13.83,
+  "phases": [
+   [
+    1000,
+    "village"
+   ],
+   [
+    1850,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Samoan capital, German/colonial port"
+ },
+ {
+  "name": "Vailele",
+  "lon": -171.7,
+  "lat": -13.83,
+  "phases": [
+   [
+    900,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Early Samoan chiefly settlement"
+ },
+ {
+  "name": "Leluma",
+  "lon": -171.75,
+  "lat": -13.86,
+  "phases": [
+   [
+    1000,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Upolu chiefly village, Samoa"
+ },
+ {
+  "name": "Lapita (Society Islands) Maeva",
+  "lon": -149.85,
+  "lat": -16.77,
+  "phases": [
+   [
+    900,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Marae complex and chiefly settlement, Huahine"
+ },
+ {
+  "name": "Papeete",
+  "lon": -149.57,
+  "lat": -17.53,
+  "phases": [
+   [
+    1000,
+    "village"
+   ],
+   [
+    1842,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Tahitian settlement, French colonial capital"
+ },
+ {
+  "name": "Taputapuātea",
+  "lon": -151.36,
+  "lat": -16.83,
+  "phases": [
+   [
+    1000,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Major marae and pan-Polynesian religious/political centre, Ra'iatea"
+ },
+ {
+  "name": "Punaauia",
+  "lon": -149.62,
+  "lat": -17.68,
+  "phases": [
+   [
+    900,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Tahiti west-coast chiefly settlement"
+ },
+ {
+  "name": "Opunohu Valley",
+  "lon": -149.85,
+  "lat": -17.53,
+  "phases": [
+   [
+    1000,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Marae and terrace complex, Mo'orea"
+ },
+ {
+  "name": "Ha'atuatua",
+  "lon": -140.1,
+  "lat": -9.75,
+  "phases": [
+   [
+    -150,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Early settlement site, Nuku Hiva, Marquesas"
+ },
+ {
+  "name": "Hane Dune Site",
+  "lon": -139.03,
+  "lat": -7.83,
+  "phases": [
+   [
+    -150,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Early Marquesan settlement, Ua Huka"
+ },
+ {
+  "name": "Taaoa",
+  "lon": -139.03,
+  "lat": -9.82,
+  "phases": [
+   [
+    900,
+    "town"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Major ceremonial settlement, Hiva Oa, Marquesas"
+ },
+ {
+  "name": "Puamau",
+  "lon": -138.95,
+  "lat": -9.78,
+  "phases": [
+   [
+    900,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Marquesan tiki and chiefly site, Hiva Oa"
+ },
+ {
+  "name": "Taipivai",
+  "lon": -140.05,
+  "lat": -8.87,
+  "phases": [
+   [
+    1000,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Marquesan valley settlement, Nuku Hiva"
+ },
+ {
+  "name": "Rurutu Settlement",
+  "lon": -151.35,
+  "lat": -22.45,
+  "phases": [
+   [
+    900,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Austral Islands early settlement"
+ },
+ {
+  "name": "Avarua",
+  "lon": -159.78,
+  "lat": -21.2,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1823,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Rarotonga chiefly village, later mission town"
+ },
+ {
+  "name": "Ngatangiia",
+  "lon": -159.73,
+  "lat": -21.24,
+  "phases": [
+   [
+    900,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Traditional canoe departure point, Rarotonga"
+ },
+ {
+  "name": "Orongo Village",
+  "lon": -109.44,
+  "lat": -27.19,
+  "phases": [
+   [
+    1400,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Birdman cult ceremonial village, Rapa Nui"
+ },
+ {
+  "name": "Ahu Tongariki",
+  "lon": -109.28,
+  "lat": -27.13,
+  "phases": [
+   [
+    1000,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Largest moai platform, Rapa Nui"
+ },
+ {
+  "name": "Anakena",
+  "lon": -109.32,
+  "lat": -27.07,
+  "phases": [
+   [
+    900,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Traditional first-landing site, Rapa Nui"
+ },
+ {
+  "name": "Hanga Roa",
+  "lon": -109.44,
+  "lat": -27.15,
+  "phases": [
+   [
+    1000,
+    "village"
+   ],
+   [
+    1888,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Main settlement, Rapa Nui"
+ },
+ {
+  "name": "Vaihu",
+  "lon": -109.31,
+  "lat": -27.16,
+  "phases": [
+   [
+    1200,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Ahu and village site, Rapa Nix"
+ },
+ {
+  "name": "Kealakekua",
+  "lon": -155.92,
+  "lat": 19.48,
+  "phases": [
+   [
+    1000,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Major Hawaiian ahupuaʻa centre, Kona, Hawaii Island"
+ },
+ {
+  "name": "Waipi'o Valley",
+  "lon": -155.6,
+  "lat": 20.12,
+  "phases": [
+   [
+    1100,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Sacred valley, seat of Hawaiian ali'i, Hawaii Island"
+ },
+ {
+  "name": "Honaunau",
+  "lon": -155.92,
+  "lat": 19.43,
+  "phases": [
+   [
+    1200,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Pu'uhonua royal centre and refuge, Hawaii Island"
+ },
+ {
+  "name": "Kailua-Kona",
+  "lon": -155.99,
+  "lat": 19.64,
+  "phases": [
+   [
+    1000,
+    "town"
+   ],
+   [
+    1812,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Royal residence centre, Hawaii Island"
+ },
+ {
+  "name": "Lahaina",
+  "lon": -156.68,
+  "lat": 20.87,
+  "phases": [
+   [
+    1000,
+    "town"
+   ],
+   [
+    1802,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Hawaiian royal capital under Kamehameha, later whaling port"
+ },
+ {
+  "name": "Honolulu",
+  "lon": -157.86,
+  "lat": 21.31,
+  "phases": [
+   [
+    1000,
+    "town"
+   ],
+   [
+    1850,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Hawaiian port, became Kingdom capital 1845"
+ },
+ {
+  "name": "Waimea (Kauai)",
+  "lon": -159.67,
+  "lat": 21.96,
+  "phases": [
+   [
+    1000,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ancient royal centre, Kauai"
+ },
+ {
+  "name": "Waikiki",
+  "lon": -157.83,
+  "lat": 21.28,
+  "phases": [
+   [
+    1000,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Hawaiian royal residence area, Oahu"
+ },
+ {
+  "name": "Wailua",
+  "lon": -159.34,
+  "lat": 22.05,
+  "phases": [
+   [
+    1000,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Sacred royal centre with heiau complex, Kauai"
+ },
+ {
+  "name": "Hana",
+  "lon": -155.99,
+  "lat": 20.76,
+  "phases": [
+   [
+    1000,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "East Maui ahupuaʻa centre"
+ },
+ {
+  "name": "Moloka'i Ili'ili'opae",
+  "lon": -156.75,
+  "lat": 21.07,
+  "phases": [
+   [
+    1200,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Site of large heiau, Molokai"
+ },
+ {
+  "name": "Pago Pago",
+  "lon": -170.69,
+  "lat": -14.28,
+  "phases": [
+   [
+    1000,
+    "village"
+   ],
+   [
+    1900,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "American Samoa naval station town"
+ },
+ {
+  "name": "Funafuti",
+  "lon": 179.2,
+  "lat": -8.52,
+  "phases": [
+   [
+    1000,
+    "village"
+   ],
+   [
+    1892,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Tuvalu atoll settlement, British protectorate post"
+ },
+ {
+  "name": "Tarawa (Bairiki)",
+  "lon": 172.98,
+  "lat": 1.33,
+  "phases": [
+   [
+    1000,
+    "village"
+   ],
+   [
+    1892,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Gilbert Islands colonial administrative centre"
+ },
+ {
+  "name": "Ocean Island (Banaba)",
+  "lon": 169.58,
+  "lat": -0.87,
+  "phases": [
+   [
+    1000,
+    "village"
+   ],
+   [
+    1900,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Phosphate-mining colonial town, Kiribati"
+ },
+ {
+  "name": "Majuro",
+  "lon": 171.18,
+  "lat": 7.09,
+  "phases": [
+   [
+    1000,
+    "village"
+   ],
+   [
+    1920,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Marshall Islands atoll settlement, Japanese-era administrative post"
+ },
+ {
+  "name": "Jaluit",
+  "lon": 169.63,
+  "lat": 5.92,
+  "phases": [
+   [
+    1000,
+    "village"
+   ],
+   [
+    1885,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "German Marshall Islands colonial capital"
+ },
+ {
+  "name": "Jericho (Tell es-Sultan)",
+  "lon": 35.44,
+  "lat": 31.87,
+  "phases": [
+   [
+    -9500,
+    "village"
+   ],
+   [
+    -7000,
+    "town"
+   ],
+   [
+    -1550,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Earliest walled town known, Jordan Valley"
+ },
+ {
+  "name": "Çatalhöyük",
+  "lon": 32.83,
+  "lat": 37.67,
+  "phases": [
+   [
+    -7400,
+    "town"
+   ],
+   [
+    -5900,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Large agglutinated mudbrick town, Anatolia"
+ },
+ {
+  "name": "Göbekli Tepe",
+  "lon": 38.92,
+  "lat": 37.22,
+  "phases": [
+   [
+    -9600,
+    "village"
+   ],
+   [
+    -8000,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Monumental ritual site predating pottery, Anatolia"
+ },
+ {
+  "name": "Nevalı Çori",
+  "lon": 38.72,
+  "lat": 37.63,
+  "phases": [
+   [
+    -8500,
+    "village"
+   ],
+   [
+    -7500,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Early PPN cult and village site, Anatolia"
+ },
+ {
+  "name": "Aşıklı Höyük",
+  "lon": 34.36,
+  "lat": 38.37,
+  "phases": [
+   [
+    -8200,
+    "village"
+   ],
+   [
+    -7400,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Early Neolithic proto-town, Cappadocia"
+ },
+ {
+  "name": "Çayönü",
+  "lon": 39.72,
+  "lat": 38.22,
+  "phases": [
+   [
+    -8600,
+    "village"
+   ],
+   [
+    -6800,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Early Neolithic village, southeast Anatolia"
+ },
+ {
+  "name": "Hacilar",
+  "lon": 30.02,
+  "lat": 37.72,
+  "phases": [
+   [
+    -7000,
+    "village"
+   ],
+   [
+    -5700,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Painted-pottery Neolithic village, Anatolia"
+ },
+ {
+  "name": "Hattusa",
+  "lon": 34.62,
+  "lat": 40.02,
+  "phases": [
+   [
+    -1700,
+    "town"
+   ],
+   [
+    -1180,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Hittite imperial capital, central Anatolia"
+ },
+ {
+  "name": "Alacahöyük",
+  "lon": 34.55,
+  "lat": 40.23,
+  "phases": [
+   [
+    -4000,
+    "village"
+   ],
+   [
+    -1200,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Hittite-era cult centre with royal tombs"
+ },
+ {
+  "name": "Kültepe (Kanesh)",
+  "lon": 35.37,
+  "lat": 39.58,
+  "phases": [
+   [
+    -2500,
+    "town"
+   ],
+   [
+    -1700,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Assyrian trading colony (karum), Anatolia"
+ },
+ {
+  "name": "Troy (Hisarlik)",
+  "lon": 26.24,
+  "lat": 39.96,
+  "phases": [
+   [
+    -3000,
+    "town"
+   ],
+   [
+    -950,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Fortified citadel at the Dardanelles"
+ },
+ {
+  "name": "Beycesultan",
+  "lon": 29.65,
+  "lat": 37.98,
+  "phases": [
+   [
+    -5000,
+    "village"
+   ],
+   [
+    -1200,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Western Anatolian settlement mound"
+ },
+ {
+  "name": "Demircihöyük",
+  "lon": 30.1,
+  "lat": 39.65,
+  "phases": [
+   [
+    -3200,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Early Bronze Age village, northwest Anatolia"
+ },
+ {
+  "name": "Poliochni",
+  "lon": 25.15,
+  "lat": 39.87,
+  "phases": [
+   [
+    -3500,
+    "town"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Early Bronze Age fortified town, Lemnos"
+ },
+ {
+  "name": "Thermi",
+  "lon": 26.35,
+  "lat": 39.15,
+  "phases": [
+   [
+    -3000,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Early Bronze Age settlement, Lesbos"
+ },
+ {
+  "name": "Karataş-Semayük",
+  "lon": 30.13,
+  "lat": 37.55,
+  "phases": [
+   [
+    -3000,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Early Bronze Age settlement, Lycia"
+ },
+ {
+  "name": "Tarsus (Gözlükule)",
+  "lon": 34.9,
+  "lat": 36.92,
+  "phases": [
+   [
+    -4500,
+    "town"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Long-occupied mound, Cilicia"
+ },
+ {
+  "name": "Mersin (Yumuktepe)",
+  "lon": 34.62,
+  "lat": 36.8,
+  "phases": [
+   [
+    -6300,
+    "village"
+   ],
+   [
+    -1200,
+    "town"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Long-sequence tell, Cilician coast"
+ },
+ {
+  "name": "Ebla",
+  "lon": 36.8,
+  "lat": 35.8,
+  "phases": [
+   [
+    -3500,
+    "town"
+   ],
+   [
+    -1600,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Early Syrian kingdom, cuneiform archive"
+ },
+ {
+  "name": "Ugarit",
+  "lon": 35.78,
+  "lat": 35.6,
+  "phases": [
+   [
+    -6000,
+    "village"
+   ],
+   [
+    -1190,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Levantine port kingdom, alphabetic cuneiform texts"
+ },
+ {
+  "name": "Mari",
+  "lon": 40.89,
+  "lat": 34.56,
+  "phases": [
+   [
+    -2900,
+    "town"
+   ],
+   [
+    -1760,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Euphrates city-state, royal archives"
+ },
+ {
+  "name": "Byblos",
+  "lon": 35.65,
+  "lat": 34.12,
+  "phases": [
+   [
+    -7000,
+    "village"
+   ],
+   [
+    -1200,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Phoenician coastal city, cedar trade"
+ },
+ {
+  "name": "Qatna",
+  "lon": 36.85,
+  "lat": 34.72,
+  "phases": [
+   [
+    -3000,
+    "town"
+   ],
+   [
+    -1340,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Syrian Bronze Age kingdom capital"
+ },
+ {
+  "name": "Alalakh",
+  "lon": 36.24,
+  "lat": 36.2,
+  "phases": [
+   [
+    -2200,
+    "town"
+   ],
+   [
+    -1200,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "North Syrian Bronze Age city, cuneiform archives"
+ },
+ {
+  "name": "Emar",
+  "lon": 38.13,
+  "lat": 35.93,
+  "phases": [
+   [
+    -3000,
+    "town"
+   ],
+   [
+    -1187,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Euphrates trade city, Late Bronze Age"
+ },
+ {
+  "name": "Megiddo",
+  "lon": 35.18,
+  "lat": 32.59,
+  "phases": [
+   [
+    -7000,
+    "village"
+   ],
+   [
+    -1000,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Levantine tell, strategic pass city"
+ },
+ {
+  "name": "Hazor",
+  "lon": 35.57,
+  "lat": 33.02,
+  "phases": [
+   [
+    -2700,
+    "town"
+   ],
+   [
+    -1200,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Largest Bronze Age city in Canaan"
+ },
+ {
+  "name": "Lachish",
+  "lon": 34.85,
+  "lat": 31.57,
+  "phases": [
+   [
+    -3300,
+    "village"
+   ],
+   [
+    -1200,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Canaanite fortified city, Judean foothills"
+ },
+ {
+  "name": "Ain Ghazal",
+  "lon": 35.95,
+  "lat": 31.99,
+  "phases": [
+   [
+    -7250,
+    "village"
+   ],
+   [
+    -5000,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Large PPNB village, statues, Jordan"
+ },
+ {
+  "name": "Beidha",
+  "lon": 35.47,
+  "lat": 30.4,
+  "phases": [
+   [
+    -7000,
+    "village"
+   ],
+   [
+    -6000,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "PPNB village near Petra, Jordan"
+ },
+ {
+  "name": "Basta",
+  "lon": 35.63,
+  "lat": 30.42,
+  "phases": [
+   [
+    -7000,
+    "village"
+   ],
+   [
+    -6000,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Large PPNB settlement, southern Jordan"
+ },
+ {
+  "name": "Wadi Fidan",
+  "lon": 35.49,
+  "lat": 30.68,
+  "phases": [
+   [
+    -4500,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Chalcolithic copper-working site, Jordan"
+ },
+ {
+  "name": "Teleilat Ghassul",
+  "lon": 35.6,
+  "lat": 31.83,
+  "phases": [
+   [
+    -4400,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Type site of the Ghassulian Chalcolithic culture"
+ },
+ {
+  "name": "Bab edh-Dhra",
+  "lon": 35.58,
+  "lat": 31.2,
+  "phases": [
+   [
+    -3500,
+    "town"
+   ],
+   [
+    -2300,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Early Bronze Age city, Dead Sea plain"
+ },
+ {
+  "name": "Numeira",
+  "lon": 35.56,
+  "lat": 31.17,
+  "phases": [
+   [
+    -2600,
+    "village"
+   ],
+   [
+    -2350,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Early Bronze Age walled town, Dead Sea plain"
+ },
+ {
+  "name": "Arad",
+  "lon": 35.13,
+  "lat": 31.26,
+  "phases": [
+   [
+    -3100,
+    "town"
+   ],
+   [
+    -2650,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Fortified Early Bronze Age town, Negev"
+ },
+ {
+  "name": "Jawa",
+  "lon": 37.0,
+  "lat": 32.33,
+  "phases": [
+   [
+    -3300,
+    "town"
+   ],
+   [
+    -3000,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Early urban site, black basalt, eastern Jordan"
+ },
+ {
+  "name": "Khirbet Kerak (Beth Yerah)",
+  "lon": 35.57,
+  "lat": 32.72,
+  "phases": [
+   [
+    -3500,
+    "town"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Early Bronze Age town, Sea of Galilee"
+ },
+ {
+  "name": "Ai (et-Tell)",
+  "lon": 35.27,
+  "lat": 31.93,
+  "phases": [
+   [
+    -3100,
+    "town"
+   ],
+   [
+    -2400,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Early Bronze Age fortified town, Canaan"
+ },
+ {
+  "name": "Uruk",
+  "lon": 45.64,
+  "lat": 31.32,
+  "phases": [
+   [
+    -5000,
+    "village"
+   ],
+   [
+    -4000,
+    "city"
+   ],
+   [
+    -100,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "World's first city, birthplace of writing"
+ },
+ {
+  "name": "Ur",
+  "lon": 46.1,
+  "lat": 30.96,
+  "phases": [
+   [
+    -4000,
+    "town"
+   ],
+   [
+    -3800,
+    "city"
+   ],
+   [
+    -500,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Sumerian royal city, Ur III capital"
+ },
+ {
+  "name": "Eridu",
+  "lon": 45.99,
+  "lat": 30.81,
+  "phases": [
+   [
+    -5400,
+    "village"
+   ],
+   [
+    -4000,
+    "city"
+   ],
+   [
+    -600,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Considered Sumer's oldest city, cult of Enki"
+ },
+ {
+  "name": "Kish",
+  "lon": 44.68,
+  "lat": 32.55,
+  "phases": [
+   [
+    -3200,
+    "town"
+   ],
+   [
+    -2900,
+    "city"
+   ],
+   [
+    -100,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Early Sumerian dynastic city"
+ },
+ {
+  "name": "Nippur",
+  "lon": 45.24,
+  "lat": 32.13,
+  "phases": [
+   [
+    -5000,
+    "village"
+   ],
+   [
+    -2900,
+    "city"
+   ],
+   [
+    -100,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Religious capital of Sumer, cult of Enlil"
+ },
+ {
+  "name": "Lagash",
+  "lon": 45.99,
+  "lat": 31.42,
+  "phases": [
+   [
+    -3000,
+    "town"
+   ],
+   [
+    -2500,
+    "city"
+   ],
+   [
+    -1800,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Sumerian city-state, Gudea's capital"
+ },
+ {
+  "name": "Girsu",
+  "lon": 46.13,
+  "lat": 31.6,
+  "phases": [
+   [
+    -3000,
+    "town"
+   ],
+   [
+    -2400,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Religious centre of Lagash state"
+ },
+ {
+  "name": "Umma",
+  "lon": 45.87,
+  "lat": 31.63,
+  "phases": [
+   [
+    -3000,
+    "town"
+   ],
+   [
+    -2100,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Sumerian city-state, rival of Lagash"
+ },
+ {
+  "name": "Isin",
+  "lon": 45.28,
+  "lat": 31.93,
+  "phases": [
+   [
+    -3000,
+    "town"
+   ],
+   [
+    -1730,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Sumerian city, dynastic capital after Ur III"
+ },
+ {
+  "name": "Larsa",
+  "lon": 45.85,
+  "lat": 31.23,
+  "phases": [
+   [
+    -2900,
+    "town"
+   ],
+   [
+    -1600,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Sumerian city-state capital"
+ },
+ {
+  "name": "Adab",
+  "lon": 45.6,
+  "lat": 31.97,
+  "phases": [
+   [
+    -3000,
+    "town"
+   ],
+   [
+    -2000,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Sumerian city, cult of Ninhursag"
+ },
+ {
+  "name": "Shuruppak",
+  "lon": 45.48,
+  "lat": 31.78,
+  "phases": [
+   [
+    -3200,
+    "town"
+   ],
+   [
+    -1900,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Sumerian city, legendary flood-hero home"
+ },
+ {
+  "name": "Akkad",
+  "lon": 44.42,
+  "lat": 33.06,
+  "phases": [
+   [
+    -2350,
+    "city"
+   ],
+   [
+    -2100,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Capital of the Akkadian Empire, location uncertain"
+ },
+ {
+  "name": "Babylon",
+  "lon": 44.42,
+  "lat": 32.54,
+  "phases": [
+   [
+    -2300,
+    "town"
+   ],
+   [
+    -1894,
+    "city"
+   ],
+   [
+    -141,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Old Babylonian and Neo-Babylonian imperial capital"
+ },
+ {
+  "name": "Sippar",
+  "lon": 44.29,
+  "lat": 33.06,
+  "phases": [
+   [
+    -2900,
+    "town"
+   ],
+   [
+    -500,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Sumerian city, cult of Shamash"
+ },
+ {
+  "name": "Assur",
+  "lon": 43.26,
+  "lat": 35.46,
+  "phases": [
+   [
+    -2600,
+    "town"
+   ],
+   [
+    -2025,
+    "city"
+   ],
+   [
+    -614,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Original capital of Assyria"
+ },
+ {
+  "name": "Nineveh",
+  "lon": 43.15,
+  "lat": 36.36,
+  "phases": [
+   [
+    -6000,
+    "village"
+   ],
+   [
+    -3000,
+    "town"
+   ],
+   [
+    -612,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Later Assyrian imperial capital"
+ },
+ {
+  "name": "Nuzi",
+  "lon": 44.32,
+  "lat": 35.36,
+  "phases": [
+   [
+    -2500,
+    "town"
+   ],
+   [
+    -1350,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Hurrian provincial city, archive texts"
+ },
+ {
+  "name": "Tell Brak",
+  "lon": 41.06,
+  "lat": 36.67,
+  "phases": [
+   [
+    -6000,
+    "village"
+   ],
+   [
+    -3900,
+    "city"
+   ],
+   [
+    -1200,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Early urban centre, northeast Syria"
+ },
+ {
+  "name": "Tell Leilan (Shubat-Enlil)",
+  "lon": 41.05,
+  "lat": 36.83,
+  "phases": [
+   [
+    -5000,
+    "village"
+   ],
+   [
+    -1900,
+    "city"
+   ],
+   [
+    -1728,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Upper Mesopotamian city, abrupt climate collapse ~2200 BCE"
+ },
+ {
+  "name": "Chagar Bazar",
+  "lon": 40.92,
+  "lat": 36.69,
+  "phases": [
+   [
+    -6000,
+    "village"
+   ],
+   [
+    -1800,
+    "town"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Habur plains settlement, Syria"
+ },
+ {
+  "name": "Tell Hamoukar",
+  "lon": 41.63,
+  "lat": 36.65,
+  "phases": [
+   [
+    -4000,
+    "village"
+   ],
+   [
+    -3500,
+    "city"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Early urban warfare evidence, northeast Syria"
+ },
+ {
+  "name": "Tepe Gawra",
+  "lon": 43.33,
+  "lat": 36.48,
+  "phases": [
+   [
+    -5000,
+    "village"
+   ],
+   [
+    -1500,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Long-sequence tell, northern Mesopotamia"
+ },
+ {
+  "name": "Choga Mami",
+  "lon": 45.03,
+  "lat": 34.23,
+  "phases": [
+   [
+    -6000,
+    "village"
+   ],
+   [
+    -4500,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Samarra-culture irrigation village"
+ },
+ {
+  "name": "Tell es-Sawwan",
+  "lon": 43.58,
+  "lat": 34.18,
+  "phases": [
+   [
+    -6000,
+    "village"
+   ],
+   [
+    -5000,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Samarran culture fortified village"
+ },
+ {
+  "name": "Jarmo",
+  "lon": 44.95,
+  "lat": 35.5,
+  "phases": [
+   [
+    -7000,
+    "village"
+   ],
+   [
+    -6000,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Early agricultural village, Zagros foothills"
+ },
+ {
+  "name": "Ali Kosh",
+  "lon": 47.9,
+  "lat": 32.17,
+  "phases": [
+   [
+    -7500,
+    "village"
+   ],
+   [
+    -6000,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Early agricultural village, Deh Luran plain"
+ },
+ {
+  "name": "Yarim Tepe",
+  "lon": 42.4,
+  "lat": 36.6,
+  "phases": [
+   [
+    -6000,
+    "village"
+   ],
+   [
+    -5000,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Hassuna-Halaf period village, northern Iraq"
+ },
+ {
+  "name": "Tell Halaf",
+  "lon": 40.06,
+  "lat": 36.83,
+  "phases": [
+   [
+    -6100,
+    "village"
+   ],
+   [
+    -5000,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Type site of the Halaf culture, Syria"
+ },
+ {
+  "name": "Susa",
+  "lon": 48.26,
+  "lat": 32.19,
+  "phases": [
+   [
+    -4200,
+    "town"
+   ],
+   [
+    -3800,
+    "city"
+   ],
+   [
+    -330,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Elamite and later Persian capital"
+ },
+ {
+  "name": "Tepe Yahya",
+  "lon": 56.63,
+  "lat": 28.9,
+  "phases": [
+   [
+    -5000,
+    "village"
+   ],
+   [
+    -2000,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Chlorite and trade centre, southeast Iran"
+ },
+ {
+  "name": "Shahr-i Sokhta",
+  "lon": 61.29,
+  "lat": 30.6,
+  "phases": [
+   [
+    -3200,
+    "town"
+   ],
+   [
+    -1800,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Bronze Age urban site, Sistan, Iran"
+ },
+ {
+  "name": "Tepe Sialk",
+  "lon": 51.42,
+  "lat": 33.98,
+  "phases": [
+   [
+    -6000,
+    "village"
+   ],
+   [
+    -800,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Long-sequence settlement, central Iran"
+ },
+ {
+  "name": "Tal-i Malyan (Anshan)",
+  "lon": 52.3,
+  "lat": 30.03,
+  "phases": [
+   [
+    -4000,
+    "village"
+   ],
+   [
+    -3200,
+    "city"
+   ],
+   [
+    -1000,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Elamite highland capital, Fars"
+ },
+ {
+  "name": "Godin Tepe",
+  "lon": 48.02,
+  "lat": 34.67,
+  "phases": [
+   [
+    -5000,
+    "village"
+   ],
+   [
+    -2600,
+    "town"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Uruk-period trade outpost, Zagros"
+ },
+ {
+  "name": "Chogha Zanbil",
+  "lon": 48.52,
+  "lat": 32.01,
+  "phases": [
+   [
+    -1250,
+    "town"
+   ],
+   [
+    -640,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Elamite ziggurat city, Khuzestan"
+ },
+ {
+  "name": "Haft Tepe",
+  "lon": 48.35,
+  "lat": 32.03,
+  "phases": [
+   [
+    -1500,
+    "town"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Elamite administrative centre, Khuzestan"
+ },
+ {
+  "name": "Tureng Tepe",
+  "lon": 54.55,
+  "lat": 36.83,
+  "phases": [
+   [
+    -4500,
+    "village"
+   ],
+   [
+    -1000,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Northeast Iran Bronze Age mound"
+ },
+ {
+  "name": "Gonur Tepe",
+  "lon": 62.06,
+  "lat": 37.72,
+  "phases": [
+   [
+    -2400,
+    "town"
+   ],
+   [
+    -1700,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Capital of the Bactria-Margiana Archaeological Complex"
+ },
+ {
+  "name": "Togolok",
+  "lon": 62.15,
+  "lat": 37.55,
+  "phases": [
+   [
+    -1900,
+    "town"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "BMAC temple-fortress site, Turkmenistan"
+ },
+ {
+  "name": "Altyn-Depe",
+  "lon": 58.62,
+  "lat": 37.9,
+  "phases": [
+   [
+    -3000,
+    "town"
+   ],
+   [
+    -1700,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Bronze Age proto-urban site, Turkmenistan"
+ },
+ {
+  "name": "Namazga-Tepe",
+  "lon": 58.2,
+  "lat": 37.8,
+  "phases": [
+   [
+    -5000,
+    "village"
+   ],
+   [
+    -2000,
+    "town"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Type site of Namazga culture, Turkmenistan"
+ },
+ {
+  "name": "Sarazm",
+  "lon": 67.43,
+  "lat": 39.58,
+  "phases": [
+   [
+    -4000,
+    "village"
+   ],
+   [
+    -2000,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Early metallurgy and trade centre, Tajikistan"
+ },
+ {
+  "name": "Dashly-3",
+  "lon": 66.5,
+  "lat": 36.5,
+  "phases": [
+   [
+    -2000,
+    "town"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "BMAC fortified oasis site, Afghanistan"
+ },
+ {
+  "name": "Sapalli-Tepe",
+  "lon": 66.9,
+  "lat": 37.3,
+  "phases": [
+   [
+    -2100,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Bronze Age fortified settlement, Uzbekistan"
+ },
+ {
+  "name": "Arkaim",
+  "lon": 59.57,
+  "lat": 52.65,
+  "phases": [
+   [
+    -2100,
+    "town"
+   ],
+   [
+    -1700,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Fortified circular settlement, Sintashta culture"
+ },
+ {
+  "name": "Sintashta",
+  "lon": 60.03,
+  "lat": 52.42,
+  "phases": [
+   [
+    -2100,
+    "town"
+   ],
+   [
+    -1800,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Chariot-burial fortified settlement, southern Urals"
+ },
+ {
+  "name": "Memphis",
+  "lon": 31.25,
+  "lat": 29.85,
+  "phases": [
+   [
+    -3100,
+    "city"
+   ],
+   [
+    -343,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Capital of unified Egypt, founded by Menes"
+ },
+ {
+  "name": "Thebes",
+  "lon": 32.66,
+  "lat": 25.7,
+  "phases": [
+   [
+    -3200,
+    "village"
+   ],
+   [
+    -2000,
+    "city"
+   ],
+   [
+    -30,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Upper Egyptian religious and political capital"
+ },
+ {
+  "name": "Hierakonpolis (Nekhen)",
+  "lon": 32.78,
+  "lat": 25.1,
+  "phases": [
+   [
+    -4000,
+    "town"
+   ],
+   [
+    -2000,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Predynastic royal centre, cult of Horus"
+ },
+ {
+  "name": "Naqada",
+  "lon": 32.72,
+  "lat": 25.9,
+  "phases": [
+   [
+    -4400,
+    "town"
+   ],
+   [
+    -3000,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Predynastic culture type site"
+ },
+ {
+  "name": "Abydos",
+  "lon": 31.92,
+  "lat": 26.18,
+  "phases": [
+   [
+    -3800,
+    "town"
+   ],
+   [
+    -30,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Sacred burial city of early pharaohs, cult of Osiris"
+ },
+ {
+  "name": "Amarna (Akhetaten)",
+  "lon": 30.9,
+  "lat": 27.65,
+  "phases": [
+   [
+    -1346,
+    "city"
+   ],
+   [
+    -1332,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Akhenaten's short-lived capital"
+ },
+ {
+  "name": "Elephantine",
+  "lon": 32.89,
+  "lat": 24.09,
+  "phases": [
+   [
+    -3200,
+    "town"
+   ],
+   [
+    -30,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Nile frontier island town, cult of Khnum"
+ },
+ {
+  "name": "Buto (Tell el-Fara'in)",
+  "lon": 30.73,
+  "lat": 31.2,
+  "phases": [
+   [
+    -4000,
+    "town"
+   ],
+   [
+    -30,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Predynastic Lower Egyptian capital"
+ },
+ {
+  "name": "Maadi",
+  "lon": 31.26,
+  "lat": 29.96,
+  "phases": [
+   [
+    -4000,
+    "village"
+   ],
+   [
+    -3300,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Predynastic Lower Egyptian trade settlement"
+ },
+ {
+  "name": "Merimde Beni Salama",
+  "lon": 30.78,
+  "lat": 30.37,
+  "phases": [
+   [
+    -5000,
+    "village"
+   ],
+   [
+    -4100,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Early Neolithic village, Nile Delta"
+ },
+ {
+  "name": "El-Omari",
+  "lon": 31.28,
+  "lat": 29.9,
+  "phases": [
+   [
+    -4600,
+    "village"
+   ],
+   [
+    -4300,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Predynastic village near Cairo"
+ },
+ {
+  "name": "Badari",
+  "lon": 31.6,
+  "lat": 26.98,
+  "phases": [
+   [
+    -4400,
+    "village"
+   ],
+   [
+    -3800,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Type site of the Badarian culture"
+ },
+ {
+  "name": "Tell el-Dab'a (Avaris)",
+  "lon": 31.82,
+  "lat": 30.79,
+  "phases": [
+   [
+    -1800,
+    "city"
+   ],
+   [
+    -1550,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Hyksos capital, Nile Delta"
+ },
+ {
+  "name": "Pi-Ramesses",
+  "lon": 31.83,
+  "lat": 30.8,
+  "phases": [
+   [
+    -1279,
+    "city"
+   ],
+   [
+    -1130,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ramesside Delta capital"
+ },
+ {
+  "name": "Heliopolis",
+  "lon": 31.3,
+  "lat": 30.13,
+  "phases": [
+   [
+    -2900,
+    "town"
+   ],
+   [
+    -30,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Sun-cult religious centre, near modern Cairo"
+ },
+ {
+  "name": "Giza",
+  "lon": 31.13,
+  "lat": 29.98,
+  "phases": [
+   [
+    -2600,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Pyramid necropolis and workers' town"
+ },
+ {
+  "name": "Kahun (Lahun)",
+  "lon": 30.97,
+  "lat": 29.23,
+  "phases": [
+   [
+    -1895,
+    "town"
+   ],
+   [
+    -1700,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Planned pyramid-workers' town, Middle Kingdom"
+ },
+ {
+  "name": "Deir el-Medina",
+  "lon": 32.6,
+  "lat": 25.73,
+  "phases": [
+   [
+    -1550,
+    "village"
+   ],
+   [
+    -1070,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Workers' village for the Valley of the Kings"
+ },
+ {
+  "name": "Nekheb (El Kab)",
+  "lon": 32.79,
+  "lat": 25.12,
+  "phases": [
+   [
+    -3500,
+    "town"
+   ],
+   [
+    -30,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Upper Egyptian nome capital, opposite Hierakonpolis"
+ },
+ {
+  "name": "Kerma",
+  "lon": 32.65,
+  "lat": 19.6,
+  "phases": [
+   [
+    -2500,
+    "town"
+   ],
+   [
+    -1500,
+    "city"
+   ],
+   [
+    -1480,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Nubian kingdom capital, south of Egypt"
+ },
+ {
+  "name": "Buhen",
+  "lon": 31.32,
+  "lat": 21.93,
+  "phases": [
+   [
+    -2600,
+    "town"
+   ],
+   [
+    -1070,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Egyptian fortress town, Second Cataract Nubia"
+ },
+ {
+  "name": "Knossos",
+  "lon": 25.16,
+  "lat": 35.3,
+  "phases": [
+   [
+    -7000,
+    "village"
+   ],
+   [
+    -1900,
+    "city"
+   ],
+   [
+    -1375,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Minoan palatial centre, Crete"
+ },
+ {
+  "name": "Phaistos",
+  "lon": 24.81,
+  "lat": 35.05,
+  "phases": [
+   [
+    -4000,
+    "village"
+   ],
+   [
+    -1900,
+    "town"
+   ],
+   [
+    -1450,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Minoan palace site, southern Crete"
+ },
+ {
+  "name": "Malia",
+  "lon": 25.49,
+  "lat": 35.29,
+  "phases": [
+   [
+    -2600,
+    "village"
+   ],
+   [
+    -1900,
+    "town"
+   ],
+   [
+    -1450,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Minoan palace site, Crete"
+ },
+ {
+  "name": "Zakros",
+  "lon": 26.26,
+  "lat": 35.1,
+  "phases": [
+   [
+    -2600,
+    "village"
+   ],
+   [
+    -1900,
+    "town"
+   ],
+   [
+    -1450,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Minoan palace, eastern Crete trade port"
+ },
+ {
+  "name": "Akrotiri",
+  "lon": 25.4,
+  "lat": 36.35,
+  "phases": [
+   [
+    -3000,
+    "village"
+   ],
+   [
+    -2000,
+    "town"
+   ],
+   [
+    -1600,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Minoan-era town buried by Thera eruption"
+ },
+ {
+  "name": "Mycenae",
+  "lon": 22.76,
+  "lat": 37.73,
+  "phases": [
+   [
+    -3000,
+    "village"
+   ],
+   [
+    -1600,
+    "city"
+   ],
+   [
+    -1100,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Mycenaean palatial capital, Peloponnese"
+ },
+ {
+  "name": "Tiryns",
+  "lon": 22.8,
+  "lat": 37.6,
+  "phases": [
+   [
+    -2500,
+    "village"
+   ],
+   [
+    -1400,
+    "town"
+   ],
+   [
+    -1100,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Mycenaean citadel, Argolid"
+ },
+ {
+  "name": "Pylos",
+  "lon": 21.69,
+  "lat": 36.91,
+  "phases": [
+   [
+    -2500,
+    "village"
+   ],
+   [
+    -1400,
+    "city"
+   ],
+   [
+    -1180,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Mycenaean palace of Nestor, Linear B archive"
+ },
+ {
+  "name": "Thebes (Boeotia)",
+  "lon": 23.32,
+  "lat": 38.32,
+  "phases": [
+   [
+    -3000,
+    "village"
+   ],
+   [
+    -1400,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Mycenaean palatial centre, Boeotia"
+ },
+ {
+  "name": "Orchomenos",
+  "lon": 22.98,
+  "lat": 38.49,
+  "phases": [
+   [
+    -3000,
+    "village"
+   ],
+   [
+    -1400,
+    "town"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Mycenaean centre, Boeotia"
+ },
+ {
+  "name": "Athens (Acropolis)",
+  "lon": 23.73,
+  "lat": 37.97,
+  "phases": [
+   [
+    -3000,
+    "village"
+   ],
+   [
+    -1400,
+    "town"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Mycenaean-era citadel, later classical capital"
+ },
+ {
+  "name": "Lerna",
+  "lon": 22.72,
+  "lat": 37.56,
+  "phases": [
+   [
+    -6000,
+    "village"
+   ],
+   [
+    -2200,
+    "town"
+   ],
+   [
+    -2000,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Early Bronze Age 'House of the Tiles' site"
+ },
+ {
+  "name": "Dimini",
+  "lon": 22.79,
+  "lat": 39.34,
+  "phases": [
+   [
+    -4800,
+    "village"
+   ],
+   [
+    -4300,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Late Neolithic fortified settlement, Thessaly"
+ },
+ {
+  "name": "Sesklo",
+  "lon": 22.83,
+  "lat": 39.41,
+  "phases": [
+   [
+    -6800,
+    "village"
+   ],
+   [
+    -5300,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Early Neolithic settlement, Thessaly"
+ },
+ {
+  "name": "Franchthi Cave",
+  "lon": 23.13,
+  "lat": 37.43,
+  "phases": [
+   [
+    -20000,
+    "village"
+   ],
+   [
+    -3000,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Long-occupied cave site, Argolid"
+ },
+ {
+  "name": "Poliochni (Lemnos)",
+  "lon": 25.15,
+  "lat": 39.87,
+  "phases": [
+   [
+    -3500,
+    "town"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Early Bronze Age Aegean town, Lemnos"
+ },
+ {
+  "name": "Phylakopi",
+  "lon": 26.16,
+  "lat": 36.72,
+  "phases": [
+   [
+    -3300,
+    "village"
+   ],
+   [
+    -1100,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Bronze Age town, Melos, obsidian trade"
+ },
+ {
+  "name": "Ayia Irini (Kea)",
+  "lon": 24.02,
+  "lat": 37.63,
+  "phases": [
+   [
+    -3000,
+    "village"
+   ],
+   [
+    -1100,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Cycladic Bronze Age settlement, Kea"
+ },
+ {
+  "name": "Varna",
+  "lon": 27.91,
+  "lat": 43.21,
+  "phases": [
+   [
+    -4600,
+    "town"
+   ],
+   [
+    -4200,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Chalcolithic necropolis, earliest known gold artefacts"
+ },
+ {
+  "name": "Vinča",
+  "lon": 20.61,
+  "lat": 44.75,
+  "phases": [
+   [
+    -5700,
+    "village"
+   ],
+   [
+    -4500,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Type site of the Vinča culture, Serbia"
+ },
+ {
+  "name": "Karanovo",
+  "lon": 25.83,
+  "lat": 42.58,
+  "phases": [
+   [
+    -6200,
+    "village"
+   ],
+   [
+    -3000,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Long-sequence tell, Thrace, Bulgaria"
+ },
+ {
+  "name": "Provadia-Solnitsata",
+  "lon": 27.44,
+  "lat": 43.18,
+  "phases": [
+   [
+    -5500,
+    "village"
+   ],
+   [
+    -4350,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Earliest known salt-production town, Bulgaria"
+ },
+ {
+  "name": "Durankulak",
+  "lon": 28.55,
+  "lat": 43.68,
+  "phases": [
+   [
+    -5000,
+    "village"
+   ],
+   [
+    -4000,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Chalcolithic lakeside settlement, Bulgaria"
+ },
+ {
+  "name": "Sitagroi",
+  "lon": 24.2,
+  "lat": 41.05,
+  "phases": [
+   [
+    -5400,
+    "village"
+   ],
+   [
+    -1800,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Long-sequence tell, eastern Macedonia, Greece"
+ },
+ {
+  "name": "Dikili Tash",
+  "lon": 24.18,
+  "lat": 41.13,
+  "phases": [
+   [
+    -6400,
+    "village"
+   ],
+   [
+    -1100,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Neolithic-Bronze Age tell, Greek Macedonia"
+ },
+ {
+  "name": "Vučedol",
+  "lon": 19.03,
+  "lat": 45.38,
+  "phases": [
+   [
+    -3000,
+    "town"
+   ],
+   [
+    -2200,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Type site of the Vučedol culture, Croatia"
+ },
+ {
+  "name": "Lepenski Vir",
+  "lon": 21.98,
+  "lat": 44.58,
+  "phases": [
+   [
+    -9500,
+    "village"
+   ],
+   [
+    -5500,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Mesolithic-Neolithic riverside settlement, Danube gorge"
+ },
+ {
+  "name": "Tărtăria",
+  "lon": 23.53,
+  "lat": 46.1,
+  "phases": [
+   [
+    -5300,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Vinča-culture village, source of controversial tablets, Romania"
+ },
+ {
+  "name": "Talianki",
+  "lon": 29.83,
+  "lat": 48.98,
+  "phases": [
+   [
+    -4000,
+    "town"
+   ],
+   [
+    -3200,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "One of largest prehistoric settlements in the world, Ukraine"
+ },
+ {
+  "name": "Maidanetske",
+  "lon": 29.9,
+  "lat": 48.9,
+  "phases": [
+   [
+    -4000,
+    "town"
+   ],
+   [
+    -3200,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Mega-site of the Trypillia culture, Ukraine"
+ },
+ {
+  "name": "Nebelivka",
+  "lon": 30.75,
+  "lat": 48.63,
+  "phases": [
+   [
+    -4100,
+    "town"
+   ],
+   [
+    -3300,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Trypillia mega-site, Ukraine"
+ },
+ {
+  "name": "Cucuteni",
+  "lon": 26.85,
+  "lat": 47.35,
+  "phases": [
+   [
+    -4800,
+    "village"
+   ],
+   [
+    -3000,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Type site of the Cucuteni culture, Romania"
+ },
+ {
+  "name": "Petreni",
+  "lon": 28.4,
+  "lat": 47.75,
+  "phases": [
+   [
+    -4000,
+    "town"
+   ],
+   [
+    -3300,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Trypillia mega-site, Moldova"
+ },
+ {
+  "name": "Dobrovody",
+  "lon": 28.9,
+  "lat": 49.0,
+  "phases": [
+   [
+    -4000,
+    "town"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Trypillia mega-site, Ukraine"
+ },
+ {
+  "name": "Skara Brae",
+  "lon": -3.34,
+  "lat": 59.05,
+  "phases": [
+   [
+    -3180,
+    "village"
+   ],
+   [
+    -2500,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Stone-built Neolithic village, Orkney"
+ },
+ {
+  "name": "Durrington Walls",
+  "lon": -1.79,
+  "lat": 51.2,
+  "phases": [
+   [
+    -2600,
+    "village"
+   ],
+   [
+    -2400,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Large henge settlement near Stonehenge, England"
+ },
+ {
+  "name": "Barnhouse",
+  "lon": -3.2,
+  "lat": 59.0,
+  "phases": [
+   [
+    -3200,
+    "village"
+   ],
+   [
+    -2600,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Neolithic settlement, Orkney"
+ },
+ {
+  "name": "Ness of Brodgar",
+  "lon": -3.23,
+  "lat": 59.0,
+  "phases": [
+   [
+    -3300,
+    "town"
+   ],
+   [
+    -2300,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Major Neolithic ceremonial complex, Orkney"
+ },
+ {
+  "name": "Knap of Howar",
+  "lon": -2.9,
+  "lat": 59.35,
+  "phases": [
+   [
+    -3700,
+    "village"
+   ],
+   [
+    -2800,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Oldest preserved stone house in northern Europe, Orkney"
+ },
+ {
+  "name": "Los Millares",
+  "lon": -2.53,
+  "lat": 37.02,
+  "phases": [
+   [
+    -3200,
+    "town"
+   ],
+   [
+    -2200,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Fortified Copper Age settlement, southeast Spain"
+ },
+ {
+  "name": "El Argar",
+  "lon": -2.3,
+  "lat": 37.28,
+  "phases": [
+   [
+    -2200,
+    "town"
+   ],
+   [
+    -1500,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Type site of the Argaric Bronze Age culture, Spain"
+ },
+ {
+  "name": "Los Millares II (La Encantada)",
+  "lon": -1.8,
+  "lat": 37.65,
+  "phases": [
+   [
+    -2500,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Copper Age hilltop settlement, Murcia"
+ },
+ {
+  "name": "Zambujal",
+  "lon": -9.32,
+  "lat": 39.1,
+  "phases": [
+   [
+    -3000,
+    "town"
+   ],
+   [
+    -1800,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Fortified Chalcolithic settlement, Portugal"
+ },
+ {
+  "name": "Vila Nova de São Pedro",
+  "lon": -8.98,
+  "lat": 39.22,
+  "phases": [
+   [
+    -3000,
+    "town"
+   ],
+   [
+    -1800,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Fortified Chalcolithic hilltop site, Portugal"
+ },
+ {
+  "name": "Almendres Cromlech area",
+  "lon": -8.05,
+  "lat": 38.56,
+  "phases": [
+   [
+    -6000,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Megalithic ceremonial landscape, Évora, Portugal"
+ },
+ {
+  "name": "Bougon",
+  "lon": -0.1,
+  "lat": 46.4,
+  "phases": [
+   [
+    -4700,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Megalithic necropolis and settlement, western France"
+ },
+ {
+  "name": "Chalain Lake Villages",
+  "lon": 5.78,
+  "lat": 46.68,
+  "phases": [
+   [
+    -3200,
+    "village"
+   ],
+   [
+    -2500,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Pile-dwelling lake settlements, Jura, France"
+ },
+ {
+  "name": "Charavines",
+  "lon": 5.53,
+  "lat": 45.4,
+  "phases": [
+   [
+    -2700,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Neolithic lake-dwelling, Lake Paladru, France"
+ },
+ {
+  "name": "Cham-Eslen",
+  "lon": 8.47,
+  "lat": 47.18,
+  "phases": [
+   [
+    -3800,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Pile-dwelling lake settlement, Switzerland"
+ },
+ {
+  "name": "Arbon Bleiche",
+  "lon": 9.43,
+  "lat": 47.52,
+  "phases": [
+   [
+    -3400,
+    "village"
+   ],
+   [
+    -3370,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Lake-shore pile village, Lake Constance, Switzerland"
+ },
+ {
+  "name": "Zurich-Mozartstrasse",
+  "lon": 8.53,
+  "lat": 47.37,
+  "phases": [
+   [
+    -3200,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Pile-dwelling settlement, Switzerland"
+ },
+ {
+  "name": "Hornstaad-Hörnle",
+  "lon": 9.05,
+  "lat": 47.68,
+  "phases": [
+   [
+    -3900,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Pile-dwelling lake settlement, Lake Constance, Germany"
+ },
+ {
+  "name": "Unteruhldingen",
+  "lon": 9.18,
+  "lat": 47.68,
+  "phases": [
+   [
+    -3900,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Reconstructed pile-dwelling site, Lake Constance, Germany"
+ },
+ {
+  "name": "Biskupin",
+  "lon": 17.73,
+  "lat": 52.78,
+  "phases": [
+   [
+    -738,
+    "town"
+   ],
+   [
+    -400,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Fortified Lusatian culture lake settlement, Poland"
+ },
+ {
+  "name": "Eberdingen-Hochdorf",
+  "lon": 9.06,
+  "lat": 48.94,
+  "phases": [
+   [
+    -800,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Early Iron Age settlement near famous burial, Germany"
+ },
+ {
+  "name": "Goseck",
+  "lon": 11.88,
+  "lat": 51.22,
+  "phases": [
+   [
+    -4900,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Neolithic settlement with solar circle, Germany"
+ },
+ {
+  "name": "Eythra",
+  "lon": 12.3,
+  "lat": 51.25,
+  "phases": [
+   [
+    -5000,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Linear Pottery culture village, Germany"
+ },
+ {
+  "name": "Vaihingen an der Enz",
+  "lon": 8.96,
+  "lat": 48.94,
+  "phases": [
+   [
+    -5300,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Linear Pottery culture village, Germany"
+ },
+ {
+  "name": "Bylany",
+  "lon": 15.42,
+  "lat": 49.98,
+  "phases": [
+   [
+    -5500,
+    "village"
+   ],
+   [
+    -4900,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Large Linear Pottery culture settlement, Bohemia"
+ },
+ {
+  "name": "Langweiler 8",
+  "lon": 6.4,
+  "lat": 50.87,
+  "phases": [
+   [
+    -5300,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Linear Pottery culture village, Rhineland, Germany"
+ },
+ {
+  "name": "Herxheim",
+  "lon": 8.13,
+  "lat": 49.14,
+  "phases": [
+   [
+    -5300,
+    "village"
+   ],
+   [
+    -4950,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Linear Pottery culture site with mass burials, Germany"
+ },
+ {
+  "name": "Elsloo",
+  "lon": 5.78,
+  "lat": 50.95,
+  "phases": [
+   [
+    -5100,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Linear Pottery culture settlement, Netherlands"
+ },
+ {
+  "name": "Sittard",
+  "lon": 5.87,
+  "lat": 50.99,
+  "phases": [
+   [
+    -5100,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Linear Pottery culture settlement, Netherlands"
+ },
+ {
+  "name": "Swifterbant",
+  "lon": 5.63,
+  "lat": 52.62,
+  "phases": [
+   [
+    -4600,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Wetland Neolithic settlement, Netherlands"
+ },
+ {
+  "name": "Windmill Hill",
+  "lon": -1.87,
+  "lat": 51.42,
+  "phases": [
+   [
+    -3700,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Causewayed enclosure, Wiltshire, England"
+ },
+ {
+  "name": "Hambledon Hill",
+  "lon": -2.18,
+  "lat": 50.88,
+  "phases": [
+   [
+    -3700,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Neolithic causewayed enclosure, Dorset, England"
+ },
+ {
+  "name": "Grimes Graves",
+  "lon": 0.68,
+  "lat": 52.48,
+  "phases": [
+   [
+    -2600,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Neolithic flint-mining settlement, England"
+ },
+ {
+  "name": "Trelystan",
+  "lon": -3.15,
+  "lat": 52.58,
+  "phases": [
+   [
+    -3000,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Neolithic upland settlement, Wales"
+ },
+ {
+  "name": "Tara (Neolithic phase)",
+  "lon": -6.61,
+  "lat": 53.58,
+  "phases": [
+   [
+    -3300,
+    "town"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Passage-tomb ceremonial centre, later royal site, Ireland"
+ },
+ {
+  "name": "Newgrange settlement",
+  "lon": -6.48,
+  "lat": 53.69,
+  "phases": [
+   [
+    -3200,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Passage-tomb builders' settlement, Boyne Valley, Ireland"
+ },
+ {
+  "name": "Céide Fields",
+  "lon": -9.35,
+  "lat": 54.3,
+  "phases": [
+   [
+    -3700,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Extensive Neolithic field system and farmstead, Ireland"
+ },
+ {
+  "name": "Tarxien",
+  "lon": 14.51,
+  "lat": 35.87,
+  "phases": [
+   [
+    -3600,
+    "town"
+   ],
+   [
+    -2500,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Megalithic temple complex, Malta"
+ },
+ {
+  "name": "Ġgantija",
+  "lon": 14.27,
+  "lat": 36.02,
+  "phases": [
+   [
+    -3600,
+    "town"
+   ],
+   [
+    -2500,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Megalithic temple complex, Gozo, Malta"
+ },
+ {
+  "name": "Skorba",
+  "lon": 14.42,
+  "lat": 35.9,
+  "phases": [
+   [
+    -5000,
+    "village"
+   ],
+   [
+    -2500,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Early Neolithic-Temple period settlement, Malta"
+ },
+ {
+  "name": "Su Nuraxi (Barumini)",
+  "lon": 8.99,
+  "lat": 39.71,
+  "phases": [
+   [
+    -1500,
+    "town"
+   ],
+   [
+    -500,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Nuragic fortified complex, Sardinia"
+ },
+ {
+  "name": "Monte d'Accoddi",
+  "lon": 8.55,
+  "lat": 40.75,
+  "phases": [
+   [
+    -4000,
+    "village"
+   ],
+   [
+    -2700,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Stepped ceremonial platform, Sardinia"
+ },
+ {
+  "name": "Thapsos",
+  "lon": 15.28,
+  "lat": 37.15,
+  "phases": [
+   [
+    -1600,
+    "town"
+   ],
+   [
+    -1200,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Bronze Age trade settlement, Sicily"
+ },
+ {
+  "name": "Castelluccio",
+  "lon": 14.85,
+  "lat": 37.15,
+  "phases": [
+   [
+    -2200,
+    "village"
+   ],
+   [
+    -1400,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Early Bronze Age culture centre, Sicily"
+ },
+ {
+  "name": "Shengavit",
+  "lon": 44.51,
+  "lat": 40.14,
+  "phases": [
+   [
+    -3200,
+    "town"
+   ],
+   [
+    -2000,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Kura-Araxes settlement, Yerevan, Armenia"
+ },
+ {
+  "name": "Kültepe (Nakhchivan)",
+  "lon": 45.62,
+  "lat": 39.42,
+  "phases": [
+   [
+    -6000,
+    "village"
+   ],
+   [
+    -2000,
+    "town"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Long-sequence tell, Nakhchivan, distinct from Anatolian Kültepe"
+ },
+ {
+  "name": "Uzerlik Tepe",
+  "lon": 46.94,
+  "lat": 40.1,
+  "phases": [
+   [
+    -3000,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Kura-Araxes culture settlement, Azerbaijan"
+ },
+ {
+  "name": "Mingachevir Settlement",
+  "lon": 47.06,
+  "lat": 40.77,
+  "phases": [
+   [
+    -3000,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Bronze Age settlement mound, Azerbaijan"
+ },
+ {
+  "name": "Trialeti Settlement",
+  "lon": 44.02,
+  "lat": 41.62,
+  "phases": [
+   [
+    -2200,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Middle Bronze Age kurgan culture area, Georgia"
+ },
+ {
+  "name": "Kvatskhelebi",
+  "lon": 43.75,
+  "lat": 42.05,
+  "phases": [
+   [
+    -3500,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Early Bronze Age Kura-Araxes site, Georgia"
+ },
+ {
+  "name": "Amiranis Gora",
+  "lon": 43.2,
+  "lat": 41.6,
+  "phases": [
+   [
+    -6000,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Neolithic settlement, western Georgia"
+ },
+ {
+  "name": "Shulaveris Gora",
+  "lon": 44.98,
+  "lat": 41.4,
+  "phases": [
+   [
+    -6000,
+    "village"
+   ],
+   [
+    -5000,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Shulaveri-Shomu culture village, Georgia"
+ },
+ {
+  "name": "Khramis Didi Gora",
+  "lon": 44.9,
+  "lat": 41.42,
+  "phases": [
+   [
+    -6000,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Early Neolithic settlement, Georgia"
+ },
+ {
+  "name": "Maikop",
+  "lon": 40.11,
+  "lat": 44.61,
+  "phases": [
+   [
+    -3700,
+    "town"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Type site of the Maikop culture, North Caucasus"
+ }
+]

@@ -1,0 +1,6410 @@
+[
+ {
+  "name": "Jenne-jeno",
+  "lon": -4.17,
+  "lat": 13.85,
+  "phases": [
+   [
+    -250,
+    "village"
+   ],
+   [
+    400,
+    "town"
+   ],
+   [
+    800,
+    "city"
+   ],
+   [
+    1400,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Inland Niger Delta urban site; McIntosh excavations"
+ },
+ {
+  "name": "Dia",
+  "lon": -4.9,
+  "lat": 14.32,
+  "phases": [
+   [
+    -800,
+    "village"
+   ],
+   [
+    200,
+    "town"
+   ],
+   [
+    900,
+    "city"
+   ],
+   [
+    1600,
+    "town"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Inland Niger Delta mound complex, Dia Shoma"
+ },
+ {
+  "name": "Timbuktu",
+  "lon": -3.01,
+  "lat": 16.77,
+  "phases": [
+   [
+    1100,
+    "village"
+   ],
+   [
+    1300,
+    "town"
+   ],
+   [
+    1450,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Tuareg trading camp, later Mali/Songhai scholarly capital"
+ },
+ {
+  "name": "Gao",
+  "lon": -0.05,
+  "lat": 16.27,
+  "phases": [
+   [
+    700,
+    "village"
+   ],
+   [
+    900,
+    "town"
+   ],
+   [
+    1000,
+    "city"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Gao-Saney, capital of Songhai empire"
+ },
+ {
+  "name": "Walata",
+  "lon": -8.63,
+  "lat": 17.32,
+  "phases": [
+   [
+    1100,
+    "town"
+   ],
+   [
+    1250,
+    "city"
+   ],
+   [
+    1600,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Trans-Saharan caravan terminus, replaced Aoudaghost"
+ },
+ {
+  "name": "Aoudaghost",
+  "lon": -9.9,
+  "lat": 17.9,
+  "phases": [
+   [
+    300,
+    "village"
+   ],
+   [
+    800,
+    "town"
+   ],
+   [
+    1050,
+    "city"
+   ],
+   [
+    1250,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Ghana empire outpost, site Tegdaoust"
+ },
+ {
+  "name": "Koumbi Saleh",
+  "lon": -8.0,
+  "lat": 15.75,
+  "phases": [
+   [
+    300,
+    "village"
+   ],
+   [
+    700,
+    "town"
+   ],
+   [
+    900,
+    "city"
+   ],
+   [
+    1250,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Presumed capital of Ghana empire"
+ },
+ {
+  "name": "Niani",
+  "lon": -8.97,
+  "lat": 11.35,
+  "phases": [
+   [
+    1100,
+    "town"
+   ],
+   [
+    1235,
+    "city"
+   ],
+   [
+    1550,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Traditional Mali empire capital on the Sankarani"
+ },
+ {
+  "name": "Kangaba",
+  "lon": -8.4,
+  "lat": 11.93,
+  "phases": [
+   [
+    1000,
+    "village"
+   ],
+   [
+    1230,
+    "town"
+   ],
+   [
+    1600,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Keita clan heartland, Mali origin site"
+ },
+ {
+  "name": "Segou",
+  "lon": -6.27,
+  "lat": 13.45,
+  "phases": [
+   [
+    1620,
+    "town"
+   ],
+   [
+    1712,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Bambara Segou kingdom capital"
+ },
+ {
+  "name": "Djenne",
+  "lon": -4.55,
+  "lat": 13.91,
+  "phases": [
+   [
+    1100,
+    "town"
+   ],
+   [
+    1300,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Great Mosque town, successor to Jenne-jeno"
+ },
+ {
+  "name": "Mopti",
+  "lon": -4.2,
+  "lat": 14.5,
+  "phases": [
+   [
+    1700,
+    "village"
+   ],
+   [
+    1810,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Bozo fishing settlement at river confluence"
+ },
+ {
+  "name": "Bamako",
+  "lon": -8.0,
+  "lat": 12.65,
+  "phases": [
+   [
+    1300,
+    "village"
+   ],
+   [
+    1650,
+    "town"
+   ],
+   [
+    1908,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Niger crossing point, French colonial capital"
+ },
+ {
+  "name": "Kayes",
+  "lon": -11.44,
+  "lat": 14.45,
+  "phases": [
+   [
+    1600,
+    "village"
+   ],
+   [
+    1881,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "French Soudan colonial river port"
+ },
+ {
+  "name": "Nioro du Sahel",
+  "lon": -9.6,
+  "lat": 15.23,
+  "phases": [
+   [
+    1500,
+    "village"
+   ],
+   [
+    1855,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Massassi/Umarian capital in the Sahel"
+ },
+ {
+  "name": "Sikasso",
+  "lon": -5.67,
+  "lat": 11.32,
+  "phases": [
+   [
+    1800,
+    "village"
+   ],
+   [
+    1876,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Kenedougou kingdom capital, Tata fortress"
+ },
+ {
+  "name": "Ke-Macina",
+  "lon": -5.35,
+  "lat": 14.08,
+  "phases": [
+   [
+    1400,
+    "village"
+   ],
+   [
+    1818,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Macina caliphate early capital"
+ },
+ {
+  "name": "Hamdallahi",
+  "lon": -4.63,
+  "lat": 14.23,
+  "phases": [
+   [
+    1820,
+    "town"
+   ],
+   [
+    1862,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Capital of the Fulani Macina Caliphate, razed by Tukulor"
+ },
+ {
+  "name": "Tombouctou-Kabara",
+  "lon": -3.05,
+  "lat": 16.68,
+  "phases": [
+   [
+    1100,
+    "village"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "River port serving Timbuktu"
+ },
+ {
+  "name": "Es-Souk (Tadmekka)",
+  "lon": 1.82,
+  "lat": 18.62,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1100,
+    "city"
+   ],
+   [
+    1500,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Saharan trade town, Berber-founded"
+ },
+ {
+  "name": "Araouane",
+  "lon": -3.52,
+  "lat": 18.9,
+  "phases": [
+   [
+    1200,
+    "village"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Salt-caravan halt between Timbuktu and Taoudenni"
+ },
+ {
+  "name": "Taoudenni",
+  "lon": -3.98,
+  "lat": 22.68,
+  "phases": [
+   [
+    1580,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Saharan salt-mining settlement"
+ },
+ {
+  "name": "Oualata Ksar",
+  "lon": -8.63,
+  "lat": 17.32,
+  "phases": [
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Post-Ghana Walata continuation under Mali suzerainty"
+ },
+ {
+  "name": "Tichitt",
+  "lon": -9.5,
+  "lat": 18.45,
+  "phases": [
+   [
+    -1600,
+    "village"
+   ],
+   [
+    -1000,
+    "town"
+   ],
+   [
+    -400,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Dhar Tichitt escarpment Neolithic town cluster"
+ },
+ {
+  "name": "Oualata Dhar Nema",
+  "lon": -7.0,
+  "lat": 17.0,
+  "phases": [
+   [
+    -1200,
+    "village"
+   ],
+   [
+    -600,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Dhar Nema Tichitt-tradition settlement"
+ },
+ {
+  "name": "Chinguetti",
+  "lon": -12.37,
+  "lat": 20.46,
+  "phases": [
+   [
+    777,
+    "village"
+   ],
+   [
+    1300,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Saharan caravan and manuscript town, Adrar"
+ },
+ {
+  "name": "Ouadane",
+  "lon": -11.62,
+  "lat": 20.93,
+  "phases": [
+   [
+    1147,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Almoravid-era Adrar caravan town"
+ },
+ {
+  "name": "Tegdaoust",
+  "lon": -9.9,
+  "lat": 17.9,
+  "phases": [
+   [
+    300,
+    "village"
+   ],
+   [
+    900,
+    "city"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Identified with Aoudaghost site"
+ },
+ {
+  "name": "Kumbi",
+  "lon": -8.05,
+  "lat": 15.8,
+  "phases": [
+   [
+    500,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Satellite settlement near Koumbi Saleh"
+ },
+ {
+  "name": "Azelik (Takedda)",
+  "lon": 6.1,
+  "lat": 17.3,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1200,
+    "city"
+   ],
+   [
+    1450,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Copper-mining town visited by Ibn Battuta"
+ },
+ {
+  "name": "Agadez",
+  "lon": 7.99,
+  "lat": 16.97,
+  "phases": [
+   [
+    1430,
+    "town"
+   ],
+   [
+    1449,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Sultanate of Air caravan hub"
+ },
+ {
+  "name": "Assodé",
+  "lon": 8.62,
+  "lat": 17.85,
+  "phases": [
+   [
+    1000,
+    "village"
+   ],
+   [
+    1400,
+    "town"
+   ],
+   [
+    1700,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Former Air Tuareg capital before Agadez"
+ },
+ {
+  "name": "Iferouane",
+  "lon": 8.42,
+  "lat": 19.07,
+  "phases": [
+   [
+    1200,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Air massif Tuareg oasis settlement"
+ },
+ {
+  "name": "Bilma",
+  "lon": 12.92,
+  "lat": 18.69,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1300,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Kawar oasis, salt and date trade with Kanem"
+ },
+ {
+  "name": "Zinder (Damagaram)",
+  "lon": 8.99,
+  "lat": 13.8,
+  "phases": [
+   [
+    1400,
+    "village"
+   ],
+   [
+    1736,
+    "town"
+   ],
+   [
+    1851,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Damagaram sultanate capital"
+ },
+ {
+  "name": "Kano",
+  "lon": 8.52,
+  "lat": 12.0,
+  "phases": [
+   [
+    999,
+    "village"
+   ],
+   [
+    1100,
+    "town"
+   ],
+   [
+    1450,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Hausa walled city; Kano Chronicle"
+ },
+ {
+  "name": "Katsina",
+  "lon": 7.62,
+  "lat": 12.99,
+  "phases": [
+   [
+    1100,
+    "village"
+   ],
+   [
+    1300,
+    "town"
+   ],
+   [
+    1500,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Hausa city-state, scholarly and trade centre"
+ },
+ {
+  "name": "Daura",
+  "lon": 8.31,
+  "lat": 13.02,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1200,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Legendary senior Hausa Bakwai city"
+ },
+ {
+  "name": "Zazzau (Zaria)",
+  "lon": 7.72,
+  "lat": 11.07,
+  "phases": [
+   [
+    1000,
+    "village"
+   ],
+   [
+    1200,
+    "town"
+   ],
+   [
+    1536,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Hausa city-state, slave-trade era capital under Bakwa Turunku"
+ },
+ {
+  "name": "Rano",
+  "lon": 8.58,
+  "lat": 11.58,
+  "phases": [
+   [
+    1000,
+    "village"
+   ],
+   [
+    1300,
+    "town"
+   ],
+   [
+    1800,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Hausa Bakwai textile-producing city-state"
+ },
+ {
+  "name": "Gobir (Birnin Lalle)",
+  "lon": 5.2,
+  "lat": 13.9,
+  "phases": [
+   [
+    1000,
+    "village"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Northern Hausa Bakwai city-state capital"
+ },
+ {
+  "name": "Biram",
+  "lon": 10.6,
+  "lat": 12.9,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1300,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Hausa Bakwai founding city, near Chad basin"
+ },
+ {
+  "name": "Kebbi (Birnin Kebbi)",
+  "lon": 4.2,
+  "lat": 12.45,
+  "phases": [
+   [
+    1000,
+    "village"
+   ],
+   [
+    1516,
+    "town"
+   ],
+   [
+    1600,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Kanta's breakaway Hausa kingdom capital"
+ },
+ {
+  "name": "Sokoto",
+  "lon": 5.24,
+  "lat": 13.06,
+  "phases": [
+   [
+    1809,
+    "town"
+   ],
+   [
+    1817,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Capital of the Fulani Sokoto Caliphate"
+ },
+ {
+  "name": "Gwandu",
+  "lon": 4.65,
+  "lat": 12.52,
+  "phases": [
+   [
+    1817,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Twin capital of Sokoto Caliphate, Abdullahi dan Fodio's seat"
+ },
+ {
+  "name": "Degel",
+  "lon": 5.3,
+  "lat": 13.3,
+  "phases": [
+   [
+    1774,
+    "village"
+   ],
+   [
+    1804,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Usman dan Fodio's original teaching community"
+ },
+ {
+  "name": "Birnin Gwari",
+  "lon": 6.75,
+  "lat": 11.02,
+  "phases": [
+   [
+    1400,
+    "village"
+   ],
+   [
+    1800,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Zazzau frontier town, slave-raiding era"
+ },
+ {
+  "name": "Kazaure",
+  "lon": 8.41,
+  "lat": 12.65,
+  "phases": [
+   [
+    1818,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Sokoto-era Hausa emirate capital"
+ },
+ {
+  "name": "Hadejia",
+  "lon": 10.04,
+  "lat": 12.45,
+  "phases": [
+   [
+    1200,
+    "village"
+   ],
+   [
+    1600,
+    "town"
+   ],
+   [
+    1805,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Hausa emirate on the Hadejia river"
+ },
+ {
+  "name": "Nguru",
+  "lon": 10.45,
+  "lat": 12.88,
+  "phases": [
+   [
+    1500,
+    "village"
+   ],
+   [
+    1810,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Bornu-Sokoto frontier market town"
+ },
+ {
+  "name": "Bauchi",
+  "lon": 9.84,
+  "lat": 10.31,
+  "phases": [
+   [
+    1400,
+    "village"
+   ],
+   [
+    1809,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Sokoto emirate founded by Yakubu"
+ },
+ {
+  "name": "Gombe",
+  "lon": 11.17,
+  "lat": 10.29,
+  "phases": [
+   [
+    1804,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Sokoto Caliphate emirate seat"
+ },
+ {
+  "name": "Adamawa (Yola)",
+  "lon": 12.43,
+  "lat": 9.2,
+  "phases": [
+   [
+    1809,
+    "village"
+   ],
+   [
+    1841,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Fulani Adamawa emirate capital, Modibbo Adama"
+ },
+ {
+  "name": "Ngala (Birni Ngazargamu vicinity)",
+  "lon": 14.19,
+  "lat": 12.05,
+  "phases": [
+   [
+    1470,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Kanem-Bornu frontier market town"
+ },
+ {
+  "name": "Birni Gazargamo",
+  "lon": 13.1,
+  "lat": 13.13,
+  "phases": [
+   [
+    1470,
+    "town"
+   ],
+   [
+    1500,
+    "city"
+   ],
+   [
+    1808,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Bornu empire capital, sacked by Fulani jihadists"
+ },
+ {
+  "name": "Njimi",
+  "lon": 14.9,
+  "lat": 12.1,
+  "phases": [
+   [
+    800,
+    "village"
+   ],
+   [
+    1075,
+    "city"
+   ],
+   [
+    1400,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Original Kanem empire capital east of Lake Chad"
+ },
+ {
+  "name": "Kukawa",
+  "lon": 13.57,
+  "lat": 12.93,
+  "phases": [
+   [
+    1814,
+    "town"
+   ],
+   [
+    1826,
+    "city"
+   ],
+   [
+    1893,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Shehu al-Kanemi's new Bornu capital"
+ },
+ {
+  "name": "Maiduguri",
+  "lon": 13.16,
+  "lat": 11.85,
+  "phases": [
+   [
+    1907,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "British colonial successor capital to Kukawa"
+ },
+ {
+  "name": "Dikwa",
+  "lon": 13.92,
+  "lat": 12.03,
+  "phases": [
+   [
+    1893,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Rabih az-Zubayr's conquest-era Bornu capital"
+ },
+ {
+  "name": "Mao (Kanem)",
+  "lon": 15.31,
+  "lat": 14.12,
+  "phases": [
+   [
+    1100,
+    "village"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Kanem heartland market town near Lake Chad"
+ },
+ {
+  "name": "Mondo (Kanem)",
+  "lon": 15.6,
+  "lat": 13.7,
+  "phases": [
+   [
+    1300,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Kanem province settlement, Sayfawa era"
+ },
+ {
+  "name": "Bagirmi (Massenya)",
+  "lon": 16.4,
+  "lat": 11.4,
+  "phases": [
+   [
+    1522,
+    "town"
+   ],
+   [
+    1568,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Bagirmi sultanate capital, Chad basin"
+ },
+ {
+  "name": "Wadai (Wara)",
+  "lon": 21.4,
+  "lat": 12.87,
+  "phases": [
+   [
+    1635,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Wadai sultanate early capital, east of Bornu sphere"
+ },
+ {
+  "name": "Damagaram Takaya",
+  "lon": 8.7,
+  "lat": 13.6,
+  "phases": [
+   [
+    1731,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Early Damagaram settlement before Zinder"
+ },
+ {
+  "name": "Tessaoua",
+  "lon": 7.99,
+  "lat": 13.75,
+  "phases": [
+   [
+    1750,
+    "village"
+   ],
+   [
+    1850,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Hausa-Damagaram market town"
+ },
+ {
+  "name": "Maradi",
+  "lon": 7.1,
+  "lat": 13.5,
+  "phases": [
+   [
+    1600,
+    "village"
+   ],
+   [
+    1820,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Katsina refugee dynasty capital after Sokoto jihad"
+ },
+ {
+  "name": "Dosso",
+  "lon": 3.19,
+  "lat": 13.05,
+  "phases": [
+   [
+    1750,
+    "village"
+   ],
+   [
+    1898,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Zarma chieftaincy capital, French protectorate seat"
+ },
+ {
+  "name": "Niamey",
+  "lon": 2.11,
+  "lat": 13.51,
+  "phases": [
+   [
+    1600,
+    "village"
+   ],
+   [
+    1901,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Zarma fishing hamlet, French colonial capital"
+ },
+ {
+  "name": "Say",
+  "lon": 2.36,
+  "lat": 13.1,
+  "phases": [
+   [
+    1780,
+    "village"
+   ],
+   [
+    1897,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Niger river crossing, Islamic scholarly centre"
+ },
+ {
+  "name": "Kouroussa",
+  "lon": -10.65,
+  "lat": 10.65,
+  "phases": [
+   [
+    1500,
+    "village"
+   ],
+   [
+    1880,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Upper Niger river port town, Guinea"
+ },
+ {
+  "name": "Kankan",
+  "lon": -9.31,
+  "lat": 10.39,
+  "phases": [
+   [
+    1650,
+    "village"
+   ],
+   [
+    1750,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Malinke Muslim trading town, Milo river"
+ },
+ {
+  "name": "Kissidougou",
+  "lon": -10.1,
+  "lat": 9.19,
+  "phases": [
+   [
+    1600,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Kissi forest-margin settlement, Guinea"
+ },
+ {
+  "name": "Conakry",
+  "lon": -13.68,
+  "lat": 9.51,
+  "phases": [
+   [
+    1600,
+    "village"
+   ],
+   [
+    1885,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Baga fishing settlement, French colonial capital of Guinea"
+ },
+ {
+  "name": "Boke",
+  "lon": -14.3,
+  "lat": 10.94,
+  "phases": [
+   [
+    1400,
+    "village"
+   ],
+   [
+    1866,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Nalu/Susu coastal trading town, rubber trade"
+ },
+ {
+  "name": "Fouta Djallon (Timbo)",
+  "lon": -12.3,
+  "lat": 10.65,
+  "phases": [
+   [
+    1725,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Fulani Fouta Djallon theocracy capital"
+ },
+ {
+  "name": "Labe",
+  "lon": -12.28,
+  "lat": 11.32,
+  "phases": [
+   [
+    1727,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Fouta Djallon provincial almamy seat"
+ },
+ {
+  "name": "Freetown",
+  "lon": -13.23,
+  "lat": 8.48,
+  "phases": [
+   [
+    1792,
+    "town"
+   ],
+   [
+    1808,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Settlement of freed slaves, British Sierra Leone"
+ },
+ {
+  "name": "Bunce Island area (Yagala)",
+  "lon": -13.12,
+  "lat": 8.51,
+  "phases": [
+   [
+    1500,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Sierra Leone estuary Temne fishing settlement"
+ },
+ {
+  "name": "Bo",
+  "lon": -11.74,
+  "lat": 7.96,
+  "phases": [
+   [
+    1889,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "British Sierra Leone protectorate administrative town"
+ },
+ {
+  "name": "Kenema",
+  "lon": -11.19,
+  "lat": 7.88,
+  "phases": [
+   [
+    1800,
+    "village"
+   ],
+   [
+    1900,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Mende diamond and kola trading town"
+ },
+ {
+  "name": "Port Loko",
+  "lon": -12.79,
+  "lat": 8.77,
+  "phases": [
+   [
+    1600,
+    "village"
+   ],
+   [
+    1815,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Temne slave-trade river port"
+ },
+ {
+  "name": "Rokel (Old Port Loko)",
+  "lon": -12.9,
+  "lat": 8.63,
+  "phases": [
+   [
+    1500,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Early Portuguese-era Sierra Leone river trading post"
+ },
+ {
+  "name": "Monrovia",
+  "lon": -10.8,
+  "lat": 6.3,
+  "phases": [
+   [
+    1600,
+    "village"
+   ],
+   [
+    1822,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Dei fishing settlement, American Colonization Society capital"
+ },
+ {
+  "name": "Buchanan (Grand Bassa)",
+  "lon": -10.05,
+  "lat": 5.88,
+  "phases": [
+   [
+    1600,
+    "village"
+   ],
+   [
+    1835,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Americo-Liberian settler coastal town"
+ },
+ {
+  "name": "Cape Palmas (Harper)",
+  "lon": -7.72,
+  "lat": 4.38,
+  "phases": [
+   [
+    1500,
+    "village"
+   ],
+   [
+    1834,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Grebo coastal town, Maryland-in-Liberia colony"
+ },
+ {
+  "name": "Cape Mount",
+  "lon": -11.3,
+  "lat": 6.98,
+  "phases": [
+   [
+    1600,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Vai coastal trading settlement, Liberia"
+ },
+ {
+  "name": "Gbarnga",
+  "lon": -9.47,
+  "lat": 6.99,
+  "phases": [
+   [
+    1700,
+    "village"
+   ],
+   [
+    1900,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Central Liberian Kpelle market town"
+ },
+ {
+  "name": "Bopolu",
+  "lon": -10.49,
+  "lat": 7.07,
+  "phases": [
+   [
+    1780,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Mandingo-Vai commercial town, interior Liberia"
+ },
+ {
+  "name": "Man (Ivory Coast)",
+  "lon": -7.55,
+  "lat": 7.41,
+  "phases": [
+   [
+    1600,
+    "village"
+   ],
+   [
+    1900,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Dan/Yacouba highland market town"
+ },
+ {
+  "name": "Grand-Bassam",
+  "lon": -3.74,
+  "lat": 5.2,
+  "phases": [
+   [
+    1700,
+    "village"
+   ],
+   [
+    1893,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "First French colonial capital of Cote d'Ivoire"
+ },
+ {
+  "name": "Assinie",
+  "lon": -3.3,
+  "lat": 5.13,
+  "phases": [
+   [
+    1687,
+    "village"
+   ],
+   [
+    1700,
+    "town"
+   ],
+   [
+    1720,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Early French trading post, Nzima coast"
+ },
+ {
+  "name": "Bondoukou",
+  "lon": -2.8,
+  "lat": 8.04,
+  "phases": [
+   [
+    1400,
+    "village"
+   ],
+   [
+    1700,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Dyula trans-regional trading and scholarly town"
+ },
+ {
+  "name": "Kong",
+  "lon": -4.62,
+  "lat": 9.16,
+  "phases": [
+   [
+    1100,
+    "village"
+   ],
+   [
+    1400,
+    "town"
+   ],
+   [
+    1710,
+    "city"
+   ],
+   [
+    1897,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Dyula empire capital, destroyed by Samori Toure"
+ },
+ {
+  "name": "Bouna",
+  "lon": -3.0,
+  "lat": 9.27,
+  "phases": [
+   [
+    1500,
+    "village"
+   ],
+   [
+    1750,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Dyula/Koulango kingdom capital, northeast Ivory Coast"
+ },
+ {
+  "name": "Korhogo",
+  "lon": -5.63,
+  "lat": 9.46,
+  "phases": [
+   [
+    1500,
+    "village"
+   ],
+   [
+    1700,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Senufo/Dyula market and weaving town"
+ },
+ {
+  "name": "Odienne",
+  "lon": -7.57,
+  "lat": 9.51,
+  "phases": [
+   [
+    1600,
+    "village"
+   ],
+   [
+    1850,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Malinke kingdom seat, northwest Ivory Coast"
+ },
+ {
+  "name": "Abidjan",
+  "lon": -4.02,
+  "lat": 5.32,
+  "phases": [
+   [
+    1600,
+    "village"
+   ],
+   [
+    1900,
+    "town"
+   ],
+   [
+    1934,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ebrie lagoon fishing village, colonial capital"
+ },
+ {
+  "name": "Sassandra",
+  "lon": -6.08,
+  "lat": 4.95,
+  "phases": [
+   [
+    1500,
+    "village"
+   ],
+   [
+    1893,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Kru coast trading post, early Portuguese contact"
+ },
+ {
+  "name": "Grand-Lahou",
+  "lon": -5.02,
+  "lat": 5.14,
+  "phases": [
+   [
+    1600,
+    "village"
+   ],
+   [
+    1870,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Avikam lagoon trading settlement"
+ },
+ {
+  "name": "Kumasi",
+  "lon": -1.62,
+  "lat": 6.69,
+  "phases": [
+   [
+    1680,
+    "town"
+   ],
+   [
+    1701,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Asante empire capital, Osei Tutu's Golden Stool"
+ },
+ {
+  "name": "Bonoso-Techiman",
+  "lon": -1.94,
+  "lat": 7.59,
+  "phases": [
+   [
+    1300,
+    "village"
+   ],
+   [
+    1450,
+    "town"
+   ],
+   [
+    1700,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Bono Manso, gold-trading kingdom precursor to Asante"
+ },
+ {
+  "name": "Begho",
+  "lon": -2.3,
+  "lat": 7.8,
+  "phases": [
+   [
+    1000,
+    "village"
+   ],
+   [
+    1300,
+    "town"
+   ],
+   [
+    1450,
+    "city"
+   ],
+   [
+    1720,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Major Akan-Mande gold and kola entrepot"
+ },
+ {
+  "name": "Elmina",
+  "lon": -1.35,
+  "lat": 5.08,
+  "phases": [
+   [
+    1300,
+    "village"
+   ],
+   [
+    1482,
+    "town"
+   ],
+   [
+    1550,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Sao Jorge da Mina, oldest European fort in West Africa"
+ },
+ {
+  "name": "Cape Coast",
+  "lon": -1.24,
+  "lat": 5.11,
+  "phases": [
+   [
+    1500,
+    "village"
+   ],
+   [
+    1653,
+    "town"
+   ],
+   [
+    1700,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "British Gold Coast slave-trade capital"
+ },
+ {
+  "name": "Axim",
+  "lon": -2.24,
+  "lat": 4.87,
+  "phases": [
+   [
+    1400,
+    "village"
+   ],
+   [
+    1515,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ahanta gold-trading town, Fort Sao Antonio"
+ },
+ {
+  "name": "Accra",
+  "lon": -0.19,
+  "lat": 5.6,
+  "phases": [
+   [
+    1500,
+    "village"
+   ],
+   [
+    1650,
+    "town"
+   ],
+   [
+    1877,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ga coastal settlement, later Gold Coast capital"
+ },
+ {
+  "name": "Winneba",
+  "lon": -0.62,
+  "lat": 5.35,
+  "phases": [
+   [
+    1500,
+    "village"
+   ],
+   [
+    1700,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Effutu Gold Coast fishing and trade town"
+ },
+ {
+  "name": "Anomabu",
+  "lon": -1.12,
+  "lat": 5.17,
+  "phases": [
+   [
+    1500,
+    "village"
+   ],
+   [
+    1665,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Fante slave-trade port, Fort William"
+ },
+ {
+  "name": "Apam",
+  "lon": -0.73,
+  "lat": 5.28,
+  "phases": [
+   [
+    1500,
+    "village"
+   ],
+   [
+    1697,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Fort Patience Dutch Gold Coast trading post"
+ },
+ {
+  "name": "Mankessim",
+  "lon": -1.02,
+  "lat": 5.27,
+  "phases": [
+   [
+    1252,
+    "village"
+   ],
+   [
+    1600,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Fante confederation traditional capital"
+ },
+ {
+  "name": "Dunkwa-on-Offin",
+  "lon": -1.78,
+  "lat": 5.97,
+  "phases": [
+   [
+    1600,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Akan goldfields market town"
+ },
+ {
+  "name": "Obuasi",
+  "lon": -1.66,
+  "lat": 6.2,
+  "phases": [
+   [
+    1600,
+    "village"
+   ],
+   [
+    1897,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ashanti goldmining town"
+ },
+ {
+  "name": "Salaga",
+  "lon": -0.52,
+  "lat": 8.55,
+  "phases": [
+   [
+    1500,
+    "village"
+   ],
+   [
+    1750,
+    "town"
+   ],
+   [
+    1800,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Major Gonja slave and kola market"
+ },
+ {
+  "name": "Yendi",
+  "lon": -0.01,
+  "lat": 9.44,
+  "phases": [
+   [
+    1400,
+    "village"
+   ],
+   [
+    1700,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Dagbon kingdom capital"
+ },
+ {
+  "name": "Wa",
+  "lon": -2.51,
+  "lat": 10.06,
+  "phases": [
+   [
+    1400,
+    "village"
+   ],
+   [
+    1700,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Wala kingdom capital, northwest Ghana"
+ },
+ {
+  "name": "Bole",
+  "lon": -2.48,
+  "lat": 9.03,
+  "phases": [
+   [
+    1450,
+    "village"
+   ],
+   [
+    1600,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Gonja provincial town on trans-Saharan route"
+ },
+ {
+  "name": "Nalerigu",
+  "lon": -0.37,
+  "lat": 10.53,
+  "phases": [
+   [
+    1500,
+    "village"
+   ],
+   [
+    1700,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Mamprugu kingdom capital"
+ },
+ {
+  "name": "Larabanga",
+  "lon": -1.85,
+  "lat": 9.23,
+  "phases": [
+   [
+    1421,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ancient mosque town, Gonja trade route"
+ },
+ {
+  "name": "Keta",
+  "lon": 0.99,
+  "lat": 5.92,
+  "phases": [
+   [
+    1600,
+    "village"
+   ],
+   [
+    1784,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Anlo Ewe lagoon slave-trade port"
+ },
+ {
+  "name": "Ada",
+  "lon": 0.64,
+  "lat": 5.79,
+  "phases": [
+   [
+    1600,
+    "village"
+   ],
+   [
+    1700,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Volta estuary Dangme trading town"
+ },
+ {
+  "name": "Akwamu (Nyanoase)",
+  "lon": -0.1,
+  "lat": 6.05,
+  "phases": [
+   [
+    1600,
+    "town"
+   ],
+   [
+    1681,
+    "city"
+   ],
+   [
+    1730,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Akwamu empire capital before dispersal"
+ },
+ {
+  "name": "Notsie",
+  "lon": 1.14,
+  "lat": 6.98,
+  "phases": [
+   [
+    1500,
+    "village"
+   ],
+   [
+    1600,
+    "town"
+   ],
+   [
+    1750,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ewe ancestral walled city in Togo tradition"
+ },
+ {
+  "name": "Lome",
+  "lon": 1.22,
+  "lat": 6.13,
+  "phases": [
+   [
+    1600,
+    "village"
+   ],
+   [
+    1897,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ewe coastal village, German Togoland capital"
+ },
+ {
+  "name": "Aneho",
+  "lon": 1.6,
+  "lat": 6.23,
+  "phases": [
+   [
+    1600,
+    "village"
+   ],
+   [
+    1750,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Little Popo, Ewe/Mina slave-trade port"
+ },
+ {
+  "name": "Sokode",
+  "lon": 1.14,
+  "lat": 8.98,
+  "phases": [
+   [
+    1600,
+    "village"
+   ],
+   [
+    1897,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Kotokoli/Tem market town, central Togo"
+ },
+ {
+  "name": "Kpalime",
+  "lon": 0.63,
+  "lat": 6.9,
+  "phases": [
+   [
+    1700,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Togo highlands Ewe farming settlement"
+ },
+ {
+  "name": "Ouagadougou",
+  "lon": -1.52,
+  "lat": 12.37,
+  "phases": [
+   [
+    1050,
+    "village"
+   ],
+   [
+    1441,
+    "town"
+   ],
+   [
+    1600,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Mossi Moogho Naaba capital"
+ },
+ {
+  "name": "Tenkodogo",
+  "lon": -0.37,
+  "lat": 11.78,
+  "phases": [
+   [
+    1100,
+    "village"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Oldest Mossi kingdom capital, founding polity"
+ },
+ {
+  "name": "Yatenga (Ouahigouya)",
+  "lon": -2.42,
+  "lat": 13.58,
+  "phases": [
+   [
+    1540,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Mossi Yatenga kingdom capital"
+ },
+ {
+  "name": "Fada N'Gourma",
+  "lon": 0.36,
+  "lat": 12.06,
+  "phases": [
+   [
+    1400,
+    "village"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Gourmantche kingdom capital, eastern Burkina Faso"
+ },
+ {
+  "name": "Bobo-Dioulasso",
+  "lon": -4.3,
+  "lat": 11.18,
+  "phases": [
+   [
+    1400,
+    "village"
+   ],
+   [
+    1700,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Dyula and Bobo trading centre"
+ },
+ {
+  "name": "Dedougou",
+  "lon": -3.47,
+  "lat": 12.47,
+  "phases": [
+   [
+    1600,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Marka/Bwa market town, Mouhoun bend"
+ },
+ {
+  "name": "Gorom-Gorom",
+  "lon": -0.24,
+  "lat": 14.44,
+  "phases": [
+   [
+    1200,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Sahelian Fulani/Tuareg cattle market"
+ },
+ {
+  "name": "Djibo",
+  "lon": -1.63,
+  "lat": 14.1,
+  "phases": [
+   [
+    1600,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Sahel Fulani market town, northern Burkina Faso"
+ },
+ {
+  "name": "Banfora",
+  "lon": -4.76,
+  "lat": 10.63,
+  "phases": [
+   [
+    1500,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Karaboro/Dyula farming settlement, southwest Burkina"
+ },
+ {
+  "name": "Dori",
+  "lon": -0.03,
+  "lat": 14.03,
+  "phases": [
+   [
+    1300,
+    "village"
+   ],
+   [
+    1600,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Liptako Fulani emirate capital"
+ },
+ {
+  "name": "Say (Zarmaganda)",
+  "lon": 2.36,
+  "lat": 13.1,
+  "phases": [
+   [
+    1780,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "duplicate-avoided; see Say above"
+ },
+ {
+  "name": "Dakar",
+  "lon": -17.45,
+  "lat": 14.72,
+  "phases": [
+   [
+    1500,
+    "village"
+   ],
+   [
+    1857,
+    "town"
+   ],
+   [
+    1902,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Lebou fishing settlement, French AOF capital"
+ },
+ {
+  "name": "Goree Island",
+  "lon": -17.4,
+  "lat": 14.67,
+  "phases": [
+   [
+    1450,
+    "village"
+   ],
+   [
+    1588,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Major slave-trade entrepot off Dakar"
+ },
+ {
+  "name": "Saint-Louis",
+  "lon": -16.5,
+  "lat": 16.03,
+  "phases": [
+   [
+    1500,
+    "village"
+   ],
+   [
+    1659,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "French Senegal river-mouth trading post and capital"
+ },
+ {
+  "name": "Rufisque",
+  "lon": -17.27,
+  "lat": 14.72,
+  "phases": [
+   [
+    1400,
+    "village"
+   ],
+   [
+    1600,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Wolof/Lebou gum and groundnut trade port"
+ },
+ {
+  "name": "Kaolack",
+  "lon": -16.08,
+  "lat": 14.15,
+  "phases": [
+   [
+    1500,
+    "village"
+   ],
+   [
+    1900,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Saloum river groundnut trade centre"
+ },
+ {
+  "name": "Foundiougne",
+  "lon": -16.47,
+  "lat": 14.13,
+  "phases": [
+   [
+    1600,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Saloum kingdom river port"
+ },
+ {
+  "name": "Kahone",
+  "lon": -16.0,
+  "lat": 14.13,
+  "phases": [
+   [
+    1493,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Saloum kingdom capital"
+ },
+ {
+  "name": "Diakhao",
+  "lon": -16.45,
+  "lat": 14.35,
+  "phases": [
+   [
+    1550,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Sine kingdom royal capital"
+ },
+ {
+  "name": "Toubacouta",
+  "lon": -16.44,
+  "lat": 13.78,
+  "phases": [
+   [
+    1500,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Saloum delta Serer fishing village"
+ },
+ {
+  "name": "Nioro (Rip)",
+  "lon": -15.8,
+  "lat": 13.75,
+  "phases": [
+   [
+    1860,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Maba Diakhou Ba's jihadist capital, Rip"
+ },
+ {
+  "name": "Louga",
+  "lon": -16.22,
+  "lat": 15.62,
+  "phases": [
+   [
+    1700,
+    "village"
+   ],
+   [
+    1890,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Wolof Sahel market town, Cayor hinterland"
+ },
+ {
+  "name": "Mbour",
+  "lon": -16.97,
+  "lat": 14.42,
+  "phases": [
+   [
+    1500,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Serer/Lebou coastal fishing town"
+ },
+ {
+  "name": "Joal-Fadiouth",
+  "lon": -16.83,
+  "lat": 14.17,
+  "phases": [
+   [
+    1300,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Serer shell-mound settlement, ancient burial site"
+ },
+ {
+  "name": "Lambaye",
+  "lon": -16.6,
+  "lat": 15.05,
+  "phases": [
+   [
+    1550,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Cayor kingdom original capital"
+ },
+ {
+  "name": "M'Bul (Cayor)",
+  "lon": -16.75,
+  "lat": 15.1,
+  "phases": [
+   [
+    1700,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Later Cayor damel's royal residence"
+ },
+ {
+  "name": "Thies",
+  "lon": -16.93,
+  "lat": 14.79,
+  "phases": [
+   [
+    1700,
+    "village"
+   ],
+   [
+    1885,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Wolof/Serer railway junction town"
+ },
+ {
+  "name": "Coki (Cayor)",
+  "lon": -16.05,
+  "lat": 15.4,
+  "phases": [
+   [
+    1780,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Cayor Sereer/Wolof farming village"
+ },
+ {
+  "name": "Yang-Yang (Djolof)",
+  "lon": -15.8,
+  "lat": 15.85,
+  "phases": [
+   [
+    1450,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Djolof empire royal capital"
+ },
+ {
+  "name": "Linguere",
+  "lon": -15.12,
+  "lat": 15.4,
+  "phases": [
+   [
+    1600,
+    "village"
+   ],
+   [
+    1895,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Djolof successor state administrative town"
+ },
+ {
+  "name": "Matam",
+  "lon": -13.25,
+  "lat": 15.66,
+  "phases": [
+   [
+    1600,
+    "village"
+   ],
+   [
+    1857,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Fuuta Tooro river town on the Senegal"
+ },
+ {
+  "name": "Podor",
+  "lon": -14.96,
+  "lat": 16.66,
+  "phases": [
+   [
+    1600,
+    "village"
+   ],
+   [
+    1743,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Fuuta Tooro Senegal river French trading fort"
+ },
+ {
+  "name": "Fouta Toro (Guede)",
+  "lon": -14.2,
+  "lat": 16.45,
+  "phases": [
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Denanke kingdom capital, Fuuta Tooro"
+ },
+ {
+  "name": "Bakel",
+  "lon": -12.47,
+  "lat": 14.9,
+  "phases": [
+   [
+    1200,
+    "village"
+   ],
+   [
+    1820,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Upper Senegal river gum-trade fort town"
+ },
+ {
+  "name": "Ziguinchor",
+  "lon": -16.27,
+  "lat": 12.58,
+  "phases": [
+   [
+    1645,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Portuguese-founded Casamance river trading post"
+ },
+ {
+  "name": "Bignona",
+  "lon": -16.23,
+  "lat": 12.81,
+  "phases": [
+   [
+    1600,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Diola Casamance farming and rice-growing town"
+ },
+ {
+  "name": "Oussouye",
+  "lon": -16.55,
+  "lat": 12.48,
+  "phases": [
+   [
+    1400,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Diola sacred kingship centre, lower Casamance"
+ },
+ {
+  "name": "Banjul (Bathurst)",
+  "lon": -16.58,
+  "lat": 13.45,
+  "phases": [
+   [
+    1816,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "British Gambia river-mouth colonial capital"
+ },
+ {
+  "name": "Juffure",
+  "lon": -16.28,
+  "lat": 13.36,
+  "phases": [
+   [
+    1456,
+    "village"
+   ],
+   [
+    1651,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Gambia river Mandinka trading town, Kunta Kinte site"
+ },
+ {
+  "name": "Albreda",
+  "lon": -16.29,
+  "lat": 13.36,
+  "phases": [
+   [
+    1681,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "French Gambia river trading post opposite James Island"
+ },
+ {
+  "name": "Georgetown (MacCarthy Island)",
+  "lon": -14.77,
+  "lat": 13.55,
+  "phases": [
+   [
+    1823,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Gambia river freed-slave settlement"
+ },
+ {
+  "name": "Wuli (Fatatenda)",
+  "lon": -13.9,
+  "lat": 13.6,
+  "phases": [
+   [
+    1500,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Upper Gambia river Mandinka trade kingdom"
+ },
+ {
+  "name": "Bissau",
+  "lon": -15.6,
+  "lat": 11.86,
+  "phases": [
+   [
+    1450,
+    "village"
+   ],
+   [
+    1687,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Papel coastal settlement, Portuguese Guinea fort"
+ },
+ {
+  "name": "Cacheu",
+  "lon": -16.17,
+  "lat": 12.27,
+  "phases": [
+   [
+    1450,
+    "village"
+   ],
+   [
+    1588,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Earliest Portuguese Guinea-Bissau slave-trade fort"
+ },
+ {
+  "name": "Geba",
+  "lon": -14.9,
+  "lat": 12.28,
+  "phases": [
+   [
+    1400,
+    "village"
+   ],
+   [
+    1600,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Portuguese river trading post, upper Guinea"
+ },
+ {
+  "name": "Bafata",
+  "lon": -14.66,
+  "lat": 12.17,
+  "phases": [
+   [
+    1600,
+    "village"
+   ],
+   [
+    1696,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Fulani/Mandinka river trading town"
+ },
+ {
+  "name": "Farim",
+  "lon": -15.22,
+  "lat": 12.48,
+  "phases": [
+   [
+    1500,
+    "village"
+   ],
+   [
+    1600,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Portuguese Guinea river trading post"
+ },
+ {
+  "name": "Bolama",
+  "lon": -15.48,
+  "lat": 11.58,
+  "phases": [
+   [
+    1600,
+    "village"
+   ],
+   [
+    1879,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Bijago coastal island, brief Portuguese Guinea capital"
+ },
+ {
+  "name": "Bijagos (Bubaque)",
+  "lon": -15.83,
+  "lat": 11.28,
+  "phases": [
+   [
+    1500,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Bijago archipelago maritime chiefdom settlement"
+ },
+ {
+  "name": "Nzo (Kaabu capital, Kansala)",
+  "lon": -14.55,
+  "lat": 12.3,
+  "phases": [
+   [
+    1537,
+    "town"
+   ],
+   [
+    1867,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Kaabu Mandinka empire capital, fell in mass suicide"
+ },
+ {
+  "name": "Basse Santa Su",
+  "lon": -14.22,
+  "lat": 13.32,
+  "phases": [
+   [
+    1500,
+    "village"
+   ],
+   [
+    1893,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Upper Gambia river Mandinka market town"
+ },
+ {
+  "name": "Bakau",
+  "lon": -16.68,
+  "lat": 13.47,
+  "phases": [
+   [
+    1400,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Gambia coastal Mandinka fishing village"
+ },
+ {
+  "name": "Pisania",
+  "lon": -15.55,
+  "lat": 13.58,
+  "phases": [
+   [
+    1700,
+    "village"
+   ],
+   [
+    1816,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "British Gambia trading post visited by Mungo Park"
+ },
+ {
+  "name": "Old Oyo (Oyo-Ile)",
+  "lon": 3.72,
+  "lat": 8.95,
+  "phases": [
+   [
+    1300,
+    "town"
+   ],
+   [
+    1600,
+    "city"
+   ],
+   [
+    1835,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Capital of the Oyo empire, abandoned after Fulani jihad"
+ },
+ {
+  "name": "New Oyo (Ago-d'Oyo)",
+  "lon": 4.26,
+  "lat": 7.85,
+  "phases": [
+   [
+    1837,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Refounded Oyo capital after Old Oyo's fall"
+ },
+ {
+  "name": "Ife (Ile-Ife)",
+  "lon": 4.56,
+  "lat": 7.48,
+  "phases": [
+   [
+    500,
+    "village"
+   ],
+   [
+    900,
+    "town"
+   ],
+   [
+    1200,
+    "city"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Sacred Yoruba origin city, bronze-casting tradition"
+ },
+ {
+  "name": "Benin City",
+  "lon": 5.63,
+  "lat": 6.34,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1180,
+    "town"
+   ],
+   [
+    1440,
+    "city"
+   ],
+   [
+    1897,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Edo kingdom capital, sacked by British punitive expedition"
+ },
+ {
+  "name": "Owo",
+  "lon": 5.59,
+  "lat": 7.2,
+  "phases": [
+   [
+    1400,
+    "town"
+   ],
+   [
+    1600,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Yoruba kingdom between Ife and Benin traditions"
+ },
+ {
+  "name": "Ijebu-Ode",
+  "lon": 3.92,
+  "lat": 6.82,
+  "phases": [
+   [
+    1000,
+    "village"
+   ],
+   [
+    1400,
+    "town"
+   ],
+   [
+    1600,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ijebu kingdom capital, Sungbo's Eredo earthworks"
+ },
+ {
+  "name": "Abeokuta",
+  "lon": 3.35,
+  "lat": 7.16,
+  "phases": [
+   [
+    1830,
+    "town"
+   ],
+   [
+    1840,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Egba refugee federation capital after Owu wars"
+ },
+ {
+  "name": "Ibadan",
+  "lon": 3.9,
+  "lat": 7.38,
+  "phases": [
+   [
+    1829,
+    "town"
+   ],
+   [
+    1850,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Founded as a war camp, became largest Yoruba city"
+ },
+ {
+  "name": "Ogbomoso",
+  "lon": 4.24,
+  "lat": 8.13,
+  "phases": [
+   [
+    1600,
+    "village"
+   ],
+   [
+    1730,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Oyo-era Yoruba military settlement"
+ },
+ {
+  "name": "Ilorin",
+  "lon": 4.54,
+  "lat": 8.5,
+  "phases": [
+   [
+    1450,
+    "village"
+   ],
+   [
+    1817,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Oyo frontier town, became Fulani emirate after jihad"
+ },
+ {
+  "name": "Iwo",
+  "lon": 4.19,
+  "lat": 7.63,
+  "phases": [
+   [
+    1500,
+    "village"
+   ],
+   [
+    1700,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Yoruba town, Osun state, cloth-weaving centre"
+ },
+ {
+  "name": "Osogbo",
+  "lon": 4.56,
+  "lat": 7.77,
+  "phases": [
+   [
+    1600,
+    "village"
+   ],
+   [
+    1800,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Osun river sacred grove and refugee town"
+ },
+ {
+  "name": "Ede",
+  "lon": 4.44,
+  "lat": 7.73,
+  "phases": [
+   [
+    1500,
+    "village"
+   ],
+   [
+    1800,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Yoruba town, Oyo-Ijesa borderland"
+ },
+ {
+  "name": "Ijaye",
+  "lon": 3.9,
+  "lat": 7.65,
+  "phases": [
+   [
+    1830,
+    "town"
+   ],
+   [
+    1862,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Refugee war-camp town, destroyed in Ijaye war"
+ },
+ {
+  "name": "Ilesa",
+  "lon": 4.73,
+  "lat": 7.62,
+  "phases": [
+   [
+    1300,
+    "village"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ijesa kingdom capital"
+ },
+ {
+  "name": "Ondo",
+  "lon": 4.83,
+  "lat": 7.1,
+  "phases": [
+   [
+    1500,
+    "village"
+   ],
+   [
+    1600,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Yoruba kingdom capital, Ondo state"
+ },
+ {
+  "name": "Akure",
+  "lon": 5.19,
+  "lat": 7.25,
+  "phases": [
+   [
+    1400,
+    "village"
+   ],
+   [
+    1600,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Yoruba kingdom, related to Owo bronze tradition"
+ },
+ {
+  "name": "Ikere-Ekiti",
+  "lon": 5.23,
+  "lat": 7.5,
+  "phases": [
+   [
+    1400,
+    "village"
+   ],
+   [
+    1600,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ekiti Yoruba kingdom town"
+ },
+ {
+  "name": "Badagry",
+  "lon": 2.88,
+  "lat": 6.42,
+  "phases": [
+   [
+    1425,
+    "village"
+   ],
+   [
+    1736,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Major Atlantic slave-trade port west of Lagos"
+ },
+ {
+  "name": "Lagos (Eko)",
+  "lon": 3.38,
+  "lat": 6.45,
+  "phases": [
+   [
+    1500,
+    "village"
+   ],
+   [
+    1600,
+    "town"
+   ],
+   [
+    1861,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Awori/Benin settlement, British colony from 1861"
+ },
+ {
+  "name": "Epe",
+  "lon": 3.98,
+  "lat": 6.58,
+  "phases": [
+   [
+    1700,
+    "village"
+   ],
+   [
+    1863,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Lagoon slave and palm-oil trading town"
+ },
+ {
+  "name": "Porto-Novo",
+  "lon": 2.61,
+  "lat": 6.5,
+  "phases": [
+   [
+    1600,
+    "village"
+   ],
+   [
+    1730,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ajase, Yoruba-Aja port kingdom, later Dahomey capital"
+ },
+ {
+  "name": "Ouidah",
+  "lon": 2.09,
+  "lat": 6.36,
+  "phases": [
+   [
+    1580,
+    "village"
+   ],
+   [
+    1727,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Major Slave Coast Atlantic port, conquered by Dahomey"
+ },
+ {
+  "name": "Abomey",
+  "lon": 1.99,
+  "lat": 7.18,
+  "phases": [
+   [
+    1625,
+    "town"
+   ],
+   [
+    1650,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Capital of the Kingdom of Dahomey"
+ },
+ {
+  "name": "Allada",
+  "lon": 2.15,
+  "lat": 6.66,
+  "phases": [
+   [
+    1400,
+    "village"
+   ],
+   [
+    1575,
+    "town"
+   ],
+   [
+    1724,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Original Aja kingdom capital, conquered by Dahomey"
+ },
+ {
+  "name": "Cana",
+  "lon": 2.02,
+  "lat": 7.1,
+  "phases": [
+   [
+    1650,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Dahomey royal ceremonial town near Abomey"
+ },
+ {
+  "name": "Cotonou",
+  "lon": 2.44,
+  "lat": 6.37,
+  "phases": [
+   [
+    1700,
+    "village"
+   ],
+   [
+    1830,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Fon lagoon fishing and slave-trade port"
+ },
+ {
+  "name": "Grand-Popo",
+  "lon": 1.82,
+  "lat": 6.28,
+  "phases": [
+   [
+    1500,
+    "village"
+   ],
+   [
+    1650,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Aja/Mina slave-trade port, Mono river mouth"
+ },
+ {
+  "name": "Savalou",
+  "lon": 1.98,
+  "lat": 7.93,
+  "phases": [
+   [
+    1600,
+    "village"
+   ],
+   [
+    1700,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Mahi kingdom town, central Benin"
+ },
+ {
+  "name": "Nikki",
+  "lon": 3.2,
+  "lat": 9.93,
+  "phases": [
+   [
+    1400,
+    "village"
+   ],
+   [
+    1700,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Bariba/Borgu kingdom capital"
+ },
+ {
+  "name": "Kandi",
+  "lon": 2.94,
+  "lat": 11.13,
+  "phases": [
+   [
+    1500,
+    "village"
+   ],
+   [
+    1700,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Bariba Borgu provincial town, northern Benin"
+ },
+ {
+  "name": "Djougou",
+  "lon": 1.67,
+  "lat": 9.71,
+  "phases": [
+   [
+    1600,
+    "village"
+   ],
+   [
+    1800,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Yoruba-Bariba borderland trading town"
+ },
+ {
+  "name": "Parakou",
+  "lon": 2.63,
+  "lat": 9.34,
+  "phases": [
+   [
+    1700,
+    "village"
+   ],
+   [
+    1908,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Bariba market town, colonial railhead"
+ },
+ {
+  "name": "Kishi",
+  "lon": 3.85,
+  "lat": 9.08,
+  "phases": [
+   [
+    1500,
+    "village"
+   ],
+   [
+    1700,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Yoruba-Borgu borderland town"
+ },
+ {
+  "name": "Idah",
+  "lon": 6.73,
+  "lat": 7.11,
+  "phases": [
+   [
+    1400,
+    "town"
+   ],
+   [
+    1516,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Igala kingdom capital on the Niger"
+ },
+ {
+  "name": "Onitsha",
+  "lon": 6.79,
+  "lat": 6.15,
+  "phases": [
+   [
+    1500,
+    "village"
+   ],
+   [
+    1700,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Igbo river-port town founded by Anioma settlers"
+ },
+ {
+  "name": "Nri",
+  "lon": 6.98,
+  "lat": 6.17,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1100,
+    "town"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Igbo Ukwu bronze culture, ritual centre of Nri kingdom"
+ },
+ {
+  "name": "Arochukwu",
+  "lon": 7.9,
+  "lat": 5.39,
+  "phases": [
+   [
+    1650,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Aro Confederacy oracle and slave-trade hub"
+ },
+ {
+  "name": "Bonny",
+  "lon": 7.16,
+  "lat": 4.45,
+  "phases": [
+   [
+    1400,
+    "village"
+   ],
+   [
+    1650,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Niger Delta Ijaw slave and palm-oil trading city-state"
+ },
+ {
+  "name": "Calabar (Old Calabar)",
+  "lon": 8.32,
+  "lat": 4.95,
+  "phases": [
+   [
+    1600,
+    "town"
+   ],
+   [
+    1650,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Efik slave and palm-oil trade city-state"
+ },
+ {
+  "name": "Opobo",
+  "lon": 7.53,
+  "lat": 4.53,
+  "phases": [
+   [
+    1870,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Jaja of Opobo's breakaway palm-oil trading state"
+ },
+ {
+  "name": "Brass (Nembe)",
+  "lon": 6.24,
+  "lat": 4.32,
+  "phases": [
+   [
+    1500,
+    "village"
+   ],
+   [
+    1700,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Niger Delta Ijaw trading city-state"
+ },
+ {
+  "name": "Warri",
+  "lon": 5.75,
+  "lat": 5.52,
+  "phases": [
+   [
+    1480,
+    "town"
+   ],
+   [
+    1600,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Itsekiri kingdom capital, Portuguese-influenced"
+ },
+ {
+  "name": "Degema",
+  "lon": 6.75,
+  "lat": 4.73,
+  "phases": [
+   [
+    1600,
+    "village"
+   ],
+   [
+    1700,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Niger Delta Kalabari trading town"
+ },
+ {
+  "name": "Buguma",
+  "lon": 6.86,
+  "lat": 4.53,
+  "phases": [
+   [
+    1700,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Kalabari kingdom capital, Niger Delta"
+ },
+ {
+  "name": "Igbo-Ukwu",
+  "lon": 7.02,
+  "lat": 6.19,
+  "phases": [
+   [
+    900,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Renowned early Igbo bronze-casting site"
+ },
+ {
+  "name": "Ogoja",
+  "lon": 8.8,
+  "lat": 6.65,
+  "phases": [
+   [
+    1500,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Cross River borderland market village"
+ },
+ {
+  "name": "Uyo",
+  "lon": 7.93,
+  "lat": 5.04,
+  "phases": [
+   [
+    1600,
+    "village"
+   ],
+   [
+    1900,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ibibio market town, Cross River region"
+ },
+ {
+  "name": "Ikot Ekpene",
+  "lon": 7.71,
+  "lat": 5.18,
+  "phases": [
+   [
+    1600,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Ibibio raffia-craft market town"
+ },
+ {
+  "name": "Abakaliki",
+  "lon": 8.11,
+  "lat": 6.32,
+  "phases": [
+   [
+    1700,
+    "village"
+   ],
+   [
+    1902,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Igbo salt and rice market town"
+ },
+ {
+  "name": "Nsukka",
+  "lon": 7.4,
+  "lat": 6.86,
+  "phases": [
+   [
+    1500,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Early Igbo iron-smelting settlement cluster"
+ },
+ {
+  "name": "Awka",
+  "lon": 7.07,
+  "lat": 6.21,
+  "phases": [
+   [
+    1300,
+    "village"
+   ],
+   [
+    1700,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Igbo blacksmithing town tied to Nri ritual complex"
+ },
+ {
+  "name": "Owerri",
+  "lon": 7.03,
+  "lat": 5.48,
+  "phases": [
+   [
+    1500,
+    "village"
+   ],
+   [
+    1902,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Igbo market town, colonial administrative seat"
+ },
+ {
+  "name": "Aba",
+  "lon": 7.37,
+  "lat": 5.12,
+  "phases": [
+   [
+    1600,
+    "village"
+   ],
+   [
+    1901,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Igbo market town, 1929 Women's War epicentre"
+ },
+ {
+  "name": "Umuahia",
+  "lon": 7.49,
+  "lat": 5.53,
+  "phases": [
+   [
+    1600,
+    "village"
+   ],
+   [
+    1917,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Igbo railway market town"
+ },
+ {
+  "name": "Ikom",
+  "lon": 8.71,
+  "lat": 5.96,
+  "phases": [
+   [
+    1500,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Cross River monolith (akwanshi) sculpture sites"
+ },
+ {
+  "name": "Sapele",
+  "lon": 5.68,
+  "lat": 5.9,
+  "phases": [
+   [
+    1600,
+    "village"
+   ],
+   [
+    1890,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Urhobo timber and rubber trade town"
+ },
+ {
+  "name": "Agbor",
+  "lon": 6.2,
+  "lat": 6.26,
+  "phases": [
+   [
+    1400,
+    "village"
+   ],
+   [
+    1600,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Anioma Igbo kingdom, Benin-related dynasty"
+ },
+ {
+  "name": "Auchi",
+  "lon": 6.27,
+  "lat": 7.07,
+  "phases": [
+   [
+    1500,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Edo-Afenmai market town"
+ },
+ {
+  "name": "Jos",
+  "lon": 8.89,
+  "lat": 9.92,
+  "phases": [
+   [
+    500,
+    "village"
+   ],
+   [
+    1915,
+    "town"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Nok culture plateau region, colonial tin-mining town"
+ },
+ {
+  "name": "Nok",
+  "lon": 8.3,
+  "lat": 9.9,
+  "phases": [
+   [
+    -900,
+    "village"
+   ],
+   [
+    -500,
+    "town"
+   ],
+   [
+    200,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Type site of the Nok terracotta culture"
+ },
+ {
+  "name": "Taruga",
+  "lon": 7.7,
+  "lat": 9.1,
+  "phases": [
+   [
+    -600,
+    "village"
+   ],
+   [
+    -300,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Nok-culture iron-smelting settlement"
+ },
+ {
+  "name": "Birnin Gwari (Kauru)",
+  "lon": 8.2,
+  "lat": 10.6,
+  "phases": [
+   [
+    1200,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Nok-region Plateau hill settlement"
+ },
+ {
+  "name": "Kagoro",
+  "lon": 8.4,
+  "lat": 9.6,
+  "phases": [
+   [
+    1300,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Plateau hill-refuge settlement, precolonial"
+ },
+ {
+  "name": "Abuja (old, Suleja)",
+  "lon": 7.19,
+  "lat": 9.18,
+  "phases": [
+   [
+    1800,
+    "village"
+   ],
+   [
+    1825,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Zazzau refugee emirate capital, renamed Suleja"
+ },
+ {
+  "name": "Keffi",
+  "lon": 7.87,
+  "lat": 8.85,
+  "phases": [
+   [
+    1802,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Sokoto-era Hausa-Fulani emirate town"
+ },
+ {
+  "name": "Nasarawa",
+  "lon": 7.7,
+  "lat": 8.53,
+  "phases": [
+   [
+    1835,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Fulani emirate on the Benue frontier"
+ },
+ {
+  "name": "Lafia",
+  "lon": 8.51,
+  "lat": 8.49,
+  "phases": [
+   [
+    1780,
+    "village"
+   ],
+   [
+    1835,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Hausa-Fulani emirate, Benue valley"
+ },
+ {
+  "name": "Bida",
+  "lon": 6.02,
+  "lat": 9.08,
+  "phases": [
+   [
+    1859,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Nupe emirate capital after Fulani conquest"
+ },
+ {
+  "name": "Raba (Nupe)",
+  "lon": 5.1,
+  "lat": 9.05,
+  "phases": [
+   [
+    1780,
+    "town"
+   ],
+   [
+    1859,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Old Nupe kingdom capital before Bida"
+ },
+ {
+  "name": "Lokoja",
+  "lon": 6.74,
+  "lat": 7.8,
+  "phases": [
+   [
+    1830,
+    "village"
+   ],
+   [
+    1860,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Niger-Benue confluence, British trading post/colonial HQ"
+ },
+ {
+  "name": "Makurdi",
+  "lon": 8.54,
+  "lat": 7.73,
+  "phases": [
+   [
+    1700,
+    "village"
+   ],
+   [
+    1911,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Tiv/Idoma Benue river crossing town"
+ },
+ {
+  "name": "Wukari",
+  "lon": 9.78,
+  "lat": 7.87,
+  "phases": [
+   [
+    1780,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Jukun Kwararafa successor kingdom capital"
+ },
+ {
+  "name": "Kwararafa",
+  "lon": 10.0,
+  "lat": 8.5,
+  "phases": [
+   [
+    1400,
+    "village"
+   ],
+   [
+    1600,
+    "city"
+   ],
+   [
+    1750,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Jukun confederation capital, rival to Bornu and Kano"
+ },
+ {
+  "name": "Katagum",
+  "lon": 10.9,
+  "lat": 12.28,
+  "phases": [
+   [
+    1807,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Sokoto Caliphate frontier emirate, Bornu border"
+ },
+ {
+  "name": "Misau",
+  "lon": 10.47,
+  "lat": 11.42,
+  "phases": [
+   [
+    1824,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Sokoto Caliphate emirate, eastern Hausaland"
+ },
+ {
+  "name": "Potiskum",
+  "lon": 11.08,
+  "lat": 11.71,
+  "phases": [
+   [
+    1810,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ngizim kingdom, absorbed into Bornu-Sokoto sphere"
+ },
+ {
+  "name": "Geidam",
+  "lon": 11.92,
+  "lat": 12.9,
+  "phases": [
+   [
+    1700,
+    "village"
+   ],
+   [
+    1850,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Bornu frontier market town toward Lake Chad"
+ },
+ {
+  "name": "Damaturu",
+  "lon": 11.97,
+  "lat": 11.75,
+  "phases": [
+   [
+    1800,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Bornu-sphere Kanuri market settlement"
+ },
+ {
+  "name": "Gashua",
+  "lon": 11.05,
+  "lat": 12.87,
+  "phases": [
+   [
+    1750,
+    "village"
+   ],
+   [
+    1850,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Bornu/Sokoto borderland Fulani emirate town"
+ },
+ {
+  "name": "Baga",
+  "lon": 14.32,
+  "lat": 13.11,
+  "phases": [
+   [
+    1400,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Lake Chad Kanuri fishing settlement"
+ },
+ {
+  "name": "Doron Baga",
+  "lon": 14.15,
+  "lat": 13.19,
+  "phases": [
+   [
+    1600,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Lake Chad shore Kanuri fishing hamlet"
+ },
+ {
+  "name": "Ngala",
+  "lon": 14.19,
+  "lat": 12.35,
+  "phases": [
+   [
+    1500,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Bornu frontier market town near Chad-Cameroon border"
+ },
+ {
+  "name": "Kousseri (Logone-Birni)",
+  "lon": 15.03,
+  "lat": 12.08,
+  "phases": [
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Kotoko kingdom capital opposite Bornu"
+ },
+ {
+  "name": "Kotoko (Goulfey)",
+  "lon": 15.02,
+  "lat": 12.3,
+  "phases": [
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Kotoko walled city-state, Logone river"
+ },
+ {
+  "name": "N'Djamena (Fort-Lamy)",
+  "lon": 15.04,
+  "lat": 12.1,
+  "phases": [
+   [
+    1900,
+    "village"
+   ],
+   [
+    1900,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Founded by French as Fort-Lamy, Chari-Logone confluence"
+ },
+ {
+  "name": "Cross River Ikom monoliths (Nnam)",
+  "lon": 8.66,
+  "lat": 6.0,
+  "phases": [
+   [
+    1400,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Ejagham monolith-carving settlement cluster"
+ },
+ {
+  "name": "Ikoyi (Old Oyo province)",
+  "lon": 3.2,
+  "lat": 9.0,
+  "phases": [
+   [
+    1400,
+    "village"
+   ],
+   [
+    1600,
+    "town"
+   ],
+   [
+    1830,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Oyo empire provincial trading town"
+ },
+ {
+  "name": "Iseyin",
+  "lon": 3.6,
+  "lat": 7.97,
+  "phases": [
+   [
+    1650,
+    "village"
+   ],
+   [
+    1790,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Oyo-era Yoruba weaving town"
+ },
+ {
+  "name": "Ilaro",
+  "lon": 3.03,
+  "lat": 6.89,
+  "phases": [
+   [
+    1600,
+    "village"
+   ],
+   [
+    1789,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Egbado/Yewa Yoruba kingdom capital"
+ },
+ {
+  "name": "Sabe (Save)",
+  "lon": 2.44,
+  "lat": 8.03,
+  "phases": [
+   [
+    1600,
+    "village"
+   ],
+   [
+    1700,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Yoruba Sabe kingdom, present-day Benin"
+ },
+ {
+  "name": "Ketu",
+  "lon": 2.6,
+  "lat": 7.36,
+  "phases": [
+   [
+    1400,
+    "village"
+   ],
+   [
+    1600,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Yoruba Ketu kingdom, cross-border with Benin"
+ },
+ {
+  "name": "Dassa-Zoume",
+  "lon": 2.18,
+  "lat": 7.75,
+  "phases": [
+   [
+    1500,
+    "village"
+   ],
+   [
+    1700,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Yoruba-Fon borderland hill town, Benin"
+ },
+ {
+  "name": "Segbana",
+  "lon": 3.66,
+  "lat": 10.93,
+  "phases": [
+   [
+    1600,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Bariba borderland settlement, northeast Benin"
+ },
+ {
+  "name": "Wa Na (Wala)",
+  "lon": -2.5,
+  "lat": 10.1,
+  "phases": [
+   [
+    1450,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Wala paramountcy royal seat near Wa"
+ },
+ {
+  "name": "Gambaga",
+  "lon": -0.44,
+  "lat": 10.53,
+  "phases": [
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Original Mamprugu/Mamprusi capital before Nalerigu"
+ },
+ {
+  "name": "Daboya",
+  "lon": -1.15,
+  "lat": 9.53,
+  "phases": [
+   [
+    1400,
+    "village"
+   ],
+   [
+    1600,
+    "town"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Gonja salt-production and trading town"
+ },
+ {
+  "name": "Buipe",
+  "lon": -1.3,
+  "lat": 8.75,
+  "phases": [
+   [
+    1500,
+    "village"
+   ],
+   [
+    1650,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Gonja river port on the Black Volta trade route"
+ },
+ {
+  "name": "Prang",
+  "lon": -1.12,
+  "lat": 8.13,
+  "phases": [
+   [
+    1600,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Brong market town on the Volta trade corridor"
+ },
+ {
+  "name": "Atebubu",
+  "lon": -0.98,
+  "lat": 7.75,
+  "phases": [
+   [
+    1750,
+    "village"
+   ],
+   [
+    1800,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Brong kola and slave-trade market town"
+ },
+ {
+  "name": "Nkoranza",
+  "lon": -1.68,
+  "lat": 7.55,
+  "phases": [
+   [
+    1700,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Brong kingdom, Asante tributary"
+ },
+ {
+  "name": "Mampong (Asante)",
+  "lon": -1.4,
+  "lat": 7.06,
+  "phases": [
+   [
+    1700,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Senior Asante confederacy division capital"
+ },
+ {
+  "name": "Juaben",
+  "lon": -1.33,
+  "lat": 6.85,
+  "phases": [
+   [
+    1700,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Asante confederacy division capital"
+ },
+ {
+  "name": "Bekwai",
+  "lon": -1.58,
+  "lat": 6.45,
+  "phases": [
+   [
+    1700,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Asante confederacy division capital"
+ },
+ {
+  "name": "Dwaben (Old Juaben)",
+  "lon": -1.3,
+  "lat": 6.9,
+  "phases": [
+   [
+    1600,
+    "town"
+   ],
+   [
+    1875,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Original Juaben capital before Asante civil war exile"
+ },
+ {
+  "name": "Manso Nkwanta",
+  "lon": -1.9,
+  "lat": 6.3,
+  "phases": [
+   [
+    1650,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Traditional Asante founding settlement, near Kumasi"
+ },
+ {
+  "name": "Denkyira (Abankesieso)",
+  "lon": -1.85,
+  "lat": 6.05,
+  "phases": [
+   [
+    1600,
+    "town"
+   ],
+   [
+    1701,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Denkyira kingdom capital before Asante conquest"
+ },
+ {
+  "name": "Twifo Heman",
+  "lon": -1.7,
+  "lat": 5.9,
+  "phases": [
+   [
+    1600,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Akan forest-margin gold and kola town"
+ },
+ {
+  "name": "Wassa Amenfi",
+  "lon": -2.1,
+  "lat": 5.9,
+  "phases": [
+   [
+    1650,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Wassa kingdom goldfields settlement"
+ },
+ {
+  "name": "Sefwi Wiawso",
+  "lon": -2.48,
+  "lat": 6.21,
+  "phases": [
+   [
+    1700,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Sefwi kingdom capital, western Ghana goldfields"
+ },
+ {
+  "name": "Half Assini",
+  "lon": -2.88,
+  "lat": 5.08,
+  "phases": [
+   [
+    1600,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Nzema coastal trading village, Ivory Coast border"
+ },
+ {
+  "name": "Prampram",
+  "lon": 0.1,
+  "lat": 5.72,
+  "phases": [
+   [
+    1600,
+    "village"
+   ],
+   [
+    1706,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ga-Adangbe coastal trading town, Fort Vernon"
+ },
+ {
+  "name": "Ningo",
+  "lon": 0.1,
+  "lat": 5.78,
+  "phases": [
+   [
+    1600,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Dangme coastal fishing and salt town"
+ },
+ {
+  "name": "Shai Hills (Sege)",
+  "lon": 0.03,
+  "lat": 5.93,
+  "phases": [
+   [
+    1500,
+    "village"
+   ],
+   [
+    1892,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Shai Dangme hilltop refuge settlement"
+ },
+ {
+  "name": "Akwamufie",
+  "lon": 0.08,
+  "lat": 6.28,
+  "phases": [
+   [
+    1730,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Relocated Akwamu capital after 1730 collapse"
+ },
+ {
+  "name": "Akropong-Akuapem",
+  "lon": -0.17,
+  "lat": 5.97,
+  "phases": [
+   [
+    1733,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Akuapem state capital, Guan-Akan ridge town"
+ },
+ {
+  "name": "Koforidua",
+  "lon": -0.26,
+  "lat": 6.09,
+  "phases": [
+   [
+    1875,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Colonial-era railway and cocoa market town"
+ },
+ {
+  "name": "Ho",
+  "lon": 0.47,
+  "lat": 6.6,
+  "phases": [
+   [
+    1750,
+    "village"
+   ],
+   [
+    1900,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ewe hill town, German-then-British Togoland"
+ },
+ {
+  "name": "Kpandu",
+  "lon": 0.3,
+  "lat": 7.0,
+  "phases": [
+   [
+    1700,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Ewe Volta-region market town"
+ },
+ {
+  "name": "Kete Krachi",
+  "lon": 0.05,
+  "lat": 7.78,
+  "phases": [
+   [
+    1700,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Volta river Krachi Dente shrine and trade town"
+ },
+ {
+  "name": "Kintampo",
+  "lon": -1.73,
+  "lat": 8.05,
+  "phases": [
+   [
+    -1400,
+    "village"
+   ],
+   [
+    1700,
+    "town"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Kintampo culture Neolithic site, later trade town"
+ },
+ {
+  "name": "Techiman",
+  "lon": -1.94,
+  "lat": 7.59,
+  "phases": [
+   [
+    1300,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Bono state successor market town, see Bono Manso"
+ },
+ {
+  "name": "Berekum",
+  "lon": -2.58,
+  "lat": 7.45,
+  "phases": [
+   [
+    1600,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Brong-Ahafo market town"
+ },
+ {
+  "name": "Kade",
+  "lon": -0.85,
+  "lat": 6.08,
+  "phases": [
+   [
+    1700,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Akyem forest-margin cocoa/kola town"
+ },
+ {
+  "name": "Kibi (Akyem Abuakwa)",
+  "lon": -0.55,
+  "lat": 6.17,
+  "phases": [
+   [
+    1700,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Akyem Abuakwa kingdom capital"
+ },
+ {
+  "name": "Akyem Kotoku (Oda)",
+  "lon": -0.98,
+  "lat": 5.93,
+  "phases": [
+   [
+    1700,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Akyem Kotoku state capital"
+ },
+ {
+  "name": "Larteh",
+  "lon": -0.15,
+  "lat": 5.93,
+  "phases": [
+   [
+    1600,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Guan hill-refuge settlement, Akuapem ridge"
+ },
+ {
+  "name": "Nsawam",
+  "lon": -0.35,
+  "lat": 5.81,
+  "phases": [
+   [
+    1700,
+    "village"
+   ],
+   [
+    1880,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Akan-Guan market town on Accra-Kumasi road"
+ },
+ {
+  "name": "Suhum",
+  "lon": -0.45,
+  "lat": 6.04,
+  "phases": [
+   [
+    1700,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Akan cocoa-belt market town"
+ },
+ {
+  "name": "Manya Krobo (Odumase)",
+  "lon": 0.1,
+  "lat": 6.1,
+  "phases": [
+   [
+    1733,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Krobo state capital, Dangme hills"
+ },
+ {
+  "name": "Yendi Dabari",
+  "lon": 0.02,
+  "lat": 9.4,
+  "phases": [
+   [
+    1400,
+    "town"
+   ],
+   [
+    1700,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Older Dagbon capital before Yendi"
+ },
+ {
+  "name": "Karaga",
+  "lon": -0.42,
+  "lat": 9.9,
+  "phases": [
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Dagbon divisional chieftaincy town"
+ },
+ {
+  "name": "Savelugu",
+  "lon": -0.83,
+  "lat": 9.62,
+  "phases": [
+   [
+    1600,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Dagbon divisional chieftaincy town near Tamale"
+ },
+ {
+  "name": "Tamale",
+  "lon": -0.85,
+  "lat": 9.4,
+  "phases": [
+   [
+    1400,
+    "village"
+   ],
+   [
+    1907,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Colonial-era Dagbon administrative capital"
+ },
+ {
+  "name": "Bimbilla",
+  "lon": 0.05,
+  "lat": 8.85,
+  "phases": [
+   [
+    1700,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Nanumba kingdom capital"
+ },
+ {
+  "name": "Walewale",
+  "lon": -0.8,
+  "lat": 10.35,
+  "phases": [
+   [
+    1600,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Mamprusi Sahel-margin market town"
+ },
+ {
+  "name": "Diebougou",
+  "lon": -3.25,
+  "lat": 10.97,
+  "phases": [
+   [
+    1700,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Lobi/Dagara farming settlement, southwest Burkina"
+ },
+ {
+  "name": "Gaoua",
+  "lon": -3.18,
+  "lat": 10.3,
+  "phases": [
+   [
+    1700,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Lobi/Birifor kingdom seat, Poni province"
+ },
+ {
+  "name": "Leo",
+  "lon": -2.1,
+  "lat": 11.1,
+  "phases": [
+   [
+    1600,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Sisala/Gurunsi market town, southern Burkina"
+ },
+ {
+  "name": "Po (Burkina Faso)",
+  "lon": -1.15,
+  "lat": 11.17,
+  "phases": [
+   [
+    1500,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Kasena market town near Ghana border"
+ },
+ {
+  "name": "Boromo",
+  "lon": -2.93,
+  "lat": 11.75,
+  "phases": [
+   [
+    1600,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Mouhoun bend Bwa/Marka trading village"
+ },
+ {
+  "name": "Toma (Burkina)",
+  "lon": -2.9,
+  "lat": 12.75,
+  "phases": [
+   [
+    1500,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Samo farming settlement, west-central Burkina"
+ },
+ {
+  "name": "Ouahigouya market",
+  "lon": -2.42,
+  "lat": 13.58,
+  "phases": [
+   [
+    1540,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "duplicate guard; see Yatenga entry"
+ },
+ {
+  "name": "Kaya",
+  "lon": -1.09,
+  "lat": 13.09,
+  "phases": [
+   [
+    1600,
+    "village"
+   ],
+   [
+    1897,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Mossi Sahel-margin market and colonial town"
+ },
+ {
+  "name": "Koupela",
+  "lon": -0.35,
+  "lat": 12.18,
+  "phases": [
+   [
+    1600,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Mossi kingdom market town, eastern route"
+ },
+ {
+  "name": "Manga (Burkina)",
+  "lon": -1.07,
+  "lat": 11.66,
+  "phases": [
+   [
+    1500,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Mossi-Gurunsi borderland market town"
+ },
+ {
+  "name": "Niafunke",
+  "lon": -3.99,
+  "lat": 15.93,
+  "phases": [
+   [
+    1400,
+    "village"
+   ],
+   [
+    1700,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Niger river Songhai fishing and trade town"
+ },
+ {
+  "name": "Tondibi",
+  "lon": -0.3,
+  "lat": 16.35,
+  "phases": [
+   [
+    1400,
+    "village"
+   ],
+   [
+    1591,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Site of the 1591 Moroccan defeat of Songhai"
+ },
+ {
+  "name": "Bandiagara",
+  "lon": -3.61,
+  "lat": 14.35,
+  "phases": [
+   [
+    1400,
+    "village"
+   ],
+   [
+    1864,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Dogon escarpment town, later Tukulor/Toucouleur capital"
+ },
+ {
+  "name": "Sangha (Dogon)",
+  "lon": -3.3,
+  "lat": 14.47,
+  "phases": [
+   [
+    1300,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Dogon cliff-village cluster, Bandiagara escarpment"
+ },
+ {
+  "name": "Kani-Bonzon",
+  "lon": -3.45,
+  "lat": 14.3,
+  "phases": [
+   [
+    1200,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Early Dogon settlement site, Bandiagara plateau"
+ },
+ {
+  "name": "Douentza",
+  "lon": -2.95,
+  "lat": 14.99,
+  "phases": [
+   [
+    1500,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Fulani/Dogon Sahel-margin market town"
+ },
+ {
+  "name": "San (Mali)",
+  "lon": -4.9,
+  "lat": 13.3,
+  "phases": [
+   [
+    1400,
+    "village"
+   ],
+   [
+    1700,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Bambara/Bobo market town, Segou hinterland"
+ },
+ {
+  "name": "Koutiala",
+  "lon": -5.47,
+  "lat": 12.39,
+  "phases": [
+   [
+    1600,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Minianka farming and market town"
+ },
+ {
+  "name": "Yanfolila",
+  "lon": -8.15,
+  "lat": 11.19,
+  "phases": [
+   [
+    1500,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Wassoulou region Malinke farming town"
+ },
+ {
+  "name": "Bougouni",
+  "lon": -7.48,
+  "lat": 11.42,
+  "phases": [
+   [
+    1600,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Wassoulou Bambara market town"
+ },
+ {
+  "name": "Kita",
+  "lon": -9.49,
+  "lat": 13.03,
+  "phases": [
+   [
+    1500,
+    "village"
+   ],
+   [
+    1881,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Malinke market town, French Soudan railhead"
+ },
+ {
+  "name": "Yelimane",
+  "lon": -10.57,
+  "lat": 15.13,
+  "phases": [
+   [
+    1600,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Kaarta region Soninke farming settlement"
+ },
+ {
+  "name": "Nara (Mali)",
+  "lon": -7.28,
+  "lat": 15.17,
+  "phases": [
+   [
+    1650,
+    "village"
+   ],
+   [
+    1854,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Kaarta kingdom border town"
+ },
+ {
+  "name": "Diema",
+  "lon": -9.2,
+  "lat": 14.55,
+  "phases": [
+   [
+    1650,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Kaarta Bambara kingdom market village"
+ },
+ {
+  "name": "Bafoulabe",
+  "lon": -10.83,
+  "lat": 13.81,
+  "phases": [
+   [
+    1600,
+    "village"
+   ],
+   [
+    1880,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Senegal-Bafing river confluence trading post"
+ },
+ {
+  "name": "Kenieba",
+  "lon": -11.23,
+  "lat": 12.87,
+  "phases": [
+   [
+    1500,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Bambuk goldfields mining settlement"
+ },
+ {
+  "name": "Bambuk (goldfields)",
+  "lon": -11.6,
+  "lat": 13.3,
+  "phases": [
+   [
+    700,
+    "village"
+   ],
+   [
+    1000,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Historic Soninke/Malinke gold-mining region towns"
+ },
+ {
+  "name": "Bure goldfields",
+  "lon": -9.0,
+  "lat": 11.0,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1200,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Major Mali-empire-era goldfield, upper Niger"
+ },
+ {
+  "name": "Siguiri",
+  "lon": -9.17,
+  "lat": 11.42,
+  "phases": [
+   [
+    1300,
+    "village"
+   ],
+   [
+    1880,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Bure goldfields market town, upper Niger"
+ },
+ {
+  "name": "Faranah",
+  "lon": -10.74,
+  "lat": 10.04,
+  "phases": [
+   [
+    1600,
+    "village"
+   ],
+   [
+    1850,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Upper Niger source-region Malinke town"
+ },
+ {
+  "name": "Dinguiraye",
+  "lon": -10.72,
+  "lat": 11.3,
+  "phases": [
+   [
+    1850,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Samori Toure's early Wassoulou empire capital"
+ },
+ {
+  "name": "Bissandugu",
+  "lon": -9.15,
+  "lat": 9.15,
+  "phases": [
+   [
+    1878,
+    "town"
+   ],
+   [
+    1892,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Samori Toure's Wassoulou empire capital"
+ },
+ {
+  "name": "Sanankoro",
+  "lon": -8.8,
+  "lat": 10.2,
+  "phases": [
+   [
+    1870,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Samorian-era Wassoulou base settlement"
+ },
+ {
+  "name": "Macenta",
+  "lon": -9.47,
+  "lat": 8.55,
+  "phases": [
+   [
+    1600,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Guinea forest-region Toma/Manon settlement"
+ },
+ {
+  "name": "Nzerekore",
+  "lon": -8.82,
+  "lat": 7.75,
+  "phases": [
+   [
+    1600,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Guinea forest-region market town"
+ },
+ {
+  "name": "Beyla",
+  "lon": -8.65,
+  "lat": 8.68,
+  "phases": [
+   [
+    1600,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Kissi/Malinke forest-margin market town"
+ },
+ {
+  "name": "Gaoual",
+  "lon": -13.2,
+  "lat": 11.75,
+  "phases": [
+   [
+    1700,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Fouta Djallon frontier Fulani settlement"
+ },
+ {
+  "name": "Kindia",
+  "lon": -12.86,
+  "lat": 10.06,
+  "phases": [
+   [
+    1700,
+    "village"
+   ],
+   [
+    1904,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Fouta Djallon foothill market and colonial town"
+ },
+ {
+  "name": "Mamou",
+  "lon": -12.09,
+  "lat": 10.38,
+  "phases": [
+   [
+    1700,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Fouta Djallon central highland market town"
+ },
+ {
+  "name": "Pita",
+  "lon": -12.4,
+  "lat": 11.08,
+  "phases": [
+   [
+    1727,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Fouta Djallon almamy provincial capital"
+ },
+ {
+  "name": "Dabola",
+  "lon": -11.12,
+  "lat": 10.75,
+  "phases": [
+   [
+    1700,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Fouta Djallon-Upper Niger borderland town"
+ },
+ {
+  "name": "Tougan",
+  "lon": -3.07,
+  "lat": 13.07,
+  "phases": [
+   [
+    1600,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Samo/Marka Sahel-margin market village"
+ },
+ {
+  "name": "Nouna",
+  "lon": -3.87,
+  "lat": 12.73,
+  "phases": [
+   [
+    1600,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Bwa/Marka farming market town, west Burkina"
+ },
+ {
+  "name": "Ziniare",
+  "lon": -1.3,
+  "lat": 12.58,
+  "phases": [
+   [
+    1600,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Mossi Ouagadougou hinterland town"
+ },
+ {
+  "name": "Bagre (Burkina)",
+  "lon": -0.51,
+  "lat": 11.48,
+  "phases": [
+   [
+    1500,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Bissa market village, Volta river"
+ },
+ {
+  "name": "Djibasso",
+  "lon": -4.2,
+  "lat": 13.1,
+  "phases": [
+   [
+    1600,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Mali-Burkina Sahel-margin Marka village"
+ },
+ {
+  "name": "Sansanding",
+  "lon": -6.0,
+  "lat": 13.78,
+  "phases": [
+   [
+    1700,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Bambara Segou river trade town, Mungo Park route"
+ },
+ {
+  "name": "Macina (town)",
+  "lon": -5.35,
+  "lat": 14.08,
+  "phases": [
+   [
+    1400,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "duplicate guard; see Ke-Macina entry above"
+ },
+ {
+  "name": "Youvarou",
+  "lon": -4.02,
+  "lat": 15.13,
+  "phases": [
+   [
+    1500,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Inland Niger Delta Fulani fishing settlement"
+ },
+ {
+  "name": "Lac Debo villages",
+  "lon": -4.35,
+  "lat": 14.88,
+  "phases": [
+   [
+    1400,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Seasonal Bozo/Fulani fishing settlement, Lake Debo"
+ },
+ {
+  "name": "Goundam",
+  "lon": -3.66,
+  "lat": 16.42,
+  "phases": [
+   [
+    1500,
+    "village"
+   ],
+   [
+    1700,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Lake Faguibine Songhai/Tuareg market town"
+ },
+ {
+  "name": "Bourem",
+  "lon": -0.34,
+  "lat": 16.97,
+  "phases": [
+   [
+    1400,
+    "village"
+   ],
+   [
+    1700,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Songhai river port between Gao and Timbuktu"
+ },
+ {
+  "name": "Ansongo",
+  "lon": 0.5,
+  "lat": 15.66,
+  "phases": [
+   [
+    1400,
+    "village"
+   ],
+   [
+    1700,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Songhai/Zarma river town downstream of Gao"
+ },
+ {
+  "name": "Menaka",
+  "lon": 2.4,
+  "lat": 15.92,
+  "phases": [
+   [
+    1600,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Tuareg Azawagh borderland settlement"
+ },
+ {
+  "name": "Kidal",
+  "lon": 1.41,
+  "lat": 18.44,
+  "phases": [
+   [
+    1600,
+    "village"
+   ],
+   [
+    1900,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Adagh Tuareg confederation seat"
+ },
+ {
+  "name": "Tessalit",
+  "lon": 1.01,
+  "lat": 20.2,
+  "phases": [
+   [
+    1600,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Northern Mali Tuareg oasis settlement"
+ },
+ {
+  "name": "In Gall",
+  "lon": 6.94,
+  "lat": 16.77,
+  "phases": [
+   [
+    1000,
+    "village"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Air-region Tuareg salt-cure oasis, Cure Salee"
+ },
+ {
+  "name": "Tahoua",
+  "lon": 5.27,
+  "lat": 14.89,
+  "phases": [
+   [
+    1650,
+    "village"
+   ],
+   [
+    1900,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ader region Hausa-Tuareg market town"
+ },
+ {
+  "name": "Illela",
+  "lon": 5.3,
+  "lat": 13.73,
+  "phases": [
+   [
+    1500,
+    "village"
+   ],
+   [
+    1700,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Hausa Ader-Sokoto borderland market town"
+ },
+ {
+  "name": "Konni (Birni N'Konni)",
+  "lon": 5.26,
+  "lat": 13.79,
+  "phases": [
+   [
+    1750,
+    "village"
+   ],
+   [
+    1900,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Hausa Ader market town, Niger-Nigeria border"
+ },
+ {
+  "name": "Diffa",
+  "lon": 12.61,
+  "lat": 13.32,
+  "phases": [
+   [
+    1600,
+    "village"
+   ],
+   [
+    1900,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Kanuri Lake Chad basin market town"
+ },
+ {
+  "name": "N'Guigmi",
+  "lon": 13.11,
+  "lat": 14.25,
+  "phases": [
+   [
+    1500,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Kanuri Lake Chad shore fishing/trade village"
+ },
+ {
+  "name": "Goure",
+  "lon": 10.27,
+  "lat": 13.98,
+  "phases": [
+   [
+    1700,
+    "village"
+   ],
+   [
+    1899,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Damagaram-Bornu borderland market town"
+ },
+ {
+  "name": "Magaria",
+  "lon": 8.9,
+  "lat": 12.99,
+  "phases": [
+   [
+    1750,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Damagaram sultanate market town near Hausa-Nigeria border"
+ },
+ {
+  "name": "Illorin road towns (Offa)",
+  "lon": 4.72,
+  "lat": 8.15,
+  "phases": [
+   [
+    1400,
+    "village"
+   ],
+   [
+    1700,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Yoruba town, Oyo-Ilorin trade corridor"
+ },
+ {
+  "name": "Shaki",
+  "lon": 3.39,
+  "lat": 8.66,
+  "phases": [
+   [
+    1400,
+    "village"
+   ],
+   [
+    1600,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Oyo-era Yoruba borderland town, weaving centre"
+ },
+ {
+  "name": "Igboho",
+  "lon": 3.78,
+  "lat": 8.83,
+  "phases": [
+   [
+    1535,
+    "town"
+   ],
+   [
+    1600,
+    "city"
+   ],
+   [
+    1837,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Second Oyo capital during Nupe/Borgu exile"
+ },
+ {
+  "name": "Igbeti",
+  "lon": 4.03,
+  "lat": 8.85,
+  "phases": [
+   [
+    1500,
+    "village"
+   ],
+   [
+    1700,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Oyo-era Yoruba marble-quarrying town"
+ },
+ {
+  "name": "Ikirun",
+  "lon": 4.68,
+  "lat": 7.9,
+  "phases": [
+   [
+    1600,
+    "village"
+   ],
+   [
+    1800,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Yoruba town, site of 1878 Ikirun war"
+ },
+ {
+  "name": "Oyo-Oke (Ajase-Ipo)",
+  "lon": 4.55,
+  "lat": 8.42,
+  "phases": [
+   [
+    1500,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Oyo-Nupe borderland market village"
+ },
+ {
+  "name": "Erin-Ile",
+  "lon": 4.75,
+  "lat": 8.13,
+  "phases": [
+   [
+    1400,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Yoruba town near Ife-Oyo cultural corridor"
+ },
+ {
+  "name": "Ifon (Yoruba)",
+  "lon": 5.2,
+  "lat": 6.9,
+  "phases": [
+   [
+    1400,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Yoruba-Edo borderland town"
+ },
+ {
+  "name": "Ise-Ekiti",
+  "lon": 5.44,
+  "lat": 7.47,
+  "phases": [
+   [
+    1400,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ekiti Yoruba kingdom town"
+ },
+ {
+  "name": "Ado-Ekiti",
+  "lon": 5.22,
+  "lat": 7.62,
+  "phases": [
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ekiti Yoruba kingdom capital"
+ },
+ {
+  "name": "Efon-Alaaye",
+  "lon": 4.93,
+  "lat": 7.65,
+  "phases": [
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ekiti Yoruba kingdom capital"
+ },
+ {
+  "name": "Okitipupa",
+  "lon": 4.79,
+  "lat": 6.5,
+  "phases": [
+   [
+    1500,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Ikale Yoruba coastal-forest town"
+ },
+ {
+  "name": "Ijero-Ekiti",
+  "lon": 5.08,
+  "lat": 7.82,
+  "phases": [
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ekiti Yoruba kingdom capital"
+ },
+ {
+  "name": "Ughelli",
+  "lon": 5.99,
+  "lat": 5.49,
+  "phases": [
+   [
+    1500,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Urhobo market town, Niger Delta"
+ },
+ {
+  "name": "Benin river towns (Gwato/Ughoton)",
+  "lon": 5.55,
+  "lat": 6.1,
+  "phases": [
+   [
+    1485,
+    "town"
+   ],
+   [
+    1700,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Benin kingdom's Atlantic port on the Gwato creek"
+ },
+ {
+  "name": "Ekpoma",
+  "lon": 6.14,
+  "lat": 6.75,
+  "phases": [
+   [
+    1500,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Esan (Edo) kingdom market town"
+ },
+ {
+  "name": "Uromi",
+  "lon": 6.34,
+  "lat": 6.7,
+  "phases": [
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Esan kingdom capital, Benin-related dynasty"
+ },
+ {
+  "name": "Igarra",
+  "lon": 6.1,
+  "lat": 7.53,
+  "phases": [
+   [
+    1500,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Afemai/Yoruba-Edo borderland market town"
+ },
+ {
+  "name": "Agenebode",
+  "lon": 6.68,
+  "lat": 7.25,
+  "phases": [
+   [
+    1600,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Niger river Edo-Igala trading town"
+ },
+ {
+  "name": "Ogbomoso road (Ilobu)",
+  "lon": 4.32,
+  "lat": 7.8,
+  "phases": [
+   [
+    1500,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Oyo-Ijesa corridor Yoruba market town"
+ },
+ {
+  "name": "Ipetumodu",
+  "lon": 4.44,
+  "lat": 7.55,
+  "phases": [
+   [
+    1400,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Ife-region Yoruba farming town"
+ },
+ {
+  "name": "Igbomina towns (Omu-Aran)",
+  "lon": 5.1,
+  "lat": 8.15,
+  "phases": [
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Igbomina Yoruba kingdom capital"
+ },
+ {
+  "name": "Ijaye Orile",
+  "lon": 3.62,
+  "lat": 8.3,
+  "phases": [
+   [
+    1500,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Old Oyo-empire era Yoruba town, predecessor to Ijaye"
+ },
+ {
+  "name": "Egbado (Aiyetoro)",
+  "lon": 2.9,
+  "lat": 6.95,
+  "phases": [
+   [
+    1700,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Egbado corridor Yoruba trading town toward coast"
+ },
+ {
+  "name": "Meko",
+  "lon": 2.75,
+  "lat": 7.44,
+  "phases": [
+   [
+    1600,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Yoruba-Egbado borderland town, Nigeria-Benin border"
+ }
+]

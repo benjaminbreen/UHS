@@ -1,0 +1,6285 @@
+[
+  {
+    "name": "Caral",
+    "lon": -77.52,
+    "lat": -10.89,
+    "phases": [
+      [
+        -2600,
+        "town"
+      ],
+      [
+        -1800,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Norte Chico ceremonial complex, Supe valley"
+  },
+  {
+    "name": "Aspero",
+    "lon": -77.77,
+    "lat": -10.77,
+    "phases": [
+      [
+        -3000,
+        "village"
+      ],
+      [
+        -1800,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Coastal Norte Chico fishing-farming site"
+  },
+  {
+    "name": "Bandurria",
+    "lon": -77.62,
+    "lat": -11.07,
+    "phases": [
+      [
+        -2800,
+        "village"
+      ],
+      [
+        -1500,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Norte Chico site, Huaura valley"
+  },
+  {
+    "name": "Vichama",
+    "lon": -77.68,
+    "lat": -10.95,
+    "phases": [
+      [
+        -2400,
+        "village"
+      ],
+      [
+        -1500,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Late Norte Chico site, V\u00e9gueta"
+  },
+  {
+    "name": "El Paraiso",
+    "lon": -77.15,
+    "lat": -11.65,
+    "phases": [
+      [
+        -2000,
+        "village"
+      ],
+      [
+        -1500,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Large preceramic complex near Lima"
+  },
+  {
+    "name": "Sechin Bajo",
+    "lon": -78.3,
+    "lat": -9.55,
+    "phases": [
+      [
+        -3500,
+        "village"
+      ],
+      [
+        -1200,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Early monumental site, Casma valley"
+  },
+  {
+    "name": "Chavin de Huantar",
+    "lon": -77.18,
+    "lat": -9.59,
+    "phases": [
+      [
+        -1200,
+        "town"
+      ],
+      [
+        -200,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Highland oracle centre, Chavin cult"
+  },
+  {
+    "name": "Cerro Sechin",
+    "lon": -78.31,
+    "lat": -9.48,
+    "phases": [
+      [
+        -1600,
+        "village"
+      ],
+      [
+        -800,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Casma valley carved-stone monument site"
+  },
+  {
+    "name": "Kotosh",
+    "lon": -76.25,
+    "lat": -9.94,
+    "phases": [
+      [
+        -2000,
+        "village"
+      ],
+      [
+        200,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Temple of the Crossed Hands, Huanuco"
+  },
+  {
+    "name": "Pacopampa",
+    "lon": -79.02,
+    "lat": -6.36,
+    "phases": [
+      [
+        -1200,
+        "village"
+      ],
+      [
+        -200,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Northern highland Chavin-era centre"
+  },
+  {
+    "name": "San Lorenzo Tenochtitlan",
+    "lon": -94.75,
+    "lat": 17.75,
+    "phases": [
+      [
+        -1400,
+        "town"
+      ],
+      [
+        -900,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Earliest Olmec capital, colossal heads"
+  },
+  {
+    "name": "La Venta",
+    "lon": -94.04,
+    "lat": 18.1,
+    "phases": [
+      [
+        -1000,
+        "town"
+      ],
+      [
+        -400,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Olmec ceremonial centre, Tabasco"
+  },
+  {
+    "name": "Tres Zapotes",
+    "lon": -95.45,
+    "lat": 18.47,
+    "phases": [
+      [
+        -1000,
+        "town"
+      ],
+      [
+        100,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Late Olmec centre, Stela C long count"
+  },
+  {
+    "name": "Laguna de los Cerros",
+    "lon": -94.93,
+    "lat": 17.78,
+    "phases": [
+      [
+        -1200,
+        "village"
+      ],
+      [
+        -400,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Olmec-era site, Veracruz"
+  },
+  {
+    "name": "San Jose Mogote",
+    "lon": -96.76,
+    "lat": 17.13,
+    "phases": [
+      [
+        -1400,
+        "village"
+      ],
+      [
+        -500,
+        "town"
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Early Zapotec village, Etla valley"
+  },
+  {
+    "name": "Monte Alban",
+    "lon": -96.77,
+    "lat": 17.04,
+    "phases": [
+      [
+        -500,
+        "city"
+      ],
+      [
+        850,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Zapotec capital atop artificial mountain"
+  },
+  {
+    "name": "Mitla",
+    "lon": -96.36,
+    "lat": 16.92,
+    "phases": [
+      [
+        100,
+        "village"
+      ],
+      [
+        900,
+        "town"
+      ],
+      [
+        1521,
+        "town"
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Zapotec religious centre, mosaic tombs"
+  },
+  {
+    "name": "Zaachila",
+    "lon": -96.75,
+    "lat": 16.98,
+    "phases": [
+      [
+        1300,
+        "town"
+      ],
+      [
+        1521,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Late Zapotec kingdom capital"
+  },
+  {
+    "name": "Tilantongo",
+    "lon": -97.2,
+    "lat": 17.28,
+    "phases": [
+      [
+        900,
+        "town"
+      ],
+      [
+        1521,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Mixtec dynastic centre, Codex Zouche-Nuttall"
+  },
+  {
+    "name": "Yagul",
+    "lon": -96.52,
+    "lat": 16.99,
+    "phases": [
+      [
+        500,
+        "village"
+      ],
+      [
+        1200,
+        "town"
+      ],
+      [
+        1521,
+        "town"
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Zapotec hilltop fortified town"
+  },
+  {
+    "name": "Teposcolula",
+    "lon": -97.47,
+    "lat": 17.48,
+    "phases": [
+      [
+        1000,
+        "town"
+      ],
+      [
+        1521,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Mixtec Yucu Ndaa kingdom seat"
+  },
+  {
+    "name": "Yanhuitlan",
+    "lon": -97.35,
+    "lat": 17.53,
+    "phases": [
+      [
+        1200,
+        "town"
+      ],
+      [
+        1521,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Mixtec cacicazgo, later Dominican convent town"
+  },
+  {
+    "name": "Teotihuacan",
+    "lon": -98.84,
+    "lat": 19.69,
+    "phases": [
+      [
+        -200,
+        "city"
+      ],
+      [
+        550,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Largest Classic Mesoamerican metropolis"
+  },
+  {
+    "name": "Cuicuilco",
+    "lon": -99.17,
+    "lat": 19.29,
+    "phases": [
+      [
+        -800,
+        "town"
+      ],
+      [
+        -50,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Early Basin of Mexico centre, buried by lava"
+  },
+  {
+    "name": "Cholula",
+    "lon": -98.3,
+    "lat": 19.06,
+    "phases": [
+      [
+        -500,
+        "town"
+      ],
+      [
+        1521,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Great Pyramid, continuous occupation to conquest"
+  },
+  {
+    "name": "Xochicalco",
+    "lon": -99.3,
+    "lat": 18.8,
+    "phases": [
+      [
+        650,
+        "town"
+      ],
+      [
+        900,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Epiclassic hilltop centre, Morelos"
+  },
+  {
+    "name": "Tula",
+    "lon": -99.34,
+    "lat": 20.06,
+    "phases": [
+      [
+        750,
+        "town"
+      ],
+      [
+        900,
+        "city"
+      ],
+      [
+        1150,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Toltec capital, Tollan"
+  },
+  {
+    "name": "Tenayuca",
+    "lon": -99.15,
+    "lat": 19.53,
+    "phases": [
+      [
+        1100,
+        "village"
+      ],
+      [
+        1250,
+        "town"
+      ],
+      [
+        1521,
+        "town"
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Chichimec-Nahua town, Basin of Mexico"
+  },
+  {
+    "name": "Azcapotzalco",
+    "lon": -99.19,
+    "lat": 19.48,
+    "phases": [
+      [
+        1200,
+        "town"
+      ],
+      [
+        1428,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Tepanec capital, destroyed by Triple Alliance"
+  },
+  {
+    "name": "Texcoco",
+    "lon": -98.88,
+    "lat": 19.51,
+    "phases": [
+      [
+        1200,
+        "town"
+      ],
+      [
+        1428,
+        "city"
+      ],
+      [
+        1521,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Acolhua capital, Triple Alliance member"
+  },
+  {
+    "name": "Tlacopan",
+    "lon": -99.19,
+    "lat": 19.44,
+    "phases": [
+      [
+        1350,
+        "town"
+      ],
+      [
+        1521,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Triple Alliance member, now Tacuba"
+  },
+  {
+    "name": "Tenochtitlan",
+    "lon": -99.13,
+    "lat": 19.43,
+    "phases": [
+      [
+        1325,
+        "city"
+      ],
+      [
+        1521,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Aztec imperial capital, island city"
+  },
+  {
+    "name": "Mexico City",
+    "lon": -99.13,
+    "lat": 19.43,
+    "phases": [
+      [
+        1521,
+        "city"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Colonial and republican capital on Tenochtitlan's ruins"
+  },
+  {
+    "name": "Tlatelolco",
+    "lon": -99.14,
+    "lat": 19.45,
+    "phases": [
+      [
+        1338,
+        "town"
+      ],
+      [
+        1521,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Twin city of Tenochtitlan, great market"
+  },
+  {
+    "name": "Tlaxcala",
+    "lon": -98.24,
+    "lat": 19.32,
+    "phases": [
+      [
+        1200,
+        "town"
+      ],
+      [
+        1521,
+        "city"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Independent Nahua republic, allied Cortes"
+  },
+  {
+    "name": "Cholollan",
+    "lon": -98.3,
+    "lat": 19.06,
+    "phases": [
+      [
+        1521,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Colonial-era continuation of Cholula"
+  },
+  {
+    "name": "Huexotzinco",
+    "lon": -98.4,
+    "lat": 19.15,
+    "phases": [
+      [
+        1200,
+        "town"
+      ],
+      [
+        1521,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Nahua altepetl, Puebla region"
+  },
+  {
+    "name": "Tepeaca",
+    "lon": -97.9,
+    "lat": 18.96,
+    "phases": [
+      [
+        1300,
+        "town"
+      ],
+      [
+        1521,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Aztec frontier market town, Puebla"
+  },
+  {
+    "name": "Cuernavaca",
+    "lon": -99.22,
+    "lat": 18.92,
+    "phases": [
+      [
+        1200,
+        "town"
+      ],
+      [
+        1521,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Tlahuica capital, Cuauhnahuac"
+  },
+  {
+    "name": "Toluca",
+    "lon": -99.66,
+    "lat": 19.29,
+    "phases": [
+      [
+        1200,
+        "town"
+      ],
+      [
+        1521,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Matlatzinca valley centre"
+  },
+  {
+    "name": "Malinalco",
+    "lon": -99.49,
+    "lat": 18.95,
+    "phases": [
+      [
+        1200,
+        "village"
+      ],
+      [
+        1476,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Aztec eagle/jaguar warrior temple town"
+  },
+  {
+    "name": "Calixtlahuaca",
+    "lon": -99.68,
+    "lat": 19.31,
+    "phases": [
+      [
+        1100,
+        "town"
+      ],
+      [
+        1521,
+        "town"
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Matlatzinca capital, Toluca valley"
+  },
+  {
+    "name": "Tzintzuntzan",
+    "lon": -101.58,
+    "lat": 19.62,
+    "phases": [
+      [
+        1300,
+        "town"
+      ],
+      [
+        1450,
+        "city"
+      ],
+      [
+        1530,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Tarascan (Purepecha) imperial capital"
+  },
+  {
+    "name": "Patzcuaro",
+    "lon": -101.61,
+    "lat": 19.51,
+    "phases": [
+      [
+        1300,
+        "town"
+      ],
+      [
+        1521,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Tarascan lake town, colonial bishopric"
+  },
+  {
+    "name": "Ihuatzio",
+    "lon": -101.63,
+    "lat": 19.58,
+    "phases": [
+      [
+        1200,
+        "town"
+      ],
+      [
+        1521,
+        "town"
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Early Tarascan capital, Lake Patzcuaro"
+  },
+  {
+    "name": "El Tajin",
+    "lon": -97.38,
+    "lat": 20.45,
+    "phases": [
+      [
+        600,
+        "town"
+      ],
+      [
+        900,
+        "city"
+      ],
+      [
+        1200,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Totonac-Huastec ballgame capital, Veracruz"
+  },
+  {
+    "name": "Cempoala",
+    "lon": -96.4,
+    "lat": 19.45,
+    "phases": [
+      [
+        1200,
+        "town"
+      ],
+      [
+        1521,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Totonac capital, first allies of Cortes"
+  },
+  {
+    "name": "Tamtoc",
+    "lon": -99.03,
+    "lat": 22.07,
+    "phases": [
+      [
+        100,
+        "town"
+      ],
+      [
+        900,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Huastec ceremonial centre, San Luis Potosi"
+  },
+  {
+    "name": "Veracruz",
+    "lon": -96.13,
+    "lat": 19.19,
+    "phases": [
+      [
+        1519,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Villa Rica de la Vera Cruz, first Spanish port town"
+  },
+  {
+    "name": "Nakbe",
+    "lon": -89.89,
+    "lat": 17.6,
+    "phases": [
+      [
+        -1000,
+        "village"
+      ],
+      [
+        -100,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Earliest Maya monumental centre, Peten"
+  },
+  {
+    "name": "El Mirador",
+    "lon": -89.92,
+    "lat": 17.76,
+    "phases": [
+      [
+        -600,
+        "city"
+      ],
+      [
+        150,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Vast Preclassic Maya city, Peten"
+  },
+  {
+    "name": "Tikal",
+    "lon": -89.62,
+    "lat": 17.22,
+    "phases": [
+      [
+        -600,
+        "town"
+      ],
+      [
+        250,
+        "city"
+      ],
+      [
+        900,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Great Classic Maya capital, Peten"
+  },
+  {
+    "name": "Calakmul",
+    "lon": -89.81,
+    "lat": 18.11,
+    "phases": [
+      [
+        -400,
+        "town"
+      ],
+      [
+        250,
+        "city"
+      ],
+      [
+        900,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Kaan dynasty capital, rival of Tikal"
+  },
+  {
+    "name": "Palenque",
+    "lon": -92.05,
+    "lat": 17.48,
+    "phases": [
+      [
+        100,
+        "town"
+      ],
+      [
+        600,
+        "city"
+      ],
+      [
+        800,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Usumacinta Classic Maya capital, Pakal"
+  },
+  {
+    "name": "Copan",
+    "lon": -89.14,
+    "lat": 14.84,
+    "phases": [
+      [
+        100,
+        "town"
+      ],
+      [
+        426,
+        "city"
+      ],
+      [
+        822,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Classic Maya capital, Honduras border"
+  },
+  {
+    "name": "Quirigua",
+    "lon": -89.04,
+    "lat": 15.27,
+    "phases": [
+      [
+        200,
+        "town"
+      ],
+      [
+        550,
+        "town"
+      ],
+      [
+        850,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Motagua valley Maya centre"
+  },
+  {
+    "name": "Yaxchilan",
+    "lon": -90.96,
+    "lat": 16.9,
+    "phases": [
+      [
+        350,
+        "town"
+      ],
+      [
+        700,
+        "town"
+      ],
+      [
+        850,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Usumacinta river Maya city"
+  },
+  {
+    "name": "Piedras Negras",
+    "lon": -91.26,
+    "lat": 17.16,
+    "phases": [
+      [
+        400,
+        "town"
+      ],
+      [
+        700,
+        "town"
+      ],
+      [
+        850,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Usumacinta Maya city, rival Yaxchilan"
+  },
+  {
+    "name": "Bonampak",
+    "lon": -91.06,
+    "lat": 16.71,
+    "phases": [
+      [
+        400,
+        "village"
+      ],
+      [
+        790,
+        "town"
+      ],
+      [
+        850,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Maya site famed for polychrome murals"
+  },
+  {
+    "name": "Caracol",
+    "lon": -89.12,
+    "lat": 16.77,
+    "phases": [
+      [
+        600,
+        "town"
+      ],
+      [
+        650,
+        "city"
+      ],
+      [
+        900,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Largest Belize Maya city"
+  },
+  {
+    "name": "Xunantunich",
+    "lon": -89.15,
+    "lat": 17.09,
+    "phases": [
+      [
+        600,
+        "village"
+      ],
+      [
+        800,
+        "town"
+      ],
+      [
+        900,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Belize river valley Maya centre"
+  },
+  {
+    "name": "Lamanai",
+    "lon": -88.65,
+    "lat": 17.75,
+    "phases": [
+      [
+        -300,
+        "village"
+      ],
+      [
+        700,
+        "town"
+      ],
+      [
+        1650,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Long-occupied Belize Maya centre, into colonial era"
+  },
+  {
+    "name": "Altun Ha",
+    "lon": -88.35,
+    "lat": 17.78,
+    "phases": [
+      [
+        -200,
+        "village"
+      ],
+      [
+        600,
+        "town"
+      ],
+      [
+        900,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Belize coastal Maya trade town"
+  },
+  {
+    "name": "Comalcalco",
+    "lon": -93.2,
+    "lat": 18.26,
+    "phases": [
+      [
+        600,
+        "town"
+      ],
+      [
+        900,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Westernmost Maya city, fired-brick construction"
+  },
+  {
+    "name": "Uxmal",
+    "lon": -89.77,
+    "lat": 20.36,
+    "phases": [
+      [
+        600,
+        "town"
+      ],
+      [
+        900,
+        "city"
+      ],
+      [
+        1200,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Puuc-style Classic Maya capital, Yucatan"
+  },
+  {
+    "name": "Kabah",
+    "lon": -89.64,
+    "lat": 20.23,
+    "phases": [
+      [
+        600,
+        "town"
+      ],
+      [
+        900,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Puuc Maya centre near Uxmal"
+  },
+  {
+    "name": "Sayil",
+    "lon": -89.63,
+    "lat": 20.16,
+    "phases": [
+      [
+        700,
+        "town"
+      ],
+      [
+        950,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Puuc Maya centre, Yucatan"
+  },
+  {
+    "name": "Labna",
+    "lon": -89.55,
+    "lat": 20.15,
+    "phases": [
+      [
+        600,
+        "village"
+      ],
+      [
+        900,
+        "town"
+      ],
+      [
+        1000,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Puuc Maya centre, famed arch"
+  },
+  {
+    "name": "Chichen Itza",
+    "lon": -88.57,
+    "lat": 20.68,
+    "phases": [
+      [
+        600,
+        "town"
+      ],
+      [
+        900,
+        "city"
+      ],
+      [
+        1200,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Great Postclassic Maya-Toltec capital, Yucatan"
+  },
+  {
+    "name": "Mayapan",
+    "lon": -89.46,
+    "lat": 20.63,
+    "phases": [
+      [
+        1200,
+        "city"
+      ],
+      [
+        1450,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Last major Postclassic Maya capital"
+  },
+  {
+    "name": "Izamal",
+    "lon": -89.02,
+    "lat": 20.93,
+    "phases": [
+      [
+        300,
+        "town"
+      ],
+      [
+        1521,
+        "town"
+      ],
+      [
+        1950,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Sun-god pilgrimage centre, continuous to colonial"
+  },
+  {
+    "name": "Tulum",
+    "lon": -87.43,
+    "lat": 20.21,
+    "phases": [
+      [
+        1200,
+        "town"
+      ],
+      [
+        1550,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Walled Postclassic coastal trade port"
+  },
+  {
+    "name": "Coba",
+    "lon": -87.73,
+    "lat": 20.5,
+    "phases": [
+      [
+        100,
+        "town"
+      ],
+      [
+        600,
+        "city"
+      ],
+      [
+        1300,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Sacbe-network Maya city, Quintana Roo"
+  },
+  {
+    "name": "Dzibilchaltun",
+    "lon": -89.6,
+    "lat": 21.09,
+    "phases": [
+      [
+        -500,
+        "village"
+      ],
+      [
+        600,
+        "town"
+      ],
+      [
+        1521,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Long-occupied northern Yucatan Maya city"
+  },
+  {
+    "name": "Merida",
+    "lon": -89.62,
+    "lat": 20.97,
+    "phases": [
+      [
+        1542,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Spanish colonial capital of Yucatan, atop T'ho"
+  },
+  {
+    "name": "Campeche",
+    "lon": -90.53,
+    "lat": 19.85,
+    "phases": [
+      [
+        1540,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Spanish walled port town, Yucatan"
+  },
+  {
+    "name": "Valladolid",
+    "lon": -88.2,
+    "lat": 20.69,
+    "phases": [
+      [
+        1543,
+        "town"
+      ],
+      [
+        1950,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Colonial town atop Maya Zaci"
+  },
+  {
+    "name": "Zaculeu",
+    "lon": -91.51,
+    "lat": 15.35,
+    "phases": [
+      [
+        1000,
+        "town"
+      ],
+      [
+        1525,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Mam Maya capital, highland Guatemala"
+  },
+  {
+    "name": "Utatlan",
+    "lon": -91.15,
+    "lat": 15.03,
+    "phases": [
+      [
+        1200,
+        "town"
+      ],
+      [
+        1524,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "K'iche' Maya capital, Popol Vuh setting"
+  },
+  {
+    "name": "Iximche",
+    "lon": -90.82,
+    "lat": 14.68,
+    "phases": [
+      [
+        1470,
+        "town"
+      ],
+      [
+        1526,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Kaqchikel Maya capital"
+  },
+  {
+    "name": "Mixco Viejo",
+    "lon": -90.65,
+    "lat": 14.95,
+    "phases": [
+      [
+        1200,
+        "town"
+      ],
+      [
+        1525,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Poqomam Maya fortified capital"
+  },
+  {
+    "name": "Guatemala City",
+    "lon": -90.51,
+    "lat": 14.63,
+    "phases": [
+      [
+        1776,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Colonial capital moved after Antigua earthquakes"
+  },
+  {
+    "name": "Antigua Guatemala",
+    "lon": -90.73,
+    "lat": 14.56,
+    "phases": [
+      [
+        1543,
+        "town"
+      ],
+      [
+        1773,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Colonial capital, destroyed by earthquakes"
+  },
+  {
+    "name": "Ciudad Vieja",
+    "lon": -90.75,
+    "lat": 14.54,
+    "phases": [
+      [
+        1527,
+        "town"
+      ],
+      [
+        1541,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "First Spanish capital of Guatemala, destroyed by flood"
+  },
+  {
+    "name": "Naco",
+    "lon": -88.05,
+    "lat": 15.47,
+    "phases": [
+      [
+        900,
+        "town"
+      ],
+      [
+        1536,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Honduran trade town, conquest-era"
+  },
+  {
+    "name": "Comayagua",
+    "lon": -87.64,
+    "lat": 14.45,
+    "phases": [
+      [
+        1537,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Colonial capital of Honduras"
+  },
+  {
+    "name": "Tegucigalpa",
+    "lon": -87.21,
+    "lat": 14.1,
+    "phases": [
+      [
+        1578,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Honduran mining town, later capital"
+  },
+  {
+    "name": "Trujillo",
+    "lon": -85.95,
+    "lat": 15.92,
+    "phases": [
+      [
+        1525,
+        "town"
+      ],
+      [
+        1950,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "First Spanish town on Honduran coast"
+  },
+  {
+    "name": "Cihuatan",
+    "lon": -89.1,
+    "lat": 14.05,
+    "phases": [
+      [
+        900,
+        "town"
+      ],
+      [
+        1200,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Early Postclassic urban centre, El Salvador"
+  },
+  {
+    "name": "San Salvador",
+    "lon": -89.19,
+    "lat": 13.69,
+    "phases": [
+      [
+        1525,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Spanish colonial capital of El Salvador"
+  },
+  {
+    "name": "Joya de Ceren",
+    "lon": -89.36,
+    "lat": 13.82,
+    "phases": [
+      [
+        100,
+        "village"
+      ],
+      [
+        600,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Maya farming village buried by ash, El Salvador"
+  },
+  {
+    "name": "Leon Viejo",
+    "lon": -86.54,
+    "lat": 12.44,
+    "phases": [
+      [
+        1524,
+        "town"
+      ],
+      [
+        1610,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "First colonial capital of Nicaragua, abandoned"
+  },
+  {
+    "name": "Granada",
+    "lon": -85.96,
+    "lat": 11.93,
+    "phases": [
+      [
+        1524,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Oldest continuously inhabited colonial city, Nicaragua"
+  },
+  {
+    "name": "Managua",
+    "lon": -86.25,
+    "lat": 12.15,
+    "phases": [
+      [
+        1200,
+        "village"
+      ],
+      [
+        1852,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Precolonial lakeside settlement, later capital"
+  },
+  {
+    "name": "Panama Viejo",
+    "lon": -79.48,
+    "lat": 8.97,
+    "phases": [
+      [
+        1519,
+        "town"
+      ],
+      [
+        1671,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "First Spanish city on Pacific, sacked by Morgan"
+  },
+  {
+    "name": "Panama City",
+    "lon": -79.53,
+    "lat": 8.98,
+    "phases": [
+      [
+        1673,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Rebuilt walled city after 1671 sack"
+  },
+  {
+    "name": "Nombre de Dios",
+    "lon": -79.66,
+    "lat": 9.58,
+    "phases": [
+      [
+        1510,
+        "town"
+      ],
+      [
+        1597,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Caribbean treasure-fleet port, Panama"
+  },
+  {
+    "name": "Portobelo",
+    "lon": -79.65,
+    "lat": 9.55,
+    "phases": [
+      [
+        1597,
+        "town"
+      ],
+      [
+        1950,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Spanish treasure port, succeeded Nombre de Dios"
+  },
+  {
+    "name": "Cartago",
+    "lon": -83.92,
+    "lat": 9.86,
+    "phases": [
+      [
+        1563,
+        "town"
+      ],
+      [
+        1950,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "First colonial capital of Costa Rica"
+  },
+  {
+    "name": "San Jose de Costa Rica",
+    "lon": -84.09,
+    "lat": 9.93,
+    "phases": [
+      [
+        1737,
+        "village"
+      ],
+      [
+        1823,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Later capital of Costa Rica"
+  },
+  {
+    "name": "Yaguana",
+    "lon": -74.2,
+    "lat": 18.45,
+    "phases": [
+      [
+        1200,
+        "village"
+      ],
+      [
+        1503,
+        null
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "Taino cacicazgo capital, Xaragua, Hispaniola"
+  },
+  {
+    "name": "Maguana",
+    "lon": -71.0,
+    "lat": 18.75,
+    "phases": [
+      [
+        1200,
+        "village"
+      ],
+      [
+        1504,
+        null
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "Taino cacicazgo, central Hispaniola"
+  },
+  {
+    "name": "Higuey",
+    "lon": -68.66,
+    "lat": 18.62,
+    "phases": [
+      [
+        1200,
+        "village"
+      ],
+      [
+        1502,
+        "town"
+      ],
+      [
+        1950,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Taino cacicazgo, continued as Spanish town"
+  },
+  {
+    "name": "Santo Domingo",
+    "lon": -69.9,
+    "lat": 18.48,
+    "phases": [
+      [
+        1496,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Oldest continuous European city in Americas"
+  },
+  {
+    "name": "La Isabela",
+    "lon": -71.05,
+    "lat": 19.9,
+    "phases": [
+      [
+        1493,
+        "town"
+      ],
+      [
+        1500,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Columbus's first colonial town, abandoned"
+  },
+  {
+    "name": "La Navidad",
+    "lon": -72.19,
+    "lat": 19.9,
+    "phases": [
+      [
+        1492,
+        "village"
+      ],
+      [
+        1493,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "First Spanish settlement, burned by Tainos"
+  },
+  {
+    "name": "Santiago de los Caballeros",
+    "lon": -70.69,
+    "lat": 19.45,
+    "phases": [
+      [
+        1495,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Early colonial town, Dominican Republic"
+  },
+  {
+    "name": "San Juan",
+    "lon": -66.12,
+    "lat": 18.47,
+    "phases": [
+      [
+        1521,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Spanish colonial capital of Puerto Rico"
+  },
+  {
+    "name": "Caparra",
+    "lon": -66.15,
+    "lat": 18.44,
+    "phases": [
+      [
+        1508,
+        "village"
+      ],
+      [
+        1521,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "First Spanish settlement on Puerto Rico, moved"
+  },
+  {
+    "name": "Havana",
+    "lon": -82.37,
+    "lat": 23.13,
+    "phases": [
+      [
+        1519,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Cuban colonial capital, treasure-fleet hub"
+  },
+  {
+    "name": "Santiago de Cuba",
+    "lon": -75.83,
+    "lat": 20.02,
+    "phases": [
+      [
+        1515,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "First colonial capital of Cuba"
+  },
+  {
+    "name": "Baracoa",
+    "lon": -74.5,
+    "lat": 20.35,
+    "phases": [
+      [
+        1511,
+        "town"
+      ],
+      [
+        1950,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "First Spanish town founded in Cuba"
+  },
+  {
+    "name": "Trinidad de Cuba",
+    "lon": -80.0,
+    "lat": 21.8,
+    "phases": [
+      [
+        1514,
+        "town"
+      ],
+      [
+        1950,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Early sugar/slave-trade colonial town"
+  },
+  {
+    "name": "Kingston",
+    "lon": -76.8,
+    "lat": 17.97,
+    "phases": [
+      [
+        1692,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Founded after Port Royal earthquake, Jamaica"
+  },
+  {
+    "name": "Port Royal",
+    "lon": -76.84,
+    "lat": 17.94,
+    "phases": [
+      [
+        1655,
+        "town"
+      ],
+      [
+        1692,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "English privateer port, destroyed by earthquake"
+  },
+  {
+    "name": "Santiago de la Vega",
+    "lon": -76.9,
+    "lat": 17.97,
+    "phases": [
+      [
+        1534,
+        "town"
+      ],
+      [
+        1872,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Spanish/English capital of Jamaica, Spanish Town"
+  },
+  {
+    "name": "Bridgetown",
+    "lon": -59.61,
+    "lat": 13.1,
+    "phases": [
+      [
+        1628,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "English colonial capital, Barbados"
+  },
+  {
+    "name": "Basseterre",
+    "lon": -62.72,
+    "lat": 17.3,
+    "phases": [
+      [
+        1627,
+        "town"
+      ],
+      [
+        1950,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "French then English colonial capital, St Kitts"
+  },
+  {
+    "name": "Fort-de-France",
+    "lon": -61.06,
+    "lat": 14.6,
+    "phases": [
+      [
+        1638,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "French colonial capital, Martinique"
+  },
+  {
+    "name": "Cap-Haitien",
+    "lon": -72.2,
+    "lat": 19.76,
+    "phases": [
+      [
+        1670,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "French colonial Cap-Francais, Saint-Domingue"
+  },
+  {
+    "name": "Port-au-Prince",
+    "lon": -72.34,
+    "lat": 18.54,
+    "phases": [
+      [
+        1749,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "French colonial capital, later Haiti"
+  },
+  {
+    "name": "Willemstad",
+    "lon": -68.94,
+    "lat": 12.11,
+    "phases": [
+      [
+        1634,
+        "town"
+      ],
+      [
+        1950,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Dutch colonial port, Curacao"
+  },
+  {
+    "name": "San Agustin",
+    "lon": -76.27,
+    "lat": 1.88,
+    "phases": [
+      [
+        100,
+        "village"
+      ],
+      [
+        900,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Monumental statue culture, Colombian Andes"
+  },
+  {
+    "name": "Tierradentro",
+    "lon": -76.02,
+    "lat": 2.61,
+    "phases": [
+      [
+        600,
+        "village"
+      ],
+      [
+        1000,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Hypogeum tomb culture, Cauca highlands"
+  },
+  {
+    "name": "Ciudad Perdida",
+    "lon": -73.92,
+    "lat": 11.04,
+    "phases": [
+      [
+        800,
+        "town"
+      ],
+      [
+        1600,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Tairona terraced city, Sierra Nevada"
+  },
+  {
+    "name": "Pueblito",
+    "lon": -74.02,
+    "lat": 11.31,
+    "phases": [
+      [
+        900,
+        "village"
+      ],
+      [
+        1600,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Tairona coastal town near Santa Marta"
+  },
+  {
+    "name": "Bacata",
+    "lon": -74.08,
+    "lat": 4.61,
+    "phases": [
+      [
+        800,
+        "town"
+      ],
+      [
+        1537,
+        null
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "Muisca zipa capital, site of Bogota"
+  },
+  {
+    "name": "Bogota",
+    "lon": -74.08,
+    "lat": 4.61,
+    "phases": [
+      [
+        1538,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Spanish colonial capital, Santa Fe de Bogota"
+  },
+  {
+    "name": "Hunza",
+    "lon": -73.36,
+    "lat": 5.54,
+    "phases": [
+      [
+        900,
+        "town"
+      ],
+      [
+        1537,
+        null
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "Muisca zaque capital, later Tunja"
+  },
+  {
+    "name": "Tunja",
+    "lon": -73.36,
+    "lat": 5.54,
+    "phases": [
+      [
+        1539,
+        "town"
+      ],
+      [
+        1950,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Colonial town atop Muisca Hunza"
+  },
+  {
+    "name": "Cartagena de Indias",
+    "lon": -75.51,
+    "lat": 10.4,
+    "phases": [
+      [
+        1533,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Major Spanish Caribbean fortified port"
+  },
+  {
+    "name": "Santa Marta",
+    "lon": -74.2,
+    "lat": 11.24,
+    "phases": [
+      [
+        1525,
+        "town"
+      ],
+      [
+        1950,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Oldest surviving Spanish town in Colombia"
+  },
+  {
+    "name": "Popayan",
+    "lon": -76.61,
+    "lat": 2.44,
+    "phases": [
+      [
+        1537,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Colonial highland town, Cauca"
+  },
+  {
+    "name": "Cali",
+    "lon": -76.53,
+    "lat": 3.44,
+    "phases": [
+      [
+        1536,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Colonial town, Cauca valley"
+  },
+  {
+    "name": "Medellin",
+    "lon": -75.56,
+    "lat": 6.25,
+    "phases": [
+      [
+        1616,
+        "village"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Antioquia colonial settlement, later industrial city"
+  },
+  {
+    "name": "Mompox",
+    "lon": -74.42,
+    "lat": 9.24,
+    "phases": [
+      [
+        1540,
+        "town"
+      ],
+      [
+        1950,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Magdalena river colonial trade town"
+  },
+  {
+    "name": "Cumana",
+    "lon": -64.17,
+    "lat": 10.46,
+    "phases": [
+      [
+        1521,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Oldest continuous Spanish settlement, mainland S America"
+  },
+  {
+    "name": "Coro",
+    "lon": -69.68,
+    "lat": 11.4,
+    "phases": [
+      [
+        1527,
+        "town"
+      ],
+      [
+        1950,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Early Venezuelan colonial capital"
+  },
+  {
+    "name": "Caracas",
+    "lon": -66.9,
+    "lat": 10.49,
+    "phases": [
+      [
+        1567,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Spanish colonial capital, Santiago de Leon de Caracas"
+  },
+  {
+    "name": "Maracaibo",
+    "lon": -71.65,
+    "lat": 10.65,
+    "phases": [
+      [
+        1574,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Colonial lakeside port town"
+  },
+  {
+    "name": "Merida (Venezuela)",
+    "lon": -71.14,
+    "lat": 8.6,
+    "phases": [
+      [
+        1558,
+        "town"
+      ],
+      [
+        1950,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Andean colonial town, Venezuela"
+  },
+  {
+    "name": "Real Alto",
+    "lon": -80.55,
+    "lat": -2.1,
+    "phases": [
+      [
+        -3000,
+        "village"
+      ],
+      [
+        -1500,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Valdivia culture village, coastal Ecuador"
+  },
+  {
+    "name": "Cochasqui",
+    "lon": -78.3,
+    "lat": 0.08,
+    "phases": [
+      [
+        850,
+        "village"
+      ],
+      [
+        1500,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Caranqui mound complex, northern Ecuador"
+  },
+  {
+    "name": "Quito",
+    "lon": -78.51,
+    "lat": -0.23,
+    "phases": [
+      [
+        900,
+        "town"
+      ],
+      [
+        1534,
+        "city"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Inca provincial capital, then Spanish colonial"
+  },
+  {
+    "name": "Ingapirca",
+    "lon": -78.55,
+    "lat": -2.53,
+    "phases": [
+      [
+        1450,
+        "village"
+      ],
+      [
+        1550,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Inca-Canari ceremonial complex, Ecuador"
+  },
+  {
+    "name": "Tomebamba",
+    "lon": -78.99,
+    "lat": -2.9,
+    "phases": [
+      [
+        1470,
+        "town"
+      ],
+      [
+        1533,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Inca provincial capital, site of Cuenca"
+  },
+  {
+    "name": "Cuenca (Ecuador)",
+    "lon": -78.99,
+    "lat": -2.9,
+    "phases": [
+      [
+        1557,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Colonial city atop Inca Tomebamba"
+  },
+  {
+    "name": "Guayaquil",
+    "lon": -79.9,
+    "lat": -2.19,
+    "phases": [
+      [
+        1538,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Colonial Pacific port, Ecuador"
+  },
+  {
+    "name": "Loja",
+    "lon": -79.2,
+    "lat": -3.99,
+    "phases": [
+      [
+        1548,
+        "town"
+      ],
+      [
+        1950,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Colonial southern highland town, Ecuador"
+  },
+  {
+    "name": "Huaca del Sol y de la Luna",
+    "lon": -79.02,
+    "lat": -8.12,
+    "phases": [
+      [
+        100,
+        "city"
+      ],
+      [
+        700,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Moche capital, Moche valley"
+  },
+  {
+    "name": "Sipan",
+    "lon": -79.62,
+    "lat": -6.75,
+    "phases": [
+      [
+        50,
+        "town"
+      ],
+      [
+        750,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Moche elite burial site, Lambayeque"
+  },
+  {
+    "name": "Pampa Grande",
+    "lon": -79.15,
+    "lat": -6.65,
+    "phases": [
+      [
+        600,
+        "town"
+      ],
+      [
+        750,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Late Moche urban centre, Lambayeque"
+  },
+  {
+    "name": "El Brujo",
+    "lon": -79.15,
+    "lat": -7.93,
+    "phases": [
+      [
+        -700,
+        "village"
+      ],
+      [
+        600,
+        "town"
+      ],
+      [
+        900,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Long-occupied Moche ceremonial complex"
+  },
+  {
+    "name": "Cahuachi",
+    "lon": -75.15,
+    "lat": -14.82,
+    "phases": [
+      [
+        -100,
+        "town"
+      ],
+      [
+        500,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Nazca ceremonial capital"
+  },
+  {
+    "name": "Huaca Pucllana",
+    "lon": -77.03,
+    "lat": -12.11,
+    "phases": [
+      [
+        200,
+        "town"
+      ],
+      [
+        700,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Lima culture pyramid, coastal Peru"
+  },
+  {
+    "name": "Pachacamac",
+    "lon": -76.9,
+    "lat": -12.26,
+    "phases": [
+      [
+        200,
+        "town"
+      ],
+      [
+        1533,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Major pan-Andean pilgrimage oracle centre"
+  },
+  {
+    "name": "Wari",
+    "lon": -74.21,
+    "lat": -13.08,
+    "phases": [
+      [
+        600,
+        "city"
+      ],
+      [
+        1000,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Wari empire capital, Ayacucho"
+  },
+  {
+    "name": "Pikillacta",
+    "lon": -71.75,
+    "lat": -13.63,
+    "phases": [
+      [
+        600,
+        "town"
+      ],
+      [
+        1000,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Wari administrative centre, Cusco region"
+  },
+  {
+    "name": "Tiwanaku",
+    "lon": -68.67,
+    "lat": -16.55,
+    "phases": [
+      [
+        400,
+        "city"
+      ],
+      [
+        1100,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Major Titicaca basin civilization capital"
+  },
+  {
+    "name": "Chan Chan",
+    "lon": -79.08,
+    "lat": -8.1,
+    "phases": [
+      [
+        900,
+        "city"
+      ],
+      [
+        1470,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Chimu imperial capital, largest adobe city"
+  },
+  {
+    "name": "Tucume",
+    "lon": -79.83,
+    "lat": -6.52,
+    "phases": [
+      [
+        1000,
+        "town"
+      ],
+      [
+        1532,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Lambayeque/Chimu pyramid complex"
+  },
+  {
+    "name": "Batan Grande",
+    "lon": -79.75,
+    "lat": -6.3,
+    "phases": [
+      [
+        750,
+        "town"
+      ],
+      [
+        1375,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Sican culture metallurgy centre"
+  },
+  {
+    "name": "Kuelap",
+    "lon": -77.92,
+    "lat": -6.42,
+    "phases": [
+      [
+        600,
+        "town"
+      ],
+      [
+        1570,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Chachapoya fortified hilltop city"
+  },
+  {
+    "name": "Cusco",
+    "lon": -71.98,
+    "lat": -13.52,
+    "phases": [
+      [
+        1100,
+        "town"
+      ],
+      [
+        1438,
+        "city"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Inca imperial capital, Qosqo"
+  },
+  {
+    "name": "Ollantaytambo",
+    "lon": -72.26,
+    "lat": -13.26,
+    "phases": [
+      [
+        1400,
+        "village"
+      ],
+      [
+        1450,
+        "town"
+      ],
+      [
+        1950,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Inca royal estate and fortress town"
+  },
+  {
+    "name": "Pisac",
+    "lon": -71.85,
+    "lat": -13.42,
+    "phases": [
+      [
+        1400,
+        "village"
+      ],
+      [
+        1450,
+        "town"
+      ],
+      [
+        1950,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Inca agricultural terrace town, Sacred Valley"
+  },
+  {
+    "name": "Machu Picchu",
+    "lon": -72.55,
+    "lat": -13.16,
+    "phases": [
+      [
+        1450,
+        "town"
+      ],
+      [
+        1540,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Inca royal estate, abandoned after conquest"
+  },
+  {
+    "name": "Vilcabamba",
+    "lon": -73.03,
+    "lat": -12.83,
+    "phases": [
+      [
+        1539,
+        "town"
+      ],
+      [
+        1572,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Last Inca refuge state capital"
+  },
+  {
+    "name": "Huanuco Pampa",
+    "lon": -76.51,
+    "lat": -9.9,
+    "phases": [
+      [
+        1460,
+        "town"
+      ],
+      [
+        1533,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Inca administrative tambo centre"
+  },
+  {
+    "name": "Vilcashuaman",
+    "lon": -73.96,
+    "lat": -13.65,
+    "phases": [
+      [
+        1440,
+        "town"
+      ],
+      [
+        1572,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Inca provincial centre, Ayacucho"
+  },
+  {
+    "name": "Cajamarca",
+    "lon": -78.52,
+    "lat": -7.16,
+    "phases": [
+      [
+        1000,
+        "town"
+      ],
+      [
+        1533,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Site of Atahualpa's capture by Pizarro"
+  },
+  {
+    "name": "Lima",
+    "lon": -77.03,
+    "lat": -12.05,
+    "phases": [
+      [
+        1535,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Spanish viceregal capital, Ciudad de los Reyes"
+  },
+  {
+    "name": "Trujillo (Peru)",
+    "lon": -79.03,
+    "lat": -8.11,
+    "phases": [
+      [
+        1534,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Colonial city near Chan Chan ruins"
+  },
+  {
+    "name": "Arequipa",
+    "lon": -71.54,
+    "lat": -16.4,
+    "phases": [
+      [
+        1540,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Colonial highland city, southern Peru"
+  },
+  {
+    "name": "Ayacucho",
+    "lon": -74.22,
+    "lat": -13.16,
+    "phases": [
+      [
+        1540,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Colonial city, Huamanga"
+  },
+  {
+    "name": "Potosi",
+    "lon": -65.75,
+    "lat": -19.59,
+    "phases": [
+      [
+        1545,
+        "town"
+      ],
+      [
+        1650,
+        "city"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Massive silver-mining boomtown, Cerro Rico"
+  },
+  {
+    "name": "Huancayo",
+    "lon": -75.2,
+    "lat": -12.07,
+    "phases": [
+      [
+        1572,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Colonial reduction town, Mantaro valley"
+  },
+  {
+    "name": "Ica",
+    "lon": -75.73,
+    "lat": -14.07,
+    "phases": [
+      [
+        1563,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Colonial coastal town, southern Peru"
+  },
+  {
+    "name": "Chachapoyas",
+    "lon": -77.87,
+    "lat": -6.23,
+    "phases": [
+      [
+        1538,
+        "town"
+      ],
+      [
+        1950,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Colonial highland town, northern Peru"
+  },
+  {
+    "name": "La Paz",
+    "lon": -68.15,
+    "lat": -16.5,
+    "phases": [
+      [
+        1548,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Spanish colonial town, Nuestra Senora de La Paz"
+  },
+  {
+    "name": "Sucre",
+    "lon": -65.26,
+    "lat": -19.05,
+    "phases": [
+      [
+        1538,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Colonial capital, Charcas / La Plata"
+  },
+  {
+    "name": "Oruro",
+    "lon": -67.15,
+    "lat": -17.98,
+    "phases": [
+      [
+        1606,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Colonial silver-mining town, altiplano"
+  },
+  {
+    "name": "Cochabamba",
+    "lon": -66.16,
+    "lat": -17.39,
+    "phases": [
+      [
+        1571,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Colonial agricultural valley town"
+  },
+  {
+    "name": "Copacabana",
+    "lon": -69.08,
+    "lat": -16.17,
+    "phases": [
+      [
+        1000,
+        "village"
+      ],
+      [
+        1583,
+        "town"
+      ],
+      [
+        1950,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Titicaca pilgrimage town, shrine of the Virgin"
+  },
+  {
+    "name": "Tulor",
+    "lon": -68.24,
+    "lat": -23.0,
+    "phases": [
+      [
+        -400,
+        "village"
+      ],
+      [
+        600,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Atacameno circular village, San Pedro de Atacama"
+  },
+  {
+    "name": "San Pedro de Atacama",
+    "lon": -68.2,
+    "lat": -22.91,
+    "phases": [
+      [
+        500,
+        "village"
+      ],
+      [
+        1450,
+        "town"
+      ],
+      [
+        1950,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Oasis town, Inca then Spanish era"
+  },
+  {
+    "name": "Santiago (Chile)",
+    "lon": -70.65,
+    "lat": -33.45,
+    "phases": [
+      [
+        1541,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Spanish colonial capital of Chile"
+  },
+  {
+    "name": "La Serena",
+    "lon": -71.25,
+    "lat": -29.9,
+    "phases": [
+      [
+        1544,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Early colonial northern Chile town"
+  },
+  {
+    "name": "Concepcion",
+    "lon": -73.05,
+    "lat": -36.83,
+    "phases": [
+      [
+        1550,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Colonial frontier town, Araucania border"
+  },
+  {
+    "name": "Valdivia",
+    "lon": -73.24,
+    "lat": -39.81,
+    "phases": [
+      [
+        1552,
+        "town"
+      ],
+      [
+        1602,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Colonial city destroyed in Mapuche uprising"
+  },
+  {
+    "name": "Valdivia (refounded)",
+    "lon": -73.24,
+    "lat": -39.81,
+    "phases": [
+      [
+        1645,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Refounded Spanish fort-town, southern Chile"
+  },
+  {
+    "name": "Valparaiso",
+    "lon": -71.61,
+    "lat": -33.05,
+    "phases": [
+      [
+        1536,
+        "village"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Chilean colonial port town"
+  },
+  {
+    "name": "Tastil",
+    "lon": -65.75,
+    "lat": -24.68,
+    "phases": [
+      [
+        1000,
+        "town"
+      ],
+      [
+        1500,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Pre-Inca Andean town, Salta, Argentina"
+  },
+  {
+    "name": "Quilmes (ruins)",
+    "lon": -65.98,
+    "lat": -26.53,
+    "phases": [
+      [
+        850,
+        "town"
+      ],
+      [
+        1667,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Diaguita fortified town, resisted Inca and Spanish"
+  },
+  {
+    "name": "Santiago del Estero",
+    "lon": -64.26,
+    "lat": -27.8,
+    "phases": [
+      [
+        1553,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Oldest Spanish city in Argentina"
+  },
+  {
+    "name": "Cordoba (Argentina)",
+    "lon": -64.18,
+    "lat": -31.42,
+    "phases": [
+      [
+        1573,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Colonial Jesuit university town"
+  },
+  {
+    "name": "Salta",
+    "lon": -65.42,
+    "lat": -24.79,
+    "phases": [
+      [
+        1582,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Colonial Andean frontier town, Argentina"
+  },
+  {
+    "name": "Buenos Aires",
+    "lon": -58.38,
+    "lat": -34.61,
+    "phases": [
+      [
+        1536,
+        "village"
+      ],
+      [
+        1580,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Refounded 1580 after first settlement abandoned"
+  },
+  {
+    "name": "Mendoza",
+    "lon": -68.83,
+    "lat": -32.89,
+    "phases": [
+      [
+        1561,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Colonial oasis town, Cuyo"
+  },
+  {
+    "name": "Asuncion",
+    "lon": -57.64,
+    "lat": -25.3,
+    "phases": [
+      [
+        1537,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Spanish colonial capital, Rio de la Plata"
+  },
+  {
+    "name": "San Ignacio Mini",
+    "lon": -55.54,
+    "lat": -27.25,
+    "phases": [
+      [
+        1632,
+        "town"
+      ],
+      [
+        1768,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Jesuit Guarani reduction, Misiones"
+  },
+  {
+    "name": "Trinidad (Paraguay)",
+    "lon": -55.13,
+    "lat": -27.0,
+    "phases": [
+      [
+        1706,
+        "town"
+      ],
+      [
+        1768,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Jesuit Guarani reduction, largest in Paraguay"
+  },
+  {
+    "name": "Santa Ana (Misiones)",
+    "lon": -55.55,
+    "lat": -27.36,
+    "phases": [
+      [
+        1637,
+        "town"
+      ],
+      [
+        1768,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Jesuit Guarani reduction town"
+  },
+  {
+    "name": "Montevideo",
+    "lon": -56.19,
+    "lat": -34.9,
+    "phases": [
+      [
+        1724,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Spanish fortified port, Rio de la Plata"
+  },
+  {
+    "name": "Colonia del Sacramento",
+    "lon": -57.84,
+    "lat": -34.47,
+    "phases": [
+      [
+        1680,
+        "town"
+      ],
+      [
+        1950,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Portuguese-founded smuggling port, contested with Spain"
+  },
+  {
+    "name": "Marajoara (Camutins)",
+    "lon": -49.5,
+    "lat": -0.8,
+    "phases": [
+      [
+        400,
+        "town"
+      ],
+      [
+        1300,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Marajoara mound-building chiefdom, Amazon delta"
+  },
+  {
+    "name": "Kuhikugu",
+    "lon": -53.3,
+    "lat": -11.8,
+    "phases": [
+      [
+        1200,
+        "town"
+      ],
+      [
+        1600,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Xinguano earthwork settlement cluster"
+  },
+  {
+    "name": "Monte Alegre",
+    "lon": -54.07,
+    "lat": -2.0,
+    "phases": [
+      [
+        -9000,
+        "village"
+      ],
+      [
+        1000,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Ancient rock-art and habitation site, lower Amazon"
+  },
+  {
+    "name": "Santarem (Tapajos)",
+    "lon": -54.71,
+    "lat": -2.44,
+    "phases": [
+      [
+        900,
+        "town"
+      ],
+      [
+        1661,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Tapajo chiefdom capital, later Portuguese town"
+  },
+  {
+    "name": "Salvador",
+    "lon": -38.5,
+    "lat": -12.97,
+    "phases": [
+      [
+        1549,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "First Portuguese colonial capital, Bahia"
+  },
+  {
+    "name": "Sao Vicente",
+    "lon": -46.39,
+    "lat": -23.96,
+    "phases": [
+      [
+        1532,
+        "town"
+      ],
+      [
+        1950,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "First permanent Portuguese town in Brazil"
+  },
+  {
+    "name": "Sao Paulo",
+    "lon": -46.63,
+    "lat": -23.55,
+    "phases": [
+      [
+        1554,
+        "village"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Jesuit mission village, later great city"
+  },
+  {
+    "name": "Rio de Janeiro",
+    "lon": -43.17,
+    "lat": -22.91,
+    "phases": [
+      [
+        1565,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Portuguese colonial capital from 1763"
+  },
+  {
+    "name": "Olinda",
+    "lon": -34.86,
+    "lat": -8.01,
+    "phases": [
+      [
+        1535,
+        "town"
+      ],
+      [
+        1950,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Early Pernambuco sugar colonial town"
+  },
+  {
+    "name": "Recife",
+    "lon": -34.88,
+    "lat": -8.05,
+    "phases": [
+      [
+        1537,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Port town, briefly Dutch capital in Brazil"
+  },
+  {
+    "name": "Sao Luis",
+    "lon": -44.3,
+    "lat": -2.53,
+    "phases": [
+      [
+        1612,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "French-founded, then Portuguese colonial town"
+  },
+  {
+    "name": "Belem",
+    "lon": -48.5,
+    "lat": -1.46,
+    "phases": [
+      [
+        1616,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Portuguese Amazon-mouth colonial town"
+  },
+  {
+    "name": "Ouro Preto",
+    "lon": -43.51,
+    "lat": -20.39,
+    "phases": [
+      [
+        1698,
+        "town"
+      ],
+      [
+        1950,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Gold-rush boomtown, Minas Gerais"
+  },
+  {
+    "name": "Mariana",
+    "lon": -43.42,
+    "lat": -20.38,
+    "phases": [
+      [
+        1696,
+        "town"
+      ],
+      [
+        1950,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "First gold-mining town, Minas Gerais"
+  },
+  {
+    "name": "Diamantina",
+    "lon": -43.6,
+    "lat": -18.24,
+    "phases": [
+      [
+        1713,
+        "town"
+      ],
+      [
+        1950,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Diamond-mining colonial town, Minas Gerais"
+  },
+  {
+    "name": "Paraty",
+    "lon": -44.71,
+    "lat": -23.22,
+    "phases": [
+      [
+        1667,
+        "town"
+      ],
+      [
+        1950,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Colonial gold-route port town"
+  },
+  {
+    "name": "Manaus",
+    "lon": -60.02,
+    "lat": -3.13,
+    "phases": [
+      [
+        1669,
+        "village"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Portuguese fort, later rubber-boom city"
+  },
+  {
+    "name": "Porto Alegre",
+    "lon": -51.23,
+    "lat": -30.03,
+    "phases": [
+      [
+        1772,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Azorean colonial settlement, southern Brazil"
+  },
+  {
+    "name": "Paramaribo",
+    "lon": -55.17,
+    "lat": 5.87,
+    "phases": [
+      [
+        1613,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Dutch colonial capital, Suriname"
+  },
+  {
+    "name": "Georgetown (Guyana)",
+    "lon": -58.16,
+    "lat": 6.8,
+    "phases": [
+      [
+        1781,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Dutch then British colonial capital"
+  },
+  {
+    "name": "Cayenne",
+    "lon": -52.33,
+    "lat": 4.94,
+    "phases": [
+      [
+        1643,
+        "town"
+      ],
+      [
+        1950,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "French colonial capital, Guyane"
+  },
+  {
+    "name": "Coatepec",
+    "lon": -96.96,
+    "lat": 19.46,
+    "phases": [
+      [
+        1450,
+        "village"
+      ],
+      [
+        1521,
+        "town"
+      ],
+      [
+        1950,
+        "town"
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "Nahua town, Veracruz highlands"
+  },
+  {
+    "name": "Cuetzalan",
+    "lon": -97.52,
+    "lat": 20.03,
+    "phases": [
+      [
+        1200,
+        "village"
+      ],
+      [
+        1521,
+        "town"
+      ],
+      [
+        1950,
+        "town"
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "Nahua highland town, Puebla"
+  },
+  {
+    "name": "Xochimilco",
+    "lon": -99.1,
+    "lat": 19.26,
+    "phases": [
+      [
+        900,
+        "village"
+      ],
+      [
+        1430,
+        "town"
+      ],
+      [
+        1521,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Chinampa-farming altepetl, Basin of Mexico"
+  },
+  {
+    "name": "Chalco",
+    "lon": -98.9,
+    "lat": 19.26,
+    "phases": [
+      [
+        1200,
+        "town"
+      ],
+      [
+        1465,
+        "town"
+      ],
+      [
+        1521,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Nahua altepetl, Basin of Mexico"
+  },
+  {
+    "name": "Coyoacan",
+    "lon": -99.16,
+    "lat": 19.35,
+    "phases": [
+      [
+        1200,
+        "town"
+      ],
+      [
+        1521,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Tepanec town, Cortes's post-conquest base"
+  },
+  {
+    "name": "Tepexpan",
+    "lon": -98.92,
+    "lat": 19.68,
+    "phases": [
+      [
+        -9000,
+        "village"
+      ],
+      [
+        1200,
+        "village"
+      ],
+      [
+        1521,
+        "village"
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Ancient hominid find site, later Nahua village"
+  },
+  {
+    "name": "Tepotzotlan",
+    "lon": -99.22,
+    "lat": 19.71,
+    "phases": [
+      [
+        1200,
+        "village"
+      ],
+      [
+        1521,
+        "town"
+      ],
+      [
+        1950,
+        "town"
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "Otomi-Nahua town, Jesuit college later"
+  },
+  {
+    "name": "Metztitlan",
+    "lon": -98.76,
+    "lat": 20.6,
+    "phases": [
+      [
+        1200,
+        "town"
+      ],
+      [
+        1521,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Independent Nahua enclave, resisted Aztecs"
+  },
+  {
+    "name": "Tuxpan",
+    "lon": -97.4,
+    "lat": 20.96,
+    "phases": [
+      [
+        900,
+        "village"
+      ],
+      [
+        1521,
+        "town"
+      ],
+      [
+        1950,
+        "town"
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "Huastec-Totonac coastal town, Veracruz"
+  },
+  {
+    "name": "Papantla",
+    "lon": -97.32,
+    "lat": 20.45,
+    "phases": [
+      [
+        900,
+        "village"
+      ],
+      [
+        1521,
+        "town"
+      ],
+      [
+        1950,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Totonac vanilla-growing town"
+  },
+  {
+    "name": "Acapulco",
+    "lon": -99.88,
+    "lat": 16.86,
+    "phases": [
+      [
+        1200,
+        "village"
+      ],
+      [
+        1550,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Manila galleon Pacific port"
+  },
+  {
+    "name": "Oaxaca de Juarez",
+    "lon": -96.73,
+    "lat": 17.06,
+    "phases": [
+      [
+        1529,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Colonial town in Zapotec valley near Monte Alban"
+  },
+  {
+    "name": "Puebla de los Angeles",
+    "lon": -98.2,
+    "lat": 19.04,
+    "phases": [
+      [
+        1531,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Planned Spanish colonial city, Puebla"
+  },
+  {
+    "name": "Zacatecas",
+    "lon": -102.58,
+    "lat": 22.77,
+    "phases": [
+      [
+        1546,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Major silver-mining boomtown, northern Mexico"
+  },
+  {
+    "name": "Guanajuato",
+    "lon": -101.26,
+    "lat": 21.02,
+    "phases": [
+      [
+        1548,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Major silver-mining boomtown, Bajio"
+  },
+  {
+    "name": "San Miguel de Allende",
+    "lon": -100.74,
+    "lat": 20.91,
+    "phases": [
+      [
+        1542,
+        "town"
+      ],
+      [
+        1950,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Colonial way-station town, Bajio silver route"
+  },
+  {
+    "name": "Queretaro",
+    "lon": -100.39,
+    "lat": 20.59,
+    "phases": [
+      [
+        1531,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Colonial Otomi-Spanish town, Bajio"
+  },
+  {
+    "name": "Durango",
+    "lon": -104.66,
+    "lat": 24.02,
+    "phases": [
+      [
+        1563,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Colonial mining-region capital, northern Mexico"
+  },
+  {
+    "name": "San Luis Potosi",
+    "lon": -100.99,
+    "lat": 22.15,
+    "phases": [
+      [
+        1592,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Silver-mining boomtown, north-central Mexico"
+  },
+  {
+    "name": "Monterrey",
+    "lon": -100.32,
+    "lat": 25.67,
+    "phases": [
+      [
+        1596,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Colonial frontier town, Nuevo Leon"
+  },
+  {
+    "name": "Chihuahua",
+    "lon": -106.07,
+    "lat": 28.63,
+    "phases": [
+      [
+        1709,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Colonial mining-frontier town, northern Mexico"
+  },
+  {
+    "name": "Culiacan",
+    "lon": -107.39,
+    "lat": 24.79,
+    "phases": [
+      [
+        1531,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Colonial Pacific-coast frontier town, Sinaloa"
+  },
+  {
+    "name": "Colima",
+    "lon": -103.72,
+    "lat": 19.24,
+    "phases": [
+      [
+        1523,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Colonial town, western Mexico"
+  },
+  {
+    "name": "Villahermosa",
+    "lon": -92.93,
+    "lat": 17.99,
+    "phases": [
+      [
+        1564,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Colonial town, Tabasco lowlands"
+  },
+  {
+    "name": "Palenque town (colonial)",
+    "lon": -91.98,
+    "lat": 17.51,
+    "phases": [
+      [
+        1567,
+        "village"
+      ],
+      [
+        1950,
+        "town"
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "Colonial Chol Maya reduction near ruins"
+  },
+  {
+    "name": "San Cristobal de las Casas",
+    "lon": -92.64,
+    "lat": 16.74,
+    "phases": [
+      [
+        1528,
+        "town"
+      ],
+      [
+        1950,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Colonial highland Chiapas town"
+  },
+  {
+    "name": "Comitan",
+    "lon": -92.14,
+    "lat": 16.25,
+    "phases": [
+      [
+        1300,
+        "village"
+      ],
+      [
+        1550,
+        "town"
+      ],
+      [
+        1950,
+        "town"
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "Maya-then-colonial town, Chiapas highlands"
+  },
+  {
+    "name": "Kaminaljuyu",
+    "lon": -90.56,
+    "lat": 14.62,
+    "phases": [
+      [
+        -800,
+        "town"
+      ],
+      [
+        900,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Major highland Maya centre, site of Guatemala City"
+  },
+  {
+    "name": "Q'umarkaj",
+    "lon": -91.15,
+    "lat": 15.03,
+    "phases": [
+      [
+        1400,
+        "town"
+      ],
+      [
+        1524,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "K'iche' capital, alternate name of Utatlan"
+  },
+  {
+    "name": "Cerro San Antonio",
+    "lon": -90.6,
+    "lat": 14.55,
+    "phases": [
+      [
+        1200,
+        "village"
+      ],
+      [
+        1524,
+        "village"
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "Kaqchikel-era hamlet, central highlands"
+  },
+  {
+    "name": "San Marcos (Guatemala)",
+    "lon": -91.8,
+    "lat": 14.96,
+    "phases": [
+      [
+        1200,
+        "village"
+      ],
+      [
+        1600,
+        "town"
+      ],
+      [
+        1950,
+        "town"
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "Mam highland town, western Guatemala"
+  },
+  {
+    "name": "Coban",
+    "lon": -90.41,
+    "lat": 15.47,
+    "phases": [
+      [
+        1200,
+        "village"
+      ],
+      [
+        1543,
+        "town"
+      ],
+      [
+        1950,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Q'eqchi' Dominican mission town, Verapaz"
+  },
+  {
+    "name": "Xelaju (Quetzaltenango)",
+    "lon": -91.52,
+    "lat": 14.85,
+    "phases": [
+      [
+        1200,
+        "town"
+      ],
+      [
+        1524,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "K'iche' town, site of major battle 1524"
+  },
+  {
+    "name": "Yarumela",
+    "lon": -87.7,
+    "lat": 14.08,
+    "phases": [
+      [
+        -800,
+        "village"
+      ],
+      [
+        600,
+        "town"
+      ],
+      [
+        900,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Early Honduran valley centre, Comayagua"
+  },
+  {
+    "name": "Gracias",
+    "lon": -88.58,
+    "lat": 14.58,
+    "phases": [
+      [
+        1536,
+        "town"
+      ],
+      [
+        1950,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Early Spanish highland capital, Honduras"
+  },
+  {
+    "name": "Olancho (Juticalpa)",
+    "lon": -86.22,
+    "lat": 14.67,
+    "phases": [
+      [
+        1560,
+        "village"
+      ],
+      [
+        1950,
+        "town"
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "Colonial mining-frontier town, Honduras"
+  },
+  {
+    "name": "Rivas",
+    "lon": -85.83,
+    "lat": 11.44,
+    "phases": [
+      [
+        1200,
+        "village"
+      ],
+      [
+        1524,
+        "town"
+      ],
+      [
+        1950,
+        "town"
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "Nicarao-era town, southern Nicaragua"
+  },
+  {
+    "name": "Matagalpa",
+    "lon": -85.92,
+    "lat": 12.92,
+    "phases": [
+      [
+        1200,
+        "village"
+      ],
+      [
+        1670,
+        "town"
+      ],
+      [
+        1950,
+        "town"
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "Colonial highland town, Nicaragua"
+  },
+  {
+    "name": "Nata",
+    "lon": -80.49,
+    "lat": 8.33,
+    "phases": [
+      [
+        1522,
+        "town"
+      ],
+      [
+        1950,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Oldest continuously inhabited Spanish town, Panama"
+  },
+  {
+    "name": "David (Panama)",
+    "lon": -82.43,
+    "lat": 8.43,
+    "phases": [
+      [
+        1602,
+        "village"
+      ],
+      [
+        1950,
+        "town"
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "Colonial frontier town, western Panama"
+  },
+  {
+    "name": "Liberia (Costa Rica)",
+    "lon": -85.44,
+    "lat": 10.63,
+    "phases": [
+      [
+        1769,
+        "village"
+      ],
+      [
+        1950,
+        "town"
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "Colonial cattle-ranching town, Guanacaste"
+  },
+  {
+    "name": "Esparza",
+    "lon": -84.66,
+    "lat": 9.99,
+    "phases": [
+      [
+        1574,
+        "town"
+      ],
+      [
+        1950,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Early colonial Pacific-coast town, Costa Rica"
+  },
+  {
+    "name": "Pasto",
+    "lon": -77.28,
+    "lat": 1.21,
+    "phases": [
+      [
+        1539,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Colonial Andean town, southern Colombia"
+  },
+  {
+    "name": "Ibague",
+    "lon": -75.23,
+    "lat": 4.44,
+    "phases": [
+      [
+        1550,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Colonial town, central Andes Colombia"
+  },
+  {
+    "name": "Neiva",
+    "lon": -75.29,
+    "lat": 2.93,
+    "phases": [
+      [
+        1612,
+        "town"
+      ],
+      [
+        1950,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Colonial town, upper Magdalena valley"
+  },
+  {
+    "name": "Gir\u00f3n",
+    "lon": -73.17,
+    "lat": 7.07,
+    "phases": [
+      [
+        1631,
+        "town"
+      ],
+      [
+        1950,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Colonial tobacco town, Santander"
+  },
+  {
+    "name": "Muzo",
+    "lon": -74.11,
+    "lat": 5.53,
+    "phases": [
+      [
+        1560,
+        "village"
+      ],
+      [
+        1950,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Colonial emerald-mining town, Boyaca"
+  },
+  {
+    "name": "Mariquita",
+    "lon": -74.89,
+    "lat": 5.2,
+    "phases": [
+      [
+        1551,
+        "town"
+      ],
+      [
+        1950,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Colonial gold-mining town, Tolima"
+  },
+  {
+    "name": "Valencia (Venezuela)",
+    "lon": -67.98,
+    "lat": 10.16,
+    "phases": [
+      [
+        1555,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Colonial agricultural town, Carabobo"
+  },
+  {
+    "name": "Barquisimeto",
+    "lon": -69.32,
+    "lat": 10.07,
+    "phases": [
+      [
+        1552,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Colonial highland town, Lara"
+  },
+  {
+    "name": "Barcelona (Venezuela)",
+    "lon": -64.68,
+    "lat": 10.14,
+    "phases": [
+      [
+        1671,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Colonial town, eastern Venezuela"
+  },
+  {
+    "name": "Ciudad Bolivar",
+    "lon": -63.54,
+    "lat": 8.12,
+    "phases": [
+      [
+        1764,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Orinoco river colonial trade town"
+  },
+  {
+    "name": "Ambato",
+    "lon": -78.62,
+    "lat": -1.24,
+    "phases": [
+      [
+        1200,
+        "village"
+      ],
+      [
+        1570,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "Colonial highland town, central Ecuador"
+  },
+  {
+    "name": "Riobamba",
+    "lon": -78.65,
+    "lat": -1.67,
+    "phases": [
+      [
+        1200,
+        "village"
+      ],
+      [
+        1534,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "First Spanish town in Ecuador, refounded after quake"
+  },
+  {
+    "name": "Ibarra",
+    "lon": -78.12,
+    "lat": 0.35,
+    "phases": [
+      [
+        1200,
+        "village"
+      ],
+      [
+        1606,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Colonial northern highland town, Ecuador"
+  },
+  {
+    "name": "Portoviejo",
+    "lon": -80.45,
+    "lat": -1.05,
+    "phases": [
+      [
+        1535,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Early colonial coastal town, Ecuador"
+  },
+  {
+    "name": "Huaraz",
+    "lon": -77.53,
+    "lat": -9.53,
+    "phases": [
+      [
+        1200,
+        "village"
+      ],
+      [
+        1574,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "Colonial highland town, Callejon de Huaylas"
+  },
+  {
+    "name": "Huancavelica",
+    "lon": -74.97,
+    "lat": -12.79,
+    "phases": [
+      [
+        1571,
+        "town"
+      ],
+      [
+        1950,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Mercury-mining colonial town, Peru"
+  },
+  {
+    "name": "Puno",
+    "lon": -70.02,
+    "lat": -15.84,
+    "phases": [
+      [
+        1668,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Colonial silver-mining town, Lake Titicaca"
+  },
+  {
+    "name": "Moquegua",
+    "lon": -70.93,
+    "lat": -17.2,
+    "phases": [
+      [
+        1541,
+        "town"
+      ],
+      [
+        1950,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Colonial vineyard town, southern Peru"
+  },
+  {
+    "name": "Piura",
+    "lon": -80.63,
+    "lat": -5.19,
+    "phases": [
+      [
+        1532,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "First Spanish town founded in Peru"
+  },
+  {
+    "name": "Chiclayo",
+    "lon": -79.84,
+    "lat": -6.77,
+    "phases": [
+      [
+        1720,
+        "village"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "Colonial-era town, Lambayeque, near Sican sites"
+  },
+  {
+    "name": "Lambayeque (town)",
+    "lon": -79.9,
+    "lat": -6.7,
+    "phases": [
+      [
+        1000,
+        "village"
+      ],
+      [
+        1550,
+        "town"
+      ],
+      [
+        1950,
+        "town"
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "Sican-heir colonial town, northern coast"
+  },
+  {
+    "name": "Jauja",
+    "lon": -75.5,
+    "lat": -11.78,
+    "phases": [
+      [
+        1200,
+        "town"
+      ],
+      [
+        1533,
+        "town"
+      ],
+      [
+        1950,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "First Spanish capital of Peru, briefly"
+  },
+  {
+    "name": "Andahuaylas",
+    "lon": -73.39,
+    "lat": -13.66,
+    "phases": [
+      [
+        1200,
+        "village"
+      ],
+      [
+        1572,
+        "town"
+      ],
+      [
+        1950,
+        "town"
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "Chanka-region colonial reduction town"
+  },
+  {
+    "name": "Tarija",
+    "lon": -64.75,
+    "lat": -21.53,
+    "phases": [
+      [
+        1574,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Colonial frontier town, southern Bolivia"
+  },
+  {
+    "name": "Santa Cruz de la Sierra",
+    "lon": -63.18,
+    "lat": -17.78,
+    "phases": [
+      [
+        1561,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Colonial lowland frontier town, Bolivia"
+  },
+  {
+    "name": "Tiahuanaco town",
+    "lon": -68.67,
+    "lat": -16.55,
+    "phases": [
+      [
+        1550,
+        "village"
+      ],
+      [
+        1950,
+        "town"
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "Colonial reduction village at Tiwanaku ruins"
+  },
+  {
+    "name": "Copiapo",
+    "lon": -70.33,
+    "lat": -27.37,
+    "phases": [
+      [
+        1200,
+        "village"
+      ],
+      [
+        1744,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "Colonial mining town, Atacama edge"
+  },
+  {
+    "name": "Chillan",
+    "lon": -72.1,
+    "lat": -36.61,
+    "phases": [
+      [
+        1580,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Colonial frontier town, central Chile"
+  },
+  {
+    "name": "Angol",
+    "lon": -72.72,
+    "lat": -37.8,
+    "phases": [
+      [
+        1553,
+        "town"
+      ],
+      [
+        1950,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Colonial fort-town, Araucania frontier"
+  },
+  {
+    "name": "Castro (Chiloe)",
+    "lon": -73.76,
+    "lat": -42.48,
+    "phases": [
+      [
+        1567,
+        "town"
+      ],
+      [
+        1950,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Colonial island town, Chiloe archipelago"
+  },
+  {
+    "name": "San Salvador de Jujuy",
+    "lon": -65.3,
+    "lat": -24.19,
+    "phases": [
+      [
+        1593,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Colonial Andean frontier town, Argentina"
+  },
+  {
+    "name": "Tucuman",
+    "lon": -65.22,
+    "lat": -26.82,
+    "phases": [
+      [
+        1565,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Colonial town, northwest Argentina"
+  },
+  {
+    "name": "San Juan (Argentina)",
+    "lon": -68.54,
+    "lat": -31.54,
+    "phases": [
+      [
+        1562,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Colonial oasis town, Cuyo"
+  },
+  {
+    "name": "Corrientes",
+    "lon": -58.83,
+    "lat": -27.47,
+    "phases": [
+      [
+        1588,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Colonial river town, Rio Parana"
+  },
+  {
+    "name": "Santa Fe (Argentina)",
+    "lon": -60.7,
+    "lat": -31.63,
+    "phases": [
+      [
+        1573,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Colonial river-port town, Argentina"
+  },
+  {
+    "name": "Yaguaron",
+    "lon": -57.28,
+    "lat": -25.83,
+    "phases": [
+      [
+        1539,
+        "village"
+      ],
+      [
+        1683,
+        "town"
+      ],
+      [
+        1950,
+        "town"
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "Guarani-Franciscan mission town, Paraguay"
+  },
+  {
+    "name": "Villarrica (Paraguay)",
+    "lon": -56.44,
+    "lat": -25.75,
+    "phases": [
+      [
+        1570,
+        "town"
+      ],
+      [
+        1950,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Colonial frontier town, Paraguay"
+  },
+  {
+    "name": "San Ignacio Guazu",
+    "lon": -57.03,
+    "lat": -26.99,
+    "phases": [
+      [
+        1609,
+        "town"
+      ],
+      [
+        1767,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "First Jesuit Guarani reduction in Paraguay"
+  },
+  {
+    "name": "Santa Rosa de Lima (Misiones)",
+    "lon": -55.09,
+    "lat": -27.87,
+    "phases": [
+      [
+        1698,
+        "town"
+      ],
+      [
+        1768,
+        null
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Jesuit Guarani reduction, Misiones region"
+  },
+  {
+    "name": "Maldonado",
+    "lon": -54.96,
+    "lat": -34.91,
+    "phases": [
+      [
+        1755,
+        "town"
+      ],
+      [
+        1950,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Spanish colonial coastal town, Uruguay"
+  },
+  {
+    "name": "Ilheus",
+    "lon": -39.05,
+    "lat": -14.79,
+    "phases": [
+      [
+        1534,
+        "town"
+      ],
+      [
+        1950,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Early Portuguese captaincy town, Bahia"
+  },
+  {
+    "name": "Porto Seguro",
+    "lon": -39.06,
+    "lat": -16.44,
+    "phases": [
+      [
+        1500,
+        "village"
+      ],
+      [
+        1526,
+        "town"
+      ],
+      [
+        1950,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "First Portuguese landfall town, Bahia"
+  },
+  {
+    "name": "Vitoria (Espirito Santo)",
+    "lon": -40.34,
+    "lat": -20.32,
+    "phases": [
+      [
+        1551,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Portuguese colonial captaincy capital"
+  },
+  {
+    "name": "Florianopolis",
+    "lon": -48.55,
+    "lat": -27.6,
+    "phases": [
+      [
+        1675,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Azorean colonial island settlement"
+  },
+  {
+    "name": "Cuiaba",
+    "lon": -56.1,
+    "lat": -15.6,
+    "phases": [
+      [
+        1719,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Gold-rush frontier town, Mato Grosso"
+  },
+  {
+    "name": "Goias Velho",
+    "lon": -50.14,
+    "lat": -15.93,
+    "phases": [
+      [
+        1727,
+        "town"
+      ],
+      [
+        1950,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Gold-mining colonial capital, Goias"
+  },
+  {
+    "name": "Fortaleza",
+    "lon": -38.54,
+    "lat": -3.73,
+    "phases": [
+      [
+        1649,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Dutch then Portuguese fort-town, Ceara"
+  },
+  {
+    "name": "Joao Pessoa",
+    "lon": -34.86,
+    "lat": -7.12,
+    "phases": [
+      [
+        1585,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Portuguese colonial town, Paraiba"
+  },
+  {
+    "name": "Natal",
+    "lon": -35.21,
+    "lat": -5.79,
+    "phases": [
+      [
+        1599,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Portuguese fort-town, Rio Grande do Norte"
+  },
+  {
+    "name": "Acutuba",
+    "lon": -60.1,
+    "lat": -3.08,
+    "phases": [
+      [
+        400,
+        "village"
+      ],
+      [
+        1200,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Central Amazon terra preta village site"
+  },
+  {
+    "name": "Caverna da Pedra Pintada",
+    "lon": -54.75,
+    "lat": -2.42,
+    "phases": [
+      [
+        -11000,
+        "village"
+      ],
+      [
+        500,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Ancient rockshelter occupation, Monte Alegre"
+  },
+  {
+    "name": "Llanos de Mojos (Bolivia)",
+    "lon": -65.5,
+    "lat": -14.5,
+    "phases": [
+      [
+        -500,
+        "village"
+      ],
+      [
+        1400,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Earthwork/causeway raised-field settlements, Beni"
+  },
+  {
+    "name": "Chalcatzingo",
+    "lon": -98.75,
+    "lat": 18.7,
+    "phases": [
+      [
+        -1000,
+        "village"
+      ],
+      [
+        -500,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Olmec-influenced hilltop site, Morelos"
+  },
+  {
+    "name": "Teotenango",
+    "lon": -99.61,
+    "lat": 19.15,
+    "phases": [
+      [
+        900,
+        "town"
+      ],
+      [
+        1521,
+        "town"
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Matlatzinca fortified hill town"
+  },
+  {
+    "name": "Tepexi el Viejo",
+    "lon": -98.25,
+    "lat": 18.58,
+    "phases": [
+      [
+        1300,
+        "town"
+      ],
+      [
+        1521,
+        "town"
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Popoloca fortified town, Puebla"
+  },
+  {
+    "name": "Coixtlahuaca",
+    "lon": -97.2,
+    "lat": 17.72,
+    "phases": [
+      [
+        1000,
+        "town"
+      ],
+      [
+        1521,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Mixtec-Chocho market town"
+  },
+  {
+    "name": "Acatlan",
+    "lon": -98.05,
+    "lat": 18.2,
+    "phases": [
+      [
+        1200,
+        "village"
+      ],
+      [
+        1521,
+        "town"
+      ],
+      [
+        1950,
+        "town"
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "Mixteca Baja pottery town, Puebla"
+  },
+  {
+    "name": "Tututepec",
+    "lon": -97.61,
+    "lat": 16.15,
+    "phases": [
+      [
+        900,
+        "town"
+      ],
+      [
+        1522,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Mixtec coastal kingdom capital, 8-Deer's realm"
+  },
+  {
+    "name": "Coixtlahuaca-adjacent Achiutla",
+    "lon": -97.42,
+    "lat": 17.32,
+    "phases": [
+      [
+        900,
+        "town"
+      ],
+      [
+        1521,
+        "town"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Mixtec religious centre, oracle of Apoala nearby"
+  },
+  {
+    "name": "Dos Pilas",
+    "lon": -90.44,
+    "lat": 16.51,
+    "phases": [
+      [
+        629,
+        "town"
+      ],
+      [
+        761,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Petexbatun Maya warring capital"
+  },
+  {
+    "name": "Aguateca",
+    "lon": -90.2,
+    "lat": 16.35,
+    "phases": [
+      [
+        700,
+        "town"
+      ],
+      [
+        810,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Petexbatun clifftop Maya fortress city"
+  },
+  {
+    "name": "Ceibal (Seibal)",
+    "lon": -90.06,
+    "lat": 16.51,
+    "phases": [
+      [
+        -900,
+        "village"
+      ],
+      [
+        900,
+        "town"
+      ],
+      [
+        950,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Long-lived Pasion river Maya centre"
+  },
+  {
+    "name": "Rio Bec",
+    "lon": -89.83,
+    "lat": 18.53,
+    "phases": [
+      [
+        600,
+        "town"
+      ],
+      [
+        950,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Distinctive tower-temple Maya region, Campeche"
+  },
+  {
+    "name": "Becan",
+    "lon": -89.46,
+    "lat": 18.53,
+    "phases": [
+      [
+        -550,
+        "town"
+      ],
+      [
+        1000,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Fortified moated Maya city, Rio Bec"
+  },
+  {
+    "name": "Edzna",
+    "lon": -90.24,
+    "lat": 19.6,
+    "phases": [
+      [
+        -400,
+        "town"
+      ],
+      [
+        600,
+        "city"
+      ],
+      [
+        1450,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Major hydraulic Maya city, Campeche"
+  },
+  {
+    "name": "Xpuhil",
+    "lon": -89.42,
+    "lat": 18.51,
+    "phases": [
+      [
+        500,
+        "village"
+      ],
+      [
+        750,
+        "town"
+      ],
+      [
+        950,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Rio Bec-style Maya town"
+  },
+  {
+    "name": "Muyil",
+    "lon": -87.6,
+    "lat": 20.1,
+    "phases": [
+      [
+        -300,
+        "village"
+      ],
+      [
+        900,
+        "town"
+      ],
+      [
+        1500,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Long-occupied Quintana Roo Maya trade town"
+  },
+  {
+    "name": "Ek Balam",
+    "lon": -88.14,
+    "lat": 20.9,
+    "phases": [
+      [
+        300,
+        "village"
+      ],
+      [
+        700,
+        "town"
+      ],
+      [
+        1200,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Yucatan Maya city, elaborate stucco tomb"
+  },
+  {
+    "name": "Oxkintok",
+    "lon": -89.9,
+    "lat": 20.38,
+    "phases": [
+      [
+        300,
+        "town"
+      ],
+      [
+        900,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Early Puuc-region Maya city"
+  },
+  {
+    "name": "Xcaret",
+    "lon": -87.12,
+    "lat": 20.63,
+    "phases": [
+      [
+        300,
+        "village"
+      ],
+      [
+        900,
+        "town"
+      ],
+      [
+        1521,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Coastal Maya trading port, Quintana Roo"
+  },
+  {
+    "name": "Cozumel town",
+    "lon": -86.92,
+    "lat": 20.42,
+    "phases": [
+      [
+        300,
+        "village"
+      ],
+      [
+        1000,
+        "town"
+      ],
+      [
+        1550,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Maya pilgrimage island, Ix Chel shrine"
+  },
+  {
+    "name": "San Gervasio",
+    "lon": -86.95,
+    "lat": 20.53,
+    "phases": [
+      [
+        100,
+        "village"
+      ],
+      [
+        900,
+        "town"
+      ],
+      [
+        1550,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Cozumel Maya capital shrine town"
+  },
+  {
+    "name": "Chunchucmil",
+    "lon": -90.15,
+    "lat": 20.68,
+    "phases": [
+      [
+        -400,
+        "town"
+      ],
+      [
+        900,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Salt-trade Maya city, Yucatan"
+  },
+  {
+    "name": "Chinkultic",
+    "lon": -91.79,
+    "lat": 16.15,
+    "phases": [
+      [
+        300,
+        "village"
+      ],
+      [
+        800,
+        "town"
+      ],
+      [
+        1000,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Highland Chiapas Maya city, ballcourt"
+  },
+  {
+    "name": "Tonin\u00e1",
+    "lon": -92.02,
+    "lat": 16.91,
+    "phases": [
+      [
+        300,
+        "town"
+      ],
+      [
+        800,
+        "town"
+      ],
+      [
+        900,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Late Classic Maya military power, Chiapas"
+  },
+  {
+    "name": "Chiapa de Corzo",
+    "lon": -93.02,
+    "lat": 16.71,
+    "phases": [
+      [
+        -1200,
+        "village"
+      ],
+      [
+        600,
+        "town"
+      ],
+      [
+        1521,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Long-lived Chiapas centre, earliest Long Count date"
+  },
+  {
+    "name": "El Peru-Waka",
+    "lon": -90.58,
+    "lat": 17.3,
+    "phases": [
+      [
+        300,
+        "town"
+      ],
+      [
+        800,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Peten Maya city, trade route to Usumacinta"
+  },
+  {
+    "name": "Takalik Abaj",
+    "lon": -91.65,
+    "lat": 14.65,
+    "phases": [
+      [
+        -800,
+        "village"
+      ],
+      [
+        100,
+        "town"
+      ],
+      [
+        900,
+        null
+      ]
+    ],
+    "evidence": "archaeological",
+    "note": "Olmec-to-Maya transition site, Pacific slope Guatemala"
+  },
+  {
+    "name": "Aguascalientes",
+    "lon": -102.3,
+    "lat": 21.88,
+    "phases": [
+      [
+        1575,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Colonial way-station town, silver route"
+  },
+  {
+    "name": "Morelia",
+    "lon": -101.18,
+    "lat": 19.7,
+    "phases": [
+      [
+        1541,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Colonial Spanish town, Valladolid de Michoacan"
+  },
+  {
+    "name": "Leon (Mexico)",
+    "lon": -101.68,
+    "lat": 21.12,
+    "phases": [
+      [
+        1576,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Colonial Bajio agricultural town"
+  },
+  {
+    "name": "Saltillo",
+    "lon": -101.0,
+    "lat": 25.42,
+    "phases": [
+      [
+        1577,
+        "town"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "documented",
+    "note": "Colonial northern frontier town"
+  },
+  {
+    "name": "Hermosillo",
+    "lon": -110.96,
+    "lat": 29.07,
+    "phases": [
+      [
+        1700,
+        "village"
+      ],
+      [
+        1950,
+        "city"
+      ]
+    ],
+    "evidence": "inferred",
+    "note": "Colonial Sonoran frontier settlement"
+  }
+]

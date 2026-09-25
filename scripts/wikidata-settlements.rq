@@ -1,0 +1,10 @@
+PREFIX wd: <http://www.wikidata.org/entity/>
+PREFIX wdt: <http://www.wikidata.org/prop/direct/>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX geof: <http://www.opengis.net/def/function/geosparql/>
+SELECT ?s ?label (SAMPLE(?c) AS ?coord) (MIN(?i) AS ?inception) (MAX(?d) AS ?dissolved) (MAX(?p) AS ?pop) WHERE {
+  ?s wdt:P31/wdt:P279* wd:Q486972 ; wdt:P625 ?c ; wdt:P571 ?i .
+  ?s rdfs:label ?label . FILTER(LANG(?label) = "en")
+  OPTIONAL { ?s wdt:P576 ?d }
+  OPTIONAL { ?s wdt:P1082 ?p }
+} GROUP BY ?s ?label

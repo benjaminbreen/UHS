@@ -12,6 +12,7 @@ import { kilometers, bearingTo, wrapLon } from "./geography";
 import { resolveMapEnvironment, mapClimateLabel } from "./environment";
 import { resolveGeographicName } from "./naming";
 import { trimCache } from "../../core/cache";
+import { random } from "../../core/random";
 import type { Coordinate, TravelLocation, TravelStop } from "./types";
 export type PermanentMap = TravelStop & { networkId: string };
 export type MapExit = {
@@ -64,7 +65,7 @@ function placesIn(tile: Tile) {
  * before its founding. */
 function landmark(p: TravelLocation, year: number) {
   const status = settlementAt(p, year);
-  return status === "city" || status === "town" || p.kind === "landscape";
+  return status === "city" || status === "town" || status === "village" || p.kind === "landscape";
 }
 function nearestPlace(tile: Tile, year: number, reach: number) {
   const centre = centreOf(tile);
@@ -90,6 +91,45 @@ const bandFiles = import.meta.glob<Band>(
 const BAND = 32;
 const bands = new Map<number, Band>();
 const bandOf = (j: number) => Math.floor(j / BAND);
+// Dated settlements built by scripts/prepare-settlements.py, in the same bands.
+type Row = [number, number, string, number[], string];
+const settlementFiles = import.meta.glob<Row[]>(
+  "../../content/geography/travel/generated/settlements/*.json",
+  { import: "default" },
+);
+const sourceNote: Record<string, string> = {
+  a: "Authored regional gazetteer; ranks and dates are partly inferred.",
+  c: "Chandler and Modelski city populations, geocoded by Reba, Reitsma and Seto (2016).",
+  p: "Pleiades gazetteer of the ancient world; dates follow its attested periods.",
+  t: "Al-Muqaddasi's hierarchy of places, c. 985, via al-Thurayya; earlier dates inferred.",
+  w: "Wikidata inception date; rank from modern population, inferred before 1850.",
+  g: "GeoNames modern town, assumed standing from 1900; earlier history unresearched.",
+};
+const trust = (p: TravelLocation) => "acptwg".indexOf(p.settlement?.source ?? "a");
+function addSettlements(rows: Row[]) {
+  placesIn({ i: 0, j: 0 });
+  for (const [lon, lat, name, phases, src] of rows) {
+    const p: TravelLocation = {
+      id: `settlement:${lon},${lat}`,
+      name,
+      landscape: name,
+      lon,
+      lat,
+      kind: "settlement",
+      importance: 1 + Math.max(...phases.filter((_, k) => k % 2)),
+      settlement: { from: phases[0], rank: "village", source: src, phases },
+      note: sourceNote[src],
+    };
+    const key = tileId(tileOf(p));
+    if (!byTile!.has(key)) byTile!.set(key, []);
+    const here = byTile!.get(key)!;
+    // An authored entry of the same name speaks for it; an undated catalog
+    // anchor gives way to the dated record.
+    const same = here.findIndex((q) => q.name.toLowerCase() === name.toLowerCase());
+    if (same < 0) here.push(p);
+    else if (!here[same].settlement) here[same] = p;
+  }
+}
 /** Loads the names around these maps; call before preparing or listing them. */
 export async function loadTileNames(ids: string[]) {
   const wanted = new Set<number>();
@@ -103,6 +143,8 @@ export async function loadTileNames(ids: string[]) {
       .map(async (b) => {
         const load = bandFiles[`../../content/geography/travel/generated/tile-names/${b}.json`];
         bands.set(b, load ? await load() : {});
+        const rows = settlementFiles[`../../content/geography/travel/generated/settlements/${b}.json`];
+        if (rows) addSettlements(await rows());
       }),
   );
 }
@@ -178,6 +220,7 @@ function nameOf(tile: Tile, year: number, water: boolean) {
     .sort(
       (a, b) =>
         b.importance - a.importance ||
+        trust(a) - trust(b) ||
         a.id.localeCompare(b.id),
     )[0];
   if (own) return { name: locationName(own, year), location: own };
@@ -223,6 +266,20 @@ function nameOf(tile: Tile, year: number, water: boolean) {
   };
 }
 
+// Gameplay odds, not demography: most land has someone on it, less so in
+// deserts, mountains and tundra, more within a day's walk of a town.
+function countryside(tile: Tile, year: number, climate: string) {
+  const c = centreOf(tile), b = broadEnvironment(c.lon, c.lat);
+  let odds = year < -9000 ? 0.35 : year < 1500 ? 0.55 : year < 1850 ? 0.65 : 0.8;
+  odds *= Math.min(1, b.moisture / 0.35) ** 2 * (b.relief > 0.6 ? 0.5 : 1);
+  if (climate === "tundra") odds *= 0.2;
+  const town = nearestPlace(tile, year, 2);
+  if (town?.kind === "settlement" && kilometers(town, c) < 30) odds += 0.25;
+  // Keyed by square alone, so a hamlet stands at every date it is rolled for.
+  const roll = random("countryside", tileId(tile));
+  return roll < odds * 0.35 ? "settled" : roll < odds ? "sparse" : undefined;
+}
+
 const mapCache = new Map<string, PermanentMap>();
 export function permanentMap(id: string, year: number): PermanentMap {
   const key = `${id}@${year}`;
@@ -236,7 +293,8 @@ export function permanentMap(id: string, year: number): PermanentMap {
   const { name, location } = nameOf(tile, year, water);
   const named = tableName(tile) !== undefined;
   const status = location ? settlementAt(location, year) : "none";
-  const settlement = status === "city" || status === "town" ? status : "none";
+  const settlement =
+    status === "city" || status === "town" || status === "village" ? status : "none";
   const map: PermanentMap = {
     ...centre,
     id: tileId(tile),
@@ -251,6 +309,10 @@ export function permanentMap(id: string, year: number): PermanentMap {
     culture: water ? "No resident default" : environment.culture,
     locationId: settlement !== "none" ? location!.id : undefined,
     settlement,
+    countryside:
+      settlement === "none" && !water
+        ? countryside(tile, year, environment.climate)
+        : undefined,
     size: TILE,
     reason: "Permanent playable map",
     km: 0,

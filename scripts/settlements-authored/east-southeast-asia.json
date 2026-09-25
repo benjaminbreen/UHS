@@ -1,0 +1,4195 @@
+[
+ {
+  "name": "Sannai-Maruyama",
+  "lon": 140.73,
+  "lat": 40.82,
+  "phases": [
+   [
+    -3900,
+    "village"
+   ],
+   [
+    -2300,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Large Jomon settlement, Aomori."
+ },
+ {
+  "name": "Sannai-Maruyama (later)",
+  "lon": 140.73,
+  "lat": 40.82,
+  "phases": [
+   [
+    -2300,
+    "village"
+   ],
+   [
+    -300,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Later Jomon reoccupation phase."
+ },
+ {
+  "name": "Yoshinogari",
+  "lon": 130.41,
+  "lat": 33.28,
+  "phases": [
+   [
+    -300,
+    "village"
+   ],
+   [
+    100,
+    "town"
+   ],
+   [
+    300,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Moated Yayoi settlement, Saga; linked to Yamatai debate."
+ },
+ {
+  "name": "Toro",
+  "lon": 138.4,
+  "lat": 34.95,
+  "phases": [
+   [
+    -100,
+    "village"
+   ],
+   [
+    300,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Yayoi rice-paddy village, Shizuoka."
+ },
+ {
+  "name": "Ikegami-Sone",
+  "lon": 135.4,
+  "lat": 34.5,
+  "phases": [
+   [
+    -200,
+    "village"
+   ],
+   [
+    300,
+    "town"
+   ],
+   [
+    400,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Large moated Yayoi settlement, Osaka plain."
+ },
+ {
+  "name": "Karako-Kagi",
+  "lon": 135.8,
+  "lat": 34.55,
+  "phases": [
+   [
+    -300,
+    "village"
+   ],
+   [
+    300,
+    "town"
+   ],
+   [
+    400,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Continuous Yayoi settlement, Nara basin."
+ },
+ {
+  "name": "Nara (Heijo-kyo)",
+  "lon": 135.8,
+  "lat": 34.68,
+  "phases": [
+   [
+    710,
+    "city"
+   ],
+   [
+    794,
+    "town"
+   ],
+   [
+    1300,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Imperial capital 710-784, Nihon Shoki/Shoku Nihongi."
+ },
+ {
+  "name": "Kyoto (Heian-kyo)",
+  "lon": 135.76,
+  "lat": 35.01,
+  "phases": [
+   [
+    794,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Imperial capital from 794, continuous."
+ },
+ {
+  "name": "Kamakura",
+  "lon": 139.55,
+  "lat": 35.32,
+  "phases": [
+   [
+    1180,
+    "town"
+   ],
+   [
+    1192,
+    "city"
+   ],
+   [
+    1333,
+    "town"
+   ],
+   [
+    1600,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Shogunal capital of Kamakura bakufu."
+ },
+ {
+  "name": "Osaka (Naniwa)",
+  "lon": 135.5,
+  "lat": 34.68,
+  "phases": [
+   [
+    400,
+    "town"
+   ],
+   [
+    645,
+    "city"
+   ],
+   [
+    794,
+    "town"
+   ],
+   [
+    1496,
+    "town"
+   ],
+   [
+    1583,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ancient Naniwa, then Ishiyama Honganji, then Toyotomi castle town."
+ },
+ {
+  "name": "Dazaifu",
+  "lon": 130.52,
+  "lat": 33.52,
+  "phases": [
+   [
+    663,
+    "town"
+   ],
+   [
+    900,
+    "city"
+   ],
+   [
+    1200,
+    "town"
+   ],
+   [
+    1586,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Kyushu administrative headquarters, Shoku Nihongi."
+ },
+ {
+  "name": "Hakata",
+  "lon": 130.4,
+  "lat": 33.6,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1200,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Trade port, Kyushu; Song and Yuan contacts."
+ },
+ {
+  "name": "Sakai",
+  "lon": 135.48,
+  "lat": 34.57,
+  "phases": [
+   [
+    1200,
+    "town"
+   ],
+   [
+    1450,
+    "city"
+   ],
+   [
+    1615,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Self-governing merchant port, Muromachi-Sengoku."
+ },
+ {
+  "name": "Otsu",
+  "lon": 135.87,
+  "lat": 35.0,
+  "phases": [
+   [
+    667,
+    "city"
+   ],
+   [
+    672,
+    "village"
+   ],
+   [
+    1300,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Briefly capital under Tenji, later Lake Biwa post town."
+ },
+ {
+  "name": "Fukuhara (Kobe)",
+  "lon": 135.17,
+  "lat": 34.68,
+  "phases": [
+   [
+    1180,
+    "city"
+   ],
+   [
+    1181,
+    "village"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Taira no Kiyomori's short-lived capital."
+ },
+ {
+  "name": "Hiraizumi",
+  "lon": 141.11,
+  "lat": 38.99,
+  "phases": [
+   [
+    1100,
+    "town"
+   ],
+   [
+    1189,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Northern Fujiwara capital, Chuson-ji."
+ },
+ {
+  "name": "Yamaguchi",
+  "lon": 131.47,
+  "lat": 34.19,
+  "phases": [
+   [
+    1360,
+    "town"
+   ],
+   [
+    1550,
+    "city"
+   ],
+   [
+    1600,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ouchi clan capital, 'Kyoto of the west'."
+ },
+ {
+  "name": "Ichijodani",
+  "lon": 136.28,
+  "lat": 35.97,
+  "phases": [
+   [
+    1471,
+    "town"
+   ],
+   [
+    1573,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Asakura clan castle town, Echizen."
+ },
+ {
+  "name": "Odawara",
+  "lon": 139.16,
+  "lat": 35.26,
+  "phases": [
+   [
+    1400,
+    "town"
+   ],
+   [
+    1495,
+    "city"
+   ],
+   [
+    1590,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Hojo clan Sengoku castle town."
+ },
+ {
+  "name": "Sunpu (Shizuoka)",
+  "lon": 138.38,
+  "lat": 34.98,
+  "phases": [
+   [
+    1200,
+    "town"
+   ],
+   [
+    1585,
+    "city"
+   ],
+   [
+    1610,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Imagawa then Tokugawa Ieyasu retirement capital."
+ },
+ {
+  "name": "Gifu (Inokuchi)",
+  "lon": 136.76,
+  "lat": 35.42,
+  "phases": [
+   [
+    1200,
+    "town"
+   ],
+   [
+    1567,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Oda Nobunaga renamed and rebuilt as castle town."
+ },
+ {
+  "name": "Azuchi",
+  "lon": 136.14,
+  "lat": 35.13,
+  "phases": [
+   [
+    1576,
+    "city"
+   ],
+   [
+    1582,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Oda Nobunaga's short-lived castle capital."
+ },
+ {
+  "name": "Fushimi",
+  "lon": 135.76,
+  "lat": 34.94,
+  "phases": [
+   [
+    1594,
+    "city"
+   ],
+   [
+    1623,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Toyotomi Hideyoshi's Momoyama castle town."
+ },
+ {
+  "name": "Edo (Tokyo)",
+  "lon": 139.69,
+  "lat": 35.68,
+  "phases": [
+   [
+    1457,
+    "town"
+   ],
+   [
+    1603,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Tokugawa shogunal capital from 1603."
+ },
+ {
+  "name": "Nagoya",
+  "lon": 136.91,
+  "lat": 35.18,
+  "phases": [
+   [
+    1610,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Built as Owari domain castle town by Tokugawa."
+ },
+ {
+  "name": "Kanazawa",
+  "lon": 136.66,
+  "lat": 36.56,
+  "phases": [
+   [
+    1546,
+    "town"
+   ],
+   [
+    1583,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Maeda domain castle town, largest han capital."
+ },
+ {
+  "name": "Sendai",
+  "lon": 140.87,
+  "lat": 38.27,
+  "phases": [
+   [
+    1600,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Date Masamune's castle town."
+ },
+ {
+  "name": "Hiroshima",
+  "lon": 132.46,
+  "lat": 34.4,
+  "phases": [
+   [
+    1589,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Mori Terumoto castle town on delta."
+ },
+ {
+  "name": "Kumamoto",
+  "lon": 130.71,
+  "lat": 32.79,
+  "phases": [
+   [
+    1467,
+    "town"
+   ],
+   [
+    1607,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Kato Kiyomasa rebuilt as major castle town."
+ },
+ {
+  "name": "Kagoshima",
+  "lon": 130.56,
+  "lat": 31.6,
+  "phases": [
+   [
+    1250,
+    "town"
+   ],
+   [
+    1602,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Shimazu clan capital of Satsuma."
+ },
+ {
+  "name": "Matsue",
+  "lon": 133.05,
+  "lat": 35.47,
+  "phases": [
+   [
+    1611,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Horio clan castle town, Izumo."
+ },
+ {
+  "name": "Himeji",
+  "lon": 134.69,
+  "lat": 34.82,
+  "phases": [
+   [
+    1346,
+    "town"
+   ],
+   [
+    1601,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ikeda Terumasa's white-heron castle town."
+ },
+ {
+  "name": "Okayama",
+  "lon": 133.93,
+  "lat": 34.66,
+  "phases": [
+   [
+    1346,
+    "town"
+   ],
+   [
+    1573,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ukita clan castle town."
+ },
+ {
+  "name": "Wakayama",
+  "lon": 135.17,
+  "lat": 34.23,
+  "phases": [
+   [
+    1585,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Kii Tokugawa branch domain capital."
+ },
+ {
+  "name": "Toyama",
+  "lon": 137.21,
+  "lat": 36.7,
+  "phases": [
+   [
+    1543,
+    "town"
+   ],
+   [
+    1605,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Maeda branch domain castle town."
+ },
+ {
+  "name": "Matsumoto",
+  "lon": 137.97,
+  "lat": 36.24,
+  "phases": [
+   [
+    1504,
+    "town"
+   ],
+   [
+    1590,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Fukashi/Matsumoto castle town, Shinano."
+ },
+ {
+  "name": "Nagano (Zenkoji)",
+  "lon": 138.18,
+  "lat": 36.65,
+  "phases": [
+   [
+    700,
+    "village"
+   ],
+   [
+    1200,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Pilgrimage town around Zenkoji temple."
+ },
+ {
+  "name": "Akita",
+  "lon": 140.1,
+  "lat": 39.72,
+  "phases": [
+   [
+    733,
+    "town"
+   ],
+   [
+    1602,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ancient Dewa fort, later Satake domain capital."
+ },
+ {
+  "name": "Morioka",
+  "lon": 141.15,
+  "lat": 39.7,
+  "phases": [
+   [
+    1597,
+    "town"
+   ],
+   [
+    1633,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Nanbu clan castle town."
+ },
+ {
+  "name": "Aizu-Wakamatsu",
+  "lon": 139.93,
+  "lat": 37.5,
+  "phases": [
+   [
+    1384,
+    "town"
+   ],
+   [
+    1592,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Gamo/Matsudaira domain castle town."
+ },
+ {
+  "name": "Yonezawa",
+  "lon": 140.12,
+  "lat": 37.92,
+  "phases": [
+   [
+    1238,
+    "town"
+   ],
+   [
+    1601,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Uesugi clan castle town."
+ },
+ {
+  "name": "Tottori",
+  "lon": 134.24,
+  "lat": 35.5,
+  "phases": [
+   [
+    1545,
+    "town"
+   ],
+   [
+    1600,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ikeda domain castle town."
+ },
+ {
+  "name": "Takamatsu",
+  "lon": 134.05,
+  "lat": 34.34,
+  "phases": [
+   [
+    1588,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ikoma/Matsudaira domain castle town, Shikoku."
+ },
+ {
+  "name": "Matsuyama",
+  "lon": 132.77,
+  "lat": 33.84,
+  "phases": [
+   [
+    1602,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Kato clan castle town, Iyo."
+ },
+ {
+  "name": "Kochi",
+  "lon": 133.53,
+  "lat": 33.56,
+  "phases": [
+   [
+    1601,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Yamauchi clan castle town, Tosa."
+ },
+ {
+  "name": "Tokushima",
+  "lon": 134.56,
+  "lat": 34.07,
+  "phases": [
+   [
+    1585,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Hachisuka clan castle town, Awa."
+ },
+ {
+  "name": "Fukuoka",
+  "lon": 130.4,
+  "lat": 33.59,
+  "phases": [
+   [
+    1601,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Kuroda clan castle town, distinct from Hakata."
+ },
+ {
+  "name": "Saga",
+  "lon": 130.3,
+  "lat": 33.25,
+  "phases": [
+   [
+    1600,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Nabeshima domain castle town."
+ },
+ {
+  "name": "Nagasaki",
+  "lon": 129.87,
+  "lat": 32.75,
+  "phases": [
+   [
+    1571,
+    "town"
+   ],
+   [
+    1641,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Jesuit-opened port, later sole Dutch/Chinese trade window."
+ },
+ {
+  "name": "Hirado",
+  "lon": 129.55,
+  "lat": 33.36,
+  "phases": [
+   [
+    1550,
+    "town"
+   ],
+   [
+    1641,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Early Portuguese/Dutch/English trading post."
+ },
+ {
+  "name": "Kumejima port",
+  "lon": 126.75,
+  "lat": 26.34,
+  "phases": [
+   [
+    1400,
+    "village"
+   ],
+   [
+    1609,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Ryukyu trade waystation before Satsuma conquest."
+ },
+ {
+  "name": "Naha",
+  "lon": 127.68,
+  "lat": 26.21,
+  "phases": [
+   [
+    1400,
+    "town"
+   ],
+   [
+    1429,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ryukyu Kingdom capital port."
+ },
+ {
+  "name": "Shuri",
+  "lon": 127.72,
+  "lat": 26.22,
+  "phases": [
+   [
+    1429,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ryukyu royal capital, hilltop."
+ },
+ {
+  "name": "Hakodate",
+  "lon": 140.73,
+  "lat": 41.77,
+  "phases": [
+   [
+    1454,
+    "town"
+   ],
+   [
+    1859,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Matsumae-era port, treaty port from 1859."
+ },
+ {
+  "name": "Matsumae",
+  "lon": 140.11,
+  "lat": 41.43,
+  "phases": [
+   [
+    1600,
+    "town"
+   ],
+   [
+    1868,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Only Wajin domain in Ezo, Ainu trade."
+ },
+ {
+  "name": "Sapporo",
+  "lon": 141.35,
+  "lat": 43.06,
+  "phases": [
+   [
+    1869,
+    "town"
+   ],
+   [
+    1900,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Planned Meiji colonial capital of Hokkaido."
+ },
+ {
+  "name": "Yokohama",
+  "lon": 139.64,
+  "lat": 35.44,
+  "phases": [
+   [
+    1859,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Treaty port opened 1859, rapid Meiji growth."
+ },
+ {
+  "name": "Kobe (modern)",
+  "lon": 135.18,
+  "lat": 34.69,
+  "phases": [
+   [
+    1868,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Treaty port opened 1868."
+ },
+ {
+  "name": "Niigata",
+  "lon": 139.02,
+  "lat": 37.92,
+  "phases": [
+   [
+    1655,
+    "town"
+   ],
+   [
+    1858,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Echigo river port, treaty port 1858."
+ },
+ {
+  "name": "Tsuruga",
+  "lon": 136.06,
+  "lat": 35.65,
+  "phases": [
+   [
+    700,
+    "village"
+   ],
+   [
+    1300,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Sea of Japan trade port, continental contact."
+ },
+ {
+  "name": "Otaru",
+  "lon": 141.0,
+  "lat": 43.19,
+  "phases": [
+   [
+    1800,
+    "village"
+   ],
+   [
+    1899,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Herring fishing port developed under Meiji."
+ },
+ {
+  "name": "Kawagoe",
+  "lon": 139.49,
+  "lat": 35.92,
+  "phases": [
+   [
+    1457,
+    "town"
+   ],
+   [
+    1600,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Edo-period 'Little Edo' castle town."
+ },
+ {
+  "name": "Sekigahara post town",
+  "lon": 136.47,
+  "lat": 35.37,
+  "phases": [
+   [
+    1601,
+    "village"
+   ],
+   [
+    1868,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Nakasendo post station near battle site."
+ },
+ {
+  "name": "Hakone-juku",
+  "lon": 139.03,
+  "lat": 35.23,
+  "phases": [
+   [
+    1618,
+    "village"
+   ],
+   [
+    1868,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Tokaido checkpoint post town."
+ },
+ {
+  "name": "Narai-juku",
+  "lon": 137.87,
+  "lat": 35.87,
+  "phases": [
+   [
+    1610,
+    "village"
+   ],
+   [
+    1868,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Nakasendo post town, Kiso valley."
+ },
+ {
+  "name": "Ise (Uji-Yamada)",
+  "lon": 136.72,
+  "lat": 34.46,
+  "phases": [
+   [
+    700,
+    "town"
+   ],
+   [
+    1400,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Pilgrimage city around Ise Shrine."
+ },
+ {
+  "name": "Nikko",
+  "lon": 139.6,
+  "lat": 36.75,
+  "phases": [
+   [
+    766,
+    "village"
+   ],
+   [
+    1617,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Tokugawa mausoleum pilgrimage town."
+ },
+ {
+  "name": "Koyasan",
+  "lon": 135.59,
+  "lat": 34.21,
+  "phases": [
+   [
+    816,
+    "village"
+   ],
+   [
+    1600,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Shingon Buddhist monastic town."
+ },
+ {
+  "name": "Uji",
+  "lon": 135.8,
+  "lat": 34.89,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1200,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Heian aristocratic retreat town, Byodo-in."
+ },
+ {
+  "name": "Nara-period Fujiwara-kyo",
+  "lon": 135.81,
+  "lat": 34.5,
+  "phases": [
+   [
+    694,
+    "city"
+   ],
+   [
+    710,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Short-lived first grid capital before Nara."
+ },
+ {
+  "name": "Omi-Otsu palace town",
+  "lon": 135.86,
+  "lat": 35.0,
+  "phases": [
+   [
+    667,
+    "town"
+   ],
+   [
+    672,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Palace of Emperor Tenji."
+ },
+ {
+  "name": "Kusatsu-juku",
+  "lon": 135.96,
+  "lat": 35.02,
+  "phases": [
+   [
+    1200,
+    "village"
+   ],
+   [
+    1601,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Tokaido/Nakasendo junction post town."
+ },
+ {
+  "name": "Kuwana",
+  "lon": 136.69,
+  "lat": 35.06,
+  "phases": [
+   [
+    1300,
+    "town"
+   ],
+   [
+    1601,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Tokaido post town and castle town."
+ },
+ {
+  "name": "Iwakuni",
+  "lon": 132.22,
+  "lat": 34.15,
+  "phases": [
+   [
+    1600,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Kikkawa domain castle town, Kintai bridge."
+ },
+ {
+  "name": "Pyongyang (Wanggeom-seong)",
+  "lon": 125.75,
+  "lat": 39.02,
+  "phases": [
+   [
+    -108,
+    "city"
+   ],
+   [
+    313,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Gojoseon then Goguryeo capital."
+ },
+ {
+  "name": "Gungnae-seong (Ji'an)",
+  "lon": 126.15,
+  "lat": 41.13,
+  "phases": [
+   [
+    3,
+    "city"
+   ],
+   [
+    427,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Goguryeo capital on Yalu, Samguk Sagi."
+ },
+ {
+  "name": "Gyeongju (Seorabeol)",
+  "lon": 129.21,
+  "lat": 35.84,
+  "phases": [
+   [
+    -57,
+    "city"
+   ],
+   [
+    935,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Silla capital for nearly a millennium."
+ },
+ {
+  "name": "Gongju (Ungjin)",
+  "lon": 127.12,
+  "lat": 36.45,
+  "phases": [
+   [
+    475,
+    "city"
+   ],
+   [
+    538,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Baekje capital after fall of Hanseong."
+ },
+ {
+  "name": "Buyeo (Sabi)",
+  "lon": 126.91,
+  "lat": 36.28,
+  "phases": [
+   [
+    538,
+    "city"
+   ],
+   [
+    660,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Final Baekje capital, fell to Silla-Tang."
+ },
+ {
+  "name": "Hanseong (Seoul, Baekje)",
+  "lon": 127.02,
+  "lat": 37.53,
+  "phases": [
+   [
+    18,
+    "city"
+   ],
+   [
+    475,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Earliest Baekje capital, Pungnaptoseong."
+ },
+ {
+  "name": "Songdo (Kaesong)",
+  "lon": 126.55,
+  "lat": 37.97,
+  "phases": [
+   [
+    919,
+    "city"
+   ],
+   [
+    1392,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Goryeo dynasty capital."
+ },
+ {
+  "name": "Seoul (Hanseong, Joseon)",
+  "lon": 126.98,
+  "lat": 37.57,
+  "phases": [
+   [
+    1394,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Joseon capital from 1394."
+ },
+ {
+  "name": "Pyongyang (Goryeo Seogyeong)",
+  "lon": 125.75,
+  "lat": 39.02,
+  "phases": [
+   [
+    919,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Goryeo western secondary capital."
+ },
+ {
+  "name": "Ganghwa",
+  "lon": 126.49,
+  "lat": 37.75,
+  "phases": [
+   [
+    1232,
+    "town"
+   ],
+   [
+    1270,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Goryeo wartime capital against Mongols."
+ },
+ {
+  "name": "Busan (Dongnae)",
+  "lon": 129.08,
+  "lat": 35.2,
+  "phases": [
+   [
+    600,
+    "town"
+   ],
+   [
+    1407,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Waegwan Japanese trading post, Joseon-era."
+ },
+ {
+  "name": "Gaeseong market town",
+  "lon": 126.56,
+  "lat": 37.98,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1392,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Famed Goryeo merchant capital."
+ },
+ {
+  "name": "Jeonju",
+  "lon": 127.15,
+  "lat": 35.82,
+  "phases": [
+   [
+    57,
+    "town"
+   ],
+   [
+    892,
+    "city"
+   ],
+   [
+    936,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Hubaekje capital, later Joseon royal ancestral seat."
+ },
+ {
+  "name": "Cheongju",
+  "lon": 127.49,
+  "lat": 36.64,
+  "phases": [
+   [
+    550,
+    "town"
+   ],
+   [
+    940,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Silla-Goryeo administrative center, Jikji press."
+ },
+ {
+  "name": "Gwangju",
+  "lon": 126.85,
+  "lat": 35.16,
+  "phases": [
+   [
+    57,
+    "village"
+   ],
+   [
+    940,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Jeolla regional administrative center."
+ },
+ {
+  "name": "Daegu",
+  "lon": 128.6,
+  "lat": 35.87,
+  "phases": [
+   [
+    100,
+    "village"
+   ],
+   [
+    757,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Silla-era Dalgubeol, Joseon administrative hub."
+ },
+ {
+  "name": "Chungju",
+  "lon": 127.93,
+  "lat": 36.99,
+  "phases": [
+   [
+    550,
+    "town"
+   ],
+   [
+    940,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Strategic Han river Goryeo secondary capital."
+ },
+ {
+  "name": "Andong",
+  "lon": 128.73,
+  "lat": 36.57,
+  "phases": [
+   [
+    500,
+    "village"
+   ],
+   [
+    930,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Goryeo founding ally city, yangban center."
+ },
+ {
+  "name": "Sangju",
+  "lon": 128.16,
+  "lat": 36.41,
+  "phases": [
+   [
+    300,
+    "village"
+   ],
+   [
+    940,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Silla nine-province administrative seat."
+ },
+ {
+  "name": "Naju",
+  "lon": 126.71,
+  "lat": 35.03,
+  "phases": [
+   [
+    500,
+    "village"
+   ],
+   [
+    930,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Wang Geon's naval base, Goryeo founding."
+ },
+ {
+  "name": "Hamhung",
+  "lon": 127.54,
+  "lat": 39.92,
+  "phases": [
+   [
+    1108,
+    "town"
+   ],
+   [
+    1400,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Yi Seong-gye's home region, early Joseon center."
+ },
+ {
+  "name": "Uiju",
+  "lon": 125.38,
+  "lat": 40.15,
+  "phases": [
+   [
+    1100,
+    "town"
+   ],
+   [
+    1400,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Joseon border town on Yalu, China trade."
+ },
+ {
+  "name": "Kanghwa Ganghwa-eup",
+  "lon": 126.48,
+  "lat": 37.75,
+  "phases": [
+   [
+    1000,
+    "village"
+   ],
+   [
+    1232,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Island refuge and administrative seat."
+ },
+ {
+  "name": "Suwon (Hwaseong)",
+  "lon": 127.01,
+  "lat": 37.29,
+  "phases": [
+   [
+    1400,
+    "town"
+   ],
+   [
+    1796,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Joseon planned fortress city, King Jeongjo."
+ },
+ {
+  "name": "Wonsan",
+  "lon": 127.44,
+  "lat": 39.15,
+  "phases": [
+   [
+    1400,
+    "village"
+   ],
+   [
+    1883,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "East coast port, opened to Japan 1880."
+ },
+ {
+  "name": "Incheon (Jemulpo)",
+  "lon": 126.63,
+  "lat": 37.47,
+  "phases": [
+   [
+    1200,
+    "village"
+   ],
+   [
+    1883,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Opened as treaty port 1883."
+ },
+ {
+  "name": "Mokpo",
+  "lon": 126.39,
+  "lat": 34.79,
+  "phases": [
+   [
+    1300,
+    "village"
+   ],
+   [
+    1897,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Opened treaty port, Jeolla grain export."
+ },
+ {
+  "name": "Kaesong ginseng market",
+  "lon": 126.55,
+  "lat": 37.97,
+  "phases": [
+   [
+    1400,
+    "town"
+   ],
+   [
+    1800,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Joseon merchant guild (songsang) center."
+ },
+ {
+  "name": "Yeosu",
+  "lon": 127.66,
+  "lat": 34.76,
+  "phases": [
+   [
+    1400,
+    "village"
+   ],
+   [
+    1592,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Yi Sun-sin's naval base against Japan."
+ },
+ {
+  "name": "Tongyeong",
+  "lon": 128.42,
+  "lat": 34.85,
+  "phases": [
+   [
+    1592,
+    "town"
+   ],
+   [
+    1604,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Joseon Left Naval Command headquarters."
+ },
+ {
+  "name": "Jinju",
+  "lon": 128.09,
+  "lat": 35.18,
+  "phases": [
+   [
+    400,
+    "village"
+   ],
+   [
+    940,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Gaya-region town, key Imjin War siege."
+ },
+ {
+  "name": "Masan",
+  "lon": 128.58,
+  "lat": 35.22,
+  "phases": [
+   [
+    1400,
+    "village"
+   ],
+   [
+    1899,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Grain tribute port, later treaty port."
+ },
+ {
+  "name": "Jeju City",
+  "lon": 126.53,
+  "lat": 33.51,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1105,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Tamna kingdom capital absorbed by Goryeo."
+ },
+ {
+  "name": "Gimhae",
+  "lon": 128.89,
+  "lat": 35.23,
+  "phases": [
+   [
+    42,
+    "town"
+   ],
+   [
+    532,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Geumgwan Gaya confederacy capital."
+ },
+ {
+  "name": "Goryeong",
+  "lon": 128.28,
+  "lat": 35.73,
+  "phases": [
+   [
+    42,
+    "village"
+   ],
+   [
+    562,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Daegaya confederacy capital, fell to Silla."
+ },
+ {
+  "name": "Iksan",
+  "lon": 126.96,
+  "lat": 35.94,
+  "phases": [
+   [
+    600,
+    "town"
+   ],
+   [
+    660,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Baekje secondary capital under King Mu."
+ },
+ {
+  "name": "Yeongju",
+  "lon": 128.62,
+  "lat": 36.81,
+  "phases": [
+   [
+    500,
+    "village"
+   ],
+   [
+    930,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Silla-Goryeo Buddhist center near Buseoksa."
+ },
+ {
+  "name": "Chuncheon",
+  "lon": 127.73,
+  "lat": 37.88,
+  "phases": [
+   [
+    300,
+    "village"
+   ],
+   [
+    936,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Goguryeo-Silla contested Gangwon town."
+ },
+ {
+  "name": "Boseong tea village",
+  "lon": 127.08,
+  "lat": 34.77,
+  "phases": [
+   [
+    1400,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Joseon agrarian village, Jeolla coast."
+ },
+ {
+  "name": "Hadong",
+  "lon": 127.75,
+  "lat": 35.07,
+  "phases": [
+   [
+    600,
+    "village"
+   ],
+   [
+    940,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Gaya/Silla borderland market town."
+ },
+ {
+  "name": "Ban Chiang",
+  "lon": 103.24,
+  "lat": 17.4,
+  "phases": [
+   [
+    -1500,
+    "village"
+   ],
+   [
+    -300,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Bronze Age site, UNESCO, Isan region Thailand."
+ },
+ {
+  "name": "Ban Na Di",
+  "lon": 103.1,
+  "lat": 17.35,
+  "phases": [
+   [
+    -1200,
+    "village"
+   ],
+   [
+    -200,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Bronze/Iron Age settlement near Ban Chiang."
+ },
+ {
+  "name": "Non Nok Tha",
+  "lon": 102.63,
+  "lat": 17.28,
+  "phases": [
+   [
+    -2000,
+    "village"
+   ],
+   [
+    -500,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Early bronze-working village, Isan."
+ },
+ {
+  "name": "Ban Don Ta Phet",
+  "lon": 99.53,
+  "lat": 14.02,
+  "phases": [
+   [
+    -390,
+    "village"
+   ],
+   [
+    -100,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Iron Age burial site, western Thailand."
+ },
+ {
+  "name": "Oc Eo",
+  "lon": 105.15,
+  "lat": 10.25,
+  "phases": [
+   [
+    100,
+    "town"
+   ],
+   [
+    550,
+    "city"
+   ],
+   [
+    630,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Funan port city, Indian Ocean trade hub."
+ },
+ {
+  "name": "Angkor Borei",
+  "lon": 104.95,
+  "lat": 10.98,
+  "phases": [
+   [
+    100,
+    "town"
+   ],
+   [
+    550,
+    "city"
+   ],
+   [
+    800,
+    "town"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Early Funan capital, Mekong delta."
+ },
+ {
+  "name": "Sambor Prei Kuk",
+  "lon": 105.0,
+  "lat": 12.88,
+  "phases": [
+   [
+    600,
+    "city"
+   ],
+   [
+    700,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Chenla capital Ishanapura."
+ },
+ {
+  "name": "Angkor",
+  "lon": 103.87,
+  "lat": 13.41,
+  "phases": [
+   [
+    802,
+    "city"
+   ],
+   [
+    1431,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Khmer imperial capital, Yasodharapura."
+ },
+ {
+  "name": "Koh Ker",
+  "lon": 104.13,
+  "lat": 13.78,
+  "phases": [
+   [
+    928,
+    "city"
+   ],
+   [
+    944,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Brief Khmer capital under Jayavarman IV."
+ },
+ {
+  "name": "Battambang",
+  "lon": 103.2,
+  "lat": 13.1,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1431,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Khmer provincial administrative center."
+ },
+ {
+  "name": "Phnom Penh",
+  "lon": 104.92,
+  "lat": 11.56,
+  "phases": [
+   [
+    1372,
+    "town"
+   ],
+   [
+    1434,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Became Khmer capital after Angkor's fall."
+ },
+ {
+  "name": "Longvek",
+  "lon": 104.85,
+  "lat": 12.05,
+  "phases": [
+   [
+    1525,
+    "city"
+   ],
+   [
+    1594,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Post-Angkor Khmer capital, fell to Ayutthaya."
+ },
+ {
+  "name": "Udong",
+  "lon": 104.75,
+  "lat": 11.83,
+  "phases": [
+   [
+    1618,
+    "city"
+   ],
+   [
+    1866,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Khmer capital before move to Phnom Penh."
+ },
+ {
+  "name": "Pyu ancient city Sri Ksetra",
+  "lon": 95.29,
+  "lat": 18.93,
+  "phases": [
+   [
+    200,
+    "city"
+   ],
+   [
+    900,
+    "town"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Pyu city-state, UNESCO, near Pyay."
+ },
+ {
+  "name": "Beikthano",
+  "lon": 95.35,
+  "lat": 20.15,
+  "phases": [
+   [
+    -100,
+    "town"
+   ],
+   [
+    500,
+    "city"
+   ],
+   [
+    900,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Earliest known Pyu walled city."
+ },
+ {
+  "name": "Halin",
+  "lon": 95.85,
+  "lat": 22.47,
+  "phases": [
+   [
+    100,
+    "town"
+   ],
+   [
+    600,
+    "city"
+   ],
+   [
+    900,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Pyu salt-trade walled city, upper Myanmar."
+ },
+ {
+  "name": "Bagan",
+  "lon": 94.86,
+  "lat": 21.17,
+  "phases": [
+   [
+    849,
+    "city"
+   ],
+   [
+    1297,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Pagan Kingdom capital, thousands of temples."
+ },
+ {
+  "name": "Mrauk U",
+  "lon": 93.19,
+  "lat": 20.6,
+  "phases": [
+   [
+    1430,
+    "city"
+   ],
+   [
+    1785,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Arakanese kingdom capital, Bay of Bengal trade."
+ },
+ {
+  "name": "Ava (Inwa)",
+  "lon": 95.98,
+  "lat": 21.85,
+  "phases": [
+   [
+    1364,
+    "city"
+   ],
+   [
+    1841,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Repeated Burmese royal capital."
+ },
+ {
+  "name": "Pegu (Bago)",
+  "lon": 96.48,
+  "lat": 17.34,
+  "phases": [
+   [
+    825,
+    "town"
+   ],
+   [
+    1369,
+    "city"
+   ],
+   [
+    1757,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Mon kingdom capital, major trade port."
+ },
+ {
+  "name": "Taungoo",
+  "lon": 96.44,
+  "lat": 18.94,
+  "phases": [
+   [
+    1279,
+    "town"
+   ],
+   [
+    1510,
+    "city"
+   ],
+   [
+    1599,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Toungoo dynasty founding capital."
+ },
+ {
+  "name": "Mandalay",
+  "lon": 96.08,
+  "lat": 21.98,
+  "phases": [
+   [
+    1857,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Final Konbaung dynasty royal capital."
+ },
+ {
+  "name": "Amarapura",
+  "lon": 96.05,
+  "lat": 21.9,
+  "phases": [
+   [
+    1783,
+    "city"
+   ],
+   [
+    1857,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Konbaung capital before Mandalay."
+ },
+ {
+  "name": "Shwebo",
+  "lon": 95.7,
+  "lat": 22.57,
+  "phases": [
+   [
+    1752,
+    "city"
+   ],
+   [
+    1760,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Alaungpaya's founding Konbaung capital."
+ },
+ {
+  "name": "Prome (Pyay)",
+  "lon": 95.22,
+  "lat": 18.82,
+  "phases": [
+   [
+    500,
+    "town"
+   ],
+   [
+    1050,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Pyu-Bagan era Irrawaddy river town."
+ },
+ {
+  "name": "Martaban (Mottama)",
+  "lon": 97.62,
+  "lat": 16.53,
+  "phases": [
+   [
+    825,
+    "town"
+   ],
+   [
+    1287,
+    "city"
+   ],
+   [
+    1600,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Mon port, major medieval trade emporium."
+ },
+ {
+  "name": "Syriam (Thanlyin)",
+  "lon": 96.25,
+  "lat": 16.75,
+  "phases": [
+   [
+    1600,
+    "town"
+   ],
+   [
+    1756,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Portuguese-era international port, destroyed 1756."
+ },
+ {
+  "name": "Sukhothai",
+  "lon": 99.82,
+  "lat": 17.02,
+  "phases": [
+   [
+    1238,
+    "city"
+   ],
+   [
+    1438,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "First independent Thai kingdom capital."
+ },
+ {
+  "name": "Si Satchanalai",
+  "lon": 99.78,
+  "lat": 17.3,
+  "phases": [
+   [
+    1250,
+    "town"
+   ],
+   [
+    1583,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Sukhothai-era secondary city, ceramics."
+ },
+ {
+  "name": "Ayutthaya",
+  "lon": 100.56,
+  "lat": 14.35,
+  "phases": [
+   [
+    1351,
+    "city"
+   ],
+   [
+    1767,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Siamese capital, burned by Konbaung Burma."
+ },
+ {
+  "name": "Lopburi",
+  "lon": 100.61,
+  "lat": 14.8,
+  "phases": [
+   [
+    600,
+    "town"
+   ],
+   [
+    1350,
+    "city"
+   ],
+   [
+    1665,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Khmer-Dvaravati town, later Narai's second capital."
+ },
+ {
+  "name": "Nakhon Pathom",
+  "lon": 100.06,
+  "lat": 13.82,
+  "phases": [
+   [
+    200,
+    "town"
+   ],
+   [
+    1000,
+    "city"
+   ],
+   [
+    1300,
+    "town"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Dvaravati Mon kingdom capital."
+ },
+ {
+  "name": "U Thong",
+  "lon": 99.87,
+  "lat": 14.34,
+  "phases": [
+   [
+    200,
+    "town"
+   ],
+   [
+    700,
+    "city"
+   ],
+   [
+    1000,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Early Dvaravati moated city, central Thailand."
+ },
+ {
+  "name": "Chiang Mai",
+  "lon": 98.99,
+  "lat": 18.79,
+  "phases": [
+   [
+    1296,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Lan Na kingdom capital."
+ },
+ {
+  "name": "Chiang Rai",
+  "lon": 99.83,
+  "lat": 19.91,
+  "phases": [
+   [
+    1262,
+    "city"
+   ],
+   [
+    1558,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Mangrai's first Lan Na capital."
+ },
+ {
+  "name": "Chiang Saen",
+  "lon": 100.09,
+  "lat": 20.27,
+  "phases": [
+   [
+    1328,
+    "town"
+   ],
+   [
+    1804,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Lan Na frontier town on Mekong."
+ },
+ {
+  "name": "Lamphun (Hariphunchai)",
+  "lon": 99.01,
+  "lat": 18.58,
+  "phases": [
+   [
+    750,
+    "city"
+   ],
+   [
+    1281,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Mon kingdom capital, conquered by Lan Na."
+ },
+ {
+  "name": "Phitsanulok",
+  "lon": 100.26,
+  "lat": 16.83,
+  "phases": [
+   [
+    1357,
+    "town"
+   ],
+   [
+    1463,
+    "city"
+   ],
+   [
+    1600,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ayutthaya-era secondary capital under Trailok."
+ },
+ {
+  "name": "Nakhon Si Thammarat",
+  "lon": 99.96,
+  "lat": 8.43,
+  "phases": [
+   [
+    100,
+    "town"
+   ],
+   [
+    1200,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Tambralinga/Ligor, major peninsular trade city."
+ },
+ {
+  "name": "Songkhla",
+  "lon": 100.6,
+  "lat": 7.2,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1400,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Malay-Thai peninsular port polity."
+ },
+ {
+  "name": "Bangkok (Thonburi)",
+  "lon": 100.5,
+  "lat": 13.75,
+  "phases": [
+   [
+    1767,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Taksin's capital, then Rattanakosin from 1782."
+ },
+ {
+  "name": "Luang Prabang",
+  "lon": 102.13,
+  "lat": 19.89,
+  "phases": [
+   [
+    698,
+    "town"
+   ],
+   [
+    1353,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Lan Xang capital, Muang Sua."
+ },
+ {
+  "name": "Vientiane",
+  "lon": 102.63,
+  "lat": 17.97,
+  "phases": [
+   [
+    1000,
+    "town"
+   ],
+   [
+    1560,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Lan Xang capital moved here 1560."
+ },
+ {
+  "name": "Champasak (Wat Phu)",
+  "lon": 105.82,
+  "lat": 14.85,
+  "phases": [
+   [
+    600,
+    "town"
+   ],
+   [
+    1713,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Chenla shrine center, later Lao kingdom capital."
+ },
+ {
+  "name": "Xieng Khouang",
+  "lon": 103.15,
+  "lat": 19.45,
+  "phases": [
+   [
+    1350,
+    "town"
+   ],
+   [
+    1832,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Plain of Jars Tai Phuan principality."
+ },
+ {
+  "name": "Champa Indrapura",
+  "lon": 108.14,
+  "lat": 15.87,
+  "phases": [
+   [
+    875,
+    "city"
+   ],
+   [
+    982,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Early Champa capital, near My Son."
+ },
+ {
+  "name": "My Son shrine city",
+  "lon": 108.13,
+  "lat": 15.77,
+  "phases": [
+   [
+    400,
+    "town"
+   ],
+   [
+    1300,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Champa Hindu temple complex and town."
+ },
+ {
+  "name": "Vijaya (Cha Ban)",
+  "lon": 109.1,
+  "lat": 13.98,
+  "phases": [
+   [
+    1000,
+    "city"
+   ],
+   [
+    1471,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Champa capital, sacked by Dai Viet 1471."
+ },
+ {
+  "name": "Hoi An (Faifo)",
+  "lon": 108.33,
+  "lat": 15.88,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1550,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Champa then major Vietnamese-Japanese-Chinese trade port."
+ },
+ {
+  "name": "Thang Long (Hanoi)",
+  "lon": 105.85,
+  "lat": 21.03,
+  "phases": [
+   [
+    1010,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ly dynasty capital, continuous Vietnamese capital."
+ },
+ {
+  "name": "Hue",
+  "lon": 107.6,
+  "lat": 16.47,
+  "phases": [
+   [
+    200,
+    "village"
+   ],
+   [
+    1636,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Nguyen lords' then Nguyen dynasty imperial capital."
+ },
+ {
+  "name": "Co Loa",
+  "lon": 105.87,
+  "lat": 21.13,
+  "phases": [
+   [
+    -257,
+    "city"
+   ],
+   [
+    938,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Au Lac capital, spiral fortress, Red River delta."
+ },
+ {
+  "name": "Hoa Lu",
+  "lon": 105.9,
+  "lat": 20.29,
+  "phases": [
+   [
+    968,
+    "city"
+   ],
+   [
+    1010,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Dinh and early Le dynasty capital before Thang Long."
+ },
+ {
+  "name": "Phu Xuan",
+  "lon": 107.58,
+  "lat": 16.46,
+  "phases": [
+   [
+    1687,
+    "town"
+   ],
+   [
+    1802,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Nguyen lords' capital, forerunner of Hue."
+ },
+ {
+  "name": "Saigon (Prey Nokor)",
+  "lon": 106.7,
+  "lat": 10.78,
+  "phases": [
+   [
+    1200,
+    "village"
+   ],
+   [
+    1698,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Khmer fishing village, annexed by Vietnam 1698."
+ },
+ {
+  "name": "Cao Bang",
+  "lon": 106.26,
+  "lat": 22.66,
+  "phases": [
+   [
+    1000,
+    "village"
+   ],
+   [
+    1592,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Mac dynasty refuge capital, northern border."
+ },
+ {
+  "name": "Dong Ha citadel town",
+  "lon": 107.09,
+  "lat": 16.81,
+  "phases": [
+   [
+    1300,
+    "village"
+   ],
+   [
+    1600,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Quang Tri frontier market town."
+ },
+ {
+  "name": "Palembang (Srivijaya)",
+  "lon": 104.76,
+  "lat": -2.99,
+  "phases": [
+   [
+    671,
+    "city"
+   ],
+   [
+    1025,
+    "town"
+   ],
+   [
+    1397,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Srivijaya maritime empire capital."
+ },
+ {
+  "name": "Jambi (Malayu)",
+  "lon": 103.61,
+  "lat": -1.61,
+  "phases": [
+   [
+    644,
+    "town"
+   ],
+   [
+    1183,
+    "city"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Malayu kingdom, rival/successor to Srivijaya."
+ },
+ {
+  "name": "Kedah (Lembah Bujang)",
+  "lon": 100.4,
+  "lat": 5.77,
+  "phases": [
+   [
+    300,
+    "town"
+   ],
+   [
+    1136,
+    "city"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Early Indianized trade polity, Bujang Valley."
+ },
+ {
+  "name": "Melaka",
+  "lon": 102.25,
+  "lat": 2.19,
+  "phases": [
+   [
+    1400,
+    "city"
+   ],
+   [
+    1511,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Melaka Sultanate capital, fell to Portugal 1511."
+ },
+ {
+  "name": "Johor Lama",
+  "lon": 103.87,
+  "lat": 1.48,
+  "phases": [
+   [
+    1528,
+    "city"
+   ],
+   [
+    1587,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Johor Sultanate capital, sacked by Portuguese."
+ },
+ {
+  "name": "Kota Tinggi (Johor)",
+  "lon": 103.9,
+  "lat": 1.73,
+  "phases": [
+   [
+    1587,
+    "town"
+   ],
+   [
+    1699,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Later Johor Sultanate capital."
+ },
+ {
+  "name": "Riau (Penyengat)",
+  "lon": 104.45,
+  "lat": 0.92,
+  "phases": [
+   [
+    1700,
+    "town"
+   ],
+   [
+    1824,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Johor-Riau Sultanate later capital."
+ },
+ {
+  "name": "Perak (Kuala Kangsar)",
+  "lon": 100.94,
+  "lat": 4.77,
+  "phases": [
+   [
+    1528,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Perak Sultanate royal seat."
+ },
+ {
+  "name": "Kelantan (Kota Bharu)",
+  "lon": 102.24,
+  "lat": 6.13,
+  "phases": [
+   [
+    1200,
+    "village"
+   ],
+   [
+    1770,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "East coast Malay sultanate capital."
+ },
+ {
+  "name": "Terengganu",
+  "lon": 103.14,
+  "lat": 5.33,
+  "phases": [
+   [
+    1300,
+    "village"
+   ],
+   [
+    1725,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Terengganu inscription stone site, Malay sultanate."
+ },
+ {
+  "name": "Brunei (Kota Batu)",
+  "lon": 114.94,
+  "lat": 4.89,
+  "phases": [
+   [
+    1370,
+    "town"
+   ],
+   [
+    1500,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Bruneian Sultanate capital, peak under Bolkiah."
+ },
+ {
+  "name": "Singapore (Temasek)",
+  "lon": 103.85,
+  "lat": 1.29,
+  "phases": [
+   [
+    1299,
+    "town"
+   ],
+   [
+    1613,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Early Malay port, burned by Portuguese/Johor conflict."
+ },
+ {
+  "name": "Singapore (colonial)",
+  "lon": 103.85,
+  "lat": 1.29,
+  "phases": [
+   [
+    1819,
+    "town"
+   ],
+   [
+    1867,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Raffles' free port, Straits Settlements."
+ },
+ {
+  "name": "Penang (George Town)",
+  "lon": 100.34,
+  "lat": 5.41,
+  "phases": [
+   [
+    1786,
+    "town"
+   ],
+   [
+    1826,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "First British Straits Settlement."
+ },
+ {
+  "name": "Malacca (colonial)",
+  "lon": 102.25,
+  "lat": 2.19,
+  "phases": [
+   [
+    1511,
+    "town"
+   ],
+   [
+    1641,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Portuguese then Dutch colonial port."
+ },
+ {
+  "name": "Trowulan (Majapahit)",
+  "lon": 112.38,
+  "lat": -7.55,
+  "phases": [
+   [
+    1293,
+    "city"
+   ],
+   [
+    1527,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Majapahit empire capital, East Java."
+ },
+ {
+  "name": "Kediri",
+  "lon": 112.02,
+  "lat": -7.82,
+  "phases": [
+   [
+    1042,
+    "city"
+   ],
+   [
+    1222,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Kediri kingdom capital, East Java."
+ },
+ {
+  "name": "Singhasari",
+  "lon": 112.67,
+  "lat": -7.9,
+  "phases": [
+   [
+    1222,
+    "city"
+   ],
+   [
+    1292,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Singhasari kingdom capital, predecessor to Majapahit."
+ },
+ {
+  "name": "Borobudur region (Mataram)",
+  "lon": 110.2,
+  "lat": -7.6,
+  "phases": [
+   [
+    750,
+    "city"
+   ],
+   [
+    930,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Sailendra/Mataram Kingdom heartland, Central Java."
+ },
+ {
+  "name": "Prambanan (Mataram)",
+  "lon": 110.49,
+  "lat": -7.75,
+  "phases": [
+   [
+    850,
+    "city"
+   ],
+   [
+    930,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Hindu Mataram capital area, Central Java."
+ },
+ {
+  "name": "Banten",
+  "lon": 106.15,
+  "lat": -6.05,
+  "phases": [
+   [
+    1526,
+    "city"
+   ],
+   [
+    1813,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Bantenese Sultanate, major pepper port."
+ },
+ {
+  "name": "Sunda Kelapa (Jakarta)",
+  "lon": 106.81,
+  "lat": -6.13,
+  "phases": [
+   [
+    1300,
+    "town"
+   ],
+   [
+    1527,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Sunda kingdom port, renamed Jayakarta then Batavia."
+ },
+ {
+  "name": "Batavia",
+  "lon": 106.82,
+  "lat": -6.12,
+  "phases": [
+   [
+    1619,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "VOC colonial capital of Dutch East Indies."
+ },
+ {
+  "name": "Demak",
+  "lon": 110.64,
+  "lat": -6.89,
+  "phases": [
+   [
+    1475,
+    "city"
+   ],
+   [
+    1554,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "First major Islamic sultanate on Java."
+ },
+ {
+  "name": "Cirebon",
+  "lon": 108.56,
+  "lat": -6.71,
+  "phases": [
+   [
+    1430,
+    "town"
+   ],
+   [
+    1479,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Early Javanese Islamic sultanate port."
+ },
+ {
+  "name": "Surabaya",
+  "lon": 112.75,
+  "lat": -7.25,
+  "phases": [
+   [
+    1300,
+    "town"
+   ],
+   [
+    1625,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Major Javanese trade port, resisted Mataram."
+ },
+ {
+  "name": "Mataram Islamic (Kotagede)",
+  "lon": 110.4,
+  "lat": -7.83,
+  "phases": [
+   [
+    1575,
+    "city"
+   ],
+   [
+    1613,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Founding capital of Islamic Mataram Sultanate."
+ },
+ {
+  "name": "Yogyakarta",
+  "lon": 110.37,
+  "lat": -7.8,
+  "phases": [
+   [
+    1755,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Established after Giyanti treaty split Mataram."
+ },
+ {
+  "name": "Surakarta (Solo)",
+  "lon": 110.82,
+  "lat": -7.57,
+  "phases": [
+   [
+    1745,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Mataram successor court after Kartasura abandoned."
+ },
+ {
+  "name": "Kartasura",
+  "lon": 110.73,
+  "lat": -7.55,
+  "phases": [
+   [
+    1680,
+    "city"
+   ],
+   [
+    1745,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Mataram capital destroyed in Chinese War rebellion."
+ },
+ {
+  "name": "Makassar (Gowa)",
+  "lon": 119.41,
+  "lat": -5.15,
+  "phases": [
+   [
+    1300,
+    "town"
+   ],
+   [
+    1600,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Gowa-Tallo Sultanate, major eastern trade hub."
+ },
+ {
+  "name": "Ternate",
+  "lon": 127.38,
+  "lat": 0.8,
+  "phases": [
+   [
+    1257,
+    "town"
+   ],
+   [
+    1465,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Spice sultanate, clove monopoly center."
+ },
+ {
+  "name": "Tidore",
+  "lon": 127.4,
+  "lat": 0.68,
+  "phases": [
+   [
+    1109,
+    "town"
+   ],
+   [
+    1465,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Rival spice sultanate to Ternate."
+ },
+ {
+  "name": "Aceh (Banda Aceh)",
+  "lon": 95.32,
+  "lat": 5.55,
+  "phases": [
+   [
+    1205,
+    "town"
+   ],
+   [
+    1520,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Powerful Islamic sultanate, Sumatra north tip."
+ },
+ {
+  "name": "Palembang (later sultanate)",
+  "lon": 104.76,
+  "lat": -2.99,
+  "phases": [
+   [
+    1550,
+    "town"
+   ],
+   [
+    1659,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Palembang Sultanate, successor polity."
+ },
+ {
+  "name": "Pontianak",
+  "lon": 109.32,
+  "lat": -0.03,
+  "phases": [
+   [
+    1771,
+    "town"
+   ],
+   [
+    1800,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Malay-Arab sultanate founded on Kapuas river."
+ },
+ {
+  "name": "Banjarmasin",
+  "lon": 114.59,
+  "lat": -3.32,
+  "phases": [
+   [
+    1526,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Banjar Sultanate capital, south Kalimantan."
+ },
+ {
+  "name": "Kutai (Muara Kaman)",
+  "lon": 116.87,
+  "lat": -0.15,
+  "phases": [
+   [
+    400,
+    "town"
+   ],
+   [
+    1300,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Earliest Indianized polity in Indonesia, East Kalimantan."
+ },
+ {
+  "name": "Bali (Gelgel)",
+  "lon": 115.35,
+  "lat": -8.55,
+  "phases": [
+   [
+    1380,
+    "city"
+   ],
+   [
+    1651,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Majapahit-descended Balinese kingdom capital."
+ },
+ {
+  "name": "Klungkung",
+  "lon": 115.4,
+  "lat": -8.53,
+  "phases": [
+   [
+    1686,
+    "city"
+   ],
+   [
+    1908,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Last Balinese royal capital, fell to Dutch puputan."
+ },
+ {
+  "name": "Bima",
+  "lon": 118.72,
+  "lat": -8.47,
+  "phases": [
+   [
+    1400,
+    "town"
+   ],
+   [
+    1620,
+    "city"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Sumbawa Islamic sultanate, sandalwood trade."
+ },
+ {
+  "name": "Manila (Tondo/Maynila)",
+  "lon": 120.97,
+  "lat": 14.6,
+  "phases": [
+   [
+    1000,
+    "village"
+   ],
+   [
+    1500,
+    "town"
+   ],
+   [
+    1571,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Tagalog polity, became Spanish colonial capital."
+ },
+ {
+  "name": "Cebu",
+  "lon": 123.9,
+  "lat": 10.3,
+  "phases": [
+   [
+    1000,
+    "town"
+   ],
+   [
+    1565,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Sugbu, Humabon's polity, first Spanish settlement."
+ },
+ {
+  "name": "Vigan",
+  "lon": 120.39,
+  "lat": 17.57,
+  "phases": [
+   [
+    1200,
+    "village"
+   ],
+   [
+    1572,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ilocos Spanish pueblo, mestizo trade town."
+ },
+ {
+  "name": "Iloilo",
+  "lon": 122.56,
+  "lat": 10.7,
+  "phases": [
+   [
+    1200,
+    "village"
+   ],
+   [
+    1566,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Panay Spanish colonial pueblo, trade port."
+ },
+ {
+  "name": "Intramuros (Manila walled)",
+  "lon": 120.97,
+  "lat": 14.59,
+  "phases": [
+   [
+    1571,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Spanish colonial fortified capital district."
+ },
+ {
+  "name": "Butuan",
+  "lon": 125.53,
+  "lat": 8.95,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1300,
+    "city"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Early trading polity, balangay boat burials."
+ },
+ {
+  "name": "Cotabato (Maguindanao)",
+  "lon": 124.25,
+  "lat": 7.22,
+  "phases": [
+   [
+    1500,
+    "town"
+   ],
+   [
+    1619,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Maguindanao Sultanate capital, Mindanao."
+ },
+ {
+  "name": "Sulu (Jolo)",
+  "lon": 121.0,
+  "lat": 6.05,
+  "phases": [
+   [
+    1450,
+    "town"
+   ],
+   [
+    1500,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Sulu Sultanate capital, maritime trade power."
+ },
+ {
+  "name": "Zamboanga",
+  "lon": 122.08,
+  "lat": 6.91,
+  "phases": [
+   [
+    1500,
+    "village"
+   ],
+   [
+    1635,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Spanish fort town, Mindanao frontier."
+ },
+ {
+  "name": "Naga (Bicol)",
+  "lon": 123.18,
+  "lat": 13.62,
+  "phases": [
+   [
+    1300,
+    "village"
+   ],
+   [
+    1575,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Bicol Spanish colonial pueblo town."
+ },
+ {
+  "name": "Dili (Timor)",
+  "lon": 125.57,
+  "lat": -8.56,
+  "phases": [
+   [
+    1520,
+    "town"
+   ],
+   [
+    1769,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Portuguese Timor colonial capital from 1769."
+ },
+ {
+  "name": "Lifau",
+  "lon": 124.4,
+  "lat": -9.17,
+  "phases": [
+   [
+    1556,
+    "town"
+   ],
+   [
+    1769,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "First Portuguese Timor settlement, abandoned for Dili."
+ },
+ {
+  "name": "Kupang",
+  "lon": 123.58,
+  "lat": -10.17,
+  "phases": [
+   [
+    1600,
+    "town"
+   ],
+   [
+    1653,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Dutch VOC fort town, west Timor."
+ },
+ {
+  "name": "Vientiane (pre-Lan Xang)",
+  "lon": 102.63,
+  "lat": 17.97,
+  "phases": [
+   [
+    698,
+    "village"
+   ],
+   [
+    1000,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Early Mekong valley town before Lan Xang capital status."
+ },
+ {
+  "name": "Sikhottabong (That Luang area)",
+  "lon": 102.6,
+  "lat": 17.96,
+  "phases": [
+   [
+    300,
+    "village"
+   ],
+   [
+    700,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Pre-Angkorian Mekong valley Buddhist site."
+ },
+ {
+  "name": "Vat Phou hinterland town",
+  "lon": 105.82,
+  "lat": 14.85,
+  "phases": [
+   [
+    500,
+    "village"
+   ],
+   [
+    600,
+    "town"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Chenla-era settlement pre-dating temple complex."
+ },
+ {
+  "name": "Isanapura satellite town",
+  "lon": 105.05,
+  "lat": 12.8,
+  "phases": [
+   [
+    600,
+    "village"
+   ],
+   [
+    700,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Chenla-era secondary settlement near Sambor Prei Kuk."
+ },
+ {
+  "name": "Kompong Thom market town",
+  "lon": 104.89,
+  "lat": 12.71,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1200,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Angkorian-era provincial market center."
+ },
+ {
+  "name": "Siem Reap",
+  "lon": 103.86,
+  "lat": 13.36,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1431,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Settlement serving Angkor temple complex."
+ },
+ {
+  "name": "Kampot",
+  "lon": 104.17,
+  "lat": 10.61,
+  "phases": [
+   [
+    100,
+    "village"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Funan-era and later coastal trade town."
+ },
+ {
+  "name": "Kratie riverport",
+  "lon": 106.02,
+  "lat": 12.49,
+  "phases": [
+   [
+    600,
+    "village"
+   ],
+   [
+    1000,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Mekong upstream Chenla-era trade village."
+ },
+ {
+  "name": "Thaton",
+  "lon": 97.36,
+  "lat": 16.92,
+  "phases": [
+   [
+    300,
+    "town"
+   ],
+   [
+    825,
+    "city"
+   ],
+   [
+    1057,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Mon kingdom capital, conquered by Bagan's Anawrahta."
+ },
+ {
+  "name": "Wethali (Vesali)",
+  "lon": 93.18,
+  "lat": 20.75,
+  "phases": [
+   [
+    370,
+    "town"
+   ],
+   [
+    818,
+    "city"
+   ],
+   [
+    1018,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Arakanese kingdom capital before Mrauk U."
+ },
+ {
+  "name": "Dhanyawadi",
+  "lon": 92.9,
+  "lat": 20.9,
+  "phases": [
+   [
+    -600,
+    "town"
+   ],
+   [
+    370,
+    "city"
+   ],
+   [
+    818,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Earliest Arakanese capital."
+ },
+ {
+  "name": "Sagaing",
+  "lon": 95.98,
+  "lat": 21.88,
+  "phases": [
+   [
+    1315,
+    "city"
+   ],
+   [
+    1364,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Short-lived Burmese royal capital."
+ },
+ {
+  "name": "Pinya",
+  "lon": 95.99,
+  "lat": 21.9,
+  "phases": [
+   [
+    1312,
+    "city"
+   ],
+   [
+    1364,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Shan-era Burmese capital, rival to Sagaing."
+ },
+ {
+  "name": "Toungoo era Hanthawaddy (Pegu)",
+  "lon": 96.48,
+  "lat": 17.34,
+  "phases": [
+   [
+    1539,
+    "city"
+   ],
+   [
+    1599,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Restored Hanthawaddy under Toungoo dynasty."
+ },
+ {
+  "name": "Chiang Tung (Kengtung)",
+  "lon": 99.62,
+  "lat": 21.3,
+  "phases": [
+   [
+    1243,
+    "town"
+   ],
+   [
+    1500,
+    "city"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Shan/Lan Na frontier principality capital."
+ },
+ {
+  "name": "Nan",
+  "lon": 100.77,
+  "lat": 18.78,
+  "phases": [
+   [
+    1272,
+    "town"
+   ],
+   [
+    1450,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Independent Tai principality, later Lan Na tributary."
+ },
+ {
+  "name": "Phrae",
+  "lon": 100.14,
+  "lat": 18.14,
+  "phases": [
+   [
+    1150,
+    "town"
+   ],
+   [
+    1443,
+    "city"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Tai Yuan principality town, northern Thailand."
+ },
+ {
+  "name": "Kamphaeng Phet",
+  "lon": 99.52,
+  "lat": 16.48,
+  "phases": [
+   [
+    1347,
+    "town"
+   ],
+   [
+    1584,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Sukhothai-Ayutthaya frontier fortress city."
+ },
+ {
+  "name": "Tenasserim (Tanintharyi)",
+  "lon": 98.61,
+  "lat": 12.09,
+  "phases": [
+   [
+    1287,
+    "town"
+   ],
+   [
+    1568,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Contested Siamese-Burmese peninsular port."
+ },
+ {
+  "name": "Mergui (Myeik)",
+  "lon": 98.6,
+  "lat": 12.44,
+  "phases": [
+   [
+    1287,
+    "town"
+   ],
+   [
+    1687,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Major Bay of Bengal Siamese-Burmese trade port."
+ }
+]

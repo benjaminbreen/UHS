@@ -1,0 +1,6697 @@
+[
+ {
+  "name": "Pasargadae",
+  "lon": 53.18,
+  "lat": 30.2,
+  "phases": [
+   [
+    -550,
+    "city"
+   ],
+   [
+    -330,
+    "town"
+   ],
+   [
+    200,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Cyrus the Great's capital; Achaemenid founding city"
+ },
+ {
+  "name": "Persepolis",
+  "lon": 52.89,
+  "lat": 29.94,
+  "phases": [
+   [
+    -515,
+    "city"
+   ],
+   [
+    -330,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Darius I's ceremonial capital, burned by Alexander"
+ },
+ {
+  "name": "Istakhr",
+  "lon": 52.89,
+  "lat": 30.02,
+  "phases": [
+   [
+    -500,
+    "town"
+   ],
+   [
+    224,
+    "city"
+   ],
+   [
+    650,
+    "town"
+   ],
+   [
+    950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Sasanian religious center near Persepolis, sacked by Arabs"
+ },
+ {
+  "name": "Susa",
+  "lon": 48.26,
+  "lat": 32.19,
+  "phases": [
+   [
+    -1000,
+    "city"
+   ],
+   [
+    640,
+    "town"
+   ],
+   [
+    1250,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Elamite and Achaemenid winter capital, Shush"
+ },
+ {
+  "name": "Ecbatana",
+  "lon": 48.52,
+  "lat": 34.8,
+  "phases": [
+   [
+    -700,
+    "city"
+   ],
+   [
+    2000,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Median capital, modern Hamadan, continuously inhabited"
+ },
+ {
+  "name": "Ctesiphon",
+  "lon": 44.58,
+  "lat": 33.09,
+  "phases": [
+   [
+    -120,
+    "city"
+   ],
+   [
+    637,
+    "town"
+   ],
+   [
+    900,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Parthian/Sasanian capital on the Tigris, Taq Kasra arch"
+ },
+ {
+  "name": "Gundeshapur",
+  "lon": 48.55,
+  "lat": 32.29,
+  "phases": [
+   [
+    271,
+    "city"
+   ],
+   [
+    900,
+    "town"
+   ],
+   [
+    1300,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Sasanian academy city, famed medical school"
+ },
+ {
+  "name": "Bishapur",
+  "lon": 51.28,
+  "lat": 29.77,
+  "phases": [
+   [
+    266,
+    "city"
+   ],
+   [
+    900,
+    "town"
+   ],
+   [
+    1400,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Shapur I's city, reliefs at Tang-e Chogan"
+ },
+ {
+  "name": "Nishapur",
+  "lon": 58.8,
+  "lat": 36.21,
+  "phases": [
+   [
+    250,
+    "town"
+   ],
+   [
+    820,
+    "city"
+   ],
+   [
+    1221,
+    "town"
+   ],
+   [
+    1500,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Great Khorasan city, sacked by Mongols, silk road hub"
+ },
+ {
+  "name": "Merv",
+  "lon": 62.19,
+  "lat": 37.66,
+  "phases": [
+   [
+    -500,
+    "town"
+   ],
+   [
+    600,
+    "city"
+   ],
+   [
+    1221,
+    null
+   ],
+   [
+    1600,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Queen of the world, largest city before Mongol destruction"
+ },
+ {
+  "name": "Rayy",
+  "lon": 51.44,
+  "lat": 35.6,
+  "phases": [
+   [
+    -300,
+    "town"
+   ],
+   [
+    800,
+    "city"
+   ],
+   [
+    1220,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Great medieval city near Tehran, destroyed by Mongols"
+ },
+ {
+  "name": "Isfahan",
+  "lon": 51.68,
+  "lat": 32.65,
+  "phases": [
+   [
+    -600,
+    "town"
+   ],
+   [
+    1050,
+    "city"
+   ],
+   [
+    1598,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Safavid capital, Naqsh-e Jahan square"
+ },
+ {
+  "name": "Tabriz",
+  "lon": 46.29,
+  "lat": 38.08,
+  "phases": [
+   [
+    -100,
+    "town"
+   ],
+   [
+    1265,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ilkhanid and early Safavid capital, Azerbaijan trade hub"
+ },
+ {
+  "name": "Sultaniyya",
+  "lon": 48.8,
+  "lat": 36.43,
+  "phases": [
+   [
+    1305,
+    "city"
+   ],
+   [
+    1500,
+    "town"
+   ],
+   [
+    1750,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ilkhanid capital built by Oljeitu, famed mausoleum dome"
+ },
+ {
+  "name": "Qazvin",
+  "lon": 50.0,
+  "lat": 36.27,
+  "phases": [
+   [
+    500,
+    "town"
+   ],
+   [
+    1548,
+    "city"
+   ],
+   [
+    1600,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Safavid capital under Tahmasp I before Isfahan"
+ },
+ {
+  "name": "Shiraz",
+  "lon": 52.54,
+  "lat": 29.6,
+  "phases": [
+   [
+    -500,
+    "town"
+   ],
+   [
+    693,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Poets' city, Zand dynasty capital under Karim Khan"
+ },
+ {
+  "name": "Kerman",
+  "lon": 57.08,
+  "lat": 30.28,
+  "phases": [
+   [
+    -500,
+    "town"
+   ],
+   [
+    1000,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Silk and carpet trade center, southeastern Iran"
+ },
+ {
+  "name": "Yazd",
+  "lon": 54.37,
+  "lat": 31.9,
+  "phases": [
+   [
+    -500,
+    "town"
+   ],
+   [
+    1300,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Zoroastrian refuge city, qanat and badgir architecture"
+ },
+ {
+  "name": "Qom",
+  "lon": 50.88,
+  "lat": 34.64,
+  "phases": [
+   [
+    200,
+    "town"
+   ],
+   [
+    816,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Shia shrine city, tomb of Fatima Masumeh"
+ },
+ {
+  "name": "Ardabil",
+  "lon": 48.29,
+  "lat": 38.25,
+  "phases": [
+   [
+    224,
+    "town"
+   ],
+   [
+    1334,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Safavid ancestral shrine city of Sheikh Safi al-Din"
+ },
+ {
+  "name": "Zanjan",
+  "lon": 48.48,
+  "lat": 36.68,
+  "phases": [
+   [
+    224,
+    "town"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Caravan town on the Tabriz-Tehran route"
+ },
+ {
+  "name": "Kashan",
+  "lon": 51.44,
+  "lat": 33.98,
+  "phases": [
+   [
+    -1000,
+    "town"
+   ],
+   [
+    900,
+    "town"
+   ],
+   [
+    1500,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ceramics and silk town, Fin Garden"
+ },
+ {
+  "name": "Sabzevar",
+  "lon": 57.68,
+  "lat": 36.21,
+  "phases": [
+   [
+    600,
+    "town"
+   ],
+   [
+    1330,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Sarbedar movement capital in Khorasan"
+ },
+ {
+  "name": "Bam",
+  "lon": 58.36,
+  "lat": 29.1,
+  "phases": [
+   [
+    224,
+    "town"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Citadel city, Arg-e Bam, on southeastern silk road"
+ },
+ {
+  "name": "Zabol",
+  "lon": 61.49,
+  "lat": 31.03,
+  "phases": [
+   [
+    -500,
+    "town"
+   ],
+   [
+    1200,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Sistan regional center near Lake Hamun"
+ },
+ {
+  "name": "Zaranj",
+  "lon": 61.87,
+  "lat": 30.96,
+  "phases": [
+   [
+    -500,
+    "city"
+   ],
+   [
+    1220,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ancient Sistan capital, Mongol destruction"
+ },
+ {
+  "name": "Zahedan",
+  "lon": 60.86,
+  "lat": 29.5,
+  "phases": [
+   [
+    1900,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Late Qajar-era garrison town in Baluchistan"
+ },
+ {
+  "name": "Bandar Abbas",
+  "lon": 56.28,
+  "lat": 27.19,
+  "phases": [
+   [
+    1600,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Safavid port founded after expelling Portuguese from Hormuz"
+ },
+ {
+  "name": "Hormuz Island",
+  "lon": 56.45,
+  "lat": 27.09,
+  "phases": [
+   [
+    1000,
+    "town"
+   ],
+   [
+    1300,
+    "city"
+   ],
+   [
+    1622,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Medieval Persian Gulf entrepot, Portuguese fortress"
+ },
+ {
+  "name": "Siraf",
+  "lon": 52.32,
+  "lat": 27.66,
+  "phases": [
+   [
+    600,
+    "town"
+   ],
+   [
+    850,
+    "city"
+   ],
+   [
+    977,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Major Sasanian/early Islamic Gulf port, earthquake decline"
+ },
+ {
+  "name": "Bushehr",
+  "lon": 50.84,
+  "lat": 28.97,
+  "phases": [
+   [
+    1734,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Nader Shah's naval base and Qajar-era port"
+ },
+ {
+  "name": "Ahvaz",
+  "lon": 48.67,
+  "lat": 31.32,
+  "phases": [
+   [
+    -300,
+    "town"
+   ],
+   [
+    1900,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Khuzestan river town on the Karun"
+ },
+ {
+  "name": "Shushtar",
+  "lon": 48.86,
+  "lat": 32.05,
+  "phases": [
+   [
+    -500,
+    "town"
+   ],
+   [
+    260,
+    "city"
+   ],
+   [
+    1300,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Sasanian hydraulic city, UNESCO water mills"
+ },
+ {
+  "name": "Dezful",
+  "lon": 48.4,
+  "lat": 32.38,
+  "phases": [
+   [
+    260,
+    "town"
+   ],
+   [
+    1300,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Khuzestan bridge town, Sasanian-era dam"
+ },
+ {
+  "name": "Hamadan Malayer",
+  "lon": 48.82,
+  "lat": 34.3,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Malayer market town on Hamadan-Isfahan route"
+ },
+ {
+  "name": "Arak",
+  "lon": 49.69,
+  "lat": 34.09,
+  "phases": [
+   [
+    1808,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Qajar-founded town, Sultanabad, carpet weaving"
+ },
+ {
+  "name": "Borujerd",
+  "lon": 48.75,
+  "lat": 33.9,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Lorestan market and pilgrim-route town"
+ },
+ {
+  "name": "Khorramabad",
+  "lon": 48.36,
+  "lat": 33.49,
+  "phases": [
+   [
+    600,
+    "town"
+   ],
+   [
+    1200,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Lorestan hill-route town, Falak-ol-Aflak citadel"
+ },
+ {
+  "name": "Ilam",
+  "lon": 46.42,
+  "lat": 33.64,
+  "phases": [
+   [
+    1800,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Late Qajar Kurdish border settlement"
+ },
+ {
+  "name": "Sanandaj",
+  "lon": 47.0,
+  "lat": 35.31,
+  "phases": [
+   [
+    1046,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ardalan Kurdish principality capital"
+ },
+ {
+  "name": "Mahabad",
+  "lon": 45.72,
+  "lat": 36.76,
+  "phases": [
+   [
+    1400,
+    "village"
+   ],
+   [
+    1700,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Kurdish market town, Sauj Bulagh"
+ },
+ {
+  "name": "Orumiyeh",
+  "lon": 45.08,
+  "lat": 37.55,
+  "phases": [
+   [
+    -800,
+    "town"
+   ],
+   [
+    1300,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Lake Urmia city, traditional birthplace of Zoroaster"
+ },
+ {
+  "name": "Maragheh",
+  "lon": 46.24,
+  "lat": 37.39,
+  "phases": [
+   [
+    224,
+    "town"
+   ],
+   [
+    1259,
+    "city"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ilkhanid observatory city of Nasir al-Din al-Tusi"
+ },
+ {
+  "name": "Khoy",
+  "lon": 44.95,
+  "lat": 38.55,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Azerbaijan caravan town near Ottoman frontier"
+ },
+ {
+  "name": "Marand",
+  "lon": 45.77,
+  "lat": 38.43,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Small Azerbaijan caravan stop"
+ },
+ {
+  "name": "Astara",
+  "lon": 48.87,
+  "lat": 38.43,
+  "phases": [
+   [
+    1600,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Caspian coastal town on Iran-Russia trade route"
+ },
+ {
+  "name": "Rasht",
+  "lon": 49.58,
+  "lat": 37.28,
+  "phases": [
+   [
+    1400,
+    "town"
+   ],
+   [
+    1600,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Gilan silk capital, Caspian trade with Russia"
+ },
+ {
+  "name": "Anzali",
+  "lon": 49.46,
+  "lat": 37.47,
+  "phases": [
+   [
+    1600,
+    "village"
+   ],
+   [
+    1850,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Caspian port, Bandar-e Pahlavi later name"
+ },
+ {
+  "name": "Amol",
+  "lon": 52.35,
+  "lat": 36.47,
+  "phases": [
+   [
+    224,
+    "town"
+   ],
+   [
+    900,
+    "city"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Old Tabaristan capital on the Caspian plain"
+ },
+ {
+  "name": "Sari",
+  "lon": 53.06,
+  "lat": 36.56,
+  "phases": [
+   [
+    224,
+    "town"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Mazandaran regional capital"
+ },
+ {
+  "name": "Gorgan",
+  "lon": 54.44,
+  "lat": 36.84,
+  "phases": [
+   [
+    -500,
+    "town"
+   ],
+   [
+    224,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Gurgan, ancient Hyrcania capital near the Great Wall"
+ },
+ {
+  "name": "Damghan",
+  "lon": 54.36,
+  "lat": 36.17,
+  "phases": [
+   [
+    -500,
+    "town"
+   ],
+   [
+    224,
+    "city"
+   ],
+   [
+    1220,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Early Islamic Tahirid-era city, Tarikhaneh mosque"
+ },
+ {
+  "name": "Semnan",
+  "lon": 53.4,
+  "lat": 35.58,
+  "phases": [
+   [
+    -500,
+    "town"
+   ],
+   [
+    900,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Caravan town on the Khorasan road"
+ },
+ {
+  "name": "Bastam",
+  "lon": 55.01,
+  "lat": 36.49,
+  "phases": [
+   [
+    224,
+    "town"
+   ],
+   [
+    1300,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Sufi shrine town, tomb of Bayazid Bastami"
+ },
+ {
+  "name": "Qaen",
+  "lon": 59.19,
+  "lat": 33.73,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1300,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Qohestan fortress town, Ismaili castle district"
+ },
+ {
+  "name": "Birjand",
+  "lon": 59.22,
+  "lat": 32.87,
+  "phases": [
+   [
+    1200,
+    "village"
+   ],
+   [
+    1600,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Qohestan regional market town, saffron"
+ },
+ {
+  "name": "Tabas",
+  "lon": 56.92,
+  "lat": 33.6,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1350,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Desert oasis town on Khorasan-Kerman route"
+ },
+ {
+  "name": "Torbat-e Heydarieh",
+  "lon": 59.22,
+  "lat": 35.27,
+  "phases": [
+   [
+    1000,
+    "village"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Khorasan shrine town of Sufi sheikh Heydar"
+ },
+ {
+  "name": "Torbat-e Jam",
+  "lon": 60.63,
+  "lat": 35.24,
+  "phases": [
+   [
+    1000,
+    "village"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Shrine town of Sheikh Ahmad-e Jam"
+ },
+ {
+  "name": "Mashhad",
+  "lon": 59.61,
+  "lat": 36.3,
+  "phases": [
+   [
+    818,
+    "town"
+   ],
+   [
+    1009,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Shrine of Imam Reza, major Shia pilgrimage city"
+ },
+ {
+  "name": "Sistan Qala-i-Kah",
+  "lon": 61.53,
+  "lat": 33.02,
+  "phases": [
+   [
+    900,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Small Sistan qanat village on Herat road"
+ },
+ {
+  "name": "Firuzabad",
+  "lon": 52.57,
+  "lat": 28.85,
+  "phases": [
+   [
+    224,
+    "city"
+   ],
+   [
+    900,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ardashir I's circular capital, Gur, early Sasanian"
+ },
+ {
+  "name": "Jahrom",
+  "lon": 53.56,
+  "lat": 28.5,
+  "phases": [
+   [
+    600,
+    "village"
+   ],
+   [
+    1200,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Fars market town on caravan route to the Gulf"
+ },
+ {
+  "name": "Darab",
+  "lon": 54.55,
+  "lat": 28.75,
+  "phases": [
+   [
+    -500,
+    "town"
+   ],
+   [
+    224,
+    "city"
+   ],
+   [
+    1300,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Sasanian foundation city, Dariush's town"
+ },
+ {
+  "name": "Lar",
+  "lon": 54.34,
+  "lat": 27.68,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Fars trade town toward the Gulf coast"
+ },
+ {
+  "name": "Abarqu",
+  "lon": 53.28,
+  "lat": 31.13,
+  "phases": [
+   [
+    600,
+    "village"
+   ],
+   [
+    1200,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Fars desert town, ancient cypress tree"
+ },
+ {
+  "name": "Na'in",
+  "lon": 53.09,
+  "lat": 32.86,
+  "phases": [
+   [
+    600,
+    "village"
+   ],
+   [
+    900,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Early mosque town, ninth-century Jameh Mosque"
+ },
+ {
+  "name": "Ardakan",
+  "lon": 54.02,
+  "lat": 32.31,
+  "phases": [
+   [
+    600,
+    "village"
+   ],
+   [
+    1200,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Yazd-province qanat town"
+ },
+ {
+  "name": "Meybod",
+  "lon": 54.02,
+  "lat": 32.25,
+  "phases": [
+   [
+    -500,
+    "village"
+   ],
+   [
+    900,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ancient Narin Castle qanat town near Yazd"
+ },
+ {
+  "name": "Tbilisi",
+  "lon": 44.79,
+  "lat": 41.69,
+  "phases": [
+   [
+    455,
+    "town"
+   ],
+   [
+    1122,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Georgian capital on the Kura, Iberian/Kartlian center"
+ },
+ {
+  "name": "Yerevan",
+  "lon": 44.51,
+  "lat": 40.18,
+  "phases": [
+   [
+    782,
+    "town"
+   ],
+   [
+    1441,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Urartian Erebuni fortress, later Armenian capital"
+ },
+ {
+  "name": "Baku",
+  "lon": 49.87,
+  "lat": 40.38,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1191,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Shirvanshah capital, Caspian oil and trade port"
+ },
+ {
+  "name": "Ganja",
+  "lon": 46.36,
+  "lat": 40.68,
+  "phases": [
+   [
+    859,
+    "town"
+   ],
+   [
+    1139,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Nizami Ganjavi's city, Seljuk-era Arran capital"
+ },
+ {
+  "name": "Shamakhi",
+  "lon": 48.64,
+  "lat": 40.63,
+  "phases": [
+   [
+    861,
+    "town"
+   ],
+   [
+    1382,
+    "city"
+   ],
+   [
+    1667,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Shirvanshah capital before Baku, earthquakes"
+ },
+ {
+  "name": "Nakhchivan",
+  "lon": 45.41,
+  "lat": 39.21,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1200,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Atabeg Eldiguzid capital, Azerbaijan exclave"
+ },
+ {
+  "name": "Derbent",
+  "lon": 48.29,
+  "lat": 42.07,
+  "phases": [
+   [
+    550,
+    "town"
+   ],
+   [
+    900,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Sasanian gate-fortress on Caspian, Naryn-Kala"
+ },
+ {
+  "name": "Kutaisi",
+  "lon": 42.7,
+  "lat": 42.25,
+  "phases": [
+   [
+    -600,
+    "town"
+   ],
+   [
+    1000,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Colchian and later Imeretian kingdom capital"
+ },
+ {
+  "name": "Gori",
+  "lon": 44.11,
+  "lat": 41.98,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Georgian fortress town on the Kura"
+ },
+ {
+  "name": "Akhaltsikhe",
+  "lon": 43.0,
+  "lat": 41.64,
+  "phases": [
+   [
+    1100,
+    "town"
+   ],
+   [
+    1579,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ottoman-Georgian border fortress town, Samtskhe"
+ },
+ {
+  "name": "Telavi",
+  "lon": 45.47,
+  "lat": 41.92,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Kakheti kingdom capital, eastern Georgia"
+ },
+ {
+  "name": "Sheki",
+  "lon": 47.17,
+  "lat": 41.2,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1743,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Silk-weaving khanate capital in Azerbaijan"
+ },
+ {
+  "name": "Ardabil-Karabakh Shusha",
+  "lon": 46.75,
+  "lat": 39.76,
+  "phases": [
+   [
+    1750,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Karabakh khanate capital, founded by Panah Ali Khan"
+ },
+ {
+  "name": "Nagorno Khankendi",
+  "lon": 46.76,
+  "lat": 39.82,
+  "phases": [
+   [
+    1847,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Later Stepanakert, small 19th-c Karabakh settlement"
+ },
+ {
+  "name": "Lankaran",
+  "lon": 48.85,
+  "lat": 38.75,
+  "phases": [
+   [
+    1747,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Talysh khanate capital on the Caspian coast"
+ },
+ {
+  "name": "Gyumri",
+  "lon": 43.85,
+  "lat": 40.79,
+  "phases": [
+   [
+    1837,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Russian fortress town Alexandropol, Armenian resettlement"
+ },
+ {
+  "name": "Echmiadzin",
+  "lon": 44.29,
+  "lat": 40.16,
+  "phases": [
+   [
+    301,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Seat of the Armenian Apostolic Church catholicos"
+ },
+ {
+  "name": "Ani",
+  "lon": 43.57,
+  "lat": 40.51,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    961,
+    "city"
+   ],
+   [
+    1319,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "City of 1001 churches, Bagratid Armenian capital, earthquake ruin"
+ },
+ {
+  "name": "Kars",
+  "lon": 43.1,
+  "lat": 40.6,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    928,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Armenian Bagratid then Ottoman frontier fortress"
+ },
+ {
+  "name": "Erzurum",
+  "lon": 41.28,
+  "lat": 39.9,
+  "phases": [
+   [
+    -800,
+    "town"
+   ],
+   [
+    1049,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Seljuk then Ottoman eastern Anatolian stronghold, Theodosiopolis"
+ },
+ {
+  "name": "Van",
+  "lon": 43.38,
+  "lat": 38.49,
+  "phases": [
+   [
+    -800,
+    "town"
+   ],
+   [
+    1000,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Urartian capital Tushpa, later Armenian city on Lake Van"
+ },
+ {
+  "name": "Bitlis",
+  "lon": 42.12,
+  "lat": 38.4,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1200,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Kurdish mountain-pass emirate town"
+ },
+ {
+  "name": "Sukhumi",
+  "lon": 41.02,
+  "lat": 43.0,
+  "phases": [
+   [
+    -500,
+    "town"
+   ],
+   [
+    1000,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Abkhazian Black Sea port, ancient Dioscurias"
+ },
+ {
+  "name": "Batumi",
+  "lon": 41.65,
+  "lat": 41.65,
+  "phases": [
+   [
+    -500,
+    "village"
+   ],
+   [
+    1878,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ottoman then Russian Black Sea port"
+ },
+ {
+  "name": "Poti",
+  "lon": 41.67,
+  "lat": 42.15,
+  "phases": [
+   [
+    -500,
+    "village"
+   ],
+   [
+    1000,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Ancient Phasis river port on the Black Sea"
+ },
+ {
+  "name": "Akhalkalaki",
+  "lon": 43.48,
+  "lat": 41.41,
+  "phases": [
+   [
+    1100,
+    "village"
+   ],
+   [
+    1600,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Javakheti highland Georgian-Armenian border town"
+ },
+ {
+  "name": "Mtskheta",
+  "lon": 44.72,
+  "lat": 41.85,
+  "phases": [
+   [
+    -400,
+    "town"
+   ],
+   [
+    500,
+    "city"
+   ],
+   [
+    1200,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ancient Iberian capital, Georgian church center"
+ },
+ {
+  "name": "Shirvan Qabala",
+  "lon": 47.85,
+  "lat": 40.98,
+  "phases": [
+   [
+    -100,
+    "town"
+   ],
+   [
+    500,
+    "city"
+   ],
+   [
+    900,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Ancient Caucasian Albanian capital"
+ },
+ {
+  "name": "Samarkand",
+  "lon": 66.97,
+  "lat": 39.65,
+  "phases": [
+   [
+    -700,
+    "town"
+   ],
+   [
+    329,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Afrasiab/Sogdian capital, later Timur's imperial capital"
+ },
+ {
+  "name": "Bukhara",
+  "lon": 64.42,
+  "lat": 39.77,
+  "phases": [
+   [
+    -500,
+    "town"
+   ],
+   [
+    850,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Samanid, then Shaybanid and Manghit khanate capital"
+ },
+ {
+  "name": "Khiva",
+  "lon": 60.37,
+  "lat": 41.38,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1511,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Khwarazm khanate capital, walled Ichan Qala"
+ },
+ {
+  "name": "Urgench",
+  "lon": 60.63,
+  "lat": 41.55,
+  "phases": [
+   [
+    712,
+    "town"
+   ],
+   [
+    1017,
+    "city"
+   ],
+   [
+    1388,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Old Khwarazm capital Gurganj, destroyed by Timur"
+ },
+ {
+  "name": "Konye-Urgench",
+  "lon": 60.02,
+  "lat": 42.32,
+  "phases": [
+   [
+    712,
+    "city"
+   ],
+   [
+    1220,
+    "city"
+   ],
+   [
+    1388,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Same site as old Urgench, Mongol then Timurid destruction"
+ },
+ {
+  "name": "Merv Sultan Kala",
+  "lon": 62.19,
+  "lat": 37.66,
+  "phases": [
+   [
+    1037,
+    "city"
+   ],
+   [
+    1221,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Seljuk imperial capital phase of Merv oasis"
+ },
+ {
+  "name": "Kokand",
+  "lon": 70.94,
+  "lat": 40.53,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1732,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ferghana khanate capital from 18th century"
+ },
+ {
+  "name": "Andijan",
+  "lon": 72.34,
+  "lat": 40.78,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1400,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ferghana valley city, Babur's birthplace"
+ },
+ {
+  "name": "Namangan",
+  "lon": 71.67,
+  "lat": 41.0,
+  "phases": [
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ferghana valley market city"
+ },
+ {
+  "name": "Osh",
+  "lon": 72.8,
+  "lat": 40.53,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1400,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ferghana valley city, Silk Road, Sulaiman-Too shrine"
+ },
+ {
+  "name": "Margilan",
+  "lon": 71.72,
+  "lat": 40.47,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ferghana silk-weaving town"
+ },
+ {
+  "name": "Shahrisabz",
+  "lon": 66.83,
+  "lat": 39.06,
+  "phases": [
+   [
+    -500,
+    "town"
+   ],
+   [
+    1336,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Timur's birthplace, ancient Kesh"
+ },
+ {
+  "name": "Termez",
+  "lon": 67.28,
+  "lat": 37.22,
+  "phases": [
+   [
+    -300,
+    "town"
+   ],
+   [
+    800,
+    "city"
+   ],
+   [
+    1220,
+    null
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Oxus river crossing, Buddhist and Islamic city"
+ },
+ {
+  "name": "Balkh",
+  "lon": 66.9,
+  "lat": 36.76,
+  "phases": [
+   [
+    -1000,
+    "city"
+   ],
+   [
+    1220,
+    null
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Mother of cities, ancient Bactra, Mongol destruction"
+ },
+ {
+  "name": "Herat",
+  "lon": 62.2,
+  "lat": 34.35,
+  "phases": [
+   [
+    -500,
+    "town"
+   ],
+   [
+    1200,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Timurid cultural capital under Shah Rukh and Gawharshad"
+ },
+ {
+  "name": "Ghazni",
+  "lon": 68.42,
+  "lat": 33.55,
+  "phases": [
+   [
+    -500,
+    "town"
+   ],
+   [
+    977,
+    "city"
+   ],
+   [
+    1221,
+    null
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ghaznavid empire capital, Mongol sack"
+ },
+ {
+  "name": "Farah",
+  "lon": 62.11,
+  "lat": 32.37,
+  "phases": [
+   [
+    -500,
+    "town"
+   ],
+   [
+    900,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Western Afghan oasis town on Sistan route"
+ },
+ {
+  "name": "Qala-i-Naw",
+  "lon": 63.13,
+  "lat": 34.98,
+  "phases": [
+   [
+    1200,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Small Badghis market town on Herat-Maimana route"
+ },
+ {
+  "name": "Maimana",
+  "lon": 64.77,
+  "lat": 35.93,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Uzbek khanate town in northern Afghanistan"
+ },
+ {
+  "name": "Sar-e Pol",
+  "lon": 65.94,
+  "lat": 36.21,
+  "phases": [
+   [
+    1200,
+    "village"
+   ],
+   [
+    1600,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Small northern Afghan Uzbek khanate town"
+ },
+ {
+  "name": "Shibirghan",
+  "lon": 65.75,
+  "lat": 36.67,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Jowzjan region town, Tillya Tepe nearby"
+ },
+ {
+  "name": "Kunduz",
+  "lon": 68.86,
+  "lat": 36.73,
+  "phases": [
+   [
+    -300,
+    "town"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ancient Drapsaca, northern Afghan trade town"
+ },
+ {
+  "name": "Khulm",
+  "lon": 67.68,
+  "lat": 36.7,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1750,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Tashkurgan, caravan town near Mazar-i-Sharif"
+ },
+ {
+  "name": "Mazar-i-Sharif",
+  "lon": 67.11,
+  "lat": 36.71,
+  "phases": [
+   [
+    1481,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Grew around the shrine of Ali attributed to it"
+ },
+ {
+  "name": "Badakhshan Faizabad",
+  "lon": 70.58,
+  "lat": 37.12,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Lapis lazuli trade town in the Pamir foothills"
+ },
+ {
+  "name": "Taloqan",
+  "lon": 69.54,
+  "lat": 36.73,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Northeastern Afghan market town"
+ },
+ {
+  "name": "Chimkent",
+  "lon": 69.6,
+  "lat": 42.32,
+  "phases": [
+   [
+    1100,
+    "town"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Shymkent, caravan town on the route to Tashkent"
+ },
+ {
+  "name": "Tashkent",
+  "lon": 69.24,
+  "lat": 41.3,
+  "phases": [
+   [
+    -100,
+    "town"
+   ],
+   [
+    750,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Chach oasis city, later Kokand then Russian administrative capital"
+ },
+ {
+  "name": "Otrar",
+  "lon": 68.29,
+  "lat": 42.85,
+  "phases": [
+   [
+    -100,
+    "town"
+   ],
+   [
+    900,
+    "city"
+   ],
+   [
+    1220,
+    "town"
+   ],
+   [
+    1600,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Silk road city, site of Genghis Khan's provocation"
+ },
+ {
+  "name": "Sayram",
+  "lon": 69.79,
+  "lat": 42.35,
+  "phases": [
+   [
+    -200,
+    "town"
+   ],
+   [
+    900,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ancient Isfijab, Kazakhstan oasis town"
+ },
+ {
+  "name": "Turkestan City",
+  "lon": 68.25,
+  "lat": 43.3,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1394,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Shrine of Khoja Ahmed Yasawi, Kazakh khanate capital"
+ },
+ {
+  "name": "Sygnaq",
+  "lon": 66.5,
+  "lat": 45.73,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1600,
+    "town"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Early Kazakh khanate capital on the Syr Darya"
+ },
+ {
+  "name": "Yasi",
+  "lon": 68.25,
+  "lat": 43.3,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1394,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Earlier name for Turkestan City before the shrine's fame"
+ },
+ {
+  "name": "Sauran",
+  "lon": 68.08,
+  "lat": 43.4,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1220,
+    "town"
+   ],
+   [
+    1600,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Fortified Syr Darya city, later Kazakh khanate town"
+ },
+ {
+  "name": "Taraz",
+  "lon": 71.37,
+  "lat": 42.9,
+  "phases": [
+   [
+    -100,
+    "town"
+   ],
+   [
+    568,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Talas river city, ancient trade node on the northern route"
+ },
+ {
+  "name": "Khujand",
+  "lon": 69.62,
+  "lat": 40.28,
+  "phases": [
+   [
+    -500,
+    "town"
+   ],
+   [
+    900,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ferghana gateway city, Alexander's Alexandria Eschate"
+ },
+ {
+  "name": "Panjakent",
+  "lon": 67.61,
+  "lat": 39.5,
+  "phases": [
+   [
+    -100,
+    "town"
+   ],
+   [
+    500,
+    "city"
+   ],
+   [
+    722,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Sogdian city, murals, destroyed after Arab conquest"
+ },
+ {
+  "name": "Ura-Tyube",
+  "lon": 69.02,
+  "lat": 39.91,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Istaravshan, Sogdian-descended fortress town"
+ },
+ {
+  "name": "Kesh Nasaf",
+  "lon": 65.75,
+  "lat": 38.7,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Southern Sogdian trade town, modern Karshi (Nasaf)"
+ },
+ {
+  "name": "Karshi",
+  "lon": 65.79,
+  "lat": 38.86,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Qashqadaryo oasis town, ancient Nakhshab"
+ },
+ {
+  "name": "Nurata",
+  "lon": 65.69,
+  "lat": 40.57,
+  "phases": [
+   [
+    -500,
+    "village"
+   ],
+   [
+    900,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Sacred spring oasis town, Alexandria Oxiana claim"
+ },
+ {
+  "name": "Vabkent",
+  "lon": 64.53,
+  "lat": 40.0,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1196,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Bukhara-oasis minaret town"
+ },
+ {
+  "name": "Karakul Uzbek",
+  "lon": 63.87,
+  "lat": 39.57,
+  "phases": [
+   [
+    900,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Small Bukhara-oasis desert-edge village"
+ },
+ {
+  "name": "Chardzhou",
+  "lon": 63.58,
+  "lat": 39.06,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Amu Darya crossing town, later Turkmenabat"
+ },
+ {
+  "name": "Charjuy Amul",
+  "lon": 63.58,
+  "lat": 39.06,
+  "phases": [
+   [
+    224,
+    "town"
+   ],
+   [
+    900,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Early Islamic Amu Darya ferry town, precursor to Chardzhou"
+ },
+ {
+  "name": "Nisa",
+  "lon": 58.29,
+  "lat": 37.9,
+  "phases": [
+   [
+    -300,
+    "city"
+   ],
+   [
+    224,
+    "town"
+   ],
+   [
+    900,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Parthian royal city near Ashgabat"
+ },
+ {
+  "name": "Ashgabat",
+  "lon": 58.38,
+  "lat": 37.95,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1881,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Small Teke Turkmen oasis before Russian conquest"
+ },
+ {
+  "name": "Sarakhs",
+  "lon": 61.16,
+  "lat": 36.54,
+  "phases": [
+   [
+    -500,
+    "town"
+   ],
+   [
+    900,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Khorasan-Merv route oasis, birthplace of legendary lore"
+ },
+ {
+  "name": "Dehistan",
+  "lon": 54.9,
+  "lat": 37.75,
+  "phases": [
+   [
+    -500,
+    "town"
+   ],
+   [
+    900,
+    "city"
+   ],
+   [
+    1220,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Turkmen steppe oasis city, Misrian ruins"
+ },
+ {
+  "name": "Abiward",
+  "lon": 59.3,
+  "lat": 37.55,
+  "phases": [
+   [
+    224,
+    "town"
+   ],
+   [
+    900,
+    "town"
+   ],
+   [
+    1220,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Khorasan-Turkmen border town, birthplace of Seljuk family"
+ },
+ {
+  "name": "Khiva Vazir",
+  "lon": 60.42,
+  "lat": 41.12,
+  "phases": [
+   [
+    900,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Small Khwarazm oasis qanat village"
+ },
+ {
+  "name": "Khazarasp",
+  "lon": 60.98,
+  "lat": 41.3,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Khwarazm oasis fortress town on the Amu Darya"
+ },
+ {
+  "name": "Talas Aulie-Ata",
+  "lon": 72.24,
+  "lat": 42.9,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1877,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Later Zhambyl, Kazakh-Kyrgyz frontier town"
+ },
+ {
+  "name": "Pishpek",
+  "lon": 74.6,
+  "lat": 42.87,
+  "phases": [
+   [
+    1825,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Kokand-era fort, later Bishkek/Frunze"
+ },
+ {
+  "name": "Almaty Verny",
+  "lon": 76.89,
+  "lat": 43.24,
+  "phases": [
+   [
+    1854,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Russian fortress founded as Verny in Semirechye"
+ },
+ {
+  "name": "Semipalatinsk",
+  "lon": 80.23,
+  "lat": 50.42,
+  "phases": [
+   [
+    1718,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Russian frontier fortress on the Irtysh"
+ },
+ {
+  "name": "Turfan",
+  "lon": 89.19,
+  "lat": 42.95,
+  "phases": [
+   [
+    -100,
+    "town"
+   ],
+   [
+    640,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Oasis city on the northern silk route, Uyghur kingdom capital"
+ },
+ {
+  "name": "Baghdad",
+  "lon": 44.37,
+  "lat": 33.31,
+  "phases": [
+   [
+    762,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Abbasid round city, Mansur's founding, House of Wisdom"
+ },
+ {
+  "name": "Samarra",
+  "lon": 43.88,
+  "lat": 34.2,
+  "phases": [
+   [
+    836,
+    "city"
+   ],
+   [
+    892,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Abbasid capital under al-Mu'tasim, Great Mosque spiral minaret"
+ },
+ {
+  "name": "Kufa",
+  "lon": 44.4,
+  "lat": 32.03,
+  "phases": [
+   [
+    638,
+    "city"
+   ],
+   [
+    900,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Early Islamic garrison town, Ali's capital"
+ },
+ {
+  "name": "Basra",
+  "lon": 47.78,
+  "lat": 30.51,
+  "phases": [
+   [
+    636,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Early Islamic garrison port, gateway to the Gulf"
+ },
+ {
+  "name": "Mosul",
+  "lon": 43.12,
+  "lat": 36.34,
+  "phases": [
+   [
+    -700,
+    "town"
+   ],
+   [
+    700,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Assyrian Nineveh heir city, medieval Jazira capital"
+ },
+ {
+  "name": "Nineveh",
+  "lon": 43.15,
+  "lat": 36.36,
+  "phases": [
+   [
+    -1000,
+    "city"
+   ],
+   [
+    -612,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Neo-Assyrian imperial capital, destroyed by Medes and Babylonians"
+ },
+ {
+  "name": "Karbala",
+  "lon": 44.03,
+  "lat": 32.62,
+  "phases": [
+   [
+    680,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Shia shrine city, site of Imam Husayn's martyrdom"
+ },
+ {
+  "name": "Najaf",
+  "lon": 44.34,
+  "lat": 31.99,
+  "phases": [
+   [
+    791,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Shia shrine city, tomb of Imam Ali"
+ },
+ {
+  "name": "Kirkuk",
+  "lon": 44.39,
+  "lat": 35.47,
+  "phases": [
+   [
+    -1000,
+    "town"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ancient Arrapha, later Kurdish-Turkmen provincial town"
+ },
+ {
+  "name": "Erbil",
+  "lon": 44.01,
+  "lat": 36.19,
+  "phases": [
+   [
+    -2000,
+    "town"
+   ],
+   [
+    900,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ancient Arbela, one of the world's oldest continuously inhabited"
+ },
+ {
+  "name": "Sulaymaniyah",
+  "lon": 45.43,
+  "lat": 35.56,
+  "phases": [
+   [
+    1784,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Founded by Baban Kurdish dynasty as capital"
+ },
+ {
+  "name": "Hillah",
+  "lon": 44.42,
+  "lat": 32.48,
+  "phases": [
+   [
+    1101,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Founded near ancient Babylon by the Mazyadid dynasty"
+ },
+ {
+  "name": "Babylon",
+  "lon": 44.42,
+  "lat": 32.54,
+  "phases": [
+   [
+    -1800,
+    "city"
+   ],
+   [
+    -141,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Old and Neo-Babylonian capital, Hammurabi and Nebuchadnezzar"
+ },
+ {
+  "name": "Wasit",
+  "lon": 45.68,
+  "lat": 32.19,
+  "phases": [
+   [
+    702,
+    "city"
+   ],
+   [
+    1400,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Umayyad garrison town between Kufa and Basra"
+ },
+ {
+  "name": "Hit",
+  "lon": 42.83,
+  "lat": 33.64,
+  "phases": [
+   [
+    -2000,
+    "village"
+   ],
+   [
+    900,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ancient bitumen-trade town on the Euphrates"
+ },
+ {
+  "name": "Anah",
+  "lon": 41.98,
+  "lat": 34.39,
+  "phases": [
+   [
+    -1000,
+    "town"
+   ],
+   [
+    900,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Euphrates river island town, ancient Anat"
+ },
+ {
+  "name": "Ramadi",
+  "lon": 43.3,
+  "lat": 33.42,
+  "phases": [
+   [
+    1869,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Late Ottoman-era Euphrates administrative town"
+ },
+ {
+  "name": "Fallujah",
+  "lon": 43.79,
+  "lat": 33.35,
+  "phases": [
+   [
+    600,
+    "village"
+   ],
+   [
+    1300,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Euphrates crossing town near ancient Pallukkat"
+ },
+ {
+  "name": "Tikrit",
+  "lon": 43.68,
+  "lat": 34.61,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1200,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Tigris fortress town, birthplace of Saladin"
+ },
+ {
+  "name": "Nasiriyah",
+  "lon": 46.26,
+  "lat": 31.06,
+  "phases": [
+   [
+    1870,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Late Ottoman town near ancient Ur"
+ },
+ {
+  "name": "Ur",
+  "lon": 46.1,
+  "lat": 30.96,
+  "phases": [
+   [
+    -2500,
+    "city"
+   ],
+   [
+    -400,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Sumerian capital, ziggurat of Ur-Nammu"
+ },
+ {
+  "name": "Nippur",
+  "lon": 45.24,
+  "lat": 32.13,
+  "phases": [
+   [
+    -2500,
+    "city"
+   ],
+   [
+    800,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Sumerian religious capital, temple of Enlil"
+ },
+ {
+  "name": "Uruk",
+  "lon": 45.64,
+  "lat": 31.32,
+  "phases": [
+   [
+    -3200,
+    "city"
+   ],
+   [
+    300,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Earliest Sumerian city-state, Gilgamesh's Uruk"
+ },
+ {
+  "name": "Nimrud",
+  "lon": 43.33,
+  "lat": 36.1,
+  "phases": [
+   [
+    -1300,
+    "town"
+   ],
+   [
+    -879,
+    "city"
+   ],
+   [
+    -612,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Neo-Assyrian capital Kalhu under Ashurnasirpal II"
+ },
+ {
+  "name": "Ashur",
+  "lon": 43.26,
+  "lat": 35.46,
+  "phases": [
+   [
+    -2000,
+    "city"
+   ],
+   [
+    -614,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Original Assyrian capital and religious center"
+ },
+ {
+  "name": "Khorsabad",
+  "lon": 43.22,
+  "lat": 36.51,
+  "phases": [
+   [
+    -717,
+    "city"
+   ],
+   [
+    -705,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Sargon II's short-lived planned capital Dur-Sharrukin"
+ },
+ {
+  "name": "Amadiya",
+  "lon": 43.49,
+  "lat": 37.09,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Kurdish mountain-citadel town, Bahdinan emirate"
+ },
+ {
+  "name": "Zakho",
+  "lon": 42.68,
+  "lat": 37.15,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Kurdish border town near the Khabur river"
+ },
+ {
+  "name": "Rawanduz",
+  "lon": 44.53,
+  "lat": 36.61,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Kurdish Soran principality mountain capital"
+ },
+ {
+  "name": "Khanaqin",
+  "lon": 45.39,
+  "lat": 34.35,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Iraq-Iran border caravan town on the Baghdad-Kermanshah route"
+ },
+ {
+  "name": "Kut",
+  "lon": 45.82,
+  "lat": 32.51,
+  "phases": [
+   [
+    1800,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ottoman-era Tigris town, WWI siege site"
+ },
+ {
+  "name": "Amarah",
+  "lon": 47.15,
+  "lat": 31.84,
+  "phases": [
+   [
+    1861,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Late Ottoman marsh-edge administrative town"
+ },
+ {
+  "name": "Konya",
+  "lon": 32.48,
+  "lat": 37.87,
+  "phases": [
+   [
+    1097,
+    "town"
+   ],
+   [
+    1116,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Seljuk Sultanate of Rum capital, Rumi's city"
+ },
+ {
+  "name": "Bursa",
+  "lon": 29.06,
+  "lat": 40.18,
+  "phases": [
+   [
+    1326,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "First major Ottoman capital before Edirne"
+ },
+ {
+  "name": "Edirne",
+  "lon": 26.56,
+  "lat": 41.68,
+  "phases": [
+   [
+    1361,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ottoman capital, Adrianople, before Constantinople"
+ },
+ {
+  "name": "Istanbul",
+  "lon": 28.98,
+  "lat": 41.01,
+  "phases": [
+   [
+    1453,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ottoman imperial capital after conquest of Constantinople"
+ },
+ {
+  "name": "Ankara",
+  "lon": 32.86,
+  "lat": 39.93,
+  "phases": [
+   [
+    1073,
+    "town"
+   ],
+   [
+    1361,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Seljuk then Ottoman Anatolian provincial town, Angora"
+ },
+ {
+  "name": "Kayseri",
+  "lon": 35.49,
+  "lat": 38.72,
+  "phases": [
+   [
+    1071,
+    "town"
+   ],
+   [
+    1178,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Seljuk-era Anatolian trade city, ancient Caesarea heir"
+ },
+ {
+  "name": "Sivas",
+  "lon": 37.02,
+  "lat": 39.75,
+  "phases": [
+   [
+    1071,
+    "town"
+   ],
+   [
+    1240,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Seljuk then Ilkhanid Anatolian administrative city"
+ },
+ {
+  "name": "Amasya",
+  "lon": 35.83,
+  "lat": 40.65,
+  "phases": [
+   [
+    1071,
+    "town"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ottoman princely training city on the Yesilirmak"
+ },
+ {
+  "name": "Trabzon",
+  "lon": 39.72,
+  "lat": 41.0,
+  "phases": [
+   [
+    1204,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Empire of Trebizond capital, Black Sea trade port"
+ },
+ {
+  "name": "Antalya",
+  "lon": 30.71,
+  "lat": 36.88,
+  "phases": [
+   [
+    1207,
+    "town"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Seljuk-conquered Mediterranean port, Adalia"
+ },
+ {
+  "name": "Antep",
+  "lon": 37.38,
+  "lat": 37.06,
+  "phases": [
+   [
+    1516,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ottoman-era Gaziantep, southeastern Anatolian trade town"
+ },
+ {
+  "name": "Urfa",
+  "lon": 38.8,
+  "lat": 37.16,
+  "phases": [
+   [
+    1517,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ottoman-era Sanliurfa, Abrahamic pilgrimage town, Edessa heir"
+ },
+ {
+  "name": "Diyarbakir",
+  "lon": 40.23,
+  "lat": 37.91,
+  "phases": [
+   [
+    1085,
+    "town"
+   ],
+   [
+    1515,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Black-basalt walled Ottoman provincial capital, Amida heir"
+ },
+ {
+  "name": "Malatya",
+  "lon": 38.36,
+  "lat": 38.36,
+  "phases": [
+   [
+    1071,
+    "town"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Anatolian apricot-trade Ottoman provincial town"
+ },
+ {
+  "name": "Erzincan",
+  "lon": 39.49,
+  "lat": 39.75,
+  "phases": [
+   [
+    1071,
+    "town"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Seljuk-then-Ottoman Anatolian valley town"
+ },
+ {
+  "name": "Tokat",
+  "lon": 36.55,
+  "lat": 40.31,
+  "phases": [
+   [
+    1071,
+    "town"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ottoman Anatolian trade town on the Sivas road"
+ },
+ {
+  "name": "Nigde",
+  "lon": 34.68,
+  "lat": 37.97,
+  "phases": [
+   [
+    1178,
+    "town"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Seljuk Anatolian caravan town"
+ },
+ {
+  "name": "Aksaray",
+  "lon": 34.03,
+  "lat": 38.37,
+  "phases": [
+   [
+    1071,
+    "town"
+   ],
+   [
+    1200,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Seljuk Anatolian caravanserai town"
+ },
+ {
+  "name": "Nevsehir",
+  "lon": 34.72,
+  "lat": 38.62,
+  "phases": [
+   [
+    1071,
+    "village"
+   ],
+   [
+    1600,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Cappadocian Ottoman-era small town"
+ },
+ {
+  "name": "Kutahya",
+  "lon": 29.98,
+  "lat": 39.42,
+  "phases": [
+   [
+    1071,
+    "town"
+   ],
+   [
+    1300,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ottoman-era Anatolian ceramics town"
+ },
+ {
+  "name": "Manisa",
+  "lon": 27.43,
+  "lat": 38.61,
+  "phases": [
+   [
+    1071,
+    "town"
+   ],
+   [
+    1313,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Saruhan beylik then Ottoman princely training city"
+ },
+ {
+  "name": "Izmir",
+  "lon": 27.14,
+  "lat": 38.42,
+  "phases": [
+   [
+    1084,
+    "town"
+   ],
+   [
+    1600,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ottoman Aegean port, Smyrna heir, Levant trade"
+ },
+ {
+  "name": "Aydin",
+  "lon": 27.84,
+  "lat": 37.86,
+  "phases": [
+   [
+    1308,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Aydinid beylik capital, western Anatolia"
+ },
+ {
+  "name": "Denizli",
+  "lon": 29.09,
+  "lat": 37.77,
+  "phases": [
+   [
+    1071,
+    "town"
+   ],
+   [
+    1300,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ottoman Anatolian textile trade town"
+ },
+ {
+  "name": "Adana",
+  "lon": 35.33,
+  "lat": 37.0,
+  "phases": [
+   [
+    1352,
+    "town"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ramadanid beylik then Ottoman Cilician plain city"
+ },
+ {
+  "name": "Tarsus",
+  "lon": 34.9,
+  "lat": 36.92,
+  "phases": [
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ottoman-era Cilician town, ancient Tarsus heir"
+ },
+ {
+  "name": "Mersin",
+  "lon": 34.64,
+  "lat": 36.8,
+  "phases": [
+   [
+    1800,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Late Ottoman-era emerging Mediterranean port"
+ },
+ {
+  "name": "Maras",
+  "lon": 36.93,
+  "lat": 37.58,
+  "phases": [
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Dulkadirid then Ottoman southeastern Anatolian town"
+ },
+ {
+  "name": "Sinop",
+  "lon": 35.15,
+  "lat": 42.03,
+  "phases": [
+   [
+    1214,
+    "town"
+   ],
+   [
+    1461,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Seljuk then Ottoman Black Sea fortress port"
+ },
+ {
+  "name": "Samsun",
+  "lon": 36.33,
+  "lat": 41.29,
+  "phases": [
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ottoman-era Black Sea port town"
+ },
+ {
+  "name": "Bolu",
+  "lon": 31.61,
+  "lat": 40.74,
+  "phases": [
+   [
+    1071,
+    "town"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ottoman Anatolian mountain-pass town"
+ },
+ {
+  "name": "Bilecik",
+  "lon": 29.98,
+  "lat": 40.14,
+  "phases": [
+   [
+    1299,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Site associated with the founding of the Ottoman beylik"
+ },
+ {
+  "name": "Sogut",
+  "lon": 30.19,
+  "lat": 39.99,
+  "phases": [
+   [
+    1299,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Traditional cradle town of the Ottoman dynasty"
+ },
+ {
+  "name": "Eskisehir",
+  "lon": 30.52,
+  "lat": 39.78,
+  "phases": [
+   [
+    1071,
+    "town"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ottoman-era Anatolian thermal-spa town"
+ },
+ {
+  "name": "Afyonkarahisar",
+  "lon": 30.54,
+  "lat": 38.76,
+  "phases": [
+   [
+    1071,
+    "town"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Seljuk-Ottoman black-fortress Anatolian town"
+ },
+ {
+  "name": "Elazig Harput",
+  "lon": 39.24,
+  "lat": 38.69,
+  "phases": [
+   [
+    1071,
+    "town"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Harput, Ottoman-era eastern Anatolian fortress town"
+ },
+ {
+  "name": "Bitlis Anatolia",
+  "lon": 42.12,
+  "lat": 38.4,
+  "phases": [
+   [
+    1200,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Kurdish emirate town controlling a strategic pass"
+ },
+ {
+  "name": "Van Anatolia Ottoman",
+  "lon": 43.38,
+  "lat": 38.49,
+  "phases": [
+   [
+    1548,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ottoman provincial capital phase of Van"
+ },
+ {
+  "name": "Aleppo",
+  "lon": 37.16,
+  "lat": 36.2,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    944,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Hamdanid then Ayyubid-Mamluk-Ottoman great trade city"
+ },
+ {
+  "name": "Damascus",
+  "lon": 36.31,
+  "lat": 33.51,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    661,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Umayyad caliphal capital, continuously major city"
+ },
+ {
+  "name": "Hama",
+  "lon": 36.76,
+  "lat": 35.13,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1200,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ayyubid principality city on the Orontes, famous norias"
+ },
+ {
+  "name": "Homs",
+  "lon": 36.72,
+  "lat": 34.73,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1200,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Mamluk-Ottoman Syrian provincial city, ancient Emesa heir"
+ },
+ {
+  "name": "Latakia",
+  "lon": 35.79,
+  "lat": 35.52,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Mamluk-Ottoman Syrian coastal port"
+ },
+ {
+  "name": "Tripoli Lebanon",
+  "lon": 35.85,
+  "lat": 34.44,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1289,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Mamluk-Ottoman northern Levantine port city"
+ },
+ {
+  "name": "Beirut",
+  "lon": 35.5,
+  "lat": 33.89,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1600,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ottoman-era Levantine port, later silk trade boom"
+ },
+ {
+  "name": "Sidon",
+  "lon": 35.37,
+  "lat": 33.56,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1600,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ottoman-era Lebanese coastal town, Fakhr al-Din emirate"
+ },
+ {
+  "name": "Tyre",
+  "lon": 35.2,
+  "lat": 33.27,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1291,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Post-classical Levantine port, Crusader and Mamluk phases"
+ },
+ {
+  "name": "Jerusalem",
+  "lon": 35.23,
+  "lat": 31.78,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    638,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Continuously significant, Umayyad Dome of the Rock era"
+ },
+ {
+  "name": "Nablus",
+  "lon": 35.26,
+  "lat": 32.22,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1300,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ayyubid-Mamluk-Ottoman soap-manufacturing Levantine town"
+ },
+ {
+  "name": "Hebron",
+  "lon": 35.1,
+  "lat": 31.53,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1300,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Mamluk-Ottoman pilgrimage town, Cave of the Patriarchs"
+ },
+ {
+  "name": "Gaza",
+  "lon": 34.47,
+  "lat": 31.5,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1200,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Mamluk-Ottoman Levantine coastal caravan town"
+ },
+ {
+  "name": "Acre",
+  "lon": 35.09,
+  "lat": 32.93,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1104,
+    "city"
+   ],
+   [
+    1291,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Crusader capital of Jerusalem kingdom in exile, later Ottoman port"
+ },
+ {
+  "name": "Jaffa",
+  "lon": 34.75,
+  "lat": 32.05,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ottoman-era Levantine coastal port town"
+ },
+ {
+  "name": "Safed",
+  "lon": 35.5,
+  "lat": 32.97,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ottoman-era Kabbalistic center in Galilee"
+ },
+ {
+  "name": "Tiberias",
+  "lon": 35.53,
+  "lat": 32.79,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ottoman-era Galilee town, Jewish resettlement under Nasi"
+ },
+ {
+  "name": "Aqaba",
+  "lon": 35.01,
+  "lat": 29.53,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Red Sea port town, ancient Ayla heir"
+ },
+ {
+  "name": "Karak",
+  "lon": 35.7,
+  "lat": 31.18,
+  "phases": [
+   [
+    1142,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Crusader then Ayyubid-Mamluk fortress town, Transjordan"
+ },
+ {
+  "name": "Salt Jordan",
+  "lon": 35.73,
+  "lat": 32.04,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1300,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ottoman-era Transjordan trade town"
+ },
+ {
+  "name": "Amman",
+  "lon": 35.93,
+  "lat": 31.95,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1878,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Circassian resettlement revived the ancient Philadelphia site"
+ },
+ {
+  "name": "Madaba",
+  "lon": 35.8,
+  "lat": 31.72,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1880,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Christian resettlement village, famed mosaic map"
+ },
+ {
+  "name": "Ma'an",
+  "lon": 35.73,
+  "lat": 30.19,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Hejaz caravan-route town, pilgrim road station"
+ },
+ {
+  "name": "Busra",
+  "lon": 36.48,
+  "lat": 32.52,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Hauran basalt trade town on the Damascus-Hejaz road"
+ },
+ {
+  "name": "Palmyra Islamic",
+  "lon": 38.28,
+  "lat": 34.55,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1400,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Post-classical remnant oasis settlement at Tadmor"
+ },
+ {
+  "name": "Deir ez-Zor",
+  "lon": 40.15,
+  "lat": 35.34,
+  "phases": [
+   [
+    1867,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Late Ottoman Euphrates administrative town"
+ },
+ {
+  "name": "Raqqa",
+  "lon": 39.02,
+  "lat": 35.95,
+  "phases": [
+   [
+    796,
+    "city"
+   ],
+   [
+    1300,
+    null
+   ],
+   [
+    1864,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Abbasid secondary capital under Harun al-Rashid, later revived"
+ },
+ {
+  "name": "Antioch Islamic",
+  "lon": 36.16,
+  "lat": 36.2,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1268,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Post-classical Islamic-then-Ottoman Antakya"
+ },
+ {
+  "name": "Mardin",
+  "lon": 40.72,
+  "lat": 37.31,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1300,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Artuqid then Ottoman Syriac Christian hilltop city"
+ },
+ {
+  "name": "Nusaybin",
+  "lon": 41.21,
+  "lat": 37.08,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1300,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Jazira border town, ancient Nisibis heir"
+ },
+ {
+  "name": "Cizre",
+  "lon": 42.19,
+  "lat": 37.32,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1300,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Bohtan Kurdish emirate town on the Tigris"
+ },
+ {
+  "name": "Mecca",
+  "lon": 39.83,
+  "lat": 21.42,
+  "phases": [
+   [
+    600,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Islamic holy city, Ka'ba pilgrimage center"
+ },
+ {
+  "name": "Medina",
+  "lon": 39.61,
+  "lat": 24.47,
+  "phases": [
+   [
+    600,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Prophet's city, first Islamic polity capital"
+ },
+ {
+  "name": "Jeddah",
+  "lon": 39.17,
+  "lat": 21.49,
+  "phases": [
+   [
+    647,
+    "town"
+   ],
+   [
+    900,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Red Sea port serving Mecca pilgrimage traffic"
+ },
+ {
+  "name": "Ta'if",
+  "lon": 40.42,
+  "lat": 21.27,
+  "phases": [
+   [
+    600,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Hejaz highland market town near Mecca"
+ },
+ {
+  "name": "Yanbu",
+  "lon": 38.06,
+  "lat": 24.09,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Red Sea port serving Medina pilgrimage traffic"
+ },
+ {
+  "name": "Khaybar",
+  "lon": 39.28,
+  "lat": 25.68,
+  "phases": [
+   [
+    600,
+    "village"
+   ],
+   [
+    900,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Hejaz oasis town, early Islamic Jewish settlement"
+ },
+ {
+  "name": "Najran",
+  "lon": 44.13,
+  "lat": 17.49,
+  "phases": [
+   [
+    600,
+    "town"
+   ],
+   [
+    900,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "South Arabian trade and pre-Islamic Christian town"
+ },
+ {
+  "name": "Sana'a",
+  "lon": 44.21,
+  "lat": 15.35,
+  "phases": [
+   [
+    600,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Yemeni highland capital, continuously significant"
+ },
+ {
+  "name": "Zabid",
+  "lon": 43.32,
+  "lat": 14.2,
+  "phases": [
+   [
+    820,
+    "town"
+   ],
+   [
+    1000,
+    "city"
+   ],
+   [
+    1600,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Rasulid Yemeni capital, Islamic law school center"
+ },
+ {
+  "name": "Aden",
+  "lon": 45.03,
+  "lat": 12.78,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1200,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Indian Ocean trade port, Rasulid and Ottoman-era entrepot"
+ },
+ {
+  "name": "Ta'izz",
+  "lon": 44.02,
+  "lat": 13.58,
+  "phases": [
+   [
+    1173,
+    "town"
+   ],
+   [
+    1454,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Rasulid dynasty capital in Yemeni highlands"
+ },
+ {
+  "name": "Shibam Hadramawt",
+  "lon": 48.63,
+  "lat": 15.93,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Hadramawt mud-skyscraper caravan city"
+ },
+ {
+  "name": "Say'un",
+  "lon": 48.79,
+  "lat": 15.94,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Hadramawt valley town, Kathiri sultanate capital"
+ },
+ {
+  "name": "Mukalla",
+  "lon": 49.13,
+  "lat": 14.53,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1600,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Hadramawt Indian Ocean coastal port"
+ },
+ {
+  "name": "Hodeidah",
+  "lon": 42.95,
+  "lat": 14.8,
+  "phases": [
+   [
+    1454,
+    "village"
+   ],
+   [
+    1600,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Red Sea port serving Yemeni highland trade"
+ },
+ {
+  "name": "Sa'dah",
+  "lon": 43.76,
+  "lat": 16.94,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    897,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Zaydi imamate founding capital in northern Yemen"
+ },
+ {
+  "name": "Riyadh",
+  "lon": 46.72,
+  "lat": 24.63,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1744,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Najdi oasis town, First Saudi State capital era"
+ },
+ {
+  "name": "Diriyah",
+  "lon": 46.58,
+  "lat": 24.74,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1744,
+    "city"
+   ],
+   [
+    1818,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "First Saudi State capital, destroyed by Ottoman-Egyptian force"
+ },
+ {
+  "name": "Hail",
+  "lon": 41.72,
+  "lat": 27.52,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1836,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Rashidi emirate capital in Jabal Shammar"
+ },
+ {
+  "name": "Buraydah",
+  "lon": 43.98,
+  "lat": 26.33,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Qassim region Najdi oasis market town"
+ },
+ {
+  "name": "Unaizah",
+  "lon": 43.98,
+  "lat": 26.09,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Qassim region Najdi caravan and trade town"
+ },
+ {
+  "name": "Al-Hasa Hofuf",
+  "lon": 49.59,
+  "lat": 25.39,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Eastern Arabian oasis town, dates trade"
+ },
+ {
+  "name": "Dammam Qatif",
+  "lon": 50.01,
+  "lat": 26.52,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Persian Gulf coastal pearling and trade town"
+ },
+ {
+  "name": "Dhahran Uqair",
+  "lon": 50.2,
+  "lat": 25.63,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1500,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Small eastern Arabian Gulf port village"
+ },
+ {
+  "name": "Mada'in Salih",
+  "lon": 37.95,
+  "lat": 26.79,
+  "phases": [
+   [
+    -100,
+    "town"
+   ],
+   [
+    600,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Nabataean southern outpost, pre-Islamic decline"
+ },
+ {
+  "name": "Dumat al-Jandal",
+  "lon": 39.87,
+  "lat": 29.82,
+  "phases": [
+   [
+    600,
+    "town"
+   ],
+   [
+    1200,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Northern Arabian oasis caravan town, ancient Adummatu"
+ },
+ {
+  "name": "Tabuk",
+  "lon": 36.57,
+  "lat": 28.38,
+  "phases": [
+   [
+    600,
+    "village"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Hejaz pilgrimage-road station town"
+ },
+ {
+  "name": "Muscat",
+  "lon": 58.59,
+  "lat": 23.61,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1507,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Omani coastal capital, Portuguese-then-Yaruba/Al Said port"
+ },
+ {
+  "name": "Sohar",
+  "lon": 56.71,
+  "lat": 24.34,
+  "phases": [
+   [
+    600,
+    "city"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Early Islamic Indian Ocean trade capital of Oman"
+ },
+ {
+  "name": "Nizwa",
+  "lon": 57.53,
+  "lat": 22.93,
+  "phases": [
+   [
+    600,
+    "town"
+   ],
+   [
+    1624,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ibadi imamate capital in the Omani interior"
+ },
+ {
+  "name": "Rustaq",
+  "lon": 57.42,
+  "lat": 23.39,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1624,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ya'ariba dynasty early capital in Oman"
+ },
+ {
+  "name": "Bahla",
+  "lon": 57.3,
+  "lat": 22.97,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Omani oasis town, Nabhani dynasty fort"
+ },
+ {
+  "name": "Manama",
+  "lon": 50.59,
+  "lat": 26.23,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1783,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Bahrain pearling port, Al Khalifa dynasty capital"
+ },
+ {
+  "name": "Doha",
+  "lon": 51.53,
+  "lat": 25.29,
+  "phases": [
+   [
+    1820,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Qatari coastal pearling and fishing settlement"
+ },
+ {
+  "name": "Kuwait City",
+  "lon": 47.98,
+  "lat": 29.38,
+  "phases": [
+   [
+    1613,
+    "village"
+   ],
+   [
+    1752,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Founded by Bani Utub tribal confederation on Gulf coast"
+ },
+ {
+  "name": "Zubara",
+  "lon": 51.05,
+  "lat": 25.98,
+  "phases": [
+   [
+    1760,
+    "town"
+   ],
+   [
+    1811,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Qatari pearling boomtown destroyed in regional conflict"
+ },
+ {
+  "name": "Ras al-Khaimah Julfar",
+  "lon": 55.98,
+  "lat": 25.79,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Gulf pearling and trade port, ancient Julfar"
+ },
+ {
+  "name": "Sharjah",
+  "lon": 55.39,
+  "lat": 25.36,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1727,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Qawasim maritime tribal capital on the Gulf"
+ },
+ {
+  "name": "Dubai Creek",
+  "lon": 55.3,
+  "lat": 25.27,
+  "phases": [
+   [
+    1800,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Small Bani Yas fishing and pearling creek settlement"
+ },
+ {
+  "name": "Abu Dhabi",
+  "lon": 54.37,
+  "lat": 24.47,
+  "phases": [
+   [
+    1761,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Bani Yas tribal capital founded around a freshwater well"
+ },
+ {
+  "name": "Liwa Oasis",
+  "lon": 53.75,
+  "lat": 23.13,
+  "phases": [
+   [
+    900,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Bedouin Bani Yas date-palm oasis settlement"
+ },
+ {
+  "name": "Buraimi",
+  "lon": 55.78,
+  "lat": 24.25,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Oman-Abu Dhabi border oasis cluster of villages"
+ },
+ {
+  "name": "Neyshapur Turquoise Qanat Fir",
+  "lon": 58.6,
+  "lat": 36.05,
+  "phases": [
+   [
+    900,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Small Khorasan turquoise-mining qanat village"
+ },
+ {
+  "name": "Maku",
+  "lon": 44.53,
+  "lat": 39.29,
+  "phases": [
+   [
+    1550,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Iran-Ottoman border khanate town"
+ },
+ {
+  "name": "Khonj",
+  "lon": 54.27,
+  "lat": 27.87,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Fars caravan town toward the Gulf coast"
+ },
+ {
+  "name": "Fasa",
+  "lon": 53.65,
+  "lat": 28.94,
+  "phases": [
+   [
+    600,
+    "village"
+   ],
+   [
+    1200,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Fars agricultural market town"
+ },
+ {
+  "name": "Kazerun",
+  "lon": 51.65,
+  "lat": 29.62,
+  "phases": [
+   [
+    224,
+    "town"
+   ],
+   [
+    900,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Sasanian-founded Fars trade town"
+ },
+ {
+  "name": "Behbahan",
+  "lon": 50.24,
+  "lat": 30.6,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Khuzestan-Fars border market town"
+ },
+ {
+  "name": "Ramhormoz",
+  "lon": 49.6,
+  "lat": 31.28,
+  "phases": [
+   [
+    224,
+    "town"
+   ],
+   [
+    900,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Khuzestan Sasanian-founded town"
+ },
+ {
+  "name": "Sirjan",
+  "lon": 55.68,
+  "lat": 29.45,
+  "phases": [
+   [
+    224,
+    "town"
+   ],
+   [
+    900,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Kerman-province caravan and ceramics town"
+ },
+ {
+  "name": "Rafsanjan",
+  "lon": 55.99,
+  "lat": 30.41,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Kerman-province pistachio-region market town"
+ },
+ {
+  "name": "Jiroft",
+  "lon": 57.73,
+  "lat": 28.68,
+  "phases": [
+   [
+    -2000,
+    "town"
+   ],
+   [
+    900,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Bronze Age civilization site, later small Kerman town"
+ },
+ {
+  "name": "Minab",
+  "lon": 57.08,
+  "lat": 27.14,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Hormozgan coastal trade town near Hormuz"
+ },
+ {
+  "name": "Golpayegan",
+  "lon": 50.29,
+  "lat": 33.46,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Central Iran caravan-route market town"
+ },
+ {
+  "name": "Khomeyn",
+  "lon": 50.07,
+  "lat": 33.64,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1400,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Small central Iranian market village"
+ },
+ {
+  "name": "Natanz",
+  "lon": 51.91,
+  "lat": 33.51,
+  "phases": [
+   [
+    600,
+    "village"
+   ],
+   [
+    1300,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Sufi shrine town on the Isfahan-Kashan road"
+ },
+ {
+  "name": "Qomsheh",
+  "lon": 51.62,
+  "lat": 32.11,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Isfahan-province market town, later Shahreza"
+ },
+ {
+  "name": "Khansar",
+  "lon": 50.32,
+  "lat": 33.25,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1400,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Small Zagros-foothill Iranian village"
+ },
+ {
+  "name": "Miandoab",
+  "lon": 46.1,
+  "lat": 36.97,
+  "phases": [
+   [
+    1600,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Azerbaijan-province market village near Lake Urmia"
+ },
+ {
+  "name": "Salmas",
+  "lon": 44.77,
+  "lat": 38.2,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Azerbaijan-province Christian and Muslim market town"
+ },
+ {
+  "name": "Zabol Sistan Qala",
+  "lon": 61.49,
+  "lat": 31.03,
+  "phases": [
+   [
+    900,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Sistan marsh-edge village, duplicate-region entry"
+ },
+ {
+  "name": "Chabahar",
+  "lon": 60.64,
+  "lat": 25.3,
+  "phases": [
+   [
+    1600,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Makran coastal fishing and trade village"
+ },
+ {
+  "name": "Iranshahr",
+  "lon": 60.68,
+  "lat": 27.2,
+  "phases": [
+   [
+    1300,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Baluchistan interior small oasis settlement"
+ },
+ {
+  "name": "Kangan",
+  "lon": 52.07,
+  "lat": 27.83,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1400,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Persian Gulf coastal pearling village"
+ },
+ {
+  "name": "Lamerd",
+  "lon": 53.19,
+  "lat": 27.35,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1400,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Southern Fars small market village"
+ },
+ {
+  "name": "Julfa",
+  "lon": 45.63,
+  "lat": 38.96,
+  "phases": [
+   [
+    1000,
+    "town"
+   ],
+   [
+    1605,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Armenian Nakhchivan trade town, depopulated by Shah Abbas"
+ },
+ {
+  "name": "New Julfa Isfahan",
+  "lon": 51.66,
+  "lat": 32.63,
+  "phases": [
+   [
+    1606,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Armenian merchant suburb resettled by Shah Abbas near Isfahan"
+ },
+ {
+  "name": "Ordubad",
+  "lon": 46.02,
+  "lat": 38.9,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Nakhchivan-region small silk-trade town"
+ },
+ {
+  "name": "Kuba Azerbaijan",
+  "lon": 48.52,
+  "lat": 41.37,
+  "phases": [
+   [
+    1100,
+    "village"
+   ],
+   [
+    1735,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Quba khanate capital in northern Azerbaijan"
+ },
+ {
+  "name": "Ahar",
+  "lon": 47.07,
+  "lat": 38.48,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Iranian Azerbaijan small caravan town"
+ },
+ {
+  "name": "Bayram-Ali Sultan Sanjar",
+  "lon": 62.3,
+  "lat": 37.6,
+  "phases": [
+   [
+    1037,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Merv-oasis satellite settlement, Seljuk era"
+ },
+ {
+  "name": "Denau",
+  "lon": 67.9,
+  "lat": 38.27,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Surkhandarya-region small oasis town"
+ },
+ {
+  "name": "Boysun",
+  "lon": 67.2,
+  "lat": 38.2,
+  "phases": [
+   [
+    900,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Small mountain oasis village near Termez"
+ },
+ {
+  "name": "Gijduvan",
+  "lon": 64.68,
+  "lat": 40.1,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Bukhara-oasis market and ceramics town"
+ },
+ {
+  "name": "Kermine",
+  "lon": 65.16,
+  "lat": 40.1,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Bukhara-khanate secondary residence town, Navoiy region"
+ },
+ {
+  "name": "Ziyauddin",
+  "lon": 65.53,
+  "lat": 39.98,
+  "phases": [
+   [
+    900,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Small Bukhara-oasis caravan stop"
+ },
+ {
+  "name": "Katta-Qurghan",
+  "lon": 66.25,
+  "lat": 39.9,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Zarafshan valley market town between Bukhara and Samarkand"
+ },
+ {
+  "name": "Jizzakh",
+  "lon": 67.84,
+  "lat": 40.12,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Gateway town at the Zarafshan-Ferghana pass"
+ },
+ {
+  "name": "Uratepa Istaravshan",
+  "lon": 69.02,
+  "lat": 39.91,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Sogdian-descended fortress town, alt name entry note"
+ },
+ {
+  "name": "Panj Vakhsh",
+  "lon": 68.9,
+  "lat": 37.25,
+  "phases": [
+   [
+    900,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Small Amu Darya-crossing village in southern Tajikistan"
+ },
+ {
+  "name": "Khorog",
+  "lon": 71.55,
+  "lat": 37.49,
+  "phases": [
+   [
+    1200,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Small Pamir mountain caravan village"
+ },
+ {
+  "name": "Kulob",
+  "lon": 69.78,
+  "lat": 37.91,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Southern Tajik valley market town"
+ },
+ {
+  "name": "Kokcha Ishkashim",
+  "lon": 71.61,
+  "lat": 36.72,
+  "phases": [
+   [
+    900,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Small Pamir lapis-route border village"
+ },
+ {
+  "name": "Karategin Garm",
+  "lon": 70.42,
+  "lat": 39.05,
+  "phases": [
+   [
+    900,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Small eastern Tajik mountain valley village"
+ },
+ {
+  "name": "Chust Ferghana",
+  "lon": 71.24,
+  "lat": 41.01,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ferghana valley knife-making craft town"
+ },
+ {
+  "name": "Rishtan",
+  "lon": 71.28,
+  "lat": 40.35,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ferghana valley ceramics craft town"
+ },
+ {
+  "name": "Uzgen",
+  "lon": 73.3,
+  "lat": 40.77,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1200,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Karakhanid dynasty mausoleum town in Ferghana"
+ },
+ {
+  "name": "Balasagun",
+  "lon": 75.16,
+  "lat": 42.9,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1218,
+    "town"
+   ],
+   [
+    1300,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Karakhanid then Kara-Khitan capital, Burana tower site"
+ },
+ {
+  "name": "Talas Ordu",
+  "lon": 72.19,
+  "lat": 42.53,
+  "phases": [
+   [
+    900,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Small Talas-valley steppe settlement"
+ },
+ {
+  "name": "Yangi Kazakh",
+  "lon": 66.9,
+  "lat": 44.8,
+  "phases": [
+   [
+    1000,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Small Syr Darya steppe town, alt name of Turkestan region"
+ },
+ {
+  "name": "Ekibastuz",
+  "lon": 75.32,
+  "lat": 51.72,
+  "phases": [
+   [
+    1800,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Late steppe pastoral encampment-turned-village"
+ },
+ {
+  "name": "Uzunkuduk",
+  "lon": 63.6,
+  "lat": 42.2,
+  "phases": [
+   [
+    1000,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Small Kyzylkum desert-route caravan village"
+ },
+ {
+  "name": "Qarshi Steppe Post",
+  "lon": 66.1,
+  "lat": 39.0,
+  "phases": [
+   [
+    900,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Small caravan post on the Bukhara-Balkh route"
+ },
+ {
+  "name": "Kelif",
+  "lon": 65.1,
+  "lat": 37.28,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Amu Darya ferry-crossing town toward Balkh"
+ },
+ {
+  "name": "Bala Murghab",
+  "lon": 63.34,
+  "lat": 35.57,
+  "phases": [
+   [
+    1200,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Small Murghab-valley caravan village, Badghis"
+ },
+ {
+  "name": "Chaghcharan",
+  "lon": 65.25,
+  "lat": 34.53,
+  "phases": [
+   [
+    1200,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Small Hari Rud upper-valley Ghor village"
+ },
+ {
+  "name": "Chakhansur",
+  "lon": 62.07,
+  "lat": 31.17,
+  "phases": [
+   [
+    900,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Small Sistan-region border village"
+ },
+ {
+  "name": "Qala-i-Kah Herat",
+  "lon": 62.02,
+  "lat": 32.6,
+  "phases": [
+   [
+    900,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Small western Afghan frontier caravan village"
+ },
+ {
+  "name": "Kushk",
+  "lon": 62.65,
+  "lat": 35.3,
+  "phases": [
+   [
+    1200,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Small Turkmen-Afghan frontier oasis village"
+ },
+ {
+  "name": "Gulran",
+  "lon": 61.95,
+  "lat": 34.78,
+  "phases": [
+   [
+    1200,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Small Herat-province border village"
+ },
+ {
+  "name": "Obeh",
+  "lon": 63.13,
+  "lat": 34.42,
+  "phases": [
+   [
+    900,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Small Hari Rud valley village east of Herat"
+ },
+ {
+  "name": "Pul-e Khumri",
+  "lon": 68.72,
+  "lat": 35.94,
+  "phases": [
+   [
+    1200,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Small Baghlan-province Kunduz-route village"
+ },
+ {
+  "name": "Dowlatabad Balkh",
+  "lon": 66.83,
+  "lat": 36.42,
+  "phases": [
+   [
+    900,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Small Balkh-oasis satellite village"
+ },
+ {
+  "name": "Aqcha",
+  "lon": 66.19,
+  "lat": 36.93,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Uzbek khanate town in Jowzjan province"
+ },
+ {
+  "name": "Baquba",
+  "lon": 44.65,
+  "lat": 33.75,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Diyala river orchard town near Baghdad"
+ },
+ {
+  "name": "Samawah",
+  "lon": 45.29,
+  "lat": 31.32,
+  "phases": [
+   [
+    1700,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Euphrates marsh-edge tribal market town"
+ },
+ {
+  "name": "Diwaniyah",
+  "lon": 44.93,
+  "lat": 31.99,
+  "phases": [
+   [
+    1786,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Founded as an Ottoman-era Euphrates administrative town"
+ },
+ {
+  "name": "Duhok",
+  "lon": 43.0,
+  "lat": 36.87,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Kurdish mountain-valley market town"
+ },
+ {
+  "name": "Halabja",
+  "lon": 45.98,
+  "lat": 35.18,
+  "phases": [
+   [
+    1700,
+    "village"
+   ],
+   [
+    1850,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Baban-dynasty Kurdish market town near Zagros"
+ },
+ {
+  "name": "Qaladiza",
+  "lon": 45.32,
+  "lat": 36.19,
+  "phases": [
+   [
+    1700,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Small Kurdish mountain-district village"
+ },
+ {
+  "name": "Ana Rawa",
+  "lon": 41.9,
+  "lat": 34.42,
+  "phases": [
+   [
+    900,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Euphrates island-town village near Anah"
+ },
+ {
+  "name": "Dur Kurigalzu",
+  "lon": 44.19,
+  "lat": 33.35,
+  "phases": [
+   [
+    -1400,
+    "city"
+   ],
+   [
+    -1150,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Kassite Babylonian capital, modern Aqar Quf"
+ },
+ {
+  "name": "Nuzi",
+  "lon": 44.32,
+  "lat": 35.32,
+  "phases": [
+   [
+    -1500,
+    "town"
+   ],
+   [
+    -1350,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Hurrian-era administrative town near Kirkuk"
+ },
+ {
+  "name": "Kish Mesopotamia",
+  "lon": 44.62,
+  "lat": 32.55,
+  "phases": [
+   [
+    -2500,
+    "city"
+   ],
+   [
+    -500,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Early Sumerian city-state, near later Babylon"
+ },
+ {
+  "name": "Sippar",
+  "lon": 44.29,
+  "lat": 33.06,
+  "phases": [
+   [
+    -2500,
+    "city"
+   ],
+   [
+    -500,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Sumerian-Babylonian sun-god cult city"
+ },
+ {
+  "name": "Gaziantep Old Antep",
+  "lon": 37.38,
+  "lat": 37.06,
+  "phases": [
+   [
+    1200,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Pre-Ottoman Ayyubid-Mamluk phase of Antep"
+ },
+ {
+  "name": "Bafra",
+  "lon": 35.9,
+  "lat": 41.57,
+  "phases": [
+   [
+    1400,
+    "village"
+   ],
+   [
+    1600,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Black Sea coastal Ottoman-era tobacco town"
+ },
+ {
+  "name": "Giresun",
+  "lon": 38.39,
+  "lat": 40.92,
+  "phases": [
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ottoman-era Black Sea hazelnut trade port"
+ },
+ {
+  "name": "Rize",
+  "lon": 40.52,
+  "lat": 41.02,
+  "phases": [
+   [
+    1400,
+    "village"
+   ],
+   [
+    1600,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Ottoman-era eastern Black Sea coastal town"
+ },
+ {
+  "name": "Corum",
+  "lon": 34.95,
+  "lat": 40.55,
+  "phases": [
+   [
+    1071,
+    "town"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Anatolian Ottoman-era provincial town"
+ },
+ {
+  "name": "Yozgat",
+  "lon": 34.81,
+  "lat": 39.82,
+  "phases": [
+   [
+    1700,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Later Ottoman-founded Anatolian provincial town"
+ },
+ {
+  "name": "Kastamonu",
+  "lon": 33.78,
+  "lat": 41.38,
+  "phases": [
+   [
+    1071,
+    "town"
+   ],
+   [
+    1300,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Candarid beylik capital, later Ottoman provincial town"
+ },
+ {
+  "name": "Canakkale",
+  "lon": 26.41,
+  "lat": 40.15,
+  "phases": [
+   [
+    1462,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ottoman Dardanelles fortress-strait town"
+ },
+ {
+  "name": "Isparta",
+  "lon": 30.55,
+  "lat": 37.77,
+  "phases": [
+   [
+    1071,
+    "town"
+   ],
+   [
+    1300,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Hamidid beylik then Ottoman rose-growing town"
+ },
+ {
+  "name": "Karaman",
+  "lon": 33.22,
+  "lat": 37.18,
+  "phases": [
+   [
+    1256,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Karamanid beylik capital, rival to early Ottomans"
+ },
+ {
+  "name": "Alanya",
+  "lon": 32.0,
+  "lat": 36.55,
+  "phases": [
+   [
+    1221,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Seljuk Mediterranean naval-arsenal port town"
+ },
+ {
+  "name": "Sivrihisar",
+  "lon": 31.53,
+  "lat": 39.45,
+  "phases": [
+   [
+    1071,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Seljuk-Ottoman central Anatolian caravan town"
+ },
+ {
+  "name": "Nazareth Ottoman",
+  "lon": 35.3,
+  "lat": 32.7,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ottoman-era Galilee Christian pilgrimage town"
+ },
+ {
+  "name": "Ramla",
+  "lon": 34.87,
+  "lat": 31.93,
+  "phases": [
+   [
+    716,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Umayyad-founded Palestinian administrative capital"
+ },
+ {
+  "name": "Bethlehem",
+  "lon": 35.2,
+  "lat": 31.7,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ottoman-era Christian pilgrimage town near Jerusalem"
+ },
+ {
+  "name": "Qatna Islamic Homs",
+  "lon": 36.85,
+  "lat": 34.9,
+  "phases": [
+   [
+    900,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Small Homs-region agricultural village"
+ },
+ {
+  "name": "Shahba Hauran",
+  "lon": 36.63,
+  "lat": 32.85,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1860,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Hauran basalt-plateau Druze resettlement village"
+ },
+ {
+  "name": "Suwayda",
+  "lon": 36.57,
+  "lat": 32.71,
+  "phases": [
+   [
+    1700,
+    "village"
+   ],
+   [
+    1860,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Druze mountain-region resettlement town in Hauran"
+ },
+ {
+  "name": "Kerak Transjordan Ottoman",
+  "lon": 35.7,
+  "lat": 31.18,
+  "phases": [
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ottoman-era phase of the Crusader-Mamluk Karak fortress town"
+ },
+ {
+  "name": "Irbid",
+  "lon": 35.85,
+  "lat": 32.56,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ottoman-era northern Transjordan market town"
+ },
+ {
+  "name": "Jerash Islamic",
+  "lon": 35.89,
+  "lat": 32.28,
+  "phases": [
+   [
+    900,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Small post-classical agricultural village at ancient Gerasa"
+ },
+ {
+  "name": "Wadi Musa Petra",
+  "lon": 35.48,
+  "lat": 30.32,
+  "phases": [
+   [
+    900,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Small village near the abandoned Nabataean city of Petra"
+ },
+ {
+  "name": "Shobak",
+  "lon": 35.55,
+  "lat": 30.53,
+  "phases": [
+   [
+    1115,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Crusader Montreal fortress, later Mamluk-Ottoman market town"
+ },
+ {
+  "name": "Medina Hejaz Railway Tabuk stop",
+  "lon": 39.1,
+  "lat": 27.5,
+  "phases": [
+   [
+    1900,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Small Hejaz railway water-stop settlement"
+ },
+ {
+  "name": "Al-'Ula",
+  "lon": 37.92,
+  "lat": 26.61,
+  "phases": [
+   [
+    600,
+    "village"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Hejaz oasis caravan town succeeding ancient Dedan"
+ },
+ {
+  "name": "Rabigh",
+  "lon": 39.03,
+  "lat": 22.8,
+  "phases": [
+   [
+    600,
+    "village"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Red Sea coastal pilgrimage-route town"
+ },
+ {
+  "name": "Bisha",
+  "lon": 42.6,
+  "lat": 19.98,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Southwestern Najd agricultural market town"
+ },
+ {
+  "name": "Abha",
+  "lon": 42.51,
+  "lat": 18.22,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Asir highland market town on the incense route remnant"
+ },
+ {
+  "name": "Jazan",
+  "lon": 42.55,
+  "lat": 16.89,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Tihama coastal small port town"
+ },
+ {
+  "name": "Dhamar",
+  "lon": 44.4,
+  "lat": 14.55,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Yemeni highland agricultural and scholarly town"
+ },
+ {
+  "name": "Ibb",
+  "lon": 44.18,
+  "lat": 13.97,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Yemeni highland fertile-region market town"
+ },
+ {
+  "name": "Marib",
+  "lon": 45.35,
+  "lat": 15.43,
+  "phases": [
+   [
+    -1000,
+    "city"
+   ],
+   [
+    600,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Sabaean kingdom capital, Marib Dam civilization"
+ },
+ {
+  "name": "Kawkaban",
+  "lon": 43.83,
+  "lat": 15.47,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Yemeni highland fortress town near Sana'a"
+ },
+ {
+  "name": "Salalah",
+  "lon": 54.09,
+  "lat": 17.02,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Dhofar frankincense-trade coastal town"
+ },
+ {
+  "name": "Sur Oman",
+  "lon": 59.53,
+  "lat": 22.57,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Omani coastal shipbuilding and trade town"
+ },
+ {
+  "name": "Ibra Oman",
+  "lon": 58.53,
+  "lat": 22.69,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Omani interior oasis market town"
+ },
+ {
+  "name": "Sib Oman",
+  "lon": 58.19,
+  "lat": 23.68,
+  "phases": [
+   [
+    900,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Small Omani coastal fishing village near Muscat"
+ }
+]

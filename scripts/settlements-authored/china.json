@@ -1,0 +1,6233 @@
+[
+ {
+  "name": "Jiahu",
+  "lon": 113.67,
+  "lat": 33.61,
+  "phases": [
+   [
+    -7000,
+    "village"
+   ],
+   [
+    -5800,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Peiligang culture; early flutes, proto-writing marks"
+ },
+ {
+  "name": "Banpo",
+  "lon": 109.1,
+  "lat": 34.27,
+  "phases": [
+   [
+    -4700,
+    "village"
+   ],
+   [
+    -3600,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Yangshao culture type site, Xi'an"
+ },
+ {
+  "name": "Jiangzhai",
+  "lon": 109.3,
+  "lat": 34.3,
+  "phases": [
+   [
+    -4600,
+    "village"
+   ],
+   [
+    -3500,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Yangshao concentric village layout"
+ },
+ {
+  "name": "Hemudu",
+  "lon": 121.35,
+  "lat": 29.98,
+  "phases": [
+   [
+    -5000,
+    "village"
+   ],
+   [
+    -3300,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Rice cultivation, stilt houses, Zhejiang"
+ },
+ {
+  "name": "Liangzhu",
+  "lon": 119.98,
+  "lat": 30.38,
+  "phases": [
+   [
+    -3300,
+    "village"
+   ],
+   [
+    -3300,
+    "town"
+   ],
+   [
+    -2300,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Jade culture, walled city, UNESCO site"
+ },
+ {
+  "name": "Taosi",
+  "lon": 111.53,
+  "lat": 35.88,
+  "phases": [
+   [
+    -2300,
+    "town"
+   ],
+   [
+    -2300,
+    "city"
+   ],
+   [
+    -1900,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Late Longshan walled city, possible early state"
+ },
+ {
+  "name": "Erlitou",
+  "lon": 112.72,
+  "lat": 34.71,
+  "phases": [
+   [
+    -1900,
+    "town"
+   ],
+   [
+    -1900,
+    "city"
+   ],
+   [
+    -1500,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Possible Xia dynasty capital, Henan"
+ },
+ {
+  "name": "Dadiwan",
+  "lon": 105.32,
+  "lat": 34.83,
+  "phases": [
+   [
+    -5800,
+    "village"
+   ],
+   [
+    -3000,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Early Yangshao site, Gansu"
+ },
+ {
+  "name": "Xinglongwa",
+  "lon": 121.02,
+  "lat": 42.02,
+  "phases": [
+   [
+    -6200,
+    "village"
+   ],
+   [
+    -5400,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Earliest known walled Neolithic village, Inner Mongolia"
+ },
+ {
+  "name": "Niuheliang",
+  "lon": 119.5,
+  "lat": 41.3,
+  "phases": [
+   [
+    -3500,
+    "village"
+   ],
+   [
+    -3000,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Hongshan culture ritual center, goddess temple"
+ },
+ {
+  "name": "Chengziyai",
+  "lon": 117.8,
+  "lat": 36.79,
+  "phases": [
+   [
+    -2600,
+    "town"
+   ],
+   [
+    -2600,
+    "town"
+   ],
+   [
+    -2000,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Longshan culture type site, Shandong"
+ },
+ {
+  "name": "Sanxingdui",
+  "lon": 104.2,
+  "lat": 31.0,
+  "phases": [
+   [
+    -2800,
+    "town"
+   ],
+   [
+    -1600,
+    "city"
+   ],
+   [
+    -1000,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Bronze-mask Shu culture, unique iconography"
+ },
+ {
+  "name": "Shijiahe",
+  "lon": 112.9,
+  "lat": 30.62,
+  "phases": [
+   [
+    -2500,
+    "town"
+   ],
+   [
+    -2500,
+    "city"
+   ],
+   [
+    -2000,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Largest Neolithic walled site in middle Yangzi"
+ },
+ {
+  "name": "Majiabang",
+  "lon": 120.9,
+  "lat": 30.75,
+  "phases": [
+   [
+    -5000,
+    "village"
+   ],
+   [
+    -4000,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Lower Yangzi Neolithic culture type site"
+ },
+ {
+  "name": "Xiawanggang",
+  "lon": 111.9,
+  "lat": 33.2,
+  "phases": [
+   [
+    -4500,
+    "village"
+   ],
+   [
+    -2000,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Multi-culture stratified site, Henan"
+ },
+ {
+  "name": "Baiyinchanghan",
+  "lon": 118.75,
+  "lat": 42.9,
+  "phases": [
+   [
+    -6000,
+    "village"
+   ],
+   [
+    -5000,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Xinglongwa-Hongshan transition site"
+ },
+ {
+  "name": "Miaodigou",
+  "lon": 111.65,
+  "lat": 34.75,
+  "phases": [
+   [
+    -4000,
+    "village"
+   ],
+   [
+    -3000,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Middle Yangshao type site, Henan"
+ },
+ {
+  "name": "Dawenkou",
+  "lon": 117.2,
+  "lat": 35.9,
+  "phases": [
+   [
+    -4300,
+    "village"
+   ],
+   [
+    -2600,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Dawenkou culture type site, Shandong"
+ },
+ {
+  "name": "Lingjiatan",
+  "lon": 117.87,
+  "lat": 31.58,
+  "phases": [
+   [
+    -3500,
+    "town"
+   ],
+   [
+    -3300,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Jade-rich late Neolithic site, Anhui"
+ },
+ {
+  "name": "Yuchisi",
+  "lon": 116.3,
+  "lat": 32.9,
+  "phases": [
+   [
+    -3500,
+    "village"
+   ],
+   [
+    -2500,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Dawenkou-Longshan settlement, Anhui"
+ },
+ {
+  "name": "Wangchenggang",
+  "lon": 113.05,
+  "lat": 34.45,
+  "phases": [
+   [
+    -2100,
+    "town"
+   ],
+   [
+    -2100,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Small Longshan walled town, possible early Xia"
+ },
+ {
+  "name": "Chengtoushan",
+  "lon": 111.68,
+  "lat": 29.68,
+  "phases": [
+   [
+    -4000,
+    "village"
+   ],
+   [
+    -4000,
+    "town"
+   ],
+   [
+    -3000,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Earliest walled town in China, Hunan"
+ },
+ {
+  "name": "Baligang",
+  "lon": 112.1,
+  "lat": 32.7,
+  "phases": [
+   [
+    -6000,
+    "village"
+   ],
+   [
+    -4000,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Early rice farming settlement, Henan"
+ },
+ {
+  "name": "Zhengzhou Shang City",
+  "lon": 113.65,
+  "lat": 34.75,
+  "phases": [
+   [
+    -1600,
+    "city"
+   ],
+   [
+    -1400,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Early Shang walled capital, possibly Bo"
+ },
+ {
+  "name": "Yinxu",
+  "lon": 114.31,
+  "lat": 36.13,
+  "phases": [
+   [
+    -1300,
+    "city"
+   ],
+   [
+    -1046,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Late Shang capital near Anyang, oracle bones"
+ },
+ {
+  "name": "Panlongcheng",
+  "lon": 114.3,
+  "lat": 30.7,
+  "phases": [
+   [
+    -1500,
+    "town"
+   ],
+   [
+    -1300,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Shang southern outpost, Hubei"
+ },
+ {
+  "name": "Yanshi Shang City",
+  "lon": 112.78,
+  "lat": 34.73,
+  "phases": [
+   [
+    -1600,
+    "town"
+   ],
+   [
+    -1600,
+    "city"
+   ],
+   [
+    -1400,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Early Shang walled city near Erlitou"
+ },
+ {
+  "name": "Wucheng",
+  "lon": 115.83,
+  "lat": 28.35,
+  "phases": [
+   [
+    -1400,
+    "town"
+   ],
+   [
+    -1000,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Bronze culture site, Jiangxi, distinct from Shang core"
+ },
+ {
+  "name": "Xin'gan",
+  "lon": 115.8,
+  "lat": 27.75,
+  "phases": [
+   [
+    -1300,
+    "town"
+   ],
+   [
+    -1000,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Dayangzhou bronze hoard site, Jiangxi"
+ },
+ {
+  "name": "Haojing",
+  "lon": 108.85,
+  "lat": 34.2,
+  "phases": [
+   [
+    -1046,
+    "city"
+   ],
+   [
+    -771,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Western Zhou capital, near modern Xi'an"
+ },
+ {
+  "name": "Fengjing",
+  "lon": 108.83,
+  "lat": 34.23,
+  "phases": [
+   [
+    -1100,
+    "town"
+   ],
+   [
+    -771,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Western Zhou secondary capital, twin to Haojing"
+ },
+ {
+  "name": "Zhouyuan",
+  "lon": 107.9,
+  "lat": 34.45,
+  "phases": [
+   [
+    -1200,
+    "town"
+   ],
+   [
+    -771,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Zhou ancestral homeland, bronze inscription hoards"
+ },
+ {
+  "name": "Luoyang (Chengzhou)",
+  "lon": 112.45,
+  "lat": 34.62,
+  "phases": [
+   [
+    -770,
+    "city"
+   ],
+   [
+    220,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Eastern Zhou royal capital, later imperial capital"
+ },
+ {
+  "name": "Linzi",
+  "lon": 118.3,
+  "lat": 36.83,
+  "phases": [
+   [
+    -859,
+    "town"
+   ],
+   [
+    -859,
+    "city"
+   ],
+   [
+    221,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Qi state capital, Warring States metropolis"
+ },
+ {
+  "name": "Qufu",
+  "lon": 116.99,
+  "lat": 35.6,
+  "phases": [
+   [
+    -1043,
+    "town"
+   ],
+   [
+    221,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Lu state capital, birthplace of Confucius"
+ },
+ {
+  "name": "Handan",
+  "lon": 114.48,
+  "lat": 36.62,
+  "phases": [
+   [
+    -386,
+    "city"
+   ],
+   [
+    228,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Zhao state capital"
+ },
+ {
+  "name": "Xinzheng",
+  "lon": 113.73,
+  "lat": 34.4,
+  "phases": [
+   [
+    -375,
+    "city"
+   ],
+   [
+    230,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Han state capital (Warring States Han)"
+ },
+ {
+  "name": "Yong (Qin capital)",
+  "lon": 107.32,
+  "lat": 34.52,
+  "phases": [
+   [
+    -677,
+    "town"
+   ],
+   [
+    -677,
+    "city"
+   ],
+   [
+    -383,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Early Qin state capital, Fengxiang"
+ },
+ {
+  "name": "Yueyang (Qin)",
+  "lon": 109.1,
+  "lat": 34.65,
+  "phases": [
+   [
+    -383,
+    "town"
+   ],
+   [
+    -350,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Qin capital before Xianyang"
+ },
+ {
+  "name": "Jicheng",
+  "lon": 116.4,
+  "lat": 39.9,
+  "phases": [
+   [
+    -1045,
+    "town"
+   ],
+   [
+    -226,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Yan state capital, precursor of Beijing"
+ },
+ {
+  "name": "Jinyang",
+  "lon": 112.5,
+  "lat": 37.8,
+  "phases": [
+   [
+    -497,
+    "town"
+   ],
+   [
+    -497,
+    "city"
+   ],
+   [
+    220,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Jin/Zhao stronghold near Taiyuan"
+ },
+ {
+  "name": "Ying (Chu capital, Jinancheng)",
+  "lon": 112.18,
+  "lat": 30.35,
+  "phases": [
+   [
+    -689,
+    "city"
+   ],
+   [
+    -278,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Chu state capital, sacked by Qin general Bai Qi"
+ },
+ {
+  "name": "Shouchun",
+  "lon": 116.48,
+  "lat": 32.45,
+  "phases": [
+   [
+    -241,
+    "city"
+   ],
+   [
+    -223,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Last Chu capital before Qin conquest"
+ },
+ {
+  "name": "Chengdu (Shu)",
+  "lon": 104.07,
+  "lat": 30.67,
+  "phases": [
+   [
+    -316,
+    "town"
+   ],
+   [
+    -316,
+    "city"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Shu state/kingdom capital, later major city"
+ },
+ {
+  "name": "Ba (Jiangzhou)",
+  "lon": 106.55,
+  "lat": 29.56,
+  "phases": [
+   [
+    -400,
+    "town"
+   ],
+   [
+    -316,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Ba state center near modern Chongqing"
+ },
+ {
+  "name": "Xianyang",
+  "lon": 108.7,
+  "lat": 34.33,
+  "phases": [
+   [
+    -350,
+    "town"
+   ],
+   [
+    -221,
+    "city"
+   ],
+   [
+    -206,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Qin imperial capital, destroyed after fall of Qin"
+ },
+ {
+  "name": "Chang'an",
+  "lon": 108.93,
+  "lat": 34.27,
+  "phases": [
+   [
+    -202,
+    "city"
+   ],
+   [
+    907,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Han and Tang imperial capital, one of history's great cities"
+ },
+ {
+  "name": "Nanyang",
+  "lon": 112.53,
+  "lat": 32.99,
+  "phases": [
+   [
+    -500,
+    "town"
+   ],
+   [
+    220,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Han iron and metallurgy center, Henan"
+ },
+ {
+  "name": "Guangzhou (Panyu)",
+  "lon": 113.26,
+  "lat": 23.13,
+  "phases": [
+   [
+    -214,
+    "town"
+   ],
+   [
+    -111,
+    "city"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Nanyue kingdom capital, then Han commandery port"
+ },
+ {
+  "name": "Dunhuang",
+  "lon": 94.66,
+  "lat": 40.14,
+  "phases": [
+   [
+    -111,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Han garrison, Silk Road gateway, Mogao caves nearby"
+ },
+ {
+  "name": "Jiuquan",
+  "lon": 98.51,
+  "lat": 39.74,
+  "phases": [
+   [
+    -111,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Han Hexi Corridor commandery seat"
+ },
+ {
+  "name": "Zhangye",
+  "lon": 100.45,
+  "lat": 38.93,
+  "phases": [
+   [
+    -111,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Han Hexi Corridor commandery seat"
+ },
+ {
+  "name": "Wuwei",
+  "lon": 102.64,
+  "lat": 37.93,
+  "phases": [
+   [
+    -121,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Han Hexi Corridor commandery, former Xiongnu territory"
+ },
+ {
+  "name": "Jiaozhi (Luy Lau)",
+  "lon": 106.05,
+  "lat": 21.1,
+  "phases": [
+   [
+    -111,
+    "town"
+   ],
+   [
+    900,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Han commandery seat, northern Vietnam border zone"
+ },
+ {
+  "name": "Langzhong",
+  "lon": 105.97,
+  "lat": 31.56,
+  "phases": [
+   [
+    -330,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ba region administrative town, Sichuan"
+ },
+ {
+  "name": "Chengji",
+  "lon": 105.72,
+  "lat": 34.58,
+  "phases": [
+   [
+    -114,
+    "town"
+   ],
+   [
+    400,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Han frontier town, Gansu corridor"
+ },
+ {
+  "name": "Julu",
+  "lon": 115.02,
+  "lat": 37.08,
+  "phases": [
+   [
+    -200,
+    "town"
+   ],
+   [
+    900,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Han commandery seat, site of major battle"
+ },
+ {
+  "name": "Xiapi",
+  "lon": 118.28,
+  "lat": 34.3,
+  "phases": [
+   [
+    -200,
+    "town"
+   ],
+   [
+    500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Han-Wei era town, Jiangsu"
+ },
+ {
+  "name": "Pengcheng",
+  "lon": 117.2,
+  "lat": 34.27,
+  "phases": [
+   [
+    -500,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Early Chu/Han town, modern Xuzhou"
+ },
+ {
+  "name": "Jiangling",
+  "lon": 112.19,
+  "lat": 30.35,
+  "phases": [
+   [
+    -278,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Successor town at former Chu capital site"
+ },
+ {
+  "name": "Jiankang",
+  "lon": 118.78,
+  "lat": 32.05,
+  "phases": [
+   [
+    229,
+    "city"
+   ],
+   [
+    589,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Wu, Eastern Jin, and southern dynasties capital, Nanjing"
+ },
+ {
+  "name": "Pingcheng",
+  "lon": 113.3,
+  "lat": 40.08,
+  "phases": [
+   [
+    398,
+    "city"
+   ],
+   [
+    494,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Northern Wei capital before move to Luoyang"
+ },
+ {
+  "name": "Ye (Yecheng)",
+  "lon": 114.6,
+  "lat": 36.33,
+  "phases": [
+   [
+    204,
+    "city"
+   ],
+   [
+    580,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Cao Wei and later northern dynasties capital, Hebei"
+ },
+ {
+  "name": "Chengdu (Shu-Han)",
+  "lon": 104.06,
+  "lat": 30.66,
+  "phases": [
+   [
+    221,
+    "city"
+   ],
+   [
+    263,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Shu Han kingdom capital, Three Kingdoms era"
+ },
+ {
+  "name": "Jianye",
+  "lon": 118.78,
+  "lat": 32.06,
+  "phases": [
+   [
+    229,
+    "city"
+   ],
+   [
+    280,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Eastern Wu capital, precursor name of Jiankang"
+ },
+ {
+  "name": "Xiangyang",
+  "lon": 112.14,
+  "lat": 32.04,
+  "phases": [
+   [
+    190,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Strategic Han river garrison town, Three Kingdoms"
+ },
+ {
+  "name": "Jingzhou (Jiangling)",
+  "lon": 112.19,
+  "lat": 30.35,
+  "phases": [
+   [
+    190,
+    "town"
+   ],
+   [
+    600,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Key military and administrative center, Three Kingdoms"
+ },
+ {
+  "name": "Chang'an (Former Zhao)",
+  "lon": 108.93,
+  "lat": 34.27,
+  "phases": [
+   [
+    319,
+    "city"
+   ],
+   [
+    352,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Sixteen Kingdoms era capital reuse"
+ },
+ {
+  "name": "Guzang",
+  "lon": 102.64,
+  "lat": 37.93,
+  "phases": [
+   [
+    301,
+    "town"
+   ],
+   [
+    301,
+    "city"
+   ],
+   [
+    439,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Former Liang kingdom capital, modern Wuwei"
+ },
+ {
+  "name": "Chang'an (Tang)",
+  "lon": 108.93,
+  "lat": 34.27,
+  "phases": [
+   [
+    618,
+    "city"
+   ],
+   [
+    907,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Tang imperial capital, largest city in the world"
+ },
+ {
+  "name": "Luoyang (Tang)",
+  "lon": 112.45,
+  "lat": 34.62,
+  "phases": [
+   [
+    605,
+    "city"
+   ],
+   [
+    907,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Sui-Tang eastern capital"
+ },
+ {
+  "name": "Yangzhou",
+  "lon": 119.42,
+  "lat": 32.39,
+  "phases": [
+   [
+    589,
+    "town"
+   ],
+   [
+    907,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Grand Canal hub, cosmopolitan Tang trade city"
+ },
+ {
+  "name": "Chengdu (Tang)",
+  "lon": 104.07,
+  "lat": 30.67,
+  "phases": [
+   [
+    618,
+    "city"
+   ],
+   [
+    907,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Tang secondary capital, refuge during An Lushan rebellion"
+ },
+ {
+  "name": "Taiyuan",
+  "lon": 112.55,
+  "lat": 37.87,
+  "phases": [
+   [
+    600,
+    "city"
+   ],
+   [
+    907,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Tang secondary capital, Li family power base"
+ },
+ {
+  "name": "Guangzhou (Tang)",
+  "lon": 113.26,
+  "lat": 23.13,
+  "phases": [
+   [
+    618,
+    "city"
+   ],
+   [
+    907,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Major Tang maritime trade port"
+ },
+ {
+  "name": "Quanzhou",
+  "lon": 118.59,
+  "lat": 24.91,
+  "phases": [
+   [
+    700,
+    "town"
+   ],
+   [
+    900,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Rising maritime trade port, Tang-Song"
+ },
+ {
+  "name": "Mingzhou (Ningbo)",
+  "lon": 121.55,
+  "lat": 29.87,
+  "phases": [
+   [
+    738,
+    "town"
+   ],
+   [
+    900,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Tang-Song port, trade with Japan and Korea"
+ },
+ {
+  "name": "Dengzhou",
+  "lon": 120.75,
+  "lat": 37.8,
+  "phases": [
+   [
+    600,
+    "town"
+   ],
+   [
+    900,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Shandong coastal port, Korea-Japan trade"
+ },
+ {
+  "name": "Hezhou (Linxia)",
+  "lon": 103.21,
+  "lat": 35.6,
+  "phases": [
+   [
+    600,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Tang-era Gansu frontier town"
+ },
+ {
+  "name": "Suzhou (Jiangsu)",
+  "lon": 120.62,
+  "lat": 31.32,
+  "phases": [
+   [
+    600,
+    "town"
+   ],
+   [
+    900,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Canal city, silk and rice trade"
+ },
+ {
+  "name": "Bianzhou (Kaifeng, early)",
+  "lon": 114.35,
+  "lat": 34.8,
+  "phases": [
+   [
+    600,
+    "town"
+   ],
+   [
+    900,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Grand Canal junction town before Song capital status"
+ },
+ {
+  "name": "Kaifeng (Bianjing)",
+  "lon": 114.35,
+  "lat": 34.8,
+  "phases": [
+   [
+    907,
+    "city"
+   ],
+   [
+    1127,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Northern Song imperial capital"
+ },
+ {
+  "name": "Hangzhou (Lin'an)",
+  "lon": 120.15,
+  "lat": 30.28,
+  "phases": [
+   [
+    893,
+    "town"
+   ],
+   [
+    1127,
+    "city"
+   ],
+   [
+    1279,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Southern Song capital, described by Marco Polo"
+ },
+ {
+  "name": "Chengdu (Song)",
+  "lon": 104.07,
+  "lat": 30.67,
+  "phases": [
+   [
+    907,
+    "city"
+   ],
+   [
+    1279,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Song regional metropolis, paper money origin"
+ },
+ {
+  "name": "Fuzhou",
+  "lon": 119.3,
+  "lat": 26.08,
+  "phases": [
+   [
+    700,
+    "town"
+   ],
+   [
+    1200,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Fujian coastal capital, Song maritime trade"
+ },
+ {
+  "name": "Jingdezhen",
+  "lon": 117.21,
+  "lat": 29.27,
+  "phases": [
+   [
+    600,
+    "village"
+   ],
+   [
+    1004,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Imperial porcelain kiln town, named under Song"
+ },
+ {
+  "name": "Nanjing (Song Jiangning)",
+  "lon": 118.78,
+  "lat": 32.05,
+  "phases": [
+   [
+    907,
+    "town"
+   ],
+   [
+    1279,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Song regional prefecture, former Six Dynasties capital"
+ },
+ {
+  "name": "Chengzhou (Shangqiu)",
+  "lon": 115.65,
+  "lat": 34.41,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1200,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Northern Song southern capital, Henan"
+ },
+ {
+  "name": "Daming",
+  "lon": 115.17,
+  "lat": 36.28,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1200,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Song northern capital, Hebei"
+ },
+ {
+  "name": "Weizhou",
+  "lon": 115.1,
+  "lat": 36.4,
+  "phases": [
+   [
+    600,
+    "town"
+   ],
+   [
+    1200,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Song-era administrative town, Hebei"
+ },
+ {
+  "name": "Jizhou (Jian)",
+  "lon": 114.96,
+  "lat": 27.11,
+  "phases": [
+   [
+    600,
+    "town"
+   ],
+   [
+    1200,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Jiangxi prefecture, ceramics and paper"
+ },
+ {
+  "name": "Meizhou",
+  "lon": 116.12,
+  "lat": 24.29,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1200,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Hakka frontier settlement, Guangdong"
+ },
+ {
+  "name": "Shangjing (Liao)",
+  "lon": 121.1,
+  "lat": 44.2,
+  "phases": [
+   [
+    918,
+    "city"
+   ],
+   [
+    1120,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Liao dynasty Khitan supreme capital"
+ },
+ {
+  "name": "Zhongjing (Liao)",
+  "lon": 119.3,
+  "lat": 41.6,
+  "phases": [
+   [
+    1007,
+    "city"
+   ],
+   [
+    1120,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Liao dynasty central capital"
+ },
+ {
+  "name": "Nanjing (Liao, Yanjing)",
+  "lon": 116.4,
+  "lat": 39.9,
+  "phases": [
+   [
+    938,
+    "city"
+   ],
+   [
+    1120,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Liao southern capital, site of future Beijing"
+ },
+ {
+  "name": "Zhongdu (Jin)",
+  "lon": 116.4,
+  "lat": 39.9,
+  "phases": [
+   [
+    1153,
+    "city"
+   ],
+   [
+    1215,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Jurchen Jin dynasty capital, sacked by Mongols"
+ },
+ {
+  "name": "Shangjing (Jin)",
+  "lon": 126.6,
+  "lat": 45.7,
+  "phases": [
+   [
+    1115,
+    "city"
+   ],
+   [
+    1153,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Jurchen Jin dynasty first capital, Heilongjiang"
+ },
+ {
+  "name": "Xingqing (Yinchuan)",
+  "lon": 106.23,
+  "lat": 38.47,
+  "phases": [
+   [
+    1038,
+    "city"
+   ],
+   [
+    1227,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Western Xia (Tangut) capital"
+ },
+ {
+  "name": "Heicheng (Khara-Khoto)",
+  "lon": 101.13,
+  "lat": 41.77,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1372,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Tangut/Yuan garrison city, abandoned in Ming"
+ },
+ {
+  "name": "Karakorum",
+  "lon": 102.84,
+  "lat": 47.2,
+  "phases": [
+   [
+    1235,
+    "city"
+   ],
+   [
+    1260,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Mongol imperial capital under Ogedei Khan"
+ },
+ {
+  "name": "Shangdu (Xanadu)",
+  "lon": 116.18,
+  "lat": 42.36,
+  "phases": [
+   [
+    1256,
+    "city"
+   ],
+   [
+    1369,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Yuan summer capital, Marco Polo's Xanadu"
+ },
+ {
+  "name": "Dadu (Beijing)",
+  "lon": 116.4,
+  "lat": 39.9,
+  "phases": [
+   [
+    1267,
+    "city"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Yuan imperial capital, later Ming-Qing Beijing"
+ },
+ {
+  "name": "Quanzhou (Yuan)",
+  "lon": 118.59,
+  "lat": 24.91,
+  "phases": [
+   [
+    1279,
+    "city"
+   ],
+   [
+    1368,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Yuan-era greatest port, Zaitun to Arab traders"
+ },
+ {
+  "name": "Ordu-Baliq",
+  "lon": 102.83,
+  "lat": 47.3,
+  "phases": [
+   [
+    750,
+    "city"
+   ],
+   [
+    840,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Uyghur Khaganate capital, predates Karakorum"
+ },
+ {
+  "name": "Beijing (Ming)",
+  "lon": 116.4,
+  "lat": 39.9,
+  "phases": [
+   [
+    1403,
+    "city"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ming imperial capital from Yongle era"
+ },
+ {
+  "name": "Nanjing (Ming)",
+  "lon": 118.78,
+  "lat": 32.05,
+  "phases": [
+   [
+    1368,
+    "city"
+   ],
+   [
+    1421,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ming founding capital before move to Beijing"
+ },
+ {
+  "name": "Fengyang",
+  "lon": 117.56,
+  "lat": 32.87,
+  "phases": [
+   [
+    1368,
+    "town"
+   ],
+   [
+    1400,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Zhu Yuanzhang's home region, planned imperial capital"
+ },
+ {
+  "name": "Suzhou (Ming)",
+  "lon": 120.62,
+  "lat": 31.32,
+  "phases": [
+   [
+    1368,
+    "city"
+   ],
+   [
+    1644,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ming commercial and silk metropolis"
+ },
+ {
+  "name": "Songjiang",
+  "lon": 121.23,
+  "lat": 31.03,
+  "phases": [
+   [
+    1300,
+    "town"
+   ],
+   [
+    1600,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ming cotton textile center, near Shanghai"
+ },
+ {
+  "name": "Shanghai (Ming)",
+  "lon": 121.47,
+  "lat": 31.23,
+  "phases": [
+   [
+    1292,
+    "town"
+   ],
+   [
+    1843,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ming county seat before treaty-port growth"
+ },
+ {
+  "name": "Tianjin",
+  "lon": 117.2,
+  "lat": 39.13,
+  "phases": [
+   [
+    1404,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ming garrison founded to guard approach to Beijing"
+ },
+ {
+  "name": "Wuhan (Hankou)",
+  "lon": 114.27,
+  "lat": 30.58,
+  "phases": [
+   [
+    1500,
+    "town"
+   ],
+   [
+    1861,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ming-era riverine trade town on the Yangzi"
+ },
+ {
+  "name": "Jingdezhen (Ming)",
+  "lon": 117.21,
+  "lat": 29.27,
+  "phases": [
+   [
+    1368,
+    "town"
+   ],
+   [
+    1644,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ming imperial kiln town, blue-and-white porcelain"
+ },
+ {
+  "name": "Datong",
+  "lon": 113.3,
+  "lat": 40.08,
+  "phases": [
+   [
+    1400,
+    "city"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ming garrison town guarding northern frontier"
+ },
+ {
+  "name": "Xuanfu (Xuanhua)",
+  "lon": 115.03,
+  "lat": 40.6,
+  "phases": [
+   [
+    1400,
+    "town"
+   ],
+   [
+    1644,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ming Nine Garrisons frontier town"
+ },
+ {
+  "name": "Ningxia (Yinchuan, Ming)",
+  "lon": 106.23,
+  "lat": 38.47,
+  "phases": [
+   [
+    1400,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ming Nine Garrisons frontier town"
+ },
+ {
+  "name": "Kaifeng (Ming)",
+  "lon": 114.35,
+  "lat": 34.8,
+  "phases": [
+   [
+    1368,
+    "town"
+   ],
+   [
+    1642,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ming provincial capital, flooded 1642"
+ },
+ {
+  "name": "Xi'an (Ming)",
+  "lon": 108.93,
+  "lat": 34.27,
+  "phases": [
+   [
+    1368,
+    "city"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ming provincial capital, former Chang'an site"
+ },
+ {
+  "name": "Guangzhou (Ming)",
+  "lon": 113.26,
+  "lat": 23.13,
+  "phases": [
+   [
+    1368,
+    "city"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ming maritime trade hub, later Canton system"
+ },
+ {
+  "name": "Zhangzhou",
+  "lon": 117.65,
+  "lat": 24.51,
+  "phases": [
+   [
+    1368,
+    "town"
+   ],
+   [
+    1650,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ming-era Fujian trade port, junk trade with Manila"
+ },
+ {
+  "name": "Macau (Chinese side, Xiangshan)",
+  "lon": 113.55,
+  "lat": 22.2,
+  "phases": [
+   [
+    1200,
+    "village"
+   ],
+   [
+    1557,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Fishing settlement before Portuguese lease"
+ },
+ {
+  "name": "Dali (Nanzhao/Dali kingdom)",
+  "lon": 100.17,
+  "lat": 25.7,
+  "phases": [
+   [
+    738,
+    "city"
+   ],
+   [
+    1253,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Nanzhao and Dali kingdom capital, conquered by Mongols"
+ },
+ {
+  "name": "Kunming (Yachi)",
+  "lon": 102.71,
+  "lat": 25.04,
+  "phases": [
+   [
+    765,
+    "town"
+   ],
+   [
+    1382,
+    "city"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Nanzhao secondary center, later Ming-Qing provincial capital"
+ },
+ {
+  "name": "Guiyang",
+  "lon": 106.71,
+  "lat": 26.65,
+  "phases": [
+   [
+    1283,
+    "town"
+   ],
+   [
+    1413,
+    "city"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Established as Guizhou provincial capital under Ming"
+ },
+ {
+  "name": "Nanning",
+  "lon": 108.37,
+  "lat": 22.82,
+  "phases": [
+   [
+    318,
+    "town"
+   ],
+   [
+    1000,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Guangxi administrative center since Jin dynasty"
+ },
+ {
+  "name": "Guilin",
+  "lon": 110.29,
+  "lat": 25.27,
+  "phases": [
+   [
+    214,
+    "town"
+   ],
+   [
+    1000,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Qin-era garrison, later Guangxi's classical capital"
+ },
+ {
+  "name": "Liuzhou",
+  "lon": 109.42,
+  "lat": 24.33,
+  "phases": [
+   [
+    600,
+    "town"
+   ],
+   [
+    1000,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Tang-era exile posting and river trade town"
+ },
+ {
+  "name": "Wuzhou",
+  "lon": 111.28,
+  "lat": 23.48,
+  "phases": [
+   [
+    111,
+    "town"
+   ],
+   [
+    1000,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Han commandery seat at Xi River confluence"
+ },
+ {
+  "name": "Yongchang (Baoshan)",
+  "lon": 99.16,
+  "lat": 25.11,
+  "phases": [
+   [
+    100,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Han-era Yunnan frontier commandery"
+ },
+ {
+  "name": "Dianchi (Jinning)",
+  "lon": 102.6,
+  "lat": 24.68,
+  "phases": [
+   [
+    -300,
+    "town"
+   ],
+   [
+    109,
+    "town"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Dian kingdom capital area, bronze drum culture"
+ },
+ {
+  "name": "Zhaotong",
+  "lon": 103.72,
+  "lat": 27.34,
+  "phases": [
+   [
+    -200,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Ancient Yelang/Han-era frontier town, Yunnan-Guizhou border"
+ },
+ {
+  "name": "Anshun",
+  "lon": 105.95,
+  "lat": 26.25,
+  "phases": [
+   [
+    1381,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ming military colony town, Guizhou"
+ },
+ {
+  "name": "Zunyi",
+  "lon": 106.93,
+  "lat": 27.72,
+  "phases": [
+   [
+    1600,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Bozhou chieftaincy seat, absorbed by Ming after 1600 war"
+ },
+ {
+  "name": "Lijiang",
+  "lon": 100.23,
+  "lat": 26.87,
+  "phases": [
+   [
+    1253,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Naxi Mu chieftaincy seat, Yuan-Ming tributary town"
+ },
+ {
+  "name": "Tengchong",
+  "lon": 98.49,
+  "lat": 25.03,
+  "phases": [
+   [
+    600,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Yunnan frontier trade town toward Burma"
+ },
+ {
+  "name": "Qiongshan (Haikou)",
+  "lon": 110.35,
+  "lat": 20.03,
+  "phases": [
+   [
+    110,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Han-era Hainan administrative seat"
+ },
+ {
+  "name": "Danzhou",
+  "lon": 109.58,
+  "lat": 19.52,
+  "phases": [
+   [
+    110,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Han-Tang Hainan commandery, exile posting for officials"
+ },
+ {
+  "name": "Yazhou (Sanya)",
+  "lon": 109.51,
+  "lat": 18.25,
+  "phases": [
+   [
+    622,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Tang-era Hainan southern coastal town"
+ },
+ {
+  "name": "Kashgar",
+  "lon": 75.99,
+  "lat": 39.47,
+  "phases": [
+   [
+    -100,
+    "town"
+   ],
+   [
+    1000,
+    "city"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Major Silk Road oasis city, Tarim Basin west end"
+ },
+ {
+  "name": "Khotan (Hotan)",
+  "lon": 79.93,
+  "lat": 37.11,
+  "phases": [
+   [
+    -200,
+    "town"
+   ],
+   [
+    900,
+    "city"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Jade and Buddhist kingdom, southern Silk Road"
+ },
+ {
+  "name": "Kucha",
+  "lon": 82.97,
+  "lat": 41.72,
+  "phases": [
+   [
+    -200,
+    "town"
+   ],
+   [
+    900,
+    "city"
+   ],
+   [
+    1500,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Buddhist kingdom, northern Silk Road, Kizil caves nearby"
+ },
+ {
+  "name": "Turfan (Gaochang)",
+  "lon": 89.53,
+  "lat": 42.86,
+  "phases": [
+   [
+    -100,
+    "town"
+   ],
+   [
+    640,
+    "city"
+   ],
+   [
+    1450,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Silk Road kingdom capital, abandoned after Yarkhoto decline"
+ },
+ {
+  "name": "Jiaohe (Yarkhoto)",
+  "lon": 89.32,
+  "lat": 42.93,
+  "phases": [
+   [
+    -200,
+    "town"
+   ],
+   [
+    1383,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Earthen-walled city on river bluff, Turfan basin"
+ },
+ {
+  "name": "Loulan",
+  "lon": 90.03,
+  "lat": 40.55,
+  "phases": [
+   [
+    -200,
+    "town"
+   ],
+   [
+    -200,
+    "city"
+   ],
+   [
+    450,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Silk Road kingdom capital, abandoned as Tarim dried"
+ },
+ {
+  "name": "Niya",
+  "lon": 82.72,
+  "lat": 37.0,
+  "phases": [
+   [
+    -100,
+    "village"
+   ],
+   [
+    400,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Kroraina kingdom oasis town, Kharoshthi documents"
+ },
+ {
+  "name": "Miran",
+  "lon": 88.92,
+  "lat": 39.23,
+  "phases": [
+   [
+    -100,
+    "town"
+   ],
+   [
+    800,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Silk Road oasis with Gandharan-style wall paintings"
+ },
+ {
+  "name": "Yarkand",
+  "lon": 77.24,
+  "lat": 38.42,
+  "phases": [
+   [
+    -100,
+    "town"
+   ],
+   [
+    1000,
+    "city"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Southern Silk Road oasis, later Yarkand Khanate capital"
+ },
+ {
+  "name": "Aksu",
+  "lon": 80.26,
+  "lat": 41.17,
+  "phases": [
+   [
+    -100,
+    "town"
+   ],
+   [
+    1000,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Northern Silk Road oasis town"
+ },
+ {
+  "name": "Karashahr (Yanqi)",
+  "lon": 86.17,
+  "lat": 42.05,
+  "phases": [
+   [
+    -100,
+    "town"
+   ],
+   [
+    900,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Silk Road kingdom, Tarim basin north"
+ },
+ {
+  "name": "Dihua (Urumqi)",
+  "lon": 87.62,
+  "lat": 43.83,
+  "phases": [
+   [
+    1763,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Qing-founded garrison, later Xinjiang capital"
+ },
+ {
+  "name": "Yumen Pass town",
+  "lon": 93.85,
+  "lat": 40.35,
+  "phases": [
+   [
+    -100,
+    "town"
+   ],
+   [
+    600,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Han frontier gate garrison, west of Dunhuang"
+ },
+ {
+  "name": "Yiwu (Hami)",
+  "lon": 93.51,
+  "lat": 42.84,
+  "phases": [
+   [
+    -100,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Eastern Tarim oasis, Han-Tang garrison town"
+ },
+ {
+  "name": "Beshbalik",
+  "lon": 89.6,
+  "lat": 44.08,
+  "phases": [
+   [
+    640,
+    "town"
+   ],
+   [
+    1300,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Tang protectorate seat, later Uyghur secondary capital"
+ },
+ {
+  "name": "Khövsgöl steppe camp (Khunui)",
+  "lon": 100.5,
+  "lat": 49.0,
+  "phases": [
+   [
+    1200,
+    "village"
+   ],
+   [
+    1300,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Mongol-era seasonal encampment site"
+ },
+ {
+  "name": "Ikh Khüree (Ulaanbaatar)",
+  "lon": 106.92,
+  "lat": 47.92,
+  "phases": [
+   [
+    1639,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Mobile Buddhist monastic seat, later fixed Qing-era town"
+ },
+ {
+  "name": "Uliastai",
+  "lon": 96.85,
+  "lat": 47.74,
+  "phases": [
+   [
+    1733,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Qing military governor's seat in Outer Mongolia"
+ },
+ {
+  "name": "Kobdo (Khovd)",
+  "lon": 91.64,
+  "lat": 47.99,
+  "phases": [
+   [
+    1731,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Qing garrison town, western Mongolia"
+ },
+ {
+  "name": "Lhasa",
+  "lon": 91.13,
+  "lat": 29.65,
+  "phases": [
+   [
+    633,
+    "town"
+   ],
+   [
+    633,
+    "city"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Tibetan Empire capital, later Dalai Lama's seat"
+ },
+ {
+  "name": "Shigatse",
+  "lon": 88.88,
+  "lat": 29.27,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1447,
+    "city"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Panchen Lama seat, second city of Tibet"
+ },
+ {
+  "name": "Gyantse",
+  "lon": 89.6,
+  "lat": 28.92,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Fortified trade town on Nepal route"
+ },
+ {
+  "name": "Sakya",
+  "lon": 88.02,
+  "lat": 28.9,
+  "phases": [
+   [
+    1073,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Sakya sect monastic capital, Yuan-era vassal power"
+ },
+ {
+  "name": "Tsetang",
+  "lon": 91.77,
+  "lat": 29.24,
+  "phases": [
+   [
+    600,
+    "village"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Yarlung valley town, cradle of Tibetan civilization"
+ },
+ {
+  "name": "Nagchu",
+  "lon": 92.06,
+  "lat": 31.48,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Northern Tibet trade and grazing town"
+ },
+ {
+  "name": "Chamdo",
+  "lon": 97.17,
+  "lat": 31.14,
+  "phases": [
+   [
+    700,
+    "village"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Eastern Tibet trade town toward Sichuan"
+ },
+ {
+  "name": "Liaoyang",
+  "lon": 123.18,
+  "lat": 41.27,
+  "phases": [
+   [
+    -100,
+    "town"
+   ],
+   [
+    1600,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Han commandery seat, later Liao-Jin regional capital"
+ },
+ {
+  "name": "Shenyang (Mukden)",
+  "lon": 123.43,
+  "lat": 41.8,
+  "phases": [
+   [
+    1000,
+    "town"
+   ],
+   [
+    1625,
+    "city"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Manchu Qing pre-conquest capital"
+ },
+ {
+  "name": "Ningguta",
+  "lon": 129.6,
+  "lat": 44.08,
+  "phases": [
+   [
+    1600,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Qing Manchurian garrison and exile town"
+ },
+ {
+  "name": "Jilin city",
+  "lon": 126.55,
+  "lat": 43.84,
+  "phases": [
+   [
+    1650,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Qing shipbuilding and garrison town on Songhua River"
+ },
+ {
+  "name": "Harbin",
+  "lon": 126.53,
+  "lat": 45.8,
+  "phases": [
+   [
+    1898,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Founded as Russian railway junction town, treaty era"
+ },
+ {
+  "name": "Fushun",
+  "lon": 123.92,
+  "lat": 41.88,
+  "phases": [
+   [
+    1000,
+    "village"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Manchu-era coal town near Shenyang"
+ },
+ {
+  "name": "Aihun (Aigun)",
+  "lon": 127.5,
+  "lat": 50.24,
+  "phases": [
+   [
+    1683,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Qing frontier fort on the Amur River"
+ },
+ {
+  "name": "Qiqihar",
+  "lon": 123.95,
+  "lat": 47.34,
+  "phases": [
+   [
+    1691,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Qing garrison town, western Manchuria"
+ },
+ {
+  "name": "Tainan (Fort Zeelandia)",
+  "lon": 120.16,
+  "lat": 22.99,
+  "phases": [
+   [
+    1624,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Dutch colonial fort, later Zheng Chenggong's capital"
+ },
+ {
+  "name": "Anping",
+  "lon": 120.16,
+  "lat": 23.0,
+  "phases": [
+   [
+    1624,
+    "village"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Dutch-era port district adjoining Tainan"
+ },
+ {
+  "name": "Lugang",
+  "lon": 120.43,
+  "lat": 24.06,
+  "phases": [
+   [
+    1700,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Qing-era Taiwan trade port with Fujian"
+ },
+ {
+  "name": "Taipei (Bangka)",
+  "lon": 121.51,
+  "lat": 25.04,
+  "phases": [
+   [
+    1709,
+    "village"
+   ],
+   [
+    1875,
+    "city"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Qing-era river port, later Taiwan capital"
+ },
+ {
+  "name": "Hsinchu",
+  "lon": 120.97,
+  "lat": 24.81,
+  "phases": [
+   [
+    1733,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Qing-era walled administrative town"
+ },
+ {
+  "name": "Chiayi",
+  "lon": 120.45,
+  "lat": 23.48,
+  "phases": [
+   [
+    1704,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Qing-era Taiwan county seat"
+ },
+ {
+  "name": "Tamsui",
+  "lon": 121.45,
+  "lat": 25.17,
+  "phases": [
+   [
+    1629,
+    "village"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Spanish then Qing-era trading port, north Taiwan"
+ },
+ {
+  "name": "Beijing (Qing)",
+  "lon": 116.4,
+  "lat": 39.9,
+  "phases": [
+   [
+    1644,
+    "city"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Qing imperial capital"
+ },
+ {
+  "name": "Shengjing (Shenyang, Qing capital)",
+  "lon": 123.43,
+  "lat": 41.8,
+  "phases": [
+   [
+    1625,
+    "city"
+   ],
+   [
+    1644,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Qing capital before conquest of Beijing"
+ },
+ {
+  "name": "Chengde",
+  "lon": 117.94,
+  "lat": 40.98,
+  "phases": [
+   [
+    1703,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Qing imperial summer retreat and diplomatic town"
+ },
+ {
+  "name": "Wuchang",
+  "lon": 114.32,
+  "lat": 30.55,
+  "phases": [
+   [
+    221,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Three Kingdoms-era town, part of modern Wuhan"
+ },
+ {
+  "name": "Hanyang",
+  "lon": 114.27,
+  "lat": 30.55,
+  "phases": [
+   [
+    600,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Tang-era town, part of modern Wuhan, ironworks later"
+ },
+ {
+  "name": "Nanchang",
+  "lon": 115.86,
+  "lat": 28.68,
+  "phases": [
+   [
+    201,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Han-founded Jiangxi provincial capital"
+ },
+ {
+  "name": "Changsha",
+  "lon": 112.94,
+  "lat": 28.23,
+  "phases": [
+   [
+    -300,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Chu-era town, Mawangdui tombs nearby"
+ },
+ {
+  "name": "Hefei",
+  "lon": 117.27,
+  "lat": 31.86,
+  "phases": [
+   [
+    -200,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Han-era town, Anhui provincial capital"
+ },
+ {
+  "name": "Jinan",
+  "lon": 117.02,
+  "lat": 36.65,
+  "phases": [
+   [
+    -200,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Han-era town, Shandong provincial capital"
+ },
+ {
+  "name": "Shijiazhuang area (Zhending)",
+  "lon": 114.57,
+  "lat": 38.15,
+  "phases": [
+   [
+    600,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Historic Hebei prefecture town, predates modern city"
+ },
+ {
+  "name": "Zhengzhou (later town)",
+  "lon": 113.65,
+  "lat": 34.75,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Song-Qing era market town reusing ancient Shang site"
+ },
+ {
+  "name": "Luoyang (post-Tang town)",
+  "lon": 112.45,
+  "lat": 34.62,
+  "phases": [
+   [
+    907,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Continued as prefecture town after losing capital status"
+ },
+ {
+  "name": "Xining",
+  "lon": 101.78,
+  "lat": 36.62,
+  "phases": [
+   [
+    100,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Han-era frontier commandery, Qinghai"
+ },
+ {
+  "name": "Lanzhou",
+  "lon": 103.83,
+  "lat": 36.06,
+  "phases": [
+   [
+    -100,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Han Hexi corridor gateway town, Gansu"
+ },
+ {
+  "name": "Tianshui",
+  "lon": 105.72,
+  "lat": 34.58,
+  "phases": [
+   [
+    -700,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Early Qin homeland town, Gansu"
+ },
+ {
+  "name": "Pingyao",
+  "lon": 112.18,
+  "lat": 37.2,
+  "phases": [
+   [
+    800,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Qing-era banking center, walled town, Shanxi"
+ },
+ {
+  "name": "Qufu (post-Han)",
+  "lon": 116.99,
+  "lat": 35.6,
+  "phases": [
+   [
+    221,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Continued as Confucian pilgrimage town after Lu's fall"
+ },
+ {
+  "name": "Weihai",
+  "lon": 122.12,
+  "lat": 37.51,
+  "phases": [
+   [
+    1398,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ming coastal defense garrison, Shandong"
+ },
+ {
+  "name": "Ningbo (post-Tang)",
+  "lon": 121.55,
+  "lat": 29.87,
+  "phases": [
+   [
+    900,
+    "city"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Continued Song-Qing maritime trade port"
+ },
+ {
+  "name": "Wenzhou",
+  "lon": 120.7,
+  "lat": 28.0,
+  "phases": [
+   [
+    323,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Jin dynasty-founded coastal trade town, Zhejiang"
+ },
+ {
+  "name": "Shaoxing",
+  "lon": 120.58,
+  "lat": 30.0,
+  "phases": [
+   [
+    -490,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Yue kingdom capital area, later scholar-gentry town"
+ },
+ {
+  "name": "Jiujiang",
+  "lon": 115.99,
+  "lat": 29.71,
+  "phases": [
+   [
+    -200,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Yangzi river port, tea and porcelain trade"
+ },
+ {
+  "name": "Anqing",
+  "lon": 117.05,
+  "lat": 30.51,
+  "phases": [
+   [
+    600,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Anhui provincial capital before Hefei"
+ },
+ {
+  "name": "Wuxi",
+  "lon": 120.3,
+  "lat": 31.57,
+  "phases": [
+   [
+    -500,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Wu-era town, Grand Canal trade center"
+ },
+ {
+  "name": "Zhenjiang",
+  "lon": 119.45,
+  "lat": 32.2,
+  "phases": [
+   [
+    -200,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Yangzi-Grand Canal junction garrison town"
+ },
+ {
+  "name": "Yichang",
+  "lon": 111.29,
+  "lat": 30.7,
+  "phases": [
+   [
+    -200,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Yangzi gorge gateway town, Hubei"
+ },
+ {
+  "name": "Baoding",
+  "lon": 115.48,
+  "lat": 38.87,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Hebei provincial administrative town, Qing"
+ },
+ {
+  "name": "Kaiping (Tangshan area)",
+  "lon": 118.18,
+  "lat": 39.63,
+  "phases": [
+   [
+    1878,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Qing coal-mining company town, early industrial site"
+ },
+ {
+  "name": "Zunhua",
+  "lon": 117.96,
+  "lat": 40.2,
+  "phases": [
+   [
+    1400,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ming-Qing town near the Eastern Qing Tombs"
+ },
+ {
+  "name": "Xuzhou (post-Han)",
+  "lon": 117.2,
+  "lat": 34.27,
+  "phases": [
+   [
+    -200,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Continued strategic canal-crossroads town"
+ },
+ {
+  "name": "Huai'an",
+  "lon": 119.02,
+  "lat": 33.6,
+  "phases": [
+   [
+    600,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Grand Canal administrative and grain-transport hub"
+ },
+ {
+  "name": "Yangzhou (post-Tang)",
+  "lon": 119.42,
+  "lat": 32.39,
+  "phases": [
+   [
+    907,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Continued salt-trade wealth into Ming-Qing"
+ },
+ {
+  "name": "Yancheng (Jiangsu salt town)",
+  "lon": 120.16,
+  "lat": 33.35,
+  "phases": [
+   [
+    600,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Tang-era coastal salt-production town"
+ },
+ {
+  "name": "Deqing (silk town)",
+  "lon": 119.97,
+  "lat": 30.54,
+  "phases": [
+   [
+    600,
+    "village"
+   ],
+   [
+    1300,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Zhejiang silk market town"
+ },
+ {
+  "name": "Wuzhen",
+  "lon": 120.49,
+  "lat": 30.75,
+  "phases": [
+   [
+    700,
+    "village"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Canal-side market town, Zhejiang"
+ },
+ {
+  "name": "Zhuxianzhen",
+  "lon": 114.38,
+  "lat": 34.75,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1642,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Song-Ming commercial town near Kaifeng, flooded 1642"
+ },
+ {
+  "name": "Jingzhou (post-Tang)",
+  "lon": 112.19,
+  "lat": 30.35,
+  "phases": [
+   [
+    600,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Continued strategic middle-Yangzi town"
+ },
+ {
+  "name": "Xiangfan (Fancheng)",
+  "lon": 112.12,
+  "lat": 32.04,
+  "phases": [
+   [
+    190,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Twin garrison town opposite Xiangyang"
+ },
+ {
+  "name": "Jiayuguan",
+  "lon": 98.29,
+  "lat": 39.77,
+  "phases": [
+   [
+    1372,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ming Great Wall western terminus fort town"
+ },
+ {
+  "name": "Suzhou (Gansu, Jiuquan alt)",
+  "lon": 98.52,
+  "lat": 39.74,
+  "phases": [
+   [
+    1372,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ming-era renaming continuity of Han Jiuquan"
+ },
+ {
+  "name": "Ganzhou (Zhangye alt Ming)",
+  "lon": 100.45,
+  "lat": 38.93,
+  "phases": [
+   [
+    1372,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ming garrison continuing Han Zhangye site"
+ },
+ {
+  "name": "Xining (Ming-Qing)",
+  "lon": 101.78,
+  "lat": 36.62,
+  "phases": [
+   [
+    1370,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ming-Qing Tibetan-Chinese trade frontier town"
+ },
+ {
+  "name": "Yinchuan (Qing)",
+  "lon": 106.23,
+  "lat": 38.47,
+  "phases": [
+   [
+    1400,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ming-Qing Ningxia garrison, former Xi Xia capital site"
+ },
+ {
+  "name": "Kalgan (Zhangjiakou)",
+  "lon": 114.88,
+  "lat": 40.81,
+  "phases": [
+   [
+    1429,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ming Great Wall pass, Qing-era caravan trade town to Mongolia"
+ },
+ {
+  "name": "Guihua (Hohhot)",
+  "lon": 111.75,
+  "lat": 40.84,
+  "phases": [
+   [
+    1581,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Mongol Altan Khan-founded town, Inner Mongolia"
+ },
+ {
+  "name": "Baotou",
+  "lon": 109.85,
+  "lat": 40.66,
+  "phases": [
+   [
+    1809,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Qing-era Inner Mongolia trade town on the Yellow River"
+ },
+ {
+  "name": "Shanhaiguan",
+  "lon": 119.78,
+  "lat": 39.98,
+  "phases": [
+   [
+    1381,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ming Great Wall eastern terminus fortress town"
+ },
+ {
+  "name": "Dengzhou (Shandong, post-Tang)",
+  "lon": 120.75,
+  "lat": 37.8,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Continued Ming-Qing naval and trade port"
+ },
+ {
+  "name": "Qingdao (Jiaozhou)",
+  "lon": 120.38,
+  "lat": 36.07,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1897,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Fishing village before German leasehold town growth"
+ },
+ {
+  "name": "Yantai (Chefoo)",
+  "lon": 121.4,
+  "lat": 37.54,
+  "phases": [
+   [
+    1398,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ming coastal defense post, later treaty port"
+ },
+ {
+  "name": "Baoji",
+  "lon": 107.15,
+  "lat": 34.37,
+  "phases": [
+   [
+    -1100,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Early Zhou heartland town, bronze finds"
+ },
+ {
+  "name": "Hanzhong",
+  "lon": 107.02,
+  "lat": 33.07,
+  "phases": [
+   [
+    -300,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Strategic valley town linking Sichuan and Shaanxi"
+ },
+ {
+  "name": "Anyang (post-Shang town)",
+  "lon": 114.35,
+  "lat": 36.1,
+  "phases": [
+   [
+    -1000,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Continued as town after Yinxu's abandonment"
+ },
+ {
+  "name": "Puyang",
+  "lon": 115.03,
+  "lat": 35.76,
+  "phases": [
+   [
+    -600,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Wei state town, Warring States era"
+ },
+ {
+  "name": "Anqiu",
+  "lon": 119.22,
+  "lat": 36.43,
+  "phases": [
+   [
+    -200,
+    "village"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Han-era Shandong county seat"
+ },
+ {
+  "name": "Linyi (Shandong)",
+  "lon": 118.35,
+  "lat": 35.1,
+  "phases": [
+   [
+    -200,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Han-era Shandong administrative town"
+ },
+ {
+  "name": "Xingtai",
+  "lon": 114.5,
+  "lat": 37.07,
+  "phases": [
+   [
+    -1500,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Early Shang-era settlement, later Han county"
+ },
+ {
+  "name": "Puzhou",
+  "lon": 110.33,
+  "lat": 34.84,
+  "phases": [
+   [
+    -200,
+    "town"
+   ],
+   [
+    1600,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Yellow River crossing town, Shanxi-Shaanxi border"
+ },
+ {
+  "name": "Fenzhou",
+  "lon": 111.78,
+  "lat": 37.27,
+  "phases": [
+   [
+    600,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Shanxi prefecture town"
+ },
+ {
+  "name": "Datong (pre-Ming, Pingcheng continuity)",
+  "lon": 113.3,
+  "lat": 40.08,
+  "phases": [
+   [
+    500,
+    "town"
+   ],
+   [
+    1400,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Continued northern garrison after Northern Wei era"
+ },
+ {
+  "name": "Yuncheng",
+  "lon": 111.01,
+  "lat": 35.02,
+  "phases": [
+   [
+    -500,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Ancient salt-lake town, Shanxi"
+ },
+ {
+  "name": "Jincheng",
+  "lon": 112.85,
+  "lat": 35.5,
+  "phases": [
+   [
+    -300,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Shanxi highland market town"
+ },
+ {
+  "name": "Luzhou (Changzhi)",
+  "lon": 113.12,
+  "lat": 36.2,
+  "phases": [
+   [
+    600,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Tang-Song Shanxi prefecture town"
+ },
+ {
+  "name": "Weinan",
+  "lon": 109.51,
+  "lat": 34.5,
+  "phases": [
+   [
+    -200,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Guanzhong plain agricultural town near Xi'an"
+ },
+ {
+  "name": "Tongchuan",
+  "lon": 109.09,
+  "lat": 35.13,
+  "phases": [
+   [
+    600,
+    "village"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Shaanxi kiln and market town"
+ },
+ {
+  "name": "Yulin (Shaanxi)",
+  "lon": 109.73,
+  "lat": 38.28,
+  "phases": [
+   [
+    1400,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ming Great Wall garrison town, northern Shaanxi"
+ },
+ {
+  "name": "Suide",
+  "lon": 110.22,
+  "lat": 37.5,
+  "phases": [
+   [
+    -200,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Loess plateau frontier county town"
+ },
+ {
+  "name": "Fengxiang",
+  "lon": 107.4,
+  "lat": 34.52,
+  "phases": [
+   [
+    -700,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ancient Qin capital region continuity"
+ },
+ {
+  "name": "Puban",
+  "lon": 110.3,
+  "lat": 34.8,
+  "phases": [
+   [
+    -600,
+    "town"
+   ],
+   [
+    1200,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Shanxi river-crossing market town"
+ },
+ {
+  "name": "Yuncheng salt town (Anyi)",
+  "lon": 111.2,
+  "lat": 35.05,
+  "phases": [
+   [
+    -1000,
+    "village"
+   ],
+   [
+    900,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Ancient salt-production center, Shanxi"
+ },
+ {
+  "name": "Handan (post-Han town)",
+  "lon": 114.48,
+  "lat": 36.62,
+  "phases": [
+   [
+    -200,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Continued as Hebei county town after Zhao's fall"
+ },
+ {
+  "name": "Jinan (Han-Tang town)",
+  "lon": 117.02,
+  "lat": 36.65,
+  "phases": [
+   [
+    -100,
+    "town"
+   ],
+   [
+    1000,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Continued growth into a Tang-Song prefecture city"
+ },
+ {
+  "name": "Qingzhou",
+  "lon": 118.48,
+  "lat": 36.68,
+  "phases": [
+   [
+    -200,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Han-Tang Shandong prefecture seat"
+ },
+ {
+  "name": "Dengzhou (Henan, Dengxian)",
+  "lon": 112.08,
+  "lat": 32.68,
+  "phases": [
+   [
+    600,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Henan-Hubei border market town"
+ },
+ {
+  "name": "Xuchang",
+  "lon": 113.85,
+  "lat": 34.02,
+  "phases": [
+   [
+    100,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Cao Cao's Han-era wartime capital, Henan"
+ },
+ {
+  "name": "Kaifeng-adjacent Zhu Xian (Chenliu)",
+  "lon": 114.52,
+  "lat": 34.65,
+  "phases": [
+   [
+    200,
+    "village"
+   ],
+   [
+    1200,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Han-Song Henan market town"
+ },
+ {
+  "name": "Shangqiu",
+  "lon": 115.65,
+  "lat": 34.41,
+  "phases": [
+   [
+    -1000,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ancient Song state and Shang-remnant capital area"
+ },
+ {
+  "name": "Zhoukou",
+  "lon": 114.65,
+  "lat": 33.63,
+  "phases": [
+   [
+    -500,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Henan river-junction market town"
+ },
+ {
+  "name": "Xinyang",
+  "lon": 114.09,
+  "lat": 32.15,
+  "phases": [
+   [
+    -500,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Henan-Hubei border tea town"
+ },
+ {
+  "name": "Zhumadian",
+  "lon": 114.02,
+  "lat": 33.01,
+  "phases": [
+   [
+    600,
+    "village"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Henan agricultural market town"
+ },
+ {
+  "name": "Yueyang (Hunan)",
+  "lon": 113.13,
+  "lat": 29.37,
+  "phases": [
+   [
+    -500,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Dongting Lake town, famed for its tower"
+ },
+ {
+  "name": "Changde",
+  "lon": 111.68,
+  "lat": 29.05,
+  "phases": [
+   [
+    -200,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Hunan lake-region administrative town"
+ },
+ {
+  "name": "Hengyang",
+  "lon": 112.61,
+  "lat": 26.9,
+  "phases": [
+   [
+    -200,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Hunan southern prefecture town"
+ },
+ {
+  "name": "Chenzhou",
+  "lon": 113.03,
+  "lat": 25.79,
+  "phases": [
+   [
+    600,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Hunan-Guangdong border trade town"
+ },
+ {
+  "name": "Ganzhou (Jiangxi)",
+  "lon": 114.93,
+  "lat": 25.85,
+  "phases": [
+   [
+    201,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Han-founded Jiangxi southern prefecture town"
+ },
+ {
+  "name": "Jian (Jiangxi, Luling)",
+  "lon": 114.98,
+  "lat": 27.12,
+  "phases": [
+   [
+    600,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Song-Ming Jiangxi scholar-gentry town"
+ },
+ {
+  "name": "Poyang",
+  "lon": 116.66,
+  "lat": 29.0,
+  "phases": [
+   [
+    200,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Jiangxi lake-region market town"
+ },
+ {
+  "name": "Yingtan",
+  "lon": 117.03,
+  "lat": 28.24,
+  "phases": [
+   [
+    600,
+    "village"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Jiangxi river-crossing town, Daoist mountain nearby"
+ },
+ {
+  "name": "Huizhou (Anhui, Shexian)",
+  "lon": 118.29,
+  "lat": 29.87,
+  "phases": [
+   [
+    600,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Merchant-lineage market town, Huizhou merchants"
+ },
+ {
+  "name": "Tunxi",
+  "lon": 118.32,
+  "lat": 29.71,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Anhui tea-trade market town"
+ },
+ {
+  "name": "Chaohu",
+  "lon": 117.87,
+  "lat": 31.6,
+  "phases": [
+   [
+    600,
+    "village"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Anhui lake-region market town"
+ },
+ {
+  "name": "Bengbu",
+  "lon": 117.36,
+  "lat": 32.92,
+  "phases": [
+   [
+    600,
+    "village"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Anhui river-crossing market town"
+ },
+ {
+  "name": "Suzhou (Anhui, Suxian)",
+  "lon": 116.98,
+  "lat": 33.64,
+  "phases": [
+   [
+    -200,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Anhui-Henan border market town"
+ },
+ {
+  "name": "Jinhua",
+  "lon": 119.65,
+  "lat": 29.08,
+  "phases": [
+   [
+    200,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Zhejiang interior prefecture town, ham trade"
+ },
+ {
+  "name": "Quzhou",
+  "lon": 118.87,
+  "lat": 28.97,
+  "phases": [
+   [
+    600,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Zhejiang-Fujian-Jiangxi border town"
+ },
+ {
+  "name": "Taizhou (Zhejiang)",
+  "lon": 121.42,
+  "lat": 28.66,
+  "phases": [
+   [
+    600,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Zhejiang coastal prefecture town"
+ },
+ {
+  "name": "Lishui",
+  "lon": 119.92,
+  "lat": 28.45,
+  "phases": [
+   [
+    600,
+    "village"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Zhejiang mountain-region market town"
+ },
+ {
+  "name": "Putian",
+  "lon": 119.01,
+  "lat": 25.43,
+  "phases": [
+   [
+    600,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Fujian coastal town, Mazu cult origin"
+ },
+ {
+  "name": "Xiamen",
+  "lon": 118.09,
+  "lat": 24.48,
+  "phases": [
+   [
+    600,
+    "village"
+   ],
+   [
+    1387,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Fujian coastal town, Ming naval garrison, later treaty port"
+ },
+ {
+  "name": "Longyan",
+  "lon": 117.02,
+  "lat": 25.1,
+  "phases": [
+   [
+    700,
+    "village"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Fujian interior Hakka market town"
+ },
+ {
+  "name": "Nanping",
+  "lon": 118.18,
+  "lat": 26.64,
+  "phases": [
+   [
+    300,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Fujian river-junction town"
+ },
+ {
+  "name": "Shantou",
+  "lon": 116.68,
+  "lat": 23.35,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1858,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Fishing village before treaty-port growth"
+ },
+ {
+  "name": "Chaozhou",
+  "lon": 116.63,
+  "lat": 23.66,
+  "phases": [
+   [
+    600,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Guangdong-Fujian border Chaoshan cultural center"
+ },
+ {
+  "name": "Zhaoqing",
+  "lon": 112.47,
+  "lat": 23.05,
+  "phases": [
+   [
+    600,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Guangdong prefecture town, Ming-era Jesuit mission"
+ },
+ {
+  "name": "Foshan",
+  "lon": 113.12,
+  "lat": 23.02,
+  "phases": [
+   [
+    600,
+    "village"
+   ],
+   [
+    1300,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Guangdong metalworking and market town"
+ },
+ {
+  "name": "Zhuhai (Xiangshan alt)",
+  "lon": 113.55,
+  "lat": 22.27,
+  "phases": [
+   [
+    600,
+    "village"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Pearl River delta fishing and trade settlement"
+ },
+ {
+  "name": "Meizhou (Guangdong Hakka)",
+  "lon": 116.12,
+  "lat": 24.29,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Song-era Hakka migration settlement center"
+ },
+ {
+  "name": "Shaoguan",
+  "lon": 113.6,
+  "lat": 24.81,
+  "phases": [
+   [
+    600,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Guangdong northern gateway town, Meiguan pass"
+ },
+ {
+  "name": "Jiangmen",
+  "lon": 113.08,
+  "lat": 22.58,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Pearl River delta market town"
+ },
+ {
+  "name": "Yangjiang",
+  "lon": 111.98,
+  "lat": 21.86,
+  "phases": [
+   [
+    600,
+    "village"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Guangdong coastal fishing town"
+ },
+ {
+  "name": "Beihai",
+  "lon": 109.12,
+  "lat": 21.48,
+  "phases": [
+   [
+    100,
+    "village"
+   ],
+   [
+    1876,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Han-era coastal outpost, later treaty port"
+ },
+ {
+  "name": "Guilin (post-Qin town)",
+  "lon": 110.29,
+  "lat": 25.27,
+  "phases": [
+   [
+    -200,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Continued as Guangxi cultural capital"
+ },
+ {
+  "name": "Wuzhou (post-Han)",
+  "lon": 111.28,
+  "lat": 23.48,
+  "phases": [
+   [
+    200,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Continued West River trade hub"
+ },
+ {
+  "name": "Baise",
+  "lon": 106.62,
+  "lat": 23.9,
+  "phases": [
+   [
+    600,
+    "village"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Guangxi-Yunnan border market town"
+ },
+ {
+  "name": "Hezhou (Guangxi)",
+  "lon": 111.55,
+  "lat": 24.41,
+  "phases": [
+   [
+    600,
+    "village"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Guangxi-Hunan border town"
+ },
+ {
+  "name": "Qujing",
+  "lon": 103.79,
+  "lat": 25.51,
+  "phases": [
+   [
+    -100,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Han-era Yunnan frontier commandery town"
+ },
+ {
+  "name": "Chuxiong",
+  "lon": 101.55,
+  "lat": 25.04,
+  "phases": [
+   [
+    600,
+    "village"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Yunnan highland market town"
+ },
+ {
+  "name": "Puer",
+  "lon": 100.97,
+  "lat": 22.79,
+  "phases": [
+   [
+    700,
+    "village"
+   ],
+   [
+    1729,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Yunnan tea-trade town, source of Pu'er tea"
+ },
+ {
+  "name": "Jinghong",
+  "lon": 100.8,
+  "lat": 22.01,
+  "phases": [
+   [
+    1180,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Sipsongpanna Tai kingdom capital, Yunnan-Burma-Laos border"
+ },
+ {
+  "name": "Mengzi",
+  "lon": 103.38,
+  "lat": 23.37,
+  "phases": [
+   [
+    600,
+    "village"
+   ],
+   [
+    1889,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Yunnan frontier town, later treaty port"
+ },
+ {
+  "name": "Diqing (Zhongdian)",
+  "lon": 99.7,
+  "lat": 27.83,
+  "phases": [
+   [
+    700,
+    "village"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Tibetan-Yunnan trade town, tea-horse road"
+ },
+ {
+  "name": "Weining",
+  "lon": 104.28,
+  "lat": 26.87,
+  "phases": [
+   [
+    600,
+    "village"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Guizhou-Yunnan border highland town"
+ },
+ {
+  "name": "Tongren",
+  "lon": 109.19,
+  "lat": 27.72,
+  "phases": [
+   [
+    600,
+    "village"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Guizhou eastern gateway town"
+ },
+ {
+  "name": "Kaili",
+  "lon": 107.98,
+  "lat": 26.58,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Guizhou Miao-region market town"
+ },
+ {
+  "name": "Duyun",
+  "lon": 107.52,
+  "lat": 26.26,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Guizhou southern administrative town"
+ },
+ {
+  "name": "Bijie",
+  "lon": 105.28,
+  "lat": 27.3,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Guizhou highland market town"
+ },
+ {
+  "name": "Wenshan",
+  "lon": 104.24,
+  "lat": 23.37,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Yunnan-Guangxi border market town"
+ },
+ {
+  "name": "Anxi (Guazhou)",
+  "lon": 95.79,
+  "lat": 40.52,
+  "phases": [
+   [
+    600,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Gansu corridor oasis relay town"
+ },
+ {
+  "name": "Shanshan (Loulan successor)",
+  "lon": 90.2,
+  "lat": 42.87,
+  "phases": [
+   [
+    400,
+    "town"
+   ],
+   [
+    1200,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Post-Loulan oasis relay town, Turfan basin"
+ },
+ {
+  "name": "Qiemo (Cherchen)",
+  "lon": 85.55,
+  "lat": 38.14,
+  "phases": [
+   [
+    -100,
+    "village"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Southern Tarim oasis, mummy finds"
+ },
+ {
+  "name": "Ruoqiang (Charkhlik)",
+  "lon": 88.17,
+  "lat": 39.03,
+  "phases": [
+   [
+    -100,
+    "village"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Southern Silk Road relay oasis"
+ },
+ {
+  "name": "Bugur (Luntai)",
+  "lon": 84.25,
+  "lat": 41.78,
+  "phases": [
+   [
+    -100,
+    "village"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Tarim northern route relay oasis"
+ },
+ {
+  "name": "Barkol",
+  "lon": 93.02,
+  "lat": 43.6,
+  "phases": [
+   [
+    600,
+    "village"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Eastern Tianshan garrison and grazing town"
+ },
+ {
+  "name": "Ili (Yining/Gulja)",
+  "lon": 81.32,
+  "lat": 43.92,
+  "phases": [
+   [
+    1762,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Qing Ili general's seat, western frontier garrison"
+ },
+ {
+  "name": "Tacheng (Chuguchak)",
+  "lon": 82.98,
+  "lat": 46.75,
+  "phases": [
+   [
+    1760,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Qing frontier trade town near Russian border"
+ },
+ {
+  "name": "Xiaohe",
+  "lon": 88.6,
+  "lat": 40.43,
+  "phases": [
+   [
+    -1900,
+    "village"
+   ],
+   [
+    -1500,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Bronze Age Tarim cemetery culture, mummies"
+ },
+ {
+  "name": "Gumugou",
+  "lon": 89.7,
+  "lat": 40.4,
+  "phases": [
+   [
+    -2000,
+    "village"
+   ],
+   [
+    -1500,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Early Bronze Age Lop Nur cemetery site"
+ },
+ {
+  "name": "Qijia (Lanzhou region)",
+  "lon": 103.5,
+  "lat": 36.1,
+  "phases": [
+   [
+    -2200,
+    "village"
+   ],
+   [
+    -1600,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Early bronze-using culture, Gansu-Qinghai"
+ },
+ {
+  "name": "Siwa culture site (Lintao)",
+  "lon": 103.85,
+  "lat": 35.35,
+  "phases": [
+   [
+    -1400,
+    "village"
+   ],
+   [
+    -700,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Late Bronze Age culture, upper Yellow River"
+ },
+ {
+  "name": "Xindian culture site (Yongjing)",
+  "lon": 103.32,
+  "lat": 35.95,
+  "phases": [
+   [
+    -1400,
+    "village"
+   ],
+   [
+    -700,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Bronze Age pastoral culture, Gansu"
+ },
+ {
+  "name": "Baoji Zhuyuangou",
+  "lon": 107.2,
+  "lat": 34.4,
+  "phases": [
+   [
+    -1100,
+    "village"
+   ],
+   [
+    -771,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Western Zhou aristocratic bronze cemetery"
+ },
+ {
+  "name": "Tianma-Qucun",
+  "lon": 111.5,
+  "lat": 35.7,
+  "phases": [
+   [
+    -1000,
+    "town"
+   ],
+   [
+    -585,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Jin state early capital, Shanxi"
+ },
+ {
+  "name": "Xiadu (Yan lower capital)",
+  "lon": 115.45,
+  "lat": 39.1,
+  "phases": [
+   [
+    -400,
+    "city"
+   ],
+   [
+    -226,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Warring States Yan secondary capital"
+ },
+ {
+  "name": "Wu (Suzhou, Spring-Autumn)",
+  "lon": 120.62,
+  "lat": 31.32,
+  "phases": [
+   [
+    -514,
+    "town"
+   ],
+   [
+    -473,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Wu state capital before conquest by Yue"
+ },
+ {
+  "name": "Kuaiji (Shaoxing, Yue capital)",
+  "lon": 120.58,
+  "lat": 30.0,
+  "phases": [
+   [
+    -490,
+    "city"
+   ],
+   [
+    -222,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Yue state capital, Spring and Autumn period"
+ },
+ {
+  "name": "Pingliangtai",
+  "lon": 114.2,
+  "lat": 33.75,
+  "phases": [
+   [
+    -2300,
+    "village"
+   ],
+   [
+    -2000,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Longshan walled village, Henan, drainage system"
+ },
+ {
+  "name": "Yidu (Qingzhou alt)",
+  "lon": 118.48,
+  "lat": 36.7,
+  "phases": [
+   [
+    -200,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Shandong prefecture continuity town"
+ },
+ {
+  "name": "Weifang",
+  "lon": 119.1,
+  "lat": 36.71,
+  "phases": [
+   [
+    600,
+    "village"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Shandong market town, kite-making tradition"
+ },
+ {
+  "name": "Zaozhuang",
+  "lon": 117.32,
+  "lat": 34.86,
+  "phases": [
+   [
+    -500,
+    "village"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Shandong-Jiangsu border coal and market town"
+ },
+ {
+  "name": "Rizhao",
+  "lon": 119.53,
+  "lat": 35.42,
+  "phases": [
+   [
+    600,
+    "village"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Shandong coastal fishing town"
+ },
+ {
+  "name": "Dezhou",
+  "lon": 116.31,
+  "lat": 37.45,
+  "phases": [
+   [
+    600,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Grand Canal grain-transfer town, Shandong"
+ },
+ {
+  "name": "Liaocheng",
+  "lon": 115.99,
+  "lat": 36.46,
+  "phases": [
+   [
+    600,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Grand Canal merchant town, Shandong"
+ },
+ {
+  "name": "Puyang (post-Han)",
+  "lon": 115.03,
+  "lat": 35.76,
+  "phases": [
+   [
+    100,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Continued Yellow River town after Wei state"
+ },
+ {
+  "name": "Xinxiang",
+  "lon": 113.9,
+  "lat": 35.3,
+  "phases": [
+   [
+    600,
+    "village"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Henan agricultural market town"
+ },
+ {
+  "name": "Jiaozuo",
+  "lon": 113.24,
+  "lat": 35.24,
+  "phases": [
+   [
+    600,
+    "village"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Henan foothill market town"
+ },
+ {
+  "name": "Sanmenxia",
+  "lon": 111.19,
+  "lat": 34.78,
+  "phases": [
+   [
+    -500,
+    "village"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Yellow River gorge crossing town, Henan"
+ },
+ {
+  "name": "Pingdingshan (Ying town)",
+  "lon": 113.19,
+  "lat": 33.77,
+  "phases": [
+   [
+    -600,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Henan-Chu borderland town"
+ },
+ {
+  "name": "Zhoukou (Chenzhou, Chen state)",
+  "lon": 114.65,
+  "lat": 33.63,
+  "phases": [
+   [
+    -1000,
+    "town"
+   ],
+   [
+    479,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Chen state capital, Spring and Autumn period"
+ },
+ {
+  "name": "Bozhou",
+  "lon": 115.78,
+  "lat": 33.87,
+  "phases": [
+   [
+    -1600,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Traditional site of early Shang capital Bo"
+ },
+ {
+  "name": "Suzhou (Anhui, post-Han Suxian)",
+  "lon": 116.98,
+  "lat": 33.64,
+  "phases": [
+   [
+    200,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Continued Anhui border market town"
+ },
+ {
+  "name": "Huaibei",
+  "lon": 116.79,
+  "lat": 33.97,
+  "phases": [
+   [
+    -1600,
+    "village"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Northern Anhui agricultural town"
+ },
+ {
+  "name": "Ma'anshan (Dangtu)",
+  "lon": 118.51,
+  "lat": 31.69,
+  "phases": [
+   [
+    600,
+    "village"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Anhui riverside iron-working town"
+ },
+ {
+  "name": "Tongling",
+  "lon": 117.82,
+  "lat": 30.93,
+  "phases": [
+   [
+    -1000,
+    "village"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Ancient copper-mining town, Anhui, Bronze Age source"
+ },
+ {
+  "name": "Xuancheng",
+  "lon": 118.76,
+  "lat": 30.95,
+  "phases": [
+   [
+    200,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Anhui town famed for xuan paper production"
+ },
+ {
+  "name": "Yingtan-Guixi tea town",
+  "lon": 117.22,
+  "lat": 28.3,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Jiangxi tea-trade market town"
+ },
+ {
+  "name": "Fuzhou (Jiangxi, Linchuan)",
+  "lon": 116.36,
+  "lat": 27.95,
+  "phases": [
+   [
+    600,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Jiangxi scholar-gentry prefecture town"
+ },
+ {
+  "name": "Jingdezhen kiln village (Hutian)",
+  "lon": 117.25,
+  "lat": 29.3,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1368,
+    "town"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Song-era proto-kiln village before Ming imperial kilns"
+ },
+ {
+  "name": "Leping",
+  "lon": 117.13,
+  "lat": 28.97,
+  "phases": [
+   [
+    600,
+    "village"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Jiangxi market town near Jingdezhen"
+ },
+ {
+  "name": "Yichun (Jiangxi)",
+  "lon": 114.42,
+  "lat": 27.8,
+  "phases": [
+   [
+    600,
+    "village"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Jiangxi agricultural market town"
+ },
+ {
+  "name": "Shangrao",
+  "lon": 117.97,
+  "lat": 28.44,
+  "phases": [
+   [
+    600,
+    "village"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Jiangxi-Zhejiang border market town"
+ },
+ {
+  "name": "Huzhou",
+  "lon": 120.1,
+  "lat": 30.87,
+  "phases": [
+   [
+    200,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Zhejiang silk-brush market town"
+ },
+ {
+  "name": "Jiaxing",
+  "lon": 120.75,
+  "lat": 30.75,
+  "phases": [
+   [
+    -400,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Zhejiang canal town near Liangzhu heartland"
+ },
+ {
+  "name": "Zhoushan",
+  "lon": 122.11,
+  "lat": 29.99,
+  "phases": [
+   [
+    600,
+    "village"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Zhejiang coastal fishing archipelago town"
+ },
+ {
+  "name": "Xiaoshan",
+  "lon": 120.27,
+  "lat": 30.18,
+  "phases": [
+   [
+    -5000,
+    "village"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Kuahuqiao Neolithic site continuity into Zhejiang town"
+ },
+ {
+  "name": "Nantong",
+  "lon": 120.86,
+  "lat": 32.02,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Yangzi delta cotton and salt town"
+ },
+ {
+  "name": "Yancheng (post-Tang)",
+  "lon": 120.16,
+  "lat": 33.35,
+  "phases": [
+   [
+    900,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Continued Jiangsu coastal salt town"
+ },
+ {
+  "name": "Suqian",
+  "lon": 118.28,
+  "lat": 33.96,
+  "phases": [
+   [
+    600,
+    "village"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Jiangsu canal-region market town"
+ },
+ {
+  "name": "Lianyungang",
+  "lon": 119.22,
+  "lat": 34.6,
+  "phases": [
+   [
+    -200,
+    "village"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Jiangsu coastal town, ancient port"
+ },
+ {
+  "name": "Taizhou (Jiangsu)",
+  "lon": 119.9,
+  "lat": 32.46,
+  "phases": [
+   [
+    600,
+    "town"
+   ],
+   [
+    1950,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Jiangsu river-delta market town"
+ },
+ {
+  "name": "Ma'anshan copper site (Wu)",
+  "lon": 118.48,
+  "lat": 31.7,
+  "phases": [
+   [
+    -800,
+    "village"
+   ],
+   [
+    600,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Bronze Age copper-mining settlement, Anhui-Jiangsu border"
+ }
+]

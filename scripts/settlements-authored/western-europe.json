@@ -1,0 +1,9812 @@
+[
+ {
+  "name": "Winchester",
+  "lon": -1.31,
+  "lat": 51.06,
+  "phases": [
+   [
+    -150,
+    "village"
+   ],
+   [
+    70,
+    "town"
+   ],
+   [
+    410,
+    null
+   ],
+   [
+    880,
+    "town"
+   ],
+   [
+    1000,
+    "city"
+   ],
+   [
+    1300,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Venta Belgarum; Wessex royal seat; Domesday."
+ },
+ {
+  "name": "Canterbury",
+  "lon": 1.08,
+  "lat": 51.28,
+  "phases": [
+   [
+    -50,
+    "village"
+   ],
+   [
+    43,
+    "town"
+   ],
+   [
+    597,
+    "town"
+   ],
+   [
+    1070,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Cantiaci capital; Augustine's mission 597."
+ },
+ {
+  "name": "York",
+  "lon": -1.08,
+  "lat": 53.96,
+  "phases": [
+   [
+    71,
+    "town"
+   ],
+   [
+    300,
+    "city"
+   ],
+   [
+    867,
+    "city"
+   ],
+   [
+    954,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Eboracum; Jorvik under the Danes."
+ },
+ {
+  "name": "London",
+  "lon": -0.1,
+  "lat": 51.51,
+  "phases": [
+   [
+    47,
+    "town"
+   ],
+   [
+    60,
+    null
+   ],
+   [
+    100,
+    "city"
+   ],
+   [
+    410,
+    "village"
+   ],
+   [
+    600,
+    "town"
+   ],
+   [
+    886,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Londinium; burned 60 CE; reoccupied by Alfred 886."
+ },
+ {
+  "name": "Chester",
+  "lon": -2.89,
+  "lat": 53.19,
+  "phases": [
+   [
+    79,
+    "town"
+   ],
+   [
+    400,
+    "village"
+   ],
+   [
+    907,
+    "town"
+   ],
+   [
+    1070,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Deva Victrix legionary fortress."
+ },
+ {
+  "name": "Lincoln",
+  "lon": -0.54,
+  "lat": 53.23,
+  "phases": [
+   [
+    48,
+    "town"
+   ],
+   [
+    400,
+    "village"
+   ],
+   [
+    870,
+    "town"
+   ],
+   [
+    1000,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Lindum Colonia; Five Boroughs of the Danelaw."
+ },
+ {
+  "name": "Norwich",
+  "lon": 1.3,
+  "lat": 52.63,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1004,
+    "town"
+   ],
+   [
+    1075,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Rose from a Saxon market to a Domesday city."
+ },
+ {
+  "name": "Exeter",
+  "lon": -3.53,
+  "lat": 50.72,
+  "phases": [
+   [
+    50,
+    "town"
+   ],
+   [
+    410,
+    "village"
+   ],
+   [
+    876,
+    "town"
+   ],
+   [
+    1000,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Isca Dumnoniorum; resisted the Danes 876."
+ },
+ {
+  "name": "Gloucester",
+  "lon": -2.24,
+  "lat": 51.87,
+  "phases": [
+   [
+    97,
+    "town"
+   ],
+   [
+    410,
+    "village"
+   ],
+   [
+    900,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Colonia Nervia Glevensium."
+ },
+ {
+  "name": "Bath",
+  "lon": -2.36,
+  "lat": 51.38,
+  "phases": [
+   [
+    60,
+    "town"
+   ],
+   [
+    410,
+    "village"
+   ],
+   [
+    675,
+    "village"
+   ],
+   [
+    973,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Aquae Sulis; Edgar crowned king here 973."
+ },
+ {
+  "name": "Colchester",
+  "lon": 0.9,
+  "lat": 51.89,
+  "phases": [
+   [
+    -100,
+    "town"
+   ],
+   [
+    43,
+    "city"
+   ],
+   [
+    61,
+    null
+   ],
+   [
+    100,
+    "town"
+   ],
+   [
+    410,
+    "village"
+   ],
+   [
+    917,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Camulodunum; first Roman colonia in Britain."
+ },
+ {
+  "name": "Cirencester",
+  "lon": -1.97,
+  "lat": 51.72,
+  "phases": [
+   [
+    70,
+    "town"
+   ],
+   [
+    410,
+    "village"
+   ],
+   [
+    1000,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Corinium, second city of Roman Britain."
+ },
+ {
+  "name": "St Albans",
+  "lon": -0.34,
+  "lat": 51.75,
+  "phases": [
+   [
+    50,
+    "town"
+   ],
+   [
+    410,
+    "village"
+   ],
+   [
+    793,
+    "town"
+   ],
+   [
+    1077,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Verulamium; abbey founded 793."
+ },
+ {
+  "name": "Wroxeter",
+  "lon": -2.72,
+  "lat": 52.67,
+  "phases": [
+   [
+    90,
+    "city"
+   ],
+   [
+    500,
+    "village"
+   ],
+   [
+    700,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Viroconium; once fourth-largest Roman town in Britain."
+ },
+ {
+  "name": "Silchester",
+  "lon": -1.08,
+  "lat": 51.36,
+  "phases": [
+   [
+    -50,
+    "town"
+   ],
+   [
+    100,
+    "town"
+   ],
+   [
+    450,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Calleva Atrebatum, abandoned after Rome withdrew."
+ },
+ {
+  "name": "Aldborough",
+  "lon": -1.38,
+  "lat": 54.09,
+  "phases": [
+   [
+    80,
+    "town"
+   ],
+   [
+    410,
+    "village"
+   ],
+   [
+    600,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Isurium Brigantum, tribal capital."
+ },
+ {
+  "name": "Caerwent",
+  "lon": -2.77,
+  "lat": 51.61,
+  "phases": [
+   [
+    75,
+    "town"
+   ],
+   [
+    410,
+    "village"
+   ],
+   [
+    700,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Venta Silurum, Roman-era tribal capital."
+ },
+ {
+  "name": "Ipswich",
+  "lon": 1.15,
+  "lat": 52.06,
+  "phases": [
+   [
+    600,
+    "village"
+   ],
+   [
+    720,
+    "town"
+   ],
+   [
+    991,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Gipeswic; early Anglo-Saxon trading wic."
+ },
+ {
+  "name": "Southampton",
+  "lon": -1.4,
+  "lat": 50.9,
+  "phases": [
+   [
+    700,
+    "village"
+   ],
+   [
+    840,
+    "town"
+   ],
+   [
+    980,
+    null
+   ],
+   [
+    1000,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Hamwic, raided repeatedly by Vikings."
+ },
+ {
+  "name": "Northampton",
+  "lon": -0.9,
+  "lat": 52.24,
+  "phases": [
+   [
+    675,
+    "village"
+   ],
+   [
+    913,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Fortified by Edward the Elder 913."
+ },
+ {
+  "name": "Nottingham",
+  "lon": -1.15,
+  "lat": 52.95,
+  "phases": [
+   [
+    600,
+    "village"
+   ],
+   [
+    868,
+    "town"
+   ],
+   [
+    918,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "One of the Five Boroughs of the Danelaw."
+ },
+ {
+  "name": "Leicester",
+  "lon": -1.13,
+  "lat": 52.64,
+  "phases": [
+   [
+    47,
+    "town"
+   ],
+   [
+    410,
+    "village"
+   ],
+   [
+    877,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ratae Corieltauvorum; Danelaw borough."
+ },
+ {
+  "name": "Derby",
+  "lon": -1.48,
+  "lat": 52.92,
+  "phases": [
+   [
+    700,
+    "village"
+   ],
+   [
+    917,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Norþworþig; Five Boroughs, retaken by Æthelflæd 917."
+ },
+ {
+  "name": "Stamford",
+  "lon": -0.48,
+  "lat": 52.65,
+  "phases": [
+   [
+    650,
+    "village"
+   ],
+   [
+    918,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Danelaw borough on the Great North Road."
+ },
+ {
+  "name": "Worcester",
+  "lon": -2.22,
+  "lat": 52.19,
+  "phases": [
+   [
+    680,
+    "village"
+   ],
+   [
+    899,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Wigorna civitas; burh under Alfred's reforms."
+ },
+ {
+  "name": "Hereford",
+  "lon": -2.72,
+  "lat": 52.06,
+  "phases": [
+   [
+    676,
+    "village"
+   ],
+   [
+    930,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Border see against Welsh raids."
+ },
+ {
+  "name": "Shrewsbury",
+  "lon": -2.75,
+  "lat": 52.71,
+  "phases": [
+   [
+    800,
+    "village"
+   ],
+   [
+    901,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Mercian stronghold on the Severn."
+ },
+ {
+  "name": "Tamworth",
+  "lon": -1.7,
+  "lat": 52.63,
+  "phases": [
+   [
+    700,
+    "village"
+   ],
+   [
+    913,
+    "town"
+   ],
+   [
+    943,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Mercian royal capital, sacked by Danes 943."
+ },
+ {
+  "name": "Oxford",
+  "lon": -1.26,
+  "lat": 51.75,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    912,
+    "town"
+   ],
+   [
+    1066,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Fortified burh at a Thames ford."
+ },
+ {
+  "name": "Cambridge",
+  "lon": 0.12,
+  "lat": 52.2,
+  "phases": [
+   [
+    875,
+    "village"
+   ],
+   [
+    917,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Danelaw trading post retaken by Edward the Elder."
+ },
+ {
+  "name": "Bristol",
+  "lon": -2.59,
+  "lat": 51.45,
+  "phases": [
+   [
+    1000,
+    "village"
+   ],
+   [
+    1067,
+    "town"
+   ],
+   [
+    1200,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Brycgstow; grew into a major Atlantic port."
+ },
+ {
+  "name": "Coventry",
+  "lon": -1.51,
+  "lat": 52.41,
+  "phases": [
+   [
+    1043,
+    "village"
+   ],
+   [
+    1150,
+    "town"
+   ],
+   [
+    1300,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Grew around a Benedictine priory."
+ },
+ {
+  "name": "Salisbury (Old Sarum)",
+  "lon": -1.8,
+  "lat": 51.09,
+  "phases": [
+   [
+    -500,
+    "village"
+   ],
+   [
+    43,
+    "village"
+   ],
+   [
+    1075,
+    "town"
+   ],
+   [
+    1220,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Hillfort, Norman castle, then abandoned for New Sarum."
+ },
+ {
+  "name": "Salisbury",
+  "lon": -1.8,
+  "lat": 51.07,
+  "phases": [
+   [
+    1220,
+    "town"
+   ],
+   [
+    1300,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "New Sarum founded when the cathedral moved from Old Sarum."
+ },
+ {
+  "name": "Winchcombe",
+  "lon": -1.96,
+  "lat": 51.95,
+  "phases": [
+   [
+    811,
+    "village"
+   ],
+   [
+    985,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Mercian royal abbey town."
+ },
+ {
+  "name": "Malmesbury",
+  "lon": -2.1,
+  "lat": 51.58,
+  "phases": [
+   [
+    675,
+    "village"
+   ],
+   [
+    880,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ancient hilltop abbey borough."
+ },
+ {
+  "name": "Wallingford",
+  "lon": -1.13,
+  "lat": 51.6,
+  "phases": [
+   [
+    911,
+    "village"
+   ],
+   [
+    1066,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Major Alfredian burh on the Thames."
+ },
+ {
+  "name": "Wareham",
+  "lon": -2.11,
+  "lat": 50.69,
+  "phases": [
+   [
+    876,
+    "village"
+   ],
+   [
+    900,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Wessex burh, Viking winter camp 876."
+ },
+ {
+  "name": "Wilton",
+  "lon": -1.86,
+  "lat": 51.08,
+  "phases": [
+   [
+    871,
+    "town"
+   ],
+   [
+    1220,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Former Wessex capital, eclipsed by Salisbury."
+ },
+ {
+  "name": "Dorchester",
+  "lon": -2.44,
+  "lat": 50.71,
+  "phases": [
+   [
+    70,
+    "town"
+   ],
+   [
+    410,
+    "village"
+   ],
+   [
+    900,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Durnovaria; Dorset county town."
+ },
+ {
+  "name": "Ludlow",
+  "lon": -2.72,
+  "lat": 52.37,
+  "phases": [
+   [
+    1086,
+    "village"
+   ],
+   [
+    1140,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Norman castle town on the Welsh March."
+ },
+ {
+  "name": "Bury St Edmunds",
+  "lon": 0.72,
+  "lat": 52.25,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1020,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Grew around the shrine of St Edmund."
+ },
+ {
+  "name": "Ely",
+  "lon": 0.27,
+  "lat": 52.4,
+  "phases": [
+   [
+    673,
+    "village"
+   ],
+   [
+    1109,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Fenland abbey island; became a cathedral city."
+ },
+ {
+  "name": "Peterborough",
+  "lon": -0.24,
+  "lat": 52.57,
+  "phases": [
+   [
+    655,
+    "village"
+   ],
+   [
+    972,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Medeshamstede abbey rebuilt after Viking sack."
+ },
+ {
+  "name": "Grantham",
+  "lon": -0.64,
+  "lat": 52.91,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1086,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Domesday market town on Ermine Street."
+ },
+ {
+  "name": "Boston",
+  "lon": -0.02,
+  "lat": 52.98,
+  "phases": [
+   [
+    1086,
+    "village"
+   ],
+   [
+    1200,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Rose fast on the wool trade, a Hanseatic outpost."
+ },
+ {
+  "name": "King's Lynn",
+  "lon": 0.4,
+  "lat": 52.75,
+  "phases": [
+   [
+    1090,
+    "village"
+   ],
+   [
+    1150,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Bishop's Lynn, a major medieval wool port."
+ },
+ {
+  "name": "Great Yarmouth",
+  "lon": 1.73,
+  "lat": 52.61,
+  "phases": [
+   [
+    1086,
+    "village"
+   ],
+   [
+    1208,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Herring port chartered by King John."
+ },
+ {
+  "name": "Beverley",
+  "lon": -0.43,
+  "lat": 53.84,
+  "phases": [
+   [
+    700,
+    "village"
+   ],
+   [
+    1120,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Grew around the shrine of St John of Beverley."
+ },
+ {
+  "name": "Hull (Kingston upon Hull)",
+  "lon": -0.34,
+  "lat": 53.74,
+  "phases": [
+   [
+    1160,
+    "village"
+   ],
+   [
+    1299,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Founded as a wool port by Edward I."
+ },
+ {
+  "name": "Scarborough",
+  "lon": -0.4,
+  "lat": 54.28,
+  "phases": [
+   [
+    966,
+    "village"
+   ],
+   [
+    1155,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Viking-founded, chartered under Henry II."
+ },
+ {
+  "name": "Durham",
+  "lon": -1.58,
+  "lat": 54.78,
+  "phases": [
+   [
+    995,
+    "village"
+   ],
+   [
+    1093,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Founded around the relics of St Cuthbert."
+ },
+ {
+  "name": "Newcastle upon Tyne",
+  "lon": -1.61,
+  "lat": 54.97,
+  "phases": [
+   [
+    80,
+    "town"
+   ],
+   [
+    410,
+    "village"
+   ],
+   [
+    1080,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Pons Aelius; Norman castle gave the later name."
+ },
+ {
+  "name": "Carlisle",
+  "lon": -2.94,
+  "lat": 54.9,
+  "phases": [
+   [
+    73,
+    "town"
+   ],
+   [
+    410,
+    "village"
+   ],
+   [
+    1092,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Luguvalium; refounded by William Rufus."
+ },
+ {
+  "name": "Berwick-upon-Tweed",
+  "lon": -2.0,
+  "lat": 55.77,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1120,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Contested border burgh, changed hands repeatedly."
+ },
+ {
+  "name": "Lancaster",
+  "lon": -2.8,
+  "lat": 54.05,
+  "phases": [
+   [
+    80,
+    "town"
+   ],
+   [
+    410,
+    "village"
+   ],
+   [
+    1094,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Roman fort revived as a Norman castle town."
+ },
+ {
+  "name": "Chester-le-Street",
+  "lon": -1.57,
+  "lat": 54.86,
+  "phases": [
+   [
+    883,
+    "village"
+   ],
+   [
+    995,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Held Cuthbert's relics before Durham."
+ },
+ {
+  "name": "Ripon",
+  "lon": -1.52,
+  "lat": 54.14,
+  "phases": [
+   [
+    672,
+    "village"
+   ],
+   [
+    886,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Northumbrian monastic town, minster founded by Wilfrid."
+ },
+ {
+  "name": "Wharram Percy",
+  "lon": -0.65,
+  "lat": 54.07,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1500,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Classic deserted medieval village, cleared for sheep."
+ },
+ {
+  "name": "Middleham",
+  "lon": -1.81,
+  "lat": 54.29,
+  "phases": [
+   [
+    1086,
+    "village"
+   ],
+   [
+    1170,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Yorkshire market town under a Neville castle."
+ },
+ {
+  "name": "Richmond",
+  "lon": -1.74,
+  "lat": 54.4,
+  "phases": [
+   [
+    1071,
+    "village"
+   ],
+   [
+    1145,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Norman castle town guarding Swaledale."
+ },
+ {
+  "name": "Pontefract",
+  "lon": -1.3,
+  "lat": 53.7,
+  "phases": [
+   [
+    1086,
+    "village"
+   ],
+   [
+    1194,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Grew around a major Norman castle."
+ },
+ {
+  "name": "Doncaster",
+  "lon": -1.13,
+  "lat": 53.52,
+  "phases": [
+   [
+    71,
+    "town"
+   ],
+   [
+    410,
+    "village"
+   ],
+   [
+    1002,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Danum; revived Roman fort on the Great North Road."
+ },
+ {
+  "name": "Wakefield",
+  "lon": -1.5,
+  "lat": 53.68,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1204,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Manorial market town of the West Riding."
+ },
+ {
+  "name": "Halifax",
+  "lon": -1.86,
+  "lat": 53.72,
+  "phases": [
+   [
+    1086,
+    "village"
+   ],
+   [
+    1200,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Small Domesday manor, grew slowly on wool."
+ },
+ {
+  "name": "Whitby",
+  "lon": -0.61,
+  "lat": 54.49,
+  "phases": [
+   [
+    657,
+    "village"
+   ],
+   [
+    867,
+    null
+   ],
+   [
+    1078,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Hild's abbey, destroyed by Danes, refounded Norman."
+ },
+ {
+  "name": "Lindisfarne",
+  "lon": -1.8,
+  "lat": 55.67,
+  "phases": [
+   [
+    635,
+    "village"
+   ],
+   [
+    793,
+    null
+   ],
+   [
+    1082,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Holy Island, sacked in the first great Viking raid."
+ },
+ {
+  "name": "Bamburgh",
+  "lon": -1.71,
+  "lat": 55.6,
+  "phases": [
+   [
+    547,
+    "town"
+   ],
+   [
+    993,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Bernician royal seat of Ida."
+ },
+ {
+  "name": "Jarrow",
+  "lon": -1.49,
+  "lat": 54.98,
+  "phases": [
+   [
+    681,
+    "village"
+   ],
+   [
+    794,
+    null
+   ],
+   [
+    1075,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Bede's monastery, Viking-raided, refounded."
+ },
+ {
+  "name": "Monkwearmouth",
+  "lon": -1.38,
+  "lat": 54.92,
+  "phases": [
+   [
+    674,
+    "village"
+   ],
+   [
+    865,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Twin house to Jarrow, founded by Benedict Biscop."
+ },
+ {
+  "name": "Rochester",
+  "lon": 0.5,
+  "lat": 51.39,
+  "phases": [
+   [
+    43,
+    "town"
+   ],
+   [
+    410,
+    "village"
+   ],
+   [
+    604,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Durobrivae; early Kentish bishopric."
+ },
+ {
+  "name": "Dover",
+  "lon": 1.31,
+  "lat": 51.13,
+  "phases": [
+   [
+    43,
+    "town"
+   ],
+   [
+    410,
+    "village"
+   ],
+   [
+    700,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Dubris, key cross-Channel port and Saxon Shore fort."
+ },
+ {
+  "name": "Sandwich",
+  "lon": 1.34,
+  "lat": 51.28,
+  "phases": [
+   [
+    750,
+    "village"
+   ],
+   [
+    1023,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Chief Cinque Port of the early Middle Ages."
+ },
+ {
+  "name": "Hastings",
+  "lon": 0.57,
+  "lat": 50.86,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1050,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Cinque Port, site of the 1066 battle nearby."
+ },
+ {
+  "name": "Rye",
+  "lon": 0.73,
+  "lat": 50.95,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1189,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ancient Cinque Port, later stranded by silting."
+ },
+ {
+  "name": "Winchelsea",
+  "lon": 0.7,
+  "lat": 50.92,
+  "phases": [
+   [
+    1288,
+    "town"
+   ],
+   [
+    1400,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "New town planned by Edward I after the sea took Old Winchelsea."
+ },
+ {
+  "name": "Old Winchelsea",
+  "lon": 0.75,
+  "lat": 50.9,
+  "phases": [
+   [
+    1150,
+    "town"
+   ],
+   [
+    1287,
+    null
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Lost to storms in 1287, prompting the new town's founding."
+ },
+ {
+  "name": "Faversham",
+  "lon": 0.89,
+  "lat": 51.31,
+  "phases": [
+   [
+    811,
+    "village"
+   ],
+   [
+    1252,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Royal manor with an early charter."
+ },
+ {
+  "name": "Maidstone",
+  "lon": 0.52,
+  "lat": 51.27,
+  "phases": [
+   [
+    1086,
+    "village"
+   ],
+   [
+    1549,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Grew from a Domesday manor into Kent's county town."
+ },
+ {
+  "name": "Guildford",
+  "lon": -0.57,
+  "lat": 51.24,
+  "phases": [
+   [
+    880,
+    "village"
+   ],
+   [
+    1257,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Surrey burh with an early royal charter."
+ },
+ {
+  "name": "Reading",
+  "lon": -0.97,
+  "lat": 51.46,
+  "phases": [
+   [
+    871,
+    "village"
+   ],
+   [
+    1121,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Danish winter camp 871; grew round Reading Abbey."
+ },
+ {
+  "name": "Abingdon",
+  "lon": -1.28,
+  "lat": 51.67,
+  "phases": [
+   [
+    675,
+    "village"
+   ],
+   [
+    1084,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Thames abbey town."
+ },
+ {
+  "name": "Marlborough",
+  "lon": -1.73,
+  "lat": 51.42,
+  "phases": [
+   [
+    1067,
+    "village"
+   ],
+   [
+    1204,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Norman castle borough on the Bath road."
+ },
+ {
+  "name": "Devizes",
+  "lon": -2.0,
+  "lat": 51.35,
+  "phases": [
+   [
+    1080,
+    "village"
+   ],
+   [
+    1141,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Castle town founded by Bishop Roger of Salisbury."
+ },
+ {
+  "name": "Chippenham",
+  "lon": -2.12,
+  "lat": 51.46,
+  "phases": [
+   [
+    878,
+    "village"
+   ],
+   [
+    1155,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Alfred's Christmas court, taken by Guthrum."
+ },
+ {
+  "name": "Frome",
+  "lon": -2.32,
+  "lat": 51.23,
+  "phases": [
+   [
+    685,
+    "village"
+   ],
+   [
+    1200,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Wessex minster town on the Somerset cloth trade."
+ },
+ {
+  "name": "Glastonbury",
+  "lon": -2.71,
+  "lat": 51.15,
+  "phases": [
+   [
+    700,
+    "village"
+   ],
+   [
+    940,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ancient abbey, legendary Arthurian associations."
+ },
+ {
+  "name": "Wells",
+  "lon": -2.65,
+  "lat": 51.21,
+  "phases": [
+   [
+    766,
+    "village"
+   ],
+   [
+    1140,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Cathedral city named for its springs."
+ },
+ {
+  "name": "Taunton",
+  "lon": -3.1,
+  "lat": 51.02,
+  "phases": [
+   [
+    705,
+    "village"
+   ],
+   [
+    1086,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Wessex burh guarding the Vale of Taunton Deane."
+ },
+ {
+  "name": "Barnstaple",
+  "lon": -4.06,
+  "lat": 51.08,
+  "phases": [
+   [
+    930,
+    "village"
+   ],
+   [
+    1086,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "One of only four Domesday boroughs in Devon."
+ },
+ {
+  "name": "Plymouth (Sutton)",
+  "lon": -4.14,
+  "lat": 50.37,
+  "phases": [
+   [
+    1086,
+    "village"
+   ],
+   [
+    1254,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Grew from the fishing hamlet of Sutton."
+ },
+ {
+  "name": "Totnes",
+  "lon": -3.68,
+  "lat": 50.43,
+  "phases": [
+   [
+    907,
+    "village"
+   ],
+   [
+    1080,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Saxon burh at the Dart's tidal limit."
+ },
+ {
+  "name": "Launceston",
+  "lon": -4.36,
+  "lat": 50.64,
+  "phases": [
+   [
+    1067,
+    "village"
+   ],
+   [
+    1130,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Norman castle capital of Cornwall."
+ },
+ {
+  "name": "Bodmin",
+  "lon": -4.72,
+  "lat": 50.47,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1086,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Grew around St Petroc's priory."
+ },
+ {
+  "name": "Truro",
+  "lon": -5.05,
+  "lat": 50.26,
+  "phases": [
+   [
+    1173,
+    "village"
+   ],
+   [
+    1250,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Norman castle borough, later Cornwall's cathedral city."
+ },
+ {
+  "name": "St Ives (Cornwall)",
+  "lon": -5.48,
+  "lat": 50.21,
+  "phases": [
+   [
+    1200,
+    "village"
+   ],
+   [
+    1639,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Fishing village chartered in the 17th century."
+ },
+ {
+  "name": "Chichester",
+  "lon": -0.78,
+  "lat": 50.84,
+  "phases": [
+   [
+    70,
+    "town"
+   ],
+   [
+    410,
+    "village"
+   ],
+   [
+    895,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Noviomagus Reginorum; refortified against Danes."
+ },
+ {
+  "name": "Portsmouth",
+  "lon": -1.09,
+  "lat": 50.8,
+  "phases": [
+   [
+    1180,
+    "village"
+   ],
+   [
+    1194,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Founded as a naval port by Richard I."
+ },
+ {
+  "name": "Lewes",
+  "lon": 0.01,
+  "lat": 50.87,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1086,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Sussex burh, site of a major 1264 battle."
+ },
+ {
+  "name": "Arundel",
+  "lon": -0.55,
+  "lat": 50.86,
+  "phases": [
+   [
+    901,
+    "village"
+   ],
+   [
+    1067,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ancient castle town on the Arun."
+ },
+ {
+  "name": "Buckingham",
+  "lon": -0.98,
+  "lat": 52.0,
+  "phases": [
+   [
+    914,
+    "village"
+   ],
+   [
+    1086,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Fortified burh under Edward the Elder."
+ },
+ {
+  "name": "Aylesbury",
+  "lon": -0.81,
+  "lat": 51.82,
+  "phases": [
+   [
+    571,
+    "village"
+   ],
+   [
+    1086,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Old British stronghold, Domesday market town."
+ },
+ {
+  "name": "Bedford",
+  "lon": -0.47,
+  "lat": 52.14,
+  "phases": [
+   [
+    886,
+    "village"
+   ],
+   [
+    919,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Danelaw borough retaken by Edward the Elder."
+ },
+ {
+  "name": "Huntingdon",
+  "lon": -0.19,
+  "lat": 52.33,
+  "phases": [
+   [
+    917,
+    "village"
+   ],
+   [
+    973,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Danelaw borough on the Great Ouse."
+ },
+ {
+  "name": "St Neots",
+  "lon": -0.27,
+  "lat": 52.23,
+  "phases": [
+   [
+    974,
+    "village"
+   ],
+   [
+    1113,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Grew around a priory holding St Neot's relics."
+ },
+ {
+  "name": "Kettering",
+  "lon": -0.73,
+  "lat": 52.4,
+  "phases": [
+   [
+    956,
+    "village"
+   ],
+   [
+    1200,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Northamptonshire wool market."
+ },
+ {
+  "name": "Warwick",
+  "lon": -1.58,
+  "lat": 52.28,
+  "phases": [
+   [
+    914,
+    "village"
+   ],
+   [
+    1068,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Æthelflæd's burh, later a major Norman earldom."
+ },
+ {
+  "name": "Kenilworth",
+  "lon": -1.57,
+  "lat": 52.35,
+  "phases": [
+   [
+    1086,
+    "village"
+   ],
+   [
+    1122,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Grew around a great Norman-Angevin castle."
+ },
+ {
+  "name": "Stratford-upon-Avon",
+  "lon": -1.71,
+  "lat": 52.19,
+  "phases": [
+   [
+    1196,
+    "village"
+   ],
+   [
+    1250,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Planted borough chartered by the Bishop of Worcester."
+ },
+ {
+  "name": "Evesham",
+  "lon": -1.95,
+  "lat": 52.09,
+  "phases": [
+   [
+    701,
+    "village"
+   ],
+   [
+    1055,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Benedictine abbey town on the Avon."
+ },
+ {
+  "name": "Tewkesbury",
+  "lon": -2.16,
+  "lat": 51.99,
+  "phases": [
+   [
+    715,
+    "village"
+   ],
+   [
+    1102,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Abbey town, site of the 1471 battle."
+ },
+ {
+  "name": "Ross-on-Wye",
+  "lon": -2.59,
+  "lat": 51.92,
+  "phases": [
+   [
+    1086,
+    "village"
+   ],
+   [
+    1200,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Herefordshire market town on the Wye."
+ },
+ {
+  "name": "Leominster",
+  "lon": -2.74,
+  "lat": 52.23,
+  "phases": [
+   [
+    660,
+    "village"
+   ],
+   [
+    1046,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Anglo-Saxon minster and priory borough."
+ },
+ {
+  "name": "Stafford",
+  "lon": -2.12,
+  "lat": 52.81,
+  "phases": [
+   [
+    913,
+    "village"
+   ],
+   [
+    1086,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Fortified burh of Æthelflæd."
+ },
+ {
+  "name": "Lichfield",
+  "lon": -1.83,
+  "lat": 52.68,
+  "phases": [
+   [
+    669,
+    "village"
+   ],
+   [
+    1085,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Mercian bishopric, cathedral city."
+ },
+ {
+  "name": "Newark-on-Trent",
+  "lon": -0.81,
+  "lat": 53.08,
+  "phases": [
+   [
+    1086,
+    "village"
+   ],
+   [
+    1135,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Grew around a Bishop of Lincoln's castle."
+ },
+ {
+  "name": "Southwell",
+  "lon": -0.95,
+  "lat": 53.08,
+  "phases": [
+   [
+    956,
+    "village"
+   ],
+   [
+    1108,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Minster town, seat of a later diocese."
+ },
+ {
+  "name": "Louth",
+  "lon": -0.01,
+  "lat": 53.37,
+  "phases": [
+   [
+    1086,
+    "village"
+   ],
+   [
+    1207,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Lincolnshire wool market town."
+ },
+ {
+  "name": "Spalding",
+  "lon": -0.15,
+  "lat": 52.79,
+  "phases": [
+   [
+    1051,
+    "village"
+   ],
+   [
+    1189,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Fenland priory and market town."
+ },
+ {
+  "name": "Bury",
+  "lon": -2.3,
+  "lat": 53.59,
+  "phases": [
+   [
+    1086,
+    "village"
+   ],
+   [
+    1440,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Lancashire market town on the cloth trade."
+ },
+ {
+  "name": "Preston",
+  "lon": -2.7,
+  "lat": 53.76,
+  "phases": [
+   [
+    705,
+    "village"
+   ],
+   [
+    1179,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Priest's town on the Ribble, early charter."
+ },
+ {
+  "name": "Kendal",
+  "lon": -2.75,
+  "lat": 54.33,
+  "phases": [
+   [
+    1090,
+    "village"
+   ],
+   [
+    1189,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Westmorland wool town."
+ },
+ {
+  "name": "Appleby",
+  "lon": -2.49,
+  "lat": 54.58,
+  "phases": [
+   [
+    1086,
+    "village"
+   ],
+   [
+    1179,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Old county town of Westmorland."
+ },
+ {
+  "name": "Penrith",
+  "lon": -2.75,
+  "lat": 54.66,
+  "phases": [
+   [
+    1090,
+    "village"
+   ],
+   [
+    1300,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Border market town near the Eden."
+ },
+ {
+  "name": "Whitehaven",
+  "lon": -3.58,
+  "lat": 54.55,
+  "phases": [
+   [
+    1200,
+    "village"
+   ],
+   [
+    1660,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Small fishing hamlet before Georgian coal expansion."
+ },
+ {
+  "name": "Manchester",
+  "lon": -2.24,
+  "lat": 53.48,
+  "phases": [
+   [
+    79,
+    "town"
+   ],
+   [
+    410,
+    "village"
+   ],
+   [
+    1086,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Mamucium; small Domesday manor before its later rise."
+ },
+ {
+  "name": "Sheffield",
+  "lon": -1.47,
+  "lat": 53.38,
+  "phases": [
+   [
+    1086,
+    "village"
+   ],
+   [
+    1297,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Small Domesday manor, grew on cutlery trade."
+ },
+ {
+  "name": "Leeds",
+  "lon": -1.55,
+  "lat": 53.8,
+  "phases": [
+   [
+    1086,
+    "village"
+   ],
+   [
+    1207,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Domesday manor chartered for cloth market."
+ },
+ {
+  "name": "Birmingham",
+  "lon": -1.9,
+  "lat": 52.48,
+  "phases": [
+   [
+    1086,
+    "village"
+   ],
+   [
+    1166,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Tiny Domesday manor chartered for a market."
+ },
+ {
+  "name": "Barnsley",
+  "lon": -1.48,
+  "lat": 53.55,
+  "phases": [
+   [
+    1086,
+    "village"
+   ],
+   [
+    1249,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Yorkshire market chartered by the monks of St John."
+ },
+ {
+  "name": "Skipton",
+  "lon": -2.02,
+  "lat": 53.96,
+  "phases": [
+   [
+    1086,
+    "village"
+   ],
+   [
+    1204,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Sheep-town under the Cliffords' castle."
+ },
+ {
+  "name": "Knaresborough",
+  "lon": -1.47,
+  "lat": 54.01,
+  "phases": [
+   [
+    1086,
+    "village"
+   ],
+   [
+    1206,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Castle town on the Nidd."
+ },
+ {
+  "name": "Alnwick",
+  "lon": -1.7,
+  "lat": 55.41,
+  "phases": [
+   [
+    1086,
+    "village"
+   ],
+   [
+    1157,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Northumberland market town under Percy castle."
+ },
+ {
+  "name": "Morpeth",
+  "lon": -1.69,
+  "lat": 55.17,
+  "phases": [
+   [
+    1086,
+    "village"
+   ],
+   [
+    1200,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Northumberland market town on the Wansbeck."
+ },
+ {
+  "name": "Hexham",
+  "lon": -2.1,
+  "lat": 54.97,
+  "phases": [
+   [
+    674,
+    "village"
+   ],
+   [
+    821,
+    null
+   ],
+   [
+    1113,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Saxon abbey town, sacked repeatedly by Danes and Scots."
+ },
+ {
+  "name": "Caerleon",
+  "lon": -2.96,
+  "lat": 51.61,
+  "phases": [
+   [
+    75,
+    "town"
+   ],
+   [
+    400,
+    null
+   ],
+   [
+    900,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Isca Augusta legionary fortress; Arthurian lore."
+ },
+ {
+  "name": "Cardiff",
+  "lon": -3.18,
+  "lat": 51.48,
+  "phases": [
+   [
+    75,
+    "village"
+   ],
+   [
+    1081,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Norman castle raised on a Roman fort."
+ },
+ {
+  "name": "Swansea",
+  "lon": -3.94,
+  "lat": 51.62,
+  "phases": [
+   [
+    1106,
+    "village"
+   ],
+   [
+    1215,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Norman lordship town on the Tawe."
+ },
+ {
+  "name": "St Davids",
+  "lon": -5.27,
+  "lat": 51.88,
+  "phases": [
+   [
+    550,
+    "village"
+   ],
+   [
+    1181,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Wales's smallest cathedral city, ancient monastic site."
+ },
+ {
+  "name": "Carmarthen",
+  "lon": -4.31,
+  "lat": 51.86,
+  "phases": [
+   [
+    75,
+    "town"
+   ],
+   [
+    410,
+    "village"
+   ],
+   [
+    1109,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Moridunum; Norman-refounded county town."
+ },
+ {
+  "name": "Brecon",
+  "lon": -3.39,
+  "lat": 51.95,
+  "phases": [
+   [
+    1093,
+    "village"
+   ],
+   [
+    1200,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Norman castle town on the March."
+ },
+ {
+  "name": "Monmouth",
+  "lon": -2.71,
+  "lat": 51.81,
+  "phases": [
+   [
+    1067,
+    "village"
+   ],
+   [
+    1150,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Marcher castle borough at the Wye and Monnow."
+ },
+ {
+  "name": "Chepstow",
+  "lon": -2.68,
+  "lat": 51.64,
+  "phases": [
+   [
+    1067,
+    "village"
+   ],
+   [
+    1150,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Earliest post-conquest stone castle town."
+ },
+ {
+  "name": "Abergavenny",
+  "lon": -3.02,
+  "lat": 51.82,
+  "phases": [
+   [
+    1090,
+    "village"
+   ],
+   [
+    1200,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Marcher lordship town on the Usk."
+ },
+ {
+  "name": "Denbigh",
+  "lon": -3.42,
+  "lat": 53.18,
+  "phases": [
+   [
+    1282,
+    "village"
+   ],
+   [
+    1290,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Edwardian plantation borough after the conquest."
+ },
+ {
+  "name": "Conwy",
+  "lon": -3.83,
+  "lat": 53.28,
+  "phases": [
+   [
+    1283,
+    "village"
+   ],
+   [
+    1284,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Walled Edwardian town beside the great castle."
+ },
+ {
+  "name": "Caernarfon",
+  "lon": -4.27,
+  "lat": 53.14,
+  "phases": [
+   [
+    75,
+    "village"
+   ],
+   [
+    1283,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Segontium fort; Edward I's chief Welsh castle town."
+ },
+ {
+  "name": "Beaumaris",
+  "lon": -4.09,
+  "lat": 53.26,
+  "phases": [
+   [
+    1295,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Last and grandest of Edward I's Welsh new towns."
+ },
+ {
+  "name": "Harlech",
+  "lon": -4.11,
+  "lat": 52.86,
+  "phases": [
+   [
+    1283,
+    "village"
+   ],
+   [
+    1290,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Edwardian castle town on the Cardigan Bay coast."
+ },
+ {
+  "name": "Welshpool",
+  "lon": -3.15,
+  "lat": 52.66,
+  "phases": [
+   [
+    1200,
+    "village"
+   ],
+   [
+    1263,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Marcher market town of Powys."
+ },
+ {
+  "name": "Montgomery",
+  "lon": -3.14,
+  "lat": 52.56,
+  "phases": [
+   [
+    1223,
+    "village"
+   ],
+   [
+    1279,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Norman-Edwardian castle borough on the border."
+ },
+ {
+  "name": "Builth Wells",
+  "lon": -3.4,
+  "lat": 52.15,
+  "phases": [
+   [
+    1277,
+    "village"
+   ],
+   [
+    1300,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Edwardian castle market town in mid Wales."
+ },
+ {
+  "name": "Haverfordwest",
+  "lon": -4.97,
+  "lat": 51.8,
+  "phases": [
+   [
+    1110,
+    "village"
+   ],
+   [
+    1200,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Flemish-settled Pembrokeshire market town."
+ },
+ {
+  "name": "Pembroke",
+  "lon": -4.91,
+  "lat": 51.68,
+  "phases": [
+   [
+    1093,
+    "village"
+   ],
+   [
+    1154,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Norman lordship capital, birthplace of Henry VII."
+ },
+ {
+  "name": "Tenby",
+  "lon": -4.7,
+  "lat": 51.67,
+  "phases": [
+   [
+    1093,
+    "village"
+   ],
+   [
+    1187,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Walled Pembrokeshire port town."
+ },
+ {
+  "name": "Wrexham",
+  "lon": -3.0,
+  "lat": 53.05,
+  "phases": [
+   [
+    1200,
+    "village"
+   ],
+   [
+    1300,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Grew as a market centre of north-east Wales."
+ },
+ {
+  "name": "Ruthin",
+  "lon": -3.31,
+  "lat": 53.11,
+  "phases": [
+   [
+    1282,
+    "village"
+   ],
+   [
+    1310,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Marcher lordship town in the Vale of Clwyd."
+ },
+ {
+  "name": "Bangor",
+  "lon": -4.13,
+  "lat": 53.23,
+  "phases": [
+   [
+    525,
+    "village"
+   ],
+   [
+    1284,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ancient monastic see under Deiniol."
+ },
+ {
+  "name": "Edinburgh",
+  "lon": -3.19,
+  "lat": 55.95,
+  "phases": [
+   [
+    600,
+    "village"
+   ],
+   [
+    1130,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Din Eidyn hillfort; chartered burgh under David I."
+ },
+ {
+  "name": "Stirling",
+  "lon": -3.94,
+  "lat": 56.12,
+  "phases": [
+   [
+    1130,
+    "village"
+   ],
+   [
+    1130,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Strategic bridge town, royal castle and burgh."
+ },
+ {
+  "name": "Perth",
+  "lon": -3.44,
+  "lat": 56.4,
+  "phases": [
+   [
+    1120,
+    "village"
+   ],
+   [
+    1210,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Early royal burgh and former capital."
+ },
+ {
+  "name": "Dunfermline",
+  "lon": -3.46,
+  "lat": 56.07,
+  "phases": [
+   [
+    1070,
+    "village"
+   ],
+   [
+    1124,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Royal residence and abbey, burial place of kings."
+ },
+ {
+  "name": "St Andrews",
+  "lon": -2.8,
+  "lat": 56.34,
+  "phases": [
+   [
+    747,
+    "village"
+   ],
+   [
+    1140,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Cathedral and university town, Scotland's ecclesiastical capital."
+ },
+ {
+  "name": "Aberdeen",
+  "lon": -2.1,
+  "lat": 57.15,
+  "phases": [
+   [
+    1136,
+    "village"
+   ],
+   [
+    1179,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "North-east royal burgh and fishing port."
+ },
+ {
+  "name": "Glasgow",
+  "lon": -4.25,
+  "lat": 55.86,
+  "phases": [
+   [
+    543,
+    "village"
+   ],
+   [
+    1175,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Grew around St Mungo's cathedral."
+ },
+ {
+  "name": "Dundee",
+  "lon": -2.97,
+  "lat": 56.46,
+  "phases": [
+   [
+    1180,
+    "village"
+   ],
+   [
+    1191,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Tay estuary royal burgh."
+ },
+ {
+  "name": "Elgin",
+  "lon": -3.31,
+  "lat": 57.65,
+  "phases": [
+   [
+    1130,
+    "village"
+   ],
+   [
+    1190,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Royal burgh of Moray, cathedral seat."
+ },
+ {
+  "name": "Inverness",
+  "lon": -4.22,
+  "lat": 57.48,
+  "phases": [
+   [
+    565,
+    "village"
+   ],
+   [
+    1150,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ancient Pictish seat, chartered by David I."
+ },
+ {
+  "name": "Ayr",
+  "lon": -4.63,
+  "lat": 55.46,
+  "phases": [
+   [
+    1160,
+    "village"
+   ],
+   [
+    1205,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Royal burgh founded by William the Lion."
+ },
+ {
+  "name": "Berwick (Scottish era)",
+  "lon": -2.0,
+  "lat": 55.77,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1120,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Prosperous Scottish burgh before English capture 1296."
+ },
+ {
+  "name": "Roxburgh",
+  "lon": -2.44,
+  "lat": 55.58,
+  "phases": [
+   [
+    1113,
+    "village"
+   ],
+   [
+    1460,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Once one of Scotland's four chief burghs, later abandoned."
+ },
+ {
+  "name": "Jedburgh",
+  "lon": -2.55,
+  "lat": 55.48,
+  "phases": [
+   [
+    1118,
+    "village"
+   ],
+   [
+    1147,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Border abbey town, repeatedly burned in wars."
+ },
+ {
+  "name": "Melrose",
+  "lon": -2.72,
+  "lat": 55.6,
+  "phases": [
+   [
+    1136,
+    "village"
+   ],
+   [
+    1140,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Cistercian abbey town in the Borders."
+ },
+ {
+  "name": "Kelso",
+  "lon": -2.43,
+  "lat": 55.6,
+  "phases": [
+   [
+    1128,
+    "village"
+   ],
+   [
+    1152,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Grew around Kelso Abbey."
+ },
+ {
+  "name": "Linlithgow",
+  "lon": -3.6,
+  "lat": 55.98,
+  "phases": [
+   [
+    1120,
+    "village"
+   ],
+   [
+    1138,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Royal burgh with a favoured Stewart palace."
+ },
+ {
+  "name": "Haddington",
+  "lon": -2.78,
+  "lat": 55.96,
+  "phases": [
+   [
+    1124,
+    "village"
+   ],
+   [
+    1130,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Early East Lothian royal burgh."
+ },
+ {
+  "name": "Dumfries",
+  "lon": -3.6,
+  "lat": 55.07,
+  "phases": [
+   [
+    1150,
+    "village"
+   ],
+   [
+    1186,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "South-west royal burgh on the Nith."
+ },
+ {
+  "name": "Kirkcudbright",
+  "lon": -4.05,
+  "lat": 54.83,
+  "phases": [
+   [
+    1150,
+    "village"
+   ],
+   [
+    1330,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Galloway coastal burgh."
+ },
+ {
+  "name": "Dunkeld",
+  "lon": -3.58,
+  "lat": 56.57,
+  "phases": [
+   [
+    729,
+    "village"
+   ],
+   [
+    850,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Early ecclesiastical capital of Pictland/Alba."
+ },
+ {
+  "name": "Scone",
+  "lon": -3.4,
+  "lat": 56.41,
+  "phases": [
+   [
+    710,
+    "village"
+   ],
+   [
+    843,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Coronation site of Scottish kings, Stone of Destiny."
+ },
+ {
+  "name": "Whithorn",
+  "lon": -4.42,
+  "lat": 54.73,
+  "phases": [
+   [
+    397,
+    "village"
+   ],
+   [
+    730,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Candida Casa, earliest recorded Christian site in Scotland."
+ },
+ {
+  "name": "Kirkwall",
+  "lon": -2.96,
+  "lat": 58.98,
+  "phases": [
+   [
+    1035,
+    "village"
+   ],
+   [
+    1137,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Norse-founded Orkney seat, St Magnus Cathedral."
+ },
+ {
+  "name": "Dublin",
+  "lon": -6.27,
+  "lat": 53.35,
+  "phases": [
+   [
+    841,
+    "town"
+   ],
+   [
+    988,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Norse longphort, chief Viking-Irish city."
+ },
+ {
+  "name": "Waterford",
+  "lon": -7.11,
+  "lat": 52.26,
+  "phases": [
+   [
+    853,
+    "village"
+   ],
+   [
+    914,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Vadrefjord, oldest Norse city in Ireland."
+ },
+ {
+  "name": "Wexford",
+  "lon": -6.46,
+  "lat": 52.34,
+  "phases": [
+   [
+    850,
+    "village"
+   ],
+   [
+    900,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Norse-founded port, Veisafjǫrðr."
+ },
+ {
+  "name": "Cork",
+  "lon": -8.47,
+  "lat": 51.9,
+  "phases": [
+   [
+    600,
+    "village"
+   ],
+   [
+    915,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Grew from St Finbarr's monastery into a Norse port."
+ },
+ {
+  "name": "Limerick",
+  "lon": -8.63,
+  "lat": 52.66,
+  "phases": [
+   [
+    561,
+    "village"
+   ],
+   [
+    922,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Norse city on the Shannon, kingdom of Thomond."
+ },
+ {
+  "name": "Armagh",
+  "lon": -6.65,
+  "lat": 54.35,
+  "phases": [
+   [
+    445,
+    "village"
+   ],
+   [
+    900,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ecclesiastical capital of Ireland, seat of Patrick."
+ },
+ {
+  "name": "Kildare",
+  "lon": -6.91,
+  "lat": 53.16,
+  "phases": [
+   [
+    480,
+    "village"
+   ],
+   [
+    900,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Founded by St Brigid, major monastic town."
+ },
+ {
+  "name": "Clonmacnoise",
+  "lon": -7.99,
+  "lat": 53.33,
+  "phases": [
+   [
+    544,
+    "village"
+   ],
+   [
+    1000,
+    "town"
+   ],
+   [
+    1550,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Great Shannon monastic city, declined after Dissolution."
+ },
+ {
+  "name": "Glendalough",
+  "lon": -6.33,
+  "lat": 53.01,
+  "phases": [
+   [
+    600,
+    "village"
+   ],
+   [
+    1214,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Monastic settlement of St Kevin in a glacial valley."
+ },
+ {
+  "name": "Kells",
+  "lon": -6.88,
+  "lat": 53.73,
+  "phases": [
+   [
+    550,
+    "village"
+   ],
+   [
+    807,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Columban monastery, home of the Book of Kells."
+ },
+ {
+  "name": "Downpatrick",
+  "lon": -5.72,
+  "lat": 54.33,
+  "phases": [
+   [
+    450,
+    "village"
+   ],
+   [
+    1183,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Traditional burial place of St Patrick."
+ },
+ {
+  "name": "Kilkenny",
+  "lon": -7.25,
+  "lat": 52.65,
+  "phases": [
+   [
+    599,
+    "village"
+   ],
+   [
+    1207,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ormond seat, medieval capital of the Butlers."
+ },
+ {
+  "name": "Drogheda",
+  "lon": -6.35,
+  "lat": 53.72,
+  "phases": [
+   [
+    911,
+    "village"
+   ],
+   [
+    1194,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Norse and later Anglo-Norman Boyne port."
+ },
+ {
+  "name": "Galway",
+  "lon": -9.05,
+  "lat": 53.27,
+  "phases": [
+   [
+    1124,
+    "village"
+   ],
+   [
+    1230,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Anglo-Norman walled town, later 'City of the Tribes'."
+ },
+ {
+  "name": "Trim",
+  "lon": -6.79,
+  "lat": 53.56,
+  "phases": [
+   [
+    1173,
+    "village"
+   ],
+   [
+    1200,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Site of Ireland's largest Anglo-Norman castle."
+ },
+ {
+  "name": "New Ross",
+  "lon": -6.94,
+  "lat": 52.4,
+  "phases": [
+   [
+    1200,
+    "village"
+   ],
+   [
+    1265,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Anglo-Norman planted port on the Barrow."
+ },
+ {
+  "name": "Youghal",
+  "lon": -7.85,
+  "lat": 51.95,
+  "phases": [
+   [
+    600,
+    "village"
+   ],
+   [
+    1275,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Walled Norman port town in Munster."
+ },
+ {
+  "name": "Cashel",
+  "lon": -7.89,
+  "lat": 52.52,
+  "phases": [
+   [
+    370,
+    "village"
+   ],
+   [
+    1101,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Seat of the Kings of Munster, ceded to the Church 1101."
+ },
+ {
+  "name": "Ardmore",
+  "lon": -7.72,
+  "lat": 51.95,
+  "phases": [
+   [
+    416,
+    "village"
+   ],
+   [
+    900,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Early monastic foundation, associated with St Declan."
+ },
+ {
+  "name": "Derry",
+  "lon": -7.32,
+  "lat": 54.99,
+  "phases": [
+   [
+    546,
+    "village"
+   ],
+   [
+    1164,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Columban monastery, Doire Cholmcille."
+ },
+ {
+  "name": "Athlone",
+  "lon": -7.94,
+  "lat": 53.42,
+  "phases": [
+   [
+    1129,
+    "village"
+   ],
+   [
+    1210,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Strategic Shannon crossing and castle town."
+ },
+ {
+  "name": "Carrickfergus",
+  "lon": -5.81,
+  "lat": 54.72,
+  "phases": [
+   [
+    1177,
+    "village"
+   ],
+   [
+    1210,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Anglo-Norman castle town, chief Ulster port."
+ },
+ {
+  "name": "Sligo",
+  "lon": -8.47,
+  "lat": 54.27,
+  "phases": [
+   [
+    1245,
+    "village"
+   ],
+   [
+    1310,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Anglo-Norman castle and friary town."
+ },
+ {
+  "name": "Lutetia (Paris)",
+  "lon": 2.35,
+  "lat": 48.86,
+  "phases": [
+   [
+    -250,
+    "village"
+   ],
+   [
+    52,
+    "town"
+   ],
+   [
+    360,
+    "city"
+   ],
+   [
+    508,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Parisii settlement; Clovis's Frankish capital."
+ },
+ {
+  "name": "Lyon",
+  "lon": 4.83,
+  "lat": 45.76,
+  "phases": [
+   [
+    -43,
+    "town"
+   ],
+   [
+    100,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Lugdunum, capital of Roman Gaul."
+ },
+ {
+  "name": "Marseille",
+  "lon": 5.37,
+  "lat": 43.3,
+  "phases": [
+   [
+    -600,
+    "town"
+   ],
+   [
+    49,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Massalia, oldest Greek colony in Gaul."
+ },
+ {
+  "name": "Toulouse",
+  "lon": 1.44,
+  "lat": 43.6,
+  "phases": [
+   [
+    -100,
+    "town"
+   ],
+   [
+    419,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Tolosa; Visigothic royal capital."
+ },
+ {
+  "name": "Reims",
+  "lon": 4.03,
+  "lat": 49.26,
+  "phases": [
+   [
+    -80,
+    "town"
+   ],
+   [
+    496,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Durocortorum; Clovis baptised here 496."
+ },
+ {
+  "name": "Orléans",
+  "lon": 1.9,
+  "lat": 47.9,
+  "phases": [
+   [
+    52,
+    "town"
+   ],
+   [
+    451,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Cenabum/Aurelianum; besieged by Attila 451."
+ },
+ {
+  "name": "Tours",
+  "lon": 0.68,
+  "lat": 47.39,
+  "phases": [
+   [
+    -50,
+    "town"
+   ],
+   [
+    397,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Caesarodunum; centre of St Martin's cult."
+ },
+ {
+  "name": "Poitiers",
+  "lon": 0.34,
+  "lat": 46.58,
+  "phases": [
+   [
+    -50,
+    "town"
+   ],
+   [
+    507,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Site of Clovis's victory over the Visigoths."
+ },
+ {
+  "name": "Bordeaux",
+  "lon": -0.58,
+  "lat": 44.84,
+  "phases": [
+   [
+    -300,
+    "town"
+   ],
+   [
+    276,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Burdigala, capital of Roman Aquitania."
+ },
+ {
+  "name": "Rouen",
+  "lon": 1.09,
+  "lat": 49.44,
+  "phases": [
+   [
+    -50,
+    "town"
+   ],
+   [
+    911,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Rotomagus; became Norman ducal capital 911."
+ },
+ {
+  "name": "Amiens",
+  "lon": 2.3,
+  "lat": 49.9,
+  "phases": [
+   [
+    -50,
+    "town"
+   ],
+   [
+    300,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Samarobriva; great Gothic cathedral town."
+ },
+ {
+  "name": "Chartres",
+  "lon": 1.49,
+  "lat": 48.45,
+  "phases": [
+   [
+    -100,
+    "town"
+   ],
+   [
+    500,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Autricum; ancient pilgrimage cathedral town."
+ },
+ {
+  "name": "Dijon",
+  "lon": 5.04,
+  "lat": 47.32,
+  "phases": [
+   [
+    -70,
+    "village"
+   ],
+   [
+    273,
+    "town"
+   ],
+   [
+    900,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Divio; rose to Burgundian ducal capital."
+ },
+ {
+  "name": "Troyes",
+  "lon": 4.08,
+  "lat": 48.3,
+  "phases": [
+   [
+    -50,
+    "town"
+   ],
+   [
+    451,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Augustobona Tricassium; Champagne fair city."
+ },
+ {
+  "name": "Metz",
+  "lon": 6.18,
+  "lat": 49.12,
+  "phases": [
+   [
+    -100,
+    "town"
+   ],
+   [
+    511,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Divodurum; Austrasian Merovingian capital."
+ },
+ {
+  "name": "Nancy",
+  "lon": 6.18,
+  "lat": 48.69,
+  "phases": [
+   [
+    1050,
+    "village"
+   ],
+   [
+    1200,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ducal capital of Lorraine."
+ },
+ {
+  "name": "Strasbourg",
+  "lon": 7.75,
+  "lat": 48.58,
+  "phases": [
+   [
+    12,
+    "town"
+   ],
+   [
+    923,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Argentoratum; free imperial city later."
+ },
+ {
+  "name": "Nantes",
+  "lon": -1.55,
+  "lat": 47.22,
+  "phases": [
+   [
+    -70,
+    "town"
+   ],
+   [
+    843,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Portus Namnetus; Breton ducal capital."
+ },
+ {
+  "name": "Rennes",
+  "lon": -1.68,
+  "lat": 48.11,
+  "phases": [
+   [
+    -50,
+    "town"
+   ],
+   [
+    900,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Condate Redonum; Breton frontier city."
+ },
+ {
+  "name": "Angers",
+  "lon": -0.55,
+  "lat": 47.47,
+  "phases": [
+   [
+    -50,
+    "town"
+   ],
+   [
+    850,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Juliomagus; Angevin capital of Anjou."
+ },
+ {
+  "name": "Le Mans",
+  "lon": 0.2,
+  "lat": 48.0,
+  "phases": [
+   [
+    -50,
+    "town"
+   ],
+   [
+    850,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Vindinum; ancient Cenomanni capital."
+ },
+ {
+  "name": "Caen",
+  "lon": -0.37,
+  "lat": 49.18,
+  "phases": [
+   [
+    1025,
+    "village"
+   ],
+   [
+    1060,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Rose fast under William the Conqueror."
+ },
+ {
+  "name": "Bayeux",
+  "lon": -0.7,
+  "lat": 49.28,
+  "phases": [
+   [
+    -50,
+    "town"
+   ],
+   [
+    900,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Augustodurum; site of the famous tapestry."
+ },
+ {
+  "name": "Avignon",
+  "lon": 4.81,
+  "lat": 43.95,
+  "phases": [
+   [
+    -100,
+    "town"
+   ],
+   [
+    1309,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Papal residence 1309-1377."
+ },
+ {
+  "name": "Arles",
+  "lon": 4.63,
+  "lat": 43.68,
+  "phases": [
+   [
+    -100,
+    "town"
+   ],
+   [
+    400,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Arelate; late Roman capital of Gaul."
+ },
+ {
+  "name": "Nîmes",
+  "lon": 4.36,
+  "lat": 43.84,
+  "phases": [
+   [
+    -100,
+    "town"
+   ],
+   [
+    100,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Nemausus, veteran colony with famous amphitheatre."
+ },
+ {
+  "name": "Narbonne",
+  "lon": 3.0,
+  "lat": 43.18,
+  "phases": [
+   [
+    -118,
+    "city"
+   ],
+   [
+    719,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Narbo Martius, first Roman colony outside Italy."
+ },
+ {
+  "name": "Montpellier",
+  "lon": 3.88,
+  "lat": 43.61,
+  "phases": [
+   [
+    985,
+    "village"
+   ],
+   [
+    1100,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Rose from nothing on the medieval cloth and spice trade."
+ },
+ {
+  "name": "Carcassonne",
+  "lon": 2.35,
+  "lat": 43.21,
+  "phases": [
+   [
+    -100,
+    "town"
+   ],
+   [
+    760,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Walled Visigothic-Frankish frontier stronghold."
+ },
+ {
+  "name": "Albi",
+  "lon": 2.15,
+  "lat": 43.93,
+  "phases": [
+   [
+    -50,
+    "village"
+   ],
+   [
+    900,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Cathar heartland, gave the name Albigensian."
+ },
+ {
+  "name": "Clermont-Ferrand",
+  "lon": 3.08,
+  "lat": 45.78,
+  "phases": [
+   [
+    -50,
+    "town"
+   ],
+   [
+    475,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Augustonemetum; Council of Clermont 1095."
+ },
+ {
+  "name": "Limoges",
+  "lon": 1.26,
+  "lat": 45.83,
+  "phases": [
+   [
+    -50,
+    "town"
+   ],
+   [
+    850,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Augustoritum; famed for enamel and porcelain."
+ },
+ {
+  "name": "La Rochelle",
+  "lon": -1.15,
+  "lat": 46.16,
+  "phases": [
+   [
+    1130,
+    "village"
+   ],
+   [
+    1199,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Rose fast as an Atlantic wine and salt port."
+ },
+ {
+  "name": "Saintes",
+  "lon": -0.63,
+  "lat": 45.75,
+  "phases": [
+   [
+    -50,
+    "town"
+   ],
+   [
+    560,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Mediolanum Santonum; early Aquitaine capital."
+ },
+ {
+  "name": "Périgueux",
+  "lon": 0.72,
+  "lat": 45.18,
+  "phases": [
+   [
+    -50,
+    "town"
+   ],
+   [
+    850,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Vesunna; Dordogne regional capital."
+ },
+ {
+  "name": "Agen",
+  "lon": 0.62,
+  "lat": 44.2,
+  "phases": [
+   [
+    -70,
+    "village"
+   ],
+   [
+    850,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Aginnum; Garonne valley market city."
+ },
+ {
+  "name": "Cahors",
+  "lon": 1.44,
+  "lat": 44.45,
+  "phases": [
+   [
+    -70,
+    "village"
+   ],
+   [
+    850,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Divona Cadurcorum; bridge town of the Lot."
+ },
+ {
+  "name": "Rodez",
+  "lon": 2.57,
+  "lat": 44.35,
+  "phases": [
+   [
+    -70,
+    "village"
+   ],
+   [
+    850,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Segodunum; hill capital of the Rouergue."
+ },
+ {
+  "name": "Auch",
+  "lon": 0.59,
+  "lat": 43.65,
+  "phases": [
+   [
+    -70,
+    "village"
+   ],
+   [
+    850,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Elimberrum; Gascon ecclesiastical capital."
+ },
+ {
+  "name": "Bayonne",
+  "lon": -1.48,
+  "lat": 43.49,
+  "phases": [
+   [
+    1080,
+    "village"
+   ],
+   [
+    1120,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Basque Atlantic port, later English Gascony."
+ },
+ {
+  "name": "Pau",
+  "lon": -0.37,
+  "lat": 43.3,
+  "phases": [
+   [
+    1080,
+    "village"
+   ],
+   [
+    1200,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Rose as capital of Béarn."
+ },
+ {
+  "name": "Tarbes",
+  "lon": 0.08,
+  "lat": 43.23,
+  "phases": [
+   [
+    1080,
+    "village"
+   ],
+   [
+    1160,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Bigorre county seat in the Pyrenean foothills."
+ },
+ {
+  "name": "Foix",
+  "lon": 1.61,
+  "lat": 42.97,
+  "phases": [
+   [
+    1000,
+    "village"
+   ],
+   [
+    1200,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Castle capital of the counts of Foix."
+ },
+ {
+  "name": "Beziers",
+  "lon": 3.22,
+  "lat": 43.34,
+  "phases": [
+   [
+    -70,
+    "town"
+   ],
+   [
+    850,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Baeterrae; sacked in the Albigensian Crusade 1209."
+ },
+ {
+  "name": "Perpignan",
+  "lon": 2.9,
+  "lat": 42.7,
+  "phases": [
+   [
+    927,
+    "village"
+   ],
+   [
+    1197,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Capital of the medieval kingdom of Majorca."
+ },
+ {
+  "name": "Aix-en-Provence",
+  "lon": 5.45,
+  "lat": 43.53,
+  "phases": [
+   [
+    -123,
+    "town"
+   ],
+   [
+    476,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Aquae Sextiae; Provençal ducal capital."
+ },
+ {
+  "name": "Toulon",
+  "lon": 5.93,
+  "lat": 43.12,
+  "phases": [
+   [
+    -50,
+    "village"
+   ],
+   [
+    900,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Telo Martius, grew as a naval anchorage."
+ },
+ {
+  "name": "Grenoble",
+  "lon": 5.73,
+  "lat": 45.19,
+  "phases": [
+   [
+    -43,
+    "town"
+   ],
+   [
+    400,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Cularo/Gratianopolis; Dauphiné capital."
+ },
+ {
+  "name": "Chambéry",
+  "lon": 5.92,
+  "lat": 45.56,
+  "phases": [
+   [
+    1029,
+    "village"
+   ],
+   [
+    1232,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ducal Savoyard capital from the 13th century."
+ },
+ {
+  "name": "Annecy",
+  "lon": 6.13,
+  "lat": 45.9,
+  "phases": [
+   [
+    1050,
+    "village"
+   ],
+   [
+    1219,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Rose as a Genevois county seat."
+ },
+ {
+  "name": "Besançon",
+  "lon": 6.02,
+  "lat": 47.24,
+  "phases": [
+   [
+    -50,
+    "town"
+   ],
+   [
+    850,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Vesontio; Franche-Comté capital."
+ },
+ {
+  "name": "Auxerre",
+  "lon": 3.57,
+  "lat": 47.8,
+  "phases": [
+   [
+    -70,
+    "town"
+   ],
+   [
+    850,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Autessiodurum; Burgundy river city."
+ },
+ {
+  "name": "Sens",
+  "lon": 3.29,
+  "lat": 48.2,
+  "phases": [
+   [
+    -70,
+    "town"
+   ],
+   [
+    850,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Agedincum; senior archbishopric over Paris."
+ },
+ {
+  "name": "Laon",
+  "lon": 3.62,
+  "lat": 49.56,
+  "phases": [
+   [
+    -70,
+    "village"
+   ],
+   [
+    936,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Carolingian royal capital on a defensible plateau."
+ },
+ {
+  "name": "Soissons",
+  "lon": 3.32,
+  "lat": 49.38,
+  "phases": [
+   [
+    -50,
+    "village"
+   ],
+   [
+    486,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Site of Clovis's victory ending Roman Gaul, 486."
+ },
+ {
+  "name": "Compiègne",
+  "lon": 2.83,
+  "lat": 49.42,
+  "phases": [
+   [
+    850,
+    "village"
+   ],
+   [
+    1100,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Carolingian royal residence."
+ },
+ {
+  "name": "Beauvais",
+  "lon": 2.08,
+  "lat": 49.43,
+  "phases": [
+   [
+    -50,
+    "town"
+   ],
+   [
+    850,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Caesaromagus; famed unfinished Gothic cathedral."
+ },
+ {
+  "name": "Senlis",
+  "lon": 2.59,
+  "lat": 49.21,
+  "phases": [
+   [
+    -70,
+    "village"
+   ],
+   [
+    850,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Early Capetian royal residence town."
+ },
+ {
+  "name": "Provins",
+  "lon": 3.3,
+  "lat": 48.56,
+  "phases": [
+   [
+    1000,
+    "village"
+   ],
+   [
+    1150,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "One of the great Champagne fair towns."
+ },
+ {
+  "name": "Chalon-sur-Saone",
+  "lon": 4.85,
+  "lat": 46.78,
+  "phases": [
+   [
+    -70,
+    "town"
+   ],
+   [
+    850,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Cabillonum; Burgundian river trading town."
+ },
+ {
+  "name": "Macon",
+  "lon": 4.83,
+  "lat": 46.31,
+  "phases": [
+   [
+    -70,
+    "village"
+   ],
+   [
+    850,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Matisco; Saone valley market town."
+ },
+ {
+  "name": "Vienne",
+  "lon": 4.87,
+  "lat": 45.53,
+  "phases": [
+   [
+    -70,
+    "town"
+   ],
+   [
+    400,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Vienna; Allobroges capital, Burgundian royal seat."
+ },
+ {
+  "name": "Valence",
+  "lon": 4.89,
+  "lat": 44.93,
+  "phases": [
+   [
+    -70,
+    "village"
+   ],
+   [
+    850,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Valentia; Rhone valley bishopric town."
+ },
+ {
+  "name": "Le Puy-en-Velay",
+  "lon": 3.89,
+  "lat": 45.04,
+  "phases": [
+   [
+    500,
+    "village"
+   ],
+   [
+    950,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Marian pilgrimage town, start of a Compostela route."
+ },
+ {
+  "name": "Mende",
+  "lon": 3.5,
+  "lat": 44.52,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1161,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Gevaudan bishopric on the Lot."
+ },
+ {
+  "name": "Nevers",
+  "lon": 3.16,
+  "lat": 46.99,
+  "phases": [
+   [
+    -70,
+    "village"
+   ],
+   [
+    850,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Noviodunum; Burgundian countship seat."
+ },
+ {
+  "name": "Bourges",
+  "lon": 2.4,
+  "lat": 47.08,
+  "phases": [
+   [
+    -70,
+    "town"
+   ],
+   [
+    400,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Avaricum; Berry ducal capital."
+ },
+ {
+  "name": "Blois",
+  "lon": 1.34,
+  "lat": 47.59,
+  "phases": [
+   [
+    850,
+    "village"
+   ],
+   [
+    1150,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Loire valley county seat."
+ },
+ {
+  "name": "Vendome",
+  "lon": 1.07,
+  "lat": 47.79,
+  "phases": [
+   [
+    1000,
+    "village"
+   ],
+   [
+    1160,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Grew around a Benedictine abbey on the Loir."
+ },
+ {
+  "name": "Chinon",
+  "lon": 0.24,
+  "lat": 47.17,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1050,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Plantagenet fortress, where Joan of Arc met the Dauphin."
+ },
+ {
+  "name": "Saumur",
+  "lon": -0.08,
+  "lat": 47.26,
+  "phases": [
+   [
+    1000,
+    "village"
+   ],
+   [
+    1200,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Loire castle town, Angevin domain."
+ },
+ {
+  "name": "Fontevraud",
+  "lon": 0.05,
+  "lat": 47.18,
+  "phases": [
+   [
+    1101,
+    "village"
+   ],
+   [
+    1200,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Royal Plantagenet abbey burial site."
+ },
+ {
+  "name": "Mont Saint-Michel",
+  "lon": -1.51,
+  "lat": 48.64,
+  "phases": [
+   [
+    708,
+    "village"
+   ],
+   [
+    966,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Tidal abbey island, Benedictine from 966."
+ },
+ {
+  "name": "Avranches",
+  "lon": -1.36,
+  "lat": 48.68,
+  "phases": [
+   [
+    -70,
+    "village"
+   ],
+   [
+    850,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ingena; Norman-Breton frontier town."
+ },
+ {
+  "name": "Coutances",
+  "lon": -1.44,
+  "lat": 49.05,
+  "phases": [
+   [
+    -70,
+    "village"
+   ],
+   [
+    850,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Constantia; Cotentin bishopric."
+ },
+ {
+  "name": "Vannes",
+  "lon": -2.76,
+  "lat": 47.66,
+  "phases": [
+   [
+    -70,
+    "town"
+   ],
+   [
+    850,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Darioritum; Breton confederation capital."
+ },
+ {
+  "name": "Quimper",
+  "lon": -4.1,
+  "lat": 47.99,
+  "phases": [
+   [
+    -50,
+    "village"
+   ],
+   [
+    850,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Corisopitum; Cornouaille bishopric."
+ },
+ {
+  "name": "Saint-Malo",
+  "lon": -2.03,
+  "lat": 48.65,
+  "phases": [
+   [
+    1144,
+    "village"
+   ],
+   [
+    1150,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Founded by monks fleeing Alet, walled corsair port later."
+ },
+ {
+  "name": "Dinan",
+  "lon": -2.05,
+  "lat": 48.45,
+  "phases": [
+   [
+    1000,
+    "village"
+   ],
+   [
+    1123,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Breton castle town above the Rance."
+ },
+ {
+  "name": "Fougeres",
+  "lon": -1.2,
+  "lat": 48.35,
+  "phases": [
+   [
+    1000,
+    "village"
+   ],
+   [
+    1150,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Marcher castle town of the Breton-Norman border."
+ },
+ {
+  "name": "Lisieux",
+  "lon": 0.23,
+  "lat": 49.15,
+  "phases": [
+   [
+    -70,
+    "village"
+   ],
+   [
+    850,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Noviomagus Lexoviorum; Norman bishopric."
+ },
+ {
+  "name": "Alençon",
+  "lon": 0.09,
+  "lat": 48.43,
+  "phases": [
+   [
+    1000,
+    "village"
+   ],
+   [
+    1150,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Norman-Angevin border county seat."
+ },
+ {
+  "name": "Evreux",
+  "lon": 1.15,
+  "lat": 49.03,
+  "phases": [
+   [
+    -70,
+    "village"
+   ],
+   [
+    850,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Mediolanum Aulercorum; Norman county town."
+ },
+ {
+  "name": "Dieppe",
+  "lon": 1.08,
+  "lat": 49.93,
+  "phases": [
+   [
+    1030,
+    "village"
+   ],
+   [
+    1195,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Chartered Norman Channel port."
+ },
+ {
+  "name": "Calais",
+  "lon": 1.86,
+  "lat": 50.95,
+  "phases": [
+   [
+    1024,
+    "village"
+   ],
+   [
+    1180,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Fishing hamlet grown into a cross-Channel staple port."
+ },
+ {
+  "name": "Boulogne-sur-Mer",
+  "lon": 1.6,
+  "lat": 50.72,
+  "phases": [
+   [
+    -70,
+    "town"
+   ],
+   [
+    850,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Gesoriacum/Bononia; Roman Channel naval base."
+ },
+ {
+  "name": "Saint-Omer",
+  "lon": 2.25,
+  "lat": 50.75,
+  "phases": [
+   [
+    649,
+    "village"
+   ],
+   [
+    1127,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Grew around an abbey founded by St Omer."
+ },
+ {
+  "name": "Arras",
+  "lon": 2.78,
+  "lat": 50.29,
+  "phases": [
+   [
+    -70,
+    "town"
+   ],
+   [
+    850,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Nemetacum; Artois capital, famed tapestries."
+ },
+ {
+  "name": "Lille",
+  "lon": 3.06,
+  "lat": 50.63,
+  "phases": [
+   [
+    1030,
+    "village"
+   ],
+   [
+    1054,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Rose on the Flanders cloth and grain trade."
+ },
+ {
+  "name": "Douai",
+  "lon": 3.08,
+  "lat": 50.37,
+  "phases": [
+   [
+    1000,
+    "village"
+   ],
+   [
+    1215,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Flemish cloth town on the Scarpe."
+ },
+ {
+  "name": "Cambrai",
+  "lon": 3.24,
+  "lat": 50.18,
+  "phases": [
+   [
+    -70,
+    "town"
+   ],
+   [
+    850,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Camaracum; Carolingian-era bishopric."
+ },
+ {
+  "name": "Verdun",
+  "lon": 5.38,
+  "lat": 49.16,
+  "phases": [
+   [
+    -70,
+    "town"
+   ],
+   [
+    843,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Site of the 843 treaty dividing Charlemagne's empire."
+ },
+ {
+  "name": "Toul",
+  "lon": 5.89,
+  "lat": 48.68,
+  "phases": [
+   [
+    -70,
+    "village"
+   ],
+   [
+    850,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Tullum; one of the Three Bishoprics."
+ },
+ {
+  "name": "Epinal",
+  "lon": 6.45,
+  "lat": 48.18,
+  "phases": [
+   [
+    983,
+    "village"
+   ],
+   [
+    1136,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Grew around a Lorraine abbey."
+ },
+ {
+  "name": "Semur-en-Auxois",
+  "lon": 4.34,
+  "lat": 47.48,
+  "phases": [
+   [
+    1000,
+    "village"
+   ],
+   [
+    1200,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Burgundian hilltop market town."
+ },
+ {
+  "name": "Cluny",
+  "lon": 4.66,
+  "lat": 46.43,
+  "phases": [
+   [
+    910,
+    "village"
+   ],
+   [
+    950,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Site of the great reforming Benedictine abbey."
+ },
+ {
+  "name": "Autun",
+  "lon": 4.3,
+  "lat": 46.95,
+  "phases": [
+   [
+    -15,
+    "town"
+   ],
+   [
+    850,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Augustodunum; showcase Augustan city of Gaul."
+ },
+ {
+  "name": "Langres",
+  "lon": 5.33,
+  "lat": 47.86,
+  "phases": [
+   [
+    -70,
+    "town"
+   ],
+   [
+    850,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Andematunnum; hill bishopric of Champagne."
+ },
+ {
+  "name": "Chaumont",
+  "lon": 5.14,
+  "lat": 48.11,
+  "phases": [
+   [
+    1000,
+    "village"
+   ],
+   [
+    1200,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Champagne county seat on a spur."
+ },
+ {
+  "name": "Charolles",
+  "lon": 4.28,
+  "lat": 46.43,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1200,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Burgundian countship seat."
+ },
+ {
+  "name": "Vezelay",
+  "lon": 3.75,
+  "lat": 47.47,
+  "phases": [
+   [
+    860,
+    "village"
+   ],
+   [
+    1050,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Great pilgrimage abbey, start of a Compostela route."
+ },
+ {
+  "name": "Toledo",
+  "lon": -4.03,
+  "lat": 39.86,
+  "phases": [
+   [
+    -190,
+    "town"
+   ],
+   [
+    418,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Visigothic capital of Hispania."
+ },
+ {
+  "name": "Cordoba",
+  "lon": -4.78,
+  "lat": 37.89,
+  "phases": [
+   [
+    -152,
+    "town"
+   ],
+   [
+    756,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Capital of the Umayyad Emirate/Caliphate of al-Andalus."
+ },
+ {
+  "name": "Seville (Ishbiliya)",
+  "lon": -5.98,
+  "lat": 37.39,
+  "phases": [
+   [
+    -200,
+    "town"
+   ],
+   [
+    712,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Hispalis; Taifa and Almohad capital as Ishbiliya."
+ },
+ {
+  "name": "Granada",
+  "lon": -3.6,
+  "lat": 37.18,
+  "phases": [
+   [
+    -100,
+    "village"
+   ],
+   [
+    1013,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Last Nasrid emirate capital, fell 1492."
+ },
+ {
+  "name": "Zaragoza (Saraqusta)",
+  "lon": -0.88,
+  "lat": 41.65,
+  "phases": [
+   [
+    -24,
+    "town"
+   ],
+   [
+    714,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Caesaraugusta; major Upper March taifa capital."
+ },
+ {
+  "name": "Valencia (Balansiya)",
+  "lon": -0.38,
+  "lat": 39.47,
+  "phases": [
+   [
+    -138,
+    "town"
+   ],
+   [
+    714,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Roman Valentia, taifa capital under the Cid's siege."
+ },
+ {
+  "name": "Merida",
+  "lon": -6.34,
+  "lat": 38.92,
+  "phases": [
+   [
+    -25,
+    "city"
+   ],
+   [
+    1230,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Emerita Augusta; capital of Roman Lusitania."
+ },
+ {
+  "name": "Santiago de Compostela",
+  "lon": -8.54,
+  "lat": 42.88,
+  "phases": [
+   [
+    830,
+    "village"
+   ],
+   [
+    899,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Grew around the discovered tomb of St James."
+ },
+ {
+  "name": "Leon",
+  "lon": -5.57,
+  "lat": 42.6,
+  "phases": [
+   [
+    74,
+    "town"
+   ],
+   [
+    910,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Legio VII; capital of the Kingdom of Leon."
+ },
+ {
+  "name": "Burgos",
+  "lon": -3.7,
+  "lat": 42.34,
+  "phases": [
+   [
+    884,
+    "village"
+   ],
+   [
+    930,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Founded as a Castilian frontier fortress."
+ },
+ {
+  "name": "Pamplona",
+  "lon": -1.64,
+  "lat": 42.82,
+  "phases": [
+   [
+    -75,
+    "town"
+   ],
+   [
+    824,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Pompaelo; capital of the Kingdom of Navarre."
+ },
+ {
+  "name": "Barcelona",
+  "lon": 2.17,
+  "lat": 41.38,
+  "phases": [
+   [
+    -15,
+    "town"
+   ],
+   [
+    801,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Barcino; Carolingian March capital."
+ },
+ {
+  "name": "Girona",
+  "lon": 2.82,
+  "lat": 41.98,
+  "phases": [
+   [
+    -76,
+    "town"
+   ],
+   [
+    785,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Gerunda; Carolingian frontier bishopric."
+ },
+ {
+  "name": "Tarragona",
+  "lon": 1.26,
+  "lat": 41.12,
+  "phases": [
+   [
+    -218,
+    "city"
+   ],
+   [
+    714,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Tarraco; capital of Roman Hispania Citerior."
+ },
+ {
+  "name": "Lleida (Larida)",
+  "lon": 0.62,
+  "lat": 41.61,
+  "phases": [
+   [
+    -200,
+    "town"
+   ],
+   [
+    714,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ilerda; taifa town, fell to Christians 1149."
+ },
+ {
+  "name": "Huesca (Wasqa)",
+  "lon": -0.41,
+  "lat": 42.14,
+  "phases": [
+   [
+    -100,
+    "town"
+   ],
+   [
+    714,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Osca; taifa capital, capital of early Aragon."
+ },
+ {
+  "name": "Jaca",
+  "lon": -0.55,
+  "lat": 42.57,
+  "phases": [
+   [
+    850,
+    "village"
+   ],
+   [
+    1077,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Early capital of the Kingdom of Aragon."
+ },
+ {
+  "name": "Vitoria-Gasteiz",
+  "lon": -2.67,
+  "lat": 42.85,
+  "phases": [
+   [
+    1181,
+    "village"
+   ],
+   [
+    1181,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Planted town founded by Sancho VI of Navarre."
+ },
+ {
+  "name": "Bilbao",
+  "lon": -2.93,
+  "lat": 43.26,
+  "phases": [
+   [
+    1300,
+    "village"
+   ],
+   [
+    1300,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Founded by charter of Diego Lopez V de Haro."
+ },
+ {
+  "name": "San Sebastian",
+  "lon": -1.98,
+  "lat": 43.32,
+  "phases": [
+   [
+    1180,
+    "village"
+   ],
+   [
+    1180,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Chartered Basque Atlantic port town."
+ },
+ {
+  "name": "Oviedo",
+  "lon": -5.85,
+  "lat": 43.36,
+  "phases": [
+   [
+    761,
+    "village"
+   ],
+   [
+    791,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "First capital of the Asturian kingdom."
+ },
+ {
+  "name": "Santander",
+  "lon": -3.8,
+  "lat": 43.46,
+  "phases": [
+   [
+    1187,
+    "village"
+   ],
+   [
+    1187,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Cantabrian fishing port chartered by Alfonso VIII."
+ },
+ {
+  "name": "Gijon",
+  "lon": -5.66,
+  "lat": 43.54,
+  "phases": [
+   [
+    -15,
+    "village"
+   ],
+   [
+    900,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Gigia; Asturian coastal fort town."
+ },
+ {
+  "name": "Salamanca",
+  "lon": -5.66,
+  "lat": 40.96,
+  "phases": [
+   [
+    -100,
+    "town"
+   ],
+   [
+    1102,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Helmantica; repopulated frontier city, university 1218."
+ },
+ {
+  "name": "Zamora",
+  "lon": -5.75,
+  "lat": 41.5,
+  "phases": [
+   [
+    893,
+    "village"
+   ],
+   [
+    893,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Founded as a Douro frontier fortress."
+ },
+ {
+  "name": "Valladolid",
+  "lon": -4.72,
+  "lat": 41.65,
+  "phases": [
+   [
+    1072,
+    "village"
+   ],
+   [
+    1072,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Grew fast as a royal Castilian residence."
+ },
+ {
+  "name": "Segovia",
+  "lon": -4.11,
+  "lat": 40.95,
+  "phases": [
+   [
+    -80,
+    "town"
+   ],
+   [
+    1088,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Repopulated Douro frontier city; Roman aqueduct."
+ },
+ {
+  "name": "Avila",
+  "lon": -4.7,
+  "lat": 40.66,
+  "phases": [
+   [
+    -80,
+    "village"
+   ],
+   [
+    1090,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Walled frontier repopulation town."
+ },
+ {
+  "name": "Soria",
+  "lon": -2.47,
+  "lat": 41.76,
+  "phases": [
+   [
+    1119,
+    "village"
+   ],
+   [
+    1119,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Castilian frontier town on the upper Duero."
+ },
+ {
+  "name": "Palencia",
+  "lon": -4.53,
+  "lat": 42.01,
+  "phases": [
+   [
+    -80,
+    "town"
+   ],
+   [
+    900,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Pallantia; early Castilian bishopric."
+ },
+ {
+  "name": "Toro",
+  "lon": -5.4,
+  "lat": 41.53,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1090,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Duero frontier fortress town."
+ },
+ {
+  "name": "Ciudad Rodrigo",
+  "lon": -6.53,
+  "lat": 40.6,
+  "phases": [
+   [
+    1150,
+    "village"
+   ],
+   [
+    1150,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Frontier repopulation town near Portugal."
+ },
+ {
+  "name": "Caceres",
+  "lon": -6.37,
+  "lat": 39.48,
+  "phases": [
+   [
+    -25,
+    "town"
+   ],
+   [
+    1229,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Norba Caesarina; Order of Santiago frontier town."
+ },
+ {
+  "name": "Badajoz (Batalyaws)",
+  "lon": -6.97,
+  "lat": 38.88,
+  "phases": [
+   [
+    875,
+    "village"
+   ],
+   [
+    875,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Founded as an Aftasid taifa capital."
+ },
+ {
+  "name": "Trujillo",
+  "lon": -5.88,
+  "lat": 39.46,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1232,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Extremaduran frontier castle town."
+ },
+ {
+  "name": "Cadiz",
+  "lon": -6.29,
+  "lat": 36.53,
+  "phases": [
+   [
+    -1100,
+    "town"
+   ],
+   [
+    711,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Gadir; oldest continuously inhabited city in western Europe."
+ },
+ {
+  "name": "Malaga (Malaqah)",
+  "lon": -4.42,
+  "lat": 36.72,
+  "phases": [
+   [
+    -770,
+    "town"
+   ],
+   [
+    711,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Phoenician port, chief Nasrid Mediterranean outlet."
+ },
+ {
+  "name": "Ronda",
+  "lon": -5.17,
+  "lat": 36.74,
+  "phases": [
+   [
+    -100,
+    "village"
+   ],
+   [
+    711,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Nasrid mountain stronghold, Runda."
+ },
+ {
+  "name": "Jerez de la Frontera",
+  "lon": -6.14,
+  "lat": 36.68,
+  "phases": [
+   [
+    -100,
+    "village"
+   ],
+   [
+    711,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Frontier sherry town, Sherish under Muslim rule."
+ },
+ {
+  "name": "Almeria (al-Mariyya)",
+  "lon": -2.47,
+  "lat": 36.84,
+  "phases": [
+   [
+    955,
+    "village"
+   ],
+   [
+    955,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Founded as chief naval port of Caliphal Cordoba."
+ },
+ {
+  "name": "Murcia (Mursiya)",
+  "lon": -1.13,
+  "lat": 37.99,
+  "phases": [
+   [
+    825,
+    "village"
+   ],
+   [
+    825,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Founded by Abd al-Rahman II as a provincial capital."
+ },
+ {
+  "name": "Cartagena",
+  "lon": -0.99,
+  "lat": 37.61,
+  "phases": [
+   [
+    -227,
+    "city"
+   ],
+   [
+    714,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Carthago Nova; major Phoenician-Roman naval port."
+ },
+ {
+  "name": "Cuenca (Kunka)",
+  "lon": -2.14,
+  "lat": 40.07,
+  "phases": [
+   [
+    9,
+    "village"
+   ],
+   [
+    714,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Taifa fortress town, fell to Castile 1177."
+ },
+ {
+  "name": "Guadalajara (Wadi al-Hijara)",
+  "lon": -3.17,
+  "lat": 40.63,
+  "phases": [
+   [
+    850,
+    "village"
+   ],
+   [
+    850,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Founded as an Islamic frontier town."
+ },
+ {
+  "name": "Alcala de Henares",
+  "lon": -3.36,
+  "lat": 40.48,
+  "phases": [
+   [
+    -40,
+    "town"
+   ],
+   [
+    850,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Complutum; taifa and later university town."
+ },
+ {
+  "name": "Coimbra",
+  "lon": -8.42,
+  "lat": 40.21,
+  "phases": [
+   [
+    -16,
+    "town"
+   ],
+   [
+    878,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Conimbriga's successor; medieval Portuguese capital."
+ },
+ {
+  "name": "Braga",
+  "lon": -8.42,
+  "lat": 41.55,
+  "phases": [
+   [
+    -16,
+    "town"
+   ],
+   [
+    418,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Bracara Augusta; capital of Roman Gallaecia."
+ },
+ {
+  "name": "Porto",
+  "lon": -8.61,
+  "lat": 41.15,
+  "phases": [
+   [
+    -136,
+    "town"
+   ],
+   [
+    868,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Portus Cale, gave Portugal its name."
+ },
+ {
+  "name": "Lisbon (al-Ushbuna)",
+  "lon": -9.14,
+  "lat": 38.71,
+  "phases": [
+   [
+    -205,
+    "town"
+   ],
+   [
+    711,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Olisipo; taken from Muslim rule 1147."
+ },
+ {
+  "name": "Evora (Yabura)",
+  "lon": -7.91,
+  "lat": 38.57,
+  "phases": [
+   [
+    -100,
+    "town"
+   ],
+   [
+    715,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ebora; Moorish then Portuguese frontier city."
+ },
+ {
+  "name": "Beja (Baja)",
+  "lon": -7.87,
+  "lat": 38.02,
+  "phases": [
+   [
+    -48,
+    "town"
+   ],
+   [
+    713,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Pax Julia; taifa capital under Muslim rule."
+ },
+ {
+  "name": "Silves (Xelb)",
+  "lon": -8.44,
+  "lat": 37.19,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    900,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Taifa capital of the Algarve, rich in figs and olives."
+ },
+ {
+  "name": "Faro (Santa Maria ibn Harun)",
+  "lon": -7.93,
+  "lat": 37.02,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    900,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Small al-Andalus port, taken by Portugal 1249."
+ },
+ {
+  "name": "Guimaraes",
+  "lon": -8.29,
+  "lat": 41.44,
+  "phases": [
+   [
+    950,
+    "village"
+   ],
+   [
+    1128,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Birthplace of the Kingdom of Portugal."
+ },
+ {
+  "name": "Viseu",
+  "lon": -7.91,
+  "lat": 40.66,
+  "phases": [
+   [
+    -40,
+    "village"
+   ],
+   [
+    1058,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Lusitanian hill town, reconquered by Ferdinand I."
+ },
+ {
+  "name": "Santarem (Shantarin)",
+  "lon": -8.68,
+  "lat": 39.24,
+  "phases": [
+   [
+    -138,
+    "town"
+   ],
+   [
+    712,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Scalabis; taifa town taken by Afonso Henriques 1147."
+ },
+ {
+  "name": "Tortosa (Turtusha)",
+  "lon": 0.52,
+  "lat": 40.81,
+  "phases": [
+   [
+    -100,
+    "town"
+   ],
+   [
+    714,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Dertosa; taifa river port, fell to Ramon Berenguer IV 1148."
+ },
+ {
+  "name": "Palma de Mallorca (Madina Mayurqa)",
+  "lon": 2.65,
+  "lat": 39.57,
+  "phases": [
+   [
+    -123,
+    "town"
+   ],
+   [
+    902,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Palma re-founded under Umayyad rule."
+ },
+ {
+  "name": "Denia (Dāniya)",
+  "lon": 0.11,
+  "lat": 38.84,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1010,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Taifa capital with a Balearic-Sardinian fleet."
+ },
+ {
+  "name": "Elche (Ilsh)",
+  "lon": -0.7,
+  "lat": 38.27,
+  "phases": [
+   [
+    -100,
+    "village"
+   ],
+   [
+    714,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ilici; Islamic-era market town, famed palm groves."
+ },
+ {
+  "name": "Logrono",
+  "lon": -2.45,
+  "lat": 42.47,
+  "phases": [
+   [
+    1095,
+    "village"
+   ],
+   [
+    1095,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Chartered Rioja town on the Compostela route."
+ },
+ {
+  "name": "Tudela",
+  "lon": -1.6,
+  "lat": 42.06,
+  "phases": [
+   [
+    802,
+    "village"
+   ],
+   [
+    802,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Founded by Amrus ibn Yusuf as a frontier town."
+ },
+ {
+  "name": "Astorga",
+  "lon": -6.05,
+  "lat": 42.46,
+  "phases": [
+   [
+    -14,
+    "town"
+   ],
+   [
+    900,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Asturica Augusta; Roman gold-mining region capital."
+ },
+ {
+  "name": "Lugo",
+  "lon": -7.56,
+  "lat": 43.01,
+  "phases": [
+   [
+    -15,
+    "town"
+   ],
+   [
+    900,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Lucus Augusti; walled Roman Galician capital."
+ },
+ {
+  "name": "Pontevedra",
+  "lon": -8.65,
+  "lat": 42.43,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1200,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Galician Atlantic port town."
+ },
+ {
+  "name": "Rome",
+  "lon": 12.48,
+  "lat": 41.9,
+  "phases": [
+   [
+    -753,
+    "city"
+   ],
+   [
+    476,
+    "city"
+   ],
+   [
+    550,
+    "town"
+   ],
+   [
+    800,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Shrank drastically after the western empire's fall, revived under the papacy."
+ },
+ {
+  "name": "Milan (Mediolanum)",
+  "lon": 9.19,
+  "lat": 45.46,
+  "phases": [
+   [
+    -400,
+    "town"
+   ],
+   [
+    293,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Imperial capital under the Tetrarchy."
+ },
+ {
+  "name": "Ravenna",
+  "lon": 12.2,
+  "lat": 44.42,
+  "phases": [
+   [
+    -100,
+    "town"
+   ],
+   [
+    402,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Capital of the Western Empire, then Ostrogothic and Byzantine."
+ },
+ {
+  "name": "Venice",
+  "lon": 12.33,
+  "lat": 45.44,
+  "phases": [
+   [
+    421,
+    "village"
+   ],
+   [
+    811,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Lagoon refuge town that grew into a maritime republic."
+ },
+ {
+  "name": "Genoa",
+  "lon": 8.93,
+  "lat": 44.41,
+  "phases": [
+   [
+    -200,
+    "town"
+   ],
+   [
+    950,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Genua; rose as a maritime republic rival to Venice."
+ },
+ {
+  "name": "Florence",
+  "lon": 11.26,
+  "lat": 43.77,
+  "phases": [
+   [
+    -59,
+    "town"
+   ],
+   [
+    1000,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Florentia; Renaissance banking and wool capital."
+ },
+ {
+  "name": "Pisa",
+  "lon": 10.4,
+  "lat": 43.72,
+  "phases": [
+   [
+    -180,
+    "town"
+   ],
+   [
+    1000,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Maritime republic, dominant before Genoa's rise."
+ },
+ {
+  "name": "Naples",
+  "lon": 14.27,
+  "lat": 40.85,
+  "phases": [
+   [
+    -470,
+    "town"
+   ],
+   [
+    600,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Neapolis; Byzantine duchy, later Angevin capital."
+ },
+ {
+  "name": "Bologna",
+  "lon": 11.34,
+  "lat": 44.5,
+  "phases": [
+   [
+    -189,
+    "town"
+   ],
+   [
+    1088,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Bononia; home to Europe's oldest university."
+ },
+ {
+  "name": "Siena",
+  "lon": 11.33,
+  "lat": 43.32,
+  "phases": [
+   [
+    -70,
+    "town"
+   ],
+   [
+    1000,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Rival banking republic to Florence."
+ },
+ {
+  "name": "Verona",
+  "lon": 10.99,
+  "lat": 45.44,
+  "phases": [
+   [
+    -89,
+    "town"
+   ],
+   [
+    489,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Theodoric's Ostrogothic capital."
+ },
+ {
+  "name": "Padua",
+  "lon": 11.88,
+  "lat": 45.41,
+  "phases": [
+   [
+    -100,
+    "town"
+   ],
+   [
+    1000,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Patavium; major medieval university town."
+ },
+ {
+  "name": "Turin",
+  "lon": 7.68,
+  "lat": 45.07,
+  "phases": [
+   [
+    -28,
+    "town"
+   ],
+   [
+    1000,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Augusta Taurinorum; Savoyard capital from 1563."
+ },
+ {
+  "name": "Pavia",
+  "lon": 9.16,
+  "lat": 45.19,
+  "phases": [
+   [
+    -89,
+    "town"
+   ],
+   [
+    572,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ticinum; Lombard kingdom capital."
+ },
+ {
+  "name": "Palermo",
+  "lon": 13.36,
+  "lat": 38.12,
+  "phases": [
+   [
+    -734,
+    "town"
+   ],
+   [
+    831,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Panormus; Aghlabid emirate then Norman kingdom capital."
+ },
+ {
+  "name": "Messina",
+  "lon": 15.55,
+  "lat": 38.19,
+  "phases": [
+   [
+    -730,
+    "town"
+   ],
+   [
+    1000,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Zancle; Sicilian strait port."
+ },
+ {
+  "name": "Bari",
+  "lon": 16.87,
+  "lat": 41.12,
+  "phases": [
+   [
+    -200,
+    "town"
+   ],
+   [
+    847,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Emirate of Bari under Muslim rule 847-871."
+ },
+ {
+  "name": "Amalfi",
+  "lon": 14.6,
+  "lat": 40.63,
+  "phases": [
+   [
+    839,
+    "village"
+   ],
+   [
+    839,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Founded as an early maritime republic."
+ },
+ {
+  "name": "Salerno",
+  "lon": 14.77,
+  "lat": 40.68,
+  "phases": [
+   [
+    -197,
+    "town"
+   ],
+   [
+    839,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Lombard principality capital, famed medical school."
+ },
+ {
+  "name": "Lucca",
+  "lon": 10.5,
+  "lat": 43.84,
+  "phases": [
+   [
+    -180,
+    "town"
+   ],
+   [
+    568,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Lombard duchy capital, later independent republic."
+ },
+ {
+  "name": "Perugia",
+  "lon": 12.39,
+  "lat": 43.11,
+  "phases": [
+   [
+    -89,
+    "town"
+   ],
+   [
+    600,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Byzantine Exarchate corridor city, papal territory later."
+ },
+ {
+  "name": "Assisi",
+  "lon": 12.62,
+  "lat": 43.07,
+  "phases": [
+   [
+    -89,
+    "town"
+   ],
+   [
+    1000,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Birthplace of St Francis, pilgrimage town."
+ },
+ {
+  "name": "Orvieto",
+  "lon": 12.11,
+  "lat": 42.72,
+  "phases": [
+   [
+    -89,
+    "town"
+   ],
+   [
+    1000,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Etruscan Volsinii heir; papal refuge town."
+ },
+ {
+  "name": "Ferrara",
+  "lon": 11.62,
+  "lat": 44.84,
+  "phases": [
+   [
+    753,
+    "village"
+   ],
+   [
+    1200,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Este ducal capital."
+ },
+ {
+  "name": "Modena",
+  "lon": 10.93,
+  "lat": 44.65,
+  "phases": [
+   [
+    -183,
+    "town"
+   ],
+   [
+    1000,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Mutina; Este duchy capital later."
+ },
+ {
+  "name": "Parma",
+  "lon": 10.33,
+  "lat": 44.8,
+  "phases": [
+   [
+    -183,
+    "town"
+   ],
+   [
+    1000,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Roman colony, later Farnese duchy capital."
+ },
+ {
+  "name": "Piacenza",
+  "lon": 9.69,
+  "lat": 45.05,
+  "phases": [
+   [
+    -218,
+    "town"
+   ],
+   [
+    1000,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Placentia; strategic Po valley colony."
+ },
+ {
+  "name": "Cremona",
+  "lon": 10.02,
+  "lat": 45.13,
+  "phases": [
+   [
+    -218,
+    "town"
+   ],
+   [
+    1000,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Roman colony, later famed for violin-making."
+ },
+ {
+  "name": "Mantua",
+  "lon": 10.8,
+  "lat": 45.16,
+  "phases": [
+   [
+    -200,
+    "town"
+   ],
+   [
+    1000,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Gonzaga ducal capital, Virgil's birthplace region."
+ },
+ {
+  "name": "Brescia",
+  "lon": 10.22,
+  "lat": 45.54,
+  "phases": [
+   [
+    -89,
+    "town"
+   ],
+   [
+    1000,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Brixia; Lombard league city."
+ },
+ {
+  "name": "Bergamo",
+  "lon": 9.67,
+  "lat": 45.7,
+  "phases": [
+   [
+    -89,
+    "town"
+   ],
+   [
+    1000,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Lombard hill town on the Venetian mainland."
+ },
+ {
+  "name": "Vicenza",
+  "lon": 11.55,
+  "lat": 45.55,
+  "phases": [
+   [
+    -89,
+    "town"
+   ],
+   [
+    1000,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Vicetia; Palladian architecture town later."
+ },
+ {
+  "name": "Treviso",
+  "lon": 12.24,
+  "lat": 45.67,
+  "phases": [
+   [
+    -89,
+    "town"
+   ],
+   [
+    1000,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Tarvisium; Venetian mainland market town."
+ },
+ {
+  "name": "Trieste",
+  "lon": 13.78,
+  "lat": 45.65,
+  "phases": [
+   [
+    -33,
+    "town"
+   ],
+   [
+    1000,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Tergeste; Habsburg free port later."
+ },
+ {
+  "name": "Urbino",
+  "lon": 12.64,
+  "lat": 43.73,
+  "phases": [
+   [
+    -89,
+    "village"
+   ],
+   [
+    1200,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Montefeltro ducal Renaissance court town."
+ },
+ {
+  "name": "Ancona",
+  "lon": 13.51,
+  "lat": 43.6,
+  "phases": [
+   [
+    -390,
+    "town"
+   ],
+   [
+    1000,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Greek-founded Adriatic port, maritime republic."
+ },
+ {
+  "name": "Rimini",
+  "lon": 12.57,
+  "lat": 44.06,
+  "phases": [
+   [
+    -268,
+    "town"
+   ],
+   [
+    1000,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ariminum; Malatesta lordship town."
+ },
+ {
+  "name": "Aquileia",
+  "lon": 13.37,
+  "lat": 45.77,
+  "phases": [
+   [
+    -181,
+    "city"
+   ],
+   [
+    452,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Major Roman city, destroyed by Attila 452."
+ },
+ {
+  "name": "Grado",
+  "lon": 13.39,
+  "lat": 45.68,
+  "phases": [
+   [
+    452,
+    "village"
+   ],
+   [
+    579,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Refuge settled by Aquileia's fleeing population."
+ },
+ {
+  "name": "Capua",
+  "lon": 14.25,
+  "lat": 41.1,
+  "phases": [
+   [
+    -600,
+    "town"
+   ],
+   [
+    856,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ancient Campanian city, destroyed by Saracens 856."
+ },
+ {
+  "name": "Santa Maria Capua Vetere",
+  "lon": 14.25,
+  "lat": 41.09,
+  "phases": [
+   [
+    856,
+    "town"
+   ],
+   [
+    1000,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Refounded near old Capua after its destruction."
+ },
+ {
+  "name": "Benevento",
+  "lon": 14.78,
+  "lat": 41.13,
+  "phases": [
+   [
+    -268,
+    "town"
+   ],
+   [
+    571,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Lombard duchy, later principality capital."
+ },
+ {
+  "name": "Spoleto",
+  "lon": 12.74,
+  "lat": 42.73,
+  "phases": [
+   [
+    -241,
+    "town"
+   ],
+   [
+    576,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Lombard duchy capital in central Italy."
+ },
+ {
+  "name": "Aosta",
+  "lon": 7.32,
+  "lat": 45.74,
+  "phases": [
+   [
+    -25,
+    "town"
+   ],
+   [
+    1000,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Augusta Praetoria; alpine gateway town."
+ },
+ {
+  "name": "Cagliari",
+  "lon": 9.11,
+  "lat": 39.22,
+  "phases": [
+   [
+    -238,
+    "town"
+   ],
+   [
+    1000,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Karales; Pisan then Aragonese Sardinian capital."
+ },
+ {
+  "name": "Sassari",
+  "lon": 8.56,
+  "lat": 40.73,
+  "phases": [
+   [
+    1131,
+    "village"
+   ],
+   [
+    1131,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Sardinian giudicato town."
+ },
+ {
+  "name": "Syracuse",
+  "lon": 15.29,
+  "lat": 37.07,
+  "phases": [
+   [
+    -734,
+    "city"
+   ],
+   [
+    878,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Greek colony, declined under Byzantine-Arab wars."
+ },
+ {
+  "name": "Catania",
+  "lon": 15.09,
+  "lat": 37.5,
+  "phases": [
+   [
+    -729,
+    "town"
+   ],
+   [
+    1000,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Catana; Sicilian Etna-side port."
+ },
+ {
+  "name": "Taranto",
+  "lon": 17.24,
+  "lat": 40.47,
+  "phases": [
+   [
+    -706,
+    "town"
+   ],
+   [
+    1000,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Greek Taras; Byzantine then Norman port."
+ },
+ {
+  "name": "Gaeta",
+  "lon": 13.57,
+  "lat": 41.21,
+  "phases": [
+   [
+    839,
+    "village"
+   ],
+   [
+    839,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Independent Tyrrhenian maritime duchy."
+ },
+ {
+  "name": "Utrecht",
+  "lon": 5.12,
+  "lat": 52.09,
+  "phases": [
+   [
+    47,
+    "town"
+   ],
+   [
+    695,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Traiectum; ecclesiastical capital of the northern Low Countries."
+ },
+ {
+  "name": "Bruges",
+  "lon": 3.22,
+  "lat": 51.21,
+  "phases": [
+   [
+    850,
+    "village"
+   ],
+   [
+    1128,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Rose to the leading medieval Flemish cloth market."
+ },
+ {
+  "name": "Ghent",
+  "lon": 3.72,
+  "lat": 51.05,
+  "phases": [
+   [
+    630,
+    "village"
+   ],
+   [
+    1000,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Grew around abbeys at the Scheldt-Lys confluence."
+ },
+ {
+  "name": "Antwerp",
+  "lon": 4.4,
+  "lat": 51.22,
+  "phases": [
+   [
+    726,
+    "village"
+   ],
+   [
+    1100,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Rose from a Frankish fort to a great port city."
+ },
+ {
+  "name": "Brussels",
+  "lon": 4.35,
+  "lat": 50.85,
+  "phases": [
+   [
+    979,
+    "village"
+   ],
+   [
+    1000,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Founded on an island in the Senne."
+ },
+ {
+  "name": "Leuven",
+  "lon": 4.7,
+  "lat": 50.88,
+  "phases": [
+   [
+    884,
+    "village"
+   ],
+   [
+    1000,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Brabantine ducal residence, university 1425."
+ },
+ {
+  "name": "Mechelen",
+  "lon": 4.48,
+  "lat": 51.03,
+  "phases": [
+   [
+    1008,
+    "village"
+   ],
+   [
+    1200,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Rose as a semi-autonomous Brabant lordship."
+ },
+ {
+  "name": "Ypres",
+  "lon": 2.88,
+  "lat": 50.85,
+  "phases": [
+   [
+    1073,
+    "village"
+   ],
+   [
+    1200,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Major medieval cloth-manufacturing city."
+ },
+ {
+  "name": "Kortrijk (Courtrai)",
+  "lon": 3.27,
+  "lat": 50.83,
+  "phases": [
+   [
+    850,
+    "village"
+   ],
+   [
+    1200,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Site of the 1302 Battle of the Golden Spurs."
+ },
+ {
+  "name": "Oudenaarde",
+  "lon": 3.61,
+  "lat": 50.85,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1200,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Flemish tapestry-weaving town on the Scheldt."
+ },
+ {
+  "name": "Tournai",
+  "lon": 3.39,
+  "lat": 50.61,
+  "phases": [
+   [
+    -50,
+    "town"
+   ],
+   [
+    500,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Turnacum; early Merovingian royal city, Childeric's tomb."
+ },
+ {
+  "name": "Mons",
+  "lon": 3.95,
+  "lat": 50.45,
+  "phases": [
+   [
+    650,
+    "village"
+   ],
+   [
+    1000,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Hainaut county capital."
+ },
+ {
+  "name": "Namur",
+  "lon": 4.87,
+  "lat": 50.47,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1000,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Meuse-Sambre confluence county capital."
+ },
+ {
+  "name": "Liege",
+  "lon": 5.57,
+  "lat": 50.63,
+  "phases": [
+   [
+    558,
+    "village"
+   ],
+   [
+    985,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Prince-bishopric capital on the Meuse."
+ },
+ {
+  "name": "Huy",
+  "lon": 5.24,
+  "lat": 50.52,
+  "phases": [
+   [
+    700,
+    "village"
+   ],
+   [
+    1066,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ancient Meuse river trading town."
+ },
+ {
+  "name": "Dinant",
+  "lon": 4.91,
+  "lat": 50.26,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1000,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Meuse valley copperware town."
+ },
+ {
+  "name": "Nijmegen",
+  "lon": 5.85,
+  "lat": 51.85,
+  "phases": [
+   [
+    19,
+    "town"
+   ],
+   [
+    1230,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Noviomagus; imperial Carolingian palace town."
+ },
+ {
+  "name": "Maastricht",
+  "lon": 5.69,
+  "lat": 50.85,
+  "phases": [
+   [
+    -50,
+    "town"
+   ],
+   [
+    575,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Trajectum ad Mosam; early Frankish bishopric."
+ },
+ {
+  "name": "Deventer",
+  "lon": 6.16,
+  "lat": 52.25,
+  "phases": [
+   [
+    850,
+    "village"
+   ],
+   [
+    1000,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "IJssel Hanseatic trading town."
+ },
+ {
+  "name": "Zutphen",
+  "lon": 6.2,
+  "lat": 52.14,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1195,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "IJssel Hanseatic town with a well-preserved core."
+ },
+ {
+  "name": "Kampen",
+  "lon": 5.91,
+  "lat": 52.55,
+  "phases": [
+   [
+    1150,
+    "village"
+   ],
+   [
+    1236,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Zuiderzee Hanseatic trading port."
+ },
+ {
+  "name": "Zwolle",
+  "lon": 6.09,
+  "lat": 52.51,
+  "phases": [
+   [
+    1040,
+    "village"
+   ],
+   [
+    1230,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Overijssel Hanseatic town."
+ },
+ {
+  "name": "Groningen",
+  "lon": 6.57,
+  "lat": 53.22,
+  "phases": [
+   [
+    1040,
+    "village"
+   ],
+   [
+    1040,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Northern Hanseatic market town."
+ },
+ {
+  "name": "Leeuwarden",
+  "lon": 5.8,
+  "lat": 53.2,
+  "phases": [
+   [
+    1000,
+    "village"
+   ],
+   [
+    1435,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Frisian terp settlement grown into a capital."
+ },
+ {
+  "name": "Dordrecht",
+  "lon": 4.67,
+  "lat": 51.81,
+  "phases": [
+   [
+    1064,
+    "village"
+   ],
+   [
+    1220,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Oldest chartered town of Holland."
+ },
+ {
+  "name": "Haarlem",
+  "lon": 4.65,
+  "lat": 52.38,
+  "phases": [
+   [
+    1000,
+    "village"
+   ],
+   [
+    1245,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Holland county market town."
+ },
+ {
+  "name": "Leiden",
+  "lon": 4.49,
+  "lat": 52.16,
+  "phases": [
+   [
+    860,
+    "village"
+   ],
+   [
+    1266,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Grew around the counts of Holland's castle."
+ },
+ {
+  "name": "Delft",
+  "lon": 4.36,
+  "lat": 52.01,
+  "phases": [
+   [
+    1075,
+    "village"
+   ],
+   [
+    1246,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Holland canal town, later famed for pottery."
+ },
+ {
+  "name": "Middelburg",
+  "lon": 3.61,
+  "lat": 51.5,
+  "phases": [
+   [
+    1000,
+    "village"
+   ],
+   [
+    1217,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Zeeland island capital, Carolingian ringfort origin."
+ },
+ {
+  "name": "Amsterdam",
+  "lon": 4.9,
+  "lat": 52.37,
+  "phases": [
+   [
+    1200,
+    "village"
+   ],
+   [
+    1306,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Fishing village on a dam, chartered in the 14th c."
+ },
+ {
+  "name": "Cologne",
+  "lon": 6.96,
+  "lat": 50.94,
+  "phases": [
+   [
+    38,
+    "town"
+   ],
+   [
+    50,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Colonia Claudia Ara Agrippinensium; Rhineland metropolis."
+ },
+ {
+  "name": "Trier",
+  "lon": 6.64,
+  "lat": 49.76,
+  "phases": [
+   [
+    16,
+    "town"
+   ],
+   [
+    271,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Augusta Treverorum; imperial residence city."
+ },
+ {
+  "name": "Mainz",
+  "lon": 8.27,
+  "lat": 50.0,
+  "phases": [
+   [
+    13,
+    "town"
+   ],
+   [
+    747,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Mogontiacum; seat of the Archbishop-Elector."
+ },
+ {
+  "name": "Worms",
+  "lon": 8.36,
+  "lat": 49.63,
+  "phases": [
+   [
+    -100,
+    "town"
+   ],
+   [
+    413,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Burgundian capital, Nibelung legend setting."
+ },
+ {
+  "name": "Speyer",
+  "lon": 8.43,
+  "lat": 49.32,
+  "phases": [
+   [
+    10,
+    "town"
+   ],
+   [
+    1030,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Free imperial city, great Salian cathedral."
+ },
+ {
+  "name": "Aachen",
+  "lon": 6.08,
+  "lat": 50.78,
+  "phases": [
+   [
+    -25,
+    "village"
+   ],
+   [
+    794,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Charlemagne's palace capital."
+ },
+ {
+  "name": "Regensburg",
+  "lon": 12.1,
+  "lat": 49.02,
+  "phases": [
+   [
+    179,
+    "town"
+   ],
+   [
+    530,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Castra Regina; Bavarian ducal capital."
+ },
+ {
+  "name": "Augsburg",
+  "lon": 10.9,
+  "lat": 48.37,
+  "phases": [
+   [
+    -15,
+    "town"
+   ],
+   [
+    955,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Augusta Vindelicorum; free imperial banking city."
+ },
+ {
+  "name": "Nuremberg",
+  "lon": 11.08,
+  "lat": 49.45,
+  "phases": [
+   [
+    1050,
+    "village"
+   ],
+   [
+    1219,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Free imperial city, Reichstag meeting place."
+ },
+ {
+  "name": "Wurzburg",
+  "lon": 9.93,
+  "lat": 49.79,
+  "phases": [
+   [
+    704,
+    "village"
+   ],
+   [
+    1030,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Franconian prince-bishopric capital."
+ },
+ {
+  "name": "Bamberg",
+  "lon": 10.89,
+  "lat": 49.89,
+  "phases": [
+   [
+    902,
+    "village"
+   ],
+   [
+    1007,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Founded as a bishopric by Henry II."
+ },
+ {
+  "name": "Frankfurt am Main",
+  "lon": 8.68,
+  "lat": 50.11,
+  "phases": [
+   [
+    794,
+    "village"
+   ],
+   [
+    855,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Carolingian royal palace, imperial election city."
+ },
+ {
+  "name": "Heidelberg",
+  "lon": 8.71,
+  "lat": 49.41,
+  "phases": [
+   [
+    1196,
+    "village"
+   ],
+   [
+    1196,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Palatinate electoral capital, university 1386."
+ },
+ {
+  "name": "Constance (Konstanz)",
+  "lon": 9.18,
+  "lat": 47.66,
+  "phases": [
+   [
+    -15,
+    "town"
+   ],
+   [
+    585,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Lake Constance bishopric, church council 1414."
+ },
+ {
+  "name": "Ulm",
+  "lon": 9.99,
+  "lat": 48.4,
+  "phases": [
+   [
+    854,
+    "village"
+   ],
+   [
+    1181,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Free imperial city, tallest church spire."
+ },
+ {
+  "name": "Stuttgart",
+  "lon": 9.18,
+  "lat": 48.78,
+  "phases": [
+   [
+    950,
+    "village"
+   ],
+   [
+    1321,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Wurttemberg residence town."
+ },
+ {
+  "name": "Freiburg im Breisgau",
+  "lon": 7.85,
+  "lat": 47.99,
+  "phases": [
+   [
+    1120,
+    "village"
+   ],
+   [
+    1120,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Founded by the Zahringer dukes."
+ },
+ {
+  "name": "Munich",
+  "lon": 11.58,
+  "lat": 48.14,
+  "phases": [
+   [
+    1158,
+    "village"
+   ],
+   [
+    1158,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Founded by Henry the Lion at a salt-road ford."
+ },
+ {
+  "name": "Passau",
+  "lon": 13.43,
+  "lat": 48.57,
+  "phases": [
+   [
+    -15,
+    "town"
+   ],
+   [
+    739,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Batavis; Danube prince-bishopric."
+ },
+ {
+  "name": "Salzburg",
+  "lon": 13.04,
+  "lat": 47.8,
+  "phases": [
+   [
+    -15,
+    "town"
+   ],
+   [
+    798,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Iuvavum; archbishopric, salt-mining wealth."
+ },
+ {
+  "name": "Erfurt",
+  "lon": 11.03,
+  "lat": 50.98,
+  "phases": [
+   [
+    742,
+    "village"
+   ],
+   [
+    1066,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Thuringian bishopric founded by Boniface."
+ },
+ {
+  "name": "Weimar",
+  "lon": 11.33,
+  "lat": 50.98,
+  "phases": [
+   [
+    899,
+    "village"
+   ],
+   [
+    1250,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Thuringian county seat."
+ },
+ {
+  "name": "Eisenach",
+  "lon": 10.32,
+  "lat": 50.98,
+  "phases": [
+   [
+    1150,
+    "village"
+   ],
+   [
+    1150,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Grew beneath the Wartburg castle."
+ },
+ {
+  "name": "Magdeburg",
+  "lon": 11.63,
+  "lat": 52.13,
+  "phases": [
+   [
+    805,
+    "village"
+   ],
+   [
+    968,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ottonian archbishopric, Magdeburg law model city."
+ },
+ {
+  "name": "Halle",
+  "lon": 11.97,
+  "lat": 51.48,
+  "phases": [
+   [
+    806,
+    "village"
+   ],
+   [
+    961,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Salt-producing town on the Saale."
+ },
+ {
+  "name": "Leipzig",
+  "lon": 12.37,
+  "lat": 51.34,
+  "phases": [
+   [
+    1015,
+    "village"
+   ],
+   [
+    1165,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Sorbian frontier trade-fair city."
+ },
+ {
+  "name": "Dresden",
+  "lon": 13.74,
+  "lat": 51.05,
+  "phases": [
+   [
+    1206,
+    "village"
+   ],
+   [
+    1216,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Margravial Saxon residence, later Baroque capital."
+ },
+ {
+  "name": "Meissen",
+  "lon": 13.47,
+  "lat": 51.16,
+  "phases": [
+   [
+    929,
+    "village"
+   ],
+   [
+    968,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Saxon margraviate's founding fortress."
+ },
+ {
+  "name": "Chemnitz",
+  "lon": 12.92,
+  "lat": 50.83,
+  "phases": [
+   [
+    1143,
+    "village"
+   ],
+   [
+    1143,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Imperial monastery-founded textile town."
+ },
+ {
+  "name": "Gottingen",
+  "lon": 9.94,
+  "lat": 51.53,
+  "phases": [
+   [
+    950,
+    "village"
+   ],
+   [
+    1200,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Welf market town on the Leine."
+ },
+ {
+  "name": "Braunschweig",
+  "lon": 10.52,
+  "lat": 52.27,
+  "phases": [
+   [
+    861,
+    "village"
+   ],
+   [
+    1166,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Henry the Lion's Guelph ducal seat."
+ },
+ {
+  "name": "Hildesheim",
+  "lon": 9.95,
+  "lat": 52.15,
+  "phases": [
+   [
+    815,
+    "village"
+   ],
+   [
+    1235,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Founded as a bishopric under Louis the Pious."
+ },
+ {
+  "name": "Hannover",
+  "lon": 9.73,
+  "lat": 52.37,
+  "phases": [
+   [
+    1150,
+    "village"
+   ],
+   [
+    1241,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Leine ford market town."
+ },
+ {
+  "name": "Bremen",
+  "lon": 8.8,
+  "lat": 53.08,
+  "phases": [
+   [
+    787,
+    "village"
+   ],
+   [
+    845,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Archbishopric, Hanseatic North Sea port."
+ },
+ {
+  "name": "Hamburg",
+  "lon": 9.99,
+  "lat": 53.55,
+  "phases": [
+   [
+    808,
+    "village"
+   ],
+   [
+    845,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Carolingian fort, leading Hanseatic port."
+ },
+ {
+  "name": "Lubeck",
+  "lon": 10.68,
+  "lat": 53.87,
+  "phases": [
+   [
+    1143,
+    "village"
+   ],
+   [
+    1143,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Founded by Henry the Lion; Hanseatic League capital."
+ },
+ {
+  "name": "Rostock",
+  "lon": 12.14,
+  "lat": 54.09,
+  "phases": [
+   [
+    1189,
+    "village"
+   ],
+   [
+    1218,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Baltic Hanseatic port town."
+ },
+ {
+  "name": "Stralsund",
+  "lon": 13.09,
+  "lat": 54.31,
+  "phases": [
+   [
+    1209,
+    "village"
+   ],
+   [
+    1234,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Baltic Hanseatic town facing Rugen."
+ },
+ {
+  "name": "Wismar",
+  "lon": 11.46,
+  "lat": 53.89,
+  "phases": [
+   [
+    1211,
+    "village"
+   ],
+   [
+    1229,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Baltic Hanseatic founding member."
+ },
+ {
+  "name": "Munster",
+  "lon": 7.63,
+  "lat": 51.96,
+  "phases": [
+   [
+    793,
+    "village"
+   ],
+   [
+    805,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Westphalian bishopric founded by Charlemagne."
+ },
+ {
+  "name": "Osnabruck",
+  "lon": 8.05,
+  "lat": 52.28,
+  "phases": [
+   [
+    780,
+    "village"
+   ],
+   [
+    804,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Saxon bishopric, Peace of Westphalia signing site."
+ },
+ {
+  "name": "Paderborn",
+  "lon": 8.75,
+  "lat": 51.72,
+  "phases": [
+   [
+    777,
+    "village"
+   ],
+   [
+    799,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Charlemagne's Saxon-campaign palace town."
+ },
+ {
+  "name": "Soest",
+  "lon": 8.11,
+  "lat": 51.57,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1200,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Early Hanseatic Westphalian salt town."
+ },
+ {
+  "name": "Dortmund",
+  "lon": 7.47,
+  "lat": 51.51,
+  "phases": [
+   [
+    880,
+    "village"
+   ],
+   [
+    1152,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Free imperial Hanseatic city of Westphalia."
+ },
+ {
+  "name": "Cologne-adjacent Bonn",
+  "lon": 7.1,
+  "lat": 50.74,
+  "phases": [
+   [
+    11,
+    "town"
+   ],
+   [
+    1244,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Bonna; electoral residence of Cologne's archbishops."
+ },
+ {
+  "name": "Koblenz",
+  "lon": 7.6,
+  "lat": 50.35,
+  "phases": [
+   [
+    9,
+    "town"
+   ],
+   [
+    1018,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Confluentes; Rhine-Moselle confluence fortress town."
+ },
+ {
+  "name": "Kaiserslautern",
+  "lon": 7.77,
+  "lat": 49.44,
+  "phases": [
+   [
+    1152,
+    "village"
+   ],
+   [
+    1276,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Barbarossa's Palatinate residence town."
+ },
+ {
+  "name": "Freising",
+  "lon": 11.75,
+  "lat": 48.4,
+  "phases": [
+   [
+    724,
+    "village"
+   ],
+   [
+    739,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Bavarian prince-bishopric on the Isar."
+ },
+ {
+  "name": "Landshut",
+  "lon": 12.15,
+  "lat": 48.54,
+  "phases": [
+   [
+    1204,
+    "village"
+   ],
+   [
+    1204,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Wittelsbach Bavarian ducal residence."
+ },
+ {
+  "name": "Ingolstadt",
+  "lon": 11.42,
+  "lat": 48.76,
+  "phases": [
+   [
+    806,
+    "village"
+   ],
+   [
+    1250,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Bavarian Danube fortress and university town."
+ },
+ {
+  "name": "Rothenburg ob der Tauber",
+  "lon": 10.18,
+  "lat": 49.38,
+  "phases": [
+   [
+    970,
+    "village"
+   ],
+   [
+    1274,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Free imperial city, well-preserved medieval walls."
+ },
+ {
+  "name": "Nordlingen",
+  "lon": 10.49,
+  "lat": 48.85,
+  "phases": [
+   [
+    898,
+    "village"
+   ],
+   [
+    1215,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Free imperial city in a meteor-crater basin."
+ },
+ {
+  "name": "Dinkelsbuhl",
+  "lon": 10.32,
+  "lat": 49.07,
+  "phases": [
+   [
+    1188,
+    "village"
+   ],
+   [
+    1305,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Free imperial city on the Romantic Road."
+ },
+ {
+  "name": "Zurich",
+  "lon": 8.54,
+  "lat": 47.37,
+  "phases": [
+   [
+    15,
+    "town"
+   ],
+   [
+    853,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Turicum; free imperial city, later Reformation centre."
+ },
+ {
+  "name": "Bern",
+  "lon": 7.45,
+  "lat": 46.95,
+  "phases": [
+   [
+    1191,
+    "village"
+   ],
+   [
+    1191,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Founded by Berthold V of Zahringen."
+ },
+ {
+  "name": "Basel",
+  "lon": 7.59,
+  "lat": 47.56,
+  "phases": [
+   [
+    -44,
+    "town"
+   ],
+   [
+    1000,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Basilia; Rhine bridge bishopric city."
+ },
+ {
+  "name": "Geneva",
+  "lon": 6.15,
+  "lat": 46.2,
+  "phases": [
+   [
+    -58,
+    "town"
+   ],
+   [
+    443,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Genava; Burgundian capital, later Calvinist Rome."
+ },
+ {
+  "name": "Lausanne",
+  "lon": 6.63,
+  "lat": 46.52,
+  "phases": [
+   [
+    -15,
+    "village"
+   ],
+   [
+    600,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Lousonna; lakeside episcopal seat."
+ },
+ {
+  "name": "Lucerne",
+  "lon": 8.31,
+  "lat": 47.05,
+  "phases": [
+   [
+    750,
+    "village"
+   ],
+   [
+    1178,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Grew around a Benedictine monastery on the lake."
+ },
+ {
+  "name": "St Gallen",
+  "lon": 9.38,
+  "lat": 47.42,
+  "phases": [
+   [
+    612,
+    "village"
+   ],
+   [
+    719,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Founded around the hermit Gallus's cell."
+ },
+ {
+  "name": "Chur",
+  "lon": 9.53,
+  "lat": 46.85,
+  "phases": [
+   [
+    -15,
+    "town"
+   ],
+   [
+    451,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Curia Raetorum; oldest continuously inhabited Swiss town."
+ },
+ {
+  "name": "Fribourg",
+  "lon": 7.16,
+  "lat": 46.8,
+  "phases": [
+   [
+    1157,
+    "village"
+   ],
+   [
+    1157,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Founded by Berthold IV of Zahringen."
+ },
+ {
+  "name": "Schaffhausen",
+  "lon": 8.63,
+  "lat": 47.7,
+  "phases": [
+   [
+    1045,
+    "village"
+   ],
+   [
+    1190,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Rhine falls trading and toll town."
+ },
+ {
+  "name": "Vienna",
+  "lon": 16.37,
+  "lat": 48.21,
+  "phases": [
+   [
+    -15,
+    "town"
+   ],
+   [
+    976,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Vindobona; Babenberg then Habsburg residence."
+ },
+ {
+  "name": "Salzkammergut Hallstatt",
+  "lon": 13.65,
+  "lat": 47.56,
+  "phases": [
+   [
+    -800,
+    "village"
+   ],
+   [
+    1300,
+    "village"
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Ancient salt-mining settlement, continuously worked."
+ },
+ {
+  "name": "Innsbruck",
+  "lon": 11.4,
+  "lat": 47.27,
+  "phases": [
+   [
+    1180,
+    "village"
+   ],
+   [
+    1234,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Tyrolean Inn-bridge market town."
+ },
+ {
+  "name": "Graz",
+  "lon": 15.44,
+  "lat": 47.07,
+  "phases": [
+   [
+    1128,
+    "village"
+   ],
+   [
+    1128,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Styrian ducal residence town."
+ },
+ {
+  "name": "Klagenfurt",
+  "lon": 14.31,
+  "lat": 46.62,
+  "phases": [
+   [
+    1161,
+    "village"
+   ],
+   [
+    1246,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Carinthian ducal capital."
+ },
+ {
+  "name": "Linz",
+  "lon": 14.29,
+  "lat": 48.31,
+  "phases": [
+   [
+    799,
+    "village"
+   ],
+   [
+    1207,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Upper Austrian Danube trading town."
+ },
+ {
+  "name": "Krems",
+  "lon": 15.6,
+  "lat": 48.41,
+  "phases": [
+   [
+    995,
+    "village"
+   ],
+   [
+    1305,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Wachau valley Danube wine-trade town."
+ },
+ {
+  "name": "Wiener Neustadt",
+  "lon": 16.24,
+  "lat": 47.81,
+  "phases": [
+   [
+    1194,
+    "village"
+   ],
+   [
+    1194,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Babenberg-founded fortress town."
+ },
+ {
+  "name": "Birka",
+  "lon": 17.54,
+  "lat": 59.33,
+  "phases": [
+   [
+    750,
+    "town"
+   ],
+   [
+    975,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Chief Viking-age trading town of Lake Malaren."
+ },
+ {
+  "name": "Hedeby",
+  "lon": 9.57,
+  "lat": 54.5,
+  "phases": [
+   [
+    770,
+    "town"
+   ],
+   [
+    1066,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Great Viking-age emporium, destroyed 1066."
+ },
+ {
+  "name": "Kaupang",
+  "lon": 10.0,
+  "lat": 59.05,
+  "phases": [
+   [
+    800,
+    "village"
+   ],
+   [
+    950,
+    null
+   ]
+  ],
+  "evidence": "archaeological",
+  "note": "Earliest known Norwegian trading site."
+ },
+ {
+  "name": "Ribe",
+  "lon": 8.77,
+  "lat": 55.33,
+  "phases": [
+   [
+    704,
+    "village"
+   ],
+   [
+    850,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Denmark's oldest town, early emporium."
+ },
+ {
+  "name": "Roskilde",
+  "lon": 12.08,
+  "lat": 55.64,
+  "phases": [
+   [
+    980,
+    "village"
+   ],
+   [
+    1020,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Danish royal residence and cathedral city."
+ },
+ {
+  "name": "Lund",
+  "lon": 13.19,
+  "lat": 55.7,
+  "phases": [
+   [
+    990,
+    "village"
+   ],
+   [
+    1050,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Danish (later Swedish) archbishopric capital."
+ },
+ {
+  "name": "Odense",
+  "lon": 10.39,
+  "lat": 55.4,
+  "phases": [
+   [
+    988,
+    "village"
+   ],
+   [
+    1100,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Named for Odin; early Danish cathedral town."
+ },
+ {
+  "name": "Aarhus",
+  "lon": 10.21,
+  "lat": 56.16,
+  "phases": [
+   [
+    770,
+    "village"
+   ],
+   [
+    900,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Viking-age ringfort trading town."
+ },
+ {
+  "name": "Viborg",
+  "lon": 9.4,
+  "lat": 56.45,
+  "phases": [
+   [
+    700,
+    "village"
+   ],
+   [
+    1060,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ancient Jutland thing-assembly site."
+ },
+ {
+  "name": "Copenhagen",
+  "lon": 12.57,
+  "lat": 55.68,
+  "phases": [
+   [
+    1043,
+    "village"
+   ],
+   [
+    1167,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Founded around a fishing haven and castle."
+ },
+ {
+  "name": "Schleswig",
+  "lon": 9.55,
+  "lat": 54.52,
+  "phases": [
+   [
+    1066,
+    "village"
+   ],
+   [
+    1150,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Successor town after Hedeby's destruction."
+ },
+ {
+  "name": "Trondheim (Nidaros)",
+  "lon": 10.4,
+  "lat": 63.43,
+  "phases": [
+   [
+    997,
+    "village"
+   ],
+   [
+    997,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Founded by Olaf Tryggvason; medieval Norwegian capital."
+ },
+ {
+  "name": "Bergen",
+  "lon": 5.32,
+  "lat": 60.39,
+  "phases": [
+   [
+    1070,
+    "village"
+   ],
+   [
+    1070,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Founded as Norway's Hanseatic trading capital."
+ },
+ {
+  "name": "Oslo",
+  "lon": 10.74,
+  "lat": 59.91,
+  "phases": [
+   [
+    1049,
+    "village"
+   ],
+   [
+    1049,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Founded by Harald Hardrada near the Oslofjord."
+ },
+ {
+  "name": "Tonsberg",
+  "lon": 10.41,
+  "lat": 59.27,
+  "phases": [
+   [
+    871,
+    "village"
+   ],
+   [
+    900,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Norway's oldest town by tradition."
+ },
+ {
+  "name": "Stavanger",
+  "lon": 5.73,
+  "lat": 58.97,
+  "phases": [
+   [
+    1100,
+    "village"
+   ],
+   [
+    1125,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Founded around a Norwegian cathedral."
+ },
+ {
+  "name": "Hamar",
+  "lon": 11.07,
+  "lat": 60.79,
+  "phases": [
+   [
+    1152,
+    "village"
+   ],
+   [
+    1152,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Founded as an inland Norwegian bishopric."
+ },
+ {
+  "name": "Sigtuna",
+  "lon": 17.72,
+  "lat": 59.62,
+  "phases": [
+   [
+    970,
+    "village"
+   ],
+   [
+    980,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Founded to succeed Birka as a royal mint town."
+ },
+ {
+  "name": "Uppsala (Gamla Uppsala)",
+  "lon": 17.63,
+  "lat": 59.86,
+  "phases": [
+   [
+    -200,
+    "village"
+   ],
+   [
+    1164,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Pagan cult centre, later Swedish archbishopric."
+ },
+ {
+  "name": "Skara",
+  "lon": 13.43,
+  "lat": 58.39,
+  "phases": [
+   [
+    1000,
+    "village"
+   ],
+   [
+    1014,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Earliest Swedish bishopric, in Vastergotland."
+ },
+ {
+  "name": "Kalmar",
+  "lon": 16.36,
+  "lat": 56.66,
+  "phases": [
+   [
+    1100,
+    "village"
+   ],
+   [
+    1200,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Southeast Swedish castle town, 1397 union signed here."
+ },
+ {
+  "name": "Visby",
+  "lon": 18.29,
+  "lat": 57.63,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    1200,
+    "city"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Gotland's Hanseatic trading capital."
+ },
+ {
+  "name": "Nidaros-adjacent Hamarøy",
+  "lon": 15.6,
+  "lat": 68.08,
+  "phases": [
+   [
+    1200,
+    "village"
+   ],
+   [
+    1300,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Small northern Norwegian trading hamlet."
+ },
+ {
+  "name": "Skien",
+  "lon": 9.61,
+  "lat": 59.21,
+  "phases": [
+   [
+    1100,
+    "village"
+   ],
+   [
+    1358,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Telemark timber-trade town on a waterway."
+ },
+ {
+  "name": "Sarpsborg",
+  "lon": 11.11,
+  "lat": 59.28,
+  "phases": [
+   [
+    1016,
+    "village"
+   ],
+   [
+    1016,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Founded by Olaf II near the Sarpsfossen."
+ },
+ {
+  "name": "Vaxjo",
+  "lon": 14.81,
+  "lat": 56.88,
+  "phases": [
+   [
+    1000,
+    "village"
+   ],
+   [
+    1300,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Smaland Swedish bishopric market town."
+ },
+ {
+  "name": "Linkoping",
+  "lon": 15.62,
+  "lat": 58.41,
+  "phases": [
+   [
+    1100,
+    "village"
+   ],
+   [
+    1120,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Ostergotland Swedish bishopric."
+ },
+ {
+  "name": "Vasteras",
+  "lon": 16.55,
+  "lat": 59.61,
+  "phases": [
+   [
+    990,
+    "village"
+   ],
+   [
+    1120,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Malaren Swedish bishopric and mining port."
+ },
+ {
+  "name": "Soderkoping",
+  "lon": 16.32,
+  "lat": 58.48,
+  "phases": [
+   [
+    1000,
+    "village"
+   ],
+   [
+    1200,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Medieval Swedish Baltic trading town."
+ },
+ {
+  "name": "Nykoping",
+  "lon": 17.01,
+  "lat": 58.75,
+  "phases": [
+   [
+    1000,
+    "village"
+   ],
+   [
+    1200,
+    "town"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Sodermanland Swedish castle and market town."
+ },
+ {
+  "name": "Reykjavik",
+  "lon": -21.94,
+  "lat": 64.15,
+  "phases": [
+   [
+    874,
+    "village"
+   ],
+   [
+    1786,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Iceland's first Norse settlement by Ingolfr Arnarson."
+ },
+ {
+  "name": "Skalholt",
+  "lon": -20.54,
+  "lat": 64.13,
+  "phases": [
+   [
+    1056,
+    "village"
+   ],
+   [
+    1785,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Iceland's chief bishopric for seven centuries."
+ },
+ {
+  "name": "Holar",
+  "lon": -19.06,
+  "lat": 65.71,
+  "phases": [
+   [
+    1106,
+    "village"
+   ],
+   [
+    1801,
+    null
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Northern Icelandic bishopric seat."
+ },
+ {
+  "name": "Thingvellir",
+  "lon": -21.13,
+  "lat": 64.26,
+  "phases": [
+   [
+    930,
+    "village"
+   ],
+   [
+    930,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Site of the Althing, Iceland's founding assembly."
+ },
+ {
+  "name": "Borgarnes area (Borg)",
+  "lon": -21.85,
+  "lat": 64.53,
+  "phases": [
+   [
+    884,
+    "village"
+   ],
+   [
+    1300,
+    "village"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Settlement-age farm of Egil Skallagrimsson's family."
+ },
+ {
+  "name": "Nidaros hinterland Steinkjer",
+  "lon": 11.5,
+  "lat": 64.02,
+  "phases": [
+   [
+    1000,
+    "village"
+   ],
+   [
+    1200,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Trondelag Norwegian farming and trade hamlet."
+ },
+ {
+  "name": "Turku (Åbo)",
+  "lon": 22.27,
+  "lat": 60.45,
+  "phases": [
+   [
+    1229,
+    "village"
+   ],
+   [
+    1229,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Founded as Finland's medieval bishopric capital."
+ },
+ {
+  "name": "Vyborg",
+  "lon": 28.75,
+  "lat": 60.71,
+  "phases": [
+   [
+    1293,
+    "village"
+   ],
+   [
+    1293,
+    "town"
+   ]
+  ],
+  "evidence": "documented",
+  "note": "Swedish-founded castle town on the Karelian frontier."
+ },
+ {
+  "name": "Nidaros South Faroe Torshavn",
+  "lon": -6.79,
+  "lat": 62.01,
+  "phases": [
+   [
+    900,
+    "village"
+   ],
+   [
+    900,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Faroese Norse assembly and trading settlement."
+ },
+ {
+  "name": "Kaupanger",
+  "lon": 7.14,
+  "lat": 61.19,
+  "phases": [
+   [
+    1100,
+    "village"
+   ],
+   [
+    1150,
+    "village"
+   ]
+  ],
+  "evidence": "inferred",
+  "note": "Sognefjord Norwegian trading hamlet, famed stave church."
+ }
+]

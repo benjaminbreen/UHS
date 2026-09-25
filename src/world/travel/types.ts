@@ -10,8 +10,10 @@ export type TravelLocation = Coordinate & {
   settlement?: {
     from: number;
     to?: number;
-    rank: "town" | "city";
+    rank: "village" | "town" | "city";
     source: string;
+    /** Year, rank pairs from the gazetteer import: 0 gone, 1 village, 2 town, 3 city. */
+    phases?: number[];
   };
   note?: string;
 };
@@ -38,7 +40,9 @@ export type TravelCell = Coordinate & {
 export type TravelStop = TravelCell & {
   transition?: "embark" | "disembark";
   locationId?: string;
-  settlement: "city" | "town" | "unresearched" | "none";
+  settlement: "city" | "town" | "village" | "unresearched" | "none";
+  /** Farms or camps rolled for a square with no attested town. */
+  countryside?: "sparse" | "settled";
   reason: string;
   km: number;
   pathIndex: number;

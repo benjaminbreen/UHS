@@ -2,6 +2,7 @@ import { places } from "../../content/geography/places";
 import { regionalProfiles } from "../../content/geography/regions";
 import { containsDate } from "../../content/history/dates";
 import { environmentFor } from "../../content/geography/defaults";
+import { farms, networkOnset } from "../../content/geography/onsets";
 import { settingFor } from "../../content/geography/resolve";
 import type { AtlasPlace, WorldSetting } from "../../content/geography/types";
 import {
@@ -92,6 +93,9 @@ export function resolveMapEnvironment(anchor: Coordinate, year: number) {
       : nearby.id,
   };
 }
+// The travel culture can lag a modern date (Los Angeles in 1950 still reads
+// as foragers), but once the modern network of places exists, land is farmed.
+const tilled = (w: Parameters<typeof farms>[0]) => farms(w) || w.year >= networkOnset(w);
 export type MapEnvironment = ReturnType<typeof resolveMapEnvironment>;
 export function settingForTravelStop(stop: TravelStop, year: number) {
   const e =
@@ -112,9 +116,11 @@ export function settingForTravelStop(stop: TravelStop, year: number) {
     settlement:
       stop.settlement === "city"
         ? "city"
-        : stop.settlement === "town"
+        : stop.settlement === "town" || stop.settlement === "village" || stop.countryside === "settled"
           ? "village"
-          : "camp",
+          : stop.countryside && tilled({ ...e.anchor, culture: e.culture, year })
+            ? "farm"
+            : "camp",
   };
   const setting = settingFor(place, year);
   // A map is a square of the real Earth, so its coasts are the atlas's own.
