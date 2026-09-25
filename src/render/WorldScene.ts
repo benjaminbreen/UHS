@@ -114,6 +114,20 @@ import {
 } from "../core/facing";
 import { HANGING, windProfile, windSway, type WindProfile } from "./wind";
 /** Grit thrown up by a take-off or a landing. */
+// Flies each draws on a warm day: privies, middens and the tanner's pits.
+const flyProps: Record<string, number> = {
+  privyShed: 4,
+  privyScreen: 5,
+  privyBench: 5,
+  privyStone: 4,
+  privyNightSoil: 5,
+  privyOuthouse: 4,
+  privyMidden: 6,
+  privyDung: 6,
+  communalMidden: 7,
+  shellMidden: 5,
+  tanningPits: 6,
+};
 // The rest squish.
 const fungusSteps: Record<string, FungusStep> = {
   puffball: "puff",
@@ -187,6 +201,8 @@ import { CourtyardLighting, type CourtyardLight } from "./courtyard-lighting";
 import { Drift } from "./drift";
 import { Mist } from "./mist";
 import { AmbientLife, critterFor } from "./ambient-life";
+import { Flies, type FlySource } from "./flies";
+import { freshDung } from "../core/dung";
 import {
   groundState,
   snowCover,
@@ -543,6 +559,7 @@ export class WorldScene extends Phaser.Scene {
   private mist?: Mist;
   private life?: AmbientLife;
   private weather?: Weather;
+  private flies?: Flies;
   /** Lying snow, in the raster's steps. */
   private snow = 0;
   private season = "summer";
@@ -650,6 +667,7 @@ export class WorldScene extends Phaser.Scene {
     this.drift = new Drift(this);
     this.mist = new Mist(this);
     this.life = new AmbientLife(this);
+    this.flies = new Flies(this);
     this.input.keyboard!.removeCapture([
       "UP",
       "DOWN",
@@ -3858,6 +3876,29 @@ export class WorldScene extends Phaser.Scene {
         });
       }
     }
+    const flySources: FlySource[] = [];
+    const at = (id: string, pos: Position, n: number) =>
+      flySources.push({ id, x: pos.x * 16 + 8, y: pos.y * 16 + 14, n });
+    for (const o of obs.objects) {
+      if (o.pos.space !== "outside" || o.carriedBy) continue;
+      if (o.dung && o.dung !== "droppings" && freshDung(o, e.state.clock))
+        at(o.id, o.pos, o.dung === "pellets" ? 2 : 4);
+      else if (o.item === "meat" || o.item === "fish") at(o.id, o.pos, 4);
+      else if (o.prop && flyProps[o.prop]) at(o.id, o.pos, flyProps[o.prop]);
+    }
+    if (economy)
+      for (const h of e.state.households ?? []) {
+        const store = obs.objects.find((o) => o.id === h.storeId);
+        if (store?.pos.space === "outside" && shownStock(economy, h).some((i) => i === "meat" || i === "fish"))
+          at(`${store.id}:stall`, store.pos, 5);
+      }
+    const sky = this.weather;
+    this.flies?.set(
+      flySources,
+      !sky || this.light.id === "night" || sky.condition === "rain" || sky.condition === "snow"
+        ? 0
+        : Math.max(0, Math.min(1, (sky.tempC - 8) / 14)),
+    );
     this.heldSprites.clear();
     // An item taken in hand is drawn the same way a carried prop is, but a
     // real object in the hand wins.
@@ -4384,6 +4425,14 @@ export class WorldScene extends Phaser.Scene {
     this.drift?.update(time, !!this.options.freeze);
     this.mist?.update(time, !!this.options.freeze);
     this.life?.update(time, !!this.options.freeze);
+    this.flies?.update(
+      delta / 1000,
+      [...this.humanActors.keys()].flatMap((id) => {
+        const im = this.entities.get(id);
+        return im?.visible ? [{ x: im.x, y: im.y }] : [];
+      }),
+      !!this.options.freeze,
+    );
     updatePuddles(this, time);
     if (this.night) this.paintWash();
     this.followTiltFocus();

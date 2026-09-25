@@ -288,6 +288,13 @@ export type WorldObject = {
   claim?: string;
   /** Drawn only in these seasons. Standing sheaves are not a summer sight. */
   seasons?: string[];
+  /** Dung, by how it lies; `laid` is the clock it fell. */
+  dung?: import("../content/fauna/dung").DungKind;
+  laid?: number;
+  /** The species that left it. */
+  from?: string;
+  /** Stepped in. */
+  trodden?: boolean;
   /** Knocked over: draws its fallen sprite and spills what it held. */
   tipped?: boolean;
 };

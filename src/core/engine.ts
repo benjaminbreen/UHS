@@ -88,6 +88,8 @@ import { route, type RouteResult } from "./routing";
 import { terrainJump, terrainLeap, type LeapResult } from "./topography";
 import { boundaryGraph } from "../render/fence-pass";
 import { advanceFauna, stepAllowed } from "./fauna-sim";
+import { ageDung, capDung, dungObject } from "./dung";
+import { dungOf, dungPerDay } from "../content/fauna/dung";
 import { aerialStates, type FaunaGroup, type FaunaMember } from "./fauna";
 import {
   ensureVitals,
@@ -2179,8 +2181,15 @@ export class Engine {
     const name = this.item(item)?.name.toLowerCase() ?? item;
     return n > 1 ? `${n} ${name}` : name;
   }
-  /** A foot on a fungus leaves it squashed. */
+  /** A foot on a fungus leaves it squashed, and one in a pat leaves it flat. */
   private tread(x: number, y: number) {
+    const pat = this.state.objects.find(
+      (o) => o.dung === "pat" && !o.carriedBy && o.pos.space === "outside" && o.pos.x === x && o.pos.y === y,
+    );
+    if (pat && !pat.trodden) {
+      pat.trodden = true;
+      ageDung(pat, this.state.clock);
+    }
     if (this.world.decoration(x, y)?.sprite !== "nature-understory-fungi") return;
     const edit = this.editAt(x, y);
     if (edit.trodden) return;
@@ -4112,6 +4121,7 @@ export class Engine {
       if (!known.has(g.id)) {
         known.add(g.id);
         this.state.fauna.push(copy(g));
+        this.soil(g);
       }
     for (const g of this.state.fauna) this.enrol(g);
     // A herd at grass brings its herders with it: they join the world's list
@@ -4330,8 +4340,54 @@ export class Engine {
       }
     if (near.some((g) => g.provoked !== undefined))
       this.combatUntil = Math.max(this.combatUntil, clock + 30);
+    this.dropDung(near, clock);
     // A herd eaten down to nothing leaves no group behind.
     this.state.fauna = groups.filter((g) => g.members.length);
+  }
+  /** Where a group has been living is not clean ground: a few days' dung
+   * round its home, the older the further from the fold. */
+  private soil(g: FaunaGroup) {
+    const kind = dungOf[g.speciesId];
+    if (!kind) return;
+    const clock = this.state.clock;
+    const n = Math.min(12, g.members.length * 2);
+    for (let i = 0; i < n; i++) {
+      const r = this.rng("dung-r") * Math.min(g.homeRadius, 6);
+      const a = this.rng("dung-a") * Math.PI * 2;
+      const x = Math.round(g.home.x + Math.cos(a) * r),
+        y = Math.round(g.home.y + Math.sin(a) * r);
+      if (this.blocked(x, y, "outside")) continue;
+      const laid = clock - this.rng("dung-age") * 4 * 86400;
+      this.state.objects.push(
+        dungObject(kind, { x, y, space: "outside" }, laid, `dung-${g.id}-${i}`, g.speciesId, i % 2),
+      );
+    }
+    this.state.objects = capDung(this.state.objects);
+  }
+  /** Animals relieve themselves where they stand, a dozen times a day for a
+   * cow; each hour what lies about dries a little further. */
+  private dropDung(groups: FaunaGroup[], clock: number) {
+    let dropped = false;
+    for (const g of groups) {
+      const kind = dungOf[g.speciesId];
+      if (!kind || aerialStates.has(g.state)) continue;
+      const chance = (dungPerDay[kind] * 6) / 86400;
+      for (const m of g.members) {
+        if (this.rng("dung") >= chance) continue;
+        const x = m.trail?.x ?? m.x,
+          y = m.trail?.y ?? m.y;
+        if (this.blocked(x, y, "outside")) continue;
+        this.state.objects.push(
+          dungObject(kind, { x, y, space: "outside" }, clock, `dung-${g.id}-${m.n ?? 0}-${clock}`, g.speciesId, clock % 2),
+        );
+        dropped = true;
+      }
+    }
+    if (Math.floor(clock / 3600) !== Math.floor((clock - 6) / 3600)) {
+      for (const o of this.state.objects) if (o.dung) ageDung(o, clock);
+      dropped = true;
+    }
+    if (dropped) this.state.objects = capDung(this.state.objects);
   }
   /** The traversal a move resolved to, for the renderer to animate. Cleared
    * once read, so a walked step never inherits the previous jump's arc. */

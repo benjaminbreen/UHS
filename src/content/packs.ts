@@ -6,6 +6,7 @@ import { forageItems } from "./ecology/forage";
 import { metalItems } from "./ecology/metals";
 import { floraItems } from "./ecology/flora";
 import { wearableItems } from "./characters/wearables";
+import { dungItems } from "./fauna/dung";
 export const items: Record<
   import("../core/types").ItemId,
   import("../core/types").ItemDef
@@ -16,6 +17,7 @@ export const items: Record<
   ...metalItems,
   ...floraItems,
   ...wearableItems,
+  ...dungItems,
 };
 export const packs: Record<string, Pack> = resolvePlayablePacks();
 export function resolvePrompt(

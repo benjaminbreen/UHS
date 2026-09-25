@@ -117,3 +117,30 @@ describe("four-direction fauna", () => {
     expect(foal.w).toBeLessThan(horse.w);
   });
 });
+
+describe("dung", () => {
+  it("names only real species and draws every sprite it uses", async () => {
+    const { dungOf, dungItems } = await import("../src/content/fauna/dung");
+    const nature = (await import("../public/nature/atlas.json")).default.frames;
+    const ids = new Set(faunaProfiles.map((p) => p.id));
+    for (const id of Object.keys(dungOf)) expect(ids.has(id), id).toBe(true);
+    for (const item of Object.values(dungItems))
+      expect(item.sprite in nature, item.sprite).toBe(true);
+  });
+
+  it("dries a pat to a cake and keeps only the newest past the cap", async () => {
+    const { dungObject, ageDung, capDung, DUNG_CAP } = await import("../src/core/dung");
+    const pos = { x: 0, y: 0, space: "outside" };
+    const pat = dungObject("pat", pos, 0, "p", "cattle");
+    expect(pat.from).toBe("cattle");
+    expect(pat.item).toBe("cow-dung");
+    ageDung(pat, 4 * 86400);
+    expect(pat.item).toBe("dung-cake");
+    expect(pat.sprite).toBe("nature-dung-pat-dry");
+    expect(dungObject("droppings", pos, 0, "d", "chicken").item).toBeUndefined();
+    const many = Array.from({ length: DUNG_CAP + 5 }, (_, i) => dungObject("pile", pos, i, `x${i}`, "horse"));
+    const kept = capDung(many);
+    expect(kept).toHaveLength(DUNG_CAP);
+    expect(kept.some((o) => o.id === "x0")).toBe(false);
+  });
+});

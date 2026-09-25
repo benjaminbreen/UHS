@@ -714,3 +714,39 @@ for metal, accent in [('copper', '#c87a44'), ('tin', '#c8c8c0'), ('iron', '#9a56
     like('%s-ore-poor' % metal, 'ore-poor', '#8a8680', accent)
     like('%s-ore' % metal, 'ore', '#8a8680', accent)
     like('%s-ore-rich' % metal, 'ore-rich', '#8a8680', accent)
+
+# Dung: a coiled pat, a horse's pile, a handful of pellets.
+item('cow-dung', '#5a4228', '#7a5e3a', [
+ "", "", "", "", "", "",
+ "         oooooo         ",
+ "      ooottttttooo      ",
+ "    oootoooooooootooo   ",
+ "   ootoootttttttoootoo  ",
+ "  ootootoooooooootootoo ",
+ "  ootootttttttttttootoo ",
+ "   oootoooooooooootooo  ",
+ "     oooottttttttooo    ",
+ "        oooooooooo      ",
+])
+like('dung-cake', 'cow-dung', '#a09070', '#7e6e52')
+item('horse-dung', '#6a5a2e', '#8a7a44', [
+ "", "", "", "", "", "",
+ "          oooo          ",
+ "         ootttoo        ",
+ "         oooooo         ",
+ "     oooo      oooo     ",
+ "    ootttoo  ootttoo    ",
+ "    oooooo    oooooo    ",
+ "     oooo      oooo     ",
+])
+like('dry-horse-dung', 'horse-dung', '#a89868', '#c8b888')
+item('dung-pellets', '#3a2e20', '#5a4a34', [
+ "", "", "", "", "", "", "",
+ "       oo    oo         ",
+ "      oto   oto   oo    ",
+ "       oo    oo  oto    ",
+ "   oo     oo      oo    ",
+ "  oto    oto   oo       ",
+ "   oo     oo  oto       ",
+ "               oo       ",
+])
