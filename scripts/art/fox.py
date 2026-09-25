@@ -60,7 +60,7 @@ for _kind in KINDS.values():
         assert len(set(_coat_roles.values())) == 14
 NATIVE_SIZES = {sp: (WIDTH, GROUND + 4 + HEADROOM) for sp in SPECIES}
 STANDING_SIZES = {sp: (WIDTH, GROUND + 1) for sp in SPECIES}
-STATES = {sp: {"idle": 16, "forage": 16, "wander": 8, "stalk": 8, "chase": 8, "flee": 8, "rest": 16} for sp in SPECIES}
+STATES = {sp: {"idle": 16, "forage": 16, "wander": 8, "stalk": 8, "chase": 8, "flee": 8, "pounce": 8, "rest": 16} for sp in SPECIES}
 PALETTES = {sp: next(iter(k["coats"].values())) for sp, k in KINDS.items()}
 
 # The kind being drawn. Every shape goes through T, which scales the model
@@ -791,6 +791,8 @@ DIRECTIONS = ("south", "east", "north", "west")
 def draw(species, state, facing, frame):
     global K
     K = KINDS[species]
+    if state == "pounce":  # at something real: the leap out of the mousing loop, crouch to nose-down
+        state, frame = "forage", frame + 7
     if facing in ("east", "west"):
         im = rest(frame) if state == "rest" else side(SIDE[state](frame))
         return _mirror(im) if facing == "west" else im

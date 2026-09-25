@@ -57,6 +57,17 @@ const TICK = 6;
 const HUNT_RADIUS = 2.5;
 /** Inside this the hunter drops the stalk and runs. */
 const POUNCE = 5;
+/** Cells a cat or a fox springs from. */
+const LEAP = 3;
+/** Chance a pounce on an animal that has not seen it comes down on it. */
+const STRIKE = 0.45;
+/** Seconds a pouncer runs after one that got away before it gives up. */
+const DASH = 3 * TICK;
+/** Seconds after a missed pounce before it hunts again. */
+const SULK = 90;
+/** Chance per tick, at point blank, that prey spots a hunter creeping up. It
+ * falls away to nothing at the edge of what the prey notices. */
+const SPOT = 0.35;
 /** Cells an egret flock will cross to join a grazing herd. */
 const HERD_RANGE = 24;
 /** Game seconds a kill keeps a hunter off the hunt. */
@@ -626,7 +637,10 @@ function chooseQuarry(
   const held = edible.find((h) => h.group.id === g.quarry);
   // A blown pack gives up. This is what a rabbit lives on: it need only stay
   // ahead until the wolves have nothing left.
-  const blown = g.state === "chase" && (g.hard ?? 0) >= STAMINA * 1.4;
+  // A cat or a fox that missed makes a dash, not a chase.
+  const blown =
+    g.state === "chase" &&
+    (g.hard ?? 0) >= (p.art.pounce ? DASH : STAMINA * 1.4);
   if (held && !blown) return held.group;
   if (g.quarry) {
     // A run that has gone this long has failed. Give it up and lie down
@@ -645,6 +659,76 @@ function chooseQuarry(
     }
   }
   return best;
+}
+
+/** The spring: it lands beside the nearest one, and either has it pinned or
+ * has missed and scattered the lot. What it pinned is taken next tick. */
+function pounce(
+  g: FaunaGroup,
+  p: FaunaProfile,
+  quarry: FaunaGroup,
+  victim: FaunaMember,
+  world: FaunaWorld,
+  clock: number,
+  taken: Set<string>,
+  turns: boolean,
+) {
+  const lead = g.members[0];
+  const land = NEIGHBOURS.map((n) => ({ x: victim.x + n.x, y: victim.y + n.y }))
+    .filter(
+      (c) =>
+        !taken.has(`${c.x},${c.y}`) &&
+        !world.occupied(c.x, c.y) &&
+        stepAllowed(world, p, lead, c),
+    )
+    .sort((a, b) => hyp(a, lead) - hyp(b, lead))[0];
+  if (land) moveMember(lead, land, taken, turns);
+  face(lead, victim.x - lead.x, victim.y - lead.y, turns);
+  const prey = faunaProfile(quarry.speciesId);
+  // Something already looking its way, or with wings, is harder to pin.
+  const odds =
+    STRIKE *
+    (quarry.alarm !== undefined ? 0.4 : 1) *
+    (prey?.locomotion === "ground-and-flight" ? 0.5 : 1);
+  g.state = "pounce";
+  g.since = clock;
+  g.target = undefined;
+  g.quarry = undefined;
+  g.nextDecisionAt = clock + TICK;
+  if (world.rng(`fauna-${g.id}-strike`) < odds) {
+    victim.stun = clock + TICK + 1;
+    g.catching = {
+      group: quarry.id,
+      n: victim.n ?? quarry.members.indexOf(victim),
+    };
+    // One mouse is not a meal.
+    g.fedUntil = clock + (prey?.prey === "rodent" ? FED / 4 : FED);
+  } else g.fedUntil = clock + SULK;
+}
+
+function take(
+  g: FaunaGroup,
+  p: FaunaProfile,
+  groups: FaunaGroup[],
+  world: FaunaWorld,
+  clock: number,
+  taken: Set<string>,
+) {
+  const { group, n } = g.catching!;
+  g.catching = undefined;
+  const held = groups.find((o) => o.id === group);
+  const i = held ? held.members.findIndex((m, k) => (m.n ?? k) === n) : -1;
+  if (held && i >= 0) {
+    const [dead] = held.members.splice(i, 1);
+    taken.delete(`${dead.x},${dead.y}`);
+    const next = held.members[0];
+    if (next) held.pos = { x: next.x, y: next.y, space: "outside" };
+    held.target = undefined;
+    world.onKill?.(g, held, dead);
+  }
+  g.state = p.art.rest ? "rest" : "idle";
+  g.since = clock;
+  g.nextDecisionAt = clock + p.calmDecisionSeconds;
 }
 
 /** One six-second step for every group near enough to matter. Groups are
@@ -670,13 +754,19 @@ export function advanceFauna(
     if (quarry) hunts.set(h.group.id, quarry);
     else h.group.quarry = undefined;
   }
-  /** Hunters on the move that eat an animal of this kind. */
-  const stalkers = (p: FaunaProfile) =>
+  /** Hunters on the move that eat an animal of this kind. One creeping up is
+   * only seen by luck, and more likely the closer it gets. */
+  const stalkers = (p: FaunaProfile, g: FaunaGroup) =>
     p.prey
       ? herds
           .filter(
             (h) =>
-              hunts.has(h.group.id) && h.profile.preyTags?.includes(p.prey!),
+              (hunts.has(h.group.id) || h.group.state === "pounce") &&
+              h.profile.preyTags?.includes(p.prey!) &&
+              (h.group.state !== "stalk" ||
+                world.rng(`fauna-${g.id}-spot`) <
+                  SPOT *
+                    Math.max(0, 1 - hyp(h.group.pos, g.pos) / alertRadius(p))),
           )
           .map((h) => ({ ...h.group.pos }))
       : [];
@@ -690,8 +780,9 @@ export function advanceFauna(
       g.pos = { x: lead.x, y: lead.y, space: "outside" };
       continue;
     }
+    if (g.catching && clock > g.since) take(g, p, groups, world, clock, taken);
     const near = !player || hyp(player, g.pos) <= DETAIL;
-    const chasers = stalkers(p);
+    const chasers = stalkers(p, g);
     const menaces = chasers.length
       ? [...world.humans, ...chasers]
       : world.humans;
@@ -803,10 +894,22 @@ export function advanceFauna(
     // A hunter with quarry in view creeps or runs at it; either way it has
     // nothing to decide until the chase is over.
     const quarry = hunts.get(g.id);
-    if (quarry) {
+    const victim = quarry?.members.reduce((a, b) =>
+      hyp(b, g.members[0]) < hyp(a, g.members[0]) ? b : a,
+    );
+    // A cat or a fox creeps in and springs; anything else runs its quarry down.
+    const springs =
+      !!p.art.pounce &&
+      !!victim &&
+      quarry!.state !== "flee" &&
+      hyp(victim, g.members[0]) <= LEAP;
+    if (quarry && springs)
+      pounce(g, p, quarry, victim!, world, clock, taken, turns);
+    else if (quarry) {
       g.quarry = quarry.id;
       const want: FaunaState =
-        hyp(g.pos, quarry.pos) <= POUNCE || quarry.state === "flee"
+        quarry.state === "flee" ||
+        (!p.art.pounce && hyp(g.pos, quarry.pos) <= POUNCE)
           ? "chase"
           : "stalk";
       if (g.state !== want) {

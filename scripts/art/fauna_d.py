@@ -192,7 +192,7 @@ STATES = {
     "dog": dict.fromkeys(["idle", "forage", "wander", "flee", "rest"], 8),
     "donkey": dict.fromkeys(["idle", "graze", "wander", "flee", "rest"], 8),
     "camel": dict.fromkeys(["idle", "graze", "wander", "flee", "rest"], 8),
-    "cat": dict.fromkeys(["idle", "forage", "wander", "flee", "rest", "stalk", "chase"], 8),
+    "cat": dict.fromkeys(["idle", "forage", "wander", "flee", "rest", "stalk", "chase", "pounce"], 8),
     "mouse": dict.fromkeys(["idle", "forage", "wander", "flee"], 8),
 }
 # Drawing coordinates are measured with the ground line at GROUND; HEADROOM is
@@ -1392,6 +1392,8 @@ def cat(form, state, frame):
         return _cat_sit(c, frame)
     if state == "rest":
         return _cat_loaf(c, frame)
+    if state == "pounce":
+        return _cat_pounce(c, form, frame)
     chase = state == "chase"
     s = Stride("flee" if chase else "wander" if state == "forage" else state, frame, walk=(1.8, 1.6, 0.55), run=(3.6, 2.6, 0.34), phases=WALK, bounce=1.4)
     stalk = state == "stalk"
@@ -1442,6 +1444,48 @@ def cat(form, state, frame):
     return c.finish()
 
 
+# The spring, after the hips have wiggled: (loin, chest, head top-left, the
+# fore and hind feet, the tail) per frame. Low and forward, not the fox's
+# high arc: a cat covers the ground and lands with the forepaws on it.
+CAT_POUNCE = {
+    2: ((4, 6, 12, 11), (11, 1, 19, 7), (18, -3), ((21, 1), (20, 2)), ((3, 16), (4, 16)), [(5, 8), (1, 9), (-2, 9)]),
+    3: ((7, -1, 15, 5), (13, -1, 21, 5), (21, -1), ((25, 5), (24, 6)), ((4, 5), (5, 6)), [(8, 1), (4, 0), (1, -1)]),
+    4: ((9, 1, 17, 7), (15, 4, 22, 10), (22, 6), ((25, 14), (24, 15)), ((9, 9), (10, 10)), [(10, 2), (7, -1), (6, -4)]),
+    5: ((9, 4, 17, 10), (15, 8, 22, 13), (22, 10), ((24, 16), (25, 16)), ((11, 16), (13, 16)), [(10, 5), (8, 1), (9, -3)]),
+    6: ((8, 7, 16, 13), (14, 9, 22, 14), (21, 10), ((23, 16), (24, 16)), ((10, 16), (12, 16)), [(8, 9), (4, 10), (1, 8)]),
+    7: ((8, 7, 16, 13), (14, 9, 22, 14), (21, 10), ((23, 16), (24, 16)), ((10, 16), (12, 16)), [(8, 9), (4, 10), (1, 6)]),
+}
+
+
+def _cat_pounce(c, form, frame):
+    """Two frames of the hips going, then the spring, the reach, and down with
+    both forepaws on the mouse and the tail thrashing."""
+    if frame < 2:
+        return cat(form, "stalk", 5 + frame)
+    s = Stride("idle", frame, (0, 0, 1), (0, 0, 1))
+    s.flick = False
+    g = GROUND["cat"]
+    loin, chest, (hx, hy), fore, hind, tail = CAT_POUNCE[frame]
+    if frame >= 3:  # the canvas is a stalking cat wide; the landing is drawn back into it
+        loin, chest, hx = (loin[0] - 3, loin[1], loin[2] - 3, loin[3]), (chest[0] - 3, chest[1], chest[2] - 3, chest[3]), hx - 3
+        fore, hind = tuple((x - 3, y) for x, y in fore), tuple((x - 3, y) for x, y in hind)
+        tail = [(x - 3, y) for x, y in tail]
+    hips, shoulders = ((loin[0] + loin[2]) / 2, loin[3] - 2), ((chest[0] + chest[2]) / 2 + 1, chest[3] - 1)
+    for foot, near in zip(hind, (False, True)):
+        leg(c, hips, foot, *bones(hips[1], g, True), True, near, 2, 1) if not near else None
+    for foot, near in zip(fore, (False, True)):
+        leg(c, shoulders, foot, *bones(shoulders[1], g, False), False, near, 2, 1) if not near else None
+    _tail(c, tail)
+    body = ellipse(loin) | ellipse(chest)
+    c.paint(lit(body, 1, 2, (loin[0] + 2, chest[2] - 2)))
+    _stripes(c, body, min(loin[1], chest[1]), 3)
+    mark(c, body, blobs([(chest[0] + 2, chest[1] + 3, chest[2] + 1, chest[3] + 2)]))
+    _cat_head(c, hx, hy, s, back=frame in (2, 3))
+    leg(c, hips, hind[1], *bones(hips[1], g, True), True, True, 2, 1)
+    leg(c, shoulders, fore[1], *bones(shoulders[1], g, False), False, True, 2, 1)
+    return c.finish()
+
+
 def _cat_sit(c, frame):
     """Upright on its haunches, forefeet together, tail laid round them. Every
     so often it washes: a forepaw comes up and the head bends to it."""
@@ -1487,6 +1531,14 @@ def _cat_loaf(c, frame):
 
 
 def _cat_face(form, state, frame, south):
+    if state == "pounce":
+        from PIL import Image
+        im = _cat_face(form, "stalk", 5 + min(frame, 1), south)
+        rise = [0, 0, 3, 6, 3, 0, 0, 0][frame]
+        out = Image.new("RGBA", im.size)
+        out.paste(im, (0, -rise))
+        out.info["anchor"] = im.info.get("anchor")
+        return out
     c = Canvas("cat")
     g, cx = GROUND["cat"], 13
     chase = state == "chase"

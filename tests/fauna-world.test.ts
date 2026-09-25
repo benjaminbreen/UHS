@@ -319,6 +319,59 @@ describe("fauna hunting", () => {
     expect(a.quarry).toBeUndefined();
     expect(b.state).not.toBe("flee");
   });
+  /** A fox or a cat against small prey, over many seeds: what it did and
+   * how often it came away with something. */
+  const spring = (hunter: string, prey: string, gap: number) => {
+    let caught = 0,
+      missed = 0;
+    const seen = new Set<string>();
+    for (let seed = 1; seed <= 30; seed++) {
+      const h = group(hunter, 0, 0);
+      const q = herd(prey, gap, 2);
+      let n = seed * 104729;
+      const world = sim({
+        rng: () => (n = (n * 1103515245 + 12345) % 2147483648) / 2147483648,
+      });
+      let kills = 0;
+      world.onKill = () => kills++;
+      for (let t = 1; t <= 60; t++) {
+        advanceFauna([h, q], world, t * 6);
+        seen.add(h.state);
+        if (h.state === "pounce" && !h.catching && h.fedUntil) break;
+        if (kills) break;
+      }
+      if (kills) caught++;
+      else if (seen.has("pounce")) missed++;
+    }
+    return { caught, missed, seen };
+  };
+  it("a fox creeps up on rabbits and springs, and misses often", () => {
+    const { caught, missed, seen } = spring("red-fox", "rabbit", 10);
+    expect([...seen]).toEqual(expect.arrayContaining(["stalk", "pounce"]));
+    expect(caught).toBeGreaterThan(3);
+    expect(missed).toBeGreaterThan(3);
+  });
+  it("a cat pins a mouse, and the mouse is gone the tick after", () => {
+    const cat = group("cat", 0, 0);
+    const mice = herd("mouse", 5, 2);
+    let n = 17;
+    const world = sim({
+      rng: () => (n = (n * 1103515245 + 12345) % 2147483648) / 2147483648,
+    });
+    const kills: string[] = [];
+    world.onKill = (h, p) => kills.push(`${h.speciesId}>${p.speciesId}`);
+    let pinned = -1;
+    for (let t = 1; t <= 200 && !kills.length; t++) {
+      advanceFauna([cat, mice], world, t * 6);
+      if (cat.catching && pinned < 0) {
+        pinned = t;
+        expect(mice.members).toHaveLength(2);
+      }
+    }
+    expect(pinned).toBeGreaterThan(0);
+    expect(kills).toEqual(["cat>mouse"]);
+    expect(mice.members).toHaveLength(1);
+  });
   it("a person nearby matters more than dinner", () => {
     const deer = herd("red-deer", 6, 3);
     const wolves = herd("gray-wolf", 0, 3);

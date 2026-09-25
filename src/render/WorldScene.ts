@@ -51,6 +51,7 @@ const FACINGS: readonly FaunaFacing[] = ["north", "east", "south", "west"];
 const URGENT = new Set<FaunaState>([
   "flee",
   "chase",
+  "pounce",
   "flight",
   "takeoff",
   "landing",
@@ -460,7 +461,13 @@ export class WorldScene extends Phaser.Scene {
    * and whether it has its head up watching the player. */
   private faunaMood = new Map<
     string,
-    { state: FaunaState; from: number; until: number; squashed: boolean }
+    {
+      state: FaunaState;
+      from: number;
+      until: number;
+      squashed: boolean;
+      began: number;
+    }
   >();
   private playerSeen = { x: 0, y: 0, movedAt: -Infinity };
   private jostleSerial = 0;
@@ -4184,10 +4191,14 @@ export class WorldScene extends Phaser.Scene {
      * covers, not the clock, or the feet slide. */
     stride?: number,
     art = species,
+    /** When the state began: a pounce plays once and holds its last frame. */
+    began?: number,
   ) {
     const ms =
       state === "flight"
         ? 85
+        : state === "pounce"
+          ? 110
         : state === "flee" ||
             state === "chase" ||
             state === "takeoff" ||
@@ -4200,7 +4211,9 @@ export class WorldScene extends Phaser.Scene {
     const count = profile?.art[state]?.length || 8;
     const n = this.options.freeze
       ? 0
-      : Math.floor((stride ?? this.time.now / ms) + phase) % count;
+      : state === "pounce" && began !== undefined
+        ? Math.min(count - 1, Math.floor((this.time.now - began) / ms))
+        : Math.floor((stride ?? this.time.now / ms) + phase) % count;
     return profile?.directions
       ? `faunac-${art}-${state}-${facing}-${n}`
       : `faunab-${art}-${state}-${n}`;
@@ -4246,13 +4259,20 @@ export class WorldScene extends Phaser.Scene {
       if (!mood)
         this.faunaMood.set(
           id,
-          (mood = { state: f.state, from: 0, until: 0, squashed: false }),
+          (mood = {
+            state: f.state,
+            from: 0,
+            until: 0,
+            squashed: false,
+            began: this.time.now,
+          }),
         );
       // The moment it bolts: a start, and dust from under it.
       if (URGENT.has(f.state) && !URGENT.has(mood.state) && !aerial && dt) {
         this.faunaMotion.leap(id, 2.5, 0.18);
         this.feel.puff(im.x, im.y, FAUNA_DUST, 3);
       }
+      if (mood.state !== f.state) mood.began = this.time.now;
       mood.state = f.state;
       // Someone moving close by: after a beat the head comes up and follows
       // them, and goes down again once they have stood still a while. Not
@@ -4307,6 +4327,7 @@ export class WorldScene extends Phaser.Scene {
           ? pose.travelled / (URGENT.has(state) ? pace * 1.6 : pace)
           : undefined,
         f.art,
+        mood.began,
       );
       if (state !== f.state && !this.textures.get(this.texture(name)).has(name))
         name = this.faunaFrame(

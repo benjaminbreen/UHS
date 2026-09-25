@@ -9,6 +9,7 @@ export const faunaStates = [
   "flee",
   "stalk",
   "chase",
+  "pounce",
   "perch",
   "takeoff",
   "flight",
@@ -92,6 +93,9 @@ export type FaunaGroup = {
   /** Hunters: the group being hunted, held between ticks so a pack does not
    * swap quarry whenever another herd drifts closer. */
   quarry?: string;
+  /** A pounce that landed: the animal held under the paws until the next
+   * tick, when it is taken. */
+  catching?: { group: string; n: number };
   /** The last member number handed out. */
   serial?: number;
   /** Clock until which the group runs from people because one of them hit it.
