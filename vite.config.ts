@@ -5,6 +5,9 @@ import { execFile } from "node:child_process";
 import { writeFile } from "node:fs/promises";
 import path from "node:path";
 export default defineConfig({
+  // Every worker is created with type "module", and the travel worker loads
+  // its map names lazily, which a classic worker bundle cannot split.
+  worker: { format: "es" },
   plugins: [
     react(),
     {

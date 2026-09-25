@@ -60,6 +60,11 @@ export function resolveMapEnvironment(anchor: Coordinate, year: number) {
     .sort((a, b) => a.radius - b.radius || a.id.localeCompare(b.id))[0];
   if (named) defaults = { ...defaults, ...named.defaults };
   const shore = atlasSample(origin.x, origin.y);
+  if (defaults.water === "none" && shore.coast > 0 && shore.river < 40)
+    defaults.water =
+      Math.abs(shore.riverFlow[0]) >= Math.abs(shore.riverFlow[1])
+        ? "river-ew"
+        : "river-ns";
   if (year < -9999 && anchor.lat > 48) defaults.climate = "tundra";
   const ecology = { ...environmentFor({
     ...defaults,
@@ -111,15 +116,13 @@ export function settingForTravelStop(stop: TravelStop, year: number) {
           ? "village"
           : "camp",
   };
-  const form = mapForm(e.anchor);
   const setting = settingFor(place, year);
-  // A small island and open water are drawn as themselves. Everything else
-  // keeps real Earth coastlines, which are what a continental map needs.
-  if (form === "earth") setting.geographyMode = "earth";
-  else {
-    setting.geographyMode = "configured";
-    setting.water = form;
-  }
+  // A map is a square of the real Earth, so its coasts are the atlas's own.
+  // Open sea has no coast to match and nowhere to stand, so it keeps the
+  // drawn ocean with its bars and rocks.
+  const open = stop.water && e.surface === "sea";
+  setting.geographyMode = open ? "configured" : "earth";
+  if (open) setting.water = "ocean";
   setting.ecologyRevision = 2;
   setting.environment = { ...environmentFor(setting, broadEnvironment(setting.lon, setting.lat).moisture), ecology: e.ecology, colorway: e.colorway };
   return setting;
@@ -129,40 +132,3 @@ export const mapClimateLabel = (e: MapEnvironment) =>
     ? "Ocean"
     : e.climate[0].toUpperCase() + e.climate.slice(1);
 
-/** How a map should portray its place. The network is schematic: a map stands
- * for somewhere rather than framing 600 m of it, so a small island is drawn as
- * an island and open water as open water, instead of sampling Earth at true
- * scale and landing in the middle of either. */
-export type MapForm = "island" | "ocean" | "earth";
-const forms = new Map<string, MapForm>();
-export function mapForm(anchor: Coordinate): MapForm {
-  const key = `${anchor.lon.toFixed(3)},${anchor.lat.toFixed(3)}`;
-  const cached = forms.get(key);
-  if (cached) return cached;
-  const here = toAtlas(anchor.lon, anchor.lat);
-  const KM = 2048 / 111; // atlas tiles per kilometre
-  const seaFraction = (km: number, points: number) => {
-    let sea = 0;
-    for (let i = 0; i < points; i++) {
-      const a = (i / points) * Math.PI * 2;
-      const p = atlasSample(
-        here.x + Math.cos(a) * km * KM,
-        here.y + Math.sin(a) * km * KM,
-      );
-      if (p.coast < 0) sea++;
-    }
-    return sea / points;
-  };
-  let form: MapForm = "earth";
-  // The anchor can sit a little offshore of a coarse coastline, so judge open
-  // water by its surroundings rather than by one sample.
-  if (atlasSample(here.x, here.y).coast < 0 && seaFraction(6, 8) === 1)
-    form = "ocean";
-  else {
-    // Require the outer ring to be mostly water. A single nearby coastal
-    // island must not turn a continental map into a configured island.
-    if (seaFraction(160, 16) >= 0.85) form = "island";
-  }
-  forms.set(key, form);
-  return form;
-}

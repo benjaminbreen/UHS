@@ -1,7 +1,7 @@
 import { expect, it } from "vitest";
 import { Engine } from "../src/core/engine";
 import { createSession, Runtime } from "../src/runtime/session";
-import { MapTravel } from "../src/runtime/map-travel";
+import { MapTravel, journeyPlan } from "../src/runtime/map-travel";
 import { settingFor } from "../src/content/geography/resolve";
 import { places } from "../src/content/geography/places";
 import type { MapExit } from "../src/world/travel/network";
@@ -39,6 +39,7 @@ function fixture() {
       pack: { ...base.world.pack, setting },
       spawn: { x: 0, y: 0, space: "outside" },
       entrances: () => [entry],
+      ...(reachable ? {} : { blocked: () => true }),
     };
     const snapshot = base.snapshot();
     snapshot.manifest.setting = setting;
@@ -192,5 +193,15 @@ it("crosses a land border away from the original entrance marker", async () => {
   expect(journey.intercept({ type: "move", dx: -1, dy: 0 })).toBe(true);
   await new Promise((resolve) => setTimeout(resolve, 0));
   expect(journey.id).toBe(b);
+  // The far side of the same line of ground, not the entrance marker.
+  expect(runtime.engine.state.player.pos).toMatchObject({ x: 190, y: 35 });
   runtime.dispose();
+});
+it("prices a long journey in days, overland where it can and by sea where it must", () => {
+  const isfahan = journeyPlan({ lon: 28.97, lat: 41.0 }, { lon: 51.67, lat: 32.65 });
+  // Two to three months by caravan, as the road went.
+  expect(isfahan.days).toBeGreaterThan(40);
+  expect(isfahan.days).toBeLessThan(120);
+  const cebu = journeyPlan({ lon: 120.98, lat: 14.6 }, { lon: 123.9, lat: 10.3 });
+  expect(cebu.sea).toBeGreaterThan(cebu.land);
 });

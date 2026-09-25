@@ -1,6 +1,7 @@
-import { permanentMap, permanentExits, connectionPath } from "./network";
-self.onmessage = ({ data }) => {
+import { permanentMap, permanentExits, connectionPath, loadTileNames } from "./network";
+self.onmessage = async ({ data }) => {
   try {
+    await loadTileNames([data.id]);
     const path = data.exit ? connectionPath(data.exit) : undefined;
     self.postMessage({
       request: data.request,

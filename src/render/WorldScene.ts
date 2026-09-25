@@ -184,7 +184,7 @@ import { AmbientLife, critterFor } from "./ambient-life";
 import {
   groundState,
   snowCover,
-  weatherAt,
+  skySeed, weatherAt,
   type Weather,
 } from "../core/weather";
 import { puddleUnder, reflectIn, setGroundState, splashPuddle, updatePuddles } from "./puddles";
@@ -2604,7 +2604,7 @@ export class WorldScene extends Phaser.Scene {
       : "summer";
     this.weather = setting
       ? weatherAt(
-          e.state.manifest.seed,
+          skySeed(e.state.manifest),
           setting.climate,
           setting.season,
           e.state.clock,

@@ -10,11 +10,14 @@ import { currentSheets, loadSheets, sheetImage } from "./sprite-atlas";
 import { smallMemoryDevice } from "../runtime/device";
 import { surfaceAt } from "../render/materials";
 import {
+  atlasRivers,
   atlasSample,
   broadEnvironment,
   fromAtlas,
   toAtlas,
 } from "../world/geography/atlas";
+import { noise } from "../world/geography/noise";
+import { boxBlur } from "./ArrivalMap";
 import type { Runtime } from "../runtime/session";
 import type { WorldModel, Point } from "../core/types";
 const PAD = 32;
@@ -114,10 +117,26 @@ function atlasGround(ax: number, ay: number) {
   if (coast < 0) return "water";
   const { lon, lat } = fromAtlas(ax, ay);
   const { relief, moisture, cold } = broadEnvironment(lon, lat);
-  if (cold) return "snow";
+  // Tundra is bare ground most of the year's travelling; only ice caps and
+  // cold heights stay white.
+  if (cold) return relief > 0.4 || Math.abs(lat) > 72 ? "snow" : "dry";
   if (relief > 0.55) return "rock";
   if (coast < 6) return "sand";
   return moisture < 0.25 ? "sand" : moisture < 0.45 ? "dry" : "grass";
+}
+const reliefKinds = new Set(["grass", "dry", "dirt", "sand", "marsh", "rock", "snow", "field"]);
+/** North-west light on noise hills, in world tiles; octaves finer than a few
+ * map pixels fade out rather than alias. Stepped like the arrival map's. */
+function hillShade(wx: number, wy: number, cell: number, k: string) {
+  let slope = 0;
+  for (const s of [48, 192, 768, 3072, 12288, 49152]) {
+    const fade = Math.max(0, Math.min(1, s / (4 * cell) - 0.5));
+    if (!fade) continue;
+    slope += fade * (noise("relief", wx - cell, wy - cell, s, "map") - noise("relief", wx + cell, wy + cell, s, "map")) * s / (2 * cell) * 0.25;
+  }
+  if (k === "rock" || k === "snow") slope *= 2.5;
+  return 1 + Math.round(Math.max(-0.5, Math.min(0.5, slope)) * 8) / 12
+    + (noise("grain", wx, wy, cell * 2, "map") - 0.5) * 0.06;
 }
 /** Repaints the map in resumable slices. A full rebuild resamples the world
  * once per screen pixel, which is far past a frame's budget, so the caller
@@ -168,6 +187,8 @@ function* paintBackgroundSteps(
   };
   const mapHalf = world.pack.setting?.playableMap?.size;
   const anchor = toAtlas(world.pack.anchor.lon, world.pack.anchor.lat);
+  const relief = large || regional;
+  const cell = (extent * px) / size;
   // Terrain pass.
   if (!placesFrom)
     for (let j = 0; j < rows; j++) {
@@ -231,8 +252,12 @@ function* paintBackgroundSteps(
           fill = hex(h.site ? habitatAppearance(h).ground : rgb);
         }
         kind[j * cols + i] = k;
+        if (relief && reliefKinds.has(k)) {
+          const v = parseInt(fill.slice(1, 7), 16), f = hillShade(wx, wy, cell, k);
+          fill = hex([v >> 16, (v >> 8) & 0xff, v & 0xff].map((ch) => Math.max(0, Math.min(255, Math.round(ch * f)))));
+        }
         // Sparse darker speckle gives grass and soil their pixel grain.
-        if (!h && shade[k] && hash(wx, wy) < 0.16) fill = shade[k];
+        if (!relief && !h && shade[k] && hash(wx, wy) < 0.16) fill = shade[k];
         const v = parseInt(fill.slice(1, 7), 16);
         const packed =
           (0xff000000 | ((v & 0xff) << 16) | (v & 0xff00) | (v >> 16)) >>> 0;
@@ -245,6 +270,23 @@ function* paintBackgroundSteps(
       }
       c.putImageData(row, 0, j * px);
     }
+  // Sea darkens with distance from shore, as on the arrival map.
+  if (relief && !placesFrom) {
+    let shelf = Float32Array.from(kind, (k) => (k === "water" ? 0 : 1));
+    for (let pass = 0; pass < 3; pass++) shelf = boxBlur(shelf, cols, rows, 6);
+    const image = c.getImageData(0, 0, cols * px, rows * px);
+    const out = new Uint32Array(image.data.buffer);
+    for (let j = 0; j < rows; j++)
+      for (let i = 0; i < cols; i++) {
+        if (kind[j * cols + i] !== "water") continue;
+        const { wx, wy } = at(i, j);
+        const t = Math.min(1, shelf[j * cols + i] * 2.2) + noise("grain", wx, wy, cell * 3, "sea") * 0.06;
+        const packed = (0xff000000 | (Math.round(68 + 58 * t) << 16) | (Math.round(44 + 70 * t) << 8) | Math.round(18 + 38 * t)) >>> 0;
+        for (let dy = 0; dy < px; dy++)
+          out.fill(packed, (j * px + dy) * cols * px + i * px, (j * px + dy) * cols * px + i * px + px);
+      }
+    c.putImageData(image, 0, 0);
+  }
   yield;
   // Outline pass: a darker seam wherever the ground type changes, plus a pale
   // shoreline on the water side.
@@ -267,6 +309,37 @@ function* paintBackgroundSteps(
       c.fillStyle = nearWater ? "#245d5a" : "#00000033";
       if (k !== right) c.fillRect(x + px - 1, y, 1, px);
       if (k !== down) c.fillRect(x, y + px - 1, px, 1);
+    }
+  }
+  // Even a great river is a few dozen tiles wide; once a pixel is wider, the
+  // generated channel vanishes, so draw the atlas course it follows.
+  if (relief && cell >= 16 && !placesFrom) {
+    const k = size / extent;
+    const left = origin.x - extent / 2 - (PAD * extent) / size,
+      right = origin.x + extent / 2 + (PAD * extent) / size,
+      top = origin.y - (height / 2 + PAD) / k,
+      bottom = origin.y + (height / 2 + PAD) / k;
+    c.strokeStyle = "#6fa6b8";
+    c.lineJoin = c.lineCap = "round";
+    c.lineWidth = 2;
+    for (const river of atlasRivers) {
+      c.beginPath();
+      let last: [number, number, boolean] | undefined;
+      for (const [lon, lat] of river.points) {
+        const t = toAtlas(lon, lat);
+        const wx = t.x - anchor.x,
+          wy = t.y - anchor.y;
+        const inside = wx >= left && wx <= right && wy >= top && wy <= bottom;
+        const x = (wx - origin.x) * k + size / 2,
+          y = (wy - origin.y) * k + height / 2;
+        // A segment is drawn when either end is in view, so edges stay joined.
+        if (last && (inside || last[2])) {
+          c.moveTo(last[0], last[1]);
+          c.lineTo(x, y);
+        }
+        last = [x, y, inside];
+      }
+      c.stroke();
     }
   }
   yield;
@@ -406,11 +479,19 @@ export function Minimap({
   large = false,
   regional = false,
   span,
+  center,
+  dims,
+  route,
 }: {
   runtime: Runtime;
   large?: boolean;
   regional?: boolean;
   span?: number;
+  /** World point to centre on instead of the player, for a panned map. */
+  center?: Point;
+  dims?: [number, number];
+  /** A chosen destination, drawn with a dashed route from the player. */
+  route?: Point;
 }) {
   const ref = useRef<HTMLCanvasElement>(null);
   const backing = useRef<Backing | undefined>(undefined);
@@ -424,12 +505,11 @@ export function Minimap({
   const local = runtime.engine.state.player.pos;
   const p =
     local.space === "outside" ? local : world.place(local.space)!.entrance;
-  const size = large ? 520 : 256,
-    height = large ? 350 : 148;
+  const [size, height] = dims ?? (large ? [520, 350] : [256, 148]);
   const extent =
     span ?? (large || regional ? (world.regionExtent ?? 320) : 110);
   const origin =
-    (large || regional) && !world.pack.setting ? { x: 20, y: 25 } : p;
+    center ?? ((large || regional) && !world.pack.setting ? { x: 20, y: 25 } : p);
   const places = world.places.length;
   // Spends the frame's map budget on a deferred rebuild. The old map stays on
   // screen until the new one is finished, which is a beat later at most.
@@ -558,6 +638,21 @@ export function Minimap({
       );
       const mx = ((p.x - origin.x) * size) / extent + size / 2,
         my = ((p.y - origin.y) * size) / extent + height / 2;
+      if (route) {
+        const tx = ((route.x - origin.x) * size) / extent + size / 2,
+          ty = ((route.y - origin.y) * size) / extent + height / 2;
+        ctx.setLineDash([6, 5]);
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = "#f3d38f";
+        ctx.beginPath();
+        ctx.moveTo(mx, my);
+        ctx.lineTo(tx, ty);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.beginPath();
+        ctx.arc(tx, ty, 9, 0, Math.PI * 2);
+        ctx.stroke();
+      }
       ctx.lineWidth = 2;
       ctx.strokeStyle = "#1c2430aa";
       ctx.beginPath();
@@ -617,6 +712,8 @@ export function Minimap({
     regional,
     places,
     revision,
+    route?.x,
+    route?.y,
   ]);
   return (
     <span className="minimap-frame">

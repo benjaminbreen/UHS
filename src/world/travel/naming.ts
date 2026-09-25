@@ -9,6 +9,8 @@ export type GeographicName = {
   coverage: "specific" | "broad" | "missing";
   sourceName?: string;
   regionId?: string;
+  /** West, south, east, north of the named region, where one matched. */
+  bounds?: number[];
   source: string;
 };
 type Region = (typeof physicalRegions)[number];
@@ -130,6 +132,7 @@ export function resolveGeographicName(
       name: specific.name,
       coverage: "specific",
       regionId: specific.id,
+      bounds: specific.bounds,
       source: SOURCE,
     };
   if (water) {
@@ -164,6 +167,7 @@ export function resolveGeographicName(
       name: broadName(broad, p),
       coverage: "broad",
       regionId: broad.id,
+      bounds: broad.kind === "Continent" ? undefined : broad.bounds,
       source: SOURCE,
     };
   return {

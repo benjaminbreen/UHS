@@ -3,7 +3,7 @@ import type { Engine } from "../core/engine";
 import { describeStats, statsOf } from "../core/stats";
 import { describeStanding, standingOf } from "../core/standing";
 import { describeOutlook, outlookOf } from "../core/outlook";
-import { weatherAt } from "../core/weather";
+import { skySeed, weatherAt } from "../core/weather";
 import { seasonAt } from "../core/livelihood";
 import { distance, type Actor, type Position } from "../core/types";
 const RULES = `You narrate one turn of a historical simulation. The player types what they try to do; you tell them what happens, in the second person and present tense, in two to four plain sentences. No headers, no lists, no options, no questions about what they want to do next.
@@ -101,7 +101,7 @@ export function sceneDigest(engine: Engine, input: string): string {
     setting = pack.setting,
     seed = s.manifest.seed;
   const weather = weatherAt(
-    seed,
+    skySeed(s.manifest),
     setting?.climate ?? "temperate",
     setting?.season ?? "spring",
     s.clock,

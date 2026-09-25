@@ -1,0 +1,48 @@
+{
+ "built": "2026-09-24",
+ "band": 32,
+ "sources": [
+  {
+   "url": "https://github.com/nvkelso/natural-earth-vector/blob/ca96624a56bd078437bca8184e78163e5039ad19/geojson/ne_10m_rivers_lake_centerlines.geojson",
+   "sha256": "bb854a900ecbd3b408df46d5e16e3e0f974ba55993f9d8b5c26e855273c0905a",
+   "license": "Public domain \u2014 Natural Earth"
+  },
+  {
+   "url": "https://github.com/nvkelso/natural-earth-vector/blob/ca96624a56bd078437bca8184e78163e5039ad19/geojson/ne_10m_rivers_europe.geojson",
+   "sha256": "90712202ac46985812e90840df9acd5101599a9c649868d5bc55ee96c2fedd4c",
+   "license": "Public domain \u2014 Natural Earth"
+  },
+  {
+   "url": "https://github.com/nvkelso/natural-earth-vector/blob/ca96624a56bd078437bca8184e78163e5039ad19/geojson/ne_10m_rivers_north_america.geojson",
+   "sha256": "dcd2348655a5f3d0ea7be35024073ab24f09115d2e4efb77e7bc0a33567db682",
+   "license": "Public domain \u2014 Natural Earth"
+  },
+  {
+   "url": "https://github.com/nvkelso/natural-earth-vector/blob/ca96624a56bd078437bca8184e78163e5039ad19/geojson/ne_10m_lakes.geojson",
+   "sha256": "2d036f53dedec578001c5c30c2959ee7d4eebc1306900fa4367c49929ec8f2d9",
+   "license": "Public domain \u2014 Natural Earth"
+  },
+  {
+   "url": "https://github.com/nvkelso/natural-earth-vector/blob/ca96624a56bd078437bca8184e78163e5039ad19/geojson/ne_10m_lakes_europe.geojson",
+   "sha256": "b4dd9e7a5edd0d07b54768b5404d1ebe77f80b9d579c85fff65f90cf50369769",
+   "license": "Public domain \u2014 Natural Earth"
+  },
+  {
+   "url": "https://github.com/nvkelso/natural-earth-vector/blob/ca96624a56bd078437bca8184e78163e5039ad19/geojson/ne_10m_lakes_north_america.geojson",
+   "sha256": "76f49d4b698f3529e690136a989713bcd3c028ade150346f4b358de9815cfc43",
+   "license": "Public domain \u2014 Natural Earth"
+  },
+  {
+   "url": "https://github.com/nvkelso/natural-earth-vector/blob/ca96624a56bd078437bca8184e78163e5039ad19/geojson/ne_10m_geography_regions_elevation_points.geojson",
+   "sha256": "f98a16867867146ec4146d6d4b18c823eeedb2825947de666116cf9a4e3f43cb",
+   "license": "Public domain \u2014 Natural Earth"
+  },
+  {
+   "url": "https://download.geonames.org/export/dump/allCountries.zip",
+   "date": "2026-09-24",
+   "sha256": "9e98ae210a6a2f5b4b373c84feef815cf0f99c8e76a7f95efd868e97a96b8add",
+   "license": "CC BY 4.0 \u2014 GeoNames",
+   "note": "Physical feature classes only; populated places and administrative divisions are never read."
+  }
+ ]
+}

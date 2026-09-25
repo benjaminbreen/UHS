@@ -159,6 +159,16 @@ export function broadEnvironment(lon: number, lat: number) {
     cold: climate ? climate === "boreal" || climate === "tundra" : a > 58,
   };
 }
+/** The named river nearest an atlas point, and its distance in tiles. */
+export function nearestRiver(x: number, y: number) {
+  const { lon, lat } = fromAtlas(x, y);
+  let best: { name?: string; distance: number } = { distance: Infinity };
+  for (const e of near(riverEdges, lon, lat)) {
+    const distance = segmentDistance(lon, lat, e.a, e.b) * ATLAS_SCALE;
+    if (distance < best.distance) best = { name: e.name, distance };
+  }
+  return best;
+}
 export function nearestRiverPoint(
   x: number,
   y: number,

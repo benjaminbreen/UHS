@@ -696,6 +696,7 @@ export const snapshotSchema = z.object({
         content: z.union([z.literal(1), z.literal(2)]),
         atlas: z.literal(2),
         setting: settingSchema,
+        sky: z.string().optional(),
       })
       .strict(),
   ]),

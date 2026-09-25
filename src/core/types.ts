@@ -354,6 +354,9 @@ export type WorldManifest = {
   content: 1 | 2;
   atlas: 1 | 2;
   setting?: WorldSetting;
+  /** Seeds the weather for a whole journey, so the sky does not change at a
+   * map border; each map keeps its own seed for everything else. */
+  sky?: string;
 };
 export type GameEvent = {
   id: number;

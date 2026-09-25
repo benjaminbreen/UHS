@@ -555,4 +555,13 @@ export function Splash({
       )}
     </main>
   );
+                <p>
+                  Coasts, rivers and map names come from Natural Earth (public
+                  domain) and{" "}
+                  <a href="https://www.geonames.org/" target="_blank" rel="noreferrer">
+                    GeoNames
+                  </a>{" "}
+                  physical features (CC BY 4.0). Names are modern; places are
+                  not yet called what they were called in the past.
+                </p>
 }

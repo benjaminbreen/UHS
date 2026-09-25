@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, lazy, Suspense } from "react";
 import { travelLocations } from "../content/geography/travel";
-import type { PermanentMap, MapExit } from "../world/travel/network";
+import { mapForCoordinate, type PermanentMap, type MapExit } from "../world/travel/network";
 const LiveGame = lazy(() => import("../ui/App").then((m) => ({ default: m.App })));
 const Preview = lazy(() => import("./GeographyPreview"));
 export default function PermanentMaps({ year }: { year: number }) {
@@ -8,7 +8,7 @@ export default function PermanentMaps({ year }: { year: number }) {
   const launchAbort = useRef<AbortController>(undefined);
   const worker = useRef<Worker>(undefined),
     request = useRef(0);
-  const [id, setId] = useState("place:london"),
+  const [id, setId] = useState(() => mapForCoordinate({ lon: -0.12, lat: 51.5 })),
     [map, setMap] = useState<PermanentMap>(),
     [exits, setExits] = useState<MapExit[]>([]),
     [error, setError] = useState(""),
@@ -72,21 +72,24 @@ export default function PermanentMaps({ year }: { year: number }) {
     <section className="geo-permanent">
       <h2>Permanent maps</h2>
       <p>
-        Explore the same map network without choosing a destination. Small maps
-        are standard; dated cities use medium.
+        Explore the same map network without choosing a destination. Each map
+        is a square of the atlas, and neighbours share their borders.
       </p>
       <label>
         Start at a place{" "}
         <select
           aria-label="Permanent map place"
-          value={id.startsWith("place:") ? id : ""}
-          onChange={(e) => load(e.target.value)}
+          value=""
+          onChange={(e) => {
+            const p = travelLocations.find((x) => x.id === e.target.value);
+            if (p) load(mapForCoordinate(p));
+          }}
         >
           <option value="" disabled>
             Landscape map
           </option>
           {travelLocations.map((p) => (
-            <option key={p.id} value={"place:" + p.id}>
+            <option key={p.id} value={p.id}>
               {p.name}
             </option>
           ))}

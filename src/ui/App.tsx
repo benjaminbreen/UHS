@@ -47,7 +47,7 @@ import {
   Menu,
   Maximize2,
 } from "lucide-react";
-import { weatherAt } from "../core/weather";
+import { skySeed, weatherAt } from "../core/weather";
 import { seasonFor } from "../core/season";
 import { lightingAt } from "../render/lighting";
 import { describedRegionAt } from "../content/geography/region-label";
@@ -96,8 +96,7 @@ import { VitalsOverlay } from "./VitalsOverlay";
 import { markEvent, vitalsEnabled, watchGame } from "../runtime/vitals";
 import { WorldScene } from "../render/WorldScene";
 import { WorldSetup } from "./WorldSetup";
-import { AtlasMap } from "./AtlasMap";
-import { toAtlas, fromAtlas } from "../world/geography/coordinates";
+import { MapModal } from "./MapModal";
 import { ItemIcon, Sprite, Minimap, timeLabel } from "./components";
 import { LiveGraphicsPanel } from "../dev/LiveGraphicsPanel";
 import { CombatTestPanel } from "../dev/CombatTestPanel";
@@ -237,8 +236,6 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
   const [sideTab, setSideTab] = useState<
     "around" | "inventory" | "skills" | "today"
   >("today");
-  const [mapSpan, setMapSpan] = useState(1600);
-  const [earthMap, setEarthMap] = useState(false);
   // Talk is the one verb the engine cannot finish on its own: the dialogue
   // panel is React state, so the session hands the actor back instead.
   const runVerb = (slot: "primary" | "alternate", pressed = false) => {
@@ -519,7 +516,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
               : "Night";
   const setting = pack.setting;
   const weather = weatherAt(
-    obs.manifest.seed,
+    skySeed(obs.manifest),
     setting?.climate ?? "temperate",
     setting?.season ?? "spring",
     obs.clock,
@@ -1785,94 +1782,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
               </>
             )}
             {modal === "map" && (
-              <>
-                <div className="eyebrow">THE CONNECTED LANDSCAPE</div>
-                <h2>{pack.region}</h2>
-                <p>
-                  Roads and settlements share the same world as the map beneath
-                  your feet.
-                </p>
-                {pack.setting && (
-                  <div className="weaver-modes">
-                    <button
-                      aria-pressed={!earthMap}
-                      onClick={() => setEarthMap(false)}
-                    >
-                      Region
-                    </button>
-                    <button
-                      aria-pressed={earthMap}
-                      onClick={() => setEarthMap(true)}
-                    >
-                      Earth
-                    </button>
-                    {!earthMap && (
-                      <>
-                        <button
-                          onClick={() => setMapSpan(Math.max(800, mapSpan / 2))}
-                        >
-                          Zoom in
-                        </button>
-                        <button
-                          onClick={() =>
-                            setMapSpan(Math.min(131072, mapSpan * 2))
-                          }
-                        >
-                          Zoom out
-                        </button>
-                        <span>
-                          {Math.round((mapSpan * 2) / 1000)} game km across
-                        </span>
-                      </>
-                    )}
-                  </div>
-                )}
-                {earthMap && pack.setting ? (
-                  <AtlasMap
-                    {...fromAtlas(
-                      toAtlas(pack.anchor.lon, pack.anchor.lat).x + p.pos.x,
-                      toAtlas(pack.anchor.lon, pack.anchor.lat).y + p.pos.y,
-                    )}
-                  />
-                ) : (
-                  <Minimap
-                    runtime={runtime}
-                    large
-                    span={pack.setting ? mapSpan : undefined}
-                  />
-                )}
-                <div className="destinations">
-                  {runtime.engine.world.settlements.map((s) => (
-                    <button
-                      key={s.id}
-                      onClick={() => {
-                        if (p.pos.space !== "outside") {
-                          runtime.notice = "Return outside before traveling.";
-                          runtime.emit();
-                        } else runtime.walkTo({ x: s.x + 2, y: s.y + 5 });
-                        setModal(null);
-                      }}
-                    >
-                      <Compass size={17} />
-                      <span>
-                        {s.name}
-                        <small>
-                          {Math.round(
-                            Math.hypot(s.x - p.pos.x, s.y - p.pos.y) * 2,
-                          )}{" "}
-                          m in a straight line
-                        </small>
-                      </span>
-                      <ArrowRight size={15} />
-                    </button>
-                  ))}
-                </div>
-                <p className="map-note">
-                  {pack.setting
-                    ? "A compressed Earth atlas with continuous, generated local terrain. Zoom out to follow the same coastlines and waterways."
-                    : `An invented settlement near ${pack.anchor.label}.`}
-                </p>
-              </>
+              <MapModal runtime={runtime} onClose={() => setModal(null)} />
             )}
             {modal === "settings" && (
               <>

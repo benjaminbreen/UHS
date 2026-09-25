@@ -15,7 +15,7 @@ import {
   seasonAt,
   grazeActivity,
 } from "./livelihood";
-import { weatherAt } from "./weather";
+import { skySeed, weatherAt } from "./weather";
 import { propDefs } from "../content/props/catalog";
 import { about } from "../content/props/about";
 import { atWork, briefText, personBrief } from "./brief";
@@ -480,7 +480,7 @@ export class Engine {
       for (const g of goods) short[g] = (short[g] ?? 0) + 1;
     const setting = this.world.pack.setting;
     const w = weatherAt(
-      s.manifest.seed,
+      skySeed(s.manifest),
       setting?.climate ?? "temperate",
       setting?.season ?? "spring",
       s.clock + 3 * 3600,
@@ -5642,7 +5642,7 @@ export class Engine {
     // The same fallbacks the scene shows, so a night in the visible rain is a
     // night in the rain.
     const weather = weatherAt(
-      seed,
+      skySeed(this.state.manifest),
       setting?.climate ?? "temperate",
       setting?.season ?? "spring",
       started + seconds / 2,

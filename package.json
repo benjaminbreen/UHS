@@ -28,13 +28,13 @@
     "test:legacy": "UHS_LEGACY=1 playwright test",
     "preview": "vite preview --host 127.0.0.1",
     "mcp": "tsx scripts/mcp-server.ts",
+    "prepare:tile-names": "python3 scripts/prepare-tile-names.py",
     "prepare:geography": ".venv/bin/python scripts/prepare_geography.py",
     "check": "npm test && npm run build",
     "test:graphics": "playwright test tests/browser/graphics-lab.spec.ts tests/browser/lighting.spec.ts",
     "measure:performance": "node scripts/measure-performance.mjs",
     "prepare:travel-names": "python3 scripts/prepare-travel-names.py && .venv/bin/python scripts/prepare-travel-ecoregions.py",
     "prepare:atlas": "python3 scripts/prepare_atlas.py && python3 scripts/prepare_places.py && node scripts/prepare-atlas-index.mjs",
-    "prepare:backbone-names": "tsx scripts/dump-backbone-anchors.ts && python3 scripts/prepare-backbone-names.py",
     "town:sheet": "python3 scripts/town-sheet/compose.py --dump"
   },
   "dependencies": {

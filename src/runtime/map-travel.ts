@@ -1,10 +1,22 @@
 import { edgeCrossings, sharedCrossings } from "../world/travel/waterways";
 import { Engine } from "../core/engine";
+import { skySeed } from "../core/weather";
+import { findTravelPath } from "../world/travel/routing";
+import {
+  cellPoint,
+  isWater,
+  kilometers,
+  snapCell,
+} from "../world/travel/geography";
+import { toAtlas } from "../world/geography/atlas";
+import type { Coordinate } from "../world/travel/types";
 import type { PlayerCommand, Snapshot } from "../core/types";
 import type { Runtime } from "./session";
 import { releaseTerrainWorker } from "./terrain-worker-owner";
 import {
   mapForCoordinate,
+  loadTileNames,
+  tileCentre,
   permanentMap,
   permanentExits,
   connectionPath,
@@ -24,15 +36,13 @@ export function travelSetting(
   setting.playableMap = {
     id: map.networkId,
     name: map.name,
-    size: map.size === 384 ? 384 : 304,
+    size: 384,
     exits: exits.map(({ id, to, bearing, mode, seam }) => {
       const destination = permanentMap(to, year);
       const next = settingForTravelStop(destination, year);
       const peer = permanentExits(to, year).find((e) => e.id === id)?.seam;
-      const ownSize = map.size === 384 ? 384 : 304;
-      const nextSize = destination.size === 384 ? 384 : 304;
-      const a = seam && setting.water !== "ocean" && setting.water !== "island" ? edgeCrossings(setting, map.networkId, ownSize, seam) : [];
-      const b = peer && next.water !== "ocean" && next.water !== "island" ? edgeCrossings(next, to, nextSize, peer) : [];
+      const a = seam ? edgeCrossings(setting, map.networkId, 384, seam) : [];
+      const b = peer ? edgeCrossings(next, to, 384, peer) : [];
       const waterways = map.networkId < to ? sharedCrossings(a, b)
         : sharedCrossings(b, a).map((p) => ({ ...p, flow: -p.flow }));
       return {
@@ -44,7 +54,7 @@ export function travelSetting(
           ecology: next.environment!.ecology,
           colorway: next.environment!.colorway,
           landform: next.environment!.landform,
-          size: destination.size === 384 ? 384 : 304,
+          size: 384,
           geographyMode: next.geographyMode ?? "earth",
         },
       };
@@ -61,6 +71,7 @@ export async function prepareTravelMap(
   signal?: AbortSignal,
   saved?: Snapshot,
 ) {
+  await loadTileNames([id]);
   const map = permanentMap(id, year),
     exits = permanentExits(id, year);
   const { prepareSettingSession } = await import("./preparation");
@@ -265,47 +276,28 @@ export class MapTravel {
       this.validate(exit);
       const destination = await this.load(exit.to);
       if (this.closed) return;
-      const incoming = (destination.engine.world as SettlementWorld)
-        .entrances()
-        .find((e) => e.id === exit.id);
-      if (!incoming?.point || incoming.path.length < 2)
+      const world = destination.engine.world as SettlementWorld;
+      const from = this.runtime.engine.state.player.pos;
+      const half = destination.engine.state.manifest.setting!.playableMap!.size / 2;
+      // The neighbour's edge is the same line of ground, so step straight on
+      // across it; its paired entrance is only for a border cell it walls off.
+      const across = {
+        N: { x: from.x, y: half - 2 },
+        S: { x: from.x, y: -half + 1 },
+        E: { x: -half + 1, y: from.y },
+        W: { x: half - 2, y: from.y },
+      }[exit.bearing as "N"];
+      const incoming = world.entrances().find((e) => e.id === exit.id);
+      const point =
+        across && !world.blocked(across.x, across.y, "outside")
+          ? across
+          : incoming?.point && incoming.path.length >= 2
+            ? incoming.path[Math.max(0, incoming.path.length - 4)]
+            : undefined;
+      if (!point)
         throw Error("The destination has no reachable paired entrance.");
-      const source = this.runtime.engine.snapshot();
-      const player = structuredClone(source.player);
-      const carried = source.objects.filter(
-        (o) => o.carriedBy === "player" || o.id === player.held,
-      );
-      source.objects = source.objects.filter((o) => !carried.includes(o));
-      const next = destination.engine.state;
-      for (const object of carried) {
-        const oldId = object.id;
-        if (!object.id.startsWith("traveler:"))
-          object.id = "traveler:" + this.id + ":" + object.id;
-        if (player.held === oldId) player.held = object.id;
-      }
-      this.visited.set(this.id, source);
-      const point = incoming.path[Math.max(0, incoming.path.length - 4)];
-      player.pos = { ...point, space: "outside" };
-      player.home = next.player.home;
-      player.work = next.player.work;
-      player.householdId = next.player.householdId;
-      player.goal = undefined;
-      for (const object of carried) object.pos = { ...player.pos };
-      next.player = player;
-      next.objects = next.objects
-        .filter((o) => !carried.some((c) => c.id === o.id))
-        .concat(carried);
-      next.clock = source.clock;
-      destination.engine.runEconomy();
-      next.notes = source.notes;
-      next.catalog = { ...next.catalog, ...source.catalog };
-      next.ledger = source.ledger;
-      next.narration = source.narration;
-      this.visited.delete(exit.to);
-      this.id = exit.to;
-      this.arrival = { id: exit.id, ...incoming.point };
-      this.staged = undefined;
-      this.runtime.replace(destination.engine, true);
+      this.arrive(destination, exit.to, point, 0);
+      this.arrival = { id: exit.id, ...point };
       // New country is what the road teaches.
       destination.engine.grantXp("wayfaring", 40);
       this.runtime.notice =
@@ -313,6 +305,97 @@ export class MapTravel {
     } catch (e) {
       if (!this.closed)
         this.runtime.notice = "Travel unavailable: " + String(e);
+    } finally {
+      this.busy = false;
+      if (!this.closed) {
+        this.runtime.resumeAmbient();
+        this.runtime.emit();
+      }
+    }
+  }
+  /** Carries the traveller, what they hold and the day's record into a
+   * prepared map, after `seconds` on the road. */
+  private arrive(
+    destination: Prepared,
+    to: string,
+    point: { x: number; y: number },
+    seconds: number,
+  ) {
+    const source = this.runtime.engine.snapshot();
+    const player = structuredClone(source.player);
+    const carried = source.objects.filter(
+      (o) => o.carriedBy === "player" || o.id === player.held,
+    );
+    source.objects = source.objects.filter((o) => !carried.includes(o));
+    const next = destination.engine.state;
+    for (const object of carried) {
+      const oldId = object.id;
+      if (!object.id.startsWith("traveler:"))
+        object.id = "traveler:" + this.id + ":" + object.id;
+      if (player.held === oldId) player.held = object.id;
+    }
+    this.visited.set(this.id, source);
+    player.pos = { ...point, space: "outside" };
+    player.home = next.player.home;
+    player.work = next.player.work;
+    player.householdId = next.player.householdId;
+    player.goal = undefined;
+    for (const object of carried) object.pos = { ...player.pos };
+    next.player = player;
+    next.objects = next.objects
+      .filter((o) => !carried.some((c) => c.id === o.id))
+      .concat(carried);
+    next.clock = source.clock + seconds;
+    next.manifest.sky = skySeed(source.manifest);
+    destination.engine.runEconomy();
+    next.notes = source.notes;
+    next.catalog = { ...next.catalog, ...source.catalog };
+    next.ledger = source.ledger;
+    next.narration = source.narration;
+    this.visited.delete(to);
+    this.id = to;
+    this.staged = undefined;
+    this.runtime.replace(destination.engine, true);
+  }
+  /** A long journey the player does not walk: the map at the far end is
+   * prepared and the days on the road pass at once. */
+  async voyage(to: Coordinate) {
+    if (this.busy || this.closed) return;
+    const id = mapForCoordinate(to);
+    if (id === this.id) return;
+    await loadTileNames([id]);
+    if (permanentMap(id, this.year).water) {
+      this.runtime.notice = "That is open sea; choose somewhere on land.";
+      this.runtime.emit();
+      return;
+    }
+    this.busy = true;
+    this.runtime.stop(false);
+    this.runtime.notice = "Setting out…";
+    this.runtime.emit(false);
+    try {
+      const plan = journeyPlan(tileCentre(this.id), to);
+      const destination = await this.load(id);
+      if (this.closed) return;
+      const world = destination.engine.world;
+      // Arrive where the chosen point lies within its square, if one can stand there.
+      const here = toAtlas(to.lon, to.lat),
+        centre = tileCentre(id),
+        c = toAtlas(centre.lon, centre.lat);
+      const half = destination.engine.state.manifest.setting!.playableMap!.size / 2 - 2;
+      const aim = {
+        x: Math.max(-half, Math.min(half, here.x - c.x)),
+        y: Math.max(-half, Math.min(half, here.y - c.y)),
+      };
+      const point = world.blocked(aim.x, aim.y, "outside") ? world.spawn : aim;
+      this.arrive(destination, id, point, plan.days * 86400);
+      this.arrival = undefined;
+      destination.engine.grantXp("wayfaring", 40 + plan.days * 10);
+      const told = `After ${plan.days} day${plan.days === 1 ? "" : "s"} on the road${plan.sea ? " and at sea" : ""}, you reach ${permanentMap(id, this.year).name}.`;
+      destination.engine.event(told, "system");
+      this.runtime.notice = told;
+    } catch (e) {
+      if (!this.closed) this.runtime.notice = "Journey unavailable: " + String(e);
     } finally {
       this.busy = false;
       if (!this.closed) {
@@ -331,6 +414,31 @@ export class MapTravel {
   }
 }
 
+// A caravan's day on foot and a coasting ship's day under sail.
+const LAND_KM_PER_DAY = 25,
+  SEA_KM_PER_DAY = 100;
+/** The route a traveller would take, overland where it can, by sea where it
+ * must, and the days it costs. */
+export function journeyPlan(from: Coordinate, to: Coordinate) {
+  const path = findTravelPath(
+    snapCell(from, "land"),
+    snapCell(to, "land"),
+    "mixed",
+  ).path.map(cellPoint);
+  let land = 0,
+    sea = 0;
+  for (let i = 1; i < path.length; i++) {
+    const km = kilometers(path[i - 1], path[i]);
+    if (isWater(path[i - 1]) || isWater(path[i])) sea += km;
+    else land += km;
+  }
+  return {
+    land,
+    sea,
+    days: Math.max(1, Math.round(land / LAND_KM_PER_DAY + sea / SEA_KM_PER_DAY)),
+  };
+}
+
 export async function prepareConnectedStart(
   setting: import("../content/geography/types").WorldSetting,
   seed: string,
@@ -340,31 +448,23 @@ export async function prepareConnectedStart(
     const { prepareSettingSession } = await import("./preparation");
     return prepareSettingSession(setting, seed, signal);
   }
-  const { travelById, travelLocations } = await import(
-    "../content/geography/travel"
-  );
-  const { kilometers } = await import("../world/travel/geography");
-  // The gazetteer and the travel catalog name the same town differently
-  // (area-edinburgh against edinburgh), so match position as well as id.
-  const near = travelLocations
-    .filter((p) => kilometers(p, setting) < 25)
-    .sort(
-      (a, b) =>
-        kilometers(a, setting) - kilometers(b, setting) ||
-        a.id.localeCompare(b.id),
-    )[0];
-  const id = travelById.has(setting.placeId)
-    ? "place:" + setting.placeId
-    : near
-      ? "place:" + near.id
-      : mapForCoordinate({ lon: setting.lon, lat: setting.lat });
+  const id = mapForCoordinate({ lon: setting.lon, lat: setting.lat });
+  await loadTileNames([id]);
   const map = permanentMap(id, setting.year);
   const exits = permanentExits(id, setting.year);
   const bounded = {
     ...setting,
+    // The world is generated about the square's centre so that its borders
+    // are the same lines of Earth its neighbours see.
+    ...tileCentre(id),
     // A wilderness start is otherwise labelled "Countryside" while the map it
-    // sits on has a real geographic name. A named town keeps its own name.
-    location: map.locationId ? setting.location : map.name,
+    // sits on has a real geographic name. A chosen place keeps its own name,
+    // even where its square is named for a feature beside the town.
+    location:
+      map.locationId ||
+      (setting.location !== "Countryside" && !setting.placeId?.startsWith("area-"))
+        ? setting.location
+        : map.name,
     playableMap: travelSetting(map, exits, setting.year).playableMap,
   };
   const { prepareSettingSession } = await import("./preparation");

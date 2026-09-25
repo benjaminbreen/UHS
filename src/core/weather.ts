@@ -121,6 +121,7 @@ function windFor(
 }
 
 /** Deterministic daily weather; the day is diced once so it never flickers. */
+export const skySeed = (m: { seed: string; sky?: string }) => m.sky ?? m.seed;
 export function weatherAt(
   seed: string,
   climate: string,

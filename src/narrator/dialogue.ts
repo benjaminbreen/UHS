@@ -1,7 +1,7 @@
 import type { Actor, Household, WalkOff } from "../core/types";
 import { goods } from "../content/economy/goods";
 import { describeStats, statsOf } from "../core/stats";
-import { weatherAt } from "../core/weather";
+import { skySeed, weatherAt } from "../core/weather";
 import { seasonAt } from "../core/livelihood";
 import { describeStanding, standingOf } from "../core/standing";
 import { outlookOf } from "../core/outlook";
@@ -140,7 +140,7 @@ function now(runtime: Runtime) {
   const clock = state.clock;
   const hour = Math.floor((((clock / 3600) % 24) + 24) % 24);
   const part = hour < 5 ? "night" : hour < 8 ? "early morning" : hour < 12 ? "morning" : hour < 14 ? "midday" : hour < 18 ? "afternoon" : hour < 21 ? "evening" : "night";
-  const weather = weatherAt(state.manifest.seed, setting?.climate ?? "temperate", setting?.season ?? "spring", clock);
+  const weather = weatherAt(skySeed(state.manifest), setting?.climate ?? "temperate", setting?.season ?? "spring", clock);
   return `${part}, ${seasonAt(setting?.season ?? "spring", clock)}, ${weather.label.toLowerCase()}, about ${Math.round(weather.tempC)}°C`;
 }
 

@@ -1,35 +1,18 @@
-import { sampleSeam, seamSide, oppositeSide, type BoundarySeam } from "./seams";
+import { sampleSeam, type BoundarySeam } from "./seams";
 import {
-  cellToChildren,
-  cellToParent,
-  getRes0Cells,
-  gridDisk,
-  latLngToCell,
-} from "h3-js";
-import {
-  travelById,
   travelLocations,
   settlementAt,
   locationName,
 } from "../../content/geography/travel";
-import { atlasSample, toAtlas, fromAtlas } from "../geography/atlas";
+import { atlasSample, broadEnvironment, toAtlas, fromAtlas, nearestRiver } from "../geography/atlas";
+import { REGION_CELL } from "../regional/context";
 import { waterRegion } from "../../content/geography/travel/oceans";
-import {
-  cellAt,
-  cellPoint,
-  describeCell,
-  isWater,
-  kilometers,
-  bearingTo,
-  passable,
-  snapCell,
-} from "./geography";
-import { resolveMapEnvironment, mapClimateLabel, mapForm } from "./environment";
+import { northAmericanLandscape } from "../../content/geography/travel/north-american-landscapes";
+import { kilometers, bearingTo, wrapLon } from "./geography";
+import { resolveMapEnvironment, mapClimateLabel } from "./environment";
 import { resolveGeographicName } from "./naming";
-import backboneNames from "../../content/geography/travel/generated/backbone-names.json" with { type: "json" };
-import { findTravelPath } from "./routing";
 import { trimCache } from "../../core/cache";
-import type { Coordinate, TravelStop } from "./types";
+import type { Coordinate, TravelLocation, TravelStop } from "./types";
 export type PermanentMap = TravelStop & { networkId: string };
 export type MapExit = {
   seam?: BoundarySeam;
@@ -41,365 +24,325 @@ export type MapExit = {
   mode: "land" | "sea" | "mixed";
   km: number;
 };
-type Node = {
-  id: string;
-  anchor: Coordinate;
-  locationId?: string;
-  water: boolean;
+
+/** Every map is one square of the atlas at its native scale, and its
+ * neighbours are the squares beside it: a border is the same line of Earth
+ * seen from both sides. The regional generator's cell is the same size. */
+export const TILE = REGION_CELL;
+const COLUMNS = (360 * 2048) / TILE;
+const LAST_ROW = Math.floor((84 * 2048) / TILE);
+type Tile = { i: number; j: number };
+const wrapColumn = (i: number) =>
+  ((((i + COLUMNS / 2) % COLUMNS) + COLUMNS) % COLUMNS) - COLUMNS / 2;
+export const tileId = ({ i, j }: Tile) => `tile:${wrapColumn(i)},${j}`;
+export function parseTile(id: string): Tile {
+  const m = /^tile:(-?\d+),(-?\d+)$/.exec(id);
+  if (!m) throw Error(`Unknown permanent map: ${id}`);
+  return { i: Number(m[1]), j: Number(m[2]) };
+}
+const tileOf = (p: Coordinate): Tile => {
+  const a = toAtlas(wrapLon(p.lon), p.lat);
+  return { i: Math.floor(a.x / TILE), j: Math.floor(a.y / TILE) };
 };
-const nodes = new Map<string, Node>(),
-  links = new Map<string, Set<string>>();
-let initialized = false;
-const landOwners = new Map<string, string>();
-function connect(a: string, b: string) {
-  if (a === b) return;
-  for (const [x, y] of [
-    [a, b],
-    [b, a],
-  ]) {
-    if (!links.has(x)) links.set(x, new Set());
-    links.get(x)!.add(y);
+const centreOf = ({ i, j }: Tile) =>
+  fromAtlas(i * TILE + TILE / 2, j * TILE + TILE / 2);
+
+// Catalog places by tile, built once: a map is named for the town in it.
+let byTile: Map<string, TravelLocation[]> | undefined;
+function placesIn(tile: Tile) {
+  if (!byTile) {
+    byTile = new Map();
+    for (const p of travelLocations) {
+      const key = tileId(tileOf(p));
+      if (!byTile.has(key)) byTile.set(key, []);
+      byTile.get(key)!.push(p);
+    }
   }
+  return byTile.get(tileId(tile)) ?? [];
 }
-function owner(cell: string) {
-  const p = cellPoint(cell);
-  if (!isWater(p)) return "land:" + (landOwners.get(cell) ?? cell);
-  const resolution = waterRegion(p).spacing >= 1500 ? 0 : 1;
-  return `sea:${cellToParent(cell, resolution)}`;
+/** A town standing in that year, or a named landscape: never a city
+ * before its founding. */
+function landmark(p: TravelLocation, year: number) {
+  const status = settlementAt(p, year);
+  return status === "city" || status === "town" || p.kind === "landscape";
 }
-function initialize() {
-  if (initialized) return;
-  const cells = getRes0Cells()
-    .flatMap((id) => cellToChildren(id, 2))
-    .sort();
-  const priority = (id: string) => {
-    let n = 2166136261;
-    for (const c of id) n = Math.imul(n ^ c.charCodeAt(0), 16777619);
-    return n >>> 0;
-  };
-  const land = cells.filter((c) => !isWater(cellPoint(c)));
-  const centers = new Set<string>();
-  for (const c of [...land].sort(
-    (a, b) => priority(a) - priority(b) || a.localeCompare(b),
-  ))
-    if (
-      !gridDisk(c, 1).some(
-        (n) => centers.has(n) && passable(cellPoint(c), cellPoint(n), "land"),
-      )
-    )
-      centers.add(c);
-  for (const c of land) {
-    const near = gridDisk(c, 1)
-      .filter(
-        (n) => centers.has(n) && passable(cellPoint(c), cellPoint(n), "land"),
-      )
-      .sort(
-        (a, b) =>
-          kilometers(cellPoint(c), cellPoint(a)) -
-            kilometers(cellPoint(c), cellPoint(b)) || a.localeCompare(b),
-      );
-    landOwners.set(c, near[0]);
+function nearestPlace(tile: Tile, year: number, reach: number) {
+  const centre = centreOf(tile);
+  let best: { p: TravelLocation; score: number } | undefined;
+  for (let dj = -reach; dj <= reach; dj++)
+    for (let di = -reach; di <= reach; di++)
+      for (const p of placesIn({ i: tile.i + di, j: tile.j + dj })) {
+        if (!landmark(p, year)) continue;
+        // A town is the better landmark at the same distance.
+        const score = kilometers(centre, p) * (p.kind === "settlement" ? 0.6 : 1);
+        if (!best || score < best.score) best = { p, score };
+      }
+  return best?.p;
+}
+
+// Names built by scripts/prepare-tile-names.py from Natural Earth and GeoNames
+// physical features: one file per band of 32 rows, loaded near the traveller.
+type Band = Record<string, [number, ...string[]][]>;
+const bandFiles = import.meta.glob<Band>(
+  "../../content/geography/travel/generated/tile-names/*.json",
+  { import: "default" },
+);
+const BAND = 32;
+const bands = new Map<number, Band>();
+const bandOf = (j: number) => Math.floor(j / BAND);
+/** Loads the names around these maps; call before preparing or listing them. */
+export async function loadTileNames(ids: string[]) {
+  const wanted = new Set<number>();
+  for (const id of ids) {
+    const { j } = parseTile(id);
+    for (const dj of [-1, 0, 1]) wanted.add(bandOf(j + dj));
   }
-  const groups = new Map<string, string[]>();
-  for (const c of cells) {
-    const id = owner(c);
-    if (!groups.has(id)) groups.set(id, []);
-    groups.get(id)!.push(c);
-  }
-  for (const [id, members] of groups) {
-    const center = cellPoint(id.split(":")[1]);
-    members.sort(
+  await Promise.all(
+    [...wanted]
+      .filter((b) => !bands.has(b))
+      .map(async (b) => {
+        const load = bandFiles[`../../content/geography/travel/generated/tile-names/${b}.json`];
+        bands.set(b, load ? await load() : {});
+      }),
+  );
+}
+function tableName({ i, j }: Tile) {
+  const band = bands.get(bandOf(j));
+  if (!band) return undefined;
+  const column = wrapColumn(i);
+  for (const [start, ...names] of band[j] ?? [])
+    if (column >= start && column < start + names.length) return names[column - start];
+  return null;
+}
+
+function nearTowns(tile: Tile, year: number, centre: Coordinate) {
+  if (placesIn(tile).some((p) => p.kind === "settlement" && landmark(p, year))) return [];
+  const found: TravelLocation[] = [];
+  for (let dj = -1; dj <= 1; dj++)
+    for (let di = -1; di <= 1; di++)
+      for (const p of placesIn({ i: tile.i + di, j: tile.j + dj }))
+        if (
+          (di || dj) &&
+          p.kind === "settlement" &&
+          landmark(p, year) &&
+          kilometers(p, centre) < 10
+        )
+          found.push(p);
+  return found;
+}
+
+/** Sea covers the whole square: open water, boarded rather than walked. */
+function allSea(tile: Tile) {
+  for (let v = 0; v <= 4; v++)
+    for (let u = 0; u <= 4; u++)
+      if (
+        atlasSample(tile.i * TILE + (u * TILE) / 4, tile.j * TILE + (v * TILE) / 4)
+          .coast >= 0
+      )
+        return false;
+  return true;
+}
+
+// Ecoregion labels describe vegetation; trim the vocabulary that no one
+// would use for a place.
+const JARGON =
+  / (?:mixed |montane |lowland |moist |dry |rain |deciduous |broadleaf |conifer |coniferous |tropical |subtropical |temperate )*(?:forests?|woodlands?|forest-savanna|savanna|shrublands?|xeric shrublands?)$/i;
+const plain = (name: string) => name.replace(JARGON, "").trim() || name;
+const compass: Record<string, string> = {
+  N: "north", NE: "northeast", E: "east", SE: "southeast",
+  S: "south", SW: "southwest", W: "west", NW: "northwest",
+};
+
+/** "Southeastern" and the like: where in a named region a square lies. */
+function within(bounds: number[] | undefined, p: Coordinate, name: string) {
+  if (!bounds) return "";
+  const [w, south, e, n] = bounds;
+  // A region a few squares across needs no qualifier.
+  if (e - w < 0.6 && n - south < 0.6) return "";
+  if (/^(north|south|east|west|central|upper|lower)/i.test(name)) return "";
+  const x = (p.lon - w) / (e - w),
+    y = (p.lat - south) / (n - south);
+  const ns = y > 0.66 ? "north" : y < 0.33 ? "south" : "",
+    ew = x > 0.66 ? "east" : x < 0.33 ? "west" : "";
+  const word = ns || ew ? `${ns}${ew}ern` : "central";
+  return word[0].toUpperCase() + word.slice(1) + " ";
+}
+function nameOf(tile: Tile, year: number, water: boolean) {
+  const centre = centreOf(tile);
+  // A standing town just over the edge still claims a square with none of
+  // its own, so choosing Istanbul does not open on its offshore islands.
+  // Only a town claims a square: a catalog landscape such as the Atlas
+  // Mountains spans hundreds of them.
+  const own = [...placesIn(tile), ...nearTowns(tile, year, centre)]
+    .filter((p) => p.kind === "settlement" && landmark(p, year))
+    .sort(
       (a, b) =>
-        kilometers(center, cellPoint(a)) - kilometers(center, cellPoint(b)) ||
-        a.localeCompare(b),
-    );
-    const water = id.startsWith("sea:");
-    const candidates = cellToChildren(members[0], 4)
-      .map(cellPoint)
-      .sort((a, b) => kilometers(a, center) - kilometers(b, center));
-    const anchor =
-      candidates.find((p) => {
-        const atlas = toAtlas(p.lon, p.lat);
-        return (
-          isWater(p) === water &&
-          atlasSample(atlas.x, atlas.y).coast < 0 === water
-        );
-      }) ?? cellPoint(members[0]);
-    const atlas = toAtlas(anchor.lon, anchor.lat);
-    nodes.set(id, {
-      id,
-      anchor,
-      water: atlasSample(atlas.x, atlas.y).coast < 0,
-    });
+        b.importance - a.importance ||
+        a.id.localeCompare(b.id),
+    )[0];
+  if (own) return { name: locationName(own, year), location: own };
+  const a = toAtlas(centre.lon, centre.lat);
+  const table = tableName(tile);
+  if (table && !table.startsWith("~")) return { name: table };
+  if (table) {
+    // A feature beside the square: "Hills south of Lake Taal".
+    const [bearing, feature] = table.slice(1).split("|");
+    const word = water
+      ? "Waters"
+      : atlasSample(a.x, a.y).coast < TILE
+        ? "Coast"
+        : broadEnvironment(centre.lon, centre.lat).relief > 0.5
+          ? "Hills"
+          : "Country";
+    return { name: `${word} ${compass[bearing]} of ${feature}` };
   }
-  for (const c of cells)
-    for (const neighbor of gridDisk(c, 1)) connect(owner(c), owner(neighbor));
-  // Catalog records attach locally; adding a record never changes a backbone ID.
-  const local = new Map<string, string[]>();
-  for (const p of travelLocations) {
-    const id = "place:" + p.id;
-    let parent = owner(latLngToCell(p.lat, p.lon, 2));
-    const atlas = toAtlas(p.lon, p.lat);
-    nodes.set(id, {
-      id,
-      anchor: p,
-      locationId: p.id,
-      water: atlasSample(atlas.x, atlas.y).coast < 0,
-    });
-    if (!nodes.get(id)!.water) {
-      const nearby = [...nodes.values()]
-        .filter(
-          (n) => !n.locationId && !n.water && kilometers(p, n.anchor) < 650,
-        )
-        .sort(
-          (a, b) =>
-            kilometers(p, a.anchor) - kilometers(p, b.anchor) ||
-            a.id.localeCompare(b.id),
-        );
-      for (const direction of ["N", "E", "S", "W"]) {
-        const next = nearby.find((n) =>
-          bearingTo(p, n.anchor).includes(direction),
-        );
-        if (next) connect(id, next.id);
-      }
-      try {
-        const access = cellPoint(snapCell(p, "land"));
-        const inland = nearby.find((n) => passable(access, n.anchor, "land"));
-        if (inland) parent = inland.id;
-      } catch {
-        /* Small islands retain their sea parent. */
-      }
-    }
-    connect(id, parent);
-    if (!local.has(parent)) local.set(parent, []);
-    local.get(parent)!.push(id);
-  }
-  // Every side must lead somewhere. A border that is walkable ground but has
-  // no neighbour recorded becomes an invisible wall, which is what stranded
-  // island maps like Puerto Rico on their own dry southern edge. Open water is
-  // a perfectly good neighbour: that map gets a beach from the shared seam.
-  const all = [...nodes.values()];
-  // Index by whole degree of latitude so the search below reads a band rather
-  // than every node on Earth.
-  const byLatitude = new Map<number, Node[]>();
-  for (const n of all) {
-    const band = Math.round(n.anchor.lat);
-    if (!byLatitude.has(band)) byLatitude.set(band, []);
-    byLatitude.get(band)!.push(n);
-  }
-  for (const node of all) {
-    const covered = new Set(
-      [...(links.get(node.id) ?? [])].map((to) =>
-        seamSide(bearingTo(node.anchor, nodes.get(to)!.anchor)),
-      ),
-    );
-    if (covered.size === 4) continue;
-    const best = new Map<string, { node: Node; km: number }>();
-    const centre = Math.round(node.anchor.lat);
-    // Read outward in latitude bands and stop as soon as every answer is
-    // nearer than the band edge, so a crowded coastline does not pay for a
-    // sweep of the hemisphere.
-    for (const reach of [6, 18]) {
-      best.clear();
-      for (let band = centre - reach; band <= centre + reach; band++)
-        for (const n of byLatitude.get(band) ?? []) {
-          if (n.id === node.id) continue;
-          const km = kilometers(node.anchor, n.anchor);
-          if (km > 2000) continue;
-          const side = seamSide(bearingTo(node.anchor, n.anchor));
-          if (covered.has(side)) continue;
-          const current = best.get(side);
-          if (
-            !current ||
-            km < current.km ||
-            (km === current.km && n.id < current.node.id)
-          )
-            best.set(side, { node: n, km });
-        }
-      const settled =
-        best.size + covered.size >= 4 &&
-        [...best.values()].every((b) => b.km <= reach * 111);
-      if (settled) break;
-    }
-    for (const side of ["N", "E", "S", "W"])
-      if (best.has(side)) connect(node.id, best.get(side)!.node.id);
-  }
-  for (const members of local.values())
-    for (const id of members) {
-      const nearest = members
-        .filter((x) => x !== id)
-        .sort(
-          (a, b) =>
-            kilometers(nodes.get(id)!.anchor, nodes.get(a)!.anchor) -
-              kilometers(nodes.get(id)!.anchor, nodes.get(b)!.anchor) ||
-            a.localeCompare(b),
-        )
-        .slice(0, 2);
-      for (const other of nearest) connect(id, other);
-    }
-  initialized = true;
-}
-export function permanentMap(id: string, year: number): PermanentMap {
-  initialize();
-  const n = nodes.get(id);
-  if (!n) throw Error(`Unknown permanent map: ${id}`);
-  const p = n.locationId ? travelById.get(n.locationId)! : undefined;
-  const environment = resolveMapEnvironment(n.anchor, year),
-    naming = resolveGeographicName(n.anchor, environment.surface === "sea");
-  const settlement = p ? settlementAt(p, year) : "none";
+  const river = water ? undefined : nearestRiver(a.x, a.y);
+  // A strait or a small coast can fall between the source regions; the
+  // nearest named ground a quarter-degree away stands in for it.
+  const region = [[0, 0], [0.25, 0], [-0.25, 0], [0, 0.25], [0, -0.25]]
+    .map(([dx, dy]) => resolveGeographicName({ lon: centre.lon + dx, lat: centre.lat + dy }, water))
+    .find((r) => r.coverage !== "missing") ?? resolveGeographicName(centre, water);
+  let base: string | undefined;
+  if (river?.name && river.distance < TILE * 0.7)
+    base = `${river.name.replace(/\s+/g, " ")} valley`;
+  else if (region.coverage !== "missing") base = plain(region.name);
+  const near = water ? undefined : nearestPlace(tile, year, 8);
+  if (!near)
+    return {
+      name: base
+        ? base.endsWith(" valley") ? base : within(region.bounds, centre, base) + base
+        : water ? waterRegion(centre).name : region.name,
+    };
+  // Five-kilometre steps keep neighbouring squares apart.
+  const km = Math.max(5, Math.round(kilometers(near, centre) / 5) * 5);
+  const where = `${km} km ${compass[bearingTo(near, centre)]} of ${locationName(near, year)}`;
   return {
-    ...describeCell(cellAt(n.anchor), year),
-    ...n.anchor,
-    id: cellAt(n.anchor),
-    networkId: id,
+    name: base
+      ? `${base}, ${where}`
+      : `${atlasSample(a.x, a.y).coast < TILE ? "Coast" : "Country"} ${where}`,
+  };
+}
+
+const mapCache = new Map<string, PermanentMap>();
+export function permanentMap(id: string, year: number): PermanentMap {
+  const key = `${id}@${year}`;
+  const cached = mapCache.get(key);
+  if (cached) return cached;
+  const tile = parseTile(id);
+  const centre = centreOf(tile);
+  const water = allSea(tile);
+  const environment = resolveMapEnvironment(centre, year),
+    naming = resolveGeographicName(centre, water);
+  const { name, location } = nameOf(tile, year, water);
+  const named = tableName(tile) !== undefined;
+  const status = location ? settlementAt(location, year) : "none";
+  const settlement = status === "city" || status === "town" ? status : "none";
+  const map: PermanentMap = {
+    ...centre,
+    id: tileId(tile),
+    networkId: tileId(tile),
     environment,
     naming,
-    // A backbone map otherwise inherits whatever broad polygon contains it, so
-    // ten maps read "Arabian Peninsula". The generated table gives each the
-    // nearest regional landform instead; a catalog place keeps its own name.
-    name:
-      p && settlement !== "unresearched"
-        ? locationName(p, year)
-        : ((backboneNames as Record<string, string>)[id] ?? naming.name),
+    regionId: water ? waterRegion(centre).id : northAmericanLandscape(centre)?.id,
+    name,
     climate: mapClimateLabel(environment),
-    water: environment.surface === "sea",
-    culture: environment.culture,
-    locationId: n.locationId,
+    relief: environment.relief,
+    water,
+    culture: water ? "No resident default" : environment.culture,
+    locationId: settlement !== "none" ? location!.id : undefined,
     settlement,
-    size: settlement === "city" ? 384 : 304,
+    size: TILE,
     reason: "Permanent playable map",
     km: 0,
     pathIndex: 0,
     note:
-      p?.note ??
+      location?.note ??
       "Permanent geographic landscape; habitation is resolved separately.",
   };
-}
-/** Half a nominal map, in atlas tiles: where that map's border actually lies. */
-const HALF_MAP = 152;
-function borderOf(anchor: Coordinate, side: "N" | "E" | "S" | "W") {
-  const p = toAtlas(anchor.lon, anchor.lat);
-  const [dx, dy] = { N: [0, -1], S: [0, 1], E: [1, 0], W: [-1, 0] }[side];
-  return fromAtlas(p.x + dx * HALF_MAP, p.y + dy * HALF_MAP);
-}
-const seamCache = new Map<string, ReturnType<typeof sampleSeam>>();
-const landConnections = new Map<string, boolean>();
-function landConnection(a: Coordinate, b: Coordinate) {
-  const key = [a.lon + "," + a.lat, b.lon + "," + b.lat].sort().join("|");
-  if (landConnections.has(key)) return landConnections.get(key)!;
-  let connected = false;
-  try {
-    findTravelPath(
-      snapCell(a, "land"),
-      snapCell(b, "land"),
-      "land",
-      Math.max(250, kilometers(a, b) * 3),
-    );
-    connected = true;
-  } catch {
-    /* Disconnected shores remain sea transfers. */
+  // A name made before its band arrived is a stand-in, not worth keeping.
+  if (named) {
+    trimCache(mapCache, 512);
+    mapCache.set(key, map);
   }
-  landConnections.set(key, connected);
-  return connected;
+  return map;
 }
+
+const sides = [
+  ["N", 0, -1],
+  ["E", 1, 0],
+  ["S", 0, 1],
+  ["W", -1, 0],
+] as const;
+const seamCache = new Map<string, ReturnType<typeof sampleSeam>>();
 // The exits of a map cannot change while the date holds, but the UI asks for
 // them every frame to label the border it is standing near.
 const exitCache = new Map<string, MapExit[]>();
 export function permanentExits(id: string, year: number): MapExit[] {
-  initialize();
   const key = `${id}@${year}`;
   const cached = exitCache.get(key);
   if (cached) return cached;
-  const result = buildExits(id, year);
-  trimCache(exitCache, 64);
-  exitCache.set(key, result);
-  return result;
-}
-function buildExits(id: string, year: number): MapExit[] {
-  const from = nodes.get(id)!;
-  const exits: MapExit[] = [...(links.get(id) ?? [])].sort().map((to) => {
-    const other = nodes.get(to)!;
-    return {
-      id: [id, to].sort().join("~"),
+  const tile = parseTile(id),
+    here = permanentMap(id, year);
+  const exits: MapExit[] = [];
+  for (const [side, di, dj] of sides) {
+    const next = { i: tile.i + di, j: tile.j + dj };
+    if (Math.abs(next.j) > LAST_ROW) continue;
+    const to = tileId(next);
+    const exitId = [id, to].sort().join("~");
+    // Sampled once from the northern or western tile, so both sides share it.
+    let seam = seamCache.get(exitId);
+    if (!seam) {
+      const first = side === "N" || side === "W" ? next : tile;
+      const along = side === "N" || side === "S" ? "S" : "E";
+      const c = centreOf(first);
+      const a = toAtlas(c.lon, c.lat);
+      seam = sampleSeam(
+        fromAtlas(a.x + (along === "E" ? TILE / 2 : 0), a.y + (along === "S" ? TILE / 2 : 0)),
+        along,
+      );
+      trimCache(seamCache, 256);
+      seamCache.set(exitId, seam);
+    }
+    const there = permanentMap(to, year);
+    exits.push({
+      id: exitId,
       from: id,
       to,
-      km: kilometers(from.anchor, other.anchor),
-      name: permanentMap(to, year).name,
-      bearing: bearingTo(from.anchor, other.anchor),
+      name: there.name,
+      bearing: side,
+      km: kilometers(here, there),
       mode:
-        from.water && other.water
-          ? "sea"
-          : from.water || other.water
-            ? "mixed"
-            : landConnection(from.anchor, other.anchor)
-              ? "land"
-              : "mixed",
-    };
-  });
-  for (const exit of exits) {
-    const ids = [exit.from, exit.to].sort(),
-      a = nodes.get(ids[0])!,
-      b = nodes.get(ids[1])!;
-    const side = seamSide(bearingTo(a.anchor, b.anchor));
-    let shared = seamCache.get(exit.id);
-    if (!shared) {
-      // An island or an open-water map closes itself with its own coast, so
-      // the border between it and anywhere else is sea. Without this an ocean
-      // map borrows a coastline from every neighbour and becomes a land bridge
-      // across an entire sea.
-      const open =
-        mapForm(a.anchor) !== "earth" || mapForm(b.anchor) !== "earth";
-      // Otherwise sample each map's own border rather than the midpoint
-      // between two anchors hundreds of kilometres apart, and let the end with
-      // more land there decide, so the other inherits it as its shore.
-      const here = sampleSeam(borderOf(a.anchor, side), side, open),
-        there = sampleSeam(borderOf(b.anchor, oppositeSide(side)), side, open);
-      shared = here.walkable >= there.walkable ? here : there;
-      seamCache.set(exit.id, shared);
-    }
-    exit.seam = {
-      ...shared,
-      side: exit.from === ids[0] ? side : oppositeSide(side),
-      start: 0,
-      end: 1,
-      // A road only where there is dry ground to carry it.
-      road: shared.walkable > 0,
-    };
-  }
-  for (const side of ["N", "E", "S", "W"]) {
-    const group = exits.filter((e) => e.seam?.side === side);
-    group.forEach((e, i) => {
-      e.seam!.start = i / group.length;
-      e.seam!.end = (i + 1) / group.length;
+        seam.walkable > 0
+          ? "land"
+          : here.water && there.water
+            ? "sea"
+            : "mixed",
+      seam: {
+        ...seam,
+        side,
+        start: 0,
+        end: 1,
+        road: seam.walkable > 0,
+      },
     });
+  }
+  if (exits.every((e) => tableName(parseTile(e.to)) !== undefined)) {
+    trimCache(exitCache, 64);
+    exitCache.set(key, exits);
   }
   return exits;
 }
 
+/** Neighbouring squares meet along their shared border. */
 export function connectionPath(exit: MapExit) {
-  initialize();
-  const a = nodes.get(exit.from)!,
-    b = nodes.get(exit.to)!;
-  return findTravelPath(
-    snapCell(a.anchor, exit.mode === "land" ? "land" : "mixed"),
-    snapCell(b.anchor, exit.mode === "land" ? "land" : "mixed"),
-    exit.mode,
-  ).path.map(cellPoint);
+  const a = centreOf(parseTile(exit.from)),
+    b = centreOf(parseTile(exit.to));
+  return [a, b];
 }
 export function mapForCoordinate(p: Coordinate) {
-  initialize();
-  const id = owner(latLngToCell(p.lat, p.lon, 2));
-  const atlas = toAtlas(p.lon, p.lat);
-  // A routing cell's centre can sit offshore while the point itself is inland.
-  // Without this an inland start resolves to an ocean map with no land exits.
-  if (!id.startsWith("sea:") || atlasSample(atlas.x, atlas.y).coast < 0)
-    return id;
-  const nearest = [...nodes.values()]
-    .filter((n) => !n.water && !n.locationId)
-    .sort(
-      (a, b) =>
-        kilometers(p, a.anchor) - kilometers(p, b.anchor) ||
-        a.id.localeCompare(b.id),
-    )[0];
-  return nearest?.id ?? id;
+  return tileId(tileOf(p));
+}
+/** Where a tile's map is centred: the origin its world is generated from. */
+export function tileCentre(id: string) {
+  return centreOf(parseTile(id));
 }

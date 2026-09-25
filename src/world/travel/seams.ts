@@ -48,7 +48,7 @@ export function sampleSeam(
   const elevation =
     Math.round(broadEnvironment(anchor.lon, anchor.lat).relief * 3) * 14;
   for (let i = 0; i <= 32; i++) {
-    const t = (i / 32 - 0.5) * 304;
+    const t = (i / 32 - 0.5) * 384;
     const a = atlasSample(
       p.x + (side === "N" || side === "S" ? t : 0),
       p.y + (side === "E" || side === "W" ? t : 0),

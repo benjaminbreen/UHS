@@ -1,3 +1,13 @@
+## Continuous atlas-tile travel and journeys — September 24, 2026
+
+Neighbouring maps are now adjacent 384-tile squares of the atlas, so coasts and
+rivers continue across every border and crossing lands at the matching point.
+Distant places are reached by choosing a destination on the Earth map, which
+routes the trip and passes the days. Maps are named for the town, river or
+region they contain. Details and naming rules are in `TRAVEL.md`. Border checks
+on Luzon, Patna and Istanbul found at most one land/water disagreement in 912
+cells; the old H3 backbone names and their generation scripts are removed.
+
 ## Compact freestanding signage — September 21, 2026
 
 New worlds pin signage revision 1 and use seven small frame styles with sixteen
