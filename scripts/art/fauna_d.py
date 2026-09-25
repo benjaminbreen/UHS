@@ -192,7 +192,7 @@ STATES = {
     "dog": dict.fromkeys(["idle", "forage", "wander", "flee", "rest"], 8),
     "donkey": dict.fromkeys(["idle", "graze", "wander", "flee", "rest"], 8),
     "camel": dict.fromkeys(["idle", "graze", "wander", "flee", "rest"], 8),
-    "cat": dict.fromkeys(["idle", "forage", "wander", "flee", "rest", "stalk", "chase", "pounce"], 8),
+    "cat": dict.fromkeys(["idle", "forage", "wander", "flee", "rest", "stalk", "chase", "pounce", "carry"], 8),
     "mouse": dict.fromkeys(["idle", "forage", "wander", "flee"], 8),
 }
 # Drawing coordinates are measured with the ground line at GROUND; HEADROOM is
@@ -1373,6 +1373,8 @@ def _cat_head(c, x, y, s, low=False, back=False, look=0):
         if mx >= x + 6 and my >= y + 4:
             c.px[(mx, my)] = "b"
     c.dot(x + 8, y + 4, "u")                           # nose
+    global CAT_MOUTH
+    CAT_MOUTH = (x + 6, y + 6)
     c.dot(x + 2, y + 1, "a"); c.dot(x + 4, y + 1, "a")  # the M on the brow
     if s.blink:
         c.dot(x + 5, y + 3, "d"); c.dot(x + 6, y + 3, "d")
@@ -1394,6 +1396,10 @@ def cat(form, state, frame):
         return _cat_loaf(c, frame)
     if state == "pounce":
         return _cat_pounce(c, form, frame)
+    if state == "carry":
+        im = cat(form, "wander", frame)
+        _mouse_in_mouth(im, MOUSE_SIDE)
+        return im
     chase = state == "chase"
     s = Stride("flee" if chase else "wander" if state == "forage" else state, frame, walk=(1.8, 1.6, 0.55), run=(3.6, 2.6, 0.34), phases=WALK, bounce=1.4)
     stalk = state == "stalk"
@@ -1455,6 +1461,24 @@ CAT_POUNCE = {
     6: ((8, 7, 16, 13), (14, 9, 22, 14), (21, 10), ((23, 16), (24, 16)), ((10, 16), (12, 16)), [(8, 9), (4, 10), (1, 8)]),
     7: ((8, 7, 16, 13), (14, 9, 22, 14), (21, 10), ((23, 16), (24, 16)), ((10, 16), (12, 16)), [(8, 9), (4, 10), (1, 6)]),
 }
+
+
+# A mouse held by the scruff, in fixed colours so no coat swap recolours it.
+# (0, 0) is the cat's mouth.
+MOUSE_SIDE = ["md..", "mmd.", ".mmd", "..tt"]
+MOUSE_FRONT = [".mm.", "mmmd", "t..."]
+MOUSE_COLOURS = {"m": "#7a6e60", "d": "#4d4439", "t": "#c49a92"}
+CAT_MOUTH = (0, 0)
+
+
+def _mouse_in_mouth(im, grid, ox=0):
+    px = im.load()
+    for y, row in enumerate(grid):
+        for x, ch in enumerate(row):
+            X, Y = CAT_MOUTH[0] + x + ox, CAT_MOUTH[1] + y + HEADROOM["cat"]
+            if ch != "." and 0 <= X < im.width and 0 <= Y < im.height:
+                col = MOUSE_COLOURS[ch]
+                px[X, Y] = tuple(int(col[i:i + 2], 16) for i in (1, 3, 5)) + (255,)
 
 
 def _cat_pounce(c, form, frame):
@@ -1531,6 +1555,11 @@ def _cat_loaf(c, frame):
 
 
 def _cat_face(form, state, frame, south):
+    if state == "carry":
+        im = _cat_face(form, "wander", frame, south)
+        if south:
+            _mouse_in_mouth(im, MOUSE_FRONT, -1)
+        return im
     if state == "pounce":
         from PIL import Image
         im = _cat_face(form, "stalk", 5 + min(frame, 1), south)
@@ -1559,6 +1588,8 @@ def _cat_face(form, state, frame, south):
         c.paint(shade(skull, 1, 1))
         if south:
             c.paint(flat(ellipse((cx - 2, hy + 4, cx + 2, hy + 7)), "b"))
+            global CAT_MOUTH
+            CAT_MOUTH = (cx - 1, hy + 7)
             c.dot(cx, hy + 4, "u")
             c.dot(cx - 1, hy + 1, "a"); c.dot(cx + 1, hy + 1, "a")
             for sgn in (-1, 1):

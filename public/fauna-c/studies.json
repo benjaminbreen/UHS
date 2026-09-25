@@ -1142,7 +1142,8 @@
       "rest": 8,
       "stalk": 8,
       "chase": 8,
-      "pounce": 8
+      "pounce": 8,
+      "carry": 8
     },
     "directions": [
       "south",
@@ -1477,6 +1478,7 @@
       "chase": 8,
       "flee": 8,
       "pounce": 8,
+      "carry": 8,
       "rest": 16
     },
     "directions": [
@@ -1617,6 +1619,7 @@
       "chase": 8,
       "flee": 8,
       "pounce": 8,
+      "carry": 8,
       "rest": 16
     },
     "directions": [
@@ -1745,6 +1748,7 @@
       "chase": 8,
       "flee": 8,
       "pounce": 8,
+      "carry": 8,
       "rest": 16
     },
     "directions": [
@@ -1851,6 +1855,7 @@
       "chase": 8,
       "flee": 8,
       "pounce": 8,
+      "carry": 8,
       "rest": 16
     },
     "directions": [

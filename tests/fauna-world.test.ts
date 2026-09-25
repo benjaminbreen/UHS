@@ -9,6 +9,8 @@ import {
 } from "../src/core/fauna-sim";
 import type { FaunaGroup } from "../src/core/fauna";
 import { habitatTagsAt, spawnFauna } from "../src/world/v3/fauna";
+import { remainsOf } from "../src/content/fauna/remains";
+import { ageRemains, pruneRemains, remainsObject } from "../src/core/remains";
 import type { WorldModel } from "../src/core/types";
 import type { TopographyCell } from "../src/core/topography";
 
@@ -371,6 +373,53 @@ describe("fauna hunting", () => {
     expect(pinned).toBeGreaterThan(0);
     expect(kills).toEqual(["cat>mouse"]);
     expect(mice.members).toHaveLength(1);
+  });
+  it("a fox carries its kill home and a pack eats where it fell", () => {
+    for (let seed = 1; seed <= 30; seed++) {
+      const fox = group("red-fox", 0, 0);
+      fox.home = { x: -8, y: 0, space: "outside" };
+      const rabbits = herd("rabbit", 8, 2);
+      let n = seed * 7717;
+      const world = sim({
+        rng: () => (n = (n * 1103515245 + 12345) % 2147483648) / 2147483648,
+      });
+      const dropped: string[] = [];
+      world.onDrop = (_, prey, at) => dropped.push(`${prey}@${at.x}`);
+      let carried = false;
+      for (let t = 1; t <= 120 && !dropped.length; t++) {
+        advanceFauna([fox, rabbits], world, t * 6);
+        carried ||= fox.state === "carry" && fox.carrying === "rabbit";
+      }
+      if (!carried) continue;
+      expect(dropped).toHaveLength(1);
+      expect(dropped[0]).toMatch(/^rabbit@-[78]$/);
+      expect(fox.carrying).toBeUndefined();
+      return;
+    }
+    throw new Error("no fox caught a rabbit in thirty tries");
+  });
+  it("leaves feathers for a bird, fur for a rabbit, a carcass for a deer, nothing for a mouse", () => {
+    expect(remainsOf("chicken")).toBe("feathers");
+    expect(remainsOf("cattle-egret")).toBe("feathers");
+    expect(remainsOf("rabbit")).toBe("fur");
+    expect(remainsOf("red-deer")).toBe("carcass");
+    expect(remainsOf("mouse")).toBeUndefined();
+  });
+  it("a carcass is picked over, then bone, and feathers blow away in two days", () => {
+    const at = { x: 0, y: 0, space: "outside" as const };
+    const deer = remainsObject("carcass", "red-deer", "gray-wolf", at, 0, "d");
+    expect(deer.description).toMatch(/Wolves ate here/);
+    const sprites = [30, 200, 1200].map((h) => {
+      ageRemains(deer, h * 3600);
+      return deer.sprite;
+    });
+    expect(sprites).toEqual([
+      "nature-remains-carcass-picked",
+      "nature-remains-bones",
+      "nature-remains-bones-old",
+    ]);
+    const hen = remainsObject("feathers", "chicken", "red-fox", at, 0, "h");
+    expect(pruneRemains([hen, deer], 49 * 3600)).toEqual([deer]);
   });
   it("a person nearby matters more than dinner", () => {
     const deer = herd("red-deer", 6, 3);

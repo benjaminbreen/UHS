@@ -295,6 +295,9 @@ export type WorldObject = {
   from?: string;
   /** Stepped in. */
   trodden?: boolean;
+  /** What a kill left: `from` is the prey, `by` the hunter, `laid` when. */
+  remains?: import("../content/fauna/remains").RemainsKind;
+  by?: string;
   /** Knocked over: draws its fallen sprite and spills what it held. */
   tipped?: boolean;
 };

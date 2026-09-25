@@ -40,6 +40,9 @@ export type FaunaWorld = {
   emit?(event: SignalInput): void;
   /** A hunter has pulled a member of `prey` down on `at`. */
   onKill?(hunter: FaunaGroup, prey: FaunaGroup, at: Point): void;
+  /** A hunter home with what it carried: a fox eats it at the den, a cat
+   * leaves it on the step. */
+  onDrop?(hunter: FaunaGroup, prey: string, at: Point): void;
 };
 
 const NEIGHBOURS: readonly Point[] = [
@@ -243,6 +246,14 @@ function decide(
   const calm = () =>
     clock + p.calmDecisionSeconds * (0.5 + world.rng(`fauna-${g.id}-wait`));
   g.target = undefined;
+  // Scared off the way home, it takes up the way home again.
+  if (g.carrying) {
+    g.state = "carry";
+    g.target = { ...g.home };
+    g.since = clock;
+    g.nextDecisionAt = clock + 10 * TICK;
+    return;
+  }
   const feed = p.art.graze ? "graze" : p.art.forage ? "forage" : "idle";
   const doze = p.art.rest ? "rest" : "idle";
   if (g.gateId) {
@@ -726,8 +737,26 @@ function take(
     held.target = undefined;
     world.onKill?.(g, held, dead);
   }
-  g.state = p.art.rest ? "rest" : "idle";
+  settle(g, p, held?.speciesId, clock);
+}
+
+/** After a kill: something small that has art for it is carried home in the
+ * jaws; anything else is eaten where it fell, and then a rest. */
+function settle(
+  g: FaunaGroup,
+  p: FaunaProfile,
+  prey: string | undefined,
+  clock: number,
+) {
   g.since = clock;
+  if (prey && p.art.carry && faunaProfile(prey)?.prey !== "ungulate") {
+    g.state = "carry";
+    g.carrying = prey;
+    g.target = { ...g.home };
+    g.nextDecisionAt = clock + 10 * TICK;
+    return;
+  }
+  g.state = p.art.rest ? "rest" : "idle";
   g.nextDecisionAt = clock + p.calmDecisionSeconds;
 }
 
@@ -1026,6 +1055,12 @@ export function advanceFauna(
         if (to) moveMember(leader, to, taken, turns);
         if (!quarry && (!to || hyp(leader, g.target) < 1)) {
           g.target = undefined;
+          if (g.carrying) {
+            world.onDrop?.(g, g.carrying, { x: leader.x, y: leader.y });
+            g.carrying = undefined;
+            g.state = p.art.rest ? "rest" : "idle";
+            g.nextDecisionAt = clock + p.calmDecisionSeconds;
+          }
           if (g.state === "wander" || g.state === "stalk") {
             g.state = "idle";
             g.nextDecisionAt = clock + 2 * TICK;
@@ -1100,10 +1135,8 @@ export function advanceFauna(
           (faunaProfile(quarry.speciesId)?.prey === "rodent" ? FED / 4 : FED);
         g.quarry = undefined;
         g.target = undefined;
-        g.state = p.art.rest ? "rest" : "idle";
-        g.since = clock;
-        g.nextDecisionAt = clock + p.calmDecisionSeconds;
         world.onKill?.(g, quarry, dead);
+        settle(g, p, quarry.speciesId, clock);
       }
     }
   }

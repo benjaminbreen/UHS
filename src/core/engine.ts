@@ -89,6 +89,8 @@ import { terrainJump, terrainLeap, type LeapResult } from "./topography";
 import { boundaryGraph } from "../render/fence-pass";
 import { advanceFauna, stepAllowed } from "./fauna-sim";
 import { ageDung, capDung, dungObject } from "./dung";
+import { ageRemains, pruneRemains, remainsObject } from "./remains";
+import { remainsOf } from "../content/fauna/remains";
 import { dungOf, dungPerDay } from "../content/fauna/dung";
 import { aerialStates, type FaunaGroup, type FaunaMember } from "./fauna";
 import {
@@ -4318,6 +4320,22 @@ export class Engine {
         noise: this.noise(),
         dodging: clock - this.lastJump <= 6,
         onMaul: (g, m, dir, damage) => this.mauled(g, m, dir, damage),
+        onKill: (g, prey, at) => {
+          const kind = remainsOf(prey.speciesId);
+          if (!kind) return;
+          const pos = { x: at.x, y: at.y, space: "outside" as const };
+          this.state.objects.push(
+            remainsObject(kind, prey.speciesId, g.speciesId, pos, clock, `remains-${prey.id}-${clock}`),
+          );
+        },
+        // A fox eats at the den; a cat leaves a mouse for the household.
+        onDrop: (g, prey, at) => {
+          if (g.speciesId !== "cat" || this.blocked(at.x, at.y, "outside")) return;
+          const pos = { x: at.x, y: at.y, space: "outside" as const };
+          this.state.objects.push(
+            remainsObject("gift", prey, g.speciesId, pos, clock, `gift-${g.id}-${clock}`),
+          );
+        },
         emit: (event) => {
           this.signal(event);
           // The moment to be somewhere else.
@@ -4384,7 +4402,11 @@ export class Engine {
       }
     }
     if (Math.floor(clock / 3600) !== Math.floor((clock - 6) / 3600)) {
-      for (const o of this.state.objects) if (o.dung) ageDung(o, clock);
+      for (const o of this.state.objects) {
+        if (o.dung) ageDung(o, clock);
+        if (o.remains) ageRemains(o, clock);
+      }
+      this.state.objects = pruneRemains(this.state.objects, clock);
       dropped = true;
     }
     if (dropped) this.state.objects = capDung(this.state.objects);

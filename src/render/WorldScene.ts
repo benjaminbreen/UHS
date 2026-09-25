@@ -61,7 +61,14 @@ const URGENT = new Set<FaunaState>([
 const WATCHFUL = new Set<FaunaState>(["idle", "graze", "forage", "perch"]);
 const FAUNA_DUST = [0xb9a27a, 0x9c8762, 0xd2c09a];
 /** States whose art already shows the animal travelling. */
-const STRIDING = new Set<FaunaState>([...URGENT, "wander", "stalk"]);
+const STRIDING = new Set<FaunaState>([...URGENT, "wander", "stalk", "carry"]);
+/** A feather lifted off a kill, by the colour of the feathers lying there. */
+const FEATHER_COLOURS: Record<string, number> = {
+  white: 0xeeece4,
+  grey: 0xb7c0c2,
+  brown: 0xb3834c,
+  dark: 0x5a4a3c,
+};
 import { canopyHidesPlayer } from "./canopy-visibility";
 import { WorldCharacters } from "./characters/world";
 import { entityInView, npcMotion } from "./entity-presentation";
@@ -204,6 +211,8 @@ import { Mist } from "./mist";
 import { AmbientLife, critterFor } from "./ambient-life";
 import { Flies, type FlySource } from "./flies";
 import { freshDung } from "../core/dung";
+import { freshCarcass } from "../core/remains";
+import { RemainsLife, type RemainsSource } from "./remains-life";
 import {
   groundState,
   snowCover,
@@ -567,6 +576,7 @@ export class WorldScene extends Phaser.Scene {
   private life?: AmbientLife;
   private weather?: Weather;
   private flies?: Flies;
+  private remainsLife?: RemainsLife;
   /** Lying snow, in the raster's steps. */
   private snow = 0;
   private season = "summer";
@@ -675,6 +685,7 @@ export class WorldScene extends Phaser.Scene {
     this.mist = new Mist(this);
     this.life = new AmbientLife(this);
     this.flies = new Flies(this);
+    this.remainsLife = new RemainsLife(this);
     this.input.keyboard!.removeCapture([
       "UP",
       "DOWN",
@@ -3857,8 +3868,8 @@ export class WorldScene extends Phaser.Scene {
               : o.sprite,
         o.pos,
       );
-      // Dung is drawn at world size and lies too flat to cast a shadow.
-      if (o.dung) this.shadows.get(o.id)?.setVisible(false);
+      // Dung and remains are drawn at world size and lie too flat to cast a shadow.
+      if (o.dung || o.remains) this.shadows.get(o.id)?.setVisible(false);
       // A pebble on the ground is a pebble, not the boulder its art was cut from.
       else if (o.kind === "item") {
         this.entities.get(o.id)?.setScale(ITEM_SCALE);
@@ -3890,6 +3901,7 @@ export class WorldScene extends Phaser.Scene {
       if (o.pos.space !== "outside" || o.carriedBy) continue;
       if (o.dung && o.dung !== "droppings" && freshDung(o, e.state.clock))
         at(o.id, o.pos, o.dung === "pellets" ? 2 : 4);
+      else if (freshCarcass(o, e.state.clock)) at(o.id, o.pos, 8);
       else if (o.item === "meat" || o.item === "fish") at(o.id, o.pos, 4);
       else if (o.prop && flyProps[o.prop]) at(o.id, o.pos, flyProps[o.prop]);
     }
@@ -3899,6 +3911,23 @@ export class WorldScene extends Phaser.Scene {
         if (store?.pos.space === "outside" && shownStock(economy, h).some((i) => i === "meat" || i === "fish"))
           at(`${store.id}:stall`, store.pos, 5);
       }
+    const remains: RemainsSource[] = [];
+    for (const o of obs.objects)
+      if (
+        o.pos.space === "outside" &&
+        !o.carriedBy &&
+        (o.remains === "feathers" ||
+          freshCarcass(o, e.state.clock) ||
+          o.sprite === "nature-remains-carcass-picked")
+      )
+        remains.push({
+          id: o.id,
+          x: o.pos.x * 16 + 8,
+          y: o.pos.y * 16 + (o.remains === "feathers" ? 12 : 6),
+          kind: o.remains === "feathers" ? "feathers" : "carcass",
+          colour: FEATHER_COLOURS[o.sprite.split("-").pop()!],
+        });
+    this.remainsLife?.set(remains, this.light.id !== "night");
     const sky = this.weather;
     this.flies?.set(
       flySources,
@@ -4446,6 +4475,15 @@ export class WorldScene extends Phaser.Scene {
     this.drift?.update(time, !!this.options.freeze);
     this.mist?.update(time, !!this.options.freeze);
     this.life?.update(time, !!this.options.freeze);
+    this.remainsLife?.update(
+      time,
+      delta / 1000,
+      [...this.humanActors.keys()].flatMap((id) => {
+        const im = this.entities.get(id);
+        return im?.visible ? [{ x: im.x, y: im.y }] : [];
+      }),
+      !!this.options.freeze,
+    );
     this.flies?.update(
       delta / 1000,
       [...this.humanActors.keys()].flatMap((id) => {

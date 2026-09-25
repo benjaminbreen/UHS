@@ -60,7 +60,7 @@ for _kind in KINDS.values():
         assert len(set(_coat_roles.values())) == 14
 NATIVE_SIZES = {sp: (WIDTH, GROUND + 4 + HEADROOM) for sp in SPECIES}
 STANDING_SIZES = {sp: (WIDTH, GROUND + 1) for sp in SPECIES}
-STATES = {sp: {"idle": 16, "forage": 16, "wander": 8, "stalk": 8, "chase": 8, "flee": 8, "pounce": 8, "rest": 16} for sp in SPECIES}
+STATES = {sp: {"idle": 16, "forage": 16, "wander": 8, "stalk": 8, "chase": 8, "flee": 8, "pounce": 8, "carry": 8, "rest": 16} for sp in SPECIES}
 PALETTES = {sp: next(iter(k["coats"].values())) for sp, k in KINDS.items()}
 
 # The kind being drawn. Every shape goes through T, which scales the model
@@ -238,6 +238,8 @@ def head(c, p, body_mask):
     base_y = max(y for _, y in near_ear)
     c.paint({(x, y): "a" if y < base_y - 1 else "d" for x, y in near_ear})
     c.px[at(nose)] = "k"
+    global MOUTH
+    MOUTH = at(add(add(nose, fwd, -1.6 * sn), down, 1.2 * sk))
     if p["mouth"]:
         m = add((hx, hy), fwd, 1.2 * sk + 2.3 * sn)
         c.px[at(add(m, down, 1.3 * sk))] = "o"
@@ -616,6 +618,8 @@ def face(state, frame, south):
             grid = [r.replace("e", "d") for r in grid]
         hx_p, hy_p = at((cx, hy))
         paint_grid(c, grid, hx_p - gx, hy_p - gy)
+        global MOUTH
+        MOUTH = (hx_p, hy_p - gy + len(grid) - 1)
         if state == "flee":
             c.px[(hx_p, hy_p + 3)] = "o"
         return c.finish()
@@ -788,9 +792,41 @@ SIDE = {"idle": idle, "forage": forage, "wander": trot, "stalk": stalk,
 DIRECTIONS = ("south", "east", "north", "west")
 
 
+# What a fox carries home, limp in the jaws: drawn after everything in fixed
+# colours, so no coat swap turns the rabbit red. (0, 0) is the mouth.
+CARRIED_SIDE = ["dm..", "mld.", ".mld", ".mmd", "..dm", "..wd"]
+CARRIED_SMALL = ["dm.", "mld", ".dm", "..w"]
+CARRIED_FRONT = [".dmmd.", "dmllmd", ".d..d."]
+PREY = {"d": "#4a3f33", "m": "#7a6a58", "l": "#a8977f", "w": "#e8e0d0"}
+MOUTH = (0, 0)
+
+
+def carried(im, grid, ox=0):
+    px = im.load()
+    for y, row in enumerate(grid):
+        for x, ch in enumerate(row):
+            X, Y = MOUTH[0] + x + ox, MOUTH[1] + y + HEADROOM
+            if ch != "." and 0 <= X < im.width and 0 <= Y < im.height:
+                c = PREY[ch]
+                px[X, Y] = tuple(int(c[i:i + 2], 16) for i in (1, 3, 5)) + (255,)
+
+
 def draw(species, state, facing, frame):
     global K
     K = KINDS[species]
+    if state == "carry":  # home at a trot, head up to keep it off the ground
+        small = K["s"] < 0.8
+        if facing in ("east", "west"):
+            p = trot(frame)
+            p["head"] = (p["head"][0], p["head"][1] - 1)
+            p["look"] = -4
+            im = side(p)
+            carried(im, CARRIED_SMALL if small else CARRIED_SIDE, -1)
+            return _mirror(im) if facing == "west" else im
+        im = face("wander", frame, facing == "south")
+        if facing == "south":
+            carried(im, CARRIED_SMALL if small else CARRIED_FRONT, -2 if small else -3)
+        return im
     if state == "pounce":  # at something real: the leap out of the mousing loop, crouch to nose-down
         state, frame = "forage", frame + 7
     if facing in ("east", "west"):

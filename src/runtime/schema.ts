@@ -576,6 +576,7 @@ const faunaGroup = z
     fedUntil: z.number().optional(),
     quarry: z.string().optional(),
     catching: z.object({ group: z.string(), n: z.number() }).optional(),
+    carrying: z.string().optional(),
     serial: z.number().int().optional(),
     hurtUntil: z.number().optional(),
     provoked: z.number().optional(),
