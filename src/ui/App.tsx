@@ -465,7 +465,8 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
       if ((e.code === "KeyE" || e.code === "KeyF") && !e.repeat) {
         e.preventDefault();
         if (e.code === "KeyE") runVerb("alternate");
-        else runVerb("primary", true);
+        else if (runtime.engine.state.player.heldItem !== "bow")
+          runVerb("primary", true);
       }
       if (e.key === "=" || e.key === "+") runtime.stepZoom(1);
       if (e.key === "-" || e.key === "_") runtime.stepZoom(-1);
@@ -846,7 +847,9 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
                 onClick={() => runVerb("primary")}
               />
             )}
-            {(p.held || p.heldItem) && <span>X · Throw (hold to aim)</span>}
+            {p.heldItem === "bow"
+              ? <span>Right mouse · Aim and shoot · {p.inventory.arrow ?? 0} arrows</span>
+              : (p.held || p.heldItem) && <span>X · Throw (hold to aim)</span>}
             {verbs.alternate && (
               <KeyPrompt
                 key={verbs.alternate.label}

@@ -23,7 +23,7 @@ import {
   type AppearancePalette,
 } from "../core/character";
 import type { Actor, Intent, ItemId } from "../core/types";
-import { poseContactMs, type CharacterPose } from "../render/characters/poses";
+import { poseContactMs, poseTiming, type CharacterPose } from "../render/characters/poses";
 import type {
   ToolEffect,
   SwingEffect,
@@ -49,6 +49,7 @@ export type Verb = {
     | "talk"
     | "pickup"
     | "strike"
+    | "shoot"
     | "throw"
     | "drop"
     | "give"
@@ -563,16 +564,23 @@ export class Runtime {
         };
       }
     }
-    if (command.type === "throw") {
+    if (command.type === "throw" || command.type === "shoot") {
       const flight = this.engine.lastThrow;
       if (flight)
         this.throwEffect = {
           serial: ++this.characterSerial,
           ...flight,
-          launchMs: poseContactMs(
-            previousProp?.includes("-spear-") ? "cast" : "swing",
-          ),
+          launchMs: command.type === "shoot" ? 75 : poseContactMs("cast"),
         };
+      if (command.type === "shoot") {
+        this.characterAction = {
+          serial: ++this.characterSerial,
+          pose: "draw",
+          at: performance.now() - poseTiming("draw") * 3,
+          prop: previousProp,
+        };
+        return;
+      }
     }
     if (command.type === "swing") {
       const swing = this.engine.lastSwing;
@@ -627,7 +635,7 @@ export class Runtime {
         drop: "drop",
         climb: "climb",
         descend: "climb",
-        throw: previousProp?.includes("-spear-") ? "cast" : "swing",
+        throw: "cast",
         strike: "swing",
         chop: "chop",
         dig: "dig",
@@ -1311,6 +1319,8 @@ export class Runtime {
       primary = { kind: "strike", label: "Douse the fire", command: douse };
     else if (p.heldItem === "torch" && !this.engine.validate(burn))
       primary = { kind: "strike", label: "Set it alight", command: burn };
+    else if (item?.id === "bow")
+      primary = { kind: "shoot", label: (p.inventory.arrow ?? 0) > 0 ? "Draw bow" : "No arrows" };
     else if (speaker)
       primary = {
         kind: "talk",
@@ -1448,6 +1458,11 @@ export class Runtime {
       this.throwHeld(at.x - p.x, at.y - p.y, this.running);
       return verb;
     }
+    if (verb.kind === "shoot") {
+      const at = this.engine.facingCell(), p = this.engine.state.player.pos;
+      this.shootBow({ x: p.x + (at.x - p.x) * 6, y: p.y + (at.y - p.y) * 6 });
+      return verb;
+    }
     if (verb.command) {
       this.selected = verb.command.target;
       this.command(verb.command);
@@ -1548,7 +1563,8 @@ export class Runtime {
       const item = prop.slice(5);
       this.engine.devArm();
       const bag = this.engine.state.player.inventory;
-      bag[item] = (bag[item] ?? 0) + 10;
+      bag[item] = (bag[item] ?? 0) + (item === "bow" ? 1 : 10);
+      if (item === "bow") bag.arrow = (bag.arrow ?? 0) + 20;
       this.command({ type: "hold", item });
       return;
     }
@@ -1617,7 +1633,7 @@ export class Runtime {
     this.notice = text;
     this.emit();
   }
-  throwHeld(dx: number, dy: number, running = false, reach?: number) {
+  throwHeld(dx: number, dy: number, running = false, reach?: number, target?: Point) {
     this.stop(false);
     return this.command({
       type: "throw",
@@ -1625,7 +1641,12 @@ export class Runtime {
       dy,
       run: running,
       ...(reach ? { reach } : {}),
+      ...(target ? { target } : {}),
     });
+  }
+  shootBow(target: Point, power = 1) {
+    this.stop(false);
+    return this.command({ type: "shoot", target, power });
   }
   /** A jump at something tall runs a step up it, and a second press kicks
    * off. Nothing to the engine until the kick, which is an ordinary jump. */

@@ -21,6 +21,7 @@ const ICONS: Record<Verb["kind"], LucideIcon> = {
   talk: MessageCircle,
   pickup: Hand,
   strike: Sword,
+  shoot: Target,
   throw: Target,
   drop: ArrowDownToLine,
   give: Gift,
@@ -37,6 +38,9 @@ export type TouchTarget = {
   setTouchStick(stick?: { dx: number; dy: number; run: boolean }): void;
   touchJump(down: boolean): void;
   touchThrow(down: boolean): void;
+  touchBow(down: boolean): void;
+  touchAim(dx: number, dy: number): void;
+  cancelAim(): void;
 };
 
 const RADIUS = 34;
@@ -67,6 +71,7 @@ export function TouchControls({
 }) {
   const [knob, setKnob] = useState<{ x: number; y: number; run: boolean }>();
   const centre = useRef({ x: 0, y: 0 });
+  const aimCentre = useRef({ x: 0, y: 0 });
   const steer = (e: PointerEvent<HTMLDivElement>) => {
     const x = e.clientX - centre.current.x,
       y = e.clientY - centre.current.y;
@@ -91,6 +96,21 @@ export function TouchControls({
     },
     onPointerUp: up,
     onPointerCancel: up,
+    onContextMenu: (e: { preventDefault(): void }) => e.preventDefault(),
+  });
+  const aimHold = (down: () => void, up: () => void) => ({
+    onPointerDown: (e: PointerEvent<HTMLButtonElement>) => {
+      e.currentTarget.setPointerCapture(e.pointerId);
+      const box = e.currentTarget.getBoundingClientRect();
+      aimCentre.current = { x: box.left + box.width / 2, y: box.top + box.height / 2 };
+      buzz();
+      down();
+    },
+    onPointerMove: (e: PointerEvent<HTMLButtonElement>) => {
+      if (e.buttons) scene()?.touchAim(e.clientX - aimCentre.current.x, e.clientY - aimCentre.current.y);
+    },
+    onPointerUp: up,
+    onPointerCancel: () => scene()?.cancelAim(),
     onContextMenu: (e: { preventDefault(): void }) => e.preventDefault(),
   });
   const Primary = primary ? ICONS[primary.kind] : Hand;
@@ -134,11 +154,11 @@ export function TouchControls({
         >
           <ChevronsUp size={18} />
         </button>
-        {holding && (
+        {holding && primary?.kind !== "shoot" && (
           <button
             className="touch-small"
             aria-label="Throw. Hold to aim"
-            {...hold(
+            {...aimHold(
               () => scene()?.touchThrow(true),
               () => scene()?.touchThrow(false),
             )}
@@ -165,7 +185,9 @@ export function TouchControls({
             className="touch-primary"
             data-kind={primary.kind}
             aria-label={primary.label}
-            {...hold(onPrimaryDown, onPrimaryUp)}
+            {...(primary.kind === "shoot"
+              ? aimHold(() => scene()?.touchBow(true), () => scene()?.touchBow(false))
+              : hold(onPrimaryDown, onPrimaryUp))}
           >
             <Primary size={24} />
             <small>{primary.label}</small>

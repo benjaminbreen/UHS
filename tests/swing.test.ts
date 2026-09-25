@@ -197,6 +197,94 @@ it("casts a thrown spear after its release pose", () => {
   runtime.dispose();
 });
 
+it("aims spears and sticks between the old eight directions", () => {
+  for (const weapon of ["spear", "stick"]) {
+    const engine = createSession("roman", `aimed-${weapon}`);
+    ground(engine);
+    prop(engine, weapon, 0, 0, true);
+    const target = weapon === "spear" ? { x: 7, y: 3 } : { x: 5, y: 2 };
+    const preview = engine.projectilePath(target, engine.missile().range);
+    expect(preview.at(-1)).toEqual(target);
+    const runtime = new Runtime(engine, { cacheTerrain: false });
+    runtime.throwHeld(1, 1, false, undefined, target);
+    expect(engine.lastThrow?.to).toEqual(preview.at(-1));
+    expect(engine.state.objects.find((o) => o.id === engine.lastThrow?.id)?.projectile)
+      .toMatchObject({ dx: target.x, dy: target.y });
+    expect(runtime.characterAction?.pose).toBe("cast");
+    runtime.dispose();
+  }
+});
+
+it("uses the same first obstruction for preview and impact", () => {
+  const engine = createSession("roman", "aimed-wall");
+  ground(engine);
+  prop(engine, "spear", 0, 0, true);
+  engine.world.blocked = (x, y) => x === 4 && y === 2;
+  const target = { x: 7, y: 3 };
+  const preview = engine.projectilePath(target, engine.missile().range);
+  expect(preview.at(-1)).toEqual({ x: 3, y: 1 });
+  const runtime = new Runtime(engine, { cacheTerrain: false });
+  runtime.throwHeld(1, 1, false, undefined, target);
+  expect(engine.lastThrow?.to).toEqual(preview.at(-1));
+  runtime.dispose();
+});
+
+it("draws a bow, spends an arrow, and leaves a missed shot to recover", () => {
+  const engine = createSession("roman", "bow-shot");
+  ground(engine);
+  engine.state.player.heldItem = "bow";
+  engine.state.player.inventory = { arrow: 2 };
+  const runtime = new Runtime(engine, { cacheTerrain: false });
+  expect(runtime.verbs().primary?.label).toBe("Draw bow");
+  runtime.shootBow({ x: 6, y: 3 }, 1);
+  expect(engine.lastThrow).toMatchObject({ to: { x: 6, y: 3 }, arrow: true });
+  expect(runtime.characterAction?.pose).toBe("draw");
+  expect(engine.state.player.inventory.arrow).toBe(1);
+  expect(engine.state.objects.some((o) => o.item === "arrow" && o.pos.x === 6 && o.pos.y === 3)).toBe(true);
+  expect(engine.state.objects.find((o) => o.item === "arrow")?.projectile)
+    .toMatchObject({ dx: 6, dy: 3 });
+  runtime.shootBow({ x: 6, y: 3 }, 1);
+  expect(engine.state.player.inventory.arrow).toBeUndefined();
+  expect(runtime.verbs().primary?.label).toBe("No arrows");
+  expect(runtime.shootBow({ x: 6, y: 3 }, 1)?.status).toBe("rejected");
+  runtime.dispose();
+});
+
+it("keeps an arrow in a surviving animal and lets it travel with it", () => {
+  const engine = createSession("roman", "lodged-arrow");
+  ground(engine);
+  const runtime = new Runtime(engine, { cacheTerrain: false });
+  runtime.devSpawnFauna("red-deer", 1, "very-strong");
+  const herd = engine.state.fauna!.find((g) => g.id.startsWith("dev-"))!;
+  herd.members[0].x = 4;
+  herd.members[0].y = 0;
+  runtime.devArm("item:bow");
+  runtime.shootBow({ x: 8, y: 0 }, 0.35);
+  const arrow = engine.state.objects.find((o) => o.item === "arrow")!;
+  expect(arrow.projectile?.lodgedIn).toEqual({ group: herd.id, n: herd.members[0].n });
+  expect(arrow.pos.x).toBe(herd.members[0].x);
+  engine.advance(6);
+  expect(arrow.pos).toMatchObject({ x: herd.members[0].x, y: herd.members[0].y });
+  runtime.dispose();
+});
+
+it("keeps a fatal shot in the falling animal until its body clears", () => {
+  const engine = createSession("roman", "fatal-arrow");
+  ground(engine);
+  const runtime = new Runtime(engine, { cacheTerrain: false });
+  runtime.devSpawnFauna("red-deer", 1, "ordinary");
+  const herd = engine.state.fauna!.find((g) => g.id.startsWith("dev-"))!;
+  herd.members[0].x = 4;
+  herd.members[0].y = 0;
+  herd.members[0].hp = 1;
+  runtime.devArm("item:bow");
+  runtime.shootBow({ x: 8, y: 0 });
+  expect(engine.lastThrow?.creature?.killed).toBe(true);
+  expect(engine.state.objects.find((o) => o.item === "arrow")?.projectile?.lodgedIn)
+    .toEqual({ group: herd.id, n: 1 });
+  runtime.dispose();
+});
+
 it("one hand: picking a prop up puts the held item away", () => {
   const engine = createSession("roman", "swing-swap");
   ground(engine);

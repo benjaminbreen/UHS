@@ -202,6 +202,31 @@ const HARD: HitClass[] = ["rock", "stone", "metal"];
 const LEAFY: HitClass[] = ["brush", "grass", "crop", "fiber"];
 const CONTACT = 0.035;
 
+export function projectileRelease(kind: "arrow" | "spear"): Sound {
+  return kind === "arrow"
+    ? [
+        tone(0, 0.13, 0.28, vary(310), { to: 175, wave: "triangle" }),
+        noise(0.012, 0.11, 0.12, 3500, { to: 1400, q: 2 }),
+      ]
+    : [
+        noise(0, 0.16, 0.17, 850, { to: 2600, q: 2.2, attack: 0.035 }),
+        tone(0.02, 0.1, 0.08, 130, { to: 75 }),
+      ];
+}
+
+export function projectileImpact(kind: "arrow" | "spear", hit: HitClass): Sound {
+  const weight = kind === "spear" ? 0.9 : 0.5;
+  return [
+    ...body(hit, weight),
+    noise(0, hit === "creature" ? 0.045 : 0.025, kind === "spear" ? 0.16 : 0.1,
+      hit === "creature" ? 1200 : 2300, { to: 650, q: 2 }),
+    ...(hit === "soil" || hit === "grass" || hit === "sand"
+      ? [noise(0.025, 0.13, kind === "spear" ? 0.12 : 0.07, 700,
+          { to: 330, filter: "lowpass" as const })]
+      : []),
+  ];
+}
+
 /** A swing or a thrown thing arriving: the air, then what the implement and
  * the surface make of each other. */
 export function strike(

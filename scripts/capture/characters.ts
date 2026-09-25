@@ -21,8 +21,10 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
       const { originalAppearance } = await import("/src/core/character.ts" as string);
       const art = await loadCarriedArt();
       const rows = [
+        ["Bow · draw", "bow", "draw"],
         ["Spear · thrust", "spear", "thrust"],
         ["Spear · cast", "spear", "cast"],
+        ["Stick · cast", "stick", "cast"],
         ["Pitchfork · thrust", "pitchfork", "thrust"],
         ["Rake · pull", "rake", "till"],
         ["Sickle · cut", "sickle", "reap"],

@@ -1,6 +1,7 @@
 import { shownStock } from "../core/economy";
 import { parseLoad } from "../content/economy/carrying";
 import { portableProps } from "./characters/props";
+import { drawGarmentIcon } from "./garment-icons";
 import { Watercraft } from "./watercraft";
 import { ruinTexture, releaseRuins } from "./ruins";
 import { Burning, TorchFlame } from "./burning";
@@ -122,7 +123,7 @@ import {
   defaultLiveGraphicsSettings,
   type LiveGraphicsSettings,
 } from "./live-graphics";
-import { ToolEffects, ROLL_MS } from "./tool-effects";
+import { ToolEffects, ROLL_MS, projectileArrowTexture } from "./tool-effects";
 import { CombatEffects, faunaSpriteId, mixTint } from "./combat-effects";
 import { PlayerFeel } from "./player-feel";
 import { CueEffects } from "./cue-effects";
@@ -160,9 +161,6 @@ const JUMP_BUFFER_MS = 90;
 /** A jump this soon after a running step counts as a running jump. */
 /** Ground items borrow scenery art, which is drawn far larger than a handful. */
 const ITEM_SCALE = 0.4;
-/** Under this, X is a snap throw; over it, the mark starts walking out. */
-const AIM_TAP_MS = 170;
-const AIM_MS = 650;
 const RUN_GRACE_MS = 200;
 /** How long each intermediate facing is held while someone turns around. */
 const TURN_HOLD_MS = 60;
@@ -634,6 +632,14 @@ export class WorldScene extends Phaser.Scene {
   }
   create() {
     this.ready = true;
+    this.input.mouse?.disableContextMenu();
+    for (const id of ["bow", "arrow"]) {
+      if (this.textures.exists(id)) continue;
+      const canvas = document.createElement("canvas");
+      canvas.width = canvas.height = 24;
+      drawGarmentIcon(canvas.getContext("2d")!, id, 0, 0);
+      this.textures.addCanvas(id, canvas)?.add(id, 0, 0, 0, 24, 24);
+    }
     this.useFlora();
     setCropSelector(this, (image, id) => {
       this.makeSelectable(image, id);
@@ -745,27 +751,22 @@ export class WorldScene extends Phaser.Scene {
       ) {
         event.preventDefault();
         const player = this.runtime.engine.state.player;
-        // Held, X walks a mark out along the ground; let go and it flies there.
-        if (player.held || player.heldItem) {
-          this.aimStarted = this.time.now;
-          // A throw taken at a sprint carries further, on the same terms a
-          // running jump does.
-          this.aimRunning =
-            this.shiftHeld ||
-            this.runtime.running ||
-            this.time.now - this.lastRunStep < RUN_GRACE_MS;
-        } else this.runtime.throwHeld(...this.jumpDirection());
+        if (player.held || (player.heldItem && player.heldItem !== "bow"))
+          this.beginAim("throw", "mouse", "keyboard");
       }
+      if (event.code === "KeyF" && !event.repeat &&
+          this.runtime.engine.state.player.heldItem === "bow") {
+        event.preventDefault();
+        this.beginAim("bow", "mouse", "keyboard");
+      }
+      if (event.code === "Escape" && this.aimStarted !== undefined)
+        this.cancelAim();
     });
     this.input.keyboard!.on("keyup", (event: KeyboardEvent) => {
       this.shiftHeld = event.shiftKey;
       this.heldDirections.delete(event.key.toLowerCase());
-      if (event.code === "KeyX" && this.aimStarted !== undefined) {
-        const reach = this.aimReach();
-        this.aimStarted = undefined;
-        const [dx, dy] = this.jumpDirection();
-        this.runtime.throwHeld(dx, dy, this.aimRunning, reach);
-      }
+      if (event.code === "KeyX" && this.aimKind === "throw" && this.aimTrigger === "keyboard") this.finishAim();
+      if (event.code === "KeyF" && this.aimKind === "bow" && this.aimTrigger === "keyboard") this.finishAim();
       if (event.code === "Space") {
         this.spaceDown = false;
         if (this.jumpStarted !== undefined) {
@@ -784,6 +785,7 @@ export class WorldScene extends Phaser.Scene {
       this.jumpRunning = false;
       this.runSteps = 0;
       this.pendingDirection = undefined;
+      this.cancelAim();
       this.runtime.stop();
     };
     this.game.events.on("blur", clearInput);
@@ -791,31 +793,18 @@ export class WorldScene extends Phaser.Scene {
       this.game.events.off("blur", clearInput),
     );
     this.input.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
-      if (pointer.rightButtonDown() || this.options.lab) return;
+      if (this.options.lab) return;
+      if (pointer.rightButtonDown()) {
+        this.mouseTarget = this.pointerCell(pointer);
+        const player = this.runtime.engine.state.player;
+        if (player.heldItem === "bow") this.beginAim("bow", "mouse", "mouse");
+        else if (player.held || player.heldItem) this.beginAim("throw", "mouse", "mouse");
+        return;
+      }
       // A second finger means a pinch, not a walk order.
       if (this.pinchSpread() !== undefined) return;
       const p = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
-      let x = Math.floor(p.x / 16),
-        y = Math.floor(p.y / 16);
-      const world = this.runtime.engine.world;
-      if (
-        world.topography &&
-        this.runtime.engine.state.player.pos.space === "outside"
-      ) {
-        const ox = x - 4,
-          oy = y - 4;
-        const hit = pickTerrain(
-          (a, b) => world.topography!(a + ox, b + oy),
-          9,
-          13,
-          p.x - ox * 16,
-          p.y - oy * 16,
-        );
-        if (hit) {
-          x = hit.x + ox;
-          y = hit.y + oy;
-        }
-      }
+      const { x, y } = this.pointerCell(pointer);
       const native = pointer.event as MouseEvent | undefined;
       if (native?.metaKey || native?.ctrlKey) {
         this.runtime.inspectCell(x, y);
@@ -847,6 +836,11 @@ export class WorldScene extends Phaser.Scene {
     this.input.on(
       "pointermove",
       (pointer: Phaser.Input.Pointer, over: unknown[]) => {
+        if (pointer.event instanceof MouseEvent) {
+          this.mouseTarget = this.pointerCell(pointer);
+          if (this.aimStarted !== undefined && this.aimInput === "mouse")
+            this.aimTarget = this.mouseTarget;
+        }
         if (this.options.lab || over.length) return;
         const spot = bloomAt(this, pointer.worldX, pointer.worldY);
         const id = spot && `bloom-${spot.tx}-${spot.ty}`;
@@ -876,6 +870,10 @@ export class WorldScene extends Phaser.Scene {
       this.pinchStart = undefined;
     };
     this.input.on("pointerup", endPinch);
+    this.input.on("pointerup", (pointer: Phaser.Input.Pointer) => {
+      if ((pointer.event as MouseEvent)?.button === 2 && this.aimTrigger === "mouse")
+        this.finishAim();
+    });
     this.input.on("pointerupoutside", endPinch);
     this.input.on(
       "wheel",
@@ -2332,6 +2330,7 @@ export class WorldScene extends Phaser.Scene {
     return key;
   }
   private texture(frame: string) {
+    if (frame === "bow" || frame === "arrow") return frame;
     this.sheetFrames ??= lazySheets.map((key) => [
       key,
       new Set(Object.keys(this.cache.json.get(`${key}-index`)?.frames ?? {})),
@@ -2521,25 +2520,78 @@ export class WorldScene extends Phaser.Scene {
     u.focus += (target - u.focus) * 0.1;
   }
   private aimStarted?: number;
+  private aimKind?: "bow" | "throw";
+  private aimInput?: "mouse" | "touch";
+  private aimTrigger?: "keyboard" | "mouse" | "touch";
+  private aimTarget?: { x: number; y: number };
+  private mouseTarget?: { x: number; y: number };
   private aimRunning = false;
-  /** A tap is a snap throw. Held, the mark runs out to the missile's range in
-   * about two thirds of a second and waits there. */
-  private aimReach() {
-    const held = this.time.now - (this.aimStarted ?? this.time.now);
-    if (held < AIM_TAP_MS) return undefined;
-    const range = this.runtime.engine.missile().range;
-    return Math.max(
-      2,
-      Math.min(range, 2 + Math.floor(((held - AIM_TAP_MS) / AIM_MS) * range)),
-    );
+  private touchDragged = false;
+  private touchOffset?: { x: number; y: number };
+  private pointerCell(pointer: Phaser.Input.Pointer) {
+    const at = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
+    let x = Math.floor(at.x / 16), y = Math.floor(at.y / 16);
+    const world = this.runtime.engine.world;
+    if (world.topography && this.runtime.engine.state.player.pos.space === "outside") {
+      const ox = x - 4, oy = y - 4;
+      const hit = pickTerrain(
+        (a, b) => world.topography!(a + ox, b + oy),
+        9, 13, at.x - ox * 16, at.y - oy * 16,
+      );
+      if (hit) { x = hit.x + ox; y = hit.y + oy; }
+    }
+    return { x, y };
   }
-  /** The cells the throw would cross right now, for the mark on the ground. */
-  private aimPath() {
-    if (this.aimStarted === undefined) return undefined;
-    const reach = this.aimReach();
-    if (!reach) return undefined;
+  private beginAim(kind: "bow" | "throw", input: "mouse" | "touch", trigger: "keyboard" | "mouse" | "touch") {
+    if (this.aimStarted !== undefined) return;
+    const p = this.runtime.engine.state.player;
+    if (kind === "bow" && (p.heldItem !== "bow" || !(p.inventory.arrow ?? 0))) return;
+    if (kind === "throw" && !(p.held || p.heldItem)) return;
     const [dx, dy] = this.jumpDirection();
-    return this.runtime.engine.throwPath(dx, dy, reach, this.aimRunning);
+    this.aimStarted = this.time.now;
+    this.aimKind = kind;
+    this.aimInput = input;
+    this.aimTrigger = trigger;
+    this.touchDragged = false;
+    this.touchOffset = undefined;
+    this.aimRunning = this.shiftHeld || this.runtime.running ||
+      this.time.now - this.lastRunStep < RUN_GRACE_MS;
+    this.aimTarget = input === "mouse" && this.mouseTarget
+      ? this.mouseTarget
+      : { x: p.pos.x + dx * 3, y: p.pos.y + dy * 3 };
+    this.runtime.stop(false);
+  }
+  private finishAim() {
+    if (this.aimStarted === undefined || !this.aimTarget) return;
+    this.aimPath();
+    const kind = this.aimKind;
+    const target = this.aimTarget;
+    const elapsed = this.time.now - this.aimStarted;
+    this.cancelAim();
+    const p = this.runtime.engine.state.player.pos;
+    const dx = Math.sign(target.x - p.x), dy = Math.sign(target.y - p.y);
+    if (!dx && !dy) return;
+    if (kind === "bow") this.runtime.shootBow(target, Math.min(1, 0.35 + elapsed / 650));
+    else this.runtime.throwHeld(dx, dy, this.aimRunning, undefined, target);
+  }
+  cancelAim() {
+    this.aimStarted = undefined;
+    this.aimKind = undefined;
+    this.aimInput = undefined;
+    this.aimTrigger = undefined;
+    this.aimTarget = undefined;
+    this.touchDragged = false;
+    this.touchOffset = undefined;
+    this.runtime.aiming = false;
+  }
+  private aimPath() {
+    if (this.aimStarted === undefined || !this.aimTarget) return undefined;
+    if (this.aimInput === "touch" && this.touchOffset) {
+      const p = this.runtime.engine.state.player.pos;
+      this.aimTarget = { x: p.x + this.touchOffset.x, y: p.y + this.touchOffset.y };
+    }
+    const range = this.aimKind === "bow" ? 10 : this.runtime.engine.missile().range;
+    return this.runtime.engine.projectilePath(this.aimTarget, range);
   }
   private combat() {
     return (this.combatEffects ??= new CombatEffects(this, {
@@ -3887,6 +3939,24 @@ export class WorldScene extends Phaser.Scene {
         this.entities.get(o.id)?.setScale(ITEM_SCALE);
         this.shadows.get(o.id)?.setScale(ITEM_SCALE);
       }
+      if (o.projectile) {
+        const im = this.entities.get(o.id);
+        if (im) {
+          this.tweens.killTweensOf(im);
+          if (o.item === "arrow") im.setTexture(projectileArrowTexture(this));
+          im.setData("projectile", true);
+          im.setOrigin(0.5, 0.5)
+            .setScale(o.item === "arrow" ? 1 : (o.item === "stick" || o.prop === "stick" ? 14 : 24) / im.height)
+            .setRotation(Math.atan2(o.projectile.dy, o.projectile.dx) + (o.item === "arrow" ? 0 : Math.PI / 2))
+            .setPosition(o.pos.x * 16 + 8, o.pos.y * 16 + 11 - this.lift(o.pos.x * 16 + 8, o.pos.y * 16 + 16));
+          this.shadows.get(o.id)?.setVisible(false);
+        }
+      } else if (this.entities.get(o.id)?.getData("projectile")) {
+        this.entities.get(o.id)!.setData("projectile", false)
+          .setOrigin(0.5, 1).setRotation(0).setScale(o.kind === "item" ? ITEM_SCALE : 1)
+          .setPosition(o.pos.x * 16 + 8, o.pos.y * 16 + 16 - this.lift(o.pos.x * 16 + 8, o.pos.y * 16 + 16));
+        this.shadows.get(o.id)?.setVisible(true);
+      }
     }
     // Goods set out beside a household's store: a full house shows three.
     const economy = e.state.economy;
@@ -4148,6 +4218,7 @@ export class WorldScene extends Phaser.Scene {
         );
       }
     }
+    this.placeLodgedProjectiles();
     this.washKey = "";
     this.paintWash();
     this.game.canvas.dataset.lighting = this.light.id;
@@ -4607,7 +4678,7 @@ export class WorldScene extends Phaser.Scene {
       tint: () => this.tint,
       lift: (x, y) => this.lift(x, y),
       plantAt: (x, y) => this.plantImages.get(`${x},${y}`) ?? [],
-      entityAt: (id) => this.entities.get(id),
+      entityAt: (id) => this.entities.get(id) ?? this.combatEffects?.bodyOf(id),
       texture: (frame) => this.texture(frame),
       frame: (frame) => this.textureFrame(frame),
       redraw: () => this.draw(),
@@ -4663,7 +4734,12 @@ export class WorldScene extends Phaser.Scene {
     );
     this.combat().charging(this.runtime.charge);
     this.runtime.aiming = this.aimStarted !== undefined;
-    this.combat().aiming(this.aimPath(), time);
+    const aimed = this.aimPath();
+    const last = aimed?.at(-1);
+    this.combat().aiming(aimed, time,
+      !!last && this.runtime.engine.hitClass(last.x, last.y,
+        this.runtime.engine.state.player.pos.space).hit === "creature",
+      this.aimKind === "bow");
     this.combat().dazed(this.stunned, time);
     this.combat().update(time);
     mark("wind");
@@ -4883,8 +4959,13 @@ export class WorldScene extends Phaser.Scene {
         (frame ? 2 : 6);
       if (im.depth !== depth) im.setDepth(depth);
       // The camera tracks the sprite, so cancel the arc or the world bobs.
-      if (id === "player" && !this.options.lab)
-        this.cameras.main.setFollowOffset(0, -arcLift);
+      if (id === "player" && !this.options.lab) {
+        const p = this.runtime.engine.state.player.pos;
+        const aim = phoneLayout() && this.aimStarted !== undefined ? this.aimTarget : undefined;
+        const x = aim ? Phaser.Math.Clamp((p.x - aim.x) * 8, -72, 72) : 0;
+        const y = aim ? Phaser.Math.Clamp((p.y - aim.y) * 8, -72, 72) : 0;
+        this.cameras.main.setFollowOffset(x, y - arcLift);
+      }
       const human = this.humanActors.get(id);
       if (human && this.characters && perf.characterPoses) {
         // The live camera scrolls by fractions of a pixel; a figure on a
@@ -4982,6 +5063,8 @@ export class WorldScene extends Phaser.Scene {
             : undefined;
         if (fidget?.pose) pose = fidget.pose;
         if (stunt) pose = stunt.pose;
+        const drawing = id === "player" && this.aimKind === "bow" && this.aimStarted !== undefined;
+        if (drawing) pose = "draw";
         // Something heavy in the arms shortens the stride.
         const laden =
           id === "player" && !!me.held && !this.runtime.engine.armed();
@@ -5037,7 +5120,9 @@ export class WorldScene extends Phaser.Scene {
           g.pose = pose;
         }
         const index =
-          winding
+          drawing
+            ? Math.min(2, Math.floor((time - this.aimStarted!) / poseTiming("draw")))
+            : winding
             ? Math.min(1, Math.floor(elapsed / poseTiming(pose)))
             : gaitFrame ??
               (stunt
@@ -5289,7 +5374,29 @@ export class WorldScene extends Phaser.Scene {
         : undefined,
       plants,
     );
+    this.placeLodgedProjectiles();
     mark("scene update tail");
+  }
+  private placeLodgedProjectiles() {
+    for (const o of this.runtime.engine.state.objects) {
+      const inAnimal = o.projectile?.lodgedIn;
+      if (!inAnimal) continue;
+      const shaft = this.entities.get(o.id);
+      const animal = this.combat().bodyOf(faunaSpriteId(inAnimal.group, inAnimal.n));
+      if (!shaft) continue;
+      if (!animal) {
+        const x = o.pos.x * 16 + 8, y = o.pos.y * 16 + 16;
+        shaft.setPosition(x, y - 5 - this.lift(x, y)).setDepth(y + 10);
+        continue;
+      }
+      const dx = o.projectile!.dx, dy = o.projectile!.dy;
+      const length = Math.hypot(dx, dy) || 1;
+      const reach = o.item === "arrow" ? 4 : 8;
+      shaft.setPosition(Math.round(animal.x - dx / length * reach),
+        Math.round(animal.y - animal.displayHeight * 0.53 - dy / length * reach * 0.5));
+      shaft.setRotation(Math.atan2(dy, dx) + (o.item === "arrow" ? 0 : Math.PI / 2) + animal.rotation);
+      shaft.setDepth(animal.depth + 1);
+    }
   }
   /** Nudges drawn people out of each other. Presentation only: the schedule
    * still says where somebody is standing, this only decides how they stand
@@ -5521,18 +5628,31 @@ export class WorldScene extends Phaser.Scene {
       }
     }
   }
-  /** The on-screen throw: held to aim, let go to throw, as X is. */
   touchThrow(down: boolean) {
-    const player = this.runtime.engine.state.player;
-    if (down && (player.held || player.heldItem)) {
-      this.aimStarted = this.time.now;
-      this.aimRunning = this.shiftHeld || this.runtime.running;
-    } else if (!down && this.aimStarted !== undefined) {
-      const reach = this.aimReach();
-      this.aimStarted = undefined;
-      const [dx, dy] = this.jumpDirection();
-      this.runtime.throwHeld(dx, dy, this.aimRunning, reach);
+    if (down) this.beginAim("throw", "touch", "touch");
+    else if (this.aimKind === "throw" && this.aimTrigger === "touch") this.finishAim();
+  }
+  touchBow(down: boolean) {
+    if (down) this.beginAim("bow", "touch", "touch");
+    else if (this.aimKind === "bow" && this.aimTrigger === "touch") this.finishAim();
+  }
+  touchAim(dx: number, dy: number) {
+    if (this.aimStarted === undefined || this.aimInput !== "touch") return;
+    const dist = Math.hypot(dx, dy);
+    if (dist < 9) {
+      if (this.touchDragged) {
+        const p = this.runtime.engine.state.player.pos;
+        this.touchOffset = { x: 0, y: 0 };
+        this.aimTarget = { x: p.x, y: p.y };
+      }
+      return;
     }
+    this.touchDragged = true;
+    const range = this.aimKind === "bow" ? 10 : this.runtime.engine.missile().range;
+    const reach = 2 + (range - 2) * Math.min(1, dist / 70);
+    const p = this.runtime.engine.state.player.pos;
+    this.touchOffset = { x: Math.round(dx / dist * reach), y: Math.round(dy / dist * reach) };
+    this.aimTarget = { x: p.x + this.touchOffset.x, y: p.y + this.touchOffset.y };
   }
   private direction(): [number, number] {
     if (this.touchStick) return [this.touchStick.dx, this.touchStick.dy];

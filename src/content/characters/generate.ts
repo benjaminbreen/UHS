@@ -511,7 +511,9 @@ export function generateCharacter(
   return {
     name: explicitName || naming.display,
     role,
-    inventory: eligibleInventory(livelihood.inventory, context),
+    inventory: /hunter|archer|bowman/i.test(livelihood.label)
+      ? { ...eligibleInventory(livelihood.inventory, context), bow: 1, arrow: 12 }
+      : eligibleInventory(livelihood.inventory, context),
     appearance,
     worn: wornFromWearing(appearance.wearing, cloth),
     origin: {

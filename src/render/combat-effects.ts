@@ -52,6 +52,7 @@ export class CombatEffects {
    * struck sprites where they stood. */
   private landed = 0;
   private orphans = new Map<string, { image: Sprite; shade?: Sprite }>();
+  private deadBodies = new Map<string, Sprite>();
   private bars = new Map<string, Bar>();
   private tells = new Map<string, Tell>();
   private seen = 0;
@@ -146,9 +147,8 @@ export class CombatEffects {
     void gameAudio()?.sound(strike("blunt", "air", "whoosh"), "air");
   }
   private aimMark?: Phaser.GameObjects.Graphics;
-  /** Where the throw will come down: dots along the way, a ring at the end
-   * that turns red over an animal. */
-  aiming(path: readonly { x: number; y: number }[] | undefined, time: number) {
+  /** A fine sight line from the hand to the landing mark. */
+  aiming(path: readonly { x: number; y: number }[] | undefined, time: number, creature = false, bow = false) {
     if (!path?.length) {
       this.aimMark?.destroy();
       this.aimMark = undefined;
@@ -157,9 +157,18 @@ export class CombatEffects {
     const g = (this.aimMark ??= this.scene.add.graphics()).clear();
     const end = this.cell(path.at(-1)!);
     g.setDepth(end.y + 4200);
-    for (const c of path.slice(0, -1)) {
-      const at = this.cell(c);
-      g.fillStyle(0xffffff, 0.55).fillRect(at.x - 1, at.y - 9, 2, 2);
+    const player = this.view.entityAt("player");
+    if (player) {
+      const dx = end.x - player.x;
+      const dy = end.y - 7 - (player.y - 16);
+      const length = Math.hypot(dx, dy) || 1;
+      const reach = Math.min(length, bow ? 22 : 12);
+      const x = Math.round(player.x + dx / length * reach);
+      const y = Math.round(player.y - 16 + dy / length * reach);
+      const tx = Math.round(end.x);
+      const ty = Math.round(end.y - 7);
+      g.lineStyle(2, 0x211b16, 0.3).lineBetween(x, y + 1, tx, ty + 1);
+      g.lineStyle(1, creature ? 0xf2a496 : 0xffe4a1, 0.7).lineBetween(x, y, tx, ty);
     }
     const pulse = 1 + Math.sin(time / 90) * 0.12;
     g.lineStyle(2, 0x1a1410, 0.7).strokeEllipse(
@@ -168,7 +177,7 @@ export class CombatEffects {
       15 * pulse,
       8 * pulse,
     );
-    g.lineStyle(1, 0xffd34d, 1).strokeEllipse(
+    g.lineStyle(1, creature ? 0xe97567 : 0xffd34d, 1).strokeEllipse(
       end.x,
       end.y - 7,
       15 * pulse,
@@ -235,6 +244,9 @@ export class CombatEffects {
   /** Takes over a dead animal's sprite, which the scene would otherwise destroy. */
   adopt(id: string, image: Sprite, shade?: Sprite) {
     this.orphans.set(id, { image, shade });
+  }
+  bodyOf(id: string) {
+    return this.view.entityAt(id) ?? this.orphans.get(id)?.image ?? this.deadBodies.get(id);
   }
   consume(effect: SwingEffect | undefined) {
     if (!effect || effect.serial === this.played) return;
@@ -322,6 +334,10 @@ export class CombatEffects {
     const orphan = this.orphans.get(id);
     this.orphans.delete(id);
     const image = orphan?.image ?? this.view.entityAt(id);
+    if (c.killed && image) {
+      this.deadBodies.set(id, image);
+      image.once("destroy", () => this.deadBodies.delete(id));
+    }
     const shade = orphan?.shade ?? this.view.shadowOf(id);
     const to = this.cell(c.to);
     // The number rises from where the blow landed, not where the animal ends up.
@@ -700,6 +716,7 @@ export class CombatEffects {
       o.shade?.destroy();
     }
     this.orphans.clear();
+    this.deadBodies.clear();
     for (const bar of this.bars.values()) bar.g.destroy();
     this.bars.clear();
     for (const t of this.tells.values()) t.mark.destroy();

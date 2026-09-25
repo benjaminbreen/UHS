@@ -10,6 +10,41 @@ def item(name, base, accent, rows):
     COLOR[name] = (base, accent)
     ITEMS[name] = R(*rows)
 
+item('bow', '#9a7040', '#ded2ac', [
+ "           oo           ",
+ "          oo t          ",
+ "         oo  t          ",
+ "        oo   t          ",
+ "       oo    t          ",
+ "      oo     t          ",
+ "      oo     t          ",
+ "     oo      t          ",
+ "     oo      t          ",
+ "     oo      t          ",
+ "     oo      t          ",
+ "      oo     t          ",
+ "      oo     t          ",
+ "       oo    t          ",
+ "        oo   t          ",
+ "         oo  t          ",
+ "          oo t          ",
+ "           oo           ",
+])
+item('arrow', '#846038', '#c8c5b3', [
+ "                    tt  ",
+ "                   ttt  ",
+ "                  ttt   ",
+ "                oo t    ",
+ "              oo        ",
+ "            oo          ",
+ "          oo            ",
+ "        oo              ",
+ "      oo                ",
+ "    oo                  ",
+ "  tt                    ",
+ " ttt                    ",
+])
+
 item('bread', '#c08a45', '#e0b36a', [
  "",
  "",

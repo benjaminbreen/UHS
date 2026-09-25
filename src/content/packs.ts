@@ -18,6 +18,8 @@ export const items: Record<
   ...floraItems,
   ...wearableItems,
   ...dungItems,
+  bow: { id: "bow", name: "Bow", sprite: "bow", value: 8, hand: {} },
+  arrow: { id: "arrow", name: "Arrow", sprite: "arrow", value: 1 },
 };
 export const packs: Record<string, Pack> = resolvePlayablePacks();
 export function resolvePrompt(

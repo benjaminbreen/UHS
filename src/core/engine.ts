@@ -1345,13 +1345,25 @@ export class Engine {
    * or on the first animal in the way. The renderer aims with this too. */
   throwPath(dx: number, dy: number, reach?: number, run?: boolean) {
     const p = this.state.player.pos;
-    const cells: Point[] = [];
     const most = Math.min(reach ?? (run ? 6 : 3), this.missile().range);
-    for (let i = 1; i <= most; i++) {
-      const x = p.x + dx * i,
-        y = p.y + dy * i;
-      // A thrown thing flies: a bank it could not wade across does not stop
-      // it, though a wall still does.
+    return this.projectilePath({ x: p.x + dx * most, y: p.y + dy * most }, most);
+  }
+  projectilePath(target: Point, range: number) {
+    const p = this.state.player.pos;
+    const dx = target.x - p.x, dy = target.y - p.y;
+    const distance = Math.max(Math.abs(dx), Math.abs(dy));
+    if (!distance) return [];
+    const scale = Math.min(1, range / distance);
+    const end = { x: Math.round(p.x + dx * scale), y: Math.round(p.y + dy * scale) };
+    const cells: Point[] = [];
+    let x = p.x, y = p.y;
+    const sx = Math.sign(end.x - x), sy = Math.sign(end.y - y);
+    const ax = Math.abs(end.x - x), ay = Math.abs(end.y - y);
+    let error = ax - ay;
+    while (x !== end.x || y !== end.y) {
+      const twice = error * 2;
+      if (twice > -ay) { error -= ay; x += sx; }
+      if (twice < ax) { error += ax; y += sy; }
       if (this.blocked(x, y, p.space)) break;
       cells.push({ x, y });
       if (p.space === "outside" && this.faunaAt(x, y)) break;
@@ -1487,6 +1499,12 @@ export class Engine {
       feathered: profile.locomotion === "ground-and-flight",
       drops: [],
     };
+    for (const o of this.state.objects) {
+      const inAnimal = o.projectile?.lodgedIn;
+      if (inAnimal?.group !== g.id || inAnimal.n !== m.n) continue;
+      o.pos.x = to.x;
+      o.pos.y = to.y;
+    }
     // A fight breaking out turns heads, once, not on every blow.
     if (clock >= this.combatUntil)
       for (const w of this.witnesses(12)) this.cue(w.id, "alarm", from);
@@ -1804,6 +1822,7 @@ export class Engine {
     bounce?: Point;
     /** A spear: point first, no tumbling. */
     straight?: boolean;
+    arrow?: boolean;
   };
   /** The last animal walked into, for the hop it makes out of the way.
    * `yielded` is false when it stood its ground. */
@@ -3898,6 +3917,13 @@ export class Engine {
       if (p.perch) return `You are already up ${p.perch.label}.`;
       return this.climbable() ? undefined : "There is nothing here to climb.";
     }
+    if (c.type === "shoot") {
+      if (p.heldItem !== "bow") return "Take a bow in hand first.";
+      if (!(p.inventory.arrow ?? 0)) return "You have no arrows.";
+      if (c.target.x === p.pos.x && c.target.y === p.pos.y)
+        return "Aim away from yourself.";
+      return undefined;
+    }
     if (p.perch && (c.type === "move" || c.type === "throw"))
       return `Climb down from ${p.perch.label} first.`;
     if (c.type === "move" || c.type === "throw") {
@@ -4387,6 +4413,14 @@ export class Engine {
     this.dropDung(near, clock);
     // A herd eaten down to nothing leaves no group behind.
     this.state.fauna = groups.filter((g) => g.members.length);
+    for (const o of this.state.objects) {
+      const inAnimal = o.projectile?.lodgedIn;
+      if (!inAnimal) continue;
+      const m = groups.find((g) => g.id === inAnimal.group)
+        ?.members.find((member) => member.n === inAnimal.n);
+      if (m) { o.pos.x = m.x; o.pos.y = m.y; }
+      else if (clock > this.combatUntil) delete o.projectile!.lodgedIn;
+    }
   }
   /** Where a group has been living is not clean ground: a few days' dung
    * round its home, the older the further from the fold. */
@@ -4592,8 +4626,55 @@ export class Engine {
       this.advance((solid ? 3 : 2) + power * 2);
       return;
     }
+    if (c.type === "shoot") {
+      const from = { x: p.pos.x, y: p.pos.y };
+      const dx = Math.sign(c.target.x - from.x), dy = Math.sign(c.target.y - from.y);
+      p.direction = Math.abs(c.target.y - from.y) > Math.abs(c.target.x - from.x)
+        ? dy < 0 ? 0 : 2 : dx > 0 ? 1 : 3;
+      p.facing = facingFromStep(dx, dy, p.direction);
+      const path = this.projectilePath(c.target, 10);
+      const to = path.at(-1) ?? from;
+      const hit = this.hitClass(to.x, to.y, p.pos.space);
+      const found = p.pos.space === "outside" ? this.faunaAt(to.x, to.y) : undefined;
+      const creature = found && this.strikeFauna(
+        found.g, found.m,
+        { damage: 3 + 5 * (c.power ?? 1), knock: 1, stun: 4 },
+        [dx, dy], 1,
+      );
+      p.inventory.arrow!--;
+      if (!p.inventory.arrow) delete p.inventory.arrow;
+      const spentId = path.length
+        ? `spent-arrow-${this.state.revision}` : undefined;
+      if (spentId)
+        this.state.objects.push({
+          id: spentId,
+          name: "Arrow",
+          kind: "item",
+          item: "arrow",
+          sprite: "arrow",
+          pos: { ...p.pos, x: creature?.to.x ?? to.x, y: creature?.to.y ?? to.y },
+          inventory: {},
+          projectile: {
+            dx: to.x - from.x, dy: to.y - from.y,
+            ...(creature
+              ? { lodgedIn: { group: creature.group, n: creature.n } }
+              : {}),
+          },
+        });
+      if (creature)
+        this.state.fauna = this.state.fauna?.filter((g) => g.members.length);
+      const kind = creature ? "flinch" : reactionFor(hit.hit, "thrown");
+      this.lastThrow = {
+        from, to, sprite: "arrow", arrow: true, straight: true, creature, id: spentId,
+        hit: { at: to, hit: creature ? "creature" : hit.hit, kind, solid: isSolid(kind), damaged: !!creature },
+      };
+      this.event(creature ? "Your arrow finds its mark." : "You loose an arrow.");
+      this.advance(2);
+      return;
+    }
     if (c.type === "throw") {
       const item = heldObject(this.state) ? undefined : p.heldItem;
+      const missile = this.missile();
       // An item leaves the hand as an object on the ground, like one set down.
       const prop =
         heldObject(this.state) ??
@@ -4613,8 +4694,9 @@ export class Engine {
       }
       p.direction = c.dy < 0 ? 0 : c.dx > 0 ? 1 : c.dy > 0 ? 2 : 3;
       p.facing = facingFromStep(c.dx, c.dy, p.direction);
-      const missile = this.missile();
-      const path = this.throwPath(c.dx, c.dy, c.reach, c.run);
+      const path = c.target
+        ? this.projectilePath(c.target, missile.range)
+        : this.throwPath(c.dx, c.dy, c.reach, c.run);
       const landed = { ...p.pos, ...(path.at(-1) ?? p.pos) };
       const quarry =
         landed.space === "outside"
@@ -4677,7 +4759,7 @@ export class Engine {
       const next = { ...landed, x: landed.x + c.dx, y: landed.y + c.dy };
       if (
         rests &&
-        (item || (def?.shove?.mass ?? 1) <= 1) &&
+        !!item && ["pebble", "flint", "obsidian", "stone", "river-rock"].includes(item) &&
         !this.blocked(next.x, next.y, next.space)
       ) {
         bounce = { x: next.x, y: next.y };
@@ -4696,23 +4778,37 @@ export class Engine {
       }
       if (struck)
         this.state.fauna = this.state.fauna?.filter((g) => g.members.length);
+      if ((item === "spear" || item === "stick" || prop.prop === "spear" || prop.prop === "stick") &&
+          landing?.kind !== "sink" && !bursts) {
+        prop.projectile = {
+          dx: landed.x - p.pos.x, dy: landed.y - p.pos.y,
+          ...(struck && (item === "spear" || prop.prop === "spear")
+            ? { lodgedIn: { group: struck.group, n: struck.n } }
+            : {}),
+        };
+        if (struck) {
+          prop.pos.x = struck.to.x;
+          prop.pos.y = struck.to.y;
+        }
+      }
       // A pot that bursts gives up what it held, as one broken by a swing does.
       const loot = bursts ? this.spill(prop) : [];
+      const impactKind = struck ? "flinch" : kind;
       this.lastThrow = {
         creature: struck,
         id: prop.id,
         small: !!item,
         bounce,
-        straight: !!prop.prop && (weaponOf(prop.prop).thrown ?? 0) > 1,
+        straight: item === "spear" || (!!prop.prop && (weaponOf(prop.prop).thrown ?? 0) > 1),
         from: { x: p.pos.x, y: p.pos.y },
         to: { x: landed.x, y: landed.y },
         sprite,
         hit: {
           at: { x: landed.x, y: landed.y },
-          hit: landing?.hit ?? ground.hit,
-          kind,
-          solid: isSolid(kind),
-          damaged: bursts || landing?.kind === "crush",
+          hit: struck ? "creature" : landing?.hit ?? ground.hit,
+          kind: impactKind,
+          solid: isSolid(impactKind),
+          damaged: !!struck || bursts || landing?.kind === "crush",
           loot: loot.length ? loot : undefined,
         },
       };
@@ -5014,6 +5110,7 @@ export class Engine {
         const def = propDefs[prop.prop!];
         if (c.action === "pickup") {
           this.emptyHands();
+          delete prop.projectile;
           prop.carriedBy = "player";
           p.held = prop.id;
           prop.pos = copy(p.pos);

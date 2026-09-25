@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 import { gameAudio } from "../audio/director";
-import { scrape, strike, work } from "../audio/sfx";
+import { projectileImpact, projectileRelease, scrape, strike, work } from "../audio/sfx";
 import type { Hit, HitClass, ToolClass } from "../core/reactions";
 import type { CreatureHit } from "../core/combat";
 import type { Point } from "../core/types";
@@ -66,6 +66,7 @@ export type ThrowEffect = {
   creature?: CreatureHit;
   bounce?: { x: number; y: number };
   straight?: boolean;
+  arrow?: boolean;
   /** The thrown object, hidden from the scene until it lands. */
   id?: string;
   /** An item from the hand rather than a prop. */
@@ -128,6 +129,19 @@ const DEBRIS: Record<HitClass, number[]> = {
   creature: [0xe6d5c0, 0xc9b199],
   air: [0xffffff],
 };
+export function projectileArrowTexture(scene: Phaser.Scene) {
+  if (!scene.textures.exists("projectile-arrow")) {
+    const ink = scene.make.graphics({ x: 0, y: 0 });
+    ink.fillStyle(0x392d22).fillRect(1, 2, 10, 2);
+    ink.fillStyle(0xb9955c).fillRect(2, 2, 9, 1);
+    ink.fillStyle(0xded9bd).fillRect(10, 1, 3, 3);
+    ink.fillStyle(0xeee9d4).fillRect(12, 2, 2, 1);
+    ink.fillStyle(0xb9a4a0).fillRect(0, 0, 2, 2).fillRect(0, 3, 2, 2);
+    ink.generateTexture("projectile-arrow", 14, 5);
+    ink.destroy();
+  }
+  return "projectile-arrow";
+}
 /** Everything a tool throws off: chips, dust, the arc of the swing and the
  * tree going over. Sprites here are owned by this class, not by the scenery
  * layer, so a rebuild in the same frame does not sweep them away mid-fall. */
@@ -322,12 +336,17 @@ export class ToolEffects {
     const land = () => {
       if (generation !== this.generation) return;
       void gameAudio()?.sound(
-        strike("thrown", effect.hit.hit, effect.hit.kind, effect.hit.damaged),
+        effect.arrow || effect.straight
+          ? projectileImpact(effect.arrow ? "arrow" : "spear", effect.hit.hit)
+          : strike("thrown", effect.hit.hit, effect.hit.kind, effect.hit.damaged),
         "strike",
       );
-      this.react(effect.hit, 1.2);
+      this.react(effect.hit, effect.arrow || effect.straight ? 0.65 : 1.2);
       if (effect.hit.loot?.length) this.spill(to, effect.hit.loot);
-      this.impact(to);
+      if (effect.arrow || effect.straight) {
+        if (effect.hit.hit !== "creature" && effect.hit.hit !== "water")
+          this.burst({ x: to.x, y: to.y - 2 }, DEBRIS[effect.hit.hit] ?? SOIL, 3, 0.35);
+      } else this.impact(to);
       if (effect.hit.damaged) this.scene.cameras.main.shake(110, 0.0022);
     };
     const frame = effect.sprite;
@@ -336,26 +355,36 @@ export class ToolEffects {
       this.scene.time.delayedCall(flight, land);
       return;
     }
-    void gameAudio()?.sound(strike("haft", "air", "whoosh"), "throw");
+    void gameAudio()?.sound(effect.arrow ? projectileRelease("arrow") :
+      effect.straight ? projectileRelease("spear") : strike("haft", "air", "whoosh"), "throw");
     const image = this.scene.add
       .image(
         from.x,
         from.y - 12,
-        this.view.texture(frame),
-        this.view.frame(frame),
+        effect.arrow ? projectileArrowTexture(this.scene) : this.view.texture(frame),
+        effect.arrow ? undefined : this.view.frame(frame),
       )
       .setOrigin(0.5, 0.5)
       .setTint(this.view.tint())
       .setDepth(to.y + 4600);
     // A long thing is thrown at body scale, not at the height it stands in a yard.
-    if (effect.small) image.setScale(0.4);
+    if (effect.small && !effect.arrow) image.setScale(0.4);
     else if (image.height > 24) image.setScale(24 / image.height);
     const shade = this.scene.add
       .ellipse(from.x, from.y - 1, 9, 4, 0x000000, 0.28)
       .setDepth(to.y * 16 + 5);
     this.live.add(image).add(shade);
     const heading = Math.atan2(to.y - from.y, to.x - from.x);
-    if (effect.straight) image.setRotation(heading + Math.PI / 2);
+    if (effect.straight || effect.arrow)
+      image.setRotation(heading + (effect.arrow ? 0 : Math.PI / 2));
+    const animal = effect.creature && this.view.entityAt(`${effect.creature.group}-${effect.creature.n}`);
+    const reach = effect.arrow ? 4 : 8;
+    const arrival = animal
+      ? {
+          x: animal.x - Math.cos(heading) * reach,
+          y: animal.y - animal.displayHeight * 0.53 - Math.sin(heading) * reach * 0.5 + 3,
+        }
+      : to;
     const spin = Math.sign(to.x - from.x || 1) * (3 + span * 0.8);
     const leg = (
       a: { x: number; y: number },
@@ -363,6 +392,7 @@ export class ToolEffects {
       ms: number,
       height: number,
       done: () => void,
+      ground = b,
     ) => {
       const t = { v: 0 };
       this.scene.tweens.add({
@@ -376,7 +406,8 @@ export class ToolEffects {
           const rise = Math.sin(Math.PI * t.v) * height;
           // Leaves the hand at chest height and comes down to the ground.
           image.setPosition(x, y - rise - 12 * (a === from ? 1 - t.v : 0) - 3);
-          shade.setPosition(x, y - 1).setScale(1 - rise / 60);
+          shade.setPosition(a.x + (ground.x - a.x) * t.v,
+            a.y + (ground.y - a.y) * t.v - 1).setScale(1 - rise / 60);
           if (!effect.straight) image.setRotation(spin * t.v);
         },
         onComplete: done,
@@ -390,7 +421,7 @@ export class ToolEffects {
       image.destroy();
       shade.destroy();
     };
-    leg(from, to, flight, effect.straight ? 5 : 9 + span * 3, () => {
+    leg(from, arrival, flight, effect.straight ? 5 : 9 + span * 3, () => {
       land();
       const skip = effect.bounce && this.point(effect.bounce);
       if (!skip || generation !== this.generation) return finish();
@@ -398,7 +429,7 @@ export class ToolEffects {
         this.burst(skip, DEBRIS[effect.hit.hit] ?? SOIL, 3, 0.7);
         finish();
       });
-    });
+    }, to);
   }
   /** Four short rays where something thrown comes down: the comic-book knock. */
   private impact(at: { x: number; y: number }) {

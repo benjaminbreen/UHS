@@ -282,6 +282,8 @@ export type WorldObject = {
   inventory: Inventory;
   /** What a `kind: "item"` object is: the id that goes back into a pocket. */
   item?: ItemId;
+  /** A thrown shaft keeps its flight direction and may be lodged in an animal. */
+  projectile?: { dx: number; dy: number; lodgedIn?: { group: string; n: number } };
   owner?: string;
   open?: boolean;
   depleted?: boolean;
@@ -394,7 +396,9 @@ export type PlayerCommand =
       run?: boolean;
       /** Cells aimed for. Absent is a snap throw: three, or six at a run. */
       reach?: number;
+      target?: Point;
     }
+  | { type: "shoot"; target: Point; power?: number }
   /** A swing of whatever is in hand, at whatever the arc finds. Takes no
    * target: the cone in front of the player is the target. */
   | { type: "swing"; power?: 1 | 2 }

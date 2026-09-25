@@ -191,6 +191,12 @@ export function drawCharacter(
   }
   if (prop?.kind === "stick" && !["swing", "thrust", "cast"].includes(pose))
     near = [18 + wide, 21 + torso + (moving && f % 2 ? -1 : 0)];
+  if (prop?.kind === "bow") {
+    near = [18 + wide, pose === "draw" ? 17 + torso : 21 + torso];
+    far = pose === "draw"
+      ? [near[0] - (f === 1 || f === 2 ? 7 : 3), near[1] - 1]
+      : [near[0] - 3, near[1] + 2];
+  }
   if ((prop?.kind === "blade" || prop?.kind === "brand") && !["swing", "thrust", "cast"].includes(pose))
     near = [17 + wide, 21 + torso + (moving && f % 2 ? -1 : 0)];
   if (prop?.kind === "side")
@@ -210,6 +216,23 @@ export function drawCharacter(
   }
   const drawProp = () => {
     if (!prop) return;
+    if (prop.kind === "bow") {
+      const raised = pose === "draw";
+      const middle: Point = [near[0] + 4, near[1] - (raised ? 1 : 5)];
+      const top: Point = [middle[0] - 3, middle[1] - 9];
+      const bottom: Point = [middle[0] - 3, middle[1] + 9];
+      p.limb([top, [middle[0] + 1, middle[1] - 5], middle,
+        [middle[0] + 1, middle[1] + 5], bottom], 2, wood);
+      const pulled = raised && (f === 1 || f === 2);
+      const nock: Point = [pulled ? far[0] : middle[0] - 4, middle[1]];
+      p.line(top, nock, wood.light);
+      p.line(nock, bottom, wood.light);
+      if (raised && f < 3) {
+        p.line([nock[0] - 2, nock[1]], [middle[0] + 10, middle[1]], wood.light);
+        p.rect(middle[0] + 10, middle[1] - 1, 2, 3, wood.light);
+      }
+      return;
+    }
     if (prop.kind === "stick") {
       const v: Point =
         pose === "swing"

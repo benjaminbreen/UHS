@@ -406,8 +406,14 @@ export const commandSchema = z.discriminatedUnion("type", [
       dy: z.number().int().min(-1).max(1),
       run: z.boolean().optional(),
       reach: z.number().int().min(1).max(9).optional(),
+      target: z.object({ x: z.number().int(), y: z.number().int() }).strict().optional(),
     })
     .strict(),
+  z.object({
+    type: z.literal("shoot"),
+    target: z.object({ x: z.number().int(), y: z.number().int() }).strict(),
+    power: z.number().min(0).max(1).optional(),
+  }).strict(),
   z
     .object({
       type: z.literal("swing"),

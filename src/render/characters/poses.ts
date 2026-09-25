@@ -22,6 +22,7 @@ export const poses = [
   "till",
   "thrust",
   "cast",
+  "draw",
   "work",
   "stoop",
   "kneel",
@@ -73,6 +74,7 @@ export function poseTiming(pose: CharacterPose) {
   if (pose === "dig" || pose === "reap" || pose === "till") return 150;
   if (pose === "thrust") return 105;
   if (pose === "cast") return 120;
+  if (pose === "draw") return 140;
   return pose === "idle"
     ? 360
     : pose === "swing" || pose === "hurt"

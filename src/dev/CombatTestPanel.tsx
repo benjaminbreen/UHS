@@ -64,6 +64,7 @@ export function CombatTestPanel({
           <select value={weapon} onChange={(e) => arm(e.currentTarget.value)}>
             <option value="">Bare hands</option>
             <option value="item:pebble">Ten pebbles to throw</option>
+            <option value="item:bow">Bow and twenty arrows</option>
             {weaponProps.map((id) => (
               <option key={id} value={id}>
                 {propDefs[id]?.name ?? id}
@@ -72,8 +73,9 @@ export function CombatTestPanel({
           </select>
         </label>
         <p>
-          Damage {stats.damage} · knockback {stats.knock}. F swings, hold for a
-          wide one. X throws, hold to aim.
+          {weapon === "item:bow"
+            ? "Bow · 3–8 damage · 10 tiles. Hold F or right mouse, aim with the cursor, release."
+            : `Damage ${stats.damage} · knockback ${stats.knock}. F strikes; hold X or right mouse and aim with the cursor to throw.`}
         </p>
         <div className="live-animal-actions">
           <button onClick={() => arm(weapon)}>Take it in hand</button>
