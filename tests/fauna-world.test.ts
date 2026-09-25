@@ -421,6 +421,19 @@ describe("fauna hunting", () => {
     const hen = remainsObject("feathers", "chicken", "red-fox", at, 0, "h");
     expect(pruneRemains([hen, deer], 49 * 3600)).toEqual([deer]);
   });
+  it("two hunters after the last mouse: the one too late does not crash", () => {
+    for (let seed = 1; seed <= 40; seed++) {
+      const a = group("cat", 0, 0),
+        b = group("red-fox", 1, 2);
+      const mice = herd("mouse", 3, 1);
+      let n = seed * 131;
+      const world = sim({
+        rng: () => (n = (n * 1103515245 + 12345) % 2147483648) / 2147483648,
+      });
+      for (let t = 1; t <= 40; t++)
+        expect(() => advanceFauna([a, b, mice], world, t * 6)).not.toThrow();
+    }
+  });
   it("a person nearby matters more than dinner", () => {
     const deer = herd("red-deer", 6, 3);
     const wolves = herd("gray-wolf", 0, 3);

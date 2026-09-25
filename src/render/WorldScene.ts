@@ -62,6 +62,18 @@ const WATCHFUL = new Set<FaunaState>(["idle", "graze", "forage", "perch"]);
 const FAUNA_DUST = [0xb9a27a, 0x9c8762, 0xd2c09a];
 /** States whose art already shows the animal travelling. */
 const STRIDING = new Set<FaunaState>([...URGENT, "wander", "stalk", "carry"]);
+/** The nearest pose an animal has for one it was not drawn in. */
+const FALLBACK: Partial<Record<FaunaState, FaunaState>> = {
+  chase: "flee",
+  pounce: "flee",
+  stalk: "wander",
+  carry: "wander",
+  flee: "wander",
+  forage: "idle",
+  graze: "idle",
+  wander: "idle",
+  rest: "idle",
+};
 /** A feather lifted off a kill, by the colour of the feathers lying there. */
 const FEATHER_COLOURS: Record<string, number> = {
   white: 0xeeece4,
@@ -4223,6 +4235,9 @@ export class WorldScene extends Phaser.Scene {
     /** When the state began: a pounce plays once and holds its last frame. */
     began?: number,
   ) {
+    const profile = faunaProfile(species);
+    // A hen that runs down a mouse has no chase of its own: it runs as it flees.
+    while (profile && !profile.art[state] && FALLBACK[state]) state = FALLBACK[state]!;
     const ms =
       state === "flight"
         ? 85
@@ -4236,7 +4251,6 @@ export class WorldScene extends Phaser.Scene {
           : state === "wander" || state === "stalk" || state === "approach"
             ? 140
             : 260;
-    const profile = faunaProfile(species);
     const count = profile?.art[state]?.length || 8;
     const n = this.options.freeze
       ? 0

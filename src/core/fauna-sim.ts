@@ -922,7 +922,9 @@ export function advanceFauna(
     }
     // A hunter with quarry in view creeps or runs at it; either way it has
     // nothing to decide until the chase is over.
-    const quarry = hunts.get(g.id);
+    // Settled before anything moved: another hunter may since have taken the last of it.
+    const sought = hunts.get(g.id);
+    const quarry = sought?.members.length ? sought : undefined;
     const victim = quarry?.members.reduce((a, b) =>
       hyp(b, g.members[0]) < hyp(a, g.members[0]) ? b : a,
     );
