@@ -32,6 +32,7 @@ import { regionalTransport } from "../regional/transport";
 import type { GeographicArea } from "../../core/geography";
 import { createEnvironment, localEcology } from "./environment";
 import { ecologyProfiles } from "../../content/ecology/profiles";
+import { floraRegion, speciesAt } from "../../content/ecology/flora";
 import { populateHouseholds, addWildResources } from "./population";
 import { addBoulders } from "./boulders";
 import { forgetFaunaBlock, spawnFauna } from "./fauna";
@@ -1220,10 +1221,26 @@ export function createSettlementWorld(
           x,
           y,
           sprite: selected,
-          solid: tree || selected === "rock" || selected === "nature-stump",
+          solid:
+            tree ||
+            selected === "rock" ||
+            selected === "nature-stump" ||
+            (selected === "nature-understory-fungi" && termiteMound(x, y)),
         }
       : undefined;
   }
+  const flora = pack.anchor
+    ? floraRegion(pack.anchor.lon, pack.anchor.lat)
+    : "europe";
+  // The engine names the same species from the same hash; a mound is walked round.
+  const termiteMound = (x: number, y: number) =>
+    speciesAt(
+      "nature-understory-fungi",
+      flora,
+      habitat(x, y).ecology ?? "grassland",
+      x,
+      y,
+    )?.id === "termite-mushroom";
   const reliefCache = new Map<string, TopographyCell>(prepared?.relief);
   const pathArtCache = new WeakMap<
     SettlementPlan,

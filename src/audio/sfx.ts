@@ -449,9 +449,26 @@ export function landing(ground: HitClass, weight = 1): Sound {
     ...(w > 1.4 ? shift(scrape(ground), 0.09, 0.6) : []),
   ];
 }
+/** What a fungus does underfoot: a puffball breathes out, dry lichen
+ * crackles, a fleshy cap snaps and squashes. */
+export type FungusStep = "puff" | "lichen" | "squish";
+type Through = HitClass | "bloom" | FungusStep;
 /** Leaves and stalks parting round the legs, laid over the footfall. */
-function brushing(through: HitClass | "bloom", g: number): Sound {
+function brushing(through: Through, g: number): Sound {
   switch (through) {
+    case "puff":
+      return [
+        noise(0, 0.35, 0.2 * g, 700, { to: 220, q: 0.5, attack: 0.01 }),
+        noise(0.02, 0.25, 0.08 * g, 1800, { to: 800, q: 0.6, attack: 0.03 }),
+      ];
+    case "lichen":
+      return grains(0, 0.14, 7, (t) => noise(t, 0.014, 0.12 * g, vary(4200, 0.3), { q: 3 }));
+    case "squish":
+      return [
+        noise(0, 0.035, 0.16 * g, 1400, { q: 2, attack: 0.003 }),
+        noise(0.015, 0.14, 0.14 * g, 520, { to: 280, q: 1.4, attack: 0.008 }),
+        bubble(rand(0.03, 0.06), rand(260, 380), 0.08 * g),
+      ];
     case "bloom":
       return [noise(0.02, 0.12, 0.03 * g, 5200, { to: 7200, q: 0.6, attack: 0.04 })];
     case "brush":
@@ -474,7 +491,7 @@ function brushing(through: HitClass | "bloom", g: number): Sound {
 export function footstep(
   ground: HitClass | "paddy" | "furrow" | "sodden",
   running = false,
-  through?: HitClass | "bloom",
+  through?: Through,
 ): Sound | undefined {
   const g = running ? 1.25 : 1;
   const step = footfall(ground, g);

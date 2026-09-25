@@ -2176,6 +2176,14 @@ export class Engine {
     const name = this.item(item)?.name.toLowerCase() ?? item;
     return n > 1 ? `${n} ${name}` : name;
   }
+  /** A foot on a fungus leaves it squashed. */
+  private tread(x: number, y: number) {
+    if (this.world.decoration(x, y)?.sprite !== "nature-understory-fungi") return;
+    const edit = this.editAt(x, y);
+    if (edit.trodden) return;
+    edit.trodden = true;
+    this.tilesChanged();
+  }
   /** Scenery is cached until something tells the renderer the ground changed. */
   private tilesChanged() {
     this.state.tilesRevision = (this.state.tilesRevision ?? 0) + 1;
@@ -4702,6 +4710,7 @@ export class Engine {
       p.pos.y += c.dy;
       p.direction = c.dy < 0 ? 0 : c.dx > 0 ? 1 : c.dy > 0 ? 2 : 3;
       p.facing = facingFromStep(c.dx, c.dy, p.direction);
+      if (p.pos.space === "outside") this.tread(p.pos.x, p.pos.y);
       const depth =
         p.pos.space === "outside" && this.world.topography
           ? waterDepthAt(this.world.topography, p.pos.x + 0.5, p.pos.y + 0.5)

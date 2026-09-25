@@ -335,8 +335,34 @@ def field_mushroom():
     return im
 
 
+def trodden(im, seed):
+    """Stepped on: the standing drawing pressed flat and spread, bruised
+    darker, with broken bits flung round it."""
+    rng = _rng(seed + '-trodden')
+    box = im.getbbox()
+    if not box:
+        return im
+    part = im.crop(box)
+    w, h = part.size
+    fw, fh = min(im.width - 2, max(2, round(w * 1.2))), max(2, round(h * 0.3))
+    flat = part.resize((fw, fh), Image.NEAREST)
+    px = flat.load()
+    for y in range(fh):
+        for x in range(fw):
+            r, g, b, a = px[x, y]
+            if a:
+                px[x, y] = (int(r * 0.78), int(g * 0.74), int(b * 0.72), a)
+    out = _new(im.width, im.height)
+    out.alpha_composite(flat, (min(im.width - 1 - fw, max(1, (box[0] + box[2] - fw) // 2)), box[3] - fh))
+    solid = [part.getpixel((x, y)) for y in range(h) for x in range(w) if part.getpixel((x, y))[3]]
+    for _ in range(max(3, w // 3)):
+        c = rng.choice(solid)
+        _put(out, rng.uniform(box[0] - 2, box[2] + 1), box[3] - rng.uniform(0, fh + 2), '#%02x%02x%02x' % c[:3])
+    return out
+
+
 def fungi():
-    return {
+    sprites = {
         'nature-understory-fungi': generic(),
         'nature-fungus-fly-agaric': fly_agaric(),
         'nature-fungus-chanterelle': chanterelle(),
@@ -368,3 +394,9 @@ def fungi():
         'nature-fungus-ghost-fungus': log_with('ghost-fungus', '#4a4038', None,
             [(12, 11, 5, 3), (20, 10, 6, 4), (29, 11, 4, 3)], ramp('#e0dcc0'), bands=[5, 4, 4, 3, 2]),
     }
+    ground = ['nature-understory-fungi'] + [f'nature-fungus-{k}' for k in (
+        'fly-agaric', 'chanterelle', 'porcini', 'morel', 'psilocybe', 'matsutake', 'lingzhi',
+        'reindeer-lichen', 'fairy-ring', 'stinkhorn', 'cup-fungus', 'puffball', 'field-mushroom')]
+    for key in ground:
+        sprites[f'{key}-trodden'] = trodden(sprites[key], key)
+    return sprites

@@ -89,6 +89,7 @@ import {
   bumpAnimal,
   bumpPerson,
   footstep,
+  type FungusStep,
   landing,
   scramble,
   strike,
@@ -113,6 +114,11 @@ import {
 } from "../core/facing";
 import { HANGING, windProfile, windSway, type WindProfile } from "./wind";
 /** Grit thrown up by a take-off or a landing. */
+// The rest squish.
+const fungusSteps: Record<string, FungusStep> = {
+  puffball: "puff",
+  "reindeer-lichen": "lichen",
+};
 const DUST = [0x9c8c6a, 0xbcae8c, 0x7d7054];
 /** A jump pressed this long before the previous move ends still fires, so a
  * landing never eats the next input. */
@@ -196,6 +202,7 @@ import {
   driftStyle,
   foliageTint,
   namedShrub,
+  trodden,
   seasonFrame,
   treeVariant,
 } from "./season-art";
@@ -1355,11 +1362,12 @@ export class WorldScene extends Phaser.Scene {
     const { hit } = engine.hitClass(cell.x, cell.y, cell.space);
     // Grass tufts stay silent: they cover every meadow.
     const through =
-      hit === "brush" || hit === "crop"
+      this.fungusUnderfoot(cell) ??
+      (hit === "brush" || hit === "crop"
         ? hit
         : engine.bloomSpecies(cell.x, cell.y)
           ? "bloom"
-          : undefined;
+          : undefined);
     const surface =
       field?.wet || field?.ditch
         ? "paddy"
@@ -1369,6 +1377,44 @@ export class WorldScene extends Phaser.Scene {
             ? "sodden"
             : ground;
     return footstep(surface, running, through);
+  }
+  /** The fungus a foot comes down on, by how it answers. Brackets on logs
+   * and the termite mound are not trodden on. */
+  private fungusUnderfoot(cell: { x: number; y: number; space: string }) {
+    if (cell.space !== "outside") return undefined;
+    const engine = this.runtime.engine;
+    const sprite = engine.world.decoration(cell.x, cell.y)?.sprite;
+    if (sprite !== "nature-understory-fungi") return undefined;
+    const id = engine.plantSpecies(sprite, cell.x, cell.y)?.id;
+    return id ? (fungusSteps[id] ?? "squish") : undefined;
+  }
+  /** Spores and flies stirred by a foot on a fungus. */
+  private stirFungus(x: number, y: number, step: FungusStep, id: string) {
+    const flies = id === "stinkhorn";
+    const motes =
+      step === "puff"
+        ? { count: 9, colours: [0x7a6a48, 0x8e7c54, 0x6a5c40], rise: 14, drift: 16, ms: 1400, alpha: 0.8 }
+        : flies
+          ? { count: 3, colours: [0x2a2a22], rise: 18, drift: 26, ms: 900, alpha: 1 }
+          : { count: 3, colours: [0xe8e0cc, 0xd8ccb0], rise: 8, drift: 10, ms: 1100, alpha: 0.5 };
+    for (let i = 0; i < motes.count; i++) {
+      const mote = this.add
+        .rectangle(x + (Math.random() - 0.5) * 6, y - 2 - Math.random() * 3, 1, 1, motes.colours[i % motes.colours.length])
+        .setAlpha(motes.alpha)
+        .setDepth(y + 4000);
+      this.tweens.add({
+        targets: mote,
+        x: mote.x + (Math.random() - 0.5) * motes.drift,
+        y: mote.y - motes.rise * (0.5 + Math.random() * 0.5),
+        alpha: 0,
+        duration: motes.ms * (0.7 + Math.random() * 0.6),
+        ease: "Sine.easeOut",
+        onComplete: () => mote.destroy(),
+      });
+      // Flies do not rise in a line: they jink.
+      if (flies)
+        this.tweens.add({ targets: mote, x: `+=${Math.random() < 0.5 ? -4 : 4}`, duration: 90, yoyo: true, repeat: 4 });
+    }
   }
   /** Feet gone on ice: a skid, a stagger to keep upright, and at a run the
    * slide carries on a cell before it stops. */
@@ -3089,9 +3135,13 @@ export class WorldScene extends Phaser.Scene {
                     )
                   : seasonFrame(
                       treeVariant(
-                        namedShrub(
-                          spriteName,
-                          e.plantSpecies(spriteName, x, y)?.id,
+                        trodden(
+                          namedShrub(
+                            spriteName,
+                            e.plantSpecies(spriteName, x, y)?.id,
+                            (f) => this.textures.get("nature").has(f),
+                          ),
+                          !!e.state.tiles?.[`${x},${y}`]?.trodden,
                           (f) => this.textures.get("nature").has(f),
                         ),
                         random(e.state.manifest.seed, "tree-variant", x, y),
@@ -4942,11 +4992,15 @@ export class WorldScene extends Phaser.Scene {
             splashPuddle(this, im.x, im.y - 1, human.direction, pose === "run", im.depth, time);
           const cell = this.destinations.get(id);
           // Only ground that gives underfoot is heard.
-          if (heel && id === "player" && cell && !arcLift)
+          if (heel && id === "player" && cell && !arcLift) {
             void gameAudio()?.sound(
               this.footstepAt(cell, puddle, water, pose === "run"),
               "step",
             );
+            const fungus = this.fungusUnderfoot(cell);
+            const kind = fungus && this.runtime.engine.plantSpecies("nature-understory-fungi", cell.x, cell.y);
+            if (fungus && kind) this.stirFungus(im.x, im.y, fungus, kind.id);
+          }
           if (afoot && id === "player" && cell)
             this.feel.step(im, this.underfoot(cell, puddle));
           else if (afoot) this.kickDust(im.x, im.y, 2, 0.5);

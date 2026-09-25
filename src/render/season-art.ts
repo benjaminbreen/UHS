@@ -43,6 +43,15 @@ export function namedShrub(
   return has(named) ? named : sprite;
 }
 
+/** A fungus stepped on, where its squashed frame is drawn. */
+export function trodden(
+  sprite: string,
+  flat: boolean,
+  has: (frame: string) => boolean,
+) {
+  return flat && has(`${sprite}-trodden`) ? `${sprite}-trodden` : sprite;
+}
+
 /** One of a sprite's drawn variants (`-2`, `-3`), so a wood is not one tree
  * stamped and mirrored. */
 export function treeVariant(
