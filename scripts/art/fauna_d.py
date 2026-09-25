@@ -74,6 +74,15 @@ COATS = {
         "white": _solid("#6d675c", "#b3ac9d", "#ddd7c8", "#f1ece0", "#ffffff", "#e4cfc4", a="#d2c6a4", k="#3a332b", t="#55504a"),
         "grey": _solid("#3d3c3e", "#77767a", "#a3a2a5", "#c6c5c7", "#e6e5e4", "#d9d2cc", a="#cfc6aa", k="#1a191b", t="#2a292b"),
     },
+    # r p q are the pale stockings and the chevron on the throat; k is also
+    # the wet mud of the wallow.
+    "water-buffalo": {
+        "slate": _coat(o="#141417", d="#26262b", m="#3a3a41", l="#505058", h="#6b6b74", r="#6f6c68", p="#9a958d", q="#bdb8ae", b="#1d1c20", e="#060607", a="#6a6258", k="#2b2419", t="#0c0c0e", u="#8a6f6a"),
+        "black": _solid("#0b0b0c", "#18181b", "#27272b", "#36363c", "#4a4a52", "#141416", a="#5e574e", k="#2b2419", t="#070708", u="#6e5854"),
+        "grey": _coat(o="#2a2a2e", d="#48484f", m="#64646c", l="#7d7d86", h="#9a9aa2", r="#8d8981", p="#b3aea4", q="#d2cdc2", b="#35353a", e="#0a0a0b", a="#766d61", k="#2b2419", t="#18181a", u="#a0827c"),
+        # Albino "pink" buffalo run to a few in a hundred in Thailand.
+        "pink": _solid("#6e4a44", "#a9786d", "#c99a8e", "#ddb3a6", "#efcdc1", "#d99a90", e="#3a1612", a="#b8a58c", k="#2b2419", t="#8a6a5e", u="#e5a79d"),
+    },
     "dog": {
         "tan-pied": _coat(o="#5a3a1c", d="#96682f", m="#c58f4a", l="#e0b26e", h="#f3d49b", r="#b8b2a4", p="#ece7da", q="#ffffff", b="#f4e6c6", e="#1a110a", a="#fefefe", k="#1d1510", t="#f1ece0", u="#e2837f"),
         "tan": _solid("#5a3a1c", "#96682f", "#c58f4a", "#e0b26e", "#f3d49b", "#f4e6c6", t="#f1e4c4", u="#e2837f"),
@@ -138,6 +147,7 @@ FORMS = {
     },
     # Drop ears and a sabre tail come with breeding for the chase: Egypt and
     # Mesopotamia have them by the fourth millennium.
+    "water-buffalo": {"buffalo": dict(weight=1.0)},
     "dog": {"pariah": dict(weight=1.0), "hound": dict(weight=0.6, where=[dict(years=[-3500, 10000])])},
     "donkey": {"donkey": dict(weight=1.0)},
     "cat": {"cat": dict(weight=1.0)},
@@ -155,6 +165,7 @@ COAT_WEIGHTS = {
         "longhorn": {"red": 2, "red-pied": 3, "black-pied": 1.5, "dun": 2, "brown": 1, "white": 0.6},
         "zebu": {"grey": 3, "white": 3, "red": 1.5, "black": 0.6, "dun": 1, "red-pied": 0.7},
     },
+    "water-buffalo": {"buffalo": {"slate": 5, "black": 3, "grey": 2, "pink": 0.3}},
     "dog": {
         "pariah": {"tan": 4, "cream": 1.5, "black": 1.5, "brown": 1, "tan-pied": 2, "black-pied": 1, "grey": 0.5},
         "hound": {"tan": 2, "cream": 2, "black": 1, "brown": 1.5, "tan-pied": 2.5, "black-pied": 1.5, "grey": 1.5},
@@ -177,6 +188,7 @@ COAT_FROM = {"cattle": {"black-pied": 1600}, "cat": {"black": 0, "tabby-white": 
 
 STATES = {
     "cattle": dict.fromkeys(["idle", "graze", "wander", "flee", "rest"], 8),
+    "water-buffalo": dict.fromkeys(["idle", "graze", "wander", "flee", "rest"], 8),
     "dog": dict.fromkeys(["idle", "forage", "wander", "flee", "rest"], 8),
     "donkey": dict.fromkeys(["idle", "graze", "wander", "flee", "rest"], 8),
     "camel": dict.fromkeys(["idle", "graze", "wander", "flee", "rest"], 8),
@@ -185,9 +197,9 @@ STATES = {
 }
 # Drawing coordinates are measured with the ground line at GROUND; HEADROOM is
 # empty rows above for horns, ears and the top of a stride.
-GROUND = {"cattle": 38, "dog": 20, "donkey": 32, "camel": 46, "cat": 16, "mouse": 8}
-HEADROOM = {"cattle": 5, "dog": 4, "donkey": 7, "camel": 3, "cat": 8, "mouse": 3}
-WIDTH = {"cattle": 50, "dog": 32, "donkey": 40, "camel": 54, "cat": 28, "mouse": 16}
+GROUND = {"cattle": 38, "water-buffalo": 38, "dog": 20, "donkey": 32, "camel": 46, "cat": 16, "mouse": 8}
+HEADROOM = {"cattle": 5, "water-buffalo": 6, "dog": 4, "donkey": 7, "camel": 3, "cat": 8, "mouse": 3}
+WIDTH = {"cattle": 50, "water-buffalo": 52, "dog": 32, "donkey": 40, "camel": 54, "cat": 28, "mouse": 16}
 # Against the 29px human: a cow's withers ~22px, a donkey's 19, a village dog's
 # 10, a camel's hump 36.
 NATIVE_SIZES = {s: (WIDTH[s], GROUND[s] + 4 + HEADROOM[s]) for s in GROUND}
@@ -336,10 +348,11 @@ def tufted_tail(c, root, tip, tuft=2, role="d"):
 CATTLE_MARKS = [(6, 10, 13, 17), (10, 13, 18, 20), (12, 18, 16, 24), (20, 17, 27, 25), (23, 22, 30, 29), (18, 10, 23, 14), (30, 11, 35, 17)]
 
 
-def cattle(form, state, frame):
+def cattle(form, state, frame, species="cattle"):
     """Deep and square: a level back from hip to withers, a brisket hung
     between the forelegs, hip bones that show, and a head carried low."""
-    c = Canvas("cattle")
+    c = Canvas(species)
+    buffalo = species == "water-buffalo"
     if state == "rest":
         return _cattle_rest(c, form, frame)
     s = Stride(state, frame, walk=(2.8, 2.4, 0.64), run=(4.6, 4.2, 0.42), bounce=1.2)
@@ -370,6 +383,8 @@ def cattle(form, state, frame):
     body = ellipse((5, 12 + s.h, 30, 27 + s.h + s.breath)) | rect((8, 12 + s.h, 28, 20 + s.h))
     body |= rect((6, 12 + s.h, 12, 21 + s.h))  # the square of the hips
     body |= ellipse((21, 11 + s.f, 36, 28 + s.f))
+    if buffalo:  # wider in the barrel, and hung lower
+        body |= ellipse((8, 14 + s.h, 30, 30 + s.h + s.breath))
     if zebu:
         body |= ellipse((24, 7 + s.f, 31, 16 + s.f))  # the hump sits on the withers
         body |= polygon([(36, 20 + s.f), (34, 31 + s.f), (29, 30 + s.f), (30, 24 + s.f)])  # dewlap
@@ -383,19 +398,25 @@ def cattle(form, state, frame):
     for k in range(5):
         c.dot(27 - (k // 2), 16 + s.f + k, "d")
     # udder, tucked between the hind legs
-    c.paint(flat(rect((12, 27 + s.h, 15, 28 + s.h)), "u"))
-    c.dot(13, 29 + s.h, "u")
-    mark(c, body, blobs(CATTLE_MARKS, s.h))
+    if not buffalo:
+        c.paint(flat(rect((12, 27 + s.h, 15, 28 + s.h)), "u"))
+        c.dot(13, 29 + s.h, "u")
+        mark(c, body, blobs(CATTLE_MARKS, s.h))
 
     stage = [0, 1, 2, 2, 2, 2, 1, 0][frame] if state == "graze" else 0
     # grass is torn with a jerk of the head, then chewed; standing, it is cud
     tear = 1 if state == "graze" and frame in (2, 4) else 0
     chew = 1 if (state == "graze" and frame in (3, 5)) or (state == "idle" and frame in (1, 3, 5)) else 0
-    hx, hy = [(37, 10), (39, 19), (38, 29)][stage]
+    # a buffalo carries its head level, nose out and horns laid back
+    hx, hy = [(38, 14) if buffalo else (37, 10), (39, 19), (38, 29)][stage]
     hx, hy = hx + s.nod + tear, hy + s.f + s.nod + (2 if s.running else 0)
     neck = polygon([(28, 12 + s.f), (35, 23 + s.f), (hx + 3, hy + 8), (hx - 1, hy + 1)])
     lay(c, neck, 1, 2)
     _cattle_head(c, form, hx, hy, chew, s)
+    if buffalo:  # the pale chevron across the throat
+        for k in range(4):
+            if c.px.get((hx + 1 + k // 2, hy + 9 + k)) in ("d", "m", "l"):
+                c.px[(hx + 1 + k // 2, hy + 9 + k)] = "q"
 
     put("nh", (12, 22), True, True)
     put("nf", (29, 23), False, True)
@@ -404,9 +425,11 @@ def cattle(form, state, frame):
 
 def _cattle_head(c, form, x, y, chew, s):
     """(x, y) is the poll. Broad and blunt, with the muzzle below the eye."""
-    zebu, long = form == "zebu", form == "longhorn"
+    zebu, long, buffalo = form == "zebu", form == "longhorn", form == "buffalo"
     # far horn
-    if long:
+    if buffalo:
+        c.paint(flat(limb((x, y), (x - 4, y - 3), 2) | line((x - 4, y - 3), (x - 7, y - 5), 1), "d"))
+    elif long:
         c.paint(flat(limb((x, y), (x - 2, y - 5), 2) | line((x - 2, y - 5), (x - 1, y - 9), 1), "a"))
     elif zebu:
         c.paint(flat(line((x, y), (x - 1, y - 5), 1), "a"))
@@ -421,8 +444,11 @@ def _cattle_head(c, form, x, y, chew, s):
             c.px[(x + 3 + k, y + k)] = "p"
     c.dot(x + 3, y + 3, "d" if s.blink else "e")
     c.dot(x + 3, y + 2, "l")
-    # near horn
-    if long:
+    # near horn: a buffalo's sweeps back in a crescent over the neck
+    if buffalo:
+        c.paint(flat(limb((x + 1, y + 1), (x - 3, y - 2), 3) | limb((x - 3, y - 2), (x - 7, y - 4), 2) | line((x - 7, y - 4), (x - 10, y - 3), 1), "a"))
+        c.dot(x - 10, y - 3, "k")
+    elif long:
         c.paint(flat(limb((x + 1, y), (x + 5, y - 4), 2) | line((x + 5, y - 4), (x + 5, y - 9), 1), "a"))
         c.dot(x + 5, y - 9, "k")
     elif zebu:
@@ -430,7 +456,9 @@ def _cattle_head(c, form, x, y, chew, s):
     else:
         c.paint(flat(limb((x + 1, y), (x + 4, y - 1), 2) | line((x + 4, y - 2), (x + 5, y - 4), 1), "a"))
     flick = 1 if s.flick else 0
-    if zebu:  # long and hanging
+    if buffalo:  # set low under the horn and held out flat
+        ear = polygon([(x, y + 3), (x - 5, y + 4 + flick), (x - 4, y + 6 + flick), (x, y + 5)])
+    elif zebu:  # long and hanging
         ear = polygon([(x - 1, y + 2), (x - 4, y + 4 - flick), (x - 3, y + 8 - flick * 2), (x, y + 5)])
     else:
         ear = polygon([(x - 1, y + 2), (x - 5, y + 1 + flick), (x - 4, y + 4 + flick), (x, y + 5)])
@@ -442,12 +470,25 @@ def _cattle_rest(c, form, frame):
     """Down on the brisket with the forelegs folded under, chewing."""
     s = Stride("rest", frame, (0, 0, 1), (0, 0, 1))
     g = GROUND["cattle"]
+    if form == "buffalo":  # a wallow: the mud under it, darkening what it covers
+        c.paint(flat(ellipse((0, g - 5, 46, g + 2)), "k"))
     body = ellipse((5, g - 15, 31, g - 1 + 0)) | rect((8, g - 15, 28, g - 8))
     body |= rect((6, g - 15, 12, g - 6)) | ellipse((21, g - 17 - s.breath, 36, g - 1))
     if form == "zebu":
         body |= ellipse((24, g - 22, 31, g - 13))
     c.paint(lit(body, 1, 2, (9, 27)))
     c.dot(11, g - 13, "h")
+    if form == "buffalo":
+        for x, y in body:
+            if y >= g - 5:
+                c.px[(x, y)] = "k"
+        for x, y in ((6, g - 3), (20, g - 2), (41, g - 3)):
+            c.dot(x, y, "h")
+        chew = 1 if frame in (1, 3, 5) else 0
+        hx, hy = 37, g - 18 + [0, 0, 1, 1, 1, 1, 0, 0][frame]
+        lay(c, polygon([(28, g - 16), (35, g - 6), (hx + 3, hy + 8), (hx - 1, hy + 1)]), 1, 2)
+        _cattle_head(c, form, hx, hy, chew, s)
+        return c.finish()
     mark(c, body, blobs(CATTLE_MARKS, g - 27))
     # folded foreleg and the hind hoof showing under the flank
     fore = rect((30, g - 3, 38, g - 1)) | rect((29, g - 6, 33, g - 2))
@@ -906,14 +947,16 @@ def hanging_tail(c, root, length, sway, tuft=3):
     c.paint(flat(ellipse((tip[0] - 1, tip[1], tip[0] + 2, tip[1] + tuft)), "t"))
 
 
-def _cattle_face(form, state, frame, south):
-    c = Canvas("cattle")
+def _cattle_face(form, state, frame, south, species="cattle"):
+    c = Canvas(species)
     s = Stride(state, frame, walk=(2.8, 2.6, 0.64), run=(4.6, 4.2, 0.42), bounce=1.2)
     g, cx = GROUND["cattle"], 25
     rest = state == "rest"
     by = (g - 30) if rest else _by(s)
-    zebu, long = form == "zebu", form == "longhorn"
-    marks = [(13, 10 + by, 21, 19 + by), (27, 16 + by, 37, 27 + by)]
+    zebu, long, buffalo = form == "zebu", form == "longhorn", form == "buffalo"
+    marks = () if buffalo else [(13, 10 + by, 21, 19 + by), (27, 16 + by, 37, 27 + by)]
+    if rest and buffalo:
+        c.paint(flat(ellipse((6, g - 6, 44, g + 2)), "k"))
     graze = [0, 6, 13, 13, 13, 13, 6, 0][frame] if state == "graze" else 0
     chew = (frame in (1, 3, 5)) if state in {"idle", "rest"} else (state == "graze" and frame in (3, 5))
     jaw = (1 if frame in (1, 5) else -1) if chew else 0
@@ -922,7 +965,9 @@ def _cattle_face(form, state, frame, south):
         role = "a"
         for sgn in (-1, 1):
             x = cx + sgn * 5
-            if long:
+            if buffalo:
+                m = limb((x, hy + 1), (x + sgn * 7, hy), 3) | limb((x + sgn * 7, hy), (x + sgn * 11, hy - 3), 2) | line((x + sgn * 11, hy - 3), (x + sgn * 11, hy - 6), 1)
+            elif long:
                 m = limb((x, hy), (x + sgn * 6, hy - 3), 2) | line((x + sgn * 6, hy - 3), (x + sgn * 8, hy - 9), 1)
             elif zebu:
                 m = limb((x - sgn, hy), (x, hy - 4), 2) | line((x, hy - 4), (x - sgn, hy - 7), 1)
@@ -934,7 +979,9 @@ def _cattle_face(form, state, frame, south):
         flick = 1 if s.flick else 0
         for sgn in (-1, 1):
             x = cx + sgn * 6
-            if zebu:
+            if buffalo:
+                e = polygon([(x, hy + 4), (x + sgn * 5, hy + 5 + flick), (x + sgn * 4, hy + 7 + flick)])
+            elif zebu:
                 e = polygon([(x, hy + 3), (x + sgn * 4, hy + 5 - flick), (x + sgn * 4, hy + 10 - flick), (x + sgn, hy + 6)])
             else:
                 e = polygon([(x, hy + 3), (x + sgn * 5, hy + 2 + flick), (x + sgn * 4, hy + 5 + flick)])
@@ -960,8 +1007,11 @@ def _cattle_face(form, state, frame, south):
         skull = polygon([(cx - 5, hy), (cx + 5, hy), (cx + 6, hy + 7), (cx + 3, hy + 14), (cx - 3, hy + 14), (cx - 6, hy + 7)])
         c.paint(shade(skull, 1, 1))
         for y in range(hy + 1, hy + 9):
-            if c.px.get((cx, y)) in ("m", "l"):
+            if not buffalo and c.px.get((cx, y)) in ("m", "l"):
                 c.px[(cx, y)] = "p"
+        if buffalo:  # the chevron under the jaw
+            for k in range(-3, 4):
+                c.dot(cx + k, hy + 17 + abs(k) // 2, "q")
         muzzle = ellipse((cx - 4 + jaw, hy + 9, cx + 4 + jaw, hy + 15 + (1 if chew else 0)))
         c.paint(flat(muzzle, "b"))
         c.dot(cx - 2 + jaw, hy + 12, "k")
@@ -975,6 +1025,10 @@ def _cattle_face(form, state, frame, south):
             horns(hy + 1, True)
             ears(hy - 1)
             c.paint(shade(ellipse((cx - 5, hy - 1, cx + 5, hy + 8)), 1, 1))
+        if rest and buffalo:
+            for x, y in list(c.px):
+                if y >= g - 5:
+                    c.px[(x, y)] = "k"
         if not rest:
             face_legs(c, s, (20, 30), 25 + by, g, 3, False, ("ff", "nf"))
         if zebu:
@@ -1607,7 +1661,7 @@ def _mouse_face(form, state, frame, south):
         c.paint(flat(rect((cx - 3, g, cx - 2, g - step)) | rect((cx + 2, g - (1 - step if move else 0), cx + 3, g)), "u"))
     return c.finish()
 
-FACE = {"cattle": _cattle_face, "dog": _dog_face, "donkey": _donkey_face, "camel": _camel_face, "cat": _cat_face, "mouse": _mouse_face}
+FACE = {"cattle": _cattle_face, "water-buffalo": lambda f, st, fr, south: _cattle_face(f, st, fr, south, "water-buffalo"), "dog": _dog_face, "donkey": _donkey_face, "camel": _camel_face, "cat": _cat_face, "mouse": _mouse_face}
 DIRECTIONS = ("south", "east", "north", "west")
 
 
@@ -1626,7 +1680,7 @@ def draw(species, form, state, facing, frame):
     return FACE[species](form, state, frame, facing == "south")
 
 
-DRAW = {"cattle": cattle, "dog": dog, "donkey": donkey, "camel": camel, "cat": cat, "mouse": mouse}
+DRAW = {"cattle": cattle, "water-buffalo": lambda f, st, fr: cattle(f, st, fr, "water-buffalo"), "dog": dog, "donkey": donkey, "camel": camel, "cat": cat, "mouse": mouse}
 
 
 def fauna_d():
