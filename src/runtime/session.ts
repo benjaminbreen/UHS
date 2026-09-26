@@ -2,6 +2,19 @@ import type { TimeTravel } from "./time-travel";
 import type { FaunaTier } from "../core/combat";
 import { gameAudio } from "../audio/director";
 import type { EventId } from "../audio/sfx";
+import {
+  barter,
+  biteOf,
+  drink,
+  eat,
+  materialOf,
+  moneyOf,
+  pay,
+  propMaterial,
+  takeUp,
+  writing,
+  writingTool,
+} from "../audio/handling";
 import { timed } from "../render/perf-switches";
 import { communityLabels } from "../content/ecology/communities";
 import { populateCharacter } from "../content/geography/character";
@@ -663,7 +676,7 @@ export class Runtime {
         talk: "talk",
       } as Record<string, EventId>
     )[action];
-    if (event) void gameAudio()?.event(event);
+    if (event) this.confirm(command, event);
     if (pose)
       this.characterAction = {
         serial: ++this.characterSerial,
@@ -2027,8 +2040,45 @@ export class Runtime {
     this.onChange?.();
     this.emit();
   }
+  /** The action's sound, told what was handled, eaten or paid where it matters. */
+  private confirm(command: PlayerCommand, event: EventId) {
+    const audio = gameAudio();
+    if (!audio) return;
+    const state = this.engine.state;
+    if (command.type === "use") {
+      const food = this.engine.item(command.item);
+      if (food?.edible)
+        return void audio.sound(eat(biteOf(food.id), (food.health ?? 0) < 0), "eat");
+    }
+    if (command.type === "trade") {
+      const give = moneyOf(command.give),
+        take = moneyOf(command.take);
+      return void audio.sound(
+        give || take
+          ? pay((give ?? take)!, give ? command.giveQuantity : command.takeQuantity)
+          : barter(
+              materialOf(command.give, this.engine.item(command.give)),
+              materialOf(command.take, this.engine.item(command.take)),
+            ),
+        "trade",
+      );
+    }
+    if (event === "drink") return void audio.sound(drink(), "drink");
+    if (event === "pickup") {
+      const prop = heldObject(state),
+        item = state.player.heldItem;
+      if (prop || item)
+        return void audio.sound(
+          takeUp(prop ? propMaterial(propDefs[prop.prop ?? ""]) : materialOf(item!, this.engine.item(item!))),
+          "pickup",
+        );
+    }
+    void audio.event(event);
+  }
   addNote(text: string, evidence?: string) {
     if (!text.trim()) return;
+    const setting = this.engine.world.pack.setting;
+    void gameAudio()?.sound(writing(writingTool(setting?.year, setting?.culture)), "write");
     this.engine.state.notes.push({
       id: this.engine.state.notes.length + 1,
       text: text.trim().slice(0, 4000),

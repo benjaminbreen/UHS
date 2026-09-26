@@ -55,6 +55,7 @@ import { WeatherPanel } from "./WeatherPanel";
 import { sexFromName } from "../content/characters/name-sex";
 import { AudioDirector, gameAudio } from "../audio/director";
 import { ambienceFor } from "../audio/ambience";
+import { pageTurn } from "../audio/handling";
 const AudioLab = lazy(() =>
   import("../dev/AudioLab").then((m) => ({ default: m.AudioLab })),
 );
@@ -616,6 +617,9 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
     () => audio?.setSetting(setting?.culture, setting?.year),
     [audio, setting?.culture, setting?.year],
   );
+  useEffect(() => {
+    if (modal === "notebook") void audio?.sound(pageTurn(), "page");
+  }, [audio, modal]);
   const regionLabel =
     (setting && describedRegionAt(setting.lon, setting.lat)?.label) ||
     setting?.location ||
