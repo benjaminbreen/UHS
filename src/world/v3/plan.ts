@@ -918,10 +918,10 @@ export function planSettlement(
     // A modern block is yard between its buildings; an older one is earth.
     const blockGround =
       (pack.setting?.year ?? 0) >= 1900 ? "grass" : (cityGround ?? "grass");
-    const paintBlock = (block: Rect) =>
+    const paintBlock = (block: Rect, ground: Terrain = blockGround) =>
       eachCell(block, (x, y) => {
         if (dry({ x, y, w: 1, h: 1 }, false))
-          setSurface(cellKey(x, y), blockGround, 2);
+          setSurface(cellKey(x, y), ground, 2);
       });
     const paintFootway = (rect: Rect) => {
       if (!profile.paved || plotted) return;
@@ -2754,6 +2754,7 @@ export function planSettlement(
               (TRAFFIC[lot.quarter ?? "residential"] ?? 0.4) * 0.5,
           }
         : {}),
+      ...(lot.use ? { landUse: lot.use } : {}),
       id,
       name: lot.venue
         ? lot.venue.label

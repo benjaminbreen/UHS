@@ -135,6 +135,8 @@ export const settingSchema = z
     water: z.enum(waters),
     settlement: z.enum(forms),
     settlementPattern: z.enum(patterns).optional(),
+    /** Gazetteer population at this date; sizes the footprint, nothing else. */
+    population: z.number().int().min(0).optional(),
     architecture: z.enum(architectures),
     role: z.string().min(1).max(100),
     characterName: z.string().min(1).max(80),

@@ -1,3 +1,18 @@
+## Industrial-age city layout — September 26, 2026
+
+Phase 1 of the modern city revamp. Cities after their region's industrial
+onset are zoned: a rebuilt downtown, a factory sector toward the water, and
+rings of housing in the idiom of each ring's date (terraces, tenements,
+suburbs, estates, self-built quarters) by region. Motor-age cities sprawl into
+the corners of their extent, and open-air market fields give way to shops.
+Modern fabrics now exist for Japan, the Soviet bloc, South Asia, North Africa
+and West Asia, sub-Saharan Africa, Southeast Asia, Latin America and
+Australasia; before this each fell through to the generic fabric. A 1980 mill
+or cannery town such as Sitka is built as a town, not a medieval village, and a
+tile inside a metropolis takes the metropolis's size. See `SETTLEMENTS.md`.
+Buildings still use the existing flat-front modern kit; the oblique redraw,
+street cross-sections, furniture, parked cars and animation are later phases.
+
 ## Daily agendas: occasions, holidays and commissions — September 26, 2026
 
 Each person's day now carries one or two occasions beside their work, picked

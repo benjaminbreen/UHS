@@ -78,6 +78,47 @@ it("encloses public squares and courts with varied, non-overlapping ranges and r
         expect(p.solid.has(`${q.x},${q.y}`)).toBe(false);
   }
 }, 30000);
+it("zones an industrial-age city into a downtown, factories and the housing of each ring's date", () => {
+  const plan = (query: string) => {
+    const r = resolveSetting(query);
+    if ("error" in r) throw Error(r.error);
+    const s = integratedSetting(r.setting);
+    return planSettlement(
+      {
+        id: "city",
+        cx: 0,
+        cy: 0,
+        home: true,
+        center: { x: 0, y: 0 },
+        profile: { ...settlementProfile(s), radius: 90 },
+      },
+      packForSetting(s),
+      "zoning",
+      flat,
+      [],
+    );
+  };
+  const uses = (p: ReturnType<typeof plan>) =>
+    new Set(p.places.map((q) => q.landUse).filter(Boolean));
+  const richmond = plan("Richmond 2014");
+  expect([...uses(richmond)]).toEqual(
+    expect.arrayContaining(["downtown", "industrial", "suburb"]),
+  );
+  // Downtown is the rebuilt centre; the suburbs are the last ring.
+  const distance = (use: string) => {
+    const at = richmond.places.filter((q) => q.landUse === use);
+    return at.reduce((d, q) => d + Math.hypot(q.x, q.y), 0) / at.length;
+  };
+  expect(distance("downtown")).toBeLessThan(distance("suburb"));
+  expect(uses(plan("Moscow 1975")).has("estate")).toBe(true);
+  // Before the industrial onset there is no zoning at all.
+  expect(uses(plan("Richmond 1790")).size).toBe(0);
+  // Open-air market pitches give way to shops once cars come.
+  expect(
+    richmond.objects.filter((o) => o.id.includes("-pitch-")),
+  ).toHaveLength(0);
+});
+
 it("keeps urban geometry deterministic and the old selection opt-in", () => {
   expect(city("same").places).toEqual(city("same").places);
   const old = { ...setting, urbanRevision: undefined };

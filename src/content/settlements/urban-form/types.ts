@@ -75,6 +75,9 @@ export type UrbanForm = {
    * rather than one shape. Omitted, the fabric is a single district using
    * `plan`, `block` and `regularity`. */
   districts?: readonly DistrictSpec[];
+  /** Built out into the corners between its extensions, as a city of the
+   * motor age is. Set from the date, not by a fabric entry. */
+  sprawl?: boolean;
   /** Further public squares at street crossings away from the main square. */
   squares?: number;
   /** Diagonal avenues cut from the square's corners to the built edge. */

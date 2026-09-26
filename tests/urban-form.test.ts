@@ -196,6 +196,42 @@ it("only ranks a place as a town where an urban fabric is attested by then", () 
   ).toBe(Infinity);
 });
 
+it("gives every region's industrial-age city a researched fabric and ranks mill towns as towns", () => {
+  expect(at("east-asian", 139.7, 35.7, 1970).id).toBe("japanese-machi");
+  expect(at("european", 37.6, 55.8, 1975).id).toBe("soviet-microdistricts");
+  expect(at("south-asian", 72.9, 19.1, 1990).id).toBe("old-city-and-civil-lines");
+  expect(at("west-central-african", 3.4, 6.5, 2000).id).toBe(
+    "colonial-grid-and-townships",
+  );
+  expect(at("european", -135.3, 57.1, 1980).id).toBe("modern-survey-grid");
+  expect(at("european", 151.2, -33.9, 1970).id).toBe("australasian-grid");
+  const sitka = places.find((p) => p.id === "city-sitka")!;
+  expect(sitka.settlement).toBe("village");
+  expect(settingFor(sitka, 1980).settlement).toBe("port");
+  expect(settingFor(sitka, 1980).population).toBeGreaterThan(3000);
+  expect(settingFor(sitka, 1860).settlement).toBe("village");
+});
+
+it("builds a motor-age city out into the corners between its extensions", () => {
+  const form = at("european", -77.4, 37.5, 2014);
+  const corners = (sprawl: boolean) => {
+    const { blocks, half } = compose({ ...form, sprawl }, 110);
+    return [
+      [1, 1],
+      [-1, 1],
+      [1, -1],
+      [-1, -1],
+    ].filter(([sx, sy]) =>
+      blocks.some(
+        (b) =>
+          (b.x + b.w / 2) * sx > half * 0.55 && (b.y + b.h / 2) * sy > half * 0.55,
+      ),
+    ).length;
+  };
+  expect(corners(true)).toBe(4);
+  expect(corners(false)).toBeLessThan(4);
+});
+
 it("never paves or densifies a settlement before its region has towns", () => {
   for (const place of places) {
     for (const year of [-8000, -3000, -1320, 500, 1400, 2000]) {

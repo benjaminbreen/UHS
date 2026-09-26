@@ -5,6 +5,7 @@ import { random } from "../../core/random";
 import { populateCharacter } from "./character";
 import { places } from "./places";
 import { urbanized } from "../settlements/urban-form";
+import { industrialized } from "../settlements/modernity";
 import { farms } from "./onsets";
 import { integratedSetting } from "./defaults";
 import { matchesCharacterScope, resolveCharacterContext } from "../characters/resolve";
@@ -115,6 +116,12 @@ export function settingFor(input: AtlasPlace, year = input.year): WorldSetting {
   // reached it, such as Tasmania, becomes a town on that later date, not on a
   // farming date it never had.
   const forager = !farms(where) && !town;
+  // The gazetteer ranks by modern prominence, and a mill or cannery town of
+  // several thousand is still listed as a village.
+  const grown =
+    place.settlement === "village" &&
+    (place.population ?? 0) >= 3000 &&
+    industrialized(where);
   return integratedSetting(
     settingSchema.parse({
       version: 2,
@@ -128,7 +135,16 @@ export function settingFor(input: AtlasPlace, year = input.year): WorldSetting {
         place.lat > (glacialTundraLatitude(year) ?? 90) ? "tundra" : place.climate,
       relief: place.relief,
       water: place.water,
-      settlement: forager ? "camp" : town ? place.settlement : "village",
+      settlement: forager
+        ? "camp"
+        : !town
+          ? "village"
+          : grown
+            ? place.water.startsWith("coast")
+              ? "port"
+              : "city"
+            : place.settlement,
+      population: town ? place.population : undefined,
       architecture: forager
         ? "shelter"
         : year < -3499

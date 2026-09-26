@@ -248,6 +248,8 @@ export type Place = {
   /** 0-1. How a trading place is doing, from its holder's means and the
    * traffic the quarter brings past the door. */
   trade?: number;
+  /** What the block it stands in became as an industrial-age city grew. */
+  landUse?: import("../content/settlements/zoning").LandUse;
 };
 export type WorldObject = {
   resource?: Resource;

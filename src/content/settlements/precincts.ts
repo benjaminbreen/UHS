@@ -7,6 +7,7 @@ import type { Terrain } from "../../core/types";
 import type { WorldSetting } from "../geography/types";
 import type { Venue } from "../venues/types";
 import { mesoamericanHouseProfile } from "../graphics/regional-houses";
+import { industrialized, motorized } from "./modernity";
 
 export type PrecinctScale = "small" | "medium" | "large";
 type Kind = keyof typeof data;
@@ -103,9 +104,17 @@ export function precinctPlans(
     if (!kind) continue;
     if (kind === "market" && s.settlement !== "city" && s.settlement !== "port")
       continue;
+    if (kind === "market" && motorized(s)) continue;
     const spec = data[kind];
+    // Shops and covered halls took over from open pitches once industry came.
     const copies =
-      kind === "market" ? (radius >= 70 ? 3 : radius >= 45 ? 2 : 1) : 1;
+      kind === "market" && !industrialized(s)
+        ? radius >= 70
+          ? 3
+          : radius >= 45
+            ? 2
+            : 1
+        : 1;
     for (let n = 0; n < copies; n++) {
       // Later markets are a step smaller than the first.
       const scales = allowed.slice(Math.min(n, allowed.length - 1));

@@ -244,5 +244,25 @@
     "name": "new-york-1910",
     "query": "New York 1910",
     "radius": 40
+  },
+  {
+    "name": "sitka-1980",
+    "query": "Sitka 1980",
+    "radius": 60
+  },
+  {
+    "name": "richmond-2014",
+    "query": "Richmond 2014",
+    "radius": 130
+  },
+  {
+    "name": "manchester-1900",
+    "query": "Manchester 1900",
+    "radius": 110
+  },
+  {
+    "name": "moscow-1975",
+    "query": "Moscow 1975",
+    "radius": 130
   }
 ]

@@ -21,6 +21,9 @@ export type Block = Rect & {
   reach: number;
   /** A private lane into the interior, for fabrics with blind alleys. */
   lane?: Segment;
+  /** Index of the district it lies in; 0 is the core, later ones were laid
+   * out later. */
+  district: number;
 };
 /** The defensive circuit, as a ring of cells with the gate openings removed. */
 export type Wall = {
@@ -232,7 +235,11 @@ export function composeUrban(
     { spec: core, rect: coreRect, shape: coreRect, core: true },
   ];
   const order = [0, 1, 2, 3].sort((a, b) => rand("side", a) - rand("side", b));
-  specs.slice(1, 5).forEach((spec, i) => {
+  const extensions =
+    form.sprawl && !single
+      ? [0, 1, 2, 3].map((i) => specs[Math.min(i + 1, specs.length - 1)])
+      : specs.slice(1, 5);
+  extensions.forEach((spec, i) => {
     const s = sides[order[i]];
     const breadth = Math.round(coreHalf * (0.7 + rand("breadth", i) * 0.5));
     const shift = even((rand("shift", i) - 0.5) * coreHalf * 0.4);
@@ -256,6 +263,26 @@ export function composeUrban(
       : { ...rect, y: s.ny > 0 ? center.y : rect.y, h: reach + coreB + 1 };
     districts.push({ spec, core: false, rect, shape });
   });
+  if (form.sprawl && !single) {
+    const spec = specs[specs.length - 1];
+    for (const [sx, sy] of [
+      [1, 1],
+      [-1, 1],
+      [1, -1],
+      [-1, -1],
+    ]) {
+      const w = half - coreA,
+        h = half - coreB;
+      if (w < 12 || h < 12) continue;
+      const rect = {
+        x: sx > 0 ? center.x + coreA + 1 : center.x - half,
+        y: sy > 0 ? center.y + coreB + 1 : center.y - half,
+        w,
+        h,
+      };
+      districts.push({ spec, core: false, rect, shape: rect });
+    }
+  }
   const inRect = (x: number, y: number, r: Rect) =>
     x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h;
 
@@ -949,10 +976,15 @@ export function composeUrban(
       const r = largest();
       if (!r) break;
       clearRect(r, 0);
+      const mid = { x: r.x + (r.w >> 1), y: r.y + (r.h >> 1) };
       blocks.push({
         ...r,
         depth: 0,
         court: false,
+        district: Math.max(
+          0,
+          districts.findIndex((d) => inRect(mid.x, mid.y, d.rect)),
+        ),
         reach: density
           ? 1 - density(r.x + r.w / 2, r.y + r.h / 2)
           : Math.max(

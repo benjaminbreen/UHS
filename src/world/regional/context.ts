@@ -68,7 +68,8 @@ export function createRegionalContext(start: WorldSetting) {
       (p) => Math.hypot(p.at[0] - start.lon, p.at[1] - start.lat) < 0.025,
     )
   ) {
-    const population = cityPopulation(start.placeId, start.year);
+    const population =
+      cityPopulation(start.placeId, start.year) ?? start.population;
     named.set(start.placeId, {
       id: start.placeId,
       name: start.location,

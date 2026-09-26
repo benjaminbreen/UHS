@@ -96,6 +96,33 @@ filled from the city's own small forms, thinned toward the edge the way an
 older town is — without that thinning, 3x2 stalls stand shoulder to shoulder
 from the square to the boundary.
 
+## Industrial-age cities grow in rings
+
+`src/content/settlements/modernity.ts` dates two onsets per region: when mills
+and railways began to shape towns, and when mass car ownership did. Nothing
+else in this section applies before the first.
+
+After it, `src/content/settlements/zoning.ts` gives each block of a city a land
+use: the old centre is rebuilt as a downtown a set number of years after the
+onset; one sector, toward the water or the bridge, is factories and yards; the
+rest is housing in the idiom of the date its ring was laid out: `inner` before
+the motor onset (terraces, tenements), `outer` after it (suburbs), with a share
+of estates and, where the region had them, self-built quarters at the edge. The
+ring's date comes from its distance from the centre and from which of the
+fabric's districts it lies in, since `districts` are listed oldest first.
+Every placed building carries its `landUse`.
+
+In the motor age a city also sprawls: `form.sprawl` adds districts on all four
+sides and in the corners between them, so a metropolis fills its map rather
+than making a cross. Open-air market precincts give way to shops at the
+industrial onset (one market) and disappear at the motor onset.
+
+A gazetteer village of three thousand or more in an industrialised region is
+ranked a town (`settingFor`), and a travel tile takes the population of the
+gazetteer place standing on it, so a tile named for a suburb is built as part of
+its city. Until the modern buildings are redrawn, each land use builds from the
+existing kit forms listed in `FORMS` in `src/world/v3/urban.ts`.
+
 ## Shop signs
 
 The word over a shop door is drawn at runtime, not baked into the atlas. The
