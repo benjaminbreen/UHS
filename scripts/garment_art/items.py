@@ -44,6 +44,27 @@ item('arrow', '#846038', '#c8c5b3', [
  "  tt                    ",
  " ttt                    ",
 ])
+item('sling', '#b08a5a', '#9a9690', [
+ "   oo                   ",
+ "  o  o                  ",
+ "  o  o                  ",
+ "   oo                   ",
+ "    o                   ",
+ "     o                  ",
+ "      o                 ",
+ "       o                ",
+ "        oo       o      ",
+ "         ooo   oo       ",
+ "         otttoo         ",
+ "        ottttto         ",
+ "        otttttoo        ",
+ "         otttoo o       ",
+ "          ooo    o      ",
+ "                  o     ",
+ "                   o    ",
+ "                    o   ",
+ "                    oo  ",
+])
 
 item('bread', '#c08a45', '#e0b36a', [
  "",

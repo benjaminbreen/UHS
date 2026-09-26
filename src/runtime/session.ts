@@ -570,13 +570,13 @@ export class Runtime {
         this.throwEffect = {
           serial: ++this.characterSerial,
           ...flight,
-          launchMs: command.type === "shoot" ? 75 : poseContactMs("cast"),
+          launchMs: command.type === "shoot" ? (flight.sling ? 30 : 75) : poseContactMs("cast"),
         };
       if (command.type === "shoot") {
         this.characterAction = {
           serial: ++this.characterSerial,
-          pose: "draw",
-          at: performance.now() - poseTiming("draw") * 3,
+          pose: flight?.sling ? "whirl" : "draw",
+          at: performance.now() - poseTiming(flight?.sling ? "whirl" : "draw") * 3,
           prop: previousProp,
         };
         return;
@@ -606,6 +606,7 @@ export class Runtime {
           creatures: swing.creatures,
           power: swing.power,
           thrust: swing.thrust,
+          knife: pose === "slash",
           contactMs: poseContactMs(pose),
         };
       }
@@ -643,7 +644,8 @@ export class Runtime {
         mine: "chop",
         talk: "talk",
         trade: "give",
-        harvest: "work",
+        // A knife in hand makes it close, careful work.
+        harvest: this.engine.state.player.heldItem === "tool" ? "carve" : "work",
         drink: "give",
         rest: "sit",
         use: "give",
@@ -677,6 +679,7 @@ export class Runtime {
     if (def?.tool) return TOOL_POSES[TOOL_ACTIONS[def.tool]];
     if (def?.attack === "rake") return "till";
     if (def?.attack === "hook") return "reap";
+    if (!held && item === "tool") return "slash";
     return def?.attack === "thrust" || item === "torch" || thrust
       ? "thrust"
       : "swing";
@@ -1321,6 +1324,8 @@ export class Runtime {
       primary = { kind: "strike", label: "Set it alight", command: burn };
     else if (item?.id === "bow")
       primary = { kind: "shoot", label: (p.inventory.arrow ?? 0) > 0 ? "Draw bow" : "No arrows" };
+    else if (item?.id === "sling")
+      primary = { kind: "shoot", label: this.engine.ammo() ? "Whirl sling" : "No stones" };
     else if (speaker)
       primary = {
         kind: "talk",
@@ -1564,8 +1569,9 @@ export class Runtime {
       const item = prop.slice(5);
       this.engine.devArm();
       const bag = this.engine.state.player.inventory;
-      bag[item] = (bag[item] ?? 0) + (item === "bow" ? 1 : 10);
+      bag[item] = (bag[item] ?? 0) + (item === "bow" || item === "sling" ? 1 : 10);
       if (item === "bow") bag.arrow = (bag.arrow ?? 0) + 20;
+      if (item === "sling") bag.pebble = (bag.pebble ?? 0) + 20;
       this.command({ type: "hold", item });
       return;
     }

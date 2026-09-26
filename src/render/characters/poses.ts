@@ -23,6 +23,9 @@ export const poses = [
   "thrust",
   "cast",
   "draw",
+  "whirl",
+  "slash",
+  "carve",
   "work",
   "stoop",
   "kneel",
@@ -75,6 +78,11 @@ export function poseTiming(pose: CharacterPose) {
   if (pose === "thrust") return 105;
   if (pose === "cast") return 120;
   if (pose === "draw") return 140;
+  // The last of these is the release; the scene loops the first three while aiming.
+  if (pose === "whirl") return 90;
+  // A knife is quick: the whole cut is over before a swing reaches its top.
+  if (pose === "slash") return 65;
+  if (pose === "carve") return 200;
   return pose === "idle"
     ? 360
     : pose === "swing" || pose === "hurt"

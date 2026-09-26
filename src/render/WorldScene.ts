@@ -60,6 +60,8 @@ const URGENT = new Set<FaunaState>([
 ]);
 /** States an animal will look up from. One lying down does not bother. */
 const WATCHFUL = new Set<FaunaState>(["idle", "graze", "forage", "perch"]);
+/** The sling hand overhead, from the player sprite's origin; tuned by eye. */
+const WHIRL_HAND = { x: 7, y: -33 };
 const FAUNA_DUST = [0xb9a27a, 0x9c8762, 0xd2c09a];
 /** States whose art already shows the animal travelling. */
 const STRIDING = new Set<FaunaState>([...URGENT, "wander", "stalk", "carry"]);
@@ -106,6 +108,7 @@ import { jumpMs, JUMP_CHARGE_MS, type Runtime } from "../runtime/session";
 import type { Position, WorldModel } from "../core/types";
 import { surfaceAt, hasQuay } from "./materials";
 import { gameAudio } from "../audio/director";
+import { slingWhirl } from "../audio/sfx";
 import {
   bumpAnimal,
   bumpPerson,
@@ -633,7 +636,7 @@ export class WorldScene extends Phaser.Scene {
   create() {
     this.ready = true;
     this.input.mouse?.disableContextMenu();
-    for (const id of ["bow", "arrow"]) {
+    for (const id of ["bow", "arrow", "sling"]) {
       if (this.textures.exists(id)) continue;
       const canvas = document.createElement("canvas");
       canvas.width = canvas.height = 24;
@@ -751,11 +754,10 @@ export class WorldScene extends Phaser.Scene {
       ) {
         event.preventDefault();
         const player = this.runtime.engine.state.player;
-        if (player.held || (player.heldItem && player.heldItem !== "bow"))
+        if (player.held || (player.heldItem && !this.launcher()))
           this.beginAim("throw", "mouse", "keyboard");
       }
-      if (event.code === "KeyF" && !event.repeat &&
-          this.runtime.engine.state.player.heldItem === "bow") {
+      if (event.code === "KeyF" && !event.repeat && this.launcher()) {
         event.preventDefault();
         this.beginAim("bow", "mouse", "keyboard");
       }
@@ -797,7 +799,7 @@ export class WorldScene extends Phaser.Scene {
       if (pointer.rightButtonDown()) {
         this.mouseTarget = this.pointerCell(pointer);
         const player = this.runtime.engine.state.player;
-        if (player.heldItem === "bow") this.beginAim("bow", "mouse", "mouse");
+        if (this.launcher()) this.beginAim("bow", "mouse", "mouse");
         else if (player.held || player.heldItem) this.beginAim("throw", "mouse", "mouse");
         return;
       }
@@ -2330,7 +2332,7 @@ export class WorldScene extends Phaser.Scene {
     return key;
   }
   private texture(frame: string) {
-    if (frame === "bow" || frame === "arrow") return frame;
+    if (frame === "bow" || frame === "arrow" || frame === "sling") return frame;
     this.sheetFrames ??= lazySheets.map((key) => [
       key,
       new Set(Object.keys(this.cache.json.get(`${key}-index`)?.frames ?? {})),
@@ -2550,10 +2552,49 @@ export class WorldScene extends Phaser.Scene {
     }
     return { x, y };
   }
+  private launcher() {
+    const item = this.runtime.engine.state.player.heldItem;
+    return item === "bow" || item === "sling";
+  }
+  /** Turns of the sling so far: slow at first, winding up to a steady hum. */
+  private slingTurns(ms: number) {
+    const ramp = Math.min(ms, 900);
+    return ms / 300 + ramp * ramp / 600000 + Math.max(0, ms - 900) * 0.0033;
+  }
+  private slingTurn = 0;
+  private whirlRing?: Phaser.GameObjects.Graphics;
+  /** The blur of the pouch going round, which three frames cannot show. */
+  private whirl(time: number) {
+    const player = this.entities.get("player");
+    const slinging = player && this.aimKind === "bow" && this.aimStarted !== undefined &&
+      this.runtime.engine.state.player.heldItem === "sling";
+    if (!slinging) {
+      this.whirlRing?.destroy();
+      this.whirlRing = undefined;
+      return;
+    }
+    const turns = this.slingTurns(time - this.aimStarted!);
+    if (Math.floor(turns) !== this.slingTurn) {
+      this.slingTurn = Math.floor(turns);
+      void gameAudio()?.sound(slingWhirl(Math.min(1, turns / 6)), "air");
+    }
+    const g = (this.whirlRing ??= this.add.graphics()).clear();
+    g.setDepth(player.y + 4300);
+    // The renderer mirrors a west-facing figure itself, not through flipX.
+    const side = this.runtime.engine.state.player.direction === 3 ? -1 : 1;
+    const cx = player.x + side * WHIRL_HAND.x, cy = player.y + WHIRL_HAND.y;
+    const speed = Math.min(1, turns / 5);
+    const head = (turns % 1) * Math.PI * 2;
+    for (let i = 1; i <= 6; i++) {
+      const a = head - i * 0.28;
+      g.fillStyle(0xf2e8d2, (0.8 - i * 0.12) * (0.5 + speed * 0.5))
+        .fillRect(Math.round(cx + Math.cos(a) * 8 * side), Math.round(cy + Math.sin(a) * 3), 2, 1);
+    }
+  }
   private beginAim(kind: "bow" | "throw", input: "mouse" | "touch", trigger: "keyboard" | "mouse" | "touch") {
     if (this.aimStarted !== undefined) return;
     const p = this.runtime.engine.state.player;
-    if (kind === "bow" && (p.heldItem !== "bow" || !(p.inventory.arrow ?? 0))) return;
+    if (kind === "bow" && !this.runtime.engine.ammo()) return;
     if (kind === "throw" && !(p.held || p.heldItem)) return;
     const [dx, dy] = this.jumpDirection();
     this.aimStarted = this.time.now;
@@ -2598,7 +2639,7 @@ export class WorldScene extends Phaser.Scene {
       const p = this.runtime.engine.state.player.pos;
       this.aimTarget = { x: p.x + this.touchOffset.x, y: p.y + this.touchOffset.y };
     }
-    const range = this.aimKind === "bow" ? 10 : this.runtime.engine.missile().range;
+    const range = this.aimKind === "bow" ? this.runtime.engine.bowRange() : this.runtime.engine.missile().range;
     return this.runtime.engine.projectilePath(this.aimTarget, range);
   }
   private combat() {
@@ -4753,6 +4794,7 @@ export class WorldScene extends Phaser.Scene {
       !!last && this.runtime.engine.hitClass(last.x, last.y,
         this.runtime.engine.state.player.pos.space).hit === "creature",
       this.aimKind === "bow");
+    this.whirl(time);
     this.combat().dazed(this.stunned, time);
     this.combat().update(time);
     mark("wind");
@@ -4975,8 +5017,8 @@ export class WorldScene extends Phaser.Scene {
       if (id === "player" && !this.options.lab) {
         const p = this.runtime.engine.state.player.pos;
         const aim = phoneLayout() && this.aimStarted !== undefined ? this.aimTarget : undefined;
-        const x = aim ? Phaser.Math.Clamp((p.x - aim.x) * 8, -72, 72) : 0;
-        const y = aim ? Phaser.Math.Clamp((p.y - aim.y) * 8, -72, 72) : 0;
+        const x = aim ? Phaser.Math.Clamp((p.x - aim.x) * 8, -88, 88) : 0;
+        const y = aim ? Phaser.Math.Clamp((p.y - aim.y) * 8, -88, 88) : 0;
         this.cameras.main.setFollowOffset(x, y - arcLift);
       }
       const human = this.humanActors.get(id);
@@ -5077,7 +5119,8 @@ export class WorldScene extends Phaser.Scene {
         if (fidget?.pose) pose = fidget.pose;
         if (stunt) pose = stunt.pose;
         const drawing = id === "player" && this.aimKind === "bow" && this.aimStarted !== undefined;
-        if (drawing) pose = "draw";
+        const slinging = drawing && me.heldItem === "sling";
+        if (drawing) pose = slinging ? "whirl" : "draw";
         // Something heavy in the arms shortens the stride.
         const laden =
           id === "player" && !!me.held && !this.runtime.engine.armed();
@@ -5133,7 +5176,9 @@ export class WorldScene extends Phaser.Scene {
           g.pose = pose;
         }
         const index =
-          drawing
+          slinging
+            ? Math.floor(this.slingTurns(time - this.aimStarted!) * 3) % 3
+            : drawing
             ? Math.min(2, Math.floor((time - this.aimStarted!) / poseTiming("draw")))
             : winding
             ? Math.min(1, Math.floor(elapsed / poseTiming(pose)))
@@ -5661,7 +5706,7 @@ export class WorldScene extends Phaser.Scene {
       return;
     }
     this.touchDragged = true;
-    const range = this.aimKind === "bow" ? 10 : this.runtime.engine.missile().range;
+    const range = this.aimKind === "bow" ? this.runtime.engine.bowRange() : this.runtime.engine.missile().range;
     const reach = 2 + (range - 2) * Math.min(1, dist / 70);
     const p = this.runtime.engine.state.player.pos;
     this.touchOffset = { x: Math.round(dx / dist * reach), y: Math.round(dy / dist * reach) };

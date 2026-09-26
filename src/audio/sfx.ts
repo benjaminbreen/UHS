@@ -202,7 +202,13 @@ const HARD: HitClass[] = ["rock", "stone", "metal"];
 const LEAFY: HitClass[] = ["brush", "grass", "crop", "fiber"];
 const CONTACT = 0.035;
 
-export function projectileRelease(kind: "arrow" | "spear"): Sound {
+export function projectileRelease(kind: "arrow" | "spear" | "stone"): Sound {
+  // The cord snapping straight, then the stone's whine going away.
+  if (kind === "stone")
+    return [
+      noise(0, 0.03, 0.2, 4200, { q: 1.4 }),
+      tone(0.01, 0.16, 0.07, vary(1500), { to: 700, wave: "sine" }),
+    ];
   return kind === "arrow"
     ? [
         tone(0, 0.13, 0.28, vary(310), { to: 175, wave: "triangle" }),
@@ -225,6 +231,11 @@ export function projectileImpact(kind: "arrow" | "spear", hit: HitClass): Sound 
           { to: 330, filter: "lowpass" as const })]
       : []),
   ];
+}
+
+/** One turn of a sling overhead: a soft whoom that rises as it speeds up. */
+export function slingWhirl(speed: number): Sound {
+  return [noise(0, 0.11, 0.05 + speed * 0.05, 380 + speed * 420, { to: 900 + speed * 600, q: 1.8, attack: 0.05 })];
 }
 
 /** A swing or a thrown thing arriving: the air, then what the implement and
