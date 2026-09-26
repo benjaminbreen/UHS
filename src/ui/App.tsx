@@ -53,7 +53,7 @@ import { lightingAt } from "../render/lighting";
 import { describedRegionAt } from "../content/geography/region-label";
 import { WeatherPanel } from "./WeatherPanel";
 import { sexFromName } from "../content/characters/name-sex";
-import { AudioDirector } from "../audio/director";
+import { AudioDirector, gameAudio } from "../audio/director";
 import { ambienceFor } from "../audio/ambience";
 const AudioLab = lazy(() =>
   import("../dev/AudioLab").then((m) => ({ default: m.AudioLab })),
@@ -100,7 +100,10 @@ import { MapModal } from "./MapModal";
 import { ItemIcon, Sprite, Minimap, timeLabel } from "./components";
 import { LiveGraphicsPanel } from "../dev/LiveGraphicsPanel";
 import { CombatTestPanel } from "../dev/CombatTestPanel";
-import { CollapseNotice, SkillsPanel, SkillToast, Vitals } from "./Skills";
+import { SkillTestPanel } from "../dev/SkillTestPanel";
+import { CollapseNotice, SkillsPanel, SkillToast, Vitals, type Pick } from "./Skills";
+import { SkillSky } from "./SkillSky";
+import type { SkillId } from "../core/skills";
 import { BagFlights, KeyPrompt } from "./motion";
 import { TouchControls } from "./TouchControls";
 import { WikiFocus } from "./WikiFocus";
@@ -147,6 +150,25 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
   const verbs = { ...runtime.verbs(), held: propControls.held };
   const speaker = runtime.nearestSpeaker();
   const [audio, setAudio] = useState<AudioDirector | null>(null);
+  const [sky, setSky] = useState<{ skill?: SkillId; pick?: Pick; levelUp?: boolean }>();
+  const pending = runtime.engine.pendingPicks();
+  const known = runtime.engine.state.player.techniques ?? [];
+  const lastGain = runtime.engine.skillGains.at(-1);
+  const heardGain = useRef(lastGain?.serial ?? 0);
+  // A level that opens a technique brings the choice up by itself.
+  useEffect(() => {
+    if (!lastGain || lastGain.serial <= heardGain.current) {
+      if (!lastGain) heardGain.current = 0;
+      return;
+    }
+    heardGain.current = lastGain.serial;
+    if (lastGain.level === undefined) return;
+    void gameAudio()?.event("levelUp");
+    const pick = pending.find(
+      (p) => p.skill === lastGain.skill && p.tier === lastGain.level,
+    );
+    if (pick) setTimeout(() => setSky((open) => open ?? { pick, levelUp: true }), 900);
+  }, [lastGain, pending]);
   const [audioOpen, setAudioOpen] = useState(false);
   const [characterOpen, setCharacterOpen] = useState(false);
   const [portraitOpen, setPortraitOpen] = useState(false);
@@ -204,6 +226,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
   const [narratorOpen, setNarratorOpen] = useState(false);
   const [graphicsOpen, setGraphicsOpen] = useState(false);
   const [combatOpen, setCombatOpen] = useState(false);
+  const [skillTestOpen, setSkillTestOpen] = useState(false);
   const [liveGraphics, setLiveGraphics] = useState<LiveGraphicsSettings>(
     () => ({
       ...defaultLiveGraphicsSettings,
@@ -801,6 +824,13 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
               onClose={() => setCombatOpen(false)}
             />
           )}
+          {skillTestOpen && (
+            <SkillTestPanel
+              engine={runtime.engine}
+              onChange={() => runtime.emit()}
+              onClose={() => setSkillTestOpen(false)}
+            />
+          )}
           <Vitals
             health={p.health ?? 100}
             injury={p.injury}
@@ -808,8 +838,19 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
           />
           <SkillToast
             gains={runtime.engine.skillGains}
-            onOpen={() => setSideTab("skills")}
+            onOpen={() => setSky({})}
           />
+          {sky && (
+            <SkillSky
+              skills={runtime.engine.skills()}
+              known={known}
+              pending={pending}
+              who={{ name: runtime.engine.state.player.name, role: runtime.engine.state.player.role }}
+              start={sky}
+              onLearn={(technique) => runtime.command({ type: "learn", technique })}
+              onClose={() => setSky(undefined)}
+            />
+          )}
           <CollapseNotice collapse={runtime.engine.lastCollapse} />
           <BagFlights
             inventory={p.inventory}
@@ -1359,7 +1400,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
                     [
                       ["around", "Nearby"],
                       ["inventory", "Inventory"],
-                      ["skills", "Skills"],
+                      ["skills", pending.length ? "Skills •" : "Skills"],
                       ["today", "Today"],
                     ] as const
                   ).map(([id, label]) => (
@@ -1433,7 +1474,12 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
                   </div>
                 )}
                 {sideTab === "skills" && (
-                  <SkillsPanel skills={runtime.engine.skills()} />
+                  <SkillsPanel
+                    skills={runtime.engine.skills()}
+                    known={known}
+                    pending={pending}
+                    onOpen={(skill) => setSky({ skill })}
+                  />
                 )}
                 {sideTab === "today" && (
                   <div className="event-log">
@@ -1874,6 +1920,16 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
                     }}
                   >
                     Combat test · summon animals, pick a weapon
+                    <small>Opens a panel over the world you are in</small>
+                  </button>
+                  <button
+                    className="action settings-featured"
+                    onClick={() => {
+                      setModal(null);
+                      setSkillTestOpen(true);
+                    }}
+                  >
+                    Skill test · set levels, learn techniques
                     <small>Opens a panel over the world you are in</small>
                   </button>
                   <a

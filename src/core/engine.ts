@@ -113,6 +113,7 @@ import { faunaCombat, faunaProfile } from "../content/fauna";
 import { propSprite } from "../content/props/place";
 import {
   levelOf,
+  marksmanReach,
   PER_LEVEL,
   SKILLS,
   rankOf,
@@ -120,6 +121,7 @@ import {
   type SkillGain,
   type SkillId,
 } from "./skills";
+import { pendingPicks, technique, type TechniqueId } from "./techniques";
 import { faunaBlockOf, habitatScorer } from "../world/v3/fauna";
 import { herdNoun } from "../content/fauna/herding";
 import { crops, pickable } from "../content/agriculture/crops";
@@ -827,7 +829,9 @@ export class Engine {
     this.tilesChanged();
     // A practised hand gets more off the same plant.
     const extra =
-      this.rng("harvest") < this.skillLevel("farming") * PER_LEVEL.harvestExtra
+      this.rng("harvest") <
+      this.skillLevel("farming") * PER_LEVEL.harvestExtra +
+        (this.knows("good-seed") ? 0.25 : 0)
         ? 1
         : 0;
     const taken = 1 + extra;
@@ -1332,20 +1336,39 @@ export class Engine {
   /** Clock until which a fight is on. The runtime keeps the world ticking
    * through it instead of letting an idle player freeze the animals. */
   combatUntil = 0;
+  private rangeBonus() {
+    const strength = statsOf(this.state.manifest.seed, this.state.player).strength;
+    return (
+      (strength >= 70 ? 2 : strength >= 45 ? 1 : 0) +
+      marksmanReach(this.skillLevel("marksmanship")) +
+      (this.knows("long-arm") ? 1 : 0)
+    );
+  }
+  bowRange() {
+    return (this.state.player.heldItem === "sling" ? 8 : 10) + this.rangeBonus();
+  }
+  /** What a bow or sling in hand would loose next. */
+  ammo() {
+    const p = this.state.player;
+    if (p.heldItem === "bow") return p.inventory.arrow ? "arrow" : undefined;
+    if (p.heldItem === "sling")
+      return ["pebble", "river-rock", "flint", "obsidian"].find((i) => p.inventory[i]);
+  }
   /** What is in the hand, as something to throw. */
   missile() {
     const held = heldObject(this.state);
-    return missileOf({
+    const missile = missileOf({
       prop: held?.prop,
       item: held ? undefined : this.state.player.heldItem,
       mass: propDefs[held?.prop ?? ""]?.shove?.mass,
     });
+    return { ...missile, range: missile.range + this.rangeBonus() };
   }
   /** The cells a throw crosses, ending where it comes down: short of a wall,
    * or on the first animal in the way. The renderer aims with this too. */
   throwPath(dx: number, dy: number, reach?: number, run?: boolean) {
     const p = this.state.player.pos;
-    const most = Math.min(reach ?? (run ? 6 : 3), this.missile().range);
+    const most = Math.min(reach ?? (run ? 6 : 3) + this.rangeBonus(), this.missile().range);
     return this.projectilePath({ x: p.x + dx * most, y: p.y + dy * most }, most);
   }
   projectilePath(target: Point, range: number) {
@@ -1428,7 +1451,7 @@ export class Engine {
     ensureVitals(seed, g);
     const combat = faunaCombat(profile);
     const strength = statsOf(seed, this.state.player).strength;
-    const crit = this.rng("combat-crit") < 0.1;
+    const crit = this.rng("combat-crit") < (this.knows("clean-kill") ? 0.2 : 0.1);
     let damage = Math.max(
       1,
       Math.round(
@@ -1439,6 +1462,7 @@ export class Engine {
           (crit ? 2 : 1) *
           (braced ? weapon.brace! : 1) *
           (1 + this.skillLevel("hunting") * PER_LEVEL.huntingDamage) *
+          (combat.mass >= 2 && this.knows("big-game") ? 1.33 : 1) *
           (this.injured() ? 0.7 : 1),
       ),
     );
@@ -1530,7 +1554,7 @@ export class Engine {
         const count = Math.max(
           1,
           Math.round(n * TIERS[m.tier ?? "ordinary"].yield),
-        );
+        ) + (this.knows("butcher") ? 1 : 0);
         if (!def) continue;
         p.inventory[item] = (p.inventory[item] ?? 0) + count;
         hit.drops.push({ item, count, sprite: def.sprite });
@@ -1578,6 +1602,13 @@ export class Engine {
   skillLevel(skill: SkillId) {
     return levelOf(this.skills()[skill]);
   }
+  knows(id: TechniqueId) {
+    return !!this.state.player.techniques?.includes(id);
+  }
+  /** Milestones reached with a technique still to choose. */
+  pendingPicks() {
+    return pendingPicks(this.skills(), this.state.player.techniques ?? []);
+  }
   /** Experience for work done. The attribute behind a skill makes it come a
    * little easier or harder: 0.8 to 1.2 across the range. */
   grantXp(skill: SkillId, amount: number) {
@@ -1610,8 +1641,11 @@ export class Engine {
   }
   /** A practised hand sometimes gets two blows' work out of one. */
   private deft(skill: SkillId) {
+    const twice =
+      (skill === "woodcraft" && this.knows("clean-cut")) ||
+      (skill === "stonework" && this.knows("heavy-hand"));
     return this.rng(`deft-${skill}`) <
-      this.skillLevel(skill) * PER_LEVEL.deftBlow
+      this.skillLevel(skill) * PER_LEVEL.deftBlow * (twice ? 2 : 1)
       ? 1
       : 0;
   }
@@ -1629,7 +1663,12 @@ export class Engine {
   private noise() {
     const since = this.state.clock - this.lastStep.clock;
     const gait = since > 4 ? 0.55 : this.lastStep.run ? 1.3 : 0.8;
-    return gait * (1 - this.skillLevel("hunting") * PER_LEVEL.huntingQuiet);
+    return (
+      gait *
+      (1 - this.skillLevel("hunting") * PER_LEVEL.huntingQuiet) *
+      (this.knows("stalker") ? 0.7 : 1) *
+      (this.knows("calm-hand") && !this.lastStep.run ? 0.8 : 1)
+    );
   }
   private lastStep = { clock: -99, run: false };
   private lastJump = -99;
@@ -1688,6 +1727,9 @@ export class Engine {
         break;
       p.pos = next;
     }
+    damage *=
+      (1 - this.skillLevel("animals") * 0.02) *
+      (this.knows("steady-nerve") ? 0.75 : 1);
     p.health = Math.max(0, (p.health ?? 100) - damage);
     this.signal({
       kind: "mauled",
@@ -1823,6 +1865,7 @@ export class Engine {
     /** A spear: point first, no tumbling. */
     straight?: boolean;
     arrow?: boolean;
+    sling?: boolean;
   };
   /** The last animal walked into, for the hop it makes out of the way.
    * `yielded` is false when it stood its ground. */
@@ -2389,7 +2432,7 @@ export class Engine {
     if (action === "mine") return this.usePick(plant, edit, at);
     const work = axeWork(plant?.sprite);
     if (work === "buck") {
-      const wood = edit.wood ?? 1;
+      const wood = (edit.wood ?? 1) + (this.knows("timber") ? 1 : 0);
       edit.stage = "stump";
       edit.wood = 0;
       p.inventory.wood = (p.inventory.wood ?? 0) + wood;
@@ -2444,9 +2487,9 @@ export class Engine {
    * takes half as long again and the edge pays for every blow. */
   private splitRock(plant: Decoration | undefined, edit: TileEdit) {
     const p = this.state.player;
-    edit.chops = (edit.chops ?? 0) + 1 + this.deft("quarrying");
+    edit.chops = (edit.chops ?? 0) + 1 + this.deft("stonework");
     this.advance(45);
-    this.grantXp("quarrying", 5);
+    this.grantXp("stonework", 5);
     const axe = heldObject(this.state);
     // The haft survives; the edge does not. A blunted axe still fells trees,
     // so this is a cost the player can feel without losing the tool outright.
@@ -2469,7 +2512,7 @@ export class Engine {
     }
     edit.chops = 0;
     edit.stage = "rubble";
-    this.grantXp("quarrying", 15);
+    this.grantXp("stonework", 15);
     p.inventory.stone = (p.inventory.stone ?? 0) + 2;
     this.tilesChanged();
     this.event(
@@ -2489,14 +2532,14 @@ export class Engine {
       if (this.rng("flint") < 0.3) take("flint", 1);
       this.tilesChanged();
       this.advance(40);
-      this.grantXp("quarrying", 4);
+      this.grantXp("stonework", 4);
       this.event(
         "You clear the broken stone away and pocket what is worth keeping.",
       );
       return;
     }
     const needed = work === "grub" ? STUMP_BLOWS : ROCK_BLOWS;
-    const skill = work === "grub" ? "woodcraft" : "quarrying";
+    const skill = work === "grub" ? "woodcraft" : "stonework";
     edit.chops = (edit.chops ?? 0) + 1 + this.deft(skill);
     this.advance(40);
     this.grantXp(skill, 5);
@@ -2520,12 +2563,12 @@ export class Engine {
     }
     edit.stage = "rubble";
     take("stone", 2);
-    this.grantXp("quarrying", 15);
+    this.grantXp("stonework", 15);
     this.tilesChanged();
     const ore = this.oreAt(at);
     if (ore) {
-      take(ore.item, ore.yield);
-      this.grantXp("quarrying", 10 * ore.yield);
+      take(ore.item, ore.yield + (this.knows("deep-seam") ? 1 : 0));
+      this.grantXp("stonework", 10 * ore.yield);
       this.event(
         `The rock splits along the vein. You pick out ${this.lootName(ore.item, ore.yield)}.`,
       );
@@ -2807,7 +2850,9 @@ export class Engine {
   /** Seconds of field work, less for someone who has done a lot of it. */
   private fieldPace(seconds: number) {
     return Math.round(
-      seconds * (1 - this.skillLevel("farming") * PER_LEVEL.farmingPace),
+      seconds *
+        (1 - this.skillLevel("farming") * PER_LEVEL.farmingPace) *
+        (this.knows("green-thumb") ? 0.67 : 1),
     );
   }
   private plantName(sprite: string | undefined, capital = false) {
@@ -3918,8 +3963,10 @@ export class Engine {
       return this.climbable() ? undefined : "There is nothing here to climb.";
     }
     if (c.type === "shoot") {
-      if (p.heldItem !== "bow") return "Take a bow in hand first.";
-      if (!(p.inventory.arrow ?? 0)) return "You have no arrows.";
+      if (p.heldItem !== "bow" && p.heldItem !== "sling")
+        return "Take a bow or a sling in hand first.";
+      if (!this.ammo())
+        return p.heldItem === "bow" ? "You have no arrows." : "You have no stones to sling.";
       if (c.target.x === p.pos.x && c.target.y === p.pos.y)
         return "Aim away from yourself.";
       return undefined;
@@ -4026,6 +4073,12 @@ export class Engine {
     if (c.type === "narrate") return validateIntents(this, c.intents);
     if (c.type === "swing")
       return p.perch ? `Climb down from ${p.perch.label} first.` : undefined;
+    if (c.type === "learn")
+      return this.pendingPicks().some((pick) =>
+        pick.options.includes(c.technique),
+      )
+        ? undefined
+        : "That technique is not yours to choose yet.";
     if (c.type === "hold") {
       const def = this.item(c.item);
       if (!def) return "That is not something you can take in hand.";
@@ -4086,7 +4139,9 @@ export class Engine {
       if (
         give.value *
           c.giveQuantity *
-          (1 + this.skillLevel("trade") * PER_LEVEL.tradeTerms) <
+          (1 +
+            this.skillLevel("trade") * PER_LEVEL.tradeTerms +
+            (this.knows("haggler") ? 0.15 : 0)) <
         take.value * c.takeQuantity
       )
         return "They decline those terms.";
@@ -4493,6 +4548,12 @@ export class Engine {
   }
   execute(c: PlayerCommand) {
     const p = this.state.player;
+    if (c.type === "learn") {
+      (p.techniques ??= []).push(c.technique);
+      const t = technique(c.technique);
+      this.event(`You learn ${t.name}: ${t.does.toLowerCase()}.`);
+      return;
+    }
     if (c.type === "swing") {
       const held = heldObject(this.state);
       const def = propDefs[held?.prop ?? ""];
@@ -4533,11 +4594,24 @@ export class Engine {
           const struck = this.strikeFauna(
             animal.g,
             animal.m,
-            power ? { ...weapon, knock: weapon.knock + 1 } : weapon,
+            {
+              ...weapon,
+              damage:
+                weapon.damage *
+                (1 + this.skillLevel("arms") * PER_LEVEL.armsDamage) *
+                (this.knows("sure-grip") ? 1.2 : 1),
+              knock:
+                weapon.knock +
+                (power ? 1 : 0) +
+                (this.knows("heavy-swing") ? 1 : 0),
+            },
             out,
             (i === 0 || power || weapon.reach ? 1 : 0.6) * force,
           );
-          if (struck) creatures.push(struck);
+          if (struck) {
+            creatures.push(struck);
+            this.grantXp("arms", 4);
+          }
         }
         const kind = reactionFor(found.hit, tool);
         const h: Hit = {
@@ -4632,17 +4706,55 @@ export class Engine {
       p.direction = Math.abs(c.target.y - from.y) > Math.abs(c.target.x - from.x)
         ? dy < 0 ? 0 : 2 : dx > 0 ? 1 : 3;
       p.facing = facingFromStep(dx, dy, p.direction);
-      const path = this.projectilePath(c.target, 10);
+      const path = this.projectilePath(c.target, this.bowRange());
       const to = path.at(-1) ?? from;
       const hit = this.hitClass(to.x, to.y, p.pos.space);
       const found = p.pos.space === "outside" ? this.faunaAt(to.x, to.y) : undefined;
+      const shot = this.ammo()!;
+      if (shot !== "arrow") {
+        // A stone stuns more than it wounds, and lies where it falls.
+        const creature = found && this.strikeFauna(
+          found.g, found.m,
+          {
+            damage: 2 + 4 * (c.power ?? 1) + (this.knows("heavy-draw") ? 2 : 0),
+            knock: 2,
+            stun: this.knows("pinning-shot") ? 16 : 8,
+          },
+          [dx, dy], 1,
+        );
+        if (!--p.inventory[shot]!) delete p.inventory[shot];
+        this.grantXp("marksmanship", creature ? 7 : 1);
+        if (creature)
+          this.state.fauna = this.state.fauna?.filter((g) => g.members.length);
+        const def = this.item(shot)!;
+        const id = `slung-${shot}-${this.state.revision}`;
+        if (path.length && hit.hit !== "water")
+          this.state.objects.push({
+            id, name: def.name, kind: "item", item: shot, sprite: def.sprite,
+            pos: { ...p.pos, x: to.x, y: to.y }, inventory: {},
+          });
+        const kind = creature ? "flinch" : reactionFor(hit.hit, "thrown");
+        this.lastThrow = {
+          from, to, sprite: def.sprite, small: true, sling: true, creature,
+          id: path.length && hit.hit !== "water" ? id : undefined,
+          hit: { at: to, hit: creature ? "creature" : hit.hit, kind, solid: isSolid(kind), damaged: !!creature },
+        };
+        this.event(creature ? "Your stone cracks home." : "You let fly a stone.");
+        this.advance(2);
+        return;
+      }
       const creature = found && this.strikeFauna(
         found.g, found.m,
-        { damage: 3 + 5 * (c.power ?? 1), knock: 1, stun: 4 },
+        {
+          damage: 3 + 5 * (c.power ?? 1) + (this.knows("heavy-draw") ? 3 : 0),
+          knock: 1,
+          stun: this.knows("pinning-shot") ? 8 : 4,
+        },
         [dx, dy], 1,
       );
       p.inventory.arrow!--;
       if (!p.inventory.arrow) delete p.inventory.arrow;
+      this.grantXp("marksmanship", creature ? 7 : 1);
       const spentId = path.length
         ? `spent-arrow-${this.state.revision}` : undefined;
       if (spentId)
@@ -4740,9 +4852,12 @@ export class Engine {
           at.g,
           at.m,
           {
-            damage: missile.damage * (c.run ? 1.3 : 1),
+            damage:
+              missile.damage *
+              (c.run ? 1.3 : 1) *
+              (this.knows("hurler") ? 1.33 : 1),
             knock: 1,
-            stun: missile.stun,
+            stun: missile.stun * (this.knows("pinning-shot") ? 2 : 1),
           },
           [c.dx, c.dy],
           share,
@@ -4776,6 +4891,7 @@ export class Engine {
         if (!p.inventory[item]) delete p.inventory[item];
         p.heldItem = item;
       }
+      if (distance) this.grantXp("marksmanship", struck ? 7 : 1);
       if (struck)
         this.state.fauna = this.state.fauna?.filter((g) => g.members.length);
       if ((item === "spear" || item === "stick" || prop.prop === "spear" || prop.prop === "stick") &&
@@ -4936,9 +5052,18 @@ export class Engine {
       this.lastStep = { clock: this.state.clock, run: !!c.run };
       if (p.pos.space === "outside")
         this.grantXp(
-          depth > 0 ? "watercraft" : "wayfaring",
+          "wayfaring",
           depth > 0 ? 0.6 : 0.15,
         );
+      if (
+        p.pos.space === "outside" &&
+        this.state.fauna?.some(
+          (g) =>
+            g.owner &&
+            Math.max(Math.abs(g.pos.x - p.pos.x), Math.abs(g.pos.y - p.pos.y)) <= 3,
+        )
+      )
+        this.grantXp("animals", 0.4);
       this.populateNearby();
       const rise =
         p.pos.space === "outside" && this.world.elevation
@@ -4959,7 +5084,8 @@ export class Engine {
           (c.run && !depth ? (c.dx && c.dy ? 2 : 1) : c.dx && c.dy ? 3 : 2) *
             (1 +
               ((p.afloat ? p.afloat === "swimming" ? 2.5 : 1.4 : wadingCost(depth)) - 1) *
-                (1 - this.skillLevel("watercraft") * PER_LEVEL.watercraftPace)),
+                (1 - this.skillLevel("wayfaring") * PER_LEVEL.watercraftPace) *
+                  (this.knows("swimmer") ? 0.67 : 1)),
         ) +
           (slope > 1 ? 1 : 0) +
           effort,
@@ -5186,7 +5312,7 @@ export class Engine {
       a.inventory[c.take] = (a.inventory[c.take] ?? 0) - c.takeQuantity;
       p.inventory[c.take] = (p.inventory[c.take] ?? 0) + c.takeQuantity;
       this.advance(60, a.id);
-      this.regard(a, 1);
+      this.regard(a, this.knows("fair-dealer") ? 2 : 1);
       this.grantXp(
         "trade",
         Math.min(40, 5 + this.items[c.take].value * c.takeQuantity),
@@ -5211,10 +5337,13 @@ export class Engine {
           if (a.trust >= 0)
             this.regard(
               a,
-              this.rng("speech") <
-                this.skillLevel("speech") * PER_LEVEL.speechWarmth
+              (this.rng("speech") <
+              this.skillLevel("speech") *
+                PER_LEVEL.speechWarmth *
+                (this.knows("warm-word") ? 2 : 1)
                 ? 2
-                : 1,
+                : 1) +
+                (a.trust === 0 && this.knows("first-impression") ? 1 : 0),
             );
           // Still holding a loss against you: asking again does not help.
           else this.cue(a.id, "anger", p.pos);
@@ -5402,15 +5531,20 @@ export class Engine {
       case "harvest":
         if (o) {
           if (!harvestResource(p, o, this.state.clock)) break;
-          this.advance(180);
+          this.advance(this.knows("quick-picker") ? 90 : 180);
           if (o.resource || o.kind === "tree") {
-            if (
-              o.resource &&
-              this.rng("forage") <
-                this.skillLevel("foraging") * PER_LEVEL.foragingExtra
-            )
+            if (o.resource) {
+              const extra =
+                (this.knows("gentle-hands") ? 1 : 0) +
+                (this.rng("forage") <
+                this.skillLevel("foraging") *
+                  PER_LEVEL.foragingExtra *
+                  (this.knows("second-helping") ? 2 : 1)
+                  ? 1
+                  : 0);
               p.inventory[o.resource.item] =
-                (p.inventory[o.resource.item] ?? 0) + 1;
+                (p.inventory[o.resource.item] ?? 0) + extra;
+            }
             this.grantXp("foraging", o.resource ? 12 : 6);
           } else this.grantXp("farming", 10);
           this.event(
@@ -5990,7 +6124,8 @@ export class Engine {
               : (2400 / (player.injury ? 1.5 : 1)) *
                 (1 +
                   levelOf(player.skills?.wayfaring) *
-                    PER_LEVEL.wayfaringStamina)),
+                    PER_LEVEL.wayfaringStamina) *
+                (this.knows("long-stride") ? 1.25 : 1)),
       );
       if (next % 6 !== 0) continue;
       this.burnStep();

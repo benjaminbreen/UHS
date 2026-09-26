@@ -1460,7 +1460,8 @@ export class Runtime {
     }
     if (verb.kind === "shoot") {
       const at = this.engine.facingCell(), p = this.engine.state.player.pos;
-      this.shootBow({ x: p.x + (at.x - p.x) * 6, y: p.y + (at.y - p.y) * 6 });
+      const range = this.engine.bowRange();
+      this.shootBow({ x: p.x + (at.x - p.x) * range, y: p.y + (at.y - p.y) * range });
       return verb;
     }
     if (verb.command) {
@@ -1498,7 +1499,7 @@ export class Runtime {
   beginCharge() {
     if (this.replay) return;
     this.chargeSwung = false;
-    const quick = this.engine.skillLevel("hunting") >= 5 ? 0.75 : 1;
+    const quick = this.engine.knows("quick-windup") ? 0.75 : 1;
     this.charge = {
       at: performance.now(),
       half: 550 * quick,

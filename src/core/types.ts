@@ -173,6 +173,8 @@ export type Actor = {
   health?: number;
   /** Experience by skill. The player's only; residents have none stored. */
   skills?: import("./skills").Skills;
+  /** Techniques chosen at skill milestones. */
+  techniques?: import("./techniques").TechniqueId[];
   /** A hurt that outlasts the fight: weaker blows and quicker tiring until
    * the clock passes `until`. */
   injury?: { name: string; until: number };
@@ -402,6 +404,7 @@ export type PlayerCommand =
   /** A swing of whatever is in hand, at whatever the arc finds. Takes no
    * target: the cone in front of the player is the target. */
   | { type: "swing"; power?: 1 | 2 }
+  | { type: "learn"; technique: import("./techniques").TechniqueId }
   | { type: "wait"; seconds: number }
   /** Time passing while the player stands still. Logged so a replay keeps the
    * same clock, but it raises no event of its own. */

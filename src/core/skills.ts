@@ -5,22 +5,28 @@ export const skillIds = [
   "hunting",
   "foraging",
   "farming",
+  "animals",
+  "marksmanship",
+  "arms",
   "woodcraft",
-  "quarrying",
+  "stonework",
+  "crafting",
   "speech",
   "trade",
   "wayfaring",
-  "watercraft",
 ] as const;
 export type SkillId = (typeof skillIds)[number];
 /** Experience per skill. Levels are derived, never stored. */
 export type Skills = Partial<Record<SkillId, number>>;
 
 export const MAX_LEVEL = 10;
+export const GROUPS = ["Land", "Combat", "Craft", "People", "Road"] as const;
 
 export type SkillDef = {
   name: string;
-  group: "Land" | "Craft" | "People" | "Road";
+  group: (typeof GROUPS)[number];
+  /** Nothing earns it yet, so the panel leaves it out. */
+  hidden?: boolean;
   /** What earns it, for the panel. */
   earned: string;
   /** What a level is worth, for the panel. */
@@ -30,6 +36,9 @@ export type SkillDef = {
   /** Words in an occupation that mean the person already knows the work. */
   trades: RegExp;
 };
+
+/** Range a marksman gains by level alone, before any technique. */
+export const marksmanReach = (level: number) => (level >= 6 ? 2 : level >= 3 ? 1 : 0);
 
 const pct = (n: number) => `${Math.round(n * 100)}%`;
 
@@ -46,6 +55,7 @@ export const PER_LEVEL = {
   tradeTerms: 0.03,
   wayfaringStamina: 0.03,
   watercraftPace: 0.05,
+  armsDamage: 0.03,
 };
 
 export const SKILLS: Record<SkillId, SkillDef> = {
@@ -54,7 +64,7 @@ export const SKILLS: Record<SkillId, SkillDef> = {
     group: "Land",
     earned: "Blows landed on game, and kills",
     perk: (l) =>
-      `${pct(l * PER_LEVEL.huntingDamage)} harder blows; game notices you ${pct(l * PER_LEVEL.huntingQuiet)} later${l >= 5 ? "; a quicker wind-up" : ""}`,
+      `${pct(l * PER_LEVEL.huntingDamage)} harder blows; game notices you ${pct(l * PER_LEVEL.huntingQuiet)} later`,
     stat: "agility",
     trades: /hunt|trapp|fowler|falcon|forester|warrior|soldier|archer/i,
   },
@@ -76,6 +86,30 @@ export const SKILLS: Record<SkillId, SkillDef> = {
     stat: "endurance",
     trades: /farm|peasant|plough|reap|cultivat|tenant|serf|gardener|planter/i,
   },
+  animals: {
+    name: "Animal Handling",
+    group: "Land",
+    earned: "Time spent among herds and flocks",
+    perk: (l) => `Animals charging you strike ${pct(l * 0.02)} softer`,
+    stat: "agreeableness",
+    trades: /herd|shepherd|goat|swine|cowherd|groom|stable|drover|falcon|keeper/i,
+  },
+  marksmanship: {
+    name: "Marksmanship",
+    group: "Combat",
+    earned: "Shots and throws, and more for a hit",
+    perk: (l) => `+${marksmanReach(l)} range for shots and throws`,
+    stat: "agility",
+    trades: /archer|slinger|hunt|fowler|bowman|marksman/i,
+  },
+  arms: {
+    name: "Arms",
+    group: "Combat",
+    earned: "Blows landed with a weapon or tool",
+    perk: (l) => `${pct(l * PER_LEVEL.armsDamage)} harder blows`,
+    stat: "strength",
+    trades: /warrior|soldier|guard|spear|sword|legion|knight|militia/i,
+  },
   woodcraft: {
     name: "Woodcraft",
     group: "Craft",
@@ -84,13 +118,22 @@ export const SKILLS: Record<SkillId, SkillDef> = {
     stat: "strength",
     trades: /wood|carpent|charcoal|sawyer|joiner|cooper|wright|lumber/i,
   },
-  quarrying: {
-    name: "Quarrying",
+  stonework: {
+    name: "Stonework",
     group: "Craft",
     earned: "Breaking rock and clearing rubble",
     perk: (l) => `${pct(l * PER_LEVEL.deftBlow)} of pick blows count twice`,
     stat: "strength",
     trades: /mason|quarr|miner|stone|flint|knapp|navvy|brick/i,
+  },
+  crafting: {
+    name: "Crafting",
+    group: "Craft",
+    hidden: true,
+    earned: "Making things",
+    perk: () => "Nothing yet",
+    stat: "wit",
+    trades: /smith|potter|weaver|cook|baker|brewer|tanner|carpenter|apothecar/i,
   },
   speech: {
     name: "Speech",
@@ -114,24 +157,18 @@ export const SKILLS: Record<SkillId, SkillDef> = {
   wayfaring: {
     name: "Wayfaring",
     group: "Road",
-    earned: "Ground covered on foot, and new country reached",
-    perk: (l) => `You tire ${pct(l * PER_LEVEL.wayfaringStamina)} more slowly`,
+    earned: "Ground covered on foot or in water, and new country reached",
+    perk: (l) =>
+      `You tire ${pct(l * PER_LEVEL.wayfaringStamina)} more slowly; water slows you ${pct(l * PER_LEVEL.watercraftPace)} less`,
     stat: "endurance",
     trades:
-      /drover|herd|shepherd|carrier|porter|messenger|pilgrim|nomad|courier|carter|muleteer/i,
-  },
-  watercraft: {
-    name: "Watercraft",
-    group: "Road",
-    earned: "Fords, shallows and open water",
-    perk: (l) => `Water slows you ${pct(l * PER_LEVEL.watercraftPace)} less`,
-    stat: "agility",
-    trades: /sailor|fisher|boat|ferry|mariner|raft|diver|whaler|sealer/i,
+      /carrier|porter|messenger|pilgrim|nomad|courier|carter|muleteer|sailor|fisher|boat|ferry|mariner|raft|diver/i,
   },
 };
 
 /** Total experience needed to stand at a level. */
-export const xpFor = (level: number) => Math.round(50 * level ** 1.8);
+// Flat enough that the first technique comes within minutes of play.
+export const xpFor = (level: number) => Math.round(30 * level ** 1.4);
 
 export function levelOf(xp = 0) {
   let level = 0;

@@ -10,6 +10,7 @@ import {
 } from "../src/core/skills";
 import type { Engine } from "../src/core/engine";
 import type { FaunaTier } from "../src/core/combat";
+import { statsOf } from "../src/core/stats";
 
 function field(seed: string) {
   const engine = createSession("roman", seed);
@@ -70,7 +71,7 @@ it("a kill teaches hunting, and says so when a level comes", () => {
   g.members[0].hp = 1;
   engine.execute({ type: "swing" });
   expect(engine.skillLevel("hunting")).toBe(1);
-  expect(engine.skillGains.at(-1)?.level).toBe(1);
+  expect(engine.skillGains.filter((g) => g.skill === "hunting").at(-1)?.level).toBe(1);
   expect(
     snapshotSchema.safeParse(JSON.parse(JSON.stringify(engine.state))).success,
   ).toBe(true);
@@ -211,10 +212,56 @@ it("a spear carries further than a crate", () => {
   expect(engine.throwPath(1, 0, 9).length).toBeLessThan(9);
 });
 
+it("strength extends thrown and shot range without shortening the old minimum", () => {
+  const engine = field("strength-range");
+  const stats = statsOf(engine.state.manifest.seed, engine.state.player);
+  engine.devArm("spear");
+  for (const [strength, bonus] of [[20, 0], [55, 1], [80, 2]]) {
+    engine.state.player.stats = { ...stats, strength };
+    expect(engine.missile().range).toBe(9 + bonus);
+    expect(engine.throwPath(1, 0)).toHaveLength(3 + bonus);
+    expect(engine.throwPath(1, 0, undefined, true)).toHaveLength(6 + bonus);
+    expect(engine.bowRange()).toBe(10 + bonus);
+  }
+  engine.devArm();
+  engine.state.player.heldItem = "bow";
+  engine.state.player.inventory.arrow = 1;
+  engine.execute({ type: "shoot", target: { x: 20, y: 0 } });
+  expect(engine.lastThrow?.to).toEqual({ x: 12, y: 0 });
+});
+
 it("holds the first swing back when there is nothing to hit", () => {
   const engine = field("skills-press");
   engine.devArm("stick");
   expect(engine.swingFinds()).toBe(false);
   quarry(engine, "sheep", { x: 0, y: 1 });
   expect(engine.swingFinds()).toBe(true);
+});
+
+it("offers a technique at level 2, and only a real choice", () => {
+  const engine = field("skills-technique");
+  engine.state.player.skills = { foraging: xpFor(2), farming: xpFor(4) };
+  const picks = engine.pendingPicks();
+  expect(picks.map((p) => [p.skill, p.tier])).toEqual([
+    ["foraging", 2],
+    ["farming", 2],
+  ]);
+  expect(engine.validate({ type: "learn", technique: "keen-eye" })).toBeTruthy();
+  engine.execute({ type: "learn", technique: "gentle-hands" });
+  expect(engine.knows("gentle-hands")).toBe(true);
+  expect(engine.pendingPicks().map((p) => p.skill)).toEqual(["farming"]);
+  expect(
+    engine.validate({ type: "learn", technique: "quick-picker" }),
+  ).toBeTruthy();
+  expect(
+    snapshotSchema.safeParse(JSON.parse(JSON.stringify(engine.state))).success,
+  ).toBe(true);
+});
+
+it("long arm adds a tile to every throw and shot", () => {
+  const engine = field("skills-long-arm");
+  engine.devArm("spear");
+  const before = engine.missile().range;
+  engine.state.player.techniques = ["long-arm"];
+  expect(engine.missile().range).toBe(before + 1);
 });

@@ -1,0 +1,683 @@
+/* The skills screen: a pixel sky, with clean glass panels over it in the
+ * game's own type and colours. */
+.vault {
+  --sans: "DM Sans", system-ui, sans-serif;
+  --pixel: "Silkscreen", "Courier New", monospace;
+  --serif: "Baskervville", Georgia, serif;
+  --text: #f0e6cf;
+  --muted: #a7b6cc;
+  --accent: #e8c27e;
+  --line: #d9b47766;
+  --glass: #080b1ad9;
+  --glass-edge: #d9b47799;
+  --halo: #04030c;
+  --tint: var(--accent);
+  --on-accent: #141a2e;
+  /* Stepped corners, the pixel way; a drop-shadow outline follows the steps. */
+  --steps: polygon(0 4px, 2px 4px, 2px 2px, 4px 2px, 4px 0, calc(100% - 4px) 0, calc(100% - 4px) 2px, calc(100% - 2px) 2px, calc(100% - 2px) 4px, 100% 4px, 100% calc(100% - 4px), calc(100% - 2px) calc(100% - 4px), calc(100% - 2px) calc(100% - 2px), calc(100% - 4px) calc(100% - 2px), calc(100% - 4px) 100%, 4px 100%, 4px calc(100% - 2px), 2px calc(100% - 2px), 2px calc(100% - 4px), 0 calc(100% - 4px));
+  --edge: drop-shadow(1px 0 0 var(--glass-edge)) drop-shadow(-1px 0 0 var(--glass-edge)) drop-shadow(0 1px 0 var(--glass-edge)) drop-shadow(0 -1px 0 var(--glass-edge));
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  overflow: hidden;
+  color: var(--text);
+  font: 400 15px/1.4 var(--sans);
+  background: #04030c;
+  -webkit-font-smoothing: antialiased;
+  animation: vault-open 1s ease-out both;
+}
+.vault[data-theme="light"] {
+  --text: #18204a;
+  --muted: #4a5486;
+  --accent: #a8640a;
+  --line: #18204a33;
+  --glass: #f6f5fbe6;
+  --glass-edge: #18204a55;
+  --halo: #e9ecfa;
+  --on-accent: #fffaf0;
+  background: #9fb0e4;
+}
+.vault [data-group="Land"] { --tint: #b8ec8c; }
+.vault [data-group="Combat"] { --tint: #ff9f7e; }
+.vault [data-group="Craft"] { --tint: #ffcb6e; }
+.vault [data-group="People"] { --tint: #ffb0d0; }
+.vault [data-group="Road"] { --tint: #8ff4e6; }
+.vault[data-theme="light"] [data-group="Land"] { --tint: #2f6a1c; }
+.vault[data-theme="light"] [data-group="Combat"] { --tint: #b0381e; }
+.vault[data-theme="light"] [data-group="Craft"] { --tint: #9a5a06; }
+.vault[data-theme="light"] [data-group="People"] { --tint: #95265e; }
+.vault[data-theme="light"] [data-group="Road"] { --tint: #0d6a62; }
+@keyframes vault-open {
+  from { opacity: 0; filter: brightness(2.2) saturate(0.3); }
+  40% { opacity: 1; }
+}
+@keyframes vault-rise {
+  from { opacity: 0; transform: translateY(12px); }
+}
+.vault button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+.vault button:focus-visible { outline: 1px dashed var(--accent); outline-offset: 4px; }
+.vault kbd {
+  display: inline-block;
+  min-width: 18px;
+  padding: 0 4px;
+  font: 9px/16px var(--pixel);
+  text-align: center;
+  color: var(--text);
+  border: 1px solid color-mix(in srgb, var(--text) 35%, transparent);
+  border-bottom-width: 2px;
+  border-radius: 2px;
+}
+/* Small pixel labels: the game's own voice for anything that is a tag. */
+.vault-tag {
+  font: 9px var(--pixel);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.vault-canvas { position: absolute; inset: 0; }
+.vault-canvas canvas { display: block; image-rendering: pixelated; }
+.vault-grain {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 42%, transparent 55%, #02010899 100%);
+}
+.vault[data-theme="light"] .vault-grain { background: radial-gradient(ellipse at 50% 42%, transparent 60%, #2a2f6a33 100%); }
+
+.vault-head {
+  position: absolute;
+  top: 26px;
+  left: 32px;
+  pointer-events: none;
+  text-shadow: 0 0 12px var(--halo);
+  animation: vault-rise 0.9s 0.25s cubic-bezier(0.2, 1, 0.3, 1) both;
+  transition: opacity 0.4s;
+}
+.vault-head small { font: 9px var(--pixel); letter-spacing: 0.2em; text-transform: uppercase; color: var(--accent); }
+.vault-head h1 { margin: 4px 0 0; font: 400 38px/1 var(--serif); }
+.vault-head p { margin: 8px 0 0; font-size: 14px; color: var(--muted); }
+.vault-head p span { margin: 0 4px; color: var(--accent); }
+.vault-theme,
+.vault-close {
+  position: absolute;
+  top: 24px;
+  display: grid;
+  place-items: center;
+  height: 34px;
+  color: var(--muted) !important;
+  transition: color 0.2s, transform 0.2s;
+}
+.vault-theme:hover, .vault-close:hover { color: var(--text) !important; }
+.vault-close { right: 24px; grid-auto-flow: column; gap: 8px; font-size: 17px !important; }
+.vault-theme { right: 104px; width: 34px; }
+/* A crescent that turns into a sun. */
+.vault-theme i {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  box-shadow: inset -5px -3px 0 0 currentColor;
+  transform: rotate(-20deg);
+  transition: box-shadow 0.5s, transform 0.6s cubic-bezier(0.3, 1.5, 0.5, 1), background 0.5s, width 0.4s, height 0.4s;
+}
+.vault-theme i[data-sun] {
+  width: 10px;
+  height: 10px;
+  background: currentColor;
+  box-shadow: 0 -9px 0 -3px currentColor, 0 9px 0 -3px currentColor, 9px 0 0 -3px currentColor, -9px 0 0 -3px currentColor, 6px 6px 0 -3px currentColor, -6px -6px 0 -3px currentColor, 6px -6px 0 -3px currentColor, -6px 6px 0 -3px currentColor;
+  transform: rotate(180deg);
+}
+.vault-awaits {
+  position: absolute;
+  top: 28px;
+  left: 50%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 16px;
+  font: 10px var(--pixel) !important;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--on-accent) !important;
+  background: var(--accent) !important;
+  clip-path: var(--steps);
+  transform: translateX(-50%);
+  animation: vault-rise 0.8s 1.2s cubic-bezier(0.2, 1.4, 0.4, 1) both, vault-beckon 2.4s 2s ease-in-out infinite;
+}
+.vault-awaits i { width: 7px; height: 7px; background: currentColor; transform: rotate(45deg); }
+@keyframes vault-beckon {
+  50% { filter: brightness(1.15); transform: translateX(-50%) translateY(-2px); }
+}
+
+/* Names under each constellation, with a Skyrim-style bar for the level. */
+.vault-labels { position: absolute; inset: 0; pointer-events: none; }
+.vault-label {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 190px;
+  margin-left: -95px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  text-align: center;
+  pointer-events: auto;
+  transition: opacity 0.5s;
+  outline: none !important;
+}
+.vault-hit {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  width: var(--hit, 120px);
+  height: var(--hit, 120px);
+  transform: translateX(-50%);
+  border-radius: 50%;
+}
+.vault-label small {
+  font: 8px var(--pixel);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--tint);
+  opacity: 0.8;
+  text-shadow: 0 0 6px var(--halo);
+}
+.vault-label strong {
+  font: 600 13px/1.2 var(--sans);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text);
+  text-shadow: 0 1px 0 var(--halo), 0 0 10px var(--halo), 0 0 4px var(--halo);
+  transition: letter-spacing 0.4s cubic-bezier(0.2, 1, 0.3, 1);
+}
+.vault-label strong b { margin-left: 6px; font-weight: 500; color: var(--accent); letter-spacing: 0; }
+.vault-label-bar {
+  position: relative;
+  width: 72px;
+  height: 2px;
+  background: color-mix(in srgb, var(--text) 20%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--halo) 60%, transparent);
+}
+.vault-label-bar::before,
+.vault-label-bar::after {
+  content: "";
+  position: absolute;
+  top: -2px;
+  width: 4px;
+  height: 4px;
+  background: color-mix(in srgb, var(--text) 45%, transparent);
+  transform: rotate(45deg);
+}
+.vault-label-bar::before { left: -6px; }
+.vault-label-bar::after { right: -6px; }
+.vault-label-bar i { position: absolute; inset: 0 auto 0 0; background: var(--tint); box-shadow: 0 0 6px var(--tint); }
+.vault-label em {
+  margin-top: 2px;
+  font: normal 8px var(--pixel);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+  text-shadow: 0 0 8px var(--halo);
+  animation: vault-pulse-text 1.6s ease-in-out infinite;
+}
+@keyframes vault-pulse-text { 50% { opacity: 0.45; } }
+.vault-label[data-untried] { opacity: 0.55; }
+.vault-label[data-selected] { opacity: 1; }
+.vault-label[data-selected] strong { letter-spacing: 0.24em; }
+.vault-label[data-selected] .vault-label-bar { width: 96px; transition: width 0.4s cubic-bezier(0.2, 1, 0.3, 1); }
+.vault-label:focus-visible strong { text-decoration: underline 1px var(--accent); text-underline-offset: 5px; }
+.vault:not([data-mode="sky"]) .vault-label { opacity: 0; pointer-events: none; }
+/* Up close, the one constellation's name is written large across the sky. */
+.vault[data-mode="skill"] .vault-label[data-focus] { opacity: 1; pointer-events: none; }
+.vault[data-mode="skill"] .vault-label[data-focus] small {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  white-space: nowrap;
+  font-size: 14px;
+  letter-spacing: 0.3em;
+  opacity: 0.9;
+  animation: vault-rise 1s 0.3s ease-out both;
+}
+.vault[data-mode="skill"] .vault-label[data-focus] small::before,
+.vault[data-mode="skill"] .vault-label[data-focus] small::after {
+  content: "";
+  width: 40px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, currentColor);
+}
+.vault[data-mode="skill"] .vault-label[data-focus] small::after { background: linear-gradient(270deg, transparent, currentColor); }
+.vault[data-mode="skill"] .vault-label[data-focus] > :not(small, .vault-hit) { display: none; }
+
+.vault-hints {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 14px;
+  font-size: 13px;
+  color: var(--muted);
+  white-space: nowrap;
+  background: var(--glass);
+  clip-path: var(--steps);
+  animation: vault-rise 0.8s 1.6s ease-out both;
+}
+
+/* The panel beside a constellation. */
+.vault-page {
+  position: absolute;
+  top: 50%;
+  right: max(30px, 4vw);
+  width: min(420px, 40vw);
+  max-height: calc(100% - 120px);
+  display: flex;
+  transform: translateY(-50%);
+  filter: var(--edge) drop-shadow(0 18px 30px #0008);
+  animation: vault-page-in 0.7s 0.15s cubic-bezier(0.2, 1, 0.3, 1) both;
+}
+@keyframes vault-page-in {
+  from { opacity: 0; transform: translate(40px, -50%); }
+}
+.vault-panel {
+  flex: 1;
+  overflow-y: auto;
+  padding: 18px 24px 22px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--glass) 96%, #fff 4%), var(--glass));
+  clip-path: var(--steps);
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
+}
+.vault-panel > * { animation: vault-ink 0.6s calc(0.2s + var(--i, 0) * 60ms) ease-out both; }
+@keyframes vault-ink {
+  from { opacity: 0; transform: translateY(6px); }
+}
+.vault-page-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+  font: 9px var(--pixel);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.vault-page-nav > button:hover { color: var(--text); }
+.vault-page-nav span { display: flex; gap: 4px; }
+.vault-page-nav span button {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 24px;
+  font: 500 15px/1 var(--sans);
+  border: 1px solid var(--line) !important;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.vault-page-nav span button:hover { color: var(--text); border-color: var(--accent) !important; }
+.vault-page header { display: flex; align-items: flex-end; gap: 12px; }
+.vault-page header > div { flex: 1; min-width: 0; }
+.vault-page header small { font: 9px var(--pixel); letter-spacing: 0.16em; text-transform: uppercase; color: var(--tint); }
+.vault-page h2 {
+  margin: 6px 0 0;
+  font: 300 34px/1 var(--sans);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.vault-rank { margin: 6px 0 0; font-size: 14px; color: var(--muted); }
+.vault-level {
+  font: 200 58px/0.85 var(--sans);
+  color: var(--accent);
+  text-shadow: 0 0 20px color-mix(in srgb, var(--accent) 40%, transparent);
+}
+.vault-progress { margin: 16px 0 14px; }
+.vault-bar {
+  position: relative;
+  display: block;
+  height: 4px;
+  background: color-mix(in srgb, var(--text) 14%, transparent);
+}
+.vault-bar i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--tint) 60%, transparent), var(--tint));
+  box-shadow: 0 0 10px color-mix(in srgb, var(--tint) 70%, transparent);
+  transition: width 0.8s ease-out;
+}
+.vault-bar b {
+  position: absolute;
+  top: -3px;
+  width: 10px;
+  height: 10px;
+  margin-left: -5px;
+  background: var(--glass);
+  border: 1px solid color-mix(in srgb, var(--text) 45%, transparent);
+  transform: rotate(45deg);
+}
+.vault-bar b[data-past] { background: var(--accent); border-color: var(--accent); box-shadow: 0 0 8px var(--accent); }
+.vault-progress small { display: block; margin-top: 9px; font: 8px var(--pixel); letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.vault-about { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+.vault-about p { margin: 0; font-size: 14px; font-style: italic; color: var(--muted); }
+.vault-chart { flex: none; width: 64px; height: 64px; overflow: visible; }
+.vault-chart > circle:first-child { fill: none; stroke: var(--line); stroke-width: 1.5; stroke-dasharray: 2 4; }
+.vault-chart line { stroke: var(--text); stroke-width: 1.8; stroke-dasharray: 2 4; opacity: 0.35; stroke-linecap: round; }
+.vault-chart line[data-lit] { stroke: var(--tint); stroke-dasharray: none; stroke-width: 2.4; opacity: 1; }
+.vault-chart circle[cx] { fill: var(--glass); stroke: var(--text); stroke-width: 2; opacity: 0.7; }
+.vault-chart circle[data-lit] { fill: var(--text); opacity: 1; }
+.vault-chart circle[data-milestone] { stroke: var(--accent); }
+.vault-chart circle[data-milestone][data-lit] { fill: var(--accent); }
+.vault-page dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 14px;
+  margin: 0 0 16px;
+  padding: 12px 0;
+  font-size: 14px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.vault-page dt { font: 8px/18px var(--pixel); letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.vault-page dd { margin: 0; }
+.vault-tiers { position: relative; margin: 0; padding: 0 0 0 22px; list-style: none; }
+.vault-tiers::before {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 8px;
+  bottom: 30px;
+  width: 1px;
+  background: var(--line);
+}
+.vault-tiers li { position: relative; margin-bottom: 14px; }
+.vault-tiers h4 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 7px;
+  font: 9px var(--pixel);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.vault-tiers h4 small { margin-left: auto; font: 8px var(--pixel); letter-spacing: 0.12em; color: var(--muted); }
+.vault-tiers h4 i {
+  position: absolute;
+  left: -21px;
+  top: 1px;
+  width: 9px;
+  height: 9px;
+  background: var(--glass);
+  border: 1px solid color-mix(in srgb, var(--text) 45%, transparent);
+  transform: rotate(45deg);
+}
+.vault-tiers li[data-state="chosen"] h4 i { background: var(--accent); border-color: var(--accent); }
+.vault-tiers li[data-state="chosen"] h4 small { color: var(--accent); }
+.vault-tiers li[data-state="waiting"] h4 i { background: var(--accent); border-color: var(--accent); animation: vault-glow 1.4s ease-in-out infinite; }
+.vault-tiers li[data-state="waiting"] h4 small { color: var(--accent); }
+@keyframes vault-glow { 50% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 30%, transparent); } }
+.vault-tablets { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.vault-tablet {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 9px 10px 10px;
+  font-size: 13px;
+  line-height: 1.3;
+  background: color-mix(in srgb, var(--text) 4%, transparent);
+  border: 1px solid color-mix(in srgb, var(--text) 14%, transparent);
+}
+.vault-tablet strong { font: 600 12px var(--sans); letter-spacing: 0.1em; text-transform: uppercase; }
+.vault-tablet span { color: var(--muted); }
+.vault-tablet[data-chosen] {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  border-color: var(--accent);
+  box-shadow: inset 0 0 14px color-mix(in srgb, var(--accent) 12%, transparent);
+}
+.vault-tablet[data-chosen] strong { color: var(--accent); }
+.vault-tablet[data-chosen] strong::before { content: "◆ "; font-size: 9px; vertical-align: 1px; }
+.vault-tablet[data-passed] { opacity: 0.35; }
+.vault-tablet[data-passed] strong { text-decoration: line-through 1px; }
+.vault-tablet[data-unbuilt] { opacity: 0.45; border-style: dashed; }
+.vault-tablet[data-unbuilt] span { font-style: italic; }
+.vault-tiers li[data-state="waiting"] .vault-tablet { border-color: color-mix(in srgb, var(--accent) 60%, transparent); }
+.vault-choose-here {
+  margin-top: 8px;
+  width: 100%;
+  padding: 10px 12px;
+  font: 600 12px var(--sans) !important;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--on-accent) !important;
+  background: var(--accent) !important;
+  clip-path: var(--steps);
+  transition: filter 0.15s, transform 0.15s;
+}
+.vault-choose-here:hover { filter: brightness(1.12); transform: translateY(-1px); }
+
+/* The choice. */
+.vault-choose { position: absolute; inset: 0; pointer-events: none; }
+.vault-choose > * { pointer-events: auto; }
+.vault-choose header {
+  position: absolute;
+  top: 26px;
+  left: 50%;
+  width: min(640px, 90%);
+  text-align: center;
+  transform: translateX(-50%);
+  pointer-events: none;
+  text-shadow: 0 0 16px var(--halo), 0 1px 0 var(--halo);
+}
+.vault-rises {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  font: 11px var(--pixel);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent);
+  animation: vault-rise 1s 0.2s ease-out both;
+}
+.vault-rises::before, .vault-rises::after { content: ""; width: 6px; height: 6px; background: currentColor; transform: rotate(45deg); }
+.vault-choose header small { display: block; font: 9px var(--pixel); letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); }
+.vault-choose h2 { margin: 8px 0 0; font: 300 34px/1.1 var(--sans); letter-spacing: 0.16em; text-transform: uppercase; }
+.vault-choose header p { margin: 8px 0 0; font-size: 14px; color: var(--muted); }
+.vault-choose header small, .vault-choose h2, .vault-choose header p { transition: opacity 0.6s; }
+.vault-choose:not([data-ready]) header small,
+.vault-choose:not([data-ready]) h2,
+.vault-choose:not([data-ready]) header p { opacity: 0; }
+.vault-plates {
+  position: absolute;
+  left: 50%;
+  bottom: 86px;
+  display: flex;
+  gap: 32px;
+  transform: translateX(-50%);
+}
+.vault-plate {
+  position: relative;
+  width: 300px;
+  display: flex;
+  text-align: left;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  filter: var(--edge) drop-shadow(0 14px 24px #0009);
+  transition: transform 0.3s cubic-bezier(0.2, 1.5, 0.4, 1), filter 0.3s, opacity 0.4s;
+}
+.vault-choose:not([data-ready]) .vault-plate { opacity: 0; pointer-events: none; }
+.vault-choose[data-ready] .vault-plate { animation: vault-plate-in 0.8s calc(var(--i) * 130ms) cubic-bezier(0.2, 1.3, 0.35, 1) both; }
+@keyframes vault-plate-in {
+  from { opacity: 0; transform: translateY(80px) scale(0.96); }
+}
+.vault-plate[data-focus] {
+  transform: translateY(-8px);
+  /* The edge turns gold; --edge was resolved on .vault, so it is spelled out. */
+  filter: drop-shadow(1px 0 0 var(--accent)) drop-shadow(-1px 0 0 var(--accent)) drop-shadow(0 1px 0 var(--accent)) drop-shadow(0 -1px 0 var(--accent)) drop-shadow(0 0 16px color-mix(in srgb, var(--accent) 60%, transparent)) drop-shadow(0 20px 26px #0009);
+}
+.vault-plate[data-held] { transform: translateY(-5px) scale(0.985); }
+.vault-plate-body {
+  flex: 1;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 14px;
+  padding: 16px 16px 12px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--glass) 94%, #fff 6%), var(--glass));
+  clip-path: var(--steps);
+}
+/* A single star in the skill's colour, the one this technique will light. */
+.vault-glyph {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  background: radial-gradient(circle, color-mix(in srgb, var(--tint) 22%, transparent), transparent 70%);
+  border: 1px solid color-mix(in srgb, var(--tint) 45%, transparent);
+}
+.vault-glyph i {
+  width: 26px;
+  height: 26px;
+  background: var(--tint);
+  clip-path: polygon(50% 0, 58% 42%, 100% 50%, 58% 58%, 50% 100%, 42% 58%, 0 50%, 42% 42%);
+  filter: drop-shadow(0 0 6px var(--tint));
+  transition: transform 0.5s cubic-bezier(0.2, 1.5, 0.4, 1);
+}
+.vault-plate[data-focus] .vault-glyph i { transform: rotate(45deg) scale(1.15); }
+.vault-plate-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.vault-plate-text strong { font: 600 16px/1.2 var(--sans); letter-spacing: 0.12em; text-transform: uppercase; }
+.vault-plate-text > span { font-size: 15px; line-height: 1.35; }
+.vault-plate-text em { font-size: 13px; line-height: 1.35; color: var(--muted); }
+.vault-hold {
+  grid-column: 1 / -1;
+  position: relative;
+  display: block;
+  margin-top: 10px;
+  height: 22px;
+  font: 8px/22px var(--pixel);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  text-align: center;
+  color: var(--muted);
+  border-top: 1px solid var(--line);
+  overflow: hidden;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+.vault-plate[data-focus] .vault-hold, .vault-plate[data-held] .vault-hold { opacity: 1; color: var(--accent); }
+.vault-hold i {
+  position: absolute;
+  inset: 1px auto 0 0;
+  width: calc(var(--hold, 0) * 100%);
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent) 45%, transparent));
+}
+.vault-hold span { position: relative; }
+.vault-choose .vault-plate[data-bound] {
+  animation: vault-plate-fly 0.6s cubic-bezier(0.55, 0, 0.8, 0.3) forwards;
+  pointer-events: none;
+}
+@keyframes vault-plate-fly {
+  0% { transform: translateY(-8px); }
+  25% { transform: translateY(-20px) scale(1.03); filter: drop-shadow(0 0 30px var(--accent)) brightness(1.3); }
+  100% { transform: translate(var(--fly-x), var(--fly-y)) scale(0.04); opacity: 0.2; filter: drop-shadow(0 0 30px var(--accent)) brightness(2.5); }
+}
+.vault-choose .vault-plate[data-dropped] {
+  animation: vault-plate-drop 0.5s ease-in forwards;
+  pointer-events: none;
+}
+@keyframes vault-plate-drop {
+  to { opacity: 0; transform: translateY(60px) scale(0.96); filter: grayscale(1) brightness(0.5); }
+}
+.vault-choose[data-bound] header, .vault-choose[data-bound] footer { opacity: 0; transition: opacity 0.4s; }
+.vault-choose footer {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  transform: translateX(-50%);
+  padding: 6px 14px;
+  white-space: nowrap;
+  font-size: 13px;
+  color: var(--muted);
+  background: var(--glass);
+  clip-path: var(--steps);
+}
+.vault-later { font: 9px var(--pixel) !important; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent) !important; }
+.vault-later:hover { text-decoration: underline; text-underline-offset: 4px; }
+.vault-choose:not([data-ready]) footer { opacity: 0; }
+
+.vault-flourish {
+  position: absolute;
+  left: var(--sx);
+  top: calc(var(--sy) + 56px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  transform: translateX(-50%);
+  pointer-events: none;
+  white-space: nowrap;
+}
+.vault-flourish strong {
+  font: 300 40px var(--sans);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent);
+  text-shadow: 0 0 22px color-mix(in srgb, var(--accent) 60%, transparent), 0 2px 0 var(--halo);
+}
+.vault-flourish strong span {
+  display: inline-block;
+  animation: vault-letter 0.6s calc(0.6s + var(--i) * 40ms) cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+@keyframes vault-letter {
+  from { opacity: 0; transform: translateY(-20px); filter: blur(4px) brightness(3); }
+}
+.vault-flourish small {
+  font: 9px var(--pixel);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text);
+  text-shadow: 0 0 10px var(--halo);
+  animation: vault-rise 0.8s 1.2s ease-out both;
+}
+
+@media (max-width: 760px), (orientation: portrait) {
+  .vault-head { top: 14px; left: 16px; }
+  .vault-head h1 { font-size: 28px; }
+  .vault-head p { font-size: 13px; }
+  .vault:not([data-mode="sky"]) .vault-head { opacity: 0; }
+  .vault-close { top: 10px; right: 8px; }
+  .vault-close kbd { display: none; }
+  .vault-theme { top: 10px; right: 46px; }
+  .vault-awaits { top: auto; bottom: 22px; white-space: nowrap; }
+  .vault-hints { display: none; }
+  .vault-label { width: 124px; margin-left: -62px; }
+  .vault-label strong { font-size: 11px; letter-spacing: 0.1em; }
+  .vault-label-bar { width: 54px; }
+  .vault[data-mode="skill"] .vault-label[data-focus] small { font-size: 11px; gap: 10px; }
+  .vault-page { top: auto; right: 10px; left: 10px; bottom: 12px; width: auto; max-height: 60%; transform: none; }
+  @keyframes vault-page-in { from { opacity: 0; transform: translateY(50px); } }
+  .vault-panel { padding: 14px 16px 18px; }
+  .vault-page h2 { font-size: 26px; }
+  .vault-level { font-size: 44px; }
+  .vault-choose header { top: 40px; }
+  .vault-choose h2 { font-size: 24px; }
+  .vault-plates { left: 12px; right: 12px; bottom: 60px; flex-direction: column; gap: 12px; transform: none; }
+  .vault-plate { width: auto; }
+  .vault-glyph { width: 42px; height: 42px; }
+  .vault-plate-text em { display: none; }
+  .vault-keys { display: none; }
+  .vault-flourish strong { font-size: 28px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .vault, .vault *, .vault *::before, .vault *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

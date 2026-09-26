@@ -639,6 +639,14 @@ export const events = {
     tone(0, 0.25, 0.12, hz(58), { wave: "triangle" }),
   ],
   hour: () => run([5, 8, 12], 0.24, 0.15, 1.2),
+  /** A skill rising: a quick climb that opens out and rings. */
+  levelUp: () => [
+    ...run([5, 7, 9, 12], 0.07, 0.2, 0.5),
+    ...pluck(0.3, 14, 0.16, 1.1),
+    ...pluck(0.3, 9, 0.1, 1.1),
+  ],
+  /** A technique taken: two notes settling. */
+  learn: () => [...run([9, 12], 0.09, 0.18, 0.7), ...pluck(0.2, 16, 0.08, 0.9)],
   door: () => [
     ...body("timber", 1.3),
     tone(0.13, 0.03, 0.12, 1900, { wave: "triangle" }),

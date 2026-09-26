@@ -5751,66 +5751,117 @@ button:disabled {
   flex-direction: column;
   min-height: 0;
   overflow-y: auto;
+  --group: var(--gold);
 }
-/* Land, craft, people, road: a rule between groups says it without a heading. */
+[data-group="Land"] { --group: #7fb069; }
+[data-group="Combat"] { --group: #d0674f; }
+[data-group="Craft"] { --group: #d99a3e; }
+[data-group="People"] { --group: #d77a8f; }
+[data-group="Road"] { --group: #4fb3a9; }
+.skills-panel section {
+  padding: 2px 0 4px 8px;
+  border-left: 2px solid var(--group);
+}
 .skills-panel section + section {
-  margin-top: 4px;
-  padding-top: 4px;
-  border-top: 1px solid var(--line-soft);
+  margin-top: 6px;
+}
+.skills-panel h3 {
+  margin: 2px 0 2px 6px;
+  font: 10px var(--pixel);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--group);
 }
 .skill-row {
   display: grid;
   grid-template-columns: 26px 1fr auto auto;
+  grid-template-areas:
+    "icon name level marks"
+    "icon bar bar bar";
   align-items: center;
-  gap: 3px 9px;
+  gap: 2px 9px;
   width: 100%;
-  padding: 3px 6px;
+  padding: 4px 6px;
   text-align: left;
   color: var(--cream);
   border: 1px solid transparent;
   border-radius: 5px;
 }
-.skill-row:hover,
-.skill-row[aria-expanded="true"] {
+.skill-row .skill-icon { grid-area: icon; }
+.skill-row .skill-name { grid-area: name; }
+.skill-row .skill-level { grid-area: level; }
+.skill-row .skill-milestones { grid-area: marks; }
+.skill-row .skill-bar { grid-area: bar; }
+.skill-row:hover {
   border-color: var(--line-soft);
   background: #ffffff05;
 }
-.skill-row[data-untried] {
-  color: var(--muted);
+.skill-row[data-waiting] {
+  border-color: #d9b47766;
+  background: #d9b4770d;
 }
-.skill-row[data-untried] .skill-icon {
-  color: var(--muted);
-}
-.skill-name {
-  display: flex;
-  align-items: baseline;
-  gap: 7px;
-  font-size: 14px;
-}
-.skill-name small {
-  font-size: 11px;
-  color: var(--muted);
-}
+.skill-row[data-untried] { color: var(--muted); }
+.skill-row[data-untried] .skill-icon,
+.skill-row[data-untried] .skill-level { color: var(--muted); }
 .skill-row .skill-icon {
   width: 24px;
   height: 24px;
+  color: var(--group);
 }
+.skill-name { font-size: 14px; }
 .skill-level {
-  font: 18px var(--serif);
+  min-width: 14px;
+  text-align: right;
+  font: 17px var(--serif);
   color: var(--gold);
 }
-.skill-row[data-untried] .skill-level {
-  color: var(--muted);
+.skill-bar {
+  position: relative;
+  display: block;
+  height: 3px;
+  border-radius: 2px;
+  background: #ffffff14;
+  overflow: hidden;
 }
-.skill-detail {
-  grid-column: 2 / -1;
+.skill-bar i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--group, var(--gold));
+  transition: width 0.6s ease-out;
+}
+.skill-milestones {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding-bottom: 3px;
-  font-size: 12px;
-  color: var(--muted);
+  gap: 5px;
 }
+.skill-milestones i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1px solid #a68c5c80;
+}
+.skill-milestones i[data-state="reached"] { border-color: var(--line); }
+.skill-milestones i[data-state="chosen"] {
+  border-color: var(--gold);
+  background: var(--gold);
+}
+.skill-milestones i[data-state="waiting"] {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 0 #d9b47799;
+  animation: milestone-pulse 1.6s ease-out infinite;
+}
+@keyframes milestone-pulse {
+  0% { box-shadow: 0 0 0 0 #d9b477aa; background: #d9b47766; }
+  70% { box-shadow: 0 0 0 6px #d9b47700; background: transparent; }
+  100% { box-shadow: 0 0 0 0 #d9b47700; }
+}
+.skills-more {
+  align-self: flex-end;
+  margin: 8px 4px 2px;
+  color: var(--gold);
+  font-size: 13px;
+}
+.skills-more:hover { text-decoration: underline; }
+
 .collapse-notice {
   position: absolute;
   inset: 0;
@@ -7353,3 +7404,48 @@ button:disabled {
 .map-stage[class*="period-"] .map-ruler span { color: #2c2018; text-shadow: none; }
 .map-stage[class*="period-"] .map-ruler i { border-color: #2c2018; box-shadow: none; }
 .map-settlement.is-home { pointer-events: none; }
+
+/* After the live-panel rules, which it narrows. */
+.skill-test-panel .live-animal-controls {
+  margin-top: 8px;
+  padding-top: 8px;
+}
+.skill-test-panel .live-animal-actions {
+  flex-wrap: wrap;
+}
+.skill-test-panel .live-animal-controls > .skill-test-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+.skill-test-head strong {
+  flex: 1;
+  color: #fff1cb;
+  font-weight: 400;
+}
+.skill-test-panel .skill-test-head button {
+  justify-content: center;
+  width: 24px;
+  height: 22px;
+  padding: 0;
+}
+.skill-test-head output {
+  min-width: 16px;
+  text-align: center;
+  color: var(--gold);
+}
+.skill-test-panel .skill-test-skill label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 2px 0;
+  font-size: 12px;
+}
+.skill-test-skill label small {
+  width: 8px;
+  color: #8f8a74;
+}
+.skill-test-skill label[data-off] {
+  opacity: 0.45;
+}

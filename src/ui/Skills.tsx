@@ -4,16 +4,20 @@ import {
   Bandage,
   Crosshair,
   Footprints,
+  Hammer,
   Heart,
   Leaf,
   MessageCircle,
+  PawPrint,
   Pickaxe,
-  Sailboat,
   Scale,
+  Swords,
+  Target,
   Wheat,
   type LucideIcon,
 } from "lucide-react";
 import {
+  GROUPS,
   MAX_LEVEL,
   SKILLS,
   progress,
@@ -23,18 +27,27 @@ import {
   type SkillId,
   type Skills,
 } from "../core/skills";
+import {
+  TIERS,
+  optionsAt,
+  type TechniqueId,
+  type Tier,
+} from "../core/techniques";
 import { DrainBar } from "./motion";
 
 const ICONS: Record<SkillId, LucideIcon> = {
   hunting: Crosshair,
   foraging: Leaf,
   farming: Wheat,
+  animals: PawPrint,
+  marksmanship: Target,
+  arms: Swords,
   woodcraft: Axe,
-  quarrying: Pickaxe,
+  stonework: Pickaxe,
+  crafting: Hammer,
   speech: MessageCircle,
   trade: Scale,
   wayfaring: Footprints,
-  watercraft: Sailboat,
 };
 
 /** Ten pips: filled to the level, the next one filling as experience comes. */
@@ -153,56 +166,105 @@ export function SkillToast({
   );
 }
 
-const GROUPS = ["Land", "Craft", "People", "Road"] as const;
+export type Pick = { skill: SkillId; tier: Tier; options: TechniqueId[] };
 
-/** The sidebar tab: every skill, grouped, with what it takes and what it gives. */
-export function SkillsPanel({ skills }: { skills: Skills }) {
-  const [open, setOpen] = useState<SkillId>();
+const shown = skillIds.filter((id) => !SKILLS[id].hidden);
+
+function XpBar({ xp }: { xp: number }) {
+  const { level, into, span } = progress(xp);
+  const fill = level >= MAX_LEVEL ? 1 : into / span;
+  return (
+    <span className="skill-bar" aria-hidden="true">
+      <i style={{ width: `${Math.round(fill * 100)}%` }} />
+    </span>
+  );
+}
+
+/** One pip per milestone: chosen, waiting to be chosen, or ahead. */
+function Milestones({
+  skill,
+  level,
+  known,
+  pending,
+}: {
+  skill: SkillId;
+  level: number;
+  known: readonly TechniqueId[];
+  pending: readonly Pick[];
+}) {
+  return (
+    <span className="skill-milestones" aria-hidden="true">
+      {TIERS.map((tier) => (
+        <i
+          key={tier}
+          data-state={
+            optionsAt(skill, tier).some((id) => known.includes(id))
+              ? "chosen"
+              : pending.some((p) => p.skill === skill && p.tier === tier)
+                ? "waiting"
+                : level >= tier
+                  ? "reached"
+                  : undefined
+          }
+        />
+      ))}
+    </span>
+  );
+}
+
+/** The sidebar tab: every skill at a glance, and the way into the full view. */
+export function SkillsPanel({
+  skills,
+  known,
+  pending,
+  onOpen,
+}: {
+  skills: Skills;
+  known: readonly TechniqueId[];
+  pending: readonly Pick[];
+  onOpen: (skill?: SkillId) => void;
+}) {
   return (
     <div className="skills-panel">
       {GROUPS.map((group) => (
-        <section key={group} aria-label={group}>
-          {skillIds
+        <section key={group} aria-label={group} data-group={group}>
+          <h3>{group}</h3>
+          {shown
             .filter((id) => SKILLS[id].group === group)
             .map((id) => {
-              const def = SKILLS[id];
               const Icon = ICONS[id];
               const xp = skills[id] ?? 0;
-              const { level, into, span } = progress(xp);
+              const level = progress(xp).level;
               return (
                 <button
                   key={id}
                   className="skill-row"
-                  aria-expanded={open === id}
                   data-untried={level === 0 || undefined}
-                  onClick={() => setOpen(open === id ? undefined : id)}
+                  data-waiting={
+                    pending.some((p) => p.skill === id) || undefined
+                  }
+                  onClick={() => onOpen(id)}
                 >
                   <span className="skill-icon">
                     <Icon size={15} />
                   </span>
-                  <span className="skill-name">
-                    {def.name}
-                    <small>{rankOf(level)}</small>
-                  </span>
+                  <span className="skill-name">{SKILLS[id].name}</span>
                   <span className="skill-level">{level}</span>
-                  <Pips xp={xp} />
-                  {open === id && (
-                    <span className="skill-detail">
-                      <span>{def.earned}.</span>
-                      {level > 0 && <span>Now: {def.perk(level)}.</span>}
-                      {level < MAX_LEVEL && (
-                        <span>
-                          Next: {def.perk(level + 1)} · {Math.ceil(span - into)}{" "}
-                          to go
-                        </span>
-                      )}
-                    </span>
-                  )}
+                  <Milestones
+                    skill={id}
+                    level={level}
+                    known={known}
+                    pending={pending}
+                  />
+                  <XpBar xp={xp} />
                 </button>
               );
             })}
         </section>
       ))}
+      <button className="skills-more" onClick={() => onOpen()}>
+        See all skills ›
+      </button>
     </div>
   );
 }

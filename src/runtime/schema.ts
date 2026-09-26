@@ -1,6 +1,7 @@
 import { faunaStates } from "../core/fauna";
 import { faunaTiers } from "../core/combat";
 import { skillIds } from "../core/skills";
+import { techniqueIds } from "../core/techniques";
 import {
   hairStyles,
   eyeSizes,
@@ -271,6 +272,7 @@ const actor = z.object({
   stats: stats.optional(),
   health: z.number().min(0).max(100).optional(),
   skills: z.partialRecord(z.enum(skillIds), z.number()).optional(),
+  techniques: z.array(z.enum(techniqueIds)).optional(),
   injury: z.object({ name: z.string(), until: z.number() }).optional(),
   origin: z
     .object({
@@ -427,6 +429,9 @@ export const commandSchema = z.discriminatedUnion("type", [
     .strict(),
   z
     .object({ type: z.literal("hold"), item: z.string().min(1).max(64) })
+    .strict(),
+  z
+    .object({ type: z.literal("learn"), technique: z.enum(techniqueIds) })
     .strict(),
   z
     .object({
