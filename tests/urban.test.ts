@@ -151,6 +151,7 @@ it("zones an industrial-age city into a downtown, factories and the housing of e
   expect(new Set(interwar.streetSurfaces!.values())).toContain("concrete");
   expect([...interwar.pavement!.values()]).toContain("rail");
   expect(interwar.places.some((p) => p.name === "Railway station")).toBe(true);
+  expect([...interwar.pavement!.values()]).toContain("platform");
   expect(interwar.objects.some((o) => o.sprite.includes("traffic-signal-0"))).toBe(true);
 });
 

@@ -117,6 +117,8 @@ export type UrbanSurface = {
   buildWall(wall: Wall, parts: { x: number; y: number; frame: string }[]): void;
   /** Lay the railway, after the streets it crosses on the level. */
   railway?(rail: Rail): void;
+  /** A station platform along the line, from the track edge to the building. */
+  platform?(rect: Rect, alongX: boolean): void;
   /** Direction of open water, for fabrics whose public space faces it. */
   shore?: Point;
   /** Land within two cells of water, where a quay and its street can stand. */
@@ -1160,6 +1162,18 @@ export function urbanNeighborhood(
           },
         },
         { forecourt: block },
+      );
+      const rail = layout.rail!;
+      // At least two cells wide, into the forecourt if the gap is narrower.
+      const [from, to] =
+        side < 0
+          ? [Math.min((alongX ? block.y + block.h : block.x + block.w) - 1, rail.level - 2), rail.level - 1]
+          : [rail.level + rail.span, Math.max(alongX ? block.y : block.x, rail.level + rail.span + 1)];
+      api.platform?.(
+        alongX
+          ? { x: block.x, y: from, w: block.w, h: to - from + 1 }
+          : { x: from, y: block.y, w: to - from + 1, h: block.h },
+        alongX,
       );
       return block;
     }

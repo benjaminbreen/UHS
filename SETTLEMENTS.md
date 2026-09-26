@@ -159,8 +159,11 @@ ones a stop or give-way sign on the approach side for the driving side.
 An industrial-age town has a double-track railway straight through it,
 skirting the old centre and running on past the edge (`Rail` in `blocks.ts`).
 Streets cross it on the level, with planks between the rails; the block beside
-the line nearest the square is the station and its forecourt, and the factory
-sector turns toward the tracks.
+the line nearest the square is the station and its forecourt, with a platform
+at least two cells wide between it and the rails, and the factory sector turns
+toward the tracks. A river up to `RAIL_BRIDGE` cells wide is crossed on an
+open-deck girder bridge at bank level; wider water ends the line at the shore.
+Signals run a quarter-minute cycle as motion frames.
 
 In the motor age the country roads, the town's own roads past its built edge
 and the regional routes, are blacktop strokes with a centre line, gravel

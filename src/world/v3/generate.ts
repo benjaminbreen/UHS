@@ -28,7 +28,6 @@ import {
 } from "../../content/settlements/streets/markings";
 import { motorized } from "../../content/settlements/modernity";
 import { poleStyle } from "../../content/settlements/streets/control";
-import { streetPalette } from "../../content/settlements/streets/palettes";
 import { streetMaterial } from "../../content/settlements/streets";
 import {
   pavingReach,
@@ -603,7 +602,13 @@ export function createSettlementWorld(
         if (!index) {
           const revised = !!pack.setting?.streetRevision;
           index = pathArt(
-            p.site.profile.paved && !revised && !blacktop ? [] : p.roads,
+            p.site.profile.paved && !revised && !blacktop
+              ? []
+              : blacktop
+                ? // Composed streets are drawn as paving; indexing them as
+                  // strokes too cost seconds at startup and drew nothing.
+                  p.roads.filter((r) => !/-(street|avenue|row)-/.test(r.id))
+                : p.roads,
             !!pack.setting?.roadRevision,
             revised && !wheeledTraffic(pack.setting!) ? false : undefined,
             // Motor traffic had cleared horses off most streets by about 1920.
@@ -617,7 +622,7 @@ export function createSettlementWorld(
       .concat(regionalStrokes(x, y));
   }
   const poles = pack.setting ? poleStyle(pack.setting) : 0;
-  /** Poles stand a couple of cells off a country road, one every ten cells
+  /** Poles stand just past the ditch of a country road, one every ten cells
    * along it, counted in world coordinates so a bend does not bunch them. */
   const POLE_SPACING = 10;
   function poleAt(x: number, y: number) {
@@ -633,7 +638,7 @@ export function createSettlementWorld(
         cy = y + 0.5 - ay;
       const along = cx * ux + cy * uy,
         side = cx * -uy + cy * ux;
-      if (along < 0 || along > len || Math.abs(side - (s.radius + 2.4)) > 0.75)
+      if (along < 0 || along > len || Math.abs(side - (s.radius + 1.4)) > 0.75)
         continue;
       const world = (x + 0.5) * ux + (y + 0.5) * uy;
       if (((world % POLE_SPACING) + POLE_SPACING) % POLE_SPACING >= 1.3) continue;
@@ -1469,6 +1474,24 @@ export function createSettlementWorld(
         if (!levels.has(k)) levels.set(k, level);
       });
     }
+    // A rail deck runs level between the banks it spans.
+    for (const [k, track] of p.tracks ?? []) {
+      if (p.surface.get(k) !== "bridge" || levels.has(k)) continue;
+      const [x, y] = k.split(",").map(Number);
+      const [dx, dy] = track.axis === "x" ? [1, 0] : [0, 1];
+      const run: string[] = [];
+      let a = { x, y };
+      while (p.surface.get(cellKey(a.x - dx, a.y - dy)) === "bridge")
+        a = { x: a.x - dx, y: a.y - dy };
+      let b = a;
+      for (; p.surface.get(cellKey(b.x, b.y)) === "bridge"; b = { x: b.x + dx, y: b.y + dy })
+        run.push(cellKey(b.x, b.y));
+      const level = Math.max(
+        tier({ x: a.x - dx, y: a.y - dy }),
+        tier(b),
+      ) as HeightTier;
+      for (const r of run) levels.set(r, level);
+    }
     return levels;
   }
   const streetLevelCache = new WeakMap<SettlementPlan, Map<string, number>>();
@@ -1703,7 +1726,12 @@ export function createSettlementWorld(
         "grass";
       if (cell.feature === "bank") delete cell.feature;
     }
-    if (t === "bridge") return { ...cell, surface: "soil", bridge: true };
+    if (t === "bridge") {
+      const track = nearby(x, y)
+        .map((p) => p.tracks?.get(cellKey(x, y)))
+        .find(Boolean);
+      return { ...cell, surface: "soil", bridge: true, ...(track && { track }) };
+    }
     if (t === "field") {
       cell.surface = "soil";
       cell.feature = "field";
@@ -1768,17 +1796,6 @@ export function createSettlementWorld(
             pavement === "verge")
         )
           cell.pavement = pavement;
-        // A footway with no surface of its own is the town's footway stone,
-        // not the carriageway's.
-        if (
-          pavement === "footway" &&
-          cell.feature === "paving" &&
-          !material &&
-          p.site.pack
-        ) {
-          const own = streetPalette(p.site.pack.setting!).footway[0];
-          if (own !== "earth") cell.streetMaterial = own;
-        }
         const lane = p.lanes?.get(key);
         if (lane && cell.feature === "paving") cell.lane = lane;
         const track = p.tracks?.get(key);

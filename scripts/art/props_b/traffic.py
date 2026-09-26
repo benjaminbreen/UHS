@@ -44,9 +44,11 @@ def _head(c, x0, y0, m, lit, lenses=3, backplate=False):
   _lens(c, x0 + 2, y0 + 2 + i * 4, lit == i, ramp, m)
 
 
-def traffic_signal(v=0):
+def traffic_signal(v=0, motion=0):
  """v0 an interwar post-top signal, v1 a postwar three-light head on a
- pole, v2 a modern head with a black backplate and a walk signal."""
+ pole, v2 a modern head with a black backplate and a walk signal. The motion
+ frames run one cycle: green for seven, amber for two, red for seven."""
+ lit = 2 if motion < 7 else 1 if motion < 9 else 0
  if v == 0:
   c = Canvas(16, 50)
   m = HOUSING['green']
@@ -54,7 +56,7 @@ def traffic_signal(v=0):
   _post(c, 6, 17, 45, post)
   c.rect(4, 45, 11, 48, post[3]); c.hline(4, 11, 45, post[5]); c.hline(3, 12, 49, post[1])
   # A four-way head: two faces seen, one full, one edge-on at the right.
-  _head(c, 4, 4, m, 2)
+  _head(c, 4, 4, m, lit)
   c.rect(10, 5, 11, 17, m[2]); c.vline(11, 5, 17, m[1])
   c.hline(4, 11, 3, m[6]); c.hline(5, 10, 2, m[5]); c.set(7, 1, m[6]); c.set(8, 1, m[4])
   soft_outline(c, m[0], m[2])
@@ -64,12 +66,13 @@ def traffic_signal(v=0):
  pole = RAMPS['galvanised7' if v == 1 else 'blackiron7']
  _post(c, 7, 8, 56, pole)
  c.rect(5, 56, 11, 59, pole[3]); c.hline(5, 11, 56, pole[5])
- _head(c, 5, 6, m, 0 if v == 1 else 2, backplate=v == 2)
+ _head(c, 5, 6, m, lit, backplate=v == 2)
  # A pedestrian head lower on the pole.
  c.rect(10, 28, 15, 34, m[3]); c.vline(10, 28, 34, m[5]); c.vline(15, 28, 34, m[1])
- if v == 2:
+ # Walkers cross while the traffic beside them is held at red.
+ if lit == 0:
   for x, y in ((12, 30), (13, 30), (12, 31), (13, 32), (12, 32)):
-   c.set(x, y, '#f2f2ea')                         # the walking figure
+   c.set(x, y, '#f2f2ea' if v == 2 else '#e8e4d0')
  else:
   c.hline(11, 14, 31, '#e8913a')                  # DONT WALK, lit orange
  c.set(11, 29, m[6])

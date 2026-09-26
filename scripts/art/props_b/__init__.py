@@ -143,6 +143,7 @@ ANIMATED = {
  'backstrap-loom': 4,
  'dye-vats': 4,
  'bloomery': 4,
+ 'traffic-signal': 16,
  # Cloth stirs on a covered pitch.
  **{key: 4 for key in PITCHES},
 }

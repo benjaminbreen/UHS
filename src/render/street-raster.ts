@@ -93,6 +93,9 @@ function kerbTone(
   const tone = profile[side][d];
   return peg && tone && d === 1 ? lit(stone, -4) : tone;
 }
+const PLATFORM_WALL: RGB = [166, 160, 146];
+const PLATFORM_FOOT: RGB = [62, 58, 52];
+const SAFETY_LINE: RGB = [222, 196, 92];
 const courseOffset = (side: Side) => ({ n: 0.1, s: 0.55, w: 0.3, e: 0.8 })[side];
 export { wornEdge };
 /** Shared native-pixel paving materials. Place/date selection happens in content. */
@@ -202,6 +205,22 @@ export function rasterStreetTile(
   const shadowed = !dais && at(0, -1)?.pavement === "dais",
     shadowedE = !dais && at(-1, 0)?.pavement === "dais";
   const track = c.track;
+  // A platform's edge is the side that drops to the rails.
+  const sides = [
+    [0, -1],
+    [0, 1],
+    [-1, 0],
+    [1, 0],
+  ] as const;
+  const drop =
+    c.pavement === "platform"
+      ? sides.find(([dx, dy]) => at(dx, dy)?.track)
+      : undefined;
+  // Beside the rails, the platform's north face shows as a wall.
+  const face = track && at(0, -1)?.pavement === "platform";
+  const lee = track
+    ? sides.find(([dx, dy]) => dy >= 0 && at(dx, dy)?.pavement === "platform")
+    : undefined;
   for (let py = 0; py < 16; py++)
     for (let px = 0; px < 16; px++) {
       const wx = (x + ox) * 16 + px,
@@ -212,6 +231,20 @@ export function rasterStreetTile(
           [...railPixel(track.at * 16 + (alongX ? py : px), alongX ? wx : wy, wx, wy), 255],
           (py * 16 + px) * 4,
         );
+        const wall = face && py < 5;
+        const d = lee ? (lee[0] < 0 ? px : lee[0] > 0 ? 15 - px : 15 - py) : 99;
+        if (wall || d < 2)
+          pixels.set(
+            [
+              ...(wall
+                ? py === 4
+                  ? PLATFORM_FOOT
+                  : lit(PLATFORM_WALL, mod(wx, 12) === 0 ? -3 : py === 0 ? 1 : 0)
+                : lit(railPixel(track.at * 16 + (alongX ? py : px), alongX ? wx : wy, wx, wy), d ? -2 : -4)),
+              255,
+            ],
+            (py * 16 + px) * 4,
+          );
         continue;
       }
       const straight = Math.min(
@@ -464,6 +497,16 @@ export function rasterStreetTile(
         south && east ? 30 - px - py : 99,
       );
       if (corner < 3) tone = corner === 0 ? lit(course, -3) : lit(course, corner === 1 ? 2 : 0);
+      if (drop) {
+        const [dx, dy] = drop;
+        const d = dx ? (dx < 0 ? px : 15 - px) : dy < 0 ? py : 15 - py;
+        const along = dx ? wy : wx;
+        // Coping stone over the edge, then the painted line to stand behind.
+        if (d === 0) tone = lit(course, -4);
+        else if (d < 3) tone = lit(PLATFORM_WALL, d === 1 ? 3 : 1);
+        else if (d === 3) tone = lit(course, -2);
+        else if ((d === 5 || d === 6) && mod(along, 8) < 6) tone = SAFETY_LINE;
+      }
       if (track)
         tone = levelCrossing(
           tone,

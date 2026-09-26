@@ -18,7 +18,8 @@ export type Pavement =
   | "footway"
   | "lane"
   | "verge"
-  | "rail";
+  | "rail"
+  | "platform";
 /** Where a cell sits across a railway: `at` counts from its west or north edge. */
 export type Track = { axis: "x" | "y"; at: number };
 export type Site = {

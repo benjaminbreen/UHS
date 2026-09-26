@@ -120,6 +120,8 @@ import {
 } from "./placement";
 /** The livelihood activity that keeps animals, as the character tables name it. */
 const HERDING = "Tending animals";
+// The longest water a town's line bridges, in 2 m cells.
+const RAIL_BRIDGE = 60;
 
 const now = () =>
   typeof performance !== "undefined" ? performance.now() : Date.now();
@@ -1380,9 +1382,9 @@ export function planSettlement(
           if (
             profile.paved &&
             besideRoad &&
-            plan.pavement!.get(k) !== "verge"
+            plan.pavement!.get(k) !== "verge" &&
+            setSurface(k, "paving", 5)
           ) {
-            setSurface(k, "paving", 5);
             plan.pavement!.set(k, "footway");
             if (footwaySurface) plan.streetSurfaces!.set(k, footwaySurface);
           }
@@ -1554,21 +1556,67 @@ export function planSettlement(
             ),
           railway: (rail) => {
             const tracks = (plan.tracks ??= new Map());
-            for (let v = rail.lo; v <= rail.hi; v++)
+            const at = (v: number, a: number) =>
+              rail.axis === "x"
+                ? { x: v, y: rail.level + a }
+                : { x: rail.level + a, y: v };
+            const wet = (v: number) => {
+              const q = at(v, rail.span >> 1);
+              return sample(q.x, q.y).water < 0;
+            };
+            // A river is bridged; open sea or a lake too wide to span ends
+            // the line at the shore.
+            const reach = (from: number, end: number, step: number) => {
+              let run = 0;
+              for (let v = from; v !== end + step; v += step) {
+                run = wet(v) ? run + 1 : 0;
+                if (run > RAIL_BRIDGE) return v - step * run;
+              }
+              return end;
+            };
+            const mid = (rail.lo + rail.hi) >> 1;
+            const lo = reach(mid, rail.lo, -1),
+              hi = reach(mid, rail.hi, 1);
+            for (let v = lo; v <= hi; v++)
               for (let a = 0; a < rail.span; a++) {
-                const x = rail.axis === "x" ? v : rail.level + a,
-                  y = rail.axis === "x" ? rail.level + a : v,
+                const { x, y } = at(v, a),
                   k = cellKey(x, y);
-                if (sample(x, y).water < 4 || plan.solid.has(k)) continue;
+                if (plan.solid.has(k)) continue;
                 tracks.set(k, { axis: rail.axis, at: a });
                 // A level crossing keeps its street; the rails lie in it.
                 if (plan.lanes?.has(k)) continue;
-                if (!setSurface(k, "paving", 7)) continue;
-                plan.pavement!.set(k, "rail");
+                const water = sample(x, y).water < 0;
+                if (!setSurface(k, water ? "bridge" : "paving", 7)) continue;
+                if (!water) plan.pavement!.set(k, "rail");
                 plan.streetSurfaces!.delete(k);
                 plan.reserved.add(k);
                 noRoad.add(k);
               }
+          },
+          platform: (rect, alongX) => {
+            eachCell(rect, (x, y) => {
+              const k = cellKey(x, y);
+              if (plan.solid.has(k) || plan.lanes?.has(k) || plan.tracks?.has(k))
+                return;
+              if (!dry({ x, y, w: 1, h: 1 }, false)) return;
+              if (!setSurface(k, "paving", 8)) return;
+              plan.pavement!.set(k, "platform");
+              plan.streetSurfaces!.set(k, footwaySurface ?? "concrete");
+              plan.reserved.add(k);
+              noRoad.add(k);
+            });
+            // Lamps down the back of the platform, clear of the edge.
+            const back = alongX
+              ? plan.tracks?.has(cellKey(rect.x, rect.y - 1)) ? rect.y + rect.h - 1 : rect.y
+              : plan.tracks?.has(cellKey(rect.x - 1, rect.y)) ? rect.x + rect.w - 1 : rect.x;
+            const [start, end] = alongX
+              ? [rect.x + 2, rect.x + rect.w - 2]
+              : [rect.y + 2, rect.y + rect.h - 2];
+            for (let v = start; v < end; v += 6)
+              furnish({
+                  kind: "lamp",
+                  ...(alongX ? { x: v, y: back } : { x: back, y: v }),
+                });
           },
           buildWall: (wall, parts) => {
             for (const part of parts) {
@@ -3104,7 +3152,7 @@ export function planSettlement(
             w: 2,
             h: rect.h,
           };
-      const material = stone;
+      const material = footwaySurface ?? stone;
       // A footway runs beside a street; a house on open ground gets none, so
       // no stone patches stand alone.
       const streetNear = (x: number, y: number) => {
