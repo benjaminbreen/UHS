@@ -293,18 +293,14 @@ export function agendaOf(
 /** "Bring an offering to Mercury." as a station label: "Bringing an
  * offering to Mercury", in the third person unless it is the player's. */
 export function asDoing(text: string, own: boolean) {
-  const clause = text.split(/[:.]/)[0].trim();
+  const clause = text.split(/[:.;]/)[0].trim();
   const [verb, ...rest] = clause.split(" ");
-  const v = verb.toLowerCase();
-  const irregular: Record<string, string> = { lie: "lying", die: "dying", see: "seeing", be: "being" };
-  const ing =
-    irregular[v] ??
-    (/^(sit|put|get|set|run|shop|stop|cut|hit|let)$/.test(v)
-      ? v + v.at(-1) + "ing"
-      : /[^e]e$/.test(v)
-        ? v.slice(0, -1) + "ing"
-        : v + "ing");
-  let body = [ing[0].toUpperCase() + ing.slice(1), ...rest].join(" ");
+  let body = [capital(gerund(verb.toLowerCase())), ...rest]
+    .join(" ")
+    // "Knap a point and haft it": the second verb of a pair goes too.
+    .replace(/\b(and|then|or) ([a-z]+)\b/g, (m, joint: string, word: string) =>
+      PAIRED.has(word) ? `${joint} ${gerund(word)}` : m,
+    );
   if (!own)
     body = body
       .replace(/\byourself\b/g, "themselves")
@@ -313,6 +309,23 @@ export function asDoing(text: string, own: boolean) {
       .replace(/\byou\b/g, "them");
   return body;
 }
+const capital = (w: string) => w[0].toUpperCase() + w.slice(1);
+function gerund(v: string) {
+  const irregular: Record<string, string> = { lie: "lying", die: "dying", see: "seeing", be: "being", tie: "tying" };
+  return (
+    irregular[v] ??
+    (/^(sit|put|get|set|run|shop|stop|cut|hit|let|dig|beg|plan|trim|skip|chop|hug|wed|rub|mop|tap|wrap|drop|swim|spin|knit|plot|pin|tug|sip|dip|ship|slip|grip|stir|knap|nap|jog|bid|fit|sun|tip|pat|nod|bat|pen|fan)$/.test(v)
+      ? v + v.at(-1) + "ing"
+      : /[^e]e$/.test(v)
+        ? v.slice(0, -1) + "ing"
+        : v + "ing")
+  );
+}
+/** Verbs that follow "and" in the second half of an instruction. A noun such
+ * as "salt" in "bread and salt" must not be here. */
+const PAIRED = new Set(
+  "add ask bake beat bow bring burn buy call carry chant check clean climb collect cook count cover dance drink eat fast feast fetch fill give go haft hang hear help kneel knap leave light listen make offer paint pay place play post pour pray put read recite return say scatter send set share show sing sit sleep sprinkle stand stay sweep take talk tell tie visit wait walk wash watch weave wrap".split(" "),
+);
 
 /** A named client for the day's work at a bench or a stall, on most days. */
 export function commissionFor(

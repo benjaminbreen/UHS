@@ -2,7 +2,12 @@ import type { Festival, Occasion } from "./types";
 
 const EUROPE: [number, number, number, number] = [-11, 34, 45, 72];
 const BRITAIN: [number, number, number, number] = [-8, 49.5, 2, 59];
-const CHRISTIAN = { years: [500, 1950] as [number, number], bounds: EUROPE, cultures: ["european" as const] };
+// Scandinavia and the Baltic were converted around 1000-1400; before that
+// the north keeps its own feasts (europe-deep.ts), not Sunday.
+const SOUTH: [number, number, number, number] = [-11, 34, 45, 55];
+const NORTH: [number, number, number, number] = [-11, 55, 45, 72];
+const CHRISTIAN = { years: [500, 1950] as [number, number], bounds: SOUTH, cultures: ["european" as const] };
+const CHRISTIAN_NORTH = { years: [1100, 1950] as [number, number], bounds: NORTH, cultures: ["european" as const] };
 const INDUSTRIAL_BRITAIN = { years: [1780, 1914] as [number, number], bounds: BRITAIN, cultures: ["european" as const] };
 
 export const europeOccasions: Occasion[] = [
@@ -10,6 +15,8 @@ export const europeOccasions: Occasion[] = [
     id: "day.europe.saint-candle",
     label: "A candle for a saint",
     scope: { years: [500, 1520], bounds: EUROPE, cultures: ["european"] },
+    // A patron is only drawn where the belief system is Christian, so this
+    // needs no northern date of its own.
     evidence: "documented",
     when: [{ type: "patron" }, { type: "observance", levels: ["devout", "regular"] }],
     weight: 5,
@@ -149,7 +156,19 @@ export const europeFestivals: Festival[] = [
   {
     id: "fest.europe.lords-day",
     label: "the Lord's day",
-    scope: { years: [500, 1520], bounds: EUROPE, cultures: ["european"] },
+    scope: { ...CHRISTIAN, years: [500, 1520] },
+    evidence: "documented",
+    date: { every: 7, on: 4 },
+    rest: true,
+    place: "sanctuary",
+    minutes: 90,
+    text: "It is Sunday: hear mass, and do no servile work.",
+    sources: ["https://en.wikipedia.org/wiki/Sabbath_in_Christianity"],
+  },
+  {
+    id: "fest.europe.lords-day-north",
+    label: "the Lord's day",
+    scope: { ...CHRISTIAN_NORTH, years: [1100, 1520] },
     evidence: "documented",
     date: { every: 7, on: 4 },
     rest: true,
@@ -174,6 +193,18 @@ export const europeFestivals: Festival[] = [
     id: "fest.europe.christmas",
     label: "Christmas",
     scope: CHRISTIAN,
+    evidence: "documented",
+    date: { dayOfYear: 359 },
+    rest: true,
+    place: "sanctuary",
+    minutes: 120,
+    text: "It is Christmas Day: church, then the best meal of the year.",
+    sources: ["https://en.wikipedia.org/wiki/Christmas"],
+  },
+  {
+    id: "fest.europe.christmas-north",
+    label: "Christmas",
+    scope: CHRISTIAN_NORTH,
     evidence: "documented",
     date: { dayOfYear: 359 },
     rest: true,

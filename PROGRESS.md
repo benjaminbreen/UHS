@@ -17,6 +17,13 @@ the character modal read the same agenda, and the modal marks each occasion
 documented, inferred or hypothesis. Workshop and market work names a client.
 The generic tavern is now scoped to Europe, West Asia and North Africa.
 
+Regional content now covers every region the belief systems do, 628
+occasions and 116 festivals: palaeolithic foragers to the 1940s across Europe,
+West Asia, Egypt and the Maghreb, sub-Saharan Africa, South, East and
+Southeast Asia, the Pacific and Australia, Inner Eurasia, Mesoamerica, the
+Andes, and indigenous and settler North and South America. Moveable lunar
+feasts sit on a representative date, said in their notes.
+
 ## Continuous atlas-tile travel and journeys — September 24, 2026
 
 Neighbouring maps are now adjacent 384-tile squares of the atlas, so coasts and

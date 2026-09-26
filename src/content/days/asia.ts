@@ -1,8 +1,8 @@
 import type { Festival, Occasion } from "./types";
 
-const ANATOLIA_NEOLITHIC = { years: [-9000, -5500] as [number, number], bounds: [26, 30, 45, 42] as [number, number, number, number] };
-const STEPPE_BRONZE = { years: [-2000, -800] as [number, number], bounds: [25, 35, 130, 60] as [number, number, number, number] };
-const CENTRAL_ASIA_BRONZE = { years: [-2300, -900] as [number, number], bounds: [52, 33, 75, 46] as [number, number, number, number] };
+const ANATOLIA_NEOLITHIC = { years: [-9000, -5500] as [number, number], bounds: [26, 36, 45, 42] as [number, number, number, number] };
+const STEPPE_BRONZE = { years: [-2000, -800] as [number, number], bounds: [25, 35, 130, 60] as [number, number, number, number], cultures: ["inner-eurasian" as const] };
+const CENTRAL_ASIA_BRONZE = { years: [-2300, -900] as [number, number], bounds: [52, 33, 75, 46] as [number, number, number, number], cultures: ["inner-eurasian" as const] };
 const CHINA = { years: [618, 1912] as [number, number], bounds: [98, 18, 125, 46] as [number, number, number, number], cultures: ["east-asian" as const] };
 
 export const asiaOccasions: Occasion[] = [

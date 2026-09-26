@@ -111,8 +111,10 @@ it("keeps its content well formed", () => {
     expect(o.scope.years[0]).toBeLessThan(o.scope.years[1]);
     for (const url of o.sources) expect(url).toMatch(/^https:\/\//);
   }
-  for (const o of occasions)
+  for (const o of occasions) {
+    expect(o.text, o.id).not.toMatch(/^(It|The|A|An|On|At|In|When|If|Your|Today)\b/);
     expect(asDoing(o.text, false), o.id).toMatch(/^[A-Z][a-z-]+ing\b/);
+  }
 });
 
 it("turns an instruction into a doing", () => {
@@ -121,6 +123,9 @@ it("turns an instruction into a doing", () => {
   );
   expect(asDoing("Hang a garland on the hearth: it is the Kalends.", false)).toBe(
     "Hanging a garland on the hearth",
+  );
+  expect(asDoing("Bring bread and salt to the tomb, and pour wine.", false)).toBe(
+    "Bringing bread and salt to the tomb, and pouring wine",
   );
   expect(asDoing("Give your hearth the first of the meat.", false)).toBe(
     "Giving their hearth the first of the meat",

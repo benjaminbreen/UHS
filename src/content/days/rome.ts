@@ -1,6 +1,6 @@
 import type { Festival, Occasion } from "./types";
 
-const ROMAN = { years: [-300, 380] as [number, number], bounds: [-10, 30, 42, 56] as [number, number, number, number] };
+const ROMAN = { years: [-300, 380] as [number, number], bounds: [-10, 30, 42, 56] as [number, number, number, number], cultures: ["european" as const] };
 
 /** The Roman month is about nine game days; the Kalends fall on the first. */
 export const romanOccasions: Occasion[] = [
@@ -48,7 +48,7 @@ export const romanOccasions: Occasion[] = [
     activity: "visit",
     minutes: 25,
     carry: "basket",
-    text: "It is your birthday: offer wine, incense and a cake to your Genius.",
+    text: "Offer wine, incense and a cake to your Genius: it is your birthday.",
     sources: ["https://en.wikipedia.org/wiki/Genius_(mythology)"],
   },
   {
@@ -63,7 +63,7 @@ export const romanOccasions: Occasion[] = [
     activity: "visit",
     minutes: 25,
     carry: "basket",
-    text: "It is your birthday: offer wine and a cake to your Juno.",
+    text: "Offer wine and a cake to your Juno: it is your birthday.",
     note: "A woman's guardian spirit was her Juno, as a man's was his Genius.",
     sources: ["https://en.wikipedia.org/wiki/Juno_(mythology)"],
   },
