@@ -2,6 +2,7 @@ import type { WorldSetting } from "../../geography/types";
 import { streetMaterial, type StreetMaterial } from "./index";
 import { newYorkStreets } from "./north-america";
 import { pavingReach, type PavingReach } from "./reach";
+import { industrialStreets } from "./industrial";
 export type StreetSurface = StreetMaterial | "earth";
 export type StreetRole = "main" | "local" | "lane" | "square" | "footway";
 type Mix = readonly StreetSurface[];
@@ -44,20 +45,7 @@ const premodern = (stone: StreetMaterial, reach: PavingReach): StreetPalette =>
         footway: ["earth"],
       };
 
-const modernCity: StreetPalette = {
-  main: ["asphalt"],
-  local: ["asphalt"],
-  lane: ["asphalt"],
-  square: ["concrete"],
-  footway: ["concrete"],
-};
-
 export function streetPalette(setting: WorldSetting): StreetPalette {
-  if (
-    setting.year >= 1900 &&
-    (setting.settlement === "city" || setting.settlement === "port")
-  )
-    return modernCity;
   const p = newYorkStreets;
   const [w, s, e, n] = p.bounds;
   if (
@@ -69,6 +57,8 @@ export function streetPalette(setting: WorldSetting): StreetPalette {
     setting.lat <= n
   )
     return p.palette;
+  const industrial = industrialStreets(setting);
+  if (industrial) return industrial;
   if (setting.streetRevision)
     return premodern(streetMaterial(setting), pavingReach(setting));
   return kits[streetMaterial(setting)];

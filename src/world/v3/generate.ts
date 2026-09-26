@@ -27,6 +27,7 @@ import {
   roadMarkings,
 } from "../../content/settlements/streets/markings";
 import { motorized } from "../../content/settlements/modernity";
+import { poleStyle } from "../../content/settlements/streets/control";
 import { streetMaterial } from "../../content/settlements/streets";
 import {
   pavingReach,
@@ -561,6 +562,96 @@ export function createSettlementWorld(
     neighborCache.set(key, result);
     return result;
   }
+  // In the motor age the country roads between towns are blacktop, drawn
+  // from their routes as strokes like any town's roads.
+  const blacktop =
+    pack.setting && motorized(pack.setting)
+      ? blacktopLine(roadMarkings(pack.setting).centre)
+      : undefined;
+  const regionalArt = new Map<string, ReturnType<typeof pathArt>>();
+  function regionalStrokes(x: number, y: number) {
+    if (!blacktop || !transport) return [];
+    const c = coord(x, y),
+      key = cellKey(c.x, c.y);
+    let index = regionalArt.get(key);
+    if (!index) {
+      const area = {
+        x: c.x * DISTRICT_SIZE - land.origin.x - 8,
+        y: c.y * DISTRICT_SIZE - land.origin.y - 8,
+        w: DISTRICT_SIZE + 16,
+        h: DISTRICT_SIZE + 16,
+      };
+      index = pathArt(
+        transport.roadsIn(area).filter((r) => r.kind !== "bridge"),
+        true,
+        false,
+        false,
+        blacktop,
+      );
+      trimCache(regionalArt, 32);
+      regionalArt.set(key, index);
+    }
+    return index.get(cellKey(x, y)) ?? [];
+  }
+  /** Every road stroke drawn on a cell: its settlements' roads and, in the
+   * motor age, the country roads between them. */
+  function strokesAt(x: number, y: number) {
+    return nearby(x, y)
+      .flatMap((p) => {
+        let index = pathArtCache.get(p);
+        if (!index) {
+          const revised = !!pack.setting?.streetRevision;
+          index = pathArt(
+            p.site.profile.paved && !revised && !blacktop ? [] : p.roads,
+            !!pack.setting?.roadRevision,
+            revised && !wheeledTraffic(pack.setting!) ? false : undefined,
+            // Motor traffic had cleared horses off most streets by about 1920.
+            (pack.setting?.year ?? 0) >= 1920 ? false : undefined,
+            blacktop,
+          );
+          pathArtCache.set(p, index);
+        }
+        return index.get(cellKey(x, y)) ?? [];
+      })
+      .concat(regionalStrokes(x, y));
+  }
+  const poles = pack.setting ? poleStyle(pack.setting) : 0;
+  /** Poles stand a couple of cells off a country road, one every ten cells
+   * along it, counted in world coordinates so a bend does not bunch them. */
+  const POLE_SPACING = 10;
+  function poleAt(x: number, y: number) {
+    for (const s of strokesAt(x, y)) {
+      if (!s.paved) continue;
+      const [ax, ay] = s.a,
+        [bx, by] = s.b,
+        len = Math.hypot(bx - ax, by - ay);
+      if (len < 2) continue;
+      const ux = (bx - ax) / len,
+        uy = (by - ay) / len,
+        cx = x + 0.5 - ax,
+        cy = y + 0.5 - ay;
+      const along = cx * ux + cy * uy,
+        side = cx * -uy + cy * ux;
+      if (along < 0 || along > len || Math.abs(side - (s.radius + 2.4)) > 0.75)
+        continue;
+      const world = (x + 0.5) * ux + (y + 0.5) * uy;
+      if (((world % POLE_SPACING) + POLE_SPACING) % POLE_SPACING >= 1.3) continue;
+      const variant =
+        poles === 0 && random(seed, "pole", x, y) < 0.2 ? 2 : poles;
+      return {
+        id: `pole-${x}-${y}`,
+        x,
+        y,
+        sprite: `study-propb-utility-pole-${variant}`,
+        solid: true,
+        wire: {
+          x: Math.floor(x + 0.5 + ux * POLE_SPACING),
+          y: Math.floor(y + 0.5 + uy * POLE_SPACING),
+        },
+      };
+    }
+    return undefined;
+  }
   const roadCache = new Map<string, Map<string, Terrain>>(prepared?.roads);
   function regionalRoads(x: number, y: number) {
     if (relief && !regional) return new Map<string, Terrain>();
@@ -1020,6 +1111,8 @@ export function createSettlementWorld(
       regionalRoads(x, y).has(k)
     )
       return;
+    const pole = blacktop && poleAt(x, y);
+    if (pole) return pole;
     const h = environment ? habitat(x, y) : undefined;
     if (
       h &&
@@ -1559,6 +1652,17 @@ export function createSettlementWorld(
                       ? "dry"
                       : "grass"
               : eco.surface;
+      // The road off the edge of the map is metalled once cars use it.
+      if (
+        f.water >= 0 &&
+        f.travelRoad &&
+        blacktop &&
+        !regionalStrokes(x, y).length
+      ) {
+        cell.surface = "gravel";
+        cell.feature = "paving";
+        cell.streetMaterial = "asphalt";
+      }
       // A creek's edge is painted per pixel by the ground raster (a dark wet
       // line and stones on turf); marking whole cells as gravel drew a
       // stepped grey band along it.
@@ -1632,6 +1736,7 @@ export function createSettlementWorld(
     if (regional && regionalRoads(x, y).has(cellKey(x, y)) && t !== "paving") {
       const local = regional.settingAt(x, y);
       if (
+        !blacktop &&
         regional.placeAt(x, y) &&
         settlementProfile(local).paved &&
         (!local.streetRevision ||
@@ -1640,11 +1745,7 @@ export function createSettlementWorld(
         cell.surface = "gravel";
         cell.feature = "paving";
         cell.streetMaterial = streetMaterial(local);
-      } else if (motorized(local)) {
-        cell.surface = "gravel";
-        cell.feature = "paving";
-        cell.streetMaterial = "asphalt";
-      } else cell.surface = "soil";
+      } else if (!blacktop) cell.surface = "soil";
     }
     if (pack.setting?.urbanRevision) {
       for (const p of nearby(x, y)) {
@@ -1664,6 +1765,8 @@ export function createSettlementWorld(
           cell.pavement = p.pavement.get(key);
         const lane = p.lanes?.get(key);
         if (lane && cell.feature === "paving") cell.lane = lane;
+        const track = p.tracks?.get(key);
+        if (track && cell.feature === "paving") cell.track = track;
         // Authored block ground and courts are areas, not thin paths. Preserve
         // their extent instead of reinterpreting only road centers as worn soil.
         if (t === "dirt" && p.surface.get(key) === "dirt" && !!p.pavement?.size)
@@ -1699,24 +1802,7 @@ export function createSettlementWorld(
       !cell.bridge &&
       !cell.feature
     ) {
-      const strokes = nearby(x, y).flatMap((p) => {
-        let index = pathArtCache.get(p);
-        if (!index) {
-          const revised = !!pack.setting?.streetRevision;
-          index = pathArt(
-            p.site.profile.paved && !revised ? [] : p.roads,
-            !!pack.setting?.roadRevision,
-            revised && !wheeledTraffic(pack.setting!) ? false : undefined,
-            // Motor traffic had cleared horses off most streets by about 1920.
-            (pack.setting?.year ?? 0) >= 1920 ? false : undefined,
-            pack.setting && motorized(pack.setting)
-              ? blacktopLine(roadMarkings(pack.setting).centre)
-              : undefined,
-          );
-          pathArtCache.set(p, index);
-        }
-        return index.get(cellKey(x, y)) ?? [];
-      });
+      const strokes = strokesAt(x, y);
       if (strokes.length)
         cell.pathArt = strokes.map((s) => ({
           a: [s.a[0] - x, s.a[1] - y],

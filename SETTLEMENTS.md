@@ -142,6 +142,31 @@ crossings and stop lines on the approach side for the driving side, parking
 ticks. Country roads in the motor age are asphalt with a painted centre line
 (`blacktopPixel`); farm lanes stay earth.
 
+Surfaces are dated by region in `streets/industrial.ts`: granite setts in the
+railway age, American brick from the 1880s and poured concrete side streets
+from the 1910s, asphalt with the car; colonial and later cities metalled only
+their main roads first. Side streets and alleys take their own surface. Large
+cities ran trams on their arterials in the windows of `streets/trams.ts`; the
+rails lie in a band of setts. A metropolis lays its arterials as boulevards
+with a planted median that stops short of each junction.
+
+At a junction the footway corner is rounded and its kerb and gutter follow
+the arc; where a marked crossing lands, tactile paving in the region's colour
+from the date it was adopted. Busy crossings get the signal of their date
+(`streets/control.ts`: interwar post-top, postwar yellow, modern black); quiet
+ones a stop or give-way sign on the approach side for the driving side.
+
+An industrial-age town has a double-track railway straight through it,
+skirting the old centre and running on past the edge (`Rail` in `blocks.ts`).
+Streets cross it on the level, with planks between the rails; the block beside
+the line nearest the square is the station and its forecourt, and the factory
+sector turns toward the tracks.
+
+In the motor age the country roads, the town's own roads past its built edge
+and the regional routes, are blacktop strokes with a centre line, gravel
+shoulders and ditches, and utility poles every ten cells whose wires the scene
+strings between them.
+
 Cars park one to a `STALL` in the parking lanes, facing the way traffic runs
 on their side, chosen from `src/content/settlements/vehicles.ts`: a weighted
 pool per region whose models come and go with their dates and linger a decade

@@ -120,7 +120,9 @@ it("zones an industrial-age city into a downtown, factories and the housing of e
   // Its streets are wide enough to park on, cross at junctions and are
   // marked for crossing on the approach.
   const lanes = [...richmond.lanes!.values()];
-  expect(Math.max(...lanes.map((l) => l.span))).toBe(10);
+  // A city this size lays its arterials as boulevards with planted medians.
+  expect(Math.max(...lanes.map((l) => l.span))).toBe(12);
+  expect(lanes.some((l) => l.boulevard)).toBe(true);
   expect(lanes.some((l) => l.junction)).toBe(true);
   expect(lanes.some((l) => l.toJunction === 1 || l.toJunction === -1)).toBe(true);
   for (const l of lanes) expect(l.at).toBeGreaterThanOrEqual(0);
@@ -139,6 +141,17 @@ it("zones an industrial-age city into a downtown, factories and the housing of e
   expect(
     plan("Richmond 1790").objects.some((o) => o.sprite.startsWith("vehicle-")),
   ).toBe(false);
+  expect(richmond.objects.some((o) => o.sprite.includes("traffic-signal-2"))).toBe(true);
+
+  // Between the wars: trams on the arterials, concrete side streets, the
+  // railway through town with its station, and the first signals.
+  const interwar = plan("Richmond 1935");
+  const lanes35 = [...interwar.lanes!.values()];
+  expect(lanes35.some((l) => l.tram)).toBe(true);
+  expect(new Set(interwar.streetSurfaces!.values())).toContain("concrete");
+  expect([...interwar.pavement!.values()]).toContain("rail");
+  expect(interwar.places.some((p) => p.name === "Railway station")).toBe(true);
+  expect(interwar.objects.some((o) => o.sprite.includes("traffic-signal-0"))).toBe(true);
 });
 
 it("keeps urban geometry deterministic and the old selection opt-in", () => {

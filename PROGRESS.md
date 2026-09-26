@@ -7,9 +7,12 @@ sidewalks; country roads are blacktop. Nineteen period cars, from a 1915
 touring car to a 2010 SUV by way of the Beetle, the Mini, the Volga, the
 Ambassador and the kei car, park by region and date, drawn from 3D models so
 all four headings share one light. See `SETTLEMENTS.md` and `PROP_ART.md`.
-Not yet done from the plan: road classes and medians, tram rails, dated
-road surfaces, kerb radii and ramps, traffic lights, railways, and ditches and
-poles on country roads.
+Also now: dated regional road surfaces (setts, brick, concrete, asphalt),
+tram rails on large cities' arterials, boulevards with planted medians,
+rounded kerbs with tactile paving at crossings, period traffic signals and
+signs, a railway through every industrial-age town with level crossings and a
+station, and blacktop country roads with centre lines, ditches and wired
+utility poles.
 
 ## Industrial-age city layout — September 26, 2026
 

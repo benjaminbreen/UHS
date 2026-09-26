@@ -24,7 +24,10 @@ import {
   motorized,
 } from "../../content/settlements/modernity";
 import { zoningFor, type LandUse } from "../../content/settlements/zoning";
-import { MOTOR_SPANS } from "../../content/settlements/streets/markings";
+import {
+  BOULEVARD,
+  MOTOR_SPANS,
+} from "../../content/settlements/streets/markings";
 import type { Terrain } from "../../core/types";
 import {
   composeUrban,
@@ -34,6 +37,7 @@ import {
   type Gate,
   type Wall,
   type Furniture,
+  type Rail,
 } from "./blocks";
 import { cellKey, type Rect, type Road, type Site } from "./types";
 
@@ -111,6 +115,8 @@ export type UrbanSurface = {
   reserveClearance(rect: Rect): void;
   /** Stand the defensive circuit, before any street is laid through its gates. */
   buildWall(wall: Wall, parts: { x: number; y: number; frame: string }[]): void;
+  /** Lay the railway, after the streets it crosses on the level. */
+  railway?(rail: Rail): void;
   /** Direction of open water, for fabrics whose public space faces it. */
   shore?: Point;
   /** Land within two cells of water, where a quay and its street can stand. */
@@ -215,7 +221,14 @@ export function siteForm(site: Site, pack: Pack): UrbanForm {
   const regional = {
     ...urbanForm(pack.setting!),
     motor,
-    ...(motor ? { tiers: MOTOR_SPANS } : {}),
+    ...(motor
+      ? {
+          tiers:
+            site.profile.radius >= 90
+              ? ([BOULEVARD, MOTOR_SPANS[1], MOTOR_SPANS[2]] as const)
+              : MOTOR_SPANS,
+        }
+      : {}),
   };
   // A plotted town is cut into blocks that hold two rows of house and garden,
   // with no paved courts inside them.
@@ -346,6 +359,7 @@ export function urbanNeighborhood(
     site.aspect,
     pack.year,
     precincts.map((p) => ({ sizes: p.options.map((o) => o.size) })),
+    !!zoning && site.profile.radius >= 40,
   );
   const used = new Set<string>();
   const reserve = (r: Rect) => {
@@ -840,6 +854,8 @@ export function urbanNeighborhood(
   }
   api.paintCourt(plaza, civic.square, civicRect);
   for (const [i, r] of layout.squares.entries()) api.paintSquare(r, i);
+  if (layout.rail) api.railway?.(layout.rail);
+  const station = layout.rail && raiseStation(layout.rail);
 
   // Blocks are filled, not rationed. Each block gets the rows its edges can
   // carry and, in a modern city, infill up to the coverage its place implies;
@@ -863,7 +879,8 @@ export function urbanNeighborhood(
   const useAt = new Map<string, LandUse>();
   for (const [block, use] of uses)
     for (const k of cells(block)) useAt.set(k, use);
-  const ranks = [...layout.blocks]
+  const ranks = layout.blocks
+    .filter((b) => b !== station)
     .sort((a, b) => a.reach - b.reach || a.x - b.x || a.y - b.y)
     .map((block) => ({
       block,
@@ -1060,6 +1077,91 @@ export function urbanNeighborhood(
       );
   }
 
+  /** The station stands on the block beside the line nearest the square, its
+   * back to the tracks and its front on a paved forecourt. */
+  function raiseStation(rail: Rail): Block | undefined {
+    const alongX = rail.axis === "x";
+    const beside = (b: Block) => {
+      const [lo, hi] = alongX ? [b.y, b.y + b.h] : [b.x, b.x + b.w];
+      return hi >= rail.level - 4 && hi <= rail.level
+        ? -1
+        : lo >= rail.level + rail.span && lo <= rail.level + rail.span + 4
+          ? 1
+          : 0;
+    };
+    const focus = {
+      x: layout.plaza.x + (layout.plaza.w >> 1),
+      y: layout.plaza.y + (layout.plaza.h >> 1),
+    };
+    const candidates = layout.blocks
+      .filter((b) => beside(b) && b.w >= 12 && b.h >= 10)
+      .sort(
+        (a, b) =>
+          Math.hypot(a.x + a.w / 2 - focus.x, a.y + a.h / 2 - focus.y) -
+          Math.hypot(b.x + b.w / 2 - focus.x, b.y + b.h / 2 - focus.y),
+      );
+    // The nearest block may already hold a venue by the square.
+    for (const block of candidates) if (stationOn(block)) return block;
+    return undefined;
+  }
+
+  function stationOn(block: Block) {
+    const alongX = layout.rail!.axis === "x";
+    const side = alongX
+      ? block.y + block.h <= layout.rail!.level ? -1 : 1
+      : block.x + block.w <= layout.rail!.level ? -1 : 1;
+    // Which way its door faces: away from the rails.
+    const facing = alongX
+      ? side < 0 ? "north" : "south"
+      : side < 0 ? "west" : "east";
+    const bases = [
+      ...(civicBase ? [`${civicBase}-urban-${civic.form}`] : []),
+      ...[...frames].sort(
+        (a, b) => buildingModel(b).footprint[0] - buildingModel(a).footprint[0],
+      ),
+    ];
+    for (const base of bases) {
+      const frame = facing === "south" ? base : `${base}-${facing}`;
+      if (!buildingModels[frame]) continue;
+      const model = buildingModel(frame);
+      const [w, h] = model.footprint;
+      if (w > block.w - 2 || h > block.h - 2) continue;
+      const rect = alongX
+        ? {
+            x: block.x + ((block.w - w) >> 1),
+            y: side < 0 ? block.y + block.h - h : block.y,
+            w,
+            h,
+          }
+        : {
+            x: side < 0 ? block.x + block.w - w : block.x,
+            y: block.y + ((block.h - h) >> 1),
+            w,
+            h,
+          };
+      if (!fits(rect)) continue;
+      const point = { x: rect.x + model.entrance[0], y: rect.y + model.entrance[1] };
+      claimLandmark(
+        {
+          point,
+          nx: 0,
+          ny: 1,
+          frame,
+          rect,
+          yard: rect,
+          workPoint: point,
+          piece: {
+            name: "Railway station",
+            about: "Where the line stops: a booking hall, a clock, and the platforms behind.",
+          },
+        },
+        { forecourt: block },
+      );
+      return block;
+    }
+    return undefined;
+  }
+
   function onArterial(block: Block) {
     return layout.streets.some(
       (s) =>
@@ -1094,10 +1196,15 @@ export function urbanNeighborhood(
           : "residential";
   }
 
-  /** The bearing factories took: toward the water or the bridge where there
-   * is one, since that is where goods came in. */
+  /** The bearing factories took: toward where the goods came in, the railway
+   * where there is one, else the water or the bridge. */
   function industrySector() {
-    const to = api.shore ?? api.bridge;
+    const rail = layout.rail;
+    const to = rail
+      ? rail.axis === "x"
+        ? { x: site.center.x, y: rail.level + (rail.span >> 1) }
+        : { x: rail.level + (rail.span >> 1), y: site.center.y }
+      : (api.shore ?? api.bridge);
     const bearing = to
       ? Math.atan2(to.y - site.center.y, to.x - site.center.x)
       : rand("industry") * Math.PI * 2;

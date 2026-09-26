@@ -35,6 +35,16 @@ export type Wall = {
   openings: Set<string>;
 };
 export type Furniture = { kind: StreetFurniture; x: number; y: number };
+/** A double-track line straight through the town and out past its edge:
+ * `level` is its first row or column, `lo` to `hi` its run along `axis`. */
+export type Rail = {
+  axis: "x" | "y";
+  level: number;
+  lo: number;
+  hi: number;
+  span: number;
+};
+export const RAIL_SPAN = 4;
 export type UrbanLayout = {
   gates: Gate[];
   streets: Segment[];
@@ -55,6 +65,7 @@ export type UrbanLayout = {
    * small town. */
   tiers: readonly [number, number, number];
   wall?: Wall;
+  rail?: Rail;
   /** Distance from the centre to the built edge on this bearing, in radians. */
   edge(angle: number): number;
   /** Whether a point lies inside the built edge, less an optional margin. */
@@ -172,6 +183,8 @@ export function composeUrban(
   year?: number,
   /** Courts, arenas and markets, each as its sizes largest first. */
   precincts?: { sizes: readonly (readonly [number, number])[] }[],
+  /** An industrial-age town has a railway through it. */
+  railway = false,
 ): UrbanLayout {
   const half = urbanFootprint(radius, form);
   const rand = (...keys: (string | number)[]) =>
@@ -897,6 +910,35 @@ export function composeUrban(
     }
   }
 
+  // The railway skirts the old centre, as the lines did that reached towns
+  // already built, and runs on past the edge. No street runs along it.
+  const rail: Rail | undefined = railway
+    ? (() => {
+        const axis = rand("rail-axis") < 0.5 ? "x" : "y";
+        const side = rand("rail-side") < 0.5 ? -1 : 1;
+        const origin = axis === "x" ? center.x : center.y;
+        return {
+          axis,
+          level:
+            (axis === "x" ? focus.y : focus.x) +
+            side * Math.round(half * (0.3 + rand("rail-at") * 0.2)),
+          lo: origin - half - 40,
+          hi: origin + half + 40,
+          span: RAIL_SPAN,
+        };
+      })()
+    : undefined;
+  if (rail)
+    for (let i = streets.length - 1; i >= 0; i--) {
+      const s = streets[i];
+      if (
+        axisOf(s) === rail.axis &&
+        across(s) >= rail.level - 4 &&
+        across(s) <= rail.level + rail.span + 3
+      )
+        streets.splice(i, 1);
+    }
+
   // --- Blocks read off the ground -------------------------------------------
   const W = bounds.w,
     H = bounds.h;
@@ -935,6 +977,13 @@ export function composeUrban(
     clearRect(plaza, Math.max(loA, hiA) + 1);
     for (const r of squares) clearRect(r, Math.max(loA, hiA) + 1);
     for (const r of grounds) if (r) clearRect(r, 1);
+    if (rail)
+      clearRect(
+        rail.axis === "x"
+          ? { x: bounds.x, y: rail.level, w: W, h: rail.span }
+          : { x: rail.level, y: bounds.y, w: rail.span, h: H },
+        1,
+      );
   }
   /** The largest open rectangle at least 8 cells each way, by the histogram
    * method over the open grid. */
@@ -1163,6 +1212,7 @@ export function composeUrban(
     edge,
     holds,
     wall: circuit(),
+    rail,
   };
 
   /** No street ends in the open. Every end is carried on to the next street

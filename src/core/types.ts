@@ -307,7 +307,13 @@ export type WorldObject = {
   /** Knocked over: draws its fallen sprite and spills what it held. */
   tipped?: boolean;
 };
-export type Decoration = Point & { id: string; sprite: string; solid: boolean };
+export type Decoration = Point & {
+  id: string;
+  sprite: string;
+  solid: boolean;
+  /** A pole's wires run on to the pole at this cell. */
+  wire?: Point;
+};
 export type Terrain =
   | "grass"
   | "dry"

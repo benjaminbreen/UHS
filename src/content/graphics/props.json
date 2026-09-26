@@ -1066,6 +1066,51 @@
       ]
     },
     {
+      "id": "traffic-signal",
+      "name": "Traffic signal",
+      "group": "Street furniture",
+      "size": [
+        20,
+        62
+      ],
+      "description": "A signal head on a post at a busy crossing: the interwar four-way head, the postwar yellow three-light, the modern black head with its backplate.",
+      "variants": [
+        "Interwar post-top",
+        "Postwar three-light",
+        "Modern"
+      ]
+    },
+    {
+      "id": "traffic-sign",
+      "name": "Traffic sign",
+      "group": "Street furniture",
+      "size": [
+        17,
+        38
+      ],
+      "description": "A sign where a quiet street meets a busier one: stop, give way.",
+      "variants": [
+        "Stop",
+        "Give way",
+        "Stop (Japan)"
+      ]
+    },
+    {
+      "id": "utility-pole",
+      "name": "Utility pole",
+      "group": "Street furniture",
+      "size": [
+        28,
+        86
+      ],
+      "description": "A pole carrying power and telephone wires along a country road: creosoted timber with glass insulators, spun concrete, or timber with a transformer.",
+      "variants": [
+        "Timber",
+        "Concrete",
+        "Timber with transformer"
+      ]
+    },
+    {
       "id": "stall-trestle",
       "name": "Trestle stall",
       "group": "Street furniture",

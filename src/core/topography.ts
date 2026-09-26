@@ -36,6 +36,7 @@ export type TopographyCell = {
   moisture?: number;
   pavement?: import("../world/v3/types").Pavement;
   lane?: import("../world/v3/types").Lane;
+  track?: import("../world/v3/types").Track;
   streetMaterial?: import("../content/settlements/streets").StreetMaterial;
   habitat?: import("../world/v3/habitats").Habitat;
   /** Presentation-only landscape feature painted by the ground raster. */

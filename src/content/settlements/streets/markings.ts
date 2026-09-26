@@ -17,18 +17,37 @@ export type RoadMarkings = {
   gutter: "concrete" | "sett" | "none";
   /** Outer lanes of a wide street kept for parked cars, with stall ticks. */
   parking: boolean;
+  /** Tactile paving where a crossing meets the kerb, by the date the
+   * region took it up; "none" before. */
+  tactile: "none" | "yellow" | "buff" | "grey";
+};
+
+// When each region laid tactile paving at its crossings: Japan's yellow
+// blocks from 1967, Britain's buff blisters and the American yellow domes
+// after the disability laws of around 1990.
+const TACTILE: Record<string, [number, RoadMarkings["tactile"]]> = {
+  "north-american": [1991, "yellow"],
+  british: [1990, "buff"],
+  japanese: [1970, "yellow"],
+  chinese: [2000, "yellow"],
+  continental: [2000, "grey"],
+  "latin-american": [2010, "yellow"],
+  international: [2010, "yellow"],
 };
 
 /** Carriageway widths in cells for the arterial, street and alley of a
  * motor-age city: a parking lane of two cells each side of two travel lanes,
  * three cells wide on an arterial and two on a street. */
 export const MOTOR_SPANS = [10, 8, 3] as const;
+/** A metropolis lays its arterials as boulevards: the same two lanes and
+ * parking each way either side of a planted median two cells wide. */
+export const BOULEVARD = 12;
 /** Cells of parking lane along each kerb, where a style parks at all. */
 export const PARKING = 2;
 /** Cells of kerb per parking stall: the longest car of the fifties fits. */
 export const STALL = 6;
 
-type Rule = RoadMarkings & {
+type Rule = Omit<RoadMarkings, "tactile"> & {
   from: number;
   to: number;
   bounds: readonly [number, number, number, number];
@@ -169,6 +188,7 @@ const bare: RoadMarkings = {
   stopLine: false,
   gutter: "concrete",
   parking: false,
+  tactile: "none",
 };
 
 /** The one line a two-lane country road carries down its middle. */
@@ -185,5 +205,11 @@ export function roadMarkings(s: WorldSetting): RoadMarkings {
   const drive = leftHand(s) ? "left" : "right";
   if (!rule) return { ...bare, drive };
   const { from, to, bounds, ...style } = rule;
-  return { ...style, drive, parking: style.parking && motorized(s) };
+  const [since, tactile] = TACTILE[style.id] ?? [Infinity, "none"];
+  return {
+    ...style,
+    drive,
+    parking: style.parking && motorized(s),
+    tactile: s.year >= since ? tactile : "none",
+  };
 }
