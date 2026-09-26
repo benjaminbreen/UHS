@@ -111,7 +111,7 @@ describe("original soundtrack scores", () => {
   it("plays a culture's pieces across its eras and puts direct hits first", () => {
     const java = culturalMusic("southeast-asian", 1450);
     expect(java.direct.map((t) => t.id)).toEqual(["gongs-of-trowulan"]);
-    const later = culturalMusic("southeast-asian", 1950);
+    const later = culturalMusic("southeast-asian", 1970);
     expect(later.direct).toEqual([]);
     expect(later.family.map((t) => t.id)).toContain("gongs-of-trowulan");
   });

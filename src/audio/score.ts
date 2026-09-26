@@ -65,7 +65,17 @@ export type Voice =
   | "crackle"
   | "carillon"
   | "theremin"
-  | "beep";
+  | "beep"
+  | "rockgong"
+  | "xun"
+  | "crack"
+  | "khene"
+  | "panpipe"
+  | "footdrum"
+  | "tanbur"
+  | "muted"
+  | "clarinet"
+  | "choir";
 const unpitched = new Set<Voice>([
   "kick",
   "brush",
@@ -75,6 +85,7 @@ const unpitched = new Set<Voice>([
   "mridanga",
   "sistrum",
   "clap",
+  "crack",
   "snare",
   "steam",
   "guiro",
@@ -90,6 +101,8 @@ export interface Note {
   voice: Voice;
   pan: number;
   cents?: number;
+  /** Semitones below the pitch that the note scoops up from. */
+  bend?: number;
 }
 export interface Theme {
   id: string;
@@ -765,27 +778,32 @@ function composeLayered(theme: LayeredTheme, arrangement: Arrangement): Score {
   const notes: Note[] = [];
   for (const layer of theme.layers) {
     if (quiet && layer.day) continue;
-    const events: [number, number, number[]][] = [];
+    const events: [number, number, number, [number, number][]][] = [];
     let length = 0;
+    // "pitch:beats", with an optional ":accent"; a leading ~ scoops up a whole step.
     for (const token of layer.loop.split(" ")) {
-      const [pitch, span] = token.split(":");
+      const [pitch, span, accent = "1"] = token.split(":");
       events.push([
         length,
         Number(span),
+        Number(accent),
         pitch === "-"
           ? []
-          : pitch.split("+").map((p) => midi(p) + (layer.transpose ?? 0)),
+          : pitch
+              .split("+")
+              .map((p) => [
+                midi(p.replace("~", "")) + (layer.transpose ?? 0),
+                p.startsWith("~") ? 2 : 0,
+              ]),
       ]);
       length += Number(span);
     }
-    const end = (layer.exit ?? theme.bars) * theme.meter;
-    for (
-      let at = (layer.enter ?? 0) * theme.meter;
-      at < end;
-      at += length - (layer.drift ?? 0)
-    )
-      for (const [offset, span, chord] of events)
-        chord.forEach((pitch, i) => {
+    const first = (layer.enter ?? 0) * theme.meter,
+      end = (layer.exit ?? theme.bars) * theme.meter;
+    const [fadeFrom, fadeTo] = layer.fade ?? [1, 1];
+    for (let at = first; at < end; at += length - (layer.drift ?? 0))
+      for (const [offset, span, accent, chord] of events)
+        chord.forEach(([pitch, bend], i) => {
           let start = at + offset;
           const [unit, amount] = theme.swing ?? [0, 0];
           if (unit && Math.round(start / unit) % 2 === 1) start += amount;
@@ -799,13 +817,20 @@ function composeLayered(theme: LayeredTheme, arrangement: Arrangement): Score {
                 duration: Math.min(span * 0.92, beats - beat),
                 midi: pitch,
                 velocity:
-                  layer.velocity * (quiet ? 0.75 : 1) * feedback ** repeat,
+                  layer.velocity *
+                  accent *
+                  (fadeFrom +
+                    ((fadeTo - fadeFrom) * (at + offset - first)) /
+                      (end - first)) *
+                  (quiet ? 0.75 : 1) *
+                  feedback ** repeat,
                 stem: layer.stem,
                 voice: layer.voice,
                 pan: layer.pan ?? 0,
                 cents: unpitched.has(layer.voice)
                   ? 0
                   : (theme.tuning?.[pitch % 12] ?? 0),
+                bend,
               });
           }
         });

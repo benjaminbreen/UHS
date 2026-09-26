@@ -44,13 +44,14 @@ function instrument(
   voice: Voice,
   midi: number,
   cents = 0,
+  bend = 0,
 ): AudioBuffer {
   let cache = caches.get(ctx);
   if (!cache) {
     cache = new Map();
     caches.set(ctx, cache);
   }
-  const key = `${voice}:${midi}:${cents}`;
+  const key = `${voice}:${midi}:${cents}:${bend}`;
   const existing = cache.get(key);
   if (existing) return existing;
   const duration =
@@ -58,7 +59,8 @@ function instrument(
     voice === "shaker" ||
     voice === "clap" ||
     voice === "guiro" ||
-    voice === "hat"
+    voice === "hat" ||
+    voice === "crack"
       ? 0.25
       : voice === "kick" ||
           voice === "wood" ||
@@ -77,6 +79,12 @@ function instrument(
               voice === "gong" ||
               voice === "carillon" ||
               voice === "theremin" ||
+              voice === "xun" ||
+              voice === "khene" ||
+              voice === "panpipe" ||
+              voice === "muted" ||
+              voice === "clarinet" ||
+              voice === "choir" ||
               voice === "sho" ||
               voice === "throat" ||
               voice === "whistle" ||
@@ -104,7 +112,8 @@ function instrument(
     voice === "uke" ||
     voice === "guitar" ||
     voice === "eguitar" ||
-    voice === "fuzz"
+    voice === "fuzz" ||
+    voice === "tanbur"
   ) {
     const [brightness, decay, nasal] = {
       pluck: [0.45, 1.4, 0.15],
@@ -117,6 +126,7 @@ function instrument(
       guitar: [0.6, 1.2, 0.3],
       eguitar: [0.5, 1.6, 0.6],
       fuzz: [0.8, 0.8, 0.3],
+      tanbur: [0.75, 1, 0.2],
     }[voice];
     pluckString(
       data,
@@ -136,10 +146,15 @@ function instrument(
     return buffer;
   }
   let breath = 0,
-    slide = 0;
+    slide = 0,
+    scoop = 0;
   for (let i = 0; i < data.length; i++) {
-    const t = i / ctx.sampleRate,
-      phase = 2 * Math.PI * frequency * t;
+    const t = i / ctx.sampleRate;
+    // A scooped note starts `bend` semitones low and reaches pitch in about 70 ms.
+    scoop +=
+      (2 * Math.PI * frequency * 2 ** ((-bend * Math.exp(-t * 30)) / 12)) /
+      ctx.sampleRate;
+    const phase = bend ? scoop : 2 * Math.PI * frequency * t;
     breath = breath * 0.72 + random() * 0.28;
     let sample = 0;
     if (voice === "flute") {
@@ -403,6 +418,95 @@ function instrument(
             12);
       slide += (2 * Math.PI * f) / ctx.sampleRate;
       sample = 0.55 * Math.sin(slide) + 0.08 * Math.sin(2 * slide);
+    } else if (voice === "rockgong") {
+      // A ringing boulder: a few stiff, inharmonic modes and a stony strike.
+      sample =
+        0.5 * Math.sin(phase) * Math.exp(-t * 1.4) +
+        0.25 * Math.sin(phase * 1.58) * Math.exp(-t * 2.6) +
+        0.15 * Math.sin(phase * 2.33) * Math.exp(-t * 4.5) +
+        0.08 * Math.sin(phase * 3.6) * Math.exp(-t * 8) +
+        random() * 0.15 * Math.exp(-t * 120);
+    } else if (voice === "xun") {
+      // Clay vessel flute: nearly pure and hollow, with a puff of breath at the start.
+      const vibrato =
+        0.008 * Math.sin(2 * Math.PI * 4.5 * t) * Math.min(1, t * 0.7);
+      sample =
+        0.6 * Math.sin(phase + vibrato) +
+        0.06 * Math.sin(2 * phase) +
+        0.03 * Math.sin(3 * phase) +
+        breath * (0.05 + 0.25 * Math.exp(-t * 25));
+    } else if (voice === "khene") {
+      // Free reeds in bamboo pipes: bright and even, quick to speak, with a breathy edge.
+      for (let harmonic = 1; harmonic <= 10; harmonic++) {
+        if (frequency * harmonic > ctx.sampleRate * 0.45) continue;
+        sample +=
+          ((harmonic % 2 ? 1 : 0.7) * Math.sin(phase * harmonic)) /
+          harmonic ** 0.8;
+      }
+      sample = sample * 0.2 + breath * 0.025;
+    } else if (voice === "panpipe") {
+      // A stopped cane pipe: odd harmonics, a hard puff to start it, air all through.
+      sample =
+        0.6 * Math.sin(phase) +
+        0.1 * Math.sin(3 * phase) +
+        0.03 * Math.sin(5 * phase) +
+        breath * (0.1 + 0.4 * Math.exp(-t * 30));
+    } else if (voice === "footdrum") {
+      // Planks over a pit in the kiva floor: a heavy, low boom with a wooden knock on top.
+      const bend =
+        2 * Math.PI * frequency * (t + 0.01 * (1 - Math.exp(-t * 18)));
+      sample =
+        0.8 * Math.sin(bend) * Math.exp(-t * 3.2) +
+        0.25 * Math.sin(bend * 2.7) * Math.exp(-t * 14) +
+        random() * 0.18 * Math.exp(-t * 90);
+    } else if (voice === "muted") {
+      // Trumpet into a cup mute: the low end thinned, a nasal peak near 1.6 kHz.
+      const vibrato =
+        0.012 *
+        Math.sin(2 * Math.PI * 5.5 * t) *
+        Math.min(1, Math.max(0, t - 0.2) * 2);
+      for (let harmonic = 1; harmonic <= 12; harmonic++) {
+        const f = frequency * harmonic;
+        if (f > ctx.sampleRate * 0.45) continue;
+        const formant = 1 / (1 + ((f - 1600) / 450) ** 2);
+        sample +=
+          ((0.15 + formant) * Math.sin(harmonic * (phase + vibrato))) /
+          harmonic ** 0.6;
+      }
+      sample *= 0.22;
+    } else if (voice === "clarinet") {
+      // A cylindrical bore: odd harmonics strong, even ones nearly absent.
+      const vibrato =
+        0.015 * Math.sin(2 * Math.PI * 5 * t) * Math.min(1, t * 1.5);
+      for (let harmonic = 1; harmonic <= 11; harmonic++) {
+        if (frequency * harmonic > ctx.sampleRate * 0.45) continue;
+        sample +=
+          ((harmonic % 2 ? 1 : 0.1) * Math.sin(harmonic * (phase + vibrato))) /
+          harmonic;
+      }
+      sample = sample * 0.45 + breath * 0.015;
+    } else if (voice === "choir") {
+      // Three voices on "ah", a little out of tune with each other, shaped by the vowel's formants.
+      const vibrato =
+        0.02 * Math.sin(2 * Math.PI * 5.3 * t) * Math.min(1, t * 1.2);
+      for (const detune of [0.996, 1, 1.004])
+        for (let harmonic = 1; harmonic <= 16; harmonic++) {
+          const f = frequency * harmonic * detune;
+          if (f > ctx.sampleRate * 0.45) break;
+          const vowel =
+            1 / (1 + ((f - 700) / 130) ** 2) +
+            0.6 / (1 + ((f - 1150) / 150) ** 2) +
+            0.25 / (1 + ((f - 2600) / 250) ** 2);
+          sample +=
+            (vowel * Math.sin(harmonic * (phase * detune + vibrato))) /
+            harmonic ** 0.3;
+        }
+      sample = sample * 0.09 + breath * 0.01;
+    } else if (voice === "crack") {
+      // A heated bone splitting: a hard snap with a small, high ring.
+      sample =
+        random() * 0.8 * Math.exp(-t * 300) +
+        0.2 * Math.sin(2 * Math.PI * 2400 * t) * Math.exp(-t * 60);
     } else if (voice === "beep") {
       sample = 0.5 * Math.sin(phase);
     } else if (voice === "carillon") {
@@ -507,9 +611,9 @@ export async function prepareScore(
   const prepared = new Set<string>();
   for (const note of score.notes) {
     if (!current()) return;
-    const key = `${note.voice}:${note.midi}:${note.cents ?? 0}`;
+    const key = `${note.voice}:${note.midi}:${note.cents ?? 0}:${note.bend ?? 0}`;
     if (prepared.has(key)) continue;
-    instrument(ctx, note.voice, note.midi, note.cents);
+    instrument(ctx, note.voice, note.midi, note.cents, note.bend);
     prepared.add(key);
     if (prepared.size % 4 === 0)
       await new Promise((resolve) => setTimeout(resolve, 0));
@@ -592,8 +696,14 @@ export function scheduleNote(
   const source = ctx.createBufferSource(),
     envelope = ctx.createGain(),
     pan = ctx.createStereoPanner();
-  source.buffer = instrument(ctx, note.voice, note.midi, note.cents);
+  source.buffer = instrument(ctx, note.voice, note.midi, note.cents, note.bend);
   const sustained =
+    note.voice === "xun" ||
+    note.voice === "khene" ||
+    note.voice === "panpipe" ||
+    note.voice === "muted" ||
+    note.voice === "clarinet" ||
+    note.voice === "choir" ||
     note.voice === "theremin" ||
     note.voice === "organ" ||
     note.voice === "pad" ||
@@ -614,7 +724,9 @@ export function scheduleNote(
     duration * 0.3,
     note.voice === "sho" || note.voice === "pad"
       ? 0.5
-      : note.voice === "strings" || note.voice === "drone"
+      : note.voice === "strings" ||
+          note.voice === "drone" ||
+          note.voice === "choir"
         ? 0.16
         : sustained
           ? 0.055
@@ -633,6 +745,9 @@ export function scheduleNote(
         note.voice === "chime" ||
         note.voice === "kalimba" ||
         note.voice === "harpsichord" ||
+        note.voice === "rockgong" ||
+        note.voice === "footdrum" ||
+        note.voice === "tanbur" ||
         note.voice === "piano" ||
         note.voice === "vib" ||
         note.voice === "rhodes" ||
