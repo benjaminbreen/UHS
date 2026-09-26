@@ -130,6 +130,8 @@ export function rasterStreetTile(
       n.pavement !== "dais" &&
       n.height === c.height &&
       (n.pavement === "verge" ||
+        // A carriageway is kerbed where it meets a square, as at a footway.
+        (!!c.lane && !c.pavement && n.pavement === "square") ||
         (c.pavement !== "footway" && kerbed(sample, x + dx, y + dy)))
     );
   };

@@ -32,7 +32,7 @@ import {
   roadMarkings,
 } from "../../content/settlements/streets/markings";
 import { tramways } from "../../content/settlements/streets/trams";
-import { motorized } from "../../content/settlements/modernity";
+import { industrialized, motorized } from "../../content/settlements/modernity";
 import { trafficControl } from "../../content/settlements/streets/control";
 import {
   carLength,
@@ -366,6 +366,7 @@ export function planSettlement(
         ? "grass"
         : "dirt";
   const motorAge = !!pack.setting && motorized(pack.setting);
+  const industrialAge = !!pack.setting && industrialized(pack.setting);
   const addRoad = (road: Road, surface?: typeof stone, composed = false) => {
     road = {
       ...road,
@@ -532,6 +533,15 @@ export function planSettlement(
     for (const [k, lane] of plan.lanes ?? []) {
       if (lane.junction || lane.span < 2) continue;
       const [x, y] = k.split(",").map(Number);
+      const along = (d: number) =>
+        plan.lanes!.get(
+          lane.axis === "x" ? cellKey(x + d, y) : cellKey(x, y + d),
+        );
+      // Where a junction is only a few cells off, people cross there; a
+      // second crossing at the square's edge would stack on it.
+      let junctionNear = false;
+      for (let d = -7; d <= 7 && !junctionNear; d++)
+        junctionNear = !!d && !!along(d)?.junction;
       for (const dir of [-1, 1])
         for (let d = 1; d <= 3; d++) {
           const k =
@@ -541,6 +551,7 @@ export function planSettlement(
           // one that only brushes a corner of it is not.
           const mid = (lane.span >> 1) - lane.at;
           const square =
+            !junctionNear &&
             plan.pavement?.get(k) === "square" &&
             plan.pavement?.get(
               lane.axis === "x"
@@ -1153,7 +1164,8 @@ export function planSettlement(
           setSurface(cellKey(x, y), ground, 2);
       });
     const paintFootway = (rect: Rect) => {
-      if (!profile.paved || plotted) return;
+      // A town of house plots had no sidewalks until the industrial age.
+      if (!profile.paved || (plotted && !industrialAge)) return;
       eachCell(rect, (x, y) => {
         const k = cellKey(x, y);
         if (

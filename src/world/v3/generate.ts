@@ -28,6 +28,7 @@ import {
 } from "../../content/settlements/streets/markings";
 import { motorized } from "../../content/settlements/modernity";
 import { poleStyle } from "../../content/settlements/streets/control";
+import { streetPalette } from "../../content/settlements/streets/palettes";
 import { streetMaterial } from "../../content/settlements/streets";
 import {
   pavingReach,
@@ -1758,11 +1759,26 @@ export function createSettlementWorld(
             delete cell.streetMaterial;
           } else cell.streetMaterial = material;
         }
+        const pavement = p.pavement?.get(key);
+        // A verge is grass, not paving, but the kerb beside it needs to know.
         if (
-          p.pavement?.has(key) &&
-          (!pack.setting?.streetRevision || cell.feature === "paving")
+          pavement &&
+          (!pack.setting?.streetRevision ||
+            cell.feature === "paving" ||
+            pavement === "verge")
         )
-          cell.pavement = p.pavement.get(key);
+          cell.pavement = pavement;
+        // A footway with no surface of its own is the town's footway stone,
+        // not the carriageway's.
+        if (
+          pavement === "footway" &&
+          cell.feature === "paving" &&
+          !material &&
+          p.site.pack
+        ) {
+          const own = streetPalette(p.site.pack.setting!).footway[0];
+          if (own !== "earth") cell.streetMaterial = own;
+        }
         const lane = p.lanes?.get(key);
         if (lane && cell.feature === "paving") cell.lane = lane;
         const track = p.tracks?.get(key);

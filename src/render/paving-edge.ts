@@ -10,6 +10,8 @@ export const wornEdge = (n?: TopographyCell) =>
   !!n &&
   !paved(n) &&
   n.surface !== "water" &&
+  // A planted verge or median is kerbed, not worn into.
+  n.pavement !== "verge" &&
   (n.field ? !raisedFieldEdge(n) : n.feature !== "field");
 
 /** The roadway a footway runs beside, within two cells. */

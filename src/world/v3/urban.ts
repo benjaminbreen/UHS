@@ -227,6 +227,9 @@ export function siteForm(site: Site, pack: Pack): UrbanForm {
             site.profile.radius >= 90
               ? ([BOULEVARD, MOTOR_SPANS[1], MOTOR_SPANS[2]] as const)
               : MOTOR_SPANS,
+          // A diagonal avenue as wide as these is a staircase of cells with
+          // no kerb or lane to follow it; the grid carries the traffic.
+          diagonals: 0,
         }
       : {}),
   };
@@ -505,8 +508,9 @@ export function urbanNeighborhood(
     api.paintVerge(r);
     api.paintVergeWalk(r);
   }
-  // A modern street has a sidewalk its whole length, built frontage or not.
-  if (modern)
+  // An industrial-age street has a sidewalk its whole length, built frontage
+  // or not.
+  if (modern || zoning)
     for (const s of layout.streets) {
       if (s.tier === 0 && form.verge) continue;
       const span = layout.tiers[s.tier],
@@ -1752,7 +1756,9 @@ export function urbanNeighborhood(
     // both ends of the block and nothing behind it is landlocked. Laid only
     // once the block is built: a lane through an empty block is a cul-de-sac
     // to nowhere.
-    while (bottom - top >= gap + 2 * shallowest) {
+    // An industrial-age block fronts its streets and keeps its middle for
+    // yards; a lane of back-to-back rows is an older town's habit.
+    while (!zoning && bottom - top >= gap + 2 * shallowest) {
       const laneY = top + Math.min(deepest + yard, (bottom - top - gap) >> 1);
       out.push(...terrace(block, laneY, "south", band++, laneY - top).lots);
       const below = terrace(
