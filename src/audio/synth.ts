@@ -85,6 +85,7 @@ function instrument(
               voice === "muted" ||
               voice === "clarinet" ||
               voice === "choir" ||
+              voice === "singer" ||
               voice === "sho" ||
               voice === "throat" ||
               voice === "whistle" ||
@@ -485,11 +486,13 @@ function instrument(
           harmonic;
       }
       sample = sample * 0.45 + breath * 0.015;
-    } else if (voice === "choir") {
-      // Three voices on "ah", a little out of tune with each other, shaped by the vowel's formants.
+    } else if (voice === "choir" || voice === "singer") {
+      // Voices on "ah", shaped by the vowel's formants: three a little apart, or one with more vibrato.
       const vibrato =
-        0.02 * Math.sin(2 * Math.PI * 5.3 * t) * Math.min(1, t * 1.2);
-      for (const detune of [0.996, 1, 1.004])
+        (voice === "singer" ? 0.035 : 0.02) *
+        Math.sin(2 * Math.PI * 5.3 * t) *
+        Math.min(1, t * 1.2);
+      for (const detune of voice === "singer" ? [1, 1] : [0.996, 1, 1.004])
         for (let harmonic = 1; harmonic <= 16; harmonic++) {
           const f = frequency * harmonic * detune;
           if (f > ctx.sampleRate * 0.45) break;
@@ -704,6 +707,7 @@ export function scheduleNote(
     note.voice === "muted" ||
     note.voice === "clarinet" ||
     note.voice === "choir" ||
+    note.voice === "singer" ||
     note.voice === "theremin" ||
     note.voice === "organ" ||
     note.voice === "pad" ||
@@ -726,7 +730,8 @@ export function scheduleNote(
       ? 0.5
       : note.voice === "strings" ||
           note.voice === "drone" ||
-          note.voice === "choir"
+          note.voice === "choir" ||
+          note.voice === "singer"
         ? 0.16
         : sustained
           ? 0.055
