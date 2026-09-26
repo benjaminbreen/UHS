@@ -214,8 +214,8 @@ it("gives every region's industrial-age city a researched fabric and ranks mill 
 
 it("builds a motor-age city out into the corners between its extensions", () => {
   const form = at("european", -77.4, 37.5, 2014);
-  const corners = (sprawl: boolean) => {
-    const { blocks, half } = compose({ ...form, sprawl }, 110);
+  const corners = (motor: boolean) => {
+    const { blocks, half } = compose({ ...form, motor }, 110);
     return [
       [1, 1],
       [-1, 1],

@@ -80,6 +80,7 @@ export type SettlementPlan = {
     import("../../content/settlements/streets/palettes").StreetSurface
   >;
   pavement?: Map<string, Pavement>;
+  lanes?: Map<string, Lane>;
   traffic: Set<string>;
   reserved: Set<string>;
   solid: Set<string>;
@@ -118,6 +119,19 @@ export type SettlementPlan = {
     /** Milliseconds per planning phase. */
     timing?: Record<string, number>;
   };
+};
+/** Where a cell sits in a composed street's cross-section. */
+export type Lane = {
+  axis: "x" | "y";
+  /** Cells from the west or north kerb, 0 to `span - 1`. */
+  at: number;
+  span: number;
+  /** Two streets cross here: no lane paint. */
+  junction?: boolean;
+  /** Cells to the nearest junction along the street, signed toward it; set
+   * only within the few cells where a crossing and stop line belong. */
+  toJunction?: number;
+  marks: import("../../content/settlements/streets/markings").RoadMarkings;
 };
 export const cellKey = (x: number, y: number) => `${x},${y}`;
 export const inside = (r: Rect, x: number, y: number) =>

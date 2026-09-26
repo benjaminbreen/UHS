@@ -117,6 +117,14 @@ it("zones an industrial-age city into a downtown, factories and the housing of e
   expect(
     richmond.objects.filter((o) => o.id.includes("-pitch-")),
   ).toHaveLength(0);
+  // Its streets are wide enough to park on, cross at junctions and are
+  // marked for crossing on the approach.
+  const lanes = [...richmond.lanes!.values()];
+  expect(Math.max(...lanes.map((l) => l.span))).toBe(10);
+  expect(lanes.some((l) => l.junction)).toBe(true);
+  expect(lanes.some((l) => l.toJunction === 1 || l.toJunction === -1)).toBe(true);
+  for (const l of lanes) expect(l.at).toBeGreaterThanOrEqual(0);
+  for (const l of lanes) expect(l.at).toBeLessThan(l.span);
 });
 
 it("keeps urban geometry deterministic and the old selection opt-in", () => {

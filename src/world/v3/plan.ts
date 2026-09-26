@@ -25,6 +25,7 @@ import {
   streetPalette,
   chooseStreetSurface,
 } from "../../content/settlements/streets/palettes";
+import { roadMarkings } from "../../content/settlements/streets/markings";
 import { urbanForm } from "../../content/settlements/urban-form";
 import { waysideFor } from "../../content/settlements/wayside";
 import { yardKit, type YardProp } from "../../content/settlements/yards";
@@ -79,6 +80,7 @@ import {
   planAccess,
   joinNetwork,
   roadCells,
+  spanOffsets,
   type Sample,
 } from "./roads";
 import { planRoutines } from "./routines";
@@ -464,6 +466,55 @@ export function planSettlement(
     else if (!road) plan.diagnostics.routeFailures++;
     return road;
   };
+  const marks = pack.setting && roadMarkings(pack.setting);
+  /** Each paved cell of a straight composed street records where it sits
+   * across the road; where two streets overlap it is a junction. */
+  const carriageway = (road: Road) => {
+    if (!marks || !profile.paved || !road.span) return;
+    const a = road.points[0],
+      b = road.points.at(-1)!;
+    // A diagonal avenue is a staircase of cells with no cross-section.
+    if (a.x !== b.x && a.y !== b.y) return;
+    const axis = a.y === b.y ? "x" : "y";
+    const [lo] = spanOffsets(road.span);
+    const lanes = (plan.lanes ??= new Map());
+    roadCells(road, (x, y) => {
+      const k = cellKey(x, y);
+      if (plan.surface.get(k) !== "paving") return;
+      const old = lanes.get(k);
+      if (old && old.axis !== axis) {
+        old.junction = true;
+        return;
+      }
+      if (old && old.span >= road.span!) return;
+      lanes.set(k, {
+        axis,
+        at: (axis === "x" ? y - a.y : x - a.x) + lo,
+        span: road.span!,
+        marks,
+      });
+    });
+  };
+  /** Crossings and stop lines belong in the few cells before a junction. */
+  const approaches = () => {
+    for (const [k, lane] of plan.lanes ?? []) {
+      if (lane.junction || lane.span < 2) continue;
+      const [x, y] = k.split(",").map(Number);
+      for (const dir of [-1, 1])
+        for (let d = 1; d <= 3; d++) {
+          const k =
+            lane.axis === "x" ? cellKey(x + dir * d, y) : cellKey(x, y + dir * d);
+          const n = plan.lanes!.get(k);
+          // A street that runs into the square is crossed where it meets it.
+          const square = plan.pavement?.get(k) === "square";
+          if (!n && !square) break;
+          if (n && !n.junction && !square) continue;
+          if (lane.toJunction === undefined || Math.abs(lane.toJunction) > d)
+            lane.toJunction = dir * d;
+          break;
+        }
+    }
+  };
   /** A composed street is already known to be straight and on chosen ground,
    * so it needs validating, not searching. A wet or reserved cell clips the
    * street rather than refusing it: the runs either side still serve their
@@ -519,6 +570,7 @@ export function planSettlement(
         cost: points.length,
       };
       addRoad(road);
+      if (!outside && !kind) carriageway(road);
       first ??= road;
       // A street that meets a creek crosses it: the wet gap to the next run
       // is decked over, so the network is not cut in two by a stream.
@@ -1341,6 +1393,7 @@ export function planSettlement(
           paintCourt,
           paintBlock,
         );
+    approaches();
     for (const lot of urbanLots)
       eachCell(lot.rect, (x, y) => noRoad.add(cellKey(x, y)));
     if (selected) {

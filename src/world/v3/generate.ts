@@ -22,6 +22,11 @@ import { trimCache } from "../../core/cache";
 import type { Decoration } from "../../core/types";
 import { preparedSite, type PreparedSettlement } from "./prepared";
 import { pathArt } from "./path-art";
+import {
+  blacktopLine,
+  roadMarkings,
+} from "../../content/settlements/streets/markings";
+import { motorized } from "../../content/settlements/modernity";
 import { streetMaterial } from "../../content/settlements/streets";
 import {
   pavingReach,
@@ -1635,6 +1640,10 @@ export function createSettlementWorld(
         cell.surface = "gravel";
         cell.feature = "paving";
         cell.streetMaterial = streetMaterial(local);
+      } else if (motorized(local)) {
+        cell.surface = "gravel";
+        cell.feature = "paving";
+        cell.streetMaterial = "asphalt";
       } else cell.surface = "soil";
     }
     if (pack.setting?.urbanRevision) {
@@ -1653,6 +1662,8 @@ export function createSettlementWorld(
           (!pack.setting?.streetRevision || cell.feature === "paving")
         )
           cell.pavement = p.pavement.get(key);
+        const lane = p.lanes?.get(key);
+        if (lane && cell.feature === "paving") cell.lane = lane;
         // Authored block ground and courts are areas, not thin paths. Preserve
         // their extent instead of reinterpreting only road centers as worn soil.
         if (t === "dirt" && p.surface.get(key) === "dirt" && !!p.pavement?.size)
@@ -1698,6 +1709,9 @@ export function createSettlementWorld(
             revised && !wheeledTraffic(pack.setting!) ? false : undefined,
             // Motor traffic had cleared horses off most streets by about 1920.
             (pack.setting?.year ?? 0) >= 1920 ? false : undefined,
+            pack.setting && motorized(pack.setting)
+              ? blacktopLine(roadMarkings(pack.setting).centre)
+              : undefined,
           );
           pathArtCache.set(p, index);
         }
@@ -1710,6 +1724,7 @@ export function createSettlementWorld(
           radius: s.radius,
           ...(s.ruts === false && { ruts: s.ruts }),
           ...(s.dung === false && { dung: s.dung }),
+          ...(s.paved && { paved: s.paved }),
         }));
     }
     if (terraces && cell.surface !== "water") {

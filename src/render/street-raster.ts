@@ -1,4 +1,5 @@
 import { pavingGrade, pavingStonePixel } from "./paving-stones";
+import { carriagewayPixel } from "./carriageway";
 import { kerbed, paved, pavingMask, roadwayMaterial, wornEdge } from "./paving-edge";
 import type { TopographySample } from "../core/topography";
 import type { StreetMaterial } from "../content/settlements/streets";
@@ -143,6 +144,10 @@ export function rasterStreetTile(
     stepS = step(0, 1),
     stepW = step(-1, 0),
     stepE = step(1, 0);
+  const lane =
+    !c.pavement && (material === "asphalt" || material === "concrete")
+      ? c.lane
+      : undefined;
   const shadowed = !dais && at(0, -1)?.pavement === "dais",
     shadowedE = !dais && at(-1, 0)?.pavement === "dais";
   for (let py = 0; py < 16; py++)
@@ -193,6 +198,20 @@ export function rasterStreetTile(
           material,
           grade,
           (north || south) && !(west || east),
+        );
+      }
+      if (lane) {
+        const alongX = lane.axis === "x";
+        tone = carriagewayPixel(
+          tone,
+          lane,
+          lane.at * 16 + (alongX ? py : px),
+          alongX ? wx : wy,
+          alongX ? wy : wx,
+          {
+            low: lane.at === 0 && (alongX ? kerbN : kerbW),
+            high: lane.at === lane.span - 1 && (alongX ? kerbS : kerbE),
+          },
         );
       }
       const course = COURSE[material];

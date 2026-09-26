@@ -24,6 +24,7 @@ import {
   motorized,
 } from "../../content/settlements/modernity";
 import { zoningFor, type LandUse } from "../../content/settlements/zoning";
+import { MOTOR_SPANS } from "../../content/settlements/streets/markings";
 import type { Terrain } from "../../core/types";
 import {
   composeUrban,
@@ -210,9 +211,11 @@ export function siteGate(
  * choice of settlement form is allowed to make: an explicitly planned town is
  * regular whatever the region, and a waterfront turns its public space seaward. */
 export function siteForm(site: Site, pack: Pack): UrbanForm {
+  const motor = motorized(pack.setting!);
   const regional = {
     ...urbanForm(pack.setting!),
-    sprawl: motorized(pack.setting!),
+    motor,
+    ...(motor ? { tiers: MOTOR_SPANS } : {}),
   };
   // A plotted town is cut into blocks that hold two rows of house and garden,
   // with no paved courts inside them.

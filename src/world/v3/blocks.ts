@@ -180,7 +180,7 @@ export function composeUrban(
 
   // Widths are whole cells. A fabric's avenue is for its large cities; a
   // small town of the same fabric gets a three-cell main street.
-  const cap = radius < 40 ? 3 : radius < 60 ? 4 : 6;
+  const cap = form.motor ? Infinity : radius < 40 ? 3 : radius < 60 ? 4 : 6;
   const arterial = Math.max(1, Math.min(form.tiers[0], cap)),
     street = Math.max(1, Math.min(form.tiers[1], arterial)),
     lane = Math.max(1, Math.min(form.tiers[2], street));
@@ -236,7 +236,7 @@ export function composeUrban(
   ];
   const order = [0, 1, 2, 3].sort((a, b) => rand("side", a) - rand("side", b));
   const extensions =
-    form.sprawl && !single
+    form.motor && !single
       ? [0, 1, 2, 3].map((i) => specs[Math.min(i + 1, specs.length - 1)])
       : specs.slice(1, 5);
   extensions.forEach((spec, i) => {
@@ -263,7 +263,7 @@ export function composeUrban(
       : { ...rect, y: s.ny > 0 ? center.y : rect.y, h: reach + coreB + 1 };
     districts.push({ spec, core: false, rect, shape });
   });
-  if (form.sprawl && !single) {
+  if (form.motor && !single) {
     const spec = specs[specs.length - 1];
     for (const [sx, sy] of [
       [1, 1],

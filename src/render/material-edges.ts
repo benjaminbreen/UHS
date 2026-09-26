@@ -96,6 +96,11 @@ export type PathField = {
   radius: number;
   ruts?: false;
   dung?: false;
+  paved?: "yellow" | "white" | "none";
+  /** Signed distance from the centre line and distance along it, in native
+   * pixels, for a paved road's paint. */
+  side?: number;
+  along?: number;
 };
 const clamp01 = (n: number) => Math.max(0, Math.min(1, n));
 /** A worn road is not a constant-width ribbon. One slow wave sampled on the
@@ -157,15 +162,20 @@ export function pathField(
       const cx = ax + t * dx,
         cy = ay + t * dy,
         len = Math.hypot(dx, dy) || 1;
-      const radius = s.radius * width * breathe(cx, cy, ox, oy);
-      const drift =
-        wander(cx, cy, ox, oy) * Math.min(1.2, s.radius) * pathWobble;
+      // Blacktop is graded to a line: it neither breathes nor wanders.
+      const paved = s.paved;
+      const radius = paved ? s.radius : s.radius * width * breathe(cx, cy, ox, oy);
+      const drift = paved
+        ? 0
+        : wander(cx, cy, ox, oy) * Math.min(1.2, s.radius) * pathWobble;
       const distance = Math.hypot(
         x - cx + (drift * dy) / len,
         y - cy - (drift * dx) / len,
       );
       const coverage = clamp01(
-        0.48 + (0.6 * (radius - distance + wobble)) / Math.min(1.4, radius),
+        0.48 +
+          (0.6 * (radius - distance + (paved ? wobble * 0.3 : wobble))) /
+            Math.min(1.4, radius),
       );
       if (coverage > best.coverage)
         best = {
@@ -174,6 +184,11 @@ export function pathField(
           radius,
           ...(s.ruts === false && { ruts: s.ruts }),
           ...(s.dung === false && { dung: s.dung }),
+          ...(paved && {
+            paved,
+            side: (((x - ax) * dy - (y - ay) * dx) / len) * 16,
+            along: (((x + ox) * dx + (y + oy) * dy) / len) * 16,
+          }),
         };
     }
     return best;

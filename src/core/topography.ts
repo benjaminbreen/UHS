@@ -22,6 +22,8 @@ export type PathStroke = {
   ruts?: false;
   /** False where no draft animals leave dung and straw on the road. */
   dung?: false;
+  /** Blacktop, with the colour of its centre line. */
+  paved?: "yellow" | "white" | "none";
 };
 export type TopographyCell = {
   pathArt?: PathStroke[];
@@ -33,6 +35,7 @@ export type TopographyCell = {
     | import("../content/ecology/profiles").Ecology;
   moisture?: number;
   pavement?: import("../world/v3/types").Pavement;
+  lane?: import("../world/v3/types").Lane;
   streetMaterial?: import("../content/settlements/streets").StreetMaterial;
   habitat?: import("../world/v3/habitats").Habitat;
   /** Presentation-only landscape feature painted by the ground raster. */
