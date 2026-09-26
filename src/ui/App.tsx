@@ -55,6 +55,7 @@ import { WeatherPanel } from "./WeatherPanel";
 import { sexFromName } from "../content/characters/name-sex";
 import { AudioDirector, gameAudio } from "../audio/director";
 import { ambienceFor } from "../audio/ambience";
+import { pageTurn } from "../audio/handling";
 const AudioLab = lazy(() =>
   import("../dev/AudioLab").then((m) => ({ default: m.AudioLab })),
 );
@@ -488,7 +489,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
       if ((e.code === "KeyE" || e.code === "KeyF") && !e.repeat) {
         e.preventDefault();
         if (e.code === "KeyE") runVerb("alternate");
-        else if (runtime.engine.state.player.heldItem !== "bow")
+        else if (!["bow", "sling"].includes(runtime.engine.state.player.heldItem ?? ""))
           runVerb("primary", true);
       }
       if (e.key === "=" || e.key === "+") runtime.stepZoom(1);
@@ -616,6 +617,9 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
     () => audio?.setSetting(setting?.culture, setting?.year),
     [audio, setting?.culture, setting?.year],
   );
+  useEffect(() => {
+    if (modal === "notebook") void audio?.sound(pageTurn(), "page");
+  }, [audio, modal]);
   const regionLabel =
     (setting && describedRegionAt(setting.lon, setting.lat)?.label) ||
     setting?.location ||
@@ -846,6 +850,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
               known={known}
               pending={pending}
               who={{ name: runtime.engine.state.player.name, role: runtime.engine.state.player.role }}
+              place={runtime.engine.world.pack.setting}
               start={sky}
               onLearn={(technique) => runtime.command({ type: "learn", technique })}
               onClose={() => setSky(undefined)}
@@ -890,6 +895,8 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
             )}
             {p.heldItem === "bow"
               ? <span>Right mouse · Aim and shoot · {p.inventory.arrow ?? 0} arrows</span>
+              : p.heldItem === "sling"
+              ? <span>Right mouse · Whirl and let fly · {runtime.engine.ammo() ? "stones ready" : "no stones"}</span>
               : (p.held || p.heldItem) && <span>X · Throw (hold to aim)</span>}
             {verbs.alternate && (
               <KeyPrompt

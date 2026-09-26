@@ -172,6 +172,12 @@ export function drawCharacter(
                                     ? [0, 1, 2, 1][f]
                                     : pose === "cast"
                                       ? [0, -1, 2, 1][f]
+                                    : pose === "slash"
+                                      ? [0, -1, 2, 1][f]
+                                    : pose === "carve"
+                                      ? [2, 3, 2, 3][f]
+                                    : pose === "whirl"
+                                      ? [0, 0, 0, 2][f]
                                     : pose === "hurt"
                                     ? [0, 2, 3, 1][f]
                                     : climbing
@@ -416,6 +422,27 @@ export function drawCharacter(
       [10, 22],
     ] as Point[])[f];
   }
+  // Cocked to the chest, a beat's hold, then out and across low.
+  if (pose === "slash")
+    near = ([
+      [15 + wide, 17],
+      [13 + wide, 14],
+      [24 + wide, 21],
+      [20 + wide, 21],
+    ] as Point[])[f];
+  // Hunched over the work, the blade drawn toward the thumb in short strokes.
+  if (pose === "carve") {
+    near = ([
+      [17 + wide, 20],
+      [14 + wide, 21],
+      [17 + wide, 20],
+      [14 + wide, 21],
+    ] as Point[])[f];
+    far = [side ? 12 : 10, 21];
+  }
+  // Overhead for the turns, then flung forward and down on the last.
+  if (pose === "whirl")
+    near = f < 3 ? [side ? 18 : 17 + wide, 2] : [23 + wide, 13];
   // The hand lifts before it goes down, the way a real reach starts.
   if (pose === "pickup" || pose === "drop") near = [19, [20, 24, 25, 22][f]];
   if (pose === "hurt") near = [12, 18];
@@ -817,7 +844,7 @@ export function drawCharacter(
       ? [near[0] - (f === 1 || f === 2 ? 7 : 3), near[1] - 1]
       : [near[0] - 3, near[1] + 2];
   }
-  if ((prop?.kind === "blade" || prop?.kind === "brand") && !["swing", "thrust", "cast"].includes(pose))
+  if ((prop?.kind === "blade" || prop?.kind === "brand") && !["swing", "thrust", "cast", "slash", "carve"].includes(pose))
     near = [17 + wide, 21 + torso + (moving && f % 2 ? -1 : 0)];
   if (prop?.kind === "side")
     near = [
@@ -868,6 +895,32 @@ export function drawCharacter(
         p.line([nock[0] - 2, nock[1]], [middle[0] + 10, middle[1]], wood.light);
         p.rect(middle[0] + 10, middle[1] - 1, 2, 3, iron.light);
         p.line([nock[0] - 2, nock[1] - 2], [nock[0] + 1, nock[1]], iron.base);
+      }
+      return;
+    }
+    if (prop.kind === "sling") {
+      const cord = leather.light, stone = "#a19d96";
+      if (pose === "whirl" && f < 3) {
+        // A flat ellipse overhead, seen from a little above.
+        const turn = (f * 2 * Math.PI) / 3;
+        const pouch: Point = [
+          near[0] + Math.round(Math.cos(turn) * 8),
+          near[1] - 2 + Math.round(Math.sin(turn) * 3),
+        ];
+        p.line(near, pouch, cord);
+        p.rect(pouch[0] - 1, pouch[1] - 1, 3, 2, leather.base);
+        p.rect(pouch[0], pouch[1] - 1, 1, 1, stone);
+      } else if (pose === "whirl") {
+        // Released: the loose end cracks out ahead of the hand, empty.
+        const end: Point = [near[0] + 7, near[1] - 4];
+        p.line(near, end, cord);
+        p.rect(end[0], end[1] - 1, 2, 1, leather.base);
+      } else {
+        const sway = moving ? [0, 1, 0, -1][f] : 0;
+        const pouch: Point = [near[0] + sway, near[1] + 6];
+        p.line(near, pouch, cord);
+        p.rect(pouch[0] - 1, pouch[1], 3, 2, leather.base);
+        p.rect(pouch[0], pouch[1], 1, 1, stone);
       }
       return;
     }
@@ -976,13 +1029,35 @@ export function drawCharacter(
       ctx.restore();
     } else if (prop.kind === "blade" || prop.kind === "brand") {
       const angle = prop.kind === "blade"
-        ? pose === "swing" ? [-25, -65, 55, 10][f] : 0
+        ? pose === "swing" ? [-25, -65, 55, 10][f]
+          : pose === "slash" ? [-40, -75, 80, 30][f]
+          : pose === "carve" ? [-95, -80, -95, -80][f]
+          : 0
         : pose === "thrust" ? [10, 20, 65, 15][f] : 0;
+      if (pose === "carve") {
+        // The stick being worked, and a curl coming off it on each stroke.
+        p.line([far[0] - 2, far[1] + 1], [far[0] + 4, far[1] - 2], wood.base);
+        if (f % 2) {
+          p.rect(far[0] + 1, far[1] - 4, 1, 1, wood.light);
+          p.rect(far[0] - 1, far[1] - 5, 1, 1, wood.light);
+        }
+      }
       ctx.save();
       ctx.translate(near[0], near[1]);
       ctx.rotate((angle * Math.PI) / 180);
       ctx.drawImage(prop.image, -2, -prop.height + 2);
       ctx.restore();
+      if (prop.kind === "blade" && pose === "slash" && f === 1) {
+        // The glint at the top of the draw-back: the cut is coming.
+        const r = (angle * Math.PI) / 180, reach = prop.height - 3;
+        const tip: Point = [
+          Math.round(near[0] + Math.sin(r) * reach),
+          Math.round(near[1] - Math.cos(r) * reach),
+        ];
+        p.rect(tip[0] - 1, tip[1], 3, 1, "#fff4c8");
+        p.rect(tip[0], tip[1] - 1, 1, 3, "#fff4c8");
+        p.rect(tip[0], tip[1], 1, 1, "#ffffff");
+      }
       if (prop.kind === "brand" && pose === "thrust" && f === 2)
         p.rect(near[0] + 8, near[1] - 5, 2, 2, "#ffd672");
     } else

@@ -75,7 +75,8 @@ export type Voice =
   | "tanbur"
   | "muted"
   | "clarinet"
-  | "choir";
+  | "choir"
+  | "singer";
 const unpitched = new Set<Voice>([
   "kick",
   "brush",

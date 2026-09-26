@@ -31,7 +31,10 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
         ["Scythe · sweep", "scythe", "reap"],
         ["Shovel · dig", "shovel", "dig"],
         ["Axe · chop", "axe", "chop"],
-        ["Knife · slash", "tool", "swing"],
+        ["Knife · slash", "tool", "slash"],
+        ["Knife · carve", "tool", "carve"],
+        ["Sling · whirl", "sling", "whirl"],
+        ["Sling · carried", "sling", "walk"],
         ["Torch · brand", "torch", "thrust"],
       ] as const;
       const sheet = document.createElement("canvas"), frame = document.createElement("canvas");

@@ -250,6 +250,33 @@ it("draws a bow, spends an arrow, and leaves a missed shot to recover", () => {
   runtime.dispose();
 });
 
+it("whirls a sling, spends a stone, and leaves it where it fell", () => {
+  const engine = createSession("roman", "sling-shot");
+  ground(engine);
+  engine.state.player.heldItem = "sling";
+  engine.state.player.inventory = { pebble: 1 };
+  const runtime = new Runtime(engine, { cacheTerrain: false });
+  expect(runtime.verbs().primary?.label).toBe("Whirl sling");
+  runtime.shootBow({ x: 5, y: 2 }, 1);
+  expect(engine.lastThrow).toMatchObject({ to: { x: 5, y: 2 }, sling: true });
+  expect(runtime.characterAction?.pose).toBe("whirl");
+  expect(engine.state.player.inventory.pebble).toBeUndefined();
+  expect(engine.state.objects.some((o) => o.item === "pebble" && o.pos.x === 5 && o.pos.y === 2)).toBe(true);
+  expect(runtime.verbs().primary?.label).toBe("No stones");
+  runtime.dispose();
+});
+
+it("slashes with a knife in hand", () => {
+  const engine = createSession("roman", "knife-slash");
+  ground(engine);
+  engine.state.player.heldItem = "tool";
+  engine.state.player.inventory = { tool: 1 };
+  const runtime = new Runtime(engine, { cacheTerrain: false });
+  runtime.command({ type: "swing" });
+  expect(runtime.characterAction?.pose).toBe("slash");
+  runtime.dispose();
+});
+
 it("keeps an arrow in a surviving animal and lets it travel with it", () => {
   const engine = createSession("roman", "lodged-arrow");
   ground(engine);

@@ -2,6 +2,19 @@ import type { TimeTravel } from "./time-travel";
 import type { FaunaTier } from "../core/combat";
 import { gameAudio } from "../audio/director";
 import type { EventId } from "../audio/sfx";
+import {
+  barter,
+  biteOf,
+  drink,
+  eat,
+  materialOf,
+  moneyOf,
+  pay,
+  propMaterial,
+  takeUp,
+  writing,
+  writingTool,
+} from "../audio/handling";
 import { timed } from "../render/perf-switches";
 import { communityLabels } from "../content/ecology/communities";
 import { populateCharacter } from "../content/geography/character";
@@ -570,13 +583,13 @@ export class Runtime {
         this.throwEffect = {
           serial: ++this.characterSerial,
           ...flight,
-          launchMs: command.type === "shoot" ? 75 : poseContactMs("cast"),
+          launchMs: command.type === "shoot" ? (flight.sling ? 30 : 75) : poseContactMs("cast"),
         };
       if (command.type === "shoot") {
         this.characterAction = {
           serial: ++this.characterSerial,
-          pose: "draw",
-          at: performance.now() - poseTiming("draw") * 3,
+          pose: flight?.sling ? "whirl" : "draw",
+          at: performance.now() - poseTiming(flight?.sling ? "whirl" : "draw") * 3,
           prop: previousProp,
         };
         return;
@@ -606,6 +619,7 @@ export class Runtime {
           creatures: swing.creatures,
           power: swing.power,
           thrust: swing.thrust,
+          knife: pose === "slash",
           contactMs: poseContactMs(pose),
         };
       }
@@ -643,7 +657,8 @@ export class Runtime {
         mine: "chop",
         talk: "talk",
         trade: "give",
-        harvest: "work",
+        // A knife in hand makes it close, careful work.
+        harvest: this.engine.state.player.heldItem === "tool" ? "carve" : "work",
         drink: "give",
         rest: "sit",
         use: "give",
@@ -661,7 +676,7 @@ export class Runtime {
         talk: "talk",
       } as Record<string, EventId>
     )[action];
-    if (event) void gameAudio()?.event(event);
+    if (event) this.confirm(command, event);
     if (pose)
       this.characterAction = {
         serial: ++this.characterSerial,
@@ -677,6 +692,7 @@ export class Runtime {
     if (def?.tool) return TOOL_POSES[TOOL_ACTIONS[def.tool]];
     if (def?.attack === "rake") return "till";
     if (def?.attack === "hook") return "reap";
+    if (!held && item === "tool") return "slash";
     return def?.attack === "thrust" || item === "torch" || thrust
       ? "thrust"
       : "swing";
@@ -1321,6 +1337,8 @@ export class Runtime {
       primary = { kind: "strike", label: "Set it alight", command: burn };
     else if (item?.id === "bow")
       primary = { kind: "shoot", label: (p.inventory.arrow ?? 0) > 0 ? "Draw bow" : "No arrows" };
+    else if (item?.id === "sling")
+      primary = { kind: "shoot", label: this.engine.ammo() ? "Whirl sling" : "No stones" };
     else if (speaker)
       primary = {
         kind: "talk",
@@ -1564,8 +1582,9 @@ export class Runtime {
       const item = prop.slice(5);
       this.engine.devArm();
       const bag = this.engine.state.player.inventory;
-      bag[item] = (bag[item] ?? 0) + (item === "bow" ? 1 : 10);
+      bag[item] = (bag[item] ?? 0) + (item === "bow" || item === "sling" ? 1 : 10);
       if (item === "bow") bag.arrow = (bag.arrow ?? 0) + 20;
+      if (item === "sling") bag.pebble = (bag.pebble ?? 0) + 20;
       this.command({ type: "hold", item });
       return;
     }
@@ -2021,8 +2040,45 @@ export class Runtime {
     this.onChange?.();
     this.emit();
   }
+  /** The action's sound, told what was handled, eaten or paid where it matters. */
+  private confirm(command: PlayerCommand, event: EventId) {
+    const audio = gameAudio();
+    if (!audio) return;
+    const state = this.engine.state;
+    if (command.type === "use") {
+      const food = this.engine.item(command.item);
+      if (food?.edible)
+        return void audio.sound(eat(biteOf(food.id), (food.health ?? 0) < 0), "eat");
+    }
+    if (command.type === "trade") {
+      const give = moneyOf(command.give),
+        take = moneyOf(command.take);
+      return void audio.sound(
+        give || take
+          ? pay((give ?? take)!, give ? command.giveQuantity : command.takeQuantity)
+          : barter(
+              materialOf(command.give, this.engine.item(command.give)),
+              materialOf(command.take, this.engine.item(command.take)),
+            ),
+        "trade",
+      );
+    }
+    if (event === "drink") return void audio.sound(drink(), "drink");
+    if (event === "pickup") {
+      const prop = heldObject(state),
+        item = state.player.heldItem;
+      if (prop || item)
+        return void audio.sound(
+          takeUp(prop ? propMaterial(propDefs[prop.prop ?? ""]) : materialOf(item!, this.engine.item(item!))),
+          "pickup",
+        );
+    }
+    void audio.event(event);
+  }
   addNote(text: string, evidence?: string) {
     if (!text.trim()) return;
+    const setting = this.engine.world.pack.setting;
+    void gameAudio()?.sound(writing(writingTool(setting?.year, setting?.culture)), "write");
     this.engine.state.notes.push({
       id: this.engine.state.notes.length + 1,
       text: text.trim().slice(0, 4000),

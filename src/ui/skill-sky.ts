@@ -157,6 +157,9 @@ export class SkyRenderer {
   private emberAt = 0;
   private flash = 0;
   private active?: SkillId;
+  /** 0 looking at the sky, 1 looking down at the fire. */
+  private ground = 0;
+  private groundGoal = 0;
   private activeAt = 0;
   private born = performance.now();
   private last = performance.now();
@@ -185,6 +188,11 @@ export class SkyRenderer {
     this.theme = theme;
     this.pal = PALETTES[theme];
     this.paint();
+  }
+  /** Tip the view down to the campfire, or back up to the sky. */
+  setFire(on: boolean) {
+    this.groundGoal = on ? 1 : 0;
+    if (this.still) this.ground = this.groundGoal;
   }
   setLook(look: Look, instant = false) {
     this.look = look;
@@ -272,7 +280,8 @@ export class SkyRenderer {
   }
   private project(x: number, y: number): [number, number] {
     const s = this.base * this.cam.z;
-    return [(x - this.cam.x) * s + this.W / 2, (y - this.cam.y) * s + this.H / 2];
+    const tilt = ease(this.ground) * this.SH * 0.3;
+    return [(x - this.cam.x) * s + this.W / 2, (y - this.cam.y - tilt) * s + this.H / 2];
   }
   /** The Milky Way's line across the sky, as fractions of the canvas. */
   private band() {
@@ -503,6 +512,7 @@ export class SkyRenderer {
     this.cam.x += (this.goal.x - this.cam.x) * k;
     this.cam.y += (this.goal.y - this.cam.y) * k;
     this.cam.z = Math.exp(Math.log(this.cam.z) + (Math.log(this.goal.z) - Math.log(this.cam.z)) * k);
+    this.ground += (this.groundGoal - this.ground) * (1 - Math.exp(-dt * 2.6));
     const active = this.focus ?? this.hover;
     if (active !== this.active) (this.active = active), (this.activeAt = now);
     const { ctx, W, H, pal } = this;
@@ -540,7 +550,7 @@ export class SkyRenderer {
       const on = active === e.skill;
       const dim = this.focus && !on ? 0.22 : 1;
       const lift = on ? 1 : 0.72;
-      const a = appear * dim;
+      const a = appear * dim * (1 - this.ground * 0.55);
       // Seconds since this constellation was pointed at: drives the retrace.
       const tr = on && !this.still ? (now - this.activeAt) / 1000 : 99;
       const [cx, cy] = this.at(e.skill);
@@ -643,23 +653,36 @@ export class SkyRenderer {
   }
 
   private drawHills(dt: number, t: number) {
-    const { ctx, H } = this;
-    const sink = Math.round(ease(clamp((this.cam.z - 1) / 1.5)) * H * 0.6);
+    const { ctx, H, W } = this;
+    // Looking down to the fire, the ground rises into view and comes closer.
+    const lift = Math.round(ease(this.ground) * H * 0.24);
+    const sink = Math.round(ease(clamp((this.cam.z - 1) / 1.5)) * H * 0.6) - lift;
     if (sink >= H) return;
     ctx.globalAlpha = 1;
     ctx.drawImage(this.hills, 0, sink);
+    if (sink < 0) {
+      ctx.fillStyle = this.pal.hills[2].body;
+      ctx.fillRect(0, H + sink, W, -sink);
+    }
     const fx = this.fire.x, fy = this.fire.y + sink;
     if (fy - 12 > H) return;
     const dark = this.theme === "dark";
+    const k = 1 + Math.round(this.ground);
+    const block = (x: number, y: number, color: string, alpha: number) => {
+      if (alpha <= 0.01) return;
+      ctx.globalAlpha = Math.min(1, alpha);
+      ctx.fillStyle = color;
+      ctx.fillRect(Math.round(x), Math.round(y), k, k);
+    };
     // The fire's light on the ground and on the one watching it.
-    this.halo(fx + 1, fy - 2, 16, "#ff8a3c", (dark ? 0.06 : 0.03) + 0.02 * Math.sin(t * 9));
-    this.halo(fx + 1, fy - 2, 7, "#ffb25c", (dark ? 0.1 : 0.06) + 0.04 * Math.sin(t * 13));
-    const gx = fx - 9, gy = fy - FIGURE.length;
+    this.halo(fx + k, fy - 2 * k, 16 * k, "#ff8a3c", (dark ? 0.06 : 0.03) + 0.02 * Math.sin(t * 9));
+    this.halo(fx + k, fy - 2 * k, 7 * k, "#ffb25c", (dark ? 0.1 : 0.06) + 0.04 * Math.sin(t * 13));
+    const gx = fx - 9 * k, gy = fy - FIGURE.length * k;
     FIGURE.forEach((row, y) =>
       [...row].forEach((ch, x) => {
         if (ch !== "#") return;
-        this.dot(gx + x, gy + y, this.pal.figure, 1);
-        if (row[x + 1] !== "#") this.dot(gx + x, gy + y, "#e08a45", 0.35 + 0.25 * Math.sin(t * 11 + y));
+        block(gx + x * k, gy + y * k, this.pal.figure, 1);
+        if (row[x + 1] !== "#") block(gx + x * k, gy + y * k, "#e08a45", 0.35 + 0.25 * Math.sin(t * 11 + y));
       }),
     );
     if (!this.still && t - this.flameAt > 0.09) {
@@ -667,12 +690,12 @@ export class SkyRenderer {
       this.flame = [2 + ((Math.random() * 3) | 0), 3 + ((Math.random() * 3) | 0), 2 + ((Math.random() * 2) | 0)];
     }
     this.flame.forEach((h, c) => {
-      for (let k = 0; k < h; k++) this.dot(fx + c, fy - 1 - k, k === h - 1 ? "#fff0b0" : k >= h - 2 ? "#ffc94d" : "#ff8a3a", 1);
-      this.dot(fx + c, fy, "#9a3a1c", 1);
+      for (let i = 0; i < h; i++) block(fx + c * k, fy - (1 + i) * k, i === h - 1 ? "#fff0b0" : i >= h - 2 ? "#ffc94d" : "#ff8a3a", 1);
+      block(fx + c * k, fy, "#9a3a1c", 1);
     });
-    if (!this.still && t - this.emberAt > 0.14) {
+    if (!this.still && t - this.emberAt > (this.ground > 0.5 ? 0.05 : 0.14)) {
       this.emberAt = t;
-      this.embers.push({ x: fx + 1 + (Math.random() - 0.5) * 2, y: fy - 4, vx: (Math.random() - 0.5) * 6, vy: -(8 + Math.random() * 10), life: 1.2 + Math.random() });
+      this.embers.push({ x: fx + k + (Math.random() - 0.5) * 2 * k, y: fy - 4 * k, vx: (Math.random() - 0.5) * 6 * k, vy: -(8 + Math.random() * 10) * k, life: 1.2 + Math.random() * (1 + this.ground) });
     }
     this.embers = this.embers.filter((e) => {
       e.life -= dt;

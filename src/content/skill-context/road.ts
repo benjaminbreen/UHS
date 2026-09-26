@@ -1,0 +1,36 @@
+import { ANTIQUITY, DEEP, EARLY, EARLY_MODERN, HOLOCENE, INDUSTRIAL, MEDIEVAL, MODERN, PREMODERN, type SkillContext } from "./types";
+
+export const wayfaring: SkillContext = {
+  entries: [
+    { eras: [...DEEP, ...HOLOCENE], wiki: ["Early human migrations", "Nomad"], sources: ["reich", "kelly"] },
+    { eras: EARLY, wiki: ["Uluburun shipwreck", "Caravan (travellers)"], sources: ["vanDeMieroop", "bulliet"] },
+    { eras: ANTIQUITY, wiki: ["Royal Road", "Silk Road"], sources: ["hansen", "chevallier"] },
+    { eras: MEDIEVAL, wiki: ["Pilgrimage", "Caravan (travellers)"], sources: ["sumption", "dunn"] },
+    { eras: EARLY_MODERN, wiki: ["Age of Discovery", "Caravel", "Navigation"], sources: ["curtin"] },
+    { eras: INDUSTRIAL, wiki: ["History of rail transport", "Steamboat"], sources: ["schivelbusch", "osterhammel"] },
+    { eras: MODERN, wiki: ["Automobile", "Road trip", "Hiking"], sources: ["solnit", "mcneill"] },
+    { cultures: ["european", "north-african-west-asian"], eras: ANTIQUITY, wiki: ["Roman roads", "Cursus publicus"], sources: ["chevallier"] },
+    { cultures: ["european"], eras: MEDIEVAL, wiki: ["Christian pilgrimage", "Camino de Santiago", "Via Francigena"], sources: ["sumption", "solnit"] },
+    { cultures: ["north-african-west-asian", "south-asian", "west-central-african"], eras: MEDIEVAL, wiki: ["Ibn Battuta", "Hajj", "Caravanserai"], sources: ["dunn", "curtin"] },
+    { cultures: ["north-african-west-asian"], eras: PREMODERN, wiki: ["Caravan (travellers)", "Dromedary"], sources: ["bulliet", "curtin"] },
+    { cultures: ["inner-eurasian"], eras: PREMODERN, wiki: ["Yam (route)", "Silk Road"], sources: ["beckwith", "barfield"] },
+    { cultures: ["south-asian"], eras: PREMODERN, wiki: ["Grand Trunk Road", "Kumbh Mela"], sources: ["thapar", "gadgilGuha"] },
+    { cultures: ["east-asian"], eras: PREMODERN, wiki: ["Grand Canal (China)", "Tōkaidō (road)"], sources: ["elvin", "pomeranz"] },
+    { cultures: ["southeast-asian"], eras: PREMODERN, wiki: ["Austronesian peoples", "Austronesian vessels", "Maritime Southeast Asia"], sources: ["bellwoodIndo", "lewis"] },
+    { cultures: ["west-central-african"], eras: PREMODERN, wiki: ["Niger River", "Trans-Saharan trade"], sources: ["curtin", "iliffe"] },
+    { cultures: ["east-southern-african"], eras: PREMODERN, wiki: ["Dhow", "Swahili coast"], sources: ["chaudhuri", "iliffe"] },
+    { cultures: ["mesoamerican"], eras: PREMODERN, wiki: ["Sacbe", "Porter (carrier)"], sources: ["hassigTrade", "coe"] },
+    { cultures: ["andean"], eras: PREMODERN, wiki: ["Inca road system", "Chasqui", "Tambo (Inca structure)"], sources: ["hyslop", "daltroy"] },
+    { cultures: ["other-indigenous-american"], eras: PREMODERN, wiki: ["Canoe", "Travois"], sources: ["whiteMiddle", "hamalainen"] },
+    { cultures: ["australian-pacific"], eras: PREMODERN, wiki: ["Polynesian navigation", "Outrigger boat", "Songline"], sources: ["lewis", "finney", "kirch"] },
+    { wiki: ["Walking", "Travel", "Navigation"], sources: ["solnit"] },
+  ],
+  techniques: {
+    "long-stride": { note: "Before wheels and roads, most journeys were walked, often twenty or thirty kilometres a day." },
+    swimmer: { wiki: "Swimming", note: "Swimming was a common skill in many coastal and river cultures, and an unusual one in others." },
+    unseen: { note: "Travellers kept low profiles on dangerous roads, and spies and smugglers made an art of passing unnoticed." },
+    pathfinder: { wiki: "Navigation", note: "Landmarks, sun and stars guided travellers without maps, and local guides were hired for strange country." },
+    "night-walker": { note: "Night travel avoided heat in deserts and was common in caravans, which moved by the stars." },
+    navigator: { wiki: "Polynesian navigation", note: "Pacific navigators crossed thousands of kilometres of ocean by reading stars, swells and birds." },
+  },
+};

@@ -5,12 +5,13 @@ import { TIERS, optionsAt, technique, type TechniqueId } from "../core/technique
 import { CONSTELLATIONS, litStars, milestoneStars } from "./constellations";
 import { SkyRenderer, type MilestoneState, type SkyEntry, type SkyTheme } from "./skill-sky";
 import type { Pick } from "./Skills";
+import { SkillLore, type Place } from "./SkillLore";
 import "./skill-sky.css";
 
 const HOLD_MS = 750;
 const shown = skillIds.filter((id) => !SKILLS[id].hidden);
 
-type Mode = "sky" | "skill" | "choose";
+type Mode = "sky" | "skill" | "choose" | "lore";
 const THEME_KEY = "uhs-skill-sky-theme";
 function savedTheme(): SkyTheme {
   try {
@@ -25,6 +26,7 @@ export function SkillSky({
   known,
   pending,
   who,
+  place,
   start,
   onLearn,
   onClose,
@@ -34,6 +36,7 @@ export function SkillSky({
   pending: readonly Pick[];
   who: { name: string; role: string };
   /** Open on a skill, or straight onto a choice after a level-up. */
+  place?: Place;
   start: { skill?: SkillId; pick?: Pick; levelUp?: boolean };
   onLearn: (id: TechniqueId) => void;
   onClose: () => void;
@@ -48,6 +51,7 @@ export function SkillSky({
   const [focus, setFocus] = useState<SkillId>(start.pick?.skill ?? start.skill ?? shown[0]);
   const [hover, setHover] = useState<SkillId>();
   const [pick, setPick] = useState<Pick | undefined>(start.pick);
+  const [lore, setLore] = useState<{ skill: SkillId; technique?: TechniqueId; from: Mode }>();
   const [plate, setPlate] = useState<number>();
   const [held, setHeld] = useState<number>();
   const [bound, setBound] = useState<TechniqueId>();
@@ -107,13 +111,14 @@ export function SkillSky({
   useEffect(() => {
     const r = sky.current;
     if (!r) return;
-    r.focus = mode === "sky" ? undefined : focus;
+    r.focus = mode === "sky" ? undefined : mode === "lore" ? lore?.skill : focus;
     r.hover = mode === "sky" ? (hover ?? focus) : undefined;
-    if (mode === "sky") r.setLook({ kind: "overview" });
+    r.setFire(mode === "lore");
+    if (mode === "sky" || mode === "lore") r.setLook({ kind: "overview" });
     else if (mode === "skill")
       r.setLook({ kind: "skill", skill: focus, z: 2.7, wide: [0.31, 0.5], tall: [0.5, 0.2] });
     else if (pick) r.setLook({ kind: "skill", skill: pick.skill, z: 2.7, wide: [0.5, 0.43], tall: [0.5, 0.3] });
-  }, [mode, focus, hover, pick]);
+  }, [mode, focus, hover, pick, lore]);
 
   // A level-up: the sky first, then the eye travels, then the star catches.
   useEffect(() => {
@@ -251,12 +256,27 @@ export function SkillSky({
       void gameAudio()?.event("select");
     }
   };
+  const openLore = (skill: SkillId, technique?: TechniqueId) => {
+    setLore({ skill, technique, from: mode === "lore" ? (lore?.from ?? "sky") : mode });
+    setMode("lore");
+    void gameAudio()?.event("warm");
+  };
+  const closeLore = () => {
+    setMode(lore?.from ?? "sky");
+    setLore(undefined);
+  };
   const step = (by: number) => setFocus(shown[(shown.indexOf(focus) + by + shown.length) % shown.length]);
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
       const k = e.key;
-      if (mode === "choose") {
+      if (mode === "lore") {
+        if (k === "Escape" || k === "h" || k === "?") closeLore();
+        else return;
+      } else if (k === "h" || k === "?") {
+        if (mode === "choose" && pick) openLore(pick.skill, plate === undefined ? undefined : pick.options[plate]);
+        else openLore(focus);
+      } else if (mode === "choose") {
         const n = pick?.options.length ?? 0;
         if (k === "ArrowRight" || k === "ArrowDown") setPlate((p) => (p === undefined ? 0 : (p + 1) % n));
         else if (k === "ArrowLeft" || k === "ArrowUp") setPlate((p) => (p === undefined ? n - 1 : (p + n - 1) % n));
@@ -377,6 +397,16 @@ export function SkillSky({
         })}
       </div>
 
+      {mode === "lore" && lore && (
+        <SkillLore
+          skill={lore.skill}
+          technique={lore.technique}
+          place={place}
+          onTechnique={(technique) => setLore({ ...lore, technique })}
+          onClose={closeLore}
+        />
+      )}
+
       {mode === "skill" && (
         <SkillPage
           key={focus}
@@ -387,6 +417,7 @@ export function SkillSky({
           onChoose={choose}
           onBack={() => setMode("sky")}
           onStep={step}
+          onLore={(technique) => openLore(focus, technique)}
         />
       )}
 
@@ -430,6 +461,19 @@ export function SkillSky({
                   onPointerCancel={endHold}
                   aria-label={`${def.name}: ${def.does}. Hold to choose.`}
                 >
+                  <span
+                    className="vault-ask"
+                    role="button"
+                    tabIndex={-1}
+                    aria-label={`History of ${def.name}`}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openLore(pick.skill, id);
+                    }}
+                  >
+                    ?
+                  </span>
                   <span className="vault-plate-body">
                     <span className="vault-glyph" aria-hidden="true">
                       <i />
@@ -494,6 +538,7 @@ function SkillPage({
   onChoose,
   onBack,
   onStep,
+  onLore,
 }: {
   skill: SkillId;
   skills: Skills;
@@ -502,6 +547,7 @@ function SkillPage({
   onChoose: (p: Pick) => void;
   onBack: () => void;
   onStep: (by: number) => void;
+  onLore: (technique?: TechniqueId) => void;
 }) {
   const def = CONSTELLATIONS[skill];
   const info = SKILLS[skill];
@@ -512,6 +558,9 @@ function SkillPage({
       <div className="vault-panel">
         <nav className="vault-page-nav">
           <button onClick={onBack}>‹ All skills</button>
+          <button className="vault-lore-open" onClick={() => onLore()} title="Historical context (H)">
+            <i aria-hidden="true">?</i> History
+          </button>
           <span>
             <button onClick={() => onStep(-1)} aria-label="Previous skill">‹</button>
             <button onClick={() => onStep(1)} aria-label="Next skill">›</button>
@@ -576,6 +625,9 @@ function SkillPage({
                         data-unbuilt={t.ready === false || undefined}
                       >
                         <strong>{t.name}</strong>
+                        <button className="vault-ask" onClick={() => onLore(id)} aria-label={`History of ${t.name}`}>
+                          ?
+                        </button>
                         <span>{t.ready === false ? "Not in the game yet" : t.does}</span>
                       </div>
                     );

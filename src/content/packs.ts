@@ -20,6 +20,7 @@ export const items: Record<
   ...dungItems,
   bow: { id: "bow", name: "Bow", sprite: "bow", value: 8, hand: {} },
   arrow: { id: "arrow", name: "Arrow", sprite: "arrow", value: 1 },
+  sling: { id: "sling", name: "Sling", sprite: "sling", value: 3, hand: {} },
 };
 export const packs: Record<string, Pack> = resolvePlayablePacks();
 export function resolvePrompt(

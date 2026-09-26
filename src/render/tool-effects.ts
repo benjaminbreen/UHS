@@ -54,6 +54,7 @@ export type SwingEffect = {
   power?: number;
   /** A spear: straight in, not round. */
   thrust?: boolean;
+  knife?: boolean;
   contactMs?: number;
 };
 /** A thrown prop in the air, and what it found where it came down. */
@@ -67,6 +68,7 @@ export type ThrowEffect = {
   bounce?: { x: number; y: number };
   straight?: boolean;
   arrow?: boolean;
+  sling?: boolean;
   /** The thrown object, hidden from the scene until it lands. */
   id?: string;
   /** An item from the hand rather than a prop. */
@@ -202,7 +204,8 @@ export class ToolEffects {
     const [facing, ...corners] = effect.hits;
     // A wound-up swing draws its own ring; see CombatEffects.
     if (facing && !effect.power) {
-      if (effect.thrust)
+      if (effect.knife) this.slice(from, this.point(facing.at));
+      else if (effect.thrust)
         this.thrust(from, this.point((effect.hits.find((hit) => hit.solid) ?? effect.hits.at(-1)!).at));
       else this.arc(from, this.point(facing.at));
     }
@@ -331,7 +334,9 @@ export class ToolEffects {
       Math.abs(effect.to.x - effect.from.x),
       Math.abs(effect.to.y - effect.from.y),
     );
-    const flight = flightMs(span, effect.straight);
+    const flight = effect.sling
+      ? Math.round(flightMs(span, true) * 0.75)
+      : flightMs(span, effect.straight);
     const generation = this.generation;
     const land = () => {
       if (generation !== this.generation) return;
@@ -356,6 +361,7 @@ export class ToolEffects {
       return;
     }
     void gameAudio()?.sound(effect.arrow ? projectileRelease("arrow") :
+      effect.sling ? projectileRelease("stone") :
       effect.straight ? projectileRelease("spear") : strike("haft", "air", "whoosh"), "throw");
     const image = this.scene.add
       .image(
@@ -368,7 +374,7 @@ export class ToolEffects {
       .setTint(this.view.tint())
       .setDepth(to.y + 4600);
     // A long thing is thrown at body scale, not at the height it stands in a yard.
-    if (effect.small && !effect.arrow) image.setScale(0.4);
+    if (effect.small && !effect.arrow) image.setScale(effect.sling ? 0.3 : 0.4);
     else if (image.height > 24) image.setScale(24 / image.height);
     const shade = this.scene.add
       .ellipse(from.x, from.y - 1, 9, 4, 0x000000, 0.28)
@@ -386,6 +392,7 @@ export class ToolEffects {
         }
       : to;
     const spin = Math.sign(to.x - from.x || 1) * (3 + span * 0.8);
+    let streak = 0;
     const leg = (
       a: { x: number; y: number },
       b: { x: number; y: number },
@@ -409,6 +416,8 @@ export class ToolEffects {
           shade.setPosition(a.x + (ground.x - a.x) * t.v,
             a.y + (ground.y - a.y) * t.v - 1).setScale(1 - rise / 60);
           if (!effect.straight) image.setRotation(spin * t.v);
+          // A slung stone is too quick to see; what shows is the streak it leaves.
+          if (effect.sling && a === from && ++streak % 2) this.streak(image.x, image.y, image.depth);
         },
         onComplete: done,
       });
@@ -421,7 +430,7 @@ export class ToolEffects {
       image.destroy();
       shade.destroy();
     };
-    leg(from, arrival, flight, effect.straight ? 5 : 9 + span * 3, () => {
+    leg(from, arrival, flight, effect.straight ? 5 : effect.sling ? 3 + span * 0.6 : 9 + span * 3, () => {
       land();
       const skip = effect.bounce && this.point(effect.bounce);
       if (!skip || generation !== this.generation) return finish();
@@ -430,6 +439,20 @@ export class ToolEffects {
         finish();
       });
     }, to);
+  }
+  private streak(x: number, y: number, depth: number) {
+    const dot = this.scene.add.rectangle(Math.round(x), Math.round(y), 2, 1, 0xf6efdc, 0.7).setDepth(depth - 1);
+    this.live.add(dot);
+    this.scene.tweens.add({
+      targets: dot,
+      alpha: 0,
+      scaleX: 0.5,
+      duration: 160,
+      onComplete: () => {
+        this.live.delete(dot);
+        dot.destroy();
+      },
+    });
   }
   /** Four short rays where something thrown comes down: the comic-book knock. */
   private impact(at: { x: number; y: number }) {
@@ -644,6 +667,31 @@ export class ToolEffects {
       alpha: 0,
       duration: 240,
       ease: "Quad.easeOut",
+      onComplete: () => {
+        this.live.delete(g);
+        g.destroy();
+      },
+    });
+  }
+  /** A knife leaves no arc, only a thin bright cut drawn across the air. */
+  private slice(from: { x: number; y: number }, to: { x: number; y: number }) {
+    const angle = Math.atan2(to.y - from.y, to.x - from.x);
+    const g = this.scene.add.graphics().setDepth(to.y + 5000);
+    g.lineStyle(3, 0x2a211a, 0.35).lineBetween(-6, -4, 6, 4);
+    g.lineStyle(1, 0xffffff, 1).lineBetween(-6, -5, 6, 3);
+    g.fillStyle(0xffffff, 1).fillRect(5, 2, 2, 2);
+    g.setPosition(
+      from.x + (to.x - from.x) * 0.55,
+      from.y + (to.y - from.y) * 0.55 - 12,
+    );
+    g.setRotation(angle).setScale(0.2, 1);
+    this.live.add(g);
+    this.scene.tweens.chain({
+      targets: g,
+      tweens: [
+        { scaleX: 1.1, duration: 45, ease: "Cubic.easeOut" },
+        { alpha: 0, scaleY: 0.3, duration: 130, ease: "Quad.easeIn" },
+      ],
       onComplete: () => {
         this.live.delete(g);
         g.destroy();

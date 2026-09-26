@@ -65,6 +65,8 @@ export function CombatTestPanel({
             <option value="">Bare hands</option>
             <option value="item:pebble">Ten pebbles to throw</option>
             <option value="item:bow">Bow and twenty arrows</option>
+            <option value="item:sling">Sling and twenty pebbles</option>
+            <option value="item:tool">Small knife</option>
             {weaponProps.map((id) => (
               <option key={id} value={id}>
                 {propDefs[id]?.name ?? id}
@@ -75,6 +77,8 @@ export function CombatTestPanel({
         <p>
           {weapon === "item:bow"
             ? "Bow · 3–8 damage · 10 tiles. Hold F or right mouse, aim with the cursor, release."
+            : weapon === "item:sling"
+            ? "Sling · 2–6 damage, long stun · 8 tiles. Hold F or right mouse to whirl; longer is harder."
             : `Damage ${stats.damage} · knockback ${stats.knock}. F strikes; hold X or right mouse and aim with the cursor to throw.`}
         </p>
         <div className="live-animal-actions">

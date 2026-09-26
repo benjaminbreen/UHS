@@ -12,6 +12,7 @@ import {
 import { culturalMusic, culturalThemes } from "../src/audio/cultural-themes";
 import { layeredThemes } from "../src/audio/layered-themes";
 import { catalog } from "../src/audio/sfx";
+import * as handling from "../src/audio/handling";
 
 describe("original soundtrack scores", () => {
   it("writes complete phrases and playable notes in every season, time and era", () => {
@@ -131,6 +132,50 @@ describe("original soundtrack scores", () => {
     expect(midi("C4")).toBe(60);
     expect(midi("F#4")).toBe(66);
     expect(() => midi("garbage")).toThrow();
+  });
+  it("gives every material, food, coin and pen a short, finite sound", () => {
+    const sounds = [
+      ...(
+        [
+          "stone",
+          "metal",
+          "wood",
+          "pottery",
+          "earth",
+          "shell",
+          "food",
+          "soft",
+        ] as const
+      ).map(handling.takeUp),
+      ...(["crunch", "chew", "leafy"] as const).flatMap((b) => [
+        handling.eat(b, false),
+        handling.eat(b, true),
+      ]),
+      ...(["metal", "shell", "paper"] as const).map((money) =>
+        handling.pay(money, 12),
+      ),
+      ...(["charcoal", "clay", "brush", "pen", "pencil", "tap"] as const).map(
+        handling.writing,
+      ),
+      handling.drink(),
+      handling.barter("stone", "food"),
+      handling.pageTurn(),
+    ];
+    for (const sound of sounds) {
+      expect(sound.length).toBeGreaterThan(0);
+      for (const layer of sound) {
+        expect(Number.isFinite(layer.freq) && Number.isFinite(layer.gain)).toBe(
+          true,
+        );
+        expect(layer.at + layer.dur).toBeLessThan(1.6);
+      }
+    }
+    expect(handling.writingTool(-2500, "north-african-west-asian")).toBe(
+      "clay",
+    );
+    expect(handling.writingTool(1200, "east-asian")).toBe("brush");
+    expect(handling.materialOf("flint")).toBe("stone");
+    expect(handling.moneyOf("coin")).toBe("metal");
   });
   it("provides finite, bounded SFX cues", () => {
     for (const entry of catalog) {
