@@ -1,4 +1,8 @@
 import { herdersFor } from "./herders";
+import { agendaOf, festivalOf, type Person } from "../../core/agenda";
+import { lifeAimOf } from "../../core/life-aim";
+import { carryKit } from "../../content/economy/carrying";
+import { dayStations, livelihoodOf, placeFor } from "./routines";
 import { adjacentTerrain } from "../travel/terrain-preview";
 import { waterDepthAt, MAX_WADING_DEPTH } from "../../core/water-field";
 import { mapEntrances, type MapEntrance } from "../travel/entrances";
@@ -44,7 +48,7 @@ import {
   type HeightTier,
   type TopographyCell,
 } from "../../core/topography";
-import type { Pack, Place, Point, Terrain, WorldModel } from "../../core/types";
+import type { Actor, Pack, Place, Point, Terrain, WorldModel } from "../../core/types";
 import {
   buildItinerary,
   DAY_MINUTES,
@@ -387,6 +391,58 @@ export function createSettlementWorld(
     return result;
   }
   const routines = new Map<string, Itinerary | undefined>();
+  /** The game day each built routine was built for. */
+  const routineDay = new Map<string, number>();
+  let today = 0;
+  const aims = new Map<string, ReturnType<typeof lifeAimOf>>();
+  /** Who a resident is to the day's picker: their household, kin and aim. */
+  function personOf(actor: Actor): Person {
+    const byId = (id: string) => world.initialActors.find((a) => a.id === id);
+    const household = world.households?.find((h) => h.members.includes(actor.id));
+    const kin = (actor.relations ?? []).flatMap((r) => {
+      const other = byId(r.other);
+      return other && other.kind === "human" ? [{ actor: other, kind: r.kind }] : [];
+    });
+    let aim = aims.get(actor.id);
+    if (!aim && actor.id !== "player") {
+      aim = lifeAimOf(seed, pack.setting, actor, world.initialActors, world.households);
+      aims.set(actor.id, aim);
+    }
+    const kit = livelihoodOf(pack, actor);
+    return {
+      actor,
+      household,
+      kin,
+      aim,
+      work: `${kit?.label ?? ""} ${kit?.activity ?? ""} ${actor.role}`,
+    };
+  }
+  /** The day's own doings for one resident, placed in their settlement. */
+  function dayOf(actor: Actor, plan: SettlementPlan, clock: number) {
+    const site = plan.work.get(actor.id);
+    if (!site) return undefined;
+    const person = personOf(actor);
+    const subjectAt = (subject?: string) => {
+      const other = person.kin.find((k) => k.actor.id === subject)?.actor;
+      if (!other) return undefined;
+      const same = other.householdId && other.householdId === actor.householdId;
+      return { home: plan.work.get(other.id)?.home ?? (same ? site.home : undefined), name: other.name.split(" ")[0] };
+    };
+    const can = (want: Parameters<typeof placeFor>[6]) =>
+      typeof want === "object" && "kin" in want ||
+      !!placeFor(plan, seed, actor.id, site.home, site.work, pack.year, want);
+    const items = agendaOf(seed, pack.setting, clock, person, can).map((item) => ({
+      ...item,
+      subjectAt: subjectAt(item.subject),
+    }));
+    return { site, items, festival: festivalOf(pack.setting, clock) };
+  }
+  /** A key for what makes one day's routine differ from another's. */
+  function dayKey(actor: Actor | undefined, plan: SettlementPlan | undefined, day: number) {
+    if (!actor || !plan) return "";
+    const d = dayOf(actor, plan, day * 86400 + 43200);
+    return [d?.festival?.id ?? "", ...(d?.items.map((i) => i.id) ?? [])].join("|");
+  }
   function getPlan(
     cx: number,
     cy: number,
@@ -1938,6 +1994,27 @@ export function createSettlementWorld(
    * wakes the next dormant one, so the crowd turns over without anyone
    * vanishing mid-street. One swap per settlement per call. */
   function rotateRoutines(clock: number) {
+    const day = Math.floor(clock / 86400);
+    if (day !== today) {
+      // Yesterday's routine is kept until they are home for the night, so
+      // nobody is lifted off the street when the date turns.
+      today = day;
+    }
+    for (const [id, it] of routines) {
+      const built = routineDay.get(id);
+      if (!it || built === undefined || built === today) continue;
+      const at = itineraryAt(it, clock);
+      const home = it.segments[0]?.pos;
+      if (at.activity !== "rest" || at.moving || !home || at.x !== home.x || at.y !== home.y)
+        continue;
+      const actor = world.initialActors.find((a) => a.id === id);
+      const plan = planForEntity(id);
+      if (dayKey(actor, plan, built) === dayKey(actor, plan, today)) routineDay.set(id, today);
+      else {
+        routines.delete(id);
+        routineDay.delete(id);
+      }
+    }
     for (const [key, ranked] of routineRank) {
       const n = ranked.length;
       if (n <= ROUTINE_BUDGET) continue;
@@ -2008,6 +2085,23 @@ export function createSettlementWorld(
       }
     }
     let built: Itinerary | undefined;
+    let once: Station[] = [];
+    const self = world.initialActors.find((a) => a.id === id);
+    if (plan && stations && site && self) {
+      const day = dayOf(self, plan, today * 86400 + 43200);
+      if (day)
+        ({ stations, once } = dayStations(
+          plan,
+          seed,
+          id,
+          site,
+          pack.year,
+          stations,
+          day.items,
+          day.festival,
+          carryKit(pack),
+        ));
+    }
     if (stations && site && stations.length > 1) {
       // Buildings and terrain are in world.blocked; the furniture the plan puts
       // in a yard is not, and a routine that walked through a loom would be
@@ -2117,12 +2211,27 @@ export function createSettlementWorld(
         legs.push(path);
         at = station.pos;
       }
+      const onceOut = new Map<Point, Point[]>(),
+        onceBack = new Map<Point, Point[]>();
+      const walked = once.filter((s) => {
+        const there = leg(bed, s.pos),
+          returning = there && leg(s.pos, bed);
+        if (!there || !returning) return false;
+        onceOut.set(s.pos, there);
+        onceBack.set(s.pos, returning);
+        return true;
+      });
       if (reachable.length > 1)
         built = buildItinerary(
           reachable,
           (1230 + site.offset) % DAY_MINUTES,
-          (_from, to) => legs[reachable.findIndex((s) => s.pos === to)] ?? [],
+          (from, to) =>
+            onceOut.get(to) ??
+            onceBack.get(from) ??
+            legs[reachable.findIndex((s) => s.pos === to)] ??
+            [],
           random(seed, "day-phase", id),
+          walked,
         );
       // Slide the whole day so they leave the friend's door just behind the
       // friend leaving it: two tiles back, near enough to be walking together.
@@ -2144,6 +2253,7 @@ export function createSettlementWorld(
         !!plan?.work.get(id),
       );
     routines.set(id, built);
+    routineDay.set(id, today);
     return built;
   }
   function planForEntity(id: string) {
@@ -2382,6 +2492,20 @@ export function createSettlementWorld(
       return planForEntity(id)?.work.get(id);
     },
     itinerary: (id) => routineFor(id),
+    agenda: (actor, clock) => {
+      const plan =
+        actor.id === "player"
+          ? getPlan(startingSite?.cx ?? home.x, startingSite?.cy ?? home.y, startingSite?.id)
+          : planForEntity(actor.id);
+      const day = plan && dayOf(actor, plan, clock);
+      if (!plan || !day) return undefined;
+      const where = (want: Parameters<typeof placeFor>[6], subject?: { home?: Point; name: string }, shared = false) =>
+        placeFor(plan, seed, actor.id, day.site.home, day.site.work, pack.year, want, subject, shared)?.pos;
+      return {
+        festival: day.festival && { ...day.festival, pos: where(day.festival.place, undefined, true) },
+        items: day.items.map((item) => ({ ...item, pos: where(item.place, item.subjectAt) })),
+      };
+    },
     routinePending: (id) => !routines.has(id),
     dormant: (id) => dormant.has(id),
     rotateRoutines,
@@ -2475,8 +2599,10 @@ export function createSettlementWorld(
   };
   if (prepared) {
     Object.assign(world, prepared.initial);
-    for (const [id, itinerary] of prepared.routines ?? [])
+    for (const [id, itinerary] of prepared.routines ?? []) {
       routines.set(id, itinerary);
+      routineDay.set(id, 0);
+    }
     for (const id of prepared.dormant ?? []) dormant.add(id);
     // `active` came over already filled, so activate() will skip these plans.
     for (const id of active) keptFauna.push(...(plans.get(id)?.fauna ?? []));

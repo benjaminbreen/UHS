@@ -98,7 +98,9 @@ export const venues: readonly Venue[] = [
     id: "venue.tavern",
     label: "The tavern",
     kind: "tavern",
-    scope: { years: [-2000, 10001] },
+    // Mesopotamian tavern-keepers are in Hammurabi's laws; the steppe and
+    // the oases beyond Iran had nothing like them for a long while after.
+    scope: { years: [-2000, 10001], bounds: [-18, 20, 62, 72] },
     minBuildings: 14,
     tags: ["worldly", "communal"],
     slot: "evening",

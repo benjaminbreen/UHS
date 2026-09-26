@@ -1,3 +1,22 @@
+## Daily agendas: occasions, holidays and commissions — September 26, 2026
+
+Each person's day now carries one or two occasions beside their work, picked
+from what is true of them that day: anniversaries in the household's history,
+their patron and observance, a power whose domain matches their trade, kin and
+their ages, a marriage being sought, fortune, rank, personality and outlook,
+and calendar cycles (Kalends, nundinae, the seven-day week, the five- and
+four-day market weeks). The life aim weighs up the occasions that serve it.
+Content is scoped and sourced in `src/content/days/`; general stand-ins are
+discounted where a scope has named ones. Documented rest days (Sunday,
+Christmas, Saturnalia, Qingming, the Chinese New Year) take the work out of
+every routine and bring the settlement to the church, square or graves.
+
+NPC routines are rebuilt per day, swapped only while the resident is at home;
+one-off errands are walked once at their hour. The player's sidebar goals and
+the character modal read the same agenda, and the modal marks each occasion
+documented, inferred or hypothesis. Workshop and market work names a client.
+The generic tavern is now scoped to Europe, West Asia and North Africa.
+
 ## Continuous atlas-tile travel and journeys — September 24, 2026
 
 Neighbouring maps are now adjacent 384-tile squares of the atlas, so coasts and

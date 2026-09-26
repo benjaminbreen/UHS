@@ -41,6 +41,7 @@ import { CharacterSprite } from "./CharacterSprite";
 import { accentFor, patternFor, sceneFor } from "./culture-theme";
 import { ItemIcon, timeLabel } from "./components";
 import { dayPlan } from "../core/itinerary";
+import { asDoing } from "../core/agenda";
 import { dispositionOf, standingOf } from "../core/persona";
 import { statsOf, statKeys } from "../core/stats";
 import { abilitiesOf } from "../content/characters/abilities";
@@ -592,6 +593,15 @@ export function CharacterPanel({
   const excerpt = useWikiSummary(stance?.fallback ? undefined : stance?.wiki);
   const routine = runtime.engine.world.itinerary?.(actor.id);
   const plan = routine ? dayPlan(routine, state.clock) : [];
+  const agenda = runtime.engine.world.agenda?.(actor, state.clock);
+  const doings = new Map(
+    (agenda?.items ?? []).map((item) => [asDoing(item.text, isPlayer), item]),
+  );
+  // The player's own round is walked by the player, so their day's doings
+  // are listed from the goals rather than read off an itinerary.
+  const errands = isPlayer
+    ? runtime.engine.dailyGoals().filter((g) => g.slot === "own")
+    : [];
   const inspection = isPlayer ? undefined : runtime.engine.inspect(actor.id);
   // The mockup's one highlighted action; the rest stay in the Available list.
   const follow = inspection?.affordances.find(
@@ -803,15 +813,20 @@ export function CharacterPanel({
                     const next =
                       entry.state === "later" &&
                       !plan.some((e, j) => j < i && e.state === "later");
+                    const doing = doings.get(entry.label);
                     return (
                       <li
                         key={entry.label}
                         data-state={entry.state}
                         data-activity={entry.activity}
+                        title={doing?.note}
                       >
                         <Icon size={22} />
                         <time>{timeLabel(entry.minute * 60)}</time>
-                        <span>{entry.label}</span>
+                        <span>
+                          {entry.label}
+                          {doing && <small className="day-evidence">{doing.evidence}</small>}
+                        </span>
                         <em>
                           {entry.state === "now"
                             ? "now"
@@ -824,6 +839,14 @@ export function CharacterPanel({
                       </li>
                     );
                   })}
+                  {errands.map((g) => (
+                    <li key={g.id} data-state={g.done ? "done" : "later"} data-activity="visit">
+                      <Hand size={22} />
+                      <time>today</time>
+                      <span>{g.text}</span>
+                      <em>{g.done ? "done" : ""}</em>
+                    </li>
+                  ))}
                 </ol>
               ) : (
                 <ol className="day-plan">
@@ -844,12 +867,10 @@ export function CharacterPanel({
               <div className="panel-card">
                 <h3>About</h3>
                 <p className="character-about">
-                  {actor.name.split(" ")[0]} is a {roleLabel.toLowerCase()}
-                  {actor.origin?.community
-                    ? ` of the ${actor.origin.community}`
-                    : ""}
-                  , known for {dispositionOf(stats).toLowerCase()} habits.{" "}
-                  {they} take part in the daily work of the settlement.
+                  {actor.name.split(" ")[0]} is{" "}
+                  {/^[aeiou]/i.test(roleLabel) ? "an" : "a"} {roleLabel.toLowerCase()}, known for{" "}
+                  {dispositionOf(stats).toLowerCase()} habits. {they}{" "}
+                  {they === "They" ? "take" : "takes"} part in the daily work of the settlement.
                 </p>
               </div>
               <div className="panel-card">

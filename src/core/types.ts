@@ -557,6 +557,7 @@ export type Snapshot = {
     talked: boolean;
     visited: string[];
     worked?: boolean;
+    talkedTo?: string[];
   };
 };
 /** What a narrator turn may do to the world. Each one resolves
@@ -687,6 +688,17 @@ export interface WorldModel {
   /** A resident's whole day as a route. Built on demand and cached by the
    * world: sampling it costs a binary search, not a path search. */
   itinerary?(actorId: string): import("./itinerary").Itinerary | undefined;
+  /** The day's own doings for one person, and the day the settlement keeps,
+   * with where each happens. */
+  agenda?(
+    actor: Actor,
+    clock: number,
+  ):
+    | {
+        festival?: import("../content/days/types").Festival & { pos?: Point };
+        items: (import("./agenda").AgendaItem & { pos?: Point })[];
+      }
+    | undefined;
   /** True while a routine is still queued to be built. */
   routinePending?(actorId: string): boolean;
   /** True for a resident outside the routine budget: they stay home and are

@@ -51,6 +51,8 @@ export type Station = {
   pace?: number;
   /** What they have in their hands here, and on the walk to it. */
   carry?: ItemId;
+  /** Walked once, from home and back, rather than on every round. */
+  part?: "morning" | "midday" | "evening";
 };
 type Segment = {
   from: number;
@@ -103,6 +105,10 @@ const dwellCap: Record<StationActivity, number> = {
   "haul-catch": 12,
 };
 const MIN_NIGHT = 300;
+/** A one-off errand is not repeated, so it may run longer than a round's. */
+const ONCE_CAP = 180;
+/** Minute of the day each part of it begins. */
+const ONCE_HOUR = { morning: 480, midday: 750, evening: 1080 };
 const MAX_NIGHT = 480;
 /** Share of the day a resident is out of doors. The rest is spent indoors,
  * where nobody is drawn. */
@@ -116,6 +122,8 @@ export function buildItinerary(
   /** 0..1. Rotates the outings within the waking day, so the settlement does
    * not empty and fill in one wave. */
   phase = 0,
+  /** The day's one-off doings, each placed by its `part`. */
+  once: Station[] = [],
 ): Itinerary | undefined {
   if (stations.length < 3) return undefined;
   const night = stations[stations.length - 1];
@@ -134,6 +142,12 @@ export function buildItinerary(
   // Out of the door, round the errands, back through it.
   const outing = dwellSum + walk(between) + walk([toBed, fromBed]);
   if (outing <= 0 || outing > DAY_MINUTES - MIN_NIGHT) return undefined;
+  const legsOnce = once.map((s) => [path(night.pos, s.pos), path(s.pos, night.pos)]);
+  const onceMinutes = once.map((s) => Math.min(ONCE_CAP, s.minutes));
+  const onceTotal = once.reduce(
+    (n, _, i) => n + onceMinutes[i] + walk(legsOnce[i]),
+    0,
+  );
   // Time inside another building is not time seen outdoors.
   const hidden = errands.reduce(
     (n, s, i) => n + (s.activity === "rest" ? dwells[i] : 0),
@@ -142,14 +156,15 @@ export function buildItinerary(
   const rounds = Math.max(
     1,
     Math.min(
-      Math.floor((DAY_MINUTES - MIN_NIGHT) / outing),
+      Math.floor((DAY_MINUTES - MIN_NIGHT - onceTotal) / outing),
       Math.round(
         (DAY_MINUTES * (night.share ?? OUTDOOR_SHARE)) /
           Math.max(1, outing - hidden),
       ),
     ),
   );
-  const indoors = DAY_MINUTES - rounds * outing;
+  const indoors = DAY_MINUTES - rounds * outing - onceTotal;
+  if (indoors < MIN_NIGHT) return undefined;
   // Night and gaps must sum to the indoor hours, or the period drifts against
   // the clock.
   const nightMinutes = Math.min(MAX_NIGHT, Math.max(MIN_NIGHT, indoors * 0.55));
@@ -188,9 +203,31 @@ export function buildItinerary(
     });
     at += leg.length * pace;
   };
+  // A one-off errand is walked from home at its hour, or at the first time
+  // home after it if a round is under way then.
+  const due = once
+    .map((s, i) => ({
+      i,
+      at: (ONCE_HOUR[s.part ?? "midday"] - startMinute + DAY_MINUTES) % DAY_MINUTES,
+    }))
+    .sort((a, b) => a.at - b.at);
+  let next = 0;
+  const home = (minutes: number, last = false) => {
+    let left = minutes;
+    while (next < due.length && (last || due[next].at < at + left)) {
+      const wait = Math.min(left, Math.max(0, due[next].at - at));
+      stay(night, wait);
+      left -= wait;
+      const { i } = due[next++];
+      travel(legsOnce[i][0], night, once[i]);
+      stay(once[i], onceMinutes[i]);
+      travel(legsOnce[i][1], once[i], night);
+    }
+    stay(night, left);
+  };
   stay(night, nightMinutes);
   for (let r = 0; r < rounds; r++) {
-    stay(night, gap(r));
+    home(gap(r));
     travel(fromBed, night, errands[0]);
     for (let i = 0; i < errands.length; i++) {
       stay(errands[i], dwells[i]);
@@ -199,7 +236,7 @@ export function buildItinerary(
       else travel(toBed, errands[i], night);
     }
   }
-  stay(night, gap(rounds));
+  home(gap(rounds), true);
   const period = at;
   if (period <= 0) return undefined;
   return { segments, start: startMinute, period };

@@ -19,6 +19,8 @@ import type { WorldSetting } from "../../content/geography/types";
 import { cellKey, type SettlementPlan, type WorkSite } from "./types";
 import { propVisualCells } from "../../content/props/catalog";
 import { buildingRoofCells } from "../../content/graphics/models";
+import { asDoing, type AgendaItem } from "../../core/agenda";
+import type { Festival, PlaceWant } from "../../content/days/types";
 /** Ordered from the evening rest, so the leftover hours of a short routine
  * lengthen the night instead of padding an errand. */
 const night = (home: Point): Station => ({
@@ -1102,4 +1104,146 @@ function legacySocialStop(
     toward: "a corner where people stop to talk",
     minutes: 40,
   };
+}
+
+const the = (label: string) => label.replace(/^The /, "the ");
+/** Where one of the day's own doings happens in this settlement, if it has
+ * anywhere for it. `shared` puts everyone on the same spot: a festival crowd
+ * rather than a scatter. */
+export function placeFor(
+  plan: SettlementPlan,
+  seed: string,
+  id: string,
+  home: Point,
+  work: Point,
+  year: number,
+  want: PlaceWant,
+  subject?: { home?: Point; name: string },
+  shared = false,
+): { pos: Point; toward: string } | undefined {
+  const venue = (kinds: string[]) =>
+    plan.venues?.find((v) => kinds.includes(v.venue.kind));
+  const pick = <T,>(list: T[] | undefined, key: string) =>
+    list?.length
+      ? list[shared ? 0 : Math.floor(random(seed, "occasion", id, key) * list.length)]
+      : undefined;
+  if (typeof want === "object") {
+    if ("venue" in want) {
+      const v = venue([want.venue]);
+      return v && { pos: v.pos, toward: the(v.venue.label) };
+    }
+    if (!subject) return undefined;
+    return subject.home
+      ? { pos: subject.home, toward: `${subject.name}'s door` }
+      : undefined;
+  }
+  switch (want) {
+    case "home":
+      return { pos: home, toward: "their own door" };
+    case "hearth": {
+      const fire = hearthFor(plan, home, year);
+      return { pos: fire ?? home, toward: fire ? "the fire" : "the hearth" };
+    }
+    case "well": {
+      const w = wellAt(plan);
+      return w && { pos: w, toward: "the well" };
+    }
+    case "sanctuary": {
+      const built = plan.places.find((p) => p.claim.startsWith("religious-"));
+      if (built) return { pos: built.entrance, toward: built.name };
+      const v = venue(["shrine", "temple-yard"]);
+      return v && { pos: v.pos, toward: the(v.venue.label) };
+    }
+    case "market": {
+      const v = venue(["market"]);
+      if (v) return { pos: v.pos, toward: the(v.venue.label) };
+      const square = plan.plots.find((p) => p.kind === "public");
+      return square && {
+        pos: { x: square.x + Math.floor(square.w / 2), y: square.y + square.h - 1 },
+        toward: year < 1750 ? "the square" : "the market",
+      };
+    }
+    case "gathering": {
+      const g = pick(plan.gatherings, "gathering");
+      return g && { pos: g, toward: "a corner where people stop to talk" };
+    }
+    case "wild": {
+      const w = pick(plan.outdoors?.wild, "wild");
+      return w && { pos: w, toward: "the edge of the settlement" };
+    }
+    case "edge": {
+      const e = plan.outdoors?.roadOut ?? plan.outdoors?.wild[0];
+      return e && { pos: e, toward: "the road out of town" };
+    }
+    case "work":
+      return { pos: work, toward: "work" };
+    case "door": {
+      const d = farDoor(plan, seed, id, home);
+      return d && { pos: d, toward: "a neighbour's door" };
+    }
+  }
+}
+/** Work that stops on a day of rest. Grazing does not: the flock still eats.
+ * An errand spent under another roof is the office or the shop floor. */
+const RESTS = new Set<Station["activity"]>(["work", "tend", "gather", "haul", "haul-catch", "rest"]);
+/**
+ * One resident's stations for one day: the usual round, with the day's own
+ * doings walked once each, and on a day of rest the work taken out and the
+ * gathering put in its place.
+ */
+export function dayStations(
+  plan: SettlementPlan,
+  seed: string,
+  id: string,
+  site: { home: Point; work: Point },
+  year: number,
+  base: Station[],
+  items: (AgendaItem & { subjectAt?: { home?: Point; name: string } })[],
+  festival: Festival | undefined,
+  carry: ReturnType<typeof carryKit>,
+) {
+  const once: Station[] = [];
+  let stations = base;
+  const where = (want: PlaceWant, subject?: { home?: Point; name: string }, shared = false) =>
+    placeFor(plan, seed, id, site.home, site.work, year, want, subject, shared);
+  if (festival) {
+    const at = where(festival.place, undefined, true);
+    if (at) {
+      once.push({
+        pos: nearby(plan, seed, `${id}-fest`, at.pos),
+        activity: "visit",
+        label: `Keeping ${festival.label}`,
+        toward: at.toward,
+        minutes: festival.minutes,
+        part: "midday",
+      });
+      if (festival.rest) {
+        const night = base[base.length - 1];
+        const kept = base.slice(0, -1).filter((s) => !RESTS.has(s.activity) || s.activity === "graze");
+        const step: Station = {
+          pos: nearby(plan, seed, `${id}-step`, site.home),
+          activity: "visit",
+          label: "On the doorstep",
+          toward: "their own door",
+          minutes: 20,
+        };
+        while (kept.length < 2) kept.push(step);
+        stations = [...kept, night];
+      }
+    }
+  }
+  for (const item of items) {
+    const at = where(item.place, item.subjectAt);
+    if (!at) continue;
+    once.push({
+      pos: nearby(plan, seed, `${id}-${item.id}`, at.pos),
+      activity: item.activity,
+      label: asDoing(item.text, id === "player"),
+      toward: at.toward,
+      minutes: item.minutes,
+      part: item.part,
+      ...(item.carry ? { carry: carry[item.carry] } : {}),
+    });
+  }
+  return { stations, once };
 }

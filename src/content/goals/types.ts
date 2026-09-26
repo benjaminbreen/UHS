@@ -29,6 +29,9 @@ export type GoalCheck =
   /** Player enters a building whose name or sprite matches. */
   | { type: "visit"; place: string }
   | { type: "talk" }
+  /** Player comes within a few steps of this cell. */
+  | { type: "reach"; x: number; y: number }
+  | { type: "talk-to"; actor: string }
   | { type: "eat"; below: number }
   | { type: "rest"; below: number };
 
@@ -40,8 +43,9 @@ export type GoalTemplate = {
   seasons?: SeasonId[];
   /** Extra fit test; return 0 to exclude, higher to prefer. Default 1. */
   fit?: (c: GoalContext) => number;
-  /** "work" goals come first, then "need", then "social". */
-  slot: "work" | "need" | "social";
+  /** "work" goals come first, then "need", then "social". "own" is the
+   * day's agenda, which is not drawn from templates. */
+  slot: "work" | "need" | "social" | "own";
   /** Returns undefined when the context cannot bind the template. */
   bind: (c: GoalContext) => { text: string; check: GoalCheck } | undefined;
 };

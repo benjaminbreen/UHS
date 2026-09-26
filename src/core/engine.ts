@@ -74,16 +74,17 @@ import { regardCue } from "./regard";
 import { resolveIntents, validateIntents } from "./intents";
 import { findPath } from "./pathfinding";
 import { dayOfWork, importShare, runEconomy, stockOf } from "./economy";
-import { goods } from "../content/economy/goods";
+import { goods, goodsOf } from "../content/economy/goods";
 import { carryKit } from "../content/economy/carrying";
 import { processFor, type ProcessFamily } from "../content/economy/processes";
 import { itineraryAt, type Itinerary, DAY_MINUTES } from "./itinerary";
 import { goalDone, heldCount, pickGoals } from "./goals";
+import { commissionFor } from "./agenda";
 import { advanceLifeAim } from "./life-aim";
 import { GOAL_TEMPLATES } from "../content/goals/templates";
 import type { SeasonId } from "./season";
 import { livelihoodOf } from "../world/v3/routines";
-import type { GoalContext } from "../content/goals/types";
+import type { DailyGoal, GoalContext } from "../content/goals/types";
 import { route, type RouteResult } from "./routing";
 import { terrainJump, terrainLeap, type LeapResult } from "./topography";
 import { boundaryGraph } from "../render/fence-pass";
@@ -574,11 +575,44 @@ export class Engine {
       };
       const isolated = pack.setting?.situation?.people === 0;
       const templates = isolated ? GOAL_TEMPLATES.filter(t => t.id === "eat" || t.id === "sleep") : GOAL_TEMPLATES;
-      s.goals = pickGoals(s.manifest.seed, today, context, templates);
+      const picked = pickGoals(s.manifest.seed, today, context, templates);
+      const day = isolated ? undefined : this.world.agenda?.(p, s.clock);
+      const own: DailyGoal[] = (day?.items ?? []).map((item) => ({
+        id: item.id,
+        slot: "own",
+        text: item.text,
+        check: item.subject
+          ? { type: "talk-to", actor: item.subject }
+          : item.pos
+            ? { type: "reach", x: item.pos.x, y: item.pos.y }
+            : { type: "talk" },
+      }));
+      const feast = day?.festival;
+      if (feast)
+        own.unshift({
+          id: feast.id,
+          slot: "own",
+          text: feast.text,
+          check: feast.pos
+            ? { type: "reach", x: feast.pos.x, y: feast.pos.y }
+            : { type: "talk" },
+        });
+      const good = goods.find((g) => g.id === goodsOf(kit)[0])?.noun;
+      const job =
+        kit && (kit.workplace === "workshop" || kit.workplace === "market")
+          ? commissionFor(s.manifest.seed, today, p, s.actors, good)
+          : undefined;
+      s.goals = [
+        ...picked
+          .filter((g) => !(feast?.rest && g.slot === "work"))
+          .filter((g) => !(own.length && g.slot === "social"))
+          .map((g) => (g.id === "day-of-work" && job ? { ...g, text: job } : g)),
+        ...own,
+      ].slice(0, 8);
       for (const g of s.goals)
         if (g.check.type === "gain") g.base = heldCount(p, g.check.items);
       s.goalDay = today;
-      s.goalFlags = { traded: false, talked: false, visited: [] };
+      s.goalFlags = { traded: false, talked: false, visited: [], talkedTo: [] };
     }
     for (const g of s.goals ?? [])
       if (!g.done && goalDone(g, p, s.goalFlags!)) g.done = true;
@@ -5327,7 +5361,10 @@ export class Engine {
     switch (c.action) {
       case "talk":
         if (a) {
-          if (this.state.goalFlags) this.state.goalFlags.talked = true;
+          if (this.state.goalFlags) {
+            this.state.goalFlags.talked = true;
+            (this.state.goalFlags.talkedTo ??= []).push(a.id);
+          }
           this.advance(90, a.id);
           // People talking look at each other.
           p.direction = this.directionTo(p.pos, a.pos);

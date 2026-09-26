@@ -58,6 +58,7 @@ export function goalDone(
     talked: boolean;
     visited: string[];
     worked?: boolean;
+    talkedTo?: string[];
   },
 ): boolean {
   const c = g.check;
@@ -70,6 +71,13 @@ export function goalDone(
       return !!flags.worked;
     case "talk":
       return flags.talked;
+    case "talk-to":
+      return !!flags.talkedTo?.includes(c.actor);
+    case "reach":
+      return (
+        player.pos.space === "outside" &&
+        Math.hypot(player.pos.x - c.x, player.pos.y - c.y) <= 3
+      );
     case "visit":
       return flags.visited.some((v) => v.includes(c.place.toLowerCase()));
     case "eat":

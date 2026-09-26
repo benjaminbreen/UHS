@@ -50,3 +50,19 @@ it("puts the load in their hands on the way to it and not on the way back", () =
   expect(day, "and the crop comes off it").toContain("grain");
   expect(day, "hands are empty at some point").toContain(undefined);
 });
+
+it("walks a one-off errand once and keeps the day whole", () => {
+  const base = [
+    { pos: { x: 1, y: 1 }, activity: "draw-water" as const, label: "The well", minutes: 8 },
+    { pos: { x: 4, y: 1 }, activity: "tend" as const, label: "The barley", minutes: 11 },
+    { pos: { x: 0, y: 0 }, activity: "rest" as const, label: "Home", minutes: 500 },
+  ];
+  const day = buildItinerary(base, 360, path, 0, [
+    { pos: { x: 9, y: 9 }, activity: "visit", label: "At the shrine", minutes: 60, part: "evening" },
+  ])!;
+  expect(day.period).toBeCloseTo(1440, 5);
+  const visits = day.segments.filter((s) => !s.path && s.label === "At the shrine");
+  expect(visits).toHaveLength(1);
+  expect(visits[0].to - visits[0].from).toBe(60);
+  expect(dayPlan(day, 8 * 3600).map((p) => p.label)).toContain("At the shrine");
+});

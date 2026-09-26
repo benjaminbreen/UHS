@@ -610,7 +610,7 @@ const faunaGroup = z
 export const snapshotSchema = z.object({
   goals: z.array(z.object({
     id: z.string().max(80),
-    slot: z.enum(["work", "need", "social"]).optional(),
+    slot: z.enum(["work", "need", "social", "own"]).optional(),
     text: z.string().max(240),
     check: z.discriminatedUnion("type", [
       z.object({ type: z.literal("gain"), items: z.array(item).max(20), n: z.number().int().positive() }).strict(),
@@ -618,6 +618,8 @@ export const snapshotSchema = z.object({
       z.object({ type: z.literal("work") }).strict(),
       z.object({ type: z.literal("visit"), place: z.string().max(120) }).strict(),
       z.object({ type: z.literal("talk") }).strict(),
+      z.object({ type: z.literal("reach"), x: z.number(), y: z.number() }).strict(),
+      z.object({ type: z.literal("talk-to"), actor: z.string().max(120) }).strict(),
       z.object({ type: z.literal("eat"), below: z.number() }).strict(),
       z.object({ type: z.literal("rest"), below: z.number() }).strict(),
     ]),
@@ -630,6 +632,7 @@ export const snapshotSchema = z.object({
     talked: z.boolean(),
     visited: z.array(z.string().max(240)).max(1000),
     worked: z.boolean().optional(),
+    talkedTo: z.array(z.string().max(120)).max(1000).optional(),
   }).strict().optional(),
   today: z
     .object({

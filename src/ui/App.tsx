@@ -1492,7 +1492,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
                     {runtime.engine.dailyGoals().length > 0 ? (
                       runtime.engine.dailyGoals().map((g) => (
                         <div key={g.id}>
-                          <time>{g.done ? "Done" : g.slot === "work" ? "Work" : g.slot === "need" ? "Need" : "Social"}</time>
+                          <time>{g.done ? "Done" : g.slot === "work" ? "Work" : g.slot === "need" ? "Need" : g.slot === "own" ? (g.id.startsWith("fest.") ? "Holiday" : "Errand") : "Social"}</time>
                           <span>{g.text}</span>
                         </div>
                       ))
