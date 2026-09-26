@@ -1,0 +1,83 @@
+import { ANTIQUITY, DEEP, EARLY, EARLY_MODERN, HISTORIC, HOLOCENE, INDUSTRIAL, MEDIEVAL, MODERN, PREMODERN, type SkillContext } from "./types";
+
+export const woodcraft: SkillContext = {
+  entries: [
+    { eras: DEEP, wiki: ["Hand axe", "Woodworking"], sources: ["williams", "perlin"] },
+    { eras: HOLOCENE, wiki: ["Celt (tool)", "Longhouse"], sources: ["williams", "perlin"] },
+    { eras: EARLY, wiki: ["Cedrus libani", "Woodworking"], sources: ["perlin", "vanDeMieroop"] },
+    { eras: ANTIQUITY, wiki: ["Trireme", "Deforestation"], sources: ["perlin", "williams"] },
+    { eras: MEDIEVAL, wiki: ["Coppicing", "Pollarding", "Timber framing"], sources: ["rackhamTrees", "radkau"] },
+    { eras: EARLY_MODERN, wiki: ["Broad Arrow", "Charcoal"], sources: ["radkau", "williams"] },
+    { eras: INDUSTRIAL, wiki: ["Charcoal", "Deforestation", "Forestry"], sources: ["radkau", "williams"] },
+    { eras: MODERN, wiki: ["Chainsaw", "Logging", "Deforestation"], sources: ["williams", "mcneill"] },
+    { cultures: ["european"], eras: [...MEDIEVAL, ...EARLY_MODERN], wiki: ["Coppicing", "Pollarding", "Royal forest"], sources: ["rackhamTrees", "radkau"] },
+    { cultures: ["european"], eras: INDUSTRIAL, wiki: ["Charcoal", "Deforestation", "Forestry"], sources: ["radkau", "williams"] },
+    { cultures: ["north-african-west-asian", "european"], eras: [...EARLY, ...ANTIQUITY], wiki: ["Cedrus libani", "Deforestation", "Woodworking"], sources: ["perlin"] },
+    { cultures: ["north-african-west-asian"], eras: [...MEDIEVAL, ...EARLY_MODERN, ...INDUSTRIAL], wiki: ["Dhow", "Woodworking"], sources: ["chaudhuri", "perlin"] },
+    { cultures: ["inner-eurasian"], eras: PREMODERN, wiki: ["Yurt", "Taiga"], sources: ["beckwith", "williams"] },
+    { cultures: ["south-asian"], eras: PREMODERN, wiki: ["Teak", "Sacred groves of India"], sources: ["gadgilGuha"] },
+    { cultures: ["east-asian"], eras: PREMODERN, wiki: ["Satoyama", "Japanese carpentry"], sources: ["totman", "menzies", "elvin"] },
+    { cultures: ["southeast-asian"], eras: PREMODERN, wiki: ["Teak", "Bamboo"], sources: ["reid", "williams"] },
+    { cultures: ["west-central-african"], eras: PREMODERN, wiki: ["Iroko", "Dugout canoe"], sources: ["vansinaPaths", "williams"] },
+    { cultures: ["east-southern-african"], eras: PREMODERN, wiki: ["Miombo", "Charcoal"], sources: ["iliffe", "williams"] },
+    { cultures: ["mesoamerican"], eras: PREMODERN, wiki: ["Mahogany", "Slash-and-burn"], sources: ["coe", "williams"] },
+    { cultures: ["andean"], eras: PREMODERN, wiki: ["Polylepis", "Totora (plant)"], sources: ["daltroy", "williams"] },
+    { cultures: ["other-indigenous-american"], eras: PREMODERN, wiki: ["Canoe", "Longhouse"], sources: ["cronon", "williams"] },
+    { cultures: ["australian-pacific"], eras: PREMODERN, wiki: ["Outrigger boat", "Waka (canoe)"], sources: ["kirch", "thomas"] },
+    { wiki: ["Woodworking", "Axe", "Firewood"], sources: ["radkau", "perlin"] },
+  ],
+  techniques: {
+    "clean-cut": { wiki: "Axe", note: "Experiments with stone and bronze axes show how much of felling is technique rather than strength." },
+    timber: { wiki: "Firewood", note: "Nearly every household burned wood, and gathering and cutting it was daily labour for centuries." },
+    deadfall: { note: "Fallen and dead wood was often free to the poor by custom, the 'by hook or by crook' right of English commoners." },
+    tireless: { note: "Woodcutters paced themselves for a working day; the pace, more than the blow, set what a day could fell." },
+    forester: { wiki: "Felling", note: "Reading a tree's lean and cutting a hinge to guide its fall is old knowledge, still taught today." },
+    "charcoal-burner": { wiki: "Charcoal burner", note: "Charcoal burners lived in the woods tending slow, covered fires that fed forges and furnaces." },
+  },
+};
+
+export const stonework: SkillContext = {
+  entries: [
+    { eras: DEEP, wiki: ["Knapping", "Stone tool", "Acheulean"], sources: ["whittaker"] },
+    { eras: HOLOCENE, wiki: ["Göbekli Tepe", "Megalith", "Celt (tool)"], sources: ["parkerPearson", "whittaker"] },
+    { eras: EARLY, wiki: ["Construction of the Egyptian pyramids", "Ziggurat"], sources: ["stocks", "vanDeMieroop"] },
+    { eras: ANTIQUITY, wiki: ["Ancient Roman architecture", "Roman concrete", "Quarry"], sources: ["gimpel", "stocks"] },
+    { eras: MEDIEVAL, wiki: ["Stonemasonry", "Gothic architecture", "Master builder"], sources: ["gimpel"] },
+    { eras: EARLY_MODERN, wiki: ["Bastion fort", "Stonemasonry"], sources: ["gimpel"] },
+    { eras: INDUSTRIAL, wiki: ["Quarry", "Coal mining", "Dynamite"], sources: ["osterhammel"] },
+    { eras: MODERN, wiki: ["Quarry", "Mining"], sources: ["mcneill"] },
+    { cultures: ["european"], eras: [...HOLOCENE, ...EARLY], wiki: ["Stonehenge", "Megalith", "Dolmen"], sources: ["parkerPearson"] },
+    { cultures: ["european"], eras: [...MEDIEVAL, ...EARLY_MODERN], wiki: ["Stonemasonry", "Gothic architecture", "Master builder"], sources: ["gimpel"] },
+    { cultures: ["north-african-west-asian"], eras: [...EARLY, ...ANTIQUITY], wiki: ["Construction of the Egyptian pyramids", "Quarry", "Stonemasonry"], sources: ["stocks", "vanDeMieroop"] },
+    { cultures: ["north-african-west-asian"], eras: [...MEDIEVAL, ...EARLY_MODERN, ...INDUSTRIAL], wiki: ["Islamic architecture", "Stonemasonry"], sources: ["gimpel", "stocks"] },
+    { cultures: ["inner-eurasian"], eras: PREMODERN, wiki: ["Kurgan stelae", "Kurgan"], sources: ["anthony", "beckwith"] },
+    { cultures: ["south-asian"], eras: PREMODERN, wiki: ["Indian rock-cut architecture", "Ellora Caves"], sources: ["thapar"] },
+    { cultures: ["east-asian"], eras: PREMODERN, wiki: ["Great Wall of China", "Japanese castle"], sources: ["diCosmo", "elvin"] },
+    { cultures: ["southeast-asian"], eras: PREMODERN, wiki: ["Angkor Wat", "Borobudur"], sources: ["reid", "bellwoodIndo"] },
+    { cultures: ["west-central-african"], eras: PREMODERN, wiki: ["Senegambian stone circles", "Stone tool"], sources: ["ehret", "iliffe"] },
+    { cultures: ["east-southern-african"], eras: PREMODERN, wiki: ["Great Zimbabwe", "Lalibela"], sources: ["iliffe", "ehret"] },
+    { cultures: ["mesoamerican"], eras: PREMODERN, wiki: ["Teotihuacan", "Olmec colossal heads"], sources: ["coe"] },
+    { cultures: ["andean"], eras: PREMODERN, wiki: ["Inca architecture", "Ashlar", "Sacsayhuamán"], sources: ["protzen", "daltroy"] },
+    { cultures: ["other-indigenous-american"], eras: PREMODERN, wiki: ["Clovis point", "Chaco Canyon"], sources: ["whittaker", "mann"] },
+    { cultures: ["australian-pacific"], eras: PREMODERN, wiki: ["Moai", "Nan Madol"], sources: ["kirch"] },
+    { wiki: ["Stonemasonry", "Quarry"], sources: ["whittaker", "stocks"] },
+  ],
+  techniques: {
+    "heavy-hand": { wiki: "Plug and feather", note: "Masons split stone along its natural bed with wedges, letting the rock's grain do much of the work." },
+    "deep-seam": { wiki: "Vein (geology)", note: "Early miners followed visible veins into hillsides, sometimes with fire-setting to crack the rock." },
+    "stone-eye": { note: "Choosing good stone, free of flaws, was the first skill a knapper or mason learned." },
+    knapper: { wiki: "Knapping", note: "Knapping flint is a learned skill with a long apprenticeship; waste flakes show beginners and experts side by side." },
+    prospector: { wiki: "Prospecting", note: "Prospectors read colour, plants and rust stains on the ground for signs of ore." },
+    mason: { wiki: "Stonemasonry", note: "Medieval masons were mobile, well-paid workers who organised in lodges." },
+  },
+};
+
+export const crafting: SkillContext = {
+  entries: [
+    { eras: [...DEEP, ...HOLOCENE], wiki: ["Stone tool", "Pottery"], sources: ["whittaker", "mithen"] },
+    { eras: HISTORIC, wiki: ["Artisan", "Guild"], sources: ["braudel", "gimpel"] },
+    { eras: [...INDUSTRIAL, ...MODERN], wiki: ["Arts and Crafts movement", "Industrial Revolution"], sources: ["bayly", "osterhammel"] },
+    { wiki: ["Craft", "Artisan"], sources: ["braudel"] },
+  ],
+  techniques: {},
+};

@@ -846,6 +846,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
               known={known}
               pending={pending}
               who={{ name: runtime.engine.state.player.name, role: runtime.engine.state.player.role }}
+              place={runtime.engine.world.pack.setting}
               start={sky}
               onLearn={(technique) => runtime.command({ type: "learn", technique })}
               onClose={() => setSky(undefined)}

@@ -11,6 +11,11 @@ import {
 import type { Engine } from "../src/core/engine";
 import type { FaunaTier } from "../src/core/combat";
 import { statsOf } from "../src/core/stats";
+import { SKILLS, skillIds } from "../src/core/skills";
+import { TECHNIQUES, techniqueIds } from "../src/core/techniques";
+import { SKILL_CONTEXT, skillContext } from "../src/content/skill-context";
+import { cultures } from "../src/content/history/types";
+import { eras } from "../src/content/history/dates";
 
 function field(seed: string) {
   const engine = createSession("roman", seed);
@@ -264,4 +269,30 @@ it("long arm adds a tile to every throw and shot", () => {
   const before = engine.missile().range;
   engine.state.player.techniques = ["long-arm"];
   expect(engine.missile().range).toBe(before + 1);
+});
+
+it("finds history for every skill, most specific first", () => {
+  for (const skill of skillIds) {
+    expect(SKILL_CONTEXT[skill].entries.some((e) => !e.cultures && !e.eras)).toBe(true);
+    if (SKILLS[skill].hidden) continue;
+    for (const id of techniqueIds.filter((t) => TECHNIQUES[t].skill === skill))
+      expect(SKILL_CONTEXT[skill].techniques[id]?.note, id).toBeTruthy();
+  }
+  const here = skillContext("foraging", "north-african-west-asian", "early-holocene");
+  expect(here.wiki[0]).toBe("Natufian culture");
+  expect(here.matched).toEqual({ culture: true, era: true });
+  expect(skillContext("foraging", "andean", "1945-1990").matched.culture).toBe(false);
+  expect(skillContext("trade").sources.length).toBeGreaterThan(0);
+});
+
+it("covers every era and every culture zone for every visible skill", () => {
+  for (const skill of skillIds.filter((id) => !SKILLS[id].hidden))
+    for (const [culture] of cultures) {
+      expect(SKILL_CONTEXT[skill].entries.some((e) => e.cultures?.includes(culture)), `${skill} ${culture}`).toBe(true);
+      for (const era of eras) {
+        const { matched, wiki, sources } = skillContext(skill, culture, era.id);
+        expect(matched.culture || matched.era, `${skill} ${culture} ${era.id}`).toBe(true);
+        expect(wiki.length && sources.length).toBeTruthy();
+      }
+    }
 });
