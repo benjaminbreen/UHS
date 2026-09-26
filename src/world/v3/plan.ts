@@ -25,7 +25,17 @@ import {
   streetPalette,
   chooseStreetSurface,
 } from "../../content/settlements/streets/palettes";
-import { roadMarkings } from "../../content/settlements/streets/markings";
+import {
+  PARKING,
+  STALL,
+  roadMarkings,
+} from "../../content/settlements/streets/markings";
+import {
+  carLength,
+  parkedCar,
+  parkingShare,
+  vehiclePool,
+} from "../../content/settlements/vehicles";
 import { urbanForm } from "../../content/settlements/urban-form";
 import { waysideFor } from "../../content/settlements/wayside";
 import { yardKit, type YardProp } from "../../content/settlements/yards";
@@ -505,13 +515,90 @@ export function planSettlement(
           const k =
             lane.axis === "x" ? cellKey(x + dir * d, y) : cellKey(x, y + dir * d);
           const n = plan.lanes!.get(k);
-          // A street that runs into the square is crossed where it meets it.
-          const square = plan.pavement?.get(k) === "square";
+          // A street that runs into the square is crossed where it meets it;
+          // one that only brushes a corner of it is not.
+          const mid = (lane.span >> 1) - lane.at;
+          const square =
+            plan.pavement?.get(k) === "square" &&
+            plan.pavement?.get(
+              lane.axis === "x"
+                ? cellKey(x + dir * d, y + mid)
+                : cellKey(x + mid, y + dir * d),
+            ) === "square";
           if (!n && !square) break;
           if (n && !n.junction && !square) continue;
           if (lane.toJunction === undefined || Math.abs(lane.toJunction) > d)
             lane.toJunction = dir * d;
           break;
+        }
+    }
+  };
+  /** Cars along the kerb, one to a stall, facing the way traffic runs on
+   * their side of the street. Stalls are world-aligned, as their painted
+   * ticks are, and a stall with a crossing, a junction or anything standing
+   * in it stays empty. */
+  const parkCars = () => {
+    const setting = pack.setting;
+    if (!setting || !marks?.parking || !plan.lanes) return;
+    const pool = vehiclePool(setting);
+    if (!pool.length) return;
+    const share = parkingShare(setting);
+    const mod = (n: number, d: number) => ((n % d) + d) % d;
+    for (const [k, lane] of plan.lanes) {
+      if (lane.junction || lane.span < 6 || lane.toJunction !== undefined) continue;
+      const alongX = lane.axis === "x";
+      // The stall's anchor: on an east-west street its south row, on a
+      // north-south one its west column; first cell along the street.
+      const low = lane.at === (alongX ? PARKING - 1 : 0);
+      const high = lane.at === (alongX ? lane.span - 1 : lane.span - PARKING);
+      if (!low && !high) continue;
+      const [x, y] = k.split(",").map(Number);
+      if (mod(alongX ? x : y, STALL)) continue;
+      const cells: string[] = [];
+      for (let i = 0; i < STALL; i++)
+        for (let j = 0; j < PARKING; j++)
+          cells.push(
+            alongX ? cellKey(x + i, y - j) : cellKey(x + j, y + i),
+          );
+      const clear = cells.every((c) => {
+        const l = plan.lanes!.get(c);
+        return (
+          l &&
+          l.axis === lane.axis &&
+          !l.junction &&
+          l.toJunction === undefined &&
+          !plan.solid.has(c)
+        );
+      });
+      if (!clear || rand("park", x, y) >= share) continue;
+      const car = parkedCar(pool, rand("car", x, y), rand("paint", x, y));
+      if (!car) continue;
+      // Traffic keeps to the right: on an east-west street the north kerb's
+      // cars point west, on a north-south one the west kerb's point south.
+      const keepsRight = marks.drive === "right";
+      const heading = alongX
+        ? low === keepsRight ? "w" : "e"
+        : low === keepsRight ? "s" : "n";
+      const length = carLength(car.model, lane.axis);
+      const at = alongX
+        ? { x: x + (STALL >> 1) - 1, y }
+        : { x, y: y + ((STALL + length) >> 1) - 1 };
+      plan.objects.push({
+        id: `${site.id}-car-${x}-${y}`,
+        name: car.label,
+        description: car.about,
+        kind: "monument",
+        sprite: `vehicle-${car.model}-${car.paint}-${heading}`,
+        pos: pos(at),
+        inventory: {},
+        claim: "landscape",
+      });
+      const start = (STALL - length) >> 1;
+      for (let i = start; i < start + length; i++)
+        for (let j = 0; j < PARKING; j++) {
+          const c = alongX ? cellKey(x + i, y - j) : cellKey(x + j, y + i);
+          plan.solid.add(c);
+          plan.reserved.add(c);
         }
     }
   };
@@ -1394,6 +1481,7 @@ export function planSettlement(
           paintBlock,
         );
     approaches();
+    parkCars();
     for (const lot of urbanLots)
       eachCell(lot.rect, (x, y) => noRoad.add(cellKey(x, y)));
     if (selected) {

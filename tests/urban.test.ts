@@ -125,6 +125,20 @@ it("zones an industrial-age city into a downtown, factories and the housing of e
   expect(lanes.some((l) => l.toJunction === 1 || l.toJunction === -1)).toBe(true);
   for (const l of lanes) expect(l.at).toBeGreaterThanOrEqual(0);
   for (const l of lanes) expect(l.at).toBeLessThan(l.span);
+  // Cars of the date park along the kerb, facing the way their side drives,
+  // standing on cells nobody can walk through.
+  const cars = richmond.objects.filter((o) => o.sprite.startsWith("vehicle-"));
+  expect(cars.length).toBeGreaterThan(20);
+  for (const car of cars) {
+    expect(richmond.solid.has(`${car.pos.x},${car.pos.y}`)).toBe(true);
+    expect(car.sprite).not.toMatch(/tourer|1935|1948/);
+  }
+  expect(new Set(cars.map((c) => c.sprite.at(-1)))).toEqual(
+    new Set(["e", "w", "n", "s"]),
+  );
+  expect(
+    plan("Richmond 1790").objects.some((o) => o.sprite.startsWith("vehicle-")),
+  ).toBe(false);
 });
 
 it("keeps urban geometry deterministic and the old selection opt-in", () => {

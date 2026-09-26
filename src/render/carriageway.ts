@@ -1,4 +1,4 @@
-import { PARKING } from "../content/settlements/streets/markings";
+import { PARKING, STALL } from "../content/settlements/streets/markings";
 import type { Lane } from "../world/v3/types";
 import { waterHash as hash, waterNoise } from "./water-style";
 import { asphaltPixel } from "./paving-stones";
@@ -69,7 +69,6 @@ export function carriagewayPixel(
   const toJunction =
     near === undefined ? Infinity : (Math.abs(near) - 1) * 16 + (near > 0 ? 15 - t : t);
 
-  // --- The gutter along each kerb ------------------------------------------
   const low = kerbs.low && u < GUTTER,
     high = kerbs.high && u >= W - GUTTER;
   if ((low || high) && m.gutter !== "none") {
@@ -102,7 +101,6 @@ export function carriagewayPixel(
     return tint(PAN, (d === 0 ? -14 : d === 1 ? -6 : 0) + (hash(v, d, 774) < 0.2 ? -4 : 0));
   }
 
-  // --- Manholes, centred in a lane and in a cell ---------------------------
   const lanes = Math.max(1, Math.round((W - 2 * P) / 40));
   const laneW = (W - 2 * P) / lanes;
   const index = Math.min(lanes - 1, Math.max(0, Math.floor((u - P) / laneW)));
@@ -126,7 +124,6 @@ export function carriagewayPixel(
     }
   }
 
-  // --- Wear from tyres, and what cars drip ---------------------------------
   if (u >= P && u < W - P) {
     const off = Math.abs(u - centre);
     const track = Math.abs(off - laneW * 0.28) <= 2.2;
@@ -144,7 +141,6 @@ export function carriagewayPixel(
   };
   const inside = u >= GUTTER && u < W - GUTTER;
 
-  // --- Crossings and stop lines -------------------------------------------
   if (toJunction < 32 && inside && m.crossing !== "none") {
     const bars = m.crossing === "zebra" || m.crossing === "ladder";
     const edges = m.crossing === "ladder" || m.crossing === "lines";
@@ -162,7 +158,6 @@ export function carriagewayPixel(
     if (half && u >= P && u < W - P) return paint(WHITE);
   }
 
-  // --- Lines along the road ------------------------------------------------
   if (lane.span >= 4) {
     const c = W / 2;
     const dash = mod(v, 48) < 20;
@@ -191,9 +186,9 @@ export function carriagewayPixel(
     // Stalls marked with a tick across the lane and a short foot along it.
     const lowSide = u < P;
     const d = lowSide ? P - 1 - u : u - (W - P);
-    const s = mod(v, 80);
+    const s = mod(v, STALL * 16);
     if (d >= 0 && d < P - GUTTER && (s === 0 || s === 1) && d < 14) return paint(WHITE);
-    if ((d === 0 || d === 1) && (s <= 6 || s >= 75)) return paint(WHITE);
+    if ((d === 0 || d === 1) && (s <= 6 || s >= STALL * 16 - 5)) return paint(WHITE);
   }
   return base;
 }

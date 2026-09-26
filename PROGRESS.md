@@ -1,3 +1,16 @@
+## Street paint and parked cars — September 26, 2026
+
+Motor-age streets are wide enough to drive and park on and are painted in the
+style of their place and date: centre lines, crossings, stop lines on the
+driving side, gutters with drains, manholes, parking stalls, scored
+sidewalks; country roads are blacktop. Nineteen period cars, from a 1915
+touring car to a 2010 SUV by way of the Beetle, the Mini, the Volga, the
+Ambassador and the kei car, park by region and date, drawn from 3D models so
+all four headings share one light. See `SETTLEMENTS.md` and `PROP_ART.md`.
+Not yet done from the plan: road classes and medians, tram rails, dated
+road surfaces, kerb radii and ramps, traffic lights, railways, and ditches and
+poles on country roads.
+
 ## Industrial-age city layout — September 26, 2026
 
 Phase 1 of the modern city revamp. Cities after their region's industrial

@@ -25,6 +25,8 @@ export type RoadMarkings = {
 export const MOTOR_SPANS = [10, 8, 3] as const;
 /** Cells of parking lane along each kerb, where a style parks at all. */
 export const PARKING = 2;
+/** Cells of kerb per parking stall: the longest car of the fifties fits. */
+export const STALL = 6;
 
 type Rule = RoadMarkings & {
   from: number;

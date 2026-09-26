@@ -110,6 +110,17 @@ learned from the drying rack:
 `windSway` gives integer translation; rotation past about a degree shears pixel
 art, which is why the hanging profile sets `angle: 0`.
 
+## Vehicles
+
+A car is seen from four sides, and four hand-drawn views never light the
+same way. `props_b/vehicles.py` describes each model in metres (deck line,
+cabin, wheels, fenders, lamps, paint) and samples it as a column of parts at
+every point of its plan, painted far to near with ground depth at half the
+prop scale. Walls take their normal from the plan's outline, tops from the
+height field. Add a car by adding a `MODELS` entry and render it with the
+others before building; the sheet is `public/props/vehicles`, built by
+`npm run art:props`.
+
 ## Buildings
 
 `building.py` holds the shared vocabulary — `_wall`, `_roof`, `_door`,

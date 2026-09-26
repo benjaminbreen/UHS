@@ -2722,7 +2722,9 @@ export class WorldScene extends Phaser.Scene {
         ? "nature-shadows"
         : this.texture(frame) === "props"
           ? "prop-shadows"
-          : "lighting-shadows";
+          : frame.startsWith("vehicle-")
+            ? "vehicle-shadows"
+            : "lighting-shadows";
     if (!this.textures.get(texture).has(key)) return undefined;
     const image = this.add
       .image(x, transient ? y : y - this.lift(x, y), texture, key)
@@ -3761,7 +3763,9 @@ export class WorldScene extends Phaser.Scene {
           ? "nature-shadows"
           : texture === "props"
             ? "prop-shadows"
-            : "lighting-shadows";
+            : frame.startsWith("vehicle-")
+              ? "vehicle-shadows"
+              : "lighting-shadows";
       if (
         shade &&
         !frame.startsWith("human-") &&

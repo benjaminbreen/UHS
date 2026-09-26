@@ -80,6 +80,12 @@ pack_atlas(sprites,OUT,'atlas',512)
 # draws on its own, so it keeps a mask.
 shadows=build_shadows(ROOT,{k:v for k,v in sprites.items() if not re.search(r'-f\d$|-hang$',k)},{},output=OUT,atlas_name='shadows')
 generated=ROOT/'src/render/generated'
+# Parked cars have their own sheet: a world before the motor age never loads it.
+from art.props_b.vehicles import vehicle_sprites, vehicle_shadows, vehicle_catalog
+vehicles=vehicle_sprites()
+pack_atlas(vehicles,OUT,'vehicles',1024)
+pack_atlas(vehicle_shadows(vehicles,json.loads((ROOT/'src/content/graphics/lighting.json').read_text())),OUT,'vehicle-shadows',1024)
+(ROOT/'src/content/graphics/vehicles.generated.json').write_text(json.dumps(vehicle_catalog(),indent=1))
 # The families the game should draw from the B set, for src/content/props.
 (ROOT/'src/render/generated/props-b.json').write_text(json.dumps(sorted(DRAW_B)))
 for source,target in [('atlas','props'),('shadows','prop-shadows')]:

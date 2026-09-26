@@ -26,8 +26,9 @@ export function parseLighting(id: string | null): LightingId {
   if (id === "warm") return "afternoon";
   return lightingPresets.find((p) => p.id === id)?.id ?? "midday";
 }
+// A car's shadow does not depend on its paint: every paint uses the first's.
 export const shadowFrame = (phase: LightingId, frame: string) =>
-  `${phase}:${frame}`;
+  `${phase}:${frame.startsWith("vehicle-") ? frame.replace(/-\d+-([ewsn])$/, "-0-$1") : frame}`;
 const channels = (hex: string) => [16, 8, 0].map((s) => (parseInt(hex, 16) >> s) & 255);
 /** The screen wash for an hour, eased between the presets' own hours so dusk
  * comes on over the evening rather than at a stroke, with low sun warming

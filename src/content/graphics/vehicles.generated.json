@@ -1,0 +1,249 @@
+{
+ "tourer-1915": {
+  "label": "Touring car",
+  "about": "Tall and upright on wooden spoked wheels, its engine under a narrow bonnet. A car for everyone, if everyone could crank it.",
+  "era": [
+   1910,
+   1932
+  ],
+  "paints": 3,
+  "cells": {
+   "x": 3.61,
+   "y": 1.81
+  }
+ },
+ "sedan-1935": {
+  "label": "Sedan",
+  "about": "A closed car with a tall grille and wire wheels, its fenders still separate from the body.",
+  "era": [
+   1932,
+   1950
+  ],
+  "paints": 4,
+  "cells": {
+   "x": 4.78,
+   "y": 2.39
+  }
+ },
+ "fastback-1948": {
+  "label": "Fastback sedan",
+  "about": "A rounded postwar sedan, its roof sloping all the way down to the bumper.",
+  "era": [
+   1946,
+   1956
+  ],
+  "paints": 4,
+  "cells": {
+   "x": 5.31,
+   "y": 2.66
+  }
+ },
+ "hardtop-1957": {
+  "label": "Hardtop",
+  "about": "Two-tone paint, whitewall tyres and tail fins: a car built to be looked at.",
+  "era": [
+   1955,
+   1964
+  ],
+  "paints": 5,
+  "cells": {
+   "x": 5.42,
+   "y": 2.71
+  }
+ },
+ "sedan-1968": {
+  "label": "Sedan",
+  "about": "A full-size sedan, flat of flank and roof, with a vinyl top and room for six.",
+  "era": [
+   1962,
+   1980
+  ],
+  "paints": 6,
+  "cells": {
+   "x": 5.74,
+   "y": 2.87
+  }
+ },
+ "compact-1985": {
+  "label": "Compact sedan",
+  "about": "A square little sedan with black plastic bumpers.",
+  "era": [
+   1978,
+   1998
+  ],
+  "paints": 5,
+  "cells": {
+   "x": 4.68,
+   "y": 2.34
+  }
+ },
+ "sedan-2005": {
+  "label": "Sedan",
+  "about": "A rounded modern sedan in the colour most of them come in.",
+  "era": [
+   1995,
+   2030
+  ],
+  "paints": 6,
+  "cells": {
+   "x": 5.1,
+   "y": 2.55
+  }
+ },
+ "suv-2010": {
+  "label": "SUV",
+  "about": "Tall, heavy and square-backed.",
+  "era": [
+   1995,
+   2030
+  ],
+  "paints": 5,
+  "cells": {
+   "x": 5.21,
+   "y": 2.6
+  }
+ },
+ "pickup-1975": {
+  "label": "Pickup truck",
+  "about": "A truck with an open bed, dented along the tailgate.",
+  "era": [
+   1955,
+   2030
+  ],
+  "paints": 5,
+  "cells": {
+   "x": 5.53,
+   "y": 2.76
+  }
+ },
+ "beetle": {
+  "label": "Beetle",
+  "about": "A round little car with its engine in the back, air-cooled and loud about it.",
+  "era": [
+   1950,
+   2003
+  ],
+  "paints": 6,
+  "cells": {
+   "x": 4.3,
+   "y": 2.15
+  }
+ },
+ "city-car": {
+  "label": "City car",
+  "about": "A tiny rear-engined car you could park sideways.",
+  "era": [
+   1955,
+   1985
+  ],
+  "paints": 5,
+  "cells": {
+   "x": 3.19,
+   "y": 1.59
+  }
+ },
+ "deux-chevaux": {
+  "label": "Two-horse car",
+  "about": "A light car of corrugated steel and canvas, soft on its springs.",
+  "era": [
+   1950,
+   1990
+  ],
+  "paints": 4,
+  "cells": {
+   "x": 4.09,
+   "y": 2.05
+  }
+ },
+ "mini": {
+  "label": "Mini",
+  "about": "A box with a wheel at each corner and more room inside than it has any right to.",
+  "era": [
+   1959,
+   2000
+  ],
+  "paints": 5,
+  "cells": {
+   "x": 3.24,
+   "y": 1.62
+  }
+ },
+ "cab-uk": {
+  "label": "Taxi",
+  "about": "A tall black cab, built to turn in the width of a street.",
+  "era": [
+   1958,
+   1998
+  ],
+  "paints": 3,
+  "cells": {
+   "x": 4.89,
+   "y": 2.44
+  }
+ },
+ "volga": {
+  "label": "Sedan",
+  "about": "A heavy, rounded sedan of the kind that came with a driver.",
+  "era": [
+   1956,
+   1985
+  ],
+  "paints": 4,
+  "cells": {
+   "x": 5.1,
+   "y": 2.55
+  }
+ },
+ "lada": {
+  "label": "Sedan",
+  "about": "A square, stubborn little sedan that could be mended with a hammer.",
+  "era": [
+   1970,
+   2012
+  ],
+  "paints": 6,
+  "cells": {
+   "x": 4.36,
+   "y": 2.18
+  }
+ },
+ "ambassador": {
+  "label": "Sedan",
+  "about": "A tall, round-shouldered sedan, white, with a curtain in the back window.",
+  "era": [
+   1958,
+   2014
+  ],
+  "paints": 4,
+  "cells": {
+   "x": 4.6,
+   "y": 2.3
+  }
+ },
+ "kei": {
+  "label": "Kei car",
+  "about": "A tall, narrow box of a car, exactly as big as the rules allow.",
+  "era": [
+   1975,
+   2030
+  ],
+  "paints": 5,
+  "cells": {
+   "x": 3.6,
+   "y": 1.8
+  }
+ },
+ "van": {
+  "label": "Minibus",
+  "about": "A van with windows all down its side and its engine under the floor.",
+  "era": [
+   1955,
+   1990
+  ],
+  "paints": 5,
+  "cells": {
+   "x": 4.78,
+   "y": 2.39
+  }
+ }
+}

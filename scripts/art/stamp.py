@@ -12,7 +12,8 @@ from pathlib import Path
 ATLASES = ['public/packs/atlas.png', 'public/packs/buildings.png',
            'public/packs/regional-buildings.png', 'public/packs/precincts.png',
            'public/packs/terrain.png', 'public/packs/lighting-shadows.png',
-           'public/props/atlas.png', 'public/props/shadows.png']
+           'public/props/atlas.png', 'public/props/shadows.png',
+           'public/props/vehicles.png', 'public/props/vehicle-shadows.png']
 
 
 def write_stamp(root):

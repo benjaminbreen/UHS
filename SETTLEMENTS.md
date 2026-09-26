@@ -142,6 +142,13 @@ crossings and stop lines on the approach side for the driving side, parking
 ticks. Country roads in the motor age are asphalt with a painted centre line
 (`blacktopPixel`); farm lanes stay earth.
 
+Cars park one to a `STALL` in the parking lanes, facing the way traffic runs
+on their side, chosen from `src/content/settlements/vehicles.ts`: a weighted
+pool per region whose models come and go with their dates and linger a decade
+and a half after. `parkingShare` fills a few stalls in the first motoring
+years and most of them after the motor onset. A parked car is an inspectable
+`monument` whose cells are solid.
+
 ## Shop signs
 
 The word over a shop door is drawn at runtime, not baked into the atlas. The

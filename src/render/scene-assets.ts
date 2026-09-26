@@ -19,6 +19,8 @@ const atlases = {
   ecology: "/ecology/atlas",
   props: "/props/atlas",
   "prop-shadows": "/props/shadows",
+  vehicles: "/props/vehicles",
+  "vehicle-shadows": "/props/vehicle-shadows",
   atlas: "/packs/atlas",
   buildings: "/packs/buildings",
   "regional-buildings": "/packs/regional-buildings",
@@ -37,6 +39,8 @@ export const lazySheets = [
   "camp-buildings",
   "civic",
   "precincts",
+  // Parked cars: nowhere before the motor age.
+  "vehicles",
   // The megafauna: most worlds are too late or too far south for them.
   "faunam",
   "faunar",
