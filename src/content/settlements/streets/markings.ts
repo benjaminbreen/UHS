@@ -36,9 +36,10 @@ const TACTILE: Record<string, [number, RoadMarkings["tactile"]]> = {
 };
 
 /** Carriageway widths in cells for the arterial, street and alley of a
- * motor-age city: a parking lane of two cells each side of two travel lanes,
- * three cells wide on an arterial and two on a street. */
-export const MOTOR_SPANS = [10, 8, 3] as const;
+ * motor-age city. The arterial has a parking lane of two cells each side of
+ * two travel lanes; a side street is the two lanes alone, so the block, not
+ * the kerb, gets the ground. */
+export const MOTOR_SPANS = [10, 5, 3] as const;
 /** A metropolis lays its arterials as boulevards: the same two lanes and
  * parking each way either side of a planted median two cells wide. */
 export const BOULEVARD = 12;

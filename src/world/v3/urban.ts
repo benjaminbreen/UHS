@@ -972,7 +972,7 @@ export function urbanNeighborhood(
       place(rank, lot);
     }
   }
-  if (candidateBases.length && !plotted)
+  if ((candidateBases.length || zoning) && !plotted)
     for (const rank of ranks) {
       if (parkRanks.has(rank) || lots.length >= capacity) continue;
       infill(rank);
@@ -1238,7 +1238,9 @@ export function urbanNeighborhood(
     const { industrial, motor } = z.modernity;
     const big = site.profile.radius >= 50;
     const centre = big ? 0.22 : 0.15;
-    const reach = rel(block);
+    // A metropolis's map is a slice of its inner city, not the whole of it:
+    // its edge is still in the tenement rings, not out in the suburbs.
+    const reach = rel(block) * Math.min(1, 70 / site.profile.radius);
     if (block.district === 0 && reach < centre)
       return big && year >= industrial + z.downtownAfter
         ? "downtown"
@@ -1435,7 +1437,10 @@ export function urbanNeighborhood(
         }));
     if (!pool.length) return;
     const roadway = new Set<string>();
-    const frontage = new Map<string, { nx: number; ny: number }>();
+    const frontage = new Map<
+      string,
+      { nx: number; ny: number; square?: boolean }
+    >();
     const span = (tier: 0 | 1 | 2) => layout.tiers[tier];
     for (const s of layout.streets) {
       const horizontal = s.a.y === s.b.y;
@@ -1472,12 +1477,12 @@ export function urbanNeighborhood(
     }
     for (const r of [layout.plaza, ...layout.squares]) {
       for (let x = r.x - 1; x <= r.x + r.w; x++) {
-        frontage.set(cellKey(x, r.y - 1), { nx: 0, ny: -1 });
-        frontage.set(cellKey(x, r.y + r.h), { nx: 0, ny: 1 });
+        frontage.set(cellKey(x, r.y - 1), { nx: 0, ny: -1, square: true });
+        frontage.set(cellKey(x, r.y + r.h), { nx: 0, ny: 1, square: true });
       }
       for (let y = r.y - 1; y <= r.y + r.h; y++) {
-        frontage.set(cellKey(r.x - 1, y), { nx: -1, ny: 0 });
-        frontage.set(cellKey(r.x + r.w, y), { nx: 1, ny: 0 });
+        frontage.set(cellKey(r.x - 1, y), { nx: -1, ny: 0, square: true });
+        frontage.set(cellKey(r.x + r.w, y), { nx: 1, ny: 0, square: true });
       }
       for (let y = r.y; y < r.y + r.h; y++)
         for (let x = r.x; x < r.x + r.w; x++) roadway.add(cellKey(x, y));
@@ -1489,7 +1494,13 @@ export function urbanNeighborhood(
     const doors = [...frontage]
       .map(([k, facing]) => {
         const [x, y] = k.split(",").map(Number);
-        return { x, y, facing, d: Math.hypot(x - focus.x, y - focus.y) };
+        return {
+          x,
+          y,
+          facing,
+          square: facing.square,
+          d: Math.hypot(x - focus.x, y - focus.y),
+        };
       })
       .filter(
         ({ x, y }) => layout.holds(x, y, 2) && !roadway.has(cellKey(x, y)),
@@ -1520,7 +1531,24 @@ export function urbanNeighborhood(
       const { nx, ny } = door.facing;
       const facing =
         nx > 0 ? "west" : nx < 0 ? "east" : ny > 0 ? "north" : "south";
-      const choices = [...pool].sort(
+      // An industrial city's leftover ground takes its own shops and ranges;
+      // the kit's kiosks along every footway read as sheds.
+      const here: LandUse | undefined =
+        zoning && !americanStrip
+          ? reach < 0.4
+            ? "commercial"
+            : zoning.inner
+          : undefined;
+      const choices = (
+        here
+          ? framesFor(quarterFor(here), here).map((base) => ({
+              base,
+              model: buildingModel(base),
+              kind: here,
+              group: "infill",
+            }))
+          : [...pool]
+      ).sort(
         (a, b) =>
           b.model.footprint[0] * b.model.footprint[1] -
             a.model.footprint[0] * a.model.footprint[1] ||
@@ -1541,7 +1569,8 @@ export function urbanNeighborhood(
         };
         if (!clear(rect) || !fits(rect) || !within(rect)) continue;
         // Not a shop in a suburb or a factory yard, not a bungalow downtown.
-        const use = useAt.get(cellKey(rect.x + (w >> 1), rect.y + (h >> 1)));
+        const use =
+          useAt.get(cellKey(rect.x + (w >> 1), rect.y + (h >> 1))) ?? here;
         if (use === "suburb" || use === "estate" || use === "industrial")
           continue;
         if (
@@ -1572,10 +1601,20 @@ export function urbanNeighborhood(
   function infill(rank: (typeof ranks)[number]) {
     const block = rank.block;
     const use = uses.get(block);
-    if (use === "industrial" || use === "estate") return;
-    const pool = candidatePool(quarters.get(block) ?? "residential").filter(
-      (c) => use !== "suburb" || c.kind.includes("home"),
-    );
+    if (use === "estate") return;
+    // Offices, shops and works build over their whole block; homes keep yards.
+    const own =
+      use === "downtown" || use === "commercial" || use === "industrial";
+    const pool = own
+      ? framesFor(quarters.get(block)!, use).map((base) => ({
+          base,
+          model: buildingModel(base),
+          kind: use,
+          group: "infill",
+        }))
+      : candidatePool(quarters.get(block) ?? "residential").filter(
+          (c) => use !== "suburb" || c.kind.includes("home"),
+        );
     if (!pool.length) return;
     const area = block.w * block.h;
     if (rank.coverage >= area * rank.target) return;
@@ -1772,6 +1811,20 @@ export function urbanNeighborhood(
       out.push(...south.lots);
       bottom -= south.depth || Math.min(deepest, bottom - top);
     }
+    // A perimeter block closes its ends, leaving the court in the middle.
+    if (
+      zoning &&
+      !detached(block) &&
+      use !== "industrial" &&
+      bottom - top >= shallowest
+    ) {
+      const end = Math.min(deepest, block.w >> 2);
+      for (const [edge, face] of [
+        [block.x, "west"],
+        [block.x + block.w, "east"],
+      ] as const)
+        out.push(...terrace(block, edge, face, band++, end, top, bottom).lots);
+    }
     // A lane between pairs runs the full width, so it meets the streets at
     // both ends of the block and nothing behind it is landlocked. Laid only
     // once the block is built: a lane through an empty block is a cul-de-sac
@@ -1819,6 +1872,8 @@ export function urbanNeighborhood(
     face: "north" | "south" | "east" | "west",
     key: number,
     maxDepth: number,
+    from?: number,
+    to?: number,
   ): { lots: UrbanLot[]; depth: number } {
     const out: UrbanLot[] = [];
     const quarter = quarters.get(block) ?? "residential";
@@ -1848,8 +1903,8 @@ export function urbanNeighborhood(
         : tight || (modern && block.reach < 0.5) || (use && !open)
           ? 0
           : 1;
-    const start = vertical ? block.y : block.x,
-      end = vertical ? block.y + block.h : block.x + block.w;
+    const start = from ?? (vertical ? block.y : block.x),
+      end = to ?? (vertical ? block.y + block.h : block.x + block.w);
     let cursor = start,
       depth = 0;
     while (cursor < end - 2) {

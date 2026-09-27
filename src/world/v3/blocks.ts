@@ -295,7 +295,15 @@ export function composeUrban(
         w,
         h,
       };
-      districts.push({ spec, core: false, rect, shape: rect });
+      // Reaching back to the centre, so a round core leaves no gap on the
+      // diagonal between it and the corner.
+      const shape = {
+        x: Math.min(rect.x, center.x),
+        y: Math.min(rect.y, center.y),
+        w: w + coreA + 1,
+        h: h + coreB + 1,
+      };
+      districts.push({ spec, core: false, rect, shape });
     }
   }
   const inRect = (x: number, y: number, r: Rect) =>
@@ -693,7 +701,10 @@ export function composeUrban(
    * is irregular a lane kinks sideways as it goes, so nothing lines up. */
   function grow(d: District, i: number) {
     const [bw, bh] = d.spec.block;
-    const reg = d.spec.regularity;
+    // Motor-age rebuilding straightened what it kept of the old lanes.
+    const reg = form.motor
+      ? Math.max(0.85, d.spec.regularity)
+      : d.spec.regularity;
     const want = Math.round(((d.rect.w * d.rect.h) / (bw * bh)) * 1.3);
     let made = 0;
     for (let n = 0; n < want * 10 && made < want; n++) {
