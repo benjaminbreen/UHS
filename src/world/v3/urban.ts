@@ -1328,15 +1328,18 @@ export function urbanNeighborhood(
               .filter((c) => c.kind.includes("home"))
               .map((c) => c.base)
           : [];
+      const oblique = modernBuildings(pack.setting!, use).filter(
+        (f) => buildingModels[f],
+      );
+      // A town must not mix flat-front and oblique buildings on one block.
       const pool = homes.length
         ? homes
-        : [
-            ...modernBuildings(pack.setting!, use).filter((f) => buildingModels[f]),
-            ...[
+        : oblique.length
+          ? oblique
+          : [
               ...(use === "downtown" || use === "estate" ? towers : frames),
               ...small,
-            ].filter((f) => FORMS[use].some((w) => f.endsWith(`-urban-${w}`))),
-          ];
+            ].filter((f) => FORMS[use].some((w) => f.endsWith(`-urban-${w}`)));
       if (pool.length) return modern ? preferStyle(pool, quarter) : pool;
     }
     // A researched fabric names its own forms; `house` is the pack's own

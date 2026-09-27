@@ -723,7 +723,18 @@ ABOUT = {
 
 
 def modern_recipes():
+    from art.modern_grammar import STYLES, CATALOG
     out = {}
+    for name, (key, footprint, storeys, seed) in CATALOG.items():
+        st = STYLES[key]
+        out[name] = {
+            'label': st.label, 'footprint': footprint,
+            'entrance': [footprint[0] // 2, footprint[1]],
+            'wall': st.material, 'roof': 'flat', 'roofMaterial': 'tar',
+            'attachments': [], 'opening': 'door', 'height': st.height(storeys),
+            'description': st.about, 'obliqueModern': 'grammar', 'style': key,
+            'seed': seed, 'stories': storeys, 'deep': storeys >= 6,
+        }
     for name, (kind, footprint, seed, storeys, label) in MODERN_BUILDINGS.items():
         fw, fh = footprint
         height = (STOREY + 10 + STOREY * (storeys - 1) + 17 if kind == 'block' else
@@ -745,7 +756,11 @@ class ObliqueModern:
     def __init__(self, r, material=None):
         fw, fh = r['footprint']
         kind, seed, storeys = r['obliqueModern'], r['seed'], r['stories']
-        if kind == 'block':
+        if kind == 'grammar':
+            from art.modern_grammar import Facade
+            b = Facade(r['style'], fw, fh, storeys, seed=seed, deep=r['deep'])
+            im, em = b.build()
+        elif kind == 'block':
             b = CommercialBlock(fw, fh, seed=seed, storeys=storeys)
             im, em = b.build()
         elif kind == 'shed':
