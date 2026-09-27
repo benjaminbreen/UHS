@@ -1,8 +1,8 @@
 """Oblique parish church: a west tower standing forward of a nave and a lower
 chancel, each a box with its front and right-hand wall showing.
 
-Same projection as art/oblique.py: faces painted flat, then sheared a row or a
-column at a time. The banner over the door is not baked in. The sprite leaves
+Same projection as art/oblique.py: faces painted flat, depth drifting DRIFT px
+right over its whole run. The banner over the door is not baked in. The sprite leaves
 a bare pole and publishes the rect; the runtime hangs a tinted banner there,
 so its colours can follow the region and the year.
 """
@@ -10,7 +10,7 @@ import random
 from PIL import Image, ImageDraw
 from art.buildings import ROOFS, DOOR_W, DOOR_H
 from art.oblique import h2
-from art.oblique_style import K, side_depth
+from art.oblique_style import K, DRIFT, drift, side_depth
 
 IRON = '#1f2326'
 LEAD = ['#3c4347', '#5a6368', '#7b858a', '#a3acae']
@@ -59,7 +59,7 @@ class ObliqueChurch:
         self.door_x = self.ox + slot * 16 + 8
         self.tx = self.door_x - self.ox - self.tw // 2
         cap = self.tw // 2 + 14 if self.top == 'pyramid' else 8
-        self.w = self.ox + self.fw + self.sw + 14
+        self.w = self.ox + self.fw + DRIFT + 14
         self.h = self.th + self.tw // 2 + cap + 12
         self.bottom = self.h - 6
         self.anchor_x = self.ox + self.fw / 2
@@ -67,7 +67,7 @@ class ObliqueChurch:
         self.d = ImageDraw.Draw(self.im)
 
     def proj(self, x, y, z):
-        return (round(self.ox + x + y * K), round(self.bottom - z - y * K))
+        return (round(self.ox + x + y * K * DRIFT / self.sw), round(self.bottom - z - y * K))
 
     # -- stone -------------------------------------------------------------
 
@@ -76,7 +76,8 @@ class ObliqueChurch:
         im = Image.new('RGBA', (width, height)); d = ImageDraw.Draw(im)
         dark, shade, base, light, hi = material['wall']
         d.rectangle((0, 0, width - 1, height - 1), fill=shade)
-        for j, y in enumerate(range(height - 5, -5, -5)):
+        # The side is a sliver a few pixels wide; coursing there only reads as noise.
+        for j, y in enumerate(range(height - 5, -5, -5) if front else ()):
             x = -((j * 5) % 9) - self.rng.randrange(0, 3)
             while x < width:
                 wide = self.rng.randrange(6, 11)
@@ -132,17 +133,16 @@ class ObliqueChurch:
     # -- boxes -------------------------------------------------------------
 
     def shear_side(self, side, x, y):
-        for c in range(side.width):
-            self.im.alpha_composite(side.crop((c, 0, c + 1, side.height)), (x + c, y - c))
+        # Far rows first, so the nearer ones cover them on the sliver.
+        for c in reversed(range(side.width)):
+            self.im.alpha_composite(side.crop((c, 0, c + 1, side.height)), (x + drift(c + 1, side.width) - 1, y - c))
 
-    def hall(self, x0, width, wh, windows, east_window):
+    def hall(self, x0, width, wh, windows):
         """A gabled box set back from the tower's face."""
         sw, rise = self.sw, self.rise
         gx, gy = self.proj(x0 + width, self.set_back, 0)
         mat = darker(self.p)
         side, sd = self.stone(sw, wh + rise, mat, False)
-        if east_window:
-            self.lancet(sd, sw // 2 - 3, rise + 8, 6, 16, mat)
         px = side.load()
         for x in range(sw):
             rake = round(rise * abs(x + .5 - sw / 2) / (sw / 2))
@@ -170,9 +170,8 @@ class ObliqueChurch:
         y0 = self.set_back
         ex, ey = self.proj(x0 + width + verge, y0 - over, wh - drop)
         rx, ry = self.proj(x0 + width + verge, y0 + depth / 2, wh + rise)
-        bx, by = self.proj(x0 + width + verge, y0 + depth + over, wh - drop)
-        d.polygon([(rx, ry), (bx, by), (bx, by + 3), (rx, ry + 3)], fill=pal[1])
-        d.line((rx, ry, bx, by), fill=pal[3]); d.line((rx, ry + 3, bx, by + 3), fill=pal[0])
+        # The far slope hides behind the ridge; under the near verge, shade.
+        d.polygon([(ex, ey + 3), (rx, ry + 3), (gx + DRIFT - 1, gy - wh - sw), (gx - 1, gy - wh)], fill=mat['wall'][0])
         d.polygon([(ex, ey), (rx, ry), (rx, ry + 3), (ex, ey + 3)], fill=pal[1])
         rows = ey - ry
         lx = self.proj(x0 - verge, y0 - over, 0)[0]
@@ -210,8 +209,6 @@ class ObliqueChurch:
         mat = darker(self.p)
         dark, shade, base, light, hi = self.p['wall']
         side, sd = self.stone(sw, th, mat, False)
-        self.lancet(sd, sw // 2 - 3, 10, 6, 14, mat, louvre=True)
-        self.lancet(sd, sw // 2 - 2, th // 2, 4, 12, mat)
         for y in (30, th // 2 + 22):
             sd.line((0, y, sw, y), fill=mat['wall'][4]); sd.line((0, y + 1, sw, y + 1), fill=mat['wall'][0])
         self.shear_side(side, gx, gy - th - 1)
@@ -236,9 +233,8 @@ class ObliqueChurch:
         fx, fy = gx - tw, gy - th
         if self.top == 'pyramid':
             pal = ROOFS[self.roof]
-            deep = sw / K
-            ax, ay = self.proj(self.tx + tw / 2, deep / 2, th + tw * .8)
-            bx, by2 = self.proj(self.tx + tw, deep, th)
+            ax, ay = fx + tw // 2 + DRIFT // 2, fy - sw // 2 - round(tw * .8)
+            bx, by2 = gx + DRIFT, fy - sw
             d.polygon([(gx, fy), (bx, by2), (ax, ay)], fill=pal[1])
             d.polygon([(fx - 1, fy), (gx, fy), (ax, ay)], fill=pal[2])
             for t in range(1, 8):
@@ -251,26 +247,28 @@ class ObliqueChurch:
         else:
             # Lead flat inside a battlemented parapet: the far and left walls
             # show their inner faces, the near and right ones their merlons.
-            d.polygon([(fx, fy), (gx, fy), (gx + sw, fy - sw), (fx + sw, fy - sw)], fill=LEAD[1])
+            d.polygon([(fx, fy), (gx, fy), (gx + DRIFT, fy - sw), (fx + DRIFT, fy - sw)], fill=LEAD[1])
             for c in range(sw):
                 tall = 6 if (c // 4) % 2 == 0 else 2
-                d.line((fx + c + 1, fy - c - tall, fx + c + 1, fy - c), fill=mat['wall'][1])
-                d.point((fx + c + 1, fy - c - tall), fill=mat['wall'][3])
-            for x in range(fx + sw, gx + sw):
-                tall = 6 if ((x - fx - sw) // 4) % 2 == 0 else 2
+                x = fx + drift(c, sw) + 1
+                d.line((x, fy - c - tall, x, fy - c), fill=mat['wall'][1])
+                d.point((x, fy - c - tall), fill=mat['wall'][3])
+            for x in range(fx + DRIFT, gx + DRIFT):
+                tall = 6 if ((x - fx - DRIFT) // 4) % 2 == 0 else 2
                 d.line((x, fy - sw - tall, x, fy - sw + 2), fill=mat['wall'][2])
                 d.point((x, fy - sw - tall), fill=mat['wall'][4])
             d.line((fx + 3, fy - 1, gx - 2, fy - 1), fill=LEAD[0])
-            for c in range(sw):
+            for c in reversed(range(sw)):
                 tall = 6 if (c // 4) % 2 == 0 else 2
-                d.line((gx + c, fy - c - tall, gx + c, fy - c), fill=mat['wall'][2])
-                d.point((gx + c, fy - c - tall), fill=mat['wall'][4])
+                x = gx + drift(c, sw)
+                d.line((x, fy - c - tall, x, fy - c), fill=mat['wall'][2])
+                d.point((x, fy - c - tall), fill=mat['wall'][4])
             d.rectangle((fx, fy - 2, gx - 1, fy), fill=base); d.line((fx, fy + 1, gx - 1, fy + 1), fill=dark)
             for x in range(fx, gx, 8):
                 d.rectangle((x, fy - 7, min(x + 4, gx - 1), fy - 2), fill=light)
                 d.line((x, fy - 7, min(x + 4, gx - 1), fy - 7), fill=hi)
                 d.line((min(x + 5, gx - 1), fy - 6, min(x + 5, gx - 1), fy - 3), fill=dark)
-            tip = (fx + tw // 2 + sw // 2, fy - sw // 2 - 4)
+            tip = (fx + tw // 2 + DRIFT // 2, fy - sw // 2 - 4)
         return tip
 
     def cross(self, x, y):
@@ -286,14 +284,14 @@ class ObliqueChurch:
         bays = max(2, nave_w // 26)
         nave_windows = [round((i + .5) * nave_w / bays) - 2 for i in range(bays)]
         # The tower hides a bay; no window behind it.
-        shift = self.set_back * K
+        shift = self.set_back * K * DRIFT / self.sw
         nave_windows = [x for x in nave_windows if not (self.tx - 8 < x + shift < self.tx + self.tw + 2)]
-        self.hall(0, nave_w, self.nave_h, nave_windows, False)
+        self.hall(0, nave_w, self.nave_h, nave_windows)
         ridge = self.hall(nave_w, chancel_w, self.chancel_h,
-                          [round((i + .5) * chancel_w / 2) - 2 for i in range(2)], True)
+                          [round((i + .5) * chancel_w / 2) - 2 for i in range(2)])
         self.cross(*ridge)
         tip = self.tower()
         if self.top == 'pyramid': self.cross(*tip)
         top = min(y for y in range(self.h) if self.im.getpixel((self.door_x, y))[3])
-        self.occlusion = [self.ox, top, self.ox + self.fw + self.sw // 2, gy - 1]
+        self.occlusion = [self.ox, top, self.ox + self.fw + DRIFT, gy - 1]
         return self.im

@@ -16,6 +16,8 @@ import sys
 
 from PIL import Image, ImageDraw, ImageFont
 
+from art.oblique_style import DRIFT, drift
+
 ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(ROOT / 'scripts'))
 
@@ -309,7 +311,7 @@ class Oblique:
     def __init__(self, W, wall, above, sd):
         self.W, self.wall, self.above, self.sd = W, wall, above, sd
         self.H = above + wall + sd
-        self.c = C(W + sd + 2, self.H)
+        self.c = C(W + DRIFT + 4, self.H)
         self.base = self.H
 
     def build(self):
@@ -320,44 +322,48 @@ class Oblique:
     def side(self, face, top):
         """Paste an unsheared side elevation whose top row sits at `top`."""
         src = face.load()
-        for i in range(face.width):
+        for i in reversed(range(face.width)):
             for y in range(face.height):
                 p = src[i, y]
                 if p[3]:
-                    self.c.px(self.W + i, top + y - i - 1, p)
+                    self.c.px(self.W + drift(i + 1, face.width) - 1, top + y - i - 1, p)
 
     def flat_top(self, x0, x1, y, ramp, seams=True):
         for j in range(1, self.sd + 1):
-            for x in range(x0 + j, x1 + j + 1):
+            o = drift(j, self.sd)
+            for x in range(x0 + o, x1 + o + 1):
                 col = ramp[3]
-                if seams and (x - j) % 6 == 0:
+                if seams and (x - o) % 6 == 0:
                     col = ramp[4]
-                elif seams and (x - j) % 6 == 1:
+                elif seams and (x - o) % 6 == 1:
                     col = ramp[2]
                 if j == self.sd:
                     col = ramp[2]
                 self.c.px(x, y - j, col)
 
     def chimney(self, x, y, w, h, wall, depth=4, pots=3):
-        """A stack on a party wall: face, sheared side, a capping and pots."""
+        """A stack on a party wall: face, a sliver of side, the capping's top
+        running back, and pots standing along it."""
         c = self.c
         c.rect(x, y - h, x + w - 1, y, wall[3])
         c.vl(x, y - h, y, wall[4])
-        for i in range(depth):
-            c.vl(x + w + i, y - h - i - 1, y - i - 1, wall[1])
+        c.vl(x + w, y - h - 1, y - 2, wall[1])
         for yy in range(y - h + 5, y, 5):
             c.hl(x + 1, x + w - 2, yy, wall[2])
-        c.rect(x - 1, y - h - 2, x + w, y - h, wall[5])
+        c.rect(x - 1, y - h - 2, x + w, y - h, wall[4])
         c.hl(x - 1, x + w, y - h + 1, wall[2])
-        for i in range(depth + 1):
-            c.px(x + w + i, y - h - 2 - i, wall[3])
+        top = y - h - 3
+        for i in range(depth):
+            o = drift(i + 1, depth * 3)
+            c.hl(x - 1 + o, x + w + o, top - i, wall[5] if i < depth - 1 else wall[6] if len(wall) > 6 else wall[5])
         for k in range(pots):
             px_ = x + 1 + k * ((w - 2) // max(1, pots))
-            c.rect(px_, y - h - 7, px_ + 1, y - h - 3, TERRA[3])
-            c.px(px_ + 1, y - h - 6, TERRA[2])
-            c.hl(px_, px_ + 1, y - h - 7, TERRA[4])
-            c.px(px_, y - h - 8, TERRA[1])
-            c.px(px_ + 1, y - h - 8, TERRA[1])
+            b = top - depth // 2
+            c.rect(px_, b - 5, px_ + 1, b, TERRA[3])
+            c.px(px_ + 1, b - 4, TERRA[2])
+            c.hl(px_, px_ + 1, b - 5, TERRA[4])
+            c.px(px_, b - 6, TERRA[1])
+            c.px(px_ + 1, b - 6, TERRA[1])
 
 
 def shop_front(c, x0, x1, y0, y1, paint, sign, goods, seed, awning=None, door='right'):
@@ -522,7 +528,7 @@ class Immeuble(Oblique):
         self.flat_top(4, W - 1, T, SLATE)
         # Chimney stacks on the party walls stand back on the roof.
         for cx in (3, W - 15):
-            self.chimney(cx + 6, T - 5, 11, 12, st, pots=3)
+            self.chimney(cx + DRIFT // 2 + 1, T - 5, 11, 12, st, pots=3)
         # Mansard: steep slate lower slope, zinc roll at the break.
         for y in range(T, cor):
             inset = (cor - y) * 4 // self.M
@@ -813,8 +819,8 @@ class TownHouse(Oblique):
         ridge_y = wall_top - rise - sd // 2
         for y in range(ridge_y, wall_top + 1):
             t = (wall_top - y) / (wall_top - ridge_y)
-            xl = -2 + round(t * sd / 2)
-            xr = W + 1 + round(t * sd / 2)
+            xl = -2 + round(t * DRIFT / 2)
+            xr = W + 1 + round(t * DRIFT / 2)
             for x in range(xl, xr + 1):
                 row = (wall_top - y) // 3
                 col = SLATE[3]
@@ -832,8 +838,8 @@ class TownHouse(Oblique):
         c.hl(-2, W + 1, wall_top, SLATE[1])
         c.hl(-2, W + 1, wall_top + 1, SLATE[0])
         # Stacks on both gables.
-        self.chimney(0 + sd // 2, ridge_y + 2, 12, 16, b, depth=4, pots=4)
-        self.chimney(W - 12 + sd // 2, ridge_y + 2, 12, 16, b, depth=4, pots=4)
+        self.chimney(2 + DRIFT // 2, ridge_y + 2, 12, 16, b, depth=4, pots=4)
+        self.chimney(W - 14 + DRIFT // 2, ridge_y + 2, 12, 16, b, depth=4, pots=4)
         # Walls.
         self.brickwork(c, 0, wall_top + 2, W - 1, H - 1, b, self.seed)
         c.hl(0, W - 1, wall_top + 2, b[2])
@@ -977,11 +983,11 @@ class Mairie(Oblique):
         self.side(side.im, T)
         self.flat_top(6, W - 1, T, SLATE)
         # Roof lantern (campanile) at the centre, set back.
-        lx = W // 2 + sd // 2 - 7
+        lx = W // 2 + DRIFT // 2 - 7
         ly = T - sd // 2
         c.rect(lx, ly - 20, lx + 13, ly, st[4])
         c.vl(lx, ly - 20, ly, st[5])
-        c.rect(lx + 14, ly - 21, lx + 16, ly - 1, st[2])
+        c.rect(lx + 14, ly - 21, lx + 14, ly - 1, st[2])
         c.rect(lx + 4, ly - 16, lx + 9, ly - 4, IRON[1])
         c.rect(lx + 5, ly - 15, lx + 8, ly - 5, GLASS[2])
         for i in range(10):
@@ -1117,8 +1123,8 @@ class Atelier(Oblique):
         tile = self.roof == 'tile'
         for y in range(wt - rise - sd // 2, wt + 3):
             t = (wt + 3 - y) / (rise + sd // 2 + 3)
-            xl = -2 + round(t * sd * 0.6)
-            for x in range(xl, W + 2 + round(t * sd * 0.6)):
+            xl = -2 + round(t * DRIFT * 0.6)
+            for x in range(xl, W + 2 + round(t * DRIFT * 0.6)):
                 if tile:
                     col = TERRA[3] if (x // 3) % 2 else TERRA[2]
                     if (y - wt) % 4 == 0:

@@ -13,7 +13,7 @@ patches of bare brick all come from the seed.
 import random
 from PIL import Image, ImageDraw
 from art.buildings import DOOR_W, DOOR_H
-from art.oblique_style import side_depth
+from art.oblique_style import DRIFT, drift, side_depth
 
 WOOD = ('#2f2418', '#4f3a25', '#7a5c38', '#a3804f')
 POT = ('#4a2a1c', '#8d5836', '#c58f63')
@@ -55,7 +55,7 @@ class ObliqueMudbrick:
         self.ladder = rng.choice(['lean', 'lean', 'straight', 'pole', 'none'])
         self.slits = recipe.get('windowStyle') == 'slit'
         self.ox = 5
-        self.w = self.ox + self.fw + self.sw + 2
+        self.w = self.ox + self.fw + DRIFT + 2
         self.h = self.wh + self.sw + 16
         self.bottom = self.h - 6
         self.door_x = self.ox + self.slot * 16 + 8
@@ -184,8 +184,8 @@ class ObliqueMudbrick:
         if self.slits or self.rng.random() < .4: self.slit(sd, sw // 2 - 1, self.lip + 10, side=True)
         sd.line((0, 0, 0, wh - 1), fill=t['light'])                                     # the corner catches the light
         sd.line((sw - 1, 0, sw - 1, wh - 1), fill=t['dark'])
-        for c in range(sw):
-            im.alpha_composite(side.crop((c, 0, c + 1, wh)), (gx + c, gy - wh - c))
+        for c in reversed(range(sw)):
+            im.alpha_composite(side.crop((c, 0, c + 1, wh)), (gx + drift(c + 1, sw) - 1, gy - wh - c - 1))
         front, fd = self.wall(width, wh)
         self.beams(fd, width, self.lip + 2)
         if self.slits:
@@ -198,7 +198,7 @@ class ObliqueMudbrick:
         deck = self.deck(width)
         for r in range(sw):
             k = sw - 1 - r
-            im.alpha_composite(deck.crop((0, r, width, r + 1)), (gx - width + k + 1, gy - wh - k - 1))
+            im.alpha_composite(deck.crop((0, r, width, r + 1)), (gx - width + drift(k + 1, sw), gy - wh - k - 1))
         # Hand-made: the parapet's top line wanders a pixel, the corners are worn.
         px = im.load()
         for x in range(gx - width + 3, gx - 2):
@@ -211,9 +211,9 @@ class ObliqueMudbrick:
         ladder's poles stand out of it, and so does the smoke."""
         d = ImageDraw.Draw(self.im)
         t = self.tone
-        d.polygon([(x, y), (x + 8, y), (x + 11, y - 3), (x + 3, y - 3)], fill='#1b1510')
-        d.line((x + 3, y - 4, x + 11, y - 4), fill=t['hi']); d.line((x - 1, y, x + 2, y - 3), fill=t['hi'])
-        d.line((x, y + 1, x + 8, y + 1), fill=t['shade']); d.line((x + 9, y, x + 12, y - 3), fill=t['shade'])
+        d.polygon([(x, y), (x + 8, y), (x + 9, y - 3), (x + 1, y - 3)], fill='#1b1510')
+        d.line((x + 1, y - 4, x + 9, y - 4), fill=t['hi']); d.line((x - 1, y, x, y - 3), fill=t['hi'])
+        d.line((x, y + 1, x + 8, y + 1), fill=t['shade']); d.line((x + 9, y, x + 10, y - 3), fill=t['shade'])
         for px_, tone in ((x + 4, WOOD[3]), (x + 8, WOOD[2])):
             d.line((px_, y - 9, px_, y - 2), fill=tone)
         d.line((x + 4, y - 6, x + 8, y - 6), fill=WOOD[3])
@@ -227,7 +227,7 @@ class ObliqueMudbrick:
             x = gx - width + self.rng.randrange(8, max(9, width // 2 - 14)); y = top - 4
             for r in range(3):
                 for k in range(9):
-                    d.point((x + k + (2 - r), y - r), fill=_rgb('#d8c48a') if (k + r) % 2 else _rgb('#a98f52'))
+                    d.point((x + k + (r == 2), y - r), fill=_rgb('#d8c48a') if (k + r) % 2 else _rgb('#a98f52'))
             d.line((x + 2, y - 3, x + 10, y - 3), fill=_rgb('#7d6a3b'))
         for n in range(self.rng.choice([0, 1, 2])):
             x = gx - 14 - n * 7 - self.rng.randrange(0, 5); y = top - 3 - n % 2 * 3

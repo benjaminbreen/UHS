@@ -12,7 +12,7 @@ chimney come from the recipe seed; the door follows the recipe's entrance.
 import random
 from PIL import Image, ImageDraw
 from art.buildings import ROOFS, DOOR_W, DOOR_H, recess
-from art.oblique_style import K, STOREY, OVER, VERGE, side_depth, roof_rise
+from art.oblique_style import K, STOREY, OVER, VERGE, DRIFT, drift, side_depth, roof_rise
 
 TIMBER = ('#2f2a22', '#453d30', '#8d7350')
 # Fresh straw; the shared ROOFS thatch is the weathered alternative.
@@ -147,7 +147,7 @@ class ObliqueBuilding:
 
         self.ox = 7 + 16 * self.lean
         roof_return = round(self.roof_depth * K)
-        self.w = self.ox + self.fw + max(self.sw, self.sw if self.courtyard else roof_return) + self.verge + 4
+        self.w = self.ox + self.fw + DRIFT + self.verge + 6
         regional_headroom = (26 if self.regional_turret != 'none' or self.roof_feature == 'windcatcher'
                              else 24 if self.service_style == 'neighborhood-hall' else 0)
         self.h = self.wh + self.rise + max(self.sw // 2, roof_return) + max(regional_headroom, 34 if self.turret else 14 if self.has_chimney else 3) + 8
@@ -159,8 +159,9 @@ class ObliqueBuilding:
         self.smoke = []
 
     def proj(self, x, y, z):
+        depth = self.roof_depth if self.courtyard and z >= self.wh else self.depth
         lean = self.sw / self.roof_depth if self.courtyard and z >= self.wh else K
-        return (round(self.ox + x + y * lean), round(self.bottom - z - y * K))
+        return (round(self.ox + x + y * DRIFT / depth), round(self.bottom - z - y * lean))
 
     # -- faces, painted flat ------------------------------------------------
 
@@ -816,7 +817,8 @@ class ObliqueBuilding:
             for p, q in ((fa, fb), (ba, bb), (fa, ba), (fb, bb)):
                 d.line((p, q), fill=deck[0], width=2)
                 d.line((p[0], p[1] - 1, q[0], q[1] - 1), fill=deck[4])
-        drop = min(12, max(4, (ia[1] - ie[1]) // 3))
+        # A shallow opening keeps its floor: the walls never drop past it.
+        drop = min(12, max(4, (ia[1] - ie[1]) // 3), max(1, (ia[1] - ie[1]) // 2))
         inset = max(2, round(drop * self.sw / (self.roof_depth * K)))
         fl = (ia[0] + inset, ia[1])
         bl = (ie[0], ie[1] + drop)
@@ -1188,11 +1190,9 @@ class ObliqueBuilding:
             for xx in range(ax + (j % 2) * 3, ax + 10, 6):
                 d.line((xx, yy, xx, min(yy + 3, ay)), fill=ink)
             d.line((ax + 1, yy + 1, ax + 8, yy + 1), fill=light)
-        for c in range(4):
-            d.line((ax + 10 + c, ty - c - 1, ax + 10 + c, ay - c - 7), fill=ink)
-            d.point((ax + 10 + c, ty - c - 1), fill=shade)
-        d.polygon([(ax, ty), (ax + 9, ty), (ax + 13, ty - 4), (ax + 4, ty - 4)], fill=light)
-        d.polygon([(ax + 3, ty - 1), (ax + 8, ty - 1), (ax + 10, ty - 3), (ax + 5, ty - 3)], fill='#25221d')
+        d.line((ax + 10, ty - 3, ax + 10, ay - 7), fill=ink)
+        d.polygon([(ax, ty), (ax + 9, ty), (ax + 10, ty - 4), (ax + 1, ty - 4)], fill=light)
+        d.polygon([(ax + 3, ty - 1), (ax + 7, ty - 1), (ax + 7, ty - 3), (ax + 3, ty - 3)], fill='#25221d')
         if self.detail_set == 'europe-early-modern' and self.wealth == 2:
             # Separate clay pots are a small but high-value early-modern
             # skyline cue. They share one stack and therefore one smoke point.
@@ -1318,11 +1318,11 @@ class ObliqueBuilding:
         dark, shade, base, light, hi = (TIMBER[0], TIMBER[1], '#8d7350', '#b39a6d', '#d8c398') if self.frame else self.p['wall']
         d.rectangle((cx - 6, cy - 16, cx + 5, cy + 2), fill=base)
         d.line((cx - 6, cy - 16, cx - 6, cy + 2), fill=light)
-        for c in range(5): d.line((cx + 6 + c, cy - 17 - c, cx + 6 + c, cy - c), fill=shade)
+        d.line((cx + 6, cy - 17, cx + 6, cy), fill=shade)
         d.ellipse((cx - 4, cy - 13, cx + 3, cy - 6), fill='#ece7d6', outline=dark)
         d.line((cx, cy - 9, cx, cy - 12), fill=dark); d.line((cx, cy - 9, cx + 2, cy - 9), fill=dark)
         d.line((cx - 7, cy - 16, cx + 6, cy - 16), fill=hi)
-        d.polygon([(cx - 8, cy - 17), (cx + 7, cy - 17), (cx + 12, cy - 22), (cx + 2, cy - 30)], fill=lead[1])
+        d.polygon([(cx - 8, cy - 17), (cx + 7, cy - 17), (cx + 8, cy - 22), (cx + 2, cy - 30)], fill=lead[1])
         d.polygon([(cx - 8, cy - 17), (cx + 7, cy - 17), (cx + 2, cy - 30)], fill=lead[2])
         d.line((cx - 8, cy - 17, cx + 2, cy - 30), fill=lead[3]); d.line((cx - 8, cy - 17, cx + 7, cy - 17), fill=lead[0])
         d.line((cx + 2, cy - 30, cx + 2, cy - 37), fill='#1f2326'); d.line((cx + 2, cy - 36, cx + 6, cy - 35), fill='#c9a23f')
@@ -1334,9 +1334,10 @@ class ObliqueBuilding:
         d.line((self.ox + 1, gy + 1, gx, gy + 1), fill=(30, 34, 26, 155))
 
         side = self.side()
-        for c in range(sw):
+        # Far rows first, so the nearer ones cover them on the sliver.
+        for c in reversed(range(sw)):
             im.alpha_composite(side.crop((c, 0, c + 1, side.height)),
-                               (gx + c, gy - (wh + self.rise) - c - 1))
+                               (gx + drift(c + 1, sw) - 1, gy - (wh + self.rise) - c - 1))
         im.alpha_composite(self.front(), (self.ox, gy - wh))
         ink, fshade, flight = self.p['foundation']
         x = self.door_x - DOOR_W // 2 - 3
@@ -1379,9 +1380,10 @@ class ObliqueBuilding:
         rx, ry = self.proj(fw + self.verge, self.depth / 2, wh + self.rise)
         bx, by = self.proj(fw + self.verge, self.depth + self.over, wh - self.drop)
         t = 4 if self.roof == 'thatch' else 3
-        # The far slope faces away; only its cut end shows, down the back rake.
-        d.polygon([(rx, ry), (bx, by), (bx, by + t), (rx, ry + t)], fill=edge[1])
-        d.line((rx, ry, bx, by), fill=edge[2]); d.line((rx, ry + t, bx, by + t), fill=edge[0])
+        # Seen from above and almost straight back, the far slope and its rake
+        # hide behind the ridge; under the near verge the gable is in shade.
+        d.polygon([(ex, ey + t), (rx, ry + t), (gx + DRIFT - 1, gy - wh - sw), (gx - 1, gy - wh)],
+                  fill=darker(self.p)['wall'][0])
         d.polygon([(ex, ey), (rx, ry), (rx, ry + t), (ex, ey + t)], fill=edge[1])
         d.line((ex, ey + t, rx, ry + t), fill=edge[0])
 

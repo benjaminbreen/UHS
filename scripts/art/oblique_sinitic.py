@@ -3,9 +3,9 @@ the oblique view.
 
 The world is the one oblique_meso paints: X right, Y up, Z back, projected
 x + Z*zx, ground - Y - Z*zy, each face rasterised once with the world point
-under every pixel handed to its shader. A house uses zx = zy = 1 and the
-settled 12px return. A compound shears its whole plot depth into the same
-12px sideways and a shallow rise, so the court, the wings and the hall at the
+under every pixel handed to its shader. A house uses zy = 1 and the
+settled depth rows, drifting only DRIFT px right over them. A compound shears
+its whole plot depth into the same DRIFT px sideways and a shallow rise, so the court, the wings and the hall at the
 back share one projection instead of each inventing its own.
 
 Structure comes from the plan (hut, house, hall, compound, terrace hall);
@@ -17,8 +17,8 @@ Illustrative reconstructions, not surveyed plans.
 import random
 from PIL import Image, ImageDraw
 from art.buildings import DOOR_W, DOOR_H
-from art.oblique_meso import INTERIOR, _rgb, dither, h2
-from art.oblique_style import OVER, VERGE, roof_rise, side_depth
+from art.oblique_meso import INTERIOR, _rgb, dither, h2, hue_ramp, outline
+from art.oblique_style import DRIFT, OVER, VERGE, roof_rise, side_depth
 
 # Six-pixel lattice tiles, X = muntin. Paper shows through the rest.
 LATTICE = {
@@ -52,7 +52,7 @@ class ObliqueSinitic:
         r = self.r = recipe
         rng = self.rng = random.Random(recipe['seed'] + 733)
         s = self.sino = recipe['sino']
-        self.pal = {k: [_rgb(c) for c in v] for k, v in s['palette'].items()}
+        self.pal = {k: hue_ramp([_rgb(c) for c in v]) for k, v in s['palette'].items()}
         self.plan = recipe['sinoPlan']
         self.tier = recipe.get('wealthTier', 1)
         pick = lambda key, default=None: rng.choice(s.get(key) or [default])
@@ -86,12 +86,12 @@ class ObliqueSinitic:
         self.slot = max(0, min(fw - 1, slot))
         if self.plan == 'compound':
             self.D = fh * 16
-            self.zx, self.zy = self.sw / self.D, .42
+            self.zx, self.zy = DRIFT / self.D, .42
         else:
             self.D = self.sw
-            self.zx = self.zy = 1
+            self.zx, self.zy = DRIFT / self.D, 1
         self.ox = 10
-        self.w = self.ox + self.W + self.sw + 14
+        self.w = self.ox + self.W + DRIFT + 16
         self.h = 230
         self.G = self.h - 6
         self.im = Image.new('RGBA', (self.w, self.h))
@@ -172,7 +172,7 @@ class ObliqueSinitic:
                 c = lit
                 if kind == 'daub' and h2(x // 2, y // 3, 9) % 11 == 0: c -= 1
             if Y - base_y < 3 and dither(x, y + 1, (3 - (Y - base_y)) / 5): c -= 1
-            if self.weathered and h2(x, y, 3) % 23 == 0: c -= 1
+            if self.weathered and top_y is not None and top_y - Y < 9 and h2(int(X + Z) // 2, 3) % 6 == 0: c -= 1
             return ramp_at(ramp, c)
         return sh
 
@@ -223,7 +223,6 @@ class ObliqueSinitic:
             if f >= 1: f -= 1; n = h2(col, course + 1)
             c = lit - 2 if f < .12 else lit + 1 if f < .3 else lit if f < .7 else lit - 1
             if .3 <= f and n % 8 == 0: c -= 1
-            if self.weathered and h2(x, y, 7) % 19 == 0: c -= 1
             return ramp_at(ramp, c)
         return sh
 
@@ -547,7 +546,7 @@ class ObliqueSinitic:
         boards along its rake, a hanging fish at the apex."""
         tim = self.pal['timber'] if self.beam == 'bare' else self.posts
         self.face([(X, yg, z0), (X, yg, z1), (X, ridge, zc)],
-                  lambda X_, Y, Z, x, y: tim[2] if int(Z * self.zx * 2) % 3 else tim[1])
+                  lambda X_, Y, Z, x, y: tim[2] if int(Z) % 3 else tim[1])
         self.side(X, yg - 2, yg, z0, z1, self.tile_shader(lambda X_, Y, Z: Z * 2, yg - 2, 2))
         for (a, b) in (((X, yg, z0), (X, ridge, zc)), ((X, ridge, zc), (X, yg, z1))):
             self.d.line((self.P(*a), self.P(*b)), fill=tim[4])
@@ -892,8 +891,10 @@ class ObliqueSinitic:
             self.render_compound()
         else:
             self.render_house()
+        self.im = outline(self.im)
+        self.px, self.d = self.im.load(), ImageDraw.Draw(self.im)
         gy = self.G
-        self.d.line((self.ox, gy + 1, self.ox + self.W + self.sw // 2, gy + 1), fill=(30, 34, 26, 150))
+        self.d.line((self.ox, gy + 1, self.ox + self.W + DRIFT, gy + 1), fill=(30, 34, 26, 150))
         return self.finish()
 
     def finish(self):
@@ -907,5 +908,5 @@ class ObliqueSinitic:
         self.smoke = [[x, y - cut, k] for x, y, k in self.smoke]
         self.overlays = [[k, x, y - cut] for k, x, y in self.overlays]
         self.anchor_x = self.ox + self.W / 2
-        self.occlusion = [self.ox, max(0, self.roof_top - cut), self.ox + self.W + self.sw // 2, self.G - 1]
+        self.occlusion = [self.ox, max(0, self.roof_top - cut), self.ox + self.W + DRIFT + 2, self.G - 1]
         return self.im

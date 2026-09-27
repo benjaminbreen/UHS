@@ -1,7 +1,7 @@
 """Mesoamerican houses, granaries and sweat baths in the oblique view.
 
 Every surface is a plane in a small world (X right, Y up, Z back) projected
-as the other oblique painters project by hand: x + Z, ground - Y - Z. A face
+as the other oblique painters project: x + drift, ground - Y - Z. A face
 is rasterised once and its shader is handed the world point under each pixel,
 so thatch courses follow the eave round a hip, stair treads land on whole
 pixels and a frieze sits on the wall it belongs to.
@@ -15,7 +15,8 @@ import math
 import random
 from PIL import Image, ImageDraw
 from art.buildings import DOOR_W, DOOR_H
-from art.oblique_style import OVER, VERGE, roof_rise, side_depth
+from art.city_kit import outline
+from art.oblique_style import DRIFT, OVER, VERGE, roof_rise, side_depth
 
 BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5]
 INTERIOR = [(21, 15, 22, 255), (33, 24, 30, 255), (48, 35, 38, 255)]
@@ -27,6 +28,18 @@ def dither(x, y, level):
 
 def _rgb(c):
     return tuple(int(c[i:i + 2], 16) for i in (1, 3, 5)) + (255,)
+
+
+def hue_ramp(ramp):
+    """Shadows lean cool and violet, lights warm, as city_kit's ramps do."""
+    n = len(ramp) - 1 or 1
+    out = []
+    for i, c in enumerate(ramp):
+        t = i / n
+        a, b = .24 * (1 - t) ** 1.5, .10 * t * t
+        out.append(tuple(round(c[j] + (v - c[j]) * a + (w - c[j]) * b)
+                         for j, v, w in zip(range(3), (44, 30, 74), (255, 238, 196))) + (255,))
+    return out
 
 
 def h2(*v):
@@ -59,14 +72,10 @@ MASK = ["XXXXXXXXXX",
 
 
 class ObliqueMeso:
-    # Screen px sideways per px of depth: 1 is the 45-degree return. A precinct
-    # piece covers its whole footprint's depth and shears it into 12px.
-    zx = 1
-
     def __init__(self, recipe, material):
         r = self.r = recipe
         rng = self.rng = random.Random(recipe['seed'] + 509)
-        self.pal = {k: [_rgb(c) for c in v] for k, v in recipe['palette'].items()}
+        self.pal = {k: hue_ramp([_rgb(c) for c in v]) for k, v in recipe['palette'].items()}
         self.profile = recipe['regionalProfile']
         self.maya = self.profile == 'maya'
         self.scale = recipe.get('goldScale', 'medium')
@@ -76,6 +85,8 @@ class ObliqueMeso:
         fw, fh = recipe['footprint']
         self.W = fw * 16
         self.sw = self.D = side_depth(fh)
+        # Depth recedes almost straight back: DRIFT px right over the whole depth.
+        self.zx = DRIFT / self.D
         facing = recipe.get('facing', 'south')
         slot = {'east': fw - 1, 'west': 0}.get(facing, recipe['entrance'][0])
         self.slot = max(0, min(fw - 1, slot))
@@ -125,7 +136,7 @@ class ObliqueMeso:
         self.rise = roof_rise(self.roofmat)
 
         self.ox = 8
-        self.w = self.ox + self.W + self.D + 8
+        self.w = self.ox + self.W + DRIFT + 14
         self.h = 150
         self.G = self.h - 6
         self.im = Image.new('RGBA', (self.w, self.h))
@@ -195,7 +206,7 @@ class ObliqueMeso:
             if v < 1.99: return ramp[min(5, base + 1)] if u > 1 else ramp[base]
             if u < 1: return ramp[base - 2]
             c = base - (1 if h2(row, int((along + off) // length)) % 5 == 0 else 0)
-            if porous and h2(x, y) % 11 == 0: c -= 2
+            if porous and u < 3 and v > 2 and h2(row, int((along + off) // length), 7) % 4 == 0: c -= 1
             return ramp[max(0, c)]
         return sh
 
@@ -249,7 +260,6 @@ class ObliqueMeso:
                 u = (X - L) / max(1, R - L)
                 if u < .3 and .24 <= f < .62 and dither(x, y, (.3 - u) * 2): c += 1
                 if u > .9 and f > .55: c -= 1
-            if self.weathered and h2(x, y, 7) % 29 == 0: c -= 1
             return ramp[max(0, min(5, c))]
         return sh
 
@@ -570,7 +580,7 @@ class ObliqueMeso:
         ramp, deck = self.wallramp, self.pal['adobe']
         self.face([(x0, top, z0), (x1, top, z0), (x1, top, D), (x0, top, D)],
                   lambda X, Y, Z, x, y: deck[2] if dither(x, y, max(.85 - (D - Z - 2) * .3, .8 - (X - x0 - 2) * .25, 0))
-                  else deck[3] if (h2(x // 2, y) % 13) else deck[2])
+                  else deck[2] if int(Z) % 4 == 0 and h2(int(X) // 6, int(Z) // 4) % 2 else deck[3])
         # Inner faces of the far and left parapets.
         self.face([(x0, top, D - 2), (x1, top, D - 2), (x1, top + pp, D - 2), (x0, top + pp, D - 2)], self.flat(ramp[3]))
         self.face([(x0 + 2, top, z0), (x0 + 2, top, D - 2), (x0 + 2, top + pp, D - 2), (x0 + 2, top + pp, z0)], self.flat(ramp[4]))
@@ -834,7 +844,7 @@ class ObliqueMeso:
                 u = (x + .5 - cx) / rx
                 light = -u * .55 + v * .7 + .15
                 i = 5 if light > .78 else 4 if light > .42 else 3 if light > .02 else 2 if light > -.35 else 1
-                if h2(x, y, 5) % 37 == 0: i -= 1
+                if (y + h2(x // 3) % 2) % 4 == 0 and 1 < i < 5: i -= 1
                 if base - y < 3: i = min(i, 2)
                 self.px[x, y] = ramp[max(0, min(5, i))]
         X0 = cx + rx * .55 - self.ox - self.inset
@@ -912,9 +922,14 @@ class ObliqueMeso:
         return self.finish_ground()
 
     def finish_ground(self):
+        self.ink()
         gy = self.G
-        self.d.line((self.ox, gy + 1, self.ox + self.W + self.D // 2, gy + 1), fill=(30, 34, 26, 150))
+        self.d.line((self.ox, gy + 1, self.ox + self.W + DRIFT, gy + 1), fill=(30, 34, 26, 150))
         return self.finish()
+
+    def ink(self):
+        self.im = outline(self.im)
+        self.px, self.d = self.im.load(), ImageDraw.Draw(self.im)
 
     def extra_door(self, dx):
         """A range has a doorway into each room; only the middle one is the
@@ -943,5 +958,5 @@ class ObliqueMeso:
         self.smoke = [[x, y - cut, k] for x, y, k in self.smoke]
         self.overlays = [[k, x, y - cut] for k, x, y in self.overlays]
         self.anchor_x = self.ox + self.W / 2
-        self.occlusion = [self.ox, self.roof_top - cut, self.ox + self.W + self.D // 2, self.G - 1]
+        self.occlusion = [self.ox, self.roof_top - cut, self.ox + self.W + DRIFT + 2, self.G - 1]
         return self.im

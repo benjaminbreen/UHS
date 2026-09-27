@@ -14,8 +14,8 @@ import math
 import random
 from PIL import Image, ImageDraw
 from art.buildings import DOOR_W, DOOR_H
-from art.oblique_meso import ObliqueMeso, INTERIOR, MASK, _rgb, dither, h2
-from art.oblique_style import side_depth
+from art.oblique_meso import ObliqueMeso, INTERIOR, MASK, _rgb, dither, h2, hue_ramp
+from art.oblique_style import DRIFT, side_depth
 
 # A serpent head at the foot of a balustrade: # stone, o eye, r mouth, w fang.
 SERPENT = ["..####..",
@@ -31,7 +31,7 @@ class ObliqueMesoLandmark(ObliqueMeso):
     def __init__(self, recipe, material):
         r = self.r = recipe
         self.rng = random.Random(recipe['seed'] + 811)
-        self.pal = {k: [_rgb(c) for c in v] for k, v in recipe['palette'].items()}
+        self.pal = {k: hue_ramp([_rgb(c) for c in v]) for k, v in recipe['palette'].items()}
         self.profile = recipe['regionalProfile']
         self.maya = self.profile == 'maya'
         self.scale = recipe.get('goldScale', 'medium')
@@ -39,7 +39,10 @@ class ObliqueMesoLandmark(ObliqueMeso):
         self.kind = recipe['mesoLandmark']
         fw, fh = recipe['footprint']
         self.W = fw * 16
-        self.sw = self.D = side_depth(fh, deep=True)
+        self.sw = side_depth(fh, deep=True)
+        # A quarter more rows than the sliver, so each terrace tread reads.
+        self.D = round(self.sw * 1.25)
+        self.zx = DRIFT / self.D
         self.slot = fw // 2
         look = recipe.get('lookSpec', {})
         self.body = self.pal[look.get('body', 'plaster')]
@@ -54,7 +57,7 @@ class ObliqueMesoLandmark(ObliqueMeso):
         self.x0, self.x1, self.ph, self.inset, self.fz = 0, self.W, 0, 0, 0
         self.parapet, self.frieze, self.feature, self.dado = 'plain', None, None, False
         self.ox = 8
-        self.w = self.ox + self.W + self.D + 10
+        self.w = self.ox + self.W + DRIFT + 16
         self.h = 300
         self.G = self.h - 6
         self.im = Image.new('RGBA', (self.w, self.h))
@@ -74,7 +77,7 @@ class ObliqueMesoLandmark(ObliqueMeso):
                 k = 5 if Y > y1 - .8 else 4 if Y > y1 - 2 else 3
                 if rounded and (X - X0 < 1 or X1 - X < 1): k -= 1
                 return band[k]
-            if Y > y1 - c - 1: return body[1]
+            if Y > y1 - c - 1 or Y < y0 + 1: return body[1]
             k = 4 if Y < y1 - c - 3 else 3
             if rounded:
                 if X - X0 < 1: k = 5
@@ -82,7 +85,6 @@ class ObliqueMesoLandmark(ObliqueMeso):
                 elif X1 - X < 2: k -= 1
             if body is self.pal['stone'] and ((int(Y) % 4 == 0) or (int(X + (int(Y) // 4) * 3) % 7 == 0)):
                 k -= 1
-            elif h2(x, y, 3) % 41 == 0: k -= 1
             return body[max(0, k)]
         return sh
 
@@ -98,7 +100,7 @@ class ObliqueMesoLandmark(ObliqueMeso):
             y0, y1 = i * th, (i + 1) * th
             X0, X1 = a, W - a
             self.face([(X0, y1, z), (X1, y1, z), (X1, y1, D), (X0, y1, D)],
-                      lambda X, Y, Z, x, y: band[5] if Z < z + 1 else body[4] if (x + y) % 9 else body[3])
+                      lambda X, Y, Z, x, y: band[5] if Z < z + 1 else body[5] if Z < z + 2 else body[4])
             self.face([(X1, y0, z), (X1, y0, D), (X1, y1, D), (X1, y1, z)],
                       lambda X, Y, Z, x, y, y1=y1: band[2] if Y > y1 - 3 else body[1] if Y > y1 - 4 else body[2] if Z < D - 3 else body[1])
             self.face([(X0, y0, z), (X1, y0, z), (X1, y1, z), (X0, y1, z)], self.tier_front(X0, X1, y0, y1))
@@ -252,7 +254,7 @@ class ObliqueMesoLandmark(ObliqueMeso):
         y1 = y0 + 3
         self.face([(b, y1, z0), (b, y1, self.D - 1), (b, y1 + up, self.D - 1), (b, y1 + up, z0 + lean)], self.flat(ramp[2]))
         self.face([(a, y1, z0), (b, y1, z0), (b, y1 + up, z0 + lean), (a, y1 + up, z0 + lean)],
-                  lambda X, Y, Z, x, y: ramp[4] if X < a + 1.5 else ramp[3] if (h2(x, y) % 31) else ramp[2])
+                  lambda X, Y, Z, x, y: ramp[4] if X < a + 1.5 else ramp[3])
         sx, sy = self.P((a + b) / 2 - 5, y1 + up - 2, z0 + lean)
         for j, row in enumerate(MASK):
             for i, ch in enumerate(row):
@@ -321,7 +323,7 @@ class ObliqueMesoLandmark(ObliqueMeso):
         zf, zb = 3, D - 5
         # End zones rise first, then the alley between them.
         self.face([(end, .1, zf), (W - end, .1, zf), (W - end, .1, zb), (end, .1, zb)],
-                  lambda X, Y, Z, x, y: pl[3] if abs(X - W / 2) < .8 else pl[4] if (h2(x // 3, y) % 11) else pl[3])
+                  lambda X, Y, Z, x, y: pl[3] if abs(X - W / 2) < .8 else pl[4] if int(Z) % 4 else pl[3])
         for m in (end + (W - 2 * end) * .2, W / 2, W - end - (W - 2 * end) * .2):
             sx, sy = self.P(m, 0, (zf + zb) / 2)
             for dx in range(-2, 3): self.px[sx + dx, sy] = red[3]
@@ -385,7 +387,8 @@ class ObliqueMesoLandmark(ObliqueMeso):
             self.stairs()
             self.summit()
             self.furnish()
-        self.d.line((self.ox, self.G + 1, self.ox + self.W + self.D // 2, self.G + 1), fill=(30, 34, 26, 150))
+        self.ink()
+        self.d.line((self.ox, self.G + 1, self.ox + self.W + DRIFT, self.G + 1), fill=(30, 34, 26, 150))
         return self.finish()
 
 

@@ -18,7 +18,7 @@ ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(ROOT / 'scripts'))
 
 from art.buildings import DOOR_W, DOOR_H  # noqa: E402
-from art.oblique_style import STOREY  # noqa: E402
+from art.oblique_style import DRIFT, STOREY  # noqa: E402
 from art.oblique_modern import (  # noqa: E402
     Face, Modern, h2, night, GLASS, WARM, COOL, TAR, STONE, ALUMINIUM, brick_wall,
 )
@@ -64,10 +64,6 @@ class Style:
     def wall(self, f, x0, y0, x1, y1, p, seed, side=False):
         w = p['wall']
         f.rect(x0, y0, x1, y1, w[2] if side else w[3])
-        for y in range(y0, y1 + 1):
-            for x in range(x0, x1 + 1):
-                if h2(x, y, seed + 7) < 0.06:
-                    f.px(x, y, w[1] if side else w[2])
 
     def bays(self, W):
         n = max(1, W // self.bay)
@@ -142,7 +138,7 @@ class Facade(Modern):
         s.side(self, side, H, p)
         above = getattr(s, 'headroom', 14)
         rim = p.get('rim', STONE + ['#f1ead3'])
-        top, _ = self.flat_top(W + D + 1, D + above + 2, D + above + 1,
+        top = self.flat_top(W + DRIFT + 1, D + above + 2, D + above + 1,
                                p.get('roof', s.roof_fill), rim,
                                (TAR[0], p['wall'][1]))
         s.roof(self, top, D + above + 1, p)
@@ -191,14 +187,6 @@ class Gruenderzeit(Style):
     def wall(self, f, x0, y0, x1, y1, p, seed, side=False):
         w = p['wall']
         f.rect(x0, y0, x1, y1, w[2] if side else w[3])
-        # Weathered render: a few darker patches, soot under the cornice.
-        for y in range(y0, y1 + 1):
-            for x in range(x0, x1 + 1):
-                v = h2(x // 3, y // 2, seed + 11)
-                if v < 0.05:
-                    f.px(x, y, w[2] if not side else w[1])
-                elif v > 0.985:
-                    f.px(x, y, w[4] if not side else w[3])
 
     def storey(self, b, f, y, n, p):
         t, w = p['trim'], p['wall']
@@ -293,8 +281,6 @@ class Gruenderzeit(Style):
             for x in range(f.w):
                 if y % 3 == 2 or (x + (y // 3) * 4) % 8 == 0:
                     f.px(x, y, '#5f3a2c')
-                elif h2(x, y, b.seed + 3) < 0.08:
-                    f.px(x, y, '#8e5a42')
         f.rect(0, 0, f.w - 1, self.crown_h - 1, p['trim'][1])
         f.rect(0, 0, f.w - 1, 0, p['trim'][3])
         # The render wraps the corner for one pilaster width.
@@ -303,13 +289,14 @@ class Gruenderzeit(Style):
 
     def roof(self, b, top, base_y, p):
         # A pitched tin roof behind the attic, a dormer, and chimney stacks.
-        D, W = b.sw, b.W
-        for i, cx in enumerate(range(D + 8, W - 6, 30)):
-            by = base_y - D // 2 - 2
-            top.rect(cx, by - 10, cx + 5, by + 2, '#8a5a44')
-            top.rect(cx, by - 10, cx + 1, by + 2, '#a36c52')
-            top.rect(cx - 1, by - 11, cx + 6, by - 10, STONE[2])
-            b.smoke = (b.smoke if getattr(b, 'smoke', None) else []) + [[cx + 2, by - 12, 'chimney']]
+        k = b.sw // 2
+        by = base_y - 1 - k
+        b.smoke = []
+        for cx in range(8, b.W - 6, 30):
+            x = b.box(top, cx, by, 6, 13, 3, k, '#8a5a44', STONE[3], '#6a4232')
+            top.rect(x, by - 12, x + 1, by, '#a36c52')
+            top.rect(x - 1, by - 12, x + 6, by - 11, STONE[2])
+            b.smoke.append([x + 3, by - 16, 'chimney'])
 
 
 # --- Khrushchyovka --------------------------------------------------------
@@ -338,17 +325,6 @@ class Khrushchyovka(Style):
         return {'wall': ramp(base, (-40, -22, -9, 0, 12)),
                 'rim': ramp('#9d9b93', (-30, -12, 0, 10, 22)),
                 'accent': ['#8a3b32', '#3d5f7a', '#6f8a4a', '#b08a3a'][int(h2(seed, 3, 91) * 4)]}
-
-    def wall(self, f, x0, y0, x1, y1, p, seed, side=False):
-        w = p['wall']
-        f.rect(x0, y0, x1, y1, w[2] if side else w[3])
-        # Panels: seams every bay and every storey, with rust and damp
-        # darkening the joints.
-        for y in range(y0, y1 + 1):
-            for x in range(x0, x1 + 1):
-                v = h2(x // 2, y // 2, seed + 12)
-                if v < 0.07:
-                    f.px(x, y, w[2] if not side else w[1])
 
     def storey(self, b, f, y, n, p):
         w = p['wall']
@@ -405,11 +381,10 @@ class Khrushchyovka(Style):
 
     def roof(self, b, top, base_y, p):
         # Stair-head vents and a thicket of television aerials.
-        D = b.sw
-        for i, cx in enumerate(range(D + 14, b.W - 4, 40)):
-            by = base_y - D // 2 - 1
-            top.rect(cx, by - 5, cx + 6, by + 1, '#77756d')
-            top.rect(cx, by - 5, cx + 6, by - 5, '#9a988e')
+        k = b.sw // 2
+        by = base_y - 1 - k
+        for cx in range(14, b.W - 4, 40):
+            cx = b.box(top, cx, by, 7, 6, 4, k, '#77756d', '#9a988e', '#5c5a54')
             ax = cx + 12
             top.rect(ax, by - 14, ax, by, '#2e2e2c')
             for k in range(3):
@@ -514,13 +489,12 @@ class Glass(Style):
         f.rect(1, H - self.ground_h + 6, f.w - 1, H - 4, GLASS[0])
 
     def roof(self, b, top, base_y, p):
-        D = b.sw
-        pw = min(40, b.W // 2)
-        px0, py0 = b.W // 2 - pw // 2 + D // 2, base_y - D // 2 + 1
-        top.rect(px0, py0 - 8, px0 + pw - 1, py0, p['rim'][2])
-        top.rect(px0, py0 - 8, px0 + pw - 1, py0 - 7, p['rim'][4])
+        pw, k = min(40, b.W // 2), b.sw // 2 - 3
+        py0 = base_y - 1 - k
+        px0 = b.box(top, b.W // 2 - pw // 2, py0, pw, 9, 7, k, p['rim'][2], p['rim'][4], p['rim'][0])
+        top.rect(px0, py0 - 8, px0 + pw - 2, py0 - 8, p['rim'][4])
         for yy in range(py0 - 5, py0, 2):
-            top.rect(px0, yy, px0 + pw - 1, yy, p['rim'][0])
+            top.rect(px0, yy, px0 + pw - 2, yy, p['rim'][0])
 
 
 @style
@@ -579,7 +553,7 @@ class CivicHall(Style):
             f.rect(x + 2, 7, x + 3, 9, t[0])
 
     def roof(self, b, top, base_y, p):
-        t, cx = p['trim'], b.W // 2 + b.sw // 2
+        t, cx = p['trim'], b.W // 2 + b.back(b.sw // 2)
         y = base_y - b.sw // 2
         top.rect(cx - 32, y - 12, cx + 32, y, t[2])
         for k in range(14):
@@ -591,7 +565,7 @@ class CivicHall(Style):
         top.d.ellipse((cx - 6, y - 22, cx + 6, y - 10), fill=t[0])
         top.d.ellipse((cx - 5, y - 21, cx + 5, y - 11), fill='#e8dfb9')
         top.d.line((cx, y - 20, cx, y - 16, cx + 3, y - 14), fill='#4e554e')
-        for x in range(6, b.W - 5, 9):
+        for x in range(6 + b.back(b.sw // 2), b.W - 5, 9):
             if abs(x - cx) < 36: continue
             top.rect(x, y - 5, x + 2, y, t[2])
             top.rect(x, y - 6, x + 6, y - 5, t[4])
@@ -614,7 +588,7 @@ class Works(Style):
 
     def wall(self, f, x0, y0, x1, y1, p, seed, side=False):
         pal = [shade(c, -20) for c in p['wall']] if side else p['wall']
-        brick_wall(f, x0, y0, x1, y1, pal, seed, mortar='#827a67')
+        brick_wall(f, x0, y0, x1, y1, pal, seed)
 
     def storey(self, b, f, y, n, p):
         for i, (x0, x1) in enumerate(self.bays(b.W)):
@@ -641,7 +615,7 @@ class Works(Style):
         f.rect(b.door_x - 6, y - 1, b.door_x + 16, y + 2, '#3f504c')
 
     def roof(self, b, top, base_y, p):
-        x, y = b.W - 24, base_y - b.sw // 2
+        x, y = b.W - 24 + b.back(b.sw // 2), base_y - b.sw // 2
         top.rect(x, y - 43, x + 10, y, p['wall'][2])
         top.rect(x, y - 43, x + 2, y, p['wall'][4])
         top.rect(x + 8, y - 43, x + 10, y, p['wall'][0])
@@ -649,7 +623,7 @@ class Works(Style):
         top.rect(x - 2, y - 45, x + 12, y - 42, p['wall'][3])
         top.rect(x, y - 45, x + 10, y - 44, '#34372f')
         b.smoke = [[x + 5, y - 45, 'chimney']]
-        for vx in range(24, b.W - 45, 38):
+        for vx in range(24 + b.back(b.sw // 2), b.W - 45, 38):
             top.rect(vx, y - 8, vx + 10, y, '#56645e')
             top.rect(vx - 2, y - 9, vx + 12, y - 7, '#b2b5a1')
 

@@ -75,7 +75,7 @@ class HallBuilding(TheatreBuilding):
         self.im.alpha_composite(overlay)
         self.d = ImageDraw.Draw(self.im)
 
-    def plan_disc(self, cx, cy, rx, tones, rim=None, speckle=0):
+    def plan_disc(self, cx, cy, rx, tones, rim=None):
         """A flat circular surface seen from above: the roof of a drum, the
         floor of a pit. It faces the sky, so it is near enough evenly lit —
         only the far rim falls off, where the ground beyond bounces nothing
@@ -96,14 +96,6 @@ class HallBuilding(TheatreBuilding):
                 elif dy < -0.3 and x < cx:
                     tone = tones[top]
                 d.point((x, y), fill=tone)
-        if speckle:
-            rng = random.Random(speckle)
-            for _ in range(int(rx * 1.6)):
-                a = rng.random() * 2 * math.pi
-                q = math.sqrt(rng.random()) * 0.88
-                d.point((int(cx + rx * q * math.cos(a)),
-                         int(cy + ry * q * math.sin(a))),
-                        fill=tones[max(0, top - 2 - rng.randrange(2))])
         if rim:
             d.ellipse((cx - rx, cy - ry, cx + rx, cy + ry), outline=rim)
 
@@ -745,8 +737,7 @@ class HallBuilding(TheatreBuilding):
             d.arc((bx - 3, by - 3, bx + 3, by + 1), 200, 340,
                   fill=stone[min(len(stone) - 1, lit + 1)])
         # The roof: packed earth on beams, a disc set on top of the drum.
-        self.plan_disc(cx, foot - rise, rx - 2, earth, rim=stone[1],
-                       speckle=r['seed'] + 9)
+        self.plan_disc(cx, foot - rise, rx - 2, earth, rim=stone[1])
         # Beam ends poking out under the roof lip on the near side: the
         # roof is carried on timber, and this is the only place it shows.
         for i in range(7):

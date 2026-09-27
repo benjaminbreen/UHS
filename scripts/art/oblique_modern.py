@@ -17,12 +17,12 @@ ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(ROOT / 'scripts'))
 
 from art.buildings import DOOR_W, DOOR_H  # noqa: E402
-from art.oblique_style import STOREY, side_depth  # noqa: E402
+from art.city_kit import outline  # noqa: E402
+from art.oblique_style import DRIFT, STOREY, drift, side_depth  # noqa: E402
 
 BRICK = ['#3f1d16', '#62301f', '#83412c', '#9c5238', '#b86a4a']
 COMMON = ['#321a15', '#472619', '#55301f', '#5d3522', '#673c26']
 STONE = ['#5f5a4f', '#8a8473', '#b3ac96', '#d2cbb3', '#e9e2c9']
-MORTAR = '#8e8272'
 CORNICE = ['#18211e', '#27352f', '#3b4e45', '#55705f', '#7a957f']
 SHOP = ['#241012', '#3f1a1a', '#5e2624', '#7e3630', '#9c4c3f']
 GLASS = ['#1b2a31', '#2d4751', '#476d7b', '#7aa3ab', '#b7d3d0']
@@ -71,21 +71,19 @@ class Face:
         self.e.line((x0, y0, x1, y0), fill=ramp[0])
 
 
-def brick_wall(f, x0, y0, x1, y1, pal, seed, course=3, stretch=8, mortar=MORTAR):
-    """Stretcher bond: a course every three pixels, each brick its own fired
-    tone, mortar joints only on alternate heads so the wall is not a grid."""
+def brick_wall(f, x0, y0, x1, y1, pal, seed, course=3, stretch=8):
+    """Stretcher bond as a flat field: bed joints and alternate heads one tone
+    down, the colour drifting in broad patches, never pixel noise."""
     for y in range(y0, y1 + 1):
         row = (y - y0) // course
-        joint = (y - y0) % course == course - 1
         for x in range(x0, x1 + 1):
-            b = (x + (row % 2) * (stretch // 2)) // stretch
-            if joint:
-                c = pal[1] if h2(x, y, seed) < 0.55 else mortar
-            elif (x + (row % 2) * (stretch // 2)) % stretch == 0 and h2(b, row, seed + 1) < 0.5:
-                c = pal[1]
+            v = h2(x // 11, (y + (x // 11) * 3) // 9, seed)
+            if (y - y0) % course == course - 1:
+                c = pal[2]
+            elif (x + (row % 2) * (stretch // 2)) % stretch == 0 and h2(x // stretch, row, seed) < 0.6:
+                c = pal[2]
             else:
-                v = h2(b, row, seed)
-                c = pal[3] if v < 0.18 else pal[2] if v < 0.8 else pal[4] if v < 0.9 else pal[1]
+                c = pal[3] if v < 0.72 else pal[2] if v < 0.86 else pal[4]
             f.px(x, y, c)
 
 
@@ -117,51 +115,72 @@ def segment_head(f, x, y, w, pal):
 
 
 class Modern:
-    """Shared projection: a front face, a sheared right face and a flat top."""
+    """Shared projection: a front face, a sliver of right wall and a flat top
+    whose depth rows run almost straight back."""
 
     def __init__(self, w_tiles, d_tiles, seed=0, deep=False):
         self.W = w_tiles * 16
         self.sw = side_depth(d_tiles, deep=deep)
         self.seed = seed
 
+    def back(self, k):
+        """Screen x offset of something `k` rows back from the front edge."""
+        return drift(k, self.sw)
+
+    def paste_side(self, out, em, side, y):
+        """The side elevation's columns, far first, so the near ones win."""
+        W, D = self.W, self.sw
+        for i in reversed(range(D)):
+            col = side.im.crop((i, 0, i + 1, side.h))
+            ecol = side.em.crop((i, 0, i + 1, side.h))
+            out.alpha_composite(col, (W + self.back(i + 1) - 1, y - i - 1))
+            em.alpha_composite(ecol, (W + self.back(i + 1) - 1, y - i - 1))
+
     def assemble(self, front, side, top=None, above=0):
-        """Front at the left, the side sheared up a pixel per column, then
+        """Front at the left, the side wall behind its right edge, then
         whatever sits on the roof. `above` is headroom for stacks and tanks."""
         W, D, H = self.W, self.sw, front.h
-        out = Image.new('RGBA', (W + D + 1, H + D + above))
+        out = Image.new('RGBA', (W + DRIFT + 1, H + D + above))
         em = Image.new('RGBA', out.size)
         base = D + above
         out.paste(front.im, (0, base), front.im)
         em.paste(front.em, (0, base), front.em)
-        for i in range(D):
-            col = side.im.crop((i, 0, i + 1, side.h))
-            ecol = side.em.crop((i, 0, i + 1, side.h))
-            out.paste(col, (W + i, base - i - 1), col)
-            em.paste(ecol, (W + i, base - i - 1), ecol)
+        self.paste_side(out, em, side, base)
         if top:
             out.alpha_composite(top.im, (0, 0))
             em.alpha_composite(top.em, (0, 0))
         self.anchor_x = W // 2
-        return out, em
+        return outline(out), em
+
+    def box(self, f, x, y, w, h, d, k, front, top, side):
+        """A block on the roof, `d` rows deep, its front's foot at (x, y) and
+        `k` rows back from the building's front edge."""
+        for i in range(d, 0, -1):
+            o = self.back(k + i)
+            f.rect(x + o, y - h - i + 1, x + o + w - 1, y - h - i + 1, top)
+            f.rect(x + o + w - 1, y - h - i + 2, x + o + w - 1, y - i, side)
+        o = self.back(k)
+        f.rect(x + o, y - h + 1, x + o + w - 1, y, front)
+        return x + o
 
     def flat_top(self, canvas_w, canvas_h, base_y, fill, rim, back_face, inset=2):
         """A flat roof inside its parapet: the coping all round, the roof
-        surface inset, and the inner faces of the back and left parapets."""
+        surface inset, and the inner face of the back parapet."""
         W, D = self.W, self.sw
         f = Face(canvas_w, canvas_h)
         y0 = base_y - 1
-        poly = [(0, y0), (W - 1, y0), (W - 1 + D, y0 - D), (D, y0 - D)]
-        f.d.polygon(poly, fill=rim[3])
-        f.d.line(poly[0:2], fill=rim[4])
-        f.d.line((poly[3], poly[2]), fill=rim[2])
-        inner = [(inset + 1, y0 - 1), (W - inset - 1, y0 - 1),
-                 (W - 1 + D - inset - 1, y0 - D + inset), (D + inset, y0 - D + inset)]
-        f.d.polygon(inner, fill=fill)
-        # The back parapet shows its inner face; the left one its sheared face.
-        f.d.line((inner[3][0], inner[3][1] + 1, inner[2][0], inner[2][1] + 1), fill=back_face[0])
-        f.d.line((inner[3][0], inner[3][1] + 2, inner[2][0] - 1, inner[2][1] + 2), fill=back_face[1])
-        f.d.line((inner[0][0], inner[0][1], inner[3][0], inner[3][1]), fill=back_face[1])
-        return f, inner
+        for k in range(D + 1):
+            o = self.back(k)
+            f.rect(o, y0 - k, W - 1 + o, y0 - k, rim[3])
+            if inset < k < D - inset:
+                f.rect(o + inset + 1, y0 - k, W - 2 - inset + o, y0 - k, fill)
+        f.rect(0, y0, W - 1, y0, rim[4])
+        f.rect(DRIFT, y0 - D, W - 1 + DRIFT, y0 - D, rim[2])
+        k = D - inset - 1
+        for j, c in enumerate(back_face):
+            o = self.back(k - j)
+            f.rect(o + inset + 1, y0 - k + j, W - 2 - inset + o, y0 - k + j, c)
+        return f
 
 
 class CommercialBlock(Modern):
@@ -312,7 +331,7 @@ class CommercialBlock(Modern):
     def side_face(self, H):
         D = self.sw
         f = Face(D, H)
-        brick_wall(f, 0, 9 + 8, D - 1, H - 1, COMMON, self.seed + 5, stretch=6, mortar='#6a5446')
+        brick_wall(f, 0, 9 + 8, D - 1, H - 1, COMMON, self.seed + 5, stretch=6)
         f.rect(0, 0, D - 1, 16, COMMON[2])
         f.rect(0, 0, D - 1, 0, STONE[2])
         f.rect(0, 1, D - 1, 1, STONE[0])
@@ -335,24 +354,28 @@ class CommercialBlock(Modern):
     def build(self):
         front, H = self.render()
         side = self.side_face(H)
-        above = 10
-        top, inner = self.flat_top(self.W + self.sw + 1, self.sw + above + 2, self.sw + above + 1,
-                                   TAR[1], STONE, (TAR[0], BRICK[1]))
-        # A chimney on the party wall and the stair hatch.
-        cx = self.sw + 10
-        by = self.sw + above - self.sw
-        top.rect(cx, by - 9, cx + 7, by + 3, BRICK[2])
-        top.rect(cx, by - 9, cx + 1, by + 3, BRICK[3])
-        top.rect(cx + 6, by - 9, cx + 7, by + 3, BRICK[1])
-        top.rect(cx - 1, by - 10, cx + 8, by - 9, STONE[3])
-        top.rect(cx + 1, by - 11, cx + 2, by - 10, '#6a3a2a')
-        top.rect(cx + 4, by - 11, cx + 5, by - 10, '#6a3a2a')
-        hx, hy = self.W // 2 + 20, self.sw + above - 5
-        top.rect(hx, hy, hx + 9, hy + 3, TAR[3])
-        top.rect(hx, hy - 3, hx + 9, hy - 1, STONE[2])
-        top.rect(hx + 9, hy - 2, hx + 10, hy + 3, TAR[0])
+        above = 14
+        D = self.sw
+        top = self.flat_top(self.W + DRIFT + 1, D + above + 2, D + above + 1,
+                            TAR[1], STONE, (TAR[0], BRICK[1]))
+        # A chimney on the back party wall, its capping running back, and
+        # the stair hatch.
+        cx, by = DRIFT + 10, above
+        top.rect(cx, by - 9, cx + 7, by + 1, BRICK[3])
+        top.rect(cx, by - 9, cx, by + 1, BRICK[4])
+        top.rect(cx + 7, by - 9, cx + 7, by + 1, BRICK[1])
+        top.rect(cx - 1, by - 11, cx + 8, by - 10, STONE[3])
+        top.rect(cx - 1, by - 12, cx + 8, by - 12, STONE[2])
+        top.rect(cx + 1, by - 15, cx + 2, by - 12, '#8a4a34')
+        top.rect(cx + 4, by - 15, cx + 5, by - 12, '#6a3a2a')
+        k = 6
+        hx, hy = self.W // 2 + 20 + self.back(k), D + above - k
+        top.rect(hx, hy - 3, hx + 9, hy, TAR[3])
+        top.rect(hx, hy - 4, hx + 9, hy - 4, STONE[3])
+        top.rect(hx + 1, hy - 5, hx + 10, hy - 5, STONE[2])
+        top.rect(hx + 10, hy - 4, hx + 10, hy, TAR[0])
         for x in range(4, self.W - 8, 17):
-            top.px(x + self.sw // 2, self.sw + above - self.sw // 2, TAR[2])
+            top.px(x + self.back(D // 2), D + above - D // 2, TAR[2])
         self.smoke = [[cx + 3, 0, 'chimney']]
         return self.assemble(front, side, top, above)
 
@@ -463,7 +486,7 @@ class SawtoothShed(Modern):
     def side_face(self, wall_h):
         D = self.sw
         f = Face(D, wall_h)
-        brick_wall(f, 0, 0, D - 1, wall_h - 1, COMMON, self.seed + 5, stretch=6, mortar='#6a5446')
+        brick_wall(f, 0, 0, D - 1, wall_h - 1, COMMON, self.seed + 5, stretch=6)
         f.rect(0, 0, D - 1, 1, STONE[1])
         f.rect(0, wall_h - 4, D - 1, wall_h - 1, STONE[0])
         for y0 in (10, 10 + (wall_h - 22) // 2):
@@ -478,36 +501,28 @@ class SawtoothShed(Modern):
         W, T, R, D = self.W, self.TOOTH, self.RISE, self.sw
         f = Face(canvas_w, canvas_h)
         for t in range(W // T):
-            x0, x1 = t * T, t * T + T - 1
-            for x in range(x0, x1 + 1):
+            x0 = t * T
+            for x in range(x0, x0 + T):
                 yf = base_y - (x - x0 + 1) * R // T
                 for j in range(D):
-                    y = yf - j - 1
-                    course = (j + (x - x0) // 2) % 4
-                    c = SLATE[3] if course else SLATE[2]
+                    c = SLATE[2] if (x - x0) % 3 == 2 else SLATE[3]
                     if j == 0:
                         c = SLATE[4]
                     elif j == D - 1:
                         c = SLATE[1]
-                    elif h2(x, j, 40 + t) < 0.05:
-                        c = SLATE[4]
-                    f.px(x + j, y, c)
-            # The north light, facing the viewer's right, a strip per tooth.
-            gx = x1 + 1
+                    f.px(x + self.back(j), yf - j - 1, c)
+        # The north lights face the viewer's right, so only their edge shows.
+        for t in range(W // T):
+            gx = t * T + T
             hi, lo = base_y - R - 1, base_y - 1
-            for i in range(D):
+            for i in reversed(range(D)):
+                x = gx + self.back(i)
                 for y in range(hi, lo):
-                    yy = y - i - 1
-                    band = (y - hi) % 4 == 3 or i % 4 == 3
-                    c = STEEL[1] if band else GLASS[2] if y - hi < 5 else GLASS[1]
-                    if y == hi:
-                        c = STEEL[3]
-                    f.px(gx + i, yy, c)
-                    if not band and y > hi:
-                        f.e.point((gx + i, yy), fill=COOL[1] if (y - hi) < 6 else COOL[0])
-            # Gutter at the foot of the next slope.
-            for i in range(D):
-                f.px(gx + i, lo - i - 1, STEEL[0])
+                    c = STEEL[3] if y == hi else STEEL[1] if (y - hi) % 4 == 3 else GLASS[2]
+                    f.px(x, y - i - 1, c)
+                    if y > hi and c == GLASS[2]:
+                        f.e.point((x, y - i - 1), fill=COOL[1])
+                f.px(x, lo - i - 1, STEEL[0])
         return f
 
     def stack(self, f, x, y_base, height):
@@ -542,25 +557,21 @@ class SawtoothShed(Modern):
         side = self.side_face(wall)
         D, R = self.sw, self.RISE
         above = 96
-        cw, ch = self.W + D + 1, H + D + above
+        cw, ch = self.W + DRIFT + 1, H + D + above
         base = D + above
         out = Image.new('RGBA', (cw, ch))
         em = Image.new('RGBA', (cw, ch))
         chimney = Face(cw, ch)
-        self.stack(chimney, 30 + D, base + R - D, above + R - 4)
+        self.stack(chimney, 30 + DRIFT, base + R - D, above + R - 4)
         out.alpha_composite(chimney.im)
         roof = self.roof(cw, ch, base + R)
         out.alpha_composite(roof.im)
         em.alpha_composite(roof.em)
         out.alpha_composite(front.im, (0, base))
         em.alpha_composite(front.em, (0, base))
-        for i in range(D):
-            col = side.im.crop((i, 0, i + 1, side.h))
-            ecol = side.em.crop((i, 0, i + 1, side.h))
-            out.alpha_composite(col, (self.W + i, base + R - i - 1))
-            em.alpha_composite(ecol, (self.W + i, base + R - i - 1))
+        self.paste_side(out, em, side, base + R)
         self.anchor_x = self.W // 2
-        return out, em
+        return outline(out), em
 
 
 class CurtainTower(Modern):
@@ -677,23 +688,16 @@ class CurtainTower(Modern):
             self.slices.append(y)
             y += fr.h
         above = 18
-        top, inner = self.flat_top(W + D + 1, D + above + 2, D + above + 1,
-                                   '#8c8c82', ALUMINIUM + ['#f2f3ee'], (SPANDREL[1], ALUMINIUM[0]), inset=2)
-        # Gravel ballast, a plant penthouse set back, a window-cleaning rail.
-        for yy in range(top.h):
-            for xx in range(top.w):
-                if top.im.getpixel((xx, yy)) == (140, 140, 130, 255) and h2(xx, yy, 70) < 0.25:
-                    top.px(xx, yy, '#7a7a70' if h2(xx, yy, 71) < 0.5 else '#9c9c90')
-        pw, pd, ph = 44, 8, 12
-        px0, py0 = W // 2 - pw // 2 + D // 2, D + above - D // 2 + 2
-        top.rect(px0, py0 - ph, px0 + pw - 1, py0, ALUMINIUM[1])
-        top.rect(px0, py0 - ph, px0 + pw - 1, py0 - ph + 1, ALUMINIUM[3])
-        for yy in range(py0 - ph + 3, py0, 2):
-            top.rect(px0, yy, px0 + pw - 1, yy, ALUMINIUM[0])
-        for i in range(pd):
-            top.rect(px0 + pw + i, py0 - ph - i - 1, px0 + pw + i, py0 - i - 1, ALUMINIUM[0])
-        for i in range(pd):
-            top.rect(px0 + i + 1, py0 - ph - i - 1, px0 + pw + i - 1, py0 - ph - i - 1, '#a9aca4')
+        top = self.flat_top(W + DRIFT + 1, D + above + 2, D + above + 1,
+                            '#8c8c82', ALUMINIUM + ['#f2f3ee'], (SPANDREL[1], ALUMINIUM[0]), inset=2)
+        # A plant penthouse set back, and a window-cleaning rail.
+        pw, pd, ph, k = 44, 8, 12, D // 2 - 4
+        px0 = self.box(top, W // 2 - pw // 2, D + above - k, pw, ph, pd, k,
+                       ALUMINIUM[1], '#a9aca4', ALUMINIUM[0])
+        py0 = D + above - k
+        top.rect(px0, py0 - ph + 1, px0 + pw - 2, py0 - ph + 2, ALUMINIUM[3])
+        for yy in range(py0 - ph + 4, py0, 2):
+            top.rect(px0, yy, px0 + pw - 2, yy, ALUMINIUM[0])
         for x in range(4, W - 2, 6):
             top.px(x + 1, D + above - 1, ALUMINIUM[3])
         return self.assemble(front, side, top, above)
@@ -789,7 +793,8 @@ class ObliqueModern:
         d.rectangle((0, self.bottom - 1, W - 1, self.bottom), fill=STONE[1])
         d.line((0, self.bottom - 1, W - 1, self.bottom - 1), fill=STONE[3])
         for i in range(b.sw):
-            d.line((W + i, self.bottom - 2 - i, W + i, self.bottom - 1 - i), fill=STONE[0])
+            x = W + drift(i + 1, b.sw) - 1
+            d.line((x, self.bottom - 2 - i, x, self.bottom - 1 - i), fill=STONE[0])
         self.glow = Image.new('RGBA', (self.w, self.h))
         self.glow.alpha_composite(em)
 

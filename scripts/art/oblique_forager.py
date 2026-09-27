@@ -289,6 +289,7 @@ class ObliqueForager(ObliqueSteppe):
         spots = [(self.ox - 6, front + 3), (self.cx + R + 12, front + 1), (self.ox + 2, front + 5)]
         for name, (x, y) in zip(self.gear, spots):
             self.gear_piece(name, x, y)
+        self.finish()
         self.d.line((self.ox, self.G + 1, self.ox + fw * 16 + 6, self.G + 1), fill=(30, 34, 26, 150))
         box = self.im.getbbox()
         cut = max(0, box[1] - 2)

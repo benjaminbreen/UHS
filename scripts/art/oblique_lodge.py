@@ -14,7 +14,7 @@ from PIL import Image, ImageDraw
 from art.buildings import DOOR_W, DOOR_H
 from art.oblique_meso import INTERIOR, _rgb, dither, h2
 from art.oblique_steppe import ObliqueSteppe, ramp_at
-from art.oblique_style import side_depth
+from art.oblique_style import DRIFT, side_depth
 
 # Formline eye, left half; mirrored for the right. O outline, R red, B
 # blue-green, K pupil.
@@ -51,7 +51,7 @@ class ObliqueLodge(ObliqueSteppe):
         self.fw, self.fh = fw, fh
         self.sw = self.D = side_depth(fh)
         self.ox = 14
-        self.w = self.ox + fw * 16 + self.sw + 20
+        self.w = self.ox + fw * 16 + DRIFT + 28
         self.h = 170
         self.G = self.h - 8
         self.im = Image.new('RGBA', (self.w, self.h))
@@ -167,7 +167,9 @@ class ObliqueLodge(ObliqueSteppe):
         front = self.planks(4, lambda X, Z: X, weathered)
         self.front(0, W, 0, wh, 0, front)
         self.face([(0, wh, 0), (W, wh, 0), (xc, wh + rise, 0)], front)
-        rsh = lambda lit: (lambda X, Y, Z, x, y: ramp_at(self.pal['cedar-grey'], lit + (-1.5 if int(Z * 1.2) % 4 == 0 else 0) + (h2(int(Z), int(Y)) % 3 == 0) * -.6))
+        g0 = self.P(0, wh, 0)
+        self.eave_shadow(g0[0], g0[0] + W, g0[1] + 1)
+        rsh = lambda lit: (lambda X, Y, Z, x, y: ramp_at(self.pal['cedar-grey'], lit + (-1.5 if int(Z * 1.2) % 4 == 0 else 0) + (h2(int(Z) // 2, 1) % 3 == 0) * -.6))
         self.face([(-3, wh - 1, -2), (xc, wh + rise, -2), (xc, wh + rise, D + 3), (-3, wh - 1, D + 3)], rsh(3))
         self.face([(xc, wh + rise, -2), (W + 3, wh - 1, -2), (W + 3, wh - 1, D + 3), (xc, wh + rise, D + 3)], rsh(2))
         # Barge boards, and the smoke hole where a roof board is slid aside.
@@ -203,7 +205,6 @@ class ObliqueLodge(ObliqueSteppe):
             f = k - course + (0, 0, 1, 2)[n % 4] / 4.2
             if f >= 1: f -= 1
             c = lit - 2 if f < .12 else lit + 1 if f < .3 else lit if f < .7 else lit - 1
-            if n % 9 == 0: c -= 1
             return ramp_at(ramp, c)
         return sh
 
@@ -225,6 +226,7 @@ class ObliqueLodge(ObliqueSteppe):
         self.face([(L, eave, -o), (R, eave, -o), (R - a, ridge, zc), (L + a, ridge, zc)], self.thatch(3, eave))
         hem = self.pal['palm']
         p0, p1 = self.P(L, eave, -o), self.P(R, eave, -o)
+        self.eave_shadow(p0[0] + o, p1[0] - o, p0[1] + 2)
         for x in range(p0[0], p1[0] + 1):
             self.put(x, p0[1] + 1 + (h2(x, 3) % 3 == 0), hem[1])
         r0, r1 = self.P(L + a, ridge, zc), self.P(R - a, ridge, zc)
@@ -254,8 +256,8 @@ class ObliqueLodge(ObliqueSteppe):
         ramp = self.pal['dung']
 
         def sh(X, Y, Z, x, y):
-            n = h2(x // 2, y // 2, 13)
-            c = lit + (.6 if n % 7 == 0 else -.6 if n % 5 == 0 else 0)
+            n = h2(int(X + Z) // 7, int(Y) // 3, 13)
+            c = lit + (.5 if n % 4 == 0 else -.5 if n % 5 == 0 else 0)
             # Hand-smeared: long shallow arcs in the plaster.
             if (x * 3 + y * 5 + int(X)) % 23 == 0: c -= .7
             return ramp_at(ramp, c)
@@ -325,7 +327,6 @@ class ObliqueLodge(ObliqueSteppe):
             c = lit + ((h2(sheet, int(Y // 10)) % 3) - 1) * .5
             if u % 9 < 1: c -= 1.5
             if int(Y) % 10 == 0: c -= 1
-            if h2(x // 2, y, 7) % 13 == 0: c -= .8
             return ramp_at(ramp, c)
         return sh
 
@@ -413,6 +414,8 @@ class ObliqueLodge(ObliqueSteppe):
         self.side(W, 0, wh, 0, D, walls(2.6))
         self.face([(R, wh, -o), (R, wh, D + o), (R - a, ridge, zc)], self.thatch(2, wh, 'reed'))
         self.face([(L, wh, -o), (R, wh, -o), (R - a, ridge, zc), (L + a, ridge, zc)], self.thatch(3, wh, 'reed'))
+        e0 = self.P(0, wh, 0)
+        self.eave_shadow(e0[0], e0[0] + W, e0[1] + 1)
         r0, r1 = self.P(L + a, ridge, zc), self.P(R - a, ridge, zc)
         for k, c in ((-2, reed[4]), (-1, reed[3]), (0, reed[1])):
             self.d.line((r0[0], r0[1] + k, r1[0], r1[1] + k), fill=c)
@@ -432,7 +435,8 @@ class ObliqueLodge(ObliqueSteppe):
     def render(self):
         {'plank': self.render_plank, 'maloca': self.render_maloca, 'enkang': self.render_enkang,
          'longhouse': self.render_longhouse, 'chise': self.render_chise}[self.form]()
-        self.d.line((self.ox, self.G + 1, self.ox + self.fw * 16 + self.sw // 2, self.G + 1), fill=(30, 34, 26, 150))
+        self.finish()
+        self.d.line((self.ox, self.G + 1, self.ox + self.fw * 16 + DRIFT, self.G + 1), fill=(30, 34, 26, 150))
         box = self.im.getbbox()
         cut = max(0, box[1] - 2)
         self.im = self.im.crop((0, cut, min(self.w, box[2] + 1), self.h))
@@ -441,5 +445,5 @@ class ObliqueLodge(ObliqueSteppe):
         self.bottom -= cut
         self.smoke = [[x, y - cut, k] for x, y, k in self.smoke]
         self.anchor_x = self.ox + self.fw * 8
-        self.occlusion = [self.ox, max(0, self.roof_top - cut), self.ox + self.fw * 16 + self.sw // 2, self.G - 1]
+        self.occlusion = [self.ox, max(0, self.roof_top - cut), self.ox + self.fw * 16 + DRIFT, self.G - 1]
         return self.im

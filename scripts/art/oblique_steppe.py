@@ -19,7 +19,8 @@ import random
 from PIL import Image, ImageDraw
 from art.buildings import DOOR_W, DOOR_H
 from art.oblique_meso import INTERIOR, _rgb, dither, h2
-from art.oblique_style import side_depth
+from art.city_kit import INK, mix, outline
+from art.oblique_style import DRIFT, side_depth
 
 K_ROUND = .45
 LIGHT = (-.55, .55, .62)
@@ -68,7 +69,7 @@ class ObliqueSteppe:
         self.no_side = self.plan in ('tent', 'cart')
         self.sw = side_depth(fh)
         self.ox = 12
-        self.w = self.ox + fw * 16 + self.sw + 16
+        self.w = self.ox + fw * 16 + DRIFT + 24
         self.h = 150
         self.G = self.h - 6
         self.im = Image.new('RGBA', (self.w, self.h))
@@ -125,8 +126,7 @@ class ObliqueSteppe:
             if abs(hgt - b - 1) < .5: return ramp_at(self.pal['rope'], c + .8)
         if self.decorated and hgt < 5:
             return self.pattern(s_arc, hgt, c, 5)
-        if hgt < 2 and dither(int(s_arc), int(hgt), .5): c -= 1
-        if h2(int(s_arc), int(hgt * 2), 7) % 23 == 0: c -= .7
+        if hgt < 2: c -= 1
         return ramp_at(felt, c)
 
     def pattern(self, s_arc, v, c, band_h):
@@ -145,13 +145,12 @@ class ObliqueSteppe:
         if self.form == 'cone' and 'bark' in self.st.get('coneCover', ''):
             felt = self.pal['bark']
             if int(t * 20) % 4 == 0: c -= 1
-            if h2(int(s_arc), int(t * 30)) % 9 == 0: c -= 1.2
+            if h2(int(s_arc) // 3, int(t * 5)) % 5 == 0: c -= 1
         if self.decorated and self.form != 'cone' and t < .14:
             return self.pattern(s_arc * .9, t / .14 * 6, c, 6)
         if t > .82: c -= (t - .82) * 6
         if int(s_arc * 1.3) % 13 == 0 and t < .8: c -= .7
         if self.form == 'ger' and int(t * self.rise) % 7 == 3 and t < .8: c -= .4
-        if h2(int(s_arc), int(t * 40), 3) % 29 == 0: c -= .8
         return ramp_at(felt, c)
 
     def draw_tent(self):
@@ -377,7 +376,12 @@ class ObliqueSteppe:
     # -- the winter house -------------------------------------------------
 
     def P(self, X, Y, Z):
-        return (round(self.ox + X + Z), round(self.G - Y - Z))
+        return (round(self.ox + X + Z * self.q), round(self.G - Y - Z))
+
+    @property
+    def q(self):
+        # Depth recedes straight back, drifting DRIFT px right over the side.
+        return DRIFT / self.sw
 
     def face(self, pts, shader):
         scr = [self.P(*p) for p in pts]
@@ -389,11 +393,12 @@ class ObliqueSteppe:
         O = pts[0]
         a = [pts[1][i] - O[i] for i in range(3)]
         b = [pts[-1][i] - O[i] for i in range(3)]
-        ax, ay = a[0] + a[2], -(a[1] + a[2])
-        bx, by = b[0] + b[2], -(b[1] + b[2])
+        q = self.q
+        ax, ay = a[0] + a[2] * q, -(a[1] + a[2])
+        bx, by = b[0] + b[2] * q, -(b[1] + b[2])
         det = ax * by - bx * ay
         if abs(det) < 1e-6: return
-        sx, sy = self.ox + O[0] + O[2], self.G - O[1] - O[2]
+        sx, sy = self.ox + O[0] + O[2] * q, self.G - O[1] - O[2]
         for y in range(box[1], box[3]):
             for x in range(box[0], box[2]):
                 if not m[x, y]: continue
@@ -450,6 +455,7 @@ class ObliqueSteppe:
         self.face([(x1, wh, 0), (x1, wh, D), (x1, ridge - 1, zc)], self.logs(2, lambda X, Z: Z * 2))
         self.face([(x0 - o, wh - 1, -o), (x1 + o, wh - 1, -o), (x1 + o, ridge, zc), (x0 - o, ridge, zc)], rsh)
         a, b = self.P(x0 - o, wh - 1, -o), self.P(x1 + o, wh - 1, -o)
+        self.eave_shadow(a[0] + o, b[0] - o, a[1] + 2)
         rp = self.pal[roof]
         self.d.line((a[0], a[1] + 1, b[0], b[1] + 1), fill=rp[0])
         if roof == 'sod':
@@ -479,6 +485,16 @@ class ObliqueSteppe:
         self.door_x, self.bottom = gx, gy
         if 'fuel' in self.extras: self.fuel_stack(self.P(x1, 0, D)[0] + 4, self.P(x1, 0, D)[1] + 6)
 
+    def eave_shadow(self, x0, x1, y, rows=2):
+        for yy in range(y, y + rows):
+            for x in range(x0, x1 + 1):
+                if 0 <= x < self.w and 0 <= yy < self.h and self.px[x, yy][3]:
+                    self.px[x, yy] = mix(self.px[x, yy], INK, .35 - .15 * (yy - y))
+
+    def finish(self):
+        self.im = outline(self.im, .3, .55)
+        self.px, self.d = self.im.load(), ImageDraw.Draw(self.im)
+
     def roof_shader(self, kind, lit):
         ramp = self.pal[kind]
 
@@ -488,9 +504,10 @@ class ObliqueSteppe:
                 if h2(int(X) // 3, int(Y)) % 6 == 0: c -= 2
                 if int(Y) % 5 == 0: c -= 1
                 return ramp_at(ramp, c)
-            n = h2(x, y, 11)
-            c = lit + (1 if n % 5 == 0 else -1 if n % 7 == 0 else 0)
-            if kind == 'sod' and n % 13 == 0: return ramp_at(self.pal['earth'], 2)
+            row = int(Y + Z) // 3
+            n = h2(int(X + row * 2) // 4, row, 11)
+            c = lit + (1 if int(Y + Z) % 3 == 0 and n % 3 else -1 if n % 5 == 0 else 0)
+            if kind == 'sod' and n % 11 == 0 and int(Y + Z) % 3 == 2: return ramp_at(self.pal['earth'], 2)
             return ramp_at(ramp, c)
         return sh
 
@@ -519,7 +536,8 @@ class ObliqueSteppe:
 
     def render(self):
         {'tent': self.render_tent, 'cart': self.render_cart, 'winter': self.render_winter}[self.plan]()
-        self.d.line((self.ox, self.G + 1, self.ox + self.fw * 16 + 6, self.G + 1), fill=(30, 34, 26, 150))
+        self.finish()
+        self.d.line((self.ox, self.G + 1, self.ox + self.fw * 16 + DRIFT, self.G + 1), fill=(30, 34, 26, 150))
         box = self.im.getbbox()
         cut = max(0, box[1] - 2)
         self.im = self.im.crop((0, cut, min(self.w, box[2] + 1), self.h))
@@ -528,5 +546,5 @@ class ObliqueSteppe:
         self.bottom -= cut
         self.smoke = [[x, y - cut, k] for x, y, k in self.smoke]
         self.anchor_x = self.ox + self.fw * 8
-        self.occlusion = [self.ox, max(0, self.roof_top - cut), self.ox + self.fw * 16 + self.sw // 2, self.G - 1]
+        self.occlusion = [self.ox, max(0, self.roof_top - cut), self.ox + self.fw * 16 + DRIFT // 2, self.G - 1]
         return self.im

@@ -13,6 +13,17 @@ K = 0.5
 STOREY = 28
 # Eave overhang in front, verge overhang at the gable end.
 OVER, VERGE = 4, 3
+# Depth recedes almost straight back: over a building's whole depth its far
+# edge sits only DRIFT px right of its near one, so the right wall is a sliver
+# and the roof reads from above, not leaning off to the upper right.
+DRIFT = 4
+
+
+def drift(k, rows):
+    """Screen x offset `k` rows back into a depth drawn `rows` rows tall."""
+    return round(k * DRIFT / rows) if rows else 0
+
+
 # The side wall is the wall ramp one step darker: the sun is upper left.
 SUN = (-0.58, -0.55, 0.60)
 

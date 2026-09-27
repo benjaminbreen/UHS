@@ -4,9 +4,9 @@ market, each a building on the precinct's edge.
 A precinct is drawn from one height map over its whole ground: every piece
 samples the same function and renders only its own footprint, so neighbours
 agree about what stands where. Each piece is drawn in the house projection
-(art/oblique_style.py): walls square on, depth sheared up and to the right
-and compressed into the deep return, so a stand sits beside a house as one
-more oblique building. A drop toward the viewer is drawn as a front wall, a
+(art/oblique_style.py): walls square on, depth receding almost straight
+back and drifting DRIFT px right over the deep return, so a stand sits
+beside a house as one more oblique building. A drop toward the viewer is drawn as a front wall, a
 drop to the east as the sheared right-hand wall; seat rows, podium, arcade
 and awning are a matter of what `top` and `wall` return.
 
@@ -19,7 +19,7 @@ from pathlib import Path
 from PIL import Image, ImageDraw
 from art.buildings import DOOR_W, DOOR_H
 from art.oblique_meso import INTERIOR, _rgb, dither, h2
-from art.oblique_style import side_depth
+from art.oblique_style import DRIFT, drift, side_depth
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 
@@ -79,7 +79,7 @@ class PrecinctPiece:
         self.py1 = (ay + fh) * 16
         self.field = FIELDS[recipe['precinct']](recipe)
         self.ox = 4
-        self.w = self.ox + self.W + self.sw + 4
+        self.w = self.ox + self.W + DRIFT + 4
         self.h = self.field.peak + (self.Dz if self.topdown else self.sw) + 60
         self.G = self.h - 6
         self.im = Image.new('RGBA', (self.w, self.h))
@@ -100,7 +100,7 @@ class PrecinctPiece:
                 x = self.px0 + i
                 hgt = H(x, py)
                 if hgt is None: continue
-                sx, sy = self.ox + i + (0 if self.topdown else zc), self.G - hgt - zc
+                sx, sy = self.ox + i + (0 if self.topdown else drift(zc, self.sw)), self.G - hgt - zc
                 self.put(sx, sy, f.top(x, py, hgt, sx, sy))
                 # Toward the viewer: a front wall down to whatever is nearer.
                 front = H(x, py + 1)
@@ -125,7 +125,7 @@ class PrecinctPiece:
         if not hasattr(self, 'door_x'):
             self.door_x, self.bottom = round(self.anchor_x), self.G + cut
         self.bottom -= cut
-        self.occlusion = [self.ox, 0, self.ox + self.W + self.sw // 2, self.G - 1]
+        self.occlusion = [self.ox, 0, self.ox + self.W + DRIFT, self.G - 1]
         return self.im
 
     def put(self, x, y, c):
@@ -134,7 +134,7 @@ class PrecinctPiece:
     def screen(self, x, py, hgt):
         """Where a plan point at a height lands in this piece's sprite."""
         zc = self.zc(self.py1 - 1 - py)
-        return self.ox + x - self.px0 + (0 if self.topdown else zc), self.G - hgt - zc
+        return self.ox + x - self.px0 + (0 if self.topdown else drift(zc, self.sw)), self.G - hgt - zc
 
 
 # -- amphitheatre -------------------------------------------------------------

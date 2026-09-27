@@ -1,6 +1,7 @@
 """Portable shelters: stitched hides, ridge canvas, expedition domes and felt."""
 from PIL import Image, ImageDraw
-from art.oblique_style import side_depth
+from art.city_kit import outline
+from art.oblique_style import DRIFT, side_depth
 
 STYLES = {
     'leather': ('Leather ridge tent', ['#49372b', '#765038', '#a47549', '#ca9b65']),
@@ -23,7 +24,7 @@ class CampBuilding:
     def __init__(self, recipe, material):
         self.r = recipe
         self.sw = side_depth(recipe['footprint'][1])
-        self.w = 7 + recipe['footprint'][0] * 16 + self.sw + 4
+        self.w = 7 + recipe['footprint'][0] * 16 + DRIFT + 8
         self.h = 82
         self.bottom = self.h - 6
         self.anchor_x = 7 + recipe['footprint'][0] * 8
@@ -34,17 +35,18 @@ class CampBuilding:
     def render(self):
         d, r = self.d, self.r
         dark, shade, base, light = STYLES[r['campStyle']][1]
-        l, b, right = 7, self.bottom, self.w - self.sw - 4
+        l, b, right = 7, self.bottom, self.w - DRIFT - 8
         peak = (l + right) // 2
         top = 26
-        d.line((l - 3,b + 2,right + self.sw,b + 2), fill=dark)
+        d.line((l - 3,b + 2,right + DRIFT,b + 2), fill=dark)
         if r['campStyle'] in ('felt', 'dome'):
             shoulder = top + 17
             d.polygon([(l,b),(l,shoulder),(l+12,top+5),(peak,top),(right-9,top+7),(right,shoulder),(right,b)], fill=base)
-            d.polygon([(right,shoulder),(right-9,top+7),(right-9+self.sw,top+7-self.sw),(right+self.sw,shoulder-self.sw),(right+self.sw,b-self.sw),(right,b)], fill=shade)
+            # The far side turns away as a rounded shoulder, not a wall.
+            d.polygon([(right-9,top+7),(right-4,top+10),(right,shoulder),(right+DRIFT-1,shoulder+4),(right+DRIFT,b-3),(right,b),(right-7,b),(right-7,shoulder+2)], fill=shade)
             d.line((l,shoulder,peak,top,right-9,top+7), fill=light, width=2)
             if r['campStyle'] == 'felt':
-                for y in [shoulder+8,b-8]: d.line((l,y,right,y,right+self.sw,y-self.sw),fill=shade,width=2)
+                for y in [shoulder+8,b-8]: d.line((l,y,right-7,y),fill=shade,width=2); d.line((right-7,y,right+DRIFT,y-1),fill=dark,width=2)
                 for x in range(l+6,right,9): d.line((x,shoulder+3,x,b-2),fill=light)
                 d.rectangle((peak-4,top-2,peak+5,top+2),fill=dark)
             else:
@@ -52,8 +54,8 @@ class CampBuilding:
                 d.line((l,shoulder,right,shoulder),fill=shade)
         else:
             d.polygon([(l,b),(peak,top),(right,b)], fill=base)
-            d.polygon([(peak,top),(peak+self.sw,top-self.sw),(right+self.sw,b-self.sw),(right,b)], fill=shade)
-            d.line((l,b,peak,top,peak+self.sw,top-self.sw),fill=light,width=2)
+            d.polygon([(peak,top),(peak+DRIFT,top-self.sw),(right+DRIFT,b-self.sw),(right,b)], fill=shade)
+            d.line((l,b,peak,top,peak+DRIFT,top-self.sw),fill=light,width=2)
             for t in [.3,.6,.8]:
                 x = round(l+(peak-l)*t)
                 y = round(b+(top-b)*t)
@@ -62,7 +64,7 @@ class CampBuilding:
                 for x in range(l+4,right,5):
                     y = round(top+(b-top)*abs(x-peak)/(peak-l))
                     d.line((x,y+2,x,b-2),fill=light)
-            for x, tip in [(l,l-5),(right,right+self.sw+2)]:
+            for x, tip in [(l,l-5),(right,right+DRIFT+2)]:
                 d.line((x,b-20,tip,b+1),fill='#b8ac82')
                 d.line((tip,b-1,tip,b+3),fill=dark)
         x = self.door_x
@@ -71,4 +73,5 @@ class CampBuilding:
         d.line((x-7,b,x-5,b-24),fill=light)
         d.polygon([(x+6,b-24),(x+14,b-2),(x+6,b)],fill=shade)
         d.line((x-5,b,x+6,b),fill=light)
+        self.im = outline(self.im, .3, .55)
         return self.im
