@@ -337,7 +337,60 @@ def privy_stone(v=0, frame=0): return _privy(v, frame, 'stone')
 def privy_outhouse(v=0, frame=0): return _privy(v, frame, 'brick')
 
 
+def stone_lantern(v=0):
+ from .core import RAMPS, revolve, belly, soft_outline
+ c = Canvas(28, 36)
+ p = RAMPS['granite' if v == 0 else 'limestone']
+ revolve(c, 14, belly(29, 34, [4, 8, 9, 8]), p, foot=1)
+ revolve(c, 14, belly(19, 29, [3, 2.5, 2.5, 4]), p, foot=1)
+ c.poly([(7, 18), (10, 15), (18, 15), (21, 18), (19, 20), (9, 20)], p[3])
+ c.line((7, 18), (14, 16), p[5]); c.hline(9, 19, 20, p[1])
+ c.rect(9, 9, 18, 16, p[3]); c.vline(9, 9, 16, p[5]); c.vline(18, 9, 16, p[1])
+ c.rect(12, 11, 15, 15, p[0]); c.vline(12, 11, 15, p[2])
+ c.poly([(2, 10), (5, 8), (10, 5), (17, 5), (23, 8), (26, 10), (22, 11), (5, 11)], p[3])
+ c.line((3, 9), (10, 5), p[6]); c.hline(10, 17, 5, p[5]); c.line((18, 6), (25, 10), p[2])
+ c.hline(5, 22, 11, p[1]); c.rect(12, 2, 15, 4, p[4]); c.hline(12, 15, 2, p[6]); c.set(13, 1, p[5])
+ c.set(7, 33, MOSS); c.set(8, 34, LEAF[1]); c.set(20, 32, MOSS)
+ soft_outline(c, p[1], p[3])
+ return c.image()
+
+
+def rune_marker(v=0):
+ from .core import RAMPS, soft_outline
+ c = Canvas(24, 33)
+ p = RAMPS['granite' if v == 0 else 'sandstone']
+ c.poly([(3, 31), (4, 14), (7, 4), (13, 1), (18, 5), (21, 19), (21, 31)], p[3])
+ c.poly([(4, 29), (5, 14), (8, 5), (12, 3), (11, 28)], p[5])
+ c.poly([(17, 6), (20, 19), (20, 30), (16, 29)], p[2])
+ red = ['#6b322b', '#a5533a', '#c4764c']
+ loop = [(8, 27), (6, 21), (7, 12), (10, 7), (14, 6), (17, 12), (17, 21), (14, 27), (8, 27)]
+ for a, b in zip(loop, loop[1:]): c.line(a, b, red[1])
+ c.line((9, 24), (14, 12), red[0]); c.line((14, 12), (11, 10), red[1])
+ for x, y, direction in ((7, 15, 1), (7, 20, 1), (9, 26, -1), (14, 26, -1), (17, 18, -1), (16, 11, -1)):
+  c.vline(x, y - 1, y + 1, p[1]); c.line((x, y - 1), (x + direction * 2, y), p[1])
+ c.set(5, 29, MOSS); c.set(6, 30, LEAF[1]); c.set(18, 29, p[1])
+ soft_outline(c, p[1], p[3])
+ return c.image()
+
+
+def roman_milestone(v=0):
+ from .core import RAMPS, revolve, belly, soft_outline
+ c = Canvas(18, 32)
+ p = RAMPS['limestone' if v == 0 else 'sandstone']
+ revolve(c, 9, belly(3, 30, [4.0, 4.8, 4.8, 5.3]), p, foot=1)
+ for y, length in ((9, 5), (13, 6), (17, 4), (21, 5)):
+  for x in range(6, 6 + length):
+   if x % 3 != (y // 4) % 3:
+    c.set(x, y, p[1]); c.set(x, y - 1, p[4])
+ c.line((12, 24), (11, 28), p[2]); c.set(5, 29, MOSS)
+ soft_outline(c, p[1], p[3])
+ return c.image()
+
+
 WAYSIDE = {
+ 'stone-lantern': stone_lantern,
+ 'rune-marker': rune_marker,
+ 'roman-milestone': roman_milestone,
  'standing-stone': standing_stone,
  'privy-shed': privy_shed,
  'privy-stone': privy_stone,

@@ -4,6 +4,9 @@
  * catalog id; a prop missing here falls back to its own description.
  */
 export const about: Record<string, string> = {
+  romanMilestone: "A worn road marker, carved with an emperor's dedication and a distance. Its footing has worked loose.",
+  runeMarker: "A memorial stone with a winding painted band and rune-like cuts. Moss gathers around its loose foot.",
+  stoneLantern: "A stone lantern with a hollow light chamber under a broad cap. Its pedestal has loose joints.",
   "signpost-oak": "A carved board on a post, telling passers-by what is made or sold here.",
   "signpost-painted": "A painted sign on a post, telling passers-by what is made or sold here.",
   "signpost-lacquer": "A lacquered sign board naming the business inside.",

@@ -230,6 +230,19 @@ opens the object and spills what it held where it lies. **Set it upright**
 puts it back. A stick to a basket still breaks the basket; a shoulder to it
 only lays it down.
 
+`topples: true` adds a two-stage response: running into a freestanding stone,
+stool, bin or drum leaves it leaning 18 degrees. The next push (walking is
+enough) lays it down; **Set it upright** also straightens a leaning object.
+Both pushes keep the player outside its cell. Trees, wells and built-in
+structures stay fixed. Lean frames are baked at native pixel resolution with
+their ground pivot and shadow; fallen forms have their own drawings.
+
+The content-v2 detail overlay adds Roman roadside milestones, late Viking-age
+Swedish memorial stones and Edo-period Japanese stone lanterns. Each has dated
+regional placement, illustrative marks and inferred siting; their loose footing
+is a game convention. Existing saved entities are retained, content-v1 overlays
+are unchanged, and new detail IDs do not consume the terrain generator's RNG.
+
 ### Old World kit
 
 `techFor(pack)` says whether a settlement has wheeled vehicles, draught

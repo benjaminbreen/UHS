@@ -2792,6 +2792,48 @@
         "Red and blue",
         "Blue and gold"
       ]
+    },
+    {
+      "id": "roman-milestone",
+      "name": "Roman milestone",
+      "group": "Wayside",
+      "size": [
+        20,
+        34
+      ],
+      "description": "A cylindrical road marker with weathered inscription rows.",
+      "variants": [
+        "Pale limestone",
+        "Warm sandstone"
+      ]
+    },
+    {
+      "id": "rune-marker",
+      "name": "Rune-carved memorial",
+      "group": "Wayside",
+      "size": [
+        26,
+        35
+      ],
+      "description": "A tapered memorial slab with a painted winding band and rune-like cuts.",
+      "variants": [
+        "Dark granite",
+        "Warm sandstone"
+      ]
+    },
+    {
+      "id": "stone-lantern",
+      "name": "Stone lantern",
+      "group": "Wayside",
+      "size": [
+        30,
+        38
+      ],
+      "description": "A hollow stone light chamber on a pedestal beneath a broad cap.",
+      "variants": [
+        "Weathered granite",
+        "Pale stone"
+      ]
     }
   ]
 }

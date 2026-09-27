@@ -4,10 +4,80 @@ A tipped vessel is the same body of revolution lying down, not the standing
 sprite rotated: the light stays upper-left, so it is lit along its top and
 dark underneath, and the mouth becomes a disc you look into from the side.
 """
-from math import hypot
+from math import hypot, sin, cos, radians
 from .core import RAMPS, Canvas, belly, revolve_x, soft_outline, grass
 from .vessels import CLAY, GLAZE, METAL
 from .industrial import WOOD7
+
+
+def leaning(image, direction):
+ from PIL import Image
+ a = radians(18 * direction)
+ co, si = cos(a), sin(a)
+ ax, ay = image.info['anchor']
+ margin = int(image.height * .4) + 2
+ nx, ny = ax + margin, ay + margin
+ tilted = image.transform((image.width + margin * 2, image.height + margin * 2),
+  Image.AFFINE, (co, si, ax - co * nx - si * ny, -si, co, ay + si * nx - co * ny), Image.NEAREST)
+ tilted.info['anchor'] = [nx, ny]
+ return tilted
+
+
+def milestone(v=0):
+ c = Canvas(36, 15)
+ p = RAMPS['limestone' if v == 0 else 'sandstone']
+ revolve_x(c, 8, belly(4, 32, [4.0, 4.8, 4.8, 5.3]), p)
+ _end_cap(c, 4, 8, 4, p, rim=2, rings=False)
+ for x in (12, 17, 22, 27):
+  c.hline(x, x + 2, 6, p[2]); c.set(x, 7, p[2])
+ soft_outline(c, p[1], p[3])
+ return c.image()
+
+
+def marker(v=0, rune=False):
+ c = Canvas(40, 17)
+ p = RAMPS['granite' if rune and v == 0 else 'sandstone' if rune else 'limestone']
+ if not rune and v == 3: p = RAMPS['oak7']
+ if not rune and v == 4:
+  for x0, x1, y0, y1 in ((2, 10, 10, 13), (6, 14, 5, 8), (14, 27, 9, 13), (18, 24, 4, 7), (29, 36, 10, 14)):
+   c.rect(x0, y0, x1, y1, p[3]); c.hline(x0, x1, y0, p[5]); c.hline(x0, x1, y1, p[1])
+  soft_outline(c, p[1], p[3])
+  return c.image()
+ if not rune and v == 3:
+  c.rect(3, 9, 36, 13, p[3]); c.hline(3, 36, 9, p[5]); c.hline(3, 36, 13, p[1])
+  for x, tone in zip((8, 15, 22, 29), ('#a5533a', '#e9e4d2', '#2f5fa0', '#1c1c1c')):
+   c.rect(x, 9, x + 2, 12, tone)
+  soft_outline(c, p[1], p[3])
+  return c.image()
+ c.poly([(3, 8), (9, 4), (32, 5), (37, 8), (34, 13), (7, 14)], p[3])
+ c.poly([(3, 8), (9, 4), (32, 5), (37, 8), (32, 10), (7, 11)], p[5])
+ c.line((7, 14), (34, 13), p[1]); c.line((34, 13), (37, 8), p[2])
+ if rune:
+  red = '#a5533a'
+  c.line((10, 6), (29, 6), red); c.line((10, 9), (29, 9), red)
+  c.line((8, 7), (10, 9), red); c.line((29, 6), (31, 8), red)
+  for x in (12, 17, 22, 27): c.set(x, 6, p[1]); c.set(x + 1, 7, p[1])
+ else:
+  for x in (10, 20, 29): c.set(x, 7, p[2]); c.set(x + 1, 7, p[3])
+ soft_outline(c, p[1], p[3])
+ return c.image()
+
+
+def rune_marker(v=0): return marker(v, rune=True)
+
+
+def stone_lantern(v=0):
+ c = Canvas(42, 24)
+ p = RAMPS['granite' if v == 0 else 'limestone']
+ revolve_x(c, 15, belly(18, 34, [3, 2.5, 2.5, 4]), p)
+ _end_cap(c, 35, 15, 8, p, rim=3, rings=False)
+ c.rect(10, 11, 18, 19, p[3]); c.hline(10, 18, 11, p[5]); c.hline(10, 18, 19, p[1])
+ c.rect(12, 12, 15, 15, p[0]); c.hline(12, 15, 12, p[2])
+ c.poly([(8, 3), (5, 10), (3, 14), (5, 22), (9, 23), (10, 5)], p[3])
+ c.line((8, 3), (5, 10), p[6]); c.line((5, 10), (3, 14), p[5]); c.line((5, 22), (9, 23), p[1])
+ c.rect(1, 12, 3, 15, p[4]); c.hline(1, 3, 12, p[6])
+ soft_outline(c, p[1], p[3])
+ return c.image()
 
 
 def _mouth_disc(c, mx, cy, half, p, depth=2, rim=2.6):

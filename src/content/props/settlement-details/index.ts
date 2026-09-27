@@ -8,6 +8,9 @@ export { graveAxis, muslimBurialStyle } from "./west-asia";
 export type { StreetDetail } from "./types";
 
 export const detailProps: Record<string, PropDef> = {
+  romanMilestone: { name: "Roman milestone", family: "roman-milestone", solid: true, topples: true, variants: 2 },
+  runeMarker: { name: "Rune-carved memorial", family: "rune-marker", solid: true, topples: true, variants: 2 },
+  stoneLantern: { name: "Stone lantern", family: "stone-lantern", solid: true, topples: true, variants: 2 },
   saintNiche: { name: "Saint's shrine", family: "saint-niche", solid: true, visualClearance: [1, 1, 1, 0] },
   burialStone: { name: "Grave marker", family: "burial-stone", solid: true, variants: 6, visualClearance: [1, 1, 1, 0] },
   newsstand: { name: "Newspaper stand", family: "newsstand", solid: true, visualClearance: [1, 1, 1, 0] },

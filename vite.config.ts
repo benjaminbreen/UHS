@@ -1,6 +1,6 @@
 import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
-import { handleTimeArrival, handleDialogue, handleNarrator, handleWorldWeaver } from "./server/node-handler";
+import { handleTimeArrival, handleTaskLore, handleDialogue, handleNarrator, handleWorldWeaver } from "./server/node-handler";
 import { execFile } from "node:child_process";
 import { writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -27,6 +27,7 @@ export default defineConfig({
         ])
           if (env[key] && !process.env[key]) process.env[key] = env[key];
         server.middlewares.use("/api/time-arrival", (req, res) => { void handleTimeArrival(req, res); });
+        server.middlewares.use("/api/task-lore", (req, res) => { void handleTaskLore(req, res); });
         server.middlewares.use("/api/world-weaver", (req, res) => {
           void handleWorldWeaver(req, res);
         });

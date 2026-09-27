@@ -5,7 +5,8 @@ import json, re, textwrap
 from art.atlas import pack_atlas
 from art.shadows import build_shadows
 from art.props import draw_prop
-from art.props_b import DRAW_B, LAYERED, FALLEN, ANIMATED
+from art.props_b import DRAW_B, LAYERED, FALLEN, ANIMATED, TOPPLING
+from art.props_b.fallen import leaning
 from art.prop_audit import audit
 
 ROOT=Path(__file__).resolve().parent.parent
@@ -54,6 +55,9 @@ for family in catalog['families']:
             # edges by definition and the clipping check means nothing.
             over+=audit(f"{family['id']}-{variant} (B)",drawn,family.get('size'))
             sprites[f"study-propb-{family['id']}-{variant}"]=trim(drawn)
+            if family['id'] in TOPPLING:
+                for side, direction in [('left', -1), ('right', 1)]:
+                    sprites[f"study-propb-{family['id']}-{variant}-lean-{side}"]=trim(leaning(drawn, direction))
             for layer in LAYERED.get(family['id'],()):
                 sprites[f"study-propb-{family['id']}-{variant}-{layer}"]=trim(
                     DRAW_B[family['id']](variant,layer))

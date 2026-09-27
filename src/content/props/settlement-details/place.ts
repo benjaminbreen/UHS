@@ -48,7 +48,10 @@ export function placeSettlementDetails(world: WorldModel, seed: string, placemen
         if (existing.length >= target) break;
         const id = `${prefix}${b.id}`;
         if (ids.has(id)) continue;
-        const pos = edgeSpots(b).find(p => placement.free(p, rule.prop) && existing.every(o => gap(o.pos, p) >= rule.spacing));
+        const pos = edgeSpots(b).find(p => placement.free(p, rule.prop) &&
+          (!rule.roadside || [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) =>
+            !!world.topography?.(p.x + dx, p.y + dy)?.pathArt?.length || ["dirt", "paving", "bridge"].includes(world.terrain(p.x + dx, p.y + dy)))) &&
+          existing.every(o => gap(o.pos, p) >= rule.spacing));
         if (!pos) continue;
         const variant = rule.variants[Math.floor(random(seed, "street-detail-form", id) * rule.variants.length)];
         const def = detailProps[rule.prop];

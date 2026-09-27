@@ -125,6 +125,8 @@ export type AgendaItem = {
   sources: readonly string[];
   /** The kin the occasion concerns, where it names one. */
   subject?: string;
+  /** Why today, one line per reason, for the task panel. */
+  why: string[];
 };
 
 /** Every trigger checked, and the words each one binds. Undefined if any fails. */
@@ -226,7 +228,69 @@ function bind(
   if (!o.when.every(ok)) return undefined;
   const text = o.text.replace(/\{(\w+)\}/g, (m, k: string) => vars[k] ?? m);
   if (/\{\w+\}/.test(text)) return undefined;
-  return { text, subject };
+  return { text, subject, why: o.when.flatMap((t) => reason(t, vars, f, p)) };
+}
+
+const OBSERVANCE = {
+  devout: "You are devout.",
+  regular: "You keep the observances.",
+  occasional: "You keep the observances now and then.",
+  indifferent: "You are not much given to observance.",
+};
+/** The trait words `dispositionOf` uses, so the panel and the profile agree. */
+const TRAIT: Record<string, [low: string, high: string]> = {
+  openness: ["set in your ways", "curious"],
+  conscientiousness: ["easygoing", "diligent"],
+  extraversion: ["reserved", "sociable"],
+  agreeableness: ["blunt", "kind"],
+  neuroticism: ["unflappable", "anxious"],
+};
+const KIN: Record<string, string> = {
+  partner: "your partner",
+  child: "your child",
+  parent: "your parent",
+  friend: "a friend of yours",
+  master: "your master",
+  apprentice: "your apprentice",
+  servant: "your servant",
+  "co-resident": "one of your household",
+};
+/** Why a trigger held, in a line the task panel can show. */
+function reason(t: Trigger, vars: Record<string, string>, f: Facts, p: Person): string[] {
+  switch (t.type) {
+    case "anniversary":
+      return t.kind === "born-self"
+        ? [`It is your birthday: you are ${p.actor.age}.`]
+        : t.kind === "wed"
+          ? [`You were married ${vars.years} years ago, about this time of year.`]
+          : [`Your ${vars.dead} died ${vars.years} years ago, about this time of year.`];
+    case "observance":
+      return [OBSERVANCE[f.belief.observance]];
+    case "craft-power":
+      return [`${vars.craftPower} is the power who looks after your kind of work.`];
+    case "patron":
+      return [`${vars.patron} is the power you turn to most.`];
+    case "trait":
+      return [`You are ${TRAIT[t.key]?.[t.above !== undefined ? 1 : 0] ?? "like that"} by nature.`];
+    case "kin":
+      return [`${vars[t.kind]} is ${KIN[t.kind]}${vars.age ? `, ${vars.age} years old` : ""}.`];
+    case "seek-match":
+      return [`Your household is looking for a match for ${vars.child}.`];
+    case "fortune":
+      return [t.below !== undefined ? "The household has little put by." : "The household is doing well."];
+    case "rank":
+      return [`You are of the ${f.rank} sort.`];
+    case "season":
+      return [`It is ${t.any.join(" or ")}.`];
+    case "work":
+      return ["It goes with your work."];
+    case "cycle":
+      return [t.every === 7 ? "It falls on this day of the week." : t.every === 9 ? "It falls on this day of the month." : `It comes round every ${t.every} days.`];
+    case "date":
+      return ["It falls on this day of the year."];
+    default:
+      return [];
+  }
 }
 
 /**
@@ -275,7 +339,7 @@ export function agendaOf(
   for (const s of scored)
     if (!picked.includes(s) && s.o.when.some((t) => t.type === "anniversary" || t.type === "date"))
       picked.push(s);
-  return picked.map(({ o, text, subject }) => ({
+  return picked.map(({ o, text, subject, why }) => ({
     id: o.id,
     text,
     part: o.part,
@@ -287,6 +351,7 @@ export function agendaOf(
     note: o.note,
     sources: o.sources,
     subject,
+    why: person.aim && o.serves?.includes(person.aim.id) ? [...why, "It serves your life aim."] : why,
   }));
 }
 

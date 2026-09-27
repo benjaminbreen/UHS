@@ -8,6 +8,39 @@ import { panelSetting } from "../scripts/review/panel";
 /** Farmland round a town: parcels exist, keep off the built ground, reach
  * a lane, and carry the system the culture and date imply. */
 describe("farmland", () => {
+  it("does not wrap irrigation round the town in a diamond", () => {
+    const engine = createSettingSession(
+      { ...panelSetting("london", 1400), climate: "arid" },
+      "canal-review",
+    );
+    const world = engine.world as typeof engine.world & {
+      planAt(
+        x: number,
+        y: number,
+      ): {
+        canals: Set<string>;
+        site: { center: { x: number; y: number } };
+        territory: { inner: number };
+      };
+    };
+    const plan = world.planAt(world.spawn.x, world.spawn.y);
+    const { x: cx, y: cy } = plan.site.center;
+    let diagonal = 0;
+    for (const key of plan.canals) {
+      const [x, y] = key.split(",").map(Number);
+      const dx = Math.abs(x - cx),
+        dy = Math.abs(y - cy);
+      if (
+        Math.abs(dx - dy) <= 2 &&
+        Math.max(dx, dy) >= plan.territory.inner - 5 &&
+        Math.max(dx, dy) <= plan.territory.inner + 30
+      )
+        diagonal++;
+    }
+    expect(plan.canals.size).toBeGreaterThan(100);
+    expect(diagonal).toBeLessThan(10);
+  });
+
   for (const [place, year, minParcels, system] of [
     ["london", 1400, 60, "medieval-open-field-strips"],
     ["alexandria", -244, 30, "nile-flood-basins"],

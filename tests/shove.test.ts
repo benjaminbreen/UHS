@@ -194,3 +194,44 @@ it("leaves a shoved crate standing to be climbed", () => {
   runtime.move(1, 0);
   expect(engine.climbable()?.id).toBe("it");
 });
+
+it("leans a freestanding marker on a running collision, then topples it with a walking push", () => {
+  const { engine, runtime } = field("standingStone");
+  const marker = engine.state.objects[0];
+  expect(runtime.move(1, 0)?.status).toBe("rejected");
+  expect(marker.lean).toBeUndefined();
+  expect(runtime.move(1, 0, false, true)?.status).toBe("completed");
+  expect(marker.lean).toBe(1);
+  expect(marker.tipped).toBeUndefined();
+  expect(engine.state.player.pos.x).toBe(0);
+  expect(runtime.move(1, 0)?.status).toBe("completed");
+  expect(marker.tipped).toBe(true);
+  expect(marker.lean).toBeUndefined();
+  expect(marker.pos.x).toBe(1);
+  expect(engine.state.player.pos.x).toBe(0);
+});
+
+it("straightens a leaning prop and conserves its contents", () => {
+  const { engine, runtime } = field("drum");
+  const drum = engine.state.objects[0];
+  drum.inventory = { water: 6 };
+  runtime.move(1, 0, false, true);
+  expect(drum.lean).toBe(1);
+  const action = engine.inspect(drum.id)?.affordances.find(a => a.label === "Set it upright");
+  expect(action?.enabled).toBe(true);
+  expect(runtime.command(action!.command)?.status).toBe("completed");
+  expect(drum.lean).toBeUndefined();
+  expect(drum.tipped).toBe(false);
+  expect(drum.inventory).toEqual({ water: 6 });
+});
+
+it("leans away from a western push and leaves rooted and built-in objects fixed", () => {
+  const { engine, runtime } = field("standingStone", { x: -1, y: 0 });
+  runtime.move(-1, 0, false, true);
+  expect(engine.state.objects[0].lean).toBe(-1);
+  for (const prop of ["well", "hitchingPost"]) {
+    const fixed = field(prop);
+    expect(fixed.runtime.move(1, 0, false, true)?.status).toBe("rejected");
+    expect(fixed.engine.state.objects[0].lean).toBeUndefined();
+  }
+});

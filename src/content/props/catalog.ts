@@ -34,6 +34,8 @@ export type PropDef = {
   variants?: number;
   /** Too solid to break: a blow knocks it over instead. */
   tips?: boolean;
+  /** A running shoulder loosens it; a second push lays it down. */
+  topples?: boolean;
   /** How often the picker should land on this, relative to 1. A street of
    * pots is what an even roll gives you: the common vessels are damped so the
    * rarer yard furniture gets a turn. */
@@ -186,6 +188,7 @@ export const propDefs: Record<string, PropDef> = {
     family: "fish-weir",
   },
   standingStone: {
+    topples: true,
     solid: true,
     name: "Standing stone",
     family: "standing-stone",
@@ -451,6 +454,7 @@ export const propDefs: Record<string, PropDef> = {
     family: "bench",
   },
   stool: {
+    topples: true,
     shove: { as: "free", mass: 0.5 },
     solid: true,
     name: "Stool",
@@ -1010,6 +1014,7 @@ export const propDefs: Record<string, PropDef> = {
     variants: 2,
   },
   dustbin: {
+    topples: true,
     shove: { as: "free", mass: 0.8 },
     rarity: 0.5,
     where: "backyard",
@@ -1020,6 +1025,7 @@ export const propDefs: Record<string, PropDef> = {
     tips: true,
   },
   drum: {
+    topples: true,
     shove: { as: "free", mass: 1.5 },
     where: "worksite",
     solid: true,

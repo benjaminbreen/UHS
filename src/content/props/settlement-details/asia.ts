@@ -14,6 +14,12 @@ export function asianDetails(s: DetailSetting): StreetDetail[] {
       description: "Paper announcements are sheltered beneath a small tiled cap. Fine marks indicate text at game scale, without invented legible proclamations.",
       spacing: 22, perBuildings: 35, limit: 3, sources: [],
     });
+    if (s.year >= 1600 && s.year < 1900 && within(s, 130, 30, 146, 46)) details.push({
+      id: "stone-lanterns", prop: "stoneLantern", variants: [0, 1], name: "Stone lantern",
+      description: "A stone lantern has a hollow light chamber, a broad cap and a mossy pedestal. Inspired by Japanese Edo-period lanterns; its neighborhood placement is inferred. Its loose joints and toppling are a game convention.",
+      spacing: 22, perBuildings: 40, limit: 2,
+      sources: ["https://knmdb.kyohaku.go.jp/eng/23420.html"],
+    });
     details.push({
       id: "east-asian-goods", prop: "marketDisplay", variants: [1, 2], name: "Shopfront goods",
       description: "Folded cloth and filled woven baskets make a quiet shopfront display. Goods identify the trade without a large sign or scale.",

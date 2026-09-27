@@ -1,7 +1,7 @@
 import type { Pack, Point } from "../../core/types";
 import { random } from "../../core/random";
 import { noise } from "../geography/noise";
-import { line, type Sample } from "./roads";
+import type { Sample } from "./roads";
 import { cellKey, type Rect, type Road, type Site } from "./types";
 import type {
   Boundary,
@@ -406,10 +406,9 @@ export function planFarmland(input: {
         slotCells.add(cellKey(x, y));
 
   // --- Canals -----------------------------------------------------------------
-  // A trunk along each axis spoke, a lateral along every headland, a ring
-  // joining the trunks, and a feeder from the nearest open water. A channel
-  // is dug by the rod, but it holds its level: it shifts a cell across
-  // rather than climb, and steps down only where the ground makes it.
+  // A trunk facing the water source, laterals beside its headlands, and a
+  // feeder from open water. A channel shifts across to hold its level and
+  // steps down only where the ground makes it.
   const canals = new Set<string>();
   const culverts = new Set<string>();
   const channel = (p: Point) => {
@@ -490,19 +489,18 @@ export function planFarmland(input: {
     }
   };
   const trunkV = wander + 2;
-  const trunkEnds: Point[] = [];
-  if (irrigated)
-    for (const k of axisSpokes) {
-      const f = FRAMES[k];
-      dig((u, v) => at(c, f, u, v), inner, outer, trunkV);
-      trunkEnds.push(at(c, f, inner, trunkV));
-    }
-  // A ring at the inner edge ties the trunks together, so the network reads
-  // as one system rather than four unrelated lines.
-  for (const [i, a] of trunkEnds.entries()) {
-    const b = trunkEnds[(i + 1) % trunkEnds.length];
-    if (trunkEnds.length < 2 || (trunkEnds.length === 2 && i === 1)) break;
-    for (const p of line(a, b)) if (diggable(p)) channel(p);
+  const canalWedge = [...axisSpokes].sort((a, b) => {
+    if (!source) return a - b;
+    const da = at(c, FRAMES[a], inner, trunkV);
+    const db = at(c, FRAMES[b], inner, trunkV);
+    return (
+      Math.hypot(da.x - source.x, da.y - source.y) -
+      Math.hypot(db.x - source.x, db.y - source.y)
+    );
+  })[0];
+  if (irrigated && canalWedge !== undefined) {
+    const f = FRAMES[canalWedge];
+    dig((u, v) => at(c, f, u, v), inner, outer, trunkV);
   }
 
   // --- Parcels ----------------------------------------------------------------
@@ -613,9 +611,8 @@ export function planFarmland(input: {
             `headland-${k}-${band}-e`,
           ),
         ].filter((l) => l.length);
-        // A ditch along every headland, spoke or no spoke: field channels ran
-        // by the furlong, not only beside the main track.
-        if (laid.length && irrigated)
+        // Branches follow headlands in the trunk's wedge.
+        if (laid.length && irrigated && k === canalWedge)
           dig((v, u) => at(c, f, u, v), lo, hi, laneU + 1);
       }
       const orchard = band === 0 && system.orchard > 0;

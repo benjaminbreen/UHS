@@ -4,6 +4,12 @@ import { muslimBurialStyle } from "./west-asia";
 export function europeanDetails(s: DetailSetting): StreetDetail[] {
   if (s.culture !== "european" || muslimBurialStyle(s)) return [];
   const details: StreetDetail[] = [];
+  if (s.year >= 900 && s.year < 1150 && within(s, 11, 55, 20, 61)) details.push({
+    id: "rune-memorials", prop: "runeMarker", variants: [0, 1], name: "Rune-carved memorial",
+    description: "A weathered memorial slab carries a winding painted band and rune-like cuts. Inspired by late Viking-age Swedish runestones; the inscription and neighborhood placement are illustrative. Its loose footing and toppling are a game convention.",
+    spacing: 24, perBuildings: 45, limit: 2,
+    sources: ["https://historiska.se/en/explore-history/history-hub/runes/"],
+  });
   const medievalWest = s.year >= 1000 && s.year < 1530 && within(s, -11, 36, 25, 59);
   const laterCatholic = s.year >= 1530 && s.year < 1900 && (
     within(s, -10, 36, 3, 44) || within(s, 6, 37, 19, 47) ||
@@ -16,6 +22,11 @@ export function europeanDetails(s: DetailSetting): StreetDetail[] {
     sources: ["https://historicengland.org.uk/images-books/publications/dssg-religion-ritual-postad410/heag251-religion-and-ritual-post-ad410-ssg/"],
   });
   if (s.year >= -100 && s.year < 450 && within(s, -10, 35, 36, 52)) details.push({
+    id: "roman-milestones", prop: "romanMilestone", variants: [0, 1], name: "Roman milestone",
+    description: "A worn cylindrical stone records an imperial dedication and road distance. Based on Roman milestones; these marks are not a transcription and its placement is inferred. Its loose footing and toppling are a game convention.",
+    spacing: 30, perBuildings: 60, limit: 1, roadside: true,
+    sources: ["https://romaninscriptionsofbritain.org/inscriptions/2262"],
+  }, {
     id: "roman-water", prop: "streetFountain", variants: [0, 1, 2],
     name: "Public drinking fountain", description: "A stone spout feeds a shallow street basin. Its carved face and worn lip follow Roman public fountains; this is an inferred working water point.",
     spacing: 20, perBuildings: 28, limit: 3,

@@ -10,6 +10,7 @@ export type StreetDetail = {
   perBuildings: number;
   limit: number;
   trade?: RegExp;
+  roadside?: boolean;
   sources: readonly string[];
 };
 export type DetailSetting = Pick<WorldSetting, "year" | "culture" | "lon" | "lat" | "settlement">;

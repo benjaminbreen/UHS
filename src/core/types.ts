@@ -304,6 +304,7 @@ export type WorldObject = {
   by?: string;
   /** Knocked over: draws its fallen sprite and spills what it held. */
   tipped?: boolean;
+  lean?: -1 | 1;
 };
 export type Decoration = Point & { id: string; sprite: string; solid: boolean };
 export type Terrain =

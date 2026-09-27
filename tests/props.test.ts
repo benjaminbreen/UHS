@@ -1,4 +1,7 @@
 import { cultures } from "../src/content/history/types";
+import { europeanDetails } from "../src/content/props/settlement-details/europe";
+import { asianDetails } from "../src/content/props/settlement-details/asia";
+import propAtlas from "../src/render/generated/props.json";
 import { eras } from "../src/content/history/dates";
 import { describe, it, expect } from "vitest";
 import { about } from "../src/content/props/about";
@@ -52,6 +55,27 @@ function fixture() {
   return { e, pot, stick };
 }
 describe("interactive props", () => {
+  it("gives every toppling prop leaning and fallen art for every variant", () => {
+    const frames = propAtlas.frames as Record<string, unknown>;
+    for (const def of Object.values(propDefs).filter(d => d.topples))
+      for (let v = 0; v < (def.variants ?? 3); v++)
+        for (const state of ["lean-left", "lean-right", "fallen"])
+          expect(frames[`study-propb-${def.family}-${v}-${state}`], `${def.family}-${v}-${state}`).toBeTruthy();
+  });
+  it("scopes new wayside details by region and date", () => {
+    const sweden = { culture: "european", year: 1050, lon: 17, lat: 59, settlement: "village" } as const;
+    expect(europeanDetails(sweden).some(d => d.prop === "runeMarker")).toBe(true);
+    expect(europeanDetails({ ...sweden, year: 1600 }).some(d => d.prop === "runeMarker")).toBe(false);
+    expect(europeanDetails({ ...sweden, lon: 2, lat: 48 }).some(d => d.prop === "runeMarker")).toBe(false);
+    const rome = { ...sweden, year: 100, lon: 12.5, lat: 42 };
+    expect(europeanDetails(rome).find(d => d.prop === "romanMilestone")?.roadside).toBe(true);
+    expect(europeanDetails({ ...rome, year: 800 }).some(d => d.prop === "romanMilestone")).toBe(false);
+    const japan = { ...sweden, culture: "east-asian", year: 1750, lon: 135, lat: 35 } as const;
+    expect(asianDetails(japan).some(d => d.prop === "stoneLantern")).toBe(true);
+    expect(asianDetails(japan).some(d => d.id === "town-notices")).toBe(false);
+    expect(asianDetails({ ...japan, year: 1500 }).some(d => d.prop === "stoneLantern")).toBe(false);
+    expect(asianDetails({ ...japan, lon: 116, lat: 40 }).some(d => d.prop === "stoneLantern")).toBe(false);
+  });
   it("says plainly what every prop is", () => {
     for (const id of Object.keys(propDefs))
       expect(about[id], `${id} needs a plain description in about.ts`).toBeTruthy();

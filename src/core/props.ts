@@ -61,16 +61,16 @@ export function propAffordances(
   if (d.breakable && !o.broken && !o.carriedBy) add("strike", "Strike it");
   // Shoving something over needs no tool, and does not break it. A stick to
   // a basket still breaks the basket; a shoulder to it only lays it down.
-  if (d.tips && !o.broken && !o.tipped && !o.carriedBy)
+  if ((d.tips || d.topples) && !o.broken && !o.tipped && !o.carriedBy)
     add("topple", "Knock it over");
-  if (o.tipped && !o.broken && !o.carriedBy) add("right", "Set it upright");
+  if ((o.tipped || o.lean) && !o.broken && !o.carriedBy) add("right", "Set it upright");
   return actions;
 }
 /** Knee-high enough to step over: the vessels, baskets and tools that clutter
  * a yard. A loom, a well or a cart stops you and should. */
 export function lowProp(o: WorldObject) {
   const d = propDefs[o.prop ?? ""];
-  return !!d && !o.carriedBy && !o.broken && (!!d.portable || !!d.tips);
+  return !!d && !o.carriedBy && !o.broken && (!!d.portable || !!d.tips || !!o.tipped);
 }
 export function heldObject(s: Snapshot) {
   // Called several times a frame; empty hands should not scan every object.

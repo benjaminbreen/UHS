@@ -3,6 +3,18 @@ import { CONSTELLATIONS, milestoneStars } from "./constellations";
 
 export type MilestoneState = "chosen" | "waiting" | "unbuilt" | "locked";
 export type SkyTheme = "dark" | "light";
+/** The skills screen's two looks, and the hours the task screen adds. */
+export type SkyLook = SkyTheme | "dawn" | "day" | "dusk";
+/** What the task screen draws by the fire in place of the watcher. */
+export type Ground = {
+  fx: number;
+  fy: number;
+  k: number;
+  t: number;
+  dt: number;
+  figure: string;
+  block: (x: number, y: number, color: string, alpha: number) => void;
+};
 export type SkyEntry = {
   skill: SkillId;
   group: string;
@@ -31,13 +43,29 @@ type Palette = {
   figure: string;
   twinkle: boolean;
 };
-type SkyPaint = { top: string; mid: string; low: string; glow: string; nebula: [RGB, RGB, RGB]; cloud: number; heart: RGB; core: number; stars: number; moon: boolean };
-const SKIES: Record<SkyTheme, SkyPaint> = {
+type SkyPaint = { top: string; mid: string; low: string; glow: string; nebula: [RGB, RGB, RGB]; cloud: number; heart: RGB; core: number; stars: number; moon: boolean; sun?: [x: number, y: number, color: string] };
+const SKIES: Record<SkyLook, SkyPaint> = {
   dark: { top: "#030210", mid: "#090720", low: "#151036", glow: "#16475a", nebula: [[36, 150, 172], [112, 62, 196], [214, 72, 150]], cloud: 0.55, heart: [255, 236, 240], core: 1, stars: 1, moon: true },
   // First light: the same sky going pale, the clouds turned to rose and lilac.
   light: { top: "#5f78c2", mid: "#9fb0e4", low: "#dcc6e4", glow: "#ffd9b8", nebula: [[150, 200, 240], [200, 170, 240], [255, 170, 200]], cloud: 0.35, heart: [255, 250, 250], core: 0.3, stars: 0.35, moon: false },
+  dawn: { top: "#1e2f6a", mid: "#6474b4", low: "#f0a884", glow: "#ffd9a6", nebula: [[240, 170, 170], [200, 150, 210], [255, 200, 170]], cloud: 0.3, heart: [255, 240, 230], core: 0.1, stars: 0.3, moon: false, sun: [0.18, 0.8, "#fff0c2"] },
+  day: { top: "#3474c8", mid: "#79ade6", low: "#cfe5f4", glow: "#fff4d8", nebula: [[255, 255, 255], [235, 242, 255], [255, 250, 245]], cloud: 0.35, heart: [255, 255, 255], core: 0, stars: 0, moon: false, sun: [0.74, 0.14, "#fffbe8"] },
+  dusk: { top: "#1b1848", mid: "#693d7c", low: "#ef8656", glow: "#ffbe66", nebula: [[120, 70, 160], [200, 90, 140], [255, 150, 110]], cloud: 0.4, heart: [255, 220, 200], core: 0.2, stars: 0.6, moon: false, sun: [0.84, 0.83, "#ffcf7a"] },
 };
-const PALETTES: Record<SkyTheme, Palette> = {
+const PALETTES_DARK: Palette = {
+  star: "#fff4d8",
+  dust: "#fff4d8",
+  faint: "#9aa0dc",
+  gold: "#ffd06a",
+  hot: "#ffffff",
+  flash: "#ffd06a",
+  thread: "#fff4d8",
+  tint: { Land: "#b8ec8c", Combat: "#ff9f7e", Craft: "#ffcb6e", People: "#ffb0d0", Road: "#8ff4e6" },
+  hills: [],
+  figure: "#03020a",
+  twinkle: true,
+};
+const PALETTES: Record<SkyLook, Palette> = {
   dark: {
     star: "#fff4d8",
     dust: "#fff4d8",
@@ -72,7 +100,23 @@ const PALETTES: Record<SkyTheme, Palette> = {
     figure: "#1e2050",
     twinkle: false,
   },
+  dawn: hours("#fff4d8", ["#55548c", "#a08fbc"], ["#35356a", "#72679e"], ["#1a1934", "#4a3f6c"], "#0b0a1a"),
+  day: hours("#ffffff", ["#88a3c6", "#b7cce4"], ["#55709a", "#86a0c6"], ["#243250", "#4d6088"], "#121a2c"),
+  dusk: hours("#fff4d8", ["#4a2f5e", "#a4567c"], ["#2c1d44", "#70406a"], ["#120c22", "#44264c"], "#07040e"),
 };
+/** A palette for a time of day: the dark sky's stars over the hour's hills. */
+function hours(dust: string, far: [string, string], mid: [string, string], near: [string, string], figure: string): Palette {
+  return {
+    ...PALETTES_DARK,
+    dust,
+    hills: [
+      { base: 0.8, amp: 0.05, body: far[0], rim: far[1], seed: 3, style: "solid" },
+      { base: 0.855, amp: 0.045, body: mid[0], rim: mid[1], seed: 7, style: "solid" },
+      { base: 0.915, amp: 0.03, body: near[0], rim: near[1], seed: 11, style: "solid" },
+    ],
+    figure,
+  };
+}
 
 // A figure sitting with their knees up, looking at the sky: # is body.
 const FIGURE = ["..##..", ".####.", ".####.", "..##..", ".###..", "#####.", "######", ".#####", "##..##"];
@@ -127,10 +171,15 @@ export class SkyRenderer {
   threads: { x: number; y: number; hot: boolean }[] = [];
   threadStar?: { skill: SkillId; star: number };
   onFrame?: () => void;
+  /** The task screen's additions: the settlement on the skyline, room by
+   * the fire, and someone at work there instead of the one watching. */
+  skyline: HTMLCanvasElement[] = [];
+  clearing = 16;
+  figure?: (g: Ground) => void;
   readonly still = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   private ctx: CanvasRenderingContext2D;
-  private theme: SkyTheme;
+  private theme: SkyLook;
   private pal: Palette;
   private SW = 1000;
   private SH = 560;
@@ -165,7 +214,7 @@ export class SkyRenderer {
   private last = performance.now();
   private raf = 0;
 
-  constructor(private canvas: HTMLCanvasElement, theme: SkyTheme) {
+  constructor(private canvas: HTMLCanvasElement, theme: SkyLook) {
     this.ctx = canvas.getContext("2d")!;
     this.theme = theme;
     this.pal = PALETTES[theme];
@@ -179,7 +228,7 @@ export class SkyRenderer {
     this.entries = entries;
   }
   /** Turn the sky over: the old one stays on top and fades out. */
-  setTheme(theme: SkyTheme) {
+  setTheme(theme: SkyLook) {
     if (theme === this.theme) return;
     this.fadeFrom.width = this.W;
     this.fadeFrom.height = this.H;
@@ -188,6 +237,10 @@ export class SkyRenderer {
     this.theme = theme;
     this.pal = PALETTES[theme];
     this.paint();
+  }
+  setSkyline(masks: HTMLCanvasElement[]) {
+    this.skyline = masks;
+    this.paintHills();
   }
   /** Tip the view down to the campfire, or back up to the sky. */
   setFire(on: boolean) {
@@ -347,6 +400,12 @@ export class SkyRenderer {
     }
     g.putImageData(img, 0, 0);
     if (p.moon) this.paintMoon(g);
+    if (p.sun) {
+      const [sx, sy, color] = p.sun;
+      const x = M + Math.round(this.W * sx), y = M + Math.round(this.H * sy), R = Math.max(5, Math.round(Math.min(this.W, this.H) * 0.026));
+      g.fillStyle = color;
+      for (let dy = -R; dy <= R; dy++) for (let dx = -R; dx <= R; dx++) if (dx * dx + dy * dy <= R * R) g.fillRect(x + dx, y + dy, 1, 1);
+    }
   }
 
   /** Quantise to `levels` per channel with ordered dither: the pixel grain. */
@@ -399,7 +458,7 @@ export class SkyRenderer {
         const u = (x / W) * Math.PI * 2;
         let y = H * (layer.base - layer.amp * (Math.sin(u * 1.3 + p[0]) * 0.6 + Math.sin(u * 3.1 + p[1]) * 0.3 + Math.sin(u * 7.7 + p[2]) * 0.1));
         if (n === 2) {
-          const w = clamp(1 - Math.abs(x - fireX) / 16);
+          const w = clamp(1 - Math.abs(x - fireX) / this.clearing);
           y = y * (1 - w) + (H * layer.base - 2) * w;
         }
         return Math.round(y);
@@ -409,6 +468,7 @@ export class SkyRenderer {
         if (layer.style === "stipple" && BAYER[(x & 3) + (y & 3) * 4] > 6) return;
         g.fillRect(x, y, 1, 1);
       };
+      if (n === 1 && this.skyline.length) this.paintSkyline(g, ridge, fireX);
       g.fillStyle = layer.body;
       for (let x = 0; x < W; x++) {
         const top = ridge(x);
@@ -420,7 +480,7 @@ export class SkyRenderer {
       if (n > 0)
         for (let i = 0; i < W / (n === 1 ? 9 : 14); i++) {
           const x = Math.round(r() * W);
-          if (Math.abs(x - fireX) < 22) continue;
+          if (Math.abs(x - fireX) < this.clearing + 6) continue;
           const h = 4 + Math.round(r() * (n === 1 ? 6 : 9));
           const foot = ridge(x) + 1;
           g.fillStyle = n === 2 ? layer.body : layer.rim;
@@ -430,6 +490,48 @@ export class SkyRenderer {
           }
         }
       if (n === 2) this.fire = { x: fireX, y: ridge(fireX) };
+    }
+  }
+
+  /** The settlement's roofs, standing behind the middle ridge with their feet
+   * hidden in it: thickest round the fire, thinning out along the hills. */
+  private paintSkyline(g: CanvasRenderingContext2D, ridge: (x: number) => number, fireX: number) {
+    const { W, H } = this;
+    const mid = this.pal.hills[1];
+    const r = rng(41);
+    const lit = this.theme === "dark" || this.theme === "dusk";
+    let x = Math.round(r() * 12);
+    for (let i = 0; x < W - 8; i++) {
+      const near = 1 - clamp(Math.abs(x - fireX) / (W * 0.45));
+      const src = this.skyline[i % this.skyline.length];
+      const h = Math.round(H * (0.035 + 0.035 * near + r() * 0.02));
+      const w = Math.max(4, Math.round((src.width / src.height) * h));
+      if (r() < 0.35 + near * 0.6) {
+        const c = document.createElement("canvas");
+        c.width = w;
+        c.height = h;
+        const cg = c.getContext("2d")!;
+        cg.imageSmoothingEnabled = false;
+        cg.drawImage(src, 0, 0, w, h);
+        const a = cg.getImageData(0, 0, w, h).data;
+        const on = (i: number, j: number) => i >= 0 && j >= 0 && i < w && j < h && a[(j * w + i) * 4 + 3] > 140;
+        const top = Math.min(ridge(x), ridge(x + w)) + Math.round(h * 0.2) - h;
+        for (let j = 0; j < h; j++)
+          for (let q = 0; q < w; q++) {
+            if (!on(q, j)) continue;
+            g.fillStyle = on(q, j - 1) ? mid.body : mid.rim;
+            g.fillRect(x + q, top + j, 1, 1);
+          }
+        if (lit)
+          for (let k = 0; k < 2; k++) {
+            const q = Math.round(w * (0.25 + r() * 0.5)), j = Math.round(h * (0.4 + r() * 0.25));
+            if (r() < 0.55 && on(q, j) && on(q, j - 2) && on(q - 1, j) && on(q + 1, j)) {
+              g.fillStyle = "#ffc86a";
+              g.fillRect(x + q, top + j, 1, 1);
+            }
+          }
+      }
+      x += w + Math.round(1 + r() * (near > 0.5 ? 6 : 22));
     }
   }
 
@@ -678,7 +780,8 @@ export class SkyRenderer {
     this.halo(fx + k, fy - 2 * k, 16 * k, "#ff8a3c", (dark ? 0.06 : 0.03) + 0.02 * Math.sin(t * 9));
     this.halo(fx + k, fy - 2 * k, 7 * k, "#ffb25c", (dark ? 0.1 : 0.06) + 0.04 * Math.sin(t * 13));
     const gx = fx - 9 * k, gy = fy - FIGURE.length * k;
-    FIGURE.forEach((row, y) =>
+    if (this.figure) this.figure({ fx, fy, k, t, dt, figure: this.pal.figure, block });
+    else FIGURE.forEach((row, y) =>
       [...row].forEach((ch, x) => {
         if (ch !== "#") return;
         block(gx + x * k, gy + y * k, this.pal.figure, 1);

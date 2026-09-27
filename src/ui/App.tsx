@@ -70,7 +70,7 @@ import { restoreSession, ZOOM_STEPS } from "../runtime/session";
 const formatZoom = (z: number) =>
   Number.isInteger(z) ? `${z}` : z.toFixed(2).replace(/0$/, "");
 import { download } from "../runtime/storage";
-import { distance, type PlayerCommand } from "../core/types";
+import { distance, type PlayerCommand, type Point } from "../core/types";
 import { describeStats, statKeys } from "../core/stats";
 import { describeStanding, standingOf } from "../core/standing";
 import { outlookOf, shortLabel } from "../core/outlook";
@@ -104,6 +104,7 @@ import { CombatTestPanel } from "../dev/CombatTestPanel";
 import { SkillTestPanel } from "../dev/SkillTestPanel";
 import { CollapseNotice, SkillsPanel, SkillToast, Vitals, type Pick } from "./Skills";
 import { SkillSky } from "./SkillSky";
+import type { TaskSource } from "./task-view";
 import type { SkillId } from "../core/skills";
 import { BagFlights, KeyPrompt } from "./motion";
 import { TouchControls } from "./TouchControls";
@@ -113,6 +114,8 @@ import {
   type LiveGraphicsSettings,
 } from "../render/live-graphics";
 import type { FaunaState } from "../core/fauna";
+// The task screen carries two megabytes of history; it loads when first opened.
+const TaskSky = lazy(() => import("./TaskSky").then((m) => ({ default: m.TaskSky })));
 const CharacterLab = lazy(() =>
   import("../dev/CharacterLab").then((m) => ({ default: m.CharacterLab })),
 );
@@ -152,6 +155,11 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
   const speaker = runtime.nearestSpeaker();
   const [audio, setAudio] = useState<AudioDirector | null>(null);
   const [sky, setSky] = useState<{ skill?: SkillId; pick?: Pick; levelUp?: boolean }>();
+  const [task, setTask] = useState<TaskSource>();
+  const [guide, setGuide] = useState<Point>();
+  const [aimGoal, setAimGoal] = useState<string>();
+  // The route home is cleared once walked.
+  if (guide && p.pos.space === "outside" && Math.hypot(p.pos.x - guide.x, p.pos.y - guide.y) < 3) setGuide(undefined);
   const pending = runtime.engine.pendingPicks();
   const known = runtime.engine.state.player.techniques ?? [];
   const lastGain = runtime.engine.skillGains.at(-1);
@@ -856,6 +864,18 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
               onClose={() => setSky(undefined)}
             />
           )}
+          {task && (
+            <Suspense fallback={null}>
+            <TaskSky
+              runtime={runtime}
+              start={task}
+              onClose={() => setTask(undefined)}
+              onGuide={(to) => setGuide(to)}
+              onPin={(id) => setAimGoal((was) => (was === id ? undefined : id))}
+              pinned={aimGoal}
+            />
+            </Suspense>
+          )}
           <CollapseNotice collapse={runtime.engine.lastCollapse} />
           <BagFlights
             inventory={p.inventory}
@@ -1004,7 +1024,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
               aria-label="Open regional map"
               onClick={() => setModal("map")}
             >
-              <Minimap runtime={runtime} regional={mapRegion} />
+              <Minimap runtime={runtime} regional={mapRegion} route={guide} />
               <span className="minimap-expand" aria-hidden="true">
                 <Maximize2 size={13} />
               </span>
@@ -1288,7 +1308,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
               aria-label="Open regional map"
               onClick={() => setModal("map")}
             >
-              {!phone && <Minimap runtime={runtime} regional={mapRegion} />}
+              {!phone && <Minimap runtime={runtime} regional={mapRegion} route={guide} />}
               <span className="north">N ↑</span>
               <span className="map-scale">
                 <i />
@@ -1491,14 +1511,14 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
                 {sideTab === "today" && (
                   <div className="event-log">
                     {aim && (
-                      <div>
+                      <div className="event-open" role="button" tabIndex={0} onClick={() => setTask({ kind: "aim" })} onKeyDown={(e) => e.key === "Enter" && setTask({ kind: "aim" })}>
                         <time>Life aim</time>
                         <span>{aim.text}{aim.step && <small className="life-aim-step">{aim.step.text} {aim.step.type === "work" ? `(${aim.step.progress}/${aim.step.target})` : aim.step.done ? "(done)" : ""}</small>}</span>
                       </div>
                     )}
                     {runtime.engine.dailyGoals().length > 0 ? (
-                      runtime.engine.dailyGoals().map((g) => (
-                        <div key={g.id}>
+                      [...runtime.engine.dailyGoals()].sort((a, b) => Number(b.id === aimGoal) - Number(a.id === aimGoal)).map((g) => (
+                        <div key={g.id} className="event-open" data-aim={g.id === aimGoal || undefined} role="button" tabIndex={0} onClick={() => setTask({ kind: "goal", id: g.id })} onKeyDown={(e) => e.key === "Enter" && setTask({ kind: "goal", id: g.id })}>
                           <time>{g.done ? "Done" : g.slot === "work" ? "Work" : g.slot === "need" ? "Need" : g.slot === "own" ? (g.id.startsWith("fest.") ? "Holiday" : "Errand") : "Social"}</time>
                           <span>{g.text}</span>
                         </div>
@@ -1593,6 +1613,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
                 onClose={() => setModal(null)}
                 onAction={doAction}
                 onSelect={setCharacterId}
+                onTask={setTask}
               />
             )}
             {modal === "inventory" && (

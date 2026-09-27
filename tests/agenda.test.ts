@@ -131,3 +131,16 @@ it("turns an instruction into a doing", () => {
     "Giving their hearth the first of the meat",
   );
 });
+
+it("puts a region's own lore before the worldwide fallbacks", async () => {
+  const { loreFor } = await import("../src/content/task-lore");
+  const water = loreFor(rome, undefined, [{ goal: "water" }, { scene: "water" }], "");
+  expect(water[0]?.id).not.toMatch(/^lore\.general\./);
+  const potter = loreFor(rome, undefined, [{ goal: "day-of-work" }, { trade: /./ }, { workplace: "workshop" }, { scene: "craft" }], "Potter shaping pots");
+  for (const l of potter) expect(l.topics.some((t) => "trade" in t && !t.trade.test("Potter shaping pots"))).toBe(false);
+});
+
+it("gives every piece of lore its own id", async () => {
+  const { taskLore } = await import("../src/content/task-lore");
+  expect(new Set(taskLore.map((l) => l.id)).size).toBe(taskLore.length);
+});

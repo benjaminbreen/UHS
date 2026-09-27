@@ -12,7 +12,7 @@ import { spawn } from "node:child_process";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 
-const [out = "artifacts/shot.png", prompt = "A Roman baker in Ostia, 100 CE"] =
+const [out = "artifacts/shot.png", prompt = "A Roman baker in Ostia, 100 CE", review] =
   process.argv.slice(2);
 const base = process.env.UHS_URL ?? "http://127.0.0.1:5173";
 
@@ -71,6 +71,33 @@ try {
     await page.waitForTimeout(4000);
   }
   mkdirSync(dirname(out), { recursive: true });
+  // A live collision study, using the same commands as movement input.
+  if (review === "--toppling") {
+    const dir = await page.evaluate(() => {
+      const r = (window as any).__uhs, e = r.engine, p = e.state.player.pos;
+      r.stop();
+      const dir = [[1, 0], [-1, 0], [0, 1], [0, -1]].find(([dx, dy]) =>
+        !e.blocked(p.x + dx, p.y + dy, p.space) && e.playerCanCross(p, { x: p.x + dx, y: p.y + dy }));
+      if (!dir) throw Error("No clear approach for the toppling study");
+      e.state.objects.push({ id: "toppling-study", prop: "romanMilestone", name: "Roman milestone",
+        kind: "monument", sprite: "study-propb-roman-milestone-0", inventory: {},
+        pos: { ...p, x: p.x + dir[0], y: p.y + dir[1] } });
+      r.emit();
+      return dir;
+    });
+    for (const [state, run] of [["lean", true], ["fallen", false]] as const) {
+      await page.evaluate(([dx, dy, run]) => {
+        const result = (window as any).__uhs.command({ type: "move", dx, dy, run });
+        if (result.status !== "completed") throw Error("Toppling study collision was refused");
+      }, [dir[0], dir[1], run]);
+      await page.waitForFunction((state) => {
+        const sprite = (window as any).uhsGame.scene.getScene("world").entities.get("toppling-study");
+        return sprite?.frame.name.includes(state);
+      }, state);
+      await page.waitForTimeout(400);
+      await page.screenshot({ path: out.replace(/\.png$/, `-${state}.png`) });
+    }
+  }
   await page.screenshot({ path: out });
   console.log(`wrote ${out}`);
 } finally {

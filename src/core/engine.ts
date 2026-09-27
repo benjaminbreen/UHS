@@ -1335,9 +1335,13 @@ export class Engine {
   private hurtProp(
     prop: WorldObject,
     hit: HitClass,
-  ): "broke" | "damaged" | "tipped" | undefined {
+  ): "broke" | "damaged" | "tipped" | "leaned" | undefined {
     const def = propDefs[prop.prop!];
     if (!def) return undefined;
+    if (def.topples && !prop.tipped && !prop.broken) {
+      const [dx, dy] = [[0, -1], [1, 0], [0, 1], [-1, 0]][this.state.player.direction];
+      return this.tiltProp(prop, dx, dy);
+    }
     if (def.breakable && !prop.broken) {
       this.propOwnership(prop, "break");
       prop.damage = (prop.damage ?? 0) + 1;
@@ -2047,6 +2051,24 @@ export class Engine {
         this.world.canCross({ ...this.state.player.pos, ...from }, to),
       shoveOf: (o) => propDefs[o.prop ?? ""]?.shove,
     };
+  }
+  private toppleTarget(dx: number, dy: number, run = false) {
+    if (this.state.player.perch || (dx !== 0 && dy !== 0)) return undefined;
+    const p = this.state.player.pos;
+    const o = this.solidPropAt(p.x + dx, p.y + dy, p.space);
+    return o && !o.tipped && propDefs[o.prop!]?.topples && (run || o.lean) &&
+      !this.world.blocked(o.pos.x, o.pos.y, o.pos.space) ? o : undefined;
+  }
+  private tiltProp(o: WorldObject, dx: number, dy: number): "leaned" | "tipped" {
+    this.propOwnership(o, "topple");
+    if (o.lean) {
+      o.tipped = true;
+      o.open = true;
+      delete o.lean;
+      return "tipped";
+    }
+    o.lean = dx < 0 || (!dx && dy < 0) ? -1 : 1;
+    return "leaned";
   }
   /** What a step in this direction would do to whatever is standing there.
    * Undefined when the cell holds nothing a shoulder could ever move, so the
@@ -4053,7 +4075,8 @@ export class Engine {
       )
         return "Too deep to wade — find a shallower crossing or a bridge.";
       const push = this.shovePlan(c.dx, c.dy);
-      if (push && "refused" in push) return push.reason;
+      const toppling = this.toppleTarget(c.dx, c.dy, c.run);
+      if (!toppling && push && "refused" in push) return push.reason;
       if (
         (p.pos.space === "outside" &&
           this.world.canCross &&
@@ -4061,7 +4084,7 @@ export class Engine {
             x: p.pos.x + c.dx,
             y: p.pos.y + c.dy,
           })) ||
-        (!push &&
+        (!push && !toppling &&
           this.playerBlocked(p.pos.x + c.dx, p.pos.y + c.dy) &&
           !(this.onWall() && this.wallAt(p.pos.x + c.dx, p.pos.y + c.dy))) ||
         (c.dx !== 0 &&
@@ -4681,6 +4704,8 @@ export class Engine {
               ? `You break ${name}.${spilled || " It was empty."}`
               : outcome === "tipped"
                 ? `You knock ${name} over.${spilled || " Nothing in it."}`
+                : outcome === "leaned"
+                  ? `You loosen ${name}. It stands at a slant; another push will topple it.`
                 : outcome === "damaged"
                   ? `You strike ${name}. It is damaged but still holds together.`
                   : undefined;
@@ -4985,6 +5010,17 @@ export class Engine {
     }
     if (c.type === "move") {
       delete this.lastShove;
+      const toppling = !c.jump && !c.traverse && this.toppleTarget(c.dx, c.dy, c.run);
+      if (toppling) {
+        const outcome = this.tiltProp(toppling, c.dx, c.dy);
+        p.direction = c.dy < 0 ? 0 : c.dx > 0 ? 1 : c.dy > 0 ? 2 : 3;
+        p.facing = facingFromStep(c.dx, c.dy, p.direction);
+        this.event(outcome === "leaned"
+          ? `You shoulder ${toppling.name.toLowerCase()}. It tilts and stays at a slant.`
+          : `You push ${toppling.name.toLowerCase()} over.`);
+        this.advance(2);
+        return;
+      }
       const leap =
         c.traverse || c.jump
           ? this.traversal(p.pos, c.dx, c.dy, c.jump, c.run)
@@ -5300,11 +5336,13 @@ export class Engine {
           );
         } else if (c.action === "right") {
           prop.tipped = false;
+          delete prop.lean;
           this.event(`You stand ${prop.name.toLowerCase()} back up.`);
         } else if (c.action === "topple") {
           // Knocked over, not broken: it empties where it lies.
           this.propOwnership(prop, "break");
           prop.tipped = true;
+          delete prop.lean;
           prop.open = true;
           this.event(
             `You knock ${prop.name.toLowerCase()} over. What it held rolls out.`,

@@ -2370,7 +2370,7 @@ export class WorldScene extends Phaser.Scene {
   /** A prop whose hangings are a separate frame: the entity draws the rigid
    * part and the hangings ride over it. The whole sprite stays in the atlas
    * for the lab, the UI and the shadow mask. */
-  private layerOf(frame: string, layer: "frame" | "hang" | "fallen") {
+  private layerOf(frame: string, layer: "frame" | "hang" | "fallen" | "lean-left" | "lean-right") {
     if (!frame.startsWith("study-propb-")) return undefined;
     const key = `${frame}-${layer}`;
     return this.textures.get("props").has(key) ? key : undefined;
@@ -3754,6 +3754,8 @@ export class WorldScene extends Phaser.Scene {
       const drawn = rigid ?? frame;
       if (im.texture.key !== texture || animatedBase(im.frame.name) !== drawn)
         im.setTexture(texture, drawn);
+      if (/-lean-(left|right)$/.test(frame)) im.setOriginFromFrame();
+      else im.setOrigin(0.5, 1);
       const fire = frame === "fire" || this.fireFrames.has(frame);
       if (this.fireFrames.has(frame)) this.lightFire(id, im, frame, tx, ty);
       else if (this.fires.has(id)) this.quenchFire(id);
@@ -3978,7 +3980,11 @@ export class WorldScene extends Phaser.Scene {
               ? o.open
                 ? "gate-open"
                 : "gate"
-              : o.sprite,
+              : o.tipped
+                ? this.layerOf(o.sprite, "fallen") ?? o.sprite
+                : o.lean
+                  ? this.layerOf(o.sprite, o.lean < 0 ? "lean-left" : "lean-right") ?? o.sprite
+                  : o.sprite,
         o.pos,
       );
       // Dung and remains are drawn at world size and lie too flat to cast a shadow.
@@ -4913,6 +4919,7 @@ export class WorldScene extends Phaser.Scene {
           this.nextInput = time + this.motionDuration;
           this.lastTick = time;
           if (!this.vault(dx, dy, time)) {
+            const beforeMove = { ...this.runtime.engine.state.player.pos };
             let moved = this.runtime.move(dx, dy, false, this.shiftHeld);
             // A diagonal into a corner slides along whichever wall is open,
             // rather than stopping dead. The engine is right to refuse the
@@ -4930,7 +4937,12 @@ export class WorldScene extends Phaser.Scene {
                 );
             }
             // Pushing into a wall still turns you to face it, and shoves.
-            if (moved?.status === "rejected") {
+            const shoulderTarget = this.runtime.engine.shoveTargetId(dx, dy);
+            const shouldered = moved?.status === "completed" &&
+              this.runtime.engine.state.player.pos.x === beforeMove.x &&
+              this.runtime.engine.state.player.pos.y === beforeMove.y &&
+              this.runtime.engine.state.objects.some(o => o.id === shoulderTarget && (o.lean || o.tipped));
+            if (moved?.status === "rejected" || shouldered) {
               this.runtime.face(dx, dy);
               this.blockedFacing = facingFromStep(
                 dx,
@@ -4954,7 +4966,7 @@ export class WorldScene extends Phaser.Scene {
                 this.slip(dx, dy, time);
             }
             if (
-              moved?.status === "rejected" &&
+              (moved?.status === "rejected" || shouldered) &&
               this.shiftHeld &&
               this.runSteps >= 2
             )

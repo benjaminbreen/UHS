@@ -42,6 +42,7 @@ import { accentFor, patternFor, sceneFor } from "./culture-theme";
 import { ItemIcon, timeLabel } from "./components";
 import { dayPlan } from "../core/itinerary";
 import { asDoing } from "../core/agenda";
+import type { TaskSource } from "./task-view";
 import { dispositionOf, standingOf } from "../core/persona";
 import { statsOf, statKeys } from "../core/stats";
 import { abilitiesOf } from "../content/characters/abilities";
@@ -481,12 +482,14 @@ export function CharacterPanel({
   onClose,
   onAction,
   onSelect,
+  onTask,
 }: {
   runtime: Runtime;
   actorId: string;
   onClose: () => void;
   onAction: (command: PlayerCommand) => void;
   onSelect: (id: string) => void;
+  onTask?: (task: TaskSource) => void;
 }) {
   const [tab, setTab] = useState<
     "profile" | "household" | "abilities" | "beliefs" | "ideology"
@@ -820,6 +823,10 @@ export function CharacterPanel({
                         data-state={entry.state}
                         data-activity={entry.activity}
                         title={doing?.note}
+                        data-open={onTask ? true : undefined}
+                        role={onTask ? "button" : undefined}
+                        tabIndex={onTask ? 0 : undefined}
+                        onClick={() => onTask?.({ kind: "plan", actorId: actor.id, label: entry.label, activity: entry.activity, minute: entry.minute })}
                       >
                         <Icon size={22} />
                         <time>{timeLabel(entry.minute * 60)}</time>
@@ -840,7 +847,7 @@ export function CharacterPanel({
                     );
                   })}
                   {errands.map((g) => (
-                    <li key={g.id} data-state={g.done ? "done" : "later"} data-activity="visit">
+                    <li key={g.id} data-state={g.done ? "done" : "later"} data-activity="visit" data-open={onTask ? true : undefined} role={onTask ? "button" : undefined} tabIndex={onTask ? 0 : undefined} onClick={() => onTask?.({ kind: "goal", id: g.id })}>
                       <Hand size={22} />
                       <time>today</time>
                       <span>{g.text}</span>

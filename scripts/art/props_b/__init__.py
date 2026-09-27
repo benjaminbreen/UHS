@@ -147,6 +147,10 @@ ANIMATED = {
 
 # Knocked-over states, drawn as their own sprite rather than a rotation.
 FALLEN = {
+ 'standing-stone': _fallen.marker,
+ 'roman-milestone': _fallen.milestone,
+ 'rune-marker': _fallen.rune_marker,
+ 'stone-lantern': _fallen.stone_lantern,
  'dustbin': _fallen.dustbin,
  'steel-drum': _fallen.steel_drum,
  'bucket': _fallen.bucket,
@@ -155,6 +159,8 @@ FALLEN = {
  'open-basket': _fallen.open_basket,
  'lidded-basket': _fallen.lidded_basket,
 }
+
+TOPPLING = {'standing-stone', 'roman-milestone', 'rune-marker', 'stone-lantern', 'stool', 'dustbin', 'steel-drum'}
 
 
 def draw_prop_b(key, variant, layer=None):
