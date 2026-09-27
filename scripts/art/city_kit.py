@@ -167,22 +167,18 @@ def text(c, s, cx, y, col, shade=None):
 
 
 def lettering(c, x0, x1, y, words, seed):
-    """Gilt lettering too small to read, so a shop's name belongs to no one
-    language: words of 3x5 strokes, centred on the fascia."""
-    lens = [3 + int(h2(k, 1, seed) * 5) for k in range(words)]
-    w = sum(n * 4 - 1 for n in lens) + 4 * (words - 1)
-    while w > x1 - x0 and lens:
-        w -= lens.pop() * 4 + 3
-    x = (x0 + x1 - w) // 2
-    for k, n in enumerate(lens):
-        for i in range(n):
-            g = FONT['ABCDEGHKMNOPRSTUVW'[int(h2(k * 13 + i, 2, seed) * 18)]]
-            for j, bit in enumerate(g):
-                if bit == '1':
-                    c.px(x + j % 3 + 1, y + j // 3 + 1, GOLD[0])
-                    c.px(x + j % 3, y + j // 3, GOLD[3])
-            x += 4
-        x += 4
+    """A fascia with no words, so it belongs to no one language: gilt rules
+    either side of a painted lozenge."""
+    cx = (x0 + x1) // 2
+    for x in range(x0 + 2, x1 - 1):
+        if abs(x - cx) > 5:
+            c.px(x, y + 2, GOLD[2])
+            c.px(x, y + 3, GOLD[0])
+    for i in range(4):
+        c.hl(cx - i, cx + i, y + i - 1, GOLD[3] if i < 2 else GOLD[2])
+        c.hl(cx - i, cx + i, y + 6 - i, GOLD[1])
+    c.px(cx, y + 2, RED[2])
+    c.px(cx, y + 3, RED[1])
 
 
 # ---------------------------------------------------------------- openings
@@ -493,11 +489,11 @@ class Immeuble(Oblique):
     mansard with a dormer on every bay axis."""
 
     def __init__(self, bays=5, storeys=4, stone=LIME, shop=None, seed=0,
-                 entrance=None, boxes=0.35, W=None, sd=14, brick=False):
+                 entrance=None, boxes=0.35, W=None, sd=14, brick=False, corner=None):
         W = W or bays * 20 + 8
         bays = (W - 8) // 20
         self.bays, self.storeys, self.stone, self.shop = bays, storeys, stone, shop
-        self.seed, self.boxes, self.brick = seed, boxes, brick
+        self.seed, self.boxes, self.brick, self.corner = seed, boxes, brick, corner
         self.entrance = entrance
         self.mx = (W - bays * 20) // 2
         self.M, self.COR = 30, 9
@@ -650,7 +646,45 @@ class Immeuble(Oblique):
             self.door_x = axes[ent]
         else:
             self.door_x = self.shop_door
+        if self.corner:
+            self.cut_corner(wall_top, cor, T)
         return outline(c.im)
+
+    def cut_corner(self, wall_top, cor, T):
+        """The pan coupe: the corner cut back on the diagonal as a narrow bay,
+        lit on the west corner and shaded on the east, with a slate dome and
+        a door to the corner shop."""
+        c, st, W, H = self.c, self.stone, self.W, self.H
+        east = self.corner == 'e'
+        x0, x1 = (W - 11, W - 1) if east else (0, 10)
+        face, edge = (st[3], st[2]) if east else (st[5], st[4])
+        c.rect(x0, wall_top, x1, H - 1, face)
+        c.vl(x0 if east else x1, wall_top, H - 1, edge)
+        for yy in range(H - GROUND + 5, H, 6):
+            c.hl(x0, x1, yy, mix(face, st[1], 0.5))
+        cx = (x0 + x1) // 2
+        for s in range(1, self.storeys):
+            fy = H - GROUND - STOREY * s
+            wy = fy + 12
+            c.rect(cx - 3, wy - 1, cx + 3, wy + 20, '#e9e3d6')
+            glass(c, cx - 2, wy, cx + 2, wy + 19, s + x0)
+            iron_rail(c, cx - 3, cx + 3, wy + 13, 7, pattern=1)
+            c.rect(cx - 4, wy - 4, cx + 4, wy - 2, st[5] if not east else st[4])
+        c.rect(cx - 4, H - 36, cx + 4, H - 1, OAK[1])
+        glass(c, cx - 3, H - 34, cx + 3, H - 12, x0)
+        c.rect(cx - 3, H - 10, cx + 3, H - 2, OAK[2])
+        c.rect(x0, cor, x1, wall_top - 1, st[4] if not east else st[3])
+        c.hl(x0, x1, cor, st[6])
+        for y in range(T - 12, cor):
+            for x in range(x0 - 1, x1 + 2):
+                d = ((x - cx + .5) / 7) ** 2 + ((y - cor + .5) / (cor - T + 12)) ** 2
+                if d <= 1 and y < cor:
+                    k = 5 if x < cx - 2 else 4 if x < cx + 2 else 3
+                    if (y - T) % 4 == 0:
+                        k -= 1
+                    c.px(x, y, SLATE[k])
+        c.vl(cx, T - 18, T - 12, IRON[2])
+        c.px(cx, T - 19, GOLD[2])
 
     def coursing(self, y0, y1):
         c, st = self.c, self.stone
@@ -1715,6 +1749,17 @@ KIT = {
     'modern-townhouse-0': ('townhouse', [5, 5], 3, 1, dict()),
     'modern-townhouse-1': ('townhouse', [6, 5], 3, 6, dict(door_col=NAVY)),
     'modern-townhouse-2': ('townhouse', [5, 5], 3, 11, dict(door_col=OXBLOOD)),
+    'modern-immeuble-5': ('immeuble', [4, 5], 3, 41, dict(entrance=1, boxes=0.6)),
+    'modern-immeuble-6': ('immeuble', [5, 5], 3, 43, dict(stone=WARM_LIME, shop=(OXBLOOD, '~', goods_bread, AWN_GREEN))),
+    'modern-immeuble-7': ('immeuble', [5, 4], 2, 45, dict(shop=(GREEN, 'CAFE', goods_cafe, AWN_RED))),
+    'modern-brickshop-3': ('immeuble', [4, 5], 3, 47, dict(stone=BRICK, brick=True, shop=(NAVY, '~', goods_pharma, None))),
+    'modern-brickshop-4': ('immeuble', [5, 4], 2, 49, dict(stone=BRICK, brick=True, shop=(GREEN, '~~', goods_books, AWN_RED))),
+    'modern-immeuble-corner-e-0': ('immeuble', [6, 6], 3, 51, dict(corner='e', shop=(GREEN, 'CAFE', goods_cafe, AWN_RED))),
+    'modern-immeuble-corner-w-0': ('immeuble', [6, 6], 3, 53, dict(corner='w', stone=WARM_LIME, entrance=-1, shop=(NAVY, '~~', goods_bread, None))),
+    'modern-immeuble-corner-e-1': ('immeuble', [7, 6], 3, 55, dict(corner='e', stone=WARM_LIME, shop=(OXBLOOD, '~~', goods_books, None))),
+    'modern-immeuble-corner-w-1': ('immeuble', [7, 6], 3, 57, dict(corner='w', shop=(GREEN, 'HOTEL', goods_cafe, AWN_GREEN))),
+    'modern-brickshop-corner-e-0': ('immeuble', [6, 6], 3, 59, dict(corner='e', stone=BRICK, brick=True, shop=(GREEN, 'CAFE', goods_cafe, AWN_RED))),
+    'modern-brickshop-corner-w-0': ('immeuble', [6, 6], 3, 61, dict(corner='w', stone=BRICK, brick=True, shop=(NAVY, '~~', goods_bread, None))),
     'modern-atelier-0': ('atelier', [5, 4], 1, 31, dict()),
     'modern-atelier-1': ('atelier', [7, 4], 1, 33, dict(roof='slate', coach=True)),
     'modern-atelier-2': ('atelier', [4, 4], 1, 35, dict(wall=BRICK, roof='slate')),

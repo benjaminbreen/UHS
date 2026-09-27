@@ -940,6 +940,12 @@ export function urbanNeighborhood(
         return false;
     }
     if (repeats(lot.frame, lot.rect)) return false;
+    // A tall range hides whatever stands in the eight rows behind it.
+    if (tallKit(lot.frame) && lots.some((o) => tallKit(o.frame) &&
+      o.rect.x < lot.rect.x + lot.rect.w && lot.rect.x < o.rect.x + o.rect.w &&
+      o.rect.y !== lot.rect.y &&
+      (Math.abs(o.rect.y + o.rect.h - lot.rect.y) < 9 || Math.abs(lot.rect.y + lot.rect.h - o.rect.y) < 9)))
+      return false;
     if (!free(door) || !free(work) || !api.dry(door, false)) return false;
     // A threshold or work pocket outside the wall has no route back in.
     if (!within(lot.point) || !within(lot.rect) || !within(lot.workPoint))
@@ -2120,6 +2126,16 @@ export function urbanNeighborhood(
     }
     const closing = out.at(-1)?.garden;
     if (closing) closing.last = true;
+    // A row that reaches the block's end turns the corner with a cut bay.
+    if (face === "south")
+      for (const [lot, side, at] of [[out[0], "w", start], [out.at(-1), "e", end]] as const) {
+        if (!lot || !tallKit(lot.frame) || (side === "w" ? lot.rect.x : lot.rect.x + lot.rect.w) !== at) continue;
+        const family = lot.frame.replace(/-\d+$/, "");
+        const corner = Object.keys(buildingModels).find((f) =>
+          f.startsWith(`${family}-corner-${side}-`) && /-\d+$/.test(f) &&
+          buildingModel(f).footprint[0] === lot.rect.w && buildingModel(f).footprint[1] === lot.rect.h);
+        if (corner) lot.frame = corner;
+      }
     return { lots: out, depth };
   }
 }
