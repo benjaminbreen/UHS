@@ -653,6 +653,7 @@ export class WorldScene extends Phaser.Scene {
     });
     this.characters = new WorldCharacters(this);
     this.characters.outline = this.liveGraphics.characterOutline;
+    this.characters.renderer = this.liveGraphics.characterSprites;
     this.characters.palette = this.runtime.palette();
     this.wading = new WadingEffects(this);
     this.prepareTreeStudySheet();
@@ -2462,8 +2463,10 @@ export class WorldScene extends Phaser.Scene {
     if (!this.cameras?.main || !this.game?.canvas) return;
     const camera = this.cameras.main;
     camera.roundPixels = this.liveGraphics.roundPixels;
-    if (this.characters)
+    if (this.characters) {
       this.characters.outline = this.liveGraphics.characterOutline;
+      this.characters.renderer = this.liveGraphics.characterSprites;
+    }
     camera.setLerp(this.liveGraphics.followLerp);
     this.game.canvas.style.imageRendering = this.liveGraphics.canvasSampling;
     this.textures.each(

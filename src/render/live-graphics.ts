@@ -22,6 +22,8 @@ export type LiveGraphicsSettings = {
   frameCap: FrameCap;
   roundPixels: boolean;
   characterOutline: boolean;
+  /** Which character renderer the world draws with. */
+  characterSprites: "b" | "c" | "d";
   textureSampling: TextureSampling;
   canvasSampling: CanvasSampling;
   zoomDuration: number;
@@ -65,6 +67,7 @@ export const defaultLiveGraphicsSettings: LiveGraphicsSettings = {
   frameCap: 60,
   roundPixels: false,
   characterOutline: true,
+  characterSprites: "d",
   textureSampling: "nearest",
   canvasSampling: "pixelated",
   zoomDuration: 130,
@@ -100,3 +103,14 @@ export const defaultLiveGraphicsSettings: LiveGraphicsSettings = {
   tiltContrast: 1.05,
   tiltVignette: 0.41,
 };
+
+export const CHARACTER_SPRITES_KEY = "uhs-character-sprites";
+/** The sprite choice outlives a reload so an A/B session survives one. */
+export function storedCharacterSprites(): LiveGraphicsSettings["characterSprites"] {
+  try {
+    const id = localStorage.getItem(CHARACTER_SPRITES_KEY);
+    return id === "b" || id === "c" ? id : "d";
+  } catch {
+    return "d";
+  }
+}

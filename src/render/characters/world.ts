@@ -8,7 +8,12 @@ import {
   type AppearancePalette,
   type CharacterAppearance,
 } from "../../core/character";
-import { drawCharacter, outlineCharacter } from "./renderers";
+import {
+  defaultRenderer,
+  outlineCharacter,
+  renderers,
+  type RendererId,
+} from "./renderers";
 import { setSpriteLight, spriteLightFor } from "./v2/pixels";
 import { iconCarriedArt, loadCarriedArt, type CarriedArt } from "./props";
 import {
@@ -54,6 +59,7 @@ export class WorldCharacters {
    * six rasters of a pose in the worst case, not one per minute. */
   light: LightingId = "midday";
   outline = true;
+  renderer: RendererId = defaultRenderer;
   private disposed = false;
   private lastPrune = 0;
   constructor(private scene: Phaser.Scene) {
@@ -135,7 +141,7 @@ export class WorldCharacters {
     resolved.used = this.scene.time.now;
     const a = resolved.appearance,
       art = this.carried(prop);
-    const signature = `${resolved.signature}:${actor.facing === undefined ? actor.direction : `f${actor.facing}`}:${pose}:${frame}:${art?.sprite ?? ""}:${this.light}:${this.outline ? 1 : 0}`;
+    const signature = `${resolved.signature}:${actor.facing === undefined ? actor.direction : `f${actor.facing}`}:${pose}:${frame}:${art?.sprite ?? ""}:${this.light}:${this.outline ? 1 : 0}:${this.renderer}`;
     let entry = this.cache.get(signature);
     if (!entry) {
       const key = `character-${this.scene.sys.settings.key}-${++this.serial}`;
@@ -150,7 +156,7 @@ export class WorldCharacters {
         warm: `#${preset.tint}`,
         cool: preset.ambientAlpha ? `#${preset.ambient}` : "#241c38",
       });
-      drawCharacter(
+      renderers[this.renderer].draw(
         c.getContext("2d", { willReadFrequently: true })!,
         a,
         actor.direction,

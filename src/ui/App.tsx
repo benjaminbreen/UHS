@@ -110,7 +110,9 @@ import { BagFlights, KeyPrompt } from "./motion";
 import { TouchControls } from "./TouchControls";
 import { WikiFocus } from "./WikiFocus";
 import {
+  CHARACTER_SPRITES_KEY,
   defaultLiveGraphicsSettings,
+  storedCharacterSprites,
   type LiveGraphicsSettings,
 } from "../render/live-graphics";
 import type { FaunaState } from "../core/fauna";
@@ -240,6 +242,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
     () => ({
       ...defaultLiveGraphicsSettings,
       tiltShift: !smallMemoryDevice(),
+      characterSprites: storedCharacterSprites(),
     }),
   );
   const liveGraphicsRef = useRef(liveGraphics);
@@ -415,6 +418,7 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
     updateLiveGraphics({
       ...defaultLiveGraphicsSettings,
       tiltShift: !smallMemoryDevice(),
+      characterSprites: liveGraphicsRef.current.characterSprites,
     });
     runtime.setZoom(2);
   };
@@ -2193,6 +2197,27 @@ export function App({ runtime }: { runtime: Runtime; writer: boolean }) {
                         <Plus size={17} />
                       </button>
                     </div>
+                  </div>
+                  <div className="settings-row">
+                    <span>Character sprites</span>
+                    <select
+                      aria-label="Character sprites"
+                      value={liveGraphics.characterSprites}
+                      onChange={(e) => {
+                        const next = e.target
+                          .value as LiveGraphicsSettings["characterSprites"];
+                        updateLiveGraphics({ characterSprites: next });
+                        try {
+                          localStorage.setItem(CHARACTER_SPRITES_KEY, next);
+                        } catch {
+                          /* private mode */
+                        }
+                      }}
+                    >
+                      <option value="b">B · drawn</option>
+                      <option value="c">C · modelled prototype</option>
+                      <option value="d">D · default</option>
+                    </select>
                   </div>
                   <h3>Narrator</h3>
                   <div className="settings-row">

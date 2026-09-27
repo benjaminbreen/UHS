@@ -27,6 +27,7 @@ import {
   defaultRenderer,
   outlineCharacter,
   renderers,
+  type CharacterRenderer,
   type RendererId,
 } from "../render/characters/renderers";
 import {
@@ -59,6 +60,11 @@ function download(name: string, href: string) {
   a.href = href;
   a.click();
 }
+const pairs = { ab: ["a", "b"], bc: ["b", "c"], bd: ["b", "d"], cd: ["c", "d"] } as const satisfies Record<
+  string,
+  readonly [RendererId, RendererId]
+>;
+type Pair = keyof typeof pairs;
 const FACING_NAMES = [
   "north",
   "north-east",
@@ -103,7 +109,7 @@ export function CharacterLab({
     [locked, setLocked] = useState(false);
   const [lighting, setLighting] = useState<LightingId>("midday");
   // Defaults to whatever the game draws; "a" stays selectable for comparison.
-  const [engine, setEngine] = useState<RendererId | "ab">(defaultRenderer);
+  const [engine, setEngine] = useState<RendererId | Pair>(defaultRenderer);
   const [outline, setOutline] = useState(true);
   const shadowCanvas = useRef<HTMLCanvasElement>(null);
   const hero = useRef<HTMLCanvasElement>(null),
@@ -142,14 +148,18 @@ export function CharacterLab({
     buffer.width = 80;
     buffer.height = 80;
     const b = buffer.getContext("2d")!;
-    const compare = engine === "ab";
-    const draw = renderers[compare ? "b" : engine].draw;
-    const drawCharacter: typeof draw = outline
-      ? (c, ...rest) => {
-          draw(c, ...rest);
-          outlineCharacter(c);
-        }
-      : draw;
+    const pair = engine in pairs ? pairs[engine as Pair] : undefined,
+      compare = !!pair;
+    const outlined = (id: RendererId): CharacterRenderer => {
+      const draw = renderers[id].draw;
+      return outline
+        ? (c, ...rest) => {
+            draw(c, ...rest);
+            outlineCharacter(c);
+          }
+        : draw;
+    };
+    const drawCharacter = outlined(pair ? pair[1] : (engine as RendererId));
     const galleryPhases = new Map<number, HTMLCanvasElement>();
     // `direction` is the eight-way facing here; the cardinal is what the
     // four-view legacy renderer gets.
@@ -181,10 +191,18 @@ export function CharacterLab({
           c.clearRect(0, 0, hero.current.width, 80);
           c.drawImage(buffer, compare ? 80 : 0, 0);
           if (compare) {
-            renderers.a.draw(b, appearance, cardinal(direction), pose, f, art);
+            outlined(pair[0])(
+              b,
+              appearance,
+              cardinal(direction),
+              pose,
+              f,
+              art,
+              direction,
+            );
             c.drawImage(buffer, 0, 0);
-            // The shadow and every other panel follow B, so leave it in place.
-            renderers.b.draw(
+            // The shadow and every other panel follow the right-hand one.
+            drawCharacter(
               b,
               appearance,
               cardinal(direction),
@@ -277,8 +295,8 @@ export function CharacterLab({
         {values.map((v) => (
           <option key={v} value={v}>
             {label === "Renderer"
-              ? v === "ab"
-                ? "A | B side by side"
+              ? v in pairs
+                ? `${v.toUpperCase().split("").join(" | ")} side by side`
                 : renderers[v as RendererId].label
               : label === "Facing"
                 ? FACING_NAMES[Number(v)]
@@ -643,16 +661,18 @@ export function CharacterLab({
               <canvas
                 ref={hero}
                 key={engine}
-                width={engine === "ab" ? 160 : 80}
+                width={engine in pairs ? 160 : 80}
                 height={80}
                 aria-label="Animated character preview"
                 style={{
-                  width: (engine === "ab" ? 160 : 80) * zoom,
+                  width: (engine in pairs ? 160 : 80) * zoom,
                   height: 80 * zoom,
                 }}
               />
               <span className="cl-preview-label">
-                {engine === "ab" ? "A | B · " : renderers[engine].label + " · "}
+                {engine in pairs
+                  ? engine.toUpperCase().split("").join(" | ") + " · "
+                  : renderers[engine as RendererId].label + " · "}
                 {pose} · {FACING_NAMES[direction]} · {zoom}×
               </span>
             </div>
@@ -693,8 +713,8 @@ export function CharacterLab({
                 ["2", "3", "4", "5", "6", "8"],
                 (v) => setZoom(Number(v)),
               )}
-              {select("Renderer", engine, ["a", "b", "ab"], (v) =>
-                setEngine(v as RendererId | "ab"),
+              {select("Renderer", engine, ["a", "b", "c", "d", "ab", "bc", "bd", "cd"], (v) =>
+                setEngine(v as RendererId | Pair),
               )}
               {color("Ground", background, setBackground)}
               <label>

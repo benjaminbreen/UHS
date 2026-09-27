@@ -3,6 +3,7 @@ import type { CharacterPose } from "./poses";
 import type { CarriedArt } from "./props";
 import { drawCharacter as drawA } from "./draw";
 import { drawCharacter as drawB } from "./v2/draw";
+import { drawCharacter as drawC, drawCharacterD as drawD } from "./v3/draw";
 import { lightKey } from "./v2/pixels";
 export type CharacterRenderer = (
   ctx: CanvasRenderingContext2D,
@@ -14,19 +15,21 @@ export type CharacterRenderer = (
   /** Eight-way facing; renderers that only have four views ignore it. */
   facing?: number,
 ) => void;
-export const rendererIds = ["a", "b"] as const;
+export const rendererIds = ["a", "b", "c", "d"] as const;
 export type RendererId = (typeof rendererIds)[number];
 export const renderers: Record<
   RendererId,
   { label: string; draw: CharacterRenderer }
 > = {
   a: { label: "A · legacy", draw: drawA },
-  b: { label: "B · default", draw: drawB },
+  b: { label: "B · drawn", draw: drawB },
+  c: { label: "C · modelled prototype", draw: drawC },
+  d: { label: "D · default", draw: drawD },
 };
 /** The renderer the game draws with. The lab can select either; everything
  * else should import `drawCharacter` from here rather than a variant directly,
  * so switching back is one line. */
-export const defaultRenderer: RendererId = "b";
+export const defaultRenderer: RendererId = "d";
 export const drawCharacter = renderers[defaultRenderer].draw;
 /** A dark line around the outside of a finished frame, taken from what it
  * borders, so a figure separates from ground of the same value. Full dark on
