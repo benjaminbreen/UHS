@@ -36,9 +36,12 @@ const TACTILE: Record<string, RGB> = {
   buff: [190, 158, 116],
   grey: [150, 152, 148],
 };
-// Brick and asphalt streets were kerbed in stone, not in themselves.
+/** Dressed granite, paler and warmer than the setts it retains, so the kerb
+ * reads as the one crisp line in the street. */
+const KERB: RGB = [182, 178, 166];
+// Made streets were kerbed in dressed granite, whatever they were paved in.
 const kerbStone = (m: StreetMaterial) =>
-  m === "brick" ? COURSE.slab : m === "asphalt" ? COURSE.sett : COURSE[m];
+  m === "brick" || m === "asphalt" || m === "sett" || m === "concrete" ? KERB : COURSE[m];
 
 type Side = "n" | "s" | "w" | "e";
 /** Where paving simply ends: an outline, a lit lip on the sides that face the
@@ -80,14 +83,16 @@ function kerbTone(
     n: [
       lit(stone, -3),
       block(2),
-      joint ? lit(stone, -2) : lit(stone, 3),
-      block(-1),
+      block(3),
+      joint ? lit(stone, -2) : lit(stone, 4),
       block(-2),
-      lit(mix(stone, road, 0.5), -4),
+      block(-3),
+      lit(mix(stone, road, 0.4), -5),
+      lit(road, -4),
       lit(road, -2),
       diagonal % 2 ? lit(road, -1) : undefined,
     ],
-    s: [block(1), block(2), block(1), lit(stone, -3), diagonal % 2 ? lit(road, -1) : undefined],
+    s: [lit(stone, -2), block(3), block(2), block(1), lit(stone, -4), diagonal % 2 ? lit(road, -1) : undefined],
     w: [block(0), block(1), block(0), lit(stone, -3), lit(road, -2), diagonal % 2 ? lit(road, -1) : undefined],
     e: [block(0), block(0), joint ? lit(stone, -1) : lit(stone, 2), lit(stone, -3)],
   };
@@ -133,10 +138,11 @@ export function rasterStreetTile(
       !!n &&
       n.pavement !== "dais" &&
       n.height === c.height &&
-      (n.pavement === "verge" ||
+      // A paved verge is the footway's own tree strip: kerbed to the road only.
+      ((n.pavement === "verge" && (!!c.lane || n.feature !== "paving")) ||
         // A carriageway is kerbed where it meets a square, as at a footway.
         (!!c.lane && !c.pavement && n.pavement === "square") ||
-        (c.pavement !== "footway" && kerbed(sample, x + dx, y + dy)))
+        (c.pavement !== "footway" && !(c.pavement === "verge" && !c.lane) && kerbed(sample, x + dx, y + dy)))
     );
   };
   const kerbN = kerbTo(0, -1),

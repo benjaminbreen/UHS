@@ -36,7 +36,7 @@ const grades: Record<
   { w: number; h: number; lift: number; lightJoint: boolean }
 > = {
   fine: { w: 10, h: 8, lift: -2, lightJoint: false },
-  street: { w: 13, h: 9, lift: 2, lightJoint: false },
+  street: { w: 18, h: 11, lift: 2, lightJoint: false },
   broad: { w: 12, h: 10, lift: 4, lightJoint: true },
   dais: { w: 14, h: 11, lift: 12, lightJoint: true },
 };
@@ -155,36 +155,31 @@ export function pavingStonePixel(
     const rounded = material === "cobble";
     // A square keeps the street's stone size: a second scale read as a seam.
     const scale = grade === "fine" ? 0 : grade === "dais" ? 2 : 1;
-    const w = (rounded ? 6 : 7) + scale,
-      h = (rounded ? 5 : 4) + scale;
+    const w = (rounded ? 6 : 8) + scale,
+      h = (rounded ? 5 : 5) + scale;
     const row = Math.floor(wy / h),
-      offset = mod(row, 2) * Math.floor(w / 2);
+      offset = mod(row, 2) * Math.floor(w / 2) + Math.floor(hash(row, 0, 713) * 3);
     const col = Math.floor((wx + offset) / w);
     const x = mod(wx + offset, w),
       y = mod(wy, h);
-    const variation = Math.floor(hash(col, row, 711) * 33) - 16;
-    const cast = hash(col, row, 712);
-    const joint =
-      x === 0 ||
-      y === 0 ||
-      (rounded && (x === 1 || x === w - 1) && (y === 1 || y === h - 1));
-    if (joint)
+    // Each block is dressed with its corners knocked off, so the joints open
+    // into small dark pits where four stones meet.
+    const corner = (x === 1 || x === w - 1) && (y === 1 || y === h - 1);
+    if (x === 0 || y === 0 || (corner && (rounded || hash(col, row, 714) < 0.6)))
       return g.lightJoint
-        ? rounded
-          ? [176, 172, 154]
-          : [168, 176, 176]
-        : rounded
-          ? [101, 99, 92]
-          : [96, 104, 106];
-    const light = y === 1 ? 12 : y === h - 1 ? -13 : 0;
-    const base: Color = rounded ? [160, 158, 146] : [150, 158, 160];
+        ? rounded ? [170, 166, 150] : [150, 154, 150]
+        : rounded ? [92, 88, 84] : [74, 78, 88];
+    const variation = Math.round((hash(col, row, 711) - 0.5) * 14);
+    const cast = hash(col, row, 712);
+    // Light from the upper left: a lit top course and left arris, the
+    // stone's own shadow on its lower and right edges.
+    const light = y === 1 ? 11 : y === h - 1 ? -12 : x === 1 ? 6 : x === w - 1 ? -7 : 0;
+    const base: Color = rounded ? [158, 152, 138] : [138, 136, 132];
     const stone = tint(base, variation + light + g.lift);
-    // A few stones run warm or cool so the field is not one grey.
-    return cast < 0.14
-      ? [stone[0] + 7, stone[1] + 2, stone[2] - 6]
-      : cast > 0.88
-        ? [stone[0] - 6, stone[1] - 1, stone[2] + 5]
-        : stone;
+    // Granite runs warm and cool from stone to stone; worn tops shine.
+    const warm = cast < 0.2 ? 1 : cast > 0.82 ? -1 : 0;
+    const shine = y === 2 && x > 1 && x < w - 2 && hash(col, row, 715) > 0.8 ? 5 : 0;
+    return [stone[0] + warm * 7 + shine, stone[1] + warm * 2 + shine, stone[2] - warm * 7 + shine];
   }
   const height = g.h;
   const row = Math.floor(wy / height);
@@ -247,7 +242,7 @@ export function pavingStonePixel(
   }
   // Street flagstones: dark joints, a lit top and left edge, a shaded bottom
   // and right, and each stone a shade off its neighbours.
-  const tone = Math.floor(hash(column, row, 704) * 19) - 9;
+  const tone = Math.floor(hash(column, row, 704) * 9) - 4;
   const stone = tint(face, tone);
   if (x === 0 || y === 0) return joint;
   // A nicked corner now and then keeps the grid from reading as brickwork.

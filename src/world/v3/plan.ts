@@ -1202,9 +1202,11 @@ export function planSettlement(
         const k = cellKey(x, y);
         if (plan.solid.has(k) || !dry({ x, y, w: 1, h: 1 }, false)) return;
         // An industrial city's boulevard trees stand in pits in the paving.
-        if (setSurface(k, industrialAge && !plotted ? "paving" : "grass", 4)) {
+        const pavedVerge = industrialAge && !plotted;
+        if (setSurface(k, pavedVerge ? "paving" : "grass", 4)) {
           plan.pavement!.set(k, "verge");
           plan.reserved.add(k);
+          if (pavedVerge && footwaySurface) plan.streetSurfaces!.set(k, footwaySurface);
         }
       });
     const paintVergeWalk = (rect: import("./blocks").Verge) => {

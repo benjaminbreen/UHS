@@ -74,24 +74,16 @@ export function concreteRoadPixel(lane: Lane, u: number, v: number, ax: number):
   return c;
 }
 
-/** Grooved rails set flush in the carriageway, one track each way, each
- * track laid in its own band of setts between and just beside the rails. */
-function tramRail(u: number, v: number, W: number): RGB | undefined {
+/** Grooved rails set flush in the carriageway, one track each way. */
+function tramRail(u: number, W: number): RGB | undefined {
   const c = W / 2;
   for (const track of [c - 14, c + 14]) {
     for (const rail of [track - 6, track + 6]) {
       const d = u - rail;
-      if (d === 0) return [168, 170, 166];
-      if (d === 1) return [34, 34, 36];
-    }
-    const d = u - track;
-    if (Math.abs(d) <= 8) {
-      const row = Math.floor(v / 4);
-      const x = mod(d + 8 + (row % 2) * 3, 6),
-        y = mod(v, 4);
-      if (x === 0 || y === 0) return [70, 72, 74];
-      const tone = Math.floor(hash(Math.floor((d + 8 + (row % 2) * 3) / 6), row, 811) * 14) - 7;
-      return tint([112, 116, 118], tone + (y === 1 ? 6 : 0));
+      // Rails lie flush in the street's own stone: a polished head and the
+      // dark groove beside it.
+      if (d === 0) return [176, 178, 176];
+      if (d === 1) return [46, 46, 52];
     }
   }
   return undefined;
@@ -165,7 +157,7 @@ export function carriagewayPixel(
   const m = lane.marks;
   const W = lane.span * 16;
   if (lane.tram) {
-    const rail = tramRail(u, v, W);
+    const rail = tramRail(u, W);
     if (rail) return rail;
   }
   if (lane.junction) return base;
