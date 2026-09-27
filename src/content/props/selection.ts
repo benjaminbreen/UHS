@@ -444,6 +444,19 @@ export function propKit(pack: Pack): PropKit {
     contexts.yard.push("dustbin", "washingLine");
     contexts.work.push("drum");
   }
+  // Everyday goods that date a yard. The amphora row belongs to the Roman and
+  // Greek town; coal came to the door in sacks until central heating.
+  if (urban && year >= -799 && year < 700 && ["european", "north-african-west-asian"].includes(culture))
+    contexts.work.push("amphoraStack");
+  if (culture === "european" && !urban && year >= -3999 && year < 1900) contexts.yard.push("hurdle");
+  if (year < -1999 || pack.setting?.settlement === "camp") contexts.yard.push("logPile");
+  if (tech.wheels && year >= 1500 && year < 1960 && (oldWorld || year >= 1800)) contexts.work.push("handcart");
+  if (year >= 1850 && year < 1970) contexts.yard.push("stencilCrate");
+  if (urban && year >= 1830 && year < 1960 && (culture === "european" || year >= 1880)) contexts.yard.push("coalSacks");
+  if (urban && year >= 1850) contexts.yard.push("newspapers");
+  if (year >= 1890) contexts.yard.push("bicycle");
+  if (year >= 1940) contexts.yard.push("jerrycans");
+  if (year >= 1950) contexts.work.push("pallets");
   if (year >= 1950) {
     contexts.yard.push("plastic");
     contexts.household.push("plastic");

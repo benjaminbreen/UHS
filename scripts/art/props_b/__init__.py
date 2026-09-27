@@ -102,6 +102,12 @@ from .sacred import SACRED
 # Later redraws replace the first attempts at the same family.
 DRAW_B.update(WAYSIDE)
 DRAW_B.update(SACRED)
+from .monuments import MONUMENTS
+DRAW_B.update(MONUMENTS)
+from .street import STREET
+DRAW_B.update(STREET)
+from .goods import GOODS
+DRAW_B.update(GOODS)
 
 # Boxy families that stand beside buildings take the buildings' oblique view.
 # Round ones are left alone: a barrel looks the same from every side.

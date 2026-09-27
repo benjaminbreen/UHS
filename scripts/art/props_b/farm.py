@@ -59,34 +59,24 @@ def water_butt(v=0):
 
 
 def milk_churn(v=0):
- """A conical churn: clamped lid, two beads, handles, a dairy number stencilled."""
- c = Canvas(30, 44)
+ """A 17-gallon conical churn, 0.75 m: clamped lid, a bead, two handles, a
+ dairy number stencilled. Drawn to the figure; it had been twice life size."""
+ c = Canvas(12, 18)
  m = RAMPS[['galvanised7', 'pewter7', 'brasspot7'][v]]
- cx = 14.0
- revolve(c, cx, belly(10, 39, [6.4, 10.0, 12.0, 12.4, 11.6]), m, gloss=2, foot=3)
- for y in (22, 33):
-  _hoop(c, 1, 27, y, m)
- for y in range(4, 11):                           # the neck
-  half = 6 if y > 6 else 7
-  for x in range(14 - half, 14 + half + 1):
-   u = (x - 14) / half
+ cx = 5.5
+ revolve(c, cx, belly(6, 16, [3.2, 4.8, 5.6, 5.8, 5.4]), m, gloss=2, foot=1)
+ _hoop(c, 0, 11, 11, m, thick=1)
+ for y in range(2, 6):                            # the neck
+  for x in range(3, 9):
+   u = (x + .5 - cx) / 3
    c.set(x, y, m[6] if u < -0.3 else m[4] if u < 0.5 else m[2])
- for x in range(6, 23):                           # the lid on top of it
-  u = (x - 14) / 8.0
-  c.set(x, 2, m[6] if u < -0.2 else m[4] if u < 0.6 else m[2])
-  c.set(x, 3, m[3] if u < 0.4 else m[1])
- c.set(13, 0, m[5]); c.set(14, 0, m[6]); c.set(13, 1, m[3]); c.set(14, 1, m[4])
- for cx2 in (7, 21):                              # the lid clamps
-  c.set(cx2, 3, m[2]); c.set(cx2, 4, m[5]); c.set(cx2, 5, m[3]); c.set(cx2, 6, m[1])
- for hx, sign in ((1, 1), (27, -1)):              # the carrying handles
-  for k in range(6):
-   c.set(hx, 13 + k, m[4] if k else m[6]); c.set(hx + sign, 13 + k, m[2])
-  c.set(hx + sign * 2, 13, m[3]); c.set(hx + sign * 2, 18, m[1])
-  c.set(hx + sign * 2, 15, m[5])
- for x, y in [(9, 27), (10, 27), (11, 27), (9, 28), (11, 28), (9, 29), (10, 29)]:
-  c.set(x, y, m[1])                               # a stencilled number
- for x, y in [(19, 18), (20, 19), (22, 30)]:      # dents catching the light
-  if c.get(x, y): c.set(x, y, m[6])
+ for x in range(2, 10):                           # the lid
+  c.set(x, 1, m[6] if x < 5 else m[4] if x < 8 else m[2])
+ c.set(5, 0, m[5]); c.set(6, 0, m[3])
+ for hx, tone in ((0, m[5]), (11, m[2])):         # the carrying handles
+  c.vline(hx, 6, 8, tone)
+ for x, y in [(4, 13), (5, 13), (4, 14)]:         # a stencilled number
+  c.set(x, y, m[1])
  soft_outline(c, m[0], m[2])
  return c.image()
 

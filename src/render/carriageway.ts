@@ -13,7 +13,6 @@ const WHITE: RGB = [226, 224, 210];
 const YELLOW: RGB = [228, 178, 50];
 /** Poured gutter pan and its lip where it meets the binder. */
 const PAN: RGB = [134, 134, 127];
-const SETT: RGB = [118, 124, 127];
 // Wide enough to show past the kerb's own shadow, which takes up to eight.
 const GUTTER = 13;
 
@@ -186,11 +185,16 @@ export function carriagewayPixel(
       // Dark silt washed out below the grate.
       if (along >= 3 && along <= 12 && d === 12) return tint(base, -10);
     }
-    if (!pan) return base;
-    if (m.gutter === "sett") {
-      const y = mod(v + (d > 8 ? 2 : 0), 4);
-      if (d === 8 || d === 12 || y === 0) return [78, 84, 88];
-      return tint(SETT, Math.floor(hash(Math.floor((v + (d > 8 ? 2 : 0)) / 4), d > 8 ? 1 : 0, 772) * 12) - 6 + (y === 1 ? 5 : 0));
+    // A sett or brick street drains along a channel of long stones laid
+    // lengthwise at the kerb's foot, darker and damp where the water runs.
+    if (!pan || m.gutter === "sett") {
+      if (d >= GUTTER) return base;
+      const inner = d > 8;
+      const y = mod(v + (inner ? 5 : 0), 10);
+      if (d === 8 || d === GUTTER - 1 || y === 0) return [70, 72, 78];
+      const wet = !inner && waterNoise(v, side, 6, 772) > 0.55;
+      return tint(wet ? [98, 104, 110] : [118, 118, 116],
+        Math.floor(hash(Math.floor((v + (inner ? 5 : 0)) / 10), inner ? 1 : 0, 772) * 10) - 5 + (y === 1 ? 7 : 0) + (wet && y === 2 ? 14 : 0));
     }
     if (d === GUTTER - 1) return [84, 86, 86];
     if (d >= 8) {

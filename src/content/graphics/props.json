@@ -277,8 +277,8 @@
       "name": "Barrel",
       "group": "Storage & carrying",
       "size": [
-        18,
-        24
+        17,
+        21
       ],
       "description": "A bulging stave-built barrel with an elliptical top, dark hoops and a small bung or lid.",
       "variants": [
@@ -1251,8 +1251,8 @@
       "name": "Milk churn",
       "group": "Work & agriculture",
       "size": [
-        29,
-        45
+        14,
+        20
       ],
       "description": "A conical churn with a clamped lid and carrying handles.",
       "variants": [
@@ -2933,6 +2933,105 @@
       "size": [16, 42],
       "description": "Continuous galvanized mesh panels on steel posts, aligned to the ground grid.",
       "variants": ["Across", "Depth"]
-    }
+    },
+    {
+      "id": "street-bench",
+      "name": "Street bench",
+      "group": "Street furniture",
+      "size": [40, 26],
+      "description": "A knee-high slatted bench by period: timber, Parisian cast iron, Soviet concrete trestles, galvanised steel.",
+      "variants": ["Timber", "Cast iron", "Concrete ends", "Steel"]
+    },
+    {
+      "id": "street-bin",
+      "name": "Street litter bin",
+      "group": "Street furniture",
+      "size": [14, 22],
+      "description": "Municipal litter bins by period: an iron basket on a post, a concrete urn, a hooded steel bin.",
+      "variants": ["Iron basket", "Concrete urn", "Steel bin"]
+    },
+    {
+      "id": "street-bollard",
+      "name": "Bollard",
+      "group": "Street furniture",
+      "size": [10, 15],
+      "description": "A kerb bollard: a cast-iron cannon post or a banded concrete post.",
+      "variants": ["Cast iron", "Concrete"]
+    },
+    {
+      "id": "street-planter",
+      "name": "Street planter",
+      "group": "Street furniture",
+      "size": [44, 40],
+      "description": "Civic planting: a cast-iron urn of bedding, a Versailles box with a clipped bay, a concrete trough of shrubs.",
+      "variants": ["Iron urn", "Versailles box", "Concrete trough"]
+    },
+    {
+      "id": "tree-grate",
+      "name": "Tree grate",
+      "group": "Street furniture",
+      "size": [30, 11],
+      "description": "A cast-iron grate of concentric rings round a street tree.",
+      "variants": ["Iron"]
+    },
+    {
+      "id": "gully-grate",
+      "name": "Gully grate",
+      "group": "Street furniture",
+      "size": [18, 7],
+      "description": "A kerbside drain grate in a granite surround.",
+      "variants": ["Iron"]
+    },
+    {
+      "id": "news-kiosk",
+      "name": "Newspaper kiosk",
+      "group": "Street furniture",
+      "size": [32, 52],
+      "description": "A green iron kiosk under a scalloped dome, papers pinned round the hatch: Paris from the 1850s.",
+      "variants": ["Green iron"]
+    },
+    {
+      "id": "morris-column",
+      "name": "Advertising column",
+      "group": "Street furniture",
+      "size": [18, 60],
+      "description": "A green Morris column wrapped in posters, domed and finialled.",
+      "variants": ["Posters"]
+    },
+    {
+      "id": "cafe-terrace",
+      "name": "Cafe terrace",
+      "group": "Street furniture",
+      "size": [36, 52],
+      "description": "A marble bistro table and two cane chairs, with or without a parasol.",
+      "variants": ["Open", "Parasol"]
+    },
+    {
+      "id": "street-barrow",
+      "name": "Street barrow",
+      "group": "Street furniture",
+      "size": [46, 44],
+      "description": "A seller’s barrow: buckets of cut flowers, banked fruit, or a striped awning stall.",
+      "variants": ["Flowers", "Fruit", "Awning stall"]
+    },
+    {
+      "id": "city-lamp",
+      "name": "City lamp",
+      "group": "Street furniture",
+      "size": [31, 62],
+      "description": "A cast-iron candelabra, a twin-lantern square candelabra, or a slim LED column.",
+      "variants": ["Candelabra", "Twin lantern", "LED column"]
+    },
+    {"id": "monument", "name": "Square monument", "group": "Street furniture", "size": [104, 150], "description": "A square's centrepiece by era and region: bronzes, fountains, columns, crosses, steles. Generic documented types, not replicas.", "variants": ["Bronze horseman, granite plinth", "Bronze horseman, marble plinth", "Bronze orator, granite plinth", "Cloaked bronze, sandstone plinth", "Marble statue, limestone plinth", "Statue fountain, round basin", "Statue fountain, octagonal basin", "Tiered fountain", "Heroic figure with banner, granite pylon", "Soldier memorial", "Cenotaph with wreath", "Abstract corten sculpture", "Abstract steel forms", "Roman honorific column", "Roman togate statue", "Roman gilt horseman", "Market cross", "Lantern-headed market cross", "Sadirvan fountain", "Stone lantern", "Stele on a tortoise", "Chhatri", "Lion pillar", "Maya stela and altar", "Granite obelisk", "Obelisk on a pedestal", "Heroic worker, bronze"]},
+    {"id": "stencil-crate", "name": "Stencilled shipping case", "group": "Storage & carrying", "size": [21, 18], "description": "A pine packing case with corner battens and a merchant's mark stencilled on the front: the steamship and railway age, 1850-1970.", "variants": ["Pine, black stencil", "Oak, white stencil", "Tea chest, tin edges"]},
+    {"id": "pallets", "name": "Stacked pallets", "group": "Storage & carrying", "size": [30, 19], "description": "Sawn-timber pallets with fork gaps between the blocks, stacked or loaded with cement sacks: the loading yard after 1950.", "variants": ["Three new", "Four weathered", "Two with a load"]},
+    {"id": "jerrycans", "name": "Jerrycans", "group": "Storage & carrying", "size": [20, 15], "description": "Two pressed-steel twenty-litre cans with the embossed X and three handles: fuel and water from 1940.", "variants": ["Olive drab", "Red fuel", "Desert sand"]},
+    {"id": "coal-sacks", "name": "Coal sacks", "group": "Storage & carrying", "size": [26, 19], "description": "The coalman's hundredweight sacks stood open at a door, coal heaped at the rolled hem: 1830-1960.", "variants": ["Three sacks", "Two sacks", "Three with a spill"]},
+    {"id": "newspapers", "name": "Newspaper bundles", "group": "Household", "size": [18, 15], "description": "String-tied bundles of the day's papers dropped at a kiosk or door, the top page showing its columns: from 1850.", "variants": ["White newsprint", "Two bundles", "Pink or buff sheet"]},
+    {"id": "bicycle", "name": "Bicycle", "group": "Household", "size": [38, 23], "description": "A diamond-frame roadster on its stand, wire wheels, saddle and chain: from 1890.", "variants": ["Black", "Green", "Red"]},
+    {"id": "handcart", "name": "Handcart", "group": "Storage & carrying", "size": [33, 22], "description": "A two-wheeled barrow pushed by its shafts, with a prop leg: the costermonger's, builder's and rag-and-bone man's, 1500-1960.", "variants": ["Sacks", "Crates of greens", "Empty"]},
+    {"id": "amphora-stack", "name": "Amphorae in sand", "group": "Storage & carrying", "size": [28, 26], "description": "Transport amphorae stood toe-down in a bed of sand against a warehouse or shop wall: the classical Mediterranean.", "variants": ["Terracotta", "Buff clay", "Red earth, two"]},
+    {"id": "hurdle", "name": "Wattle hurdle", "group": "Work & agriculture", "size": [34, 21], "description": "Hazel rods woven round split sails, pitched to pen sheep or close a gap: Neolithic to 1900 on the same pattern.", "variants": ["Fresh hazel", "Weathered", "Old, a rod gone"]},
+    {"id": "log-pile", "name": "Log pile", "group": "Work & agriculture", "size": [32, 17], "description": "Unsplit roundwood with the bark on, laid in a pyramid with sawn ends showing: a camp's or first village's fuel.", "variants": ["Pine", "Birch", "Oak"]}
   ]
 }

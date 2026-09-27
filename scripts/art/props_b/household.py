@@ -10,7 +10,7 @@ def sack(v=0):
  c = Canvas(16, 20)
  p = RAMPS[['burlap7', 'linen7', 'ash7'][v]]
  # A slumped bag: a wide low body, a shoulder above it, a gathered neck.
- blob(c, [(8, 13.5, 7.0, 5.6), (8, 9.8, 5.7, 4.2), (7.8, 6.2, 2.4, 2.2)], p)
+ blob(c, [(8, 13.5, 7.0, 5.6), (8, 9.8, 5.7, 4.2), (7.8, 6.2, 2.4, 2.2)], p, hard=True)
  for x, y in [(6, 3), (7, 2), (8, 2), (9, 3), (7, 3), (8, 3)]:   # puckered mouth
   c.set(x, y, p[5] if x < 8 else p[3])
  c.set(6, 2, p[4]); c.set(9, 2, p[2])
@@ -27,7 +27,7 @@ def sack(v=0):
  for x, y in [(5, 16), (6, 11)]:                            # weave in the light
   if (x, y) in c.px: c.set(x, y, p[6])
  for x in range(3, 13):                           # it settles into the ground
-  if jitter(x, 9) % 3 and (x, 18) in c.px: c.set(x, 18, p[1])
+  if (x, 18) in c.px: c.set(x, 18, p[1])
  soft_outline(c, p[0], p[2])
  return c.image()
 

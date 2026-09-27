@@ -75,11 +75,11 @@ def _head(c, cx, cy, rx, ry, w):
 
 def barrel(v=0):
  """A 0.9 m cask: bulged staves, iron hoops top and bottom, an open chime."""
- c = Canvas(16, 22)
+ c = Canvas(15, 19)
  w = WOOD[v]
- _cask(c, 8, 3, 21, [5.8, 7.2, 7.9, 7.9, 7.2, 5.8], w, (5, 8, 15, 18))
- _head(c, 8, 3, 5.8, 2.6, w)
- c.set(8, 12, INK); c.set(7, 12, w[4])             # the bung
+ _cask(c, 7.5, 2, 18, [5.4, 6.6, 7.2, 7.2, 6.6, 5.4], w, (4, 7, 12, 15))
+ _head(c, 7.5, 2, 5.4, 2.2, w)
+ c.set(8, 10, INK); c.set(7, 10, w[4])             # the bung
  c.outline(INK)
  return c.image()
 

@@ -4,7 +4,7 @@ Every ceramic body is a profile of half-widths through `revolve`, so a pot, a
 jar and an amphora catch the light the same way. What tells them apart is the
 profile and the fittings: rim, neck, handles, foot.
 """
-from .core import (Canvas, RAMPS, belly, dither, jitter, revolve,
+from .core import (Canvas, RAMPS, belly, revolve,
                    soft_outline)
 
 CLAY = ['terracotta7', 'buffclay7', 'redearth7']
@@ -57,8 +57,8 @@ def storage_jar(v=0):
  revolve(c, cx, belly(3, 18, [4.0, 6.2, 6.6, 5.4, 3.6, 3.2]), p)
  _top(c, cx, 4.4, 0, p, open_rows=2)
  for y in (8, 12):                                # the turning ridges
-  for x in range(2, 12):
-   if (x + y) % 2: c.set(x, y, p[2] if x > 8 else p[5])
+  for x in range(3, 11):
+   if c.get(x, y): c.set(x, y, p[5] if x < 5 else p[4] if x < 8 else p[2])
  c.hline(4, 9, 19, p[1])
  soft_outline(c, p[0], p[2])
  return c.image()
@@ -102,8 +102,7 @@ def amphora(v=0):
   for x in range(int(cx - half), int(cx + half) + 1):
    u = (x + .5 - cx) / half
    if abs(u) > 1: continue
-   c.set(x, y, ring[4] if u < 0 else ring[2])
-   if jitter(x, y) % 3 == 0: c.set(x, y, ring[5] if u < 0 else ring[1])
+   c.set(x, y, ring[5 if y == 20 else 4] if u < 0 else ring[3 if y == 20 else 2])
  soft_outline(c, p[0], p[2])
  return c.image()
 

@@ -179,7 +179,7 @@ def soft_outline(c, low, high):
    c.set(n[0], n[1], low if (dy > 0 or dx > 0) else high)
 
 
-def blob(c, shapes, ramp, light=(-0.52, -0.62), rim=True, gamma=0.85, spread=1.0):
+def blob(c, shapes, ramp, light=(-0.52, -0.62), rim=True, gamma=0.85, spread=1.0, hard=False):
  """Shade a union of ellipsoids by surface normal, the way a round thing reads.
 
  Per-row ramps make cones. A normal-shaded ball with the dither kept off the
@@ -204,7 +204,7 @@ def blob(c, shapes, ramp, light=(-0.52, -0.62), rim=True, gamma=0.85, spread=1.0
    step = (0.25 + lam * (len(ramp) - 1.45)) * spread
    i = int(step)
    edge = r2 > 0.80
-   if not edge and step - i > (0.64 if dither(x, y) else 0.30): i += 1
+   if not edge and step - i > (0.5 if hard else 0.64 if dither(x, y) else 0.30): i += 1
    if edge: i = max(i - 1, 0)                     # the form turns away at the rim
    mask[(x, y)] = i
    c.set(x, y, ramp[max(0, min(i, len(ramp) - 1))])

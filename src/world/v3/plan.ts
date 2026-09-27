@@ -80,6 +80,7 @@ import {
   lampFor,
   ornaments,
   stallFor,
+  streetFurnitureFor,
 } from "../../content/settlements/ornaments";
 import type { Actor, Pack, Place, Point, Position, Terrain } from "../../core/types";
 import { proceduralName } from "../../content/geography/character";
@@ -375,6 +376,14 @@ export function planSettlement(
         : "dirt";
   const motorAge = !!pack.setting && motorized(pack.setting);
   const industrialAge = !!pack.setting && industrialized(pack.setting);
+  const furniture = streetFurnitureFor(pack);
+  const municipal = (key: string) =>
+    key === "bench" ? furniture?.bench
+    : key === "planter" ? furniture?.planter
+    : key === "kiosk" ? furniture?.kiosk
+    : key === "post" ? furniture?.bollard
+    : key === "lamp" && furniture ? lampFor(pack).sprite
+    : undefined;
   const addRoad = (road: Road, surface?: typeof stone, composed = false) => {
     road = {
       ...road,
@@ -871,7 +880,7 @@ export function planSettlement(
         plan.objects.push({ id: `${site.id}-square-${tag}`, name, sprite,
           kind: "monument", pos: pos(at), inventory: {}, claim: "landscape" });
       };
-      const focus = focusFor(pack);
+      const focus = focusFor(pack, rand("monument"));
       const ornament = fabric.square.focus ? ornaments[fabric.square.focus] : undefined;
       if (focus || ornament) {
         eachCell({ x: cx - 1, y: cy - 1, w: 3, h: 3 }, (x, y) => {
@@ -896,18 +905,18 @@ export function planSettlement(
           plan.solid.add(cellKey(at.x, at.y));
           plan.objects.push({ id: `${site.id}-square-tree-${i}-${j}`, name: "Square tree",
             kind: "tree", pos: pos(at), sprite: pack.trees[0], inventory: {}, claim: "landscape" });
-          place(`bench-${i}-${j}`, "Park bench", "study-propb-park-bench-0", { x: x + 1, y: y + 4 }, 3);
+          place(`bench-${i}-${j}`, "Park bench", furniture?.bench ?? "study-propb-park-bench-0", { x: x + 1, y: y + 4 }, 3);
         }
         const lamp = lampFor(pack);
         place(`lamp-${i}`, lamp.label, lamp.sprite, { x: x + 1, y: court.y + (court.h >> 1) });
-        place(`bin-${i}`, "Litter basket", "study-propb-litter-bin-0", { x: x + 3, y: court.y + court.h - 3 });
+        place(`bin-${i}`, "Litter basket", furniture?.bin ?? "study-propb-litter-bin-0", { x: x + 3, y: court.y + court.h - 3 });
       }
       const source = plan.objects.find((o) => o.id === `${site.id}-water`)!;
       source.name = "Public water pump";
       source.sprite = "study-propb-pump-0";
       source.pos = pos({ x: court.x + 1, y: court.y + court.h - 2 });
       waterStand.x = source.pos.x + 1; waterStand.y = source.pos.y;
-      place("newsstand", "Newspaper kiosk", "study-propb-newsstand-2",
+      place("newsstand", "Newspaper kiosk", furniture?.kiosk ?? "study-propb-newsstand-2",
         { x: court.x + court.w - 3, y: court.y + court.h - 2 }, 3);
       socialCenter.x = cx; socialCenter.y = cy + 3;
       plan.spawn = { ...socialCenter };
@@ -968,13 +977,15 @@ export function planSettlement(
         }
         if (focus) plan.solid.add(cellKey(spot.x, spot.y));
         // A square's centrepiece is the one ornament that has to be local.
-        const local = focus ? focusFor(pack) : undefined;
+        const local = focus ? focusFor(pack, rand("monument")) : undefined;
         plan.objects.push({
           id: `${site.id}-${piece.id}-${tag}`,
           name: local?.label ?? piece.label,
           kind: piece.kind,
           sprite:
-            local?.sprite ?? ((focus && piece.focusSprite) || piece.sprite),
+            local?.sprite ??
+            (focus ? undefined : municipal(key)) ??
+            ((focus && piece.focusSprite) || piece.sprite),
           pos: pos(spot),
           inventory: {},
         });
@@ -1049,6 +1060,17 @@ export function planSettlement(
         }
         place(key, { x: x0 + dx * 2, y: y0 + dy * 2 }, `corner-${i}`);
       }
+      if (furniture?.column && min >= 11)
+        for (const [tag, name, sprite, x, w] of [
+          ["column", "Advertising column", furniture.column, court.x + 2, 1],
+          ["cafe", "Cafe table", "study-propb-cafe-terrace-1", court.x + court.w - 4, 2],
+        ] as const) {
+          const at = { x, y: cy };
+          if (!dry({ ...at, w, h: 1 }, false) || plan.solid.has(cellKey(x, cy))) continue;
+          for (let dx = 0; dx < w; dx++) plan.solid.add(cellKey(x + dx, cy));
+          plan.objects.push({ id: `${site.id}-square-${tag}`, name, kind: "monument",
+            sprite, pos: pos(at), inventory: {} });
+        }
       // A hidden hearth goes behind the civic range: still reachable for the
       // routines that cook and gather there, but off the square.
       if (spec.hearth === "hidden" && civicRect) {
@@ -1292,7 +1314,7 @@ export function planSettlement(
           const at = { x, y: cy + 3 }, k = cellKey(x, cy + 3);
           if (plan.solid.has(k) || x <= rect.x || x >= rect.x + rect.w - 1) continue;
           plan.objects.push({ id: `${site.id}-park-${index}-bench-${i}`, name: "Park bench", kind: "monument",
-            sprite: "study-propb-park-bench-0", pos: pos(at), inventory: {} });
+            sprite: furniture?.bench ?? "study-propb-park-bench-0", pos: pos(at), inventory: {} });
           for (let dx = -1; dx <= 1; dx++) plan.solid.add(cellKey(x + dx, at.y));
         }
         for (const [i, x] of [cx - 4, cx + 4].entries()) {
@@ -1300,12 +1322,12 @@ export function planSettlement(
           const at = { x, y: cy - 3 };
           if (plan.solid.has(cellKey(x, at.y))) continue;
           plan.objects.push({ id: `${site.id}-park-${index}-flowers-${i}`, name: "Flower trough", kind: "monument",
-            sprite: "study-propb-municipal-planter-0", pos: pos(at), inventory: {} });
+            sprite: furniture?.planter ?? "study-propb-municipal-planter-0", pos: pos(at), inventory: {} });
           for (let dx = -1; dx <= 1; dx++) plan.solid.add(cellKey(x + dx, at.y));
         }
         const bin = { x: cx + 2, y: rect.y + rect.h - 2 };
         plan.objects.push({ id: `${site.id}-park-${index}-bin`, name: "Litter basket", kind: "monument",
-          sprite: "study-propb-litter-bin-0", pos: pos(bin), inventory: {} });
+          sprite: furniture?.bin ?? "study-propb-litter-bin-0", pos: pos(bin), inventory: {} });
         plan.solid.add(cellKey(bin.x, bin.y));
         return;
       }
@@ -1339,7 +1361,7 @@ export function planSettlement(
           id: `${site.id}-park-bench-${index}`,
           name: bench.label,
           kind: bench.kind,
-          sprite: bench.sprite,
+          sprite: furniture?.bench ?? bench.sprite,
           pos: pos(benchAt),
           inventory: {},
         });
@@ -1493,7 +1515,7 @@ export function planSettlement(
         id: `${site.id}-${item.id}-${piece.x}-${piece.y}`,
         name: lamp?.label ?? item.label,
         kind: item.kind,
-        sprite: lamp?.sprite ?? (fabric.motor ? "study-propb-municipal-planter-0" : item.sprite),
+        sprite: lamp?.sprite ?? furniture?.planter ?? (fabric.motor ? "study-propb-municipal-planter-0" : item.sprite),
         pos: pos(piece),
         inventory: {},
       });
@@ -3331,7 +3353,7 @@ export function planSettlement(
             id: `${id}-planter-${dx < 0 ? "l" : "r"}`,
             name: ornaments.planter.label,
             kind: ornaments.planter.kind,
-            sprite: ornaments.planter.sprite,
+            sprite: furniture?.planter ?? ornaments.planter.sprite,
             pos: pos(at),
             inventory: {},
           });
